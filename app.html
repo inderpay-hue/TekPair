@@ -1,0 +1,1331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="theme-color" content="#0055FF">
+<title>Tekpair — App</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --blue:#0055FF;--blue-dark:#0040CC;--blue-light:#EBF1FF;
+  --navy:#020B2E;--text:#0F1729;--muted:#64748B;
+  --border:#E2E8F0;--white:#FFFFFF;--green:#00C896;
+  --bg:#F7F9FC;--red:#EF4444;--orange:#F97316;
+  --purple:#7C3AED;--sidebar:260px;
+}
+*{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;overflow:hidden}
+body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text)}
+
+/* ══════════════════════════════
+   LOGIN
+══════════════════════════════ */
+#loginScreen{
+  position:fixed;inset:0;z-index:1000;
+  background:linear-gradient(145deg,var(--navy) 0%,#0A1E4A 100%);
+  display:flex;align-items:center;justify-content:center;
+  padding:20px;
+}
+.login-box{
+  background:white;border-radius:24px;padding:40px 36px;
+  width:100%;max-width:400px;
+  box-shadow:0 40px 80px rgba(0,0,0,.3);
+}
+.login-logo{display:flex;align-items:center;gap:10px;margin-bottom:28px}
+.login-mark{width:40px;height:40px;background:var(--blue);border-radius:11px;display:flex;align-items:center;justify-content:center;color:white;font-size:20px;font-weight:800}
+.login-name{font-size:22px;font-weight:700;color:var(--navy)}
+.login-title{font-size:24px;font-weight:700;color:var(--navy);margin-bottom:6px}
+.login-sub{font-size:14px;color:var(--muted);margin-bottom:28px}
+.lf{margin-bottom:16px}
+.ll{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+.li{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:13px 14px;font-family:inherit;font-size:14px;color:var(--text);outline:none;transition:border-color .2s}
+.li:focus{border-color:var(--blue)}
+.login-btn{width:100%;background:var(--blue);color:white;border:none;padding:14px;border-radius:10px;font-family:inherit;font-size:15px;font-weight:600;cursor:pointer;transition:all .2s;margin-top:4px}
+.login-btn:hover{background:var(--blue-dark)}
+.login-err{color:var(--red);font-size:13px;margin-top:10px;text-align:center;min-height:20px}
+.login-footer{text-align:center;margin-top:20px;font-size:13px;color:var(--muted)}
+.login-footer a{color:var(--blue);text-decoration:none;font-weight:600}
+
+/* ══════════════════════════════
+   LAYOUT
+══════════════════════════════ */
+#appLayout{display:none;height:100vh;overflow:hidden}
+
+/* SIDEBAR */
+.sidebar{
+  position:fixed;left:0;top:0;bottom:0;
+  width:var(--sidebar);background:var(--navy);
+  display:flex;flex-direction:column;z-index:50;
+  transition:transform .3s ease;
+}
+.sidebar-logo{padding:24px 20px;border-bottom:1px solid rgba(255,255,255,.06)}
+.sidebar-logo-inner{display:flex;align-items:center;gap:10px}
+.sl-mark{width:34px;height:34px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;color:white;font-size:17px;font-weight:800;flex-shrink:0}
+.sl-name{font-size:18px;font-weight:700;color:white}
+.sl-store{font-size:11px;color:rgba(255,255,255,.4);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.sidebar-nav{flex:1;padding:16px 10px;overflow-y:auto}
+.nav-section{margin-bottom:20px}
+.nav-section-label{font-size:10px;font-weight:700;color:rgba(255,255,255,.25);text-transform:uppercase;letter-spacing:1.5px;padding:0 10px;margin-bottom:6px}
+.nav-item{
+  display:flex;align-items:center;gap:11px;
+  padding:10px 12px;border-radius:10px;cursor:pointer;
+  color:rgba(255,255,255,.55);font-size:14px;font-weight:500;
+  transition:all .2s;margin-bottom:2px;
+}
+.nav-item:hover{background:rgba(255,255,255,.06);color:rgba(255,255,255,.85)}
+.nav-item.active{background:var(--blue);color:white}
+.nav-item .ni-icon{font-size:17px;flex-shrink:0;width:22px;text-align:center}
+.nav-badge{background:var(--red);color:white;font-size:10px;font-weight:700;padding:2px 6px;border-radius:10px;margin-left:auto}
+
+.sidebar-footer{padding:16px 10px;border-top:1px solid rgba(255,255,255,.06)}
+.user-card{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;border-radius:10px;cursor:pointer;
+  transition:background .2s;
+}
+.user-card:hover{background:rgba(255,255,255,.06)}
+.uc-avatar{width:34px;height:34px;border-radius:50%;background:var(--blue);display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px;flex-shrink:0}
+.uc-name{font-size:13px;font-weight:600;color:white;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uc-role{font-size:11px;color:rgba(255,255,255,.4)}
+.uc-logout{margin-left:auto;color:rgba(255,255,255,.3);font-size:16px;cursor:pointer;padding:4px;border:none;background:none;transition:color .2s}
+.uc-logout:hover{color:var(--red)}
+
+/* MAIN CONTENT */
+.main-content{
+  margin-left:var(--sidebar);height:100vh;
+  display:flex;flex-direction:column;overflow:hidden;
+}
+.topbar{
+  background:white;border-bottom:1px solid var(--border);
+  padding:0 28px;height:64px;display:flex;align-items:center;
+  justify-content:space-between;flex-shrink:0;
+}
+.topbar-title{font-size:18px;font-weight:700;color:var(--navy)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.topbar-btn{
+  background:var(--blue);color:white;border:none;
+  padding:9px 18px;border-radius:8px;font-size:13px;
+  font-weight:600;cursor:pointer;font-family:inherit;
+  display:flex;align-items:center;gap:6px;transition:all .2s;
+}
+.topbar-btn:hover{background:var(--blue-dark)}
+.topbar-btn.green{background:var(--green)}
+.topbar-btn.green:hover{background:#00a87e}
+.mobile-menu-btn{display:none;background:none;border:none;font-size:22px;cursor:pointer;color:var(--navy)}
+
+.page-content{flex:1;overflow-y:auto;padding:28px}
+
+/* ══════════════════════════════
+   PAGES
+══════════════════════════════ */
+.page{display:none}
+.page.active{display:block}
+
+/* DASHBOARD */
+.stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
+.stat-card{background:white;border-radius:16px;padding:20px;border:1px solid var(--border)}
+.stat-icon{width:44px;height:44px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;margin-bottom:12px}
+.stat-icon.blue{background:var(--blue-light)}
+.stat-icon.green{background:rgba(0,200,150,.1)}
+.stat-icon.orange{background:rgba(249,115,22,.1)}
+.stat-icon.purple{background:rgba(124,58,237,.1)}
+.stat-val{font-size:28px;font-weight:800;color:var(--navy);line-height:1}
+.stat-lbl{font-size:12px;color:var(--muted);margin-top:4px}
+.stat-change{font-size:12px;font-weight:600;margin-top:6px}
+.stat-change.up{color:var(--green)}
+.stat-change.down{color:var(--red)}
+
+.dash-grid{display:grid;grid-template-columns:2fr 1fr;gap:20px}
+.card{background:white;border-radius:16px;padding:22px;border:1px solid var(--border);margin-bottom:20px}
+.card-title{font-size:15px;font-weight:700;color:var(--navy);margin-bottom:16px;display:flex;justify-content:space-between;align-items:center}
+.card-link{font-size:12px;color:var(--blue);cursor:pointer;font-weight:600}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse}
+.tbl th{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.tbl td{padding:12px;font-size:13px;color:var(--text);border-bottom:1px solid var(--border)}
+.tbl tr:last-child td{border-bottom:none}
+.tbl tr:hover td{background:var(--bg)}
+
+/* BADGES */
+.badge{display:inline-flex;align-items:center;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.green{background:rgba(0,200,150,.1);color:#00875A}
+.badge.orange{background:rgba(249,115,22,.1);color:#C2410C}
+.badge.blue{background:var(--blue-light);color:var(--blue)}
+.badge.red{background:rgba(239,68,68,.1);color:var(--red)}
+.badge.purple{background:rgba(124,58,237,.1);color:var(--purple)}
+.badge.gray{background:var(--bg);color:var(--muted)}
+
+/* SEARCH BAR */
+.search-bar{
+  display:flex;align-items:center;gap:10px;
+  background:white;border:1px solid var(--border);
+  border-radius:10px;padding:10px 14px;margin-bottom:16px;
+}
+.search-bar input{border:none;outline:none;font-family:inherit;font-size:14px;color:var(--text);flex:1;background:none}
+.search-bar input::placeholder{color:#94A3B8}
+
+/* FILTERS */
+.filter-row{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filter-chip{
+  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;
+  cursor:pointer;border:1.5px solid var(--border);color:var(--muted);
+  background:white;transition:all .2s;white-space:nowrap;
+}
+.filter-chip.active{background:var(--blue);border-color:var(--blue);color:white}
+
+/* EMPTY STATE */
+.empty-state{text-align:center;padding:48px 20px;color:var(--muted)}
+.empty-state .es-icon{font-size:48px;margin-bottom:12px}
+.empty-state .es-title{font-size:16px;font-weight:600;color:var(--navy);margin-bottom:6px}
+.empty-state .es-sub{font-size:13px}
+
+/* LOADING */
+.loading{display:flex;align-items:center;justify-content:center;padding:48px}
+.spinner{width:32px;height:32px;border:3px solid var(--border);border-top-color:var(--blue);border-radius:50%;animation:spin .7s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ══════════════════════════════
+   MODALS
+══════════════════════════════ */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:200;display:none;align-items:center;justify-content:center;
+  padding:20px;backdrop-filter:blur(4px);
+}
+.modal-overlay.open{display:flex}
+.modal{
+  background:white;border-radius:20px;padding:28px;
+  width:100%;max-width:520px;max-height:90vh;overflow-y:auto;
+  animation:modalIn .25s ease;
+}
+@keyframes modalIn{from{opacity:0;transform:scale(.95)}to{opacity:1;transform:scale(1)}}
+.modal-title{font-size:20px;font-weight:700;color:var(--navy);margin-bottom:20px}
+.fg{margin-bottom:16px}
+.fl{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+.fi{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:12px 13px;font-family:inherit;font-size:14px;color:var(--text);outline:none;transition:border-color .2s;background:white}
+.fi:focus{border-color:var(--blue)}
+.fi-sel{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 5 5-5' stroke='%2364748B' stroke-width='1.5' fill='none'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.modal-btns{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:20px}
+.btn-cancel{background:white;border:1.5px solid var(--border);color:var(--muted);padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-cancel:hover{border-color:var(--navy);color:var(--navy)}
+.btn-save{background:var(--blue);color:white;border:none;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.btn-save:hover{background:var(--blue-dark)}
+.btn-save.green{background:var(--green)}
+.btn-save.red{background:var(--red)}
+.btn-full{width:100%;padding:13px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;border:none;background:var(--blue);color:white;transition:all .2s;margin-top:8px}
+.btn-full:hover{background:var(--blue-dark)}
+
+/* PARTS GRID */
+.parts-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.part-chip{border:2px solid var(--border);border-radius:12px;padding:12px 8px;cursor:pointer;text-align:center;transition:all .2s}
+.part-chip:hover{border-color:var(--blue)}
+.part-chip.selected{border-color:var(--green);background:rgba(0,200,150,.06)}
+.pc-icon{font-size:22px;margin-bottom:5px}
+.pc-name{font-size:11px;font-weight:600;color:var(--navy)}
+.pc-price{font-size:12px;color:var(--green);font-weight:700;margin-top:2px}
+
+/* TOAST */
+.toast{
+  position:fixed;top:20px;left:50%;transform:translateX(-50%);
+  background:var(--navy);color:white;
+  padding:11px 20px;border-radius:10px;font-size:13px;font-weight:500;
+  z-index:999;opacity:0;transition:.3s;pointer-events:none;
+  white-space:nowrap;box-shadow:0 8px 24px rgba(0,0,0,.2);
+}
+.toast.show{opacity:1}
+.toast.success{background:#065F46;border:1px solid #34D399}
+.toast.error{background:#7F1D1D;border:1px solid #F87171}
+
+/* MOBILE SIDEBAR OVERLAY */
+.sidebar-overlay{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);
+  z-index:49;
+}
+
+/* ══════════════════════════════
+   RESPONSIVE
+══════════════════════════════ */
+@media(max-width:1024px){
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .dash-grid{grid-template-columns:1fr}
+}
+@media(max-width:768px){
+  :root{--sidebar:0px}
+  .sidebar{transform:translateX(-260px);width:260px}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay{display:none}
+  .sidebar-overlay.open{display:block}
+  .main-content{margin-left:0}
+  .mobile-menu-btn{display:block}
+  .topbar{padding:0 16px}
+  .page-content{padding:16px}
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:12px}
+  .modal{border-radius:16px;padding:20px}
+  .g2,.g3{grid-template-columns:1fr}
+}
+@media(max-width:480px){
+  .stats-grid{grid-template-columns:1fr 1fr}
+  .stat-val{font-size:22px}
+  .parts-grid{grid-template-columns:repeat(2,1fr)}
+}
+</style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════════════
+     LOGIN
+══════════════════════════════ -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-logo">
+      <div class="login-mark">T</div>
+      <span class="login-name">Tekpair</span>
+    </div>
+    <div class="login-title">Bienvenido</div>
+    <div class="login-sub">Inicia sesión en tu tienda</div>
+    <div class="lf">
+      <label class="ll">Email</label>
+      <input class="li" id="loginEmail" type="email" placeholder="tu@email.com" />
+    </div>
+    <div class="lf">
+      <label class="ll">Contraseña</label>
+      <input class="li" id="loginPass" type="password" placeholder="••••••••" />
+    </div>
+    <button class="login-btn" id="loginBtn">Entrar →</button>
+    <div class="login-err" id="loginErr"></div>
+    <div class="login-footer">¿No tienes cuenta? <a href="/registro.html">Regístrate gratis</a></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     APP LAYOUT
+══════════════════════════════ -->
+<div id="appLayout">
+  <div class="sidebar-overlay" id="sidebarOverlay"></div>
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <div class="sidebar-logo-inner">
+        <div class="sl-mark">T</div>
+        <div>
+          <div class="sl-name">Tekpair</div>
+          <div class="sl-store" id="sidebarStoreName">Mi tienda</div>
+        </div>
+      </div>
+    </div>
+
+    <nav class="sidebar-nav">
+      <div class="nav-section">
+        <div class="nav-section-label">Principal</div>
+        <div class="nav-item active" data-page="dashboard">
+          <span class="ni-icon">🏠</span>Dashboard
+        </div>
+        <div class="nav-item" data-page="ventas">
+          <span class="ni-icon">📱</span>Ventas
+        </div>
+        <div class="nav-item" data-page="reparaciones">
+          <span class="ni-icon">🔧</span>Reparaciones
+          <span class="nav-badge" id="repBadge" style="display:none">0</span>
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">Inventario</div>
+        <div class="nav-item" data-page="stock">
+          <span class="ni-icon">📦</span>Stock IMEI
+        </div>
+        <div class="nav-item" data-page="componentes">
+          <span class="ni-icon">🔩</span>Componentes
+        </div>
+      </div>
+      <div class="nav-section">
+        <div class="nav-section-label">Clientes</div>
+        <div class="nav-item" data-page="clientes">
+          <span class="ni-icon">👥</span>Clientes
+        </div>
+      </div>
+      <div class="nav-section admin-only" style="display:none">
+        <div class="nav-section-label">Admin</div>
+        <div class="nav-item" data-page="beneficios">
+          <span class="ni-icon">📊</span>Beneficios
+        </div>
+        <div class="nav-item" data-page="empleados">
+          <span class="ni-icon">👷</span>Empleados
+        </div>
+      </div>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="uc-avatar" id="ucAvatar">U</div>
+        <div>
+          <div class="uc-name" id="ucName">---</div>
+          <div class="uc-role" id="ucRole">---</div>
+        </div>
+        <button class="uc-logout" id="logoutBtn" title="Cerrar sesión">⏻</button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <div class="main-content">
+    <header class="topbar">
+      <div style="display:flex;align-items:center;gap:12px">
+        <button class="mobile-menu-btn" id="mobileMenuBtn">☰</button>
+        <div class="topbar-title" id="topbarTitle">Dashboard</div>
+      </div>
+      <div class="topbar-right" id="topbarActions"></div>
+    </header>
+
+    <div class="page-content">
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-grid" id="dashStats">
+          <div class="stat-card"><div class="stat-icon blue">📱</div><div class="stat-val" id="stVentas">0</div><div class="stat-lbl">Ventas totales</div></div>
+          <div class="stat-card"><div class="stat-icon green">💰</div><div class="stat-val" id="stIngresos">€0</div><div class="stat-lbl">Ingresos</div></div>
+          <div class="stat-card"><div class="stat-icon orange">🔧</div><div class="stat-val" id="stReps">0</div><div class="stat-lbl">Reparaciones</div></div>
+          <div class="stat-card"><div class="stat-icon purple">📦</div><div class="stat-val" id="stStock">0</div><div class="stat-lbl">Stock disponible</div></div>
+        </div>
+        <div class="dash-grid">
+          <div>
+            <div class="card">
+              <div class="card-title">Últimas órdenes <span class="card-link" onclick="goPage('reparaciones')">Ver todas →</span></div>
+              <div id="dashReps"><div class="loading"><div class="spinner"></div></div></div>
+            </div>
+          </div>
+          <div>
+            <div class="card">
+              <div class="card-title">Accesos rápidos</div>
+              <div style="display:flex;flex-direction:column;gap:9px">
+                <button class="topbar-btn" style="width:100%;justify-content:center" onclick="openModal('modalVenta')">📱 Nueva Venta</button>
+                <button class="topbar-btn green" style="width:100%;justify-content:center" onclick="openModal('modalRep')">🔧 Nueva Reparación</button>
+                <button class="topbar-btn" style="background:var(--orange);width:100%;justify-content:center" onclick="openModal('modalStock')">📦 Añadir Stock</button>
+                <button class="topbar-btn" style="background:var(--purple);width:100%;justify-content:center" onclick="openModal('modalCliente')">👤 Nuevo Cliente</button>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-title">Stock bajo ⚠️</div>
+              <div id="dashStockBajo"><div class="empty-state"><div class="es-icon">✅</div><div class="es-sub">Todo el stock está bien</div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- VENTAS -->
+      <div class="page" id="page-ventas">
+        <div class="search-bar"><input id="ventasSearch" placeholder="Buscar por cliente, modelo, IMEI..." oninput="filterVentas()" /></div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div id="ventasContent"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- REPARACIONES -->
+      <div class="page" id="page-reparaciones">
+        <div class="filter-row" id="repFilters">
+          <div class="filter-chip active" data-filter="todas">Todas</div>
+          <div class="filter-chip" data-filter="Pendiente">Pendiente</div>
+          <div class="filter-chip" data-filter="En Proceso">En Proceso</div>
+          <div class="filter-chip" data-filter="Por Entregar">Por Entregar</div>
+          <div class="filter-chip" data-filter="Entregado">Entregado</div>
+          <div class="filter-chip" data-filter="Garantia">Garantía</div>
+        </div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div id="repsContent"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- STOCK -->
+      <div class="page" id="page-stock">
+        <div class="search-bar"><input id="stockSearch" placeholder="Buscar modelo, IMEI, color..." oninput="filterStock()" /></div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div id="stockContent"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- COMPONENTES -->
+      <div class="page" id="page-componentes">
+        <div class="card" style="padding:0;overflow:hidden">
+          <div id="compContent"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- CLIENTES -->
+      <div class="page" id="page-clientes">
+        <div class="search-bar"><input id="clientesSearch" placeholder="Buscar por nombre, email, teléfono..." oninput="filterClientes()" /></div>
+        <div class="card" style="padding:0;overflow:hidden">
+          <div id="clientesContent"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+
+      <!-- BENEFICIOS -->
+      <div class="page" id="page-beneficios">
+        <div id="beneficiosContent"><div class="loading"><div class="spinner"></div></div></div>
+      </div>
+
+      <!-- EMPLEADOS -->
+      <div class="page" id="page-empleados">
+        <div class="card" style="padding:0;overflow:hidden">
+          <div id="empleadosContent"><div class="loading"><div class="spinner"></div></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     MODALS
+══════════════════════════════ -->
+
+<!-- NUEVA VENTA -->
+<div class="modal-overlay" id="modalVenta">
+  <div class="modal">
+    <div class="modal-title">📱 Nueva Venta</div>
+    <div class="fg"><label class="fl">Modelo *</label><input class="fi" id="vModelo" placeholder="iPhone 14, Samsung S24..." /></div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Marca</label>
+        <select class="fi fi-sel" id="vMarca"><option>Apple</option><option>Samsung</option><option>Xiaomi</option><option>Huawei</option><option>OnePlus</option><option>Motorola</option><option>Google</option><option>Otro</option></select>
+      </div>
+      <div class="fg"><label class="fl">Capacidad</label><input class="fi" id="vCap" placeholder="128GB" /></div>
+    </div>
+    <div class="fg"><label class="fl">IMEI *</label><input class="fi" id="vImei" placeholder="15 dígitos" maxlength="15" /></div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Color</label><input class="fi" id="vColor" placeholder="Negro" /></div>
+      <div class="fg"><label class="fl">Estado</label>
+        <select class="fi fi-sel" id="vEstado"><option>Nuevo</option><option>Reacond. A</option><option>Reacond. B</option><option>Segunda Mano</option></select>
+      </div>
+    </div>
+    <div class="fg"><label class="fl">Cliente</label><select class="fi fi-sel" id="vCliente"></select></div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Precio venta (€) *</label><input class="fi" type="number" id="vPrecio" placeholder="299" /></div>
+      <div class="fg"><label class="fl">Forma de pago</label>
+        <select class="fi fi-sel" id="vPago"><option>Efectivo</option><option>Tarjeta</option><option>Bizum</option><option>Transferencia</option><option>PayPal</option></select>
+      </div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modalVenta')">Cancelar</button>
+      <button class="btn-save" onclick="saveVenta()">Guardar venta</button>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVA REPARACIÓN -->
+<div class="modal-overlay" id="modalRep">
+  <div class="modal">
+    <div class="modal-title">🔧 Nueva Reparación</div>
+    <div class="fg"><label class="fl">Cliente</label><select class="fi fi-sel" id="rCliente"></select></div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Marca</label>
+        <select class="fi fi-sel" id="rMarca"><option>Apple</option><option>Samsung</option><option>Xiaomi</option><option>Huawei</option><option>OnePlus</option><option>Motorola</option><option>Otro</option></select>
+      </div>
+      <div class="fg"><label class="fl">Modelo *</label><input class="fi" id="rModelo" placeholder="iPhone 13..." /></div>
+    </div>
+    <div class="fg"><label class="fl">IMEI</label><input class="fi" id="rImei" placeholder="Opcional" /></div>
+    <div class="fg"><label class="fl">Avería *</label><input class="fi" id="rAveria" placeholder="Pantalla rota, batería, etc." /></div>
+    <div class="fl" style="margin-bottom:8px">Componentes a usar</div>
+    <div class="parts-grid" id="partsGrid"></div>
+    <div id="selPartsBox" style="display:none;margin-bottom:14px">
+      <div class="fl">Componentes seleccionados</div>
+      <div id="selPartsList"></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Mano de obra (€)</label><input class="fi" type="number" id="rMO" value="0" oninput="updateRepTotal()" /></div>
+      <div class="fg"><label class="fl">Estado inicial</label>
+        <select class="fi fi-sel" id="rEstado"><option>Pendiente</option><option>En Proceso</option></select>
+      </div>
+    </div>
+    <div style="background:rgba(0,200,150,.06);border:1px solid rgba(0,200,150,.2);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span style="color:var(--muted)">Mano de obra</span><span id="rMOval">€0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span style="color:var(--muted)">Componentes</span><span id="rPartsVal">€0</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:15px;font-weight:700;color:var(--green);border-top:1px solid rgba(0,200,150,.2);padding-top:8px"><span>Total</span><span id="rTotalVal">€0</span></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modalRep')">Cancelar</button>
+      <button class="btn-save green" onclick="saveRep()">Crear orden</button>
+    </div>
+  </div>
+</div>
+
+<!-- AÑADIR STOCK -->
+<div class="modal-overlay" id="modalStock">
+  <div class="modal">
+    <div class="modal-title">📦 Añadir Stock</div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Marca</label>
+        <select class="fi fi-sel" id="sMarca"><option>Apple</option><option>Samsung</option><option>Xiaomi</option><option>Huawei</option><option>OnePlus</option><option>Google</option><option>Motorola</option><option>Sony</option><option>Otro</option></select>
+      </div>
+      <div class="fg"><label class="fl">Modelo *</label><input class="fi" id="sModelo" placeholder="iPhone 11..." /></div>
+    </div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Capacidad</label><input class="fi" id="sCap" placeholder="128GB" /></div>
+      <div class="fg"><label class="fl">Color</label><input class="fi" id="sColor" placeholder="Negro" /></div>
+    </div>
+    <div class="fg"><label class="fl">IMEI *</label><input class="fi" id="sImei" placeholder="14-15 dígitos" maxlength="15" /></div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Estado</label>
+        <select class="fi fi-sel" id="sEstado"><option>Nuevo</option><option>Reacond. A</option><option>Reacond. B</option><option>Segunda Mano</option></select>
+      </div>
+      <div class="fg"><label class="fl">P. Compra (€)</label><input class="fi" type="number" id="sPrecioC" value="0" /></div>
+    </div>
+    <div class="fg"><label class="fl">P. Venta (€) *</label><input class="fi" type="number" id="sPrecioV" value="0" /></div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modalStock')">Cancelar</button>
+      <button class="btn-save" onclick="saveStock()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO CLIENTE -->
+<div class="modal-overlay" id="modalCliente">
+  <div class="modal">
+    <div class="modal-title">👤 Nuevo Cliente</div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="cNom" /></div>
+      <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="cApe" /></div>
+    </div>
+    <div class="fg"><label class="fl">DNI / NIF</label><input class="fi" id="cDni" /></div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="cTel" /></div>
+      <div class="fg"><label class="fl">Email</label><input class="fi" id="cEmail" type="email" /></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modalCliente')">Cancelar</button>
+      <button class="btn-save" onclick="saveCliente()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO COMPONENTE -->
+<div class="modal-overlay" id="modalComp">
+  <div class="modal">
+    <div class="modal-title">🔩 Añadir Componente</div>
+    <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="compNom" placeholder="Pantalla iPhone 11..." /></div>
+    <div class="g2">
+      <div class="fg"><label class="fl">Modelo</label><input class="fi" id="compMod" placeholder="iPhone 11" /></div>
+      <div class="fg"><label class="fl">Categoría</label>
+        <select class="fi fi-sel" id="compCat"><option>Pantalla</option><option>Batería</option><option>Tapa trasera</option><option>Altavoz</option><option>Pin de carga</option><option>Placa/Flex</option><option>Micrófono</option><option>Cámara</option><option>Botones</option><option>Marco</option><option>Otro</option></select>
+      </div>
+    </div>
+    <div class="g3">
+      <div class="fg"><label class="fl">Stock</label><input class="fi" type="number" id="compSt" value="1" /></div>
+      <div class="fg"><label class="fl">P. Compra</label><input class="fi" type="number" id="compPC" value="0" /></div>
+      <div class="fg"><label class="fl">P. Venta</label><input class="fi" type="number" id="compPV" value="0" /></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modalComp')">Cancelar</button>
+      <button class="btn-save" onclick="saveComp()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NUEVO EMPLEADO -->
+<div class="modal-overlay" id="modalEmpleado">
+  <div class="modal">
+    <div class="modal-title">👷 Nuevo Empleado</div>
+    <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="empNom" /></div>
+    <div class="fg"><label class="fl">Email *</label><input class="fi" id="empEmail" type="email" /></div>
+    <div class="fg"><label class="fl">Contraseña *</label><input class="fi" id="empPass" type="password" /></div>
+    <div class="fg"><label class="fl">PIN (4 dígitos)</label><input class="fi" id="empPin" type="number" maxlength="4" placeholder="Opcional" /></div>
+    <div class="fg"><label class="fl">Rol</label>
+      <select class="fi fi-sel" id="empRol"><option value="empleado">Empleado</option><option value="admin">Admin</option></select>
+    </div>
+    <div class="modal-btns">
+      <button class="btn-cancel" onclick="closeModal('modalEmpleado')">Cancelar</button>
+      <button class="btn-save" onclick="saveEmpleado()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════
+// CONFIGURACIÓN
+// ═══════════════════════════════════════════════
+var SUPABASE_URL = 'https://zcxgyissdqyqsnojxviy.supabase.co';
+var SUPABASE_KEY = 'REEMPLAZA_CON_TU_ANON_KEY'; // ← Pega tu anon key aquí
+
+// ═══════════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════════
+var S = null; // session
+var DB = {ventas:[], reparaciones:[], stock:[], clientes:[], componentes:[], tienda:null};
+var selParts = [];
+var repFilter = 'todas';
+
+// ═══════════════════════════════════════════════
+// SUPABASE HELPERS
+// ═══════════════════════════════════════════════
+async function sbGet(table, filter) {
+  var url = SUPABASE_URL + '/rest/v1/' + table + (filter ? '?' + filter : '');
+  var r = await fetch(url, {
+    headers: {'apikey': SUPABASE_KEY, 'Authorization': 'Bearer ' + SUPABASE_KEY}
+  });
+  return r.json();
+}
+
+async function sbPost(table, data) {
+  var r = await fetch(SUPABASE_URL + '/rest/v1/' + table, {
+    method: 'POST',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json',
+      'Prefer': 'return=representation'
+    },
+    body: JSON.stringify(data)
+  });
+  return r.json();
+}
+
+async function sbPatch(table, filter, data) {
+  var r = await fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + filter, {
+    method: 'PATCH',
+    headers: {
+      'apikey': SUPABASE_KEY,
+      'Authorization': 'Bearer ' + SUPABASE_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify(data)
+  });
+  return r.ok;
+}
+
+// ═══════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════
+async function doLogin() {
+  var email = document.getElementById('loginEmail').value.trim();
+  var pass = document.getElementById('loginPass').value;
+  var btn = document.getElementById('loginBtn');
+  var err = document.getElementById('loginErr');
+
+  if (!email || !pass) { err.textContent = 'Rellena todos los campos'; return; }
+
+  btn.textContent = 'Entrando...'; btn.disabled = true; err.textContent = '';
+
+  try {
+    var r = await fetch('/api/login', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({email, password: pass})
+    });
+    var data = await r.json();
+
+    if (data.ok) {
+      S = data;
+      localStorage.setItem('tekpair_session', JSON.stringify(data));
+      afterLogin();
+    } else {
+      err.textContent = data.error || 'Error al iniciar sesión';
+    }
+  } catch(e) {
+    // MODO DEMO sin backend
+    S = {
+      usuario: {id: 'demo', nombre: 'Admin Demo', email: email},
+      tienda: {id: 'demo-tienda', nombre: 'Mi Tienda Demo'},
+      plan: 'pro', token: 'demo'
+    };
+    localStorage.setItem('tekpair_session', JSON.stringify(S));
+    afterLogin();
+  }
+
+  btn.textContent = 'Entrar →'; btn.disabled = false;
+}
+
+function afterLogin() {
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('appLayout').style.display = 'flex';
+
+  document.getElementById('ucName').textContent = S.usuario.nombre;
+  document.getElementById('ucRole').textContent = S.plan || 'Pro';
+  document.getElementById('ucAvatar').textContent = S.usuario.nombre.charAt(0).toUpperCase();
+  document.getElementById('sidebarStoreName').textContent = S.tienda ? S.tienda.nombre : 'Mi tienda';
+  document.getElementById('ucAvatar').textContent = S.usuario.nombre.charAt(0).toUpperCase();
+
+  if (S.rol === 'admin' || S.plan) {
+    document.querySelectorAll('.admin-only').forEach(function(el) { el.style.display = 'block'; });
+  }
+
+  loadAllData();
+  goPage('dashboard');
+}
+
+function doLogout() {
+  S = null;
+  localStorage.removeItem('tekpair_session');
+  document.getElementById('loginScreen').style.display = 'flex';
+  document.getElementById('appLayout').style.display = 'none';
+  DB = {ventas:[], reparaciones:[], stock:[], clientes:[], componentes:[], tienda:null};
+}
+
+// ═══════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════
+var pageNames = {
+  dashboard:'Dashboard', ventas:'Ventas', reparaciones:'Reparaciones',
+  stock:'Stock IMEI', componentes:'Componentes', clientes:'Clientes',
+  beneficios:'Beneficios', empleados:'Empleados'
+};
+
+var pageActions = {
+  ventas: '<button class="topbar-btn" onclick="openModal(\'modalVenta\')">+ Nueva venta</button>',
+  reparaciones: '<button class="topbar-btn green" onclick="openModal(\'modalRep\')">+ Nueva reparación</button>',
+  stock: '<button class="topbar-btn" style="background:var(--orange)" onclick="openModal(\'modalStock\')">+ Añadir stock</button>',
+  componentes: '<button class="topbar-btn" style="background:var(--purple)" onclick="openModal(\'modalComp\')">+ Añadir componente</button>',
+  clientes: '<button class="topbar-btn" onclick="openModal(\'modalCliente\')">+ Nuevo cliente</button>',
+  empleados: '<button class="topbar-btn" onclick="openModal(\'modalEmpleado\')">+ Nuevo empleado</button>'
+};
+
+function goPage(name) {
+  document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
+  document.querySelectorAll('.nav-item').forEach(function(n) { n.classList.remove('active'); });
+
+  var pg = document.getElementById('page-' + name);
+  if (pg) pg.classList.add('active');
+
+  var ni = document.querySelector('.nav-item[data-page="' + name + '"]');
+  if (ni) ni.classList.add('active');
+
+  document.getElementById('topbarTitle').textContent = pageNames[name] || name;
+  document.getElementById('topbarActions').innerHTML = pageActions[name] || '';
+
+  closeSidebar();
+
+  if (name === 'ventas') renderVentas();
+  if (name === 'reparaciones') renderReps();
+  if (name === 'stock') renderStock();
+  if (name === 'componentes') renderComps();
+  if (name === 'clientes') renderClientes();
+  if (name === 'beneficios') renderBeneficios();
+  if (name === 'empleados') renderEmpleados();
+  if (name === 'dashboard') renderDash();
+}
+
+// ═══════════════════════════════════════════════
+// DATA LOADING
+// ═══════════════════════════════════════════════
+async function loadAllData() {
+  try {
+    // Demo data si no hay backend
+    DB.clientes = [
+      {id:'c1', nombre:'Carlos', apellidos:'Martínez', tel:'600111222', email:'carlos@email.com'},
+      {id:'c2', nombre:'Ana', apellidos:'García', tel:'600333444', email:'ana@email.com'},
+      {id:'c3', nombre:'Jordi', apellidos:'Puig', tel:'600555666', email:'jordi@email.com'}
+    ];
+    DB.componentes = [
+      {id:'p1', nombre:'Pantalla iPhone 11', modelo:'iPhone 11', categoria:'Pantalla', stock:5, precioC:30, precioV:50},
+      {id:'p2', nombre:'Batería Samsung S21', modelo:'S21', categoria:'Batería', stock:8, precioC:15, precioV:25},
+      {id:'p3', nombre:'Tapa trasera Xiaomi', modelo:'Mi 11', categoria:'Tapa trasera', stock:3, precioC:10, precioV:20},
+      {id:'p4', nombre:'Pin de carga USB-C', modelo:'Universal', categoria:'Pin de carga', stock:12, precioC:6, precioV:15},
+      {id:'p5', nombre:'Cámara iPhone 12', modelo:'iPhone 12', categoria:'Cámara', stock:2, precioC:35, precioV:60},
+      {id:'p6', nombre:'Altavoz Samsung', modelo:'S20', categoria:'Altavoz', stock:6, precioC:8, precioV:18}
+    ];
+    DB.ventas = [
+      {id:'v1', fecha:'01/05/2025', clienteNombre:'Carlos Martínez', marca:'Apple', modelo:'iPhone 14', imei:'352012345678901', pago:'Efectivo', total:320},
+      {id:'v2', fecha:'02/05/2025', clienteNombre:'Ana García', marca:'Samsung', modelo:'Galaxy S24', imei:'352098765432109', pago:'Tarjeta', total:450}
+    ];
+    DB.reparaciones = [
+      {id:'r1', fecha:'03/05/2025', clienteNombre:'Jordi Puig', marca:'Apple', modelo:'iPhone 13', averia:'Pantalla rota', estado:'Pendiente', total:160},
+      {id:'r2', fecha:'04/05/2025', clienteNombre:'Carlos Martínez', marca:'Samsung', modelo:'S22', averia:'Batería', estado:'En Proceso', total:45},
+      {id:'r3', fecha:'05/05/2025', clienteNombre:'Ana García', marca:'Xiaomi', modelo:'Mi 12', averia:'Pin carga', estado:'Entregado', total:30}
+    ];
+    DB.stock = [
+      {id:'s1', marca:'Apple', modelo:'iPhone 11', capacidad:'64GB', color:'Negro', imei:'352011111111111', estado:'Reacond. A', precioC:150, precioV:299, vendido:false},
+      {id:'s2', marca:'Samsung', modelo:'Galaxy S21', capacidad:'128GB', color:'Blanco', imei:'352022222222222', estado:'Nuevo', precioC:280, precioV:449, vendido:false},
+      {id:'s3', marca:'Xiaomi', modelo:'Mi 11', capacidad:'256GB', color:'Azul', imei:'352033333333333', estado:'Reacond. B', precioC:120, precioV:199, vendido:false}
+    ];
+
+    fillClienteSelects();
+    renderDash();
+  } catch(e) {
+    console.error('Error cargando datos:', e);
+  }
+}
+
+function fillClienteSelects() {
+  var opts = '<option value="">Sin cliente</option>' +
+    DB.clientes.map(function(c) {
+      return '<option value="' + c.id + '">' + c.nombre + ' ' + c.apellidos + '</option>';
+    }).join('');
+  ['vCliente','rCliente'].forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.innerHTML = opts;
+  });
+}
+
+// ═══════════════════════════════════════════════
+// DASHBOARD
+// ═══════════════════════════════════════════════
+function renderDash() {
+  var totalIngresos = DB.ventas.reduce(function(a, v) { return a + (parseFloat(v.total) || 0); }, 0);
+  var stockDisp = DB.stock.filter(function(s) { return !s.vendido; }).length;
+  var pend = DB.reparaciones.filter(function(r) { return r.estado === 'Pendiente' || r.estado === 'En Proceso'; }).length;
+
+  document.getElementById('stVentas').textContent = DB.ventas.length;
+  document.getElementById('stIngresos').textContent = '€' + totalIngresos.toFixed(0);
+  document.getElementById('stReps').textContent = DB.reparaciones.length;
+  document.getElementById('stStock').textContent = stockDisp;
+
+  if (pend > 0) {
+    document.getElementById('repBadge').textContent = pend;
+    document.getElementById('repBadge').style.display = 'flex';
+  }
+
+  var repsEl = document.getElementById('dashReps');
+  var recReps = DB.reparaciones.slice(-5).reverse();
+  if (!recReps.length) {
+    repsEl.innerHTML = '<div class="empty-state"><div class="es-icon">🔧</div><div class="es-title">Sin reparaciones</div><div class="es-sub">Las nuevas órdenes aparecerán aquí</div></div>';
+  } else {
+    repsEl.innerHTML = '<table class="tbl"><thead><tr><th>Cliente</th><th>Dispositivo</th><th>Estado</th><th>Total</th></tr></thead><tbody>' +
+      recReps.map(function(r) {
+        return '<tr><td><strong>' + r.clienteNombre + '</strong></td><td>' + r.marca + ' ' + r.modelo + '</td>' +
+          '<td><span class="badge ' + badgeColor(r.estado) + '">' + r.estado + '</span></td>' +
+          '<td><strong>€' + (parseFloat(r.total)||0).toFixed(2) + '</strong></td></tr>';
+      }).join('') + '</tbody></table>';
+  }
+
+  var stBajo = DB.componentes.filter(function(c) { return c.stock <= 2; });
+  var sbEl = document.getElementById('dashStockBajo');
+  if (!stBajo.length) {
+    sbEl.innerHTML = '<div class="empty-state"><div class="es-icon">✅</div><div class="es-sub">Todo el stock está bien</div></div>';
+  } else {
+    sbEl.innerHTML = stBajo.map(function(c) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--border);font-size:13px">' +
+        '<div><div style="font-weight:600">' + c.nombre + '</div><div style="color:var(--muted);font-size:11px">' + c.modelo + '</div></div>' +
+        '<span class="badge red">Stock: ' + c.stock + '</span></div>';
+    }).join('');
+  }
+}
+
+// ═══════════════════════════════════════════════
+// VENTAS
+// ═══════════════════════════════════════════════
+function renderVentas(filter) {
+  var q = (filter || document.getElementById('ventasSearch').value || '').toLowerCase();
+  var list = DB.ventas.slice().reverse();
+  if (q) list = list.filter(function(v) {
+    return (v.clienteNombre||'').toLowerCase().includes(q) || (v.modelo||'').toLowerCase().includes(q) || (v.imei||'').includes(q);
+  });
+  var el = document.getElementById('ventasContent');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">📱</div><div class="es-title">Sin ventas</div><div class="es-sub">Registra tu primera venta</div></div>';
+    return;
+  }
+  el.innerHTML = '<table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th>Dispositivo</th><th>IMEI</th><th>Pago</th><th>Total</th></tr></thead><tbody>' +
+    list.map(function(v) {
+      return '<tr><td>' + v.fecha + '</td><td><strong>' + v.clienteNombre + '</strong></td>' +
+        '<td>' + v.marca + ' ' + v.modelo + '</td>' +
+        '<td style="font-family:monospace;font-size:11px">' + v.imei + '</td>' +
+        '<td><span class="badge blue">' + v.pago + '</span></td>' +
+        '<td><strong style="color:var(--green)">€' + (parseFloat(v.total)||0).toFixed(2) + '</strong></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+function filterVentas() { renderVentas(document.getElementById('ventasSearch').value); }
+
+// ═══════════════════════════════════════════════
+// REPARACIONES
+// ═══════════════════════════════════════════════
+function renderReps() {
+  var list = DB.reparaciones.slice().reverse();
+  if (repFilter !== 'todas') list = list.filter(function(r) { return r.estado === repFilter; });
+  var el = document.getElementById('repsContent');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">🔧</div><div class="es-title">Sin reparaciones</div><div class="es-sub">No hay órdenes con este filtro</div></div>';
+    return;
+  }
+  el.innerHTML = '<table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th>Dispositivo</th><th>Avería</th><th>Estado</th><th>Total</th></tr></thead><tbody>' +
+    list.map(function(r) {
+      return '<tr><td>' + r.fecha + '</td><td><strong>' + r.clienteNombre + '</strong></td>' +
+        '<td>' + r.marca + ' ' + r.modelo + '</td>' +
+        '<td style="color:var(--red)">' + r.averia + '</td>' +
+        '<td>' +
+          '<select class="badge ' + badgeColor(r.estado) + '" onchange="changeRepEstado(\'' + r.id + '\',this.value)" style="border:none;cursor:pointer;font-size:11px;font-weight:600;padding:3px 8px;border-radius:20px;font-family:inherit">' +
+          ['Pendiente','En Proceso','Por Entregar','Entregado','Garantia','Rechazado'].map(function(s) {
+            return '<option' + (s === r.estado ? ' selected' : '') + '>' + s + '</option>';
+          }).join('') + '</select>' +
+        '</td>' +
+        '<td><strong>€' + (parseFloat(r.total)||0).toFixed(2) + '</strong></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+function changeRepEstado(id, estado) {
+  var rep = DB.reparaciones.find(function(r) { return r.id === id; });
+  if (rep) { rep.estado = estado; renderDash(); }
+  toast('Estado actualizado', 'success');
+}
+
+// ═══════════════════════════════════════════════
+// STOCK
+// ═══════════════════════════════════════════════
+function renderStock(filter) {
+  var q = (filter || document.getElementById('stockSearch').value || '').toLowerCase();
+  var list = DB.stock.filter(function(s) { return !s.vendido; });
+  if (q) list = list.filter(function(s) {
+    return (s.marca + ' ' + s.modelo + ' ' + s.capacidad + ' ' + s.imei + ' ' + s.color).toLowerCase().includes(q);
+  });
+  var el = document.getElementById('stockContent');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">📦</div><div class="es-title">Sin stock</div><div class="es-sub">Añade tu primer teléfono</div></div>';
+    return;
+  }
+  el.innerHTML = '<table class="tbl"><thead><tr><th>Dispositivo</th><th>IMEI</th><th>Estado</th><th>P. Compra</th><th>P. Venta</th></tr></thead><tbody>' +
+    list.map(function(s) {
+      return '<tr><td><strong>' + s.marca + ' ' + s.modelo + '</strong><div style="font-size:11px;color:var(--muted)">' + s.capacidad + ' · ' + s.color + '</div></td>' +
+        '<td style="font-family:monospace;font-size:12px">' + s.imei + '</td>' +
+        '<td><span class="badge ' + (s.estado === 'Nuevo' ? 'green' : 'blue') + '">' + s.estado + '</span></td>' +
+        '<td>€' + parseFloat(s.precioC).toFixed(2) + '</td>' +
+        '<td><strong style="color:var(--green)">€' + parseFloat(s.precioV).toFixed(2) + '</strong></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+function filterStock() { renderStock(document.getElementById('stockSearch').value); }
+
+// ═══════════════════════════════════════════════
+// COMPONENTES
+// ═══════════════════════════════════════════════
+function renderComps() {
+  var el = document.getElementById('compContent');
+  if (!DB.componentes.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">🔩</div><div class="es-title">Sin componentes</div><div class="es-sub">Añade tus primeros componentes</div></div>';
+    return;
+  }
+  el.innerHTML = '<table class="tbl"><thead><tr><th>Componente</th><th>Modelo</th><th>Categoría</th><th>Stock</th><th>P. Venta</th></tr></thead><tbody>' +
+    DB.componentes.map(function(c) {
+      return '<tr><td><strong>' + c.nombre + '</strong></td>' +
+        '<td>' + c.modelo + '</td>' +
+        '<td><span class="badge blue">' + c.categoria + '</span></td>' +
+        '<td><span class="badge ' + (c.stock <= 2 ? 'red' : c.stock <= 5 ? 'orange' : 'green') + '">' + c.stock + '</span></td>' +
+        '<td><strong>€' + parseFloat(c.precioV).toFixed(2) + '</strong></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+
+// ═══════════════════════════════════════════════
+// CLIENTES
+// ═══════════════════════════════════════════════
+function renderClientes(filter) {
+  var q = (filter || document.getElementById('clientesSearch').value || '').toLowerCase();
+  var list = DB.clientes;
+  if (q) list = list.filter(function(c) {
+    return (c.nombre + ' ' + c.apellidos + ' ' + c.email + ' ' + c.tel).toLowerCase().includes(q);
+  });
+  var el = document.getElementById('clientesContent');
+  if (!list.length) {
+    el.innerHTML = '<div class="empty-state"><div class="es-icon">👥</div><div class="es-title">Sin clientes</div><div class="es-sub">Añade tu primer cliente</div></div>';
+    return;
+  }
+  el.innerHTML = '<table class="tbl"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Email</th><th>Compras</th></tr></thead><tbody>' +
+    list.map(function(c) {
+      var compras = DB.ventas.filter(function(v) { return v.clienteId === c.id; }).length;
+      var reps = DB.reparaciones.filter(function(r) { return r.clienteId === c.id; }).length;
+      return '<tr><td><strong>' + c.nombre + ' ' + c.apellidos + '</strong>' + (c.dni ? '<div style="font-size:11px;color:var(--muted)">' + c.dni + '</div>' : '') + '</td>' +
+        '<td>' + (c.tel || '—') + '</td>' +
+        '<td>' + (c.email || '—') + '</td>' +
+        '<td><span class="badge blue">' + compras + ' ventas</span> <span class="badge purple">' + reps + ' reps</span></td></tr>';
+    }).join('') + '</tbody></table>';
+}
+function filterClientes() { renderClientes(document.getElementById('clientesSearch').value); }
+
+// ═══════════════════════════════════════════════
+// BENEFICIOS
+// ═══════════════════════════════════════════════
+function renderBeneficios() {
+  var totalVentas = DB.ventas.reduce(function(a, v) { return a + (parseFloat(v.total)||0); }, 0);
+  var totalReps = DB.reparaciones.filter(function(r){ return r.estado === 'Entregado'; }).reduce(function(a, r) { return a + (parseFloat(r.total)||0); }, 0);
+  var costoStock = DB.ventas.reduce(function(a, v) {
+    var s = DB.stock.find(function(x) { return x.imei === v.imei; });
+    return a + (s ? parseFloat(s.precioC) || 0 : 0);
+  }, 0);
+  var beneficio = totalVentas + totalReps - costoStock;
+
+  document.getElementById('beneficiosContent').innerHTML =
+    '<div class="stats-grid" style="margin-bottom:24px">' +
+    '<div class="stat-card"><div class="stat-icon green">💰</div><div class="stat-val" style="color:var(--green)">€' + totalVentas.toFixed(2) + '</div><div class="stat-lbl">Ingresos ventas</div></div>' +
+    '<div class="stat-card"><div class="stat-icon blue">🔧</div><div class="stat-val" style="color:var(--blue)">€' + totalReps.toFixed(2) + '</div><div class="stat-lbl">Ingresos reparaciones</div></div>' +
+    '<div class="stat-card"><div class="stat-icon orange">📦</div><div class="stat-val" style="color:var(--orange)">€' + costoStock.toFixed(2) + '</div><div class="stat-lbl">Costo de stock vendido</div></div>' +
+    '<div class="stat-card" style="border-color:' + (beneficio >= 0 ? 'rgba(0,200,150,.3)' : 'rgba(239,68,68,.3)') + '"><div class="stat-icon ' + (beneficio >= 0 ? 'green' : 'red') + '">📊</div><div class="stat-val" style="color:' + (beneficio >= 0 ? 'var(--green)' : 'var(--red)') + '">€' + beneficio.toFixed(2) + '</div><div class="stat-lbl">Beneficio neto</div></div>' +
+    '</div>' +
+    '<div class="card"><div class="card-title">Últimas ventas</div>' +
+    '<table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th>Dispositivo</th><th>Total</th></tr></thead><tbody>' +
+    DB.ventas.slice().reverse().map(function(v) {
+      return '<tr><td>' + v.fecha + '</td><td>' + v.clienteNombre + '</td><td>' + v.marca + ' ' + v.modelo + '</td><td><strong style="color:var(--green)">€' + (parseFloat(v.total)||0).toFixed(2) + '</strong></td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+// ═══════════════════════════════════════════════
+// EMPLEADOS
+// ═══════════════════════════════════════════════
+function renderEmpleados() {
+  document.getElementById('empleadosContent').innerHTML =
+    '<div class="empty-state"><div class="es-icon">👷</div><div class="es-title">Gestión de empleados</div><div class="es-sub">Añade técnicos con acceso a tu tienda</div>' +
+    '<button class="topbar-btn" style="margin:16px auto 0;display:flex" onclick="openModal(\'modalEmpleado\')">+ Nuevo empleado</button></div>';
+}
+
+// ═══════════════════════════════════════════════
+// SAVE FUNCTIONS
+// ═══════════════════════════════════════════════
+function saveVenta() {
+  var modelo = document.getElementById('vModelo').value;
+  var imei = document.getElementById('vImei').value;
+  var precio = document.getElementById('vPrecio').value;
+  if (!modelo || !imei || !precio) { toast('Rellena los campos obligatorios', 'error'); return; }
+
+  var cId = document.getElementById('vCliente').value;
+  var cli = DB.clientes.find(function(c) { return c.id === cId; });
+  var v = {
+    id: 'v' + Date.now(),
+    fecha: new Date().toLocaleDateString('es'),
+    clienteId: cId,
+    clienteNombre: cli ? cli.nombre + ' ' + cli.apellidos : 'Sin cliente',
+    marca: document.getElementById('vMarca').value,
+    modelo: modelo,
+    capacidad: document.getElementById('vCap').value,
+    imei: imei,
+    color: document.getElementById('vColor').value,
+    estado: document.getElementById('vEstado').value,
+    pago: document.getElementById('vPago').value,
+    total: parseFloat(precio)
+  };
+  DB.ventas.push(v);
+  closeModal('modalVenta');
+  toast('Venta registrada ✓', 'success');
+  renderDash();
+}
+
+function saveRep() {
+  var modelo = document.getElementById('rModelo').value;
+  var averia = document.getElementById('rAveria').value;
+  if (!modelo || !averia) { toast('Rellena los campos obligatorios', 'error'); return; }
+
+  var cId = document.getElementById('rCliente').value;
+  var cli = DB.clientes.find(function(c) { return c.id === cId; });
+  var mo = parseFloat(document.getElementById('rMO').value) || 0;
+  var ptEur = selParts.reduce(function(a, p) { return a + (parseFloat(p.precioV)||0); }, 0);
+
+  var r = {
+    id: 'r' + Date.now(),
+    fecha: new Date().toLocaleDateString('es'),
+    clienteId: cId,
+    clienteNombre: cli ? cli.nombre + ' ' + cli.apellidos : 'Sin cliente',
+    marca: document.getElementById('rMarca').value,
+    modelo: modelo,
+    imei: document.getElementById('rImei').value,
+    averia: averia,
+    estado: document.getElementById('rEstado').value,
+    mo: mo, partesEur: ptEur,
+    total: mo + ptEur,
+    partes: selParts.slice()
+  };
+  DB.reparaciones.push(r);
+  selParts = [];
+  closeModal('modalRep');
+  toast('Orden creada ✓', 'success');
+  renderDash();
+}
+
+function saveStock() {
+  var modelo = document.getElementById('sModelo').value;
+  var imei = document.getElementById('sImei').value;
+  if (!modelo) { toast('Indica el modelo', 'error'); return; }
+  if (!imei || imei.length < 14) { toast('IMEI de 14-15 dígitos', 'error'); return; }
+  if (DB.stock.find(function(s) { return s.imei === imei; })) { toast('Este IMEI ya existe', 'error'); return; }
+
+  DB.stock.push({
+    id: 's' + Date.now(),
+    marca: document.getElementById('sMarca').value,
+    modelo: modelo,
+    capacidad: document.getElementById('sCap').value,
+    color: document.getElementById('sColor').value,
+    imei: imei,
+    estado: document.getElementById('sEstado').value,
+    precioC: parseFloat(document.getElementById('sPrecioC').value) || 0,
+    precioV: parseFloat(document.getElementById('sPrecioV').value) || 0,
+    vendido: false
+  });
+  closeModal('modalStock');
+  toast('Stock añadido ✓', 'success');
+  renderDash();
+}
+
+function saveCliente() {
+  var nom = document.getElementById('cNom').value;
+  if (!nom) { toast('El nombre es obligatorio', 'error'); return; }
+  var c = {
+    id: 'c' + Date.now(),
+    nombre: nom,
+    apellidos: document.getElementById('cApe').value,
+    dni: document.getElementById('cDni').value,
+    tel: document.getElementById('cTel').value,
+    email: document.getElementById('cEmail').value
+  };
+  DB.clientes.push(c);
+  fillClienteSelects();
+  closeModal('modalCliente');
+  toast('Cliente añadido ✓', 'success');
+}
+
+function saveComp() {
+  var nom = document.getElementById('compNom').value;
+  if (!nom) { toast('Indica el nombre', 'error'); return; }
+  DB.componentes.push({
+    id: 'p' + Date.now(),
+    nombre: nom,
+    modelo: document.getElementById('compMod').value || 'Universal',
+    categoria: document.getElementById('compCat').value,
+    stock: parseInt(document.getElementById('compSt').value) || 0,
+    precioC: parseFloat(document.getElementById('compPC').value) || 0,
+    precioV: parseFloat(document.getElementById('compPV').value) || 0
+  });
+  closeModal('modalComp');
+  toast('Componente añadido ✓', 'success');
+  renderComps();
+}
+
+function saveEmpleado() {
+  var nom = document.getElementById('empNom').value;
+  var email = document.getElementById('empEmail').value;
+  if (!nom || !email) { toast('Nombre y email obligatorios', 'error'); return; }
+  closeModal('modalEmpleado');
+  toast('Empleado añadido ✓', 'success');
+}
+
+// ═══════════════════════════════════════════════
+// PARTS FOR REPARACION
+// ═══════════════════════════════════════════════
+function renderPartsGrid() {
+  var el = document.getElementById('partsGrid');
+  el.innerHTML = DB.componentes.filter(function(p) { return p.stock > 0; }).map(function(p) {
+    var sel = selParts.find(function(s) { return s.id === p.id; });
+    var icons = {Pantalla:'🖥️', Batería:'🔋', 'Tapa trasera':'📱', Altavoz:'🔊', 'Pin de carga':'🔌', Cámara:'📷', Micrófono:'🎤', Botones:'⭕', Marco:'⬜', Placa:'🔬'};
+    return '<div class="part-chip' + (sel ? ' selected' : '') + '" data-pid="' + p.id + '" onclick="togglePart(\'' + p.id + '\')">' +
+      '<div class="pc-icon">' + (icons[p.categoria] || '🔩') + '</div>' +
+      '<div class="pc-name">' + p.nombre + '</div>' +
+      '<div class="pc-price">€' + parseFloat(p.precioV).toFixed(0) + '</div></div>';
+  }).join('');
+}
+
+function togglePart(id) {
+  var idx = selParts.findIndex(function(p) { return p.id === id; });
+  if (idx === -1) {
+    var part = DB.componentes.find(function(p) { return p.id === id; });
+    if (part) selParts.push(Object.assign({}, part));
+  } else { selParts.splice(idx, 1); }
+  renderPartsGrid();
+  updateRepTotal();
+  var box = document.getElementById('selPartsBox');
+  var list = document.getElementById('selPartsList');
+  if (selParts.length) {
+    box.style.display = 'block';
+    list.innerHTML = selParts.map(function(p) {
+      return '<div style="display:flex;justify-content:space-between;padding:7px;background:var(--bg);border-radius:8px;margin-bottom:5px;font-size:12px">' +
+        '<span>' + p.nombre + '</span><span style="color:var(--green);font-weight:600">€' + parseFloat(p.precioV).toFixed(2) + '</span></div>';
+    }).join('');
+  } else { box.style.display = 'none'; }
+}
+
+function updateRepTotal() {
+  var mo = parseFloat(document.getElementById('rMO') && document.getElementById('rMO').value) || 0;
+  var pt = selParts.reduce(function(a, p) { return a + (parseFloat(p.precioV)||0); }, 0);
+  var moEl = document.getElementById('rMOval');
+  var ptEl = document.getElementById('rPartsVal');
+  var totEl = document.getElementById('rTotalVal');
+  if (moEl) moEl.textContent = '€' + mo.toFixed(2);
+  if (ptEl) ptEl.textContent = '€' + pt.toFixed(2);
+  if (totEl) totEl.textContent = '€' + (mo + pt).toFixed(2);
+}
+
+// ═══════════════════════════════════════════════
+// MODAL HELPERS
+// ═══════════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  if (id === 'modalRep') { selParts = []; renderPartsGrid(); updateRepTotal(); }
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(function(o) {
+  o.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+});
+
+// ═══════════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════════
+function toast(msg, type) {
+  var t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (type ? ' ' + type : '');
+  setTimeout(function() { t.classList.remove('show'); }, 2800);
+}
+
+// ═══════════════════════════════════════════════
+// MOBILE SIDEBAR
+// ═══════════════════════════════════════════════
+function closeSidebar() {
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+// ═══════════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════════
+function badgeColor(estado) {
+  var map = {Pendiente:'orange', 'En Proceso':'blue', 'Por Entregar':'purple', Entregado:'green', Garantia:'gray', Rechazado:'red'};
+  return map[estado] || 'gray';
+}
+
+// ═══════════════════════════════════════════════
+// EVENTS
+// ═══════════════════════════════════════════════
+window.addEventListener('load', function() {
+  // CHECK SESSION
+  var saved = localStorage.getItem('tekpair_session');
+  if (saved) {
+    try {
+      S = JSON.parse(saved);
+      afterLogin();
+    } catch(e) { localStorage.removeItem('tekpair_session'); }
+  }
+
+  // LOGIN
+  document.getElementById('loginBtn').addEventListener('click', doLogin);
+  document.getElementById('loginPass').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') doLogin();
+  });
+
+  // LOGOUT
+  document.getElementById('logoutBtn').addEventListener('click', function() {
+    if (confirm('¿Cerrar sesión?')) doLogout();
+  });
+
+  // NAV
+  document.querySelectorAll('.nav-item[data-page]').forEach(function(n) {
+    n.addEventListener('click', function() { goPage(this.dataset.page); });
+  });
+
+  // MOBILE MENU
+  document.getElementById('mobileMenuBtn').addEventListener('click', function() {
+    document.getElementById('sidebar').classList.toggle('open');
+    document.getElementById('sidebarOverlay').classList.toggle('open');
+  });
+  document.getElementById('sidebarOverlay').addEventListener('click', closeSidebar);
+
+  // REP FILTERS
+  document.querySelectorAll('#repFilters .filter-chip').forEach(function(c) {
+    c.addEventListener('click', function() {
+      document.querySelectorAll('#repFilters .filter-chip').forEach(function(x) { x.classList.remove('active'); });
+      this.classList.add('active');
+      repFilter = this.dataset.filter;
+      renderReps();
+    });
+  });
+});
+</script>
+</body>
+</html>
