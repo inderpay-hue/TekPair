@@ -271,6 +271,90 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text)}
   .global-search-bar{padding:8px 14px}
 }
 @media(max-width:480px){.stats-grid{grid-template-columns:1fr 1fr}.stat-val{font-size:20px}.parts-grid{grid-template-columns:repeat(2,1fr)}}
+
+/* ══════════════════════════════
+   TPV RÁPIDO
+══════════════════════════════ */
+.tpv-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:300;display:none;align-items:flex-end;justify-content:center;backdrop-filter:blur(4px)}
+.tpv-overlay.open{display:flex}
+@media(min-width:600px){.tpv-overlay{align-items:center}}
+.tpv-box{background:white;border-radius:22px 22px 0 0;width:100%;max-width:540px;max-height:96vh;overflow-y:auto;animation:tpvUp .3s ease}
+@media(min-width:600px){.tpv-box{border-radius:22px;max-height:92vh}}
+@keyframes tpvUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.tpv-header{padding:20px 22px 16px;border-bottom:1px solid var(--border);position:sticky;top:0;background:white;z-index:10;border-radius:22px 22px 0 0}
+.tpv-title{font-size:19px;font-weight:700;color:var(--navy);display:flex;align-items:center;gap:10px}
+.tpv-steps-bar{display:flex;gap:6px;margin-top:12px}
+.tpv-step-bar{flex:1;height:4px;border-radius:4px;background:var(--border);transition:background .3s}
+.tpv-step-bar.done{background:var(--green)}
+.tpv-step-bar.active{background:var(--blue)}
+.tpv-body{padding:18px 22px}
+.tpv-step-label{font-size:13px;font-weight:700;color:var(--blue);margin-bottom:12px;display:flex;align-items:center;gap:7px}
+.tpv-step-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;flex-shrink:0}
+.tpv-search{position:relative;margin-bottom:7px}
+.tpv-si{width:100%;border:2px solid var(--border);border-radius:11px;padding:12px 16px 12px 42px;font-family:inherit;font-size:14px;color:var(--text);outline:none;transition:all .2s;background:var(--bg)}
+.tpv-si:focus{border-color:var(--blue);background:white;box-shadow:0 0 0 3px rgba(0,85,255,.08)}
+.tpv-si-icon{position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:17px;pointer-events:none}
+.tpv-dd{background:white;border:1.5px solid var(--border);border-radius:11px;box-shadow:0 8px 24px rgba(0,0,0,.1);overflow:hidden;margin-bottom:10px;display:none}
+.tpv-dd.open{display:block}
+.tpv-dd-item{padding:12px 15px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;display:flex;justify-content:space-between;align-items:center}
+.tpv-dd-item:last-child{border-bottom:none}
+.tpv-dd-item:hover{background:var(--blue-light)}
+.tpv-dd-title{font-size:13px;font-weight:600;color:var(--navy)}
+.tpv-dd-sub{font-size:11px;color:var(--muted);margin-top:2px}
+.tpv-dd-price{font-size:15px;font-weight:700;color:var(--green);text-align:right}
+.tpv-dd-badge{font-size:10px;padding:2px 7px;border-radius:10px;font-weight:600;margin-top:3px;display:inline-block;background:var(--bg);color:var(--muted)}
+.tpv-dd-empty{padding:14px;text-align:center;color:var(--muted);font-size:13px}
+.tpv-sel-phone{background:linear-gradient(135deg,var(--navy) 0%,#0A1E4A 100%);border-radius:13px;padding:14px;margin-bottom:14px;display:none}
+.tpv-sp-inner{display:flex;justify-content:space-between;align-items:flex-start}
+.tpv-sp-marca{font-size:10px;font-weight:600;color:rgba(255,255,255,.5);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.tpv-sp-modelo{font-size:16px;font-weight:700;color:white}
+.tpv-sp-details{font-size:11px;color:rgba(255,255,255,.6);margin-top:3px}
+.tpv-sp-imei{font-size:10px;color:rgba(255,255,255,.4);font-family:monospace;margin-top:2px}
+.tpv-sp-price{font-size:22px;font-weight:800;color:var(--green);text-align:right}
+.tpv-sp-lbl{font-size:10px;color:rgba(255,255,255,.4);text-align:right;margin-top:2px}
+.tpv-change-btn{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:5px 11px;border-radius:7px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px}
+.tpv-cli-results{background:white;border:1.5px solid var(--border);border-radius:11px;box-shadow:0 8px 24px rgba(0,0,0,.1);overflow:hidden;margin-top:6px;display:none}
+.tpv-cli-results.open{display:block}
+.tpv-cli-item{padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;display:flex;align-items:center;gap:10px}
+.tpv-cli-item:last-child{border-bottom:none}
+.tpv-cli-item:hover{background:var(--blue-light)}
+.tpv-cli-av{width:30px;height:30px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0}
+.tpv-cli-new{padding:10px 14px;cursor:pointer;background:rgba(0,85,255,.03);display:flex;align-items:center;gap:8px;font-size:13px;font-weight:600;color:var(--blue);border-top:1px solid var(--border)}
+.tpv-cli-new:hover{background:var(--blue-light)}
+.tpv-sel-cli{background:var(--bg);border:1.5px solid var(--border);border-radius:11px;padding:12px 14px;display:none;align-items:center;gap:11px;margin-bottom:12px}
+.tpv-sel-cli.show{display:flex}
+.tpv-add-cli{background:rgba(0,85,255,.03);border:1.5px dashed rgba(0,85,255,.25);border-radius:11px;padding:14px;margin-bottom:10px;display:none}
+.tpv-add-cli.show{display:block}
+.tpv-pago-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;margin-bottom:12px}
+.tpv-pago-chip{border:2px solid var(--border);border-radius:9px;padding:9px 6px;cursor:pointer;text-align:center;transition:all .2s}
+.tpv-pago-chip:hover{border-color:var(--blue)}
+.tpv-pago-chip.selected{border-color:var(--blue);background:var(--blue-light)}
+.tpv-price-box{background:var(--bg);border:1.5px solid var(--border);border-radius:11px;padding:13px;margin-bottom:14px}
+.tpv-pb-row{display:flex;justify-content:space-between;font-size:13px;padding:4px 0}
+.tpv-pb-row.total{font-size:16px;font-weight:700;border-top:1px solid var(--border);padding-top:9px;margin-top:5px}
+.tpv-pb-row.total .tpv-pb-val{color:var(--green)}
+.tpv-confirm{display:none;text-align:center}
+.tpv-confirm.show{display:block}
+.tpv-confirm-icon{font-size:52px;margin-bottom:10px;animation:pop .4s ease}
+@keyframes pop{0%{transform:scale(.5)}70%{transform:scale(1.15)}100%{transform:scale(1)}}
+.tpv-confirm-sum{background:var(--navy);border-radius:13px;padding:16px;margin-bottom:14px;text-align:left}
+.tpv-cs-row{display:flex;justify-content:space-between;font-size:13px;padding:5px 0;border-bottom:1px solid rgba(255,255,255,.08)}
+.tpv-cs-row:last-child{border-bottom:none;padding-top:10px;font-size:15px;font-weight:700}
+.tpv-cs-lbl{color:rgba(255,255,255,.55)}
+.tpv-cs-val{color:white;font-weight:600}
+.tpv-actions{display:flex;flex-direction:column;gap:9px}
+.tpv-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;position:sticky;bottom:0;background:white;border-radius:0 0 22px 22px}
+.tpv-btn-back{flex:1;background:white;border:1.5px solid var(--border);color:var(--muted);padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer}
+.tpv-btn-next{flex:2;background:var(--blue);color:white;border:none;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s}
+.tpv-btn-next:disabled{background:#94A3B8;cursor:not-allowed}
+.tpv-btn-pdf{background:var(--red);color:white;border:none;padding:12px;border-radius:10px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:7px}
+.tpv-btn-wa{background:#25D366;color:white;border:none;padding:11px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;width:100%;display:flex;align-items:center;justify-content:center;gap:7px}
+.tpv-btn-nueva{background:var(--blue);color:white;border:none;padding:11px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:1}
+.tpv-btn-cerrar{background:white;color:var(--muted);border:1.5px solid var(--border);padding:11px;border-radius:10px;font-family:inherit;font-size:13px;font-weight:600;cursor:pointer;flex:1}
+.desc-toggle-tpv{font-size:12px;color:var(--blue);cursor:pointer;font-weight:600;margin-bottom:9px;display:inline-block}
+.desc-form-tpv{display:none;margin-bottom:12px;gap:10px;align-items:center}
+.desc-form-tpv.show{display:flex}
+
 </style>
 </head>
 <body>
@@ -373,7 +457,7 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text)}
             <div class="card">
               <div class="card-title">Accesos rápidos</div>
               <div style="display:flex;flex-direction:column;gap:8px">
-                <button class="tbtn" style="width:100%;justify-content:center" onclick="openModal('modalVenta')">📱 Nueva Venta</button>
+                <button class="tbtn" style="width:100%;justify-content:center" onclick="openTpv()">📱 Nueva Venta</button>
                 <button class="tbtn green" style="width:100%;justify-content:center" onclick="openModal('modalRep')">🔧 Nueva Reparación</button>
                 <button class="tbtn orange" style="width:100%;justify-content:center" onclick="openModal('modalStock')">📦 Añadir Stock</button>
                 <button class="tbtn purple" style="width:100%;justify-content:center" onclick="openModal('modalCliente')">👤 Nuevo Cliente</button>
@@ -1501,6 +1585,461 @@ window.addEventListener('load', function() {
   gsInput.addEventListener('focus', function(){ if(this.value) doGlobalSearch(this.value); });
   document.addEventListener('click', function(e){ if(!gsResults.contains(e.target) && e.target!==gsInput) gsResults.classList.remove('open'); });
 });
+
+// ══════════════════════════════════════════
+// TPV RÁPIDO
+// ══════════════════════════════════════════
+var TPV = {step:1, phone:null, client:null, pago:'Efectivo', desc:0, ventaId:null};
+
+function openTpv() {
+  tpvReset();
+  document.getElementById('tpvOverlay').classList.add('open');
+}
+
+function closeTpv() {
+  document.getElementById('tpvOverlay').classList.remove('open');
+}
+
+function tpvUpdateSteps() {
+  [1,2,3].forEach(function(i) {
+    var el = document.getElementById('ts'+i);
+    el.className = 'tpv-step-bar' + (i < TPV.step ? ' done' : i === TPV.step ? ' active' : '');
+  });
+  var back = document.getElementById('tpvBtnBack');
+  var next = document.getElementById('tpvBtnNext');
+  back.style.display = TPV.step > 1 ? 'flex' : 'none';
+  next.disabled = TPV.step === 1 && !TPV.phone;
+  if (TPV.step === 2) next.textContent = 'Confirmar venta →';
+  else if (TPV.step === 1) next.textContent = 'Siguiente →';
+}
+
+function tpvShowStep(n) {
+  [1,2,3].forEach(function(i) { document.getElementById('tpvStep'+i).style.display = i===n ? 'block' : 'none'; });
+  if (n === 3) document.getElementById('tpvFooter').style.display = 'none';
+  else document.getElementById('tpvFooter').style.display = 'flex';
+}
+
+function tpvGoNext() {
+  if (TPV.step === 1 && !TPV.phone) { toast('Selecciona un teléfono', 'error'); return; }
+  if (TPV.step === 2) { tpvConfirmSale(); return; }
+  TPV.step++;
+  tpvShowStep(TPV.step);
+  tpvUpdateSteps();
+  if (TPV.step === 3) { tpvUpdatePrice(); }
+}
+
+function tpvGoBack() {
+  TPV.step--;
+  tpvShowStep(TPV.step);
+  tpvUpdateSteps();
+}
+
+// PHONE SEARCH
+document.getElementById('tpvPhoneSearch').addEventListener('input', function() {
+  var q = this.value.toLowerCase().trim();
+  if (!q) { document.getElementById('tpvPhoneDd').classList.remove('open'); return; }
+  var avail = DB.stock.filter(function(s) { return !s.vendido; });
+  var results = avail.filter(function(s) {
+    return (s.marca+' '+s.modelo+' '+s.capacidad+' '+s.color+' '+s.imei).toLowerCase().includes(q);
+  });
+  var dd = document.getElementById('tpvPhoneDd');
+  if (!results.length) {
+    dd.innerHTML = '<div class="tpv-dd-empty">Sin resultados</div>';
+  } else {
+    dd.innerHTML = results.slice(0,8).map(function(s) {
+      return '<div class="tpv-dd-item" data-sid="'+s.id+'">' +
+        '<div><div class="tpv-dd-title">'+s.marca+' '+s.modelo+' '+s.capacidad+'</div>' +
+        '<div class="tpv-dd-sub">'+s.color+' · '+s.estado+' · IMEI: '+s.imei+'</div></div>' +
+        '<div style="text-align:right"><div class="tpv-dd-price">€'+parseFloat(s.precioV).toFixed(2)+'</div>' +
+        '<div class="tpv-dd-badge">'+s.estado+'</div></div></div>';
+    }).join('');
+    dd.querySelectorAll('.tpv-dd-item').forEach(function(item) {
+      item.addEventListener('click', function() {
+        var s = DB.stock.find(function(x){ return x.id===this.dataset.sid; }.bind(this));
+        if (s) tpvSelectPhone(s);
+      });
+    });
+  }
+  dd.classList.add('open');
+});
+
+function tpvSelectPhone(s) {
+  TPV.phone = s;
+  document.getElementById('tpvPhoneSearch').value = '';
+  document.getElementById('tpvPhoneDd').classList.remove('open');
+  document.getElementById('tpvSpMarca').textContent = s.marca;
+  document.getElementById('tpvSpModelo').textContent = s.modelo + ' ' + s.capacidad;
+  document.getElementById('tpvSpDetails').textContent = s.color + ' · ' + s.estado;
+  document.getElementById('tpvSpImei').textContent = 'IMEI: ' + s.imei;
+  document.getElementById('tpvSpPrice').textContent = '€' + parseFloat(s.precioV).toFixed(2);
+  document.getElementById('tpvSelPhone').style.display = 'block';
+  document.getElementById('tpvBtnNext').disabled = false;
+  tpvUpdateSteps();
+  toast('✓ ' + s.marca + ' ' + s.modelo + ' seleccionado', 'success');
+}
+
+function tpvClearPhone() {
+  TPV.phone = null;
+  document.getElementById('tpvSelPhone').style.display = 'none';
+  document.getElementById('tpvPhoneSearch').value = '';
+  document.getElementById('tpvBtnNext').disabled = true;
+  document.getElementById('tpvPhoneSearch').focus();
+}
+
+// CLIENT SEARCH
+document.getElementById('tpvCliSearch').addEventListener('input', function() {
+  var q = this.value.toLowerCase().trim();
+  if (!q) { document.getElementById('tpvCliResults').classList.remove('open'); return; }
+  var results = DB.clientes.filter(function(c) {
+    return (c.nombre+' '+c.apellidos+' '+(c.tel||'')+' '+(c.email||'')).toLowerCase().includes(q);
+  });
+  var el = document.getElementById('tpvCliResults');
+  var html = results.map(function(c) {
+    return '<div class="tpv-cli-item" data-cid="'+c.id+'">' +
+      '<div class="tpv-cli-av">'+c.nombre.charAt(0).toUpperCase()+'</div>' +
+      '<div><div style="font-size:13px;font-weight:600;color:var(--navy)">'+c.nombre+' '+c.apellidos+'</div>' +
+      '<div style="font-size:11px;color:var(--muted)">'+(c.tel||'')+(c.email?' · '+c.email:'')+'</div></div></div>';
+  }).join('');
+  html += '<div class="tpv-cli-new" id="tpvCliNewBtn">➕ Añadir "' + this.value + '" como nuevo cliente</div>';
+  el.innerHTML = html; el.classList.add('open');
+  el.querySelectorAll('.tpv-cli-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var c = DB.clientes.find(function(x){ return x.id===this.dataset.cid; }.bind(this));
+      if (c) tpvSelectClient(c);
+    });
+  });
+  document.getElementById('tpvCliNewBtn').addEventListener('click', function() {
+    tpvShowAddClient(document.getElementById('tpvCliSearch').value);
+  });
+});
+
+function tpvSelectClient(c) {
+  TPV.client = c;
+  document.getElementById('tpvCliSearch').value = '';
+  document.getElementById('tpvCliResults').classList.remove('open');
+  document.getElementById('tpvCliSection').style.display = 'none';
+  document.getElementById('tpvAddCli').classList.remove('show');
+  document.getElementById('tpvScAv').textContent = c.nombre.charAt(0).toUpperCase();
+  document.getElementById('tpvScName').textContent = c.nombre + ' ' + c.apellidos;
+  document.getElementById('tpvScSub').textContent = (c.tel||'Sin tel') + (c.email?' · '+c.email:'');
+  document.getElementById('tpvSelCli').classList.add('show');
+}
+
+function tpvClearClient() {
+  TPV.client = null;
+  document.getElementById('tpvSelCli').classList.remove('show');
+  document.getElementById('tpvCliSection').style.display = 'block';
+  document.getElementById('tpvAddCli').classList.remove('show');
+  document.getElementById('tpvCliSearch').value = '';
+  document.getElementById('tpvCliSearch').focus();
+}
+
+function tpvSelectNoClient() {
+  tpvSelectClient({id:null,nombre:'Sin cliente',apellidos:'',tel:'',email:''});
+}
+
+function tpvShowAddClient(query) {
+  document.getElementById('tpvCliResults').classList.remove('open');
+  document.getElementById('tpvCliSearch').value = '';
+  var form = document.getElementById('tpvAddCli');
+  form.classList.add('show');
+  if (query) {
+    var parts = query.split(' ');
+    document.getElementById('tpvNcNom').value = parts[0]||'';
+    document.getElementById('tpvNcApe').value = parts.slice(1).join(' ')||'';
+    if (/^\d+$/.test(query)) document.getElementById('tpvNcTel').value = query;
+  }
+  document.getElementById('tpvNcNom').focus();
+}
+
+function tpvSaveNewClient() {
+  var nom = document.getElementById('tpvNcNom').value.trim();
+  if (!nom) { toast('El nombre es obligatorio', 'error'); return; }
+  var c = {id:'c'+Date.now(),nombre:nom,apellidos:document.getElementById('tpvNcApe').value,tel:document.getElementById('tpvNcTel').value,email:document.getElementById('tpvNcEmail').value};
+  DB.clientes.push(c);
+  fillClienteSelects();
+  tpvSelectClient(c);
+  toast('✓ Cliente añadido', 'success');
+  logActivity('Cliente', 'Nuevo cliente desde TPV: ' + nom);
+}
+
+// PAYMENT
+document.querySelectorAll('.tpv-pago-chip').forEach(function(chip) {
+  chip.addEventListener('click', function() {
+    document.querySelectorAll('.tpv-pago-chip').forEach(function(c){ c.classList.remove('selected'); });
+    this.classList.add('selected');
+    TPV.pago = this.dataset.pago;
+  });
+});
+
+function tpvToggleDesc() {
+  document.getElementById('tpvDescForm').classList.toggle('show');
+}
+
+function tpvUpdatePrice() {
+  if (!TPV.phone) return;
+  var precio = parseFloat(TPV.phone.precioV)||0;
+  TPV.desc = parseFloat(document.getElementById('tpvDescInput').value)||0;
+  var total = Math.max(0, precio - TPV.desc);
+  document.getElementById('tpvPbPrecio').textContent = '€'+precio.toFixed(2);
+  document.getElementById('tpvPbDesc').textContent = '-€'+TPV.desc.toFixed(2);
+  document.getElementById('tpvPbTotal').textContent = '€'+total.toFixed(2);
+}
+
+// CONFIRM
+function tpvConfirmSale() {
+  if (!TPV.phone) return;
+  var precio = parseFloat(TPV.phone.precioV)||0;
+  TPV.desc = parseFloat(document.getElementById('tpvDescInput').value)||0;
+  var total = Math.max(0, precio - TPV.desc);
+  var clienteNombre = TPV.client ? TPV.client.nombre+' '+TPV.client.apellidos : 'Sin cliente';
+  TPV.ventaId = 'VTA-' + Date.now();
+
+  // Save to DB
+  var v = {id:TPV.ventaId,fecha:new Date().toLocaleDateString('es'),clienteId:TPV.client?TPV.client.id:null,clienteNombre:clienteNombre,marca:TPV.phone.marca,modelo:TPV.phone.modelo,capacidad:TPV.phone.capacidad,imei:TPV.phone.imei,color:TPV.phone.color,estado:TPV.phone.estado,pago:TPV.pago,total:total};
+  DB.ventas.push(v);
+  var st = DB.stock.find(function(s){ return s.id===TPV.phone.id; });
+  if (st) st.vendido = true;
+  saveData();
+
+  // Show confirm
+  TPV.step = 3;
+  tpvShowStep(3);
+  tpvUpdateSteps();
+  tpvUpdatePrice();
+
+  document.getElementById('tpvConfirmId').textContent = TPV.ventaId + ' · ' + new Date().toLocaleString('es');
+  document.getElementById('tpvConfirmSum').innerHTML =
+    '<div class="tpv-cs-row"><span class="tpv-cs-lbl">Teléfono</span><span class="tpv-cs-val">'+TPV.phone.marca+' '+TPV.phone.modelo+' '+TPV.phone.capacidad+'</span></div>' +
+    '<div class="tpv-cs-row"><span class="tpv-cs-lbl">IMEI</span><span class="tpv-cs-val" style="font-family:monospace;font-size:11px">'+TPV.phone.imei+'</span></div>' +
+    '<div class="tpv-cs-row"><span class="tpv-cs-lbl">Cliente</span><span class="tpv-cs-val">'+clienteNombre+'</span></div>' +
+    '<div class="tpv-cs-row"><span class="tpv-cs-lbl">Pago</span><span class="tpv-cs-val">'+TPV.pago+'</span></div>' +
+    (TPV.desc>0?'<div class="tpv-cs-row"><span class="tpv-cs-lbl">Descuento</span><span class="tpv-cs-val" style="color:#F87171">-€'+TPV.desc.toFixed(2)+'</span></div>':'') +
+    '<div class="tpv-cs-row"><span class="tpv-cs-lbl">TOTAL</span><span class="tpv-cs-val">€'+total.toFixed(2)+'</span></div>';
+
+  document.getElementById('tpvConfirm').classList.add('show');
+  toast('¡Venta registrada! ✓', 'success');
+  logActivity('Venta', clienteNombre + ' — ' + TPV.phone.marca + ' ' + TPV.phone.modelo + ' €' + total.toFixed(2));
+  renderDash();
+}
+
+// PDF
+function tpvGeneratePDF() {
+  if (!TPV.phone) return;
+  var precio = parseFloat(TPV.phone.precioV)||0;
+  var total = Math.max(0, precio - TPV.desc);
+  var iva = total * 0.21;
+  var base = total - iva;
+  var clienteNombre = TPV.client ? TPV.client.nombre+' '+TPV.client.apellidos : 'Sin cliente';
+  var tienda = S && S.tienda ? S.tienda : {nombre:'Mi Tienda',dir:'',tel:''};
+  var fecha = new Date().toLocaleDateString('es',{year:'numeric',month:'long',day:'numeric'});
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+  '<style>body{font-family:Arial,sans-serif;margin:0;padding:28px;color:#111;max-width:580px}' +
+  '.header{display:flex;justify-content:space-between;margin-bottom:28px;padding-bottom:18px;border-bottom:2px solid #0055FF}' +
+  '.logo{font-size:20px;font-weight:800;color:#0055FF}.tinfo{font-size:11px;color:#666;text-align:right;line-height:1.7}' +
+  '.ftitle{font-size:26px;font-weight:800;color:#020B2E;margin-bottom:4px}.fnum{font-size:12px;color:#666;margin-bottom:18px}' +
+  '.parties{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}' +
+  '.party h4{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:#666;margin-bottom:6px}' +
+  '.party p{font-size:13px;line-height:1.6;margin:0}' +
+  'table{width:100%;border-collapse:collapse;margin-bottom:18px}' +
+  'th{background:#020B2E;color:white;padding:9px 12px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:.5px}' +
+  'td{padding:11px 12px;border-bottom:1px solid #eee;font-size:13px}' +
+  '.tots{max-width:240px;margin-left:auto}.tr{display:flex;justify-content:space-between;padding:5px 0;font-size:13px;border-bottom:1px solid #eee}' +
+  '.tr.tot{font-size:15px;font-weight:800;border:none;border-top:2px solid #020B2E;padding-top:9px;margin-top:4px}' +
+  '.tr.tot .tv{color:#0055FF}' +
+  '.imei{background:#f8f9fa;border-radius:7px;padding:10px 14px;margin-bottom:18px;font-size:12px}' +
+  '.footer{margin-top:24px;padding-top:14px;border-top:1px solid #eee;font-size:11px;color:#999;text-align:center;line-height:1.8}' +
+  '</style></head><body>' +
+  '<div class="header"><div><div class="logo">TEKPAIR</div><div style="font-size:11px;color:#666;margin-top:3px">Software para tiendas de móviles</div></div>' +
+  '<div class="tinfo"><strong style="font-size:13px;color:#020B2E">'+tienda.nombre+'</strong><br>'+(tienda.dir||'')+'<br>'+(tienda.tel||'')+'</div></div>' +
+  '<div class="ftitle">FACTURA</div><div class="fnum">Nº '+TPV.ventaId+' · '+fecha+'</div>' +
+  '<div class="parties"><div class="party"><h4>Vendedor</h4><p><strong>'+tienda.nombre+'</strong><br>'+(tienda.dir||'')+'</p></div>' +
+  '<div class="party"><h4>Cliente</h4><p><strong>'+clienteNombre+'</strong>'+(TPV.client&&TPV.client.tel?'<br>'+TPV.client.tel:'')+'</p></div></div>' +
+  '<table><thead><tr><th>Descripción</th><th>Estado</th><th>Precio</th></tr></thead><tbody>' +
+  '<tr><td><strong>'+TPV.phone.marca+' '+TPV.phone.modelo+' '+TPV.phone.capacidad+'</strong><br><span style="color:#666;font-size:11px">Color: '+TPV.phone.color+'</span></td>' +
+  '<td>'+TPV.phone.estado+'</td><td>€'+precio.toFixed(2)+'</td></tr>' +
+  '</tbody></table>' +
+  '<div class="imei">🔍 <strong>IMEI:</strong> '+TPV.phone.imei+' &nbsp;·&nbsp; <strong>Pago:</strong> '+TPV.pago+'</div>' +
+  '<div class="tots">'+(TPV.desc>0?'<div class="tr"><span>Descuento</span><span style="color:#EF4444">-€'+TPV.desc.toFixed(2)+'</span></div>':'')+
+  '<div class="tr"><span>Base imponible</span><span>€'+base.toFixed(2)+'</span></div>' +
+  '<div class="tr"><span>IVA (21%)</span><span>€'+iva.toFixed(2)+'</span></div>' +
+  '<div class="tr tot"><span>TOTAL</span><span class="tv">€'+total.toFixed(2)+'</span></div></div>' +
+  '<div class="footer">Gracias por su compra · '+tienda.nombre+(tienda.tel?' · '+tienda.tel:'')+'<br>Este documento es válido como factura fiscal</div>' +
+  '</body></html>';
+
+  var win = window.open('','_blank');
+  win.document.write(html); win.document.close();
+  setTimeout(function(){ win.print(); },500);
+  toast('Factura generada ✓','success');
+  logActivity('Factura','PDF generado para ' + clienteNombre);
+}
+
+// WHATSAPP
+function tpvSendWA() {
+  if (!TPV.phone) return;
+  var total = Math.max(0,(parseFloat(TPV.phone.precioV)||0)-TPV.desc);
+  var tel = TPV.client ? (TPV.client.tel||'').replace(/\D/g,'') : '';
+  var tienda = S&&S.tienda ? S.tienda.nombre : 'nuestra tienda';
+  var msg = 'Hola '+(TPV.client?TPV.client.nombre:'')+'! 👋\n\n' +
+    'Tu '+TPV.phone.marca+' '+TPV.phone.modelo+' '+TPV.phone.capacidad+' ha sido registrado.\n\n' +
+    '📱 *Resumen:*\n• Modelo: '+TPV.phone.marca+' '+TPV.phone.modelo+'\n' +
+    '• IMEI: '+TPV.phone.imei+'\n• Total: €'+total.toFixed(2)+' ('+TPV.pago+')\n\n' +
+    'Gracias por confiar en '+tienda+'! 🙏';
+  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+// RESET
+function tpvReset() {
+  TPV = {step:1,phone:null,client:null,pago:'Efectivo',desc:0,ventaId:null};
+  tpvShowStep(1);
+  tpvUpdateSteps();
+  document.getElementById('tpvSelPhone').style.display = 'none';
+  document.getElementById('tpvPhoneSearch').value = '';
+  document.getElementById('tpvPhoneDd').classList.remove('open');
+  document.getElementById('tpvSelCli').classList.remove('show');
+  document.getElementById('tpvCliSection').style.display = 'block';
+  document.getElementById('tpvAddCli').classList.remove('show');
+  document.getElementById('tpvCliResults').classList.remove('open');
+  document.getElementById('tpvCliSearch').value = '';
+  document.getElementById('tpvConfirm').classList.remove('show');
+  document.getElementById('tpvDescForm').classList.remove('show');
+  document.getElementById('tpvDescInput').value = '0';
+  document.querySelectorAll('.tpv-pago-chip').forEach(function(c){ c.classList.toggle('selected',c.dataset.pago==='Efectivo'); });
+  document.getElementById('tpvBtnNext').textContent = 'Siguiente →';
+  document.getElementById('tpvFooter').style.display = 'flex';
+}
+
+// Close on overlay click
+document.getElementById('tpvOverlay').addEventListener('click',function(e){ if(e.target===this) closeTpv(); });
+
+// Close dropdowns on click outside
+document.addEventListener('click',function(e){
+  if(!e.target.closest('#tpvPhoneSearch')&&!e.target.closest('#tpvPhoneDd')) document.getElementById('tpvPhoneDd').classList.remove('open');
+  if(!e.target.closest('#tpvCliSearch')&&!e.target.closest('#tpvCliResults')) document.getElementById('tpvCliResults').classList.remove('open');
+});
+
 </script>
+
+<!-- ══════════════════════════════
+     TPV RÁPIDO MODAL
+══════════════════════════════ -->
+<div class="tpv-overlay" id="tpvOverlay">
+  <div class="tpv-box">
+    <div class="tpv-header">
+      <div class="tpv-title">
+        <span>⚡</span> Venta Rápida
+        <button onclick="closeTpv()" style="margin-left:auto;background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">✕</button>
+      </div>
+      <div class="tpv-steps-bar">
+        <div class="tpv-step-bar active" id="ts1"></div>
+        <div class="tpv-step-bar" id="ts2"></div>
+        <div class="tpv-step-bar" id="ts3"></div>
+      </div>
+    </div>
+    <div class="tpv-body">
+
+      <!-- STEP 1 -->
+      <div id="tpvStep1">
+        <div class="tpv-step-label"><div class="tpv-step-num">1</div>¿Qué teléfono vendes?</div>
+        <div class="tpv-search">
+          <span class="tpv-si-icon">📱</span>
+          <input class="tpv-si" id="tpvPhoneSearch" placeholder="Buscar modelo, IMEI, marca..." autocomplete="off" />
+        </div>
+        <div class="tpv-dd" id="tpvPhoneDd"></div>
+        <div class="tpv-sel-phone" id="tpvSelPhone">
+          <div class="tpv-sp-inner">
+            <div>
+              <div class="tpv-sp-marca" id="tpvSpMarca">---</div>
+              <div class="tpv-sp-modelo" id="tpvSpModelo">---</div>
+              <div class="tpv-sp-details" id="tpvSpDetails">---</div>
+              <div class="tpv-sp-imei" id="tpvSpImei">---</div>
+            </div>
+            <div><div class="tpv-sp-price" id="tpvSpPrice">€0</div><div class="tpv-sp-lbl">Precio</div></div>
+          </div>
+          <button class="tpv-change-btn" onclick="tpvClearPhone()">Cambiar teléfono</button>
+        </div>
+      </div>
+
+      <!-- STEP 2 -->
+      <div id="tpvStep2" style="display:none">
+        <div class="tpv-step-label"><div class="tpv-step-num">2</div>¿A quién vendes?</div>
+        <div class="tpv-sel-cli" id="tpvSelCli">
+          <div class="tpv-cli-av" id="tpvScAv">?</div>
+          <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--navy)" id="tpvScName">---</div><div style="font-size:11px;color:var(--muted);margin-top:1px" id="tpvScSub">---</div></div>
+          <button class="tpv-change-btn" style="background:var(--bg);color:var(--muted);border:1px solid var(--border)" onclick="tpvClearClient()">Cambiar</button>
+        </div>
+        <div id="tpvCliSection">
+          <div class="tpv-search" style="margin-bottom:0">
+            <span class="tpv-si-icon">👤</span>
+            <input class="tpv-si" id="tpvCliSearch" placeholder="Nombre, teléfono o email..." autocomplete="off" />
+          </div>
+          <div class="tpv-cli-results" id="tpvCliResults"></div>
+        </div>
+        <div class="tpv-add-cli" id="tpvAddCli">
+          <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:11px">➕ Nuevo cliente</div>
+          <div class="g2">
+            <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="tpvNcNom" /></div>
+            <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="tpvNcApe" /></div>
+          </div>
+          <div class="g2">
+            <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="tpvNcTel" type="tel" /></div>
+            <div class="fg"><label class="fl">Email</label><input class="fi" id="tpvNcEmail" type="email" /></div>
+          </div>
+          <button class="btn-full" onclick="tpvSaveNewClient()">✓ Guardar y seleccionar</button>
+        </div>
+        <div style="text-align:center;margin-top:10px">
+          <span style="font-size:12px;color:var(--muted)">o </span>
+          <span style="font-size:12px;color:var(--blue);cursor:pointer;font-weight:600" onclick="tpvSelectNoClient()">continuar sin cliente →</span>
+        </div>
+      </div>
+
+      <!-- STEP 3 -->
+      <div id="tpvStep3" style="display:none">
+        <div class="tpv-step-label"><div class="tpv-step-num">3</div>Pago y confirmación</div>
+        <div class="tpv-pago-grid">
+          <div class="tpv-pago-chip selected" data-pago="Efectivo"><span style="font-size:18px;display:block;margin-bottom:3px">💵</span><span style="font-size:11px;font-weight:600">Efectivo</span></div>
+          <div class="tpv-pago-chip" data-pago="Tarjeta"><span style="font-size:18px;display:block;margin-bottom:3px">💳</span><span style="font-size:11px;font-weight:600">Tarjeta</span></div>
+          <div class="tpv-pago-chip" data-pago="Bizum"><span style="font-size:18px;display:block;margin-bottom:3px">📱</span><span style="font-size:11px;font-weight:600">Bizum</span></div>
+          <div class="tpv-pago-chip" data-pago="Transferencia"><span style="font-size:18px;display:block;margin-bottom:3px">🏦</span><span style="font-size:11px;font-weight:600">Transferencia</span></div>
+          <div class="tpv-pago-chip" data-pago="PayPal"><span style="font-size:18px;display:block;margin-bottom:3px">🅿️</span><span style="font-size:11px;font-weight:600">PayPal</span></div>
+          <div class="tpv-pago-chip" data-pago="Financiado"><span style="font-size:18px;display:block;margin-bottom:3px">📋</span><span style="font-size:11px;font-weight:600">Financiado</span></div>
+        </div>
+        <span class="desc-toggle-tpv" onclick="tpvToggleDesc()">+ Añadir descuento</span>
+        <div class="desc-form-tpv" id="tpvDescForm">
+          <input class="fi" type="number" id="tpvDescInput" placeholder="Descuento €" value="0" oninput="tpvUpdatePrice()" style="flex:1" />
+          <span style="font-size:13px;color:var(--muted);white-space:nowrap">€ descuento</span>
+        </div>
+        <div class="tpv-price-box">
+          <div class="tpv-pb-row"><span style="color:var(--muted)">Precio</span><span id="tpvPbPrecio">€0</span></div>
+          <div class="tpv-pb-row"><span style="color:var(--muted)">Descuento</span><span id="tpvPbDesc" style="color:var(--red)">-€0</span></div>
+          <div class="tpv-pb-row total"><span>TOTAL</span><span class="tpv-pb-val" id="tpvPbTotal">€0</span></div>
+        </div>
+
+        <!-- CONFIRM -->
+        <div class="tpv-confirm" id="tpvConfirm">
+          <div class="tpv-confirm-icon">🎉</div>
+          <div style="font-size:19px;font-weight:700;color:var(--navy);margin-bottom:5px">¡Venta registrada!</div>
+          <div style="font-size:13px;color:var(--muted);margin-bottom:16px" id="tpvConfirmId">---</div>
+          <div class="tpv-confirm-sum" id="tpvConfirmSum"></div>
+          <div class="tpv-actions">
+            <button class="tpv-btn-pdf" onclick="tpvGeneratePDF()">📄 Descargar factura PDF</button>
+            <button class="tpv-btn-wa" onclick="tpvSendWA()">📲 Enviar por WhatsApp</button>
+            <div style="display:flex;gap:9px">
+              <button class="tpv-btn-nueva" onclick="tpvReset()">+ Nueva venta</button>
+              <button class="tpv-btn-cerrar" onclick="closeTpv()">Cerrar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="tpv-footer" id="tpvFooter">
+      <button class="tpv-btn-back" id="tpvBtnBack" onclick="tpvGoBack()" style="display:none">← Atrás</button>
+      <button class="tpv-btn-next" id="tpvBtnNext" onclick="tpvGoNext()" disabled>Siguiente →</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
