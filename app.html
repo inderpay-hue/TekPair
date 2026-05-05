@@ -355,6 +355,23 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text)}
 .desc-form-tpv{display:none;margin-bottom:12px;gap:10px;align-items:center}
 .desc-form-tpv.show{display:flex}
 
+
+/* PRIORITY CHIPS */
+.priority-chip{padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);color:var(--muted);background:white;transition:all .2s;white-space:nowrap}
+.priority-chip.active{background:var(--blue);border-color:var(--blue);color:white}
+.priority-chip[data-pri="Urgente"].active{background:var(--red);border-color:var(--red)}
+.priority-chip[data-pri="VIP"].active{background:#F59E0B;border-color:#F59E0B}
+
+/* AVERIA SUGGESTIONS */
+.averia-sug{padding:5px 11px;border-radius:20px;font-size:11px;font-weight:600;cursor:pointer;background:var(--bg);border:1px solid var(--border);color:var(--muted);transition:all .2s;white-space:nowrap}
+.averia-sug:hover{background:var(--blue-light);border-color:var(--blue);color:var(--blue)}
+
+/* REP CLIENT SEARCH */
+.rep-cli-sel{background:var(--bg);border:1.5px solid var(--border);border-radius:10px;padding:11px 13px;display:flex;align-items:center;gap:11px;margin-bottom:8px}
+
+/* PHOTO PREVIEW */
+.photo-thumb{width:64px;height:64px;border-radius:9px;object-fit:cover;border:1.5px solid var(--border)}
+
 </style>
 </head>
 <body>
@@ -572,11 +589,51 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text)}
   </div>
 </div>
 
-<!-- NUEVA REPARACIÓN -->
+<!-- NUEVA REPARACIÓN MEJORADA -->
 <div class="modal-overlay" id="modalRep">
   <div class="modal">
     <div class="modal-title">🔧 Nueva Reparación</div>
-    <div class="fg"><label class="fl">Cliente</label><select class="fi fi-sel" id="rCliente"></select></div>
+
+    <!-- PRIORIDAD -->
+    <div class="fg">
+      <label class="fl">Prioridad</label>
+      <div style="display:flex;gap:8px">
+        <div class="priority-chip active" data-pri="Normal" onclick="setPriority(this)">⚪ Normal</div>
+        <div class="priority-chip" data-pri="Urgente" onclick="setPriority(this)">🔴 Urgente</div>
+        <div class="priority-chip" data-pri="VIP" onclick="setPriority(this)">⭐ VIP</div>
+      </div>
+    </div>
+
+    <!-- CLIENTE CON BÚSQUEDA -->
+    <div class="fg">
+      <label class="fl">Cliente *</label>
+      <div class="rep-cli-sel show" id="repCliSel" style="display:none">
+        <div class="tpv-cli-av" id="repCliAv">?</div>
+        <div style="flex:1"><div style="font-size:13px;font-weight:700;color:var(--navy)" id="repCliName">---</div><div style="font-size:11px;color:var(--muted)" id="repCliSub">---</div></div>
+        <button class="btn-sm" onclick="repClearClient()">Cambiar</button>
+      </div>
+      <div id="repCliSearchSec">
+        <div style="position:relative">
+          <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none">👤</span>
+          <input class="fi" id="repCliSearch" placeholder="Buscar cliente..." style="padding-left:40px" autocomplete="off" />
+        </div>
+        <div class="tpv-cli-results" id="repCliResults"></div>
+      </div>
+      <div class="tpv-add-cli" id="repAddCli">
+        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:11px">➕ Nuevo cliente</div>
+        <div class="g2">
+          <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="repNcNom" /></div>
+          <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="repNcApe" /></div>
+        </div>
+        <div class="g2">
+          <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="repNcTel" type="tel" /></div>
+          <div class="fg"><label class="fl">Email</label><input class="fi" id="repNcEmail" type="email" /></div>
+        </div>
+        <button class="btn-full" onclick="repSaveNewClient()">✓ Guardar y seleccionar cliente</button>
+      </div>
+    </div>
+
+    <!-- MARCA Y MODELO -->
     <div class="fg">
       <label class="fl">Marca</label>
       <div class="marca-row">
@@ -586,7 +643,44 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text)}
     </div>
     <div class="fg"><label class="fl">Modelo *</label><input class="fi" id="rModelo" placeholder="iPhone 13..." /></div>
     <div class="fg"><label class="fl">IMEI</label><input class="fi" id="rImei" placeholder="Opcional" /></div>
-    <div class="fg"><label class="fl">Avería *</label><input class="fi" id="rAveria" placeholder="Pantalla rota, batería..." /></div>
+
+    <!-- AVERÍA CON SUGERENCIAS -->
+    <div class="fg">
+      <label class="fl">Avería *</label>
+      <input class="fi" id="rAveria" placeholder="Pantalla rota, batería..." autocomplete="off" />
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:7px" id="averiaSugs">
+        <span class="averia-sug" onclick="setAveria('Pantalla rota')">📱 Pantalla rota</span>
+        <span class="averia-sug" onclick="setAveria('Batería')">🔋 Batería</span>
+        <span class="averia-sug" onclick="setAveria('Pin de carga')">🔌 Pin carga</span>
+        <span class="averia-sug" onclick="setAveria('No enciende')">❌ No enciende</span>
+        <span class="averia-sug" onclick="setAveria('Cámara')">📷 Cámara</span>
+        <span class="averia-sug" onclick="setAveria('Micrófono')">🎤 Micrófono</span>
+        <span class="averia-sug" onclick="setAveria('Altavoz')">🔊 Altavoz</span>
+        <span class="averia-sug" onclick="setAveria('Tapa trasera rota')">📱 Tapa trasera</span>
+      </div>
+    </div>
+
+    <!-- FECHAS Y PRIORIDAD -->
+    <div class="g2">
+      <div class="fg">
+        <label class="fl">Fecha entrega estimada</label>
+        <input class="fi" type="date" id="rFechaEntrega" />
+      </div>
+      <div class="fg">
+        <label class="fl">Estado inicial</label>
+        <select class="fi fi-sel" id="rEstado"><option>Pendiente</option><option>En Proceso</option></select>
+      </div>
+    </div>
+
+    <!-- FOTOS -->
+    <div class="fg">
+      <label class="fl">Fotos del equipo (estado al recibir)</label>
+      <div id="photosPreview" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px"></div>
+      <label style="display:flex;align-items:center;gap:8px;background:var(--bg);border:1.5px dashed var(--border);border-radius:10px;padding:12px;cursor:pointer;font-size:13px;color:var(--muted)">
+        📷 Toca para añadir fotos
+        <input type="file" accept="image/*" multiple id="rFotos" style="display:none" onchange="handlePhotos(this)" />
+      </label>
+    </div>
 
     <!-- CHECKLIST -->
     <div class="fg">
@@ -595,22 +689,23 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text)}
     </div>
 
     <!-- COMPONENTES -->
-    <div class="fl" style="margin-bottom:8px">Componentes a usar</div>
+    <div class="fl" style="margin-bottom:8px">Componentes a instalar <span style="font-size:11px;color:var(--muted)">(se descuentan del stock)</span></div>
     <div class="parts-grid" id="partsGrid"></div>
     <div id="selPartsBox" style="display:none;margin-bottom:12px">
       <div class="fl">Seleccionados</div>
       <div id="selPartsList"></div>
     </div>
 
+    <!-- MANO DE OBRA Y ANTICIPO -->
     <div class="g2">
       <div class="fg"><label class="fl">Mano de obra (€)</label><input class="fi" type="number" id="rMO" value="0" oninput="updateRepTotal()" /></div>
-      <div class="fg"><label class="fl">Estado inicial</label><select class="fi fi-sel" id="rEstado"><option>Pendiente</option><option>En Proceso</option></select></div>
+      <div class="fg"><label class="fl">Anticipo (€)</label><input class="fi" type="number" id="rAnticipo" value="0" oninput="updateRepTotal()" /></div>
     </div>
 
-    <!-- ANTICIPO -->
+    <!-- NOTA INTERNA -->
     <div class="fg">
-      <label class="fl">Anticipo recibido (€)</label>
-      <input class="fi" type="number" id="rAnticipo" value="0" placeholder="0" oninput="updateRepTotal()" />
+      <label class="fl">🔒 Nota interna (solo técnicos)</label>
+      <textarea class="fi" id="rNota" placeholder="Notas privadas del técnico..." rows="2" style="resize:none"></textarea>
     </div>
 
     <div class="anticipo-box">
@@ -1446,18 +1541,44 @@ function saveVenta() {
 function saveRep() {
   var modelo = document.getElementById('rModelo').value;
   var averia = document.getElementById('rAveria').value;
-  if (!modelo || !averia) { toast('Rellena los campos obligatorios','error'); return; }
-  var cId = document.getElementById('rCliente').value;
-  var cli = DB.clientes.find(function(c){ return c.id===cId; });
+  if (!modelo || !averia) { toast('Rellena modelo y avería','error'); return; }
+  if (!repSelectedClient) { toast('Selecciona un cliente','error'); return; }
   var mo = parseFloat(document.getElementById('rMO').value)||0;
   var ant = parseFloat(document.getElementById('rAnticipo').value)||0;
   var pt = selParts.reduce(function(a,p){ return a+(parseFloat(p.precioV)||0); },0);
   var total = mo + pt;
-  var r = {id:'r'+Date.now(),fecha:new Date().toLocaleDateString('es'),clienteId:cId,clienteNombre:cli?cli.nombre+' '+cli.apellidos:'Sin cliente',marca:document.getElementById('rMarca').value,modelo:modelo,imei:document.getElementById('rImei').value,averia:averia,estado:document.getElementById('rEstado').value,mo:mo,partesEur:pt,anticipo:ant,restante:Math.max(0,total-ant),total:total,partes:selParts.slice(),checklist:Object.assign({},checklist)};
+  var r = {
+    id:'r'+Date.now(),
+    fecha:new Date().toLocaleDateString('es'),
+    clienteId:repSelectedClient.id,
+    clienteNombre:repSelectedClient.nombre+' '+repSelectedClient.apellidos,
+    marca:document.getElementById('rMarca').value,
+    modelo:modelo,
+    imei:document.getElementById('rImei').value,
+    averia:averia,
+    estado:document.getElementById('rEstado').value,
+    prioridad:repPriority,
+    fechaEntrega:document.getElementById('rFechaEntrega').value,
+    nota:document.getElementById('rNota').value,
+    fotos:repPhotos.slice(),
+    mo:mo,partesEur:pt,anticipo:ant,
+    restante:Math.max(0,total-ant),
+    total:total,
+    partes:selParts.slice(),
+    checklist:Object.assign({},checklist)
+  };
   DB.reparaciones.push(r);
-  selParts = [];
+  // Descontar componentes del stock
+  selParts.forEach(function(p) {
+    var comp = DB.componentes.find(function(c){ return c.id===p.id; });
+    if (comp && comp.stock > 0) {
+      comp.stock--;
+      if (comp.stock <= 2) toast('⚠️ Stock bajo: '+comp.nombre+' ('+comp.stock+' restantes)', 'error');
+    }
+  });
+  selParts = []; repPhotos = []; repSelectedClient = null; repPriority = 'Normal';
   saveData(); closeModal('modalRep'); toast('Orden creada ✓','success'); renderDash();
-  logActivity('Reparación', r.clienteNombre + ' — ' + r.marca + ' ' + r.modelo);
+  logActivity('Reparación', r.clienteNombre + ' — ' + r.marca + ' ' + r.modelo + ' ['+r.prioridad+']');
 }
 
 function saveStock() {
@@ -1546,7 +1667,27 @@ function badgeColor(estado) {
 
 function openModal(id) {
   document.getElementById(id).classList.add('open');
-  if (id==='modalRep') { selParts=[]; renderPartsGrid(); updateRepTotal(); initChecklist(); }
+  if (id==='modalRep') {
+    selParts=[]; repPhotos=[]; repSelectedClient=null; repPriority='Normal';
+    renderPartsGrid(); updateRepTotal(); initChecklist();
+    // Reset client search
+    var sel = document.getElementById('repCliSel');
+    var sec = document.getElementById('repCliSearchSec');
+    var add = document.getElementById('repAddCli');
+    if(sel) sel.style.display='none';
+    if(sec) sec.style.display='block';
+    if(add) add.classList.remove('show');
+    // Reset priority
+    document.querySelectorAll('.priority-chip').forEach(function(c){ c.classList.toggle('active',c.dataset.pri==='Normal'); });
+    // Reset photos
+    document.getElementById('photosPreview').innerHTML='';
+    document.getElementById('rFotos').value='';
+    document.getElementById('rNota').value='';
+    document.getElementById('rFechaEntrega').value='';
+    // Set default date (3 days from now)
+    var d = new Date(); d.setDate(d.getDate()+3);
+    document.getElementById('rFechaEntrega').valueAsDate = d;
+  }
 }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
 document.querySelectorAll('.modal-overlay').forEach(function(o){ o.addEventListener('click',function(e){ if(e.target===this) this.classList.remove('open'); }); });
@@ -1918,6 +2059,125 @@ document.addEventListener('click',function(e){
   if(!e.target.closest('#tpvPhoneSearch')&&!e.target.closest('#tpvPhoneDd')) document.getElementById('tpvPhoneDd').classList.remove('open');
   if(!e.target.closest('#tpvCliSearch')&&!e.target.closest('#tpvCliResults')) document.getElementById('tpvCliResults').classList.remove('open');
 });
+
+
+// ══════════════════════════════════════════
+// REP MODAL - CLIENT SEARCH
+// ══════════════════════════════════════════
+var repSelectedClient = null;
+var repPriority = 'Normal';
+var repPhotos = [];
+
+function setPriority(el) {
+  document.querySelectorAll('.priority-chip').forEach(function(c){ c.classList.remove('active'); });
+  el.classList.add('active');
+  repPriority = el.dataset.pri;
+}
+
+function setAveria(text) {
+  document.getElementById('rAveria').value = text;
+  document.getElementById('rAveria').focus();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+  var repCliSearch = document.getElementById('repCliSearch');
+  if (repCliSearch) {
+    repCliSearch.addEventListener('input', function() {
+      var q = this.value.toLowerCase().trim();
+      if (!q) { document.getElementById('repCliResults').classList.remove('open'); return; }
+      var results = DB.clientes.filter(function(c) {
+        return (c.nombre+' '+c.apellidos+' '+(c.tel||'')+' '+(c.email||'')).toLowerCase().includes(q);
+      });
+      var el = document.getElementById('repCliResults');
+      var html = results.map(function(c) {
+        return '<div class="tpv-cli-item" data-rcid="'+c.id+'">' +
+          '<div class="tpv-cli-av">'+c.nombre.charAt(0).toUpperCase()+'</div>' +
+          '<div><div style="font-size:13px;font-weight:600;color:var(--navy)">'+c.nombre+' '+c.apellidos+'</div>' +
+          '<div style="font-size:11px;color:var(--muted)">'+(c.tel||'')+(c.email?' · '+c.email:'')+'</div></div></div>';
+      }).join('');
+      html += '<div class="tpv-cli-new" id="repCliNewBtn">➕ Añadir "'+this.value+'" como nuevo cliente</div>';
+      el.innerHTML = html; el.classList.add('open');
+      el.querySelectorAll('.tpv-cli-item').forEach(function(item) {
+        item.addEventListener('click', function() {
+          var c = DB.clientes.find(function(x){ return x.id===this.dataset.rcid; }.bind(this));
+          if (c) repSelectClient(c);
+        });
+      });
+      var newBtn = document.getElementById('repCliNewBtn');
+      if (newBtn) newBtn.addEventListener('click', function() {
+        repShowAddClient(document.getElementById('repCliSearch').value);
+      });
+    });
+  }
+});
+
+function repSelectClient(c) {
+  repSelectedClient = c;
+  document.getElementById('repCliSearch').value = '';
+  document.getElementById('repCliResults').classList.remove('open');
+  document.getElementById('repCliSearchSec').style.display = 'none';
+  document.getElementById('repAddCli').classList.remove('show');
+  document.getElementById('repCliAv').textContent = c.nombre.charAt(0).toUpperCase();
+  document.getElementById('repCliName').textContent = c.nombre + ' ' + c.apellidos;
+  document.getElementById('repCliSub').textContent = (c.tel||'Sin tel') + (c.email?' · '+c.email:'');
+  document.getElementById('repCliSel').style.display = 'flex';
+}
+
+function repClearClient() {
+  repSelectedClient = null;
+  document.getElementById('repCliSel').style.display = 'none';
+  document.getElementById('repCliSearchSec').style.display = 'block';
+  document.getElementById('repAddCli').classList.remove('show');
+  document.getElementById('repCliSearch').value = '';
+}
+
+function repShowAddClient(query) {
+  document.getElementById('repCliResults').classList.remove('open');
+  document.getElementById('repCliSearch').value = '';
+  var form = document.getElementById('repAddCli');
+  form.classList.add('show');
+  if (query) {
+    var parts = query.split(' ');
+    document.getElementById('repNcNom').value = parts[0]||'';
+    document.getElementById('repNcApe').value = parts.slice(1).join(' ')||'';
+    if (/^\d+$/.test(query)) document.getElementById('repNcTel').value = query;
+  }
+  document.getElementById('repNcNom').focus();
+}
+
+function repSaveNewClient() {
+  var nom = document.getElementById('repNcNom').value.trim();
+  if (!nom) { toast('El nombre es obligatorio', 'error'); return; }
+  var c = {
+    id:'c'+Date.now(),
+    nombre:nom,
+    apellidos:document.getElementById('repNcApe').value,
+    tel:document.getElementById('repNcTel').value,
+    email:document.getElementById('repNcEmail').value
+  };
+  DB.clientes.push(c);
+  fillClienteSelects();
+  repSelectClient(c);
+  saveData();
+  toast('✓ Cliente '+nom+' añadido', 'success');
+  logActivity('Cliente','Nuevo cliente desde reparación: '+nom);
+}
+
+function handlePhotos(input) {
+  var preview = document.getElementById('photosPreview');
+  repPhotos = [];
+  Array.from(input.files).forEach(function(file) {
+    var reader = new FileReader();
+    reader.onload = function(e) {
+      repPhotos.push(e.target.result);
+      var img = document.createElement('img');
+      img.src = e.target.result;
+      img.className = 'photo-thumb';
+      preview.appendChild(img);
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 </script>
 
