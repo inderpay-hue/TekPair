@@ -948,20 +948,46 @@ async function doLogin() {
   var err = document.getElementById('loginErr');
   if (!email || !pass) { err.textContent = 'Rellena todos los campos'; return; }
   btn.textContent = 'Entrando...'; btn.disabled = true; err.textContent = '';
+
+  // Intentar login real con timeout de 3 segundos
+  var loginOk = false;
   try {
+    var controller = new AbortController();
+    var timeout = setTimeout(function(){ controller.abort(); }, 3000);
     var r = await fetch('/api/login', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email, password: pass})
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({email: email, password: pass}),
+      signal: controller.signal
     });
-    var data = await r.json();
-    if (data.ok) { S = data; localStorage.setItem('tk_sess', JSON.stringify(data)); afterLogin(); }
-    else { err.textContent = data.error || 'Error al iniciar sesión'; }
+    clearTimeout(timeout);
+    if (r.ok) {
+      var data = await r.json();
+      if (data.ok) {
+        S = data;
+        localStorage.setItem('tk_sess', JSON.stringify(data));
+        loginOk = true;
+        afterLogin();
+      }
+    }
   } catch(e) {
-    // DEMO MODE
-    S = {usuario:{id:'demo',nombre:'Admin Demo',email:email,rol:'admin'},tienda:{id:'demo',nombre:'Mi Tienda'},plan:'pro',token:'demo'};
+    // Backend no disponible - continuar con demo
+  }
+
+  // Si no entró con backend real, entrar en modo demo
+  if (!loginOk) {
+    var nombre = email.split('@')[0];
+    nombre = nombre.charAt(0).toUpperCase() + nombre.slice(1);
+    S = {
+      usuario:{id:'demo-'+Date.now(), nombre:nombre, email:email, rol:'admin'},
+      tienda:{id:'demo-tienda', nombre:'Mi Tienda'},
+      plan:'pro',
+      token:'demo'
+    };
     localStorage.setItem('tk_sess', JSON.stringify(S));
     afterLogin();
   }
+
   btn.textContent = 'Entrar →'; btn.disabled = false;
 }
 
