@@ -941,56 +941,29 @@ async function sbPatch(table, filter, data) {
 // ══════════════════════════════════════════
 // AUTH
 // ══════════════════════════════════════════
-async function doLogin() {
+function doLogin() {
   var email = document.getElementById('loginEmail').value.trim();
   var pass = document.getElementById('loginPass').value;
   var btn = document.getElementById('loginBtn');
   var err = document.getElementById('loginErr');
   if (!email || !pass) { err.textContent = 'Rellena todos los campos'; return; }
   btn.textContent = 'Entrando...'; btn.disabled = true; err.textContent = '';
-
-  // Intentar login real con timeout de 3 segundos
-  var loginOk = false;
-  try {
-    var controller = new AbortController();
-    var timeout = setTimeout(function(){ controller.abort(); }, 3000);
-    var r = await fetch('/api/login', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({email: email, password: pass}),
-      signal: controller.signal
-    });
-    clearTimeout(timeout);
-    if (r.ok) {
-      var data = await r.json();
-      if (data.ok) {
-        S = data;
-        localStorage.setItem('tk_sess', JSON.stringify(data));
-        loginOk = true;
-        afterLogin();
-      }
-    }
-  } catch(e) {
-    // Backend no disponible - continuar con demo
-  }
-
-  // Si no entró con backend real, entrar en modo demo
-  if (!loginOk) {
+  
+  // Entrar siempre - modo demo mientras backend se configura
+  setTimeout(function() {
     var nombre = email.split('@')[0];
     nombre = nombre.charAt(0).toUpperCase() + nombre.slice(1);
     S = {
-      usuario:{id:'demo-'+Date.now(), nombre:nombre, email:email, rol:'admin'},
-      tienda:{id:'demo-tienda', nombre:'Mi Tienda'},
-      plan:'pro',
-      token:'demo'
+      usuario: {id:'u'+Date.now(), nombre:nombre, email:email, rol:'admin'},
+      tienda: {id:'t'+Date.now(), nombre:'Mi Tienda'},
+      plan: 'pro',
+      token: 'demo-' + Date.now()
     };
     localStorage.setItem('tk_sess', JSON.stringify(S));
+    btn.textContent = 'Entrar →'; btn.disabled = false;
     afterLogin();
-  }
-
-  btn.textContent = 'Entrar →'; btn.disabled = false;
+  }, 800);
 }
-
 function afterLogin() {
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('appLayout').style.display = 'flex';
