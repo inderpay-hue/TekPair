@@ -150,7 +150,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
   <div class="quick-btns">
     <button class="qbtn" style="background:#0055FF" onclick="openM('mVenta')">📱 Nueva Venta</button>
     <button class="qbtn" style="background:#00C896" onclick="openM('mRep')">🔧 Reparación</button>
-    <button class="qbtn" style="background:#F97316" onclick="openM('mStock')">📦 Añadir Stock</button>
+    <button class="qbtn" style="background:#F97316" onclick="openMStock()">📦 Añadir Stock</button>
     <button class="qbtn" style="background:#7C3AED" onclick="openM('mCli')">👤 Nuevo Cliente</button>
   </div>
 
@@ -193,7 +193,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
 <div class="page" id="pStock">
   <div class="search-box"><input id="busStock" placeholder="🔍 Buscar stock..." oninput="renderStock()"/></div>
   <div id="stockAlertas"></div>
-  <div class="card" style="padding:0;overflow:hidden"><div id="listaStock"><div class="empty">Sin stock</div></div></div><button onclick="openM('mStock')" style="position:fixed;bottom:80px;right:18px;width:52px;height:52px;border-radius:50%;background:#F97316;color:white;border:none;font-size:26px;cursor:pointer;z-index:49;box-shadow:0 4px 14px rgba(249,115,22,.4)">+</button>
+  <div class="card" style="padding:0;overflow:hidden"><div id="listaStock"><div class="empty">Sin stock</div></div></div>
 </div>
 
 <!-- MÁS -->
@@ -302,7 +302,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
   <div class="fg"><label class="fl">Teléfono del stock</label>
     <div style="display:flex;gap:7px">
       <input class="fi" id="vBusStock" placeholder="Buscar modelo o IMEI..." oninput="busStock()" style="flex:1"/>
-      <button class="btn-sm" style="background:#F97316;color:white" onclick="openM('mStock')">+ Stock</button>
+      <button class="btn-sm" style="background:#F97316;color:white" onclick="openMStock()">+ Stock</button>
     </div>
     <div class="cli-results" id="vStockRes"></div>
     <div class="sel-box" id="vSelStock"><span id="vSelStockNom">---</span><button onclick="clearSel('vSelStock','vBusStock')" style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:14px">✕</button></div>
@@ -420,9 +420,33 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
 
 <!-- AÑADIR STOCK -->
 <div class="modal-bg" id="mStock"><div class="modal">
-  <div class="modal-title">📦 Añadir Stock</div>
+  <div class="modal-title">📦 Añadir / Reponer Stock</div>
+  
+  <!-- BUSCAR EXISTENTE -->
+  <div id="reponerBox" style="display:none;margin-bottom:12px">
+    <div class="info-box">♻️ Reponer stock existente — suma unidades sin crear duplicado</div>
+    <div style="position:relative">
+      <input class="fi" id="busExistente" placeholder="Buscar artículo existente..." oninput="busStockExistente()" autocomplete="off"/>
+      <div class="cli-results" id="existenteRes"></div>
+    </div>
+    <div id="selExistenteBox" style="display:none;background:#EBF1FF;border:1.5px solid #0055FF;border-radius:9px;padding:10px 12px;margin-top:7px">
+      <div style="font-size:12px;font-weight:700;color:#020B2E" id="selExistenteNom">---</div>
+      <div style="font-size:11px;color:#64748B;margin-top:2px" id="selExistenteDet">---</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:9px">
+        <label style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase">Unidades a añadir</label>
+        <input type="number" id="reponerUnidades" value="1" min="1" class="fi" style="width:80px"/>
+        <button onclick="reponerStock()" style="background:#00C896;color:white;border:none;padding:9px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">+ Reponer</button>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:9px">
+      <span style="font-size:11px;color:#64748B">¿No existe aún? </span>
+      <span style="font-size:11px;color:#0055FF;cursor:pointer;font-weight:600" onclick="showNuevoStock()">Crear nuevo artículo →</span>
+    </div>
+  </div>
+
+  <div id="nuevoStockBox">
   <div class="fg"><label class="fl">Categoría *</label>
-    <select class="fi" id="sCat">
+    <select class="fi" id="sCat" onchange="onCatChange()">
       <option>Teléfono</option><option>Tablet</option><option>Smartwatch</option>
       <option>Pantalla</option><option>Batería</option><option>Tapa trasera</option>
       <option>Pin de carga</option><option>Altavoz</option><option>Micrófono</option>
@@ -452,6 +476,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
     <div class="fg"><label class="fl">Stock máximo</label><input class="fi" type="number" id="sMax" value="10"/></div>
   </div>
   <div class="fg"><label class="fl">Estado</label><select class="fi" id="sEstado"><option>Nuevo</option><option>Reacond. A</option><option>Reacond. B</option><option>Segunda Mano</option></select></div>
+  </div><!-- end nuevoStockBox -->
   <button class="btn-save" onclick="saveStock()">Guardar</button>
   <button class="btn-cancel" onclick="closeM('mStock')">Cancelar</button>
 </div></div>
@@ -1273,6 +1298,86 @@ function enviarAyuda(){
 
 // ═══ UTILS ═══
 function bc(e){return{Pendiente:'bo','En Proceso':'bb','Por Entregar':'bp',Entregado:'bg',Garantia:'',Rechazado:'br'}[e]||'';}
+
+// ═══ STOCK MODAL LOGIC ═══
+function openMStock() {
+  openM('mStock');
+  var cat = document.getElementById('sCat').value;
+  var esTelefono = cat === 'Teléfono' || cat === 'Tablet' || cat === 'Smartwatch';
+  if (!esTelefono) {
+    document.getElementById('reponerBox').style.display = 'block';
+    document.getElementById('nuevoStockBox').style.display = 'none';
+  } else {
+    document.getElementById('reponerBox').style.display = 'none';
+    document.getElementById('nuevoStockBox').style.display = 'block';
+  }
+}
+
+function onCatChange() {
+  var cat = document.getElementById('sCat').value;
+  var esTelefono = cat === 'Teléfono' || cat === 'Tablet' || cat === 'Smartwatch';
+  document.getElementById('imeiField').style.display = esTelefono ? 'block' : 'none';
+  if (!esTelefono) {
+    document.getElementById('reponerBox').style.display = 'block';
+    document.getElementById('nuevoStockBox').style.display = 'none';
+  }
+}
+
+function showNuevoStock() {
+  document.getElementById('reponerBox').style.display = 'none';
+  document.getElementById('nuevoStockBox').style.display = 'block';
+}
+
+function busStockExistente() {
+  var q = document.getElementById('busExistente').value.toLowerCase().trim();
+  var res = document.getElementById('existenteRes');
+  if (!q) { res.classList.remove('open'); return; }
+  var cat = document.getElementById('sCat').value;
+  var matches = DB.stock.filter(function(s) {
+    return (s.marca + ' ' + s.modelo + ' ' + (s.categoria||'')).toLowerCase().includes(q);
+  });
+  res.innerHTML = matches.map(function(s) {
+    return '<div class="cli-item" data-id="' + s.id + '">' +
+      '<strong>' + s.marca + ' ' + s.modelo + '</strong>' +
+      ' · ' + (s.categoria||'') +
+      ' · <span style="color:#00C896">Stock actual: ' + s.unidades + '</span>' +
+      '</div>';
+  }).join('');
+  if (matches.length) res.classList.add('open');
+  res.querySelectorAll('.cli-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var s = DB.stock.find(function(x) { return x.id === this.dataset.id; }.bind(this));
+      if (s) {
+        document.getElementById('busExistente').value = '';
+        document.getElementById('existenteRes').classList.remove('open');
+        document.getElementById('selExistenteNom').textContent = s.marca + ' ' + s.modelo;
+        document.getElementById('selExistenteDet').textContent = (s.categoria||'') + ' · Stock actual: ' + s.unidades + ' uds.';
+        document.getElementById('selExistenteBox').style.display = 'block';
+        document.getElementById('selExistenteBox').dataset.id = s.id;
+      }
+    });
+  });
+}
+
+function reponerStock() {
+  var box = document.getElementById('selExistenteBox');
+  var id = box.dataset.id;
+  var uds = parseInt(document.getElementById('reponerUnidades').value) || 1;
+  var s = DB.stock.find(function(x) { return x.id === id; });
+  if (!s) { toast('Artículo no encontrado', 'err'); return; }
+  s.unidades += uds;
+  s.vendido = false;
+  saveData();
+  toast('✓ Stock actualizado: ' + s.modelo + ' → ' + s.unidades + ' uds.', 'ok');
+  closeM('mStock');
+  renderStock();
+  renderStockAlertas();
+  // Reset
+  document.getElementById('selExistenteBox').style.display = 'none';
+  document.getElementById('busExistente').value = '';
+  document.getElementById('reponerUnidades').value = '1';
+}
+
 </script>
 </body>
 </html>
