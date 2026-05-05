@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tekpair</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-bottom:70px}
+.topbar{background:#020B2E;padding:13px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50}
+.topbar-logo{color:white;font-size:16px;font-weight:700}
+.topbar-right{display:flex;align-items:center;gap:8px}
+.topbar-user{color:rgba(255,255,255,.6);font-size:11px}
+.logout-btn{background:rgba(255,255,255,.1);border:none;color:white;padding:5px 9px;border-radius:6px;cursor:pointer;font-size:11px}
+.page{display:none;padding:14px}
+.page.active{display:block}
+/* STATS */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+.stat{background:white;border-radius:10px;padding:13px;border:1px solid #E2E8F0}
+.stat-n{font-size:21px;font-weight:800}
+.stat-l{font-size:11px;color:#64748B;margin-top:2px}
+/* TABS */
+.tabs{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:4px}
+.tab{padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid #E2E8F0;color:#64748B;background:white;white-space:nowrap}
+.tab.active{background:#0055FF;border-color:#0055FF;color:white}
+/* CARDS */
+.card{background:white;border-radius:10px;padding:13px;border:1px solid #E2E8F0;margin-bottom:10px}
+.card-title{font-size:13px;font-weight:700;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center}
+/* BUTTONS */
+.quick-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.qbtn{padding:12px 8px;border-radius:10px;border:none;font-size:12px;font-weight:600;cursor:pointer;color:white;text-align:center}
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:11px}
+.tbl th{color:#64748B;font-size:9px;text-transform:uppercase;padding:6px 8px;text-align:left;border-bottom:1px solid #E2E8F0}
+.tbl td{padding:9px 8px;border-bottom:1px solid #F1F5F9;vertical-align:middle}
+/* BADGE */
+.badge{display:inline-block;padding:2px 7px;border-radius:10px;font-size:10px;font-weight:600}
+.bg{background:rgba(0,200,150,.1);color:#00875A}
+.bo{background:rgba(249,115,22,.1);color:#C2410C}
+.bb{background:rgba(0,85,255,.1);color:#0055FF}
+.br{background:rgba(239,68,68,.1);color:#EF4444}
+.bp{background:rgba(124,58,237,.1);color:#7C3AED}
+.by{background:rgba(234,179,8,.1);color:#854D0E}
+/* SEARCH */
+.search-box{display:flex;align-items:center;border:1.5px solid #E2E8F0;border-radius:9px;padding:9px 11px;background:white;margin-bottom:10px;gap:8px}
+.search-box input{border:none;outline:none;font-size:13px;flex:1;font-family:Arial}
+/* MODALS */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:100;display:none;align-items:flex-end;justify-content:center}
+.modal-bg.open{display:flex}
+.modal{background:white;border-radius:18px 18px 0 0;padding:18px;width:100%;max-height:92vh;overflow-y:auto;animation:slideUp .25s ease}
+@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:14px}
+.fg{margin-bottom:11px}
+.fl{font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:4px}
+.fi{width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:10px 11px;font-family:Arial;font-size:13px;outline:none;background:white}
+.fi:focus{border-color:#0055FF}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:9px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.btn-save{background:#0055FF;color:white;border:none;padding:12px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:5px;font-family:Arial}
+.btn-cancel{background:#F1F5F9;color:#64748B;border:none;padding:11px;border-radius:9px;font-size:13px;cursor:pointer;width:100%;margin-top:6px;font-family:Arial}
+.btn-sm{padding:6px 12px;border-radius:7px;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:Arial}
+/* PAGO GRID */
+.pago-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:11px}
+.pago-opt{border:1.5px solid #E2E8F0;border-radius:8px;padding:8px 4px;text-align:center;cursor:pointer;font-size:11px;font-weight:600;color:#64748B}
+.pago-opt.sel{border-color:#0055FF;background:#EBF1FF;color:#0055FF}
+/* PRI */
+.pri-grid{display:flex;gap:7px;margin-bottom:11px}
+.pri-opt{padding:6px 13px;border-radius:20px;border:1.5px solid #E2E8F0;font-size:11px;font-weight:600;cursor:pointer;color:#64748B}
+.pri-opt.sel{background:#0055FF;border-color:#0055FF;color:white}
+.pri-opt.sel.ur{background:#EF4444;border-color:#EF4444}
+.pri-opt.sel.vip{background:#F59E0B;border-color:#F59E0B}
+/* SUGS */
+.sug-row{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.sug{padding:4px 9px;border-radius:14px;background:#F1F5F9;font-size:11px;cursor:pointer;color:#64748B;border:1px solid #E2E8F0}
+/* TOTAL BOX */
+.total-box{background:#F1F5F9;border-radius:9px;padding:11px;margin-bottom:11px}
+.t-row{display:flex;justify-content:space-between;font-size:12px;padding:3px 0}
+.t-row.tot{font-weight:700;border-top:1px solid #E2E8F0;padding-top:7px;margin-top:4px;font-size:14px}
+/* CLI SEARCH */
+.cli-results{background:white;border:1.5px solid #E2E8F0;border-radius:8px;margin-top:4px;display:none;max-height:150px;overflow-y:auto;box-shadow:0 4px 12px rgba(0,0,0,.08)}
+.cli-results.open{display:block}
+.cli-item{padding:9px 11px;cursor:pointer;border-bottom:1px solid #F1F5F9;font-size:12px}
+.cli-item:hover{background:#F1F5F9}
+.cli-item.add-new{color:#0055FF;font-weight:600;background:rgba(0,85,255,.03)}
+.sel-box{background:#EBF1FF;border:1.5px solid #0055FF;border-radius:8px;padding:9px 11px;display:none;align-items:center;justify-content:space-between;margin-bottom:7px;font-size:12px}
+.sel-box.show{display:flex}
+/* CHECKLIST */
+.chk-item{display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:#F8FAFC;border-radius:8px;margin-bottom:5px;font-size:12px}
+.chk-btns{display:flex;gap:4px}
+.chk-btn{padding:4px 8px;border-radius:6px;border:none;font-size:11px;font-weight:600;cursor:pointer;font-family:Arial}
+.chk-ok{background:rgba(0,200,150,.12);color:#00875A}
+.chk-ok.active{background:#00C896;color:white}
+.chk-no{background:rgba(239,68,68,.1);color:#EF4444}
+.chk-no.active{background:#EF4444;color:white}
+.chk-na{background:#F1F5F9;color:#64748B;border:1px solid #E2E8F0}
+.chk-na.active{background:#64748B;color:white}
+/* PARTS */
+.parts-list{margin-bottom:10px}
+.part-item{display:flex;align-items:center;gap:8px;padding:8px 10px;background:#F8FAFC;border-radius:8px;margin-bottom:5px}
+.part-item input{width:70px;border:1px solid #E2E8F0;border-radius:6px;padding:4px 7px;font-size:12px;font-family:Arial}
+/* ALERT BOX */
+.alert-box{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:9px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#EF4444}
+.info-box{background:rgba(0,85,255,.05);border:1px solid rgba(0,85,255,.15);border-radius:9px;padding:10px 12px;margin-bottom:10px;font-size:12px;color:#0055FF}
+/* URGENT */
+.urgent-order{background:rgba(239,68,68,.05);border:1px solid rgba(239,68,68,.2);border-radius:9px;padding:10px 12px;margin-bottom:7px;font-size:12px}
+/* METRICS */
+.metric-card{background:white;border-radius:10px;padding:13px;border:1px solid #E2E8F0;text-align:center}
+.metric-val{font-size:20px;font-weight:800;color:#020B2E}
+.metric-lbl{font-size:10px;color:#64748B;margin-top:2px}
+/* TOAST */
+.toast{position:fixed;top:14px;left:50%;transform:translateX(-50%);background:#020B2E;color:white;padding:8px 15px;border-radius:8px;font-size:12px;font-weight:500;z-index:999;opacity:0;transition:.3s;pointer-events:none;white-space:nowrap}
+.toast.show{opacity:1}
+.toast.ok{background:#065F46}
+.toast.err{background:#7F1D1D}
+/* EMPTY */
+.empty{text-align:center;padding:22px;color:#94A3B8;font-size:12px}
+/* NAV */
+.nav{position:fixed;bottom:0;left:0;right:0;background:white;border-top:1px solid #E2E8F0;display:flex;padding:5px 0 8px;z-index:50}
+.ni{flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;cursor:pointer;color:#94A3B8;font-size:9px;font-weight:600;padding:3px 0}
+.ni.active{color:#0055FF}
+.ni-icon{font-size:20px}
+</style>
+</head>
+<body>
+<div class="toast" id="toast"></div>
+
+<div class="topbar">
+  <div class="topbar-logo">⚡ Tekpair</div>
+  <div class="topbar-right">
+    <span class="topbar-user" id="uName"></span>
+    <button class="logout-btn" onclick="logout()">Salir</button>
+  </div>
+</div>
+
+<!-- ═══ PAGES ═══ -->
+<!-- DASHBOARD -->
+<div class="page active" id="pDash">
+  <div style="font-size:17px;font-weight:700;margin-bottom:2px">Hola, <span id="gName"></span> 👋</div>
+  <div style="font-size:11px;color:#64748B;margin-bottom:13px" id="dStr"></div>
+
+  <!-- TABS MÉTRICAS -->
+  <div class="tabs">
+    <div class="tab active" data-t="hoy" onclick="setMetricTab(this)">Hoy</div>
+    <div class="tab" data-t="semana" onclick="setMetricTab(this)">Semana</div>
+    <div class="tab" data-t="mes" onclick="setMetricTab(this)">Mes</div>
+  </div>
+
+  <div id="metricsGrid" style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px"></div>
+
+  <div class="quick-btns">
+    <button class="qbtn" style="background:#0055FF" onclick="openM('mVenta')">📱 Nueva Venta</button>
+    <button class="qbtn" style="background:#00C896" onclick="openM('mRep')">🔧 Reparación</button>
+    <button class="qbtn" style="background:#F97316" onclick="openMStock()">📦 Añadir Stock</button>
+    <button class="qbtn" style="background:#7C3AED" onclick="openM('mCli')">👤 Nuevo Cliente</button>
+  </div>
+
+  <!-- URGENTES -->
+  <div class="card" id="urgentesCard" style="display:none">
+    <div class="card-title">⚠️ Órdenes urgentes <span style="font-size:10px;color:#EF4444" id="urgentesCount"></span></div>
+    <div id="urgentesLista"></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">Últimas reparaciones <span class="btn-sm" style="background:#EBF1FF;color:#0055FF" onclick="goPageById('pReps')">Ver todas</span></div>
+    <div id="dashReps"><div class="empty">Sin reparaciones aún</div></div>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💰 Cierre manual <button class="btn-sm" style="background:#00C896;color:white" onclick="cierreDia()">Cerrar día ahora</button></div>
+    <div id="cierreInfo" style="font-size:12px;color:#64748B">Pulsa para generar el cierre del día.</div>
+  </div>
+</div>
+
+<!-- VENTAS -->
+<div class="page" id="pVentas">
+  <div class="search-box"><input id="busVentas" placeholder="🔍 Buscar venta..." oninput="renderVentas()"/></div>
+  <div class="card" style="padding:0;overflow:hidden"><div id="listaVentas"><div class="empty">Sin ventas</div></div></div>
+</div>
+
+<!-- REPARACIONES -->
+<div class="page" id="pReps">
+  <div class="tabs" id="repTabs">
+    <div class="tab active" data-f="todas" onclick="setRepFiltro(this)">Todas</div>
+    <div class="tab" data-f="Pendiente" onclick="setRepFiltro(this)">Pendiente</div>
+    <div class="tab" data-f="En Proceso" onclick="setRepFiltro(this)">En Proceso</div>
+    <div class="tab" data-f="Por Entregar" onclick="setRepFiltro(this)">Por Entregar</div>
+    <div class="tab" data-f="Entregado" onclick="setRepFiltro(this)">Entregado</div>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden"><div id="listaReps"><div class="empty">Sin reparaciones</div></div></div>
+</div>
+
+<!-- STOCK -->
+<div class="page" id="pStock">
+  <div class="search-box"><input id="busStock" placeholder="🔍 Buscar stock..." oninput="renderStock()"/></div>
+  <div id="stockAlertas"></div>
+  <div class="card" style="padding:0;overflow:hidden"><div id="listaStock"><div class="empty">Sin stock</div></div></div>
+</div>
+
+<!-- MÁS -->
+<div class="page" id="pMas">
+  <div class="quick-btns" style="grid-template-columns:1fr 1fr">
+    <button class="qbtn" style="background:#64748B" onclick="goPageById('pClis')">👥 Clientes</button>
+    <button class="qbtn" style="background:#0891B2" onclick="goPageById('pProveedores')">🏭 Proveedores</button>
+    <button class="qbtn" style="background:#EF4444" onclick="goPageById('pGastos')">📋 Gastos</button>
+    <button class="qbtn" style="background:#7C3AED" onclick="goPageById('pReportes')">📊 Reportes</button>
+    <button class="qbtn" style="background:#F59E0B" onclick="goPageById('pAyuda')">❓ Ayuda</button>
+    <button class="qbtn" style="background:#020B2E" onclick="manualBackup()">💾 Backup</button>
+  </div>
+</div>
+
+<!-- CLIENTES -->
+<div class="page" id="pClis">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button onclick="goPageById('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
+    <div style="font-size:15px;font-weight:700">Clientes</div>
+    <button class="btn-sm" style="background:#0055FF;color:white;margin-left:auto" onclick="openM('mCli')">+ Nuevo</button>
+  </div>
+  <div class="search-box"><input id="busClis" placeholder="🔍 Buscar cliente..." oninput="renderClis()"/></div>
+  <div class="card" style="padding:0;overflow:hidden"><div id="listaClis"><div class="empty">Sin clientes</div></div></div>
+</div>
+
+<!-- PROVEEDORES -->
+<div class="page" id="pProveedores">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button onclick="goPageById('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
+    <div style="font-size:15px;font-weight:700">Proveedores</div>
+    <button class="btn-sm" style="background:#0891B2;color:white;margin-left:auto" onclick="openM('mProv')">+ Nuevo</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden"><div id="listaProvs"><div class="empty">Sin proveedores</div></div></div>
+</div>
+
+<!-- GASTOS -->
+<div class="page" id="pGastos">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button onclick="goPageById('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
+    <div style="font-size:15px;font-weight:700">Gastos</div>
+    <button class="btn-sm" style="background:#EF4444;color:white;margin-left:auto" onclick="openM('mGasto')">+ Nuevo</button>
+  </div>
+  <div id="gastosStats" style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:12px"></div>
+  <div class="card" style="padding:0;overflow:hidden"><div id="listaGastos"><div class="empty">Sin gastos</div></div></div>
+</div>
+
+<!-- REPORTES -->
+<div class="page" id="pReportes">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button onclick="goPageById('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
+    <div style="font-size:15px;font-weight:700">Reportes PDF</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Generar reporte</div>
+    <div class="tabs" style="margin-bottom:12px">
+      <div class="tab active" data-r="hoy" onclick="setReporteTab(this)">Hoy</div>
+      <div class="tab" data-r="semana" onclick="setReporteTab(this)">Semana</div>
+      <div class="tab" data-r="mes" onclick="setReporteTab(this)">Mes</div>
+    </div>
+    <div id="reportePreview" style="font-size:12px;color:#64748B;margin-bottom:12px"></div>
+    <button class="btn-save" onclick="generarReportePDF()">📄 Generar PDF</button>
+  </div>
+  <div class="card">
+    <div class="card-title">🏆 Ranking clientes</div>
+    <div id="rankingClis"></div>
+  </div>
+</div>
+
+<!-- AYUDA -->
+<div class="page" id="pAyuda">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button onclick="goPageById('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
+    <div style="font-size:15px;font-weight:700">Ayuda & Sugerencias</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Envíanos un mensaje</div>
+    <div class="fg"><label class="fl">Tipo</label>
+      <select class="fi" id="ayudaTipo"><option>Problema técnico</option><option>Sugerencia</option><option>Pregunta</option><option>Otro</option></select>
+    </div>
+    <div class="fg"><label class="fl">Mensaje *</label><textarea class="fi" id="ayudaMsg" rows="4" placeholder="Describe tu consulta o sugerencia..." style="resize:none"></textarea></div>
+    <button class="btn-save" onclick="enviarAyuda()">Enviar mensaje</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Accesos rápidos</div>
+    <div style="font-size:12px;color:#64748B;line-height:2">
+      📧 soporte@tekpair.tech<br>
+      🌐 tekpair.tech<br>
+      📱 WhatsApp soporte disponible 9-18h
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="ni active" data-p="pDash" onclick="goPageNav(this)"><span class="ni-icon">🏠</span>Inicio</div>
+  <div class="ni" data-p="pVentas" onclick="goPageNav(this)"><span class="ni-icon">📱</span>Ventas</div>
+  <div class="ni" data-p="pReps" onclick="goPageNav(this)"><span class="ni-icon">🔧</span>Reparac.</div>
+  <div class="ni" data-p="pStock" onclick="goPageNav(this)"><span class="ni-icon">📦</span>Stock</div>
+  <div class="ni" data-p="pMas" onclick="goPageNav(this)"><span class="ni-icon">⋯</span>Más</div>
+</div>
+
+<!-- ═══ MODALS ═══ -->
+<!-- NUEVA VENTA -->
+<div class="modal-bg" id="mVenta"><div class="modal">
+  <div class="modal-title">📱 Nueva Venta</div>
+  <div class="fg"><label class="fl">Teléfono del stock</label>
+    <div style="display:flex;gap:7px">
+      <input class="fi" id="vBusStock" placeholder="Buscar modelo o IMEI..." oninput="busStock()" style="flex:1"/>
+      <button class="btn-sm" style="background:#F97316;color:white" onclick="openMStock()">+ Stock</button>
+    </div>
+    <div class="cli-results" id="vStockRes"></div>
+    <div class="sel-box" id="vSelStock"><span id="vSelStockNom">---</span><button onclick="clearSel('vSelStock','vBusStock')" style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:14px">✕</button></div>
+  </div>
+  <div class="fg"><label class="fl">Cliente</label>
+    <div style="display:flex;gap:7px">
+      <input class="fi" id="vBusCli" placeholder="Buscar cliente..." oninput="busCliGen('vBusCli','vCliRes','vSelCli','vSelCliNom','venta')" style="flex:1"/>
+      <button class="btn-sm" style="background:#7C3AED;color:white" onclick="openM('mCli')">+ Cliente</button>
+    </div>
+    <div class="cli-results" id="vCliRes"></div>
+    <div class="sel-box" id="vSelCli"><span id="vSelCliNom">---</span><button onclick="clearSel('vSelCli','vBusCli');SEL.vCli=null" style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:14px">✕</button></div>
+  </div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Precio (€) *</label><input class="fi" type="number" id="vPrecio" placeholder="299" oninput="calcV()"/></div>
+    <div class="fg"><label class="fl">Descuento (€)</label><input class="fi" type="number" id="vDesc" value="0" oninput="calcV()"/></div>
+  </div>
+  <div class="fl" style="margin-bottom:6px">Forma de pago</div>
+  <div class="pago-grid" id="vPagoG">
+    <div class="pago-opt sel" data-p="Efectivo">💵 Efectivo</div>
+    <div class="pago-opt" data-p="Tarjeta">💳 Tarjeta</div>
+    <div class="pago-opt" data-p="Bizum">📱 Bizum</div>
+    <div class="pago-opt" data-p="Transferencia">🏦 Transfer.</div>
+    <div class="pago-opt" data-p="PayPal">🅿️ PayPal</div>
+    <div class="pago-opt" data-p="Financiado">📋 Financiado</div>
+  </div>
+  <div class="total-box">
+    <div class="t-row"><span style="color:#64748B">Precio</span><span id="vTP">€0</span></div>
+    <div class="t-row"><span style="color:#64748B">Descuento</span><span id="vTD" style="color:#EF4444">-€0</span></div>
+    <div class="t-row tot"><span>TOTAL</span><span id="vTT" style="color:#00C896">€0</span></div>
+  </div>
+  <button class="btn-save" onclick="saveVenta()">Guardar venta</button>
+  <button class="btn-cancel" onclick="closeM('mVenta')">Cancelar</button>
+</div></div>
+
+<!-- NUEVA REPARACIÓN -->
+<div class="modal-bg" id="mRep"><div class="modal">
+  <div class="modal-title">🔧 Nueva Reparación</div>
+  <div class="fl" style="margin-bottom:6px">Prioridad</div>
+  <div class="pri-grid">
+    <div class="pri-opt sel" data-pr="Normal" onclick="setPri(this)">⚪ Normal</div>
+    <div class="pri-opt" data-pr="Urgente" onclick="setPri(this)">🔴 Urgente</div>
+    <div class="pri-opt" data-pr="VIP" onclick="setPri(this)">⭐ VIP</div>
+  </div>
+  <div class="fg"><label class="fl">Cliente *</label>
+    <div style="display:flex;gap:7px">
+      <input class="fi" id="rBusCli" placeholder="Buscar cliente..." oninput="busCliGen('rBusCli','rCliRes','rSelCli','rSelCliNom','rep')" style="flex:1"/>
+      <button class="btn-sm" style="background:#7C3AED;color:white" onclick="toggleAddCli()">+ Nuevo</button>
+    </div>
+    <div class="cli-results" id="rCliRes"></div>
+    <div class="sel-box" id="rSelCli"><span id="rSelCliNom">---</span><button onclick="clearSel('rSelCli','rBusCli');SEL.rCli=null" style="background:none;border:none;color:#EF4444;cursor:pointer;font-size:14px">✕</button></div>
+    <div id="addCliBox" style="display:none;background:#EBF1FF;border-radius:9px;padding:11px;margin-top:7px">
+      <div style="font-size:11px;font-weight:700;color:#0055FF;margin-bottom:9px">➕ Nuevo cliente</div>
+      <div class="g2">
+        <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="ncNom"/></div>
+        <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="ncApe"/></div>
+      </div>
+      <div class="g2">
+        <div class="fg"><label class="fl">Teléfono *</label><input class="fi" id="ncTel" type="tel"/></div>
+        <div class="fg"><label class="fl">Email</label><input class="fi" id="ncEmail" type="email"/></div>
+      </div>
+      <button onclick="saveInlineCli()" style="background:#0055FF;color:white;border:none;padding:9px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">✓ Guardar y seleccionar</button>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">Marca</label>
+    <div style="display:flex;gap:7px">
+      <select class="fi" id="rMarca" style="flex:1"><option>Apple</option><option>Samsung</option><option>Xiaomi</option><option>Huawei</option><option>OnePlus</option><option>Motorola</option><option>Google</option><option>Sony</option><option>Nokia</option><option>Otro</option></select>
+      <button class="btn-sm" style="background:#64748B;color:white" onclick="addMarca('rMarca')">+ Marca</button>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">Modelo *</label><input class="fi" id="rModelo" placeholder="iPhone 13, Galaxy S21..."/></div>
+  <div class="fg"><label class="fl">IMEI</label><input class="fi" id="rImei" placeholder="Opcional"/></div>
+  <div class="fg"><label class="fl">Avería *</label>
+    <input class="fi" id="rAveria" placeholder="Describe el problema..."/>
+    <div class="sug-row">
+      <span class="sug" onclick="setAv('Pantalla rota')">📱 Pantalla</span>
+      <span class="sug" onclick="setAv('Batería')">🔋 Batería</span>
+      <span class="sug" onclick="setAv('Pin de carga')">🔌 Pin carga</span>
+      <span class="sug" onclick="setAv('No enciende')">❌ No enciende</span>
+      <span class="sug" onclick="setAv('Cámara')">📷 Cámara</span>
+      <span class="sug" onclick="setAv('Altavoz')">🔊 Altavoz</span>
+      <span class="sug" onclick="setAv('Tapa trasera rota')">📱 Tapa</span>
+      <span class="sug" onclick="setAv('Micrófono')">🎤 Micro</span>
+    </div>
+  </div>
+  <!-- CHECKLIST -->
+  <div class="fg">
+    <label class="fl">Checklist recepción</label>
+    <div id="checklistBox"></div>
+  </div>
+  <!-- COMPONENTES -->
+  <div class="fg">
+    <label class="fl">Componentes a instalar</label>
+    <div style="display:flex;gap:7px;margin-bottom:7px">
+      <input class="fi" id="compBus" placeholder="Buscar componente..." oninput="busComp()" style="flex:1"/>
+    </div>
+    <div class="cli-results" id="compRes"></div>
+    <div id="partsBox" class="parts-list"></div>
+  </div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Mano de obra (€)</label><input class="fi" type="number" id="rMO" value="0" oninput="calcR()"/></div>
+    <div class="fg"><label class="fl">Anticipo (€)</label><input class="fi" type="number" id="rAnticipo" value="0" oninput="calcR()"/></div>
+  </div>
+  <div class="fg"><label class="fl">Fecha entrega estimada</label><input class="fi" type="date" id="rFecha"/></div>
+  <div class="fg"><label class="fl">🔒 Nota interna</label><textarea class="fi" id="rNota" rows="2" style="resize:none" placeholder="Solo visible para técnicos..."></textarea></div>
+  <div class="total-box">
+    <div class="t-row"><span style="color:#64748B">Mano de obra</span><span id="rTMO">€0</span></div>
+    <div class="t-row"><span style="color:#64748B">Componentes</span><span id="rTComp">€0</span></div>
+    <div class="t-row tot"><span>Total</span><span id="rTT">€0</span></div>
+    <div class="t-row" style="color:#00C896;font-weight:600"><span>Anticipo</span><span id="rTAnt">€0</span></div>
+    <div class="t-row" style="color:#EF4444;font-weight:600"><span>Restante</span><span id="rTRest">€0</span></div>
+  </div>
+  <button class="btn-save" style="background:#00C896" onclick="saveRep()">Crear orden</button>
+  <button class="btn-cancel" onclick="closeM('mRep')">Cancelar</button>
+</div></div>
+
+<!-- AÑADIR STOCK -->
+<div class="modal-bg" id="mStock"><div class="modal">
+  <div class="modal-title">📦 Añadir / Reponer Stock</div>
+  
+  <!-- BUSCAR EXISTENTE -->
+  <div id="reponerBox" style="display:none;margin-bottom:12px">
+    <div class="info-box">♻️ Reponer stock existente — suma unidades sin crear duplicado</div>
+    <div style="position:relative">
+      <input class="fi" id="busExistente" placeholder="Buscar artículo existente..." oninput="busStockExistente()" autocomplete="off"/>
+      <div class="cli-results" id="existenteRes"></div>
+    </div>
+    <div id="selExistenteBox" style="display:none;background:#EBF1FF;border:1.5px solid #0055FF;border-radius:9px;padding:10px 12px;margin-top:7px">
+      <div style="font-size:12px;font-weight:700;color:#020B2E" id="selExistenteNom">---</div>
+      <div style="font-size:11px;color:#64748B;margin-top:2px" id="selExistenteDet">---</div>
+      <div style="display:flex;align-items:center;gap:8px;margin-top:9px">
+        <label style="font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase">Unidades a añadir</label>
+        <input type="number" id="reponerUnidades" value="1" min="1" class="fi" style="width:80px"/>
+        <button onclick="reponerStock()" style="background:#00C896;color:white;border:none;padding:9px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer">+ Reponer</button>
+      </div>
+    </div>
+    <div style="text-align:center;margin-top:9px">
+      <span style="font-size:11px;color:#64748B">¿No existe aún? </span>
+      <span style="font-size:11px;color:#0055FF;cursor:pointer;font-weight:600" onclick="showNuevoStock()">Crear nuevo artículo →</span>
+    </div>
+  </div>
+
+  <div id="nuevoStockBox">
+  <div class="fg"><label class="fl">Categoría *</label>
+    <select class="fi" id="sCat" onchange="onCatChange()">
+      <option>Teléfono</option><option>Tablet</option><option>Smartwatch</option>
+      <option>Pantalla</option><option>Batería</option><option>Tapa trasera</option>
+      <option>Pin de carga</option><option>Altavoz</option><option>Micrófono</option>
+      <option>Cámara</option><option>Marco</option><option>Bandeja SIM</option>
+      <option>Botones</option><option>Flex</option><option>Auricular</option><option>Otro componente</option>
+    </select>
+  </div>
+  <div class="fg"><label class="fl">Marca</label>
+    <div style="display:flex;gap:7px">
+      <select class="fi" id="sMarca" style="flex:1"><option>Apple</option><option>Samsung</option><option>Xiaomi</option><option>Huawei</option><option>OnePlus</option><option>Google</option><option>Motorola</option><option>Sony</option><option>Nokia</option><option>Universal</option><option>Otro</option></select>
+      <button class="btn-sm" style="background:#64748B;color:white" onclick="addMarca('sMarca')">+ Marca</button>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">Nombre / Modelo *</label><input class="fi" id="sModelo" placeholder="iPhone 11, Pantalla Samsung S21..."/></div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Capacidad</label><input class="fi" id="sCap" placeholder="128GB"/></div>
+    <div class="fg"><label class="fl">Color</label><input class="fi" id="sColor" placeholder="Negro"/></div>
+  </div>
+  <div class="fg" id="imeiField"><label class="fl">IMEI</label><input class="fi" id="sImei" placeholder="14-15 dígitos" maxlength="15"/></div>
+  <div class="g3">
+    <div class="fg"><label class="fl">Unidades *</label><input class="fi" type="number" id="sUnidades" value="1" min="1"/></div>
+    <div class="fg"><label class="fl">P. Compra (€)</label><input class="fi" type="number" id="sPrecioC" value="0"/></div>
+    <div class="fg"><label class="fl">P. Venta (€) *</label><input class="fi" type="number" id="sPrecioV" value="0"/></div>
+  </div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Stock mínimo ⚠️</label><input class="fi" type="number" id="sMin" value="2"/></div>
+    <div class="fg"><label class="fl">Stock máximo</label><input class="fi" type="number" id="sMax" value="10"/></div>
+  </div>
+  <div class="fg"><label class="fl">Estado</label><select class="fi" id="sEstado"><option>Nuevo</option><option>Reacond. A</option><option>Reacond. B</option><option>Segunda Mano</option></select></div>
+  </div><!-- end nuevoStockBox -->
+  <button class="btn-save" onclick="saveStock()">Guardar</button>
+  <button class="btn-cancel" onclick="closeM('mStock')">Cancelar</button>
+</div></div>
+
+<!-- NUEVO CLIENTE -->
+<div class="modal-bg" id="mCli"><div class="modal">
+  <div class="modal-title">👤 Nuevo Cliente</div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="cNom"/></div>
+    <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="cApe"/></div>
+  </div>
+  <div class="fg"><label class="fl">Teléfono *</label><input class="fi" id="cTel" type="tel"/></div>
+  <div class="fg"><label class="fl">Email</label><input class="fi" id="cEmail" type="email"/></div>
+  <div class="fg"><label class="fl">DNI / NIF</label><input class="fi" id="cDni"/></div>
+  <button class="btn-save" onclick="saveCli()">Guardar</button>
+  <button class="btn-cancel" onclick="closeM('mCli')">Cancelar</button>
+</div></div>
+
+<!-- ENTREGAR -->
+<div class="modal-bg" id="mEntregar"><div class="modal">
+  <div class="modal-title">✅ Entregar equipo</div>
+  <div id="eInfo" style="background:#F1F5F9;border-radius:9px;padding:11px;margin-bottom:12px;font-size:12px"></div>
+  <div class="fl" style="margin-bottom:6px">Cobrar restante con</div>
+  <div class="pago-grid" id="ePagoG">
+    <div class="pago-opt sel" data-p="Efectivo">💵 Efectivo</div>
+    <div class="pago-opt" data-p="Tarjeta">💳 Tarjeta</div>
+    <div class="pago-opt" data-p="Bizum">📱 Bizum</div>
+    <div class="pago-opt" data-p="Transferencia">🏦 Transfer.</div>
+    <div class="pago-opt" data-p="PayPal">🅿️ PayPal</div>
+    <div class="pago-opt" data-p="Pendiente">⏳ Pendiente</div>
+  </div>
+  <button class="btn-save" style="background:#00C896" onclick="confirmarEntrega()">Confirmar entrega</button>
+  <button class="btn-save" style="background:#25D366;margin-top:7px" onclick="sendWA()">📲 WhatsApp al cliente</button>
+  <button class="btn-cancel" onclick="closeM('mEntregar')">Cancelar</button>
+</div></div>
+
+<!-- PROVEEDOR -->
+<div class="modal-bg" id="mProv"><div class="modal">
+  <div class="modal-title">🏭 Nuevo Proveedor</div>
+  <div class="fg"><label class="fl">Nombre empresa *</label><input class="fi" id="pNom"/></div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Contacto</label><input class="fi" id="pCont"/></div>
+    <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="pTel" type="tel"/></div>
+  </div>
+  <div class="fg"><label class="fl">Email</label><input class="fi" id="pEmail" type="email"/></div>
+  <div class="fg"><label class="fl">Web / Notas</label><input class="fi" id="pNota" placeholder="https://..."/></div>
+  <button class="btn-save" style="background:#0891B2" onclick="saveProv()">Guardar</button>
+  <button class="btn-cancel" onclick="closeM('mProv')">Cancelar</button>
+</div></div>
+
+<!-- GASTO -->
+<div class="modal-bg" id="mGasto"><div class="modal">
+  <div class="modal-title">📋 Registrar Gasto</div>
+  <div class="fg"><label class="fl">Concepto *</label><input class="fi" id="gConc" placeholder="Alquiler, material..."/></div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Importe (€) *</label><input class="fi" type="number" id="gImp" value="0"/></div>
+    <div class="fg"><label class="fl">Categoría</label><select class="fi" id="gCat"><option>Alquiler</option><option>Suministros</option><option>Material</option><option>Personal</option><option>Marketing</option><option>Otro</option></select></div>
+  </div>
+  <div class="fg"><label class="fl">Estado</label><select class="fi" id="gEst"><option>Pagado</option><option>Pendiente</option></select></div>
+  <div class="fg"><label class="fl">Fecha</label><input class="fi" type="date" id="gFecha"/></div>
+  <button class="btn-save" style="background:#EF4444" onclick="saveGasto()">Guardar</button>
+  <button class="btn-cancel" onclick="closeM('mGasto')">Cancelar</button>
+</div></div>
+
+<script>
+// ═══ CONFIG ═══
+var CHECKLIST_ITEMS=['Enciende','Pantalla sin grietas','Cámara trasera','Cámara frontal','Face ID/Huella','Botón encendido','Altavoz','Micrófono','Conector carga','WiFi/Datos'];
+var MARCAS=['Apple','Samsung','Xiaomi','Huawei','OnePlus','Motorola','Google','Sony','Nokia','Universal'];
+
+// ═══ STATE ═══
+var DB={ventas:[],reps:[],stock:[],clis:[],provs:[],gastos:[],marcas:[]};
+var SEL={vStock:null,vCli:null,rCli:null,eRepId:null,vPago:'Efectivo',ePago:'Efectivo',rPri:'Normal',repFiltro:'todas',metricTab:'hoy',repTab:'hoy',selParts:[]};
+var U=null,T=null;
+
+// ═══ AUTH ═══
+try{U=JSON.parse(localStorage.getItem('tk_user'));T=JSON.parse(localStorage.getItem('tk_tienda'));}catch(e){}
+if(!U){window.location.href='app.html';}
+else{
+  document.getElementById('uName').textContent=U.nombre;
+  document.getElementById('gName').textContent=U.nombre;
+  document.getElementById('dStr').textContent=new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'});
+  loadData();
+  initPagoGrids();
+  initChecklist();
+  renderDash();
+  checkUrgentes();
+  setInterval(autoBackup,2*60*60*1000);
+  setInterval(checkCierreAuto,60000);
+}
+
+function logout(){localStorage.removeItem('tk_user');localStorage.removeItem('tk_tienda');window.location.href='app.html';}
+
+// ═══ DATA ═══
+function loadData(){
+  var d=localStorage.getItem('tk_data');
+  if(d){try{DB=JSON.parse(d);}catch(e){}}
+  if(!DB.ventas)DB.ventas=[];if(!DB.reps)DB.reps=[];
+  if(!DB.stock)DB.stock=[];if(!DB.clis)DB.clis=[];
+  if(!DB.provs)DB.provs=[];if(!DB.gastos)DB.gastos=[];
+  if(!DB.marcas)DB.marcas=MARCAS.slice();
+  // Load extra marcas into selects
+  refreshMarcaSelects();
+}
+function saveData(){localStorage.setItem('tk_data',JSON.stringify(DB));}
+function autoBackup(){saveData();}
+function manualBackup(){
+  saveData();
+  var blob=new Blob([JSON.stringify(DB,null,2)],{type:'application/json'});
+  var a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='tekpair_backup_'+new Date().toISOString().slice(0,10)+'.json';
+  a.click();
+  toast('Backup descargado','ok');
+}
+
+// ═══ NAV ═══
+function goPageNav(el){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
+  document.getElementById(el.dataset.p).classList.add('active');
+  el.classList.add('active');
+  var p=el.dataset.p;
+  if(p==='pVentas')renderVentas();
+  if(p==='pReps')renderReps();
+  if(p==='pStock'){renderStock();renderStockAlertas();}
+  if(p==='pDash'){renderDash();checkUrgentes();}
+}
+function goPageById(id){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.getElementById(id).classList.add('active');
+  if(id==='pClis')renderClis();
+  if(id==='pProveedores')renderProvs();
+  if(id==='pGastos'){renderGastos();renderGastosStats();}
+  if(id==='pReportes'){renderReportePreview();renderRanking();}
+}
+
+// ═══ MODALS ═══
+function openM(id){
+  document.getElementById(id).classList.add('open');
+  if(id==='mRep'){
+    var d=new Date();d.setDate(d.getDate()+3);
+    document.getElementById('rFecha').valueAsDate=d;
+    SEL.selParts=[];renderPartsBox();
+  }
+  if(id==='mGasto'){document.getElementById('gFecha').valueAsDate=new Date();}
+}
+function closeM(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(function(m){m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});});
+
+// ═══ TOAST ═══
+function toast(msg,type){var t=document.getElementById('toast');t.textContent=msg;t.className='toast show'+(type?' '+type:'');setTimeout(function(){t.classList.remove('show');},2500);}
+
+// ═══ PAGO GRIDS ═══
+function initPagoGrids(){
+  function initGrid(gridId,selKey){
+    document.querySelectorAll('#'+gridId+' .pago-opt').forEach(function(o){
+      o.addEventListener('click',function(){
+        document.querySelectorAll('#'+gridId+' .pago-opt').forEach(function(x){x.classList.remove('sel');});
+        this.classList.add('sel');SEL[selKey]=this.dataset.p;
+      });
+    });
+  }
+  initGrid('vPagoG','vPago');
+  initGrid('ePagoG','ePago');
+}
+
+// ═══ PRIORITY ═══
+function setPri(el){
+  document.querySelectorAll('.pri-opt').forEach(function(o){o.classList.remove('sel','ur','vip');});
+  el.classList.add('sel');
+  if(el.dataset.pr==='Urgente')el.classList.add('ur');
+  if(el.dataset.pr==='VIP')el.classList.add('vip');
+  SEL.rPri=el.dataset.pr;
+}
+
+// ═══ AVERIA SUGS ═══
+function setAv(t){document.getElementById('rAveria').value=t;}
+
+// ═══ CHECKLIST ═══
+function initChecklist(){
+  var box=document.getElementById('checklistBox');
+  box.innerHTML=CHECKLIST_ITEMS.map(function(item){
+    return '<div class="chk-item"><span>'+item+'</span><div class="chk-btns">'+
+      '<button class="chk-btn chk-ok" data-item="'+item+'" data-v="ok">✓</button>'+
+      '<button class="chk-btn chk-no" data-item="'+item+'" data-v="no">✗</button>'+
+      '<button class="chk-btn chk-na active" data-item="'+item+'" data-v="na">N/A</button>'+
+      '</div></div>';
+  }).join('');
+  box.querySelectorAll('.chk-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){
+      var item=this.dataset.item;
+      box.querySelectorAll('.chk-btn[data-item="'+item+'"]').forEach(function(b){b.classList.remove('active');});
+      this.classList.add('active');
+    });
+  });
+}
+function getChecklist(){
+  var res={};
+  document.querySelectorAll('#checklistBox .chk-btn.active').forEach(function(b){res[b.dataset.item]=b.dataset.v;});
+  return res;
+}
+
+// ═══ MARCA ═══
+function addMarca(selectId){
+  var nueva=prompt('Nombre de la nueva marca:');
+  if(!nueva||!nueva.trim())return;
+  nueva=nueva.trim();
+  if(!DB.marcas.includes(nueva)){DB.marcas.push(nueva);saveData();}
+  var sel=document.getElementById(selectId);
+  var opt=document.createElement('option');
+  opt.value=nueva;opt.textContent=nueva;
+  sel.appendChild(opt);sel.value=nueva;
+}
+function refreshMarcaSelects(){
+  ['rMarca','sMarca'].forEach(function(id){
+    var sel=document.getElementById(id);if(!sel)return;
+    var cur=sel.value;
+    DB.marcas.forEach(function(m){
+      if(!Array.from(sel.options).find(function(o){return o.value===m;})){
+        var opt=document.createElement('option');opt.value=m;opt.textContent=m;sel.appendChild(opt);
+      }
+    });
+    if(cur)sel.value=cur;
+  });
+}
+
+// ═══ CLIENT SEARCH ═══
+function busCliGen(inputId,resId,selBoxId,nomId,ctx){
+  var q=document.getElementById(inputId).value.toLowerCase().trim();
+  var res=document.getElementById(resId);
+  if(!q){res.classList.remove('open');return;}
+  var matches=DB.clis.filter(function(c){
+    return(c.nombre+' '+c.apellidos+' '+(c.tel||'')+' '+(c.dni||'')).toLowerCase().includes(q);
+  });
+  var html=matches.map(function(c){
+    return '<div class="cli-item" data-id="'+c.id+'">'+c.nombre+' '+c.apellidos+(c.tel?' · '+c.tel:'')+'</div>';
+  }).join('');
+  html+='<div class="cli-item add-new" onclick="openM(\'mCli\')">➕ Añadir nuevo cliente</div>';
+  res.innerHTML=html;res.classList.add('open');
+  res.querySelectorAll('.cli-item[data-id]').forEach(function(item){
+    item.addEventListener('click',function(){
+      var c=DB.clis.find(function(x){return x.id===this.dataset.id;}.bind(this));
+      if(c)selCli(c,inputId,resId,selBoxId,nomId,ctx);
+    });
+  });
+}
+function selCli(c,inputId,resId,selBoxId,nomId,ctx){
+  document.getElementById(inputId).value='';
+  document.getElementById(resId).classList.remove('open');
+  document.getElementById(nomId).textContent=c.nombre+' '+c.apellidos+(c.tel?' · '+c.tel:'');
+  document.getElementById(selBoxId).classList.add('show');
+  if(ctx==='venta')SEL.vCli=c;
+  if(ctx==='rep')SEL.rCli=c;
+}
+function clearSel(boxId,inputId){
+  document.getElementById(boxId).classList.remove('show');
+  document.getElementById(inputId).value='';
+}
+function toggleAddCli(){
+  var box=document.getElementById('addCliBox');
+  box.style.display=box.style.display==='none'?'block':'none';
+}
+function saveInlineCli(){
+  var nom=document.getElementById('ncNom').value.trim();
+  var tel=document.getElementById('ncTel').value.trim();
+  if(!nom||!tel){toast('Nombre y teléfono obligatorios','err');return;}
+  var c={id:'c'+Date.now(),nombre:nom,apellidos:document.getElementById('ncApe').value,tel:tel,email:document.getElementById('ncEmail').value};
+  DB.clis.push(c);saveData();
+  selCli(c,'rBusCli','rCliRes','rSelCli','rSelCliNom','rep');
+  document.getElementById('addCliBox').style.display='none';
+  document.getElementById('ncNom').value='';document.getElementById('ncApe').value='';
+  document.getElementById('ncTel').value='';document.getElementById('ncEmail').value='';
+  toast('✓ Cliente añadido','ok');
+}
+
+// ═══ STOCK SEARCH (VENTA) ═══
+function busStock(){
+  var q=document.getElementById('vBusStock').value.toLowerCase().trim();
+  var res=document.getElementById('vStockRes');
+  if(!q){res.classList.remove('open');return;}
+  var matches=DB.stock.filter(function(s){
+    return !s.vendido&&s.unidades>0&&
+    (s.marca+' '+s.modelo+' '+(s.capacidad||'')+' '+(s.imei||'')).toLowerCase().includes(q);
+  });
+  res.innerHTML=matches.map(function(s){
+    return '<div class="cli-item" data-id="'+s.id+'">'+s.marca+' '+s.modelo+(s.capacidad?' '+s.capacidad:'')+(s.color?' · '+s.color:'')+'<span style="float:right;color:#00C896;font-weight:700">€'+parseFloat(s.precioV).toFixed(2)+'</span></div>';
+  }).join('');
+  if(matches.length)res.classList.add('open');
+  res.querySelectorAll('.cli-item').forEach(function(item){
+    item.addEventListener('click',function(){
+      var s=DB.stock.find(function(x){return x.id===this.dataset.id;}.bind(this));
+      if(s){
+        SEL.vStock=s;
+        document.getElementById('vBusStock').value='';
+        document.getElementById('vStockRes').classList.remove('open');
+        document.getElementById('vSelStockNom').textContent=s.marca+' '+s.modelo+(s.capacidad?' '+s.capacidad:'')+(s.color?' · '+s.color:'')+' · €'+parseFloat(s.precioV).toFixed(2);
+        document.getElementById('vSelStock').classList.add('show');
+        document.getElementById('vPrecio').value=s.precioV;
+        calcV();
+      }
+    });
+  });
+}
+
+// ═══ COMP SEARCH ═══
+function busComp(){
+  var q=document.getElementById('compBus').value.toLowerCase().trim();
+  var res=document.getElementById('compRes');
+  if(!q){res.classList.remove('open');return;}
+  var matches=DB.stock.filter(function(s){
+    return s.unidades>0&&s.categoria!=='Teléfono'&&s.categoria!=='Tablet'&&
+    (s.marca+' '+s.modelo+' '+(s.categoria||'')).toLowerCase().includes(q);
+  });
+  res.innerHTML=matches.map(function(s){
+    var already=SEL.selParts.find(function(p){return p.id===s.id;});
+    return '<div class="cli-item" data-id="'+s.id+'" style="'+(already?'background:rgba(0,200,150,.06)':'')+'">'+
+      s.nombre||s.modelo+' ('+s.marca+') · Stock: '+s.unidades+
+      '<span style="float:right;color:#00C896;font-weight:700">€'+parseFloat(s.precioV).toFixed(2)+'</span>'+
+      (already?' <span style="color:#00C896;font-size:10px">✓</span>':'')+
+      '</div>';
+  }).join('');
+  if(matches.length)res.classList.add('open');
+  res.querySelectorAll('.cli-item').forEach(function(item){
+    item.addEventListener('click',function(){
+      var s=DB.stock.find(function(x){return x.id===this.dataset.id;}.bind(this));
+      if(s){
+        var already=SEL.selParts.findIndex(function(p){return p.id===s.id;});
+        if(already===-1){SEL.selParts.push({id:s.id,nombre:s.modelo||s.nombre,precio:parseFloat(s.precioV)||0});}
+        renderPartsBox();calcR();
+        document.getElementById('compBus').value='';
+        document.getElementById('compRes').classList.remove('open');
+        toast('✓ '+s.modelo+' añadido','ok');
+      }
+    });
+  });
+}
+function renderPartsBox(){
+  var box=document.getElementById('partsBox');
+  if(!SEL.selParts.length){box.innerHTML='';return;}
+  box.innerHTML=SEL.selParts.map(function(p,i){
+    return '<div class="part-item">'+
+      '<span style="flex:1;font-size:11px">'+p.nombre+'</span>'+
+      '<span style="font-size:10px;color:#64748B;margin-right:4px">€</span>'+
+      '<input type="number" value="'+p.precio+'" onchange="SEL.selParts['+i+'].precio=parseFloat(this.value)||0;calcR()" style="width:65px;border:1px solid #E2E8F0;border-radius:6px;padding:4px 6px;font-size:12px;font-family:Arial"/>'+
+      '<button onclick="SEL.selParts.splice('+i+',1);renderPartsBox();calcR()" style="background:rgba(239,68,68,.1);border:none;color:#EF4444;padding:4px 7px;border-radius:6px;cursor:pointer;margin-left:5px;font-size:12px">✕</button>'+
+      '</div>';
+  }).join('');
+}
+
+// ═══ CALC ═══
+function calcV(){
+  var p=parseFloat(document.getElementById('vPrecio').value)||0;
+  var d=parseFloat(document.getElementById('vDesc').value)||0;
+  document.getElementById('vTP').textContent='€'+p.toFixed(2);
+  document.getElementById('vTD').textContent='-€'+d.toFixed(2);
+  document.getElementById('vTT').textContent='€'+Math.max(0,p-d).toFixed(2);
+}
+function calcR(){
+  var mo=parseFloat(document.getElementById('rMO').value)||0;
+  var ant=parseFloat(document.getElementById('rAnticipo').value)||0;
+  var comp=SEL.selParts.reduce(function(a,p){return a+p.precio;},0);
+  var tot=mo+comp;
+  document.getElementById('rTMO').textContent='€'+mo.toFixed(2);
+  document.getElementById('rTComp').textContent='€'+comp.toFixed(2);
+  document.getElementById('rTT').textContent='€'+tot.toFixed(2);
+  document.getElementById('rTAnt').textContent='€'+ant.toFixed(2);
+  document.getElementById('rTRest').textContent='€'+Math.max(0,tot-ant).toFixed(2);
+}
+
+// ═══ SAVES ═══
+function saveVenta(){
+  var precio=parseFloat(document.getElementById('vPrecio').value)||0;
+  if(!precio){toast('Indica el precio','err');return;}
+  var desc=parseFloat(document.getElementById('vDesc').value)||0;
+  var total=Math.max(0,precio-desc);
+  var v={id:'v'+Date.now(),fecha:new Date().toLocaleDateString('es'),
+    clienteId:SEL.vCli?SEL.vCli.id:null,
+    clienteNombre:SEL.vCli?SEL.vCli.nombre+' '+SEL.vCli.apellidos:'Sin cliente',
+    stockId:SEL.vStock?SEL.vStock.id:null,
+    marca:SEL.vStock?SEL.vStock.marca:'',
+    modelo:SEL.vStock?SEL.vStock.modelo:'',
+    imei:SEL.vStock?SEL.vStock.imei||'':'',
+    pago:SEL.vPago,precio:precio,descuento:desc,total:total
+  };
+  DB.ventas.push(v);
+  if(SEL.vStock){
+    var s=DB.stock.find(function(x){return x.id===SEL.vStock.id;});
+    if(s){s.unidades=Math.max(0,(s.unidades||1)-1);if(s.unidades<=0)s.vendido=true;}
+  }
+  SEL.vStock=null;SEL.vCli=null;
+  document.getElementById('vSelStock').classList.remove('show');
+  document.getElementById('vSelCli').classList.remove('show');
+  document.getElementById('vPrecio').value='';document.getElementById('vDesc').value='0';
+  saveData();closeM('mVenta');toast('✓ Venta registrada','ok');renderDash();
+}
+function saveRep(){
+  var modelo=document.getElementById('rModelo').value.trim();
+  var averia=document.getElementById('rAveria').value.trim();
+  if(!modelo||!averia){toast('Rellena modelo y avería','err');return;}
+  if(!SEL.rCli){toast('Selecciona un cliente','err');return;}
+  var mo=parseFloat(document.getElementById('rMO').value)||0;
+  var ant=parseFloat(document.getElementById('rAnticipo').value)||0;
+  var comp=SEL.selParts.reduce(function(a,p){return a+p.precio;},0);
+  var tot=mo+comp;
+  var r={id:'r'+Date.now(),fecha:new Date().toLocaleDateString('es'),
+    fechaTs:Date.now(),
+    clienteId:SEL.rCli.id,clienteNombre:SEL.rCli.nombre+' '+SEL.rCli.apellidos,
+    marca:document.getElementById('rMarca').value,
+    modelo:modelo,imei:document.getElementById('rImei').value,
+    averia:averia,estado:'Pendiente',prioridad:SEL.rPri,
+    fechaEntrega:document.getElementById('rFecha').value,
+    nota:document.getElementById('rNota').value,
+    checklist:getChecklist(),
+    partes:SEL.selParts.slice(),
+    mo:mo,comp:comp,anticipo:ant,restante:Math.max(0,tot-ant),total:tot
+  };
+  DB.reps.push(r);
+  // Descontar componentes
+  SEL.selParts.forEach(function(p){
+    var s=DB.stock.find(function(x){return x.id===p.id;});
+    if(s&&s.unidades>0){
+      s.unidades--;
+      if(s.unidades<=(s.stockMin||2))toast('⚠️ Stock bajo: '+s.modelo,'err');
+    }
+  });
+  SEL.rCli=null;SEL.selParts=[];
+  document.getElementById('rSelCli').classList.remove('show');
+  document.getElementById('rBusCli').value='';
+  document.getElementById('rModelo').value='';document.getElementById('rImei').value='';
+  document.getElementById('rAveria').value='';document.getElementById('rNota').value='';
+  document.getElementById('rMO').value='0';document.getElementById('rAnticipo').value='0';
+  saveData();closeM('mRep');toast('✓ Orden creada','ok');renderDash();checkUrgentes();
+}
+function saveStock(){
+  var modelo=document.getElementById('sModelo').value.trim();
+  if(!modelo){toast('Indica el nombre/modelo','err');return;}
+  var unidades=parseInt(document.getElementById('sUnidades').value)||1;
+  var sMin=parseInt(document.getElementById('sMin').value)||2;
+  var sMax=parseInt(document.getElementById('sMax').value)||10;
+  var cat=document.getElementById('sCat').value;
+  var esTelefono=cat==='Teléfono'||cat==='Tablet';
+  var imei=document.getElementById('sImei').value;
+  if(esTelefono&&imei&&DB.stock.find(function(s){return s.imei===imei;})){toast('IMEI ya existe','err');return;}
+  DB.stock.push({
+    id:'s'+Date.now(),categoria:cat,
+    marca:document.getElementById('sMarca').value,
+    modelo:modelo,nombre:modelo,
+    capacidad:document.getElementById('sCap').value,
+    color:document.getElementById('sColor').value,
+    imei:imei,estado:document.getElementById('sEstado').value,
+    unidades:unidades,stockMin:sMin,stockMax:sMax,
+    precioC:parseFloat(document.getElementById('sPrecioC').value)||0,
+    precioV:parseFloat(document.getElementById('sPrecioV').value)||0,
+    vendido:false
+  });
+  document.getElementById('sModelo').value='';document.getElementById('sCap').value='';
+  document.getElementById('sColor').value='';document.getElementById('sImei').value='';
+  document.getElementById('sUnidades').value='1';document.getElementById('sPrecioC').value='0';document.getElementById('sPrecioV').value='0';
+  saveData();closeM('mStock');toast('✓ Stock añadido','ok');renderDash();
+}
+function saveCli(){
+  var nom=document.getElementById('cNom').value.trim();
+  var tel=document.getElementById('cTel').value.trim();
+  if(!nom||!tel){toast('Nombre y teléfono son obligatorios','err');return;}
+  DB.clis.push({id:'c'+Date.now(),nombre:nom,apellidos:document.getElementById('cApe').value,tel:tel,email:document.getElementById('cEmail').value,dni:document.getElementById('cDni').value});
+  document.getElementById('cNom').value='';document.getElementById('cApe').value='';
+  document.getElementById('cTel').value='';document.getElementById('cEmail').value='';document.getElementById('cDni').value='';
+  saveData();closeM('mCli');toast('✓ Cliente añadido','ok');
+}
+function saveProv(){
+  var nom=document.getElementById('pNom').value.trim();
+  if(!nom){toast('Nombre obligatorio','err');return;}
+  DB.provs.push({id:'p'+Date.now(),nombre:nom,contacto:document.getElementById('pCont').value,tel:document.getElementById('pTel').value,email:document.getElementById('pEmail').value,nota:document.getElementById('pNota').value});
+  document.getElementById('pNom').value='';document.getElementById('pCont').value='';
+  document.getElementById('pTel').value='';document.getElementById('pEmail').value='';document.getElementById('pNota').value='';
+  saveData();closeM('mProv');toast('✓ Proveedor añadido','ok');renderProvs();
+}
+function saveGasto(){
+  var conc=document.getElementById('gConc').value.trim();
+  var imp=parseFloat(document.getElementById('gImp').value)||0;
+  if(!conc||!imp){toast('Concepto e importe obligatorios','err');return;}
+  DB.gastos.push({id:'g'+Date.now(),fecha:document.getElementById('gFecha').value||new Date().toLocaleDateString('es'),concepto:conc,importe:imp,categoria:document.getElementById('gCat').value,estado:document.getElementById('gEst').value});
+  document.getElementById('gConc').value='';document.getElementById('gImp').value='0';
+  saveData();closeM('mGasto');toast('✓ Gasto registrado','ok');renderGastos();renderGastosStats();
+}
+
+// ═══ ENTREGA ═══
+function openEntregar(id){
+  var r=DB.reps.find(function(x){return x.id===id;});if(!r)return;
+  SEL.eRepId=id;
+  document.getElementById('eInfo').innerHTML=
+    '<strong>'+r.clienteNombre+'</strong><br>'+r.marca+' '+r.modelo+'<br>'+
+    '<span style="color:#64748B">Avería: '+r.averia+'</span><br><br>'+
+    '<div style="display:flex;justify-content:space-between"><span>Total:</span><strong>€'+r.total.toFixed(2)+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between"><span style="color:#00C896">Anticipo:</span><strong style="color:#00C896">€'+r.anticipo.toFixed(2)+'</strong></div>'+
+    '<div style="display:flex;justify-content:space-between;font-weight:700;color:#EF4444"><span>Restante a cobrar:</span><span>€'+r.restante.toFixed(2)+'</span></div>';
+  openM('mEntregar');
+}
+function confirmarEntrega(){
+  var r=DB.reps.find(function(x){return x.id===SEL.eRepId;});if(!r)return;
+  r.estado='Entregado';r.pagoFinal=SEL.ePago;r.fechaEntregaReal=new Date().toLocaleDateString('es');
+  saveData();closeM('mEntregar');toast('✓ Equipo entregado','ok');renderReps();renderDash();
+}
+function sendWA(){
+  var r=DB.reps.find(function(x){return x.id===SEL.eRepId;});if(!r)return;
+  var c=DB.clis.find(function(x){return x.id===r.clienteId;});
+  var tel=c?(c.tel||'').replace(/[^0-9]/g,''):'';
+  var msg='Hola '+r.clienteNombre+'! Tu '+r.marca+' '+r.modelo+' esta listo.'+(r.restante>0?' Restante: €'+r.restante.toFixed(2)+'.':[])+'  Gracias por confiar en '+(T?T.nombre:'nuestra tienda')+'!';
+  window.open('https://wa.me/'+tel+'?text='+encodeURIComponent(msg),'_blank');
+}
+
+// ═══ URGENTES ═══
+function checkUrgentes(){
+  var hoy=Date.now();
+  var urgentes=DB.reps.filter(function(r){
+    if(r.estado==='Entregado'||r.estado==='Rechazado')return false;
+    if(!r.fechaEntrega)return false;
+    var fe=new Date(r.fechaEntrega).getTime();
+    var diasRestantes=(fe-hoy)/(1000*60*60*24);
+    return diasRestantes<=2&&diasRestantes>=0;
+  });
+  var card=document.getElementById('urgentesCard');
+  if(!urgentes.length){card.style.display='none';return;}
+  card.style.display='block';
+  document.getElementById('urgentesCount').textContent='('+urgentes.length+')';
+  document.getElementById('urgentesLista').innerHTML=urgentes.map(function(r){
+    var fe=new Date(r.fechaEntrega);
+    var dias=Math.ceil((fe.getTime()-hoy)/(1000*60*60*24));
+    return '<div class="urgent-order"><strong>'+r.clienteNombre+'</strong> — '+r.marca+' '+r.modelo+
+      '<br><span style="color:#EF4444;font-weight:600">⏰ Entrega en '+dias+' día'+(dias===1?'':'s')+'</span> · '+r.averia+
+      (r.estado!=='Por Entregar'?'<button onclick="cambiarEstado(\''+r.id+'\',\'Por Entregar\')" style="float:right;background:#F97316;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer">Avisar</button>':'')+'</div>';
+  }).join('');
+}
+
+// ═══ CIERRE DÍA ═══
+function cierreDia(){
+  var hoy=new Date().toLocaleDateString('es');
+  var vHoy=DB.ventas.filter(function(v){return v.fecha===hoy;});
+  var rHoy=DB.reps.filter(function(r){return r.fechaEntregaReal===hoy;});
+  var totalV=vHoy.reduce(function(a,v){return a+v.total;},0);
+  var totalR=rHoy.reduce(function(a,r){return a+r.total;},0);
+  var total=totalV+totalR;
+  var html='<strong>Cierre '+hoy+'</strong><br>'+
+    'Ventas: '+vHoy.length+' (€'+totalV.toFixed(2)+')<br>'+
+    'Reparaciones entregadas: '+rHoy.length+' (€'+totalR.toFixed(2)+')<br>'+
+    '<strong style="color:#00C896">Total del día: €'+total.toFixed(2)+'</strong>';
+  document.getElementById('cierreInfo').innerHTML=html;
+  toast('Cierre del día generado','ok');
+}
+function checkCierreAuto(){
+  var ahora=new Date();
+  var cierreHora=localStorage.getItem('tk_cierre_hora')||'21:30';
+  var partes=cierreHora.split(':');
+  if(ahora.getHours()===parseInt(partes[0])&&ahora.getMinutes()===parseInt(partes[1])){
+    var ultCierre=localStorage.getItem('tk_ultimo_cierre');
+    var hoy=ahora.toLocaleDateString('es');
+    if(ultCierre!==hoy){localStorage.setItem('tk_ultimo_cierre',hoy);cierreDia();toast('Cierre automático generado','ok');}
+  }
+}
+
+// ═══ METRICS ═══
+function setMetricTab(el){
+  document.querySelectorAll('.tabs .tab').forEach(function(t){if(t.closest('#pDash'))t.classList.remove('active');});
+  el.classList.add('active');
+  SEL.metricTab=el.dataset.t;
+  renderMetrics();
+}
+function getDateRange(tab){
+  var hoy=new Date();hoy.setHours(0,0,0,0);
+  if(tab==='hoy')return{desde:hoy.getTime(),hasta:Date.now()};
+  if(tab==='semana'){var d=new Date(hoy);d.setDate(d.getDate()-7);return{desde:d.getTime(),hasta:Date.now()};}
+  if(tab==='mes'){var m=new Date(hoy);m.setDate(1);return{desde:m.getTime(),hasta:Date.now()};}
+  return{desde:0,hasta:Date.now()};
+}
+function parseDate(str){
+  var p=str.split('/');if(p.length===3)return new Date(p[2],p[1]-1,p[0]).getTime();
+  return new Date(str).getTime();
+}
+function renderMetrics(){
+  var rng=getDateRange(SEL.metricTab);
+  var ventas=DB.ventas.filter(function(v){var d=parseDate(v.fecha);return d>=rng.desde&&d<=rng.hasta;});
+  var reps=DB.reps.filter(function(r){if(r.fechaEntregaReal){var d=parseDate(r.fechaEntregaReal);return d>=rng.desde&&d<=rng.hasta;}return false;});
+  var tV=ventas.reduce(function(a,v){return a+v.total;},0);
+  var tR=reps.reduce(function(a,r){return a+r.total;},0);
+  var pend=DB.reps.filter(function(r){return r.estado==='Pendiente'||r.estado==='En Proceso';}).length;
+  var stLib=DB.stock.filter(function(s){return !s.vendido&&s.unidades>0;}).length;
+  document.getElementById('metricsGrid').innerHTML=
+    '<div class="metric-card"><div class="metric-val" style="color:#0055FF">'+ventas.length+'</div><div class="metric-lbl">Ventas</div></div>'+
+    '<div class="metric-card"><div class="metric-val" style="color:#00C896">€'+tV.toFixed(0)+'</div><div class="metric-lbl">Ingresos ventas</div></div>'+
+    '<div class="metric-card"><div class="metric-val" style="color:#F97316">'+pend+'</div><div class="metric-lbl">En reparación</div></div>'+
+    '<div class="metric-card"><div class="metric-val" style="color:#7C3AED">€'+(tV+tR).toFixed(0)+'</div><div class="metric-lbl">Total ingresos</div></div>';
+}
+
+// ═══ RENDER DASH ═══
+function renderDash(){
+  renderMetrics();
+  var el=document.getElementById('dashReps');
+  var rec=DB.reps.slice(-5).reverse();
+  if(!rec.length){el.innerHTML='<div class="empty">Sin reparaciones aún</div>';return;}
+  el.innerHTML='<table class="tbl"><thead><tr><th>Cliente</th><th>Dispositivo</th><th>Estado</th></tr></thead><tbody>'+
+    rec.map(function(r){
+      return '<tr><td>'+r.clienteNombre+(r.prioridad!=='Normal'?'<br><span style="font-size:9px;color:#EF4444">'+r.prioridad+'</span>':'')+'</td>'+
+        '<td>'+r.marca+' '+r.modelo+'</td>'+
+        '<td><span class="badge '+bc(r.estado)+'">'+r.estado+'</span></td></tr>';
+    }).join('')+'</tbody></table>';
+}
+
+// ═══ RENDER VENTAS ═══
+function renderVentas(){
+  var q=(document.getElementById('busVentas').value||'').toLowerCase();
+  var list=DB.ventas.slice().reverse().filter(function(v){
+    return !q||(v.clienteNombre+' '+v.modelo+' '+v.imei).toLowerCase().includes(q);
+  });
+  var el=document.getElementById('listaVentas');
+  if(!list.length){el.innerHTML='<div class="empty">Sin ventas</div>';return;}
+  el.innerHTML='<table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th></tr></thead><tbody>'+
+    list.map(function(v){
+      return '<tr><td>'+v.fecha+'</td><td>'+v.clienteNombre+'</td><td>'+v.modelo+'</td>'+
+        '<td><span class="badge bb">'+v.pago+'</span></td>'+
+        '<td style="color:#00C896;font-weight:700">€'+v.total.toFixed(2)+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+
+// ═══ RENDER REPS ═══
+function renderReps(){
+  var list=DB.reps.slice().reverse().filter(function(r){
+    return SEL.repFiltro==='todas'||r.estado===SEL.repFiltro;
+  });
+  var el=document.getElementById('listaReps');
+  if(!list.length){el.innerHTML='<div class="empty">Sin reparaciones</div>';return;}
+  el.innerHTML='<table class="tbl"><thead><tr><th>Cliente</th><th>Equipo</th><th>Estado</th><th>Rest.</th><th></th></tr></thead><tbody>'+
+    list.map(function(r){
+      var btn=r.estado==='Por Entregar'?
+        '<button onclick="openEntregar(\''+r.id+'\')" style="background:#00C896;color:white;border:none;padding:3px 7px;border-radius:5px;font-size:10px;cursor:pointer">✓</button>':'';
+      return '<tr><td>'+r.clienteNombre+'<br><span style="font-size:9px;color:#64748B">'+r.fecha+'</span></td>'+
+        '<td>'+r.marca+' '+r.modelo+'<br><span style="font-size:9px;color:#EF4444">'+r.averia+'</span></td>'+
+        '<td><select style="border:none;background:none;font-size:10px;cursor:pointer;color:inherit" onchange="cambiarEstado(\''+r.id+'\',this.value)">'+
+          ['Pendiente','En Proceso','Por Entregar','Entregado','Garantia','Rechazado'].map(function(s){
+            return '<option'+(s===r.estado?' selected':'')+'>'+s+'</option>';
+          }).join('')+'</select></td>'+
+        '<td style="color:#EF4444;font-weight:700;font-size:11px">€'+r.restante.toFixed(2)+'</td>'+
+        '<td>'+btn+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+function setRepFiltro(el){
+  document.querySelectorAll('#repTabs .tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');SEL.repFiltro=el.dataset.f;renderReps();
+}
+function cambiarEstado(id,estado){
+  var r=DB.reps.find(function(x){return x.id===id;});if(!r)return;
+  if(estado==='Por Entregar'){openEntregar(id);return;}
+  r.estado=estado;saveData();toast('Estado actualizado','ok');renderDash();checkUrgentes();
+}
+
+// ═══ RENDER STOCK ═══
+function renderStock(){
+  var q=(document.getElementById('busStock').value||'').toLowerCase();
+  var list=DB.stock.filter(function(s){
+    return s.unidades>0&&(!q||(s.marca+' '+s.modelo+' '+(s.imei||'')+' '+(s.categoria||'')).toLowerCase().includes(q));
+  });
+  var el=document.getElementById('listaStock');
+  if(!list.length){el.innerHTML='<div class="empty">Sin stock</div>';return;}
+  el.innerHTML='<table class="tbl"><thead><tr><th>Artículo</th><th>Cat.</th><th>Uds.</th><th>P.Venta</th></tr></thead><tbody>'+
+    list.map(function(s){
+      var alerta=s.unidades<=(s.stockMin||2);
+      return '<tr><td><strong>'+s.marca+' '+s.modelo+'</strong>'+(s.capacidad?'<br><span style="font-size:9px;color:#64748B">'+s.capacidad+(s.color?' · '+s.color:'')+'</span>':'')+'</td>'+
+        '<td><span class="badge bb" style="font-size:9px">'+s.categoria+'</span></td>'+
+        '<td><span class="badge '+(alerta?'br':'bg')+'">'+s.unidades+'</span></td>'+
+        '<td style="color:#00C896;font-weight:700">€'+parseFloat(s.precioV).toFixed(2)+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+function renderStockAlertas(){
+  var alertas=DB.stock.filter(function(s){return s.unidades>0&&s.unidades<=(s.stockMin||2);});
+  var el=document.getElementById('stockAlertas');
+  if(!alertas.length){el.innerHTML='';return;}
+  el.innerHTML='<div class="alert-box">⚠️ Stock bajo: '+alertas.map(function(s){return s.modelo+' ('+s.unidades+' uds.)';}).join(', ')+'</div>';
+}
+
+// ═══ RENDER CLIENTES ═══
+function renderClis(){
+  var q=(document.getElementById('busClis').value||'').toLowerCase();
+  var list=DB.clis.filter(function(c){
+    return !q||(c.nombre+' '+c.apellidos+' '+(c.tel||'')+' '+(c.email||'')).toLowerCase().includes(q);
+  });
+  var el=document.getElementById('listaClis');
+  if(!list.length){el.innerHTML='<div class="empty">Sin clientes</div>';return;}
+  el.innerHTML='<table class="tbl"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Historial</th></tr></thead><tbody>'+
+    list.map(function(c){
+      var vc=DB.ventas.filter(function(v){return v.clienteId===c.id;}).length;
+      var rc=DB.reps.filter(function(r){return r.clienteId===c.id;}).length;
+      var frec=(vc+rc)>=3;
+      return '<tr><td><strong>'+c.nombre+' '+c.apellidos+'</strong>'+(frec?'<br><span class="badge by">⭐ Frecuente</span>':'')+
+        (c.dni?'<br><span style="font-size:9px;color:#64748B">'+c.dni+'</span>':'')+'</td>'+
+        '<td>'+(c.tel||'—')+'</td>'+
+        '<td><span class="badge bb">'+vc+'v</span> <span class="badge bp">'+rc+'r</span></td></tr>';
+    }).join('')+'</tbody></table>';
+}
+
+// ═══ RENDER PROVEEDORES ═══
+function renderProvs(){
+  var el=document.getElementById('listaProvs');
+  if(!DB.provs.length){el.innerHTML='<div class="empty">Sin proveedores</div>';return;}
+  el.innerHTML='<table class="tbl"><thead><tr><th>Empresa</th><th>Contacto</th><th>Teléfono</th></tr></thead><tbody>'+
+    DB.provs.map(function(p){
+      return '<tr><td><strong>'+p.nombre+'</strong>'+(p.nota?'<br><span style="font-size:9px;color:#0055FF">'+p.nota+'</span>':'')+'</td>'+
+        '<td>'+(p.contacto||'—')+'</td>'+
+        '<td>'+(p.tel||'—')+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+
+// ═══ RENDER GASTOS ═══
+function renderGastos(){
+  var el=document.getElementById('listaGastos');
+  if(!DB.gastos.length){el.innerHTML='<div class="empty">Sin gastos</div>';return;}
+  var list=DB.gastos.slice().reverse();
+  el.innerHTML='<table class="tbl"><thead><tr><th>Concepto</th><th>Cat.</th><th>Estado</th><th>Importe</th></tr></thead><tbody>'+
+    list.map(function(g){
+      return '<tr><td><strong>'+g.concepto+'</strong><br><span style="font-size:9px;color:#64748B">'+g.fecha+'</span></td>'+
+        '<td><span class="badge bb">'+g.categoria+'</span></td>'+
+        '<td><span class="badge '+(g.estado==='Pagado'?'bg':'bo')+'">'+g.estado+'</span></td>'+
+        '<td style="color:#EF4444;font-weight:700">€'+parseFloat(g.importe).toFixed(2)+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+function renderGastosStats(){
+  var total=DB.gastos.reduce(function(a,g){return a+g.importe;},0);
+  var pend=DB.gastos.filter(function(g){return g.estado==='Pendiente';}).reduce(function(a,g){return a+g.importe;},0);
+  document.getElementById('gastosStats').innerHTML=
+    '<div class="metric-card"><div class="metric-val" style="color:#EF4444">€'+total.toFixed(0)+'</div><div class="metric-lbl">Total gastos</div></div>'+
+    '<div class="metric-card"><div class="metric-val" style="color:#F97316">€'+pend.toFixed(0)+'</div><div class="metric-lbl">Pendiente pago</div></div>';
+}
+
+// ═══ REPORTES ═══
+function setReporteTab(el){
+  el.closest('.card').querySelectorAll('.tab').forEach(function(t){t.classList.remove('active');});
+  el.classList.add('active');SEL.repTab=el.dataset.r;renderReportePreview();
+}
+function renderReportePreview(){
+  var rng=getDateRange(SEL.repTab);
+  var ventas=DB.ventas.filter(function(v){var d=parseDate(v.fecha);return d>=rng.desde&&d<=rng.hasta;});
+  var reps=DB.reps.filter(function(r){return r.estado==='Entregado'&&r.fechaEntregaReal&&parseDate(r.fechaEntregaReal)>=rng.desde;});
+  var tV=ventas.reduce(function(a,v){return a+v.total;},0);
+  var tR=reps.reduce(function(a,r){return a+r.total;},0);
+  var ticket=ventas.length?(tV/ventas.length):0;
+  document.getElementById('reportePreview').innerHTML=
+    '<strong>Periodo: '+SEL.repTab+'</strong><br>'+
+    'Ventas: '+ventas.length+' (€'+tV.toFixed(2)+')<br>'+
+    'Reparaciones completadas: '+reps.length+' (€'+tR.toFixed(2)+')<br>'+
+    'Total ingresos: <strong style="color:#00C896">€'+(tV+tR).toFixed(2)+'</strong><br>'+
+    'Ticket promedio: €'+ticket.toFixed(2);
+}
+function generarReportePDF(){
+  var rng=getDateRange(SEL.repTab);
+  var ventas=DB.ventas.filter(function(v){var d=parseDate(v.fecha);return d>=rng.desde&&d<=rng.hasta;});
+  var reps=DB.reps.filter(function(r){return r.estado==='Entregado'&&r.fechaEntregaReal&&parseDate(r.fechaEntregaReal)>=rng.desde;});
+  var tV=ventas.reduce(function(a,v){return a+v.total;},0);
+  var tR=reps.reduce(function(a,r){return a+r.total;},0);
+  var gastos=DB.gastos.reduce(function(a,g){return a+g.importe;},0);
+  var tienda=T?T.nombre:'Mi Tienda';
+  var fecha=new Date().toLocaleDateString('es',{year:'numeric',month:'long',day:'numeric'});
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8">'+
+    '<style>body{font-family:Arial,sans-serif;margin:0;padding:24px;color:#111;max-width:600px}'+
+    'h1{color:#020B2E;font-size:22px;margin-bottom:4px}.sub{color:#666;font-size:12px;margin-bottom:20px}'+
+    'h2{font-size:14px;color:#020B2E;margin:16px 0 8px;border-bottom:1px solid #eee;padding-bottom:4px}'+
+    'table{width:100%;border-collapse:collapse;margin-bottom:14px;font-size:12px}'+
+    'th{background:#020B2E;color:white;padding:7px 10px;text-align:left}'+
+    'td{padding:8px 10px;border-bottom:1px solid #eee}'+
+    '.tot{display:flex;justify-content:space-between;padding:8px 0;font-size:13px;border-bottom:1px solid #eee}'+
+    '.tot.final{font-weight:700;font-size:16px;color:#0055FF;border:none;margin-top:4px}'+
+    '.footer{margin-top:20px;font-size:10px;color:#999;text-align:center}</style></head><body>'+
+    '<h1>REPORTE '+SEL.repTab.toUpperCase()+' — '+tienda.toUpperCase()+'</h1>'+
+    '<div class="sub">Generado el '+fecha+'</div>'+
+    '<h2>Resumen financiero</h2>'+
+    '<div class="tot"><span>Ingresos por ventas</span><span>€'+tV.toFixed(2)+'</span></div>'+
+    '<div class="tot"><span>Ingresos por reparaciones</span><span>€'+tR.toFixed(2)+'</span></div>'+
+    '<div class="tot"><span>Gastos registrados</span><span style="color:#EF4444">-€'+gastos.toFixed(2)+'</span></div>'+
+    '<div class="tot final"><span>BENEFICIO NETO</span><span>€'+(tV+tR-gastos).toFixed(2)+'</span></div>'+
+    '<h2>Ventas ('+ventas.length+')</h2>'+
+    '<table><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>Total</th></tr></thead><tbody>'+
+    ventas.map(function(v){return '<tr><td>'+v.fecha+'</td><td>'+v.clienteNombre+'</td><td>'+v.modelo+'</td><td>€'+v.total.toFixed(2)+'</td></tr>';}).join('')+
+    '</tbody></table>'+
+    '<h2>Reparaciones completadas ('+reps.length+')</h2>'+
+    '<table><thead><tr><th>Fecha</th><th>Cliente</th><th>Equipo</th><th>Total</th></tr></thead><tbody>'+
+    reps.map(function(r){return '<tr><td>'+r.fechaEntregaReal+'</td><td>'+r.clienteNombre+'</td><td>'+r.marca+' '+r.modelo+'</td><td>€'+r.total.toFixed(2)+'</td></tr>';}).join('')+
+    '</tbody></table>'+
+    '<div class="footer">Generado por Tekpair · tekpair.tech</div>'+
+    '</body></html>';
+  var win=window.open('','_blank');win.document.write(html);win.document.close();
+  setTimeout(function(){win.print();},500);
+  toast('PDF generado','ok');
+}
+function renderRanking(){
+  var ranking=DB.clis.map(function(c){
+    var vc=DB.ventas.filter(function(v){return v.clienteId===c.id;}).length;
+    var rc=DB.reps.filter(function(r){return r.clienteId===c.id;}).length;
+    var total=DB.ventas.filter(function(v){return v.clienteId===c.id;}).reduce(function(a,v){return a+v.total;},0);
+    return{nombre:c.nombre+' '+c.apellidos,visitas:vc+rc,total:total};
+  }).filter(function(x){return x.visitas>0;}).sort(function(a,b){return b.visitas-a.visitas;}).slice(0,5);
+  var el=document.getElementById('rankingClis');
+  if(!ranking.length){el.innerHTML='<div class="empty">Sin datos</div>';return;}
+  el.innerHTML='<table class="tbl"><thead><tr><th>#</th><th>Cliente</th><th>Visitas</th><th>Total €</th></tr></thead><tbody>'+
+    ranking.map(function(r,i){
+      return '<tr><td style="font-weight:700;color:#F59E0B">'+(i===0?'🥇':i===1?'🥈':i===2?'🥉':'#'+(i+1))+'</td>'+
+        '<td><strong>'+r.nombre+'</strong></td>'+
+        '<td><span class="badge bb">'+r.visitas+'</span></td>'+
+        '<td style="color:#00C896;font-weight:700">€'+r.total.toFixed(2)+'</td></tr>';
+    }).join('')+'</tbody></table>';
+}
+
+// ═══ AYUDA ═══
+function enviarAyuda(){
+  var msg=document.getElementById('ayudaMsg').value.trim();
+  if(!msg){toast('Escribe tu mensaje','err');return;}
+  var tipo=document.getElementById('ayudaTipo').value;
+  var wa='Mensaje de '+U.nombre+' ('+tipo+'): '+msg;
+  window.open('https://wa.me/34600000000?text='+encodeURIComponent(wa),'_blank');
+  document.getElementById('ayudaMsg').value='';
+  toast('Mensaje enviado','ok');
+}
+
+// ═══ UTILS ═══
+function bc(e){return{Pendiente:'bo','En Proceso':'bb','Por Entregar':'bp',Entregado:'bg',Garantia:'',Rechazado:'br'}[e]||'';}
+
+// ═══ STOCK MODAL LOGIC ═══
+function openMStock() {
+  openM('mStock');
+  var cat = document.getElementById('sCat').value;
+  var esTelefono = cat === 'Teléfono' || cat === 'Tablet' || cat === 'Smartwatch';
+  if (!esTelefono) {
+    document.getElementById('reponerBox').style.display = 'block';
+    document.getElementById('nuevoStockBox').style.display = 'none';
+  } else {
+    document.getElementById('reponerBox').style.display = 'none';
+    document.getElementById('nuevoStockBox').style.display = 'block';
+  }
+}
+
+function onCatChange() {
+  var cat = document.getElementById('sCat').value;
+  var esTelefono = cat === 'Teléfono' || cat === 'Tablet' || cat === 'Smartwatch';
+  document.getElementById('imeiField').style.display = esTelefono ? 'block' : 'none';
+  if (!esTelefono) {
+    document.getElementById('reponerBox').style.display = 'block';
+    document.getElementById('nuevoStockBox').style.display = 'none';
+  }
+}
+
+function showNuevoStock() {
+  document.getElementById('reponerBox').style.display = 'none';
+  document.getElementById('nuevoStockBox').style.display = 'block';
+}
+
+function busStockExistente() {
+  var q = document.getElementById('busExistente').value.toLowerCase().trim();
+  var res = document.getElementById('existenteRes');
+  if (!q) { res.classList.remove('open'); return; }
+  var cat = document.getElementById('sCat').value;
+  var matches = DB.stock.filter(function(s) {
+    return (s.marca + ' ' + s.modelo + ' ' + (s.categoria||'')).toLowerCase().includes(q);
+  });
+  res.innerHTML = matches.map(function(s) {
+    return '<div class="cli-item" data-id="' + s.id + '">' +
+      '<strong>' + s.marca + ' ' + s.modelo + '</strong>' +
+      ' · ' + (s.categoria||'') +
+      ' · <span style="color:#00C896">Stock actual: ' + s.unidades + '</span>' +
+      '</div>';
+  }).join('');
+  if (matches.length) res.classList.add('open');
+  res.querySelectorAll('.cli-item').forEach(function(item) {
+    item.addEventListener('click', function() {
+      var s = DB.stock.find(function(x) { return x.id === this.dataset.id; }.bind(this));
+      if (s) {
+        document.getElementById('busExistente').value = '';
+        document.getElementById('existenteRes').classList.remove('open');
+        document.getElementById('selExistenteNom').textContent = s.marca + ' ' + s.modelo;
+        document.getElementById('selExistenteDet').textContent = (s.categoria||'') + ' · Stock actual: ' + s.unidades + ' uds.';
+        document.getElementById('selExistenteBox').style.display = 'block';
+        document.getElementById('selExistenteBox').dataset.id = s.id;
+      }
+    });
+  });
+}
+
+function reponerStock() {
+  var box = document.getElementById('selExistenteBox');
+  var id = box.dataset.id;
+  var uds = parseInt(document.getElementById('reponerUnidades').value) || 1;
+  var s = DB.stock.find(function(x) { return x.id === id; });
+  if (!s) { toast('Artículo no encontrado', 'err'); return; }
+  s.unidades += uds;
+  s.vendido = false;
+  saveData();
+  toast('✓ Stock actualizado: ' + s.modelo + ' → ' + s.unidades + ' uds.', 'ok');
+  closeM('mStock');
+  renderStock();
+  renderStockAlertas();
+  // Reset
+  document.getElementById('selExistenteBox').style.display = 'none';
+  document.getElementById('busExistente').value = '';
+  document.getElementById('reponerUnidades').value = '1';
+}
+
+</script>
+</body>
+</html>
