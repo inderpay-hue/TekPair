@@ -613,14 +613,17 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text)}
         <button class="btn-sm" onclick="repClearClient()">Cambiar</button>
       </div>
       <div id="repCliSearchSec">
-        <div style="position:relative">
-          <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none">👤</span>
-          <input class="fi" id="repCliSearch" placeholder="Buscar cliente..." style="padding-left:40px" autocomplete="off" />
+        <div style="position:relative;display:flex;gap:8px">
+          <div style="position:relative;flex:1">
+            <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none">👤</span>
+            <input class="fi" id="repCliSearch" placeholder="Buscar cliente por nombre o teléfono..." style="padding-left:40px" autocomplete="off" />
+          </div>
+          <button class="marca-add-btn" onclick="repShowAddClient('')">+ Nuevo</button>
         </div>
         <div class="tpv-cli-results" id="repCliResults"></div>
       </div>
       <div class="tpv-add-cli" id="repAddCli">
-        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:11px">➕ Nuevo cliente</div>
+        <div style="font-size:13px;font-weight:700;color:var(--blue);margin-bottom:11px">➕ Registrar nuevo cliente</div>
         <div class="g2">
           <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="repNcNom" /></div>
           <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="repNcApe" /></div>
@@ -629,7 +632,11 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text)}
           <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="repNcTel" type="tel" /></div>
           <div class="fg"><label class="fl">Email</label><input class="fi" id="repNcEmail" type="email" /></div>
         </div>
-        <button class="btn-full" onclick="repSaveNewClient()">✓ Guardar y seleccionar cliente</button>
+        <div class="fg"><label class="fl">DNI / NIF</label><input class="fi" id="repNcDni" /></div>
+        <div style="display:flex;gap:8px">
+          <button class="btn-cancel" style="flex:1" onclick="repHideAddClient()">Cancelar</button>
+          <button class="btn-full" style="flex:2;margin-top:0" onclick="repSaveNewClient()">✓ Guardar y seleccionar</button>
+        </div>
       </div>
     </div>
 
@@ -688,13 +695,25 @@ body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text)}
       <div class="checklist-grid" id="checklistGrid"></div>
     </div>
 
-    <!-- COMPONENTES -->
-    <div class="fl" style="margin-bottom:8px">Componentes a instalar <span style="font-size:11px;color:var(--muted)">(se descuentan del stock)</span></div>
-    <div class="parts-grid" id="partsGrid"></div>
+    <!-- COMPONENTES MEJORADO -->
+    <div class="fl" style="margin-bottom:8px">Componentes a instalar <span style="font-size:11px;color:var(--green)">(se descuentan del stock automáticamente)</span></div>
+    
+    <!-- BUSCADOR DE COMPONENTES -->
+    <div style="position:relative;margin-bottom:8px">
+      <span style="position:absolute;left:13px;top:50%;transform:translateY(-50%);font-size:16px;pointer-events:none">🔩</span>
+      <input class="fi" id="compSearch" placeholder="Buscar componente por nombre o modelo..." style="padding-left:40px" autocomplete="off" oninput="searchComps(this.value)" />
+    </div>
+    <div id="compSearchResults" style="display:none;background:white;border:1.5px solid var(--border);border-radius:11px;box-shadow:0 8px 24px rgba(0,0,0,.1);overflow:hidden;margin-bottom:10px;max-height:200px;overflow-y:auto"></div>
+
+    <!-- COMPONENTES SELECCIONADOS -->
     <div id="selPartsBox" style="display:none;margin-bottom:12px">
-      <div class="fl">Seleccionados</div>
+      <div class="fl" style="margin-bottom:7px">✅ Componentes seleccionados</div>
       <div id="selPartsList"></div>
     </div>
+
+    <!-- GRID RÁPIDA (primeros 6) -->
+    <div style="font-size:11px;color:var(--muted);margin-bottom:7px">Acceso rápido:</div>
+    <div class="parts-grid" id="partsGrid"></div>
 
     <!-- MANO DE OBRA Y ANTICIPO -->
     <div class="g2">
@@ -1641,14 +1660,7 @@ function renderPartsGrid() {
       var idx = selParts.findIndex(function(p){ return p.id===id; });
       if (idx===-1) { var p = DB.componentes.find(function(x){ return x.id===id; }); if(p) selParts.push(Object.assign({},p)); }
       else selParts.splice(idx,1);
-      renderPartsGrid(); updateRepTotal();
-      var box = document.getElementById('selPartsBox');
-      if (selParts.length) {
-        box.style.display='block';
-        document.getElementById('selPartsList').innerHTML = selParts.map(function(p){
-          return '<div style="display:flex;justify-content:space-between;padding:6px 8px;background:var(--bg);border-radius:7px;margin-bottom:4px;font-size:12px"><span>'+p.nombre+'</span><span style="color:var(--green);font-weight:600">€'+parseFloat(p.precioV).toFixed(2)+'</span></div>';
-        }).join('');
-      } else box.style.display='none';
+      renderPartsGrid(); updateRepTotal(); updateSelPartsList();
     });
   });
 }
@@ -1669,7 +1681,9 @@ function openModal(id) {
   document.getElementById(id).classList.add('open');
   if (id==='modalRep') {
     selParts=[]; repPhotos=[]; repSelectedClient=null; repPriority='Normal';
-    renderPartsGrid(); updateRepTotal(); initChecklist();
+    renderPartsGrid(); updateRepTotal(); initChecklist(); updateSelPartsList();
+    document.getElementById('compSearch').value='';
+    document.getElementById('compSearchResults').style.display='none';
     // Reset client search
     var sel = document.getElementById('repCliSel');
     var sec = document.getElementById('repCliSearchSec');
@@ -2177,6 +2191,74 @@ function handlePhotos(input) {
     };
     reader.readAsDataURL(file);
   });
+}
+
+
+function repHideAddClient() {
+  document.getElementById('repAddCli').classList.remove('show');
+}
+
+function searchComps(q) {
+  var results = document.getElementById('compSearchResults');
+  if (!q.trim()) { results.style.display='none'; return; }
+  var matches = DB.componentes.filter(function(c) {
+    return (c.nombre+' '+c.modelo+' '+c.categoria).toLowerCase().includes(q.toLowerCase());
+  });
+  if (!matches.length) {
+    results.innerHTML = '<div style="padding:12px;text-align:center;color:var(--muted);font-size:13px">Sin resultados para "'+q+'"</div>';
+    results.style.display='block'; return;
+  }
+  results.innerHTML = matches.map(function(c) {
+    var already = selParts.find(function(s){ return s.id===c.id; });
+    var icons = {Pantalla:'🖥️',Batería:'🔋','Tapa trasera':'📱',Altavoz:'🔊','Pin de carga':'🔌',Cámara:'📷',Micrófono:'🎤',Botones:'⭕',Marco:'⬜','Placa/Flex':'🔬',Auricular:'🎧'};
+    return '<div style="padding:11px 14px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;transition:background .15s;background:'+(already?'rgba(0,200,150,.06)':'white')+'" onclick="addCompFromSearch(''+c.id+'')" onmouseover="this.style.background='var(--blue-light)'" onmouseout="this.style.background=''+(already?'rgba(0,200,150,.06)':'white')+''">'+
+      '<div style="display:flex;align-items:center;gap:10px">'+
+      '<span style="font-size:18px">'+(icons[c.categoria]||'🔩')+'</span>'+
+      '<div><div style="font-size:13px;font-weight:600;color:var(--navy)">'+c.nombre+'</div>'+
+      '<div style="font-size:11px;color:var(--muted)">'+c.modelo+' · Stock: '+c.stock+'</div></div></div>'+
+      '<div style="text-align:right">'+
+      '<div style="font-size:14px;font-weight:700;color:var(--green)">€'+parseFloat(c.precioV).toFixed(2)+'</div>'+
+      (already?'<div style="font-size:10px;color:var(--green);font-weight:600">✓ Añadido</div>':'<div style="font-size:10px;color:var(--blue)">+ Añadir</div>')+
+      '</div></div>';
+  }).join('');
+  results.style.display='block';
+}
+
+function addCompFromSearch(id) {
+  var comp = DB.componentes.find(function(c){ return c.id===id; });
+  if (!comp) return;
+  if (comp.stock <= 0) { toast('Sin stock de '+comp.nombre, 'error'); return; }
+  var already = selParts.find(function(s){ return s.id===id; });
+  if (already) {
+    // Remove if already added
+    selParts = selParts.filter(function(s){ return s.id!==id; });
+    toast(comp.nombre+' eliminado', '');
+  } else {
+    selParts.push(Object.assign({},comp));
+    toast('✓ '+comp.nombre+' añadido', 'success');
+  }
+  updateSelPartsList();
+  updateRepTotal();
+  renderPartsGrid();
+  // Refresh search results
+  var q = document.getElementById('compSearch').value;
+  if (q) searchComps(q);
+}
+
+function updateSelPartsList() {
+  var box = document.getElementById('selPartsBox');
+  var list = document.getElementById('selPartsList');
+  if (!selParts.length) { box.style.display='none'; return; }
+  box.style.display='block';
+  list.innerHTML = selParts.map(function(p) {
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 12px;background:rgba(0,200,150,.06);border:1px solid rgba(0,200,150,.2);border-radius:9px;margin-bottom:6px">' +
+      '<div><div style="font-size:13px;font-weight:600;color:var(--navy)">'+p.nombre+'</div>' +
+      '<div style="font-size:11px;color:var(--muted)">'+p.modelo+' · '+p.categoria+'</div></div>' +
+      '<div style="display:flex;align-items:center;gap:10px">' +
+      '<span style="font-size:14px;font-weight:700;color:var(--green)">€'+parseFloat(p.precioV).toFixed(2)+'</span>' +
+      '<button onclick="addCompFromSearch(''+p.id+'')" style="background:rgba(239,68,68,.1);border:none;color:var(--red);width:26px;height:26px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center">✕</button>' +
+      '</div></div>';
+  }).join('');
 }
 
 </script>
