@@ -1,160 +1,58 @@
-// api/login.js
-// Backend de login de Tekpair
+export default async function handler(req, res) {
+  if (req.method !== 'POST') return res.status(405).end();
+  
+  const { email, password } = req.body;
+  if (!email || !password) return res.status(400).json({ error: 'Faltan datos' });
 
-const https = require('https');
-const crypto = require('crypto');
-
-const SUPABASE_URL = process.env.SUPABASE_URL;
-const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
-
-function hashPassword(password) {
-  return crypto.createHash('sha256').update(password + 'tekpair_salt_2025').digest('hex');
-}
-
-function generateToken() {
-  return crypto.randomBytes(32).toString('hex');
-}
-
-async function supabaseQuery(path) {
-  return new Promise((resolve, reject) => {
-    const url = new URL(SUPABASE_URL);
-    const options = {
-      hostname: url.hostname,
-      path: `/rest/v1/${path}`,
-      method: 'GET',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`
-      }
-    };
-    const req = https.request(options, (res) => {
-      let data = '';
-      res.on('data', chunk => data += chunk);
-      res.on('end', () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(data) }); }
-        catch(e) { resolve({ status: res.statusCode, data }); }
-      });
-    });
-    req.on('error', reject);
-    req.end();
-  });
-}
-
-async function supabaseInsert(table, data) {
-  return new Promise((resolve, reject) => {
-    const url = new URL(SUPABASE_URL);
-    const body = JSON.stringify(data);
-    const options = {
-      hostname: url.hostname,
-      path: `/rest/v1/${table}`,
-      method: 'POST',
-      headers: {
-        'apikey': SUPABASE_KEY,
-        'Authorization': `Bearer ${SUPABASE_KEY}`,
-        'Content-Type': 'application/json',
-        'Content-Length': Buffer.byteLength(body),
-        'Prefer': 'return=representation'
-      }
-    };
-    const req = https.request(options, (res) => {
-      let responseData = '';
-      res.on('data', chunk => responseData += chunk);
-      res.on('end', () => {
-        try { resolve({ status: res.statusCode, data: JSON.parse(responseData) }); }
-        catch(e) { resolve({ status: res.statusCode, data: responseData }); }
-      });
-    });
-    req.on('error', reject);
-    req.write(body);
-    req.end();
-  });
-}
-
-module.exports = async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
-
-  if (req.method === 'OPTIONS') return res.status(200).end();
-  if (req.method !== 'POST') return res.status(405).json({ ok: false, error: 'Método no permitido' });
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
 
   try {
-    const { email, password } = req.body;
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&activo=eq.true&select=*`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const usuarios = await r.json();
+    
+    if (!usuarios.length) return res.json({ error: 'Usuario no encontrado' });
+    
+    const u = usuarios[0];
+    
+    const crypto = require('crypto');
+    const hash = crypto.createHash('sha256').update(password).digest('hex');
+    
+    if (u.password_hash !== hash) return res.json({ error: 'Contrasena incorrecta' });
 
-    if (!email || !password) {
-      return res.status(400).json({ ok: false, error: 'Email y contraseña obligatorios' });
-    }
+    const rt = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${u.tienda_id}&select=*`, {
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+    });
+    const tiendas = await rt.json();
+    const tienda = tiendas[0] || { id: u.tienda_id, nombre: 'Mi Tienda' };
 
-    // BUSCAR USUARIO
-    const result = await supabaseQuery(
-      `usuarios?email=eq.${encodeURIComponent(email)}&activo=eq.true&limit=1`
-    );
-
-    if (!result.data || result.data.length === 0) {
-      return res.status(401).json({ ok: false, error: 'Email no encontrado' });
-    }
-
-    const usuario = result.data[0];
-    const passwordHash = hashPassword(password);
-
-    if (usuario.password_hash !== passwordHash) {
-      return res.status(401).json({ ok: false, error: 'Contraseña incorrecta' });
-    }
-
-    // OBTENER TIENDA Y SUSCRIPCIÓN
-    const tiendaResult = await supabaseQuery(
-      `tiendas?usuario_id=eq.${usuario.id}&limit=1`
-    );
-    const tienda = tiendaResult.data && tiendaResult.data[0];
-
-    const suscResult = await supabaseQuery(
-      `suscripciones?usuario_id=eq.${usuario.id}&limit=1`
-    );
-    const suscripcion = suscResult.data && suscResult.data[0];
-
-    // VERIFICAR SUSCRIPCIÓN ACTIVA
-    if (suscripcion) {
-      const ahora = new Date();
-      const trialFin = new Date(suscripcion.trial_fin);
-      if (suscripcion.estado === 'trial' && ahora > trialFin) {
-        return res.status(403).json({
-          ok: false,
-          error: 'Tu periodo de prueba ha expirado. Activa tu suscripción para continuar.',
-          expired: true
-        });
-      }
-      if (suscripcion.estado === 'cancelado') {
-        return res.status(403).json({
-          ok: false,
-          error: 'Tu suscripción está cancelada.',
-          cancelled: true
-        });
-      }
-    }
-
-    // CREAR SESIÓN
-    const token = generateToken();
-    await supabaseInsert('sesiones', {
-      usuario_id: usuario.id,
-      token,
-      expira_en: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
+    const token = crypto.randomBytes(32).toString('hex');
+    const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    
+    await fetch(`${SUPABASE_URL}/rest/v1/sesiones`, {
+      method: 'POST',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: 'ses_' + Date.now(), usuario_id: u.id, tienda_id: u.tienda_id, token, expires_at: expires })
     });
 
-    return res.status(200).json({
+    await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${u.id}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ultimo_acceso: new Date().toISOString() })
+    });
+
+    return res.json({
       ok: true,
       token,
-      usuario: {
-        id: usuario.id,
-        nombre: usuario.nombre,
-        email: usuario.email
-      },
-      tienda: tienda ? { id: tienda.id, nombre: tienda.nombre } : null,
-      plan: suscripcion ? suscripcion.plan : null,
-      trial_fin: suscripcion ? suscripcion.trial_fin : null
+      usuario: { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, permisos: u.permisos },
+      tienda: { id: tienda.id, nombre: tienda.nombre },
+      plan: 'pro'
     });
 
-  } catch(error) {
-    console.error('Error en login:', error);
-    return res.status(500).json({ ok: false, error: 'Error interno del servidor' });
+  } catch(e) {
+    console.error('Login error:', e);
+    return res.status(500).json({ error: 'Error del servidor' });
   }
 }
