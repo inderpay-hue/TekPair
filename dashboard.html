@@ -703,6 +703,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
 
 <script>
 // ═══ DATOS ═══
+var ECID=null;
 var DB={ventas:[],reps:[],stock:[],clis:[],provs:[],gastos:[]};
 var SEL={vStock:null,vCli:null,rCli:null,eRepId:null,editStockId:null,vPago:'Efectivo',ePago:'Efectivo',rPri:'Normal',repFiltro:'todas',metricTab:'hoy',repTab:'hoy',repTipo:'todo',selParts:[]};
 var TIENDA={nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',garantia:'',politica:'',cierreHora:'21:30'};
@@ -1628,7 +1629,6 @@ function renderClis(){
 }
 
 var EDIT_CLI_ID = null;
-var ECID=null;
 function editarCliente(id) {
   var c = DB.clis.find(function(x){ return x.id === id; });
   if (!c) return;
