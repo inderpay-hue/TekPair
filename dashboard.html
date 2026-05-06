@@ -175,6 +175,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
     <button class="qbtn" style="background:#EF4444" onclick="navTo('pGastos')">📋 Gastos</button>
     <button class="qbtn" style="background:#7C3AED" onclick="navTo('pReportes')">📊 Reportes</button>
     <button class="qbtn" style="background:#F59E0B" onclick="navTo('pTienda')">🏪 Mi Tienda</button>
+    <button class="qbtn" style="background:#0055FF" onclick="navTo('pAyuda')">❓ Ayuda</button>
     <button class="qbtn" style="background:#020B2E" onclick="backup()">💾 Backup</button>
   </div>
 </div>
@@ -235,6 +236,32 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
   <div class="card">
     <div class="card-title">🏆 Ranking clientes</div>
     <div id="ranking"></div>
+  </div>
+</div>
+
+<!-- AYUDA -->
+<div class="page" id="pAyuda">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
+    <div style="font-size:15px;font-weight:700">Ayuda & Sugerencias</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Envíanos un mensaje</div>
+    <div class="fg"><label class="fl">Tipo</label>
+      <select class="fi" id="ayudaTipo"><option>Problema técnico</option><option>Sugerencia</option><option>Pregunta</option><option>Otro</option></select>
+    </div>
+    <div class="fg"><label class="fl">Mensaje *</label>
+      <textarea class="fi" id="ayudaMsg" rows="4" placeholder="Describe tu consulta..." style="resize:none"></textarea>
+    </div>
+    <button class="btn-save" onclick="enviarAyuda()">📲 Enviar por WhatsApp</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Contacto soporte</div>
+    <div style="font-size:13px;line-height:2.2;color:#64748B">
+      📧 soporte@tekpair.tech<br>
+      🌐 tekpair.tech<br>
+      📱 WhatsApp: 9h - 18h
+    </div>
   </div>
 </div>
 
@@ -459,6 +486,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
     <div class="fg"><label class="fl">Estado</label><select class="fi" id="sEstado"><option>Nuevo</option><option>Reacond. A</option><option>Reacond. B</option><option>Segunda Mano</option></select></div>
   </div>
   <button class="btn-save" id="btnGuardarStock" onclick="guardarStock()">Guardar</button>
+  <button class="btn-danger" id="btnEliminarStock" style="display:none" onclick="eliminarStockActual()">🗑️ Eliminar artículo</button>
   <button class="btn-cancel" onclick="closeM('mStock')">Cancelar</button>
 </div></div>
 
@@ -639,6 +667,7 @@ function abrirStock(){
   SEL.editStockId=null;
   document.getElementById('mStockTitle').textContent='📦 Añadir Stock';
   document.getElementById('btnGuardarStock').textContent='Guardar';
+  document.getElementById('btnEliminarStock').style.display='none';
   var cat=document.getElementById('sCat').value;
   var esTel=cat==='Teléfono'||cat==='Tablet'||cat==='Smartwatch';
   document.getElementById('reponerBox').style.display=esTel?'none':'block';
@@ -975,6 +1004,7 @@ function editarStock(id){
   SEL.editStockId=id;
   document.getElementById('mStockTitle').textContent='✏️ Editar Stock';
   document.getElementById('btnGuardarStock').textContent='Guardar cambios';
+  document.getElementById('btnEliminarStock').style.display='block';
   document.getElementById('reponerBox').style.display='none';
   document.getElementById('nuevoStockBox').style.display='block';
   document.getElementById('sCat').value=s.categoria||'Teléfono';
@@ -1012,6 +1042,12 @@ function guardarEditStock(){
 function eliminarStock(id){
   DB.stock=DB.stock.filter(function(x){return x.id!==id;});
   guardarDatos();toast('Artículo eliminado','ok');renderStock();
+}
+function eliminarStockActual(){
+  if(!SEL.editStockId)return;
+  DB.stock=DB.stock.filter(function(x){return x.id!==SEL.editStockId;});
+  SEL.editStockId=null;
+  guardarDatos();closeM('mStock');toast('Artículo eliminado','ok');renderStock();renderAlertas();
 }
 
 function saveCli(){
@@ -1370,6 +1406,17 @@ function saveTienda(){
   TIENDA.cierreHora=document.getElementById('tCierreHora').value;
   localStorage.setItem('tk_tienda_config',JSON.stringify(TIENDA));
   toast('Datos guardados','ok');
+}
+
+// ═══ AYUDA ═══
+function enviarAyuda(){
+  var msg=document.getElementById('ayudaMsg').value.trim();
+  if(!msg){toast('Escribe tu mensaje','err');return;}
+  var tipo=document.getElementById('ayudaTipo').value;
+  var texto='[Tekpair - '+tipo+'] '+msg+' | Usuario: '+(U?U.nombre:'')+' | Tienda: '+TIENDA.nombre;
+  window.open('https://wa.me/34600000000?text='+encodeURIComponent(texto),'_blank');
+  document.getElementById('ayudaMsg').value='';
+  toast('Mensaje enviado','ok');
 }
 
 // ═══ BACKUP ═══
