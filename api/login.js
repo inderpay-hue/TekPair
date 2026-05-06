@@ -34,20 +34,32 @@ export default async function handler(req, res) {
     await fetch(`${SUPABASE_URL}/rest/v1/sesiones`, {
       method: 'POST',
       headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ id: 'ses_' + Date.now(), usuario_id: u.id, tienda_id: u.tienda_id, token, expires_at: expires })
-    });
-
-    await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${u.id}`, {
-      method: 'PATCH',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ultimo_acceso: new Date().toISOString() })
+      body: JSON.stringify({ 
+        id: 'ses_' + Date.now(), 
+        usuario_id: u.id, 
+        tienda_id: u.tienda_id, 
+        token, 
+        expires_at: expires 
+      })
     });
 
     return res.json({
       ok: true,
       token,
-      usuario: { id: u.id, nombre: u.nombre, email: u.email, rol: u.rol, permisos: u.permisos },
-      tienda: { id: tienda.id, nombre: tienda.nombre },
+      sb_key: SUPABASE_KEY,
+      tienda_id: u.tienda_id,
+      usuario: { 
+        id: u.id, 
+        nombre: u.nombre, 
+        email: u.email, 
+        rol: u.rol, 
+        permisos: u.permisos,
+        tienda_id: u.tienda_id
+      },
+      tienda: { 
+        id: tienda.id, 
+        nombre: tienda.nombre 
+      },
       plan: 'pro'
     });
 
