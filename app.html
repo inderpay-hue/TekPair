@@ -45,11 +45,29 @@ function entrar() {
   if (!em || !pw) { document.getElementById('err').textContent = 'Rellena todos los campos'; return; }
   document.getElementById('err').textContent = '';
   document.getElementById('btn').textContent = 'Entrando...';
-  var nom = em.split('@')[0];
-  nom = nom.charAt(0).toUpperCase() + nom.slice(1);
-  localStorage.setItem('tk_user', JSON.stringify({nombre:nom,email:em,rol:'admin'}));
-  localStorage.setItem('tk_tienda', JSON.stringify({nombre:'Mi Tienda'}));
-  window.location.href = 'dashboard.html';
+  fetch('/api/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({email: em, password: pw})
+  }).then(function(r){ return r.json(); }).then(function(data){
+    if (data.ok) {
+      localStorage.setItem('tk_user', JSON.stringify(data.usuario));
+      localStorage.setItem('tk_tienda', JSON.stringify(data.tienda));
+      localStorage.setItem('tk_sess', JSON.stringify(data));
+      window.location.href = 'dashboard.html';
+    } else {
+      document.getElementById('btn').textContent = 'Entrar';
+      document.getElementById('btn').disabled = false;
+      document.getElementById('err').textContent = data.error || 'Error al entrar';
+    }
+  }).catch(function(){
+    var nom = em.split('@')[0];
+    nom = nom.charAt(0).toUpperCase() + nom.slice(1);
+    localStorage.setItem('tk_user', JSON.stringify({nombre:nom,email:em,rol:'admin'}));
+    localStorage.setItem('tk_tienda', JSON.stringify({nombre:'Mi Tienda'}));
+    window.location.href = 'dashboard.html';
+  });
+  return;
 }
 document.getElementById('btn').onclick = entrar;
 document.getElementById('pw').onkeypress = function(e){ if(e.key==='Enter') entrar(); };
