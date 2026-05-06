@@ -675,7 +675,7 @@ function navTo(id){
   if(id==='pGastos'){renderGastos();renderGastosStats();}
   if(id==='pReportes'){renderRepPreview();renderRanking();}
   if(id==='pTienda')cargarTienda();
-  if(id==='pAjustes'){cargarAjustes();}
+  if(id==='pAjustes')cargarAjustes();
 }
 function setNavActive(el){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
@@ -1506,148 +1506,99 @@ function backup(){
 
 // ═══ AJUSTES ═══
 var AJUSTES = {
-  widgets: {
-    metricas: true,
-    accesosRapidos: true,
-    urgentes: true,
-    ultimasReps: true,
-    cierre: true
-  },
-  cierre: {
-    activo: false,
-    hora: '21:30',
-    email: ''
-  },
-  nombre: '',
-  moneda: '€',
-  color: '#0055FF',
-  notifs: {
-    stockBajo: true,
-    entregaProxima: true,
-    cierreAuto: true
-  }
+  widgets: {metricas:true,accesosRapidos:true,urgentes:true,ultimasReps:true,cierre:true},
+  cierre: {activo:false,hora:'21:30',email:''},
+  nombre:'',moneda:'EUR',color:'#0055FF',
+  notifs:{stockBajo:true,entregaProxima:true,cierreAuto:true}
 };
-
 var WIDGETS_CONFIG = [
-  {id:'metricas', label:'Métricas (ventas e ingresos)', icon:'📊'},
-  {id:'accesosRapidos', label:'Botones de acceso rápido', icon:'⚡'},
-  {id:'urgentes', label:'Órdenes urgentes', icon:'⚠️'},
-  {id:'ultimasReps', label:'Últimas reparaciones', icon:'🔧'},
-  {id:'cierre', label:'Cierre del día', icon:'💰'}
+  {id:'metricas',label:'Metricas'},
+  {id:'accesosRapidos',label:'Accesos rapidos'},
+  {id:'urgentes',label:'Ordenes urgentes'},
+  {id:'ultimasReps',label:'Ultimas reparaciones'},
+  {id:'cierre',label:'Cierre del dia'}
 ];
-
 var NOTIFS_CONFIG = [
-  {id:'stockBajo', label:'Alerta de stock bajo', icon:'📦'},
-  {id:'entregaProxima', label:'Entrega en menos de 2 días', icon:'⏰'},
-  {id:'cierreAuto', label:'Aviso de cierre automático', icon:'🔔'}
+  {id:'stockBajo',label:'Alerta stock bajo'},
+  {id:'entregaProxima',label:'Entrega proxima'},
+  {id:'cierreAuto',label:'Cierre automatico'}
 ];
 
 function cargarAjustes() {
   var a = localStorage.getItem('tk_ajustes');
   if (a) { try { AJUSTES = JSON.parse(a); } catch(e) {} }
-  // Load into form
-  if (document.getElementById('ajCierreHora')) {
-    document.getElementById('ajCierreHora').value = AJUSTES.cierre.hora || '21:30';
-    document.getElementById('ajCierreEmail').value = AJUSTES.cierre.email || '';
-    document.getElementById('ajNombre').value = AJUSTES.nombre || (U ? U.nombre : '');
-    document.getElementById('ajMoneda').value = AJUSTES.moneda || '€';
-    var slider = document.getElementById('ajCierreActivoSlider');
-    if (slider) slider.style.background = AJUSTES.cierre.activo ? AJUSTES.color || '#0055FF' : '#E2E8F0';
-    document.getElementById('ajCierreActivo').checked = AJUSTES.cierre.activo;
-    renderWidgetsList();
-    renderNotifsList();
-    applyThemeColor(AJUSTES.color || '#0055FF');
-  }
+  var el;
+  el = document.getElementById('ajCierreHora'); if(el) el.value = AJUSTES.cierre.hora||'21:30';
+  el = document.getElementById('ajCierreEmail'); if(el) el.value = AJUSTES.cierre.email||'';
+  el = document.getElementById('ajNombre'); if(el) el.value = AJUSTES.nombre||(U?U.nombre:'');
+  el = document.getElementById('ajCierreActivo'); if(el) el.checked = AJUSTES.cierre.activo;
+  renderWidgetsList();
+  renderNotifsList();
+}
+
+function renderToggle(activo, onToggle, extraId) {
+  var color = activo ? '#0055FF' : '#E2E8F0';
+  var left = activo ? '22px' : '3px';
+  return '<div onclick="' + onToggle + '" style="width:44px;height:24px;border-radius:24px;cursor:pointer;background:' + color + ';position:relative;flex-shrink:0">' +
+    '<div style="position:absolute;top:3px;left:' + left + ';width:18px;height:18px;border-radius:50%;background:white;transition:left .2s"></div></div>';
 }
 
 function renderWidgetsList() {
-  var el = document.getElementById('widgetsList');
-  if (!el) return;
+  var el = document.getElementById('widgetsList'); if (!el) return;
   el.innerHTML = WIDGETS_CONFIG.map(function(w) {
     var activo = AJUSTES.widgets[w.id] !== false;
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #F1F5F9">' +
-      '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">' + w.icon + '</span>' +
-      '<span style="font-size:13px;font-weight:500">' + w.label + '</span></div>' +
-      '<div onclick="toggleWidget('' + w.id + '')" id="sw_' + w.id + '" style="width:44px;height:24px;border-radius:24px;cursor:pointer;transition:.3s;background:' + (activo ? (AJUSTES.color||'#0055FF') : '#E2E8F0') + ';position:relative">' +
-      '<div style="position:absolute;top:3px;left:' + (activo ? '22px' : '3px') + ';width:18px;height:18px;border-radius:50%;background:white;transition:.3s"></div>' +
-      '</div></div>';
+      '<span style="font-size:13px">' + w.label + '</span>' +
+      renderToggle(activo, 'toggleWidget("' + w.id + '")') + '</div>';
   }).join('');
 }
 
 function renderNotifsList() {
-  var el = document.getElementById('notifsList');
-  if (!el) return;
+  var el = document.getElementById('notifsList'); if (!el) return;
   el.innerHTML = NOTIFS_CONFIG.map(function(n) {
     var activo = AJUSTES.notifs[n.id] !== false;
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #F1F5F9">' +
-      '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">' + n.icon + '</span>' +
-      '<span style="font-size:13px;font-weight:500">' + n.label + '</span></div>' +
-      '<div onclick="toggleNotif('' + n.id + '')" id="swn_' + n.id + '" style="width:44px;height:24px;border-radius:24px;cursor:pointer;transition:.3s;background:' + (activo ? (AJUSTES.color||'#0055FF') : '#E2E8F0') + ';position:relative">' +
-      '<div style="position:absolute;top:3px;left:' + (activo ? '22px' : '3px') + ';width:18px;height:18px;border-radius:50%;background:white;transition:.3s"></div>' +
-      '</div></div>';
+      '<span style="font-size:13px">' + n.label + '</span>' +
+      renderToggle(activo, 'toggleNotif("' + n.id + '")') + '</div>';
   }).join('');
 }
 
 function toggleWidget(id) {
-  AJUSTES.widgets[id] = AJUSTES.widgets[id] === false ? true : false;
+  AJUSTES.widgets[id] = AJUSTES.widgets[id] === false;
   renderWidgetsList();
 }
 function toggleNotif(id) {
-  AJUSTES.notifs[id] = AJUSTES.notifs[id] === false ? true : false;
+  AJUSTES.notifs[id] = AJUSTES.notifs[id] === false;
   renderNotifsList();
 }
-function toggleSwitch(checkId) {
-  var cb = document.getElementById(checkId);
-  cb.checked = !cb.checked;
-  var slider = document.getElementById(checkId + 'Slider');
-  if (slider) slider.style.background = cb.checked ? (AJUSTES.color||'#0055FF') : '#E2E8F0';
-}
-function selColor(el) {
-  document.querySelectorAll('.color-opt').forEach(function(c) {
-    c.style.boxShadow = '0 0 0 2px #E2E8F0';
-  });
-  el.style.boxShadow = '0 0 0 2px ' + el.dataset.c;
-  AJUSTES.color = el.dataset.c;
-  applyThemeColor(AJUSTES.color);
-}
-function applyThemeColor(color) {
-  try {
-    document.documentElement.style.setProperty('--blue', color);
-  } catch(e) {}
-}
+
 function saveAjustes() {
-  AJUSTES.cierre.activo = document.getElementById('ajCierreActivo').checked;
-  AJUSTES.cierre.hora = document.getElementById('ajCierreHora').value;
-  AJUSTES.cierre.email = document.getElementById('ajCierreEmail').value;
-  AJUSTES.nombre = document.getElementById('ajNombre').value;
-  AJUSTES.moneda = document.getElementById('ajMoneda').value;
+  var el;
+  el = document.getElementById('ajCierreHora'); if(el) AJUSTES.cierre.hora = el.value;
+  el = document.getElementById('ajCierreEmail'); if(el) AJUSTES.cierre.email = el.value;
+  el = document.getElementById('ajNombre'); if(el) AJUSTES.nombre = el.value;
+  el = document.getElementById('ajCierreActivo'); if(el) AJUSTES.cierre.activo = el.checked;
   localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
-  // Apply nombre
-  if (AJUSTES.nombre) document.getElementById('gName').textContent = AJUSTES.nombre;
-  applyThemeColor(AJUSTES.color);
+  if (AJUSTES.nombre) { el = document.getElementById('gName'); if(el) el.textContent = AJUSTES.nombre; }
   applyWidgets();
   toast('Ajustes guardados', 'ok');
 }
 
 function applyWidgets() {
   try {
-    var metricTabs = document.getElementById('metricTabs');
-    var metricsGrid = document.getElementById('metricsGrid');
-    if (metricTabs) metricTabs.style.display = AJUSTES.widgets.metricas !== false ? 'flex' : 'none';
-    if (metricsGrid) metricsGrid.style.display = AJUSTES.widgets.metricas !== false ? 'grid' : 'none';
-    var qbtns = document.querySelector('#pDash .quick-btns');
-    if (qbtns) qbtns.style.display = AJUSTES.widgets.accesosRapidos !== false ? 'grid' : 'none';
-    var urgCard = document.getElementById('urgCard');
-    if (urgCard) urgCard.style.display = AJUSTES.widgets.urgentes !== false ? '' : 'none';
-    var dashReps = document.querySelector('#pDash .card');
-    var cierreDiv = document.getElementById('cierreRes');
-    if (cierreDiv) {
-      var cierreCard = cierreDiv.closest('.card');
-      if (cierreCard) cierreCard.style.display = AJUSTES.widgets.cierre !== false ? 'block' : 'none';
-    }
-  } catch(e) { console.log('applyWidgets error:', e); }
+    var show, el;
+    show = AJUSTES.widgets.metricas !== false;
+    el = document.getElementById('metricTabs'); if(el) el.style.display = show ? 'flex' : 'none';
+    el = document.getElementById('metricsGrid'); if(el) el.style.display = show ? 'grid' : 'none';
+    show = AJUSTES.widgets.accesosRapidos !== false;
+    el = document.querySelector('#pDash .quick-btns'); if(el) el.style.display = show ? 'grid' : 'none';
+    show = AJUSTES.widgets.urgentes !== false;
+    el = document.getElementById('urgCard'); if(el && !show) el.style.display = 'none';
+    show = AJUSTES.widgets.cierre !== false;
+    el = document.getElementById('cierreRes'); 
+    if(el) { var card = el.parentElement; if(card) card.style.display = show ? 'block' : 'none'; }
+  } catch(e) {}
 }
-
 // ═══ UTILS ═══
 function bc(e){return{Pendiente:'bo','En Proceso':'bb','Por Entregar':'bp',Entregado:'bg',Garantia:'',Rechazado:'br'}[e]||'';}
 </script>
