@@ -176,6 +176,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
     <button class="qbtn" style="background:#7C3AED" onclick="navTo('pReportes')">📊 Reportes</button>
     <button class="qbtn" style="background:#F59E0B" onclick="navTo('pTienda')">🏪 Mi Tienda</button>
     <button class="qbtn" style="background:#0055FF" onclick="navTo('pAyuda')">❓ Ayuda</button>
+    <button class="qbtn" style="background:#475569" onclick="navTo('pAjustes')">⚙️ Ajustes</button>
     <button class="qbtn" style="background:#020B2E" onclick="backup()">💾 Backup</button>
   </div>
 </div>
@@ -237,6 +238,77 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
     <div class="card-title">🏆 Ranking clientes</div>
     <div id="ranking"></div>
   </div>
+</div>
+
+<!-- AJUSTES -->
+<div class="page" id="pAjustes">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
+    <div style="font-size:15px;font-weight:700">⚙️ Ajustes</div>
+    <button class="btn-sm" style="background:#0055FF;color:white;margin-left:auto" onclick="saveAjustes()">Guardar</button>
+  </div>
+
+  <!-- WIDGETS -->
+  <div class="card">
+    <div class="card-title">📊 Widgets del Dashboard</div>
+    <div style="font-size:11px;color:#64748B;margin-bottom:10px">Activa o desactiva los elementos que aparecen en el inicio</div>
+    <div id="widgetsList"></div>
+  </div>
+
+  <!-- CIERRE AUTOMÁTICO -->
+  <div class="card">
+    <div class="card-title">⏰ Cierre automático</div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+      <div>
+        <div style="font-size:13px;font-weight:600">Activar cierre automático</div>
+        <div style="font-size:11px;color:#64748B">Genera el cierre del día a la hora indicada</div>
+      </div>
+      <label style="position:relative;display:inline-block;width:44px;height:24px">
+        <input type="checkbox" id="ajCierreActivo" style="opacity:0;width:0;height:0">
+        <span onclick="toggleSwitch('ajCierreActivo')" id="ajCierreActivoSlider" style="position:absolute;cursor:pointer;inset:0;background:#E2E8F0;border-radius:24px;transition:.3s"></span>
+      </label>
+    </div>
+    <div class="fg"><label class="fl">Hora de cierre</label>
+      <input class="fi" type="time" id="ajCierreHora" value="21:30"/>
+    </div>
+    <div class="fg"><label class="fl">Email para recibir reporte</label>
+      <input class="fi" type="email" id="ajCierreEmail" placeholder="tu@email.com"/>
+    </div>
+  </div>
+
+  <!-- PREFERENCIAS -->
+  <div class="card">
+    <div class="card-title">🎨 Preferencias</div>
+    <div class="fg"><label class="fl">Nombre en el saludo</label>
+      <input class="fi" id="ajNombre" placeholder="Tu nombre"/>
+    </div>
+    <div class="fg"><label class="fl">Moneda</label>
+      <select class="fi" id="ajMoneda">
+        <option value="€">€ Euro</option>
+        <option value="$">$ Dólar</option>
+        <option value="£">£ Libra</option>
+        <option value="₹">₹ Rupia</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Color del tema</label>
+      <div style="display:flex;gap:9px;flex-wrap:wrap" id="colorPicker">
+        <div class="color-opt active" data-c="#0055FF" onclick="selColor(this)" style="width:32px;height:32px;border-radius:50%;background:#0055FF;cursor:pointer;border:3px solid white;box-shadow:0 0 0 2px #0055FF"></div>
+        <div class="color-opt" data-c="#00C896" onclick="selColor(this)" style="width:32px;height:32px;border-radius:50%;background:#00C896;cursor:pointer;border:3px solid white;box-shadow:0 0 0 2px #E2E8F0"></div>
+        <div class="color-opt" data-c="#7C3AED" onclick="selColor(this)" style="width:32px;height:32px;border-radius:50%;background:#7C3AED;cursor:pointer;border:3px solid white;box-shadow:0 0 0 2px #E2E8F0"></div>
+        <div class="color-opt" data-c="#EF4444" onclick="selColor(this)" style="width:32px;height:32px;border-radius:50%;background:#EF4444;cursor:pointer;border:3px solid white;box-shadow:0 0 0 2px #E2E8F0"></div>
+        <div class="color-opt" data-c="#F97316" onclick="selColor(this)" style="width:32px;height:32px;border-radius:50%;background:#F97316;cursor:pointer;border:3px solid white;box-shadow:0 0 0 2px #E2E8F0"></div>
+        <div class="color-opt" data-c="#020B2E" onclick="selColor(this)" style="width:32px;height:32px;border-radius:50%;background:#020B2E;cursor:pointer;border:3px solid white;box-shadow:0 0 0 2px #E2E8F0"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- NOTIFICACIONES -->
+  <div class="card">
+    <div class="card-title">🔔 Notificaciones</div>
+    <div id="notifsList"></div>
+  </div>
+
+  <button class="btn-save" onclick="saveAjustes()">Guardar ajustes</button>
 </div>
 
 <!-- AYUDA -->
@@ -568,6 +640,8 @@ else{
   document.getElementById('gName').textContent=U.nombre;
   document.getElementById('dStr').textContent=new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'});
   cargarDatos();
+  cargarAjustes();
+  applyWidgets();
   renderDash();
   checkUrgentes();
   setInterval(function(){guardarDatos();},2*60*60*1000);
@@ -603,6 +677,7 @@ function navTo(id){
   if(id==='pGastos'){renderGastos();renderGastosStats();}
   if(id==='pReportes'){renderRepPreview();renderRanking();}
   if(id==='pTienda')cargarTienda();
+  if(id==='pAjustes'){cargarAjustes();}
 }
 function setNavActive(el){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
@@ -1428,6 +1503,150 @@ function backup(){
   a.download='tekpair_backup_'+new Date().toISOString().slice(0,10)+'.json';
   a.click();
   toast('Backup descargado','ok');
+}
+
+
+// ═══ AJUSTES ═══
+var AJUSTES = {
+  widgets: {
+    metricas: true,
+    accesosRapidos: true,
+    urgentes: true,
+    ultimasReps: true,
+    cierre: true
+  },
+  cierre: {
+    activo: false,
+    hora: '21:30',
+    email: ''
+  },
+  nombre: '',
+  moneda: '€',
+  color: '#0055FF',
+  notifs: {
+    stockBajo: true,
+    entregaProxima: true,
+    cierreAuto: true
+  }
+};
+
+var WIDGETS_CONFIG = [
+  {id:'metricas', label:'Métricas (ventas e ingresos)', icon:'📊'},
+  {id:'accesosRapidos', label:'Botones de acceso rápido', icon:'⚡'},
+  {id:'urgentes', label:'Órdenes urgentes', icon:'⚠️'},
+  {id:'ultimasReps', label:'Últimas reparaciones', icon:'🔧'},
+  {id:'cierre', label:'Cierre del día', icon:'💰'}
+];
+
+var NOTIFS_CONFIG = [
+  {id:'stockBajo', label:'Alerta de stock bajo', icon:'📦'},
+  {id:'entregaProxima', label:'Entrega en menos de 2 días', icon:'⏰'},
+  {id:'cierreAuto', label:'Aviso de cierre automático', icon:'🔔'}
+];
+
+function cargarAjustes() {
+  var a = localStorage.getItem('tk_ajustes');
+  if (a) { try { AJUSTES = JSON.parse(a); } catch(e) {} }
+  // Load into form
+  if (document.getElementById('ajCierreHora')) {
+    document.getElementById('ajCierreHora').value = AJUSTES.cierre.hora || '21:30';
+    document.getElementById('ajCierreEmail').value = AJUSTES.cierre.email || '';
+    document.getElementById('ajNombre').value = AJUSTES.nombre || (U ? U.nombre : '');
+    document.getElementById('ajMoneda').value = AJUSTES.moneda || '€';
+    var slider = document.getElementById('ajCierreActivoSlider');
+    if (slider) slider.style.background = AJUSTES.cierre.activo ? AJUSTES.color || '#0055FF' : '#E2E8F0';
+    document.getElementById('ajCierreActivo').checked = AJUSTES.cierre.activo;
+    renderWidgetsList();
+    renderNotifsList();
+    applyThemeColor(AJUSTES.color || '#0055FF');
+  }
+}
+
+function renderWidgetsList() {
+  var el = document.getElementById('widgetsList');
+  if (!el) return;
+  el.innerHTML = WIDGETS_CONFIG.map(function(w) {
+    var activo = AJUSTES.widgets[w.id] !== false;
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #F1F5F9">' +
+      '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">' + w.icon + '</span>' +
+      '<span style="font-size:13px;font-weight:500">' + w.label + '</span></div>' +
+      '<div onclick="toggleWidget('' + w.id + '')" id="sw_' + w.id + '" style="width:44px;height:24px;border-radius:24px;cursor:pointer;transition:.3s;background:' + (activo ? (AJUSTES.color||'#0055FF') : '#E2E8F0') + ';position:relative">' +
+      '<div style="position:absolute;top:3px;left:' + (activo ? '22px' : '3px') + ';width:18px;height:18px;border-radius:50%;background:white;transition:.3s"></div>' +
+      '</div></div>';
+  }).join('');
+}
+
+function renderNotifsList() {
+  var el = document.getElementById('notifsList');
+  if (!el) return;
+  el.innerHTML = NOTIFS_CONFIG.map(function(n) {
+    var activo = AJUSTES.notifs[n.id] !== false;
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 0;border-bottom:1px solid #F1F5F9">' +
+      '<div style="display:flex;align-items:center;gap:10px"><span style="font-size:18px">' + n.icon + '</span>' +
+      '<span style="font-size:13px;font-weight:500">' + n.label + '</span></div>' +
+      '<div onclick="toggleNotif('' + n.id + '')" id="swn_' + n.id + '" style="width:44px;height:24px;border-radius:24px;cursor:pointer;transition:.3s;background:' + (activo ? (AJUSTES.color||'#0055FF') : '#E2E8F0') + ';position:relative">' +
+      '<div style="position:absolute;top:3px;left:' + (activo ? '22px' : '3px') + ';width:18px;height:18px;border-radius:50%;background:white;transition:.3s"></div>' +
+      '</div></div>';
+  }).join('');
+}
+
+function toggleWidget(id) {
+  AJUSTES.widgets[id] = AJUSTES.widgets[id] === false ? true : false;
+  renderWidgetsList();
+}
+function toggleNotif(id) {
+  AJUSTES.notifs[id] = AJUSTES.notifs[id] === false ? true : false;
+  renderNotifsList();
+}
+function toggleSwitch(checkId) {
+  var cb = document.getElementById(checkId);
+  cb.checked = !cb.checked;
+  var slider = document.getElementById(checkId + 'Slider');
+  if (slider) slider.style.background = cb.checked ? (AJUSTES.color||'#0055FF') : '#E2E8F0';
+}
+function selColor(el) {
+  document.querySelectorAll('.color-opt').forEach(function(c) {
+    c.style.boxShadow = '0 0 0 2px #E2E8F0';
+  });
+  el.style.boxShadow = '0 0 0 2px ' + el.dataset.c;
+  AJUSTES.color = el.dataset.c;
+  applyThemeColor(AJUSTES.color);
+}
+function applyThemeColor(color) {
+  document.documentElement.style.setProperty('--blue', color);
+  // Update active nav color
+  document.querySelectorAll('.ni.active').forEach(function(n) { n.style.color = color; });
+}
+function saveAjustes() {
+  AJUSTES.cierre.activo = document.getElementById('ajCierreActivo').checked;
+  AJUSTES.cierre.hora = document.getElementById('ajCierreHora').value;
+  AJUSTES.cierre.email = document.getElementById('ajCierreEmail').value;
+  AJUSTES.nombre = document.getElementById('ajNombre').value;
+  AJUSTES.moneda = document.getElementById('ajMoneda').value;
+  localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
+  // Apply nombre
+  if (AJUSTES.nombre) document.getElementById('gName').textContent = AJUSTES.nombre;
+  applyThemeColor(AJUSTES.color);
+  applyWidgets();
+  toast('Ajustes guardados', 'ok');
+}
+
+function applyWidgets() {
+  // Metricas
+  var metricTabs = document.getElementById('metricTabs');
+  var metricsGrid = document.getElementById('metricsGrid');
+  if (metricTabs) metricTabs.style.display = AJUSTES.widgets.metricas !== false ? 'flex' : 'none';
+  if (metricsGrid) metricsGrid.style.display = AJUSTES.widgets.metricas !== false ? 'grid' : 'none';
+  // Accesos rapidos
+  var qbtns = document.querySelector('#pDash .quick-btns');
+  if (qbtns) qbtns.style.display = AJUSTES.widgets.accesosRapidos !== false ? 'grid' : 'none';
+  // Urgentes
+  var urgCard = document.getElementById('urgCard');
+  if (urgCard && AJUSTES.widgets.urgentes === false) urgCard.style.display = 'none';
+  // Ultimas reps
+  var dashRepsCard = document.querySelector('#pDash .card:nth-child(5)');
+  // Cierre
+  var cierreCard = document.querySelector('#pDash .card:last-child');
 }
 
 // ═══ UTILS ═══
