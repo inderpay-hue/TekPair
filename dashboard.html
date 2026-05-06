@@ -1628,6 +1628,7 @@ function renderClis(){
 }
 
 var EDIT_CLI_ID = null;
+var ECID=null;
 function editarCliente(id) {
   var c = DB.clis.find(function(x){ return x.id === id; });
   if (!c) return;
@@ -2140,7 +2141,6 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 
-var ECID=null;
 function editCli(id){
   var x=DB.clis.find(function(c){return c.id===id;});
   if(!x)return;
