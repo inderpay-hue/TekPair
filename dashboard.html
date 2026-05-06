@@ -1929,6 +1929,26 @@ function applyWidgets() {
   } catch(e) {}
 }
 
+
+var ECID=null;
+function editCli(id){
+  var x=DB.clis.find(function(o){return o.id===id;});
+  if(!x)return;
+  ECID=id;
+  document.getElementById('cNom').value=x.nombre||'';
+  document.getElementById('cApe').value=x.apellidos||'';
+  document.getElementById('cTel').value=x.tel||'';
+  document.getElementById('cEmail').value=x.email||'';
+  document.getElementById('cDni').value=x.dni||'';
+  openM('mCli');
+}
+function delCli(id){
+  DB.clis=DB.clis.filter(function(o){return o.id!==id;});
+  guardarDatos();
+  toast('Cliente eliminado','ok');
+  renderClis();
+  if(SB_KEY&&TIENDA_ID)sbDelete('clientes','id=eq.'+id);
+}
 // ═══ UTILS ═══
 function bc(e){return{Pendiente:'bo','En Proceso':'bb','Por Entregar':'bp',Entregado:'bg',Garantia:'',Rechazado:'br'}[e]||'';}
 </script>
