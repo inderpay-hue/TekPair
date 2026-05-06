@@ -1567,9 +1567,7 @@ function enviarReporteEmail(){
   var tR=reps.reduce(function(a,r){return a+r.total;},0);
   var pagos=calcPagos(ventas,reps);
   var subject='Reporte '+SEL.repTab+' - '+TIENDA.nombre+' - '+new Date().toLocaleDateString('es');
-  var body='Reporte '+SEL.repTab.toUpperCase()+'
-
-';
+  var body='Reporte '+SEL.repTab.toUpperCase()+'\n\n';
   body+='Ventas: '+ventas.length+' ('+tV.toFixed(2)+'\n';
   body+='Reparaciones: '+reps.length+' ('+tR.toFixed(2)+'\n';
   body+='Total: '+(tV+tR).toFixed(2)+'
