@@ -1159,37 +1159,22 @@ function renderStock(){
 function editStock(id) {
   var s = DB.stock.find(function(x){ return x.id === id; });
   if (!s) return;
-  
-  // Create edit modal content
-  var html = '<div style="padding:18px">' +
-    '<div style="font-size:16px;font-weight:700;margin-bottom:14px">✏️ Editar Stock</div>' +
-    '<div class="fg"><label class="fl">Marca</label><input class="fi" id="esMarca" value="'+( s.marca||'')+'" /></div>' +
-    '<div class="fg"><label class="fl">Modelo</label><input class="fi" id="esModelo" value="'+(s.modelo||'')+'" /></div>' +
-    '<div class="g2">' +
-    '<div class="fg"><label class="fl">Capacidad</label><input class="fi" id="esCap" value="'+(s.capacidad||'')+'" /></div>' +
-    '<div class="fg"><label class="fl">Color</label><input class="fi" id="esColor" value="'+(s.color||'')+'" /></div>' +
-    '</div>' +
-    '<div class="fg"><label class="fl">IMEI</label><input class="fi" id="esImei" value="'+(s.imei||'')+'" placeholder="14-15 dígitos" maxlength="15"/></div>' +
-    '<div class="g2">' +
-    '<div class="fg"><label class="fl">Unidades</label><input class="fi" type="number" id="esUnidades" value="'+(s.unidades||1)+'" /></div>' +
-    '<div class="fg"><label class="fl">P. Venta (€)</label><input class="fi" type="number" id="esPrecioV" value="'+(s.precioV||0)+'" /></div>' +
-    '</div>' +
-    '<div class="fg"><label class="fl">P. Compra (€)</label><input class="fi" type="number" id="esPrecioC" value="'+(s.precioC||0)+'" /></div>' +
-    '<div class="g2">' +
-    '<div class="fg"><label class="fl">Stock mínimo</label><input class="fi" type="number" id="esMin" value="'+(s.stockMin||2)+'" /></div>' +
-    '<div class="fg"><label class="fl">Stock máximo</label><input class="fi" type="number" id="esMax" value="'+(s.stockMax||10)+'" /></div>' +
-    '</div>' +
-    '<button onclick="saveEditStock(''+id+'')" style="background:#0055FF;color:white;border:none;padding:12px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:5px;font-family:Arial">Guardar cambios</button>' +
-    '<button onclick="deleteStock(''+id+'')" style="background:rgba(239,68,68,.1);color:#EF4444;border:none;padding:11px;border-radius:9px;font-size:13px;cursor:pointer;width:100%;margin-top:7px;font-family:Arial">🗑️ Eliminar artículo</button>' +
-    '<button onclick="closeM('mEditStock')" style="background:#F1F5F9;color:#64748B;border:none;padding:11px;border-radius:9px;font-size:13px;cursor:pointer;width:100%;margin-top:6px;font-family:Arial">Cancelar</button>' +
-    '</div>';
-  
-  document.getElementById('mEditStockContent').innerHTML = html;
+  EDIT_STOCK_ID = id;
+  document.getElementById('esMarca').value = s.marca || '';
+  document.getElementById('esModelo').value = s.modelo || '';
+  document.getElementById('esCap').value = s.capacidad || '';
+  document.getElementById('esColor').value = s.color || '';
+  document.getElementById('esImei').value = s.imei || '';
+  document.getElementById('esUnidades').value = s.unidades || 1;
+  document.getElementById('esPrecioV').value = s.precioV || 0;
+  document.getElementById('esPrecioC').value = s.precioC || 0;
+  document.getElementById('esMin').value = s.stockMin || 2;
+  document.getElementById('esMax').value = s.stockMax || 10;
   document.getElementById('mEditStock').classList.add('open');
 }
 
-function saveEditStock(id) {
-  var s = DB.stock.find(function(x){ return x.id === id; });
+function saveEditStock() {
+  var s = DB.stock.find(function(x){ return x.id === EDIT_STOCK_ID; });
   if (!s) return;
   s.marca = document.getElementById('esMarca').value;
   s.modelo = document.getElementById('esModelo').value;
@@ -1204,17 +1189,17 @@ function saveEditStock(id) {
   s.stockMax = parseInt(document.getElementById('esMax').value)||10;
   saveData();
   closeM('mEditStock');
-  toast('✓ Stock actualizado', 'ok');
+  toast('Stock actualizado', 'ok');
   renderStock();
   renderStockAlertas();
 }
 
-function deleteStock(id) {
-  if (!confirm('¿Eliminar este artículo del stock?')) return;
-  DB.stock = DB.stock.filter(function(x){ return x.id !== id; });
+function deleteStock() {
+  if (!confirm('Eliminar este articulo?')) return;
+  DB.stock = DB.stock.filter(function(x){ return x.id !== EDIT_STOCK_ID; });
   saveData();
   closeM('mEditStock');
-  toast('Artículo eliminado', 'ok');
+  toast('Articulo eliminado', 'ok');
   renderStock();
 }
 function renderStockAlertas(){
@@ -1333,7 +1318,28 @@ function generarReportePDF(){
     '<div class="footer">Generado por Tekpair · tekpair.tech</div>'+
     '
 <!-- MODAL EDITAR STOCK -->
-<div class="modal-bg" id="mEditStock"><div class="modal" id="mEditStockContent"></div></div>
+<div class="modal-bg" id="mEditStock"><div class="modal">
+  <div class="modal-title">✏️ Editar Stock</div>
+  <div class="fg"><label class="fl">Marca</label><input class="fi" id="esMarca"/></div>
+  <div class="fg"><label class="fl">Modelo / Nombre</label><input class="fi" id="esModelo"/></div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Capacidad</label><input class="fi" id="esCap" placeholder="128GB"/></div>
+    <div class="fg"><label class="fl">Color</label><input class="fi" id="esColor" placeholder="Negro"/></div>
+  </div>
+  <div class="fg"><label class="fl">IMEI</label><input class="fi" id="esImei" placeholder="14-15 dígitos" maxlength="15"/></div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Unidades</label><input class="fi" type="number" id="esUnidades" value="1"/></div>
+    <div class="fg"><label class="fl">P. Venta (€)</label><input class="fi" type="number" id="esPrecioV" value="0"/></div>
+  </div>
+  <div class="fg"><label class="fl">P. Compra (€)</label><input class="fi" type="number" id="esPrecioC" value="0"/></div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Stock mínimo ⚠️</label><input class="fi" type="number" id="esMin" value="2"/></div>
+    <div class="fg"><label class="fl">Stock máximo</label><input class="fi" type="number" id="esMax" value="10"/></div>
+  </div>
+  <button class="btn-save" onclick="saveEditStock()">Guardar cambios</button>
+  <button onclick="deleteStock()" class="btn-cancel" style="background:rgba(239,68,68,.1);color:#EF4444;margin-top:6px">🗑️ Eliminar artículo</button>
+  <button class="btn-cancel" onclick="closeM('mEditStock')">Cancelar</button>
+</div></div>
 
 </body></html>';
   var win=window.open('','_blank');win.document.write(html);win.document.close();
@@ -1454,7 +1460,28 @@ function reponerStock() {
 </script>
 
 <!-- MODAL EDITAR STOCK -->
-<div class="modal-bg" id="mEditStock"><div class="modal" id="mEditStockContent"></div></div>
+<div class="modal-bg" id="mEditStock"><div class="modal">
+  <div class="modal-title">✏️ Editar Stock</div>
+  <div class="fg"><label class="fl">Marca</label><input class="fi" id="esMarca"/></div>
+  <div class="fg"><label class="fl">Modelo / Nombre</label><input class="fi" id="esModelo"/></div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Capacidad</label><input class="fi" id="esCap" placeholder="128GB"/></div>
+    <div class="fg"><label class="fl">Color</label><input class="fi" id="esColor" placeholder="Negro"/></div>
+  </div>
+  <div class="fg"><label class="fl">IMEI</label><input class="fi" id="esImei" placeholder="14-15 dígitos" maxlength="15"/></div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Unidades</label><input class="fi" type="number" id="esUnidades" value="1"/></div>
+    <div class="fg"><label class="fl">P. Venta (€)</label><input class="fi" type="number" id="esPrecioV" value="0"/></div>
+  </div>
+  <div class="fg"><label class="fl">P. Compra (€)</label><input class="fi" type="number" id="esPrecioC" value="0"/></div>
+  <div class="g2">
+    <div class="fg"><label class="fl">Stock mínimo ⚠️</label><input class="fi" type="number" id="esMin" value="2"/></div>
+    <div class="fg"><label class="fl">Stock máximo</label><input class="fi" type="number" id="esMax" value="10"/></div>
+  </div>
+  <button class="btn-save" onclick="saveEditStock()">Guardar cambios</button>
+  <button onclick="deleteStock()" class="btn-cancel" style="background:rgba(239,68,68,.1);color:#EF4444;margin-top:6px">🗑️ Eliminar artículo</button>
+  <button class="btn-cancel" onclick="closeM('mEditStock')">Cancelar</button>
+</div></div>
 
 </body>
 </html>
