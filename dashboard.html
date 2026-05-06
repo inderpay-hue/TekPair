@@ -613,7 +613,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
 
 <!-- NUEVO CLIENTE -->
 <div class="modal-bg" id="mCli"><div class="modal">
-  <div class="modal-title">👤 Nuevo Cliente</div>
+  <div class="modal-title" id="mCliTitle">👤 Nuevo Cliente</div>
   <div class="g2">
     <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="cNom"/></div>
     <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="cApe"/></div>
@@ -621,7 +621,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
   <div class="fg"><label class="fl">Teléfono *</label><input class="fi" id="cTel" type="tel"/></div>
   <div class="fg"><label class="fl">Email</label><input class="fi" id="cEmail" type="email"/></div>
   <div class="fg"><label class="fl">DNI / NIF</label><input class="fi" id="cDni"/></div>
-  <button class="btn-save" onclick="saveCli()">Guardar</button>
+  <button class="btn-save" id="btnGuardarCli" onclick="saveCli()">Guardar</button>
   <button class="btn-cancel" onclick="closeM('mCli')">Cancelar</button>
 </div></div>
 
@@ -1337,11 +1337,22 @@ function saveCli(){
   var nom=document.getElementById('cNom').value.trim();
   var tel=document.getElementById('cTel').value.trim();
   if(!nom||!tel){toast('Nombre y teléfono obligatorios','err');return;}
-  DB.clis.push({id:'c'+Date.now(),nombre:nom,apellidos:document.getElementById('cApe').value,tel:tel,email:document.getElementById('cEmail').value,dni:document.getElementById('cDni').value});
+  if(EDIT_CLI_ID){
+    var c=DB.clis.find(function(x){return x.id===EDIT_CLI_ID;});
+    if(c){
+      c.nombre=nom;c.apellidos=document.getElementById('cApe').value;
+      c.tel=tel;c.email=document.getElementById('cEmail').value;c.dni=document.getElementById('cDni').value;
+      guardarDatos();closeM('mCli');toast('Cliente actualizado','ok');renderClis();
+      if(SB_KEY&&TIENDA_ID) sbPatch('clientes','id=eq.'+EDIT_CLI_ID,{nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:c.email,dni:c.dni});
+      EDIT_CLI_ID=null;return;
+    }
+  }
+  var nuevo={id:'c'+Date.now(),nombre:nom,apellidos:document.getElementById('cApe').value,tel:tel,email:document.getElementById('cEmail').value,dni:document.getElementById('cDni').value};
+  DB.clis.push(nuevo);
   document.getElementById('cNom').value='';document.getElementById('cApe').value='';
   document.getElementById('cTel').value='';document.getElementById('cEmail').value='';document.getElementById('cDni').value='';
   guardarDatos();closeM('mCli');toast('Cliente añadido','ok');
-  syncCli(DB.clis[DB.clis.length-1]);
+  syncCli(nuevo);
 }
 function saveProv(){
   var nom=document.getElementById('pNom').value.trim();
@@ -1601,14 +1612,43 @@ function renderClis(){
   var list=DB.clis.filter(function(c){return !q||(c.nombre+' '+c.apellidos+' '+(c.tel||'')).toLowerCase().includes(q);});
   var el=document.getElementById('listaClis');
   if(!list.length){el.innerHTML='<div class="empty">Sin clientes</div>';return;}
-  el.innerHTML='<table class="tbl"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Visitas</th></tr></thead><tbody>'+
+  el.innerHTML='<table class="tbl"><thead><tr><th>Nombre</th><th>Teléfono</th><th>Visitas</th><th></th></tr></thead><tbody>'+
     list.map(function(c){
       var vc=DB.ventas.filter(function(v){return v.clienteId===c.id;}).length;
       var rc=DB.reps.filter(function(r){return r.clienteId===c.id;}).length;
       return '<tr><td><strong>'+c.nombre+' '+c.apellidos+'</strong>'+((vc+rc)>=3?'<br><span class="badge by">⭐ Frecuente</span>':'')+'</td>'+
         '<td>'+(c.tel||'—')+'</td>'+
-        '<td><span class="badge bb">'+vc+'v</span> <span class="badge bp">'+rc+'r</span></td></tr>';
+        '<td><span class="badge bb">'+vc+'v</span> <span class="badge bp">'+rc+'r</span></td>'+
+        '<td style="display:flex;gap:4px">'+
+        '<button onclick="editarCliente(''+c.id+'')" style="background:#EBF1FF;border:none;color:#0055FF;padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">✏️</button>'+
+        '<button onclick="eliminarCliente(''+c.id+'')" style="background:rgba(239,68,68,.1);border:none;color:#EF4444;padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">🗑️</button>'+
+        '</td></tr>';
     }).join('')+'</tbody></table>';
+}
+
+var EDIT_CLI_ID = null;
+function editarCliente(id) {
+  var c = DB.clis.find(function(x){ return x.id === id; });
+  if (!c) return;
+  EDIT_CLI_ID = id;
+  document.getElementById('cNom').value = c.nombre || '';
+  document.getElementById('cApe').value = c.apellidos || '';
+  document.getElementById('cTel').value = c.tel || '';
+  document.getElementById('cEmail').value = c.email || '';
+  document.getElementById('cDni').value = c.dni || '';
+  document.getElementById('mCliTitle').textContent = '✏️ Editar Cliente';
+  document.getElementById('btnGuardarCli').textContent = 'Guardar cambios';
+  openM('mCli');
+}
+
+function eliminarCliente(id) {
+  var c = DB.clis.find(function(x){ return x.id === id; });
+  if (!c) return;
+  DB.clis = DB.clis.filter(function(x){ return x.id !== id; });
+  guardarDatos();
+  toast('Cliente eliminado', 'ok');
+  renderClis();
+  if (SB_KEY && TIENDA_ID) sbDelete('clientes', 'id=eq.' + id);
 }
 
 // ═══ RENDER PROVEEDORES ═══
