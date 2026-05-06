@@ -1496,7 +1496,7 @@ function renderPagosDesglose(pagos, contenedorId) {
 function cierreDia(){
   var hoy=new Date().toLocaleDateString('es');
   var vH=DB.ventas.filter(function(v){return v.fecha===hoy;});
-  var rH=DB.reps.filter(function(r){return r.fechaEntregaReal===hoy;});
+  var rH=DB.reps.filter(function(r){return r.fechaEntregaReal===hoy||r.fecha===hoy;});
   var tV=vH.reduce(function(a,v){return a+v.total;},0);
   var tR=rH.reduce(function(a,r){return a+r.total;},0);
   var pagos=calcPagos(vH,rH);
@@ -1519,7 +1519,8 @@ function cierreDia(){
   var btnEmail=document.createElement('button');
   btnEmail.textContent='📧 Enviar reporte por email';
   btnEmail.style='margin-top:7px;background:#00C896;color:white;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%';
-  btnEmail.onclick=function(){enviarCierreEmail(vH,rH,tV,tR,pagos,hoy);};
+  var _vH=vH.slice(); var _rH=rH.slice(); var _tV=tV; var _tR=tR; var _pagos=pagos; var _hoy=hoy;
+  btnEmail.onclick=function(){enviarCierreEmail(_vH,_rH,_tV,_tR,_pagos,_hoy);};
   el.appendChild(btnEmail);
   toast('Cierre generado','ok');
 }
