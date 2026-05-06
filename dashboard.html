@@ -182,19 +182,8 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
     <button class="qbtn" style="background:#F59E0B" onclick="navTo('pTienda')">🏪 Mi Tienda</button>
     <button class="qbtn" style="background:#0055FF" onclick="navTo('pAyuda')">❓ Ayuda</button>
     <button class="qbtn" style="background:#475569" onclick="navTo('pAjustes')">⚙️ Ajustes</button>
-    <button class="qbtn" style="background:#0F172A" onclick="navTo('pUsuarios')" id="btnUsuarios" style="display:none">👥 Usuarios</button>
     <button class="qbtn" style="background:#020B2E" onclick="backup()">💾 Backup</button>
   </div>
-</div>
-
-<!-- USUARIOS (solo admin) -->
-<div class="page" id="pUsuarios">
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-    <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
-    <div style="font-size:15px;font-weight:700">👥 Usuarios</div>
-    <button class="btn-sm" style="background:#0F172A;color:white;margin-left:auto" onclick="openM('mNuevoUsuario')">+ Nuevo</button>
-  </div>
-  <div class="card" style="padding:0;overflow:hidden"><div id="listaUsuarios"><div class="empty">Cargando...</div></div></div>
 </div>
 
 <!-- CLIENTES -->
@@ -643,34 +632,6 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
   <button class="btn-cancel" onclick="closeM('mEntregar')">Cancelar</button>
 </div></div>
 
-<!-- NUEVO USUARIO -->
-<div class="modal-bg" id="mNuevoUsuario"><div class="modal">
-  <div class="modal-title">👤 Nuevo Usuario</div>
-  <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="nuNom"/></div>
-  <div class="fg"><label class="fl">Email *</label><input class="fi" id="nuEmail" type="email"/></div>
-  <div class="fg"><label class="fl">Contraseña *</label><input class="fi" id="nuPass" type="password"/></div>
-  <div class="fg"><label class="fl">Rol</label>
-    <select class="fi" id="nuRol">
-      <option value="empleado">Empleado</option>
-      <option value="admin">Admin</option>
-    </select>
-  </div>
-  <div class="card" style="margin-top:10px;margin-bottom:0">
-    <div class="card-title" style="margin-bottom:10px">Permisos</div>
-    <div id="permisosGrid"></div>
-  </div>
-  <button class="btn-save" style="background:#0F172A;margin-top:14px" onclick="saveNuevoUsuario()">Crear usuario</button>
-  <button class="btn-cancel" onclick="closeM('mNuevoUsuario')">Cancelar</button>
-</div></div>
-
-<!-- EDITAR PERMISOS -->
-<div class="modal-bg" id="mEditPermisos"><div class="modal">
-  <div class="modal-title">🔐 Permisos de <span id="editPermNombre">---</span></div>
-  <div id="editPermGrid"></div>
-  <button class="btn-save" style="background:#0F172A;margin-top:14px" onclick="savePermisos()">Guardar permisos</button>
-  <button class="btn-cancel" onclick="closeM('mEditPermisos')">Cancelar</button>
-</div></div>
-
 <!-- PROVEEDOR -->
 <div class="modal-bg" id="mProv"><div class="modal">
   <div class="modal-title">🏭 Nuevo Proveedor</div>
@@ -717,18 +678,27 @@ else{
   document.getElementById('gName').textContent=U.nombre;
   document.getElementById('dStr').textContent=new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'});
   // Set Supabase credentials from session
-  var sess=JSON.parse(localStorage.getItem('tk_sess')||'{}');
-  SB_KEY=sess.sb_key||'';
-  TIENDA_ID=sess.tienda_id||(U&&U.tienda_id)||'';
+  try {
+    var sess=JSON.parse(localStorage.getItem('tk_sess')||'{}');
+    SB_KEY=sess.sb_key||'';
+    TIENDA_ID=sess.tienda_id||'';
+    if(!TIENDA_ID&&U&&U.tienda_id) TIENDA_ID=U.tienda_id;
+    console.log('Supabase loaded - KEY:', SB_KEY?'OK':'EMPTY', 'TIENDA:', TIENDA_ID);
+  } catch(e) { console.error('Session error:', e); }
   
   cargarDatos();
   renderDash();
   checkUrgentes();
   
   // Load from Supabase if credentials available
-  if(SB_KEY&&TIENDA_ID){
-    cargarDatosSupabase().then(function(){renderDash();checkUrgentes();});
-  }
+  setTimeout(function(){
+    if(SB_KEY&&TIENDA_ID){
+      console.log('Loading from Supabase...');
+      cargarDatosSupabase().then(function(){renderDash();checkUrgentes();});
+    } else {
+      console.log('No Supabase credentials - using local data');
+    }
+  }, 200);
   setInterval(function(){guardarDatos();},2*60*60*1000);
   setInterval(checkCierreAuto,60000);
 }
@@ -738,6 +708,13 @@ function logout(){localStorage.removeItem('tk_user');window.location.href='app.h
 var SB_URL='https://zcxgyissdqyqsnojxviy.supabase.co';
 var SB_KEY='';
 var TIENDA_ID='';
+// Load credentials immediately from session
+try {
+  var _sess=JSON.parse(localStorage.getItem('tk_sess')||'{}');
+  if(_sess.sb_key) SB_KEY=_sess.sb_key;
+  if(_sess.tienda_id) TIENDA_ID=_sess.tienda_id;
+} catch(e){}
+console.log('SB_URL set:', SB_URL, 'KEY:', SB_KEY?'OK':'EMPTY', 'TIENDA:', TIENDA_ID);
 
 function sbHeaders(){
   return {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
@@ -883,7 +860,6 @@ function navTo(id){
   if(id==='pReportes'){renderRepPreview();renderRanking();}
   if(id==='pTienda')cargarTienda();
   if(id==='pAjustes')cargarAjustes();
-  if(id==='pUsuarios')cargarUsuarios();
 }
 function setNavActive(el){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
@@ -1924,180 +1900,6 @@ function applyWidgets() {
     if(el) { var card = el.parentElement; if(card) card.style.display = show ? 'block' : 'none'; }
   } catch(e) {}
 }
-
-// ═══ USUARIOS ═══
-var PERMISOS_CONFIG = [
-  {id:'ventas_ver', label:'Ver ventas', grupo:'Ventas'},
-  {id:'ventas_crear', label:'Crear ventas', grupo:'Ventas'},
-  {id:'reps_ver', label:'Ver reparaciones', grupo:'Reparaciones'},
-  {id:'reps_crear', label:'Crear reparaciones', grupo:'Reparaciones'},
-  {id:'reps_editar', label:'Editar estado reparaciones', grupo:'Reparaciones'},
-  {id:'stock_ver', label:'Ver stock', grupo:'Stock'},
-  {id:'stock_crear', label:'Añadir stock', grupo:'Stock'},
-  {id:'stock_editar', label:'Editar/Reponer stock', grupo:'Stock'},
-  {id:'stock_eliminar', label:'Eliminar stock', grupo:'Stock'},
-  {id:'clientes_ver', label:'Ver clientes', grupo:'Clientes'},
-  {id:'clientes_crear', label:'Añadir clientes', grupo:'Clientes'},
-  {id:'clientes_eliminar', label:'Eliminar clientes', grupo:'Clientes'},
-  {id:'reportes', label:'Ver reportes y beneficios', grupo:'Admin'},
-  {id:'gastos', label:'Ver gastos', grupo:'Admin'},
-  {id:'cierre', label:'Ver cierre del día', grupo:'Admin'},
-  {id:'widgets_metricas', label:'Ver métricas financieras', grupo:'Widgets'},
-  {id:'widgets_cierre', label:'Widget cierre del día', grupo:'Widgets'}
-];
-
-var PERMISOS_DEFAULT_EMPLEADO = {
-  ventas_ver:true, ventas_crear:true,
-  reps_ver:true, reps_crear:true, reps_editar:true,
-  stock_ver:true, stock_crear:true, stock_editar:false, stock_eliminar:false,
-  clientes_ver:true, clientes_crear:true, clientes_eliminar:false,
-  reportes:false, gastos:false, cierre:false,
-  widgets_metricas:false, widgets_cierre:false
-};
-
-var PERMISOS_DEFAULT_ADMIN = {todo:true};
-
-var editPermUsuarioId = null;
-var tempPermisos = {};
-
-function renderPermisosGrid(containerId, permisos) {
-  var el = document.getElementById(containerId);
-  if (!el) return;
-  var grupos = {};
-  PERMISOS_CONFIG.forEach(function(p) {
-    if (!grupos[p.grupo]) grupos[p.grupo] = [];
-    grupos[p.grupo].push(p);
-  });
-  var html = '';
-  Object.entries(grupos).forEach(function(g) {
-    html += '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin:10px 0 6px">' + g[0] + '</div>';
-    g[1].forEach(function(p) {
-      var activo = permisos.todo || permisos[p.id] !== false;
-      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid #F1F5F9">' +
-        '<span style="font-size:12px">' + p.label + '</span>' +
-        '<div onclick="togglePerm('' + containerId + '','' + p.id + '')" id="perm_' + containerId + '_' + p.id + '" ' +
-        'style="width:40px;height:22px;border-radius:22px;cursor:pointer;background:' + (activo ? '#0055FF' : '#E2E8F0') + ';position:relative;flex-shrink:0">' +
-        '<div style="position:absolute;top:2px;left:' + (activo ? '20px' : '2px') + ';width:18px;height:18px;border-radius:50%;background:white;transition:left .2s"></div>' +
-        '</div></div>';
-    });
-  });
-  el.innerHTML = html;
-}
-
-function togglePerm(containerId, permId) {
-  if (!tempPermisos[containerId]) tempPermisos[containerId] = {};
-  var current = tempPermisos[containerId][permId];
-  if (current === undefined) {
-    var p = document.getElementById('perm_' + containerId + '_' + permId);
-    current = p && p.style.background === 'rgb(0, 85, 255)';
-  }
-  tempPermisos[containerId][permId] = !current;
-  var el = document.getElementById('perm_' + containerId + '_' + permId);
-  if (el) {
-    el.style.background = !current ? '#0055FF' : '#E2E8F0';
-    el.querySelector('div').style.left = !current ? '20px' : '2px';
-  }
-}
-
-function getPermisosFromGrid(containerId, base) {
-  var result = Object.assign({}, base);
-  if (tempPermisos[containerId]) {
-    Object.assign(result, tempPermisos[containerId]);
-  }
-  return result;
-}
-
-async function cargarUsuarios() {
-  if (!SB_KEY || !TIENDA_ID) return;
-  var lista = await sbGet('usuarios', 'tienda_id=eq.' + TIENDA_ID);
-  var el = document.getElementById('listaUsuarios');
-  if (!lista.length) { el.innerHTML = '<div class="empty">Sin usuarios</div>'; return; }
-  el.innerHTML = '<table class="tbl"><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody>' +
-    lista.map(function(u) {
-      var esYo = u.email === (U ? U.email : '');
-      return '<tr>' +
-        '<td><strong>' + u.nombre + '</strong>' + (esYo ? ' <span class="badge bb">Tú</span>' : '') + '</td>' +
-        '<td style="font-size:11px">' + u.email + '</td>' +
-        '<td><span class="badge ' + (u.rol === 'admin' ? 'br' : 'bb') + '">' + u.rol + '</span></td>' +
-        '<td><span class="badge ' + (u.activo ? 'bg' : 'bo') + '">' + (u.activo ? 'Activo' : 'Inactivo') + '</span></td>' +
-        '<td>' + (!esYo ? '<button onclick="editarPermisos('' + u.id + '','' + u.nombre + '')" style="background:#EBF1FF;border:none;color:#0055FF;padding:4px 8px;border-radius:6px;font-size:10px;cursor:pointer">🔐</button>' : '') + '</td>' +
-        '</tr>';
-    }).join('') + '</tbody></table>';
-}
-
-function editarPermisos(id, nombre) {
-  editPermUsuarioId = id;
-  tempPermisos['editPermGrid'] = {};
-  document.getElementById('editPermNombre').textContent = nombre;
-  sbGet('usuarios', 'id=eq.' + id).then(function(lista) {
-    var u = lista[0];
-    if (u) renderPermisosGrid('editPermGrid', u.permisos || {});
-  });
-  openM('mEditPermisos');
-}
-
-async function savePermisos() {
-  if (!editPermUsuarioId) return;
-  var lista = await sbGet('usuarios', 'id=eq.' + editPermUsuarioId);
-  var u = lista[0];
-  if (!u) return;
-  var permisos = getPermisosFromGrid('editPermGrid', u.permisos || {});
-  var ok = await sbPatch('usuarios', 'id=eq.' + editPermUsuarioId, {permisos: permisos});
-  if (ok) { toast('Permisos guardados', 'ok'); closeM('mEditPermisos'); cargarUsuarios(); }
-  else toast('Error al guardar', 'err');
-}
-
-async function saveNuevoUsuario() {
-  var nom = document.getElementById('nuNom').value.trim();
-  var email = document.getElementById('nuEmail').value.trim();
-  var pass = document.getElementById('nuPass').value;
-  var rol = document.getElementById('nuRol').value;
-  if (!nom || !email || !pass) { toast('Rellena todos los campos', 'err'); return; }
-
-  // Hash password
-  var msgBuffer = new TextEncoder().encode(pass);
-  var hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  var hashArray = Array.from(new Uint8Array(hashBuffer));
-  var hash = hashArray.map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
-
-  var permisos = rol === 'admin' ? {todo: true} : Object.assign({}, PERMISOS_DEFAULT_EMPLEADO);
-  var permsGrid = getPermisosFromGrid('permisosGrid', permisos);
-
-  var ok = await sbPost('usuarios', {
-    tienda_id: TIENDA_ID,
-    nombre: nom,
-    email: email,
-    password_hash: hash,
-    rol: rol,
-    activo: true,
-    permisos: permsGrid
-  });
-
-  if (ok) {
-    toast('Usuario creado', 'ok');
-    closeM('mNuevoUsuario');
-    cargarUsuarios();
-    document.getElementById('nuNom').value = '';
-    document.getElementById('nuEmail').value = '';
-    document.getElementById('nuPass').value = '';
-  } else {
-    toast('Error al crear usuario', 'err');
-  }
-}
-
-function initNuevoUsuarioPermisos() {
-  tempPermisos['permisosGrid'] = {};
-  var rol = document.getElementById('nuRol').value;
-  var permisos = rol === 'admin' ? {todo: true} : Object.assign({}, PERMISOS_DEFAULT_EMPLEADO);
-  renderPermisosGrid('permisosGrid', permisos);
-}
-
-// Update permisos when rol changes
-document.addEventListener('DOMContentLoaded', function() {
-  var nuRol = document.getElementById('nuRol');
-  if (nuRol) nuRol.addEventListener('change', initNuevoUsuarioPermisos);
-});
-
 // ═══ UTILS ═══
 function bc(e){return{Pendiente:'bo','En Proceso':'bb','Por Entregar':'bp',Entregado:'bg',Garantia:'',Rechazado:'br'}[e]||'';}
 </script>
