@@ -677,16 +677,103 @@ else{
   document.getElementById('uName').textContent=U.nombre;
   document.getElementById('gName').textContent=U.nombre;
   document.getElementById('dStr').textContent=new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'});
+  // Set Supabase credentials from session
+  var sess=JSON.parse(localStorage.getItem('tk_sess')||'{}');
+  SB_KEY=sess.sb_key||'';
+  TIENDA_ID=sess.tienda_id||(U&&U.tienda_id)||'';
+  
   cargarDatos();
   renderDash();
   checkUrgentes();
+  
+  // Load from Supabase if credentials available
+  if(SB_KEY&&TIENDA_ID){
+    cargarDatosSupabase().then(function(){renderDash();checkUrgentes();});
+  }
   setInterval(function(){guardarDatos();},2*60*60*1000);
   setInterval(checkCierreAuto,60000);
 }
 function logout(){localStorage.removeItem('tk_user');window.location.href='app.html';}
 
 // ═══ DATOS ═══
-function cargarDatos(){
+var SB_URL='https://zcxgyissdqyqsnojxviy.supabase.co';
+var SB_KEY='';
+var TIENDA_ID='';
+
+function sbHeaders(){
+  return {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
+}
+
+async function sbGet(tabla,filtro){
+  try{
+    var url=SB_URL+'/rest/v1/'+tabla+'?'+filtro+'&select=*';
+    var r=await fetch(url,{headers:sbHeaders()});
+    return r.ok?await r.json():[];
+  }catch(e){return [];}
+}
+
+async function sbPost(tabla,data){
+  try{
+    var r=await fetch(SB_URL+'/rest/v1/'+tabla,{
+      method:'POST',headers:{...sbHeaders(),'Prefer':'return=minimal'},
+      body:JSON.stringify(data)
+    });
+    return r.ok;
+  }catch(e){return false;}
+}
+
+async function sbPatch(tabla,filtro,data){
+  try{
+    var r=await fetch(SB_URL+'/rest/v1/'+tabla+'?'+filtro,{
+      method:'PATCH',headers:sbHeaders(),
+      body:JSON.stringify(data)
+    });
+    return r.ok;
+  }catch(e){return false;}
+}
+
+async function sbDelete(tabla,filtro){
+  try{
+    var r=await fetch(SB_URL+'/rest/v1/'+tabla+'?'+filtro,{
+      method:'DELETE',headers:sbHeaders()
+    });
+    return r.ok;
+  }catch(e){return false;}
+}
+
+async function cargarDatosSupabase(){
+  if(!SB_KEY||!TIENDA_ID){cargarDatosLocal();return;}
+  try{
+    toast('Cargando datos...','');
+    var filtro='tienda_id=eq.'+TIENDA_ID;
+    var [ventas,reps,stock,clis,provs,gastos]=await Promise.all([
+      sbGet('ventas',filtro),
+      sbGet('reparaciones',filtro),
+      sbGet('stock',filtro),
+      sbGet('clientes',filtro),
+      sbGet('proveedores',filtro),
+      sbGet('gastos',filtro)
+    ]);
+    DB.ventas=ventas.map(mapVenta);
+    DB.reps=reps.map(mapRep);
+    DB.stock=stock.map(mapStock);
+    DB.clis=clis.map(mapCli);
+    DB.provs=provs||[];
+    DB.gastos=gastos||[];
+    guardarDatosLocal();
+    toast('Datos cargados','ok');
+  }catch(e){
+    console.error('Supabase error:',e);
+    cargarDatosLocal();
+  }
+}
+
+function mapVenta(v){return {id:v.id,fecha:v.fecha,clienteId:v.cliente_id,clienteNombre:v.cliente_nombre,marca:v.marca||'',modelo:v.modelo||'',imei:v.imei||'',pago:v.pago||'Efectivo',precio:parseFloat(v.precio)||0,descuento:parseFloat(v.descuento)||0,total:parseFloat(v.total)||0};}
+function mapRep(r){return {id:r.id,fecha:r.fecha,clienteId:r.cliente_id,clienteNombre:r.cliente_nombre,marca:r.marca||'',modelo:r.modelo||'',imei:r.imei||'',averia:r.averia||'',estado:r.estado||'Pendiente',prioridad:r.prioridad||'Normal',fechaEntrega:r.fecha_entrega||'',fechaEntregaReal:r.fecha_entrega_real||'',nota:r.nota||'',mo:parseFloat(r.mo)||0,comp:parseFloat(r.comp)||0,anticipo:parseFloat(r.anticipo)||0,restante:parseFloat(r.restante)||0,total:parseFloat(r.total)||0,pagoFinal:r.pago_final||''};}
+function mapStock(s){return {id:s.id,categoria:s.categoria||'Telefono',marca:s.marca||'',modelo:s.modelo||'',capacidad:s.capacidad||'',color:s.color||'',imei:s.imei||'',estado:s.estado||'Nuevo',unidades:parseInt(s.unidades)||1,stockMin:parseInt(s.stock_min)||2,stockMax:parseInt(s.stock_max)||10,precioC:parseFloat(s.precio_c)||0,precioV:parseFloat(s.precio_v)||0,vendido:s.vendido||false};}
+function mapCli(c){return {id:c.id,nombre:c.nombre||'',apellidos:c.apellidos||'',tel:c.tel||'',email:c.email||'',dni:c.dni||''};}
+
+function cargarDatosLocal(){
   var d=localStorage.getItem('tk_data');
   if(d){try{DB=JSON.parse(d);}catch(e){}}
   if(!DB.ventas)DB.ventas=[];
@@ -695,10 +782,53 @@ function cargarDatos(){
   if(!DB.clis)DB.clis=[];
   if(!DB.provs)DB.provs=[];
   if(!DB.gastos)DB.gastos=[];
+}
+
+function cargarDatos(){
+  cargarDatosLocal();
   var t=localStorage.getItem('tk_tienda_config');
   if(t){try{TIENDA=JSON.parse(t);}catch(e){}}
 }
-function guardarDatos(){localStorage.setItem('tk_data',JSON.stringify(DB));}
+
+function guardarDatosLocal(){localStorage.setItem('tk_data',JSON.stringify(DB));}
+
+function guardarDatos(){
+  guardarDatosLocal();
+  if(SB_KEY&&TIENDA_ID) syncPendiente();
+}
+
+var SYNC_QUEUE=[];
+function syncPendiente(){
+  // Sync happens on save operations directly
+}
+
+async function syncVenta(v){
+  if(!SB_KEY||!TIENDA_ID)return;
+  await sbPost('ventas',{id:v.id,tienda_id:TIENDA_ID,fecha:v.fecha,cliente_id:v.clienteId,cliente_nombre:v.clienteNombre,marca:v.marca,modelo:v.modelo,imei:v.imei,pago:v.pago,precio:v.precio,descuento:v.descuento,total:v.total});
+}
+async function syncRep(r){
+  if(!SB_KEY||!TIENDA_ID)return;
+  await sbPost('reparaciones',{id:r.id,tienda_id:TIENDA_ID,fecha:r.fecha,cliente_id:r.clienteId,cliente_nombre:r.clienteNombre,marca:r.marca,modelo:r.modelo,imei:r.imei,averia:r.averia,estado:r.estado,prioridad:r.prioridad,fecha_entrega:r.fechaEntrega,nota:r.nota,mo:r.mo,comp:r.comp,anticipo:r.anticipo,restante:r.restante,total:r.total});
+}
+async function syncRepEstado(id,estado,pagoFinal,fechaReal){
+  if(!SB_KEY||!TIENDA_ID)return;
+  var data={estado:estado};
+  if(pagoFinal)data.pago_final=pagoFinal;
+  if(fechaReal)data.fecha_entrega_real=fechaReal;
+  await sbPatch('reparaciones','id=eq.'+id,data);
+}
+async function syncStock(s){
+  if(!SB_KEY||!TIENDA_ID)return;
+  await sbPost('stock',{id:s.id,tienda_id:TIENDA_ID,categoria:s.categoria,marca:s.marca,modelo:s.modelo,capacidad:s.capacidad,color:s.color,imei:s.imei,estado:s.estado,unidades:s.unidades,stock_min:s.stockMin,stock_max:s.stockMax,precio_c:s.precioC,precio_v:s.precioV,vendido:s.vendido});
+}
+async function syncStockUpdate(id,unidades,vendido){
+  if(!SB_KEY||!TIENDA_ID)return;
+  await sbPatch('stock','id=eq.'+id,{unidades:unidades,vendido:vendido});
+}
+async function syncCli(c){
+  if(!SB_KEY||!TIENDA_ID)return;
+  await sbPost('clientes',{id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:c.email,dni:c.dni});
+}
 
 // ═══ NAV ═══
 function navTo(id){
@@ -994,6 +1124,7 @@ function saveVenta(){
     if(s){s.unidades=Math.max(0,(s.unidades||1)-1);if(s.unidades<=0)s.vendido=true;}
   }
   guardarDatos();closeM('mVenta');toast('Venta registrada','ok');renderDash();
+  syncVenta(v);
 }
 
 function saveRep(){
@@ -1030,6 +1161,7 @@ function saveRep(){
     if(s&&s.unidades>0){s.unidades--;if(s.unidades<=(s.stockMin||2))toast('Stock bajo: '+s.modelo,'err');}
   });
   guardarDatos();closeM('mRep');toast('Orden creada','ok');renderDash();checkUrgentes();
+  syncRep(r);
 }
 
 function onCatChange(){
@@ -1169,6 +1301,7 @@ function saveCli(){
   document.getElementById('cNom').value='';document.getElementById('cApe').value='';
   document.getElementById('cTel').value='';document.getElementById('cEmail').value='';document.getElementById('cDni').value='';
   guardarDatos();closeM('mCli');toast('Cliente añadido','ok');
+  syncCli(DB.clis[DB.clis.length-1]);
 }
 function saveProv(){
   var nom=document.getElementById('pNom').value.trim();
@@ -1203,6 +1336,7 @@ function confirmarEntrega(){
   var r=DB.reps.find(function(x){return x.id===SEL.eRepId;});if(!r)return;
   r.estado='Entregado';r.pagoFinal=SEL.ePago;r.fechaEntregaReal=new Date().toLocaleDateString('es');
   guardarDatos();closeM('mEntregar');toast('Equipo entregado','ok');renderReps();renderDash();
+  syncRepEstado(r.id,'Entregado',SEL.ePago,r.fechaEntregaReal);
 }
 function sendWA(){
   var r=DB.reps.find(function(x){return x.id===SEL.eRepId;});if(!r)return;
