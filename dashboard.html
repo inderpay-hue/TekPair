@@ -681,6 +681,14 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
   <button class="btn-cancel" onclick="closeM('mEntregar')">Cancelar</button>
 </div></div>
 
+<!-- PERMISOS MODAL -->
+<div class="modal-bg" id="mPermisos"><div class="modal">
+  <div class="modal-title">🔐 Permisos de <span id="permNombre">---</span></div>
+  <div id="permisosContainer"></div>
+  <button class="btn-save" style="background:#7C3AED;margin-top:12px" onclick="guardarPermisos()">Guardar permisos</button>
+  <button class="btn-cancel" onclick="closeM('mPermisos')">Cancelar</button>
+</div></div>
+
 <!-- PROVEEDOR -->
 <div class="modal-bg" id="mProv"><div class="modal">
   <div class="modal-title">🏭 Nuevo Proveedor</div>
@@ -743,6 +751,7 @@ else{
   if(SB_KEY&&TIENDA_ID){
     cargarDatosSupabase().then(function(){renderDash();checkUrgentes();});
   }
+  setTimeout(aplicarPermisos, 300);
   setInterval(function(){guardarDatos();},2*60*60*1000);
   setInterval(checkCierreAuto,60000);
 }
@@ -2020,6 +2029,12 @@ async function cargarUsuarios(){
     tdEst.innerHTML='<span class="badge '+(u.activo?'bg':'bo')+'">'+(u.activo?'Activo':'Inactivo')+'</span>';
     var tdAcc=document.createElement('td');
     if(!esYo){
+      var btnP=document.createElement('button');
+      btnP.textContent='🔐';
+      btnP.style='background:#EBF1FF;border:none;color:#7C3AED;padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer;margin-right:4px';
+      btnP.dataset.uid=u.id;
+      btnP.dataset.unom=u.nombre;
+      btnP.addEventListener('click',function(){editarPermisos(this.dataset.uid,this.dataset.unom);});
       var btnT=document.createElement('button');
       btnT.textContent=u.activo?'Desact.':'Activar';
       btnT.style='background:#EBF1FF;border:none;color:#0055FF;padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer;margin-right:4px';
@@ -2031,6 +2046,7 @@ async function cargarUsuarios(){
       btnD.style='background:rgba(239,68,68,.1);border:none;color:#EF4444;padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer';
       btnD.dataset.uid=u.id;
       btnD.addEventListener('click',function(){eliminarUsuario(this.dataset.uid);});
+      tdAcc.appendChild(btnP);
       tdAcc.appendChild(btnT);
       tdAcc.appendChild(btnD);
     }
@@ -2171,6 +2187,170 @@ async function eliminarUsuario(id){
   var ok=await sbDelete('usuarios','id=eq.'+id);
   if(ok){toast('Usuario eliminado','ok');cargarUsuarios();}
   else toast('Error','err');
+}
+
+// PERMISOS
+var PERMS_LISTA = [
+  {id:'ventas_ver', label:'Ver ventas', grupo:'Ventas'},
+  {id:'ventas_crear', label:'Crear ventas', grupo:'Ventas'},
+  {id:'reps_ver', label:'Ver reparaciones', grupo:'Reparaciones'},
+  {id:'reps_crear', label:'Crear reparaciones', grupo:'Reparaciones'},
+  {id:'reps_editar', label:'Editar estado', grupo:'Reparaciones'},
+  {id:'stock_ver', label:'Ver stock', grupo:'Stock'},
+  {id:'stock_crear', label:'Añadir stock', grupo:'Stock'},
+  {id:'stock_editar', label:'Editar stock', grupo:'Stock'},
+  {id:'stock_eliminar', label:'Eliminar stock', grupo:'Stock'},
+  {id:'clis_ver', label:'Ver clientes', grupo:'Clientes'},
+  {id:'clis_crear', label:'Añadir clientes', grupo:'Clientes'},
+  {id:'clis_eliminar', label:'Eliminar clientes', grupo:'Clientes'},
+  {id:'reportes', label:'Ver reportes', grupo:'Admin'},
+  {id:'gastos', label:'Ver gastos', grupo:'Admin'},
+  {id:'cierre', label:'Ver cierre del dia', grupo:'Admin'},
+  {id:'metricas', label:'Ver metricas financieras', grupo:'Admin'}
+];
+
+var PERMS_DEFAULT = {
+  ventas_ver:true, ventas_crear:true,
+  reps_ver:true, reps_crear:true, reps_editar:true,
+  stock_ver:true, stock_crear:true, stock_editar:false, stock_eliminar:false,
+  clis_ver:true, clis_crear:true, clis_eliminar:false,
+  reportes:false, gastos:false, cierre:false, metricas:false
+};
+
+var editPermId = null;
+var permsCurrent = {};
+
+async function editarPermisos(id, nombre) {
+  editPermId = id;
+  document.getElementById('permNombre').textContent = nombre;
+  var lista = await sbGet('usuarios', 'id=eq.' + id);
+  var u = lista && lista[0];
+  permsCurrent = (u && u.permisos) ? Object.assign({}, PERMS_DEFAULT, u.permisos) : Object.assign({}, PERMS_DEFAULT);
+  if (u && u.rol === 'admin') permsCurrent = {todo: true};
+  renderPermisosUI();
+  openM('mPermisos');
+}
+
+function renderPermisosUI() {
+  var container = document.getElementById('permisosContainer');
+  if (!container) return;
+  
+  if (permsCurrent.todo) {
+    container.innerHTML = '<div class="info-box">Este usuario es admin y tiene acceso total.</div>';
+    return;
+  }
+  
+  var grupos = {};
+  PERMS_LISTA.forEach(function(p) {
+    if (!grupos[p.grupo]) grupos[p.grupo] = [];
+    grupos[p.grupo].push(p);
+  });
+  
+  container.innerHTML = '';
+  Object.keys(grupos).forEach(function(grupo) {
+    var div = document.createElement('div');
+    div.style = 'margin-bottom:12px';
+    div.innerHTML = '<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;margin-bottom:6px">' + grupo + '</div>';
+    
+    grupos[grupo].forEach(function(p) {
+      var activo = permsCurrent[p.id] !== false;
+      var row = document.createElement('div');
+      row.style = 'display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid #F1F5F9';
+      
+      var label = document.createElement('span');
+      label.style = 'font-size:12px';
+      label.textContent = p.label;
+      
+      var toggle = document.createElement('div');
+      toggle.style = 'width:40px;height:22px;border-radius:22px;cursor:pointer;background:' + (activo ? '#0055FF' : '#E2E8F0') + ';position:relative;flex-shrink:0;transition:background .2s';
+      toggle.innerHTML = '<div style="position:absolute;top:2px;left:' + (activo ? '20px' : '2px') + ';width:18px;height:18px;border-radius:50%;background:white;transition:left .2s"></div>';
+      toggle.dataset.pid = p.id;
+      toggle.addEventListener('click', function() {
+        var pid = this.dataset.pid;
+        permsCurrent[pid] = !permsCurrent[pid];
+        this.style.background = permsCurrent[pid] ? '#0055FF' : '#E2E8F0';
+        this.querySelector('div').style.left = permsCurrent[pid] ? '20px' : '2px';
+      });
+      
+      row.appendChild(label);
+      row.appendChild(toggle);
+      div.appendChild(row);
+    });
+    
+    container.appendChild(div);
+  });
+}
+
+async function guardarPermisos() {
+  if (!editPermId) return;
+  var ok = await sbPatch('usuarios', 'id=eq.' + editPermId, {permisos: permsCurrent});
+  if (ok) {
+    toast('Permisos guardados', 'ok');
+    closeM('mPermisos');
+    cargarUsuarios();
+  } else {
+    toast('Error al guardar', 'err');
+  }
+}
+
+// Check if current user has permission
+function tienePerm(perm) {
+  if (!U) return false;
+  if (U.rol === 'admin') return true;
+  if (!U.permisos) return false;
+  if (U.permisos.todo) return true;
+  return U.permisos[perm] === true;
+}
+
+// Apply permissions to UI
+function aplicarPermisos() {
+  if (!U || U.rol === 'admin') return;
+  
+  // Hide nav items based on permissions
+  if (!tienePerm('ventas_ver')) {
+    var navV = document.querySelector('.ni[data-p="pVentas"]');
+    if (navV) navV.style.display = 'none';
+  }
+  if (!tienePerm('reps_ver')) {
+    var navR = document.querySelector('.ni[data-p="pReps"]');
+    if (navR) navR.style.display = 'none';
+  }
+  if (!tienePerm('stock_ver')) {
+    var navS = document.querySelector('.ni[data-p="pStock"]');
+    if (navS) navS.style.display = 'none';
+  }
+  
+  // Hide quick action buttons
+  if (!tienePerm('ventas_crear')) {
+    var btnV = document.querySelector('button[onclick="abrirVenta()"]');
+    if (btnV) btnV.style.display = 'none';
+  }
+  if (!tienePerm('reps_crear')) {
+    var btnR = document.querySelector('button[onclick="abrirRep()"]');
+    if (btnR) btnR.style.display = 'none';
+  }
+  if (!tienePerm('stock_crear')) {
+    var btnS = document.querySelector('button[onclick="abrirStock()"]');
+    if (btnS) btnS.style.display = 'none';
+  }
+  
+  // Hide reportes and gastos from Mas menu
+  if (!tienePerm('reportes')) {
+    var btnRep = document.querySelector('button[onclick="navTo(\'pReportes\')"]');
+    if (btnRep) btnRep.style.display = 'none';
+  }
+  if (!tienePerm('gastos')) {
+    var btnGas = document.querySelector('button[onclick="navTo(\'pGastos\')"]');
+    if (btnGas) btnGas.style.display = 'none';
+  }
+  
+  // Hide metricas
+  if (!tienePerm('metricas')) {
+    var metTab = document.getElementById('metricTabs');
+    if (metTab) metTab.style.display = 'none';
+    var metGrid = document.getElementById('metricsGrid');
+    if (metGrid) metGrid.style.display = 'none';
+  }
 }
 // ═══ UTILS ═══
 function bc(e){return{Pendiente:'bo','En Proceso':'bb','Por Entregar':'bp',Entregado:'bg',Garantia:'',Rechazado:'br'}[e]||'';}
