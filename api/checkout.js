@@ -39,6 +39,7 @@ export default async function handler(req, res) {
     params.append('metadata[tienda_nombre]', tienda_nombre || nombre);
     params.append('metadata[plan]', plan);
     params.append('allow_promotion_codes', 'true');
+    params.append('subscription_data[trial_period_days]', '15');
 
     const stripeR = await fetch('https://api.stripe.com/v1/checkout/sessions', {
       method: 'POST',
