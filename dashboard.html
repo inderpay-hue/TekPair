@@ -181,9 +181,57 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
     <button class="qbtn" style="background:#7C3AED" onclick="navTo('pReportes')">📊 Reportes</button>
     <button class="qbtn" style="background:#F59E0B" onclick="navTo('pTienda')">🏪 Mi Tienda</button>
     <button class="qbtn" style="background:#0055FF" onclick="navTo('pAyuda')">❓ Ayuda</button>
+    <button class="qbtn" style="background:#059669" onclick="navTo('pImportar')">📥 Importar</button>
     <button class="qbtn" style="background:#475569" onclick="navTo('pAjustes')">⚙️ Ajustes</button>
     <button class="qbtn" style="background:#0F172A" onclick="navTo('pUsuarios')" id="btnUsuarios" style="display:none">👥 Usuarios</button>
     <button class="qbtn" style="background:#020B2E" onclick="backup()">💾 Backup</button>
+  </div>
+</div>
+
+<!-- USUARIOS -->
+<div class="page" id="pUsuarios">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">&#8592;</button>
+    <div style="font-size:15px;font-weight:700">Usuarios</div>
+    <button class="btn-sm" style="background:#0F172A;color:white;margin-left:auto" onclick="openNuevoUsuario()">+ Nuevo</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden"><div id="listaUsuarios"><div class="empty">Cargando...</div></div></div>
+</div>
+
+<!-- IMPORTAR -->
+<div class="page" id="pImportar">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">&#8592;</button>
+    <div style="font-size:15px;font-weight:700">Importar datos</div>
+  </div>
+  <div class="card">
+    <div class="card-title">Importar desde CSV</div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:12px">Sube un archivo CSV de Samiiweb, iGestion u otro programa</div>
+    <div class="fg"><label class="fl">Tipo de datos</label>
+      <select class="fi" id="importTipo">
+        <option value="clientes">Clientes</option>
+        <option value="stock">Stock / Productos</option>
+        <option value="reparaciones">Reparaciones</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Archivo CSV</label>
+      <input type="file" id="importFile" accept=".csv,.xlsx,.xls" class="fi" style="padding:8px"/>
+    </div>
+    <div id="importPreview" style="display:none;margin-bottom:12px">
+      <div class="card-title">Vista previa</div>
+      <div id="importTable" style="overflow-x:auto;font-size:11px"></div>
+      <div id="importMapeo" style="margin-top:10px"></div>
+    </div>
+    <button class="btn-save" onclick="procesarImport()">Importar datos</button>
+    <button class="btn-cancel" onclick="navTo('pMas')">Cancelar</button>
+  </div>
+  <div class="card">
+    <div class="card-title">Importar backup JSON</div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:12px">Restaura un backup previo de Tekpair</div>
+    <div class="fg">
+      <input type="file" id="backupFile" accept=".json" class="fi" style="padding:8px"/>
+    </div>
+    <button class="btn-save" style="background:#7C3AED" onclick="restaurarBackup()">Restaurar backup</button>
   </div>
 </div>
 
@@ -1950,6 +1998,128 @@ function delCli(id){
   toast('Cliente eliminado','ok');
   renderClis();
   if(SB_KEY&&TIENDA_ID)sbDelete('clientes','id=eq.'+id);
+}
+
+// USUARIOS
+async function cargarUsuarios(){
+  if(!SB_KEY||!TIENDA_ID){
+    document.getElementById('listaUsuarios').innerHTML='<div class="empty">Conecta Supabase para gestionar usuarios</div>';
+    return;
+  }
+  var lista=await sbGet('usuarios','tienda_id=eq.'+TIENDA_ID);
+  var el=document.getElementById('listaUsuarios');
+  if(!lista||!lista.length){el.innerHTML='<div class="empty">Sin usuarios</div>';return;}
+  el.innerHTML='<table class="tbl"><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th></tr></thead><tbody>'+
+    lista.map(function(u){
+      return '<tr><td><strong>'+u.nombre+'</strong></td>'+
+        '<td style="font-size:10px">'+u.email+'</td>'+
+        '<td><span class="badge '+(u.rol==='admin'?'br':'bb')+'">'+u.rol+'</span></td>'+
+        '<td><span class="badge '+(u.activo?'bg':'bo')+'">'+(u.activo?'Activo':'Inactivo')+'</span></td></tr>';
+    }).join('')+'</tbody></table>';
+}
+
+function openNuevoUsuario(){
+  var nom=prompt('Nombre del usuario:');
+  if(!nom)return;
+  var email=prompt('Email:');
+  if(!email)return;
+  var pass=prompt('Contrasena:');
+  if(!pass)return;
+  var rol=prompt('Rol (admin o empleado):','empleado');
+  crearUsuario(nom,email,pass,rol||'empleado');
+}
+
+async function crearUsuario(nom,email,pass,rol){
+  var msgBuffer=new TextEncoder().encode(pass);
+  var hashBuffer=await crypto.subtle.digest('SHA-256',msgBuffer);
+  var hash=Array.from(new Uint8Array(hashBuffer)).map(function(b){return b.toString(16).padStart(2,'0');}).join('');
+  var ok=await sbPost('usuarios',{
+    tienda_id:TIENDA_ID,nombre:nom,email:email,
+    password_hash:hash,rol:rol,activo:true,
+    permisos:rol==='admin'?{todo:true}:{}
+  });
+  if(ok){toast('Usuario creado','ok');cargarUsuarios();}
+  else toast('Error al crear usuario','err');
+}
+
+// IMPORTAR
+function procesarImport(){
+  var file=document.getElementById('importFile').files[0];
+  if(!file){toast('Selecciona un archivo','err');return;}
+  var tipo=document.getElementById('importTipo').value;
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var text=e.target.result;
+    var lines=text.split('\n').filter(function(l){return l.trim();});
+    if(!lines.length){toast('Archivo vacio','err');return;}
+    var headers=lines[0].split(',').map(function(h){return h.trim().replace(/"/g,'');});
+    var rows=lines.slice(1).map(function(line){
+      var vals=line.split(',').map(function(v){return v.trim().replace(/"/g,'');});
+      var obj={};
+      headers.forEach(function(h,i){obj[h]=vals[i]||'';});
+      return obj;
+    });
+    if(tipo==='clientes'){
+      var added=0;
+      rows.forEach(function(row){
+        var nom=row.nombre||row.Nombre||row.name||row.Name||'';
+        var tel=row.telefono||row.Telefono||row.tel||row.phone||'';
+        if(!nom)return;
+        if(!DB.clis.find(function(c){return c.tel===tel&&tel;})){
+          DB.clis.push({id:'c'+Date.now()+added,nombre:nom,apellidos:row.apellidos||row.Apellidos||'',tel:tel,email:row.email||row.Email||''});
+          added++;
+        }
+      });
+      guardarDatos();
+      toast(added+' clientes importados','ok');
+    } else if(tipo==='stock'){
+      var added2=0;
+      rows.forEach(function(row){
+        var modelo=row.modelo||row.Modelo||row.nombre||row.Nombre||row.name||'';
+        if(!modelo)return;
+        DB.stock.push({
+          id:'s'+Date.now()+added2,
+          categoria:row.categoria||row.Categoria||'Telefono',
+          marca:row.marca||row.Marca||'Otro',
+          modelo:modelo,
+          imei:row.imei||row.IMEI||'',
+          unidades:parseInt(row.unidades||row.stock||'1')||1,
+          precioV:parseFloat(row.precio||row.precio_venta||'0')||0,
+          precioC:parseFloat(row.precio_compra||'0')||0,
+          vendido:false,stockMin:2,stockMax:10
+        });
+        added2++;
+      });
+      guardarDatos();
+      toast(added2+' productos importados','ok');
+    }
+    navTo('pMas');
+  };
+  reader.readAsText(file);
+}
+
+function restaurarBackup(){
+  var file=document.getElementById('backupFile').files[0];
+  if(!file){toast('Selecciona un archivo JSON','err');return;}
+  var reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      var data=JSON.parse(e.target.result);
+      if(data.ventas)DB.ventas=data.ventas;
+      if(data.reps)DB.reps=data.reps;
+      if(data.stock)DB.stock=data.stock;
+      if(data.clis)DB.clis=data.clis;
+      if(data.provs)DB.provs=data.provs;
+      if(data.gastos)DB.gastos=data.gastos;
+      guardarDatos();
+      renderDash();
+      toast('Backup restaurado','ok');
+      navTo('pDash');
+    }catch(err){
+      toast('Error al leer el archivo','err');
+    }
+  };
+  reader.readAsText(file);
 }
 // ═══ UTILS ═══
 function bc(e){return{Pendiente:'bo','En Proceso':'bb','Por Entregar':'bp',Entregado:'bg',Garantia:'',Rechazado:'br'}[e]||'';}
