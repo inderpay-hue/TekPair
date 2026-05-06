@@ -854,7 +854,8 @@ function setNavActive(el){
 }
 
 // ═══ MODALS ═══
-function openM(id){document.getElementById(id).classList.add('open');}
+function openM(id){document.getElementById(id).classList.add('open');
+  if(id==='mCli'&&!ECID){document.getElementById('cNom').value='';document.getElementById('cApe').value='';document.getElementById('cTel').value='';document.getElementById('cEmail').value='';document.getElementById('cDni').value='';}}
 function closeM(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-bg').forEach(function(m){
   m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');});
