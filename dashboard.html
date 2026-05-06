@@ -1347,6 +1347,7 @@ function saveCli(){
       EDIT_CLI_ID=null;return;
     }
   }
+  if(ECID){var x=DB.clis.find(function(c){return c.id===ECID;});if(x){x.nombre=nom;x.apellidos=document.getElementById('cApe').value;x.tel=tel;x.email=document.getElementById('cEmail').value;x.dni=document.getElementById('cDni').value;guardarDatos();closeM('mCli');toast('Cliente actualizado','ok');renderClis();ECID=null;if(SB_KEY&&TIENDA_ID)sbPatch('clientes','id=eq.'+x.id,{nombre:x.nombre,apellidos:x.apellidos,tel:x.tel,email:x.email,dni:x.dni});return;}}
   var nuevo={id:'c'+Date.now(),nombre:nom,apellidos:document.getElementById('cApe').value,tel:tel,email:document.getElementById('cEmail').value,dni:document.getElementById('cDni').value};
   DB.clis.push(nuevo);
   document.getElementById('cNom').value='';document.getElementById('cApe').value='';
@@ -2138,6 +2139,26 @@ document.addEventListener('DOMContentLoaded', function() {
   if (nuRol) nuRol.addEventListener('change', initNuevoUsuarioPermisos);
 });
 
+
+var ECID=null;
+function editCli(id){
+  var x=DB.clis.find(function(c){return c.id===id;});
+  if(!x)return;
+  ECID=id;
+  document.getElementById('cNom').value=x.nombre||'';
+  document.getElementById('cApe').value=x.apellidos||'';
+  document.getElementById('cTel').value=x.tel||'';
+  document.getElementById('cEmail').value=x.email||'';
+  document.getElementById('cDni').value=x.dni||'';
+  openM('mCli');
+}
+function delCli(id){
+  DB.clis=DB.clis.filter(function(c){return c.id!==id;});
+  guardarDatos();
+  toast('Cliente eliminado','ok');
+  renderClis();
+  if(SB_KEY&&TIENDA_ID)sbDelete('clientes','id=eq.'+id);
+}
 // ═══ UTILS ═══
 function bc(e){return{Pendiente:'bo','En Proceso':'bb','Por Entregar':'bp',Entregado:'bg',Garantia:'',Rechazado:'br'}[e]||'';}
 </script>
