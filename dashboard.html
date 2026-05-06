@@ -1551,19 +1551,12 @@ function enviarReporteWA(){
   var pagos=calcPagos(ventas,reps);
   var msg='*Reporte '+SEL.repTab.toUpperCase()+' - '+TIENDA.nombre+'*\n';
   msg+='Fecha: '+new Date().toLocaleDateString('es')+'\n\n';
-  msg+='*Resumen:*
-';
-  msg+='Ventas: '+ventas.length+' (€'+tV.toFixed(2)+')
-';
-  msg+='Reparaciones: '+reps.length+' (€'+tR.toFixed(2)+')
-';
-  msg+='Total: €'+(tV+tR).toFixed(2)+'
-
-';
-  msg+='*Por forma de pago:*
-';
-  Object.entries(pagos).forEach(function(e){msg+=e[0]+': €'+e[1].toFixed(2)+'
-';});
+  msg+='*Resumen:*\n';
+  msg+='Ventas: '+ventas.length+' (€'+tV.toFixed(2)+'\n';
+  msg+='Reparaciones: '+reps.length+' (€'+tR.toFixed(2)+'\n';
+  msg+='Total: €'+(tV+tR).toFixed(2)+'\n\n';
+  msg+='*Por forma de pago:*\n';
+  Object.entries(pagos).forEach(function(e){msg+=e[0]+': €'+e[1].toFixed(2)+'\n';});
   window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
 }
 function enviarReporteEmail(){
@@ -1577,16 +1570,13 @@ function enviarReporteEmail(){
   var body='Reporte '+SEL.repTab.toUpperCase()+'
 
 ';
-  body+='Ventas: '+ventas.length+' ('+tV.toFixed(2)+')
-';
-  body+='Reparaciones: '+reps.length+' ('+tR.toFixed(2)+')
-';
+  body+='Ventas: '+ventas.length+' ('+tV.toFixed(2)+'\n';
+  body+='Reparaciones: '+reps.length+' ('+tR.toFixed(2)+'\n';
   body+='Total: '+(tV+tR).toFixed(2)+'
 
 Por forma de pago:
 ';
-  Object.entries(pagos).forEach(function(e){body+=e[0]+': '+e[1].toFixed(2)+'
-';});
+  Object.entries(pagos).forEach(function(e){body+=e[0]+': '+e[1].toFixed(2)+'\n';});
   var email=TIENDA.email||AJUSTES.cierre.email||'';
   window.open('mailto:'+email+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body));
 }
