@@ -60,12 +60,11 @@ function entrar() {
       document.getElementById('btn').disabled = false;
       document.getElementById('err').textContent = data.error || 'Error al entrar';
     }
-  }).catch(function(){
-    var nom = em.split('@')[0];
-    nom = nom.charAt(0).toUpperCase() + nom.slice(1);
-    localStorage.setItem('tk_user', JSON.stringify({nombre:nom,email:em,rol:'admin'}));
-    localStorage.setItem('tk_tienda', JSON.stringify({nombre:'Mi Tienda'}));
-    window.location.href = 'dashboard.html';
+  }).catch(function(err){
+    console.error('Login error:', err);
+    document.getElementById('btn').textContent = 'Entrar';
+    document.getElementById('btn').disabled = false;
+    document.getElementById('err').textContent = 'Error de conexion. Intenta de nuevo.';
   });
   return;
 }
