@@ -2009,12 +2009,14 @@ async function cargarUsuarios(){
   var lista=await sbGet('usuarios','tienda_id=eq.'+TIENDA_ID);
   var el=document.getElementById('listaUsuarios');
   if(!lista||!lista.length){el.innerHTML='<div class="empty">Sin usuarios</div>';return;}
-  el.innerHTML='<table class="tbl"><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th></tr></thead><tbody>'+
+  el.innerHTML='<table class="tbl"><thead><tr><th>Nombre</th><th>Rol</th><th>Estado</th><th></th></tr></thead><tbody>'+
     lista.map(function(u){
-      return '<tr><td><strong>'+u.nombre+'</strong></td>'+
-        '<td style="font-size:10px">'+u.email+'</td>'+
+      var esYo=U&&u.email===U.email;
+      return '<tr><td><strong>'+u.nombre+'</strong><br><span style="font-size:9px;color:#64748B">'+u.email+'</span></td>'+
         '<td><span class="badge '+(u.rol==='admin'?'br':'bb')+'">'+u.rol+'</span></td>'+
-        '<td><span class="badge '+(u.activo?'bg':'bo')+'">'+(u.activo?'Activo':'Inactivo')+'</span></td></tr>';
+        '<td><span class="badge '+(u.activo?'bg':'bo')+'">'+(u.activo?'Activo':'Inactivo')+'</span></td>'+
+        '<td>'+(esYo?'':'<button onclick="toggleUsuario(''+u.id+'','+u.activo+')" style="background:#EBF1FF;border:none;color:#0055FF;padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer">'+(u.activo?'Desact.':'Activar')+'</button> '+
+        '<button onclick="eliminarUsuario(''+u.id+'')" style="background:rgba(239,68,68,.1);border:none;color:#EF4444;padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer">🗑️</button>')+'</td></tr>';
     }).join('')+'</tbody></table>';
 }
 
@@ -2120,6 +2122,17 @@ function restaurarBackup(){
     }
   };
   reader.readAsText(file);
+}
+
+async function toggleUsuario(id, activo){
+  var ok=await sbPatch('usuarios','id=eq.'+id,{activo:!activo});
+  if(ok){toast(activo?'Usuario desactivado':'Usuario activado','ok');cargarUsuarios();}
+  else toast('Error','err');
+}
+async function eliminarUsuario(id){
+  var ok=await sbDelete('usuarios','id=eq.'+id);
+  if(ok){toast('Usuario eliminado','ok');cargarUsuarios();}
+  else toast('Error al eliminar','err');
 }
 // ═══ UTILS ═══
 function bc(e){return{Pendiente:'bo','En Proceso':'bb','Por Entregar':'bp',Entregado:'bg',Garantia:'',Rechazado:'br'}[e]||'';}
