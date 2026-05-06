@@ -691,9 +691,14 @@ else{
   checkUrgentes();
   
   // Load from Supabase if credentials available
-  if(SB_KEY&&TIENDA_ID){
-    cargarDatosSupabase().then(function(){renderDash();checkUrgentes();});
-  }
+  setTimeout(function(){
+    if(SB_KEY&&TIENDA_ID){
+      console.log('Loading from Supabase...');
+      cargarDatosSupabase().then(function(){renderDash();checkUrgentes();});
+    } else {
+      console.log('No Supabase credentials - using local data');
+    }
+  }, 200);
   setInterval(function(){guardarDatos();},2*60*60*1000);
   setInterval(checkCierreAuto,60000);
 }
@@ -703,6 +708,7 @@ function logout(){localStorage.removeItem('tk_user');window.location.href='app.h
 var SB_URL='https://zcxgyissdqyqsnojxviy.supabase.co';
 var SB_KEY='';
 var TIENDA_ID='';
+console.log('SB_URL set:', SB_URL);
 
 function sbHeaders(){
   return {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
