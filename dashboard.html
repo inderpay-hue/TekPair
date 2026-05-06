@@ -2009,13 +2009,42 @@ async function cargarUsuarios(){
   var lista=await sbGet('usuarios','tienda_id=eq.'+TIENDA_ID);
   var el=document.getElementById('listaUsuarios');
   if(!lista||!lista.length){el.innerHTML='<div class="empty">Sin usuarios</div>';return;}
-  el.innerHTML='<table class="tbl"><thead><tr><th>Nombre</th><th>Email</th><th>Rol</th><th>Estado</th></tr></thead><tbody>'+
-    lista.map(function(u){
-      return '<tr><td><strong>'+u.nombre+'</strong></td>'+
-        '<td style="font-size:10px">'+u.email+'</td>'+
-        '<td><span class="badge '+(u.rol==='admin'?'br':'bb')+'">'+u.rol+'</span></td>'+
-        '<td><span class="badge '+(u.activo?'bg':'bo')+'">'+(u.activo?'Activo':'Inactivo')+'</span></td></tr>';
-    }).join('')+'</tbody></table>';
+  var rows=lista.map(function(u){
+    var esYo=U&&u.email===U.email;
+    var tr=document.createElement('tr');
+    var tdNom=document.createElement('td');
+    tdNom.innerHTML='<strong>'+u.nombre+'</strong><br><span style="font-size:9px;color:#64748B">'+u.email+'</span>';
+    var tdRol=document.createElement('td');
+    tdRol.innerHTML='<span class="badge '+(u.rol==='admin'?'br':'bb')+'">'+u.rol+'</span>';
+    var tdEst=document.createElement('td');
+    tdEst.innerHTML='<span class="badge '+(u.activo?'bg':'bo')+'">'+(u.activo?'Activo':'Inactivo')+'</span>';
+    var tdAcc=document.createElement('td');
+    if(!esYo){
+      var btnT=document.createElement('button');
+      btnT.textContent=u.activo?'Desact.':'Activar';
+      btnT.style='background:#EBF1FF;border:none;color:#0055FF;padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer;margin-right:4px';
+      btnT.dataset.uid=u.id;
+      btnT.dataset.activo=u.activo?'1':'0';
+      btnT.addEventListener('click',function(){toggleUsuario(this.dataset.uid,this.dataset.activo==='1');});
+      var btnD=document.createElement('button');
+      btnD.textContent='🗑️';
+      btnD.style='background:rgba(239,68,68,.1);border:none;color:#EF4444;padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer';
+      btnD.dataset.uid=u.id;
+      btnD.addEventListener('click',function(){eliminarUsuario(this.dataset.uid);});
+      tdAcc.appendChild(btnT);
+      tdAcc.appendChild(btnD);
+    }
+    tr.appendChild(tdNom);tr.appendChild(tdRol);tr.appendChild(tdEst);tr.appendChild(tdAcc);
+    return tr;
+  });
+  var tbody=document.createElement('tbody');
+  rows.forEach(function(r){tbody.appendChild(r);});
+  var table=document.createElement('table');
+  table.className='tbl';
+  table.innerHTML='<thead><tr><th>Nombre</th><th>Rol</th><th>Estado</th><th></th></tr></thead>';
+  table.appendChild(tbody);
+  el.innerHTML='';
+  el.appendChild(table);
 }
 
 function openNuevoUsuario(){
@@ -2120,6 +2149,17 @@ function restaurarBackup(){
     }
   };
   reader.readAsText(file);
+}
+
+async function toggleUsuario(id, activo){
+  var ok=await sbPatch('usuarios','id=eq.'+id,{activo:!activo});
+  if(ok){toast(activo?'Desactivado':'Activado','ok');cargarUsuarios();}
+  else toast('Error','err');
+}
+async function eliminarUsuario(id){
+  var ok=await sbDelete('usuarios','id=eq.'+id);
+  if(ok){toast('Usuario eliminado','ok');cargarUsuarios();}
+  else toast('Error','err');
 }
 // ═══ UTILS ═══
 function bc(e){return{Pendiente:'bo','En Proceso':'bb','Por Entregar':'bp',Entregado:'bg',Garantia:'',Rechazado:'br'}[e]||'';}
