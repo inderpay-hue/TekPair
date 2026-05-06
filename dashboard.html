@@ -1584,8 +1584,8 @@ function renderClis(){
         '<td>'+(c.tel||'—')+'</td>'+
         '<td><span class="badge bb">'+vc+'v</span> <span class="badge bp">'+rc+'r</span></td>'+
         '<td style="display:flex;gap:4px">'+
-        '<button onclick="editarCliente('"+c.id+"')" style="background:#EBF1FF;border:none;color:#0055FF;padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">✏️</button>'+
-        '<button onclick="eliminarCliente('"+c.id+"')" style="background:rgba(239,68,68,.1);border:none;color:#EF4444;padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">🗑️</button>'+
+        '<button onclick="editCli(\''+c.id+'\')" style="background:#EBF1FF;border:none;color:#0055FF;padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">✏️</button>'+
+        '<button onclick="delCli(\''+c.id+'\')" style="background:rgba(239,68,68,.1);border:none;color:#EF4444;padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">🗑️</button>'+
         '</td></tr>';
     }).join('')+'</tbody></table>';
 }
