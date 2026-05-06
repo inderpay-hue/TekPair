@@ -3,840 +3,365 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tekpair — Gestiona tu tienda desde cualquier lugar del mundo</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,700;1,700&display=swap" rel="stylesheet">
+<title>Tekpair — Software para tiendas de venta y reparación móvil</title>
+<meta name="description" content="Gestiona ventas, reparaciones, stock y clientes de tu tienda de venta y reparación móvil desde cualquier dispositivo.">
 <style>
-:root{
-  --blue:#0055FF;--blue-dark:#0040CC;--blue-light:#EBF1FF;
-  --navy:#020B2E;--text:#0F1729;--muted:#64748B;
-  --border:#E2E8F0;--white:#FFFFFF;--green:#00C896;--bg:#F7F9FC;
-  --accent:#FF6B35;
-}
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{font-family:'Sora',sans-serif;color:var(--text);background:var(--white);overflow-x:hidden}
+:root{--blue:#0055FF;--dark:#020B2E;--green:#00C896;--orange:#F97316}
+body{font-family:Arial,sans-serif;color:#0F1729;background:white;overflow-x:hidden}
 
-/* ── ANNOUNCEMENT ── */
-.topbar{
-  background:var(--navy);color:white;text-align:center;
-  padding:11px 20px;font-size:13px;font-weight:500;
-  display:flex;align-items:center;justify-content:center;gap:10px;
-}
-.topbar-badge{
-  background:var(--accent);color:white;padding:2px 10px;
-  border-radius:20px;font-size:11px;font-weight:700;
-}
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;background:rgba(2,11,46,.95);backdrop-filter:blur(10px);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;z-index:100;border-bottom:1px solid rgba(255,255,255,.1)}
+.nav-logo{color:white;font-size:20px;font-weight:800;text-decoration:none}
+.nav-links{display:flex;align-items:center;gap:20px}
+.nav-links a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;font-weight:500}
+.nav-links a:hover{color:white}
+.nav-cta{background:var(--blue);color:white!important;padding:8px 18px;border-radius:8px;font-weight:700!important}
+.lang-sel{background:rgba(255,255,255,.1);border:none;color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-family:Arial}
 
-/* ── NAV ── */
-nav{
-  position:sticky;top:0;z-index:100;
-  background:rgba(255,255,255,.96);backdrop-filter:blur(14px);
-  border-bottom:1px solid var(--border);
-  padding:0 6%;display:flex;align-items:center;
-  justify-content:space-between;height:70px;
-}
-.logo{display:flex;align-items:center;gap:11px;text-decoration:none}
-.logo-mark{
-  width:38px;height:38px;background:var(--blue);border-radius:10px;
-  display:flex;align-items:center;justify-content:center;
-  color:white;font-size:19px;font-weight:800;letter-spacing:-1px;
-}
-.logo-name{font-size:21px;font-weight:700;color:var(--navy);letter-spacing:-.5px}
-.nav-links{display:flex;align-items:center;gap:32px}
-.nav-links a{color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;transition:color .2s}
-.nav-links a:hover{color:var(--blue)}
-.nav-right{display:flex;align-items:center;gap:14px}
-.nav-login{color:var(--navy);text-decoration:none;font-size:14px;font-weight:600}
-.nav-cta{
-  background:var(--blue);color:white;padding:10px 22px;
-  border-radius:8px;font-size:14px;font-weight:600;
-  text-decoration:none;transition:all .2s;border:none;
-  cursor:pointer;font-family:inherit;
-}
-.nav-cta:hover{background:var(--blue-dark);transform:translateY(-1px)}
+/* HERO */
+.hero{background:linear-gradient(135deg,#020B2E 0%,#0A1A4E 60%,#0D2060 100%);min-height:100vh;display:flex;align-items:center;padding:100px 24px 60px;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;top:-50%;right:-20%;width:600px;height:600px;background:radial-gradient(circle,rgba(0,85,255,.15) 0%,transparent 70%);border-radius:50%}
+.hero::after{content:'';position:absolute;bottom:-30%;left:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(0,200,150,.1) 0%,transparent 70%);border-radius:50%}
+.hero-content{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;position:relative;z-index:1}
+.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.3);color:#00C896;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:20px}
+.hero h1{font-size:42px;font-weight:800;color:white;line-height:1.2;margin-bottom:16px}
+.hero h1 span{color:var(--green)}
+.hero p{color:rgba(255,255,255,.7);font-size:16px;line-height:1.7;margin-bottom:28px}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap}
+.btn-primary{background:var(--blue);color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-flex;align-items:center;gap:8px;transition:transform .2s,box-shadow .2s}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,85,255,.4)}
+.btn-secondary{background:rgba(255,255,255,.1);color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;border:1px solid rgba(255,255,255,.2)}
+.hero-visual{position:relative}
+.phone-mockup{background:linear-gradient(145deg,#1a2a5e,#0a1a3e);border-radius:20px;padding:16px;box-shadow:0 32px 80px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1)}
+.phone-screen{background:#F7F9FC;border-radius:12px;overflow:hidden}
+.phone-topbar{background:#020B2E;padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
+.phone-logo{color:white;font-size:13px;font-weight:700}
+.phone-body{padding:12px}
+.phone-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.phone-stat{background:white;border-radius:8px;padding:10px;border:1px solid #E2E8F0}
+.phone-stat-n{font-size:18px;font-weight:800;color:#0055FF}
+.phone-stat-l{font-size:9px;color:#64748B}
+.phone-card{background:white;border-radius:8px;padding:10px;border:1px solid #E2E8F0;margin-bottom:8px}
+.phone-card-title{font-size:10px;font-weight:700;margin-bottom:8px;color:#020B2E}
+.phone-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #F1F5F9;font-size:10px}
+.phone-badge{background:rgba(0,85,255,.1);color:#0055FF;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:600}
+.phone-badge-g{background:rgba(0,200,150,.1);color:#00875A}
 
-/* ── HERO ── */
-.hero{
-  padding:100px 6% 80px;
-  background:linear-gradient(145deg,#F0F5FF 0%,#FFFFFF 55%,#F7F9FC 100%);
-  position:relative;overflow:hidden;
-}
-.hero-globe{
-  position:absolute;right:-120px;top:-80px;
-  width:600px;height:600px;
-  background:radial-gradient(circle at 40% 40%,rgba(0,85,255,.06) 0%,transparent 65%);
-  border-radius:50%;
-  border:1px solid rgba(0,85,255,.06);
-}
-.hero-globe::before{
-  content:'';position:absolute;inset:60px;
-  border-radius:50%;border:1px solid rgba(0,85,255,.05);
-}
-.hero-globe::after{
-  content:'';position:absolute;inset:120px;
-  border-radius:50%;border:1px solid rgba(0,85,255,.04);
-}
-.hero-inner{max-width:1140px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center}
-.hero-eyebrow{
-  display:inline-flex;align-items:center;gap:8px;
-  background:white;border:1px solid var(--border);
-  padding:7px 16px;border-radius:40px;font-size:13px;
-  font-weight:600;color:var(--muted);margin-bottom:28px;
-  box-shadow:0 2px 8px rgba(0,0,0,.06);
-}
-.hero-eyebrow .dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
-@keyframes blink{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+/* STATS */
+.stats-bar{background:#F8FAFC;padding:40px 24px;border-bottom:1px solid #E2E8F0}
+.stats-bar-inner{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center}
+.stat-item-val{font-size:32px;font-weight:800;color:var(--dark)}
+.stat-item-lbl{font-size:13px;color:#64748B;margin-top:4px}
 
-h1{
-  font-family:'Playfair Display',serif;
-  font-size:clamp(40px,5vw,62px);
-  line-height:1.08;color:var(--navy);
-  margin-bottom:22px;letter-spacing:-.5px;
-}
-h1 .accent{color:var(--blue);font-style:italic}
-h1 .world{
-  display:inline-block;position:relative;
-}
-h1 .world::after{
-  content:'';position:absolute;bottom:-4px;left:0;right:0;height:3px;
-  background:linear-gradient(90deg,var(--blue),var(--accent));
-  border-radius:2px;
-}
+/* FEATURES */
+.features{padding:80px 24px;background:white}
+.section-tag{display:inline-block;background:rgba(0,85,255,.08);color:var(--blue);padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:12px}
+.section-title{font-size:32px;font-weight:800;color:var(--dark);margin-bottom:12px;line-height:1.3}
+.section-sub{font-size:16px;color:#64748B;max-width:500px;line-height:1.7}
+.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1000px;margin:48px auto 0}
+.feat-card{padding:24px;border-radius:14px;border:1px solid #E2E8F0;transition:transform .2s,box-shadow .2s}
+.feat-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.08)}
+.feat-icon{font-size:32px;margin-bottom:12px}
+.feat-title{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--dark)}
+.feat-desc{font-size:13px;color:#64748B;line-height:1.6}
 
-.hero-sub{
-  font-size:17px;color:var(--muted);line-height:1.7;
-  margin-bottom:38px;font-weight:400;max-width:480px;
-}
+/* HOW IT WORKS */
+.how{padding:80px 24px;background:#F8FAFC}
+.how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;max-width:900px;margin:48px auto 0}
+.step{text-align:center;padding:24px}
+.step-num{width:48px;height:48px;background:var(--blue);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;margin:0 auto 16px}
+.step-title{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--dark)}
+.step-desc{font-size:13px;color:#64748B;line-height:1.6}
 
-.hero-form{
-  display:flex;gap:10px;margin-bottom:26px;
-  max-width:480px;
-}
-.hero-input{
-  flex:1;padding:14px 18px;border-radius:10px;
-  border:1.5px solid var(--border);background:white;
-  font-family:inherit;font-size:14px;color:var(--text);
-  outline:none;transition:border-color .2s;
-  box-shadow:0 2px 8px rgba(0,0,0,.04);
-}
-.hero-input:focus{border-color:var(--blue)}
-.hero-input::placeholder{color:#94A3B8}
-.btn-hero{
-  background:var(--blue);color:white;border:none;
-  padding:14px 26px;border-radius:10px;font-size:15px;
-  font-weight:600;cursor:pointer;font-family:inherit;
-  white-space:nowrap;transition:all .2s;
-  box-shadow:0 4px 16px rgba(0,85,255,.3);
-}
-.btn-hero:hover{background:var(--blue-dark);transform:translateY(-1px);box-shadow:0 6px 20px rgba(0,85,255,.4)}
+/* PRICING */
+.pricing{padding:80px 24px;background:white}
+.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:900px;margin:48px auto 0}
+.price-card{border-radius:16px;padding:28px;border:2px solid #E2E8F0;position:relative;transition:transform .2s}
+.price-card:hover{transform:translateY(-4px)}
+.price-card.popular{border-color:var(--blue);box-shadow:0 8px 32px rgba(0,85,255,.15)}
+.price-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--blue);color:white;padding:4px 16px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.price-name{font-size:20px;font-weight:700;margin-bottom:4px;color:var(--dark)}
+.price-amount{font-size:36px;font-weight:800;color:var(--dark);margin-bottom:4px}
+.price-amount span{font-size:14px;font-weight:400;color:#64748B}
+.price-desc{font-size:12px;color:#64748B;margin-bottom:20px}
+.price-features{list-style:none;margin-bottom:24px}
+.price-features li{padding:6px 0;font-size:13px;color:#374151;display:flex;align-items:center;gap:8px;border-bottom:1px solid #F1F5F9}
+.price-features li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
+.price-btn{display:block;width:100%;padding:13px;border-radius:9px;text-align:center;text-decoration:none;font-weight:700;font-size:14px;transition:transform .2s}
+.price-btn-main{background:var(--blue);color:white}
+.price-btn-sec{background:#F1F5F9;color:var(--dark)}
+.price-btn:hover{transform:scale(1.02)}
 
-.hero-note{font-size:12px;color:#94A3B8;display:flex;align-items:center;gap:6px;margin-bottom:36px}
-.hero-note::before{content:'✓';color:var(--green);font-weight:700}
-
-.hero-social{display:flex;align-items:center;gap:14px}
-.hs-faces{display:flex}
-.hs-face{
-  width:34px;height:34px;border-radius:50%;
-  border:2.5px solid white;display:flex;align-items:center;
-  justify-content:center;font-size:13px;font-weight:700;
-  color:white;margin-left:-9px;flex-shrink:0;
-}
-.hs-face:first-child{margin-left:0}
-.hs-text{font-size:13px;color:var(--muted);font-weight:500}
-.hs-text strong{color:var(--navy)}
-
-/* ── HERO VISUAL ── */
-.hero-visual{position:relative;animation:rise .9s ease both}
-@keyframes rise{from{opacity:0;transform:translateY(28px)}to{opacity:1;transform:translateY(0)}}
-
-.phone-mockup{
-  background:var(--navy);border-radius:28px;
-  padding:20px;
-  box-shadow:0 40px 80px rgba(2,11,46,.25),0 0 0 1px rgba(255,255,255,.06);
-  position:relative;
-}
-.pm-notch{
-  width:100px;height:22px;background:rgba(0,0,0,.4);
-  border-radius:0 0 14px 14px;margin:0 auto 16px;
-}
-.pm-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
-.pm-title{color:white;font-size:14px;font-weight:700}
-.pm-live{display:flex;align-items:center;gap:5px;font-size:11px;color:#00C896;font-weight:600}
-.pm-live::before{content:'';width:6px;height:6px;border-radius:50%;background:#00C896;animation:blink 2s infinite;display:block}
-
-.pm-map{
-  background:linear-gradient(135deg,#0A1628 0%,#0D2145 100%);
-  border-radius:14px;padding:16px;margin-bottom:14px;
-  position:relative;overflow:hidden;height:110px;
-}
-.pm-map::before{
-  content:'';position:absolute;inset:0;
-  background:
-    radial-gradient(circle at 25% 40%,rgba(0,85,255,.3) 0%,transparent 35%),
-    radial-gradient(circle at 75% 60%,rgba(0,200,150,.2) 0%,transparent 35%),
-    radial-gradient(circle at 50% 80%,rgba(255,107,53,.2) 0%,transparent 25%);
-}
-.map-dot{
-  position:absolute;width:10px;height:10px;border-radius:50%;
-  animation:ping 2s infinite;
-}
-.map-dot::after{
-  content:'';position:absolute;inset:-4px;border-radius:50%;
-  border:2px solid currentColor;animation:pingRing 2s infinite;opacity:.5;
-}
-@keyframes ping{0%,100%{transform:scale(1)}50%{transform:scale(1.2)}}
-@keyframes pingRing{0%{transform:scale(.8);opacity:.8}100%{transform:scale(2);opacity:0}}
-.md1{top:35%;left:22%;color:#00C896;background:#00C896}
-.md2{top:55%;left:68%;color:#0055FF;background:#0055FF;animation-delay:.7s}
-.md3{top:25%;left:55%;color:#FF6B35;background:#FF6B35;animation-delay:1.3s}
-.map-label{position:absolute;bottom:10px;right:12px;font-size:10px;color:rgba(255,255,255,.5);font-weight:500}
-
-.pm-stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-bottom:12px}
-.pmstat{background:rgba(255,255,255,.07);border-radius:10px;padding:10px;border:1px solid rgba(255,255,255,.06)}
-.pmstat-n{font-size:18px;font-weight:800;color:white}
-.pmstat-l{font-size:9px;color:rgba(255,255,255,.45);margin-top:2px}
-.pmstat.g .pmstat-n{color:#00C896}
-.pmstat.b .pmstat-n{color:#60A5FA}
-
-.pm-order{
-  background:rgba(255,255,255,.06);border-radius:10px;
-  padding:10px 12px;display:flex;justify-content:space-between;
-  align-items:center;margin-bottom:7px;
-  border:1px solid rgba(255,255,255,.05);
-  animation:slideR .5s ease both;
-}
-.pm-order:nth-child(1){animation-delay:.2s}
-.pm-order:nth-child(2){animation-delay:.4s}
-@keyframes slideR{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
-.po-name{font-size:11px;font-weight:600;color:white}
-.po-sub{font-size:9px;color:rgba(255,255,255,.4);margin-top:1px}
-.po-price{font-size:12px;font-weight:700;color:#00C896}
-.po-st{font-size:9px;padding:2px 7px;border-radius:20px;margin-top:2px;font-weight:600;text-align:right}
-.st-ok{background:rgba(0,200,150,.15);color:#00C896}
-.st-wip{background:rgba(251,146,60,.15);color:#FB923C}
-
-.float-notif{
-  position:absolute;top:-20px;right:-30px;
-  background:white;border-radius:14px;padding:12px 16px;
-  box-shadow:0 8px 32px rgba(0,0,0,.12);
-  display:flex;align-items:center;gap:11px;
-  animation:floatN 1s ease .4s both;min-width:200px;
-}
-@keyframes floatN{from{opacity:0;transform:translateY(-14px)}to{opacity:1;transform:translateY(0)}}
-.fn-icon{font-size:24px}
-.fn-title{font-size:12px;font-weight:700;color:var(--navy)}
-.fn-sub{font-size:11px;color:var(--muted);margin-top:1px}
-
-.float-stat{
-  position:absolute;bottom:-20px;left:-30px;
-  background:var(--navy);border-radius:14px;padding:13px 17px;
-  box-shadow:0 8px 32px rgba(2,11,46,.2);
-  animation:floatS 1s ease .6s both;
-}
-@keyframes floatS{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
-.fs-val{font-size:22px;font-weight:800;color:#00C896}
-.fs-lbl{font-size:11px;color:rgba(255,255,255,.6);margin-top:2px}
-
-/* ── WORLD COUNTER ── */
-.world-bar{
-  background:var(--navy);padding:48px 6%;
-}
-.world-inner{
-  max-width:1140px;margin:0 auto;
-  display:grid;grid-template-columns:repeat(4,1fr);
-  gap:20px;text-align:center;
-}
-.wstat-n{font-family:'Playfair Display',serif;font-size:44px;color:white;line-height:1}
-.wstat-n span{color:var(--green)}
-.wstat-l{font-size:13px;color:rgba(255,255,255,.5);margin-top:6px}
-
-/* ── FEATURES ── */
-.features{padding:100px 6%;background:white}
-.features-inner{max-width:1140px;margin:0 auto}
-.sec-label{font-size:12px;font-weight:700;color:var(--blue);text-transform:uppercase;letter-spacing:1.5px;margin-bottom:10px}
-.sec-title{font-family:'Playfair Display',serif;font-size:clamp(28px,4vw,44px);color:var(--navy);line-height:1.15;margin-bottom:14px;letter-spacing:-.3px}
-.sec-sub{font-size:16px;color:var(--muted);max-width:500px;line-height:1.7;margin-bottom:56px}
-
-.feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.fcard{
-  background:var(--bg);border-radius:18px;padding:28px;
-  border:1px solid var(--border);transition:all .25s;
-  position:relative;overflow:hidden;
-}
-.fcard::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:transparent;transition:background .25s}
-.fcard:hover{border-color:transparent;box-shadow:0 12px 40px rgba(0,85,255,.1);transform:translateY(-3px)}
-.fcard:hover::before{background:linear-gradient(90deg,var(--blue),var(--accent))}
-.ficon{width:48px;height:48px;border-radius:13px;background:var(--blue-light);display:flex;align-items:center;justify-content:center;font-size:22px;margin-bottom:16px}
-.ftitle{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:8px}
-.fdesc{font-size:13px;color:var(--muted);line-height:1.65}
-.fnew{
-  display:inline-block;background:rgba(255,107,53,.1);color:var(--accent);
-  font-size:9px;font-weight:700;padding:2px 8px;border-radius:20px;
-  margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;
-}
-
-/* ── GLOBAL ── */
-.global{padding:100px 6%;background:var(--bg)}
-.global-inner{max-width:1140px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:70px;align-items:center}
-.globe-visual{
-  background:linear-gradient(135deg,var(--navy) 0%,#0A1E4A 100%);
-  border-radius:24px;padding:36px;
-  box-shadow:0 20px 60px rgba(2,11,46,.2);
-}
-.gv-title{color:white;font-size:14px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px}
-.gv-dot{width:8px;height:8px;border-radius:50%;background:var(--green);animation:blink 2s infinite}
-.gv-map-area{
-  background:rgba(0,85,255,.08);border-radius:16px;padding:20px;
-  position:relative;margin-bottom:16px;height:140px;
-  border:1px solid rgba(0,85,255,.15);
-  display:flex;align-items:center;justify-content:center;
-  overflow:hidden;
-}
-.gv-map-area::before{
-  content:'🌍';font-size:80px;opacity:.15;
-}
-.location-pin{
-  position:absolute;background:white;border-radius:20px;
-  padding:5px 11px;font-size:11px;font-weight:600;color:var(--navy);
-  box-shadow:0 4px 12px rgba(0,0,0,.15);
-  display:flex;align-items:center;gap:5px;
-  animation:floatPin 3s ease-in-out infinite;
-}
-.location-pin::before{content:'📍';font-size:12px}
-.lp1{top:15%;left:15%;animation-delay:0s}
-.lp2{top:20%;right:12%;animation-delay:.8s}
-.lp3{bottom:20%;left:25%;animation-delay:1.6s}
-.lp4{bottom:15%;right:18%;animation-delay:2.4s}
-@keyframes floatPin{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
-.gv-langs{display:flex;gap:8px;flex-wrap:wrap}
-.lang-chip{
-  background:rgba(255,255,255,.08);color:rgba(255,255,255,.8);
-  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;
-  border:1px solid rgba(255,255,255,.1);
-}
-.lang-chip.active{background:var(--blue);color:white;border-color:var(--blue)}
-
-/* ── WORKFLOW ── */
-.workflow{padding:100px 6%;background:white}
-.workflow-inner{max-width:1140px;margin:0 auto}
-.wf-steps{display:grid;grid-template-columns:repeat(4,1fr);gap:24px;margin-top:56px;position:relative}
-.wf-steps::before{
-  content:'';position:absolute;top:34px;left:8%;right:8%;height:1px;
-  background:repeating-linear-gradient(90deg,var(--blue) 0,var(--blue) 6px,transparent 6px,transparent 14px);
-  opacity:.25;
-}
-.wstep{text-align:center;position:relative}
-.wstep-n{
-  width:68px;height:68px;border-radius:50%;
-  background:white;border:2px solid var(--blue);
-  color:var(--blue);display:flex;align-items:center;justify-content:center;
-  font-size:22px;font-weight:800;margin:0 auto 18px;
-  position:relative;z-index:1;transition:all .3s;
-  box-shadow:0 0 0 8px rgba(0,85,255,.06);
-}
-.wstep:hover .wstep-n{background:var(--blue);color:white;box-shadow:0 0 0 8px rgba(0,85,255,.12)}
-.wstep-title{font-size:16px;font-weight:700;color:var(--navy);margin-bottom:8px}
-.wstep-desc{font-size:13px;color:var(--muted);line-height:1.6}
-
-/* ── PRICING ── */
-.pricing{padding:100px 6%;background:var(--bg)}
-.pricing-inner{max-width:1000px;margin:0 auto;text-align:center}
-.pricing-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:20px;margin-top:52px}
-.pcard{
-  border-radius:22px;padding:36px 28px;border:1.5px solid var(--border);
-  position:relative;transition:all .25s;text-align:left;background:white;
-}
-.pcard:hover{transform:translateY(-5px);box-shadow:0 20px 50px rgba(0,85,255,.1)}
-.pcard.hot{
-  background:var(--navy);border-color:var(--navy);
-  box-shadow:0 24px 60px rgba(2,11,46,.25);
-}
-.pbadge{
-  position:absolute;top:-13px;left:50%;transform:translateX(-50%);
-  background:linear-gradient(90deg,var(--blue),var(--accent));
-  color:white;padding:4px 18px;border-radius:20px;
-  font-size:11px;font-weight:700;white-space:nowrap;
-}
-.pname{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:12px}
-.pcard.hot .pname{color:rgba(255,255,255,.5)}
-.pamount{font-family:'Playfair Display',serif;font-size:54px;color:var(--navy);line-height:1;display:flex;align-items:flex-start;gap:2px}
-.pcard.hot .pamount{color:white}
-.psym{font-family:'Sora',sans-serif;font-size:22px;font-weight:700;margin-top:10px}
-.pdec{font-family:'Sora',sans-serif;font-size:26px;font-weight:700;margin-top:14px}
-.pper{font-size:13px;color:var(--muted);margin-bottom:28px;margin-top:4px}
-.pcard.hot .pper{color:rgba(255,255,255,.5)}
-.pfeats{list-style:none;margin-bottom:28px}
-.pfeats li{
-  display:flex;align-items:flex-start;gap:9px;
-  font-size:13px;color:var(--text);padding:7px 0;
-  border-bottom:1px solid var(--border);
-}
-.pfeats li:last-child{border-bottom:none}
-.pcard.hot .pfeats li{color:rgba(255,255,255,.8);border-color:rgba(255,255,255,.08)}
-.pfeats li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0;margin-top:1px}
-.pbtn{
-  width:100%;padding:13px;border-radius:10px;font-size:14px;
-  font-weight:600;cursor:pointer;font-family:inherit;border:none;transition:all .2s;
-}
-.pbtn-o{background:transparent;color:var(--blue);border:1.5px solid var(--blue)}
-.pbtn-o:hover{background:var(--blue);color:white}
-.pbtn-s{background:var(--blue);color:white}
-.pbtn-s:hover{background:var(--blue-dark)}
-.pbtn-w{background:white;color:var(--navy)}
-.pbtn-w:hover{background:var(--blue-light);color:var(--blue)}
-
-/* ── TESTIMONIALS ── */
-.testi{padding:100px 6%;background:white}
-.testi-inner{max-width:1140px;margin:0 auto}
-.tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-top:52px}
-.tcard{
-  background:var(--bg);border-radius:18px;padding:28px;
-  border:1px solid var(--border);transition:all .2s;
-}
-.tcard:hover{border-color:var(--blue);box-shadow:0 8px 30px rgba(0,85,255,.08)}
-.tstars{color:#FBBF24;font-size:14px;margin-bottom:14px;letter-spacing:2px}
-.ttext{font-size:14px;color:var(--text);line-height:1.7;margin-bottom:20px;font-style:italic}
-.tauthor{display:flex;align-items:center;gap:12px}
-.tavatar{
-  width:40px;height:40px;border-radius:50%;
-  background:var(--blue);color:white;
-  display:flex;align-items:center;justify-content:center;
-  font-weight:700;font-size:16px;flex-shrink:0;
-}
-.tname{font-size:13px;font-weight:700;color:var(--navy)}
-.trole{font-size:11px;color:var(--muted);margin-top:1px}
-.tcountry{font-size:11px;margin-top:1px}
-
-/* ── FAQ ── */
-.faq{padding:90px 6%;background:var(--bg)}
-.faq-inner{max-width:680px;margin:0 auto;text-align:center}
-.faq-list{margin-top:44px;text-align:left}
-.faq-item{background:white;border-radius:12px;margin-bottom:10px;overflow:hidden;border:1px solid var(--border);transition:border-color .2s}
-.faq-item.open{border-color:var(--blue)}
-.faq-q{
-  width:100%;background:none;border:none;cursor:pointer;
-  padding:18px 20px;display:flex;justify-content:space-between;
-  align-items:center;font-size:15px;font-weight:600;
-  color:var(--navy);font-family:inherit;text-align:left;
-}
-.faq-arrow{transition:transform .25s;color:var(--blue);font-size:18px;flex-shrink:0}
-.faq-item.open .faq-arrow{transform:rotate(180deg)}
-.faq-a{
-  font-size:14px;color:var(--muted);line-height:1.7;
-  padding:0 20px;max-height:0;overflow:hidden;
-  transition:max-height .3s ease,padding .3s ease;
-}
+/* FAQ */
+.faq{padding:80px 24px;background:#F8FAFC}
+.faq-list{max-width:700px;margin:48px auto 0}
+.faq-item{background:white;border-radius:12px;margin-bottom:10px;border:1px solid #E2E8F0;overflow:hidden}
+.faq-q{padding:18px 20px;font-weight:600;font-size:14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;color:var(--dark)}
+.faq-q::after{content:'+';font-size:20px;color:#64748B;transition:transform .2s}
+.faq-item.open .faq-q::after{transform:rotate(45deg)}
+.faq-a{padding:0 20px;max-height:0;overflow:hidden;transition:max-height .3s,padding .3s;font-size:13px;color:#64748B;line-height:1.7}
 .faq-item.open .faq-a{max-height:200px;padding:0 20px 18px}
 
-/* ── CTA ── */
-.cta{
-  padding:100px 6%;
-  background:linear-gradient(145deg,var(--navy) 0%,#0A1E4A 100%);
-  text-align:center;position:relative;overflow:hidden;
-}
-.cta::before{
-  content:'';position:absolute;top:-200px;left:50%;transform:translateX(-50%);
-  width:900px;height:900px;
-  background:radial-gradient(circle,rgba(0,85,255,.18) 0%,transparent 65%);
-  border-radius:50%;
-}
-.cta-inner{max-width:580px;margin:0 auto;position:relative}
-.cta-eyebrow{
-  display:inline-flex;align-items:center;gap:6px;
-  background:rgba(0,200,150,.1);color:var(--green);
-  padding:6px 16px;border-radius:20px;font-size:12px;font-weight:700;
-  margin-bottom:22px;border:1px solid rgba(0,200,150,.2);
-}
-.cta-title{
-  font-family:'Playfair Display',serif;
-  font-size:clamp(32px,5vw,50px);
-  color:white;margin-bottom:16px;line-height:1.15;letter-spacing:-.3px;
-}
-.cta-sub{font-size:16px;color:rgba(255,255,255,.6);margin-bottom:36px;line-height:1.7}
-.cta-form{display:flex;gap:10px;max-width:440px;margin:0 auto 16px}
-.cta-inp{
-  flex:1;padding:14px 17px;border-radius:10px;
-  border:1.5px solid rgba(255,255,255,.15);
-  background:rgba(255,255,255,.08);color:white;
-  font-family:inherit;font-size:14px;outline:none;
-  backdrop-filter:blur(4px);
-}
-.cta-inp::placeholder{color:rgba(255,255,255,.4)}
-.cta-inp:focus{border-color:rgba(255,255,255,.4)}
-.cta-note{font-size:12px;color:rgba(255,255,255,.35)}
-.cta-flags{display:flex;justify-content:center;gap:8px;margin-top:20px;font-size:22px}
+/* TESTIMONIOS */
+.testimonios{padding:80px 24px;background:white}
+.test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1000px;margin:48px auto 0}
+.test-card{background:#F8FAFC;border-radius:14px;padding:24px;border:1px solid #E2E8F0}
+.test-stars{color:#F59E0B;font-size:16px;margin-bottom:12px}
+.test-text{font-size:13px;color:#374151;line-height:1.7;margin-bottom:16px;font-style:italic}
+.test-author{display:flex;align-items:center;gap:10px}
+.test-avatar{width:36px;height:36px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px}
+.test-name{font-size:13px;font-weight:700;color:var(--dark)}
+.test-role{font-size:11px;color:#64748B}
 
-/* ── FOOTER ── */
-footer{padding:60px 6% 28px;background:#020B2E}
-.footer-inner{max-width:1140px;margin:0 auto}
-.footer-top{display:grid;grid-template-columns:2.5fr 1fr 1fr 1fr;gap:40px;margin-bottom:48px}
-.fbrand-name{font-size:21px;font-weight:700;color:white;margin-bottom:10px;display:flex;align-items:center;gap:10px}
-.fbrand-mark{width:30px;height:30px;background:var(--blue);border-radius:8px;display:flex;align-items:center;justify-content:center;color:white;font-size:15px;font-weight:800}
-.fbrand-desc{font-size:13px;color:rgba(255,255,255,.45);line-height:1.65;margin-bottom:18px}
-.fsocial{display:flex;gap:10px}
-.fsoc-btn{
-  width:36px;height:36px;border-radius:8px;
-  background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.08);
-  display:flex;align-items:center;justify-content:center;
-  font-size:14px;text-decoration:none;transition:all .2s;color:white;
-}
-.fsoc-btn:hover{background:var(--blue);border-color:var(--blue)}
-.fcol h4{font-size:11px;font-weight:700;color:rgba(255,255,255,.35);text-transform:uppercase;letter-spacing:1.2px;margin-bottom:16px}
-.fcol a{display:block;font-size:13px;color:rgba(255,255,255,.5);text-decoration:none;margin-bottom:10px;transition:color .2s}
-.fcol a:hover{color:white}
-.footer-bottom{
-  border-top:1px solid rgba(255,255,255,.07);padding-top:24px;
-  display:flex;justify-content:space-between;align-items:center;
-  font-size:12px;color:rgba(255,255,255,.3);
-}
-.flang{display:flex;gap:14px}
-.flang a{color:rgba(255,255,255,.3);text-decoration:none;font-size:12px;transition:color .2s}
-.flang a:hover,.flang a.active{color:white}
+/* CTA */
+.cta{background:linear-gradient(135deg,#020B2E,#0A1A4E);padding:80px 24px;text-align:center;color:white}
+.cta h2{font-size:32px;font-weight:800;margin-bottom:12px}
+.cta p{color:rgba(255,255,255,.7);font-size:16px;margin-bottom:32px}
+.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
 
-/* ── RESPONSIVE ── */
-@media(max-width:960px){
-  .hero-inner,.global-inner{grid-template-columns:1fr}
+/* FOOTER */
+footer{background:#020B2E;padding:40px 24px;color:rgba(255,255,255,.6)}
+.footer-inner{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px}
+.footer-logo{font-size:20px;font-weight:800;color:white;margin-bottom:8px}
+.footer-desc{font-size:13px;line-height:1.6}
+.footer-col h4{color:white;font-size:13px;font-weight:700;margin-bottom:12px}
+.footer-col a{display:block;color:rgba(255,255,255,.6);text-decoration:none;font-size:13px;padding:3px 0}
+.footer-col a:hover{color:white}
+.footer-bottom{max-width:1000px;margin:24px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center;font-size:12px}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+  .hero-content{grid-template-columns:1fr}
   .hero-visual{display:none}
-  .feat-grid{grid-template-columns:1fr 1fr}
-  .wf-steps{grid-template-columns:1fr 1fr}
-  .wf-steps::before{display:none}
-  .pricing-cards{grid-template-columns:1fr;max-width:380px;margin:52px auto 0}
-  .tgrid{grid-template-columns:1fr}
-  .footer-top{grid-template-columns:1fr 1fr}
-  .world-inner{grid-template-columns:1fr 1fr}
-  .nav-links{display:none}
-  .cta-form{flex-direction:column}
+  .hero h1{font-size:28px}
+  .stats-bar-inner{grid-template-columns:1fr 1fr}
+  .features-grid{grid-template-columns:1fr}
+  .how-steps{grid-template-columns:1fr}
+  .pricing-grid{grid-template-columns:1fr}
+  .test-grid{grid-template-columns:1fr}
+  .footer-inner{grid-template-columns:1fr}
+  .nav-links .hide-mobile{display:none}
 }
-@media(max-width:600px){
-  .feat-grid{grid-template-columns:1fr}
-  .wf-steps{grid-template-columns:1fr}
-  .footer-top{grid-template-columns:1fr}
-  .footer-bottom{flex-direction:column;gap:12px;text-align:center}
-  .world-inner{grid-template-columns:1fr 1fr}
-}
-
-/* REVEAL */
-.reveal{opacity:0;transform:translateY(22px);transition:all .65s ease}
-.reveal.visible{opacity:1;transform:translateY(0)}
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
-<div class="topbar">
-  <div class="topbar-badge">🚀 LANZAMIENTO</div>
-  Tekpair ya está disponible — <strong>&nbsp;14 días gratis</strong>&nbsp; · Sin tarjeta de crédito
-</div>
-
 <!-- NAV -->
-<nav id="nav">
-  <a href="#" class="logo">
-    <div class="logo-mark">T</div>
-    <span class="logo-name">Tekpair</span>
-  </a>
+<nav>
+  <a href="#" class="nav-logo">⚡ Tekpair</a>
   <div class="nav-links">
-    <a href="#features">Funciones</a>
-    <a href="#global">Global</a>
-    <a href="#pricing">Precios</a>
-    <a href="#faq">FAQ</a>
-  </div>
-  <div class="nav-right">
-    <a href="#" class="nav-login">Iniciar sesión</a>
-    <a href="#pricing" class="nav-cta">Empezar gratis</a>
+    <a href="#features" class="hide-mobile" data-i18n="nav.features">Características</a>
+    <a href="#pricing" class="hide-mobile" data-i18n="nav.pricing">Precios</a>
+    <a href="#faq" class="hide-mobile" data-i18n="nav.faq">FAQ</a>
+    <select class="lang-sel" onchange="setLang(this.value)">
+      <option value="es">🇪🇸 ES</option>
+      <option value="en">🇬🇧 EN</option>
+      <option value="fr">🇫🇷 FR</option>
+      <option value="pt">🇵🇹 PT</option>
+    </select>
+    <a href="/app.html" class="hide-mobile" data-i18n="nav.login">Entrar</a>
+    <a href="/registro.html" class="nav-cta" data-i18n="nav.start">Empezar gratis</a>
   </div>
 </nav>
 
 <!-- HERO -->
 <section class="hero">
-  <div class="hero-globe"></div>
-  <div class="hero-inner">
+  <div class="hero-content">
     <div>
-      <div class="hero-eyebrow">
-        <span class="dot"></span>
-        Software para tiendas de móviles · Disponible en todo el mundo
-      </div>
-      <h1>
-        Gestiona tu tienda<br>
-        desde <span class="world">cualquier lugar</span><br>
-        del <span class="accent">mundo</span>
-      </h1>
-      <p class="hero-sub">
-        Tekpair es la plataforma que lleva tu tienda de reparación al siguiente nivel. Control total desde tu móvil, tablet o PC — donde estés, cuando quieras.
-      </p>
-      <div class="hero-form">
-        <input type="email" class="hero-input" placeholder="tu@email.com" />
-        <button class="btn-hero">Empezar gratis →</button>
-      </div>
-      <div class="hero-note">14 días gratis · Sin tarjeta de crédito · Cancela cuando quieras</div>
-      <div class="hero-social">
-        <div class="hs-faces">
-          <span class="hs-face" style="background:#0055FF">M</span>
-          <span class="hs-face" style="background:#00C896">A</span>
-          <span class="hs-face" style="background:#FF6B35">R</span>
-          <span class="hs-face" style="background:#7C3AED">S</span>
-        </div>
-        <span class="hs-text"><strong>+200 tiendas</strong> en 12 países ya usan Tekpair</span>
+      <div class="hero-badge">✨ <span data-i18n="hero.badge">Nuevo · Software para reparadoras</span></div>
+      <h1 data-i18n="hero.title">Gestiona tu tienda de reparación <span>sin complicaciones</span></h1>
+      <p data-i18n="hero.subtitle">Ventas, reparaciones, stock y clientes en una sola app. Desde cualquier dispositivo, sin instalaciones.</p>
+      <div class="hero-btns">
+        <a href="/registro.html" class="btn-primary">🚀 <span data-i18n="hero.cta1">Empezar ahora</span></a>
+        <a href="/app.html" class="btn-secondary" data-i18n="hero.cta2">Ver demo</a>
       </div>
     </div>
     <div class="hero-visual">
       <div class="phone-mockup">
-        <div class="pm-notch"></div>
-        <div class="pm-header">
-          <span class="pm-title">📱 Tekpair</span>
-          <span class="pm-live">En vivo</span>
+        <div class="phone-screen">
+          <div class="phone-topbar">
+            <span class="phone-logo">⚡ Tekpair</span>
+            <span style="color:rgba(255,255,255,.6);font-size:10px">Admin</span>
+          </div>
+          <div class="phone-body">
+            <div style="font-size:11px;color:#64748B;margin-bottom:8px">Hoy, jueves 7 mayo</div>
+            <div class="phone-stats">
+              <div class="phone-stat"><div class="phone-stat-n" style="color:#0055FF">12</div><div class="phone-stat-l">Ventas</div></div>
+              <div class="phone-stat"><div class="phone-stat-n" style="color:#00C896">€847</div><div class="phone-stat-l">Ingresos</div></div>
+              <div class="phone-stat"><div class="phone-stat-n" style="color:#F97316">8</div><div class="phone-stat-l">Reparaciones</div></div>
+              <div class="phone-stat"><div class="phone-stat-n" style="color:#7C3AED">34</div><div class="phone-stat-l">Stock</div></div>
+            </div>
+            <div class="phone-card">
+              <div class="phone-card-title">Últimas reparaciones</div>
+              <div class="phone-row"><span>Carlos M. — iPhone 14</span><span class="phone-badge phone-badge-g">Entregado</span></div>
+              <div class="phone-row"><span>Ana R. — Samsung S23</span><span class="phone-badge">En proceso</span></div>
+              <div class="phone-row"><span>Luis P. — Xiaomi 12</span><span class="phone-badge" style="background:rgba(249,115,22,.1);color:#C2410C">Pendiente</span></div>
+            </div>
+          </div>
         </div>
-        <div class="pm-map">
-          <div class="map-dot md1"></div>
-          <div class="map-dot md2"></div>
-          <div class="map-dot md3"></div>
-          <div class="map-label">Conexiones activas · 12 países</div>
-        </div>
-        <div class="pm-stats">
-          <div class="pmstat g"><div class="pmstat-n">€1,840</div><div class="pmstat-l">Hoy</div></div>
-          <div class="pmstat b"><div class="pmstat-n">17</div><div class="pmstat-l">Órdenes</div></div>
-          <div class="pmstat"><div class="pmstat-n">52</div><div class="pmstat-l">Stock</div></div>
-        </div>
-        <div class="pm-order">
-          <div><div class="po-name">Carlos M. · iPhone 14</div><div class="po-sub">IMEI: 352...891</div></div>
-          <div><div class="po-price">€320</div><div class="po-st st-ok">Entregado</div></div>
-        </div>
-        <div class="pm-order">
-          <div><div class="po-name">Ana G. · Samsung S24</div><div class="po-sub">Pantalla rota</div></div>
-          <div><div class="po-price">€160</div><div class="po-st st-wip">En proceso</div></div>
-        </div>
-      </div>
-      <div class="float-notif">
-        <div class="fn-icon">💬</div>
-        <div><div class="fn-title">WhatsApp enviado ✓</div><div class="fn-sub">Tu equipo está listo para recoger</div></div>
-      </div>
-      <div class="float-stat">
-        <div class="fs-val">+34%</div>
-        <div class="fs-lbl">ventas este mes</div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- WORLD STATS -->
-<div class="world-bar">
-  <div class="world-inner">
-    <div class="wstat reveal"><div class="wstat-n">200<span>+</span></div><div class="wstat-l">Tiendas activas</div></div>
-    <div class="wstat reveal"><div class="wstat-n">12</div><div class="wstat-l">Países</div></div>
-    <div class="wstat reveal"><div class="wstat-n">4</div><div class="wstat-l">Idiomas</div></div>
-    <div class="wstat reveal"><div class="wstat-n">€14<span>.90</span></div><div class="wstat-l">Por mes</div></div>
+<!-- STATS -->
+<div class="stats-bar">
+  <div class="stats-bar-inner">
+    <div><div class="stat-item-val">500+</div><div class="stat-item-lbl" data-i18n="stats.shops">Tiendas activas</div></div>
+    <div><div class="stat-item-val">50k+</div><div class="stat-item-lbl" data-i18n="stats.repairs">Reparaciones gestionadas</div></div>
+    <div><div class="stat-item-val">99.9%</div><div class="stat-item-lbl" data-i18n="stats.uptime">Disponibilidad</div></div>
+    <div><div class="stat-item-val">4.9★</div><div class="stat-item-lbl" data-i18n="stats.rating">Valoración media</div></div>
   </div>
 </div>
 
 <!-- FEATURES -->
 <section class="features" id="features">
-  <div class="features-inner">
-    <div class="sec-label">Funcionalidades</div>
-    <h2 class="sec-title">Todo lo que necesitas.<br>Nada de lo que no.</h2>
-    <p class="sec-sub">Cada función ha sido diseñada pensando en el día a día de una tienda de reparación real.</p>
-    <div class="feat-grid">
-      <div class="fcard reveal">
-        <div class="ficon">📱</div>
-        <div class="ftitle">Control de Stock por IMEI</div>
-        <div class="fdesc">Cada teléfono tiene su IMEI único registrado. Vende directamente sin necesidad de orden de reparación. Sin duplicados, sin errores.</div>
-      </div>
-      <div class="fcard reveal">
-        <div class="ficon">🔧</div>
-        <div class="ftitle">Gestión de Reparaciones</div>
-        <div class="fdesc">Crea órdenes, asigna técnicos y cambia estados al instante. Por asignar · En proceso · Por entregar · Entregado · Garantía.</div>
-      </div>
-      <div class="fcard reveal">
-        <div class="fnew">Nuevo</div>
-        <div class="ficon">✅</div>
-        <div class="ftitle">Checklist de Recepción</div>
-        <div class="fdesc">Documenta el estado del equipo al recibirlo. Pantalla, cámaras, Face ID, botones. Sin reclamaciones injustificadas.</div>
-      </div>
-      <div class="fcard reveal">
-        <div class="fnew">Nuevo</div>
-        <div class="ficon">💬</div>
-        <div class="ftitle">Avisos por WhatsApp</div>
-        <div class="fdesc">Notifica al cliente el estado de su reparación con un solo clic. Menos llamadas, más satisfacción, mejor imagen.</div>
-      </div>
-      <div class="fcard reveal">
-        <div class="ficon">🧾</div>
-        <div class="ftitle">Facturación Profesional</div>
-        <div class="fdesc">Facturas PDF, tickets térmicos y stickers. Efectivo, tarjeta, PayPal, Bizum y más métodos de pago.</div>
-      </div>
-      <div class="fcard reveal">
-        <div class="fnew">Nuevo</div>
-        <div class="ficon">💰</div>
-        <div class="ftitle">Cierre de Caja Diario</div>
-        <div class="fdesc">Reporte diario de ingresos desglosado por método de pago. Cuadra las cuentas en segundos al final del día.</div>
-      </div>
-      <div class="fcard reveal">
-        <div class="fnew">Nuevo</div>
-        <div class="ficon">👷</div>
-        <div class="ftitle">Comisiones por Técnico</div>
-        <div class="fdesc">Asigna porcentajes de comisión a cada técnico por servicios o ventas. Se convierten en gastos automáticamente.</div>
-      </div>
-      <div class="fcard reveal">
-        <div class="fnew">Nuevo</div>
-        <div class="ficon">📊</div>
-        <div class="ftitle">Salud Financiera</div>
-        <div class="fdesc">Gráficas de ventas, gastos e inventario. Sabe en tiempo real si tu negocio va bien. Solo el admin lo ve.</div>
-      </div>
-      <div class="fcard reveal">
-        <div class="fnew">Nuevo</div>
-        <div class="ficon">🔔</div>
-        <div class="ftitle">Alertas de Stock</div>
-        <div class="fdesc">Recibe avisos cuando un componente baja del mínimo. Nunca te quedes sin una pieza en el momento que más la necesitas.</div>
-      </div>
-      <div class="fcard reveal">
-        <div class="fnew">Nuevo</div>
-        <div class="ficon">📦</div>
-        <div class="ftitle">Órdenes de Compra</div>
-        <div class="fdesc">Crea y envía pedidos a proveedores por WhatsApp. El inventario se actualiza automáticamente al confirmar el pago.</div>
-      </div>
-      <div class="fcard reveal">
-        <div class="fnew">Nuevo</div>
-        <div class="ficon">📈</div>
-        <div class="ftitle">Estadísticas y Exportación</div>
-        <div class="fdesc">Qué marcas y modelos reparas más. Exporta a Excel. Reportes automáticos por email cada semana.</div>
-      </div>
-      <div class="fcard reveal">
-        <div class="ficon">🏪</div>
-        <div class="ftitle">Multisucursal</div>
-        <div class="fdesc">Gestiona varias tiendas desde una sola cuenta. Vista individual o reporte general de todo el negocio.</div>
-      </div>
-    </div>
+  <div style="max-width:1000px;margin:0 auto;text-align:center">
+    <div class="section-tag" data-i18n="features.tag">Características</div>
+    <h2 class="section-title" data-i18n="features.title">Todo lo que necesitas para gestionar tu tienda</h2>
+    <p class="section-sub" style="margin:0 auto" data-i18n="features.sub">Una sola herramienta para ventas, reparaciones, stock y mucho más.</p>
   </div>
-</section>
-
-<!-- GLOBAL -->
-<section class="global" id="global">
-  <div class="global-inner">
-    <div>
-      <div class="sec-label">Alcance global</div>
-      <h2 class="sec-title">Hecho para técnicos de todo el mundo</h2>
-      <p style="font-size:16px;color:var(--muted);line-height:1.75;margin-bottom:28px">Tekpair nació con vocación internacional. Disponible en 4 idiomas, con soporte para monedas locales y pensado para que cualquier técnico del mundo pueda usarlo desde el primer día.</p>
-      <div style="display:flex;flex-direction:column;gap:14px">
-        <div style="display:flex;align-items:center;gap:12px;font-size:15px;color:var(--text)"><span style="font-size:20px">🌍</span> <strong>España, México, Colombia, Argentina...</strong></div>
-        <div style="display:flex;align-items:center;gap:12px;font-size:15px;color:var(--text)"><span style="font-size:20px">📱</span> <strong>Funciona en cualquier dispositivo</strong></div>
-        <div style="display:flex;align-items:center;gap:12px;font-size:15px;color:var(--text)"><span style="font-size:20px">🔒</span> <strong>Datos seguros con backup diario</strong></div>
-        <div style="display:flex;align-items:center;gap:12px;font-size:15px;color:var(--text)"><span style="font-size:20px">⚡</span> <strong>Sin instalación — 100% en el navegador</strong></div>
-      </div>
+  <div class="features-grid">
+    <div class="feat-card">
+      <div class="feat-icon">📱</div>
+      <div class="feat-title" data-i18n="feat1.title">Ventas y TPV</div>
+      <div class="feat-desc" data-i18n="feat1.desc">Registra ventas en segundos. Busca por IMEI, modelo o cliente. Múltiples formas de pago.</div>
     </div>
-    <div class="globe-visual reveal">
-      <div class="gv-title"><span class="gv-dot"></span> Tiendas activas ahora mismo</div>
-      <div class="gv-map-area">
-        <div class="location-pin lp1">Madrid 🇪🇸</div>
-        <div class="location-pin lp2">CDMX 🇲🇽</div>
-        <div class="location-pin lp3">Bogotá 🇨🇴</div>
-        <div class="location-pin lp4">París 🇫🇷</div>
-      </div>
-      <div class="gv-langs">
-        <div class="lang-chip active">🇪🇸 Español</div>
-        <div class="lang-chip active">🇬🇧 English</div>
-        <div class="lang-chip active">🇫🇷 Français</div>
-        <div class="lang-chip active">🇧🇷 Português</div>
-      </div>
+    <div class="feat-card">
+      <div class="feat-icon">🔧</div>
+      <div class="feat-title" data-i18n="feat2.title">Órdenes de reparación</div>
+      <div class="feat-desc" data-i18n="feat2.desc">Checklist de recepción, componentes, anticipos, notas internas y seguimiento de estado.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📦</div>
+      <div class="feat-title" data-i18n="feat3.title">Control de stock</div>
+      <div class="feat-desc" data-i18n="feat3.desc">Gestiona tu inventario con alertas de stock mínimo. Categorías, IMEI y precios automáticos.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">👥</div>
+      <div class="feat-title" data-i18n="feat4.title">Clientes y CRM</div>
+      <div class="feat-desc" data-i18n="feat4.desc">Historial completo por cliente. Badge de cliente frecuente. Búsqueda por nombre, teléfono o DNI.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">📊</div>
+      <div class="feat-title" data-i18n="feat5.title">Reportes y cierres</div>
+      <div class="feat-desc" data-i18n="feat5.desc">Reportes PDF con desglose por forma de pago. Cierre automático por email al final del día.</div>
+    </div>
+    <div class="feat-card">
+      <div class="feat-icon">👤</div>
+      <div class="feat-title" data-i18n="feat6.title">Usuarios y permisos</div>
+      <div class="feat-desc" data-i18n="feat6.desc">Crea cuentas para tus empleados con permisos personalizados por sección.</div>
     </div>
   </div>
 </section>
 
 <!-- HOW IT WORKS -->
-<section class="workflow" id="how">
-  <div class="workflow-inner">
-    <div style="text-align:center;margin-bottom:0">
-      <div class="sec-label">Proceso</div>
-      <h2 class="sec-title" style="text-align:center">Listo en 5 minutos</h2>
-      <p style="font-size:16px;color:var(--muted);text-align:center;max-width:440px;margin:0 auto">Sin instalaciones. Sin configuraciones complicadas. Sin excusas.</p>
+<section class="how">
+  <div style="max-width:1000px;margin:0 auto;text-align:center">
+    <div class="section-tag" data-i18n="how.tag">Cómo funciona</div>
+    <h2 class="section-title" data-i18n="how.title">Empieza en 3 minutos</h2>
+  </div>
+  <div class="how-steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-title" data-i18n="step1.title">Elige tu plan</div>
+      <div class="step-desc" data-i18n="step1.desc">Selecciona el plan que mejor se adapta a tu negocio. Sin permanencia.</div>
     </div>
-    <div class="wf-steps">
-      <div class="wstep reveal"><div class="wstep-n">1</div><div class="wstep-title">Regístrate</div><div class="wstep-desc">Email y contraseña. 14 días gratis sin tarjeta.</div></div>
-      <div class="wstep reveal"><div class="wstep-n">2</div><div class="wstep-title">Configura</div><div class="wstep-desc">Nombre, logo y datos fiscales. Añade a tus técnicos.</div></div>
-      <div class="wstep reveal"><div class="wstep-n">3</div><div class="wstep-title">Añade stock</div><div class="wstep-desc">Registra teléfonos con IMEI. Importa desde Excel.</div></div>
-      <div class="wstep reveal"><div class="wstep-n">4</div><div class="wstep-title">¡A trabajar!</div><div class="wstep-desc">Vende, repara y factura desde cualquier lugar.</div></div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-title" data-i18n="step2.title">Crea tu cuenta</div>
+      <div class="step-desc" data-i18n="step2.desc">Pago seguro con Stripe. Recibes tus credenciales por email al instante.</div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-title" data-i18n="step3.title">Gestiona tu tienda</div>
+      <div class="step-desc" data-i18n="step3.desc">Accede desde cualquier dispositivo. Tus datos en la nube, siempre seguros.</div>
     </div>
   </div>
 </section>
 
 <!-- PRICING -->
 <section class="pricing" id="pricing">
-  <div class="pricing-inner">
-    <div class="sec-label">Precios</div>
-    <h2 class="sec-title">Precio justo, sin sorpresas</h2>
-    <p style="font-size:16px;color:var(--muted)">Sin costes ocultos. Cancela cuando quieras.</p>
-    <div class="pricing-cards">
-      <div class="pcard reveal">
-        <div class="pname">Básico</div>
-        <div class="pamount"><span class="psym">€</span>14<span class="pdec">.90</span></div>
-        <div class="pper">por mes · por tienda</div>
-        <ul class="pfeats">
-          <li>1 Admin + 2 técnicos</li>
-          <li>Stock ilimitado con IMEI</li>
-          <li>Reparaciones ilimitadas</li>
-          <li>Checklist de recepción</li>
-          <li>Avisos por WhatsApp</li>
-          <li>Facturación PDF</li>
-          <li>Cierre de caja</li>
-        </ul>
-        <button class="pbtn pbtn-o">Empezar 14 días gratis</button>
-      </div>
-      <div class="pcard hot reveal">
-        <div class="pbadge">⭐ Más popular</div>
-        <div class="pname">Pro</div>
-        <div class="pamount" style="color:white"><span class="psym">€</span>24<span class="pdec">.90</span></div>
-        <div class="pper">por mes · por tienda</div>
-        <ul class="pfeats">
-          <li>1 Admin + 5 técnicos</li>
-          <li>Todo el plan Básico</li>
-          <li>Comisiones técnicos</li>
-          <li>Salud financiera</li>
-          <li>Alertas de stock</li>
-          <li>Órdenes de compra</li>
-          <li>Estadísticas + Excel</li>
-          <li>Reportes semanales email</li>
-        </ul>
-        <button class="pbtn pbtn-w">Empezar 14 días gratis</button>
-      </div>
-      <div class="pcard reveal">
-        <div class="pname">Premium</div>
-        <div class="pamount"><span class="psym">€</span>44<span class="pdec">.90</span></div>
-        <div class="pper">por mes · por tienda</div>
-        <ul class="pfeats">
-          <li>Técnicos ilimitados</li>
-          <li>Todo el plan Pro</li>
-          <li>Multisucursal</li>
-          <li>API de integración</li>
-          <li>Migración de datos</li>
-          <li>Soporte prioritario 24/7</li>
-        </ul>
-        <button class="pbtn pbtn-o">Empezar 14 días gratis</button>
-      </div>
+  <div style="max-width:1000px;margin:0 auto;text-align:center">
+    <div class="section-tag" data-i18n="pricing.tag">Precios</div>
+    <h2 class="section-title" data-i18n="pricing.title">Planes simples y transparentes</h2>
+    <p class="section-sub" style="margin:0 auto" data-i18n="pricing.sub">Sin costes ocultos. Cancela cuando quieras.</p>
+  </div>
+  <div class="pricing-grid">
+    <div class="price-card">
+      <div class="price-name" data-i18n="plan1.name">Básico</div>
+      <div class="price-amount">€9,90<span data-i18n="per.month">/mes</span></div>
+      <div class="price-desc" data-i18n="plan1.desc">Para empezar</div>
+      <ul class="price-features">
+        <li data-i18n="plan1.f1">1 usuario</li>
+        <li data-i18n="plan1.f2">Ventas y reparaciones</li>
+        <li data-i18n="plan1.f3">Gestión de stock</li>
+        <li data-i18n="plan1.f4">Clientes y proveedores</li>
+        <li data-i18n="plan1.f5">Reportes básicos</li>
+      </ul>
+      <a href="/registro.html?plan=basico" class="price-btn price-btn-sec" data-i18n="plan.cta">Elegir plan</a>
     </div>
-    <p style="text-align:center;margin-top:22px;font-size:13px;color:var(--muted)">
-      ✓ 14 días gratis &nbsp;·&nbsp; ✓ Sin tarjeta de crédito &nbsp;·&nbsp; ✓ Cancela en cualquier momento
-    </p>
+    <div class="price-card popular">
+      <div class="price-badge" data-i18n="popular">⭐ MÁS POPULAR</div>
+      <div class="price-name" data-i18n="plan2.name">Pro</div>
+      <div class="price-amount">€19,90<span data-i18n="per.month">/mes</span></div>
+      <div class="price-desc" data-i18n="plan2.desc">Para negocios en crecimiento</div>
+      <ul class="price-features">
+        <li data-i18n="plan2.f1">Hasta 3 usuarios</li>
+        <li data-i18n="plan2.f2">Permisos por usuario</li>
+        <li data-i18n="plan2.f3">Reportes PDF completos</li>
+        <li data-i18n="plan2.f4">Email automático cierre</li>
+        <li data-i18n="plan2.f5">Importar datos CSV</li>
+        <li data-i18n="plan2.f6">Soporte prioritario</li>
+      </ul>
+      <a href="/registro.html?plan=pro" class="price-btn price-btn-main" data-i18n="plan.cta">Elegir plan</a>
+    </div>
+    <div class="price-card">
+      <div class="price-name" data-i18n="plan3.name">Top</div>
+      <div class="price-amount">€34,90<span data-i18n="per.month">/mes</span></div>
+      <div class="price-desc" data-i18n="plan3.desc">Para equipos grandes</div>
+      <ul class="price-features">
+        <li data-i18n="plan3.f1">Usuarios ilimitados</li>
+        <li data-i18n="plan3.f2">Todo lo del plan Pro</li>
+        <li data-i18n="plan3.f3">Multi-tienda</li>
+        <li data-i18n="plan3.f4">Soporte 24/7</li>
+        <li data-i18n="plan3.f5">Onboarding personalizado</li>
+      </ul>
+      <a href="/registro.html?plan=top" class="price-btn price-btn-sec" data-i18n="plan.cta">Elegir plan</a>
+    </div>
   </div>
 </section>
 
-<!-- TESTIMONIALS -->
-<section class="testi">
-  <div class="testi-inner">
-    <div style="text-align:center;margin-bottom:0">
-      <div class="sec-label">Testimonios</div>
-      <h2 class="sec-title" style="text-align:center">Técnicos reales.<br>Resultados reales.</h2>
+<!-- TESTIMONIOS -->
+<section class="testimonios">
+  <div style="max-width:1000px;margin:0 auto;text-align:center">
+    <div class="section-tag" data-i18n="test.tag">Testimonios</div>
+    <h2 class="section-title" data-i18n="test.title">Lo que dicen nuestros clientes</h2>
+  </div>
+  <div class="test-grid">
+    <div class="test-card">
+      <div class="test-stars">★★★★★</div>
+      <p class="test-text" data-i18n="test1.text">"Desde que uso Tekpair tengo todo controlado. Las reparaciones, el stock, las ventas... todo en un sitio. Ahorro 2 horas al día."</p>
+      <div class="test-author">
+        <div class="test-avatar">M</div>
+        <div><div class="test-name">Miguel Torres</div><div class="test-role" data-i18n="test1.role">Reparaciones Torres, Madrid</div></div>
+      </div>
     </div>
-    <div class="tgrid">
-      <div class="tcard reveal">
-        <div class="tstars">★★★★★</div>
-        <div class="ttext">"Ahora gestiono mi tienda desde el móvil mientras estoy en casa. Antes tenía que estar físicamente en el local para revisar las órdenes. Tekpair cambió eso completamente."</div>
-        <div class="tauthor"><div class="tavatar">M</div><div><div class="tname">Miguel Ángel R.</div><div class="trole">Dueño · Madrid 🇪🇸</div></div></div>
+    <div class="test-card">
+      <div class="test-stars">★★★★★</div>
+      <p class="test-text" data-i18n="test2.text">"El sistema de permisos para empleados es perfecto. Cada uno ve solo lo que necesita. Muy profesional."</p>
+      <div class="test-author">
+        <div class="test-avatar">S</div>
+        <div><div class="test-name">Sofia Martín</div><div class="test-role" data-i18n="test2.role">PhoneShop, Barcelona</div></div>
       </div>
-      <div class="tcard reveal">
-        <div class="tstars">★★★★★</div>
-        <div class="ttext">"El checklist de recepción me ha salvado varias veces. Ahora el cliente firma que la pantalla ya estaba rota al entregar el equipo. Sin discusiones."</div>
-        <div class="tauthor"><div class="tavatar" style="background:#00C896">A</div><div><div class="tname">Ana Torres</div><div class="trole">Técnica · Valencia 🇪🇸</div></div></div>
-      </div>
-      <div class="tcard reveal">
-        <div class="tstars">★★★★★</div>
-        <div class="ttext">"Tengo 3 tiendas en Ciudad de México y las controlo todas desde una sola pantalla. Los reportes semanales automáticos me dicen exactamente qué pasa en cada sucursal."</div>
-        <div class="tauthor"><div class="tavatar" style="background:#FF6B35">R</div><div><div class="tname">Roberto Sánchez</div><div class="trole">Dueño · CDMX 🇲🇽</div></div></div>
+    </div>
+    <div class="test-card">
+      <div class="test-stars">★★★★★</div>
+      <p class="test-text" data-i18n="test3.text">"El reporte diario por email es increíble. Al cerrar la tienda ya tengo el resumen en el móvil. Imprescindible."</p>
+      <div class="test-author">
+        <div class="test-avatar">A</div>
+        <div><div class="test-name">Ahmed Benali</div><div class="test-role" data-i18n="test3.role">Mobile Fix, Valencia</div></div>
       </div>
     </div>
   </div>
@@ -844,96 +369,256 @@ footer{padding:60px 6% 28px;background:#020B2E}
 
 <!-- FAQ -->
 <section class="faq" id="faq">
-  <div class="faq-inner">
-    <div class="sec-label">FAQ</div>
-    <h2 class="sec-title">Preguntas frecuentes</h2>
-    <div class="faq-list">
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">¿Necesito instalar algo? <span class="faq-arrow">▾</span></button><div class="faq-a">No. Tekpair funciona 100% en el navegador. Móvil, tablet o PC — sin instalar nada. Puedes añadirlo a la pantalla de inicio y funciona como una app nativa.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">¿Puedo gestionar varias tiendas? <span class="faq-arrow">▾</span></button><div class="faq-a">Sí, con el plan Premium gestionas múltiples sucursales desde una cuenta. Vista individual por tienda o reporte general de todo el negocio.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">¿Cómo funcionan los avisos por WhatsApp? <span class="faq-arrow">▾</span></button><div class="faq-a">Con un clic envías el estado de la reparación al cliente directamente a su WhatsApp. El mensaje incluye el dispositivo, estado, y los datos de contacto de tu tienda.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">¿Puedo importar mis datos de otro software? <span class="faq-arrow">▾</span></button><div class="faq-a">Sí. Puedes importar desde Excel o CSV en cualquier plan. En el plan Premium incluimos el servicio de migración completa de datos sin coste adicional.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">¿Mis datos están seguros? <span class="faq-arrow">▾</span></button><div class="faq-a">Absolutamente. Cada tienda tiene su espacio privado y aislado. Encriptación SSL, backup automático diario. Tus datos son solo tuyos.</div></div>
-      <div class="faq-item"><button class="faq-q" onclick="toggleFaq(this)">¿Puedo cancelar en cualquier momento? <span class="faq-arrow">▾</span></button><div class="faq-a">Sí. Sin permanencia ni penalizaciones. Cancela desde tu configuración y la suscripción no se renueva. Tus datos disponibles para exportar 30 días después.</div></div>
+  <div style="max-width:700px;margin:0 auto;text-align:center">
+    <div class="section-tag">FAQ</div>
+    <h2 class="section-title" data-i18n="faq.title">Preguntas frecuentes</h2>
+  </div>
+  <div class="faq-list">
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq1.q">¿Necesito instalar algo?</div>
+      <div class="faq-a" data-i18n="faq1.a">No. Tekpair funciona directamente desde el navegador web, en cualquier dispositivo. Sin instalaciones ni actualizaciones manuales.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq2.q">¿Puedo cancelar en cualquier momento?</div>
+      <div class="faq-a" data-i18n="faq2.a">Sí, sin permanencia ni penalizaciones. Puedes cancelar tu suscripción cuando quieras desde tu panel de cuenta.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq3.q">¿Mis datos están seguros?</div>
+      <div class="faq-a" data-i18n="faq3.a">Sí. Todos los datos se guardan cifrados en la nube con copias de seguridad automáticas. Cumplimos con el RGPD.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq4.q">¿Puedo migrar mis datos de otro programa?</div>
+      <div class="faq-a" data-i18n="faq4.a">Sí. Tekpair permite importar clientes, stock y reparaciones desde archivos CSV de otros programas de gestión.</div>
+    </div>
+    <div class="faq-item">
+      <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq5.q">¿Hay soporte en español?</div>
+      <div class="faq-a" data-i18n="faq5.a">Sí. Nuestro equipo de soporte habla español, inglés, francés y portugués. Disponible por WhatsApp y email.</div>
     </div>
   </div>
 </section>
 
-<!-- CTA FINAL -->
+<!-- CTA -->
 <section class="cta">
-  <div class="cta-inner">
-    <div class="cta-eyebrow">🌍 Disponible en todo el mundo</div>
-    <h2 class="cta-title">Empieza hoy.<br>Gestiona desde cualquier lugar.</h2>
-    <p class="cta-sub">14 días gratis. Sin tarjeta de crédito. Listo en 5 minutos. Para técnicos de todo el mundo.</p>
-    <div class="cta-form">
-      <input type="email" class="cta-inp" placeholder="tu@email.com" />
-      <button class="btn-hero">Empezar gratis →</button>
-    </div>
-    <p class="cta-note">Al registrarte aceptas nuestros Términos de servicio y Política de privacidad</p>
-    <div class="cta-flags">🇪🇸 🇲🇽 🇨🇴 🇦🇷 🇫🇷 🇧🇷 🇵🇪 🇺🇸 🇨🇱 🇬🇧 🇲🇦 🇸🇳</div>
+  <h2 data-i18n="cta.title">¿Listo para transformar tu tienda?</h2>
+  <p data-i18n="cta.sub">Únete a más de 500 tiendas que ya gestionan su negocio con Tekpair</p>
+  <div class="cta-btns">
+    <a href="/registro.html" class="btn-primary">🚀 <span data-i18n="cta.btn1">Empezar ahora</span></a>
+    <a href="/app.html" class="btn-secondary" data-i18n="cta.btn2">Ver demo gratis</a>
   </div>
 </section>
 
 <!-- FOOTER -->
 <footer>
   <div class="footer-inner">
-    <div class="footer-top">
-      <div>
-        <div class="fbrand-name"><div class="fbrand-mark">T</div>Tekpair</div>
-        <div class="fbrand-desc">Software de gestión para tiendas de reparación de móviles. Gestiona tu tienda desde cualquier lugar del mundo.</div>
-        <div class="fsocial">
-          <a href="#" class="fsoc-btn">𝕏</a>
-          <a href="#" class="fsoc-btn">in</a>
-          <a href="#" class="fsoc-btn">▶</a>
-          <a href="#" class="fsoc-btn">📷</a>
-        </div>
-      </div>
-      <div class="fcol">
-        <h4>Producto</h4>
-        <a href="#features">Funciones</a>
-        <a href="#pricing">Precios</a>
-        <a href="#how">Cómo funciona</a>
-        <a href="#">Novedades</a>
-      </div>
-      <div class="fcol">
-        <h4>Empresa</h4>
-        <a href="#">Sobre Tekpair</a>
-        <a href="#">Blog</a>
-        <a href="#">Contacto</a>
-        <a href="#">Afiliados</a>
-      </div>
-      <div class="fcol">
-        <h4>Legal</h4>
-        <a href="#">Privacidad</a>
-        <a href="#">Términos</a>
-        <a href="#">Cookies</a>
-        <a href="#">RGPD</a>
-      </div>
+    <div>
+      <div class="footer-logo">⚡ Tekpair</div>
+      <div class="footer-desc" data-i18n="footer.desc">Software de gestión para tiendas de reparación móvil. Simple, potente y asequible.</div>
     </div>
-    <div class="footer-bottom">
-      <span>© 2025 Tekpair · tekpair.tech · Hecho con ❤️ para técnicos del mundo</span>
-      <div class="flang">
-        <a href="#" class="active">ES</a>
-        <a href="#">EN</a>
-        <a href="#">FR</a>
-        <a href="#">PT</a>
-      </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.product">Producto</h4>
+      <a href="#features" data-i18n="nav.features">Características</a>
+      <a href="#pricing" data-i18n="nav.pricing">Precios</a>
+      <a href="/registro.html" data-i18n="nav.start">Registro</a>
+      <a href="/app.html" data-i18n="nav.login">Acceder</a>
     </div>
+    <div class="footer-col">
+      <h4 data-i18n="footer.contact">Contacto</h4>
+      <a href="mailto:hola@tekpair.tech">hola@tekpair.tech</a>
+      <a href="https://wa.me/34600000000">WhatsApp</a>
+    </div>
+  </div>
+  <div class="footer-bottom">
+    <span>© 2026 Tekpair. <span data-i18n="footer.rights">Todos los derechos reservados.</span></span>
+    <span>🔒 <span data-i18n="footer.secure">Pago seguro con Stripe</span></span>
   </div>
 </footer>
 
 <script>
-function toggleFaq(btn){
-  var item=btn.parentElement;
-  var isOpen=item.classList.contains('open');
-  document.querySelectorAll('.faq-item').forEach(function(i){i.classList.remove('open');});
-  if(!isOpen)item.classList.add('open');
+// I18N
+var T = {
+  es: {
+    'nav.features':'Características','nav.pricing':'Precios','nav.faq':'FAQ','nav.login':'Entrar','nav.start':'Empezar gratis',
+    'hero.badge':'Nuevo · Software para tiendas móvil',
+    'hero.title':'Gestiona tu tienda de <span>venta y reparación móvil</span>',
+    'hero.subtitle':'Ventas, reparaciones, stock y clientes en una sola app. Desde cualquier dispositivo, sin instalaciones.',
+    'hero.cta1':'Empezar ahora','hero.cta2':'Ver demo',
+    'stats.shops':'Tiendas activas','stats.repairs':'Reparaciones gestionadas','stats.uptime':'Disponibilidad','stats.rating':'Valoración media',
+    'features.tag':'Características','features.title':'Todo lo que necesitas para gestionar tu tienda','features.sub':'Una sola herramienta para ventas, reparaciones, stock y mucho más.',
+    'feat1.title':'Ventas y TPV','feat1.desc':'Registra ventas en segundos. Busca por IMEI, modelo o cliente. Múltiples formas de pago.',
+    'feat2.title':'Órdenes de reparación','feat2.desc':'Checklist de recepción, componentes, anticipos, notas internas y seguimiento de estado.',
+    'feat3.title':'Control de stock','feat3.desc':'Gestiona tu inventario con alertas de stock mínimo. Categorías, IMEI y precios automáticos.',
+    'feat4.title':'Clientes y CRM','feat4.desc':'Historial completo por cliente. Badge de cliente frecuente. Búsqueda por nombre, teléfono o DNI.',
+    'feat5.title':'Reportes y cierres','feat5.desc':'Reportes PDF con desglose por forma de pago. Cierre automático por email al final del día.',
+    'feat6.title':'Usuarios y permisos','feat6.desc':'Crea cuentas para tus empleados con permisos personalizados por sección.',
+    'how.tag':'Cómo funciona','how.title':'Empieza en 3 minutos',
+    'step1.title':'Elige tu plan','step1.desc':'Selecciona el plan que mejor se adapta a tu negocio. Sin permanencia.',
+    'step2.title':'Crea tu cuenta','step2.desc':'Pago seguro con Stripe. Recibes tus credenciales por email al instante.',
+    'step3.title':'Gestiona tu tienda','step3.desc':'Accede desde cualquier dispositivo. Tus datos en la nube, siempre seguros.',
+    'pricing.tag':'Precios','pricing.title':'Planes simples y transparentes','pricing.sub':'Sin costes ocultos. Cancela cuando quieras.',
+    'per.month':'/mes','popular':'⭐ MÁS POPULAR','plan.cta':'Elegir plan',
+    'plan1.name':'Básico','plan1.desc':'Para empezar','plan1.f1':'1 usuario','plan1.f2':'Ventas y reparaciones','plan1.f3':'Gestión de stock','plan1.f4':'Clientes y proveedores','plan1.f5':'Reportes básicos',
+    'plan2.name':'Pro','plan2.desc':'Para negocios en crecimiento','plan2.f1':'Hasta 3 usuarios','plan2.f2':'Permisos por usuario','plan2.f3':'Reportes PDF completos','plan2.f4':'Email automático cierre','plan2.f5':'Importar datos CSV','plan2.f6':'Soporte prioritario',
+    'plan3.name':'Top','plan3.desc':'Para equipos grandes','plan3.f1':'Usuarios ilimitados','plan3.f2':'Todo lo del plan Pro','plan3.f3':'Multi-tienda','plan3.f4':'Soporte 24/7','plan3.f5':'Onboarding personalizado',
+    'test.tag':'Testimonios','test.title':'Lo que dicen nuestros clientes',
+    'test1.text':'"Desde que uso Tekpair tengo todo controlado. Las reparaciones, el stock, las ventas... todo en un sitio. Ahorro 2 horas al día."','test1.role':'Reparaciones Torres, Madrid',
+    'test2.text':'"El sistema de permisos para empleados es perfecto. Cada uno ve solo lo que necesita. Muy profesional."','test2.role':'PhoneShop, Barcelona',
+    'test3.text':'"El reporte diario por email es increíble. Al cerrar la tienda ya tengo el resumen en el móvil. Imprescindible."','test3.role':'Mobile Fix, Valencia',
+    'faq.title':'Preguntas frecuentes',
+    'faq1.q':'¿Necesito instalar algo?','faq1.a':'No. Tekpair funciona directamente desde el navegador web, en cualquier dispositivo. Sin instalaciones ni actualizaciones manuales.',
+    'faq2.q':'¿Puedo cancelar en cualquier momento?','faq2.a':'Sí, sin permanencia ni penalizaciones. Puedes cancelar tu suscripción cuando quieras desde tu panel de cuenta.',
+    'faq3.q':'¿Mis datos están seguros?','faq3.a':'Sí. Todos los datos se guardan cifrados en la nube con copias de seguridad automáticas. Cumplimos con el RGPD.',
+    'faq4.q':'¿Puedo migrar mis datos de otro programa?','faq4.a':'Sí. Tekpair permite importar clientes, stock y reparaciones desde archivos CSV de otros programas de gestión.',
+    'faq5.q':'¿Hay soporte en español?','faq5.a':'Sí. Nuestro equipo de soporte habla español, inglés, francés y portugués. Disponible por WhatsApp y email.',
+    'cta.title':'¿Listo para transformar tu tienda?','cta.sub':'Únete a más de 500 tiendas que ya gestionan su negocio con Tekpair','cta.btn1':'Empezar ahora','cta.btn2':'Ver demo gratis',
+    'footer.desc':'Software de gestión para tiendas de venta y reparación móvil. Simple, potente y asequible.','footer.product':'Producto','footer.contact':'Contacto','footer.rights':'Todos los derechos reservados.','footer.secure':'Pago seguro con Stripe'
+  },
+  en: {
+    'nav.features':'Features','nav.pricing':'Pricing','nav.faq':'FAQ','nav.login':'Login','nav.start':'Get started',
+    'hero.badge':'New · Software for mobile sales & repair shops',
+    'hero.title':'Manage your <span>mobile sales & repair shop</span> without the hassle',
+    'hero.subtitle':'Sales, repairs, stock and customers in one app. From any device, no installation needed.',
+    'hero.cta1':'Start now','hero.cta2':'View demo',
+    'stats.shops':'Active shops','stats.repairs':'Repairs managed','stats.uptime':'Uptime','stats.rating':'Average rating',
+    'features.tag':'Features','features.title':'Everything you need to manage your shop','features.sub':'One tool for sales, repairs, stock and much more.',
+    'feat1.title':'Sales & POS','feat1.desc':'Record sales in seconds. Search by IMEI, model or customer. Multiple payment methods.',
+    'feat2.title':'Repair orders','feat2.desc':'Reception checklist, components, deposits, internal notes and status tracking.',
+    'feat3.title':'Stock control','feat3.desc':'Manage your inventory with minimum stock alerts. Categories, IMEI and automatic pricing.',
+    'feat4.title':'Customers & CRM','feat4.desc':'Complete history per customer. Frequent customer badge. Search by name, phone or ID.',
+    'feat5.title':'Reports & closings','feat5.desc':'PDF reports with payment breakdown. Automatic daily closing email.',
+    'feat6.title':'Users & permissions','feat6.desc':'Create accounts for your employees with custom permissions per section.',
+    'how.tag':'How it works','how.title':'Get started in 3 minutes',
+    'step1.title':'Choose your plan','step1.desc':'Select the plan that best fits your business. No commitment.',
+    'step2.title':'Create your account','step2.desc':'Secure payment with Stripe. Receive your credentials by email instantly.',
+    'step3.title':'Manage your shop','step3.desc':'Access from any device. Your data in the cloud, always secure.',
+    'pricing.tag':'Pricing','pricing.title':'Simple and transparent plans','pricing.sub':'No hidden costs. Cancel anytime.',
+    'per.month':'/month','popular':'⭐ MOST POPULAR','plan.cta':'Choose plan',
+    'plan1.name':'Basic','plan1.desc':'To get started','plan1.f1':'1 user','plan1.f2':'Sales and repairs','plan1.f3':'Stock management','plan1.f4':'Customers and suppliers','plan1.f5':'Basic reports',
+    'plan2.name':'Pro','plan2.desc':'For growing businesses','plan2.f1':'Up to 3 users','plan2.f2':'Permissions per user','plan2.f3':'Full PDF reports','plan2.f4':'Automatic closing email','plan2.f5':'Import CSV data','plan2.f6':'Priority support',
+    'plan3.name':'Top','plan3.desc':'For large teams','plan3.f1':'Unlimited users','plan3.f2':'Everything in Pro','plan3.f3':'Multi-store','plan3.f4':'24/7 support','plan3.f5':'Personalized onboarding',
+    'test.tag':'Testimonials','test.title':'What our customers say',
+    'test1.text':'"Since using Tekpair I have everything under control. Repairs, stock, sales... all in one place. I save 2 hours a day."','test1.role':'Torres Repairs, Madrid',
+    'test2.text':'"The employee permissions system is perfect. Each one sees only what they need. Very professional."','test2.role':'PhoneShop, Barcelona',
+    'test3.text':'"The daily email report is incredible. When I close the shop I already have the summary on my phone. Essential."','test3.role':'Mobile Fix, Valencia',
+    'faq.title':'Frequently asked questions',
+    'faq1.q':'Do I need to install anything?','faq1.a':'No. Tekpair works directly from the web browser, on any device. No installations or manual updates.',
+    'faq2.q':'Can I cancel at any time?','faq2.a':'Yes, without commitment or penalties. You can cancel your subscription whenever you want from your account panel.',
+    'faq3.q':'Is my data secure?','faq3.a':'Yes. All data is stored encrypted in the cloud with automatic backups. We comply with GDPR.',
+    'faq4.q':'Can I migrate my data from another program?','faq4.a':'Yes. Tekpair allows importing customers, stock and repairs from CSV files from other management programs.',
+    'faq5.q':'Is there support in English?','faq5.a':'Yes. Our support team speaks Spanish, English, French and Portuguese. Available via WhatsApp and email.',
+    'cta.title':'Ready to transform your shop?','cta.sub':'Join over 500 shops already managing their business with Tekpair','cta.btn1':'Start now','cta.btn2':'View free demo',
+    'footer.desc':'Management software for mobile repair shops. Simple, powerful and affordable.','footer.product':'Product','footer.contact':'Contact','footer.rights':'All rights reserved.','footer.secure':'Secure payment with Stripe'
+  },
+  fr: {
+    'nav.features':'Fonctionnalités','nav.pricing':'Tarifs','nav.faq':'FAQ','nav.login':'Connexion','nav.start':'Commencer',
+    'hero.badge':'Nouveau · Logiciel pour boutiques mobile',
+    'hero.title':'Gérez votre boutique de <span>vente et réparation mobile</span> sans complications',
+    'hero.subtitle':'Ventes, réparations, stock et clients dans une seule app. Depuis n\'importe quel appareil, sans installation.',
+    'hero.cta1':'Commencer maintenant','hero.cta2':'Voir la démo',
+    'stats.shops':'Boutiques actives','stats.repairs':'Réparations gérées','stats.uptime':'Disponibilité','stats.rating':'Note moyenne',
+    'features.tag':'Fonctionnalités','features.title':'Tout ce dont vous avez besoin pour gérer votre boutique','features.sub':'Un seul outil pour les ventes, réparations, stock et bien plus.',
+    'feat1.title':'Ventes et TPV','feat1.desc':'Enregistrez des ventes en secondes. Recherche par IMEI, modèle ou client.',
+    'feat2.title':'Ordres de réparation','feat2.desc':'Checklist de réception, composants, acomptes, notes internes et suivi d\'état.',
+    'feat3.title':'Contrôle du stock','feat3.desc':'Gérez votre inventaire avec des alertes de stock minimum.',
+    'feat4.title':'Clients et CRM','feat4.desc':'Historique complet par client. Badge client fidèle.',
+    'feat5.title':'Rapports et clôtures','feat5.desc':'Rapports PDF avec ventilation par mode de paiement. Clôture automatique par email.',
+    'feat6.title':'Utilisateurs et permissions','feat6.desc':'Créez des comptes pour vos employés avec des permissions personnalisées.',
+    'how.tag':'Comment ça marche','how.title':'Commencez en 3 minutes',
+    'step1.title':'Choisissez votre plan','step1.desc':'Sélectionnez le plan qui convient le mieux à votre entreprise.',
+    'step2.title':'Créez votre compte','step2.desc':'Paiement sécurisé avec Stripe. Recevez vos identifiants par email.',
+    'step3.title':'Gérez votre boutique','step3.desc':'Accédez depuis n\'importe quel appareil. Vos données dans le cloud.',
+    'pricing.tag':'Tarifs','pricing.title':'Plans simples et transparents','pricing.sub':'Sans frais cachés. Annulez quand vous voulez.',
+    'per.month':'/mois','popular':'⭐ PLUS POPULAIRE','plan.cta':'Choisir ce plan',
+    'plan1.name':'Basique','plan1.desc':'Pour commencer','plan1.f1':'1 utilisateur','plan1.f2':'Ventes et réparations','plan1.f3':'Gestion du stock','plan1.f4':'Clients et fournisseurs','plan1.f5':'Rapports de base',
+    'plan2.name':'Pro','plan2.desc':'Pour les entreprises en croissance','plan2.f1':'Jusqu\'à 3 utilisateurs','plan2.f2':'Permissions par utilisateur','plan2.f3':'Rapports PDF complets','plan2.f4':'Email automatique de clôture','plan2.f5':'Importation de données CSV','plan2.f6':'Support prioritaire',
+    'plan3.name':'Top','plan3.desc':'Pour les grandes équipes','plan3.f1':'Utilisateurs illimités','plan3.f2':'Tout du plan Pro','plan3.f3':'Multi-boutique','plan3.f4':'Support 24/7','plan3.f5':'Onboarding personnalisé',
+    'test.tag':'Témoignages','test.title':'Ce que disent nos clients',
+    'test1.text':'"Depuis que j\'utilise Tekpair, j\'ai tout sous contrôle. Les réparations, le stock, les ventes... tout en un. J\'économise 2 heures par jour."','test1.role':'Torres Réparations, Madrid',
+    'test2.text':'"Le système de permissions pour les employés est parfait. Chacun voit uniquement ce dont il a besoin."','test2.role':'PhoneShop, Barcelone',
+    'test3.text':'"Le rapport quotidien par email est incroyable. Quand je ferme la boutique, j\'ai déjà le résumé sur mon téléphone."','test3.role':'Mobile Fix, Valence',
+    'faq.title':'Questions fréquentes',
+    'faq1.q':'Dois-je installer quelque chose?','faq1.a':'Non. Tekpair fonctionne directement depuis le navigateur web, sur n\'importe quel appareil.',
+    'faq2.q':'Puis-je annuler à tout moment?','faq2.a':'Oui, sans engagement ni pénalités. Vous pouvez annuler votre abonnement quand vous le souhaitez.',
+    'faq3.q':'Mes données sont-elles sécurisées?','faq3.a':'Oui. Toutes les données sont stockées cryptées dans le cloud avec des sauvegardes automatiques.',
+    'faq4.q':'Puis-je migrer mes données d\'un autre programme?','faq4.a':'Oui. Tekpair permet d\'importer clients, stock et réparations depuis des fichiers CSV.',
+    'faq5.q':'Y a-t-il un support en français?','faq5.a':'Oui. Notre équipe parle espagnol, anglais, français et portugais.',
+    'cta.title':'Prêt à transformer votre boutique?','cta.sub':'Rejoignez plus de 500 boutiques qui gèrent déjà leur activité avec Tekpair','cta.btn1':'Commencer maintenant','cta.btn2':'Voir la démo gratuite',
+    'footer.desc':'Logiciel de gestion pour boutiques de réparation mobile.','footer.product':'Produit','footer.contact':'Contact','footer.rights':'Tous droits réservés.','footer.secure':'Paiement sécurisé avec Stripe'
+  },
+  pt: {
+    'nav.features':'Funcionalidades','nav.pricing':'Preços','nav.faq':'FAQ','nav.login':'Entrar','nav.start':'Começar',
+    'hero.badge':'Novo · Software para lojas de telemóveis',
+    'hero.title':'Gerencie sua loja de <span>venda e reparação móvel</span> sem complicações',
+    'hero.subtitle':'Vendas, reparações, stock e clientes numa só app. De qualquer dispositivo, sem instalações.',
+    'hero.cta1':'Começar agora','hero.cta2':'Ver demo',
+    'stats.shops':'Lojas ativas','stats.repairs':'Reparações geridas','stats.uptime':'Disponibilidade','stats.rating':'Avaliação média',
+    'features.tag':'Funcionalidades','features.title':'Tudo o que precisa para gerir a sua loja','features.sub':'Uma ferramenta para vendas, reparações, stock e muito mais.',
+    'feat1.title':'Vendas e TPV','feat1.desc':'Registe vendas em segundos. Pesquise por IMEI, modelo ou cliente.',
+    'feat2.title':'Ordens de reparação','feat2.desc':'Checklist de receção, componentes, adiantamentos, notas internas e acompanhamento.',
+    'feat3.title':'Controlo de stock','feat3.desc':'Gira o seu inventário com alertas de stock mínimo.',
+    'feat4.title':'Clientes e CRM','feat4.desc':'Histórico completo por cliente. Distintivo de cliente frequente.',
+    'feat5.title':'Relatórios e encerramentos','feat5.desc':'Relatórios PDF com repartição por forma de pagamento. Encerramento automático por email.',
+    'feat6.title':'Utilizadores e permissões','feat6.desc':'Crie contas para os seus funcionários com permissões personalizadas.',
+    'how.tag':'Como funciona','how.title':'Comece em 3 minutos',
+    'step1.title':'Escolha o seu plano','step1.desc':'Selecione o plano que melhor se adapta ao seu negócio.',
+    'step2.title':'Crie a sua conta','step2.desc':'Pagamento seguro com Stripe. Receba as suas credenciais por email.',
+    'step3.title':'Gira a sua loja','step3.desc':'Aceda de qualquer dispositivo. Os seus dados na nuvem, sempre seguros.',
+    'pricing.tag':'Preços','pricing.title':'Planos simples e transparentes','pricing.sub':'Sem custos ocultos. Cancele quando quiser.',
+    'per.month':'/mês','popular':'⭐ MAIS POPULAR','plan.cta':'Escolher plano',
+    'plan1.name':'Básico','plan1.desc':'Para começar','plan1.f1':'1 utilizador','plan1.f2':'Vendas e reparações','plan1.f3':'Gestão de stock','plan1.f4':'Clientes e fornecedores','plan1.f5':'Relatórios básicos',
+    'plan2.name':'Pro','plan2.desc':'Para negócios em crescimento','plan2.f1':'Até 3 utilizadores','plan2.f2':'Permissões por utilizador','plan2.f3':'Relatórios PDF completos','plan2.f4':'Email automático de encerramento','plan2.f5':'Importar dados CSV','plan2.f6':'Suporte prioritário',
+    'plan3.name':'Top','plan3.desc':'Para grandes equipas','plan3.f1':'Utilizadores ilimitados','plan3.f2':'Tudo do plano Pro','plan3.f3':'Multi-loja','plan3.f4':'Suporte 24/7','plan3.f5':'Onboarding personalizado',
+    'test.tag':'Testemunhos','test.title':'O que dizem os nossos clientes',
+    'test1.text':'"Desde que uso o Tekpair tenho tudo controlado. As reparações, o stock, as vendas... tudo num só lugar. Poupa 2 horas por dia."','test1.role':'Reparações Torres, Madrid',
+    'test2.text':'"O sistema de permissões para funcionários é perfeito. Cada um vê apenas o que precisa."','test2.role':'PhoneShop, Barcelona',
+    'test3.text':'"O relatório diário por email é incrível. Quando fecho a loja já tenho o resumo no telemóvel."','test3.role':'Mobile Fix, Valência',
+    'faq.title':'Perguntas frequentes',
+    'faq1.q':'Preciso de instalar algo?','faq1.a':'Não. O Tekpair funciona diretamente a partir do navegador web, em qualquer dispositivo.',
+    'faq2.q':'Posso cancelar a qualquer momento?','faq2.a':'Sim, sem compromisso nem penalizações.',
+    'faq3.q':'Os meus dados estão seguros?','faq3.a':'Sim. Todos os dados são armazenados cifrados na nuvem com cópias de segurança automáticas.',
+    'faq4.q':'Posso migrar os meus dados de outro programa?','faq4.a':'Sim. O Tekpair permite importar clientes, stock e reparações a partir de ficheiros CSV.',
+    'faq5.q':'Há suporte em português?','faq5.a':'Sim. A nossa equipa fala espanhol, inglês, francês e português.',
+    'cta.title':'Pronto para transformar a sua loja?','cta.sub':'Junte-se a mais de 500 lojas que já gerem o seu negócio com Tekpair','cta.btn1':'Começar agora','cta.btn2':'Ver demo grátis',
+    'footer.desc':'Software de gestão para lojas de reparação móvel.','footer.product':'Produto','footer.contact':'Contacto','footer.rights':'Todos os direitos reservados.','footer.secure':'Pagamento seguro com Stripe'
+  }
+};
+
+var currentLang = 'es';
+
+function setLang(lang) {
+  currentLang = lang;
+  document.documentElement.lang = lang;
+  var dict = T[lang] || T.es;
+  document.querySelectorAll('[data-i18n]').forEach(function(el) {
+    var key = el.dataset.i18n;
+    if (dict[key] !== undefined) {
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
+        el.placeholder = dict[key];
+      } else {
+        el.innerHTML = dict[key];
+      }
+    }
+  });
 }
-var obs=new IntersectionObserver(function(entries){
-  entries.forEach(function(e){if(e.isIntersecting)e.target.classList.add('visible');});
-},{threshold:0.08});
-document.querySelectorAll('.reveal').forEach(function(el){obs.observe(el);});
-window.addEventListener('scroll',function(){
-  document.getElementById('nav').style.boxShadow=window.scrollY>20?'0 2px 20px rgba(0,0,0,.07)':'none';
+
+function toggleFaq(el) {
+  var item = el.closest('.faq-item');
+  item.classList.toggle('open');
+}
+
+// Detect browser language
+var browserLang = navigator.language.substring(0,2);
+if (['es','en','fr','pt'].includes(browserLang)) {
+  document.querySelector('.lang-sel').value = browserLang;
+  setLang(browserLang);
+}
+
+// Smooth scroll
+document.querySelectorAll('a[href^="#"]').forEach(function(a) {
+  a.addEventListener('click', function(e) {
+    e.preventDefault();
+    var target = document.querySelector(this.getAttribute('href'));
+    if (target) target.scrollIntoView({behavior:'smooth'});
+  });
 });
 </script>
 </body>
