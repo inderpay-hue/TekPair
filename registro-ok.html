@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tekpair — Cuenta creada</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#F7F9FC;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.card{background:white;border-radius:16px;padding:32px 24px;max-width:420px;width:100%;text-align:center;border:1px solid #E2E8F0}
+.icon{font-size:56px;margin-bottom:16px}
+h1{font-size:22px;font-weight:700;color:#020B2E;margin-bottom:8px}
+p{color:#64748B;font-size:14px;margin-bottom:20px;line-height:1.6}
+.btn{display:block;background:#0055FF;color:white;padding:14px;border-radius:9px;text-decoration:none;font-weight:700;font-size:15px;margin-bottom:10px}
+.note{background:#FEF3C7;border-radius:9px;padding:12px;font-size:12px;color:#92400E;margin-bottom:20px}
+.spinner{display:none;color:#64748B;font-size:13px;margin-bottom:16px}
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="icon" id="icon">⏳</div>
+  <h1 id="title">Creando tu cuenta...</h1>
+  <p id="msg">Por favor espera un momento.</p>
+  <div class="note" id="note" style="display:none"></div>
+  <a href="https://tekpair.tech/app.html" class="btn" id="btnEntrar" style="display:none">Entrar a Tekpair →</a>
+</div>
+
+<script>
+async function setup() {
+  var params = new URLSearchParams(window.location.search);
+  var email = params.get('email');
+  var nombre = params.get('nombre');
+  var tienda = params.get('tienda');
+  var plan = params.get('plan');
+  var session_id = params.get('session_id');
+
+  if (!email || !nombre) {
+    document.getElementById('icon').textContent = '❌';
+    document.getElementById('title').textContent = 'Error';
+    document.getElementById('msg').textContent = 'No se encontraron los datos de registro.';
+    return;
+  }
+
+  try {
+    var r = await fetch('/api/registro-ok', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({session_id, email, nombre, tienda_nombre: tienda, plan})
+    });
+    var data = await r.json();
+
+    if (data.ok) {
+      document.getElementById('icon').textContent = '🎉';
+      document.getElementById('title').textContent = 'Cuenta creada';
+      document.getElementById('msg').textContent = 'Hola ' + nombre + ', tu cuenta está lista. Te hemos enviado un email con tus credenciales de acceso.';
+      document.getElementById('note').textContent = '📧 Revisa tu bandeja de entrada (y spam) para ver tu contraseña temporal.';
+      document.getElementById('note').style.display = 'block';
+      document.getElementById('btnEntrar').style.display = 'block';
+    } else {
+      if (data.error && data.error.includes('ya tiene una cuenta')) {
+        document.getElementById('icon').textContent = '✅';
+        document.getElementById('title').textContent = 'Ya tienes cuenta';
+        document.getElementById('msg').textContent = 'Este email ya tiene una cuenta activa en Tekpair.';
+        document.getElementById('btnEntrar').style.display = 'block';
+      } else {
+        document.getElementById('icon').textContent = '❌';
+        document.getElementById('title').textContent = 'Error';
+        document.getElementById('msg').textContent = data.error || 'Error al crear la cuenta. Contacta con soporte.';
+      }
+    }
+  } catch(e) {
+    document.getElementById('icon').textContent = '❌';
+    document.getElementById('title').textContent = 'Error de conexión';
+    document.getElementById('msg').textContent = 'No se pudo crear la cuenta. Por favor contacta con soporte@tekpair.tech';
+  }
+}
+setup();
+</script>
+</body>
+</html>

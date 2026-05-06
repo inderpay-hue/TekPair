@@ -3,664 +3,188 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tekpair — Crear cuenta gratis</title>
-<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://js.stripe.com/v3/"></script>
+<title>Tekpair — Empieza ahora</title>
 <style>
-:root{
-  --blue:#0055FF;--blue-dark:#0040CC;--blue-light:#EBF1FF;
-  --navy:#020B2E;--text:#0F1729;--muted:#64748B;
-  --border:#E2E8F0;--white:#FFFFFF;--green:#00C896;--bg:#F7F9FC;
-  --red:#EF4444;
-}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Sora',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
-
-/* NAV */
-nav{
-  background:white;border-bottom:1px solid var(--border);
-  padding:0 6%;display:flex;align-items:center;
-  justify-content:space-between;height:64px;
-}
-.logo{display:flex;align-items:center;gap:10px;text-decoration:none}
-.logo-mark{width:34px;height:34px;background:var(--blue);border-radius:9px;display:flex;align-items:center;justify-content:center;color:white;font-size:17px;font-weight:800}
-.logo-name{font-size:20px;font-weight:700;color:var(--navy)}
-.nav-login{font-size:14px;color:var(--muted);text-decoration:none}
-.nav-login span{color:var(--blue);font-weight:600}
-
-/* MAIN */
-.main{
-  min-height:calc(100vh - 64px);
-  display:grid;grid-template-columns:1fr 1fr;
-}
-
-/* LEFT SIDE */
-.left{
-  background:var(--navy);
-  padding:60px 8%;
-  display:flex;flex-direction:column;justify-content:center;
-  position:relative;overflow:hidden;
-}
-.left::before{
-  content:'';position:absolute;top:-100px;right:-100px;
-  width:400px;height:400px;
-  background:radial-gradient(circle,rgba(0,85,255,.2) 0%,transparent 70%);
-  border-radius:50%;
-}
-.left-badge{
-  display:inline-flex;align-items:center;gap:8px;
-  background:rgba(0,200,150,.1);color:var(--green);
-  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;
-  border:1px solid rgba(0,200,150,.2);margin-bottom:28px;width:fit-content;
-}
-.left h2{
-  font-size:clamp(28px,3vw,40px);color:white;
-  line-height:1.2;margin-bottom:20px;font-weight:700;
-}
-.left h2 span{color:var(--green)}
-.left-sub{font-size:15px;color:rgba(255,255,255,.6);line-height:1.7;margin-bottom:36px}
-
-.benefits{display:flex;flex-direction:column;gap:14px;margin-bottom:40px}
-.benefit{display:flex;align-items:flex-start;gap:12px}
-.benefit-icon{
-  width:36px;height:36px;border-radius:9px;
-  background:rgba(0,85,255,.2);display:flex;align-items:center;
-  justify-content:center;font-size:16px;flex-shrink:0;
-}
-.benefit-text .bt{font-size:14px;font-weight:600;color:white}
-.benefit-text .bs{font-size:12px;color:rgba(255,255,255,.5);margin-top:2px}
-
-.trial-box{
-  background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.2);
-  border-radius:14px;padding:18px 20px;
-  display:flex;align-items:center;gap:14px;
-}
-.trial-num{font-size:36px;font-weight:800;color:var(--green);line-height:1}
-.trial-text .tt{font-size:14px;font-weight:700;color:white}
-.trial-text .ts{font-size:12px;color:rgba(255,255,255,.5);margin-top:3px}
-
-/* RIGHT SIDE */
-.right{
-  background:white;padding:60px 8%;
-  display:flex;flex-direction:column;justify-content:center;
-}
-.right h3{font-size:26px;font-weight:700;color:var(--navy);margin-bottom:6px}
-.right-sub{font-size:14px;color:var(--muted);margin-bottom:32px}
-
-/* STEPS */
-.steps-bar{display:flex;align-items:center;gap:0;margin-bottom:36px}
-.step-item{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600}
-.step-num{
-  width:26px;height:26px;border-radius:50%;
-  display:flex;align-items:center;justify-content:center;
-  font-size:11px;font-weight:700;flex-shrink:0;
-}
-.step-item.active .step-num{background:var(--blue);color:white}
-.step-item.done .step-num{background:var(--green);color:white}
-.step-item.pending .step-num{background:var(--border);color:var(--muted)}
-.step-item.active .step-label{color:var(--navy);font-weight:700}
-.step-item.done .step-label{color:var(--green)}
-.step-item.pending .step-label{color:var(--muted)}
-.step-line{flex:1;height:1px;background:var(--border);margin:0 8px}
-.step-line.done{background:var(--green)}
-
-/* FORM */
-.form-step{display:none}
-.form-step.active{display:block}
-
-.fg{margin-bottom:18px}
-.fl{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
-.fi{
-  width:100%;background:white;border:1.5px solid var(--border);
-  border-radius:10px;padding:13px 14px;color:var(--text);
-  font-family:inherit;font-size:14px;outline:none;transition:all .2s;
-}
-.fi:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,85,255,.08)}
-.fi.error{border-color:var(--red)}
-.fi-error{font-size:12px;color:var(--red);margin-top:5px;display:none}
-.fi.error + .fi-error{display:block}
-
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-
-.plan-cards{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-bottom:18px}
-.plan-card{
-  border:2px solid var(--border);border-radius:12px;padding:14px 12px;
-  cursor:pointer;transition:all .2s;text-align:center;
-}
-.plan-card:hover{border-color:var(--blue)}
-.plan-card.selected{border-color:var(--blue);background:var(--blue-light)}
-.plan-name{font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
-.plan-price{font-size:22px;font-weight:800;color:var(--navy)}
-.plan-price span{font-size:12px;font-weight:500;color:var(--muted)}
-.plan-card.selected .plan-name{color:var(--blue)}
-.plan-card.selected .plan-price{color:var(--blue)}
-
-/* STRIPE CARD */
-.stripe-box{
-  border:1.5px solid var(--border);border-radius:10px;
-  padding:13px 14px;background:white;margin-bottom:18px;
-  transition:border-color .2s;
-}
-.stripe-box.focused{border-color:var(--blue);box-shadow:0 0 0 3px rgba(0,85,255,.08)}
-.stripe-label{font-size:12px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;display:block}
-
-.trial-notice{
-  background:rgba(0,200,150,.06);border:1px solid rgba(0,200,150,.2);
-  border-radius:10px;padding:12px 14px;
-  font-size:13px;color:#065F46;margin-bottom:18px;
-  display:flex;align-items:center;gap:8px;
-}
-.trial-notice::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
-
-/* BUTTON */
-.btn-submit{
-  width:100%;background:var(--blue);color:white;
-  padding:15px;border-radius:11px;font-size:15px;
-  font-weight:700;border:none;cursor:pointer;
-  font-family:inherit;transition:all .2s;
-  display:flex;align-items:center;justify-content:center;gap:8px;
-}
-.btn-submit:hover{background:var(--blue-dark);transform:translateY(-1px)}
-.btn-submit:disabled{background:#94A3B8;cursor:not-allowed;transform:none}
-
-.btn-back{
-  background:none;border:1.5px solid var(--border);color:var(--muted);
-  padding:12px;border-radius:10px;font-size:14px;font-weight:600;
-  cursor:pointer;font-family:inherit;width:100%;margin-bottom:12px;
-  transition:all .2s;
-}
-.btn-back:hover{border-color:var(--navy);color:var(--navy)}
-
-.secure-badge{
-  display:flex;align-items:center;justify-content:center;gap:6px;
-  font-size:12px;color:var(--muted);margin-top:14px;
-}
-.secure-badge::before{content:'🔒'}
-
-/* SUCCESS */
-.success-screen{
-  display:none;text-align:center;padding:20px 0;
-}
-.success-icon{font-size:64px;margin-bottom:16px;animation:bounce .6s ease}
-@keyframes bounce{0%{transform:scale(.5)}70%{transform:scale(1.1)}100%{transform:scale(1)}}
-.success-title{font-size:24px;font-weight:700;color:var(--navy);margin-bottom:10px}
-.success-sub{font-size:15px;color:var(--muted);line-height:1.6;margin-bottom:28px}
-.success-steps{text-align:left;background:var(--bg);border-radius:12px;padding:18px;margin-bottom:24px}
-.ss-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);font-size:13px}
-.ss-item:last-child{border-bottom:none}
-.ss-num{width:22px;height:22px;border-radius:50%;background:var(--blue);color:white;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0;margin-top:1px}
-.btn-go{
-  width:100%;background:var(--blue);color:white;
-  padding:15px;border-radius:11px;font-size:15px;
-  font-weight:700;border:none;cursor:pointer;
-  font-family:inherit;transition:all .2s;text-decoration:none;
-  display:block;text-align:center;
-}
-.btn-go:hover{background:var(--blue-dark)}
-
-/* PROGRESS */
-.progress-bar{height:3px;background:var(--border);border-radius:3px;margin-bottom:28px;overflow:hidden}
-.progress-fill{height:100%;background:linear-gradient(90deg,var(--blue),var(--green));border-radius:3px;transition:width .4s ease}
-
-/* LOADING SPINNER */
-.spinner{
-  width:18px;height:18px;border:2px solid rgba(255,255,255,.3);
-  border-top-color:white;border-radius:50%;
-  animation:spin .7s linear infinite;display:none;
-}
-@keyframes spin{to{transform:rotate(360deg)}}
-
-/* MOBILE */
-@media(max-width:768px){
-  .main{grid-template-columns:1fr}
-  .left{display:none}
-  .right{padding:40px 6%}
-  .plan-cards{grid-template-columns:1fr}
-  .g2{grid-template-columns:1fr}
-}
+body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;min-height:100vh}
+.hero{background:#020B2E;padding:40px 20px 60px;text-align:center;color:white}
+.logo{font-size:28px;font-weight:800;margin-bottom:8px}
+.hero h1{font-size:26px;font-weight:700;margin-bottom:10px;line-height:1.3}
+.hero p{color:rgba(255,255,255,.7);font-size:14px;max-width:400px;margin:0 auto}
+.plans{display:grid;grid-template-columns:1fr;gap:16px;padding:24px 16px;max-width:480px;margin:0 auto;margin-top:-30px}
+.plan{background:white;border-radius:14px;padding:22px;border:2px solid #E2E8F0;position:relative;cursor:pointer;transition:border-color .2s}
+.plan.popular{border-color:#0055FF}
+.plan-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#0055FF;color:white;padding:3px 14px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
+.plan-name{font-size:18px;font-weight:700;margin-bottom:4px}
+.plan-price{font-size:32px;font-weight:800;color:#020B2E;margin-bottom:2px}
+.plan-price span{font-size:14px;font-weight:400;color:#64748B}
+.plan-desc{font-size:12px;color:#64748B;margin-bottom:14px}
+.plan-features{list-style:none;font-size:13px;color:#374151}
+.plan-features li{padding:4px 0;display:flex;align-items:center;gap:8px}
+.plan-features li::before{content:'✓';color:#00C896;font-weight:700}
+.plan-btn{width:100%;padding:13px;border-radius:9px;border:none;font-size:14px;font-weight:700;cursor:pointer;margin-top:16px;font-family:Arial}
+.plan-btn-main{background:#0055FF;color:white}
+.plan-btn-sec{background:#F1F5F9;color:#020B2E}
+.form-section{background:white;border-radius:14px;padding:22px;margin:0 16px 24px;max-width:448px;margin-left:auto;margin-right:auto;border:1px solid #E2E8F0;display:none}
+.form-section.show{display:block}
+.form-title{font-size:17px;font-weight:700;margin-bottom:16px}
+.fg{margin-bottom:12px}
+.fl{font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px}
+.fi{width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:11px 12px;font-family:Arial;font-size:14px;outline:none}
+.fi:focus{border-color:#0055FF}
+.btn-pagar{width:100%;padding:14px;border-radius:9px;border:none;background:#0055FF;color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:Arial;margin-top:6px}
+.btn-pagar:disabled{background:#94A3B8;cursor:not-allowed}
+.err{color:#EF4444;font-size:12px;margin-top:8px;display:none}
+.plan-sel{background:#EBF1FF;border:1.5px solid #0055FF;border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.plan-sel strong{color:#0055FF}
+.trust{text-align:center;padding:0 16px 30px;color:#64748B;font-size:12px}
+.trust-items{display:flex;justify-content:center;gap:20px;margin-top:8px;flex-wrap:wrap}
+.trust-item{display:flex;align-items:center;gap:5px}
 </style>
 </head>
 <body>
 
-<nav>
-  <a href="/" class="logo">
-    <div class="logo-mark">T</div>
-    <span class="logo-name">Tekpair</span>
-  </a>
-  <a href="/login" class="nav-login">¿Ya tienes cuenta? <span>Inicia sesión</span></a>
-</nav>
+<div class="hero">
+  <div class="logo">⚡ Tekpair</div>
+  <h1>Software para tiendas<br>de reparación móvil</h1>
+  <p>Gestiona ventas, reparaciones, stock y clientes desde cualquier dispositivo</p>
+</div>
 
-<div class="main">
-  <!-- LEFT -->
-  <div class="left">
-    <div class="left-badge">🌍 Disponible en todo el mundo</div>
-    <h2>Gestiona tu tienda desde <span>cualquier lugar</span></h2>
-    <p class="left-sub">Únete a más de 200 tiendas que ya gestionan su negocio con Tekpair. Empieza gratis hoy.</p>
-
-    <div class="benefits">
-      <div class="benefit">
-        <div class="benefit-icon">📱</div>
-        <div class="benefit-text">
-          <div class="bt">Control de stock por IMEI</div>
-          <div class="bs">Cada teléfono identificado y rastreado</div>
-        </div>
-      </div>
-      <div class="benefit">
-        <div class="benefit-icon">🔧</div>
-        <div class="benefit-text">
-          <div class="bt">Gestión de reparaciones</div>
-          <div class="bs">Órdenes, técnicos, estados y WhatsApp</div>
-        </div>
-      </div>
-      <div class="benefit">
-        <div class="benefit-icon">📊</div>
-        <div class="benefit-text">
-          <div class="bt">Beneficios en tiempo real</div>
-          <div class="bs">Ventas, gastos y comisiones automáticas</div>
-        </div>
-      </div>
-      <div class="benefit">
-        <div class="benefit-icon">👷</div>
-        <div class="benefit-text">
-          <div class="bt">Control de empleados</div>
-          <div class="bs">Cada técnico con su acceso y permisos</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="trial-box">
-      <div class="trial-num">14</div>
-      <div class="trial-text">
-        <div class="tt">Días gratis para probarlo</div>
-        <div class="ts">Sin tarjeta de crédito · Cancela cuando quieras</div>
-      </div>
-    </div>
+<div class="plans" id="plansSection">
+  <div class="plan" onclick="selPlan('basico',this)">
+    <div class="plan-name">Básico</div>
+    <div class="plan-price">€9,90<span>/mes</span></div>
+    <div class="plan-desc">Para empezar</div>
+    <ul class="plan-features">
+      <li>1 usuario</li>
+      <li>Ventas y reparaciones</li>
+      <li>Gestión de stock</li>
+      <li>Clientes y proveedores</li>
+      <li>Reportes básicos</li>
+    </ul>
+    <button class="plan-btn plan-btn-sec">Elegir Básico</button>
   </div>
 
-  <!-- RIGHT -->
-  <div class="right">
-    <div id="formContainer">
-      <h3>Crear cuenta gratis</h3>
-      <p class="right-sub">14 días gratis · Sin tarjeta de crédito</p>
+  <div class="plan popular" onclick="selPlan('pro',this)">
+    <div class="plan-badge">⭐ MÁS POPULAR</div>
+    <div class="plan-name">Pro</div>
+    <div class="plan-price">€19,90<span>/mes</span></div>
+    <div class="plan-desc">Para negocios en crecimiento</div>
+    <ul class="plan-features">
+      <li>Hasta 3 usuarios</li>
+      <li>Permisos por usuario</li>
+      <li>Reportes PDF completos</li>
+      <li>Email automático cierre</li>
+      <li>Importar datos CSV</li>
+      <li>Soporte prioritario</li>
+    </ul>
+    <button class="plan-btn plan-btn-main">Elegir Pro</button>
+  </div>
 
-      <!-- STEPS -->
-      <div class="steps-bar">
-        <div class="step-item active" id="step1-indicator">
-          <div class="step-num">1</div>
-          <div class="step-label">Tu cuenta</div>
-        </div>
-        <div class="step-line" id="line1"></div>
-        <div class="step-item pending" id="step2-indicator">
-          <div class="step-num">2</div>
-          <div class="step-label">Tu tienda</div>
-        </div>
-        <div class="step-line" id="line2"></div>
-        <div class="step-item pending" id="step3-indicator">
-          <div class="step-num">3</div>
-          <div class="step-label">Tu plan</div>
-        </div>
-      </div>
+  <div class="plan" onclick="selPlan('top',this)">
+    <div class="plan-name">Top</div>
+    <div class="plan-price">€34,90<span>/mes</span></div>
+    <div class="plan-desc">Para equipos grandes</div>
+    <ul class="plan-features">
+      <li>Usuarios ilimitados</li>
+      <li>Todo lo del plan Pro</li>
+      <li>Multi-tienda</li>
+      <li>Soporte 24/7</li>
+      <li>Onboarding personalizado</li>
+    </ul>
+    <button class="plan-btn plan-btn-sec">Elegir Top</button>
+  </div>
+</div>
 
-      <!-- PROGRESS -->
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill" style="width:33%"></div>
-      </div>
+<div class="form-section" id="formSection">
+  <div class="plan-sel">
+    <span>Plan seleccionado:</span>
+    <strong id="planNombre">---</strong>
+    <span id="planPrecio" style="color:#020B2E;font-weight:700"></span>
+    <button onclick="cambiarPlan()" style="background:none;border:none;color:#64748B;font-size:11px;cursor:pointer;text-decoration:underline">Cambiar</button>
+  </div>
+  <div class="form-title">Crea tu cuenta</div>
+  <div class="fg"><label class="fl">Tu nombre *</label><input class="fi" id="rNom" placeholder="Juan García"/></div>
+  <div class="fg"><label class="fl">Email *</label><input class="fi" id="rEmail" type="email" placeholder="juan@mitienda.com"/></div>
+  <div class="fg"><label class="fl">Nombre de tu tienda *</label><input class="fi" id="rTienda" placeholder="Reparaciones García"/></div>
+  <div class="err" id="rErr"></div>
+  <button class="btn-pagar" id="btnPagar" onclick="iniciarPago()">💳 Continuar al pago</button>
+  <p style="text-align:center;font-size:11px;color:#94A3B8;margin-top:12px">Pago seguro con Stripe · Cancela cuando quieras</p>
+</div>
 
-      <!-- STEP 1: CUENTA -->
-      <div class="form-step active" id="formStep1">
-        <div class="fg">
-          <label class="fl">Nombre completo *</label>
-          <input class="fi" id="nombre" type="text" placeholder="Tu nombre" />
-          <div class="fi-error">Este campo es obligatorio</div>
-        </div>
-        <div class="fg">
-          <label class="fl">Email *</label>
-          <input class="fi" id="email" type="email" placeholder="tu@email.com" />
-          <div class="fi-error">Introduce un email válido</div>
-        </div>
-        <div class="fg">
-          <label class="fl">Contraseña *</label>
-          <input class="fi" id="password" type="password" placeholder="Mínimo 8 caracteres" />
-          <div class="fi-error">Mínimo 8 caracteres</div>
-        </div>
-        <div class="fg">
-          <label class="fl">Confirmar contraseña *</label>
-          <input class="fi" id="password2" type="password" placeholder="Repite la contraseña" />
-          <div class="fi-error">Las contraseñas no coinciden</div>
-        </div>
-        <button class="btn-submit" onclick="goStep2()">Continuar →</button>
-        <p style="text-align:center;font-size:12px;color:var(--muted);margin-top:14px">
-          Al registrarte aceptas nuestros <a href="#" style="color:var(--blue)">Términos</a> y <a href="#" style="color:var(--blue)">Privacidad</a>
-        </p>
-      </div>
-
-      <!-- STEP 2: TIENDA -->
-      <div class="form-step" id="formStep2">
-        <div class="fg">
-          <label class="fl">Nombre de tu tienda *</label>
-          <input class="fi" id="tiendaNombre" type="text" placeholder="Ej: PhoneFix Madrid" />
-          <div class="fi-error">Introduce el nombre de tu tienda</div>
-        </div>
-        <div class="g2">
-          <div class="fg">
-            <label class="fl">Ciudad *</label>
-            <input class="fi" id="ciudad" type="text" placeholder="Madrid, CDMX..." />
-            <div class="fi-error">Introduce tu ciudad</div>
-          </div>
-          <div class="fg">
-            <label class="fl">País *</label>
-            <select class="fi" id="pais">
-              <option value="">Selecciona...</option>
-              <option value="ES">🇪🇸 España</option>
-              <option value="MX">🇲🇽 México</option>
-              <option value="CO">🇨🇴 Colombia</option>
-              <option value="AR">🇦🇷 Argentina</option>
-              <option value="PE">🇵🇪 Perú</option>
-              <option value="CL">🇨🇱 Chile</option>
-              <option value="BR">🇧🇷 Brasil</option>
-              <option value="FR">🇫🇷 Francia</option>
-              <option value="US">🇺🇸 Estados Unidos</option>
-              <option value="OTHER">🌍 Otro</option>
-            </select>
-            <div class="fi-error">Selecciona tu país</div>
-          </div>
-        </div>
-        <div class="fg">
-          <label class="fl">Teléfono de la tienda</label>
-          <input class="fi" id="telefono" type="tel" placeholder="+34 600 000 000" />
-        </div>
-        <div class="fg">
-          <label class="fl">¿Cuántos técnicos tenéis?</label>
-          <select class="fi" id="tecnicos">
-            <option value="1">Solo yo</option>
-            <option value="2">2 técnicos</option>
-            <option value="3-5">3-5 técnicos</option>
-            <option value="5+">Más de 5</option>
-          </select>
-        </div>
-        <button class="btn-back" onclick="goStep1()">← Atrás</button>
-        <button class="btn-submit" onclick="goStep3()">Continuar →</button>
-      </div>
-
-      <!-- STEP 3: PLAN -->
-      <div class="form-step" id="formStep3">
-        <div class="trial-notice">
-          14 días gratis en todos los planes · Sin tarjeta hasta que termine la prueba
-        </div>
-
-        <label class="fl" style="margin-bottom:10px">Elige tu plan</label>
-        <div class="plan-cards">
-          <div class="plan-card" id="planBasico" onclick="selectPlan('basico', 14.90)">
-            <div class="plan-name">Básico</div>
-            <div class="plan-price">€14<span>.90/mes</span></div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px">2 técnicos</div>
-          </div>
-          <div class="plan-card selected" id="planPro" onclick="selectPlan('pro', 24.90)">
-            <div class="plan-name">⭐ Pro</div>
-            <div class="plan-price">€24<span>.90/mes</span></div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px">5 técnicos</div>
-          </div>
-          <div class="plan-card" id="planPremium" onclick="selectPlan('premium', 44.90)">
-            <div class="plan-name">Premium</div>
-            <div class="plan-price">€44<span>.90/mes</span></div>
-            <div style="font-size:11px;color:var(--muted);margin-top:4px">Ilimitados</div>
-          </div>
-        </div>
-
-        <div style="background:var(--bg);border-radius:10px;padding:14px;margin-bottom:18px;font-size:13px;color:var(--muted)">
-          <div style="font-weight:600;color:var(--navy);margin-bottom:6px">Plan seleccionado: <span id="planSeleccionado">Pro — €24.90/mes</span></div>
-          Después de 14 días gratuitos se cobrará automáticamente. Cancela en cualquier momento.
-        </div>
-
-        <label class="stripe-label">Datos de pago (no se cobra hasta día 15)</label>
-        <div class="stripe-box" id="stripeBox">
-          <div id="cardElement"></div>
-        </div>
-        <div id="cardErrors" style="color:var(--red);font-size:12px;margin-bottom:12px;display:none"></div>
-
-        <button class="btn-back" onclick="goStep2Back()">← Atrás</button>
-        <button class="btn-submit" id="submitBtn" onclick="handleSubmit()">
-          <span id="btnText">Empezar 14 días gratis →</span>
-          <div class="spinner" id="btnSpinner"></div>
-        </button>
-        <div class="secure-badge">Pago seguro con Stripe · SSL 256-bit</div>
-      </div>
-    </div>
-
-    <!-- SUCCESS -->
-    <div class="success-screen" id="successScreen">
-      <div class="success-icon">🎉</div>
-      <div class="success-title">¡Bienvenido a Tekpair!</div>
-      <div class="success-sub">Tu cuenta ha sido creada. Tienes <strong>14 días gratis</strong> para explorar todo sin límites.</div>
-      <div class="success-steps">
-        <div class="ss-item"><div class="ss-num">1</div><div>Revisa tu email — te hemos enviado las instrucciones de acceso</div></div>
-        <div class="ss-item"><div class="ss-num">2</div><div>Entra a tu panel y configura los datos de tu tienda</div></div>
-        <div class="ss-item"><div class="ss-num">3</div><div>Añade tu primer teléfono con IMEI y empieza a vender</div></div>
-      </div>
-      <a href="https://script.google.com/macros/s/TU_URL_APP/exec" class="btn-go" id="btnGoApp">
-        Ir a mi panel →
-      </a>
-    </div>
+<div class="trust">
+  <div class="trust-items">
+    <div class="trust-item">🔒 Pago seguro</div>
+    <div class="trust-item">✅ Sin permanencia</div>
+    <div class="trust-item">📱 Desde cualquier dispositivo</div>
   </div>
 </div>
 
 <script>
-// ═══ STATE ═══
-var formData = {
-  nombre:'', email:'', password:'', tiendaNombre:'',
-  ciudad:'', pais:'', telefono:'', tecnicos:'1',
-  plan:'pro', precio:24.90
+var planSel = null;
+var PLANES = {
+  basico: {nombre:'Básico', precio:'€9,90/mes'},
+  pro: {nombre:'Pro', precio:'€19,90/mes'},
+  top: {nombre:'Top', precio:'€34,90/mes'}
 };
-var stripe = null;
-var cardElement = null;
-var selectedPlan = 'pro';
 
-// ═══ STRIPE INIT ═══
-// IMPORTANTE: Reemplaza 'pk_test_...' con tu clave pública de Stripe
-var STRIPE_PUBLIC_KEY = 'pk_test_REEMPLAZA_CON_TU_CLAVE_PUBLICA';
+function selPlan(id, el) {
+  planSel = id;
+  document.getElementById('planNombre').textContent = PLANES[id].nombre;
+  document.getElementById('planPrecio').textContent = PLANES[id].precio;
+  document.getElementById('formSection').classList.add('show');
+  document.getElementById('formSection').scrollIntoView({behavior:'smooth'});
+}
 
-function initStripe() {
-  try {
-    stripe = Stripe(STRIPE_PUBLIC_KEY);
-    var elements = stripe.elements({
-      appearance: {
-        theme: 'stripe',
-        variables: {
-          colorPrimary: '#0055FF',
-          colorBackground: '#ffffff',
-          colorText: '#0F1729',
-          colorDanger: '#EF4444',
-          fontFamily: 'Sora, sans-serif',
-          borderRadius: '8px',
-        }
-      }
-    });
-    cardElement = elements.create('card', {
-      style: {
-        base: {
-          fontSize: '14px',
-          color: '#0F1729',
-          fontFamily: 'Sora, sans-serif',
-          '::placeholder': { color: '#94A3B8' }
-        }
-      }
-    });
-    cardElement.mount('#cardElement');
-    cardElement.on('focus', function() {
-      document.getElementById('stripeBox').classList.add('focused');
-    });
-    cardElement.on('blur', function() {
-      document.getElementById('stripeBox').classList.remove('focused');
-    });
-    cardElement.on('change', function(e) {
-      var errEl = document.getElementById('cardErrors');
-      if (e.error) {
-        errEl.textContent = e.error.message;
-        errEl.style.display = 'block';
-      } else {
-        errEl.style.display = 'none';
-      }
-    });
-  } catch(e) {
-    console.log('Stripe no inicializado - modo demo');
+function cambiarPlan() {
+  document.getElementById('formSection').classList.remove('show');
+  planSel = null;
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+async function iniciarPago() {
+  var nom = document.getElementById('rNom').value.trim();
+  var email = document.getElementById('rEmail').value.trim();
+  var tienda = document.getElementById('rTienda').value.trim();
+  var err = document.getElementById('rErr');
+
+  if (!nom || !email || !tienda) {
+    err.textContent = 'Por favor rellena todos los campos';
+    err.style.display = 'block';
+    return;
   }
-}
-
-// ═══ PLAN SELECTION ═══
-function selectPlan(plan, precio) {
-  selectedPlan = plan;
-  formData.plan = plan;
-  formData.precio = precio;
-  document.querySelectorAll('.plan-card').forEach(function(c){ c.classList.remove('selected'); });
-  document.getElementById('plan' + plan.charAt(0).toUpperCase() + plan.slice(1)).classList.add('selected');
-  var names = {basico:'Básico — €14.90/mes', pro:'Pro — €24.90/mes', premium:'Premium — €44.90/mes'};
-  document.getElementById('planSeleccionado').textContent = names[plan];
-}
-
-// ═══ VALIDATION ═══
-function validateEmail(email) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-}
-
-function setError(inputId, show) {
-  var inp = document.getElementById(inputId);
-  var err = inp.nextElementSibling;
-  if (show) {
-    inp.classList.add('error');
-    if (err && err.classList.contains('fi-error')) err.style.display = 'block';
-  } else {
-    inp.classList.remove('error');
-    if (err && err.classList.contains('fi-error')) err.style.display = 'none';
+  if (!email.includes('@')) {
+    err.textContent = 'Email no válido';
+    err.style.display = 'block';
+    return;
   }
-  return !show;
-}
+  err.style.display = 'none';
 
-// ═══ NAVIGATION ═══
-function updateProgress(step) {
-  var pct = {1:33, 2:66, 3:100};
-  document.getElementById('progressFill').style.width = pct[step] + '%';
-  [1,2,3].forEach(function(i) {
-    var ind = document.getElementById('step'+i+'-indicator');
-    ind.className = 'step-item ' + (i < step ? 'done' : i === step ? 'active' : 'pending');
-  });
-  [1,2].forEach(function(i) {
-    var line = document.getElementById('line'+i);
-    line.className = 'step-line' + (i < step ? ' done' : '');
-  });
-}
-
-function goStep2() {
-  var nom = document.getElementById('nombre').value.trim();
-  var email = document.getElementById('email').value.trim();
-  var pass = document.getElementById('password').value;
-  var pass2 = document.getElementById('password2').value;
-  var ok = true;
-  if (!nom) ok = setError('nombre', true) && ok; else setError('nombre', false);
-  if (!validateEmail(email)) ok = setError('email', true) && ok; else setError('email', false);
-  if (pass.length < 8) ok = setError('password', true) && ok; else setError('password', false);
-  if (pass !== pass2) ok = setError('password2', true) && ok; else setError('password2', false);
-  if (!ok) return;
-  formData.nombre = nom; formData.email = email; formData.password = pass;
-  document.getElementById('formStep1').classList.remove('active');
-  document.getElementById('formStep2').classList.add('active');
-  updateProgress(2);
-  window.scrollTo(0,0);
-}
-
-function goStep1() {
-  document.getElementById('formStep2').classList.remove('active');
-  document.getElementById('formStep1').classList.add('active');
-  updateProgress(1);
-}
-
-function goStep3() {
-  var tNom = document.getElementById('tiendaNombre').value.trim();
-  var ciudad = document.getElementById('ciudad').value.trim();
-  var pais = document.getElementById('pais').value;
-  var ok = true;
-  if (!tNom) ok = setError('tiendaNombre', true) && ok; else setError('tiendaNombre', false);
-  if (!ciudad) ok = setError('ciudad', true) && ok; else setError('ciudad', false);
-  if (!pais) ok = setError('pais', true) && ok; else setError('pais', false);
-  if (!ok) return;
-  formData.tiendaNombre = tNom; formData.ciudad = ciudad; formData.pais = pais;
-  formData.telefono = document.getElementById('telefono').value;
-  formData.tecnicos = document.getElementById('tecnicos').value;
-  document.getElementById('formStep2').classList.remove('active');
-  document.getElementById('formStep3').classList.add('active');
-  updateProgress(3);
-  initStripe();
-  window.scrollTo(0,0);
-}
-
-function goStep2Back() {
-  document.getElementById('formStep3').classList.remove('active');
-  document.getElementById('formStep2').classList.add('active');
-  updateProgress(2);
-}
-
-// ═══ SUBMIT ═══
-async function handleSubmit() {
-  var btn = document.getElementById('submitBtn');
-  var btnText = document.getElementById('btnText');
-  var spinner = document.getElementById('btnSpinner');
-
+  var btn = document.getElementById('btnPagar');
+  btn.textContent = 'Procesando...';
   btn.disabled = true;
-  btnText.textContent = 'Procesando...';
-  spinner.style.display = 'block';
 
   try {
-    if (stripe && cardElement) {
-      // MODO PRODUCCIÓN CON STRIPE
-      // Aquí iría la llamada a tu backend para crear el PaymentMethod
-      // y luego el SetupIntent para guardar la tarjeta sin cobrar
-      var result = await stripe.createPaymentMethod({
-        type: 'card',
-        card: cardElement,
-        billing_details: {
-          name: formData.nombre,
-          email: formData.email
-        }
-      });
-
-      if (result.error) {
-        document.getElementById('cardErrors').textContent = result.error.message;
-        document.getElementById('cardErrors').style.display = 'block';
-        btn.disabled = false;
-        btnText.textContent = 'Empezar 14 días gratis →';
-        spinner.style.display = 'none';
-        return;
-      }
-
-      // Aquí enviarías al backend: result.paymentMethod.id + formData
-      // await fetch('/api/register', { method:'POST', body: JSON.stringify({...formData, paymentMethodId: result.paymentMethod.id}) })
+    var r = await fetch('/api/checkout', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({plan: planSel, nombre: nom, email: email, tienda_nombre: tienda})
+    });
+    var data = await r.json();
+    if (data.ok && data.url) {
+      window.location.href = data.url;
+    } else {
+      err.textContent = data.error || 'Error al procesar. Intenta de nuevo.';
+      err.style.display = 'block';
+      btn.textContent = '💳 Continuar al pago';
+      btn.disabled = false;
     }
-
-    // GUARDAR EN GOOGLE SHEETS (registro)
-    await saveRegistration();
-
-    // MOSTRAR ÉXITO
-    showSuccess();
-
-  } catch(err) {
-    console.error(err);
-    // En modo demo (sin Stripe key real) igual mostramos éxito
-    await saveRegistration();
-    showSuccess();
+  } catch(e) {
+    err.textContent = 'Error de conexión. Intenta de nuevo.';
+    err.style.display = 'block';
+    btn.textContent = '💳 Continuar al pago';
+    btn.disabled = false;
   }
-}
-
-async function saveRegistration() {
-  // Aquí guardarías el registro en tu base de datos
-  // Por ahora simulamos con un pequeño delay
-  await new Promise(function(r){ setTimeout(r, 1500); });
-  console.log('Registro guardado:', formData);
-}
-
-function showSuccess() {
-  document.getElementById('formContainer').style.display = 'none';
-  document.getElementById('successScreen').style.display = 'block';
-  // Actualiza la URL de la app con la URL real de tu Apps Script
-  // document.getElementById('btnGoApp').href = 'TU_URL_DE_APPS_SCRIPT';
 }
 </script>
 </body>
