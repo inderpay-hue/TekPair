@@ -641,7 +641,6 @@ else{
   document.getElementById('dStr').textContent=new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'});
   cargarDatos();
   renderDash();
-  setTimeout(function(){cargarAjustes();applyWidgets();},100);
   checkUrgentes();
   setInterval(function(){guardarDatos();},2*60*60*1000);
   setInterval(checkCierreAuto,60000);
@@ -1612,9 +1611,9 @@ function selColor(el) {
   applyThemeColor(AJUSTES.color);
 }
 function applyThemeColor(color) {
-  document.documentElement.style.setProperty('--blue', color);
-  // Update active nav color
-  document.querySelectorAll('.ni.active').forEach(function(n) { n.style.color = color; });
+  try {
+    document.documentElement.style.setProperty('--blue', color);
+  } catch(e) {}
 }
 function saveAjustes() {
   AJUSTES.cierre.activo = document.getElementById('ajCierreActivo').checked;
