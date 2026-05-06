@@ -193,6 +193,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
 <div class="page" id="pStock">
   <div class="search-box"><input id="busStock" placeholder="🔍 Buscar stock..." oninput="renderStock()"/></div>
   <div id="stockAlertas"></div>
+  <button id="fabStock" onclick="openMStock()" style="position:fixed;bottom:80px;right:18px;width:52px;height:52px;border-radius:50%;background:#F97316;color:white;border:none;font-size:26px;cursor:pointer;z-index:49;box-shadow:0 4px 14px rgba(249,115,22,.4);display:flex;align-items:center;justify-content:center">+</button>
   <div class="card" style="padding:0;overflow:hidden"><div id="listaStock"><div class="empty">Sin stock</div></div></div>
 </div>
 
@@ -1139,14 +1140,82 @@ function renderStock(){
   });
   var el=document.getElementById('listaStock');
   if(!list.length){el.innerHTML='<div class="empty">Sin stock</div>';return;}
-  el.innerHTML='<table class="tbl"><thead><tr><th>Artículo</th><th>Cat.</th><th>Uds.</th><th>P.Venta</th></tr></thead><tbody>'+
+  el.innerHTML='<table class="tbl"><thead><tr><th>Artículo</th><th>Cat.</th><th>Uds.</th><th>€</th><th></th></tr></thead><tbody>'+
     list.map(function(s){
       var alerta=s.unidades<=(s.stockMin||2);
-      return '<tr><td><strong>'+s.marca+' '+s.modelo+'</strong>'+(s.capacidad?'<br><span style="font-size:9px;color:#64748B">'+s.capacidad+(s.color?' · '+s.color:'')+'</span>':'')+'</td>'+
+      return '<tr>'+
+        '<td><strong>'+s.marca+' '+s.modelo+'</strong>'+
+        (s.capacidad?'<br><span style="font-size:9px;color:#64748B">'+s.capacidad+(s.color?' · '+s.color:'')+'</span>':'')+
+        (s.imei?'<br><span style="font-size:9px;color:#94A3B8;font-family:monospace">'+s.imei+'</span>':'')+'</td>'+
         '<td><span class="badge bb" style="font-size:9px">'+s.categoria+'</span></td>'+
         '<td><span class="badge '+(alerta?'br':'bg')+'">'+s.unidades+'</span></td>'+
-        '<td style="color:#00C896;font-weight:700">€'+parseFloat(s.precioV).toFixed(2)+'</td></tr>';
+        '<td style="color:#00C896;font-weight:700">€'+parseFloat(s.precioV).toFixed(2)+'</td>'+
+        '<td><button onclick="editStock(''+s.id+'')" style="background:#EBF1FF;border:none;color:#0055FF;padding:4px 8px;border-radius:6px;font-size:10px;font-weight:600;cursor:pointer">✏️</button></td>'+
+        '</tr>';
     }).join('')+'</tbody></table>';
+}
+
+// ═══ EDIT STOCK ═══
+function editStock(id) {
+  var s = DB.stock.find(function(x){ return x.id === id; });
+  if (!s) return;
+  
+  // Create edit modal content
+  var html = '<div style="padding:18px">' +
+    '<div style="font-size:16px;font-weight:700;margin-bottom:14px">✏️ Editar Stock</div>' +
+    '<div class="fg"><label class="fl">Marca</label><input class="fi" id="esMarca" value="'+( s.marca||'')+'" /></div>' +
+    '<div class="fg"><label class="fl">Modelo</label><input class="fi" id="esModelo" value="'+(s.modelo||'')+'" /></div>' +
+    '<div class="g2">' +
+    '<div class="fg"><label class="fl">Capacidad</label><input class="fi" id="esCap" value="'+(s.capacidad||'')+'" /></div>' +
+    '<div class="fg"><label class="fl">Color</label><input class="fi" id="esColor" value="'+(s.color||'')+'" /></div>' +
+    '</div>' +
+    '<div class="fg"><label class="fl">IMEI</label><input class="fi" id="esImei" value="'+(s.imei||'')+'" placeholder="14-15 dígitos" maxlength="15"/></div>' +
+    '<div class="g2">' +
+    '<div class="fg"><label class="fl">Unidades</label><input class="fi" type="number" id="esUnidades" value="'+(s.unidades||1)+'" /></div>' +
+    '<div class="fg"><label class="fl">P. Venta (€)</label><input class="fi" type="number" id="esPrecioV" value="'+(s.precioV||0)+'" /></div>' +
+    '</div>' +
+    '<div class="fg"><label class="fl">P. Compra (€)</label><input class="fi" type="number" id="esPrecioC" value="'+(s.precioC||0)+'" /></div>' +
+    '<div class="g2">' +
+    '<div class="fg"><label class="fl">Stock mínimo</label><input class="fi" type="number" id="esMin" value="'+(s.stockMin||2)+'" /></div>' +
+    '<div class="fg"><label class="fl">Stock máximo</label><input class="fi" type="number" id="esMax" value="'+(s.stockMax||10)+'" /></div>' +
+    '</div>' +
+    '<button onclick="saveEditStock(''+id+'')" style="background:#0055FF;color:white;border:none;padding:12px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;width:100%;margin-top:5px;font-family:Arial">Guardar cambios</button>' +
+    '<button onclick="deleteStock(''+id+'')" style="background:rgba(239,68,68,.1);color:#EF4444;border:none;padding:11px;border-radius:9px;font-size:13px;cursor:pointer;width:100%;margin-top:7px;font-family:Arial">🗑️ Eliminar artículo</button>' +
+    '<button onclick="closeM('mEditStock')" style="background:#F1F5F9;color:#64748B;border:none;padding:11px;border-radius:9px;font-size:13px;cursor:pointer;width:100%;margin-top:6px;font-family:Arial">Cancelar</button>' +
+    '</div>';
+  
+  document.getElementById('mEditStockContent').innerHTML = html;
+  document.getElementById('mEditStock').classList.add('open');
+}
+
+function saveEditStock(id) {
+  var s = DB.stock.find(function(x){ return x.id === id; });
+  if (!s) return;
+  s.marca = document.getElementById('esMarca').value;
+  s.modelo = document.getElementById('esModelo').value;
+  s.nombre = s.modelo;
+  s.capacidad = document.getElementById('esCap').value;
+  s.color = document.getElementById('esColor').value;
+  s.imei = document.getElementById('esImei').value;
+  s.unidades = parseInt(document.getElementById('esUnidades').value)||1;
+  s.precioV = parseFloat(document.getElementById('esPrecioV').value)||0;
+  s.precioC = parseFloat(document.getElementById('esPrecioC').value)||0;
+  s.stockMin = parseInt(document.getElementById('esMin').value)||2;
+  s.stockMax = parseInt(document.getElementById('esMax').value)||10;
+  saveData();
+  closeM('mEditStock');
+  toast('✓ Stock actualizado', 'ok');
+  renderStock();
+  renderStockAlertas();
+}
+
+function deleteStock(id) {
+  if (!confirm('¿Eliminar este artículo del stock?')) return;
+  DB.stock = DB.stock.filter(function(x){ return x.id !== id; });
+  saveData();
+  closeM('mEditStock');
+  toast('Artículo eliminado', 'ok');
+  renderStock();
 }
 function renderStockAlertas(){
   var alertas=DB.stock.filter(function(s){return s.unidades>0&&s.unidades<=(s.stockMin||2);});
@@ -1262,7 +1331,11 @@ function generarReportePDF(){
     reps.map(function(r){return '<tr><td>'+r.fechaEntregaReal+'</td><td>'+r.clienteNombre+'</td><td>'+r.marca+' '+r.modelo+'</td><td>€'+r.total.toFixed(2)+'</td></tr>';}).join('')+
     '</tbody></table>'+
     '<div class="footer">Generado por Tekpair · tekpair.tech</div>'+
-    '</body></html>';
+    '
+<!-- MODAL EDITAR STOCK -->
+<div class="modal-bg" id="mEditStock"><div class="modal" id="mEditStockContent"></div></div>
+
+</body></html>';
   var win=window.open('','_blank');win.document.write(html);win.document.close();
   setTimeout(function(){win.print();},500);
   toast('PDF generado','ok');
@@ -1379,5 +1452,9 @@ function reponerStock() {
 }
 
 </script>
+
+<!-- MODAL EDITAR STOCK -->
+<div class="modal-bg" id="mEditStock"><div class="modal" id="mEditStockContent"></div></div>
+
 </body>
 </html>
