@@ -1549,11 +1549,8 @@ function enviarReporteWA(){
   var tV=ventas.reduce(function(a,v){return a+v.total;},0);
   var tR=reps.reduce(function(a,r){return a+r.total;},0);
   var pagos=calcPagos(ventas,reps);
-  var msg='*Reporte '+SEL.repTab.toUpperCase()+' - '+TIENDA.nombre+'*
-';
-  msg+='Fecha: '+new Date().toLocaleDateString('es')+'
-
-';
+  var msg='*Reporte '+SEL.repTab.toUpperCase()+' - '+TIENDA.nombre+'*\n';
+  msg+='Fecha: '+new Date().toLocaleDateString('es')+'\n\n';
   msg+='*Resumen:*
 ';
   msg+='Ventas: '+ventas.length+' (€'+tV.toFixed(2)+')
