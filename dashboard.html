@@ -678,9 +678,13 @@ else{
   document.getElementById('gName').textContent=U.nombre;
   document.getElementById('dStr').textContent=new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'});
   // Set Supabase credentials from session
-  var sess=JSON.parse(localStorage.getItem('tk_sess')||'{}');
-  SB_KEY=sess.sb_key||'';
-  TIENDA_ID=sess.tienda_id||(U&&U.tienda_id)||'';
+  try {
+    var sess=JSON.parse(localStorage.getItem('tk_sess')||'{}');
+    SB_KEY=sess.sb_key||'';
+    TIENDA_ID=sess.tienda_id||'';
+    if(!TIENDA_ID&&U&&U.tienda_id) TIENDA_ID=U.tienda_id;
+    console.log('Supabase loaded - KEY:', SB_KEY?'OK':'EMPTY', 'TIENDA:', TIENDA_ID);
+  } catch(e) { console.error('Session error:', e); }
   
   cargarDatos();
   renderDash();
