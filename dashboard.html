@@ -1515,6 +1515,12 @@ function cierreDia(){
   btn.style='margin-top:9px;background:#0055FF;color:white;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%';
   btn.onclick=function(){navTo('pReportes');};
   el.appendChild(btn);
+
+  var btnEmail=document.createElement('button');
+  btnEmail.textContent='📧 Enviar reporte por email';
+  btnEmail.style='margin-top:7px;background:#00C896;color:white;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%';
+  btnEmail.onclick=function(){enviarCierreEmail(vH,rH,tV,tR,pagos,hoy);};
+  el.appendChild(btnEmail);
   toast('Cierre generado','ok');
 }
 function checkCierreAuto(){
@@ -1524,7 +1530,17 @@ function checkCierreAuto(){
   if(ahora.getHours()===parseInt(partes[0])&&ahora.getMinutes()===parseInt(partes[1])){
     var ult=localStorage.getItem('tk_ult_cierre');
     var hoy=ahora.toLocaleDateString('es');
-    if(ult!==hoy){localStorage.setItem('tk_ult_cierre',hoy);cierreDia();}
+    if(ult!==hoy){localStorage.setItem('tk_ult_cierre',hoy);cierreDia();
+      if(AJUSTES.cierre.activo&&(TIENDA.email||AJUSTES.cierre.email)){
+        var hoyD=new Date().toLocaleDateString('es');
+        var vH2=DB.ventas.filter(function(v){return v.fecha===hoyD;});
+        var rH2=DB.reps.filter(function(r){return r.fechaEntregaReal===hoyD;});
+        var tV2=vH2.reduce(function(a,v){return a+v.total;},0);
+        var tR2=rH2.reduce(function(a,r){return a+r.total;},0);
+        var pagos2=calcPagos(vH2,rH2);
+        enviarCierreEmail(vH2,rH2,tV2,tR2,pagos2,hoyD);
+      }
+    }
   }
 }
 
@@ -2696,6 +2712,57 @@ function aplicarPermisos() {
     if (metTab) metTab.style.display = 'none';
     var metGrid = document.getElementById('metricsGrid');
     if (metGrid) metGrid.style.display = 'none';
+  }
+}
+
+async function enviarCierreEmail(ventas, reps, tV, tR, pagos, fecha) {
+  var emailDest = TIENDA.email || AJUSTES.cierre.email || '';
+  if (!emailDest) {
+    emailDest = prompt('Email para enviar el reporte:');
+    if (!emailDest) return;
+  }
+
+  var pagosObj = {};
+  Object.entries(pagos).forEach(function(e) {
+    pagosObj[e[0]] = parseFloat(e[1]).toFixed(2);
+  });
+
+  var reporte = {
+    fecha: fecha,
+    numVentas: ventas.length,
+    totalVentas: tV.toFixed(2),
+    numReps: reps.length,
+    totalReps: tR.toFixed(2),
+    total: (tV + tR).toFixed(2),
+    pagos: pagosObj,
+    ventas: ventas.map(function(v) {
+      return {clienteNombre: v.clienteNombre, modelo: v.modelo, pago: v.pago, total: v.total.toFixed(2)};
+    }),
+    reps: reps.map(function(r) {
+      return {clienteNombre: r.clienteNombre, marca: r.marca, modelo: r.modelo, total: r.total.toFixed(2)};
+    })
+  };
+
+  toast('Enviando email...', '');
+
+  try {
+    var r = await fetch('/api/email', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        email: emailDest,
+        tienda: TIENDA.nombre,
+        reporte: reporte
+      })
+    });
+    var data = await r.json();
+    if (data.ok) {
+      toast('Email enviado a ' + emailDest, 'ok');
+    } else {
+      toast('Error: ' + (data.error || 'No se pudo enviar'), 'err');
+    }
+  } catch(e) {
+    toast('Error al enviar email', 'err');
   }
 }
 // ═══ UTILS ═══
