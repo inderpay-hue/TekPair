@@ -708,7 +708,13 @@ function logout(){localStorage.removeItem('tk_user');window.location.href='app.h
 var SB_URL='https://zcxgyissdqyqsnojxviy.supabase.co';
 var SB_KEY='';
 var TIENDA_ID='';
-console.log('SB_URL set:', SB_URL);
+// Load credentials immediately from session
+try {
+  var _sess=JSON.parse(localStorage.getItem('tk_sess')||'{}');
+  if(_sess.sb_key) SB_KEY=_sess.sb_key;
+  if(_sess.tienda_id) TIENDA_ID=_sess.tienda_id;
+} catch(e){}
+console.log('SB_URL set:', SB_URL, 'KEY:', SB_KEY?'OK':'EMPTY', 'TIENDA:', TIENDA_ID);
 
 function sbHeaders(){
   return {'apikey':SB_KEY,'Authorization':'Bearer '+SB_KEY,'Content-Type':'application/json'};
