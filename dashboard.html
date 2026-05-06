@@ -640,9 +640,8 @@ else{
   document.getElementById('gName').textContent=U.nombre;
   document.getElementById('dStr').textContent=new Date().toLocaleDateString('es',{weekday:'long',day:'numeric',month:'long'});
   cargarDatos();
-  cargarAjustes();
-  applyWidgets();
   renderDash();
+  setTimeout(function(){cargarAjustes();applyWidgets();},100);
   checkUrgentes();
   setInterval(function(){guardarDatos();},2*60*60*1000);
   setInterval(checkCierreAuto,60000);
@@ -1632,21 +1631,22 @@ function saveAjustes() {
 }
 
 function applyWidgets() {
-  // Metricas
-  var metricTabs = document.getElementById('metricTabs');
-  var metricsGrid = document.getElementById('metricsGrid');
-  if (metricTabs) metricTabs.style.display = AJUSTES.widgets.metricas !== false ? 'flex' : 'none';
-  if (metricsGrid) metricsGrid.style.display = AJUSTES.widgets.metricas !== false ? 'grid' : 'none';
-  // Accesos rapidos
-  var qbtns = document.querySelector('#pDash .quick-btns');
-  if (qbtns) qbtns.style.display = AJUSTES.widgets.accesosRapidos !== false ? 'grid' : 'none';
-  // Urgentes
-  var urgCard = document.getElementById('urgCard');
-  if (urgCard && AJUSTES.widgets.urgentes === false) urgCard.style.display = 'none';
-  // Ultimas reps
-  var dashRepsCard = document.querySelector('#pDash .card:nth-child(5)');
-  // Cierre
-  var cierreCard = document.querySelector('#pDash .card:last-child');
+  try {
+    var metricTabs = document.getElementById('metricTabs');
+    var metricsGrid = document.getElementById('metricsGrid');
+    if (metricTabs) metricTabs.style.display = AJUSTES.widgets.metricas !== false ? 'flex' : 'none';
+    if (metricsGrid) metricsGrid.style.display = AJUSTES.widgets.metricas !== false ? 'grid' : 'none';
+    var qbtns = document.querySelector('#pDash .quick-btns');
+    if (qbtns) qbtns.style.display = AJUSTES.widgets.accesosRapidos !== false ? 'grid' : 'none';
+    var urgCard = document.getElementById('urgCard');
+    if (urgCard) urgCard.style.display = AJUSTES.widgets.urgentes !== false ? '' : 'none';
+    var dashReps = document.querySelector('#pDash .card');
+    var cierreDiv = document.getElementById('cierreRes');
+    if (cierreDiv) {
+      var cierreCard = cierreDiv.closest('.card');
+      if (cierreCard) cierreCard.style.display = AJUSTES.widgets.cierre !== false ? 'block' : 'none';
+    }
+  } catch(e) { console.log('applyWidgets error:', e); }
 }
 
 // ═══ UTILS ═══
