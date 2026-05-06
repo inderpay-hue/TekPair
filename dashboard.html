@@ -130,7 +130,12 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
     <div id="dashReps"><div class="empty">Sin reparaciones</div></div>
   </div>
   <div class="card">
-    <div class="card-title">💰 Cierre del día <button class="btn-sm" style="background:#00C896;color:white" onclick="cierreDia()">Generar ahora</button></div>
+    <div class="card-title">💰 Cierre del día
+      <div style="display:flex;gap:6px">
+        <button class="btn-sm" style="background:#00C896;color:white" onclick="cierreDia()">Generar</button>
+        <button class="btn-sm" style="background:#0055FF;color:white" onclick="navTo('pReportes')">Ver reportes</button>
+      </div>
+    </div>
     <div id="cierreRes" style="font-size:12px;color:#64748B">Pulsa para generar el cierre de hoy.</div>
   </div>
 </div>
@@ -217,10 +222,12 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
 <div class="page" id="pReportes">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
     <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
-    <div style="font-size:15px;font-weight:700">Reportes PDF</div>
+    <div style="font-size:15px;font-weight:700">📊 Reportes</div>
   </div>
+
+  <!-- FILTROS -->
   <div class="card">
-    <div class="card-title">Periodo</div>
+    <div class="card-title">Periodo y tipo</div>
     <div class="tabs" id="repTabs2">
       <div class="tab active" data-r="hoy" onclick="setRepTab(this)">Hoy</div>
       <div class="tab" data-r="semana" onclick="setRepTab(this)">Semana</div>
@@ -228,12 +235,43 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
     </div>
     <div class="tabs" id="repTipoTabs">
       <div class="tab active" data-tipo="todo" onclick="setRepTipo(this)">Todo</div>
-      <div class="tab" data-tipo="ventas" onclick="setRepTipo(this)">Solo ventas</div>
-      <div class="tab" data-tipo="reparaciones" onclick="setRepTipo(this)">Solo reparac.</div>
+      <div class="tab" data-tipo="ventas" onclick="setRepTipo(this)">Ventas</div>
+      <div class="tab" data-tipo="reparaciones" onclick="setRepTipo(this)">Reparaciones</div>
     </div>
-    <div id="repPreview" style="font-size:12px;color:#64748B;margin:10px 0"></div>
-    <button class="btn-save" onclick="generarPDF()">📄 Generar PDF</button>
   </div>
+
+  <!-- RESUMEN FINANCIERO -->
+  <div class="card" id="repResumenCard">
+    <div class="card-title">💰 Resumen financiero</div>
+    <div id="repResumen"></div>
+  </div>
+
+  <!-- DESGLOSE POR FORMA DE PAGO -->
+  <div class="card">
+    <div class="card-title">💳 Desglose por forma de pago</div>
+    <div id="repPagos"></div>
+  </div>
+
+  <!-- ACCIONES -->
+  <div style="display:flex;flex-direction:column;gap:9px;margin-bottom:14px">
+    <button class="btn-save" onclick="generarPDF()">📄 Descargar PDF</button>
+    <button class="btn-save" style="background:#25D366" onclick="enviarReporteWA()">📲 Enviar por WhatsApp</button>
+    <button class="btn-save" style="background:#64748B" onclick="enviarReporteEmail()">📧 Enviar por Email</button>
+  </div>
+
+  <!-- DETALLE VENTAS -->
+  <div class="card" id="repDetalleVentas" style="display:none">
+    <div class="card-title">📱 Ventas del periodo</div>
+    <div id="repListaVentas"></div>
+  </div>
+
+  <!-- DETALLE REPARACIONES -->
+  <div class="card" id="repDetalleReps" style="display:none">
+    <div class="card-title">🔧 Reparaciones del periodo</div>
+    <div id="repListaReps"></div>
+  </div>
+
+  <!-- RANKING -->
   <div class="card">
     <div class="card-title">🏆 Ranking clientes</div>
     <div id="ranking"></div>
@@ -1196,17 +1234,57 @@ function checkUrgentes(){
 }
 
 // ═══ CIERRE ═══
+function calcPagos(ventas, reps) {
+  var pagos = {};
+  ventas.forEach(function(v) {
+    var p = v.pago || 'Efectivo';
+    pagos[p] = (pagos[p] || 0) + v.total;
+  });
+  reps.forEach(function(r) {
+    var p = r.pagoFinal || 'Efectivo';
+    if (r.restante > 0) pagos[p] = (pagos[p] || 0) + r.restante;
+    if (r.anticipo > 0) pagos['Anticipo previo'] = (pagos['Anticipo previo'] || 0) + r.anticipo;
+  });
+  return pagos;
+}
+
+function renderPagosDesglose(pagos, contenedorId) {
+  var el = document.getElementById(contenedorId);
+  if (!el) return;
+  var total = Object.values(pagos).reduce(function(a,b){return a+b;},0);
+  if (!total) { el.innerHTML = '<div class="empty">Sin movimientos</div>'; return; }
+  var icons = {Efectivo:'💵',Tarjeta:'💳',Bizum:'📱',Transferencia:'🏦',PayPal:'🅿️',Financiado:'📋',Pendiente:'⏳','Anticipo previo':'🔒'};
+  el.innerHTML = Object.entries(pagos).map(function(e) {
+    var pct = total > 0 ? (e[1]/total*100).toFixed(0) : 0;
+    return '<div style="margin-bottom:10px">' +
+      '<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">' +
+      '<span>'+(icons[e[0]]||'💰')+' '+e[0]+'</span>' +
+      '<strong style="color:#020B2E">€'+e[1].toFixed(2)+' <span style="color:#64748B;font-size:11px">('+pct+'%)</span></strong></div>' +
+      '<div style="background:#F1F5F9;border-radius:20px;height:6px">' +
+      '<div style="background:#0055FF;height:6px;border-radius:20px;width:'+pct+'%;transition:width .5s"></div></div></div>';
+  }).join('') +
+  '<div style="display:flex;justify-content:space-between;padding:10px 0;border-top:1px solid #E2E8F0;font-size:14px;font-weight:700;margin-top:6px">' +
+  '<span>TOTAL</span><span style="color:#00C896">€'+total.toFixed(2)+'</span></div>';
+}
+
 function cierreDia(){
   var hoy=new Date().toLocaleDateString('es');
   var vH=DB.ventas.filter(function(v){return v.fecha===hoy;});
   var rH=DB.reps.filter(function(r){return r.fechaEntregaReal===hoy;});
   var tV=vH.reduce(function(a,v){return a+v.total;},0);
   var tR=rH.reduce(function(a,r){return a+r.total;},0);
+  var pagos=calcPagos(vH,rH);
+  var pagosHtml='';
+  var icons={Efectivo:'💵',Tarjeta:'💳',Bizum:'📱',Transferencia:'🏦',PayPal:'🅿️',Financiado:'📋',Pendiente:'⏳','Anticipo previo':'🔒'};
+  Object.entries(pagos).forEach(function(e){
+    pagosHtml+='<span style="font-size:11px">'+(icons[e[0]]||'💰')+' '+e[0]+': <strong>€'+e[1].toFixed(2)+'</strong></span><br>';
+  });
   document.getElementById('cierreRes').innerHTML=
     '<strong>Cierre '+hoy+'</strong><br>'+
-    'Ventas: '+vH.length+' (€'+tV.toFixed(2)+')<br>'+
-    'Reparaciones: '+rH.length+' (€'+tR.toFixed(2)+')<br>'+
-    '<strong style="color:#00C896">Total: €'+(tV+tR).toFixed(2)+'</strong>';
+    'Ventas: '+vH.length+' &nbsp; Reparaciones: '+rH.length+'<br><br>'+
+    pagosHtml+
+    '<div style="margin-top:7px;padding-top:7px;border-top:1px solid #E2E8F0;font-weight:700;color:#00C896">Total: €'+(tV+tR).toFixed(2)+'</div>'+
+    '<button onclick="navTo('pReportes')" style="margin-top:9px;background:#0055FF;color:white;border:none;padding:8px 14px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;width:100%">Ver reporte completo →</button>';
   toast('Cierre generado','ok');
 }
 function checkCierreAuto(){
@@ -1388,7 +1466,7 @@ function renderGastosStats(){
 
 // ═══ REPORTES ═══
 function setRepTab(el){
-  el.closest('.card').querySelectorAll('#repTabs2 .tab').forEach(function(t){t.classList.remove('active');});
+  document.querySelectorAll('#repTabs2 .tab').forEach(function(t){t.classList.remove('active');});
   el.classList.add('active');SEL.repTab=el.dataset.r;renderRepPreview();
 }
 function setRepTipo(el){
@@ -1397,16 +1475,55 @@ function setRepTipo(el){
 }
 function renderRepPreview(){
   var rng=getRange(SEL.repTab);
-  var ventas=DB.ventas.filter(function(v){var d=parseFecha(v.fecha);return d>=rng.desde&&d<=rng.hasta;});
-  var reps=DB.reps.filter(function(r){return r.estado==='Entregado'&&r.fechaEntregaReal&&parseFecha(r.fechaEntregaReal)>=rng.desde;});
+  var ventas=SEL.repTipo==='reparaciones'?[]:DB.ventas.filter(function(v){var d=parseFecha(v.fecha);return d>=rng.desde&&d<=rng.hasta;});
+  var reps=SEL.repTipo==='ventas'?[]:DB.reps.filter(function(r){return r.estado==='Entregado'&&r.fechaEntregaReal&&parseFecha(r.fechaEntregaReal)>=rng.desde;});
   var tV=ventas.reduce(function(a,v){return a+v.total;},0);
   var tR=reps.reduce(function(a,r){return a+r.total;},0);
-  var txt='Periodo: <strong>'+SEL.repTab+'</strong> · Tipo: <strong>'+SEL.repTipo+'</strong><br>';
-  if(SEL.repTipo!=='reparaciones')txt+='Ventas: '+ventas.length+' (€'+tV.toFixed(2)+')<br>';
-  if(SEL.repTipo!=='ventas')txt+='Reparaciones: '+reps.length+' (€'+tR.toFixed(2)+')<br>';
-  var tot=SEL.repTipo==='ventas'?tV:SEL.repTipo==='reparaciones'?tR:tV+tR;
-  txt+='<strong style="color:#00C896">Total: €'+tot.toFixed(2)+'</strong>';
-  document.getElementById('repPreview').innerHTML=txt;
+  var tot=tV+tR;
+  var gastos=DB.gastos.reduce(function(a,g){return a+g.importe;},0);
+
+  // Resumen
+  var resEl=document.getElementById('repResumen');
+  if(resEl){
+    resEl.innerHTML=
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:10px">'+
+      (SEL.repTipo!=='reparaciones'?'<div class="stat"><div class="stat-n" style="color:#0055FF;font-size:18px">'+ventas.length+'</div><div class="stat-l">Ventas</div></div>':'')+
+      (SEL.repTipo!=='reparaciones'?'<div class="stat"><div class="stat-n" style="color:#00C896;font-size:18px">€'+tV.toFixed(0)+'</div><div class="stat-l">Ingresos ventas</div></div>':'')+
+      (SEL.repTipo!=='ventas'?'<div class="stat"><div class="stat-n" style="color:#7C3AED;font-size:18px">'+reps.length+'</div><div class="stat-l">Reparaciones</div></div>':'')+
+      (SEL.repTipo!=='ventas'?'<div class="stat"><div class="stat-n" style="color:#F97316;font-size:18px">€'+tR.toFixed(0)+'</div><div class="stat-l">Ingresos reps</div></div>':'')+
+      '</div>'+
+      '<div style="display:flex;justify-content:space-between;padding:10px;background:#020B2E;border-radius:10px">'+
+      '<span style="color:rgba(255,255,255,.7);font-size:13px">TOTAL INGRESOS</span>'+
+      '<strong style="color:#00C896;font-size:16px">€'+tot.toFixed(2)+'</strong></div>';
+  }
+
+  // Pagos desglose
+  var pagos=calcPagos(ventas,reps);
+  renderPagosDesglose(pagos,'repPagos');
+
+  // Detalle ventas
+  var dvCard=document.getElementById('repDetalleVentas');
+  var dvEl=document.getElementById('repListaVentas');
+  if(dvCard&&dvEl){
+    dvCard.style.display=ventas.length&&SEL.repTipo!=='reparaciones'?'block':'none';
+    if(ventas.length){
+      dvEl.innerHTML='<table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th></tr></thead><tbody>'+
+        ventas.map(function(v){return '<tr><td>'+v.fecha+'</td><td>'+v.clienteNombre+'</td><td>'+v.modelo+'</td><td><span class="badge bb">'+v.pago+'</span></td><td style="color:#00C896;font-weight:700">€'+v.total.toFixed(2)+'</td></tr>';}).join('')+
+        '</tbody></table>';
+    }
+  }
+
+  // Detalle reps
+  var drCard=document.getElementById('repDetalleReps');
+  var drEl=document.getElementById('repListaReps');
+  if(drCard&&drEl){
+    drCard.style.display=reps.length&&SEL.repTipo!=='ventas'?'block':'none';
+    if(reps.length){
+      drEl.innerHTML='<table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th>Equipo</th><th>Pago</th><th>Total</th></tr></thead><tbody>'+
+        reps.map(function(r){return '<tr><td>'+r.fechaEntregaReal+'</td><td>'+r.clienteNombre+'</td><td>'+r.marca+' '+r.modelo+'</td><td><span class="badge bb">'+(r.pagoFinal||'—')+'</span></td><td style="color:#00C896;font-weight:700">€'+r.total.toFixed(2)+'</td></tr>';}).join('')+
+        '</tbody></table>';
+    }
+  }
 }
 function renderRanking(){
   var ranking=DB.clis.map(function(c){
@@ -1424,6 +1541,57 @@ function renderRanking(){
         '<td><span class="badge bb">'+r.visitas+'</span></td>'+
         '<td style="color:#00C896;font-weight:700">€'+r.total.toFixed(2)+'</td></tr>';
     }).join('')+'</tbody></table>';
+}
+function enviarReporteWA(){
+  var rng=getRange(SEL.repTab);
+  var ventas=DB.ventas.filter(function(v){var d=parseFecha(v.fecha);return d>=rng.desde&&d<=rng.hasta;});
+  var reps=DB.reps.filter(function(r){return r.estado==='Entregado'&&r.fechaEntregaReal&&parseFecha(r.fechaEntregaReal)>=rng.desde;});
+  var tV=ventas.reduce(function(a,v){return a+v.total;},0);
+  var tR=reps.reduce(function(a,r){return a+r.total;},0);
+  var pagos=calcPagos(ventas,reps);
+  var msg='*Reporte '+SEL.repTab.toUpperCase()+' - '+TIENDA.nombre+'*
+';
+  msg+='Fecha: '+new Date().toLocaleDateString('es')+'
+
+';
+  msg+='*Resumen:*
+';
+  msg+='Ventas: '+ventas.length+' (€'+tV.toFixed(2)+')
+';
+  msg+='Reparaciones: '+reps.length+' (€'+tR.toFixed(2)+')
+';
+  msg+='Total: €'+(tV+tR).toFixed(2)+'
+
+';
+  msg+='*Por forma de pago:*
+';
+  Object.entries(pagos).forEach(function(e){msg+=e[0]+': €'+e[1].toFixed(2)+'
+';});
+  window.open('https://wa.me/?text='+encodeURIComponent(msg),'_blank');
+}
+function enviarReporteEmail(){
+  var rng=getRange(SEL.repTab);
+  var ventas=DB.ventas.filter(function(v){var d=parseFecha(v.fecha);return d>=rng.desde&&d<=rng.hasta;});
+  var reps=DB.reps.filter(function(r){return r.estado==='Entregado'&&r.fechaEntregaReal&&parseFecha(r.fechaEntregaReal)>=rng.desde;});
+  var tV=ventas.reduce(function(a,v){return a+v.total;},0);
+  var tR=reps.reduce(function(a,r){return a+r.total;},0);
+  var pagos=calcPagos(ventas,reps);
+  var subject='Reporte '+SEL.repTab+' - '+TIENDA.nombre+' - '+new Date().toLocaleDateString('es');
+  var body='Reporte '+SEL.repTab.toUpperCase()+'
+
+';
+  body+='Ventas: '+ventas.length+' ('+tV.toFixed(2)+')
+';
+  body+='Reparaciones: '+reps.length+' ('+tR.toFixed(2)+')
+';
+  body+='Total: '+(tV+tR).toFixed(2)+'
+
+Por forma de pago:
+';
+  Object.entries(pagos).forEach(function(e){body+=e[0]+': '+e[1].toFixed(2)+'
+';});
+  var email=TIENDA.email||AJUSTES.cierre.email||'';
+  window.open('mailto:'+email+'?subject='+encodeURIComponent(subject)+'&body='+encodeURIComponent(body));
 }
 function generarPDF(){
   var rng=getRange(SEL.repTab);
