@@ -714,6 +714,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
 <script>
 // ═══ DATOS ═══
 var ECID=null;
+var SB_URL='https://zcxgyissdqyqsnojxviy.supabase.co';
 var DB={ventas:[],reps:[],stock:[],clis:[],provs:[],gastos:[]};
 var SEL={vStock:null,vCli:null,rCli:null,eRepId:null,editStockId:null,vPago:'Efectivo',ePago:'Efectivo',rPri:'Normal',repFiltro:'todas',metricTab:'hoy',repTab:'hoy',repTipo:'todo',selParts:[]};
 var TIENDA={nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',garantia:'',politica:'',cierreHora:'21:30'};
@@ -746,7 +747,6 @@ else{
 function logout(){localStorage.removeItem('tk_user');window.location.href='app.html';}
 
 // ═══ DATOS ═══
-var SB_URL='https://zcxgyissdqyqsnojxviy.supabase.co';
 var SB_KEY='';
 var TIENDA_ID='';
 
