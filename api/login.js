@@ -6,10 +6,11 @@ export default async function handler(req, res) {
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_KEY = process.env.SUPABASE_ANON_KEY;
+  const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || SUPABASE_KEY;
 
   try {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&activo=eq.true&select=*`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
     });
     const usuarios = await r.json();
     
@@ -23,7 +24,7 @@ export default async function handler(req, res) {
     if (u.password_hash !== hash) return res.json({ error: 'Contrasena incorrecta' });
 
     const rt = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${u.tienda_id}&select=*`, {
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}` }
+      headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
     });
     const tiendas = await rt.json();
     const tienda = tiendas[0] || { id: u.tienda_id, nombre: 'Mi Tienda' };
@@ -33,7 +34,7 @@ export default async function handler(req, res) {
     
     await fetch(`${SUPABASE_URL}/rest/v1/sesiones`, {
       method: 'POST',
-      headers: { 'apikey': SUPABASE_KEY, 'Authorization': `Bearer ${SUPABASE_KEY}`, 'Content-Type': 'application/json' },
+      headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         id: 'ses_' + Date.now(), 
         usuario_id: u.id, 
@@ -46,7 +47,7 @@ export default async function handler(req, res) {
     return res.json({
       ok: true,
       token,
-      sb_key: SUPABASE_KEY,
+      sb_key: SERVICE_KEY,
       tienda_id: u.tienda_id,
       usuario: { 
         id: u.id, 
