@@ -550,6 +550,7 @@ var MARCAS=['Apple','Samsung','Xiaomi','Huawei','OnePlus','Motorola','Google','S
 // ═══ STATE ═══
 var DB={ventas:[],reps:[],stock:[],clis:[],provs:[],gastos:[],marcas:[]};
 var SEL={vStock:null,vCli:null,rCli:null,eRepId:null,vPago:'Efectivo',ePago:'Efectivo',rPri:'Normal',repFiltro:'todas',metricTab:'hoy',repTab:'hoy',selParts:[]};
+var EDIT_STOCK_ID=null;
 var U=null,T=null;
 
 // ═══ AUTH ═══
@@ -1195,7 +1196,7 @@ function saveEditStock() {
 }
 
 function deleteStock() {
-  if (!confirm('Eliminar este articulo?')) return;
+  
   DB.stock = DB.stock.filter(function(x){ return x.id !== EDIT_STOCK_ID; });
   saveData();
   closeM('mEditStock');
