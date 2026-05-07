@@ -235,6 +235,16 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
   </div>
 </div>
 
+<!-- SERVICIOS -->
+<div class="page" id="pServicios">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">&#8592;</button>
+    <div style="font-size:15px;font-weight:700">🛠️ Servicios</div>
+    <button class="btn-sm" style="background:#0055FF;color:white;margin-left:auto" onclick="openM('mServicio');ESID=null;document.getElementById('srvNom').value='';document.getElementById('srvPrecio').value='';document.getElementById('srvCat').value='Pantalla';document.getElementById('srvTipo').value='ambos';document.getElementById('srvFijo').checked=true;">+ Nuevo</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden"><div id="listaServicios"><div class="empty">Sin servicios</div></div></div>
+</div>
+
 <!-- CLIENTES -->
 <div class="page" id="pClis">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
@@ -705,6 +715,42 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
   <button class="btn-cancel" onclick="closeM('mPermisos')">Cancelar</button>
 </div></div>
 
+<!-- SERVICIO MODAL -->
+<div class="modal-bg" id="mServicio"><div class="modal">
+  <div class="modal-title" id="mServicioTit">Nuevo Servicio</div>
+  <div class="fg"><label class="fl">Nombre del servicio</label><input class="fi" id="srvNom" placeholder="Ej: Cambio pantalla iPhone 14"/></div>
+  <div class="fg"><label class="fl">Categoria</label>
+    <select class="fi" id="srvCat">
+      <option>Pantalla</option>
+      <option>Bateria</option>
+      <option>Agua</option>
+      <option>Software</option>
+      <option>Carga</option>
+      <option>Camara</option>
+      <option>Altavoz</option>
+      <option>Otro</option>
+    </select>
+  </div>
+  <div class="fg"><label class="fl">Usar en</label>
+    <select class="fi" id="srvTipo">
+      <option value="ambos">Ventas y Reparaciones</option>
+      <option value="reparacion">Solo Reparaciones</option>
+      <option value="venta">Solo Ventas</option>
+    </select>
+  </div>
+  <div class="fg" style="display:flex;gap:12px;align-items:center">
+    <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+      <input type="radio" name="srvPrecioTipo" id="srvFijo" value="fijo" checked> Precio fijo
+    </label>
+    <label style="font-size:12px;display:flex;align-items:center;gap:6px;cursor:pointer">
+      <input type="radio" name="srvPrecioTipo" id="srvVariable" value="variable"> Precio variable
+    </label>
+  </div>
+  <div class="fg"><label class="fl">Precio (€)</label><input class="fi" id="srvPrecio" type="number" placeholder="0.00" step="0.01"/></div>
+  <button class="btn-save" onclick="guardarServicio()">Guardar</button>
+  <button class="btn-cancel" onclick="closeM('mServicio')">Cancelar</button>
+</div></div>
+
 <!-- PROVEEDOR -->
 <div class="modal-bg" id="mProv"><div class="modal">
   <div class="modal-title">🏭 Nuevo Proveedor</div>
@@ -922,6 +968,7 @@ function navTo(id){
   if(id==='pTienda')cargarTienda();
   if(id==='pAjustes')cargarAjustes();
   if(id==='pUsuarios')cargarUsuarios();
+  if(id==='pServicios')renderServicios();
 }
 function setNavActive(el){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
@@ -2819,6 +2866,94 @@ async function enviarCierreEmail(ventas, reps, tV, tR, pagos, fecha) {
     toast('Error al enviar email', 'err');
   }
 }
+
+// SERVICIOS
+if(!DB.servicios)DB.servicios=[];
+var ESID=null;
+
+function renderServicios(){
+  var el=document.getElementById('listaServicios');
+  if(!el)return;
+  if(!DB.servicios||!DB.servicios.length){el.innerHTML='<div class="empty">Sin servicios. Crea tu primer servicio.</div>';return;}
+  var cats={};
+  DB.servicios.forEach(function(s){
+    if(!cats[s.categoria])cats[s.categoria]=[];
+    cats[s.categoria].push(s);
+  });
+  var html='';
+  Object.keys(cats).forEach(function(cat){
+    html+='<div style="padding:8px 12px;font-size:10px;font-weight:700;color:#64748B;background:#F8FAFC;text-transform:uppercase">'+cat+'</div>';
+    cats[cat].forEach(function(s){
+      html+='<div style="display:flex;align-items:center;padding:10px 12px;border-bottom:1px solid #F1F5F9;gap:8px">'+
+        '<div style="flex:1"><div style="font-size:13px;font-weight:600">'+s.nombre+'</div>'+
+        '<div style="font-size:11px;color:#64748B">'+(s.tipo==='reparacion'?'Solo reparaciones':s.tipo==='venta'?'Solo ventas':'Ventas y reparaciones')+'</div></div>'+
+        '<div style="font-size:13px;font-weight:700;color:#0055FF">'+(s.precioFijo?'€'+parseFloat(s.precio||0).toFixed(2):'Variable')+'</div>'+
+        '<button data-sid="'+s.id+'" class="srv-edit-btn" style="background:#EBF1FF;border:none;color:#0055FF;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">&#9998;</button>'+
+        '<button data-sid="'+s.id+'" class="srv-del-btn" style="background:rgba(239,68,68,.1);border:none;color:#EF4444;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">&#128465;</button>'+
+        '</div>';
+    });
+  });
+  el.innerHTML=html;
+  el.querySelectorAll('.srv-edit-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){editarServicio(this.dataset.sid);});
+  });
+  el.querySelectorAll('.srv-del-btn').forEach(function(btn){
+    btn.addEventListener('click',function(){eliminarServicio(this.dataset.sid);});
+  });
+}
+
+function guardarServicio(){
+  var nom=document.getElementById('srvNom').value.trim();
+  if(!nom){toast('Escribe un nombre','err');return;}
+  var cat=document.getElementById('srvCat').value;
+  var tipo=document.getElementById('srvTipo').value;
+  var fijo=document.getElementById('srvFijo').checked;
+  var precio=parseFloat(document.getElementById('srvPrecio').value)||0;
+  if(!DB.servicios)DB.servicios=[];
+  if(ESID){
+    var srv=DB.servicios.find(function(s){return s.id===ESID;});
+    if(srv){srv.nombre=nom;srv.categoria=cat;srv.tipo=tipo;srv.precioFijo=fijo;srv.precio=precio;}
+  } else {
+    DB.servicios.push({id:'srv'+Date.now(),nombre:nom,categoria:cat,tipo:tipo,precioFijo:fijo,precio:precio});
+  }
+  guardarDatos();
+  closeM('mServicio');
+  toast(ESID?'Servicio actualizado':'Servicio creado','ok');
+  ESID=null;
+  renderServicios();
+}
+
+function editarServicio(id){
+  var s=DB.servicios.find(function(x){return x.id===id;});
+  if(!s)return;
+  ESID=id;
+  document.getElementById('mServicioTit').textContent='Editar Servicio';
+  document.getElementById('srvNom').value=s.nombre||'';
+  document.getElementById('srvCat').value=s.categoria||'Otro';
+  document.getElementById('srvTipo').value=s.tipo||'ambos';
+  document.getElementById('srvFijo').checked=s.precioFijo!==false;
+  document.getElementById('srvVariable').checked=s.precioFijo===false;
+  document.getElementById('srvPrecio').value=s.precio||'';
+  openM('mServicio');
+}
+
+function eliminarServicio(id){
+  DB.servicios=DB.servicios.filter(function(s){return s.id!==id;});
+  guardarDatos();
+  toast('Servicio eliminado','ok');
+  renderServicios();
+}
+
+function getServiciosParaRep(){
+  if(!DB.servicios)return[];
+  return DB.servicios.filter(function(s){return s.tipo==='reparacion'||s.tipo==='ambos';});
+}
+
+function getServiciosParaVenta(){
+  if(!DB.servicios)return[];
+  return DB.servicios.filter(function(s){return s.tipo==='venta'||s.tipo==='ambos';});
+}
+
 // ═══ UTILS ═══
 function bc(e){return{Pendiente:'bo','En Proceso':'bb','Por Entregar':'bp',Entregado:'bg',Garantia:'',Rechazado:'br'}[e]||'';}
 </script>
