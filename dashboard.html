@@ -15,7 +15,36 @@
 body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
 
 /* ═══ LAYOUT ═══ */
-#app{display:flex;flex-direction:column;height:100vh;max-width:480px;margin:0 auto;background:var(--bg);position:relative;overflow:hidden}
+#app{display:flex;flex-direction:column;height:100vh;max-width:480px;margin:0 auto;background:var(--bg);position:relative;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.1)}
+
+/* Desktop layout */
+@media(min-width:900px){
+  body{background:linear-gradient(135deg,#020B2E 0%,#0A1A4E 100%);display:flex;align-items:stretch;justify-content:center}
+  #app{max-width:1200px;width:100%;flex-direction:row;height:100vh;box-shadow:none;background:transparent;margin:0}
+  .sidebar{width:220px;flex-shrink:0;background:var(--dark);display:flex;flex-direction:column;padding:20px 0}
+  .sidebar-logo{color:white;font-size:20px;font-weight:800;padding:0 20px 24px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:16px}
+  .sidebar-nav{flex:1}
+  .sidebar-ni{display:flex;align-items:center;gap:12px;padding:12px 20px;color:rgba(255,255,255,.6);cursor:pointer;font-size:13px;font-weight:600;transition:all .15s;border-left:3px solid transparent}
+  .sidebar-ni:hover{background:rgba(255,255,255,.05);color:white}
+  .sidebar-ni.active{background:rgba(0,85,255,.15);color:white;border-left-color:var(--blue)}
+  .sidebar-ni-icon{font-size:18px;width:24px;text-align:center}
+  .sidebar-user{padding:16px 20px;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:12px}
+  .sidebar-logout{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:7px 14px;border-radius:8px;font-size:11px;cursor:pointer;margin-top:8px;width:100%;font-family:inherit;text-align:left}
+  #app-content{flex:1;display:flex;flex-direction:column;background:var(--bg);overflow:hidden}
+  .topbar{display:none}
+  .navbar{display:none}
+  .content{flex:1;overflow-y:auto;padding:0}
+  .page{padding:24px}
+  .stats-grid{grid-template-columns:repeat(4,1fr)}
+  .quick-grid{grid-template-columns:repeat(4,1fr)}
+}
+
+@media(min-width:900px) and (max-width:1199px){
+  .sidebar{width:180px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .quick-grid{grid-template-columns:repeat(3,1fr)}
+}
+
 .topbar{background:var(--dark);padding:14px 18px 10px;flex-shrink:0;display:flex;align-items:center;justify-content:space-between}
 .topbar-logo{color:white;font-size:16px;font-weight:800;letter-spacing:-.3px}
 .topbar-info{display:flex;align-items:center;gap:10px}
@@ -152,6 +181,59 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </head>
 <body>
 <div id="app">
+
+<!-- SIDEBAR (desktop only) -->
+<div class="sidebar" id="sidebar" style="display:none">
+  <div class="sidebar-logo">⚡ Tekpair</div>
+  <div class="sidebar-nav">
+    <div class="sidebar-ni active" data-p="pDash" onclick="navTo('pDash');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">🏠</span>Inicio
+    </div>
+    <div class="sidebar-ni" data-p="pVentas" onclick="navTo('pVentas');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">📱</span>Ventas
+    </div>
+    <div class="sidebar-ni" data-p="pReps" onclick="navTo('pReps');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">🔧</span>Reparaciones
+    </div>
+    <div class="sidebar-ni" data-p="pStock" onclick="navTo('pStock');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">📦</span>Stock
+    </div>
+    <div class="sidebar-ni" data-p="pClis" onclick="navTo('pClis');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">👥</span>Clientes
+    </div>
+    <div class="sidebar-ni" data-p="pProvs" onclick="navTo('pProvs');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">🏭</span>Proveedores
+    </div>
+    <div class="sidebar-ni" data-p="pGastos" onclick="navTo('pGastos');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">📋</span>Gastos
+    </div>
+    <div class="sidebar-ni" data-p="pReportes" onclick="navTo('pReportes');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">📊</span>Reportes
+    </div>
+    <div class="sidebar-ni" data-p="pServicios" onclick="navTo('pServicios');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">🛠️</span>Servicios
+    </div>
+    <div class="sidebar-ni" onclick="window.location.href='catalogo.html'">
+      <span class="sidebar-ni-icon">📚</span>Catalogo
+    </div>
+    <div class="sidebar-ni" data-p="pUsuarios" onclick="navTo('pUsuarios');setSidebarActive(this)" id="sidebarUsuarios">
+      <span class="sidebar-ni-icon">👤</span>Usuarios
+    </div>
+    <div class="sidebar-ni" data-p="pTienda" onclick="navTo('pTienda');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">🏪</span>Mi Tienda
+    </div>
+    <div class="sidebar-ni" data-p="pAjustes" onclick="navTo('pAjustes');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">⚙️</span>Ajustes
+    </div>
+  </div>
+  <div class="sidebar-user">
+    <div id="sidebarName"></div>
+    <div id="sidebarTienda" style="font-size:11px;opacity:.7;margin-top:2px"></div>
+    <button class="sidebar-logout" onclick="logout()">← Cerrar sesion</button>
+  </div>
+</div>
+
+<div id="app-content" style="display:contents">
 
 <!-- TOPBAR -->
 <div class="topbar">
@@ -473,6 +555,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 </div><!-- /content -->
+</div><!-- /app-content -->
 
 <!-- NAVBAR -->
 <div class="navbar">
@@ -867,6 +950,8 @@ window.addEventListener('DOMContentLoaded', function() {
   // Auto backup
   setInterval(function() { guardarDatos(); }, 2 * 60 * 60 * 1000);
   setInterval(checkCierreAuto, 60000);
+  initDesktop();
+  window.addEventListener('resize', initDesktop);
 
   // Pago select listener
   document.getElementById('vPago').addEventListener('change', function() {
@@ -876,6 +961,34 @@ window.addEventListener('DOMContentLoaded', function() {
   // Set today date for gasto
   document.getElementById('gFecha').value = new Date().toISOString().split('T')[0];
 });
+
+function setSidebarActive(el) {
+  document.querySelectorAll('.sidebar-ni').forEach(function(n) { n.classList.remove('active'); });
+  el.classList.add('active');
+}
+
+function initDesktop() {
+  var isDesktop = window.innerWidth >= 900;
+  var sidebar = document.getElementById('sidebar');
+  var appContent = document.getElementById('app-content');
+  if (isDesktop) {
+    sidebar.style.display = 'flex';
+    sidebar.style.flexDirection = 'column';
+    appContent.style.display = 'flex';
+    appContent.style.flexDirection = 'column';
+    appContent.style.flex = '1';
+    appContent.style.overflow = 'hidden';
+    document.getElementById('sidebarName').textContent = U ? U.nombre : '';
+    document.getElementById('sidebarTienda').textContent = TIENDA.nombre;
+    if (!U.rol || U.rol !== 'admin') {
+      var su = document.getElementById('sidebarUsuarios');
+      if (su) su.style.display = 'none';
+    }
+  } else {
+    sidebar.style.display = 'none';
+    appContent.style.display = 'contents';
+  }
+}
 
 function logout() {
   localStorage.removeItem('tk_user');
