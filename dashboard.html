@@ -1064,7 +1064,13 @@ function renderDash() {
   var repsHoy = DB.reps.filter(function(r) { return filterDates.includes(r.fechaEntregaReal); });
   var repsActivas = DB.reps.filter(function(r) { return r.estado !== 'Entregado' && r.estado !== 'Rechazado'; });
 
-  var tVentas = ventas.reduce(function(a, v) { return a + v.total; }, 0);
+  var tVentas = ventas.reduce(function(a, v) {
+    if(v.financiado && v.cuotas) {
+      var pagado = (v.entrada||0) + v.cuotas.filter(function(c){return c.pagado;}).reduce(function(s,c){return s+c.importe;},0);
+      return a + pagado;
+    }
+    return a + v.total;
+  }, 0);
   var tReps = repsHoy.reduce(function(a, r) { return a + r.total; }, 0);
 
   document.getElementById('metricsGrid').innerHTML =
