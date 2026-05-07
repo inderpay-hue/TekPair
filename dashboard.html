@@ -790,6 +790,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="ncApe" placeholder="Garcia"></div>
   </div>
   <div class="fg"><label class="fl">Telefono</label><input class="fi" id="ncTel" type="tel" placeholder="6XX XXX XXX"></div>
+  <div class="fg"><label class="fl">DNI/NIE</label><input class="fi" id="ncDni" placeholder="12345678A"></div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mNuevoCli')">Cancelar</button>
     <button class="btn-primary" onclick="crearClienteRapido()">Crear</button>
@@ -1482,6 +1483,7 @@ function openNuevoCliRapido(ctx) {
   document.getElementById('ncNom').value = '';
   document.getElementById('ncApe').value = '';
   document.getElementById('ncTel').value = '';
+  var ncDni = document.getElementById('ncDni'); if(ncDni) ncDni.value = '';
   openM('mNuevoCli');
   window._cliCtx = ctx;
 }
@@ -1494,11 +1496,12 @@ function crearClienteRapido() {
     nombre: nom,
     apellidos: document.getElementById('ncApe').value.trim(),
     tel: document.getElementById('ncTel').value.trim(),
-    email: '', dni: ''
+    email: '',
+    dni: document.getElementById('ncDni').value.trim()
   };
   DB.clis.push(c);
   guardarDatos();
-  if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:'',dni:''});
+  if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:'',dni:c.dni});
   closeM('mNuevoCli');
   selCli(c.id, window._cliCtx || 'v');
   toast('Cliente creado', 'ok');
