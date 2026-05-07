@@ -1254,6 +1254,7 @@ function calcV() {
 }
 
 function guardarVenta() {
+  if (!tienePerm('ventas_crear')) { toast('Sin permiso', 'err'); return; }
   var precio = parseFloat(document.getElementById('vPrecio').value) || 0;
   if (precio <= 0) { toast('Introduce un precio', 'err'); return; }
   var pago = document.getElementById('vPago').value;
@@ -1373,6 +1374,7 @@ function renderVentas() {
 }
 
 function reembolsarVenta(id) {
+  if (!tienePerm('ventas_reembolso')) { toast('Sin permiso', 'err'); return; }
   var v = DB.ventas.find(function(x) { return x.id === id; });
   if (!v) return;
   if (!confirm('Reembolsar venta de ' + v.clienteNombre + ' por ' + cur(v.total) + '?')) return;
@@ -1684,6 +1686,7 @@ function busServicioRep() {
 }
 
 function guardarRep() {
+  if (!tienePerm('reps_crear')) { toast('Sin permiso', 'err'); return; }
   var modelo = document.getElementById('rModelo').value.trim();
   var averia = document.getElementById('rAveria').value.trim();
   if (!modelo || !averia) { toast('Modelo y averia obligatorios', 'err'); return; }
@@ -1791,6 +1794,7 @@ function renderReps() {
 
 
 function cambiarEstado(id, estado) {
+  if (!tienePerm('reps_editar')) { toast('Sin permiso', 'err'); return; }
   var r = DB.reps.find(function(x) { return x.id === id; });
   if (!r) return;
   if (estado === 'Por Entregar') { abrirEntregar(id); return; }
@@ -1959,6 +1963,7 @@ function editarStock(id) {
 }
 
 function eliminarStock(id) {
+  if (!tienePerm('stock_eliminar')) { toast('Sin permiso', 'err'); return; }
   if (!confirm('Eliminar este producto?')) return;
   DB.stock = DB.stock.filter(function(s) { return s.id !== id; });
   guardarDatos();
@@ -2042,6 +2047,7 @@ function editCli(id) {
 }
 
 function delCli(id) {
+  if (!tienePerm('clis_eliminar')) { toast('Sin permiso', 'err'); return; }
   if (!confirm('Eliminar cliente?')) return;
   DB.clis = DB.clis.filter(function(c) { return c.id !== id; });
   guardarDatos();
