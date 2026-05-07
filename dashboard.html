@@ -920,7 +920,10 @@ window.addEventListener('DOMContentLoaded', function() {
   var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
   SB_KEY = sess.sb_key || '';
   TIENDA_ID = sess.tienda_id || (U && U.tienda_id) || '';
-  if (U.permisos && sess.usuario) U.permisos = sess.usuario.permisos || U.permisos;
+  // Load permisos from session
+  if (sess.usuario && sess.usuario.permisos) U.permisos = sess.usuario.permisos;
+  else if (U.permisos) U.permisos = U.permisos;
+  else U.permisos = {};
 
   document.getElementById('uName').textContent = U.nombre || '';
   var tiendaLS = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
@@ -954,6 +957,7 @@ window.addEventListener('DOMContentLoaded', function() {
   setInterval(checkCierreAuto, 60000);
   initDesktop();
   window.addEventListener('resize', initDesktop);
+  setTimeout(aplicarPermisos, 200);
 
   // Pago select listener
   document.getElementById('vPago').addEventListener('change', function() {
@@ -2509,6 +2513,86 @@ async function eliminarUsuario(id) {
 }
 
 // ═══ PERMISOS ═══
+
+// ═══ APLICAR PERMISOS ═══
+function tienePerm(perm) {
+  if (!U) return false;
+  if (U.rol === 'admin') return true;
+  if (!U.permisos) return false;
+  if (U.permisos.todo) return true;
+  return U.permisos[perm] === true;
+}
+
+function aplicarPermisos() {
+  if (!U || U.rol === 'admin') return;
+
+  // Navbar - hide sections user cant access
+  if (!tienePerm('ventas_ver')) {
+    var niV = document.querySelector('.ni[data-p="pVentas"]');
+    if (niV) niV.style.display = 'none';
+    var sbV = document.querySelector('.sidebar-ni[data-p="pVentas"]');
+    if (sbV) sbV.style.display = 'none';
+  }
+  if (!tienePerm('reps_ver')) {
+    var niR = document.querySelector('.ni[data-p="pReps"]');
+    if (niR) niR.style.display = 'none';
+    var sbR = document.querySelector('.sidebar-ni[data-p="pReps"]');
+    if (sbR) sbR.style.display = 'none';
+  }
+  if (!tienePerm('stock_ver')) {
+    var niS = document.querySelector('.ni[data-p="pStock"]');
+    if (niS) niS.style.display = 'none';
+    var sbS = document.querySelector('.sidebar-ni[data-p="pStock"]');
+    if (sbS) sbS.style.display = 'none';
+  }
+
+  // Quick action buttons on dashboard
+  var btns = document.querySelectorAll('#pDash .qbtn');
+  btns.forEach(function(btn) {
+    var onclick = btn.getAttribute('onclick') || '';
+    if (onclick.includes('abrirVenta') && !tienePerm('ventas_crear')) btn.style.display = 'none';
+    if (onclick.includes('abrirRep') && !tienePerm('reps_crear')) btn.style.display = 'none';
+    if (onclick.includes('pStock') && !tienePerm('stock_crear')) btn.style.display = 'none';
+    if (onclick.includes('pClis') && !tienePerm('clis_crear')) btn.style.display = 'none';
+  });
+
+  // Mas menu buttons
+  var masBtns = document.querySelectorAll('#pMas .qbtn');
+  masBtns.forEach(function(btn) {
+    var onclick = btn.getAttribute('onclick') || '';
+    if (onclick.includes('pReportes') && !tienePerm('reportes')) btn.style.display = 'none';
+    if (onclick.includes('pGastos') && !tienePerm('gastos_ver')) btn.style.display = 'none';
+    if (onclick.includes('pServicios') && !tienePerm('servicios')) btn.style.display = 'none';
+    if (onclick.includes('catalogo') && !tienePerm('catalogo')) btn.style.display = 'none';
+    if (onclick.includes('pImportar') && !tienePerm('importar')) btn.style.display = 'none';
+    if (onclick.includes('pUsuarios')) btn.style.display = 'none'; // only admin
+  });
+
+  // Sidebar menu
+  var sbBtns = document.querySelectorAll('.sidebar-ni');
+  sbBtns.forEach(function(btn) {
+    var onclick = btn.getAttribute('onclick') || '';
+    if (onclick.includes('pReportes') && !tienePerm('reportes')) btn.style.display = 'none';
+    if (onclick.includes('pGastos') && !tienePerm('gastos_ver')) btn.style.display = 'none';
+    if (onclick.includes('pServicios') && !tienePerm('servicios')) btn.style.display = 'none';
+    if (onclick.includes('pUsuarios')) btn.style.display = 'none';
+  });
+
+  // Hide new venta/rep buttons in pages
+  if (!tienePerm('ventas_crear')) {
+    document.querySelectorAll('[onclick*="abrirVenta"]').forEach(function(b) { b.style.display = 'none'; });
+  }
+  if (!tienePerm('reps_crear')) {
+    document.querySelectorAll('[onclick*="abrirRep"]').forEach(function(b) { b.style.display = 'none'; });
+  }
+  if (!tienePerm('stock_crear')) {
+    document.querySelectorAll('[onclick*="mStock"]').forEach(function(b) { b.style.display = 'none'; });
+  }
+  if (!tienePerm('clis_crear') && !tienePerm('clis_eliminar')) {
+    document.querySelectorAll('[onclick*="mCli"]').forEach(function(b) { b.style.display = 'none'; });
+  }
+}
+
 var PERMS_LISTA = [
   {id:'ventas_ver',label:'Ver ventas',grupo:'Ventas'},
   {id:'ventas_crear',label:'Crear ventas',grupo:'Ventas'},
