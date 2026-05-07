@@ -206,7 +206,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
   </div>
   <div class="card">
     <div class="card-title">Importar desde CSV</div>
-    <div style="font-size:12px;color:#64748B;margin-bottom:12px">Sube un archivo CSV de Samiiweb, iGestion u otro programa</div>
+    <div style="font-size:12px;color:#64748B;margin-bottom:12px">Sube un archivo CSV de tu programa actual de gestion</div>
     <div class="fg"><label class="fl">Tipo de datos</label>
       <select class="fi" id="importTipo">
         <option value="clientes">Clientes</option>
@@ -2161,14 +2161,14 @@ function procesarImport(){
     var headers=parsed.headers;
     var rows=parsed.rows;
     if(!rows.length){toast('Archivo vacio o sin datos','err');return;}
-    var isSamiiweb=headers.indexOf('FullName')>=0;
-    var isSamiiwebProd=headers.indexOf('Name')>=0&&headers.indexOf('Quantity')>=0&&headers.indexOf('Cost')>=0;
+    var isStdContacts=headers.indexOf('FullName')>=0;
+    var isStdProducts=headers.indexOf('Name')>=0&&headers.indexOf('Quantity')>=0&&headers.indexOf('Cost')>=0;
     if(tipo==='clientes'){
       var added=0;var dupes=0;
       var badTels=['0','1','2','6','7','12','15','22','24','28','33','41','44','45','48','54','55','66','111','123','444','777'];
       rows.forEach(function(row){
         var nom='',ape='',tel='',email='',dni='';
-        if(isSamiiweb){
+        if(isStdContacts){
           var full=(row.FullName||'').trim();
           if(!full||full==='TEST'||full==='REPARACION')return;
           var p=full.indexOf(' ');
@@ -2201,7 +2201,7 @@ function procesarImport(){
       var added2=0;
       rows.forEach(function(row){
         var nombre='',marca='',modelo='',cat='Telefono',precioV=0,precioC=0,uds=0;
-        if(isSamiiwebProd){
+        if(isStdProducts){
           nombre=(row.Name||'').trim();
           if(!nombre)return;
           var p2=nombre.indexOf(' ');
