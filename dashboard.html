@@ -2123,6 +2123,33 @@ async function crearUsuario(nom,email,pass,rol){
 }
 
 // IMPORTAR
+function parseCSV(text){
+  var rows=[];var headers=[];
+  var inQuote=false;var current='';var fields=[];
+  var lines=text.split('\n');
+  for(var li=0;li<lines.length;li++){
+    var line=lines[li];
+    for(var i=0;i<line.length;i++){
+      var ch=line[i];
+      if(ch==='"'){inQuote=!inQuote;}
+      else if(ch===','&&!inQuote){fields.push(current.trim().replace(/^"|"$/g,''));current='';}
+      else{current+=ch;}
+    }
+    if(!inQuote){
+      fields.push(current.trim().replace(/^"|"$/g,''));
+      current='';
+      if(li===0){headers=fields.slice();}
+      else if(fields.some(function(f){return f;})){
+        var obj={};
+        headers.forEach(function(h,i2){obj[h]=fields[i2]||'';});
+        rows.push(obj);
+      }
+      fields=[];
+    } else {current+='\n';}
+  }
+  return{headers:headers,rows:rows};
+}
+
 function procesarImport(){
   var file=document.getElementById('importFile').files[0];
   if(!file){toast('Selecciona un archivo','err');return;}
@@ -2130,50 +2157,76 @@ function procesarImport(){
   var reader=new FileReader();
   reader.onload=function(e){
     var text=e.target.result;
-    var lines=text.split('\n').filter(function(l){return l.trim();});
-    if(!lines.length){toast('Archivo vacio','err');return;}
-    var headers=lines[0].split(',').map(function(h){return h.trim().replace(/"/g,'');});
-    var rows=lines.slice(1).map(function(line){
-      var vals=line.split(',').map(function(v){return v.trim().replace(/"/g,'');});
-      var obj={};
-      headers.forEach(function(h,i){obj[h]=vals[i]||'';});
-      return obj;
-    });
+    var parsed=parseCSV(text);
+    var headers=parsed.headers;
+    var rows=parsed.rows;
+    if(!rows.length){toast('Archivo vacio o sin datos','err');return;}
+    var isSamiiweb=headers.indexOf('FullName')>=0;
+    var isSamiiwebProd=headers.indexOf('Name')>=0&&headers.indexOf('Quantity')>=0&&headers.indexOf('Cost')>=0;
     if(tipo==='clientes'){
-      var added=0;
+      var added=0;var dupes=0;
+      var badTels=['0','1','2','6','7','12','15','22','24','28','33','41','44','45','48','54','55','66','111','123','444','777'];
       rows.forEach(function(row){
-        var nom=row.nombre||row.Nombre||row.name||row.Name||'';
-        var tel=row.telefono||row.Telefono||row.tel||row.phone||'';
-        if(!nom)return;
-        if(!DB.clis.find(function(c){return c.tel===tel&&tel;})){
-          DB.clis.push({id:'c'+Date.now()+added,nombre:nom,apellidos:row.apellidos||row.Apellidos||'',tel:tel,email:row.email||row.Email||''});
-          added++;
+        var nom='',ape='',tel='',email='',dni='';
+        if(isSamiiweb){
+          var full=(row.FullName||'').trim();
+          if(!full||full==='TEST'||full==='REPARACION')return;
+          var p=full.indexOf(' ');
+          nom=p>0?full.substring(0,p):full;
+          ape=p>0?full.substring(p+1).trim():'';
+          tel=(row.Phone||'').trim();
+          if(badTels.indexOf(tel)>=0)tel='';
+          email=(row.Email||'').trim();
+          if(email.indexOf('@')<0)email='';
+          dni=(row.Dni||'').trim();
+        } else {
+          nom=row.nombre||row.Nombre||row.name||row.Name||'';
+          ape=row.apellidos||row.Apellidos||'';
+          tel=row.telefono||row.Telefono||row.tel||row.Phone||'';
+          email=row.email||row.Email||'';
+          dni=row.dni||row.Dni||'';
         }
+        if(!nom)return;
+        var existe=DB.clis.find(function(cl){return cl.tel&&cl.tel===tel&&tel.length>5;});
+        if(existe){dupes++;return;}
+        DB.clis.push({id:'c'+Date.now()+Math.random().toString(36).slice(2),nombre:nom,apellidos:ape,tel:tel,email:email,dni:dni});
+        added++;
       });
       guardarDatos();
-      toast(added+' clientes importados','ok');
+      var msg=added+' clientes importados';
+      if(dupes)msg+=', '+dupes+' duplicados saltados';
+      toast(msg,'ok');
+      navTo('pClis');
     } else if(tipo==='stock'){
       var added2=0;
       rows.forEach(function(row){
-        var modelo=row.modelo||row.Modelo||row.nombre||row.Nombre||row.name||'';
-        if(!modelo)return;
-        DB.stock.push({
-          id:'s'+Date.now()+added2,
-          categoria:row.categoria||row.Categoria||'Telefono',
-          marca:row.marca||row.Marca||'Otro',
-          modelo:modelo,
-          imei:row.imei||row.IMEI||'',
-          unidades:parseInt(row.unidades||row.stock||'1')||1,
-          precioV:parseFloat(row.precio||row.precio_venta||'0')||0,
-          precioC:parseFloat(row.precio_compra||'0')||0,
-          vendido:false,stockMin:2,stockMax:10
-        });
+        var nombre='',marca='',modelo='',cat='Telefono',precioV=0,precioC=0,uds=0;
+        if(isSamiiwebProd){
+          nombre=(row.Name||'').trim();
+          if(!nombre)return;
+          var p2=nombre.indexOf(' ');
+          marca=p2>0?nombre.substring(0,p2):nombre;
+          modelo=p2>0?nombre.substring(p2+1).trim():nombre;
+          cat=(row.Category||'Telefono').trim()||'Telefono';
+          precioV=parseFloat((row.Price||'0').replace(',','.'))||0;
+          precioC=parseFloat((row.Cost||'0').replace(',','.'))||0;
+          uds=parseInt(row.Quantity||'0')||0;
+        } else {
+          modelo=row.modelo||row.Modelo||row.nombre||row.Nombre||row.Name||'';
+          if(!modelo)return;
+          marca=row.marca||row.Marca||modelo.split(' ')[0]||'Otro';
+          cat=row.categoria||row.Categoria||row.Category||'Telefono';
+          precioV=parseFloat(row.precio||row.Price||'0')||0;
+          precioC=parseFloat(row.precio_compra||row.Cost||'0')||0;
+          uds=parseInt(row.unidades||row.Quantity||'1')||1;
+        }
+        DB.stock.push({id:'s'+Date.now()+Math.random().toString(36).slice(2),categoria:cat,marca:marca,modelo:modelo,imei:'',unidades:uds,precioV:precioV,precioC:precioC,vendido:false,stockMin:2,stockMax:10});
         added2++;
       });
       guardarDatos();
       toast(added2+' productos importados','ok');
+      navTo('pStock');
     }
-    navTo('pMas');
   };
   reader.readAsText(file);
 }
