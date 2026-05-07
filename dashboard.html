@@ -2491,11 +2491,29 @@ async function eliminarUsuario(id) {
 
 // ═══ PERMISOS ═══
 var PERMS_LISTA = [
-  {id:'ventas_ver',label:'Ver ventas',grupo:'Ventas'},{id:'ventas_crear',label:'Crear ventas',grupo:'Ventas'},
-  {id:'reps_ver',label:'Ver reparaciones',grupo:'Reparaciones'},{id:'reps_crear',label:'Crear reparaciones',grupo:'Reparaciones'},
-  {id:'stock_ver',label:'Ver stock',grupo:'Stock'},{id:'stock_crear',label:'Anadir stock',grupo:'Stock'},
-  {id:'clis_ver',label:'Ver clientes',grupo:'Clientes'},{id:'clis_crear',label:'Anadir clientes',grupo:'Clientes'},
-  {id:'reportes',label:'Ver reportes',grupo:'Admin'},{id:'gastos',label:'Ver gastos',grupo:'Admin'}
+  {id:'ventas_ver',label:'Ver ventas',grupo:'Ventas'},
+  {id:'ventas_crear',label:'Crear ventas',grupo:'Ventas'},
+  {id:'ventas_reembolso',label:'Reembolsar ventas',grupo:'Ventas'},
+  {id:'ventas_financiado',label:'Ventas financiadas',grupo:'Ventas'},
+  {id:'reps_ver',label:'Ver reparaciones',grupo:'Reparaciones'},
+  {id:'reps_crear',label:'Crear reparaciones',grupo:'Reparaciones'},
+  {id:'reps_editar',label:'Cambiar estado',grupo:'Reparaciones'},
+  {id:'reps_entregar',label:'Entregar reparaciones',grupo:'Reparaciones'},
+  {id:'stock_ver',label:'Ver stock',grupo:'Stock'},
+  {id:'stock_crear',label:'Anadir stock',grupo:'Stock'},
+  {id:'stock_editar',label:'Editar stock',grupo:'Stock'},
+  {id:'stock_eliminar',label:'Eliminar stock',grupo:'Stock'},
+  {id:'clis_ver',label:'Ver clientes',grupo:'Clientes'},
+  {id:'clis_crear',label:'Anadir clientes',grupo:'Clientes'},
+  {id:'clis_eliminar',label:'Eliminar clientes',grupo:'Clientes'},
+  {id:'provs_ver',label:'Ver proveedores',grupo:'Proveedores'},
+  {id:'gastos_ver',label:'Ver gastos',grupo:'Admin'},
+  {id:'gastos_crear',label:'Crear gastos',grupo:'Admin'},
+  {id:'reportes',label:'Ver reportes',grupo:'Admin'},
+  {id:'servicios',label:'Gestionar servicios',grupo:'Admin'},
+  {id:'catalogo',label:'Ver catalogo',grupo:'Admin'},
+  {id:'importar',label:'Importar datos',grupo:'Admin'},
+  {id:'cierre',label:'Ver cierre del dia',grupo:'Admin'}
 ];
 
 async function editarPermisos(id, nombre) {
