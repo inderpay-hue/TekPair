@@ -2455,7 +2455,23 @@ async function cargarUsuarios() {
   el.appendChild(container);
 }
 
-function openNuevoUsuario() {
+var PLAN_LIMITES = {basico: 1, pro: 3, top: 999};
+
+async function openNuevoUsuario() {
+  // Check plan limit
+  if (SB_KEY && TIENDA_ID) {
+    var usuarios = await sbGet('usuarios', 'tienda_id=eq.' + TIENDA_ID);
+    var activos = (usuarios || []).filter(function(u) { return u.activo; }).length;
+    // Get plan from tienda
+    var tiendaData = await sbGet('tiendas', 'id=eq.' + TIENDA_ID);
+    var plan = (tiendaData && tiendaData[0] && tiendaData[0].plan) || 'basico';
+    var limite = PLAN_LIMITES[plan] || 1;
+    if (activos >= limite) {
+      var planNames = {basico: 'Basico (max 1)', pro: 'Pro (max 3)', top: 'Top (ilimitado)'};
+      alert('Has alcanzado el limite de usuarios de tu plan ' + (planNames[plan] || plan) + '.\nActualiza tu plan en tekpair.tech para anadir mas usuarios.');
+      return;
+    }
+  }
   var nom = prompt('Nombre:'); if (!nom) return;
   var email = prompt('Email:'); if (!email) return;
   var pass = prompt('Contrasena:'); if (!pass) return;
