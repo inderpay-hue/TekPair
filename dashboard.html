@@ -562,6 +562,10 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
   <div class="fg"><label class="fl">Modelo *</label><input class="fi" id="rModelo" placeholder="iPhone 13..."/></div>
   <div class="fg"><label class="fl">IMEI</label><input class="fi" id="rImei" placeholder="Opcional"/></div>
   <div class="fg"><label class="fl">Avería *</label>
+    <div style="position:relative;margin-bottom:6px">
+      <input class="fi" id="rSrvBus" placeholder="Buscar servicio predefinido..." oninput="busServicioRep()" autocomplete="off"/>
+      <div class="autocomplete-res" id="rSrvRes"></div>
+    </div>
     <input class="fi" id="rAveria" placeholder="Describe el problema..." autocomplete="off"/>
     <div class="sug-row">
       <span class="sug" onclick="setAv('Pantalla rota')">📱 Pantalla</span>
@@ -2976,6 +2980,39 @@ function getServiciosParaRep(){
 function getServiciosParaVenta(){
   if(!DB.servicios)return[];
   return DB.servicios.filter(function(s){return s.tipo==='venta'||s.tipo==='ambos';});
+}
+
+
+function busServicioRep(){
+  var q=document.getElementById('rSrvBus').value.toLowerCase();
+  var res=document.getElementById('rSrvRes');
+  if(!q){res.classList.remove('open');return;}
+  var matches=(DB.servicios||[]).filter(function(s){
+    return (s.tipo==='reparacion'||s.tipo==='ambos')&&s.nombre.toLowerCase().includes(q);
+  });
+  if(!matches.length){res.classList.remove('open');return;}
+  res.innerHTML=matches.map(function(s){
+    return '<div class="cli-item srv-rep-item" data-sid="'+s.id+'" style="border-left:3px solid #7C3AED">'
+      +'<span style="font-size:9px;color:#7C3AED;font-weight:700">SERVICIO · '+s.categoria+'</span><br>'
+      +'<strong>'+s.nombre+'</strong>'
+      +'<span style="float:right;color:#7C3AED;font-weight:700">'+(s.precioFijo?'€'+parseFloat(s.precio||0).toFixed(2):'Variable')+'</span>'
+      +'</div>';
+  }).join('');
+  res.classList.add('open');
+  res.querySelectorAll('.srv-rep-item').forEach(function(el){
+    el.addEventListener('click',function(){
+      var sid=this.dataset.sid;
+      var s=(DB.servicios||[]).find(function(x){return x.id===sid;});
+      if(!s)return;
+      document.getElementById('rAveria').value=s.nombre;
+      if(s.precioFijo&&s.precio>0){
+        document.getElementById('rMo').value=s.precio;
+        calcR();
+      }
+      document.getElementById('rSrvBus').value='';
+      res.classList.remove('open');
+    });
+  });
 }
 
 // ═══ UTILS ═══
