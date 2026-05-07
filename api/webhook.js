@@ -85,7 +85,7 @@ export default async function handler(req, res) {
         }
 
         // After 3 failed attempts, deactivate account
-        if (attemptCount >= 3 && customerEmail) {
+        if (attemptCount >= 1 && customerEmail) {
           await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(customerEmail)}`, {
             method: 'PATCH',
             headers: sbHeaders,
