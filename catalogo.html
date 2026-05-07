@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Catálogo — Tekpair</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-bottom:40px}
+nav{background:#020B2E;padding:14px 20px;display:flex;align-items:center;gap:10px}
+.nav-logo{color:white;font-size:16px;font-weight:800}
+.nav-back{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;margin-left:auto}
+.container{max-width:600px;margin:0 auto;padding:16px}
+.filters{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.filter-btn{padding:6px 14px;border-radius:20px;border:1.5px solid #E2E8F0;background:white;font-size:12px;cursor:pointer;font-family:Arial}
+.filter-btn.active{background:#0055FF;color:white;border-color:#0055FF}
+.cat-title{font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;padding:8px 0;border-bottom:2px solid #E2E8F0;margin-bottom:8px;margin-top:16px}
+.card{background:white;border-radius:12px;padding:12px;margin-bottom:8px;border:1px solid #E2E8F0}
+.card-row{display:flex;align-items:center;justify-content:space-between}
+.card-name{font-size:13px;font-weight:700;color:#0F1729}
+.card-cal{font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;cursor:pointer;margin-top:4px;display:inline-block}
+.stats{display:flex;gap:10px;text-align:center}
+.stat-val{font-size:18px;font-weight:800}
+.stat-lbl{font-size:9px;color:#64748B}
+.empty{text-align:center;padding:40px;color:#94A3B8;font-size:14px}
+.search-box{width:100%;padding:10px 14px;border:1.5px solid #E2E8F0;border-radius:10px;font-size:14px;font-family:Arial;outline:none;margin-bottom:12px}
+.search-box:focus{border-color:#0055FF}
+.total-badge{background:#EBF1FF;color:#0055FF;padding:4px 12px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:12px;display:inline-block}
+</style>
+</head>
+<body>
+<nav>
+  <div class="nav-logo">📚 Catálogo</div>
+  <a href="dashboard.html" class="nav-back">← Dashboard</a>
+</nav>
+
+<div class="container">
+  <input type="text" class="search-box" id="searchBox" placeholder="Buscar marca o modelo..." oninput="renderCatalogo()">
+  
+  <div class="filters" id="filters">
+    <button class="filter-btn active" onclick="setFiltro('')">Todos</button>
+    <button class="filter-btn" onclick="setFiltro('Telefono')">Teléfonos</button>
+    <button class="filter-btn" onclick="setFiltro('Tablet')">Tablets</button>
+    <button class="filter-btn" onclick="setFiltro('Accesorio')">Accesorios</button>
+    <button class="filter-btn" onclick="setFiltro('Repuesto')">Repuestos</button>
+  </div>
+
+  <div id="totalBadge"></div>
+  <div id="catalogoContainer"><div class="empty">Cargando...</div></div>
+</div>
+
+<script>
+var DB = JSON.parse(localStorage.getItem('tk_db') || '{"stock":[],"ventas":[],"reps":[],"clis":[],"gastos":[],"provs":[]}');
+var filtro = '';
+
+var CALIDAD_BG = {Nuevo:'#DCFCE7',Reacondicionado:'#EBF1FF',Bueno:'#FEF9C3',Regular:'#FFE4E6','Para piezas':'#F1F5F9'};
+var CALIDAD_COL = {Nuevo:'#16A34A',Reacondicionado:'#0055FF',Bueno:'#CA8A04',Regular:'#DC2626','Para piezas':'#64748B'};
+
+function setFiltro(f) {
+  filtro = f;
+  document.querySelectorAll('.filter-btn').forEach(function(btn) {
+    btn.classList.toggle('active', btn.textContent.trim() === (f || 'Todos') || (!f && btn.textContent.trim() === 'Todos'));
+  });
+  renderCatalogo();
+}
+
+function renderCatalogo() {
+  var el = document.getElementById('catalogoContainer');
+  var q = (document.getElementById('searchBox').value || '').toLowerCase();
+
+  var grupos = {};
+  DB.stock.forEach(function(s) {
+    var cat = s.categoria || 'Otro';
+    var marca = s.marca || 'Otro';
+    var modelo = s.modelo || 'Sin modelo';
+    if (filtro && cat !== filtro) return;
+    if (q && !(marca + ' ' + modelo).toLowerCase().includes(q)) return;
+    var key = cat + '::' + marca + '::' + modelo;
+    if (!grupos[key]) { grupos[key] = {cat:cat, marca:marca, modelo:modelo, unidades:0, calidad:'', ids:[]}; }
+    grupos[key].unidades += s.unidades || 0;
+    if (s.calidad && !grupos[key].calidad) grupos[key].calidad = s.calidad;
+    grupos[key].ids.push(s.id);
+  });
+
+  var repC = {};
+  DB.reps.forEach(function(r) { var k = r.marca + '|' + r.modelo; repC[k] = (repC[k] || 0) + 1; });
+  var venC = {};
+  DB.ventas.forEach(function(v) { var k = (v.marca || '') + '|' + v.modelo; venC[k] = (venC[k] || 0) + 1; });
+
+  var keys = Object.keys(grupos);
+  document.getElementById('totalBadge').innerHTML = keys.length ? '<div class="total-badge">' + keys.length + ' modelos</div>' : '';
+
+  if (!keys.length) { el.innerHTML = '<div class="empty">Sin productos</div>'; return; }
+
+  var catGroups = {};
+  keys.forEach(function(k) {
+    var item = grupos[k];
+    if (!catGroups[item.cat]) catGroups[item.cat] = [];
+    catGroups[item.cat].push(item);
+  });
+
+  var html = '';
+  Object.keys(catGroups).sort().forEach(function(cat) {
+    var items = catGroups[cat];
+    html += '<div class="cat-title">' + cat + ' (' + items.length + ')</div>';
+    items.sort(function(a, b) { return (a.marca + a.modelo).localeCompare(b.marca + b.modelo); }).forEach(function(item) {
+      var rk = item.marca + '|' + item.modelo;
+      var reps = repC[rk] || 0;
+      var vens = venC[rk] || 0;
+      var bg = item.calidad ? (CALIDAD_BG[item.calidad] || '#F1F5F9') : '#F1F5F9';
+      var col = item.calidad ? (CALIDAD_COL[item.calidad] || '#64748B') : '#94A3B8';
+      html += '<div class="card">'
+        + '<div class="card-row">'
+        + '<div>'
+        + '<div class="card-name">' + item.marca + ' ' + item.modelo + '</div>'
+        + '<div class="card-cal" style="background:' + bg + ';color:' + col + '" data-ids="' + encodeURIComponent(JSON.stringify(item.ids)) + '" data-cal="' + item.calidad + '" onclick="cambiarCalidad(this)">' + (item.calidad || '+ Calidad') + '</div>'
+        + '</div>'
+        + '<div class="stats">'
+        + '<div><div class="stat-val" style="color:#0055FF">' + item.unidades + '</div><div class="stat-lbl">Stock</div></div>'
+        + '<div><div class="stat-val" style="color:#7C3AED">' + reps + '</div><div class="stat-lbl">Reparac.</div></div>'
+        + '<div><div class="stat-val" style="color:#00C896">' + vens + '</div><div class="stat-lbl">Ventas</div></div>'
+        + '</div></div></div>';
+    });
+  });
+
+  el.innerHTML = html;
+}
+
+function cambiarCalidad(el) {
+  var ids = JSON.parse(decodeURIComponent(el.dataset.ids));
+  var actual = el.dataset.cal;
+  var opts = ['Nuevo', 'Reacondicionado', 'Bueno', 'Regular', 'Para piezas'];
+  var msg = 'Calidad actual: ' + (actual || 'Sin asignar') + '\nElige:\n';
+  opts.forEach(function(o, i) { msg += (i + 1) + '. ' + o + '\n'; });
+  var sel = prompt(msg);
+  if (!sel) return;
+  var idx = parseInt(sel) - 1;
+  if (idx < 0 || idx >= opts.length) return;
+  var cal = opts[idx];
+  DB.stock.forEach(function(s) { if (ids.indexOf(s.id) >= 0) s.calidad = cal; });
+  localStorage.setItem('tk_db', JSON.stringify(DB));
+  renderCatalogo();
+  alert('Calidad actualizada: ' + cal);
+}
+
+renderCatalogo();
+</script>
+</body>
+</html>
