@@ -1145,17 +1145,40 @@ function busStockVenta(){
   var res=document.getElementById('vStockRes');
   if(!q){res.classList.remove('open');return;}
   var matches=DB.stock.filter(function(s){
-    var esTel=s.categoria==='Teléfono'||s.categoria==='Tablet'||s.categoria==='Smartwatch'||!s.categoria;
+    var esTel=s.categoria==='Telefono'||s.categoria==='Tablet'||s.categoria==='Smartwatch'||!s.categoria;
     return esTel&&s.unidades>0&&(s.marca+' '+s.modelo+' '+(s.capacidad||'')+' '+(s.imei||'')).toLowerCase().includes(q);
   });
-  res.innerHTML=matches.map(function(s){
-    return '<div class="cli-item" onclick="selStockVenta(\''+s.id+'\')">'
+  var srvMatches=(DB.servicios||[]).filter(function(s){
+    return (s.tipo==='venta'||s.tipo==='ambos')&&s.nombre.toLowerCase().includes(q);
+  });
+  var stockHtml=matches.map(function(s){
+    return '<div class="cli-item" onclick="selStockVenta('+String.fromCharCode(39)+s.id+String.fromCharCode(39)+')">'
       +'<strong>'+s.marca+' '+s.modelo+'</strong>'+(s.capacidad?' '+s.capacidad:'')+(s.color?' · '+s.color:'')
       +(s.imei?'<br><span style="font-family:monospace;font-size:10px;color:#94A3B8">IMEI: '+s.imei+'</span>':'')
       +'<span style="float:right;color:#00C896;font-weight:700">€'+parseFloat(s.precioV).toFixed(2)+'</span>'
       +'</div>';
   }).join('');
-  if(matches.length)res.classList.add('open');
+  var srvHtml=srvMatches.map(function(s){
+    return '<div class="cli-item" onclick="selServicioVenta('+String.fromCharCode(39)+s.id+String.fromCharCode(39)+')" style="border-left:3px solid #0891B2">'
+      +'<span style="font-size:9px;color:#0891B2;font-weight:700">SERVICIO</span><br>'
+      +'<strong>'+s.nombre+'</strong>'
+      +'<span style="float:right;color:#0891B2;font-weight:700">'+(s.precioFijo?'€'+parseFloat(s.precio||0).toFixed(2):'Variable')+'</span>'
+      +'</div>';
+  }).join('');
+  res.innerHTML=stockHtml+srvHtml;
+  if(matches.length||srvMatches.length)res.classList.add('open');
+  else res.classList.remove('open');
+}
+function selServicioVenta(id){
+  var s=(DB.servicios||[]).find(function(x){return x.id===id;});if(!s)return;
+  SEL.vStock={id:s.id,marca:'Servicio',modelo:s.nombre,precioV:s.precioFijo?s.precio:0,esServicio:true};
+  document.getElementById('vBusStock').value='';
+  document.getElementById('vStockRes').classList.remove('open');
+  document.getElementById('vSelStockNom').textContent=s.nombre;
+  document.getElementById('vSelStockDet').textContent='Servicio';
+  document.getElementById('vSelStock').classList.add('show');
+  document.getElementById('vPrecio').value=s.precioFijo?s.precio:'';
+  calcV();
 }
 function selStockVenta(id){
   var s=DB.stock.find(function(x){return x.id===id;});if(!s)return;
