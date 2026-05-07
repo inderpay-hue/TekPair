@@ -144,6 +144,12 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
 <div class="page" id="pVentas">
   <div style="display:flex;gap:8px;margin-bottom:10px;align-items:center">
     <div class="search-box" style="flex:1;margin-bottom:0"><input id="busVentas" placeholder="🔍 Buscar..." oninput="renderVentas()"/></div>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:10px;overflow-x:auto">
+    <button class="filter-tab active" data-f="todas" onclick="setVentaFiltro(this)" style="padding:5px 12px;border-radius:20px;border:1.5px solid #E2E8F0;background:white;font-size:11px;cursor:pointer;white-space:nowrap;font-family:Arial">Todas</button>
+    <button class="filter-tab" data-f="reembolsos" onclick="setVentaFiltro(this)" style="padding:5px 12px;border-radius:20px;border:1.5px solid #E2E8F0;background:white;font-size:11px;cursor:pointer;white-space:nowrap;font-family:Arial">&#8629; Reembolsos</button>
+    <button class="filter-tab" data-f="financiados" onclick="setVentaFiltro(this)" style="padding:5px 12px;border-radius:20px;border:1.5px solid #E2E8F0;background:white;font-size:11px;cursor:pointer;white-space:nowrap;font-family:Arial">&#128176; Financiados</button>
+  <div style="display:none">
     <button class="btn-sm" style="background:#0055FF;color:white;padding:9px 13px;border-radius:9px" onclick="abrirVenta()">+ Venta</button>
   </div>
   <div class="card" style="padding:0;overflow:hidden"><div id="listaVentas"><div class="empty">Sin ventas</div></div></div>
@@ -760,6 +766,8 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
   <button class="btn-save" onclick="guardarServicio()">Guardar</button>
   <button class="btn-cancel" onclick="closeM('mServicio')">Cancelar</button>
 </div></div>
+
+<div class="modal-bg" id="finModal"></div>
 
 <!-- PROVEEDOR -->
 <div class="modal-bg" id="mProv"><div class="modal">
@@ -1670,19 +1678,37 @@ function renderDash(){
 // ═══ RENDER VENTAS ═══
 function renderVentas(){
   var q=(document.getElementById('busVentas').value||'').toLowerCase();
+  var filtroV=document.getElementById('ventaFiltro')?document.getElementById('ventaFiltro').value:'todas';
   var list=DB.ventas.slice().reverse().filter(function(v){
-    return !q||(v.clienteNombre+' '+v.modelo+' '+v.imei).toLowerCase().includes(q);
+    var matchQ=!q||(v.clienteNombre+' '+v.modelo+' '+(v.imei||'')).toLowerCase().includes(q);
+    if(filtroV==='reembolsos')return matchQ&&v.reembolsado;
+    if(filtroV==='financiados')return matchQ&&v.financiado;
+    return matchQ&&!v.reembolsado;
   });
   var el=document.getElementById('listaVentas');
-  if(!list.length){el.innerHTML='<div class="empty">Sin ventas</div>';return;}
-  el.innerHTML='<table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>IMEI</th><th>Pago</th><th>Total</th></tr></thead><tbody>'+
+  if(!list.length){el.innerHTML='<div class="empty">Sin registros</div>';return;}
+  el.innerHTML='<table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th><th></th></tr></thead><tbody>'+
     list.map(function(v){
-      return '<tr><td>'+v.fecha+'</td><td>'+v.clienteNombre+'</td><td>'+v.modelo+'</td>'+
-        '<td style="font-family:monospace;font-size:9px">'+(v.imei||'—')+'</td>'+
+      var reemBadge=v.reembolsado?'<br><span style="background:rgba(239,68,68,.1);color:#EF4444;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px">Reembolsado</span>':'';
+      var finBadge=v.financiado&&!v.reembolsado?'<br><span style="background:rgba(124,58,237,.1);color:#7C3AED;font-size:9px;font-weight:700;padding:1px 5px;border-radius:8px">Financiado</span>':'';
+      var btnR=!v.reembolsado?'<button data-vid="'+v.id+'" class="btn-reem" style="background:rgba(239,68,68,.1);border:none;color:#EF4444;padding:3px 6px;border-radius:5px;font-size:10px;cursor:pointer" title="Reembolsar">&#8629;</button>':'';
+      var btnF=v.financiado&&!v.reembolsado?'<button data-vid="'+v.id+'" class="btn-fin" style="background:rgba(124,58,237,.1);border:none;color:#7C3AED;padding:3px 6px;border-radius:5px;font-size:10px;cursor:pointer" title="Ver financiado">&#128176;</button>':'';
+      return '<tr style="'+(v.reembolsado?'opacity:.55':'')+'">'+
+        '<td>'+v.fecha+'</td>'+
+        '<td>'+v.clienteNombre+reemBadge+finBadge+'</td>'+
+        '<td>'+v.modelo+'</td>'+
         '<td><span class="badge bb">'+v.pago+'</span></td>'+
-        '<td style="color:#00C896;font-weight:700">€'+v.total.toFixed(2)+'</td></tr>';
+        '<td style="color:'+(v.reembolsado?'#EF4444':'#00C896')+';font-weight:700">'+(v.reembolsado?'-':'')+'\u20ac'+v.total.toFixed(2)+'</td>'+
+        '<td style="display:flex;gap:3px">'+btnR+btnF+'</td></tr>';
     }).join('')+'</tbody></table>';
+  el.querySelectorAll('.btn-reem').forEach(function(btn){
+    btn.addEventListener('click',function(){reembolsarVenta(this.dataset.vid);});
+  });
+  el.querySelectorAll('.btn-fin').forEach(function(btn){
+    btn.addEventListener('click',function(){verFinanciado(this.dataset.vid);});
+  });
 }
+
 
 // ═══ RENDER REPS ═══
 function renderReps(){
@@ -3018,6 +3044,88 @@ function busServicioRep(){
       res.classList.remove('open');
     });
   });
+}
+
+
+// VENTAS EXTRA
+function setVentaFiltro(el){
+  document.querySelectorAll('.filter-tab').forEach(function(b){
+    b.style.background='white';b.style.color='';b.style.borderColor='#E2E8F0';
+  });
+  el.style.background='#0055FF';el.style.color='white';el.style.borderColor='#0055FF';
+  var sel=document.getElementById('ventaFiltro');
+  if(!sel){sel=document.createElement('select');sel.id='ventaFiltro';sel.style.display='none';document.getElementById('listaVentas').before(sel);}
+  sel.innerHTML='<option value="'+el.dataset.f+'">'+el.dataset.f+'</option>';
+  renderVentas();
+}
+
+function reembolsarVenta(id){
+  var v=DB.ventas.find(function(x){return x.id===id;});
+  if(!v)return;
+  if(!confirm('Reembolsar venta de '+v.clienteNombre+' por '+v.total.toFixed(2)+'?'))return;
+  v.reembolsado=true;
+  v.fechaReembolso=new Date().toLocaleDateString('es');
+  if(v.stockId){
+    var s=DB.stock.find(function(x){return x.id===v.stockId;});
+    if(s)s.unidades=(s.unidades||0)+1;
+  }
+  guardarDatos();
+  if(SB_KEY&&TIENDA_ID)sbPatch('ventas','id=eq.'+id,{reembolsado:true,fecha_reembolso:v.fechaReembolso});
+  toast('Venta reembolsada','ok');
+  renderVentas();
+  renderDash();
+}
+
+// FINANCIADOS
+function abrirNuevaVentaFinanciada(){
+  SEL.esFinanciado=true;
+  abrirVenta();
+}
+
+function verFinanciado(id){
+  var v=DB.ventas.find(function(x){return x.id===id;});
+  if(!v||!v.cuotas)return;
+  var pagado=v.cuotas.filter(function(c){return c.pagado;}).reduce(function(a,c){return a+c.importe;},0);
+  var pendiente=v.total-pagado-(v.entrada||0);
+  var html='<div style="margin-bottom:12px"><strong>'+v.clienteNombre+'</strong> - '+v.modelo+'<br>'
+    +'<span style="font-size:12px;color:#64748B">Total: \u20ac'+v.total.toFixed(2)+' | Entrada: \u20ac'+(v.entrada||0)+' | Pagado: \u20ac'+pagado.toFixed(2)+' | Pendiente: \u20ac'+pendiente.toFixed(2)+'</span></div>'
+    +'<div style="font-size:11px;font-weight:700;color:#64748B;margin-bottom:8px">CUOTAS:</div>';
+  v.cuotas.forEach(function(cu,i){
+    var hoy=new Date();
+    var venc=new Date(cu.fecha.split('/').reverse().join('-'));
+    var vencido=!cu.pagado&&venc<hoy;
+    html+='<div style="display:flex;align-items:center;justify-content:space-between;padding:8px;border-radius:8px;margin-bottom:6px;background:'+(cu.pagado?'rgba(0,200,150,.08)':vencido?'rgba(239,68,68,.08)':'#F8FAFC')+'">'
+      +'<div><div style="font-size:12px;font-weight:600">Cuota '+(i+1)+' - \u20ac'+cu.importe.toFixed(2)+'</div>'
+      +'<div style="font-size:10px;color:#64748B">Vence: '+cu.fecha+(cu.pagado?' | Pagado: '+cu.formaPago:'')+'</div></div>'
+      +'<div>'+(cu.pagado
+        ?'<span style="color:#00C896;font-size:11px;font-weight:700">&#10003; Pagado</span>'
+        :'<button data-vid="'+id+'" data-cidx="'+i+'" class="btn-pagar-cuota" style="background:#0055FF;color:white;border:none;padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">Registrar pago</button>'
+      )+'</div></div>';
+  });
+  document.getElementById('finModal').innerHTML='<div class="modal"><div class="modal-title">&#128176; Financiado</div>'+html+'<button class="btn-cancel" onclick="closeM(&quot;finModal&quot;)">Cerrar</button></div>';
+  document.getElementById('finModal').classList.add('open');
+  document.getElementById('finModal').querySelectorAll('.btn-pagar-cuota').forEach(function(btn){
+    btn.addEventListener('click',function(){registrarPagoCuota(this.dataset.vid,parseInt(this.dataset.cidx));});
+  });
+}
+
+function registrarPagoCuota(vid,cidx){
+  var v=DB.ventas.find(function(x){return x.id===vid;});
+  if(!v||!v.cuotas)return;
+  var formas=['Efectivo','Tarjeta','Bizum','Transferencia'];
+  var forma=prompt('Forma de pago:\n1. Efectivo\n2. Tarjeta\n3. Bizum\n4. Transferencia\nEscribe el numero:');
+  if(!forma)return;
+  var fp=formas[parseInt(forma)-1]||'Efectivo';
+  v.cuotas[cidx].pagado=true;
+  v.cuotas[cidx].formaPago=fp;
+  v.cuotas[cidx].fechaPago=new Date().toLocaleDateString('es');
+  var todasPagadas=v.cuotas.every(function(cu){return cu.pagado;});
+  if(todasPagadas)v.estadoFinanciado='completado';
+  guardarDatos();
+  toast('Pago registrado','ok');
+  closeM('finModal');
+  verFinanciado(vid);
+  renderVentas();
 }
 
 // ═══ UTILS ═══
