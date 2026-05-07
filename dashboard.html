@@ -1698,7 +1698,7 @@ function renderReps(){
         '<td>'+r.clienteNombre+(r.prioridad&&r.prioridad!=='Normal'?'<br><span style="font-size:9px;color:#EF4444">'+r.prioridad+'</span>':'')+'</td>'+
         '<td>'+r.marca+' '+r.modelo+'<br><span style="font-size:9px;color:#EF4444">'+r.averia+'</span></td>'+
         '<td><select style="border:none;background:none;font-size:10px;cursor:pointer" onchange="cambiarEstado(\''+r.id+'\',this.value)">'+
-          ['Pendiente','En Proceso','Por Entregar','Entregado','Garantia','Rechazado'].map(function(s){
+          ['Pendiente','En Proceso','Por Entregar','Entregado','Garantia','Sin Solucion','Devuelto','Rechazado'].map(function(s){
             return '<option'+(s===r.estado?' selected':'')+'>'+s+'</option>';
           }).join('')+'</select></td>'+
         '<td style="color:#EF4444;font-weight:700">\u20ac'+r.restante.toFixed(2)+'</td>'+
