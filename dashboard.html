@@ -991,7 +991,7 @@ function mapVenta(v) {
     descuento:parseFloat(v.descuento)||0, total:parseFloat(v.total)||0,
     reembolsado:v.reembolsado||false, fechaReembolso:v.fecha_reembolso||'',
     stockId:v.stock_id||'', financiado:v.financiado||false,
-    cuotas:v.cuotas||null, entrada:parseFloat(v.entrada)||0
+    cuotas:v.cuotas?(typeof v.cuotas==='string'?JSON.parse(v.cuotas):v.cuotas):null, entrada:parseFloat(v.entrada)||0
   };
 }
 
@@ -1316,6 +1316,7 @@ function registrarPagoCuota(vid, cidx) {
   var todasPagadas = v.cuotas.every(function(c) { return c.pagado; });
   if (todasPagadas) { v.estadoFinanciado = 'completado'; toast('Financiado completado!', 'ok'); }
   guardarDatos();
+  if(SB_KEY&&TIENDA_ID)sbPatch('ventas','id=eq.'+vid,{cuotas:JSON.stringify(v.cuotas)});
   closeM('finModal');
   verFinanciado(vid);
   renderVentas();
