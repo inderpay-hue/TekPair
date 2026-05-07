@@ -16,11 +16,12 @@ body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 
 /* ═══ LAYOUT ═══ */
 #app{display:flex;flex-direction:column;height:100vh;max-width:480px;margin:0 auto;background:var(--bg);position:relative;overflow:hidden;box-shadow:0 0 60px rgba(0,0,0,.1)}
+@media(min-width:900px){#app{max-width:100vw;box-shadow:none}}
 
 /* Desktop layout */
 @media(min-width:900px){
-  body{background:linear-gradient(135deg,#020B2E 0%,#0A1A4E 100%);display:flex;align-items:stretch;justify-content:center}
-  #app{max-width:1200px;width:100%;flex-direction:row;height:100vh;box-shadow:none;background:transparent;margin:0}
+  body{background:var(--dark);display:flex;align-items:stretch;justify-content:center}
+  #app{max-width:100%;width:100%;flex-direction:row;height:100vh;box-shadow:none;background:transparent;margin:0}
   .sidebar{width:220px;flex-shrink:0;background:var(--dark);display:flex;flex-direction:column;padding:20px 0}
   .sidebar-logo{color:white;font-size:20px;font-weight:800;padding:0 20px 24px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:16px}
   .sidebar-nav{flex:1}
