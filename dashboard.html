@@ -1199,7 +1199,7 @@ function guardarVenta() {
       cliente_id: venta.clienteId, cliente_nombre: venta.clienteNombre,
       marca: venta.marca, modelo: venta.modelo, imei: venta.imei,
       pago: venta.pago, precio: venta.precio, descuento: venta.descuento,
-      total: venta.total, stock_id: venta.stockId,
+      total: venta.total,
       reembolsado: false, financiado: venta.financiado,
       cuotas: cuotas ? JSON.stringify(cuotas) : null, entrada: entrada
     });
