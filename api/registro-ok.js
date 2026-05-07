@@ -61,7 +61,7 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: 'Tekpair <noreply@tekpair.tech>',
+          from: 'Tekpair <onboarding@resend.dev>',
           to: [email],
           subject: 'Bienvenido a Tekpair - Tus credenciales de acceso',
           html: `
