@@ -185,6 +185,7 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
     <button class="qbtn" style="background:#475569" onclick="navTo('pAjustes')">⚙️ Ajustes</button>
     <button class="qbtn" style="background:#0F172A" onclick="navTo('pUsuarios')" id="btnUsuarios" style="display:none">👥 Usuarios</button>
     <button class="qbtn" style="background:#0891B2" onclick="navTo('pServicios')">🛠️ Servicios</button>
+    <button class="qbtn" style="background:#7C3AED" onclick="navTo('pCatalogo')">📚 Catálogo</button>
     <button class="qbtn" style="background:#020B2E" onclick="backup()">💾 Backup</button>
   </div>
 </div>
@@ -244,6 +245,22 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;padding-botto
     <button class="btn-sm" style="background:#0055FF;color:white;margin-left:auto" onclick="openM('mServicio');ESID=null;document.getElementById('srvNom').value='';document.getElementById('srvPrecio').value='';document.getElementById('srvCat').value='Pantalla';document.getElementById('srvTipo').value='ambos';document.getElementById('srvFijo').checked=true;">+ Nuevo</button>
   </div>
   <div class="card" style="padding:0;overflow:hidden"><div id="listaServicios"><div class="empty">Sin servicios</div></div></div>
+</div>
+
+<!-- CATALOGO -->
+<div class="page" id="pCatalogo">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+    <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">&#8592;</button>
+    <div style="font-size:15px;font-weight:700">&#128218; Catalogo</div>
+    <select class="fi" id="catFiltro" style="font-size:11px;padding:6px 8px;width:auto;margin-left:auto" onchange="renderCatalogo()">
+      <option value="">Todas</option>
+      <option value="Telefono">Telefonos</option>
+      <option value="Tablet">Tablets</option>
+      <option value="Accesorio">Accesorios</option>
+      <option value="Repuesto">Repuestos</option>
+    </select>
+  </div>
+  <div id="catalogoContainer"><div class="empty">Cargando...</div></div>
 </div>
 
 <!-- CLIENTES -->
@@ -974,6 +991,7 @@ function navTo(id){
   if(id==='pAjustes')cargarAjustes();
   if(id==='pUsuarios')cargarUsuarios();
   if(id==='pServicios')renderServicios();
+  if(id==='pCatalogo')renderCatalogo();
 }
 function setNavActive(el){
   document.querySelectorAll('.ni').forEach(function(n){n.classList.remove('active');});
@@ -3013,6 +3031,80 @@ function busServicioRep(){
       res.classList.remove('open');
     });
   });
+}
+
+
+// CATALOGO
+function renderCatalogo(){
+  var el=document.getElementById('catalogoContainer');
+  if(!el)return;
+  var filtro=document.getElementById('catFiltro')?document.getElementById('catFiltro').value:'';
+  var grupos={};
+  DB.stock.forEach(function(s){
+    var cat=s.categoria||'Otro';
+    var marca=s.marca||'Otro';
+    var modelo=s.modelo||'Sin modelo';
+    if(filtro&&cat!==filtro)return;
+    var key=cat+'::'+marca+'::'+modelo;
+    if(!grupos[key]){grupos[key]={cat:cat,marca:marca,modelo:modelo,unidades:0,calidad:'',ids:[]};}
+    grupos[key].unidades+=s.unidades||0;
+    if(s.calidad&&!grupos[key].calidad)grupos[key].calidad=s.calidad;
+    grupos[key].ids.push(s.id);
+  });
+  var repC={};
+  DB.reps.forEach(function(r){var k=r.marca+'|'+r.modelo;repC[k]=(repC[k]||0)+1;});
+  var venC={};
+  DB.ventas.forEach(function(v){var k=(v.marca||'')+'|'+v.modelo;venC[k]=(venC[k]||0)+1;});
+  var keys=Object.keys(grupos);
+  if(!keys.length){el.innerHTML='<div class="empty">Sin productos</div>';return;}
+  var catGroups={};
+  keys.forEach(function(k){
+    var item=grupos[k];
+    if(!catGroups[item.cat])catGroups[item.cat]=[];
+    catGroups[item.cat].push(item);
+  });
+  var html='<div style="font-size:12px;color:#64748B;margin-bottom:12px">'+keys.length+' modelos</div>';
+  Object.keys(catGroups).sort().forEach(function(cat){
+    var items=catGroups[cat];
+    html+='<div style="font-size:10px;font-weight:700;color:#64748B;text-transform:uppercase;padding:6px 0;border-bottom:2px solid #E2E8F0;margin-bottom:8px">'+cat+' ('+items.length+')</div>';
+    items.sort(function(a,b){return (a.marca+a.modelo).localeCompare(b.marca+b.modelo);}).forEach(function(item){
+      var rk=item.marca+'|'+item.modelo;
+      var reps=repC[rk]||0;
+      var vens=venC[rk]||0;
+      var calBg={Nuevo:'#DCFCE7',Reacondicionado:'#EBF1FF',Bueno:'#FEF9C3',Regular:'#FFE4E6','Para piezas':'#F1F5F9'};
+      var calCol={Nuevo:'#16A34A',Reacondicionado:'#0055FF',Bueno:'#CA8A04',Regular:'#DC2626','Para piezas':'#64748B'};
+      var bg=item.calidad?calBg[item.calidad]||'#F1F5F9':'#F1F5F9';
+      var col=item.calidad?calCol[item.calidad]||'#64748B':'#94A3B8';
+      html+='<div class="card" style="padding:12px;margin-bottom:8px">'
+        +'<div style="display:flex;align-items:center;justify-content:space-between">'
+        +'<div style="flex:1">'
+        +'<div style="font-size:13px;font-weight:700">'+item.marca+' '+item.modelo+'</div>'
+        +'<div style="margin-top:4px">'
+        +'<span style="background:'+bg+';color:'+col+';font-size:10px;font-weight:600;padding:2px 8px;border-radius:10px;cursor:pointer" onclick="cambiarCalidad(JSON.parse(this.dataset.ids),this.dataset.cal)" data-ids=''+JSON.stringify(item.ids)+'' data-cal="'+item.calidad+'">'+(item.calidad||'+ Calidad')+'</span>'
+        +'</div></div>'
+        +'<div style="display:flex;gap:10px;text-align:center">'
+        +'<div><div style="font-size:18px;font-weight:800;color:#0055FF">'+item.unidades+'</div><div style="font-size:9px;color:#64748B">Stock</div></div>'
+        +'<div><div style="font-size:18px;font-weight:800;color:#7C3AED">'+reps+'</div><div style="font-size:9px;color:#64748B">Reparac.</div></div>'
+        +'<div><div style="font-size:18px;font-weight:800;color:#00C896">'+vens+'</div><div style="font-size:9px;color:#64748B">Ventas</div></div>'
+        +'</div></div></div>';
+    });
+  });
+  el.innerHTML=html;
+}
+
+function cambiarCalidad(ids,actual){
+  var opts=['Nuevo','Reacondicionado','Bueno','Regular','Para piezas'];
+  var msg='Calidad actual: '+(actual||'Sin asignar')+'\nElige nueva calidad:\n';
+  opts.forEach(function(o,i){msg+=(i+1)+'. '+o+'\n';});
+  var sel=prompt(msg);
+  if(!sel)return;
+  var idx=parseInt(sel)-1;
+  if(idx<0||idx>=opts.length)return;
+  var cal=opts[idx];
+  DB.stock.forEach(function(s){if(ids.indexOf(s.id)>=0)s.calidad=cal;});
+  guardarDatos();
+  toast('Calidad: '+cal,'ok');
+  renderCatalogo();
 }
 
 // ═══ UTILS ═══
