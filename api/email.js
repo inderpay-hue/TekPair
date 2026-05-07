@@ -97,7 +97,7 @@ td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; }
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Tekpair <onboarding@resend.dev>',
+        from: 'Tekpair <noreply@tekpair.tech>',
         to: [email],
         subject: `Reporte diario ${reporte.fecha} — ${tienda || 'Tekpair'}`,
         html: html

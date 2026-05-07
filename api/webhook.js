@@ -61,7 +61,7 @@ export default async function handler(req, res) {
               'Content-Type': 'application/json'
             },
             body: JSON.stringify({
-              from: 'Tekpair <onboarding@resend.dev>',
+              from: 'Tekpair <noreply@tekpair.tech>',
               to: [customerEmail],
               subject: 'Problema con tu pago — Tekpair',
               html: `
@@ -124,7 +124,7 @@ export default async function handler(req, res) {
                 'Content-Type': 'application/json'
               },
               body: JSON.stringify({
-                from: 'Tekpair <onboarding@resend.dev>',
+                from: 'Tekpair <noreply@tekpair.tech>',
                 to: [email],
                 subject: 'Tu suscripción ha sido cancelada — Tekpair',
                 html: `
