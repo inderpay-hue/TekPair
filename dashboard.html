@@ -193,6 +193,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sidebar-ni" data-p="pVentas" onclick="navTo('pVentas');setSidebarActive(this)">
       <span class="sidebar-ni-icon">📱</span>Ventas
     </div>
+    <div class="sidebar-ni" onclick="window.location.href='tpv.html'" style="background:rgba(0,200,150,.1);border-left:3px solid var(--green)">
+      <span class="sidebar-ni-icon">🛒</span>TPV
+    </div>
     <div class="sidebar-ni" data-p="pReps" onclick="navTo('pReps');setSidebarActive(this)">
       <span class="sidebar-ni-icon">🔧</span>Reparaciones
     </div>
@@ -264,6 +267,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="stats-grid" id="metricsGrid"></div>
   <div class="quick-grid">
     <button class="qbtn" style="background:linear-gradient(135deg,#0055FF,#0044CC)" onclick="abrirVenta()"><span class="qicon">📱</span>Nueva Venta</button>
+    <button class="qbtn" style="background:linear-gradient(135deg,#00C896,#00A07A)" onclick="window.location.href='tpv.html'"><span class="qicon">🛒</span>Abrir TPV</button>
     <button class="qbtn" style="background:linear-gradient(135deg,#00C896,#00A07A)" onclick="abrirRep()"><span class="qicon">🔧</span>Reparacion</button>
     <button class="qbtn" style="background:linear-gradient(135deg,#F97316,#E05A00)" onclick="navTo('pStock');openM('mStock')"><span class="qicon">📦</span>Añadir Stock</button>
     <button class="qbtn" style="background:linear-gradient(135deg,#7C3AED,#6025C8)" onclick="navTo('pClis');openM('mCli')"><span class="qicon">👤</span>Nuevo Cliente</button>
@@ -565,6 +569,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="ni" data-p="pVentas" onclick="navTo('pVentas');setNavActive(this)">
     <span class="ni-icon">📱</span>Ventas
+  </div>
+  <div class="ni" onclick="window.location.href='tpv.html'">
+    <span class="ni-icon">🛒</span>TPV
   </div>
   <div class="ni" data-p="pReps" onclick="navTo('pReps');setNavActive(this)">
     <span class="ni-icon">🔧</span>Reparac.
