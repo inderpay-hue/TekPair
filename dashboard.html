@@ -208,7 +208,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 <!-- SIDEBAR (desktop only) -->
 <div class="sidebar" id="sidebar" style="display:none">
-  <div class="sidebar-logo">⚡ Tekpair</div>
+  <div class="sidebar-logo" id="sidebarBrand" style="display:flex;align-items:center;gap:10px">
+    <img id="sidebarLogo" alt="" style="max-height:36px;max-width:140px;border-radius:6px;display:none;background:white;padding:2px"/>
+    <span id="sidebarBrandText">⚡ Tekpair</span>
+  </div>
   <div class="sidebar-nav">
     <div class="sidebar-ni active" data-p="pDash" onclick="navTo('pDash');setSidebarActive(this)">
       <span class="sidebar-ni-icon">🏠</span>Inicio
@@ -492,7 +495,22 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sec-title">Mi Tienda</div>
   </div>
   <div class="card">
-    <div class="card-title">Datos de la tienda</div>
+    <div class="card-title">Logo de la tienda</div>
+    <div style="display:flex;align-items:center;gap:14px;margin:8px 0 14px">
+      <div id="logoPreviewWrap" style="width:120px;height:120px;border:2px dashed #cbd5e1;border-radius:12px;display:flex;align-items:center;justify-content:center;background:#f8fafc;overflow:hidden;flex-shrink:0">
+        <img id="logoPreviewImg" alt="Logo" style="max-width:100%;max-height:100%;display:none;object-fit:contain"/>
+        <span id="logoPreviewEmpty" style="font-size:11px;color:#94a3b8;text-align:center;padding:8px">Sin logo</span>
+      </div>
+      <div style="flex:1">
+        <input type="file" id="logoFileInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden onchange="subirLogo(event)"/>
+        <button class="btn-sm" type="button" style="background:var(--blue);color:white;margin-bottom:6px" onclick="document.getElementById('logoFileInput').click()">Cambiar logo</button>
+        <button class="btn-sm" type="button" id="btnQuitarLogo" style="background:#ef4444;color:white;display:none" onclick="quitarLogo()">Quitar logo</button>
+        <div style="font-size:11px;color:#64748b;margin-top:8px">PNG, JPG, WEBP o SVG. Max 2 MB.</div>
+        <div id="logoStatus" style="font-size:11px;color:#0891b2;margin-top:4px"></div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
     <div class="fg"><label class="fl">Nombre</label><input class="fi" id="tNom" placeholder="Mi Tienda"/></div>
     <div class="fg"><label class="fl">Direccion</label><input class="fi" id="tDir" placeholder="Calle, numero, ciudad"/></div>
     <div class="fi-row">
@@ -1000,7 +1018,7 @@ var SUPABASE_URL = 'https://zcxgyissdqyqsnojxviy.supabase.co';
 var SB_KEY = '';
 var TIENDA_ID = '';
 var U = null;
-var TIENDA = {nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',garantia:'',politica:''};
+var TIENDA = {nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',garantia:'',politica:'',logo_url:''};
 var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''}};
 
 // ═══ DB ═══
@@ -1036,7 +1054,9 @@ window.addEventListener('DOMContentLoaded', function() {
   document.getElementById('uName').textContent = U.nombre || '';
   var tiendaLS = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
   TIENDA.nombre = tiendaLS.nombre || 'Mi Tienda';
+  TIENDA.logo_url = tiendaLS.logo_url || '';
   document.getElementById('dTienda').textContent = TIENDA.nombre;
+  renderSidebarLogo();
   document.getElementById('dStr').textContent = new Date().toLocaleDateString('es', {weekday:'long',day:'numeric',month:'long'});
 
   // Load ajustes
@@ -3381,9 +3401,11 @@ function cargarTienda() {
   document.getElementById('tWeb').value = t.web || '';
   document.getElementById('tGarantia').value = t.garantia || '';
   document.getElementById('tPolitica').value = t.politica || '';
+  renderLogoPreview(t.logo_url || '');
 }
 
 function guardarTienda() {
+  var prev = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
   var t = {
     nombre: document.getElementById('tNom').value.trim(),
     dir: document.getElementById('tDir').value.trim(),
@@ -3392,13 +3414,159 @@ function guardarTienda() {
     cif: document.getElementById('tCif').value.trim(),
     web: document.getElementById('tWeb').value.trim(),
     garantia: document.getElementById('tGarantia').value.trim(),
-    politica: document.getElementById('tPolitica').value.trim()
+    politica: document.getElementById('tPolitica').value.trim(),
+    logo_url: prev.logo_url || TIENDA.logo_url || ''
   };
   localStorage.setItem('tk_tienda', JSON.stringify(t));
   Object.assign(TIENDA, t);
   document.getElementById('dTienda').textContent = t.nombre || 'Mi Tienda';
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {nombre: t.nombre});
   toast('Tienda guardada', 'ok');
+}
+
+// ═══ LOGO TIENDA ═══
+function renderLogoPreview(url) {
+  var img = document.getElementById('logoPreviewImg');
+  var empty = document.getElementById('logoPreviewEmpty');
+  var btnQuitar = document.getElementById('btnQuitarLogo');
+  if (!img) return;
+  if (url) {
+    img.src = url + (url.indexOf('?') > -1 ? '&' : '?') + 't=' + Date.now();
+    img.style.display = 'block';
+    empty.style.display = 'none';
+    btnQuitar.style.display = 'inline-block';
+  } else {
+    img.style.display = 'none';
+    empty.style.display = 'block';
+    btnQuitar.style.display = 'none';
+  }
+}
+
+function renderSidebarLogo() {
+  var img = document.getElementById('sidebarLogo');
+  var txt = document.getElementById('sidebarBrandText');
+  if (!img) return;
+  if (TIENDA.logo_url) {
+    img.src = TIENDA.logo_url + (TIENDA.logo_url.indexOf('?') > -1 ? '&' : '?') + 't=' + Date.now();
+    img.style.display = 'inline-block';
+    if (txt) txt.style.display = 'none';
+  } else {
+    img.style.display = 'none';
+    if (txt) txt.style.display = 'inline';
+  }
+}
+
+function sbStorageList(bucket, prefix) {
+  return fetch(SUPABASE_URL + '/storage/v1/object/list/' + bucket, {
+    method: 'POST',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json'},
+    body: JSON.stringify({prefix: prefix || '', limit: 100, offset: 0})
+  }).then(function(r) { return r.ok ? r.json() : []; }).catch(function() { return []; });
+}
+
+function sbStorageUpload(bucket, path, file) {
+  return fetch(SUPABASE_URL + '/storage/v1/object/' + bucket + '/' + encodeURI(path), {
+    method: 'POST',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + SB_KEY,
+      'Content-Type': file.type || 'application/octet-stream',
+      'x-upsert': 'true',
+      'cache-control': '3600'
+    },
+    body: file
+  });
+}
+
+function sbStorageDelete(bucket, paths) {
+  return fetch(SUPABASE_URL + '/storage/v1/object/' + bucket, {
+    method: 'DELETE',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json'},
+    body: JSON.stringify({prefixes: paths})
+  });
+}
+
+function sbStoragePublicUrl(bucket, path) {
+  return SUPABASE_URL + '/storage/v1/object/public/' + bucket + '/' + encodeURI(path);
+}
+
+async function subirLogo(ev) {
+  var file = ev.target.files[0];
+  if (!file) return;
+  if (!SB_KEY || !TIENDA_ID) { toast('Sesion sin Supabase: vuelve a iniciar sesion', 'err'); return; }
+  if (file.size > 2 * 1024 * 1024) { toast('Archivo demasiado grande (max 2 MB)', 'err'); ev.target.value = ''; return; }
+
+  var status = document.getElementById('logoStatus');
+  status.textContent = 'Subiendo...';
+
+  try {
+    // 1. Borrar logos anteriores en la carpeta de la tienda
+    var prev = await sbStorageList('logos', TIENDA_ID + '/');
+    if (Array.isArray(prev) && prev.length) {
+      var paths = prev.map(function(f) { return TIENDA_ID + '/' + f.name; });
+      await sbStorageDelete('logos', paths);
+    }
+
+    // 2. Subir nuevo
+    var ext = (file.name.split('.').pop() || 'png').toLowerCase();
+    var path = TIENDA_ID + '/logo.' + ext;
+    var resp = await sbStorageUpload('logos', path, file);
+    if (!resp.ok) {
+      var err = await resp.text();
+      throw new Error(err || 'Error al subir');
+    }
+
+    // 3. Construir URL publica y guardar en BD + localStorage
+    var publicUrl = sbStoragePublicUrl('logos', path);
+    await sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {logo_url: publicUrl});
+
+    var ls = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
+    ls.logo_url = publicUrl;
+    localStorage.setItem('tk_tienda', JSON.stringify(ls));
+    TIENDA.logo_url = publicUrl;
+
+    renderLogoPreview(publicUrl);
+    renderSidebarLogo();
+    status.textContent = '';
+    toast('Logo actualizado', 'ok');
+  } catch (e) {
+    console.error(e);
+    status.textContent = '';
+    toast('Error: ' + (e.message || 'no se pudo subir'), 'err');
+  } finally {
+    ev.target.value = '';
+  }
+}
+
+async function quitarLogo() {
+  if (!confirm('Quitar el logo de la tienda?')) return;
+  if (!SB_KEY || !TIENDA_ID) { toast('Sesion sin Supabase', 'err'); return; }
+
+  var status = document.getElementById('logoStatus');
+  status.textContent = 'Eliminando...';
+
+  try {
+    var prev = await sbStorageList('logos', TIENDA_ID + '/');
+    if (Array.isArray(prev) && prev.length) {
+      var paths = prev.map(function(f) { return TIENDA_ID + '/' + f.name; });
+      await sbStorageDelete('logos', paths);
+    }
+    await sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {logo_url: null});
+
+    var ls = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
+    ls.logo_url = '';
+    localStorage.setItem('tk_tienda', JSON.stringify(ls));
+    TIENDA.logo_url = '';
+
+    renderLogoPreview('');
+    renderSidebarLogo();
+    status.textContent = '';
+    toast('Logo eliminado', 'ok');
+  } catch (e) {
+    console.error(e);
+    status.textContent = '';
+    toast('Error al eliminar', 'err');
+  }
 }
 
 // ═══ AJUSTES ═══
