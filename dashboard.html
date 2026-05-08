@@ -1287,7 +1287,6 @@ function cargarModelosPre() {
 function cargarModelosCustom() {
   if (!SB_KEY || !TIENDA_ID) { return; }
   sbGet('modelos_custom', 'tienda_id=eq.' + TIENDA_ID + '&order=created_at.desc&limit=500')
-    .then(function(r){ return r.json(); })
     .then(function(rows){
       if (Array.isArray(rows)) {
         DB.modelosCustom = rows.map(function(m){
@@ -1530,7 +1529,6 @@ function escapeHtmlNota(s) {
 function cargarNotas() {
   if (!SB_KEY || !TIENDA_ID) { renderNotas(); return; }
   sbGet('notas', 'tienda_id=eq.' + TIENDA_ID + '&order=created_at.desc&limit=100')
-    .then(function(r){ return r.json(); })
     .then(function(rows){
       if (Array.isArray(rows)) {
         DB.notas = rows;
