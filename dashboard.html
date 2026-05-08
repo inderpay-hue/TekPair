@@ -723,7 +723,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Marca</label><input class="fi" id="rMarca" placeholder="Apple, Samsung..."></div>
-    <div class="fg"><label class="fl">Modelo *</label><input class="fi" id="rModelo" placeholder="iPhone 14..."></div>
+    <div class="fg" style="position:relative"><label class="fl">Modelo *</label><input class="fi" id="rModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModelo()" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
   </div>
   <div class="fg"><label class="fl">IMEI</label><input class="fi" id="rImei" placeholder="Opcional"></div>
   <!-- Servicio predefinido -->
@@ -965,7 +965,8 @@ var TIENDA = {nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',garantia:'
 var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''}};
 
 // ═══ DB ═══
-var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[]};
+var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[]};
+var MODELOS_PRE = []; // catalogo predefinido cargado de assets/modelos.json
 
 // ═══ STATE ═══
 var SEL = {
@@ -1012,7 +1013,8 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // Load from Supabase
   if (SB_KEY && TIENDA_ID) {
-    cargarDatosSupabase().then(function() { renderDash(); checkUrgentes(); cargarNotas(); iniciarRefrescoNotas(); });
+    cargarDatosSupabase().then(function() { renderDash(); checkUrgentes(); cargarNotas(); iniciarRefrescoNotas(); cargarModelosCustom(); });
+    cargarModelosPre();
   }
 
   // Admin check
@@ -1266,6 +1268,127 @@ function renderDash() {
     '<div class="stat-card"><div class="stat-val" style="color:var(--orange)">' + repsActivas.length + '</div><div class="stat-lbl">En reparacion</div></div>' +
     '<div class="stat-card"><div class="stat-val" style="color:var(--purple)">' + cur(tVentas + tReps) + '</div><div class="stat-lbl">Total ingresos</div></div>';
   if (typeof renderDashWidgets === 'function') renderDashWidgets();
+}
+
+
+
+// modelos_v1: cargar y autocompletar modelos
+function cargarModelosPre() {
+  fetch('/assets/modelos.json', {cache: 'force-cache'})
+    .then(function(r){ return r.ok ? r.json() : null; })
+    .then(function(j){
+      if (j && Array.isArray(j.modelos)) {
+        MODELOS_PRE = j.modelos;
+      }
+    })
+    .catch(function(){ MODELOS_PRE = []; });
+}
+
+function cargarModelosCustom() {
+  if (!SB_KEY || !TIENDA_ID) { return; }
+  sbGet('modelos_custom', 'tienda_id=eq.' + TIENDA_ID + '&order=created_at.desc&limit=500')
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      if (Array.isArray(rows)) {
+        DB.modelosCustom = rows.map(function(m){
+          return { cat: m.categoria || 'Telefono', marca: m.marca || '', modelo: m.modelo || '', custom: true, _id: m.id };
+        });
+      }
+    })
+    .catch(function(){});
+}
+
+function busModelo() {
+  var q = (document.getElementById('rModelo').value || '').toLowerCase().trim();
+  var box = document.getElementById('rModeloSug');
+  if (!box) return;
+  if (!q || q.length < 1) { box.classList.remove('open'); box.innerHTML=''; return; }
+
+  // Combinar custom (primero) + pre, evitar duplicados por modelo+marca
+  var seen = {};
+  var pool = [];
+  DB.modelosCustom.forEach(function(m){
+    var k = (m.marca + '|' + m.modelo).toLowerCase();
+    if (!seen[k]) { seen[k] = 1; pool.push(m); }
+  });
+  MODELOS_PRE.forEach(function(m){
+    var k = (m.marca + '|' + m.modelo).toLowerCase();
+    if (!seen[k]) { seen[k] = 1; pool.push(m); }
+  });
+
+  // Filtrar por query: matchea marca, modelo, o "marca modelo"
+  var matches = pool.filter(function(m){
+    var hay = (m.marca + ' ' + m.modelo).toLowerCase();
+    return hay.includes(q);
+  }).slice(0, 8);
+
+  if (!matches.length) {
+    box.innerHTML = '<div class="cli-item" style="color:var(--muted);font-style:italic;cursor:default">Sin coincidencias - se guardara como nuevo</div>';
+    box.classList.add('open');
+    return;
+  }
+
+  box.innerHTML = matches.map(function(m, i){
+    var label = m.marca + ' ' + m.modelo;
+    var tag = m.custom
+      ? '<span style="font-size:9px;background:rgba(124,58,237,.12);color:var(--purple);padding:2px 6px;border-radius:4px;margin-left:6px">tuyo</span>'
+      : '';
+    return '<div class="cli-item" data-i="' + i + '" data-cat="' + esc(m.cat || '') + '" data-marca="' + esc(m.marca || '') + '" data-modelo="' + esc(m.modelo || '') + '">' +
+      '<strong>' + esc(label) + '</strong>' + tag +
+      '<span style="float:right;color:var(--muted);font-size:10px">' + esc(m.cat || '') + '</span>' +
+    '</div>';
+  }).join('');
+  box.classList.add('open');
+
+  // Listeners
+  box.querySelectorAll('.cli-item[data-marca]').forEach(function(el){
+    el.addEventListener('mousedown', function(e){
+      e.preventDefault();
+      seleccionarModelo(el.dataset.cat, el.dataset.marca, el.dataset.modelo);
+    });
+  });
+}
+
+function seleccionarModelo(cat, marca, modelo) {
+  var rMarca = document.getElementById('rMarca');
+  var rModelo = document.getElementById('rModelo');
+  if (rMarca) rMarca.value = marca;
+  if (rModelo) rModelo.value = modelo;
+  var sug = document.getElementById('rModeloSug');
+  if (sug) { sug.classList.remove('open'); sug.innerHTML = ''; }
+  // Foco al siguiente campo
+  var imei = document.getElementById('rImei'); if (imei) imei.focus();
+}
+
+function escapeAttr(s){
+  return String(s == null ? '' : s).replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+// Despues de crear una rep, ofrecer guardar el modelo en custom si no existe
+function ofrecerGuardarModelo(rep) {
+  if (!rep || !rep.modelo || !rep.marca) return;
+  var key = (rep.marca + '|' + rep.modelo).toLowerCase();
+  var existePre = MODELOS_PRE.some(function(m){ return (m.marca + '|' + m.modelo).toLowerCase() === key; });
+  var existeCustom = DB.modelosCustom.some(function(m){ return (m.marca + '|' + m.modelo).toLowerCase() === key; });
+  if (existePre || existeCustom) return;
+
+  // Pequeno delay para que el modal anterior se cierre y el toast aparezca antes
+  setTimeout(function(){
+    if (!confirm('Guardar "' + rep.marca + ' ' + rep.modelo + '" en tu catalogo de modelos?')) return;
+    var nuevo = {
+      id: 'm' + Date.now(),
+      tienda_id: TIENDA_ID,
+      categoria: 'Telefono',
+      marca: rep.marca,
+      modelo: rep.modelo,
+      creado_por: U ? U.email : ''
+    };
+    DB.modelosCustom.unshift({ cat: 'Telefono', marca: nuevo.marca, modelo: nuevo.modelo, custom: true, _id: nuevo.id });
+    if (SB_KEY && TIENDA_ID) {
+      sbPost('modelos_custom', nuevo).catch(function(){});
+    }
+    toast('Modelo anadido al catalogo', 'ok');
+  }, 600);
 }
 
 
@@ -2332,6 +2455,7 @@ function guardarRep() {
   checkUrgentes();
   // tracking_post_create_v1: abrir tracking automaticamente tras crear
   setTimeout(function(){ abrirTracking(rep.id); }, 200);
+  if (typeof ofrecerGuardarModelo === 'function') ofrecerGuardarModelo(rep);
 }
 
 function setRepFiltro(el) {
