@@ -1667,7 +1667,8 @@ function limpiarSelStock() {
 
 // ═══ REPARACIONES ═══
 function abrirRep() {
-  SEL.rCli = null; SEL.selParts = [];
+  SEL.editRepId = null; SEL.rCli = null; SEL.selParts = [];
+  var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = '🔧 Nueva Reparacion';
   ['rBusCli','rMarca','rModelo','rImei','rAveria','rNota','rSrvBus'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
@@ -1769,12 +1770,88 @@ function busServicioRep() {
   });
 }
 
+
+function editarRep(id) {
+  var r = DB.reps.find(function(x){ return x.id === id; });
+  if (!r) { toast('Reparacion no encontrada', 'err'); return; }
+  // Reset y rellenar
+  SEL.editRepId = id;
+  SEL.rCli = DB.clis.find(function(c){ return c.id === r.clienteId; }) || {id:r.clienteId, nombre:r.clienteNombre, apellidos:''};
+  SEL.selParts = [];
+
+  document.getElementById('rMarca').value = r.marca || '';
+  document.getElementById('rModelo').value = r.modelo || '';
+  document.getElementById('rImei').value = r.imei || '';
+  document.getElementById('rAveria').value = r.averia || '';
+  document.getElementById('rNota').value = r.nota || '';
+  document.getElementById('rMo').value = r.mo || 0;
+  document.getElementById('rAnticipo').value = r.anticipo || 0;
+  var pri = document.getElementById('rPrioridad'); if (pri) pri.value = r.prioridad || 'Normal';
+  var fe = document.getElementById('rFechaEnt'); if (fe) fe.value = r.fechaEntrega || '';
+
+  // Cliente
+  document.getElementById('rBusCli').value = '';
+  document.getElementById('rSelCliNom').textContent = SEL.rCli.nombre + (SEL.rCli.apellidos ? ' ' + SEL.rCli.apellidos : '');
+  document.getElementById('rSelCliBox').classList.add('show');
+  document.getElementById('rSelCli').classList.remove('open');
+
+  // Reset checklist y partes
+  document.querySelectorAll('.chk-btn').forEach(function(b){ b.classList.remove('on'); });
+  document.getElementById('partsList').innerHTML = '';
+
+  // Recalcular totales (sin partes por simplicidad: el usuario puede re-anadir)
+  if (typeof calcR === 'function') calcR();
+
+  // Cambiar titulo
+  var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = '✏️ Editar Reparacion';
+
+  openM('mRep');
+}
+
 function guardarRep() {
   if (!tienePerm('reps_crear')) { toast('Sin permiso', 'err'); return; }
   var modelo = document.getElementById('rModelo').value.trim();
   var averia = document.getElementById('rAveria').value.trim();
   if (!modelo || !averia) { toast('Modelo y averia obligatorios', 'err'); return; }
   if (!SEL.rCli) { toast('Selecciona un cliente', 'err'); return; }
+
+  // Modo edicion
+  if (SEL.editRepId) {
+    var r = DB.reps.find(function(x){ return x.id === SEL.editRepId; });
+    if (!r) { toast('Reparacion no encontrada', 'err'); SEL.editRepId = null; return; }
+    var moE = parseFloat(document.getElementById('rMo').value) || 0;
+    var compE = SEL.selParts.reduce(function(a,p){ return a + p.precio; }, 0);
+    var antiE = parseFloat(document.getElementById('rAnticipo').value) || 0;
+    var totE = moE + compE;
+    r.clienteId = SEL.rCli.id;
+    r.clienteNombre = (SEL.rCli.nombre + ' ' + (SEL.rCli.apellidos || '')).trim();
+    r.marca = document.getElementById('rMarca').value.trim();
+    r.modelo = modelo;
+    r.imei = document.getElementById('rImei').value.trim();
+    r.averia = averia;
+    r.prioridad = document.getElementById('rPrioridad').value;
+    r.fechaEntrega = document.getElementById('rFechaEnt').value;
+    r.nota = document.getElementById('rNota').value.trim();
+    r.mo = moE; r.comp = compE; r.anticipo = antiE;
+    r.total = totE;
+    r.restante = Math.max(0, totE - antiE);
+    guardarDatos();
+    if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
+      sbPatch('reparaciones', 'id=eq.' + r.id, {
+        cliente_id:r.clienteId, cliente_nombre:r.clienteNombre,
+        marca:r.marca, modelo:r.modelo, imei:r.imei, averia:r.averia,
+        prioridad:r.prioridad, fecha_entrega:r.fechaEntrega, nota:r.nota,
+        mo:r.mo, comp:r.comp, anticipo:r.anticipo, total:r.total, restante:r.restante
+      });
+    }
+    SEL.editRepId = null;
+    closeM('mRep');
+    renderReps();
+    renderDash();
+    toast('Reparacion actualizada', 'ok');
+    return;
+  }
+
   var mo = parseFloat(document.getElementById('rMo').value) || 0;
   var comp = SEL.selParts.reduce(function(a, p) { return a + p.precio; }, 0);
   var anticipo = parseFloat(document.getElementById('rAnticipo').value) || 0;
@@ -1848,6 +1925,7 @@ function renderReps() {
     + '</tr></thead><tbody>';
   list.forEach(function(r) {
     var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" class="btn-ent" style="background:var(--green);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer">&#10003;</button>' : '';
+    var btnEdit = '<button data-rid="' + r.id + '" class="btn-edit-r" style="background:var(--light);border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Editar">✏️</button>';
     var esGarBadge = r.esGarantia ? '<br><span class="badge bp">Garantia</span>' : '';
     var priBadge = r.prioridad && r.prioridad !== 'Normal'
       ? '<span class="badge ' + (r.prioridad === 'Urgente' ? 'br' : 'bo') + '">' + r.prioridad + '</span>'
@@ -1864,7 +1942,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + '</td>'
-      + '<td>' + btnE + '</td></tr>';
+      + '<td>' + btnE + btnEdit + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -1873,6 +1951,9 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-ent').forEach(function(btn) {
     btn.addEventListener('click', function() { abrirEntregar(this.dataset.rid); });
+  });
+  el.querySelectorAll('.btn-edit-r').forEach(function(btn) {
+    btn.addEventListener('click', function() { editarRep(this.dataset.rid); });
   });
 }
 
