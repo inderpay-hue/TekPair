@@ -1771,6 +1771,54 @@ function busServicioRep() {
 }
 
 
+
+// qr_seguimiento_v1: helpers para token de seguimiento
+function genToken() {
+  // 16 chars alfanumericos seguros
+  var chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+  var s = '';
+  if (window.crypto && crypto.getRandomValues) {
+    var arr = new Uint32Array(16);
+    crypto.getRandomValues(arr);
+    for (var i = 0; i < 16; i++) s += chars[arr[i] % chars.length];
+  } else {
+    for (var j = 0; j < 16; j++) s += chars[Math.floor(Math.random() * chars.length)];
+  }
+  return s;
+}
+
+function asegurarToken(r) {
+  if (r.token) return Promise.resolve(r.token);
+  r.token = genToken();
+  guardarDatos();
+  if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
+    return sbPatch('reparaciones', 'id=eq.' + r.id, {token: r.token}).then(function(){ return r.token; }).catch(function(){ return r.token; });
+  }
+  return Promise.resolve(r.token);
+}
+
+function linkParte(r) {
+  if (!r.token) r.token = genToken();
+  return location.origin + '/parte.html?id=' + encodeURIComponent(r.id) + '&t=' + encodeURIComponent(r.token);
+}
+
+function copiarLinkRep(id) {
+  var r = DB.reps.find(function(x){ return x.id === id; });
+  if (!r) return;
+  asegurarToken(r).then(function(){
+    var url = linkParte(r);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function(){
+        toast('Link copiado', 'ok');
+      }).catch(function(){
+        prompt('Copia el link:', url);
+      });
+    } else {
+      prompt('Copia el link:', url);
+    }
+  });
+}
+
 function editarRep(id) {
   var r = DB.reps.find(function(x){ return x.id === id; });
   if (!r) { toast('Reparacion no encontrada', 'err'); return; }
@@ -1861,6 +1909,7 @@ function guardarRep() {
 
   var rep = {
     id: 'r' + Date.now(),
+    token: genToken(),
     fecha: new Date().toLocaleDateString('es'),
     clienteId: SEL.rCli.id,
     clienteNombre: (SEL.rCli.nombre + ' ' + SEL.rCli.apellidos).trim(),
@@ -1896,7 +1945,7 @@ function guardarRep() {
       averia:rep.averia, estado:rep.estado, prioridad:rep.prioridad,
       fecha_entrega:rep.fechaEntrega, nota:rep.nota,
       mo:rep.mo, comp:rep.comp, anticipo:rep.anticipo,
-      restante:rep.restante, total:rep.total
+      restante:rep.restante, total:rep.total, token:rep.token
     });
   }
 
@@ -1926,6 +1975,7 @@ function renderReps() {
   list.forEach(function(r) {
     var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" class="btn-ent" style="background:var(--green);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer">&#10003;</button>' : '';
     var btnEdit = '<button data-rid="' + r.id + '" class="btn-edit-r" style="background:var(--light);border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Editar">✏️</button>';
+    var btnLink = '<button data-rid="' + r.id + '" class="btn-link-r" style="background:var(--light);border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Copiar link cliente">🔗</button>';
     var esGarBadge = r.esGarantia ? '<br><span class="badge bp">Garantia</span>' : '';
     var priBadge = r.prioridad && r.prioridad !== 'Normal'
       ? '<span class="badge ' + (r.prioridad === 'Urgente' ? 'br' : 'bo') + '">' + r.prioridad + '</span>'
@@ -1942,7 +1992,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + '</td>'
-      + '<td>' + btnE + btnEdit + '</td></tr>';
+      + '<td>' + btnE + btnEdit + btnLink + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -1954,6 +2004,9 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-edit-r').forEach(function(btn) {
     btn.addEventListener('click', function() { editarRep(this.dataset.rid); });
+  });
+  el.querySelectorAll('.btn-link-r').forEach(function(btn) {
+    btn.addEventListener('click', function() { copiarLinkRep(this.dataset.rid); });
   });
 }
 
@@ -1992,8 +2045,11 @@ function cambiarEstado(id, estado) {
     var cli = DB.clis.find(function(c){ return c.id === r.clienteId; });
     var tel = (cli && cli.tel) ? cli.tel.replace(/[^0-9]/g, '') : '';
     if (tel && confirm('Avisar al cliente por WhatsApp?')) {
-      var msg = 'Hola ' + r.clienteNombre + '! Tu ' + r.marca + ' ' + r.modelo + ' ya esta listo. Puedes pasarte a recogerlo cuando quieras. Gracias!';
-      window.open('https://wa.me/34' + tel + '?text=' + encodeURIComponent(msg));
+      asegurarToken(r).then(function(){
+        var url = linkParte(r);
+        var msg = 'Hola ' + r.clienteNombre + '! Tu ' + r.marca + ' ' + r.modelo + ' ya esta listo. Puedes pasarte a recogerlo cuando quieras.\n\nSigue el estado aqui: ' + url + '\n\nGracias!';
+        window.open('https://wa.me/34' + tel + '?text=' + encodeURIComponent(msg));
+      });
     }
   }
 }
@@ -2027,25 +2083,28 @@ function confirmarEntrega() {
   var cli = DB.clis.find(function(c) { return c.id === r.clienteId; });
   if (cli && cli.tel) tel = cli.tel.replace(/[^0-9]/g, '');
   if (tel && confirm('Enviar comprobante de reparacion por WhatsApp?')) {
-    var tienda = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.nombre) ? TIENDA.nombre : 'Tekpair';
-    // TODO: cuando exista el QR de seguimiento, anadir link al parte web aqui
-    // var linkParte = 'https://tekpair.tech/parte.html?id=' + r.id;
-    var lineas = [
-      '*' + tienda + ' - Comprobante de reparacion*',
-      '',
-      'Cliente: ' + r.clienteNombre,
-      'Equipo: ' + r.marca + ' ' + r.modelo,
-      (r.imei ? 'IMEI/SN: ' + r.imei : ''),
-      'Averia: ' + r.averia,
-      '',
-      'Fecha entrega: ' + r.fechaEntregaReal,
-      'Forma de pago: ' + (r.pagoFinal || '-'),
-      'Total: ' + cur(r.total),
-      '',
-      'Gracias por confiar en nosotros!'
-    ].filter(function(l){ return l !== ''; });
-    var msg = lineas.join('\n');
-    window.open('https://wa.me/34' + tel + '?text=' + encodeURIComponent(msg));
+    asegurarToken(r).then(function(){
+      var tienda = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.nombre) ? TIENDA.nombre : 'Tekpair';
+      var url = linkParte(r);
+      var lineas = [
+        '*' + tienda + ' - Comprobante de reparacion*',
+        '',
+        'Cliente: ' + r.clienteNombre,
+        'Equipo: ' + r.marca + ' ' + r.modelo,
+        (r.imei ? 'IMEI/SN: ' + r.imei : ''),
+        'Averia: ' + r.averia,
+        '',
+        'Fecha entrega: ' + r.fechaEntregaReal,
+        'Forma de pago: ' + (r.pagoFinal || '-'),
+        'Total: ' + cur(r.total),
+        '',
+        'Comprobante online: ' + url,
+        '',
+        'Gracias por confiar en nosotros!'
+      ].filter(function(l){ return l !== ''; });
+      var msg = lineas.join('\n');
+      window.open('https://wa.me/34' + tel + '?text=' + encodeURIComponent(msg));
+    });
   }
 }
 
