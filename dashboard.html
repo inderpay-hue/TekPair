@@ -1841,14 +1841,42 @@ function registrarPagoCuota(vid, cidx) {
 
 // ═══ BUSQUEDA CLIENTES ═══
 function busCliCtx(ctx) {
-  var q = document.getElementById(ctx === 'v' ? 'vBusCli' : 'rBusCli').value.toLowerCase();
+  var q = document.getElementById(ctx === 'v' ? 'vBusCli' : 'rBusCli').value.toLowerCase().trim();
   var res = document.getElementById(ctx === 'v' ? 'vSelCli' : 'rSelCli');
   if (!q) { res.classList.remove('open'); return; }
-  var matches = DB.clis.filter(function(c) {
-    return (c.nombre + ' ' + c.apellidos + ' ' + (c.tel || '') + ' ' + (c.dni || '')).toLowerCase().includes(q);
-  });
+
+  // Calcular score: menor es mejor
+  function scoreCli(c) {
+    var nombre = (c.nombre || '').toLowerCase().trim();
+    var apellidos = (c.apellidos || '').toLowerCase().trim();
+    var nomCompleto = (nombre + ' ' + apellidos).trim();
+    var tel = (c.tel || '').toLowerCase();
+    var dni = (c.dni || '').toLowerCase();
+
+    if (nombre === q) return 0;                              // 1. nombre exacto
+    if (nomCompleto === q) return 1;                         // 2. nombre+apellidos exacto
+    if (nombre.split(/\s+/).indexOf(q) !== -1) return 2;     // 3. q es palabra completa del nombre
+    if (apellidos.split(/\s+/).indexOf(q) !== -1) return 3;  // 4. palabra completa del apellido
+    if (nombre.startsWith(q)) return 4;                      // 5. nombre empieza por q
+    if (apellidos.startsWith(q)) return 5;                   // 6. apellidos empieza por q
+    if (tel === q || dni === q) return 6;                    // 7. tel/dni exacto
+    if (tel.indexOf(q) !== -1 || dni.indexOf(q) !== -1) return 7; // 8. tel/dni contiene
+    if (nomCompleto.indexOf(q) !== -1) return 8;             // 9. substring en nombre
+    return 99;
+  }
+
+  var ranked = DB.clis
+    .map(function(c){ return { c: c, s: scoreCli(c) }; })
+    .filter(function(x){ return x.s < 99; })
+    .sort(function(a, b){
+      if (a.s !== b.s) return a.s - b.s;
+      // Mismo score: alfabetico por nombre
+      return (a.c.nombre || '').localeCompare(b.c.nombre || '');
+    });
+
   res.innerHTML = '<div class="cli-item" style="font-size:11px;color:var(--blue);font-weight:700" onclick="openNuevoCliRapido(\'' + ctx + '\')">+ Crear nuevo cliente</div>' +
-    matches.slice(0, 6).map(function(c) {
+    ranked.slice(0, 10).map(function(x) {
+      var c = x.c;
       return '<div class="cli-item" data-id="' + c.id + '" data-ctx="' + ctx + '">' +
         (c.nombre || '') + ' ' + (c.apellidos || '') + (c.tel ? ' \u00b7 ' + c.tel : '') + '</div>';
     }).join('');
