@@ -725,7 +725,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="fg"><label class="fl">Marca</label><input class="fi" id="rMarca" placeholder="Apple, Samsung..."></div>
     <div class="fg" style="position:relative"><label class="fl">Modelo *</label><input class="fi" id="rModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModelo()" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
   </div>
-  <div class="fg"><label class="fl">IMEI</label><input class="fi" id="rImei" placeholder="Opcional"></div>
+  <div class="fg"><label class="fl">IMEI / Nº Serie</label><input class="fi" id="rImei" placeholder="Opcional"></div>
+  <div class="fi-row">
+    <div class="fg" style="flex:0 0 38%"><label class="fl">Bloqueo</label><select class="fi" id="rTipoBloq" onchange="cambiarTipoBloq()"><option value="">Sin bloqueo</option><option value="PIN">PIN numérico</option><option value="Patron">Patrón</option><option value="Contrasena">Contraseña</option><option value="Huella">Huella / FaceID</option></select></div>
+    <div class="fg" style="flex:1"><label class="fl" id="rBloqLbl">Código</label><input class="fi" id="rBloqVal" placeholder="No aplica" disabled></div>
+  </div>
   <!-- Servicio predefinido -->
   <div class="fg" style="position:relative">
     <label class="fl">Servicio predefinido</label>
@@ -1190,7 +1194,7 @@ function mapRep(r) {
     marca:r.marca||'', modelo:r.modelo||'', imei:r.imei||'',
     averia:r.averia||'', estado:r.estado||'Pendiente', prioridad:r.prioridad||'Normal',
     fechaEntrega:r.fecha_entrega||'', fechaEntregaReal:r.fecha_entrega_real||'',
-    nota:r.nota||'', mo:parseFloat(r.mo)||0, comp:parseFloat(r.comp)||0,
+    nota:r.nota||'', tipoBloqueo:r.tipo_bloqueo||'', bloqueo:r.bloqueo||'', mo:parseFloat(r.mo)||0, comp:parseFloat(r.comp)||0,
     anticipo:parseFloat(r.anticipo)||0, restante:parseFloat(r.restante)||0,
     total:parseFloat(r.total)||0, pagoFinal:r.pago_final||'',
     esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||''
@@ -2006,10 +2010,48 @@ function limpiarSelStock() {
 }
 
 // ═══ REPARACIONES ═══
+
+// passcode_v1: gestion del campo de bloqueo segun tipo
+function cambiarTipoBloq() {
+  var tipo = document.getElementById('rTipoBloq').value;
+  var input = document.getElementById('rBloqVal');
+  var lbl = document.getElementById('rBloqLbl');
+  if (!input || !lbl) return;
+  if (!tipo) {
+    input.disabled = true;
+    input.value = '';
+    input.placeholder = 'No aplica';
+    lbl.textContent = 'Código';
+    return;
+  }
+  input.disabled = false;
+  if (tipo === 'PIN') {
+    lbl.textContent = 'PIN numérico';
+    input.placeholder = '4-6 dígitos';
+    input.type = 'text';
+    input.inputMode = 'numeric';
+  } else if (tipo === 'Patron') {
+    lbl.textContent = 'Descripción del patrón';
+    input.placeholder = 'Ej: L invertida, Z, etc.';
+    input.type = 'text';
+    input.inputMode = 'text';
+  } else if (tipo === 'Contrasena') {
+    lbl.textContent = 'Contraseña';
+    input.placeholder = 'Texto / alfanumérico';
+    input.type = 'text';
+    input.inputMode = 'text';
+  } else if (tipo === 'Huella') {
+    lbl.textContent = 'Código de respaldo';
+    input.placeholder = 'PIN/contraseña alternativa';
+    input.type = 'text';
+    input.inputMode = 'text';
+  }
+}
+
 function abrirRep() {
   SEL.editRepId = null; SEL.rCli = null; SEL.selParts = [];
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = '🔧 Nueva Reparacion';
-  ['rBusCli','rMarca','rModelo','rImei','rAveria','rNota','rSrvBus'].forEach(function(id) {
+  ['rBusCli','rMarca','rModelo','rImei','rAveria','rNota','rSrvBus','rBloqVal'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
   document.getElementById('rMo').value = '0';
@@ -2020,6 +2062,7 @@ function abrirRep() {
   document.getElementById('rTotal').textContent = cur(0);
   document.getElementById('rRestante').textContent = cur(0);
   document.querySelectorAll('.chk-btn').forEach(function(b) { b.classList.remove('on'); });
+  var tb = document.getElementById('rTipoBloq'); if (tb) { tb.value = ''; cambiarTipoBloq(); }
   openM('mRep');
 }
 
@@ -2356,6 +2399,11 @@ function editarRep(id) {
   document.getElementById('rMarca').value = r.marca || '';
   document.getElementById('rModelo').value = r.modelo || '';
   document.getElementById('rImei').value = r.imei || '';
+  var tb2 = document.getElementById('rTipoBloq');
+  var bv2 = document.getElementById('rBloqVal');
+  if (tb2) { tb2.value = r.tipoBloqueo || ''; }
+  if (typeof cambiarTipoBloq === 'function') cambiarTipoBloq();
+  if (bv2 && r.bloqueo) bv2.value = r.bloqueo;
   document.getElementById('rAveria').value = r.averia || '';
   document.getElementById('rNota').value = r.nota || '';
   document.getElementById('rMo').value = r.mo || 0;
@@ -2402,6 +2450,8 @@ function guardarRep() {
     r.marca = document.getElementById('rMarca').value.trim();
     r.modelo = modelo;
     r.imei = document.getElementById('rImei').value.trim();
+    r.tipoBloqueo = (document.getElementById('rTipoBloq') ? document.getElementById('rTipoBloq').value : '');
+    r.bloqueo = (document.getElementById('rBloqVal') ? document.getElementById('rBloqVal').value.trim() : '');
     r.averia = averia;
     r.prioridad = document.getElementById('rPrioridad').value;
     r.fechaEntrega = document.getElementById('rFechaEnt').value;
@@ -2415,7 +2465,8 @@ function guardarRep() {
         cliente_id:r.clienteId, cliente_nombre:r.clienteNombre,
         marca:r.marca, modelo:r.modelo, imei:r.imei, averia:r.averia,
         prioridad:r.prioridad, fecha_entrega:r.fechaEntrega, nota:r.nota,
-        mo:r.mo, comp:r.comp, anticipo:r.anticipo, total:r.total, restante:r.restante
+        mo:r.mo, comp:r.comp, anticipo:r.anticipo, total:r.total, restante:r.restante,
+        tipo_bloqueo: r.tipoBloqueo || null, bloqueo: r.bloqueo || null
       });
     }
     SEL.editRepId = null;
@@ -2442,6 +2493,8 @@ function guardarRep() {
     marca: document.getElementById('rMarca').value.trim(),
     modelo: modelo,
     imei: document.getElementById('rImei').value.trim(),
+    tipoBloqueo: (document.getElementById('rTipoBloq') ? document.getElementById('rTipoBloq').value : ''),
+    bloqueo: (document.getElementById('rBloqVal') ? document.getElementById('rBloqVal').value.trim() : ''),
     averia: averia,
     estado: 'Pendiente',
     prioridad: document.getElementById('rPrioridad').value,
@@ -2471,7 +2524,8 @@ function guardarRep() {
       averia:rep.averia, estado:rep.estado, prioridad:rep.prioridad,
       fecha_entrega:rep.fechaEntrega, nota:rep.nota,
       mo:rep.mo, comp:rep.comp, anticipo:rep.anticipo,
-      restante:rep.restante, total:rep.total, token:rep.token
+      restante:rep.restante, total:rep.total, token:rep.token,
+      tipo_bloqueo: rep.tipoBloqueo || null, bloqueo: rep.bloqueo || null
     });
   }
 
@@ -2512,7 +2566,7 @@ function renderReps() {
     html += '<tr>'
       + '<td><strong>' + r.clienteNombre + '</strong>' + esGarBadge + '</td>'
       + '<td>' + r.marca + ' ' + r.modelo + (r.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">' + r.imei + '</span>' : '') + '</td>'
-      + '<td style="font-size:11px;color:var(--red)">' + r.averia + '</td>'
+      + '<td style="font-size:11px;color:var(--red)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-block;background:rgba(124,58,237,.1);color:var(--purple);font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.bloqueo ? ': ' + r.bloqueo : '') + '</span>' : '') + '</td>'
       + '<td><select data-rid="' + r.id + '" class="sel-estado" style="border:1px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:6px">'
         + ['Pendiente','En Proceso','Por Entregar','Entregado','Garantia','Sin Solucion','Devuelto','Rechazado'].map(function(s) {
           return '<option' + (s === r.estado ? ' selected' : '') + '>' + s + '</option>';
