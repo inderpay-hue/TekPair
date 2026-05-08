@@ -2111,6 +2111,8 @@ function guardarRep() {
   toast('Reparacion creada', 'ok');
   renderDash();
   checkUrgentes();
+  // tracking_post_create_v1: abrir tracking automaticamente tras crear
+  setTimeout(function(){ abrirTracking(rep.id); }, 200);
 }
 
 function setRepFiltro(el) {
