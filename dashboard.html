@@ -184,6 +184,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .stock-tab-btn:hover{background:#f3f4f6}
 .stock-tab-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
 </style>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcode-generator/1.4.4/qrcode.min.js"></script>
 </head>
 <body>
 <div id="app">
@@ -622,6 +623,23 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- ═══ MODALS ═══ -->
 
 <!-- NUEVA VENTA -->
+<div class="modal-bg" id="mTracking">
+<div class="modal" style="max-width:380px">
+  <div class="modal-title">📱 Seguimiento del cliente</div>
+  <div id="trackingHeader" style="font-size:12px;color:var(--muted);margin-bottom:10px;text-align:center"></div>
+  <div id="trackingQR" style="display:flex;justify-content:center;padding:14px;background:white;border-radius:10px;margin-bottom:10px;border:1px solid var(--border)"></div>
+  <div id="trackingLink" style="word-break:break-all;font-size:11px;font-family:monospace;background:var(--light);padding:8px 10px;border-radius:8px;color:var(--muted);text-align:center;margin-bottom:14px"></div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px">
+    <button onclick="trackingWA()" style="flex:1;min-width:120px;background:#25D366;color:white;border:none;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit">💬 WhatsApp</button>
+    <button onclick="trackingCopy()" style="flex:1;min-width:120px;background:var(--light);color:var(--text);border:1px solid var(--border);padding:10px;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit">📋 Copiar link</button>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+    <button onclick="trackingTicket()" style="flex:1;min-width:120px;background:var(--blue);color:white;border:none;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit">🖨️ Ticket 80mm</button>
+    <button onclick="trackingEtiqueta()" style="flex:1;min-width:120px;background:var(--purple);color:white;border:none;padding:10px;border-radius:8px;font-weight:600;cursor:pointer;font-family:inherit">🏷️ Etiqueta Brother</button>
+  </div>
+  <button onclick="closeM('mTracking')" style="width:100%;background:none;border:1px solid var(--border);padding:10px;border-radius:8px;color:var(--muted);cursor:pointer;font-family:inherit">Cerrar</button>
+</div>
+</div>
 <div class="modal-bg" id="mVenta">
 <div class="modal">
   <div class="modal-title">📱 Nueva Venta</div>
@@ -1803,21 +1821,161 @@ function linkParte(r) {
 }
 
 function copiarLinkRep(id) {
+  abrirTracking(id);
+}
+
+// qr_modal_v1: estado del modal
+var TRACKING = { rep: null, url: '' };
+
+function abrirTracking(id) {
   var r = DB.reps.find(function(x){ return x.id === id; });
   if (!r) return;
   asegurarToken(r).then(function(){
     var url = linkParte(r);
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      navigator.clipboard.writeText(url).then(function(){
-        toast('Link copiado', 'ok');
-      }).catch(function(){
-        prompt('Copia el link:', url);
-      });
-    } else {
-      prompt('Copia el link:', url);
+    TRACKING.rep = r;
+    TRACKING.url = url;
+    document.getElementById('trackingHeader').textContent = (r.marca || '') + ' ' + (r.modelo || '') + ' · ' + (r.clienteNombre || '');
+    document.getElementById('trackingLink').textContent = url;
+    var qrBox = document.getElementById('trackingQR');
+    qrBox.innerHTML = '';
+    try {
+      var qr = qrcode(0, 'M');
+      qr.addData(url);
+      qr.make();
+      qrBox.innerHTML = qr.createImgTag(5, 8);
+    } catch(e) {
+      qrBox.innerHTML = '<div style="color:var(--red);font-size:12px">No se pudo generar el QR</div>';
     }
+    openM('mTracking');
   });
 }
+
+function trackingCopy() {
+  if (!TRACKING.url) return;
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(TRACKING.url).then(function(){
+      toast('Link copiado', 'ok');
+    }).catch(function(){
+      prompt('Copia el link:', TRACKING.url);
+    });
+  } else {
+    prompt('Copia el link:', TRACKING.url);
+  }
+}
+
+function trackingWA() {
+  var r = TRACKING.rep, url = TRACKING.url;
+  if (!r) return;
+  var cli = DB.clis.find(function(c){ return c.id === r.clienteId; });
+  var tel = (cli && cli.tel) ? cli.tel.replace(/[^0-9]/g, '') : '';
+  var msg = 'Hola ' + r.clienteNombre + '! Hemos recibido tu ' + r.marca + ' ' + r.modelo + '. Puedes seguir el estado de la reparacion en cualquier momento aqui:\n\n' + url + '\n\nGracias!';
+  if (tel) {
+    window.open('https://wa.me/34' + tel + '?text=' + encodeURIComponent(msg));
+  } else {
+    window.open('https://wa.me/?text=' + encodeURIComponent(msg));
+  }
+}
+
+function trackingTicket() {
+  var r = TRACKING.rep, url = TRACKING.url;
+  if (!r) return;
+  var tienda = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.nombre) ? TIENDA : { nombre: 'Tekpair' };
+  var qrSvg = '';
+  try {
+    var qr = qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    qrSvg = qr.createImgTag(6, 8);
+  } catch(e) {}
+
+  var w = window.open('', '_blank', 'width=400,height=700');
+  if (!w) { toast('Permite popups para imprimir', 'err'); return; }
+  w.document.write(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ticket reparacion</title><style>' +
+    '@page { size: 80mm auto; margin: 0; }' +
+    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:80mm;margin:0;padding:6mm 4mm;color:#000;font-size:11px;line-height:1.35}' +
+    '.c{text-align:center}' +
+    '.h1{font-size:15px;font-weight:800;margin:0}' +
+    '.h2{font-size:11px;color:#555;margin:2px 0 8px}' +
+    '.line{border-top:1px dashed #000;margin:8px 0}' +
+    '.row{display:flex;justify-content:space-between;margin:2px 0}' +
+    '.lbl{color:#555}.val{font-weight:600;text-align:right}' +
+    '.qr{text-align:center;margin:10px 0 4px}' +
+    '.qr img{width:55mm;height:55mm}' +
+    '.foot{font-size:9px;color:#555;text-align:center;margin-top:6px;line-height:1.3}' +
+    '.title-rep{font-size:13px;font-weight:700;margin:6px 0 4px}' +
+    '.box{border:1px solid #000;padding:6px;border-radius:3px;margin:6px 0;font-size:10px}' +
+    '</style></head><body>' +
+    '<div class="c"><div class="h1">' + esc(tienda.nombre || 'Tekpair') + '</div>' +
+    (tienda.telefono ? '<div class="h2">Tel: ' + esc(tienda.telefono) + '</div>' : '<div class="h2">&nbsp;</div>') +
+    '</div>' +
+    '<div class="line"></div>' +
+    '<div class="title-rep c">RESGUARDO REPARACION</div>' +
+    '<div class="row"><span class="lbl">Nº</span><span class="val">' + esc(r.id) + '</span></div>' +
+    '<div class="row"><span class="lbl">Fecha</span><span class="val">' + esc(r.fecha) + '</span></div>' +
+    '<div class="row"><span class="lbl">Cliente</span><span class="val">' + esc(r.clienteNombre) + '</span></div>' +
+    '<div class="row"><span class="lbl">Equipo</span><span class="val">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</span></div>' +
+    (r.imei ? '<div class="row"><span class="lbl">IMEI/SN</span><span class="val" style="font-size:9px">' + esc(r.imei) + '</span></div>' : '') +
+    '<div class="box"><strong>Averia:</strong><br>' + esc(r.averia || '') + '</div>' +
+    (r.fechaEntrega ? '<div class="row"><span class="lbl">Estimada</span><span class="val">' + esc(r.fechaEntrega) + '</span></div>' : '') +
+    (r.anticipo ? '<div class="row"><span class="lbl">Anticipo</span><span class="val">' + cur(r.anticipo) + '</span></div>' : '') +
+    '<div class="row" style="font-size:13px;margin-top:5px"><span class="lbl"><strong>Total</strong></span><span class="val"><strong>' + cur(r.total || 0) + '</strong></span></div>' +
+    '<div class="line"></div>' +
+    '<div class="qr"><strong>Sigue tu reparacion:</strong>' + qrSvg + '</div>' +
+    '<div class="foot">Escanea el codigo QR con la camara de tu movil para consultar el estado en cualquier momento.<br>' +
+    'Conserve este resguardo. Necesario para la entrega.</div>' +
+    '<div class="line"></div>' +
+    '<div class="c" style="font-size:9px;color:#888;margin-top:6px">Powered by Tekpair</div>' +
+    '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
+    '</body></html>'
+  );
+  w.document.close();
+}
+
+function trackingEtiqueta() {
+  var r = TRACKING.rep, url = TRACKING.url;
+  if (!r) return;
+  var qrSvg = '';
+  try {
+    var qr = qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    qrSvg = qr.createImgTag(4, 4);
+  } catch(e) {}
+
+  var w = window.open('', '_blank', 'width=400,height=300');
+  if (!w) { toast('Permite popups para imprimir', 'err'); return; }
+  w.document.write(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiqueta</title><style>' +
+    '@page { size: 62mm 30mm; margin: 0; }' +
+    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:62mm;height:30mm;margin:0;padding:1mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
+    '.qr{flex-shrink:0}' +
+    '.qr img{width:25mm;height:25mm;display:block}' +
+    '.info{flex:1;min-width:0;line-height:1.25}' +
+    '.id{font-weight:800;font-size:9px;font-family:monospace}' +
+    '.cli{font-weight:700;font-size:9px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.eq{font-size:8px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.av{font-size:7px;color:#444;margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}' +
+    '</style></head><body>' +
+    '<div class="qr">' + qrSvg + '</div>' +
+    '<div class="info">' +
+      '<div class="id">' + esc(r.id) + '</div>' +
+      '<div class="cli">' + esc(r.clienteNombre || '') + '</div>' +
+      '<div class="eq">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</div>' +
+      '<div class="av">' + esc(r.averia || '') + '</div>' +
+    '</div>' +
+    '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
+    '</body></html>'
+  );
+  w.document.close();
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
 
 function editarRep(id) {
   var r = DB.reps.find(function(x){ return x.id === id; });
@@ -1975,7 +2133,7 @@ function renderReps() {
   list.forEach(function(r) {
     var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" class="btn-ent" style="background:var(--green);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer">&#10003;</button>' : '';
     var btnEdit = '<button data-rid="' + r.id + '" class="btn-edit-r" style="background:var(--light);border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Editar">✏️</button>';
-    var btnLink = '<button data-rid="' + r.id + '" class="btn-link-r" style="background:var(--light);border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Copiar link cliente">🔗</button>';
+    var btnLink = '<button data-rid="' + r.id + '" class="btn-link-r" style="background:var(--blue);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="QR / Link / Imprimir">📱</button>';
     var esGarBadge = r.esGarantia ? '<br><span class="badge bp">Garantia</span>' : '';
     var priBadge = r.prioridad && r.prioridad !== 'Normal'
       ? '<span class="badge ' + (r.prioridad === 'Urgente' ? 'br' : 'bo') + '">' + r.prioridad + '</span>'
