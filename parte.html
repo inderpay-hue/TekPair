@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Seguimiento reparación · Tekpair</title>
+<style>
+:root{
+  --bg:#020B2E;--card:#fff;--text:#0F172A;--muted:#64748B;--border:#E5E7EB;
+  --blue:#2563EB;--green:#00C896;--orange:#F97316;--red:#EF4444;--purple:#7C3AED;
+  --yellow:#F59E0B;--light:#F8FAFC;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:linear-gradient(180deg,#020B2E 0%,#0A1A4A 100%);min-height:100vh;color:var(--text)}
+.wrap{max-width:520px;margin:0 auto;padding:24px 16px}
+.header{text-align:center;color:#fff;margin-bottom:20px}
+.header .logo{font-size:30px;font-weight:800;letter-spacing:-.5px}
+.header .logo span{color:var(--green)}
+.header .tagline{font-size:12px;opacity:.7;margin-top:4px}
+
+.card{background:var(--card);border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 6px 24px rgba(0,0,0,.18)}
+.card h2{margin:0 0 14px;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+
+.estado-card{text-align:center;padding:28px 20px}
+.estado-icon{font-size:44px;margin-bottom:10px}
+.estado-label{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.estado-val{font-size:24px;font-weight:800;margin-bottom:6px}
+.estado-desc{font-size:13px;color:var(--muted);line-height:1.4}
+
+.steps{display:flex;justify-content:space-between;margin-top:22px;padding:0 4px;position:relative}
+.steps::before{content:'';position:absolute;top:14px;left:14px;right:14px;height:3px;background:var(--border);border-radius:2px;z-index:0}
+.steps .progress{position:absolute;top:14px;left:14px;height:3px;background:var(--green);border-radius:2px;z-index:1;transition:width .4s}
+.step{position:relative;z-index:2;text-align:center;flex:1}
+.step .dot{width:30px;height:30px;border-radius:50%;background:#fff;border:3px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 6px;font-size:12px;font-weight:700;color:var(--muted)}
+.step.done .dot{background:var(--green);border-color:var(--green);color:#fff}
+.step.current .dot{background:var(--blue);border-color:var(--blue);color:#fff;box-shadow:0 0 0 4px rgba(37,99,235,.18)}
+.step .lbl{font-size:9px;color:var(--muted);font-weight:600;line-height:1.2}
+.step.done .lbl,.step.current .lbl{color:var(--text)}
+
+.row{display:flex;justify-content:space-between;align-items:flex-start;padding:9px 0;border-bottom:1px solid var(--border);gap:12px}
+.row:last-child{border-bottom:none}
+.row .k{color:var(--muted);font-size:12px;flex-shrink:0}
+.row .v{font-weight:600;font-size:13px;text-align:right}
+
+.total-row{background:linear-gradient(135deg,#020B2E,#0A1A4A);color:#fff;border-radius:12px;padding:14px 18px;margin-top:10px;display:flex;justify-content:space-between;align-items:center}
+.total-row .lbl{font-size:12px;opacity:.7}
+.total-row .val{font-size:22px;font-weight:800;color:var(--green)}
+
+.tienda{display:flex;align-items:center;gap:14px}
+.tienda .logo{width:50px;height:50px;border-radius:10px;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0;overflow:hidden}
+.tienda .logo img{width:100%;height:100%;object-fit:cover}
+.tienda .info{flex:1;min-width:0}
+.tienda .nom{font-weight:700;font-size:15px}
+.tienda .det{font-size:11px;color:var(--muted);margin-top:2px}
+.tienda-actions{display:flex;gap:8px;margin-top:12px}
+.tienda-actions a{flex:1;display:flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:10px;text-decoration:none;font-size:12px;font-weight:600}
+.btn-call{background:var(--blue);color:#fff}
+.btn-wa{background:#25D366;color:#fff}
+
+.loader{text-align:center;color:#fff;padding:40px;font-size:14px;opacity:.8}
+.error-box{background:rgba(239,68,68,.1);border:1px solid var(--red);color:var(--red);padding:18px;border-radius:12px;text-align:center;font-size:13px}
+
+.foot{text-align:center;color:#fff;opacity:.5;font-size:10px;margin-top:24px}
+.foot a{color:#fff}
+
+.badge{display:inline-block;padding:3px 8px;border-radius:6px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.3px}
+.b-pend{background:rgba(245,158,11,.15);color:var(--yellow)}
+.b-proc{background:rgba(37,99,235,.15);color:var(--blue)}
+.b-list{background:rgba(0,200,150,.15);color:var(--green)}
+.b-ent{background:rgba(124,58,237,.15);color:var(--purple)}
+.b-otro{background:rgba(100,116,139,.15);color:var(--muted)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="header">
+    <div class="logo">⚡ Tek<span>pair</span></div>
+    <div class="tagline">Seguimiento de reparación</div>
+  </div>
+  <div id="content">
+    <div class="loader">Cargando información…</div>
+  </div>
+  <div class="foot">Powered by <a href="https://tekpair.tech">tekpair.tech</a></div>
+</div>
+
+<script>
+(function(){
+  var p = new URLSearchParams(location.search);
+  var id = p.get('id'), t = p.get('t');
+  var content = document.getElementById('content');
+
+  if (!id || !t) {
+    content.innerHTML = '<div class="error-box">Link inválido. Usa el enlace que te envió la tienda.</div>';
+    return;
+  }
+
+  fetch('/api/parte?id=' + encodeURIComponent(id) + '&t=' + encodeURIComponent(t))
+    .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
+    .then(function(res){
+      if (!res.ok || !res.d.ok) {
+        content.innerHTML = '<div class="error-box">No se pudo cargar la reparación.<br><br>El link puede haber caducado o no ser válido.</div>';
+        return;
+      }
+      pintar(res.d.rep, res.d.tienda);
+    })
+    .catch(function(){
+      content.innerHTML = '<div class="error-box">Error de conexión. Inténtalo de nuevo en unos minutos.</div>';
+    });
+
+  function estadoInfo(estado){
+    var map = {
+      'Pendiente':       {idx:0,icon:'📥',desc:'Hemos recibido tu equipo. Lo revisaremos pronto.',cls:'b-pend'},
+      'En Proceso':      {idx:1,icon:'🔧',desc:'Estamos trabajando en tu reparación.',cls:'b-proc'},
+      'Por Entregar':    {idx:2,icon:'✅',desc:'¡Tu equipo ya está listo! Puedes pasarte a recogerlo.',cls:'b-list'},
+      'Entregado':       {idx:3,icon:'🎉',desc:'Equipo entregado. ¡Gracias por confiar en nosotros!',cls:'b-ent'},
+      'Garantia':        {idx:1,icon:'🛡️',desc:'Reparación en garantía en proceso.',cls:'b-proc'},
+      'Sin Solucion':    {idx:2,icon:'⚠️',desc:'No hemos podido resolver el problema. Contacta con la tienda.',cls:'b-otro'},
+      'Devuelto':        {idx:3,icon:'↩️',desc:'Equipo devuelto al cliente.',cls:'b-otro'},
+      'Rechazado':       {idx:0,icon:'✖️',desc:'Reparación cancelada.',cls:'b-otro'}
+    };
+    return map[estado] || {idx:0,icon:'📦',desc:estado,cls:'b-otro'};
+  }
+
+  function escapeHtml(s){
+    return String(s||'').replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function pintar(r, tienda){
+    var info = estadoInfo(r.estado);
+    var pasos = ['Recibido','En proceso','Listo','Entregado'];
+    var pct = (info.idx / (pasos.length - 1)) * 100;
+
+    var stepsHtml = pasos.map(function(p, i){
+      var cls = i < info.idx ? 'done' : i === info.idx ? 'current' : '';
+      return '<div class="step '+cls+'"><div class="dot">'+(i<info.idx?'✓':(i+1))+'</div><div class="lbl">'+p+'</div></div>';
+    }).join('');
+
+    var pendiente = (r.restante && r.restante > 0)
+      ? '<div class="row"><span class="k">Pendiente de pago</span><span class="v" style="color:var(--orange)">'+formatCur(r.restante)+'</span></div>'
+      : '';
+
+    var imei = r.imei
+      ? '<div class="row"><span class="k">IMEI / Nº Serie</span><span class="v" style="font-family:monospace;font-size:11px">'+escapeHtml(r.imei)+'</span></div>'
+      : '';
+
+    var fechaEnt = r.fecha_entrega
+      ? '<div class="row"><span class="k">Fecha estimada</span><span class="v">'+escapeHtml(r.fecha_entrega)+'</span></div>'
+      : '';
+
+    var fechaReal = r.fecha_entrega_real
+      ? '<div class="row"><span class="k">Fecha entrega</span><span class="v" style="color:var(--green)">'+escapeHtml(r.fecha_entrega_real)+'</span></div>'
+      : '';
+
+    var ubic = [tienda.ciudad, tienda.pais].filter(Boolean).join(', ');
+    var tel = (tienda.telefono || '').replace(/[^0-9+]/g,'');
+    var actionsHtml = '';
+    if (tel) {
+      actionsHtml = '<div class="tienda-actions">' +
+        '<a class="btn-call" href="tel:'+tel+'">📞 Llamar</a>' +
+        '<a class="btn-wa" href="https://wa.me/'+tel.replace(/^\+/,'')+'" target="_blank">💬 WhatsApp</a>' +
+      '</div>';
+    }
+
+    var logoHtml = tienda.logo
+      ? '<img src="'+escapeHtml(tienda.logo)+'" alt="">'
+      : '🏪';
+
+    content.innerHTML =
+      '<div class="card estado-card">' +
+        '<div class="estado-icon">'+info.icon+'</div>' +
+        '<div class="estado-label">Estado actual</div>' +
+        '<div class="estado-val">'+escapeHtml(r.estado)+'</div>' +
+        '<div class="estado-desc">'+info.desc+'</div>' +
+        '<div class="steps"><div class="progress" style="width:calc('+pct+'% - 0px)"></div>'+stepsHtml+'</div>' +
+      '</div>' +
+
+      '<div class="card">' +
+        '<h2>📱 Tu reparación</h2>' +
+        '<div class="row"><span class="k">Cliente</span><span class="v">'+escapeHtml(r.cliente_nombre||'')+'</span></div>' +
+        '<div class="row"><span class="k">Equipo</span><span class="v">'+escapeHtml((r.marca||'')+' '+(r.modelo||''))+'</span></div>' +
+        imei +
+        '<div class="row"><span class="k">Avería</span><span class="v" style="color:var(--red)">'+escapeHtml(r.averia||'')+'</span></div>' +
+        '<div class="row"><span class="k">Fecha entrada</span><span class="v">'+escapeHtml(r.fecha||'')+'</span></div>' +
+        fechaEnt +
+        fechaReal +
+        '<div class="total-row"><span class="lbl">Total reparación</span><span class="val">'+formatCur(r.total||0)+'</span></div>' +
+        pendiente +
+      '</div>' +
+
+      '<div class="card">' +
+        '<h2>🏪 Tienda</h2>' +
+        '<div class="tienda">' +
+          '<div class="logo">'+logoHtml+'</div>' +
+          '<div class="info">' +
+            '<div class="nom">'+escapeHtml(tienda.nombre||'')+'</div>' +
+            (ubic ? '<div class="det">'+escapeHtml(ubic)+'</div>' : '') +
+            (tienda.telefono ? '<div class="det">'+escapeHtml(tienda.telefono)+'</div>' : '') +
+          '</div>' +
+        '</div>' +
+        actionsHtml +
+      '</div>';
+  }
+
+  function formatCur(n){
+    var v = parseFloat(n) || 0;
+    return '€' + v.toFixed(2).replace('.', ',');
+  }
+})();
+</script>
+</body>
+</html>
