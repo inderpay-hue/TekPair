@@ -1893,13 +1893,19 @@ function renderStock() {
     if (q && !(s.marca + ' ' + s.modelo + ' ' + (s.imei || '') + ' ' + (s.categoria || '')).toLowerCase().includes(q)) return false;
     return true;
   });
-  var alertas = DB.stock.filter(function(s) { return s.unidades > 0 && s.unidades <= s.stockMin; });
-
+  // Alertas solo en stock bajo
   var elA = document.getElementById('alertasStock');
-  elA.innerHTML = alertas.length ? alertas.map(function(s) {
-    return '<div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px">' +
-      '\u26a0\ufe0f <strong>' + s.marca + ' ' + s.modelo + '</strong> \u2014 Solo ' + s.unidades + ' ud.</div>';
-  }).join('') : '';
+  if (cat === '__low__') {
+    var alertas = DB.stock.filter(function(s) { return s.unidades > 0 && s.unidades <= s.stockMin; });
+    elA.innerHTML = alertas.length ? alertas.map(function(s) {
+      return '<div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px">' +
+        '\u26a0\ufe0f <strong>' + s.marca + ' ' + s.modelo + '</strong> \u2014 Solo ' + s.unidades + ' ud.</div>';
+    }).join('') : '';
+    elA.style.display = '';
+  } else {
+    elA.innerHTML = '';
+    elA.style.display = 'none';
+  }
 
   var el = document.getElementById('listaStock');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udce6</div>Sin stock</div>'; return; }
