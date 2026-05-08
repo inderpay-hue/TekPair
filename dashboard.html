@@ -2296,14 +2296,15 @@ function guardarGasto() {
 
 // ═══ REPORTES ═══
 function setRepTab(el) {
-  document.querySelectorAll('#pReportes .tabs:first-of-type .tab').forEach(function(t) { t.classList.remove('active'); });
+  // fix tabs reportes v2: limpiar solo los hermanos en el mismo container
+  el.parentNode.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
   SEL.repTab = el.dataset.t;
   renderReporte();
 }
 
 function setRepTipo(el) {
-  document.querySelectorAll('#pReportes .tabs:last-of-type .tab').forEach(function(t) { t.classList.remove('active'); });
+  el.parentNode.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
   SEL.repTipo = el.dataset.ti;
   renderReporte();
