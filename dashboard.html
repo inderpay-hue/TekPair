@@ -300,6 +300,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="card">
     <div class="sec-header">
+      <div class="card-title" style="margin:0">📝 Notas y recordatorios <span id="notasCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:8px;align-items:stretch">
+      <input id="notaInput" class="fi" placeholder="Escribe una nota..." style="flex:1" maxlength="500" onkeydown="if(event.key==='Enter')crearNota()">
+      <input id="notaFecha" type="datetime-local" class="fi" style="flex:0 0 auto;width:175px" title="Recordatorio (opcional)">
+      <button onclick="crearNota()" style="background:var(--blue);color:white;border:none;padding:0 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:18px">+</button>
+    </div>
+    <div id="notasBox"></div>
+  </div>
+  <div class="card">
+    <div class="sec-header">
       <div class="card-title" style="margin:0">Cierre del dia</div>
       <button class="btn-sm" style="background:var(--dark);color:white" onclick="cierreDia()">Generar</button>
     </div>
@@ -954,7 +965,7 @@ var TIENDA = {nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',garantia:'
 var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''}};
 
 // ═══ DB ═══
-var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[]};
+var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[]};
 
 // ═══ STATE ═══
 var SEL = {
@@ -1001,7 +1012,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // Load from Supabase
   if (SB_KEY && TIENDA_ID) {
-    cargarDatosSupabase().then(function() { renderDash(); checkUrgentes(); });
+    cargarDatosSupabase().then(function() { renderDash(); checkUrgentes(); cargarNotas(); iniciarRefrescoNotas(); });
   }
 
   // Admin check
@@ -1257,6 +1268,167 @@ function renderDash() {
   if (typeof renderDashWidgets === 'function') renderDashWidgets();
 }
 
+
+// notas_v1: notas y recordatorios compartidas via Supabase
+var NOTAS_REFRESH_INTERVAL = null;
+
+function fmtFechaNota(iso) {
+  if (!iso) return '';
+  var d = new Date(iso);
+  if (isNaN(d.getTime())) return '';
+  var hoy = new Date();
+  var manana = new Date(); manana.setDate(manana.getDate() + 1);
+  var sameDay = function(a,b){ return a.getFullYear()===b.getFullYear() && a.getMonth()===b.getMonth() && a.getDate()===b.getDate(); };
+  var hh = ('0'+d.getHours()).slice(-2) + ':' + ('0'+d.getMinutes()).slice(-2);
+  if (sameDay(d, hoy)) return 'Hoy ' + hh;
+  if (sameDay(d, manana)) return 'Manana ' + hh;
+  return d.toLocaleDateString('es') + ' ' + hh;
+}
+
+function fechaNotaClass(iso) {
+  if (!iso) return 'normal';
+  var d = new Date(iso); if (isNaN(d.getTime())) return 'normal';
+  var ahora = new Date();
+  if (d.getTime() < ahora.getTime()) return 'vencida';
+  var fin = new Date(); fin.setHours(23,59,59,999);
+  if (d.getTime() <= fin.getTime()) return 'hoy';
+  return 'futura';
+}
+
+function crearNota() {
+  var input = document.getElementById('notaInput');
+  var fechaEl = document.getElementById('notaFecha');
+  var texto = (input.value || '').trim();
+  if (!texto) { input.focus(); return; }
+
+  var nota = {
+    id: 'n' + Date.now(),
+    tienda_id: TIENDA_ID,
+    texto: texto,
+    fecha_recordatorio: fechaEl.value ? new Date(fechaEl.value).toISOString() : null,
+    hecha: false,
+    creada_por: U ? U.email : '',
+    creada_por_nombre: U ? U.nombre : ''
+  };
+
+  DB.notas.unshift(nota);
+  renderNotas();
+  input.value = '';
+  fechaEl.value = '';
+
+  if (SB_KEY && TIENDA_ID) {
+    sbPost('notas', nota).catch(function(e){
+      toast('Nota guardada solo localmente', 'err');
+    });
+  }
+}
+
+function toggleNotaHecha(id) {
+  var n = DB.notas.find(function(x){ return x.id === id; });
+  if (!n) return;
+  n.hecha = !n.hecha;
+  n.hecha_at = n.hecha ? new Date().toISOString() : null;
+  renderNotas();
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('notas', 'id=eq.' + id, { hecha: n.hecha, hecha_at: n.hecha_at }).catch(function(){});
+  }
+}
+
+function eliminarNota(id) {
+  if (!confirm('Eliminar esta nota?')) return;
+  DB.notas = DB.notas.filter(function(x){ return x.id !== id; });
+  renderNotas();
+  if (SB_KEY && TIENDA_ID) {
+    sbDelete('notas', 'id=eq.' + id).catch(function(){});
+  }
+}
+
+function renderNotas() {
+  var box = document.getElementById('notasBox');
+  var cnt = document.getElementById('notasCount');
+  if (!box) return;
+
+  // Filtrar hechas mas viejas de 24h
+  var ahora = Date.now();
+  var visibles = DB.notas.filter(function(n){
+    if (!n.hecha) return true;
+    if (!n.hecha_at) return true;
+    return (ahora - new Date(n.hecha_at).getTime()) < 24*60*60*1000;
+  });
+
+  // Ordenar: vencidas primero, luego hoy, luego futuras, luego sin fecha, luego hechas al final
+  visibles.sort(function(a, b){
+    if (a.hecha !== b.hecha) return a.hecha ? 1 : -1;
+    var ca = a.fecha_recordatorio ? new Date(a.fecha_recordatorio).getTime() : Number.MAX_SAFE_INTEGER;
+    var cb = b.fecha_recordatorio ? new Date(b.fecha_recordatorio).getTime() : Number.MAX_SAFE_INTEGER;
+    return ca - cb;
+  });
+
+  var pendientes = visibles.filter(function(n){ return !n.hecha; }).length;
+  cnt.textContent = pendientes ? '(' + pendientes + ')' : '';
+
+  if (!visibles.length) {
+    box.innerHTML = '<div class="empty" style="padding:14px;font-size:12px">No hay notas</div>';
+    return;
+  }
+
+  box.innerHTML = visibles.map(function(n){
+    var fclass = fechaNotaClass(n.fecha_recordatorio);
+    var bg = '#fff', border = 'var(--border)';
+    if (!n.hecha) {
+      if (fclass === 'vencida') { bg = 'rgba(239,68,68,.06)'; border = 'rgba(239,68,68,.3)'; }
+      else if (fclass === 'hoy') { bg = 'rgba(249,115,22,.06)'; border = 'rgba(249,115,22,.3)'; }
+    }
+    var fechaTxt = fmtFechaNota(n.fecha_recordatorio);
+    var fechaColor = fclass === 'vencida' ? 'var(--red)' : fclass === 'hoy' ? 'var(--orange)' : 'var(--muted)';
+    var autorTxt = n.creada_por_nombre ? n.creada_por_nombre : '';
+    var textoStyle = n.hecha ? 'text-decoration:line-through;color:var(--muted)' : '';
+
+    return '<div style="background:' + bg + ';border:1px solid ' + border + ';border-radius:8px;padding:10px 12px;margin-bottom:6px;display:flex;gap:10px;align-items:flex-start">' +
+      '<div style="display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;width:22px;height:22px;border:2px solid ' + (n.hecha ? 'var(--green)' : 'var(--border)') + ';border-radius:5px;background:' + (n.hecha ? 'var(--green)' : 'white') + ';color:white;font-size:13px;font-weight:700" onclick="toggleNotaHecha(\'' + n.id + '\')">' + (n.hecha ? '✓' : '') + '</div>' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;line-height:1.3;word-wrap:break-word;' + textoStyle + '">' + escapeHtmlNota(n.texto) + '</div>' +
+        '<div style="font-size:10px;color:var(--muted);margin-top:3px;display:flex;gap:8px;flex-wrap:wrap">' +
+          (fechaTxt ? '<span style="color:' + fechaColor + ';font-weight:600">⏰ ' + escapeHtmlNota(fechaTxt) + '</span>' : '') +
+          (autorTxt ? '<span>· ' + escapeHtmlNota(autorTxt) + '</span>' : '') +
+        '</div>' +
+      '</div>' +
+      '<button onclick="eliminarNota(\'' + n.id + '\')" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:4px;font-size:14px;flex-shrink:0" title="Eliminar">×</button>' +
+    '</div>';
+  }).join('');
+}
+
+function escapeHtmlNota(s) {
+  return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
+    return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
+
+function cargarNotas() {
+  if (!SB_KEY || !TIENDA_ID) { renderNotas(); return; }
+  sbGet('notas', 'tienda_id=eq.' + TIENDA_ID + '&order=created_at.desc&limit=100')
+    .then(function(r){ return r.json(); })
+    .then(function(rows){
+      if (Array.isArray(rows)) {
+        DB.notas = rows;
+        renderNotas();
+      }
+    })
+    .catch(function(){});
+}
+
+function iniciarRefrescoNotas() {
+  if (NOTAS_REFRESH_INTERVAL) clearInterval(NOTAS_REFRESH_INTERVAL);
+  NOTAS_REFRESH_INTERVAL = setInterval(function(){
+    // Solo refrescar si la pagina del dashboard esta visible
+    if (document.visibilityState === 'visible') {
+      var dash = document.getElementById('pDash');
+      if (dash && dash.classList.contains('active')) cargarNotas();
+    }
+  }, 30000);
+}
+
+
 function renderDashWidgets() {
   var pend = DB.reps.filter(function(r){ return r.estado === 'Pendiente' || r.estado === 'En Proceso'; });
   var ent = DB.reps.filter(function(r){ return r.estado === 'Por Entregar'; });
@@ -1292,6 +1464,7 @@ function renderDashWidgets() {
   document.getElementById('repsEntregarBox').innerHTML = renderList(ent, 'Nada por entregar', '#00C896');
   document.getElementById('repsPendientesCount').textContent = pend.length ? '(' + pend.length + ')' : '';
   document.getElementById('repsEntregarCount').textContent = ent.length ? '(' + ent.length + ')' : '';
+  if (typeof renderNotas === 'function') renderNotas();
 
   // Click sobre un item -> ir a reparaciones
   document.querySelectorAll('.dash-rep-item').forEach(function(it){
