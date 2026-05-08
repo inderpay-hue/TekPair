@@ -555,6 +555,35 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <input type="checkbox" id="ajCierreActivo"> Activar cierre automatico
     </label>
   </div>
+  <div class="card">
+    <div class="card-title">Impuestos (IVA)</div>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:14px">
+      <input type="checkbox" id="ajIvaActivo" onchange="toggleIvaCfg()"> Aplicar IVA en ventas y reparaciones
+    </label>
+    <div id="ajIvaCfg" style="display:none">
+      <div class="fg">
+        <label class="fl">Modo de precios</label>
+        <select class="fi" id="ajIvaModo">
+          <option value="incluido">IVA incluido en el precio (B2C)</option>
+          <option value="anadido">IVA añadido al precio (B2B)</option>
+        </select>
+      </div>
+      <div class="fg">
+        <label class="fl">Tipo de IVA por defecto (%)</label>
+        <select class="fi" id="ajIvaTipoDefault">
+          <option value="21">21% — General</option>
+          <option value="10">10% — Reducido</option>
+          <option value="4">4% — Superreducido</option>
+          <option value="0">0% — Exento</option>
+        </select>
+      </div>
+      <div style="font-size:11px;color:var(--muted);line-height:1.5;background:var(--light);padding:10px 12px;border-radius:8px;margin-top:6px">
+        💡 <strong>Modo "incluido":</strong> el precio que escribes ya incluye el IVA. El cliente ve el precio final.<br>
+        💡 <strong>Modo "añadido":</strong> el precio que escribes es la base. El IVA se suma al final.<br>
+        💡 Cada venta o reparación podrá usar un tipo de IVA distinto (cambiable al crearla).
+      </div>
+    </div>
+  </div>
   <button class="btn-primary" onclick="guardarAjustes()">Guardar ajustes</button>
 </div>
 
@@ -1019,7 +1048,7 @@ var SB_KEY = '';
 var TIENDA_ID = '';
 var U = null;
 var TIENDA = {nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',garantia:'',politica:'',logo_url:''};
-var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''}};
+var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]}};
 
 // ═══ DB ═══
 var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[]};
@@ -1064,6 +1093,7 @@ window.addEventListener('DOMContentLoaded', function() {
   if (aj.moneda) AJUSTES.moneda = aj.moneda;
   if (aj.cierre) AJUSTES.cierre = aj.cierre;
   if (aj.nombre) AJUSTES.nombre = aj.nombre;
+  if (aj.iva) AJUSTES.iva = Object.assign({activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]}, aj.iva);
 
   // Load local data
   cargarDatosLocal();
@@ -3576,6 +3606,17 @@ function cargarAjustes() {
   document.getElementById('ajCierreHora').value = AJUSTES.cierre.hora || '21:30';
   document.getElementById('ajCierreEmail').value = AJUSTES.cierre.email || '';
   document.getElementById('ajCierreActivo').checked = AJUSTES.cierre.activo || false;
+  // IVA
+  var iva = AJUSTES.iva || {activo:false,modo:'incluido',tipoDefault:21};
+  document.getElementById('ajIvaActivo').checked = !!iva.activo;
+  document.getElementById('ajIvaModo').value = iva.modo || 'incluido';
+  document.getElementById('ajIvaTipoDefault').value = String(iva.tipoDefault != null ? iva.tipoDefault : 21);
+  toggleIvaCfg();
+}
+
+function toggleIvaCfg() {
+  var on = document.getElementById('ajIvaActivo').checked;
+  document.getElementById('ajIvaCfg').style.display = on ? 'block' : 'none';
 }
 
 function guardarAjustes() {
@@ -3584,8 +3625,39 @@ function guardarAjustes() {
   AJUSTES.cierre.hora = document.getElementById('ajCierreHora').value;
   AJUSTES.cierre.email = document.getElementById('ajCierreEmail').value;
   AJUSTES.cierre.activo = document.getElementById('ajCierreActivo').checked;
+  // IVA
+  AJUSTES.iva = AJUSTES.iva || {};
+  AJUSTES.iva.activo = document.getElementById('ajIvaActivo').checked;
+  AJUSTES.iva.modo = document.getElementById('ajIvaModo').value;
+  AJUSTES.iva.tipoDefault = parseFloat(document.getElementById('ajIvaTipoDefault').value) || 21;
+  if (!AJUSTES.iva.tiposPermitidos) AJUSTES.iva.tiposPermitidos = [0,4,10,21];
   localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {iva_config: AJUSTES.iva});
   toast('Ajustes guardados', 'ok');
+}
+
+// ═══ CALCULO IVA (helpers usados por ventas y reparaciones) ═══
+// Devuelve {base, iva, total} dado un precio y un tipo
+// Si IVA esta desactivado: iva = 0, base = total = precio
+function calcIVA(precio, tipoIva) {
+  precio = parseFloat(precio) || 0;
+  if (!AJUSTES.iva || !AJUSTES.iva.activo) {
+    return {base: precio, iva: 0, total: precio, tipo: 0, modo: 'sin'};
+  }
+  var t = (tipoIva == null) ? AJUSTES.iva.tipoDefault : parseFloat(tipoIva);
+  if (isNaN(t)) t = AJUSTES.iva.tipoDefault || 0;
+  var modo = AJUSTES.iva.modo || 'incluido';
+  var base, iva, total;
+  if (modo === 'incluido') {
+    base = precio / (1 + t/100);
+    iva = precio - base;
+    total = precio;
+  } else { // anadido
+    base = precio;
+    iva = precio * t/100;
+    total = precio + iva;
+  }
+  return {base: base, iva: iva, total: total, tipo: t, modo: modo};
 }
 
 // ═══ SERVICIOS ═══
