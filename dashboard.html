@@ -1950,7 +1950,7 @@ function renderReps() {
     sel.addEventListener('change', function() { cambiarEstado(this.dataset.rid, this.value); });
   });
   el.querySelectorAll('.btn-ent').forEach(function(btn) {
-    btn.addEventListener('click', function() { abrirEntregar(this.dataset.rid); });
+    btn.addEventListener('click', function() { cambiarEstado(this.dataset.rid, 'Entregado'); });
   });
   el.querySelectorAll('.btn-edit-r').forEach(function(btn) {
     btn.addEventListener('click', function() { editarRep(this.dataset.rid); });
@@ -1962,7 +1962,8 @@ function cambiarEstado(id, estado) {
   if (!tienePerm('reps_editar')) { toast('Sin permiso', 'err'); return; }
   var r = DB.reps.find(function(x) { return x.id === id; });
   if (!r) return;
-  if (estado === 'Por Entregar') { abrirEntregar(id); return; }
+  // estado_cobro_v2: ahora 'Entregado' abre cobro, no 'Por Entregar'
+  if (estado === 'Entregado' && r.estado !== 'Entregado') { abrirEntregar(id); return; }
   if (estado === 'Garantia' && r.estado === 'Entregado') {
     if (confirm('Crear nueva reparacion en garantia para ' + r.clienteNombre + '?')) {
       var nueva = {
@@ -3018,6 +3019,25 @@ document.addEventListener('click', function(e){
   b.classList.add('active');
   if (typeof renderStock === 'function') renderStock();
 });
+
+// estado_cobro_v2: si se cierra el modal de entrega sin confirmar, rerender
+(function(){
+  var modal = document.getElementById('mEntregar');
+  if (!modal) return;
+  // Click sobre el fondo gris del modal cierra -> rerender
+  modal.addEventListener('click', function(e){
+    if (e.target === modal) {
+      setTimeout(function(){ if (typeof renderReps === 'function') renderReps(); }, 50);
+    }
+  });
+  // Boton X de cerrar (si existe con onclick="closeM('mEntregar')")
+  var closeBtns = modal.querySelectorAll('[onclick*="closeM"]');
+  closeBtns.forEach(function(b){
+    b.addEventListener('click', function(){
+      setTimeout(function(){ if (typeof renderReps === 'function') renderReps(); }, 50);
+    });
+  });
+})();
 </script>
 </body>
 </html>
