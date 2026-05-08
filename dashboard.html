@@ -274,17 +274,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="card">
     <div class="sec-header">
-      <div class="card-title" style="margin:0">Reparaciones activas</div>
-      <span class="sec-action" onclick="navTo('pReps')">Ver todas</span>
+      <div class="card-title" style="margin:0">Urgentes hoy</div>
     </div>
-    <div id="repsActivasBox"></div>
-  </div>
-  <div class="card">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0">Por entregar</div>
-      <span class="sec-action" onclick="navTo('pReps');setRepFiltroById('Por Entregar')">Ver todas</span>
-    </div>
-    <div id="repsPorEntregarBox"></div>
+    <div id="urgentesBox"></div>
   </div>
   <div class="card">
     <div class="sec-header">
@@ -342,19 +334,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
     <input class="search-input" id="busStock" placeholder="Buscar marca, modelo, IMEI..." oninput="renderStock()">
-  </div>
-  <div class="tabs" id="stockTabs" style="margin-bottom:8px">
-    <div class="tab active" data-sc="" onclick="setStockCat(this)">Todos</div>
-    <div class="tab" data-sc="Telefono" onclick="setStockCat(this)">Telefonos</div>
-    <div class="tab" data-sc="Tablet" onclick="setStockCat(this)">Tablets</div>
-    <div class="tab" data-sc="Smartwatch" onclick="setStockCat(this)">Smartwatch</div>
-    <div class="tab" data-sc="Pantalla" onclick="setStockCat(this)">Pantallas</div>
-    <div class="tab" data-sc="Tapa" onclick="setStockCat(this)">Tapas</div>
-    <div class="tab" data-sc="Bateria" onclick="setStockCat(this)">Baterias</div>
-    <div class="tab" data-sc="Flex Carga" onclick="setStockCat(this)">Flex Carga</div>
-    <div class="tab" data-sc="Altavoz" onclick="setStockCat(this)">Altavoz</div>
-    <div class="tab" data-sc="Repuesto" onclick="setStockCat(this)">Repuestos</div>
-    <div class="tab" data-sc="bajo" onclick="setStockCat(this)">Stock bajo</div>
   </div>
   <div id="alertasStock"></div>
   <div id="listaStock"></div>
@@ -427,13 +406,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
     <div class="sec-title">Reportes</div>
   </div>
-  <div class="tabs" id="repTabsTime">
+  <div class="tabs">
     <div class="tab active" data-t="hoy" onclick="setRepTab(this)">Hoy</div>
     <div class="tab" data-t="semana" onclick="setRepTab(this)">Semana</div>
     <div class="tab" data-t="mes" onclick="setRepTab(this)">Mes</div>
     <div class="tab" data-t="total" onclick="setRepTab(this)">Total</div>
   </div>
-  <div class="tabs" id="repTabsTipo">
+  <div class="tabs">
     <div class="tab active" data-ti="todo" onclick="setRepTipo(this)">Todo</div>
     <div class="tab" data-ti="ventas" onclick="setRepTipo(this)">Ventas</div>
     <div class="tab" data-ti="reparaciones" onclick="setRepTipo(this)">Reparaciones</div>
@@ -1220,7 +1199,6 @@ function renderDash() {
   }, 0);
   var tReps = repsHoy.reduce(function(a, r) { return a + r.total; }, 0);
 
-  renderDashWidgets();
   document.getElementById('metricsGrid').innerHTML =
     '<div class="stat-card"><div class="stat-val" style="color:var(--blue)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>' +
     '<div class="stat-card"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl">Ingresos ventas</div></div>' +
@@ -1719,7 +1697,7 @@ function guardarRep() {
   var modelo = document.getElementById('rModelo').value.trim();
   var averia = document.getElementById('rAveria').value.trim();
   if (!modelo || !averia) { toast('Modelo y averia obligatorios', 'err'); return; }
-  if (!SEL.rCli && !SEL.editRepId) { toast('Selecciona un cliente', 'err'); return; }
+  if (!SEL.rCli) { toast('Selecciona un cliente', 'err'); return; }
   var mo = parseFloat(document.getElementById('rMo').value) || 0;
   var comp = SEL.selParts.reduce(function(a, p) { return a + p.precio; }, 0);
   var anticipo = parseFloat(document.getElementById('rAnticipo').value) || 0;
@@ -1753,21 +1731,7 @@ function guardarRep() {
     if (s) s.unidades = Math.max(0, s.unidades - 1);
   });
 
-  if (SEL.editRepId) {
-    var idx = DB.reps.findIndex(function(x) { return x.id === SEL.editRepId; });
-    if (idx >= 0) {
-      rep.id = SEL.editRepId;
-      rep.fecha = DB.reps[idx].fecha;
-      rep.estado = DB.reps[idx].estado;
-      rep.fechaEntregaReal = DB.reps[idx].fechaEntregaReal;
-      rep.pagoFinal = DB.reps[idx].pagoFinal;
-      DB.reps[idx] = rep;
-    }
-    SEL.editRepId = null;
-    document.querySelector('#mRep .modal-title').textContent = '\ud83d\udd27 Nueva Reparacion';
-  } else {
-    DB.reps.push(rep);
-  }
+  DB.reps.push(rep);
   guardarDatos();
 
   if (SB_KEY && TIENDA_ID) {
@@ -1832,9 +1796,6 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-ent').forEach(function(btn) {
     btn.addEventListener('click', function() { abrirEntregar(this.dataset.rid); });
-  });
-  el.querySelectorAll('.btn-edit-r').forEach(function(btn) {
-    btn.addEventListener('click', function() { editarRep(this.dataset.rid); });
   });
 }
 
@@ -1906,10 +1867,7 @@ function confirmarEntrega() {
 function renderStock() {
   var q = (document.getElementById('busStock').value || '').toLowerCase();
   var list = DB.stock.filter(function(s) {
-    if (s.unidades <= 0) return false;
-    if (stockCat === 'bajo') return s.unidades <= (s.stockMin || 2);
-    if (stockCat && s.categoria !== stockCat) return false;
-    return !q || (s.marca + ' ' + s.modelo + ' ' + (s.imei || '') + ' ' + (s.categoria || '')).toLowerCase().includes(q);
+    return s.unidades > 0 && (!q || (s.marca + ' ' + s.modelo + ' ' + (s.imei || '') + ' ' + (s.categoria || '')).toLowerCase().includes(q));
   });
   var alertas = DB.stock.filter(function(s) { return s.unidades > 0 && s.unidades <= s.stockMin; });
 
@@ -2168,14 +2126,14 @@ function guardarGasto() {
 
 // ═══ REPORTES ═══
 function setRepTab(el) {
-  document.querySelectorAll('#repTabsTime .tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('#pReportes .tabs:first-of-type .tab').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
   SEL.repTab = el.dataset.t;
   renderReporte();
 }
 
 function setRepTipo(el) {
-  document.querySelectorAll('#repTabsTipo .tab').forEach(function(t) { t.classList.remove('active'); });
+  document.querySelectorAll('#pReportes .tabs:last-of-type .tab').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
   SEL.repTipo = el.dataset.ti;
   renderReporte();
@@ -2568,80 +2526,6 @@ async function eliminarUsuario(id) {
 }
 
 // ═══ PERMISOS ═══
-
-
-var stockCat = '';
-function setStockCat(el) {
-  document.querySelectorAll('#stockTabs .tab').forEach(function(t) { t.classList.remove('active'); });
-  el.classList.add('active');
-  stockCat = el.dataset.sc;
-  renderStock();
-}
-
-function renderDashWidgets() {
-  var activas = DB.reps.filter(function(r) {
-    return r.estado !== 'Entregado' && r.estado !== 'Rechazado' && r.estado !== 'Devuelto' && r.estado !== 'Sin Solucion';
-  });
-  var porEntregar = DB.reps.filter(function(r) { return r.estado === 'Por Entregar'; });
-  var elA = document.getElementById('repsActivasBox');
-  if (elA) {
-    if (!activas.length) { elA.innerHTML = '<div class="empty" style="padding:10px">Sin reparaciones activas</div>'; }
-    else {
-      var colors = {Pendiente:'var(--orange)','En Proceso':'var(--blue)','Por Entregar':'var(--green)',Garantia:'var(--purple)'};
-      elA.innerHTML = activas.slice(0,5).map(function(r) {
-        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--light)">'
-          + '<div><div style="font-size:13px;font-weight:600">' + r.clienteNombre + '</div>'
-          + '<div style="font-size:11px;color:var(--muted)">' + r.marca + ' ' + r.modelo + ' - ' + r.averia + '</div></div>'
-          + '<span style="font-size:10px;font-weight:700;color:' + (colors[r.estado]||'var(--muted)') + ';white-space:nowrap;margin-left:8px">' + r.estado + '</span></div>';
-      }).join('') + (activas.length > 5 ? '<div style="font-size:11px;color:var(--muted);padding:6px 0">+' + (activas.length-5) + ' mas...</div>' : '');
-    }
-  }
-  var elP = document.getElementById('repsPorEntregarBox');
-  if (elP) {
-    if (!porEntregar.length) { elP.innerHTML = '<div class="empty" style="padding:10px">Sin reparaciones por entregar</div>'; }
-    else {
-      elP.innerHTML = porEntregar.map(function(r) {
-        return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--light)">'
-          + '<div><div style="font-size:13px;font-weight:600">' + r.clienteNombre + '</div>'
-          + '<div style="font-size:11px;color:var(--muted)">' + r.marca + ' ' + r.modelo + '</div></div>'
-          + '<span style="font-size:13px;font-weight:800;color:var(--green)">' + cur(r.restante) + '</span></div>';
-      }).join('');
-    }
-  }
-}
-
-function setRepFiltroById(f) {
-  SEL.repFiltro = f;
-  document.querySelectorAll('#repTabs .tab').forEach(function(t) {
-    t.classList.toggle('active', t.dataset.f === f);
-  });
-  renderReps();
-}
-
-function editarRep(id) {
-  var r = DB.reps.find(function(x) { return x.id === id; });
-  if (!r) return;
-  SEL.rCli = DB.clis.find(function(cc) { return cc.id === r.clienteId; }) || null;
-  if (SEL.rCli) {
-    document.getElementById('rSelCliNom').textContent = (SEL.rCli.nombre + ' ' + (SEL.rCli.apellidos||'')).trim();
-    document.getElementById('rSelCliBox').classList.add('show');
-  }
-  document.getElementById('rBusCli').value = '';
-  document.getElementById('rMarca').value = r.marca || '';
-  document.getElementById('rModelo').value = r.modelo || '';
-  document.getElementById('rImei').value = r.imei || '';
-  document.getElementById('rAveria').value = r.averia || '';
-  document.getElementById('rMo').value = r.mo || 0;
-  document.getElementById('rAnticipo').value = r.anticipo || 0;
-  document.getElementById('rNota').value = r.nota || '';
-  document.getElementById('rFechaEnt').value = r.fechaEntrega || '';
-  document.getElementById('rPrioridad').value = r.prioridad || 'Normal';
-  SEL.selParts = [];
-  SEL.editRepId = id;
-  document.querySelector('#mRep .modal-title').textContent = '✏️ Editar Reparacion';
-  calcR();
-  openM('mRep');
-}
 
 // ═══ APLICAR PERMISOS ═══
 function tienePerm(perm) {
