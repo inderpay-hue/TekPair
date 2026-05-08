@@ -1986,6 +1986,16 @@ function cambiarEstado(id, estado) {
   renderDash();
   checkUrgentes();
   renderReps();
+
+  // whatsapp_flow_v2: avisar cliente cuando pasa a Por Entregar
+  if (estado === 'Por Entregar') {
+    var cli = DB.clis.find(function(c){ return c.id === r.clienteId; });
+    var tel = (cli && cli.tel) ? cli.tel.replace(/[^0-9]/g, '') : '';
+    if (tel && confirm('Avisar al cliente por WhatsApp?')) {
+      var msg = 'Hola ' + r.clienteNombre + '! Tu ' + r.marca + ' ' + r.modelo + ' ya esta listo. Puedes pasarte a recogerlo cuando quieras. Gracias!';
+      window.open('https://wa.me/34' + tel + '?text=' + encodeURIComponent(msg));
+    }
+  }
 }
 
 function abrirEntregar(id) {
@@ -2012,12 +2022,29 @@ function confirmarEntrega() {
   toast('Reparacion entregada', 'ok');
   renderReps();
   renderDash();
-  // WhatsApp option
+  // whatsapp_flow_v2: enviar parte de reparacion al entregar
   var tel = '';
   var cli = DB.clis.find(function(c) { return c.id === r.clienteId; });
   if (cli && cli.tel) tel = cli.tel.replace(/[^0-9]/g, '');
-  if (tel && confirm('Avisar al cliente por WhatsApp?')) {
-    var msg = 'Hola ' + r.clienteNombre + '! Tu ' + r.marca + ' ' + r.modelo + ' esta listo. Puedes pasarte a recogerlo.';
+  if (tel && confirm('Enviar comprobante de reparacion por WhatsApp?')) {
+    var tienda = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.nombre) ? TIENDA.nombre : 'Tekpair';
+    // TODO: cuando exista el QR de seguimiento, anadir link al parte web aqui
+    // var linkParte = 'https://tekpair.tech/parte.html?id=' + r.id;
+    var lineas = [
+      '*' + tienda + ' - Comprobante de reparacion*',
+      '',
+      'Cliente: ' + r.clienteNombre,
+      'Equipo: ' + r.marca + ' ' + r.modelo,
+      (r.imei ? 'IMEI/SN: ' + r.imei : ''),
+      'Averia: ' + r.averia,
+      '',
+      'Fecha entrega: ' + r.fechaEntregaReal,
+      'Forma de pago: ' + (r.pagoFinal || '-'),
+      'Total: ' + cur(r.total),
+      '',
+      'Gracias por confiar en nosotros!'
+    ].filter(function(l){ return l !== ''; });
+    var msg = lineas.join('\n');
     window.open('https://wa.me/34' + tel + '?text=' + encodeURIComponent(msg));
   }
 }
