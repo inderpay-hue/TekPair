@@ -183,6 +183,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .stock-tab-btn{flex:0 0 auto;background:#fff;color:#1e3a8a;border:1px solid #e5e7eb;border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
 .stock-tab-btn:hover{background:#f3f4f6}
 .stock-tab-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
+
+/* patron_v1: modal del patron de bloqueo */
+.patron-wrap{padding:14px;background:#0F172A;border-radius:12px;margin:10px 0;display:flex;flex-direction:column;align-items:center;gap:10px}
+.patron-size-row{display:flex;gap:6px;margin-bottom:4px}
+.patron-size-btn{padding:5px 12px;border-radius:6px;border:1px solid #334155;background:#1E293B;color:#94A3B8;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit}
+.patron-size-btn.on{background:var(--blue);color:white;border-color:var(--blue)}
+.patron-svg{background:#1E293B;border-radius:10px;touch-action:none;cursor:crosshair;user-select:none}
+.patron-info{font-size:11px;color:#94A3B8;text-align:center}
+.patron-info strong{color:#fff}
+.patron-acts{display:flex;gap:6px;width:100%}
+.patron-acts button{flex:1;padding:10px;border-radius:8px;border:none;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px}
+.patron-btn-clear{background:#334155;color:#fff}
+.patron-btn-save{background:var(--green);color:#fff}
+.patron-mini{display:inline-block;vertical-align:middle;margin-left:4px;background:#1E293B;border-radius:4px;padding:2px}
 </style>
   <script src="/assets/qrcode.min.js"></script>
 </head>
@@ -634,6 +648,24 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- ═══ MODALS ═══ -->
 
 <!-- NUEVA VENTA -->
+<div class="modal-bg" id="mPatron">
+<div class="modal" style="max-width:360px">
+  <div class="modal-title">🔒 Patrón de bloqueo</div>
+  <div class="patron-wrap">
+    <div class="patron-size-row">
+      <button class="patron-size-btn on" data-sz="3" onclick="patronCambiarSize(3)">3 × 3</button>
+      <button class="patron-size-btn" data-sz="4" onclick="patronCambiarSize(4)">4 × 4</button>
+    </div>
+    <svg id="patronSvg" class="patron-svg" width="280" height="280" viewBox="0 0 280 280"></svg>
+    <div class="patron-info">Secuencia: <strong id="patronSeq">(vacío)</strong></div>
+    <div class="patron-acts">
+      <button class="patron-btn-clear" onclick="patronLimpiar()">Borrar</button>
+      <button class="patron-btn-save" onclick="patronGuardar()">Guardar</button>
+    </div>
+  </div>
+  <button onclick="closeM('mPatron')" style="width:100%;background:none;border:1px solid var(--border);padding:10px;border-radius:8px;color:var(--muted);cursor:pointer;font-family:inherit;margin-top:8px">Cancelar</button>
+</div>
+</div>
 <div class="modal-bg" id="mTracking">
 <div class="modal" style="max-width:380px">
   <div class="modal-title">📱 Seguimiento del cliente</div>
@@ -2011,6 +2043,210 @@ function limpiarSelStock() {
 
 // ═══ REPARACIONES ═══
 
+
+// patron_v1: modal del patron de bloqueo (canvas-like SVG)
+var PATRON = { size: 3, path: [], drawing: false };
+
+function patronCambiarSize(s) {
+  PATRON.size = s;
+  PATRON.path = [];
+  document.querySelectorAll('.patron-size-btn').forEach(function(b){
+    b.classList.toggle('on', parseInt(b.dataset.sz) === s);
+  });
+  patronRender();
+  patronUpdSeq();
+}
+
+function patronCoords(idx) {
+  // idx 1-based, devuelve {x,y} en el SVG 280x280
+  var s = PATRON.size;
+  var n = idx - 1;
+  var col = n % s;
+  var row = Math.floor(n / s);
+  var pad = s === 3 ? 50 : 38;
+  var step = s === 3 ? 90 : 68;
+  return { x: pad + col * step, y: pad + row * step };
+}
+
+function patronPuntoEnPos(x, y) {
+  // Devuelve indice 1-based si el (x,y) esta cerca de un punto
+  var s = PATRON.size;
+  var thresh = s === 3 ? 32 : 24;
+  for (var i = 1; i <= s * s; i++) {
+    var p = patronCoords(i);
+    var dx = x - p.x, dy = y - p.y;
+    if (Math.sqrt(dx*dx + dy*dy) < thresh) return i;
+  }
+  return 0;
+}
+
+function patronRender() {
+  var svg = document.getElementById('patronSvg');
+  if (!svg) return;
+  var s = PATRON.size;
+  var html = '';
+  // Lineas entre puntos del path
+  for (var i = 0; i < PATRON.path.length - 1; i++) {
+    var a = patronCoords(PATRON.path[i]);
+    var b = patronCoords(PATRON.path[i+1]);
+    html += '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="#3B82F6" stroke-width="3" stroke-linecap="round"/>';
+  }
+  // Linea actual de drag
+  if (PATRON.drawing && PATRON.path.length > 0 && PATRON.dragX != null) {
+    var last = patronCoords(PATRON.path[PATRON.path.length-1]);
+    html += '<line x1="' + last.x + '" y1="' + last.y + '" x2="' + PATRON.dragX + '" y2="' + PATRON.dragY + '" stroke="#3B82F6" stroke-width="2" stroke-linecap="round" opacity="0.5"/>';
+  }
+  // Puntos
+  for (var j = 1; j <= s * s; j++) {
+    var p = patronCoords(j);
+    var idxInPath = PATRON.path.indexOf(j);
+    var fill = idxInPath !== -1 ? '#3B82F6' : '#475569';
+    var rOuter = s === 3 ? 18 : 14;
+    var rInner = s === 3 ? 7 : 5;
+    html += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + rOuter + '" fill="none" stroke="' + fill + '" stroke-width="2" opacity="0.5"/>';
+    html += '<circle cx="' + p.x + '" cy="' + p.y + '" r="' + rInner + '" fill="' + fill + '"/>';
+    if (idxInPath !== -1) {
+      html += '<text x="' + p.x + '" y="' + (p.y - rOuter - 4) + '" text-anchor="middle" fill="#94A3B8" font-size="10" font-family="monospace">' + (idxInPath + 1) + '</text>';
+    }
+  }
+  svg.innerHTML = html;
+}
+
+function patronUpdSeq() {
+  var el = document.getElementById('patronSeq');
+  if (el) el.textContent = PATRON.path.length ? PATRON.path.join(' → ') : '(vacio)';
+}
+
+function patronEvento(e) {
+  var svg = document.getElementById('patronSvg');
+  if (!svg) return null;
+  var rect = svg.getBoundingClientRect();
+  var clientX = e.touches ? e.touches[0].clientX : e.clientX;
+  var clientY = e.touches ? e.touches[0].clientY : e.clientY;
+  var x = (clientX - rect.left) * (280 / rect.width);
+  var y = (clientY - rect.top) * (280 / rect.height);
+  return { x: x, y: y };
+}
+
+function patronStart(e) {
+  e.preventDefault();
+  var pos = patronEvento(e);
+  if (!pos) return;
+  PATRON.path = [];
+  PATRON.drawing = true;
+  var idx = patronPuntoEnPos(pos.x, pos.y);
+  if (idx) PATRON.path.push(idx);
+  PATRON.dragX = pos.x; PATRON.dragY = pos.y;
+  patronRender();
+  patronUpdSeq();
+}
+
+function patronMove(e) {
+  if (!PATRON.drawing) return;
+  e.preventDefault();
+  var pos = patronEvento(e);
+  if (!pos) return;
+  var idx = patronPuntoEnPos(pos.x, pos.y);
+  if (idx && PATRON.path.indexOf(idx) === -1) {
+    PATRON.path.push(idx);
+  }
+  PATRON.dragX = pos.x; PATRON.dragY = pos.y;
+  patronRender();
+  patronUpdSeq();
+}
+
+function patronEnd(e) {
+  if (!PATRON.drawing) return;
+  PATRON.drawing = false;
+  PATRON.dragX = null; PATRON.dragY = null;
+  patronRender();
+}
+
+function patronLimpiar() {
+  PATRON.path = [];
+  patronRender();
+  patronUpdSeq();
+}
+
+function patronGuardar() {
+  if (PATRON.path.length < 2) {
+    toast('Dibuja al menos 2 puntos', 'err');
+    return;
+  }
+  var json = JSON.stringify({ size: PATRON.size, path: PATRON.path.slice() });
+  var bv = document.getElementById('rBloqVal');
+  if (bv) bv.value = json;
+  closeM('mPatron');
+  toast('Patron guardado', 'ok');
+}
+
+function patronAbrir() {
+  // Si ya hay un patron guardado en rBloqVal, parsearlo
+  var bv = document.getElementById('rBloqVal');
+  PATRON.path = [];
+  PATRON.size = 3;
+  if (bv && bv.value) {
+    try {
+      var p = JSON.parse(bv.value);
+      if (p && Array.isArray(p.path)) {
+        PATRON.size = p.size || 3;
+        PATRON.path = p.path.slice();
+      }
+    } catch(e) {}
+  }
+  document.querySelectorAll('.patron-size-btn').forEach(function(b){
+    b.classList.toggle('on', parseInt(b.dataset.sz) === PATRON.size);
+  });
+  openM('mPatron');
+  setTimeout(function(){
+    patronRender();
+    patronUpdSeq();
+    var svg = document.getElementById('patronSvg');
+    if (svg && !svg._patronBound) {
+      svg._patronBound = true;
+      svg.addEventListener('mousedown', patronStart);
+      svg.addEventListener('mousemove', patronMove);
+      svg.addEventListener('mouseup', patronEnd);
+      svg.addEventListener('mouseleave', patronEnd);
+      svg.addEventListener('touchstart', patronStart, {passive:false});
+      svg.addEventListener('touchmove', patronMove, {passive:false});
+      svg.addEventListener('touchend', patronEnd);
+    }
+  }, 100);
+}
+
+// Mini SVG del patron para mostrar en la tabla (~28x28px)
+function patronMiniSvg(json) {
+  if (!json) return '';
+  var p;
+  try { p = JSON.parse(json); } catch(e) { return ''; }
+  if (!p || !Array.isArray(p.path) || p.path.length < 2) return '';
+  var s = p.size || 3;
+  var size = 32;
+  var pad = 4;
+  var step = (size - 2*pad) / (s - 1);
+  function pos(idx) {
+    var n = idx - 1;
+    var col = n % s, row = Math.floor(n / s);
+    return { x: pad + col*step, y: pad + row*step };
+  }
+  var svg = '<svg class="patron-mini" width="' + size + '" height="' + size + '" viewBox="0 0 ' + size + ' ' + size + '">';
+  // Lineas
+  for (var i = 0; i < p.path.length - 1; i++) {
+    var a = pos(p.path[i]), b = pos(p.path[i+1]);
+    svg += '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="#3B82F6" stroke-width="1.5"/>';
+  }
+  // Puntos
+  for (var j = 1; j <= s*s; j++) {
+    var c = pos(j);
+    var on = p.path.indexOf(j) !== -1;
+    svg += '<circle cx="' + c.x + '" cy="' + c.y + '" r="1.6" fill="' + (on ? '#3B82F6' : '#64748B') + '"/>';
+  }
+  svg += '</svg>';
+  return svg;
+}
+
+
 // passcode_v1: gestion del campo de bloqueo segun tipo
 function cambiarTipoBloq() {
   var tipo = document.getElementById('rTipoBloq').value;
@@ -2022,6 +2258,7 @@ function cambiarTipoBloq() {
     input.value = '';
     input.placeholder = 'No aplica';
     lbl.textContent = 'Código';
+    input.readOnly = false; input.style.cursor = ''; input.onclick = null;
     return;
   }
   input.disabled = false;
@@ -2030,21 +2267,27 @@ function cambiarTipoBloq() {
     input.placeholder = '4-6 dígitos';
     input.type = 'text';
     input.inputMode = 'numeric';
+    input.readOnly = false; input.style.cursor = ''; input.onclick = null;
   } else if (tipo === 'Patron') {
-    lbl.textContent = 'Descripción del patrón';
-    input.placeholder = 'Ej: L invertida, Z, etc.';
+    lbl.textContent = 'Patrón (toca para dibujar)';
+    input.placeholder = 'Pulsa el boton para dibujar';
     input.type = 'text';
-    input.inputMode = 'text';
+    input.readOnly = true;
+    input.style.cursor = 'pointer';
+    input.onclick = patronAbrir;
+    return;
   } else if (tipo === 'Contrasena') {
     lbl.textContent = 'Contraseña';
     input.placeholder = 'Texto / alfanumérico';
     input.type = 'text';
     input.inputMode = 'text';
+    input.readOnly = false; input.style.cursor = ''; input.onclick = null;
   } else if (tipo === 'Huella') {
     lbl.textContent = 'Código de respaldo';
     input.placeholder = 'PIN/contraseña alternativa';
     input.type = 'text';
     input.inputMode = 'text';
+    input.readOnly = false; input.style.cursor = ''; input.onclick = null;
   }
 }
 
@@ -2566,7 +2809,7 @@ function renderReps() {
     html += '<tr>'
       + '<td><strong>' + r.clienteNombre + '</strong>' + esGarBadge + '</td>'
       + '<td>' + r.marca + ' ' + r.modelo + (r.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">' + r.imei + '</span>' : '') + '</td>'
-      + '<td style="font-size:11px;color:var(--red)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-block;background:rgba(124,58,237,.1);color:var(--purple);font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.bloqueo ? ': ' + r.bloqueo : '') + '</span>' : '') + '</td>'
+      + '<td style="font-size:11px;color:var(--red)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(124,58,237,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + r.bloqueo : '')) + '</span>' : '') + '</td>'
       + '<td><select data-rid="' + r.id + '" class="sel-estado" style="border:1px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:6px">'
         + ['Pendiente','En Proceso','Por Entregar','Entregado','Garantia','Sin Solucion','Devuelto','Rechazado'].map(function(s) {
           return '<option' + (s === r.estado ? ' selected' : '') + '>' + s + '</option>';
