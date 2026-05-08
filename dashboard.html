@@ -178,6 +178,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 /* ═══ REEMBOLSO BADGE ═══ */
 .badge-reem{display:inline-block;background:rgba(239,68,68,.1);color:var(--red);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px}
 .badge-fin{display:inline-block;background:rgba(124,58,237,.1);color:var(--purple);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px}
+
+/* Stock tabs */
+.stock-tab-btn{flex:0 0 auto;background:#fff;color:#1e3a8a;border:1px solid #e5e7eb;border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
+.stock-tab-btn:hover{background:#f3f4f6}
+.stock-tab-btn.active{background:#2563eb;color:#fff;border-color:#2563eb}
 </style>
 </head>
 <body>
@@ -334,6 +339,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
     <input class="search-input" id="busStock" placeholder="Buscar marca, modelo, IMEI..." oninput="renderStock()">
+  </div>
+  <div id="stockTabs" style="display:flex;gap:6px;overflow-x:auto;padding:8px 2px 10px;margin-bottom:6px;-webkit-overflow-scrolling:touch">
+    <button class="stock-tab-btn active" data-cat="">Todos</button>
+    <button class="stock-tab-btn" data-cat="Telefono">Telefonos</button>
+    <button class="stock-tab-btn" data-cat="Tablet">Tablets</button>
+    <button class="stock-tab-btn" data-cat="Smartwatch">Smartwatch</button>
+    <button class="stock-tab-btn" data-cat="Pantalla">Pantallas</button>
+    <button class="stock-tab-btn" data-cat="Tapa">Tapas</button>
+    <button class="stock-tab-btn" data-cat="Bateria">Baterias</button>
+    <button class="stock-tab-btn" data-cat="Flex de Carga">Flex Carga</button>
+    <button class="stock-tab-btn" data-cat="Altavoz">Altavoz</button>
+    <button class="stock-tab-btn" data-cat="Repuesto">Repuestos</button>
+    <button class="stock-tab-btn" data-cat="__low__">⚠️ Stock bajo</button>
   </div>
   <div id="alertasStock"></div>
   <div id="listaStock"></div>
@@ -738,7 +756,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="modal-title" id="mStockTit">📦 Añadir Stock</div>
   <div class="fg"><label class="fl">Categoria</label>
     <select class="fi" id="sCat">
-      <option>Telefono</option><option>Tablet</option><option>Smartwatch</option><option>Accesorio</option><option>Repuesto</option><option>Otro</option>
+      <option>Telefono</option><option>Tablet</option><option>Smartwatch</option><option>Pantalla</option><option>Tapa</option><option>Bateria</option><option>Flex de Carga</option><option>Altavoz</option><option>Repuesto</option><option>Otro</option>
     </select>
   </div>
   <div class="fi-row">
@@ -1866,8 +1884,14 @@ function confirmarEntrega() {
 // ═══ STOCK ═══
 function renderStock() {
   var q = (document.getElementById('busStock').value || '').toLowerCase();
+  var activeTab = document.querySelector('.stock-tab-btn.active');
+  var cat = activeTab ? activeTab.getAttribute('data-cat') : '';
   var list = DB.stock.filter(function(s) {
-    return s.unidades > 0 && (!q || (s.marca + ' ' + s.modelo + ' ' + (s.imei || '') + ' ' + (s.categoria || '')).toLowerCase().includes(q));
+    if (s.unidades <= 0) return false;
+    if (cat === '__low__') { if (s.unidades > s.stockMin) return false; }
+    else if (cat && (s.categoria || '') !== cat) return false;
+    if (q && !(s.marca + ' ' + s.modelo + ' ' + (s.imei || '') + ' ' + (s.categoria || '')).toLowerCase().includes(q)) return false;
+    return true;
   });
   var alertas = DB.stock.filter(function(s) { return s.unidades > 0 && s.unidades <= s.stockMin; });
 
@@ -2838,6 +2862,15 @@ function enviarAyuda() {
   toast('Abriendo WhatsApp...', 'ok');
 }
 
+
+// Stock tabs listener
+document.addEventListener('click', function(e){
+  var b = e.target.closest('.stock-tab-btn');
+  if (!b) return;
+  document.querySelectorAll('.stock-tab-btn').forEach(function(x){ x.classList.remove('active'); });
+  b.classList.add('active');
+  if (typeof renderStock === 'function') renderStock();
+});
 </script>
 </body>
 </html>
