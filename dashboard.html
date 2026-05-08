@@ -1877,9 +1877,10 @@ function trackingWA() {
 }
 
 function trackingTicket() {
+  // ticket_legal_v1: ticket 80mm con logo, garantias resumidas y link a condiciones
   var r = TRACKING.rep, url = TRACKING.url;
   if (!r) return;
-  var tienda = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.nombre) ? TIENDA : { nombre: 'Tekpair' };
+  var tienda = (typeof TIENDA !== 'undefined' && TIENDA) ? TIENDA : { nombre: 'Tekpair' };
   var qrSvg = '';
   try {
     var qr = qrcode(0, 'M');
@@ -1888,44 +1889,89 @@ function trackingTicket() {
     qrSvg = qr.createImgTag(6, 8);
   } catch(e) {}
 
-  var w = window.open('', '_blank', 'width=400,height=700');
+  var w = window.open('', '_blank', 'width=400,height=820');
   if (!w) { toast('Permite popups para imprimir', 'err'); return; }
+
+  var logoBlock = tienda.logo_url
+    ? '<div class="logo-img"><img src="' + esc(tienda.logo_url) + '" alt=""></div>'
+    : '';
+
+  var ubic = [tienda.ciudad, tienda.pais].filter(Boolean).join(', ');
+  var origin = location.origin;
+
   w.document.write(
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ticket reparacion</title><style>' +
     '@page { size: 80mm auto; margin: 0; }' +
-    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:80mm;margin:0;padding:6mm 4mm;color:#000;font-size:11px;line-height:1.35}' +
+    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:80mm;margin:0;padding:5mm 4mm;color:#000;font-size:10.5px;line-height:1.35}' +
     '.c{text-align:center}' +
-    '.h1{font-size:15px;font-weight:800;margin:0}' +
-    '.h2{font-size:11px;color:#555;margin:2px 0 8px}' +
-    '.line{border-top:1px dashed #000;margin:8px 0}' +
-    '.row{display:flex;justify-content:space-between;margin:2px 0}' +
-    '.lbl{color:#555}.val{font-weight:600;text-align:right}' +
-    '.qr{text-align:center;margin:10px 0 4px}' +
+    '.logo-img{text-align:center;margin-bottom:4px}' +
+    '.logo-img img{max-width:50mm;max-height:18mm;object-fit:contain}' +
+    '.h1{font-size:15px;font-weight:800;margin:0;letter-spacing:.3px}' +
+    '.h2{font-size:10px;color:#444;margin:1px 0}' +
+    '.line{border-top:1px dashed #000;margin:7px 0}' +
+    '.line-solid{border-top:1px solid #000;margin:7px 0}' +
+    '.row{display:flex;justify-content:space-between;margin:1.5px 0;gap:6px}' +
+    '.lbl{color:#555;flex-shrink:0}' +
+    '.val{font-weight:600;text-align:right;word-break:break-word}' +
+    '.qr{text-align:center;margin:8px 0 4px}' +
     '.qr img{width:55mm;height:55mm}' +
-    '.foot{font-size:9px;color:#555;text-align:center;margin-top:6px;line-height:1.3}' +
-    '.title-rep{font-size:13px;font-weight:700;margin:6px 0 4px}' +
-    '.box{border:1px solid #000;padding:6px;border-radius:3px;margin:6px 0;font-size:10px}' +
+    '.foot{font-size:8.5px;color:#444;text-align:center;margin-top:6px;line-height:1.3}' +
+    '.title-rep{font-size:13px;font-weight:800;margin:5px 0 5px;letter-spacing:.5px}' +
+    '.box{border:1px solid #000;padding:5px 6px;border-radius:3px;margin:5px 0;font-size:10px;line-height:1.3}' +
+    '.terms{margin-top:6px;font-size:8px;line-height:1.35;color:#222}' +
+    '.terms .t-title{font-weight:800;font-size:9px;margin:4px 0 2px;text-align:center;letter-spacing:.5px}' +
+    '.terms .t-row{margin:1.5px 0}' +
+    '.terms .t-row strong{font-weight:700}' +
+    '.link-cond{text-align:center;font-size:8.5px;font-weight:700;margin-top:4px;padding:3px;border:1px dashed #000}' +
+    '.aviso{text-align:center;font-size:8px;font-style:italic;margin-top:4px;color:#444}' +
     '</style></head><body>' +
+
+    logoBlock +
     '<div class="c"><div class="h1">' + esc(tienda.nombre || 'Tekpair') + '</div>' +
-    (tienda.telefono ? '<div class="h2">Tel: ' + esc(tienda.telefono) + '</div>' : '<div class="h2">&nbsp;</div>') +
+    (ubic ? '<div class="h2">' + esc(ubic) + '</div>' : '') +
+    (tienda.telefono ? '<div class="h2">Tel: ' + esc(tienda.telefono) + '</div>' : '') +
     '</div>' +
+
     '<div class="line"></div>' +
-    '<div class="title-rep c">RESGUARDO REPARACION</div>' +
-    '<div class="row"><span class="lbl">Nº</span><span class="val">' + esc(r.id) + '</span></div>' +
+    '<div class="title-rep c">RESGUARDO DE REPARACION</div>' +
+
+    '<div class="row"><span class="lbl">Nº</span><span class="val" style="font-family:monospace;font-size:9px">' + esc(r.id) + '</span></div>' +
     '<div class="row"><span class="lbl">Fecha</span><span class="val">' + esc(r.fecha) + '</span></div>' +
     '<div class="row"><span class="lbl">Cliente</span><span class="val">' + esc(r.clienteNombre) + '</span></div>' +
     '<div class="row"><span class="lbl">Equipo</span><span class="val">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</span></div>' +
-    (r.imei ? '<div class="row"><span class="lbl">IMEI/SN</span><span class="val" style="font-size:9px">' + esc(r.imei) + '</span></div>' : '') +
-    '<div class="box"><strong>Averia:</strong><br>' + esc(r.averia || '') + '</div>' +
-    (r.fechaEntrega ? '<div class="row"><span class="lbl">Estimada</span><span class="val">' + esc(r.fechaEntrega) + '</span></div>' : '') +
+    (r.imei ? '<div class="row"><span class="lbl">IMEI/SN</span><span class="val" style="font-family:monospace;font-size:9px">' + esc(r.imei) + '</span></div>' : '') +
+    '<div class="box"><strong>Averia / Servicio:</strong><br>' + esc(r.averia || '') + '</div>' +
+    (r.fechaEntrega ? '<div class="row"><span class="lbl">Fecha estimada</span><span class="val">' + esc(r.fechaEntrega) + '</span></div>' : '') +
     (r.anticipo ? '<div class="row"><span class="lbl">Anticipo</span><span class="val">' + cur(r.anticipo) + '</span></div>' : '') +
-    '<div class="row" style="font-size:13px;margin-top:5px"><span class="lbl"><strong>Total</strong></span><span class="val"><strong>' + cur(r.total || 0) + '</strong></span></div>' +
+    '<div class="row" style="font-size:13px;margin-top:5px;border-top:1px solid #000;padding-top:5px">' +
+      '<span class="lbl"><strong>TOTAL</strong></span><span class="val"><strong>' + cur(r.total || 0) + '</strong></span>' +
+    '</div>' +
+
     '<div class="line"></div>' +
-    '<div class="qr"><strong>Sigue tu reparacion:</strong>' + qrSvg + '</div>' +
-    '<div class="foot">Escanea el codigo QR con la camara de tu movil para consultar el estado en cualquier momento.<br>' +
-    'Conserve este resguardo. Necesario para la entrega.</div>' +
+
+    '<div class="qr"><strong style="font-size:10px">Sigue tu reparacion en linea:</strong>' + qrSvg +
+    '<div style="font-size:8.5px;color:#444;margin-top:2px">Escanea con la camara del movil</div></div>' +
+
     '<div class="line"></div>' +
-    '<div class="c" style="font-size:9px;color:#888;margin-top:6px">Powered by Tekpair</div>' +
+
+    '<div class="terms">' +
+      '<div class="t-title">CONDICIONES DE GARANTIA</div>' +
+      '<div class="t-row"><strong>1. Pantallas:</strong> Original 3 meses (no cubre golpes/humedad). Compatible: sin garantia.</div>' +
+      '<div class="t-row"><strong>2. Baterias:</strong> 3 meses. No cubre golpes, humedad, fallos de placa.</div>' +
+      '<div class="t-row"><strong>3. Microsoldadura / placa:</strong> sin garantia. Probar en tienda al recoger.</div>' +
+      '<div class="t-row"><strong>4. Humedad:</strong> sin garantia. La corrosion progresa.</div>' +
+      '<div class="t-row"><strong>5. Camara, conector, altavoz, tapa, botones:</strong> 1 mes (defecto de pieza).</div>' +
+      '<div class="t-row"><strong>6. General:</strong> garantia solo sobre pieza reparada. No reembolsos: se vuelve a reparar. Pasados 30 dias sin recoger se considera abandono. La empresa no se responsabiliza de los datos del dispositivo.</div>' +
+    '</div>' +
+
+    '<div class="link-cond">Condiciones completas: ' + esc(origin.replace(/^https?:\/\//, '')) + '/condiciones</div>' +
+    '<div class="aviso">Al dejar el dispositivo, el cliente acepta estas condiciones.</div>' +
+
+    '<div class="line"></div>' +
+
+    '<div class="c" style="font-size:9px">Conserve este resguardo. Necesario para la entrega.</div>' +
+    '<div class="c" style="font-size:8px;color:#888;margin-top:6px">Powered by Tekpair</div>' +
+
     '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
     '</body></html>'
   );
