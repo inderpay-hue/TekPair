@@ -285,6 +285,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="card">
     <div class="sec-header">
+      <div class="card-title" style="margin:0">🔧 Reparaciones pendientes <span id="repsPendientesCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+      <button class="btn-sm" style="background:var(--blue);color:white" onclick="navTo('pReps')">Ver todas</button>
+    </div>
+    <div id="repsPendientesBox"></div>
+  </div>
+  <div class="card">
+    <div class="sec-header">
+      <div class="card-title" style="margin:0">📦 Por entregar <span id="repsEntregarCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+      <button class="btn-sm" style="background:var(--green);color:white" onclick="navTo('pReps')">Ver todas</button>
+    </div>
+    <div id="repsEntregarBox"></div>
+  </div>
+  <div class="card">
+    <div class="sec-header">
       <div class="card-title" style="margin:0">Cierre del dia</div>
       <button class="btn-sm" style="background:var(--dark);color:white" onclick="cierreDia()">Generar</button>
     </div>
@@ -1222,6 +1236,51 @@ function renderDash() {
     '<div class="stat-card"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl">Ingresos ventas</div></div>' +
     '<div class="stat-card"><div class="stat-val" style="color:var(--orange)">' + repsActivas.length + '</div><div class="stat-lbl">En reparacion</div></div>' +
     '<div class="stat-card"><div class="stat-val" style="color:var(--purple)">' + cur(tVentas + tReps) + '</div><div class="stat-lbl">Total ingresos</div></div>';
+  if (typeof renderDashWidgets === 'function') renderDashWidgets();
+}
+
+function renderDashWidgets() {
+  var pend = DB.reps.filter(function(r){ return r.estado === 'Pendiente' || r.estado === 'En Proceso'; });
+  var ent = DB.reps.filter(function(r){ return r.estado === 'Por Entregar'; });
+
+  // Ordenar por prioridad (Alta primero) y luego por fecha de entrega
+  var prioVal = function(p){ return p === 'Alta' ? 0 : p === 'Normal' ? 1 : 2; };
+  pend.sort(function(a,b){
+    var pa = prioVal(a.prioridad), pb = prioVal(b.prioridad);
+    if (pa !== pb) return pa - pb;
+    return (a.fechaEntrega || '').localeCompare(b.fechaEntrega || '');
+  });
+  ent.sort(function(a,b){ return (a.fechaEntrega || '').localeCompare(b.fechaEntrega || ''); });
+
+  var renderList = function(list, emptyMsg, color){
+    if (!list.length) return '<div class="empty" style="padding:12px;font-size:12px">' + emptyMsg + '</div>';
+    return '<div style="display:flex;flex-direction:column;gap:6px">' + list.slice(0,8).map(function(r){
+      var cli = (DB.clis.find(function(c){ return c.id === r.cliId; }) || {}).nombre || 'Sin cliente';
+      var prioBadge = r.prioridad === 'Alta'
+        ? '<span style="background:rgba(239,68,68,.12);color:var(--red);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600">ALTA</span>'
+        : '';
+      var fecha = r.fechaEntrega ? '<span style="font-size:10px;color:var(--muted)">⏱ ' + r.fechaEntrega + '</span>' : '';
+      return '<div class="dash-rep-item" data-rid="' + r.id + '" style="background:var(--light);border-left:3px solid ' + color + ';padding:8px 10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px">' +
+        '<div style="flex:1;min-width:0;overflow:hidden">' +
+          '<div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (r.marca || '') + ' ' + (r.modelo || '') + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + cli + ' · ' + (r.averia || '') + '</div>' +
+        '</div>' +
+        '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">' + prioBadge + fecha + '</div>' +
+      '</div>';
+    }).join('') + (list.length > 8 ? '<div style="text-align:center;font-size:11px;color:var(--muted);padding:4px">+' + (list.length - 8) + ' mas</div>' : '') + '</div>';
+  };
+
+  document.getElementById('repsPendientesBox').innerHTML = renderList(pend, 'No hay reparaciones pendientes', '#F97316');
+  document.getElementById('repsEntregarBox').innerHTML = renderList(ent, 'Nada por entregar', '#00C896');
+  document.getElementById('repsPendientesCount').textContent = pend.length ? '(' + pend.length + ')' : '';
+  document.getElementById('repsEntregarCount').textContent = ent.length ? '(' + ent.length + ')' : '';
+
+  // Click sobre un item -> ir a reparaciones
+  document.querySelectorAll('.dash-rep-item').forEach(function(it){
+    it.addEventListener('click', function(){
+      navTo('pReps');
+    });
+  });
 }
 
 function setMetricTab(el) {
