@@ -368,7 +368,14 @@ function renderCalendario() {
     var dow = (fecha.getDay() + 6) % 7;
     // Verificar si la tienda abre ese día
     var horarios = (STATE.tienda.horarios) || (typeof STATE.tienda.horarios === 'string' ? JSON.parse(STATE.tienda.horarios) : null);
-    var abierto = !horarios || (horarios[dow] && horarios[dow].abierto);
+    if (typeof horarios === 'string') { try { horarios = JSON.parse(horarios); } catch(e){ horarios = null; } }
+    // Si no hay horarios configurados, asumir abierto Lun-Sáb
+    var abierto;
+    if (!Array.isArray(horarios) || horarios.length !== 7) {
+      abierto = dow !== 6; // domingo (índice 6) cerrado por defecto
+    } else {
+      abierto = horarios[dow] && horarios[dow].abierto;
+    }
     var pasado = fecha < hoy;
     var esHoy = fecha.getTime() === hoy.getTime();
     var sel = STATE.fecha === ymd ? 'selected' : '';
@@ -396,9 +403,21 @@ async function cargarSlots() {
     // Generar slots según horario
     var horarios = STATE.tienda.horarios;
     if (typeof horarios === 'string') horarios = JSON.parse(horarios);
+    // Si no hay horarios configurados, usar default razonable
+    if (!Array.isArray(horarios) || horarios.length !== 7) {
+      horarios = [
+        {abierto:true, inicio:'09:30', fin:'13:30'},
+        {abierto:true, inicio:'09:30', fin:'13:30'},
+        {abierto:true, inicio:'09:30', fin:'13:30'},
+        {abierto:true, inicio:'09:30', fin:'13:30'},
+        {abierto:true, inicio:'09:30', fin:'13:30'},
+        {abierto:true, inicio:'10:00', fin:'13:30'},
+        {abierto:false, inicio:'10:00', fin:'13:30'}
+      ];
+    }
     var p = STATE.fecha.split('-');
     var dow = (new Date(p[0], p[1]-1, p[2]).getDay() + 6) % 7;
-    var hor = horarios && horarios[dow];
+    var hor = horarios[dow];
     if (!hor || !hor.abierto || !hor.inicio || !hor.fin) {
       box.innerHTML = '<div class="empty">Cerrado este día</div>';
       return;
