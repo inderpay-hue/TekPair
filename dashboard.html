@@ -15,6 +15,7 @@
 <link rel="icon" type="image/svg+xml" href="/icon-192.svg">
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
 /* ═══ RESET & BASE ═══ */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -974,6 +975,40 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <li>En Chrome / Edge: icono de instalación en la barra de URL ⊕</li>
       <li>O menú ⋮ → "Instalar TekPair..."</li>
     </ol>
+  </div>
+
+  <div class="card">
+    <div class="card-title">💾 Backup y exportación</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Descarga una copia de seguridad completa de todos tus datos. Útil para migrar, archivar o restaurar.</div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
+      <button type="button" class="btn-primary" style="background:var(--green);padding:11px 12px;font-size:13px" onclick="exportarTodo()">📦 Exportar todo (ZIP)</button>
+      <button type="button" class="btn-secondary" style="padding:11px 12px;font-size:13px" onclick="document.getElementById('importInput').click()">📥 Importar / Restaurar</button>
+    </div>
+    <input type="file" id="importInput" accept=".zip,.json" style="display:none" onchange="importarBackup(event)">
+
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
+      <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:8px">Exportar a Excel/CSV</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+        <button type="button" class="btn-secondary" style="font-size:11px;padding:7px 6px" onclick="exportarCSV('clientes')">👥 Clientes</button>
+        <button type="button" class="btn-secondary" style="font-size:11px;padding:7px 6px" onclick="exportarCSV('reparaciones')">🔧 Reparaciones</button>
+        <button type="button" class="btn-secondary" style="font-size:11px;padding:7px 6px" onclick="exportarCSV('ventas')">💰 Ventas</button>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:14px">
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:6px">
+        <input type="checkbox" id="ajBackupAuto" onchange="toggleBackupAuto()"> Recordar backup cada
+        <select id="ajBackupCadaDias" onchange="guardarBackupAjustes()" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px">
+          <option value="7">7 días</option>
+          <option value="15">15 días</option>
+          <option value="30" selected>30 días</option>
+          <option value="60">60 días</option>
+          <option value="90">90 días</option>
+        </select>
+      </label>
+      <div id="ajUltimoBackup" style="font-size:11px;color:var(--muted);padding-left:24px"></div>
+    </div>
   </div>
 
   <div class="card">
@@ -7571,7 +7606,223 @@ document.addEventListener('click', function(e){
       setTimeout(function(){ if (typeof renderReps === 'function') renderReps(); }, 50);
     });
   });
-})();// ═══ PWA: Service Worker + Botón Instalar ═══
+})();// ═══ BACKUP / EXPORT / IMPORT ═══
+
+function downloadBlob(blob, filename) {
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.href = url; a.download = filename;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }, 100);
+}
+
+function fechaArchivo() {
+  var d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+async function exportarTodo() {
+  if (typeof JSZip === 'undefined') {
+    toast('Librería ZIP no cargada. Recarga la página.', 'err');
+    return;
+  }
+  toast('⏳ Generando backup...', 'ok');
+  try {
+    var zip = new JSZip();
+    // Datos completos
+    var backup = {
+      version: '1.0',
+      fecha: new Date().toISOString(),
+      tienda: TIENDA || {},
+      ajustes: AJUSTES || {},
+      usuario: U || {},
+      datos: {
+        clientes: DB.clis || [],
+        reparaciones: DB.reps || [],
+        ventas: DB.ventas || [],
+        stock: DB.stock || [],
+        servicios: DB.servicios || [],
+        proveedores: DB.proveedores || [],
+        usuarios: DB.usuarios || []
+      }
+    };
+    zip.file('backup.json', JSON.stringify(backup, null, 2));
+    zip.file('LEEME.txt',
+      'Backup TekPair generado el ' + new Date().toLocaleString('es') + '\n\n' +
+      'Este archivo contiene una copia de todos tus datos:\n' +
+      '- ' + (DB.clis||[]).length + ' clientes\n' +
+      '- ' + (DB.reps||[]).length + ' reparaciones\n' +
+      '- ' + (DB.ventas||[]).length + ' ventas\n' +
+      '- ' + (DB.stock||[]).length + ' productos en stock\n' +
+      '- ' + (DB.servicios||[]).length + ' servicios\n' +
+      '- ' + (DB.usuarios||[]).length + ' usuarios\n\n' +
+      'Para restaurar: en TekPair → Ajustes → Importar / Restaurar.\n' +
+      'Mantén este archivo a salvo. Contiene datos sensibles.\n'
+    );
+    // CSVs sueltos también dentro del ZIP
+    zip.file('clientes.csv', generarCSV('clientes'));
+    zip.file('reparaciones.csv', generarCSV('reparaciones'));
+    zip.file('ventas.csv', generarCSV('ventas'));
+    zip.file('stock.csv', generarCSV('stock'));
+
+    var blob = await zip.generateAsync({type:'blob', compression:'DEFLATE'});
+    var nombre = 'tekpair-backup-' + fechaArchivo() + '.zip';
+    downloadBlob(blob, nombre);
+    // Marcar fecha de último backup
+    localStorage.setItem('tk_ultimo_backup', new Date().toISOString());
+    actualizarUltimoBackupUI();
+    toast('✓ Backup descargado', 'ok');
+  } catch(e) {
+    console.error('Error backup:', e);
+    toast('Error al generar backup: ' + e.message, 'err');
+  }
+}
+
+function generarCSV(tipo) {
+  function esc(s) {
+    if (s == null) return '';
+    s = String(s).replace(/"/g, '""');
+    return '"' + s + '"';
+  }
+  if (tipo === 'clientes') {
+    var hdr = 'ID,Nombre,Apellidos,Telefono,Email,DNI,Direccion,Notas,FechaNac\n';
+    return hdr + (DB.clis||[]).map(function(c){
+      return [c.id, c.nombre, c.apellidos, c.tel, c.email, c.dni, c.direccion, c.notas, c.fechaNac].map(esc).join(',');
+    }).join('\n');
+  }
+  if (tipo === 'reparaciones') {
+    var hdr2 = 'ID,Fecha,Cliente,Marca,Modelo,IMEI,Averia,Estado,Total,Anticipo,Restante,FechaEntrega\n';
+    return hdr2 + (DB.reps||[]).map(function(r){
+      return [r.id, r.fecha, r.clienteNombre, r.marca, r.modelo, r.imei, r.averia, r.estado, r.total, r.anticipo, r.restante, r.fechaEntrega].map(esc).join(',');
+    }).join('\n');
+  }
+  if (tipo === 'ventas') {
+    var hdr3 = 'ID,Fecha,Cliente,Items,Total,Pago\n';
+    return hdr3 + (DB.ventas||[]).map(function(v){
+      var items = (v.items||[]).map(function(it){ return it.nombre + ' x' + it.cantidad; }).join(' | ');
+      return [v.id, v.fecha, v.clienteNombre || '', items, v.total, v.pago].map(esc).join(',');
+    }).join('\n');
+  }
+  if (tipo === 'stock') {
+    var hdr4 = 'ID,Categoria,Marca,Modelo,Capacidad,Color,IMEI,Unidades,PrecioCoste,PrecioVenta\n';
+    return hdr4 + (DB.stock||[]).map(function(s){
+      return [s.id, s.categoria, s.marca, s.modelo, s.capacidad, s.color, s.imei, s.unidades, s.precioC, s.precioV].map(esc).join(',');
+    }).join('\n');
+  }
+  return '';
+}
+
+function exportarCSV(tipo) {
+  var csv = generarCSV(tipo);
+  if (!csv) { toast('Tipo no válido', 'err'); return; }
+  // BOM para que Excel lo lea bien con tildes
+  var blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
+  downloadBlob(blob, 'tekpair-' + tipo + '-' + fechaArchivo() + '.csv');
+  toast('✓ ' + tipo + '.csv descargado', 'ok');
+}
+
+async function importarBackup(event) {
+  var file = event.target.files[0];
+  if (!file) return;
+  var nombre = file.name.toLowerCase();
+
+  if (!confirm('⚠️ IMPORTAR / RESTAURAR\n\nEsto SOBREESCRIBIRÁ todos tus datos actuales con los del archivo. Esta acción NO se puede deshacer.\n\n¿Quieres continuar?')) {
+    event.target.value = '';
+    return;
+  }
+
+  try {
+    var json;
+    if (nombre.endsWith('.zip')) {
+      if (typeof JSZip === 'undefined') { toast('Librería ZIP no cargada', 'err'); return; }
+      var zip = await JSZip.loadAsync(await file.arrayBuffer());
+      var jsonFile = zip.file('backup.json');
+      if (!jsonFile) { toast('El ZIP no contiene backup.json válido', 'err'); return; }
+      json = JSON.parse(await jsonFile.async('text'));
+    } else if (nombre.endsWith('.json')) {
+      json = JSON.parse(await file.text());
+    } else {
+      toast('Solo se aceptan .zip o .json', 'err'); return;
+    }
+
+    if (!json.datos) { toast('Archivo de backup no válido', 'err'); return; }
+
+    // Restaurar
+    if (json.datos.clientes) DB.clis = json.datos.clientes;
+    if (json.datos.reparaciones) DB.reps = json.datos.reparaciones;
+    if (json.datos.ventas) DB.ventas = json.datos.ventas;
+    if (json.datos.stock) DB.stock = json.datos.stock;
+    if (json.datos.servicios) DB.servicios = json.datos.servicios;
+    if (json.datos.proveedores) DB.proveedores = json.datos.proveedores;
+    if (json.datos.usuarios) DB.usuarios = json.datos.usuarios;
+    if (json.tienda) Object.assign(TIENDA, json.tienda);
+    if (json.ajustes) Object.assign(AJUSTES, json.ajustes);
+
+    guardarDatos();
+    if (typeof guardarTiendaLocal === 'function') guardarTiendaLocal();
+
+    toast('✓ Backup restaurado. Recarga la página.', 'ok');
+    setTimeout(function(){ location.reload(); }, 1200);
+  } catch(e) {
+    console.error('Error importar:', e);
+    toast('Error al importar: ' + e.message, 'err');
+  }
+  event.target.value = '';
+}
+
+// === BACKUP AUTOMÁTICO (recordatorio) ===
+function toggleBackupAuto() {
+  var on = document.getElementById('ajBackupAuto').checked;
+  AJUSTES.backupAuto = on;
+  guardarBackupAjustes();
+}
+function guardarBackupAjustes() {
+  AJUSTES.backupAuto = document.getElementById('ajBackupAuto').checked;
+  AJUSTES.backupCadaDias = parseInt(document.getElementById('ajBackupCadaDias').value) || 30;
+  localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
+  comprobarBackupVencido();
+}
+function actualizarUltimoBackupUI() {
+  var ult = localStorage.getItem('tk_ultimo_backup');
+  var el = document.getElementById('ajUltimoBackup');
+  if (!el) return;
+  if (!ult) {
+    el.textContent = 'Nunca has hecho un backup.';
+    el.style.color = 'var(--orange)';
+  } else {
+    var d = new Date(ult);
+    var dias = Math.floor((Date.now() - d.getTime()) / 86400000);
+    el.textContent = 'Último backup: ' + d.toLocaleDateString('es') + ' (hace ' + dias + ' día' + (dias===1?'':'s') + ')';
+    el.style.color = dias > 30 ? 'var(--orange)' : 'var(--muted)';
+  }
+}
+function comprobarBackupVencido() {
+  if (!AJUSTES.backupAuto) return;
+  var ult = localStorage.getItem('tk_ultimo_backup');
+  var dias = AJUSTES.backupCadaDias || 30;
+  if (!ult) {
+    setTimeout(function(){ toast('💾 Recuerda hacer un backup en Ajustes', 'ok'); }, 5000);
+    return;
+  }
+  var elapsed = Math.floor((Date.now() - new Date(ult).getTime()) / 86400000);
+  if (elapsed >= dias) {
+    setTimeout(function(){ toast('💾 Toca hacer backup (último: hace ' + elapsed + ' días)', 'ok'); }, 5000);
+  }
+}
+// Inicializar UI de backup
+setTimeout(function() {
+  var chk = document.getElementById('ajBackupAuto');
+  var sel = document.getElementById('ajBackupCadaDias');
+  if (chk) chk.checked = AJUSTES.backupAuto || false;
+  if (sel && AJUSTES.backupCadaDias) sel.value = AJUSTES.backupCadaDias;
+  actualizarUltimoBackupUI();
+  comprobarBackupVencido();
+}, 1500);
+
+// ═══ PWA: Service Worker + Botón Instalar ═══
 var DEFERRED_INSTALL_PROMPT = null;
 
 if ('serviceWorker' in navigator) {
