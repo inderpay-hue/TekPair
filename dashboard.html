@@ -4354,10 +4354,13 @@ function abrirNotif(href) {
 document.addEventListener('click', function(e) {
   var p = document.getElementById('notifPanel');
   var b = document.getElementById('notifBell');
-  if (!p || !b) return;
-  if (p.classList.contains('open') && !p.contains(e.target) && !b.contains(e.target)) {
-    p.classList.remove('open');
-  }
+  var bm = document.getElementById('topbarBell');
+  if (!p) return;
+  if (!p.classList.contains('open')) return;
+  if (p.contains(e.target)) return;
+  if (b && b.contains(e.target)) return;
+  if (bm && bm.contains(e.target)) return;
+  p.classList.remove('open');
 });
 
 // ═══ SERVICIOS ═══
