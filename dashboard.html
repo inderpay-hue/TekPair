@@ -1355,10 +1355,33 @@ function guardarDatos() {
 }
 
 // ═══ SUPABASE ═══
+var _sbErrLast = {};
+function _sbErrorToast(method, table, info) {
+  console.error('[Supabase ' + method + ' ' + table + ']', info);
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return; // offline, no spam
+  var key = method + ':' + table;
+  var now = Date.now();
+  if (_sbErrLast[key] && now - _sbErrLast[key] < 8000) return;
+  _sbErrLast[key] = now;
+  var msg = '';
+  if (info && info.message) msg = info.message;
+  else if (info && info.code) msg = 'cód ' + info.code;
+  else if (info && info.status) msg = 'HTTP ' + info.status;
+  if (typeof toast === 'function') toast('⚠ Sync ' + table + ': ' + String(msg).substring(0, 60), 'err');
+}
+
 function sbGet(table, query) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*', {
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
-  }).then(function(r) { return r.json(); }).catch(function() { return []; });
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.json().then(function(err){ _sbErrorToast('GET', table, err); return []; }, function(){ _sbErrorToast('GET', table, {status:r.status}); return []; });
+    }
+    return r.json();
+  }).catch(function(e) {
+    _sbErrorToast('GET', table, e);
+    return [];
+  });
 }
 
 function sbPost(table, data) {
@@ -1366,7 +1389,12 @@ function sbPost(table, data) {
     method: 'POST',
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
     body: JSON.stringify(data)
-  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.json().then(function(err){ _sbErrorToast('POST', table, err); return false; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return false; });
+    }
+    return true;
+  }).catch(function(e) { _sbErrorToast('POST', table, e); return false; });
 }
 
 function sbPatch(table, query, data) {
@@ -1374,14 +1402,24 @@ function sbPatch(table, query, data) {
     method: 'PATCH',
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json'},
     body: JSON.stringify(data)
-  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.json().then(function(err){ _sbErrorToast('PATCH', table, err); return false; }, function(){ _sbErrorToast('PATCH', table, {status:r.status}); return false; });
+    }
+    return true;
+  }).catch(function(e) { _sbErrorToast('PATCH', table, e); return false; });
 }
 
 function sbDelete(table, query) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
     method: 'DELETE',
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
-  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.json().then(function(err){ _sbErrorToast('DELETE', table, err); return false; }, function(){ _sbErrorToast('DELETE', table, {status:r.status}); return false; });
+    }
+    return true;
+  }).catch(function(e) { _sbErrorToast('DELETE', table, e); return false; });
 }
 
 function mapVenta(v) {
@@ -3123,6 +3161,7 @@ function abrirEntregar(id) {
 }
 
 function confirmarEntrega() {
+  if (!tienePerm('reps_editar')) { toast('Sin permiso', 'err'); return; }
   var r = DB.reps.find(function(x) { return x.id === SEL.eRepId; });
   if (!r) return;
   r.estado = 'Entregado';
@@ -3216,6 +3255,8 @@ function renderStock() {
 }
 
 function guardarStock() {
+  var perm = SEL.editStockId ? 'stock_editar' : 'stock_crear';
+  if (!tienePerm(perm)) { toast('Sin permiso', 'err'); return; }
   var marca = document.getElementById('sMarca').value.trim();
   var modelo = document.getElementById('sModelo').value.trim();
   if (!marca || !modelo) { toast('Marca y modelo obligatorios', 'err'); return; }
@@ -3329,6 +3370,8 @@ function limpiarFormCli() {
 }
 
 function guardarCli() {
+  var perm = ECID ? 'clis_editar' : 'clis_crear';
+  if (!tienePerm(perm)) { toast('Sin permiso', 'err'); return; }
   var nom = document.getElementById('cNom').value.trim();
   if (!nom) { toast('Escribe un nombre', 'err'); return; }
   var data = {
@@ -3424,6 +3467,7 @@ function renderGastos() {
 }
 
 function guardarGasto() {
+  if (!tienePerm('gastos_crear')) { toast('Sin permiso', 'err'); return; }
   var conc = document.getElementById('gConc').value.trim();
   if (!conc) { toast('Escribe un concepto', 'err'); return; }
   var g = {
@@ -4261,6 +4305,7 @@ function limpiarFormSrv() {
 }
 
 function guardarServicio() {
+  if (!tienePerm('stock_crear')) { toast('Sin permiso', 'err'); return; }
   var nom = document.getElementById('srvNom').value.trim();
   if (!nom) { toast('Escribe un nombre', 'err'); return; }
   var data = {
