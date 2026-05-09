@@ -433,34 +433,34 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="tab" data-t="mes" onclick="setMetricTab(this)">Mes</div>
   </div>
   <div class="stats-grid" id="metricsGrid"></div>
-  <div class="quick-grid">
+  <div class="quick-grid" id="dashQuickGrid">
     <button class="qbtn-dash" onclick="abrirVenta()"><span class="qbtn-icon" style="background:rgba(0,85,255,.10);color:var(--blue)">📱</span><span class="qbtn-label">Nueva venta</span></button>
     <button class="qbtn-dash" onclick="window.location.href='tpv.html'"><span class="qbtn-icon" style="background:rgba(0,200,150,.10);color:var(--green)">🛒</span><span class="qbtn-label">Abrir TPV</span></button>
     <button class="qbtn-dash" onclick="abrirRep()"><span class="qbtn-icon" style="background:rgba(0,200,150,.10);color:var(--green)">🔧</span><span class="qbtn-label">Reparación</span></button>
     <button class="qbtn-dash" onclick="navTo('pStock');openM('mStock')"><span class="qbtn-icon" style="background:rgba(249,115,22,.10);color:var(--orange)">📦</span><span class="qbtn-label">Añadir stock</span></button>
     <button class="qbtn-dash" onclick="navTo('pClis');openM('mCli')"><span class="qbtn-icon" style="background:rgba(124,58,237,.10);color:var(--purple)">👤</span><span class="qbtn-label">Nuevo cliente</span></button>
   </div>
-  <div class="card">
+  <div class="card" id="cardUrgentes">
     <div class="sec-header">
       <div class="card-title" style="margin:0">Urgentes hoy</div>
     </div>
     <div id="urgentesBox"></div>
   </div>
-  <div class="card">
+  <div class="card" id="cardPendientes">
     <div class="sec-header">
       <div class="card-title" style="margin:0">🔧 Reparaciones pendientes <span id="repsPendientesCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
       <button class="btn-sm" style="background:var(--blue);color:white" onclick="navTo('pReps')">Ver todas</button>
     </div>
     <div id="repsPendientesBox"></div>
   </div>
-  <div class="card">
+  <div class="card" id="cardPorEntregar">
     <div class="sec-header">
       <div class="card-title" style="margin:0">📦 Por entregar <span id="repsEntregarCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
       <button class="btn-sm" style="background:var(--green);color:white" onclick="navTo('pReps')">Ver todas</button>
     </div>
     <div id="repsEntregarBox"></div>
   </div>
-  <div class="card">
+  <div class="card" id="cardNotas">
     <div class="sec-header">
       <div class="card-title" style="margin:0">📝 Notas y recordatorios <span id="notasCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
     </div>
@@ -471,7 +471,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
     <div id="notasBox"></div>
   </div>
-  <div class="card">
+  <div class="card" id="cardCierre">
     <div class="sec-header">
       <div class="card-title" style="margin:0">Cierre del dia</div>
       <button class="btn-sm" style="background:var(--dark);color:white" onclick="cierreDia()">Generar</button>
@@ -1679,11 +1679,18 @@ function renderDash() {
   }, 0);
   var tReps = repsHoy.reduce(function(a, r) { return a + r.total; }, 0);
 
-  document.getElementById('metricsGrid').innerHTML =
-    '<div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" style="color:var(--blue)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>' +
-    '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl">Ingresos ventas</div></div>' +
-    '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--orange)">' + repsActivas.length + '</div><div class="stat-lbl">En reparacion</div></div>' +
-    '<div class="stat-card" style="--accent:var(--purple)"><div class="stat-val" style="color:var(--purple)">' + cur(tVentas + tReps) + '</div><div class="stat-lbl">Total ingresos</div></div>';
+  var statsHtml = '';
+  if (widgetVisible('widget_stats_ventas') && tienePerm('ventas_ver')) {
+    statsHtml += '<div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" style="color:var(--blue)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>';
+    statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl">Ingresos ventas</div></div>';
+  }
+  if (widgetVisible('widget_stats_reps') && tienePerm('reps_ver')) {
+    statsHtml += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--orange)">' + repsActivas.length + '</div><div class="stat-lbl">En reparacion</div></div>';
+  }
+  if (widgetVisible('widget_stats_total') && tienePerm('ventas_ver') && tienePerm('reps_ver')) {
+    statsHtml += '<div class="stat-card" style="--accent:var(--purple)"><div class="stat-val" style="color:var(--purple)">' + cur(tVentas + tReps) + '</div><div class="stat-lbl">Total ingresos</div></div>';
+  }
+  document.getElementById('metricsGrid').innerHTML = statsHtml;
   if (typeof renderDashWidgets === 'function') renderDashWidgets();
 }
 
@@ -4844,6 +4851,14 @@ function tienePerm(perm) {
   return U.permisos[perm] === true;
 }
 
+// Para widgets: visible por defecto, solo se oculta si admin pone explícitamente false
+function widgetVisible(perm) {
+  if (!U) return false;
+  if (U.rol === 'admin' || (U.permisos && U.permisos.todo)) return true;
+  if (!U.permisos) return true;
+  return U.permisos[perm] !== false;
+}
+
 function aplicarPermisos() {
   if (!U || U.rol === 'admin') return;
 
@@ -4912,6 +4927,18 @@ function aplicarPermisos() {
     if (!algunoVisible) g.style.display = 'none';
   });
 
+  // Widgets del dashboard (visibilidad por widget)
+  function hideEl(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = 'none';
+  }
+  if (!widgetVisible('widget_quickactions')) hideEl('dashQuickGrid');
+  if (!widgetVisible('widget_urgentes')) hideEl('cardUrgentes');
+  if (!widgetVisible('widget_pendientes')) hideEl('cardPendientes');
+  if (!widgetVisible('widget_porentregar')) hideEl('cardPorEntregar');
+  if (!widgetVisible('widget_notas')) hideEl('cardNotas');
+  if (!widgetVisible('widget_cierre')) hideEl('cardCierre');
+
   // Ocultar botones de creación en cabeceras de páginas
   if (!tienePerm('ventas_crear')) document.querySelectorAll('[onclick*="abrirVenta"]').forEach(function(b) { b.style.display = 'none'; });
   if (!tienePerm('reps_crear')) document.querySelectorAll('[onclick*="abrirRep"]').forEach(function(b) { b.style.display = 'none'; });
@@ -4975,7 +5002,17 @@ var PERMS_LISTA = [
   // Herramientas
   {id:'catalogo',label:'Ver catálogo',grupo:'Herramientas'},
   {id:'herramientas_importar',label:'Importar datos',grupo:'Herramientas'},
-  {id:'herramientas_backup',label:'Hacer backup',grupo:'Herramientas'}
+  {id:'herramientas_backup',label:'Hacer backup',grupo:'Herramientas'},
+  // Widgets del dashboard (defaultOn: true → si no están explícitamente OFF, se muestran)
+  {id:'widget_stats_ventas',label:'Stat: Ventas e ingresos',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_stats_reps',label:'Stat: En reparación',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_stats_total',label:'Stat: Total ingresos',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_quickactions',label:'Acciones rápidas (5 botones)',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_urgentes',label:'Card: Urgentes hoy',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_pendientes',label:'Card: Reparaciones pendientes',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_porentregar',label:'Card: Por entregar',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_notas',label:'Card: Notas y recordatorios',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_cierre',label:'Card: Cierre del día',grupo:'Dashboard',defaultOn:true}
 ];
 
 // Roles preset — listas de permisos por rol
@@ -5039,7 +5076,8 @@ function renderPermisosUI() {
     div.style = 'margin-bottom:14px';
     div.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">' + grupo + '</div>';
     grupos[grupo].forEach(function(p) {
-      var activo = permsCurrent[p.id] === true;
+      // Para defaultOn, considerar "activo" si no está explícitamente false
+      var activo = p.defaultOn ? (permsCurrent[p.id] !== false) : (permsCurrent[p.id] === true);
       var row = document.createElement('div');
       row.style = 'display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--light)';
       var label = document.createElement('span');
@@ -5049,11 +5087,23 @@ function renderPermisosUI() {
       toggle.style = 'width:40px;height:22px;border-radius:22px;cursor:pointer;background:' + (activo ? 'var(--blue)' : 'var(--border)') + ';position:relative;flex-shrink:0;transition:background .2s';
       toggle.innerHTML = '<div style="position:absolute;top:2px;left:' + (activo ? '20px' : '2px') + ';width:18px;height:18px;border-radius:50%;background:white;transition:left .2s"></div>';
       toggle.dataset.pid = p.id;
+      toggle.dataset.defon = p.defaultOn ? '1' : '0';
       toggle.addEventListener('click', function() {
         var pid = this.dataset.pid;
-        permsCurrent[pid] = !permsCurrent[pid];
-        this.style.background = permsCurrent[pid] ? 'var(--blue)' : 'var(--border)';
-        this.querySelector('div').style.left = permsCurrent[pid] ? '20px' : '2px';
+        var defOn = this.dataset.defon === '1';
+        // Si defaultOn: el toggle alterna entre {nada → false} y {false → true → nada (vuelve al default)}
+        if (defOn) {
+          if (permsCurrent[pid] === false) {
+            delete permsCurrent[pid]; // volver a default (true)
+          } else {
+            permsCurrent[pid] = false;
+          }
+        } else {
+          permsCurrent[pid] = !permsCurrent[pid];
+        }
+        var nuevoActivo = defOn ? (permsCurrent[pid] !== false) : (permsCurrent[pid] === true);
+        this.style.background = nuevoActivo ? 'var(--blue)' : 'var(--border)';
+        this.querySelector('div').style.left = nuevoActivo ? '20px' : '2px';
       });
       row.appendChild(label); row.appendChild(toggle);
       div.appendChild(row);
