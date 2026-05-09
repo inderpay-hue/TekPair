@@ -6,8 +6,16 @@
 <title>TPV — Tekpair</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{--blue:#0055FF;--dark:#020B2E;--green:#00C896;--red:#EF4444;--orange:#F97316;--border:#E2E8F0;--bg:#F7F9FC;--text:#0F1729;--muted:#64748B}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden}
+:root{--blue:#0055FF;--dark:#020B2E;--green:#00C896;--red:#EF4444;--orange:#F97316;--border:#E2E8F0;--bg:#F7F9FC;--text:#0F1729;--muted:#64748B;--shadow-sm:0 1px 2px rgba(2,11,46,.04),0 1px 1px rgba(2,11,46,.03);--shadow-md:0 4px 12px rgba(2,11,46,.06),0 1px 3px rgba(2,11,46,.04);--shadow-lg:0 16px 40px rgba(2,11,46,.10),0 4px 12px rgba(2,11,46,.06);--ease:cubic-bezier(.4,0,.2,1);--ring:0 0 0 3px rgba(0,85,255,.15)}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);height:100vh;overflow:hidden;font-feature-settings:"cv11","ss01";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
+::selection{background:rgba(0,85,255,.18)}
+@media(min-width:900px){
+  ::-webkit-scrollbar{width:10px;height:10px}
+  ::-webkit-scrollbar-track{background:transparent}
+  ::-webkit-scrollbar-thumb{background:rgba(15,23,41,.14);border-radius:5px;border:2px solid var(--bg)}
+  ::-webkit-scrollbar-thumb:hover{background:rgba(15,23,41,.24)}
+}
+button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 
 /* LAYOUT */
 .tpv{display:grid;grid-template-columns:1fr 380px;height:100vh;gap:0}
