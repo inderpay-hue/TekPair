@@ -443,16 +443,94 @@ window.addEventListener('DOMContentLoaded', function() {
   renderFavBar();
   renderProducts();
   updateCaja();
+  // Sync con Supabase para historial actualizado
+  syncVentasDesdeSupabase();
 });
 
 // ═══ SUPABASE ═══
+var SUPABASE_URL = 'https://zcxgyissdqyqsnojxviy.supabase.co';
+
+var _sbErrLast = {};
+function _sbErrorToast(method, table, info) {
+  console.error('[Supabase ' + method + ' ' + table + ']', info);
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  var key = method + ':' + table;
+  var now = Date.now();
+  if (_sbErrLast[key] && now - _sbErrLast[key] < 8000) return;
+  _sbErrLast[key] = now;
+  var msg = (info && info.message) || (info && info.code) || (info && info.status ? 'HTTP ' + info.status : 'error');
+  if (typeof toast === 'function') toast('⚠ Sync ' + table + ': ' + String(msg).substring(0,60), 'err');
+}
+
 function sbPost(table, data) {
   if (!SB_KEY) return Promise.resolve(false);
-  return fetch('https://zcxgyissdqyqsnojxviy.supabase.co/rest/v1/' + table, {
+  return fetch(SUPABASE_URL + '/rest/v1/' + table, {
     method: 'POST',
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
     body: JSON.stringify(data)
-  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.json().then(function(err){ _sbErrorToast('POST', table, err); return false; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return false; });
+    }
+    return true;
+  }).catch(function(e) { _sbErrorToast('POST', table, e); return false; });
+}
+
+function sbGet(table, query) {
+  if (!SB_KEY) return Promise.resolve([]);
+  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*', {
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.json().then(function(err){ _sbErrorToast('GET', table, err); return []; }, function(){ _sbErrorToast('GET', table, {status:r.status}); return []; });
+    }
+    return r.json();
+  }).catch(function(e) { _sbErrorToast('GET', table, e); return []; });
+}
+
+// ═══ PERMISOS ═══
+function tienePerm(perm) {
+  if (!U) return false;
+  if (U.rol === 'admin') return true;
+  if (!U.permisos) return false;
+  if (U.permisos.todo) return true;
+  return !!U.permisos[perm];
+}
+
+// ═══ SYNC VENTAS DESDE SUPABASE ═══
+function syncVentasDesdeSupabase() {
+  if (!SB_KEY || !TIENDA_ID) return Promise.resolve();
+  var hoy = new Date().toLocaleDateString('es');
+  return sbGet('ventas', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=eq.' + encodeURIComponent(hoy)).then(function(rows) {
+    if (!Array.isArray(rows) || !rows.length) return;
+    rows.forEach(function(r) {
+      var existing = DB.ventas.find(function(v){ return v.id === r.id; });
+      var mapped = {
+        id: r.id, fecha: r.fecha,
+        clienteId: r.cliente_id || '',
+        clienteNombre: r.cliente_nombre || 'Sin cliente',
+        marca: r.marca || '', modelo: r.modelo || '', imei: r.imei || '',
+        pago: r.pago || 'Efectivo',
+        precio: parseFloat(r.precio) || 0,
+        descuento: parseFloat(r.descuento) || 0,
+        total: parseFloat(r.total) || 0,
+        reembolsado: !!r.reembolsado,
+        financiado: !!r.financiado,
+        iva: parseFloat(r.iva) || 0,
+        ivaModo: r.iva_modo || 'sin',
+        base: parseFloat(r.base) || 0,
+        ivaImporte: parseFloat(r.iva_importe) || 0,
+        items: existing ? existing.items : []
+      };
+      if (existing) {
+        Object.assign(existing, mapped);
+      } else {
+        DB.ventas.push(mapped);
+      }
+    });
+    localStorage.setItem('tk_db', JSON.stringify(DB));
+    if (typeof updateCaja === 'function') updateCaja();
+  });
 }
 
 // ═══ TOAST ═══
@@ -855,6 +933,7 @@ function setPago(el) {
 // ═══ CHECKOUT ═══
 function cobrar() {
   if (!cart.length) return;
+  if (!tienePerm('ventas_crear')) { toast('Sin permiso para crear ventas', 'err'); return; }
   var totals = _computeTotals();
   var venta = {
     id: 'v' + Date.now(),
@@ -1033,6 +1112,8 @@ function verHistorial() {
   document.getElementById('histSearch').value = '';
   renderHistorial();
   openModal('mHistorial');
+  // Sync en background y re-render cuando llegue
+  syncVentasDesdeSupabase().then(function(){ renderHistorial(); });
 }
 
 function renderHistorial() {
