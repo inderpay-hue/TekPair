@@ -1548,6 +1548,16 @@ function refrescarVistasActivas() {
   try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch(e){}
   try { if (typeof refreshNotifs === 'function') refreshNotifs(); } catch(e){}
   try { if (typeof renderSidebarLogo === 'function') renderSidebarLogo(); } catch(e){}
+  // Si Ajustes está activa, recargar el form para reflejar valores remotos
+  try {
+    var pAj = document.getElementById('pAjustes');
+    if (pAj && pAj.classList.contains('active') && typeof cargarAjustes === 'function') cargarAjustes();
+  } catch(e){}
+  // Si Mi Tienda está activa, recargar
+  try {
+    var pT = document.getElementById('pTienda');
+    if (pT && pT.classList.contains('active') && typeof cargarTienda === 'function') cargarTienda();
+  } catch(e){}
 }
 
 // Sync completa: descarga + refresco de pantalla
