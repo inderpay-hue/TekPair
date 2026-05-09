@@ -5743,18 +5743,31 @@ function abrirFichaCli(cliId) {
   var acc = '';
   if (c.tel) {
     var telLimpio = c.tel.replace(/\D/g, '');
-    acc += '<a href="tel:' + esc(c.tel) + '" class="btn-sm" style="background:var(--blue);color:white;text-decoration:none;flex:1;text-align:center">📞 Llamar</a>';
-    acc += '<a href="https://wa.me/' + telLimpio + '" target="_blank" class="btn-sm" style="background:#25D366;color:white;text-decoration:none;flex:1;text-align:center">📲 WhatsApp</a>';
+    acc += '<a href="tel:' + esc(c.tel) + '" class="btn-sm" style="background:var(--blue);color:white;text-decoration:none;flex:1;text-align:center;padding:8px 12px">📞 Llamar</a>';
+    acc += '<button class="btn-sm" style="background:#25D366;color:white;flex:1;text-align:center;padding:8px 12px" onclick="abrirWhatsAppCli(\'' + cliId + '\')">📲 WhatsApp</button>';
   }
-  if (c.email) acc += '<a href="mailto:' + esc(c.email) + '" class="btn-sm" style="background:var(--purple);color:white;text-decoration:none;flex:1;text-align:center">✉️ Email</a>';
-  if (tienePerm('clis_editar')) acc += '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="editarClienteDesdeFicha(\'' + cliId + '\')">✏️ Editar</button>';
+  if (c.email) acc += '<a href="mailto:' + esc(c.email) + '" class="btn-sm" style="background:var(--purple);color:white;text-decoration:none;flex:1;text-align:center;padding:8px 12px">✉️ Email</a>';
+  if (tienePerm('clis_editar')) acc += '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1;padding:8px 12px" onclick="editarClienteDesdeFicha(\'' + cliId + '\')">✏️ Editar</button>';
+  acc += '<button class="btn-sm" style="background:#1F2937;color:white;flex:1;padding:8px 12px" onclick="closeM(\'mFichaCli\')">✕ Cerrar</button>';
   document.getElementById('fichaCliAcciones').innerHTML = acc;
 
-  // Lista de reps
-  var reps = DB.reps.filter(function(r){ return r.cliId === cliId; }).sort(function(a,b){
+  // Lista de reps (busco por cliId Y también por nombre coincidente, para incluir reps huérfanas)
+  var nombreNorm = _norm(((c.nombre || '') + ' ' + (c.apellidos || '')).trim());
+  var reps = DB.reps.filter(function(r){
+    if (r.cliId === cliId) return true;
+    // Match por nombre cuando cliId está vacío o no coincide pero el nombre sí
+    var nomRep = _norm(r.clienteNombre || '');
+    if (nomRep && nombreNorm && nomRep === nombreNorm) return true;
+    return false;
+  }).sort(function(a,b){
     return _parseDateAny(b.fecha || '') - _parseDateAny(a.fecha || '');
   });
-  var ventas = DB.ventas.filter(function(v){ return v.cliId === cliId; }).sort(function(a,b){
+  var ventas = DB.ventas.filter(function(v){
+    if (v.cliId === cliId) return true;
+    var nomV = _norm(v.clienteNombre || '');
+    if (nomV && nombreNorm && nomV === nombreNorm) return true;
+    return false;
+  }).sort(function(a,b){
     return _parseDateAny(b.fecha || '') - _parseDateAny(a.fecha || '');
   });
   document.getElementById('fichaTabRepsCount').textContent = '(' + reps.length + ')';
@@ -5816,6 +5829,27 @@ function abrirFichaCli(cliId) {
   }
 
   openM('mFichaCli');
+}
+
+function abrirWhatsAppCli(cliId) {
+  var cli = DB.clis.find(function(c){ return c.id === cliId; });
+  if (!cli || !cli.tel) { toast('Cliente sin teléfono', 'err'); return; }
+  _waContexto = {
+    tipo: 'cliente',
+    cli: cli,
+    datos: {
+      nombre: cli.nombre || '',
+      tienda: (TIENDA && TIENDA.nombre) || '',
+      modelo: '', marca: '', averia: '', total: 0, fecha: '', estado: ''
+    }
+  };
+  document.getElementById('waInfoCli').innerHTML = '<strong>📱 ' + esc((cli.nombre || '') + ' ' + (cli.apellidos || '')) + '</strong> · ' + esc(cli.tel);
+  var sel = document.getElementById('waPlantilla');
+  var plantillas = getPlantillasWA();
+  // Para cliente: solo plantilla genérica (no hay contexto de rep ni cuota)
+  sel.innerHTML = '<option value="generico">' + plantillas.generico.nombre + '</option>';
+  renderPreviewWA();
+  openM('mWhatsApp');
 }
 
 function setFichaTab(el) {
