@@ -184,12 +184,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .qbtn-label{font-size:13px;font-weight:700;color:var(--text);line-height:1.2}
 
 /* ═══ WIDGET EDIT MODE ═══ */
-.card.widget-editing{border:2px dashed var(--blue);position:relative;animation:widget-pulse 2s infinite}
+.card.widget-editing{border:2px dashed var(--blue) !important;position:relative !important;animation:widget-pulse 2s infinite}
 @keyframes widget-pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,85,255,.10)}50%{box-shadow:0 0 0 4px rgba(0,85,255,.10)}}
-.widget-edit-controls{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:10}
-.widget-edit-controls button{width:32px;height:32px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md)}
+.widget-edit-controls{position:absolute;top:-14px;right:14px;display:flex;gap:6px;z-index:50;background:white;padding:2px;border-radius:10px;box-shadow:var(--shadow-md)}
+.widget-edit-controls button{width:32px;height:32px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center}
 .widget-edit-controls button:hover{background:#0044CC}
-.widget-edit-controls button:active{transform:scale(.95)}
+.widget-edit-controls button:active{transform:scale(.92)}
 
 /* ═══ FORMS ═══ */
 .fg{margin-bottom:12px}
@@ -5271,12 +5271,16 @@ async function cargarUsuarios() {
       '<td><span class="badge ' + (u.activo ? 'bg' : 'bo') + '">' + (u.activo ? 'Activo' : 'Inactivo') + '</span></td>';
     var tdAcc = document.createElement('td');
     tdAcc.style = 'display:flex;gap:3px;flex-wrap:wrap';
+    // Botón de permisos: TODOS pueden editarse a sí mismos (para configurar widgets propios)
+    var btnP = document.createElement('button');
+    btnP.textContent = '\ud83d\udd10';
+    btnP.style = 'background:rgba(124,58,237,.1);border:none;color:var(--purple);padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer';
+    btnP.title = esYo ? 'Mis permisos y widgets' : 'Editar permisos';
+    btnP.dataset.uid = u.id; btnP.dataset.unom = u.nombre;
+    btnP.addEventListener('click', function() { editarPermisos(this.dataset.uid, this.dataset.unom); });
+    tdAcc.appendChild(btnP);
+    // Desactivar y eliminar solo a OTROS usuarios (no a uno mismo)
     if (!esYo) {
-      var btnP = document.createElement('button');
-      btnP.textContent = '\ud83d\udd10';
-      btnP.style = 'background:rgba(124,58,237,.1);border:none;color:var(--purple);padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer';
-      btnP.dataset.uid = u.id; btnP.dataset.unom = u.nombre;
-      btnP.addEventListener('click', function() { editarPermisos(this.dataset.uid, this.dataset.unom); });
       var btnT = document.createElement('button');
       btnT.textContent = u.activo ? 'Desact.' : 'Activar';
       btnT.style = 'background:var(--light);border:none;color:var(--blue);padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer';
@@ -5287,7 +5291,7 @@ async function cargarUsuarios() {
       btnD.style = 'background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer';
       btnD.dataset.uid = u.id;
       btnD.addEventListener('click', function() { eliminarUsuario(this.dataset.uid); });
-      tdAcc.appendChild(btnP); tdAcc.appendChild(btnT); tdAcc.appendChild(btnD);
+      tdAcc.appendChild(btnT); tdAcc.appendChild(btnD);
     }
     tr.appendChild(tdAcc);
     tbody.appendChild(tr);
