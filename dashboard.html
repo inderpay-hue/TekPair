@@ -4025,8 +4025,14 @@ function renderReps() {
     var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" class="btn-ent" style="background:var(--green);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer">&#10003;</button>' : '';
     var btnEdit = '<button data-rid="' + r.id + '" class="btn-edit-r" style="background:var(--light);border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Editar">✏️</button>';
     var btnLink = '<button data-rid="' + r.id + '" class="btn-link-r" style="background:var(--blue);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="QR / Link / Imprimir">📱</button>';
-    // WhatsApp solo si el cliente existe y tiene teléfono
+    // WhatsApp: buscar cliente por cliId, si no, fallback por nombre coincidente
     var cliRep = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
+    if (!cliRep && r.clienteNombre) {
+      var nomNorm = _norm(r.clienteNombre);
+      cliRep = DB.clis.find(function(c){
+        return _norm(((c.nombre||'') + ' ' + (c.apellidos||'')).trim()) === nomNorm;
+      });
+    }
     var btnWA = (cliRep && cliRep.tel) ? '<button data-rid="' + r.id + '" class="btn-wa-r" style="background:#25D366;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Avisar por WhatsApp">📲</button>' : '';
     // Badge garantía: manual (esGarantia) o auto-detectada (rep similar reciente)
     var badgeGarantia = '';
@@ -5994,7 +6000,13 @@ var _waContexto = null;
 function abrirWhatsAppRep(repId) {
   var r = DB.reps.find(function(x){ return x.id === repId; });
   if (!r) return;
-  var cli = DB.clis.find(function(c){ return c.id === r.cliId; });
+  var cli = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
+  if (!cli && r.clienteNombre) {
+    var nomNorm = _norm(r.clienteNombre);
+    cli = DB.clis.find(function(c){
+      return _norm(((c.nombre||'') + ' ' + (c.apellidos||'')).trim()) === nomNorm;
+    });
+  }
   if (!cli) { toast('Cliente no encontrado', 'err'); return; }
   if (!cli.tel) { toast('Cliente sin teléfono', 'err'); return; }
   _waContexto = {
