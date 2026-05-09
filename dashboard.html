@@ -1434,7 +1434,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <input type="radio" name="srvPT" id="srvVariable" value="variable"> Variable
     </label>
   </div>
-  <div class="fg"><label class="fl">Precio (EUR)</label><input class="fi" id="srvPrecio" type="number" step="0.01" placeholder="0.00"></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">🔒 Precio coste (€) <span style="font-size:9px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">— privado</span></label><input class="fi" id="srvPrecioCoste" type="number" step="0.01" placeholder="0.00" oninput="calcMargenSrv()"></div>
+    <div class="fg"><label class="fl">Precio venta (€)</label><input class="fi" id="srvPrecio" type="number" step="0.01" placeholder="0.00" oninput="calcMargenSrv()"></div>
+  </div>
+  <div style="font-size:11px;color:var(--muted);background:var(--light);padding:6px 10px;border-radius:6px;margin-bottom:10px;display:flex;align-items:center;gap:6px">
+    <span>🔒</span>
+    <span>El precio de coste es <strong>solo interno</strong>. Nunca aparece en tickets, partes ni mensajes al cliente.</span>
+  </div>
+  <div id="srvMargenBox" style="background:rgba(0,200,150,.06);border:1px solid rgba(0,200,150,.2);border-radius:8px;padding:8px 12px;font-size:12px;display:none;margin-bottom:12px">
+    <span style="color:var(--muted)">Margen: </span>
+    <strong id="srvMargenAbs" style="color:var(--green)">€0.00</strong>
+    <span style="color:var(--muted)"> · </span>
+    <strong id="srvMargenPct" style="color:var(--green)">0%</strong>
+  </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mServicio')">Cancelar</button>
     <button class="btn-primary" onclick="guardarServicio()">Guardar</button>
@@ -3691,10 +3704,29 @@ function busServicioRep() {
   });
   if (!matches.length) { res.classList.remove('open'); return; }
   res.innerHTML = matches.map(function(s) {
-    return '<div class="cli-item" data-sid="' + s.id + '" style="border-left:3px solid var(--purple)">' +
-      '<span style="font-size:9px;color:var(--purple);font-weight:700">SERVICIO \u00b7 ' + s.categoria + '</span><br>' +
-      '<strong>' + s.nombre + '</strong>' +
-      '<span style="float:right;color:var(--purple);font-weight:700">' + (s.precioFijo ? cur(s.precio || 0) : 'Variable') + '</span></div>';
+    var coste = parseFloat(s.precioCoste) || 0;
+    var venta = parseFloat(s.precio) || 0;
+    var margen = venta - coste;
+    var precioInfo = '';
+    if (s.precioFijo) {
+      precioInfo = '<div style="font-size:11px;color:var(--muted);margin-top:3px;display:flex;gap:10px;flex-wrap:wrap">';
+      if (coste > 0) precioInfo += '<span title="Solo interno">🔒 Coste: <strong style="color:var(--orange)">' + cur(coste) + '</strong></span>';
+      precioInfo += '<span>Venta: <strong style="color:var(--green)">' + cur(venta) + '</strong></span>';
+      if (coste > 0 && margen !== 0) {
+        var col = margen < 0 ? 'var(--red)' : 'var(--blue)';
+        precioInfo += '<span>Margen: <strong style="color:' + col + '">' + cur(margen) + '</strong></span>';
+      }
+      precioInfo += '</div>';
+    } else {
+      precioInfo = '<div style="font-size:11px;color:var(--muted);margin-top:3px">Precio variable</div>';
+    }
+    return '<div class="cli-item" data-sid="' + s.id + '" style="border-left:3px solid var(--purple);padding:10px 12px">' +
+      '<div style="display:flex;justify-content:space-between;align-items:start;gap:8px">' +
+      '<div style="flex:1;min-width:0">' +
+      '<span style="font-size:9px;color:var(--purple);font-weight:700">SERVICIO · ' + (s.categoria || '') + '</span><br>' +
+      '<strong style="font-size:13px">' + esc(s.nombre) + '</strong>' +
+      precioInfo +
+      '</div></div></div>';
   }).join('');
   res.classList.add('open');
   res.querySelectorAll('[data-sid]').forEach(function(el) {
@@ -5525,15 +5557,31 @@ function renderServicios() {
   Object.keys(cats).forEach(function(cat) {
     html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:6px 0;border-bottom:2px solid var(--border);margin-bottom:8px">' + cat + '</div>';
     cats[cat].forEach(function(s) {
+      var coste = parseFloat(s.precioCoste) || 0;
+      var venta = parseFloat(s.precio) || 0;
+      var margen = venta - coste;
+      var precioHtml = '';
+      if (s.precioFijo) {
+        precioHtml = '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:1px">';
+        if (coste > 0) precioHtml += '<span style="font-size:10px;color:var(--muted)" title="Solo interno">🔒 Coste: <strong style="color:var(--orange)">' + cur(coste) + '</strong></span>';
+        precioHtml += '<span style="font-size:14px;font-weight:700;color:var(--blue)">' + cur(venta) + '</span>';
+        if (coste > 0 && margen !== 0) {
+          var col = margen < 0 ? 'var(--red)' : 'var(--green)';
+          var pct = venta > 0 ? Math.round((margen / venta) * 100) : 0;
+          precioHtml += '<span style="font-size:10px;color:' + col + ';font-weight:700">+' + cur(margen) + ' (' + pct + '%)</span>';
+        }
+        precioHtml += '</div>';
+      } else {
+        precioHtml = '<span style="font-size:14px;font-weight:700;color:var(--blue)">Variable</span>';
+      }
       var cont = document.createElement('div');
       cont.className = 'card';
       cont.style = 'padding:12px;margin-bottom:8px';
-      cont.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between">' +
-        '<div><div style="font-size:13px;font-weight:700">' + s.nombre + '</div>' +
+      cont.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">' +
+        '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">' + s.nombre + '</div>' +
         '<div style="font-size:11px;color:var(--muted)">' + (s.tipo === 'reparacion' ? 'Solo reparaciones' : s.tipo === 'venta' ? 'Solo ventas' : 'Ventas y reparaciones') + '</div></div>' +
-        '<div style="display:flex;align-items:center;gap:8px">' +
-        '<span style="font-size:14px;font-weight:700;color:var(--blue)">' + (s.precioFijo ? cur(s.precio || 0) : 'Variable') + '</span>' +
-        '</div></div>';
+        precioHtml +
+        '</div>';
       var btnE = document.createElement('button');
       btnE.textContent = '\u270f\ufe0f';
       btnE.style = 'background:var(--light);border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-top:8px;margin-right:6px';
@@ -5555,22 +5603,43 @@ function renderServicios() {
 function limpiarFormSrv() {
   document.getElementById('srvNom').value = '';
   document.getElementById('srvPrecio').value = '';
+  var pc = document.getElementById('srvPrecioCoste'); if (pc) pc.value = '';
   document.getElementById('srvCat').value = 'Pantalla';
   document.getElementById('srvTipo').value = 'ambos';
   document.getElementById('srvFijo').checked = true;
+  var mb = document.getElementById('srvMargenBox'); if (mb) mb.style.display = 'none';
   document.getElementById('mServicioTit').textContent = '\ud83d\udee0\ufe0f Nuevo Servicio';
+}
+
+function calcMargenSrv() {
+  var coste = parseFloat(document.getElementById('srvPrecioCoste').value) || 0;
+  var venta = parseFloat(document.getElementById('srvPrecio').value) || 0;
+  var box = document.getElementById('srvMargenBox');
+  if (!box) return;
+  if (coste <= 0 || venta <= 0) { box.style.display = 'none'; return; }
+  var margen = venta - coste;
+  var pct = (margen / venta) * 100;
+  document.getElementById('srvMargenAbs').textContent = cur(margen);
+  document.getElementById('srvMargenPct').textContent = pct.toFixed(0) + '%';
+  // Color rojo si margen negativo
+  var color = margen < 0 ? 'var(--red)' : 'var(--green)';
+  document.getElementById('srvMargenAbs').style.color = color;
+  document.getElementById('srvMargenPct').style.color = color;
+  box.style.display = 'block';
 }
 
 function guardarServicio() {
   if (!tienePerm('stock_crear')) { toast('Sin permiso', 'err'); return; }
   var nom = document.getElementById('srvNom').value.trim();
   if (!nom) { toast('Escribe un nombre', 'err'); return; }
+  var pcEl = document.getElementById('srvPrecioCoste');
   var data = {
     nombre: nom,
     categoria: document.getElementById('srvCat').value,
     tipo: document.getElementById('srvTipo').value,
     precioFijo: document.getElementById('srvFijo').checked,
-    precio: parseFloat(document.getElementById('srvPrecio').value) || 0
+    precio: parseFloat(document.getElementById('srvPrecio').value) || 0,
+    precioCoste: pcEl ? (parseFloat(pcEl.value) || 0) : 0
   };
   if (!DB.servicios) DB.servicios = [];
   if (ESID) {
@@ -5598,6 +5667,9 @@ function editarServicio(id) {
   document.getElementById('srvFijo').checked = s.precioFijo !== false;
   document.getElementById('srvVariable').checked = s.precioFijo === false;
   document.getElementById('srvPrecio').value = s.precio || '';
+  var pc = document.getElementById('srvPrecioCoste');
+  if (pc) pc.value = s.precioCoste || '';
+  calcMargenSrv();
   openM('mServicio');
 }
 
