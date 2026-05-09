@@ -1559,7 +1559,8 @@ async function syncCompleto(silencioso) {
   try {
     await Promise.all([
       cargarDatosSupabase(),
-      _pullNotifRead()
+      _pullNotifRead(),
+      _pullTiendaCompleta()
     ]);
     refrescarVistasActivas();
     if (!silencioso && typeof toast === 'function') toast('Sincronizado', 'ok');
@@ -4088,7 +4089,7 @@ function guardarAjustes() {
   AJUSTES.notif.diasAbandono = parseInt(document.getElementById('ajDiasAbandono').value) || 90;
   if (AJUSTES.notif.diasAbandono < 7) AJUSTES.notif.diasAbandono = 7;
   localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
-  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {iva_config: AJUSTES.iva});
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {ajustes_config: AJUSTES});
   if (typeof refreshNotifs === 'function') refreshNotifs();
   toast('Ajustes guardados', 'ok');
 }
@@ -4269,6 +4270,49 @@ async function _pullNotifRead() {
     });
     if (changed) _saveRead(local);
   } catch(e) { console.error('Pull notif_read error:', e); }
+}
+
+// Pull ajustes + datos completos de tienda (logo, políticas, favoritos TPV)
+async function _pullTiendaCompleta() {
+  if (!SB_KEY || !TIENDA_ID) return;
+  try {
+    var rows = await sbGet('tiendas', 'id=eq.' + TIENDA_ID);
+    if (!Array.isArray(rows) || !rows.length) return;
+    var t = rows[0];
+
+    // Ajustes
+    if (t.ajustes_config && typeof t.ajustes_config === 'object') {
+      var defaults = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
+      AJUSTES = Object.assign(defaults, t.ajustes_config);
+      // Asegurar subobjetos completos
+      AJUSTES.cierre = Object.assign(defaults.cierre, AJUSTES.cierre || {});
+      AJUSTES.iva = Object.assign(defaults.iva, AJUSTES.iva || {});
+      AJUSTES.notif = AJUSTES.notif || defaults.notif;
+      AJUSTES.notif.activa = Object.assign(defaults.notif.activa, (AJUSTES.notif||{}).activa || {});
+      localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
+    }
+
+    // Datos de tienda (nombre, logo, políticas)
+    var tiendaData = {
+      nombre: t.nombre || TIENDA.nombre || 'Mi Tienda',
+      dir: t.dir || '', tel: t.tel || '', email: t.email || '',
+      cif: t.cif || '', web: t.web || '',
+      garantia: t.garantia || '', politica: t.politica || '',
+      garantiaVentas: t.garantia_ventas || '', politicaVentas: t.politica_ventas || '',
+      logo_url: t.logo_url || ''
+    };
+    Object.assign(TIENDA, tiendaData);
+    localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
+
+    // Favoritos TPV (compartidos por toda la tienda)
+    if (Array.isArray(t.tpv_favs)) {
+      localStorage.setItem('tk_tpv_favs', JSON.stringify(t.tpv_favs));
+    }
+
+    // Refrescar UI dependiente
+    var dT = document.getElementById('dTienda'); if (dT) dT.textContent = TIENDA.nombre;
+    if (typeof renderSidebarLogo === 'function') renderSidebarLogo();
+  } catch(e) { console.error('Pull tienda error:', e); }
 }
 
 // Migración una sola vez: descartadas anteriores → leídas
