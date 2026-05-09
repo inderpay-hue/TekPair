@@ -16,6 +16,7 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
 /* ═══ RESET & BASE ═══ */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -877,6 +878,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="tab active" data-t="hoy" onclick="setRepTab(this)">Hoy</div>
     <div class="tab" data-t="semana" onclick="setRepTab(this)">Semana</div>
     <div class="tab" data-t="mes" onclick="setRepTab(this)">Mes</div>
+    <div class="tab" data-t="trimestre" onclick="setRepTab(this)">Trimestre</div>
     <div class="tab" data-t="total" onclick="setRepTab(this)">Total</div>
   </div>
   <div class="tabs">
@@ -885,9 +887,32 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="tab" data-ti="reparaciones" onclick="setRepTipo(this)">Reparaciones</div>
   </div>
   <div id="reporteResumen"></div>
-  <div style="display:flex;gap:10px;margin-top:14px">
-    <button class="btn-primary" onclick="verReportePDF()">📄 Ver PDF</button>
-    <button class="btn-secondary" onclick="emailReporte()">📧 Email</button>
+
+  <!-- Gráficas -->
+  <div id="reporteGraficas" style="margin-top:14px">
+    <div class="card" id="cardChartIngresos" style="display:none">
+      <div class="card-title">📈 Evolución de ingresos</div>
+      <div style="height:240px;position:relative"><canvas id="chartIngresos"></canvas></div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px" id="cardChartsRow">
+      <div class="card" style="padding:14px">
+        <div class="card-title" style="margin-bottom:8px">💳 Por forma de pago</div>
+        <div style="height:200px;position:relative"><canvas id="chartPagos"></canvas></div>
+      </div>
+      <div class="card" style="padding:14px">
+        <div class="card-title" style="margin-bottom:8px">🔧 Top servicios</div>
+        <div style="height:200px;position:relative"><canvas id="chartServicios"></canvas></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:10px" id="cardIVA">
+      <div class="card-title">📋 Desglose por IVA</div>
+      <div id="ivaDesglose" style="font-size:12px"></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
+    <button class="btn-primary" style="background:var(--blue)" onclick="generarPDFGestor()">📄 PDF para gestor</button>
+    <button class="btn-secondary" onclick="verReportePDF()">🖨️ Imprimir reporte</button>
   </div>
 </div>
 
@@ -975,6 +1000,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <li>En Chrome / Edge: icono de instalación en la barra de URL ⊕</li>
       <li>O menú ⋮ → "Instalar TekPair..."</li>
     </ol>
+  </div>
+
+  <div class="card" id="cardAuditoria" style="display:none">
+    <div class="card-title">📜 Historial de actividad</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Registro de las acciones realizadas en la tienda. Útil para saber qué empleado hizo qué y cuándo.</div>
+    <button type="button" class="btn-primary" style="background:var(--blue);width:100%" onclick="abrirAuditoria()">📜 Ver historial completo</button>
   </div>
 
   <div class="card">
@@ -1881,6 +1912,34 @@ function guardarDatos() {
   tiendaData.nombre = TIENDA.nombre;
   localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
   if (typeof refreshNotifs === 'function') refreshNotifs();
+}
+
+// ═══ AUDITORÍA ═══
+function audit(accion, entidad, entidadId, detalle, cambios) {
+  if (!DB.audit) DB.audit = [];
+  var entry = {
+    id: 'a' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    ts: new Date().toISOString(),
+    usuarioId: (U && U.id) || '?',
+    usuarioNom: (U && (U.nombre || U.email)) || '?',
+    accion: accion || '',
+    entidad: entidad || '',
+    entidadId: entidadId || '',
+    detalle: detalle || '',
+    cambios: cambios || null
+  };
+  DB.audit.unshift(entry);
+  // Limitar a 1000 entradas locales (LIFO, las más viejas se descartan)
+  if (DB.audit.length > 1000) DB.audit = DB.audit.slice(0, 1000);
+  localStorage.setItem('tk_db', JSON.stringify(DB));
+  if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
+    sbPost('audit', {
+      id: entry.id, tienda_id: TIENDA_ID, ts: entry.ts,
+      usuario_id: entry.usuarioId, usuario_nom: entry.usuarioNom,
+      accion: entry.accion, entidad: entry.entidad, entidad_id: entry.entidadId,
+      detalle: entry.detalle, cambios: entry.cambios
+    });
+  }
 }
 
 // ═══ SUPABASE ═══
@@ -3139,6 +3198,7 @@ function guardarVenta() {
 
   closeM('mVenta');
   toast('Venta registrada', 'ok');
+  audit('crear', 'venta', venta.id, (venta.clienteNombre || 'Cliente puntual') + ' · ' + cur(venta.total), null);
   renderDash();
 }
 
@@ -4713,6 +4773,7 @@ function guardarRep() {
     renderReps();
     renderDash();
     toast('Reparación actualizada', 'ok');
+    audit('editar', 'reparacion', r.id, r.clienteNombre + ' · ' + (r.modelo||''), null);
     return;
   }
 
@@ -4784,6 +4845,7 @@ function guardarRep() {
 
   closeM('mRep');
   toast('Reparación creada', 'ok');
+  audit('crear', 'reparacion', rep.id, rep.clienteNombre + ' · ' + (rep.modelo||'') + ' · ' + cur(rep.total), null);
   renderDash();
   checkUrgentes();
   setTimeout(function(){ abrirTracking(rep.id); }, 200);
@@ -4888,10 +4950,12 @@ function cambiarEstado(id, estado) {
       toast('Reparacion en garantia creada', 'ok');
     }
   }
+  var estadoAnterior = r.estado;
   r.estado = estado;
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, {estado: estado});
   toast('Estado actualizado', 'ok');
+  audit('cambio_estado', 'reparacion', r.id, r.clienteNombre + ' · ' + (r.modelo||'') + ' · ' + estadoAnterior + ' → ' + estado, {antes:estadoAnterior, despues:estado});
   renderDash();
   checkUrgentes();
   renderReps();
@@ -5153,9 +5217,11 @@ function guardarCli() {
     if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:nuevo.id,tienda_id:TIENDA_ID,nombre:nuevo.nombre,apellidos:nuevo.apellidos,tel:nuevo.tel,email:nuevo.email,dni:nuevo.dni,fecha_nac:nuevo.fechaNac||null});
   }
   guardarDatos();
+  var idGuardado = ECID;
   ECID = null;
   closeM('mCli');
   toast('Cliente guardado', 'ok');
+  audit(idGuardado ? 'editar' : 'crear', 'cliente', idGuardado || '', '', null);
   renderClis();
 }
 
@@ -5176,11 +5242,13 @@ function editCli(id) {
 
 function delCli(id) {
   if (!tienePerm('clis_eliminar')) { toast('Sin permiso', 'err'); return; }
+  var c = DB.clis.find(function(x){ return x.id === id; });
   if (!confirm('Eliminar cliente?')) return;
   DB.clis = DB.clis.filter(function(c) { return c.id !== id; });
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbDelete('clientes', 'id=eq.' + id);
   toast('Cliente eliminado', 'ok');
+  audit('eliminar', 'cliente', id, c ? ((c.nombre||'') + ' ' + (c.apellidos||'')).trim() : id, null);
   renderClis();
 }
 
@@ -5264,13 +5332,20 @@ function setRepTipo(el) {
 
 function getRepFechas() {
   var fechas = [];
-  var n = SEL.repTab === 'hoy' ? 1 : SEL.repTab === 'semana' ? 7 : SEL.repTab === 'mes' ? 30 : 3650;
+  var n = SEL.repTab === 'hoy' ? 1
+        : SEL.repTab === 'semana' ? 7
+        : SEL.repTab === 'mes' ? 30
+        : SEL.repTab === 'trimestre' ? 90
+        : 3650;
   for (var i = 0; i < n; i++) {
     var d = new Date(); d.setDate(d.getDate() - i);
     fechas.push(d.toLocaleDateString('es'));
   }
   return fechas;
 }
+
+// Variables globales para charts (para destruirlos antes de re-renderizar)
+var CHART_INGRESOS = null, CHART_PAGOS = null, CHART_SERVICIOS = null;
 
 function renderReporte() {
   var fechas = getRepFechas();
@@ -5290,11 +5365,321 @@ function renderReporte() {
     (SEL.repTipo !== 'ventas' ? '<div class="stat-card"><div class="stat-val" style="color:var(--purple)">' + reps.length + '</div><div class="stat-lbl">Reparaciones</div></div>' +
     '<div class="stat-card"><div class="stat-val" style="color:var(--orange)">' + cur(tR) + '</div><div class="stat-lbl">Ingresos reps</div></div>' : '') +
     '</div>' +
-    '<div class="card"><div class="card-title">Por forma de pago</div>' +
-    Object.entries(pagos).map(function(e) {
-      return '<div class="cierre-stat"><span>' + e[0] + '</span><strong>' + cur(e[1]) + '</strong></div>';
-    }).join('') + '</div>' +
-    '<div style="text-align:center;padding:8px;font-size:18px;font-weight:800;color:var(--green)">Total: ' + cur(tV + tR) + '</div>';
+    '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">Total: ' + cur(tV + tR) + '</div>';
+
+  // Renderizar gráficas (asíncrono para que el DOM se actualice primero)
+  setTimeout(function(){ renderGraficas(ventas, reps, pagos, fechas); }, 50);
+  // Renderizar desglose IVA
+  renderDesgloseIVA(ventas, reps);
+}
+
+function renderGraficas(ventas, reps, pagos, fechas) {
+  if (typeof Chart === 'undefined') return;
+
+  // Tema dark/light aware
+  var isDark = document.body.getAttribute('data-theme') === 'dark';
+  var textColor = isDark ? '#E8ECF1' : '#0F1729';
+  var gridColor = isDark ? '#2A2E37' : '#E2E8F0';
+  Chart.defaults.color = textColor;
+  Chart.defaults.borderColor = gridColor;
+  Chart.defaults.font.family = 'inherit';
+
+  // === Gráfica 1: Evolución de ingresos por día ===
+  var soloDias = SEL.repTab === 'mes' || SEL.repTab === 'trimestre' || SEL.repTab === 'semana';
+  if (soloDias) {
+    document.getElementById('cardChartIngresos').style.display = '';
+    var fechasOrden = fechas.slice().reverse(); // del más antiguo al más reciente
+    var labels = fechasOrden.map(function(f){
+      var p = f.split('/');
+      return p[0] + '/' + p[1];
+    });
+    var dataV = fechasOrden.map(function(f){
+      return ventas.filter(function(v){ return v.fecha === f; }).reduce(function(a,v){ return a+v.total; }, 0);
+    });
+    var dataR = fechasOrden.map(function(f){
+      return reps.filter(function(r){ return r.fechaEntregaReal === f; }).reduce(function(a,r){ return a+r.total; }, 0);
+    });
+    if (CHART_INGRESOS) CHART_INGRESOS.destroy();
+    var ctx = document.getElementById('chartIngresos');
+    if (ctx) {
+      CHART_INGRESOS = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels,
+          datasets: [
+            {label:'Ventas', data:dataV, borderColor:'#0055FF', backgroundColor:'rgba(0,85,255,.10)', fill:true, tension:.3, pointRadius:2},
+            {label:'Reparaciones', data:dataR, borderColor:'#7C3AED', backgroundColor:'rgba(124,58,237,.10)', fill:true, tension:.3, pointRadius:2}
+          ]
+        },
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins: {legend:{position:'bottom', labels:{usePointStyle:true, padding:14}}},
+          scales: {
+            y: {ticks:{callback:function(v){return cur(v);}}, grid:{color:gridColor}},
+            x: {ticks:{maxRotation:0, autoSkip:true, maxTicksLimit:12}, grid:{display:false}}
+          }
+        }
+      });
+    }
+  } else {
+    document.getElementById('cardChartIngresos').style.display = 'none';
+  }
+
+  // === Gráfica 2: Por forma de pago (donut) ===
+  if (CHART_PAGOS) CHART_PAGOS.destroy();
+  var ctxP = document.getElementById('chartPagos');
+  if (ctxP && Object.keys(pagos).length) {
+    CHART_PAGOS = new Chart(ctxP, {
+      type: 'doughnut',
+      data: {
+        labels: Object.keys(pagos),
+        datasets: [{
+          data: Object.values(pagos),
+          backgroundColor: ['#0055FF','#00C896','#F97316','#7C3AED','#EF4444','#FBBF24'],
+          borderWidth: 2,
+          borderColor: isDark ? '#1A1D24' : '#fff'
+        }]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{position:'bottom', labels:{usePointStyle:true, padding:8, font:{size:11}}}}
+      }
+    });
+  } else if (ctxP) {
+    var c = ctxP.getContext('2d');
+    c.clearRect(0,0,ctxP.width,ctxP.height);
+    c.fillStyle = textColor;
+    c.font = '12px sans-serif';
+    c.textAlign = 'center';
+    c.fillText('Sin datos', ctxP.width/2, ctxP.height/2);
+  }
+
+  // === Gráfica 3: Top servicios (bar) ===
+  var topSrv = {};
+  reps.forEach(function(r){
+    var srvs = Array.isArray(r.servicios) ? r.servicios : [];
+    srvs.forEach(function(s){
+      var n = s.nombre || 'Otros';
+      topSrv[n] = (topSrv[n] || 0) + (parseFloat(s.precio) || 0);
+    });
+    // Si no tiene servicios pero tiene mo (legacy), contar averia
+    if (!srvs.length && r.mo > 0) {
+      var nm = r.averia || 'Reparación';
+      topSrv[nm] = (topSrv[nm] || 0) + (parseFloat(r.mo) || 0);
+    }
+  });
+  ventas.forEach(function(v){
+    if (Array.isArray(v.items)) {
+      v.items.forEach(function(it){
+        if (it.tipo === 'servicio') {
+          topSrv[it.nombre] = (topSrv[it.nombre] || 0) + (parseFloat(it.total || it.precio) || 0);
+        }
+      });
+    }
+  });
+  var topArr = Object.entries(topSrv).sort(function(a,b){ return b[1]-a[1]; }).slice(0,5);
+  if (CHART_SERVICIOS) CHART_SERVICIOS.destroy();
+  var ctxS = document.getElementById('chartServicios');
+  if (ctxS && topArr.length) {
+    CHART_SERVICIOS = new Chart(ctxS, {
+      type: 'bar',
+      data: {
+        labels: topArr.map(function(e){ return e[0].length > 20 ? e[0].slice(0,18)+'…' : e[0]; }),
+        datasets: [{
+          data: topArr.map(function(e){ return e[1]; }),
+          backgroundColor: '#00C896',
+          borderRadius: 6
+        }]
+      },
+      options: {
+        indexAxis:'y',
+        responsive:true, maintainAspectRatio:false,
+        plugins:{legend:{display:false}, tooltip:{callbacks:{label:function(ctx){return cur(ctx.raw);}}}},
+        scales: {
+          x: {ticks:{callback:function(v){return cur(v);}}, grid:{color:gridColor}},
+          y: {grid:{display:false}, ticks:{font:{size:11}}}
+        }
+      }
+    });
+  } else if (ctxS) {
+    var c2 = ctxS.getContext('2d');
+    c2.clearRect(0,0,ctxS.width,ctxS.height);
+    c2.fillStyle = textColor;
+    c2.font = '12px sans-serif';
+    c2.textAlign = 'center';
+    c2.fillText('Sin datos de servicios', ctxS.width/2, ctxS.height/2);
+  }
+}
+
+function renderDesgloseIVA(ventas, reps) {
+  // Sumar por tipo de IVA
+  var portipos = {0:{base:0,iva:0,total:0},4:{base:0,iva:0,total:0},10:{base:0,iva:0,total:0},21:{base:0,iva:0,total:0}};
+  function añade(item) {
+    var tipo = item.iva != null ? parseFloat(item.iva) : 21;
+    if (!portipos[tipo]) portipos[tipo] = {base:0,iva:0,total:0};
+    portipos[tipo].base += parseFloat(item.base) || 0;
+    portipos[tipo].iva += parseFloat(item.ivaImporte) || 0;
+    portipos[tipo].total += parseFloat(item.total) || 0;
+  }
+  ventas.forEach(añade);
+  reps.forEach(añade);
+
+  var totalBase = 0, totalIva = 0, totalT = 0;
+  var html = '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+    '<thead><tr style="background:var(--light)">' +
+    '<th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Tipo IVA</th>' +
+    '<th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Base imponible</th>' +
+    '<th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">IVA</th>' +
+    '<th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Total</th>' +
+    '</tr></thead><tbody>';
+  Object.keys(portipos).sort(function(a,b){return parseFloat(a)-parseFloat(b);}).forEach(function(tipo){
+    var d = portipos[tipo];
+    if (d.total === 0) return;
+    totalBase += d.base; totalIva += d.iva; totalT += d.total;
+    html += '<tr>' +
+      '<td style="padding:8px;border-bottom:1px solid var(--border)"><strong>' + tipo + '%</strong></td>' +
+      '<td style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-family:ui-monospace,monospace">' + cur(d.base) + '</td>' +
+      '<td style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-family:ui-monospace,monospace;color:var(--orange)">' + cur(d.iva) + '</td>' +
+      '<td style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-family:ui-monospace,monospace;font-weight:700">' + cur(d.total) + '</td>' +
+      '</tr>';
+  });
+  html += '<tr style="background:rgba(0,200,150,.06)"><td style="padding:10px;font-weight:800">TOTAL</td>' +
+    '<td style="padding:10px;text-align:right;font-family:ui-monospace,monospace;font-weight:800">' + cur(totalBase) + '</td>' +
+    '<td style="padding:10px;text-align:right;font-family:ui-monospace,monospace;font-weight:800;color:var(--orange)">' + cur(totalIva) + '</td>' +
+    '<td style="padding:10px;text-align:right;font-family:ui-monospace,monospace;font-weight:800;color:var(--green)">' + cur(totalT) + '</td></tr>';
+  html += '</tbody></table>';
+  document.getElementById('ivaDesglose').innerHTML = html;
+}
+
+// === PDF para gestor: imprimible profesional ===
+function generarPDFGestor() {
+  var fechas = getRepFechas();
+  var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && fechas.includes(v.fecha); });
+  var reps = DB.reps.filter(function(r) { return r.estado === 'Entregado' && fechas.includes(r.fechaEntregaReal); });
+
+  // Calcular totales por tipo de IVA
+  var portipos = {0:{base:0,iva:0,total:0},4:{base:0,iva:0,total:0},10:{base:0,iva:0,total:0},21:{base:0,iva:0,total:0}};
+  function añade(it) {
+    var tipo = it.iva != null ? parseFloat(it.iva) : 21;
+    if (!portipos[tipo]) portipos[tipo] = {base:0,iva:0,total:0};
+    portipos[tipo].base += parseFloat(it.base) || 0;
+    portipos[tipo].iva += parseFloat(it.ivaImporte) || 0;
+    portipos[tipo].total += parseFloat(it.total) || 0;
+  }
+  ventas.forEach(añade); reps.forEach(añade);
+  var totalBase = 0, totalIva = 0, totalT = 0;
+  Object.values(portipos).forEach(function(d){ totalBase += d.base; totalIva += d.iva; totalT += d.total; });
+
+  // Pagos
+  var pagos = {};
+  ventas.forEach(function(v) { pagos[v.pago||'Sin especificar'] = (pagos[v.pago||'Sin especificar'] || 0) + v.total; });
+  reps.forEach(function(r) { if (r.pagoFinal) pagos[r.pagoFinal] = (pagos[r.pagoFinal] || 0) + r.total; });
+
+  var labelPeriodo = ({hoy:'Hoy', semana:'Última semana', mes:'Último mes', trimestre:'Último trimestre', total:'Histórico completo'})[SEL.repTab] || SEL.repTab;
+  var fechaIni = fechas[fechas.length-1];
+  var fechaFin = fechas[0];
+  var hoy = new Date().toLocaleDateString('es');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Reporte ' + labelPeriodo + '</title>' +
+  '<style>' +
+    '@page{size:A4;margin:1.6cm}' +
+    'body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;color:#1a1a1a;margin:0;padding:0;font-size:11pt;line-height:1.5}' +
+    'h1{font-size:20pt;margin:0 0 4px;letter-spacing:-0.5px;color:#0a0a0a}' +
+    'h2{font-size:13pt;margin:24px 0 10px;border-bottom:2px solid #00C896;padding-bottom:4px;letter-spacing:-0.3px}' +
+    '.head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:14px;border-bottom:2px solid #0a0a0a}' +
+    '.head-left h1{margin-bottom:4px}' +
+    '.head-left .sub{color:#666;font-size:10pt}' +
+    '.head-right{text-align:right;font-size:9pt;color:#666;line-height:1.6}' +
+    '.head-right strong{color:#0a0a0a;font-size:10pt}' +
+    '.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:18px}' +
+    '.kpi{background:#FAFAFA;border:1px solid #eee;padding:14px;border-radius:8px}' +
+    '.kpi-lbl{font-size:8pt;text-transform:uppercase;letter-spacing:.5px;color:#888;font-weight:700;margin-bottom:4px}' +
+    '.kpi-val{font-size:18pt;font-weight:800;color:#0a0a0a;letter-spacing:-0.5px}' +
+    'table{width:100%;border-collapse:collapse;margin:8px 0;font-size:10pt}' +
+    'th{background:#0a0a0a;color:white;padding:8px 10px;text-align:left;font-size:9pt;text-transform:uppercase;letter-spacing:.4px;font-weight:700}' +
+    'th.r{text-align:right}' +
+    'td{padding:7px 10px;border-bottom:1px solid #eee}' +
+    'td.r{text-align:right;font-family:ui-monospace,Menlo,monospace}' +
+    'tr.tot{background:#F0FAF6;font-weight:800}' +
+    'tr.tot td{border-bottom:none;padding:10px}' +
+    '.note{margin-top:30px;padding:14px;background:#FAFAFA;border-radius:8px;font-size:9pt;color:#666}' +
+    '.signatures{display:grid;grid-template-columns:1fr 1fr;gap:60px;margin-top:60px}' +
+    '.sig{border-top:1px solid #999;padding-top:6px;text-align:center;font-size:9pt;color:#666}' +
+    '@media print{body{padding:0}}' +
+  '</style></head><body>' +
+
+  '<div class="head">' +
+    '<div class="head-left">' +
+      '<h1>' + esc(TIENDA.nombre || 'TekPair') + '</h1>' +
+      '<div class="sub">Reporte de actividad — ' + labelPeriodo + '</div>' +
+    '</div>' +
+    '<div class="head-right">' +
+      '<strong>' + esc(TIENDA.nombre || '') + '</strong><br>' +
+      (TIENDA.cif ? 'CIF: ' + esc(TIENDA.cif) + '<br>' : '') +
+      (TIENDA.dir ? esc(TIENDA.dir) + '<br>' : '') +
+      (TIENDA.tel ? 'Tel: ' + esc(TIENDA.tel) + '<br>' : '') +
+      (TIENDA.email ? esc(TIENDA.email) + '<br>' : '') +
+      '<br>Generado: ' + hoy +
+    '</div>' +
+  '</div>' +
+
+  '<div style="background:#F0FAF6;border-left:4px solid #00C896;padding:12px 16px;margin-bottom:18px;font-size:10pt">' +
+    '<strong>Periodo:</strong> ' + (SEL.repTab === 'total' ? 'Histórico completo' : 'Del ' + fechaIni + ' al ' + fechaFin) +
+  '</div>' +
+
+  '<div class="kpis">' +
+    '<div class="kpi"><div class="kpi-lbl">Ventas</div><div class="kpi-val">' + ventas.length + '</div></div>' +
+    '<div class="kpi"><div class="kpi-lbl">Reparaciones</div><div class="kpi-val">' + reps.length + '</div></div>' +
+    '<div class="kpi"><div class="kpi-lbl">Base imponible</div><div class="kpi-val">' + cur(totalBase) + '</div></div>' +
+    '<div class="kpi"><div class="kpi-lbl">Total facturado</div><div class="kpi-val" style="color:#00A87D">' + cur(totalT) + '</div></div>' +
+  '</div>' +
+
+  '<h2>Desglose por tipo de IVA</h2>' +
+  '<table><thead><tr><th>Tipo IVA</th><th class="r">Base imponible</th><th class="r">Cuota IVA</th><th class="r">Total</th></tr></thead><tbody>' +
+  Object.keys(portipos).sort(function(a,b){return parseFloat(a)-parseFloat(b);}).filter(function(t){return portipos[t].total > 0;}).map(function(tipo){
+    var d = portipos[tipo];
+    return '<tr><td><strong>' + tipo + '%</strong></td>' +
+      '<td class="r">' + cur(d.base) + '</td>' +
+      '<td class="r">' + cur(d.iva) + '</td>' +
+      '<td class="r">' + cur(d.total) + '</td></tr>';
+  }).join('') +
+  '<tr class="tot"><td>TOTAL</td><td class="r">' + cur(totalBase) + '</td><td class="r">' + cur(totalIva) + '</td><td class="r">' + cur(totalT) + '</td></tr>' +
+  '</tbody></table>' +
+
+  (Object.keys(pagos).length ? '<h2>Cobros por forma de pago</h2>' +
+  '<table><thead><tr><th>Forma de pago</th><th class="r">Importe</th></tr></thead><tbody>' +
+  Object.entries(pagos).map(function(e){
+    return '<tr><td>' + esc(e[0]) + '</td><td class="r">' + cur(e[1]) + '</td></tr>';
+  }).join('') + '</tbody></table>' : '') +
+
+  (ventas.length ? '<h2>Listado de ventas (' + ventas.length + ')</h2>' +
+  '<table><thead><tr><th>Fecha</th><th>Cliente</th><th>Concepto</th><th>Pago</th><th class="r">Base</th><th class="r">IVA</th><th class="r">Total</th></tr></thead><tbody>' +
+  ventas.map(function(v){
+    var concepto = (v.items && v.items.length) ? v.items.map(function(it){ return it.nombre + (it.cantidad>1?' x'+it.cantidad:''); }).join(', ') : (v.modelo || '');
+    if (concepto.length > 60) concepto = concepto.slice(0,58)+'…';
+    return '<tr><td>' + v.fecha + '</td><td>' + esc(v.clienteNombre || '—') + '</td><td>' + esc(concepto) + '</td><td>' + esc(v.pago||'') + '</td>' +
+      '<td class="r">' + cur(v.base||0) + '</td><td class="r">' + cur(v.ivaImporte||0) + '</td><td class="r">' + cur(v.total) + '</td></tr>';
+  }).join('') + '</tbody></table>' : '') +
+
+  (reps.length ? '<h2>Listado de reparaciones (' + reps.length + ')</h2>' +
+  '<table><thead><tr><th>Fecha entrega</th><th>Cliente</th><th>Equipo</th><th>Pago</th><th class="r">Base</th><th class="r">IVA</th><th class="r">Total</th></tr></thead><tbody>' +
+  reps.map(function(r){
+    return '<tr><td>' + (r.fechaEntregaReal||'—') + '</td><td>' + esc(r.clienteNombre || '—') + '</td><td>' + esc((r.marca||'') + ' ' + (r.modelo||'')) + '</td><td>' + esc(r.pagoFinal||'') + '</td>' +
+      '<td class="r">' + cur(r.base||0) + '</td><td class="r">' + cur(r.ivaImporte||0) + '</td><td class="r">' + cur(r.total) + '</td></tr>';
+  }).join('') + '</tbody></table>' : '') +
+
+  '<div class="note">Documento generado automáticamente por TekPair el ' + new Date().toLocaleString('es') + '. Los importes y datos reflejados se han extraído directamente del sistema de gestión de la tienda. Para cualquier discrepancia consultar al responsable.</div>' +
+
+  '<div class="signatures"><div class="sig">Firma del responsable</div><div class="sig">Firma del gestor</div></div>' +
+
+  '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
+  '</body></html>';
+
+  var win = window.open('', '_blank');
+  if (!win) { toast('Permite popups para generar el PDF', 'err'); return; }
+  win.document.write(html);
+  win.document.close();
+  audit('exportar', 'reporte', '', 'PDF gestor — ' + labelPeriodo, null);
 }
 
 function verReportePDF() {
@@ -7606,7 +7991,100 @@ document.addEventListener('click', function(e){
       setTimeout(function(){ if (typeof renderReps === 'function') renderReps(); }, 50);
     });
   });
-})();// ═══ BACKUP / EXPORT / IMPORT ═══
+})();// ═══ MODAL HISTORIAL DE ACTIVIDAD ═══
+function abrirAuditoria() {
+  if (!U || U.rol !== 'admin') { toast('Solo admin', 'err'); return; }
+  // Poblar dropdown usuarios
+  var sel = document.getElementById('audFiltroUsuario');
+  if (sel) {
+    var usuarios = {};
+    (DB.audit || []).forEach(function(a){
+      if (a.usuarioId) usuarios[a.usuarioId] = a.usuarioNom || a.usuarioId;
+    });
+    sel.innerHTML = '<option value="">Todos</option>' + Object.keys(usuarios).map(function(uid){
+      return '<option value="' + esc(uid) + '">' + esc(usuarios[uid]) + '</option>';
+    }).join('');
+  }
+  document.getElementById('audFiltroAccion').value = '';
+  document.getElementById('audFiltroEntidad').value = '';
+  document.getElementById('audFiltroTexto').value = '';
+  renderAuditoria();
+  openM('mAuditoria');
+}
+
+function renderAuditoria() {
+  var tbody = document.getElementById('audTbody');
+  if (!tbody) return;
+  var entries = (DB.audit || []).slice();
+  var fU = document.getElementById('audFiltroUsuario').value;
+  var fA = document.getElementById('audFiltroAccion').value;
+  var fE = document.getElementById('audFiltroEntidad').value;
+  var fT = (document.getElementById('audFiltroTexto').value || '').toLowerCase().trim();
+
+  if (fU) entries = entries.filter(function(a){ return a.usuarioId === fU; });
+  if (fA) entries = entries.filter(function(a){ return a.accion === fA; });
+  if (fE) entries = entries.filter(function(a){ return a.entidad === fE; });
+  if (fT) entries = entries.filter(function(a){
+    return ((a.detalle||'') + ' ' + (a.usuarioNom||'') + ' ' + (a.entidadId||'')).toLowerCase().indexOf(fT) !== -1;
+  });
+
+  // Limitar a 500 para rendimiento
+  var totalFiltradas = entries.length;
+  entries = entries.slice(0, 500);
+
+  document.getElementById('audResumen').textContent = totalFiltradas + ' actividad' + (totalFiltradas===1?'':'es') + (totalFiltradas > 500 ? ' (mostrando últimas 500)' : '');
+
+  if (!entries.length) {
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--muted)">Sin actividad registrada con esos filtros</td></tr>';
+    return;
+  }
+
+  var iconAccion = {
+    crear: '🟢', editar: '🟡', eliminar: '🔴', cambio_estado: '🔄'
+  };
+  var iconEntidad = {
+    reparacion: '🔧', venta: '💰', cliente: '👤', stock: '📦', servicio: '🛠️'
+  };
+
+  tbody.innerHTML = entries.map(function(a) {
+    var d = new Date(a.ts);
+    var fechaStr = d.toLocaleDateString('es') + ' ' + d.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+    var ico = iconAccion[a.accion] || '•';
+    var icoE = iconEntidad[a.entidad] || '';
+    var accionLabel = ({crear:'Creó', editar:'Editó', eliminar:'Eliminó', cambio_estado:'Cambió estado'})[a.accion] || a.accion;
+    return '<tr>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-size:11px;color:var(--muted)">' + fechaStr + '</td>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-weight:600">' + esc(a.usuarioNom || '?') + '</td>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap">' + ico + ' ' + accionLabel + ' ' + icoE + ' <span style="color:var(--muted);font-size:11px">' + esc(a.entidad) + '</span></td>' +
+      '<td style="padding:8px 10px;border-bottom:1px solid var(--border);font-size:11px">' + esc(a.detalle || '') + '</td>' +
+    '</tr>';
+  }).join('');
+}
+
+function exportarAuditoria() {
+  var entries = DB.audit || [];
+  if (!entries.length) { toast('Sin datos', 'err'); return; }
+  var hdr = 'Fecha,Usuario,Accion,Entidad,EntidadID,Detalle\n';
+  function esc2(s) { if (s == null) return ''; return '"' + String(s).replace(/"/g, '""') + '"'; }
+  var csv = hdr + entries.map(function(a){
+    return [a.ts, a.usuarioNom, a.accion, a.entidad, a.entidadId, a.detalle].map(esc2).join(',');
+  }).join('\n');
+  var blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
+  var d = new Date();
+  var fecha = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  downloadBlob(blob, 'tekpair-auditoria-' + fecha + '.csv');
+  toast('✓ Auditoría exportada', 'ok');
+}
+
+// Mostrar card de auditoría solo a admin
+setTimeout(function(){
+  if (U && U.rol === 'admin') {
+    var card = document.getElementById('cardAuditoria');
+    if (card) card.style.display = '';
+  }
+}, 1000);
+
+// ═══ BACKUP / EXPORT / IMPORT ═══
 
 function downloadBlob(blob, filename) {
   var url = URL.createObjectURL(blob);
@@ -8215,6 +8693,59 @@ function impFacAnadirAlStock() {
     <div class="search-global-help">
       <span><span class="kbd">↑↓</span> navegar · <span class="kbd">↵</span> abrir · <span class="kbd">Esc</span> cerrar</span>
       <span id="busquedaGlobalCount"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL HISTORIAL DE ACTIVIDAD ═══ -->
+<div class="modal-bg" id="mAuditoria">
+  <div class="modal" style="max-width:920px">
+    <div class="modal-h"><span>📜 Historial de actividad</span><span class="cls" onclick="closeM('mAuditoria')">×</span></div>
+
+    <!-- Filtros -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px">
+      <div class="fg" style="margin:0"><label class="fl">Usuario</label>
+        <select class="fi" id="audFiltroUsuario" onchange="renderAuditoria()" style="font-size:12px"><option value="">Todos</option></select>
+      </div>
+      <div class="fg" style="margin:0"><label class="fl">Acción</label>
+        <select class="fi" id="audFiltroAccion" onchange="renderAuditoria()" style="font-size:12px">
+          <option value="">Todas</option>
+          <option value="crear">Crear</option>
+          <option value="editar">Editar</option>
+          <option value="eliminar">Eliminar</option>
+          <option value="cambio_estado">Cambio estado</option>
+        </select>
+      </div>
+      <div class="fg" style="margin:0"><label class="fl">Entidad</label>
+        <select class="fi" id="audFiltroEntidad" onchange="renderAuditoria()" style="font-size:12px">
+          <option value="">Todas</option>
+          <option value="reparacion">Reparación</option>
+          <option value="venta">Venta</option>
+          <option value="cliente">Cliente</option>
+        </select>
+      </div>
+      <div class="fg" style="margin:0"><label class="fl">Buscar</label>
+        <input class="fi" id="audFiltroTexto" placeholder="Texto..." oninput="renderAuditoria()" style="font-size:12px">
+      </div>
+    </div>
+
+    <div id="audResumen" style="font-size:11px;color:var(--muted);margin-bottom:8px"></div>
+    <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;max-height:55vh;overflow-y:auto">
+      <table style="width:100%;border-collapse:collapse;font-size:12px">
+        <thead style="background:var(--light);position:sticky;top:0">
+          <tr>
+            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Fecha y hora</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Usuario</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Acción</th>
+            <th style="padding:8px 10px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Detalle</th>
+          </tr>
+        </thead>
+        <tbody id="audTbody"></tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:12px">
+      <button type="button" class="btn-secondary" style="flex:1" onclick="exportarAuditoria()">📥 Exportar CSV</button>
+      <button type="button" class="btn-secondary" style="flex:1" onclick="closeM('mAuditoria')">Cerrar</button>
     </div>
   </div>
 </div>
