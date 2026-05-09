@@ -1557,7 +1557,10 @@ async function syncCompleto(silencioso) {
   if (!SB_KEY || !TIENDA_ID) return;
   _syncEnCurso = true;
   try {
-    await cargarDatosSupabase();
+    await Promise.all([
+      cargarDatosSupabase(),
+      _pullNotifRead()
+    ]);
     refrescarVistasActivas();
     if (!silencioso && typeof toast === 'function') toast('Sincronizado', 'ok');
   } finally {
@@ -4243,6 +4246,31 @@ function computeNotificaciones() {
 function _getRead() { return JSON.parse(localStorage.getItem('tk_notif_read') || '{}'); }
 function _saveRead(d) { localStorage.setItem('tk_notif_read', JSON.stringify(d)); }
 
+// Sync notif_read con Supabase (por usuario)
+function _pushNotifRead() {
+  if (!SB_KEY || !U || !U.id) return;
+  var ids = Object.keys(_getRead());
+  sbPatch('usuarios', 'id=eq.' + U.id, {notif_read: ids});
+}
+
+async function _pullNotifRead() {
+  if (!SB_KEY || !U || !U.id) return;
+  try {
+    var rows = await sbGet('usuarios', 'id=eq.' + U.id);
+    if (!Array.isArray(rows) || !rows.length) return;
+    var remoteIds = rows[0].notif_read || [];
+    if (!Array.isArray(remoteIds)) return;
+    // Merge: union de local + remoto (lo leído en cualquier dispositivo cuenta)
+    var local = _getRead();
+    var hoy = new Date().toLocaleDateString('es');
+    var changed = false;
+    remoteIds.forEach(function(id) {
+      if (!local[id]) { local[id] = hoy; changed = true; }
+    });
+    if (changed) _saveRead(local);
+  } catch(e) { console.error('Pull notif_read error:', e); }
+}
+
 // Migración una sola vez: descartadas anteriores → leídas
 (function _migrarDismissedARead(){
   if (localStorage.getItem('tk_notif_migrated_v1')) return;
@@ -4383,6 +4411,7 @@ function marcarLeida(id, leida) {
   if (leida) d[id] = new Date().toLocaleDateString('es');
   else delete d[id];
   _saveRead(d);
+  _pushNotifRead();
   refreshNotifs();
 }
 
@@ -4396,6 +4425,7 @@ function marcarTodasLeidas() {
   var hoy = new Date().toLocaleDateString('es');
   current.forEach(function(n){ read[n.id] = hoy; });
   _saveRead(read);
+  _pushNotifRead();
   toast(current.length + ' marcadas como leídas', 'ok');
   refreshNotifs();
 }
@@ -4409,6 +4439,7 @@ function marcarTodasNoLeidas() {
   if (!confirm('¿Marcar como NO leídas las ' + current.length + ' notificaciones' + (notifFilter ? ' visibles' : '') + '?')) return;
   current.forEach(function(n){ delete read[n.id]; });
   _saveRead(read);
+  _pushNotifRead();
   toast(current.length + ' marcadas como no leídas', 'ok');
   refreshNotifs();
 }
