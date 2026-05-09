@@ -74,6 +74,11 @@ body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .notif-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;line-height:1;flex-shrink:0;margin-top:2px}
 .notif-close:hover{color:var(--red)}
 .notif-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
+.notif-actions{padding:8px 12px;border-bottom:1px solid var(--border);display:flex;gap:6px;flex-wrap:wrap;align-items:center;background:#FAFBFD}
+.notif-chip{font-size:11px;font-weight:700;padding:5px 10px;border-radius:14px;border:1px solid var(--border);background:white;color:var(--muted);cursor:pointer;font-family:inherit;white-space:nowrap}
+.notif-chip.active{background:var(--blue);color:white;border-color:var(--blue)}
+.notif-clear{margin-left:auto;font-size:11px;font-weight:700;padding:5px 10px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.05);color:var(--red);cursor:pointer;font-family:inherit;white-space:nowrap}
+.notif-clear:hover{background:rgba(239,68,68,.1)}
 .content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .navbar{background:white;border-top:1px solid var(--border);display:flex;flex-shrink:0;position:relative;z-index:10}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 10px;cursor:pointer;color:var(--muted);font-size:9px;font-weight:600;gap:3px;transition:color .15s}
@@ -299,6 +304,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div><span class="notif-head-title">🔔 Notificaciones</span><span class="notif-head-count" id="notifHeadCount"></span></div>
     <button class="notif-close" onclick="toggleNotifs()" style="font-size:18px">×</button>
   </div>
+  <div class="notif-actions" id="notifActions"></div>
   <div class="notif-list" id="notifList"></div>
 </div>
 
@@ -601,8 +607,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <input type="checkbox" id="ajNotifUrgente"> ⚡ Entrega urgente (&lt; 2 días)
     </label>
     <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:6px 0">
-      <input type="checkbox" id="ajNotifAbandono"> 📦 Posible abandono (&gt; 30 días)
+      <input type="checkbox" id="ajNotifAbandono"> 📦 Posible abandono
     </label>
+    <div style="padding-left:24px;margin-bottom:6px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
+      Avisar a partir de
+      <input type="number" id="ajDiasAbandono" min="7" max="365" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;text-align:center">
+      días
+    </div>
     <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:6px 0">
       <input type="checkbox" id="ajNotifStock"> 📦 Stock bajo mínimo
     </label>
@@ -1139,7 +1150,7 @@ var SB_KEY = '';
 var TIENDA_ID = '';
 var U = null;
 var TIENDA = {nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',garantia:'',politica:'',logo_url:''};
-var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
+var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
 
 // ═══ DB ═══
 var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[]};
@@ -1189,6 +1200,7 @@ window.addEventListener('DOMContentLoaded', function() {
     AJUSTES.notif = AJUSTES.notif || {};
     AJUSTES.notif.activa = Object.assign({vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true}, aj.notif.activa || {});
     AJUSTES.notif.plantillaCumple = aj.notif.plantillaCumple || AJUSTES.notif.plantillaCumple;
+    if (aj.notif.diasAbandono != null) AJUSTES.notif.diasAbandono = parseInt(aj.notif.diasAbandono) || 90;
   }
 
   // Load local data
@@ -3781,6 +3793,7 @@ function cargarAjustes() {
   document.getElementById('ajNotifRecibida').checked = n.recibidaHoy !== false;
   document.getElementById('ajNotifCumple').checked = n.cumple !== false;
   document.getElementById('ajPlantillaCumple').value = (AJUSTES.notif && AJUSTES.notif.plantillaCumple) || '¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉';
+  document.getElementById('ajDiasAbandono').value = (AJUSTES.notif && AJUSTES.notif.diasAbandono) || 90;
   toggleCumpleCfg();
 }
 
@@ -3819,6 +3832,8 @@ function guardarAjustes() {
     cumple: document.getElementById('ajNotifCumple').checked
   };
   AJUSTES.notif.plantillaCumple = document.getElementById('ajPlantillaCumple').value.trim() || '¡Feliz cumpleaños {nombre}!';
+  AJUSTES.notif.diasAbandono = parseInt(document.getElementById('ajDiasAbandono').value) || 90;
+  if (AJUSTES.notif.diasAbandono < 7) AJUSTES.notif.diasAbandono = 7;
   localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {iva_config: AJUSTES.iva});
   if (typeof refreshNotifs === 'function') refreshNotifs();
@@ -3888,13 +3903,14 @@ function computeNotificaciones() {
   var hoyES = new Date().toLocaleDateString('es');
   var nowMs = Date.now();
   var nf = (AJUSTES.notif && AJUSTES.notif.activa) || {};
+  var diasAbandono = (AJUSTES.notif && AJUSTES.notif.diasAbandono) || 90;
 
   function add(n) {
     if (dismissed[n.id]) return;
     notifs.push(n);
   }
 
-  // 1. Reparaciones: urgente / vencida / abandonada / nueva hoy
+  // 1. Reparaciones
   (DB.reps || []).forEach(function(r) {
     if (r.estado !== 'Entregado') {
       if (r.fechaEntrega) {
@@ -3902,10 +3918,10 @@ function computeNotificaciones() {
         if (fe) {
           var diff = Math.ceil((fe - hoyDate) / 86400000);
           if (diff < 0 && nf.vencida !== false) {
-            add({id:'venc_'+r.id, icon:'⏰', color:'#EF4444', titulo:'Reparación vencida',
+            add({id:'venc_'+r.id, tipo:'reparaciones', icon:'⏰', color:'#EF4444', titulo:'Reparación vencida',
               detalle:r.clienteNombre+' · '+(r.modelo||'')+' · '+Math.abs(diff)+'d', href:'pReps', prio:0, manual:false});
           } else if (diff < 2 && diff >= 0 && nf.urgente !== false) {
-            add({id:'urg_'+r.id, icon:'⚡', color:'#F59E0B', titulo:'Entrega urgente',
+            add({id:'urg_'+r.id, tipo:'reparaciones', icon:'⚡', color:'#F59E0B', titulo:'Entrega urgente',
               detalle:r.clienteNombre+' · '+(r.modelo||'')+' · en '+diff+'d', href:'pReps', prio:0, manual:false});
           }
         }
@@ -3914,15 +3930,15 @@ function computeNotificaciones() {
         var fc = _parseDateAny(r.fecha);
         if (fc) {
           var dias = Math.floor((nowMs - fc.getTime()) / 86400000);
-          if (dias > 30) {
-            add({id:'abandon_'+r.id, icon:'📦', color:'#6B7280', titulo:'Posible abandono',
+          if (dias > diasAbandono) {
+            add({id:'abandon_'+r.id, tipo:'reparaciones', icon:'📦', color:'#6B7280', titulo:'Posible abandono',
               detalle:r.clienteNombre+' · '+dias+'d sin entregar', href:'pReps', prio:1, manual:true});
           }
         }
       }
     }
     if (r.fecha === hoyES && nf.recibidaHoy !== false) {
-      add({id:'hoy_'+r.id, icon:'🔧', color:'#0055FF', titulo:'Reparación recibida hoy',
+      add({id:'hoy_'+r.id, tipo:'reparaciones', icon:'🔧', color:'#0055FF', titulo:'Reparación recibida hoy',
         detalle:r.clienteNombre+' · '+(r.modelo||''), href:'pReps', prio:2, manual:true});
     }
   });
@@ -3932,7 +3948,7 @@ function computeNotificaciones() {
     (DB.stock || []).forEach(function(s) {
       var min = s.stockMin || 0;
       if (s.unidades > 0 && s.unidades <= min) {
-        add({id:'stock_'+s.id, icon:'📦', color:'#F97316', titulo:'Stock bajo',
+        add({id:'stock_'+s.id, tipo:'stock', icon:'📦', color:'#F97316', titulo:'Stock bajo',
           detalle:(s.marca?s.marca+' ':'')+s.modelo+' · '+s.unidades+' uds (mín '+min+')',
           href:'pStock', prio:1, manual:false});
       }
@@ -3948,11 +3964,11 @@ function computeNotificaciones() {
       if (!fc) return;
       var diff = Math.ceil((fc - hoyDate) / 86400000);
       if (diff < 0 && nf.cuotaVencida !== false) {
-        add({id:'cv_'+v.id+'_'+idx, icon:'💰', color:'#EF4444', titulo:'Cuota vencida',
+        add({id:'cv_'+v.id+'_'+idx, tipo:'cuotas', icon:'💰', color:'#EF4444', titulo:'Cuota vencida',
           detalle:v.clienteNombre+' · #'+(idx+1)+' · '+cur(c.importe)+' ('+Math.abs(diff)+'d)',
           href:'pVentas', prio:0, manual:false});
       } else if (diff <= 3 && diff >= 0 && nf.cuotaProxima !== false) {
-        add({id:'cp_'+v.id+'_'+idx, icon:'💰', color:'#F59E0B', titulo:'Cuota próxima',
+        add({id:'cp_'+v.id+'_'+idx, tipo:'cuotas', icon:'💰', color:'#F59E0B', titulo:'Cuota próxima',
           detalle:v.clienteNombre+' · #'+(idx+1)+' · '+cur(c.importe)+' · en '+diff+'d',
           href:'pVentas', prio:1, manual:false});
       }
@@ -3967,7 +3983,7 @@ function computeNotificaciones() {
       if (!d) return;
       var hoyD = new Date();
       if (d.getDate() === hoyD.getDate() && d.getMonth() === hoyD.getMonth()) {
-        add({id:'cumple_'+c.id, icon:'🎂', color:'#EC4899', titulo:'Cumpleaños hoy',
+        add({id:'cumple_'+c.id, tipo:'cumples', icon:'🎂', color:'#EC4899', titulo:'Cumpleaños hoy',
           detalle:c.nombre+(c.apellidos?' '+c.apellidos:''), href:'pClis', prio:2, manual:true,
           accion:{tipo:'felicitar', clienteId:c.id}});
       }
@@ -3978,12 +3994,17 @@ function computeNotificaciones() {
   return notifs;
 }
 
+var notifFilter = '';
+
 function refreshNotifs() {
   var list = computeNotificaciones();
   var bell = document.getElementById('notifBadge');
   var headCount = document.getElementById('notifHeadCount');
   var listEl = document.getElementById('notifList');
+  var actionsEl = document.getElementById('notifActions');
   if (!bell || !listEl) return;
+
+  // Badge cuenta total (sin filtro)
   if (list.length > 0) {
     bell.textContent = list.length > 99 ? '99+' : list.length;
     bell.classList.add('show');
@@ -3991,11 +4012,38 @@ function refreshNotifs() {
     bell.classList.remove('show');
   }
   if (headCount) headCount.textContent = list.length ? '(' + list.length + ')' : '';
-  if (!list.length) {
-    listEl.innerHTML = '<div class="notif-empty">Sin notificaciones 🎉</div>';
+
+  // Chips por tipo (solo los que tienen al menos 1)
+  var counts = {};
+  list.forEach(function(n) { counts[n.tipo] = (counts[n.tipo] || 0) + 1; });
+  var labels = {reparaciones:'⏰ Reparaciones', stock:'📦 Stock', cuotas:'💰 Cuotas', cumples:'🎂 Cumples'};
+
+  if (actionsEl) {
+    if (list.length === 0) {
+      actionsEl.style.display = 'none';
+    } else {
+      actionsEl.style.display = 'flex';
+      var chipsHtml = '<button class="notif-chip ' + (notifFilter === '' ? 'active' : '') + '" onclick="setNotifFilter(\'\')">Todas (' + list.length + ')</button>';
+      Object.keys(labels).forEach(function(k) {
+        if (!counts[k]) return;
+        chipsHtml += '<button class="notif-chip ' + (notifFilter === k ? 'active' : '') + '" onclick="setNotifFilter(\'' + k + '\')">' + labels[k] + ' (' + counts[k] + ')</button>';
+      });
+      chipsHtml += '<button class="notif-clear" onclick="marcarTodasLeidas()">✓ Marcar leídas</button>';
+      actionsEl.innerHTML = chipsHtml;
+    }
+  }
+
+  // Aplicar filtro
+  var filtered = notifFilter ? list.filter(function(n){ return n.tipo === notifFilter; }) : list;
+
+  if (!filtered.length) {
+    listEl.innerHTML = list.length === 0
+      ? '<div class="notif-empty">Sin notificaciones 🎉</div>'
+      : '<div class="notif-empty">Sin notificaciones de este tipo</div>';
     return;
   }
-  listEl.innerHTML = list.map(function(n) {
+
+  listEl.innerHTML = filtered.map(function(n) {
     var bg = n.color + '22';
     var closeBtn = n.manual ? '<button class="notif-close" onclick="event.stopPropagation();dismissNotif(\'' + n.id + '\')">×</button>' : '';
     var actionBtn = '';
@@ -4008,6 +4056,24 @@ function refreshNotifs() {
       '<div class="notif-detail">' + n.detalle + '</div>' + actionBtn + '</div>' +
       closeBtn + '</div>';
   }).join('');
+}
+
+function setNotifFilter(tipo) {
+  notifFilter = tipo;
+  refreshNotifs();
+}
+
+function marcarTodasLeidas() {
+  var list = computeNotificaciones();
+  var visibles = notifFilter ? list.filter(function(n){ return n.tipo === notifFilter; }) : list;
+  if (!visibles.length) return;
+  if (!confirm('¿Marcar como leídas las ' + visibles.length + ' notificaciones' + (notifFilter ? ' visibles' : '') + '?')) return;
+  var d = _getDismissed();
+  var hoy = new Date().toLocaleDateString('es');
+  visibles.forEach(function(n){ d[n.id] = hoy; });
+  _saveDismissed(d);
+  toast(visibles.length + ' marcadas como leídas', 'ok');
+  refreshNotifs();
 }
 
 function felicitarCumple(cliId) {
