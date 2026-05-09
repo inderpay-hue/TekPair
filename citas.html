@@ -275,13 +275,9 @@ function renderApp() {
 
 function renderPaso1() {
   var html = '<div class="card"><div class="card-title">📋 ¿Qué necesitas?</div>';
-  if (!STATE.servicios.length) {
-    html += '<div class="empty">Esta tienda aún no tiene servicios configurados. Contacta directamente.</div>';
-    if (STATE.tienda.tel) html += '<a href="tel:' + esc(STATE.tienda.tel) + '" class="btn btn-primary" style="text-decoration:none;display:block;margin-top:14px">📞 Llamar al ' + esc(STATE.tienda.tel) + '</a>';
-    html += '</div>';
-    return html;
-  }
   html += '<div class="srv-list">';
+
+  // Servicios del catálogo (si hay)
   STATE.servicios.forEach(function(s) {
     var sel = STATE.servicio && STATE.servicio.id === s.id ? 'selected' : '';
     html += '<div class="srv-item ' + sel + '" data-srv="' + s.id + '">';
@@ -295,7 +291,27 @@ function renderPaso1() {
     }
     html += '</div>';
   });
-  // Opción "Otro"
+
+  // Si no hay servicios, mostrar opciones genéricas
+  if (!STATE.servicios.length) {
+    var genericos = [
+      {id:'__pantalla__', nombre:'Cambio de pantalla', cat:'Reparación frecuente'},
+      {id:'__bateria__', nombre:'Cambio de batería', cat:'Reparación frecuente'},
+      {id:'__carga__', nombre:'No carga / problema de carga', cat:'Diagnóstico'},
+      {id:'__agua__', nombre:'Líquidos / humedad', cat:'Diagnóstico'},
+      {id:'__diagnostico__', nombre:'Diagnóstico (no sé qué le pasa)', cat:'Diagnóstico'}
+    ];
+    genericos.forEach(function(g) {
+      var sel = STATE.servicio && STATE.servicio.id === g.id ? 'selected' : '';
+      html += '<div class="srv-item ' + sel + '" data-srv="' + g.id + '">';
+      html += '<div><div class="srv-item-name">' + esc(g.nombre) + '</div>';
+      html += '<div class="srv-item-cat">' + esc(g.cat) + '</div></div>';
+      html += '<div class="srv-item-price" style="color:var(--muted);font-size:11px">A consultar</div>';
+      html += '</div>';
+    });
+  }
+
+  // Opción "Otro" siempre visible
   html += '<div class="srv-item ' + (STATE.servicio && STATE.servicio.id === '__otro__' ? 'selected' : '') + '" data-srv="__otro__">';
   html += '<div><div class="srv-item-name">📝 Otro / consultar</div>';
   html += '<div class="srv-item-cat">Describe tu problema en el siguiente paso</div></div>';
@@ -488,8 +504,20 @@ function attachHandlers() {
   document.querySelectorAll('.srv-item').forEach(function(el){
     el.addEventListener('click', function(){
       var sid = this.dataset.srv;
-      if (sid === '__otro__') STATE.servicio = {id:'__otro__', nombre:'Consultar', precio:0};
-      else STATE.servicio = STATE.servicios.find(function(s){ return s.id === sid; });
+      if (sid && sid.indexOf('__') === 0) {
+        // Opciones genéricas (sin servicio en BD)
+        var nombres = {
+          '__otro__': 'Consultar',
+          '__pantalla__': 'Cambio de pantalla',
+          '__bateria__': 'Cambio de batería',
+          '__carga__': 'Problema de carga',
+          '__agua__': 'Líquidos / humedad',
+          '__diagnostico__': 'Diagnóstico'
+        };
+        STATE.servicio = {id: sid, nombre: nombres[sid] || 'Consulta', precio: 0};
+      } else {
+        STATE.servicio = STATE.servicios.find(function(s){ return s.id === sid; });
+      }
       renderApp();
     });
   });
