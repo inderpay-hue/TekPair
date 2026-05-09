@@ -234,6 +234,47 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .modal-actions .btn-primary{flex:1}
 .modal-actions .btn-secondary{flex:1}
 
+/* ═══ MODAL REPARACIÓN MEJORADO ═══ */
+.modal-rep{padding:0;max-width:920px;display:flex;flex-direction:column;overflow:hidden}
+@media(min-width:900px){.modal-rep{max-width:920px;max-height:90vh}}
+.modal-rep-header{padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:white;position:sticky;top:0;z-index:10}
+.modal-close-btn{background:var(--light);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;color:var(--muted);transition:background .15s var(--ease)}
+.modal-close-btn:hover{background:var(--border);color:var(--text)}
+.rep-quick-templates{padding:10px 20px;background:#FAFBFC;border-bottom:1px solid var(--border);flex-shrink:0;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.rep-quick-label{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;flex-shrink:0}
+.rep-quick-chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.rep-quick-chip{background:white;border:1px solid var(--border);color:var(--text);font-size:11px;font-weight:600;padding:5px 10px;border-radius:14px;cursor:pointer;font-family:inherit;transition:all .15s var(--ease);white-space:nowrap}
+.rep-quick-chip:hover{background:var(--blue);color:white;border-color:var(--blue);transform:translateY(-1px)}
+.modal-rep-body{padding:14px 20px;overflow-y:auto;flex:1}
+.rep-grid{display:grid;grid-template-columns:1fr;gap:14px}
+@media(min-width:900px){.rep-grid{grid-template-columns:1fr 1fr;gap:20px}}
+.rep-col{display:flex;flex-direction:column;gap:14px}
+.rep-section{background:#FAFBFC;border:1px solid var(--border);border-radius:12px;padding:14px}
+.rep-section-title{font-size:11px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
+.rep-section-title span{font-size:14px}
+.req{color:var(--red);font-weight:700;margin-left:2px}
+.rep-section .fg{margin-bottom:10px}
+.rep-section .fg:last-child{margin-bottom:0}
+.modal-rep-footer{padding:12px 20px;border-top:1px solid var(--border);flex-shrink:0;background:white;position:sticky;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;z-index:10;box-shadow:0 -4px 12px rgba(0,0,0,.04)}
+.rep-footer-summary{flex:1;min-width:200px}
+.rep-footer-total{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+.rep-footer-total span:first-child{font-size:11px;font-weight:700;color:var(--muted);letter-spacing:.5px}
+.rep-footer-total span:last-child{font-size:22px;font-weight:800;color:var(--green)}
+.rep-footer-buttons{display:flex;gap:8px;flex-shrink:0}
+.rep-footer-buttons .btn-secondary,.rep-footer-buttons .btn-primary{padding:10px 20px;font-size:13px}
+.kbd-light{display:inline-block;background:rgba(255,255,255,.18);padding:1px 5px;border-radius:3px;font-size:10px;font-family:ui-monospace,monospace;margin-left:6px;font-weight:500}
+
+/* Chips estado equipo mejorados */
+.chk-btn{padding:9px 8px;border-radius:8px;border:1.5px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s var(--ease);text-align:center;display:flex;align-items:center;justify-content:center;gap:5px}
+.chk-btn span{font-size:13px}
+.chk-btn:hover{border-color:#cbd5e1;background:var(--light)}
+.chk-btn.on{background:var(--blue);color:white;border-color:var(--blue)}
+.chk-btn.on:hover{background:#0044CC}
+
+/* Validación inline */
+.fi.error{border-color:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,.15)}
+.fg.error .fl{color:var(--red)}
+
 /* ═══ TABLE ═══ */
 .tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
 table.tbl{width:100%;border-collapse:collapse;font-size:12px}
@@ -288,9 +329,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .sel-box-clear{background:none;border:none;color:var(--muted);font-size:16px;cursor:pointer;padding:0 4px}
 
 /* ═══ CHECKLIST ═══ */
-.chk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:12px}
-.chk-btn{padding:8px 6px;border-radius:8px;border:1.5px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;transition:all .15s;text-align:center}
-.chk-btn.on{background:var(--blue);color:white;border-color:var(--blue)}
+.chk-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:0}
 
 /* ═══ TOAST ═══ */
 #toast{position:fixed;top:16px;left:50%;transform:translateX(-50%) translateY(-80px);background:var(--dark);color:white;padding:11px 22px;border-radius:30px;font-size:13px;font-weight:600;z-index:999;transition:transform .3s var(--ease);white-space:nowrap;box-shadow:var(--shadow-lg)}
@@ -1106,92 +1145,138 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 <!-- NUEVA REP -->
 <div class="modal-bg" id="mRep">
-<div class="modal">
-  <div class="modal-title">🔧 Nueva Reparacion</div>
-  <!-- Cliente -->
-  <div class="fg" style="position:relative">
-    <label class="fl">Cliente *</label>
-    <input class="fi" id="rBusCli" placeholder="Buscar cliente..." oninput="busCliCtx('r')" autocomplete="off">
-    <div class="autocomplete-res" id="rSelCli"></div>
+<div class="modal modal-rep">
+  <div class="modal-rep-header">
+    <div class="modal-title" style="margin:0">🔧 Nueva Reparación</div>
+    <button class="modal-close-btn" onclick="closeM('mRep')" title="Cerrar (Esc)">×</button>
   </div>
-  <div class="sel-box" id="rSelCliBox">
-    <div><div class="sel-box-name" id="rSelCliNom"></div></div>
-    <button class="sel-box-clear" onclick="clearCli('r')">✕</button>
+
+  <!-- Plantillas rápidas -->
+  <div class="rep-quick-templates" id="repPlantillasRapidas">
+    <div class="rep-quick-label">Plantilla rápida:</div>
+    <div class="rep-quick-chips" id="repPlantillasChips"></div>
   </div>
-  <div id="rGarantiaAlert" style="display:none;background:rgba(0,85,255,.08);border-left:3px solid var(--blue);padding:10px 12px;border-radius:8px;margin:8px 0;font-size:12px"></div>
-  <div class="fi-row">
-    <div class="fg"><label class="fl">Marca</label><input class="fi" id="rMarca" placeholder="Apple, Samsung..." oninput="actualizarAvisoGarantia()"></div>
-    <div class="fg" style="position:relative"><label class="fl">Modelo *</label><input class="fi" id="rModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModelo();actualizarAvisoGarantia()" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
-  </div>
-  <div class="fg"><label class="fl">IMEI / Nº Serie</label><input class="fi" id="rImei" placeholder="Opcional"></div>
-  <div class="fi-row">
-    <div class="fg" style="flex:0 0 38%"><label class="fl">Bloqueo</label><select class="fi" id="rTipoBloq" onchange="cambiarTipoBloq()"><option value="">Sin bloqueo</option><option value="PIN">PIN numérico</option><option value="Patron">Patrón</option><option value="Contrasena">Contraseña</option><option value="Huella">Huella / FaceID</option></select></div>
-    <div class="fg" style="flex:1"><label class="fl" id="rBloqLbl">Código</label><input class="fi" id="rBloqVal" placeholder="No aplica" disabled></div>
-  </div>
-  <!-- Servicio predefinido -->
-  <div class="fg" style="position:relative">
-    <label class="fl">Servicio predefinido</label>
-    <input class="fi" id="rSrvBus" placeholder="Buscar servicio..." oninput="busServicioRep()" autocomplete="off">
-    <div class="autocomplete-res" id="rSrvRes"></div>
-  </div>
-  <div class="fg"><label class="fl">Averia *</label><input class="fi" id="rAveria" placeholder="Describe el problema..."></div>
-  <!-- Checklist -->
-  <div class="fg">
-    <label class="fl">Estado del equipo</label>
-    <div class="chk-grid">
-      <button class="chk-btn" onclick="toggleChk(this)">Sin cargador</button>
-      <button class="chk-btn" onclick="toggleChk(this)">Pantalla rota</button>
-      <button class="chk-btn" onclick="toggleChk(this)">Golpes</button>
-      <button class="chk-btn" onclick="toggleChk(this)">Sin funda</button>
-      <button class="chk-btn" onclick="toggleChk(this)">Humedad</button>
-      <button class="chk-btn" onclick="toggleChk(this)">Bloqueado</button>
+
+  <div class="modal-rep-body">
+    <div class="rep-grid">
+
+      <!-- COLUMNA IZQUIERDA -->
+      <div class="rep-col">
+
+        <!-- Sección: Cliente -->
+        <div class="rep-section">
+          <div class="rep-section-title"><span>👤</span> Cliente</div>
+          <div class="fg" style="position:relative;margin-bottom:0">
+            <input class="fi" id="rBusCli" placeholder="Buscar cliente por nombre, teléfono o DNI..." oninput="busCliCtx('r')" autocomplete="off">
+            <div class="autocomplete-res" id="rSelCli"></div>
+          </div>
+          <div class="sel-box" id="rSelCliBox" style="margin-top:8px">
+            <div><div class="sel-box-name" id="rSelCliNom"></div></div>
+            <button class="sel-box-clear" onclick="clearCli('r')">✕</button>
+          </div>
+          <div id="rGarantiaAlert" style="display:none;background:rgba(0,85,255,.08);border-left:3px solid var(--blue);padding:10px 12px;border-radius:8px;margin-top:8px;font-size:12px"></div>
+        </div>
+
+        <!-- Sección: Dispositivo -->
+        <div class="rep-section">
+          <div class="rep-section-title"><span>📱</span> Dispositivo</div>
+          <div class="fi-row">
+            <div class="fg"><label class="fl">Marca</label><input class="fi" id="rMarca" placeholder="Apple, Samsung, Xiaomi..." oninput="actualizarAvisoGarantia()"></div>
+            <div class="fg" style="position:relative"><label class="fl">Modelo <span class="req">*</span></label><input class="fi" id="rModelo" placeholder="iPhone 14, Galaxy S23..." autocomplete="off" oninput="busModelo();actualizarAvisoGarantia()" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
+          </div>
+          <div class="fg"><label class="fl">IMEI / Nº Serie</label><input class="fi" id="rImei" placeholder="Opcional — útil para garantías"></div>
+          <div class="fi-row" style="margin-bottom:0">
+            <div class="fg" style="flex:0 0 38%;margin-bottom:0"><label class="fl">Bloqueo</label><select class="fi" id="rTipoBloq" onchange="cambiarTipoBloq()"><option value="">Sin bloqueo</option><option value="PIN">PIN numérico</option><option value="Patron">Patrón</option><option value="Contrasena">Contraseña</option><option value="Huella">Huella / FaceID</option></select></div>
+            <div class="fg" style="flex:1;margin-bottom:0"><label class="fl" id="rBloqLbl">Código</label><input class="fi" id="rBloqVal" placeholder="No aplica" disabled></div>
+          </div>
+        </div>
+
+        <!-- Sección: Avería -->
+        <div class="rep-section">
+          <div class="rep-section-title"><span>🔧</span> Avería</div>
+          <div class="fg" style="position:relative">
+            <label class="fl">Servicio predefinido</label>
+            <input class="fi" id="rSrvBus" placeholder="Buscar servicio..." oninput="busServicioRep()" autocomplete="off">
+            <div class="autocomplete-res" id="rSrvRes"></div>
+          </div>
+          <div class="fg"><label class="fl">Avería <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Describe el problema (ej: pantalla rota, no enciende...)"></div>
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl">Estado del equipo (al recibir)</label>
+            <div class="chk-grid">
+              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>🔌</span> Sin cargador</button>
+              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>💥</span> Pantalla rota</button>
+              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>🔨</span> Golpes</button>
+              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>📦</span> Sin funda</button>
+              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>💧</span> Humedad</button>
+              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>🔒</span> Bloqueado</button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- COLUMNA DERECHA -->
+      <div class="rep-col">
+
+        <!-- Sección: Logística -->
+        <div class="rep-section">
+          <div class="rep-section-title"><span>📅</span> Logística</div>
+          <div class="fi-row">
+            <div class="fg"><label class="fl">Fecha de entrega</label><input class="fi" id="rFechaEnt" type="date"></div>
+            <div class="fg"><label class="fl">Prioridad</label>
+              <select class="fi" id="rPrioridad"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
+            </div>
+          </div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Nota interna</label><textarea class="fi" id="rNota" rows="2" placeholder="Solo visible para ti y tu equipo..."></textarea></div>
+        </div>
+
+        <!-- Sección: Componentes y cobro -->
+        <div class="rep-section">
+          <div class="rep-section-title"><span>💰</span> Componentes y cobro</div>
+          <div class="fg" style="position:relative">
+            <label class="fl">Componentes (del stock)</label>
+            <input class="fi" id="compBus" placeholder="Buscar pieza, batería, pantalla..." oninput="busComp()" autocomplete="off">
+            <div class="autocomplete-res" id="compRes"></div>
+          </div>
+          <div id="partsList" style="margin-bottom:8px"></div>
+          <div class="fi-row">
+            <div class="fg"><label class="fl">Mano de obra (€)</label><input class="fi" id="rMo" type="number" step="0.01" value="0" oninput="calcR()"></div>
+            <div class="fg"><label class="fl">Anticipo (€)</label><input class="fi" id="rAnticipo" type="number" step="0.01" value="0" oninput="calcR()"></div>
+          </div>
+          <div id="rIvaRow" class="fg" style="display:none;margin-bottom:0">
+            <label class="fl">Tipo de IVA</label>
+            <select class="fi" id="rIva" onchange="calcR()">
+              <option value="0">0% — Exento</option>
+              <option value="4">4% — Superreducido</option>
+              <option value="10">10% — Reducido</option>
+              <option value="21">21% — General</option>
+            </select>
+          </div>
+        </div>
+
+      </div>
     </div>
   </div>
-  <div class="fi-row">
-    <div class="fg"><label class="fl">Mano de obra (EUR)</label><input class="fi" id="rMo" type="number" step="0.01" value="0" oninput="calcR()"></div>
-    <div class="fg"><label class="fl">Anticipo (EUR)</label><input class="fi" id="rAnticipo" type="number" step="0.01" value="0" oninput="calcR()"></div>
-  </div>
-  <div class="fi-row">
-    <div class="fg"><label class="fl">Fecha entrega</label><input class="fi" id="rFechaEnt" type="date"></div>
-    <div class="fg"><label class="fl">Prioridad</label>
-      <select class="fi" id="rPrioridad"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
+
+  <!-- FOOTER STICKY -->
+  <div class="modal-rep-footer">
+    <div class="rep-footer-summary">
+      <div id="rBaseRow" style="display:none;font-size:11px;color:var(--muted)">
+        <span>Base </span><span id="rBase">€0.00</span><span> · </span>
+        <span id="rIvaImpLbl">IVA </span><span id="rIvaImp">€0.00</span>
+      </div>
+      <div class="rep-footer-total">
+        <span id="rTotalLbl">TOTAL</span>
+        <span id="rTotal">€0.00</span>
+      </div>
+      <div style="font-size:11px;color:var(--muted)">Restante: <span id="rRestante" style="font-weight:700">€0.00</span></div>
+    </div>
+    <div class="rep-footer-buttons">
+      <button class="btn-secondary" onclick="closeM('mRep')">Cancelar</button>
+      <button class="btn-primary" style="background:var(--green)" onclick="guardarRep()">Crear orden <span class="kbd-light">⌘↵</span></button>
     </div>
   </div>
-  <div class="fg"><label class="fl">Nota interna</label><textarea class="fi" id="rNota" rows="2" placeholder="Solo visible para ti..."></textarea></div>
-  <!-- Componentes -->
-  <div class="fg" style="position:relative">
-    <label class="fl">Componentes</label>
-    <input class="fi" id="compBus" placeholder="Buscar componente del stock..." oninput="busComp()" autocomplete="off">
-    <div class="autocomplete-res" id="compRes"></div>
-  </div>
-  <div id="partsList"></div>
-  <div id="rIvaRow" class="fg" style="display:none">
-    <label class="fl">Tipo de IVA</label>
-    <select class="fi" id="rIva" onchange="calcR()">
-      <option value="0">0% — Exento</option>
-      <option value="4">4% — Superreducido</option>
-      <option value="10">10% — Reducido</option>
-      <option value="21">21% — General</option>
-    </select>
-  </div>
-  <div style="background:rgba(0,200,150,.06);border-radius:10px;padding:12px;border:1px solid rgba(0,200,150,.2);margin-bottom:12px">
-    <div id="rBaseRow" style="display:none;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:3px">
-      <span>Base imponible</span><span id="rBase">EUR 0.00</span>
-    </div>
-    <div id="rIvaImpRow" style="display:none;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px">
-      <span id="rIvaImpLbl">IVA</span><span id="rIvaImp">EUR 0.00</span>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:13px">
-      <span id="rTotalLbl">Total</span><span id="rTotal" style="font-weight:800;color:var(--green)">EUR 0.00</span>
-    </div>
-    <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px">
-      <span>Restante</span><span id="rRestante">EUR 0.00</span>
-    </div>
-  </div>
-  <div class="modal-actions">
-    <button class="btn-secondary" onclick="closeM('mRep')">Cancelar</button>
-    <button class="btn-primary" style="background:var(--green)" onclick="guardarRep()">Crear orden</button>
-  </div>
+
 </div>
 </div>
 
@@ -3445,7 +3530,7 @@ function cambiarTipoBloq() {
 
 function abrirRep() {
   SEL.editRepId = null; SEL.rCli = null; SEL.selParts = [];
-  var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = '🔧 Nueva Reparacion';
+  var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = '🔧 Nueva Reparación';
   ['rBusCli','rMarca','rModelo','rImei','rAveria','rNota','rSrvBus','rBloqVal'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
@@ -3459,11 +3544,61 @@ function abrirRep() {
   document.getElementById('rRestante').textContent = cur(0);
   document.querySelectorAll('.chk-btn').forEach(function(b) { b.classList.remove('on'); });
   var tb = document.getElementById('rTipoBloq'); if (tb) { tb.value = ''; cambiarTipoBloq(); }
+  // Limpiar errores de validación
+  document.querySelectorAll('#mRep .fi.error').forEach(function(el){ el.classList.remove('error'); });
+  document.querySelectorAll('#mRep .fg.error').forEach(function(el){ el.classList.remove('error'); });
   // Reset IVA al default
   var ivaSel = document.getElementById('rIva');
   if (ivaSel) ivaSel.value = String((AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21);
   calcR();
+  renderPlantillasRep();
   openM('mRep');
+  // Foco en cliente
+  setTimeout(function(){
+    var inp = document.getElementById('rBusCli');
+    if (inp) inp.focus();
+  }, 200);
+}
+
+// === PLANTILLAS RÁPIDAS DE REPARACIÓN ===
+var PLANTILLAS_REP = [
+  {key:'pantalla', icon:'📱', label:'Pantalla rota', averia:'Pantalla rota', mo:30, chk:['Pantalla rota']},
+  {key:'bateria', icon:'🔋', label:'Cambio batería', averia:'Cambio de batería', mo:20},
+  {key:'nocarga', icon:'🔌', label:'No carga', averia:'No carga / problema de carga', mo:15, chk:['Sin cargador']},
+  {key:'liquidos', icon:'💧', label:'Líquidos', averia:'Daños por líquidos / humedad', mo:40, chk:['Humedad']},
+  {key:'altavoz', icon:'🔊', label:'Altavoz', averia:'No suena / altavoz', mo:25},
+  {key:'camara', icon:'📷', label:'Cámara', averia:'Cámara no funciona', mo:35},
+  {key:'boton', icon:'🔘', label:'Botón', averia:'Botón / Power / Volumen', mo:25},
+  {key:'software', icon:'⚙️', label:'Software', averia:'Problema de software / sistema', mo:15}
+];
+
+function renderPlantillasRep() {
+  var box = document.getElementById('repPlantillasChips');
+  if (!box) return;
+  box.innerHTML = PLANTILLAS_REP.map(function(p) {
+    return '<button type="button" class="rep-quick-chip" onclick="aplicarPlantillaRep(\'' + p.key + '\')">' + p.icon + ' ' + p.label + '</button>';
+  }).join('');
+}
+
+function aplicarPlantillaRep(key) {
+  var p = PLANTILLAS_REP.find(function(x){ return x.key === key; });
+  if (!p) return;
+  document.getElementById('rAveria').value = p.averia;
+  if (p.mo) document.getElementById('rMo').value = String(p.mo);
+  // Activar chips de estado correspondientes
+  if (p.chk && p.chk.length) {
+    document.querySelectorAll('#mRep .chk-btn').forEach(function(b) {
+      var txt = b.textContent.trim();
+      if (p.chk.some(function(c){ return txt.indexOf(c) !== -1; })) {
+        b.classList.add('on');
+      }
+    });
+  }
+  calcR();
+  toast('Plantilla "' + p.label + '" aplicada', 'ok');
+  // Foco en avería para que pueda matizar
+  var av = document.getElementById('rAveria');
+  if (av) { av.focus(); av.select(); }
 }
 
 function toggleChk(el) { el.classList.toggle('on'); }
@@ -3823,7 +3958,7 @@ function esc(s) {
 
 function editarRep(id) {
   var r = DB.reps.find(function(x){ return x.id === id; });
-  if (!r) { toast('Reparacion no encontrada', 'err'); return; }
+  if (!r) { toast('Reparación no encontrada', 'err'); return; }
   // Reset y rellenar
   SEL.editRepId = id;
   SEL.rCli = DB.clis.find(function(c){ return c.id === r.clienteId; }) || {id:r.clienteId, nombre:r.clienteNombre, apellidos:''};
@@ -3870,7 +4005,7 @@ function editarRep(id) {
   if (typeof calcR === 'function') calcR();
 
   // Cambiar titulo
-  var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = '✏️ Editar Reparacion';
+  var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = '✏️ Editar Reparación';
 
   openM('mRep');
 }
@@ -3879,13 +4014,38 @@ function guardarRep() {
   if (!tienePerm('reps_crear')) { toast('Sin permiso', 'err'); return; }
   var modelo = document.getElementById('rModelo').value.trim();
   var averia = document.getElementById('rAveria').value.trim();
-  if (!modelo || !averia) { toast('Modelo y averia obligatorios', 'err'); return; }
-  if (!SEL.rCli) { toast('Selecciona un cliente', 'err'); return; }
+  // Limpiar errores previos
+  document.querySelectorAll('#mRep .fi.error').forEach(function(el){ el.classList.remove('error'); });
+
+  // Validación inline: marcar campos con error y hacer scroll al primero
+  var primerError = null;
+  if (!SEL.rCli) {
+    var inpC = document.getElementById('rBusCli');
+    if (inpC) { inpC.classList.add('error'); primerError = primerError || inpC; }
+  }
+  if (!modelo) {
+    var inpM = document.getElementById('rModelo');
+    if (inpM) { inpM.classList.add('error'); primerError = primerError || inpM; }
+  }
+  if (!averia) {
+    var inpA = document.getElementById('rAveria');
+    if (inpA) { inpA.classList.add('error'); primerError = primerError || inpA; }
+  }
+  if (primerError) {
+    primerError.scrollIntoView({behavior:'smooth', block:'center'});
+    setTimeout(function(){ primerError.focus(); }, 300);
+    var faltan = [];
+    if (!SEL.rCli) faltan.push('cliente');
+    if (!modelo) faltan.push('modelo');
+    if (!averia) faltan.push('avería');
+    toast('Falta: ' + faltan.join(', '), 'err');
+    return;
+  }
 
   // Modo edicion
   if (SEL.editRepId) {
     var r = DB.reps.find(function(x){ return x.id === SEL.editRepId; });
-    if (!r) { toast('Reparacion no encontrada', 'err'); SEL.editRepId = null; return; }
+    if (!r) { toast('Reparación no encontrada', 'err'); SEL.editRepId = null; return; }
     var moE = parseFloat(document.getElementById('rMo').value) || 0;
     var compE = SEL.selParts.reduce(function(a,p){ return a + p.precio; }, 0);
     var antiE = parseFloat(document.getElementById('rAnticipo').value) || 0;
@@ -5965,6 +6125,17 @@ document.addEventListener('keydown', function(e) {
   if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
     e.preventDefault();
     abrirBusquedaGlobal();
+  }
+  // Atajos en modal de reparación abierto
+  var mRep = document.getElementById('mRep');
+  if (mRep && mRep.classList.contains('open')) {
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      closeM('mRep');
+    } else if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
+      e.preventDefault();
+      guardarRep();
+    }
   }
 });
 
