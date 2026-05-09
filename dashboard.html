@@ -51,12 +51,13 @@ body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .topbar-info{display:flex;align-items:center;gap:10px}
 .topbar-name{color:rgba(255,255,255,.8);font-size:12px}
 .topbar-logout{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit}
+.topbar-bell{display:none;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:white;width:32px;height:32px;border-radius:50%;font-size:14px;cursor:pointer;font-family:inherit;position:relative;align-items:center;justify-content:center;padding:0}
 
 /* NOTIF BELL */
 .notif-bell{position:fixed;top:10px;right:10px;width:42px;height:42px;border-radius:50%;background:var(--dark);border:1px solid rgba(255,255,255,.15);color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.15);transition:transform .15s}
 @media(max-width:899px){
-  .notif-bell{width:34px;height:34px;top:9px;right:60px;font-size:14px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);box-shadow:none}
-  .notif-badge{border-color:#020B2E !important}
+  .notif-bell{display:none}
+  .topbar-bell{display:flex}
   .notif-panel{top:50px;right:8px;width:calc(100vw - 16px);max-height:calc(100vh - 70px)}
 }
 .notif-bell:hover{transform:scale(1.05)}
@@ -327,6 +328,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="topbar">
   <div class="topbar-logo">⚡ Tekpair</div>
   <div class="topbar-info">
+    <button class="topbar-bell" id="topbarBell" onclick="toggleNotifs()" title="Notificaciones">
+      🔔
+      <span class="notif-badge" id="topbarBadge" style="top:-3px;right:-3px">0</span>
+    </button>
     <div id="uName" class="topbar-name"></div>
     <button class="topbar-logout" onclick="logout()">Salir</button>
   </div>
@@ -581,9 +586,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
   </div>
   <div class="card">
-    <div class="card-title">Textos legales</div>
-    <div class="fg"><label class="fl">Garantia</label><textarea class="fi" id="tGarantia" rows="3" placeholder="Politica de garantia..."></textarea></div>
-    <div class="fg"><label class="fl">Politica</label><textarea class="fi" id="tPolitica" rows="3" placeholder="Politica de la tienda..."></textarea></div>
+    <div class="card-title">Textos legales — Reparaciones</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Aparecerán en el ticket de reparación y en el parte del cliente.</div>
+    <div class="fg"><label class="fl">Garantía de reparación</label><textarea class="fi" id="tGarantia" rows="3" placeholder="Ej: Garantía de 90 días sobre pieza y mano de obra..."></textarea></div>
+    <div class="fg"><label class="fl">Política de reparación</label><textarea class="fi" id="tPolitica" rows="3" placeholder="Condiciones específicas de reparación..."></textarea></div>
+  </div>
+  <div class="card">
+    <div class="card-title">Textos legales — Ventas</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Aparecerán en el ticket de venta (TPV y dashboard).</div>
+    <div class="fg"><label class="fl">Garantía de venta</label><textarea class="fi" id="tGarantiaVentas" rows="3" placeholder="Ej: Garantía del fabricante 24 meses..."></textarea></div>
+    <div class="fg"><label class="fl">Política de venta</label><textarea class="fi" id="tPoliticaVentas" rows="3" placeholder="Condiciones de devolución y cambio..."></textarea></div>
   </div>
   <button class="btn-primary" onclick="guardarTienda()">Guardar cambios</button>
 </div>
@@ -1200,8 +1212,8 @@ window.addEventListener('DOMContentLoaded', function() {
 
   document.getElementById('uName').textContent = U.nombre || '';
   var tiendaLS = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
-  TIENDA.nombre = tiendaLS.nombre || 'Mi Tienda';
-  TIENDA.logo_url = tiendaLS.logo_url || '';
+  Object.assign(TIENDA, tiendaLS);
+  if (!TIENDA.nombre) TIENDA.nombre = 'Mi Tienda';
   document.getElementById('dTienda').textContent = TIENDA.nombre;
   renderSidebarLogo();
   document.getElementById('dStr').textContent = new Date().toLocaleDateString('es', {weekday:'long',day:'numeric',month:'long'});
@@ -2072,7 +2084,8 @@ function imprimirTicketVenta(id) {
     '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px;border-top:1px solid #000;padding-top:4px"><span>TOTAL' + (v.ivaModo === 'incluido' ? ' (IVA inc.)' : '') + '</span><span>' + cur(v.total || 0) + '</span></div>' +
     '<hr>' +
     '<div style="text-align:center;font-size:10px;color:#666;margin-top:6px">Gracias por su compra</div>' +
-    (TIENDA.garantia ? '<div style="text-align:center;font-size:9px;color:#888;margin-top:4px">' + esc(TIENDA.garantia) + '</div>' : '') +
+    (TIENDA.garantiaVentas ? '<div style="text-align:center;font-size:9px;color:#666;margin-top:6px;line-height:1.4">' + esc(TIENDA.garantiaVentas) + '</div>' : '') +
+    (TIENDA.politicaVentas ? '<div style="text-align:center;font-size:9px;color:#888;margin-top:4px;line-height:1.4">' + esc(TIENDA.politicaVentas) + '</div>' : '') +
     '<script>window.onload=function(){setTimeout(function(){window.print();},200);}<\/script>' +
     '</body></html>';
 
@@ -3727,11 +3740,17 @@ function cargarTienda() {
   document.getElementById('tWeb').value = t.web || '';
   document.getElementById('tGarantia').value = t.garantia || '';
   document.getElementById('tPolitica').value = t.politica || '';
+  var gv = document.getElementById('tGarantiaVentas');
+  var pv = document.getElementById('tPoliticaVentas');
+  if (gv) gv.value = t.garantiaVentas || '';
+  if (pv) pv.value = t.politicaVentas || '';
   renderLogoPreview(t.logo_url || '');
 }
 
 function guardarTienda() {
   var prev = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
+  var gvEl = document.getElementById('tGarantiaVentas');
+  var pvEl = document.getElementById('tPoliticaVentas');
   var t = {
     nombre: document.getElementById('tNom').value.trim(),
     dir: document.getElementById('tDir').value.trim(),
@@ -3741,12 +3760,18 @@ function guardarTienda() {
     web: document.getElementById('tWeb').value.trim(),
     garantia: document.getElementById('tGarantia').value.trim(),
     politica: document.getElementById('tPolitica').value.trim(),
+    garantiaVentas: gvEl ? gvEl.value.trim() : '',
+    politicaVentas: pvEl ? pvEl.value.trim() : '',
     logo_url: prev.logo_url || TIENDA.logo_url || ''
   };
   localStorage.setItem('tk_tienda', JSON.stringify(t));
   Object.assign(TIENDA, t);
   document.getElementById('dTienda').textContent = t.nombre || 'Mi Tienda';
-  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {nombre: t.nombre});
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {
+    nombre: t.nombre, dir: t.dir, tel: t.tel, email: t.email, cif: t.cif, web: t.web,
+    garantia: t.garantia, politica: t.politica,
+    garantia_ventas: t.garantiaVentas, politica_ventas: t.politicaVentas
+  });
   toast('Tienda guardada', 'ok');
 }
 
@@ -4166,6 +4191,15 @@ function refreshNotifs() {
     bell.classList.add('show');
   } else {
     bell.classList.remove('show');
+  }
+  var topBadge = document.getElementById('topbarBadge');
+  if (topBadge) {
+    if (unread.length > 0) {
+      topBadge.textContent = unread.length > 99 ? '99+' : unread.length;
+      topBadge.classList.add('show');
+    } else {
+      topBadge.classList.remove('show');
+    }
   }
   if (headCount) headCount.textContent = unread.length ? '(' + unread.length + ')' : '';
 
