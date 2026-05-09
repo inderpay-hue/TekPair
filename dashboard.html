@@ -8823,30 +8823,65 @@ function compartirWhatsApp() {
 // === HORARIOS ===
 function getHorariosDefault() {
   return [
-    {abierto:true, inicio:'09:30', fin:'13:30'},
-    {abierto:true, inicio:'09:30', fin:'13:30'},
-    {abierto:true, inicio:'09:30', fin:'13:30'},
-    {abierto:true, inicio:'09:30', fin:'13:30'},
-    {abierto:true, inicio:'09:30', fin:'13:30'},
-    {abierto:true, inicio:'10:00', fin:'13:30'},
-    {abierto:false, inicio:'10:00', fin:'13:30'}
+    {abierto:true, tramos:[{inicio:'09:30', fin:'13:30'}, {inicio:'17:00', fin:'20:00'}]},
+    {abierto:true, tramos:[{inicio:'09:30', fin:'13:30'}, {inicio:'17:00', fin:'20:00'}]},
+    {abierto:true, tramos:[{inicio:'09:30', fin:'13:30'}, {inicio:'17:00', fin:'20:00'}]},
+    {abierto:true, tramos:[{inicio:'09:30', fin:'13:30'}, {inicio:'17:00', fin:'20:00'}]},
+    {abierto:true, tramos:[{inicio:'09:30', fin:'13:30'}, {inicio:'17:00', fin:'20:00'}]},
+    {abierto:true, tramos:[{inicio:'10:00', fin:'13:30'}]},
+    {abierto:false, tramos:[{inicio:'10:00', fin:'13:30'}]}
   ];
 }
+
+// Migrar formato viejo {inicio,fin} → {tramos:[{inicio,fin}]}
+function migrarHorarios(horarios) {
+  if (!Array.isArray(horarios)) return null;
+  return horarios.map(function(h){
+    if (h && Array.isArray(h.tramos)) return h;
+    if (h && (h.inicio || h.fin)) {
+      return {abierto: !!h.abierto, tramos:[{inicio:h.inicio || '09:30', fin:h.fin || '13:30'}]};
+    }
+    return {abierto:false, tramos:[{inicio:'09:30', fin:'13:30'}]};
+  });
+}
+
 function renderHorarios() {
   var box = document.getElementById('horariosBox');
   if (!box) return;
   var horarios = TIENDA.horarios;
   if (typeof horarios === 'string') { try { horarios = JSON.parse(horarios); } catch(e){ horarios = null; } }
-  if (!Array.isArray(horarios) || horarios.length !== 7) horarios = getHorariosDefault();
+  horarios = migrarHorarios(horarios);
+  if (!horarios || horarios.length !== 7) horarios = getHorariosDefault();
   var html = '';
   for (var i = 0; i < 7; i++) {
     var h = horarios[i];
-    html += '<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">';
-    html += '<div style="font-size:13px;font-weight:600">' + DIAS_SEMANA[i] + '</div>';
+    if (!h.tramos || !h.tramos.length) h.tramos = [{inicio:'09:30', fin:'13:30'}];
+    html += '<div style="padding:10px 0;border-bottom:1px solid var(--border)">';
+    html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">';
+    html += '<div style="font-size:13px;font-weight:600;width:90px">' + DIAS_SEMANA[i] + '</div>';
     html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">';
     html += '<input type="checkbox" data-dia="' + i + '" data-campo="abierto" onchange="actualizarHorario(this)" ' + (h.abierto ? 'checked' : '') + '> Abierto</label>';
-    html += '<input class="fi" type="time" value="' + (h.inicio || '09:30') + '" data-dia="' + i + '" data-campo="inicio" onchange="actualizarHorario(this)" style="font-size:12px;padding:5px 8px;width:100px" ' + (h.abierto ? '' : 'disabled') + '>';
-    html += '<input class="fi" type="time" value="' + (h.fin || '13:30') + '" data-dia="' + i + '" data-campo="fin" onchange="actualizarHorario(this)" style="font-size:12px;padding:5px 8px;width:100px" ' + (h.abierto ? '' : 'disabled') + '>';
+    html += '</div>';
+    if (h.abierto) {
+      // Tramo 1
+      html += '<div style="display:flex;align-items:center;gap:6px;margin-left:90px;margin-bottom:6px">';
+      html += '<input class="fi" type="time" value="' + (h.tramos[0].inicio || '09:30') + '" data-dia="' + i + '" data-tramo="0" data-campo="inicio" onchange="actualizarHorario(this)" style="font-size:12px;padding:5px 8px;width:100px">';
+      html += '<span style="color:var(--muted);font-size:12px">a</span>';
+      html += '<input class="fi" type="time" value="' + (h.tramos[0].fin || '13:30') + '" data-dia="' + i + '" data-tramo="0" data-campo="fin" onchange="actualizarHorario(this)" style="font-size:12px;padding:5px 8px;width:100px">';
+      if (h.tramos.length < 2) {
+        html += '<button type="button" onclick="agregarTramo(' + i + ')" style="background:var(--green);color:white;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">+ tramo tarde</button>';
+      }
+      html += '</div>';
+      // Tramo 2 (si existe)
+      if (h.tramos.length >= 2) {
+        html += '<div style="display:flex;align-items:center;gap:6px;margin-left:90px">';
+        html += '<input class="fi" type="time" value="' + (h.tramos[1].inicio || '17:00') + '" data-dia="' + i + '" data-tramo="1" data-campo="inicio" onchange="actualizarHorario(this)" style="font-size:12px;padding:5px 8px;width:100px">';
+        html += '<span style="color:var(--muted);font-size:12px">a</span>';
+        html += '<input class="fi" type="time" value="' + (h.tramos[1].fin || '20:00') + '" data-dia="' + i + '" data-tramo="1" data-campo="fin" onchange="actualizarHorario(this)" style="font-size:12px;padding:5px 8px;width:100px">';
+        html += '<button type="button" onclick="quitarTramo(' + i + ')" style="background:transparent;color:var(--red);border:1px solid var(--red);padding:4px 8px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">×</button>';
+        html += '</div>';
+      }
+    }
     html += '</div>';
   }
   box.innerHTML = html;
@@ -8858,15 +8893,42 @@ function renderHorarios() {
   }
   TIENDA.horarios = horarios;
 }
+
 function actualizarHorario(el) {
   if (!Array.isArray(TIENDA.horarios) || TIENDA.horarios.length !== 7) TIENDA.horarios = getHorariosDefault();
+  TIENDA.horarios = migrarHorarios(TIENDA.horarios);
   var dia = parseInt(el.dataset.dia);
   var campo = el.dataset.campo;
-  if (campo === 'abierto') TIENDA.horarios[dia].abierto = el.checked;
-  else TIENDA.horarios[dia][campo] = el.value;
+  if (campo === 'abierto') {
+    TIENDA.horarios[dia].abierto = el.checked;
+  } else {
+    var tramo = parseInt(el.dataset.tramo) || 0;
+    if (!TIENDA.horarios[dia].tramos[tramo]) TIENDA.horarios[dia].tramos[tramo] = {};
+    TIENDA.horarios[dia].tramos[tramo][campo] = el.value;
+  }
+  guardarHorariosLocal();
+  if (campo === 'abierto') renderHorarios();
+}
+
+function agregarTramo(dia) {
+  if (!Array.isArray(TIENDA.horarios) || TIENDA.horarios.length !== 7) TIENDA.horarios = getHorariosDefault();
+  TIENDA.horarios = migrarHorarios(TIENDA.horarios);
+  if (!TIENDA.horarios[dia].tramos) TIENDA.horarios[dia].tramos = [];
+  TIENDA.horarios[dia].tramos.push({inicio:'17:00', fin:'20:00'});
+  guardarHorariosLocal();
+  renderHorarios();
+}
+
+function quitarTramo(dia) {
+  if (!Array.isArray(TIENDA.horarios) || TIENDA.horarios.length !== 7) return;
+  TIENDA.horarios[dia].tramos = (TIENDA.horarios[dia].tramos || []).slice(0,1);
+  guardarHorariosLocal();
+  renderHorarios();
+}
+
+function guardarHorariosLocal() {
   localStorage.setItem('tk_tienda', JSON.stringify(Object.assign({}, JSON.parse(localStorage.getItem('tk_tienda')||'{}'), {horarios: TIENDA.horarios})));
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {horarios: TIENDA.horarios});
-  if (campo === 'abierto') renderHorarios();
 }
 function guardarConfigCitas() {
   var dur = parseInt(document.getElementById('citasDuracion').value) || 30;

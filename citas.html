@@ -400,25 +400,33 @@ async function cargarSlots() {
       STATE.citasDelDia = [];
     }
 
-    // Generar slots según horario
+    // Generar slots según horario (con tramos múltiples)
     var horarios = STATE.tienda.horarios;
-    if (typeof horarios === 'string') horarios = JSON.parse(horarios);
-    // Si no hay horarios configurados, usar default razonable
+    if (typeof horarios === 'string') {
+      try { horarios = JSON.parse(horarios); } catch(e){ horarios = null; }
+    }
+    // Si no hay horarios configurados, usar default razonable (horario partido)
     if (!Array.isArray(horarios) || horarios.length !== 7) {
       horarios = [
-        {abierto:true, inicio:'09:30', fin:'13:30'},
-        {abierto:true, inicio:'09:30', fin:'13:30'},
-        {abierto:true, inicio:'09:30', fin:'13:30'},
-        {abierto:true, inicio:'09:30', fin:'13:30'},
-        {abierto:true, inicio:'09:30', fin:'13:30'},
-        {abierto:true, inicio:'10:00', fin:'13:30'},
-        {abierto:false, inicio:'10:00', fin:'13:30'}
+        {abierto:true, tramos:[{inicio:'09:30', fin:'13:30'},{inicio:'17:00', fin:'20:00'}]},
+        {abierto:true, tramos:[{inicio:'09:30', fin:'13:30'},{inicio:'17:00', fin:'20:00'}]},
+        {abierto:true, tramos:[{inicio:'09:30', fin:'13:30'},{inicio:'17:00', fin:'20:00'}]},
+        {abierto:true, tramos:[{inicio:'09:30', fin:'13:30'},{inicio:'17:00', fin:'20:00'}]},
+        {abierto:true, tramos:[{inicio:'09:30', fin:'13:30'},{inicio:'17:00', fin:'20:00'}]},
+        {abierto:true, tramos:[{inicio:'10:00', fin:'13:30'}]},
+        {abierto:false, tramos:[{inicio:'10:00', fin:'13:30'}]}
       ];
     }
+    // Migrar formato viejo {inicio,fin} → {tramos:[{inicio,fin}]}
+    horarios = horarios.map(function(h){
+      if (h && Array.isArray(h.tramos)) return h;
+      if (h && (h.inicio || h.fin)) return {abierto: !!h.abierto, tramos:[{inicio:h.inicio||'09:30', fin:h.fin||'13:30'}]};
+      return {abierto:false, tramos:[]};
+    });
     var p = STATE.fecha.split('-');
     var dow = (new Date(p[0], p[1]-1, p[2]).getDay() + 6) % 7;
     var hor = horarios[dow];
-    if (!hor || !hor.abierto || !hor.inicio || !hor.fin) {
+    if (!hor || !hor.abierto || !hor.tramos || !hor.tramos.length) {
       box.innerHTML = '<div class="empty">Cerrado este día</div>';
       return;
     }
@@ -426,17 +434,21 @@ async function cargarSlots() {
     if (typeof cfg === 'string') cfg = JSON.parse(cfg);
     var duracion = (cfg && cfg.duracion_min) || 30;
 
-    // Generar slots de hor.inicio a hor.fin cada `duracion` min
-    var [hI, mI] = hor.inicio.split(':').map(Number);
-    var [hF, mF] = hor.fin.split(':').map(Number);
+    // Generar slots de cada tramo
     var slots = [];
-    var totMinI = hI*60 + mI;
-    var totMinF = hF*60 + mF;
-    for (var t = totMinI; t + duracion <= totMinF; t += duracion) {
-      var h = Math.floor(t/60);
-      var m = t%60;
-      slots.push(pad(h) + ':' + pad(m));
-    }
+    var tramosLabels = []; // para separar visualmente mañana/tarde
+    hor.tramos.forEach(function(tr, idx) {
+      if (!tr.inicio || !tr.fin) return;
+      var pi = tr.inicio.split(':').map(Number);
+      var pf = tr.fin.split(':').map(Number);
+      var totMinI = pi[0]*60 + pi[1];
+      var totMinF = pf[0]*60 + pf[1];
+      for (var t = totMinI; t + duracion <= totMinF; t += duracion) {
+        var h = Math.floor(t/60);
+        var m = t%60;
+        slots.push({hora: pad(h) + ':' + pad(m), tramo: idx});
+      }
+    });
     // Excluir slots ocupados
     var ocupados = STATE.citasDelDia.map(function(c){ return c.hora; });
     // Si la fecha es hoy, excluir slots pasados
@@ -449,13 +461,23 @@ async function cargarSlots() {
       return;
     }
 
-    var html = '<div class="slots-grid">';
-    slots.forEach(function(s) {
-      var [hh, mm] = s.split(':').map(Number);
-      var minSlot = hh*60 + mm;
-      var taken = ocupados.indexOf(s) !== -1 || (esHoy && minSlot < horaAhora + 30);
-      var sel = STATE.hora === s ? 'selected' : '';
-      html += '<button class="slot ' + (taken ? 'taken' : '') + ' ' + sel + '" data-h="' + s + '" ' + (taken ? 'disabled' : '') + '>' + s + '</button>';
+    // Render con separador entre tramos (mañana/tarde)
+    var html = '';
+    var tramoActual = -1;
+    slots.forEach(function(s, idx) {
+      if (s.tramo !== tramoActual) {
+        if (tramoActual !== -1) html += '</div>';
+        var lbl = s.tramo === 0 ? '☀️ Mañana' : '🌅 Tarde';
+        if (hor.tramos.length === 1) lbl = '⏰ Horario';
+        html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:' + (idx === 0 ? '0' : '14px') + ' 0 6px">' + lbl + '</div>';
+        html += '<div class="slots-grid">';
+        tramoActual = s.tramo;
+      }
+      var pp = s.hora.split(':').map(Number);
+      var minSlot = pp[0]*60 + pp[1];
+      var taken = ocupados.indexOf(s.hora) !== -1 || (esHoy && minSlot < horaAhora + 30);
+      var sel = STATE.hora === s.hora ? 'selected' : '';
+      html += '<button class="slot ' + (taken ? 'taken' : '') + ' ' + sel + '" data-h="' + s.hora + '" ' + (taken ? 'disabled' : '') + '>' + s.hora + '</button>';
     });
     html += '</div>';
     box.innerHTML = html;
