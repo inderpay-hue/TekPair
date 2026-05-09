@@ -456,6 +456,41 @@ async function pullTiendaTPV() {
   } catch(e) { console.error('Pull tienda TPV error:', e); }
 }
 
+// Pull favoritos TPV desde Supabase (merge-safe: no borra los que tengas localmente)
+async function pullFavsTPV() {
+  if (!SB_KEY || !TIENDA_ID) return;
+  try {
+    var rows = await sbGet('tiendas', 'id=eq.' + TIENDA_ID + '&select=tpv_favs');
+    if (!Array.isArray(rows) || !rows.length) return;
+    var remote = rows[0].tpv_favs;
+    if (typeof remote === 'string') {
+      try { remote = JSON.parse(remote); } catch(e) { remote = null; }
+    }
+    if (!Array.isArray(remote)) return;
+
+    // Si remote tiene cosas pero local está vacío → primer pull, copiar remote
+    if (remote.length > 0 && favs.length === 0) {
+      favs = remote;
+      localStorage.setItem('tk_tpv_favs', JSON.stringify(favs));
+      renderFavBar();
+      renderProducts();
+      return;
+    }
+    // Si local tiene cosas pero remote está vacío → push local a remote (no perderlos)
+    if (favs.length > 0 && remote.length === 0) {
+      sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {tpv_favs: favs});
+      return;
+    }
+    // Si ambos tienen y son distintos → confiar en remote (otra sesión actualizó)
+    if (JSON.stringify(remote) !== JSON.stringify(favs)) {
+      favs = remote;
+      localStorage.setItem('tk_tpv_favs', JSON.stringify(favs));
+      renderFavBar();
+      renderProducts();
+    }
+  } catch(e) { console.error('Pull favs TPV error:', e); }
+}
+
 function syncTPV() {
   return Promise.all([
     syncVentasDesdeSupabase(),
