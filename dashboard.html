@@ -275,6 +275,22 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .fi.error{border-color:var(--red);box-shadow:0 0 0 3px rgba(239,68,68,.15)}
 .fg.error .fl{color:var(--red)}
 
+/* ═══ SERVICIOS DE REPARACIÓN (cards en modal) ═══ */
+.add-srv-btn{margin-left:auto;background:rgba(124,58,237,.10);border:none;color:var(--purple);font-size:11px;font-weight:700;cursor:pointer;padding:5px 10px;border-radius:6px;transition:all .15s var(--ease);font-family:inherit}
+.add-srv-btn:hover{background:var(--purple);color:white}
+.srv-search-row{display:flex;gap:6px;align-items:stretch}
+.btn-explorar{background:white;border:1px solid var(--border);color:var(--purple);padding:0 14px;border-radius:9px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;transition:all .15s var(--ease)}
+.btn-explorar:hover{background:rgba(124,58,237,.06);border-color:var(--purple)}
+.srv-card{background:white;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;position:relative}
+.srv-card-x{position:absolute;top:6px;right:6px;background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;width:28px;height:28px;border-radius:50%;line-height:1;display:flex;align-items:center;justify-content:center;padding:0;font-family:inherit}
+.srv-card-x:hover{background:rgba(239,68,68,.10);color:var(--red)}
+.srv-card-grid{display:grid;grid-template-columns:1fr 90px 90px;gap:8px;align-items:end;padding-right:24px}
+.srv-card .fl{font-size:9px;margin-bottom:3px}
+.srv-card .fi{font-size:12px;padding:7px 10px}
+.srv-card textarea.fi{font-size:11.5px;padding:8px 10px}
+.explore-srv-item{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;border:1px solid var(--border);margin-bottom:6px;transition:background .12s var(--ease)}
+.explore-srv-item:hover{background:rgba(124,58,237,.06);border-color:var(--purple)}
+
 /* ═══ TABLE ═══ */
 .tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--border)}
 table.tbl{width:100%;border-collapse:collapse;font-size:12px}
@@ -1194,12 +1210,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <!-- Sección: Avería -->
         <div class="rep-section">
           <div class="rep-section-title"><span>🔧</span> Avería</div>
-          <div class="fg" style="position:relative">
-            <label class="fl">Servicio predefinido</label>
-            <input class="fi" id="rSrvBus" placeholder="Buscar servicio..." oninput="busServicioRep()" autocomplete="off">
-            <div class="autocomplete-res" id="rSrvRes"></div>
-          </div>
-          <div class="fg"><label class="fl">Avería <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Describe el problema (ej: pantalla rota, no enciende...)"></div>
+          <div class="fg"><label class="fl">Describe el problema <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Ej: pantalla rota, no enciende, batería..."></div>
           <div class="fg" style="margin-bottom:0">
             <label class="fl">Estado del equipo (al recibir)</label>
             <div class="chk-grid">
@@ -1218,40 +1229,54 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <!-- COLUMNA DERECHA -->
       <div class="rep-col">
 
-        <!-- Sección: Logística -->
+        <!-- Sección: Servicios de reparación (NUEVA) -->
         <div class="rep-section">
-          <div class="rep-section-title"><span>📅</span> Logística</div>
+          <div class="rep-section-title">
+            <span>🛠️</span> Servicios de reparación
+            <button type="button" class="add-srv-btn" onclick="agregarServicioRep()">+ Agregar nuevo</button>
+          </div>
+          <div class="srv-search-row">
+            <div style="position:relative;flex:1">
+              <input class="fi" id="rSrvBus" placeholder="🔍 Buscar servicio del catálogo..." oninput="busServicioRep()" autocomplete="off">
+              <div class="autocomplete-res" id="rSrvRes"></div>
+            </div>
+            <button type="button" class="btn-explorar" onclick="explorarServicios()">Explorar</button>
+          </div>
+          <div id="repServiciosList" style="margin-top:10px"></div>
+        </div>
+
+        <!-- Sección: Componentes -->
+        <div class="rep-section">
+          <div class="rep-section-title"><span>📦</span> Componentes (stock)</div>
+          <div class="fg" style="position:relative;margin-bottom:8px">
+            <input class="fi" id="compBus" placeholder="🔍 Buscar pieza, batería, pantalla..." oninput="busComp()" autocomplete="off">
+            <div class="autocomplete-res" id="compRes"></div>
+          </div>
+          <div id="partsList"></div>
+        </div>
+
+        <!-- Sección: Cobro y logística -->
+        <div class="rep-section">
+          <div class="rep-section-title"><span>💰</span> Cobro y logística</div>
           <div class="fi-row">
-            <div class="fg"><label class="fl">Fecha de entrega</label><input class="fi" id="rFechaEnt" type="date"></div>
+            <div class="fg"><label class="fl">Anticipo (€)</label><input class="fi" id="rAnticipo" type="number" step="0.01" value="0" oninput="calcR()"></div>
             <div class="fg"><label class="fl">Prioridad</label>
               <select class="fi" id="rPrioridad"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
             </div>
           </div>
-          <div class="fg" style="margin-bottom:0"><label class="fl">Nota interna</label><textarea class="fi" id="rNota" rows="2" placeholder="Solo visible para ti y tu equipo..."></textarea></div>
-        </div>
-
-        <!-- Sección: Componentes y cobro -->
-        <div class="rep-section">
-          <div class="rep-section-title"><span>💰</span> Componentes y cobro</div>
-          <div class="fg" style="position:relative">
-            <label class="fl">Componentes (del stock)</label>
-            <input class="fi" id="compBus" placeholder="Buscar pieza, batería, pantalla..." oninput="busComp()" autocomplete="off">
-            <div class="autocomplete-res" id="compRes"></div>
-          </div>
-          <div id="partsList" style="margin-bottom:8px"></div>
           <div class="fi-row">
-            <div class="fg"><label class="fl">Mano de obra (€)</label><input class="fi" id="rMo" type="number" step="0.01" value="0" oninput="calcR()"></div>
-            <div class="fg"><label class="fl">Anticipo (€)</label><input class="fi" id="rAnticipo" type="number" step="0.01" value="0" oninput="calcR()"></div>
+            <div class="fg"><label class="fl">Fecha de entrega</label><input class="fi" id="rFechaEnt" type="date"></div>
+            <div id="rIvaRow" class="fg" style="display:none">
+              <label class="fl">Tipo de IVA</label>
+              <select class="fi" id="rIva" onchange="calcR()">
+                <option value="0">0% — Exento</option>
+                <option value="4">4% — Superreducido</option>
+                <option value="10">10% — Reducido</option>
+                <option value="21">21% — General</option>
+              </select>
+            </div>
           </div>
-          <div id="rIvaRow" class="fg" style="display:none;margin-bottom:0">
-            <label class="fl">Tipo de IVA</label>
-            <select class="fi" id="rIva" onchange="calcR()">
-              <option value="0">0% — Exento</option>
-              <option value="4">4% — Superreducido</option>
-              <option value="10">10% — Reducido</option>
-              <option value="21">21% — General</option>
-            </select>
-          </div>
+          <div class="fg" style="margin-bottom:0"><label class="fl">Nota interna</label><textarea class="fi" id="rNota" rows="2" placeholder="Solo visible para ti y tu equipo..."></textarea></div>
         </div>
 
       </div>
@@ -1772,6 +1797,7 @@ function mapRep(r) {
     total:parseFloat(r.total)||0, pagoFinal:r.pago_final||'',
     iva:parseFloat(r.iva)||0, ivaModo:r.iva_modo||'sin', base:parseFloat(r.base)||0, ivaImporte:parseFloat(r.iva_importe)||0,
     componentes: r.componentes ? (typeof r.componentes === 'string' ? JSON.parse(r.componentes) : r.componentes) : [],
+    servicios: r.servicios ? (typeof r.servicios === 'string' ? JSON.parse(r.servicios) : r.servicios) : [],
     esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||''
   };
 }
@@ -3542,12 +3568,11 @@ function cambiarTipoBloq() {
 }
 
 function abrirRep() {
-  SEL.editRepId = null; SEL.rCli = null; SEL.selParts = [];
+  SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.rServicios = [];
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = '🔧 Nueva Reparación';
   ['rBusCli','rMarca','rModelo','rImei','rAveria','rNota','rSrvBus','rBloqVal'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
-  document.getElementById('rMo').value = '0';
   document.getElementById('rAnticipo').value = '0';
   document.getElementById('rSelCliBox').classList.remove('show');
   document.getElementById('rSelCli').classList.remove('open');
@@ -3563,6 +3588,7 @@ function abrirRep() {
   // Reset IVA al default
   var ivaSel = document.getElementById('rIva');
   if (ivaSel) ivaSel.value = String((AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21);
+  renderServiciosRep();
   calcR();
   renderPlantillasRep();
   openM('mRep');
@@ -3597,7 +3623,10 @@ function aplicarPlantillaRep(key) {
   var p = PLANTILLAS_REP.find(function(x){ return x.key === key; });
   if (!p) return;
   document.getElementById('rAveria').value = p.averia;
-  if (p.mo) document.getElementById('rMo').value = String(p.mo);
+  // Añadir servicio con el precio orientativo (en lugar de mano de obra)
+  if (p.mo) {
+    agregarServicioRep({nombre: p.averia, desc: '', coste: 0, precio: p.mo});
+  }
   // Activar chips de estado correspondientes
   if (p.chk && p.chk.length) {
     document.querySelectorAll('#mRep .chk-btn').forEach(function(b) {
@@ -3609,18 +3638,124 @@ function aplicarPlantillaRep(key) {
   }
   calcR();
   toast('Plantilla "' + p.label + '" aplicada', 'ok');
-  // Foco en avería para que pueda matizar
   var av = document.getElementById('rAveria');
   if (av) { av.focus(); av.select(); }
 }
 
 function toggleChk(el) { el.classList.toggle('on'); }
 
+// ═══ GESTIÓN DE SERVICIOS DE REPARACIÓN ═══
+function agregarServicioRep(servicio) {
+  if (!SEL.rServicios) SEL.rServicios = [];
+  SEL.rServicios.push(servicio || {nombre:'', desc:'', coste:0, precio:0});
+  renderServiciosRep();
+  calcR();
+  // Foco en el último añadido
+  setTimeout(function(){
+    var cards = document.querySelectorAll('.srv-card');
+    if (cards.length) {
+      var last = cards[cards.length-1];
+      var inp = last.querySelector('input.fi');
+      if (inp) inp.focus();
+    }
+  }, 50);
+}
+
+function quitarServicioRep(idx) {
+  if (!SEL.rServicios) return;
+  SEL.rServicios.splice(idx, 1);
+  renderServiciosRep();
+  calcR();
+}
+
+function updateServicioRep(idx, field, value) {
+  if (!SEL.rServicios || !SEL.rServicios[idx]) return;
+  SEL.rServicios[idx][field] = value;
+}
+
+function renderServiciosRep() {
+  var box = document.getElementById('repServiciosList');
+  if (!box) return;
+  if (!SEL.rServicios || !SEL.rServicios.length) {
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:11px;color:var(--muted)">Añade servicios desde el buscador, "Explorar" o "+ Agregar nuevo"</div>';
+    return;
+  }
+  box.innerHTML = SEL.rServicios.map(function(s, i) {
+    return '<div class="srv-card" data-idx="' + i + '">' +
+      '<button type="button" class="srv-card-x" onclick="quitarServicioRep(' + i + ')" title="Quitar servicio">×</button>' +
+      '<div class="srv-card-grid">' +
+        '<div class="fg" style="margin:0"><label class="fl">Nombre del servicio</label>' +
+          '<input class="fi" value="' + esc(s.nombre || '') + '" placeholder="Ej: Instalación de Pantalla" oninput="updateServicioRep(' + i + ',\'nombre\',this.value)">' +
+        '</div>' +
+        '<div class="fg" style="margin:0"><label class="fl" title="Solo interno">🔒 Costo</label>' +
+          '<input class="fi" type="number" step="0.01" value="' + (s.coste || 0) + '" oninput="updateServicioRep(' + i + ',\'coste\',parseFloat(this.value)||0)">' +
+        '</div>' +
+        '<div class="fg" style="margin:0"><label class="fl">Precio</label>' +
+          '<input class="fi" type="number" step="0.01" value="' + (s.precio || 0) + '" oninput="updateServicioRep(' + i + ',\'precio\',parseFloat(this.value)||0);calcR()">' +
+        '</div>' +
+      '</div>' +
+      '<textarea class="fi" rows="2" placeholder="Descripción del servicio (opcional)..." oninput="updateServicioRep(' + i + ',\'desc\',this.value)" style="margin-top:8px">' + esc(s.desc || '') + '</textarea>' +
+    '</div>';
+  }).join('');
+}
+
+function explorarServicios() {
+  var inp = document.getElementById('exploreSrvSearch');
+  if (inp) inp.value = '';
+  renderExploreSrv();
+  openM('mExplorarSrv');
+}
+
+function renderExploreSrv() {
+  var q = ((document.getElementById('exploreSrvSearch') || {}).value || '').toLowerCase();
+  var box = document.getElementById('exploreSrvList');
+  if (!box) return;
+  var srvs = (DB.servicios || []).filter(function(s) {
+    if (s.tipo === 'venta') return false;
+    if (!q) return true;
+    return s.nombre.toLowerCase().includes(q);
+  });
+  if (!srvs.length) {
+    box.innerHTML = '<div class="empty" style="padding:18px;font-size:12px">No hay servicios. Crea uno en Servicios.</div>';
+    return;
+  }
+  var cats = {};
+  srvs.forEach(function(s){ if (!cats[s.categoria || 'Otros']) cats[s.categoria || 'Otros'] = []; cats[s.categoria || 'Otros'].push(s); });
+  var html = '';
+  Object.keys(cats).forEach(function(cat) {
+    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:8px 4px 4px;letter-spacing:.4px">' + cat + '</div>';
+    cats[cat].forEach(function(s) {
+      var coste = parseFloat(s.precioCoste) || 0;
+      var venta = parseFloat(s.precio) || 0;
+      html += '<div class="explore-srv-item" onclick="agregarServicioFromExplore(\'' + s.id + '\')">';
+      html += '<div style="flex:1;min-width:0"><strong style="font-size:13px">' + esc(s.nombre) + '</strong>';
+      if (coste > 0) html += '<div style="font-size:11px;color:var(--muted)">🔒 Coste: ' + cur(coste) + '</div>';
+      html += '</div>';
+      html += '<div style="font-size:14px;font-weight:800;color:var(--green);flex-shrink:0">' + (s.precioFijo ? cur(venta) : 'Variable') + '</div>';
+      html += '</div>';
+    });
+  });
+  box.innerHTML = html;
+}
+
+function agregarServicioFromExplore(sid) {
+  var s = (DB.servicios || []).find(function(x){ return x.id === sid; });
+  if (!s) return;
+  agregarServicioRep({
+    id: s.id,
+    nombre: s.nombre || '',
+    desc: '',
+    coste: parseFloat(s.precioCoste) || 0,
+    precio: parseFloat(s.precio) || 0
+  });
+  closeM('mExplorarSrv');
+}
+
 function calcR() {
-  var mo = parseFloat(document.getElementById('rMo').value) || 0;
-  var comp = SEL.selParts.reduce(function(a, p) { return a + p.precio; }, 0);
+  var srvTotal = (SEL.rServicios || []).reduce(function(a, s){ return a + (parseFloat(s.precio) || 0); }, 0);
+  var comp = (SEL.selParts || []).reduce(function(a, p) { return a + p.precio; }, 0);
   var anti = parseFloat(document.getElementById('rAnticipo').value) || 0;
-  var subtotal = mo + comp; // lo que el usuario ha tecleado
+  var subtotal = srvTotal + comp; // lo que el usuario ha tecleado
   var ivaSel = document.getElementById('rIva');
   var tipoIva = ivaSel ? parseFloat(ivaSel.value) : (AJUSTES.iva && AJUSTES.iva.tipoDefault) || 0;
   var c = calcIVA(subtotal, tipoIva);
@@ -3733,8 +3868,13 @@ function busServicioRep() {
     el.addEventListener('click', function() {
       var s = (DB.servicios || []).find(function(x) { return x.id === el.dataset.sid; });
       if (!s) return;
-      document.getElementById('rAveria').value = s.nombre;
-      if (s.precioFijo && s.precio > 0) { document.getElementById('rMo').value = s.precio; calcR(); }
+      agregarServicioRep({
+        id: s.id,
+        nombre: s.nombre || '',
+        desc: '',
+        coste: parseFloat(s.precioCoste) || 0,
+        precio: parseFloat(s.precio) || 0
+      });
       document.getElementById('rSrvBus').value = '';
       res.classList.remove('open');
     });
@@ -3995,6 +4135,16 @@ function editarRep(id) {
   SEL.editRepId = id;
   SEL.rCli = DB.clis.find(function(c){ return c.id === r.clienteId; }) || {id:r.clienteId, nombre:r.clienteNombre, apellidos:''};
   SEL.selParts = [];
+  // Cargar servicios (con migración de legacy mo)
+  SEL.rServicios = Array.isArray(r.servicios) ? r.servicios.slice() : [];
+  if (!SEL.rServicios.length && r.mo > 0) {
+    SEL.rServicios.push({
+      nombre: r.averia || 'Reparación',
+      desc: '',
+      coste: 0,
+      precio: parseFloat(r.mo) || 0
+    });
+  }
 
   document.getElementById('rMarca').value = r.marca || '';
   document.getElementById('rModelo').value = r.modelo || '';
@@ -4006,7 +4156,6 @@ function editarRep(id) {
   if (bv2 && r.bloqueo) bv2.value = r.bloqueo;
   document.getElementById('rAveria').value = r.averia || '';
   document.getElementById('rNota').value = r.nota || '';
-  document.getElementById('rMo').value = r.mo || 0;
   document.getElementById('rAnticipo').value = r.anticipo || 0;
   var pri = document.getElementById('rPrioridad'); if (pri) pri.value = r.prioridad || 'Normal';
   var fe = document.getElementById('rFechaEnt'); if (fe) fe.value = r.fechaEntrega || '';
@@ -4023,7 +4172,7 @@ function editarRep(id) {
   document.getElementById('rSelCliBox').classList.add('show');
   document.getElementById('rSelCli').classList.remove('open');
 
-  // Reset checklist y partes
+  // Reset checklist
   document.querySelectorAll('.chk-btn').forEach(function(b){ b.classList.remove('on'); });
   // Restaurar componentes guardados
   if (Array.isArray(r.componentes) && r.componentes.length) {
@@ -4033,7 +4182,11 @@ function editarRep(id) {
     document.getElementById('partsList').innerHTML = '';
   }
 
-  // Recalcular totales con componentes restaurados
+  // Renderizar servicios
+  renderServiciosRep();
+  renderPlantillasRep();
+
+  // Recalcular totales
   if (typeof calcR === 'function') calcR();
 
   // Cambiar titulo
@@ -4078,10 +4231,11 @@ function guardarRep() {
   if (SEL.editRepId) {
     var r = DB.reps.find(function(x){ return x.id === SEL.editRepId; });
     if (!r) { toast('Reparación no encontrada', 'err'); SEL.editRepId = null; return; }
-    var moE = parseFloat(document.getElementById('rMo').value) || 0;
+    var serviciosE = (SEL.rServicios || []).slice();
+    var srvTotalE = serviciosE.reduce(function(a,s){ return a + (parseFloat(s.precio)||0); }, 0);
     var compE = SEL.selParts.reduce(function(a,p){ return a + p.precio; }, 0);
     var antiE = parseFloat(document.getElementById('rAnticipo').value) || 0;
-    var subE = moE + compE;
+    var subE = srvTotalE + compE;
     var ivaSelE = document.getElementById('rIva');
     var tipoIvaE = ivaSelE ? parseFloat(ivaSelE.value) : ((AJUSTES.iva && AJUSTES.iva.tipoDefault) || 0);
     var calcE = calcIVA(subE, tipoIvaE);
@@ -4096,7 +4250,9 @@ function guardarRep() {
     r.prioridad = document.getElementById('rPrioridad').value;
     r.fechaEntrega = document.getElementById('rFechaEnt').value;
     r.nota = document.getElementById('rNota').value.trim();
-    r.mo = moE; r.comp = compE; r.anticipo = antiE;
+    r.servicios = serviciosE;
+    r.mo = 0; // legacy
+    r.comp = compE; r.anticipo = antiE;
     r.iva = (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIvaE : 0;
     r.ivaModo = (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin';
     r.base = calcE.base;
@@ -4113,21 +4269,22 @@ function guardarRep() {
         mo:r.mo, comp:r.comp, anticipo:r.anticipo, total:r.total, restante:r.restante,
         tipo_bloqueo: r.tipoBloqueo || null, bloqueo: r.bloqueo || null,
         iva: r.iva, iva_modo: r.ivaModo, base: r.base, iva_importe: r.ivaImporte,
-        componentes: r.componentes
+        componentes: r.componentes, servicios: r.servicios
       });
     }
     SEL.editRepId = null;
     closeM('mRep');
     renderReps();
     renderDash();
-    toast('Reparacion actualizada', 'ok');
+    toast('Reparación actualizada', 'ok');
     return;
   }
 
-  var mo = parseFloat(document.getElementById('rMo').value) || 0;
+  var serviciosN = (SEL.rServicios || []).slice();
+  var srvTotalN = serviciosN.reduce(function(a,s){ return a + (parseFloat(s.precio)||0); }, 0);
   var comp = SEL.selParts.reduce(function(a, p) { return a + p.precio; }, 0);
   var anticipo = parseFloat(document.getElementById('rAnticipo').value) || 0;
-  var subtotal = mo + comp;
+  var subtotal = srvTotalN + comp;
   var ivaSelN = document.getElementById('rIva');
   var tipoIvaN = ivaSelN ? parseFloat(ivaSelN.value) : ((AJUSTES.iva && AJUSTES.iva.tipoDefault) || 0);
   var calcN = calcIVA(subtotal, tipoIvaN);
@@ -4152,7 +4309,8 @@ function guardarRep() {
     fechaEntrega: document.getElementById('rFechaEnt').value,
     fechaEntregaReal: '',
     nota: document.getElementById('rNota').value.trim(),
-    mo: mo, comp: comp, anticipo: anticipo,
+    servicios: serviciosN,
+    mo: 0, comp: comp, anticipo: anticipo,
     iva: (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIvaN : 0,
     ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
     base: calcN.base,
@@ -4183,15 +4341,14 @@ function guardarRep() {
       restante:rep.restante, total:rep.total, token:rep.token,
       tipo_bloqueo: rep.tipoBloqueo || null, bloqueo: rep.bloqueo || null,
       iva: rep.iva, iva_modo: rep.ivaModo, base: rep.base, iva_importe: rep.ivaImporte,
-      componentes: rep.componentes
+      componentes: rep.componentes, servicios: rep.servicios
     });
   }
 
   closeM('mRep');
-  toast('Reparacion creada', 'ok');
+  toast('Reparación creada', 'ok');
   renderDash();
   checkUrgentes();
-  // tracking_post_create_v1: abrir tracking automaticamente tras crear
   setTimeout(function(){ abrirTracking(rep.id); }, 200);
   if (typeof ofrecerGuardarModelo === 'function') ofrecerGuardarModelo(rep);
 }
@@ -7015,6 +7172,15 @@ document.addEventListener('click', function(e){
       <span><span class="kbd">↑↓</span> navegar · <span class="kbd">↵</span> abrir · <span class="kbd">Esc</span> cerrar</span>
       <span id="busquedaGlobalCount"></span>
     </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL EXPLORAR SERVICIOS ═══ -->
+<div class="modal-bg" id="mExplorarSrv">
+  <div class="modal" style="max-width:560px">
+    <div class="modal-h"><span>🛠️ Servicios disponibles</span><span class="cls" onclick="closeM('mExplorarSrv')">×</span></div>
+    <input class="fi" id="exploreSrvSearch" placeholder="🔍 Filtrar por nombre..." oninput="renderExploreSrv()" style="margin-bottom:12px">
+    <div id="exploreSrvList" style="max-height:55vh;overflow-y:auto"></div>
   </div>
 </div>
 
