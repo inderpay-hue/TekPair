@@ -322,7 +322,41 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .modal-actions .btn-primary{flex:1}
 .modal-actions .btn-secondary{flex:1}
 
-/* Header común para modales con título + botón cerrar */
+/* === KANBAN === */
+.vista-toggle{display:flex;background:var(--light);border-radius:8px;padding:3px;gap:2px;border:1px solid var(--border)}
+.vista-btn{background:transparent;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:14px;color:var(--muted);font-family:inherit;transition:all .15s var(--ease);min-width:32px}
+.vista-btn:hover{color:var(--text)}
+.vista-btn.active{background:var(--white);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.08)}
+body[data-theme="dark"] .vista-btn.active{background:var(--border)}
+
+.kanban-board{display:flex;gap:12px;overflow-x:auto;padding:4px 0 14px;-webkit-overflow-scrolling:touch;min-height:60vh}
+.kanban-col{flex:0 0 280px;background:var(--light);border-radius:12px;padding:10px;display:flex;flex-direction:column;max-height:80vh}
+.kanban-col-header{display:flex;align-items:center;justify-content:space-between;padding:6px 4px 10px;border-bottom:1px solid var(--border);margin-bottom:8px;flex-shrink:0}
+.kanban-col-title{font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;display:flex;align-items:center;gap:6px}
+.kanban-col-title .dot{width:8px;height:8px;border-radius:50%}
+.kanban-col-count{background:var(--white);color:var(--muted);font-size:10px;font-weight:700;padding:2px 7px;border-radius:10px;border:1px solid var(--border)}
+.kanban-cards{display:flex;flex-direction:column;gap:6px;overflow-y:auto;padding:2px;min-height:50px}
+.kanban-cards.drag-over{background:rgba(0,200,150,.06);border-radius:8px;outline:2px dashed var(--green);outline-offset:-2px}
+
+.kanban-card{background:var(--white);border:1px solid var(--border);border-radius:9px;padding:10px 12px;cursor:grab;transition:all .15s var(--ease);position:relative;user-select:none}
+.kanban-card:hover{box-shadow:0 4px 12px rgba(0,0,0,.06);transform:translateY(-1px)}
+.kanban-card:active{cursor:grabbing}
+.kanban-card.dragging{opacity:.4;transform:scale(.98)}
+.kanban-card-pri{position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:9px 0 0 9px}
+.kanban-card-pri.alta{background:var(--orange)}
+.kanban-card-pri.urgente{background:var(--red)}
+.kanban-card-pri.normal{background:transparent}
+.kanban-card-cli{font-size:13px;font-weight:700;margin-bottom:2px}
+.kanban-card-mod{font-size:11px;color:var(--muted);margin-bottom:6px}
+.kanban-card-row{display:flex;align-items:center;justify-content:space-between;font-size:11px;color:var(--muted);gap:6px}
+.kanban-card-total{font-weight:700;color:var(--green);font-size:12px}
+.kanban-card-dias{font-size:10px}
+.kanban-card-dias.urgente{color:var(--red);font-weight:700}
+.kanban-card-dias.alta{color:var(--orange);font-weight:700}
+.kanban-empty{text-align:center;padding:20px 10px;font-size:11px;color:var(--muted);background:var(--white);border:1px dashed var(--border);border-radius:8px}
+@media(max-width:768px){
+  .kanban-col{flex-basis:240px}
+}
 .modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;font-size:16px;font-weight:800;color:var(--dark)}
 .modal-h > span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cls{background:var(--light);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:inherit;flex-shrink:0;transition:background .15s var(--ease)}
@@ -761,7 +795,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="page" id="pReps">
   <div class="sec-header" style="margin-bottom:10px">
     <div class="sec-title">Reparaciones</div>
-    <button class="btn-sm" style="background:var(--green);color:white" onclick="abrirRep()">+ Nueva</button>
+    <div style="display:flex;gap:6px;align-items:center">
+      <div class="vista-toggle" style="display:flex;background:var(--light);border-radius:8px;padding:3px;gap:2px">
+        <button class="vista-btn active" id="btnVistaLista" onclick="cambiarVista('lista')" title="Vista lista">☰</button>
+        <button class="vista-btn" id="btnVistaKanban" onclick="cambiarVista('kanban')" title="Vista kanban">▦</button>
+      </div>
+      <button class="btn-sm" style="background:var(--green);color:white" onclick="abrirRep()">+ Nueva</button>
+    </div>
   </div>
   <div class="tabs" id="repTabs">
     <div class="tab active" data-f="todas" onclick="setRepFiltro(this)">Todas</div>
@@ -775,6 +815,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="tab" data-f="Rechazado" onclick="setRepFiltro(this)">Rechazado</div>
   </div>
   <div id="listaReps"></div>
+  <div id="kanbanReps" style="display:none"></div>
 </div>
 
 <!-- PAGE: STOCK -->
@@ -4856,8 +4897,152 @@ function setRepFiltro(el) {
   document.querySelectorAll('#repTabs .tab').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
   SEL.repFiltro = el.dataset.f;
-  renderReps();
+  if (SEL.vistaReps === 'kanban') renderKanban(); else renderReps();
 }
+
+// === VISTA LISTA / KANBAN ===
+function cambiarVista(vista) {
+  SEL.vistaReps = vista;
+  localStorage.setItem('tk_vista_reps', vista);
+  document.getElementById('btnVistaLista').classList.toggle('active', vista === 'lista');
+  document.getElementById('btnVistaKanban').classList.toggle('active', vista === 'kanban');
+  document.getElementById('listaReps').style.display = vista === 'lista' ? '' : 'none';
+  document.getElementById('kanbanReps').style.display = vista === 'kanban' ? '' : 'none';
+  // Las pestañas de filtro solo tienen sentido en lista
+  document.getElementById('repTabs').style.display = vista === 'lista' ? '' : 'none';
+  if (vista === 'kanban') renderKanban();
+  else renderReps();
+}
+
+function renderKanban() {
+  var box = document.getElementById('kanbanReps');
+  if (!box) return;
+  // Estados que mostramos como columnas
+  var columnas = [
+    {key:'Pendiente', label:'Pendiente', color:'#FBBF24'},
+    {key:'En Proceso', label:'En proceso', color:'#0055FF'},
+    {key:'Por Entregar', label:'Por entregar', color:'#00C896'},
+    {key:'Entregado', label:'Entregado', color:'#94928E'},
+    {key:'Garantia', label:'Garantía', color:'#7C3AED'},
+    {key:'Sin Solucion', label:'Sin solución', color:'#EF4444'}
+  ];
+
+  var html = '<div class="kanban-board" id="kanbanBoard">';
+  columnas.forEach(function(col) {
+    var reps = DB.reps.filter(function(r){ return r.estado === col.key; })
+      .sort(function(a,b){
+        // Urgente primero, luego por fecha entrega
+        var pa = a.prioridad === 'Urgente' ? 0 : a.prioridad === 'Alta' ? 1 : 2;
+        var pb = b.prioridad === 'Urgente' ? 0 : b.prioridad === 'Alta' ? 1 : 2;
+        if (pa !== pb) return pa - pb;
+        return (b.id || '').localeCompare(a.id || '');
+      });
+    html += '<div class="kanban-col" data-estado="' + col.key + '">';
+    html += '<div class="kanban-col-header">';
+    html += '<div class="kanban-col-title"><span class="dot" style="background:' + col.color + '"></span>' + col.label + '</div>';
+    html += '<div class="kanban-col-count">' + reps.length + '</div>';
+    html += '</div>';
+    html += '<div class="kanban-cards" data-estado="' + col.key + '" ondragover="kanbanDragOver(event)" ondragleave="kanbanDragLeave(event)" ondrop="kanbanDrop(event)">';
+    if (!reps.length) {
+      html += '<div class="kanban-empty">Sin reparaciones</div>';
+    } else {
+      reps.forEach(function(r) {
+        var pri = (r.prioridad || 'Normal').toLowerCase();
+        var dias = '';
+        var diasClass = '';
+        if (r.fechaEntrega) {
+          var fe = _parseDateAny(r.fechaEntrega);
+          if (fe) {
+            var ds = Math.floor((fe - new Date()) / 86400000);
+            if (ds < 0) { dias = 'Vencido ' + Math.abs(ds) + 'd'; diasClass = ' urgente'; }
+            else if (ds === 0) { dias = 'Hoy'; diasClass = ' urgente'; }
+            else if (ds <= 2) { dias = 'En ' + ds + 'd'; diasClass = ' alta'; }
+            else { dias = 'En ' + ds + 'd'; }
+          }
+        }
+        html += '<div class="kanban-card" draggable="true" data-rep="' + r.id + '" ondragstart="kanbanDragStart(event)" ondragend="kanbanDragEnd(event)" onclick="abrirDetalleRepKanban(\'' + r.id + '\')">';
+        html += '<div class="kanban-card-pri ' + pri + '"></div>';
+        html += '<div class="kanban-card-cli">' + esc(r.clienteNombre || 'Sin cliente') + '</div>';
+        html += '<div class="kanban-card-mod">' + esc((r.marca||'') + ' ' + (r.modelo||'')).trim() + '</div>';
+        if (r.averia) html += '<div class="kanban-card-mod" style="font-style:italic">' + esc(r.averia.length>40?r.averia.slice(0,38)+'…':r.averia) + '</div>';
+        html += '<div class="kanban-card-row">';
+        html += '<span class="kanban-card-total">' + cur(r.total || 0) + '</span>';
+        if (dias) html += '<span class="kanban-card-dias' + diasClass + '">' + dias + '</span>';
+        html += '</div>';
+        html += '</div>';
+      });
+    }
+    html += '</div></div>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+// === DRAG & DROP HANDLERS ===
+var KANBAN_DRAG_ID = null;
+
+function kanbanDragStart(e) {
+  KANBAN_DRAG_ID = e.target.closest('.kanban-card').dataset.rep;
+  e.target.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+  e.dataTransfer.setData('text/plain', KANBAN_DRAG_ID);
+}
+
+function kanbanDragEnd(e) {
+  e.target.classList.remove('dragging');
+  document.querySelectorAll('.kanban-cards.drag-over').forEach(function(el){ el.classList.remove('drag-over'); });
+  KANBAN_DRAG_ID = null;
+}
+
+function kanbanDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  var col = e.currentTarget;
+  if (!col.classList.contains('drag-over')) col.classList.add('drag-over');
+}
+
+function kanbanDragLeave(e) {
+  if (e.currentTarget === e.target) {
+    e.currentTarget.classList.remove('drag-over');
+  }
+}
+
+function kanbanDrop(e) {
+  e.preventDefault();
+  var col = e.currentTarget;
+  col.classList.remove('drag-over');
+  var nuevoEstado = col.dataset.estado;
+  var repId = e.dataTransfer.getData('text/plain') || KANBAN_DRAG_ID;
+  if (!repId || !nuevoEstado) return;
+  var r = DB.reps.find(function(x){ return x.id === repId; });
+  if (!r) return;
+  if (r.estado === nuevoEstado) return;
+  // Si pasa a Entregado, abrir flujo de entrega normal en lugar de solo cambiar estado
+  if (nuevoEstado === 'Entregado' && r.estado !== 'Entregado') {
+    if (typeof abrirEntregar === 'function') {
+      abrirEntregar(r.id);
+      // El estado se cambiará al confirmar entrega
+      return;
+    }
+  }
+  // Cambio normal
+  cambiarEstado(r.id, nuevoEstado);
+  // Re-render (cambiarEstado ya llama a renderReps, también renderKanban)
+  setTimeout(function(){ renderKanban(); }, 50);
+}
+
+function abrirDetalleRepKanban(id) {
+  if (typeof abrirDetalleRep === 'function') abrirDetalleRep(id);
+  else if (typeof editarRep === 'function') editarRep(id);
+}
+
+// Restaurar vista guardada al cargar
+setTimeout(function(){
+  var v = localStorage.getItem('tk_vista_reps');
+  if (v === 'kanban') {
+    cambiarVista('kanban');
+  }
+}, 800);
 
 function renderReps() {
   var list = DB.reps.slice().reverse().filter(function(r) {
