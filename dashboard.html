@@ -3088,7 +3088,7 @@ function actualizarAvisoGarantia() {
   var marca = document.getElementById('rMarca').value.trim();
   var modelo = document.getElementById('rModelo').value.trim();
   if (!marca && !modelo) { alert.style.display = 'none'; return; }
-  var info = checkGarantia(SEL.rCli.id, marca, modelo);
+  var info = checkGarantia(SEL.rCli.id, marca, modelo, null, ((SEL.rCli.nombre || '') + ' ' + (SEL.rCli.apellidos || '')).trim());
   if (!info) { alert.style.display = 'none'; return; }
   var fechaPrev = info.rep.fechaEntregaReal;
   alert.innerHTML = '<strong style="color:var(--blue)">🛡️ EN GARANTÍA</strong><br>' +
@@ -4038,8 +4038,8 @@ function renderReps() {
     var badgeGarantia = '';
     if (r.esGarantia) {
       badgeGarantia = '<br><span class="badge bp">Garantia</span>';
-    } else if (r.cliId && r.estado !== 'Entregado' && r.estado !== 'Rechazado') {
-      var info = checkGarantia(r.cliId, r.marca, r.modelo, r.fecha);
+    } else if ((r.cliId || r.clienteNombre) && r.estado !== 'Entregado' && r.estado !== 'Rechazado') {
+      var info = checkGarantia(r.cliId, r.marca, r.modelo, r.fecha, r.clienteNombre);
       if (info && info.rep.id !== r.id) {
         badgeGarantia = '<br><span class="badge-garantia" title="Reparación previa entregada el ' + info.rep.fechaEntregaReal + ' (' + info.dias + ' días)">🛡️ EN GARANTÍA</span>';
       }
@@ -5879,7 +5879,7 @@ function abrirDetalleRep(repId) {
   var cli = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
 
   // Check garantía
-  var infoGar = cli ? checkGarantia(r.cliId, r.marca, r.modelo, r.fecha) : null;
+  var infoGar = checkGarantia(r.cliId, r.marca, r.modelo, r.fecha, r.clienteNombre);
 
   var html = '';
   // Cabecera
@@ -6094,8 +6094,8 @@ function getDiasGarantia() {
 
 // Comprueba si una nueva avería del mismo cliente y modelo está dentro de garantía
 // Devuelve la rep anterior + días transcurridos, o null
-function checkGarantia(cliId, marca, modelo, fechaActual) {
-  if (!cliId) return null;
+function checkGarantia(cliId, marca, modelo, fechaActual, clienteNombre) {
+  if (!cliId && !clienteNombre) return null;
   var dias = getDiasGarantia();
   if (!dias || dias <= 0) return null;
   var fechaRef = fechaActual ? _parseDateAny(fechaActual) : new Date();
@@ -6103,8 +6103,14 @@ function checkGarantia(cliId, marca, modelo, fechaActual) {
   var marcaN = _norm(marca||'');
   var modeloN = _norm(modelo||'');
   if (!modeloN) return null; // sin modelo no podemos comparar
+  var nombreNorm = _norm(clienteNombre || '');
   var candidatas = DB.reps.filter(function(r) {
-    if (r.cliId !== cliId) return false;
+    // Match cliente: por cliId exacto, o por nombre normalizado como fallback
+    var matchCli = (cliId && r.cliId === cliId);
+    if (!matchCli && nombreNorm && r.clienteNombre) {
+      matchCli = _norm(r.clienteNombre) === nombreNorm;
+    }
+    if (!matchCli) return false;
     if (r.estado !== 'Entregado' || !r.fechaEntregaReal) return false;
     var fe = _parseDateAny(r.fechaEntregaReal);
     if (!fe) return false;
@@ -6112,9 +6118,7 @@ function checkGarantia(cliId, marca, modelo, fechaActual) {
     if (diff < 0 || diff > dias) return false;
     var mr = _norm(r.marca||'');
     var mm = _norm(r.modelo||'');
-    // Marcas: deben coincidir si ambas existen, ignorar si una está vacía
     var marcaCoincide = !marcaN || !mr || mr === marcaN;
-    // Modelos: tras normalizar deben ser iguales
     var modeloCoincide = mm === modeloN;
     return marcaCoincide && modeloCoincide;
   }).sort(function(a,b){
