@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Tekpair</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <style>
 /* ═══ RESET & BASE ═══ */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
@@ -687,7 +688,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="page" id="pStock">
   <div class="sec-header" style="margin-bottom:10px">
     <div class="sec-title">Stock</div>
-    <button class="btn-sm" style="background:var(--orange);color:white" onclick="openM('mStock')">+ Añadir</button>
+    <div style="display:flex;gap:6px">
+      <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirImportFactura()" title="Importar PDF de factura del proveedor">📤 Importar factura</button>
+      <button class="btn-sm" style="background:var(--orange);color:white" onclick="openM('mStock')">+ Añadir</button>
+    </div>
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
@@ -7434,7 +7438,297 @@ document.addEventListener('click', function(e){
       setTimeout(function(){ if (typeof renderReps === 'function') renderReps(); }, 50);
     });
   });
+})();// ═══ IMPORTAR FACTURA PDF ═══
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+var IMP_FAC_PRODUCTOS = []; // [{cat, marca, modelo, capacidad, color, imei, coste}]
+var IMP_FAC_TEXTO = '';
+
+function abrirImportFactura() {
+  if (!tienePerm('stock_crear')) { toast('Sin permiso', 'err'); return; }
+  impFacReset();
+  openM('mImportFactura');
+}
+
+function impFacReset() {
+  IMP_FAC_PRODUCTOS = [];
+  IMP_FAC_TEXTO = '';
+  document.getElementById('impFacPaso1').style.display = '';
+  document.getElementById('impFacPaso2').style.display = 'none';
+  document.getElementById('impFacPaso3').style.display = 'none';
+  document.getElementById('impFacError').style.display = 'none';
+  document.getElementById('impFacInput').value = '';
+}
+
+function impFacMostrarError(msg) {
+  var el = document.getElementById('impFacError');
+  el.textContent = msg;
+  el.style.display = 'block';
+  document.getElementById('impFacPaso1').style.display = '';
+  document.getElementById('impFacPaso2').style.display = 'none';
+}
+
+// Listeners drop zone
+(function(){
+  var drop = document.getElementById('impFacDrop');
+  var input = document.getElementById('impFacInput');
+  if (!drop || !input) return;
+  drop.addEventListener('click', function(){ input.click(); });
+  drop.addEventListener('dragover', function(e){ e.preventDefault(); drop.style.borderColor = 'var(--green)'; drop.style.background = 'rgba(0,200,150,.05)'; });
+  drop.addEventListener('dragleave', function(){ drop.style.borderColor = ''; drop.style.background = '#FAFBFC'; });
+  drop.addEventListener('drop', function(e){
+    e.preventDefault();
+    drop.style.borderColor = ''; drop.style.background = '#FAFBFC';
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) impFacProcesarPDF(e.dataTransfer.files[0]);
+  });
+  input.addEventListener('change', function(e){
+    if (e.target.files && e.target.files[0]) impFacProcesarPDF(e.target.files[0]);
+  });
 })();
+
+async function impFacProcesarPDF(file) {
+  if (!file || file.type !== 'application/pdf') { impFacMostrarError('Solo se aceptan PDFs.'); return; }
+  if (typeof pdfjsLib === 'undefined') { impFacMostrarError('Librería PDF no cargada. Recarga la página.'); return; }
+
+  document.getElementById('impFacPaso1').style.display = 'none';
+  document.getElementById('impFacPaso2').style.display = '';
+  document.getElementById('impFacLoadingMsg').textContent = 'Extrayendo texto...';
+
+  try {
+    var arrBuffer = await file.arrayBuffer();
+    var pdf = await pdfjsLib.getDocument({data: arrBuffer}).promise;
+    var fullText = '';
+    var allLines = [];
+    for (var i = 1; i <= pdf.numPages; i++) {
+      var page = await pdf.getPage(i);
+      var content = await page.getTextContent();
+      // Reconstruir líneas usando la posición Y de cada item
+      var lineMap = {};
+      content.items.forEach(function(item) {
+        var y = Math.round(item.transform[5]);
+        if (!lineMap[y]) lineMap[y] = [];
+        lineMap[y].push({x: item.transform[4], text: item.str});
+      });
+      var ys = Object.keys(lineMap).map(Number).sort(function(a,b){ return b - a; });
+      ys.forEach(function(y) {
+        var line = lineMap[y].sort(function(a,b){ return a.x - b.x; }).map(function(p){ return p.text; }).join(' ').replace(/\s+/g, ' ').trim();
+        if (line) {
+          allLines.push(line);
+          fullText += line + '\n';
+        }
+      });
+      fullText += '\n';
+    }
+
+    if (!fullText.trim()) {
+      impFacMostrarError('No se extrajo texto del PDF. Probablemente sea un PDF escaneado (foto). Necesitarías OCR.');
+      return;
+    }
+
+    IMP_FAC_TEXTO = fullText;
+    document.getElementById('impFacLoadingMsg').textContent = 'Detectando productos...';
+    await new Promise(function(r){ setTimeout(r, 100); }); // permite UI update
+
+    IMP_FAC_PRODUCTOS = impFacParsearProductos(allLines, fullText);
+    impFacMostrarRevision();
+  } catch (e) {
+    console.error('Error procesando PDF:', e);
+    impFacMostrarError('Error al leer el PDF: ' + (e.message || 'desconocido'));
+  }
+}
+
+// Parsea líneas para detectar productos
+function impFacParsearProductos(lines, fullText) {
+  var productos = [];
+  // Regex IMEI: 14-15 dígitos consecutivos (algunos proveedores ponen 14, otros 15)
+  var imeiRegex = /\b\d{14,16}\b/g;
+  // Regex precio: número con separador decimal . o ,
+  var precioRegex = /(?:^|\s)([0-9]{1,4}(?:[.,]\d{1,2})?)\s*(?:€|EUR|EURO)?(?:\s|$)/;
+
+  // Marcas comunes
+  var marcasComunes = ['Apple','Samsung','Xiaomi','Huawei','Honor','Oppo','OnePlus','Realme','Motorola','Sony','Nokia','LG','Google','Pixel'];
+
+  // Estrategia: buscar líneas con IMEI. Para cada IMEI, intentar extraer marca/modelo de la línea o las anteriores
+  lines.forEach(function(line, idx) {
+    var imeisEnLinea = line.match(imeiRegex) || [];
+    imeisEnLinea.forEach(function(imei) {
+      // Validar que sea probable IMEI (15 digitos es el estándar; algunos PDFs ponen 14)
+      if (imei.length < 14 || imei.length > 16) return;
+      // Excluir si es claramente un total/numero de factura largo
+      // Buscar contexto: línea actual + 2 anteriores + 1 siguiente
+      var contexto = lines.slice(Math.max(0, idx-2), Math.min(lines.length, idx+2)).join(' ');
+
+      // Detectar marca
+      var marca = '';
+      for (var i = 0; i < marcasComunes.length; i++) {
+        if (contexto.toLowerCase().indexOf(marcasComunes[i].toLowerCase()) !== -1) {
+          marca = marcasComunes[i];
+          break;
+        }
+      }
+
+      // Detectar modelo (heurística: palabra "iPhone XX" o "Galaxy XX" o similar)
+      var modelo = '';
+      var modeloMatch = contexto.match(/(iPhone\s*\d+\s*(?:Pro\s*Max|Pro|Plus|Mini|SE)?)/i)
+        || contexto.match(/(Galaxy\s*[A-Z]?\d+\s*(?:Ultra|Plus|FE|Pro)?)/i)
+        || contexto.match(/(Redmi\s*(?:Note\s*)?\d+\s*(?:Pro|Plus|S|T)?)/i)
+        || contexto.match(/(Pixel\s*\d+\s*(?:Pro|XL|a)?)/i)
+        || contexto.match(/(Mi\s*\d+\s*(?:Pro|Plus|T|Ultra)?)/i);
+      if (modeloMatch) modelo = modeloMatch[1].replace(/\s+/g, ' ').trim();
+
+      // Detectar capacidad (32GB, 64GB, 128GB, 256GB, 512GB, 1TB)
+      var capacidad = '';
+      var capMatch = contexto.match(/\b(32|64|128|256|512|1024)\s*GB\b/i) || contexto.match(/\b1\s*TB\b/i);
+      if (capMatch) capacidad = capMatch[0].replace(/\s+/g, '');
+
+      // Detectar color (palabras comunes)
+      var coloresComunes = ['Negro','Blanco','Gris','Plata','Dorado','Oro','Azul','Verde','Rojo','Rosa','Morado','Violeta','Amarillo','Naranja','Black','White','Gray','Grey','Silver','Gold','Blue','Green','Red','Pink','Purple','Yellow','Midnight','Starlight','Graphite','Sierra'];
+      var color = '';
+      for (var j = 0; j < coloresComunes.length; j++) {
+        var rgx = new RegExp('\\b' + coloresComunes[j] + '\\b', 'i');
+        if (rgx.test(contexto)) { color = coloresComunes[j]; break; }
+      }
+
+      // Detectar precio: buscar números con decimales en la línea actual o siguiente
+      var coste = 0;
+      var lineaConPrecio = line + ' ' + (lines[idx+1] || '');
+      // Buscar todos los números con formato precio
+      var precios = lineaConPrecio.match(/\b(\d{2,4}[.,]\d{2})\b/g) || [];
+      if (precios.length > 0) {
+        // Tomar el último (suele ser el total línea o coste unitario al final)
+        var ultimoPrecio = precios[precios.length - 1].replace(',', '.');
+        coste = parseFloat(ultimoPrecio) || 0;
+      }
+
+      // Excluir IMEIs duplicados
+      if (productos.some(function(p){ return p.imei === imei; })) return;
+
+      productos.push({
+        cat: 'Telefono',
+        marca: marca,
+        modelo: modelo,
+        capacidad: capacidad,
+        color: color,
+        imei: imei,
+        coste: coste
+      });
+    });
+  });
+
+  return productos;
+}
+
+function impFacMostrarRevision() {
+  document.getElementById('impFacPaso2').style.display = 'none';
+  document.getElementById('impFacPaso3').style.display = '';
+  document.getElementById('impFacTextoCrudo').textContent = IMP_FAC_TEXTO;
+  impFacRenderTabla();
+}
+
+function impFacRenderTabla() {
+  var tbody = document.getElementById('impFacTbody');
+  if (!tbody) return;
+  if (!IMP_FAC_PRODUCTOS.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="padding:24px;text-align:center;font-size:12px;color:var(--muted)">No se detectaron productos automáticamente. Pulsa "+ Añadir fila manual".</td></tr>';
+    document.getElementById('impFacResumen').textContent = '0 productos detectados';
+    document.getElementById('impFacTotal').textContent = cur(0);
+    return;
+  }
+  var total = 0;
+  tbody.innerHTML = IMP_FAC_PRODUCTOS.map(function(p, i) {
+    total += parseFloat(p.coste) || 0;
+    var catOpts = ['Telefono','Tablet','Smartwatch','Pantalla','Bateria','Tapa','Flex de Carga','Altavoz','Otro'];
+    var catSel = catOpts.map(function(c){ return '<option ' + (p.cat===c?'selected':'') + '>' + c + '</option>'; }).join('');
+    return '<tr>' +
+      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><select class="fi" style="font-size:11px;padding:5px 6px" onchange="impFacUpd(' + i + ',\'cat\',this.value)">' + catSel + '</select></td>' +
+      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" style="font-size:11px;padding:5px 8px" value="' + esc(p.marca||'') + '" oninput="impFacUpd(' + i + ',\'marca\',this.value)"></td>' +
+      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" style="font-size:11px;padding:5px 8px" value="' + esc(p.modelo||'') + '" oninput="impFacUpd(' + i + ',\'modelo\',this.value)"></td>' +
+      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" style="font-size:11px;padding:5px 8px;width:80px" value="' + esc(p.capacidad||'') + '" oninput="impFacUpd(' + i + ',\'capacidad\',this.value)"></td>' +
+      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" style="font-size:11px;padding:5px 8px;width:90px" value="' + esc(p.color||'') + '" oninput="impFacUpd(' + i + ',\'color\',this.value)"></td>' +
+      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" style="font-size:11px;padding:5px 8px;font-family:ui-monospace,monospace" value="' + esc(p.imei||'') + '" oninput="impFacUpd(' + i + ',\'imei\',this.value)"></td>' +
+      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" type="number" step="0.01" style="font-size:11px;padding:5px 8px;width:80px;text-align:right" value="' + (p.coste||0) + '" oninput="impFacUpd(' + i + ',\'coste\',parseFloat(this.value)||0)"></td>' +
+      '<td style="padding:5px;border-bottom:1px solid var(--border);text-align:center"><button onclick="impFacQuitar(' + i + ')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px" title="Quitar">×</button></td>' +
+    '</tr>';
+  }).join('');
+  document.getElementById('impFacResumen').textContent = IMP_FAC_PRODUCTOS.length + ' producto' + (IMP_FAC_PRODUCTOS.length===1?'':'s') + ' detectado' + (IMP_FAC_PRODUCTOS.length===1?'':'s');
+  document.getElementById('impFacTotal').textContent = cur(total);
+}
+
+function impFacUpd(i, field, value) {
+  if (IMP_FAC_PRODUCTOS[i]) {
+    IMP_FAC_PRODUCTOS[i][field] = value;
+    if (field === 'coste') impFacRenderTabla();
+  }
+}
+
+function impFacQuitar(i) {
+  IMP_FAC_PRODUCTOS.splice(i, 1);
+  impFacRenderTabla();
+}
+
+function impFacAnadirFila() {
+  IMP_FAC_PRODUCTOS.push({cat:'Telefono', marca:'', modelo:'', capacidad:'', color:'', imei:'', coste:0});
+  impFacRenderTabla();
+}
+
+function impFacVerTextoCrudo() {
+  var det = document.querySelector('#mImportFactura details');
+  if (det) det.open = true;
+}
+
+function impFacAnadirAlStock() {
+  // Validar
+  var validos = IMP_FAC_PRODUCTOS.filter(function(p){
+    return (p.modelo || '').trim() || (p.imei || '').trim() || (p.marca || '').trim();
+  });
+  if (!validos.length) { toast('No hay productos válidos', 'err'); return; }
+
+  // Preguntar precio de venta sugerido (margen %)
+  var margenStr = prompt('¿Qué margen quieres aplicar al precio de venta? (en %)\nEjemplo: 30 = 30% sobre el coste.\nDeja vacío para no calcular precio de venta.', '30');
+  var margen = margenStr ? (parseFloat(margenStr) || 0) : 0;
+
+  if (!DB.stock) DB.stock = [];
+  var creados = 0;
+  validos.forEach(function(p) {
+    var coste = parseFloat(p.coste) || 0;
+    var precioV = margen > 0 && coste > 0 ? Math.round(coste * (1 + margen/100) * 100) / 100 : 0;
+    var item = {
+      id: 's' + Date.now() + '_' + creados,
+      categoria: p.cat || 'Telefono',
+      marca: (p.marca || '').trim(),
+      modelo: (p.modelo || '').trim(),
+      capacidad: (p.capacidad || '').trim(),
+      color: (p.color || '').trim(),
+      imei: (p.imei || '').trim(),
+      unidades: 1,
+      stockMin: 1,
+      stockMax: 5,
+      precioC: coste,
+      precioV: precioV,
+      proveedor: '',
+      notas: 'Importado desde factura ' + new Date().toLocaleDateString('es')
+    };
+    DB.stock.push(item);
+    creados++;
+    // Sync Supabase
+    if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
+      sbPost('stock', {
+        id: item.id, tienda_id: TIENDA_ID,
+        categoria: item.categoria, marca: item.marca, modelo: item.modelo,
+        capacidad: item.capacidad, color: item.color, imei: item.imei,
+        unidades: item.unidades, stock_min: item.stockMin, stock_max: item.stockMax,
+        precio_c: item.precioC, precio_v: item.precioV
+      });
+    }
+  });
+  guardarDatos();
+  closeM('mImportFactura');
+  toast(creados + ' productos añadidos al stock', 'ok');
+  if (typeof renderStock === 'function') renderStock();
+}
+
 </script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
@@ -7447,6 +7741,71 @@ document.addEventListener('click', function(e){
     <div class="search-global-help">
       <span><span class="kbd">↑↓</span> navegar · <span class="kbd">↵</span> abrir · <span class="kbd">Esc</span> cerrar</span>
       <span id="busquedaGlobalCount"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL IMPORTAR FACTURA PDF ═══ -->
+<div class="modal-bg" id="mImportFactura">
+  <div class="modal" style="max-width:880px">
+    <div class="modal-h"><span>📤 Importar factura del proveedor</span><span class="cls" onclick="closeM('mImportFactura')">×</span></div>
+
+    <!-- Paso 1: Subir PDF -->
+    <div id="impFacPaso1">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:14px">
+        Sube el <strong>PDF nativo</strong> de tu proveedor (no foto). Detectamos productos, IMEIs y precios automáticamente.
+      </div>
+      <div id="impFacDrop" style="border:2px dashed var(--border);border-radius:14px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s var(--ease);background:#FAFBFC">
+        <div style="font-size:48px;margin-bottom:10px">📄</div>
+        <div style="font-size:15px;font-weight:700;margin-bottom:4px">Arrastra el PDF aquí o haz click</div>
+        <div style="font-size:12px;color:var(--muted)">Solo PDF nativo (con texto seleccionable). Las fotos no funcionan.</div>
+        <input type="file" id="impFacInput" accept="application/pdf" style="display:none">
+      </div>
+      <div id="impFacError" style="display:none;background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);color:var(--red);padding:10px 12px;border-radius:8px;margin-top:12px;font-size:12px"></div>
+    </div>
+
+    <!-- Paso 2: Loading -->
+    <div id="impFacPaso2" style="display:none;text-align:center;padding:40px 20px">
+      <div style="font-size:48px;margin-bottom:14px">⏳</div>
+      <div style="font-size:14px;font-weight:700;margin-bottom:6px">Procesando PDF...</div>
+      <div style="font-size:12px;color:var(--muted)" id="impFacLoadingMsg">Extrayendo texto</div>
+    </div>
+
+    <!-- Paso 3: Revisión -->
+    <div id="impFacPaso3" style="display:none">
+      <div style="background:rgba(0,200,150,.06);border:1px solid rgba(0,200,150,.25);border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:12px">
+        ✓ <strong id="impFacResumen">0 productos detectados</strong>. Revisa cada fila antes de añadir. Edita lo que esté mal.
+      </div>
+      <div style="overflow-x:auto;border:1px solid var(--border);border-radius:10px;margin-bottom:12px">
+        <table style="width:100%;border-collapse:collapse;font-size:12px" id="impFacTabla">
+          <thead style="background:#FAFBFC">
+            <tr>
+              <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Categoría</th>
+              <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Marca</th>
+              <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Modelo</th>
+              <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Capacidad</th>
+              <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Color</th>
+              <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">IMEI</th>
+              <th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Coste €</th>
+              <th style="padding:8px;border-bottom:1px solid var(--border);width:34px"></th>
+            </tr>
+          </thead>
+          <tbody id="impFacTbody"></tbody>
+        </table>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px">
+        <button type="button" class="btn-secondary" style="font-size:11px;padding:6px 12px" onclick="impFacAnadirFila()">+ Añadir fila manual</button>
+        <button type="button" class="btn-secondary" style="font-size:11px;padding:6px 12px" onclick="impFacVerTextoCrudo()">Ver texto extraído</button>
+        <div style="margin-left:auto;font-size:11px;color:var(--muted)">Total: <strong id="impFacTotal">€0.00</strong></div>
+      </div>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn-secondary" style="flex:1" onclick="impFacReset()">← Subir otro PDF</button>
+        <button type="button" class="btn-primary" style="flex:1.5;background:var(--green)" onclick="impFacAnadirAlStock()">Añadir al stock</button>
+      </div>
+      <details style="margin-top:14px;font-size:11px;color:var(--muted)">
+        <summary style="cursor:pointer">Texto extraído del PDF (para depurar)</summary>
+        <pre id="impFacTextoCrudo" style="background:var(--light);padding:10px;border-radius:6px;margin-top:6px;font-size:10px;max-height:200px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,monospace"></pre>
+      </details>
     </div>
   </div>
 </div>
