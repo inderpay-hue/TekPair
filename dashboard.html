@@ -235,6 +235,12 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .modal-actions .btn-primary{flex:1}
 .modal-actions .btn-secondary{flex:1}
 
+/* Header común para modales con título + botón cerrar */
+.modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;font-size:16px;font-weight:800;color:var(--dark)}
+.modal-h > span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.cls{background:var(--light);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:inherit;flex-shrink:0;transition:background .15s var(--ease)}
+.cls:hover{background:var(--border);color:var(--text)}
+
 /* ═══ MODAL REPARACIÓN MEJORADO ═══ */
 .modal-rep{padding:0;max-width:920px;display:flex;flex-direction:column;overflow:hidden}
 @media(min-width:900px){.modal-rep{max-width:920px;max-height:90vh}}
@@ -7748,7 +7754,10 @@ function impFacAnadirAlStock() {
 <!-- ═══ MODAL IMPORTAR FACTURA PDF ═══ -->
 <div class="modal-bg" id="mImportFactura">
   <div class="modal" style="max-width:880px">
-    <div class="modal-h"><span>📤 Importar factura del proveedor</span><span class="cls" onclick="closeM('mImportFactura')">×</span></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px">
+      <div style="font-size:16px;font-weight:800;color:var(--dark)">📤 Importar factura del proveedor</div>
+      <button onclick="closeM('mImportFactura')" style="background:var(--light);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:inherit;flex-shrink:0" onmouseover="this.style.background='var(--border)'" onmouseout="this.style.background='var(--light)'">×</button>
+    </div>
 
     <!-- Paso 1: Subir PDF -->
     <div id="impFacPaso1">
