@@ -889,9 +889,24 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div class="fg"><label class="fl">Dia de pago (cada mes)</label><input class="fi" id="vDiaPago" type="number" value="8" min="1" max="28"></div>
     </div>
   </div>
+  <div class="fg" id="vIvaRow" style="display:none">
+    <label class="fl">Tipo de IVA</label>
+    <select class="fi" id="vIva" onchange="calcV()">
+      <option value="0">0% — Exento</option>
+      <option value="4">4% — Superreducido</option>
+      <option value="10">10% — Reducido</option>
+      <option value="21">21% — General</option>
+    </select>
+  </div>
   <div class="fg" style="background:rgba(0,200,150,.06);border-radius:10px;padding:12px;border:1px solid rgba(0,200,150,.2)">
+    <div id="vBaseRow" style="display:none;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:3px">
+      <span>Base imponible</span><span id="vBase">EUR 0.00</span>
+    </div>
+    <div id="vIvaImpRow" style="display:none;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px">
+      <span id="vIvaImpLbl">IVA</span><span id="vIvaImp">EUR 0.00</span>
+    </div>
     <div style="display:flex;justify-content:space-between;font-size:14px;font-weight:700">
-      <span>Total</span><span id="vTotal" style="color:var(--green)">EUR 0.00</span>
+      <span id="vTotalLbl">Total</span><span id="vTotal" style="color:var(--green)">EUR 0.00</span>
     </div>
   </div>
   <div class="modal-actions">
@@ -1914,13 +1929,39 @@ function abrirVenta() {
   document.getElementById('vStockRes').classList.remove('open');
   document.getElementById('vSelCli').classList.remove('open');
   document.getElementById('finOpts').style.display = 'none';
+  // Reset IVA selector to default
+  var ivaSelV = document.getElementById('vIva');
+  if (ivaSelV) ivaSelV.value = String((AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21);
+  calcV();
   openM('mVenta');
 }
 
 function calcV() {
   var p = parseFloat(document.getElementById('vPrecio').value) || 0;
   var d = parseFloat(document.getElementById('vDescuento').value) || 0;
-  document.getElementById('vTotal').textContent = cur(Math.max(0, p - d));
+  var subtotal = Math.max(0, p - d);
+  var ivaSel = document.getElementById('vIva');
+  var tipoIva = ivaSel ? parseFloat(ivaSel.value) : ((AJUSTES.iva && AJUSTES.iva.tipoDefault) || 0);
+  var c = calcIVA(subtotal, tipoIva);
+  // Mostrar/ocultar IVA según ajustes
+  var on = !!(AJUSTES.iva && AJUSTES.iva.activo);
+  var ivaRow = document.getElementById('vIvaRow');
+  var baseRow = document.getElementById('vBaseRow');
+  var ivaImpRow = document.getElementById('vIvaImpRow');
+  if (ivaRow) ivaRow.style.display = on ? 'block' : 'none';
+  if (baseRow) baseRow.style.display = on ? 'flex' : 'none';
+  if (ivaImpRow) ivaImpRow.style.display = on ? 'flex' : 'none';
+  if (on) {
+    document.getElementById('vBase').textContent = cur(c.base);
+    document.getElementById('vIvaImp').textContent = cur(c.iva);
+    document.getElementById('vIvaImpLbl').textContent = 'IVA (' + c.tipo + '%)';
+    var totalLbl = document.getElementById('vTotalLbl');
+    if (totalLbl) totalLbl.textContent = c.modo === 'incluido' ? 'Total (IVA inc.)' : 'Total con IVA';
+  } else {
+    var lbl = document.getElementById('vTotalLbl');
+    if (lbl) lbl.textContent = 'Total';
+  }
+  document.getElementById('vTotal').textContent = cur(c.total);
 }
 
 function guardarVenta() {
@@ -1929,7 +1970,11 @@ function guardarVenta() {
   if (precio <= 0) { toast('Introduce un precio', 'err'); return; }
   var pago = document.getElementById('vPago').value;
   var desc = parseFloat(document.getElementById('vDescuento').value) || 0;
-  var total = Math.max(0, precio - desc);
+  var subtotal = Math.max(0, precio - desc);
+  var ivaSelV = document.getElementById('vIva');
+  var tipoIvaV = ivaSelV ? parseFloat(ivaSelV.value) : ((AJUSTES.iva && AJUSTES.iva.tipoDefault) || 0);
+  var calcV2 = calcIVA(subtotal, tipoIvaV);
+  var total = calcV2.total;
   var esFinanciado = pago === 'Financiado';
 
   var cuotas = null;
@@ -1966,6 +2011,10 @@ function guardarVenta() {
     pago: esFinanciado ? 'Financiado' : pago,
     precio: precio,
     descuento: desc,
+    iva: (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIvaV : 0,
+    ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
+    base: calcV2.base,
+    ivaImporte: calcV2.iva,
     total: total,
     reembolsado: false,
     stockId: SEL.vStock && !SEL.vStock.esServicio ? SEL.vStock.id : '',
@@ -1991,7 +2040,8 @@ function guardarVenta() {
       pago: venta.pago, precio: venta.precio, descuento: venta.descuento,
       total: venta.total,
       reembolsado: false, financiado: venta.financiado,
-      cuotas: cuotas ? JSON.stringify(cuotas) : null, entrada: entrada
+      cuotas: cuotas ? JSON.stringify(cuotas) : null, entrada: entrada,
+      iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte
     });
   }
 
