@@ -471,6 +471,70 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
     <div id="notasBox"></div>
   </div>
+  <!-- WIDGETS NUEVOS -->
+  <div class="card" id="cardCajaDia">
+    <div class="sec-header">
+      <div class="card-title" style="margin:0">💰 Caja del día</div>
+      <span id="cajaDiaTotal" style="font-size:14px;font-weight:800;color:var(--blue)"></span>
+    </div>
+    <div id="cajaDiaBox"></div>
+  </div>
+  <div class="card" id="cardCobros">
+    <div class="sec-header">
+      <div class="card-title" style="margin:0">💵 Cobros pendientes <span id="cobrosCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+    </div>
+    <div id="cobrosBox"></div>
+  </div>
+  <div class="card" id="cardStockCritico">
+    <div class="sec-header">
+      <div class="card-title" style="margin:0">📦 Stock crítico</div>
+      <button class="btn-sm" style="background:var(--orange);color:white" onclick="navTo('pStock')">Ver stock</button>
+    </div>
+    <div id="stockCriticoBox"></div>
+  </div>
+  <div class="card" id="cardCumples">
+    <div class="sec-header">
+      <div class="card-title" style="margin:0">🎂 Cumpleaños esta semana <span id="cumplesCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+    </div>
+    <div id="cumplesBox"></div>
+  </div>
+  <div class="card" id="cardTendencia">
+    <div class="sec-header">
+      <div class="card-title" style="margin:0">📈 Tendencia 7 días</div>
+      <span id="tendenciaTotal" style="font-size:12px;color:var(--muted);font-weight:600"></span>
+    </div>
+    <div id="tendenciaBox"></div>
+  </div>
+  <div class="card" id="cardTopProds">
+    <div class="sec-header">
+      <div class="card-title" style="margin:0">🏆 Top productos (mes)</div>
+    </div>
+    <div id="topProdsBox"></div>
+  </div>
+  <div class="card" id="cardTopAverias">
+    <div class="sec-header">
+      <div class="card-title" style="margin:0">🔧 Top averías (mes)</div>
+    </div>
+    <div id="topAveriasBox"></div>
+  </div>
+  <div class="card" id="cardRepsEstado">
+    <div class="sec-header">
+      <div class="card-title" style="margin:0">📊 Reparaciones por estado</div>
+    </div>
+    <div id="repsEstadoBox"></div>
+  </div>
+  <div class="card" id="cardTiempoMedio">
+    <div class="sec-header">
+      <div class="card-title" style="margin:0">⏱️ Tiempo medio de reparación</div>
+    </div>
+    <div id="tiempoMedioBox"></div>
+  </div>
+  <div class="card" id="cardClisInactivos">
+    <div class="sec-header">
+      <div class="card-title" style="margin:0">👤 Clientes inactivos (>3 meses)</div>
+    </div>
+    <div id="clisInactivosBox"></div>
+  </div>
   <div class="card" id="cardCierre">
     <div class="sec-header">
       <div class="card-title" style="margin:0">Cierre del dia</div>
@@ -2017,6 +2081,438 @@ function renderDashWidgets() {
       navTo('pReps');
     });
   });
+
+  // Render de los 10 widgets nuevos (cada uno se autocomprueba)
+  try { renderWidgetCajaDia(); } catch(e){}
+  try { renderWidgetCobros(); } catch(e){}
+  try { renderWidgetStockCritico(); } catch(e){}
+  try { renderWidgetCumples(); } catch(e){}
+  try { renderWidgetTendencia(); } catch(e){}
+  try { renderWidgetTopProds(); } catch(e){}
+  try { renderWidgetTopAverias(); } catch(e){}
+  try { renderWidgetRepsEstado(); } catch(e){}
+  try { renderWidgetTiempoMedio(); } catch(e){}
+  try { renderWidgetClisInactivos(); } catch(e){}
+}
+
+// ═══ WIDGETS NUEVOS DEL DASHBOARD ═══
+
+function renderWidgetCajaDia() {
+  var box = document.getElementById('cajaDiaBox');
+  var totEl = document.getElementById('cajaDiaTotal');
+  if (!box) return;
+  var hoy = new Date().toLocaleDateString('es');
+  var pagos = {Efectivo:0, Tarjeta:0, Bizum:0, Transferencia:0};
+  DB.ventas.forEach(function(v) {
+    if (v.reembolsado || v.fecha !== hoy) return;
+    var monto = v.financiado ? (v.entrada || 0) : v.total;
+    var p = v.pago || 'Efectivo';
+    if (pagos[p] === undefined) pagos[p] = 0;
+    pagos[p] += monto;
+  });
+  DB.reps.forEach(function(r) {
+    if (r.fechaEntregaReal === hoy && r.pagoFinal) {
+      if (pagos[r.pagoFinal] === undefined) pagos[r.pagoFinal] = 0;
+      pagos[r.pagoFinal] += r.total;
+    }
+  });
+  var total = 0;
+  Object.keys(pagos).forEach(function(k) { total += pagos[k]; });
+  if (totEl) totEl.textContent = cur(total);
+  var iconos = {Efectivo:'💵', Tarjeta:'💳', Bizum:'📲', Transferencia:'🏦'};
+  var colores = {Efectivo:'#00C896', Tarjeta:'#0055FF', Bizum:'#7C3AED', Transferencia:'#F97316'};
+  var html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">';
+  Object.keys(pagos).forEach(function(k) {
+    var v = pagos[k];
+    var color = colores[k] || 'var(--muted)';
+    html += '<div style="background:var(--light);padding:10px 12px;border-radius:8px;border-left:3px solid ' + color + '">';
+    html += '<div style="font-size:11px;color:var(--muted);font-weight:600">' + (iconos[k] || '') + ' ' + k + '</div>';
+    html += '<div style="font-size:16px;font-weight:800;color:' + color + ';margin-top:2px">' + cur(v) + '</div>';
+    html += '</div>';
+  });
+  html += '</div>';
+  if (total === 0) html = '<div class="empty" style="padding:12px;font-size:12px">Sin movimientos hoy</div>';
+  box.innerHTML = html;
+}
+
+function renderWidgetCobros() {
+  var box = document.getElementById('cobrosBox');
+  var countEl = document.getElementById('cobrosCount');
+  if (!box) return;
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var en7 = new Date(); en7.setDate(en7.getDate() + 7); en7.setHours(23,59,59,999);
+  var pendientes = [];
+  DB.ventas.forEach(function(v) {
+    if (!v.financiado || !v.cuotas || v.reembolsado) return;
+    v.cuotas.forEach(function(c, idx) {
+      if (c.pagado) return;
+      var fc = _parseDateAny(c.fecha);
+      if (!fc) return;
+      if (fc <= en7) {
+        pendientes.push({venta:v, cuota:c, idx:idx, fecha:fc, vencida:fc < hoy});
+      }
+    });
+  });
+  pendientes.sort(function(a,b){ return a.fecha - b.fecha; });
+  if (countEl) countEl.textContent = pendientes.length ? '(' + pendientes.length + ')' : '';
+  if (!pendientes.length) {
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">✅ Sin cobros pendientes esta semana</div>';
+    return;
+  }
+  var html = '<div style="display:flex;flex-direction:column;gap:6px">';
+  pendientes.slice(0,6).forEach(function(p) {
+    var cli = (DB.clis.find(function(c){ return c.id === p.venta.cliId; }) || {}).nombre || 'Sin cliente';
+    var color = p.vencida ? 'var(--red)' : 'var(--orange)';
+    var badge = p.vencida ? '<span style="background:rgba(239,68,68,.12);color:var(--red);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700">VENCIDA</span>' : '';
+    html += '<div style="background:var(--light);border-left:3px solid ' + color + ';padding:8px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:8px">';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + cli + ' · ' + cur(p.cuota.importe) + '</div>';
+    html += '<div style="font-size:10px;color:var(--muted)">Cuota ' + (p.idx+1) + ' · vence ' + p.cuota.fecha + '</div>';
+    html += '</div>' + badge + '</div>';
+  });
+  if (pendientes.length > 6) html += '<div style="text-align:center;font-size:11px;color:var(--muted);padding:4px">+' + (pendientes.length - 6) + ' más</div>';
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+function renderWidgetStockCritico() {
+  var box = document.getElementById('stockCriticoBox');
+  if (!box) return;
+  var bajos = DB.stock.filter(function(s) {
+    if (s.vendido) return false;
+    var min = parseInt(s.stockMin || 0);
+    return s.unidades > 0 && min > 0 && s.unidades <= min;
+  });
+  var sinStock = DB.stock.filter(function(s) {
+    return !s.vendido && s.unidades === 0 && parseInt(s.stockMin || 0) > 0;
+  });
+  var valorTotal = DB.stock.reduce(function(a, s) {
+    if (s.vendido) return a;
+    var precio = s.precioC || s.precioV || 0;
+    return a + (s.unidades * precio);
+  }, 0);
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
+  html += '<div style="background:var(--light);padding:10px;border-radius:8px;border-left:3px solid var(--red)">';
+  html += '<div style="font-size:11px;color:var(--muted);font-weight:600">Sin stock</div>';
+  html += '<div style="font-size:18px;font-weight:800;color:var(--red)">' + sinStock.length + '</div></div>';
+  html += '<div style="background:var(--light);padding:10px;border-radius:8px;border-left:3px solid var(--orange)">';
+  html += '<div style="font-size:11px;color:var(--muted);font-weight:600">Bajo mínimo</div>';
+  html += '<div style="font-size:18px;font-weight:800;color:var(--orange)">' + bajos.length + '</div></div>';
+  html += '<div style="background:var(--light);padding:10px;border-radius:8px;border-left:3px solid var(--blue);grid-column:1/-1">';
+  html += '<div style="font-size:11px;color:var(--muted);font-weight:600">Valor total inventario (precio coste)</div>';
+  html += '<div style="font-size:18px;font-weight:800;color:var(--blue)">' + cur(valorTotal) + '</div></div>';
+  html += '</div>';
+  var todos = sinStock.concat(bajos).slice(0,5);
+  if (todos.length) {
+    html += '<div style="display:flex;flex-direction:column;gap:4px">';
+    todos.forEach(function(s) {
+      var color = s.unidades === 0 ? 'var(--red)' : 'var(--orange)';
+      html += '<div style="font-size:11px;padding:6px 10px;background:var(--light);border-radius:6px;border-left:3px solid ' + color + ';display:flex;justify-content:space-between;gap:8px">';
+      html += '<span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">' + (s.tipo || '') + ' ' + (s.marca || '') + ' ' + (s.modelo || '') + '</span>';
+      html += '<span style="color:' + color + ';font-weight:700;flex-shrink:0">' + s.unidades + '/' + (s.stockMin||0) + '</span></div>';
+    });
+    html += '</div>';
+  } else {
+    html += '<div class="empty" style="padding:12px;font-size:12px">✅ Stock OK</div>';
+  }
+  box.innerHTML = html;
+}
+
+function renderWidgetCumples() {
+  var box = document.getElementById('cumplesBox');
+  var countEl = document.getElementById('cumplesCount');
+  if (!box) return;
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var en7 = new Date(); en7.setDate(en7.getDate() + 7); en7.setHours(23,59,59,999);
+  var lista = [];
+  DB.clis.forEach(function(c) {
+    if (!c.fechaNac) return;
+    var d = _parseDateAny(c.fechaNac);
+    if (!d) return;
+    var cumple = new Date(hoy.getFullYear(), d.getMonth(), d.getDate());
+    if (cumple < hoy) cumple.setFullYear(hoy.getFullYear() + 1);
+    if (cumple <= en7) {
+      var diasFalta = Math.round((cumple - hoy) / 86400000);
+      lista.push({cli:c, fecha:cumple, dias:diasFalta});
+    }
+  });
+  lista.sort(function(a,b){ return a.dias - b.dias; });
+  if (countEl) countEl.textContent = lista.length ? '(' + lista.length + ')' : '';
+  if (!lista.length) {
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">Sin cumpleaños esta semana</div>';
+    return;
+  }
+  var html = '<div style="display:flex;flex-direction:column;gap:6px">';
+  lista.forEach(function(it) {
+    var lbl = it.dias === 0 ? '🎉 HOY' : it.dias === 1 ? 'Mañana' : 'En ' + it.dias + ' días';
+    var color = it.dias === 0 ? 'var(--purple)' : 'var(--blue)';
+    html += '<div style="background:var(--light);border-left:3px solid ' + color + ';padding:8px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:8px">';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (it.cli.nombre || '') + ' ' + (it.cli.apellidos || '') + '</div>';
+    html += '<div style="font-size:10px;color:' + color + ';font-weight:600">' + lbl + '</div>';
+    html += '</div>';
+    if (it.cli.tel) html += '<button class="btn-sm" style="background:#25D366;color:white;font-size:11px;padding:4px 10px" onclick="felicitarCumple(\'' + it.cli.id + '\')">💬 Felicitar</button>';
+    html += '</div>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+function renderWidgetTendencia() {
+  var box = document.getElementById('tendenciaBox');
+  var totEl = document.getElementById('tendenciaTotal');
+  if (!box) return;
+  var dias = [];
+  var max = 0; var totalSemana = 0;
+  for (var i = 6; i >= 0; i--) {
+    var d = new Date(); d.setDate(d.getDate() - i);
+    var fecha = d.toLocaleDateString('es');
+    var totalD = 0;
+    DB.ventas.forEach(function(v) {
+      if (v.reembolsado || v.fecha !== fecha) return;
+      totalD += v.financiado ? (v.entrada || 0) : v.total;
+    });
+    DB.reps.forEach(function(r) {
+      if (r.fechaEntregaReal === fecha) totalD += r.total;
+    });
+    var lbl = ['D','L','M','X','J','V','S'][d.getDay()];
+    dias.push({fecha:fecha, total:totalD, lbl:lbl, esHoy:i===0});
+    if (totalD > max) max = totalD;
+    totalSemana += totalD;
+  }
+  if (totEl) totEl.textContent = cur(totalSemana) + ' total';
+  if (max === 0) {
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">Sin movimientos en 7 días</div>';
+    return;
+  }
+  // Sparkline SVG
+  var w = 280, h = 80, pad = 10;
+  var pts = dias.map(function(d, i) {
+    var x = pad + (i * (w - 2*pad) / 6);
+    var y = h - pad - (d.total / max) * (h - 2*pad);
+    return [x, y, d];
+  });
+  var poly = pts.map(function(p){ return p[0] + ',' + p[1]; }).join(' ');
+  var area = poly + ' ' + pts[6][0] + ',' + (h-pad) + ' ' + pts[0][0] + ',' + (h-pad);
+  var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;font-size:10px;color:var(--muted)">';
+  dias.forEach(function(d) {
+    html += '<div style="text-align:center;flex:1' + (d.esHoy ? ';color:var(--blue);font-weight:700' : '') + '">' + d.lbl + '</div>';
+  });
+  html += '</div>';
+  html += '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" style="width:100%;height:80px;display:block">';
+  html += '<polygon points="' + area + '" fill="rgba(0,85,255,.10)"/>';
+  html += '<polyline points="' + poly + '" fill="none" stroke="var(--blue)" stroke-width="2"/>';
+  pts.forEach(function(p) {
+    html += '<circle cx="' + p[0] + '" cy="' + p[1] + '" r="' + (p[2].esHoy ? 4 : 3) + '" fill="' + (p[2].esHoy ? 'var(--blue)' : 'white') + '" stroke="var(--blue)" stroke-width="2"/>';
+  });
+  html += '</svg>';
+  html += '<div style="display:flex;justify-content:space-between;margin-top:4px;font-size:10px;color:var(--muted)">';
+  dias.forEach(function(d) {
+    html += '<div style="text-align:center;flex:1;font-weight:600' + (d.esHoy ? ';color:var(--blue)' : '') + '">' + (d.total ? cur(d.total).replace(/\.00$/,'') : '—') + '</div>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+function renderWidgetTopProds() {
+  var box = document.getElementById('topProdsBox');
+  if (!box) return;
+  var hace30 = new Date(); hace30.setDate(hace30.getDate() - 30); hace30.setHours(0,0,0,0);
+  var conteo = {};
+  var ingresos = {};
+  DB.ventas.forEach(function(v) {
+    if (v.reembolsado) return;
+    var fv = _parseDateAny(v.fecha);
+    if (!fv || fv < hace30) return;
+    var key = ((v.marca || '') + ' ' + (v.modelo || '')).trim();
+    if (!key) return;
+    conteo[key] = (conteo[key] || 0) + 1;
+    ingresos[key] = (ingresos[key] || 0) + (v.financiado ? (v.entrada || 0) : v.total);
+  });
+  var top = Object.keys(conteo).map(function(k){ return {nombre:k, count:conteo[k], ingresos:ingresos[k]}; })
+    .sort(function(a,b){ return b.count - a.count; }).slice(0,5);
+  if (!top.length) {
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">Sin ventas en últimos 30 días</div>';
+    return;
+  }
+  var maxCount = top[0].count;
+  var html = '<div style="display:flex;flex-direction:column;gap:6px">';
+  top.forEach(function(p, i) {
+    var pct = (p.count / maxCount) * 100;
+    html += '<div style="display:flex;align-items:center;gap:8px">';
+    html += '<div style="width:18px;font-size:11px;color:var(--muted);font-weight:700;text-align:center">' + (i+1) + '</div>';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:3px;gap:8px">';
+    html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + p.nombre + '</span>';
+    html += '<span style="color:var(--blue);flex-shrink:0">' + p.count + ' uds</span></div>';
+    html += '<div style="background:var(--light);height:6px;border-radius:3px;overflow:hidden">';
+    html += '<div style="width:' + pct + '%;height:100%;background:var(--blue)"></div></div>';
+    html += '</div></div>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+function renderWidgetTopAverias() {
+  var box = document.getElementById('topAveriasBox');
+  if (!box) return;
+  var hace30 = new Date(); hace30.setDate(hace30.getDate() - 30); hace30.setHours(0,0,0,0);
+  var conteo = {};
+  DB.reps.forEach(function(r) {
+    var fr = _parseDateAny(r.fecha);
+    if (!fr || fr < hace30) return;
+    var av = (r.averia || '').trim();
+    if (!av) return;
+    conteo[av] = (conteo[av] || 0) + 1;
+  });
+  var top = Object.keys(conteo).map(function(k){ return {nombre:k, count:conteo[k]}; })
+    .sort(function(a,b){ return b.count - a.count; }).slice(0,5);
+  if (!top.length) {
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">Sin reparaciones en últimos 30 días</div>';
+    return;
+  }
+  var maxCount = top[0].count;
+  var html = '<div style="display:flex;flex-direction:column;gap:6px">';
+  top.forEach(function(p, i) {
+    var pct = (p.count / maxCount) * 100;
+    html += '<div style="display:flex;align-items:center;gap:8px">';
+    html += '<div style="width:18px;font-size:11px;color:var(--muted);font-weight:700;text-align:center">' + (i+1) + '</div>';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:3px;gap:8px">';
+    html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + p.nombre + '</span>';
+    html += '<span style="color:var(--orange);flex-shrink:0">' + p.count + '</span></div>';
+    html += '<div style="background:var(--light);height:6px;border-radius:3px;overflow:hidden">';
+    html += '<div style="width:' + pct + '%;height:100%;background:var(--orange)"></div></div>';
+    html += '</div></div>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+function renderWidgetRepsEstado() {
+  var box = document.getElementById('repsEstadoBox');
+  if (!box) return;
+  var estados = {Pendiente:0, 'En Proceso':0, 'Por Entregar':0, Garantia:0, 'Sin Solucion':0};
+  DB.reps.forEach(function(r) {
+    if (r.estado === 'Entregado' || r.estado === 'Rechazado') return;
+    if (estados[r.estado] === undefined) estados[r.estado] = 0;
+    estados[r.estado]++;
+  });
+  var total = 0;
+  Object.keys(estados).forEach(function(k){ total += estados[k]; });
+  if (total === 0) {
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">No hay reparaciones activas</div>';
+    return;
+  }
+  var colores = {Pendiente:'#F97316', 'En Proceso':'#0055FF', 'Por Entregar':'#00C896', Garantia:'#7C3AED', 'Sin Solucion':'#EF4444'};
+  // Barra horizontal segmentada
+  var html = '<div style="display:flex;height:32px;border-radius:8px;overflow:hidden;background:var(--light);margin-bottom:10px">';
+  Object.keys(estados).forEach(function(k) {
+    var v = estados[k];
+    if (!v) return;
+    var pct = (v / total) * 100;
+    html += '<div style="background:' + colores[k] + ';width:' + pct + '%;display:flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:700" title="' + k + ': ' + v + '">' + (pct > 12 ? v : '') + '</div>';
+  });
+  html += '</div>';
+  // Leyenda
+  html += '<div style="display:flex;flex-wrap:wrap;gap:8px;font-size:11px">';
+  Object.keys(estados).forEach(function(k) {
+    if (!estados[k]) return;
+    html += '<div style="display:flex;align-items:center;gap:5px"><span style="width:10px;height:10px;border-radius:3px;background:' + colores[k] + '"></span><span style="font-weight:600">' + k + '</span><span style="color:var(--muted)">' + estados[k] + '</span></div>';
+  });
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+function renderWidgetTiempoMedio() {
+  var box = document.getElementById('tiempoMedioBox');
+  if (!box) return;
+  var hace90 = new Date(); hace90.setDate(hace90.getDate() - 90);
+  var entregadas = DB.reps.filter(function(r) {
+    if (r.estado !== 'Entregado' || !r.fecha || !r.fechaEntregaReal) return false;
+    var fr = _parseDateAny(r.fecha);
+    return fr && fr >= hace90;
+  });
+  if (!entregadas.length) {
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">Sin reparaciones entregadas en 90 días</div>';
+    return;
+  }
+  var totalMs = 0; var min = Infinity; var max = 0;
+  entregadas.forEach(function(r) {
+    var f1 = _parseDateAny(r.fecha);
+    var f2 = _parseDateAny(r.fechaEntregaReal);
+    if (f1 && f2) {
+      var diff = f2 - f1;
+      if (diff < 0) diff = 0;
+      totalMs += diff;
+      if (diff < min) min = diff;
+      if (diff > max) max = diff;
+    }
+  });
+  var medioDias = (totalMs / entregadas.length) / 86400000;
+  var minDias = min / 86400000;
+  var maxDias = max / 86400000;
+  var fmt = function(d) { return d < 1 ? '<1d' : d.toFixed(1) + 'd'; };
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">';
+  html += '<div style="background:var(--light);padding:10px;border-radius:8px;text-align:center;border-left:3px solid var(--green)">';
+  html += '<div style="font-size:10px;color:var(--muted);font-weight:600">MÍNIMO</div>';
+  html += '<div style="font-size:16px;font-weight:800;color:var(--green)">' + fmt(minDias) + '</div></div>';
+  html += '<div style="background:var(--light);padding:10px;border-radius:8px;text-align:center;border-left:3px solid var(--blue)">';
+  html += '<div style="font-size:10px;color:var(--muted);font-weight:600">MEDIA</div>';
+  html += '<div style="font-size:16px;font-weight:800;color:var(--blue)">' + fmt(medioDias) + '</div></div>';
+  html += '<div style="background:var(--light);padding:10px;border-radius:8px;text-align:center;border-left:3px solid var(--orange)">';
+  html += '<div style="font-size:10px;color:var(--muted);font-weight:600">MÁXIMO</div>';
+  html += '<div style="font-size:16px;font-weight:800;color:var(--orange)">' + fmt(maxDias) + '</div></div>';
+  html += '</div>';
+  html += '<div style="text-align:center;font-size:11px;color:var(--muted);margin-top:8px">Basado en ' + entregadas.length + ' reparaciones de los últimos 90 días</div>';
+  box.innerHTML = html;
+}
+
+function renderWidgetClisInactivos() {
+  var box = document.getElementById('clisInactivosBox');
+  if (!box) return;
+  var hace3m = new Date(); hace3m.setMonth(hace3m.getMonth() - 3); hace3m.setHours(0,0,0,0);
+  var lista = DB.clis.map(function(c) {
+    var ultV = 0;
+    DB.ventas.forEach(function(v) {
+      if (v.cliId !== c.id) return;
+      var fv = _parseDateAny(v.fecha);
+      if (fv && fv > ultV) ultV = fv;
+    });
+    var ultR = 0;
+    DB.reps.forEach(function(r) {
+      if (r.cliId !== c.id) return;
+      var fr = _parseDateAny(r.fecha);
+      if (fr && fr > ultR) ultR = fr;
+    });
+    var ultima = Math.max(ultV, ultR);
+    return {cli:c, ultima:ultima ? new Date(ultima) : null};
+  }).filter(function(x) {
+    return x.ultima && x.ultima < hace3m;
+  }).sort(function(a,b){ return a.ultima - b.ultima; });
+
+  if (!lista.length) {
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">✅ No hay clientes inactivos</div>';
+    return;
+  }
+  var html = '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">' + lista.length + ' cliente(s) sin actividad en 3+ meses</div>';
+  html += '<div style="display:flex;flex-direction:column;gap:6px">';
+  lista.slice(0,5).forEach(function(it) {
+    var meses = Math.round((Date.now() - it.ultima) / (86400000 * 30));
+    html += '<div style="background:var(--light);border-left:3px solid var(--muted);padding:8px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:8px">';
+    html += '<div style="flex:1;min-width:0">';
+    html += '<div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (it.cli.nombre || '') + ' ' + (it.cli.apellidos || '') + '</div>';
+    html += '<div style="font-size:10px;color:var(--muted)">Hace ' + meses + ' meses · ' + it.ultima.toLocaleDateString('es') + '</div>';
+    html += '</div>';
+    if (it.cli.tel) {
+      var msg = encodeURIComponent('Hola ' + (it.cli.nombre || '') + ', ¿qué tal? Te escribo desde ' + (TIENDA.nombre || 'la tienda') + '.');
+      html += '<a href="https://wa.me/' + it.cli.tel.replace(/\D/g,'') + '?text=' + msg + '" target="_blank" class="btn-sm" style="background:#25D366;color:white;font-size:11px;padding:4px 10px;text-decoration:none">💬 Saludar</a>';
+    }
+    html += '</div>';
+  });
+  if (lista.length > 5) html += '<div style="text-align:center;font-size:11px;color:var(--muted);padding:4px">+' + (lista.length - 5) + ' más</div>';
+  html += '</div>';
+  box.innerHTML = html;
 }
 
 function setMetricTab(el) {
@@ -4851,12 +5347,12 @@ function tienePerm(perm) {
   return U.permisos[perm] === true;
 }
 
-// Para widgets: visible por defecto, solo se oculta si admin pone explícitamente false
+// Para widgets: visible por defecto, solo se oculta si admin (de la tienda) pone explícitamente false
+// El admin TAMBIÉN respeta sus propias prefs (puede ocultar widgets de su dashboard)
 function widgetVisible(perm) {
   if (!U) return false;
-  if (U.rol === 'admin' || (U.permisos && U.permisos.todo)) return true;
-  if (!U.permisos) return true;
-  return U.permisos[perm] !== false;
+  if (U.permisos && U.permisos[perm] === false) return false;
+  return true;
 }
 
 function aplicarPermisos() {
@@ -4938,6 +5434,16 @@ function aplicarPermisos() {
   if (!widgetVisible('widget_porentregar')) hideEl('cardPorEntregar');
   if (!widgetVisible('widget_notas')) hideEl('cardNotas');
   if (!widgetVisible('widget_cierre')) hideEl('cardCierre');
+  if (!widgetVisible('widget_caja')) hideEl('cardCajaDia');
+  if (!widgetVisible('widget_cobros')) hideEl('cardCobros');
+  if (!widgetVisible('widget_stockcritico')) hideEl('cardStockCritico');
+  if (!widgetVisible('widget_cumples')) hideEl('cardCumples');
+  if (!widgetVisible('widget_tendencia')) hideEl('cardTendencia');
+  if (!widgetVisible('widget_topprods')) hideEl('cardTopProds');
+  if (!widgetVisible('widget_topaverias')) hideEl('cardTopAverias');
+  if (!widgetVisible('widget_repsestado')) hideEl('cardRepsEstado');
+  if (!widgetVisible('widget_tiempomedio')) hideEl('cardTiempoMedio');
+  if (!widgetVisible('widget_clisinactivos')) hideEl('cardClisInactivos');
 
   // Ocultar botones de creación en cabeceras de páginas
   if (!tienePerm('ventas_crear')) document.querySelectorAll('[onclick*="abrirVenta"]').forEach(function(b) { b.style.display = 'none'; });
@@ -5012,7 +5518,17 @@ var PERMS_LISTA = [
   {id:'widget_pendientes',label:'Card: Reparaciones pendientes',grupo:'Dashboard',defaultOn:true},
   {id:'widget_porentregar',label:'Card: Por entregar',grupo:'Dashboard',defaultOn:true},
   {id:'widget_notas',label:'Card: Notas y recordatorios',grupo:'Dashboard',defaultOn:true},
-  {id:'widget_cierre',label:'Card: Cierre del día',grupo:'Dashboard',defaultOn:true}
+  {id:'widget_cierre',label:'Card: Cierre del día',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_caja',label:'Card: Caja del día desglosada',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_cobros',label:'Card: Cobros pendientes (financiados)',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_stockcritico',label:'Card: Stock crítico',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_cumples',label:'Card: Cumpleaños esta semana',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_tendencia',label:'Card: Tendencia 7 días',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_topprods',label:'Card: Top productos del mes',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_topaverias',label:'Card: Top averías del mes',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_repsestado',label:'Card: Reparaciones por estado',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_tiempomedio',label:'Card: Tiempo medio de reparación',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_clisinactivos',label:'Card: Clientes inactivos',grupo:'Dashboard',defaultOn:true}
 ];
 
 // Roles preset — listas de permisos por rol
@@ -5062,7 +5578,37 @@ function renderPermisosUI() {
     + '</div>';
 
   if (permsCurrent.todo) {
-    container.innerHTML = rolesHtml + '<div class="empty" style="padding:20px;background:rgba(124,58,237,.05);border-radius:10px;color:var(--purple);font-weight:700">👑 Acceso total — todos los permisos</div>';
+    container.innerHTML = rolesHtml + '<div class="empty" style="padding:20px;background:rgba(124,58,237,.05);border-radius:10px;color:var(--purple);font-weight:700;margin-bottom:14px">👑 Acceso total a todas las acciones</div>';
+    // Pero aún así mostrar los widgets para que pueda ocultar visualmente lo que no quiere ver
+    var soloWidgets = PERMS_LISTA.filter(function(p) { return p.grupo === 'Dashboard'; });
+    if (soloWidgets.length) {
+      var divW = document.createElement('div');
+      divW.style = 'margin-bottom:14px';
+      divW.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">Dashboard <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">(qué se ve en la pantalla principal)</span></div>';
+      container.appendChild(divW.firstChild ? divW : divW);
+      soloWidgets.forEach(function(p) {
+        var activo = permsCurrent[p.id] !== false;
+        var row = document.createElement('div');
+        row.style = 'display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--light)';
+        var label = document.createElement('span');
+        label.style = 'font-size:13px';
+        label.textContent = p.label;
+        var toggle = document.createElement('div');
+        toggle.style = 'width:40px;height:22px;border-radius:22px;cursor:pointer;background:' + (activo ? 'var(--blue)' : 'var(--border)') + ';position:relative;flex-shrink:0;transition:background .2s';
+        toggle.innerHTML = '<div style="position:absolute;top:2px;left:' + (activo ? '20px' : '2px') + ';width:18px;height:18px;border-radius:50%;background:white;transition:left .2s"></div>';
+        toggle.dataset.pid = p.id;
+        toggle.addEventListener('click', function() {
+          var pid = this.dataset.pid;
+          if (permsCurrent[pid] === false) delete permsCurrent[pid];
+          else permsCurrent[pid] = false;
+          var nuevo = permsCurrent[pid] !== false;
+          this.style.background = nuevo ? 'var(--blue)' : 'var(--border)';
+          this.querySelector('div').style.left = nuevo ? '20px' : '2px';
+        });
+        row.appendChild(label); row.appendChild(toggle);
+        container.appendChild(row);
+      });
+    }
     return;
   }
   var grupos = {};
