@@ -191,6 +191,30 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .widget-edit-controls button:hover{background:#0044CC}
 .widget-edit-controls button:active{transform:scale(.92)}
 
+/* ═══ BÚSQUEDA GLOBAL ═══ */
+.sidebar-search-btn{display:flex;align-items:center;gap:8px;margin:8px 16px 12px;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:8px;cursor:pointer;color:rgba(255,255,255,.85);transition:background .15s var(--ease)}
+.sidebar-search-btn:hover{background:rgba(255,255,255,.12)}
+.kbd{display:inline-block;background:white;border:1px solid var(--border);padding:1px 6px;border-radius:4px;font-size:10px;font-family:ui-monospace,'SF Mono',monospace;color:var(--muted)}
+.kbd-dark{display:inline-block;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);padding:1px 6px;border-radius:4px;font-size:10px;font-family:ui-monospace,'SF Mono',monospace;color:rgba(255,255,255,.7)}
+.search-global-modal{position:fixed;inset:0;background:rgba(2,11,46,.55);backdrop-filter:blur(6px);z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:80px 16px 16px}
+.search-global-modal.show{display:flex;animation:fadein .15s ease}
+@keyframes fadein{from{opacity:0}to{opacity:1}}
+.search-global-box{background:white;border-radius:14px;width:100%;max-width:600px;max-height:75vh;overflow:hidden;display:flex;flex-direction:column;box-shadow:var(--shadow-xl)}
+.search-global-input{width:100%;padding:18px 20px;border:none;font-size:15px;font-family:inherit;outline:none;border-bottom:1px solid var(--border);background:white;color:var(--text)}
+.search-global-results{overflow-y:auto;flex:1;padding:6px}
+.search-global-group{padding:8px 12px 4px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
+.search-global-item{padding:9px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .12s}
+.search-global-item:hover, .search-global-item.selected{background:rgba(0,85,255,.06)}
+.search-global-item.selected{box-shadow:inset 0 0 0 1px rgba(0,85,255,.20)}
+.search-global-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
+.search-global-title{font-weight:600;font-size:13px;color:var(--text)}
+.search-global-sub{font-size:11px;color:var(--muted);margin-top:1px}
+.search-global-empty{padding:30px;text-align:center;color:var(--muted);font-size:13px}
+.search-global-help{padding:8px 14px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);background:#FAFBFC;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
+
+/* Badge garantía */
+.badge-garantia{display:inline-flex;align-items:center;gap:3px;background:rgba(0,85,255,.10);color:var(--blue);font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;letter-spacing:.2px}
+
 /* ═══ FORMS ═══ */
 .fg{margin-bottom:12px}
 .fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px}
@@ -326,6 +350,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <span class="notif-badge" id="sidebarBadge">0</span>
     </button>
   </div>
+  <div class="sidebar-search-btn" onclick="abrirBusquedaGlobal()" title="Buscar (⌘K)">
+    <span style="font-size:13px">🔍</span>
+    <span style="flex:1;font-size:12px;color:rgba(255,255,255,.5)">Buscar...</span>
+    <span class="kbd-dark">⌘K</span>
+  </div>
   <div class="sidebar-nav">
     <div class="sidebar-group">Operación</div>
     <div class="sidebar-ni active" data-p="pDash" onclick="navTo('pDash');setSidebarActive(this)">
@@ -415,6 +444,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="topbar">
   <div class="topbar-logo">⚡ Tekpair</div>
   <div class="topbar-info">
+    <button class="topbar-bell" id="topbarSearch" onclick="abrirBusquedaGlobal()" title="Buscar" style="margin-right:0">
+      🔍
+    </button>
     <button class="topbar-bell" id="topbarBell" onclick="toggleNotifs()" title="Notificaciones">
       🔔
       <span class="notif-badge" id="topbarBadge" style="top:-3px;right:-3px">0</span>
@@ -740,7 +772,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="card">
     <div class="card-title">Textos legales — Reparaciones</div>
     <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Aparecerán en el ticket de reparación y en el parte del cliente.</div>
-    <div class="fg"><label class="fl">Garantía de reparación</label><textarea class="fi" id="tGarantia" rows="3" placeholder="Ej: Garantía de 90 días sobre pieza y mano de obra..."></textarea></div>
+    <div class="fg"><label class="fl">🛡️ Días de garantía en reparaciones</label>
+      <input class="fi" id="tGarantiaDias" type="number" min="0" max="730" placeholder="90" style="max-width:160px">
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">Si un cliente vuelve antes de estos días con el mismo modelo, el sistema avisará "🛡️ EN GARANTÍA". Default: 90</div>
+    </div>
+    <div class="fg"><label class="fl">Garantía de reparación (texto)</label><textarea class="fi" id="tGarantia" rows="3" placeholder="Ej: Garantía de 90 días sobre pieza y mano de obra..."></textarea></div>
     <div class="fg"><label class="fl">Política de reparación</label><textarea class="fi" id="tPolitica" rows="3" placeholder="Condiciones específicas de reparación..."></textarea></div>
   </div>
   <div class="card">
@@ -1082,9 +1118,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div><div class="sel-box-name" id="rSelCliNom"></div></div>
     <button class="sel-box-clear" onclick="clearCli('r')">✕</button>
   </div>
+  <div id="rGarantiaAlert" style="display:none;background:rgba(0,85,255,.08);border-left:3px solid var(--blue);padding:10px 12px;border-radius:8px;margin:8px 0;font-size:12px"></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Marca</label><input class="fi" id="rMarca" placeholder="Apple, Samsung..."></div>
-    <div class="fg" style="position:relative"><label class="fl">Modelo *</label><input class="fi" id="rModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModelo()" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
+    <div class="fg"><label class="fl">Marca</label><input class="fi" id="rMarca" placeholder="Apple, Samsung..." oninput="actualizarAvisoGarantia()"></div>
+    <div class="fg" style="position:relative"><label class="fl">Modelo *</label><input class="fi" id="rModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModelo();actualizarAvisoGarantia()" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
   </div>
   <div class="fg"><label class="fl">IMEI / Nº Serie</label><input class="fi" id="rImei" placeholder="Opcional"></div>
   <div class="fi-row">
@@ -3030,12 +3067,34 @@ function selCli(id, ctx) {
     document.getElementById('rSelCli').classList.remove('open');
     document.getElementById('rSelCliNom').textContent = (c.nombre + ' ' + c.apellidos).trim() + (c.tel ? ' \u00b7 ' + c.tel : '');
     document.getElementById('rSelCliBox').classList.add('show');
+    actualizarAvisoGarantia();
   }
 }
 
 function clearCli(ctx) {
   if (ctx === 'v') { SEL.vCli = null; document.getElementById('vSelCliBox').classList.remove('show'); }
-  else { SEL.rCli = null; document.getElementById('rSelCliBox').classList.remove('show'); }
+  else {
+    SEL.rCli = null;
+    document.getElementById('rSelCliBox').classList.remove('show');
+    var ga = document.getElementById('rGarantiaAlert');
+    if (ga) ga.style.display = 'none';
+  }
+}
+
+function actualizarAvisoGarantia() {
+  var alert = document.getElementById('rGarantiaAlert');
+  if (!alert) return;
+  if (!SEL.rCli) { alert.style.display = 'none'; return; }
+  var marca = document.getElementById('rMarca').value.trim();
+  var modelo = document.getElementById('rModelo').value.trim();
+  if (!marca && !modelo) { alert.style.display = 'none'; return; }
+  var info = checkGarantia(SEL.rCli.id, marca, modelo);
+  if (!info) { alert.style.display = 'none'; return; }
+  var fechaPrev = info.rep.fechaEntregaReal;
+  alert.innerHTML = '<strong style="color:var(--blue)">🛡️ EN GARANTÍA</strong><br>' +
+    '<span style="font-size:11px;color:var(--muted)">Reparación previa entregada el ' + fechaPrev + ' (' + info.dias + ' días). ' +
+    'Le quedan ' + info.restantes + ' días de garantía. Avería previa: "' + esc(info.rep.averia || '') + '"</span>';
+  alert.style.display = 'block';
 }
 
 function openNuevoCliRapido(ctx) {
@@ -3394,6 +3453,7 @@ function abrirRep() {
   document.getElementById('rAnticipo').value = '0';
   document.getElementById('rSelCliBox').classList.remove('show');
   document.getElementById('rSelCli').classList.remove('open');
+  var ga = document.getElementById('rGarantiaAlert'); if (ga) ga.style.display = 'none';
   document.getElementById('partsList').innerHTML = '';
   document.getElementById('rTotal').textContent = cur(0);
   document.getElementById('rRestante').textContent = cur(0);
@@ -3959,12 +4019,22 @@ function renderReps() {
     var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" class="btn-ent" style="background:var(--green);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer">&#10003;</button>' : '';
     var btnEdit = '<button data-rid="' + r.id + '" class="btn-edit-r" style="background:var(--light);border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Editar">✏️</button>';
     var btnLink = '<button data-rid="' + r.id + '" class="btn-link-r" style="background:var(--blue);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="QR / Link / Imprimir">📱</button>';
-    var esGarBadge = r.esGarantia ? '<br><span class="badge bp">Garantia</span>' : '';
+    var btnWA = '<button data-rid="' + r.id + '" class="btn-wa-r" style="background:#25D366;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Avisar por WhatsApp">📲</button>';
+    // Badge garantía: manual (esGarantia) o auto-detectada (rep similar reciente)
+    var badgeGarantia = '';
+    if (r.esGarantia) {
+      badgeGarantia = '<br><span class="badge bp">Garantia</span>';
+    } else if (r.cliId && r.estado !== 'Entregado' && r.estado !== 'Rechazado') {
+      var info = checkGarantia(r.cliId, r.marca, r.modelo, r.fecha);
+      if (info && info.rep.id !== r.id) {
+        badgeGarantia = '<br><span class="badge-garantia" title="Reparación previa entregada el ' + info.rep.fechaEntregaReal + ' (' + info.dias + ' días)">🛡️ EN GARANTÍA</span>';
+      }
+    }
     var priBadge = r.prioridad && r.prioridad !== 'Normal'
       ? '<span class="badge ' + (r.prioridad === 'Urgente' ? 'br' : 'bo') + '">' + r.prioridad + '</span>'
       : '<span style="color:var(--muted);font-size:11px">Normal</span>';
     html += '<tr>'
-      + '<td><strong>' + r.clienteNombre + '</strong>' + esGarBadge + '</td>'
+      + '<td><strong>' + r.clienteNombre + '</strong>' + badgeGarantia + '</td>'
       + '<td>' + r.marca + ' ' + r.modelo + (r.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">' + r.imei + '</span>' : '') + '</td>'
       + '<td style="font-size:11px;color:var(--red)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(124,58,237,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + r.bloqueo : '')) + '</span>' : '') + '</td>'
       + '<td><select data-rid="' + r.id + '" class="sel-estado" style="border:1px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:6px">'
@@ -3975,7 +4045,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + '</td>'
-      + '<td>' + btnE + btnEdit + btnLink + '</td></tr>';
+      + '<td>' + btnE + btnEdit + btnLink + btnWA + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -3990,6 +4060,9 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-link-r').forEach(function(btn) {
     btn.addEventListener('click', function() { copiarLinkRep(this.dataset.rid); });
+  });
+  el.querySelectorAll('.btn-wa-r').forEach(function(btn) {
+    btn.addEventListener('click', function() { abrirWhatsAppRep(this.dataset.rid); });
   });
 }
 
@@ -4545,6 +4618,8 @@ function cargarTienda() {
   document.getElementById('tWeb').value = t.web || '';
   document.getElementById('tGarantia').value = t.garantia || '';
   document.getElementById('tPolitica').value = t.politica || '';
+  var gd = document.getElementById('tGarantiaDias');
+  if (gd) gd.value = t.garantiaDias || 90;
   var gv = document.getElementById('tGarantiaVentas');
   var pv = document.getElementById('tPoliticaVentas');
   if (gv) gv.value = t.garantiaVentas || '';
@@ -4557,6 +4632,8 @@ function guardarTienda() {
   var prev = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
   var gvEl = document.getElementById('tGarantiaVentas');
   var pvEl = document.getElementById('tPoliticaVentas');
+  var gdEl = document.getElementById('tGarantiaDias');
+  var garantiaDias = gdEl ? parseInt(gdEl.value) || 90 : 90;
   var t = {
     nombre: document.getElementById('tNom').value.trim(),
     dir: document.getElementById('tDir').value.trim(),
@@ -4566,6 +4643,7 @@ function guardarTienda() {
     web: document.getElementById('tWeb').value.trim(),
     garantia: document.getElementById('tGarantia').value.trim(),
     politica: document.getElementById('tPolitica').value.trim(),
+    garantiaDias: garantiaDias,
     garantiaVentas: gvEl ? gvEl.value.trim() : '',
     politicaVentas: pvEl ? pvEl.value.trim() : '',
     logo_url: prev.logo_url || TIENDA.logo_url || ''
@@ -4575,7 +4653,7 @@ function guardarTienda() {
   document.getElementById('dTienda').textContent = t.nombre || 'Mi Tienda';
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {
     nombre: t.nombre, dir: t.dir, tel: t.tel, email: t.email, cif: t.cif, web: t.web,
-    garantia: t.garantia, politica: t.politica,
+    garantia: t.garantia, politica: t.politica, garantia_dias: garantiaDias,
     garantia_ventas: t.garantiaVentas, politica_ventas: t.politicaVentas
   });
   toast('Tienda guardada', 'ok');
@@ -5009,6 +5087,7 @@ async function _pullTiendaCompleta() {
       dir: t.dir || '', tel: t.tel || '', email: t.email || '',
       cif: t.cif || '', web: t.web || '',
       garantia: t.garantia || '', politica: t.politica || '',
+      garantiaDias: t.garantia_dias || 90,
       garantiaVentas: t.garantia_ventas || '', politicaVentas: t.politica_ventas || '',
       logo_url: t.logo_url || ''
     };
@@ -5475,6 +5554,316 @@ function widgetVisible(perm) {
   if (!U) return false;
   if (U.permisos && U.permisos[perm] === false) return false;
   return true;
+}
+
+// ═══ BÚSQUEDA GLOBAL ═══
+var _busquedaGlobalResultados = [];
+var _busquedaGlobalSel = 0;
+
+function abrirBusquedaGlobal() {
+  document.getElementById('mBuscarGlobal').classList.add('show');
+  setTimeout(function() {
+    var inp = document.getElementById('busquedaGlobalInput');
+    if (inp) { inp.value = ''; inp.focus(); }
+    renderBusquedaGlobal();
+  }, 30);
+}
+
+function cerrarBusquedaGlobal() {
+  document.getElementById('mBuscarGlobal').classList.remove('show');
+}
+
+function renderBusquedaGlobal() {
+  var q = _norm(document.getElementById('busquedaGlobalInput').value);
+  var box = document.getElementById('busquedaGlobalResultados');
+  var countEl = document.getElementById('busquedaGlobalCount');
+  if (!q || q.length < 2) {
+    box.innerHTML = '<div class="search-global-empty">Escribe al menos 2 letras para buscar...</div>';
+    if (countEl) countEl.textContent = '';
+    _busquedaGlobalResultados = [];
+    return;
+  }
+  var results = [];
+
+  // Clientes
+  if (tienePerm('clis_ver')) {
+    DB.clis.forEach(function(c) {
+      var hay = _norm((c.nombre||'') + ' ' + (c.apellidos||'') + ' ' + (c.tel||'') + ' ' + (c.dni||'') + ' ' + (c.email||''));
+      if (hay.indexOf(q) !== -1) {
+        results.push({tipo:'cliente', icon:'👤', titulo:((c.nombre||'') + ' ' + (c.apellidos||'')).trim() || 'Sin nombre', sub:[c.tel, c.dni, c.email].filter(Boolean).join(' · ') || '—', id:c.id});
+      }
+    });
+  }
+
+  // Reparaciones
+  if (tienePerm('reps_ver')) {
+    DB.reps.forEach(function(r) {
+      var cli = (DB.clis.find(function(c){ return c.id === r.cliId; }) || {});
+      var hay = _norm((r.marca||'') + ' ' + (r.modelo||'') + ' ' + (r.averia||'') + ' ' + (cli.nombre||'') + ' ' + (cli.apellidos||'') + ' ' + (r.imei||''));
+      if (hay.indexOf(q) !== -1) {
+        results.push({tipo:'rep', icon:'🔧', titulo:((r.marca||'') + ' ' + (r.modelo||'')).trim() + ' · ' + (r.averia||'').slice(0,40), sub:(cli.nombre||'Sin cliente') + ' · ' + (r.estado||'') + ' · ' + cur(r.total||0), id:r.id});
+      }
+    });
+  }
+
+  // Ventas
+  if (tienePerm('ventas_ver')) {
+    DB.ventas.forEach(function(v) {
+      var cli = (DB.clis.find(function(c){ return c.id === v.cliId; }) || {});
+      var hay = _norm((v.marca||'') + ' ' + (v.modelo||'') + ' ' + (cli.nombre||'') + ' ' + (cli.apellidos||'') + ' ' + (v.imei||''));
+      if (hay.indexOf(q) !== -1) {
+        results.push({tipo:'venta', icon:'📱', titulo:((v.marca||'') + ' ' + (v.modelo||'')).trim() || 'Venta', sub:(cli.nombre||'Sin cliente') + ' · ' + (v.fecha||'') + ' · ' + cur(v.total||0) + (v.reembolsado?' · ↩ REEMBOLSADA':''), id:v.id});
+      }
+    });
+  }
+
+  // Stock
+  if (tienePerm('stock_ver')) {
+    DB.stock.forEach(function(s) {
+      if (s.vendido) return;
+      var hay = _norm((s.tipo||'') + ' ' + (s.marca||'') + ' ' + (s.modelo||'') + ' ' + (s.imei||''));
+      if (hay.indexOf(q) !== -1) {
+        results.push({tipo:'stock', icon:'📦', titulo:((s.tipo||'') + ' ' + (s.marca||'') + ' ' + (s.modelo||'')).trim(), sub:s.unidades + ' uds · ' + cur(s.precioV||0) + (s.imei?(' · IMEI ' + s.imei):''), id:s.id});
+      }
+    });
+  }
+
+  // Servicios
+  if (tienePerm('servicios_ver')) {
+    (DB.servicios || []).forEach(function(s) {
+      var hay = _norm((s.nombre||'') + ' ' + (s.descripcion||''));
+      if (hay.indexOf(q) !== -1) {
+        results.push({tipo:'servicio', icon:'🛠️', titulo:s.nombre, sub:cur(s.precio||0) + ' · ' + (s.descripcion||'').slice(0,60), id:s.id});
+      }
+    });
+  }
+
+  results = results.slice(0, 30);
+  _busquedaGlobalResultados = results;
+  _busquedaGlobalSel = 0;
+
+  if (countEl) countEl.textContent = results.length + ' resultado' + (results.length === 1 ? '' : 's');
+
+  if (!results.length) {
+    box.innerHTML = '<div class="search-global-empty">Sin resultados para "' + esc(q) + '"</div>';
+    return;
+  }
+
+  var grupos = [['cliente','CLIENTES'],['rep','REPARACIONES'],['venta','VENTAS'],['stock','STOCK'],['servicio','SERVICIOS']];
+  var html = '';
+  var idx = 0;
+  grupos.forEach(function(g) {
+    var items = results.filter(function(r){ return r.tipo === g[0]; });
+    if (!items.length) return;
+    html += '<div class="search-global-group">' + g[1] + '</div>';
+    items.forEach(function(it) {
+      var isSel = idx === _busquedaGlobalSel;
+      html += '<div class="search-global-item' + (isSel ? ' selected' : '') + '" data-idx="' + idx + '" onclick="ejecutarBusquedaGlobal(' + idx + ')">';
+      html += '<span class="search-global-icon">' + it.icon + '</span>';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div class="search-global-title" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(it.titulo) + '</div>';
+      html += '<div class="search-global-sub" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(it.sub) + '</div>';
+      html += '</div></div>';
+      idx++;
+    });
+  });
+  box.innerHTML = html;
+}
+
+function navBusquedaGlobal(e) {
+  if (e.key === 'Escape') { cerrarBusquedaGlobal(); return; }
+  if (!_busquedaGlobalResultados.length) return;
+  if (e.key === 'ArrowDown') {
+    e.preventDefault();
+    _busquedaGlobalSel = (_busquedaGlobalSel + 1) % _busquedaGlobalResultados.length;
+    actualizarSeleccionBusqueda();
+  } else if (e.key === 'ArrowUp') {
+    e.preventDefault();
+    _busquedaGlobalSel = (_busquedaGlobalSel - 1 + _busquedaGlobalResultados.length) % _busquedaGlobalResultados.length;
+    actualizarSeleccionBusqueda();
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    ejecutarBusquedaGlobal(_busquedaGlobalSel);
+  }
+}
+
+function actualizarSeleccionBusqueda() {
+  document.querySelectorAll('.search-global-item').forEach(function(el) {
+    var i = parseInt(el.dataset.idx);
+    if (i === _busquedaGlobalSel) {
+      el.classList.add('selected');
+      el.scrollIntoView({block:'nearest'});
+    } else {
+      el.classList.remove('selected');
+    }
+  });
+}
+
+function ejecutarBusquedaGlobal(idx) {
+  var r = _busquedaGlobalResultados[idx];
+  if (!r) return;
+  cerrarBusquedaGlobal();
+  if (r.tipo === 'cliente') { navTo('pClis'); setTimeout(function(){ try { editCli(r.id); } catch(e){} }, 100); }
+  else if (r.tipo === 'rep') { navTo('pReps'); setTimeout(function(){ try { editarRep(r.id); } catch(e){} }, 100); }
+  else if (r.tipo === 'venta') { navTo('pVentas'); }
+  else if (r.tipo === 'stock') { navTo('pStock'); }
+  else if (r.tipo === 'servicio') { navTo('pServicios'); }
+}
+
+// Atajo Cmd+K / Ctrl+K
+document.addEventListener('keydown', function(e) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    abrirBusquedaGlobal();
+  }
+});
+
+// ═══ WHATSAPP PLANTILLAS ═══
+var PLANTILLAS_WA_DEFAULT = {
+  rep_lista: {nombre:'Reparación lista', texto:'¡Hola {nombre}! 📱\n\nTu {modelo} ya está reparado y listo para recoger.\n\nTotal: {total}\n\nTe esperamos en {tienda}. ¡Saludos!'},
+  rep_presupuesto: {nombre:'Presupuesto reparación', texto:'Hola {nombre}, te paso el presupuesto de la reparación de tu {modelo}:\n\n📋 {averia}\n💰 Total: {total}\n\n¿Lo confirmamos? Saludos desde {tienda}.'},
+  rep_recogida: {nombre:'Recordatorio recogida', texto:'Hola {nombre}, te recuerdo que tu {modelo} sigue en {tienda} listo para recoger desde hace días. Cuando puedas pásate, ¡gracias!'},
+  rep_recibida: {nombre:'Reparación recibida', texto:'Hola {nombre}, hemos recibido tu {modelo} en {tienda}. Te avisaremos cuando tengamos novedades sobre la reparación. ¡Gracias por confiar en nosotros!'},
+  cuota_proxima: {nombre:'Cuota próxima', texto:'Hola {nombre}, te recuerdo que tu cuota de {total} vence el {fecha}. Saludos desde {tienda}.'},
+  cuota_vencida: {nombre:'Cuota vencida', texto:'Hola {nombre}, tu cuota de {total} venció el {fecha}. Pásate por {tienda} cuando puedas para regularizarla. Gracias.'},
+  generico: {nombre:'Mensaje libre', texto:'Hola {nombre}, te escribo desde {tienda}.'}
+};
+
+function getPlantillasWA() {
+  return AJUSTES.plantillasWA || PLANTILLAS_WA_DEFAULT;
+}
+
+function aplicarVariablesWA(texto, datos) {
+  return (texto || '')
+    .replace(/\{nombre\}/g, datos.nombre || '')
+    .replace(/\{tienda\}/g, datos.tienda || (TIENDA && TIENDA.nombre) || 'la tienda')
+    .replace(/\{modelo\}/g, datos.modelo || '')
+    .replace(/\{marca\}/g, datos.marca || '')
+    .replace(/\{averia\}/g, datos.averia || '')
+    .replace(/\{total\}/g, datos.total != null ? cur(datos.total) : '')
+    .replace(/\{fecha\}/g, datos.fecha || '')
+    .replace(/\{estado\}/g, datos.estado || '');
+}
+
+var _waContexto = null;
+
+function abrirWhatsAppRep(repId) {
+  var r = DB.reps.find(function(x){ return x.id === repId; });
+  if (!r) return;
+  var cli = DB.clis.find(function(c){ return c.id === r.cliId; });
+  if (!cli) { toast('Cliente no encontrado', 'err'); return; }
+  if (!cli.tel) { toast('Cliente sin teléfono', 'err'); return; }
+  _waContexto = {
+    tipo: 'rep',
+    cli: cli,
+    datos: {
+      nombre: cli.nombre || '',
+      tienda: TIENDA.nombre || '',
+      marca: r.marca || '',
+      modelo: r.modelo || '',
+      averia: r.averia || '',
+      total: r.total || 0,
+      estado: r.estado || ''
+    }
+  };
+  document.getElementById('waInfoCli').innerHTML = '<strong>📱 ' + esc(cli.nombre + ' ' + (cli.apellidos||'')) + '</strong> · ' + esc(cli.tel) + '<br><span style="color:var(--muted);font-size:11px">' + esc(r.marca + ' ' + r.modelo) + ' · ' + esc(r.averia||'') + '</span>';
+  // Llenar selector con plantillas relevantes para reparación
+  var sel = document.getElementById('waPlantilla');
+  var plantillas = getPlantillasWA();
+  var keysRep = ['rep_lista','rep_presupuesto','rep_recogida','rep_recibida','generico'];
+  var defaultKey = r.estado === 'Por Entregar' ? 'rep_lista' : (r.estado === 'Pendiente' ? 'rep_recibida' : 'rep_lista');
+  sel.innerHTML = keysRep.filter(function(k){ return plantillas[k]; }).map(function(k) {
+    return '<option value="' + k + '"' + (k === defaultKey ? ' selected' : '') + '>' + plantillas[k].nombre + '</option>';
+  }).join('');
+  renderPreviewWA();
+  openM('mWhatsApp');
+}
+
+function abrirWhatsAppCuota(ventaId, idxCuota) {
+  var v = DB.ventas.find(function(x){ return x.id === ventaId; });
+  if (!v) return;
+  var cli = DB.clis.find(function(c){ return c.id === v.cliId; });
+  if (!cli || !cli.tel) { toast('Cliente sin teléfono', 'err'); return; }
+  var c = v.cuotas[idxCuota];
+  if (!c) return;
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var fc = _parseDateAny(c.fecha);
+  var vencida = fc && fc < hoy;
+  _waContexto = {
+    tipo: 'cuota',
+    cli: cli,
+    datos: {
+      nombre: cli.nombre || '',
+      tienda: TIENDA.nombre || '',
+      modelo: v.modelo || '',
+      total: c.importe || 0,
+      fecha: c.fecha || ''
+    }
+  };
+  document.getElementById('waInfoCli').innerHTML = '<strong>💵 ' + esc(cli.nombre + ' ' + (cli.apellidos||'')) + '</strong> · ' + esc(cli.tel) + '<br><span style="color:var(--muted);font-size:11px">Cuota ' + (idxCuota+1) + ' · ' + cur(c.importe) + ' · ' + (vencida ? 'VENCIDA' : 'vence ' + c.fecha) + '</span>';
+  var sel = document.getElementById('waPlantilla');
+  var plantillas = getPlantillasWA();
+  var keysCuota = vencida ? ['cuota_vencida','cuota_proxima','generico'] : ['cuota_proxima','cuota_vencida','generico'];
+  sel.innerHTML = keysCuota.filter(function(k){ return plantillas[k]; }).map(function(k) {
+    return '<option value="' + k + '">' + plantillas[k].nombre + '</option>';
+  }).join('');
+  renderPreviewWA();
+  openM('mWhatsApp');
+}
+
+function renderPreviewWA() {
+  if (!_waContexto) return;
+  var key = document.getElementById('waPlantilla').value;
+  var plantillas = getPlantillasWA();
+  var p = plantillas[key];
+  if (!p) return;
+  document.getElementById('waMensaje').value = aplicarVariablesWA(p.texto, _waContexto.datos);
+}
+
+function enviarWhatsApp() {
+  if (!_waContexto || !_waContexto.cli) return;
+  var msg = document.getElementById('waMensaje').value;
+  var tel = (_waContexto.cli.tel || '').replace(/\D/g, '');
+  if (!tel) { toast('Sin teléfono', 'err'); return; }
+  var url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
+  window.open(url, '_blank');
+  closeM('mWhatsApp');
+}
+
+// ═══ GARANTÍA POR DÍAS ═══
+function getDiasGarantia() {
+  if (TIENDA && TIENDA.garantiaDias) return parseInt(TIENDA.garantiaDias);
+  return 90; // default
+}
+
+// Comprueba si una nueva avería del mismo cliente y modelo está dentro de garantía
+// Devuelve la rep anterior + días transcurridos, o null
+function checkGarantia(cliId, marca, modelo, fechaActual) {
+  if (!cliId) return null;
+  var dias = getDiasGarantia();
+  if (!dias || dias <= 0) return null;
+  var fechaRef = fechaActual ? _parseDateAny(fechaActual) : new Date();
+  if (!fechaRef) fechaRef = new Date();
+  var marcaN = _norm(marca||'');
+  var modeloN = _norm(modelo||'');
+  var candidatas = DB.reps.filter(function(r) {
+    if (r.cliId !== cliId) return false;
+    if (r.estado !== 'Entregado' || !r.fechaEntregaReal) return false;
+    var fe = _parseDateAny(r.fechaEntregaReal);
+    if (!fe) return false;
+    var diff = (fechaRef - fe) / 86400000;
+    if (diff < 0 || diff > dias) return false;
+    // Mismo modelo (más estricto) o misma marca al menos
+    var mr = _norm(r.marca||'');
+    var mm = _norm(r.modelo||'');
+    return (marcaN && mr === marcaN) && (modeloN ? mm === modeloN : true);
+  }).sort(function(a,b){
+    return _parseDateAny(b.fechaEntregaReal) - _parseDateAny(a.fechaEntregaReal);
+  });
+  if (!candidatas.length) return null;
+  var rep = candidatas[0];
+  var diasDesde = Math.floor((fechaRef - _parseDateAny(rep.fechaEntregaReal)) / 86400000);
+  return {rep: rep, dias: diasDesde, diasTotal: dias, restantes: dias - diasDesde};
 }
 
 // ═══ ORDEN PERSONALIZADO DE WIDGETS ═══
@@ -6107,5 +6496,40 @@ document.addEventListener('click', function(e){
   });
 })();
 </script>
+
+<!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
+<div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
+  <div class="search-global-box">
+    <input class="search-global-input" id="busquedaGlobalInput" placeholder="Buscar clientes, reparaciones, ventas, productos..." oninput="renderBusquedaGlobal()" onkeydown="navBusquedaGlobal(event)">
+    <div class="search-global-results" id="busquedaGlobalResultados">
+      <div class="search-global-empty">Empieza a escribir para buscar...</div>
+    </div>
+    <div class="search-global-help">
+      <span><span class="kbd">↑↓</span> navegar · <span class="kbd">↵</span> abrir · <span class="kbd">Esc</span> cerrar</span>
+      <span id="busquedaGlobalCount"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL WHATSAPP PLANTILLAS ═══ -->
+<div class="modal-bg" id="mWhatsApp">
+  <div class="modal">
+    <div class="modal-h"><span>📲 Avisar por WhatsApp</span><span class="cls" onclick="closeM('mWhatsApp')">×</span></div>
+    <div id="waInfoCli" style="background:var(--light);padding:10px 12px;border-radius:8px;margin-bottom:12px;font-size:12px"></div>
+    <div class="fg">
+      <label class="fl">Plantilla</label>
+      <select id="waPlantilla" class="fi" onchange="renderPreviewWA()"></select>
+    </div>
+    <div class="fg">
+      <label class="fl">Mensaje (puedes editar antes de enviar)</label>
+      <textarea id="waMensaje" class="fi" rows="6" style="resize:vertical"></textarea>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="closeM('mWhatsApp')">Cancelar</button>
+      <button class="btn-sm" style="background:#25D366;color:white;flex:2" onclick="enviarWhatsApp()">📲 Abrir WhatsApp</button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
