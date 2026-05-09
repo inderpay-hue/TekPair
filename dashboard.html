@@ -62,6 +62,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .sidebar-nav::-webkit-scrollbar-track{background:transparent}
   .sidebar-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px}
   .sidebar-nav::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.28)}
+  .sidebar-group{padding:14px 20px 6px;font-size:9px;font-weight:800;color:rgba(255,255,255,.32);text-transform:uppercase;letter-spacing:.7px}
+  .sidebar-group:first-child{padding-top:6px}
   .sidebar-ni{display:flex;align-items:center;gap:12px;padding:12px 20px;color:rgba(255,255,255,.6);cursor:pointer;font-size:13px;font-weight:600;transition:background .15s var(--ease),color .15s var(--ease),border-color .15s var(--ease);border-left:3px solid transparent}
   .sidebar-ni:hover{background:rgba(255,255,255,.05);color:white}
   .sidebar-ni.active{background:rgba(0,85,255,.15);color:white;border-left-color:var(--blue)}
@@ -317,14 +319,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </button>
   </div>
   <div class="sidebar-nav">
+    <div class="sidebar-group">Operación</div>
     <div class="sidebar-ni active" data-p="pDash" onclick="navTo('pDash');setSidebarActive(this)">
       <span class="sidebar-ni-icon">🏠</span>Inicio
     </div>
-    <div class="sidebar-ni" data-p="pVentas" onclick="navTo('pVentas');setSidebarActive(this)">
-      <span class="sidebar-ni-icon">📱</span>Ventas
-    </div>
     <div class="sidebar-ni" onclick="window.location.href='tpv.html'" style="background:rgba(0,200,150,.1);border-left:3px solid var(--green)">
       <span class="sidebar-ni-icon">🛒</span>TPV
+    </div>
+    <div class="sidebar-ni" data-p="pVentas" onclick="navTo('pVentas');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">📱</span>Ventas
     </div>
     <div class="sidebar-ni" data-p="pReps" onclick="navTo('pReps');setSidebarActive(this)">
       <span class="sidebar-ni-icon">🔧</span>Reparaciones
@@ -332,17 +335,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sidebar-ni" data-p="pStock" onclick="navTo('pStock');setSidebarActive(this)">
       <span class="sidebar-ni-icon">📦</span>Stock
     </div>
+
+    <div class="sidebar-group">Gestión</div>
     <div class="sidebar-ni" data-p="pClis" onclick="navTo('pClis');setSidebarActive(this)">
       <span class="sidebar-ni-icon">👥</span>Clientes
     </div>
     <div class="sidebar-ni" data-p="pProvs" onclick="navTo('pProvs');setSidebarActive(this)">
       <span class="sidebar-ni-icon">🏭</span>Proveedores
-    </div>
-    <div class="sidebar-ni" data-p="pGastos" onclick="navTo('pGastos');setSidebarActive(this)">
-      <span class="sidebar-ni-icon">📋</span>Gastos
-    </div>
-    <div class="sidebar-ni" data-p="pReportes" onclick="navTo('pReportes');setSidebarActive(this)">
-      <span class="sidebar-ni-icon">📊</span>Reportes
     </div>
     <div class="sidebar-ni" data-p="pServicios" onclick="navTo('pServicios');setSidebarActive(this)">
       <span class="sidebar-ni-icon">🛠️</span>Servicios
@@ -350,11 +349,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sidebar-ni" onclick="window.location.href='catalogo.html'">
       <span class="sidebar-ni-icon">📚</span>Catalogo
     </div>
-    <div class="sidebar-ni" data-p="pUsuarios" onclick="navTo('pUsuarios');setSidebarActive(this)" id="sidebarUsuarios">
-      <span class="sidebar-ni-icon">👤</span>Usuarios
+    <div class="sidebar-ni" data-p="pGastos" onclick="navTo('pGastos');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">📋</span>Gastos
     </div>
+    <div class="sidebar-ni" data-p="pReportes" onclick="navTo('pReportes');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">📊</span>Reportes
+    </div>
+
+    <div class="sidebar-group">Configuración</div>
     <div class="sidebar-ni" data-p="pTienda" onclick="navTo('pTienda');setSidebarActive(this)">
       <span class="sidebar-ni-icon">🏪</span>Mi Tienda
+    </div>
+    <div class="sidebar-ni" data-p="pUsuarios" onclick="navTo('pUsuarios');setSidebarActive(this)" id="sidebarUsuarios">
+      <span class="sidebar-ni-icon">👤</span>Usuarios
     </div>
     <div class="sidebar-ni" data-p="pAjustes" onclick="navTo('pAjustes');setSidebarActive(this)">
       <span class="sidebar-ni-icon">⚙️</span>Ajustes
@@ -3973,13 +3980,20 @@ function renderSidebarLogo() {
   var img = document.getElementById('sidebarLogo');
   var txt = document.getElementById('sidebarBrandText');
   if (!img) return;
+  var nombre = (TIENDA && TIENDA.nombre) ? TIENDA.nombre : 'Tekpair';
   if (TIENDA.logo_url) {
     img.src = TIENDA.logo_url + (TIENDA.logo_url.indexOf('?') > -1 ? '&' : '?') + 't=' + Date.now();
     img.style.display = 'inline-block';
-    if (txt) txt.style.display = 'none';
+    if (txt) {
+      txt.textContent = nombre;
+      txt.style.display = 'inline';
+    }
   } else {
     img.style.display = 'none';
-    if (txt) txt.style.display = 'inline';
+    if (txt) {
+      txt.textContent = '⚡ ' + nombre;
+      txt.style.display = 'inline';
+    }
   }
 }
 
