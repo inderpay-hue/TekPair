@@ -183,6 +183,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .qbtn-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .qbtn-label{font-size:13px;font-weight:700;color:var(--text);line-height:1.2}
 
+/* ═══ WIDGET EDIT MODE ═══ */
+.card.widget-editing{border:2px dashed var(--blue);position:relative;animation:widget-pulse 2s infinite}
+@keyframes widget-pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,85,255,.10)}50%{box-shadow:0 0 0 4px rgba(0,85,255,.10)}}
+.widget-edit-controls{position:absolute;top:8px;right:8px;display:flex;gap:4px;z-index:10}
+.widget-edit-controls button{width:32px;height:32px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center;box-shadow:var(--shadow-md)}
+.widget-edit-controls button:hover{background:#0044CC}
+.widget-edit-controls button:active{transform:scale(.95)}
+
 /* ═══ FORMS ═══ */
 .fg{margin-bottom:12px}
 .fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px}
@@ -421,11 +429,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 <!-- PAGE: DASHBOARD -->
 <div class="page active" id="pDash">
-  <div style="padding:4px 0 10px;display:flex;align-items:center;justify-content:space-between">
+  <div style="padding:4px 0 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <div>
       <div style="font-size:13px;color:var(--muted)" id="dStr"></div>
       <div style="font-size:18px;font-weight:800;color:var(--dark)" id="dTienda"></div>
     </div>
+    <button id="btnPersonalizar" onclick="toggleModoEdicion()" style="background:white;color:var(--blue);border:1px solid var(--border);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">✏️ Personalizar</button>
   </div>
   <div class="tabs" id="metricTabs">
     <div class="tab active" data-t="hoy" onclick="setMetricTab(this)">Hoy</div>
@@ -1418,7 +1427,10 @@ window.addEventListener('DOMContentLoaded', function() {
   setInterval(refreshNotifs, 60000);
   initDesktop();
   window.addEventListener('resize', initDesktop);
-  setTimeout(aplicarPermisos, 200);
+  setTimeout(function() {
+    aplicarPermisos();
+    aplicarOrdenWidgets();
+  }, 200);
 
   // Pago select listener
   document.getElementById('vPago').addEventListener('change', function() {
@@ -5355,16 +5367,134 @@ function widgetVisible(perm) {
   return true;
 }
 
-function aplicarPermisos() {
-  if (!U || U.rol === 'admin') return;
+// ═══ ORDEN PERSONALIZADO DE WIDGETS ═══
+var WIDGETS_DEFAULT_ORDER = [
+  'cardUrgentes','cardCajaDia','cardCobros','cardPendientes',
+  'cardRepsEstado','cardPorEntregar','cardStockCritico','cardCumples',
+  'cardTendencia','cardTopProds','cardTopAverias','cardTiempoMedio',
+  'cardClisInactivos','cardNotas','cardCierre'
+];
 
-  function hideNav(p, perm) {
-    if (tienePerm(perm)) return;
-    var ni = document.querySelector('.ni[data-p="' + p + '"]');
-    if (ni) ni.style.display = 'none';
-    var sb = document.querySelector('.sidebar-ni[data-p="' + p + '"]');
-    if (sb) sb.style.display = 'none';
+function getWidgetOrderKey() {
+  return 'tk_widget_order_' + (U && U.id ? U.id : 'default');
+}
+
+function getWidgetOrder() {
+  var saved = localStorage.getItem(getWidgetOrderKey());
+  if (!saved) return WIDGETS_DEFAULT_ORDER.slice();
+  try {
+    var arr = JSON.parse(saved);
+    if (!Array.isArray(arr)) return WIDGETS_DEFAULT_ORDER.slice();
+    // Combinar con default por si hay nuevos widgets que el usuario aún no tiene en su orden
+    var merged = arr.slice();
+    WIDGETS_DEFAULT_ORDER.forEach(function(id) {
+      if (merged.indexOf(id) === -1) merged.push(id);
+    });
+    return merged;
+  } catch(e) { return WIDGETS_DEFAULT_ORDER.slice(); }
+}
+
+function aplicarOrdenWidgets() {
+  var orden = getWidgetOrder();
+  var pDash = document.getElementById('pDash');
+  if (!pDash) return;
+  // Mover cada card al final en el orden indicado
+  orden.forEach(function(id) {
+    var card = document.getElementById(id);
+    if (card && card.parentNode === pDash) pDash.appendChild(card);
+  });
+}
+
+var modoEdicionWidgets = false;
+
+function toggleModoEdicion() {
+  modoEdicionWidgets = !modoEdicionWidgets;
+  var btn = document.getElementById('btnPersonalizar');
+  if (modoEdicionWidgets) {
+    if (btn) {
+      btn.innerHTML = '✓ Listo';
+      btn.style.background = 'var(--green)';
+      btn.style.color = 'white';
+      btn.style.borderColor = 'var(--green)';
+    }
+    activarControlesEdicion();
+    toast('Modo edición — usa ↑↓ para reordenar', 'ok');
+  } else {
+    if (btn) {
+      btn.innerHTML = '✏️ Personalizar';
+      btn.style.background = 'white';
+      btn.style.color = 'var(--blue)';
+      btn.style.borderColor = 'var(--border)';
+    }
+    desactivarControlesEdicion();
+    guardarOrdenWidgets();
+    toast('Orden guardado ✓', 'ok');
   }
+}
+
+function activarControlesEdicion() {
+  document.querySelectorAll('#pDash .card[id^="card"]').forEach(function(card) {
+    card.classList.add('widget-editing');
+    if (!card.querySelector('.widget-edit-controls')) {
+      var ctrl = document.createElement('div');
+      ctrl.className = 'widget-edit-controls';
+      ctrl.innerHTML = '<button onclick="moverWidget(\'' + card.id + '\',-1)" title="Subir">▲</button>' +
+                       '<button onclick="moverWidget(\'' + card.id + '\',1)" title="Bajar">▼</button>';
+      card.appendChild(ctrl);
+    }
+  });
+}
+
+function desactivarControlesEdicion() {
+  document.querySelectorAll('#pDash .card[id^="card"]').forEach(function(card) {
+    card.classList.remove('widget-editing');
+    var c = card.querySelector('.widget-edit-controls');
+    if (c) c.remove();
+  });
+}
+
+function moverWidget(id, dir) {
+  var card = document.getElementById(id);
+  if (!card) return;
+  var pDash = card.parentNode;
+  if (dir < 0) {
+    var prev = card.previousElementSibling;
+    while (prev && (!prev.classList.contains('card') || !prev.id || !/^card/.test(prev.id))) {
+      prev = prev.previousElementSibling;
+    }
+    if (prev) pDash.insertBefore(card, prev);
+  } else {
+    var next = card.nextElementSibling;
+    while (next && (!next.classList.contains('card') || !next.id || !/^card/.test(next.id))) {
+      next = next.nextElementSibling;
+    }
+    if (next) pDash.insertBefore(next, card);
+  }
+  // Scroll al elemento movido para feedback
+  card.scrollIntoView({behavior:'smooth', block:'center'});
+}
+
+function guardarOrdenWidgets() {
+  var orden = [];
+  document.querySelectorAll('#pDash .card[id^="card"]').forEach(function(c) {
+    orden.push(c.id);
+  });
+  localStorage.setItem(getWidgetOrderKey(), JSON.stringify(orden));
+}
+
+function aplicarPermisos() {
+  if (!U) return;
+  var esAdmin = U.rol === 'admin' || (U.permisos && U.permisos.todo);
+
+  // Para no-admin: ocultar menús/botones según permisos de acción
+  if (!esAdmin) {
+    var hideNav = function(p, perm) {
+      if (tienePerm(perm)) return;
+      var ni = document.querySelector('.ni[data-p="' + p + '"]');
+      if (ni) ni.style.display = 'none';
+      var sb = document.querySelector('.sidebar-ni[data-p="' + p + '"]');
+      if (sb) sb.style.display = 'none';
+    };
   hideNav('pVentas', 'ventas_ver');
   hideNav('pReps', 'reps_ver');
   hideNav('pStock', 'stock_ver');
@@ -5423,7 +5553,27 @@ function aplicarPermisos() {
     if (!algunoVisible) g.style.display = 'none';
   });
 
-  // Widgets del dashboard (visibilidad por widget)
+  // Ocultar botones de creación en cabeceras de páginas
+  if (!tienePerm('ventas_crear')) document.querySelectorAll('[onclick*="abrirVenta"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('reps_crear')) document.querySelectorAll('[onclick*="abrirRep"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('stock_crear')) document.querySelectorAll('[onclick*="mStock"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('clis_crear')) document.querySelectorAll('[onclick*="mCli"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('provs_crear')) document.querySelectorAll('[onclick*="mProv"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('gastos_crear')) document.querySelectorAll('[onclick*="mGasto"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('servicios_crear')) document.querySelectorAll('[onclick*="mServicio"]').forEach(function(b) { b.style.display = 'none'; });
+  } // fin if (!esAdmin)
+
+  // ═══ WIDGETS DEL DASHBOARD (aplica a TODOS, incluido admin) ═══
+  // Resetear visibilidad primero (para que reactivar funcione)
+  var WIDGET_IDS = ['dashQuickGrid','cardUrgentes','cardPendientes','cardPorEntregar','cardNotas','cardCierre',
+                    'cardCajaDia','cardCobros','cardStockCritico','cardCumples','cardTendencia',
+                    'cardTopProds','cardTopAverias','cardRepsEstado','cardTiempoMedio','cardClisInactivos'];
+  WIDGET_IDS.forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.style.display = '';
+  });
+  // Y los stat cards del metricsGrid se controlan en renderDash directamente
+
   function hideEl(id) {
     var el = document.getElementById(id);
     if (el) el.style.display = 'none';
@@ -5444,15 +5594,6 @@ function aplicarPermisos() {
   if (!widgetVisible('widget_repsestado')) hideEl('cardRepsEstado');
   if (!widgetVisible('widget_tiempomedio')) hideEl('cardTiempoMedio');
   if (!widgetVisible('widget_clisinactivos')) hideEl('cardClisInactivos');
-
-  // Ocultar botones de creación en cabeceras de páginas
-  if (!tienePerm('ventas_crear')) document.querySelectorAll('[onclick*="abrirVenta"]').forEach(function(b) { b.style.display = 'none'; });
-  if (!tienePerm('reps_crear')) document.querySelectorAll('[onclick*="abrirRep"]').forEach(function(b) { b.style.display = 'none'; });
-  if (!tienePerm('stock_crear')) document.querySelectorAll('[onclick*="mStock"]').forEach(function(b) { b.style.display = 'none'; });
-  if (!tienePerm('clis_crear')) document.querySelectorAll('[onclick*="mCli"]').forEach(function(b) { b.style.display = 'none'; });
-  if (!tienePerm('provs_crear')) document.querySelectorAll('[onclick*="mProv"]').forEach(function(b) { b.style.display = 'none'; });
-  if (!tienePerm('gastos_crear')) document.querySelectorAll('[onclick*="mGasto"]').forEach(function(b) { b.style.display = 'none'; });
-  if (!tienePerm('servicios_crear')) document.querySelectorAll('[onclick*="mServicio"]').forEach(function(b) { b.style.display = 'none'; });
 }
 
 var PERMS_LISTA = [
@@ -5662,7 +5803,17 @@ async function guardarPermisos() {
   if (!editPermId) return;
   var ok = await sbPatch('usuarios', 'id=eq.' + editPermId, {permisos: permsCurrent});
   toast(ok ? 'Permisos guardados' : 'Error', ok ? 'ok' : 'err');
-  if (ok) { closeM('mPermisos'); cargarUsuarios(); }
+  if (ok) {
+    closeM('mPermisos');
+    cargarUsuarios();
+    // Si edité MIS PROPIOS permisos, actualizar sesión local y refrescar UI
+    if (U && editPermId === U.id) {
+      U.permisos = Object.assign({}, permsCurrent);
+      localStorage.setItem('tk_user', JSON.stringify(U));
+      try { aplicarPermisos(); } catch(e){}
+      try { renderDash(); } catch(e){}
+    }
+  }
 }
 
 // ═══ IMPORTAR ═══
