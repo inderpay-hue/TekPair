@@ -557,6 +557,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sidebar-ni" data-p="pReps" onclick="navTo('pReps');setSidebarActive(this)">
       <span class="sidebar-ni-icon">🔧</span>Reparaciones
     </div>
+    <div class="sidebar-ni" data-p="pCitas" onclick="navTo('pCitas');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">📅</span>Citas <span class="sidebar-citas-badge" id="sidebarCitasBadge" style="display:none"></span>
+    </div>
     <div class="sidebar-ni" data-p="pStock" onclick="navTo('pStock');setSidebarActive(this)">
       <span class="sidebar-ni-icon">📦</span>Stock
     </div>
@@ -818,6 +821,26 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div id="kanbanReps" style="display:none"></div>
 </div>
 
+<!-- PAGE: CITAS -->
+<div class="page" id="pCitas">
+  <div class="sec-header" style="margin-bottom:10px">
+    <div class="sec-title">📅 Citas</div>
+    <div style="display:flex;gap:6px">
+      <button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirLinkCitas()" title="Compartir el enlace público">🔗 Link público</button>
+      <button class="btn-sm" style="background:var(--green);color:white" onclick="syncCitas()" title="Recargar">↻</button>
+    </div>
+  </div>
+  <div class="tabs" id="citasTabs">
+    <div class="tab active" data-cf="hoy" onclick="setCitasFiltro(this)">Hoy</div>
+    <div class="tab" data-cf="proximas" onclick="setCitasFiltro(this)">Próximas</div>
+    <div class="tab" data-cf="pendiente" onclick="setCitasFiltro(this)">Pendientes</div>
+    <div class="tab" data-cf="confirmada" onclick="setCitasFiltro(this)">Confirmadas</div>
+    <div class="tab" data-cf="atendida" onclick="setCitasFiltro(this)">Atendidas</div>
+    <div class="tab" data-cf="todas" onclick="setCitasFiltro(this)">Todas</div>
+  </div>
+  <div id="listaCitas"></div>
+</div>
+
 <!-- PAGE: STOCK -->
 <div class="page" id="pStock">
   <div class="sec-header" style="margin-bottom:10px">
@@ -963,6 +986,24 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
     <div class="sec-title">Mi Tienda</div>
   </div>
+
+  <div class="card">
+    <div class="card-title">📅 Citas online — Horarios</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Configura los horarios de tu tienda. Los clientes solo verán los huecos disponibles cuando reserven cita.</div>
+    <div id="horariosBox"></div>
+    <div class="fi-row" style="margin-top:14px">
+      <div class="fg" style="margin:0;flex:1"><label class="fl">Duración por cita (min)</label>
+        <select class="fi" id="citasDuracion" onchange="guardarConfigCitas()">
+          <option value="15">15 minutos</option>
+          <option value="30" selected>30 minutos</option>
+          <option value="45">45 minutos</option>
+          <option value="60">60 minutos</option>
+        </select>
+      </div>
+    </div>
+    <button type="button" class="btn-secondary" style="width:100%;margin-top:10px" onclick="abrirLinkCitas()">🔗 Ver link público / QR</button>
+  </div>
+
   <div class="card">
     <div class="card-title">Logo de la tienda</div>
     <div style="display:flex;align-items:center;gap:14px;margin:8px 0 14px">
@@ -8536,6 +8577,319 @@ setTimeout(function() {
   }
 }, 3000);
 
+// ═══ CITAS ═══
+var SEL_CITAS_FILTRO = 'hoy';
+var DIAS_SEMANA = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+
+function setCitasFiltro(el) {
+  document.querySelectorAll('#citasTabs .tab').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  SEL_CITAS_FILTRO = el.dataset.cf;
+  renderCitas();
+}
+
+async function syncCitas() {
+  if (!SB_KEY || !TIENDA_ID) return;
+  try {
+    var rows = await sbGet('citas?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&order=fecha.asc,hora.asc&select=*');
+    DB.citas = rows || [];
+    guardarDatos();
+    renderCitas();
+    actualizarBadgeCitas();
+  } catch(e) { console.warn('Sync citas error:', e); }
+}
+
+function actualizarBadgeCitas() {
+  var hoy = new Date();
+  var hoyStr = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + String(hoy.getDate()).padStart(2,'0');
+  var pendHoy = (DB.citas || []).filter(function(c){ return c.fecha === hoyStr && c.estado === 'pendiente'; });
+  var b = document.getElementById('sidebarCitasBadge');
+  if (b) {
+    if (pendHoy.length > 0) {
+      b.textContent = pendHoy.length;
+      b.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;background:var(--green);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto;min-width:18px';
+    } else {
+      b.style.display = 'none';
+    }
+  }
+}
+
+function renderCitas() {
+  var lista = document.getElementById('listaCitas');
+  if (!lista) return;
+  if (!DB.citas) DB.citas = [];
+
+  var hoy = new Date();
+  var hoyStr = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + String(hoy.getDate()).padStart(2,'0');
+
+  var filtradas = DB.citas.slice().filter(function(c) {
+    if (SEL_CITAS_FILTRO === 'hoy') return c.fecha === hoyStr && c.estado !== 'cancelada';
+    if (SEL_CITAS_FILTRO === 'proximas') return c.fecha >= hoyStr && c.estado !== 'cancelada' && c.estado !== 'atendida';
+    if (SEL_CITAS_FILTRO === 'pendiente') return c.estado === 'pendiente';
+    if (SEL_CITAS_FILTRO === 'confirmada') return c.estado === 'confirmada';
+    if (SEL_CITAS_FILTRO === 'atendida') return c.estado === 'atendida';
+    return true;
+  }).sort(function(a,b){
+    var k1 = a.fecha + ' ' + a.hora;
+    var k2 = b.fecha + ' ' + b.hora;
+    return k1.localeCompare(k2);
+  });
+
+  if (!filtradas.length) {
+    lista.innerHTML = '<div class="empty" style="padding:30px"><div style="font-size:32px;margin-bottom:8px">📅</div>No hay citas con ese filtro.<br><br><button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirLinkCitas()">Compartir link público</button></div>';
+    return;
+  }
+
+  var iconEstado = {pendiente:'⏳', confirmada:'✓', atendida:'✓✓', cancelada:'✕'};
+  var colorEstado = {pendiente:'var(--orange)', confirmada:'var(--blue)', atendida:'var(--green)', cancelada:'var(--muted)'};
+
+  // Agrupar por fecha
+  var grupos = {};
+  filtradas.forEach(function(c) {
+    if (!grupos[c.fecha]) grupos[c.fecha] = [];
+    grupos[c.fecha].push(c);
+  });
+
+  var html = '';
+  Object.keys(grupos).sort().forEach(function(fecha) {
+    var p = fecha.split('-');
+    var d = new Date(p[0], p[1]-1, p[2]);
+    var fechaTxt = d.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long'});
+    var esHoy = fecha === hoyStr;
+    html += '<div style="font-size:11px;font-weight:700;color:' + (esHoy ? 'var(--green)' : 'var(--muted)') + ';text-transform:uppercase;letter-spacing:.4px;padding:14px 0 8px">' + (esHoy ? '🎯 HOY · ' : '') + fechaTxt + '</div>';
+    grupos[fecha].forEach(function(c) {
+      html += '<div class="card" style="padding:12px;cursor:pointer;margin-bottom:6px;border-left:3px solid ' + colorEstado[c.estado || 'pendiente'] + '" onclick="abrirCita(\'' + c.id + '\')">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:start;gap:10px">';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><strong style="font-size:14px;font-family:ui-monospace,monospace">' + esc(c.hora||'') + '</strong>';
+      html += '<span style="font-size:11px;background:rgba(0,85,255,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || 'Consulta') + '</span></div>';
+      html += '<div style="font-weight:700;font-size:13px">' + esc(c.cliente_nombre) + '</div>';
+      if (c.marca || c.modelo) html += '<div style="font-size:11px;color:var(--muted)">' + esc((c.marca||'') + ' ' + (c.modelo||'')).trim() + '</div>';
+      if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted)">📞 ' + esc(c.cliente_tel) + '</div>';
+      html += '</div>';
+      html += '<div style="font-size:11px;font-weight:700;color:' + colorEstado[c.estado || 'pendiente'] + ';text-transform:uppercase;letter-spacing:.3px;flex-shrink:0">' + iconEstado[c.estado || 'pendiente'] + ' ' + (c.estado || 'pendiente') + '</div>';
+      html += '</div></div>';
+    });
+  });
+  lista.innerHTML = html;
+}
+
+function abrirCita(id) {
+  var c = (DB.citas || []).find(function(x){ return x.id === id; });
+  if (!c) return;
+  var fechaTxt = '';
+  if (c.fecha) {
+    var p = c.fecha.split('-');
+    var d = new Date(p[0], p[1]-1, p[2]);
+    fechaTxt = d.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  }
+  var html = '';
+  html += '<div style="background:var(--light);border-radius:10px;padding:14px;margin-bottom:14px">';
+  html += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px">' + esc(c.servicio || 'Consulta') + '</div>';
+  html += '<div style="font-size:18px;font-weight:800">' + esc(c.cliente_nombre) + '</div>';
+  html += '<div style="font-size:13px;color:var(--muted);margin-top:4px">📅 ' + fechaTxt + ' · ⏰ ' + esc(c.hora||'') + '</div>';
+  html += '</div>';
+
+  html += '<div class="fg"><label class="fl">Estado</label>';
+  html += '<select class="fi" id="citaEstado">';
+  ['pendiente','confirmada','atendida','cancelada'].forEach(function(e) {
+    html += '<option value="' + e + '" ' + (c.estado === e ? 'selected' : '') + '>' + e.charAt(0).toUpperCase() + e.slice(1) + '</option>';
+  });
+  html += '</select></div>';
+
+  html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
+  if (c.cliente_tel) html += '<a href="tel:' + esc(c.cliente_tel) + '" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px">📞 Llamar</a>';
+  if (c.cliente_tel) {
+    var msg = encodeURIComponent('Hola ' + (c.cliente_nombre || '') + ', te confirmo tu cita el ' + fechaTxt + ' a las ' + (c.hora||'') + ' en ' + (TIENDA.nombre||'') + '. ¡Te esperamos!');
+    var tel = c.cliente_tel.replace(/[^0-9]/g, '');
+    html += '<a href="https://wa.me/' + tel + '?text=' + msg + '" target="_blank" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px;background:#25D366;color:white">💬 WhatsApp</a>';
+  }
+  html += '</div>';
+
+  if (c.cliente_email) html += '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">✉️ ' + esc(c.cliente_email) + '</div>';
+  if (c.notas) html += '<div style="background:#FFF8E8;border-left:3px solid var(--orange);padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:10px"><strong>Nota del cliente:</strong><br>' + esc(c.notas) + '</div>';
+
+  html += '<div style="display:flex;gap:8px;margin-top:14px;border-top:1px solid var(--border);padding-top:14px">';
+  html += '<button type="button" class="btn-secondary" style="flex:1" onclick="closeM(\'mCita\')">Cerrar</button>';
+  html += '<button type="button" class="btn-primary" style="flex:1;background:var(--green)" onclick="convertirCitaEnRep(\'' + c.id + '\')">→ Crear reparación</button>';
+  html += '</div>';
+  html += '<button type="button" style="margin-top:8px;width:100%;padding:10px;border:1px solid var(--red);background:transparent;color:var(--red);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit" onclick="eliminarCita(\'' + c.id + '\')">🗑️ Eliminar cita</button>';
+
+  document.getElementById('citaDetalle').innerHTML = html;
+  // Listener de cambio de estado
+  setTimeout(function(){
+    var sel = document.getElementById('citaEstado');
+    if (sel) sel.addEventListener('change', function(){ cambiarEstadoCita(c.id, this.value); });
+  }, 50);
+  openM('mCita');
+}
+
+async function cambiarEstadoCita(id, nuevo) {
+  var c = (DB.citas || []).find(function(x){ return x.id === id; });
+  if (!c) return;
+  c.estado = nuevo;
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) {
+    try { await sbPatch('citas', 'id=eq.' + id, {estado: nuevo}); } catch(e){}
+  }
+  toast('Estado: ' + nuevo, 'ok');
+  audit('cambio_estado', 'cita', id, c.cliente_nombre + ' → ' + nuevo, null);
+  renderCitas();
+  actualizarBadgeCitas();
+}
+
+async function eliminarCita(id) {
+  if (!confirm('¿Eliminar esta cita?')) return;
+  var c = (DB.citas || []).find(function(x){ return x.id === id; });
+  DB.citas = (DB.citas || []).filter(function(x){ return x.id !== id; });
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) {
+    try { await sbDelete('citas', 'id=eq.' + id); } catch(e){}
+  }
+  toast('Cita eliminada', 'ok');
+  audit('eliminar', 'cita', id, c ? c.cliente_nombre : id, null);
+  closeM('mCita');
+  renderCitas();
+  actualizarBadgeCitas();
+}
+
+function convertirCitaEnRep(id) {
+  var c = (DB.citas || []).find(function(x){ return x.id === id; });
+  if (!c) return;
+  closeM('mCita');
+  // Buscar/crear cliente
+  var cli = (DB.clis || []).find(function(x){
+    return (x.tel && c.cliente_tel && x.tel.replace(/\D/g,'') === c.cliente_tel.replace(/\D/g,''))
+        || (_norm(x.nombre + ' ' + (x.apellidos||'')) === _norm(c.cliente_nombre));
+  });
+  if (!cli) {
+    var partes = (c.cliente_nombre || '').split(' ');
+    cli = {
+      id: 'c' + Date.now(),
+      nombre: partes[0] || c.cliente_nombre,
+      apellidos: partes.slice(1).join(' '),
+      tel: c.cliente_tel || '',
+      email: c.cliente_email || '',
+      dni: '', direccion: '', notas: 'Creado desde cita ' + c.id
+    };
+    DB.clis.push(cli);
+    if (SB_KEY && TIENDA_ID) {
+      sbPost('clientes', {id:cli.id, tienda_id:TIENDA_ID, nombre:cli.nombre, apellidos:cli.apellidos, tel:cli.tel, email:cli.email});
+    }
+    guardarDatos();
+    audit('crear', 'cliente', cli.id, cli.nombre, null);
+  }
+  // Abrir nueva reparación con datos pre-rellenos
+  abrirRep();
+  setTimeout(function(){
+    SEL.rCli = cli;
+    document.getElementById('rSelCliNom').textContent = cli.nombre + (cli.apellidos ? ' ' + cli.apellidos : '');
+    document.getElementById('rSelCliBox').classList.add('show');
+    document.getElementById('rBusCli').value = '';
+    if (c.marca) document.getElementById('rMarca').value = c.marca;
+    if (c.modelo) document.getElementById('rModelo').value = c.modelo;
+    if (c.notas || c.servicio) document.getElementById('rAveria').value = c.servicio + (c.notas ? ' — ' + c.notas : '');
+    if (typeof actualizarAvisoGarantia === 'function') actualizarAvisoGarantia();
+    // Marcar cita como atendida
+    cambiarEstadoCita(c.id, 'atendida');
+  }, 300);
+}
+
+// === LINK PÚBLICO + QR ===
+function abrirLinkCitas() {
+  var url = location.protocol + '//' + location.host + '/citas.html?t=' + encodeURIComponent(TIENDA_ID);
+  document.getElementById('linkCitasInput').value = url;
+  // QR via API gratis
+  document.getElementById('qrCitas').src = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=' + encodeURIComponent(url);
+  openM('mLinkCitas');
+}
+function copiarLinkCitas() {
+  var inp = document.getElementById('linkCitasInput');
+  inp.select(); inp.setSelectionRange(0, 99999);
+  try {
+    document.execCommand('copy');
+    toast('✓ Link copiado', 'ok');
+  } catch(e) {
+    if (navigator.clipboard) navigator.clipboard.writeText(inp.value).then(function(){ toast('✓ Link copiado', 'ok'); });
+  }
+}
+function abrirLinkEnNueva() {
+  window.open(document.getElementById('linkCitasInput').value, '_blank');
+}
+function compartirWhatsApp() {
+  var url = document.getElementById('linkCitasInput').value;
+  var msg = encodeURIComponent('📅 Reserva tu cita en ' + (TIENDA.nombre || 'nuestra tienda') + ':\n' + url);
+  window.open('https://wa.me/?text=' + msg, '_blank');
+}
+
+// === HORARIOS ===
+function getHorariosDefault() {
+  return [
+    {abierto:true, inicio:'09:30', fin:'13:30'},  // Lunes
+    {abierto:true, inicio:'09:30', fin:'13:30'},  // Martes
+    {abierto:true, inicio:'09:30', fin:'13:30'},  // Miércoles
+    {abierto:true, inicio:'09:30', fin:'13:30'},  // Jueves
+    {abierto:true, inicio:'09:30', fin:'13:30'},  // Viernes
+    {abierto:true, inicio:'10:00', fin:'13:30'},  // Sábado
+    {abierto:false, inicio:'10:00', fin:'13:30'}  // Domingo
+  ];
+}
+function renderHorarios() {
+  var box = document.getElementById('horariosBox');
+  if (!box) return;
+  var horarios = TIENDA.horarios;
+  if (typeof horarios === 'string') { try { horarios = JSON.parse(horarios); } catch(e){ horarios = null; } }
+  if (!Array.isArray(horarios) || horarios.length !== 7) horarios = getHorariosDefault();
+  var html = '';
+  for (var i = 0; i < 7; i++) {
+    var h = horarios[i];
+    html += '<div style="display:grid;grid-template-columns:90px 1fr auto auto;gap:8px;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)">';
+    html += '<div style="font-size:13px;font-weight:600">' + DIAS_SEMANA[i] + '</div>';
+    html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">';
+    html += '<input type="checkbox" data-dia="' + i + '" data-campo="abierto" onchange="actualizarHorario(this)" ' + (h.abierto ? 'checked' : '') + '> Abierto</label>';
+    html += '<input class="fi" type="time" value="' + (h.inicio || '09:30') + '" data-dia="' + i + '" data-campo="inicio" onchange="actualizarHorario(this)" style="font-size:12px;padding:5px 8px;width:100px" ' + (h.abierto ? '' : 'disabled') + '>';
+    html += '<input class="fi" type="time" value="' + (h.fin || '13:30') + '" data-dia="' + i + '" data-campo="fin" onchange="actualizarHorario(this)" style="font-size:12px;padding:5px 8px;width:100px" ' + (h.abierto ? '' : 'disabled') + '>';
+    html += '</div>';
+  }
+  box.innerHTML = html;
+  // Cargar duración
+  var sel = document.getElementById('citasDuracion');
+  if (sel) {
+    var cfg = TIENDA.citas_config;
+    if (typeof cfg === 'string') { try { cfg = JSON.parse(cfg); } catch(e){ cfg = null; } }
+    sel.value = (cfg && cfg.duracion_min) || 30;
+  }
+  TIENDA.horarios = horarios; // Asegurar que está cargado
+}
+function actualizarHorario(el) {
+  if (!Array.isArray(TIENDA.horarios) || TIENDA.horarios.length !== 7) TIENDA.horarios = getHorariosDefault();
+  var dia = parseInt(el.dataset.dia);
+  var campo = el.dataset.campo;
+  if (campo === 'abierto') TIENDA.horarios[dia].abierto = el.checked;
+  else TIENDA.horarios[dia][campo] = el.value;
+  // Sync local + Supabase
+  localStorage.setItem('tk_tienda', JSON.stringify(Object.assign({}, JSON.parse(localStorage.getItem('tk_tienda')||'{}'), {horarios: TIENDA.horarios})));
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {horarios: TIENDA.horarios});
+  renderHorarios();
+  if (campo === 'abierto') return; // re-render para activar/desactivar inputs
+}
+function guardarConfigCitas() {
+  var dur = parseInt(document.getElementById('citasDuracion').value) || 30;
+  TIENDA.citas_config = {duracion_min: dur};
+  localStorage.setItem('tk_tienda', JSON.stringify(Object.assign({}, JSON.parse(localStorage.getItem('tk_tienda')||'{}'), {citas_config: TIENDA.citas_config})));
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {citas_config: TIENDA.citas_config});
+  toast('Configuración guardada', 'ok');
+}
+
+// Init: render horarios cuando se entre en pTienda y sync citas al inicio
+setTimeout(function(){
+  renderHorarios();
+  syncCitas();
+}, 1500);
+
+// Re-sync periódico cada 60 seg
+setInterval(function(){ if (DB.citas !== undefined) syncCitas(); }, 60000);
+
 // ═══ MODO OSCURO ═══
 function aplicarTema(tema) {
   if (tema === 'dark') {
@@ -8999,6 +9353,37 @@ function impFacAnadirAlStock() {
         <summary style="cursor:pointer">Texto extraído del PDF (para depurar)</summary>
         <pre id="impFacTextoCrudo" style="background:var(--light);padding:10px;border-radius:6px;margin-top:6px;font-size:10px;max-height:200px;overflow:auto;white-space:pre-wrap;font-family:ui-monospace,monospace"></pre>
       </details>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL DETALLE CITA ═══ -->
+<div class="modal-bg" id="mCita">
+  <div class="modal" style="max-width:520px">
+    <div class="modal-h"><span>📅 Detalle de cita</span><span class="cls" onclick="closeM('mCita')">×</span></div>
+    <div id="citaDetalle"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL LINK PÚBLICO DE CITAS ═══ -->
+<div class="modal-bg" id="mLinkCitas">
+  <div class="modal" style="max-width:480px">
+    <div class="modal-h"><span>🔗 Link público de citas</span><span class="cls" onclick="closeM('mLinkCitas')">×</span></div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Comparte este enlace para que tus clientes reserven cita online sin necesidad de cuenta.</div>
+    <div style="background:var(--light);padding:10px 14px;border-radius:10px;display:flex;align-items:center;gap:8px;margin-bottom:14px">
+      <input class="fi" id="linkCitasInput" readonly style="border:none;background:transparent;font-family:ui-monospace,monospace;font-size:12px;flex:1;padding:0">
+      <button class="btn-sm" style="background:var(--blue);color:white;flex-shrink:0" onclick="copiarLinkCitas()">Copiar</button>
+    </div>
+    <div style="text-align:center;background:white;padding:14px;border-radius:12px;border:1px solid var(--border);margin-bottom:14px">
+      <img id="qrCitas" alt="QR de citas" style="max-width:200px;width:100%;display:block;margin:0 auto">
+      <div style="font-size:11px;color:var(--muted);margin-top:8px">Escanea para abrir el formulario de reserva</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn-secondary" style="flex:1" onclick="abrirLinkEnNueva()">📤 Abrir página</button>
+      <button class="btn-primary" style="flex:1;background:var(--green)" onclick="compartirWhatsApp()">📲 WhatsApp</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+      💡 <strong>Configura los horarios de tu tienda</strong> en <a href="javascript:closeM('mLinkCitas');navTo('pTienda');" style="color:var(--green)">Mi Tienda</a> para que los clientes solo vean huecos disponibles.
     </div>
   </div>
 </div>
