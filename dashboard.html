@@ -849,9 +849,24 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="autocomplete-res" id="compRes"></div>
   </div>
   <div id="partsList"></div>
+  <div id="rIvaRow" class="fg" style="display:none">
+    <label class="fl">Tipo de IVA</label>
+    <select class="fi" id="rIva" onchange="calcR()">
+      <option value="0">0% — Exento</option>
+      <option value="4">4% — Superreducido</option>
+      <option value="10">10% — Reducido</option>
+      <option value="21">21% — General</option>
+    </select>
+  </div>
   <div style="background:rgba(0,200,150,.06);border-radius:10px;padding:12px;border:1px solid rgba(0,200,150,.2);margin-bottom:12px">
+    <div id="rBaseRow" style="display:none;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:3px">
+      <span>Base imponible</span><span id="rBase">EUR 0.00</span>
+    </div>
+    <div id="rIvaImpRow" style="display:none;justify-content:space-between;font-size:12px;color:var(--muted);margin-bottom:5px">
+      <span id="rIvaImpLbl">IVA</span><span id="rIvaImp">EUR 0.00</span>
+    </div>
     <div style="display:flex;justify-content:space-between;font-size:13px">
-      <span>Total</span><span id="rTotal" style="font-weight:800;color:var(--green)">EUR 0.00</span>
+      <span id="rTotalLbl">Total</span><span id="rTotal" style="font-weight:800;color:var(--green)">EUR 0.00</span>
     </div>
     <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin-top:4px">
       <span>Restante</span><span id="rRestante">EUR 0.00</span>
@@ -1282,6 +1297,7 @@ function mapRep(r) {
     nota:r.nota||'', tipoBloqueo:r.tipo_bloqueo||'', bloqueo:r.bloqueo||'', mo:parseFloat(r.mo)||0, comp:parseFloat(r.comp)||0,
     anticipo:parseFloat(r.anticipo)||0, restante:parseFloat(r.restante)||0,
     total:parseFloat(r.total)||0, pagoFinal:r.pago_final||'',
+    iva:parseFloat(r.iva)||0, ivaModo:r.iva_modo||'sin', base:parseFloat(r.base)||0, ivaImporte:parseFloat(r.iva_importe)||0,
     esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||''
   };
 }
@@ -2359,6 +2375,10 @@ function abrirRep() {
   document.getElementById('rRestante').textContent = cur(0);
   document.querySelectorAll('.chk-btn').forEach(function(b) { b.classList.remove('on'); });
   var tb = document.getElementById('rTipoBloq'); if (tb) { tb.value = ''; cambiarTipoBloq(); }
+  // Reset IVA al default
+  var ivaSel = document.getElementById('rIva');
+  if (ivaSel) ivaSel.value = String((AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21);
+  calcR();
   openM('mRep');
 }
 
@@ -2368,10 +2388,31 @@ function calcR() {
   var mo = parseFloat(document.getElementById('rMo').value) || 0;
   var comp = SEL.selParts.reduce(function(a, p) { return a + p.precio; }, 0);
   var anti = parseFloat(document.getElementById('rAnticipo').value) || 0;
-  var total = mo + comp;
-  var rest = Math.max(0, total - anti);
-  document.getElementById('rTotal').textContent = cur(total);
-  document.getElementById('rRestante').textContent = cur(rest);
+  var subtotal = mo + comp; // lo que el usuario ha tecleado
+  var ivaSel = document.getElementById('rIva');
+  var tipoIva = ivaSel ? parseFloat(ivaSel.value) : (AJUSTES.iva && AJUSTES.iva.tipoDefault) || 0;
+  var c = calcIVA(subtotal, tipoIva);
+  // Mostrar/ocultar filas IVA segun config
+  var on = !!(AJUSTES.iva && AJUSTES.iva.activo);
+  var ivaRow = document.getElementById('rIvaRow');
+  var baseRow = document.getElementById('rBaseRow');
+  var ivaImpRow = document.getElementById('rIvaImpRow');
+  if (ivaRow) ivaRow.style.display = on ? 'block' : 'none';
+  if (baseRow) baseRow.style.display = on ? 'flex' : 'none';
+  if (ivaImpRow) ivaImpRow.style.display = on ? 'flex' : 'none';
+  if (on) {
+    document.getElementById('rBase').textContent = cur(c.base);
+    document.getElementById('rIvaImp').textContent = cur(c.iva);
+    document.getElementById('rIvaImpLbl').textContent = 'IVA (' + c.tipo + '%)';
+    var totalLbl = document.getElementById('rTotalLbl');
+    if (totalLbl) totalLbl.textContent = c.modo === 'incluido' ? 'Total (IVA inc.)' : 'Total con IVA';
+  } else {
+    var lbl = document.getElementById('rTotalLbl');
+    if (lbl) lbl.textContent = 'Total';
+  }
+  document.getElementById('rTotal').textContent = cur(c.total);
+  // Restante calculado sobre el total final (con IVA si aplica)
+  document.getElementById('rRestante').textContent = cur(Math.max(0, c.total - anti));
 }
 
 function busComp() {
@@ -2604,8 +2645,14 @@ function trackingTicket() {
     '<div class="box"><strong>Averia / Servicio:</strong><br>' + esc(r.averia || '') + '</div>' +
     (r.fechaEntrega ? '<div class="row"><span class="lbl">Fecha estimada</span><span class="val">' + esc(r.fechaEntrega) + '</span></div>' : '') +
     (r.anticipo ? '<div class="row"><span class="lbl">Anticipo</span><span class="val">' + cur(r.anticipo) + '</span></div>' : '') +
+    (
+      (r.iva && r.ivaModo && r.ivaModo !== 'sin')
+        ? '<div class="row"><span class="lbl">Base imponible</span><span class="val">' + cur(r.base || 0) + '</span></div>' +
+          '<div class="row"><span class="lbl">IVA (' + r.iva + '%)</span><span class="val">' + cur(r.ivaImporte || 0) + '</span></div>'
+        : ''
+    ) +
     '<div class="row" style="font-size:13px;margin-top:5px;border-top:1px solid #000;padding-top:5px">' +
-      '<span class="lbl"><strong>TOTAL</strong></span><span class="val"><strong>' + cur(r.total || 0) + '</strong></span>' +
+      '<span class="lbl"><strong>TOTAL' + ((r.ivaModo === 'incluido') ? ' (IVA inc.)' : '') + '</strong></span><span class="val"><strong>' + cur(r.total || 0) + '</strong></span>' +
     '</div>' +
 
     '<div class="line"></div>' +
@@ -2706,6 +2753,12 @@ function editarRep(id) {
   document.getElementById('rAnticipo').value = r.anticipo || 0;
   var pri = document.getElementById('rPrioridad'); if (pri) pri.value = r.prioridad || 'Normal';
   var fe = document.getElementById('rFechaEnt'); if (fe) fe.value = r.fechaEntrega || '';
+  // IVA
+  var ivaSel2 = document.getElementById('rIva');
+  if (ivaSel2) {
+    var tipoR = (r.iva != null) ? r.iva : ((AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21);
+    ivaSel2.value = String(tipoR);
+  }
 
   // Cliente
   document.getElementById('rBusCli').value = '';
@@ -2740,7 +2793,10 @@ function guardarRep() {
     var moE = parseFloat(document.getElementById('rMo').value) || 0;
     var compE = SEL.selParts.reduce(function(a,p){ return a + p.precio; }, 0);
     var antiE = parseFloat(document.getElementById('rAnticipo').value) || 0;
-    var totE = moE + compE;
+    var subE = moE + compE;
+    var ivaSelE = document.getElementById('rIva');
+    var tipoIvaE = ivaSelE ? parseFloat(ivaSelE.value) : ((AJUSTES.iva && AJUSTES.iva.tipoDefault) || 0);
+    var calcE = calcIVA(subE, tipoIvaE);
     r.clienteId = SEL.rCli.id;
     r.clienteNombre = (SEL.rCli.nombre + ' ' + (SEL.rCli.apellidos || '')).trim();
     r.marca = document.getElementById('rMarca').value.trim();
@@ -2753,8 +2809,12 @@ function guardarRep() {
     r.fechaEntrega = document.getElementById('rFechaEnt').value;
     r.nota = document.getElementById('rNota').value.trim();
     r.mo = moE; r.comp = compE; r.anticipo = antiE;
-    r.total = totE;
-    r.restante = Math.max(0, totE - antiE);
+    r.iva = (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIvaE : 0;
+    r.ivaModo = (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin';
+    r.base = calcE.base;
+    r.ivaImporte = calcE.iva;
+    r.total = calcE.total;
+    r.restante = Math.max(0, calcE.total - antiE);
     guardarDatos();
     if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
       sbPatch('reparaciones', 'id=eq.' + r.id, {
@@ -2762,7 +2822,8 @@ function guardarRep() {
         marca:r.marca, modelo:r.modelo, imei:r.imei, averia:r.averia,
         prioridad:r.prioridad, fecha_entrega:r.fechaEntrega, nota:r.nota,
         mo:r.mo, comp:r.comp, anticipo:r.anticipo, total:r.total, restante:r.restante,
-        tipo_bloqueo: r.tipoBloqueo || null, bloqueo: r.bloqueo || null
+        tipo_bloqueo: r.tipoBloqueo || null, bloqueo: r.bloqueo || null,
+        iva: r.iva, iva_modo: r.ivaModo, base: r.base, iva_importe: r.ivaImporte
       });
     }
     SEL.editRepId = null;
@@ -2776,7 +2837,11 @@ function guardarRep() {
   var mo = parseFloat(document.getElementById('rMo').value) || 0;
   var comp = SEL.selParts.reduce(function(a, p) { return a + p.precio; }, 0);
   var anticipo = parseFloat(document.getElementById('rAnticipo').value) || 0;
-  var total = mo + comp;
+  var subtotal = mo + comp;
+  var ivaSelN = document.getElementById('rIva');
+  var tipoIvaN = ivaSelN ? parseFloat(ivaSelN.value) : ((AJUSTES.iva && AJUSTES.iva.tipoDefault) || 0);
+  var calcN = calcIVA(subtotal, tipoIvaN);
+  var total = calcN.total;
   var checklist = [];
   document.querySelectorAll('.chk-btn.on').forEach(function(b) { checklist.push(b.textContent); });
 
@@ -2798,6 +2863,10 @@ function guardarRep() {
     fechaEntregaReal: '',
     nota: document.getElementById('rNota').value.trim(),
     mo: mo, comp: comp, anticipo: anticipo,
+    iva: (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIvaN : 0,
+    ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
+    base: calcN.base,
+    ivaImporte: calcN.iva,
     restante: Math.max(0, total - anticipo),
     total: total, pagoFinal: '',
     esGarantia: false, repOriginalId: ''
@@ -2821,7 +2890,8 @@ function guardarRep() {
       fecha_entrega:rep.fechaEntrega, nota:rep.nota,
       mo:rep.mo, comp:rep.comp, anticipo:rep.anticipo,
       restante:rep.restante, total:rep.total, token:rep.token,
-      tipo_bloqueo: rep.tipoBloqueo || null, bloqueo: rep.bloqueo || null
+      tipo_bloqueo: rep.tipoBloqueo || null, bloqueo: rep.bloqueo || null,
+      iva: rep.iva, iva_modo: rep.ivaModo, base: rep.base, iva_importe: rep.ivaImporte
     });
   }
 
