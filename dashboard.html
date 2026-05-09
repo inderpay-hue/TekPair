@@ -245,6 +245,11 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .rep-quick-chips{display:flex;gap:6px;flex-wrap:wrap;flex:1}
 .rep-quick-chip{background:white;border:1px solid var(--border);color:var(--text);font-size:11px;font-weight:600;padding:5px 10px;border-radius:14px;cursor:pointer;font-family:inherit;transition:all .15s var(--ease);white-space:nowrap}
 .rep-quick-chip:hover{background:var(--blue);color:white;border-color:var(--blue);transform:translateY(-1px)}
+.rep-quick-cfg{background:white;border:1px dashed var(--border);color:var(--muted);font-size:13px;padding:5px 9px;border-radius:14px;cursor:pointer;font-family:inherit;transition:all .15s var(--ease);white-space:nowrap;margin-left:auto}
+.rep-quick-cfg:hover{background:var(--purple);color:white;border-color:var(--purple);border-style:solid}
+.plantilla-card{background:white;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:8px;position:relative}
+.plantilla-card .fl{font-size:9px;margin-bottom:3px}
+.plantilla-card .fi{font-size:12px;padding:7px 10px}
 .modal-rep-body{padding:14px 20px;overflow-y:auto;flex:1}
 .rep-grid{display:grid;grid-template-columns:1fr;gap:14px}
 @media(min-width:900px){.rep-grid{grid-template-columns:1fr 1fr;gap:20px}}
@@ -3600,34 +3605,56 @@ function abrirRep() {
 }
 
 // === PLANTILLAS RÁPIDAS DE REPARACIÓN ===
-var PLANTILLAS_REP = [
-  {key:'pantalla', icon:'📱', label:'Pantalla rota', averia:'Pantalla rota', mo:30, chk:['Pantalla rota']},
-  {key:'bateria', icon:'🔋', label:'Cambio batería', averia:'Cambio de batería', mo:20},
-  {key:'nocarga', icon:'🔌', label:'No carga', averia:'No carga / problema de carga', mo:15, chk:['Sin cargador']},
-  {key:'liquidos', icon:'💧', label:'Líquidos', averia:'Daños por líquidos / humedad', mo:40, chk:['Humedad']},
-  {key:'altavoz', icon:'🔊', label:'Altavoz', averia:'No suena / altavoz', mo:25},
-  {key:'camara', icon:'📷', label:'Cámara', averia:'Cámara no funciona', mo:35},
-  {key:'boton', icon:'🔘', label:'Botón', averia:'Botón / Power / Volumen', mo:25},
-  {key:'software', icon:'⚙️', label:'Software', averia:'Problema de software / sistema', mo:15}
+var PLANTILLAS_REP_DEFAULT = [
+  {key:'pantalla',  icon:'📱', label:'Pantalla rota',     averia:'Pantalla rota',                    servicio:'Instalación de Pantalla', precio:0, chk:['Pantalla rota']},
+  {key:'bateria',   icon:'🔋', label:'Cambio batería',    averia:'Batería agotada / no aguanta',     servicio:'Instalación de Batería',  precio:0, chk:[]},
+  {key:'nocarga',   icon:'🔌', label:'No carga',          averia:'No carga / problema de carga',     servicio:'Reparación pin de carga', precio:0, chk:['Sin cargador']},
+  {key:'liquidos',  icon:'💧', label:'Líquidos',          averia:'Daños por líquidos / humedad',     servicio:'Limpieza por humedad',    precio:0, chk:['Humedad']},
+  {key:'altavoz',   icon:'🔊', label:'Altavoz',           averia:'No suena / altavoz',               servicio:'Reparación altavoz',      precio:0, chk:[]},
+  {key:'camara',    icon:'📷', label:'Cámara',            averia:'Cámara no funciona',               servicio:'Reparación cámara',       precio:0, chk:[]},
+  {key:'boton',     icon:'🔘', label:'Botón',             averia:'Botón Power / Volumen / Home',     servicio:'Reparación botones',      precio:0, chk:[]},
+  {key:'software',  icon:'⚙️', label:'Software',          averia:'Problema de software / sistema',   servicio:'Reparación software',     precio:0, chk:[]}
 ];
+
+function getPlantillasRep() {
+  if (TIENDA && Array.isArray(TIENDA.plantillasRep) && TIENDA.plantillasRep.length) {
+    return TIENDA.plantillasRep;
+  }
+  return PLANTILLAS_REP_DEFAULT;
+}
 
 function renderPlantillasRep() {
   var box = document.getElementById('repPlantillasChips');
   if (!box) return;
-  box.innerHTML = PLANTILLAS_REP.map(function(p) {
-    return '<button type="button" class="rep-quick-chip" onclick="aplicarPlantillaRep(\'' + p.key + '\')">' + p.icon + ' ' + p.label + '</button>';
+  var plantillas = getPlantillasRep();
+  var html = plantillas.map(function(p, i) {
+    return '<button type="button" class="rep-quick-chip" onclick="aplicarPlantillaRep(\'' + (p.key || i) + '\')">' + (p.icon || '🔧') + ' ' + esc(p.label || '') + '</button>';
   }).join('');
+  // Botón configurar al final
+  html += '<button type="button" class="rep-quick-cfg" onclick="abrirGestorPlantillas()" title="Configurar plantillas">⚙️</button>';
+  box.innerHTML = html;
 }
 
 function aplicarPlantillaRep(key) {
-  var p = PLANTILLAS_REP.find(function(x){ return x.key === key; });
-  if (!p) return;
-  document.getElementById('rAveria').value = p.averia;
-  // Añadir servicio con el precio orientativo (en lugar de mano de obra)
-  if (p.mo) {
-    agregarServicioRep({nombre: p.averia, desc: '', coste: 0, precio: p.mo});
+  var plantillas = getPlantillasRep();
+  var p = plantillas.find(function(x){ return (x.key || '') === key; });
+  if (!p) {
+    var idx = parseInt(key);
+    if (!isNaN(idx) && plantillas[idx]) p = plantillas[idx];
   }
-  // Activar chips de estado correspondientes
+  if (!p) return;
+  // Avería = lo que reporta el cliente
+  if (p.averia) document.getElementById('rAveria').value = p.averia;
+  // Servicio (separado de avería) = lo que cobramos
+  if (p.servicio) {
+    agregarServicioRep({
+      nombre: p.servicio,
+      desc: '',
+      coste: 0,
+      precio: parseFloat(p.precio) || 0
+    });
+  }
+  // Activar chips de estado
   if (p.chk && p.chk.length) {
     document.querySelectorAll('#mRep .chk-btn').forEach(function(b) {
       var txt = b.textContent.trim();
@@ -3637,9 +3664,83 @@ function aplicarPlantillaRep(key) {
     });
   }
   calcR();
-  toast('Plantilla "' + p.label + '" aplicada', 'ok');
-  var av = document.getElementById('rAveria');
-  if (av) { av.focus(); av.select(); }
+  toast('Plantilla "' + (p.label || '') + '" aplicada', 'ok');
+}
+
+// ═══ GESTOR DE PLANTILLAS RÁPIDAS ═══
+var SEL_PLANTILLAS_EDIT = [];
+
+function abrirGestorPlantillas() {
+  SEL_PLANTILLAS_EDIT = JSON.parse(JSON.stringify(getPlantillasRep()));
+  renderPlantillasEdit();
+  openM('mPlantillasRep');
+}
+
+function renderPlantillasEdit() {
+  var box = document.getElementById('plantillasRepList');
+  if (!box) return;
+  if (!SEL_PLANTILLAS_EDIT.length) {
+    box.innerHTML = '<div class="empty" style="padding:18px;font-size:12px">No hay plantillas. Pulsa "+ Añadir plantilla".</div>';
+    return;
+  }
+  box.innerHTML = SEL_PLANTILLAS_EDIT.map(function(p, i) {
+    return '<div class="plantilla-card">' +
+      '<button type="button" class="srv-card-x" onclick="quitarPlantilla(' + i + ')" title="Quitar">×</button>' +
+      '<div style="display:grid;grid-template-columns:60px 1fr 90px;gap:8px;padding-right:24px;margin-bottom:6px">' +
+        '<div class="fg" style="margin:0"><label class="fl">Icono</label><input class="fi" maxlength="2" value="' + esc(p.icon || '') + '" placeholder="📱" oninput="updPlantilla(' + i + ',\'icon\',this.value)" style="text-align:center;font-size:16px"></div>' +
+        '<div class="fg" style="margin:0"><label class="fl">Etiqueta del chip</label><input class="fi" value="' + esc(p.label || '') + '" placeholder="Pantalla rota" oninput="updPlantilla(' + i + ',\'label\',this.value)"></div>' +
+        '<div class="fg" style="margin:0"><label class="fl">Precio (€)</label><input class="fi" type="number" step="0.01" value="' + (p.precio || '') + '" placeholder="0" oninput="updPlantilla(' + i + ',\'precio\',parseFloat(this.value)||0)"></div>' +
+      '</div>' +
+      '<div class="fg" style="margin-bottom:6px"><label class="fl">Avería <span style="font-size:9px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">— lo que dice el cliente</span></label><input class="fi" value="' + esc(p.averia || '') + '" placeholder="Ej: Pantalla rota" oninput="updPlantilla(' + i + ',\'averia\',this.value)"></div>' +
+      '<div class="fg" style="margin-bottom:0"><label class="fl">Servicio <span style="font-size:9px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">— lo que se cobra</span></label><input class="fi" value="' + esc(p.servicio || '') + '" placeholder="Ej: Instalación de Pantalla" oninput="updPlantilla(' + i + ',\'servicio\',this.value)"></div>' +
+    '</div>';
+  }).join('');
+}
+
+function updPlantilla(i, field, value) {
+  if (SEL_PLANTILLAS_EDIT[i]) SEL_PLANTILLAS_EDIT[i][field] = value;
+}
+
+function quitarPlantilla(i) {
+  SEL_PLANTILLAS_EDIT.splice(i, 1);
+  renderPlantillasEdit();
+}
+
+function anadirPlantilla() {
+  SEL_PLANTILLAS_EDIT.push({
+    key: 'p' + Date.now(),
+    icon: '🔧',
+    label: 'Nueva plantilla',
+    averia: '',
+    servicio: '',
+    precio: 0,
+    chk: []
+  });
+  renderPlantillasEdit();
+}
+
+function restablecerPlantillas() {
+  if (!confirm('¿Restaurar las plantillas por defecto?\nPerderás los cambios sin guardar.')) return;
+  SEL_PLANTILLAS_EDIT = JSON.parse(JSON.stringify(PLANTILLAS_REP_DEFAULT));
+  renderPlantillasEdit();
+}
+
+function guardarPlantillas() {
+  // Filtrar plantillas vacías
+  var validas = SEL_PLANTILLAS_EDIT.filter(function(p){
+    return (p.label || '').trim() && ((p.averia || '').trim() || (p.servicio || '').trim());
+  });
+  TIENDA.plantillasRep = validas;
+  guardarDatos();
+  if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
+    sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {
+      plantillas_rep: TIENDA.plantillasRep
+    });
+  }
+  toast('Plantillas guardadas', 'ok');
+  closeM('mPlantillasRep');
+  // Refrescar chips si modal de rep abierto
+  renderPlantillasRep();
 }
 
 function toggleChk(el) { el.classList.toggle('on'); }
@@ -5616,6 +5717,7 @@ async function _pullTiendaCompleta() {
       garantia: t.garantia || '', politica: t.politica || '',
       garantiaDias: t.garantia_dias || 90,
       garantiaVentas: t.garantia_ventas || '', politicaVentas: t.politica_ventas || '',
+      plantillasRep: (t.plantillas_rep ? (typeof t.plantillas_rep === 'string' ? JSON.parse(t.plantillas_rep) : t.plantillas_rep) : null),
       logo_url: t.logo_url || ''
     };
     Object.assign(TIENDA, tiendaData);
@@ -7335,6 +7437,23 @@ document.addEventListener('click', function(e){
     <div class="search-global-help">
       <span><span class="kbd">↑↓</span> navegar · <span class="kbd">↵</span> abrir · <span class="kbd">Esc</span> cerrar</span>
       <span id="busquedaGlobalCount"></span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL GESTOR DE PLANTILLAS RÁPIDAS ═══ -->
+<div class="modal-bg" id="mPlantillasRep">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-h"><span>⚙️ Plantillas rápidas</span><span class="cls" onclick="closeM('mPlantillasRep')">×</span></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;background:var(--light);padding:10px 12px;border-radius:8px">
+      💡 <strong>Avería</strong> = lo que reporta el cliente (ej: <em>"Pantalla rota"</em>). <strong>Servicio</strong> = lo que vas a cobrar (ej: <em>"Instalación de Pantalla"</em>). Si dejas el precio en 0, lo pones manualmente al crear cada reparación.
+    </div>
+    <div id="plantillasRepList" style="max-height:50vh;overflow-y:auto;margin-bottom:12px"></div>
+    <button type="button" class="btn-secondary" style="width:100%;margin-bottom:12px" onclick="anadirPlantilla()">+ Añadir plantilla</button>
+    <div style="display:flex;gap:8px">
+      <button type="button" class="btn-secondary" style="flex:1" onclick="restablecerPlantillas()" title="Restaurar las plantillas por defecto">↺ Restaurar defaults</button>
+      <button type="button" class="btn-secondary" style="flex:1" onclick="closeM('mPlantillasRep')">Cancelar</button>
+      <button type="button" class="btn-primary" style="flex:1.5;background:var(--green)" onclick="guardarPlantillas()">Guardar</button>
     </div>
   </div>
 </div>
