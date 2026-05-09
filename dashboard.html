@@ -3595,8 +3595,14 @@ function asegurarToken(r) {
   if (r.token) return Promise.resolve(r.token);
   r.token = genToken();
   guardarDatos();
+  // El token es opcional en Supabase - si la columna no existe, no mostramos error
   if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
-    return sbPatch('reparaciones', 'id=eq.' + r.id, {token: r.token}).then(function(){ return r.token; }).catch(function(){ return r.token; });
+    var url = SUPABASE_URL + '/rest/v1/reparaciones?id=eq.' + r.id;
+    return fetch(url, {
+      method: 'PATCH',
+      headers: {'apikey': SB_KEY, 'Authorization':'Bearer ' + SB_KEY, 'Content-Type':'application/json', 'Prefer':'return=minimal'},
+      body: JSON.stringify({token: r.token})
+    }).then(function(){ return r.token; }).catch(function(){ return r.token; });
   }
   return Promise.resolve(r.token);
 }
@@ -4019,7 +4025,9 @@ function renderReps() {
     var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" class="btn-ent" style="background:var(--green);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer">&#10003;</button>' : '';
     var btnEdit = '<button data-rid="' + r.id + '" class="btn-edit-r" style="background:var(--light);border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Editar">✏️</button>';
     var btnLink = '<button data-rid="' + r.id + '" class="btn-link-r" style="background:var(--blue);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="QR / Link / Imprimir">📱</button>';
-    var btnWA = '<button data-rid="' + r.id + '" class="btn-wa-r" style="background:#25D366;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Avisar por WhatsApp">📲</button>';
+    // WhatsApp solo si el cliente existe y tiene teléfono
+    var cliRep = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
+    var btnWA = (cliRep && cliRep.tel) ? '<button data-rid="' + r.id + '" class="btn-wa-r" style="background:#25D366;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Avisar por WhatsApp">📲</button>' : '';
     // Badge garantía: manual (esGarantia) o auto-detectada (rep similar reciente)
     var badgeGarantia = '';
     if (r.esGarantia) {
@@ -5703,11 +5711,213 @@ function ejecutarBusquedaGlobal(idx) {
   var r = _busquedaGlobalResultados[idx];
   if (!r) return;
   cerrarBusquedaGlobal();
-  if (r.tipo === 'cliente') { navTo('pClis'); setTimeout(function(){ try { editCli(r.id); } catch(e){} }, 100); }
-  else if (r.tipo === 'rep') { navTo('pReps'); setTimeout(function(){ try { editarRep(r.id); } catch(e){} }, 100); }
+  if (r.tipo === 'cliente') { setTimeout(function(){ abrirFichaCli(r.id); }, 100); }
+  else if (r.tipo === 'rep') { setTimeout(function(){ abrirDetalleRep(r.id); }, 100); }
   else if (r.tipo === 'venta') { navTo('pVentas'); }
   else if (r.tipo === 'stock') { navTo('pStock'); }
   else if (r.tipo === 'servicio') { navTo('pServicios'); }
+}
+
+// ═══ FICHA DEL CLIENTE (vista lectura con todas sus reps y ventas) ═══
+var _fichaCliId = null;
+
+function abrirFichaCli(cliId) {
+  var c = DB.clis.find(function(x){ return x.id === cliId; });
+  if (!c) { toast('Cliente no encontrado', 'err'); return; }
+  _fichaCliId = cliId;
+  document.getElementById('fichaCliNombre').textContent = '👤 ' + ((c.nombre || '') + ' ' + (c.apellidos || '')).trim();
+
+  // Info card
+  var info = '';
+  info += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px">';
+  if (c.tel) info += '<div><span style="color:var(--muted);font-size:11px">📞 Teléfono</span><br><strong>' + esc(c.tel) + '</strong></div>';
+  if (c.dni) info += '<div><span style="color:var(--muted);font-size:11px">🆔 DNI</span><br><strong>' + esc(c.dni) + '</strong></div>';
+  if (c.email) info += '<div><span style="color:var(--muted);font-size:11px">✉️ Email</span><br><strong style="font-size:11px">' + esc(c.email) + '</strong></div>';
+  if (c.fechaNac) info += '<div><span style="color:var(--muted);font-size:11px">🎂 Cumple</span><br><strong>' + esc(c.fechaNac) + '</strong></div>';
+  if (c.dir) info += '<div style="grid-column:1/-1"><span style="color:var(--muted);font-size:11px">📍 Dirección</span><br><strong>' + esc(c.dir) + '</strong></div>';
+  if (c.notas) info += '<div style="grid-column:1/-1"><span style="color:var(--muted);font-size:11px">📝 Notas</span><br>' + esc(c.notas) + '</div>';
+  info += '</div>';
+  document.getElementById('fichaCliInfo').innerHTML = info;
+
+  // Botones de acción
+  var acc = '';
+  if (c.tel) {
+    var telLimpio = c.tel.replace(/\D/g, '');
+    acc += '<a href="tel:' + esc(c.tel) + '" class="btn-sm" style="background:var(--blue);color:white;text-decoration:none;flex:1;text-align:center">📞 Llamar</a>';
+    acc += '<a href="https://wa.me/' + telLimpio + '" target="_blank" class="btn-sm" style="background:#25D366;color:white;text-decoration:none;flex:1;text-align:center">📲 WhatsApp</a>';
+  }
+  if (c.email) acc += '<a href="mailto:' + esc(c.email) + '" class="btn-sm" style="background:var(--purple);color:white;text-decoration:none;flex:1;text-align:center">✉️ Email</a>';
+  if (tienePerm('clis_editar')) acc += '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="editarClienteDesdeFicha(\'' + cliId + '\')">✏️ Editar</button>';
+  document.getElementById('fichaCliAcciones').innerHTML = acc;
+
+  // Lista de reps
+  var reps = DB.reps.filter(function(r){ return r.cliId === cliId; }).sort(function(a,b){
+    return _parseDateAny(b.fecha || '') - _parseDateAny(a.fecha || '');
+  });
+  var ventas = DB.ventas.filter(function(v){ return v.cliId === cliId; }).sort(function(a,b){
+    return _parseDateAny(b.fecha || '') - _parseDateAny(a.fecha || '');
+  });
+  document.getElementById('fichaTabRepsCount').textContent = '(' + reps.length + ')';
+  document.getElementById('fichaTabVentasCount').textContent = '(' + ventas.length + ')';
+
+  // Render reps
+  var repsBox = document.getElementById('fichaCliReps');
+  if (!reps.length) {
+    repsBox.innerHTML = '<div class="empty" style="padding:14px;font-size:12px">Sin reparaciones</div>';
+  } else {
+    var coloresEstado = {
+      'Pendiente':'#F97316', 'En Proceso':'#0055FF', 'Por Entregar':'#00C896',
+      'Entregado':'#94A3B8', 'Garantia':'#7C3AED', 'Sin Solucion':'#EF4444',
+      'Devuelto':'#94A3B8', 'Rechazado':'#94A3B8'
+    };
+    var html = '<div style="display:flex;flex-direction:column;gap:6px">';
+    reps.forEach(function(r) {
+      var color = coloresEstado[r.estado] || 'var(--muted)';
+      html += '<div style="background:var(--light);border-left:3px solid ' + color + ';padding:10px 12px;border-radius:8px;cursor:pointer" onclick="abrirDetalleRep(\'' + r.id + '\')">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:start;gap:10px">';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-weight:700;font-size:13px">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</div>';
+      html += '<div style="font-size:11px;color:var(--red);margin-top:2px">' + esc(r.averia || '—') + '</div>';
+      html += '<div style="font-size:10px;color:var(--muted);margin-top:3px">📅 ' + esc(r.fecha || '') + (r.fechaEntregaReal ? ' · entregado ' + esc(r.fechaEntregaReal) : '') + '</div>';
+      html += '</div>';
+      html += '<div style="text-align:right;flex-shrink:0">';
+      html += '<div style="font-size:10px;font-weight:700;color:' + color + ';text-transform:uppercase">' + esc(r.estado) + '</div>';
+      html += '<div style="font-size:14px;font-weight:800;color:var(--green);margin-top:3px">' + cur(r.total || 0) + '</div>';
+      html += '</div>';
+      html += '</div></div>';
+    });
+    html += '</div>';
+    repsBox.innerHTML = html;
+  }
+
+  // Render ventas
+  var ventasBox = document.getElementById('fichaCliVentas');
+  if (!ventas.length) {
+    ventasBox.innerHTML = '<div class="empty" style="padding:14px;font-size:12px">Sin ventas</div>';
+  } else {
+    var html = '<div style="display:flex;flex-direction:column;gap:6px">';
+    ventas.forEach(function(v) {
+      var estado = v.reembolsado ? '↩ REEMBOLSADA' : (v.financiado ? '💳 Financiada' : '✓ Pagada');
+      var colorE = v.reembolsado ? 'var(--red)' : (v.financiado ? 'var(--purple)' : 'var(--green)');
+      html += '<div style="background:var(--light);border-left:3px solid ' + colorE + ';padding:10px 12px;border-radius:8px">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:start;gap:10px">';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="font-weight:700;font-size:13px">' + esc((v.marca || '') + ' ' + (v.modelo || '') || 'Venta') + '</div>';
+      html += '<div style="font-size:10px;color:var(--muted);margin-top:3px">📅 ' + esc(v.fecha || '') + ' · ' + esc(v.pago || '') + '</div>';
+      html += '</div>';
+      html += '<div style="text-align:right;flex-shrink:0">';
+      html += '<div style="font-size:10px;font-weight:700;color:' + colorE + '">' + estado + '</div>';
+      html += '<div style="font-size:14px;font-weight:800;color:var(--green);margin-top:3px">' + cur(v.total || 0) + '</div>';
+      html += '</div>';
+      html += '</div></div>';
+    });
+    html += '</div>';
+    ventasBox.innerHTML = html;
+  }
+
+  openM('mFichaCli');
+}
+
+function setFichaTab(el) {
+  document.querySelectorAll('#mFichaCli .tabs .tab').forEach(function(t){ t.classList.remove('active'); });
+  el.classList.add('active');
+  var tab = el.dataset.fc;
+  document.getElementById('fichaCliReps').style.display = tab === 'reps' ? 'block' : 'none';
+  document.getElementById('fichaCliVentas').style.display = tab === 'ventas' ? 'block' : 'none';
+}
+
+function editarClienteDesdeFicha(cliId) {
+  closeM('mFichaCli');
+  navTo('pClis');
+  setTimeout(function(){ try { editCli(cliId); } catch(e){} }, 100);
+}
+
+// ═══ DETALLE REPARACIÓN (vista lectura) ═══
+function abrirDetalleRep(repId) {
+  var r = DB.reps.find(function(x){ return x.id === repId; });
+  if (!r) { toast('Reparación no encontrada', 'err'); return; }
+  var cli = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
+
+  // Check garantía
+  var infoGar = cli ? checkGarantia(r.cliId, r.marca, r.modelo, r.fecha) : null;
+
+  var html = '';
+  // Cabecera
+  html += '<div style="background:linear-gradient(135deg,var(--blue),var(--purple));color:white;padding:14px;border-radius:10px;margin-bottom:14px">';
+  html += '<div style="font-size:18px;font-weight:800">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</div>';
+  if (r.imei) html += '<div style="font-size:11px;font-family:monospace;opacity:.85;margin-top:3px">IMEI: ' + esc(r.imei) + '</div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px;flex-wrap:wrap">';
+  html += '<span style="background:rgba(255,255,255,.20);padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700">' + esc(r.estado) + '</span>';
+  if (r.prioridad && r.prioridad !== 'Normal') html += '<span style="background:rgba(255,255,255,.20);padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700">' + esc(r.prioridad) + '</span>';
+  html += '</div></div>';
+
+  // Garantía
+  if (infoGar && infoGar.rep.id !== r.id) {
+    html += '<div style="background:rgba(0,85,255,.08);border-left:3px solid var(--blue);padding:10px 12px;border-radius:8px;margin-bottom:14px;font-size:12px">';
+    html += '<strong style="color:var(--blue)">🛡️ EN GARANTÍA</strong><br>';
+    html += '<span style="font-size:11px;color:var(--muted)">Reparación previa entregada el ' + esc(infoGar.rep.fechaEntregaReal) + ' (' + infoGar.dias + ' días). Le quedan ' + infoGar.restantes + ' días.</span>';
+    html += '</div>';
+  }
+
+  // Avería
+  html += '<div style="margin-bottom:12px">';
+  html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">AVERÍA</div>';
+  html += '<div style="font-size:13px;color:var(--red);font-weight:600">' + esc(r.averia || '—') + '</div>';
+  if (r.tipoBloqueo) html += '<div style="margin-top:6px;display:inline-block;background:rgba(124,58,237,.1);color:var(--purple);padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700">🔒 ' + esc(r.tipoBloqueo) + (r.bloqueo ? ': ' + esc(r.bloqueo) : '') + '</div>';
+  html += '</div>';
+
+  // Cliente
+  if (cli) {
+    html += '<div style="background:var(--light);padding:10px 12px;border-radius:8px;margin-bottom:12px">';
+    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">CLIENTE</div>';
+    html += '<div style="font-weight:700">' + esc((cli.nombre || '') + ' ' + (cli.apellidos || '')) + '</div>';
+    if (cli.tel) html += '<div style="font-size:12px;color:var(--muted)">📞 ' + esc(cli.tel) + '</div>';
+    html += '</div>';
+  }
+
+  // Datos en grid
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px">';
+  if (r.fecha) html += '<div><span style="color:var(--muted);font-size:11px">📅 Recibida</span><br><strong>' + esc(r.fecha) + '</strong></div>';
+  if (r.fechaEntrega) html += '<div><span style="color:var(--muted);font-size:11px">⏱ Entrega prevista</span><br><strong>' + esc(r.fechaEntrega) + '</strong></div>';
+  if (r.fechaEntregaReal) html += '<div><span style="color:var(--muted);font-size:11px">✓ Entregado</span><br><strong>' + esc(r.fechaEntregaReal) + '</strong></div>';
+  if (r.pagoFinal) html += '<div><span style="color:var(--muted);font-size:11px">💳 Pago</span><br><strong>' + esc(r.pagoFinal) + '</strong></div>';
+  html += '</div>';
+
+  // Componentes
+  if (r.componentes && r.componentes.length) {
+    html += '<div style="margin-bottom:12px">';
+    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">COMPONENTES</div>';
+    html += '<ul style="margin:0;padding-left:18px;font-size:12px">';
+    r.componentes.forEach(function(c){
+      html += '<li>' + esc(c.descripcion || c.nombre || '') + (c.precio ? ' — ' + cur(c.precio) : '') + '</li>';
+    });
+    html += '</ul></div>';
+  }
+
+  // Nota
+  if (r.nota) {
+    html += '<div style="background:rgba(255,193,7,.08);padding:10px 12px;border-radius:8px;margin-bottom:12px;border-left:3px solid #FFC107">';
+    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">📝 NOTA</div>';
+    html += '<div style="font-size:12px">' + esc(r.nota) + '</div>';
+    html += '</div>';
+  }
+
+  // Total
+  html += '<div style="background:var(--light);padding:12px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;border:2px solid var(--green)">';
+  html += '<span style="font-weight:700;color:var(--muted);font-size:12px;text-transform:uppercase">TOTAL</span>';
+  html += '<span style="font-size:22px;font-weight:800;color:var(--green)">' + cur(r.total || 0) + '</span>';
+  html += '</div>';
+
+  document.getElementById('detalleRepBox').innerHTML = html;
+
+  // Botones
+  var btns = '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="closeM(\'mDetalleRep\')">Cerrar</button>';
+  if (cli && cli.tel) btns += '<button class="btn-sm" style="background:#25D366;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirWhatsAppRep(\'' + r.id + '\')">📲 WhatsApp</button>';
+  btns += '<button class="btn-sm" style="background:var(--blue);color:white;flex:1" onclick="closeM(\'mDetalleRep\');copiarLinkRep(\'' + r.id + '\')">📱 QR/Link</button>';
+  if (tienePerm('reps_editar')) btns += '<button class="btn-sm" style="background:var(--orange);color:white;flex:1" onclick="closeM(\'mDetalleRep\');navTo(\'pReps\');setTimeout(function(){editarRep(\'' + r.id + '\')},100)">✏️ Editar</button>';
+  document.getElementById('detalleRepBtns').innerHTML = btns;
+
+  openM('mDetalleRep');
 }
 
 // Atajo Cmd+K / Ctrl+K
@@ -5846,6 +6056,7 @@ function checkGarantia(cliId, marca, modelo, fechaActual) {
   if (!fechaRef) fechaRef = new Date();
   var marcaN = _norm(marca||'');
   var modeloN = _norm(modelo||'');
+  if (!modeloN) return null; // sin modelo no podemos comparar
   var candidatas = DB.reps.filter(function(r) {
     if (r.cliId !== cliId) return false;
     if (r.estado !== 'Entregado' || !r.fechaEntregaReal) return false;
@@ -5853,10 +6064,13 @@ function checkGarantia(cliId, marca, modelo, fechaActual) {
     if (!fe) return false;
     var diff = (fechaRef - fe) / 86400000;
     if (diff < 0 || diff > dias) return false;
-    // Mismo modelo (más estricto) o misma marca al menos
     var mr = _norm(r.marca||'');
     var mm = _norm(r.modelo||'');
-    return (marcaN && mr === marcaN) && (modeloN ? mm === modeloN : true);
+    // Marcas: deben coincidir si ambas existen, ignorar si una está vacía
+    var marcaCoincide = !marcaN || !mr || mr === marcaN;
+    // Modelos: tras normalizar deben ser iguales
+    var modeloCoincide = mm === modeloN;
+    return marcaCoincide && modeloCoincide;
   }).sort(function(a,b){
     return _parseDateAny(b.fechaEntregaReal) - _parseDateAny(a.fechaEntregaReal);
   });
@@ -6508,6 +6722,30 @@ document.addEventListener('click', function(e){
       <span><span class="kbd">↑↓</span> navegar · <span class="kbd">↵</span> abrir · <span class="kbd">Esc</span> cerrar</span>
       <span id="busquedaGlobalCount"></span>
     </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL FICHA CLIENTE (vista lectura con reps + ventas) ═══ -->
+<div class="modal-bg" id="mFichaCli">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-h"><span id="fichaCliNombre">Ficha cliente</span><span class="cls" onclick="closeM('mFichaCli')">×</span></div>
+    <div id="fichaCliInfo" style="background:var(--light);padding:12px;border-radius:10px;margin-bottom:14px;font-size:13px"></div>
+    <div id="fichaCliAcciones" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px"></div>
+    <div class="tabs" style="margin-bottom:12px">
+      <div class="tab active" data-fc="reps" onclick="setFichaTab(this)">Reparaciones <span id="fichaTabRepsCount"></span></div>
+      <div class="tab" data-fc="ventas" onclick="setFichaTab(this)">Ventas <span id="fichaTabVentasCount"></span></div>
+    </div>
+    <div id="fichaCliReps"></div>
+    <div id="fichaCliVentas" style="display:none"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL DETALLE REPARACIÓN (vista lectura) ═══ -->
+<div class="modal-bg" id="mDetalleRep">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-h"><span>🔧 Reparación</span><span class="cls" onclick="closeM('mDetalleRep')">×</span></div>
+    <div id="detalleRepBox"></div>
+    <div id="detalleRepBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"></div>
   </div>
 </div>
 
