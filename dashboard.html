@@ -54,6 +54,11 @@ body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 
 /* NOTIF BELL */
 .notif-bell{position:fixed;top:10px;right:10px;width:42px;height:42px;border-radius:50%;background:var(--dark);border:1px solid rgba(255,255,255,.15);color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.15);transition:transform .15s}
+@media(max-width:899px){
+  .notif-bell{width:34px;height:34px;top:9px;right:60px;font-size:14px;background:rgba(255,255,255,.12);border-color:rgba(255,255,255,.2);box-shadow:none}
+  .notif-badge{border-color:#020B2E !important}
+  .notif-panel{top:50px;right:8px;width:calc(100vw - 16px);max-height:calc(100vh - 70px)}
+}
 .notif-bell:hover{transform:scale(1.05)}
 .notif-bell:active{transform:scale(.95)}
 .notif-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:white;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;padding:0 5px;display:none;align-items:center;justify-content:center;border:2px solid var(--dark);font-family:inherit}
@@ -1444,6 +1449,7 @@ function mapRep(r) {
     anticipo:parseFloat(r.anticipo)||0, restante:parseFloat(r.restante)||0,
     total:parseFloat(r.total)||0, pagoFinal:r.pago_final||'',
     iva:parseFloat(r.iva)||0, ivaModo:r.iva_modo||'sin', base:parseFloat(r.base)||0, ivaImporte:parseFloat(r.iva_importe)||0,
+    componentes: r.componentes ? (typeof r.componentes === 'string' ? JSON.parse(r.componentes) : r.componentes) : [],
     esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||''
   };
 }
@@ -1857,6 +1863,11 @@ function cur(n) {
   return (AJUSTES.moneda === 'EUR' ? '\u20ac' : AJUSTES.moneda === 'USD' ? '$' : '\u00a3') + parseFloat(n).toFixed(2);
 }
 
+// Normalización para búsqueda: minúsculas + sin acentos (Martín → martin)
+function _norm(s) {
+  return String(s == null ? '' : s).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+}
+
 // ═══ URGENTES ═══
 function checkUrgentes() {
   var hoy = new Date();
@@ -1985,10 +1996,10 @@ function setVentaFiltro(el) {
 }
 
 function renderVentas() {
-  var q = (document.getElementById('busVentas').value || '').toLowerCase();
+  var q = _norm(document.getElementById('busVentas').value);
   var filtro = SEL.ventaFiltro || 'todas';
   var list = DB.ventas.slice().reverse().filter(function(v) {
-    var matchQ = !q || (v.clienteNombre + ' ' + v.modelo + ' ' + (v.imei || '')).toLowerCase().includes(q);
+    var matchQ = !q || _norm(v.clienteNombre + ' ' + v.modelo + ' ' + (v.imei || '')).indexOf(q) !== -1;
     if (filtro === 'reembolsos') return matchQ && v.reembolsado;
     if (filtro === 'financiados') return matchQ && v.financiado;
     return matchQ && !v.reembolsado;
@@ -2000,15 +2011,16 @@ function renderVentas() {
     var badges = '';
     if (v.reembolsado) badges += '<span class="badge-reem">Reembolsado</span>';
     if (v.financiado && !v.reembolsado) badges += '<span class="badge-fin">Financiado</span>';
-    var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" class="btn-reem" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer">\u21a9</button>' : '';
-    var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" class="btn-fin" style="background:rgba(124,58,237,.1);border:none;color:var(--purple);padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer">\ud83d\udcb0</button>' : '';
+    var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" class="btn-reem" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer" title="Reembolsar">\u21a9</button>' : '';
+    var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" class="btn-fin" style="background:rgba(124,58,237,.1);border:none;color:var(--purple);padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer" title="Financiación">\ud83d\udcb0</button>' : '';
+    var btnImpr = '<button data-vid="' + v.id + '" class="btn-impr-v" style="background:var(--light);border:none;padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer" title="Reimprimir ticket">\ud83d\udda8</button>';
     html += '<tr style="' + (v.reembolsado ? 'opacity:.55' : '') + '">' +
       '<td>' + v.fecha + '</td>' +
       '<td>' + v.clienteNombre + badges + '</td>' +
       '<td>' + v.modelo + '</td>' +
       '<td><span class="badge bb">' + v.pago + '</span></td>' +
       '<td style="color:' + (v.reembolsado ? 'var(--red)' : 'var(--green)') + ';font-weight:700">' + (v.reembolsado ? '-' : '') + cur(v.total) + '</td>' +
-      '<td style="display:flex;gap:3px">' + btnR + btnF + '</td></tr>';
+      '<td style="display:flex;gap:3px">' + btnR + btnF + btnImpr + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -2018,6 +2030,55 @@ function renderVentas() {
   el.querySelectorAll('.btn-fin').forEach(function(btn) {
     btn.addEventListener('click', function() { verFinanciado(this.dataset.vid); });
   });
+  el.querySelectorAll('.btn-impr-v').forEach(function(btn) {
+    btn.addEventListener('click', function() { imprimirTicketVenta(this.dataset.vid); });
+  });
+}
+
+function imprimirTicketVenta(id) {
+  var v = DB.ventas.find(function(x){ return x.id === id; });
+  if (!v) { toast('Venta no encontrada', 'err'); return; }
+  var logoBlock = TIENDA.logo_url
+    ? '<div style="text-align:center;margin-bottom:6px"><img src="' + esc(TIENDA.logo_url) + '" style="max-height:50px;max-width:200px;object-fit:contain"></div>'
+    : '<div style="text-align:center;font-size:14px;font-weight:800;margin-bottom:4px">\u26a1 ' + esc(TIENDA.nombre || 'Tekpair') + '</div>';
+  var nombreLinea = TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:4px">' + esc(TIENDA.nombre) + '</div>' : '';
+  var dirLinea = TIENDA.dir ? '<div style="text-align:center;font-size:10px;color:#666">' + esc(TIENDA.dir) + '</div>' : '';
+  var telLinea = TIENDA.tel ? '<div style="text-align:center;font-size:10px;color:#666">Tel: ' + esc(TIENDA.tel) + '</div>' : '';
+  var ivaOn = !!(v.iva && v.ivaModo && v.ivaModo !== 'sin');
+  var items = (v.items && v.items.length) ? v.items : [{nombre: v.modelo || 'Venta', precio: v.precio || v.total, qty: 1}];
+  var itemsHtml = items.map(function(it) {
+    var sub = (parseFloat(it.precio) || 0) * (parseFloat(it.qty) || 1);
+    return '<div style="display:flex;justify-content:space-between;font-size:11px;margin:2px 0"><span>' + esc(it.nombre) + ' x' + (it.qty || 1) + '</span><span>' + cur(sub) + '</span></div>';
+  }).join('');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket ' + v.id + '</title>' +
+    '<style>@page{size:80mm auto;margin:0}body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:80mm;margin:0;padding:5mm 4mm;color:#000;font-size:10.5px;line-height:1.35}hr{border:none;border-top:1px dashed #999;margin:6px 0}</style>' +
+    '</head><body>' +
+    logoBlock + nombreLinea + dirLinea + telLinea +
+    '<hr>' +
+    '<div style="display:flex;justify-content:space-between"><span>Fecha:</span><strong>' + esc(v.fecha) + '</strong></div>' +
+    '<div style="display:flex;justify-content:space-between"><span>Cliente:</span><strong>' + esc(v.clienteNombre || 'Sin cliente') + '</strong></div>' +
+    '<div style="display:flex;justify-content:space-between"><span>Pago:</span><strong>' + esc(v.pago) + '</strong></div>' +
+    (v.reembolsado ? '<div style="text-align:center;color:#c00;font-weight:800;margin-top:4px;border:1.5px solid #c00;padding:3px">REEMBOLSADA</div>' : '') +
+    '<hr>' +
+    itemsHtml +
+    '<hr>' +
+    (v.descuento > 0 ? '<div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>' + cur(v.precio || 0) + '</span></div>' +
+      '<div style="display:flex;justify-content:space-between"><span>Descuento</span><span>-' + cur(v.descuento) + '</span></div>' : '') +
+    (ivaOn ?
+      '<div style="display:flex;justify-content:space-between"><span>Base imponible</span><span>' + cur(v.base || 0) + '</span></div>' +
+      '<div style="display:flex;justify-content:space-between"><span>IVA (' + v.iva + '%)</span><span>' + cur(v.ivaImporte || 0) + '</span></div>'
+      : '') +
+    '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px;border-top:1px solid #000;padding-top:4px"><span>TOTAL' + (v.ivaModo === 'incluido' ? ' (IVA inc.)' : '') + '</span><span>' + cur(v.total || 0) + '</span></div>' +
+    '<hr>' +
+    '<div style="text-align:center;font-size:10px;color:#666;margin-top:6px">Gracias por su compra</div>' +
+    (TIENDA.garantia ? '<div style="text-align:center;font-size:9px;color:#888;margin-top:4px">' + esc(TIENDA.garantia) + '</div>' : '') +
+    '<script>window.onload=function(){setTimeout(function(){window.print();},200);}<\/script>' +
+    '</body></html>';
+
+  var w = window.open('', '_blank', 'width=380,height=600');
+  if (!w) { toast('Activa pop-ups para imprimir', 'err'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
 }
 
 function reembolsarVenta(id) {
@@ -2092,17 +2153,17 @@ function registrarPagoCuota(vid, cidx) {
 
 // ═══ BUSQUEDA CLIENTES ═══
 function busCliCtx(ctx) {
-  var q = document.getElementById(ctx === 'v' ? 'vBusCli' : 'rBusCli').value.toLowerCase().trim();
+  var q = _norm(document.getElementById(ctx === 'v' ? 'vBusCli' : 'rBusCli').value).trim();
   var res = document.getElementById(ctx === 'v' ? 'vSelCli' : 'rSelCli');
   if (!q) { res.classList.remove('open'); return; }
 
   // Calcular score: menor es mejor
   function scoreCli(c) {
-    var nombre = (c.nombre || '').toLowerCase().trim();
-    var apellidos = (c.apellidos || '').toLowerCase().trim();
+    var nombre = _norm(c.nombre).trim();
+    var apellidos = _norm(c.apellidos).trim();
     var nomCompleto = (nombre + ' ' + apellidos).trim();
-    var tel = (c.tel || '').toLowerCase();
-    var dni = (c.dni || '').toLowerCase();
+    var tel = _norm(c.tel);
+    var dni = _norm(c.dni);
 
     if (nombre === q) return 0;                              // 1. nombre exacto
     if (nomCompleto === q) return 1;                         // 2. nombre+apellidos exacto
@@ -2914,9 +2975,15 @@ function editarRep(id) {
 
   // Reset checklist y partes
   document.querySelectorAll('.chk-btn').forEach(function(b){ b.classList.remove('on'); });
-  document.getElementById('partsList').innerHTML = '';
+  // Restaurar componentes guardados
+  if (Array.isArray(r.componentes) && r.componentes.length) {
+    SEL.selParts = r.componentes.slice();
+    if (typeof renderParts === 'function') renderParts();
+  } else {
+    document.getElementById('partsList').innerHTML = '';
+  }
 
-  // Recalcular totales (sin partes por simplicidad: el usuario puede re-anadir)
+  // Recalcular totales con componentes restaurados
   if (typeof calcR === 'function') calcR();
 
   // Cambiar titulo
@@ -2959,6 +3026,7 @@ function guardarRep() {
     r.ivaModo = (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin';
     r.base = calcE.base;
     r.ivaImporte = calcE.iva;
+    r.componentes = SEL.selParts.slice();
     r.total = calcE.total;
     r.restante = Math.max(0, calcE.total - antiE);
     guardarDatos();
@@ -2969,7 +3037,8 @@ function guardarRep() {
         prioridad:r.prioridad, fecha_entrega:r.fechaEntrega, nota:r.nota,
         mo:r.mo, comp:r.comp, anticipo:r.anticipo, total:r.total, restante:r.restante,
         tipo_bloqueo: r.tipoBloqueo || null, bloqueo: r.bloqueo || null,
-        iva: r.iva, iva_modo: r.ivaModo, base: r.base, iva_importe: r.ivaImporte
+        iva: r.iva, iva_modo: r.ivaModo, base: r.base, iva_importe: r.ivaImporte,
+        componentes: r.componentes
       });
     }
     SEL.editRepId = null;
@@ -3013,6 +3082,7 @@ function guardarRep() {
     ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
     base: calcN.base,
     ivaImporte: calcN.iva,
+    componentes: SEL.selParts.slice(),
     restante: Math.max(0, total - anticipo),
     total: total, pagoFinal: '',
     esGarantia: false, repOriginalId: ''
@@ -3037,7 +3107,8 @@ function guardarRep() {
       mo:rep.mo, comp:rep.comp, anticipo:rep.anticipo,
       restante:rep.restante, total:rep.total, token:rep.token,
       tipo_bloqueo: rep.tipoBloqueo || null, bloqueo: rep.bloqueo || null,
-      iva: rep.iva, iva_modo: rep.ivaModo, base: rep.base, iva_importe: rep.ivaImporte
+      iva: rep.iva, iva_modo: rep.ivaModo, base: rep.base, iva_importe: rep.ivaImporte,
+      componentes: rep.componentes
     });
   }
 
@@ -3336,9 +3407,9 @@ function eliminarStock(id) {
 
 // ═══ CLIENTES ═══
 function renderClis() {
-  var q = (document.getElementById('busClis').value || '').toLowerCase();
+  var q = _norm(document.getElementById('busClis').value);
   var list = DB.clis.filter(function(c) {
-    return !q || (c.nombre + ' ' + c.apellidos + ' ' + (c.tel || '')).toLowerCase().includes(q);
+    return !q || _norm(c.nombre + ' ' + c.apellidos + ' ' + (c.tel || '') + ' ' + (c.dni || '')).indexOf(q) !== -1;
   });
   var el = document.getElementById('listaClis');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udc65</div>Sin clientes</div>'; return; }
