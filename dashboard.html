@@ -3702,43 +3702,161 @@ function renderServiciosRep() {
 function explorarServicios() {
   var inp = document.getElementById('exploreSrvSearch');
   if (inp) inp.value = '';
+  SEL.exploreCheckedIds = [];
   renderExploreSrv();
   openM('mExplorarSrv');
 }
 
 function renderExploreSrv() {
-  var q = ((document.getElementById('exploreSrvSearch') || {}).value || '').toLowerCase();
+  var q = ((document.getElementById('exploreSrvSearch') || {}).value || '').toLowerCase().trim();
   var box = document.getElementById('exploreSrvList');
+  var btn = document.getElementById('btnAgregarSrvSel');
   if (!box) return;
   var srvs = (DB.servicios || []).filter(function(s) {
     if (s.tipo === 'venta') return false;
     if (!q) return true;
     return s.nombre.toLowerCase().includes(q);
   });
+  // Ordenar alfabético
+  srvs.sort(function(a, b){ return (a.nombre || '').localeCompare(b.nombre || ''); });
+
   if (!srvs.length) {
-    box.innerHTML = '<div class="empty" style="padding:18px;font-size:12px">No hay servicios. Crea uno en Servicios.</div>';
+    box.innerHTML = '<div class="empty" style="padding:24px 18px;font-size:12px">' +
+      (q ? 'Sin coincidencias para "<strong>' + esc(q) + '</strong>"' : 'No hay servicios todavía.') +
+      '<br><button type="button" class="btn-primary" style="background:var(--green);margin-top:12px;padding:8px 16px;font-size:12px" onclick="abrirCrearSrvSimple(\'' + (q ? q.replace(/'/g, "\\'") : '') + '\')">+ Crear nuevo servicio</button>' +
+      '</div>';
+    if (btn) { btn.disabled = true; btn.textContent = 'Agregar seleccionados'; }
     return;
   }
-  var cats = {};
-  srvs.forEach(function(s){ if (!cats[s.categoria || 'Otros']) cats[s.categoria || 'Otros'] = []; cats[s.categoria || 'Otros'].push(s); });
-  var html = '';
-  Object.keys(cats).forEach(function(cat) {
-    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:8px 4px 4px;letter-spacing:.4px">' + cat + '</div>';
-    cats[cat].forEach(function(s) {
-      var coste = parseFloat(s.precioCoste) || 0;
-      var venta = parseFloat(s.precio) || 0;
-      html += '<div class="explore-srv-item" onclick="agregarServicioFromExplore(\'' + s.id + '\')">';
-      html += '<div style="flex:1;min-width:0"><strong style="font-size:13px">' + esc(s.nombre) + '</strong>';
-      if (coste > 0) html += '<div style="font-size:11px;color:var(--muted)">🔒 Coste: ' + cur(coste) + '</div>';
-      html += '</div>';
-      html += '<div style="font-size:14px;font-weight:800;color:var(--green);flex-shrink:0">' + (s.precioFijo ? cur(venta) : 'Variable') + '</div>';
-      html += '</div>';
+
+  if (!SEL.exploreCheckedIds) SEL.exploreCheckedIds = [];
+
+  var html = srvs.map(function(s) {
+    var coste = parseFloat(s.precioCoste) || 0;
+    var venta = parseFloat(s.precio) || 0;
+    var checked = SEL.exploreCheckedIds.indexOf(s.id) !== -1;
+    return '<div class="explore-srv-item" data-sid="' + s.id + '">' +
+      '<input type="checkbox" ' + (checked ? 'checked' : '') + ' onchange="toggleExplorerSel(\'' + s.id + '\')" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;accent-color:var(--purple)">' +
+      '<div style="flex:1;min-width:0;cursor:pointer" onclick="toggleExplorerSel(\'' + s.id + '\')">' +
+        '<div style="font-size:13px;font-weight:600">' + esc(s.nombre) + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">' +
+          (coste > 0 ? '🔒 ' + cur(coste) + ' · ' : '') +
+          (s.precioFijo ? '<strong style="color:var(--green)">' + cur(venta) + '</strong>' : '<em>Variable</em>') +
+        '</div>' +
+      '</div>' +
+      '<button type="button" onclick="event.stopPropagation();borrarServicioCatalogo(\'' + s.id + '\')" title="Eliminar del catálogo" style="background:none;border:none;cursor:pointer;padding:6px;border-radius:6px;font-size:14px;color:var(--muted);transition:all .15s">🗑️</button>' +
+    '</div>';
+  }).join('');
+  box.innerHTML = html;
+
+  // Actualizar contador y estado del botón
+  var cnt = SEL.exploreCheckedIds.length;
+  if (btn) {
+    btn.disabled = cnt === 0;
+    btn.textContent = cnt > 0 ? 'Agregar ' + cnt + ' servicio' + (cnt > 1 ? 's' : '') : 'Agregar seleccionados';
+    btn.style.opacity = cnt === 0 ? '0.5' : '1';
+  }
+}
+
+function toggleExplorerSel(sid) {
+  if (!SEL.exploreCheckedIds) SEL.exploreCheckedIds = [];
+  var i = SEL.exploreCheckedIds.indexOf(sid);
+  if (i >= 0) SEL.exploreCheckedIds.splice(i, 1);
+  else SEL.exploreCheckedIds.push(sid);
+  renderExploreSrv();
+}
+
+function agregarSeleccionados() {
+  if (!SEL.exploreCheckedIds || !SEL.exploreCheckedIds.length) return;
+  SEL.exploreCheckedIds.forEach(function(sid) {
+    var s = (DB.servicios || []).find(function(x){ return x.id === sid; });
+    if (!s) return;
+    agregarServicioRep({
+      id: s.id,
+      nombre: s.nombre || '',
+      desc: '',
+      coste: parseFloat(s.precioCoste) || 0,
+      precio: parseFloat(s.precio) || 0
     });
   });
-  box.innerHTML = html;
+  var cnt = SEL.exploreCheckedIds.length;
+  SEL.exploreCheckedIds = [];
+  closeM('mExplorarSrv');
+  toast(cnt + ' servicio' + (cnt > 1 ? 's' : '') + ' añadido' + (cnt > 1 ? 's' : ''), 'ok');
+}
+
+function borrarServicioCatalogo(sid) {
+  var s = (DB.servicios || []).find(function(x){ return x.id === sid; });
+  if (!s) return;
+  if (!confirm('¿Eliminar "' + s.nombre + '" del catálogo?\nLas reparaciones que ya lo usan no se ven afectadas.')) return;
+  DB.servicios = (DB.servicios || []).filter(function(x){ return x.id !== sid; });
+  // Limpiar de seleccionados si estaba
+  if (SEL.exploreCheckedIds) {
+    SEL.exploreCheckedIds = SEL.exploreCheckedIds.filter(function(id){ return id !== sid; });
+  }
+  guardarDatos();
+  if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
+    sbDelete('servicios', 'id=eq.' + sid);
+  }
+  toast('Servicio eliminado', 'ok');
+  renderExploreSrv();
+  if (typeof renderServicios === 'function') renderServicios();
+}
+
+function abrirCrearSrvSimple(prefName) {
+  document.getElementById('csrvNom').value = prefName || '';
+  document.getElementById('csrvCat').value = 'Otro';
+  openM('mCrearSrvSimple');
+  setTimeout(function(){
+    var inp = document.getElementById('csrvNom');
+    if (inp) { inp.focus(); if (prefName) inp.select(); }
+  }, 50);
+}
+
+function guardarSrvSimple() {
+  var nom = (document.getElementById('csrvNom').value || '').trim();
+  if (!nom) { toast('Falta el nombre', 'err'); return; }
+  var cat = document.getElementById('csrvCat').value || 'Otro';
+  // Comprobar duplicado por nombre normalizado
+  var nomNorm = _norm(nom);
+  var existente = (DB.servicios || []).find(function(s){ return _norm(s.nombre) === nomNorm; });
+  if (existente) {
+    toast('Ya existe un servicio con ese nombre', 'err');
+    return;
+  }
+  var srv = {
+    id: 'srv' + Date.now(),
+    nombre: nom,
+    categoria: cat,
+    tipo: 'reparacion',
+    precioFijo: true,
+    precio: 0,
+    precioCoste: 0
+  };
+  if (!DB.servicios) DB.servicios = [];
+  DB.servicios.push(srv);
+  guardarDatos();
+  if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
+    sbPost('servicios', {
+      id:srv.id, tienda_id:TIENDA_ID,
+      nombre:srv.nombre, categoria:srv.categoria, tipo:srv.tipo,
+      precio_fijo:srv.precioFijo, precio:srv.precio
+    });
+  }
+  toast('Servicio creado', 'ok');
+  closeM('mCrearSrvSimple');
+  // Si el modal Explorar está abierto, refrescar y marcar el nuevo
+  var explorer = document.getElementById('mExplorarSrv');
+  if (explorer && explorer.classList.contains('open')) {
+    if (!SEL.exploreCheckedIds) SEL.exploreCheckedIds = [];
+    SEL.exploreCheckedIds.push(srv.id);
+    renderExploreSrv();
+  }
+  if (typeof renderServicios === 'function') renderServicios();
 }
 
 function agregarServicioFromExplore(sid) {
+  // Compatibilidad legacy
   var s = (DB.servicios || []).find(function(x){ return x.id === sid; });
   if (!s) return;
   agregarServicioRep({
@@ -4195,6 +4313,50 @@ function editarRep(id) {
   openM('mRep');
 }
 
+// Auto-guarda en el catálogo los servicios nuevos creados inline en la reparación
+function autoGuardarServiciosNuevos(servicios) {
+  if (!Array.isArray(servicios)) return;
+  if (!DB.servicios) DB.servicios = [];
+  var creados = 0;
+  servicios.forEach(function(s) {
+    if (s.id) return; // ya tiene id, viene del catálogo
+    var nom = (s.nombre || '').trim();
+    if (!nom) return; // sin nombre, no guardamos
+    // Comprobar duplicado por nombre normalizado
+    var nomNorm = _norm(nom);
+    var existente = DB.servicios.find(function(x){ return _norm(x.nombre) === nomNorm; });
+    if (existente) {
+      // Asignar el id existente al servicio en la rep (para futuras búsquedas)
+      s.id = existente.id;
+      return;
+    }
+    // Crear nuevo
+    var nuevoId = 'srv' + Date.now() + '_' + Math.floor(Math.random()*1000);
+    var nuevo = {
+      id: nuevoId,
+      nombre: nom,
+      categoria: 'Otro',
+      tipo: 'reparacion',
+      precioFijo: true,
+      precio: parseFloat(s.precio) || 0,
+      precioCoste: parseFloat(s.coste) || 0
+    };
+    DB.servicios.push(nuevo);
+    s.id = nuevoId;
+    creados++;
+    if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
+      sbPost('servicios', {
+        id:nuevo.id, tienda_id:TIENDA_ID,
+        nombre:nuevo.nombre, categoria:nuevo.categoria, tipo:nuevo.tipo,
+        precio_fijo:nuevo.precioFijo, precio:nuevo.precio
+      });
+    }
+  });
+  if (creados > 0) {
+    guardarDatos();
+  }
+}
+
 function guardarRep() {
   if (!tienePerm('reps_crear')) { toast('Sin permiso', 'err'); return; }
   var modelo = document.getElementById('rModelo').value.trim();
@@ -4232,6 +4394,7 @@ function guardarRep() {
     var r = DB.reps.find(function(x){ return x.id === SEL.editRepId; });
     if (!r) { toast('Reparación no encontrada', 'err'); SEL.editRepId = null; return; }
     var serviciosE = (SEL.rServicios || []).slice();
+    autoGuardarServiciosNuevos(serviciosE);
     var srvTotalE = serviciosE.reduce(function(a,s){ return a + (parseFloat(s.precio)||0); }, 0);
     var compE = SEL.selParts.reduce(function(a,p){ return a + p.precio; }, 0);
     var antiE = parseFloat(document.getElementById('rAnticipo').value) || 0;
@@ -4281,6 +4444,7 @@ function guardarRep() {
   }
 
   var serviciosN = (SEL.rServicios || []).slice();
+  autoGuardarServiciosNuevos(serviciosN);
   var srvTotalN = serviciosN.reduce(function(a,s){ return a + (parseFloat(s.precio)||0); }, 0);
   var comp = SEL.selParts.reduce(function(a, p) { return a + p.precio; }, 0);
   var anticipo = parseFloat(document.getElementById('rAnticipo').value) || 0;
@@ -7177,10 +7341,44 @@ document.addEventListener('click', function(e){
 
 <!-- ═══ MODAL EXPLORAR SERVICIOS ═══ -->
 <div class="modal-bg" id="mExplorarSrv">
-  <div class="modal" style="max-width:560px">
-    <div class="modal-h"><span>🛠️ Servicios disponibles</span><span class="cls" onclick="closeM('mExplorarSrv')">×</span></div>
-    <input class="fi" id="exploreSrvSearch" placeholder="🔍 Filtrar por nombre..." oninput="renderExploreSrv()" style="margin-bottom:12px">
-    <div id="exploreSrvList" style="max-height:55vh;overflow-y:auto"></div>
+  <div class="modal" style="max-width:520px">
+    <div class="modal-h"><span>🛠️ Buscar servicios</span><span class="cls" onclick="closeM('mExplorarSrv')">×</span></div>
+    <input class="fi" id="exploreSrvSearch" placeholder="🔍 Filtrar por nombre..." oninput="renderExploreSrv()" style="margin-bottom:8px">
+    <div style="text-align:right;margin-bottom:10px">
+      <button type="button" onclick="abrirCrearSrvSimple()" style="background:none;border:none;color:var(--purple);font-size:12px;font-weight:700;cursor:pointer;padding:4px 0;font-family:inherit">+ Agregar nuevo servicio</button>
+    </div>
+    <div id="exploreSrvList" style="max-height:48vh;overflow-y:auto;margin-bottom:12px"></div>
+    <div style="display:flex;gap:8px;padding-top:10px;border-top:1px solid var(--border)">
+      <button type="button" class="btn-secondary" style="flex:1" onclick="closeM('mExplorarSrv')">Cancelar</button>
+      <button type="button" class="btn-primary" id="btnAgregarSrvSel" style="flex:1.4;background:var(--green)" onclick="agregarSeleccionados()">Agregar seleccionados</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL CREAR SERVICIO SIMPLE ═══ -->
+<div class="modal-bg" id="mCrearSrvSimple">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-h"><span>🛠️ Nuevo servicio</span><span class="cls" onclick="closeM('mCrearSrvSimple')">×</span></div>
+    <div class="fg"><label class="fl">Nombre <span class="req">*</span></label><input class="fi" id="csrvNom" placeholder="Ej: Instalación de Pantalla iPhone 14"></div>
+    <div class="fg"><label class="fl">Categoría</label>
+      <select class="fi" id="csrvCat">
+        <option value="Pantalla">Pantalla</option>
+        <option value="Bateria">Batería</option>
+        <option value="Carga">Carga</option>
+        <option value="Camara">Cámara</option>
+        <option value="Altavoz">Altavoz</option>
+        <option value="Software">Software</option>
+        <option value="Agua">Agua / Líquidos</option>
+        <option value="Otro" selected>Otro</option>
+      </select>
+    </div>
+    <div style="font-size:11px;color:var(--muted);background:var(--light);padding:8px 12px;border-radius:8px;margin-bottom:12px">
+      💡 El precio se ajusta luego en cada reparación (cada reparación puede tener un precio distinto).
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="btn-secondary" onclick="closeM('mCrearSrvSimple')">Cancelar</button>
+      <button type="button" class="btn-primary" style="background:var(--green)" onclick="guardarSrvSimple()">Guardar</button>
+    </div>
   </div>
 </div>
 
