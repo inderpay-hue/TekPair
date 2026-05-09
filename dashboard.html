@@ -47,9 +47,21 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 @media(min-width:900px){
   body{background:var(--dark);display:flex;align-items:stretch;justify-content:center}
   #app{max-width:100%;width:100%;flex-direction:row;height:100vh;height:100dvh;box-shadow:none;background:transparent;margin:0}
-  .sidebar{width:220px;flex-shrink:0;background:var(--dark);display:flex;flex-direction:column;padding:20px 0}
+  .sidebar{width:220px;flex-shrink:0;background:var(--dark);display:flex;flex-direction:column;padding:0;min-height:0}
+  .sidebar-header{display:flex;align-items:center;gap:10px;padding:18px 16px 16px;border-bottom:1px solid rgba(255,255,255,.08);flex-shrink:0}
+  .sidebar-brand-wrap{flex:1;min-width:0;display:flex;align-items:center;gap:10px;color:white;font-size:14px;font-weight:800;letter-spacing:-.2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sidebar-brand-wrap span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sidebar-bell{position:relative;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.10);color:white;width:34px;height:34px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px;font-family:inherit;transition:background .15s var(--ease),transform .12s var(--ease)}
+  .sidebar-bell:hover{background:rgba(255,255,255,.16)}
+  .sidebar-bell:active{transform:scale(.94)}
+  .sidebar-bell .notif-badge{border-color:var(--dark)}
   .sidebar-logo{color:white;font-size:20px;font-weight:800;padding:0 20px 24px;border-bottom:1px solid rgba(255,255,255,.1);margin-bottom:16px}
-  .sidebar-nav{flex:1}
+  .sidebar-nav{flex:1;overflow-y:auto;overflow-x:hidden;padding:12px 0;min-height:0}
+  /* scrollbar dentro del sidebar */
+  .sidebar-nav::-webkit-scrollbar{width:6px}
+  .sidebar-nav::-webkit-scrollbar-track{background:transparent}
+  .sidebar-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:3px}
+  .sidebar-nav::-webkit-scrollbar-thumb:hover{background:rgba(255,255,255,.28)}
   .sidebar-ni{display:flex;align-items:center;gap:12px;padding:12px 20px;color:rgba(255,255,255,.6);cursor:pointer;font-size:13px;font-weight:600;transition:background .15s var(--ease),color .15s var(--ease),border-color .15s var(--ease);border-left:3px solid transparent}
   .sidebar-ni:hover{background:rgba(255,255,255,.05);color:white}
   .sidebar-ni.active{background:rgba(0,85,255,.15);color:white;border-left-color:var(--blue)}
@@ -80,6 +92,10 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 /* NOTIF BELL */
 .notif-bell{position:fixed;top:10px;right:10px;width:42px;height:42px;border-radius:50%;background:var(--dark);border:1px solid rgba(255,255,255,.15);color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;box-shadow:var(--shadow-md);transition:transform .15s var(--ease),box-shadow .15s var(--ease)}
+@media(min-width:900px){
+  .notif-bell{display:none}
+  .notif-panel{top:60px;right:auto;left:230px}
+}
 @media(max-width:899px){
   .notif-bell{display:none}
   .topbar-bell{display:flex}
@@ -290,9 +306,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 <!-- SIDEBAR (desktop only) -->
 <div class="sidebar" id="sidebar" style="display:none">
-  <div class="sidebar-logo" id="sidebarBrand" style="display:flex;align-items:center;gap:10px">
-    <img id="sidebarLogo" alt="" style="max-height:36px;max-width:140px;border-radius:6px;display:none;background:white;padding:2px"/>
-    <span id="sidebarBrandText">⚡ Tekpair</span>
+  <div class="sidebar-header">
+    <div class="sidebar-brand-wrap" id="sidebarBrand">
+      <img id="sidebarLogo" alt="" style="max-height:32px;max-width:120px;border-radius:6px;display:none;background:white;padding:2px;flex-shrink:0"/>
+      <span id="sidebarBrandText">⚡ Tekpair</span>
+    </div>
+    <button class="sidebar-bell" id="sidebarBell" onclick="toggleNotifs()" title="Notificaciones">
+      🔔
+      <span class="notif-badge" id="sidebarBadge">0</span>
+    </button>
   </div>
   <div class="sidebar-nav">
     <div class="sidebar-ni active" data-p="pDash" onclick="navTo('pDash');setSidebarActive(this)">
@@ -4423,6 +4445,15 @@ function refreshNotifs() {
       topBadge.classList.remove('show');
     }
   }
+  var sideBadge = document.getElementById('sidebarBadge');
+  if (sideBadge) {
+    if (unread.length > 0) {
+      sideBadge.textContent = unread.length > 99 ? '99+' : unread.length;
+      sideBadge.classList.add('show');
+    } else {
+      sideBadge.classList.remove('show');
+    }
+  }
   if (headCount) headCount.textContent = unread.length ? '(' + unread.length + ')' : '';
 
   // Tabs counts y estado activo
@@ -4580,11 +4611,13 @@ document.addEventListener('click', function(e) {
   var p = document.getElementById('notifPanel');
   var b = document.getElementById('notifBell');
   var bm = document.getElementById('topbarBell');
+  var bs = document.getElementById('sidebarBell');
   if (!p) return;
   if (!p.classList.contains('open')) return;
   if (p.contains(e.target)) return;
   if (b && b.contains(e.target)) return;
   if (bm && bm.contains(e.target)) return;
+  if (bs && bs.contains(e.target)) return;
   p.classList.remove('open');
 });
 
