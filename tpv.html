@@ -416,7 +416,45 @@ var numStr = '';
 
 // ═══ FAVORITOS ═══
 var favs = JSON.parse(localStorage.getItem('tk_tpv_favs') || '[]');
-function saveFavs() { localStorage.setItem('tk_tpv_favs', JSON.stringify(favs)); }
+function saveFavs() {
+  localStorage.setItem('tk_tpv_favs', JSON.stringify(favs));
+  // Sync con Supabase (compartido por toda la tienda)
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {tpv_favs: favs});
+}
+
+// Pull TIENDA + AJUSTES desde Supabase (logo, políticas, IVA, etc)
+async function pullTiendaTPV() {
+  if (!SB_KEY || !TIENDA_ID) return;
+  try {
+    var rows = await sbGet('tiendas', 'id=eq.' + TIENDA_ID);
+    if (!Array.isArray(rows) || !rows.length) return;
+    var t = rows[0];
+    var tiendaData = {
+      nombre: t.nombre || 'Mi Tienda',
+      dir: t.dir || '', tel: t.tel || '', email: t.email || '',
+      cif: t.cif || '', web: t.web || '',
+      garantia: t.garantia || '', politica: t.politica || '',
+      garantiaVentas: t.garantia_ventas || '', politicaVentas: t.politica_ventas || '',
+      logo_url: t.logo_url || ''
+    };
+    Object.assign(TIENDA, tiendaData);
+    localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
+
+    if (t.ajustes_config && typeof t.ajustes_config === 'object') {
+      AJUSTES = Object.assign({iva:{activo:false,modo:'incluido',tipoDefault:21}}, t.ajustes_config);
+      AJUSTES.iva = AJUSTES.iva || {activo:false,modo:'incluido',tipoDefault:21};
+      localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
+    }
+  } catch(e) { console.error('Pull tienda TPV error:', e); }
+}
+
+function syncTPV() {
+  return Promise.all([
+    syncVentasDesdeSupabase(),
+    pullFavsTPV(),
+    pullTiendaTPV()
+  ]);
+}
 function isFav(type, id) { return favs.some(function(f){ return f.type === type && f.id === id; }); }
 function findFav(type, id) { return favs.find(function(f){ return f.type === type && f.id === id; }); }
 function toggleFav(type, id, ev) {
@@ -443,12 +481,12 @@ window.addEventListener('DOMContentLoaded', function() {
   renderFavBar();
   renderProducts();
   updateCaja();
-  // Sync con Supabase para historial actualizado
-  syncVentasDesdeSupabase();
+  // Sync con Supabase (ventas + favoritos + tienda + ajustes)
+  syncTPV();
   // Sync continua: cuando vuelves a la pestaña + cada 60s
-  window.addEventListener('focus', function(){ syncVentasDesdeSupabase(); });
-  window.addEventListener('visibilitychange', function(){ if (!document.hidden) syncVentasDesdeSupabase(); });
-  setInterval(function(){ if (!document.hidden) syncVentasDesdeSupabase(); }, 60000);
+  window.addEventListener('focus', function(){ syncTPV(); });
+  window.addEventListener('visibilitychange', function(){ if (!document.hidden) syncTPV(); });
+  setInterval(function(){ if (!document.hidden) syncTPV(); }, 60000);
 });
 
 // ═══ SUPABASE ═══
