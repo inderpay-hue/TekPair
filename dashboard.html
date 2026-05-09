@@ -51,6 +51,29 @@ body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .topbar-info{display:flex;align-items:center;gap:10px}
 .topbar-name{color:rgba(255,255,255,.8);font-size:12px}
 .topbar-logout{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:5px 10px;border-radius:6px;font-size:11px;cursor:pointer;font-family:inherit}
+
+/* NOTIF BELL */
+.notif-bell{position:fixed;top:10px;right:10px;width:42px;height:42px;border-radius:50%;background:var(--dark);border:1px solid rgba(255,255,255,.15);color:white;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;z-index:50;box-shadow:0 4px 12px rgba(0,0,0,.15);transition:transform .15s}
+.notif-bell:hover{transform:scale(1.05)}
+.notif-bell:active{transform:scale(.95)}
+.notif-badge{position:absolute;top:-4px;right:-4px;background:var(--red);color:white;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;padding:0 5px;display:none;align-items:center;justify-content:center;border:2px solid var(--dark);font-family:inherit}
+.notif-badge.show{display:flex}
+.notif-panel{position:fixed;top:60px;right:10px;width:340px;max-width:calc(100vw - 20px);max-height:calc(100vh - 80px);background:white;border-radius:14px;box-shadow:0 20px 60px rgba(0,0,0,.2);border:1px solid var(--border);z-index:51;display:none;flex-direction:column;overflow:hidden}
+.notif-panel.open{display:flex}
+.notif-head{padding:14px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;flex-shrink:0}
+.notif-head-title{font-size:14px;font-weight:800;color:var(--text)}
+.notif-head-count{font-size:11px;color:var(--muted);margin-left:6px}
+.notif-list{flex:1;overflow-y:auto}
+.notif-item{display:flex;gap:10px;padding:12px 14px;border-bottom:1px solid var(--border);cursor:pointer;transition:background .1s;align-items:flex-start}
+.notif-item:hover{background:#F8FAFF}
+.notif-item:last-child{border-bottom:none}
+.notif-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:14px}
+.notif-body{flex:1;min-width:0}
+.notif-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:2px;line-height:1.25}
+.notif-detail{font-size:11px;color:var(--muted);line-height:1.3}
+.notif-close{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;padding:0 4px;line-height:1;flex-shrink:0;margin-top:2px}
+.notif-close:hover{color:var(--red)}
+.notif-empty{text-align:center;padding:40px 20px;color:var(--muted);font-size:13px}
 .content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .navbar{background:white;border-top:1px solid var(--border);display:flex;flex-shrink:0;position:relative;z-index:10}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 10px;cursor:pointer;color:var(--muted);font-size:9px;font-weight:600;gap:3px;transition:color .15s}
@@ -266,6 +289,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div id="app-content" style="display:contents">
 
 <!-- TOPBAR -->
+<!-- NOTIFICATION BELL (always visible) -->
+<button class="notif-bell" id="notifBell" onclick="toggleNotifs()" title="Notificaciones">
+  🔔
+  <span class="notif-badge" id="notifBadge">0</span>
+</button>
+<div class="notif-panel" id="notifPanel">
+  <div class="notif-head">
+    <div><span class="notif-head-title">🔔 Notificaciones</span><span class="notif-head-count" id="notifHeadCount"></span></div>
+    <button class="notif-close" onclick="toggleNotifs()" style="font-size:18px">×</button>
+  </div>
+  <div class="notif-list" id="notifList"></div>
+</div>
+
 <div class="topbar">
   <div class="topbar-logo">⚡ Tekpair</div>
   <div class="topbar-info">
@@ -554,6 +590,43 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:12px">
       <input type="checkbox" id="ajCierreActivo"> Activar cierre automatico
     </label>
+  </div>
+  <div class="card">
+    <div class="card-title">Notificaciones</div>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px">Activa o desactiva cada tipo de aviso de la campana</div>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:6px 0">
+      <input type="checkbox" id="ajNotifVencida"> ⏰ Reparación vencida
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:6px 0">
+      <input type="checkbox" id="ajNotifUrgente"> ⚡ Entrega urgente (&lt; 2 días)
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:6px 0">
+      <input type="checkbox" id="ajNotifAbandono"> 📦 Posible abandono (&gt; 30 días)
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:6px 0">
+      <input type="checkbox" id="ajNotifStock"> 📦 Stock bajo mínimo
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:6px 0">
+      <input type="checkbox" id="ajNotifCuotaVenc"> 💰 Cuota vencida
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:6px 0">
+      <input type="checkbox" id="ajNotifCuotaProx"> 💰 Cuota próxima (3 días)
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:6px 0">
+      <input type="checkbox" id="ajNotifRecibida"> 🔧 Reparación recibida hoy
+    </label>
+    <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:6px 0;border-top:1px solid var(--border);margin-top:8px;padding-top:14px">
+      <input type="checkbox" id="ajNotifCumple" onchange="toggleCumpleCfg()"> 🎂 Cumpleaños de cliente
+    </label>
+    <div id="ajCumpleCfg" style="display:none;margin-top:8px;padding-left:24px">
+      <div class="fg">
+        <label class="fl">Mensaje WhatsApp de felicitación</label>
+        <textarea class="fi" id="ajPlantillaCumple" rows="3" placeholder="Mensaje..."></textarea>
+        <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">
+          Variables: <code style="background:var(--bg);padding:1px 4px;border-radius:3px">{nombre}</code> nombre del cliente · <code style="background:var(--bg);padding:1px 4px;border-radius:3px">{tienda}</code> tu tienda
+        </div>
+      </div>
+    </div>
   </div>
   <div class="card">
     <div class="card-title">Impuestos (IVA)</div>
@@ -942,7 +1015,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="fg"><label class="fl">Telefono</label><input class="fi" id="cTel" type="tel" placeholder="6XX XXX XXX"></div>
     <div class="fg"><label class="fl">Email</label><input class="fi" id="cEmail" type="email" placeholder="email@..."></div>
   </div>
-  <div class="fg"><label class="fl">DNI/NIE</label><input class="fi" id="cDni" placeholder="12345678A"></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">DNI/NIE</label><input class="fi" id="cDni" placeholder="12345678A"></div>
+    <div class="fg"><label class="fl">Fecha de nacimiento</label><input class="fi" id="cFnac" type="date"></div>
+  </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mCli')">Cancelar</button>
     <button class="btn-primary" onclick="guardarCli()">Guardar</button>
@@ -1063,7 +1139,7 @@ var SB_KEY = '';
 var TIENDA_ID = '';
 var U = null;
 var TIENDA = {nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',garantia:'',politica:'',logo_url:''};
-var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]}};
+var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
 
 // ═══ DB ═══
 var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[]};
@@ -1109,6 +1185,11 @@ window.addEventListener('DOMContentLoaded', function() {
   if (aj.cierre) AJUSTES.cierre = aj.cierre;
   if (aj.nombre) AJUSTES.nombre = aj.nombre;
   if (aj.iva) AJUSTES.iva = Object.assign({activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]}, aj.iva);
+  if (aj.notif) {
+    AJUSTES.notif = AJUSTES.notif || {};
+    AJUSTES.notif.activa = Object.assign({vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true}, aj.notif.activa || {});
+    AJUSTES.notif.plantillaCumple = aj.notif.plantillaCumple || AJUSTES.notif.plantillaCumple;
+  }
 
   // Load local data
   cargarDatosLocal();
@@ -1129,6 +1210,9 @@ window.addEventListener('DOMContentLoaded', function() {
   // Auto backup
   setInterval(function() { guardarDatos(); }, 2 * 60 * 60 * 1000);
   setInterval(checkCierreAuto, 60000);
+  // Notificaciones
+  setTimeout(refreshNotifs, 500);
+  setInterval(refreshNotifs, 60000);
   initDesktop();
   window.addEventListener('resize', initDesktop);
   setTimeout(aplicarPermisos, 200);
@@ -1244,6 +1328,7 @@ function guardarDatos() {
   var tiendaData = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
   tiendaData.nombre = TIENDA.nombre;
   localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
+  if (typeof refreshNotifs === 'function') refreshNotifs();
 }
 
 // ═══ SUPABASE ═══
@@ -1314,7 +1399,7 @@ function mapStock(s) {
 }
 
 function mapCli(c) {
-  return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||''};
+  return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||'', fechaNac:c.fecha_nac||''};
 }
 
 async function cargarDatosSupabase() {
@@ -3217,7 +3302,7 @@ function renderClis() {
 }
 
 function limpiarFormCli() {
-  ['cNom','cApe','cTel','cEmail','cDni'].forEach(function(id) { document.getElementById(id).value = ''; });
+  ['cNom','cApe','cTel','cEmail','cDni','cFnac'].forEach(function(id) { var el=document.getElementById(id); if(el) el.value = ''; });
 }
 
 function guardarCli() {
@@ -3228,16 +3313,17 @@ function guardarCli() {
     apellidos: document.getElementById('cApe').value.trim(),
     tel: document.getElementById('cTel').value.trim(),
     email: document.getElementById('cEmail').value.trim(),
-    dni: document.getElementById('cDni').value.trim()
+    dni: document.getElementById('cDni').value.trim(),
+    fechaNac: document.getElementById('cFnac').value.trim()
   };
   if (ECID) {
     var c = DB.clis.find(function(x) { return x.id === ECID; });
     if (c) Object.assign(c, data);
-    if (SB_KEY && TIENDA_ID) sbPatch('clientes', 'id=eq.' + ECID, data);
+    if (SB_KEY && TIENDA_ID) sbPatch('clientes', 'id=eq.' + ECID, {nombre:data.nombre,apellidos:data.apellidos,tel:data.tel,email:data.email,dni:data.dni,fecha_nac:data.fechaNac||null});
   } else {
     var nuevo = Object.assign({id: 'c' + Date.now(), tienda_id: TIENDA_ID}, data);
     DB.clis.push(nuevo);
-    if (SB_KEY && TIENDA_ID) sbPost('clientes', nuevo);
+    if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:nuevo.id,tienda_id:TIENDA_ID,nombre:nuevo.nombre,apellidos:nuevo.apellidos,tel:nuevo.tel,email:nuevo.email,dni:nuevo.dni,fecha_nac:nuevo.fechaNac||null});
   }
   guardarDatos();
   ECID = null;
@@ -3256,6 +3342,8 @@ function editCli(id) {
   document.getElementById('cTel').value = c.tel || '';
   document.getElementById('cEmail').value = c.email || '';
   document.getElementById('cDni').value = c.dni || '';
+  var fnac = document.getElementById('cFnac');
+  if (fnac) fnac.value = c.fechaNac || '';
   openM('mCli');
 }
 
@@ -3682,11 +3770,28 @@ function cargarAjustes() {
   document.getElementById('ajIvaModo').value = iva.modo || 'incluido';
   document.getElementById('ajIvaTipoDefault').value = String(iva.tipoDefault != null ? iva.tipoDefault : 21);
   toggleIvaCfg();
+  // Notificaciones
+  var n = (AJUSTES.notif && AJUSTES.notif.activa) || {};
+  document.getElementById('ajNotifVencida').checked = n.vencida !== false;
+  document.getElementById('ajNotifUrgente').checked = n.urgente !== false;
+  document.getElementById('ajNotifAbandono').checked = n.abandono !== false;
+  document.getElementById('ajNotifStock').checked = n.stock !== false;
+  document.getElementById('ajNotifCuotaVenc').checked = n.cuotaVencida !== false;
+  document.getElementById('ajNotifCuotaProx').checked = n.cuotaProxima !== false;
+  document.getElementById('ajNotifRecibida').checked = n.recibidaHoy !== false;
+  document.getElementById('ajNotifCumple').checked = n.cumple !== false;
+  document.getElementById('ajPlantillaCumple').value = (AJUSTES.notif && AJUSTES.notif.plantillaCumple) || '¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉';
+  toggleCumpleCfg();
 }
 
 function toggleIvaCfg() {
   var on = document.getElementById('ajIvaActivo').checked;
   document.getElementById('ajIvaCfg').style.display = on ? 'block' : 'none';
+}
+
+function toggleCumpleCfg() {
+  var on = document.getElementById('ajNotifCumple').checked;
+  document.getElementById('ajCumpleCfg').style.display = on ? 'block' : 'none';
 }
 
 function guardarAjustes() {
@@ -3701,8 +3806,22 @@ function guardarAjustes() {
   AJUSTES.iva.modo = document.getElementById('ajIvaModo').value;
   AJUSTES.iva.tipoDefault = parseFloat(document.getElementById('ajIvaTipoDefault').value) || 21;
   if (!AJUSTES.iva.tiposPermitidos) AJUSTES.iva.tiposPermitidos = [0,4,10,21];
+  // Notificaciones
+  AJUSTES.notif = AJUSTES.notif || {};
+  AJUSTES.notif.activa = {
+    vencida: document.getElementById('ajNotifVencida').checked,
+    urgente: document.getElementById('ajNotifUrgente').checked,
+    abandono: document.getElementById('ajNotifAbandono').checked,
+    stock: document.getElementById('ajNotifStock').checked,
+    cuotaVencida: document.getElementById('ajNotifCuotaVenc').checked,
+    cuotaProxima: document.getElementById('ajNotifCuotaProx').checked,
+    recibidaHoy: document.getElementById('ajNotifRecibida').checked,
+    cumple: document.getElementById('ajNotifCumple').checked
+  };
+  AJUSTES.notif.plantillaCumple = document.getElementById('ajPlantillaCumple').value.trim() || '¡Feliz cumpleaños {nombre}!';
   localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {iva_config: AJUSTES.iva});
+  if (typeof refreshNotifs === 'function') refreshNotifs();
   toast('Ajustes guardados', 'ok');
 }
 
@@ -3729,6 +3848,213 @@ function calcIVA(precio, tipoIva) {
   }
   return {base: base, iva: iva, total: total, tipo: t, modo: modo};
 }
+
+// ═══ NOTIFICACIONES ═══
+function _parseDateAny(s) {
+  if (!s) return null;
+  // YYYY-MM-DD (HTML date input)
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    var dIso = new Date(s);
+    if (!isNaN(dIso.getTime())) return dIso;
+  }
+  // dd/mm/yyyy o dd-mm-yyyy
+  var p = String(s).split(/[\/\-]/);
+  if (p.length === 3) {
+    var d = new Date(parseInt(p[2]), parseInt(p[1]) - 1, parseInt(p[0]));
+    if (!isNaN(d.getTime())) return d;
+  }
+  return null;
+}
+
+function _getDismissed() {
+  var d = JSON.parse(localStorage.getItem('tk_notif_dismissed') || '{}');
+  var hoy = new Date().toLocaleDateString('es');
+  // Limpia los efímeros (solo válidos hoy)
+  Object.keys(d).forEach(function(k) {
+    if ((k.indexOf('hoy_') === 0 || k.indexOf('cumple_') === 0 || k.indexOf('abandon_') === 0) && d[k] !== hoy) {
+      delete d[k];
+    }
+  });
+  localStorage.setItem('tk_notif_dismissed', JSON.stringify(d));
+  return d;
+}
+
+function _saveDismissed(d) { localStorage.setItem('tk_notif_dismissed', JSON.stringify(d)); }
+
+function computeNotificaciones() {
+  var notifs = [];
+  var dismissed = _getDismissed();
+  var hoyDate = new Date(); hoyDate.setHours(0,0,0,0);
+  var hoyES = new Date().toLocaleDateString('es');
+  var nowMs = Date.now();
+  var nf = (AJUSTES.notif && AJUSTES.notif.activa) || {};
+
+  function add(n) {
+    if (dismissed[n.id]) return;
+    notifs.push(n);
+  }
+
+  // 1. Reparaciones: urgente / vencida / abandonada / nueva hoy
+  (DB.reps || []).forEach(function(r) {
+    if (r.estado !== 'Entregado') {
+      if (r.fechaEntrega) {
+        var fe = _parseDateAny(r.fechaEntrega);
+        if (fe) {
+          var diff = Math.ceil((fe - hoyDate) / 86400000);
+          if (diff < 0 && nf.vencida !== false) {
+            add({id:'venc_'+r.id, icon:'⏰', color:'#EF4444', titulo:'Reparación vencida',
+              detalle:r.clienteNombre+' · '+(r.modelo||'')+' · '+Math.abs(diff)+'d', href:'pReps', prio:0, manual:false});
+          } else if (diff < 2 && diff >= 0 && nf.urgente !== false) {
+            add({id:'urg_'+r.id, icon:'⚡', color:'#F59E0B', titulo:'Entrega urgente',
+              detalle:r.clienteNombre+' · '+(r.modelo||'')+' · en '+diff+'d', href:'pReps', prio:0, manual:false});
+          }
+        }
+      }
+      if (nf.abandono !== false) {
+        var fc = _parseDateAny(r.fecha);
+        if (fc) {
+          var dias = Math.floor((nowMs - fc.getTime()) / 86400000);
+          if (dias > 30) {
+            add({id:'abandon_'+r.id, icon:'📦', color:'#6B7280', titulo:'Posible abandono',
+              detalle:r.clienteNombre+' · '+dias+'d sin entregar', href:'pReps', prio:1, manual:true});
+          }
+        }
+      }
+    }
+    if (r.fecha === hoyES && nf.recibidaHoy !== false) {
+      add({id:'hoy_'+r.id, icon:'🔧', color:'#0055FF', titulo:'Reparación recibida hoy',
+        detalle:r.clienteNombre+' · '+(r.modelo||''), href:'pReps', prio:2, manual:true});
+    }
+  });
+
+  // 2. Stock bajo
+  if (nf.stock !== false) {
+    (DB.stock || []).forEach(function(s) {
+      var min = s.stockMin || 0;
+      if (s.unidades > 0 && s.unidades <= min) {
+        add({id:'stock_'+s.id, icon:'📦', color:'#F97316', titulo:'Stock bajo',
+          detalle:(s.marca?s.marca+' ':'')+s.modelo+' · '+s.unidades+' uds (mín '+min+')',
+          href:'pStock', prio:1, manual:false});
+      }
+    });
+  }
+
+  // 3. Cuotas
+  (DB.ventas || []).forEach(function(v) {
+    if (!v.financiado || !v.cuotas || v.reembolsado) return;
+    v.cuotas.forEach(function(c, idx) {
+      if (c.pagado) return;
+      var fc = _parseDateAny(c.fecha);
+      if (!fc) return;
+      var diff = Math.ceil((fc - hoyDate) / 86400000);
+      if (diff < 0 && nf.cuotaVencida !== false) {
+        add({id:'cv_'+v.id+'_'+idx, icon:'💰', color:'#EF4444', titulo:'Cuota vencida',
+          detalle:v.clienteNombre+' · #'+(idx+1)+' · '+cur(c.importe)+' ('+Math.abs(diff)+'d)',
+          href:'pVentas', prio:0, manual:false});
+      } else if (diff <= 3 && diff >= 0 && nf.cuotaProxima !== false) {
+        add({id:'cp_'+v.id+'_'+idx, icon:'💰', color:'#F59E0B', titulo:'Cuota próxima',
+          detalle:v.clienteNombre+' · #'+(idx+1)+' · '+cur(c.importe)+' · en '+diff+'d',
+          href:'pVentas', prio:1, manual:false});
+      }
+    });
+  });
+
+  // 4. Cumpleaños
+  if (nf.cumple !== false) {
+    (DB.clis || []).forEach(function(c) {
+      if (!c.fechaNac) return;
+      var d = _parseDateAny(c.fechaNac);
+      if (!d) return;
+      var hoyD = new Date();
+      if (d.getDate() === hoyD.getDate() && d.getMonth() === hoyD.getMonth()) {
+        add({id:'cumple_'+c.id, icon:'🎂', color:'#EC4899', titulo:'Cumpleaños hoy',
+          detalle:c.nombre+(c.apellidos?' '+c.apellidos:''), href:'pClis', prio:2, manual:true,
+          accion:{tipo:'felicitar', clienteId:c.id}});
+      }
+    });
+  }
+
+  notifs.sort(function(a,b){ return (a.prio||9) - (b.prio||9); });
+  return notifs;
+}
+
+function refreshNotifs() {
+  var list = computeNotificaciones();
+  var bell = document.getElementById('notifBadge');
+  var headCount = document.getElementById('notifHeadCount');
+  var listEl = document.getElementById('notifList');
+  if (!bell || !listEl) return;
+  if (list.length > 0) {
+    bell.textContent = list.length > 99 ? '99+' : list.length;
+    bell.classList.add('show');
+  } else {
+    bell.classList.remove('show');
+  }
+  if (headCount) headCount.textContent = list.length ? '(' + list.length + ')' : '';
+  if (!list.length) {
+    listEl.innerHTML = '<div class="notif-empty">Sin notificaciones 🎉</div>';
+    return;
+  }
+  listEl.innerHTML = list.map(function(n) {
+    var bg = n.color + '22';
+    var closeBtn = n.manual ? '<button class="notif-close" onclick="event.stopPropagation();dismissNotif(\'' + n.id + '\')">×</button>' : '';
+    var actionBtn = '';
+    if (n.accion && n.accion.tipo === 'felicitar') {
+      actionBtn = '<button class="caja-btn" style="border-color:#25D366;color:#25D366;margin-top:6px;display:block" onclick="event.stopPropagation();felicitarCumple(\'' + n.accion.clienteId + '\')">💬 Felicitar</button>';
+    }
+    return '<div class="notif-item" onclick="abrirNotif(\'' + n.href + '\')">' +
+      '<div class="notif-icon" style="background:' + bg + ';color:' + n.color + '">' + n.icon + '</div>' +
+      '<div class="notif-body"><div class="notif-title">' + n.titulo + '</div>' +
+      '<div class="notif-detail">' + n.detalle + '</div>' + actionBtn + '</div>' +
+      closeBtn + '</div>';
+  }).join('');
+}
+
+function felicitarCumple(cliId) {
+  var c = DB.clis.find(function(x){ return x.id === cliId; });
+  if (!c) { toast('Cliente no encontrado', 'err'); return; }
+  if (!c.tel) { toast('Este cliente no tiene teléfono', 'err'); return; }
+  var plantilla = (AJUSTES.notif && AJUSTES.notif.plantillaCumple) || '¡Feliz cumpleaños {nombre}!';
+  var nombre = c.nombre || '';
+  var tienda = (TIENDA && TIENDA.nombre) || 'nuestra tienda';
+  var msg = plantilla.replace(/\{nombre\}/g, nombre).replace(/\{tienda\}/g, tienda);
+  var tel = String(c.tel).replace(/[^0-9]/g, '');
+  if (tel.length === 9) tel = '34' + tel; // España, prefijo
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
+}
+
+function toggleNotifs() {
+  var p = document.getElementById('notifPanel');
+  if (!p) return;
+  if (p.classList.contains('open')) {
+    p.classList.remove('open');
+  } else {
+    refreshNotifs();
+    p.classList.add('open');
+  }
+}
+
+function dismissNotif(id) {
+  var d = _getDismissed();
+  d[id] = new Date().toLocaleDateString('es');
+  _saveDismissed(d);
+  refreshNotifs();
+}
+
+function abrirNotif(href) {
+  document.getElementById('notifPanel').classList.remove('open');
+  if (typeof navTo === 'function') navTo(href);
+}
+
+// Cerrar panel al hacer click fuera
+document.addEventListener('click', function(e) {
+  var p = document.getElementById('notifPanel');
+  var b = document.getElementById('notifBell');
+  if (!p || !b) return;
+  if (p.classList.contains('open') && !p.contains(e.target) && !b.contains(e.target)) {
+    p.classList.remove('open');
+  }
+});
 
 // ═══ SERVICIOS ═══
 function renderServicios() {
