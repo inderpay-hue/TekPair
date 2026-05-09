@@ -99,7 +99,9 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 .num-input{background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:8px;padding:8px 12px;color:white;font-size:20px;font-weight:800;font-family:inherit;text-align:right;width:100%;margin-bottom:8px}
 
 /* CHECKOUT BTN */
-.btn-checkout{width:100%;padding:16px;background:var(--green);border:none;border-radius:12px;color:white;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;transition:opacity .15s;margin:10px 12px;width:calc(100% - 24px);flex-shrink:0}
+.tpv-right-content{flex:1;overflow-y:auto;display:flex;flex-direction:column;min-height:0}
+.checkout-wrap{padding:10px 12px;background:var(--dark);border-top:1px solid rgba(255,255,255,.15);flex-shrink:0}
+.btn-checkout{width:100%;padding:16px;background:var(--green);border:none;border-radius:12px;color:white;font-size:16px;font-weight:800;cursor:pointer;font-family:inherit;transition:opacity .15s}
 .btn-checkout:hover{opacity:.9}
 .btn-checkout:disabled{background:rgba(255,255,255,.1);color:rgba(255,255,255,.3);cursor:not-allowed}
 
@@ -159,7 +161,10 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <!-- Caja del día -->
     <div class="caja-bar">
       <div class="caja-info">💵 Caja hoy: <strong id="cajaTotal">€0.00</strong> efectivo</div>
-      <button class="caja-btn" onclick="verCaja()">Ver caja</button>
+      <div style="display:flex;gap:6px">
+        <button class="caja-btn" onclick="verHistorial()">📋 Historial</button>
+        <button class="caja-btn" onclick="verCaja()">Ver caja</button>
+      </div>
     </div>
 
     <!-- Search -->
@@ -192,73 +197,79 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
       <div class="cart-subtitle" id="cartClient">Sin cliente asignado</div>
     </div>
 
-    <!-- Cart items -->
-    <div class="cart-items" id="cartItems">
-      <div class="cart-empty">📦 Añade productos al ticket</div>
-    </div>
-
-    <!-- Discount -->
-    <div class="cart-discount">
-      <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:6px">Descuento</div>
-      <div class="disc-row">
-        <input class="disc-input" id="discVal" type="number" placeholder="0" min="0" oninput="calcTotal()">
-        <select class="disc-type" id="discType" onchange="calcTotal()">
-          <option value="eur">€</option>
-          <option value="pct">%</option>
-        </select>
-      </div>
-    </div>
-
-    <!-- Totals -->
-    <div class="cart-totals">
-      <div class="total-row"><span>Subtotal</span><span id="subtotal">€0.00</span></div>
-      <div class="total-row"><span>Descuento</span><span id="discTotal" style="color:#FF8080">-€0.00</span></div>
-      <div class="total-row main"><span>TOTAL</span><span id="grandTotal">€0.00</span></div>
-    </div>
-
-    <!-- Payment method -->
-    <div class="cart-payment">
-      <div class="payment-title">Forma de pago</div>
-      <div class="payment-btns">
-        <button class="pay-btn active" data-p="Efectivo" onclick="setPago(this)">💵 Efectivo</button>
-        <button class="pay-btn" data-p="Tarjeta" onclick="setPago(this)">💳 Tarjeta</button>
-        <button class="pay-btn" data-p="Bizum" onclick="setPago(this)">📱 Bizum</button>
-        <button class="pay-btn" data-p="Financiado" onclick="setPago(this)">📅 Financiado</button>
+    <div class="tpv-right-content">
+      <!-- Cart items -->
+      <div class="cart-items" id="cartItems">
+        <div class="cart-empty">📦 Añade productos al ticket</div>
       </div>
 
-      <!-- Efectivo recibido -->
-      <div id="efectivoPanel" style="display:block">
-        <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px">Efectivo recibido</div>
-        <input class="disc-input" id="efectivoInput" type="number" placeholder="0.00" oninput="calcCambio()" style="margin-bottom:6px">
-        <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.7)">
-          <span>Cambio</span><span id="cambioVal" style="color:var(--green);font-weight:700">€0.00</span>
+      <!-- Discount -->
+      <div class="cart-discount">
+        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:6px">Descuento</div>
+        <div class="disc-row">
+          <input class="disc-input" id="discVal" type="number" placeholder="0" min="0" oninput="calcTotal()">
+          <select class="disc-type" id="discType" onchange="calcTotal()">
+            <option value="eur">€</option>
+            <option value="pct">%</option>
+          </select>
         </div>
       </div>
+
+      <!-- Totals -->
+      <div class="cart-totals">
+        <div class="total-row"><span>Subtotal</span><span id="subtotal">€0.00</span></div>
+        <div class="total-row"><span>Descuento</span><span id="discTotal" style="color:#FF8080">-€0.00</span></div>
+        <div class="total-row" id="ivaBaseRow" style="display:none"><span>Base imponible</span><span id="ivaBaseVal">€0.00</span></div>
+        <div class="total-row" id="ivaImpRow" style="display:none"><span id="ivaImpLbl">IVA</span><span id="ivaImpVal">€0.00</span></div>
+        <div class="total-row main"><span id="totalLbl">TOTAL</span><span id="grandTotal">€0.00</span></div>
+      </div>
+
+      <!-- Payment method -->
+      <div class="cart-payment">
+        <div class="payment-title">Forma de pago</div>
+        <div class="payment-btns">
+          <button class="pay-btn active" data-p="Efectivo" onclick="setPago(this)">💵 Efectivo</button>
+          <button class="pay-btn" data-p="Tarjeta" onclick="setPago(this)">💳 Tarjeta</button>
+          <button class="pay-btn" data-p="Bizum" onclick="setPago(this)">📱 Bizum</button>
+          <button class="pay-btn" data-p="Financiado" onclick="setPago(this)">📅 Financiado</button>
+        </div>
+
+        <!-- Efectivo recibido -->
+        <div id="efectivoPanel" style="display:block">
+          <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px">Efectivo recibido</div>
+          <input class="disc-input" id="efectivoInput" type="number" placeholder="0.00" oninput="calcCambio()" style="margin-bottom:6px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.7)">
+            <span>Cambio</span><span id="cambioVal" style="color:var(--green);font-weight:700">€0.00</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Numpad -->
+      <div style="padding:8px 12px 4px">
+        <input class="num-input" id="numInput" placeholder="0.00" readonly>
+      </div>
+      <div class="numpad">
+        <button class="num-btn" onclick="numpad('7')">7</button>
+        <button class="num-btn" onclick="numpad('8')">8</button>
+        <button class="num-btn" onclick="numpad('9')">9</button>
+        <button class="num-btn" onclick="numpad('4')">4</button>
+        <button class="num-btn" onclick="numpad('5')">5</button>
+        <button class="num-btn" onclick="numpad('6')">6</button>
+        <button class="num-btn" onclick="numpad('1')">1</button>
+        <button class="num-btn" onclick="numpad('2')">2</button>
+        <button class="num-btn" onclick="numpad('3')">3</button>
+        <button class="num-btn action" onclick="numpad('.')">.</button>
+        <button class="num-btn" onclick="numpad('0')">0</button>
+        <button class="num-btn del" onclick="numpad('del')">⌫</button>
+      </div>
     </div>
 
-    <!-- Numpad -->
-    <div style="padding:8px 12px 4px">
-      <input class="num-input" id="numInput" placeholder="0.00" readonly>
+    <!-- Checkout (siempre visible) -->
+    <div class="checkout-wrap">
+      <button class="btn-checkout" id="btnCheckout" onclick="cobrar()" disabled>
+        Cobrar €0.00
+      </button>
     </div>
-    <div class="numpad">
-      <button class="num-btn" onclick="numpad('7')">7</button>
-      <button class="num-btn" onclick="numpad('8')">8</button>
-      <button class="num-btn" onclick="numpad('9')">9</button>
-      <button class="num-btn" onclick="numpad('4')">4</button>
-      <button class="num-btn" onclick="numpad('5')">5</button>
-      <button class="num-btn" onclick="numpad('6')">6</button>
-      <button class="num-btn" onclick="numpad('1')">1</button>
-      <button class="num-btn" onclick="numpad('2')">2</button>
-      <button class="num-btn" onclick="numpad('3')">3</button>
-      <button class="num-btn action" onclick="numpad('.')">.</button>
-      <button class="num-btn" onclick="numpad('0')">0</button>
-      <button class="num-btn del" onclick="numpad('del')">⌫</button>
-    </div>
-
-    <!-- Checkout -->
-    <button class="btn-checkout" id="btnCheckout" onclick="cobrar()" disabled>
-      Cobrar €0.00
-    </button>
   </div>
 </div>
 
@@ -299,6 +310,18 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 </div>
 
+<!-- MODAL: Historial -->
+<div class="modal-bg" id="mHistorial">
+<div class="modal" style="max-width:560px">
+  <div class="modal-title">📋 Ventas de hoy</div>
+  <div class="fg" style="margin-bottom:10px">
+    <input class="fi" id="histSearch" placeholder="Buscar cliente, producto, pago..." oninput="renderHistorial()" autocomplete="off">
+  </div>
+  <div id="histContent"></div>
+  <button class="btn-secondary" onclick="closeModal('mHistorial')" style="margin-top:12px">Cerrar</button>
+</div>
+</div>
+
 <!-- MODAL: Caja -->
 <div class="modal-bg" id="mCaja">
 <div class="modal">
@@ -331,6 +354,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 var DB = JSON.parse(localStorage.getItem('tk_db') || '{"stock":[],"ventas":[],"clis":[],"servicios":[],"gastos":[]}');
 var U = JSON.parse(localStorage.getItem('tk_user') || 'null');
 var TIENDA = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
+var AJUSTES = JSON.parse(localStorage.getItem('tk_ajustes') || '{}');
+if (!AJUSTES.iva) AJUSTES.iva = {activo:false,modo:'incluido',tipoDefault:21};
 var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
 var SB_KEY = sess.sb_key || '';
 var TIENDA_ID = sess.tienda_id || '';
@@ -524,26 +549,63 @@ function renderCart() {
   calcTotal();
 }
 
-function calcTotal() {
+function _computeTotals() {
   var subtotal = cart.reduce(function(a, c) { return a + c.precio * c.qty; }, 0);
   var discVal = parseFloat(document.getElementById('discVal').value) || 0;
   var discType = document.getElementById('discType').value;
   var disc = discType === 'pct' ? subtotal * discVal / 100 : discVal;
   disc = Math.min(disc, subtotal);
-  var total = Math.max(0, subtotal - disc);
-  document.getElementById('subtotal').textContent = '\u20ac' + subtotal.toFixed(2);
-  document.getElementById('discTotal').textContent = '-\u20ac' + disc.toFixed(2);
-  document.getElementById('grandTotal').textContent = '\u20ac' + total.toFixed(2);
-  document.getElementById('btnCheckout').textContent = 'Cobrar \u20ac' + total.toFixed(2);
-  calcCambio();
-  return {subtotal, disc, total};
+  var preIva = Math.max(0, subtotal - disc);
+  // IVA segun ajustes
+  var ivaCfg = AJUSTES.iva || {};
+  var ivaTipo = 0, ivaImporte = 0, base = preIva, total = preIva, ivaModo = 'sin';
+  if (ivaCfg.activo) {
+    ivaTipo = parseFloat(ivaCfg.tipoDefault) || 21;
+    ivaModo = ivaCfg.modo || 'incluido';
+    if (ivaModo === 'incluido') {
+      base = preIva / (1 + ivaTipo/100);
+      ivaImporte = preIva - base;
+      total = preIva;
+    } else {
+      base = preIva;
+      ivaImporte = preIva * ivaTipo/100;
+      total = preIva + ivaImporte;
+    }
+  }
+  return {subtotal:subtotal, disc:disc, base:base, ivaTipo:ivaTipo, ivaImporte:ivaImporte, ivaModo:ivaModo, total:total};
+}
+
+function _renderCambio(total) {
+  var recibido = parseFloat(document.getElementById('efectivoInput').value) || 0;
+  var cambio = Math.max(0, recibido - total);
+  document.getElementById('cambioVal').textContent = '\u20ac' + cambio.toFixed(2);
+}
+
+function calcTotal() {
+  var t = _computeTotals();
+  document.getElementById('subtotal').textContent = '\u20ac' + t.subtotal.toFixed(2);
+  document.getElementById('discTotal').textContent = '-\u20ac' + t.disc.toFixed(2);
+  document.getElementById('grandTotal').textContent = '\u20ac' + t.total.toFixed(2);
+  document.getElementById('btnCheckout').textContent = 'Cobrar \u20ac' + t.total.toFixed(2);
+  // IVA rows
+  var ivaOn = !!(AJUSTES.iva && AJUSTES.iva.activo);
+  document.getElementById('ivaBaseRow').style.display = ivaOn ? 'flex' : 'none';
+  document.getElementById('ivaImpRow').style.display = ivaOn ? 'flex' : 'none';
+  if (ivaOn) {
+    document.getElementById('ivaBaseVal').textContent = '\u20ac' + t.base.toFixed(2);
+    document.getElementById('ivaImpVal').textContent = '\u20ac' + t.ivaImporte.toFixed(2);
+    document.getElementById('ivaImpLbl').textContent = 'IVA (' + t.ivaTipo + '%)';
+    document.getElementById('totalLbl').textContent = t.ivaModo === 'incluido' ? 'TOTAL (IVA inc.)' : 'TOTAL';
+  } else {
+    document.getElementById('totalLbl').textContent = 'TOTAL';
+  }
+  _renderCambio(t.total);
+  return t;
 }
 
 function calcCambio() {
-  var totals = calcTotal();
-  var recibido = parseFloat(document.getElementById('efectivoInput').value) || 0;
-  var cambio = Math.max(0, recibido - totals.total);
-  document.getElementById('cambioVal').textContent = '\u20ac' + cambio.toFixed(2);
+  var t = _computeTotals();
+  _renderCambio(t.total);
 }
 
 // ═══ NUMPAD ═══
@@ -573,7 +635,7 @@ function setPago(el) {
 // ═══ CHECKOUT ═══
 function cobrar() {
   if (!cart.length) return;
-  var totals = calcTotal();
+  var totals = _computeTotals();
   var venta = {
     id: 'v' + Date.now(),
     fecha: new Date().toLocaleDateString('es'),
@@ -585,6 +647,10 @@ function cobrar() {
     pago: selectedPago,
     precio: totals.subtotal,
     descuento: totals.disc,
+    iva: totals.ivaTipo || 0,
+    ivaModo: totals.ivaModo || 'sin',
+    base: totals.base,
+    ivaImporte: totals.ivaImporte,
     total: totals.total,
     reembolsado: false,
     financiado: selectedPago === 'Financiado',
@@ -609,7 +675,8 @@ function cobrar() {
       cliente_id: venta.clienteId, cliente_nombre: venta.clienteNombre,
       marca: venta.marca, modelo: venta.modelo, imei: '',
       pago: venta.pago, precio: venta.precio, descuento: venta.descuento,
-      total: venta.total, reembolsado: false, financiado: venta.financiado
+      total: venta.total, reembolsado: false, financiado: venta.financiado,
+      iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte
     });
   }
 
@@ -619,8 +686,13 @@ function cobrar() {
 }
 
 function mostrarTicket(venta, totals) {
+  var logoBlock = TIENDA.logo_url
+    ? '<div style="text-align:center;margin-bottom:6px"><img src="' + TIENDA.logo_url + '" alt="" style="max-height:50px;max-width:200px;object-fit:contain"></div>'
+    : '<div class="ticket-logo">\u26a1 ' + (TIENDA.nombre || 'Tekpair') + '</div>';
+  var ivaOn = !!(totals.ivaTipo && totals.ivaModo && totals.ivaModo !== 'sin');
   var html = '<div class="ticket">' +
-    '<div class="ticket-logo">⚡ ' + (TIENDA.nombre || 'Tekpair') + '</div>' +
+    logoBlock +
+    (TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:4px">' + TIENDA.nombre + '</div>' : '') +
     (TIENDA.dir ? '<div style="text-align:center;font-size:10px;color:#666">' + TIENDA.dir + '</div>' : '') +
     (TIENDA.tel ? '<div style="text-align:center;font-size:10px;color:#666">Tel: ' + TIENDA.tel + '</div>' : '') +
     '<hr class="ticket-sep">' +
@@ -634,7 +706,12 @@ function mostrarTicket(venta, totals) {
     '<hr class="ticket-sep">' +
     (totals.disc > 0 ? '<div class="ticket-row"><span>Subtotal</span><span>\u20ac' + totals.subtotal.toFixed(2) + '</span></div>' +
     '<div class="ticket-row"><span>Descuento</span><span>-\u20ac' + totals.disc.toFixed(2) + '</span></div>' : '') +
-    '<div class="ticket-total"><span>TOTAL</span><span>\u20ac' + totals.total.toFixed(2) + '</span></div>' +
+    (ivaOn ?
+      '<div class="ticket-row"><span>Base imponible</span><span>\u20ac' + totals.base.toFixed(2) + '</span></div>' +
+      '<div class="ticket-row"><span>IVA (' + totals.ivaTipo + '%)</span><span>\u20ac' + totals.ivaImporte.toFixed(2) + '</span></div>'
+      : ''
+    ) +
+    '<div class="ticket-total"><span>TOTAL' + (totals.ivaModo === 'incluido' ? ' (IVA inc.)' : '') + '</span><span>\u20ac' + totals.total.toFixed(2) + '</span></div>' +
     '<hr class="ticket-sep">' +
     '<div class="ticket-footer">Gracias por su visita<br>' + (TIENDA.garantia || '') + '</div>' +
     '</div>';
@@ -729,6 +806,47 @@ function verCaja() {
     '<div style="display:flex;justify-content:space-between;padding:12px 0;font-size:18px;font-weight:800;color:var(--blue)">' +
     '<span>TOTAL</span><span>\u20ac' + total.toFixed(2) + '</span></div>';
   openModal('mCaja');
+}
+
+// ═══ HISTORIAL ═══
+function verHistorial() {
+  document.getElementById('histSearch').value = '';
+  renderHistorial();
+  openModal('mHistorial');
+}
+
+function renderHistorial() {
+  var hoy = new Date().toLocaleDateString('es');
+  var q = (document.getElementById('histSearch').value || '').toLowerCase();
+  var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy; }).slice().reverse();
+  if (q) {
+    ventasHoy = ventasHoy.filter(function(v) {
+      return ((v.clienteNombre || '') + ' ' + (v.modelo || '') + ' ' + (v.pago || '')).toLowerCase().indexOf(q) !== -1;
+    });
+  }
+  var el = document.getElementById('histContent');
+  if (!ventasHoy.length) {
+    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">Sin ventas hoy</div>';
+    return;
+  }
+  var totalDia = ventasHoy.filter(function(v){return !v.reembolsado;}).reduce(function(a,v){return a+(v.total||0);},0);
+  var html = '<div style="background:var(--bg);padding:10px 14px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;font-size:13px"><span>' + ventasHoy.length + ' venta' + (ventasHoy.length!==1?'s':'') + '</span><strong style="color:var(--green)">\u20ac' + totalDia.toFixed(2) + '</strong></div>';
+  html += '<div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">';
+  html += ventasHoy.map(function(v) {
+    var hora = '';
+    var n = parseInt(String(v.id || '').replace('v',''));
+    if (!isNaN(n)) hora = new Date(n).toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit'});
+    var color = v.reembolsado ? 'var(--red)' : 'var(--green)';
+    var sign = v.reembolsado ? '-' : '';
+    return '<div style="display:flex;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);' + (v.reembolsado?'opacity:.6':'') + '">' +
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (v.modelo || '-') + '</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + hora + (hora?' \u00b7 ':'') + (v.clienteNombre || 'Sin cliente') + ' \u00b7 ' + (v.pago || '-') + '</div></div>' +
+      '<div style="text-align:right;flex-shrink:0;margin-left:10px"><div style="font-weight:700;color:' + color + ';font-size:14px">' + sign + '\u20ac' + (v.total||0).toFixed(2) + '</div>' +
+      (v.reembolsado ? '<div style="font-size:10px;color:var(--red);font-weight:700">REEMBOLSADA</div>' : '') + '</div>' +
+      '</div>';
+  }).join('');
+  html += '</div>';
+  el.innerHTML = html;
 }
 </script>
 </body>
