@@ -79,6 +79,13 @@ body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sa
 .notif-chip.active{background:var(--blue);color:white;border-color:var(--blue)}
 .notif-clear{margin-left:auto;font-size:11px;font-weight:700;padding:5px 10px;border-radius:8px;border:1px solid rgba(239,68,68,.3);background:rgba(239,68,68,.05);color:var(--red);cursor:pointer;font-family:inherit;white-space:nowrap}
 .notif-clear:hover{background:rgba(239,68,68,.1)}
+.notif-tabs{display:flex;border-bottom:1px solid var(--border);background:white;flex-shrink:0}
+.notif-tab{flex:1;padding:10px 12px;background:none;border:none;color:var(--muted);font-family:inherit;font-size:12px;font-weight:700;cursor:pointer;border-bottom:2px solid transparent;transition:all .15s}
+.notif-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
+.notif-mark-read{background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.3);color:var(--green);padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;margin-top:2px}
+.notif-mark-read:hover{background:rgba(0,200,150,.15)}
+.notif-mark-unread{background:rgba(0,85,255,.08);border:1px solid rgba(0,85,255,.3);color:var(--blue);padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;margin-top:2px}
+.notif-mark-unread:hover{background:rgba(0,85,255,.15)}
 .content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .navbar{background:white;border-top:1px solid var(--border);display:flex;flex-shrink:0;position:relative;z-index:10}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 10px;cursor:pointer;color:var(--muted);font-size:9px;font-weight:600;gap:3px;transition:color .15s}
@@ -303,6 +310,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="notif-head">
     <div><span class="notif-head-title">🔔 Notificaciones</span><span class="notif-head-count" id="notifHeadCount"></span></div>
     <button class="notif-close" onclick="toggleNotifs()" style="font-size:18px">×</button>
+  </div>
+  <div class="notif-tabs">
+    <button class="notif-tab active" id="notifTabUnread" onclick="setNotifTab('unread')">No leídas <span id="notifTabUnreadCount"></span></button>
+    <button class="notif-tab" id="notifTabRead" onclick="setNotifTab('read')">Leídas <span id="notifTabReadCount"></span></button>
   </div>
   <div class="notif-actions" id="notifActions"></div>
   <div class="notif-list" id="notifList"></div>
@@ -3898,17 +3909,13 @@ function _saveDismissed(d) { localStorage.setItem('tk_notif_dismissed', JSON.str
 
 function computeNotificaciones() {
   var notifs = [];
-  var dismissed = _getDismissed();
   var hoyDate = new Date(); hoyDate.setHours(0,0,0,0);
   var hoyES = new Date().toLocaleDateString('es');
   var nowMs = Date.now();
   var nf = (AJUSTES.notif && AJUSTES.notif.activa) || {};
   var diasAbandono = (AJUSTES.notif && AJUSTES.notif.diasAbandono) || 90;
 
-  function add(n) {
-    if (dismissed[n.id]) return;
-    notifs.push(n);
-  }
+  function add(n) { notifs.push(n); }
 
   // 1. Reparaciones
   (DB.reps || []).forEach(function(r) {
@@ -3994,68 +4001,128 @@ function computeNotificaciones() {
   return notifs;
 }
 
+function _getRead() { return JSON.parse(localStorage.getItem('tk_notif_read') || '{}'); }
+function _saveRead(d) { localStorage.setItem('tk_notif_read', JSON.stringify(d)); }
+
+// Migración una sola vez: descartadas anteriores → leídas
+(function _migrarDismissedARead(){
+  if (localStorage.getItem('tk_notif_migrated_v1')) return;
+  var d = JSON.parse(localStorage.getItem('tk_notif_dismissed') || '{}');
+  var r = JSON.parse(localStorage.getItem('tk_notif_read') || '{}');
+  Object.keys(d).forEach(function(k) { if (!r[k]) r[k] = d[k]; });
+  localStorage.setItem('tk_notif_read', JSON.stringify(r));
+  localStorage.removeItem('tk_notif_dismissed');
+  localStorage.setItem('tk_notif_migrated_v1', '1');
+})();
+
 var notifFilter = '';
+var notifTab = 'unread';
 
 function refreshNotifs() {
   var list = computeNotificaciones();
+  var read = _getRead();
+
+  // Anotar estado leída/no leída en cada noti
+  list.forEach(function(n) { n.read = !!read[n.id]; });
+
+  var unread = list.filter(function(n){ return !n.read; });
+  var readList = list.filter(function(n){ return n.read; });
+
+  // Limpieza: quitar de tk_notif_read los IDs que ya no están vivos
+  var liveIds = {};
+  list.forEach(function(n){ liveIds[n.id] = true; });
+  var changed = false;
+  Object.keys(read).forEach(function(id) {
+    if (!liveIds[id]) { delete read[id]; changed = true; }
+  });
+  if (changed) _saveRead(read);
+
   var bell = document.getElementById('notifBadge');
   var headCount = document.getElementById('notifHeadCount');
   var listEl = document.getElementById('notifList');
   var actionsEl = document.getElementById('notifActions');
+  var tabUnreadEl = document.getElementById('notifTabUnread');
+  var tabReadEl = document.getElementById('notifTabRead');
   if (!bell || !listEl) return;
 
-  // Badge cuenta total (sin filtro)
-  if (list.length > 0) {
-    bell.textContent = list.length > 99 ? '99+' : list.length;
+  // Badge: solo no leídas
+  if (unread.length > 0) {
+    bell.textContent = unread.length > 99 ? '99+' : unread.length;
     bell.classList.add('show');
   } else {
     bell.classList.remove('show');
   }
-  if (headCount) headCount.textContent = list.length ? '(' + list.length + ')' : '';
+  if (headCount) headCount.textContent = unread.length ? '(' + unread.length + ')' : '';
 
-  // Chips por tipo (solo los que tienen al menos 1)
+  // Tabs counts y estado activo
+  document.getElementById('notifTabUnreadCount').textContent = unread.length ? '(' + unread.length + ')' : '';
+  document.getElementById('notifTabReadCount').textContent = readList.length ? '(' + readList.length + ')' : '';
+  if (tabUnreadEl) tabUnreadEl.classList.toggle('active', notifTab === 'unread');
+  if (tabReadEl) tabReadEl.classList.toggle('active', notifTab === 'read');
+
+  // Lista activa según tab
+  var current = notifTab === 'read' ? readList : unread;
+
+  // Chips por tipo (solo del tab activo)
   var counts = {};
-  list.forEach(function(n) { counts[n.tipo] = (counts[n.tipo] || 0) + 1; });
+  current.forEach(function(n) { counts[n.tipo] = (counts[n.tipo] || 0) + 1; });
   var labels = {reparaciones:'⏰ Reparaciones', stock:'📦 Stock', cuotas:'💰 Cuotas', cumples:'🎂 Cumples'};
 
   if (actionsEl) {
-    if (list.length === 0) {
+    if (current.length === 0) {
       actionsEl.style.display = 'none';
     } else {
       actionsEl.style.display = 'flex';
-      var chipsHtml = '<button class="notif-chip ' + (notifFilter === '' ? 'active' : '') + '" onclick="setNotifFilter(\'\')">Todas (' + list.length + ')</button>';
+      var chipsHtml = '<button class="notif-chip ' + (notifFilter === '' ? 'active' : '') + '" onclick="setNotifFilter(\'\')">Todas (' + current.length + ')</button>';
       Object.keys(labels).forEach(function(k) {
         if (!counts[k]) return;
         chipsHtml += '<button class="notif-chip ' + (notifFilter === k ? 'active' : '') + '" onclick="setNotifFilter(\'' + k + '\')">' + labels[k] + ' (' + counts[k] + ')</button>';
       });
-      chipsHtml += '<button class="notif-clear" onclick="marcarTodasLeidas()">✓ Marcar leídas</button>';
+      if (notifTab === 'unread') {
+        chipsHtml += '<button class="notif-clear" onclick="marcarTodasLeidas()">✓ Marcar leídas</button>';
+      } else {
+        chipsHtml += '<button class="notif-clear" onclick="marcarTodasNoLeidas()">↺ Marcar no leídas</button>';
+      }
       actionsEl.innerHTML = chipsHtml;
     }
   }
 
-  // Aplicar filtro
-  var filtered = notifFilter ? list.filter(function(n){ return n.tipo === notifFilter; }) : list;
+  // Aplicar filtro de chip
+  var filtered = notifFilter ? current.filter(function(n){ return n.tipo === notifFilter; }) : current;
 
   if (!filtered.length) {
-    listEl.innerHTML = list.length === 0
-      ? '<div class="notif-empty">Sin notificaciones 🎉</div>'
-      : '<div class="notif-empty">Sin notificaciones de este tipo</div>';
+    if (current.length === 0) {
+      listEl.innerHTML = '<div class="notif-empty">' + (notifTab === 'read' ? 'No hay notificaciones leídas' : 'Sin notificaciones 🎉') + '</div>';
+    } else {
+      listEl.innerHTML = '<div class="notif-empty">Sin notificaciones de este tipo</div>';
+    }
     return;
   }
 
   listEl.innerHTML = filtered.map(function(n) {
     var bg = n.color + '22';
-    var closeBtn = n.manual ? '<button class="notif-close" onclick="event.stopPropagation();dismissNotif(\'' + n.id + '\')">×</button>' : '';
-    var actionBtn = '';
+    var actionBtns = '';
     if (n.accion && n.accion.tipo === 'felicitar') {
-      actionBtn = '<button class="caja-btn" style="border-color:#25D366;color:#25D366;margin-top:6px;display:block" onclick="event.stopPropagation();felicitarCumple(\'' + n.accion.clienteId + '\')">💬 Felicitar</button>';
+      actionBtns += '<button class="caja-btn" style="border-color:#25D366;color:#25D366;margin-top:6px;display:block" onclick="event.stopPropagation();felicitarCumple(\'' + n.accion.clienteId + '\')">💬 Felicitar</button>';
     }
-    return '<div class="notif-item" onclick="abrirNotif(\'' + n.href + '\')">' +
+    var sideBtn;
+    if (n.read) {
+      sideBtn = '<button class="notif-mark-unread" onclick="event.stopPropagation();marcarLeida(\'' + n.id + '\',false)" title="Marcar no leída">↺</button>';
+    } else {
+      sideBtn = '<button class="notif-mark-read" onclick="event.stopPropagation();marcarLeida(\'' + n.id + '\',true)" title="Marcar leída">✓</button>';
+    }
+    return '<div class="notif-item" onclick="abrirNotif(\'' + n.href + '\')" style="' + (n.read ? 'opacity:.6' : '') + '">' +
       '<div class="notif-icon" style="background:' + bg + ';color:' + n.color + '">' + n.icon + '</div>' +
       '<div class="notif-body"><div class="notif-title">' + n.titulo + '</div>' +
-      '<div class="notif-detail">' + n.detalle + '</div>' + actionBtn + '</div>' +
-      closeBtn + '</div>';
+      '<div class="notif-detail">' + n.detalle + '</div>' + actionBtns + '</div>' +
+      sideBtn + '</div>';
   }).join('');
+}
+
+function setNotifTab(tab) {
+  notifTab = tab;
+  notifFilter = '';
+  refreshNotifs();
 }
 
 function setNotifFilter(tipo) {
@@ -4063,16 +4130,38 @@ function setNotifFilter(tipo) {
   refreshNotifs();
 }
 
+function marcarLeida(id, leida) {
+  var d = _getRead();
+  if (leida) d[id] = new Date().toLocaleDateString('es');
+  else delete d[id];
+  _saveRead(d);
+  refreshNotifs();
+}
+
 function marcarTodasLeidas() {
   var list = computeNotificaciones();
-  var visibles = notifFilter ? list.filter(function(n){ return n.tipo === notifFilter; }) : list;
-  if (!visibles.length) return;
-  if (!confirm('¿Marcar como leídas las ' + visibles.length + ' notificaciones' + (notifFilter ? ' visibles' : '') + '?')) return;
-  var d = _getDismissed();
+  var read = _getRead();
+  var current = list.filter(function(n){ return !read[n.id]; });
+  if (notifFilter) current = current.filter(function(n){ return n.tipo === notifFilter; });
+  if (!current.length) return;
+  if (!confirm('¿Marcar como leídas las ' + current.length + ' notificaciones' + (notifFilter ? ' visibles' : '') + '? Podrás revisarlas en la pestaña "Leídas".')) return;
   var hoy = new Date().toLocaleDateString('es');
-  visibles.forEach(function(n){ d[n.id] = hoy; });
-  _saveDismissed(d);
-  toast(visibles.length + ' marcadas como leídas', 'ok');
+  current.forEach(function(n){ read[n.id] = hoy; });
+  _saveRead(read);
+  toast(current.length + ' marcadas como leídas', 'ok');
+  refreshNotifs();
+}
+
+function marcarTodasNoLeidas() {
+  var list = computeNotificaciones();
+  var read = _getRead();
+  var current = list.filter(function(n){ return !!read[n.id]; });
+  if (notifFilter) current = current.filter(function(n){ return n.tipo === notifFilter; });
+  if (!current.length) return;
+  if (!confirm('¿Marcar como NO leídas las ' + current.length + ' notificaciones' + (notifFilter ? ' visibles' : '') + '?')) return;
+  current.forEach(function(n){ delete read[n.id]; });
+  _saveRead(read);
+  toast(current.length + ' marcadas como no leídas', 'ok');
   refreshNotifs();
 }
 
