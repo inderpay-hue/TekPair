@@ -1012,7 +1012,10 @@ function mostrarTicket(venta, totals) {
     ) +
     '<div class="ticket-total"><span>TOTAL' + (totals.ivaModo === 'incluido' ? ' (IVA inc.)' : '') + '</span><span>\u20ac' + totals.total.toFixed(2) + '</span></div>' +
     '<hr class="ticket-sep">' +
-    '<div class="ticket-footer">Gracias por su visita<br>' + (TIENDA.garantia || '') + '</div>' +
+    '<div class="ticket-footer">Gracias por su compra' +
+    (TIENDA.garantiaVentas ? '<br><span style="font-size:9px">' + TIENDA.garantiaVentas + '</span>' : '') +
+    (TIENDA.politicaVentas ? '<br><span style="font-size:9px;color:#888">' + TIENDA.politicaVentas + '</span>' : '') +
+    '</div>' +
     '</div>';
   document.getElementById('ticketContent').innerHTML = html;
   openModal('mTicket');
