@@ -5723,9 +5723,19 @@ async function _pullTiendaCompleta() {
     Object.assign(TIENDA, tiendaData);
     localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
 
-    // Favoritos TPV (compartidos por toda la tienda)
+    // Favoritos TPV (compartidos por toda la tienda) - merge-safe
     if (Array.isArray(t.tpv_favs)) {
-      localStorage.setItem('tk_tpv_favs', JSON.stringify(t.tpv_favs));
+      try {
+        var localFavs = JSON.parse(localStorage.getItem('tk_tpv_favs') || '[]');
+        // Si remote tiene cosas → confiar en remote
+        // Si remote vacío Y local tiene cosas → preservar local + push a Supabase
+        if (t.tpv_favs.length > 0) {
+          localStorage.setItem('tk_tpv_favs', JSON.stringify(t.tpv_favs));
+        } else if (localFavs.length > 0 && SB_KEY && TIENDA_ID) {
+          // Local tiene favs pero Supabase no → subirlos
+          sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {tpv_favs: localFavs});
+        }
+      } catch(e) {}
     }
 
     // Refrescar UI dependiente
