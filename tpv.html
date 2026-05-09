@@ -44,13 +44,27 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 
 /* PRODUCTS GRID */
 .tpv-products{flex:1;overflow-y:auto;padding:12px 16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;align-content:start}
-.prod-card{background:white;border:1.5px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column}
+.prod-card{background:white;border:1.5px solid var(--border);border-radius:12px;padding:12px;cursor:pointer;transition:all .15s;display:flex;flex-direction:column;position:relative}
 .prod-card:hover{border-color:var(--blue);transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,85,255,.1)}
 .prod-card:active{transform:scale(.97)}
 .prod-icon{font-size:28px;margin-bottom:8px}
 .prod-name{font-size:12px;font-weight:700;line-height:1.3;margin-bottom:4px;flex:1}
 .prod-price{font-size:14px;font-weight:800;color:var(--blue)}
 .prod-stock{font-size:10px;color:var(--muted);margin-top:2px}
+.prod-fav{position:absolute;top:6px;right:6px;width:26px;height:26px;border-radius:50%;background:rgba(255,255,255,.9);border:1px solid var(--border);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;line-height:1;color:#cbd5e1;transition:all .15s;z-index:2}
+.prod-fav:hover{transform:scale(1.1);border-color:#FBBF24}
+.prod-fav.on{color:#FBBF24;border-color:#FBBF24;background:#FFFBEB}
+
+/* FAVORITES BAR */
+.fav-bar{padding:10px 16px;display:flex;gap:8px;overflow-x:auto;flex-shrink:0;border-bottom:1px solid var(--border);background:linear-gradient(to right,#FFFBEB,#FEF3C7);align-items:center}
+.fav-bar::-webkit-scrollbar{display:none}
+.fav-bar-empty{font-size:12px;color:#92400E;font-weight:600;padding:4px 0}
+.fav-pill{flex-shrink:0;width:130px;background:white;border:1.5px solid #FBBF24;border-radius:10px;padding:8px 10px;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;transition:all .15s;position:relative}
+.fav-pill:hover{transform:translateY(-1px);box-shadow:0 4px 8px rgba(251,191,36,.25)}
+.fav-pill:active{transform:scale(.97)}
+.fav-pill-icon{font-size:18px;margin-bottom:2px}
+.fav-pill-name{font-size:11px;font-weight:700;line-height:1.2;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;width:100%}
+.fav-pill-price{font-size:12px;font-weight:800;color:var(--blue);margin-top:2px}
 
 /* RIGHT PANEL - CART */
 .cart-header{padding:16px;border-bottom:1px solid rgba(255,255,255,.1);flex-shrink:0}
@@ -179,12 +193,16 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <!-- Categories -->
     <div class="tpv-cats">
       <button class="cat-pill active" data-c="" onclick="setCat(this)">Todos</button>
+      <button class="cat-pill" data-c="favoritos" onclick="setCat(this)" style="border-color:#FBBF24;color:#92400E;font-weight:800">⭐ Favoritos</button>
       <button class="cat-pill" data-c="Telefono" onclick="setCat(this)">📱 Telefonos</button>
       <button class="cat-pill" data-c="Tablet" onclick="setCat(this)">📟 Tablets</button>
       <button class="cat-pill" data-c="Accesorio" onclick="setCat(this)">🎧 Accesorios</button>
       <button class="cat-pill" data-c="Repuesto" onclick="setCat(this)">🔧 Repuestos</button>
       <button class="cat-pill" data-c="servicio" onclick="setCat(this)">🛠️ Servicios</button>
     </div>
+
+    <!-- Favorites bar -->
+    <div class="fav-bar" id="favBar" style="display:none"></div>
 
     <!-- Products Grid -->
     <div class="tpv-products" id="productsGrid"></div>
@@ -310,6 +328,35 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 </div>
 </div>
 
+<!-- MODAL: Gestionar favoritos -->
+<div class="modal-bg" id="mGestionarFavs">
+<div class="modal" style="max-width:560px">
+  <div class="modal-title">⭐ Gestionar favoritos</div>
+  <div style="display:flex;gap:8px;margin-bottom:12px">
+    <input class="fi" id="favSearch" placeholder="Buscar favoritos..." oninput="renderGestionFavs()" autocomplete="off" style="flex:1">
+    <button class="btn-primary" style="width:auto;padding:11px 14px" onclick="closeModal('mGestionarFavs');setTimeout(function(){openModal('mFavFijo')},150)">+ Fijo</button>
+  </div>
+  <div id="gestionFavsContent"></div>
+  <button class="btn-secondary" onclick="closeModal('mGestionarFavs')" style="margin-top:12px">Cerrar</button>
+</div>
+</div>
+
+<!-- MODAL: Añadir favorito de precio fijo (venta rápida) -->
+<div class="modal-bg" id="mFavFijo">
+<div class="modal">
+  <div class="modal-title">⭐ Nuevo favorito de precio fijo</div>
+  <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="favFijoNom" placeholder="Cargador genérico, Hidrogel..."></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Precio (€) *</label><input class="fi" id="favFijoPrecio" type="number" step="0.01" placeholder="9.99"></div>
+    <div class="fg"><label class="fl">Icono</label><input class="fi" id="favFijoIcon" placeholder="🔌" maxlength="2" value="⭐"></div>
+  </div>
+  <div style="display:flex;gap:10px;margin-top:8px">
+    <button class="btn-secondary" onclick="closeModal('mFavFijo');setTimeout(function(){openModal('mGestionarFavs');renderGestionFavs()},150)">Cancelar</button>
+    <button class="btn-primary" onclick="guardarFavFijo()">Guardar</button>
+  </div>
+</div>
+</div>
+
 <!-- MODAL: Historial -->
 <div class="modal-bg" id="mHistorial">
 <div class="modal" style="max-width:560px">
@@ -367,11 +414,33 @@ var selectedCli = null;
 var currentCat = '';
 var numStr = '';
 
+// ═══ FAVORITOS ═══
+var favs = JSON.parse(localStorage.getItem('tk_tpv_favs') || '[]');
+function saveFavs() { localStorage.setItem('tk_tpv_favs', JSON.stringify(favs)); }
+function isFav(type, id) { return favs.some(function(f){ return f.type === type && f.id === id; }); }
+function findFav(type, id) { return favs.find(function(f){ return f.type === type && f.id === id; }); }
+function toggleFav(type, id, ev) {
+  if (ev) { ev.stopPropagation(); ev.preventDefault(); }
+  var idx = favs.findIndex(function(f){ return f.type === type && f.id === id; });
+  if (idx >= 0) {
+    favs.splice(idx, 1);
+    toast('Eliminado de favoritos');
+  } else {
+    // Para stock/servicio, almacenamos solo type+id (info se busca al renderizar)
+    favs.push({type: type, id: id});
+    toast('Añadido a favoritos', 'ok');
+  }
+  saveFavs();
+  renderFavBar();
+  renderProducts();
+}
+
 // ═══ INIT ═══
 window.addEventListener('DOMContentLoaded', function() {
   if (!U) { window.location.href = 'app.html'; return; }
   document.getElementById('topUser').textContent = U.nombre || '';
   document.getElementById('topDate').textContent = new Date().toLocaleDateString('es', {weekday:'short',day:'numeric',month:'short'});
+  renderFavBar();
   renderProducts();
   updateCaja();
 });
@@ -399,38 +468,189 @@ function closeModal(id) { document.getElementById(id).classList.remove('open'); 
 
 // ═══ PRODUCTS ═══
 function getProducts() {
-  var stock = DB.stock.filter(function(s) { return s.unidades > 0; });
+  var stock = DB.stock.filter(function(s) { return s.unidades > 0; }).map(function(s){
+    return Object.assign({}, s, {_type:'stock'});
+  });
   var servicios = (DB.servicios || []).filter(function(s) { return s.tipo === 'venta' || s.tipo === 'ambos'; })
-    .map(function(s) { return {id: s.id, categoria: 'servicio', marca: 'Servicio', modelo: s.nombre, precioV: s.precioFijo ? s.precio : 0, unidades: 99, esServicio: true, calidad: s.categoria}; });
+    .map(function(s) { return {id: s.id, categoria: 'servicio', marca: 'Servicio', modelo: s.nombre, precioV: s.precioFijo ? s.precio : 0, unidades: 99, esServicio: true, calidad: s.categoria, _type:'servicio'}; });
   return stock.concat(servicios);
 }
 
-function renderProducts() {
-  var products = getProducts().filter(function(p) {
-    return !currentCat || p.categoria === currentCat;
+function getFavoritosResolved() {
+  // Devuelve los favoritos hidratados con datos actuales
+  var products = getProducts();
+  var out = [];
+  favs.forEach(function(f) {
+    if (f.type === 'fijo') {
+      out.push({id: f.id, _type: 'fijo', marca: '', modelo: f.nombre, precioV: f.precio, esServicio: false, esFijo: true, icon: f.icon || '⭐', categoria: 'fijo', unidades: 99});
+    } else {
+      var p = products.find(function(x){ return x._type === f.type && x.id === f.id; });
+      if (p) out.push(p);
+      // Si no encontrado (producto eliminado o sin stock), lo omitimos
+    }
   });
+  return out;
+}
+
+function renderProducts() {
+  var products;
+  if (currentCat === 'favoritos') {
+    products = getFavoritosResolved();
+  } else {
+    products = getProducts().filter(function(p) {
+      return !currentCat || p.categoria === currentCat;
+    });
+  }
   var grid = document.getElementById('productsGrid');
+  var icons = {Telefono:'📱', Tablet:'📟', Smartwatch:'⌚', Accesorio:'🎧', Repuesto:'🔧', servicio:'🛠️', Otro:'📦', fijo:'⭐'};
+
   if (!products.length) {
+    if (currentCat === 'favoritos') {
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Sin favoritos. Pulsa la estrella ⭐ en cualquier producto, o usa "Gestionar" abajo.</div>';
+      grid.innerHTML += '<div style="grid-column:1/-1;text-align:center;margin-top:8px"><button class="btn-primary" style="width:auto;padding:10px 16px" onclick="abrirGestionFavs()">⭐ Gestionar favoritos</button></div>';
+      return;
+    }
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Sin productos en esta categoria</div>';
     return;
   }
-  var icons = {Telefono:'📱', Tablet:'📟', Smartwatch:'⌚', Accesorio:'🎧', Repuesto:'🔧', servicio:'🛠️', Otro:'📦'};
   grid.innerHTML = products.map(function(p) {
-    var icon = icons[p.categoria] || '📦';
-    return '<div class="prod-card" onclick="addToCart(\'' + p.id + '\',' + p.esServicio + ')">' +
+    var icon = p.icon || icons[p.categoria] || '📦';
+    var fav = isFav(p._type, p.id);
+    var nombre = p.esFijo ? p.modelo : ((p.marca && p.marca !== 'Servicio') ? p.marca + ' ' : '') + p.modelo;
+    var stockTxt = p.esFijo ? 'Precio fijo' : (p.esServicio ? p.calidad : 'Stock: ' + p.unidades);
+    var click = p.esFijo
+      ? "addFavFijoToCart('" + p.id + "')"
+      : "addToCart('" + p.id + "'," + (p.esServicio ? 'true' : 'false') + ")";
+    return '<div class="prod-card" onclick="' + click + '">' +
+      '<button class="prod-fav ' + (fav ? 'on' : '') + '" onclick="toggleFav(\'' + p._type + '\',\'' + p.id + '\',event)" title="Favorito">' + (fav ? '★' : '☆') + '</button>' +
       '<div class="prod-icon">' + icon + '</div>' +
-      '<div class="prod-name">' + (p.marca !== 'Servicio' ? p.marca + ' ' : '') + p.modelo + '</div>' +
+      '<div class="prod-name">' + nombre + '</div>' +
       '<div class="prod-price">\u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div>' +
-      '<div class="prod-stock">' + (p.esServicio ? p.calidad : 'Stock: ' + p.unidades) + '</div>' +
+      '<div class="prod-stock">' + stockTxt + '</div>' +
       '</div>';
   }).join('');
 
-  // Add quick sale button
-  grid.innerHTML += '<div class="prod-card" onclick="openModal(\'mRapida\')" style="border-style:dashed;border-color:rgba(0,85,255,.3);background:rgba(0,85,255,.03)">' +
-    '<div class="prod-icon">⚡</div>' +
-    '<div class="prod-name">Venta rapida</div>' +
-    '<div class="prod-price" style="color:var(--blue)">Precio libre</div>' +
-    '<div class="prod-stock">Sin stock</div></div>';
+  // Quick sale button (always visible except in favoritos tab)
+  if (currentCat !== 'favoritos') {
+    grid.innerHTML += '<div class="prod-card" onclick="openModal(\'mRapida\')" style="border-style:dashed;border-color:rgba(0,85,255,.3);background:rgba(0,85,255,.03)">' +
+      '<div class="prod-icon">⚡</div>' +
+      '<div class="prod-name">Venta rapida</div>' +
+      '<div class="prod-price" style="color:var(--blue)">Precio libre</div>' +
+      '<div class="prod-stock">Sin stock</div></div>';
+  } else {
+    // En la pestaña favoritos, botón gestionar al final
+    grid.innerHTML += '<div class="prod-card" onclick="abrirGestionFavs()" style="border-style:dashed;border-color:#FBBF24;background:#FFFBEB">' +
+      '<div class="prod-icon">⚙️</div>' +
+      '<div class="prod-name">Gestionar favoritos</div>' +
+      '<div class="prod-price" style="color:#92400E">Editar lista</div>' +
+      '<div class="prod-stock">' + favs.length + ' favorito' + (favs.length !== 1 ? 's' : '') + '</div></div>';
+  }
+}
+
+function renderFavBar() {
+  var bar = document.getElementById('favBar');
+  if (!bar) return;
+  var resolved = getFavoritosResolved();
+  if (!resolved.length) {
+    bar.style.display = 'none';
+    bar.innerHTML = '';
+    return;
+  }
+  bar.style.display = 'flex';
+  var icons = {Telefono:'📱', Tablet:'📟', Smartwatch:'⌚', Accesorio:'🎧', Repuesto:'🔧', servicio:'🛠️', Otro:'📦', fijo:'⭐'};
+  bar.innerHTML = resolved.map(function(p) {
+    var icon = p.icon || icons[p.categoria] || '📦';
+    var nombre = p.esFijo ? p.modelo : ((p.marca && p.marca !== 'Servicio') ? p.marca + ' ' : '') + p.modelo;
+    var click = p.esFijo
+      ? "addFavFijoToCart('" + p.id + "')"
+      : "addToCart('" + p.id + "'," + (p.esServicio ? 'true' : 'false') + ")";
+    return '<div class="fav-pill" onclick="' + click + '">' +
+      '<div class="fav-pill-icon">' + icon + '</div>' +
+      '<div class="fav-pill-name">' + nombre + '</div>' +
+      '<div class="fav-pill-price">\u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function addFavFijoToCart(id) {
+  var f = favs.find(function(x){ return x.type === 'fijo' && x.id === id; });
+  if (!f) return;
+  cart.push({
+    id: 'fav_' + id + '_' + Date.now(),
+    nombre: f.nombre,
+    precio: parseFloat(f.precio) || 0,
+    qty: 1,
+    esRapida: true
+  });
+  renderCart();
+  toast('Añadido', 'ok');
+}
+
+// ═══ GESTIÓN FAVORITOS ═══
+function abrirGestionFavs() {
+  document.getElementById('favSearch').value = '';
+  renderGestionFavs();
+  openModal('mGestionarFavs');
+}
+
+function renderGestionFavs() {
+  var q = (document.getElementById('favSearch').value || '').toLowerCase();
+  var resolved = getFavoritosResolved();
+  if (q) {
+    resolved = resolved.filter(function(p) {
+      var nombre = p.esFijo ? p.modelo : ((p.marca || '') + ' ' + (p.modelo || ''));
+      return nombre.toLowerCase().indexOf(q) !== -1;
+    });
+  }
+  var el = document.getElementById('gestionFavsContent');
+  if (!resolved.length) {
+    el.innerHTML = '<div style="text-align:center;padding:30px 20px;color:var(--muted);font-size:13px">' + (favs.length === 0 ? 'Aún no tienes favoritos. Marca productos con la ⭐ o pulsa "+ Fijo".' : 'Sin coincidencias') + '</div>';
+    return;
+  }
+  var icons = {Telefono:'📱', Tablet:'📟', Smartwatch:'⌚', Accesorio:'🎧', Repuesto:'🔧', servicio:'🛠️', Otro:'📦', fijo:'⭐'};
+  el.innerHTML = '<div style="border:1px solid var(--border);border-radius:10px;max-height:400px;overflow-y:auto">' +
+    resolved.map(function(p) {
+      var icon = p.icon || icons[p.categoria] || '📦';
+      var nombre = p.esFijo ? p.modelo : ((p.marca && p.marca !== 'Servicio') ? p.marca + ' ' : '') + p.modelo;
+      var tipoLbl = p.esFijo ? 'Precio fijo' : (p.esServicio ? 'Servicio' : 'Producto');
+      return '<div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px">' +
+        '<div style="font-size:22px">' + icon + '</div>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + nombre + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">' + tipoLbl + ' \u00b7 \u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div></div>' +
+        '<button class="caja-btn" style="border-color:rgba(239,68,68,.3);color:var(--red)" onclick="quitarFav(\'' + p._type + '\',\'' + p.id + '\')">Quitar</button>' +
+        '</div>';
+    }).join('') +
+    '</div>';
+}
+
+function quitarFav(type, id) {
+  var idx = favs.findIndex(function(f){ return f.type === type && f.id === id; });
+  if (idx < 0) return;
+  favs.splice(idx, 1);
+  saveFavs();
+  renderFavBar();
+  renderGestionFavs();
+  renderProducts();
+  toast('Eliminado de favoritos');
+}
+
+function guardarFavFijo() {
+  var nom = document.getElementById('favFijoNom').value.trim();
+  var precio = parseFloat(document.getElementById('favFijoPrecio').value) || 0;
+  var icon = document.getElementById('favFijoIcon').value.trim() || '⭐';
+  if (!nom) { toast('El nombre es obligatorio', 'err'); return; }
+  if (precio <= 0) { toast('Precio inválido', 'err'); return; }
+  var id = 'fij_' + Date.now();
+  favs.push({type: 'fijo', id: id, nombre: nom, precio: precio, icon: icon});
+  saveFavs();
+  document.getElementById('favFijoNom').value = '';
+  document.getElementById('favFijoPrecio').value = '';
+  document.getElementById('favFijoIcon').value = '⭐';
+  closeModal('mFavFijo');
+  setTimeout(function(){ openModal('mGestionarFavs'); renderGestionFavs(); }, 150);
+  renderFavBar();
+  renderProducts();
+  toast('Favorito guardado', 'ok');
 }
 
 function setCat(el) {
