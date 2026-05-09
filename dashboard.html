@@ -11,6 +11,81 @@
 :root{
   --blue:#0055FF;--dark:#020B2E;--green:#00C896;--orange:#F97316;--purple:#7C3AED;--red:#EF4444;
   --bg:#F7F9FC;--white:#fff;--border:#E2E8F0;--text:#0F1729;--muted:#64748B;--light:#F1F5F9;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.04);
+  --shadow:0 4px 12px rgba(0,0,0,.06);
+  --shadow-md:0 8px 24px rgba(0,0,0,.08);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.10);
+  --shadow-xl:0 25px 60px rgba(0,0,0,.15);
+  --ease:cubic-bezier(.4,0,.2,1);
+}
+
+/* === MODO OSCURO === */
+body[data-theme="dark"]{
+  --bg:#0F1117;
+  --white:#1A1D24;
+  --border:#2A2E37;
+  --text:#E8ECF1;
+  --muted:#8B92A4;
+  --light:#222632;
+  --dark:#0A0D14;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.4);
+  --shadow:0 4px 12px rgba(0,0,0,.5);
+  --shadow-md:0 8px 24px rgba(0,0,0,.55);
+  --shadow-lg:0 12px 40px rgba(0,0,0,.6);
+  --shadow-xl:0 25px 60px rgba(0,0,0,.65);
+}
+body[data-theme="dark"] .sidebar{background:#080A10;border-right:1px solid #1A1D24}
+body[data-theme="dark"] .modal{background:var(--white);color:var(--text)}
+body[data-theme="dark"] input.fi,
+body[data-theme="dark"] select.fi,
+body[data-theme="dark"] textarea.fi,
+body[data-theme="dark"] .search-input{
+  background:var(--light);border-color:var(--border);color:var(--text);
+}
+body[data-theme="dark"] input.fi::placeholder,
+body[data-theme="dark"] textarea.fi::placeholder,
+body[data-theme="dark"] .search-input::placeholder{color:var(--muted)}
+body[data-theme="dark"] .card{background:var(--white)}
+body[data-theme="dark"] .rep-section{background:var(--light)}
+body[data-theme="dark"] .modal-rep-header,
+body[data-theme="dark"] .modal-rep-footer{background:var(--white);border-color:var(--border)}
+body[data-theme="dark"] .rep-quick-templates{background:var(--light)}
+body[data-theme="dark"] .rep-quick-chip{background:var(--white);color:var(--text);border-color:var(--border)}
+body[data-theme="dark"] .srv-card,
+body[data-theme="dark"] .plantilla-card{background:var(--white);border-color:var(--border)}
+body[data-theme="dark"] .chk-btn{background:var(--white);border-color:var(--border);color:var(--text)}
+body[data-theme="dark"] .reps-head,
+body[data-theme="dark"] tbody tr{border-color:var(--border)}
+body[data-theme="dark"] .modal-close-btn,
+body[data-theme="dark"] .cls{background:var(--light);color:var(--muted)}
+body[data-theme="dark"] .modal-close-btn:hover,
+body[data-theme="dark"] .cls:hover{background:var(--border);color:var(--text)}
+body[data-theme="dark"] .empty{color:var(--muted)}
+body[data-theme="dark"] .toast-bar{background:#1A1D24;color:var(--text)}
+body[data-theme="dark"] .add-srv-btn,
+body[data-theme="dark"] .btn-explorar,
+body[data-theme="dark"] .btn-secondary{background:var(--white);border-color:var(--border);color:var(--text)}
+body[data-theme="dark"] .add-srv-btn:hover,
+body[data-theme="dark"] .btn-explorar:hover,
+body[data-theme="dark"] .btn-secondary:hover{background:var(--light);border-color:#404652}
+body[data-theme="dark"] #impFacDrop{background:var(--light) !important;border-color:var(--border) !important}
+body[data-theme="dark"] #impFacTabla thead{background:var(--light) !important}
+body[data-theme="dark"] details summary{color:var(--muted)}
+body[data-theme="dark"] pre{background:var(--light) !important;color:var(--text) !important}
+body[data-theme="dark"] .srv-search-row .fi,
+body[data-theme="dark"] .modal input,
+body[data-theme="dark"] .modal select,
+body[data-theme="dark"] .modal textarea{background:var(--light);color:var(--text);border-color:var(--border)}
+
+/* Toggle de tema */
+.theme-toggle{
+  background:transparent;border:1px solid rgba(255,255,255,.15);
+  color:white;width:30px;height:30px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;font-size:14px;font-family:inherit;
+  transition:all .2s var(--ease);
+}
+.theme-toggle:hover{background:rgba(255,255,255,.08);border-color:rgba(255,255,255,.25)}
   --accent:var(--blue);
   /* Sistema de elevación con tinte azul sutil (más pro que negro plano) */
   --shadow-sm: 0 1px 2px rgba(2,11,46,.04), 0 1px 1px rgba(2,11,46,.03);
@@ -415,6 +490,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="sidebar-bell" id="sidebarBell" onclick="toggleNotifs()" title="Notificaciones">
       🔔
       <span class="notif-badge" id="sidebarBadge">0</span>
+    </button>
+    <button class="sidebar-bell" id="sidebarTheme" onclick="toggleTheme()" title="Modo oscuro / claro" style="margin-left:6px">
+      🌙
     </button>
   </div>
   <div class="sidebar-search-btn" onclick="abrirBusquedaGlobal()" title="Buscar (⌘K)">
@@ -7444,7 +7522,38 @@ document.addEventListener('click', function(e){
       setTimeout(function(){ if (typeof renderReps === 'function') renderReps(); }, 50);
     });
   });
-})();// ═══ IMPORTAR FACTURA PDF ═══
+})();// ═══ MODO OSCURO ═══
+function aplicarTema(tema) {
+  if (tema === 'dark') {
+    document.body.setAttribute('data-theme', 'dark');
+    var btn = document.getElementById('sidebarTheme');
+    if (btn) btn.textContent = '☀️';
+  } else {
+    document.body.removeAttribute('data-theme');
+    var btn2 = document.getElementById('sidebarTheme');
+    if (btn2) btn2.textContent = '🌙';
+  }
+}
+function toggleTheme() {
+  var actual = localStorage.getItem('tk_theme') || 'light';
+  var nuevo = actual === 'dark' ? 'light' : 'dark';
+  localStorage.setItem('tk_theme', nuevo);
+  aplicarTema(nuevo);
+  toast(nuevo === 'dark' ? '🌙 Modo oscuro activado' : '☀️ Modo claro activado', 'ok');
+}
+// Aplicar tema al cargar (sin esperar al DOM completo, lo hacemos al inicio)
+(function() {
+  var saved = localStorage.getItem('tk_theme');
+  if (saved === 'dark') {
+    document.body.setAttribute('data-theme', 'dark');
+    setTimeout(function(){
+      var btn = document.getElementById('sidebarTheme');
+      if (btn) btn.textContent = '☀️';
+    }, 100);
+  }
+})();
+
+// ═══ IMPORTAR FACTURA PDF ═══
 if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
 }
