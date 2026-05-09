@@ -296,6 +296,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sidebar-ni" data-p="pAjustes" onclick="navTo('pAjustes');setSidebarActive(this)">
       <span class="sidebar-ni-icon">⚙️</span>Ajustes
     </div>
+    <div class="sidebar-ni" data-p="pImportar" onclick="navTo('pImportar');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">📥</span>Importar
+    </div>
+    <div class="sidebar-ni" onclick="backupManual()">
+      <span class="sidebar-ni-icon">💾</span>Backup
+    </div>
+    <div class="sidebar-ni" data-p="pAyuda" onclick="navTo('pAyuda');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">❓</span>Ayuda
+    </div>
   </div>
   <div class="sidebar-user">
     <div id="sidebarName"></div>
@@ -1253,9 +1262,14 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // Load from Supabase
   if (SB_KEY && TIENDA_ID) {
-    cargarDatosSupabase().then(function() { renderDash(); checkUrgentes(); cargarNotas(); iniciarRefrescoNotas(); cargarModelosCustom(); });
+    syncCompleto(true).then(function() { cargarNotas(); iniciarRefrescoNotas(); cargarModelosCustom(); });
     cargarModelosPre();
   }
+
+  // Sync continua: cuando vuelves a la pestaña + cada 60s
+  window.addEventListener('focus', function(){ syncCompleto(true); });
+  window.addEventListener('visibilitychange', function(){ if (!document.hidden) syncCompleto(true); });
+  setInterval(function(){ if (!document.hidden) syncCompleto(true); }, 60000);
 
   // Admin check
   if (!U.rol || U.rol !== 'admin') {
@@ -1497,6 +1511,11 @@ function mapCli(c) {
 }
 
 async function cargarDatosSupabase() {
+  if (!SB_KEY || !TIENDA_ID) return;
+  // Backup pre-sync una sola vez (por si algo va mal, restaurable manualmente)
+  if (!localStorage.getItem('tk_db_backup_pre_sync')) {
+    localStorage.setItem('tk_db_backup_pre_sync', localStorage.getItem('tk_db') || '{}');
+  }
   try {
     var [ventas, reps, stock, clis, gastos, provs] = await Promise.all([
       sbGet('ventas', 'tienda_id=eq.' + TIENDA_ID),
@@ -1514,6 +1533,36 @@ async function cargarDatosSupabase() {
     if (Array.isArray(provs)) DB.provs = provs;
     guardarDatos();
   } catch(e) { console.error('Supabase load error:', e); }
+}
+
+// Refresca todas las vistas activas (no solo el dashboard)
+function refrescarVistasActivas() {
+  try { if (typeof renderDash === 'function') renderDash(); } catch(e){}
+  try { if (typeof renderVentas === 'function') renderVentas(); } catch(e){}
+  try { if (typeof renderReps === 'function') renderReps(); } catch(e){}
+  try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
+  try { if (typeof renderClis === 'function') renderClis(); } catch(e){}
+  try { if (typeof renderProvs === 'function') renderProvs(); } catch(e){}
+  try { if (typeof renderGastos === 'function') renderGastos(); } catch(e){}
+  try { if (typeof renderServicios === 'function') renderServicios(); } catch(e){}
+  try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch(e){}
+  try { if (typeof refreshNotifs === 'function') refreshNotifs(); } catch(e){}
+  try { if (typeof renderSidebarLogo === 'function') renderSidebarLogo(); } catch(e){}
+}
+
+// Sync completa: descarga + refresco de pantalla
+var _syncEnCurso = false;
+async function syncCompleto(silencioso) {
+  if (_syncEnCurso) return;
+  if (!SB_KEY || !TIENDA_ID) return;
+  _syncEnCurso = true;
+  try {
+    await cargarDatosSupabase();
+    refrescarVistasActivas();
+    if (!silencioso && typeof toast === 'function') toast('Sincronizado', 'ok');
+  } finally {
+    _syncEnCurso = false;
+  }
 }
 
 // ═══ DASHBOARD ═══

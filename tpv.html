@@ -445,6 +445,10 @@ window.addEventListener('DOMContentLoaded', function() {
   updateCaja();
   // Sync con Supabase para historial actualizado
   syncVentasDesdeSupabase();
+  // Sync continua: cuando vuelves a la pestaña + cada 60s
+  window.addEventListener('focus', function(){ syncVentasDesdeSupabase(); });
+  window.addEventListener('visibilitychange', function(){ if (!document.hidden) syncVentasDesdeSupabase(); });
+  setInterval(function(){ if (!document.hidden) syncVentasDesdeSupabase(); }, 60000);
 });
 
 // ═══ SUPABASE ═══
