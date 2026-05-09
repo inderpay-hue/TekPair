@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#00E5AA"/>
+      <stop offset="100%" stop-color="#00A87D"/>
+    </linearGradient>
+  </defs>
+  <rect width="192" height="192" rx="42" fill="url(#g)"/>
+  <g transform="translate(96 96)" fill="white">
+    <path d="M-32 -28 L-12 -8 L0 -20 L20 0 L8 12 L28 32 C30 34 30 38 28 40 L20 48 C18 50 14 50 12 48 L-8 28 L-20 40 L-40 20 L-28 8 L-48 -12 C-50 -14 -50 -18 -48 -20 L-40 -28 C-38 -30 -34 -30 -32 -28 Z" stroke-width="0"/>
+    <circle cx="-30" cy="-26" r="3"/>
+    <circle cx="22" cy="34" r="3"/>
+  </g>
+  <text x="96" y="156" font-family="-apple-system, system-ui, sans-serif" font-size="22" font-weight="800" text-anchor="middle" fill="white" letter-spacing="-0.5">TekPair</text>
+</svg>
