@@ -3428,7 +3428,7 @@ function abrirEntregar(id) {
 }
 
 function confirmarEntrega() {
-  if (!tienePerm('reps_editar')) { toast('Sin permiso', 'err'); return; }
+  if (!tienePerm('reps_entregar')) { toast('Sin permiso para entregar', 'err'); return; }
   var r = DB.reps.find(function(x) { return x.id === SEL.eRepId; });
   if (!r) return;
   r.estado = 'Entregado';
@@ -3856,6 +3856,7 @@ function emailReporte() {
 
 // ═══ CIERRE DEL DIA ═══
 function cierreDia() {
+  if (!tienePerm('caja_cerrar')) { toast('Sin permiso', 'err'); return; }
   var hoy = new Date().toLocaleDateString('es');
   var vH = DB.ventas.filter(function(v) { return !v.reembolsado && v.fecha === hoy; });
   var rH = DB.reps.filter(function(r) { return r.fechaEntregaReal === hoy; });
@@ -3931,6 +3932,7 @@ function cargarTienda() {
 }
 
 function guardarTienda() {
+  if (!tienePerm('tienda_editar')) { toast('Sin permiso', 'err'); return; }
   var prev = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
   var gvEl = document.getElementById('tGarantiaVentas');
   var pvEl = document.getElementById('tPoliticaVentas');
@@ -4149,6 +4151,7 @@ function toggleCumpleCfg() {
 }
 
 function guardarAjustes() {
+  if (!tienePerm('ajustes_editar')) { toast('Sin permiso', 'err'); return; }
   AJUSTES.moneda = document.getElementById('ajMoneda').value;
   AJUSTES.nombre = document.getElementById('ajNombre').value;
   AJUSTES.cierre.hora = document.getElementById('ajCierreHora').value;
@@ -4725,6 +4728,8 @@ function editarServicio(id) {
 }
 
 function eliminarServicio(id) {
+  if (!tienePerm('servicios_eliminar')) { toast('Sin permiso', 'err'); return; }
+  if (!confirm('Eliminar este servicio?')) return;
   DB.servicios = (DB.servicios || []).filter(function(s) { return s.id !== id; });
   guardarDatos();
   toast('Eliminado', 'ok');
@@ -4842,98 +4847,156 @@ function tienePerm(perm) {
 function aplicarPermisos() {
   if (!U || U.rol === 'admin') return;
 
-  // Navbar - hide sections user cant access
-  if (!tienePerm('ventas_ver')) {
-    var niV = document.querySelector('.ni[data-p="pVentas"]');
-    if (niV) niV.style.display = 'none';
-    var sbV = document.querySelector('.sidebar-ni[data-p="pVentas"]');
-    if (sbV) sbV.style.display = 'none';
+  function hideNav(p, perm) {
+    if (tienePerm(perm)) return;
+    var ni = document.querySelector('.ni[data-p="' + p + '"]');
+    if (ni) ni.style.display = 'none';
+    var sb = document.querySelector('.sidebar-ni[data-p="' + p + '"]');
+    if (sb) sb.style.display = 'none';
   }
-  if (!tienePerm('reps_ver')) {
-    var niR = document.querySelector('.ni[data-p="pReps"]');
-    if (niR) niR.style.display = 'none';
-    var sbR = document.querySelector('.sidebar-ni[data-p="pReps"]');
-    if (sbR) sbR.style.display = 'none';
-  }
-  if (!tienePerm('stock_ver')) {
-    var niS = document.querySelector('.ni[data-p="pStock"]');
-    if (niS) niS.style.display = 'none';
-    var sbS = document.querySelector('.sidebar-ni[data-p="pStock"]');
-    if (sbS) sbS.style.display = 'none';
-  }
+  hideNav('pVentas', 'ventas_ver');
+  hideNav('pReps', 'reps_ver');
+  hideNav('pStock', 'stock_ver');
+  hideNav('pClis', 'clis_ver');
+  hideNav('pProvs', 'provs_ver');
+  hideNav('pGastos', 'gastos_ver');
+  hideNav('pReportes', 'reportes_ver');
+  hideNav('pServicios', 'servicios_ver');
+  hideNav('pTienda', 'tienda_ver');
+  hideNav('pAjustes', 'ajustes_ver');
+  hideNav('pImportar', 'herramientas_importar');
 
-  // Quick action buttons on dashboard
-  var btns = document.querySelectorAll('#pDash .qbtn');
-  btns.forEach(function(btn) {
+  // Quick action buttons en dashboard
+  document.querySelectorAll('#pDash .qbtn-dash, #pDash .qbtn').forEach(function(btn) {
     var onclick = btn.getAttribute('onclick') || '';
     if (onclick.includes('abrirVenta') && !tienePerm('ventas_crear')) btn.style.display = 'none';
     if (onclick.includes('abrirRep') && !tienePerm('reps_crear')) btn.style.display = 'none';
-    if (onclick.includes('pStock') && !tienePerm('stock_crear')) btn.style.display = 'none';
-    if (onclick.includes('pClis') && !tienePerm('clis_crear')) btn.style.display = 'none';
+    if (onclick.includes('mStock') && !tienePerm('stock_crear')) btn.style.display = 'none';
+    if (onclick.includes('mCli') && !tienePerm('clis_crear')) btn.style.display = 'none';
+    if (onclick.includes('tpv.html') && !tienePerm('ventas_crear')) btn.style.display = 'none';
   });
 
-  // Mas menu buttons
-  var masBtns = document.querySelectorAll('#pMas .qbtn');
-  masBtns.forEach(function(btn) {
+  // Sidebar items extra (catalogo, backup, ayuda)
+  document.querySelectorAll('.sidebar-ni').forEach(function(btn) {
     var onclick = btn.getAttribute('onclick') || '';
-    if (onclick.includes('pReportes') && !tienePerm('reportes')) btn.style.display = 'none';
-    if (onclick.includes('pGastos') && !tienePerm('gastos_ver')) btn.style.display = 'none';
-    if (onclick.includes('pServicios') && !tienePerm('servicios')) btn.style.display = 'none';
     if (onclick.includes('catalogo') && !tienePerm('catalogo')) btn.style.display = 'none';
-    if (onclick.includes('pImportar') && !tienePerm('importar')) btn.style.display = 'none';
-    if (onclick.includes('pUsuarios')) btn.style.display = 'none'; // only admin
+    if (onclick.includes('backupManual') && !tienePerm('herramientas_backup')) btn.style.display = 'none';
+    if (onclick.includes('pUsuarios')) btn.style.display = 'none'; // solo admin
+    if (onclick.includes('tpv.html') && !tienePerm('ventas_crear')) btn.style.display = 'none';
   });
 
-  // Sidebar menu
-  var sbBtns = document.querySelectorAll('.sidebar-ni');
-  sbBtns.forEach(function(btn) {
+  // Mas menu (móvil)
+  document.querySelectorAll('#pMas .qbtn').forEach(function(btn) {
     var onclick = btn.getAttribute('onclick') || '';
-    if (onclick.includes('pReportes') && !tienePerm('reportes')) btn.style.display = 'none';
+    if (onclick.includes('pReportes') && !tienePerm('reportes_ver')) btn.style.display = 'none';
     if (onclick.includes('pGastos') && !tienePerm('gastos_ver')) btn.style.display = 'none';
-    if (onclick.includes('pServicios') && !tienePerm('servicios')) btn.style.display = 'none';
+    if (onclick.includes('pServicios') && !tienePerm('servicios_ver')) btn.style.display = 'none';
+    if (onclick.includes('pProvs') && !tienePerm('provs_ver')) btn.style.display = 'none';
+    if (onclick.includes('pClis') && !tienePerm('clis_ver')) btn.style.display = 'none';
+    if (onclick.includes('catalogo') && !tienePerm('catalogo')) btn.style.display = 'none';
+    if (onclick.includes('pImportar') && !tienePerm('herramientas_importar')) btn.style.display = 'none';
+    if (onclick.includes('backupManual') && !tienePerm('herramientas_backup')) btn.style.display = 'none';
+    if (onclick.includes('pTienda') && !tienePerm('tienda_ver')) btn.style.display = 'none';
+    if (onclick.includes('pAjustes') && !tienePerm('ajustes_ver')) btn.style.display = 'none';
     if (onclick.includes('pUsuarios')) btn.style.display = 'none';
   });
 
-  // Hide new venta/rep buttons in pages
-  if (!tienePerm('ventas_crear')) {
-    document.querySelectorAll('[onclick*="abrirVenta"]').forEach(function(b) { b.style.display = 'none'; });
-  }
-  if (!tienePerm('reps_crear')) {
-    document.querySelectorAll('[onclick*="abrirRep"]').forEach(function(b) { b.style.display = 'none'; });
-  }
-  if (!tienePerm('stock_crear')) {
-    document.querySelectorAll('[onclick*="mStock"]').forEach(function(b) { b.style.display = 'none'; });
-  }
-  if (!tienePerm('clis_crear') && !tienePerm('clis_eliminar')) {
-    document.querySelectorAll('[onclick*="mCli"]').forEach(function(b) { b.style.display = 'none'; });
-  }
+  // Ocultar grupos vacíos del sidebar
+  document.querySelectorAll('.sidebar-group').forEach(function(g) {
+    var next = g.nextElementSibling;
+    var algunoVisible = false;
+    while (next && !next.classList.contains('sidebar-group')) {
+      if (next.style.display !== 'none') { algunoVisible = true; break; }
+      next = next.nextElementSibling;
+    }
+    if (!algunoVisible) g.style.display = 'none';
+  });
+
+  // Ocultar botones de creación en cabeceras de páginas
+  if (!tienePerm('ventas_crear')) document.querySelectorAll('[onclick*="abrirVenta"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('reps_crear')) document.querySelectorAll('[onclick*="abrirRep"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('stock_crear')) document.querySelectorAll('[onclick*="mStock"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('clis_crear')) document.querySelectorAll('[onclick*="mCli"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('provs_crear')) document.querySelectorAll('[onclick*="mProv"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('gastos_crear')) document.querySelectorAll('[onclick*="mGasto"]').forEach(function(b) { b.style.display = 'none'; });
+  if (!tienePerm('servicios_crear')) document.querySelectorAll('[onclick*="mServicio"]').forEach(function(b) { b.style.display = 'none'; });
 }
 
 var PERMS_LISTA = [
+  // Ventas
   {id:'ventas_ver',label:'Ver ventas',grupo:'Ventas'},
   {id:'ventas_crear',label:'Crear ventas',grupo:'Ventas'},
+  {id:'ventas_eliminar',label:'Eliminar ventas',grupo:'Ventas'},
   {id:'ventas_reembolso',label:'Reembolsar ventas',grupo:'Ventas'},
-  {id:'ventas_financiado',label:'Ventas financiadas',grupo:'Ventas'},
+  {id:'ventas_financiacion',label:'Gestionar financiación',grupo:'Ventas'},
+  // Reparaciones
   {id:'reps_ver',label:'Ver reparaciones',grupo:'Reparaciones'},
   {id:'reps_crear',label:'Crear reparaciones',grupo:'Reparaciones'},
-  {id:'reps_editar',label:'Cambiar estado',grupo:'Reparaciones'},
+  {id:'reps_editar',label:'Editar reparaciones',grupo:'Reparaciones'},
+  {id:'reps_eliminar',label:'Eliminar reparaciones',grupo:'Reparaciones'},
   {id:'reps_entregar',label:'Entregar reparaciones',grupo:'Reparaciones'},
+  // Stock
   {id:'stock_ver',label:'Ver stock',grupo:'Stock'},
-  {id:'stock_crear',label:'Anadir stock',grupo:'Stock'},
+  {id:'stock_crear',label:'Añadir stock',grupo:'Stock'},
   {id:'stock_editar',label:'Editar stock',grupo:'Stock'},
   {id:'stock_eliminar',label:'Eliminar stock',grupo:'Stock'},
+  {id:'stock_ajustar',label:'Ajustes manuales de stock',grupo:'Stock'},
+  // Clientes
   {id:'clis_ver',label:'Ver clientes',grupo:'Clientes'},
-  {id:'clis_crear',label:'Anadir clientes',grupo:'Clientes'},
+  {id:'clis_crear',label:'Añadir clientes',grupo:'Clientes'},
+  {id:'clis_editar',label:'Editar clientes',grupo:'Clientes'},
   {id:'clis_eliminar',label:'Eliminar clientes',grupo:'Clientes'},
+  // Proveedores
   {id:'provs_ver',label:'Ver proveedores',grupo:'Proveedores'},
-  {id:'gastos_ver',label:'Ver gastos',grupo:'Admin'},
-  {id:'gastos_crear',label:'Crear gastos',grupo:'Admin'},
-  {id:'reportes',label:'Ver reportes',grupo:'Admin'},
-  {id:'servicios',label:'Gestionar servicios',grupo:'Admin'},
-  {id:'catalogo',label:'Ver catalogo',grupo:'Admin'},
-  {id:'importar',label:'Importar datos',grupo:'Admin'},
-  {id:'cierre',label:'Ver cierre del dia',grupo:'Admin'}
+  {id:'provs_crear',label:'Crear proveedores',grupo:'Proveedores'},
+  {id:'provs_editar',label:'Editar proveedores',grupo:'Proveedores'},
+  {id:'provs_eliminar',label:'Eliminar proveedores',grupo:'Proveedores'},
+  // Servicios
+  {id:'servicios_ver',label:'Ver servicios',grupo:'Servicios'},
+  {id:'servicios_crear',label:'Crear servicios',grupo:'Servicios'},
+  {id:'servicios_editar',label:'Editar servicios',grupo:'Servicios'},
+  {id:'servicios_eliminar',label:'Eliminar servicios',grupo:'Servicios'},
+  // Gastos
+  {id:'gastos_ver',label:'Ver gastos',grupo:'Gastos'},
+  {id:'gastos_crear',label:'Crear gastos',grupo:'Gastos'},
+  {id:'gastos_editar',label:'Editar gastos',grupo:'Gastos'},
+  {id:'gastos_eliminar',label:'Eliminar gastos',grupo:'Gastos'},
+  // Reportes
+  {id:'reportes_ver',label:'Ver reportes',grupo:'Reportes'},
+  {id:'reportes_exportar',label:'Exportar reportes (PDF/CSV)',grupo:'Reportes'},
+  // Caja
+  {id:'caja_cerrar',label:'Cerrar caja',grupo:'Caja'},
+  {id:'caja_historico',label:'Ver histórico de cierres',grupo:'Caja'},
+  // Configuración
+  {id:'tienda_ver',label:'Ver Mi Tienda',grupo:'Configuración'},
+  {id:'tienda_editar',label:'Editar Mi Tienda',grupo:'Configuración'},
+  {id:'ajustes_ver',label:'Ver Ajustes',grupo:'Configuración'},
+  {id:'ajustes_editar',label:'Editar Ajustes',grupo:'Configuración'},
+  // Herramientas
+  {id:'catalogo',label:'Ver catálogo',grupo:'Herramientas'},
+  {id:'herramientas_importar',label:'Importar datos',grupo:'Herramientas'},
+  {id:'herramientas_backup',label:'Hacer backup',grupo:'Herramientas'}
 ];
+
+// Roles preset — listas de permisos por rol
+var ROLES_PRESET = {
+  'admin': ['todo'],
+  'encargado': PERMS_LISTA.filter(function(p){ return p.id.indexOf('_eliminar') === -1; }).map(function(p){ return p.id; }),
+  'vendedor': ['ventas_ver','ventas_crear','ventas_reembolso','clis_ver','clis_crear','clis_editar','stock_ver','servicios_ver','tienda_ver','caja_cerrar'],
+  'tecnico':  ['reps_ver','reps_crear','reps_editar','reps_entregar','stock_ver','stock_ajustar','clis_ver','servicios_ver'],
+  'lectura':  PERMS_LISTA.filter(function(p){ return p.id.indexOf('_ver') !== -1 || p.id === 'caja_historico'; }).map(function(p){ return p.id; })
+};
+
+function aplicarRolPreset(rol) {
+  if (rol === 'admin') {
+    permsCurrent = {todo: true};
+  } else {
+    permsCurrent = {};
+    (ROLES_PRESET[rol] || []).forEach(function(pid) { permsCurrent[pid] = true; });
+  }
+  renderPermisosUI();
+  toast('Plantilla "' + rol + '" aplicada — ajusta lo que necesites', 'ok');
+}
 
 async function editarPermisos(id, nombre) {
   editPermId = id;
@@ -4948,19 +5011,35 @@ async function editarPermisos(id, nombre) {
 function renderPermisosUI() {
   var container = document.getElementById('permisosContainer2');
   if (!container) return;
-  if (permsCurrent.todo) { container.innerHTML = '<div class="empty">Admin - acceso total</div>'; return; }
+  // Plantillas de roles
+  var rolesHtml = '<div style="background:#F8FAFF;border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:14px">'
+    + '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">Plantilla rápida</div>'
+    + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
+    + '<button onclick="aplicarRolPreset(\'admin\')" style="background:rgba(124,58,237,.10);color:var(--purple);border:1px solid rgba(124,58,237,.25);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">👑 Admin total</button>'
+    + '<button onclick="aplicarRolPreset(\'encargado\')" style="background:rgba(0,85,255,.08);color:var(--blue);border:1px solid rgba(0,85,255,.20);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">⭐ Encargado</button>'
+    + '<button onclick="aplicarRolPreset(\'vendedor\')" style="background:rgba(0,200,150,.08);color:var(--green);border:1px solid rgba(0,200,150,.20);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🛒 Vendedor</button>'
+    + '<button onclick="aplicarRolPreset(\'tecnico\')" style="background:rgba(249,115,22,.08);color:var(--orange);border:1px solid rgba(249,115,22,.20);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🔧 Técnico</button>'
+    + '<button onclick="aplicarRolPreset(\'lectura\')" style="background:#F1F5F9;color:var(--muted);border:1px solid var(--border);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">👁️ Solo lectura</button>'
+    + '</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.4">Aplica una plantilla y luego marca/desmarca lo que quieras ajustar.</div>'
+    + '</div>';
+
+  if (permsCurrent.todo) {
+    container.innerHTML = rolesHtml + '<div class="empty" style="padding:20px;background:rgba(124,58,237,.05);border-radius:10px;color:var(--purple);font-weight:700">👑 Acceso total — todos los permisos</div>';
+    return;
+  }
   var grupos = {};
   PERMS_LISTA.forEach(function(p) {
     if (!grupos[p.grupo]) grupos[p.grupo] = [];
     grupos[p.grupo].push(p);
   });
-  container.innerHTML = '';
+  container.innerHTML = rolesHtml;
   Object.keys(grupos).forEach(function(grupo) {
     var div = document.createElement('div');
     div.style = 'margin-bottom:14px';
-    div.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px">' + grupo + '</div>';
+    div.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">' + grupo + '</div>';
     grupos[grupo].forEach(function(p) {
-      var activo = permsCurrent[p.id] !== false && permsCurrent[p.id] !== undefined ? (permsCurrent[p.id] === true) : false;
+      var activo = permsCurrent[p.id] === true;
       var row = document.createElement('div');
       row.style = 'display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--light)';
       var label = document.createElement('span');
@@ -5121,6 +5200,7 @@ function restaurarBackup() {
 }
 
 function backupManual() {
+  if (!tienePerm('herramientas_backup')) { toast('Sin permiso', 'err'); return; }
   var data = JSON.stringify(DB, null, 2);
   var blob = new Blob([data], {type: 'application/json'});
   var a = document.createElement('a');
