@@ -171,7 +171,11 @@ async function sbGet(path) {
       'Accept': 'application/json'
     }
   });
-  if (!r.ok) throw new Error('Error ' + r.status);
+  if (!r.ok) {
+    var txt = '';
+    try { txt = await r.text(); } catch(e){}
+    throw new Error('Error ' + r.status + (txt ? ': ' + txt.slice(0,200) : ''));
+  }
   return r.json();
 }
 
@@ -209,16 +213,21 @@ async function init() {
   }
 
   try {
-    // Cargar tienda
-    var tiendas = await sbGet('tiendas?id=eq.' + encodeURIComponent(TIENDA_ID) + '&select=id,nombre,dir,tel,email,logo_url,horarios,citas_config');
+    // Cargar tienda con select=* para no fallar si falta alguna columna
+    var tiendas = await sbGet('tiendas?id=eq.' + encodeURIComponent(TIENDA_ID) + '&select=*');
     if (!tiendas || !tiendas.length) {
       showError('Tienda no encontrada. Verifica el link.');
       return;
     }
     STATE.tienda = tiendas[0];
-    // Cargar servicios de reparación
-    var servicios = await sbGet('servicios?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&select=id,nombre,categoria,tipo,precio,precio_fijo&order=categoria.asc,nombre.asc');
-    STATE.servicios = (servicios || []).filter(function(s){ return s.tipo !== 'venta'; });
+    // Cargar servicios (si la tabla no existe o está vacía, sigue funcionando)
+    try {
+      var servicios = await sbGet('servicios?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&select=*&order=nombre.asc');
+      STATE.servicios = (servicios || []).filter(function(s){ return s.tipo !== 'venta'; });
+    } catch(e) {
+      console.warn('No se pudieron cargar servicios:', e.message);
+      STATE.servicios = []; // Permite continuar sin servicios (verá "Otro / consultar")
+    }
 
     renderApp();
   } catch(e) {
@@ -359,9 +368,14 @@ async function cargarSlots() {
   var box = $('#slotsBox');
   if (!box) return;
   try {
-    // Cargar citas del día desde Supabase
-    var citas = await sbGet('citas?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=eq.' + STATE.fecha + '&estado=neq.cancelada&select=hora,duracion_min');
-    STATE.citasDelDia = citas || [];
+    // Intentar cargar citas del día (si la tabla no existe, sigue funcionando)
+    try {
+      var citas = await sbGet('citas?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=eq.' + STATE.fecha + '&estado=neq.cancelada&select=hora,duracion_min');
+      STATE.citasDelDia = citas || [];
+    } catch(eC) {
+      console.warn('No se pudieron cargar citas existentes:', eC.message);
+      STATE.citasDelDia = [];
+    }
 
     // Generar slots según horario
     var horarios = STATE.tienda.horarios;
