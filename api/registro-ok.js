@@ -86,15 +86,17 @@ export default async function handler(req, res) {
     }
 
     // ═══ 4. Crear usuario admin ═══
+    const usuarioId = 'usr_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
     const uR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
       method: 'POST',
       headers: {
         'apikey': SERVICE_KEY,
         'Authorization': `Bearer ${SERVICE_KEY}`,
         'Content-Type': 'application/json',
-        'Prefer': 'return=minimal'
+        'Prefer': 'return=representation'
       },
       body: JSON.stringify({
+        id: usuarioId,
         tienda_id,
         nombre,
         email,
@@ -104,10 +106,38 @@ export default async function handler(req, res) {
         permisos: { todo: true }
       })
     });
-    if (!uR.ok) {
+    let realUserId = usuarioId;
+    if (uR.ok) {
+      try {
+        const usrCreated = await uR.json();
+        if (usrCreated && usrCreated[0] && usrCreated[0].id) realUserId = usrCreated[0].id;
+      } catch(e){}
+    } else {
       const tx = await uR.text();
       console.error('Usuario creation error:', tx);
     }
+
+    // ═══ 4.5. Crear SESIÓN automática (para que /api/me funcione al entrar) ═══
+    const sessionToken = crypto.randomBytes(32).toString('hex');
+    const sessionExpires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    try {
+      await fetch(`${SUPABASE_URL}/rest/v1/sesiones`, {
+        method: 'POST',
+        headers: {
+          'apikey': SERVICE_KEY,
+          'Authorization': `Bearer ${SERVICE_KEY}`,
+          'Content-Type': 'application/json',
+          'Prefer': 'return=minimal'
+        },
+        body: JSON.stringify({
+          id: crypto.randomUUID(),
+          usuario_id: realUserId,
+          tienda_id,
+          token: sessionToken,
+          expires_at: sessionExpires
+        })
+      });
+    } catch(e) { console.warn('No se pudo crear sesión:', e.message); }
 
     // ═══ 5. Email con credenciales ═══
     if (RESEND_KEY) {
@@ -145,7 +175,7 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.json({ ok: true, tienda_id, tempPass });
+    return res.json({ ok: true, tienda_id, tempPass, sessionToken });
 
   } catch(e) {
     console.error('Setup error:', e);

@@ -56,11 +56,12 @@ export default async function handler(req, res) {
     // 6. Crear sesión
     const token = crypto.randomBytes(32).toString('hex');
     const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const sessionId = crypto.randomUUID();
     await fetch(`${SUPABASE_URL}/rest/v1/sesiones`, {
       method: 'POST',
       headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        id: 'ses_' + Date.now(),
+        id: sessionId,
         usuario_id: u.id,
         tienda_id: u.tienda_id,
         token,
