@@ -33,13 +33,14 @@ export default async function handler(req, res) {
     const t = tiendas[0];
 
     // 3. Calcular días restantes de trial / próximo cobro
+    // Usamos floor (no ceil) para que 14.99 días = 14, no 15
     let diasRestantes = null;
     if (t.plan_status === 'trial' && t.trial_until) {
       const ms = new Date(t.trial_until) - new Date();
-      diasRestantes = Math.max(0, Math.ceil(ms / 86400000));
+      diasRestantes = Math.max(0, Math.floor(ms / 86400000));
     } else if (t.plan_until) {
       const ms = new Date(t.plan_until) - new Date();
-      diasRestantes = Math.max(0, Math.ceil(ms / 86400000));
+      diasRestantes = Math.max(0, Math.floor(ms / 86400000));
     }
 
     return res.json({

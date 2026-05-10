@@ -1865,11 +1865,11 @@ function tienePlan(planRequerido) {
   return (PLAN_TIER[PLAN_INFO.plan] || 1) >= (PLAN_TIER[planRequerido] || 1);
 }
 
-// Días restantes de trial / próximo cobro
+// Días restantes de trial / próximo cobro (floor para que 14.99 = 14, no 15)
 function planDiasRestantes() {
   var fecha = PLAN_INFO.status === 'trial' ? PLAN_INFO.trial_until : PLAN_INFO.plan_until;
   if (!fecha) return null;
-  return Math.max(0, Math.ceil((new Date(fecha) - new Date()) / 86400000));
+  return Math.max(0, Math.floor((new Date(fecha) - new Date()) / 86400000));
 }
 
 // Refrescar plan desde /api/me (llamado al cargar)
