@@ -322,6 +322,32 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .modal-actions .btn-primary{flex:1}
 .modal-actions .btn-secondary{flex:1}
 
+/* === PLAN BANNER === */
+.plan-banner{padding:10px 16px;border-radius:10px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.plan-banner.info{background:rgba(0,85,255,.06);border:1px solid rgba(0,85,255,.18);color:var(--text)}
+.plan-banner.warning{background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);color:var(--text)}
+.plan-banner.urgent{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);color:var(--text)}
+.plan-banner button{background:var(--text);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit;margin-left:auto}
+.plan-banner a{color:var(--blue);cursor:pointer;font-weight:700;text-decoration:underline}
+
+/* === LOCK ICON EN SIDEBAR === */
+.sidebar-ni.plan-locked{opacity:.55}
+.sidebar-ni.plan-locked .plan-lock-icon{margin-left:auto;font-size:10px}
+
+/* === UPGRADE MODAL === */
+.upg-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}
+.upg-plan{border:2px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .15s var(--ease);background:var(--white);text-align:center;position:relative}
+.upg-plan:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.06)}
+.upg-plan.recommended{border-color:var(--blue);background:rgba(0,85,255,.04)}
+.upg-plan.recommended::before{content:'⭐ Recomendado';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--blue);color:white;font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px;white-space:nowrap}
+.upg-plan-name{font-size:14px;font-weight:800;margin-bottom:4px}
+.upg-plan-price{font-size:22px;font-weight:800;letter-spacing:-0.5px}
+.upg-plan-price small{font-size:11px;color:var(--muted);font-weight:400}
+.upg-plan-feats{font-size:11px;color:var(--muted);margin-top:8px;line-height:1.5}
+.upg-plan-btn{width:100%;margin-top:10px;padding:8px;border-radius:8px;border:none;background:var(--text);color:white;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit}
+.upg-plan.recommended .upg-plan-btn{background:var(--blue)}
+@media(max-width:600px){.upg-grid{grid-template-columns:1fr}}
+
 /* === KANBAN === */
 .vista-toggle{display:flex;background:var(--light);border-radius:8px;padding:3px;gap:2px;border:1px solid var(--border)}
 .vista-btn{background:transparent;border:none;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:14px;color:var(--muted);font-family:inherit;transition:all .15s var(--ease);min-width:32px}
@@ -652,6 +678,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 <!-- PAGE: DASHBOARD -->
 <div class="page active" id="pDash">
+  <div id="planBanner"></div>
   <div style="padding:4px 0 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <div>
       <div style="font-size:13px;color:var(--muted)" id="dStr"></div>
@@ -1056,6 +1083,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
     <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
     <div class="sec-title">Ajustes</div>
+  </div>
+
+  <div class="card" id="cardSuscripcion">
+    <div class="card-title">💳 Mi suscripción</div>
+    <div id="suscripcionInfo"></div>
+    <div style="display:flex;gap:8px;margin-top:14px">
+      <button type="button" class="btn-primary" style="flex:1;background:var(--blue)" onclick="abrirStripePortal()">⚙️ Gestionar plan / facturas</button>
+      <button type="button" class="btn-secondary" style="flex:1" onclick="mostrarModalUpgrade('','pro')">📈 Comparar planes</button>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:10px;border-top:1px solid var(--border);padding-top:10px">💡 Desde el portal puedes cambiar de plan, actualizar tarjeta, cancelar suscripción o descargar facturas.</div>
   </div>
   <div class="card" id="cardInstalar" style="display:none">
     <div class="card-title">📱 Instalar app</div>
@@ -1795,6 +1832,281 @@ var SB_KEY = '';
 var TIENDA_ID = '';
 var U = null;
 var TIENDA = {nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',garantia:'',politica:'',logo_url:''};
+
+// ═══ SISTEMA DE PLANES ═══
+var PLAN_INFO = {plan:'basico', status:'trial', trial_until:null, plan_until:null, token:''};
+
+// Matriz de features por plan
+var PLAN_FEATURES = {
+  basico: ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode'],
+  pro:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
+           'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
+           'importar_pdf','catalogo_servicios','plantillas_rep'],
+  top:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
+           'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
+           'importar_pdf','catalogo_servicios','plantillas_rep',
+           'multi_tienda','soporte_24_7','api_access','onboarding_personal']
+};
+
+// Límite de usuarios por plan
+var PLAN_LIMITS = {basico: {usuarios: 1}, pro: {usuarios: 3}, top: {usuarios: 999}};
+
+// Niveles de plan ordenados
+var PLAN_TIER = {basico: 1, pro: 2, top: 3};
+
+// ¿El usuario tiene acceso a esta feature?
+function tieneFeature(featureName) {
+  var plan = PLAN_INFO.plan || 'basico';
+  return (PLAN_FEATURES[plan] || []).indexOf(featureName) !== -1;
+}
+
+// ¿El plan del usuario es ≥ al requerido? (basico < pro < top)
+function tienePlan(planRequerido) {
+  return (PLAN_TIER[PLAN_INFO.plan] || 1) >= (PLAN_TIER[planRequerido] || 1);
+}
+
+// Días restantes de trial / próximo cobro
+function planDiasRestantes() {
+  var fecha = PLAN_INFO.status === 'trial' ? PLAN_INFO.trial_until : PLAN_INFO.plan_until;
+  if (!fecha) return null;
+  return Math.max(0, Math.ceil((new Date(fecha) - new Date()) / 86400000));
+}
+
+// Refrescar plan desde /api/me (llamado al cargar)
+async function refrescarPlan() {
+  if (!PLAN_INFO.token) return;
+  try {
+    var r = await fetch('/api/me', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({token: PLAN_INFO.token})
+    });
+    var data = await r.json();
+    if (data.ok) {
+      PLAN_INFO.plan = data.plan;
+      PLAN_INFO.status = data.plan_status;
+      PLAN_INFO.trial_until = data.trial_until;
+      PLAN_INFO.plan_until = data.plan_until;
+      // Update session storage
+      var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
+      sess.plan = data.plan;
+      sess.plan_status = data.plan_status;
+      sess.trial_until = data.trial_until;
+      sess.plan_until = data.plan_until;
+      localStorage.setItem('tk_sess', JSON.stringify(sess));
+      // Re-render banners y bloqueos
+      renderPlanBanner();
+      aplicarBloqueosPlan();
+    }
+  } catch(e) { console.warn('refrescarPlan error', e); }
+}
+
+// Mostrar modal de upgrade
+function mostrarModalUpgrade(featureName, planRequerido) {
+  var feat = ({
+    citas: '📅 Citas online',
+    kanban: '🔧 Vista Kanban',
+    auditoria: '📜 Historial de actividad',
+    backup: '💾 Backup completo',
+    reportes_pdf: '📄 Reportes PDF para gestor',
+    importar_pdf: '📤 Importar facturas PDF',
+    catalogo_servicios: '🛠️ Catálogo de servicios',
+    plantillas_rep: '📋 Plantillas de reparación',
+    permisos_usuarios: '👥 Permisos por usuario',
+    multi_tienda: '🏪 Multi-tienda'
+  })[featureName] || featureName;
+  var planLabel = ({basico:'Básico', pro:'Pro', top:'Top'})[planRequerido] || planRequerido;
+  document.getElementById('upgFeatName').textContent = feat;
+  document.getElementById('upgPlanReq').textContent = planLabel;
+  // Resaltar el plan recomendado
+  document.querySelectorAll('.upg-plan').forEach(function(el){ el.classList.remove('recommended'); });
+  var recCard = document.querySelector('.upg-plan[data-plan="' + planRequerido + '"]');
+  if (recCard) recCard.classList.add('recommended');
+  openM('mUpgrade');
+}
+
+// Función central: bloquea o muestra modal si la feature no está disponible
+function checkFeature(featureName) {
+  if (tieneFeature(featureName)) return true;
+  // Determinar el plan mínimo para esta feature
+  var planMin = 'pro';
+  if (PLAN_FEATURES.pro.indexOf(featureName) === -1) planMin = 'top';
+  mostrarModalUpgrade(featureName, planMin);
+  return false;
+}
+
+// Renderizar banner de plan (trial, próximo cobro, expirado, etc.)
+function renderPlanBanner() {
+  var box = document.getElementById('planBanner');
+  if (!box) return;
+  var dias = planDiasRestantes();
+  var html = '';
+
+  if (PLAN_INFO.status === 'trial') {
+    if (dias !== null && dias <= 3) {
+      html = '<div class="plan-banner urgent">🔥 <strong>Tu prueba gratis termina en ' + dias + ' día' + (dias===1?'':'s') + '</strong>. Añade tu método de pago para no perder el acceso. <button onclick="abrirStripePortal()">Gestionar →</button></div>';
+    } else if (dias !== null) {
+      html = '<div class="plan-banner info">🎁 Te quedan <strong>' + dias + ' días</strong> de prueba gratis (plan ' + (PLAN_INFO.plan||'').charAt(0).toUpperCase() + (PLAN_INFO.plan||'').slice(1) + '). <a onclick="abrirStripePortal()">Añadir método de pago</a></div>';
+    }
+  } else if (PLAN_INFO.status === 'past_due') {
+    html = '<div class="plan-banner urgent">⚠️ <strong>Problema con tu pago</strong>. Actualiza tu método antes de que se bloquee la cuenta. <button onclick="abrirStripePortal()">Solucionar →</button></div>';
+  } else if (PLAN_INFO.status === 'cancelled') {
+    if (dias !== null && dias > 0) {
+      html = '<div class="plan-banner warning">⏳ Tu suscripción se cancelará el ' + new Date(PLAN_INFO.plan_until).toLocaleDateString('es') + '. <a onclick="abrirStripePortal()">Reactivar</a></div>';
+    } else {
+      html = '<div class="plan-banner urgent">❌ Tu suscripción ha terminado. <button onclick="abrirStripePortal()">Renovar →</button></div>';
+    }
+  }
+  box.innerHTML = html;
+}
+
+// Aplicar bloqueos: ocultar/marcar items de sidebar y botones según plan
+function aplicarBloqueosPlan() {
+  // Items del sidebar a bloquear
+  var sidebarLocks = [
+    {selector: '[data-p="pCitas"]', feat: 'citas'}
+  ];
+  sidebarLocks.forEach(function(lock) {
+    var el = document.querySelector(lock.selector);
+    if (!el) return;
+    if (tieneFeature(lock.feat)) {
+      el.classList.remove('plan-locked');
+      el.onclick = null;
+    } else {
+      el.classList.add('plan-locked');
+      // Asegurar que el lock icon está visible
+      if (!el.querySelector('.plan-lock-icon')) {
+        var lockIcon = document.createElement('span');
+        lockIcon.className = 'plan-lock-icon';
+        lockIcon.textContent = '🔒';
+        lockIcon.style.cssText = 'margin-left:auto;font-size:11px;opacity:.7';
+        el.appendChild(lockIcon);
+      }
+    }
+  });
+
+  // Mostrar/ocultar tarjeta auditoría en Ajustes (solo si plan permite)
+  setTimeout(function(){
+    var cardA = document.getElementById('cardAuditoria');
+    if (cardA) {
+      if (!tieneFeature('auditoria') || !U || U.rol !== 'admin') {
+        cardA.style.display = 'none';
+      }
+    }
+  }, 1100);
+}
+
+// Override navTo para bloquear páginas
+var _navToOriginal = null;
+function setupNavToBlocker() {
+  if (_navToOriginal) return; // ya parcheado
+  if (typeof navTo !== 'function') { setTimeout(setupNavToBlocker, 200); return; }
+  _navToOriginal = navTo;
+  window.navTo = function(pageId) {
+    var pageFeatureMap = {
+      pCitas: 'citas'
+    };
+    var feat = pageFeatureMap[pageId];
+    if (feat && !tieneFeature(feat)) {
+      var planMin = 'pro';
+      if (PLAN_FEATURES.pro.indexOf(feat) === -1) planMin = 'top';
+      mostrarModalUpgrade(feat, planMin);
+      return;
+    }
+    return _navToOriginal.apply(this, arguments);
+  };
+}
+
+// Abrir Stripe Customer Portal
+async function abrirStripePortal() {
+  if (!PLAN_INFO.token) { toast('Sesión no válida', 'err'); return; }
+  toast('Abriendo portal de gestión...', 'ok');
+  try {
+    var r = await fetch('/api/portal', {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({token: PLAN_INFO.token})
+    });
+    var data = await r.json();
+    if (data.ok && data.url) {
+      window.location.href = data.url;
+    } else {
+      toast(data.error || 'No se pudo abrir el portal', 'err');
+    }
+  } catch(e) {
+    toast('Error de conexión', 'err');
+  }
+}
+
+// Click manual en upgrade desde modal
+function clickUpgradePlan(plan) {
+  // Si ya tiene Stripe → abrir portal para cambiar plan
+  // Si no → ir a registro con ese plan
+  if (PLAN_INFO.status === 'trial' || PLAN_INFO.status === 'active' || PLAN_INFO.status === 'past_due') {
+    abrirStripePortal();
+  } else {
+    window.location.href = '/registro.html?plan=' + plan;
+  }
+}
+
+// Renderizar info de suscripción en Ajustes
+function renderSuscripcionInfo() {
+  var box = document.getElementById('suscripcionInfo');
+  if (!box) return;
+  var planLabel = ({basico:'Básico', pro:'Pro ⭐', top:'Top'})[PLAN_INFO.plan] || PLAN_INFO.plan;
+  var planPrecio = ({basico:'9,90', pro:'19,90', top:'34,90'})[PLAN_INFO.plan] || '—';
+  var statusLabel = ({trial:'🎁 Periodo de prueba', active:'✓ Activa', past_due:'⚠️ Pago pendiente', cancelled:'❌ Cancelada'})[PLAN_INFO.status] || PLAN_INFO.status;
+  var statusColor = ({trial:'var(--blue)', active:'var(--green)', past_due:'var(--orange)', cancelled:'var(--red)'})[PLAN_INFO.status] || 'var(--muted)';
+  var dias = planDiasRestantes();
+
+  var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
+  html += '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">Plan actual</div>';
+  html += '<div style="font-size:20px;font-weight:800">' + planLabel + '</div>';
+  html += '<div style="font-size:13px;color:var(--muted)">' + planPrecio + ' €/mes</div></div>';
+  html += '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">Estado</div>';
+  html += '<div style="font-size:14px;font-weight:700;color:' + statusColor + '">' + statusLabel + '</div>';
+  if (dias !== null) {
+    var label = PLAN_INFO.status === 'trial' ? 'días de prueba restantes' : 'días hasta próximo cobro';
+    html += '<div style="font-size:13px;color:var(--muted)">' + dias + ' ' + label + '</div>';
+  }
+  html += '</div></div>';
+
+  if (PLAN_INFO.trial_until || PLAN_INFO.plan_until) {
+    var fecha = PLAN_INFO.status === 'trial' ? PLAN_INFO.trial_until : PLAN_INFO.plan_until;
+    if (fecha) {
+      html += '<div style="background:var(--light);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted)">';
+      html += (PLAN_INFO.status === 'trial' ? '📅 La prueba termina: ' : '📅 Próximo cobro: ');
+      html += '<strong style="color:var(--text)">' + new Date(fecha).toLocaleDateString('es', {day:'numeric',month:'long',year:'numeric'}) + '</strong>';
+      html += '</div>';
+    }
+  }
+
+  box.innerHTML = html;
+}
+
+// Inicialización del sistema de planes (al cargar el dashboard)
+setTimeout(function() {
+  renderPlanBanner();
+  renderSuscripcionInfo();
+  aplicarBloqueosPlan();
+  setupNavToBlocker();
+  // Refrescar plan desde el servidor (asincrono, mantiene la info actualizada)
+  refrescarPlan();
+}, 500);
+
+// Refrescar plan cada 5 minutos
+setInterval(function() { refrescarPlan(); }, 5 * 60 * 1000);
+
+// Renderizar suscripción cada vez que se entre a Ajustes
+(function(){
+  var origNav = null;
+  var checkNav = setInterval(function(){
+    if (typeof navTo === 'function' && !origNav) {
+      clearInterval(checkNav);
+      // Hook adicional ya está hecho en setupNavToBlocker
+    }
+  }, 200);
+})();
 var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
 
 // ═══ DB ═══
@@ -1826,6 +2138,13 @@ window.addEventListener('DOMContentLoaded', function() {
   if (sess.usuario && sess.usuario.permisos) U.permisos = sess.usuario.permisos;
   else if (U.permisos) U.permisos = U.permisos;
   else U.permisos = {};
+
+  // ═══ PLAN ═══
+  PLAN_INFO.plan = sess.plan || 'basico';
+  PLAN_INFO.status = sess.plan_status || 'trial';
+  PLAN_INFO.trial_until = sess.trial_until || null;
+  PLAN_INFO.plan_until = sess.plan_until || null;
+  PLAN_INFO.token = sess.token || '';
 
   document.getElementById('uName').textContent = U.nombre || '';
   var tiendaLS = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
@@ -9340,6 +9659,42 @@ function impFacAnadirAlStock() {
     <div style="display:flex;gap:8px;margin-top:12px">
       <button type="button" class="btn-secondary" style="flex:1" onclick="exportarAuditoria()">📥 Exportar CSV</button>
       <button type="button" class="btn-secondary" style="flex:1" onclick="closeM('mAuditoria')">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL UPGRADE PLAN ═══ -->
+<div class="modal-bg" id="mUpgrade">
+  <div class="modal" style="max-width:680px">
+    <div class="modal-h"><span>🚀 Mejora tu plan</span><span class="cls" onclick="closeM('mUpgrade')">×</span></div>
+    <div style="text-align:center;margin-bottom:18px">
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px">La función <strong id="upgFeatName" style="color:var(--text)"></strong> está disponible en el plan</div>
+      <div style="font-size:18px;font-weight:800;color:var(--blue)" id="upgPlanReq">Pro</div>
+    </div>
+
+    <div class="upg-grid">
+      <div class="upg-plan" data-plan="basico">
+        <div class="upg-plan-name">Básico</div>
+        <div class="upg-plan-price">9,90<small>€/mes</small></div>
+        <div class="upg-plan-feats">Ventas, reparaciones, stock<br>1 usuario</div>
+        <button class="upg-plan-btn" onclick="clickUpgradePlan('basico')">Plan actual</button>
+      </div>
+      <div class="upg-plan" data-plan="pro">
+        <div class="upg-plan-name">Pro</div>
+        <div class="upg-plan-price">19,90<small>€/mes</small></div>
+        <div class="upg-plan-feats">Todo + citas, kanban,<br>reportes PDF, backup,<br>3 usuarios</div>
+        <button class="upg-plan-btn" onclick="clickUpgradePlan('pro')">Cambiar a Pro</button>
+      </div>
+      <div class="upg-plan" data-plan="top">
+        <div class="upg-plan-name">Top</div>
+        <div class="upg-plan-price">34,90<small>€/mes</small></div>
+        <div class="upg-plan-feats">Todo + multi-tienda,<br>API, soporte 24/7,<br>usuarios ilimitados</div>
+        <button class="upg-plan-btn" onclick="clickUpgradePlan('top')">Cambiar a Top</button>
+      </div>
+    </div>
+
+    <div style="font-size:11px;color:var(--muted);text-align:center;border-top:1px solid var(--border);padding-top:12px">
+      💳 Cancela cuando quieras · 🔒 Pago seguro con Stripe
     </div>
   </div>
 </div>
