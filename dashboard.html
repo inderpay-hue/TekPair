@@ -1964,14 +1964,17 @@ function renderPlanBanner() {
 function aplicarBloqueosPlan() {
   // Items del sidebar a bloquear
   var sidebarLocks = [
-    {selector: '[data-p="pCitas"]', feat: 'citas'}
+    {selector: '[data-p="pCitas"]', feat: 'citas'},
+    {selector: '[data-p="pServicios"]', feat: 'catalogo_servicios'}
   ];
   sidebarLocks.forEach(function(lock) {
     var el = document.querySelector(lock.selector);
     if (!el) return;
     if (tieneFeature(lock.feat)) {
       el.classList.remove('plan-locked');
-      el.onclick = null;
+      // quitar lock icon si estaba
+      var oldIcon = el.querySelector('.plan-lock-icon');
+      if (oldIcon) oldIcon.remove();
     } else {
       el.classList.add('plan-locked');
       // Asegurar que el lock icon está visible
@@ -2004,7 +2007,8 @@ function setupNavToBlocker() {
   _navToOriginal = navTo;
   window.navTo = function(pageId) {
     var pageFeatureMap = {
-      pCitas: 'citas'
+      pCitas: 'citas',
+      pServicios: 'catalogo_servicios'
     };
     var feat = pageFeatureMap[pageId];
     if (feat && !tieneFeature(feat)) {
@@ -4304,6 +4308,7 @@ function aplicarPlantillaRep(key) {
 var SEL_PLANTILLAS_EDIT = [];
 
 function abrirGestorPlantillas() {
+  if (!checkFeature('plantillas_rep')) return;
   SEL_PLANTILLAS_EDIT = JSON.parse(JSON.stringify(getPlantillasRep()));
   renderPlantillasEdit();
   openM('mPlantillasRep');
@@ -5262,6 +5267,7 @@ function setRepFiltro(el) {
 
 // === VISTA LISTA / KANBAN ===
 function cambiarVista(vista) {
+  if (vista === 'kanban' && !checkFeature('kanban')) return;
   SEL.vistaReps = vista;
   localStorage.setItem('tk_vista_reps', vista);
   document.getElementById('btnVistaLista').classList.toggle('active', vista === 'lista');
@@ -6098,6 +6104,7 @@ function renderDesgloseIVA(ventas, reps) {
 
 // === PDF para gestor: imprimible profesional ===
 function generarPDFGestor() {
+  if (!checkFeature('reportes_pdf')) return;
   var fechas = getRepFechas();
   var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && fechas.includes(v.fecha); });
   var reps = DB.reps.filter(function(r) { return r.estado === 'Entregado' && fechas.includes(r.fechaEntregaReal); });
@@ -7293,6 +7300,15 @@ async function openNuevoUsuario() {
 }
 
 async function crearUsuario(nom, email, pass, rol) {
+  // Comprobar límite de usuarios del plan actual
+  var limite = (PLAN_LIMITS[PLAN_INFO.plan] || PLAN_LIMITS.basico).usuarios;
+  var actuales = (DB.usuarios || []).filter(function(u){ return u.activo !== false; }).length;
+  if (actuales >= limite) {
+    var planMin = limite < 3 ? 'pro' : 'top';
+    mostrarModalUpgrade('permisos_usuarios', planMin);
+    toast('Has alcanzado el límite de ' + limite + ' usuario' + (limite===1?'':'s') + ' en tu plan', 'err');
+    return;
+  }
   var msgBuffer = new TextEncoder().encode(pass);
   var hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
   var hash = Array.from(new Uint8Array(hashBuffer)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
@@ -8538,6 +8554,7 @@ document.addEventListener('click', function(e){
   });
 })();// ═══ MODAL HISTORIAL DE ACTIVIDAD ═══
 function abrirAuditoria() {
+  if (!checkFeature('auditoria')) return;
   if (!U || U.rol !== 'admin') { toast('Solo admin', 'err'); return; }
   // Poblar dropdown usuarios
   var sel = document.getElementById('audFiltroUsuario');
@@ -8648,6 +8665,7 @@ function fechaArchivo() {
 }
 
 async function exportarTodo() {
+  if (!checkFeature('backup')) return;
   if (typeof JSZip === 'undefined') {
     toast('Librería ZIP no cargada. Recarga la página.', 'err');
     return;
@@ -9312,6 +9330,7 @@ var IMP_FAC_PRODUCTOS = []; // [{cat, marca, modelo, capacidad, color, imei, cos
 var IMP_FAC_TEXTO = '';
 
 function abrirImportFactura() {
+  if (!checkFeature('importar_pdf')) return;
   if (!tienePerm('stock_crear')) { toast('Sin permiso', 'err'); return; }
   impFacReset();
   openM('mImportFactura');
