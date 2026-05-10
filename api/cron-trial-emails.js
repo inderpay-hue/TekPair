@@ -33,10 +33,11 @@ export default async function handler(req, res) {
       
       const trialEnd = new Date(t.trial_until);
       const msLeft = trialEnd - now;
-      const daysLeft = Math.floor(msLeft / 86400000);
+      const hoursLeft = msLeft / 3600000;
+      const daysLeft = msLeft / 86400000;
 
-      // Email "3 días"
-      if (daysLeft === 3 && !t.trial_email_3d_sent) {
+      // Email "3 días" - se dispara si quedan entre 2.5 y 3.5 días (ventana de 24h)
+      if (daysLeft >= 2.5 && daysLeft <= 3.5 && !t.trial_email_3d_sent) {
         await sendEmail3Days(t, RESEND_KEY);
         await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${t.id}`, {
           method: 'PATCH',
@@ -46,8 +47,8 @@ export default async function handler(req, res) {
         emailsSent++;
       }
       
-      // Email "1 día"
-      if (daysLeft === 1 && !t.trial_email_1d_sent) {
+      // Email "1 día" - se dispara si quedan entre 0.5 y 1.5 días
+      if (daysLeft >= 0.5 && daysLeft <= 1.5 && !t.trial_email_1d_sent) {
         await sendEmail1Day(t, RESEND_KEY);
         await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${t.id}`, {
           method: 'PATCH',
