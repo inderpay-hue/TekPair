@@ -6129,6 +6129,35 @@ function renderProvs() {
 function guardarProv() {
   var nom = document.getElementById('pNom').value.trim();
   if (!nom) { toast('Escribe un nombre', 'err'); return; }
+  
+  // MODO EDICIÓN
+  if (SEL && SEL.editProvId) {
+    var existente = DB.provs.find(function(x){ return x.id === SEL.editProvId; });
+    if (existente) {
+      existente.nombre = nom;
+      existente.contacto = document.getElementById('pCont').value.trim();
+      existente.tel = document.getElementById('pTel').value.trim();
+      existente.email = document.getElementById('pEmail').value.trim();
+      existente.nota = document.getElementById('pNota').value.trim();
+      guardarDatos();
+      if (SB_KEY && TIENDA_ID) {
+        sbPatch('proveedores', 'id=eq.' + encodeURIComponent(existente.id), {
+          nombre: existente.nombre,
+          contacto: existente.contacto,
+          tel: existente.tel,
+          email: existente.email,
+          nota: existente.nota
+        });
+      }
+      SEL.editProvId = null;
+      closeM('mProv');
+      toast('Proveedor actualizado', 'ok');
+      renderProvs();
+      return;
+    }
+  }
+  
+  // MODO CREAR
   var p = {
     id: 'p' + Date.now(), tienda_id: TIENDA_ID,
     nombre: nom,
@@ -6162,6 +6191,33 @@ function guardarGasto() {
   if (!tienePerm('gastos_crear')) { toast('Sin permiso', 'err'); return; }
   var conc = document.getElementById('gConc').value.trim();
   if (!conc) { toast('Escribe un concepto', 'err'); return; }
+  
+  // MODO EDICIÓN
+  if (SEL && SEL.editGastoId) {
+    var existente = DB.gastos.find(function(x){ return x.id === SEL.editGastoId; });
+    if (existente) {
+      existente.concepto = conc;
+      existente.importe = parseFloat(document.getElementById('gImp').value) || 0;
+      existente.fecha = document.getElementById('gFecha').value;
+      existente.estado = document.getElementById('gEstado').value;
+      guardarDatos();
+      if (SB_KEY && TIENDA_ID) {
+        sbPatch('gastos', 'id=eq.' + encodeURIComponent(existente.id), {
+          concepto: existente.concepto,
+          importe: existente.importe,
+          fecha: existente.fecha,
+          estado: existente.estado
+        });
+      }
+      SEL.editGastoId = null;
+      closeM('mGasto');
+      toast('Gasto actualizado', 'ok');
+      renderGastos();
+      return;
+    }
+  }
+  
+  // MODO CREAR
   var g = {
     id: 'g' + Date.now(), tienda_id: TIENDA_ID,
     concepto: conc,
@@ -7497,12 +7553,32 @@ function guardarServicio() {
   };
   if (!DB.servicios) DB.servicios = [];
   if (ESID) {
+    // MODO EDICIÓN
     var srv = DB.servicios.find(function(s) { return s.id === ESID; });
-    if (srv) Object.assign(srv, data);
+    if (srv) {
+      Object.assign(srv, data);
+      if (SB_KEY && TIENDA_ID) {
+        sbPatch('servicios', 'id=eq.' + encodeURIComponent(srv.id), {
+          nombre: srv.nombre,
+          categoria: srv.categoria,
+          tipo: srv.tipo,
+          precio_fijo: srv.precioFijo,
+          precio: srv.precio
+        });
+      }
+    }
     ESID = null;
   } else {
+    // MODO CREAR
     data.id = 'srv' + Date.now();
     DB.servicios.push(data);
+    if (SB_KEY && TIENDA_ID) {
+      sbPost('servicios', {
+        id: data.id, tienda_id: TIENDA_ID,
+        nombre: data.nombre, categoria: data.categoria, tipo: data.tipo,
+        precio_fijo: data.precioFijo, precio: data.precio
+      });
+    }
   }
   guardarDatos();
   closeM('mServicio');
