@@ -303,6 +303,33 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* Badge garantía */
 .badge-garantia{display:inline-flex;align-items:center;gap:3px;background:rgba(0,85,255,.10);color:var(--blue);font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;letter-spacing:.2px}
 
+/* Switch toggle garantías */
+.sw-gar{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
+.sw-gar input{opacity:0;width:0;height:0}
+.sw-slider{position:absolute;cursor:pointer;inset:0;background:#CBD5E1;transition:.3s;border-radius:12px}
+.sw-slider:before{content:"";position:absolute;height:18px;width:18px;left:3px;bottom:3px;background:white;transition:.3s;border-radius:50%;box-shadow:0 2px 4px rgba(0,0,0,.2)}
+.sw-gar input:checked + .sw-slider{background:var(--blue)}
+.sw-gar input:checked + .sw-slider:before{transform:translateX(20px)}
+
+/* Chips garantía configurables */
+.chip-gar{display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--muted);padding:9px 4px;border-radius:6px;font-size:11px;font-weight:600;border:1.5px solid var(--border);cursor:pointer;transition:all .15s;text-align:center}
+.chip-gar input{display:none}
+.chip-gar:has(input:checked){background:var(--blue);color:white;border-color:var(--blue)}
+.chip-gar span strong{font-size:14px;display:block;line-height:1.1}
+
+/* Selector garantía en reparación/stock */
+.gar-selector{display:flex;flex-wrap:wrap;gap:6px}
+.gar-btn{background:white;color:var(--ink);padding:8px 12px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;border:1.5px solid var(--border);transition:all .15s;font-family:inherit}
+.gar-btn:hover:not(.active){border-color:var(--blue);background:var(--bg)}
+.gar-btn.active{background:var(--blue);color:white;border-color:var(--blue)}
+.gar-btn.sin-gar.active{background:#991B1B;border-color:#991B1B}
+.gar-btn.sin-gar{background:#FEE2E2;color:#991B1B;border-color:#FCA5A5}
+
+/* Tipo producto NUEVO/USADO */
+.tipo-prod{display:flex;gap:8px}
+.tipo-prod-btn{flex:1;background:white;color:var(--ink);padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);transition:all .15s;font-family:inherit;text-align:center}
+.tipo-prod-btn.active{background:var(--blue);color:white;border-color:var(--blue)}
+
 /* ═══ FORMS ═══ */
 .fg{margin-bottom:12px}
 .fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px}
@@ -1153,20 +1180,151 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
   </div>
   <div class="card">
-    <div class="card-title">Textos legales — Reparaciones</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Aparecerán en el ticket de reparación y en el parte del cliente.</div>
-    <div class="fg"><label class="fl">🛡️ Días de garantía en reparaciones</label>
-      <input class="fi" id="tGarantiaDias" type="number" min="0" max="730" placeholder="90" style="max-width:160px">
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">Si un cliente vuelve antes de estos días con el mismo modelo, el sistema avisará "🛡️ EN GARANTÍA". Default: 90</div>
+    <div class="card-title">🛡️ Garantías</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Configura qué garantías ofrece tu tienda. Aparecerán en tickets y al crear reparaciones / añadir stock.</div>
+
+    <!-- BLOQUE: REPARACIONES -->
+    <div style="background:var(--bg2);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:var(--ink)">🛠 Garantía en reparaciones</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Aparece en tickets · Detección automática "EN GARANTÍA"</div>
+        </div>
+        <label class="sw-gar">
+          <input type="checkbox" id="garRepActiva" checked onchange="toggleGarRep()">
+          <span class="sw-slider"></span>
+        </label>
+      </div>
+      <div id="garRepOptions" style="border-top:1px solid var(--border);padding-top:12px">
+        <div class="fl" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Días disponibles</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">
+          <label class="chip-gar">
+            <input type="checkbox" id="grDias30" value="30">
+            <span><strong>30</strong> días</span>
+          </label>
+          <label class="chip-gar">
+            <input type="checkbox" id="grDias60" value="60">
+            <span><strong>60</strong> días</span>
+          </label>
+          <label class="chip-gar">
+            <input type="checkbox" id="grDias90" value="90" checked>
+            <span><strong>90</strong> días</span>
+          </label>
+          <label class="chip-gar">
+            <input type="checkbox" id="grDias180" value="180">
+            <span><strong>180</strong> días</span>
+          </label>
+          <label class="chip-gar">
+            <input type="checkbox" id="grDias365" value="365">
+            <span><strong>365</strong> días</span>
+          </label>
+        </div>
+        <div class="fl" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px">Default</div>
+        <select class="fi" id="grDiasDefault" style="max-width:200px">
+          <option value="30">30 días</option>
+          <option value="60">60 días</option>
+          <option value="90" selected>90 días</option>
+          <option value="180">180 días</option>
+          <option value="365">365 días</option>
+        </select>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="grPermitirCustom" checked> Permitir días personalizados al crear reparación
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="grPermitirSin" checked> Permitir "Sin garantía" (placa, humedad...)
+          </label>
+        </div>
+        <div class="fg" style="margin-top:12px">
+          <label class="fl">📋 Texto legal de garantía (sale en ticket)</label>
+          <textarea class="fi" id="tGarantia" rows="2" placeholder="Ej: Garantía sobre pieza y mano de obra. No cubre golpes, humedad ni mal uso."></textarea>
+        </div>
+      </div>
     </div>
-    <div class="fg"><label class="fl">Garantía de reparación (texto)</label><textarea class="fi" id="tGarantia" rows="3" placeholder="Ej: Garantía de 90 días sobre pieza y mano de obra..."></textarea></div>
-    <div class="fg"><label class="fl">Política de reparación</label><textarea class="fi" id="tPolitica" rows="3" placeholder="Condiciones específicas de reparación..."></textarea></div>
+
+    <!-- BLOQUE: VENTAS -->
+    <div style="background:var(--bg2);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
+        <div style="flex:1">
+          <div style="font-size:14px;font-weight:700;color:var(--ink)">📱 Garantía en ventas (stock)</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:2px">Por ley España: 36 meses NUEVO · mínimo 12 meses USADO (RDL 7/2024)</div>
+        </div>
+        <label class="sw-gar">
+          <input type="checkbox" id="garVenActiva" checked onchange="toggleGarVen()">
+          <span class="sw-slider"></span>
+        </label>
+      </div>
+      <div id="garVenOptions" style="border-top:1px solid var(--border);padding-top:12px">
+        <div class="fl" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Meses disponibles</div>
+        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">
+          <label class="chip-gar">
+            <input type="checkbox" id="gvMes3" value="3" checked>
+            <span><strong>3</strong> meses</span>
+          </label>
+          <label class="chip-gar">
+            <input type="checkbox" id="gvMes6" value="6">
+            <span><strong>6</strong> meses</span>
+          </label>
+          <label class="chip-gar">
+            <input type="checkbox" id="gvMes12" value="12" checked>
+            <span><strong>12</strong> meses</span>
+          </label>
+          <label class="chip-gar">
+            <input type="checkbox" id="gvMes24" value="24" checked>
+            <span><strong>24</strong> meses</span>
+          </label>
+          <label class="chip-gar">
+            <input type="checkbox" id="gvMes36" value="36" checked>
+            <span><strong>36</strong> meses</span>
+          </label>
+        </div>
+        <div class="fl" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin:12px 0 6px">Default según tipo</div>
+        <div class="fi-row">
+          <div class="fg">
+            <label class="fl" style="font-size:11px">✨ Para NUEVOS</label>
+            <select class="fi" id="gvMesesDefaultNuevo">
+              <option value="12">12 meses</option>
+              <option value="24">24 meses</option>
+              <option value="36" selected>36 meses (legal)</option>
+            </select>
+          </div>
+          <div class="fg">
+            <label class="fl" style="font-size:11px">♻️ Para SEGUNDA MANO</label>
+            <select class="fi" id="gvMesesDefaultUsado">
+              <option value="3">3 meses</option>
+              <option value="6">6 meses</option>
+              <option value="12" selected>12 meses (legal)</option>
+              <option value="24">24 meses</option>
+            </select>
+          </div>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="gvPermitirCustom" checked> Permitir meses personalizados
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="gvMostrarTipo" checked> Pedir tipo NUEVO/USADO al añadir producto
+          </label>
+          <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
+            <input type="checkbox" id="gvAvisoLegal" checked> Mostrar aviso ley española en stock
+          </label>
+        </div>
+        <div class="fg" style="margin-top:12px">
+          <label class="fl">📋 Texto legal de venta (sale en ticket)</label>
+          <textarea class="fi" id="tGarantiaVentas" rows="2" placeholder="Ej: Garantía legal del fabricante. Tickets y caja conservados son requisito."></textarea>
+        </div>
+      </div>
+    </div>
+
+    <!-- AVISO ESTADO -->
+    <div id="garEstadoAviso" style="background:#D1FAE5;border-left:3px solid #00C896;padding:10px 12px;border-radius:6px;font-size:12px;color:#065F46">
+      <strong>🛡 Garantías activas:</strong> Reparaciones + Ventas. Sale en tickets.
+    </div>
   </div>
   <div class="card">
-    <div class="card-title">Textos legales — Ventas</div>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:8px">Aparecerán en el ticket de venta (TPV y dashboard).</div>
-    <div class="fg"><label class="fl">Garantía de venta</label><textarea class="fi" id="tGarantiaVentas" rows="3" placeholder="Ej: Garantía del fabricante 24 meses..."></textarea></div>
-    <div class="fg"><label class="fl">Política de venta</label><textarea class="fi" id="tPoliticaVentas" rows="3" placeholder="Condiciones de devolución y cambio..."></textarea></div>
+    <div class="card-title">📜 Políticas adicionales</div>
+    <div class="fg"><label class="fl">Política de reparación</label><textarea class="fi" id="tPolitica" rows="2" placeholder="Condiciones específicas de reparación..."></textarea></div>
+    <div class="fg"><label class="fl">Política de venta</label><textarea class="fi" id="tPoliticaVentas" rows="2" placeholder="Condiciones de devolución y cambio..."></textarea></div>
   </div>
   <button class="btn-primary" onclick="guardarTienda()">Guardar cambios</button>
 </div>
@@ -1696,7 +1854,21 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
               </select>
             </div>
           </div>
-          <div class="fg" style="margin-bottom:0"><label class="fl">Nota interna</label><textarea class="fi" id="rNota" rows="2" placeholder="Solo visible para ti y tu equipo..."></textarea></div>
+          <div class="fg" style="margin-bottom:8px"><label class="fl">Nota interna</label><textarea class="fi" id="rNota" rows="2" placeholder="Solo visible para ti y tu equipo..."></textarea></div>
+          
+          <!-- GARANTÍA DE ESTA REPARACIÓN -->
+          <div id="rBloqueGarantia" style="margin-bottom:0;padding:12px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">
+            <div class="fl" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+              <span>🛡️ Garantía de esta reparación</span>
+              <span id="rGarSelDias" style="font-size:11px;color:var(--blue);font-weight:700"></span>
+            </div>
+            <div class="gar-selector" id="rGarSelector"></div>
+            <div id="rGarCustomRow" style="display:flex;gap:6px;align-items:center;margin-top:8px">
+              <span style="font-size:11px;color:var(--muted)">o personalizar:</span>
+              <input type="number" class="fi" id="rGarDiasCustom" min="0" max="730" placeholder="" style="max-width:90px;padding:6px 10px;font-size:12px">
+              <span style="font-size:11px;color:var(--muted)">días</span>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -1769,6 +1941,28 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="fg"><label class="fl">Stock min</label><input class="fi" id="sMin" type="number" value="2"></div>
     <div class="fg"><label class="fl">Stock max</label><input class="fi" id="sMax" type="number" value="10"></div>
   </div>
+
+  <!-- TIPO + GARANTÍA (visible solo si garVenActiva y solo para Telefono/Tablet/Smartwatch) -->
+  <div id="sBloqueGarantia" style="display:none;background:var(--bg2);border-radius:10px;padding:12px;margin-top:10px;border:1px solid var(--border)">
+    <div id="sBloqueTipo" style="margin-bottom:10px">
+      <div class="fl" style="margin-bottom:6px">📦 Tipo de producto</div>
+      <div class="tipo-prod">
+        <button type="button" class="tipo-prod-btn active" id="sTipoNuevo" onclick="setTipoStock('nuevo')">✨ Nuevo</button>
+        <button type="button" class="tipo-prod-btn" id="sTipoUsado" onclick="setTipoStock('usado')">♻️ Segunda mano</button>
+      </div>
+    </div>
+    <div>
+      <div class="fl" style="margin-bottom:6px">🛡️ Garantía</div>
+      <div class="gar-selector" id="sGarSelector"></div>
+      <div id="sGarCustomRow" style="display:flex;gap:6px;align-items:center;margin-top:8px">
+        <span style="font-size:11px;color:var(--muted)">o personalizar:</span>
+        <input type="number" class="fi" id="sGarMesesCustom" min="0" max="120" placeholder="" style="max-width:90px;padding:6px 10px;font-size:12px">
+        <span style="font-size:11px;color:var(--muted)">meses</span>
+      </div>
+      <div id="sAvisoLegal" style="margin-top:10px;padding:8px 10px;border-radius:6px;font-size:11px;display:none"></div>
+    </div>
+  </div>
+
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mStock')">Cancelar</button>
     <button class="btn-primary" style="background:var(--orange)" onclick="guardarStock()">Guardar</button>
@@ -1969,7 +2163,27 @@ var SUPABASE_URL = 'https://zcxgyissdqyqsnojxviy.supabase.co';
 var SB_KEY = '';
 var TIENDA_ID = '';
 var U = null;
-var TIENDA = {nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',garantia:'',politica:'',logo_url:''};
+var TIENDA = {
+  nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',
+  garantia:'',politica:'',logo_url:'',
+  garantiaDias:90,
+  garantiaVentas:'',politicaVentas:'',
+  // Nueva config completa de garantías
+  garRepActiva: true,
+  grDiasOptions: [30,60,90,180,365],
+  grDiasEnabled: [90],
+  grDiasDefault: 90,
+  grPermitirCustom: true,
+  grPermitirSin: true,
+  garVenActiva: true,
+  gvMesesOptions: [3,6,12,24,36],
+  gvMesesEnabled: [3,12,24,36],
+  gvMesesDefaultNuevo: 36,
+  gvMesesDefaultUsado: 12,
+  gvPermitirCustom: true,
+  gvMostrarTipo: true,
+  gvAvisoLegal: true
+};
 
 // ═══ SISTEMA DE PLANES ═══
 var PLAN_INFO = {plan:'basico', status:'trial', trial_until:null, plan_until:null, token:''};
@@ -3994,7 +4208,7 @@ function imprimirTicketVenta(id) {
     '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px;border-top:1px solid #000;padding-top:4px"><span>TOTAL' + (v.ivaModo === 'incluido' ? ' (IVA inc.)' : '') + '</span><span>' + cur(v.total || 0) + '</span></div>' +
     '<hr>' +
     '<div style="text-align:center;font-size:10px;color:#666;margin-top:6px">Gracias por su compra</div>' +
-    (TIENDA.garantiaVentas ? '<div style="text-align:center;font-size:9px;color:#666;margin-top:6px;line-height:1.4">' + esc(TIENDA.garantiaVentas) + '</div>' : '') +
+    (TIENDA.garVenActiva !== false && TIENDA.garantiaVentas ? '<div style="text-align:center;font-size:9px;color:#666;margin-top:6px;line-height:1.4">' + esc(TIENDA.garantiaVentas) + '</div>' : '') +
     (TIENDA.politicaVentas ? '<div style="text-align:center;font-size:9px;color:#888;margin-top:4px;line-height:1.4">' + esc(TIENDA.politicaVentas) + '</div>' : '') +
     '<script>window.onload=function(){setTimeout(function(){window.print();},200);}<\/script>' +
     '</body></html>';
@@ -5219,18 +5433,20 @@ function trackingTicket() {
 
     '<div class="line"></div>' +
 
-    '<div class="terms">' +
-      '<div class="t-title">CONDICIONES DE GARANTIA</div>' +
-      '<div class="t-row"><strong>1. Pantallas:</strong> Original 3 meses (no cubre golpes/humedad). Compatible: sin garantia.</div>' +
-      '<div class="t-row"><strong>2. Baterias:</strong> 3 meses. No cubre golpes, humedad, fallos de placa.</div>' +
-      '<div class="t-row"><strong>3. Microsoldadura / placa:</strong> sin garantia. Probar en tienda al recoger.</div>' +
-      '<div class="t-row"><strong>4. Humedad:</strong> sin garantia. La corrosion progresa.</div>' +
-      '<div class="t-row"><strong>5. Camara, conector, altavoz, tapa, botones:</strong> 1 mes (defecto de pieza).</div>' +
-      '<div class="t-row"><strong>6. General:</strong> garantia solo sobre pieza reparada. No reembolsos: se vuelve a reparar. Pasados 30 dias sin recoger se considera abandono. La empresa no se responsabiliza de los datos del dispositivo.</div>' +
-    '</div>' +
-
-    '<div class="link-cond">Condiciones completas: ' + esc(origin.replace(/^https?:\/\//, '')) + '/condiciones</div>' +
-    '<div class="aviso">Al dejar el dispositivo, el cliente acepta estas condiciones.</div>' +
+    (TIENDA.garRepActiva !== false ? (
+      '<div class="terms">' +
+        '<div class="t-title">CONDICIONES DE GARANTIA</div>' +
+        (r.garantiaDias === 0
+          ? '<div class="t-row"><strong>Esta reparación se entrega SIN garantía</strong> (placa, humedad u otro motivo). El cliente acepta este punto.</div>'
+          : '<div class="t-row"><strong>Garantía:</strong> ' + (r.garantiaDias || TIENDA.grDiasDefault || 90) + ' días sobre la pieza reparada y mano de obra desde la fecha de entrega.</div>'
+        ) +
+        (TIENDA.garantia ? '<div class="t-row">' + esc(TIENDA.garantia) + '</div>' : '') +
+        '<div class="t-row"><strong>Excluido:</strong> golpes, humedad, mal uso, daños no relacionados con la pieza reparada.</div>' +
+        '<div class="t-row"><strong>Reclamación:</strong> presentar este ticket. Pasados 30 días sin recoger se considera abandono. La empresa no se responsabiliza de los datos del dispositivo.</div>' +
+      '</div>' +
+      '<div class="link-cond">Condiciones completas: ' + esc(origin.replace(/^https?:\/\//, '')) + '/condiciones</div>' +
+      '<div class="aviso">Al dejar el dispositivo, el cliente acepta estas condiciones.</div>'
+    ) : '') +
 
     '<div class="line"></div>' +
 
@@ -5349,11 +5565,97 @@ function editarRep(id) {
   // Recalcular totales
   if (typeof calcR === 'function') calcR();
 
+  // Cargar garantía de esta rep
+  window._repGarantiaDias = (typeof r.garantiaDias === 'number') ? r.garantiaDias : (TIENDA.grDiasDefault || 90);
+  renderRepGarantia();
+
   // Cambiar titulo
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = '✏️ Editar Reparación';
 
   openM('mRep');
 }
+
+// === HELPERS GARANTÍA REPARACIÓN ===
+function renderRepGarantia() {
+  var bloque = document.getElementById('rBloqueGarantia');
+  if (!bloque) return;
+  // Si garantía rep desactivada → ocultar todo
+  if (TIENDA.garRepActiva === false) {
+    bloque.style.display = 'none';
+    return;
+  }
+  bloque.style.display = 'block';
+  
+  var dias = window._repGarantiaDias;
+  if (typeof dias !== 'number') {
+    dias = TIENDA.grDiasDefault || 90;
+    window._repGarantiaDias = dias;
+  }
+  
+  var label = document.getElementById('rGarSelDias');
+  if (label) {
+    if (dias === 0) label.textContent = 'Sin garantía';
+    else label.textContent = dias + ' días';
+  }
+  
+  var sel = document.getElementById('rGarSelector');
+  var opciones = TIENDA.grDiasEnabled || [90];
+  var html = '';
+  opciones.forEach(function(d){
+    var act = (d === dias) ? ' active' : '';
+    html += '<button type="button" class="gar-btn'+act+'" onclick="selectRepGar('+d+')">'+d+' días</button>';
+  });
+  if (TIENDA.grPermitirSin !== false) {
+    var actSin = (dias === 0) ? ' active' : '';
+    html += '<button type="button" class="gar-btn sin-gar'+actSin+'" onclick="selectRepGar(0)">Sin garantía</button>';
+  }
+  sel.innerHTML = html;
+  
+  var customRow = document.getElementById('rGarCustomRow');
+  if (customRow) customRow.style.display = (TIENDA.grPermitirCustom !== false) ? 'flex' : 'none';
+  var customInput = document.getElementById('rGarDiasCustom');
+  if (customInput) {
+    if (opciones.indexOf(dias) === -1 && dias !== 0) customInput.value = dias;
+    else customInput.value = '';
+  }
+}
+
+function selectRepGar(dias) {
+  window._repGarantiaDias = dias;
+  var customInp = document.getElementById('rGarDiasCustom');
+  if (customInp) customInp.value = '';
+  renderRepGarantia();
+}
+
+// Hook listener para custom rep + abrir modal nuevo
+document.addEventListener('DOMContentLoaded', function(){
+  var inp = document.getElementById('rGarDiasCustom');
+  if (inp) {
+    inp.addEventListener('input', function(){
+      var v = parseInt(this.value);
+      if (v >= 0) {
+        window._repGarantiaDias = v;
+        document.querySelectorAll('#rGarSelector .gar-btn').forEach(function(b){
+          b.classList.remove('active');
+        });
+        var lbl = document.getElementById('rGarSelDias');
+        if (lbl) lbl.textContent = v + ' días (custom)';
+      }
+    });
+  }
+  // Hook al abrir modal rep nuevo
+  var origOpenM2 = window.openM;
+  if (origOpenM2 && typeof origOpenM2 === 'function') {
+    window.openM = function(id) {
+      origOpenM2(id);
+      if (id === 'mRep' && !SEL.editRepId) {
+        // Reparación nueva → resetear garantía al default
+        window._repGarantiaDias = TIENDA.grDiasDefault || 90;
+        setTimeout(renderRepGarantia, 30);
+      }
+    };
+  }
+});
 
 // Auto-guarda en el catálogo los servicios nuevos creados inline en la reparación
 function autoGuardarServiciosNuevos(servicios) {
@@ -5465,6 +5767,7 @@ function guardarRep() {
     r.componentes = SEL.selParts.slice();
     r.total = calcE.total;
     r.restante = Math.max(0, calcE.total - antiE);
+    r.garantiaDias = (typeof window._repGarantiaDias === 'number') ? window._repGarantiaDias : (r.garantiaDias || TIENDA.grDiasDefault || 90);
     guardarDatos();
     if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
       sbPatch('reparaciones', 'id=eq.' + r.id, {
@@ -5525,7 +5828,8 @@ function guardarRep() {
     componentes: SEL.selParts.slice(),
     restante: Math.max(0, total - anticipo),
     total: total, pagoFinal: '',
-    esGarantia: false, repOriginalId: ''
+    esGarantia: false, repOriginalId: '',
+    garantiaDias: (typeof window._repGarantiaDias === 'number') ? window._repGarantiaDias : (TIENDA.grDiasDefault || 90)
   };
 
   // Reduce component stock
@@ -5939,6 +6243,11 @@ function guardarStock() {
   var marca = document.getElementById('sMarca').value.trim();
   var modelo = document.getElementById('sModelo').value.trim();
   if (!marca || !modelo) { toast('Marca y modelo obligatorios', 'err'); return; }
+  
+  // Recoger tipo y garantía (solo si está activa para esta categoría)
+  var stockTipo = window._stockTipoSel || 'nuevo';
+  var stockGarantiaMeses = parseInt(window._stockGarantiaMeses) || 0;
+  
   if (SEL.editStockId) {
     var s = DB.stock.find(function(x) { return x.id === SEL.editStockId; });
     if (s) {
@@ -5952,7 +6261,8 @@ function guardarStock() {
       s.precioV = parseFloat(document.getElementById('sPrecioV').value) || 0;
       s.stockMin = parseInt(document.getElementById('sMin').value) || 2;
       s.stockMax = parseInt(document.getElementById('sMax').value) || 10;
-      // FIX: sincronizar el cambio a Supabase con PATCH (no POST)
+      s.tipo = stockTipo;
+      s.garantiaMeses = stockGarantiaMeses;
       if (SB_KEY && TIENDA_ID) {
         sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
           categoria: s.categoria, marca: s.marca, modelo: s.modelo,
@@ -5976,7 +6286,9 @@ function guardarStock() {
       precioV: parseFloat(document.getElementById('sPrecioV').value) || 0,
       stockMin: parseInt(document.getElementById('sMin').value) || 2,
       stockMax: parseInt(document.getElementById('sMax').value) || 10,
-      vendido: false, calidad: ''
+      vendido: false, calidad: '',
+      tipo: stockTipo,
+      garantiaMeses: stockGarantiaMeses
     };
     DB.stock.push(nuevo);
     if (SB_KEY && TIENDA_ID) sbPost('stock', {
@@ -5987,6 +6299,9 @@ function guardarStock() {
       stock_min:nuevo.stockMin, stock_max:nuevo.stockMax, vendido:false
     });
   }
+  // Reset selección
+  window._stockTipoSel = null;
+  window._stockGarantiaMeses = null;
   guardarDatos();
   closeM('mStock');
   toast('Stock guardado', 'ok');
@@ -6009,8 +6324,154 @@ function editarStock(id) {
   document.getElementById('sPrecioV').value = s.precioV || 0;
   document.getElementById('sMin').value = s.stockMin || 2;
   document.getElementById('sMax').value = s.stockMax || 10;
+  // Pre-cargar tipo/garantía
+  window._stockTipoSel = s.tipo || 'nuevo';
+  window._stockGarantiaMeses = s.garantiaMeses || null;
   openM('mStock');
+  setTimeout(function(){ renderStockGarantia(); }, 50);
 }
+
+// === HELPERS GARANTÍA STOCK ===
+function setTipoStock(tipo) {
+  window._stockTipoSel = tipo;
+  document.getElementById('sTipoNuevo').classList.toggle('active', tipo === 'nuevo');
+  document.getElementById('sTipoUsado').classList.toggle('active', tipo === 'usado');
+  // Auto-seleccionar default según tipo
+  var defM = (tipo === 'nuevo') ? (TIENDA.gvMesesDefaultNuevo || 36) : (TIENDA.gvMesesDefaultUsado || 12);
+  window._stockGarantiaMeses = defM;
+  renderStockGarantia();
+}
+
+function renderStockGarantia() {
+  // Mostrar/ocultar bloque entero
+  var bloque = document.getElementById('sBloqueGarantia');
+  if (!bloque) return;
+  var cat = document.getElementById('sCat').value;
+  var aplicaCat = ['Telefono','Tablet','Smartwatch'].indexOf(cat) !== -1;
+  var venActiva = TIENDA.garVenActiva !== false;
+  if (!venActiva || !aplicaCat) { bloque.style.display = 'none'; return; }
+  bloque.style.display = 'block';
+  
+  // Mostrar/ocultar selector de tipo
+  var bloqueTipo = document.getElementById('sBloqueTipo');
+  var mostrarTipo = TIENDA.gvMostrarTipo !== false;
+  if (bloqueTipo) bloqueTipo.style.display = mostrarTipo ? 'block' : 'none';
+  
+  // Tipo actual
+  var tipo = window._stockTipoSel || 'nuevo';
+  document.getElementById('sTipoNuevo').classList.toggle('active', tipo === 'nuevo');
+  document.getElementById('sTipoUsado').classList.toggle('active', tipo === 'usado');
+  
+  // Renderizar chips meses
+  var sel = document.getElementById('sGarSelector');
+  var meses = TIENDA.gvMesesEnabled || [3,12,24,36];
+  var actual = window._stockGarantiaMeses;
+  if (!actual) {
+    actual = (tipo === 'nuevo') ? (TIENDA.gvMesesDefaultNuevo || 36) : (TIENDA.gvMesesDefaultUsado || 12);
+    window._stockGarantiaMeses = actual;
+  }
+  var html = '';
+  meses.forEach(function(m){
+    var act = (m === actual) ? ' active' : '';
+    html += '<button type="button" class="gar-btn'+act+'" onclick="selectStockGar('+m+')">'+m+' meses</button>';
+  });
+  if (TIENDA.gvPermitirCustom !== false) {
+    html += '<button type="button" class="gar-btn" onclick="focusStockCustom()">Otro</button>';
+  }
+  sel.innerHTML = html;
+  
+  // Custom row
+  var customRow = document.getElementById('sGarCustomRow');
+  if (customRow) customRow.style.display = (TIENDA.gvPermitirCustom !== false) ? 'flex' : 'none';
+  var customInput = document.getElementById('sGarMesesCustom');
+  if (customInput) {
+    // Si actual no está en meses estándar, mostrarlo en custom
+    if (meses.indexOf(actual) === -1) customInput.value = actual;
+    else customInput.value = '';
+  }
+  
+  // Aviso legal
+  actualizarAvisoStock();
+}
+
+function selectStockGar(meses) {
+  window._stockGarantiaMeses = meses;
+  document.getElementById('sGarMesesCustom').value = '';
+  renderStockGarantia();
+}
+
+function focusStockCustom() {
+  document.getElementById('sGarMesesCustom').focus();
+}
+
+function actualizarAvisoStock() {
+  var aviso = document.getElementById('sAvisoLegal');
+  if (!aviso) return;
+  if (TIENDA.gvAvisoLegal === false) { aviso.style.display = 'none'; return; }
+  var tipo = window._stockTipoSel || 'nuevo';
+  var m = window._stockGarantiaMeses || 0;
+  var html = '', bg = '', color = '', border = '';
+  if (tipo === 'nuevo') {
+    if (m >= 36) {
+      html = '✅ <strong>Nuevo + '+m+' meses</strong> cumple ley España (RDL 7/2024)';
+      bg = '#D1FAE5'; border = '#00C896'; color = '#065F46';
+    } else {
+      html = '⚠️ <strong>Atención:</strong> productos NUEVOS necesitan mínimo 36 meses por ley española.';
+      bg = '#FEF3C7'; border = '#F59E0B'; color = '#78350F';
+    }
+  } else {
+    if (m >= 12) {
+      html = '✅ <strong>Segunda mano + '+m+' meses</strong> cumple mínimo legal (12 meses)';
+      bg = '#D1FAE5'; border = '#00C896'; color = '#065F46';
+    } else {
+      html = '⚠️ <strong>Atención:</strong> productos USADOS necesitan mínimo 12 meses por ley.';
+      bg = '#FEF3C7'; border = '#F59E0B'; color = '#78350F';
+    }
+  }
+  aviso.style.display = 'block';
+  aviso.style.background = bg;
+  aviso.style.borderLeft = '3px solid '+border;
+  aviso.style.color = color;
+  aviso.innerHTML = html;
+}
+
+// Inicializar listener custom + categoría change
+document.addEventListener('DOMContentLoaded', function(){
+  var customInp = document.getElementById('sGarMesesCustom');
+  if (customInp) {
+    customInp.addEventListener('input', function(){
+      var v = parseInt(this.value);
+      if (v > 0) {
+        window._stockGarantiaMeses = v;
+        // Marcar chips como no active
+        document.querySelectorAll('#sGarSelector .gar-btn').forEach(function(b){
+          b.classList.remove('active');
+        });
+        actualizarAvisoStock();
+      }
+    });
+  }
+  var sCat = document.getElementById('sCat');
+  if (sCat) sCat.addEventListener('change', renderStockGarantia);
+  
+  // Hook al abrir modal stock para inicializar tipo/garantía
+  var origOpenM = window.openM;
+  if (origOpenM && typeof origOpenM === 'function') {
+    window.openM = function(id) {
+      origOpenM(id);
+      if (id === 'mStock') {
+        setTimeout(function(){
+          if (!SEL.editStockId) {
+            // Crear nuevo → defaults
+            window._stockTipoSel = 'nuevo';
+            window._stockGarantiaMeses = TIENDA.gvMesesDefaultNuevo || 36;
+          }
+          renderStockGarantia();
+        }, 30);
+      }
+    };
+  }
+});
 
 function eliminarStock(id) {
   if (!tienePerm('stock_eliminar')) { toast('Sin permiso', 'err'); return; }
@@ -6723,13 +7184,92 @@ function cargarTienda() {
   document.getElementById('tWeb').value = t.web || '';
   document.getElementById('tGarantia').value = t.garantia || '';
   document.getElementById('tPolitica').value = t.politica || '';
-  var gd = document.getElementById('tGarantiaDias');
-  if (gd) gd.value = t.garantiaDias || 90;
   var gv = document.getElementById('tGarantiaVentas');
   var pv = document.getElementById('tPoliticaVentas');
   if (gv) gv.value = t.garantiaVentas || '';
   if (pv) pv.value = t.politicaVentas || '';
+  
+  // Cargar nueva config de garantías
+  var swRep = document.getElementById('garRepActiva');
+  var swVen = document.getElementById('garVenActiva');
+  if (swRep) swRep.checked = t.garRepActiva !== false;
+  if (swVen) swVen.checked = t.garVenActiva !== false;
+  
+  // Días reparaciones (enabled)
+  var diasEnabled = t.grDiasEnabled || [90];
+  [30,60,90,180,365].forEach(function(d){
+    var el = document.getElementById('grDias'+d);
+    if (el) el.checked = diasEnabled.indexOf(d) !== -1;
+  });
+  var grDef = document.getElementById('grDiasDefault');
+  if (grDef) grDef.value = t.grDiasDefault || 90;
+  var grC = document.getElementById('grPermitirCustom');
+  var grS = document.getElementById('grPermitirSin');
+  if (grC) grC.checked = t.grPermitirCustom !== false;
+  if (grS) grS.checked = t.grPermitirSin !== false;
+  
+  // Meses ventas (enabled)
+  var mesesEnabled = t.gvMesesEnabled || [3,12,24,36];
+  [3,6,12,24,36].forEach(function(m){
+    var el = document.getElementById('gvMes'+m);
+    if (el) el.checked = mesesEnabled.indexOf(m) !== -1;
+  });
+  var gvDN = document.getElementById('gvMesesDefaultNuevo');
+  var gvDU = document.getElementById('gvMesesDefaultUsado');
+  if (gvDN) gvDN.value = t.gvMesesDefaultNuevo || 36;
+  if (gvDU) gvDU.value = t.gvMesesDefaultUsado || 12;
+  var gvC = document.getElementById('gvPermitirCustom');
+  var gvT = document.getElementById('gvMostrarTipo');
+  var gvA = document.getElementById('gvAvisoLegal');
+  if (gvC) gvC.checked = t.gvPermitirCustom !== false;
+  if (gvT) gvT.checked = t.gvMostrarTipo !== false;
+  if (gvA) gvA.checked = t.gvAvisoLegal !== false;
+  
+  toggleGarRep();
+  toggleGarVen();
+  
   renderLogoPreview(t.logo_url || '');
+}
+
+function toggleGarRep() {
+  var sw = document.getElementById('garRepActiva');
+  var opts = document.getElementById('garRepOptions');
+  if (sw && opts) opts.style.display = sw.checked ? 'block' : 'none';
+  actualizarAvisoGarantia();
+}
+
+function toggleGarVen() {
+  var sw = document.getElementById('garVenActiva');
+  var opts = document.getElementById('garVenOptions');
+  if (sw && opts) opts.style.display = sw.checked ? 'block' : 'none';
+  actualizarAvisoGarantia();
+}
+
+function actualizarAvisoGarantia() {
+  var aviso = document.getElementById('garEstadoAviso');
+  if (!aviso) return;
+  var rep = document.getElementById('garRepActiva');
+  var ven = document.getElementById('garVenActiva');
+  var repOn = rep && rep.checked;
+  var venOn = ven && ven.checked;
+  var html = '', bg = '', border = '', color = '';
+  if (repOn && venOn) {
+    html = '<strong>🛡 Garantías activas:</strong> Reparaciones + Ventas. Sale en tickets.';
+    bg = '#D1FAE5'; border = '#00C896'; color = '#065F46';
+  } else if (repOn && !venOn) {
+    html = '<strong>🛠 Solo reparaciones:</strong> Sale en tickets de reparación. Ventas SIN garantía visible.';
+    bg = '#EBF1FF'; border = '#0055FF'; color = '#1E3A8A';
+  } else if (!repOn && venOn) {
+    html = '<strong>📱 Solo ventas:</strong> Sale en tickets de venta. Reparaciones SIN garantía.';
+    bg = '#D1FAE5'; border = '#00C896'; color = '#065F46';
+  } else {
+    html = '<strong>⚠️ Garantías desactivadas:</strong> Tickets sin texto legal. Si vendes móviles, recuerda informar al cliente (ley exige).';
+    bg = '#FEF3C7'; border = '#F59E0B'; color = '#78350F';
+  }
+  aviso.innerHTML = html;
+  aviso.style.background = bg;
+  aviso.style.borderLeftColor = border;
+  aviso.style.color = color;
 }
 
 function guardarTienda() {
@@ -6737,8 +7277,27 @@ function guardarTienda() {
   var prev = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
   var gvEl = document.getElementById('tGarantiaVentas');
   var pvEl = document.getElementById('tPoliticaVentas');
-  var gdEl = document.getElementById('tGarantiaDias');
-  var garantiaDias = gdEl ? parseInt(gdEl.value) || 90 : 90;
+  
+  // Recoger días habilitados rep
+  var grDiasEnabled = [];
+  [30,60,90,180,365].forEach(function(d){
+    var el = document.getElementById('grDias'+d);
+    if (el && el.checked) grDiasEnabled.push(d);
+  });
+  if (grDiasEnabled.length === 0) grDiasEnabled = [90];
+  
+  // Recoger meses habilitados venta
+  var gvMesesEnabled = [];
+  [3,6,12,24,36].forEach(function(m){
+    var el = document.getElementById('gvMes'+m);
+    if (el && el.checked) gvMesesEnabled.push(m);
+  });
+  if (gvMesesEnabled.length === 0) gvMesesEnabled = [12];
+  
+  var grDef = parseInt((document.getElementById('grDiasDefault')||{}).value) || 90;
+  var gvDN = parseInt((document.getElementById('gvMesesDefaultNuevo')||{}).value) || 36;
+  var gvDU = parseInt((document.getElementById('gvMesesDefaultUsado')||{}).value) || 12;
+  
   var t = {
     nombre: document.getElementById('tNom').value.trim(),
     dir: document.getElementById('tDir').value.trim(),
@@ -6748,17 +7307,30 @@ function guardarTienda() {
     web: document.getElementById('tWeb').value.trim(),
     garantia: document.getElementById('tGarantia').value.trim(),
     politica: document.getElementById('tPolitica').value.trim(),
-    garantiaDias: garantiaDias,
+    garantiaDias: grDef,
     garantiaVentas: gvEl ? gvEl.value.trim() : '',
     politicaVentas: pvEl ? pvEl.value.trim() : '',
-    logo_url: prev.logo_url || TIENDA.logo_url || ''
+    logo_url: prev.logo_url || TIENDA.logo_url || '',
+    // Nueva config completa
+    garRepActiva: !!(document.getElementById('garRepActiva')||{}).checked,
+    grDiasEnabled: grDiasEnabled,
+    grDiasDefault: grDef,
+    grPermitirCustom: !!(document.getElementById('grPermitirCustom')||{}).checked,
+    grPermitirSin: !!(document.getElementById('grPermitirSin')||{}).checked,
+    garVenActiva: !!(document.getElementById('garVenActiva')||{}).checked,
+    gvMesesEnabled: gvMesesEnabled,
+    gvMesesDefaultNuevo: gvDN,
+    gvMesesDefaultUsado: gvDU,
+    gvPermitirCustom: !!(document.getElementById('gvPermitirCustom')||{}).checked,
+    gvMostrarTipo: !!(document.getElementById('gvMostrarTipo')||{}).checked,
+    gvAvisoLegal: !!(document.getElementById('gvAvisoLegal')||{}).checked
   };
   localStorage.setItem('tk_tienda', JSON.stringify(t));
   Object.assign(TIENDA, t);
   document.getElementById('dTienda').textContent = t.nombre || 'Mi Tienda';
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {
     nombre: t.nombre, dir: t.dir, tel: t.tel, email: t.email, cif: t.cif, web: t.web,
-    garantia: t.garantia, politica: t.politica, garantia_dias: garantiaDias,
+    garantia: t.garantia, politica: t.politica, garantia_dias: grDef,
     garantia_ventas: t.garantiaVentas, politica_ventas: t.politicaVentas
   });
   toast('Tienda guardada', 'ok');
@@ -8277,9 +8849,11 @@ function getDiasGarantia() {
 // Comprueba si una nueva avería del mismo cliente y modelo está dentro de garantía
 // Devuelve la rep anterior + días transcurridos, o null
 function checkGarantia(cliId, marca, modelo, fechaActual, clienteNombre) {
+  // Si la tienda desactivó garantía → no detectar
+  if (TIENDA.garRepActiva === false) return null;
   if (!cliId && !clienteNombre) return null;
-  var dias = getDiasGarantia();
-  if (!dias || dias <= 0) return null;
+  var diasGlobal = getDiasGarantia();
+  if (!diasGlobal || diasGlobal <= 0) return null;
   var fechaRef = fechaActual ? _parseDateAny(fechaActual) : new Date();
   if (!fechaRef) fechaRef = new Date();
   var marcaN = _norm(marca||'');
@@ -8296,8 +8870,11 @@ function checkGarantia(cliId, marca, modelo, fechaActual, clienteNombre) {
     if (r.estado !== 'Entregado' || !r.fechaEntregaReal) return false;
     var fe = _parseDateAny(r.fechaEntregaReal);
     if (!fe) return false;
+    // Usar días específicos de esa rep si los tiene, si no el global
+    var diasRep = (typeof r.garantiaDias === 'number') ? r.garantiaDias : diasGlobal;
+    if (diasRep <= 0) return false; // rep marcada "sin garantía"
     var diff = (fechaRef - fe) / 86400000;
-    if (diff < 0 || diff > dias) return false;
+    if (diff < 0 || diff > diasRep) return false;
     var mr = _norm(r.marca||'');
     var mm = _norm(r.modelo||'');
     var marcaCoincide = !marcaN || !mr || mr === marcaN;
@@ -8308,8 +8885,9 @@ function checkGarantia(cliId, marca, modelo, fechaActual, clienteNombre) {
   });
   if (!candidatas.length) return null;
   var rep = candidatas[0];
+  var diasUsados = (typeof rep.garantiaDias === 'number') ? rep.garantiaDias : diasGlobal;
   var diasDesde = Math.floor((fechaRef - _parseDateAny(rep.fechaEntregaReal)) / 86400000);
-  return {rep: rep, dias: diasDesde, diasTotal: dias, restantes: dias - diasDesde};
+  return {rep: rep, dias: diasDesde, diasTotal: diasUsados, restantes: diasUsados - diasDesde};
 }
 
 // ═══ ORDEN PERSONALIZADO DE WIDGETS ═══
