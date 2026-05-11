@@ -4,3 +4,6 @@
 .DS_Store
 *.bak
 *.bak-*
+.DS_Store
+*.bak
+*.bak-*
