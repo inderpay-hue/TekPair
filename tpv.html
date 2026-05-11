@@ -178,6 +178,25 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 @media(min-width:769px){
   .cart-fab,.cart-close-mobile{display:none!important}
 }
+@media(max-width:768px){
+  .tpv{grid-template-columns:1fr}
+  .tpv-right{display:none;position:fixed;inset:0;z-index:200;width:100%;height:100vh;animation:slideUp .25s ease}
+  .tpv-right.show{display:flex}
+  
+  /* Botón flotante */
+  .cart-fab{position:fixed;bottom:14px;left:14px;right:14px;background:linear-gradient(135deg,#0055FF,#00C896);color:white;border:none;padding:14px 18px;border-radius:14px;font-family:Arial;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 24px rgba(0,85,255,.4);z-index:90;animation:fabPop .3s ease}
+  .cart-fab-left{display:flex;align-items:center;gap:10px}
+  .cart-fab-badge{background:white;color:#0055FF;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+  
+  /* Botón cerrar dentro del panel */
+  .cart-close-mobile{display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:rgba(255,255,255,.1);border:none;border-radius:10px;color:white;font-size:22px;cursor:pointer;margin-right:8px}
+  
+  @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes fabPop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+}
+@media(min-width:769px){
+  .cart-fab,.cart-close-mobile{display:none!important}
+}
 </style>
 </head>
 <body>
@@ -1124,7 +1143,37 @@ function mostrarTicket(venta, totals) {
 function imprimirTicket() {
   var content = document.getElementById('ticketContent').innerHTML;
   var win = window.open('', '_blank', 'width=400,height=600');
-  win.document.write('<html><head><title>Ticket</title><style>body{font-family:Courier New,monospace;font-size:12px;margin:0;padding:10px}.ticket-row{display:flex;justify-content:space-between;margin:3px 0}.ticket-total{display:flex;justify-content:space-between;font-size:16px;font-weight:900;margin:6px 0}.ticket-sep{border:none;border-top:1px dashed #ccc;margin:6px 0}.ticket-footer{text-align:center;font-size:10px;color:#999;margin-top:8px}.ticket-logo{text-align:center;font-size:18px;font-weight:900;margin-bottom:4px}</style></head><body>' + content + '
+  win.document.write('<html><head><title>Ticket</title><style>body{font-family:Courier New,monospace;font-size:12px;margin:0;padding:10px}.ticket-row{display:flex;justify-content:space-between;margin:3px 0}.ticket-total{display:flex;justify-content:space-between;font-size:16px;font-weight:900;margin:6px 0}.ticket-sep{border:none;border-top:1px dashed #ccc;margin:6px 0}.ticket-footer{text-align:center;font-size:10px;color:#999;margin-top:8px}.ticket-logo{text-align:center;font-size:18px;font-weight:900;margin-bottom:4px}@media(max-width:768px){
+  .tpv{grid-template-columns:1fr}
+  .tpv-right{display:none;position:fixed;inset:0;z-index:200;width:100%;height:100vh;animation:slideUp .25s ease}
+  .tpv-right.show{display:flex}
+  
+  /* Botón flotante */
+  .cart-fab{position:fixed;bottom:14px;left:14px;right:14px;background:linear-gradient(135deg,#0055FF,#00C896);color:white;border:none;padding:14px 18px;border-radius:14px;font-family:Arial;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 24px rgba(0,85,255,.4);z-index:90;animation:fabPop .3s ease}
+  .cart-fab-left{display:flex;align-items:center;gap:10px}
+  .cart-fab-badge{background:white;color:#0055FF;width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
+  
+  /* Botón cerrar dentro del panel */
+  .cart-close-mobile{display:flex;align-items:center;justify-content:center;width:40px;height:40px;background:rgba(255,255,255,.1);border:none;border-radius:10px;color:white;font-size:22px;cursor:pointer;margin-right:8px}
+  
+  @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes fabPop{from{transform:scale(.5);opacity:0}to{transform:scale(1);opacity:1}}
+}
+@media(min-width:769px){
+  .cart-fab,.cart-close-mobile{display:none!important}
+}
+</style></head><body>' + content + '
+<!-- BOTÓN FLOTANTE MÓVIL -->
+<button class="cart-fab" id="cartFab" onclick="toggleCartMobile()">
+  <div class="cart-fab-left">
+    <span style="font-size:20px">🛒</span>
+    <span>Ver ticket</span>
+    <span class="cart-fab-badge" id="cartFabBadge">0</span>
+  </div>
+  <span id="cartFabTotal">€0.00</span>
+</button>
+
+
 <!-- BOTÓN FLOTANTE MÓVIL -->
 <button class="cart-fab" id="cartFab" onclick="toggleCartMobile()">
   <div class="cart-fab-left">
@@ -1285,6 +1334,17 @@ function reimprimirVenta(id) {
   mostrarTicket(v, totals);
 }
 </script>
+
+<!-- BOTÓN FLOTANTE MÓVIL -->
+<button class="cart-fab" id="cartFab" onclick="toggleCartMobile()">
+  <div class="cart-fab-left">
+    <span style="font-size:20px">🛒</span>
+    <span>Ver ticket</span>
+    <span class="cart-fab-badge" id="cartFabBadge">0</span>
+  </div>
+  <span id="cartFabTotal">€0.00</span>
+</button>
+
 
 <!-- BOTÓN FLOTANTE MÓVIL -->
 <button class="cart-fab" id="cartFab" onclick="toggleCartMobile()">
