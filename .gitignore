@@ -1,3 +1,6 @@
 .env.local
 .env*.local
 .vercel
+.DS_Store
+*.bak
+*.bak-*
