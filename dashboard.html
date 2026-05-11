@@ -2550,16 +2550,22 @@ function sbPost(table, data) {
 }
 
 function sbPatch(table, query, data) {
-  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
-    method: 'PATCH',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json'},
-    body: JSON.stringify(data)
-  }).then(function(r) {
-    if (!r.ok) {
-      return r.json().then(function(err){ _sbErrorToast('PATCH', table, err); return false; }, function(){ _sbErrorToast('PATCH', table, {status:r.status}); return false; });
+  return _sbPatchRaw(table, query, data).then(function(ok) {
+    if (!ok) {
+      _syncQueueAdd({
+        _opId: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+        method: 'PATCH',
+        table: table,
+        query: query,
+        data: data,
+        dataId: null,
+        attempts: 0,
+        ts: Date.now()
+      });
+      if (typeof toast === 'function') toast('⚠️ Sin conexión - guardado para sincronizar', 'err');
     }
-    return true;
-  }).catch(function(e) { _sbErrorToast('PATCH', table, e); return false; });
+    return ok;
+  });
 }
 
 function sbDelete(table, query) {
