@@ -130,6 +130,72 @@ footer{background:#020B2E;padding:40px 24px;color:rgba(255,255,255,.6)}
 .footer-col a:hover{color:white}
 .footer-bottom{max-width:1000px;margin:24px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center;font-size:12px}
 
+/* ═══ EFECTOS WOW ═══ */
+.hero h1 .rotator{display:inline-block;color:var(--green);font-style:italic;font-weight:400;transition:opacity .3s, transform .3s;min-width:200px;text-align:left;font-family:Georgia,serif}
+.feat-card{position:relative;overflow:hidden;cursor:pointer}
+.feat-card::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,85,255,.08),transparent);transition:left .6s;pointer-events:none}
+.feat-card:hover::before{left:100%}
+.feat-card:hover .feat-icon{transform:scale(1.15) rotate(-8deg)}
+.feat-icon{transition:transform .3s cubic-bezier(.4,0,.2,1);display:inline-block}
+.phone-mockup{transform:rotateY(-8deg) rotateX(2deg);transition:transform .6s cubic-bezier(.4,0,.2,1)}
+.hero-visual{perspective:1500px}
+.phone-mockup:hover{transform:rotateY(0) rotateX(0) translateY(-6px)}
+.cta{position:relative;overflow:hidden;background:linear-gradient(120deg,#020B2E,#0A1A4E,#0D2060,#0055FF,#020B2E)!important;background-size:300% 300%!important;animation:gradientShift 10s ease infinite}
+@keyframes gradientShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
+.cta::before{content:'';position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 70%);border-radius:50%;animation:blobMove1 12s ease-in-out infinite;pointer-events:none;top:50%;left:50%}
+.cta::after{content:'';position:absolute;width:350px;height:350px;background:radial-gradient(circle,rgba(0,200,150,.18),transparent 70%);border-radius:50%;animation:blobMove2 14s ease-in-out infinite;pointer-events:none;top:50%;left:50%}
+@keyframes blobMove1{0%,100%{transform:translate(-300px,-200px)}50%{transform:translate(300px,200px)}}
+@keyframes blobMove2{0%,100%{transform:translate(300px,200px)}50%{transform:translate(-300px,-200px)}}
+.cta > *{position:relative;z-index:2}
+.cta .btn-primary{animation:btnPulse 2.5s ease-in-out infinite}
+@keyframes btnPulse{0%,100%{box-shadow:0 8px 24px rgba(0,85,255,.4)}50%{box-shadow:0 8px 40px rgba(0,200,150,.6),0 0 0 8px rgba(0,200,150,.1)}}
+.stat-item-val{font-variant-numeric:tabular-nums}
+
+/* ═══ DEMO INTERACTIVA ═══ */
+.demo-section{padding:80px 24px;background:linear-gradient(180deg,#F8FAFC,#EFF6FF)}
+.demo-wrap{background:#020B2E;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(2,11,46,.2);max-width:760px;margin:0 auto}
+.demo-toolbar{background:#0A1A4E;padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.1)}
+.demo-dot{width:10px;height:10px;border-radius:50%}
+.demo-dot-r{background:#FF5F56}
+.demo-dot-y{background:#FFBD2E}
+.demo-dot-g{background:#28C940}
+.demo-url{margin-left:14px;color:rgba(255,255,255,.5);font-size:11px;font-family:monospace}
+.demo-live{margin-left:auto;color:#00C896;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px}
+.demo-live-dot{width:8px;height:8px;border-radius:50%;background:#00C896;animation:livePulse 1.5s ease-in-out infinite}
+@keyframes livePulse{50%{opacity:.5;transform:scale(1.2)}}
+.demo-content{background:white;padding:24px}
+.demo-step-title{font-size:14px;font-weight:700;color:#020B2E;margin-bottom:4px}
+.demo-step-sub{font-size:12px;color:#64748B;margin-bottom:16px}
+.demo-devices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.demo-device{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:18px 12px;cursor:pointer;text-align:center;transition:all .2s;font-family:inherit}
+.demo-device:hover{transform:translateY(-3px);border-color:#0055FF;box-shadow:0 6px 16px rgba(0,85,255,.15)}
+.demo-device:active{transform:translateY(0)}
+.demo-device-icon{font-size:32px;margin-bottom:6px}
+.demo-device-name{font-size:12px;font-weight:700;color:#020B2E;margin-bottom:2px}
+.demo-device-sub{font-size:10px;color:#64748B}
+.demo-back{background:transparent;border:1px solid #E2E8F0;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#64748B;font-family:inherit}
+.demo-card{background:linear-gradient(135deg,#F8FAFC,#EFF6FF);border-radius:12px;padding:18px;border:1px solid #DBEAFE}
+.demo-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.demo-field-label{font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:2px}
+.demo-field-val{font-size:14px;font-weight:700;color:#020B2E;margin-bottom:2px}
+.demo-field-meta{font-size:10px;color:#64748B}
+.demo-divider{border-top:1px solid #DBEAFE;margin:12px 0}
+.demo-cta{width:100%;margin-top:14px;background:#0055FF;color:white;border:none;padding:14px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;transition:all .2s}
+.demo-cta:hover{background:#0044CC;transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,85,255,.3)}
+.demo-check{width:64px;height:64px;background:#00C896;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;animation:pulseSuccess 1.2s ease}
+@keyframes pulseSuccess{0%{transform:scale(0)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
+.demo-success-title{font-size:18px;font-weight:800;color:#020B2E;margin-bottom:4px}
+.demo-card-status{background:#F8FAFC;border-radius:12px;padding:16px;border:1px solid #E2E8F0;margin-top:8px}
+.demo-states{display:flex;align-items:center;gap:4px;margin-bottom:14px}
+.demo-state{padding:7px 10px;border-radius:100px;background:#E2E8F0;color:#64748B;font-size:11px;font-weight:700;transition:all .3s;white-space:nowrap}
+.demo-state.active{background:#0055FF;color:white;animation:statePop .4s ease}
+.demo-state.done{background:#00C896;color:white}
+@keyframes statePop{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
+.demo-state-line{flex:1;height:2px;background:#E2E8F0}
+.demo-advance{width:100%;background:white;border:1px solid #0055FF;color:#0055FF;padding:10px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
+.demo-advance:hover{background:#EFF6FF}
+.demo-reset{width:100%;margin-top:10px;background:transparent;border:none;color:#64748B;padding:8px;font-size:11px;cursor:pointer;text-decoration:underline;font-family:inherit}
+
 /* RESPONSIVE */
 @media(max-width:768px){
   .hero-content{grid-template-columns:1fr}
@@ -142,6 +208,11 @@ footer{background:#020B2E;padding:40px 24px;color:rgba(255,255,255,.6)}
   .test-grid{grid-template-columns:1fr}
   .footer-inner{grid-template-columns:1fr}
   .nav-links .hide-mobile{display:none}
+  .demo-devices{grid-template-columns:1fr;gap:8px}
+  .demo-states{flex-direction:column;align-items:stretch;gap:4px}
+  .demo-state-line{display:none}
+  .demo-state{text-align:center}
+  .demo-grid-2{grid-template-columns:1fr;gap:10px}
 }
 </style>
 </head>
@@ -182,7 +253,7 @@ nav{top:42px!important}
   <div class="hero-content">
     <div>
       <div class="hero-badge">🔥 <span>50% descuento × 3 meses · Código EARLY50 (10 plazas)</span></div>
-      <h1>Adiós Excel y libretas. <span>Hola TekPair.</span></h1>
+      <h1>Adiós <span class="rotator" id="heroRotator">Excel.</span><br/><span>Hola TekPair.</span></h1>
       <p>El software más sencillo para tiendas de reparación de móviles. Gestiona reparaciones por IMEI, TPV, stock, clientes y citas — todo desde tu móvil, tablet u ordenador.</p>
       <div class="hero-btns">
         <a href="/registro.html" class="btn-primary">🚀 <span>Prueba 15 días gratis</span></a>
@@ -264,6 +335,116 @@ nav{top:42px!important}
       <div class="feat-icon">👤</div>
       <div class="feat-title" data-i18n="feat6.title">Usuarios y permisos</div>
       <div class="feat-desc" data-i18n="feat6.desc">Crea cuentas para tus empleados con permisos personalizados por sección.</div>
+    </div>
+  </div>
+</section>
+
+<!-- DEMO INTERACTIVA -->
+<section class="demo-section" id="demo">
+  <div style="max-width:1000px;margin:0 auto">
+    <div style="text-align:center;margin-bottom:32px">
+      <div class="section-tag" style="background:rgba(0,200,150,.1);color:#00875A">🎮 Pruébalo ahora</div>
+      <h2 class="section-title">Crea una reparación en <span style="color:#00C896">30 segundos</span></h2>
+      <p class="section-sub" style="margin:0 auto;text-align:center">Sin registrarte. Sin instalar nada. Toca un dispositivo y verás.</p>
+    </div>
+
+    <div class="demo-wrap">
+      <div class="demo-toolbar">
+        <span class="demo-dot demo-dot-r"></span>
+        <span class="demo-dot demo-dot-y"></span>
+        <span class="demo-dot demo-dot-g"></span>
+        <span class="demo-url">tekpair.tech/reparaciones</span>
+        <span class="demo-live"><span class="demo-live-dot"></span>Demo en vivo</span>
+      </div>
+
+      <div class="demo-content">
+
+        <div id="demoPaso1">
+          <div class="demo-step-title">Paso 1 de 3 — Nueva reparación</div>
+          <div class="demo-step-sub">Toca un dispositivo que quieras "reparar"</div>
+          <div class="demo-devices">
+            <button class="demo-device" data-modelo="iPhone 13" data-imei="357921084728361" data-cliente="Juan García López" data-tel="600 123 456" data-averia="Pantalla rota" data-precio="80">
+              <div class="demo-device-icon">📱</div>
+              <div class="demo-device-name">iPhone 13</div>
+              <div class="demo-device-sub">Pantalla rota</div>
+            </button>
+            <button class="demo-device" data-modelo="Samsung Galaxy S22" data-imei="864521098736452" data-cliente="María López Ruiz" data-tel="610 987 654" data-averia="Batería agotada" data-precio="45">
+              <div class="demo-device-icon">📱</div>
+              <div class="demo-device-name">Samsung S22</div>
+              <div class="demo-device-sub">Batería</div>
+            </button>
+            <button class="demo-device" data-modelo="Xiaomi Redmi Note 11" data-imei="990125678234901" data-cliente="Pedro Martín" data-tel="650 234 567" data-averia="No carga" data-precio="35">
+              <div class="demo-device-icon">📱</div>
+              <div class="demo-device-name">Xiaomi</div>
+              <div class="demo-device-sub">No carga</div>
+            </button>
+          </div>
+        </div>
+
+        <div id="demoPaso2" style="display:none">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div>
+              <div class="demo-step-title">Paso 2 de 3 — Confirma ficha</div>
+              <div class="demo-step-sub">Datos auto-rellenados ✨</div>
+            </div>
+            <button class="demo-back" onclick="demoBack()">← Atrás</button>
+          </div>
+          <div class="demo-card">
+            <div class="demo-grid-2">
+              <div>
+                <div class="demo-field-label">Cliente</div>
+                <div class="demo-field-val" id="demoCli">Juan García López</div>
+                <div class="demo-field-meta">📞 <span id="demoTel">600 123 456</span></div>
+              </div>
+              <div>
+                <div class="demo-field-label">Dispositivo</div>
+                <div class="demo-field-val" id="demoModelo">iPhone 13</div>
+                <div class="demo-field-meta" style="font-family:monospace">IMEI: <span id="demoImei">357921084728361</span></div>
+              </div>
+            </div>
+            <div class="demo-divider"></div>
+            <div class="demo-grid-2">
+              <div>
+                <div class="demo-field-label">Avería</div>
+                <div class="demo-field-val" id="demoAveria">Pantalla rota</div>
+              </div>
+              <div>
+                <div class="demo-field-label">Presupuesto</div>
+                <div class="demo-field-val" style="font-size:24px;color:#0055FF"><span id="demoPrecio">80</span>€</div>
+              </div>
+            </div>
+          </div>
+          <button class="demo-cta" onclick="demoCrear()">✓ Crear reparación</button>
+        </div>
+
+        <div id="demoPaso3" style="display:none">
+          <div style="text-align:center;padding:16px 0">
+            <div class="demo-check"><span style="color:white;font-size:36px;font-weight:bold">✓</span></div>
+            <div class="demo-success-title">¡Reparación creada!</div>
+            <div class="demo-step-sub" style="text-align:center">Estado actualizado en tiempo real</div>
+          </div>
+          <div class="demo-card-status">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+              <div style="font-size:13px;font-weight:700;color:#020B2E" id="demoResumen">iPhone 13 · Pantalla rota</div>
+              <div style="font-size:11px;color:#64748B;font-family:monospace">REP-<span id="demoId">2026</span></div>
+            </div>
+            <div class="demo-states">
+              <div class="demo-state active" id="demoState1">⏳ Pendiente</div>
+              <div class="demo-state-line"></div>
+              <div class="demo-state" id="demoState2">🔧 En curso</div>
+              <div class="demo-state-line"></div>
+              <div class="demo-state" id="demoState3">✅ Listo</div>
+            </div>
+            <button class="demo-advance" id="demoAdvanceBtn" onclick="demoAvanzar()">▶ Avanzar estado</button>
+          </div>
+          <button class="demo-reset" onclick="demoReset()">Probar otra reparación</button>
+        </div>
+
+      </div>
+    </div>
+
+    <div style="text-align:center;margin-top:24px;font-size:13px;color:#64748B">
+      💡 Demo simplificada. En TekPair real: IMEI, historial, garantía 90 días, anticipos, fotos, notas y mucho más.
     </div>
   </div>
 </section>
@@ -632,6 +813,159 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a) {
     if (target) target.scrollIntoView({behavior:'smooth'});
   });
 });
+
+// ═══ EFECTOS WOW ═══
+// 1. Rotator del hero
+(function(){
+  var palabras = ['Excel.', 'libretas.', 'la calculadora.', 'al caos.', 'a los papelitos.', 'a las pérdidas.'];
+  var rot = document.getElementById('heroRotator');
+  if (!rot) return;
+  var idx = 0;
+  setInterval(function(){
+    idx = (idx + 1) % palabras.length;
+    rot.style.opacity = '0';
+    rot.style.transform = 'translateY(8px)';
+    setTimeout(function(){
+      rot.textContent = palabras[idx];
+      rot.style.opacity = '1';
+      rot.style.transform = 'translateY(0)';
+    }, 300);
+  }, 2400);
+})();
+
+// 2. Stats que cuentan al hacer scroll
+(function(){
+  var stats = document.querySelectorAll('.stat-item-val');
+  if (!stats.length) return;
+  stats.forEach(function(el){
+    var raw = el.textContent.trim();
+    el.dataset.target = raw;
+    var num = parseFloat(raw.replace(',', '.').replace(/[^0-9.]/g, ''));
+    if (!isNaN(num)) {
+      el.dataset.num = num;
+      el.textContent = '0';
+    }
+  });
+  function animateValue(el) {
+    var target = parseFloat(el.dataset.num);
+    if (isNaN(target)) return;
+    var original = el.dataset.target;
+    var duration = 1200;
+    var startTime = performance.now();
+    function step(now) {
+      var elapsed = now - startTime;
+      var progress = Math.min(elapsed / duration, 1);
+      var eased = 1 - Math.pow(1 - progress, 3);
+      var current = target * eased;
+      if (original.indexOf(',') !== -1) {
+        el.textContent = current.toFixed(2).replace('.', ',') + (original.indexOf('€') !== -1 ? '€' : '');
+      } else if (original.indexOf('%') !== -1) {
+        el.textContent = Math.floor(current) + '%';
+      } else if (original.indexOf('/') !== -1) {
+        el.textContent = Math.floor(current) + '/7';
+      } else {
+        el.textContent = Math.floor(current);
+      }
+      if (progress < 1) {
+        requestAnimationFrame(step);
+      } else {
+        el.textContent = original;
+      }
+    }
+    requestAnimationFrame(step);
+  }
+  var observer = new IntersectionObserver(function(entries){
+    entries.forEach(function(entry){
+      if (entry.isIntersecting) {
+        animateValue(entry.target);
+        observer.unobserve(entry.target);
+      }
+    });
+  }, {threshold: 0.3});
+  stats.forEach(function(el){ observer.observe(el); });
+})();
+
+// ═══ DEMO INTERACTIVA ═══
+var demoData = { modelo:'', imei:'', cliente:'', tel:'', averia:'', precio:0 };
+var demoEstado = 0;
+
+document.querySelectorAll('.demo-device').forEach(function(btn) {
+  btn.addEventListener('click', function() {
+    demoData.modelo = btn.dataset.modelo;
+    demoData.imei = btn.dataset.imei;
+    demoData.cliente = btn.dataset.cliente;
+    demoData.tel = btn.dataset.tel;
+    demoData.averia = btn.dataset.averia;
+    demoData.precio = btn.dataset.precio;
+    document.getElementById('demoModelo').textContent = demoData.modelo;
+    document.getElementById('demoImei').textContent = demoData.imei;
+    document.getElementById('demoCli').textContent = demoData.cliente;
+    document.getElementById('demoTel').textContent = demoData.tel;
+    document.getElementById('demoAveria').textContent = demoData.averia;
+    document.getElementById('demoPrecio').textContent = demoData.precio;
+    document.getElementById('demoPaso1').style.display = 'none';
+    document.getElementById('demoPaso2').style.display = 'block';
+  });
+});
+
+function demoBack() {
+  document.getElementById('demoPaso2').style.display = 'none';
+  document.getElementById('demoPaso1').style.display = 'block';
+}
+
+function demoCrear() {
+  document.getElementById('demoResumen').textContent = demoData.modelo + ' · ' + demoData.averia;
+  document.getElementById('demoId').textContent = Math.floor(Math.random()*900+100);
+  document.getElementById('demoPaso2').style.display = 'none';
+  document.getElementById('demoPaso3').style.display = 'block';
+  demoEstado = 0;
+}
+
+function demoAvanzar() {
+  demoEstado++;
+  var s1 = document.getElementById('demoState1');
+  var s2 = document.getElementById('demoState2');
+  var s3 = document.getElementById('demoState3');
+  var btn = document.getElementById('demoAdvanceBtn');
+  if (demoEstado === 1) {
+    s1.classList.remove('active');
+    s1.classList.add('done');
+    s2.classList.add('active');
+    btn.innerHTML = '▶ Marcar como listo';
+  } else if (demoEstado === 2) {
+    s2.classList.remove('active');
+    s2.classList.add('done');
+    s3.classList.add('active');
+    btn.innerHTML = '✓ Entregado al cliente';
+    btn.style.background = '#00C896';
+    btn.style.color = 'white';
+    btn.style.borderColor = '#00C896';
+  } else if (demoEstado === 3) {
+    s3.classList.remove('active');
+    s3.classList.add('done');
+    btn.innerHTML = '🎉 ¡Reparación completada!';
+    btn.disabled = true;
+    btn.style.opacity = '.8';
+  }
+}
+
+function demoReset() {
+  document.getElementById('demoPaso3').style.display = 'none';
+  document.getElementById('demoPaso1').style.display = 'block';
+  ['demoState1','demoState2','demoState3'].forEach(function(id){
+    var el = document.getElementById(id);
+    el.classList.remove('active','done');
+  });
+  document.getElementById('demoState1').classList.add('active');
+  var btn = document.getElementById('demoAdvanceBtn');
+  btn.disabled = false;
+  btn.style.opacity = '1';
+  btn.style.background = 'white';
+  btn.style.color = '#0055FF';
+  btn.style.borderColor = '#0055FF';
+  btn.innerHTML = '▶ Avanzar estado';
+  demoEstado = 0;
+}
 </script>
 
 <!-- WHATSAPP FLOATING -->
