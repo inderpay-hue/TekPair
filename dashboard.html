@@ -2377,17 +2377,176 @@ function sbGet(table, query) {
   });
 }
 
-function sbPost(table, data) {
+
+// ═══════════════════════════════════════════════════════════
+// SISTEMA ANTI-PÉRDIDA DE DATOS (cola de sync con reintentos)
+// ═══════════════════════════════════════════════════════════
+var SYNC_QUEUE_KEY = 'tk_sync_queue_v1';
+var SYNC_MAX_RETRIES = 5;
+var SYNC_RETRY_INTERVAL_MS = 30000;
+
+function _syncQueueGet() {
+  try { return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+
+function _syncQueueSet(q) {
+  try { localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q)); }
+  catch(e) { console.error('Sync queue full:', e); }
+}
+
+function _syncQueueAdd(operation) {
+  var q = _syncQueueGet();
+  // Evitar duplicados por ID
+  var dupIdx = q.findIndex(function(x) {
+    return x.method === operation.method && x.table === operation.table && 
+           x.dataId === operation.dataId && x.query === operation.query;
+  });
+  if (dupIdx >= 0) {
+    // Reemplazar con el más reciente (más completo)
+    q[dupIdx] = operation;
+  } else {
+    q.push(operation);
+  }
+  _syncQueueSet(q);
+  _syncIndicatorUpdate();
+}
+
+function _syncQueueRemove(opId) {
+  var q = _syncQueueGet().filter(function(x) { return x._opId !== opId; });
+  _syncQueueSet(q);
+  _syncIndicatorUpdate();
+}
+
+// Reintenta TODOS los pendientes (corre cada 30s y al volver online)
+async function _syncQueueRetry() {
+  if (!SB_KEY) return;
+  if (!navigator.onLine) return; // Sin internet, no reintentar
+  
+  var q = _syncQueueGet();
+  if (!q.length) return;
+  
+  console.log('🔄 Reintentando', q.length, 'operaciones pendientes...');
+  
+  for (var i = 0; i < q.length; i++) {
+    var op = q[i];
+    op.attempts = (op.attempts || 0) + 1;
+    
+    if (op.attempts > SYNC_MAX_RETRIES) {
+      console.warn('Sync abandonado tras', SYNC_MAX_RETRIES, 'intentos:', op);
+      continue;
+    }
+    
+    try {
+      var ok = false;
+      if (op.method === 'POST') {
+        ok = await _sbPostRaw(op.table, op.data);
+      } else if (op.method === 'PATCH') {
+        ok = await _sbPatchRaw(op.table, op.query, op.data);
+      } else if (op.method === 'DELETE') {
+        ok = await _sbDeleteRaw(op.table, op.query);
+      }
+      
+      if (ok) {
+        _syncQueueRemove(op._opId);
+        console.log('✓ Sync OK:', op.method, op.table);
+      }
+    } catch(e) {
+      console.warn('Reintento falló:', op.method, op.table, e);
+    }
+  }
+}
+
+// Indicador visual en topbar
+function _syncIndicatorUpdate() {
+  var box = document.getElementById('syncIndicator');
+  var q = _syncQueueGet();
+  
+  if (!box) {
+    // Crear el indicador si no existe
+    box = document.createElement('div');
+    box.id = 'syncIndicator';
+    box.style.cssText = 'position:fixed;top:14px;right:14px;background:#F97316;color:white;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;z-index:9999;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);display:none;font-family:Arial';
+    box.onclick = function() {
+      var qq = _syncQueueGet();
+      alert('⚠️ Cambios pendientes de sincronizar: ' + qq.length + '\n\nReintentando automáticamente cada 30 segundos.\n\nNo cierres la app hasta que el indicador desaparezca.');
+    };
+    document.body.appendChild(box);
+  }
+  
+  if (q.length > 0) {
+    box.innerHTML = '⚠️ ' + q.length + ' sin sincronizar';
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+// Funciones RAW (las originales, sin cola)
+function _sbPostRaw(table, data) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table, {
     method: 'POST',
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
     body: JSON.stringify(data)
   }).then(function(r) {
-    if (!r.ok) {
-      return r.json().then(function(err){ _sbErrorToast('POST', table, err); return false; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return false; });
-    }
+    if (!r.ok) return false;
     return true;
-  }).catch(function(e) { _sbErrorToast('POST', table, e); return false; });
+  }).catch(function() { return false; });
+}
+
+function _sbPatchRaw(table, query, data) {
+  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
+    method: 'PATCH',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json'},
+    body: JSON.stringify(data)
+  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+}
+
+function _sbDeleteRaw(table, query) {
+  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
+    method: 'DELETE',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+}
+
+// Iniciar el sistema
+window.addEventListener('online', function() {
+  console.log('📶 Internet vuelto, reintentando pendientes...');
+  setTimeout(_syncQueueRetry, 1000);
+});
+window.addEventListener('beforeunload', function(e) {
+  var q = _syncQueueGet();
+  if (q.length > 0) {
+    e.preventDefault();
+    e.returnValue = 'Tienes ' + q.length + ' cambios sin sincronizar. ¿Seguro que quieres salir?';
+    return e.returnValue;
+  }
+});
+
+// Reintentar cada 30 segundos
+setInterval(_syncQueueRetry, SYNC_RETRY_INTERVAL_MS);
+
+// Reintentar al cargar la página (por si hay pendientes de sesión anterior)
+setTimeout(function(){ _syncQueueRetry(); _syncIndicatorUpdate(); }, 2000);
+
+
+function sbPost(table, data) {
+  return _sbPostRaw(table, data).then(function(ok) {
+    if (!ok) {
+      // Encolar para reintentar
+      _syncQueueAdd({
+        _opId: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+        method: 'POST',
+        table: table,
+        data: data,
+        dataId: data.id || null,
+        attempts: 0,
+        ts: Date.now()
+      });
+      if (typeof toast === 'function') toast('⚠️ Sin conexión - guardado para sincronizar', 'err');
+    }
+    return ok;
+  });
 }
 
 function sbPatch(table, query, data) {
