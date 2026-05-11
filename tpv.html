@@ -162,7 +162,17 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 @media(max-width:768px){
   .tpv{grid-template-columns:1fr}
   .tpv-right{display:none}
-  .tpv-right.show{display:flex;position:fixed;inset:0;z-index:100}
+  .tpv-right.show{display:flex;position:fixed;inset:0;z-index:100;animation:slideUp .25s ease}
+  .tpv-products{padding-bottom:80px}
+  .cart-fab{position:fixed;bottom:14px;left:14px;right:14px;background:linear-gradient(135deg,#0055FF,#00C896);color:white;border:none;padding:14px 18px;border-radius:14px;font-family:Arial;font-size:15px;font-weight:800;cursor:pointer;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 24px rgba(0,85,255,.4);z-index:90;animation:fabPop .3s ease}
+  .cart-fab-left{display:flex;align-items:center;gap:10px}
+  .cart-fab-badge{background:white;color:#0055FF;min-width:24px;height:24px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;padding:0 6px}
+  .cart-close-mobile{display:flex;align-items:center;justify-content:center;width:36px;height:36px;background:rgba(255,255,255,.12);border:none;border-radius:10px;color:white;font-size:20px;cursor:pointer;flex-shrink:0}
+  @keyframes slideUp{from{transform:translateY(100%);opacity:0}to{transform:translateY(0);opacity:1}}
+  @keyframes fabPop{from{transform:scale(.6);opacity:0}to{transform:scale(1);opacity:1}}
+}
+@media(min-width:769px){
+  .cart-fab,.cart-close-mobile{display:none!important}
 }
 </style>
 </head>
@@ -218,9 +228,12 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 
   <!-- RIGHT: Cart -->
   <div class="tpv-right" id="cartPanel">
-    <div class="cart-header">
-      <div class="cart-title">🛒 Ticket</div>
-      <div class="cart-subtitle" id="cartClient">Sin cliente asignado</div>
+    <div class="cart-header" style="display:flex;align-items:center;gap:10px">
+      <button class="cart-close-mobile" onclick="toggleCartMobile()" title="Volver a productos">←</button>
+      <div style="flex:1;min-width:0">
+        <div class="cart-title">🛒 Ticket</div>
+        <div class="cart-subtitle" id="cartClient">Sin cliente asignado</div>
+      </div>
     </div>
 
     <div class="tpv-right-content">
@@ -1258,6 +1271,54 @@ function reimprimirVenta(id) {
   }
   mostrarTicket(v, totals);
 }
+
+// ═══════════════════════════════════════════════════════════
+// MÓVIL: abrir/cerrar panel del ticket + actualizar badge del FAB
+// ═══════════════════════════════════════════════════════════
+function toggleCartMobile() {
+  var panel = document.getElementById('cartPanel');
+  if (!panel) return;
+  panel.classList.toggle('show');
+  if (panel.classList.contains('show')) {
+    panel.scrollTop = 0;
+  }
+  _actualizarFabBadge();
+}
+
+function _actualizarFabBadge() {
+  var fab = document.getElementById('cartFab');
+  var badge = document.getElementById('cartFabBadge');
+  var totalEl = document.getElementById('cartFabTotal');
+  if (!fab || !badge) return;
+  
+  var items = (typeof cart !== 'undefined' && cart) ? cart.length : 0;
+  badge.textContent = items;
+  
+  var grandTotal = document.getElementById('grandTotal');
+  if (totalEl && grandTotal) totalEl.textContent = grandTotal.textContent;
+  
+  // Ocultar FAB cuando el panel está abierto
+  var panel = document.getElementById('cartPanel');
+  if (panel && panel.classList.contains('show')) {
+    fab.style.display = 'none';
+  } else {
+    fab.style.display = '';
+  }
+}
+
+// Mantener el badge actualizado periódicamente (sin depender de hooks frágiles)
+setInterval(_actualizarFabBadge, 600);
+setTimeout(_actualizarFabBadge, 300);
 </script>
+<!-- BOTÓN FLOTANTE MÓVIL (solo visible <769px) -->
+<button class="cart-fab" id="cartFab" onclick="toggleCartMobile()">
+  <span class="cart-fab-left">
+    <span style="font-size:20px">🛒</span>
+    <span>Ver ticket</span>
+    <span class="cart-fab-badge" id="cartFabBadge">0</span>
+  </span>
+  <span id="cartFabTotal">€0.00</span>
+</button>
+
 </body>
 </html>
