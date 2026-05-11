@@ -546,6 +546,62 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 /* patron_zindex_fix: que aparezca encima de otros modales */
 #mPatron{z-index:200 !important}
+
+/* ═══ CALENDARIO DE CITAS ═══ */
+.vista-toggle{display:inline-flex;gap:4px;background:rgba(0,85,255,.06);padding:4px;border-radius:10px;margin-bottom:10px}
+.vista-toggle button{background:transparent;border:none;padding:8px 14px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-radius:7px;font-family:inherit;transition:all .15s}
+.vista-toggle button.active{background:white;color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.08)}
+.vista-toggle button:hover:not(.active){color:var(--text)}
+
+.cal-wrap{background:white;border-radius:14px;padding:14px;box-shadow:0 1px 4px rgba(0,0,0,.04);border:1px solid var(--border)}
+.cal-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
+.cal-mes-ano{font-size:18px;font-weight:800;color:var(--text);flex:1;text-transform:capitalize}
+.cal-nav-btn{background:var(--bg);border:1px solid var(--border);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text);transition:all .15s}
+.cal-nav-btn:hover{background:rgba(0,85,255,.08);border-color:var(--blue);color:var(--blue)}
+.cal-hoy-btn{background:var(--blue);color:white;border:none;padding:8px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit}
+.cal-hoy-btn:hover{opacity:.9}
+
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px}
+.cal-weekday{text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:8px 0;letter-spacing:.5px}
+.cal-day{aspect-ratio:1/1;background:var(--bg);border:1px solid transparent;border-radius:8px;padding:6px;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;transition:all .15s;min-height:54px}
+.cal-day:hover{background:rgba(0,85,255,.08);border-color:rgba(0,85,255,.2)}
+.cal-day.other-month{opacity:.25}
+.cal-day.today{background:rgba(0,200,150,.1);border-color:var(--green)}
+.cal-day.today .cal-day-num{color:var(--green);font-weight:900}
+.cal-day.selected{background:var(--blue)!important;border-color:var(--blue)}
+.cal-day.selected .cal-day-num{color:white;font-weight:900}
+.cal-day.selected .cal-dot{border-color:rgba(255,255,255,.6)}
+.cal-day-num{font-size:15px;font-weight:700;color:var(--text)}
+.cal-dots{display:flex;gap:3px;margin-top:4px;flex-wrap:wrap;justify-content:center;max-width:100%}
+.cal-dot{width:6px;height:6px;border-radius:50%;background:var(--muted);border:1px solid transparent}
+.cal-dot.pendiente{background:var(--orange)}
+.cal-dot.confirmada{background:var(--blue)}
+.cal-dot.atendida{background:var(--green)}
+.cal-dot.cancelada{background:var(--muted);opacity:.4}
+.cal-day-count{position:absolute;top:3px;right:5px;font-size:9px;font-weight:700;color:var(--muted);background:rgba(255,255,255,.8);padding:1px 4px;border-radius:6px;line-height:1.2}
+.cal-day.selected .cal-day-count{background:rgba(255,255,255,.2);color:white}
+
+.cal-legend{display:flex;gap:14px;justify-content:center;padding:10px 0;font-size:11px;color:var(--muted);flex-wrap:wrap;border-top:1px solid var(--border);margin-top:6px}
+.cal-legend-item{display:flex;align-items:center;gap:5px}
+.cal-legend-item .cal-dot{position:static}
+
+.cal-day-list{margin-top:14px}
+.cal-day-list-title{font-size:13px;font-weight:800;color:var(--text);padding:12px 0 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.cal-day-list-title .badge-count{background:rgba(0,85,255,.1);color:var(--blue);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+.cal-empty-day{text-align:center;padding:20px;background:var(--bg);border-radius:10px;color:var(--muted);font-size:13px}
+.cal-empty-day button{margin-top:10px;background:var(--blue);color:white;border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px}
+.cal-empty-day button:hover{opacity:.9}
+
+@media(max-width:600px){
+  .cal-day{min-height:46px;padding:4px}
+  .cal-day-num{font-size:13px}
+  .cal-dot{width:5px;height:5px}
+  .cal-weekday{font-size:10px;padding:6px 0}
+  .cal-mes-ano{font-size:15px}
+  .cal-hoy-btn{padding:6px 10px;font-size:12px}
+  .cal-nav-btn{width:30px;height:30px;font-size:14px}
+}
+
 </style>
   <script src="/assets/qrcode.min.js"></script>
 </head>
@@ -857,15 +913,52 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <button class="btn-sm" style="background:var(--green);color:white" onclick="syncCitas()" title="Recargar">↻</button>
     </div>
   </div>
-  <div class="tabs" id="citasTabs">
-    <div class="tab active" data-cf="hoy" onclick="setCitasFiltro(this)">Hoy</div>
-    <div class="tab" data-cf="proximas" onclick="setCitasFiltro(this)">Próximas</div>
-    <div class="tab" data-cf="pendiente" onclick="setCitasFiltro(this)">Pendientes</div>
-    <div class="tab" data-cf="confirmada" onclick="setCitasFiltro(this)">Confirmadas</div>
-    <div class="tab" data-cf="atendida" onclick="setCitasFiltro(this)">Atendidas</div>
-    <div class="tab" data-cf="todas" onclick="setCitasFiltro(this)">Todas</div>
+  
+  <!-- Toggle vista Lista / Calendario -->
+  <div class="vista-toggle" id="citasVistaToggle">
+    <button class="active" data-v="lista" onclick="setVistaCitas('lista')">📋 Lista</button>
+    <button data-v="calendario" onclick="setVistaCitas('calendario')">📅 Calendario</button>
   </div>
-  <div id="listaCitas"></div>
+  
+  <!-- VISTA LISTA (existente, sin cambios) -->
+  <div id="vistaListaCitas">
+    <div class="tabs" id="citasTabs">
+      <div class="tab active" data-cf="hoy" onclick="setCitasFiltro(this)">Hoy</div>
+      <div class="tab" data-cf="proximas" onclick="setCitasFiltro(this)">Próximas</div>
+      <div class="tab" data-cf="pendiente" onclick="setCitasFiltro(this)">Pendientes</div>
+      <div class="tab" data-cf="confirmada" onclick="setCitasFiltro(this)">Confirmadas</div>
+      <div class="tab" data-cf="atendida" onclick="setCitasFiltro(this)">Atendidas</div>
+      <div class="tab" data-cf="todas" onclick="setCitasFiltro(this)">Todas</div>
+    </div>
+    <div id="listaCitas"></div>
+  </div>
+  
+  <!-- VISTA CALENDARIO (oculta por defecto) -->
+  <div id="vistaCalendarioCitas" style="display:none">
+    <div class="cal-wrap">
+      <div class="cal-header">
+        <button class="cal-nav-btn" onclick="cambiarMes(-1)" title="Mes anterior">‹</button>
+        <div class="cal-mes-ano" id="calMesAno">—</div>
+        <button class="cal-nav-btn" onclick="cambiarMes(1)" title="Mes siguiente">›</button>
+        <button class="cal-hoy-btn" onclick="irHoy()">Hoy</button>
+      </div>
+      <div class="cal-grid" id="calGrid">
+        <div class="cal-weekday">Lun</div>
+        <div class="cal-weekday">Mar</div>
+        <div class="cal-weekday">Mié</div>
+        <div class="cal-weekday">Jue</div>
+        <div class="cal-weekday">Vie</div>
+        <div class="cal-weekday">Sáb</div>
+        <div class="cal-weekday">Dom</div>
+      </div>
+      <div class="cal-legend">
+        <div class="cal-legend-item"><span class="cal-dot pendiente"></span>Pendiente</div>
+        <div class="cal-legend-item"><span class="cal-dot confirmada"></span>Confirmada</div>
+        <div class="cal-legend-item"><span class="cal-dot atendida"></span>Atendida</div>
+      </div>
+      <div class="cal-day-list" id="calDayList"></div>
+    </div>
+  </div>
 </div>
 
 <!-- PAGE: STOCK -->
@@ -1706,6 +1799,51 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 </div>
 
+<!-- NUEVA CITA DESDE ADMIN (calendario) -->
+<div class="modal-bg" id="mNuevaCitaAdmin">
+<div class="modal">
+  <div class="modal-title">📅 Nueva cita</div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Fecha *</label><input class="fi" id="ncaFecha" type="date"></div>
+    <div class="fg"><label class="fl">Hora *</label><input class="fi" id="ncaHora" type="time" value="10:00"></div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Nombre cliente *</label><input class="fi" id="ncaNombre" placeholder="Juan Garcia"></div>
+    <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="ncaTel" type="tel" placeholder="6XX XXX XXX"></div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Servicio</label>
+      <select class="fi" id="ncaServicio">
+        <option>Diagnóstico</option>
+        <option>Cambio pantalla</option>
+        <option>Cambio batería</option>
+        <option>Reparación general</option>
+        <option>Compra-venta</option>
+        <option>Otros</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Duración</label>
+      <select class="fi" id="ncaDuracion">
+        <option value="15">15 min</option>
+        <option value="30" selected>30 min</option>
+        <option value="45">45 min</option>
+        <option value="60">1 hora</option>
+        <option value="90">1h 30min</option>
+      </select>
+    </div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Marca</label><input class="fi" id="ncaMarca" placeholder="Apple"></div>
+    <div class="fg"><label class="fl">Modelo</label><input class="fi" id="ncaModelo" placeholder="iPhone 13"></div>
+  </div>
+  <div class="fg"><label class="fl">Notas</label><input class="fi" id="ncaNotas" placeholder="Opcional"></div>
+  <div class="modal-actions">
+    <button class="btn-secondary" onclick="closeM('mNuevaCitaAdmin')">Cancelar</button>
+    <button class="btn-primary" onclick="guardarCitaAdmin()">Guardar cita</button>
+  </div>
+</div>
+</div>
+
 <!-- NUEVO CLIENTE RAPIDO -->
 <div class="modal-bg" id="mNuevoCli">
 <div class="modal">
@@ -1865,11 +2003,11 @@ function tienePlan(planRequerido) {
   return (PLAN_TIER[PLAN_INFO.plan] || 1) >= (PLAN_TIER[planRequerido] || 1);
 }
 
-// Días restantes de trial / próximo cobro
+// Días restantes de trial / próximo cobro (floor para que 14.99 = 14, no 15)
 function planDiasRestantes() {
   var fecha = PLAN_INFO.status === 'trial' ? PLAN_INFO.trial_until : PLAN_INFO.plan_until;
   if (!fecha) return null;
-  return Math.max(0, Math.ceil((new Date(fecha) - new Date()) / 86400000));
+  return Math.max(0, Math.floor((new Date(fecha) - new Date()) / 86400000));
 }
 
 // Refrescar plan desde /api/me (llamado al cargar)
@@ -2377,30 +2515,195 @@ function sbGet(table, query) {
   });
 }
 
-function sbPost(table, data) {
+
+// ═══════════════════════════════════════════════════════════
+// SISTEMA ANTI-PÉRDIDA DE DATOS (cola de sync con reintentos)
+// ═══════════════════════════════════════════════════════════
+var SYNC_QUEUE_KEY = 'tk_sync_queue_v1';
+var SYNC_MAX_RETRIES = 5;
+var SYNC_RETRY_INTERVAL_MS = 30000;
+
+function _syncQueueGet() {
+  try { return JSON.parse(localStorage.getItem(SYNC_QUEUE_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+
+function _syncQueueSet(q) {
+  try { localStorage.setItem(SYNC_QUEUE_KEY, JSON.stringify(q)); }
+  catch(e) { console.error('Sync queue full:', e); }
+}
+
+function _syncQueueAdd(operation) {
+  var q = _syncQueueGet();
+  // Evitar duplicados por ID
+  var dupIdx = q.findIndex(function(x) {
+    return x.method === operation.method && x.table === operation.table && 
+           x.dataId === operation.dataId && x.query === operation.query;
+  });
+  if (dupIdx >= 0) {
+    // Reemplazar con el más reciente (más completo)
+    q[dupIdx] = operation;
+  } else {
+    q.push(operation);
+  }
+  _syncQueueSet(q);
+  _syncIndicatorUpdate();
+}
+
+function _syncQueueRemove(opId) {
+  var q = _syncQueueGet().filter(function(x) { return x._opId !== opId; });
+  _syncQueueSet(q);
+  _syncIndicatorUpdate();
+}
+
+// Reintenta TODOS los pendientes (corre cada 30s y al volver online)
+async function _syncQueueRetry() {
+  if (!SB_KEY) return;
+  if (!navigator.onLine) return; // Sin internet, no reintentar
+  
+  var q = _syncQueueGet();
+  if (!q.length) return;
+  
+  console.log('🔄 Reintentando', q.length, 'operaciones pendientes...');
+  
+  for (var i = 0; i < q.length; i++) {
+    var op = q[i];
+    op.attempts = (op.attempts || 0) + 1;
+    
+    if (op.attempts > SYNC_MAX_RETRIES) {
+      console.warn('Sync abandonado tras', SYNC_MAX_RETRIES, 'intentos:', op);
+      continue;
+    }
+    
+    try {
+      var ok = false;
+      if (op.method === 'POST') {
+        ok = await _sbPostRaw(op.table, op.data);
+      } else if (op.method === 'PATCH') {
+        ok = await _sbPatchRaw(op.table, op.query, op.data);
+      } else if (op.method === 'DELETE') {
+        ok = await _sbDeleteRaw(op.table, op.query);
+      }
+      
+      if (ok) {
+        _syncQueueRemove(op._opId);
+        console.log('✓ Sync OK:', op.method, op.table);
+      }
+    } catch(e) {
+      console.warn('Reintento falló:', op.method, op.table, e);
+    }
+  }
+}
+
+// Indicador visual en topbar
+function _syncIndicatorUpdate() {
+  var box = document.getElementById('syncIndicator');
+  var q = _syncQueueGet();
+  
+  if (!box) {
+    // Crear el indicador si no existe
+    box = document.createElement('div');
+    box.id = 'syncIndicator';
+    box.style.cssText = 'position:fixed;top:14px;right:14px;background:#F97316;color:white;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;z-index:9999;cursor:pointer;box-shadow:0 4px 12px rgba(0,0,0,.15);display:none;font-family:Arial';
+    box.onclick = function() {
+      var qq = _syncQueueGet();
+      alert('⚠️ Cambios pendientes de sincronizar: ' + qq.length + '\n\nReintentando automáticamente cada 30 segundos.\n\nNo cierres la app hasta que el indicador desaparezca.');
+    };
+    document.body.appendChild(box);
+  }
+  
+  if (q.length > 0) {
+    box.innerHTML = '⚠️ ' + q.length + ' sin sincronizar';
+    box.style.display = 'block';
+  } else {
+    box.style.display = 'none';
+  }
+}
+
+// Funciones RAW (las originales, sin cola)
+function _sbPostRaw(table, data) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table, {
     method: 'POST',
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
     body: JSON.stringify(data)
   }).then(function(r) {
-    if (!r.ok) {
-      return r.json().then(function(err){ _sbErrorToast('POST', table, err); return false; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return false; });
-    }
+    if (!r.ok) return false;
     return true;
-  }).catch(function(e) { _sbErrorToast('POST', table, e); return false; });
+  }).catch(function() { return false; });
 }
 
-function sbPatch(table, query, data) {
+function _sbPatchRaw(table, query, data) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
     method: 'PATCH',
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json'},
     body: JSON.stringify(data)
-  }).then(function(r) {
-    if (!r.ok) {
-      return r.json().then(function(err){ _sbErrorToast('PATCH', table, err); return false; }, function(){ _sbErrorToast('PATCH', table, {status:r.status}); return false; });
+  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+}
+
+function _sbDeleteRaw(table, query) {
+  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
+    method: 'DELETE',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+}
+
+// Iniciar el sistema
+window.addEventListener('online', function() {
+  console.log('📶 Internet vuelto, reintentando pendientes...');
+  setTimeout(_syncQueueRetry, 1000);
+});
+window.addEventListener('beforeunload', function(e) {
+  var q = _syncQueueGet();
+  if (q.length > 0) {
+    e.preventDefault();
+    e.returnValue = 'Tienes ' + q.length + ' cambios sin sincronizar. ¿Seguro que quieres salir?';
+    return e.returnValue;
+  }
+});
+
+// Reintentar cada 30 segundos
+setInterval(_syncQueueRetry, SYNC_RETRY_INTERVAL_MS);
+
+// Reintentar al cargar la página (por si hay pendientes de sesión anterior)
+setTimeout(function(){ _syncQueueRetry(); _syncIndicatorUpdate(); }, 2000);
+
+
+function sbPost(table, data) {
+  return _sbPostRaw(table, data).then(function(ok) {
+    if (!ok) {
+      // Encolar para reintentar
+      _syncQueueAdd({
+        _opId: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+        method: 'POST',
+        table: table,
+        data: data,
+        dataId: data.id || null,
+        attempts: 0,
+        ts: Date.now()
+      });
+      if (typeof toast === 'function') toast('⚠️ Sin conexión - guardado para sincronizar', 'err');
     }
-    return true;
-  }).catch(function(e) { _sbErrorToast('PATCH', table, e); return false; });
+    return ok;
+  });
+}
+
+function sbPatch(table, query, data) {
+  return _sbPatchRaw(table, query, data).then(function(ok) {
+    if (!ok) {
+      _syncQueueAdd({
+        _opId: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+        method: 'PATCH',
+        table: table,
+        query: query,
+        data: data,
+        dataId: null,
+        attempts: 0,
+        ts: Date.now()
+      });
+      if (typeof toast === 'function') toast('⚠️ Sin conexión - guardado para sincronizar', 'err');
+    }
+    return ok;
+  });
 }
 
 function sbDelete(table, query) {
@@ -9155,6 +9458,275 @@ function compartirWhatsApp() {
   var url = document.getElementById('linkCitasInput').value;
   var msg = encodeURIComponent('📅 Reserva tu cita en ' + (TIENDA.nombre || 'nuestra tienda') + ':\n' + url);
   window.open('https://wa.me/?text=' + msg, '_blank');
+}
+
+// ═══════════════════════════════════════════════════════════
+// CALENDARIO DE CITAS (vista mes con mini cal + lista del día)
+// ═══════════════════════════════════════════════════════════
+var CAL_VIEW = 'lista'; // 'lista' o 'calendario'
+var CAL_MES = new Date().getMonth();
+var CAL_ANO = new Date().getFullYear();
+var CAL_DIA_SEL = null; // 'YYYY-MM-DD'
+
+function setVistaCitas(vista) {
+  CAL_VIEW = vista;
+  document.querySelectorAll('#citasVistaToggle button').forEach(function(b){
+    b.classList.toggle('active', b.dataset.v === vista);
+  });
+  var vL = document.getElementById('vistaListaCitas');
+  var vC = document.getElementById('vistaCalendarioCitas');
+  if (vista === 'calendario') {
+    if (vL) vL.style.display = 'none';
+    if (vC) vC.style.display = 'block';
+    // Inicializar día seleccionado al de hoy si no hay
+    if (!CAL_DIA_SEL) {
+      var h = new Date();
+      CAL_DIA_SEL = h.getFullYear() + '-' + String(h.getMonth()+1).padStart(2,'0') + '-' + String(h.getDate()).padStart(2,'0');
+    }
+    renderCalendario();
+  } else {
+    if (vL) vL.style.display = 'block';
+    if (vC) vC.style.display = 'none';
+  }
+}
+
+function cambiarMes(delta) {
+  CAL_MES += delta;
+  if (CAL_MES < 0) { CAL_MES = 11; CAL_ANO--; }
+  else if (CAL_MES > 11) { CAL_MES = 0; CAL_ANO++; }
+  renderCalendario();
+}
+
+function irHoy() {
+  var h = new Date();
+  CAL_MES = h.getMonth();
+  CAL_ANO = h.getFullYear();
+  CAL_DIA_SEL = h.getFullYear() + '-' + String(h.getMonth()+1).padStart(2,'0') + '-' + String(h.getDate()).padStart(2,'0');
+  renderCalendario();
+}
+
+function _fechaToStr(d) {
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+
+function _citasDelDia(fechaStr) {
+  return (DB.citas || []).filter(function(c){ return c.fecha === fechaStr && c.estado !== 'cancelada'; })
+    .sort(function(a,b){ return (a.hora || '').localeCompare(b.hora || ''); });
+}
+
+function renderCalendario() {
+  var grid = document.getElementById('calGrid');
+  var titulo = document.getElementById('calMesAno');
+  if (!grid || !titulo) return;
+
+  var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  titulo.textContent = meses[CAL_MES] + ' ' + CAL_ANO;
+
+  // Limpiar grid pero mantener los weekdays
+  var weekdays = grid.querySelectorAll('.cal-weekday');
+  grid.innerHTML = '';
+  weekdays.forEach(function(w){ grid.appendChild(w); });
+
+  // Calcular el primer día del mes y cuántos días tiene
+  var primero = new Date(CAL_ANO, CAL_MES, 1);
+  var ultimo = new Date(CAL_ANO, CAL_MES + 1, 0);
+  var diasMes = ultimo.getDate();
+  
+  // Día de la semana del primero (0=Dom, 1=Lun, ..., 6=Sab) → ajustar a Lun=0
+  var diaSemPrimero = primero.getDay();
+  var offset = diaSemPrimero === 0 ? 6 : diaSemPrimero - 1;
+
+  // Días del mes anterior (para rellenar)
+  var diasAntes = new Date(CAL_ANO, CAL_MES, 0).getDate();
+  
+  var hoy = new Date();
+  var hoyStr = _fechaToStr(hoy);
+
+  // Pintar días del mes anterior (grises)
+  for (var i = offset - 1; i >= 0; i--) {
+    var num = diasAntes - i;
+    var prevMes = CAL_MES === 0 ? 11 : CAL_MES - 1;
+    var prevAno = CAL_MES === 0 ? CAL_ANO - 1 : CAL_ANO;
+    var fechaStr = prevAno + '-' + String(prevMes+1).padStart(2,'0') + '-' + String(num).padStart(2,'0');
+    grid.appendChild(_crearDiaCalendario(num, fechaStr, true, hoyStr));
+  }
+
+  // Pintar días del mes actual
+  for (var d = 1; d <= diasMes; d++) {
+    var fechaStr = CAL_ANO + '-' + String(CAL_MES+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+    grid.appendChild(_crearDiaCalendario(d, fechaStr, false, hoyStr));
+  }
+
+  // Pintar días del mes siguiente para completar la última semana
+  var totalCeldas = offset + diasMes;
+  var faltan = (7 - (totalCeldas % 7)) % 7;
+  for (var s = 1; s <= faltan; s++) {
+    var nextMes = CAL_MES === 11 ? 0 : CAL_MES + 1;
+    var nextAno = CAL_MES === 11 ? CAL_ANO + 1 : CAL_ANO;
+    var fechaStr = nextAno + '-' + String(nextMes+1).padStart(2,'0') + '-' + String(s).padStart(2,'0');
+    grid.appendChild(_crearDiaCalendario(s, fechaStr, true, hoyStr));
+  }
+
+  // Renderizar lista del día seleccionado
+  _renderListaDelDia();
+}
+
+function _crearDiaCalendario(num, fechaStr, esOtroMes, hoyStr) {
+  var div = document.createElement('div');
+  div.className = 'cal-day';
+  if (esOtroMes) div.classList.add('other-month');
+  if (fechaStr === hoyStr) div.classList.add('today');
+  if (fechaStr === CAL_DIA_SEL) div.classList.add('selected');
+  div.dataset.fecha = fechaStr;
+  
+  var citas = _citasDelDia(fechaStr);
+  
+  var html = '<div class="cal-day-num">' + num + '</div>';
+  if (citas.length > 0) {
+    var maxDots = 3;
+    var dots = citas.slice(0, maxDots);
+    html += '<div class="cal-dots">';
+    dots.forEach(function(c){
+      html += '<span class="cal-dot ' + (c.estado || 'pendiente') + '"></span>';
+    });
+    html += '</div>';
+    if (citas.length > maxDots) {
+      html += '<div class="cal-day-count">+' + (citas.length - maxDots) + '</div>';
+    }
+  }
+  div.innerHTML = html;
+  
+  div.onclick = function() {
+    CAL_DIA_SEL = fechaStr;
+    // Si es de otro mes, navegamos
+    if (esOtroMes) {
+      var p = fechaStr.split('-');
+      CAL_ANO = parseInt(p[0]);
+      CAL_MES = parseInt(p[1]) - 1;
+    }
+    renderCalendario();
+  };
+  
+  return div;
+}
+
+function _renderListaDelDia() {
+  var contenedor = document.getElementById('calDayList');
+  if (!contenedor) return;
+  
+  if (!CAL_DIA_SEL) {
+    contenedor.innerHTML = '';
+    return;
+  }
+
+  var citas = _citasDelDia(CAL_DIA_SEL);
+  var p = CAL_DIA_SEL.split('-');
+  var d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
+  var fechaTxt = d.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long'});
+
+  var html = '<div class="cal-day-list-title">';
+  html += '<span>📋 ' + fechaTxt + '</span>';
+  html += '<span class="badge-count">' + citas.length + ' cita' + (citas.length === 1 ? '' : 's') + '</span>';
+  html += '</div>';
+
+  if (citas.length === 0) {
+    html += '<div class="cal-empty-day">';
+    html += 'No hay citas este día.<br/>';
+    html += '<button onclick="abrirNuevaCitaFecha(\'' + CAL_DIA_SEL + '\')">+ Crear cita el ' + d.getDate() + ' de ' + d.toLocaleDateString('es',{month:'long'}) + '</button>';
+    html += '</div>';
+  } else {
+    var iconEstado = {pendiente:'⏳', confirmada:'✓', atendida:'✓✓', cancelada:'✕'};
+    var colorEstado = {pendiente:'var(--orange)', confirmada:'var(--blue)', atendida:'var(--green)', cancelada:'var(--muted)'};
+    
+    citas.forEach(function(c) {
+      html += '<div class="card" style="padding:12px;cursor:pointer;margin-bottom:6px;border-left:3px solid ' + colorEstado[c.estado || 'pendiente'] + '" onclick="abrirCita(\'' + c.id + '\')">';
+      html += '<div style="display:flex;justify-content:space-between;align-items:start;gap:10px">';
+      html += '<div style="flex:1;min-width:0">';
+      html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><strong style="font-size:14px;font-family:ui-monospace,monospace">' + esc(c.hora||'') + '</strong>';
+      html += '<span style="font-size:11px;background:rgba(0,85,255,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || 'Consulta') + '</span></div>';
+      html += '<div style="font-weight:700;font-size:13px">' + esc(c.cliente_nombre) + '</div>';
+      if (c.marca || c.modelo) html += '<div style="font-size:11px;color:var(--muted)">' + esc((c.marca||'') + ' ' + (c.modelo||'')).trim() + '</div>';
+      if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted)">📞 ' + esc(c.cliente_tel) + '</div>';
+      html += '</div>';
+      html += '<div style="font-size:11px;font-weight:700;color:' + colorEstado[c.estado || 'pendiente'] + ';text-transform:uppercase;letter-spacing:.3px;flex-shrink:0">' + iconEstado[c.estado || 'pendiente'] + ' ' + (c.estado || 'pendiente') + '</div>';
+      html += '</div></div>';
+    });
+    
+    html += '<div style="margin-top:10px;text-align:center">';
+    html += '<button onclick="abrirNuevaCitaFecha(\'' + CAL_DIA_SEL + '\')" style="background:var(--blue);color:white;border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px">+ Otra cita este día</button>';
+    html += '</div>';
+  }
+
+  contenedor.innerHTML = html;
+}
+
+function abrirNuevaCitaFecha(fechaStr) {
+  document.getElementById('ncaFecha').value = fechaStr;
+  document.getElementById('ncaHora').value = '10:00';
+  document.getElementById('ncaNombre').value = '';
+  document.getElementById('ncaTel').value = '';
+  document.getElementById('ncaServicio').value = 'Diagnóstico';
+  document.getElementById('ncaDuracion').value = '30';
+  document.getElementById('ncaMarca').value = '';
+  document.getElementById('ncaModelo').value = '';
+  document.getElementById('ncaNotas').value = '';
+  openM('mNuevaCitaAdmin');
+}
+
+async function guardarCitaAdmin() {
+  var fecha = document.getElementById('ncaFecha').value;
+  var hora = document.getElementById('ncaHora').value;
+  var nombre = document.getElementById('ncaNombre').value.trim();
+  
+  if (!fecha || !hora || !nombre) {
+    toast('Fecha, hora y nombre son obligatorios', 'err');
+    return;
+  }
+  
+  var nuevaCita = {
+    id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+    tienda_id: TIENDA_ID,
+    fecha: fecha,
+    hora: hora,
+    servicio: document.getElementById('ncaServicio').value,
+    duracion_min: parseInt(document.getElementById('ncaDuracion').value) || 30,
+    cliente_nombre: nombre,
+    cliente_tel: document.getElementById('ncaTel').value.trim() || null,
+    cliente_email: null,
+    notas: document.getElementById('ncaNotas').value.trim() || null,
+    estado: 'confirmada',
+    marca: document.getElementById('ncaMarca').value.trim() || null,
+    modelo: document.getElementById('ncaModelo').value.trim() || null,
+    imei: null,
+    created_at: new Date().toISOString()
+  };
+  
+  if (!DB.citas) DB.citas = [];
+  DB.citas.push(nuevaCita);
+  guardarDatos();
+  
+  if (SB_KEY && TIENDA_ID) {
+    try {
+      await sbPost('citas', nuevaCita);
+    } catch(e) {
+      console.warn('Cita guardada localmente, error sync:', e);
+    }
+  }
+  
+  if (typeof audit === 'function') audit('crear', 'cita', nuevaCita.id, nombre + ' ' + fecha + ' ' + hora, null);
+  
+  toast('✓ Cita creada', 'ok');
+  closeM('mNuevaCitaAdmin');
+  
+  CAL_DIA_SEL = fecha;
+  // Si la fecha está en otro mes, navegar
+  var p = fecha.split('-');
+  CAL_ANO = parseInt(p[0]);
+  CAL_MES = parseInt(p[1]) - 1;
+  
+  renderCalendario();
+  renderCitas();
+  actualizarBadgeCitas();
 }
 
 // === HORARIOS ===
