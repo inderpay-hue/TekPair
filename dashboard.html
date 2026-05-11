@@ -5952,6 +5952,15 @@ function guardarStock() {
       s.precioV = parseFloat(document.getElementById('sPrecioV').value) || 0;
       s.stockMin = parseInt(document.getElementById('sMin').value) || 2;
       s.stockMax = parseInt(document.getElementById('sMax').value) || 10;
+      // FIX: sincronizar el cambio a Supabase con PATCH (no POST)
+      if (SB_KEY && TIENDA_ID) {
+        sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
+          categoria: s.categoria, marca: s.marca, modelo: s.modelo,
+          capacidad: s.capacidad, color: s.color, imei: s.imei,
+          unidades: s.unidades, stock_min: s.stockMin, stock_max: s.stockMax,
+          precio_c: s.precioC, precio_v: s.precioV
+        });
+      }
     }
     SEL.editStockId = null;
   } else {
