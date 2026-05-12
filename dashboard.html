@@ -6362,26 +6362,54 @@ function renderStock() {
 }
 
 function busModeloStock() {
-  var q = document.getElementById('sModelo').value.toLowerCase().trim();
+  var q = (document.getElementById('sModelo').value || '').toLowerCase().trim();
   var res = document.getElementById('sModeloSug');
   if (!res) return;
-  if (!q || q.length < 1) { res.classList.remove('open'); return; }
-  var matches = (DB.modelosCustom || []).filter(function(m) {
-    return (m.modelo + ' ' + (m.marca||'')).toLowerCase().includes(q);
+  if (!q || q.length < 1) { res.classList.remove('open'); res.innerHTML=''; return; }
+
+  // Combinar custom (primero) + catálogo predefinido, evitar duplicados
+  var seen = {};
+  var pool = [];
+  (DB.modelosCustom || []).forEach(function(m){
+    var k = ((m.marca||'') + '|' + (m.modelo||'')).toLowerCase();
+    if (!seen[k]) { seen[k] = 1; pool.push(m); }
+  });
+  if (typeof MODELOS_PRE !== 'undefined' && Array.isArray(MODELOS_PRE)) {
+    MODELOS_PRE.forEach(function(m){
+      var k = ((m.marca||'') + '|' + (m.modelo||'')).toLowerCase();
+      if (!seen[k]) { seen[k] = 1; pool.push(m); }
+    });
+  }
+
+  // Filtrar por query
+  var matches = pool.filter(function(m){
+    var hay = ((m.marca||'') + ' ' + (m.modelo||'')).toLowerCase();
+    return hay.includes(q);
   }).slice(0, 8);
-  if (!matches.length) { res.classList.remove('open'); return; }
-  res.innerHTML = matches.map(function(m) {
-    return '<div class="cli-item" data-marca="' + (m.marca||'') + '" data-modelo="' + m.modelo + '">' +
-      '<strong>' + m.modelo + '</strong>' +
-      (m.marca ? '<span style="color:var(--muted);font-size:11px"> · ' + m.marca + '</span>' : '') +
+
+  if (!matches.length) {
+    res.innerHTML = '<div class="cli-item" style="color:var(--muted);font-style:italic;cursor:default">Sin coincidencias - se guardara como nuevo</div>';
+    res.classList.add('open');
+    return;
+  }
+
+  res.innerHTML = matches.map(function(m){
+    var label = (m.marca||'') + ' ' + (m.modelo||'');
+    var tag = m.custom
+      ? '<span style="font-size:9px;background:rgba(124,58,237,.12);color:var(--purple);padding:2px 6px;border-radius:4px;margin-left:6px">tuyo</span>'
+      : '';
+    return '<div class="cli-item" data-marca="' + (m.marca||'').replace(/"/g,'&quot;') + '" data-modelo="' + (m.modelo||'').replace(/"/g,'&quot;') + '">' +
+      '<strong>' + label + '</strong>' + tag +
+      (m.cat ? '<span style="float:right;color:var(--muted);font-size:10px">' + m.cat + '</span>' : '') +
       '</div>';
   }).join('');
   res.classList.add('open');
+
   res.querySelectorAll('[data-modelo]').forEach(function(el) {
     el.addEventListener('mousedown', function(e) {
       e.preventDefault();
-      document.getElementById('sModelo').value = this.dataset.modelo;
-      if (this.dataset.marca) document.getElementById('sMarca').value = this.dataset.marca;
+      document.getElementById('sModelo').value = el.dataset.modelo;
+      if (el.dataset.marca) document.getElementById('sMarca').value = el.dataset.marca;
       res.classList.remove('open');
     });
   });
