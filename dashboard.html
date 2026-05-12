@@ -330,6 +330,17 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .tipo-prod-btn{flex:1;background:white;color:var(--ink);padding:10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;border:1.5px solid var(--border);transition:all .15s;font-family:inherit;text-align:center}
 .tipo-prod-btn.active{background:var(--blue);color:white;border-color:var(--blue)}
 
+/* Bloque bloqueado por plan */
+.plan-locked-block{position:relative;background:linear-gradient(135deg,#FEF3C7 0%,#FDE68A 100%);border:1.5px dashed #F59E0B;border-radius:10px;padding:14px;margin-bottom:14px}
+.plan-locked-block .pl-badge{position:absolute;top:-10px;right:14px;background:#F59E0B;color:white;font-size:10px;font-weight:800;padding:3px 10px;border-radius:100px;letter-spacing:.5px;text-transform:uppercase}
+.plan-locked-block .pl-title{font-size:14px;font-weight:700;color:#78350F;margin-bottom:4px;display:flex;align-items:center;gap:6px}
+.plan-locked-block .pl-desc{font-size:12px;color:#92400E;margin-bottom:10px;line-height:1.4}
+.plan-locked-block .pl-features{font-size:11px;color:#78350F;margin-bottom:12px;line-height:1.6}
+.plan-locked-block .pl-features div{padding:2px 0}
+.plan-locked-block .pl-btn{background:#78350F;color:#FEF3C7;border:none;padding:8px 16px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
+.plan-locked-block .pl-btn:hover{background:#451A03;transform:translateY(-1px)}
+.plan-locked-inline{display:inline-flex;align-items:center;gap:4px;font-size:10px;font-weight:700;color:#92400E;background:#FEF3C7;border:1px solid #F59E0B;padding:1px 7px;border-radius:100px;margin-left:6px}
+
 /* ═══ FORMS ═══ */
 .fg{margin-bottom:12px}
 .fl{font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;display:block;margin-bottom:5px}
@@ -1196,8 +1207,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         </label>
       </div>
       <div id="garRepOptions" style="border-top:1px solid var(--border);padding-top:12px">
-        <div class="fl" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">Días disponibles</div>
-        <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">
+        <div class="fl" style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">
+          Días disponibles
+          <span class="plan-locked-inline" id="planLockChipsRep" style="display:none">🔒 PRO</span>
+        </div>
+        <div id="grChipsContainer" style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-bottom:8px">
           <label class="chip-gar">
             <input type="checkbox" id="grDias30" value="30">
             <span><strong>30</strong> días</span>
@@ -1230,6 +1244,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
           <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
             <input type="checkbox" id="grPermitirCustom" checked> Permitir días personalizados al crear reparación
+            <span class="plan-locked-inline" id="planLockCustomRep" style="display:none">🔒 PRO</span>
           </label>
           <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer">
             <input type="checkbox" id="grPermitirSin" checked> Permitir "Sin garantía" (placa, humedad...)
@@ -1242,8 +1257,23 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
     </div>
 
-    <!-- BLOQUE: VENTAS -->
-    <div style="background:var(--bg2);border-radius:10px;padding:14px;margin-bottom:14px">
+    <!-- BLOQUE: VENTAS - PLACEHOLDER PRO (visible solo si plan < pro) -->
+    <div id="bloqueVentasPro" class="plan-locked-block" style="display:none">
+      <span class="pl-badge">🔒 PRO</span>
+      <div class="pl-title">📱 Garantía en ventas (stock)</div>
+      <div class="pl-desc">Gestiona la garantía de los teléfonos y dispositivos que vendes. Cumple la ley española (RDL 7/2024).</div>
+      <div class="pl-features">
+        <div>✓ Tipo de producto: NUEVO / SEGUNDA MANO</div>
+        <div>✓ Garantía en meses (3/6/12/24/36) personalizable</div>
+        <div>✓ Default automático según tipo (36m nuevo, 12m usado)</div>
+        <div>✓ Aviso ley España automático en stock</div>
+        <div>✓ Texto legal en tickets de venta</div>
+      </div>
+      <button class="pl-btn" onclick="mostrarModalUpgrade('gar_ventas','pro')">📈 Mejorar a Plan Pro</button>
+    </div>
+
+    <!-- BLOQUE: VENTAS (Pro+) -->
+    <div id="bloqueVentasReal" style="background:var(--bg2);border-radius:10px;padding:14px;margin-bottom:14px">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
         <div style="flex:1">
           <div style="font-size:14px;font-weight:700;color:var(--ink)">📱 Garantía en ventas (stock)</div>
@@ -2190,14 +2220,18 @@ var PLAN_INFO = {plan:'basico', status:'trial', trial_until:null, plan_until:nul
 
 // Matriz de features por plan
 var PLAN_FEATURES = {
-  basico: ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode'],
+  basico: ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
+           'gar_rep_basica'],
   pro:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
-           'importar_pdf','catalogo_servicios','plantillas_rep'],
+           'importar_pdf','catalogo_servicios','plantillas_rep',
+           'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley'],
   top:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
-           'multi_tienda','soporte_24_7','api_access','onboarding_personal']
+           'multi_tienda','soporte_24_7','api_access','onboarding_personal',
+           'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
+           'gar_notif_auto','gar_reportes_avanzados']
 };
 
 // Límite de usuarios por plan
@@ -5586,6 +5620,8 @@ function renderRepGarantia() {
   }
   bloque.style.display = 'block';
   
+  var tieneAvanzada = (typeof tieneFeature === 'function') ? tieneFeature('gar_rep_avanzada') : true;
+  
   var dias = window._repGarantiaDias;
   if (typeof dias !== 'number') {
     dias = TIENDA.grDiasDefault || 90;
@@ -5599,7 +5635,8 @@ function renderRepGarantia() {
   }
   
   var sel = document.getElementById('rGarSelector');
-  var opciones = TIENDA.grDiasEnabled || [90];
+  // Plan básico solo ve el default + "Sin garantía"; Pro+ ve todos los chips configurados
+  var opciones = tieneAvanzada ? (TIENDA.grDiasEnabled || [90]) : [TIENDA.grDiasDefault || 90];
   var html = '';
   opciones.forEach(function(d){
     var act = (d === dias) ? ' active' : '';
@@ -5609,10 +5646,16 @@ function renderRepGarantia() {
     var actSin = (dias === 0) ? ' active' : '';
     html += '<button type="button" class="gar-btn sin-gar'+actSin+'" onclick="selectRepGar(0)">Sin garantía</button>';
   }
+  // Solo Pro+ puede ver chips alternativos
+  if (!tieneAvanzada && TIENDA.grDiasEnabled && TIENDA.grDiasEnabled.length > 1) {
+    html += '<button type="button" class="gar-btn" style="background:#FEF3C7;color:#92400E;border-color:#F59E0B" onclick="mostrarModalUpgrade(\'gar_rep_avanzada\',\'pro\')">🔒 Más opciones (Pro)</button>';
+  }
   sel.innerHTML = html;
   
+  // Custom solo Pro+
   var customRow = document.getElementById('rGarCustomRow');
-  if (customRow) customRow.style.display = (TIENDA.grPermitirCustom !== false) ? 'flex' : 'none';
+  var permitirCustom = (TIENDA.grPermitirCustom !== false) && tieneAvanzada;
+  if (customRow) customRow.style.display = permitirCustom ? 'flex' : 'none';
   var customInput = document.getElementById('rGarDiasCustom');
   if (customInput) {
     if (opciones.indexOf(dias) === -1 && dias !== 0) customInput.value = dias;
@@ -6349,6 +6392,11 @@ function renderStockGarantia() {
   var cat = document.getElementById('sCat').value;
   var aplicaCat = ['Telefono','Tablet','Smartwatch'].indexOf(cat) !== -1;
   var venActiva = TIENDA.garVenActiva !== false;
+  
+  // GATING: si plan no tiene gar_ventas, no mostrar nada de stock
+  var tienePro = (typeof tieneFeature === 'function') ? tieneFeature('gar_ventas') : true;
+  if (!tienePro) { bloque.style.display = 'none'; return; }
+  
   if (!venActiva || !aplicaCat) { bloque.style.display = 'none'; return; }
   bloque.style.display = 'block';
   
@@ -7227,6 +7275,7 @@ function cargarTienda() {
   
   toggleGarRep();
   toggleGarVen();
+  aplicarGatingGarantias();
   
   renderLogoPreview(t.logo_url || '');
 }
@@ -7270,6 +7319,76 @@ function actualizarAvisoGarantia() {
   aviso.style.background = bg;
   aviso.style.borderLeftColor = border;
   aviso.style.color = color;
+}
+
+// Aplica restricciones por plan en la pantalla de garantías
+function aplicarGatingGarantias() {
+  var tienePro = (typeof tieneFeature === 'function') ? tieneFeature('gar_ventas') : true;
+  var tieneAvanzadaRep = (typeof tieneFeature === 'function') ? tieneFeature('gar_rep_avanzada') : true;
+  
+  // ── BLOQUE VENTAS ──
+  var bloqueReal = document.getElementById('bloqueVentasReal');
+  var bloquePro = document.getElementById('bloqueVentasPro');
+  if (bloqueReal && bloquePro) {
+    if (tienePro) {
+      bloqueReal.style.display = 'block';
+      bloquePro.style.display = 'none';
+    } else {
+      bloqueReal.style.display = 'none';
+      bloquePro.style.display = 'block';
+      // Forzar switch ventas a OFF si no tiene plan
+      var swVen = document.getElementById('garVenActiva');
+      if (swVen) swVen.checked = false;
+    }
+  }
+  
+  // ── OPCIONES AVANZADAS REPARACIÓN ──
+  var lockChips = document.getElementById('planLockChipsRep');
+  var lockCustom = document.getElementById('planLockCustomRep');
+  var chipsContainer = document.getElementById('grChipsContainer');
+  var inputCustom = document.getElementById('grPermitirCustom');
+  
+  if (!tieneAvanzadaRep) {
+    // Mostrar etiquetas Pro
+    if (lockChips) lockChips.style.display = 'inline-flex';
+    if (lockCustom) lockCustom.style.display = 'inline-flex';
+    // Bloquear interacciones
+    if (chipsContainer) {
+      chipsContainer.style.opacity = '.55';
+      chipsContainer.style.pointerEvents = 'none';
+      // Forzar solo 90 días marcado
+      ['30','60','180','365'].forEach(function(d){
+        var cb = document.getElementById('grDias'+d);
+        if (cb) cb.checked = false;
+      });
+      var cb90 = document.getElementById('grDias90');
+      if (cb90) cb90.checked = true;
+    }
+    if (inputCustom) {
+      inputCustom.disabled = true;
+      inputCustom.checked = false;
+      inputCustom.parentElement.style.opacity = '.55';
+    }
+    // Click en chips/custom muestra modal upgrade
+    if (chipsContainer) {
+      chipsContainer.addEventListener('click', function(e){
+        e.preventDefault();
+        e.stopPropagation();
+        if (typeof mostrarModalUpgrade === 'function') mostrarModalUpgrade('gar_rep_avanzada','pro');
+      }, true);
+    }
+  } else {
+    if (lockChips) lockChips.style.display = 'none';
+    if (lockCustom) lockCustom.style.display = 'none';
+    if (chipsContainer) {
+      chipsContainer.style.opacity = '1';
+      chipsContainer.style.pointerEvents = 'auto';
+    }
+    if (inputCustom) {
+      inputCustom.disabled = false;
+      inputCustom.parentElement.style.opacity = '1';
+    }
+  }
 }
 
 function guardarTienda() {
