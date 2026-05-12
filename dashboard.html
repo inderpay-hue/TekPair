@@ -5686,15 +5686,24 @@ document.addEventListener('DOMContentLoaded', function(){
       }
     });
   }
-  // Hook al abrir modal rep nuevo
-  var origOpenM2 = window.openM;
-  if (origOpenM2 && typeof origOpenM2 === 'function') {
+  // Hook UNIFICADO al abrir modales (rep + stock)
+  var origOpenM_garantias = window.openM;
+  if (origOpenM_garantias && typeof origOpenM_garantias === 'function') {
     window.openM = function(id) {
-      origOpenM2(id);
+      origOpenM_garantias(id);
       if (id === 'mRep' && !SEL.editRepId) {
         // Reparación nueva → resetear garantía al default
         window._repGarantiaDias = TIENDA.grDiasDefault || 90;
         setTimeout(renderRepGarantia, 30);
+      } else if (id === 'mStock') {
+        // Stock: inicializar tipo/garantía
+        setTimeout(function(){
+          if (!SEL.editStockId) {
+            window._stockTipoSel = 'nuevo';
+            window._stockGarantiaMeses = TIENDA.gvMesesDefaultNuevo || 36;
+          }
+          renderStockGarantia();
+        }, 30);
       }
     };
   }
@@ -6501,24 +6510,7 @@ document.addEventListener('DOMContentLoaded', function(){
   }
   var sCat = document.getElementById('sCat');
   if (sCat) sCat.addEventListener('change', renderStockGarantia);
-  
-  // Hook al abrir modal stock para inicializar tipo/garantía
-  var origOpenM = window.openM;
-  if (origOpenM && typeof origOpenM === 'function') {
-    window.openM = function(id) {
-      origOpenM(id);
-      if (id === 'mStock') {
-        setTimeout(function(){
-          if (!SEL.editStockId) {
-            // Crear nuevo → defaults
-            window._stockTipoSel = 'nuevo';
-            window._stockGarantiaMeses = TIENDA.gvMesesDefaultNuevo || 36;
-          }
-          renderStockGarantia();
-        }, 30);
-      }
-    };
-  }
+  // NOTA: el hook de openM para mStock se gestiona desde el override unificado en rep helpers
 });
 
 function eliminarStock(id) {
