@@ -14,7 +14,7 @@ const RESEND_KEY = process.env.RESEND_API_KEY;
 
 // ═══ HELPERS ═══
 function hashPassword(password) {
-  return crypto.createHash('sha256').update(password + 'tekpair_salt_2025').digest('hex');
+  return crypto.createHash('sha256').update(password).digest('hex');
 }
 
 function generateToken() {
