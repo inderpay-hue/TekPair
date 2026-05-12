@@ -28,10 +28,10 @@ export default async function handler(req, res) {
     return res.status(401).json({ error: 'Token invalido' });
   }
 
-  const userEmail = decoded.email || '';
+  const userId = decoded.sub || '';
   const tiendaId = decoded.tienda_id || '';
 
-  if (!userEmail || !tiendaId) return res.status(401).json({ error: 'Token incompleto' });
+  if (!userId || !tiendaId) return res.status(401).json({ error: 'Token incompleto' });
 
   const sbHeaders = {
     'apikey': SERVICE_KEY,
@@ -40,8 +40,17 @@ export default async function handler(req, res) {
   };
 
   try {
+    // Obtener email del usuario desde la BD
+    const uR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(userId)}&select=email&limit=1`, {
+      headers: sbHeaders
+    });
+    const uArr = await uR.json();
+    const userEmail = (uArr[0]?.email || '').toLowerCase();
+
+    if (!userEmail) return res.status(401).json({ error: 'Usuario no encontrado' });
+
     // ═══ 2. Determinar rol del usuario ═══
-    const isAdmin = ADMIN_EMAILS.includes(userEmail.toLowerCase());
+    const isAdmin = ADMIN_EMAILS.includes(userEmail);
 
     // Buscar si es afiliado
     const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?tienda_id=eq.${encodeURIComponent(tiendaId)}&select=*&limit=1`, {
@@ -57,19 +66,16 @@ export default async function handler(req, res) {
 
     // ═══ 3. ADMIN: ver todos los afiliados y sus comisiones ═══
     if (isAdmin) {
-      // Obtener todos los afiliados activos
       const allAfR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?activo=eq.true&order=created_at.desc&select=*`, {
         headers: sbHeaders
       });
       const allAfiliados = await allAfR.json();
 
-      // Obtener todos los pagos referidos
       const allPagosR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?order=created_at.desc&select=*`, {
         headers: sbHeaders
       });
       const allPagos = await allPagosR.json();
 
-      // Agrupar pagos por codigo_referido
       const porCodigo = {};
       for (const p of allPagos) {
         const codigo = p.codigo_referido;
@@ -93,7 +99,6 @@ export default async function handler(req, res) {
         porCodigo[codigo].num_pagos++;
       }
 
-      // Contar referidos únicos por código (tiendas distintas)
       const referidosPorCodigo = {};
       for (const p of allPagos) {
         const codigo = p.codigo_referido;
@@ -102,7 +107,6 @@ export default async function handler(req, res) {
         referidosPorCodigo[codigo].add(p.tienda_id);
       }
 
-      // Construir resumen por afiliado
       const afiliadosConStats = allAfiliados.map(af => {
         const stats = porCodigo[af.codigo] || {total_comisiones:0, comisiones_pagadas:0, comisiones_pendientes:0, num_pagos:0};
         const referidos = referidosPorCodigo[af.codigo] ? referidosPorCodigo[af.codigo].size : 0;
@@ -119,7 +123,6 @@ export default async function handler(req, res) {
         };
       });
 
-      // Totales globales
       const totalComisiones = afiliadosConStats.reduce((s, a) => s + a.total_comisiones, 0);
       const totalPagadas = afiliadosConStats.reduce((s, a) => s + a.comisiones_pagadas, 0);
       const totalPendientes = afiliadosConStats.reduce((s, a) => s + a.comisiones_pendientes, 0);
@@ -135,28 +138,24 @@ export default async function handler(req, res) {
           comisiones_pendientes: +totalPendientes.toFixed(2)
         },
         afiliados: afiliadosConStats,
-        pagos: allPagos  // detalle completo para que el frontend pueda mostrar
+        pagos: allPagos
       });
     }
 
     // ═══ 4. AFILIADO normal: ver solo sus comisiones ═══
     const codigo = miAfiliado.codigo;
 
-    // Obtener pagos suyos
     const pagosR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(codigo)}&order=created_at.desc&select=*`, {
       headers: sbHeaders
     });
     const pagos = await pagosR.json();
 
-    // Calcular stats
     const totalComisiones = pagos.reduce((s, p) => s + parseFloat(p.comision_monto || 0), 0);
     const comisionesPagadas = pagos.filter(p => p.comision_pagada).reduce((s, p) => s + parseFloat(p.comision_monto || 0), 0);
     const comisionesPendientes = totalComisiones - comisionesPagadas;
 
-    // Contar referidos únicos (tiendas distintas)
     const referidos = new Set(pagos.map(p => p.tienda_id));
 
-    // Obtener nombres de tiendas referidas
     let tiendasReferidas = [];
     if (referidos.size > 0) {
       const ids = Array.from(referidos).map(id => `"${id}"`).join(',');
