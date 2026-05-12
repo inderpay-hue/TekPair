@@ -52,6 +52,48 @@ export default async function handler(req, res) {
     // ═══ 2. Determinar rol del usuario ═══
     const isAdmin = ADMIN_EMAILS.includes(userEmail);
 
+    // ═══ POST: acciones de admin (marcar como pagado) ═══
+    if (req.method === 'POST') {
+      if (!isAdmin) return res.status(403).json({ error: 'Solo admin' });
+
+      const body = req.body || {};
+      const action = body.action;
+
+      if (action === 'marcar_pagado' && Array.isArray(body.ids) && body.ids.length) {
+        // Marcar pagos individuales como pagados por sus IDs
+        const ids = body.ids.filter(n => Number.isInteger(n));
+        if (!ids.length) return res.status(400).json({ error: 'IDs invalidos' });
+
+        const idsStr = ids.join(',');
+        const upR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?id=in.(${idsStr})`, {
+          method: 'PATCH',
+          headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+          body: JSON.stringify({ comision_pagada: true })
+        });
+        if (!upR.ok) {
+          const txt = await upR.text();
+          return res.status(500).json({ error: 'Error actualizando: ' + txt });
+        }
+        return res.json({ ok: true, marcados: ids.length });
+      }
+
+      if (action === 'marcar_codigo_pagado' && body.codigo) {
+        // Marcar TODOS los pagos pendientes de un código como pagados
+        const upR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(body.codigo)}&comision_pagada=eq.false`, {
+          method: 'PATCH',
+          headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+          body: JSON.stringify({ comision_pagada: true })
+        });
+        if (!upR.ok) {
+          const txt = await upR.text();
+          return res.status(500).json({ error: 'Error actualizando: ' + txt });
+        }
+        return res.json({ ok: true, codigo: body.codigo });
+      }
+
+      return res.status(400).json({ error: 'Accion desconocida' });
+    }
+
     // Buscar si es afiliado
     const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?tienda_id=eq.${encodeURIComponent(tiendaId)}&select=*&limit=1`, {
       headers: sbHeaders
