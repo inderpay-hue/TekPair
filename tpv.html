@@ -426,6 +426,7 @@ var AJUSTES = JSON.parse(localStorage.getItem('tk_ajustes') || '{}');
 if (!AJUSTES.iva) AJUSTES.iva = {activo:false,modo:'incluido',tipoDefault:21};
 var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
 var SB_KEY = sess.sb_key || '';
+var JWT_TOKEN = sess.jwt_token || '';
 var TIENDA_ID = sess.tienda_id || '';
 
 // ═══ CART ═══
@@ -564,7 +565,7 @@ function sbPost(table, data) {
   if (!SB_KEY) return Promise.resolve(false);
   return fetch(SUPABASE_URL + '/rest/v1/' + table, {
     method: 'POST',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
     body: JSON.stringify(data)
   }).then(function(r) {
     if (!r.ok) {
@@ -577,7 +578,7 @@ function sbPost(table, data) {
 function sbGet(table, query) {
   if (!SB_KEY) return Promise.resolve([]);
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*', {
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
   }).then(function(r) {
     if (!r.ok) {
       return r.json().then(function(err){ _sbErrorToast('GET', table, err); return []; }, function(){ _sbErrorToast('GET', table, {status:r.status}); return []; });
