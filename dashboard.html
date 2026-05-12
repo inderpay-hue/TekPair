@@ -9756,14 +9756,41 @@ function backupManual() {
 }
 
 // ═══ AYUDA ═══
-function enviarAyuda() {
+async function enviarAyuda() {
   var msg = document.getElementById('ayudaMsg').value.trim();
   var tipo = document.getElementById('ayudaTipo').value;
   if (!msg) { toast('Escribe un mensaje', 'err'); return; }
-  var texto = '[Tekpair - ' + tipo + '] ' + msg + ' | Usuario: ' + (U ? U.nombre : '') + ' | Tienda: ' + TIENDA.nombre;
-  window.open('https://wa.me/34600000000?text=' + encodeURIComponent(texto));
-  document.getElementById('ayudaMsg').value = '';
-  toast('Abriendo WhatsApp...', 'ok');
+
+  var btn = document.querySelector('#pAyuda button.btn-primary');
+  var btnOriginal = btn ? btn.textContent : '';
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+  try {
+    var r = await fetch('/api/ayuda', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tipo: tipo,
+        mensaje: msg,
+        email: (U && U.email) ? U.email : '',
+        nombre: (U && U.nombre) ? U.nombre : 'Anónimo',
+        tienda: (TIENDA && TIENDA.nombre) ? TIENDA.nombre : 'Sin tienda',
+        tienda_id: (TIENDA && TIENDA.id) ? TIENDA.id : ''
+      })
+    });
+    var data = await r.json();
+    if (data.ok) {
+      document.getElementById('ayudaMsg').value = '';
+      toast('Mensaje enviado. Te responderemos pronto.', 'ok');
+    } else {
+      toast(data.error || 'Error al enviar', 'err');
+    }
+  } catch (e) {
+    console.error('Error enviarAyuda:', e);
+    toast('Error de conexión', 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = btnOriginal; }
+  }
 }
 
 
