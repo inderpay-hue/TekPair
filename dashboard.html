@@ -5756,6 +5756,53 @@ function autoGuardarServiciosNuevos(servicios) {
   }
 }
 
+// =============================================================
+// HELPER: aplicarCambioStockPiezas
+// Ajusta stock al añadir/quitar piezas en reparaciones.
+// Una pieza = 1 unidad. Permite stock negativo silenciosamente.
+// =============================================================
+function aplicarCambioStockPiezas(antes, despues) {
+  antes = antes || [];
+  despues = despues || [];
+
+  var mapAntes = {};
+  antes.forEach(function(p) {
+    if (!p || !p.id) return;
+    mapAntes[p.id] = (mapAntes[p.id] || 0) + 1;
+  });
+
+  var mapDespues = {};
+  despues.forEach(function(p) {
+    if (!p || !p.id) return;
+    mapDespues[p.id] = (mapDespues[p.id] || 0) + 1;
+  });
+
+  var idsAfectados = {};
+  Object.keys(mapAntes).forEach(function(id){ idsAfectados[id] = true; });
+  Object.keys(mapDespues).forEach(function(id){ idsAfectados[id] = true; });
+
+  Object.keys(idsAfectados).forEach(function(id) {
+    var cantAntes = mapAntes[id] || 0;
+    var cantDespues = mapDespues[id] || 0;
+    var delta = cantDespues - cantAntes;
+    if (delta === 0) return;
+
+    var s = DB.stock.find(function(x) { return x.id === id; });
+    if (!s) return;
+
+    s.unidades = (s.unidades || 0) - delta;
+
+    if (typeof SB_KEY !== 'undefined' && SB_KEY && typeof TIENDA_ID !== 'undefined' && TIENDA_ID) {
+      sbPatch('stock', 'id=eq.' + s.id, { unidades: s.unidades });
+    }
+  });
+
+  guardarDatos();
+  if (typeof renderStock === 'function') {
+    try { renderStock(); } catch(e){}
+  }
+}
+
 function guardarRep() {
   if (!tienePerm('reps_crear')) { toast('Sin permiso', 'err'); return; }
   var modelo = document.getElementById('rModelo').value.trim();
@@ -5792,6 +5839,7 @@ function guardarRep() {
   if (SEL.editRepId) {
     var r = DB.reps.find(function(x){ return x.id === SEL.editRepId; });
     if (!r) { toast('Reparación no encontrada', 'err'); SEL.editRepId = null; return; }
+    var componentesAntes = Array.isArray(r.componentes) ? r.componentes.slice() : [];
     var serviciosE = (SEL.rServicios || []).slice();
     autoGuardarServiciosNuevos(serviciosE);
     var srvTotalE = serviciosE.reduce(function(a,s){ return a + (parseFloat(s.precio)||0); }, 0);
@@ -5841,6 +5889,7 @@ function guardarRep() {
     renderDash();
     toast('Reparación actualizada', 'ok');
     audit('editar', 'reparacion', r.id, r.clienteNombre + ' · ' + (r.modelo||''), null);
+    aplicarCambioStockPiezas(componentesAntes, r.componentes);
     return;
   }
 
@@ -5887,14 +5936,9 @@ function guardarRep() {
     garantiaDias: (typeof window._repGarantiaDias === 'number') ? window._repGarantiaDias : (TIENDA.grDiasDefault || 90)
   };
 
-  // Reduce component stock
-  SEL.selParts.forEach(function(p) {
-    var s = DB.stock.find(function(x) { return x.id === p.id; });
-    if (s) s.unidades = Math.max(0, s.unidades - 1);
-  });
-
   DB.reps.push(rep);
   guardarDatos();
+  aplicarCambioStockPiezas([], rep.componentes);
 
   if (SB_KEY && TIENDA_ID) {
     sbPost('reparaciones', {
@@ -6617,6 +6661,39 @@ function delCli(id) {
   toast('Cliente eliminado', 'ok');
   audit('eliminar', 'cliente', id, c ? ((c.nombre||'') + ' ' + (c.apellidos||'')).trim() : id, null);
   renderClis();
+}
+
+function eliminarReparacion(id) {
+  if (!tienePerm('reps_eliminar')) { toast('Sin permiso', 'err'); return; }
+  var r = DB.reps.find(function(x){ return x.id === id; });
+  if (!r) { toast('Reparación no encontrada', 'err'); return; }
+
+  var msg = '¿Eliminar reparación de ' + r.clienteNombre + ' (' + (r.marca||'') + ' ' + (r.modelo||'') + ')?';
+  if (r.componentes && r.componentes.length) {
+    msg += '\n\nSe devolverán ' + r.componentes.length + ' pieza(s) al stock.';
+  }
+  msg += '\n\nEsta acción no se puede deshacer.';
+  if (!confirm(msg)) return;
+
+  // Re-sumar piezas al stock
+  if (Array.isArray(r.componentes) && r.componentes.length) {
+    aplicarCambioStockPiezas(r.componentes, []);
+  }
+
+  // Borrar de array local
+  DB.reps = DB.reps.filter(function(x){ return x.id !== id; });
+  guardarDatos();
+
+  // Borrar de Supabase
+  if (SB_KEY && TIENDA_ID) sbDelete('reparaciones', 'id=eq.' + id);
+
+  toast('Reparación eliminada', 'ok');
+  audit('eliminar', 'reparacion', id, r.clienteNombre + ' · ' + (r.marca||'') + ' ' + (r.modelo||''), null);
+
+  // Re-render y cerrar modales si están abiertos
+  closeM('mDetalleRep');
+  renderReps();
+  renderDash();
 }
 
 // ═══ PROVEEDORES ═══
@@ -8812,6 +8889,7 @@ function abrirDetalleRep(repId) {
   if (cli && cli.tel) btns += '<button class="btn-sm" style="background:#25D366;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirWhatsAppRep(\'' + r.id + '\')">📲 WhatsApp</button>';
   btns += '<button class="btn-sm" style="background:var(--blue);color:white;flex:1" onclick="closeM(\'mDetalleRep\');copiarLinkRep(\'' + r.id + '\')">📱 QR/Link</button>';
   if (tienePerm('reps_editar')) btns += '<button class="btn-sm" style="background:var(--orange);color:white;flex:1" onclick="closeM(\'mDetalleRep\');navTo(\'pReps\');setTimeout(function(){editarRep(\'' + r.id + '\')},100)">✏️ Editar</button>';
+  if (tienePerm('reps_eliminar')) btns += '<button class="btn-sm" style="background:var(--red);color:white;flex:1" onclick="eliminarReparacion(\'' + r.id + '\')">🗑️ Eliminar</button>';
   document.getElementById('detalleRepBtns').innerHTML = btns;
 
   openM('mDetalleRep');
