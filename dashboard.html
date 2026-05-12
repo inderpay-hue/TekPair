@@ -1953,8 +1953,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </select>
   </div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Marca *</label><input class="fi" id="sMarca" placeholder="Apple, Samsung..."></div>
-    <div class="fg"><label class="fl">Modelo *</label><input class="fi" id="sModelo" placeholder="iPhone 14..."></div>
+    <div class="fg" style="position:relative"><label class="fl">Marca *</label><input class="fi" id="sMarca" placeholder="Apple, Samsung..."></div>
+    <div class="fg" style="position:relative"><label class="fl">Modelo *</label><input class="fi" id="sModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModeloStock()" onfocus="busModeloStock()" onblur="setTimeout(function(){var d=document.getElementById('sModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="sModeloSug"></div></div>
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Capacidad</label><input class="fi" id="sCap" placeholder="128GB..."></div>
@@ -5204,6 +5204,7 @@ function busComp() {
   res.innerHTML = matches.slice(0, 5).map(function(s) {
     var ya = SEL.selParts.find(function(p) { return p.id === s.id; });
     return '<div class="cli-item" data-sid="' + s.id + '" style="' + (ya ? 'background:rgba(0,200,150,.06)' : '') + '">' +
+      '<span style="background:var(--light);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;color:var(--muted);margin-right:6px">' + (s.categoria || 'Otro') + '</span>' +
       s.modelo + ' (' + s.marca + ') \u00b7 Stock: ' + s.unidades + (ya ? ' \u2713' : '') +
       '<span style="float:right;color:var(--green);font-weight:700">' + cur(s.precioV) + '</span></div>';
   }).join('');
@@ -6360,6 +6361,32 @@ function renderStock() {
   });
 }
 
+function busModeloStock() {
+  var q = document.getElementById('sModelo').value.toLowerCase().trim();
+  var res = document.getElementById('sModeloSug');
+  if (!res) return;
+  if (!q || q.length < 1) { res.classList.remove('open'); return; }
+  var matches = (DB.modelosCustom || []).filter(function(m) {
+    return (m.modelo + ' ' + (m.marca||'')).toLowerCase().includes(q);
+  }).slice(0, 8);
+  if (!matches.length) { res.classList.remove('open'); return; }
+  res.innerHTML = matches.map(function(m) {
+    return '<div class="cli-item" data-marca="' + (m.marca||'') + '" data-modelo="' + m.modelo + '">' +
+      '<strong>' + m.modelo + '</strong>' +
+      (m.marca ? '<span style="color:var(--muted);font-size:11px"> · ' + m.marca + '</span>' : '') +
+      '</div>';
+  }).join('');
+  res.classList.add('open');
+  res.querySelectorAll('[data-modelo]').forEach(function(el) {
+    el.addEventListener('mousedown', function(e) {
+      e.preventDefault();
+      document.getElementById('sModelo').value = this.dataset.modelo;
+      if (this.dataset.marca) document.getElementById('sMarca').value = this.dataset.marca;
+      res.classList.remove('open');
+    });
+  });
+}
+
 function guardarStock() {
   var perm = SEL.editStockId ? 'stock_editar' : 'stock_crear';
   if (!tienePerm(perm)) { toast('Sin permiso', 'err'); return; }
@@ -6693,14 +6720,18 @@ function eliminarReparacion(id) {
   if (!r) { toast('Reparación no encontrada', 'err'); return; }
 
   var msg = '¿Eliminar reparación de ' + r.clienteNombre + ' (' + (r.marca||'') + ' ' + (r.modelo||'') + ')?';
-  if (r.componentes && r.componentes.length) {
+  // Solo se devuelven piezas si NO fueron ya devueltas (estados Devuelto/Rechazado/Sin Solucion)
+  var hayPiezas = Array.isArray(r.componentes) && r.componentes.length;
+  if (hayPiezas && !r.piezasDevueltas) {
     msg += '\n\nSe devolverán ' + r.componentes.length + ' pieza(s) al stock.';
+  } else if (hayPiezas && r.piezasDevueltas) {
+    msg += '\n\n(Las piezas ya fueron devueltas al stock previamente)';
   }
   msg += '\n\nEsta acción no se puede deshacer.';
   if (!confirm(msg)) return;
 
-  // Re-sumar piezas al stock
-  if (Array.isArray(r.componentes) && r.componentes.length) {
+  // Re-sumar piezas al stock SOLO si no estaban ya devueltas
+  if (!r.piezasDevueltas && Array.isArray(r.componentes) && r.componentes.length) {
     aplicarCambioStockPiezas(r.componentes, []);
   }
 
