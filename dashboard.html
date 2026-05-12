@@ -6213,6 +6213,26 @@ function cambiarEstado(id, estado) {
   }
   var estadoAnterior = r.estado;
   r.estado = estado;
+
+  // Stock auto-sync por estados de cancelación
+  // Si una reparación se cancela (Devuelto/Rechazado/Sin Solucion),
+  // las piezas vuelven al stock. Si sale de ese estado, se re-descuentan.
+  var ESTADOS_DEVOLVER_STOCK = ['Devuelto', 'Rechazado', 'Sin Solucion'];
+  var entrandoCancelacion = ESTADOS_DEVOLVER_STOCK.indexOf(estado) >= 0 && ESTADOS_DEVOLVER_STOCK.indexOf(estadoAnterior) < 0;
+  var saliendoCancelacion = ESTADOS_DEVOLVER_STOCK.indexOf(estado) < 0 && ESTADOS_DEVOLVER_STOCK.indexOf(estadoAnterior) >= 0;
+
+  if (entrandoCancelacion && Array.isArray(r.componentes) && r.componentes.length && !r.piezasDevueltas) {
+    aplicarCambioStockPiezas(r.componentes, []);
+    r.piezasDevueltas = true;
+    toast('Piezas devueltas al stock', 'ok');
+    if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, {piezas_devueltas: true});
+  } else if (saliendoCancelacion && Array.isArray(r.componentes) && r.componentes.length && r.piezasDevueltas) {
+    aplicarCambioStockPiezas([], r.componentes);
+    r.piezasDevueltas = false;
+    toast('Piezas re-descontadas del stock', 'ok');
+    if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, {piezas_devueltas: false});
+  }
+
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, {estado: estado});
   toast('Estado actualizado', 'ok');
