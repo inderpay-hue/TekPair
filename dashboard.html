@@ -1631,6 +1631,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <button class="btn-primary" style="background:var(--purple)" onclick="guardarPermisos()">Guardar permisos</button>
 </div>
 
+
+<!-- ═══ COMISIONES (solo afiliados/admin) ═══ -->
+<div class="page" id="pComisiones">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
+    <div class="sec-title" id="comTitle">💼 Comisiones</div>
+  </div>
+  <div id="comContent">
+    <div style="text-align:center;padding:40px;color:var(--muted)">Cargando...</div>
+  </div>
+</div>
+
 </div><!-- /content -->
 </div><!-- /app-content -->
 
@@ -2526,6 +2537,7 @@ window.addEventListener('DOMContentLoaded', function() {
   var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
   SB_KEY = sess.sb_key || '';
   JWT_TOKEN = sess.jwt_token || '';
+  setTimeout(function(){ detectarAccesoComisiones(); }, 800);
   TIENDA_ID = sess.tienda_id || (U && U.tienda_id) || '';
   // Load permisos from session
   if (sess.usuario && sess.usuario.permisos) U.permisos = sess.usuario.permisos;
@@ -11462,5 +11474,204 @@ function impFacAnadirAlStock() {
   </div>
 </div>
 
+<script>
+
+
+// ═══ COMISIONES (sistema afiliados) ═══
+var IS_COMISIONES_USER = false;
+var COMISIONES_MODO = null;
+var COMISIONES_DATA = null;
+
+async function detectarAccesoComisiones() {
+  if (!JWT_TOKEN) return;
+  try {
+    var r = await fetch('/api/comisiones', {
+      method: 'GET',
+      headers: { 'Authorization': 'Bearer ' + JWT_TOKEN }
+    });
+    if (r.ok) {
+      var data = await r.json();
+      IS_COMISIONES_USER = true;
+      COMISIONES_MODO = data.modo;
+      COMISIONES_DATA = data;
+      mostrarSidebarComisiones();
+    }
+  } catch (e) {
+    // Silencio: si falla, no aparece la sección
+  }
+}
+
+function mostrarSidebarComisiones() {
+  if (document.getElementById('sidebarItemComisiones')) return;
+
+  var items = document.querySelectorAll('.sidebar-ni');
+  var refItem = null;
+  for (var i = 0; i < items.length; i++) {
+    if (items[i].getAttribute('data-p') === 'pAyuda') {
+      refItem = items[i];
+      break;
+    }
+  }
+  if (!refItem) return;
+
+  var newItem = document.createElement('div');
+  newItem.className = 'sidebar-ni';
+  newItem.id = 'sidebarItemComisiones';
+  newItem.setAttribute('data-p', 'pComisiones');
+  newItem.onclick = function() { navTo('pComisiones'); setSidebarActive(this); cargarComisiones(); };
+  newItem.innerHTML = '<span class="sidebar-ni-icon">💼</span>' + (COMISIONES_MODO === 'admin' ? 'Comisiones (admin)' : 'Mis comisiones');
+  refItem.parentNode.insertBefore(newItem, refItem);
+}
+
+async function cargarComisiones() {
+  var content = document.getElementById('comContent');
+  if (!content) return;
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Cargando...</div>';
+
+  try {
+    var r = await fetch('/api/comisiones', {
+      method: 'GET',
+      headers: { 'Authorization': 'Bearer ' + JWT_TOKEN }
+    });
+    if (!r.ok) {
+      content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Error al cargar</div>';
+      return;
+    }
+    var data = await r.json();
+    COMISIONES_DATA = data;
+
+    if (data.modo === 'admin') renderComisionesAdmin(data);
+    else renderComisionesAfiliado(data);
+  } catch (e) {
+    console.error('Error cargarComisiones:', e);
+    content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--red)">Error de conexión</div>';
+  }
+}
+
+function eurFmt(n) {
+  return Number(n || 0).toFixed(2).replace('.', ',') + ' €';
+}
+
+function fmtFecha(s) {
+  if (!s) return '-';
+  var d = new Date(s);
+  return d.toLocaleDateString('es', {day:'2-digit', month:'short', year:'numeric'});
+}
+
+function renderComisionesAdmin(data) {
+  var content = document.getElementById('comContent');
+  var r = data.resumen;
+  var html = '';
+
+  html += '<div class="card" style="margin-bottom:14px">';
+  html += '<div class="card-title">📊 Resumen general (modo administrador)</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:10px">';
+  html += '<div style="background:#F8FAFC;padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--dark)">' + r.num_afiliados + '</div><div style="font-size:11px;color:var(--muted)">Afiliados activos</div></div>';
+  html += '<div style="background:#F8FAFC;padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--blue)">' + r.num_referidos + '</div><div style="font-size:11px;color:var(--muted)">Clientes referidos</div></div>';
+  html += '<div style="background:#F8FAFC;padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--dark)">' + eurFmt(r.total_comisiones) + '</div><div style="font-size:11px;color:var(--muted)">Total acumulado</div></div>';
+  html += '<div style="background:rgba(0,200,150,.08);padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--green)">' + eurFmt(r.comisiones_pagadas) + '</div><div style="font-size:11px;color:var(--muted)">Pagado</div></div>';
+  html += '<div style="background:rgba(249,115,22,.08);padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:#F97316">' + eurFmt(r.comisiones_pendientes) + '</div><div style="font-size:11px;color:var(--muted)">Pendiente de pagar</div></div>';
+  html += '</div></div>';
+
+  html += '<div class="card" style="margin-bottom:14px">';
+  html += '<div class="card-title">👥 Afiliados</div>';
+  if (!data.afiliados || !data.afiliados.length) {
+    html += '<div style="padding:20px;color:var(--muted);text-align:center">No hay afiliados activos</div>';
+  } else {
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px">';
+    html += '<thead><tr style="background:#F8FAFC">';
+    html += '<th style="padding:10px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Código</th>';
+    html += '<th style="padding:10px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Nombre</th>';
+    html += '<th style="padding:10px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">%</th>';
+    html += '<th style="padding:10px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Referidos</th>';
+    html += '<th style="padding:10px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Total</th>';
+    html += '<th style="padding:10px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Pagado</th>';
+    html += '<th style="padding:10px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted);background:rgba(249,115,22,.06)">Pendiente</th>';
+    html += '</tr></thead><tbody>';
+    data.afiliados.forEach(function(a) {
+      html += '<tr>';
+      html += '<td style="padding:10px;border-bottom:1px solid #F1F5F9"><strong>' + a.codigo + '</strong></td>';
+      html += '<td style="padding:10px;border-bottom:1px solid #F1F5F9">' + a.nombre + '<div style="font-size:11px;color:var(--muted)">' + a.email + '</div></td>';
+      html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9">' + a.comision_pct + '%</td>';
+      html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9">' + a.num_referidos + '</td>';
+      html += '<td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9">' + eurFmt(a.total_comisiones) + '</td>';
+      html += '<td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9;color:var(--green)">' + eurFmt(a.comisiones_pagadas) + '</td>';
+      html += '<td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9;color:#F97316;font-weight:700;background:rgba(249,115,22,.04)">' + eurFmt(a.comisiones_pendientes) + '</td>';
+      html += '</tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  html += '</div>';
+
+  html += '<div class="card">';
+  html += '<div class="card-title">💳 Historial de pagos referidos</div>';
+  if (!data.pagos || !data.pagos.length) {
+    html += '<div style="padding:20px;color:var(--muted);text-align:center">No hay pagos registrados todavía</div>';
+  } else {
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">';
+    html += '<thead><tr style="background:#F8FAFC"><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Fecha</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Código</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Pagado</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">%</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Comisión</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Estado</th></tr></thead><tbody>';
+    data.pagos.forEach(function(p) {
+      html += '<tr><td style="padding:8px;border-bottom:1px solid #F1F5F9">' + fmtFecha(p.created_at) + '</td><td style="padding:8px;border-bottom:1px solid #F1F5F9"><strong>' + (p.codigo_referido || '-') + '</strong></td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9">' + eurFmt(p.monto_neto) + '</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9">' + (p.comision_pct || 0) + '%</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9;font-weight:700">' + eurFmt(p.comision_monto) + '</td><td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9">' + (p.comision_pagada ? '<span style="color:var(--green)">✓ Pagado</span>' : '<span style="color:#F97316">Pendiente</span>') + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  html += '</div>';
+
+  content.innerHTML = html;
+}
+
+function renderComisionesAfiliado(data) {
+  var content = document.getElementById('comContent');
+  var r = data.resumen;
+  var html = '';
+
+  html += '<div class="card" style="margin-bottom:14px;background:linear-gradient(135deg,rgba(0,85,255,.05),rgba(0,200,150,.05));border:1px solid rgba(0,85,255,.15)">';
+  html += '<div style="font-size:13px;color:var(--muted);margin-bottom:6px">Tu código de afiliado:</div>';
+  html += '<div style="font-size:28px;font-weight:800;color:var(--blue);letter-spacing:2px">' + data.mi_codigo + '</div>';
+  html += '<div style="font-size:13px;color:var(--muted);margin-top:4px">Recibes el <strong style="color:var(--green)">' + data.mi_comision_pct + '%</strong> de cada pago de los clientes que captes.</div>';
+  html += '</div>';
+
+  html += '<div class="card" style="margin-bottom:14px">';
+  html += '<div class="card-title">📊 Mi resumen</div>';
+  html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:10px">';
+  html += '<div style="background:#F8FAFC;padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--blue)">' + r.num_referidos + '</div><div style="font-size:11px;color:var(--muted)">Clientes captados</div></div>';
+  html += '<div style="background:#F8FAFC;padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--dark)">' + r.num_pagos + '</div><div style="font-size:11px;color:var(--muted)">Pagos procesados</div></div>';
+  html += '<div style="background:#F8FAFC;padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--dark)">' + eurFmt(r.total_comisiones) + '</div><div style="font-size:11px;color:var(--muted)">Total acumulado</div></div>';
+  html += '<div style="background:rgba(0,200,150,.08);padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--green)">' + eurFmt(r.comisiones_pagadas) + '</div><div style="font-size:11px;color:var(--muted)">Ya cobrado</div></div>';
+  html += '<div style="background:rgba(249,115,22,.08);padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:#F97316">' + eurFmt(r.comisiones_pendientes) + '</div><div style="font-size:11px;color:var(--muted)">Pendiente de cobro</div></div>';
+  html += '</div></div>';
+
+  html += '<div class="card" style="margin-bottom:14px">';
+  html += '<div class="card-title">🏪 Mis clientes captados</div>';
+  if (!data.tiendas_referidas || !data.tiendas_referidas.length) {
+    html += '<div style="padding:20px;color:var(--muted);text-align:center">Aún no has captado clientes.<br><span style="font-size:13px">Comparte tu código <strong style="color:var(--blue)">' + data.mi_codigo + '</strong> para empezar a cobrar comisiones.</span></div>';
+  } else {
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px"><thead><tr style="background:#F8FAFC"><th style="padding:10px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Tienda</th><th style="padding:10px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Plan</th><th style="padding:10px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Estado</th><th style="padding:10px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Captada</th></tr></thead><tbody>';
+    data.tiendas_referidas.forEach(function(t) {
+      html += '<tr><td style="padding:10px;border-bottom:1px solid #F1F5F9"><strong>' + (t.nombre || 'Sin nombre') + '</strong></td><td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9">' + (t.plan || '-') + '</td><td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9">' + (t.plan_status === 'active' ? '<span style="color:var(--green)">Activa</span>' : (t.plan_status || '-')) + '</td><td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9">' + fmtFecha(t.created_at) + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  html += '</div>';
+
+  html += '<div class="card">';
+  html += '<div class="card-title">💳 Historial de comisiones</div>';
+  if (!data.pagos || !data.pagos.length) {
+    html += '<div style="padding:20px;color:var(--muted);text-align:center">Aún no hay pagos. Cuando tus clientes paguen, aparecerán aquí.</div>';
+  } else {
+    html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px"><thead><tr style="background:#F8FAFC"><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Fecha</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Cliente pagó</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Mi comisión</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Estado</th></tr></thead><tbody>';
+    data.pagos.forEach(function(p) {
+      html += '<tr><td style="padding:8px;border-bottom:1px solid #F1F5F9">' + fmtFecha(p.created_at) + '</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9">' + eurFmt(p.monto_neto) + '</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9;font-weight:700">' + eurFmt(p.comision_monto) + '</td><td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9">' + (p.comision_pagada ? '<span style="color:var(--green)">✓ Cobrada</span>' : '<span style="color:#F97316">Pendiente</span>') + '</td></tr>';
+    });
+    html += '</tbody></table></div>';
+  }
+  html += '</div>';
+
+  content.innerHTML = html;
+}
+// ═══ /COMISIONES ═══
+
+
+</script>
 </body>
 </html>
