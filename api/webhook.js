@@ -101,6 +101,30 @@ export default async function handler(req, res) {
         const email = session.customer_email || session.metadata?.email;
         const plan = session.metadata?.plan;
 
+        // Detectar promotion_code usado (para tracking de afiliados)
+        let codigoReferido = null;
+        try {
+          const sessR = await fetch(`https://api.stripe.com/v1/checkout/sessions/${session.id}?expand[]=total_details.breakdown.discounts`, {
+            headers: {'Authorization': `Bearer ${STRIPE_KEY}`}
+          });
+          const sessFull = await sessR.json();
+          const disc = sessFull?.total_details?.breakdown?.discounts?.[0]?.discount;
+          if (disc) {
+            // Si hay promotion_code, usar su code (ej. BCNMOVILS50)
+            if (disc.promotion_code) {
+              const promoR = await fetch(`https://api.stripe.com/v1/promotion_codes/${disc.promotion_code}`, {
+                headers: {'Authorization': `Bearer ${STRIPE_KEY}`}
+              });
+              const promo = await promoR.json();
+              codigoReferido = promo.code || null;
+            } else if (disc.coupon?.id) {
+              codigoReferido = disc.coupon.id;
+            }
+          }
+        } catch (e) {
+          console.error('Error extrayendo promotion_code:', e);
+        }
+
         const tienda = await findTienda({customerId, email});
         if (tienda) {
           const update = {
@@ -109,6 +133,10 @@ export default async function handler(req, res) {
             plan_email: email
           };
           if (plan) update.plan = plan;
+          if (codigoReferido) {
+            update.codigo_referido = codigoReferido;
+            console.log('Codigo referido detectado:', codigoReferido, 'para tienda', tienda.id);
+          }
           await updateTienda(tienda.id, update);
           console.log('Checkout vinculado a tienda', tienda.id);
         } else {
@@ -187,13 +215,15 @@ export default async function handler(req, res) {
         break;
       }
 
-      // ═══ Pago exitoso: marcar active + actualizar fechas ═══
+      // ═══ Pago exitoso: marcar active + actualizar fechas + registrar comisión ═══
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object;
         const customerId = invoice.customer;
         const email = invoice.customer_email;
         const subId = invoice.subscription;
+        const periodStart = invoice.lines?.data?.[0]?.period?.start;
         const periodEnd = invoice.lines?.data?.[0]?.period?.end;
+        const invoiceId = invoice.id;
 
         const tienda = await findTienda({customerId, subId, email});
         if (tienda) {
@@ -201,6 +231,59 @@ export default async function handler(req, res) {
           if (periodEnd) update.plan_until = new Date(periodEnd * 1000).toISOString();
           await updateTienda(tienda.id, update);
           console.log('Pago OK:', tienda.id);
+
+          // ═══ REGISTRAR PAGO REFERIDO (para comisiones de afiliados) ═══
+          try {
+            // Leer tienda completa para saber codigo_referido
+            const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tienda.id)}&select=id,codigo_referido&limit=1`, {headers: sbHeaders});
+            const tArr = await tR.json();
+            const codigoReferido = tArr[0]?.codigo_referido || null;
+
+            // Calcular importes
+            const montoBruto = (invoice.subtotal || 0) / 100;  // En céntimos a euros
+            const montoDescuento = (invoice.total_discount_amounts?.[0]?.amount || 0) / 100;
+            const montoNeto = (invoice.amount_paid || 0) / 100;
+
+            // Si tiene código referido, buscar afiliado para conocer su % comisión
+            let comisionPct = 0;
+            let comisionMonto = 0;
+            if (codigoReferido) {
+              const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigoReferido)}&select=comision_pct,activo&limit=1`, {headers: sbHeaders});
+              const afArr = await afR.json();
+              if (afArr[0]?.activo) {
+                comisionPct = afArr[0].comision_pct || 0;
+                comisionMonto = +(montoNeto * comisionPct / 100).toFixed(2);
+              }
+            }
+
+            // INSERT en pagos_referidos (idempotente gracias a UNIQUE en stripe_invoice_id)
+            const insertR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos`, {
+              method: 'POST',
+              headers: {...sbHeaders, 'Prefer': 'return=minimal,resolution=ignore-duplicates'},
+              body: JSON.stringify({
+                tienda_id: tienda.id,
+                stripe_invoice_id: invoiceId,
+                stripe_subscription_id: subId,
+                stripe_customer_id: customerId,
+                monto_bruto: montoBruto,
+                monto_descuento: montoDescuento,
+                monto_neto: montoNeto,
+                codigo_referido: codigoReferido,
+                comision_pct: comisionPct,
+                comision_monto: comisionMonto,
+                periodo_inicio: periodStart ? new Date(periodStart * 1000).toISOString() : null,
+                periodo_fin: periodEnd ? new Date(periodEnd * 1000).toISOString() : null
+              })
+            });
+            if (insertR.ok) {
+              console.log('Pago referido registrado:', invoiceId, 'comision:', comisionMonto);
+            } else {
+              const txt = await insertR.text();
+              console.error('Error registrando pago referido:', txt);
+            }
+          } catch (e) {
+            console.error('Error tracking comisión:', e);
+          }
         }
         break;
       }
