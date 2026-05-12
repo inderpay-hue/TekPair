@@ -145,7 +145,7 @@ async function sendWelcomeEmail(email, nombre, tiendaNombre) {
   </div>
   <div style="padding:32px">
     <p style="font-size:16px;color:#333">Hola <strong>${nombre}</strong>,</p>
-    <p style="color:#666;line-height:1.6">Tu tienda <strong>${tiendaNombre}</strong> ya está configurada en Tekpair. Tienes <strong style="color:#0055FF">14 días gratis</strong> para explorar todas las funciones.</p>
+    <p style="color:#666;line-height:1.6">Tu tienda <strong>${tiendaNombre}</strong> ya está configurada en Tekpair. Tienes <strong style="color:#0055FF">15 días gratis</strong> para explorar todas las funciones.</p>
     
     <div style="background:#f0f5ff;border-radius:12px;padding:20px;margin:24px 0">
       <p style="margin:0 0 12px;font-weight:700;color:#020B2E">¿Qué puedes hacer ahora?</p>
@@ -240,9 +240,9 @@ module.exports = async function handler(req, res) {
     // 3. CREAR CLIENTE EN STRIPE
     const stripeCustomer = await createStripeCustomer(email, nombre);
 
-    // 4. CREAR SUSCRIPCIÓN EN SUPABASE (trial 14 días)
+    // 4. CREAR SUSCRIPCIÓN EN SUPABASE (trial 15 días)
     const trialFin = new Date();
-    trialFin.setDate(trialFin.getDate() + 14);
+    trialFin.setDate(trialFin.getDate() + 15);
 
     await supabaseInsert('suscripciones', {
       usuario_id: usuario.id,
