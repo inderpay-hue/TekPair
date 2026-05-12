@@ -11548,6 +11548,48 @@ async function cargarComisiones() {
   }
 }
 
+async function marcarPagado(pagoId, monto) {
+  if (!confirm('¿Marcar esta comisión de ' + eurFmt(monto) + ' como PAGADA?\n\nSolo hazlo después de haber transferido el dinero al afiliado.')) return;
+
+  try {
+    var r = await fetch('/api/comisiones', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'marcar_pagado', ids: [pagoId] })
+    });
+    var data = await r.json();
+    if (data.ok) {
+      alert('✓ Comisión marcada como pagada');
+      cargarComisiones();
+    } else {
+      alert('Error: ' + (data.error || 'desconocido'));
+    }
+  } catch (e) {
+    alert('Error de conexión: ' + e.message);
+  }
+}
+
+async function marcarTodoPagado(codigo, montoTotal) {
+  if (!confirm('¿Marcar TODAS las comisiones pendientes del código ' + codigo + ' como PAGADAS?\n\nTotal: ' + eurFmt(montoTotal) + '\n\nSolo hazlo después de haber transferido el dinero.')) return;
+
+  try {
+    var r = await fetch('/api/comisiones', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'marcar_codigo_pagado', codigo: codigo })
+    });
+    var data = await r.json();
+    if (data.ok) {
+      alert('✓ Todas las comisiones de ' + codigo + ' marcadas como pagadas');
+      cargarComisiones();
+    } else {
+      alert('Error: ' + (data.error || 'desconocido'));
+    }
+  } catch (e) {
+    alert('Error de conexión: ' + e.message);
+  }
+}
+
 function eurFmt(n) {
   return Number(n || 0).toFixed(2).replace('.', ',') + ' €';
 }
@@ -11587,6 +11629,7 @@ function renderComisionesAdmin(data) {
     html += '<th style="padding:10px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Total</th>';
     html += '<th style="padding:10px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Pagado</th>';
     html += '<th style="padding:10px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted);background:rgba(249,115,22,.06)">Pendiente</th>';
+    html += '<th style="padding:10px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Acción</th>';
     html += '</tr></thead><tbody>';
     data.afiliados.forEach(function(a) {
       html += '<tr>';
@@ -11597,6 +11640,12 @@ function renderComisionesAdmin(data) {
       html += '<td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9">' + eurFmt(a.total_comisiones) + '</td>';
       html += '<td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9;color:var(--green)">' + eurFmt(a.comisiones_pagadas) + '</td>';
       html += '<td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9;color:#F97316;font-weight:700;background:rgba(249,115,22,.04)">' + eurFmt(a.comisiones_pendientes) + '</td>';
+      // Botón pagar todo
+      if (a.comisiones_pendientes > 0) {
+        html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9"><button onclick="marcarTodoPagado(\'' + a.codigo + '\', ' + a.comisiones_pendientes + ')" style="background:var(--green);color:white;border:none;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">💰 Pagar todo</button></td>';
+      } else {
+        html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9;color:var(--muted);font-size:11px">—</td>';
+      }
       html += '</tr>';
     });
     html += '</tbody></table></div>';
@@ -11609,9 +11658,12 @@ function renderComisionesAdmin(data) {
     html += '<div style="padding:20px;color:var(--muted);text-align:center">No hay pagos registrados todavía</div>';
   } else {
     html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">';
-    html += '<thead><tr style="background:#F8FAFC"><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Fecha</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Código</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Pagado</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">%</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Comisión</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Estado</th></tr></thead><tbody>';
+    html += '<thead><tr style="background:#F8FAFC"><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Fecha</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Código</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Pagado</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">%</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Comisión</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Estado</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Acción</th></tr></thead><tbody>';
     data.pagos.forEach(function(p) {
-      html += '<tr><td style="padding:8px;border-bottom:1px solid #F1F5F9">' + fmtFecha(p.created_at) + '</td><td style="padding:8px;border-bottom:1px solid #F1F5F9"><strong>' + (p.codigo_referido || '-') + '</strong></td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9">' + eurFmt(p.monto_neto) + '</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9">' + (p.comision_pct || 0) + '%</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9;font-weight:700">' + eurFmt(p.comision_monto) + '</td><td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9">' + (p.comision_pagada ? '<span style="color:var(--green)">✓ Pagado</span>' : '<span style="color:#F97316">Pendiente</span>') + '</td></tr>';
+      var accionHTML = p.comision_pagada
+        ? '<td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9;color:var(--muted);font-size:11px">—</td>'
+        : '<td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9"><button onclick="marcarPagado(' + p.id + ', ' + p.comision_monto + ')" style="background:var(--green);color:white;border:none;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer">Pagar</button></td>';
+      html += '<tr><td style="padding:8px;border-bottom:1px solid #F1F5F9">' + fmtFecha(p.created_at) + '</td><td style="padding:8px;border-bottom:1px solid #F1F5F9"><strong>' + (p.codigo_referido || '-') + '</strong></td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9">' + eurFmt(p.monto_neto) + '</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9">' + (p.comision_pct || 0) + '%</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9;font-weight:700">' + eurFmt(p.comision_monto) + '</td><td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9">' + (p.comision_pagada ? '<span style="color:var(--green)">✓ Pagado</span>' : '<span style="color:#F97316">Pendiente</span>') + '</td>' + accionHTML + '</tr>';
     });
     html += '</tbody></table></div>';
   }
