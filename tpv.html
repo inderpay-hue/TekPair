@@ -870,19 +870,40 @@ function addToCart(id, esServicio) {
   if (!p) return;
   if (!p.esServicio && p.unidades <= 0) { toast('Sin stock', 'err'); return; }
 
+  var nombreProd = (p.marca !== 'Servicio' ? p.marca + ' ' : '') + p.modelo;
+  var precioBase = parseFloat(p.precioV || 0);
+
+  // PRECIO VARIABLE: si precio es 0, preguntar al usuario
+  if (precioBase === 0) {
+    var input = prompt('Precio de "' + nombreProd + '" (\u20ac):', '');
+    if (input === null) return; // cancelado
+    var precioCustom = parseFloat(String(input).replace(',', '.'));
+    if (!precioCustom || precioCustom <= 0) { toast('Precio invalido', 'err'); return; }
+    cart.push({
+      id: p.id + '_' + Date.now(), nombre: nombreProd,
+      precio: precioCustom, qty: 1,
+      esServicio: p.esServicio || false, stockMax: p.unidades,
+      precioVariable: true, idOriginal: p.id
+    });
+    renderCart();
+    toast('Anadido', 'ok');
+    return;
+  }
+
+  // PRECIO FIJO: comportamiento normal
   var existing = cart.find(function(c) { return c.id === id; });
   if (existing) {
     if (!p.esServicio && existing.qty >= p.unidades) { toast('Stock insuficiente', 'err'); return; }
     existing.qty++;
   } else {
     cart.push({
-      id: p.id, nombre: (p.marca !== 'Servicio' ? p.marca + ' ' : '') + p.modelo,
-      precio: parseFloat(p.precioV || 0), qty: 1,
+      id: p.id, nombre: nombreProd,
+      precio: precioBase, qty: 1,
       esServicio: p.esServicio || false, stockMax: p.unidades
     });
   }
   renderCart();
-  toast('Añadido', 'ok');
+  toast('Anadido', 'ok');
 }
 
 function addVentaRapida() {
