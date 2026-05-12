@@ -6139,6 +6139,7 @@ function renderReps() {
       });
     }
     var btnWA = (cliRep && cliRep.tel) ? '<button data-rid="' + r.id + '" class="btn-wa-r" style="background:#25D366;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Avisar por WhatsApp">📲</button>' : '';
+    var btnDel = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" class="btn-del-r" style="background:var(--red);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Eliminar reparación">🗑️</button>' : '';
     // Badge garantía: manual (esGarantia) o auto-detectada (rep similar reciente)
     var badgeGarantia = '';
     if (r.esGarantia) {
@@ -6164,7 +6165,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + '</td>'
-      + '<td>' + btnE + btnEdit + btnLink + btnWA + '</td></tr>';
+      + '<td>' + btnE + btnEdit + btnLink + btnWA + btnDel + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -6182,6 +6183,9 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-wa-r').forEach(function(btn) {
     btn.addEventListener('click', function() { abrirWhatsAppRep(this.dataset.rid); });
+  });
+  el.querySelectorAll('.btn-del-r').forEach(function(btn) {
+    btn.addEventListener('click', function() { eliminarReparacion(this.dataset.rid); });
   });
 }
 
