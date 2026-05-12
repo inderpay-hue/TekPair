@@ -2192,6 +2192,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 // ═══ CONFIG ═══
 var SUPABASE_URL = 'https://zcxgyissdqyqsnojxviy.supabase.co';
 var SB_KEY = '';
+var JWT_TOKEN = '';
 var TIENDA_ID = '';
 var U = null;
 var TIENDA = {
@@ -2524,6 +2525,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
   var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
   SB_KEY = sess.sb_key || '';
+  JWT_TOKEN = sess.jwt_token || '';
   TIENDA_ID = sess.tienda_id || (U && U.tienda_id) || '';
   // Load permisos from session
   if (sess.usuario && sess.usuario.permisos) U.permisos = sess.usuario.permisos;
@@ -2752,7 +2754,7 @@ function _sbErrorToast(method, table, info) {
 
 function sbGet(table, query) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*', {
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
   }).then(function(r) {
     if (!r.ok) {
       return r.json().then(function(err){ _sbErrorToast('GET', table, err); return []; }, function(){ _sbErrorToast('GET', table, {status:r.status}); return []; });
@@ -2873,7 +2875,7 @@ function _syncIndicatorUpdate() {
 function _sbPostRaw(table, data) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table, {
     method: 'POST',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
     body: JSON.stringify(data)
   }).then(function(r) {
     if (!r.ok) return false;
@@ -2884,7 +2886,7 @@ function _sbPostRaw(table, data) {
 function _sbPatchRaw(table, query, data) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
     method: 'PATCH',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json'},
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json'},
     body: JSON.stringify(data)
   }).then(function(r) { return r.ok; }).catch(function() { return false; });
 }
@@ -2892,7 +2894,7 @@ function _sbPatchRaw(table, query, data) {
 function _sbDeleteRaw(table, query) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
     method: 'DELETE',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
   }).then(function(r) { return r.ok; }).catch(function() { return false; });
 }
 
@@ -2958,7 +2960,7 @@ function sbPatch(table, query, data) {
 function sbDelete(table, query) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
     method: 'DELETE',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY}
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
   }).then(function(r) {
     if (!r.ok) {
       return r.json().then(function(err){ _sbErrorToast('DELETE', table, err); return false; }, function(){ _sbErrorToast('DELETE', table, {status:r.status}); return false; });
@@ -5316,7 +5318,7 @@ function asegurarToken(r) {
     var url = SUPABASE_URL + '/rest/v1/reparaciones?id=eq.' + r.id;
     return fetch(url, {
       method: 'PATCH',
-      headers: {'apikey': SB_KEY, 'Authorization':'Bearer ' + SB_KEY, 'Content-Type':'application/json', 'Prefer':'return=minimal'},
+      headers: {'apikey': SB_KEY, 'Authorization':'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type':'application/json', 'Prefer':'return=minimal'},
       body: JSON.stringify({token: r.token})
     }).then(function(){ return r.token; }).catch(function(){ return r.token; });
   }
@@ -7490,7 +7492,7 @@ function renderSidebarLogo() {
 function sbStorageList(bucket, prefix) {
   return fetch(SUPABASE_URL + '/storage/v1/object/list/' + bucket, {
     method: 'POST',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json'},
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json'},
     body: JSON.stringify({prefix: prefix || '', limit: 100, offset: 0})
   }).then(function(r) { return r.ok ? r.json() : []; }).catch(function() { return []; });
 }
@@ -7500,7 +7502,7 @@ function sbStorageUpload(bucket, path, file) {
     method: 'POST',
     headers: {
       'apikey': SB_KEY,
-      'Authorization': 'Bearer ' + SB_KEY,
+      'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY),
       'Content-Type': file.type || 'application/octet-stream',
       'x-upsert': 'true',
       'cache-control': '3600'
@@ -7512,7 +7514,7 @@ function sbStorageUpload(bucket, path, file) {
 function sbStorageDelete(bucket, paths) {
   return fetch(SUPABASE_URL + '/storage/v1/object/' + bucket, {
     method: 'DELETE',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + SB_KEY, 'Content-Type': 'application/json'},
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json'},
     body: JSON.stringify({prefixes: paths})
   });
 }
