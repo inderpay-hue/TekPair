@@ -10844,6 +10844,26 @@ function abrirImportFactura() {
   if (!tienePerm('stock_crear')) { toast('Sin permiso', 'err'); return; }
   impFacReset();
   openM('mImportFactura');
+  impFacAtarListeners();
+}
+
+function impFacAtarListeners() {
+  var drop = document.getElementById('impFacDrop');
+  var input = document.getElementById('impFacInput');
+  if (!drop || !input) return;
+  if (drop.dataset.listenersAtados === '1') return;
+  drop.dataset.listenersAtados = '1';
+  drop.addEventListener('click', function(){ input.click(); });
+  drop.addEventListener('dragover', function(e){ e.preventDefault(); drop.style.borderColor = 'var(--green)'; drop.style.background = 'rgba(0,200,150,.05)'; });
+  drop.addEventListener('dragleave', function(){ drop.style.borderColor = ''; drop.style.background = '#FAFBFC'; });
+  drop.addEventListener('drop', function(e){
+    e.preventDefault();
+    drop.style.borderColor = ''; drop.style.background = '#FAFBFC';
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) impFacProcesarPDF(e.dataTransfer.files[0]);
+  });
+  input.addEventListener('change', function(e){
+    if (e.target.files && e.target.files[0]) impFacProcesarPDF(e.target.files[0]);
+  });
 }
 
 function impFacReset() {
@@ -10864,23 +10884,7 @@ function impFacMostrarError(msg) {
   document.getElementById('impFacPaso2').style.display = 'none';
 }
 
-// Listeners drop zone
-(function(){
-  var drop = document.getElementById('impFacDrop');
-  var input = document.getElementById('impFacInput');
-  if (!drop || !input) return;
-  drop.addEventListener('click', function(){ input.click(); });
-  drop.addEventListener('dragover', function(e){ e.preventDefault(); drop.style.borderColor = 'var(--green)'; drop.style.background = 'rgba(0,200,150,.05)'; });
-  drop.addEventListener('dragleave', function(){ drop.style.borderColor = ''; drop.style.background = '#FAFBFC'; });
-  drop.addEventListener('drop', function(e){
-    e.preventDefault();
-    drop.style.borderColor = ''; drop.style.background = '#FAFBFC';
-    if (e.dataTransfer.files && e.dataTransfer.files[0]) impFacProcesarPDF(e.dataTransfer.files[0]);
-  });
-  input.addEventListener('change', function(e){
-    if (e.target.files && e.target.files[0]) impFacProcesarPDF(e.target.files[0]);
-  });
-})();
+// Listeners drop zone: ahora se atan al abrir el modal via impFacAtarListeners()
 
 async function impFacProcesarPDF(file) {
   if (!file || file.type !== 'application/pdf') { impFacMostrarError('Solo se aceptan PDFs.'); return; }
