@@ -1148,7 +1148,30 @@ function mostrarTicket(venta, totals) {
 function imprimirTicket() {
   var content = document.getElementById('ticketContent').innerHTML;
   var win = window.open('', '_blank', 'width=400,height=600');
-  win.document.write('<html><head><title>Ticket</title><style>body{font-family:Courier New,monospace;font-size:12px;margin:0;padding:10px}.ticket-row{display:flex;justify-content:space-between;margin:3px 0}.ticket-total{display:flex;justify-content:space-between;font-size:16px;font-weight:900;margin:6px 0}.ticket-sep{border:none;border-top:1px dashed #ccc;margin:6px 0}.ticket-footer{text-align:center;font-size:10px;color:#999;margin-top:8px}.ticket-logo{text-align:center;font-size:18px;font-weight:900;margin-bottom:4px}</style></head><body>' + content + '</body></html>');
+  win.document.write('<html><head><title>Ticket</title><style>body{font-family:Courier New,monospace;font-size:12px;margin:0;padding:10px}.ticket-row{display:flex;justify-content:space-between;margin:3px 0}.ticket-total{display:flex;justify-content:space-between;font-size:16px;font-weight:900;margin:6px 0}.ticket-sep{border:none;border-top:1px dashed #ccc;margin:6px 0}.ticket-footer{text-align:center;font-size:10px;color:#999;margin-top:8px}.ticket-logo{text-align:center;font-size:18px;font-weight:900;margin-bottom:4px}</style></head><body>' + content + '<script>
+function factVenta(id) {
+  var v = DB.ventas.find(function(x){return x.id === id;});
+  if (!v) { toast('Venta no encontrada', 'err'); return; }
+  var cli = v.clienteId ? DB.clis.find(function(c){return c.id === v.clienteId;}) : null;
+  var datos = {
+    id: v.id,
+    fecha: v.fecha,
+    total: parseFloat(v.total) || 0,
+    iva: parseFloat(v.iva) || 0,
+    pago: v.pago || '',
+    items: (v.items && v.items.length) ? v.items.map(function(i){
+      return { nombre: i.nombre || 'Producto', cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0 };
+    }) : [{ nombre: v.modelo || 'Venta', cantidad: 1, precio: parseFloat(v.total) || 0 }],
+    cliente: cli
+  };
+  if (typeof window.abrirModalFactura !== 'function') {
+    toast('Módulo factura no cargado. Recarga la página.', 'err'); return;
+  }
+  window.abrirModalFactura('venta', datos);
+}
+</script>
+<script src="factura.js" defer></script>
+</body></html>');
   win.document.close();
   setTimeout(function() { win.print(); win.close(); }, 300);
 }
@@ -1274,6 +1297,7 @@ function renderHistorial() {
       '<div style="text-align:right;flex-shrink:0"><div style="font-weight:700;color:' + color + ';font-size:14px">' + sign + '\u20ac' + (v.total||0).toFixed(2) + '</div>' +
       (v.reembolsado ? '<div style="font-size:10px;color:var(--red);font-weight:700">REEMBOLSADA</div>' : '') + '</div>' +
       '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px" onclick="reimprimirVenta(\'' + v.id + '\')" title="Reimprimir ticket">\ud83d\udda8</button>' +
+      '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px;background:#10B981;color:white" onclick="factVenta(\'' + v.id + '\')" title="Generar factura">\ud83d\udcc4</button>' +
       '</div>';
   }).join('');
   html += '</div>';
