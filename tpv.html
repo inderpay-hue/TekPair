@@ -232,7 +232,11 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
       <button class="cart-close-mobile" onclick="toggleCartMobile()" title="Volver a productos">←</button>
       <div style="flex:1;min-width:0">
         <div class="cart-title">🛒 Ticket</div>
-        <div class="cart-subtitle" id="cartClient">Sin cliente asignado</div>
+        <div class="cart-subtitle" id="cartClient" onclick="openModal('mCli')" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:2px 0" title="Click para asignar cliente">
+          <span id="cartClientIcon">👤</span>
+          <span id="cartClientText" style="flex:1">Asignar cliente</span>
+          <span style="font-size:10px;opacity:.7">✏️</span>
+        </div>
       </div>
     </div>
 
@@ -1152,7 +1156,8 @@ function imprimirTicket() {
 function nuevaVenta() {
   cart = [];
   selectedCli = null;
-  document.getElementById('cartClient').textContent = 'Sin cliente asignado';
+  document.getElementById('cartClientIcon').textContent = '👤';
+  document.getElementById('cartClientText').textContent = 'Asignar cliente';
   document.getElementById('discVal').value = '';
   document.getElementById('efectivoInput').value = '';
   document.getElementById('numInput').value = '';
@@ -1181,7 +1186,8 @@ function asignarCliente(id) {
   var c = DB.clis.find(function(x) { return x.id === id; });
   if (!c) return;
   selectedCli = c;
-  document.getElementById('cartClient').textContent = '\uD83D\uDC64 ' + c.nombre + ' ' + (c.apellidos || '');
+  document.getElementById('cartClientIcon').textContent = '👤';
+  document.getElementById('cartClientText').textContent = (c.nombre + ' ' + (c.apellidos || '')).trim();
   closeModal('mCli');
   toast('Cliente asignado', 'ok');
 }
