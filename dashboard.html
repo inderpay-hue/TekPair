@@ -4278,35 +4278,7 @@ function imprimirTicketVenta(id) {
     (TIENDA.garVenActiva !== false && TIENDA.garantiaVentas ? '<div style="text-align:center;font-size:9px;color:#666;margin-top:6px;line-height:1.4">' + esc(TIENDA.garantiaVentas) + '</div>' : '') +
     (TIENDA.politicaVentas ? '<div style="text-align:center;font-size:9px;color:#888;margin-top:4px;line-height:1.4">' + esc(TIENDA.politicaVentas) + '</div>' : '') +
     '<script>window.onload=function(){setTimeout(function(){window.print();},200);}<\/script>' +
-    '<script>
-function factRep(id) {
-  var r = DB.reps.find(function(x){return x.id === id;});
-  if (!r) { toast('Reparacion no encontrada', 'err'); return; }
-  var cli = null;
-  if (r.cliId) cli = DB.clis.find(function(c){return c.id === r.cliId;});
-  if (!cli && r.clienteNombre) cli = { nombre: r.clienteNombre, apellidos: '' };
-  var datos = {
-    id: r.id,
-    fecha: r.fecha,
-    fechaEntregaReal: r.fechaEntregaReal,
-    total: parseFloat(r.total) || 0,
-    iva: parseFloat(r.iva) || 0,
-    pagoFinal: r.pagoFinal || '',
-    marca: r.marca || '',
-    modelo: r.modelo || '',
-    averia: r.averia || '',
-    servicios: r.servicios || [],
-    componentes: r.componentes || [],
-    cliente: cli
-  };
-  if (typeof window.abrirModalFactura !== 'function') {
-    toast('Módulo factura no cargado. Recarga la página.', 'err'); return;
-  }
-  window.abrirModalFactura('reparacion', datos);
-}
-</script>
-<script src="factura.js" defer></script>
-</body></html>';
+    '</body></html>';
 
   var w = window.open('', '_blank', 'width=380,height=600');
   if (!w) { toast('Activa pop-ups para imprimir', 'err'); return; }
@@ -6218,7 +6190,6 @@ function renderReps() {
     }
     var btnWA = (cliRep && cliRep.tel) ? '<button data-rid="' + r.id + '" class="btn-wa-r" style="background:#25D366;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Avisar por WhatsApp">📲</button>' : '';
     var btnDel = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" class="btn-del-r" style="background:var(--red);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Eliminar reparación">🗑️</button>' : '';
-    var btnFact = (r.estado === 'Entregado') ? '<button data-rid="' + r.id + '" class="btn-fact-r" style="background:#10B981;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Generar factura">📄</button>' : '';
     // Badge garantía: manual (esGarantia) o auto-detectada (rep similar reciente)
     var badgeGarantia = '';
     if (r.esGarantia) {
@@ -6244,7 +6215,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + '</td>'
-      + '<td>' + btnE + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
+      + '<td>' + btnE + btnEdit + btnLink + btnWA + btnDel + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -6256,9 +6227,6 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-edit-r').forEach(function(btn) {
     btn.addEventListener('click', function() { editarRep(this.dataset.rid); });
-  });
-  el.querySelectorAll('.btn-fact-r').forEach(function(btn) {
-    btn.addEventListener('click', function() { factRep(this.dataset.rid); });
   });
   el.querySelectorAll('.btn-link-r').forEach(function(btn) {
     btn.addEventListener('click', function() { copiarLinkRep(this.dataset.rid); });
