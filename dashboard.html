@@ -6329,7 +6329,7 @@ function confirmarEntrega() {
     sbPatch('reparaciones', 'id=eq.' + r.id, {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0});
 
     // Auto-crear pago tipo='final' en pagos_reparacion con la diferencia
-    sbGet('pagos_reparacion', '?reparacion_id=eq.' + encodeURIComponent(r.id) + '&select=importe').then(function(pagosExistentes) {
+    sbGet('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(r.id) + '&select=importe').then(function(pagosExistentes) {
       var sumaPagosExistentes = (pagosExistentes || []).reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
       var importeFinal = (parseFloat(r.total) || 0) - sumaPagosExistentes;
       if (importeFinal > 0) {
@@ -7403,7 +7403,7 @@ async function cierreDia() {
   var pagosHoy = [];
   if (SB_KEY) {
     try {
-      pagosHoy = await sbGet('pagos_reparacion', '?fecha=eq.' + hoyISO + '&order=created_at.desc') || [];
+      pagosHoy = await sbGet('pagos_reparacion', 'fecha=eq.' + hoyISO + '&order=created_at.desc') || [];
     } catch (e) {
       console.error('Error cargando pagos del día:', e);
       pagosHoy = [];
@@ -11936,7 +11936,7 @@ function cargarPagosRep(repId) {
   SEL.repPagos = [];
   renderListaPagos();
   if (!SB_KEY) return;
-  sbGet('pagos_reparacion', '?reparacion_id=eq.' + encodeURIComponent(repId) + '&order=fecha.asc').then(function(arr) {
+  sbGet('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(repId) + '&order=fecha.asc').then(function(arr) {
     SEL.repPagos = (arr || []).map(function(p) {
       return { id: p.id, fecha: p.fecha, importe: parseFloat(p.importe)||0, metodo: p.metodo || 'Efectivo', tipo: p.tipo || 'parcial' };
     });
