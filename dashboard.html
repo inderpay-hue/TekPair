@@ -7367,22 +7367,62 @@ function emailReporte() {
 }
 
 // ═══ CIERRE DEL DIA ═══
-function cierreDia() {
+async function cierreDia() {
   if (!tienePerm('caja_cerrar')) { toast('Sin permiso', 'err'); return; }
   var hoy = new Date().toLocaleDateString('es');
+  // Fecha ISO YYYY-MM-DD para BD
+  var d = new Date();
+  var hoyISO = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+
+  // Ventas: igual que antes (filtro por fecha local)
   var vH = DB.ventas.filter(function(v) { return !v.reembolsado && v.fecha === hoy; });
-  var rH = DB.reps.filter(function(r) { return r.fechaEntregaReal === hoy; });
   var tV = vH.reduce(function(a, v) { return a + v.total; }, 0);
-  var tR = rH.reduce(function(a, r) { return a + r.total; }, 0);
+
+  // Reparaciones: ahora se leen los PAGOS reales de hoy (de pagos_reparacion)
+  var pagosHoy = [];
+  if (SB_KEY) {
+    try {
+      pagosHoy = await sbGet('pagos_reparacion', '?fecha=eq.' + hoyISO + '&order=created_at.desc') || [];
+    } catch (e) {
+      console.error('Error cargando pagos del día:', e);
+      pagosHoy = [];
+    }
+  }
+  var tR = pagosHoy.reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
+
+  // Agrupar por método
   var pagos = {};
   vH.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
-  rH.forEach(function(r) { if (r.pagoFinal) pagos[r.pagoFinal] = (pagos[r.pagoFinal] || 0) + r.total; });
+  pagosHoy.forEach(function(p) {
+    var m = p.metodo || 'Efectivo';
+    pagos[m] = (pagos[m] || 0) + (parseFloat(p.importe) || 0);
+  });
+
+  // Identificar reparaciones únicas (para el contador "Reparaciones (N)")
+  var repsIds = {};
+  pagosHoy.forEach(function(p) { if (p.reparacion_id) repsIds[p.reparacion_id] = true; });
+  var numRepsHoy = Object.keys(repsIds).length;
+
+  // Construir info de reparaciones para PDF/email (compatibilidad con código anterior)
+  var rH = pagosHoy.map(function(p) {
+    var rep = DB.reps.find(function(r) { return r.id === p.reparacion_id; }) || {};
+    return {
+      id: p.reparacion_id,
+      total: parseFloat(p.importe) || 0,
+      pagoFinal: p.metodo || 'Efectivo',
+      tipoPago: p.tipo || 'parcial',
+      fecha: p.fecha,
+      clienteNombre: rep.clienteNombre || '',
+      marca: rep.marca || '',
+      modelo: rep.modelo || ''
+    };
+  });
 
   var el = document.getElementById('cierreBox');
   el.innerHTML = '<div class="cierre-stat"><span>Ventas (' + vH.length + ')</span><strong style="color:var(--blue)">' + cur(tV) + '</strong></div>' +
-    '<div class="cierre-stat"><span>Reparaciones (' + rH.length + ')</span><strong style="color:var(--purple)">' + cur(tR) + '</strong></div>' +
+    '<div class="cierre-stat"><span>Pagos reparaciones (' + pagosHoy.length + ')</span><strong style="color:var(--purple)">' + cur(tR) + '</strong></div>' +
     Object.entries(pagos).map(function(e) {
-      return '<div class="cierre-stat"><span>\ud83d\udcb3 ' + e[0] + '</span><strong>' + cur(e[1]) + '</strong></div>';
+      return '<div class="cierre-stat"><span>💳 ' + e[0] + '</span><strong>' + cur(e[1]) + '</strong></div>';
     }).join('') +
     '<div style="display:flex;justify-content:space-between;padding:12px;background:var(--dark);color:white;border-radius:10px;margin-top:8px;font-weight:800">' +
     '<span>TOTAL</span><span style="color:var(--green)">' + cur(tV + tR) + '</span></div>' +
