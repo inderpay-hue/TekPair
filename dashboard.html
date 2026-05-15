@@ -1879,7 +1879,25 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="rep-section">
           <div class="rep-section-title"><span>💰</span> Cobro y logística</div>
           <div class="fi-row">
-            <div class="fg"><label class="fl">Anticipo (€)</label><input class="fi" id="rAnticipo" type="number" step="0.01" value="0" oninput="calcR()"></div>
+            <div class="fg" style="flex:1">
+              <label class="fl">💳 Pagos</label>
+              <div id="rPagosBox" style="background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:10px">
+                <div id="rPagosLista" style="font-size:13px;margin-bottom:8px"></div>
+                <div id="rPagosResumen" style="font-size:12px;color:var(--muted);margin-bottom:8px;padding-top:8px;border-top:1px dashed var(--border)"></div>
+                <button type="button" class="btn-sm" onclick="mostrarFormPago()" style="background:var(--green);color:white;font-size:12px;width:100%">+ Añadir pago</button>
+              </div>
+              <div id="rPagoForm" style="display:none;background:#fff;border:1px solid var(--blue);border-radius:10px;padding:12px;margin-top:8px">
+                <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end">
+                  <div style="flex:1;min-width:80px"><label style="font-size:10px;color:var(--muted);font-weight:600">IMPORTE €</label><input id="pagoImporte" type="number" step="0.01" min="0.01" class="fi" placeholder="0,00" style="padding:6px 8px"></div>
+                  <div style="flex:1;min-width:100px"><label style="font-size:10px;color:var(--muted);font-weight:600">MÉTODO</label><select id="pagoMetodo" class="fi" style="padding:6px 8px"><option value="Efectivo">Efectivo</option><option value="Tarjeta">Tarjeta</option><option value="Bizum">Bizum</option><option value="Transferencia">Transferencia</option></select></div>
+                  <div style="flex:1;min-width:110px"><label style="font-size:10px;color:var(--muted);font-weight:600">FECHA</label><input id="pagoFecha" type="date" class="fi" style="padding:6px 8px"></div>
+                </div>
+                <div style="display:flex;gap:6px;margin-top:8px">
+                  <button type="button" class="btn-sm" onclick="confirmarPago()" style="background:var(--green);color:white;flex:1">Guardar pago</button>
+                  <button type="button" class="btn-sm" onclick="cancelarFormPago()" style="background:#94A3B8;color:white">Cancelar</button>
+                </div>
+              </div>
+            </div>
             <div class="fg"><label class="fl">Prioridad</label>
               <select class="fi" id="rPrioridad"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
             </div>
@@ -4781,7 +4799,7 @@ function abrirRep() {
   ['rBusCli','rMarca','rModelo','rImei','rAveria','rNota','rSrvBus','rBloqVal'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
-  document.getElementById('rAnticipo').value = '0';
+  if (typeof resetPagosRep === 'function') resetPagosRep();
   document.getElementById('rSelCliBox').classList.remove('show');
   document.getElementById('rSelCli').classList.remove('open');
   var ga = document.getElementById('rGarantiaAlert'); if (ga) ga.style.display = 'none';
@@ -5177,8 +5195,10 @@ function agregarServicioFromExplore(sid) {
 function calcR() {
   var srvTotal = (SEL.rServicios || []).reduce(function(a, s){ return a + (parseFloat(s.precio) || 0); }, 0);
   var comp = (SEL.selParts || []).reduce(function(a, p) { return a + p.precio; }, 0);
-  var anti = parseFloat(document.getElementById('rAnticipo').value) || 0;
+  var anti = (SEL.repPagos || []).reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
   var subtotal = srvTotal + comp; // lo que el usuario ha tecleado
+  // Actualizar UI de resumen de pagos
+  if (typeof renderResumenPagos === 'function') renderResumenPagos(srvTotal + comp);
   var ivaSel = document.getElementById('rIva');
   var tipoIva = ivaSel ? parseFloat(ivaSel.value) : (AJUSTES.iva && AJUSTES.iva.tipoDefault) || 0;
   var c = calcIVA(subtotal, tipoIva);
@@ -5582,7 +5602,13 @@ function editarRep(id) {
   if (bv2 && r.bloqueo) bv2.value = r.bloqueo;
   document.getElementById('rAveria').value = r.averia || '';
   document.getElementById('rNota').value = r.nota || '';
-  document.getElementById('rAnticipo').value = r.anticipo || 0;
+  // Cargar pagos de BD si hay reparación con id
+  if (r.id && typeof cargarPagosRep === 'function') {
+    cargarPagosRep(r.id);
+  } else {
+    SEL.repPagos = [];
+    if (typeof renderListaPagos === 'function') renderListaPagos();
+  }
   var pri = document.getElementById('rPrioridad'); if (pri) pri.value = r.prioridad || 'Normal';
   var fe = document.getElementById('rFechaEnt'); if (fe) fe.value = r.fechaEntrega || '';
   // IVA
@@ -5857,7 +5883,7 @@ function guardarRep() {
     autoGuardarServiciosNuevos(serviciosE);
     var srvTotalE = serviciosE.reduce(function(a,s){ return a + (parseFloat(s.precio)||0); }, 0);
     var compE = SEL.selParts.reduce(function(a,p){ return a + p.precio; }, 0);
-    var antiE = parseFloat(document.getElementById('rAnticipo').value) || 0;
+    var antiE = (SEL.repPagos || []).reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
     var subE = srvTotalE + compE;
     var ivaSelE = document.getElementById('rIva');
     var tipoIvaE = ivaSelE ? parseFloat(ivaSelE.value) : ((AJUSTES.iva && AJUSTES.iva.tipoDefault) || 0);
@@ -5910,7 +5936,7 @@ function guardarRep() {
   autoGuardarServiciosNuevos(serviciosN);
   var srvTotalN = serviciosN.reduce(function(a,s){ return a + (parseFloat(s.precio)||0); }, 0);
   var comp = SEL.selParts.reduce(function(a, p) { return a + p.precio; }, 0);
-  var anticipo = parseFloat(document.getElementById('rAnticipo').value) || 0;
+  var anticipo = (SEL.repPagos || []).reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
   var subtotal = srvTotalN + comp;
   var ivaSelN = document.getElementById('rIva');
   var tipoIvaN = ivaSelN ? parseFloat(ivaSelN.value) : ((AJUSTES.iva && AJUSTES.iva.tipoDefault) || 0);
@@ -5965,6 +5991,17 @@ function guardarRep() {
       tipo_bloqueo: rep.tipoBloqueo || null, bloqueo: rep.bloqueo || null,
       iva: rep.iva, iva_modo: rep.ivaModo, base: rep.base, iva_importe: rep.ivaImporte,
       componentes: rep.componentes, servicios: rep.servicios
+    });
+    // Insertar pagos en pagos_reparacion
+    (SEL.repPagos || []).forEach(function(p) {
+      sbPost('pagos_reparacion', {
+        tienda_id: TIENDA_ID,
+        reparacion_id: rep.id,
+        fecha: p.fecha,
+        importe: parseFloat(p.importe) || 0,
+        metodo: p.metodo || 'Efectivo',
+        tipo: p.tipo || 'anticipo'
+      });
     });
   }
 
@@ -11722,6 +11759,136 @@ function renderComisionesAfiliado(data) {
   content.innerHTML = html;
 }
 // ═══ /COMISIONES ═══
+
+
+</script>
+<script>
+
+
+// ═══ SISTEMA PAGOS REPARACIÓN ═══
+// SEL.repPagos = array de pagos del modal actual
+// Estructura: {id?, fecha, importe, metodo, tipo}
+
+function fmtFechaPago(s) {
+  if (!s) return '-';
+  if (s.length === 10 && s.indexOf('-') >= 0) {
+    var p = s.split('-');
+    return p[2] + '/' + p[1] + '/' + p[0];
+  }
+  return s;
+}
+
+function renderListaPagos() {
+  var lista = document.getElementById('rPagosLista');
+  if (!lista) return;
+  var pagos = SEL.repPagos || [];
+  if (!pagos.length) {
+    lista.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:6px 0">Sin pagos registrados</div>';
+  } else {
+    lista.innerHTML = pagos.map(function(p, i) {
+      var color = p.tipo === 'anticipo' ? 'var(--blue)' : (p.tipo === 'final' ? 'var(--green)' : 'var(--purple)');
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px dashed #E2E8F0">' +
+        '<div><strong>' + (parseFloat(p.importe)||0).toFixed(2).replace('.', ',') + ' €</strong> <span style="font-size:11px;color:' + color + ';margin-left:6px">' + (p.tipo||'pago') + '</span></div>' +
+        '<div style="font-size:11px;color:var(--muted)">' + fmtFechaPago(p.fecha) + ' · ' + (p.metodo||'-') + ' <button type="button" onclick="eliminarPagoUI(' + i + ')" style="background:none;border:none;color:#EF4444;cursor:pointer;margin-left:6px;font-size:14px">×</button></div>' +
+        '</div>';
+    }).join('');
+  }
+  if (typeof calcR === 'function') calcR();
+}
+
+function renderResumenPagos(totalRep) {
+  var box = document.getElementById('rPagosResumen');
+  if (!box) return;
+  var pagos = SEL.repPagos || [];
+  var pagado = pagos.reduce(function(a, p) { return a + (parseFloat(p.importe)||0); }, 0);
+  var restante = Math.max(0, (parseFloat(totalRep) || 0) - pagado);
+  box.innerHTML = 'Pagado: <strong style="color:var(--green)">' + pagado.toFixed(2).replace('.', ',') + ' €</strong>' +
+    (totalRep > 0 ? ' · Restante: <strong style="color:' + (restante > 0 ? '#F97316' : 'var(--green)') + '">' + restante.toFixed(2).replace('.', ',') + ' €</strong>' : '');
+}
+
+function mostrarFormPago() {
+  document.getElementById('rPagoForm').style.display = 'block';
+  var fechaInp = document.getElementById('pagoFecha');
+  if (fechaInp && !fechaInp.value) {
+    var d = new Date();
+    fechaInp.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+  document.getElementById('pagoImporte').focus();
+}
+
+function cancelarFormPago() {
+  document.getElementById('rPagoForm').style.display = 'none';
+  document.getElementById('pagoImporte').value = '';
+}
+
+function confirmarPago() {
+  var importe = parseFloat(document.getElementById('pagoImporte').value) || 0;
+  if (importe <= 0) { toast('Importe inválido', 'err'); return; }
+  var metodo = document.getElementById('pagoMetodo').value;
+  var fecha = document.getElementById('pagoFecha').value;
+  if (!fecha) {
+    var d = new Date();
+    fecha = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  SEL.repPagos = SEL.repPagos || [];
+  var tipo = SEL.repPagos.length === 0 ? 'anticipo' : 'parcial';
+  var nuevoPago = { fecha: fecha, importe: importe, metodo: metodo, tipo: tipo };
+
+  // Si estamos editando una reparación existente, persistir en BD
+  if (SEL.editRepId && SB_KEY && TIENDA_ID) {
+    sbPost('pagos_reparacion', {
+      tienda_id: TIENDA_ID,
+      reparacion_id: SEL.editRepId,
+      fecha: fecha,
+      importe: importe,
+      metodo: metodo,
+      tipo: tipo
+    }).then(function() {
+      // Recargar pagos desde BD para tener IDs frescos
+      cargarPagosRep(SEL.editRepId);
+    });
+  }
+
+  SEL.repPagos.push(nuevoPago);
+  cancelarFormPago();
+  renderListaPagos();
+  toast('Pago añadido', 'ok');
+}
+
+function eliminarPagoUI(index) {
+  var pagos = SEL.repPagos || [];
+  var pago = pagos[index];
+  if (!pago) return;
+  if (!confirm('¿Eliminar este pago de ' + (parseFloat(pago.importe)||0).toFixed(2) + ' €?')) return;
+
+  // Si tiene id, eliminar de BD
+  if (pago.id && SB_KEY) {
+    sbDelete('pagos_reparacion', 'id=eq.' + pago.id);
+  }
+  pagos.splice(index, 1);
+  renderListaPagos();
+  toast('Pago eliminado', 'ok');
+}
+
+function cargarPagosRep(repId) {
+  SEL.repPagos = [];
+  renderListaPagos();
+  if (!SB_KEY) return;
+  sbGet('pagos_reparacion', '?reparacion_id=eq.' + encodeURIComponent(repId) + '&order=fecha.asc').then(function(arr) {
+    SEL.repPagos = (arr || []).map(function(p) {
+      return { id: p.id, fecha: p.fecha, importe: parseFloat(p.importe)||0, metodo: p.metodo || 'Efectivo', tipo: p.tipo || 'parcial' };
+    });
+    renderListaPagos();
+  });
+}
+
+function resetPagosRep() {
+  SEL.repPagos = [];
+  cancelarFormPago();
+  renderListaPagos();
+}
+// ═══ /SISTEMA PAGOS REPARACIÓN ═══
 
 
 </script>
