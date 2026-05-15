@@ -6325,7 +6325,28 @@ function confirmarEntrega() {
   r.pagoFinal = document.getElementById('ePago').value;
   r.restante = 0;
   guardarDatos();
-  if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + r.id, {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0});
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('reparaciones', 'id=eq.' + r.id, {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0});
+
+    // Auto-crear pago tipo='final' en pagos_reparacion con la diferencia
+    sbGet('pagos_reparacion', '?reparacion_id=eq.' + encodeURIComponent(r.id) + '&select=importe').then(function(pagosExistentes) {
+      var sumaPagosExistentes = (pagosExistentes || []).reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
+      var importeFinal = (parseFloat(r.total) || 0) - sumaPagosExistentes;
+      if (importeFinal > 0) {
+        var d = new Date();
+        var fechaISO = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        sbPost('pagos_reparacion', {
+          tienda_id: TIENDA_ID,
+          reparacion_id: r.id,
+          fecha: fechaISO,
+          importe: +importeFinal.toFixed(2),
+          metodo: r.pagoFinal || 'Efectivo',
+          tipo: 'final',
+          nota: 'Auto-creado al entregar reparación'
+        });
+      }
+    });
+  }
   closeM('mEntregar');
   toast('Reparacion entregada', 'ok');
   renderReps();
