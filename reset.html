@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Restablecer contraseña · TekPair</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+    background: #f7f9fc;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .card {
+    background: #fff;
+    border-radius: 18px;
+    box-shadow: 0 8px 32px rgba(0,0,0,.10);
+    width: 100%;
+    max-width: 400px;
+    overflow: hidden;
+  }
+  .head {
+    background: #0F172A;
+    padding: 26px;
+    text-align: center;
+  }
+  .brand { font-size: 22px; font-weight: 800; color: #fff; }
+  .brand .bolt { color: #FBBF24; }
+  .body { padding: 28px 26px; }
+  h1 { font-size: 19px; color: #0F172A; margin-bottom: 6px; }
+  .sub { font-size: 13px; color: #64748b; margin-bottom: 20px; line-height: 1.5; }
+  label { display: block; font-size: 12px; font-weight: 600; color: #334155; margin-bottom: 6px; }
+  input[type=password] {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    font-size: 14px;
+    font-family: inherit;
+    margin-bottom: 14px;
+  }
+  input:focus { outline: none; border-color: #10B981; }
+  button {
+    width: 100%;
+    padding: 12px;
+    background: #10B981;
+    color: #fff;
+    border: none;
+    border-radius: 9px;
+    font-size: 15px;
+    font-weight: 700;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  button:disabled { opacity: .6; cursor: default; }
+  .msg { font-size: 13px; margin-top: 14px; padding: 10px 12px; border-radius: 8px; display: none; }
+  .msg.err { background: #fef2f2; color: #b91c1c; display: block; }
+  .msg.ok { background: #f0fdf4; color: #15803d; display: block; }
+  .foot { text-align: center; margin-top: 18px; }
+  .foot a { color: #10B981; font-size: 13px; text-decoration: none; font-weight: 600; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="head">
+    <div class="brand"><span class="bolt">&#9889;</span> TekPair</div>
+  </div>
+  <div class="body">
+    <h1>Restablecer contraseña</h1>
+    <div class="sub">Escribe tu nueva contraseña para acceder a TekPair.</div>
+
+    <div id="form">
+      <label for="pw1">Nueva contraseña</label>
+      <input type="password" id="pw1" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+      <label for="pw2">Repetir nueva contraseña</label>
+      <input type="password" id="pw2" placeholder="Repite la contraseña" autocomplete="new-password">
+      <button id="btn" onclick="enviarReset()">Guardar nueva contraseña</button>
+    </div>
+
+    <div class="msg" id="msg"></div>
+
+    <div class="foot">
+      <a href="/app">Volver al inicio de sesión</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  function getToken() {
+    var params = new URLSearchParams(window.location.search);
+    return params.get('token') || '';
+  }
+
+  function mostrar(texto, tipo) {
+    var m = document.getElementById('msg');
+    m.textContent = texto;
+    m.className = 'msg ' + tipo;
+  }
+
+  var TOKEN = getToken();
+  if (!TOKEN) {
+    document.getElementById('form').style.display = 'none';
+    mostrar('Enlace no válido. Solicita un nuevo enlace de recuperación desde la pantalla de inicio de sesión.', 'err');
+  }
+
+  async function enviarReset() {
+    var pw1 = document.getElementById('pw1').value || '';
+    var pw2 = document.getElementById('pw2').value || '';
+
+    if (pw1.length < 6) { mostrar('La contraseña debe tener al menos 6 caracteres.', 'err'); return; }
+    if (pw1 !== pw2) { mostrar('Las contraseñas no coinciden.', 'err'); return; }
+
+    var btn = document.getElementById('btn');
+    btn.disabled = true;
+    btn.textContent = 'Guardando...';
+
+    try {
+      var r = await fetch('/api/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'reset', token: TOKEN, password_nueva: pw1 })
+      });
+      var data = await r.json();
+
+      if (data && data.ok) {
+        document.getElementById('form').style.display = 'none';
+        mostrar('¡Contraseña actualizada! Ya puedes iniciar sesión con tu nueva contraseña.', 'ok');
+      } else {
+        mostrar((data && data.error) || 'No se pudo restablecer la contraseña.', 'err');
+        btn.disabled = false;
+        btn.textContent = 'Guardar nueva contraseña';
+      }
+    } catch (e) {
+      mostrar('Error de conexión. Inténtalo de nuevo.', 'err');
+      btn.disabled = false;
+      btn.textContent = 'Guardar nueva contraseña';
+    }
+  }
+</script>
+</body>
+</html>
