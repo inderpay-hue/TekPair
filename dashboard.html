@@ -4241,13 +4241,13 @@ function renderVentas() {
     var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" class="btn-reem" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer" title="Reembolsar">\u21a9</button>' : '';
     var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" class="btn-fin" style="background:rgba(124,58,237,.1);border:none;color:var(--purple);padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer" title="Financiación">\ud83d\udcb0</button>' : '';
     var btnImpr = '<button data-vid="' + v.id + '" class="btn-impr-v" style="background:var(--light);border:none;padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer" title="Reimprimir ticket">\ud83d\udda8</button>';
+    var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" class="btn-fact-v" style="background:#10B981;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Generar factura">📄</button>' : '';
     html += '<tr style="' + (v.reembolsado ? 'opacity:.55' : '') + '">' +
       '<td>' + v.fecha + '</td>' +
       '<td>' + v.clienteNombre + badges + '</td>' +
       '<td>' + v.modelo + '</td>' +
       '<td><span class="badge bb">' + v.pago + '</span></td>' +
       '<td style="color:' + (v.reembolsado ? 'var(--red)' : 'var(--green)') + ';font-weight:700">' + (v.reembolsado ? '-' : '') + cur(v.total) + '</td>' +
-    var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" class="btn-fact-v" style="background:#10B981;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Generar factura">📄</button>' : '';
       '<td style="display:flex;gap:3px">' + btnR + btnF + btnFact + btnImpr + '</td></tr>';
   });
   html += '</tbody></table></div>';
