@@ -4329,6 +4329,7 @@ function reembolsarVenta(id) {
   toast('Venta reembolsada', 'ok');
   renderVentas();
   renderDash();
+  _ofrecerAbonoFactura('venta', id);
 }
 
 // ═══ FINANCIADOS ═══
@@ -6317,7 +6318,7 @@ function cambiarEstado(id, estado) {
 
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, {estado: estado});
-  if (entrandoCancelacion) { _ofrecerAbonoFactura(r); }
+  if (entrandoCancelacion) { _ofrecerAbonoFactura('reparacion', r.id); }
   toast('Estado actualizado', 'ok');
   audit('cambio_estado', 'reparacion', r.id, r.clienteNombre + ' · ' + (r.modelo||'') + ' · ' + estadoAnterior + ' → ' + estado, {antes:estadoAnterior, despues:estado});
   renderDash();
@@ -12169,9 +12170,9 @@ function filtrarFacturas() {
   }
 }
 // ─── Abono automático al cancelar una reparación facturada ───
-function _ofrecerAbonoFactura(r) {
-  if (!SB_KEY || !TIENDA_ID || !r || !r.id) return;
-  sbGet('facturas', 'tienda_id=eq.' + TIENDA_ID + '&origen_tipo=eq.reparacion&origen_id=eq.' + r.id)
+function _ofrecerAbonoFactura(origenTipo, origenId) {
+  if (!SB_KEY || !TIENDA_ID || !origenId) return;
+  sbGet('facturas', 'tienda_id=eq.' + TIENDA_ID + '&origen_tipo=eq.' + origenTipo + '&origen_id=eq.' + origenId)
     .then(function(facturas) {
       if (!Array.isArray(facturas) || !facturas.length) return;
       // La factura original es la que NO rectifica a otra
@@ -12183,7 +12184,8 @@ function _ofrecerAbonoFactura(r) {
         toast('La factura ' + original.numero + ' ya tiene abono', 'ok');
         return;
       }
-      if (confirm('Esta reparación tiene la factura ' + original.numero +
+      var nom = origenTipo === 'reparacion' ? 'reparación' : 'venta';
+      if (confirm('Esta ' + nom + ' tiene la factura ' + original.numero +
                   '.\n\n¿Generar factura de abono (rectificativa) por la devolución?')) {
         if (typeof window.emitirAbonoFactura === 'function') {
           window.emitirAbonoFactura(original);
