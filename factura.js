@@ -270,17 +270,16 @@
     }
   }
 
-  // ────────── Guardar datos fiscales en el cliente (CON DIAGNÓSTICO) ──────────
+  // ────────── Guardar datos fiscales en el cliente (DIAG con alert) ──────────
   function _guardarDatosFiscalesCliente() {
     var d = FACT.datos;
 
-    // Diagnóstico 1: ¿hay cliente?
     if (!d.cliente) {
-      _toast('DIAG: no hay objeto cliente en la factura', 'err');
+      alert('DIAG 1: la factura NO tiene objeto cliente. No se puede guardar.');
       return;
     }
     if (!d.cliente.id) {
-      _toast('DIAG: el cliente no tiene id (no vinculado)', 'err');
+      alert('DIAG 2: el cliente NO tiene id (campo id vacio). cliente=' + JSON.stringify(d.cliente).slice(0,200));
       return;
     }
 
@@ -296,30 +295,25 @@
     if (nif) body.dni = nif;
 
     if (Object.keys(body).length === 0) {
-      _toast('DIAG: no hay datos fiscales que guardar (body vacio)', 'err');
+      alert('DIAG 3: no hay datos fiscales que guardar (formulario vacio).');
       return;
     }
 
-    _toast('DIAG: guardando en cliente id=' + d.cliente.id, 'ok');
-
     var url = window.SUPABASE_URL + '/rest/v1/clientes?id=eq.' + encodeURIComponent(d.cliente.id);
+
+    alert('DIAG 4: voy a guardar.\n\ncliente.id = ' + d.cliente.id +
+          '\n\nURL = ' + url +
+          '\n\nbody = ' + JSON.stringify(body));
 
     fetch(url, {
       method: 'PATCH',
       headers: _supabaseHeaders(),
       body: JSON.stringify(body)
     }).then(function(r) {
-      if (!r.ok) {
-        return r.text().then(function(txt) {
-          _toast('DIAG: PATCH fallo ' + r.status + ': ' + (txt || '').slice(0, 120), 'err');
-        });
-      }
-      return r.json().then(function(arr) {
-        if (Array.isArray(arr) && arr.length === 0) {
-          _toast('DIAG: PATCH ok pero 0 filas (id no coincide?)', 'err');
-        } else {
-          _toast('DIAG: datos fiscales guardados OK', 'ok');
-          // Actualizar el cliente en memoria
+      return r.text().then(function(txt) {
+        alert('DIAG 5: respuesta del PATCH.\n\nstatus = ' + r.status +
+              '\n\nrespuesta = ' + (txt || '(vacia)').slice(0, 400));
+        if (r.ok) {
           try {
             if (window.DB && Array.isArray(window.DB.clis)) {
               var cli = window.DB.clis.find(function(c){ return c.id === d.cliente.id; });
@@ -336,7 +330,7 @@
         }
       });
     }).catch(function(e) {
-      _toast('DIAG: excepcion PATCH: ' + (e && e.message ? e.message : e), 'err');
+      alert('DIAG 6: EXCEPCION en el PATCH.\n\n' + (e && e.message ? e.message : e));
     });
   }
 
