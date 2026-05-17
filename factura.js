@@ -354,13 +354,13 @@
   }
 
   // ────────── Llamar función SQL siguiente_numero_factura ──────────
-  function _obtenerSiguienteNumero() {
+  function _obtenerSiguienteNumero(serie) {
     return fetch(window.SUPABASE_URL + '/rest/v1/rpc/siguiente_numero_factura', {
       method: 'POST',
       headers: _supabaseHeaders(),
       body: JSON.stringify({
         p_tienda_id: window.TIENDA_ID,
-        p_serie: 1
+        p_serie: serie || 1
       })
     }).then(function(r) {
       if (!r.ok) {
@@ -519,7 +519,8 @@
     var emiInfoHtml = emiLineas.map(function(l){ return '<div>' + _esc(l) + '</div>'; }).join('');
     var cliInfoHtml = cliLineas.map(function(l){ return '<div>' + _esc(l) + '</div>'; }).join('');
 
-    var tituloDoc = esSimplificada ? 'FACTURA SIMPLIFICADA' : 'FACTURA';
+    var esAbono = !!f.rectifica_a;
+    var tituloDoc = esAbono ? 'FACTURA RECTIFICATIVA (ABONO)' : (esSimplificada ? 'FACTURA SIMPLIFICADA' : 'FACTURA');
 
     // Detalle del aparato (solo facturas de reparación)
     var aptHtml = '';
@@ -548,6 +549,7 @@
       '.doc-meta .tipo { font-size:16px; font-weight:700; color:#1a1a2e; }' +
       '.doc-meta .numero { font-size:15px; color:#10B981; font-weight:700; margin-top:4px; }' +
       '.doc-meta .fecha { font-size:12px; color:#666; margin-top:4px; }' +
+      '.doc-meta .rectif { font-size:11px; color:#dc2626; font-weight:600; margin-top:3px; }' +
       '.bloques { display:flex; gap:24px; margin-bottom:28px; }' +
       '.bloque { flex:1; background:#f7f8fa; border-radius:8px; padding:14px 16px; }' +
       '.bloque h3 { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#10B981; margin-bottom:8px; font-weight:700; }' +
@@ -581,6 +583,7 @@
           '<div class="tipo">' + tituloDoc + '</div>' +
           '<div class="numero">' + _esc(f.numero) + '</div>' +
           '<div class="fecha">Fecha: ' + _esc(fechaTxt) + '</div>' +
+          (esAbono && f.rectifica_numero ? '<div class="rectif">Rectifica a: ' + _esc(f.rectifica_numero) + '</div>' : '') +
         '</div>' +
       '</div>' +
       '<div class="bloques">' +
@@ -608,6 +611,70 @@
     w.document.open();
     w.document.write(html);
     w.document.close();
+  };
+
+  // ────────── Emitir factura rectificativa (abono) ──────────
+  window.emitirAbonoFactura = function(orig) {
+    if (!orig || !orig.id) { _toast('Factura original no válida', 'err'); return; }
+    if (orig.rectifica_a) { _toast('Esto ya es un abono, no se puede abonar', 'err'); return; }
+
+    _obtenerSiguienteNumero(2).then(function(numInfo) {
+      // Líneas con importes negativos
+      var lineasNeg = (orig.lineas || []).map(function(l) {
+        return {
+          desc: l.desc || l.nombre || '-',
+          cantidad: parseFloat(l.cantidad) || 1,
+          precio: -(parseFloat(l.precio) || 0),
+          total: -(parseFloat(l.total) || 0)
+        };
+      });
+
+      var payload = {
+        tienda_id: window.TIENDA_ID,
+        numero: numInfo.numero,
+        serie: 2,
+        secuencia: numInfo.secuencia,
+        fecha_emision: new Date().toISOString().slice(0, 10),
+        tipo: orig.tipo || 'completa',
+        origen_tipo: orig.origen_tipo || null,
+        origen_id: orig.origen_id || null,
+        cliente_id: orig.cliente_id || null,
+        cliente_snapshot: orig.cliente_snapshot || {},
+        emisor_snapshot: orig.emisor_snapshot || {},
+        origen_detalle: orig.origen_detalle || null,
+        lineas: lineasNeg,
+        base_imponible: -(parseFloat(orig.base_imponible) || 0),
+        iva_pct: parseFloat(orig.iva_pct) || 0,
+        iva_importe: -(parseFloat(orig.iva_importe) || 0),
+        total: -(parseFloat(orig.total) || 0),
+        metodo_pago: orig.metodo_pago || '',
+        rectifica_a: orig.id,
+        rectifica_numero: orig.numero || '',
+        estado: 'emitida'
+      };
+
+      return fetch(window.SUPABASE_URL + '/rest/v1/facturas', {
+        method: 'POST',
+        headers: _supabaseHeaders(),
+        body: JSON.stringify(payload)
+      }).then(function(r) {
+        if (!r.ok) {
+          return r.json().then(function(err) {
+            throw new Error('INSERT abono ' + r.status + ': ' + JSON.stringify(err));
+          });
+        }
+        return r.json();
+      }).then(function(arr) {
+        var ab = Array.isArray(arr) ? arr[0] : arr;
+        _toast('✓ Abono ' + ab.numero + ' generado', 'ok');
+        if (typeof window.generarFacturaPDF === 'function') {
+          window.generarFacturaPDF(ab);
+        }
+      });
+    }).catch(function(err) {
+      console.error('Error generando abono:', err);
+      _toast('Error generando abono: ' + err.message, 'err');
+    });
   };
 
   console.log('[factura.js] módulo cargado');
