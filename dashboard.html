@@ -1574,6 +1574,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
     </div>
   </div>
+  <div class="card">
+    <div class="card-title">🔒 Seguridad</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Cambia tu contraseña de acceso a TekPair.</div>
+    <div class="fg"><label class="fl">Contraseña actual</label><input class="fi" id="pwActual" type="password" placeholder="Tu contraseña actual" autocomplete="current-password"></div>
+    <div class="fg"><label class="fl">Nueva contraseña</label><input class="fi" id="pwNueva" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+    <div class="fg"><label class="fl">Repetir nueva contraseña</label><input class="fi" id="pwNueva2" type="password" placeholder="Repite la nueva contraseña" autocomplete="new-password"></div>
+    <button type="button" class="btn-primary" style="background:var(--blue);width:100%" onclick="cambiarPassword()">Cambiar contraseña</button>
+  </div>
   <button class="btn-primary" onclick="guardarAjustes()">Guardar ajustes</button>
 </div>
 
@@ -7967,6 +7975,35 @@ async function quitarLogo() {
 }
 
 // ═══ AJUSTES ═══
+async function cambiarPassword() {
+  var actual = (document.getElementById('pwActual').value || '');
+  var nueva = (document.getElementById('pwNueva').value || '');
+  var nueva2 = (document.getElementById('pwNueva2').value || '');
+  if (!actual || !nueva || !nueva2) { toast('Rellena todos los campos', 'err'); return; }
+  if (nueva.length < 6) { toast('La nueva contrase\u00f1a debe tener al menos 6 caracteres', 'err'); return; }
+  if (nueva !== nueva2) { toast('Las contrase\u00f1as nuevas no coinciden', 'err'); return; }
+  if (nueva === actual) { toast('La nueva contrase\u00f1a no puede ser igual a la actual', 'err'); return; }
+  if (typeof U === 'undefined' || !U || !U.email) { toast('No se pudo identificar tu usuario', 'err'); return; }
+  try {
+    var r = await fetch('/api/cambiar-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: U.email, password_actual: actual, password_nueva: nueva })
+    });
+    var data = await r.json();
+    if (data && data.ok) {
+      toast('Contrase\u00f1a cambiada correctamente', 'ok');
+      document.getElementById('pwActual').value = '';
+      document.getElementById('pwNueva').value = '';
+      document.getElementById('pwNueva2').value = '';
+    } else {
+      toast((data && data.error) || 'No se pudo cambiar la contrase\u00f1a', 'err');
+    }
+  } catch (e) {
+    toast('Error de conexi\u00f3n', 'err');
+  }
+}
+
 function cargarAjustes() {
   document.getElementById('ajMoneda').value = AJUSTES.moneda || 'EUR';
   document.getElementById('ajNombre').value = AJUSTES.nombre || (U ? U.nombre : '');
