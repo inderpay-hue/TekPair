@@ -6190,6 +6190,7 @@ function renderReps() {
     }
     var btnWA = (cliRep && cliRep.tel) ? '<button data-rid="' + r.id + '" class="btn-wa-r" style="background:#25D366;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Avisar por WhatsApp">📲</button>' : '';
     var btnDel = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" class="btn-del-r" style="background:var(--red);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Eliminar reparación">🗑️</button>' : '';
+    var btnFact = (r.estado === 'Entregado') ? '<button data-rid="' + r.id + '" class="btn-fact-r" style="background:#10B981;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Generar factura">📄</button>' : '';
     // Badge garantía: manual (esGarantia) o auto-detectada (rep similar reciente)
     var badgeGarantia = '';
     if (r.esGarantia) {
@@ -6215,7 +6216,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + '</td>'
-      + '<td>' + btnE + btnEdit + btnLink + btnWA + btnDel + '</td></tr>';
+      + '<td>' + btnE + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -6236,6 +6237,9 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-del-r').forEach(function(btn) {
     btn.addEventListener('click', function() { eliminarReparacion(this.dataset.rid); });
+  });
+  el.querySelectorAll('.btn-fact-r').forEach(function(btn) {
+    btn.addEventListener('click', function() { factRep(this.dataset.rid); });
   });
 }
 
@@ -11950,6 +11954,41 @@ function resetPagosRep() {
   renderListaPagos();
 }
 // ═══ /SISTEMA PAGOS REPARACIÓN ═══
+
+// ═══ FACTURAS ═══
+(function() {
+  var s = document.createElement('script');
+  s.src = 'factura.js';
+  s.defer = true;
+  document.body.appendChild(s);
+})();
+
+function factRep(id) {
+  var r = DB.reps.find(function(x){ return x.id === id; });
+  if (!r) { toast('Reparacion no encontrada', 'err'); return; }
+  var cli = null;
+  if (r.cliId) cli = DB.clis.find(function(c){ return c.id === r.cliId; });
+  if (!cli && r.clienteNombre) cli = { nombre: r.clienteNombre, apellidos: '' };
+  var datos = {
+    id: r.id,
+    fecha: r.fecha,
+    fechaEntregaReal: r.fechaEntregaReal,
+    total: parseFloat(r.total) || 0,
+    iva: parseFloat(r.iva) || 0,
+    pagoFinal: r.pagoFinal || '',
+    marca: r.marca || '',
+    modelo: r.modelo || '',
+    averia: r.averia || '',
+    servicios: r.servicios || [],
+    componentes: r.componentes || [],
+    cliente: cli
+  };
+  if (typeof window.abrirModalFactura !== 'function') {
+    toast('Modulo factura cargando, reintenta en un momento', 'err'); return;
+  }
+  window.abrirModalFactura('reparacion', datos);
+}
+// ═══ /FACTURAS ═══
 
 // ═══ BANNER NOVEDADES MAYO 2026 ═══
 setTimeout(function() {
