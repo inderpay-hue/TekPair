@@ -5267,7 +5267,7 @@ function busComp() {
     var ya = SEL.selParts.find(function(p) { return p.id === s.id; });
     return '<div class="cli-item" data-sid="' + s.id + '" style="' + (ya ? 'background:rgba(0,200,150,.06)' : '') + '">' +
       '<span style="background:var(--light);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;color:var(--muted);margin-right:6px">' + (s.categoria || 'Otro') + '</span>' +
-      s.modelo + ' (' + s.marca + ') \u00b7 Stock: ' + s.unidades + (ya ? ' \u2713' : '') +
+      s.modelo + ' (' + s.marca + ')' + (s.color ? ' · ' + s.color : '') + ' · Stock: ' + s.unidades + (ya ? ' ✓' : '') +
       '<span style="float:right;color:var(--green);font-weight:700">' + cur(s.precioV) + '</span></div>';
   }).join('');
   if (matches.length) res.classList.add('open');
@@ -5280,7 +5280,7 @@ function addPart(id) {
   var s = DB.stock.find(function(x) { return x.id === id; });
   if (!s) return;
   var ya = SEL.selParts.find(function(p) { return p.id === id; });
-  if (!ya) SEL.selParts.push({id: s.id, nombre: s.marca + ' ' + s.modelo, precio: s.precioV});
+  if (!ya) SEL.selParts.push({id: s.id, nombre: s.marca + ' ' + s.modelo + (s.color ? ' (' + s.color + ')' : ''), precio: s.precioV});
   document.getElementById('compBus').value = '';
   document.getElementById('compRes').classList.remove('open');
   renderParts();
@@ -5292,7 +5292,7 @@ function renderParts() {
     return '<div class="part-item">' +
       '<span>' + p.nombre + '</span>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
-      '<span style="color:var(--green)">' + cur(p.precio) + '</span>' +
+      '<input type="number" step="0.01" min="0" data-idx="' + i + '" class="part-precio" value="' + (p.precio || 0) + '" style="width:74px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:12px;text-align:right;color:var(--green);font-weight:700">' +
       '<button data-idx="' + i + '" class="part-del" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px">\u00d7</button>' +
       '</div></div>';
   }).join('');
@@ -5300,6 +5300,12 @@ function renderParts() {
     btn.addEventListener('click', function() {
       SEL.selParts.splice(parseInt(this.dataset.idx), 1);
       renderParts(); calcR();
+    });
+  });
+  document.querySelectorAll('.part-precio').forEach(function(inp) {
+    inp.addEventListener('input', function() {
+      var idx = parseInt(this.dataset.idx);
+      if (SEL.selParts[idx]) { SEL.selParts[idx].precio = parseFloat(this.value) || 0; calcR(); }
     });
   });
 }
