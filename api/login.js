@@ -1,13 +1,78 @@
 // api/login.js
 // Login con email + password. Devuelve JWT firmado con tienda_id como claim.
 // VERSIÓN PRO: NO devuelve SERVICE_KEY al frontend (más seguro)
+//
+// Además del login, este endpoint maneja acciones de cuenta vía req.body.action:
+//   - action 'cambiar-password': cambia la contraseña de un usuario logueado.
+// (Se agrupa aquí para no superar el límite de 12 funciones de Vercel Hobby.)
 
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 
+function sha256(s) {
+  return crypto.createHash('sha256').update(s).digest('hex');
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
+  // ───────── Acción: cambiar contraseña (usuario logueado) ─────────
+  if (req.body && req.body.action === 'cambiar-password') {
+    const { email: cpEmail, password_actual, password_nueva } = req.body;
+
+    if (!cpEmail || !password_actual || !password_nueva) {
+      return res.status(400).json({ error: 'Faltan datos' });
+    }
+    if (String(password_nueva).length < 6) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    }
+
+    const SB_URL = process.env.SUPABASE_URL;
+    const SK = process.env.SUPABASE_SERVICE_KEY;
+    if (!SB_URL || !SK) {
+      return res.status(500).json({ error: 'Configuración de servidor incompleta' });
+    }
+
+    try {
+      const rcp = await fetch(
+        `${SB_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(cpEmail)}&activo=eq.true&select=*`,
+        { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } }
+      );
+      const usuariosCp = await rcp.json();
+      if (!usuariosCp.length) return res.json({ error: 'Usuario no encontrado' });
+
+      const ucp = usuariosCp[0];
+
+      if (ucp.password_hash !== sha256(password_actual)) {
+        return res.json({ error: 'La contraseña actual no es correcta' });
+      }
+
+      const hashNuevo = sha256(password_nueva);
+      if (hashNuevo === ucp.password_hash) {
+        return res.json({ error: 'La nueva contraseña no puede ser igual a la actual' });
+      }
+
+      const upcp = await fetch(
+        `${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(ucp.id)}`,
+        {
+          method: 'PATCH',
+          headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ password_hash: hashNuevo })
+        }
+      );
+      if (!upcp.ok) {
+        console.error('Error actualizando contraseña:', await upcp.text());
+        return res.status(500).json({ error: 'No se pudo actualizar la contraseña' });
+      }
+
+      return res.json({ ok: true });
+    } catch (e) {
+      console.error('cambiar-password error:', e);
+      return res.status(500).json({ error: 'Error del servidor' });
+    }
+  }
+
+  // ───────── Login normal ─────────
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Faltan datos' });
 

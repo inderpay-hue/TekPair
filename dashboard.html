@@ -7985,10 +7985,10 @@ async function cambiarPassword() {
   if (nueva === actual) { toast('La nueva contrase\u00f1a no puede ser igual a la actual', 'err'); return; }
   if (typeof U === 'undefined' || !U || !U.email) { toast('No se pudo identificar tu usuario', 'err'); return; }
   try {
-    var r = await fetch('/api/cambiar-password', {
+    var r = await fetch('/api/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: U.email, password_actual: actual, password_nueva: nueva })
+      body: JSON.stringify({ action: 'cambiar-password', email: U.email, password_actual: actual, password_nueva: nueva })
     });
     var data = await r.json();
     if (data && data.ok) {
