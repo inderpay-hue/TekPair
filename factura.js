@@ -220,7 +220,8 @@
       pais: t.pais || 'España',
       tel: t.tel || '',
       email: t.email || '',
-      web: t.web || ''
+      web: t.web || '',
+      logo: t.logo_url || ''
     };
   }
 
@@ -437,6 +438,7 @@
 
     // Datos emisor
     var emiNombre = emi.razon_social || emi.nombre || 'Mi Tienda';
+    var emiLogo = emi.logo || (window.TIENDA && window.TIENDA.logo_url) || '';
     var emiLineas = [];
     if (emi.cif) emiLineas.push('CIF/NIF: ' + emi.cif);
     if (emi.dir) emiLineas.push(emi.dir);
@@ -500,6 +502,8 @@
       '* { margin:0; padding:0; box-sizing:border-box; }' +
       'body { font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1a1a2e; padding:32px 40px; font-size:13px; line-height:1.5; }' +
       '.cab { display:flex; justify-content:space-between; align-items:flex-start; border-bottom:3px solid #10B981; padding-bottom:18px; margin-bottom:24px; }' +
+      '.marca-wrap { display:flex; align-items:center; gap:14px; }' +
+      '.logo-img { max-height:60px; max-width:160px; object-fit:contain; }' +
       '.marca { font-size:28px; font-weight:800; color:#10B981; letter-spacing:-0.5px; }' +
       '.marca .sub { display:block; font-size:11px; font-weight:500; color:#888; letter-spacing:0.5px; margin-top:2px; }' +
       '.doc-meta { text-align:right; }' +
@@ -531,7 +535,10 @@
       '@media print { body { padding:16px 20px; } @page { margin:1cm; } }' +
       '</style></head><body>' +
       '<div class="cab">' +
-        '<div><div class="marca">' + _esc(emiNombre) + '<span class="sub">' + (emi.web ? _esc(emi.web) : 'Factura') + '</span></div></div>' +
+        '<div class="marca-wrap">' +
+          (emiLogo ? '<img class="logo-img" src="' + _esc(emiLogo) + '" alt="">' : '') +
+          '<div class="marca">' + _esc(emiNombre) + '<span class="sub">' + (emi.web ? _esc(emi.web) : 'Factura') + '</span></div>' +
+        '</div>' +
         '<div class="doc-meta">' +
           '<div class="tipo">' + tituloDoc + '</div>' +
           '<div class="numero">' + _esc(f.numero) + '</div>' +
