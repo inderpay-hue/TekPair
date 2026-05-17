@@ -1047,6 +1047,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="stock-tab-btn" data-cat="Flex de Carga">Flex Carga</button>
     <button class="stock-tab-btn" data-cat="Altavoz">Altavoz</button>
     <button class="stock-tab-btn" data-cat="Repuesto">Repuestos</button>
+    <button class="stock-tab-btn" data-cat="Accesorio">Accesorios</button>
     <button class="stock-tab-btn" data-cat="__low__">⚠️ Stock bajo</button>
   </div>
   <div id="alertasStock"></div>
@@ -2001,7 +2002,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="modal-title" id="mStockTit">📦 Añadir Stock</div>
   <div class="fg"><label class="fl">Categoria</label>
     <select class="fi" id="sCat">
-      <option>Telefono</option><option>Tablet</option><option>Smartwatch</option><option>Pantalla</option><option>Tapa</option><option>Bateria</option><option>Flex de Carga</option><option>Altavoz</option><option>Repuesto</option><option>Otro</option>
+      <option>Telefono</option><option>Tablet</option><option>Smartwatch</option><option>Pantalla</option><option>Tapa</option><option>Bateria</option><option>Flex de Carga</option><option>Altavoz</option><option>Repuesto</option><option>Accesorio</option><option>Otro</option>
     </select>
   </div>
   <div class="fi-row">
@@ -6424,7 +6425,7 @@ function renderStock() {
     if (s.unidades <= 0) return false;
     if (cat === '__low__') { if (s.unidades > s.stockMin) return false; }
     else if (cat && (s.categoria || '') !== cat) return false;
-    if (q && !(s.marca + ' ' + s.modelo + ' ' + (s.imei || '') + ' ' + (s.categoria || '')).toLowerCase().includes(q)) return false;
+    if (q && !(s.marca + ' ' + s.modelo + ' ' + (s.imei || '') + ' ' + (s.color || '') + ' ' + (s.categoria || '')).toLowerCase().includes(q)) return false;
     return true;
   });
   // Alertas solo en stock bajo
@@ -6447,7 +6448,7 @@ function renderStock() {
   list.forEach(function(s) {
     html += '<tr>' +
       '<td><strong>' + s.marca + ' ' + s.modelo + '</strong>' +
-      (s.capacidad ? '<br><span style="font-size:9px;color:var(--muted)">' + s.capacidad + (s.color ? ' \u00b7 ' + s.color : '') + '</span>' : '') +
+      ((s.capacidad || s.color) ? '<br><span style="font-size:9px;color:var(--muted)">' + [s.capacidad, s.color].filter(Boolean).join(' · ') + '</span>' : '') +
       (s.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">IMEI: ' + s.imei + '</span>' : '') + '</td>' +
       '<td><span class="badge bb" style="font-size:9px">' + (s.categoria || '') + '</span></td>' +
       '<td style="font-weight:700;color:' + (s.unidades <= s.stockMin ? 'var(--orange)' : 'var(--text)') + '">' + s.unidades + '</td>' +
