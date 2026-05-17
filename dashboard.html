@@ -6313,6 +6313,7 @@ function cambiarEstado(id, estado) {
 
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, {estado: estado});
+  if (entrandoCancelacion) { _ofrecerAbonoFactura(r); }
   toast('Estado actualizado', 'ok');
   audit('cambio_estado', 'reparacion', r.id, r.clienteNombre + ' · ' + (r.modelo||'') + ' · ' + estadoAnterior + ' → ' + estado, {antes:estadoAnterior, despues:estado});
   renderDash();
@@ -12108,15 +12109,21 @@ function filtrarFacturas() {
       ? '<span class="badge bo">Simplificada</span>'
       : '<span class="badge bp">Completa</span>';
     var origenTxt = f.origen_tipo === 'reparacion' ? '🔧 Reparación' : (f.origen_tipo === 'venta' ? '🛒 Venta' : '—');
+    var esAbono = !!f.rectifica_a;
+    var abonada = _FACTURAS.some(function(x) { return x.rectifica_a === f.id; });
+    var numBadge = '';
+    if (esAbono) numBadge = ' <span class="badge" style="background:#fee2e2;color:#dc2626">Abono</span>';
+    else if (abonada) numBadge = ' <span class="badge" style="background:#fef3c7;color:#b45309">Abonada</span>';
+    var colorTotal = (parseFloat(f.total) || 0) < 0 ? '#dc2626' : 'var(--green)';
     html += '<tr>' +
-      '<td><strong>' + (f.numero || '—') + '</strong></td>' +
+      '<td><strong>' + (f.numero || '—') + '</strong>' + numBadge + '</td>' +
       '<td style="font-size:11px">' + fechaTxt + '</td>' +
       '<td>' + _factClienteNom(f) + '</td>' +
       '<td>' + tipoBadge + '</td>' +
       '<td style="font-size:11px">' + origenTxt + '</td>' +
       '<td style="font-size:11px">' + cur(f.base_imponible) + '</td>' +
       '<td style="font-size:11px">' + cur(f.iva_importe) + ' <span style="color:var(--muted)">(' + (parseFloat(f.iva_pct) || 0) + '%)</span></td>' +
-      '<td style="font-weight:700;color:var(--green)">' + cur(f.total) + '</td>' +
+      '<td style="font-weight:700;color:' + colorTotal + '">' + cur(f.total) + '</td>' +
       '<td><button data-fidx="' + idx + '" class="btn-pdf-f" style="background:#10B981;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer" title="Ver / descargar PDF">📄 PDF</button></td>' +
       '</tr>';
   });
@@ -12134,6 +12141,32 @@ function filtrarFacturas() {
       });
     });
   }
+}
+// ─── Abono automático al cancelar una reparación facturada ───
+function _ofrecerAbonoFactura(r) {
+  if (!SB_KEY || !TIENDA_ID || !r || !r.id) return;
+  sbGet('facturas', 'tienda_id=eq.' + TIENDA_ID + '&origen_tipo=eq.reparacion&origen_id=eq.' + r.id)
+    .then(function(facturas) {
+      if (!Array.isArray(facturas) || !facturas.length) return;
+      // La factura original es la que NO rectifica a otra
+      var original = facturas.filter(function(f) { return !f.rectifica_a; })[0];
+      if (!original) return;
+      // ¿Ya tiene un abono?
+      var yaAbonada = facturas.some(function(f) { return f.rectifica_a === original.id; });
+      if (yaAbonada) {
+        toast('La factura ' + original.numero + ' ya tiene abono', 'ok');
+        return;
+      }
+      if (confirm('Esta reparación tiene la factura ' + original.numero +
+                  '.\n\n¿Generar factura de abono (rectificativa) por la devolución?')) {
+        if (typeof window.emitirAbonoFactura === 'function') {
+          window.emitirAbonoFactura(original);
+        } else {
+          toast('Módulo de factura no disponible', 'err');
+        }
+      }
+    })
+    .catch(function(e) { console.warn('[abono] error:', e); });
 }
 // ═══ /FACTURAS ═══
 
