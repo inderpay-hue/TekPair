@@ -270,12 +270,20 @@
     }
   }
 
-  // ────────── Guardar datos fiscales en el cliente ──────────
-  // Tras emitir, guarda los datos fiscales en la ficha del cliente
-  // para que la próxima factura a ese cliente venga ya rellenada.
+  // ────────── Guardar datos fiscales en el cliente (CON DIAGNÓSTICO) ──────────
   function _guardarDatosFiscalesCliente() {
     var d = FACT.datos;
-    if (!d.cliente || !d.cliente.id) return; // sin cliente asignado, nada que guardar
+
+    // Diagnóstico 1: ¿hay cliente?
+    if (!d.cliente) {
+      _toast('DIAG: no hay objeto cliente en la factura', 'err');
+      return;
+    }
+    if (!d.cliente.id) {
+      _toast('DIAG: el cliente no tiene id (no vinculado)', 'err');
+      return;
+    }
+
     var body = {};
     if (FACT.tipo === 'completa') {
       body.nombre_fiscal = ((document.getElementById('factCliNomFiscal') || {}).value || '').trim();
@@ -286,29 +294,49 @@
     }
     var nif = ((document.getElementById('factCliNif') || {}).value || '').trim();
     if (nif) body.dni = nif;
-    if (Object.keys(body).length === 0) return;
-    fetch(window.SUPABASE_URL + '/rest/v1/clientes?id=eq.' + encodeURIComponent(d.cliente.id), {
+
+    if (Object.keys(body).length === 0) {
+      _toast('DIAG: no hay datos fiscales que guardar (body vacio)', 'err');
+      return;
+    }
+
+    _toast('DIAG: guardando en cliente id=' + d.cliente.id, 'ok');
+
+    var url = window.SUPABASE_URL + '/rest/v1/clientes?id=eq.' + encodeURIComponent(d.cliente.id);
+
+    fetch(url, {
       method: 'PATCH',
       headers: _supabaseHeaders(),
       body: JSON.stringify(body)
     }).then(function(r) {
-      if (!r.ok) { console.warn('[factura.js] no se pudieron guardar datos fiscales del cliente'); return; }
-      // Actualizar el cliente en memoria para esta sesión
-      try {
-        if (window.DB && Array.isArray(window.DB.clis)) {
-          var cli = window.DB.clis.find(function(c){ return c.id === d.cliente.id; });
-          if (cli) {
-            if (body.nombre_fiscal != null) cli.nombreFiscal = body.nombre_fiscal;
-            if (body.dir_fiscal != null) cli.dirFiscal = body.dir_fiscal;
-            if (body.cp != null) cli.cp = body.cp;
-            if (body.ciudad != null) cli.ciudad = body.ciudad;
-            if (body.provincia != null) cli.provincia = body.provincia;
-            if (body.dni != null) cli.dni = body.dni;
-          }
+      if (!r.ok) {
+        return r.text().then(function(txt) {
+          _toast('DIAG: PATCH fallo ' + r.status + ': ' + (txt || '').slice(0, 120), 'err');
+        });
+      }
+      return r.json().then(function(arr) {
+        if (Array.isArray(arr) && arr.length === 0) {
+          _toast('DIAG: PATCH ok pero 0 filas (id no coincide?)', 'err');
+        } else {
+          _toast('DIAG: datos fiscales guardados OK', 'ok');
+          // Actualizar el cliente en memoria
+          try {
+            if (window.DB && Array.isArray(window.DB.clis)) {
+              var cli = window.DB.clis.find(function(c){ return c.id === d.cliente.id; });
+              if (cli) {
+                if (body.nombre_fiscal != null) cli.nombreFiscal = body.nombre_fiscal;
+                if (body.dir_fiscal != null) cli.dirFiscal = body.dir_fiscal;
+                if (body.cp != null) cli.cp = body.cp;
+                if (body.ciudad != null) cli.ciudad = body.ciudad;
+                if (body.provincia != null) cli.provincia = body.provincia;
+                if (body.dni != null) cli.dni = body.dni;
+              }
+            }
+          } catch (e) { /* no critico */ }
         }
-      } catch (e) { /* no crítico */ }
+      });
     }).catch(function(e) {
-      console.warn('[factura.js] error guardando datos fiscales:', e);
+      _toast('DIAG: excepcion PATCH: ' + (e && e.message ? e.message : e), 'err');
     });
   }
 
