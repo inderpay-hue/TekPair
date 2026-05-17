@@ -380,6 +380,7 @@
         iva_importe: +ivaImp.toFixed(2),
         total: total,
         metodo_pago: d.pago || d.pagoFinal || '',
+        origen_detalle: (FACT.origen === 'reparacion') ? { marca: d.marca || '', modelo: d.modelo || '', imei: d.imei || '', averia: d.averia || '' } : null,
         estado: 'emitida'
       };
 
@@ -480,6 +481,18 @@
 
     var tituloDoc = esSimplificada ? 'FACTURA SIMPLIFICADA' : 'FACTURA';
 
+    // Detalle del aparato (solo facturas de reparación)
+    var aptHtml = '';
+    var od = f.origen_detalle || {};
+    if (od.marca || od.modelo || od.imei || od.averia) {
+      var aparatoNom = [od.marca, od.modelo].filter(Boolean).join(' ');
+      aptHtml = '<div class="aparato"><h3>Aparato reparado</h3>' +
+        '<div class="apt-row"><strong>' + _esc(aparatoNom || 'Dispositivo') + '</strong>' +
+        (od.imei ? ' &middot; IMEI: ' + _esc(od.imei) : '') + '</div>' +
+        (od.averia ? '<div class="apt-averia">Aver\u00eda: ' + _esc(od.averia) + '</div>' : '') +
+        '</div>';
+    }
+
     var html =
       '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
       '<title>Factura ' + _esc(f.numero) + '</title>' +
@@ -511,6 +524,10 @@
       '.totales-box .fila.total { background:#10B981; color:#fff; font-weight:800; font-size:16px; border-radius:6px; padding:10px 12px; margin-top:6px; }' +
       '.pie { margin-top:36px; padding-top:14px; border-top:1px solid #e8e8ee; font-size:11px; color:#888; }' +
       '.pie .pago { color:#1a1a2e; font-weight:600; font-size:12px; margin-bottom:6px; }' +
+      '.aparato { background:#fff7ed; border-left:3px solid #f59e0b; border-radius:6px; padding:12px 16px; margin-bottom:24px; }' +
+      '.aparato h3 { font-size:10px; text-transform:uppercase; letter-spacing:1px; color:#f59e0b; margin-bottom:6px; font-weight:700; }' +
+      '.aparato .apt-row { font-size:13px; }' +
+      '.aparato .apt-averia { font-size:12px; color:#666; margin-top:3px; }' +
       '@media print { body { padding:16px 20px; } @page { margin:1cm; } }' +
       '</style></head><body>' +
       '<div class="cab">' +
@@ -525,6 +542,7 @@
         '<div class="bloque"><h3>Emisor</h3><div class="nom">' + _esc(emiNombre) + '</div>' + emiInfoHtml + '</div>' +
         '<div class="bloque"><h3>' + (esSimplificada ? 'Cliente' : 'Facturar a') + '</h3><div class="nom">' + _esc(cliNombre) + '</div>' + cliInfoHtml + '</div>' +
       '</div>' +
+      aptHtml +
       '<table><thead><tr>' +
         '<th>Descripci\u00f3n</th><th class="num">Cant.</th><th class="num">Precio</th><th class="num">Importe</th>' +
       '</tr></thead><tbody>' + filasHtml + '</tbody></table>' +
