@@ -158,12 +158,8 @@
   };
 
   // ────────── Abrir modal (función principal expuesta) ──────────
-  window.abrirModalFactura = function(origen, datos) {
-    if (!window.SUPABASE_URL || !window.SB_KEY || !window.TIENDA_ID) {
-      _toast('Faltan credenciales. Recarga la página.', 'err');
-      return;
-    }
-
+  // Abre el modal de emisión (flujo de creación de factura)
+  function _mostrarModalEmision(origen, datos) {
     _inyectarModal();
 
     FACT.origen = origen;
@@ -174,6 +170,48 @@
     window.setTipoFactura('simplificada');
 
     document.getElementById('mFactura').style.display = 'flex';
+  }
+
+  window.abrirModalFactura = function(origen, datos) {
+    if (!window.SUPABASE_URL || !window.SB_KEY || !window.TIENDA_ID) {
+      _toast('Faltan credenciales. Recarga la página.', 'err');
+      return;
+    }
+
+    // Si esta reparación/venta ya tiene factura, mostrar su PDF (no emitir otra)
+    var oid = datos && datos.id;
+    if (!oid) {
+      _mostrarModalEmision(origen, datos);
+      return;
+    }
+
+    var url = window.SUPABASE_URL + '/rest/v1/facturas' +
+      '?tienda_id=eq.' + encodeURIComponent(window.TIENDA_ID) +
+      '&origen_tipo=eq.' + encodeURIComponent(origen) +
+      '&origen_id=eq.' + encodeURIComponent(oid) +
+      '&select=*&limit=1';
+
+    fetch(url, { headers: _supabaseHeaders() })
+      .then(function(r) { return r.ok ? r.json() : []; })
+      .then(function(arr) {
+        if (Array.isArray(arr) && arr.length > 0) {
+          // Ya existe factura para este origen → mostrar PDF, no emitir
+          var existente = arr[0];
+          _toast('Esta ' + (origen === 'reparacion' ? 'reparación' : 'venta') +
+                 ' ya tiene factura (' + existente.numero + ')', 'ok');
+          if (typeof window.generarFacturaPDF === 'function') {
+            window.generarFacturaPDF(existente);
+          }
+        } else {
+          // No tiene factura → abrir modal de emisión
+          _mostrarModalEmision(origen, datos);
+        }
+      })
+      .catch(function(e) {
+        // Si la comprobación falla, no bloquear: abrir modal igualmente
+        console.warn('[factura.js] no se pudo comprobar factura previa:', e);
+        _mostrarModalEmision(origen, datos);
+      });
   };
 
   // ────────── Cerrar modal ──────────
