@@ -678,6 +678,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sidebar-ni" data-p="pReps" onclick="navTo('pReps');setSidebarActive(this)">
       <span class="sidebar-ni-icon">🔧</span>Reparaciones
     </div>
+    <div class="sidebar-ni" data-p="pFacturas" onclick="navTo('pFacturas');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">🧾</span>Facturas
+    </div>
     <div class="sidebar-ni" data-p="pCitas" onclick="navTo('pCitas');setSidebarActive(this)">
       <span class="sidebar-ni-icon">📅</span>Citas <span class="sidebar-citas-badge" id="sidebarCitasBadge" style="display:none"></span>
     </div>
@@ -941,6 +944,26 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div id="listaReps"></div>
   <div id="kanbanReps" style="display:none"></div>
+</div>
+
+<!-- PAGE: FACTURAS -->
+<div class="page" id="pFacturas">
+  <div class="sec-header" style="margin-bottom:10px">
+    <div class="sec-title">Facturas</div>
+  </div>
+  <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
+    <input class="fi" id="factBuscar" placeholder="🔍 Buscar por número o cliente..." oninput="filtrarFacturas()" autocomplete="off" style="flex:1;min-width:180px">
+    <select class="fi" id="factFiltroTipo" onchange="filtrarFacturas()" style="width:auto">
+      <option value="">Todos los tipos</option>
+      <option value="completa">Completa</option>
+      <option value="simplificada">Simplificada</option>
+    </select>
+    <select class="fi" id="factFiltroMes" onchange="filtrarFacturas()" style="width:auto">
+      <option value="">Todos los meses</option>
+    </select>
+  </div>
+  <div id="factResumen" style="display:flex;gap:14px;margin-bottom:10px;font-size:12px;color:var(--muted)"></div>
+  <div id="listaFacturas"></div>
 </div>
 
 <!-- PAGE: CITAS -->
@@ -2688,6 +2711,7 @@ function navTo(id) {
   if (id === 'pAjustes') cargarAjustes();
   if (id === 'pServicios') renderServicios();
   if (id === 'pUsuarios') cargarUsuarios();
+  if (id === 'pFacturas') renderFacturas();
 }
 
 function setNavActive(el) {
@@ -11989,6 +12013,127 @@ function factRep(id) {
     toast('Modulo factura cargando, reintenta en un momento', 'err'); return;
   }
   window.abrirModalFactura('reparacion', datos);
+}
+
+// ─── Listado de facturas (Fase C) ───
+var _FACTURAS = [];
+
+function renderFacturas() {
+  var cont = document.getElementById('listaFacturas');
+  if (cont) cont.innerHTML = '<div class="empty">Cargando facturas...</div>';
+  sbGet('facturas', 'tienda_id=eq.' + TIENDA_ID + '&order=created_at.desc').then(function(data) {
+    _FACTURAS = Array.isArray(data) ? data : [];
+    // Poblar filtro de meses
+    var meses = {};
+    _FACTURAS.forEach(function(f) {
+      var m = (f.fecha_emision || '').slice(0, 7);
+      if (m) meses[m] = true;
+    });
+    var selMes = document.getElementById('factFiltroMes');
+    if (selMes) {
+      var actual = selMes.value;
+      var opts = '<option value="">Todos los meses</option>';
+      Object.keys(meses).sort().reverse().forEach(function(m) {
+        opts += '<option value="' + m + '">' + _mesLargo(m) + '</option>';
+      });
+      selMes.innerHTML = opts;
+      selMes.value = actual;
+    }
+    filtrarFacturas();
+  }).catch(function(e) {
+    if (cont) cont.innerHTML = '<div class="empty">Error cargando facturas</div>';
+    console.warn('[facturas] error:', e);
+  });
+}
+
+function _mesLargo(ym) {
+  var nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  var p = ym.split('-');
+  if (p.length < 2) return ym;
+  var idx = parseInt(p[1], 10) - 1;
+  return (nombres[idx] || ym) + ' ' + p[0];
+}
+
+function _factClienteNom(f) {
+  var c = f.cliente_snapshot || {};
+  if (f.tipo === 'simplificada') {
+    return ((c.nombre || '') + ' ' + (c.apellidos || '')).trim() || 'Cliente';
+  }
+  return c.nombre_fiscal || 'Cliente';
+}
+
+function filtrarFacturas() {
+  var q = (document.getElementById('factBuscar') || {}).value || '';
+  var tipo = (document.getElementById('factFiltroTipo') || {}).value || '';
+  var mes = (document.getElementById('factFiltroMes') || {}).value || '';
+  q = q.toLowerCase().trim();
+
+  var lista = _FACTURAS.filter(function(f) {
+    if (tipo && f.tipo !== tipo) return false;
+    if (mes && (f.fecha_emision || '').slice(0, 7) !== mes) return false;
+    if (q) {
+      var hay = ((f.numero || '') + ' ' + _factClienteNom(f)).toLowerCase();
+      if (hay.indexOf(q) === -1) return false;
+    }
+    return true;
+  });
+
+  var cont = document.getElementById('listaFacturas');
+  var resumen = document.getElementById('factResumen');
+
+  if (!lista.length) {
+    if (cont) cont.innerHTML = '<div class="empty">Sin facturas</div>';
+    if (resumen) resumen.innerHTML = '';
+    return;
+  }
+
+  var totalSuma = lista.reduce(function(a, f) { return a + (parseFloat(f.total) || 0); }, 0);
+  if (resumen) {
+    resumen.innerHTML = '<span><strong>' + lista.length + '</strong> factura' + (lista.length !== 1 ? 's' : '') + '</span>' +
+      '<span>Total facturado: <strong style="color:var(--green)">' + cur(totalSuma) + '</strong></span>';
+  }
+
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr>' +
+    '<th>Número</th><th>Fecha</th><th>Cliente</th><th>Tipo</th><th>Origen</th>' +
+    '<th>Base</th><th>IVA</th><th>Total</th><th></th>' +
+    '</tr></thead><tbody>';
+
+  lista.forEach(function(f, idx) {
+    var fechaTxt = f.fecha_emision || '';
+    try {
+      var d = new Date(f.fecha_emision);
+      if (!isNaN(d)) fechaTxt = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+    } catch (e) {}
+    var tipoBadge = f.tipo === 'simplificada'
+      ? '<span class="badge bo">Simplificada</span>'
+      : '<span class="badge bp">Completa</span>';
+    var origenTxt = f.origen_tipo === 'reparacion' ? '🔧 Reparación' : (f.origen_tipo === 'venta' ? '🛒 Venta' : '—');
+    html += '<tr>' +
+      '<td><strong>' + (f.numero || '—') + '</strong></td>' +
+      '<td style="font-size:11px">' + fechaTxt + '</td>' +
+      '<td>' + _factClienteNom(f) + '</td>' +
+      '<td>' + tipoBadge + '</td>' +
+      '<td style="font-size:11px">' + origenTxt + '</td>' +
+      '<td style="font-size:11px">' + cur(f.base_imponible) + '</td>' +
+      '<td style="font-size:11px">' + cur(f.iva_importe) + ' <span style="color:var(--muted)">(' + (parseFloat(f.iva_pct) || 0) + '%)</span></td>' +
+      '<td style="font-weight:700;color:var(--green)">' + cur(f.total) + '</td>' +
+      '<td><button data-fidx="' + idx + '" class="btn-pdf-f" style="background:#10B981;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer" title="Ver / descargar PDF">📄 PDF</button></td>' +
+      '</tr>';
+  });
+  html += '</tbody></table></div>';
+  if (cont) {
+    cont.innerHTML = html;
+    cont.querySelectorAll('.btn-pdf-f').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var f = lista[parseInt(this.dataset.fidx, 10)];
+        if (f && typeof window.generarFacturaPDF === 'function') {
+          window.generarFacturaPDF(f);
+        } else {
+          toast('Módulo de factura no disponible', 'err');
+        }
+      });
+    });
+  }
 }
 // ═══ /FACTURAS ═══
 
