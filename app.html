@@ -36,6 +36,7 @@ button{width:100%;background:#0055FF;color:white;border:none;padding:14px;border
   <input type="password" id="pw" placeholder="••••••••" />
   <button id="btn">Entrar</button>
   <div class="err" id="err"></div>
+  <div class="foot"><a href="#" id="lnkReset">¿Olvidaste tu contraseña?</a></div>
   <div class="foot">No tienes cuenta? <a href="/registro.html">Registrate gratis</a></div>
 </div>
 <script>
@@ -69,6 +70,35 @@ function entrar() {
   return;
 }
 document.getElementById('btn').onclick = entrar;
+function olvidePassword() {
+  var em = (document.getElementById('em').value || '').trim();
+  if (!em) {
+    em = prompt('Escribe tu email para recibir el enlace de recuperaci\u00f3n:');
+    if (!em) return;
+    em = em.trim();
+  }
+  var errEl = document.getElementById('err');
+  errEl.style.color = '#64748b';
+  errEl.textContent = 'Enviando...';
+  fetch('/api/login', {
+    method: 'POST',
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({ action: 'solicitar-reset', email: em })
+  }).then(function(r){ return r.json(); }).then(function(data){
+    if (data && data.ok) {
+      errEl.style.color = '#15803d';
+      errEl.textContent = 'Si el email est\u00e1 registrado, recibir\u00e1s un enlace para restablecer tu contrase\u00f1a. Revisa tu correo.';
+    } else {
+      errEl.style.color = '';
+      errEl.textContent = (data && data.error) || 'No se pudo enviar';
+    }
+  }).catch(function(){
+    errEl.style.color = '';
+    errEl.textContent = 'Error de conexi\u00f3n. Intenta de nuevo.';
+  });
+}
+var _lnkR = document.getElementById('lnkReset');
+if (_lnkR) _lnkR.onclick = function(e){ e.preventDefault(); olvidePassword(); };
 document.getElementById('pw').onkeypress = function(e){ if(e.key==='Enter') entrar(); };
 </script>
 </body>
