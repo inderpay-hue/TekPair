@@ -270,6 +270,48 @@
     }
   }
 
+  // ────────── Guardar datos fiscales en el cliente ──────────
+  // Tras emitir, guarda los datos fiscales en la ficha del cliente
+  // para que la próxima factura a ese cliente venga ya rellenada.
+  function _guardarDatosFiscalesCliente() {
+    var d = FACT.datos;
+    if (!d.cliente || !d.cliente.id) return; // sin cliente asignado, nada que guardar
+    var body = {};
+    if (FACT.tipo === 'completa') {
+      body.nombre_fiscal = ((document.getElementById('factCliNomFiscal') || {}).value || '').trim();
+      body.dir_fiscal = ((document.getElementById('factCliDir') || {}).value || '').trim();
+      body.cp = ((document.getElementById('factCliCp') || {}).value || '').trim();
+      body.ciudad = ((document.getElementById('factCliCiudad') || {}).value || '').trim();
+      body.provincia = ((document.getElementById('factCliProv') || {}).value || '').trim();
+    }
+    var nif = ((document.getElementById('factCliNif') || {}).value || '').trim();
+    if (nif) body.dni = nif;
+    if (Object.keys(body).length === 0) return;
+    fetch(window.SUPABASE_URL + '/rest/v1/clientes?id=eq.' + encodeURIComponent(d.cliente.id), {
+      method: 'PATCH',
+      headers: _supabaseHeaders(),
+      body: JSON.stringify(body)
+    }).then(function(r) {
+      if (!r.ok) { console.warn('[factura.js] no se pudieron guardar datos fiscales del cliente'); return; }
+      // Actualizar el cliente en memoria para esta sesión
+      try {
+        if (window.DB && Array.isArray(window.DB.clis)) {
+          var cli = window.DB.clis.find(function(c){ return c.id === d.cliente.id; });
+          if (cli) {
+            if (body.nombre_fiscal != null) cli.nombreFiscal = body.nombre_fiscal;
+            if (body.dir_fiscal != null) cli.dirFiscal = body.dir_fiscal;
+            if (body.cp != null) cli.cp = body.cp;
+            if (body.ciudad != null) cli.ciudad = body.ciudad;
+            if (body.provincia != null) cli.provincia = body.provincia;
+            if (body.dni != null) cli.dni = body.dni;
+          }
+        }
+      } catch (e) { /* no crítico */ }
+    }).catch(function(e) {
+      console.warn('[factura.js] error guardando datos fiscales:', e);
+    });
+  }
+
   // ────────── Llamar función SQL siguiente_numero_factura ──────────
   function _obtenerSiguienteNumero() {
     return fetch(window.SUPABASE_URL + '/rest/v1/rpc/siguiente_numero_factura', {
@@ -352,6 +394,7 @@
         return r.json();
       }).then(function(facturas) {
         var f = Array.isArray(facturas) ? facturas[0] : facturas;
+        _guardarDatosFiscalesCliente();
         _toast('✓ Factura ' + f.numero + ' emitida', 'ok');
         window.cerrarModalFactura();
         // Fase 3: aquí se llamará al PDF
