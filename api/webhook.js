@@ -252,7 +252,9 @@ export default async function handler(req, res) {
               const afArr = await afR.json();
               if (afArr[0]?.activo) {
                 comisionPct = afArr[0].comision_pct || 0;
-                comisionMonto = +(montoNeto * comisionPct / 100).toFixed(2);
+                // Base imponible = monto sin IVA (Stripe cobra IVA incluido en el precio)
+                const baseImponible = +(montoNeto / 1.21).toFixed(2);
+                comisionMonto = +(baseImponible * comisionPct / 100).toFixed(2);
               }
             }
 
