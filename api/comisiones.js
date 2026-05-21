@@ -60,35 +60,91 @@ export default async function handler(req, res) {
       const action = body.action;
 
       if (action === 'marcar_pagado' && Array.isArray(body.ids) && body.ids.length) {
-        // Marcar pagos individuales como pagados por sus IDs
         const ids = body.ids.filter(n => Number.isInteger(n));
         if (!ids.length) return res.status(400).json({ error: 'IDs invalidos' });
 
+        // Verificar que todos estan en estado disponible
         const idsStr = ids.join(',');
+        const checkR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?id=in.(${idsStr})&select=id,estado_comision`, {
+          headers: sbHeaders
+        });
+        const checkArr = await checkR.json();
+        const noDisp = checkArr.filter(p => p.estado_comision !== 'disponible');
+        if (noDisp.length) {
+          return res.status(400).json({ error: 'Hay comisiones no disponibles para pagar' });
+        }
+
+        // Generar numero de justificante correlativo JUST-YYYY-XXX
+        const year = new Date().getFullYear();
+        const cntR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?justificante_numero=like.JUST-${year}-*&select=justificante_numero&order=justificante_numero.desc&limit=1`, {
+          headers: sbHeaders
+        });
+        const cntArr = await cntR.json();
+        let nextNum = 1;
+        if (cntArr[0] && cntArr[0].justificante_numero) {
+          const m = cntArr[0].justificante_numero.match(/JUST-\d{4}-(\d+)/);
+          if (m) nextNum = parseInt(m[1]) + 1;
+        }
+        const justificante = 'JUST-' + year + '-' + String(nextNum).padStart(3,'0');
+        const fechaPago = body.fecha_pago || new Date().toISOString();
+
         const upR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?id=in.(${idsStr})`, {
           method: 'PATCH',
           headers: {...sbHeaders, 'Prefer': 'return=minimal'},
-          body: JSON.stringify({ comision_pagada: true })
+          body: JSON.stringify({
+            comision_pagada: true,
+            estado_comision: 'pagada',
+            fecha_pago: fechaPago,
+            justificante_numero: justificante
+          })
         });
         if (!upR.ok) {
           const txt = await upR.text();
           return res.status(500).json({ error: 'Error actualizando: ' + txt });
         }
-        return res.json({ ok: true, marcados: ids.length });
+        return res.json({ ok: true, marcados: ids.length, justificante_numero: justificante, fecha_pago: fechaPago });
       }
 
       if (action === 'marcar_codigo_pagado' && body.codigo) {
-        // Marcar TODOS los pagos pendientes de un código como pagados
-        const upR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(body.codigo)}&comision_pagada=eq.false`, {
+        // Solo los que esten en estado disponible
+        const listR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(body.codigo)}&estado_comision=eq.disponible&select=id`, {
+          headers: sbHeaders
+        });
+        const listArr = await listR.json();
+        if (!listArr.length) {
+          return res.status(400).json({ error: 'No hay comisiones disponibles para pagar' });
+        }
+
+        const year = new Date().getFullYear();
+        const cntR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?justificante_numero=like.JUST-${year}-*&select=justificante_numero&order=justificante_numero.desc&limit=1`, {
+          headers: sbHeaders
+        });
+        const cntArr = await cntR.json();
+        let nextNum = 1;
+        if (cntArr[0] && cntArr[0].justificante_numero) {
+          const m = cntArr[0].justificante_numero.match(/JUST-\d{4}-(\d+)/);
+          if (m) nextNum = parseInt(m[1]) + 1;
+        }
+        const justificante = 'JUST-' + year + '-' + String(nextNum).padStart(3,'0');
+        const fechaPago = body.fecha_pago || new Date().toISOString();
+        const ids = listArr.map(p => p.id);
+        const idsStr = ids.join(',');
+
+        const upR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?id=in.(${idsStr})`, {
           method: 'PATCH',
           headers: {...sbHeaders, 'Prefer': 'return=minimal'},
-          body: JSON.stringify({ comision_pagada: true })
+          body: JSON.stringify({
+            comision_pagada: true,
+            estado_comision: 'pagada',
+            fecha_pago: fechaPago,
+            justificante_numero: justificante
+          })
         });
         if (!upR.ok) {
           const txt = await upR.text();
           return res.status(500).json({ error: 'Error actualizando: ' + txt });
         }
-        return res.json({ ok: true, codigo: body.codigo });
+        return res.json({ ok: true, codigo: body.codigo, marcados: ids.length, justificante_numero: justificante, fecha_pago: fechaPago });
       }
 
       return res.status(400).json({ error: 'Accion desconocida' });
