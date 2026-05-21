@@ -702,6 +702,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sidebar-ni" onclick="window.location.href='catalogo.html'">
       <span class="sidebar-ni-icon">📚</span>Catalogo
     </div>
+    <div class="sidebar-ni" data-p="pCajas" onclick="navTo('pCajas');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">💰</span>Cajas
+    </div>
+    <div class="sidebar-ni" data-p="pCajas" onclick="navTo('pCajas');setSidebarActive(this)">
+      <span class="sidebar-ni-icon">💰</span>Cajas
+    </div>
     <div class="sidebar-ni" data-p="pGastos" onclick="navTo('pGastos');setSidebarActive(this)">
       <span class="sidebar-ni-icon">📋</span>Gastos
     </div>
@@ -1068,6 +1074,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="qbtn" style="background:#0EA5E9" onclick="navTo('pCitas')"><span class="qicon">📅</span>Citas</button>
     <button class="qbtn" style="background:#0F172A" onclick="navTo('pClis')"><span class="qicon">👥</span>Clientes</button>
     <button class="qbtn" style="background:#059669" onclick="navTo('pProvs')"><span class="qicon">🏭</span>Proveedores</button>
+    <button class="qbtn" style="background:#16A34A" onclick="navTo('pCajas')"><span class="qicon">💰</span>Cajas</button>
+    <button class="qbtn" style="background:#16A34A" onclick="navTo('pCajas')"><span class="qicon">💰</span>Cajas</button>
     <button class="qbtn" style="background:#DC2626" onclick="navTo('pGastos')"><span class="qicon">📋</span>Gastos</button>
     <button class="qbtn" style="background:#7C3AED" onclick="navTo('pReportes')"><span class="qicon">📊</span>Reportes</button>
     <button class="qbtn" style="background:#0891B2" onclick="navTo('pTienda')"><span class="qicon">🏪</span>Mi Tienda</button>
@@ -1112,6 +1120,867 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <!-- GASTOS -->
+<!-- ════ ESTILOS ════ -->
+<style>
+  /* Sección Cajas */
+  #pCajas .cajas-header {
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:14px;flex-wrap:wrap;gap:10px;
+  }
+  #pCajas .cajas-fecha-selector {
+    display:flex;gap:8px;align-items:center;
+  }
+  #pCajas .cajas-fecha-selector input[type=date] {
+    background:#fff;border:1px solid #d1d5db;padding:7px 10px;
+    border-radius:8px;font-size:13px;
+  }
+
+  /* Grid de tarjetas */
+  #cajas-grid {
+    display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));
+    gap:14px;
+  }
+  .caja-card {
+    background:#fff;border:1px solid #e5e7eb;border-radius:12px;
+    padding:16px;transition:all .2s;
+  }
+  .caja-card:hover { border-color:#9ca3af;box-shadow:0 2px 8px rgba(0,0,0,.06); }
+  .caja-card-header {
+    display:flex;justify-content:space-between;align-items:flex-start;
+    margin-bottom:12px;
+  }
+  .caja-card-titulo {
+    display:flex;align-items:center;gap:8px;font-size:16px;font-weight:600;color:#111827;
+  }
+  .caja-card-icono { font-size:22px; }
+  .caja-card-estado {
+    font-size:10px;text-transform:uppercase;padding:3px 8px;
+    border-radius:5px;font-weight:700;letter-spacing:.4px;
+  }
+  .caja-estado-abierto    { background:#fef3c7;color:#92400e; }
+  .caja-estado-cerrado    { background:#d1fae5;color:#065f46; }
+  .caja-estado-descuadre  { background:#fee2e2;color:#991b1b; }
+  .caja-estado-pendiente  { background:#f3f4f6;color:#6b7280; }
+
+  .caja-card-resumen {
+    display:grid;grid-template-columns:1fr 1fr;gap:10px;
+    margin-bottom:12px;font-size:13px;
+  }
+  .caja-card-resumen .label { color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.3px;}
+  .caja-card-resumen .valor { font-weight:600;color:#111827;font-size:14px; }
+  .caja-card-resumen .valor-descuadre { color:#dc2626;font-size:15px; }
+  .caja-card-resumen .valor-ok { color:#16a34a; }
+  .caja-card-acciones { display:flex;gap:6px; }
+  .caja-card-acciones .btn-sm { flex:1;font-size:12px;padding:7px; }
+
+  .caja-card-nueva {
+    background:transparent;border:2px dashed #d1d5db;border-radius:12px;
+    padding:24px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;cursor:pointer;color:#6b7280;
+    transition:all .2s;min-height:160px;
+  }
+  .caja-card-nueva:hover { border-color:#3b82f6;color:#3b82f6; }
+  .caja-card-nueva .icono-grande { font-size:30px;margin-bottom:6px; }
+
+  /* Modal cajas (overlay propio para no chocar con TekPair) */
+  .cajas-modal-overlay {
+    position:fixed;inset:0;background:rgba(0,0,0,.5);
+    display:none;justify-content:center;align-items:center;
+    z-index:99999;padding:16px;
+  }
+  .cajas-modal-overlay.activo { display:flex; }
+  .cajas-modal {
+    background:#fff;border-radius:14px;width:100%;max-width:680px;
+    max-height:90vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.25);
+  }
+  .cajas-modal-header {
+    padding:16px 20px;border-bottom:1px solid #e5e7eb;
+    display:flex;justify-content:space-between;align-items:center;
+  }
+  .cajas-modal-header h3 { margin:0;font-size:17px;color:#111827; }
+  .cajas-modal-cerrar {
+    background:transparent;border:0;color:#6b7280;font-size:22px;
+    cursor:pointer;line-height:1;padding:4px 8px;
+  }
+  .cajas-modal-cuerpo { padding:18px 20px; }
+  .cajas-modal-pie {
+    padding:14px 20px;border-top:1px solid #e5e7eb;
+    display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;
+  }
+
+  .cajas-form-grupo { margin-bottom:12px; }
+  .cajas-form-grupo label {
+    display:block;margin-bottom:5px;font-size:12px;color:#374151;font-weight:600;
+    text-transform:uppercase;letter-spacing:.3px;
+  }
+  .cajas-form-grupo input,
+  .cajas-form-grupo select,
+  .cajas-form-grupo textarea {
+    width:100%;background:#fff;color:#111827;border:1px solid #d1d5db;
+    padding:9px 11px;border-radius:8px;font-size:14px;box-sizing:border-box;
+  }
+  .cajas-form-grupo input:focus,
+  .cajas-form-grupo select:focus,
+  .cajas-form-grupo textarea:focus {
+    outline:none;border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.1);
+  }
+  .cajas-form-fila { display:grid;grid-template-columns:1fr 1fr;gap:10px; }
+  @media (max-width:540px) { .cajas-form-fila { grid-template-columns:1fr; } }
+
+  /* Tabla movimientos */
+  .cajas-tabla-mov { width:100%;border-collapse:collapse;margin:10px 0; }
+  .cajas-tabla-mov th,
+  .cajas-tabla-mov td {
+    padding:7px;text-align:left;border-bottom:1px solid #e5e7eb;font-size:13px;
+  }
+  .cajas-tabla-mov th {
+    background:#f9fafb;color:#6b7280;font-weight:600;
+    font-size:10px;text-transform:uppercase;letter-spacing:.3px;
+  }
+  .cajas-tabla-mov input[type=number] {
+    width:90px;text-align:right;background:#fff;color:#111827;
+    border:1px solid #d1d5db;padding:5px 7px;border-radius:6px;font-size:13px;
+  }
+  .cajas-tabla-mov input[type=number]:focus { outline:none;border-color:#3b82f6; }
+
+  .cierre-resumen {
+    background:#f9fafb;border-radius:10px;padding:12px;margin-top:10px;
+    display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px;
+  }
+  .cierre-resumen .item { display:flex;justify-content:space-between; }
+  .cierre-resumen .item .label { color:#6b7280; }
+  .cierre-resumen .descuadre-grande {
+    grid-column:1/-1;text-align:center;padding:10px;border-radius:8px;
+    font-size:16px;font-weight:700;margin-top:4px;
+  }
+  .cierre-resumen .descuadre-grande.ok { background:#d1fae5;color:#065f46; }
+  .cierre-resumen .descuadre-grande.ko { background:#fee2e2;color:#991b1b; }
+
+  .companias-lista {
+    background:#f9fafb;border-radius:8px;padding:10px;margin-top:6px;
+  }
+  .compania-row {
+    display:flex;gap:6px;align-items:center;padding:5px 0;
+    border-bottom:1px solid #e5e7eb;
+  }
+  .compania-row:last-child { border-bottom:0; }
+  .compania-row input { flex:1; }
+
+  .cajas-mensaje-vacio {
+    text-align:center;padding:40px 20px;color:#6b7280;font-size:14px;
+  }
+
+  /* Botones (reutilizan estética TekPair pero con clases propias) */
+  .cajas-btn {
+    background:#3b82f6;color:#fff;border:0;padding:9px 14px;
+    border-radius:8px;cursor:pointer;font-size:13px;font-weight:600;
+  }
+  .cajas-btn:hover { background:#2563eb; }
+  .cajas-btn-sec { background:#e5e7eb;color:#374151; }
+  .cajas-btn-sec:hover { background:#d1d5db; }
+  .cajas-btn-rojo { background:#dc2626;color:#fff; }
+  .cajas-btn-rojo:hover { background:#b91c1c; }
+  .cajas-btn-verde { background:#16a34a;color:#fff; }
+  .cajas-btn-verde:hover { background:#15803d; }
+</style>
+
+
+<!-- ════ SECCIÓN PRINCIPAL ════ -->
+<div class="page" id="pCajas">
+  <div class="sec-header" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
+      <div class="sec-title">💰 Cajas</div>
+    </div>
+    <button class="btn-sm" style="background:var(--green);color:white" onclick="Cajas.abrirModalNuevaCaja()">+ Nueva caja</button>
+  </div>
+
+  <div class="cajas-header">
+    <div></div>
+    <div class="cajas-fecha-selector">
+      <label style="font-size:12px;color:#6b7280;">Fecha:</label>
+      <input type="date" id="cajas-fecha-actual">
+    </div>
+  </div>
+
+  <div id="cajas-grid"></div>
+</div>
+
+
+<!-- ════ MODAL CAJA ════ -->
+<div class="cajas-modal-overlay" id="modal-caja">
+  <div class="cajas-modal">
+    <div class="cajas-modal-header">
+      <h3 id="modal-caja-titulo">Nueva caja</h3>
+      <button class="cajas-modal-cerrar" onclick="Cajas.cerrarModal('modal-caja')">✕</button>
+    </div>
+    <div class="cajas-modal-cuerpo">
+      <input type="hidden" id="caja-id">
+
+      <div class="cajas-form-fila">
+        <div class="cajas-form-grupo">
+          <label>Tipo de caja</label>
+          <select id="caja-tipo">
+            <option value="envios">📤 Envíos de dinero</option>
+            <option value="recargas">📱 Recargas móviles</option>
+            <option value="tpv">🛒 TPV</option>
+            <option value="custom">💼 Personalizada</option>
+          </select>
+        </div>
+        <div class="cajas-form-grupo">
+          <label>Nombre</label>
+          <input type="text" id="caja-nombre" placeholder="Ej: Caja Envíos">
+        </div>
+      </div>
+
+      <div class="cajas-form-fila">
+        <div class="cajas-form-grupo">
+          <label>Icono (emoji)</label>
+          <input type="text" id="caja-icono" maxlength="4" placeholder="📤">
+        </div>
+        <div class="cajas-form-grupo">
+          <label>Color</label>
+          <input type="color" id="caja-color" value="#3b82f6">
+        </div>
+      </div>
+
+      <div class="cajas-form-grupo">
+        <label>¿Quién puede editar un cierre ya cerrado?</label>
+        <select id="caja-permiso">
+          <option value="admin">Solo administrador (recomendado)</option>
+          <option value="todos">Cualquier empleado</option>
+          <option value="nadie">Nadie (bloqueado)</option>
+        </select>
+      </div>
+
+      <div id="caja-companias-bloque" style="display:none;">
+        <hr style="border-color:#e5e7eb;margin:16px 0;">
+        <label style="font-size:12px;color:#374151;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">
+          Compañías de esta caja
+        </label>
+        <p style="font-size:12px;color:#6b7280;margin:3px 0 6px;">
+          Añade las que uses (Ria, Western Union, Disha, Más Móvil…)
+        </p>
+        <div class="companias-lista" id="lista-companias"></div>
+        <div style="display:flex;gap:6px;margin-top:8px;">
+          <input type="text" id="nueva-compania-nombre" placeholder="Nombre de la compañía"
+                 style="flex:1;background:#fff;border:1px solid #d1d5db;padding:8px 10px;border-radius:8px;">
+          <button class="cajas-btn" onclick="Cajas.crearCompania()">+ Añadir</button>
+        </div>
+      </div>
+    </div>
+    <div class="cajas-modal-pie">
+      <button class="cajas-btn cajas-btn-rojo" id="btn-borrar-caja" style="display:none;margin-right:auto;" onclick="Cajas.borrarCaja()">Eliminar</button>
+      <button class="cajas-btn cajas-btn-sec" onclick="Cajas.cerrarModal('modal-caja')">Cancelar</button>
+      <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarCaja()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════ MODAL CIERRE ════ -->
+<div class="cajas-modal-overlay" id="modal-cierre">
+  <div class="cajas-modal" style="max-width:780px;">
+    <div class="cajas-modal-header">
+      <h3 id="modal-cierre-titulo">Cierre del día</h3>
+      <button class="cajas-modal-cerrar" onclick="Cajas.cerrarModal('modal-cierre')">✕</button>
+    </div>
+    <div class="cajas-modal-cuerpo">
+      <input type="hidden" id="cierre-caja-id">
+
+      <div class="cajas-form-fila">
+        <div class="cajas-form-grupo">
+          <label>Fecha</label>
+          <input type="date" id="cierre-fecha" disabled>
+        </div>
+        <div class="cajas-form-grupo">
+          <label>Saldo inicial (cambio de ayer) €</label>
+          <input type="number" step="0.01" id="cierre-saldo-inicial" value="0">
+        </div>
+      </div>
+
+      <h4 style="margin:14px 0 6px;font-size:13px;color:#374151;text-transform:uppercase;letter-spacing:.3px;">Movimientos del día</h4>
+      <div style="overflow-x:auto;">
+        <table class="cajas-tabla-mov" id="tabla-movimientos">
+          <thead id="tabla-mov-thead"></thead>
+          <tbody id="tabla-mov-tbody"></tbody>
+        </table>
+      </div>
+
+      <div class="cierre-resumen" id="cierre-resumen"></div>
+
+      <div class="cajas-form-fila" style="margin-top:12px;">
+        <div class="cajas-form-grupo">
+          <label>Saldo real contado en caja €</label>
+          <input type="number" step="0.01" id="cierre-saldo-real" value="0">
+        </div>
+        <div class="cajas-form-grupo">
+          <label>Cambio que dejo para mañana €</label>
+          <input type="number" step="0.01" id="cierre-cambio-siguiente" value="0">
+        </div>
+      </div>
+
+      <div class="cajas-form-grupo">
+        <label>Notas (opcional)</label>
+        <textarea id="cierre-notas" rows="2" placeholder="Anota cualquier incidencia..."></textarea>
+      </div>
+    </div>
+    <div class="cajas-modal-pie">
+      <button class="cajas-btn cajas-btn-sec" onclick="Cajas.cerrarModal('modal-cierre')">Cancelar</button>
+      <button class="cajas-btn" onclick="Cajas.guardarCierre('abierto')">Guardar borrador</button>
+      <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarCierre('cerrado')">Cerrar caja</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ════ LÓGICA JS ════ -->
+<script>
+(function() {
+  'use strict';
+
+  // ── Auth: leer JWT de la sesión TekPair ──────────
+  function getJWT() {
+    try {
+      const sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
+      return sess.jwt_token || sess.jwt || '';
+    } catch (e) { return ''; }
+  }
+
+  // ── Wrapper API ──────────────────────────────────
+  async function api(action, opts = {}) {
+    const { method = 'GET', body = null, query = {} } = opts;
+    const qs = new URLSearchParams({ action, ...query }).toString();
+    const url = `/api/cajas?${qs}`;
+    const res = await fetch(url, {
+      method,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${getJWT()}`
+      },
+      body: body ? JSON.stringify(body) : null
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.ok) {
+      throw new Error(data.error || `HTTP ${res.status}`);
+    }
+    return data;
+  }
+
+  const Estado = {
+    cajas: [],
+    fechaActual: new Date().toISOString().slice(0, 10),
+    cierres: {},
+    cajaEditando: null,
+    cierreEditando: null,
+    inicializado: false
+  };
+
+  function eur(n) {
+    return Number(n || 0).toFixed(2).replace('.', ',') + ' €';
+  }
+  function toast(msg, tipo = 'info') {
+    if (window.toast) return window.toast(msg, tipo);
+    if (window.mostrarToast) return window.mostrarToast(msg, tipo);
+    if (tipo === 'error') alert('❌ ' + msg);
+    else alert(msg);
+  }
+  function $(id) { return document.getElementById(id); }
+  function escapar(s) {
+    return String(s || '').replace(/[<>&"]/g, c => ({
+      '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;'
+    }[c]));
+  }
+
+  // ── Init (se llama desde navTo('pCajas') ─────────
+  async function renderCajas() {
+    if (!Estado.inicializado) {
+      $('cajas-fecha-actual').value = Estado.fechaActual;
+      $('cajas-fecha-actual').addEventListener('change', (e) => {
+        Estado.fechaActual = e.target.value;
+        cargarCajas();
+      });
+      $('caja-tipo').addEventListener('change', (e) => {
+        const tipo = e.target.value;
+        const sug = {
+          envios:   { nombre: 'Caja Envíos',   icono: '📤' },
+          recargas: { nombre: 'Caja Recargas', icono: '📱' },
+          tpv:      { nombre: 'Caja TPV',      icono: '🛒' },
+          custom:   { nombre: '',              icono: '💼' }
+        }[tipo] || { nombre: '', icono: '💼' };
+        if (!Estado.cajaEditando) {
+          if (!$('caja-nombre').value || $('caja-nombre').dataset.auto !== 'no') {
+            $('caja-nombre').value = sug.nombre;
+            $('caja-nombre').dataset.auto = 'si';
+          }
+          if (!$('caja-icono').value || $('caja-icono').dataset.auto !== 'no') {
+            $('caja-icono').value = sug.icono;
+            $('caja-icono').dataset.auto = 'si';
+          }
+        }
+      });
+      document.addEventListener('input', (e) => {
+        if (e.target.matches('#cierre-saldo-inicial, #cierre-saldo-real')) {
+          recalcularResumen();
+        }
+        if (e.target.matches('#caja-nombre, #caja-icono')) {
+          e.target.dataset.auto = 'no';
+        }
+      });
+      Estado.inicializado = true;
+    }
+    await cargarCajas();
+  }
+
+  async function cargarCajas() {
+    try {
+      const r = await api('listar_cajas');
+      Estado.cajas = r.cajas || [];
+      Estado.cierres = {};
+      await Promise.all(Estado.cajas.map(async (c) => {
+        try {
+          const d = await api('obtener_cierre', {
+            query: { caja_id: c.id, fecha: Estado.fechaActual }
+          });
+          Estado.cierres[c.id] = d;
+        } catch (e) {
+          Estado.cierres[c.id] = { cierre: null, movimientos: [], companias: [] };
+        }
+      }));
+      pintarTarjetas();
+    } catch (e) {
+      toast('Error cargando cajas: ' + e.message, 'error');
+    }
+  }
+
+  function pintarTarjetas() {
+    const grid = $('cajas-grid');
+    if (Estado.cajas.length === 0) {
+      grid.innerHTML = `
+        <div class="cajas-mensaje-vacio" style="grid-column:1/-1;">
+          <p style="font-size:16px;margin-bottom:6px;color:#374151;">Aún no tienes cajas configuradas</p>
+          <p style="font-size:13px;">Crea tu primera caja para empezar a cuadrar el día a día</p>
+          <button class="cajas-btn cajas-btn-verde" style="margin-top:12px;" onclick="Cajas.abrirModalNuevaCaja()">+ Crear primera caja</button>
+        </div>
+      `;
+      return;
+    }
+
+    let html = '';
+    for (const caja of Estado.cajas) {
+      const datos = Estado.cierres[caja.id] || {};
+      const cierre = datos.cierre;
+      const estado = cierre?.estado || 'pendiente';
+      const labelEstado = {
+        abierto: 'En curso',
+        cerrado: 'Cuadrada ✓',
+        descuadre: '⚠ Descuadre',
+        pendiente: 'Pendiente'
+      }[estado];
+      const descuadre = cierre?.descuadre || 0;
+      const tieneDescuadre = Math.abs(descuadre) > 0.5;
+
+      html += `
+        <div class="caja-card" style="border-left: 4px solid ${caja.color || '#3b82f6'}">
+          <div class="caja-card-header">
+            <div class="caja-card-titulo">
+              <span class="caja-card-icono">${caja.icono || '💼'}</span>
+              <span>${escapar(caja.nombre)}</span>
+            </div>
+            <span class="caja-card-estado caja-estado-${estado}">${labelEstado}</span>
+          </div>
+          <div class="caja-card-resumen">
+            <div>
+              <div class="label">Teórico</div>
+              <div class="valor">${cierre ? eur(cierre.saldo_teorico) : '—'}</div>
+            </div>
+            <div>
+              <div class="label">Real</div>
+              <div class="valor">${cierre ? eur(cierre.saldo_real_final) : '—'}</div>
+            </div>
+            ${cierre ? `
+              <div style="grid-column:1/-1;">
+                <div class="label">Descuadre</div>
+                <div class="valor ${tieneDescuadre ? 'valor-descuadre' : 'valor-ok'}">
+                  ${tieneDescuadre ? eur(descuadre) : '✓ Cuadrada'}
+                </div>
+              </div>
+            ` : ''}
+          </div>
+          <div class="caja-card-acciones">
+            <button class="cajas-btn" onclick="Cajas.abrirCierre('${caja.id}')">
+              ${cierre ? 'Ver / editar' : 'Hacer cierre'}
+            </button>
+            <button class="cajas-btn cajas-btn-sec" onclick="Cajas.editarCaja('${caja.id}')">⚙️</button>
+          </div>
+        </div>
+      `;
+    }
+
+    html += `
+      <div class="caja-card-nueva" onclick="Cajas.abrirModalNuevaCaja()">
+        <div class="icono-grande">+</div>
+        <div>Añadir nueva caja</div>
+      </div>
+    `;
+    grid.innerHTML = html;
+  }
+
+  // ── Modal Caja ──────────────────────────────────
+  function abrirModalNuevaCaja() {
+    Estado.cajaEditando = null;
+    $('modal-caja-titulo').textContent = 'Nueva caja';
+    $('caja-id').value = '';
+    $('caja-tipo').value = 'envios';
+    $('caja-nombre').value = 'Caja Envíos';
+    $('caja-nombre').dataset.auto = 'si';
+    $('caja-icono').value = '📤';
+    $('caja-icono').dataset.auto = 'si';
+    $('caja-color').value = '#3b82f6';
+    $('caja-permiso').value = 'admin';
+    $('btn-borrar-caja').style.display = 'none';
+    $('caja-companias-bloque').style.display = 'none';
+    $('modal-caja').classList.add('activo');
+  }
+
+  function editarCaja(id) {
+    const caja = Estado.cajas.find(c => c.id === id);
+    if (!caja) return;
+    Estado.cajaEditando = caja;
+    $('modal-caja-titulo').textContent = 'Editar caja';
+    $('caja-id').value = caja.id;
+    $('caja-tipo').value = caja.tipo;
+    $('caja-nombre').value = caja.nombre;
+    $('caja-icono').value = caja.icono || '💼';
+    $('caja-color').value = caja.color || '#3b82f6';
+    $('caja-permiso').value = caja.permiso_editar_cerrada || 'admin';
+    $('btn-borrar-caja').style.display = 'inline-block';
+    $('caja-companias-bloque').style.display = 'block';
+    renderCompanias();
+    $('modal-caja').classList.add('activo');
+  }
+
+  async function renderCompanias() {
+    if (!Estado.cajaEditando) return;
+    const lista = $('lista-companias');
+    try {
+      const r = await api('listar_companias', {
+        query: { caja_id: Estado.cajaEditando.id }
+      });
+      const cmps = r.companias || [];
+      if (cmps.length === 0) {
+        lista.innerHTML = '<div style="color:#6b7280;font-size:12px;text-align:center;padding:8px;">Aún no hay compañías. Añade la primera abajo.</div>';
+        return;
+      }
+      lista.innerHTML = cmps.map(c => `
+        <div class="compania-row" data-id="${c.id}">
+          <input type="text" value="${escapar(c.nombre)}" onchange="Cajas.editarCompania('${c.id}', this.value)">
+          <button class="cajas-btn cajas-btn-rojo" style="padding:5px 9px;font-size:11px;" onclick="Cajas.borrarCompania('${c.id}')">✕</button>
+        </div>
+      `).join('');
+    } catch (e) {
+      lista.innerHTML = `<div style="color:#dc2626;font-size:12px;">Error: ${e.message}</div>`;
+    }
+  }
+
+  async function crearCompania() {
+    if (!Estado.cajaEditando) {
+      toast('Guarda la caja primero', 'error');
+      return;
+    }
+    const nombre = $('nueva-compania-nombre').value.trim();
+    if (!nombre) return;
+    try {
+      await api('crear_compania', {
+        method: 'POST',
+        body: { caja_id: Estado.cajaEditando.id, nombre }
+      });
+      $('nueva-compania-nombre').value = '';
+      renderCompanias();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  async function editarCompania(id, nombre) {
+    try {
+      await api('editar_compania', { method: 'POST', body: { id, nombre } });
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  async function borrarCompania(id) {
+    if (!confirm('¿Eliminar esta compañía? Los movimientos pasados también se borrarán.')) return;
+    try {
+      await api('borrar_compania', { method: 'POST', body: { id } });
+      renderCompanias();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  async function guardarCaja() {
+    const payload = {
+      tipo: $('caja-tipo').value,
+      nombre: $('caja-nombre').value.trim(),
+      icono: $('caja-icono').value.trim() || '💼',
+      color: $('caja-color').value,
+      permiso_editar_cerrada: $('caja-permiso').value
+    };
+    if (!payload.nombre) {
+      toast('Nombre obligatorio', 'error');
+      return;
+    }
+    try {
+      const id = $('caja-id').value;
+      if (id) {
+        await api('editar_caja', { method: 'POST', body: { id, ...payload } });
+        cerrarModal('modal-caja');
+        await cargarCajas();
+      } else {
+        const r = await api('crear_caja', { method: 'POST', body: payload });
+        Estado.cajaEditando = r.caja;
+        $('caja-id').value = r.caja.id;
+        $('modal-caja-titulo').textContent = 'Editar caja';
+        $('btn-borrar-caja').style.display = 'inline-block';
+        $('caja-companias-bloque').style.display = 'block';
+        renderCompanias();
+        toast('Caja creada. Ahora añade sus compañías.');
+        await cargarCajas();
+      }
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  async function borrarCaja() {
+    if (!Estado.cajaEditando) return;
+    if (!confirm(`¿Eliminar la caja "${Estado.cajaEditando.nombre}"?\n\nSe borrarán también sus compañías, cierres y movimientos. Esta acción NO se puede deshacer.`)) return;
+    try {
+      await api('borrar_caja', { method: 'POST', body: { id: Estado.cajaEditando.id } });
+      cerrarModal('modal-caja');
+      await cargarCajas();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  // ── Modal Cierre ────────────────────────────────
+  async function abrirCierre(cajaId) {
+    try {
+      const data = await api('obtener_cierre', {
+        query: { caja_id: cajaId, fecha: Estado.fechaActual }
+      });
+      Estado.cierreEditando = data;
+
+      if (!data.companias || data.companias.length === 0) {
+        toast('Esta caja no tiene compañías. Configúralas primero en ⚙️', 'error');
+        return;
+      }
+
+      $('cierre-caja-id').value = cajaId;
+      $('modal-cierre-titulo').textContent = `${data.caja.icono} ${data.caja.nombre} — ${formatearFecha(Estado.fechaActual)}`;
+      $('cierre-fecha').value = Estado.fechaActual;
+      $('cierre-saldo-inicial').value = data.cierre?.saldo_inicial ?? data.saldo_sugerido ?? 0;
+      $('cierre-saldo-real').value = data.cierre?.saldo_real_final ?? 0;
+      $('cierre-cambio-siguiente').value = data.cierre?.cambio_siguiente ?? 0;
+      $('cierre-notas').value = data.cierre?.notas ?? '';
+
+      renderTablaMovimientos(data);
+      recalcularResumen();
+      $('modal-cierre').classList.add('activo');
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  function formatearFecha(iso) {
+    const [y, m, d] = iso.split('-');
+    return `${d}/${m}/${y}`;
+  }
+
+  function renderTablaMovimientos(data) {
+    const tipo = data.caja.tipo;
+    const thead = $('tabla-mov-thead');
+    const tbody = $('tabla-mov-tbody');
+
+    if (tipo === 'envios') {
+      thead.innerHTML = `<tr>
+        <th>Compañía</th>
+        <th style="text-align:right;">Enviado €</th>
+        <th style="text-align:right;">Cobrado €</th>
+        <th style="text-align:right;">Balance</th>
+      </tr>`;
+    } else if (tipo === 'recargas') {
+      thead.innerHTML = `<tr>
+        <th>Compañía</th>
+        <th style="text-align:right;">Efectivo €</th>
+        <th style="text-align:right;">Tarjeta €</th>
+        <th style="text-align:right;">Total</th>
+      </tr>`;
+    } else {
+      thead.innerHTML = `<tr><th>Compañía</th><th style="text-align:right;">Importe €</th></tr>`;
+    }
+
+    const movsExistentes = {};
+    (data.movimientos || []).forEach(m => { movsExistentes[m.compania_id] = m; });
+
+    let html = '';
+    for (const c of data.companias) {
+      const m = movsExistentes[c.id] || {};
+      if (tipo === 'envios') {
+        html += `<tr data-compania-id="${c.id}">
+          <td>${escapar(c.nombre)}</td>
+          <td style="text-align:right;"><input type="number" step="0.01" class="mov-enviado" value="${m.importe_enviado || 0}" onchange="Cajas.recalcular()"></td>
+          <td style="text-align:right;"><input type="number" step="0.01" class="mov-cobrado" value="${m.importe_cobrado || 0}" onchange="Cajas.recalcular()"></td>
+          <td style="text-align:right;" class="balance-celda">${eur((m.importe_cobrado || 0) - (m.importe_enviado || 0))}</td>
+        </tr>`;
+      } else if (tipo === 'recargas') {
+        html += `<tr data-compania-id="${c.id}">
+          <td>${escapar(c.nombre)}</td>
+          <td style="text-align:right;"><input type="number" step="0.01" class="mov-efectivo" value="${m.importe_efectivo || 0}" onchange="Cajas.recalcular()"></td>
+          <td style="text-align:right;"><input type="number" step="0.01" class="mov-tarjeta" value="${m.importe_tarjeta || 0}" onchange="Cajas.recalcular()"></td>
+          <td style="text-align:right;" class="balance-celda">${eur((m.importe_efectivo || 0) + (m.importe_tarjeta || 0))}</td>
+        </tr>`;
+      } else {
+        html += `<tr data-compania-id="${c.id}">
+          <td>${escapar(c.nombre)}</td>
+          <td style="text-align:right;"><input type="number" step="0.01" class="mov-cobrado" value="${m.importe_cobrado || 0}" onchange="Cajas.recalcular()"></td>
+        </tr>`;
+      }
+    }
+    tbody.innerHTML = html;
+  }
+
+  function leerMovimientos() {
+    const tipo = Estado.cierreEditando?.caja?.tipo;
+    const filas = document.querySelectorAll('#tabla-mov-tbody tr');
+    const movs = [];
+    filas.forEach(tr => {
+      const compania_id = tr.dataset.companiaId;
+      if (tipo === 'envios') {
+        movs.push({
+          compania_id,
+          importe_enviado: Number(tr.querySelector('.mov-enviado')?.value || 0),
+          importe_cobrado: Number(tr.querySelector('.mov-cobrado')?.value || 0)
+        });
+      } else if (tipo === 'recargas') {
+        movs.push({
+          compania_id,
+          importe_efectivo: Number(tr.querySelector('.mov-efectivo')?.value || 0),
+          importe_tarjeta: Number(tr.querySelector('.mov-tarjeta')?.value || 0)
+        });
+      } else {
+        movs.push({
+          compania_id,
+          importe_cobrado: Number(tr.querySelector('.mov-cobrado')?.value || 0)
+        });
+      }
+    });
+    return movs;
+  }
+
+  function recalcularResumen() {
+    if (!Estado.cierreEditando) return;
+    const tipo = Estado.cierreEditando.caja.tipo;
+    const movs = leerMovimientos();
+    const saldoInicial = Number($('cierre-saldo-inicial').value || 0);
+
+    document.querySelectorAll('#tabla-mov-tbody tr').forEach((tr, i) => {
+      const m = movs[i];
+      const celda = tr.querySelector('.balance-celda');
+      if (!celda) return;
+      let bal = 0;
+      if (tipo === 'envios') bal = (m.importe_cobrado || 0) - (m.importe_enviado || 0);
+      else if (tipo === 'recargas') bal = (m.importe_efectivo || 0) + (m.importe_tarjeta || 0);
+      else bal = m.importe_cobrado || 0;
+      celda.textContent = eur(bal);
+    });
+
+    let teorico = saldoInicial;
+    let totalEnviado = 0, totalCobrado = 0, totalEfectivo = 0, totalTarjeta = 0;
+    for (const m of movs) {
+      if (tipo === 'envios') {
+        totalEnviado += m.importe_enviado || 0;
+        totalCobrado += m.importe_cobrado || 0;
+        teorico += m.importe_cobrado || 0;
+      } else if (tipo === 'recargas') {
+        totalEfectivo += m.importe_efectivo || 0;
+        totalTarjeta += m.importe_tarjeta || 0;
+        teorico += m.importe_efectivo || 0;
+      }
+    }
+    teorico = Math.round(teorico * 100) / 100;
+
+    const real = Number($('cierre-saldo-real').value || 0);
+    const descuadre = Math.round((real - teorico) * 100) / 100;
+    const okFlag = Math.abs(descuadre) <= 0.5;
+
+    let html = '';
+    if (tipo === 'envios') {
+      html += `<div class="item"><span class="label">Total enviado:</span><span>${eur(totalEnviado)}</span></div>`;
+      html += `<div class="item"><span class="label">Total cobrado:</span><span>${eur(totalCobrado)}</span></div>`;
+    } else if (tipo === 'recargas') {
+      html += `<div class="item"><span class="label">Total efectivo:</span><span>${eur(totalEfectivo)}</span></div>`;
+      html += `<div class="item"><span class="label">Total tarjeta:</span><span>${eur(totalTarjeta)}</span></div>`;
+    }
+    html += `<div class="item"><span class="label">Saldo inicial:</span><span>${eur(saldoInicial)}</span></div>`;
+    html += `<div class="item"><span class="label">Saldo teórico final:</span><span><b>${eur(teorico)}</b></span></div>`;
+    html += `<div class="descuadre-grande ${okFlag ? 'ok' : 'ko'}">
+      ${okFlag ? '✓ Caja cuadrada' : `Descuadre: ${eur(descuadre)}`}
+    </div>`;
+    $('cierre-resumen').innerHTML = html;
+  }
+
+  async function guardarCierre(estado) {
+    if (!Estado.cierreEditando) return;
+    const payload = {
+      caja_id: $('cierre-caja-id').value,
+      fecha: $('cierre-fecha').value,
+      saldo_inicial: Number($('cierre-saldo-inicial').value || 0),
+      saldo_real_final: Number($('cierre-saldo-real').value || 0),
+      cambio_siguiente: Number($('cierre-cambio-siguiente').value || 0),
+      notas: $('cierre-notas').value.trim(),
+      estado,
+      movimientos: leerMovimientos()
+    };
+    try {
+      const r = await api('guardar_cierre', { method: 'POST', body: payload });
+      toast(estado === 'cerrado' ? 'Cierre guardado ✓' : 'Borrador guardado');
+      if (r.estado === 'descuadre') {
+        toast(`⚠ Descuadre de ${eur(r.descuadre)}. Revisa la caja.`, 'error');
+      }
+      cerrarModal('modal-cierre');
+      await cargarCajas();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  function cerrarModal(id) {
+    $(id).classList.remove('activo');
+  }
+
+  // API pública
+  window.Cajas = {
+    renderCajas,
+    cargarCajas,
+    abrirModalNuevaCaja,
+    editarCaja,
+    crearCompania,
+    editarCompania,
+    borrarCompania,
+    guardarCaja,
+    borrarCaja,
+    abrirCierre,
+    guardarCierre,
+    recalcular: recalcularResumen,
+    cerrarModal
+  };
+})();
+</script>
+
 <div class="page" id="pGastos">
   <div class="sec-header" style="margin-bottom:10px">
     <div style="display:flex;align-items:center;gap:8px">
@@ -2791,6 +3660,7 @@ function navTo(id) {
   if (id === 'pStock') renderStock();
   if (id === 'pClis') renderClis();
   if (id === 'pProvs') renderProvs();
+  if (id === 'pCajas') Cajas.renderCajas();
   if (id === 'pGastos') renderGastos();
   if (id === 'pAjustes') { try { renderUbicacionesAjustes(); } catch(e){} }
   if (id === 'pReportes') renderReporte();
