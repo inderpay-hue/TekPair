@@ -215,6 +215,16 @@ export default async function handler(req, res) {
         const tArr = await tR.json();
         const nuevaTiendaId = tArr[0]?.id;
 
+        // Vincular usuario con su tienda (fix bug Wizard)
+        // login.js lee usuarios.tienda_id directamente para crear el JWT
+        if (nuevaTiendaId) {
+          await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(nuevoUserId)}`, {
+            method: 'PATCH',
+            headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+            body: JSON.stringify({ tienda_id: nuevaTiendaId })
+          });
+        }
+
         // Devolver datos al frontend para mostrar credenciales
         return res.json({
           ok: true,
