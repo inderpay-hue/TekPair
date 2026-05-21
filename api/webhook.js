@@ -258,6 +258,10 @@ export default async function handler(req, res) {
               }
             }
 
+            // Cuarentena M+2: comision disponible el dia 1 del mes M+2
+            const _nowD = new Date();
+            const fechaDisponible = new Date(_nowD.getFullYear(), _nowD.getMonth() + 2, 1, 0, 0, 0, 0);
+
             // INSERT en pagos_referidos (idempotente gracias a UNIQUE en stripe_invoice_id)
             const insertR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos`, {
               method: 'POST',
@@ -274,7 +278,9 @@ export default async function handler(req, res) {
                 comision_pct: comisionPct,
                 comision_monto: comisionMonto,
                 periodo_inicio: periodStart ? new Date(periodStart * 1000).toISOString() : null,
-                periodo_fin: periodEnd ? new Date(periodEnd * 1000).toISOString() : null
+                periodo_fin: periodEnd ? new Date(periodEnd * 1000).toISOString() : null,
+                fecha_disponible_cobro: fechaDisponible.toISOString(),
+                estado_comision: 'bloqueada'
               })
             });
             if (insertR.ok) {
@@ -319,6 +325,32 @@ export default async function handler(req, res) {
     <p style="color:#94A3B8;font-size:12px;margin-top:16px">¿Necesitas ayuda? hola@tekpair.tech</p>
   </div>
 </div>`);
+        }
+        break;
+      }
+
+      case 'charge.refunded': {
+        // Anular comisiones referidas a este charge (chargeback/reembolso)
+        try {
+          const charge = event.data.object;
+          const invoiceId = charge.invoice;
+          if (invoiceId) {
+            const upR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?stripe_invoice_id=eq.${encodeURIComponent(invoiceId)}&estado_comision=in.(bloqueada,disponible)`, {
+              method: 'PATCH',
+              headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+              body: JSON.stringify({
+                estado_comision: 'anulada',
+                motivo_anulacion: 'Reembolso/chargeback automatico via webhook Stripe'
+              })
+            });
+            if (upR.ok) {
+              console.log('Comision anulada por refund. Invoice:', invoiceId);
+            } else {
+              console.error('Error anulando comision por refund:', await upR.text());
+            }
+          }
+        } catch (e) {
+          console.error('Error handler charge.refunded:', e);
         }
         break;
       }
