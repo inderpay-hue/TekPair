@@ -285,6 +285,10 @@ export default async function handler(req, res) {
 
   <p style="font-size:14px;line-height:1.6;color:#475569">Accede a tu panel en <a href="https://tekpair.tech/app.html" style="color:#0055FF;text-decoration:none;font-weight:700">tekpair.tech</a> para consultar tus comisiones, clientes captados e historial de cobros.</p>
 
+  <div style="background:#F8FAFC;border-left:3px solid #94A3B8;border-radius:6px;padding:14px;margin-top:20px;font-size:12px;color:#475569;line-height:1.55">
+    <div style="font-weight:700;color:#0F172A;margin-bottom:6px">📋 CONDICIONES DEL PROGRAMA</div>
+    Este acuerdo de colaboración implica un compromiso de captación activa por tu parte. TekPair se reserva el derecho de modificar los porcentajes de comisión, ajustar las condiciones del programa o dar por finalizada la colaboración en caso de inactividad prolongada o si no se cumplen los objetivos de captación acordados. Cualquier cambio se te notificará con antelación razonable.
+  </div>
   <p style="font-size:13px;color:#94A3B8;border-top:1px solid #E2E8F0;padding-top:16px;margin-top:24px">Cualquier duda, escríbenos a <a href="mailto:info@tekpair.tech" style="color:#0055FF">info@tekpair.tech</a>.</p>
   <p style="font-size:13px;color:#94A3B8;margin-top:8px">Un saludo,<br><strong>Equipo TekPair</strong></p>
 </div>
