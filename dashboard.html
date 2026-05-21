@@ -1051,6 +1051,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="stock-tab-btn" data-cat="__low__">⚠️ Stock bajo</button>
   </div>
   <div id="alertasStock"></div>
+  <div id="filtroUbicWrap" style="display:none;margin-bottom:10px">
+    <select id="filtroUbicStock" class="fi" onchange="filtrarUbicStock()" style="max-width:240px">
+      <option value="">📍 Todas las ubicaciones</option>
+    </select>
+  </div>
   <div id="listaStock"></div>
 </div>
 
@@ -1444,6 +1449,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <button type="button" class="btn-secondary" style="padding:11px 12px;font-size:13px" onclick="document.getElementById('importInput').click()">📥 Importar / Restaurar</button>
     </div>
     <input type="file" id="importInput" accept=".zip,.json" style="display:none" onchange="importarBackup(event)">
+
+    <div class="card" id="cardUbicaciones" style="display:none">
+    <div class="card-title">📍 Ubicaciones / Almacenes</div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Define tus ubicaciones (tienda, almacenes...). Después podrás asignar cada producto del stock a una ubicación concreta.</div>
+    <div id="listaUbicaciones" style="margin-bottom:12px"></div>
+    <div style="display:flex;gap:6px">
+      <input type="text" class="fi" id="nuevaUbicacion" placeholder="Nombre (ej. Almacén 1)" style="flex:1" onkeydown="if(event.key===\'Enter\'){event.preventDefault();agregarUbicacion();}">
+      <button type="button" class="btn-primary" style="background:var(--orange);padding:8px 14px" onclick="agregarUbicacion()">+ Añadir</button>
+    </div>
+  </div>
 
     <div style="border-top:1px solid var(--border);padding-top:12px;margin-top:4px">
       <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:8px">Exportar a Excel/CSV</div>
@@ -2035,6 +2050,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="fg"><label class="fl">Stock min</label><input class="fi" id="sMin" type="number" value="2"></div>
     <div class="fg"><label class="fl">Stock max</label><input class="fi" id="sMax" type="number" value="10"></div>
   </div>
+  <div class="fg" id="sUbicWrap" style="display:none">
+    <label class="fl">📍 Ubicación</label>
+    <select class="fi" id="sUbic">
+      <option value="">— Sin ubicación —</option>
+    </select>
+  </div>
 
   <!-- TIPO + GARANTÍA (visible solo si garVenActiva y solo para Telefono/Tablet/Smartwatch) -->
   <div id="sBloqueGarantia" style="display:none;background:var(--bg2);border-radius:10px;padding:12px;margin-top:10px;border:1px solid var(--border)">
@@ -2294,6 +2315,7 @@ var PLAN_FEATURES = {
   top:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
+           'ubicaciones',
            'multi_tienda','soporte_24_7','api_access','onboarding_personal',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados']
@@ -2364,7 +2386,8 @@ function mostrarModalUpgrade(featureName, planRequerido) {
     catalogo_servicios: '🛠️ Catálogo de servicios',
     plantillas_rep: '📋 Plantillas de reparación',
     permisos_usuarios: '👥 Permisos por usuario',
-    multi_tienda: '🏪 Multi-tienda'
+    multi_tienda: '🏪 Multi-tienda',
+    ubicaciones: '📍 Ubicaciones múltiples'
   })[featureName] || featureName;
   var planLabel = ({basico:'Básico', pro:'Pro', top:'Top'})[planRequerido] || planRequerido;
   document.getElementById('upgFeatName').textContent = feat;
@@ -2768,6 +2791,7 @@ function navTo(id) {
   if (id === 'pClis') renderClis();
   if (id === 'pProvs') renderProvs();
   if (id === 'pGastos') renderGastos();
+  if (id === 'pAjustes') { try { renderUbicacionesAjustes(); } catch(e){} }
   if (id === 'pReportes') renderReporte();
   if (id === 'pTienda') cargarTienda();
   if (id === 'pAjustes') cargarAjustes();
@@ -2783,6 +2807,7 @@ function setNavActive(el) {
 
 // ═══ MODALS ═══
 function openM(id) {
+  if (id === 'mStock') { try { renderSelectorUbicacion(); } catch(e){} }
   var el = document.getElementById(id);
   if (el) el.classList.add('open');
 }
@@ -6484,7 +6509,96 @@ function confirmarEntrega() {
 }
 
 // ═══ STOCK ═══
+// ═══ UBICACIONES (plan TOP) ═══
+
+function renderUbicacionesAjustes() {
+  var card = document.getElementById('cardUbicaciones');
+  if (!card) return;
+  if (!tieneFeature('ubicaciones')) { card.style.display = 'none'; return; }
+  card.style.display = '';
+  var list = (TIENDA.ubicaciones || []);
+  var el = document.getElementById('listaUbicaciones');
+  if (!list.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);font-style:italic;padding:8px 0">Aún no has añadido ninguna ubicación.</div>';
+    return;
+  }
+  el.innerHTML = list.map(function(u, i) {
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--bg2);border-radius:6px;margin-bottom:4px">' +
+      '<span style="font-weight:600;font-size:13px">📍 ' + esc(u) + '</span>' +
+      '<button data-uidx="' + i + '" class="btn-del-ubic" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer">🗑️</button>' +
+    '</div>';
+  }).join('');
+  el.querySelectorAll('.btn-del-ubic').forEach(function(btn) {
+    btn.addEventListener('click', function() { borrarUbicacion(parseInt(this.dataset.uidx)); });
+  });
+}
+
+function agregarUbicacion() {
+  if (!checkFeature('ubicaciones')) return;
+  var input = document.getElementById('nuevaUbicacion');
+  var nombre = (input.value || '').trim();
+  if (!nombre) { toast('Escribe un nombre', 'err'); return; }
+  if (nombre.length > 50) { toast('Demasiado largo (máx 50)', 'err'); return; }
+  var lista = (TIENDA.ubicaciones || []).slice();
+  if (lista.some(function(u) { return u.toLowerCase() === nombre.toLowerCase(); })) {
+    toast('Esa ubicación ya existe', 'err');
+    return;
+  }
+  lista.push(nombre);
+  guardarUbicaciones(lista);
+  input.value = '';
+}
+
+function borrarUbicacion(idx) {
+  var lista = (TIENDA.ubicaciones || []).slice();
+  if (idx < 0 || idx >= lista.length) return;
+  var nombre = lista[idx];
+  if (!confirm('¿Borrar "' + nombre + '"?\n\nLos productos que la tenían quedarán sin ubicación asignada.')) return;
+  lista.splice(idx, 1);
+  guardarUbicaciones(lista);
+}
+
+function guardarUbicaciones(lista) {
+  TIENDA.ubicaciones = lista;
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), {ubicaciones: lista});
+  }
+  guardarDatos();
+  renderUbicacionesAjustes();
+  toast('Ubicaciones guardadas', 'ok');
+}
+
+function renderSelectorUbicacion() {
+  var wrap = document.getElementById('sUbicWrap');
+  if (!wrap) return;
+  if (!tieneFeature('ubicaciones')) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  var sel = document.getElementById('sUbic');
+  var lista = (TIENDA.ubicaciones || []);
+  var valActual = sel.value || '';
+  sel.innerHTML = '<option value="">— Sin ubicación —</option>' +
+    lista.map(function(u) { return '<option value="' + esc(u) + '">' + esc(u) + '</option>'; }).join('');
+  if (valActual) sel.value = valActual;
+}
+
+function poblarFiltroUbicStock() {
+  var wrap = document.getElementById('filtroUbicWrap');
+  if (!wrap) return;
+  if (!tieneFeature('ubicaciones')) { wrap.style.display = 'none'; return; }
+  wrap.style.display = '';
+  var sel = document.getElementById('filtroUbicStock');
+  var valActual = sel.value || '';
+  var lista = (TIENDA.ubicaciones || []);
+  sel.innerHTML = '<option value="">📍 Todas las ubicaciones</option>' +
+    lista.map(function(u) { return '<option value="' + esc(u) + '">' + esc(u) + '</option>'; }).join('') +
+    '<option value="__sin__">— Sin ubicación —</option>';
+  if (valActual) sel.value = valActual;
+}
+
+function filtrarUbicStock() { renderStock(); }
+
 function renderStock() {
+  poblarFiltroUbicStock();
   var q = (document.getElementById('busStock').value || '').toLowerCase();
   var activeTab = document.querySelector('.stock-tab-btn.active');
   var cat = activeTab ? activeTab.getAttribute('data-cat') : '';
@@ -6511,13 +6625,27 @@ function renderStock() {
 
   var el = document.getElementById('listaStock');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udce6</div>Sin stock</div>'; return; }
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Producto</th><th>Cat.</th><th>Uds.</th><th>PVP</th><th></th></tr></thead><tbody>';
+  var mostrarUbic = tieneFeature('ubicaciones');
+  var filtroUbic = '';
+  if (mostrarUbic) {
+    var ubicFiltroEl = document.getElementById('filtroUbicStock');
+    if (ubicFiltroEl) filtroUbic = ubicFiltroEl.value || '';
+    if (filtroUbic) {
+      list = list.filter(function(s) {
+        if (filtroUbic === '__sin__') return !s.ubicacion;
+        return s.ubicacion === filtroUbic;
+      });
+    }
+  }
+  var thUbic = mostrarUbic ? '<th>📍</th>' : '';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Producto</th><th>Cat.</th>' + thUbic + '<th>Uds.</th><th>PVP</th><th></th></tr></thead><tbody>';
   list.forEach(function(s) {
     html += '<tr>' +
       '<td><strong>' + s.marca + ' ' + s.modelo + '</strong>' +
       ((s.capacidad || s.color) ? '<br><span style="font-size:9px;color:var(--muted)">' + [s.capacidad, s.color].filter(Boolean).join(' · ') + '</span>' : '') +
       (s.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">IMEI: ' + s.imei + '</span>' : '') + '</td>' +
       '<td><span class="badge bb" style="font-size:9px">' + (s.categoria || '') + '</span></td>' +
+      (mostrarUbic ? '<td>' + (s.ubicacion ? '<span class="badge" style="background:rgba(124,58,237,.10);color:var(--purple);font-size:9px">' + esc(s.ubicacion) + '</span>' : '<span style="color:var(--muted);font-size:10px">—</span>') + '</td>' : '') +
       '<td style="font-weight:700;color:' + (s.unidades <= s.stockMin ? 'var(--orange)' : 'var(--text)') + '">' + s.unidades + '</td>' +
       '<td>' + cur(s.precioV) + '</td>' +
       '<td><button data-sid="' + s.id + '" class="btn-edit-s" style="background:var(--light);border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">\u270f\ufe0f</button>' +
@@ -6613,12 +6741,14 @@ function guardarStock() {
       s.stockMax = parseInt(document.getElementById('sMax').value) || 10;
       s.tipo = stockTipo;
       s.garantiaMeses = stockGarantiaMeses;
+      s.ubicacion = tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : s.ubicacion;
       if (SB_KEY && TIENDA_ID) {
         sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
           categoria: s.categoria, marca: s.marca, modelo: s.modelo,
           capacidad: s.capacidad, color: s.color, imei: s.imei,
           unidades: s.unidades, stock_min: s.stockMin, stock_max: s.stockMax,
-          precio_c: s.precioC, precio_v: s.precioV
+          precio_c: s.precioC, precio_v: s.precioV,
+          ubicacion: s.ubicacion || null
         });
       }
     }
@@ -6638,7 +6768,8 @@ function guardarStock() {
       stockMax: parseInt(document.getElementById('sMax').value) || 10,
       vendido: false, calidad: '',
       tipo: stockTipo,
-      garantiaMeses: stockGarantiaMeses
+      garantiaMeses: stockGarantiaMeses,
+      ubicacion: tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : null
     };
     DB.stock.push(nuevo);
     if (SB_KEY && TIENDA_ID) sbPost('stock', {
@@ -6646,7 +6777,8 @@ function guardarStock() {
       marca:nuevo.marca, modelo:nuevo.modelo, capacidad:nuevo.capacidad,
       color:nuevo.color, imei:nuevo.imei, unidades:nuevo.unidades,
       precio_c:nuevo.precioC, precio_v:nuevo.precioV,
-      stock_min:nuevo.stockMin, stock_max:nuevo.stockMax, vendido:false
+      stock_min:nuevo.stockMin, stock_max:nuevo.stockMax, vendido:false,
+      ubicacion: nuevo.ubicacion || null
     });
   }
   // Reset selección
@@ -6674,6 +6806,11 @@ function editarStock(id) {
   document.getElementById('sPrecioV').value = s.precioV || 0;
   document.getElementById('sMin').value = s.stockMin || 2;
   document.getElementById('sMax').value = s.stockMax || 10;
+  setTimeout(function() {
+    renderSelectorUbicacion();
+    var selU = document.getElementById('sUbic');
+    if (selU) selU.value = s.ubicacion || '';
+  }, 50);
   // Pre-cargar tipo/garantía
   window._stockTipoSel = s.tipo || 'nuevo';
   window._stockGarantiaMeses = s.garantiaMeses || null;
