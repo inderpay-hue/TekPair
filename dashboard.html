@@ -11925,8 +11925,186 @@ function toggleTiendasAfiliado(rowId) {
   if (btn) btn.textContent = open ? '▶' : '▼';
 }
 
+// ═══ Wizard 3 pasos para nuevo afiliado ═══
+window._wizardAfilData = {};
+
 function abrirNuevoAfiliado() {
-  abrirModalAfiliado({});
+  window._wizardAfilData = {};
+  abrirWizardStep(1);
+}
+
+function abrirWizardStep(step) {
+  cerrarWizardAfil();
+  if (step === 1) renderWizardStep1();
+  else if (step === 2) renderWizardStep2();
+  else if (step === 3) renderWizardStep3();
+}
+
+function cerrarWizardAfil() {
+  var m = document.getElementById('mWizAfil');
+  if (m) m.remove();
+}
+
+function _wizardHeader(stepNum) {
+  var pasos = ['Datos comercial', 'Cupón Stripe', 'Activar'];
+  var html = '<div style="background:linear-gradient(135deg,#0055FF,#0EA5E9);color:white;padding:18px 22px">';
+  html += '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.9">NUEVO COMERCIAL · PASO ' + stepNum + ' DE 3</div>';
+  html += '<div style="font-size:18px;font-weight:800;margin-top:4px">' + pasos[stepNum-1] + '</div>';
+  // Progress
+  html += '<div style="display:flex;gap:6px;margin-top:14px">';
+  for (var i=1; i<=3; i++) {
+    var bg = i < stepNum ? 'rgba(255,255,255,.9)' : (i === stepNum ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.3)');
+    html += '<div style="flex:1;height:4px;background:' + bg + ';border-radius:2px"></div>';
+  }
+  html += '</div></div>';
+  return html;
+}
+
+function renderWizardStep1() {
+  var d = window._wizardAfilData;
+  var html = '<div id="mWizAfil" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">' +
+    '<div style="background:white;max-width:500px;width:100%;border-radius:14px;overflow:hidden">' +
+      _wizardHeader(1) +
+      '<div style="padding:20px 22px">' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Nombre completo *</label>' +
+        '<input type="text" id="wzNombre" value="' + (d.nombre || '') + '" placeholder="Nombre Apellidos" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px">' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Email *</label>' +
+        '<input type="email" id="wzEmail" value="' + (d.email || '') + '" placeholder="comercial@email.com" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px">' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Codigo afiliado *</label>' +
+        '<input type="text" id="wzCodigo" value="' + (d.codigo || '') + '" placeholder="DEMBA, PEDRO..." style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px;text-transform:uppercase;font-family:monospace">' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Comision (%) *</label>' +
+        '<input type="number" id="wzPct" value="' + (d.comision_pct || 20) + '" min="0" max="100" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:14px">' +
+        '<div style="background:#EFF6FF;border-radius:8px;padding:12px;font-size:12px;color:#1E40AF;line-height:1.5">Al continuar se creara la cuenta TekPair del comercial con plan TOP vitalicio gratuito. La contraseña se genera automaticamente.</div>' +
+      '</div>' +
+      '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
+        '<button onclick="cerrarWizardAfil()" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">Cancelar</button>' +
+        '<button onclick="wizardStep1Submit()" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--blue);color:white;cursor:pointer;font-weight:700;font-size:13px">Crear cuenta &rarr;</button>' +
+      '</div>' +
+    '</div></div>';
+  var w = document.createElement('div'); w.innerHTML = html;
+  while (w.firstChild) document.body.appendChild(w.firstChild);
+}
+
+async function wizardStep1Submit() {
+  var d = window._wizardAfilData;
+  d.nombre = (document.getElementById('wzNombre').value || '').trim();
+  d.email = (document.getElementById('wzEmail').value || '').trim().toLowerCase();
+  d.codigo = (document.getElementById('wzCodigo').value || '').trim().toUpperCase();
+  d.comision_pct = parseInt(document.getElementById('wzPct').value) || 20;
+  if (!d.nombre || !d.email || !d.codigo) { alert('Nombre, email y código son obligatorios'); return; }
+  if (d.comision_pct < 0 || d.comision_pct > 100) { alert('Comisión entre 0 y 100'); return; }
+  try {
+    var r = await fetch('/api/comisiones', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'crear_cuenta_comercial',
+        codigo: d.codigo, nombre: d.nombre, email: d.email, comision_pct: d.comision_pct
+      })
+    });
+    var data = await r.json();
+    if (!data.ok) { alert('Error: ' + (data.error || 'desconocido')); return; }
+    // Guardar datos de la cuenta creada
+    d.user_id = data.user_id;
+    d.tienda_id = data.tienda_id;
+    d.password = data.password;
+    abrirWizardStep(2);
+  } catch (e) { alert('Error de conexion: ' + e.message); }
+}
+
+function renderWizardStep2() {
+  var d = window._wizardAfilData;
+  var html = '<div id="mWizAfil" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">' +
+    '<div style="background:white;max-width:540px;width:100%;border-radius:14px;overflow:hidden;max-height:90vh;overflow-y:auto">' +
+      _wizardHeader(2) +
+      '<div style="padding:20px 22px">' +
+        '<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:14px;margin-bottom:18px">' +
+          '<div style="font-size:11px;font-weight:700;color:#10B981;letter-spacing:1px;margin-bottom:8px">CUENTA CREADA</div>' +
+          '<div style="font-size:13px;color:#475569;margin-bottom:4px"><strong>Email:</strong> ' + d.email + '</div>' +
+          '<div style="font-size:13px;color:#475569"><strong>Contraseña:</strong> <span style="font-family:monospace;background:#FEF3C7;padding:2px 8px;border-radius:4px">' + d.password + '</span></div>' +
+        '</div>' +
+        '<div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:10px">Ahora crea el cupon en Stripe:</div>' +
+        '<ol style="font-size:13px;color:#475569;line-height:1.7;padding-left:20px;margin:0 0 16px">' +
+          '<li>Abre <a href="https://dashboard.stripe.com/coupons" target="_blank" style="color:#0055FF;font-weight:700">dashboard.stripe.com/coupons</a></li>' +
+          '<li>Pulsa <strong>"+ Nuevo cupón"</strong></li>' +
+          '<li>Configura:' +
+            '<div style="background:#F8FAFC;border-radius:6px;padding:10px;margin:8px 0;font-family:monospace;font-size:12px">' +
+              'Codigo del cupon: <strong style="color:#0055FF">' + d.codigo + '</strong><br>' +
+              'Tipo: <strong>Porcentaje</strong><br>' +
+              'Descuento: <strong>50%</strong><br>' +
+              'Duracion: <strong>Repeating · 3 meses</strong><br>' +
+              'Canjes maximos: <strong>200</strong>' +
+            '</div>' +
+          '</li>' +
+          '<li>Guarda el cupón en Stripe</li>' +
+        '</ol>' +
+        '<div style="background:#FEF3C7;border-radius:8px;padding:12px;font-size:12px;color:#92400E">Sin este paso, el codigo del comercial no funcionara cuando un cliente lo use.</div>' +
+      '</div>' +
+      '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
+        '<button onclick="abrirWizardStep(1)" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">&larr; Volver</button>' +
+        '<button onclick="abrirWizardStep(3)" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--green);color:white;cursor:pointer;font-weight:700;font-size:13px">Cupon creado, siguiente &rarr;</button>' +
+      '</div>' +
+    '</div></div>';
+  var w = document.createElement('div'); w.innerHTML = html;
+  while (w.firstChild) document.body.appendChild(w.firstChild);
+}
+
+function renderWizardStep3() {
+  var d = window._wizardAfilData;
+  var html = '<div id="mWizAfil" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">' +
+    '<div style="background:white;max-width:500px;width:100%;border-radius:14px;overflow:hidden">' +
+      _wizardHeader(3) +
+      '<div style="padding:20px 22px">' +
+        '<div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:12px">Resumen del comercial:</div>' +
+        '<div style="background:#F8FAFC;border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:#475569;line-height:1.7">' +
+          '<div><strong>Nombre:</strong> ' + d.nombre + '</div>' +
+          '<div><strong>Email:</strong> ' + d.email + '</div>' +
+          '<div><strong>Codigo:</strong> <span style="font-family:monospace;background:#EFF6FF;color:#0055FF;padding:2px 8px;border-radius:4px;font-weight:700">' + d.codigo + '</span></div>' +
+          '<div><strong>Comision:</strong> ' + d.comision_pct + '% sobre base imponible</div>' +
+          '<div><strong>Plan TekPair:</strong> TOP vitalicio</div>' +
+        '</div>' +
+        '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#475569;cursor:pointer;padding:10px;background:#F8FAFC;border-radius:8px;margin-bottom:14px">' +
+          '<input type="checkbox" id="wzEnviarEmail" checked style="width:18px;height:18px">' +
+          '<span>Enviar email automatico al comercial con sus credenciales y codigo</span>' +
+        '</label>' +
+        '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:12px;font-size:13px;color:#065F46">Al activar, el comercial podra acceder a TekPair y su codigo empezara a generar comisiones cuando un cliente lo use.</div>' +
+      '</div>' +
+      '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
+        '<button onclick="abrirWizardStep(2)" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">&larr; Volver</button>' +
+        '<button onclick="wizardActivar()" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--green);color:white;cursor:pointer;font-weight:700;font-size:13px">&check; Activar comercial</button>' +
+      '</div>' +
+    '</div></div>';
+  var w = document.createElement('div'); w.innerHTML = html;
+  while (w.firstChild) document.body.appendChild(w.firstChild);
+}
+
+async function wizardActivar() {
+  var d = window._wizardAfilData;
+  var enviarEmail = document.getElementById('wzEnviarEmail').checked;
+  try {
+    var r = await fetch('/api/comisiones', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'crear_afiliado',
+        codigo: d.codigo, nombre: d.nombre, email: d.email,
+        comision_pct: d.comision_pct,
+        tienda_id_comercial: d.tienda_id,
+        password_plano: d.password,
+        enviar_email: enviarEmail
+      })
+    });
+    var data = await r.json();
+    if (data.ok) {
+      cerrarWizardAfil();
+      var msg = 'Comercial ' + d.codigo + ' activado correctamente';
+      if (enviarEmail) msg += '\n\n' + (data.email_enviado ? 'Email enviado a ' + d.email : 'Aviso: email no enviado, comunica las credenciales a mano');
+      alert(msg);
+      cargarComisiones();
+    } else {
+      alert('Error: ' + (data.error || 'desconocido'));
+    }
+  } catch (e) { alert('Error de conexion: ' + e.message); }
 }
 
 function abrirEditarAfiliado(afiliado) {
