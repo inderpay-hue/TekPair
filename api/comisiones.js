@@ -147,28 +147,166 @@ export default async function handler(req, res) {
         return res.json({ ok: true, codigo: body.codigo, marcados: ids.length, justificante_numero: justificante, fecha_pago: fechaPago });
       }
 
-      // ═══ Crear afiliado ═══
-      if (action === 'crear_afiliado') {
+      // ═══ Crear cuenta del comercial (Paso 1 del wizard) ═══
+      if (action === 'crear_cuenta_comercial') {
         const { codigo, nombre, email, comision_pct } = body;
+        if (!codigo || !nombre || !email) return res.status(400).json({ error: 'Faltan datos obligatorios' });
+
+        const codigoNorm = codigo.toUpperCase().trim();
+        const emailNorm = email.toLowerCase().trim();
+
+        // Verificar codigo unico en afiliados
+        const dupAfR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigoNorm)}&select=codigo&limit=1`, { headers: sbHeaders });
+        const dupAf = await dupAfR.json();
+        if (dupAf.length) return res.status(400).json({ error: 'Ese codigo de afiliado ya existe' });
+
+        // Verificar email unico en usuarios
+        const dupUR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(emailNorm)}&select=email&limit=1`, { headers: sbHeaders });
+        const dupU = await dupUR.json();
+        if (dupU.length) return res.status(400).json({ error: 'Ese email ya tiene cuenta en TekPair' });
+
+        // Generar password: codigo en minusculas + año actual
+        const year = new Date().getFullYear();
+        const passwordPlano = codigoNorm.toLowerCase() + year;
+        // Hash sha256 sin salt (igual que register.js)
+        const crypto = await import('crypto');
+        const passwordHash = crypto.createHash('sha256').update(passwordPlano).digest('hex');
+
+        // 1. Crear usuario
+        const uR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
+          method: 'POST',
+          headers: {...sbHeaders, 'Prefer': 'return=representation'},
+          body: JSON.stringify({
+            nombre: nombre.trim(),
+            email: emailNorm,
+            password_hash: passwordHash,
+            activo: true
+          })
+        });
+        if (!uR.ok) {
+          const t = await uR.text();
+          return res.status(500).json({ error: 'Error creando usuario: ' + t });
+        }
+        const uArr = await uR.json();
+        const nuevoUserId = uArr[0]?.id;
+        if (!nuevoUserId) return res.status(500).json({ error: 'Usuario creado sin ID' });
+
+        // 2. Crear tienda con plan TOP vitalicio
+        const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas`, {
+          method: 'POST',
+          headers: {...sbHeaders, 'Prefer': 'return=representation'},
+          body: JSON.stringify({
+            usuario_id: nuevoUserId,
+            nombre: codigoNorm + ' - Comercial',
+            plan: 'top',
+            plan_status: 'active',
+            plan_until: '2099-12-31T23:59:59Z'
+          })
+        });
+        if (!tR.ok) {
+          // Rollback: borrar usuario
+          await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(nuevoUserId)}`, {
+            method: 'DELETE',
+            headers: sbHeaders
+          });
+          const t = await tR.text();
+          return res.status(500).json({ error: 'Error creando tienda (revertido): ' + t });
+        }
+        const tArr = await tR.json();
+        const nuevaTiendaId = tArr[0]?.id;
+
+        // Devolver datos al frontend para mostrar credenciales
+        return res.json({
+          ok: true,
+          user_id: nuevoUserId,
+          tienda_id: nuevaTiendaId,
+          email: emailNorm,
+          password: passwordPlano,
+          codigo: codigoNorm,
+          nombre: nombre.trim(),
+          comision_pct: parseInt(comision_pct) || 20
+        });
+      }
+
+      // ═══ Crear afiliado (también desde Paso 3 del wizard) ═══
+      if (action === 'crear_afiliado') {
+        const { codigo, nombre, email, comision_pct, tienda_id_comercial, password_plano, enviar_email } = body;
         if (!codigo || !nombre || !email) return res.status(400).json({ error: 'Faltan datos' });
+
+        const codigoNorm = codigo.toUpperCase().trim();
+        const emailNorm = email.toLowerCase().trim();
+        const tiendaAfiliado = tienda_id_comercial || tiendaId;
+
         // Verificar codigo unico
-        const existR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigo)}&select=codigo&limit=1`, { headers: sbHeaders });
+        const existR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigoNorm)}&select=codigo&limit=1`, { headers: sbHeaders });
         const existArr = await existR.json();
         if (existArr.length) return res.status(400).json({ error: 'Ese codigo ya existe' });
+
         const inR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados`, {
           method: 'POST',
           headers: {...sbHeaders, 'Prefer': 'return=minimal'},
           body: JSON.stringify({
-            codigo: codigo.toUpperCase().trim(),
+            codigo: codigoNorm,
             nombre: nombre.trim(),
-            email: email.toLowerCase().trim(),
+            email: emailNorm,
             comision_pct: parseInt(comision_pct) || 20,
             activo: true,
-            tienda_id: tiendaId
+            tienda_id: tiendaAfiliado
           })
         });
         if (!inR.ok) return res.status(500).json({ error: 'Error creando: ' + await inR.text() });
-        return res.json({ ok: true });
+
+        // Enviar email de bienvenida si se solicita
+        let emailEnviado = false;
+        if (enviar_email && password_plano) {
+          const RESEND_KEY = process.env.RESEND_API_KEY;
+          if (RESEND_KEY) {
+            const subject = 'Bienvenido al programa de afiliados de TekPair';
+            const htmlBody = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:-apple-system,Arial,sans-serif;max-width:580px;margin:0 auto;padding:24px;color:#0F172A">
+<div style="background:linear-gradient(135deg,#0055FF,#10B981);color:white;padding:24px;border-radius:14px 14px 0 0">
+  <div style="font-size:11px;font-weight:700;letter-spacing:1px;opacity:.9">PROGRAMA DE AFILIADOS</div>
+  <h1 style="margin:8px 0 0;font-size:26px;font-weight:800">Bienvenido al equipo, ${nombre.trim().split(' ')[0]}</h1>
+</div>
+<div style="background:white;border:1px solid #E2E8F0;border-top:none;padding:24px;border-radius:0 0 14px 14px">
+  <p style="font-size:15px;line-height:1.6;color:#475569">Has sido dado de alta como comercial afiliado de <strong>TekPair</strong>. A partir de ahora, cada cliente que captes con tu código te dará una comisión recurrente.</p>
+
+  <div style="background:#F8FAFC;border-radius:10px;padding:16px;margin:20px 0">
+    <div style="font-size:11px;font-weight:700;color:#64748B;letter-spacing:1px;margin-bottom:10px">TUS CREDENCIALES DE ACCESO</div>
+    <div style="margin-bottom:8px"><strong style="color:#64748B;font-size:13px;display:inline-block;width:90px">Email:</strong> <span style="font-family:monospace;font-size:14px">${emailNorm}</span></div>
+    <div><strong style="color:#64748B;font-size:13px;display:inline-block;width:90px">Contraseña:</strong> <span style="font-family:monospace;font-size:14px;background:#FEF3C7;padding:2px 8px;border-radius:4px">${password_plano}</span></div>
+    <div style="font-size:12px;color:#94A3B8;margin-top:12px">Te recomendamos cambiar la contraseña al primer inicio de sesión.</div>
+  </div>
+
+  <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:16px;margin:20px 0">
+    <div style="font-size:11px;font-weight:700;color:#10B981;letter-spacing:1px;margin-bottom:10px">TU CÓDIGO DE AFILIADO</div>
+    <div style="font-size:28px;font-weight:800;color:#0F172A;letter-spacing:2px;font-family:monospace">${codigoNorm}</div>
+    <div style="font-size:13px;color:#475569;margin-top:8px">Cuando un cliente lo use al suscribirse a TekPair, recibe 50% descuento durante 3 meses y tú cobras el <strong>${parseInt(comision_pct) || 20}%</strong> de comisión recurrente sobre cada pago.</div>
+  </div>
+
+  <p style="font-size:14px;line-height:1.6;color:#475569">Accede a tu panel en <a href="https://tekpair.tech/app.html" style="color:#0055FF;text-decoration:none;font-weight:700">tekpair.tech</a> para consultar tus comisiones, clientes captados e historial de cobros.</p>
+
+  <p style="font-size:13px;color:#94A3B8;border-top:1px solid #E2E8F0;padding-top:16px;margin-top:24px">Cualquier duda, escríbenos a <a href="mailto:info@tekpair.tech" style="color:#0055FF">info@tekpair.tech</a>.</p>
+  <p style="font-size:13px;color:#94A3B8;margin-top:8px">Un saludo,<br><strong>Equipo TekPair</strong></p>
+</div>
+</body></html>`;
+            try {
+              const sendR = await fetch('https://api.resend.com/emails', {
+                method: 'POST',
+                headers: { 'Authorization': 'Bearer ' + RESEND_KEY, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  from: 'TekPair <info@tekpair.tech>',
+                  to: [emailNorm],
+                  subject: subject,
+                  html: htmlBody
+                })
+              });
+              emailEnviado = sendR.ok;
+              if (!sendR.ok) console.error('Error enviando email:', await sendR.text());
+            } catch (e) { console.error('Excepcion email:', e); }
+          }
+        }
+
+        return res.json({ ok: true, email_enviado: emailEnviado });
       }
 
       // ═══ Editar afiliado ═══
