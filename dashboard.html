@@ -11923,46 +11923,98 @@ function toggleTiendasAfiliado(rowId) {
   if (btn) btn.textContent = open ? '▶' : '▼';
 }
 
-async function marcarPagado(pagoId, monto) {
-  if (!confirm('¿Marcar esta comisión de ' + eurFmt(monto) + ' como PAGADA?\n\nSolo hazlo después de haber transferido el dinero al afiliado.')) return;
-
-  try {
-    var r = await fetch('/api/comisiones', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'marcar_pagado', ids: [pagoId] })
-    });
-    var data = await r.json();
-    if (data.ok) {
-      alert('✓ Comisión marcada como pagada');
-      cargarComisiones();
-    } else {
-      alert('Error: ' + (data.error || 'desconocido'));
-    }
-  } catch (e) {
-    alert('Error de conexión: ' + e.message);
+function badgeEstadoComision(estado, fechaDisp) {
+  if (estado === 'pagada') return '<span style="color:var(--green);font-weight:700;font-size:11px">Pagada</span>';
+  if (estado === 'anulada') return '<span style="color:var(--red);font-weight:700;font-size:11px">Anulada</span>';
+  if (estado === 'disponible') return '<span style="color:#F97316;font-weight:700;font-size:11px">Disponible</span>';
+  if (estado === 'bloqueada') {
+    var hint = fechaDisp ? ' (' + fmtFecha(fechaDisp) + ')' : '';
+    return '<span style="color:var(--muted);font-weight:600;font-size:11px" title="Disponible desde ' + (fechaDisp ? fmtFecha(fechaDisp) : '?') + '">Bloqueada' + hint + '</span>';
   }
+  return '<span style="color:var(--muted);font-size:11px">' + (estado || '-') + '</span>';
+}
+
+function abrirModalPago(opciones) {
+  var hoy = new Date().toISOString().slice(0,10);
+  var html = '<div id="mPagoCom" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">' +
+    '<div style="background:white;max-width:440px;width:100%;border-radius:14px;overflow:hidden">' +
+      '<div style="background:linear-gradient(135deg,#10B981,#059669);color:white;padding:18px 22px">' +
+        '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.9">REGISTRAR PAGO</div>' +
+        '<div style="font-size:18px;font-weight:800;margin-top:4px">Comision a ' + opciones.codigo + '</div>' +
+        '<div style="font-size:24px;font-weight:800;margin-top:8px">' + eurFmt(opciones.monto) + '</div>' +
+      '</div>' +
+      '<div style="padding:20px 22px">' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:6px">Fecha de la transferencia *</label>' +
+        '<input type="date" id="inpFechaPago" value="' + hoy + '" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:14px">' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:6px">Notas (opcional)</label>' +
+        '<input type="text" id="inpNotasPago" placeholder="Bizum / Transferencia / Num ref..." style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:13px;margin-bottom:14px">' +
+        '<div style="background:#FEF3C7;border-radius:8px;padding:10px 12px;font-size:12px;color:#92400E">Solo confirma si ya transferiste el dinero. Se generara justificante en PDF.</div>' +
+      '</div>' +
+      '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
+        '<button onclick="cerrarModalPago()" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">Cancelar</button>' +
+        '<button id="btnConfirmarPago" style="flex:1;padding:11px;border-radius:8px;border:none;background:var(--green);color:white;cursor:pointer;font-weight:700;font-size:13px">Confirmar pago</button>' +
+      '</div>' +
+    '</div></div>';
+  var w = document.createElement('div');
+  w.innerHTML = html;
+  while (w.firstChild) document.body.appendChild(w.firstChild);
+  document.getElementById('btnConfirmarPago').onclick = function() {
+    var fecha = document.getElementById('inpFechaPago').value;
+    if (!fecha) { alert('Fecha obligatoria'); return; }
+    cerrarModalPago();
+    opciones.callback({ fecha_pago: new Date(fecha + 'T12:00:00').toISOString() });
+  };
+}
+
+function cerrarModalPago() {
+  var m = document.getElementById('mPagoCom');
+  if (m) m.remove();
+}
+
+async function marcarPagado(pagoId, monto, codigo) {
+  abrirModalPago({
+    codigo: codigo || 'comercial',
+    monto: monto,
+    callback: async function(opts) {
+      try {
+        var r = await fetch('/api/comisiones', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'marcar_pagado', ids: [pagoId], fecha_pago: opts.fecha_pago })
+        });
+        var data = await r.json();
+        if (data.ok) {
+          alert('Comision marcada como pagada\n\nJustificante: ' + data.justificante_numero);
+          cargarComisiones();
+        } else {
+          alert('Error: ' + (data.error || 'desconocido'));
+        }
+      } catch (e) { alert('Error de conexion: ' + e.message); }
+    }
+  });
 }
 
 async function marcarTodoPagado(codigo, montoTotal) {
-  if (!confirm('¿Marcar TODAS las comisiones pendientes del código ' + codigo + ' como PAGADAS?\n\nTotal: ' + eurFmt(montoTotal) + '\n\nSolo hazlo después de haber transferido el dinero.')) return;
-
-  try {
-    var r = await fetch('/api/comisiones', {
-      method: 'POST',
-      headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'marcar_codigo_pagado', codigo: codigo })
-    });
-    var data = await r.json();
-    if (data.ok) {
-      alert('✓ Todas las comisiones de ' + codigo + ' marcadas como pagadas');
-      cargarComisiones();
-    } else {
-      alert('Error: ' + (data.error || 'desconocido'));
+  abrirModalPago({
+    codigo: codigo,
+    monto: montoTotal,
+    callback: async function(opts) {
+      try {
+        var r = await fetch('/api/comisiones', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'marcar_codigo_pagado', codigo: codigo, fecha_pago: opts.fecha_pago })
+        });
+        var data = await r.json();
+        if (data.ok) {
+          alert('Todas las comisiones de ' + codigo + ' marcadas como pagadas\n\nJustificante: ' + data.justificante_numero);
+          cargarComisiones();
+        } else {
+          alert('Error: ' + (data.error || 'desconocido'));
+        }
+      } catch (e) { alert('Error de conexion: ' + e.message); }
     }
-  } catch (e) {
-    alert('Error de conexión: ' + e.message);
-  }
+  });
 }
 
 function eurFmt(n) {
@@ -12059,12 +12111,20 @@ function renderComisionesAdmin(data) {
     html += '<div style="padding:20px;color:var(--muted);text-align:center">No hay pagos registrados todavía</div>';
   } else {
     html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">';
-    html += '<thead><tr style="background:#F8FAFC"><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Fecha</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Código</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Pagado</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">%</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Comisión</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Estado</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Acción</th></tr></thead><tbody>';
+    html += '<thead><tr style="background:#F8FAFC"><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Fecha cobro</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Codigo</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Cliente pago</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">%</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Comision</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Estado</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Fecha pago</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Accion</th></tr></thead><tbody>';
     data.pagos.forEach(function(p) {
-      var accionHTML = p.comision_pagada
-        ? '<td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9;color:var(--muted);font-size:11px">—</td>'
-        : '<td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9"><button onclick="marcarPagado(' + p.id + ', ' + p.comision_monto + ')" style="background:var(--green);color:white;border:none;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer">Pagar</button></td>';
-      html += '<tr><td style="padding:8px;border-bottom:1px solid #F1F5F9">' + fmtFecha(p.created_at) + '</td><td style="padding:8px;border-bottom:1px solid #F1F5F9"><strong>' + (p.codigo_referido || '-') + '</strong></td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9">' + eurFmt(p.monto_neto) + '</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9">' + (p.comision_pct || 0) + '%</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9;font-weight:700">' + eurFmt(p.comision_monto) + '</td><td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9">' + (p.comision_pagada ? '<span style="color:var(--green)">✓ Pagado</span>' : '<span style="color:#F97316">Pendiente</span>') + '</td>' + accionHTML + '</tr>';
+      var codigoSafe = (p.codigo_referido || '').replace(/'/g, "\\'");
+      var accionHTML;
+      if (p.estado_comision === 'disponible') {
+        accionHTML = '<td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9"><button onclick="marcarPagado(' + p.id + ', ' + p.comision_monto + ', \'' + codigoSafe + '\')" style="background:var(--green);color:white;border:none;padding:5px 10px;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer">Pagar</button></td>';
+      } else {
+        accionHTML = '<td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9;color:var(--muted);font-size:11px">-</td>';
+      }
+      var fechaPagoHTML = p.fecha_pago
+        ? '<td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9;font-size:11px;color:var(--green);font-weight:600">' + fmtFecha(p.fecha_pago) + '</td>'
+        : '<td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9;color:var(--muted);font-size:11px">-</td>';
+      var justifHTML = p.justificante_numero ? '<div style="font-size:9px;color:var(--muted);font-family:monospace">' + p.justificante_numero + '</div>' : '';
+      html += '<tr><td style="padding:8px;border-bottom:1px solid #F1F5F9">' + fmtFecha(p.created_at) + '</td><td style="padding:8px;border-bottom:1px solid #F1F5F9"><strong>' + (p.codigo_referido || '-') + '</strong></td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9">' + eurFmt(p.monto_neto) + '</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9">' + (p.comision_pct || 0) + '%</td><td style="padding:8px;text-align:right;border-bottom:1px solid #F1F5F9;font-weight:700">' + eurFmt(p.comision_monto) + '</td><td style="padding:8px;text-align:center;border-bottom:1px solid #F1F5F9">' + badgeEstadoComision(p.estado_comision, p.fecha_disponible_cobro) + justifHTML + '</td>' + fechaPagoHTML + accionHTML + '</tr>';
     });
     html += '</tbody></table></div>';
   }
