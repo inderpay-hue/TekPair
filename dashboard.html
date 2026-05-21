@@ -2350,10 +2350,10 @@ function planDiasRestantes() {
 async function refrescarPlan() {
   if (!PLAN_INFO.token) return;
   try {
-    var r = await fetch('/api/me', {
+    var r = await fetch('/api/login', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({token: PLAN_INFO.token})
+      body: JSON.stringify({action: 'me', token: PLAN_INFO.token})
     });
     var data = await r.json();
     if (data.ok) {
@@ -2504,7 +2504,7 @@ async function abrirStripePortal() {
     var r = await fetch('/api/portal', {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({token: PLAN_INFO.token})
+      body: JSON.stringify({action: 'me', token: PLAN_INFO.token})
     });
     var data = await r.json();
     if (data.ok && data.url) {

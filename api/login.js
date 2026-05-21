@@ -1,12 +1,18 @@
 // api/login.js
-// Login con email + password. Devuelve JWT firmado con tienda_id como claim.
-// VERSIÓN PRO: NO devuelve SERVICE_KEY al frontend (más seguro)
+// =====================================================
+// Endpoint multi-acción para sesión y cuenta de usuario.
+// Acciones soportadas en req.body.action:
+//   - 'cambiar-password' : cambia contraseña (usuario logueado)
+//   - 'solicitar-reset'  : genera token de recuperación + email
+//   - 'reset'            : restablece contraseña usando token
+//   - 'me'               : devuelve plan/estado actuales (antes /api/me)
+//   - (sin action)       : login con email + password (devuelve JWT)
 //
-// Además del login, este endpoint maneja acciones de cuenta vía req.body.action:
-//   - 'cambiar-password' : cambia la contraseña de un usuario logueado.
-//   - 'solicitar-reset'  : genera token de recuperación y envía email.
-//   - 'reset'            : restablece la contraseña usando el token.
-// (Se agrupa aquí para no superar el límite de 12 funciones de Vercel Hobby.)
+// CAMBIOS v2 (22/05/2026):
+//   - Fusionado api/me.js como ?action=me (libera 1 slot Vercel)
+//   - JWT firmado ahora incluye email + rol además de tienda_id
+//     (necesario para chequeos de admin en /api/cajas y otros)
+// =====================================================
 
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
@@ -55,13 +61,78 @@ async function enviarEmailReset(email, nombre, enlace) {
 }
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') return res.status(405).end();
-
   const SB_URL = process.env.SUPABASE_URL;
   const SK = process.env.SUPABASE_SERVICE_KEY;
-  const action = req.body && req.body.action;
 
-  // ───────── Acción: cambiar contraseña (usuario logueado) ─────────
+  // ───────── Acción: me (antes /api/me) ─────────
+  // Acepta GET o POST. Token desde Authorization o body.token
+  const actionQuery = req.query?.action;
+  const actionBody = req.body?.action;
+  const action = actionBody || actionQuery;
+
+  if (action === 'me') {
+    if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end();
+
+    const token = (req.body && req.body.token) || req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'No token' });
+
+    if (!SB_URL || !SK) {
+      return res.status(500).json({ error: 'Configuración de servidor incompleta' });
+    }
+
+    try {
+      // 1. Validar sesión
+      const sR = await fetch(`${SB_URL}/rest/v1/sesiones?token=eq.${encodeURIComponent(token)}&select=usuario_id,tienda_id,expires_at&limit=1`, {
+        headers: {'apikey': SK, 'Authorization': `Bearer ${SK}`}
+      });
+      const sesiones = await sR.json();
+      if (!sesiones.length) return res.status(401).json({ error: 'Sesión inválida' });
+      const sess = sesiones[0];
+      if (sess.expires_at && new Date(sess.expires_at) < new Date()) {
+        return res.status(401).json({ error: 'Sesión caducada' });
+      }
+
+      // 2. Cargar tienda completa con plan
+      const tR = await fetch(`${SB_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(sess.tienda_id)}&select=*`, {
+        headers: {'apikey': SK, 'Authorization': `Bearer ${SK}`}
+      });
+      const tiendas = await tR.json();
+      if (!tiendas.length) return res.status(404).json({ error: 'Tienda no encontrada' });
+      const t = tiendas[0];
+
+      // 3. Calcular días restantes de trial / próximo cobro
+      let diasRestantes = null;
+      if (t.plan_status === 'trial' && t.trial_until) {
+        const ms = new Date(t.trial_until) - new Date();
+        diasRestantes = Math.max(0, Math.floor(ms / 86400000));
+      } else if (t.plan_until) {
+        const ms = new Date(t.plan_until) - new Date();
+        diasRestantes = Math.max(0, Math.floor(ms / 86400000));
+      }
+
+      return res.json({
+        ok: true,
+        plan: t.plan || 'basico',
+        plan_status: t.plan_status || 'trial',
+        plan_until: t.plan_until,
+        trial_until: t.trial_until,
+        dias_restantes: diasRestantes,
+        tiene_stripe: !!t.stripe_customer_id,
+        tienda_id: t.id,
+        tienda_nombre: t.nombre
+      });
+
+    } catch(e) {
+      console.error('Me error:', e);
+      return res.status(500).json({ error: 'Error del servidor' });
+    }
+  }
+
+
+  // El resto de acciones requieren POST
+  if (req.method !== 'POST') return res.status(405).end();
+
+  // ───────── Acción: cambiar contraseña ─────────
   if (action === 'cambiar-password') {
     const { email: cpEmail, password_actual, password_nueva } = req.body;
 
@@ -218,7 +289,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Buscar usuario activo por email (usa SERVICE_KEY server-side, nunca expuesta)
+    // 1. Buscar usuario activo por email
     const r = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&activo=eq.true&select=*`, {
       headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
     });
@@ -272,13 +343,16 @@ export default async function handler(req, res) {
       })
     });
 
-    // 7. Generar JWT firmado con tienda_id (esto es lo que valida RLS)
+    // 7. Generar JWT firmado con claims completos (tienda_id + email + rol)
+    //    Necesarios para chequeos en endpoints como /api/cajas
     const expSeconds = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60); // 30 días
     const userJWT = jwt.sign(
       {
         sub: u.id,
         tienda_id: u.tienda_id,
-        role: 'authenticated',
+        email: u.email,
+        rol: u.rol || 'empleado',
+        role: 'authenticated',      // requerido por Supabase RLS
         aud: 'authenticated',
         iss: 'tekpair',
         iat: Math.floor(Date.now() / 1000),
