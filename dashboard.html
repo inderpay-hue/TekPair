@@ -12432,8 +12432,9 @@ function _ofrecerAbonoFactura(origenTipo, origenId) {
 }
 // ═══ /FACTURAS ═══
 
-// ═══ BANNER NOVEDADES MAYO 2026 ═══
+// ═══ BANNER NOVEDADES MAYO 2026 (DESACTIVADO) ═══
 setTimeout(function() {
+  return; // DESACTIVADO - quita esta linea para reactivar
   try {
     if (localStorage.getItem('tk_novedades_20may2026')) return;
     if (typeof DB === 'undefined' || !DB.ventas) return;
