@@ -11914,6 +11914,15 @@ async function cargarComisiones() {
   }
 }
 
+function toggleTiendasAfiliado(rowId) {
+  var row = document.getElementById(rowId);
+  if (!row) return;
+  var btn = document.getElementById('btn' + rowId.substr(4));  // afilTd0 -> Td0
+  var open = row.style.display !== 'none';
+  row.style.display = open ? 'none' : 'table-row';
+  if (btn) btn.textContent = open ? '▶' : '▼';
+}
+
 async function marcarPagado(pagoId, monto) {
   if (!confirm('¿Marcar esta comisión de ' + eurFmt(monto) + ' como PAGADA?\n\nSolo hazlo después de haber transferido el dinero al afiliado.')) return;
 
@@ -11997,22 +12006,48 @@ function renderComisionesAdmin(data) {
     html += '<th style="padding:10px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted);background:rgba(249,115,22,.06)">Pendiente</th>';
     html += '<th style="padding:10px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Acción</th>';
     html += '</tr></thead><tbody>';
-    data.afiliados.forEach(function(a) {
+    data.afiliados.forEach(function(a, idx) {
+      var tieneTiendas = a.tiendas_detalle && a.tiendas_detalle.length > 0;
+      var codigoEsc = a.codigo.replace(/'/g, "\\'");
       html += '<tr>';
-      html += '<td style="padding:10px;border-bottom:1px solid #F1F5F9"><strong>' + a.codigo + '</strong></td>';
+      html += '<td style="padding:10px;border-bottom:1px solid #F1F5F9"><strong>' + a.codigo + '</strong>';
+      if (tieneTiendas) {
+        html += ' <button onclick="toggleTiendasAfiliado(\'afilTd' + idx + '\')" id="btnTd' + idx + '" style="background:none;border:none;cursor:pointer;color:var(--blue);font-size:11px;font-weight:700;padding:2px 6px;margin-left:4px" title="Ver tiendas">▶</button>';
+      }
+      html += '</td>';
       html += '<td style="padding:10px;border-bottom:1px solid #F1F5F9">' + a.nombre + '<div style="font-size:11px;color:var(--muted)">' + a.email + '</div></td>';
       html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9">' + a.comision_pct + '%</td>';
       html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9">' + a.num_referidos + '</td>';
       html += '<td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9">' + eurFmt(a.total_comisiones) + '</td>';
       html += '<td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9;color:var(--green)">' + eurFmt(a.comisiones_pagadas) + '</td>';
       html += '<td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9;color:#F97316;font-weight:700;background:rgba(249,115,22,.04)">' + eurFmt(a.comisiones_pendientes) + '</td>';
-      // Botón pagar todo
       if (a.comisiones_pendientes > 0) {
-        html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9"><button onclick="marcarTodoPagado(\'' + a.codigo + '\', ' + a.comisiones_pendientes + ')" style="background:var(--green);color:white;border:none;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">💰 Pagar todo</button></td>';
+        html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9"><button onclick="marcarTodoPagado(\'' + codigoEsc + '\', ' + a.comisiones_pendientes + ')" style="background:var(--green);color:white;border:none;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">💰 Pagar todo</button></td>';
       } else {
         html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9;color:var(--muted);font-size:11px">—</td>';
       }
       html += '</tr>';
+
+      // Fila desplegable con detalle de tiendas
+      if (tieneTiendas) {
+        html += '<tr id="afilTd' + idx + '" style="display:none;background:#FAFBFC">';
+        html += '<td colspan="8" style="padding:14px 18px;border-bottom:1px solid #F1F5F9">';
+        html += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:8px">🏪 Tiendas referidas por ' + a.codigo + '</div>';
+        html += '<table style="width:100%;border-collapse:collapse;font-size:12px;background:white;border-radius:6px;overflow:hidden">';
+        html += '<thead><tr style="background:#F1F5F9"><th style="padding:6px 10px;text-align:left;font-size:10px;color:var(--muted)">Tienda</th><th style="padding:6px 10px;text-align:center;font-size:10px;color:var(--muted)">Plan</th><th style="padding:6px 10px;text-align:center;font-size:10px;color:var(--muted)">Estado</th><th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--muted)">Captada</th><th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--muted)">Total facturado</th></tr></thead><tbody>';
+        a.tiendas_detalle.forEach(function(t) {
+          var estadoColor = t.plan_status === 'active' ? 'var(--green)' : '#F97316';
+          html += '<tr>';
+          html += '<td style="padding:6px 10px;border-bottom:1px solid #F1F5F9"><strong>' + (t.nombre || '-') + '</strong></td>';
+          html += '<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #F1F5F9"><span style="background:#EFF6FF;color:var(--blue);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase">' + (t.plan || '-') + '</span></td>';
+          html += '<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #F1F5F9;color:' + estadoColor + ';font-weight:600">' + (t.plan_status || '-') + '</td>';
+          html += '<td style="padding:6px 10px;text-align:right;border-bottom:1px solid #F1F5F9;color:var(--muted)">' + fmtFecha(t.fecha_captacion) + '</td>';
+          html += '<td style="padding:6px 10px;text-align:right;border-bottom:1px solid #F1F5F9;font-weight:700">' + eurFmt(t.total_facturado) + '</td>';
+          html += '</tr>';
+        });
+        html += '</tbody></table>';
+        html += '</td></tr>';
+      }
     });
     html += '</tbody></table></div>';
   }
