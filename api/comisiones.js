@@ -118,6 +118,15 @@ export default async function handler(req, res) {
       });
       const allPagos = await allPagosR.json();
 
+      const tiendaIdsConRef = [...new Set(allPagos.map(p => p.tienda_id).filter(Boolean))];
+      let tiendasDetalle = {};
+      if (tiendaIdsConRef.length) {
+        const tIdsStr = tiendaIdsConRef.map(id => '"' + id + '"').join(',');
+        const tDetailR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=in.(${encodeURIComponent(tIdsStr)})&select=id,nombre,plan,plan_status,creado_en,codigo_referido`, { headers: sbHeaders });
+        const tDetailArr = await tDetailR.json();
+        for (const t of (Array.isArray(tDetailArr) ? tDetailArr : [])) tiendasDetalle[t.id] = t;
+      }
+
       const porCodigo = {};
       for (const p of allPagos) {
         const codigo = p.codigo_referido;
@@ -149,6 +158,23 @@ export default async function handler(req, res) {
         referidosPorCodigo[codigo].add(p.tienda_id);
       }
 
+      const tiendasPorCodigo = {};
+      for (const codigo of Object.keys(referidosPorCodigo)) {
+        const tiendaIds = [...referidosPorCodigo[codigo]];
+        tiendasPorCodigo[codigo] = tiendaIds.map(tid => {
+          const det = tiendasDetalle[tid] || {};
+          const facturado = allPagos.filter(p => p.tienda_id === tid && p.codigo_referido === codigo).reduce((s, p) => s + parseFloat(p.monto_neto || 0), 0);
+          return {
+            tienda_id: tid,
+            nombre: det.nombre || 'Tienda sin nombre',
+            plan: det.plan || '-',
+            plan_status: det.plan_status || '-',
+            fecha_captacion: det.creado_en || null,
+            total_facturado: +facturado.toFixed(2)
+          };
+        });
+      }
+
       const afiliadosConStats = allAfiliados.map(af => {
         const stats = porCodigo[af.codigo] || {total_comisiones:0, comisiones_pagadas:0, comisiones_pendientes:0, num_pagos:0};
         const referidos = referidosPorCodigo[af.codigo] ? referidosPorCodigo[af.codigo].size : 0;
@@ -161,7 +187,8 @@ export default async function handler(req, res) {
           num_pagos: stats.num_pagos,
           total_comisiones: +stats.total_comisiones.toFixed(2),
           comisiones_pagadas: +stats.comisiones_pagadas.toFixed(2),
-          comisiones_pendientes: +stats.comisiones_pendientes.toFixed(2)
+          comisiones_pendientes: +stats.comisiones_pendientes.toFixed(2),
+          tiendas_detalle: tiendasPorCodigo[af.codigo] || []
         };
       });
 
