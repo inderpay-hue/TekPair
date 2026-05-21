@@ -643,6 +643,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 </style>
   <script src="/assets/qrcode.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 <div id="app">
@@ -11906,6 +11907,7 @@ async function cargarComisiones() {
     var data = await r.json();
     COMISIONES_DATA = data;
 
+    window._lastComisionesData = data;
     if (data.modo === 'admin') renderComisionesAdmin(data);
     else renderComisionesAfiliado(data);
   } catch (e) {
@@ -11921,6 +11923,211 @@ function toggleTiendasAfiliado(rowId) {
   var open = row.style.display !== 'none';
   row.style.display = open ? 'none' : 'table-row';
   if (btn) btn.textContent = open ? '▶' : '▼';
+}
+
+function abrirNuevoAfiliado() {
+  abrirModalAfiliado({});
+}
+
+function abrirEditarAfiliado(afiliado) {
+  abrirModalAfiliado(afiliado);
+}
+
+function abrirModalAfiliado(af) {
+  var esEdicion = !!af.codigo;
+  var html = '<div id="mAfilEdit" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">' +
+    '<div style="background:white;max-width:480px;width:100%;border-radius:14px;overflow:hidden">' +
+      '<div style="background:linear-gradient(135deg,#0055FF,#0EA5E9);color:white;padding:18px 22px">' +
+        '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.9">' + (esEdicion ? 'EDITAR AFILIADO' : 'NUEVO AFILIADO') + '</div>' +
+        '<div style="font-size:18px;font-weight:800;margin-top:4px">' + (esEdicion ? af.codigo : 'Nuevo comercial') + '</div>' +
+      '</div>' +
+      '<div style="padding:20px 22px">' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Codigo afiliado *</label>' +
+        '<input type="text" id="afCodigo" value="' + (af.codigo || '') + '" ' + (esEdicion ? 'readonly' : '') + ' placeholder="DEMBA, PEDRO..." style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px;text-transform:uppercase;' + (esEdicion ? 'background:#F1F5F9;color:#94A3B8' : '') + '">' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Nombre completo *</label>' +
+        '<input type="text" id="afNombre" value="' + (af.nombre || '') + '" placeholder="Nombre Apellidos" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px">' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Email *</label>' +
+        '<input type="email" id="afEmail" value="' + (af.email || '') + '" placeholder="comercial@email.com" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px">' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Comision (%) *</label>' +
+        '<input type="number" id="afPct" value="' + (af.comision_pct || 20) + '" min="0" max="100" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:6px">' +
+        '<div style="font-size:11px;color:var(--muted)">Porcentaje sobre la base imponible (sin IVA)</div>' +
+      '</div>' +
+      '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
+        '<button onclick="cerrarModalAfiliado()" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">Cancelar</button>' +
+        '<button onclick="guardarAfiliado(' + esEdicion + ')" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--blue);color:white;cursor:pointer;font-weight:700;font-size:13px">' + (esEdicion ? 'Guardar cambios' : 'Crear afiliado') + '</button>' +
+      '</div>' +
+    '</div></div>';
+  var w = document.createElement('div');
+  w.innerHTML = html;
+  while (w.firstChild) document.body.appendChild(w.firstChild);
+}
+
+function cerrarModalAfiliado() {
+  var m = document.getElementById('mAfilEdit');
+  if (m) m.remove();
+}
+
+async function guardarAfiliado(esEdicion) {
+  var codigo = (document.getElementById('afCodigo').value || '').trim().toUpperCase();
+  var nombre = (document.getElementById('afNombre').value || '').trim();
+  var email = (document.getElementById('afEmail').value || '').trim().toLowerCase();
+  var pct = parseInt(document.getElementById('afPct').value) || 0;
+
+  if (!codigo || !nombre || !email) { alert('Codigo, nombre y email son obligatorios'); return; }
+  if (pct < 0 || pct > 100) { alert('Comision entre 0 y 100'); return; }
+
+  try {
+    var r = await fetch('/api/comisiones', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: esEdicion ? 'editar_afiliado' : 'crear_afiliado',
+        codigo: codigo, nombre: nombre, email: email, comision_pct: pct
+      })
+    });
+    var data = await r.json();
+    if (data.ok) {
+      cerrarModalAfiliado();
+      alert(esEdicion ? 'Afiliado actualizado' : 'Afiliado creado correctamente\n\nCodigo: ' + codigo);
+      cargarComisiones();
+    } else {
+      alert('Error: ' + (data.error || 'desconocido'));
+    }
+  } catch (e) { alert('Error de conexion: ' + e.message); }
+}
+
+async function eliminarAfiliado(codigo) {
+  if (!confirm('Eliminar el afiliado "' + codigo + '"?\n\nSolo es posible si no tiene comisiones registradas.')) return;
+  try {
+    var r = await fetch('/api/comisiones', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'eliminar_afiliado', codigo: codigo })
+    });
+    var data = await r.json();
+    if (data.ok) {
+      alert('Afiliado eliminado');
+      cargarComisiones();
+    } else {
+      alert('Error: ' + (data.error || 'desconocido'));
+    }
+  } catch (e) { alert('Error: ' + e.message); }
+}
+
+function generarJustificantePDF(datos) {
+  // datos: { numero, fecha, codigo, nombre, email, comisionPct, total, pagos: [{fecha,monto_neto,comision_monto}] }
+  if (!window.jspdf || !window.jspdf.jsPDF) {
+    alert('Error: libreria PDF no cargada. Recarga la pagina.');
+    return;
+  }
+  var jsPDFClass = window.jspdf.jsPDF;
+  var doc = new jsPDFClass({ unit: 'pt', format: 'a4' });
+  var W = doc.internal.pageSize.getWidth();
+  var H = doc.internal.pageSize.getHeight();
+  var margin = 48;
+  var y = margin;
+
+  // Cabecera verde
+  doc.setFillColor(16, 185, 129);
+  doc.rect(0, 0, W, 90, 'F');
+  doc.setFontSize(11);
+  doc.setTextColor(255, 255, 255);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TEKPAIR', margin, 38);
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.text('info@tekpair.tech', margin, 54);
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.text('JUSTIFICANTE DE PAGO', W - margin, 50, { align: 'right' });
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.text(datos.numero, W - margin, 70, { align: 'right' });
+
+  y = 130;
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+
+  // Bloque emisor / receptor
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(9);
+  doc.setTextColor(100, 116, 139);
+  doc.text('EMISOR', margin, y);
+  doc.text('RECEPTOR', W / 2 + 10, y);
+  y += 14;
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(11);
+  doc.text('TekPair', margin, y);
+  doc.text(datos.nombre || datos.codigo, W / 2 + 10, y);
+  y += 14;
+  doc.setFontSize(9);
+  doc.setTextColor(100, 116, 139);
+  doc.text('info@tekpair.tech', margin, y);
+  if (datos.email) doc.text(datos.email, W / 2 + 10, y);
+  y += 12;
+  doc.text('Programa de afiliados TekPair', margin, y);
+  doc.text('Codigo afiliado: ' + datos.codigo, W / 2 + 10, y);
+
+  y += 36;
+  // Fecha
+  doc.setFontSize(10);
+  doc.setTextColor(15, 23, 42);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Fecha de pago:', margin, y);
+  doc.setFont('helvetica', 'normal');
+  doc.text(datos.fecha, margin + 90, y);
+
+  y += 30;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(11);
+  doc.text('Detalle de comisiones pagadas', margin, y);
+  y += 14;
+
+  // Tabla
+  doc.setFillColor(241, 245, 249);
+  doc.rect(margin, y, W - margin * 2, 22, 'F');
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(100, 116, 139);
+  doc.text('FECHA COBRO', margin + 10, y + 14);
+  doc.text('CLIENTE PAGO', margin + 180, y + 14);
+  doc.text('COMISION ' + (datos.comisionPct || 20) + '%', W - margin - 10, y + 14, { align: 'right' });
+  y += 26;
+
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(10);
+  (datos.pagos || []).forEach(function(p) {
+    doc.text(fmtFecha(p.created_at), margin + 10, y);
+    doc.text(eurFmt(p.monto_neto), margin + 180, y);
+    doc.text(eurFmt(p.comision_monto), W - margin - 10, y, { align: 'right' });
+    y += 18;
+  });
+
+  // Total
+  y += 10;
+  doc.setDrawColor(203, 213, 225);
+  doc.line(margin, y, W - margin, y);
+  y += 20;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(13);
+  doc.text('TOTAL PAGADO', margin + 10, y);
+  doc.setTextColor(16, 185, 129);
+  doc.setFontSize(16);
+  doc.text(eurFmt(datos.total), W - margin - 10, y, { align: 'right' });
+
+  // Pie
+  doc.setFontSize(8);
+  doc.setTextColor(148, 163, 184);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Justificante de pago de comisiones del programa de afiliados de TekPair.', margin, H - 60);
+  doc.text('Este documento no sustituye a una factura legal.', margin, H - 48);
+  doc.text('tekpair.tech  ·  info@tekpair.tech', margin, H - 36);
+
+  // Descargar
+  doc.save(datos.numero + '_' + datos.codigo + '.pdf');
 }
 
 function badgeEstadoComision(estado, fechaDisp) {
@@ -11977,6 +12184,9 @@ async function marcarPagado(pagoId, monto, codigo) {
     monto: monto,
     callback: async function(opts) {
       try {
+        // Obtener datos completos del pago ANTES de pagarlo (para el PDF)
+        var pagoData = (window._lastComisionesData && window._lastComisionesData.pagos || []).find(function(x){return x.id===pagoId;});
+
         var r = await fetch('/api/comisiones', {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
@@ -11984,7 +12194,24 @@ async function marcarPagado(pagoId, monto, codigo) {
         });
         var data = await r.json();
         if (data.ok) {
-          alert('Comision marcada como pagada\n\nJustificante: ' + data.justificante_numero);
+          // Buscar datos del afiliado en la lista
+          var afiliado = (window._lastComisionesData && window._lastComisionesData.afiliados || []).find(function(a){return a.codigo===codigo;}) || {};
+
+          // Generar PDF justificante
+          if (pagoData) {
+            generarJustificantePDF({
+              numero: data.justificante_numero,
+              fecha: fmtFecha(opts.fecha_pago),
+              codigo: codigo,
+              nombre: afiliado.nombre || codigo,
+              email: afiliado.email || '',
+              comisionPct: pagoData.comision_pct,
+              total: pagoData.comision_monto,
+              pagos: [pagoData]
+            });
+          }
+
+          alert('Comision marcada como pagada\n\nJustificante: ' + data.justificante_numero + '\n\nSe ha descargado el PDF.');
           cargarComisiones();
         } else {
           alert('Error: ' + (data.error || 'desconocido'));
@@ -12000,6 +12227,10 @@ async function marcarTodoPagado(codigo, montoTotal) {
     monto: montoTotal,
     callback: async function(opts) {
       try {
+        // Pagos disponibles ANTES de pagar (para el PDF)
+        var pagosDisp = (window._lastComisionesData && window._lastComisionesData.pagos || [])
+          .filter(function(x){ return x.codigo_referido === codigo && x.estado_comision === 'disponible'; });
+
         var r = await fetch('/api/comisiones', {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
@@ -12007,7 +12238,22 @@ async function marcarTodoPagado(codigo, montoTotal) {
         });
         var data = await r.json();
         if (data.ok) {
-          alert('Todas las comisiones de ' + codigo + ' marcadas como pagadas\n\nJustificante: ' + data.justificante_numero);
+          var afiliado = (window._lastComisionesData && window._lastComisionesData.afiliados || []).find(function(a){return a.codigo===codigo;}) || {};
+
+          if (pagosDisp.length) {
+            generarJustificantePDF({
+              numero: data.justificante_numero,
+              fecha: fmtFecha(opts.fecha_pago),
+              codigo: codigo,
+              nombre: afiliado.nombre || codigo,
+              email: afiliado.email || '',
+              comisionPct: pagosDisp[0].comision_pct,
+              total: montoTotal,
+              pagos: pagosDisp
+            });
+          }
+
+          alert(pagosDisp.length + ' comisiones de ' + codigo + ' marcadas como pagadas\n\nJustificante: ' + data.justificante_numero + '\n\nSe ha descargado el PDF.');
           cargarComisiones();
         } else {
           alert('Error: ' + (data.error || 'desconocido'));
@@ -12043,7 +12289,7 @@ function renderComisionesAdmin(data) {
   html += '</div></div>';
 
   html += '<div class="card" style="margin-bottom:14px">';
-  html += '<div class="card-title">👥 Afiliados</div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="card-title" style="margin:0">👥 Afiliados</div><button onclick="abrirNuevoAfiliado()" style="background:var(--blue);color:white;border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">+ Nuevo afiliado</button></div>';
   if (!data.afiliados || !data.afiliados.length) {
     html += '<div style="padding:20px;color:var(--muted);text-align:center">No hay afiliados activos</div>';
   } else {
@@ -12076,7 +12322,8 @@ function renderComisionesAdmin(data) {
       if (a.comisiones_pendientes > 0) {
         html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9"><button onclick="marcarTodoPagado(\'' + codigoEsc + '\', ' + a.comisiones_pendientes + ')" style="background:var(--green);color:white;border:none;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">💰 Pagar todo</button></td>';
       } else {
-        html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9;color:var(--muted);font-size:11px">—</td>';
+        var afilJSON = JSON.stringify(a).replace(/'/g, '&apos;').replace(/"/g,'&quot;');
+        html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9;font-size:11px"><button title="Editar" onclick="abrirEditarAfiliado(JSON.parse(this.dataset.af))" data-af="' + afilJSON + '" style="background:none;border:none;cursor:pointer;padding:4px 6px;font-size:14px;color:var(--blue)">&#9999;</button><button title="Eliminar" onclick="eliminarAfiliado(&apos;' + codigoEsc + '&apos;)" style="background:none;border:none;cursor:pointer;padding:4px 6px;font-size:14px;color:var(--red)">&#128465;</button></td>';
       }
       html += '</tr>';
 
