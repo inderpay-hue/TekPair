@@ -147,6 +147,64 @@ export default async function handler(req, res) {
         return res.json({ ok: true, codigo: body.codigo, marcados: ids.length, justificante_numero: justificante, fecha_pago: fechaPago });
       }
 
+      // ═══ Crear afiliado ═══
+      if (action === 'crear_afiliado') {
+        const { codigo, nombre, email, comision_pct } = body;
+        if (!codigo || !nombre || !email) return res.status(400).json({ error: 'Faltan datos' });
+        // Verificar codigo unico
+        const existR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigo)}&select=codigo&limit=1`, { headers: sbHeaders });
+        const existArr = await existR.json();
+        if (existArr.length) return res.status(400).json({ error: 'Ese codigo ya existe' });
+        const inR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados`, {
+          method: 'POST',
+          headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+          body: JSON.stringify({
+            codigo: codigo.toUpperCase().trim(),
+            nombre: nombre.trim(),
+            email: email.toLowerCase().trim(),
+            comision_pct: parseInt(comision_pct) || 20,
+            activo: true,
+            tienda_id: tiendaId
+          })
+        });
+        if (!inR.ok) return res.status(500).json({ error: 'Error creando: ' + await inR.text() });
+        return res.json({ ok: true });
+      }
+
+      // ═══ Editar afiliado ═══
+      if (action === 'editar_afiliado') {
+        const { codigo, nombre, email, comision_pct } = body;
+        if (!codigo) return res.status(400).json({ error: 'Codigo obligatorio' });
+        const update = {};
+        if (nombre) update.nombre = nombre.trim();
+        if (email) update.email = email.toLowerCase().trim();
+        if (comision_pct !== undefined) update.comision_pct = parseInt(comision_pct);
+        if (!Object.keys(update).length) return res.status(400).json({ error: 'Nada que actualizar' });
+        const upR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigo)}`, {
+          method: 'PATCH',
+          headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+          body: JSON.stringify(update)
+        });
+        if (!upR.ok) return res.status(500).json({ error: 'Error actualizando: ' + await upR.text() });
+        return res.json({ ok: true });
+      }
+
+      // ═══ Eliminar afiliado ═══
+      if (action === 'eliminar_afiliado') {
+        const { codigo } = body;
+        if (!codigo) return res.status(400).json({ error: 'Codigo obligatorio' });
+        // Verificar que no tenga comisiones
+        const pagosR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(codigo)}&select=id&limit=1`, { headers: sbHeaders });
+        const pagosArr = await pagosR.json();
+        if (pagosArr.length) return res.status(400).json({ error: 'No se puede eliminar: tiene comisiones registradas. Mejor desactivar.' });
+        const delR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigo)}`, {
+          method: 'DELETE',
+          headers: {...sbHeaders, 'Prefer': 'return=minimal'}
+        });
+        if (!delR.ok) return res.status(500).json({ error: 'Error eliminando: ' + await delR.text() });
+        return res.json({ ok: true });
+      }
+
       return res.status(400).json({ error: 'Accion desconocida' });
     }
 
