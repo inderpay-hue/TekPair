@@ -4323,11 +4323,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal-bg" id="mProv">
 <div class="modal">
   <div class="modal-title">🏭 Proveedor</div>
-  <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="pNom" placeholder="Proveedor SL"></div>
-  <div class="fg"><label class="fl">Contacto</label><input class="fi" id="pCont" placeholder="Juan Garcia"></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="pNom" placeholder="Proveedor SL"></div>
+    <div class="fg"><label class="fl">NIF/CIF</label><input class="fi" id="pNif" placeholder="B12345678"></div>
+  </div>
+  <div class="fg"><label class="fl">Persona de contacto</label><input class="fi" id="pCont" placeholder="Juan Garcia"></div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Telefono</label><input class="fi" id="pTel" placeholder="6XX XXX XXX"></div>
     <div class="fg"><label class="fl">Email</label><input class="fi" id="pEmail" type="email" placeholder="email@..."></div>
+  </div>
+  <div class="fg"><label class="fl">Dirección</label><input class="fi" id="pDir" placeholder="Calle, número, piso"></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Código postal</label><input class="fi" id="pCp" placeholder="08001"></div>
+    <div class="fg"><label class="fl">Ciudad</label><input class="fi" id="pCiudad" placeholder="Barcelona"></div>
+    <div class="fg"><label class="fl">Provincia</label><input class="fi" id="pProvincia" placeholder="Barcelona"></div>
   </div>
   <div class="fg"><label class="fl">Nota</label><textarea class="fi" id="pNota" rows="2" placeholder="Notas..."></textarea></div>
   <div class="modal-actions">
@@ -9393,16 +9402,31 @@ function eliminarReparacion(id) {
 function renderProvs() {
   var el = document.getElementById('listaProvs');
   if (!DB.provs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83c\udfed</div>Sin proveedores</div>'; return; }
-  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th>Tel</th><th>Email</th></tr></thead><tbody>' +
+  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th>NIF/CIF</th><th>Tel</th><th>Email</th><th>Ciudad</th><th>Acciones</th></tr></thead><tbody>' +
     DB.provs.map(function(p) {
-      return '<tr><td><strong>' + p.nombre + '</strong>' + (p.nota ? '<br><span style="font-size:9px;color:var(--blue)">' + p.nota + '</span>' : '') + '</td>' +
-        '<td>' + (p.tel || '\u2014') + '</td><td style="font-size:11px">' + (p.email || '\u2014') + '</td></tr>';
+      return '<tr>' +
+        '<td><strong>' + esc(p.nombre || '') + '</strong>' + (p.nota ? '<br><span style="font-size:9px;color:var(--blue)">' + esc(p.nota) + '</span>' : '') + '</td>' +
+        '<td style="font-size:12px">' + esc(p.nif || '\u2014') + '</td>' +
+        '<td>' + esc(p.tel || '\u2014') + '</td>' +
+        '<td style="font-size:11px">' + esc(p.email || '\u2014') + '</td>' +
+        '<td style="font-size:12px">' + esc(p.ciudad || '\u2014') + '</td>' +
+        '<td style="white-space:nowrap">' +
+          '<button class="btn-sm" onclick="abrirEditarProv(\'' + p.id + '\')" title="Editar" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">✎</button> ' +
+          '<button class="btn-sm" onclick="eliminarProv(\'' + p.id + '\')" title="Eliminar" style="background:transparent;color:var(--red);padding:4px 6px;font-size:11px;border:1px solid var(--red)">🗑</button>' +
+        '</td></tr>';
     }).join('') + '</tbody></table></div>';
 }
 
 function guardarProv() {
   var nom = document.getElementById('pNom').value.trim();
   if (!nom) { toast('Escribe un nombre', 'err'); return; }
+  var nif = (document.getElementById('pNif') || {}).value || '';
+  var dir = (document.getElementById('pDir') || {}).value || '';
+  var cp = (document.getElementById('pCp') || {}).value || '';
+  var ciudad = (document.getElementById('pCiudad') || {}).value || '';
+  var provincia = (document.getElementById('pProvincia') || {}).value || '';
+  nif = nif.trim(); dir = dir.trim(); cp = cp.trim();
+  ciudad = ciudad.trim(); provincia = provincia.trim();
   
   // MODO EDICIÓN
   if (SEL && SEL.editProvId) {
@@ -9413,6 +9437,11 @@ function guardarProv() {
       existente.tel = document.getElementById('pTel').value.trim();
       existente.email = document.getElementById('pEmail').value.trim();
       existente.nota = document.getElementById('pNota').value.trim();
+      existente.nif = nif || null;
+      existente.direccion = dir || null;
+      existente.cp = cp || null;
+      existente.ciudad = ciudad || null;
+      existente.provincia = provincia || null;
       guardarDatos();
       if (SB_KEY && TIENDA_ID) {
         sbPatch('proveedores', 'id=eq.' + encodeURIComponent(existente.id), {
@@ -9420,7 +9449,12 @@ function guardarProv() {
           contacto: existente.contacto,
           tel: existente.tel,
           email: existente.email,
-          nota: existente.nota
+          nota: existente.nota,
+          nif: existente.nif,
+          direccion: existente.direccion,
+          cp: existente.cp,
+          ciudad: existente.ciudad,
+          provincia: existente.provincia
         });
       }
       SEL.editProvId = null;
@@ -9438,13 +9472,66 @@ function guardarProv() {
     contacto: document.getElementById('pCont').value.trim(),
     tel: document.getElementById('pTel').value.trim(),
     email: document.getElementById('pEmail').value.trim(),
-    nota: document.getElementById('pNota').value.trim()
+    nota: document.getElementById('pNota').value.trim(),
+    nif: nif || null,
+    direccion: dir || null,
+    cp: cp || null,
+    ciudad: ciudad || null,
+    provincia: provincia || null
   };
   DB.provs.push(p);
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPost('proveedores', p);
   closeM('mProv');
   toast('Proveedor guardado', 'ok');
+  renderProvs();
+}
+
+// Abrir modal de proveedor en modo creación (resetea campos)
+function abrirNuevoProv() {
+  SEL.editProvId = null;
+  ['pNom','pNif','pCont','pTel','pEmail','pDir','pCp','pCiudad','pProvincia','pNota'].forEach(function(id){
+    var el = document.getElementById(id); if (el) el.value = '';
+  });
+  openM('mProv');
+}
+
+// Abrir modal en modo edición pre-cargando los campos
+function abrirEditarProv(provId) {
+  var p = DB.provs.find(function(x){ return x.id === provId; });
+  if (!p) { toast('Proveedor no encontrado', 'err'); return; }
+  SEL.editProvId = provId;
+  var set = function(id, v){ var el = document.getElementById(id); if (el) el.value = v || ''; };
+  set('pNom', p.nombre);
+  set('pNif', p.nif);
+  set('pCont', p.contacto);
+  set('pTel', p.tel);
+  set('pEmail', p.email);
+  set('pDir', p.direccion);
+  set('pCp', p.cp);
+  set('pCiudad', p.ciudad);
+  set('pProvincia', p.provincia);
+  set('pNota', p.nota);
+  openM('mProv');
+}
+
+// Eliminar proveedor (con confirm)
+function eliminarProv(provId) {
+  if (!tienePerm('proveedores_eliminar') && !tienePerm('clientes_eliminar')) {
+    // Si no hay permiso específico, permitimos al menos a creador. No bloqueamos por defecto.
+  }
+  var p = DB.provs.find(function(x){ return x.id === provId; });
+  if (!p) return;
+  if (!confirm('¿Eliminar proveedor "' + (p.nombre || '') + '"? Los gastos asociados conservarán los datos.')) return;
+  DB.provs = DB.provs.filter(function(x){ return x.id !== provId; });
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) {
+    fetch(SUPABASE_URL + '/rest/v1/proveedores?id=eq.' + encodeURIComponent(provId), {
+      method: 'DELETE',
+      headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
+    }).catch(function(){});
+  }
+  toast('Proveedor eliminado', 'ok');
   renderProvs();
 }
 
@@ -9721,7 +9808,9 @@ function seleccionarProvGastoRec(provId) {
   var p = (DB.provs || []).find(function(x){ return x.id === provId; });
   if (!p) return;
   var inpNom = document.getElementById('grProvNom');
+  var inpNif = document.getElementById('grProvNif');
   if (inpNom) inpNom.value = p.nombre || '';
+  if (inpNif && p.nif) inpNif.value = p.nif;
   var res = document.getElementById('grProvRes');
   if (res) res.classList.remove('open');
 }
@@ -10029,9 +10118,8 @@ function seleccionarProvGasto(provId) {
   var inpNom = document.getElementById('gProvNom');
   var inpNif = document.getElementById('gProvNif');
   if (inpNom) inpNom.value = p.nombre || '';
-  // El NIF no está en DB.provs (esquema actual), si en el futuro se añade autocompletar aquí
-  // Por ahora solo limpiamos si está vacío para no sobrescribir lo que el usuario haya escrito
-  if (inpNif && !inpNif.value && p.nif) inpNif.value = p.nif;
+  // Autocompletar NIF (sobrescribe si el usuario aún no había escrito nada o si difiere)
+  if (inpNif && p.nif) inpNif.value = p.nif;
   var res = document.getElementById('gProvRes');
   if (res) res.classList.remove('open');
 }
