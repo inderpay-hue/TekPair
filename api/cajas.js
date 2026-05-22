@@ -317,7 +317,7 @@ export default async function handler(req, res) {
       case 'guardar_cierre': {
         const {
           caja_id, fecha, saldo_inicial, saldo_real_final, cambio_siguiente,
-          notas, estado, movimientos, total_cobrado_caja, importe_tpv
+          notas, estado, movimientos, total_cobrado_caja, importe_tpv, total_fiados
         } = req.body || {};
         if (!caja_id || !fecha) return err(res, 400, 'caja_id y fecha obligatorios');
         if (!Array.isArray(movimientos)) return err(res, 400, 'movimientos[] obligatorio');
@@ -344,7 +344,11 @@ export default async function handler(req, res) {
 
         const saldoTeorico = calcularSaldoTeorico(caja.tipo, saldo_inicial, movimientos, total_cobrado_caja);
         const saldoReal = Number(saldo_real_final || 0);
-        const descuadre = Math.round((saldoReal - saldoTeorico) * 100) / 100;
+        // Nuevo cálculo (v2.1): cobrado = efectivo + TPV + fiados
+        const tpvNum = Number(importe_tpv || 0);
+        const fiadosNum = Number(total_fiados || 0);
+        const cobrado = Math.round((saldoReal + tpvNum + fiadosNum) * 100) / 100;
+        const descuadre = Math.round((cobrado - saldoTeorico) * 100) / 100;
         // estados permitidos: abierto, cerrado, descuadre (auto), festivo
         let estadoFinal;
         if (estado === 'festivo') {
