@@ -147,6 +147,44 @@ async function tienePermisoCaja(payload, clave) {
 }
 
 
+
+// Helper: recalcula descuadre del cierre de un fiado después de cobrarlo/anularlo
+async function recalcularCierreDeFiado(fiadoId, tienda_id) {
+  try {
+    // Obtener el fiado para saber caja_id y fecha
+    const fiados = await sbGet(`cajas_fiados?id=eq.${encodeURIComponent(fiadoId)}&select=caja_id,fecha`);
+    if (!fiados[0]) return;
+    const { caja_id, fecha } = fiados[0];
+
+    // Buscar el cierre de ese día/caja
+    const cierres = await sbGet(`cajas_cierres?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=eq.${encodeURIComponent(fecha)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
+    if (!cierres[0]) return;
+    const cierre = cierres[0];
+
+    // Sumar fiados pendientes (NO cobrados) de ese día
+    const pendientes = await sbGet(`cajas_fiados?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=eq.${encodeURIComponent(fecha)}&estado=eq.pendiente&select=importe`);
+    const totalPendientes = pendientes.reduce((s, f) => s + Number(f.importe || 0), 0);
+
+    // Recalcular descuadre
+    const efectivo = Number(cierre.saldo_real_final || 0);
+    const tpv = Number(cierre.importe_tpv || 0);
+    const teorico = Number(cierre.saldo_teorico || 0);
+    const cobrado = efectivo + tpv + totalPendientes;
+    const nuevoDescuadre = Math.round((cobrado - teorico) * 100) / 100;
+
+    // Determinar estado
+    let nuevoEstado = cierre.estado;
+    if (cierre.estado !== "abierto" && cierre.estado !== "festivo") {
+      nuevoEstado = Math.abs(nuevoDescuadre) <= 0.5 ? "cerrado" : "descuadre";
+    }
+
+    await sbPatch(`cajas_cierres?id=eq.${encodeURIComponent(cierre.id)}`, {
+      descuadre: nuevoDescuadre,
+      estado: nuevoEstado
+    });
+  } catch(e) { console.warn("recalcularCierreDeFiado:", e.message); }
+}
+
 // ── Handler principal ─────────────────────────────
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -570,6 +608,8 @@ export default async function handler(req, res) {
             cobrado_por: payload.email || null
           }
         );
+        // Recalcular cierre del día original automáticamente
+        await recalcularCierreDeFiado(id, tienda_id);
         return ok(res, { fiado: Array.isArray(data) ? data[0] : data });
       }
 
