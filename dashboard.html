@@ -1262,6 +1262,48 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   .compania-row:last-child { border-bottom:0; }
   .compania-row input { flex:1; }
 
+  
+  /* Tabs Cajas */
+  .cajas-tab-btn {
+    background:transparent;border:0;border-bottom:3px solid transparent;
+    padding:10px 16px;font-size:14px;color:#6b7280;cursor:pointer;
+    font-weight:500;transition:all .15s;
+  }
+  .cajas-tab-btn:hover { color:#374151;background:#f9fafb; }
+  .cajas-tab-activa {
+    color:#3b82f6 !important;border-bottom-color:#3b82f6 !important;font-weight:600;
+  }
+  .cajas-subtab-btn {
+    background:#f3f4f6;border:1px solid #e5e7eb;color:#6b7280;
+    padding:7px 14px;font-size:13px;border-radius:8px;cursor:pointer;
+    font-weight:500;
+  }
+  .cajas-subtab-btn:hover { background:#e5e7eb; }
+  .cajas-subtab-activa {
+    background:#3b82f6 !important;color:#fff !important;border-color:#3b82f6 !important;
+  }
+
+  .cobro-fila {
+    display:flex;align-items:center;gap:12px;padding:12px 14px;
+    background:#fff;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px;
+  }
+  .cobro-fila.cobrado { background:#f9fafb;opacity:.7; }
+  .cobro-fila .cobro-info { flex:1;min-width:0; }
+  .cobro-fila .cobro-cliente {
+    font-size:14px;font-weight:600;color:#111827;
+  }
+  .cobro-fila.cobrado .cobro-cliente { text-decoration:line-through; }
+  .cobro-fila .cobro-meta {
+    font-size:11px;color:#6b7280;margin-top:2px;
+  }
+  .cobro-fila .cobro-importe {
+    font-weight:700;color:#92400e;font-size:15px;min-width:80px;text-align:right;
+  }
+  .cobro-fila.cobrado .cobro-importe { color:#10b981; }
+  .cobro-vacio {
+    text-align:center;padding:40px 20px;color:#9ca3af;font-size:14px;
+  }
+
   .cajas-mensaje-vacio {
     text-align:center;padding:40px 20px;color:#6b7280;font-size:14px;
   }
@@ -1299,7 +1341,34 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
   </div>
 
-  <div id="cajas-grid"></div>
+  
+  <!-- ════ TABS CAJAS / COBROS PENDIENTES ════ -->
+  <div class="cajas-tabs" style="display:flex;gap:4px;border-bottom:1px solid #e5e7eb;margin-bottom:16px;">
+    <button id="tab-cajas-dia" class="cajas-tab-btn cajas-tab-activa" onclick="Cajas.cambiarTab('dia')">
+      📊 Cajas del día
+    </button>
+    <button id="tab-cobros" class="cajas-tab-btn" onclick="Cajas.cambiarTab('cobros')">
+      📋 Cobros pendientes <span id="badge-pendientes" style="display:none;background:#dc2626;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:4px;">0</span>
+    </button>
+  </div>
+
+  <div id="vista-cajas-dia">
+    <div id="cajas-grid"></div>
+  </div>
+
+  <!-- ════ VISTA COBROS PENDIENTES ════ -->
+  <div id="vista-cobros-pendientes" style="display:none;">
+    <div style="display:flex;gap:4px;margin-bottom:14px;">
+      <button id="subtab-pendientes" class="cajas-subtab-btn cajas-subtab-activa" onclick="Cajas.cambiarSubTab('pendientes')">
+        Pendientes <span id="resumen-pendientes" style="color:#6b7280;font-size:12px;font-weight:400;"></span>
+      </button>
+      <button id="subtab-cobrados" class="cajas-subtab-btn" onclick="Cajas.cambiarSubTab('cobrados')">
+        Cobrados
+      </button>
+    </div>
+    <div id="lista-cobros"></div>
+  </div>
+
 </div>
 
 
@@ -1580,7 +1649,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     cajaEditando: null,
     cierreEditando: null,
     inicializado: false,
-    fiadosTemp: []  // array de fiados del día actual (múltiples por compañía permitidos)
+    fiadosTemp: [],  // array de fiados del día actual (múltiples por compañía permitidos)
+    tabActiva: 'dia',
+    subTabActiva: 'pendientes',
+    cobros: []  // cache de fiados para la vista de cobros
   };
 
   function eur(n) {
@@ -1655,6 +1727,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         }
       }));
       pintarTarjetas();
+      actualizarBadgePendientes();
     } catch (e) {
       toast('Error cargando cajas: ' + e.message, 'error');
     }
@@ -2377,6 +2450,151 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     recalcularResumen();
   }
 
+  // ── TABS Y COBROS PENDIENTES ──────────────────
+
+  function cambiarTab(tab) {
+    Estado.tabActiva = tab;
+    $('tab-cajas-dia').classList.toggle('cajas-tab-activa', tab === 'dia');
+    $('tab-cobros').classList.toggle('cajas-tab-activa', tab === 'cobros');
+    $('vista-cajas-dia').style.display = tab === 'dia' ? 'block' : 'none';
+    $('vista-cobros-pendientes').style.display = tab === 'cobros' ? 'block' : 'none';
+    if (tab === 'cobros') cargarCobros();
+  }
+
+  function cambiarSubTab(sub) {
+    Estado.subTabActiva = sub;
+    $('subtab-pendientes').classList.toggle('cajas-subtab-activa', sub === 'pendientes');
+    $('subtab-cobrados').classList.toggle('cajas-subtab-activa', sub === 'cobrados');
+    pintarCobros();
+  }
+
+  async function cargarCobros() {
+    try {
+      // Cargar pendientes Y cobrados (sin filtro de estado)
+      const r = await api('listar_fiados', { query: {} });
+      Estado.cobros = r.fiados || [];
+      actualizarBadgePendientes();
+      pintarCobros();
+    } catch(e) {
+      console.warn('Error cargando cobros:', e);
+      $('lista-cobros').innerHTML = '<div class="cobro-vacio">Error cargando cobros</div>';
+    }
+  }
+
+  async function actualizarBadgePendientes() {
+    try {
+      const r = await api('contar_fiados_pendientes', { query: {} });
+      const count = r.count || 0;
+      const badge = $('badge-pendientes');
+      if (count > 0) {
+        badge.textContent = count;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    } catch(e) { console.warn('Error badge:', e); }
+  }
+
+  function pintarCobros() {
+    const lista = $('lista-cobros');
+    const sub = Estado.subTabActiva;
+    const filtrados = Estado.cobros.filter(c => {
+      if (sub === 'pendientes') return c.estado === 'pendiente';
+      if (sub === 'cobrados') return c.estado === 'cobrado';
+      return true;
+    });
+
+    // Resumen del subtab pendientes
+    if (sub === 'pendientes') {
+      const total = filtrados.reduce((s, f) => s + Number(f.importe || 0), 0);
+      $('resumen-pendientes').textContent = filtrados.length > 0
+        ? `(${filtrados.length} · ${eur(total)})`
+        : '';
+    }
+
+    if (filtrados.length === 0) {
+      const msg = sub === 'pendientes'
+        ? '✓ No hay cobros pendientes'
+        : 'Aún no hay cobros marcados como pagados';
+      lista.innerHTML = `<div class="cobro-vacio">${msg}</div>`;
+      return;
+    }
+
+    lista.innerHTML = filtrados.map(f => {
+      const cobrado = f.estado === 'cobrado';
+      const cliente = f.cliente_nombre || 'Sin nombre';
+      const tel = f.cliente_telefono ? ` · 📞 ${escapar(f.cliente_telefono)}` : '';
+      const nota = f.nota ? ` · ${escapar(f.nota)}` : '';
+      const cajaIco = f.caja_icono || '💼';
+      const cajaN = f.caja_nombre || '';
+      const cmp = f.compania_nombre || '';
+      const fechaCobro = cobrado && f.fecha_cobro
+        ? new Date(f.fecha_cobro).toLocaleDateString('es-ES')
+        : '';
+
+      let acciones = '';
+      if (!cobrado) {
+        acciones = `
+          <button onclick="Cajas.cobrarFiado('${f.id}')" style="background:#10b981;color:#fff;border:0;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">✓ Cobrar</button>
+          <button onclick="Cajas.editarCobro('${f.id}')" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer;">✏</button>
+        `;
+      } else {
+        acciones = `<span style="color:#10b981;font-size:11px;">Cobrado ${fechaCobro}</span>`;
+      }
+
+      return `
+        <div class="cobro-fila ${cobrado ? 'cobrado' : ''}">
+          <div class="cobro-info">
+            <div class="cobro-cliente">
+              ${escapar(cliente)}
+              <span style="color:#6b7280;font-size:12px;font-weight:400;">— ${cajaIco} ${escapar(cajaN)} ${cmp ? '· ' + escapar(cmp) : ''}</span>
+            </div>
+            <div class="cobro-meta">📅 ${f.fecha}${tel}${nota}</div>
+          </div>
+          <div class="cobro-importe">${eur(f.importe)}</div>
+          ${acciones}
+        </div>
+      `;
+    }).join('');
+  }
+
+  async function cobrarFiado(id) {
+    if (!confirm('¿Marcar este cobro como pagado?')) return;
+    try {
+      await api('marcar_cobrado', { method: 'POST', body: { id } });
+      toast('Cobro registrado ✓');
+      await cargarCobros();
+    } catch(e) {
+      toast('Error: ' + e.message, 'error');
+    }
+  }
+
+  async function editarCobro(id) {
+    const f = Estado.cobros.find(x => x.id === id);
+    if (!f) return;
+    const nombre = prompt('Nombre del cliente:', f.cliente_nombre || '');
+    if (nombre === null) return;
+    const tel = prompt('Teléfono:', f.cliente_telefono || '');
+    if (tel === null) return;
+    const nota = prompt('Nota:', f.nota || '');
+    if (nota === null) return;
+    try {
+      await api('editar_fiado', {
+        method: 'POST',
+        body: {
+          id,
+          cliente_nombre: nombre.trim(),
+          cliente_telefono: tel.trim(),
+          nota: nota.trim()
+        }
+      });
+      toast('Cobro actualizado ✓');
+      await cargarCobros();
+    } catch(e) {
+      toast('Error: ' + e.message, 'error');
+    }
+  }
+
   // API pública
   window.Cajas = {
     renderCajas,
@@ -2397,7 +2615,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     guardarFiado,
     quitarFiado,
     editarFiado,
-    quitarFiadoByKey
+    quitarFiadoByKey,
+    cambiarTab,
+    cambiarSubTab,
+    cobrarFiado,
+    editarCobro
   };
 })();
 </script>
