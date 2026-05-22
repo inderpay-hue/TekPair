@@ -4680,7 +4680,7 @@ function checkFeature(featureName) {
   if (tieneFeature(featureName)) return true;
   // Determinar el plan mínimo para esta feature
   var planMin = 'pro';
-  if (PLAN_FEATURES.pro.indexOf(featureName) === -1) planMin = 'top';
+  if (PLAN_FEATURES.pro.indexOf(featureName) === -1) planMin = 'premium';
   mostrarModalUpgrade(featureName, planMin);
   return false;
 }
@@ -4765,7 +4765,7 @@ function setupNavToBlocker() {
     var feat = pageFeatureMap[pageId];
     if (feat && !tieneFeature(feat)) {
       var planMin = 'pro';
-      if (PLAN_FEATURES.pro.indexOf(feat) === -1) planMin = 'top';
+      if (PLAN_FEATURES.pro.indexOf(feat) === -1) planMin = 'premium';
       mostrarModalUpgrade(feat, planMin);
       return;
     }
@@ -12318,7 +12318,7 @@ async function crearUsuario(nom, email, pass, rol) {
   var limite = (PLAN_LIMITS[PLAN_INFO.plan] || PLAN_LIMITS.basico).usuarios;
   var actuales = (DB.usuarios || []).filter(function(u){ return u.activo !== false; }).length;
   if (actuales >= limite) {
-    var planMin = limite < 3 ? 'pro' : 'top';
+    var planMin = limite < 3 ? 'pro' : 'premium';
     mostrarModalUpgrade('permisos_usuarios', planMin);
     toast('Has alcanzado el límite de ' + limite + ' usuario' + (limite===1?'':'s') + ' en tu plan', 'err');
     return;
