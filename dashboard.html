@@ -1263,6 +1263,64 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   .compania-row input { flex:1; }
 
   
+
+  /* === FRANJA 7 DÍAS === */
+  .cajas-franja-wrap {
+    background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+    padding:14px 16px; margin-bottom:16px;
+  }
+  .cajas-franja-head {
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;
+  }
+  .cajas-franja-head h3 { margin:0; font-size:14px; color:#111827; }
+  .cajas-franja-head small { font-size:11px; color:#6b7280; }
+  .cajas-franja-grid {
+    display:grid; grid-template-columns:repeat(7,1fr); gap:6px;
+  }
+  .franja-dia {
+    text-align:center; padding:8px 4px; border:2px dashed #d1d5db;
+    border-radius:8px; cursor:pointer; transition:transform .15s;
+    background:#f3f4f6;
+  }
+  .franja-dia:hover { transform:translateY(-2px); }
+  .franja-dia .fd-nombre {
+    font-size:10px; font-weight:700; text-transform:uppercase; color:#6b7280;
+  }
+  .franja-dia .fd-num {
+    font-size:17px; font-weight:700; color:#6b7280; margin:2px 0;
+  }
+  .franja-dia .fd-info { font-size:10px; color:#9ca3af; }
+  .franja-dia.fd-cuadrado { background:#dcfce7; border:2px solid #16a34a; }
+  .franja-dia.fd-cuadrado .fd-nombre, .franja-dia.fd-cuadrado .fd-num { color:#166534; }
+  .franja-dia.fd-cuadrado .fd-info { color:#15803d; }
+  .franja-dia.fd-sobra { background:#dbeafe; border:2px solid #3b82f6; }
+  .franja-dia.fd-sobra .fd-nombre, .franja-dia.fd-sobra .fd-num { color:#1e40af; }
+  .franja-dia.fd-sobra .fd-info { color:#1e3a8a; }
+  .franja-dia.fd-falta { background:#fee2e2; border:2px solid #dc2626; }
+  .franja-dia.fd-falta .fd-nombre, .franja-dia.fd-falta .fd-num { color:#991b1b; }
+  .franja-dia.fd-falta .fd-info { color:#7f1d1d; }
+  .franja-dia.fd-pendientes { background:#fef3c7; border:2px solid #f59e0b; }
+  .franja-dia.fd-pendientes .fd-nombre, .franja-dia.fd-pendientes .fd-num { color:#92400e; }
+  .franja-dia.fd-pendientes .fd-info { color:#78350f; }
+  .franja-dia.fd-borrador { background:#ffedd5; border:2px solid #ea580c; }
+  .franja-dia.fd-borrador .fd-nombre, .franja-dia.fd-borrador .fd-num { color:#9a3412; }
+  .franja-dia.fd-borrador .fd-info { color:#7c2d12; }
+  .franja-dia.es-hoy { box-shadow:0 0 0 3px rgba(59,130,246,.25); }
+  .cajas-franja-legend {
+    display:flex; gap:12px; margin-top:10px; padding-top:10px;
+    border-top:1px solid #f3f4f6; font-size:11px; color:#6b7280; flex-wrap:wrap;
+  }
+  .cajas-franja-legend .chip {
+    display:inline-block; width:10px; height:10px; border-radius:3px;
+    border:1px solid; vertical-align:-1px; margin-right:4px;
+  }
+  .chip-cuadrado   { background:#dcfce7; border-color:#16a34a; }
+  .chip-sobra      { background:#dbeafe; border-color:#3b82f6; }
+  .chip-falta      { background:#fee2e2; border-color:#dc2626; }
+  .chip-pendientes { background:#fef3c7; border-color:#f59e0b; }
+  .chip-borrador   { background:#ffedd5; border-color:#ea580c; }
+  .chip-vacio      { background:#f3f4f6; border:1px dashed #d1d5db; }
+
   /* Tabs Cajas */
   .cajas-tab-btn {
     background:transparent;border:0;border-bottom:3px solid transparent;
@@ -1353,6 +1411,22 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
 
   <div id="vista-cajas-dia">
+    <!-- ════ FRANJA 7 DÍAS ════ -->
+  <div class="cajas-franja-wrap" id="cajas-franja-wrap">
+    <div class="cajas-franja-head">
+      <h3>Últimos 7 días</h3>
+      <small>Click en un día para verlo</small>
+    </div>
+    <div class="cajas-franja-grid" id="cajas-franja-grid"></div>
+    <div class="cajas-franja-legend">
+      <span><span class="chip chip-cuadrado"></span>Cuadra</span>
+      <span><span class="chip chip-sobra"></span>Sobra</span>
+      <span><span class="chip chip-falta"></span>Falta</span>
+      <span><span class="chip chip-pendientes"></span>Con pendientes</span>
+      <span><span class="chip chip-borrador"></span>Borrador</span>
+      <span><span class="chip chip-vacio"></span>Sin cerrar</span>
+    </div>
+  </div>
     <div id="cajas-grid"></div>
   </div>
 
@@ -1780,6 +1854,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       }));
       pintarTarjetas();
       actualizarBadgePendientes();
+      pintarFranja7();
     } catch (e) {
       toast('Error cargando cajas: ' + e.message, 'error');
     }
@@ -2683,6 +2758,70 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     }
   }
 
+
+  // ── FRANJA 7 DÍAS (G2) ────────────────────────
+  async function pintarFranja7() {
+    const grid = $('cajas-franja-grid');
+    if (!grid) return;
+
+    const hoy = new Date();
+    const dias = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(hoy);
+      d.setDate(hoy.getDate() - i);
+      dias.push(d);
+    }
+    const fmtIso = (d) => {
+      const y = d.getFullYear();
+      const m = String(d.getMonth() + 1).padStart(2, '0');
+      const dd = String(d.getDate()).padStart(2, '0');
+      return `${y}-${m}-${dd}`;
+    };
+
+    let resumenDias = {};
+    try {
+      const r = await api('resumen_periodo', {
+        query: { desde: fmtIso(dias[0]), hasta: fmtIso(dias[6]) }
+      });
+      resumenDias = r.dias || {};
+    } catch(e) { console.warn('Franja resumen error:', e); }
+
+    const hoyIso = fmtIso(hoy);
+    const nombresDias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+    grid.innerHTML = dias.map(d => {
+      const iso = fmtIso(d);
+      const info = resumenDias[iso];
+      const estado = info?.estado || 'vacio';
+      const esHoy = iso === hoyIso;
+      const nombre = esHoy ? 'Hoy' : nombresDias[d.getDay()];
+      let etiqueta = 'Sin cerrar';
+      if (estado === 'cuadrado') etiqueta = '✓ Cuadra';
+      else if (estado === 'sobra') etiqueta = '+' + Number(info.descuadre || 0).toFixed(2).replace('.', ',');
+      else if (estado === 'falta') etiqueta = Number(info.descuadre || 0).toFixed(2).replace('.', ',');
+      else if (estado === 'pendientes') etiqueta = 'Pendientes';
+      else if (estado === 'borrador') etiqueta = 'Borrador';
+      else if (estado === 'festivo') etiqueta = 'Festivo';
+      const claseEstado = estado === 'vacio' ? '' : 'fd-' + estado;
+      return `
+        <div class="franja-dia ${claseEstado} ${esHoy ? 'es-hoy' : ''}"
+             onclick="Cajas.irAFechaFranja('${iso}')">
+          <div class="fd-nombre">${nombre}</div>
+          <div class="fd-num">${d.getDate()}</div>
+          <div class="fd-info">${etiqueta}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function irAFechaFranja(iso) {
+    Estado.fechaActual = iso;
+    const sel = $('cajas-fecha-actual');
+    if (sel) sel.value = iso;
+    cargarCajas();
+  }
+
+
   // API pública
   window.Cajas = {
     renderCajas,
@@ -2709,7 +2848,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     cobrarFiado,
     cerrarModalCobrar,
     confirmarCobro,
-    editarCobro
+    editarCobro,
+    pintarFranja7,
+    irAFechaFranja
   };
 })();
 </script>
