@@ -4715,7 +4715,8 @@ function aplicarBloqueosPlan() {
   // Items del sidebar a bloquear
   var sidebarLocks = [
     {selector: '[data-p="pCitas"]', feat: 'citas'},
-    {selector: '[data-p="pServicios"]', feat: 'catalogo_servicios'}
+    {selector: '[data-p="pServicios"]', feat: 'catalogo_servicios'},
+    {selector: '[data-p="pCajas"]', feat: 'cajas_multiservicio'}
   ];
   sidebarLocks.forEach(function(lock) {
     var el = document.querySelector(lock.selector);
@@ -4758,7 +4759,8 @@ function setupNavToBlocker() {
   window.navTo = function(pageId) {
     var pageFeatureMap = {
       pCitas: 'citas',
-      pServicios: 'catalogo_servicios'
+      pServicios: 'catalogo_servicios',
+      pCajas: 'cajas_multiservicio'
     };
     var feat = pageFeatureMap[pageId];
     if (feat && !tieneFeature(feat)) {
