@@ -122,17 +122,27 @@ function calcularSaldoTeorico(tipoCaja, saldoInicial, movimientos, totalCobradoC
 // Helper: comprueba si el usuario tiene un permiso del módulo Cajas Multi-Servicio
 // Los admin tienen TODOS los permisos automáticamente
 // Los empleados los tienen solo si su permisos_usuarios[clave] = true
-// Claves válidas: cajasm_cobrar, cajasm_gestionar, cajasm_editar_cerrada, cajasm_cerrar
 async function tienePermisoCaja(payload, clave) {
   if (!payload) return false;
-  if (payload.rol === 'admin') return true;
-  const claveCompleta = clave.startsWith('cajasm_') ? clave : 'cajasm_' + clave;
+  // Consultar rol desde BBDD (JWT no lo lleva, solo trae 'role: authenticated' de Supabase)
+  const userId = payload.sub || payload.user_id;
   const email = payload.email;
-  if (!email) return false;
-  const us = await sbGet(
-    `usuarios?email=eq.${encodeURIComponent(email)}&select=permisos_usuarios&limit=1`
-  );
-  const permisos = us[0]?.permisos_usuarios || {};
+  let usuario = null;
+  if (userId) {
+    const r = await sbGet(
+      `usuarios?id=eq.${encodeURIComponent(userId)}&select=rol,permisos_usuarios&limit=1`
+    );
+    usuario = r[0] || null;
+  } else if (email) {
+    const r = await sbGet(
+      `usuarios?email=eq.${encodeURIComponent(email)}&select=rol,permisos_usuarios&limit=1`
+    );
+    usuario = r[0] || null;
+  }
+  if (!usuario) return false;
+  if (usuario.rol === 'admin') return true;
+  const claveCompleta = clave.startsWith('cajasm_') ? clave : 'cajasm_' + clave;
+  const permisos = usuario.permisos_usuarios || {};
   return permisos[claveCompleta] === true;
 }
 
