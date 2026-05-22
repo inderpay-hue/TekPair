@@ -2292,7 +2292,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         ? 'Caja ya cerrada. Solo el administrador puede modificarlo ahora.'
         : 'Cuánto efectivo dejas en el cajón para mañana.';
 
-      // Cargar fiados existentes del día (array, múltiples por compañía permitidos)
+      // Cargar TODOS los fiados del día - persisten en su día original incluso si se cobran
       Estado.fiadosTemp = [];
       if (data.caja.gestion_fiados) {
         try {
@@ -2300,17 +2300,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
             query: { caja_id: cajaId, desde: Estado.fechaActual, hasta: Estado.fechaActual }
           });
           for (const f of (rf.fiados || [])) {
-            if (f.estado === 'pendiente') {
-              Estado.fiadosTemp.push({
-                id: f.id,
-                tempKey: 'srv_' + f.id,
-                compania_id: f.compania_id || null,
-                importe: Number(f.importe || 0),
-                cliente_nombre: f.cliente_nombre || '',
-                cliente_telefono: f.cliente_telefono || '',
-                nota: f.nota || ''
-              });
-            }
+            // Incluir TANTO pendientes COMO cobrados
+            Estado.fiadosTemp.push({
+              id: f.id,
+              tempKey: 'srv_' + f.id,
+              compania_id: f.compania_id || null,
+              importe: Number(f.importe || 0),
+              cliente_nombre: f.cliente_nombre || '',
+              cliente_telefono: f.cliente_telefono || '',
+              nota: f.nota || '',
+              estado: f.estado || 'pendiente',
+              metodo_pago: f.metodo_pago || null,
+              fecha_cobro: f.fecha_cobro || null
+            });
           }
         } catch(e) { console.warn('Error cargando fiados:', e); }
       }
