@@ -1391,7 +1391,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           <input type="date" id="cierre-fecha" disabled>
         </div>
         <div class="cajas-form-grupo">
-          <label>Saldo inicial (cambio de ayer) €</label>
+          <label>Cambio del día anterior € <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(automático)</span></label>
           <input type="number" step="0.01" id="cierre-saldo-inicial" value="0">
         </div>
       </div>
@@ -1442,6 +1442,29 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       const sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
       return sess.jwt_token || sess.jwt || '';
     } catch (e) { return ''; }
+  }
+
+  // Decodifica payload del JWT (sin verificar firma — solo para leer rol/email)
+  function decodeJWT() {
+    try {
+      const t = getJWT();
+      if (!t) return {};
+      const partes = t.split('.');
+      if (partes.length < 2) return {};
+      const payload = partes[1].replace(/-/g, '+').replace(/_/g, '/');
+      const pad = payload + '='.repeat((4 - payload.length % 4) % 4);
+      return JSON.parse(atob(pad));
+    } catch (e) { return {}; }
+  }
+
+  function esAdminTienda() {
+    const p = decodeJWT();
+    return p.rol === 'admin' || p.email === 'info@tekpair.tech';
+  }
+
+  function esSuperAdmin() {
+    const p = decodeJWT();
+    return p.email === 'info@tekpair.tech';
   }
 
   // ── Wrapper API ──────────────────────────────────
@@ -1783,6 +1806,27 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       $('cierre-saldo-real').value = data.cierre?.saldo_real_final ?? 0;
       $('cierre-cambio-siguiente').value = data.cierre?.cambio_siguiente ?? 0;
       $('cierre-notas').value = data.cierre?.notas ?? '';
+
+      // ── Bloqueo según rol y estado ─────────────────────
+      const esAdmin = esAdminTienda();
+      const cierreCerrado = data.cierre?.estado === 'cerrado' || data.cierre?.estado === 'descuadre';
+
+      // SALDO INICIAL: solo admin puede editarlo (siempre bloqueado para empleado)
+      $('cierre-saldo-inicial').readOnly = !esAdmin;
+      $('cierre-saldo-inicial').style.background = !esAdmin ? '#f3f4f6' : '';
+      $('cierre-saldo-inicial').style.cursor = !esAdmin ? 'not-allowed' : '';
+      $('cierre-saldo-inicial').title = !esAdmin
+        ? 'Heredado del cierre anterior. Solo el administrador puede modificarlo.'
+        : 'Cambio que se dejó al cerrar el día anterior.';
+
+      // CAMBIO PARA MAÑANA: bloqueado para empleado si la caja ya está cerrada
+      const bloquearCambio = !esAdmin && cierreCerrado;
+      $('cierre-cambio-siguiente').readOnly = bloquearCambio;
+      $('cierre-cambio-siguiente').style.background = bloquearCambio ? '#f3f4f6' : '';
+      $('cierre-cambio-siguiente').style.cursor = bloquearCambio ? 'not-allowed' : '';
+      $('cierre-cambio-siguiente').title = bloquearCambio
+        ? 'Caja ya cerrada. Solo el administrador puede modificarlo ahora.'
+        : 'Cuánto efectivo dejas en el cajón para mañana.';
 
       renderTablaMovimientos(data);
       recalcularResumen();
