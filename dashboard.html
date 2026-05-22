@@ -1391,15 +1391,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="cajas-modal-overlay" id="modal-fiado-anotar" style="z-index:100000;">
   <div class="cajas-modal" style="max-width:440px;">
     <div class="cajas-modal-header">
-      <h3>📝 Anotar pendiente de cobro</h3>
+      <h3 id="modal-fiado-titulo">📝 Anotar pendiente de cobro</h3>
       <button class="cajas-modal-cerrar" onclick="Cajas.cerrarModalFiado()">✕</button>
     </div>
     <div class="cajas-modal-cuerpo">
-      <input type="hidden" id="fiado-mov-key">
+      <input type="hidden" id="fiado-temp-key">
 
       <div class="cajas-form-grupo">
-        <label id="fiado-compania-label">Compañía</label>
-        <div id="fiado-compania-nombre" style="font-weight:600;color:#111827;font-size:15px;padding:8px 0;"></div>
+        <label>Compañía</label>
+        <select id="fiado-compania-select"></select>
       </div>
 
       <div class="cajas-form-grupo">
@@ -1423,7 +1423,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
     </div>
     <div class="cajas-modal-pie">
-      <button class="cajas-btn cajas-btn-rojo" id="btn-quitar-fiado" style="margin-right:auto;display:none;" onclick="Cajas.quitarFiado()">Quitar</button>
+      <button class="cajas-btn cajas-btn-rojo" id="btn-quitar-fiado" style="margin-right:auto;display:none;" onclick="Cajas.quitarFiado()">Eliminar</button>
       <button class="cajas-btn cajas-btn-sec" onclick="Cajas.cerrarModalFiado()">Cancelar</button>
       <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarFiado()">Guardar</button>
     </div>
@@ -1481,6 +1481,21 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="cajas-form-grupo">
           <label>Cambio que dejo para mañana €</label>
           <input type="number" step="0.01" id="cierre-cambio-siguiente" value="0">
+        </div>
+      </div>
+
+
+      <!-- ════ PENDIENTES DEL DÍA ════ -->
+      <div id="bloque-pendientes-dia" style="display:none;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin:14px 0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+          <label style="margin:0;font-size:12px;color:#78350f;font-weight:700;text-transform:uppercase;letter-spacing:.3px;">
+            📝 Pendientes del día <span id="pendientes-count" style="font-weight:400;color:#92400e;"></span>
+          </label>
+          <button type="button" class="cajas-btn cajas-btn-verde" style="padding:6px 12px;font-size:12px;" onclick="Cajas.abrirModalFiado()">+ Añadir pendiente</button>
+        </div>
+        <div id="lista-pendientes-dia"></div>
+        <div id="total-pendientes-dia" style="display:none;border-top:1px dashed #f59e0b;padding-top:8px;margin-top:8px;text-align:right;font-size:13px;color:#78350f;">
+          Total pendiente: <strong id="total-pendientes-importe">0,00 €</strong>
         </div>
       </div>
 
@@ -1561,7 +1576,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     cajaEditando: null,
     cierreEditando: null,
     inicializado: false,
-    fiadosTemp: {}  // {compania_id: {importe, cliente_nombre, cliente_telefono, nota}}
+    fiadosTemp: []  // array de fiados del día actual (múltiples por compañía permitidos)
   };
 
   function eur(n) {
@@ -1905,28 +1920,36 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         ? 'Caja ya cerrada. Solo el administrador puede modificarlo ahora.'
         : 'Cuánto efectivo dejas en el cajón para mañana.';
 
-      // Cargar fiados existentes de este cierre
-      Estado.fiadosTemp = {};
-      if (data.caja.gestion_fiados && data.cierre?.id) {
+      // Cargar fiados existentes del día (array, múltiples por compañía permitidos)
+      Estado.fiadosTemp = [];
+      if (data.caja.gestion_fiados) {
         try {
           const rf = await api('listar_fiados', {
             query: { caja_id: cajaId, desde: Estado.fechaActual, hasta: Estado.fechaActual }
           });
           for (const f of (rf.fiados || [])) {
-            if (f.estado === 'pendiente' && f.compania_id) {
-              Estado.fiadosTemp[f.compania_id] = {
+            if (f.estado === 'pendiente') {
+              Estado.fiadosTemp.push({
                 id: f.id,
+                tempKey: 'srv_' + f.id,
+                compania_id: f.compania_id || null,
                 importe: Number(f.importe || 0),
                 cliente_nombre: f.cliente_nombre || '',
                 cliente_telefono: f.cliente_telefono || '',
                 nota: f.nota || ''
-              };
+              });
             }
           }
         } catch(e) { console.warn('Error cargando fiados:', e); }
       }
 
       renderTablaMovimientos(data);
+      // Mostrar bloque pendientes solo si la caja tiene gestión de fiados
+      const bloqueP = $('bloque-pendientes-dia');
+      if (bloqueP) {
+        bloqueP.style.display = data.caja.gestion_fiados ? 'block' : 'none';
+      }
+      pintarListaPendientes();
       recalcularResumen();
       $('modal-cierre').classList.add('activo');
     } catch (e) {
@@ -1945,21 +1968,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     const tbody = $('tabla-mov-tbody');
 
     if (tipo === 'envios') {
-      const colFiado = Estado.cierreEditando?.caja?.gestion_fiados
-        ? '<th style="text-align:right;width:100px;">Fiado €</th>' : '';
       thead.innerHTML = `<tr>
         <th>Compañía</th>
         <th style="text-align:right;">Enviado €</th>
-        ${colFiado}
       </tr>`;
     } else if (tipo === 'recargas') {
-      const colFiado = Estado.cierreEditando?.caja?.gestion_fiados
-        ? '<th style="text-align:right;width:100px;">Fiado €</th>' : '';
       thead.innerHTML = `<tr>
         <th>Compañía</th>
         <th style="text-align:right;">Efectivo €</th>
         <th style="text-align:right;">Tarjeta €</th>
-        ${colFiado}
         <th style="text-align:right;">Total</th>
       </tr>`;
     } else {
@@ -1973,40 +1990,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     for (const c of data.companias) {
       const m = movsExistentes[c.id] || {};
       if (tipo === 'envios') {
-        const conFiado = Estado.cierreEditando?.caja?.gestion_fiados;
-        const fiadoTemp = Estado.fiadosTemp[c.id];
-        const fiadoImp = fiadoTemp?.importe || 0;
-        const celdaFiado = conFiado ? `
-          <td style="text-align:right;">
-            <button class="celda-fiado-btn" data-compania-id="${c.id}" data-compania-nombre="${escapar(c.nombre)}"
-                    onclick="Cajas.abrirModalFiado('${c.id}', '${escapar(c.nombre)}')"
-                    style="background:${fiadoImp > 0 ? '#fef3c7' : '#fff'};border:1px solid ${fiadoImp > 0 ? '#f59e0b' : '#d1d5db'};color:${fiadoImp > 0 ? '#92400e' : '#6b7280'};padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;width:100%;">
-              ${fiadoImp > 0 ? eur(fiadoImp) : '+ anotar'}
-            </button>
-          </td>` : '';
         html += `<tr data-compania-id="${c.id}">
           <td>${escapar(c.nombre)}</td>
           <td style="text-align:right;"><input type="number" step="0.01" class="mov-enviado" value="${m.importe_enviado || 0}" onchange="Cajas.recalcular()"></td>
-          ${celdaFiado}
         </tr>`;
       } else if (tipo === 'recargas') {
-        const conFiado = Estado.cierreEditando?.caja?.gestion_fiados;
-        const fiadoTemp = Estado.fiadosTemp[c.id];
-        const fiadoImp = fiadoTemp?.importe || 0;
-        const celdaFiado = conFiado ? `
-          <td style="text-align:right;">
-            <button class="celda-fiado-btn"
-                    onclick="Cajas.abrirModalFiado('${c.id}', '${escapar(c.nombre)}')"
-                    style="background:${fiadoImp > 0 ? '#fef3c7' : '#fff'};border:1px solid ${fiadoImp > 0 ? '#f59e0b' : '#d1d5db'};color:${fiadoImp > 0 ? '#92400e' : '#6b7280'};padding:5px 10px;border-radius:6px;font-size:12px;cursor:pointer;width:100%;">
-              ${fiadoImp > 0 ? eur(fiadoImp) : '+ anotar'}
-            </button>
-          </td>` : '';
         html += `<tr data-compania-id="${c.id}">
           <td>${escapar(c.nombre)}</td>
           <td style="text-align:right;"><input type="number" step="0.01" class="mov-efectivo" value="${m.importe_efectivo || 0}" onchange="Cajas.recalcular()"></td>
           <td style="text-align:right;"><input type="number" step="0.01" class="mov-tarjeta" value="${m.importe_tarjeta || 0}" onchange="Cajas.recalcular()"></td>
-          ${celdaFiado}
-          <td style="text-align:right;" class="balance-celda">${eur((m.importe_efectivo || 0) + (m.importe_tarjeta || 0) + fiadoImp)}</td>
+          <td style="text-align:right;" class="balance-celda">${eur((m.importe_efectivo || 0) + (m.importe_tarjeta || 0))}</td>
         </tr>`;
       } else {
         html += `<tr data-compania-id="${c.id}">
@@ -2106,8 +2099,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     let html = '';
     // Total fiados (no afecta cuadre, solo informativo)
     let totalFiados = 0;
-    if (Estado.cierreEditando?.caja?.gestion_fiados) {
-      for (const f of Object.values(Estado.fiadosTemp)) {
+    if (Estado.cierreEditando?.caja?.gestion_fiados && Array.isArray(Estado.fiadosTemp)) {
+      for (const f of Estado.fiadosTemp) {
         totalFiados += Number(f.importe || 0);
       }
     }
@@ -2151,12 +2144,33 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     try {
       const r = await api('guardar_cierre', { method: 'POST', body: payload });
 
-      // Persistir fiados si la caja tiene gestión activa
+      // Persistir fiados si la caja tiene gestión activa (array, múltiples por compañía)
       if (Estado.cierreEditando?.caja?.gestion_fiados) {
         try {
-          for (const [companiaId, fiado] of Object.entries(Estado.fiadosTemp)) {
+          // 1) IDs que estaban al inicio (vinieron del backend)
+          const idsAlInicio = new Set();
+          // 2) IDs que siguen existiendo tras edición
+          const idsActuales = new Set();
+          for (const f of Estado.fiadosTemp) {
+            if (f.id) idsActuales.add(f.id);
+          }
+          // Detectar borrados: estaban con tempKey 'srv_XXX' pero ya no están en fiadosTemp
+          // (la lista actual ya no los tiene porque los quitamos con quitarFiadoByKey)
+          // → necesitamos comparar con el snapshot original. Lo más simple:
+          //   recargar lista del servidor para saber qué hay
+          const rf = await api('listar_fiados', {
+            query: { caja_id: payload.caja_id, desde: payload.fecha, hasta: payload.fecha }
+          });
+          const idsServidor = new Set((rf.fiados || []).filter(f => f.estado === 'pendiente').map(f => f.id));
+          // Eliminar los que ya no están en fiadosTemp
+          for (const idSrv of idsServidor) {
+            if (!idsActuales.has(idSrv)) {
+              await api('borrar_fiado', { method: 'POST', body: { id: idSrv } });
+            }
+          }
+          // Crear/editar
+          for (const fiado of Estado.fiadosTemp) {
             if (fiado.id) {
-              // Ya existía: editar
               await api('editar_fiado', {
                 method: 'POST',
                 body: {
@@ -2168,12 +2182,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
                 }
               });
             } else {
-              // Nuevo
               await api('crear_fiado', {
                 method: 'POST',
                 body: {
                   caja_id: payload.caja_id,
-                  compania_id: companiaId,
+                  compania_id: fiado.compania_id || null,
                   cierre_id: r.cierre_id,
                   fecha: payload.fecha,
                   importe: fiado.importe,
@@ -2221,52 +2234,138 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     $('modal-fiado-anotar').classList.remove('activo');
   }
 
-  function actualizarCeldaFiado(companiaId) {
-    // Actualiza SOLO la celda del fiado sin tocar el resto de la tabla
-    // (preserva los valores tecleados en Enviado/Efectivo/Tarjeta)
-    const tr = document.querySelector(`#tabla-mov-tbody tr[data-compania-id="${companiaId}"]`);
-    if (!tr) return;
-    const btn = tr.querySelector('.celda-fiado-btn');
-    if (!btn) return;
-    const fiado = Estado.fiadosTemp[companiaId];
-    const imp = fiado?.importe || 0;
-    if (imp > 0) {
-      btn.style.background = '#fef3c7';
-      btn.style.borderColor = '#f59e0b';
-      btn.style.color = '#92400e';
-      btn.textContent = eur(imp);
-    } else {
-      btn.style.background = '#fff';
-      btn.style.borderColor = '#d1d5db';
-      btn.style.color = '#6b7280';
-      btn.textContent = '+ anotar';
+  // ── PENDIENTES DEL DÍA (array, múltiples por compañía) ──
+
+  function genTempKey() {
+    return 'tmp_' + Math.random().toString(36).slice(2, 10);
+  }
+
+  function pintarListaPendientes() {
+    const lista = $('lista-pendientes-dia');
+    const cnt = $('pendientes-count');
+    const bloqueTotal = $('total-pendientes-dia');
+    const totalSpan = $('total-pendientes-importe');
+    if (!lista) return;
+
+    const fiados = Estado.fiadosTemp || [];
+    cnt.textContent = fiados.length > 0 ? `(${fiados.length})` : '';
+
+    if (fiados.length === 0) {
+      lista.innerHTML = '<div style="color:#92400e;font-size:13px;text-align:center;padding:14px;font-style:italic;">No hay pendientes anotados</div>';
+      bloqueTotal.style.display = 'none';
+      return;
     }
+
+    // Mapa de compañías para mostrar nombres
+    const cmpsMap = {};
+    (Estado.cierreEditando?.companias || []).forEach(c => { cmpsMap[c.id] = c.nombre; });
+
+    let totalImp = 0;
+    lista.innerHTML = fiados.map(f => {
+      totalImp += Number(f.importe || 0);
+      const nombreCmp = f.compania_id ? (cmpsMap[f.compania_id] || '?') : '—';
+      const cliente = f.cliente_nombre || 'Sin nombre';
+      const tel = f.cliente_telefono ? ` · 📞 ${escapar(f.cliente_telefono)}` : '';
+      const nota = f.nota ? ` · ${escapar(f.nota)}` : '';
+      return `
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 10px;background:#fff;border-radius:8px;margin-bottom:6px;border:1px solid #fde68a;">
+          <div style="flex:1;min-width:0;">
+            <div style="font-size:13px;font-weight:600;color:#111827;">
+              <span style="color:#92400e;">${escapar(nombreCmp)}</span> — ${escapar(cliente)}
+            </div>
+            <div style="font-size:11px;color:#6b7280;">${tel}${nota}</div>
+          </div>
+          <div style="font-weight:700;color:#92400e;font-size:14px;">${eur(f.importe)}</div>
+          <button type="button" onclick="Cajas.editarFiado('${f.tempKey}')" style="background:#fff;border:1px solid #d1d5db;color:#374151;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;">✏</button>
+          <button type="button" onclick="Cajas.quitarFiadoByKey('${f.tempKey}')" style="background:#fee2e2;border:1px solid #fca5a5;color:#991b1b;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;">✕</button>
+        </div>
+      `;
+    }).join('');
+
+    totalSpan.textContent = eur(totalImp);
+    bloqueTotal.style.display = 'block';
+  }
+
+  function poblarSelectCompaniaFiado(companiaIdSel) {
+    const sel = $('fiado-compania-select');
+    if (!sel) return;
+    const cmps = Estado.cierreEditando?.companias || [];
+    sel.innerHTML = '<option value="">— Sin compañía —</option>' +
+      cmps.map(c => `<option value="${c.id}" ${c.id === companiaIdSel ? 'selected' : ''}>${escapar(c.nombre)}</option>`).join('');
+  }
+
+  function abrirModalFiado() {
+    // Nuevo fiado: campos vacíos
+    $('fiado-temp-key').value = '';
+    $('modal-fiado-titulo').textContent = '📝 Nuevo pendiente';
+    poblarSelectCompaniaFiado('');
+    $('fiado-importe').value = 0;
+    $('fiado-cliente').value = '';
+    $('fiado-telefono').value = '';
+    $('fiado-nota').value = '';
+    $('btn-quitar-fiado').style.display = 'none';
+    $('modal-fiado-anotar').classList.add('activo');
+    setTimeout(() => $('fiado-importe').focus(), 100);
+  }
+
+  function editarFiado(tempKey) {
+    const f = (Estado.fiadosTemp || []).find(x => x.tempKey === tempKey);
+    if (!f) return;
+    $('fiado-temp-key').value = tempKey;
+    $('modal-fiado-titulo').textContent = '✏ Editar pendiente';
+    poblarSelectCompaniaFiado(f.compania_id || '');
+    $('fiado-importe').value = f.importe || 0;
+    $('fiado-cliente').value = f.cliente_nombre || '';
+    $('fiado-telefono').value = f.cliente_telefono || '';
+    $('fiado-nota').value = f.nota || '';
+    $('btn-quitar-fiado').style.display = 'inline-block';
+    $('modal-fiado-anotar').classList.add('activo');
   }
 
   function guardarFiado() {
-    const companiaId = $('fiado-mov-key').value;
+    const tempKey = $('fiado-temp-key').value;
     const importe = Number($('fiado-importe').value || 0);
     if (importe <= 0) {
       toast('El importe debe ser mayor que 0', 'error');
       return;
     }
-    Estado.fiadosTemp[companiaId] = {
-      id: Estado.fiadosTemp[companiaId]?.id || null,
+    const datos = {
+      compania_id: $('fiado-compania-select').value || null,
       importe,
       cliente_nombre: $('fiado-cliente').value.trim(),
       cliente_telefono: $('fiado-telefono').value.trim(),
       nota: $('fiado-nota').value.trim()
     };
+
+    if (tempKey) {
+      // Editar existente
+      const f = Estado.fiadosTemp.find(x => x.tempKey === tempKey);
+      if (f) Object.assign(f, datos);
+    } else {
+      // Nuevo
+      Estado.fiadosTemp.push({
+        id: null,
+        tempKey: genTempKey(),
+        ...datos
+      });
+    }
+
     cerrarModalFiado();
-    actualizarCeldaFiado(companiaId);
+    pintarListaPendientes();
     recalcularResumen();
   }
 
   function quitarFiado() {
-    const companiaId = $('fiado-mov-key').value;
-    delete Estado.fiadosTemp[companiaId];
+    // Llamado desde el botón "Eliminar" del modal
+    const tempKey = $('fiado-temp-key').value;
+    if (!tempKey) return;
+    quitarFiadoByKey(tempKey);
     cerrarModalFiado();
-    actualizarCeldaFiado(companiaId);
+  }
+
+  function quitarFiadoByKey(tempKey) {
+    Estado.fiadosTemp = Estado.fiadosTemp.filter(f => f.tempKey !== tempKey);
+    pintarListaPendientes();
     recalcularResumen();
   }
 
@@ -2288,7 +2387,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     abrirModalFiado,
     cerrarModalFiado,
     guardarFiado,
-    quitarFiado
+    quitarFiado,
+    editarFiado,
+    quitarFiadoByKey
   };
 })();
 </script>
