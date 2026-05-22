@@ -198,7 +198,7 @@ export default async function handler(req, res) {
           body: JSON.stringify({
             usuario_id: nuevoUserId,
             nombre: codigoNorm + ' - Comercial',
-            plan: 'top',
+            plan: 'premium',
             plan_status: 'active',
             plan_until: '2099-12-31T23:59:59Z'
           })
