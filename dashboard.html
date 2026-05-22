@@ -2081,10 +2081,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       const cobrado = Math.round((efectivoCaja + importeTpv + totalFiados) * 100) / 100;
       const balance = Math.round((cobrado - teorico) * 100) / 100;
 
-      okFlag = balance >= -0.5;
-      if (Math.abs(balance) <= 0.5) mensajeOK = '✓ Caja cuadrada';
-      else mensajeOK = `✓ Sobra: +${eur(Math.abs(balance))}`;
-      mensajeKO = `❌ Falta: ${eur(balance)}`;
+      // Envíos: debe cuadrar EXACTO (no aceptar sobra como verde)
+      okFlag = Math.abs(balance) <= 0.5;
+      if (balance > 0.5) {
+        okFlag = false;
+        mensajeOK = '';
+      } else {
+        mensajeOK = '✓ Caja cuadrada';
+      }
+      mensajeKO = balance < -0.5 ? `❌ Falta: ${eur(balance)}` : `❌ Sobra: +${eur(balance)}`;
 
       html += `<div class="item"><span class="label">Total enviado:</span><span><b>${eur(totalEnviado)}</b></span></div>`;
       html += `<div class="item"><span class="label">Saldo inicial:</span><span>${eur(saldoInicial)}</span></div>`;
