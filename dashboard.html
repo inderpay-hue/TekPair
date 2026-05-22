@@ -11617,7 +11617,7 @@ function abrirWhatsAppFiado(fiadoId) {
     datos: {
       nombre: fiado.cliente_nombre || '',
       tienda: TIENDA.nombre || '',
-      total: cur(fiado.importe || 0),
+      total: Number(fiado.importe || 0),
       fecha: fechaVisible
     }
   };
