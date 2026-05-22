@@ -4657,7 +4657,7 @@ function mostrarModalUpgrade(featureName, planRequerido) {
     multi_tienda: '🏪 Multi-tienda',
     ubicaciones: '📍 Ubicaciones múltiples'
   })[featureName] || featureName;
-  var planLabel = ({basico:'Básico', pro:'Pro', top:'Top'})[planRequerido] || planRequerido;
+  var planLabel = ({basico:'Básico', pro:'Pro', premium:'Premium', top:'Top'})[planRequerido] || planRequerido;
   document.getElementById('upgFeatName').textContent = feat;
   document.getElementById('upgPlanReq').textContent = planLabel;
   // Resaltar el plan recomendado
@@ -4799,8 +4799,8 @@ function clickUpgradePlan(plan) {
 function renderSuscripcionInfo() {
   var box = document.getElementById('suscripcionInfo');
   if (!box) return;
-  var planLabel = ({basico:'Básico', pro:'Pro ⭐', top:'Top'})[PLAN_INFO.plan] || PLAN_INFO.plan;
-  var planPrecio = ({basico:'9,90', pro:'19,90', top:'34,90'})[PLAN_INFO.plan] || '—';
+  var planLabel = ({basico:'Básico', pro:'Pro ⭐', premium:'Premium', top:'Top'})[PLAN_INFO.plan] || PLAN_INFO.plan;
+  var planPrecio = ({basico:'9,90', pro:'19,90', premium:'34,90', top:'34,90'})[PLAN_INFO.plan] || '—';
   var statusLabel = ({trial:'🎁 Periodo de prueba', active:'✓ Activa', past_due:'⚠️ Pago pendiente', cancelled:'❌ Cancelada'})[PLAN_INFO.status] || PLAN_INFO.status;
   var statusColor = ({trial:'var(--blue)', active:'var(--green)', past_due:'var(--orange)', cancelled:'var(--red)'})[PLAN_INFO.status] || 'var(--muted)';
   var dias = planDiasRestantes();
@@ -15060,11 +15060,11 @@ function impFacAnadirAlStock() {
         <div class="upg-plan-feats">Todo + citas, kanban,<br>reportes PDF, backup,<br>3 usuarios</div>
         <button class="upg-plan-btn" onclick="clickUpgradePlan('pro')">Cambiar a Pro</button>
       </div>
-      <div class="upg-plan" data-plan="top">
-        <div class="upg-plan-name">Top</div>
+      <div class="upg-plan" data-plan="premium">
+        <div class="upg-plan-name">Premium</div>
         <div class="upg-plan-price">34,90<small>€/mes</small></div>
-        <div class="upg-plan-feats">Todo + multi-tienda,<br>API, soporte 24/7,<br>usuarios ilimitados</div>
-        <button class="upg-plan-btn" onclick="clickUpgradePlan('top')">Cambiar a Top</button>
+        <div class="upg-plan-feats">Todo + backups,<br>API, soporte prioritario,<br>usuarios ilimitados</div>
+        <button class="upg-plan-btn" onclick="clickUpgradePlan('premium')">Cambiar a Premium</button>
       </div>
     </div>
 
