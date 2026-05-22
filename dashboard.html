@@ -1265,6 +1265,25 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   
 
 
+
+  /* Chips de días de apertura */
+  .dia-apertura-chip {
+    background:#fff; border:1px solid #d1d5db; border-radius:8px;
+    padding:8px 4px; cursor:pointer; transition:all .15s;
+    text-align:center;
+  }
+  .dia-apertura-chip:hover { border-color:#3b82f6; background:#eff6ff; }
+  .dia-apertura-chip input[type="checkbox"] { display:none; }
+  .dia-apertura-chip span {
+    font-size:12px; font-weight:600; color:#6b7280;
+  }
+  .dia-apertura-chip:has(input:checked) {
+    background:#3b82f6; border-color:#3b82f6;
+  }
+  .dia-apertura-chip:has(input:checked) span {
+    color:#fff;
+  }
+
   /* === CALENDARIO POPUP === */
   .tpcal-trigger-btn {
     background:#fff; color:#111827; border:1px solid #d1d5db;
@@ -1559,6 +1578,26 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           </span>
         </label>
       </div>
+
+      <div class="cajas-form-grupo" style="background:#eff6ff;border-radius:8px;padding:12px 14px;border:1px solid #bfdbfe;">
+        <label style="font-size:12px;color:#1e40af;font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;display:block;">
+          📅 Días de apertura
+        </label>
+        <p style="font-size:11px;color:#1e3a8a;margin:0 0 10px;">
+          Marca los días que esta caja está abierta. Los días desmarcados aparecerán como festivos.
+        </p>
+        <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;">
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="1"><span>Lun</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="2"><span>Mar</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="3"><span>Mié</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="4"><span>Jue</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="5"><span>Vie</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="6"><span>Sáb</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="7"><span>Dom</span></label>
+        </div>
+      </div>
+
+
 
       <div id="caja-companias-bloque" style="display:none;">
         <hr style="border-color:#e5e7eb;margin:16px 0;">
@@ -2024,6 +2063,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     $('caja-color').value = '#3b82f6';
     $('caja-permiso').value = 'admin';
     if ($('caja-gestion-fiados')) $('caja-gestion-fiados').checked = false;
+    // Días apertura por defecto: L-V marcados
+    document.querySelectorAll('.dia-checkbox').forEach(c => {
+      c.checked = ['1','2','3','4','5'].includes(c.value);
+    });
     $('btn-borrar-caja').style.display = 'none';
     $('caja-companias-bloque').style.display = 'none';
     $('modal-caja').classList.add('activo');
@@ -2041,6 +2084,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     $('caja-color').value = caja.color || '#3b82f6';
     $('caja-permiso').value = caja.permiso_editar_cerrada || 'admin';
     if ($('caja-gestion-fiados')) $('caja-gestion-fiados').checked = !!caja.gestion_fiados;
+    // Cargar días apertura (por defecto L-V si no hay)
+    const dias = Array.isArray(caja.dias_apertura) && caja.dias_apertura.length > 0
+      ? caja.dias_apertura.map(String)
+      : ['1','2','3','4','5'];
+    document.querySelectorAll('.dia-checkbox').forEach(c => {
+      c.checked = dias.includes(c.value);
+    });
     $('btn-borrar-caja').style.display = 'inline-block';
     $('caja-companias-bloque').style.display = 'block';
     renderCompanias();
@@ -2108,13 +2158,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   }
 
   async function guardarCaja() {
+    const diasMarcados = Array.from(document.querySelectorAll('.dia-checkbox:checked'))
+      .map(c => Number(c.value));
+    if (diasMarcados.length === 0) {
+      toast('Marca al menos un día de apertura', 'error');
+      return;
+    }
     const payload = {
       tipo: $('caja-tipo').value,
       nombre: $('caja-nombre').value.trim(),
       icono: $('caja-icono').value.trim() || '💼',
       color: $('caja-color').value,
       permiso_editar_cerrada: $('caja-permiso').value,
-      gestion_fiados: !!($('caja-gestion-fiados')?.checked)
+      gestion_fiados: !!($('caja-gestion-fiados')?.checked),
+      dias_apertura: diasMarcados
     };
     if (!payload.nombre) {
       toast('Nombre obligatorio', 'error');
