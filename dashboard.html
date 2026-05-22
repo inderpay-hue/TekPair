@@ -5344,7 +5344,7 @@ async function syncCompleto(silencioso) {
 }
 
 // ═══ DASHBOARD ═══
-function renderDash() {
+async function renderDash() {
   var tab = SEL.metricTab;
   var hoy = new Date().toLocaleDateString('es');
   var semana = [];
@@ -5361,7 +5361,6 @@ function renderDash() {
   var filterDates = tab === 'hoy' ? [hoy] : tab === 'semana' ? semana : mes;
 
   var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && filterDates.includes(v.fecha); });
-  var repsHoy = DB.reps.filter(function(r) { return filterDates.includes(r.fechaEntregaReal); });
   var repsActivas = DB.reps.filter(function(r) { return r.estado !== 'Entregado' && r.estado !== 'Rechazado'; });
 
   var tVentas = ventas.reduce(function(a, v) {
@@ -5371,7 +5370,21 @@ function renderDash() {
     }
     return a + v.total;
   }, 0);
-  var tReps = repsHoy.reduce(function(a, r) { return a + r.total; }, 0);
+
+  // v2.4: usar pagos reales (anticipos + finales) en lugar de reps entregadas
+  var tReps = 0;
+  if (SB_KEY) {
+    try {
+      // Convertir fechas locales (DD/MM/YYYY) a ISO (YYYY-MM-DD)
+      var fechasISO = filterDates.map(function(f){
+        var p = f.split('/');
+        return p[2] + '-' + p[1].padStart(2,'0') + '-' + p[0].padStart(2,'0');
+      });
+      var minF = fechasISO.sort()[0], maxF = fechasISO[fechasISO.length-1];
+      var pagosRep = await sbGet('pagos_reparacion', 'fecha=gte.' + minF + '&fecha=lte.' + maxF) || [];
+      tReps = pagosRep.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
+    } catch(e) { console.warn('tReps:', e); }
+  }
 
   var statsHtml = '';
   if (widgetVisible('widget_stats_ventas') && tienePerm('ventas_ver')) {
@@ -5769,13 +5782,33 @@ function renderWidgetCajaDia() {
     if (pagos[p] === undefined) pagos[p] = 0;
     pagos[p] += monto;
   });
-  DB.reps.forEach(function(r) {
-    if (!r.pagoFinal) return;
-    var fr = _parseDateAny(r.fechaEntregaReal);
-    if (!fr || fr < per.inicio || fr > per.fin) return;
-    if (pagos[r.pagoFinal] === undefined) pagos[r.pagoFinal] = 0;
-    pagos[r.pagoFinal] += r.total;
-  });
+  // v2.4: usar pagos reales (anticipos + finales) en lugar de fechaEntregaReal
+  if (SB_KEY) {
+    var minISO = per.inicio.getFullYear() + '-' + String(per.inicio.getMonth()+1).padStart(2,'0') + '-' + String(per.inicio.getDate()).padStart(2,'0');
+    var maxISO = per.fin.getFullYear() + '-' + String(per.fin.getMonth()+1).padStart(2,'0') + '-' + String(per.fin.getDate()).padStart(2,'0');
+    sbGet('pagos_reparacion', 'fecha=gte.' + minISO + '&fecha=lte.' + maxISO).then(function(pagosReps){
+      (pagosReps || []).forEach(function(p){
+        var metodo = p.metodo || 'Efectivo';
+        if (pagos[metodo] === undefined) pagos[metodo] = 0;
+        pagos[metodo] += Number(p.importe||0);
+      });
+      // Re-renderizar despues de cargar pagos
+      var total = 0;
+      Object.keys(pagos).forEach(function(k) { total += pagos[k]; });
+      if (totEl) totEl.textContent = cur(total);
+      var iconos2 = {Efectivo:'💵', Tarjeta:'💳', Bizum:'📲', Transferencia:'🏦'};
+      var colores2 = {Efectivo:'#00C896', Tarjeta:'#0055FF', Bizum:'#7C3AED', Transferencia:'#F97316'};
+      var html2 = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">';
+      Object.keys(pagos).forEach(function(k) {
+        var v = pagos[k];
+        var color = colores2[k] || 'var(--muted)';
+        html2 += '<div style="background:var(--light);padding:10px 12px;border-radius:8px;border-left:3px solid ' + color + '"><div style="font-size:11px;color:var(--muted);font-weight:600">' + (iconos2[k] || '') + ' ' + k + '</div><div style="font-size:16px;font-weight:800;color:' + color + ';margin-top:2px">' + cur(v) + '</div></div>';
+      });
+      html2 += '</div>';
+      if (total === 0) html2 = '<div class="empty" style="padding:12px;font-size:12px">Sin movimientos en este periodo</div>';
+      box.innerHTML = html2;
+    }).catch(function(e){ console.warn('pagos:', e); });
+  }
   var total = 0;
   Object.keys(pagos).forEach(function(k) { total += pagos[k]; });
   if (totEl) totEl.textContent = cur(total);
