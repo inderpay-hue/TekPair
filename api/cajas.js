@@ -150,25 +150,29 @@ export default async function handler(req, res) {
       }
 
       case 'crear_caja': {
-        const { tipo, nombre, icono, color, orden } = req.body || {};
+        const { tipo, nombre, icono, color, orden, dias_apertura } = req.body || {};
         if (!tipo || !nombre) return err(res, 400, 'tipo y nombre obligatorios');
         if (!['envios','recargas','tpv','custom'].includes(tipo)) {
           return err(res, 400, 'tipo inválido');
         }
         const iconoDef = icono || (tipo === 'envios' ? '📤' : tipo === 'recargas' ? '📱' : tipo === 'tpv' ? '🛒' : '💼');
-        const data = await sbPost('cajas', {
+        const payload = {
           tienda_id,
           tipo,
           nombre,
           icono: iconoDef,
           color: color || '#3b82f6',
           orden: Number(orden || 0)
-        });
+        };
+        if (Array.isArray(dias_apertura) && dias_apertura.length > 0) {
+          payload.dias_apertura = dias_apertura.filter(d => Number.isInteger(d) && d >= 1 && d <= 7);
+        }
+        const data = await sbPost('cajas', payload);
         return ok(res, { caja: Array.isArray(data) ? data[0] : data });
       }
 
       case 'editar_caja': {
-        const { id, nombre, icono, color, orden, activa, permiso_editar_cerrada } = req.body || {};
+        const { id, nombre, icono, color, orden, activa, permiso_editar_cerrada, dias_apertura } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
         const patch = {};
         if (nombre !== undefined) patch.nombre = nombre;
@@ -177,6 +181,9 @@ export default async function handler(req, res) {
         if (orden !== undefined) patch.orden = Number(orden);
         if (activa !== undefined) patch.activa = !!activa;
         if (permiso_editar_cerrada !== undefined) patch.permiso_editar_cerrada = permiso_editar_cerrada;
+        if (Array.isArray(dias_apertura)) {
+          patch.dias_apertura = dias_apertura.filter(d => Number.isInteger(d) && d >= 1 && d <= 7);
+        }
         const data = await sbPatch(
           `cajas?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
           patch
@@ -289,13 +296,16 @@ export default async function handler(req, res) {
           `cajas_companias?caja_id=eq.${encodeURIComponent(caja_id)}&activa=eq.true&order=orden.asc`
         );
 
-        // Saldo sugerido: cambio_siguiente del cierre anterior
+        // Saldo sugerido: busca el último cierre NO festivo hacia atrás
         const previos = await sbGet(
-          `cajas_cierres?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=lt.${encodeURIComponent(fecha)}&order=fecha.desc&limit=1&select=cambio_siguiente`
+          `cajas_cierres?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=lt.${encodeURIComponent(fecha)}`
+          + `&estado=neq.festivo&order=fecha.desc&limit=1`
+          + `&select=cambio_siguiente,fecha`
         );
         const saldo_sugerido = previos[0]?.cambio_siguiente || 0;
+        const saldo_sugerido_fecha = previos[0]?.fecha || null;
 
-        return ok(res, { caja, cierre, movimientos, companias, saldo_sugerido });
+        return ok(res, { caja, cierre, movimientos, companias, saldo_sugerido, saldo_sugerido_fecha });
       }
 
       case 'guardar_cierre': {
@@ -329,9 +339,15 @@ export default async function handler(req, res) {
         const saldoTeorico = calcularSaldoTeorico(caja.tipo, saldo_inicial, movimientos, total_cobrado_caja);
         const saldoReal = Number(saldo_real_final || 0);
         const descuadre = Math.round((saldoReal - saldoTeorico) * 100) / 100;
-        const estadoFinal = estado === 'cerrado'
-          ? (Math.abs(descuadre) > 0.5 ? 'descuadre' : 'cerrado')
-          : 'abierto';
+        // estados permitidos: abierto, cerrado, descuadre (auto), festivo
+        let estadoFinal;
+        if (estado === 'festivo') {
+          estadoFinal = 'festivo';
+        } else if (estado === 'cerrado') {
+          estadoFinal = Math.abs(descuadre) > 0.5 ? 'descuadre' : 'cerrado';
+        } else {
+          estadoFinal = 'abierto';
+        }
 
         const cierrePayload = {
           caja_id,
