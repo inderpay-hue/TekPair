@@ -400,6 +400,32 @@ export default async function handler(req, res) {
         return ok(res, { cierres });
       }
 
+
+      case 'resumen_periodo': {
+        const { desde, hasta } = req.query;
+        if (!desde || !hasta) return err(res, 400, 'desde y hasta obligatorios');
+        const cierres = await sbGet(
+          `cajas_cierres?tienda_id=eq.${encodeURIComponent(tienda_id)}`
+          + `&fecha=gte.${encodeURIComponent(desde)}`
+          + `&fecha=lte.${encodeURIComponent(hasta)}`
+          + `&select=fecha,estado,descuadre,caja_id&order=fecha.asc`
+        );
+        const PRIO = { falta: 5, borrador: 4, sobra: 3, cuadrado: 2, vacio: 1 };
+        const dias = {};
+        for (const c of cierres) {
+          const f = c.fecha;
+          let estadoDia;
+          if (c.estado === 'abierto') estadoDia = 'borrador';
+          else if (Math.abs(Number(c.descuadre || 0)) <= 0.5) estadoDia = 'cuadrado';
+          else if (Number(c.descuadre) > 0.5) estadoDia = 'sobra';
+          else estadoDia = 'falta';
+          if (!dias[f] || PRIO[estadoDia] > PRIO[dias[f].estado]) {
+            dias[f] = { estado: estadoDia, descuadre: Number(c.descuadre || 0) };
+          }
+        }
+        return ok(res, { dias });
+      }
+
       case 'reabrir_cierre': {
         const { id } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');

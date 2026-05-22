@@ -1262,7 +1262,110 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   .compania-row:last-child { border-bottom:0; }
   .compania-row input { flex:1; }
 
-  .cajas-mensaje-vacio {
+
+  /* === FRANJA 7 DÍAS === */
+  .cajas-franja-wrap {
+    background:#fff; border:1px solid #e5e7eb; border-radius:12px;
+    padding:14px 16px; margin-bottom:16px;
+  }
+  .cajas-franja-head {
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;
+  }
+  .cajas-franja-head h3 { margin:0; font-size:14px; color:#111827; }
+  .cajas-franja-head small { font-size:11px; color:#6b7280; }
+  .cajas-franja-grid {
+    display:grid; grid-template-columns:repeat(7,1fr); gap:6px;
+  }
+  .franja-dia {
+    text-align:center; padding:8px 4px; border:2px dashed #d1d5db;
+    border-radius:8px; cursor:pointer; transition:transform .15s;
+    background:#f3f4f6;
+  }
+  .franja-dia:hover { transform:translateY(-2px); }
+  .franja-dia .fd-nombre {
+    font-size:10px; font-weight:700; text-transform:uppercase; color:#6b7280;
+  }
+  .franja-dia .fd-num {
+    font-size:17px; font-weight:700; color:#6b7280; margin:2px 0;
+  }
+  .franja-dia .fd-info { font-size:10px; color:#9ca3af; }
+  .franja-dia.fd-cuadrado { background:#dcfce7; border:2px solid #16a34a; }
+  .franja-dia.fd-cuadrado .fd-nombre, .franja-dia.fd-cuadrado .fd-num { color:#166534; }
+  .franja-dia.fd-cuadrado .fd-info { color:#15803d; }
+  .franja-dia.fd-sobra { background:#dbeafe; border:2px solid #3b82f6; }
+  .franja-dia.fd-sobra .fd-nombre, .franja-dia.fd-sobra .fd-num { color:#1e40af; }
+  .franja-dia.fd-sobra .fd-info { color:#1e3a8a; }
+  .franja-dia.fd-falta { background:#fee2e2; border:2px solid #dc2626; }
+  .franja-dia.fd-falta .fd-nombre, .franja-dia.fd-falta .fd-num { color:#991b1b; }
+  .franja-dia.fd-falta .fd-info { color:#7f1d1d; }
+  .franja-dia.fd-borrador { background:#fef3c7; border:2px solid #f59e0b; }
+  .franja-dia.fd-borrador .fd-nombre, .franja-dia.fd-borrador .fd-num { color:#92400e; }
+  .franja-dia.fd-borrador .fd-info { color:#78350f; }
+  .franja-dia.es-hoy { box-shadow:0 0 0 3px rgba(59,130,246,.25); }
+  .cajas-franja-legend {
+    display:flex; gap:12px; margin-top:10px; padding-top:10px;
+    border-top:1px solid #f3f4f6; font-size:11px; color:#6b7280; flex-wrap:wrap;
+  }
+  .cajas-franja-legend .chip {
+    display:inline-block; width:10px; height:10px; border-radius:3px;
+    border:1px solid; vertical-align:-1px; margin-right:4px;
+  }
+  .chip-cuadrado { background:#dcfce7; border-color:#16a34a; }
+  .chip-sobra    { background:#dbeafe; border-color:#3b82f6; }
+  .chip-falta    { background:#fee2e2; border-color:#dc2626; }
+  .chip-borrador { background:#fef3c7; border-color:#f59e0b; }
+  .chip-vacio    { background:#f3f4f6; border:1px dashed #d1d5db; }
+
+  /* === CALENDARIO POPUP === */
+  .cal-popup-trigger {
+    background:#fff; color:#111827; border:1px solid #d1d5db;
+    padding:7px 12px; border-radius:8px; font-size:13px; cursor:pointer;
+    display:inline-flex; align-items:center; gap:6px;
+  }
+  .cal-popup-trigger:hover { border-color:#3b82f6; }
+  .cal-popup-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:99998;
+    display:none; align-items:flex-start; justify-content:center;
+    padding:60px 16px 16px;
+  }
+  .cal-popup-overlay.activo { display:flex; }
+  .cal-popup-box {
+    background:#fff; border-radius:14px; width:100%; max-width:360px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25); padding:16px;
+  }
+  .cal-head {
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;
+  }
+  .cal-head .cal-nav {
+    background:#f3f4f6; border:0; width:30px; height:30px;
+    border-radius:8px; cursor:pointer; color:#374151; font-size:18px;
+  }
+  .cal-head .cal-nav:hover { background:#e5e7eb; }
+  .cal-head .cal-titulo { font-size:14px; font-weight:700; color:#111827; text-transform:capitalize; }
+  .cal-grid {
+    display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center;
+  }
+  .cal-dow { font-size:10px; color:#9ca3af; font-weight:700; padding:4px; }
+  .cal-day {
+    padding:8px 0; font-size:13px; border-radius:6px; cursor:pointer;
+    color:#374151;
+  }
+  .cal-day:hover { background:#eff6ff; }
+  .cal-day.cal-empty { color:#d1d5db; cursor:default; pointer-events:none; }
+  .cal-day.cal-empty:hover { background:transparent; }
+  .cal-day.cal-cuadrado { background:#dcfce7; color:#166534; font-weight:700; }
+  .cal-day.cal-sobra { background:#dbeafe; color:#1e40af; font-weight:700; }
+  .cal-day.cal-falta { background:#fee2e2; color:#991b1b; font-weight:700; }
+  .cal-day.cal-borrador { background:#fef3c7; color:#92400e; font-weight:700; }
+  .cal-day.cal-sel { box-shadow:0 0 0 2px #3b82f6; }
+  .cal-day.cal-hoy { outline:2px solid #1e40af; outline-offset:-2px; }
+  .cal-legend {
+    display:flex; gap:10px; margin-top:12px; padding-top:10px;
+    border-top:1px solid #f3f4f6; font-size:10px; color:#6b7280;
+    flex-wrap:wrap; justify-content:center;
+  }
+
+  .cajas-mensaje-vacio { 
     text-align:center;padding:40px 20px;color:#6b7280;font-size:14px;
   }
 
@@ -1295,13 +1398,49 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div></div>
     <div class="cajas-fecha-selector">
       <label style="font-size:12px;color:#6b7280;">Fecha:</label>
-      <input type="date" id="cajas-fecha-actual">
+      <input type="date" id="cajas-fecha-actual" style="display:none;"><button type="button" class="cal-popup-trigger" id="cajas-fecha-trigger" onclick="Cajas.abrirCalendario()"><span id="cajas-fecha-label">—</span> <span style="color:#9ca3af;font-size:11px;">▼</span></button>
+    </div>
+  </div>
+
+  
+  <!-- ════ FRANJA 7 DÍAS ════ -->
+  <div class="cajas-franja-wrap">
+    <div class="cajas-franja-head">
+      <h3>Últimos 7 días</h3>
+      <small>Click en un día para verlo</small>
+    </div>
+    <div class="cajas-franja-grid" id="cajas-franja-grid"></div>
+    <div class="cajas-franja-legend">
+      <span><span class="chip chip-cuadrado"></span>Cuadra</span>
+      <span><span class="chip chip-sobra"></span>Sobra</span>
+      <span><span class="chip chip-falta"></span>Falta</span>
+      <span><span class="chip chip-borrador"></span>Borrador</span>
+      <span><span class="chip chip-vacio"></span>Sin cerrar</span>
     </div>
   </div>
 
   <div id="cajas-grid"></div>
 </div>
 
+
+
+<!-- ════ POPUP CALENDARIO ════ -->
+<div class="cal-popup-overlay" id="cal-popup-overlay" onclick="if(event.target===this)Cajas.cerrarCalendario()">
+  <div class="cal-popup-box">
+    <div class="cal-head">
+      <button class="cal-nav" onclick="Cajas.navegarMes(-1)">‹</button>
+      <div class="cal-titulo" id="cal-titulo"></div>
+      <button class="cal-nav" onclick="Cajas.navegarMes(1)">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-legend">
+      <span><span class="chip chip-cuadrado"></span>Cuadra</span>
+      <span><span class="chip chip-sobra"></span>Sobra</span>
+      <span><span class="chip chip-falta"></span>Falta</span>
+      <span><span class="chip chip-borrador"></span>Borrador</span>
+    </div>
+  </div>
+</div>
 
 <!-- ════ MODAL CAJA ════ -->
 <div class="cajas-modal-overlay" id="modal-caja">
@@ -1578,6 +1717,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         }
       }));
       pintarTarjetas();
+      pintarFranja();
+      actualizarLabelFecha();
     } catch (e) {
       toast('Error cargando cajas: ' + e.message, 'error');
     }
@@ -2038,6 +2179,160 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   function cerrarModal(id) {
     $(id).classList.remove('activo');
   }
+
+
+  // ── v1.5: Resumen periodo + Franja 7 días + Calendario ──
+  Estado.resumenDias = {};
+  Estado.calMes = new Date();  // mes mostrado en el popup
+
+  async function cargarResumen(desde, hasta) {
+    try {
+      const r = await api('resumen_periodo', { query: { desde, hasta } });
+      Object.assign(Estado.resumenDias, r.dias || {});
+      return r.dias || {};
+    } catch(e) {
+      console.warn('Error resumen periodo:', e);
+      return {};
+    }
+  }
+
+  function fmtFechaIso(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  }
+
+  async function pintarFranja() {
+    const grid = $('cajas-franja-grid');
+    if (!grid) return;
+    const hoy = new Date();
+    const dias = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(hoy);
+      d.setDate(hoy.getDate() - i);
+      dias.push(d);
+    }
+    const desde = fmtFechaIso(dias[0]);
+    const hasta = fmtFechaIso(dias[6]);
+    await cargarResumen(desde, hasta);
+
+    const hoyIso = fmtFechaIso(hoy);
+    const nombresDias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+
+    grid.innerHTML = dias.map(d => {
+      const iso = fmtFechaIso(d);
+      const info = Estado.resumenDias[iso];
+      const estado = info?.estado || 'vacio';
+      const esHoy = iso === hoyIso;
+      const nombre = esHoy ? 'Hoy' : nombresDias[d.getDay()];
+      let etiqueta = 'Sin cerrar';
+      if (estado === 'cuadrado') etiqueta = '✓ Cuadra';
+      else if (estado === 'sobra') etiqueta = '+' + (info.descuadre || 0).toFixed(2).replace('.', ',');
+      else if (estado === 'falta') etiqueta = (info.descuadre || 0).toFixed(2).replace('.', ',');
+      else if (estado === 'borrador') etiqueta = 'Borrador';
+      const claseEstado = estado === 'vacio' ? '' : 'fd-' + estado;
+      return `
+        <div class="franja-dia ${claseEstado} ${esHoy ? 'es-hoy' : ''}"
+             onclick="Cajas.irAFecha('${iso}')">
+          <div class="fd-nombre">${nombre}</div>
+          <div class="fd-num">${d.getDate()}</div>
+          <div class="fd-info">${etiqueta}</div>
+        </div>
+      `;
+    }).join('');
+  }
+
+  function irAFecha(iso) {
+    Estado.fechaActual = iso;
+    const sel = $('cajas-fecha-actual');
+    if (sel) sel.value = iso;
+    cargarCajas();
+  }
+
+  function abrirCalendario() {
+    const [y, m] = Estado.fechaActual.split('-').map(Number);
+    Estado.calMes = new Date(y, m - 1, 1);
+    pintarCalendario();
+    $('cal-popup-overlay').classList.add('activo');
+  }
+
+  function cerrarCalendario() {
+    $('cal-popup-overlay').classList.remove('activo');
+  }
+
+  function navegarMes(delta) {
+    Estado.calMes.setMonth(Estado.calMes.getMonth() + delta);
+    pintarCalendario();
+  }
+
+  async function pintarCalendario() {
+    const mes = Estado.calMes;
+    const y = mes.getFullYear();
+    const m = mes.getMonth();
+    const primerDia = new Date(y, m, 1);
+    const ultimoDia = new Date(y, m + 1, 0);
+    const totalDias = ultimoDia.getDate();
+    // primerDayWeek: 0=domingo, queremos lunes=0
+    let primerDow = primerDia.getDay() - 1;
+    if (primerDow < 0) primerDow = 6;
+
+    const desde = fmtFechaIso(primerDia);
+    const hasta = fmtFechaIso(ultimoDia);
+    await cargarResumen(desde, hasta);
+
+    const meses = ['enero','febrero','marzo','abril','mayo','junio',
+                   'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    $('cal-titulo').textContent = `${meses[m]} ${y}`;
+
+    const hoyIso = fmtFechaIso(new Date());
+    const fechaSelIso = Estado.fechaActual;
+
+    let html = ['L','M','X','J','V','S','D'].map(d =>
+      `<div class="cal-dow">${d}</div>`
+    ).join('');
+
+    for (let i = 0; i < primerDow; i++) {
+      html += '<div class="cal-day cal-empty"></div>';
+    }
+
+    for (let d = 1; d <= totalDias; d++) {
+      const fecha = new Date(y, m, d);
+      const iso = fmtFechaIso(fecha);
+      const info = Estado.resumenDias[iso];
+      const estado = info?.estado;
+      const cls = [];
+      if (estado) cls.push('cal-' + estado);
+      if (iso === hoyIso) cls.push('cal-hoy');
+      if (iso === fechaSelIso) cls.push('cal-sel');
+      html += `<div class="cal-day ${cls.join(' ')}"
+                    onclick="Cajas.seleccionarDelCalendario('${iso}')">${d}</div>`;
+    }
+    $('cal-grid').innerHTML = html;
+  }
+
+  function seleccionarDelCalendario(iso) {
+    irAFecha(iso);
+    cerrarCalendario();
+  }
+
+  // Exponer en Cajas
+  window.Cajas.cargarResumen = cargarResumen;
+  window.Cajas.pintarFranja = pintarFranja;
+  window.Cajas.irAFecha = irAFecha;
+  window.Cajas.abrirCalendario = abrirCalendario;
+  window.Cajas.cerrarCalendario = cerrarCalendario;
+  window.Cajas.navegarMes = navegarMes;
+  window.Cajas.seleccionarDelCalendario = seleccionarDelCalendario;
+
+
+  function actualizarLabelFecha() {
+    const lbl = $('cajas-fecha-label');
+    if (!lbl) return;
+    const [y, m, d] = Estado.fechaActual.split('-');
+    lbl.textContent = `${d}/${m}/${y}`;
+  }
+  window.Cajas.actualizarLabelFecha = actualizarLabelFecha;
 
   // API pública
   window.Cajas = {
