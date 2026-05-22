@@ -4362,6 +4362,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="fg"><label class="fl">Estado</label>
     <select class="fi" id="gEstado"><option>Pagado</option><option>Pendiente</option></select>
   </div>
+  <div class="fg">
+    <label class="fl">Justificante (PDF o imagen, max 10MB)</label>
+    <input type="file" id="gAdj" accept="application/pdf,image/jpeg,image/png,image/webp" style="font-size:13px" onchange="onGAdjChange(event)">
+    <div id="gAdjPreview" style="font-size:12px;color:var(--muted);margin-top:6px;display:none">
+      <span id="gAdjPreviewName"></span>
+      <button type="button" onclick="limpiarGAdj()" style="margin-left:8px;background:transparent;border:0;color:var(--red);cursor:pointer;font-size:11px;text-decoration:underline">Quitar</button>
+    </div>
+    <div id="gAdjActual" style="font-size:12px;color:var(--muted);margin-top:6px;display:none">
+      📎 Adjunto actual: <span id="gAdjActualName"></span>
+      <button type="button" onclick="quitarAdjuntoEnEdicion()" style="margin-left:8px;background:transparent;border:0;color:var(--red);cursor:pointer;font-size:11px;text-decoration:underline">Quitar adjunto</button>
+    </div>
+  </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mGasto')">Cancelar</button>
     <button class="btn-primary" style="background:var(--red)" onclick="guardarGasto()">Guardar</button>
@@ -9415,7 +9427,7 @@ function generarPDFGastos(periodo) {
     if (!porCategoria[cat]) porCategoria[cat] = {base:0,iva:0,total:0,n:0};
     porCategoria[cat].base += base; porCategoria[cat].iva += ivaE; porCategoria[cat].total += imp; porCategoria[cat].n++;
     porTipoIva[ivaT].base += base; porTipoIva[ivaT].iva += ivaE; porTipoIva[ivaT].total += imp; porTipoIva[ivaT].n++;
-    return {fecha:g.fecha, concepto:g.concepto||'', categoria:cat, ivaT:ivaT, base:base, ivaE:ivaE, total:imp, estado:g.estado||'Pagado'};
+    return {fecha:g.fecha, concepto:g.concepto||'', categoria:cat, ivaT:ivaT, base:base, ivaE:ivaE, total:imp, estado:g.estado||'Pagado', tieneAdj: !!g.adjunto_url};
   });
 
   var nTienda = (typeof TIENDA !== 'undefined' && TIENDA.nombre) ? TIENDA.nombre : 'TekPair';
@@ -9433,8 +9445,9 @@ function generarPDFGastos(periodo) {
       '<td class="r">' + cur(r.ivaE) + '</td>' +
       '<td class="r b">' + cur(r.total) + '</td>' +
       '<td>' + r.estado + '</td>' +
+      '<td style="text-align:center">' + (r.tieneAdj ? '✓' : '—') + '</td>' +
     '</tr>';
-  }).join('') : '<tr><td colspan="8" style="text-align:center;color:#999;padding:20px">Sin gastos en el periodo</td></tr>';
+  }).join('') : '<tr><td colspan="9" style="text-align:center;color:#999;padding:20px">Sin gastos en el periodo</td></tr>';
 
   var filasCat = Object.keys(porCategoria).sort().map(function(k){
     var c = porCategoria[k];
@@ -9482,7 +9495,7 @@ function generarPDFGastos(periodo) {
       '<div class="c"><div class="l">Total gastos</div><div class="v" style="color:#DC2626">' + cur(totalTotal) + '</div></div>' +
     '</div>' +
     '<h2>Detalle de gastos</h2>' +
-    '<table><thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th class="r">Base</th><th class="r">IVA%</th><th class="r">IVA €</th><th class="r">Total</th><th>Estado</th></tr></thead><tbody>' + filasDet + '</tbody></table>' +
+    '<table><thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th class="r">Base</th><th class="r">IVA%</th><th class="r">IVA €</th><th class="r">Total</th><th>Estado</th><th>Justif.</th></tr></thead><tbody>' + filasDet + '</tbody></table>' +
     '<h2>Resumen por categoría</h2>' +
     '<table><thead><tr><th>Categoría</th><th class="r">Nº</th><th class="r">Base</th><th class="r">IVA €</th><th class="r">Total</th></tr></thead><tbody>' + filasCat + '</tbody></table>' +
     '<h2>Resumen por tipo de IVA (modelo 303)</h2>' +
@@ -9506,16 +9519,24 @@ function renderGastos() {
   var el = document.getElementById('listaGastos');
   if (!DB.gastos.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udccb</div>Sin gastos</div>'; return; }
   var list = DB.gastos.slice().reverse();
-  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Concepto</th><th>Categoría</th><th>Fecha</th><th>IVA</th><th>Importe</th><th>Estado</th></tr></thead><tbody>' +
+  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Concepto</th><th>Categoría</th><th>Fecha</th><th>IVA</th><th>Importe</th><th>Estado</th><th>Adjunto</th></tr></thead><tbody>' +
     list.map(function(g) {
       var ivaT = (g.iva_tipo != null) ? g.iva_tipo : 21;
       var cat = g.categoria || 'Otros';
+      var adjCell;
+      if (g.adjunto_url) {
+        adjCell = '<button class="btn-sm" onclick="verAdjuntoGasto(\'' + g.id + '\')" title="' + esc(g.adjunto_nombre || '') + '" style="background:#10B981;color:white;padding:4px 8px;font-size:11px">📎 Ver</button>' +
+          ' <button class="btn-sm" onclick="quitarAdjuntoGasto(\'' + g.id + '\')" title="Quitar adjunto" style="background:transparent;color:var(--red);padding:4px 6px;font-size:11px;border:1px solid var(--red)">✕</button>';
+      } else {
+        adjCell = '<button class="btn-sm" onclick="triggerAdjuntoGasto(\'' + g.id + '\')" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">+ Adjuntar</button>';
+      }
       return '<tr><td>' + esc(g.concepto || '') + '</td>' +
         '<td><span class="badge bb">' + esc(cat) + '</span></td>' +
         '<td>' + (g.fecha || '') + '</td>' +
         '<td>' + ivaT + '%</td>' +
         '<td style="font-weight:700;color:var(--red)">' + cur(g.importe || 0) + '</td>' +
-        '<td><span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado || 'Pagado') + '</span></td></tr>';
+        '<td><span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado || 'Pagado') + '</span></td>' +
+        '<td>' + adjCell + '</td></tr>';
     }).join('') + '</tbody></table></div>';
 }
 
@@ -9527,6 +9548,8 @@ function guardarGasto() {
   var ivaEl = document.getElementById('gIvaTipo');
   var categoria = catEl ? catEl.value : 'Otros';
   var iva_tipo = ivaEl ? (parseInt(ivaEl.value, 10) || 0) : 21;
+  var adjInput = document.getElementById('gAdj');
+  var adjFile = (adjInput && adjInput.files && adjInput.files[0]) ? adjInput.files[0] : null;
   
   // MODO EDICIÓN
   if (SEL && SEL.editGastoId) {
@@ -9549,6 +9572,9 @@ function guardarGasto() {
           iva_tipo: existente.iva_tipo
         });
       }
+      if (adjFile) {
+        subirAdjuntoGasto(existente, adjFile);
+      }
       SEL.editGastoId = null;
       closeM('mGasto');
       toast('Gasto actualizado', 'ok');
@@ -9570,10 +9596,139 @@ function guardarGasto() {
   DB.gastos.push(g);
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPost('gastos', g);
+  if (adjFile) {
+    subirAdjuntoGasto(g, adjFile);
+  }
   closeM('mGasto');
   toast('Gasto guardado', 'ok');
   renderGastos();
 }
+
+// ───── Adjuntos de gastos ─────
+function onGAdjChange(ev) {
+  var f = ev.target.files && ev.target.files[0];
+  var box = document.getElementById('gAdjPreview');
+  var name = document.getElementById('gAdjPreviewName');
+  if (!f) {
+    box.style.display = 'none';
+    return;
+  }
+  if (f.size > 10 * 1024 * 1024) {
+    toast('Archivo demasiado grande (max 10 MB)', 'err');
+    ev.target.value = '';
+    box.style.display = 'none';
+    return;
+  }
+  name.textContent = f.name + ' (' + formatBytes(f.size) + ')';
+  box.style.display = 'block';
+}
+
+function limpiarGAdj() {
+  var inp = document.getElementById('gAdj');
+  if (inp) inp.value = '';
+  var box = document.getElementById('gAdjPreview');
+  if (box) box.style.display = 'none';
+}
+
+// Sube el archivo al bucket, actualiza el gasto en BBDD y refresca render
+async function subirAdjuntoGasto(g, file) {
+  if (!SB_KEY || !TIENDA_ID) { toast('Sin conexión Supabase', 'err'); return; }
+  try {
+    var blob = await comprimirImagen(file, 1600, 0.75);
+    var ext = (file.name.split('.').pop() || 'bin').toLowerCase();
+    // Si comprimimos imagen, queda como JPEG
+    if (file.type !== 'application/pdf' && /^image\//.test(file.type)) ext = 'jpg';
+    var path = TIENDA_ID + '/' + g.id + '-' + Date.now() + '.' + ext;
+    var mime = (file.type === 'application/pdf') ? 'application/pdf' : (blob.type || 'image/jpeg');
+    // Upload (sbStorageUpload usa Content-Type del file; lo pasamos como Blob con type)
+    var blobToUpload = new Blob([blob], { type: mime });
+    blobToUpload.name = file.name;
+    var resp = await sbStorageUpload('gastos-adjuntos', path, blobToUpload);
+    if (!resp.ok) {
+      var errTxt = await resp.text().catch(function(){ return ''; });
+      console.error('Upload fallo:', resp.status, errTxt);
+      toast('Error al subir adjunto', 'err');
+      return;
+    }
+    // Si había un adjunto previo, borrarlo
+    if (g.adjunto_url && g.adjunto_url !== path) {
+      sbStorageDelete('gastos-adjuntos', [g.adjunto_url]).catch(function(){});
+    }
+    // Actualizar gasto
+    g.adjunto_url = path;
+    g.adjunto_nombre = file.name;
+    g.adjunto_mime = mime;
+    guardarDatos();
+    sbPatch('gastos', 'id=eq.' + encodeURIComponent(g.id), {
+      adjunto_url: path,
+      adjunto_nombre: file.name,
+      adjunto_mime: mime
+    });
+    toast('Adjunto subido (' + formatBytes(blob.size) + ')', 'ok');
+    try { if (typeof audit === 'function') audit('subir', 'gasto_adjunto', {gasto_id: g.id, nombre: file.name}); } catch(e){}
+    renderGastos();
+  } catch (e) {
+    console.error('subirAdjuntoGasto:', e);
+    toast('Error al procesar archivo', 'err');
+  }
+}
+
+// Abre el adjunto en una nueva pestaña usando URL firmada (válida 1h)
+async function verAdjuntoGasto(gastoId) {
+  var g = DB.gastos.find(function(x){ return x.id === gastoId; });
+  if (!g || !g.adjunto_url) { toast('Sin adjunto', 'err'); return; }
+  var url = await sbStorageSignedUrl('gastos-adjuntos', g.adjunto_url, 3600);
+  if (!url) { toast('No se pudo abrir el adjunto', 'err'); return; }
+  window.open(url, '_blank');
+}
+
+// Borra el adjunto del Storage y limpia las columnas del gasto
+async function quitarAdjuntoGasto(gastoId) {
+  if (!tienePerm('gastos_editar')) { toast('Sin permiso', 'err'); return; }
+  var g = DB.gastos.find(function(x){ return x.id === gastoId; });
+  if (!g || !g.adjunto_url) return;
+  if (!confirm('¿Quitar el adjunto de este gasto?')) return;
+  try {
+    await sbStorageDelete('gastos-adjuntos', [g.adjunto_url]);
+  } catch(e) { /* aunque falle el borrado en storage, limpiamos las columnas */ }
+  g.adjunto_url = null;
+  g.adjunto_nombre = null;
+  g.adjunto_mime = null;
+  guardarDatos();
+  sbPatch('gastos', 'id=eq.' + encodeURIComponent(g.id), {
+    adjunto_url: null,
+    adjunto_nombre: null,
+    adjunto_mime: null
+  });
+  toast('Adjunto eliminado', 'ok');
+  renderGastos();
+}
+
+// Quitar adjunto desde el modal de edición (sin haber dado a Guardar todavía)
+function quitarAdjuntoEnEdicion() {
+  if (!SEL || !SEL.editGastoId) return;
+  quitarAdjuntoGasto(SEL.editGastoId);
+  var box = document.getElementById('gAdjActual');
+  if (box) box.style.display = 'none';
+}
+
+// Botón "Adjuntar" en la fila de la tabla: dispara file picker sin abrir el modal
+function triggerAdjuntoGasto(gastoId) {
+  if (!tienePerm('gastos_editar')) { toast('Sin permiso', 'err'); return; }
+  var g = DB.gastos.find(function(x){ return x.id === gastoId; });
+  if (!g) return;
+  var inp = document.createElement('input');
+  inp.type = 'file';
+  inp.accept = 'application/pdf,image/jpeg,image/png,image/webp';
+  inp.onchange = function(ev) {
+    var f = ev.target.files && ev.target.files[0];
+    if (!f) return;
+    if (f.size > 10 * 1024 * 1024) { toast('Archivo demasiado grande (max 10 MB)', 'err'); return; }
+    subirAdjuntoGasto(g, f);
+  };
+  inp.click();
+}
+
 
 // ═══ REPORTES ═══
 function setRepTab(el) {
@@ -10414,6 +10569,69 @@ function sbStorageDelete(bucket, paths) {
 function sbStoragePublicUrl(bucket, path) {
   return SUPABASE_URL + '/storage/v1/object/public/' + bucket + '/' + encodeURI(path);
 }
+
+// Genera una URL firmada para bucket privado. expiresIn en segundos (default 3600 = 1h)
+function sbStorageSignedUrl(bucket, path, expiresIn) {
+  expiresIn = expiresIn || 3600;
+  return fetch(SUPABASE_URL + '/storage/v1/object/sign/' + bucket + '/' + encodeURI(path), {
+    method: 'POST',
+    headers: {
+      'apikey': SB_KEY,
+      'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY),
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ expiresIn: expiresIn })
+  }).then(function(r) {
+    if (!r.ok) return null;
+    return r.json();
+  }).then(function(data) {
+    if (!data || !data.signedURL) return null;
+    // signedURL viene relativo (/object/sign/...), hay que prefijar SUPABASE_URL + /storage/v1
+    return SUPABASE_URL + '/storage/v1' + data.signedURL;
+  }).catch(function() { return null; });
+}
+
+// Comprime imagen JPG/PNG en cliente con Canvas. Devuelve Promise<Blob>.
+// PDFs se devuelven tal cual.
+function comprimirImagen(file, maxLado, quality) {
+  maxLado = maxLado || 1600;
+  quality = quality || 0.75;
+  return new Promise(function(resolve, reject) {
+    if (!file) return reject(new Error('Sin archivo'));
+    // PDF: no se toca
+    if (file.type === 'application/pdf') return resolve(file);
+    if (!/^image\//.test(file.type)) return resolve(file);
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function() {
+      var w = img.naturalWidth, h = img.naturalHeight;
+      var scale = Math.min(1, maxLado / Math.max(w, h));
+      var nw = Math.round(w * scale), nh = Math.round(h * scale);
+      var canvas = document.createElement('canvas');
+      canvas.width = nw; canvas.height = nh;
+      var ctx = canvas.getContext('2d');
+      ctx.drawImage(img, 0, 0, nw, nh);
+      URL.revokeObjectURL(url);
+      canvas.toBlob(function(blob) {
+        if (!blob) return reject(new Error('Error al comprimir'));
+        // Forzamos JPEG para máxima compresión salvo que ya sea webp/png pequeño
+        resolve(blob);
+      }, 'image/jpeg', quality);
+    };
+    img.onerror = function() {
+      URL.revokeObjectURL(url);
+      reject(new Error('Imagen inválida'));
+    };
+    img.src = url;
+  });
+}
+
+function formatBytes(n) {
+  if (n < 1024) return n + ' B';
+  if (n < 1024*1024) return (n/1024).toFixed(1) + ' KB';
+  return (n/1024/1024).toFixed(2) + ' MB';
+}
+
 
 async function subirLogo(ev) {
   var file = ev.target.files[0];
@@ -15449,6 +15667,43 @@ window.cerrarBannerNovedades = function() {
 
 
 
+</script>
+
+<script>
+// Hook para gestionar el adjunto del modal mGasto cuando se abre
+(function(){
+  var modal = document.getElementById('mGasto');
+  if (!modal) return;
+  // MutationObserver detecta cuando el modal pasa a visible
+  var lastVisible = false;
+  var obs = new MutationObserver(function(){
+    var visible = (modal.style.display === 'flex' || modal.classList.contains('open'));
+    if (visible && !lastVisible) {
+      // Modal acaba de abrirse → resetear UI del adjunto
+      var inp = document.getElementById('gAdj');
+      if (inp) inp.value = '';
+      var prev = document.getElementById('gAdjPreview');
+      if (prev) prev.style.display = 'none';
+      var act = document.getElementById('gAdjActual');
+      var actName = document.getElementById('gAdjActualName');
+      if (act && actName) {
+        if (SEL && SEL.editGastoId) {
+          var g = DB.gastos && DB.gastos.find(function(x){ return x.id === SEL.editGastoId; });
+          if (g && g.adjunto_url) {
+            actName.textContent = g.adjunto_nombre || '(archivo adjunto)';
+            act.style.display = 'block';
+          } else {
+            act.style.display = 'none';
+          }
+        } else {
+          act.style.display = 'none';
+        }
+      }
+    }
+    lastVisible = visible;
+  });
+  obs.observe(modal, { attributes: true, attributeFilter: ['style', 'class'] });
+})();
 </script>
 </body>
 </html>
