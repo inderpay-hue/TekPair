@@ -100,12 +100,15 @@ function calcularBalance(tipoCaja, mov) {
 }
 
 // Calcula saldo teórico del cierre
-// Para envíos: saldo_inicial + total_cobrado_caja (campo único, no por compañía)
+// Para envíos: teórico = saldo_inicial + total_enviado por compañías.
+//   El descuadre entonces = total_caja - teorico = balance (comisiones a favor del operador).
 // Para recargas: saldo_inicial + suma de importe_efectivo por compañía
 function calcularSaldoTeorico(tipoCaja, saldoInicial, movimientos, totalCobradoCaja) {
   let teorico = Number(saldoInicial || 0);
   if (tipoCaja === 'envios') {
-    teorico += Number(totalCobradoCaja || 0);
+    for (const m of movimientos) {
+      teorico += Number(m.importe_enviado || 0);
+    }
   } else if (tipoCaja === 'recargas') {
     for (const m of movimientos) {
       teorico += Number(m.importe_efectivo || 0);
