@@ -365,6 +365,7 @@ export default async function handler(req, res) {
           descuadre,
           cambio_siguiente: Number(cambio_siguiente || 0),
           total_cobrado_caja: Number(total_cobrado_caja || 0),
+          importe_tpv: Number(importe_tpv || 0),
           estado: estadoFinal,
           notas: notas || null
         };
