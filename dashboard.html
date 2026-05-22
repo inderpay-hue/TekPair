@@ -1266,51 +1266,51 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 
   /* === CALENDARIO POPUP === */
-  .cal-trigger-btn {
+  .tpcal-trigger-btn {
     background:#fff; color:#111827; border:1px solid #d1d5db;
     padding:7px 14px; border-radius:8px; font-size:14px; cursor:pointer;
     display:inline-flex; align-items:center;
   }
-  .cal-trigger-btn:hover { border-color:#3b82f6; background:#eff6ff; }
-  .cal-popup-overlay {
+  .tpcal-trigger-btn:hover { border-color:#3b82f6; background:#eff6ff; }
+  .tpcal-popup-overlay {
     position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:99998;
     display:none; align-items:flex-start; justify-content:center;
     padding:60px 16px 16px;
   }
-  .cal-popup-overlay.activo { display:flex; }
-  .cal-popup-box {
+  .tpcal-popup-overlay.activo { display:flex; }
+  .tpcal-popup-box {
     background:#fff; border-radius:14px; width:100%; max-width:360px;
     box-shadow:0 20px 60px rgba(0,0,0,.25); padding:16px;
   }
-  .cal-head {
+  .tpcal-head {
     display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;
   }
-  .cal-head .cal-nav {
+  .tpcal-head .tpcal-nav {
     background:#f3f4f6; border:0; width:30px; height:30px;
     border-radius:8px; cursor:pointer; color:#374151; font-size:18px;
   }
-  .cal-head .cal-nav:hover { background:#e5e7eb; }
-  .cal-head .cal-titulo { font-size:14px; font-weight:700; color:#111827; text-transform:capitalize; }
-  .cal-grid {
+  .tpcal-head .tpcal-nav:hover { background:#e5e7eb; }
+  .tpcal-head .tpcal-titulo { font-size:14px; font-weight:700; color:#111827; text-transform:capitalize; }
+  .tpcal-grid {
     display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center;
   }
-  .cal-dow { font-size:10px; color:#9ca3af; font-weight:700; padding:4px; }
-  .cal-day {
+  .tpcal-dow { font-size:10px; color:#9ca3af; font-weight:700; padding:4px; }
+  .tpcal-day {
     padding:8px 0; font-size:13px; border-radius:6px; cursor:pointer;
     color:#374151;
   }
-  .cal-day:hover { background:#eff6ff; }
-  .cal-day.cal-empty { color:#d1d5db; cursor:default; pointer-events:none; }
-  .cal-day.cal-empty:hover { background:transparent; }
-  .cal-day.cal-cuadrado { background:#dcfce7; color:#166534; font-weight:700; }
-  .cal-day.cal-sobra { background:#dbeafe; color:#1e40af; font-weight:700; }
-  .cal-day.cal-falta { background:#fee2e2; color:#991b1b; font-weight:700; }
-  .cal-day.cal-pendientes { background:#fef3c7; color:#92400e; font-weight:700; }
-  .cal-day.cal-borrador { background:#ffedd5; color:#9a3412; font-weight:700; }
-  .cal-day.cal-festivo { background:#f3f4f6; color:#9ca3af; }
-  .cal-day.cal-sel { box-shadow:0 0 0 2px #3b82f6; }
-  .cal-day.cal-hoy { outline:2px solid #1e40af; outline-offset:-2px; }
-  .cal-legend {
+  .tpcal-day:hover { background:#eff6ff; }
+  .tpcal-day.tpcal-empty { color:#d1d5db; cursor:default; pointer-events:none; }
+  .tpcal-day.tpcal-empty:hover { background:transparent; }
+  .tpcal-day.tpcal-cuadrado { background:#dcfce7; color:#166534; font-weight:700; }
+  .tpcal-day.tpcal-sobra { background:#dbeafe; color:#1e40af; font-weight:700; }
+  .tpcal-day.tpcal-falta { background:#fee2e2; color:#991b1b; font-weight:700; }
+  .tpcal-day.tpcal-pendientes { background:#fef3c7; color:#92400e; font-weight:700; }
+  .tpcal-day.tpcal-borrador { background:#ffedd5; color:#9a3412; font-weight:700; }
+  .tpcal-day.tpcal-festivo { background:#f3f4f6; color:#9ca3af; }
+  .tpcal-day.tpcal-sel { box-shadow:0 0 0 2px #3b82f6; }
+  .tpcal-day.tpcal-hoy { outline:2px solid #1e40af; outline-offset:-2px; }
+  .tpcal-legend {
     display:flex; gap:8px; margin-top:12px; padding-top:10px;
     border-top:1px solid #f3f4f6; font-size:10px; color:#6b7280;
     flex-wrap:wrap; justify-content:center;
@@ -1684,15 +1684,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 
 <!-- ════ POPUP CALENDARIO MENSUAL ════ -->
-<div class="cal-popup-overlay" id="cal-popup-overlay" onclick="if(event.target===this)Cajas.cerrarCalendario()">
-  <div class="cal-popup-box">
-    <div class="cal-head">
-      <button class="cal-nav" onclick="Cajas.navegarMes(-1)" type="button">‹</button>
-      <div class="cal-titulo" id="cal-titulo"></div>
-      <button class="cal-nav" onclick="Cajas.navegarMes(1)" type="button">›</button>
+<div class="tpcal-popup-overlay" id="tpcal-popup-overlay" onclick="if(event.target===this)Cajas.cerrarCalendario()">
+  <div class="tpcal-popup-box">
+    <div class="tpcal-head">
+      <button class="tpcal-nav" onclick="Cajas.navegarMes(-1)" type="button">‹</button>
+      <div class="tpcal-titulo" id="tpcal-titulo"></div>
+      <button class="tpcal-nav" onclick="Cajas.navegarMes(1)" type="button">›</button>
     </div>
-    <div class="cal-grid" id="cal-grid"></div>
-    <div class="cal-legend">
+    <div class="tpcal-grid" id="tpcal-grid"></div>
+    <div class="tpcal-legend">
       <span><span class="chip chip-cuadrado"></span>Cuadra</span>
       <span><span class="chip chip-sobra"></span>Sobra</span>
       <span><span class="chip chip-falta"></span>Falta</span>
@@ -2924,11 +2924,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     const [y, m] = Estado.fechaActual.split('-').map(Number);
     Estado.calMes = new Date(y, m - 1, 1);
     pintarCalendarioMes();
-    $('cal-popup-overlay').classList.add('activo');
+    $('tpcal-popup-overlay').classList.add('activo');
   }
 
   function cerrarCalendario() {
-    $('cal-popup-overlay').classList.remove('activo');
+    $('tpcal-popup-overlay').classList.remove('activo');
   }
 
   function navegarMes(delta) {
@@ -2958,17 +2958,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
     const meses = ['enero','febrero','marzo','abril','mayo','junio',
                    'julio','agosto','septiembre','octubre','noviembre','diciembre'];
-    $('cal-titulo').textContent = `${meses[m]} ${y}`;
+    $('tpcal-titulo').textContent = `${meses[m]} ${y}`;
 
     const hoyIso = fmtIsoCal(new Date());
     const fechaSelIso = Estado.fechaActual;
 
     let html = ['L','M','X','J','V','S','D'].map(d =>
-      `<div class="cal-dow">${d}</div>`
+      `<div class="tpcal-dow">${d}</div>`
     ).join('');
 
     for (let i = 0; i < primerDow; i++) {
-      html += '<div class="cal-day cal-empty"></div>';
+      html += '<div class="tpcal-day cal-empty"></div>';
     }
 
     for (let d = 1; d <= totalDias; d++) {
@@ -2977,13 +2977,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       const info = resumenDias[iso];
       const estado = info?.estado;
       const cls = [];
-      if (estado) cls.push('cal-' + estado);
-      if (iso === hoyIso) cls.push('cal-hoy');
-      if (iso === fechaSelIso) cls.push('cal-sel');
-      html += `<div class="cal-day ${cls.join(' ')}"
+      if (estado) cls.push('tpcal-' + estado);
+      if (iso === hoyIso) cls.push('tpcal-hoy');
+      if (iso === fechaSelIso) cls.push('tpcal-sel');
+      html += `<div class="tpcal-day ${cls.join(' ')}"
                     onclick="Cajas.seleccionarDelCalendario('${iso}')">${d}</div>`;
     }
-    $('cal-grid').innerHTML = html;
+    $('tpcal-grid').innerHTML = html;
   }
 
   function seleccionarDelCalendario(iso) {
