@@ -1349,6 +1349,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         </select>
       </div>
 
+      <div class="cajas-form-grupo" style="background:#fef3c7;border-radius:8px;padding:12px 14px;border:1px solid #fde68a;">
+        <label style="display:flex;align-items:center;gap:10px;cursor:pointer;text-transform:none;letter-spacing:normal;font-size:13px;color:#78350f;">
+          <input type="checkbox" id="caja-gestion-fiados" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;">
+          <span>
+            <strong>Activar gestión de fiados / pendientes</strong>
+            <span style="display:block;font-weight:400;font-size:11px;color:#92400e;margin-top:3px;">
+              Permite registrar clientes que dejan a deber sin descuadrar la caja.
+            </span>
+          </span>
+        </label>
+      </div>
+
       <div id="caja-companias-bloque" style="display:none;">
         <hr style="border-color:#e5e7eb;margin:16px 0;">
         <label style="font-size:12px;color:#374151;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">
@@ -1668,6 +1680,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     $('caja-icono').dataset.auto = 'si';
     $('caja-color').value = '#3b82f6';
     $('caja-permiso').value = 'admin';
+    if ($('caja-gestion-fiados')) $('caja-gestion-fiados').checked = false;
     $('btn-borrar-caja').style.display = 'none';
     $('caja-companias-bloque').style.display = 'none';
     $('modal-caja').classList.add('activo');
@@ -1684,6 +1697,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     $('caja-icono').value = caja.icono || '💼';
     $('caja-color').value = caja.color || '#3b82f6';
     $('caja-permiso').value = caja.permiso_editar_cerrada || 'admin';
+    if ($('caja-gestion-fiados')) $('caja-gestion-fiados').checked = !!caja.gestion_fiados;
     $('btn-borrar-caja').style.display = 'inline-block';
     $('caja-companias-bloque').style.display = 'block';
     renderCompanias();
@@ -1756,7 +1770,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       nombre: $('caja-nombre').value.trim(),
       icono: $('caja-icono').value.trim() || '💼',
       color: $('caja-color').value,
-      permiso_editar_cerrada: $('caja-permiso').value
+      permiso_editar_cerrada: $('caja-permiso').value,
+      gestion_fiados: !!($('caja-gestion-fiados')?.checked)
     };
     if (!payload.nombre) {
       toast('Nombre obligatorio', 'error');
