@@ -169,7 +169,8 @@ async function recalcularCierreDeFiado(fiadoId, tienda_id) {
     const efectivo = Number(cierre.saldo_real_final || 0);
     const tpv = Number(cierre.importe_tpv || 0);
     const teorico = Number(cierre.saldo_teorico || 0);
-    const cobrado = efectivo + tpv + totalPendientes;
+    // v2.3: pendientes son deuda, no sumar al cobrado
+    const cobrado = efectivo + tpv;
     const nuevoDescuadre = Math.round((cobrado - teorico) * 100) / 100;
 
     // Determinar estado
@@ -411,10 +412,13 @@ export default async function handler(req, res) {
 
         const saldoTeorico = calcularSaldoTeorico(caja.tipo, saldo_inicial, movimientos, total_cobrado_caja);
         const saldoReal = Number(saldo_real_final || 0);
-        // Nuevo cálculo (v2.1): cobrado = efectivo + TPV + fiados
+        // v2.3: Los fiados PENDIENTES son deuda (no suman al cobrado).
+        // Los COBRADOS ya se ven reflejados porque suman al efectivo/TPV.
+        // Formula: cobrado = efectivo + TPV; descuadre = cobrado - teorico
+        // El total_fiados que llega es solo de PENDIENTES (frontend filtra cobrados)
         const tpvNum = Number(importe_tpv || 0);
         const fiadosNum = Number(total_fiados || 0);
-        const cobrado = Math.round((saldoReal + tpvNum + fiadosNum) * 100) / 100;
+        const cobrado = Math.round((saldoReal + tpvNum) * 100) / 100;
         const descuadre = Math.round((cobrado - saldoTeorico) * 100) / 100;
         // estados permitidos: abierto, cerrado, descuadre (auto), festivo
         let estadoFinal;

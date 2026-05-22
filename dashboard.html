@@ -2452,7 +2452,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       let totalEnviado = 0;
       for (const m of movs) totalEnviado += m.importe_enviado || 0;
       const teorico = Math.round((saldoInicial + totalEnviado) * 100) / 100;
-      const cobrado = Math.round((efectivoCaja + importeTpv + totalFiados) * 100) / 100;
+      // v2.3: pendientes son deuda, no suman al cobrado
+      const cobrado = Math.round((efectivoCaja + importeTpv) * 100) / 100;
       const balance = Math.round((cobrado - teorico) * 100) / 100;
 
       // Envíos: debe cuadrar EXACTO (no aceptar sobra como verde)
@@ -2479,7 +2480,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       let totalVendido = 0;
       for (const m of movs) totalVendido += m.importe_efectivo || 0;
       totalVendido = Math.round(totalVendido * 100) / 100;
-      const cobrado = Math.round((efectivoCaja + importeTpv + totalFiados) * 100) / 100;
+      // v2.3: pendientes son deuda, no suman al cobrado
+      const cobrado = Math.round((efectivoCaja + importeTpv) * 100) / 100;
       const balance = Math.round((cobrado - totalVendido) * 100) / 100;
 
       okFlag = Math.abs(balance) <= 0.5;
