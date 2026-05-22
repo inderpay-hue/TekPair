@@ -1972,15 +1972,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     const real = Number($('cierre-saldo-real').value || 0);
     const balance = Math.round((real - teorico) * 100) / 100;
 
-    // Para envíos: balance positivo o cero = OK (son comisiones), negativo = falta dinero
-    // Para recargas: tradicional, descuadre = diferencia con teórico
+    // ENVÍOS:
+    //   - Total caja > esperado  → SOBRA dinero (verde, revisar pero no crítico)
+    //   - Total caja = esperado  → CUADRA exacto (verde)
+    //   - Total caja < esperado  → FALTA dinero (rojo, alerta)
+    // RECARGAS: cualquier diferencia es descuadre tradicional
     let okFlag, mensajeOK, mensajeKO;
     if (tipo === 'envios') {
-      okFlag = balance >= -0.5;  // Tolerancia 50 céntimos
-      mensajeOK = balance > 0.5
-        ? `✓ Balance: ${eur(balance)} a favor (comisiones)`
-        : '✓ Caja cuadrada';
-      mensajeKO = `❌ Falta dinero: ${eur(balance)}`;
+      okFlag = balance >= -0.5;  // Cualquier sobra o cuadre = verde
+      if (Math.abs(balance) <= 0.5) {
+        mensajeOK = '✓ Caja cuadrada';
+      } else {
+        mensajeOK = `✓ Sobra: +${eur(Math.abs(balance))}`;
+      }
+      mensajeKO = `❌ Falta: ${eur(balance)}`;
     } else {
       okFlag = Math.abs(balance) <= 0.5;
       mensajeOK = '✓ Caja cuadrada';
