@@ -1264,6 +1264,58 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
   
 
+
+  /* === CALENDARIO POPUP === */
+  .cal-trigger-btn {
+    background:#fff; color:#111827; border:1px solid #d1d5db;
+    padding:7px 14px; border-radius:8px; font-size:14px; cursor:pointer;
+    display:inline-flex; align-items:center;
+  }
+  .cal-trigger-btn:hover { border-color:#3b82f6; background:#eff6ff; }
+  .cal-popup-overlay {
+    position:fixed; inset:0; background:rgba(0,0,0,.4); z-index:99998;
+    display:none; align-items:flex-start; justify-content:center;
+    padding:60px 16px 16px;
+  }
+  .cal-popup-overlay.activo { display:flex; }
+  .cal-popup-box {
+    background:#fff; border-radius:14px; width:100%; max-width:360px;
+    box-shadow:0 20px 60px rgba(0,0,0,.25); padding:16px;
+  }
+  .cal-head {
+    display:flex; justify-content:space-between; align-items:center; margin-bottom:14px;
+  }
+  .cal-head .cal-nav {
+    background:#f3f4f6; border:0; width:30px; height:30px;
+    border-radius:8px; cursor:pointer; color:#374151; font-size:18px;
+  }
+  .cal-head .cal-nav:hover { background:#e5e7eb; }
+  .cal-head .cal-titulo { font-size:14px; font-weight:700; color:#111827; text-transform:capitalize; }
+  .cal-grid {
+    display:grid; grid-template-columns:repeat(7,1fr); gap:4px; text-align:center;
+  }
+  .cal-dow { font-size:10px; color:#9ca3af; font-weight:700; padding:4px; }
+  .cal-day {
+    padding:8px 0; font-size:13px; border-radius:6px; cursor:pointer;
+    color:#374151;
+  }
+  .cal-day:hover { background:#eff6ff; }
+  .cal-day.cal-empty { color:#d1d5db; cursor:default; pointer-events:none; }
+  .cal-day.cal-empty:hover { background:transparent; }
+  .cal-day.cal-cuadrado { background:#dcfce7; color:#166534; font-weight:700; }
+  .cal-day.cal-sobra { background:#dbeafe; color:#1e40af; font-weight:700; }
+  .cal-day.cal-falta { background:#fee2e2; color:#991b1b; font-weight:700; }
+  .cal-day.cal-pendientes { background:#fef3c7; color:#92400e; font-weight:700; }
+  .cal-day.cal-borrador { background:#ffedd5; color:#9a3412; font-weight:700; }
+  .cal-day.cal-festivo { background:#f3f4f6; color:#9ca3af; }
+  .cal-day.cal-sel { box-shadow:0 0 0 2px #3b82f6; }
+  .cal-day.cal-hoy { outline:2px solid #1e40af; outline-offset:-2px; }
+  .cal-legend {
+    display:flex; gap:8px; margin-top:12px; padding-top:10px;
+    border-top:1px solid #f3f4f6; font-size:10px; color:#6b7280;
+    flex-wrap:wrap; justify-content:center;
+  }
+
   /* === FRANJA 7 DÍAS === */
   .cajas-franja-wrap {
     background:#fff; border:1px solid #e5e7eb; border-radius:12px;
@@ -1395,7 +1447,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div></div>
     <div class="cajas-fecha-selector">
       <label style="font-size:12px;color:#6b7280;">Fecha:</label>
-      <input type="date" id="cajas-fecha-actual">
+      <input type="hidden" id="cajas-fecha-actual">
+            <button type="button" class="cal-trigger-btn" id="cajas-fecha-trigger" onclick="Cajas.abrirCalendario()">
+              <span id="cajas-fecha-label">22/05/2026</span>
+              <span style="color:#9ca3af;font-size:11px;margin-left:6px;">📅</span>
+            </button>
     </div>
   </div>
 
@@ -1621,6 +1677,27 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <button class="cajas-btn cajas-btn-rojo" id="btn-quitar-fiado" style="margin-right:auto;display:none;" onclick="Cajas.quitarFiado()">Eliminar</button>
       <button class="cajas-btn cajas-btn-sec" onclick="Cajas.cerrarModalFiado()">Cancelar</button>
       <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarFiado()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+
+
+<!-- ════ POPUP CALENDARIO MENSUAL ════ -->
+<div class="cal-popup-overlay" id="cal-popup-overlay" onclick="if(event.target===this)Cajas.cerrarCalendario()">
+  <div class="cal-popup-box">
+    <div class="cal-head">
+      <button class="cal-nav" onclick="Cajas.navegarMes(-1)" type="button">‹</button>
+      <div class="cal-titulo" id="cal-titulo"></div>
+      <button class="cal-nav" onclick="Cajas.navegarMes(1)" type="button">›</button>
+    </div>
+    <div class="cal-grid" id="cal-grid"></div>
+    <div class="cal-legend">
+      <span><span class="chip chip-cuadrado"></span>Cuadra</span>
+      <span><span class="chip chip-sobra"></span>Sobra</span>
+      <span><span class="chip chip-falta"></span>Falta</span>
+      <span><span class="chip chip-pendientes"></span>Pendientes</span>
+      <span><span class="chip chip-borrador"></span>Borrador</span>
     </div>
   </div>
 </div>
@@ -1855,6 +1932,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       pintarTarjetas();
       actualizarBadgePendientes();
       pintarFranja7();
+      actualizarLabelFecha();
     } catch (e) {
       toast('Error cargando cajas: ' + e.message, 'error');
     }
@@ -2822,6 +2900,102 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   }
 
 
+
+  // ── CALENDARIO POPUP (G3) ─────────────────────
+  Estado.calMes = new Date();
+
+  function fmtIsoCal(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    return `${y}-${m}-${dd}`;
+  }
+
+  function actualizarLabelFecha() {
+    const lbl = $('cajas-fecha-label');
+    if (!lbl) return;
+    const iso = Estado.fechaActual;
+    if (!iso) return;
+    const [y, m, dd] = iso.split('-');
+    lbl.textContent = `${dd}/${m}/${y}`;
+  }
+
+  function abrirCalendario() {
+    const [y, m] = Estado.fechaActual.split('-').map(Number);
+    Estado.calMes = new Date(y, m - 1, 1);
+    pintarCalendarioMes();
+    $('cal-popup-overlay').classList.add('activo');
+  }
+
+  function cerrarCalendario() {
+    $('cal-popup-overlay').classList.remove('activo');
+  }
+
+  function navegarMes(delta) {
+    Estado.calMes.setMonth(Estado.calMes.getMonth() + delta);
+    pintarCalendarioMes();
+  }
+
+  async function pintarCalendarioMes() {
+    const mes = Estado.calMes;
+    const y = mes.getFullYear();
+    const m = mes.getMonth();
+    const primerDia = new Date(y, m, 1);
+    const ultimoDia = new Date(y, m + 1, 0);
+    const totalDias = ultimoDia.getDate();
+    // primerDayWeek: 0=domingo, queremos lunes=0
+    let primerDow = primerDia.getDay() - 1;
+    if (primerDow < 0) primerDow = 6;
+
+    const desde = fmtIsoCal(primerDia);
+    const hasta = fmtIsoCal(ultimoDia);
+
+    let resumenDias = {};
+    try {
+      const r = await api('resumen_periodo', { query: { desde, hasta } });
+      resumenDias = r.dias || {};
+    } catch(e) { console.warn('Calendario resumen:', e); }
+
+    const meses = ['enero','febrero','marzo','abril','mayo','junio',
+                   'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    $('cal-titulo').textContent = `${meses[m]} ${y}`;
+
+    const hoyIso = fmtIsoCal(new Date());
+    const fechaSelIso = Estado.fechaActual;
+
+    let html = ['L','M','X','J','V','S','D'].map(d =>
+      `<div class="cal-dow">${d}</div>`
+    ).join('');
+
+    for (let i = 0; i < primerDow; i++) {
+      html += '<div class="cal-day cal-empty"></div>';
+    }
+
+    for (let d = 1; d <= totalDias; d++) {
+      const fecha = new Date(y, m, d);
+      const iso = fmtIsoCal(fecha);
+      const info = resumenDias[iso];
+      const estado = info?.estado;
+      const cls = [];
+      if (estado) cls.push('cal-' + estado);
+      if (iso === hoyIso) cls.push('cal-hoy');
+      if (iso === fechaSelIso) cls.push('cal-sel');
+      html += `<div class="cal-day ${cls.join(' ')}"
+                    onclick="Cajas.seleccionarDelCalendario('${iso}')">${d}</div>`;
+    }
+    $('cal-grid').innerHTML = html;
+  }
+
+  function seleccionarDelCalendario(iso) {
+    Estado.fechaActual = iso;
+    const hidden = $('cajas-fecha-actual');
+    if (hidden) hidden.value = iso;
+    actualizarLabelFecha();
+    cerrarCalendario();
+    cargarCajas();
+  }
+
+
   // API pública
   window.Cajas = {
     renderCajas,
@@ -2850,7 +3024,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     confirmarCobro,
     editarCobro,
     pintarFranja7,
-    irAFechaFranja
+    irAFechaFranja,
+    abrirCalendario,
+    cerrarCalendario,
+    navegarMes,
+    seleccionarDelCalendario,
+    actualizarLabelFecha
   };
 })();
 </script>
