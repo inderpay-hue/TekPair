@@ -583,7 +583,80 @@ export default async function handler(req, res) {
         return ok(res, {});
       }
 
-      default: 
+
+      case 'resumen_periodo': {
+        const { desde, hasta } = req.query;
+        if (!desde || !hasta) return err(res, 400, 'desde y hasta obligatorios');
+
+        // 1) Cierres del periodo
+        const cierres = await sbGet(
+          `cajas_cierres?tienda_id=eq.${encodeURIComponent(tienda_id)}`
+          + `&fecha=gte.${encodeURIComponent(desde)}`
+          + `&fecha=lte.${encodeURIComponent(hasta)}`
+          + `&select=fecha,estado,descuadre,caja_id&order=fecha.asc`
+        );
+
+        // 2) Fiados pendientes del periodo (para color amarillo)
+        const fiados = await sbGet(
+          `cajas_fiados?tienda_id=eq.${encodeURIComponent(tienda_id)}`
+          + `&estado=eq.pendiente`
+          + `&fecha=gte.${encodeURIComponent(desde)}`
+          + `&fecha=lte.${encodeURIComponent(hasta)}`
+          + `&select=fecha,importe`
+        );
+
+        // 3) Calcular peor estado por día
+        // Prioridad: falta > borrador > pendientes > sobra > cuadrado > vacio
+        const PRIO = {
+          falta: 6,
+          borrador: 5,
+          pendientes: 4,
+          sobra: 3,
+          cuadrado: 2,
+          festivo: 1,
+          vacio: 0
+        };
+        const dias = {};
+
+        // Marcar días con fiados pendientes como "pendientes"
+        for (const f of fiados) {
+          const fecha = f.fecha;
+          if (!dias[fecha]) dias[fecha] = { estado: 'pendientes', descuadre: 0, fiado: 0 };
+          dias[fecha].fiado = (dias[fecha].fiado || 0) + Number(f.importe || 0);
+          // Si ya estaba como cuadrado o sobra, subir a pendientes
+          if (PRIO[dias[fecha].estado] < PRIO.pendientes) {
+            dias[fecha].estado = 'pendientes';
+          }
+        }
+
+        // Aplicar estado de cierres
+        for (const c of cierres) {
+          const f = c.fecha;
+          let estadoDia;
+          if (c.estado === 'festivo') {
+            estadoDia = 'festivo';
+          } else if (c.estado === 'abierto') {
+            estadoDia = 'borrador';
+          } else if (Math.abs(Number(c.descuadre || 0)) <= 0.5) {
+            estadoDia = 'cuadrado';
+          } else if (Number(c.descuadre) > 0.5) {
+            estadoDia = 'sobra';
+          } else {
+            estadoDia = 'falta';
+          }
+          if (!dias[f] || PRIO[estadoDia] > PRIO[dias[f].estado]) {
+            dias[f] = {
+              estado: estadoDia,
+              descuadre: Number(c.descuadre || 0),
+              fiado: dias[f]?.fiado || 0
+            };
+          }
+        }
+
+        return ok(res, { dias });
+      }
+
+      default:  
         return err(res, 400, `Acción desconocida: ${action}`);
     }
   } catch (e) {
