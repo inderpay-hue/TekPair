@@ -4245,6 +4245,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="fg"><label class="fl">Telefono</label><input class="fi" id="ncTel" type="tel" placeholder="6XX XXX XXX"></div>
   <div class="fg"><label class="fl">DNI/NIE</label><input class="fi" id="ncDni" placeholder="12345678A"></div>
+  <div class="fg"><label class="fl">Email</label><input class="fi" id="ncEmail" type="email" placeholder="correo@ejemplo.com"></div>
+  <div class="fg"><label class="fl">Direccion</label><input class="fi" id="ncDir" placeholder="Calle, numero, ciudad"></div>
+  <div class="fg"><label class="fl">Fecha de nacimiento</label><input class="fi" id="ncNac" type="date"></div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mNuevoCli')">Cancelar</button>
     <button class="btn-primary" onclick="crearClienteRapido()">Crear</button>
@@ -6663,12 +6666,14 @@ function crearClienteRapido() {
     nombre: nom,
     apellidos: document.getElementById('ncApe').value.trim(),
     tel: document.getElementById('ncTel').value.trim(),
-    email: '',
-    dni: document.getElementById('ncDni').value.trim()
+    email: (document.getElementById('ncEmail')||{}).value ? document.getElementById('ncEmail').value.trim() : '',
+    dni: document.getElementById('ncDni').value.trim(),
+    direccion: (document.getElementById('ncDir')||{}).value ? document.getElementById('ncDir').value.trim() : '',
+    fecha_nacimiento: (document.getElementById('ncNac')||{}).value || null
   };
   DB.clis.push(c);
   guardarDatos();
-  if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:'',dni:c.dni});
+  if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:c.email,dni:c.dni,direccion:c.direccion,fecha_nacimiento:c.fecha_nacimiento});
   closeM('mNuevoCli');
   selCli(c.id, window._cliCtx || 'v');
   toast('Cliente creado', 'ok');
