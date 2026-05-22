@@ -100,12 +100,14 @@ function calcularBalance(tipoCaja, mov) {
 }
 
 // Calcula saldo teórico del cierre
-function calcularSaldoTeorico(tipoCaja, saldoInicial, movimientos) {
+// Para envíos: saldo_inicial + total_cobrado_caja (campo único, no por compañía)
+// Para recargas: saldo_inicial + suma de importe_efectivo por compañía
+function calcularSaldoTeorico(tipoCaja, saldoInicial, movimientos, totalCobradoCaja) {
   let teorico = Number(saldoInicial || 0);
-  for (const m of movimientos) {
-    if (tipoCaja === 'envios') {
-      teorico += Number(m.importe_cobrado || 0);
-    } else if (tipoCaja === 'recargas') {
+  if (tipoCaja === 'envios') {
+    teorico += Number(totalCobradoCaja || 0);
+  } else if (tipoCaja === 'recargas') {
+    for (const m of movimientos) {
       teorico += Number(m.importe_efectivo || 0);
     }
   }
@@ -296,7 +298,7 @@ export default async function handler(req, res) {
       case 'guardar_cierre': {
         const {
           caja_id, fecha, saldo_inicial, saldo_real_final, cambio_siguiente,
-          notas, estado, movimientos
+          notas, estado, movimientos, total_cobrado_caja
         } = req.body || {};
         if (!caja_id || !fecha) return err(res, 400, 'caja_id y fecha obligatorios');
         if (!Array.isArray(movimientos)) return err(res, 400, 'movimientos[] obligatorio');
@@ -321,7 +323,7 @@ export default async function handler(req, res) {
           }
         }
 
-        const saldoTeorico = calcularSaldoTeorico(caja.tipo, saldo_inicial, movimientos);
+        const saldoTeorico = calcularSaldoTeorico(caja.tipo, saldo_inicial, movimientos, total_cobrado_caja);
         const saldoReal = Number(saldo_real_final || 0);
         const descuadre = Math.round((saldoReal - saldoTeorico) * 100) / 100;
         const estadoFinal = estado === 'cerrado'
@@ -337,6 +339,7 @@ export default async function handler(req, res) {
           saldo_teorico: saldoTeorico,
           descuadre,
           cambio_siguiente: Number(cambio_siguiente || 0),
+          total_cobrado_caja: Number(total_cobrado_caja || 0),
           estado: estadoFinal,
           notas: notas || null
         };
