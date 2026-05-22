@@ -4579,14 +4579,21 @@ var PLAN_FEATURES = {
            'ubicaciones',
            'multi_tienda','soporte_24_7','api_access','onboarding_personal',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
+           'gar_notif_auto','gar_reportes_avanzados'],
+  premium:['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
+           'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
+           'importar_pdf','catalogo_servicios','plantillas_rep',
+           'ubicaciones',
+           'multi_tienda','soporte_24_7','api_access','onboarding_personal',
+           'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados']
 };
 
 // Límite de usuarios por plan
-var PLAN_LIMITS = {basico: {usuarios: 1}, pro: {usuarios: 3}, top: {usuarios: 999}};
+var PLAN_LIMITS = {basico: {usuarios: 1}, pro: {usuarios: 3}, top: {usuarios: 999}, premium: {usuarios: 999}};
 
 // Niveles de plan ordenados
-var PLAN_TIER = {basico: 1, pro: 2, top: 3};
+var PLAN_TIER = {basico: 1, pro: 2, top: 3, premium: 3};
 
 // ¿El usuario tiene acceso a esta feature?
 function tieneFeature(featureName) {
