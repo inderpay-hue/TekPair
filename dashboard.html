@@ -9373,16 +9373,29 @@ function getRepFechas() {
 // Variables globales para charts (para destruirlos antes de re-renderizar)
 var CHART_INGRESOS = null, CHART_PAGOS = null, CHART_SERVICIOS = null;
 
-function renderReporte() {
+async function renderReporte() {
   var fechas = getRepFechas();
   var ventas = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function(v) { return !v.reembolsado && fechas.includes(v.fecha); }) : [];
-  var reps = SEL.repTipo !== 'ventas' ? DB.reps.filter(function(r) { return r.estado === 'Entregado' && fechas.includes(r.fechaEntregaReal); }) : [];
+  // v2.4: usar pagos reales (anticipos + finales) en lugar de reps entregadas
+  var pagosReps = [];
+  if (SEL.repTipo !== 'ventas' && SB_KEY && fechas.length > 0) {
+    try {
+      var minF = fechas[0], maxF = fechas[fechas.length-1];
+      pagosReps = await sbGet('pagos_reparacion', 'fecha=gte.' + minF + '&fecha=lte.' + maxF) || [];
+    } catch(e) { console.warn('No pagos:', e); }
+  }
+  // reps con pagos en el rango (para mostrarlos en la tabla)
+  var repIdsConPago = {};
+  pagosReps.forEach(function(p){ repIdsConPago[p.reparacion_id] = true; });
+  var reps = SEL.repTipo !== 'ventas' ? DB.reps.filter(function(r){ return repIdsConPago[r.id]; }) : [];
   var tV = ventas.reduce(function(a, v) { return a + v.total; }, 0);
-  var tR = reps.reduce(function(a, r) { return a + r.total; }, 0);
+  // tR = suma de pagos reales del rango (no del total contractual)
+  var tR = pagosReps.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
 
   var pagos = {};
   ventas.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
-  reps.forEach(function(r) { if (r.pagoFinal) pagos[r.pagoFinal] = (pagos[r.pagoFinal] || 0) + r.total; });
+  // Agrupar pagos por método (efectivo, tarjeta, etc)
+  pagosReps.forEach(function(p){ if (p.metodo) pagos[p.metodo] = (pagos[p.metodo] || 0) + Number(p.importe||0); });
 
   document.getElementById('reporteResumen').innerHTML =
     '<div class="stats-grid">' +
