@@ -1388,7 +1388,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 
 <!-- ════ MODAL MINI ANOTAR FIADO ════ -->
-<div class="cajas-modal-overlay" id="modal-fiado-anotar">
+<div class="cajas-modal-overlay" id="modal-fiado-anotar" style="z-index:100000;">
   <div class="cajas-modal" style="max-width:440px;">
     <div class="cajas-modal-header">
       <h3>📝 Anotar pendiente de cobro</h3>
@@ -2221,6 +2221,28 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     $('modal-fiado-anotar').classList.remove('activo');
   }
 
+  function actualizarCeldaFiado(companiaId) {
+    // Actualiza SOLO la celda del fiado sin tocar el resto de la tabla
+    // (preserva los valores tecleados en Enviado/Efectivo/Tarjeta)
+    const tr = document.querySelector(`#tabla-mov-tbody tr[data-compania-id="${companiaId}"]`);
+    if (!tr) return;
+    const btn = tr.querySelector('.celda-fiado-btn');
+    if (!btn) return;
+    const fiado = Estado.fiadosTemp[companiaId];
+    const imp = fiado?.importe || 0;
+    if (imp > 0) {
+      btn.style.background = '#fef3c7';
+      btn.style.borderColor = '#f59e0b';
+      btn.style.color = '#92400e';
+      btn.textContent = eur(imp);
+    } else {
+      btn.style.background = '#fff';
+      btn.style.borderColor = '#d1d5db';
+      btn.style.color = '#6b7280';
+      btn.textContent = '+ anotar';
+    }
+  }
+
   function guardarFiado() {
     const companiaId = $('fiado-mov-key').value;
     const importe = Number($('fiado-importe').value || 0);
@@ -2236,21 +2258,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       nota: $('fiado-nota').value.trim()
     };
     cerrarModalFiado();
-    // Repintar la tabla para reflejar el cambio
-    if (Estado.cierreEditando) {
-      renderTablaMovimientos(Estado.cierreEditando);
-      recalcularResumen();
-    }
+    actualizarCeldaFiado(companiaId);
+    recalcularResumen();
   }
 
   function quitarFiado() {
     const companiaId = $('fiado-mov-key').value;
     delete Estado.fiadosTemp[companiaId];
     cerrarModalFiado();
-    if (Estado.cierreEditando) {
-      renderTablaMovimientos(Estado.cierreEditando);
-      recalcularResumen();
-    }
+    actualizarCeldaFiado(companiaId);
+    recalcularResumen();
   }
 
   // API pública
