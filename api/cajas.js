@@ -130,19 +130,19 @@ async function tienePermisoCaja(payload, clave) {
   let usuario = null;
   if (userId) {
     const r = await sbGet(
-      `usuarios?id=eq.${encodeURIComponent(userId)}&select=rol,permisos_usuarios&limit=1`
+      `usuarios?id=eq.${encodeURIComponent(userId)}&select=rol,permisos&limit=1`
     );
     usuario = r[0] || null;
   } else if (email) {
     const r = await sbGet(
-      `usuarios?email=eq.${encodeURIComponent(email)}&select=rol,permisos_usuarios&limit=1`
+      `usuarios?email=eq.${encodeURIComponent(email)}&select=rol,permisos&limit=1`
     );
     usuario = r[0] || null;
   }
   if (!usuario) return false;
   if (usuario.rol === 'admin') return true;
   const claveCompleta = clave.startsWith('cajasm_') ? clave : 'cajasm_' + clave;
-  const permisos = usuario.permisos_usuarios || {};
+  const permisos = usuario.permisos || {};
   return permisos[claveCompleta] === true;
 }
 
