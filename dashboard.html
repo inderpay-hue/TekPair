@@ -2813,6 +2813,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       // Cargar pendientes Y cobrados (sin filtro de estado)
       const r = await api('listar_fiados', { query: {} });
       Estado.cobros = r.fiados || [];
+      window._cajasFiadosCache = Estado.cobros;
       actualizarBadgePendientes();
       pintarCobros();
     } catch(e) {
@@ -2883,7 +2884,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
       let acciones = '';
       if (!cobrado) {
+        const waBtn = f.cliente_telefono
+          ? `<button onclick="abrirWhatsAppFiado('${f.id}')" style="background:#25D366;color:#fff;border:0;padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer;" title="Avisar por WhatsApp">💬</button>`
+          : '';
         acciones = `
+          ${waBtn}
           <button onclick="Cajas.cobrarFiado('${f.id}')" style="background:#10b981;color:#fff;border:0;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">✓ Cobrar</button>
           <button onclick="Cajas.editarCobro('${f.id}')" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer;">✏</button>
         `;
@@ -11563,6 +11568,7 @@ var PLANTILLAS_WA_DEFAULT = {
   rep_recibida: {nombre:'Reparación recibida', texto:'Hola {nombre}, hemos recibido tu {modelo} en {tienda}. Te avisaremos cuando tengamos novedades sobre la reparación. ¡Gracias por confiar en nosotros!'},
   cuota_proxima: {nombre:'Cuota próxima', texto:'Hola {nombre}, te recuerdo que tu cuota de {total} vence el {fecha}. Saludos desde {tienda}.'},
   cuota_vencida: {nombre:'Cuota vencida', texto:'Hola {nombre}, tu cuota de {total} venció el {fecha}. Pásate por {tienda} cuando puedas para regularizarla. Gracias.'},
+  fiado_recordatorio: {nombre:'Recordatorio pago pendiente', texto:'Hola {nombre} 👋\n\nTe escribo desde {tienda} para recordarte que tienes un pago pendiente:\n\n💰 Importe: {total}\n📅 Del día: {fecha}\n\nCuando puedas pásate por la tienda para regularizar. ¡Gracias!'},
   generico: {nombre:'Mensaje libre', texto:'Hola {nombre}, te escribo desde {tienda}.'}
 };
 
@@ -11583,6 +11589,48 @@ function aplicarVariablesWA(texto, datos) {
 }
 
 var _waContexto = null;
+
+function abrirWhatsAppFiado(fiadoId) {
+  // Buscar fiado en cobros cacheados
+  if (!window.Cajas || !window.Cajas) return;
+  // Acceder al Estado interno de Cajas via su API publica
+  var fiado = null;
+  try {
+    // Estado.cobros tiene los fiados; buscamos por id
+    var allCobros = window._cajasFiadosCache || [];
+    fiado = allCobros.find(function(f){ return f.id === fiadoId; });
+  } catch(e) {}
+  if (!fiado) {
+    // Fallback: pedir al backend
+    toast('No se encontró el fiado', 'err');
+    return;
+  }
+  if (!fiado.cliente_telefono) { toast('Cliente sin teléfono', 'err'); return; }
+
+  // Formato fecha DD/MM/YYYY
+  var partes = (fiado.fecha || '').split('-');
+  var fechaVisible = partes.length === 3 ? (partes[2] + '/' + partes[1] + '/' + partes[0]) : fiado.fecha;
+
+  _waContexto = {
+    tipo: 'fiado',
+    cli: { tel: fiado.cliente_telefono, nombre: fiado.cliente_nombre },
+    datos: {
+      nombre: fiado.cliente_nombre || '',
+      tienda: TIENDA.nombre || '',
+      total: cur(fiado.importe || 0),
+      fecha: fechaVisible
+    }
+  };
+  document.getElementById('waInfoCli').innerHTML = '<strong>📱 ' + esc(fiado.cliente_nombre || 'Sin nombre') + '</strong> · ' + esc(fiado.cliente_telefono) + '<br><span style="color:var(--muted);font-size:11px">Pendiente de ' + cur(fiado.importe||0) + ' · ' + esc(fechaVisible) + '</span>';
+  var sel = document.getElementById('waPlantilla');
+  var plantillas = getPlantillasWA();
+  var keysFiado = ['fiado_recordatorio','generico'];
+  sel.innerHTML = keysFiado.filter(function(k){ return plantillas[k]; }).map(function(k) {
+    return '<option value="' + k + '"' + (k === 'fiado_recordatorio' ? ' selected' : '') + '>' + plantillas[k].nombre + '</option>';
+  }).join('');
+  renderPreviewWA();
+  openM('mWhatsApp');
+}
 
 function abrirWhatsAppRep(repId) {
   var r = DB.reps.find(function(x){ return x.id === repId; });
