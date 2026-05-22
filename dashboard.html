@@ -1821,6 +1821,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
     <div class="cajas-modal-pie">
       <button class="cajas-btn cajas-btn-sec" onclick="Cajas.cerrarModal('modal-cierre')">Cancelar</button>
+      <button class="cajas-btn cajas-btn-sec" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;" onclick="Cajas.marcarFestivoDesdeModal()" title="Saltar este cierre y marcar el día como festivo">🏖 Día festivo</button>
       <button class="cajas-btn" onclick="Cajas.guardarCierre('abierto')">Guardar borrador</button>
       <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarCierre('cerrado')">Cerrar caja</button>
     </div>
@@ -2032,9 +2033,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
             ` : ''}
           </div>
           <div class="caja-card-acciones">
-            <button class="cajas-btn" onclick="Cajas.abrirCierre('${caja.id}')">
-              ${cierre ? 'Ver / editar' : 'Hacer cierre'}
-            </button>
+            ${cierre?.estado === 'festivo' ? `
+              <button class="cajas-btn cajas-btn-sec" style="flex:1;background:#f3f4f6;color:#6b7280;cursor:default;" disabled>
+                🏖 Día festivo
+              </button>
+              <button class="cajas-btn cajas-btn-sec" onclick="Cajas.deshacerFestivo('${caja.id}')" title="Quitar marca de festivo">↺</button>
+            ` : `
+              <button class="cajas-btn" onclick="Cajas.abrirCierre('${caja.id}')">
+                ${cierre ? 'Ver / editar' : 'Hacer cierre'}
+              </button>
+              ${!cierre ? `<button class="cajas-btn cajas-btn-sec" onclick="Cajas.marcarFestivo('${caja.id}')" title="Marcar este día como festivo">🏖</button>` : ''}
+            `}
             <button class="cajas-btn cajas-btn-sec" onclick="Cajas.editarCaja('${caja.id}')">⚙️</button>
           </div>
         </div>
@@ -2913,6 +2922,61 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   }
 
 
+  // ── DÍAS FESTIVOS ─────────────────────────────
+
+  async function marcarFestivo(cajaId) {
+    if (!confirm('¿Marcar este día como festivo para esta caja?\n\nEl día aparecerá en gris en el calendario y no necesitas hacer cierre.')) return;
+    try {
+      await api('guardar_cierre', {
+        method: 'POST',
+        body: {
+          caja_id: cajaId,
+          fecha: Estado.fechaActual,
+          saldo_inicial: 0,
+          saldo_real_final: 0,
+          importe_tpv: 0,
+          total_fiados: 0,
+          cambio_siguiente: 0,
+          total_cobrado_caja: 0,
+          notas: 'Día marcado como festivo',
+          estado: 'festivo',
+          movimientos: []
+        }
+      });
+      toast('Día marcado como festivo ✓');
+      await cargarCajas();
+    } catch(e) {
+      toast('Error: ' + e.message, 'error');
+    }
+  }
+
+  async function deshacerFestivo(cajaId) {
+    if (!confirm('¿Deshacer la marca de festivo?\n\nPodrás hacer el cierre normal de este día.')) return;
+    try {
+      // Buscar el cierre festivo y borrarlo (eso "deshace" el festivo)
+      const data = await api('obtener_cierre', {
+        query: { caja_id: cajaId, fecha: Estado.fechaActual }
+      });
+      if (data.cierre?.id && data.cierre.estado === 'festivo') {
+        await api('borrar_cierre', {
+          method: 'POST',
+          body: { id: data.cierre.id }
+        });
+        toast('Festivo deshecho ✓');
+        await cargarCajas();
+      }
+    } catch(e) {
+      toast('Error: ' + e.message, 'error');
+    }
+  }
+
+  async function marcarFestivoDesdeModal() {
+    const cajaId = $('cierre-caja-id').value;
+    cerrarModal('modal-cierre');
+    await marcarFestivo(cajaId);
+  }
+
+
   // ── FRANJA 7 DÍAS (G2) ────────────────────────
   async function pintarFranja7() {
     const grid = $('cajas-franja-grid');
@@ -3101,6 +3165,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     editarCobro,
     pintarFranja7,
     irAFechaFranja,
+    marcarFestivo,
+    deshacerFestivo,
+    marcarFestivoDesdeModal,
     abrirCalendario,
     cerrarCalendario,
     navegarMes,
