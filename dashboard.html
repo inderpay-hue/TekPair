@@ -2457,14 +2457,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       const balance = Math.round((cobrado - teorico) * 100) / 100;
 
       // Envíos: debe cuadrar EXACTO (no aceptar sobra como verde)
-      okFlag = Math.abs(balance) <= 0.5;
-      if (balance > 0.5) {
+      // v2.3: si hay pendientes, sumarlos a la falta
+      const faltaTotal = Math.round((balance - totalFiados) * 100) / 100;
+      okFlag = Math.abs(faltaTotal) <= 0.5;
+      if (faltaTotal > 0.5) {
         okFlag = false;
         mensajeOK = '';
       } else {
         mensajeOK = '✓ Caja cuadrada';
       }
-      mensajeKO = balance < -0.5 ? `❌ Falta: ${eur(balance)}` : `❌ Sobra: +${eur(balance)}`;
+      mensajeKO = faltaTotal < -0.5 ? `❌ Falta: ${eur(faltaTotal)}` : `❌ Sobra: +${eur(faltaTotal)}`;
 
       html += `<div class="item"><span class="label">Total enviado:</span><span><b>${eur(totalEnviado)}</b></span></div>`;
       html += `<div class="item"><span class="label">Saldo inicial:</span><span>${eur(saldoInicial)}</span></div>`;
@@ -2484,14 +2486,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       const cobrado = Math.round((efectivoCaja + importeTpv) * 100) / 100;
       const balance = Math.round((cobrado - totalVendido) * 100) / 100;
 
-      okFlag = Math.abs(balance) <= 0.5;
-      if (balance > 0.5) {
+      // v2.3: si hay pendientes, restarlos
+      const faltaTotal = Math.round((balance - totalFiados) * 100) / 100;
+      okFlag = Math.abs(faltaTotal) <= 0.5;
+      if (faltaTotal > 0.5) {
         okFlag = true;
-        mensajeOK = `✓ Sobra: +${eur(balance)}`;
+        mensajeOK = `✓ Sobra: +${eur(faltaTotal)}`;
       } else {
         mensajeOK = '✓ Caja cuadrada';
       }
-      mensajeKO = `❌ Falta: ${eur(balance)}`;
+      mensajeKO = `❌ Falta: ${eur(faltaTotal)}`;
 
       html += `<div class="item" style="grid-column:1/-1;background:#dbeafe;padding:6px 10px;border-radius:6px;"><span class="label" style="color:#1e40af;font-weight:600;">Total vendido:</span><span style="color:#1e40af;font-weight:700;">${eur(totalVendido)}</span></div>`;
       html += `<div class="item"><span class="label">Efectivo en caja:</span><span>${eur(efectivoCaja)}</span></div>`;
