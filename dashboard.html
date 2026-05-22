@@ -1164,7 +1164,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   }
   .caja-card-resumen .label { color:#6b7280;font-size:11px;text-transform:uppercase;letter-spacing:.3px;}
   .caja-card-resumen .valor { font-weight:600;color:#111827;font-size:14px; }
-  .caja-card-resumen .valor-descuadre { color:#dc2626;font-size:15px; }
+  .caja-card-resumen .valor-descuadre { color:#dc2626;font-size:15px; } /* rojo: falta */
+  .caja-card-resumen .valor-sobra { color:#3b82f6;font-size:15px; } /* azul: sobra */
   .caja-card-resumen .valor-ok { color:#16a34a; }
   .caja-card-acciones { display:flex;gap:6px; }
   .caja-card-acciones .btn-sm { flex:1;font-size:12px;padding:7px; }
@@ -1996,14 +1997,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       const datos = Estado.cierres[caja.id] || {};
       const cierre = datos.cierre;
       const estado = cierre?.estado || 'pendiente';
+      const descuadre = cierre?.descuadre || 0;
+      const tieneDescuadre = Math.abs(descuadre) > 0.5;
+      const esSobra = descuadre > 0.5;
+      const esFalta = descuadre < -0.5;
       const labelEstado = {
         abierto: 'En curso',
         cerrado: 'Cuadrada ✓',
-        descuadre: '⚠ Descuadre',
-        pendiente: 'Pendiente'
+        descuadre: esSobra ? '+ Sobra' : '⚠ Falta',
+        pendiente: 'Pendiente',
+        festivo: '🏖 Festivo'
       }[estado];
-      const descuadre = cierre?.descuadre || 0;
-      const tieneDescuadre = Math.abs(descuadre) > 0.5;
 
       html += `
         <div class="caja-card" style="border-left: 4px solid ${caja.color || '#3b82f6'}">
@@ -2026,8 +2030,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
             ${cierre ? `
               <div style="grid-column:1/-1;">
                 <div class="label">Descuadre</div>
-                <div class="valor ${tieneDescuadre ? 'valor-descuadre' : 'valor-ok'}">
-                  ${tieneDescuadre ? eur(descuadre) : '✓ Cuadrada'}
+                <div class="valor ${esFalta ? 'valor-descuadre' : (esSobra ? 'valor-sobra' : 'valor-ok')}">
+                  ${tieneDescuadre ? (esSobra ? '+' + eur(descuadre).replace('+', '') : eur(descuadre)) : '✓ Cuadrada'}
                 </div>
               </div>
             ` : ''}
