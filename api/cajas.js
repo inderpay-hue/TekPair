@@ -317,7 +317,7 @@ export default async function handler(req, res) {
       case 'guardar_cierre': {
         const {
           caja_id, fecha, saldo_inicial, saldo_real_final, cambio_siguiente,
-          notas, estado, movimientos, total_cobrado_caja
+          notas, estado, movimientos, total_cobrado_caja, importe_tpv
         } = req.body || {};
         if (!caja_id || !fecha) return err(res, 400, 'caja_id y fecha obligatorios');
         if (!Array.isArray(movimientos)) return err(res, 400, 'movimientos[] obligatorio');
