@@ -1699,13 +1699,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
 
       <div class="cajas-form-grupo">
-        <label>Nombre del cliente <span style="text-transform:none;color:#6b7280;font-weight:400;">(opcional)</span></label>
-        <input type="text" id="fiado-cliente" placeholder="Ej: Juan García">
-      </div>
-
-      <div class="cajas-form-grupo">
-        <label>Teléfono <span style="text-transform:none;color:#6b7280;font-weight:400;">(opcional)</span></label>
-        <input type="text" id="fiado-telefono" placeholder="Ej: 612 345 678">
+        <label>Cliente <span style="text-transform:none;color:#6b7280;font-weight:400;">(opcional)</span></label>
+        <div style="position:relative;">
+          <input type="text" id="fiado-busca-cli" placeholder="Buscar por nombre, teléfono o DNI..." autocomplete="off" oninput="busCliCtx('f')" onfocus="busCliCtx('f')">
+          <div class="autocomplete-res" id="fSelCli" style="position:absolute;top:100%;left:0;right:0;z-index:100002;"></div>
+        </div>
+        <div id="fSelCliBox" class="sel-box" style="margin-top:8px;display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:8px 10px;justify-content:space-between;align-items:center;">
+          <div><span id="fSelCliNom" style="font-weight:600;color:#166534;"></span></div>
+          <button type="button" onclick="Cajas.limpiarClienteFiado()" style="background:none;border:0;color:#dc2626;cursor:pointer;font-size:16px;font-weight:700;">✕</button>
+        </div>
+        <!-- Campos ocultos compatibles con código existente -->
+        <input type="hidden" id="fiado-cliente">
+        <input type="hidden" id="fiado-telefono">
       </div>
 
       <div class="cajas-form-grupo">
@@ -2690,9 +2695,22 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     $('fiado-cliente').value = '';
     $('fiado-telefono').value = '';
     $('fiado-nota').value = '';
+    limpiarClienteFiadoUI();
     $('btn-quitar-fiado').style.display = 'none';
     $('modal-fiado-anotar').classList.add('activo');
     setTimeout(() => $('fiado-importe').focus(), 100);
+  }
+
+  function limpiarClienteFiadoUI() {
+    var inp = $('fiado-busca-cli'); if (inp) inp.value = '';
+    var box = $('fSelCliBox'); if (box) box.style.display = 'none';
+    var res = $('fSelCli'); if (res) res.classList.remove('open');
+  }
+
+  function limpiarClienteFiado() {
+    $('fiado-cliente').value = '';
+    $('fiado-telefono').value = '';
+    limpiarClienteFiadoUI();
   }
 
   function editarFiado(tempKey) {
@@ -2705,6 +2723,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     $('fiado-cliente').value = f.cliente_nombre || '';
     $('fiado-telefono').value = f.cliente_telefono || '';
     $('fiado-nota').value = f.nota || '';
+    // Mostrar cliente en sel-box si existe
+    limpiarClienteFiadoUI();
+    if (f.cliente_nombre) {
+      var box = $('fSelCliBox');
+      var nom = $('fSelCliNom');
+      if (box && nom) {
+        nom.textContent = f.cliente_nombre + (f.cliente_telefono ? ' · ' + f.cliente_telefono : '');
+        box.style.display = 'flex';
+      }
+    }
     $('btn-quitar-fiado').style.display = 'inline-block';
     $('modal-fiado-anotar').classList.add('activo');
   }
@@ -3179,6 +3207,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     cerrarModalCobrar,
     confirmarCobro,
     editarCobro,
+    limpiarClienteFiado,
     pintarFranja7,
     irAFechaFranja,
     marcarFestivo,
@@ -6559,8 +6588,10 @@ function registrarPagoCuota(vid, cidx) {
 
 // ═══ BUSQUEDA CLIENTES ═══
 function busCliCtx(ctx) {
-  var q = _norm(document.getElementById(ctx === 'v' ? 'vBusCli' : 'rBusCli').value).trim();
-  var res = document.getElementById(ctx === 'v' ? 'vSelCli' : 'rSelCli');
+  var inputId = ctx === 'v' ? 'vBusCli' : ctx === 'r' ? 'rBusCli' : 'fiado-busca-cli';
+  var resId = ctx === 'v' ? 'vSelCli' : ctx === 'r' ? 'rSelCli' : 'fSelCli';
+  var q = _norm(document.getElementById(inputId).value).trim();
+  var res = document.getElementById(resId);
   if (!q) { res.classList.remove('open'); return; }
 
   // Calcular score: menor es mejor
@@ -6607,6 +6638,15 @@ function busCliCtx(ctx) {
 function selCli(id, ctx) {
   var c = DB.clis.find(function(x) { return x.id === id; });
   if (!c) return;
+  if (ctx === 'f') {
+    document.getElementById('fiado-busca-cli').value = '';
+    document.getElementById('fSelCli').classList.remove('open');
+    document.getElementById('fSelCliNom').textContent = (c.nombre + ' ' + (c.apellidos||'')).trim() + (c.tel ? ' · ' + c.tel : '');
+    document.getElementById('fSelCliBox').style.display = 'flex';
+    document.getElementById('fiado-cliente').value = (c.nombre + ' ' + (c.apellidos||'')).trim();
+    document.getElementById('fiado-telefono').value = c.tel || '';
+    return;
+  }
   if (ctx === 'v') {
     SEL.vCli = c;
     document.getElementById('vBusCli').value = '';
