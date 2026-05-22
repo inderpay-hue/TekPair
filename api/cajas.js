@@ -118,6 +118,24 @@ function calcularSaldoTeorico(tipoCaja, saldoInicial, movimientos, totalCobradoC
 }
 
 
+
+// Helper: comprueba si el usuario tiene un permiso de caja
+// Los admin tienen TODOS los permisos automáticamente
+// Los empleados los tienen solo si su permisos_caja[clave] = true
+async function tienePermisoCaja(payload, clave) {
+  if (!payload) return false;
+  if (payload.rol === 'admin') return true;
+  // Para empleados: consultar BBDD
+  const email = payload.email;
+  if (!email) return false;
+  const us = await sbGet(
+    `usuarios?email=eq.${encodeURIComponent(email)}&select=permisos_caja&limit=1`
+  );
+  const permisos = us[0]?.permisos_caja || {};
+  return permisos[clave] === true;
+}
+
+
 // ── Handler principal ─────────────────────────────
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -523,12 +541,20 @@ export default async function handler(req, res) {
       }
 
       case 'marcar_cobrado': {
-        const { id } = req.body || {};
+        const { id, metodo_pago } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
+        if (!metodo_pago || !['efectivo','tarjeta'].includes(metodo_pago)) {
+          return err(res, 400, 'metodo_pago debe ser efectivo o tarjeta');
+        }
+        // Validar permiso: admin o permiso explícito
+        const puede = await tienePermisoCaja(payload, 'cobrar_pendientes');
+        if (!puede) return err(res, 403, 'No tienes permiso para cobrar pendientes');
+
         const data = await sbPatch(
           `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
           {
             estado: 'cobrado',
+            metodo_pago,
             fecha_cobro: new Date().toISOString(),
             cobrado_por: payload.email || null
           }
