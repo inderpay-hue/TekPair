@@ -2135,6 +2135,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       saldo_inicial: Number($('cierre-saldo-inicial').value || 0),
       saldo_real_final: Number($('cierre-saldo-real').value || 0),
       importe_tpv: Number($('cierre-importe-tpv')?.value || 0),
+      total_fiados: Array.isArray(Estado.fiadosTemp)
+        ? Estado.fiadosTemp.reduce((s, f) => s + Number(f.importe || 0), 0)
+        : 0,
       cambio_siguiente: Number($('cierre-cambio-siguiente').value || 0),
       total_cobrado_caja: Number($('cierre-total-cobrado')?.value || 0),
       notas: $('cierre-notas').value.trim(),
