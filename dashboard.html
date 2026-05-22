@@ -3255,6 +3255,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <button class="btn-sm" onclick="generarPDFGastos('anio')" style="background:#F3F4F6;color:#111">📊 Anual</button>
     </div>
   </div>
+  <div class="card" style="margin-bottom:14px;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-weight:700;font-size:15px">🔁 Gastos recurrentes (plantillas)</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Alquiler, suscripciones, etc. Se generan automáticamente cada mes</div>
+      </div>
+      <button class="btn-sm" onclick="abrirNuevoGastoRec()" style="background:#0EA5E9;color:white">+ Nueva plantilla</button>
+    </div>
+    <div id="listaGastosRec"></div>
+  </div>
   <div id="listaGastos"></div>
 </div>
 
@@ -4362,6 +4372,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="fg"><label class="fl">Estado</label>
     <select class="fi" id="gEstado"><option>Pagado</option><option>Pendiente</option></select>
   </div>
+  <div class="fg" style="position:relative">
+    <label class="fl">Proveedor (opcional)</label>
+    <input class="fi" id="gProvNom" placeholder="Buscar proveedor o escribir nuevo..." autocomplete="off" oninput="busProvGasto()" onfocus="busProvGasto()" onblur="setTimeout(function(){var d=document.getElementById('gProvRes');if(d)d.classList.remove('open');},200)">
+    <div class="autocomplete-res" id="gProvRes"></div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">NIF/CIF proveedor</label><input class="fi" id="gProvNif" placeholder="B12345678"></div>
+    <div class="fg"><label class="fl">Nº factura</label><input class="fi" id="gNumFact" placeholder="F-2026-001"></div>
+  </div>
   <div class="fg">
     <label class="fl">Justificante (PDF o imagen, max 10MB)</label>
     <input type="file" id="gAdj" accept="application/pdf,image/jpeg,image/png,image/webp" style="font-size:13px" onchange="onGAdjChange(event)">
@@ -4377,6 +4396,59 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mGasto')">Cancelar</button>
     <button class="btn-primary" style="background:var(--red)" onclick="guardarGasto()">Guardar</button>
+  </div>
+</div>
+</div>
+
+<!-- GASTO RECURRENTE -->
+<div class="modal-bg" id="mGastoRec">
+<div class="modal">
+  <div class="modal-title" id="mGastoRecTit">🔁 Nueva plantilla de gasto</div>
+  <div class="fg"><label class="fl">Concepto *</label><input class="fi" id="grConc" placeholder="Alquiler local, Hosting, Internet..."></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Importe total (EUR)</label><input class="fi" id="grImp" type="number" step="0.01" value="0"></div>
+    <div class="fg"><label class="fl">Día del mes</label>
+      <select class="fi" id="grDia"></select>
+    </div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Categoría</label>
+      <select class="fi" id="grCat">
+        <option>Alquiler</option>
+        <option>Suministros</option>
+        <option>Stock/Compras</option>
+        <option>Sueldos</option>
+        <option>Material</option>
+        <option>Marketing</option>
+        <option>Servicios profesionales</option>
+        <option>Transporte</option>
+        <option selected>Otros</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Tipo IVA</label>
+      <select class="fi" id="grIvaTipo">
+        <option value="0">0% (exento)</option>
+        <option value="4">4% (superreducido)</option>
+        <option value="10">10% (reducido)</option>
+        <option value="21" selected>21% (general)</option>
+      </select>
+    </div>
+  </div>
+  <div class="fg" style="position:relative">
+    <label class="fl">Proveedor (opcional)</label>
+    <input class="fi" id="grProvNom" placeholder="Buscar proveedor..." autocomplete="off" oninput="busProvGastoRec()" onfocus="busProvGastoRec()" onblur="setTimeout(function(){var d=document.getElementById('grProvRes');if(d)d.classList.remove('open');},200)">
+    <div class="autocomplete-res" id="grProvRes"></div>
+  </div>
+  <div class="fg"><label class="fl">NIF/CIF proveedor</label><input class="fi" id="grProvNif" placeholder="B12345678"></div>
+  <div class="fg">
+    <label style="font-size:13px;display:flex;align-items:center;gap:8px;cursor:pointer">
+      <input type="checkbox" id="grActivo" checked> Plantilla activa (genera gastos automáticamente)
+    </label>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">Si está activa, se creará un gasto el día indicado de cada mes (o al abrir la app si ya pasó)</div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn-secondary" onclick="closeM('mGastoRec')">Cancelar</button>
+    <button class="btn-primary" style="background:#0EA5E9" onclick="guardarGastoRec()">Guardar plantilla</button>
   </div>
 </div>
 </div>
@@ -4762,7 +4834,7 @@ setInterval(function() { refrescarPlan(); }, 5 * 60 * 1000);
 var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
 
 // ═══ DB ═══
-var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[]};
+var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[],gastos_recurrentes:[]};
 var MODELOS_PRE = []; // catalogo predefinido cargado de assets/modelos.json
 
 // ═══ STATE ═══
@@ -5011,6 +5083,7 @@ function cargarDatosLocal() {
       if (parsed.clis) DB.clis = parsed.clis;
       if (parsed.gastos) DB.gastos = parsed.gastos;
       if (parsed.provs) DB.provs = parsed.provs;
+      if (parsed.gastos_recurrentes) DB.gastos_recurrentes = parsed.gastos_recurrentes;
       if (parsed.servicios) DB.servicios = parsed.servicios;
     } catch(e) {}
   }
@@ -5335,13 +5408,14 @@ async function cargarDatosSupabase() {
     localStorage.setItem('tk_db_backup_pre_sync', localStorage.getItem('tk_db') || '{}');
   }
   try {
-    var [ventas, reps, stock, clis, gastos, provs] = await Promise.all([
+    var [ventas, reps, stock, clis, gastos, provs, gastosRec] = await Promise.all([
       sbGet('ventas', 'tienda_id=eq.' + TIENDA_ID),
       sbGet('reparaciones', 'tienda_id=eq.' + TIENDA_ID),
       sbGet('stock', 'tienda_id=eq.' + TIENDA_ID),
       sbGet('clientes', 'tienda_id=eq.' + TIENDA_ID),
       sbGet('gastos', 'tienda_id=eq.' + TIENDA_ID),
-      sbGet('proveedores', 'tienda_id=eq.' + TIENDA_ID)
+      sbGet('proveedores', 'tienda_id=eq.' + TIENDA_ID),
+      sbGet('gastos_recurrentes', 'tienda_id=eq.' + TIENDA_ID)
     ]);
     if (Array.isArray(ventas)) DB.ventas = ventas.map(mapVenta);
     if (Array.isArray(reps)) DB.reps = reps.map(mapRep);
@@ -5349,7 +5423,10 @@ async function cargarDatosSupabase() {
     if (Array.isArray(clis)) DB.clis = clis.map(mapCli);
     if (Array.isArray(gastos)) DB.gastos = gastos;
     if (Array.isArray(provs)) DB.provs = provs;
+    if (Array.isArray(gastosRec)) DB.gastos_recurrentes = gastosRec;
     guardarDatos();
+    // Aplicar plantillas de gastos recurrentes que toquen
+    try { aplicarGastosRecurrentes(); } catch(e) { console.warn('Aplicar recurrentes:', e); }
   } catch(e) { console.error('Supabase load error:', e); }
 }
 
@@ -5362,6 +5439,7 @@ function refrescarVistasActivas() {
   try { if (typeof renderClis === 'function') renderClis(); } catch(e){}
   try { if (typeof renderProvs === 'function') renderProvs(); } catch(e){}
   try { if (typeof renderGastos === 'function') renderGastos(); } catch(e){}
+  try { if (typeof renderGastosRec === 'function') renderGastosRec(); } catch(e){}
   try { if (typeof renderServicios === 'function') renderServicios(); } catch(e){}
   try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch(e){}
   try { if (typeof refreshNotifs === 'function') refreshNotifs(); } catch(e){}
@@ -9371,6 +9449,297 @@ function guardarProv() {
 }
 
 // ═══ GASTOS ═══
+// ═══ GASTOS RECURRENTES (plantillas mensuales) ═══
+
+function abrirNuevoGastoRec() {
+  if (!tienePerm('gastos_crear')) { toast('Sin permiso', 'err'); return; }
+  SEL.editGastoRecId = null;
+  document.getElementById('mGastoRecTit').textContent = '🔁 Nueva plantilla de gasto';
+  document.getElementById('grConc').value = '';
+  document.getElementById('grImp').value = '0';
+  document.getElementById('grCat').value = 'Otros';
+  document.getElementById('grIvaTipo').value = '21';
+  document.getElementById('grProvNom').value = '';
+  document.getElementById('grProvNif').value = '';
+  document.getElementById('grActivo').checked = true;
+  // Poblar el select de día (1..31)
+  var sel = document.getElementById('grDia');
+  if (sel && !sel.options.length) {
+    for (var i = 1; i <= 31; i++) {
+      var op = document.createElement('option');
+      op.value = i; op.textContent = 'Día ' + i;
+      sel.appendChild(op);
+    }
+  }
+  sel.value = '1';
+  openM('mGastoRec');
+}
+
+function editarGastoRec(id) {
+  if (!tienePerm('gastos_editar')) { toast('Sin permiso', 'err'); return; }
+  var r = (DB.gastos_recurrentes || []).find(function(x){ return x.id === id; });
+  if (!r) { toast('Plantilla no encontrada', 'err'); return; }
+  SEL.editGastoRecId = id;
+  document.getElementById('mGastoRecTit').textContent = '🔁 Editar plantilla';
+  document.getElementById('grConc').value = r.concepto || '';
+  document.getElementById('grImp').value = r.importe || 0;
+  document.getElementById('grCat').value = r.categoria || 'Otros';
+  document.getElementById('grIvaTipo').value = String(r.iva_tipo != null ? r.iva_tipo : 21);
+  document.getElementById('grProvNom').value = r.proveedor_nombre || '';
+  document.getElementById('grProvNif').value = r.proveedor_nif || '';
+  document.getElementById('grActivo').checked = !!r.activo;
+  var sel = document.getElementById('grDia');
+  if (sel && !sel.options.length) {
+    for (var i = 1; i <= 31; i++) {
+      var op = document.createElement('option');
+      op.value = i; op.textContent = 'Día ' + i;
+      sel.appendChild(op);
+    }
+  }
+  sel.value = String(r.dia_mes || 1);
+  openM('mGastoRec');
+}
+
+function guardarGastoRec() {
+  if (!tienePerm('gastos_crear')) { toast('Sin permiso', 'err'); return; }
+  var conc = document.getElementById('grConc').value.trim();
+  if (!conc) { toast('Escribe un concepto', 'err'); return; }
+  var importe = parseFloat(document.getElementById('grImp').value) || 0;
+  var categoria = document.getElementById('grCat').value;
+  var iva_tipo = parseInt(document.getElementById('grIvaTipo').value, 10) || 21;
+  var dia_mes = parseInt(document.getElementById('grDia').value, 10) || 1;
+  var activo = document.getElementById('grActivo').checked;
+  var proveedor_nombre = document.getElementById('grProvNom').value.trim();
+  var proveedor_nif = document.getElementById('grProvNif').value.trim();
+  var proveedor_id = null;
+  if (proveedor_nombre) {
+    var pMatch = (DB.provs || []).find(function(p){ return (p.nombre || '').toLowerCase() === proveedor_nombre.toLowerCase(); });
+    if (pMatch) proveedor_id = pMatch.id;
+  }
+  if (SEL && SEL.editGastoRecId) {
+    var existente = (DB.gastos_recurrentes || []).find(function(x){ return x.id === SEL.editGastoRecId; });
+    if (existente) {
+      existente.concepto = conc;
+      existente.importe = importe;
+      existente.categoria = categoria;
+      existente.iva_tipo = iva_tipo;
+      existente.dia_mes = dia_mes;
+      existente.activo = activo;
+      existente.proveedor_id = proveedor_id;
+      existente.proveedor_nombre = proveedor_nombre || null;
+      existente.proveedor_nif = proveedor_nif || null;
+      guardarDatos();
+      if (SB_KEY && TIENDA_ID) {
+        sbPatch('gastos_recurrentes', 'id=eq.' + encodeURIComponent(existente.id), {
+          concepto: existente.concepto,
+          importe: existente.importe,
+          categoria: existente.categoria,
+          iva_tipo: existente.iva_tipo,
+          dia_mes: existente.dia_mes,
+          activo: existente.activo,
+          proveedor_id: existente.proveedor_id,
+          proveedor_nombre: existente.proveedor_nombre,
+          proveedor_nif: existente.proveedor_nif
+        });
+      }
+      SEL.editGastoRecId = null;
+      closeM('mGastoRec');
+      toast('Plantilla actualizada', 'ok');
+      renderGastosRec();
+      return;
+    }
+  }
+  // CREAR
+  var r = {
+    id: 'gr' + Date.now(), tienda_id: TIENDA_ID,
+    concepto: conc, importe: importe, categoria: categoria, iva_tipo: iva_tipo,
+    dia_mes: dia_mes, activo: activo,
+    proveedor_id: proveedor_id,
+    proveedor_nombre: proveedor_nombre || null,
+    proveedor_nif: proveedor_nif || null,
+    ultimo_aplicado: null
+  };
+  if (!Array.isArray(DB.gastos_recurrentes)) DB.gastos_recurrentes = [];
+  DB.gastos_recurrentes.push(r);
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) sbPost('gastos_recurrentes', r);
+  closeM('mGastoRec');
+  toast('Plantilla creada', 'ok');
+  renderGastosRec();
+}
+
+function eliminarGastoRec(id) {
+  if (!tienePerm('gastos_eliminar')) { toast('Sin permiso', 'err'); return; }
+  if (!confirm('¿Eliminar esta plantilla recurrente? Los gastos ya creados no se borrarán.')) return;
+  DB.gastos_recurrentes = (DB.gastos_recurrentes || []).filter(function(r){ return r.id !== id; });
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) {
+    fetch(SUPABASE_URL + '/rest/v1/gastos_recurrentes?id=eq.' + encodeURIComponent(id), {
+      method: 'DELETE',
+      headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
+    }).catch(function(){});
+  }
+  toast('Plantilla eliminada', 'ok');
+  renderGastosRec();
+}
+
+function toggleActivoGastoRec(id) {
+  if (!tienePerm('gastos_editar')) { toast('Sin permiso', 'err'); return; }
+  var r = (DB.gastos_recurrentes || []).find(function(x){ return x.id === id; });
+  if (!r) return;
+  r.activo = !r.activo;
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) sbPatch('gastos_recurrentes', 'id=eq.' + encodeURIComponent(r.id), { activo: r.activo });
+  toast(r.activo ? 'Plantilla activada' : 'Plantilla pausada', 'ok');
+  renderGastosRec();
+}
+
+// Aplica una plantilla AHORA (crea gasto con fecha de hoy), saltando lógica de día
+function aplicarManualGastoRec(id) {
+  if (!tienePerm('gastos_crear')) { toast('Sin permiso', 'err'); return; }
+  var r = (DB.gastos_recurrentes || []).find(function(x){ return x.id === id; });
+  if (!r) return;
+  if (!confirm('¿Crear un gasto a partir de esta plantilla con fecha de hoy?')) return;
+  crearGastoDesdePlantilla(r, new Date(), true);
+  toast('Gasto creado desde plantilla', 'ok');
+  renderGastosRec();
+  renderGastos();
+}
+
+// Crea un gasto desde una plantilla. fecha = Date, manual = bool (si true, no toca ultimo_aplicado)
+function crearGastoDesdePlantilla(r, fecha, manual) {
+  var iso = fecha.getFullYear() + '-' + String(fecha.getMonth() + 1).padStart(2, '0') + '-' + String(fecha.getDate()).padStart(2, '0');
+  var g = {
+    id: 'g' + Date.now() + Math.floor(Math.random() * 1000), tienda_id: TIENDA_ID,
+    concepto: r.concepto,
+    importe: r.importe || 0,
+    fecha: iso,
+    estado: 'Pendiente',
+    categoria: r.categoria || 'Otros',
+    iva_tipo: r.iva_tipo != null ? r.iva_tipo : 21,
+    proveedor_id: r.proveedor_id || null,
+    proveedor_nombre: r.proveedor_nombre || null,
+    proveedor_nif: r.proveedor_nif || null,
+    numero_factura: null
+  };
+  DB.gastos.push(g);
+  if (SB_KEY && TIENDA_ID) sbPost('gastos', g);
+  if (!manual) {
+    var yyyymm = fecha.getFullYear() + '-' + String(fecha.getMonth() + 1).padStart(2, '0');
+    r.ultimo_aplicado = yyyymm;
+    if (SB_KEY && TIENDA_ID) sbPatch('gastos_recurrentes', 'id=eq.' + encodeURIComponent(r.id), { ultimo_aplicado: yyyymm });
+  }
+  guardarDatos();
+  try { if (typeof audit === 'function') audit('crear', 'gasto_recurrente', {plantilla_id: r.id, gasto_id: g.id, manual: !!manual}); } catch(e){}
+}
+
+// Hook al cargar app: recorre plantillas activas y aplica las que toquen
+function aplicarGastosRecurrentes() {
+  if (!Array.isArray(DB.gastos_recurrentes) || !DB.gastos_recurrentes.length) return;
+  var hoy = new Date();
+  var hoyYM = hoy.getFullYear() + '-' + String(hoy.getMonth() + 1).padStart(2, '0');
+  var creados = 0;
+  DB.gastos_recurrentes.forEach(function(r) {
+    if (!r.activo) return;
+    if (r.ultimo_aplicado === hoyYM) return; // ya aplicada este mes
+    var dia = parseInt(r.dia_mes, 10) || 1;
+    if (hoy.getDate() < dia) return; // aún no toca este mes
+    // Construir fecha del gasto: día de la plantilla en mes actual.
+    // Si el mes no tiene ese día (ej. 31 en febrero), usar último día del mes.
+    var lastDayMonth = new Date(hoy.getFullYear(), hoy.getMonth() + 1, 0).getDate();
+    var diaUsar = Math.min(dia, lastDayMonth);
+    var fechaGasto = new Date(hoy.getFullYear(), hoy.getMonth(), diaUsar, 12, 0, 0);
+    crearGastoDesdePlantilla(r, fechaGasto, false);
+    creados++;
+  });
+  if (creados > 0) {
+    toast(creados + ' gasto(s) recurrente(s) creados automáticamente', 'ok');
+    try { if (typeof renderGastos === 'function') renderGastos(); } catch(e){}
+  }
+}
+
+function renderGastosRec() {
+  var el = document.getElementById('listaGastosRec');
+  if (!el) return;
+  var lista = DB.gastos_recurrentes || [];
+  if (!lista.length) {
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">Aún no tienes plantillas. Crea una con "+ Nueva plantilla" para automatizar gastos fijos como alquiler o suscripciones.</div>';
+    return;
+  }
+  var ordenada = lista.slice().sort(function(a,b){ return (a.dia_mes || 0) - (b.dia_mes || 0); });
+  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Concepto</th><th>Proveedor</th><th>Día</th><th>Importe</th><th>IVA</th><th>Estado</th><th>Último</th><th>Acciones</th></tr></thead><tbody>' +
+    ordenada.map(function(r) {
+      var ivaT = (r.iva_tipo != null) ? r.iva_tipo : 21;
+      var estado = r.activo
+        ? '<span class="badge bg">Activa</span>'
+        : '<span class="badge bo">Pausada</span>';
+      var ultimo = r.ultimo_aplicado || '—';
+      return '<tr>' +
+        '<td>' + esc(r.concepto || '') + ' <span class="badge bb" style="font-size:10px;margin-left:6px">' + esc(r.categoria || 'Otros') + '</span></td>' +
+        '<td style="font-size:12px;color:var(--muted)">' + esc(r.proveedor_nombre || '—') + '</td>' +
+        '<td>Día ' + (r.dia_mes || 1) + '</td>' +
+        '<td style="font-weight:700;color:var(--red)">' + cur(r.importe || 0) + '</td>' +
+        '<td>' + ivaT + '%</td>' +
+        '<td>' + estado + '</td>' +
+        '<td style="font-size:12px;color:var(--muted)">' + ultimo + '</td>' +
+        '<td style="white-space:nowrap">' +
+          '<button class="btn-sm" onclick="aplicarManualGastoRec(\'' + r.id + '\')" title="Crear gasto ahora" style="background:#10B981;color:white;padding:4px 8px;font-size:11px">▶ Crear</button> ' +
+          '<button class="btn-sm" onclick="toggleActivoGastoRec(\'' + r.id + '\')" title="' + (r.activo ? 'Pausar' : 'Activar') + '" style="background:#F59E0B;color:white;padding:4px 8px;font-size:11px">' + (r.activo ? '⏸' : '▶') + '</button> ' +
+          '<button class="btn-sm" onclick="editarGastoRec(\'' + r.id + '\')" title="Editar" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">✎</button> ' +
+          '<button class="btn-sm" onclick="eliminarGastoRec(\'' + r.id + '\')" title="Eliminar" style="background:transparent;color:var(--red);padding:4px 6px;font-size:11px;border:1px solid var(--red)">🗑</button>' +
+        '</td></tr>';
+    }).join('') + '</tbody></table></div>';
+}
+
+// Autocomplete proveedor en modal mGastoRec (idéntico a busProvGasto pero IDs distintos)
+function busProvGastoRec() {
+  var inp = document.getElementById('grProvNom');
+  var res = document.getElementById('grProvRes');
+  if (!inp || !res) return;
+  var q = inp.value.trim().toLowerCase();
+  var lista = DB.provs || [];
+  if (q) {
+    lista = lista.filter(function(p){
+      return (p.nombre || '').toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  lista = lista.slice(0, 8);
+  if (!lista.length) {
+    res.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--muted)">' + (q ? 'Sin coincidencias. Se guardará tal cual.' : 'Sin proveedores en tu lista.') + '</div>';
+  } else {
+    res.innerHTML = lista.map(function(p){
+      return '<div style="padding:8px 10px;cursor:pointer;border-bottom:1px solid #eee;font-size:13px" onmousedown="seleccionarProvGastoRec(\'' + p.id + '\')">' +
+        '<div style="font-weight:600">' + esc(p.nombre || '') + '</div>' +
+        (p.contacto ? '<div style="font-size:11px;color:var(--muted)">' + esc(p.contacto) + (p.tel ? ' · ' + esc(p.tel) : '') + '</div>' : '') +
+        '</div>';
+    }).join('');
+  }
+  res.classList.add('open');
+}
+
+function seleccionarProvGastoRec(provId) {
+  var p = (DB.provs || []).find(function(x){ return x.id === provId; });
+  if (!p) return;
+  var inpNom = document.getElementById('grProvNom');
+  if (inpNom) inpNom.value = p.nombre || '';
+  var res = document.getElementById('grProvRes');
+  if (res) res.classList.remove('open');
+}
+
+// Hook: cuando se navega a pGastos, render plantillas tambien
+(function(){
+  // Engancha al render existente sin reemplazar la lógica navTo
+  var origNavTo = window.navTo;
+  if (typeof origNavTo === 'function') {
+    window.navTo = function(id) {
+      origNavTo.apply(this, arguments);
+      if (id === 'pGastos') {
+        try { renderGastosRec(); } catch(e){}
+      }
+    };
+  }
+})();
+
 function generarPDFGastos(periodo) {
   if (!tienePerm('gastos_ver')) { toast('Sin permiso', 'err'); return; }
   var hoy = new Date();
@@ -9550,6 +9919,18 @@ function guardarGasto() {
   var iva_tipo = ivaEl ? (parseInt(ivaEl.value, 10) || 0) : 21;
   var adjInput = document.getElementById('gAdj');
   var adjFile = (adjInput && adjInput.files && adjInput.files[0]) ? adjInput.files[0] : null;
+  // Proveedor: si el input coincide con un DB.provs.nombre, usar su id; si no, libre
+  var provNomEl = document.getElementById('gProvNom');
+  var provNifEl = document.getElementById('gProvNif');
+  var numFactEl = document.getElementById('gNumFact');
+  var proveedor_nombre = provNomEl ? provNomEl.value.trim() : '';
+  var proveedor_nif = provNifEl ? provNifEl.value.trim() : '';
+  var numero_factura = numFactEl ? numFactEl.value.trim() : '';
+  var proveedor_id = null;
+  if (proveedor_nombre) {
+    var pMatch = (DB.provs || []).find(function(p){ return (p.nombre||'').toLowerCase() === proveedor_nombre.toLowerCase(); });
+    if (pMatch) proveedor_id = pMatch.id;
+  }
   
   // MODO EDICIÓN
   if (SEL && SEL.editGastoId) {
@@ -9561,6 +9942,10 @@ function guardarGasto() {
       existente.estado = document.getElementById('gEstado').value;
       existente.categoria = categoria;
       existente.iva_tipo = iva_tipo;
+      existente.proveedor_id = proveedor_id;
+      existente.proveedor_nombre = proveedor_nombre || null;
+      existente.proveedor_nif = proveedor_nif || null;
+      existente.numero_factura = numero_factura || null;
       guardarDatos();
       if (SB_KEY && TIENDA_ID) {
         sbPatch('gastos', 'id=eq.' + encodeURIComponent(existente.id), {
@@ -9569,7 +9954,11 @@ function guardarGasto() {
           fecha: existente.fecha,
           estado: existente.estado,
           categoria: existente.categoria,
-          iva_tipo: existente.iva_tipo
+          iva_tipo: existente.iva_tipo,
+          proveedor_id: existente.proveedor_id,
+          proveedor_nombre: existente.proveedor_nombre,
+          proveedor_nif: existente.proveedor_nif,
+          numero_factura: existente.numero_factura
         });
       }
       if (adjFile) {
@@ -9591,7 +9980,11 @@ function guardarGasto() {
     fecha: document.getElementById('gFecha').value,
     estado: document.getElementById('gEstado').value,
     categoria: categoria,
-    iva_tipo: iva_tipo
+    iva_tipo: iva_tipo,
+    proveedor_id: proveedor_id,
+    proveedor_nombre: proveedor_nombre || null,
+    proveedor_nif: proveedor_nif || null,
+    numero_factura: numero_factura || null
   };
   DB.gastos.push(g);
   guardarDatos();
@@ -9602,6 +9995,45 @@ function guardarGasto() {
   closeM('mGasto');
   toast('Gasto guardado', 'ok');
   renderGastos();
+}
+
+// ───── Autocomplete proveedor en modal mGasto ─────
+function busProvGasto() {
+  var inp = document.getElementById('gProvNom');
+  var res = document.getElementById('gProvRes');
+  if (!inp || !res) return;
+  var q = inp.value.trim().toLowerCase();
+  var lista = DB.provs || [];
+  if (q) {
+    lista = lista.filter(function(p){
+      return (p.nombre || '').toLowerCase().indexOf(q) >= 0;
+    });
+  }
+  lista = lista.slice(0, 8);
+  if (!lista.length) {
+    res.innerHTML = '<div style="padding:10px;font-size:12px;color:var(--muted)">' + (q ? 'Sin coincidencias. Se guardará como proveedor nuevo.' : 'Empieza a escribir o crea un proveedor primero.') + '</div>';
+  } else {
+    res.innerHTML = lista.map(function(p){
+      return '<div style="padding:8px 10px;cursor:pointer;border-bottom:1px solid #eee;font-size:13px" onmousedown="seleccionarProvGasto(\'' + p.id + '\')">' +
+        '<div style="font-weight:600">' + esc(p.nombre || '') + '</div>' +
+        (p.contacto ? '<div style="font-size:11px;color:var(--muted)">' + esc(p.contacto) + (p.tel ? ' · ' + esc(p.tel) : '') + '</div>' : '') +
+        '</div>';
+    }).join('');
+  }
+  res.classList.add('open');
+}
+
+function seleccionarProvGasto(provId) {
+  var p = (DB.provs || []).find(function(x){ return x.id === provId; });
+  if (!p) return;
+  var inpNom = document.getElementById('gProvNom');
+  var inpNif = document.getElementById('gProvNif');
+  if (inpNom) inpNom.value = p.nombre || '';
+  // El NIF no está en DB.provs (esquema actual), si en el futuro se añade autocompletar aquí
+  // Por ahora solo limpiamos si está vacío para no sobrescribir lo que el usuario haya escrito
+  if (inpNif && !inpNif.value && p.nif) inpNif.value = p.nif;
+  var res = document.getElementById('gProvRes');
+  if (res) res.classList.remove('open');
 }
 
 // ───── Adjuntos de gastos ─────
