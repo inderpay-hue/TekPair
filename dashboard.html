@@ -4600,6 +4600,11 @@ var PLAN_TIER = {basico: 1, pro: 2, top: 3, premium: 3};
 
 // ¿El usuario tiene acceso a esta feature?
 function tieneFeature(featureName) {
+  // Durante trial activo (no expirado), TODAS las features están desbloqueadas
+  if (PLAN_INFO.status === 'trial' && PLAN_INFO.trial_until) {
+    var trialEnd = new Date(PLAN_INFO.trial_until);
+    if (trialEnd > new Date()) return true;
+  }
   var plan = PLAN_INFO.plan || 'basico';
   return (PLAN_FEATURES[plan] || []).indexOf(featureName) !== -1;
 }
