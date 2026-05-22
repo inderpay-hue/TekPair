@@ -119,20 +119,21 @@ function calcularSaldoTeorico(tipoCaja, saldoInicial, movimientos, totalCobradoC
 
 
 
-// Helper: comprueba si el usuario tiene un permiso de caja
+// Helper: comprueba si el usuario tiene un permiso del módulo Cajas Multi-Servicio
 // Los admin tienen TODOS los permisos automáticamente
-// Los empleados los tienen solo si su permisos_caja[clave] = true
+// Los empleados los tienen solo si su permisos_usuarios[clave] = true
+// Claves válidas: cajasm_cobrar, cajasm_gestionar, cajasm_editar_cerrada, cajasm_cerrar
 async function tienePermisoCaja(payload, clave) {
   if (!payload) return false;
   if (payload.rol === 'admin') return true;
-  // Para empleados: consultar BBDD
+  const claveCompleta = clave.startsWith('cajasm_') ? clave : 'cajasm_' + clave;
   const email = payload.email;
   if (!email) return false;
   const us = await sbGet(
-    `usuarios?email=eq.${encodeURIComponent(email)}&select=permisos_caja&limit=1`
+    `usuarios?email=eq.${encodeURIComponent(email)}&select=permisos_usuarios&limit=1`
   );
-  const permisos = us[0]?.permisos_caja || {};
-  return permisos[clave] === true;
+  const permisos = us[0]?.permisos_usuarios || {};
+  return permisos[claveCompleta] === true;
 }
 
 
@@ -547,7 +548,7 @@ export default async function handler(req, res) {
           return err(res, 400, 'metodo_pago debe ser efectivo o tarjeta');
         }
         // Validar permiso: admin o permiso explícito
-        const puede = await tienePermisoCaja(payload, 'cobrar_pendientes');
+        const puede = await tienePermisoCaja(payload, 'cajasm_cobrar');
         if (!puede) return err(res, 403, 'No tienes permiso para cobrar pendientes');
 
         const data = await sbPatch(
