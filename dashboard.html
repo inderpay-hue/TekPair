@@ -1456,6 +1456,58 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 
 
+
+<!-- ════ MODAL COBRAR PENDIENTE ════ -->
+<div class="cajas-modal-overlay" id="modal-cobrar-pendiente" style="z-index:100000;">
+  <div class="cajas-modal" style="max-width:440px;">
+    <div class="cajas-modal-header">
+      <h3>💰 Registrar cobro</h3>
+      <button class="cajas-modal-cerrar" onclick="Cajas.cerrarModalCobrar()">✕</button>
+    </div>
+    <div class="cajas-modal-cuerpo">
+      <input type="hidden" id="cobrar-fiado-id">
+      <div style="background:#f9fafb;border:1px solid #e5e7eb;border-radius:10px;padding:14px 16px;margin-bottom:18px;">
+        <div style="font-size:13px;color:#6b7280;margin-bottom:4px;">Cliente</div>
+        <div id="cobrar-cliente" style="font-size:16px;font-weight:700;color:#111827;"></div>
+        <div id="cobrar-compania" style="font-size:12px;color:#6b7280;margin-top:6px;"></div>
+        <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #d1d5db;display:flex;justify-content:space-between;align-items:center;">
+          <span style="font-size:13px;color:#6b7280;">Importe a cobrar</span>
+          <span id="cobrar-importe" style="font-size:20px;font-weight:700;color:#92400e;"></span>
+        </div>
+      </div>
+
+      <div class="cajas-form-grupo">
+        <label>¿Cómo paga el cliente?</label>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
+          <label class="metodo-opcion" style="display:flex;align-items:center;gap:8px;padding:14px 12px;border:2px solid #d1d5db;border-radius:10px;cursor:pointer;transition:all .15s;">
+            <input type="radio" name="metodo-pago" value="efectivo" id="metodo-efectivo" style="width:18px;height:18px;cursor:pointer;">
+            <span style="font-size:14px;color:#111827;font-weight:500;">💶 Efectivo</span>
+          </label>
+          <label class="metodo-opcion" style="display:flex;align-items:center;gap:8px;padding:14px 12px;border:2px solid #d1d5db;border-radius:10px;cursor:pointer;transition:all .15s;">
+            <input type="radio" name="metodo-pago" value="tarjeta" id="metodo-tarjeta" style="width:18px;height:18px;cursor:pointer;">
+            <span style="font-size:14px;color:#111827;font-weight:500;">💳 Tarjeta</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="background:#dbeafe;border-radius:8px;padding:10px 12px;font-size:12px;color:#1e40af;margin-top:8px;">
+        ℹ️ El cobro se registrará en el día original del fiado para que ese día quede cuadrado.
+      </div>
+    </div>
+    <div class="cajas-modal-pie">
+      <button class="cajas-btn cajas-btn-sec" onclick="Cajas.cerrarModalCobrar()">Cancelar</button>
+      <button class="cajas-btn cajas-btn-verde" onclick="Cajas.confirmarCobro()">✓ Registrar cobro</button>
+    </div>
+  </div>
+</div>
+
+<style>
+  .metodo-opcion:hover { border-color: #3b82f6 !important; background: #eff6ff; }
+  .metodo-opcion input[type="radio"]:checked + span { color: #1e40af !important; }
+  label.metodo-opcion:has(input:checked) { border-color: #3b82f6 !important; background: #eff6ff; }
+</style>
+
+
 <!-- ════ MODAL MINI ANOTAR FIADO ════ -->
 <div class="cajas-modal-overlay" id="modal-fiado-anotar" style="z-index:100000;">
   <div class="cajas-modal" style="max-width:440px;">
@@ -2528,9 +2580,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       const cajaIco = f.caja_icono || '💼';
       const cajaN = f.caja_nombre || '';
       const cmp = f.compania_nombre || '';
+
+      // Formato fecha visible: DD/MM/YYYY
+      const fechaPartes = (f.fecha || '').split('-');
+      const fechaVisible = fechaPartes.length === 3
+        ? `${fechaPartes[2]}/${fechaPartes[1]}/${fechaPartes[0]}`
+        : f.fecha;
+
       const fechaCobro = cobrado && f.fecha_cobro
         ? new Date(f.fecha_cobro).toLocaleDateString('es-ES')
         : '';
+      const metodoIcon = f.metodo_pago === 'efectivo' ? '💶' : f.metodo_pago === 'tarjeta' ? '💳' : '';
+      const metodoTxt = f.metodo_pago === 'efectivo' ? 'efectivo' : f.metodo_pago === 'tarjeta' ? 'tarjeta' : '';
 
       let acciones = '';
       if (!cobrado) {
@@ -2539,17 +2600,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           <button onclick="Cajas.editarCobro('${f.id}')" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer;">✏</button>
         `;
       } else {
-        acciones = `<span style="color:#10b981;font-size:11px;">Cobrado ${fechaCobro}</span>`;
+        acciones = `<div style="text-align:right;"><div style="color:#10b981;font-size:11px;font-weight:600;">${metodoIcon} Cobrado ${fechaCobro}</div><div style="color:#6b7280;font-size:10px;">en ${metodoTxt}</div></div>`;
       }
 
       return `
         <div class="cobro-fila ${cobrado ? 'cobrado' : ''}">
           <div class="cobro-info">
+            <div style="font-size:11px;color:#3b82f6;font-weight:700;margin-bottom:4px;">📅 ${fechaVisible}</div>
             <div class="cobro-cliente">
               ${escapar(cliente)}
               <span style="color:#6b7280;font-size:12px;font-weight:400;">— ${cajaIco} ${escapar(cajaN)} ${cmp ? '· ' + escapar(cmp) : ''}</span>
             </div>
-            <div class="cobro-meta">📅 ${f.fecha}${tel}${nota}</div>
+            <div class="cobro-meta">${tel.replace(/^ · /, '')}${nota}</div>
           </div>
           <div class="cobro-importe">${eur(f.importe)}</div>
           ${acciones}
@@ -2558,11 +2620,37 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     }).join('');
   }
 
-  async function cobrarFiado(id) {
-    if (!confirm('¿Marcar este cobro como pagado?')) return;
+  function cobrarFiado(id) {
+    const f = Estado.cobros.find(x => x.id === id);
+    if (!f) return;
+    $('cobrar-fiado-id').value = id;
+    $('cobrar-cliente').textContent = f.cliente_nombre || 'Sin nombre';
+    $('cobrar-compania').textContent = `${f.caja_icono || '💼'} ${f.caja_nombre || ''}` +
+      (f.compania_nombre ? ` · ${f.compania_nombre}` : '');
+    $('cobrar-importe').textContent = eur(f.importe);
+    $('metodo-efectivo').checked = false;
+    $('metodo-tarjeta').checked = false;
+    $('modal-cobrar-pendiente').classList.add('activo');
+  }
+
+  function cerrarModalCobrar() {
+    $('modal-cobrar-pendiente').classList.remove('activo');
+  }
+
+  async function confirmarCobro() {
+    const id = $('cobrar-fiado-id').value;
+    const metodo = document.querySelector('input[name="metodo-pago"]:checked')?.value;
+    if (!metodo) {
+      toast('Selecciona un método de pago', 'error');
+      return;
+    }
     try {
-      await api('marcar_cobrado', { method: 'POST', body: { id } });
-      toast('Cobro registrado ✓');
+      await api('marcar_cobrado', {
+        method: 'POST',
+        body: { id, metodo_pago: metodo }
+      });
+      toast(`Cobro registrado en ${metodo} ✓`);
+      cerrarModalCobrar();
       await cargarCobros();
     } catch(e) {
       toast('Error: ' + e.message, 'error');
@@ -2619,6 +2707,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     cambiarTab,
     cambiarSubTab,
     cobrarFiado,
+    cerrarModalCobrar,
+    confirmarCobro,
     editarCobro
   };
 })();
