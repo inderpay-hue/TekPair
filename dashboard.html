@@ -6588,6 +6588,7 @@ function imprimirTicketVenta(id) {
     '<div style="text-align:center;font-size:10px;color:#666;margin-top:6px">Gracias por su compra</div>' +
     (TIENDA.garVenActiva !== false && TIENDA.garantiaVentas ? '<div style="text-align:center;font-size:9px;color:#666;margin-top:6px;line-height:1.4">' + esc(TIENDA.garantiaVentas) + '</div>' : '') +
     (TIENDA.politicaVentas ? '<div style="text-align:center;font-size:9px;color:#888;margin-top:4px;line-height:1.4">' + esc(TIENDA.politicaVentas) + '</div>' : '') +
+    '<div style="text-align:center;font-size:9px;color:#888;margin-top:8px;border-top:1px dashed #ccc;padding-top:4px">Generado por TekPair &middot; tekpair.tech</div>' +
     '<script>window.onload=function(){setTimeout(function(){window.print();},200);}<\/script>' +
     '</body></html>';
 
@@ -7852,7 +7853,7 @@ function trackingTicket() {
     '<div class="line"></div>' +
 
     '<div class="c" style="font-size:9px">Conserve este resguardo. Necesario para la entrega.</div>' +
-    '<div class="c" style="font-size:8px;color:#888;margin-top:6px">Powered by Tekpair</div>' +
+    '<div class="c" style="font-size:9px;color:#888;margin-top:6px;border-top:1px dashed #ccc;padding-top:4px">Generado por TekPair &middot; tekpair.tech</div>' +
 
     '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
     '</body></html>'
@@ -7892,6 +7893,7 @@ function trackingEtiqueta() {
       '<div class="eq">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</div>' +
       '<div class="av">' + esc(r.averia || '') + '</div>' +
     '</div>' +
+    '<div style="position:fixed;bottom:1px;left:0;right:0;text-align:center;font-size:5px;color:#999">tekpair.tech</div>' +
     '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
     '</body></html>'
   );
@@ -9488,6 +9490,7 @@ function generarPDFGastos(periodo) {
     '<tr style="background:#FEE2E2"><td class="b">TOTAL</td><td class="r b">' + detalle.length + '</td><td class="r b">' + cur(totalBase) + '</td><td class="r b">' + cur(totalIva) + '</td><td class="r b">' + cur(totalTotal) + '</td></tr>' +
     '</tbody></table>' +
     '<div class="firmas"><div class="f">Firma y sello — Tienda</div><div class="f">Recibido — Gestor</div></div>' +
+    '<div style="text-align:center;font-size:10px;color:#999;margin-top:30px;padding-top:10px;border-top:1px solid #eee">Generado por TekPair &middot; tekpair.tech</div>' +
     '</body></html>';
 
   var w = window.open('', '_blank');
@@ -9943,6 +9946,7 @@ function generarPDFGestor() {
   '<div class="note">Documento generado automáticamente por TekPair el ' + new Date().toLocaleString('es') + '. Los importes y datos reflejados se han extraído directamente del sistema de gestión de la tienda. Para cualquier discrepancia consultar al responsable.</div>' +
 
   '<div class="signatures"><div class="sig">Firma del responsable</div><div class="sig">Firma del gestor</div></div>' +
+  '<div style="text-align:center;font-size:10px;color:#999;margin-top:30px;padding-top:10px;border-top:1px solid #eee">Generado por TekPair &middot; tekpair.tech</div>' +
 
   '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
   '</body></html>';
@@ -14731,6 +14735,16 @@ function generarJustificantePDF(datos) {
   doc.text('tekpair.tech  ·  info@tekpair.tech', margin, H - 36);
 
   // Descargar
+  // Footer branding
+  var pageCount = doc.internal.getNumberOfPages();
+  for (var i = 1; i <= pageCount; i++) {
+    doc.setPage(i);
+    doc.setFontSize(8);
+    doc.setTextColor(150, 150, 150);
+    doc.setFont('helvetica', 'normal');
+    doc.text('Generado por TekPair  -  tekpair.tech', W / 2, H - 20, { align: 'center' });
+  }
+
   doc.save(datos.numero + '_' + datos.codigo + '.pdf');
 }
 
