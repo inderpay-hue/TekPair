@@ -4572,21 +4572,24 @@ var PLAN_FEATURES = {
   pro:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
-           'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley'],
+           'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio'],
   top:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
            'multi_tienda','soporte_24_7','api_access','onboarding_personal',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
-           'gar_notif_auto','gar_reportes_avanzados'],
+           'gar_notif_auto','gar_reportes_avanzados',
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio'],
   premium:['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
            'multi_tienda','soporte_24_7','api_access','onboarding_personal',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
-           'gar_notif_auto','gar_reportes_avanzados']
+           'gar_notif_auto','gar_reportes_avanzados',
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio']
 };
 
 // Límite de usuarios por plan
@@ -9553,6 +9556,7 @@ function eliminarProv(provId) {
 
 function abrirNuevoGastoRec() {
   if (!tienePerm('gastos_crear')) { toast('Sin permiso', 'err'); return; }
+  if (!checkFeature('gastos_recurrentes')) return;
   SEL.editGastoRecId = null;
   document.getElementById('mGastoRecTit').textContent = '🔁 Nueva plantilla de gasto';
   document.getElementById('grConc').value = '';
@@ -10025,6 +10029,7 @@ function generarReadmeGastos(periodo, lista, etiqueta) {
 // Función principal: genera el ZIP con informe + README + facturas
 async function generarZipGastos(periodo) {
   if (!tienePerm('gastos_ver')) { toast('Sin permiso', 'err'); return; }
+  if (!checkFeature('zip_gestoria')) return;
   if (!SB_KEY || !TIENDA_ID) { toast('Sin conexión Supabase', 'err'); return; }
   toast('Preparando ZIP...', 'ok');
   try {
@@ -10099,6 +10104,7 @@ async function generarZipGastos(periodo) {
 
 function generarPDFGastos(periodo) {
   if (!tienePerm('gastos_ver')) { toast('Sin permiso', 'err'); return; }
+  if (!checkFeature('informe_gestor_pdf')) return;
   var hoy = new Date();
   var y = hoy.getFullYear(), m = hoy.getMonth(), d = hoy.getDate();
   var ini, fin, etiqueta;
