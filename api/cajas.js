@@ -167,6 +167,9 @@ export default async function handler(req, res) {
         if (Array.isArray(dias_apertura) && dias_apertura.length > 0) {
           payload.dias_apertura = dias_apertura.filter(d => Number.isInteger(d) && d >= 1 && d <= 7);
         }
+        if (typeof req.body.gestion_fiados === 'boolean') {
+          payload.gestion_fiados = req.body.gestion_fiados;
+        }
         const data = await sbPost('cajas', payload);
         return ok(res, { caja: Array.isArray(data) ? data[0] : data });
       }
@@ -183,6 +186,9 @@ export default async function handler(req, res) {
         if (permiso_editar_cerrada !== undefined) patch.permiso_editar_cerrada = permiso_editar_cerrada;
         if (Array.isArray(dias_apertura)) {
           patch.dias_apertura = dias_apertura.filter(d => Number.isInteger(d) && d >= 1 && d <= 7);
+        }
+        if (typeof req.body.gestion_fiados === 'boolean') {
+          patch.gestion_fiados = req.body.gestion_fiados;
         }
         const data = await sbPatch(
           `cajas?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
@@ -427,7 +433,125 @@ export default async function handler(req, res) {
         return ok(res, { cierre: Array.isArray(data) ? data[0] : data });
       }
 
-      default:
+
+      // ═══ FIADOS / COBROS PENDIENTES ═══
+
+      case 'listar_fiados': {
+        const { estado, caja_id, desde, hasta } = req.query;
+        let path = `cajas_fiados?tienda_id=eq.${encodeURIComponent(tienda_id)}`
+          + `&order=fecha.desc,created_at.desc`;
+        if (estado) path += `&estado=eq.${encodeURIComponent(estado)}`;
+        if (caja_id) path += `&caja_id=eq.${encodeURIComponent(caja_id)}`;
+        if (desde) path += `&fecha=gte.${encodeURIComponent(desde)}`;
+        if (hasta) path += `&fecha=lte.${encodeURIComponent(hasta)}`;
+        const fiados = await sbGet(path);
+        // Enriquecer con nombre de caja y compañía
+        const cajasIds = [...new Set(fiados.map(f => f.caja_id).filter(Boolean))];
+        const cmpIds = [...new Set(fiados.map(f => f.compania_id).filter(Boolean))];
+        const cajasInfo = cajasIds.length ? await sbGet(
+          `cajas?id=in.(${cajasIds.map(encodeURIComponent).join(',')})&select=id,nombre,icono`
+        ) : [];
+        const cmpsInfo = cmpIds.length ? await sbGet(
+          `cajas_companias?id=in.(${cmpIds.map(encodeURIComponent).join(',')})&select=id,nombre`
+        ) : [];
+        const mapCaja = Object.fromEntries(cajasInfo.map(c => [c.id, c]));
+        const mapCmp = Object.fromEntries(cmpsInfo.map(c => [c.id, c]));
+        const enriched = fiados.map(f => ({
+          ...f,
+          caja_nombre: mapCaja[f.caja_id]?.nombre,
+          caja_icono: mapCaja[f.caja_id]?.icono,
+          compania_nombre: mapCmp[f.compania_id]?.nombre
+        }));
+        return ok(res, { fiados: enriched });
+      }
+
+      case 'contar_fiados_pendientes': {
+        const fiados = await sbGet(
+          `cajas_fiados?tienda_id=eq.${encodeURIComponent(tienda_id)}`
+          + `&estado=eq.pendiente&select=id,importe`
+        );
+        const total = fiados.reduce((s, f) => s + Number(f.importe || 0), 0);
+        return ok(res, { count: fiados.length, total: Math.round(total * 100) / 100 });
+      }
+
+      case 'crear_fiado': {
+        const {
+          caja_id, compania_id, cierre_id, fecha, importe,
+          cliente_nombre, cliente_telefono, nota
+        } = req.body || {};
+        if (!caja_id || !fecha || !importe) {
+          return err(res, 400, 'caja_id, fecha e importe obligatorios');
+        }
+        // Verificar caja
+        const cajas = await sbGet(
+          `cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id`
+        );
+        if (cajas.length === 0) return err(res, 403, 'Caja no accesible');
+        const data = await sbPost('cajas_fiados', {
+          tienda_id,
+          caja_id,
+          compania_id: compania_id || null,
+          cierre_id: cierre_id || null,
+          fecha,
+          importe: Number(importe),
+          cliente_nombre: cliente_nombre || null,
+          cliente_telefono: cliente_telefono || null,
+          nota: nota || null,
+          estado: 'pendiente'
+        });
+        return ok(res, { fiado: Array.isArray(data) ? data[0] : data });
+      }
+
+      case 'editar_fiado': {
+        const { id, cliente_nombre, cliente_telefono, nota, importe } = req.body || {};
+        if (!id) return err(res, 400, 'id obligatorio');
+        const patch = {};
+        if (cliente_nombre !== undefined) patch.cliente_nombre = cliente_nombre;
+        if (cliente_telefono !== undefined) patch.cliente_telefono = cliente_telefono;
+        if (nota !== undefined) patch.nota = nota;
+        if (importe !== undefined) patch.importe = Number(importe);
+        const data = await sbPatch(
+          `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
+          patch
+        );
+        return ok(res, { fiado: Array.isArray(data) ? data[0] : data });
+      }
+
+      case 'marcar_cobrado': {
+        const { id } = req.body || {};
+        if (!id) return err(res, 400, 'id obligatorio');
+        const data = await sbPatch(
+          `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
+          {
+            estado: 'cobrado',
+            fecha_cobro: new Date().toISOString(),
+            cobrado_por: payload.email || null
+          }
+        );
+        return ok(res, { fiado: Array.isArray(data) ? data[0] : data });
+      }
+
+      case 'anular_fiado': {
+        const { id } = req.body || {};
+        if (!id) return err(res, 400, 'id obligatorio');
+        const data = await sbPatch(
+          `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
+          { estado: 'anulado' }
+        );
+        return ok(res, { fiado: Array.isArray(data) ? data[0] : data });
+      }
+
+      case 'borrar_fiado': {
+        const { id } = req.body || {};
+        if (!id) return err(res, 400, 'id obligatorio');
+        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        await sbDelete(
+          `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`
+        );
+        return ok(res, {});
+      }
+
+      default: 
         return err(res, 400, `Acción desconocida: ${action}`);
     }
   } catch (e) {
