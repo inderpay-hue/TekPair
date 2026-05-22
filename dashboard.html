@@ -3241,6 +3241,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
     <button class="btn-sm" style="background:var(--red);color:white" onclick="openM('mGasto')">+ Nuevo</button>
   </div>
+  <div class="card" style="margin-bottom:14px;padding:16px">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
+      <div>
+        <div style="font-weight:700;font-size:15px">📄 Informe para el gestor</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">Genera PDF con desglose IVA y categorías</div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px">
+      <button class="btn-sm" onclick="generarPDFGastos('hoy')" style="background:#F3F4F6;color:#111">📅 Hoy</button>
+      <button class="btn-sm" onclick="generarPDFGastos('mes')" style="background:#F3F4F6;color:#111">📆 Mensual</button>
+      <button class="btn-sm" onclick="generarPDFGastos('trimestre')" style="background:var(--red);color:white;font-weight:700">⭐ Trimestral</button>
+      <button class="btn-sm" onclick="generarPDFGastos('anio')" style="background:#F3F4F6;color:#111">📊 Anual</button>
+    </div>
+  </div>
   <div id="listaGastos"></div>
 </div>
 
@@ -4319,8 +4333,31 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="modal-title">📋 Nuevo Gasto</div>
   <div class="fg"><label class="fl">Concepto *</label><input class="fi" id="gConc" placeholder="Alquiler, luz, stock..."></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Importe (EUR)</label><input class="fi" id="gImp" type="number" step="0.01" value="0"></div>
+    <div class="fg"><label class="fl">Importe total (EUR)</label><input class="fi" id="gImp" type="number" step="0.01" value="0"></div>
     <div class="fg"><label class="fl">Fecha</label><input class="fi" id="gFecha" type="date"></div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Categoría</label>
+      <select class="fi" id="gCat">
+        <option>Alquiler</option>
+        <option>Suministros</option>
+        <option>Stock/Compras</option>
+        <option>Sueldos</option>
+        <option>Material</option>
+        <option>Marketing</option>
+        <option>Servicios profesionales</option>
+        <option>Transporte</option>
+        <option selected>Otros</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Tipo IVA</label>
+      <select class="fi" id="gIvaTipo">
+        <option value="0">0% (exento)</option>
+        <option value="4">4% (superreducido)</option>
+        <option value="10">10% (reducido)</option>
+        <option value="21" selected>21% (general)</option>
+      </select>
+    </div>
   </div>
   <div class="fg"><label class="fl">Estado</label>
     <select class="fi" id="gEstado"><option>Pagado</option><option>Pendiente</option></select>
@@ -9320,13 +9357,160 @@ function guardarProv() {
 }
 
 // ═══ GASTOS ═══
+function generarPDFGastos(periodo) {
+  if (!tienePerm('gastos_ver')) { toast('Sin permiso', 'err'); return; }
+  var hoy = new Date();
+  var y = hoy.getFullYear(), m = hoy.getMonth(), d = hoy.getDate();
+  var ini, fin, etiqueta;
+
+  if (periodo === 'hoy') {
+    ini = new Date(y, m, d, 0, 0, 0);
+    fin = new Date(y, m, d, 23, 59, 59);
+    etiqueta = 'Hoy ' + d + '/' + (m + 1) + '/' + y;
+  } else if (periodo === 'mes') {
+    ini = new Date(y, m, 1, 0, 0, 0);
+    fin = new Date(y, m + 1, 0, 23, 59, 59);
+    var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    etiqueta = meses[m] + ' ' + y;
+  } else if (periodo === 'trimestre') {
+    var q = Math.floor(m / 3); // 0..3
+    var mIni = q * 3, mFin = mIni + 2;
+    ini = new Date(y, mIni, 1, 0, 0, 0);
+    fin = new Date(y, mFin + 1, 0, 23, 59, 59);
+    var qLabel = ['1T (Ene-Mar)', '2T (Abr-Jun)', '3T (Jul-Sep)', '4T (Oct-Dic)'][q];
+    etiqueta = qLabel + ' ' + y;
+  } else if (periodo === 'anio') {
+    ini = new Date(y, 0, 1, 0, 0, 0);
+    fin = new Date(y, 11, 31, 23, 59, 59);
+    etiqueta = 'Año ' + y;
+  } else {
+    toast('Periodo inválido', 'err'); return;
+  }
+
+  // Filtrar gastos. g.fecha viene como 'YYYY-MM-DD' del <input type="date">
+  var lista = (DB.gastos || []).filter(function(g) {
+    if (!g.fecha) return false;
+    var parts = String(g.fecha).split('-');
+    if (parts.length < 3) return false;
+    var gd = new Date(parseInt(parts[0],10), parseInt(parts[1],10)-1, parseInt(parts[2],10), 12, 0, 0);
+    return gd >= ini && gd <= fin;
+  });
+  lista.sort(function(a,b){ return (a.fecha||'').localeCompare(b.fecha||''); });
+
+  // Cálculos: importe = TOTAL con IVA. Base = total / (1 + iva/100). IVA€ = total - base.
+  var totalBase = 0, totalIva = 0, totalTotal = 0;
+  var porCategoria = {};        // { categoria: {base, iva, total, n} }
+  var porTipoIva = {0:{base:0,iva:0,total:0,n:0},4:{base:0,iva:0,total:0,n:0},10:{base:0,iva:0,total:0,n:0},21:{base:0,iva:0,total:0,n:0}};
+
+  var detalle = lista.map(function(g) {
+    var imp = parseFloat(g.importe) || 0;
+    var ivaT = (g.iva_tipo != null) ? parseInt(g.iva_tipo,10) : 21;
+    if ([0,4,10,21].indexOf(ivaT) < 0) ivaT = 21;
+    var base = ivaT === 0 ? imp : imp / (1 + ivaT/100);
+    var ivaE = imp - base;
+    var cat = g.categoria || 'Otros';
+    totalBase += base; totalIva += ivaE; totalTotal += imp;
+    if (!porCategoria[cat]) porCategoria[cat] = {base:0,iva:0,total:0,n:0};
+    porCategoria[cat].base += base; porCategoria[cat].iva += ivaE; porCategoria[cat].total += imp; porCategoria[cat].n++;
+    porTipoIva[ivaT].base += base; porTipoIva[ivaT].iva += ivaE; porTipoIva[ivaT].total += imp; porTipoIva[ivaT].n++;
+    return {fecha:g.fecha, concepto:g.concepto||'', categoria:cat, ivaT:ivaT, base:base, ivaE:ivaE, total:imp, estado:g.estado||'Pagado'};
+  });
+
+  var nTienda = (typeof TIENDA !== 'undefined' && TIENDA.nombre) ? TIENDA.nombre : 'TekPair';
+  var dirTienda = (typeof TIENDA !== 'undefined' && TIENDA.direccion) ? TIENDA.direccion : '';
+  var cifTienda = (typeof TIENDA !== 'undefined' && TIENDA.cif) ? TIENDA.cif : '';
+  var emitido = new Date().toLocaleString('es');
+
+  var filasDet = detalle.length ? detalle.map(function(r){
+    return '<tr>' +
+      '<td>' + r.fecha + '</td>' +
+      '<td>' + esc(r.concepto) + '</td>' +
+      '<td>' + esc(r.categoria) + '</td>' +
+      '<td class="r">' + cur(r.base) + '</td>' +
+      '<td class="r">' + r.ivaT + '%</td>' +
+      '<td class="r">' + cur(r.ivaE) + '</td>' +
+      '<td class="r b">' + cur(r.total) + '</td>' +
+      '<td>' + r.estado + '</td>' +
+    '</tr>';
+  }).join('') : '<tr><td colspan="8" style="text-align:center;color:#999;padding:20px">Sin gastos en el periodo</td></tr>';
+
+  var filasCat = Object.keys(porCategoria).sort().map(function(k){
+    var c = porCategoria[k];
+    return '<tr><td>' + esc(k) + '</td><td class="r">' + c.n + '</td><td class="r">' + cur(c.base) + '</td><td class="r">' + cur(c.iva) + '</td><td class="r b">' + cur(c.total) + '</td></tr>';
+  }).join('') || '<tr><td colspan="5" style="text-align:center;color:#999">-</td></tr>';
+
+  var filasIva = [21,10,4,0].map(function(t){
+    var v = porTipoIva[t];
+    return '<tr><td>' + t + '%</td><td class="r">' + v.n + '</td><td class="r">' + cur(v.base) + '</td><td class="r">' + cur(v.iva) + '</td><td class="r b">' + cur(v.total) + '</td></tr>';
+  }).join('');
+
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Informe de gastos - ' + etiqueta + '</title>' +
+    '<style>' +
+    'body{font-family:Arial,Helvetica,sans-serif;margin:24px;color:#111;font-size:12px}' +
+    'h1{font-size:20px;margin:0 0 4px 0}' +
+    'h2{font-size:14px;margin:18px 0 6px 0;border-bottom:2px solid #DC2626;padding-bottom:3px;color:#111}' +
+    '.hd{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:3px solid #DC2626;padding-bottom:10px;margin-bottom:14px}' +
+    '.tienda{font-weight:700;font-size:14px}' +
+    '.meta{font-size:11px;color:#555;text-align:right}' +
+    'table{width:100%;border-collapse:collapse;margin-top:6px}' +
+    'th,td{border:1px solid #ddd;padding:6px 8px;font-size:11px;text-align:left}' +
+    'th{background:#F3F4F6;font-weight:700}' +
+    '.r{text-align:right}' +
+    '.b{font-weight:700}' +
+    '.kpi{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:10px 0}' +
+    '.kpi .c{border:1px solid #ddd;padding:10px;border-radius:6px;background:#FAFAFA}' +
+    '.kpi .l{font-size:10px;color:#666;text-transform:uppercase}' +
+    '.kpi .v{font-size:18px;font-weight:700;margin-top:4px}' +
+    '.firmas{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:60px;font-size:11px}' +
+    '.firmas .f{border-top:1px solid #999;padding-top:6px;text-align:center}' +
+    '@media print{body{margin:12mm}h2{page-break-after:avoid}table{page-break-inside:auto}tr{page-break-inside:avoid}}' +
+    '</style></head><body>' +
+    '<div class="hd">' +
+      '<div><div class="tienda">' + esc(nTienda) + '</div>' +
+      (dirTienda ? '<div style="font-size:11px;color:#555">' + esc(dirTienda) + '</div>' : '') +
+      (cifTienda ? '<div style="font-size:11px;color:#555">CIF/NIF: ' + esc(cifTienda) + '</div>' : '') +
+      '</div>' +
+      '<div class="meta">Emitido: ' + emitido + '<br>Periodo: <b>' + esc(etiqueta) + '</b></div>' +
+    '</div>' +
+    '<h1>Informe de gastos para el gestor</h1>' +
+    '<div style="color:#555;font-size:11px;margin-bottom:8px">Periodo: <b>' + esc(etiqueta) + '</b> · ' + detalle.length + ' gasto(s)</div>' +
+    '<div class="kpi">' +
+      '<div class="c"><div class="l">Base imponible</div><div class="v">' + cur(totalBase) + '</div></div>' +
+      '<div class="c"><div class="l">IVA soportado</div><div class="v">' + cur(totalIva) + '</div></div>' +
+      '<div class="c"><div class="l">Total gastos</div><div class="v" style="color:#DC2626">' + cur(totalTotal) + '</div></div>' +
+    '</div>' +
+    '<h2>Detalle de gastos</h2>' +
+    '<table><thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th class="r">Base</th><th class="r">IVA%</th><th class="r">IVA €</th><th class="r">Total</th><th>Estado</th></tr></thead><tbody>' + filasDet + '</tbody></table>' +
+    '<h2>Resumen por categoría</h2>' +
+    '<table><thead><tr><th>Categoría</th><th class="r">Nº</th><th class="r">Base</th><th class="r">IVA €</th><th class="r">Total</th></tr></thead><tbody>' + filasCat + '</tbody></table>' +
+    '<h2>Resumen por tipo de IVA (modelo 303)</h2>' +
+    '<table><thead><tr><th>Tipo</th><th class="r">Nº</th><th class="r">Base imponible</th><th class="r">Cuota IVA</th><th class="r">Total</th></tr></thead><tbody>' + filasIva +
+    '<tr style="background:#FEE2E2"><td class="b">TOTAL</td><td class="r b">' + detalle.length + '</td><td class="r b">' + cur(totalBase) + '</td><td class="r b">' + cur(totalIva) + '</td><td class="r b">' + cur(totalTotal) + '</td></tr>' +
+    '</tbody></table>' +
+    '<div class="firmas"><div class="f">Firma y sello — Tienda</div><div class="f">Recibido — Gestor</div></div>' +
+    '</body></html>';
+
+  var w = window.open('', '_blank');
+  if (!w) { toast('Permite ventanas emergentes para imprimir', 'err'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
+  setTimeout(function(){ try { w.focus(); w.print(); } catch(e){} }, 400);
+
+  try { if (typeof audit === 'function') audit('exportar', 'gastos', {periodo: periodo, etiqueta: etiqueta, n: detalle.length, total: totalTotal}); } catch(e){}
+  toast('PDF de gastos generado (' + etiqueta + ')', 'ok');
+}
+
 function renderGastos() {
   var el = document.getElementById('listaGastos');
   if (!DB.gastos.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udccb</div>Sin gastos</div>'; return; }
   var list = DB.gastos.slice().reverse();
-  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Concepto</th><th>Fecha</th><th>Importe</th><th>Estado</th></tr></thead><tbody>' +
+  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Concepto</th><th>Categoría</th><th>Fecha</th><th>IVA</th><th>Importe</th><th>Estado</th></tr></thead><tbody>' +
     list.map(function(g) {
-      return '<tr><td>' + g.concepto + '</td><td>' + (g.fecha || '') + '</td>' +
+      var ivaT = (g.iva_tipo != null) ? g.iva_tipo : 21;
+      var cat = g.categoria || 'Otros';
+      return '<tr><td>' + esc(g.concepto || '') + '</td>' +
+        '<td><span class="badge bb">' + esc(cat) + '</span></td>' +
+        '<td>' + (g.fecha || '') + '</td>' +
+        '<td>' + ivaT + '%</td>' +
         '<td style="font-weight:700;color:var(--red)">' + cur(g.importe || 0) + '</td>' +
         '<td><span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado || 'Pagado') + '</span></td></tr>';
     }).join('') + '</tbody></table></div>';
@@ -9336,6 +9520,10 @@ function guardarGasto() {
   if (!tienePerm('gastos_crear')) { toast('Sin permiso', 'err'); return; }
   var conc = document.getElementById('gConc').value.trim();
   if (!conc) { toast('Escribe un concepto', 'err'); return; }
+  var catEl = document.getElementById('gCat');
+  var ivaEl = document.getElementById('gIvaTipo');
+  var categoria = catEl ? catEl.value : 'Otros';
+  var iva_tipo = ivaEl ? (parseInt(ivaEl.value, 10) || 0) : 21;
   
   // MODO EDICIÓN
   if (SEL && SEL.editGastoId) {
@@ -9345,13 +9533,17 @@ function guardarGasto() {
       existente.importe = parseFloat(document.getElementById('gImp').value) || 0;
       existente.fecha = document.getElementById('gFecha').value;
       existente.estado = document.getElementById('gEstado').value;
+      existente.categoria = categoria;
+      existente.iva_tipo = iva_tipo;
       guardarDatos();
       if (SB_KEY && TIENDA_ID) {
         sbPatch('gastos', 'id=eq.' + encodeURIComponent(existente.id), {
           concepto: existente.concepto,
           importe: existente.importe,
           fecha: existente.fecha,
-          estado: existente.estado
+          estado: existente.estado,
+          categoria: existente.categoria,
+          iva_tipo: existente.iva_tipo
         });
       }
       SEL.editGastoId = null;
@@ -9368,7 +9560,9 @@ function guardarGasto() {
     concepto: conc,
     importe: parseFloat(document.getElementById('gImp').value) || 0,
     fecha: document.getElementById('gFecha').value,
-    estado: document.getElementById('gEstado').value
+    estado: document.getElementById('gEstado').value,
+    categoria: categoria,
+    iva_tipo: iva_tipo
   };
   DB.gastos.push(g);
   guardarDatos();
