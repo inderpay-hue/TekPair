@@ -16,7 +16,7 @@ export default async function handler(req, res) {
   const PRICE_TO_PLAN = {
     'price_1TUEadKE1FTbu0p7OtHUDVnP': 'basico',
     'price_1TUEbPKE1FTbu0p78X80WKAH': 'pro',
-    'price_1TUEbqKE1FTbu0p7U1y90BZF': 'top'
+    'price_1TUEbqKE1FTbu0p7U1y90BZF': 'premium'
   };
 
   // ═══ Verificación de firma Stripe ═══
