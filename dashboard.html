@@ -5491,6 +5491,7 @@ function refrescarVistasActivas() {
 // Sync completa: descarga + refresco de pantalla
 var _syncEnCurso = false;
 async function syncCompleto(silencioso) {
+  if (_sesionExpirada) return;
   if (_syncEnCurso) return;
   if (!SB_KEY || !TIENDA_ID) return;
   _syncEnCurso = true;
@@ -5506,6 +5507,45 @@ async function syncCompleto(silencioso) {
     _syncEnCurso = false;
   }
 }
+
+// ═══ SESION EXPIRADA (JWT 401 handler) ═══
+var _sesionExpirada = false;
+
+function mostrarModalSesionExpirada() {
+  if (_sesionExpirada) return;
+  _sesionExpirada = true;
+  try {
+    document.querySelectorAll('.modal-bg.open').forEach(function(m){
+      m.classList.remove('open');
+    });
+  } catch(e) {}
+  if (typeof openM === 'function') openM('mSesionExpirada');
+}
+
+function forzarRelogin() {
+  try { localStorage.removeItem('tk_sess'); } catch(e) {}
+  window.location.href = '/app.html';
+}
+
+(function interceptarFetch401() {
+  if (typeof window.fetch !== 'function') return;
+  var origFetch = window.fetch;
+  window.fetch = function(url, options) {
+    var urlStr = '';
+    try {
+      urlStr = typeof url === 'string' ? url : (url && url.url) || '';
+    } catch(e) { urlStr = ''; }
+    var esSupabase = urlStr.indexOf('supabase.co') !== -1;
+    var promesa = origFetch.apply(this, arguments);
+    if (!esSupabase) return promesa;
+    return promesa.then(function(response) {
+      if (response && response.status === 401) {
+        mostrarModalSesionExpirada();
+      }
+      return response;
+    });
+  };
+})();
 
 // ═══ DASHBOARD ═══
 async function renderDash() {
@@ -16516,5 +16556,22 @@ window.addEventListener('DOMContentLoaded', function(){
   } catch(e){}
 });
 </script>
+<!-- MODAL SESION EXPIRADA -->
+<div class="modal-bg" id="mSesionExpirada">
+  <div class="modal" style="max-width:440px">
+    <div class="modal-h"><span>🔒 Sesión expirada</span></div>
+    <div style="padding:20px;text-align:center">
+      <p style="margin-bottom:12px;font-size:14px">Tu sesión ha caducado por inactividad.</p>
+      <p style="margin-bottom:20px;font-size:12px;color:var(--muted);line-height:1.5">
+        <strong>Tus datos están a salvo</strong> en este navegador.<br>
+        Al volver a iniciar sesión se sincronizarán automáticamente.
+      </p>
+      <button onclick="forzarRelogin()" style="background:var(--blue);color:white;padding:10px 24px;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">
+        Iniciar sesión de nuevo
+      </button>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
