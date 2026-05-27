@@ -5430,7 +5430,7 @@ function mapStock(s) {
 }
 
 function mapCli(c) {
-  return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||'', fechaNac:c.fecha_nacimiento||'', nombreFiscal:c.nombre_fiscal||'', dirFiscal:c.direccion||'', cp:c.cp||'', provincia:c.provincia||'', ciudad:c.ciudad||''};
+  return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||'', fechaNac:c.fecha_nac||'', nombreFiscal:c.nombre_fiscal||'', dirFiscal:c.dir_fiscal||'', cp:c.cp||'', provincia:c.provincia||'', ciudad:c.ciudad||''};
 }
 
 async function cargarDatosSupabase() {
@@ -9382,11 +9382,11 @@ function guardarCli() {
   if (ECID) {
     var c = DB.clis.find(function(x) { return x.id === ECID; });
     if (c) Object.assign(c, data);
-    if (SB_KEY && TIENDA_ID) sbPatch('clientes', 'id=eq.' + ECID, {nombre:data.nombre,apellidos:data.apellidos,tel:data.tel,email:data.email,dni:data.dni,fecha_nacimiento:data.fechaNac||null});
+    if (SB_KEY && TIENDA_ID) sbPatch('clientes', 'id=eq.' + ECID, {nombre:data.nombre,apellidos:data.apellidos,tel:data.tel,email:data.email,dni:data.dni,fecha_nac:data.fechaNac||null});
   } else {
     var nuevo = Object.assign({id: 'c' + Date.now(), tienda_id: TIENDA_ID}, data);
     DB.clis.push(nuevo);
-    if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:nuevo.id,tienda_id:TIENDA_ID,nombre:nuevo.nombre,apellidos:nuevo.apellidos,tel:nuevo.tel,email:nuevo.email,dni:nuevo.dni,fecha_nacimiento:nuevo.fechaNac||null});
+    if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:nuevo.id,tienda_id:TIENDA_ID,nombre:nuevo.nombre,apellidos:nuevo.apellidos,tel:nuevo.tel,email:nuevo.email,dni:nuevo.dni,fecha_nac:nuevo.fechaNac||null});
   }
   guardarDatos();
   var idGuardado = ECID;
