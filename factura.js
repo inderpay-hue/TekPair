@@ -309,7 +309,7 @@
       return {
         nombre_fiscal: ((document.getElementById('factCliNomFiscal') || {}).value || '').trim(),
         nif: ((document.getElementById('factCliNif') || {}).value || '').trim(),
-        direccion: ((document.getElementById('factCliDir') || {}).value || '').trim(),
+        dir_fiscal: ((document.getElementById('factCliDir') || {}).value || '').trim(),
         cp: ((document.getElementById('factCliCp') || {}).value || '').trim(),
         ciudad: ((document.getElementById('factCliCiudad') || {}).value || '').trim(),
         provincia: ((document.getElementById('factCliProv') || {}).value || '').trim(),
@@ -393,7 +393,7 @@
     var body = {};
     if (FACT.tipo === 'completa') {
       body.nombre_fiscal = ((document.getElementById('factCliNomFiscal') || {}).value || '').trim();
-      body.direccion = ((document.getElementById('factCliDir') || {}).value || '').trim();
+      body.dir_fiscal = ((document.getElementById('factCliDir') || {}).value || '').trim();
       body.cp = ((document.getElementById('factCliCp') || {}).value || '').trim();
       body.ciudad = ((document.getElementById('factCliCiudad') || {}).value || '').trim();
       body.provincia = ((document.getElementById('factCliProv') || {}).value || '').trim();
@@ -414,7 +414,7 @@
           var cli = window.DB.clis.find(function(c){ return c.id === d.cliente.id; });
           if (cli) {
             if (body.nombre_fiscal != null) cli.nombreFiscal = body.nombre_fiscal;
-            if (body.direccion != null) cli.dirFiscal = body.direccion;
+            if (body.dir_fiscal != null) cli.dirFiscal = body.dir_fiscal;
             if (body.cp != null) cli.cp = body.cp;
             if (body.ciudad != null) cli.ciudad = body.ciudad;
             if (body.provincia != null) cli.provincia = body.provincia;
@@ -459,7 +459,7 @@
     // Validar
     if (FACT.tipo === 'completa') {
       var snap = _snapshotCliente();
-      if (!snap.nombre_fiscal || !snap.nif || !snap.direccion) {
+      if (!snap.nombre_fiscal || !snap.nif || !snap.dir_fiscal) {
         _toast('Faltan datos fiscales obligatorios (nombre, NIF, dirección)', 'err');
         return;
       }
@@ -568,7 +568,7 @@
     } else {
       cliNombre = cli.nombre_fiscal || 'Cliente';
       if (cli.nif) cliLineas.push('NIF/CIF: ' + cli.nif);
-      if (cli.direccion) cliLineas.push(cli.direccion);
+      if (cli.dir_fiscal) cliLineas.push(cli.dir_fiscal);
       var cliCP = [cli.cp, cli.ciudad].filter(Boolean).join(' ');
       if (cliCP) cliLineas.push(cliCP);
       if (cli.provincia) cliLineas.push(cli.provincia);
