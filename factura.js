@@ -8,6 +8,80 @@
 (function() {
   'use strict';
 
+  // ═══ Interceptor JWT 401 (autocontenido, idempotente) ═══
+  if (!window.__tekpair401Installed) {
+    window.__tekpair401Installed = true;
+    window._sesionExpirada = window._sesionExpirada || false;
+
+    function _inyectarModalSesion() {
+      if (document.getElementById('mSesionExpirada')) return;
+      var modal = document.createElement('div');
+      modal.className = 'modal-bg';
+      modal.id = 'mSesionExpirada';
+      modal.innerHTML =
+        '<div class="modal" style="max-width:440px">' +
+          '<div class="modal-h"><span>🔒 Sesión expirada</span></div>' +
+          '<div style="padding:20px;text-align:center">' +
+            '<p style="margin-bottom:12px;font-size:14px">Tu sesión ha caducado por inactividad.</p>' +
+            '<p style="margin-bottom:20px;font-size:12px;color:#666;line-height:1.5">' +
+              '<strong>Tus datos están a salvo</strong> en este navegador.<br>' +
+              'Al volver a iniciar sesión se sincronizarán automáticamente.' +
+            '</p>' +
+            '<button onclick="window.__tekpairRelogin()" style="background:#0055FF;color:white;padding:10px 24px;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">' +
+              'Iniciar sesión de nuevo' +
+            '</button>' +
+          '</div>' +
+        '</div>';
+      document.body.appendChild(modal);
+    }
+
+    window.__tekpairRelogin = function() {
+      try { localStorage.removeItem('tk_sess'); } catch(e) {}
+      window.location.href = '/app.html';
+    };
+
+    window.__tekpairMostrarSesionExpirada = function() {
+      if (window._sesionExpirada) return;
+      window._sesionExpirada = true;
+      try {
+        document.querySelectorAll('.modal-bg.open').forEach(function(m){
+          m.classList.remove('open');
+        });
+      } catch(e) {}
+      // Si dashboard ya inyectó su modal, usarlo; si no, inyectar el nuestro
+      _inyectarModalSesion();
+      var mod = document.getElementById('mSesionExpirada');
+      if (mod) {
+        if (typeof window.openM === 'function') {
+          window.openM('mSesionExpirada');
+        } else {
+          mod.classList.add('open');
+          mod.style.display = 'flex';
+        }
+      }
+    };
+
+    var _origFetch = window.fetch;
+    if (typeof _origFetch === 'function') {
+      window.fetch = function(url, options) {
+        var urlStr = '';
+        try {
+          urlStr = typeof url === 'string' ? url : (url && url.url) || '';
+        } catch(e) { urlStr = ''; }
+        var esSupabase = urlStr.indexOf('supabase.co') !== -1;
+        var p = _origFetch.apply(this, arguments);
+        if (!esSupabase) return p;
+        return p.then(function(response) {
+          if (response && response.status === 401) {
+            window.__tekpairMostrarSesionExpirada();
+          }
+          return response;
+        });
+      };
+    }
+  }
+
+
   // ────────── Estado del módulo ──────────
   var FACT = {
     origen: null,         // 'venta' | 'reparacion'
