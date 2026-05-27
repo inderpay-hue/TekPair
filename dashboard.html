@@ -6957,7 +6957,7 @@ function crearClienteRapido() {
   };
   DB.clis.push(c);
   guardarDatos();
-  if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:c.email,dni:c.dni,direccion:c.direccion,fecha_nacimiento:c.fecha_nacimiento});
+  if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:c.email,dni:c.dni,dir_fiscal:c.direccion,fecha_nac:c.fecha_nacimiento});
   closeM('mNuevoCli');
   selCli(c.id, window._cliCtx || 'v');
   toast('Cliente creado', 'ok');
