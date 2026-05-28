@@ -511,9 +511,10 @@
       }).then(function(facturas) {
         var f = Array.isArray(facturas) ? facturas[0] : facturas;
         _guardarDatosFiscalesCliente();
-        _toast('✓ Factura ' + f.numero + ' emitida', 'ok');
         window.cerrarModalFactura();
+        window.__ultimaFactura = f;
         try { window.generarFacturaPDF(f); } catch (e) { console.warn('[factura.js] PDF:', e); }
+        try { window.mostrarOpcionesEnvioFactura(f); } catch (e) { _toast('✓ Factura ' + f.numero + ' emitida', 'ok'); }
       });
     }).catch(function(err) {
       console.error('Error emitiendo factura:', err);
@@ -532,6 +533,88 @@
     return String(s == null ? '' : s)
       .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
+
+  // ────────── Envío de factura por WhatsApp / Email ──────────
+  function _buscarContactoCliente() {
+    // Devuelve {tel, email, nombre} buscando en FACT.datos.cliente y en DB.clis
+    var cli = (FACT.datos && FACT.datos.cliente) || {};
+    var tel = cli.tel || '';
+    var email = cli.email || '';
+    var nombre = (cli.nombre || '') + (cli.apellidos ? ' ' + cli.apellidos : '');
+    // Si falta algo, buscar en DB.clis por id
+    if ((!tel || !email) && cli.id && window.DB && Array.isArray(window.DB.clis)) {
+      var full = window.DB.clis.find(function(c){ return c.id === cli.id; });
+      if (full) {
+        if (!tel) tel = full.tel || '';
+        if (!email) email = full.email || '';
+        if (!nombre.trim()) nombre = (full.nombre || '') + (full.apellidos ? ' ' + full.apellidos : '');
+      }
+    }
+    return { tel: tel, email: email, nombre: nombre.trim() };
+  }
+
+  function _normalizarTel(tel) {
+    // Quita espacios, guiones, parentesis. Añade prefijo 34 si parece español sin prefijo
+    var t = String(tel || '').replace(/[^0-9+]/g, '');
+    if (!t) return '';
+    if (t.indexOf('+') === 0) return t.substring(1); // wa.me sin el +
+    if (t.length === 9) return '34' + t; // móvil español sin prefijo
+    return t;
+  }
+
+  window.enviarFacturaWhatsApp = function(f) {
+    var c = _buscarContactoCliente();
+    var tel = _normalizarTel(c.tel);
+    if (!tel) {
+      _toast('Este cliente no tiene teléfono guardado', 'err');
+      return;
+    }
+    var emi = (f && f.emisor_snapshot) || {};
+    var tienda = emi.nombre || emi.razon_social || 'nuestra tienda';
+    var total = (parseFloat(f.total) || 0).toFixed(2).replace('.', ',');
+    var msg = 'Hola' + (c.nombre ? ' ' + c.nombre : '') + ', aquí tienes tu factura ' + (f.numero || '') +
+              ' de ' + tienda + '.\nTotal: ' + total + ' €.\nGracias por tu confianza.';
+    var url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
+    window.open(url, '_blank');
+  };
+
+  window.enviarFacturaEmail = function(f) {
+    var c = _buscarContactoCliente();
+    if (!c.email) {
+      _toast('Este cliente no tiene email guardado', 'err');
+      return;
+    }
+    _toast('Envío por email disponible próximamente', 'ok');
+    // Fase 3: conectar con api/enviar-factura.js
+  };
+
+  // Mini-panel tras emitir con botones de envío
+  window.mostrarOpcionesEnvioFactura = function(f) {
+    var c = _buscarContactoCliente();
+    var existing = document.getElementById('mEnvioFactura');
+    if (existing) existing.remove();
+    var tieneTel = !!_normalizarTel(c.tel);
+    var tieneEmail = !!c.email;
+    var html = '' +
+      '<div id="mEnvioFactura" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center">' +
+        '<div style="background:white;max-width:380px;width:90%;border-radius:14px;padding:22px;text-align:center;font-family:inherit">' +
+          '<div style="font-size:18px;font-weight:800;color:#10B981;margin-bottom:6px">✓ Factura ' + _esc(f.numero || '') + ' emitida</div>' +
+          '<div style="font-size:13px;color:#64748B;margin-bottom:18px">¿Quieres enviarla al cliente?</div>' +
+          '<div style="display:flex;flex-direction:column;gap:10px">' +
+            (tieneTel ?
+              '<button onclick="window.enviarFacturaWhatsApp(window.__ultimaFactura)" style="padding:12px;border:none;border-radius:8px;background:#25D366;color:white;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">📱 Enviar por WhatsApp</button>'
+              : '<button disabled style="padding:12px;border:none;border-radius:8px;background:#E5E7EB;color:#9CA3AF;font-weight:700;font-size:14px;font-family:inherit">📱 Sin teléfono guardado</button>') +
+            (tieneEmail ?
+              '<button onclick="window.enviarFacturaEmail(window.__ultimaFactura)" style="padding:12px;border:none;border-radius:8px;background:#0055FF;color:white;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">📧 Enviar por Email</button>'
+              : '<button disabled style="padding:12px;border:none;border-radius:8px;background:#E5E7EB;color:#9CA3AF;font-weight:700;font-size:14px;font-family:inherit">📧 Sin email guardado</button>') +
+            '<button onclick="document.getElementById(\'mEnvioFactura\').remove()" style="padding:10px;border:1px solid #E5E7EB;border-radius:8px;background:white;color:#64748B;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit">Cerrar</button>' +
+          '</div>' +
+        '</div>' +
+      '</div>';
+    var div = document.createElement('div');
+    div.innerHTML = html;
+    document.body.appendChild(div.firstChild);
+  };
 
   window.generarFacturaPDF = function(f) {
     if (!f) { _toast('No hay datos de factura para el PDF', 'err'); return; }
