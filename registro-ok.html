@@ -42,7 +42,7 @@ async function setup() {
   }
 
   try {
-    var r = await fetch('/api/registro-ok', {
+    var r = await fetch('/api/register', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
       body: JSON.stringify({session_id, email, nombre, tienda_nombre: tienda, plan})
