@@ -11898,6 +11898,35 @@ function computeNotificaciones() {
     });
   }
 
+  // 5. Citas de hoy pendientes
+  // Genera un aviso por cada cita pendiente cuya fecha sea hoy o anterior.
+  // (Las del futuro no avisan; las canceladas/realizadas tampoco.)
+  (function() {
+    var hoyStr = hoyLocal();
+    (DB.citas || []).forEach(function(c) {
+      if (!c || c.estado !== 'pendiente') return;
+      if (!c.fecha) return;
+      // Solo avisar si la fecha de la cita es hoy o ya pasó
+      if (c.fecha > hoyStr) return;
+      var titulo = c.fecha === hoyStr ? 'Cita pendiente hoy' : 'Cita pendiente atrasada';
+      var icon = c.fecha === hoyStr ? '📅' : '⏰';
+      var color = c.fecha === hoyStr ? '#FF5B1F' : '#EF4444';
+      var detalle = (c.cliente_nombre || 'Sin nombre') +
+                    (c.hora ? ' · ' + c.hora : '') +
+                    (c.servicio ? ' · ' + c.servicio : '');
+      add({
+        id: 'cita_' + c.id,
+        tipo: 'citas',
+        icon: icon,
+        color: color,
+        titulo: titulo,
+        detalle: detalle,
+        href: 'pCitas',
+        prio: c.fecha === hoyStr ? 1 : 0
+      });
+    });
+  })();
+
   notifs.sort(function(a,b){ return (a.prio||9) - (b.prio||9); });
   return notifs;
 }
@@ -12066,7 +12095,7 @@ function refreshNotifs() {
   // Chips por tipo (solo del tab activo)
   var counts = {};
   current.forEach(function(n) { counts[n.tipo] = (counts[n.tipo] || 0) + 1; });
-  var labels = {reparaciones:'⏰ Reparaciones', stock:'📦 Stock', cuotas:'💰 Cuotas', cumples:'🎂 Cumples'};
+  var labels = {reparaciones:'⏰ Reparaciones', citas:'📅 Citas', stock:'📦 Stock', cuotas:'💰 Cuotas', cumples:'🎂 Cumples'};
 
   if (actionsEl) {
     if (current.length === 0) {
