@@ -428,10 +428,103 @@ var U = JSON.parse(localStorage.getItem('tk_user') || 'null');
 var TIENDA = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
 var AJUSTES = JSON.parse(localStorage.getItem('tk_ajustes') || '{}');
 if (!AJUSTES.iva) AJUSTES.iva = {activo:false,modo:'incluido',tipoDefault:21};
+// FIX TPV-3: merge defensivo de AJUSTES.iva por si está parcialmente inicializado
+AJUSTES.iva = Object.assign({activo:false,modo:'incluido',tipoDefault:21}, AJUSTES.iva);
 var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
 var SB_KEY = sess.sb_key || '';
 var JWT_TOKEN = sess.jwt_token || '';
 var TIENDA_ID = sess.tienda_id || '';
+
+// ═══ SUPABASE (movido aquí arriba - antes el orden estaba mal y la primera sync fallaba) ═══
+var SUPABASE_URL = 'https://zcxgyissdqyqsnojxviy.supabase.co';
+
+// FIX TPV-14: control de sesión expirada para avisar al cajero
+var _sesionExpirada = false;
+function _avisarSesionExpirada() {
+  if (_sesionExpirada) return;
+  _sesionExpirada = true;
+  if (typeof toast === 'function') {
+    toast('⚠ Sesión expirada — vuelve a iniciar sesión', 'err');
+  }
+  // Dar 3s para que el cajero vea el toast y luego redirigir
+  setTimeout(function(){
+    localStorage.removeItem('tk_sess');
+    window.location.href = 'app.html';
+  }, 3000);
+}
+
+var _sbErrLast = {};
+function _sbErrorToast(method, table, info) {
+  console.error('[Supabase ' + method + ' ' + table + ']', info);
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
+  // FIX TPV-14: detectar 401 (sesión expirada) y avisar
+  if (info && (info.status === 401 || info.code === 'PGRST301')) {
+    _avisarSesionExpirada();
+    return;
+  }
+  var key = method + ':' + table;
+  var now = Date.now();
+  if (_sbErrLast[key] && now - _sbErrLast[key] < 8000) return;
+  _sbErrLast[key] = now;
+  var msg = (info && info.message) || (info && info.code) || (info && info.status ? 'HTTP ' + info.status : 'error');
+  if (typeof toast === 'function') toast('⚠ Sync ' + table + ': ' + String(msg).substring(0,60), 'err');
+}
+
+function sbPost(table, data) {
+  if (!SB_KEY) return Promise.resolve(false);
+  return fetch(SUPABASE_URL + '/rest/v1/' + table, {
+    method: 'POST',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
+    body: JSON.stringify(data)
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.json().then(function(err){ _sbErrorToast('POST', table, Object.assign({status:r.status}, err)); return false; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return false; });
+    }
+    return true;
+  }).catch(function(e) { _sbErrorToast('POST', table, e); return false; });
+}
+
+function sbGet(table, query) {
+  if (!SB_KEY) return Promise.resolve([]);
+  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*', {
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.json().then(function(err){ _sbErrorToast('GET', table, Object.assign({status:r.status}, err)); return []; }, function(){ _sbErrorToast('GET', table, {status:r.status}); return []; });
+    }
+    return r.json();
+  }).catch(function(e) { _sbErrorToast('GET', table, e); return []; });
+}
+
+// FIX TPV-8: sbPatch faltaba completamente - se llamaba pero no estaba definida
+function sbPatch(table, query, data) {
+  if (!SB_KEY) return Promise.resolve(false);
+  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
+    method: 'PATCH',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
+    body: JSON.stringify(data)
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.json().then(function(err){ _sbErrorToast('PATCH', table, Object.assign({status:r.status}, err)); return false; }, function(){ _sbErrorToast('PATCH', table, {status:r.status}); return false; });
+    }
+    return true;
+  }).catch(function(e) { _sbErrorToast('PATCH', table, e); return false; });
+}
+
+// FIX TPV-3 (helper de fecha local)
+function hoyLocal() {
+  var d = new Date();
+  return d.getFullYear() + '-' +
+         String(d.getMonth() + 1).padStart(2, '0') + '-' +
+         String(d.getDate()).padStart(2, '0');
+}
+
+// FIX TPV-2/4/5: escape HTML para prevenir XSS en innerHTML
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[<>&"']/g, function(c) {
+    return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
 
 // ═══ CART ═══
 var cart = [];
@@ -550,47 +643,6 @@ window.addEventListener('DOMContentLoaded', function() {
   setInterval(function(){ if (!document.hidden) syncTPV(); }, 60000);
 });
 
-// ═══ SUPABASE ═══
-var SUPABASE_URL = 'https://zcxgyissdqyqsnojxviy.supabase.co';
-
-var _sbErrLast = {};
-function _sbErrorToast(method, table, info) {
-  console.error('[Supabase ' + method + ' ' + table + ']', info);
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
-  var key = method + ':' + table;
-  var now = Date.now();
-  if (_sbErrLast[key] && now - _sbErrLast[key] < 8000) return;
-  _sbErrLast[key] = now;
-  var msg = (info && info.message) || (info && info.code) || (info && info.status ? 'HTTP ' + info.status : 'error');
-  if (typeof toast === 'function') toast('⚠ Sync ' + table + ': ' + String(msg).substring(0,60), 'err');
-}
-
-function sbPost(table, data) {
-  if (!SB_KEY) return Promise.resolve(false);
-  return fetch(SUPABASE_URL + '/rest/v1/' + table, {
-    method: 'POST',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
-    body: JSON.stringify(data)
-  }).then(function(r) {
-    if (!r.ok) {
-      return r.json().then(function(err){ _sbErrorToast('POST', table, err); return false; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return false; });
-    }
-    return true;
-  }).catch(function(e) { _sbErrorToast('POST', table, e); return false; });
-}
-
-function sbGet(table, query) {
-  if (!SB_KEY) return Promise.resolve([]);
-  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*', {
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
-  }).then(function(r) {
-    if (!r.ok) {
-      return r.json().then(function(err){ _sbErrorToast('GET', table, err); return []; }, function(){ _sbErrorToast('GET', table, {status:r.status}); return []; });
-    }
-    return r.json();
-  }).catch(function(e) { _sbErrorToast('GET', table, e); return []; });
-}
-
 // ═══ PERMISOS ═══
 function tienePerm(perm) {
   if (!U) return false;
@@ -604,7 +656,11 @@ function tienePerm(perm) {
 function syncVentasDesdeSupabase() {
   if (!SB_KEY || !TIENDA_ID) return Promise.resolve();
   var hoy = new Date().toLocaleDateString('es');
-  return sbGet('ventas', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=eq.' + encodeURIComponent(hoy)).then(function(rows) {
+  // FIX TPV-10: traer también las de ayer por si el TPV está abierto pasada la medianoche
+  var ayer = new Date(); ayer.setDate(ayer.getDate() - 1);
+  var ayerStr = ayer.toLocaleDateString('es');
+  // fecha=in.(hoy,ayer) con valores entre comillas escapadas para REST de Supabase
+  return sbGet('ventas', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=in.(' + encodeURIComponent('"' + hoy + '","' + ayerStr + '"') + ')').then(function(rows) {
     if (!Array.isArray(rows) || !rows.length) return;
     rows.forEach(function(r) {
       var existing = DB.ventas.find(function(v){ return v.id === r.id; });
@@ -700,14 +756,14 @@ function renderProducts() {
     var nombre = p.esFijo ? p.modelo : ((p.marca && p.marca !== 'Servicio') ? p.marca + ' ' : '') + p.modelo;
     var stockTxt = p.esFijo ? 'Precio fijo' : (p.esServicio ? p.calidad : 'Stock: ' + p.unidades);
     var click = p.esFijo
-      ? "addFavFijoToCart('" + p.id + "')"
-      : "addToCart('" + p.id + "'," + (p.esServicio ? 'true' : 'false') + ")";
+      ? "addFavFijoToCart('" + escHtml(p.id) + "')"
+      : "addToCart('" + escHtml(p.id) + "'," + (p.esServicio ? 'true' : 'false') + ")";
     return '<div class="prod-card" onclick="' + click + '">' +
-      '<button class="prod-fav ' + (fav ? 'on' : '') + '" onclick="toggleFav(\'' + p._type + '\',\'' + p.id + '\',event)" title="Favorito">' + (fav ? '★' : '☆') + '</button>' +
-      '<div class="prod-icon">' + icon + '</div>' +
-      '<div class="prod-name">' + nombre + '</div>' +
+      '<button class="prod-fav ' + (fav ? 'on' : '') + '" onclick="toggleFav(\'' + escHtml(p._type) + '\',\'' + escHtml(p.id) + '\',event)" title="Favorito">' + (fav ? '★' : '☆') + '</button>' +
+      '<div class="prod-icon">' + escHtml(icon) + '</div>' +
+      '<div class="prod-name">' + escHtml(nombre) + '</div>' +
       '<div class="prod-price">\u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div>' +
-      '<div class="prod-stock">' + stockTxt + '</div>' +
+      '<div class="prod-stock">' + escHtml(stockTxt) + '</div>' +
       '</div>';
   }).join('');
 
@@ -743,11 +799,11 @@ function renderFavBar() {
     var icon = p.icon || icons[p.categoria] || '📦';
     var nombre = p.esFijo ? p.modelo : ((p.marca && p.marca !== 'Servicio') ? p.marca + ' ' : '') + p.modelo;
     var click = p.esFijo
-      ? "addFavFijoToCart('" + p.id + "')"
-      : "addToCart('" + p.id + "'," + (p.esServicio ? 'true' : 'false') + ")";
+      ? "addFavFijoToCart('" + escHtml(p.id) + "')"
+      : "addToCart('" + escHtml(p.id) + "'," + (p.esServicio ? 'true' : 'false') + ")";
     return '<div class="fav-pill" onclick="' + click + '">' +
-      '<div class="fav-pill-icon">' + icon + '</div>' +
-      '<div class="fav-pill-name">' + nombre + '</div>' +
+      '<div class="fav-pill-icon">' + escHtml(icon) + '</div>' +
+      '<div class="fav-pill-name">' + escHtml(nombre) + '</div>' +
       '<div class="fav-pill-price">\u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div>' +
       '</div>';
   }).join('');
@@ -795,10 +851,10 @@ function renderGestionFavs() {
       var nombre = p.esFijo ? p.modelo : ((p.marca && p.marca !== 'Servicio') ? p.marca + ' ' : '') + p.modelo;
       var tipoLbl = p.esFijo ? 'Precio fijo' : (p.esServicio ? 'Servicio' : 'Producto');
       return '<div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px">' +
-        '<div style="font-size:22px">' + icon + '</div>' +
-        '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + nombre + '</div>' +
-        '<div style="font-size:11px;color:var(--muted)">' + tipoLbl + ' \u00b7 \u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div></div>' +
-        '<button class="caja-btn" style="border-color:rgba(239,68,68,.3);color:var(--red)" onclick="quitarFav(\'' + p._type + '\',\'' + p.id + '\')">Quitar</button>' +
+        '<div style="font-size:22px">' + escHtml(icon) + '</div>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + escHtml(nombre) + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">' + escHtml(tipoLbl) + ' \u00b7 \u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div></div>' +
+        '<button class="caja-btn" style="border-color:rgba(239,68,68,.3);color:var(--red)" onclick="quitarFav(\'' + escHtml(p._type) + '\',\'' + escHtml(p.id) + '\')">Quitar</button>' +
         '</div>';
     }).join('') +
     '</div>';
@@ -851,9 +907,9 @@ function buscarProducto() {
   });
   if (!products.length) { res.classList.remove('open'); return; }
   res.innerHTML = products.slice(0, 8).map(function(p) {
-    return '<div class="search-item" onclick="addToCart(\'' + p.id + '\',' + (p.esServicio || false) + ');document.getElementById(\'tpvSearch\').value=\'\';document.getElementById(\'searchResults\').classList.remove(\'open\')">' +
-      '<div><div class="search-item-name">' + (p.marca !== 'Servicio' ? p.marca + ' ' : '') + p.modelo + '</div>' +
-      '<div class="search-item-det">' + p.categoria + (p.imei ? ' · IMEI: ' + p.imei : '') + (p.esServicio ? '' : ' · Stock: ' + p.unidades) + '</div></div>' +
+    return '<div class="search-item" onclick="addToCart(\'' + escHtml(p.id) + '\',' + (p.esServicio || false) + ');document.getElementById(\'tpvSearch\').value=\'\';document.getElementById(\'searchResults\').classList.remove(\'open\')">' +
+      '<div><div class="search-item-name">' + escHtml((p.marca !== 'Servicio' ? p.marca + ' ' : '') + p.modelo) + '</div>' +
+      '<div class="search-item-det">' + escHtml(p.categoria) + (p.imei ? ' · IMEI: ' + escHtml(p.imei) : '') + (p.esServicio ? '' : ' · Stock: ' + p.unidades) + '</div></div>' +
       '<div style="text-align:right"><div class="search-item-price">\u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div>' +
       (p.esServicio ? '<div class="search-item-badge">Servicio</div>' : '') + '</div></div>';
   }).join('');
@@ -949,7 +1005,7 @@ function renderCart() {
   el.innerHTML = cart.map(function(item, i) {
     return '<div class="cart-item">' +
       '<div class="cart-item-info">' +
-      '<div class="cart-item-name">' + item.nombre + '</div>' +
+      '<div class="cart-item-name">' + escHtml(item.nombre) + '</div>' +
       '<div class="cart-item-price">\u20ac' + item.precio.toFixed(2) + ' x' + item.qty + '</div>' +
       '</div>' +
       '<div class="cart-item-qty">' +
@@ -1060,7 +1116,7 @@ function cobrar() {
   if (!tienePerm('ventas_crear')) { toast('Sin permiso para crear ventas', 'err'); return; }
   var totals = _computeTotals();
   var venta = {
-    id: 'v' + Date.now(),
+    id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     fecha: new Date().toLocaleDateString('es'),
     clienteId: selectedCli ? selectedCli.id : '',
     clienteNombre: selectedCli ? (selectedCli.nombre + ' ' + (selectedCli.apellidos || '')).trim() : 'Sin cliente',
@@ -1084,7 +1140,17 @@ function cobrar() {
   cart.forEach(function(item) {
     if (!item.esServicio && !item.esRapida) {
       var s = DB.stock.find(function(x) { return x.id === item.id; });
-      if (s) { s.unidades = Math.max(0, s.unidades - item.qty); if (s.unidades === 0) s.vendido = true; }
+      if (s) {
+        s.unidades = Math.max(0, s.unidades - item.qty);
+        if (s.unidades === 0) s.vendido = true;
+        // FIX TPV-1: sincronizar con Supabase para que no quede inconsistente
+        if (SB_KEY && TIENDA_ID) {
+          sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
+            unidades: s.unidades,
+            vendido: s.vendido
+          });
+        }
+      }
     }
   });
 
@@ -1109,22 +1175,23 @@ function cobrar() {
 }
 
 function mostrarTicket(venta, totals) {
+  // FIX TPV-2: escapar todo el contenido del ticket para evitar XSS
   var logoBlock = TIENDA.logo_url
-    ? '<div style="text-align:center;margin-bottom:6px"><img src="' + TIENDA.logo_url + '" alt="" style="max-height:50px;max-width:200px;object-fit:contain"></div>'
-    : '<div class="ticket-logo">\u26a1 ' + (TIENDA.nombre || 'Tekpair') + '</div>';
+    ? '<div style="text-align:center;margin-bottom:6px"><img src="' + escHtml(TIENDA.logo_url) + '" alt="" style="max-height:50px;max-width:200px;object-fit:contain"></div>'
+    : '<div class="ticket-logo">\u26a1 ' + escHtml(TIENDA.nombre || 'Tekpair') + '</div>';
   var ivaOn = !!(totals.ivaTipo && totals.ivaModo && totals.ivaModo !== 'sin');
   var html = '<div class="ticket">' +
     logoBlock +
-    (TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:4px">' + TIENDA.nombre + '</div>' : '') +
-    (TIENDA.dir ? '<div style="text-align:center;font-size:10px;color:#666">' + TIENDA.dir + '</div>' : '') +
-    (TIENDA.tel ? '<div style="text-align:center;font-size:10px;color:#666">Tel: ' + TIENDA.tel + '</div>' : '') +
+    (TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:4px">' + escHtml(TIENDA.nombre) + '</div>' : '') +
+    (TIENDA.dir ? '<div style="text-align:center;font-size:10px;color:#666">' + escHtml(TIENDA.dir) + '</div>' : '') +
+    (TIENDA.tel ? '<div style="text-align:center;font-size:10px;color:#666">Tel: ' + escHtml(TIENDA.tel) + '</div>' : '') +
     '<hr class="ticket-sep">' +
-    '<div class="ticket-row"><span>Fecha:</span><span>' + venta.fecha + '</span></div>' +
-    '<div class="ticket-row"><span>Cliente:</span><span>' + venta.clienteNombre + '</span></div>' +
-    '<div class="ticket-row"><span>Pago:</span><span>' + venta.pago + '</span></div>' +
+    '<div class="ticket-row"><span>Fecha:</span><span>' + escHtml(venta.fecha) + '</span></div>' +
+    '<div class="ticket-row"><span>Cliente:</span><span>' + escHtml(venta.clienteNombre) + '</span></div>' +
+    '<div class="ticket-row"><span>Pago:</span><span>' + escHtml(venta.pago) + '</span></div>' +
     '<hr class="ticket-sep">' +
     venta.items.map(function(item) {
-      return '<div class="ticket-row"><span>' + item.nombre + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>';
+      return '<div class="ticket-row"><span>' + escHtml(item.nombre) + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>';
     }).join('') +
     '<hr class="ticket-sep">' +
     (totals.disc > 0 ? '<div class="ticket-row"><span>Subtotal</span><span>\u20ac' + totals.subtotal.toFixed(2) + '</span></div>' +
@@ -1137,8 +1204,8 @@ function mostrarTicket(venta, totals) {
     '<div class="ticket-total"><span>TOTAL' + (totals.ivaModo === 'incluido' ? ' (IVA inc.)' : '') + '</span><span>\u20ac' + totals.total.toFixed(2) + '</span></div>' +
     '<hr class="ticket-sep">' +
     '<div class="ticket-footer">Gracias por su compra' +
-    (TIENDA.garantiaVentas ? '<br><span style="font-size:9px">' + TIENDA.garantiaVentas + '</span>' : '') +
-    (TIENDA.politicaVentas ? '<br><span style="font-size:9px;color:#888">' + TIENDA.politicaVentas + '</span>' : '') +
+    (TIENDA.garantiaVentas ? '<br><span style="font-size:9px">' + escHtml(TIENDA.garantiaVentas) + '</span>' : '') +
+    (TIENDA.politicaVentas ? '<br><span style="font-size:9px;color:#888">' + escHtml(TIENDA.politicaVentas) + '</span>' : '') +
     '</div>' +
     '</div>';
   document.getElementById('ticketContent').innerHTML = html;
@@ -1176,9 +1243,9 @@ function buscarCliente() {
     return (c.nombre + ' ' + (c.apellidos || '') + ' ' + (c.tel || '')).toLowerCase().includes(q);
   });
   res.innerHTML = matches.slice(0, 5).map(function(c) {
-    return '<div onclick="asignarCliente(\'' + c.id + '\')" style="padding:10px;border-radius:8px;cursor:pointer;border:1px solid var(--border);margin-bottom:6px">' +
-      '<strong>' + c.nombre + ' ' + (c.apellidos || '') + '</strong>' +
-      (c.tel ? '<br><span style="font-size:11px;color:var(--muted)">' + c.tel + '</span>' : '') + '</div>';
+    return '<div onclick="asignarCliente(\'' + escHtml(c.id) + '\')" style="padding:10px;border-radius:8px;cursor:pointer;border:1px solid var(--border);margin-bottom:6px">' +
+      '<strong>' + escHtml(c.nombre + ' ' + (c.apellidos || '')) + '</strong>' +
+      (c.tel ? '<br><span style="font-size:11px;color:var(--muted)">' + escHtml(c.tel) + '</span>' : '') + '</div>';
   }).join('');
 }
 
@@ -1196,7 +1263,7 @@ function crearClienteRapido() {
   var nom = document.getElementById('ncNom').value.trim();
   if (!nom) { toast('Escribe un nombre', 'err'); return; }
   var c = {
-    id: 'c' + Date.now(),
+    id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     nombre: nom,
     apellidos: document.getElementById('ncApe').value.trim(),
     tel: document.getElementById('ncTel').value.trim(),
@@ -1226,10 +1293,10 @@ function verCaja() {
   var total = ventasHoy.reduce(function(a, v) { return a + v.total; }, 0);
 
   document.getElementById('cajaContent').innerHTML =
-    '<div style="margin-bottom:12px;font-size:13px;color:var(--muted)">' + hoy + ' \u2014 ' + ventasHoy.length + ' ventas</div>' +
+    '<div style="margin-bottom:12px;font-size:13px;color:var(--muted)">' + escHtml(hoy) + ' \u2014 ' + ventasHoy.length + ' ventas</div>' +
     Object.entries(pagos).map(function(e) {
       return '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px">' +
-        '<span>' + e[0] + '</span><strong>\u20ac' + e[1].toFixed(2) + '</strong></div>';
+        '<span>' + escHtml(e[0]) + '</span><strong>\u20ac' + e[1].toFixed(2) + '</strong></div>';
     }).join('') +
     '<div style="display:flex;justify-content:space-between;padding:12px 0;font-size:18px;font-weight:800;color:var(--blue)">' +
     '<span>TOTAL</span><span>\u20ac' + total.toFixed(2) + '</span></div>';
@@ -1269,12 +1336,12 @@ function renderHistorial() {
     var color = v.reembolsado ? 'var(--red)' : 'var(--green)';
     var sign = v.reembolsado ? '-' : '';
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;' + (v.reembolsado?'opacity:.6':'') + '">' +
-      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (v.modelo || '-') + '</div>' +
-      '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + hora + (hora?' \u00b7 ':'') + (v.clienteNombre || 'Sin cliente') + ' \u00b7 ' + (v.pago || '-') + '</div></div>' +
+      '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(v.modelo || '-') + '</div>' +
+      '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + hora + (hora?' \u00b7 ':'') + escHtml(v.clienteNombre || 'Sin cliente') + ' \u00b7 ' + escHtml(v.pago || '-') + '</div></div>' +
       '<div style="text-align:right;flex-shrink:0"><div style="font-weight:700;color:' + color + ';font-size:14px">' + sign + '\u20ac' + (v.total||0).toFixed(2) + '</div>' +
       (v.reembolsado ? '<div style="font-size:10px;color:var(--red);font-weight:700">REEMBOLSADA</div>' : '') + '</div>' +
-      '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px" onclick="reimprimirVenta(\'' + v.id + '\')" title="Reimprimir ticket">\ud83d\udda8</button>' +
-      '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px;background:#10B981;color:white" onclick="factVenta(\'' + v.id + '\')" title="Generar factura">\ud83d\udcc4</button>' +
+      '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px" onclick="reimprimirVenta(\'' + escHtml(v.id) + '\')" title="Reimprimir ticket">\ud83d\udda8</button>' +
+      '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px;background:#10B981;color:white" onclick="factVenta(\'' + escHtml(v.id) + '\')" title="Generar factura">\ud83d\udcc4</button>' +
       '</div>';
   }).join('');
   html += '</div>';
