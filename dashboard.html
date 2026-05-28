@@ -658,6 +658,22 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   .card:hover{transform:none !important}
 }
 /* === FIN MEJORA TARJETAS === */
+
+/* === ICONOS MENU EN CAJITA (estilo 4) === */
+.sidebar-ni-icon{
+  width:30px !important;height:30px !important;
+  background:rgba(255,255,255,.07);
+  border-radius:8px;
+  display:flex !important;align-items:center;justify-content:center;
+  flex-shrink:0;
+  transition:background .15s var(--ease);
+}
+.sidebar-ni-icon svg{width:16px;height:16px;display:block}
+.sidebar-ni:hover .sidebar-ni-icon{background:rgba(255,255,255,.13)}
+.sidebar-ni.active .sidebar-ni-icon{background:#FF5B1F}
+.sidebar-ni.active .sidebar-ni-icon svg{stroke:#fff}
+.sidebar-ni.active{border-left-color:#FF5B1F !important}
+/* === FIN ICONOS CAJITA === */
 </style>
   <script src="/assets/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
