@@ -641,6 +641,25 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   .cal-nav-btn{width:30px;height:30px;font-size:14px}
 }
 
+
+/* === EFECTO ENTRADA EN CASCADA === */
+@keyframes tkRise{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:translateY(0)}}
+#pDash.page.active .stat-card,
+#pDash.page.active > .card,
+#pDash.page.active > div > .card{
+  animation:tkRise .55s cubic-bezier(.2,.7,.2,1) both;
+}
+#pDash.page.active .stat-card:nth-child(1){animation-delay:.04s}
+#pDash.page.active .stat-card:nth-child(2){animation-delay:.10s}
+#pDash.page.active .stat-card:nth-child(3){animation-delay:.16s}
+#pDash.page.active .stat-card:nth-child(4){animation-delay:.22s}
+#pDash.page.active > .card:nth-of-type(1),#pDash.page.active > div > .card:nth-of-type(1){animation-delay:.26s}
+#pDash.page.active > .card:nth-of-type(2),#pDash.page.active > div > .card:nth-of-type(2){animation-delay:.32s}
+#pDash.page.active > .card:nth-of-type(3),#pDash.page.active > div > .card:nth-of-type(3){animation-delay:.38s}
+@media(prefers-reduced-motion:reduce){
+  #pDash.page.active .stat-card,#pDash.page.active > .card,#pDash.page.active > div > .card{animation:none}
+}
+/* === FIN EFECTO ENTRADA === */
 </style>
   <script src="/assets/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
