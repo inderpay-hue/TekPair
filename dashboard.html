@@ -5243,7 +5243,11 @@ async function _syncQueueRetry() {
     op.attempts = (op.attempts || 0) + 1;
     
     if (op.attempts > SYNC_MAX_RETRIES) {
-      console.warn('Sync abandonado tras', SYNC_MAX_RETRIES, 'intentos:', op);
+      console.warn('Sync descartado tras', SYNC_MAX_RETRIES, 'intentos:', op);
+      _syncQueueRemove(op._opId);
+      if (typeof toast === 'function') {
+        toast('No se pudo guardar un cambio en "' + op.table + '" y se ha descartado. Si era importante, vuelve a introducirlo.', 'err');
+      }
       continue;
     }
     
