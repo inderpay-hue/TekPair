@@ -22,7 +22,7 @@
 /* ═══ RESET & BASE ═══ */
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 :root{
-  --blue:#0055FF;--dark:#020B2E;--green:#00C896;--orange:#F97316;--purple:#7C3AED;--red:#EF4444;
+  --blue:#FF5B1F;--dark:#020B2E;--green:#00C896;--orange:#F97316;--purple:#7C3AED;--red:#EF4444;
   --bg:#F7F9FC;--white:#fff;--border:#E2E8F0;--text:#0F1729;--muted:#64748B;--light:#F1F5F9;
   --shadow-sm:0 1px 2px rgba(0,0,0,.04);
   --shadow:0 4px 12px rgba(0,0,0,.06);
@@ -106,12 +106,12 @@ body[data-theme="dark"] .modal textarea{background:var(--light);color:var(--text
   --shadow-lg: 0 16px 40px rgba(2,11,46,.10), 0 4px 12px rgba(2,11,46,.06);
   --shadow-xl: 0 24px 60px rgba(2,11,46,.16), 0 8px 16px rgba(2,11,46,.08);
   --ease: cubic-bezier(.4, 0, .2, 1);
-  --ring: 0 0 0 3px rgba(0,85,255,.15);
+  --ring: 0 0 0 3px rgba(255,91,31,.15);
 }
 body{font-family:'SF Pro Display',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;font-feature-settings:"cv11","ss01";-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale}
 
 /* Selección con color de marca */
-::selection{background:rgba(0,85,255,.18);color:var(--text)}
+::selection{background:rgba(255,91,31,.18);color:var(--text)}
 
 /* Scrollbar discreta en desktop */
 @media(min-width:900px){
@@ -155,7 +155,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
   .sidebar-group:first-child{padding-top:6px}
   .sidebar-ni{display:flex;align-items:center;gap:12px;padding:12px 20px;color:rgba(255,255,255,.6);cursor:pointer;font-size:13px;font-weight:600;transition:background .15s var(--ease),color .15s var(--ease),border-color .15s var(--ease);border-left:3px solid transparent}
   .sidebar-ni:hover{background:rgba(255,255,255,.05);color:white}
-  .sidebar-ni.active{background:rgba(0,85,255,.15);color:white;border-left-color:var(--blue)}
+  .sidebar-ni.active{background:rgba(255,91,31,.15);color:white;border-left-color:var(--blue)}
   .sidebar-ni-icon{font-size:18px;width:24px;text-align:center}
   .sidebar-user{padding:16px 20px;border-top:1px solid rgba(255,255,255,.1);color:rgba(255,255,255,.7);font-size:12px}
   .sidebar-logout{background:rgba(255,255,255,.1);border:none;color:rgba(255,255,255,.7);padding:7px 14px;border-radius:8px;font-size:11px;cursor:pointer;margin-top:8px;width:100%;font-family:inherit;text-align:left}
@@ -222,8 +222,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .notif-tab.active{color:var(--blue);border-bottom-color:var(--blue)}
 .notif-mark-read{background:rgba(0,200,150,.08);border:1px solid rgba(0,200,150,.3);color:var(--green);padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;margin-top:2px}
 .notif-mark-read:hover{background:rgba(0,200,150,.15)}
-.notif-mark-unread{background:rgba(0,85,255,.08);border:1px solid rgba(0,85,255,.3);color:var(--blue);padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;margin-top:2px}
-.notif-mark-unread:hover{background:rgba(0,85,255,.15)}
+.notif-mark-unread{background:rgba(255,91,31,.08);border:1px solid rgba(255,91,31,.3);color:var(--blue);padding:4px 8px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0;margin-top:2px}
+.notif-mark-unread:hover{background:rgba(255,91,31,.15)}
 .content{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .navbar{background:white;border-top:1px solid var(--border);display:flex;flex-shrink:0;position:relative;z-index:10}
 .ni{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:8px 4px 10px;cursor:pointer;color:var(--muted);font-size:9px;font-weight:600;gap:3px;transition:color .15s}
@@ -247,9 +247,9 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .stat-lbl{font-size:11px;color:var(--muted);margin-top:3px}
 
 /* ═══ BUTTONS ═══ */
-.btn-primary{background:var(--blue);color:white;border:none;padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;width:100%;font-family:inherit;transition:transform .12s var(--ease),box-shadow .12s var(--ease),background .12s var(--ease);box-shadow:0 1px 2px rgba(0,85,255,.20)}
-.btn-primary:hover{box-shadow:0 4px 14px rgba(0,85,255,.30)}
-.btn-primary:active{transform:scale(.98);box-shadow:0 1px 2px rgba(0,85,255,.20)}
+.btn-primary{background:var(--blue);color:white;border:none;padding:13px;border-radius:10px;font-size:14px;font-weight:700;cursor:pointer;width:100%;font-family:inherit;transition:transform .12s var(--ease),box-shadow .12s var(--ease),background .12s var(--ease);box-shadow:0 1px 2px rgba(255,91,31,.20)}
+.btn-primary:hover{box-shadow:0 4px 14px rgba(255,91,31,.30)}
+.btn-primary:active{transform:scale(.98);box-shadow:0 1px 2px rgba(255,91,31,.20)}
 .btn-secondary{background:var(--light);color:var(--text);border:none;padding:12px;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;width:100%;font-family:inherit;transition:background .12s var(--ease),transform .12s var(--ease)}
 .btn-secondary:hover{background:#E8EDF5}
 .btn-secondary:active{transform:scale(.98)}
@@ -274,7 +274,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 /* ═══ WIDGET EDIT MODE ═══ */
 .card.widget-editing{border:2px dashed var(--blue) !important;position:relative !important;animation:widget-pulse 2s infinite}
-@keyframes widget-pulse{0%,100%{box-shadow:0 0 0 0 rgba(0,85,255,.10)}50%{box-shadow:0 0 0 4px rgba(0,85,255,.10)}}
+@keyframes widget-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,91,31,.10)}50%{box-shadow:0 0 0 4px rgba(255,91,31,.10)}}
 .widget-edit-controls{position:absolute;top:-14px;right:14px;display:flex;gap:6px;z-index:50;background:white;padding:2px;border-radius:10px;box-shadow:var(--shadow-md)}
 .widget-edit-controls button{width:32px;height:32px;background:var(--blue);color:white;border:none;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;display:flex;align-items:center;justify-content:center}
 .widget-edit-controls button:hover{background:#0044CC}
@@ -293,8 +293,8 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .search-global-results{overflow-y:auto;flex:1;padding:6px}
 .search-global-group{padding:8px 12px 4px;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
 .search-global-item{padding:9px 12px;border-radius:8px;cursor:pointer;display:flex;align-items:center;gap:10px;transition:background .12s}
-.search-global-item:hover, .search-global-item.selected{background:rgba(0,85,255,.06)}
-.search-global-item.selected{box-shadow:inset 0 0 0 1px rgba(0,85,255,.20)}
+.search-global-item:hover, .search-global-item.selected{background:rgba(255,91,31,.06)}
+.search-global-item.selected{box-shadow:inset 0 0 0 1px rgba(255,91,31,.20)}
 .search-global-icon{font-size:16px;flex-shrink:0;width:22px;text-align:center}
 .search-global-title{font-weight:600;font-size:13px;color:var(--text)}
 .search-global-sub{font-size:11px;color:var(--muted);margin-top:1px}
@@ -302,7 +302,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .search-global-help{padding:8px 14px;border-top:1px solid var(--border);font-size:11px;color:var(--muted);background:#FAFBFC;display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px}
 
 /* Badge garantía */
-.badge-garantia{display:inline-flex;align-items:center;gap:3px;background:rgba(0,85,255,.10);color:var(--blue);font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;letter-spacing:.2px}
+.badge-garantia{display:inline-flex;align-items:center;gap:3px;background:rgba(255,91,31,.10);color:var(--blue);font-size:10px;padding:2px 7px;border-radius:4px;font-weight:700;letter-spacing:.2px}
 
 /* Switch toggle garantías */
 .sw-gar{position:relative;display:inline-block;width:44px;height:24px;flex-shrink:0}
@@ -363,7 +363,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 /* === PLAN BANNER === */
 .plan-banner{padding:10px 16px;border-radius:10px;font-size:13px;margin-bottom:14px;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.plan-banner.info{background:rgba(0,85,255,.06);border:1px solid rgba(0,85,255,.18);color:var(--text)}
+.plan-banner.info{background:rgba(255,91,31,.06);border:1px solid rgba(255,91,31,.18);color:var(--text)}
 .plan-banner.warning{background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.25);color:var(--text)}
 .plan-banner.urgent{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.3);color:var(--text)}
 .plan-banner button{background:var(--text);color:white;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-weight:700;font-size:12px;font-family:inherit;margin-left:auto}
@@ -377,7 +377,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .upg-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin:14px 0}
 .upg-plan{border:2px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:all .15s var(--ease);background:var(--white);text-align:center;position:relative}
 .upg-plan:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(0,0,0,.06)}
-.upg-plan.recommended{border-color:var(--blue);background:rgba(0,85,255,.04)}
+.upg-plan.recommended{border-color:var(--blue);background:rgba(255,91,31,.04)}
 .upg-plan.recommended::before{content:'⭐ Recomendado';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--blue);color:white;font-size:10px;font-weight:700;padding:3px 10px;border-radius:10px;white-space:nowrap}
 .upg-plan-name{font-size:14px;font-weight:800;margin-bottom:4px}
 .upg-plan-price{font-size:22px;font-weight:800;letter-spacing:-0.5px}
@@ -499,7 +499,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 /* ═══ BADGES ═══ */
 .badge{display:inline-block;padding:3px 8px;border-radius:20px;font-size:10px;font-weight:700}
-.bb{background:rgba(0,85,255,.1);color:var(--blue)}
+.bb{background:rgba(255,91,31,.1);color:var(--blue)}
 .bg{background:rgba(0,200,150,.1);color:#00875A}
 .bo{background:rgba(249,115,22,.1);color:var(--orange)}
 .bp{background:rgba(124,58,237,.1);color:var(--purple)}
@@ -536,7 +536,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .sec-action{font-size:12px;color:var(--blue);cursor:pointer;font-weight:600}
 
 /* ═══ SEL BOX ═══ */
-.sel-box{background:rgba(0,85,255,.06);border:1.5px solid rgba(0,85,255,.2);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:none}
+.sel-box{background:rgba(255,91,31,.06);border:1.5px solid rgba(255,91,31,.2);border-radius:10px;padding:10px 12px;margin-bottom:12px;display:none}
 .sel-box.show{display:flex;align-items:center;justify-content:space-between}
 .sel-box-name{font-size:13px;font-weight:700;color:var(--blue)}
 .sel-box-det{font-size:11px;color:var(--muted);margin-top:2px}
@@ -587,7 +587,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 #mPatron{z-index:200 !important}
 
 /* ═══ CALENDARIO DE CITAS ═══ */
-.vista-toggle{display:inline-flex;gap:4px;background:rgba(0,85,255,.06);padding:4px;border-radius:10px;margin-bottom:10px}
+.vista-toggle{display:inline-flex;gap:4px;background:rgba(255,91,31,.06);padding:4px;border-radius:10px;margin-bottom:10px}
 .vista-toggle button{background:transparent;border:none;padding:8px 14px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;border-radius:7px;font-family:inherit;transition:all .15s}
 .vista-toggle button.active{background:white;color:var(--blue);box-shadow:0 1px 4px rgba(0,0,0,.08)}
 .vista-toggle button:hover:not(.active){color:var(--text)}
@@ -596,14 +596,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .cal-header{display:flex;align-items:center;gap:10px;margin-bottom:14px}
 .cal-mes-ano{font-size:18px;font-weight:800;color:var(--text);flex:1;text-transform:capitalize}
 .cal-nav-btn{background:var(--bg);border:1px solid var(--border);width:34px;height:34px;border-radius:8px;cursor:pointer;font-size:16px;display:flex;align-items:center;justify-content:center;color:var(--text);transition:all .15s}
-.cal-nav-btn:hover{background:rgba(0,85,255,.08);border-color:var(--blue);color:var(--blue)}
+.cal-nav-btn:hover{background:rgba(255,91,31,.08);border-color:var(--blue);color:var(--blue)}
 .cal-hoy-btn{background:var(--blue);color:white;border:none;padding:8px 14px;border-radius:8px;font-weight:700;cursor:pointer;font-size:13px;font-family:inherit}
 .cal-hoy-btn:hover{opacity:.9}
 
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:8px}
 .cal-weekday{text-align:center;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:8px 0;letter-spacing:.5px}
 .cal-day{aspect-ratio:1/1;background:var(--bg);border:1px solid transparent;border-radius:8px;padding:6px;cursor:pointer;position:relative;display:flex;flex-direction:column;align-items:center;justify-content:flex-start;transition:all .15s;min-height:54px}
-.cal-day:hover{background:rgba(0,85,255,.08);border-color:rgba(0,85,255,.2)}
+.cal-day:hover{background:rgba(255,91,31,.08);border-color:rgba(255,91,31,.2)}
 .cal-day.other-month{opacity:.25}
 .cal-day.today{background:rgba(0,200,150,.1);border-color:var(--green)}
 .cal-day.today .cal-day-num{color:var(--green);font-weight:900}
@@ -626,7 +626,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 .cal-day-list{margin-top:14px}
 .cal-day-list-title{font-size:13px;font-weight:800;color:var(--text);padding:12px 0 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
-.cal-day-list-title .badge-count{background:rgba(0,85,255,.1);color:var(--blue);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+.cal-day-list-title .badge-count{background:rgba(255,91,31,.1);color:var(--blue);font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
 .cal-empty-day{text-align:center;padding:20px;background:var(--bg);border-radius:10px;color:var(--muted);font-size:13px}
 .cal-empty-day button{margin-top:10px;background:var(--blue);color:white;border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:13px}
 .cal-empty-day button:hover{opacity:.9}
@@ -795,7 +795,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="stats-grid" id="metricsGrid"></div>
   <div class="quick-grid" id="dashQuickGrid">
-    <button class="qbtn-dash" onclick="abrirVenta()"><span class="qbtn-icon" style="background:rgba(0,85,255,.10);color:var(--blue)">📱</span><span class="qbtn-label">Nueva venta</span></button>
+    <button class="qbtn-dash" onclick="abrirVenta()"><span class="qbtn-icon" style="background:rgba(255,91,31,.10);color:var(--blue)">📱</span><span class="qbtn-label">Nueva venta</span></button>
     <button class="qbtn-dash" onclick="window.location.href='tpv.html'"><span class="qbtn-icon" style="background:rgba(0,200,150,.10);color:var(--green)">🛒</span><span class="qbtn-label">Abrir TPV</span></button>
     <button class="qbtn-dash" onclick="abrirRep()"><span class="qbtn-icon" style="background:rgba(0,200,150,.10);color:var(--green)">🔧</span><span class="qbtn-label">Reparación</span></button>
     <button class="qbtn-dash" onclick="navTo('pStock');openM('mStock')"><span class="qbtn-icon" style="background:rgba(249,115,22,.10);color:var(--orange)">📦</span><span class="qbtn-label">Añadir stock</span></button>
@@ -4011,7 +4011,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
             <div><div class="sel-box-name" id="rSelCliNom"></div></div>
             <button class="sel-box-clear" onclick="clearCli('r')">✕</button>
           </div>
-          <div id="rGarantiaAlert" style="display:none;background:rgba(0,85,255,.08);border-left:3px solid var(--blue);padding:10px 12px;border-radius:8px;margin-top:8px;font-size:12px"></div>
+          <div id="rGarantiaAlert" style="display:none;background:rgba(255,91,31,.08);border-left:3px solid var(--blue);padding:10px 12px;border-radius:8px;margin-top:8px;font-size:12px"></div>
         </div>
 
         <!-- Sección: Dispositivo -->
@@ -6002,7 +6002,7 @@ function renderWidgetCajaDia() {
       Object.keys(pagos).forEach(function(k) { total += pagos[k]; });
       if (totEl) totEl.textContent = cur(total);
       var iconos2 = {Efectivo:'💵', Tarjeta:'💳', Bizum:'📲', Transferencia:'🏦'};
-      var colores2 = {Efectivo:'#00C896', Tarjeta:'#0055FF', Bizum:'#7C3AED', Transferencia:'#F97316'};
+      var colores2 = {Efectivo:'#00C896', Tarjeta:'#FF5B1F', Bizum:'#7C3AED', Transferencia:'#F97316'};
       var html2 = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">';
       Object.keys(pagos).forEach(function(k) {
         var v = pagos[k];
@@ -6018,7 +6018,7 @@ function renderWidgetCajaDia() {
   Object.keys(pagos).forEach(function(k) { total += pagos[k]; });
   if (totEl) totEl.textContent = cur(total);
   var iconos = {Efectivo:'💵', Tarjeta:'💳', Bizum:'📲', Transferencia:'🏦'};
-  var colores = {Efectivo:'#00C896', Tarjeta:'#0055FF', Bizum:'#7C3AED', Transferencia:'#F97316'};
+  var colores = {Efectivo:'#00C896', Tarjeta:'#FF5B1F', Bizum:'#7C3AED', Transferencia:'#F97316'};
   var html = '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px">';
   Object.keys(pagos).forEach(function(k) {
     var v = pagos[k];
@@ -6214,7 +6214,7 @@ function renderWidgetTendencia() {
   // Etiquetas: si son muchas, solo cada N
   var skip = n <= 7 ? 1 : n <= 12 ? 2 : Math.ceil(n / 8);
   var html = '<svg viewBox="0 0 ' + w + ' ' + h + '" preserveAspectRatio="none" style="width:100%;height:80px;display:block">';
-  html += '<polygon points="' + area + '" fill="rgba(0,85,255,.10)"/>';
+  html += '<polygon points="' + area + '" fill="rgba(255,91,31,.10)"/>';
   html += '<polyline points="' + poly + '" fill="none" stroke="var(--blue)" stroke-width="2"/>';
   pts.forEach(function(p, i) {
     var r = p[2].esHoy ? 4 : (n > 14 ? 1.5 : 3);
@@ -6373,7 +6373,7 @@ function renderWidgetRepsEstado() {
     box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">No hay reparaciones activas</div>';
     return;
   }
-  var colores = {Pendiente:'#F97316', 'En Proceso':'#0055FF', 'Por Entregar':'#00C896', Garantia:'#7C3AED', 'Sin Solucion':'#EF4444'};
+  var colores = {Pendiente:'#F97316', 'En Proceso':'#FF5B1F', 'Por Entregar':'#00C896', Garantia:'#7C3AED', 'Sin Solucion':'#EF4444'};
   // Barra horizontal segmentada
   var html = '<div style="display:flex;height:32px;border-radius:8px;overflow:hidden;background:var(--light);margin-bottom:10px">';
   Object.keys(estados).forEach(function(k) {
@@ -8538,7 +8538,7 @@ function renderKanban() {
   // Estados que mostramos como columnas
   var columnas = [
     {key:'Pendiente', label:'Pendiente', color:'#FBBF24'},
-    {key:'En Proceso', label:'En proceso', color:'#0055FF'},
+    {key:'En Proceso', label:'En proceso', color:'#FF5B1F'},
     {key:'Por Entregar', label:'Por entregar', color:'#00C896'},
     {key:'Entregado', label:'Entregado', color:'#94928E'},
     {key:'Garantia', label:'Garantía', color:'#7C3AED'},
@@ -10678,7 +10678,7 @@ function renderGraficas(ventas, reps, pagos, fechas) {
         data: {
           labels: labels,
           datasets: [
-            {label:'Ventas', data:dataV, borderColor:'#0055FF', backgroundColor:'rgba(0,85,255,.10)', fill:true, tension:.3, pointRadius:2},
+            {label:'Ventas', data:dataV, borderColor:'#FF5B1F', backgroundColor:'rgba(255,91,31,.10)', fill:true, tension:.3, pointRadius:2},
             {label:'Reparaciones', data:dataR, borderColor:'#7C3AED', backgroundColor:'rgba(124,58,237,.10)', fill:true, tension:.3, pointRadius:2}
           ]
         },
@@ -10706,7 +10706,7 @@ function renderGraficas(ventas, reps, pagos, fechas) {
         labels: Object.keys(pagos),
         datasets: [{
           data: Object.values(pagos),
-          backgroundColor: ['#0055FF','#00C896','#F97316','#7C3AED','#EF4444','#FBBF24'],
+          backgroundColor: ['#FF5B1F','#00C896','#F97316','#7C3AED','#EF4444','#FBBF24'],
           borderWidth: 2,
           borderColor: isDark ? '#1A1D24' : '#fff'
         }]
@@ -11191,7 +11191,7 @@ function actualizarAvisoGarantia() {
     bg = '#D1FAE5'; border = '#00C896'; color = '#065F46';
   } else if (repOn && !venOn) {
     html = '<strong>🛠 Solo reparaciones:</strong> Sale en tickets de reparación. Ventas SIN garantía visible.';
-    bg = '#EBF1FF'; border = '#0055FF'; color = '#1E3A8A';
+    bg = '#EBF1FF'; border = '#FF5B1F'; color = '#1E3A8A';
   } else if (!repOn && venOn) {
     html = '<strong>📱 Solo ventas:</strong> Sale en tickets de venta. Reparaciones SIN garantía.';
     bg = '#D1FAE5'; border = '#00C896'; color = '#065F46';
@@ -11749,7 +11749,7 @@ function computeNotificaciones() {
       }
     }
     if (r.fecha === hoyES && nf.recibidaHoy !== false) {
-      add({id:'hoy_'+r.id, tipo:'reparaciones', icon:'🔧', color:'#0055FF', titulo:'Reparación recibida hoy',
+      add({id:'hoy_'+r.id, tipo:'reparaciones', icon:'🔧', color:'#FF5B1F', titulo:'Reparación recibida hoy',
         detalle:r.clienteNombre+' · '+(r.modelo||''), href:'pReps', prio:2, manual:true});
     }
   });
@@ -12623,7 +12623,7 @@ function abrirFichaCli(cliId) {
     repsBox.innerHTML = '<div class="empty" style="padding:14px;font-size:12px">Sin reparaciones</div>';
   } else {
     var coloresEstado = {
-      'Pendiente':'#F97316', 'En Proceso':'#0055FF', 'Por Entregar':'#00C896',
+      'Pendiente':'#F97316', 'En Proceso':'#FF5B1F', 'Por Entregar':'#00C896',
       'Entregado':'#94A3B8', 'Garantia':'#7C3AED', 'Sin Solucion':'#EF4444',
       'Devuelto':'#94A3B8', 'Rechazado':'#94A3B8'
     };
@@ -12731,7 +12731,7 @@ function abrirDetalleRep(repId) {
 
   // Garantía
   if (infoGar && infoGar.rep.id !== r.id) {
-    html += '<div style="background:rgba(0,85,255,.08);border-left:3px solid var(--blue);padding:10px 12px;border-radius:8px;margin-bottom:14px;font-size:12px">';
+    html += '<div style="background:rgba(255,91,31,.08);border-left:3px solid var(--blue);padding:10px 12px;border-radius:8px;margin-bottom:14px;font-size:12px">';
     html += '<strong style="color:var(--blue)">🛡️ EN GARANTÍA</strong><br>';
     html += '<span style="font-size:11px;color:var(--muted)">Reparación previa entregada el ' + esc(infoGar.rep.fechaEntregaReal) + ' (' + infoGar.dias + ' días). Le quedan ' + infoGar.restantes + ' días.</span>';
     html += '</div>';
@@ -13377,7 +13377,7 @@ function renderPermisosUI() {
     + '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">Plantilla rápida</div>'
     + '<div style="display:flex;flex-wrap:wrap;gap:6px">'
     + '<button onclick="aplicarRolPreset(\'admin\')" style="background:rgba(124,58,237,.10);color:var(--purple);border:1px solid rgba(124,58,237,.25);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">👑 Admin total</button>'
-    + '<button onclick="aplicarRolPreset(\'encargado\')" style="background:rgba(0,85,255,.08);color:var(--blue);border:1px solid rgba(0,85,255,.20);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">⭐ Encargado</button>'
+    + '<button onclick="aplicarRolPreset(\'encargado\')" style="background:rgba(255,91,31,.08);color:var(--blue);border:1px solid rgba(255,91,31,.20);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">⭐ Encargado</button>'
     + '<button onclick="aplicarRolPreset(\'vendedor\')" style="background:rgba(0,200,150,.08);color:var(--green);border:1px solid rgba(0,200,150,.20);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🛒 Vendedor</button>'
     + '<button onclick="aplicarRolPreset(\'tecnico\')" style="background:rgba(249,115,22,.08);color:var(--orange);border:1px solid rgba(249,115,22,.20);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">🔧 Técnico</button>'
     + '<button onclick="aplicarRolPreset(\'lectura\')" style="background:#F1F5F9;color:var(--muted);border:1px solid var(--border);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">👁️ Solo lectura</button>'
@@ -14136,7 +14136,7 @@ function renderCitas() {
       html += '<div style="display:flex;justify-content:space-between;align-items:start;gap:10px">';
       html += '<div style="flex:1;min-width:0">';
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><strong style="font-size:14px;font-family:ui-monospace,monospace">' + esc(c.hora||'') + '</strong>';
-      html += '<span style="font-size:11px;background:rgba(0,85,255,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || 'Consulta') + '</span></div>';
+      html += '<span style="font-size:11px;background:rgba(255,91,31,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || 'Consulta') + '</span></div>';
       html += '<div style="font-weight:700;font-size:13px">' + esc(c.cliente_nombre) + '</div>';
       if (c.marca || c.modelo) html += '<div style="font-size:11px;color:var(--muted)">' + esc((c.marca||'') + ' ' + (c.modelo||'')).trim() + '</div>';
       if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted)">📞 ' + esc(c.cliente_tel) + '</div>';
@@ -14477,7 +14477,7 @@ function _renderListaDelDia() {
       html += '<div style="display:flex;justify-content:space-between;align-items:start;gap:10px">';
       html += '<div style="flex:1;min-width:0">';
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><strong style="font-size:14px;font-family:ui-monospace,monospace">' + esc(c.hora||'') + '</strong>';
-      html += '<span style="font-size:11px;background:rgba(0,85,255,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || 'Consulta') + '</span></div>';
+      html += '<span style="font-size:11px;background:rgba(255,91,31,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || 'Consulta') + '</span></div>';
       html += '<div style="font-weight:700;font-size:13px">' + esc(c.cliente_nombre) + '</div>';
       if (c.marca || c.modelo) html += '<div style="font-size:11px;color:var(--muted)">' + esc((c.marca||'') + ' ' + (c.modelo||'')).trim() + '</div>';
       if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted)">📞 ' + esc(c.cliente_tel) + '</div>';
@@ -15437,7 +15437,7 @@ function cerrarWizardAfil() {
 
 function _wizardHeader(stepNum) {
   var pasos = ['Datos comercial', 'Cupón Stripe', 'Activar'];
-  var html = '<div style="background:linear-gradient(135deg,#0055FF,#0EA5E9);color:white;padding:18px 22px">';
+  var html = '<div style="background:linear-gradient(135deg,#FF5B1F,#0EA5E9);color:white;padding:18px 22px">';
   html += '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.9">NUEVO COMERCIAL · PASO ' + stepNum + ' DE 3</div>';
   html += '<div style="font-size:18px;font-weight:800;margin-top:4px">' + pasos[stepNum-1] + '</div>';
   // Progress
@@ -15515,11 +15515,11 @@ function renderWizardStep2() {
         '</div>' +
         '<div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:10px">Ahora crea el cupon en Stripe:</div>' +
         '<ol style="font-size:13px;color:#475569;line-height:1.7;padding-left:20px;margin:0 0 16px">' +
-          '<li>Abre <a href="https://dashboard.stripe.com/coupons" target="_blank" style="color:#0055FF;font-weight:700">dashboard.stripe.com/coupons</a></li>' +
+          '<li>Abre <a href="https://dashboard.stripe.com/coupons" target="_blank" style="color:#FF5B1F;font-weight:700">dashboard.stripe.com/coupons</a></li>' +
           '<li>Pulsa <strong>"+ Nuevo cupón"</strong></li>' +
           '<li>Configura:' +
             '<div style="background:#F8FAFC;border-radius:6px;padding:10px;margin:8px 0;font-family:monospace;font-size:12px">' +
-              'Codigo del cupon: <strong style="color:#0055FF">' + d.codigo + '</strong><br>' +
+              'Codigo del cupon: <strong style="color:#FF5B1F">' + d.codigo + '</strong><br>' +
               'Tipo: <strong>Porcentaje</strong><br>' +
               'Descuento: <strong>50%</strong><br>' +
               'Duracion: <strong>Repeating · 3 meses</strong><br>' +
@@ -15549,7 +15549,7 @@ function renderWizardStep3() {
         '<div style="background:#F8FAFC;border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:#475569;line-height:1.7">' +
           '<div><strong>Nombre:</strong> ' + d.nombre + '</div>' +
           '<div><strong>Email:</strong> ' + d.email + '</div>' +
-          '<div><strong>Codigo:</strong> <span style="font-family:monospace;background:#EFF6FF;color:#0055FF;padding:2px 8px;border-radius:4px;font-weight:700">' + d.codigo + '</span></div>' +
+          '<div><strong>Codigo:</strong> <span style="font-family:monospace;background:#EFF6FF;color:#FF5B1F;padding:2px 8px;border-radius:4px;font-weight:700">' + d.codigo + '</span></div>' +
           '<div><strong>Comision:</strong> ' + d.comision_pct + '% sobre base imponible</div>' +
           '<div><strong>Plan TekPair:</strong> TOP vitalicio</div>' +
         '</div>' +
@@ -15605,7 +15605,7 @@ function abrirModalAfiliado(af) {
   var esEdicion = !!af.codigo;
   var html = '<div id="mAfilEdit" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">' +
     '<div style="background:white;max-width:480px;width:100%;border-radius:14px;overflow:hidden">' +
-      '<div style="background:linear-gradient(135deg,#0055FF,#0EA5E9);color:white;padding:18px 22px">' +
+      '<div style="background:linear-gradient(135deg,#FF5B1F,#0EA5E9);color:white;padding:18px 22px">' +
         '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.9">' + (esEdicion ? 'EDITAR AFILIADO' : 'NUEVO AFILIADO') + '</div>' +
         '<div style="font-size:18px;font-weight:800;margin-top:4px">' + (esEdicion ? af.codigo : 'Nuevo comercial') + '</div>' +
       '</div>' +
@@ -16063,7 +16063,7 @@ function renderComisionesAfiliado(data) {
   var r = data.resumen;
   var html = '';
 
-  html += '<div class="card" style="margin-bottom:14px;background:linear-gradient(135deg,rgba(0,85,255,.05),rgba(0,200,150,.05));border:1px solid rgba(0,85,255,.15)">';
+  html += '<div class="card" style="margin-bottom:14px;background:linear-gradient(135deg,rgba(255,91,31,.05),rgba(0,200,150,.05));border:1px solid rgba(255,91,31,.15)">';
   html += '<div style="font-size:13px;color:var(--muted);margin-bottom:6px">Tu código de afiliado:</div>';
   html += '<div style="font-size:28px;font-weight:800;color:var(--blue);letter-spacing:2px">' + data.mi_codigo + '</div>';
   html += '<div style="font-size:13px;color:var(--muted);margin-top:4px">Recibes el <strong style="color:var(--green)">' + data.mi_comision_pct + '%</strong> de cada pago de los clientes que captes.</div>';
@@ -16408,7 +16408,7 @@ function filtrarFacturas() {
       '<td style="white-space:nowrap">' +
         '<button data-fidx="' + idx + '" class="btn-pdf-f" style="background:#10B981;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer" title="Ver / descargar PDF">📄 PDF</button> ' +
         '<button data-fidx="' + idx + '" class="btn-wa-f" style="background:#25D366;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Enviar por WhatsApp">📱</button> ' +
-        '<button data-fidx="' + idx + '" class="btn-mail-f" style="background:#0055FF;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Enviar por Email">📧</button>' +
+        '<button data-fidx="' + idx + '" class="btn-mail-f" style="background:#FF5B1F;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Enviar por Email">📧</button>' +
       '</td>' +
       '</tr>';
   });
