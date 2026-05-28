@@ -535,15 +535,24 @@
   }
 
   // ────────── Envío de factura por WhatsApp / Email ──────────
-  function _buscarContactoCliente() {
-    // Devuelve {tel, email, nombre} buscando en FACT.datos.cliente y en DB.clis
-    var cli = (FACT.datos && FACT.datos.cliente) || {};
+  function _buscarContactoCliente(f) {
+    // Devuelve {tel, email, nombre}. Fuente 1: factura (si viene). Fuente 2: FACT.datos.cliente. Fallback: DB.clis por id.
+    var cli = {};
+    var cliId = '';
+    if (f && (f.cliente_snapshot || f.cliente_id)) {
+      var snap = f.cliente_snapshot || {};
+      cli = { nombre: snap.nombre || '', apellidos: snap.apellidos || '', tel: snap.tel || '', email: snap.email || '' };
+      cliId = f.cliente_id || '';
+    } else {
+      cli = (FACT.datos && FACT.datos.cliente) || {};
+      cliId = cli.id || '';
+    }
     var tel = cli.tel || '';
     var email = cli.email || '';
     var nombre = (cli.nombre || '') + (cli.apellidos ? ' ' + cli.apellidos : '');
-    // Si falta algo, buscar en DB.clis por id
-    if ((!tel || !email) && cli.id && window.DB && Array.isArray(window.DB.clis)) {
-      var full = window.DB.clis.find(function(c){ return c.id === cli.id; });
+    // Si falta tel o email, buscar el cliente actual por id en DB.clis
+    if ((!tel || !email) && cliId && window.DB && Array.isArray(window.DB.clis)) {
+      var full = window.DB.clis.find(function(c){ return c.id === cliId; });
       if (full) {
         if (!tel) tel = full.tel || '';
         if (!email) email = full.email || '';
@@ -563,7 +572,7 @@
   }
 
   window.enviarFacturaWhatsApp = function(f) {
-    var c = _buscarContactoCliente();
+    var c = _buscarContactoCliente(f);
     var tel = _normalizarTel(c.tel);
     if (!tel) {
       _toast('Este cliente no tiene teléfono guardado', 'err');
@@ -579,7 +588,7 @@
   };
 
   window.enviarFacturaEmail = function(f) {
-    var c = _buscarContactoCliente();
+    var c = _buscarContactoCliente(f);
     if (!c.email) {
       _toast('Este cliente no tiene email guardado', 'err');
       return;
@@ -630,7 +639,7 @@
 
   // Mini-panel tras emitir con botones de envío
   window.mostrarOpcionesEnvioFactura = function(f) {
-    var c = _buscarContactoCliente();
+    var c = _buscarContactoCliente(f);
     var existing = document.getElementById('mEnvioFactura');
     if (existing) existing.remove();
     var tieneTel = !!_normalizarTel(c.tel);

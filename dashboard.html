@@ -16408,7 +16408,11 @@ function filtrarFacturas() {
       '<td style="font-size:11px">' + cur(f.base_imponible) + '</td>' +
       '<td style="font-size:11px">' + cur(f.iva_importe) + ' <span style="color:var(--muted)">(' + (parseFloat(f.iva_pct) || 0) + '%)</span></td>' +
       '<td style="font-weight:700;color:' + colorTotal + '">' + cur(f.total) + '</td>' +
-      '<td><button data-fidx="' + idx + '" class="btn-pdf-f" style="background:#10B981;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer" title="Ver / descargar PDF">📄 PDF</button></td>' +
+      '<td style="white-space:nowrap">' +
+        '<button data-fidx="' + idx + '" class="btn-pdf-f" style="background:#10B981;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer" title="Ver / descargar PDF">📄 PDF</button> ' +
+        '<button data-fidx="' + idx + '" class="btn-wa-f" style="background:#25D366;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Enviar por WhatsApp">📱</button> ' +
+        '<button data-fidx="' + idx + '" class="btn-mail-f" style="background:#0055FF;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Enviar por Email">📧</button>' +
+      '</td>' +
       '</tr>';
   });
   html += '</tbody></table></div>';
@@ -16419,6 +16423,27 @@ function filtrarFacturas() {
         var f = lista[parseInt(this.dataset.fidx, 10)];
         if (f && typeof window.generarFacturaPDF === 'function') {
           window.generarFacturaPDF(f);
+        } else {
+          toast('Módulo de factura no disponible', 'err');
+        }
+      });
+    });
+    cont.querySelectorAll('.btn-wa-f').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var f = lista[parseInt(this.dataset.fidx, 10)];
+        if (f && typeof window.enviarFacturaWhatsApp === 'function') {
+          window.enviarFacturaWhatsApp(f);
+        } else {
+          toast('Módulo de factura no disponible', 'err');
+        }
+      });
+    });
+    cont.querySelectorAll('.btn-mail-f').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var f = lista[parseInt(this.dataset.fidx, 10)];
+        if (f && typeof window.enviarFacturaEmail === 'function') {
+          window.__ultimaFactura = f;
+          window.enviarFacturaEmail(f);
         } else {
           toast('Módulo de factura no disponible', 'err');
         }
