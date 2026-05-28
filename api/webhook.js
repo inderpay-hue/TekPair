@@ -66,6 +66,9 @@ export default async function handler(req, res) {
   }
 
   // ═══ Helper: actualizar tienda ═══
+  // FIX W6: si esto falla, lanzamos excepción para que el handler devuelva 5xx
+  // y Stripe reintente el webhook. Antes el error solo se logueaba y devolvíamos 200,
+  // perdiendo cambios de estado sin posibilidad de recuperación.
   async function updateTienda(tiendaId, data) {
     const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tiendaId)}`, {
       method: 'PATCH',
@@ -75,6 +78,7 @@ export default async function handler(req, res) {
     if (!r.ok) {
       const txt = await r.text();
       console.error('updateTienda error:', r.status, txt);
+      throw new Error('updateTienda failed: ' + r.status + ' ' + txt.slice(0, 200));
     }
   }
 
@@ -190,11 +194,18 @@ export default async function handler(req, res) {
 
         const tienda = await findTienda({customerId, subId});
         if (tienda) {
+          // FIX W5: respetar el periodo ya pagado.
+          // Stripe envía este evento cuando termina la gracia, pero por si llega antes
+          // (cancelación inmediata) usamos current_period_end si existe.
+          // Antes: plan_until = new Date().toISOString() → acceso cortado al instante
+          const finPeriodo = sub.current_period_end
+            ? new Date(sub.current_period_end * 1000).toISOString()
+            : new Date().toISOString();
           await updateTienda(tienda.id, {
             plan_status: 'cancelled',
-            plan_until: new Date().toISOString()
+            plan_until: finPeriodo
           });
-          console.log('Sub cancelada:', tienda.id);
+          console.log('Sub cancelada:', tienda.id, 'acceso hasta:', finPeriodo);
 
           // Email de cancelación
           if (tienda.plan_email) {
@@ -379,6 +390,8 @@ async function getRawBody(req) {
 
 function verifyStripeSignature(payload, sig, secret) {
   const crypto = require('crypto');
+  if (!sig) throw new Error('Missing signature header');
+
   const parts = sig.split(',');
   let timestamp = '';
   let signatures = [];
@@ -387,8 +400,37 @@ function verifyStripeSignature(payload, sig, secret) {
     if (key === 't') timestamp = value;
     if (key === 'v1') signatures.push(value);
   });
+
+  if (!timestamp || !signatures.length) {
+    throw new Error('Malformed signature header');
+  }
+
+  // FIX W2: rechazar eventos viejos (anti-replay attack)
+  // Stripe recomienda ventana de 5 minutos
+  const tsMs = parseInt(timestamp, 10) * 1000;
+  if (isNaN(tsMs) || Math.abs(Date.now() - tsMs) > 5 * 60 * 1000) {
+    throw new Error('Timestamp outside tolerance window (possible replay attack)');
+  }
+
   const signedPayload = `${timestamp}.${payload}`;
   const expectedSig = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
-  if (!signatures.includes(expectedSig)) throw new Error('Invalid signature');
+  const expectedBuf = Buffer.from(expectedSig, 'hex');
+
+  // FIX W1: comparación timing-safe (recomendado por Stripe)
+  // Comparar con .includes() o === permite timing attacks que recuperan la firma byte a byte
+  let valid = false;
+  for (const sigHex of signatures) {
+    try {
+      const sigBuf = Buffer.from(sigHex, 'hex');
+      if (sigBuf.length === expectedBuf.length && crypto.timingSafeEqual(sigBuf, expectedBuf)) {
+        valid = true;
+        break;
+      }
+    } catch (e) {
+      // Ignorar firmas malformadas, seguir probando el resto
+    }
+  }
+  if (!valid) throw new Error('Invalid signature');
+
   return JSON.parse(payload);
 }
