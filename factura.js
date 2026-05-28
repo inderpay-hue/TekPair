@@ -595,10 +595,11 @@
       var tienda = emi.razon_social || emi.nombre || (window.TIENDA && window.TIENDA.nombre) || 'TekPair';
       var nombreArchivo = 'Factura_' + String(f.numero || 'sin-numero').replace(/[^a-zA-Z0-9_-]/g, '_') + '.pdf';
 
-      return fetch('/api/enviar-factura', {
+      return fetch('/api/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          tipo: 'factura',
           email: c.email,
           nombreCliente: c.nombre || 'Cliente',
           numero: f.numero || '',
