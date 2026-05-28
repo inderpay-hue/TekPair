@@ -11659,11 +11659,29 @@ async function cambiarPassword() {
   if (nueva !== nueva2) { toast('Las contrase\u00f1as nuevas no coinciden', 'err'); return; }
   if (nueva === actual) { toast('La nueva contrase\u00f1a no puede ser igual a la actual', 'err'); return; }
   if (typeof U === 'undefined' || !U || !U.email) { toast('No se pudo identificar tu usuario', 'err'); return; }
+  // FIX L1 frontend: el backend ahora exige session_token para cambiar contraseña.
+  // Lo leemos de tk_sess que guarda app.html al hacer login.
+  var sessLocal = {};
+  try { sessLocal = JSON.parse(localStorage.getItem('tk_sess') || '{}'); } catch(e){}
+  var sessionToken = sessLocal.token || '';
+  if (!sessionToken) {
+    toast('Sesi\u00f3n no detectada — vuelve a iniciar sesi\u00f3n', 'err');
+    return;
+  }
   try {
     var r = await fetch('/api/login', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'cambiar-password', email: U.email, password_actual: actual, password_nueva: nueva })
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + sessionToken
+      },
+      body: JSON.stringify({
+        action: 'cambiar-password',
+        email: U.email,
+        password_actual: actual,
+        password_nueva: nueva,
+        session_token: sessionToken
+      })
     });
     var data = await r.json();
     if (data && data.ok) {

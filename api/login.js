@@ -146,7 +146,29 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Configuración de servidor incompleta' });
     }
 
+    // FIX L1: exigir sesión válida antes de cambiar contraseña.
+    // Sin esto, cualquiera con email + password_actual (p.ej. tras phishing) podía
+    // cambiar la contraseña desde cualquier IP sin haber hecho login.
+    const sessionToken = req.headers.authorization?.replace('Bearer ', '') || req.body?.session_token;
+    if (!sessionToken) {
+      return res.status(401).json({ error: 'No autenticado' });
+    }
+
     try {
+      // Validar sesión: existe, no caducada, y pertenece al usuario que pide el cambio
+      const sR = await fetch(
+        `${SB_URL}/rest/v1/sesiones?token=eq.${encodeURIComponent(sessionToken)}&select=usuario_id,expires_at&limit=1`,
+        { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } }
+      );
+      const sesiones = await sR.json();
+      if (!sesiones.length) {
+        return res.status(401).json({ error: 'Sesión inválida' });
+      }
+      const sess = sesiones[0];
+      if (sess.expires_at && new Date(sess.expires_at) < new Date()) {
+        return res.status(401).json({ error: 'Sesión caducada' });
+      }
+
       const rcp = await fetch(
         `${SB_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(cpEmail)}&activo=eq.true&select=*`,
         { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } }
@@ -155,6 +177,13 @@ export default async function handler(req, res) {
       if (!usuariosCp.length) return res.json({ error: 'Usuario no encontrado' });
 
       const ucp = usuariosCp[0];
+
+      // FIX L1 (continuación): la sesión debe ser DEL MISMO usuario que el del email
+      // Sin esto, alguien con su propia sesión válida podría cambiar la contraseña de otro usuario
+      if (sess.usuario_id !== ucp.id) {
+        return res.status(403).json({ error: 'La sesión no corresponde a este usuario' });
+      }
+
       if (ucp.password_hash !== sha256(password_actual)) {
         return res.json({ error: 'La contraseña actual no es correcta' });
       }
@@ -175,6 +204,23 @@ export default async function handler(req, res) {
         console.error('Error actualizando contraseña:', await upcp.text());
         return res.status(500).json({ error: 'No se pudo actualizar la contraseña' });
       }
+
+      // FIX L7: invalidar TODAS las sesiones del usuario excepto la actual,
+      // por si la contraseña se cambió porque sospechaban robo.
+      // Las otras sesiones quedan inutilizadas, el usuario tiene que volver a loguearse.
+      try {
+        await fetch(
+          `${SB_URL}/rest/v1/sesiones?usuario_id=eq.${encodeURIComponent(ucp.id)}&token=neq.${encodeURIComponent(sessionToken)}`,
+          {
+            method: 'DELETE',
+            headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Prefer': 'return=minimal' }
+          }
+        );
+      } catch (e) {
+        // No bloqueante: si falla la limpieza de sesiones, el cambio de password ya está hecho
+        console.warn('No se pudieron invalidar sesiones tras cambio password:', e);
+      }
+
       return res.json({ ok: true });
     } catch (e) {
       console.error('cambiar-password error:', e);
@@ -267,6 +313,21 @@ export default async function handler(req, res) {
         console.error('Error en reset:', await ups.text());
         return res.status(500).json({ error: 'No se pudo restablecer la contraseña' });
       }
+
+      // FIX L7: tras reset (típicamente porque la contraseña se filtró),
+      // invalidar TODAS las sesiones del usuario para forzar nuevo login en todos los dispositivos.
+      try {
+        await fetch(
+          `${SB_URL}/rest/v1/sesiones?usuario_id=eq.${encodeURIComponent(urs.id)}`,
+          {
+            method: 'DELETE',
+            headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Prefer': 'return=minimal' }
+          }
+        );
+      } catch (e) {
+        console.warn('No se pudieron invalidar sesiones tras reset:', e);
+      }
+
       return res.json({ ok: true });
     } catch (e) {
       console.error('reset error:', e);
@@ -294,13 +355,16 @@ export default async function handler(req, res) {
       headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
     });
     const usuarios = await r.json();
-    if (!usuarios.length) return res.json({ error: 'Usuario no encontrado' });
 
+    // FIX L3: SIEMPRE hasheamos la contraseña aunque el usuario no exista,
+    // para que el tiempo de respuesta sea constante (anti-timing-attack)
+    // y devolvemos el mismo mensaje en ambos casos (anti-enumeración de emails).
+    const hash = crypto.createHash('sha256').update(password).digest('hex');
     const u = usuarios[0];
 
-    // 2. Verificar contraseña (sha256)
-    const hash = crypto.createHash('sha256').update(password).digest('hex');
-    if (u.password_hash !== hash) return res.json({ error: 'Contraseña incorrecta' });
+    if (!u || u.password_hash !== hash) {
+      return res.json({ error: 'Email o contraseña incorrectos' });
+    }
 
     // 3. Cargar tienda CON el plan
     const rt = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${u.tienda_id}&select=*`, {
