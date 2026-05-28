@@ -3,51 +3,85 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tekpair — Empieza ahora</title>
+<title>TekPair — Empieza ahora</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+:root{
+  --orange:#FF5B1F;--orange-d:#C2491A;--orange-l:#FFF1EB;--orange-br:#FFD9C9;
+  --ink:#020B2E;--ink-soft:#3D3A34;--muted:#5A6472;--faint:#8A94A6;
+  --paper:#F7F9FC;--paper-2:#EEF2F8;--line:#E2E8F0;--card:#FFFFFF;
+  --green:#00C896;--green-d:#0F7355;--red:#EF4444;
+  --sans:'Inter',-apple-system,system-ui,sans-serif;
+  --display:'Space Grotesk',var(--sans);
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;min-height:100vh}
-.hero{background:#020B2E;padding:40px 20px 60px;text-align:center;color:white}
-.logo{font-size:28px;font-weight:800;margin-bottom:8px}
-.hero h1{font-size:26px;font-weight:700;margin-bottom:10px;line-height:1.3}
-.hero p{color:rgba(255,255,255,.7);font-size:14px;max-width:400px;margin:0 auto}
-.plans{display:grid;grid-template-columns:1fr;gap:16px;padding:24px 16px;max-width:480px;margin:0 auto;margin-top:-30px}
-.plan{background:white;border-radius:14px;padding:22px;border:2px solid #E2E8F0;position:relative;cursor:pointer;transition:border-color .2s}
-.plan.popular{border-color:#0055FF}
-.plan-badge{position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:#0055FF;color:white;padding:3px 14px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
-.plan-name{font-size:18px;font-weight:700;margin-bottom:4px}
-.plan-price{font-size:32px;font-weight:800;color:#020B2E;margin-bottom:2px}
-.plan-price span{font-size:14px;font-weight:400;color:#64748B}
-.plan-desc{font-size:12px;color:#64748B;margin-bottom:14px}
-.plan-features{list-style:none;font-size:13px;color:#374151}
-.plan-features li{padding:4px 0;display:flex;align-items:center;gap:8px}
-.plan-features li::before{content:'✓';color:#00C896;font-weight:700}
-.plan-btn{width:100%;padding:13px;border-radius:9px;border:none;font-size:14px;font-weight:700;cursor:pointer;margin-top:16px;font-family:Arial}
-.plan-btn-main{background:#0055FF;color:white}
-.plan-btn-sec{background:#F1F5F9;color:#020B2E}
-.form-section{background:white;border-radius:14px;padding:22px;margin:0 16px 24px;max-width:448px;margin-left:auto;margin-right:auto;border:1px solid #E2E8F0;display:none}
-.form-section.show{display:block}
-.form-title{font-size:17px;font-weight:700;margin-bottom:16px}
-.fg{margin-bottom:12px}
-.fl{font-size:10px;font-weight:600;color:#64748B;text-transform:uppercase;display:block;margin-bottom:4px}
-.fi{width:100%;border:1.5px solid #E2E8F0;border-radius:8px;padding:11px 12px;font-family:Arial;font-size:14px;outline:none}
-.fi:focus{border-color:#0055FF}
-.btn-pagar{width:100%;padding:14px;border-radius:9px;border:none;background:#0055FF;color:white;font-size:15px;font-weight:700;cursor:pointer;font-family:Arial;margin-top:6px}
-.btn-pagar:disabled{background:#94A3B8;cursor:not-allowed}
-.err{color:#EF4444;font-size:12px;margin-top:8px;display:none}
-.plan-sel{background:#EBF1FF;border:1.5px solid #0055FF;border-radius:9px;padding:10px 14px;margin-bottom:14px;font-size:13px;display:flex;justify-content:space-between;align-items:center}
-.plan-sel strong{color:#0055FF}
-.trust{text-align:center;padding:0 16px 30px;color:#64748B;font-size:12px}
+body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height:100vh;-webkit-font-smoothing:antialiased}
+.hero{position:relative;background:var(--ink);padding:38px 20px 64px;text-align:center;color:#fff;overflow:hidden}
+.hero-aurora{position:absolute;inset:0;pointer-events:none;background:radial-gradient(500px circle at 30% 30%,rgba(255,91,31,.18),transparent 60%),radial-gradient(400px circle at 75% 70%,rgba(255,91,31,.10),transparent 55%)}
+.hero-grid{position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:30px 30px}
+.hero-in{position:relative;z-index:1}
+.logo{display:inline-flex;align-items:center;gap:10px;margin-bottom:18px}
+.logo-bolt{width:34px;height:34px;background:var(--orange);border-radius:9px;display:flex;align-items:center;justify-content:center}
+.logo-bolt svg{width:19px;height:19px;fill:#fff}
+.logo-txt{font-family:var(--display);font-size:21px;font-weight:700;letter-spacing:-.02em}
+.logo-txt span{color:var(--orange)}
+.hero h1{font-family:var(--display);font-size:27px;font-weight:700;margin-bottom:10px;line-height:1.2;letter-spacing:-.02em}
+.hero p{color:rgba(255,255,255,.65);font-size:14px;max-width:400px;margin:0 auto;line-height:1.5}
+.plans{display:grid;grid-template-columns:1fr;gap:14px;padding:0 16px;max-width:480px;margin:-36px auto 0}
+.plan{background:var(--card);border-radius:14px;padding:22px;border:1.5px solid var(--line);position:relative;cursor:pointer;transition:border-color .2s,transform .2s,box-shadow .2s;box-shadow:0 1px 3px rgba(2,11,46,.04)}
+.plan:hover{transform:translateY(-3px);box-shadow:0 16px 36px -12px rgba(2,11,46,.16);border-color:var(--orange-br)}
+.plan.popular{border:2px solid var(--orange)}
+.plan-badge{position:absolute;top:-11px;left:50%;transform:translateX(-50%);background:var(--orange);color:#fff;padding:4px 14px;border-radius:20px;font-size:10px;font-weight:700;white-space:nowrap;letter-spacing:.03em;display:inline-flex;align-items:center;gap:5px}
+.plan-badge svg{width:11px;height:11px;fill:#fff}
+.plan-name{font-family:var(--display);font-size:18px;font-weight:600;margin-bottom:4px}
+.plan-price{font-family:var(--display);font-size:32px;font-weight:700;color:var(--ink);margin-bottom:2px;letter-spacing:-.02em}
+.plan-price span{font-size:14px;font-weight:400;color:var(--muted);font-family:var(--sans)}
+.plan-desc{font-size:12px;color:var(--muted);margin-bottom:16px}
+.plan-features{list-style:none;font-size:13px;color:var(--ink-soft)}
+.plan-features li{padding:5px 0;display:flex;align-items:center;gap:9px}
+.plan-features li svg{width:15px;height:15px;fill:none;stroke:var(--green-d);stroke-width:2.5;flex-shrink:0}
+.plan-btn{width:100%;padding:13px;border-radius:9px;border:none;font-size:14px;font-weight:600;cursor:pointer;margin-top:18px;font-family:var(--sans);transition:transform .15s,box-shadow .15s}
+.plan-btn:hover{transform:translateY(-1px)}
+.plan-btn-main{background:var(--orange);color:#fff}
+.plan-btn-main:hover{box-shadow:0 10px 24px -8px rgba(255,91,31,.5)}
+.plan-btn-sec{background:var(--paper-2);color:var(--ink)}
+.plan-btn-sec:hover{background:var(--line)}
+.form-section{background:var(--card);border-radius:14px;padding:24px;margin:24px 16px;max-width:448px;margin-left:auto;margin-right:auto;border:1.5px solid var(--line);display:none;box-shadow:0 16px 40px -16px rgba(2,11,46,.16)}
+.form-section.show{display:block;animation:rise .5s cubic-bezier(.2,.7,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+.form-title{font-family:var(--display);font-size:18px;font-weight:600;margin-bottom:18px}
+.fg{margin-bottom:13px}
+.fl{font-size:10px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:5px}
+.fi{width:100%;border:1.5px solid var(--line);border-radius:9px;padding:12px;font-family:var(--sans);font-size:14px;outline:none;background:var(--paper);transition:border-color .15s,box-shadow .15s}
+.fi:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,91,31,.12);background:#fff}
+.btn-pagar{width:100%;padding:14px;border-radius:9px;border:none;background:var(--orange);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans);margin-top:6px;transition:transform .15s,box-shadow .15s}
+.btn-pagar:hover{transform:translateY(-1px);box-shadow:0 10px 24px -8px rgba(255,91,31,.5)}
+.btn-pagar:disabled{background:var(--faint);cursor:not-allowed;transform:none;box-shadow:none}
+.err{color:var(--red);font-size:12px;margin-top:8px;display:none}
+.plan-sel{background:var(--orange-l);border:1.5px solid var(--orange-br);border-radius:9px;padding:11px 14px;margin-bottom:16px;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
+.plan-sel strong{color:var(--orange-d)}
+.trust{text-align:center;padding:0 16px 40px;color:var(--muted);font-size:12px}
 .trust-items{display:flex;justify-content:center;gap:20px;margin-top:8px;flex-wrap:wrap}
-.trust-item{display:flex;align-items:center;gap:5px}
+.trust-item{display:flex;align-items:center;gap:6px}
+.trust-item svg{width:14px;height:14px;fill:none;stroke:var(--green-d);stroke-width:2.2}
+@media(prefers-reduced-motion:reduce){.form-section.show{animation:none}.plan:hover,.plan-btn:hover,.btn-pagar:hover{transform:none}}
 </style>
 </head>
 <body>
 
 <div class="hero">
-  <div class="logo">⚡ Tekpair</div>
-  <h1>Software para tiendas<br>de reparación móvil</h1>
-  <p>Gestiona ventas, reparaciones, stock y clientes desde cualquier dispositivo</p>
+  <div class="hero-aurora"></div>
+  <div class="hero-grid"></div>
+  <div class="hero-in">
+    <div class="logo">
+      <div class="logo-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></div>
+      <span class="logo-txt">Tek<span>Pair</span></span>
+    </div>
+    <h1>Software para tiendas<br>de reparación móvil</h1>
+    <p>Gestiona ventas, reparaciones, stock y clientes desde cualquier dispositivo</p>
+  </div>
 </div>
 
 <div class="plans" id="plansSection">
@@ -56,43 +90,43 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;min-height:10
     <div class="plan-price">€9,90<span>/mes</span></div>
     <div class="plan-desc">Para empezar</div>
     <ul class="plan-features">
-      <li>1 usuario</li>
-      <li>Ventas y reparaciones</li>
-      <li>Gestión de stock</li>
-      <li>Clientes y proveedores</li>
-      <li>Reportes básicos</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>1 usuario</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Ventas y reparaciones</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Gestión de stock</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Clientes y proveedores</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Reportes básicos</li>
     </ul>
     <button class="plan-btn plan-btn-sec">Elegir Básico</button>
   </div>
 
   <div class="plan popular" onclick="selPlan('pro',this)">
-    <div class="plan-badge">⭐ MÁS POPULAR</div>
+    <div class="plan-badge"><svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg> MÁS POPULAR</div>
     <div class="plan-name">Pro</div>
     <div class="plan-price">€19,90<span>/mes</span></div>
     <div class="plan-desc">Para negocios en crecimiento</div>
     <ul class="plan-features">
-      <li>Hasta 3 usuarios</li>
-      <li>Informe trimestral para gestor (modelo 303)</li>
-      <li>ZIP con facturas para gestoría</li>
-      <li>Gastos fijos automáticos</li>
-      <li>Cajas multi-servicio</li>
-      <li>Importar datos CSV</li>
-      <li>Soporte prioritario</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Hasta 3 usuarios</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Informe trimestral para gestor (modelo 303)</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>ZIP con facturas para gestoría</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Gastos fijos automáticos</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Cajas multi-servicio</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Importar datos CSV</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Soporte prioritario</li>
     </ul>
     <button class="plan-btn plan-btn-main">Elegir Pro</button>
   </div>
 
-  <div class="plan" onclick="selPlan('premium',this)">
+  <div class="plan" onclick="selPlan('top',this)">
     <div class="plan-name">Premium</div>
     <div class="plan-price">€34,90<span>/mes</span></div>
     <div class="plan-desc">Para equipos profesionales</div>
     <ul class="plan-features">
-      <li>Todo lo del plan Pro</li>
-      <li>Usuarios ilimitados</li>
-      <li>Citas online</li>
-      <li>Vista Kanban de reparaciones</li>
-      <li>Catálogo de servicios</li>
-      <li>Soporte prioritario</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Todo lo del plan Pro</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Usuarios ilimitados</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Citas online</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Vista Kanban de reparaciones</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Catálogo de servicios</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Soporte prioritario</li>
     </ul>
     <button class="plan-btn plan-btn-sec">Elegir Premium</button>
   </div>
@@ -102,23 +136,23 @@ body{font-family:Arial,sans-serif;background:#F7F9FC;color:#0F1729;min-height:10
   <div class="plan-sel">
     <span>Plan seleccionado:</span>
     <strong id="planNombre">---</strong>
-    <span id="planPrecio" style="color:#020B2E;font-weight:700"></span>
-    <button onclick="cambiarPlan()" style="background:none;border:none;color:#64748B;font-size:11px;cursor:pointer;text-decoration:underline">Cambiar</button>
+    <span id="planPrecio" style="color:var(--ink);font-weight:700"></span>
+    <button onclick="cambiarPlan()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline;font-family:var(--sans)">Cambiar</button>
   </div>
   <div class="form-title">Crea tu cuenta</div>
   <div class="fg"><label class="fl">Tu nombre *</label><input class="fi" id="rNom" placeholder="Juan García"/></div>
   <div class="fg"><label class="fl">Email *</label><input class="fi" id="rEmail" type="email" placeholder="juan@mitienda.com"/></div>
   <div class="fg"><label class="fl">Nombre de tu tienda *</label><input class="fi" id="rTienda" placeholder="Reparaciones García"/></div>
   <div class="err" id="rErr"></div>
-  <button class="btn-pagar" id="btnPagar" onclick="iniciarPago()">💳 Continuar al pago</button>
-  <p style="text-align:center;font-size:11px;color:#94A3B8;margin-top:12px">Pago seguro con Stripe · Cancela cuando quieras</p>
+  <button class="btn-pagar" id="btnPagar" onclick="iniciarPago()">Continuar al pago</button>
+  <p style="text-align:center;font-size:11px;color:var(--faint);margin-top:12px">Pago seguro con Stripe · No pagas hasta el día 15</p>
 </div>
 
 <div class="trust">
   <div class="trust-items">
-    <div class="trust-item">🔒 Pago seguro</div>
-    <div class="trust-item">✅ Sin permanencia</div>
-    <div class="trust-item">📱 Desde cualquier dispositivo</div>
+    <div class="trust-item"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Pago seguro</div>
+    <div class="trust-item"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg> Sin permanencia</div>
+    <div class="trust-item"><svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/></svg> Cualquier dispositivo</div>
   </div>
 </div>
 
@@ -127,7 +161,7 @@ var planSel = null;
 var PLANES = {
   basico: {nombre:'Básico', precio:'€9,90/mes'},
   pro: {nombre:'Pro', precio:'€19,90/mes'},
-  top: {nombre:'Top', precio:'€34,90/mes'}
+  top: {nombre:'Premium', precio:'€34,90/mes'}
 };
 
 function selPlan(id, el) {
@@ -178,13 +212,13 @@ async function iniciarPago() {
     } else {
       err.textContent = data.error || 'Error al procesar. Intenta de nuevo.';
       err.style.display = 'block';
-      btn.textContent = '💳 Continuar al pago';
+      btn.textContent = 'Continuar al pago';
       btn.disabled = false;
     }
   } catch(e) {
     err.textContent = 'Error de conexión. Intenta de nuevo.';
     err.style.display = 'block';
-    btn.textContent = '💳 Continuar al pago';
+    btn.textContent = 'Continuar al pago';
     btn.disabled = false;
   }
 }
