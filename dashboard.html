@@ -1893,7 +1893,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
   const Estado = {
     cajas: [],
-    fechaActual: new Date().toISOString().slice(0, 10),
+    fechaActual: hoyLocal(),
     cierres: {},
     cajaEditando: null,
     cierreEditando: null,
@@ -1915,9 +1915,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   }
   function $(id) { return document.getElementById(id); }
   function escapar(s) {
-    return String(s || '').replace(/[<>&"]/g, c => ({
-      '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;'
+    return String(s || '').replace(/[<>&"']/g, c => ({
+      '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;'
     }[c]));
+  }
+
+  // Devuelve la fecha de HOY en zona horaria LOCAL en formato YYYY-MM-DD.
+  // Evita el bug clásico de new Date().toISOString().slice(0,10) que da UTC.
+  function hoyLocal() {
+    var d = new Date();
+    return d.getFullYear() + '-' +
+           String(d.getMonth() + 1).padStart(2, '0') + '-' +
+           String(d.getDate()).padStart(2, '0');
   }
 
   // ── Init (se llama desde navTo('pCajas') ─────────
@@ -4540,6 +4549,24 @@ var SB_KEY = '';
 var JWT_TOKEN = '';
 var TIENDA_ID = '';
 var U = null;
+
+// ═══ HELPERS DE FECHA ═══
+// Devuelve la fecha de HOY en zona horaria LOCAL en formato YYYY-MM-DD.
+// Reemplaza el patrón roto new Date().toISOString().slice(0,10) que da UTC.
+function hoyLocal() {
+  var d = new Date();
+  return d.getFullYear() + '-' +
+         String(d.getMonth() + 1).padStart(2, '0') + '-' +
+         String(d.getDate()).padStart(2, '0');
+}
+
+// Escape HTML para prevenir XSS en innerHTML.
+// Escapa <, >, &, ", '. Devuelve '' si entrada es null/undefined.
+function escHtml(s) {
+  return String(s == null ? '' : s).replace(/[<>&"']/g, function(c) {
+    return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c];
+  });
+}
 var TIENDA = {
   nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',
   garantia:'',politica:'',logo_url:'',
@@ -4785,7 +4812,14 @@ async function abrirStripePortal() {
     });
     var data = await r.json();
     if (data.ok && data.url) {
-      window.location.href = data.url;
+      // Validar que la URL sea de Stripe para prevenir open redirect
+      if (/^https:\/\/billing\.stripe\.com\//.test(data.url) ||
+          /^https:\/\/checkout\.stripe\.com\//.test(data.url)) {
+        window.location.href = data.url;
+      } else {
+        console.warn('URL de portal no válida:', data.url);
+        toast('URL de portal no válida', 'err');
+      }
     } else {
       toast(data.error || 'No se pudo abrir el portal', 'err');
     }
@@ -4966,7 +5000,7 @@ window.addEventListener('DOMContentLoaded', function() {
   });
 
   // Set today date for gasto
-  document.getElementById('gFecha').value = new Date().toISOString().split('T')[0];
+  document.getElementById('gFecha').value = hoyLocal();
 });
 
 function setSidebarActive(el) {
@@ -5119,10 +5153,28 @@ function cargarDatosLocal() {
 }
 
 function guardarDatos() {
-  localStorage.setItem('tk_db', JSON.stringify(DB));
-  var tiendaData = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
-  tiendaData.nombre = TIENDA.nombre;
-  localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
+  try {
+    localStorage.setItem('tk_db', JSON.stringify(DB));
+    var tiendaData = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
+    tiendaData.nombre = TIENDA.nombre;
+    localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
+  } catch(e) {
+    console.error('Error guardarDatos (localStorage):', e);
+    // Cuota agotada: intentar liberar espacio cortando el audit log a la mitad
+    if (e && (e.name === 'QuotaExceededError' || e.code === 22 || (e.message||'').indexOf('quota') >= 0)) {
+      if (DB.audit && DB.audit.length > 100) {
+        DB.audit = DB.audit.slice(0, Math.floor(DB.audit.length / 2));
+        try {
+          localStorage.setItem('tk_db', JSON.stringify(DB));
+          if (typeof toast === 'function') toast('⚠ Almacenamiento lleno: se redujo el historial', 'err');
+        } catch(e2) {
+          if (typeof toast === 'function') toast('⚠ Almacenamiento lleno - no se pudo guardar', 'err');
+        }
+      } else {
+        if (typeof toast === 'function') toast('⚠ Almacenamiento lleno - no se pudo guardar', 'err');
+      }
+    }
+  }
   if (typeof refreshNotifs === 'function') refreshNotifs();
 }
 
@@ -5415,7 +5467,8 @@ function mapRep(r) {
     iva:parseFloat(r.iva)||0, ivaModo:r.iva_modo||'sin', base:parseFloat(r.base)||0, ivaImporte:parseFloat(r.iva_importe)||0,
     componentes: r.componentes ? (typeof r.componentes === 'string' ? JSON.parse(r.componentes) : r.componentes) : [],
     servicios: r.servicios ? (typeof r.servicios === 'string' ? JSON.parse(r.servicios) : r.servicios) : [],
-    esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||''
+    esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||'',
+    piezasDevueltas: r.piezas_devueltas === true
   };
 }
 
@@ -5426,7 +5479,9 @@ function mapStock(s) {
     imei:s.imei||'', unidades:parseInt(s.unidades)||0,
     stockMin:parseInt(s.stock_min)||2, stockMax:parseInt(s.stock_max)||10,
     precioC:parseFloat(s.precio_c)||0, precioV:parseFloat(s.precio_v)||0,
-    vendido:s.vendido||false, calidad:s.calidad||''
+    vendido:s.vendido||false, calidad:s.calidad||'',
+    tipo: s.tipo || 'nuevo', garantiaMeses: parseInt(s.garantia_meses)||0,
+    ubicacion: s.ubicacion || null
   };
 }
 
@@ -5491,9 +5546,11 @@ function refrescarVistasActivas() {
 
 // Sync completa: descarga + refresco de pantalla
 var _syncEnCurso = false;
+var _syncPausado = false; // se activa durante restauración/import para evitar pisado
 async function syncCompleto(silencioso) {
   if (_sesionExpirada) return;
   if (_syncEnCurso) return;
+  if (_syncPausado) return;
   if (!SB_KEY || !TIENDA_ID) return;
   _syncEnCurso = true;
   try {
@@ -5530,6 +5587,8 @@ function forzarRelogin() {
 
 (function interceptarFetch401() {
   if (typeof window.fetch !== 'function') return;
+  if (window.__tkFetchInterceptado) return;
+  window.__tkFetchInterceptado = true;
   var origFetch = window.fetch;
   window.fetch = function(url, options) {
     var urlStr = '';
@@ -6480,7 +6539,7 @@ function renderWidgetClisInactivos() {
     html += '</div>';
     if (it.cli.tel) {
       var msg = encodeURIComponent('Hola ' + (it.cli.nombre || '') + ', ¿qué tal? Te escribo desde ' + (TIENDA.nombre || 'la tienda') + '.');
-      html += '<a href="https://wa.me/' + it.cli.tel.replace(/\D/g,'') + '?text=' + msg + '" target="_blank" class="btn-sm" style="background:#25D366;color:white;font-size:11px;padding:4px 10px;text-decoration:none">💬 Saludar</a>';
+      html += '<a href="https://wa.me/' + it.cli.tel.replace(/\D/g,'') + '?text=' + msg + '" target="_blank" rel="noopener noreferrer" class="btn-sm" style="background:#25D366;color:white;font-size:11px;padding:4px 10px;text-decoration:none">💬 Saludar</a>';
     }
     html += '</div>';
   });
@@ -6593,15 +6652,23 @@ function guardarVenta() {
     entrada = parseFloat(document.getElementById('vEntrada').value) || 0;
     var numCuotas = parseInt(document.getElementById('vNumCuotas').value) || 3;
     var diaPago = parseInt(document.getElementById('vDiaPago').value) || 8;
-    var montoCuota = (total - entrada) / numCuotas;
+    // Cuotas redondeadas a 2 decimales; el residuo se mete en la última cuota
+    // para que la suma de cuotas + entrada == total exactamente.
+    var pendiente = Math.round((total - entrada) * 100) / 100;
+    var montoCuota = Math.round((pendiente / numCuotas) * 100) / 100;
     cuotas = [];
     for (var i = 0; i < numCuotas; i++) {
       var fechaCuota = new Date();
       fechaCuota.setMonth(fechaCuota.getMonth() + i + 1);
       fechaCuota.setDate(diaPago);
+      var importeCuota = montoCuota;
+      if (i === numCuotas - 1) {
+        // Última cuota: ajustar para que la suma cuadre exactamente
+        importeCuota = Math.round((pendiente - montoCuota * (numCuotas - 1)) * 100) / 100;
+      }
       cuotas.push({
         num: i + 1,
-        importe: montoCuota,
+        importe: importeCuota,
         fecha: fechaCuota.toLocaleDateString('es'),
         pagado: false,
         formaPago: '',
@@ -6636,7 +6703,17 @@ function guardarVenta() {
   // Reduce stock
   if (SEL.vStock && !SEL.vStock.esServicio) {
     var s = DB.stock.find(function(x) { return x.id === SEL.vStock.id; });
-    if (s) { s.unidades = Math.max(0, s.unidades - 1); if (s.unidades === 0) s.vendido = true; }
+    if (s) {
+      s.unidades = Math.max(0, s.unidades - 1);
+      if (s.unidades === 0) s.vendido = true;
+      // Sincronizar con Supabase para que no quede inconsistente
+      if (SB_KEY && TIENDA_ID) {
+        sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
+          unidades: s.unidades,
+          vendido: s.vendido
+        });
+      }
+    }
   }
 
   DB.ventas.push(venta);
@@ -6769,7 +6846,18 @@ function reembolsarVenta(id) {
   v.fechaReembolso = new Date().toLocaleDateString('es');
   if (v.stockId) {
     var s = DB.stock.find(function(x) { return x.id === v.stockId; });
-    if (s) s.unidades = (s.unidades || 0) + 1;
+    if (s) {
+      s.unidades = (s.unidades || 0) + 1;
+      // Si volvía a tener unidades, marcar como no vendido
+      if (s.unidades > 0 && s.vendido) s.vendido = false;
+      // Sincronizar con Supabase
+      if (SB_KEY && TIENDA_ID) {
+        sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
+          unidades: s.unidades,
+          vendido: s.vendido
+        });
+      }
+    }
   }
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + id, {reembolsado: true, fecha_reembolso: v.fechaReembolso});
@@ -7724,9 +7812,9 @@ function busComp() {
   });
   res.innerHTML = matches.slice(0, 5).map(function(s) {
     var ya = SEL.selParts.find(function(p) { return p.id === s.id; });
-    return '<div class="cli-item" data-sid="' + s.id + '" style="' + (ya ? 'background:rgba(0,200,150,.06)' : '') + '">' +
-      '<span style="background:var(--light);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;color:var(--muted);margin-right:6px">' + (s.categoria || 'Otro') + '</span>' +
-      s.modelo + ' (' + s.marca + ')' + (s.color ? ' · ' + s.color : '') + ' · Stock: ' + s.unidades + (ya ? ' ✓' : '') +
+    return '<div class="cli-item" data-sid="' + escHtml(s.id) + '" style="' + (ya ? 'background:rgba(0,200,150,.06)' : '') + '">' +
+      '<span style="background:var(--light);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;color:var(--muted);margin-right:6px">' + escHtml(s.categoria || 'Otro') + '</span>' +
+      escHtml(s.modelo) + ' (' + escHtml(s.marca) + ')' + (s.color ? ' · ' + escHtml(s.color) : '') + ' · Stock: ' + s.unidades + (ya ? ' ✓' : '') +
       '<span style="float:right;color:var(--green);font-weight:700">' + cur(s.precioV) + '</span></div>';
   }).join('');
   if (matches.length) res.classList.add('open');
@@ -7749,7 +7837,7 @@ function addPart(id) {
 function renderParts() {
   document.getElementById('partsList').innerHTML = SEL.selParts.map(function(p, i) {
     return '<div class="part-item">' +
-      '<span>' + p.nombre + '</span>' +
+      '<span>' + escHtml(p.nombre) + '</span>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<input type="number" step="0.01" min="0" data-idx="' + i + '" class="part-precio" value="' + (p.precio || 0) + '" style="width:74px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:12px;text-align:right;color:var(--green);font-weight:700">' +
       '<button data-idx="' + i + '" class="part-del" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px">\u00d7</button>' +
@@ -8771,20 +8859,23 @@ function cambiarEstado(id, estado) {
   var entrandoCancelacion = ESTADOS_DEVOLVER_STOCK.indexOf(estado) >= 0 && ESTADOS_DEVOLVER_STOCK.indexOf(estadoAnterior) < 0;
   var saliendoCancelacion = ESTADOS_DEVOLVER_STOCK.indexOf(estado) < 0 && ESTADOS_DEVOLVER_STOCK.indexOf(estadoAnterior) >= 0;
 
+  // Construir patch unificado (atómico): estado + piezas_devueltas en una sola llamada
+  var patchUnificado = { estado: estado };
+
   if (entrandoCancelacion && Array.isArray(r.componentes) && r.componentes.length && !r.piezasDevueltas) {
     aplicarCambioStockPiezas(r.componentes, []);
     r.piezasDevueltas = true;
+    patchUnificado.piezas_devueltas = true;
     toast('Piezas devueltas al stock', 'ok');
-    if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, {piezas_devueltas: true});
   } else if (saliendoCancelacion && Array.isArray(r.componentes) && r.componentes.length && r.piezasDevueltas) {
     aplicarCambioStockPiezas([], r.componentes);
     r.piezasDevueltas = false;
+    patchUnificado.piezas_devueltas = false;
     toast('Piezas re-descontadas del stock', 'ok');
-    if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, {piezas_devueltas: false});
   }
 
   guardarDatos();
-  if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, {estado: estado});
+  if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, patchUnificado);
   if (entrandoCancelacion) { _ofrecerAbonoFactura('reparacion', r.id); }
   toast('Estado actualizado', 'ok');
   audit('cambio_estado', 'reparacion', r.id, r.clienteNombre + ' · ' + (r.modelo||'') + ' · ' + estadoAnterior + ' → ' + estado, {antes:estadoAnterior, despues:estado});
@@ -9068,13 +9159,15 @@ function busModeloStock() {
   }
 
   res.innerHTML = matches.map(function(m){
-    var label = (m.marca||'') + ' ' + (m.modelo||'');
+    var marca = m.marca || '';
+    var modelo = m.modelo || '';
+    var label = marca + ' ' + modelo;
     var tag = m.custom
       ? '<span style="font-size:9px;background:rgba(255,91,31,.12);color:var(--purple);padding:2px 6px;border-radius:4px;margin-left:6px">tuyo</span>'
       : '';
-    return '<div class="cli-item" data-marca="' + (m.marca||'').replace(/"/g,'&quot;') + '" data-modelo="' + (m.modelo||'').replace(/"/g,'&quot;') + '">' +
-      '<strong>' + label + '</strong>' + tag +
-      (m.cat ? '<span style="float:right;color:var(--muted);font-size:10px">' + m.cat + '</span>' : '') +
+    return '<div class="cli-item" data-marca="' + escHtml(marca) + '" data-modelo="' + escHtml(modelo) + '">' +
+      '<strong>' + escHtml(label) + '</strong>' + tag +
+      (m.cat ? '<span style="float:right;color:var(--muted);font-size:10px">' + escHtml(m.cat) + '</span>' : '') +
       '</div>';
   }).join('');
   res.classList.add('open');
@@ -9122,6 +9215,7 @@ function guardarStock() {
           capacidad: s.capacidad, color: s.color, imei: s.imei,
           unidades: s.unidades, stock_min: s.stockMin, stock_max: s.stockMax,
           precio_c: s.precioC, precio_v: s.precioV,
+          tipo: s.tipo || 'nuevo', garantia_meses: parseInt(s.garantiaMeses)||0,
           ubicacion: s.ubicacion || null
         });
       }
@@ -9152,6 +9246,7 @@ function guardarStock() {
       color:nuevo.color, imei:nuevo.imei, unidades:nuevo.unidades,
       precio_c:nuevo.precioC, precio_v:nuevo.precioV,
       stock_min:nuevo.stockMin, stock_max:nuevo.stockMax, vendido:false,
+      tipo: nuevo.tipo || 'nuevo', garantia_meses: parseInt(nuevo.garantiaMeses)||0,
       ubicacion: nuevo.ubicacion || null
     });
   }
@@ -11667,14 +11762,16 @@ function calcIVA(precio, tipoIva) {
   if (isNaN(t)) t = AJUSTES.iva.tipoDefault || 0;
   var modo = AJUSTES.iva.modo || 'incluido';
   var base, iva, total;
+  // Redondeo a 2 decimales — exigido por Verifactu y para evitar descuadres
+  var r2 = function(n) { return Math.round(n * 100) / 100; };
   if (modo === 'incluido') {
-    base = precio / (1 + t/100);
-    iva = precio - base;
-    total = precio;
+    base = r2(precio / (1 + t/100));
+    total = r2(precio);
+    iva = r2(total - base);
   } else { // anadido
-    base = precio;
-    iva = precio * t/100;
-    total = precio + iva;
+    base = r2(precio);
+    iva = r2(precio * t/100);
+    total = r2(base + iva);
   }
   return {base: base, iva: iva, total: total, tipo: t, modo: modo};
 }
@@ -11862,7 +11959,8 @@ async function _pullTiendaCompleta() {
       garantiaDias: t.garantia_dias || 90,
       garantiaVentas: t.garantia_ventas || '', politicaVentas: t.politica_ventas || '',
       plantillasRep: (t.plantillas_rep ? (typeof t.plantillas_rep === 'string' ? JSON.parse(t.plantillas_rep) : t.plantillas_rep) : null),
-      logo_url: t.logo_url || ''
+      logo_url: t.logo_url || '',
+      citas_slug: t.citas_slug || ''
     };
     Object.assign(TIENDA, tiendaData);
     localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
@@ -13508,6 +13606,25 @@ function parseCSV(text) {
   return {headers: headers, rows: rows};
 }
 
+// Sube en lote a Supabase un array de entidades (insert/upsert).
+// Usado tras restaurar backup o importar CSV para que el sync remoto no pise.
+// Devuelve número de inserts OK.
+async function subirEntidadesASupabase(table, entidades, mapper) {
+  if (!SB_KEY || !TIENDA_ID || !entidades || !entidades.length) return 0;
+  var ok = 0;
+  for (var i = 0; i < entidades.length; i++) {
+    try {
+      var payload = mapper ? mapper(entidades[i]) : entidades[i];
+      payload.tienda_id = TIENDA_ID;
+      var r = await _sbPostRaw(table, payload);
+      if (r) ok++;
+    } catch(e) {
+      console.warn('subirEntidades ' + table + ' fallo:', e);
+    }
+  }
+  return ok;
+}
+
 function procesarImport() {
   var file = document.getElementById('importFile').files[0];
   if (!file) { toast('Selecciona un archivo', 'err'); return; }
@@ -13523,6 +13640,7 @@ function procesarImport() {
     var badTels = ['0','1','2','6','7','12','15','22','24','28','33','41','44','45','48','54','55','66','111','123','444','777'];
     if (tipo === 'clientes') {
       var added = 0; var dupes = 0;
+      var nuevosCli = [];
       rows.forEach(function(row) {
         var nom = '', ape = '', tel = '', email = '', dni = '';
         if (isStdContacts) {
@@ -13546,14 +13664,28 @@ function procesarImport() {
         if (!nom) return;
         var existe = DB.clis.find(function(c) { return c.tel && c.tel === tel && tel.length > 5; });
         if (existe) { dupes++; return; }
-        DB.clis.push({id: 'c' + Date.now() + Math.random().toString(36).slice(2), nombre: nom, apellidos: ape, tel: tel, email: email, dni: dni});
+        var nuevoCli = {id: 'c' + Date.now() + Math.random().toString(36).slice(2), nombre: nom, apellidos: ape, tel: tel, email: email, dni: dni};
+        DB.clis.push(nuevoCli);
+        nuevosCli.push(nuevoCli);
         added++;
       });
       guardarDatos();
-      toast(added + ' clientes importados' + (dupes ? ', ' + dupes + ' duplicados' : ''), 'ok');
+      // Subir a Supabase para que el próximo sync no los pise
+      if (SB_KEY && TIENDA_ID && nuevosCli.length) {
+        _syncPausado = true;
+        subirEntidadesASupabase('clientes', nuevosCli, function(c) {
+          return {id: c.id, nombre: c.nombre, apellidos: c.apellidos, tel: c.tel, email: c.email, dni: c.dni};
+        }).then(function(okN) {
+          _syncPausado = false;
+          toast(added + ' clientes importados (' + okN + ' subidos al servidor)' + (dupes ? ', ' + dupes + ' duplicados' : ''), 'ok');
+        });
+      } else {
+        toast(added + ' clientes importados' + (dupes ? ', ' + dupes + ' duplicados' : ''), 'ok');
+      }
       navTo('pClis');
     } else if (tipo === 'stock') {
       var added2 = 0;
+      var nuevosStock = [];
       rows.forEach(function(row) {
         var nombre = '', marca = '', modelo = '', cat = 'Telefono', precioV = 0, precioC = 0, uds = 0;
         if (isStdProducts) {
@@ -13575,16 +13707,32 @@ function procesarImport() {
           precioC = parseFloat(row.precio_compra || row.Cost || '0') || 0;
           uds = parseInt(row.unidades || row.Quantity || '1') || 1;
         }
-        DB.stock.push({
+        var nuevoStock = {
           id: 's' + Date.now() + Math.random().toString(36).slice(2),
           categoria: cat, marca: marca, modelo: modelo, imei: '',
           unidades: uds, precioV: precioV, precioC: precioC,
           vendido: false, stockMin: 2, stockMax: 10, calidad: ''
-        });
+        };
+        DB.stock.push(nuevoStock);
+        nuevosStock.push(nuevoStock);
         added2++;
       });
       guardarDatos();
-      toast(added2 + ' productos importados', 'ok');
+      if (SB_KEY && TIENDA_ID && nuevosStock.length) {
+        _syncPausado = true;
+        subirEntidadesASupabase('stock', nuevosStock, function(s) {
+          return {
+            id: s.id, categoria: s.categoria, marca: s.marca, modelo: s.modelo,
+            imei: s.imei, unidades: s.unidades, precio_v: s.precioV, precio_c: s.precioC,
+            vendido: s.vendido, stock_min: s.stockMin, stock_max: s.stockMax
+          };
+        }).then(function(okN) {
+          _syncPausado = false;
+          toast(added2 + ' productos importados (' + okN + ' subidos al servidor)', 'ok');
+        });
+      } else {
+        toast(added2 + ' productos importados', 'ok');
+      }
       navTo('pStock');
     }
   };
@@ -13592,12 +13740,18 @@ function procesarImport() {
 }
 
 function restaurarBackup() {
+  if (!tienePerm('herramientas_backup')) { toast('Sin permiso', 'err'); return; }
   var file = document.getElementById('backupFile').files[0];
   if (!file) { toast('Selecciona un archivo', 'err'); return; }
+  if (!confirm('⚠️ RESTAURAR BACKUP\n\nEsto SOBREESCRIBIRÁ todos tus datos actuales (clientes, ventas, reparaciones, stock, gastos, proveedores) con los del archivo.\n\nEsta acción NO se puede deshacer.\n\n¿Quieres continuar?')) {
+    return;
+  }
   var reader = new FileReader();
-  reader.onload = function(e) {
+  reader.onload = async function(e) {
     try {
       var data = JSON.parse(e.target.result);
+      // Pausar sync para que no pise lo recién restaurado
+      _syncPausado = true;
       if (data.ventas) DB.ventas = data.ventas;
       if (data.reps) DB.reps = data.reps;
       if (data.stock) DB.stock = data.stock;
@@ -13605,10 +13759,55 @@ function restaurarBackup() {
       if (data.gastos) DB.gastos = data.gastos;
       if (data.provs) DB.provs = data.provs;
       guardarDatos();
+      // Subir todo a Supabase para que el sync remoto no pise
+      if (SB_KEY && TIENDA_ID) {
+        toast('Subiendo datos al servidor...', 'ok');
+        try {
+          await subirEntidadesASupabase('clientes', DB.clis, function(c) {
+            return {id: c.id, nombre: c.nombre||'', apellidos: c.apellidos||'', tel: c.tel||'', email: c.email||'', dni: c.dni||'', dir_fiscal: c.direccion||c.dirFiscal||''};
+          });
+          await subirEntidadesASupabase('stock', DB.stock, function(s) {
+            return {
+              id: s.id, categoria: s.categoria||'Telefono', marca: s.marca||'', modelo: s.modelo||'',
+              capacidad: s.capacidad||'', color: s.color||'', imei: s.imei||'',
+              unidades: parseInt(s.unidades)||0, precio_c: parseFloat(s.precioC)||0, precio_v: parseFloat(s.precioV)||0,
+              stock_min: parseInt(s.stockMin)||2, stock_max: parseInt(s.stockMax)||10, vendido: !!s.vendido
+            };
+          });
+          await subirEntidadesASupabase('ventas', DB.ventas, function(v) {
+            return {
+              id: v.id, fecha: v.fecha, cliente_id: v.clienteId||null, cliente_nombre: v.clienteNombre||'',
+              marca: v.marca||'', modelo: v.modelo||'', imei: v.imei||'',
+              pago: v.pago||'Efectivo', precio: parseFloat(v.precio)||0, descuento: parseFloat(v.descuento)||0,
+              total: parseFloat(v.total)||0, reembolsado: !!v.reembolsado
+            };
+          });
+          await subirEntidadesASupabase('reparaciones', DB.reps, function(r) {
+            return {
+              id: r.id, fecha: r.fecha, cliente_id: r.clienteId||null, cliente_nombre: r.clienteNombre||'',
+              marca: r.marca||'', modelo: r.modelo||'', imei: r.imei||'',
+              averia: r.averia||'', estado: r.estado||'Pendiente', prioridad: r.prioridad||'Normal',
+              total: parseFloat(r.total)||0, anticipo: parseFloat(r.anticipo)||0, restante: parseFloat(r.restante)||0
+            };
+          });
+          await subirEntidadesASupabase('proveedores', DB.provs, function(p) {
+            return {id: p.id, nombre: p.nombre||'', tel: p.tel||'', email: p.email||'', cif: p.cif||''};
+          });
+          await subirEntidadesASupabase('gastos', DB.gastos, function(g) {
+            return {id: g.id, fecha: g.fecha, concepto: g.concepto||'', importe: parseFloat(g.importe)||0, categoria: g.categoria||''};
+          });
+        } catch(e2) {
+          console.error('Error subiendo backup:', e2);
+        }
+      }
+      _syncPausado = false;
       renderDash();
-      toast('Backup restaurado', 'ok');
+      toast('Backup restaurado correctamente', 'ok');
       navTo('pDash');
-    } catch(err) { toast('Error al leer el archivo', 'err'); }
+    } catch(err) {
+      _syncPausado = false;
+      toast('Error al leer el archivo', 'err');
+    }
   };
   reader.readAsText(file);
 }
@@ -13823,7 +14022,7 @@ async function exportarTodo() {
         ventas: DB.ventas || [],
         stock: DB.stock || [],
         servicios: DB.servicios || [],
-        proveedores: DB.proveedores || [],
+        proveedores: DB.provs || [],
         usuarios: DB.usuarios || []
       }
     };
@@ -13862,7 +14061,12 @@ async function exportarTodo() {
 function generarCSV(tipo) {
   function esc(s) {
     if (s == null) return '';
-    s = String(s).replace(/"/g, '""');
+    s = String(s);
+    // Anti formula-injection: si empieza con =, +, -, @, TAB o CR, prefijar con apóstrofe
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;
+    // Escapar comillas dobles duplicándolas (RFC 4180)
+    s = s.replace(/"/g, '""');
+    // Las comillas envolventes manejan saltos de línea y comas; pero garantizamos siempre envolver
     return '"' + s + '"';
   }
   if (tipo === 'clientes') {
@@ -13894,6 +14098,7 @@ function generarCSV(tipo) {
 }
 
 function exportarCSV(tipo) {
+  if (!tienePerm('herramientas_backup')) { toast('Sin permiso', 'err'); return; }
   var csv = generarCSV(tipo);
   if (!csv) { toast('Tipo no válido', 'err'); return; }
   // BOM para que Excel lo lea bien con tildes
@@ -13928,13 +14133,16 @@ async function importarBackup(event) {
 
     if (!json.datos) { toast('Archivo de backup no válido', 'err'); return; }
 
-    // Restaurar
+    // Pausar sync para que no pise lo restaurado
+    _syncPausado = true;
+
+    // Restaurar — OJO: DB.provs (no DB.proveedores) es la propiedad real usada por el código
     if (json.datos.clientes) DB.clis = json.datos.clientes;
     if (json.datos.reparaciones) DB.reps = json.datos.reparaciones;
     if (json.datos.ventas) DB.ventas = json.datos.ventas;
     if (json.datos.stock) DB.stock = json.datos.stock;
     if (json.datos.servicios) DB.servicios = json.datos.servicios;
-    if (json.datos.proveedores) DB.proveedores = json.datos.proveedores;
+    if (json.datos.proveedores) DB.provs = json.datos.proveedores;
     if (json.datos.usuarios) DB.usuarios = json.datos.usuarios;
     if (json.tienda) Object.assign(TIENDA, json.tienda);
     if (json.ajustes) Object.assign(AJUSTES, json.ajustes);
@@ -13942,9 +14150,50 @@ async function importarBackup(event) {
     guardarDatos();
     if (typeof guardarTiendaLocal === 'function') guardarTiendaLocal();
 
+    // Subir a Supabase para que la próxima sincronización no pise los datos restaurados
+    if (SB_KEY && TIENDA_ID) {
+      toast('Subiendo datos al servidor...', 'ok');
+      try {
+        await subirEntidadesASupabase('clientes', DB.clis, function(c) {
+          return {id: c.id, nombre: c.nombre||'', apellidos: c.apellidos||'', tel: c.tel||'', email: c.email||'', dni: c.dni||'', dir_fiscal: c.direccion||c.dirFiscal||''};
+        });
+        await subirEntidadesASupabase('stock', DB.stock, function(s) {
+          return {
+            id: s.id, categoria: s.categoria||'Telefono', marca: s.marca||'', modelo: s.modelo||'',
+            capacidad: s.capacidad||'', color: s.color||'', imei: s.imei||'',
+            unidades: parseInt(s.unidades)||0, precio_c: parseFloat(s.precioC)||0, precio_v: parseFloat(s.precioV)||0,
+            stock_min: parseInt(s.stockMin)||2, stock_max: parseInt(s.stockMax)||10, vendido: !!s.vendido
+          };
+        });
+        await subirEntidadesASupabase('ventas', DB.ventas, function(v) {
+          return {
+            id: v.id, fecha: v.fecha, cliente_id: v.clienteId||null, cliente_nombre: v.clienteNombre||'',
+            marca: v.marca||'', modelo: v.modelo||'', imei: v.imei||'',
+            pago: v.pago||'Efectivo', precio: parseFloat(v.precio)||0, descuento: parseFloat(v.descuento)||0,
+            total: parseFloat(v.total)||0, reembolsado: !!v.reembolsado
+          };
+        });
+        await subirEntidadesASupabase('reparaciones', DB.reps, function(r) {
+          return {
+            id: r.id, fecha: r.fecha, cliente_id: r.clienteId||null, cliente_nombre: r.clienteNombre||'',
+            marca: r.marca||'', modelo: r.modelo||'', imei: r.imei||'',
+            averia: r.averia||'', estado: r.estado||'Pendiente', prioridad: r.prioridad||'Normal',
+            total: parseFloat(r.total)||0, anticipo: parseFloat(r.anticipo)||0, restante: parseFloat(r.restante)||0
+          };
+        });
+        await subirEntidadesASupabase('proveedores', DB.provs, function(p) {
+          return {id: p.id, nombre: p.nombre||'', tel: p.tel||'', email: p.email||'', cif: p.cif||''};
+        });
+      } catch(e2) {
+        console.error('Error subiendo backup:', e2);
+      }
+    }
+
+    _syncPausado = false;
     toast('✓ Backup restaurado. Recarga la página.', 'ok');
-    setTimeout(function(){ location.reload(); }, 1200);
+    setTimeout(function(){ location.reload(); }, 1500);
   } catch(e) {
+    _syncPausado = false;
     console.error('Error importar:', e);
     toast('Error al importar: ' + e.message, 'err');
   }
@@ -14065,7 +14314,7 @@ function setCitasFiltro(el) {
 async function syncCitas() {
   if (!SB_KEY || !TIENDA_ID) return;
   try {
-    var rows = await sbGet('citas?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&order=fecha.asc,hora.asc&select=*');
+    var rows = await sbGet('citas', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&order=fecha.asc,hora.asc');
     DB.citas = rows || [];
     guardarDatos();
     renderCitas();
@@ -14074,8 +14323,7 @@ async function syncCitas() {
 }
 
 function actualizarBadgeCitas() {
-  var hoy = new Date();
-  var hoyStr = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + String(hoy.getDate()).padStart(2,'0');
+  var hoyStr = hoyLocal();
   var pendHoy = (DB.citas || []).filter(function(c){ return c.fecha === hoyStr && c.estado === 'pendiente'; });
   var b = document.getElementById('sidebarCitasBadge');
   if (b) {
@@ -14093,8 +14341,7 @@ function renderCitas() {
   if (!lista) return;
   if (!DB.citas) DB.citas = [];
 
-  var hoy = new Date();
-  var hoyStr = hoy.getFullYear() + '-' + String(hoy.getMonth()+1).padStart(2,'0') + '-' + String(hoy.getDate()).padStart(2,'0');
+  var hoyStr = hoyLocal();
 
   var filtradas = DB.citas.slice().filter(function(c) {
     if (SEL_CITAS_FILTRO === 'hoy') return c.fecha === hoyStr && c.estado !== 'cancelada';
@@ -14176,7 +14423,7 @@ function abrirCita(id) {
   if (c.cliente_tel) {
     var msg = encodeURIComponent('Hola ' + (c.cliente_nombre || '') + ', te confirmo tu cita el ' + fechaTxt + ' a las ' + (c.hora||'') + ' en ' + (TIENDA.nombre||'') + '. ¡Te esperamos!');
     var tel = c.cliente_tel.replace(/[^0-9]/g, '');
-    html += '<a href="https://wa.me/' + tel + '?text=' + msg + '" target="_blank" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px;background:#25D366;color:white">💬 WhatsApp</a>';
+    html += '<a href="https://wa.me/' + tel + '?text=' + msg + '" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px;background:#25D366;color:white">💬 WhatsApp</a>';
   }
   html += '</div>';
 
@@ -14246,7 +14493,13 @@ function convertirCitaEnRep(id) {
     };
     DB.clis.push(cli);
     if (SB_KEY && TIENDA_ID) {
-      sbPost('clientes', {id:cli.id, tienda_id:TIENDA_ID, nombre:cli.nombre, apellidos:cli.apellidos, tel:cli.tel, email:cli.email});
+      sbPost('clientes', {
+        id: cli.id, tienda_id: TIENDA_ID,
+        nombre: cli.nombre, apellidos: cli.apellidos,
+        tel: cli.tel, email: cli.email,
+        dni: cli.dni || '', dir_fiscal: cli.direccion || '',
+        notas: cli.notas || ''
+      });
     }
     guardarDatos();
     if (typeof audit === 'function') audit('crear', 'cliente', cli.id, cli.nombre, null);
@@ -14270,7 +14523,13 @@ function convertirCitaEnRep(id) {
 
 // === LINK PÚBLICO + QR ===
 function abrirLinkCitas() {
-  var url = location.protocol + '//' + location.host + '/citas.html?t=' + encodeURIComponent(TIENDA_ID);
+  // Usar slug en lugar de tienda_id directo (fix bug #15 - evita exponer UUID interno)
+  var slug = TIENDA.citas_slug || '';
+  if (!slug) {
+    toast('No se ha configurado el código de citas. Recarga la página o contacta soporte.', 'err');
+    return;
+  }
+  var url = location.protocol + '//' + location.host + '/citas.html?slug=' + encodeURIComponent(slug);
   document.getElementById('linkCitasInput').value = url;
   document.getElementById('qrCitas').src = 'https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=' + encodeURIComponent(url);
   openM('mLinkCitas');
@@ -15515,7 +15774,7 @@ function renderWizardStep2() {
         '</div>' +
         '<div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:10px">Ahora crea el cupon en Stripe:</div>' +
         '<ol style="font-size:13px;color:#475569;line-height:1.7;padding-left:20px;margin:0 0 16px">' +
-          '<li>Abre <a href="https://dashboard.stripe.com/coupons" target="_blank" style="color:#FF5B1F;font-weight:700">dashboard.stripe.com/coupons</a></li>' +
+          '<li>Abre <a href="https://dashboard.stripe.com/coupons" target="_blank" rel="noopener noreferrer" style="color:#FF5B1F;font-weight:700">dashboard.stripe.com/coupons</a></li>' +
           '<li>Pulsa <strong>"+ Nuevo cupón"</strong></li>' +
           '<li>Configura:' +
             '<div style="background:#F8FAFC;border-radius:6px;padding:10px;margin:8px 0;font-family:monospace;font-size:12px">' +
@@ -16159,8 +16418,7 @@ function mostrarFormPago() {
   document.getElementById('rPagoForm').style.display = 'block';
   var fechaInp = document.getElementById('pagoFecha');
   if (fechaInp && !fechaInp.value) {
-    var d = new Date();
-    fechaInp.value = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+    fechaInp.value = hoyLocal();
   }
   document.getElementById('pagoImporte').focus();
 }
@@ -16175,34 +16433,33 @@ function confirmarPago() {
   if (importe <= 0) { toast('Importe inválido', 'err'); return; }
   var metodo = document.getElementById('pagoMetodo').value;
   var fecha = document.getElementById('pagoFecha').value;
-  if (!fecha) {
-    var d = new Date();
-    fecha = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-  }
+  if (!fecha) fecha = hoyLocal();
 
   SEL.repPagos = SEL.repPagos || [];
   var tipo = SEL.repPagos.length === 0 ? 'anticipo' : 'parcial';
-  var nuevoPago = { fecha: fecha, importe: importe, metodo: metodo, tipo: tipo };
+  // Generar id local para que la lista no se sobreescriba en la recarga
+  var pagoId = 'pg' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  var nuevoPago = { id: pagoId, fecha: fecha, importe: importe, metodo: metodo, tipo: tipo };
+
+  // Empujar localmente PRIMERO para que la UI reaccione
+  SEL.repPagos.push(nuevoPago);
+  cancelarFormPago();
+  renderListaPagos();
+  toast('Pago añadido', 'ok');
 
   // Si estamos editando una reparación existente, persistir en BD
+  // (sin recargar la lista entera para evitar perder pagos rápidos consecutivos)
   if (SEL.editRepId && SB_KEY && TIENDA_ID) {
     sbPost('pagos_reparacion', {
+      id: pagoId,
       tienda_id: TIENDA_ID,
       reparacion_id: SEL.editRepId,
       fecha: fecha,
       importe: importe,
       metodo: metodo,
       tipo: tipo
-    }).then(function() {
-      // Recargar pagos desde BD para tener IDs frescos
-      cargarPagosRep(SEL.editRepId);
     });
   }
-
-  SEL.repPagos.push(nuevoPago);
-  cancelarFormPago();
-  renderListaPagos();
-  toast('Pago añadido', 'ok');
 }
 
 function eliminarPagoUI(index) {

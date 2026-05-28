@@ -128,14 +128,14 @@
 'use strict';
 
 // ═══ CONFIG ═══
-var SUPABASE_URL = 'https://zcxgyissdqyqsnojxviy.supabase.co';
-// La ANON_KEY pública se inyecta automáticamente en Supabase. Si tu proyecto la oculta,
-// pégala aquí (es seguro: anon key es pública, lo importante es la RLS).
-var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpjeGd5aXNzZHF5cXNub2p4dml5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzc5MjcyMjgsImV4cCI6MjA5MzUwMzIyOH0.tZTrV4lk0pKSyes_oVhadzBjTgz7JWt8HWKnh1zbc10';
+// Endpoint backend — toda la lógica pasa por aquí, ya no se accede a Supabase directo
+var API_URL = '/api/citas-publicas';
 
-// Obtener tienda_id de la URL: ?t=xxxxxxxx
+// Obtener slug de la URL: ?slug=xxxxxxxx
+// Compatibilidad: también acepta ?t= y ?tienda= si vienen de links viejos
+// (en el peor caso el endpoint responderá 404)
 var params = new URLSearchParams(location.search);
-var TIENDA_ID = params.get('t') || params.get('tienda') || '';
+var SLUG = params.get('slug') || params.get('t') || params.get('tienda') || '';
 
 // Estado
 var STATE = {
@@ -162,76 +162,51 @@ function fmtFecha(yyyymmdd) {
   return d.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
 }
 
-async function sbGet(path) {
-  var url = SUPABASE_URL + '/rest/v1/' + path;
-  var r = await fetch(url, {
-    headers: {
-      'apikey': ANON_KEY,
-      'Authorization': 'Bearer ' + ANON_KEY,
-      'Accept': 'application/json'
-    }
+// Llamada al endpoint backend
+async function apiCall(action, body) {
+  body = body || {};
+  body.action = action;
+  body.slug = SLUG;
+  var r = await fetch(API_URL, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body)
   });
-  if (!r.ok) {
-    var txt = '';
-    try { txt = await r.text(); } catch(e){}
-    throw new Error('Error ' + r.status + (txt ? ': ' + txt.slice(0,200) : ''));
+  var data = null;
+  try { data = await r.json(); } catch(e) { data = {ok:false, error:'Respuesta no válida'}; }
+  if (!r.ok || !data.ok) {
+    var msg = (data && data.error) || ('Error ' + r.status);
+    var err = new Error(msg);
+    err.status = r.status;
+    throw err;
   }
-  return r.json();
-}
-
-async function sbPost(path, data) {
-  var r = await fetch(SUPABASE_URL + '/rest/v1/' + path, {
-    method:'POST',
-    headers: {
-      'apikey': ANON_KEY,
-      'Authorization': 'Bearer ' + ANON_KEY,
-      'Content-Type':'application/json',
-      'Prefer':'return=representation'
-    },
-    body: JSON.stringify(data)
-  });
-  if (!r.ok) {
-    var t = await r.text();
-    throw new Error(t || ('Error ' + r.status));
-  }
-  return r.json();
+  return data;
 }
 
 // ═══ INIT ═══
 async function init() {
-  if (!TIENDA_ID) {
+  if (!SLUG) {
     showError('Falta el código de tienda en la URL. Pídele el link correcto al establecimiento.');
-    return;
-  }
-  // Si no hay ANON_KEY, intenta usar la del meta tag
-  var meta = document.querySelector('meta[name="sb-anon-key"]');
-  if (meta && !ANON_KEY) ANON_KEY = meta.content;
-
-  if (!ANON_KEY) {
-    showError('No se ha configurado la clave de acceso. Contacta con la tienda.');
     return;
   }
 
   try {
-    // Cargar tienda con select=* para no fallar si falta alguna columna
-    var tiendas = await sbGet('tiendas?id=eq.' + encodeURIComponent(TIENDA_ID) + '&select=*');
-    if (!tiendas || !tiendas.length) {
-      showError('Tienda no encontrada. Verifica el link.');
-      return;
-    }
-    STATE.tienda = tiendas[0];
-    // Cargar servicios (si la tabla no existe o está vacía, sigue funcionando)
+    var t = await apiCall('get-tienda');
+    STATE.tienda = t.tienda;
     try {
-      var servicios = await sbGet('servicios?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&select=*&order=nombre.asc');
-      STATE.servicios = (servicios || []).filter(function(s){ return s.tipo !== 'venta'; });
+      var s = await apiCall('get-servicios');
+      STATE.servicios = s.servicios || [];
     } catch(e) {
       console.warn('No se pudieron cargar servicios:', e.message);
-      STATE.servicios = []; // Permite continuar sin servicios (verá "Otro / consultar")
+      STATE.servicios = []; // permite continuar con opciones genéricas
     }
-
     renderApp();
   } catch(e) {
-    showError('No se pudo cargar la información: ' + e.message);
+    if (e.status === 404) {
+      showError('Tienda no encontrada. Verifica el link.');
+    } else {
+      showError('No se pudo cargar la información: ' + e.message);
+    }
   }
 }
 
@@ -260,13 +235,11 @@ function renderApp() {
   }
   html += '</div>';
 
-  // Contenido según paso
   if (STATE.paso === 1) html += renderPaso1();
   else if (STATE.paso === 2) html += renderPaso2();
   else if (STATE.paso === 3) html += renderPaso3();
   else if (STATE.paso === 4) html += renderPaso4();
 
-  // Footer
   html += '<div class="ft"><span class="ft-logo">⚡</span> Reservas gestionadas por <strong>TekPair</strong></div>';
 
   $('#app').innerHTML = html;
@@ -277,10 +250,9 @@ function renderPaso1() {
   var html = '<div class="card"><div class="card-title">📋 ¿Qué necesitas?</div>';
   html += '<div class="srv-list">';
 
-  // Servicios del catálogo (si hay)
   STATE.servicios.forEach(function(s) {
     var sel = STATE.servicio && STATE.servicio.id === s.id ? 'selected' : '';
-    html += '<div class="srv-item ' + sel + '" data-srv="' + s.id + '">';
+    html += '<div class="srv-item ' + sel + '" data-srv="' + esc(s.id) + '">';
     html += '<div><div class="srv-item-name">' + esc(s.nombre) + '</div>';
     if (s.categoria) html += '<div class="srv-item-cat">' + esc(s.categoria) + '</div>';
     html += '</div>';
@@ -292,7 +264,6 @@ function renderPaso1() {
     html += '</div>';
   });
 
-  // Si no hay servicios, mostrar opciones genéricas
   if (!STATE.servicios.length) {
     var genericos = [
       {id:'__pantalla__', nombre:'Cambio de pantalla', cat:'Reparación frecuente'},
@@ -311,7 +282,6 @@ function renderPaso1() {
     });
   }
 
-  // Opción "Otro" siempre visible
   html += '<div class="srv-item ' + (STATE.servicio && STATE.servicio.id === '__otro__' ? 'selected' : '') + '" data-srv="__otro__">';
   html += '<div><div class="srv-item-name">📝 Otro / consultar</div>';
   html += '<div class="srv-item-cat">Describe tu problema en el siguiente paso</div></div>';
@@ -323,12 +293,10 @@ function renderPaso1() {
 }
 
 function renderPaso2() {
-  // Calendario
   var html = '<div class="card"><div class="card-title">📅 Elige fecha</div>';
   html += renderCalendario();
   html += '</div>';
 
-  // Slots si hay fecha seleccionada
   if (STATE.fecha) {
     html += '<div class="card"><div class="card-title">⏰ Elige hora</div>';
     html += '<div id="slotsBox"><div class="loading-spinner" style="width:24px;height:24px;border-width:2px"></div></div>';
@@ -346,9 +314,8 @@ function renderCalendario() {
   var año = STATE.calAño, mes = STATE.calMes;
   var fechaActual = new Date(año, mes, 1);
   var nombreMes = fechaActual.toLocaleDateString('es', {month:'long', year:'numeric'});
-  var firstDay = (new Date(año, mes, 1).getDay() + 6) % 7; // Lunes=0
+  var firstDay = (new Date(año, mes, 1).getDay() + 6) % 7;
   var daysInMonth = new Date(año, mes+1, 0).getDate();
-  // Limitar nav: solo permite mes actual y siguiente
   var maxAño = hoy.getFullYear(), maxMes = hoy.getMonth() + 2;
   if (maxMes > 11) { maxAño++; maxMes -= 12; }
   var puedeAtras = !(año === hoy.getFullYear() && mes === hoy.getMonth());
@@ -366,13 +333,11 @@ function renderCalendario() {
     var fecha = new Date(año, mes, d);
     var ymd = año + '-' + pad(mes+1) + '-' + pad(d);
     var dow = (fecha.getDay() + 6) % 7;
-    // Verificar si la tienda abre ese día
-    var horarios = (STATE.tienda.horarios) || (typeof STATE.tienda.horarios === 'string' ? JSON.parse(STATE.tienda.horarios) : null);
+    var horarios = STATE.tienda.horarios;
     if (typeof horarios === 'string') { try { horarios = JSON.parse(horarios); } catch(e){ horarios = null; } }
-    // Si no hay horarios configurados, asumir abierto Lun-Sáb
     var abierto;
     if (!Array.isArray(horarios) || horarios.length !== 7) {
-      abierto = dow !== 6; // domingo (índice 6) cerrado por defecto
+      abierto = dow !== 6;
     } else {
       abierto = horarios[dow] && horarios[dow].abierto;
     }
@@ -391,21 +356,18 @@ async function cargarSlots() {
   var box = $('#slotsBox');
   if (!box) return;
   try {
-    // Intentar cargar citas del día (si la tabla no existe, sigue funcionando)
     try {
-      var citas = await sbGet('citas?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=eq.' + STATE.fecha + '&estado=neq.cancelada&select=hora,duracion_min');
-      STATE.citasDelDia = citas || [];
+      var r = await apiCall('get-citas-dia', { fecha: STATE.fecha });
+      STATE.citasDelDia = r.ocupadas || [];
     } catch(eC) {
       console.warn('No se pudieron cargar citas existentes:', eC.message);
       STATE.citasDelDia = [];
     }
 
-    // Generar slots según horario (con tramos múltiples)
     var horarios = STATE.tienda.horarios;
     if (typeof horarios === 'string') {
       try { horarios = JSON.parse(horarios); } catch(e){ horarios = null; }
     }
-    // Si no hay horarios configurados, usar default razonable (horario partido)
     if (!Array.isArray(horarios) || horarios.length !== 7) {
       horarios = [
         {abierto:true, tramos:[{inicio:'09:30', fin:'13:30'},{inicio:'17:00', fin:'20:00'}]},
@@ -417,7 +379,6 @@ async function cargarSlots() {
         {abierto:false, tramos:[{inicio:'10:00', fin:'13:30'}]}
       ];
     }
-    // Migrar formato viejo {inicio,fin} → {tramos:[{inicio,fin}]}
     horarios = horarios.map(function(h){
       if (h && Array.isArray(h.tramos)) return h;
       if (h && (h.inicio || h.fin)) return {abierto: !!h.abierto, tramos:[{inicio:h.inicio||'09:30', fin:h.fin||'13:30'}]};
@@ -434,9 +395,7 @@ async function cargarSlots() {
     if (typeof cfg === 'string') cfg = JSON.parse(cfg);
     var duracion = (cfg && cfg.duracion_min) || 30;
 
-    // Generar slots de cada tramo
     var slots = [];
-    var tramosLabels = []; // para separar visualmente mañana/tarde
     hor.tramos.forEach(function(tr, idx) {
       if (!tr.inicio || !tr.fin) return;
       var pi = tr.inicio.split(':').map(Number);
@@ -449,9 +408,7 @@ async function cargarSlots() {
         slots.push({hora: pad(h) + ':' + pad(m), tramo: idx});
       }
     });
-    // Excluir slots ocupados
     var ocupados = STATE.citasDelDia.map(function(c){ return c.hora; });
-    // Si la fecha es hoy, excluir slots pasados
     var ahora = new Date();
     var esHoy = STATE.fecha === ahora.getFullYear() + '-' + pad(ahora.getMonth()+1) + '-' + pad(ahora.getDate());
     var horaAhora = ahora.getHours()*60 + ahora.getMinutes();
@@ -461,7 +418,6 @@ async function cargarSlots() {
       return;
     }
 
-    // Render con separador entre tramos (mañana/tarde)
     var html = '';
     var tramoActual = -1;
     slots.forEach(function(s, idx) {
@@ -481,7 +437,6 @@ async function cargarSlots() {
     });
     html += '</div>';
     box.innerHTML = html;
-    // Re-attach handlers
     box.querySelectorAll('.slot:not(.taken)').forEach(function(b){
       b.addEventListener('click', function(){
         STATE.hora = this.dataset.h;
@@ -506,7 +461,6 @@ function renderPaso3() {
   html += '<div class="fg"><label class="fl">Detalles del problema</label><textarea class="fi" id="cliNotas" placeholder="Cuéntanos lo que le pasa">' + esc(STATE.cliente.notas) + '</textarea></div>';
   html += '</div>';
 
-  // Resumen
   html += '<div class="card" style="background:rgba(0,200,150,.05);border-color:rgba(0,200,150,.25)">';
   html += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px">Tu cita</div>';
   html += '<div style="font-size:14px;font-weight:700;margin-bottom:3px">' + esc(STATE.servicio.nombre || 'Consulta') + '</div>';
@@ -541,12 +495,10 @@ function renderPaso4() {
 
 // ═══ HANDLERS ═══
 function attachHandlers() {
-  // Paso 1
   document.querySelectorAll('.srv-item').forEach(function(el){
     el.addEventListener('click', function(){
       var sid = this.dataset.srv;
       if (sid && sid.indexOf('__') === 0) {
-        // Opciones genéricas (sin servicio en BD)
         var nombres = {
           '__otro__': 'Consultar',
           '__pantalla__': 'Cambio de pantalla',
@@ -565,7 +517,6 @@ function attachHandlers() {
   var b1 = $('#btnSiguiente1');
   if (b1) b1.addEventListener('click', function(){ STATE.paso = 2; renderApp(); });
 
-  // Paso 2: Calendario
   var prev = $('#calPrev'), next = $('#calNext');
   if (prev) prev.addEventListener('click', function(){
     STATE.calMes--; if (STATE.calMes < 0) { STATE.calMes = 11; STATE.calAño--; }
@@ -587,13 +538,11 @@ function attachHandlers() {
   var ba2 = $('#btnAtras2'); if (ba2) ba2.addEventListener('click', function(){ STATE.paso = 1; renderApp(); });
   var bs2 = $('#btnSiguiente2'); if (bs2) bs2.addEventListener('click', function(){ STATE.paso = 3; renderApp(); });
 
-  // Paso 3
   var ba3 = $('#btnAtras3'); if (ba3) ba3.addEventListener('click', function(){ STATE.paso = 2; renderApp(); });
   var bc = $('#btnConfirmar'); if (bc) bc.addEventListener('click', confirmarCita);
 }
 
 async function confirmarCita() {
-  // Validar
   STATE.cliente.nombre = ($('#cliNom').value || '').trim();
   STATE.cliente.tel = ($('#cliTel').value || '').trim();
   STATE.cliente.email = ($('#cliEmail').value || '').trim();
@@ -609,35 +558,31 @@ async function confirmarCita() {
   var btn = $('#btnConfirmar');
   if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
 
-  var citaId = 'c' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
   var cfg = STATE.tienda.citas_config;
-  if (typeof cfg === 'string') cfg = JSON.parse(cfg);
+  if (typeof cfg === 'string') {
+    try { cfg = JSON.parse(cfg); } catch(e){ cfg = null; }
+  }
   var dur = (cfg && cfg.duracion_min) || 30;
 
-  var data = {
-    id: citaId,
-    tienda_id: TIENDA_ID,
-    fecha: STATE.fecha,
-    hora: STATE.hora,
-    servicio: STATE.servicio.nombre,
-    duracion_min: dur,
-    cliente_nombre: STATE.cliente.nombre,
-    cliente_tel: STATE.cliente.tel,
-    cliente_email: STATE.cliente.email || null,
-    notas: STATE.cliente.notas || null,
-    marca: STATE.cliente.marca || null,
-    modelo: STATE.cliente.modelo || null,
-    estado: 'pendiente'
-  };
-
   try {
-    var res = await sbPost('citas', data);
-    STATE.citaCreada = (res && res.length) ? res[0] : data;
+    var r = await apiCall('crear-cita', {
+      fecha: STATE.fecha,
+      hora: STATE.hora,
+      servicio: STATE.servicio.nombre,
+      duracion_min: dur,
+      cliente_nombre: STATE.cliente.nombre,
+      cliente_tel: STATE.cliente.tel,
+      cliente_email: STATE.cliente.email,
+      notas: STATE.cliente.notas,
+      marca: STATE.cliente.marca,
+      modelo: STATE.cliente.modelo
+    });
+    STATE.citaCreada = r.cita || null;
     STATE.paso = 4;
     renderApp();
   } catch(e) {
     if (btn) { btn.disabled = false; btn.textContent = 'Confirmar reserva ✓'; }
-    $('#errEnvio').innerHTML = '<div class="err">No se pudo guardar: ' + esc(e.message) + '. Intenta de nuevo o llámanos.</div>';
+    $('#errEnvio').innerHTML = '<div class="err">No se pudo guardar: ' + esc(e.message) + '</div>';
   }
 }
 
