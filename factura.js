@@ -584,8 +584,47 @@
       _toast('Este cliente no tiene email guardado', 'err');
       return;
     }
-    _toast('Envío por email disponible próximamente', 'ok');
-    // Fase 3: conectar con api/enviar-factura.js
+    var btn = document.getElementById('btnEnvEmail');
+    if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+
+    window.generarFacturaPDFDoc(f).then(function(doc) {
+      // base64 sin el prefijo data:...;base64,
+      var dataUri = doc.output('datauristring');
+      var base64 = dataUri.split(',')[1] || '';
+      var emi = (f && f.emisor_snapshot) || {};
+      var tienda = emi.razon_social || emi.nombre || (window.TIENDA && window.TIENDA.nombre) || 'TekPair';
+      var nombreArchivo = 'Factura_' + String(f.numero || 'sin-numero').replace(/[^a-zA-Z0-9_-]/g, '_') + '.pdf';
+
+      return fetch('/api/enviar-factura', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: c.email,
+          nombreCliente: c.nombre || 'Cliente',
+          numero: f.numero || '',
+          total: (parseFloat(f.total) || 0).toFixed(2).replace('.', ','),
+          tienda: tienda,
+          pdfBase64: base64,
+          nombreArchivo: nombreArchivo
+        })
+      });
+    }).then(function(r) {
+      return r.json().then(function(data) { return { ok: r.ok, data: data }; });
+    }).then(function(res) {
+      if (res.ok && res.data && res.data.ok) {
+        _toast('Factura enviada a ' + c.email, 'ok');
+        var m = document.getElementById('mEnvioFactura');
+        if (m) m.remove();
+      } else {
+        var msg = (res.data && (res.data.error || res.data.message)) || 'Error al enviar';
+        _toast('Error: ' + msg, 'err');
+      }
+    }).catch(function(err) {
+      console.error('[factura.js] Error email:', err);
+      _toast('Error al generar o enviar el PDF', 'err');
+    }).then(function() {
+      if (btn) { btn.disabled = false; btn.textContent = '📧 Enviar por Email'; }
+    });
   };
 
   // Mini-panel tras emitir con botones de envío
@@ -605,7 +644,7 @@
               '<button onclick="window.enviarFacturaWhatsApp(window.__ultimaFactura)" style="padding:12px;border:none;border-radius:8px;background:#25D366;color:white;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">📱 Enviar por WhatsApp</button>'
               : '<button disabled style="padding:12px;border:none;border-radius:8px;background:#E5E7EB;color:#9CA3AF;font-weight:700;font-size:14px;font-family:inherit">📱 Sin teléfono guardado</button>') +
             (tieneEmail ?
-              '<button onclick="window.enviarFacturaEmail(window.__ultimaFactura)" style="padding:12px;border:none;border-radius:8px;background:#0055FF;color:white;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">📧 Enviar por Email</button>'
+              '<button id="btnEnvEmail" onclick="window.enviarFacturaEmail(window.__ultimaFactura)" style="padding:12px;border:none;border-radius:8px;background:#0055FF;color:white;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">📧 Enviar por Email</button>'
               : '<button disabled style="padding:12px;border:none;border-radius:8px;background:#E5E7EB;color:#9CA3AF;font-weight:700;font-size:14px;font-family:inherit">📧 Sin email guardado</button>') +
             '<button onclick="document.getElementById(\'mEnvioFactura\').remove()" style="padding:10px;border:1px solid #E5E7EB;border-radius:8px;background:white;color:#64748B;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit">Cerrar</button>' +
           '</div>' +
@@ -614,6 +653,182 @@
     var div = document.createElement('div');
     div.innerHTML = html;
     document.body.appendChild(div.firstChild);
+  };
+
+  // ────────── Generar PDF de la factura con jsPDF (para email/descarga) ──────────
+  function _logoABase64(url) {
+    return new Promise(function(resolve) {
+      if (!url) { resolve(''); return; }
+      try {
+        fetch(url).then(function(r){ return r.blob(); }).then(function(blob){
+          var reader = new FileReader();
+          reader.onload = function(){ resolve(reader.result); };
+          reader.onerror = function(){ resolve(''); };
+          reader.readAsDataURL(blob);
+        }).catch(function(){ resolve(''); });
+      } catch(e) { resolve(''); }
+    });
+  }
+
+  function _pdfFmt(n) {
+    return (parseFloat(n) || 0).toFixed(2).replace('.', ',') + ' EUR';
+  }
+
+  // Devuelve una Promise<jsPDF doc> con la factura dibujada
+  window.generarFacturaPDFDoc = function(f) {
+    return new Promise(function(resolve, reject) {
+      if (!f) { reject(new Error('Sin datos de factura')); return; }
+      if (!window.jspdf || !window.jspdf.jsPDF) { reject(new Error('Libreria PDF no cargada')); return; }
+
+      var emi = f.emisor_snapshot || {};
+      var cli = f.cliente_snapshot || {};
+      var lineas = f.lineas || [];
+      var esSimplificada = (f.tipo === 'simplificada');
+      var esAbono = !!f.rectifica_a;
+      var emiLogo = emi.logo || (window.TIENDA && window.TIENDA.logo_url) || '';
+
+      _logoABase64(emiLogo).then(function(logoB64) {
+        try {
+          var jsPDFClass = window.jspdf.jsPDF;
+          var doc = new jsPDFClass({ unit: 'pt', format: 'a4' });
+          var W = doc.internal.pageSize.getWidth();
+          var H = doc.internal.pageSize.getHeight();
+          var margin = 48;
+          var y = margin;
+
+          doc.setFillColor(16, 185, 129);
+          doc.rect(0, 0, W, 96, 'F');
+
+          var emiNombre = emi.razon_social || emi.nombre || (window.TIENDA && window.TIENDA.nombre) || 'Mi Tienda';
+          if (logoB64) {
+            try {
+              var fmt = logoB64.indexOf('image/png') >= 0 ? 'PNG' : (logoB64.indexOf('image/webp') >= 0 ? 'WEBP' : 'JPEG');
+              doc.addImage(logoB64, fmt, margin, 24, 48, 48);
+              doc.setFontSize(13); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+              doc.text(emiNombre, margin + 60, 46);
+            } catch(eImg) {
+              doc.setFontSize(15); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+              doc.text(emiNombre, margin, 46);
+            }
+          } else {
+            doc.setFontSize(15); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+            doc.text(emiNombre, margin, 46);
+          }
+
+          var tituloDoc = esAbono ? 'FACTURA RECTIFICATIVA' : (esSimplificada ? 'FACTURA SIMPLIFICADA' : 'FACTURA');
+          doc.setFontSize(18); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+          doc.text(tituloDoc, W - margin, 44, { align: 'right' });
+          doc.setFontSize(11); doc.setFont('helvetica','normal');
+          doc.text(String(f.numero || ''), W - margin, 64, { align: 'right' });
+
+          y = 130;
+          doc.setFontSize(9); doc.setTextColor(100,116,139); doc.setFont('helvetica','bold');
+          doc.text('EMISOR', margin, y);
+          doc.text(esSimplificada ? 'CLIENTE' : 'FACTURAR A', W/2 + 10, y);
+          y += 15;
+
+          doc.setTextColor(26,26,46); doc.setFont('helvetica','bold'); doc.setFontSize(11);
+          doc.text(emiNombre, margin, y);
+          var cliNombre = esSimplificada
+            ? (((cli.nombre||'') + ' ' + (cli.apellidos||'')).trim() || 'Cliente')
+            : (cli.nombre_fiscal || 'Cliente');
+          doc.text(cliNombre, W/2 + 10, y);
+          y += 14;
+
+          doc.setFont('helvetica','normal'); doc.setFontSize(9); doc.setTextColor(80,80,90);
+          var emiL = [];
+          if (emi.cif) emiL.push('CIF/NIF: ' + emi.cif);
+          if (emi.dir) emiL.push(emi.dir);
+          var emiCP = [emi.cp, emi.ciudad].filter(Boolean).join(' '); if (emiCP) emiL.push(emiCP);
+          if (emi.tel) emiL.push('Tel: ' + emi.tel);
+          if (emi.email) emiL.push(emi.email);
+
+          var cliL = [];
+          if (cli.nif) cliL.push('NIF/CIF: ' + cli.nif);
+          if (!esSimplificada) {
+            if (cli.dir_fiscal) cliL.push(cli.dir_fiscal);
+            var cliCP = [cli.cp, cli.ciudad].filter(Boolean).join(' '); if (cliCP) cliL.push(cliCP);
+            if (cli.provincia) cliL.push(cli.provincia);
+          }
+          var yL = y, yR = y;
+          emiL.forEach(function(l){ doc.text(String(l), margin, yL); yL += 12; });
+          cliL.forEach(function(l){ doc.text(String(l), W/2 + 10, yR); yR += 12; });
+          y = Math.max(yL, yR) + 8;
+
+          var fechaTxt = f.fecha_emision || '';
+          try { var d = new Date(f.fecha_emision); if (!isNaN(d)) fechaTxt = d.toLocaleDateString('es-ES'); } catch(e){}
+          doc.setFontSize(9); doc.setTextColor(100,116,139);
+          doc.text('Fecha: ' + fechaTxt, margin, y);
+          y += 20;
+
+          var od = f.origen_detalle || {};
+          if (od.marca || od.modelo || od.imei || od.averia) {
+            var aptNom = [od.marca, od.modelo].filter(Boolean).join(' ') || 'Dispositivo';
+            doc.setFillColor(255, 247, 237);
+            doc.rect(margin, y, W - margin*2, od.averia ? 44 : 30, 'F');
+            doc.setFillColor(245, 158, 11);
+            doc.rect(margin, y, 3, od.averia ? 44 : 30, 'F');
+            doc.setFontSize(8); doc.setTextColor(245,158,11); doc.setFont('helvetica','bold');
+            doc.text('APARATO REPARADO', margin + 12, y + 13);
+            doc.setFontSize(10); doc.setTextColor(26,26,46); doc.setFont('helvetica','normal');
+            doc.text(aptNom + (od.imei ? '  IMEI: ' + od.imei : ''), margin + 12, y + 26);
+            if (od.averia) { doc.setFontSize(9); doc.setTextColor(100,100,100); doc.text('Averia: ' + od.averia, margin + 12, y + 38); }
+            y += (od.averia ? 44 : 30) + 16;
+          }
+
+          doc.setFillColor(26, 26, 46);
+          doc.rect(margin, y, W - margin*2, 22, 'F');
+          doc.setFontSize(9); doc.setTextColor(255,255,255); doc.setFont('helvetica','bold');
+          doc.text('DESCRIPCION', margin + 10, y + 14);
+          doc.text('CANT.', W - margin - 200, y + 14, { align: 'right' });
+          doc.text('PRECIO', W - margin - 100, y + 14, { align: 'right' });
+          doc.text('IMPORTE', W - margin - 10, y + 14, { align: 'right' });
+          y += 22;
+
+          doc.setFont('helvetica','normal'); doc.setTextColor(26,26,46); doc.setFontSize(10);
+          lineas.forEach(function(ln) {
+            var cant = parseFloat(ln.cantidad) || 1;
+            var precio = parseFloat(ln.precio) || 0;
+            var tot = parseFloat(ln.total); if (isNaN(tot)) tot = cant * precio;
+            var desc = String(ln.desc || ln.nombre || '-');
+            if (desc.length > 50) desc = desc.substring(0, 48) + '...';
+            y += 18;
+            doc.text(desc, margin + 10, y);
+            doc.text(String(cant), W - margin - 200, y, { align: 'right' });
+            doc.text(_pdfFmt(precio), W - margin - 100, y, { align: 'right' });
+            doc.text(_pdfFmt(tot), W - margin - 10, y, { align: 'right' });
+            doc.setDrawColor(232, 232, 238);
+            doc.line(margin, y + 5, W - margin, y + 5);
+          });
+          y += 24;
+
+          var boxX = W - margin - 220;
+          doc.setFontSize(10); doc.setTextColor(26,26,46); doc.setFont('helvetica','normal');
+          doc.text('Base imponible', boxX, y);
+          doc.text(_pdfFmt(f.base_imponible), W - margin - 10, y, { align: 'right' });
+          y += 16;
+          doc.text('IVA (' + (parseFloat(f.iva_pct)||0) + '%)', boxX, y);
+          doc.text(_pdfFmt(f.iva_importe), W - margin - 10, y, { align: 'right' });
+          y += 10;
+          doc.setFillColor(16, 185, 129);
+          doc.rect(boxX - 10, y, W - margin - boxX + 10, 26, 'F');
+          y += 17;
+          doc.setTextColor(255,255,255); doc.setFont('helvetica','bold'); doc.setFontSize(13);
+          doc.text('TOTAL', boxX, y);
+          doc.text(_pdfFmt(f.total), W - margin - 10, y, { align: 'right' });
+
+          doc.setFontSize(9); doc.setTextColor(26,26,46); doc.setFont('helvetica','bold');
+          if (f.metodo_pago) { doc.text('Forma de pago: ' + f.metodo_pago, margin, H - 70); }
+          doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(150,150,150);
+          doc.text('Documento generado por TekPair. Conserve esta factura como justificante.', margin, H - 54);
+          doc.text('tekpair.tech', margin, H - 42);
+
+          resolve(doc);
+        } catch(eDoc) {
+          reject(eDoc);
+        }
+      });
+    });
   };
 
   window.generarFacturaPDF = function(f) {
@@ -763,6 +978,8 @@
       '<script>window.onload=function(){setTimeout(function(){window.print();},250);};<\/script>' +
       '</body></html>';
 
+    window.__ultimoFacturaHTML = html;
+    window.__ultimoFacturaNum = f.numero || '';
     var w = window.open('', '_blank');
     if (!w) { _toast('Activa las ventanas emergentes para ver el PDF', 'err'); return; }
     w.document.open();
