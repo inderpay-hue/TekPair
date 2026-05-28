@@ -11898,22 +11898,55 @@ function computeNotificaciones() {
     });
   }
 
-  // 5. Citas de hoy pendientes
-  // Genera un aviso por cada cita pendiente cuya fecha sea hoy o anterior.
-  // (Las del futuro no avisan; las canceladas/realizadas tampoco.)
+  // 5. Citas pendientes (atrasadas, hoy, y próximas hasta 7 días)
   (function() {
     var hoyStr = hoyLocal();
+    // Calcular fecha límite (hoy + 7 días) en formato YYYY-MM-DD local
+    var limite = new Date();
+    limite.setDate(limite.getDate() + 7);
+    var limiteStr = limite.getFullYear() + '-' +
+                    String(limite.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(limite.getDate()).padStart(2, '0');
+
     (DB.citas || []).forEach(function(c) {
       if (!c || c.estado !== 'pendiente') return;
       if (!c.fecha) return;
-      // Solo avisar si la fecha de la cita es hoy o ya pasó
-      if (c.fecha > hoyStr) return;
-      var titulo = c.fecha === hoyStr ? 'Cita pendiente hoy' : 'Cita pendiente atrasada';
-      var icon = c.fecha === hoyStr ? '📅' : '⏰';
-      var color = c.fecha === hoyStr ? '#FF5B1F' : '#EF4444';
-      var detalle = (c.cliente_nombre || 'Sin nombre') +
-                    (c.hora ? ' · ' + c.hora : '') +
+      // Filtrar: solo citas dentro de la ventana (atrasadas, hoy, próximos 7 días)
+      if (c.fecha > limiteStr) return;
+
+      var titulo, icon, color, prio;
+      if (c.fecha < hoyStr) {
+        titulo = 'Cita pendiente atrasada';
+        icon = '⏰';
+        color = '#EF4444';
+        prio = 0; // máxima
+      } else if (c.fecha === hoyStr) {
+        titulo = 'Cita pendiente hoy';
+        icon = '📅';
+        color = '#FF5B1F';
+        prio = 1;
+      } else {
+        titulo = 'Cita próxima';
+        icon = '📅';
+        color = '#0055FF';
+        prio = 3;
+      }
+
+      // Formatear fecha legible para citas futuras
+      var fechaLegible = '';
+      if (c.fecha !== hoyStr) {
+        try {
+          var p = c.fecha.split('-');
+          var d = new Date(p[0], p[1]-1, p[2]);
+          fechaLegible = d.toLocaleDateString('es', {weekday:'short', day:'numeric', month:'short'}) + ' · ';
+        } catch(e){}
+      }
+
+      var detalle = fechaLegible +
+                    (c.hora ? c.hora + ' · ' : '') +
+                    (c.cliente_nombre || 'Sin nombre') +
                     (c.servicio ? ' · ' + c.servicio : '');
+
       add({
         id: 'cita_' + c.id,
         tipo: 'citas',
@@ -11922,7 +11955,7 @@ function computeNotificaciones() {
         titulo: titulo,
         detalle: detalle,
         href: 'pCitas',
-        prio: c.fecha === hoyStr ? 1 : 0
+        prio: prio
       });
     });
   })();
@@ -14353,12 +14386,24 @@ async function syncCitas() {
 
 function actualizarBadgeCitas() {
   var hoyStr = hoyLocal();
-  var pendHoy = (DB.citas || []).filter(function(c){ return c.fecha === hoyStr && c.estado === 'pendiente'; });
+  // Próximas: hoy o mañana, pendientes (no canceladas / no atendidas)
+  var manana = new Date();
+  manana.setDate(manana.getDate() + 1);
+  var mananaStr = manana.getFullYear() + '-' +
+                  String(manana.getMonth() + 1).padStart(2, '0') + '-' +
+                  String(manana.getDate()).padStart(2, '0');
+  var pendProximas = (DB.citas || []).filter(function(c){
+    return c.estado === 'pendiente' && (c.fecha === hoyStr || c.fecha === mananaStr || (c.fecha && c.fecha < hoyStr));
+  });
   var b = document.getElementById('sidebarCitasBadge');
   if (b) {
-    if (pendHoy.length > 0) {
-      b.textContent = pendHoy.length;
-      b.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;background:var(--green);color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto;min-width:18px';
+    if (pendProximas.length > 0) {
+      b.textContent = pendProximas.length;
+      // Rojo si hay atrasadas, naranja si hay de hoy, verde si solo de mañana
+      var hayAtrasadas = pendProximas.some(function(c){ return c.fecha < hoyStr; });
+      var hayHoy = pendProximas.some(function(c){ return c.fecha === hoyStr; });
+      var bgColor = hayAtrasadas ? '#EF4444' : (hayHoy ? '#FF5B1F' : 'var(--green)');
+      b.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;background:' + bgColor + ';color:white;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;margin-left:auto;min-width:18px';
     } else {
       b.style.display = 'none';
     }
