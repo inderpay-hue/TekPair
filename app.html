@@ -3,41 +3,64 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tekpair</title>
+<title>TekPair — Iniciar sesión</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
+:root{
+  --orange:#FF5B1F;--orange-d:#C2491A;--orange-l:#FFF1EB;
+  --ink:#020B2E;--ink-soft:#3D3A34;--muted:#5A6472;--faint:#8A94A6;
+  --paper:#F7F9FC;--paper-2:#EEF2F8;--line:#E2E8F0;--card:#FFFFFF;
+  --green:#00C896;--red:#EF4444;
+  --sans:'Inter',-apple-system,system-ui,sans-serif;
+  --display:'Space Grotesk',var(--sans);
+}
 *{margin:0;padding:0;box-sizing:border-box}
-body{font-family:Arial,sans-serif;background:#020B2E;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
-.box{background:white;border-radius:20px;padding:36px;width:100%;max-width:380px}
-.logo{display:flex;align-items:center;gap:10px;margin-bottom:28px}
-.lm{width:40px;height:40px;background:#0055FF;border-radius:10px;color:white;font-size:20px;font-weight:800;display:flex;align-items:center;justify-content:center}
-.ln{font-size:22px;font-weight:700;color:#020B2E}
-h2{font-size:24px;font-weight:700;color:#020B2E;margin-bottom:6px}
-p{font-size:14px;color:#64748B;margin-bottom:28px}
-label{font-size:11px;font-weight:600;color:#64748B;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
-input{width:100%;border:1.5px solid #E2E8F0;border-radius:10px;padding:13px 14px;font-size:14px;color:#0F1729;outline:none;margin-bottom:16px;font-family:Arial}
-input:focus{border-color:#0055FF}
-button{width:100%;background:#0055FF;color:white;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:Arial}
-.err{color:#EF4444;font-size:13px;text-align:center;margin-top:10px;min-height:18px}
-.foot{text-align:center;margin-top:18px;font-size:13px;color:#64748B}
-.foot a{color:#0055FF;text-decoration:none;font-weight:600}
+body{font-family:var(--sans);background:var(--ink);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden;-webkit-font-smoothing:antialiased}
+.aurora{position:fixed;inset:0;z-index:0;pointer-events:none;background:radial-gradient(600px circle at 25% 25%,rgba(255,91,31,.16),transparent 60%),radial-gradient(500px circle at 80% 80%,rgba(255,91,31,.10),transparent 55%)}
+.grid-bg{position:fixed;inset:0;z-index:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:34px 34px}
+.box{position:relative;z-index:1;background:var(--card);border-radius:20px;padding:36px;width:100%;max-width:400px;box-shadow:0 30px 70px -20px rgba(0,0,0,.5);animation:rise .6s cubic-bezier(.2,.7,.2,1)}
+@keyframes rise{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+.logo{display:flex;align-items:center;gap:11px;margin-bottom:30px}
+.logo-bolt{width:38px;height:38px;background:var(--orange);border-radius:10px;display:flex;align-items:center;justify-content:center}
+.logo-bolt svg{width:21px;height:21px;fill:#fff}
+.ln{font-family:var(--display);font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.02em}
+.ln span{color:var(--orange)}
+h2{font-family:var(--display);font-size:25px;font-weight:700;color:var(--ink);margin-bottom:6px;letter-spacing:-.02em}
+.lead{font-size:14px;color:var(--muted);margin-bottom:28px}
+label{font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:6px}
+input{width:100%;border:1.5px solid var(--line);border-radius:10px;padding:13px 14px;font-size:14px;color:var(--ink);outline:none;margin-bottom:16px;font-family:var(--sans);transition:border-color .15s,box-shadow .15s;background:var(--paper)}
+input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,91,31,.12);background:#fff}
+button{width:100%;background:var(--orange);color:#fff;border:none;padding:14px;border-radius:10px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans);transition:transform .15s,box-shadow .15s}
+button:hover{transform:translateY(-1px);box-shadow:0 10px 24px -8px rgba(255,91,31,.5)}
+button:active{transform:translateY(0)}
+button:disabled{background:var(--faint);cursor:not-allowed;transform:none;box-shadow:none}
+.err{font-size:13px;text-align:center;margin-top:12px;min-height:18px;color:var(--red)}
+.foot{text-align:center;margin-top:18px;font-size:13px;color:var(--muted)}
+.foot a{color:var(--orange);text-decoration:none;font-weight:600}
+.foot a:hover{text-decoration:underline}
+@media(prefers-reduced-motion:reduce){.box{animation:none}.aurora{display:none}button:hover{transform:none}}
 </style>
 </head>
 <body>
+<div class="aurora"></div>
+<div class="grid-bg"></div>
 <div class="box">
   <div class="logo">
-    <div class="lm">T</div>
-    <span class="ln">Tekpair</span>
+    <div class="logo-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></div>
+    <span class="ln">Tek<span>Pair</span></span>
   </div>
-  <h2>Bienvenido</h2>
-  <p>Inicia sesion en tu tienda</p>
+  <h2>Bienvenido de nuevo</h2>
+  <p class="lead">Inicia sesión en tu tienda</p>
   <label>Email</label>
   <input type="email" id="em" placeholder="tu@email.com" />
-  <label>Contrasena</label>
+  <label>Contraseña</label>
   <input type="password" id="pw" placeholder="••••••••" />
   <button id="btn">Entrar</button>
   <div class="err" id="err"></div>
   <div class="foot"><a href="#" id="lnkReset">¿Olvidaste tu contraseña?</a></div>
-  <div class="foot">No tienes cuenta? <a href="/registro.html">Registrate gratis</a></div>
+  <div class="foot">¿No tienes cuenta? <a href="/registro.html">Regístrate gratis</a></div>
 </div>
 <script>
 function entrar() {
