@@ -641,6 +641,23 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   .cal-nav-btn{width:30px;height:30px;font-size:14px}
 }
 
+
+/* === MEJORA TARJETAS (fix-dashboard-tarjetas) === */
+.card{
+  border-radius:18px !important;
+  box-shadow:0 4px 16px -4px rgba(2,11,46,.10), 0 2px 6px -2px rgba(2,11,46,.06) !important;
+  border:1px solid rgba(226,232,240,.7) !important;
+  transition:transform .22s cubic-bezier(.2,.7,.2,1), box-shadow .22s cubic-bezier(.2,.7,.2,1) !important;
+}
+.card:hover{
+  transform:translateY(-3px) !important;
+  box-shadow:0 18px 40px -12px rgba(2,11,46,.18), 0 6px 14px -6px rgba(2,11,46,.10) !important;
+}
+@media(prefers-reduced-motion:reduce){
+  .card{transition:none !important}
+  .card:hover{transform:none !important}
+}
+/* === FIN MEJORA TARJETAS === */
 </style>
   <script src="/assets/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
