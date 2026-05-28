@@ -16,9 +16,63 @@
 
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
 
 function sha256(s) {
   return crypto.createHash('sha256').update(s).digest('hex');
+}
+
+// ═══ MIGRACIÓN BCRYPT (suave) ═══
+// Estrategia: la tabla `usuarios` tiene 2 columnas de hash:
+//   - password_hash      : SHA-256 legacy (lo que había hasta hoy)
+//   - password_hash_v2   : bcrypt (cost 10) — el nuevo formato
+//
+// Al login: si v2 existe, comparar con bcrypt. Si NO existe pero v1 sí,
+// verificar con SHA-256 y aprovechar para escribir v2 (migración silenciosa).
+// Al cambiar/resetear password o crear cuenta nueva: escribir SOLO v2 y
+// borrar v1 para que la cuenta quede definitivamente migrada.
+
+const BCRYPT_ROUNDS = 10;
+
+async function generarHashBcrypt(plainPwd) {
+  return await bcrypt.hash(plainPwd, BCRYPT_ROUNDS);
+}
+
+// Verifica una contraseña en plano contra el usuario, soportando ambos formatos.
+// Devuelve { ok: bool, necesitaMigracion: bool }
+async function verificarPassword(usuario, plainPwd) {
+  // Si tiene v2, esa es la fuente de verdad
+  if (usuario.password_hash_v2) {
+    try {
+      const ok = await bcrypt.compare(plainPwd, usuario.password_hash_v2);
+      return { ok, necesitaMigracion: false };
+    } catch (e) {
+      console.error('bcrypt.compare error:', e);
+      return { ok: false, necesitaMigracion: false };
+    }
+  }
+  // Si solo tiene v1 (cuenta no migrada), comparar con SHA-256
+  if (usuario.password_hash) {
+    const ok = usuario.password_hash === sha256(plainPwd);
+    return { ok, necesitaMigracion: ok };  // migrar solo si el login fue correcto
+  }
+  return { ok: false, necesitaMigracion: false };
+}
+
+// Llamar tras login exitoso con v1 para escribir v2 silenciosamente
+async function migrarUsuarioABcrypt(SB_URL, SK, usuarioId, plainPwd) {
+  try {
+    const hashV2 = await generarHashBcrypt(plainPwd);
+    await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(usuarioId)}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ password_hash_v2: hashV2 })
+    });
+    console.log('Usuario migrado a bcrypt:', usuarioId);
+  } catch (e) {
+    // No bloqueante: el login ya fue exitoso, la migración puede esperar al próximo login
+    console.warn('No se pudo migrar usuario a bcrypt:', e);
+  }
 }
 
 async function enviarEmailReset(email, nombre, enlace) {
@@ -184,20 +238,28 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'La sesión no corresponde a este usuario' });
       }
 
-      if (ucp.password_hash !== sha256(password_actual)) {
+      // Verificar contraseña actual (soporta v1 y v2)
+      const checkActual = await verificarPassword(ucp, password_actual);
+      if (!checkActual.ok) {
         return res.json({ error: 'La contraseña actual no es correcta' });
       }
-      const hashNuevo = sha256(password_nueva);
-      if (hashNuevo === ucp.password_hash) {
+      // Comprobar que la nueva sea distinta
+      const checkNuevaIgual = await verificarPassword(ucp, password_nueva);
+      if (checkNuevaIgual.ok) {
         return res.json({ error: 'La nueva contraseña no puede ser igual a la actual' });
       }
 
+      // Generar bcrypt (v2) y eliminar v1
+      const hashV2 = await generarHashBcrypt(password_nueva);
       const upcp = await fetch(
         `${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(ucp.id)}`,
         {
           method: 'PATCH',
           headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password_hash: hashNuevo })
+          body: JSON.stringify({
+            password_hash_v2: hashV2,
+            password_hash: null  // borrar v1 — la cuenta queda definitivamente migrada
+          })
         }
       );
       if (!upcp.ok) {
@@ -303,7 +365,8 @@ export default async function handler(req, res) {
           method: 'PATCH',
           headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            password_hash: sha256(password_nueva),
+            password_hash_v2: await generarHashBcrypt(password_nueva),
+            password_hash: null,  // borrar v1 tras reset
             reset_token: null,
             reset_expira: null
           })
@@ -356,14 +419,29 @@ export default async function handler(req, res) {
     });
     const usuarios = await r.json();
 
-    // FIX L3: SIEMPRE hasheamos la contraseña aunque el usuario no exista,
-    // para que el tiempo de respuesta sea constante (anti-timing-attack)
+    // FIX L3: SIEMPRE verificamos aunque el usuario no exista (anti-timing-attack)
     // y devolvemos el mismo mensaje en ambos casos (anti-enumeración de emails).
-    const hash = crypto.createHash('sha256').update(password).digest('hex');
     const u = usuarios[0];
 
-    if (!u || u.password_hash !== hash) {
+    // verificarPassword soporta v1 (SHA-256 legacy) y v2 (bcrypt).
+    // Si solo hay v1 pero el login es correcto, devuelve necesitaMigracion=true.
+    let resultado = { ok: false, necesitaMigracion: false };
+    if (u) {
+      resultado = await verificarPassword(u, password);
+    } else {
+      // Hashear-comparar dummy para que el tiempo total sea similar al caso "usuario existe"
+      // Sin esto, un atacante puede medir y enumerar emails registrados.
+      await bcrypt.compare(password, '$2a$10$CwTycUXWue0Thq9StjUM0uJ8N6F6IZWuJ3qd0u3KZGBRpQK/qK1Au').catch(()=>{});
+    }
+
+    if (!resultado.ok) {
       return res.json({ error: 'Email o contraseña incorrectos' });
+    }
+
+    // MIGRACIÓN SILENCIOSA: si la cuenta usa SHA-256 (v1), escribir bcrypt (v2)
+    // en segundo plano. No bloquea la respuesta al usuario.
+    if (resultado.necesitaMigracion) {
+      migrarUsuarioABcrypt(SUPABASE_URL, SERVICE_KEY, u.id, password).catch(()=>{});
     }
 
     // 3. Cargar tienda CON el plan

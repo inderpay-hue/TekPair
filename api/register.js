@@ -1,5 +1,17 @@
-// api/registro-ok.js
+// api/register.js
 // Llamado tras Stripe Checkout exitoso. Crea tienda + usuario admin con plan en `tiendas`.
+//
+// Cambios respecto a versión anterior:
+//   - REG-1: contraseña temporal en bcrypt (password_hash_v2), no SHA-256
+//   - REG-2: si tienda no se crea, abortar sin crear usuario huérfano
+//   - REG-3: tienda_id con entropía (no solo Date.now)
+//   - REG-4: chequear email duplicado antes de insertar
+//   - REG-6: no enviar email si usuario no se creó
+
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+
+const BCRYPT_ROUNDS = 10;
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
@@ -12,9 +24,22 @@ export default async function handler(req, res) {
   const { session_id, email, nombre, tienda_nombre, plan } = req.body;
   if (!email || !nombre) return res.status(400).json({ error: 'Faltan datos' });
 
-  const crypto = require('crypto');
-
   try {
+    // ═══ REG-4: Verificar que el email no existe ya ═══
+    // Si existe, abortar antes de tocar Stripe o crear nada.
+    const checkR = await fetch(
+      `${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=id&limit=1`,
+      { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } }
+    );
+    if (checkR.ok) {
+      const existentes = await checkR.json();
+      if (existentes && existentes.length > 0) {
+        return res.status(409).json({
+          error: 'Ya existe una cuenta con este email. Inicia sesión en lugar de registrarte.'
+        });
+      }
+    }
+
     // ═══ 1. Recuperar info de Stripe (customer_id, sub_id, trial_end) ═══
     let stripeCustomerId = null;
     let stripeSubId = null;
@@ -31,7 +56,6 @@ export default async function handler(req, res) {
         if (session.subscription) {
           if (typeof session.subscription === 'string') {
             stripeSubId = session.subscription;
-            // Pedir la sub para obtener fechas
             const subR = await fetch(`https://api.stripe.com/v1/subscriptions/${stripeSubId}`, {
               headers: {'Authorization': `Bearer ${STRIPE_KEY}`}
             });
@@ -52,12 +76,14 @@ export default async function handler(req, res) {
       trialUntil = new Date(Date.now() + 15*86400000).toISOString();
     }
 
-    // ═══ 2. Generar password temporal ═══
+    // ═══ 2. Generar password temporal con BCRYPT (REG-1) ═══
     const tempPass = crypto.randomBytes(8).toString('hex');
-    const hash = crypto.createHash('sha256').update(tempPass).digest('hex');
+    const hashV2 = await bcrypt.hash(tempPass, BCRYPT_ROUNDS);
 
-    // ═══ 3. Crear tienda con TODA la info de plan ═══
-    const tienda_id = 'tienda_' + Date.now();
+    // ═══ REG-3: tienda_id con entropía (no solo Date.now) ═══
+    // Date.now() solo permite ~1 registro por milisegundo. Si dos personas se registran
+    // a la vez, ambas obtienen el mismo ID → PK conflict. Sufijo aleatorio evita esto.
+    const tienda_id = 'tienda_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
     const tiendaData = {
       id: tienda_id,
       nombre: tienda_nombre || nombre + ' - Tienda',
@@ -70,6 +96,8 @@ export default async function handler(req, res) {
       plan_until: planUntil
     };
 
+    // ═══ REG-2: si tienda no se crea, abortar ═══
+    // Antes: el error se logueaba pero se seguía creando el usuario sin tienda → huérfano.
     const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas`, {
       method: 'POST',
       headers: {
@@ -82,7 +110,11 @@ export default async function handler(req, res) {
     });
     if (!tR.ok) {
       const tx = await tR.text();
-      console.error('Tienda creation error:', tx);
+      console.error('Tienda creation error:', tR.status, tx);
+      return res.status(500).json({
+        error: 'No se pudo crear la tienda. Contacta soporte.',
+        detail: tx.slice(0, 200)
+      });
     }
 
     // ═══ 4. Crear usuario admin ═══
@@ -100,12 +132,13 @@ export default async function handler(req, res) {
         tienda_id,
         nombre,
         email,
-        password_hash: hash,
+        password_hash_v2: hashV2,  // REG-1: bcrypt en lugar de SHA-256
         rol: 'admin',
         activo: true,
         permisos: { todo: true }
       })
     });
+
     let realUserId = usuarioId;
     if (uR.ok) {
       try {
@@ -113,8 +146,20 @@ export default async function handler(req, res) {
         if (usrCreated && usrCreated[0] && usrCreated[0].id) realUserId = usrCreated[0].id;
       } catch(e){}
     } else {
+      // ═══ REG-6: si usuario no se creó, intentar rollback de tienda y devolver error ═══
       const tx = await uR.text();
-      console.error('Usuario creation error:', tx);
+      console.error('Usuario creation error:', uR.status, tx);
+      // Rollback best-effort: borrar la tienda recién creada para no dejar huérfana
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tienda_id)}`, {
+          method: 'DELETE',
+          headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Prefer': 'return=minimal' }
+        });
+      } catch (e) { console.warn('No se pudo limpiar tienda huérfana:', e); }
+      return res.status(500).json({
+        error: 'No se pudo crear el usuario. Contacta soporte.',
+        detail: tx.slice(0, 200)
+      });
     }
 
     // ═══ 4.5. Crear SESIÓN automática (para que /api/me funcione al entrar) ═══
@@ -140,8 +185,13 @@ export default async function handler(req, res) {
     } catch(e) { console.warn('No se pudo crear sesión:', e.message); }
 
     // ═══ 5. Email con credenciales ═══
+    // REG-6: solo enviamos email si llegamos hasta aquí (usuario y tienda creados OK)
     if (RESEND_KEY) {
-      const planLabel = ({basico:'Básico', pro:'Pro', top:'Top'})[plan] || 'Básico';
+      const planLabel = ({basico:'Básico', pro:'Pro', top:'Premium'})[plan] || 'Básico';
+      // REG-9: escapar nombre por si trae caracteres especiales (aunque emails no ejecutan JS, romper HTML es feo)
+      const nombreEsc = String(nombre).replace(/[<>&"']/g, function(c) {
+        return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c];
+      });
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {
@@ -160,7 +210,7 @@ export default async function handler(req, res) {
     <p style="margin:8px 0 0;opacity:.7">Tu cuenta está lista</p>
   </div>
   <div style="background:white;padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
-    <p>Hola <strong>${nombre}</strong>,</p>
+    <p>Hola <strong>${nombreEsc}</strong>,</p>
     <p>Tu suscripción <strong style="color:#0055FF">plan ${planLabel}</strong> está activa con 15 días de prueba gratis.</p>
     <div style="background:#F8FAFC;border-radius:8px;padding:16px;margin:16px 0;font-family:monospace">
       <div><strong>Email:</strong> ${email}</div>
