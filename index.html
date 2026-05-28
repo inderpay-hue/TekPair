@@ -3,286 +3,201 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Tekpair — Software para tiendas de venta y reparación móvil</title>
+<title>TekPair — Software para tiendas de venta y reparación móvil</title>
 <meta name="description" content="Gestiona ventas, reparaciones, stock y clientes de tu tienda de venta y reparación móvil desde cualquier dispositivo.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--blue:#0055FF;--dark:#020B2E;--green:#00C896;--orange:#F97316}
-body{font-family:Arial,sans-serif;color:#0F1729;background:white;overflow-x:hidden}
+:root{
+  --orange:#FF5B1F;--orange-d:#C2491A;--orange-l:#FFF1EB;--orange-br:#FFD9C9;
+  --ink:#0E0E10;--ink-soft:#3D3A34;--muted:#6B655B;--faint:#9A9388;
+  --paper:#FBFAF8;--paper-2:#F2EEE7;--line:#EAE5DD;--card:#FFFFFF;
+  --green:#16A34A;--green-l:#E7F6EC;--green-d:#16803C;
+  --font:'Inter',system-ui,sans-serif;--display:'Space Grotesk',system-ui,sans-serif;--mono:'JetBrains Mono',monospace;
+}
+body{font-family:var(--font);color:var(--ink);background:var(--paper);overflow-x:hidden;line-height:1.5}
+a{text-decoration:none}
+.wrap{max-width:1080px;margin:0 auto;padding:0 24px}
+.grid-bg{background-image:linear-gradient(var(--paper-2) 1px,transparent 1px),linear-gradient(90deg,var(--paper-2) 1px,transparent 1px);background-size:36px 36px}
+.mono{font-family:var(--mono)}
+.eyebrow{display:inline-flex;align-items:center;gap:7px;font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);background:var(--card);border:1px solid var(--line);padding:5px 12px;border-radius:20px}
+.eyebrow .dot{width:6px;height:6px;border-radius:50%;background:var(--green);display:inline-block}
 
 /* NAV */
-nav{position:fixed;top:0;left:0;right:0;background:rgba(2,11,46,.95);backdrop-filter:blur(10px);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;z-index:100;border-bottom:1px solid rgba(255,255,255,.1)}
-.nav-logo{color:white;font-size:20px;font-weight:800;text-decoration:none}
-.nav-links{display:flex;align-items:center;gap:20px}
-.nav-links a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;font-weight:500}
-.nav-links a:hover{color:white}
-.nav-cta{background:var(--blue);color:white!important;padding:8px 18px;border-radius:8px;font-weight:700!important}
-.lang-sel{background:rgba(255,255,255,.1);border:none;color:white;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;font-family:Arial}
+nav{position:fixed;top:0;left:0;right:0;background:rgba(14,14,16,.92);backdrop-filter:blur(12px);z-index:100;border-bottom:1px solid rgba(255,255,255,.08)}
+.nav-inner{max-width:1080px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{color:#fff;font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:7px}
+.nav-logo span{color:var(--orange)}
+.nav-links{display:flex;align-items:center;gap:18px}
+.nav-links a{color:rgba(255,255,255,.6);font-size:13px;font-weight:500;transition:color .15s}
+.nav-links a:hover{color:#fff}
+.nav-login{color:#fff!important;border:1px solid rgba(255,255,255,.2);padding:7px 14px;border-radius:8px}
+.nav-cta{background:var(--orange);color:#fff!important;padding:8px 16px;border-radius:8px;font-weight:600!important}
+.nav-cta:hover{background:var(--orange-d)}
+.lang-sel{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;padding:6px 10px;border-radius:7px;cursor:pointer;font-size:12px;font-family:var(--font)}
+.promo-bar{background:var(--orange);color:#fff;text-align:center;padding:8px 16px;font-size:12px;font-weight:500;position:fixed;top:0;left:0;right:0;z-index:101}
+.promo-bar code{font-family:var(--mono);background:rgba(255,255,255,.2);padding:1px 6px;border-radius:4px}
+.hide-mobile{display:inline}
 
 /* HERO */
-.hero{background:linear-gradient(135deg,#020B2E 0%,#0A1A4E 60%,#0D2060 100%);min-height:100vh;display:flex;align-items:center;padding:100px 24px 60px;position:relative;overflow:hidden}
-.hero::before{content:'';position:absolute;top:-50%;right:-20%;width:600px;height:600px;background:radial-gradient(circle,rgba(0,85,255,.15) 0%,transparent 70%);border-radius:50%}
-.hero::after{content:'';position:absolute;bottom:-30%;left:-10%;width:400px;height:400px;background:radial-gradient(circle,rgba(0,200,150,.1) 0%,transparent 70%);border-radius:50%}
-.hero-content{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;position:relative;z-index:1}
-.hero-badge{display:inline-flex;align-items:center;gap:8px;background:rgba(0,200,150,.1);border:1px solid rgba(0,200,150,.3);color:#00C896;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:600;margin-bottom:20px}
-.hero h1{font-size:42px;font-weight:800;color:white;line-height:1.2;margin-bottom:16px}
-.hero h1 span{color:var(--green)}
-.hero p{color:rgba(255,255,255,.7);font-size:16px;line-height:1.7;margin-bottom:28px}
-.hero-btns{display:flex;gap:12px;flex-wrap:wrap}
-.btn-primary{background:var(--blue);color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-flex;align-items:center;gap:8px;transition:transform .2s,box-shadow .2s}
-.btn-primary:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,85,255,.4)}
-.btn-secondary{background:rgba(255,255,255,.1);color:white;padding:14px 28px;border-radius:10px;text-decoration:none;font-weight:600;font-size:15px;border:1px solid rgba(255,255,255,.2)}
-.hero-visual{position:relative}
-.phone-mockup{background:linear-gradient(145deg,#1a2a5e,#0a1a3e);border-radius:20px;padding:16px;box-shadow:0 32px 80px rgba(0,0,0,.5);border:1px solid rgba(255,255,255,.1)}
-.phone-screen{background:#F7F9FC;border-radius:12px;overflow:hidden}
-.phone-topbar{background:#020B2E;padding:10px 14px;display:flex;align-items:center;justify-content:space-between}
-.phone-logo{color:white;font-size:13px;font-weight:700}
-.phone-body{padding:12px}
-.phone-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-.phone-stat{background:white;border-radius:8px;padding:10px;border:1px solid #E2E8F0}
-.phone-stat-n{font-size:18px;font-weight:800;color:#0055FF}
-.phone-stat-l{font-size:9px;color:#64748B}
-.phone-card{background:white;border-radius:8px;padding:10px;border:1px solid #E2E8F0;margin-bottom:8px}
-.phone-card-title{font-size:10px;font-weight:700;margin-bottom:8px;color:#020B2E}
-.phone-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid #F1F5F9;font-size:10px}
-.phone-badge{background:rgba(0,85,255,.1);color:#0055FF;padding:2px 6px;border-radius:10px;font-size:9px;font-weight:600}
-.phone-badge-g{background:rgba(0,200,150,.1);color:#00875A}
+.hero{padding:150px 0 80px;position:relative}
+.hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center}
+.hero h1{font-family:var(--display);font-size:52px;line-height:1.02;letter-spacing:-.035em;font-weight:600;margin:22px 0 18px}
+.hero h1 .rotator{display:inline-block;color:var(--orange);transition:opacity .3s,transform .3s;min-width:60px}
+.hero p.sub{font-size:17px;line-height:1.6;color:var(--muted);margin-bottom:28px;max-width:420px}
+.hero-btns{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+.btn-primary{background:var(--orange);color:#fff;padding:14px 26px;border-radius:11px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px;transition:transform .15s,box-shadow .15s}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 28px -8px rgba(255,91,31,.5)}
+.btn-ghost{color:var(--ink);padding:14px 22px;border-radius:11px;font-weight:600;font-size:15px;border:1px solid #D8D2C8;transition:background .15s}
+.btn-ghost:hover{background:var(--card)}
+.hero-trust{display:flex;gap:18px;margin-top:20px;flex-wrap:wrap;font-family:var(--mono)}
+.hero-trust span{font-size:11px;color:var(--faint);display:inline-flex;align-items:center;gap:5px}
+.hero-trust span::before{content:'✓';color:var(--green);font-weight:600}
 
-/* STATS */
-.stats-bar{background:#F8FAFC;padding:40px 24px;border-bottom:1px solid #E2E8F0}
-.stats-bar-inner{max-width:900px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center}
-.stat-item-val{font-size:32px;font-weight:800;color:var(--dark)}
-.stat-item-lbl{font-size:13px;color:#64748B;margin-top:4px}
+/* HERO MOCKUP */
+.mockup{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:15px;box-shadow:0 30px 60px -28px rgba(14,14,16,.3)}
+.mk-top{display:flex;align-items:center;justify-content:space-between;padding-bottom:12px;border-bottom:1px solid var(--paper-2);margin-bottom:13px}
+.mk-top-l{font-size:13px;font-weight:600;color:var(--ink);display:flex;align-items:center;gap:6px}
+.mk-top-l span{color:var(--orange)}
+.mk-time{font-family:var(--mono);font-size:10px;color:var(--faint)}
+.mk-stats{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:11px}
+.mk-stat{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:11px}
+.mk-stat.hl{background:var(--orange-l);border-color:var(--orange-br)}
+.mk-stat-n{font-family:var(--mono);font-size:22px;font-weight:500;letter-spacing:-.02em;color:var(--ink)}
+.mk-stat.hl .mk-stat-n{color:var(--orange)}
+.mk-stat-l{font-size:10px;color:var(--faint)}
+.mk-stat.hl .mk-stat-l{color:var(--orange-d)}
+.mk-list{background:var(--paper);border:1px solid var(--line);border-radius:10px;padding:12px}
+.mk-list-h{font-size:10px;font-weight:600;color:var(--faint);text-transform:uppercase;letter-spacing:.06em;margin-bottom:9px}
+.mk-row{display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:11px;color:var(--ink-soft);border-top:1px solid var(--paper-2)}
+.mk-row:first-of-type{border-top:none}
+.mk-tag{font-family:var(--mono);font-size:9px;padding:2px 7px;border-radius:5px}
+.mk-tag.ok{background:var(--green-l);color:var(--green-d)}
+.mk-tag.run{background:var(--orange-l);color:var(--orange-d)}
+.mk-tag.wait{background:var(--paper-2);color:var(--muted)}
 
 /* FEATURES */
-.features{padding:80px 24px;background:white}
-.section-tag{display:inline-block;background:rgba(0,85,255,.08);color:var(--blue);padding:4px 14px;border-radius:20px;font-size:12px;font-weight:700;margin-bottom:12px}
-.section-title{font-size:32px;font-weight:800;color:var(--dark);margin-bottom:12px;line-height:1.3}
-.section-sub{font-size:16px;color:#64748B;max-width:500px;line-height:1.7}
-.features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1000px;margin:48px auto 0}
-.feat-card{padding:28px 24px;border-radius:14px;border:1px solid #E2E8F0;background:white;transition:transform .2s,box-shadow .2s,border-color .2s}
-.feat-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,85,255,.12);border-color:rgba(0,85,255,.35)}
-.feat-icon{width:48px;height:48px;border-radius:12px;background:rgba(0,85,255,.08);color:var(--blue);display:flex;align-items:center;justify-content:center;margin-bottom:16px;transition:background .2s,color .2s}
-.feat-icon svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
-.feat-card:hover .feat-icon{background:var(--blue);color:white}
-.feat-title{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--dark)}
-.feat-desc{font-size:13px;color:#64748B;line-height:1.6}
+.feat-card{background:var(--card);padding:26px 22px;border-radius:14px;border:1px solid var(--line);transition:transform .2s,box-shadow .2s,border-color .2s}
+.feat-card:hover{transform:translateY(-4px);box-shadow:0 16px 36px -16px rgba(255,91,31,.25);border-color:var(--orange-br)}
+.feat-icon{width:46px;height:46px;border-radius:12px;background:var(--orange-l);color:var(--orange);display:flex;align-items:center;justify-content:center;margin-bottom:16px;transition:background .2s,color .2s}
+.feat-icon svg{width:23px;height:23px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.feat-card:hover .feat-icon{background:var(--orange);color:#fff}
+.feat-title{font-family:var(--display);font-size:17px;font-weight:600;margin-bottom:8px;color:var(--ink)}
+.feat-desc{font-size:13px;color:var(--muted);line-height:1.6}
 
-/* HOW IT WORKS */
-.how{padding:80px 24px;background:#F8FAFC}
-.how-steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;max-width:900px;margin:48px auto 0}
-.step{text-align:center;padding:24px}
-.step-num{width:48px;height:48px;background:var(--blue);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:800;margin:0 auto 16px}
-.step-title{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--dark)}
-.step-desc{font-size:13px;color:#64748B;line-height:1.6}
+/* STEPS */
+.step{text-align:center;padding:8px}
+.step-num{width:52px;height:52px;background:var(--card);border:1px solid var(--line);color:var(--orange);border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:500;margin:0 auto 16px}
+.step-title{font-family:var(--display);font-size:17px;font-weight:600;margin-bottom:8px;color:var(--ink)}
+.step-desc{font-size:13px;color:var(--muted);line-height:1.6;max-width:240px;margin:0 auto}
 
 /* PRICING */
-.pricing{padding:80px 24px;background:white}
-.pricing-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:900px;margin:48px auto 0}
-.price-card{border-radius:16px;padding:28px;border:2px solid #E2E8F0;position:relative;transition:transform .2s}
+.price-card{background:var(--card);border-radius:16px;padding:28px;border:1px solid var(--line);position:relative;transition:transform .2s}
 .price-card:hover{transform:translateY(-4px)}
-.price-card.popular{border-color:var(--blue);box-shadow:0 8px 32px rgba(0,85,255,.15)}
-.price-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--blue);color:white;padding:4px 16px;border-radius:20px;font-size:11px;font-weight:700;white-space:nowrap}
-.price-name{font-size:20px;font-weight:700;margin-bottom:4px;color:var(--dark)}
-.price-amount{font-size:36px;font-weight:800;color:var(--dark);margin-bottom:4px}
-.price-amount span{font-size:14px;font-weight:400;color:#64748B}
-.price-desc{font-size:12px;color:#64748B;margin-bottom:20px}
-.price-features{list-style:none;margin-bottom:24px}
-.price-features li{padding:6px 0;font-size:13px;color:#374151;display:flex;align-items:center;gap:8px;border-bottom:1px solid #F1F5F9}
-.price-features li::before{content:'✓';color:var(--green);font-weight:700;flex-shrink:0}
-.price-btn{display:block;width:100%;padding:13px;border-radius:9px;text-align:center;text-decoration:none;font-weight:700;font-size:14px;transition:transform .2s}
-.price-btn-main{background:var(--blue);color:white}
-.price-btn-sec{background:#F1F5F9;color:var(--dark)}
-.price-btn:hover{transform:scale(1.02)}
+.price-card.popular{border:2px solid var(--orange);box-shadow:0 16px 40px -16px rgba(255,91,31,.25)}
+.price-badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--orange);color:#fff;padding:4px 14px;border-radius:20px;font-size:10px;font-weight:600;font-family:var(--mono);letter-spacing:.04em;white-space:nowrap}
+.price-name{font-family:var(--display);font-size:20px;font-weight:600;margin-bottom:6px;color:var(--ink)}
+.price-amount{font-size:36px;font-weight:500;color:var(--ink);margin-bottom:4px;letter-spacing:-.02em}
+.price-amount span{font-size:13px;font-weight:400;color:var(--faint);font-family:var(--font)}
+.price-desc{font-size:13px;color:var(--muted);margin-bottom:18px}
+.price-features{list-style:none;margin-bottom:22px}
+.price-features li{padding:7px 0;font-size:13px;color:var(--ink-soft);display:flex;align-items:center;gap:9px;border-bottom:1px solid var(--paper-2)}
+.price-features li::before{content:'✓';color:var(--orange);font-weight:700;flex-shrink:0}
+.price-btn{display:block;width:100%;padding:13px;border-radius:10px;text-align:center;font-weight:600;font-size:14px;transition:transform .15s,background .15s}
+.price-btn-main{background:var(--orange);color:#fff}
+.price-btn-main:hover{background:var(--orange-d)}
+.price-btn-sec{background:var(--paper-2);color:var(--ink)}
+.price-btn-sec:hover{background:var(--line)}
+.price-guarantee{text-align:center;font-size:11px;color:var(--faint);margin-top:10px;font-family:var(--mono)}
+
+/* TESTIMONIALS */
+.test-card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}
+.test-stars{color:var(--orange);font-size:14px;letter-spacing:2px;margin-bottom:12px}
+.test-text{font-size:14px;line-height:1.65;color:var(--ink-soft);margin-bottom:18px}
+.test-author{display:flex;align-items:center;gap:11px}
+.test-av{width:38px;height:38px;border-radius:50%;background:var(--orange-l);color:var(--orange-d);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:600;font-family:var(--mono);flex-shrink:0}
+.test-role{font-size:12px;color:var(--muted)}
 
 /* FAQ */
-.faq{padding:80px 24px;background:#F8FAFC}
-.faq-list{max-width:700px;margin:48px auto 0}
-.faq-item{background:white;border-radius:12px;margin-bottom:10px;border:1px solid #E2E8F0;overflow:hidden}
-.faq-q{padding:18px 20px;font-weight:600;font-size:14px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;color:var(--dark)}
-.faq-q::after{content:'+';font-size:20px;color:#64748B;transition:transform .2s}
+.faq-item{border:1px solid var(--line);border-radius:12px;margin-bottom:10px;background:var(--card);overflow:hidden}
+.faq-q{padding:18px 20px;font-size:15px;font-weight:600;color:var(--ink);cursor:pointer;display:flex;justify-content:space-between;align-items:center}
+.faq-q::after{content:'+';font-size:22px;color:var(--orange);font-weight:400;transition:transform .2s}
 .faq-item.open .faq-q::after{transform:rotate(45deg)}
-.faq-a{padding:0 20px;max-height:0;overflow:hidden;transition:max-height .3s,padding .3s;font-size:13px;color:#64748B;line-height:1.7}
+.faq-a{max-height:0;overflow:hidden;padding:0 20px;font-size:14px;color:var(--muted);line-height:1.65;transition:max-height .3s,padding .3s}
 .faq-item.open .faq-a{max-height:200px;padding:0 20px 18px}
 
-/* TESTIMONIOS */
-.testimonios{padding:80px 24px;background:white}
-.test-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;max-width:1000px;margin:48px auto 0}
-.test-card{background:#F8FAFC;border-radius:14px;padding:24px;border:1px solid #E2E8F0}
-.test-stars{color:#F59E0B;font-size:16px;margin-bottom:12px}
-.test-text{font-size:13px;color:#374151;line-height:1.7;margin-bottom:16px;font-style:italic}
-.test-author{display:flex;align-items:center;gap:10px}
-.test-avatar{width:36px;height:36px;background:var(--blue);border-radius:50%;display:flex;align-items:center;justify-content:center;color:white;font-weight:700;font-size:14px}
-.test-name{font-size:13px;font-weight:700;color:var(--dark)}
-.test-role{font-size:11px;color:#64748B}
-
-/* CTA */
-.cta{background:linear-gradient(135deg,#020B2E,#0A1A4E);padding:80px 24px;text-align:center;color:white}
-.cta h2{font-size:32px;font-weight:800;margin-bottom:12px}
-.cta p{color:rgba(255,255,255,.7);font-size:16px;margin-bottom:32px}
-.cta-btns{display:flex;gap:12px;justify-content:center;flex-wrap:wrap}
-
-/* FOOTER */
-footer{background:#020B2E;padding:40px 24px;color:rgba(255,255,255,.6)}
-.footer-inner{max-width:1000px;margin:0 auto;display:grid;grid-template-columns:2fr 1fr 1fr;gap:40px}
-.footer-logo{font-size:20px;font-weight:800;color:white;margin-bottom:8px}
-.footer-desc{font-size:13px;line-height:1.6}
-.footer-col h4{color:white;font-size:13px;font-weight:700;margin-bottom:12px}
-.footer-col a{display:block;color:rgba(255,255,255,.6);text-decoration:none;font-size:13px;padding:3px 0}
-.footer-col a:hover{color:white}
-.footer-bottom{max-width:1000px;margin:24px auto 0;padding-top:24px;border-top:1px solid rgba(255,255,255,.1);display:flex;justify-content:space-between;align-items:center;font-size:12px}
-
-/* ═══ EFECTOS WOW ═══ */
-.hero h1 .rotator{display:inline-block;color:var(--green);font-style:italic;font-weight:400;transition:opacity .3s, transform .3s;min-width:200px;text-align:left;font-family:Georgia,serif}
-.feat-card{position:relative;overflow:hidden;cursor:pointer}
-.feat-card::before{content:'';position:absolute;top:0;left:-100%;width:100%;height:100%;background:linear-gradient(90deg,transparent,rgba(0,85,255,.08),transparent);transition:left .6s;pointer-events:none}
-.feat-card:hover::before{left:100%}
-.feat-card:hover .feat-icon{transform:scale(1.15) rotate(-8deg)}
-.feat-icon{transition:transform .3s cubic-bezier(.4,0,.2,1);display:inline-block}
-.phone-mockup{transform:rotateY(-8deg) rotateX(2deg);transition:transform .6s cubic-bezier(.4,0,.2,1)}
-.hero-visual{perspective:1500px}
-.phone-mockup:hover{transform:rotateY(0) rotateX(0) translateY(-6px)}
-.cta{position:relative;overflow:hidden;background:linear-gradient(120deg,#020B2E,#0A1A4E,#0D2060,#0055FF,#020B2E)!important;background-size:300% 300%!important;animation:gradientShift 10s ease infinite}
-@keyframes gradientShift{0%,100%{background-position:0% 50%}50%{background-position:100% 50%}}
-.cta::before{content:'';position:absolute;width:400px;height:400px;background:radial-gradient(circle,rgba(255,255,255,.12),transparent 70%);border-radius:50%;animation:blobMove1 12s ease-in-out infinite;pointer-events:none;top:50%;left:50%}
-.cta::after{content:'';position:absolute;width:350px;height:350px;background:radial-gradient(circle,rgba(0,200,150,.18),transparent 70%);border-radius:50%;animation:blobMove2 14s ease-in-out infinite;pointer-events:none;top:50%;left:50%}
-@keyframes blobMove1{0%,100%{transform:translate(-300px,-200px)}50%{transform:translate(300px,200px)}}
-@keyframes blobMove2{0%,100%{transform:translate(300px,200px)}50%{transform:translate(-300px,-200px)}}
-.cta > *{position:relative;z-index:2}
-.cta .btn-primary{animation:btnPulse 2.5s ease-in-out infinite}
-@keyframes btnPulse{0%,100%{box-shadow:0 8px 24px rgba(0,85,255,.4)}50%{box-shadow:0 8px 40px rgba(0,200,150,.6),0 0 0 8px rgba(0,200,150,.1)}}
-.stat-item-val{font-variant-numeric:tabular-nums}
-
-/* ═══ DEMO INTERACTIVA ═══ */
-.demo-section{padding:80px 24px;background:linear-gradient(180deg,#F8FAFC,#EFF6FF)}
-.demo-wrap{background:#020B2E;border-radius:16px;overflow:hidden;box-shadow:0 20px 60px rgba(2,11,46,.2);max-width:760px;margin:0 auto}
-.demo-toolbar{background:#0A1A4E;padding:12px 16px;display:flex;align-items:center;gap:8px;border-bottom:1px solid rgba(255,255,255,.1)}
-.demo-dot{width:10px;height:10px;border-radius:50%}
-.demo-dot-r{background:#FF5F56}
-.demo-dot-y{background:#FFBD2E}
-.demo-dot-g{background:#28C940}
-.demo-url{margin-left:14px;color:rgba(255,255,255,.5);font-size:11px;font-family:monospace}
-.demo-live{margin-left:auto;color:#00C896;font-size:11px;font-weight:600;display:flex;align-items:center;gap:5px}
-.demo-live-dot{width:8px;height:8px;border-radius:50%;background:#00C896;animation:livePulse 1.5s ease-in-out infinite}
-@keyframes livePulse{50%{opacity:.5;transform:scale(1.2)}}
-.demo-content{background:white;padding:24px}
-.demo-step-title{font-size:14px;font-weight:700;color:#020B2E;margin-bottom:4px}
-.demo-step-sub{font-size:12px;color:#64748B;margin-bottom:16px}
-.demo-devices{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.demo-device{background:#F8FAFC;border:1px solid #E2E8F0;border-radius:10px;padding:18px 12px;cursor:pointer;text-align:center;transition:all .2s;font-family:inherit}
-.demo-device:hover{transform:translateY(-3px);border-color:#0055FF;box-shadow:0 6px 16px rgba(0,85,255,.15)}
-.demo-device:active{transform:translateY(0)}
-.demo-device-icon{font-size:32px;margin-bottom:6px}
-.demo-device-name{font-size:12px;font-weight:700;color:#020B2E;margin-bottom:2px}
-.demo-device-sub{font-size:10px;color:#64748B}
-.demo-back{background:transparent;border:1px solid #E2E8F0;border-radius:6px;padding:4px 10px;font-size:11px;cursor:pointer;color:#64748B;font-family:inherit}
-.demo-card{background:linear-gradient(135deg,#F8FAFC,#EFF6FF);border-radius:12px;padding:18px;border:1px solid #DBEAFE}
-.demo-grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
-.demo-field-label{font-size:9px;color:#64748B;text-transform:uppercase;letter-spacing:.5px;font-weight:700;margin-bottom:2px}
-.demo-field-val{font-size:14px;font-weight:700;color:#020B2E;margin-bottom:2px}
-.demo-field-meta{font-size:10px;color:#64748B}
-.demo-divider{border-top:1px solid #DBEAFE;margin:12px 0}
-.demo-cta{width:100%;margin-top:14px;background:#0055FF;color:white;border:none;padding:14px;border-radius:10px;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit;transition:all .2s}
-.demo-cta:hover{background:#0044CC;transform:translateY(-1px);box-shadow:0 6px 16px rgba(0,85,255,.3)}
-.demo-check{width:64px;height:64px;background:#00C896;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px;animation:pulseSuccess 1.2s ease}
-@keyframes pulseSuccess{0%{transform:scale(0)}60%{transform:scale(1.1)}100%{transform:scale(1)}}
-.demo-success-title{font-size:18px;font-weight:800;color:#020B2E;margin-bottom:4px}
-.demo-card-status{background:#F8FAFC;border-radius:12px;padding:16px;border:1px solid #E2E8F0;margin-top:8px}
-.demo-states{display:flex;align-items:center;gap:4px;margin-bottom:14px}
-.demo-state{padding:7px 10px;border-radius:100px;background:#E2E8F0;color:#64748B;font-size:11px;font-weight:700;transition:all .3s;white-space:nowrap}
-.demo-state.active{background:#0055FF;color:white;animation:statePop .4s ease}
-.demo-state.done{background:#00C896;color:white}
-@keyframes statePop{0%{transform:scale(1)}50%{transform:scale(1.08)}100%{transform:scale(1)}}
-.demo-state-line{flex:1;height:2px;background:#E2E8F0}
-.demo-advance{width:100%;background:white;border:1px solid #0055FF;color:#0055FF;padding:10px;border-radius:8px;font-weight:700;font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
-.demo-advance:hover{background:#EFF6FF}
-.demo-reset{width:100%;margin-top:10px;background:transparent;border:none;color:#64748B;padding:8px;font-size:11px;cursor:pointer;text-decoration:underline;font-family:inherit}
-
-/* RESPONSIVE */
-@media(max-width:768px){
-  .hero-content{grid-template-columns:1fr}
-  .hero-visual{display:none}
-  .hero h1{font-size:28px}
-  .stats-bar-inner{grid-template-columns:1fr 1fr}
-  .features-grid{grid-template-columns:1fr}
-  .how-steps{grid-template-columns:1fr}
-  .pricing-grid{grid-template-columns:1fr}
-  .test-grid{grid-template-columns:1fr}
-  .footer-inner{grid-template-columns:1fr}
-  .nav-links .hide-mobile{display:none}
-  .demo-devices{grid-template-columns:1fr;gap:8px}
-  .demo-states{flex-direction:column;align-items:stretch;gap:4px}
-  .demo-state-line{display:none}
-  .demo-state{text-align:center}
-  .demo-grid-2{grid-template-columns:1fr;gap:10px}
+/* STICKY CTA */
+.sticky-cta{display:none}
+@media(max-width:860px){
+.hero-grid,.wrap [style*="repeat(3,1fr)"],.wrap [style*="repeat(4,1fr)"]{grid-template-columns:1fr!important}
+.hero h1{font-size:38px}
+.hide-mobile{display:none}
+footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
+.sticky-cta{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(14,14,16,.97);backdrop-filter:blur(10px);padding:12px 16px;gap:10px;border-top:1px solid rgba(255,255,255,.12)}
+.sticky-cta a{flex:1;text-align:center;padding:13px;border-radius:10px;font-weight:600;font-size:14px}
+.sticky-cta .sc-main{background:var(--orange);color:#fff}
+.sticky-cta .sc-sec{background:rgba(255,255,255,.1);color:#fff;flex:0 0 auto;padding:13px 16px}
 }
 </style>
 </head>
 <body>
-<!-- BANNER PROMO STICKY -->
-<div id="promoBanner" style="background:linear-gradient(90deg,#0055FF,#00C896);color:white;text-align:center;padding:10px 14px;font-size:13px;font-weight:600;position:relative;z-index:101">
-  🔥 Lanzamiento — <strong>50% descuento × 3 meses</strong> con código <strong style="background:rgba(255,255,255,.2);padding:2px 8px;border-radius:4px;font-family:monospace">EARLY50</strong> · Solo 10 plazas
-  <button onclick="document.getElementById('promoBanner').style.display='none'" style="background:none;border:none;color:white;cursor:pointer;font-size:16px;position:absolute;right:10px;top:50%;transform:translateY(-50%);padding:0 8px;line-height:1">×</button>
-</div>
-<style>
-nav{top:42px!important}
-.hero{padding-top:140px!important}
-@media(max-width:768px){nav{top:60px!important}.hero{padding-top:160px!important}#promoBanner{font-size:11px}}
-</style>
-<!-- /BANNER PROMO -->
 
+<div class="promo-bar">🔥 Lanzamiento — 50% descuento × 3 meses con código <code>EARLY50</code> · Solo 10 plazas</div>
 
-<!-- NAV -->
-<nav>
-  <a href="#" class="nav-logo">⚡ Tekpair</a>
-  <div class="nav-links">
-    <a href="#features" class="hide-mobile" data-i18n="nav.features">Características</a>
-    <a href="#pricing" class="hide-mobile" data-i18n="nav.pricing">Precios</a>
-    <a href="#faq" class="hide-mobile" data-i18n="nav.faq">FAQ</a>
-    <select class="lang-sel" onchange="setLang(this.value)">
-      <option value="es">🇪🇸 ES</option>
-      <option value="en">🇬🇧 EN</option>
-      <option value="fr">🇫🇷 FR</option>
-      <option value="pt">🇵🇹 PT</option>
-    </select>
-    <a href="/app.html" style="color:white;background:rgba(255,255,255,.1);padding:8px 16px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:600;border:1px solid rgba(255,255,255,.2)" data-i18n="nav.login">Entrar</a>
-    <a href="/registro.html" class="nav-cta" data-i18n="nav.start">Empezar gratis</a>
+<nav style="top:36px">
+  <div class="nav-inner">
+    <a href="#" class="nav-logo"><span>◆</span> TekPair</a>
+    <div class="nav-links">
+      <a href="#features" class="hide-mobile" data-i18n="nav.features">Características</a>
+      <a href="#pricing" class="hide-mobile" data-i18n="nav.pricing">Precios</a>
+      <a href="#faq" class="hide-mobile" data-i18n="nav.faq">FAQ</a>
+      <select class="lang-sel" onchange="setLang(this.value)">
+        <option value="es">🇪🇸 ES</option>
+        <option value="en">🇬🇧 EN</option>
+        <option value="fr">🇫🇷 FR</option>
+        <option value="pt">🇵🇹 PT</option>
+      </select>
+      <a href="/app.html" class="nav-login" data-i18n="nav.login">Entrar</a>
+      <a href="/registro.html" class="nav-cta" data-i18n="nav.start">Empezar gratis</a>
+    </div>
   </div>
 </nav>
 
 <!-- HERO -->
-<section class="hero">
-  <div class="hero-content">
-    <div>
-      <div class="hero-badge">🔥 <span>50% descuento × 3 meses · Código EARLY50 (10 plazas)</span></div>
-      <h1>Adiós <span class="rotator" id="heroRotator">Excel.</span><br/><span>Hola TekPair.</span></h1>
-      <p>El software más sencillo para tiendas de reparación de móviles. Gestiona reparaciones por IMEI, TPV, stock, clientes y citas — todo desde tu móvil, tablet u ordenador.</p>
-      <div class="hero-btns">
-        <a href="/registro.html" class="btn-primary">🚀 <span>Prueba 15 días gratis</span></a>
-        <a href="/app.html" class="btn-secondary">Ver demo en vivo</a>
+<section class="hero grid-bg">
+  <div class="wrap">
+    <div class="hero-grid">
+      <div>
+        <div class="eyebrow"><span class="dot"></span> Hecho para talleres de reparación</div>
+        <h1>Adiós <span class="rotator" id="heroRotator">Excel.</span><br>Hola TekPair.</h1>
+        <p class="sub">El software más sencillo para tiendas de reparación de móviles. Reparaciones por IMEI, TPV, stock, clientes y citas — todo desde tu móvil, tablet u ordenador.</p>
+        <div class="hero-btns">
+          <a href="/registro.html" class="btn-primary">Prueba 15 días <span>→</span></a>
+          <a href="/app.html" class="btn-ghost" data-i18n="hero.cta2">Ver demo</a>
+        </div>
+        <div class="hero-trust">
+          <span data-i18n="trust.charge">No pagas hasta el día 15</span>
+          <span data-i18n="trust.setup">Listo en 3 minutos</span>
+          <span data-i18n="trust.cancel">Cancela cuando quieras</span>
+        </div>
       </div>
-    </div>
-    <div class="hero-visual">
-      <div class="phone-mockup">
-        <div class="phone-screen">
-          <div class="phone-topbar">
-            <span class="phone-logo">⚡ Tekpair</span>
-            <span style="color:rgba(255,255,255,.6);font-size:10px">Admin</span>
+      <div class="hero-visual">
+        <div class="mockup">
+          <div class="mk-top">
+            <div class="mk-top-l"><span>◆</span> Panel de hoy</div>
+            <div class="mk-time">7 may · 14:32</div>
           </div>
-          <div class="phone-body">
-            <div style="font-size:11px;color:#64748B;margin-bottom:8px">Hoy, jueves 7 mayo</div>
-            <div class="phone-stats">
-              <div class="phone-stat"><div class="phone-stat-n" style="color:#0055FF">12</div><div class="phone-stat-l">Ventas</div></div>
-              <div class="phone-stat"><div class="phone-stat-n" style="color:#00C896">€847</div><div class="phone-stat-l">Ingresos</div></div>
-              <div class="phone-stat"><div class="phone-stat-n" style="color:#F97316">8</div><div class="phone-stat-l">Reparaciones</div></div>
-              <div class="phone-stat"><div class="phone-stat-n" style="color:#7C3AED">34</div><div class="phone-stat-l">Stock</div></div>
-            </div>
-            <div class="phone-card">
-              <div class="phone-card-title">Últimas reparaciones</div>
-              <div class="phone-row"><span>Carlos M. — iPhone 14</span><span class="phone-badge phone-badge-g">Entregado</span></div>
-              <div class="phone-row"><span>Ana R. — Samsung S23</span><span class="phone-badge">En proceso</span></div>
-              <div class="phone-row"><span>Luis P. — Xiaomi 12</span><span class="phone-badge" style="background:rgba(249,115,22,.1);color:#C2410C">Pendiente</span></div>
-            </div>
+          <div class="mk-stats">
+            <div class="mk-stat"><div class="mk-stat-n">€847</div><div class="mk-stat-l">ingresos</div></div>
+            <div class="mk-stat hl"><div class="mk-stat-n">8</div><div class="mk-stat-l">reparaciones</div></div>
+          </div>
+          <div class="mk-list">
+            <div class="mk-list-h">En curso</div>
+            <div class="mk-row">Carlos M · iPhone 14 <span class="mk-tag ok">listo</span></div>
+            <div class="mk-row">Ana R · Samsung S23 <span class="mk-tag run">en curso</span></div>
+            <div class="mk-row">Luis P · Xiaomi 12 <span class="mk-tag wait">en espera</span></div>
           </div>
         </div>
       </div>
@@ -291,23 +206,25 @@ nav{top:42px!important}
 </section>
 
 <!-- STATS -->
-<div class="stats-bar">
-  <div class="stats-bar-inner">
-    <div><div class="stat-item-val">500+</div><div class="stat-item-lbl" data-i18n="stats.shops">Tiendas activas</div></div>
-    <div><div class="stat-item-val">50k+</div><div class="stat-item-lbl" data-i18n="stats.repairs">Reparaciones gestionadas</div></div>
-    <div><div class="stat-item-val">99.9%</div><div class="stat-item-lbl" data-i18n="stats.uptime">Disponibilidad</div></div>
-    <div><div class="stat-item-val">4.9★</div><div class="stat-item-lbl" data-i18n="stats.rating">Valoración media</div></div>
+<section style="background:var(--ink);padding:32px 0">
+  <div class="wrap">
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center">
+      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:#fff;letter-spacing:-.02em">500+</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.shops">Tiendas activas</div></div>
+      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:#fff;letter-spacing:-.02em">28K</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.repairs">Reparaciones gestionadas</div></div>
+      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:var(--orange);letter-spacing:-.02em">99%</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.uptime">Disponibilidad</div></div>
+      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:#fff;letter-spacing:-.02em">4,9</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.rating">Valoración media</div></div>
+    </div>
   </div>
-</div>
+</section>
 
 <!-- FEATURES -->
-<section class="features" id="features">
-  <div style="max-width:1000px;margin:0 auto;text-align:center">
-    <div class="section-tag" data-i18n="features.tag">Características</div>
-    <h2 class="section-title" data-i18n="features.title">Todo lo que necesitas para gestionar tu tienda</h2>
-    <p class="section-sub" style="margin:0 auto" data-i18n="features.sub">Una sola herramienta para ventas, reparaciones, stock y mucho más.</p>
+<section class="features" id="features" style="padding:88px 0">
+  <div class="wrap" style="text-align:center">
+    <div class="eyebrow" data-i18n="features.tag">Características</div>
+    <h2 style="font-family:var(--display);font-size:36px;font-weight:600;letter-spacing:-.03em;margin:14px 0 10px" data-i18n="features.title">Todo lo que necesitas para gestionar tu tienda</h2>
+    <p style="font-size:16px;color:var(--muted);max-width:480px;margin:0 auto" data-i18n="features.sub">Una sola herramienta para ventas, reparaciones, stock y mucho más.</p>
   </div>
-  <div class="features-grid">
+  <div class="wrap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px">
     <div class="feat-card">
       <div class="feat-icon"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg></div>
       <div class="feat-title" data-i18n="feat1.title">Ventas y TPV</div>
@@ -341,135 +258,25 @@ nav{top:42px!important}
   </div>
 </section>
 
-<!-- DEMO INTERACTIVA -->
-<section class="demo-section" id="demo">
-  <div style="max-width:1000px;margin:0 auto">
-    <div style="text-align:center;margin-bottom:32px">
-      <div class="section-tag" style="background:rgba(0,200,150,.1);color:#00875A">🎮 Pruébalo ahora</div>
-      <h2 class="section-title">Crea una reparación en <span style="color:#00C896">30 segundos</span></h2>
-      <p class="section-sub" style="margin:0 auto;text-align:center">Sin registrarte. Sin instalar nada. Toca un dispositivo y verás.</p>
-    </div>
-
-    <div class="demo-wrap">
-      <div class="demo-toolbar">
-        <span class="demo-dot demo-dot-r"></span>
-        <span class="demo-dot demo-dot-y"></span>
-        <span class="demo-dot demo-dot-g"></span>
-        <span class="demo-url">tekpair.tech/reparaciones</span>
-        <span class="demo-live"><span class="demo-live-dot"></span>Demo en vivo</span>
-      </div>
-
-      <div class="demo-content">
-
-        <div id="demoPaso1">
-          <div class="demo-step-title">Paso 1 de 3 — Nueva reparación</div>
-          <div class="demo-step-sub">Toca un dispositivo que quieras "reparar"</div>
-          <div class="demo-devices">
-            <button class="demo-device" data-modelo="iPhone 13" data-imei="357921084728361" data-cliente="Juan García López" data-tel="600 123 456" data-averia="Pantalla rota" data-precio="80">
-              <div class="demo-device-icon">📱</div>
-              <div class="demo-device-name">iPhone 13</div>
-              <div class="demo-device-sub">Pantalla rota</div>
-            </button>
-            <button class="demo-device" data-modelo="Samsung Galaxy S22" data-imei="864521098736452" data-cliente="María López Ruiz" data-tel="610 987 654" data-averia="Batería agotada" data-precio="45">
-              <div class="demo-device-icon">📱</div>
-              <div class="demo-device-name">Samsung S22</div>
-              <div class="demo-device-sub">Batería</div>
-            </button>
-            <button class="demo-device" data-modelo="Xiaomi Redmi Note 11" data-imei="990125678234901" data-cliente="Pedro Martín" data-tel="650 234 567" data-averia="No carga" data-precio="35">
-              <div class="demo-device-icon">📱</div>
-              <div class="demo-device-name">Xiaomi</div>
-              <div class="demo-device-sub">No carga</div>
-            </button>
-          </div>
-        </div>
-
-        <div id="demoPaso2" style="display:none">
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
-            <div>
-              <div class="demo-step-title">Paso 2 de 3 — Confirma ficha</div>
-              <div class="demo-step-sub">Datos auto-rellenados ✨</div>
-            </div>
-            <button class="demo-back" onclick="demoBack()">← Atrás</button>
-          </div>
-          <div class="demo-card">
-            <div class="demo-grid-2">
-              <div>
-                <div class="demo-field-label">Cliente</div>
-                <div class="demo-field-val" id="demoCli">Juan García López</div>
-                <div class="demo-field-meta">📞 <span id="demoTel">600 123 456</span></div>
-              </div>
-              <div>
-                <div class="demo-field-label">Dispositivo</div>
-                <div class="demo-field-val" id="demoModelo">iPhone 13</div>
-                <div class="demo-field-meta" style="font-family:monospace">IMEI: <span id="demoImei">357921084728361</span></div>
-              </div>
-            </div>
-            <div class="demo-divider"></div>
-            <div class="demo-grid-2">
-              <div>
-                <div class="demo-field-label">Avería</div>
-                <div class="demo-field-val" id="demoAveria">Pantalla rota</div>
-              </div>
-              <div>
-                <div class="demo-field-label">Presupuesto</div>
-                <div class="demo-field-val" style="font-size:24px;color:#0055FF"><span id="demoPrecio">80</span>€</div>
-              </div>
-            </div>
-          </div>
-          <button class="demo-cta" onclick="demoCrear()">✓ Crear reparación</button>
-        </div>
-
-        <div id="demoPaso3" style="display:none">
-          <div style="text-align:center;padding:16px 0">
-            <div class="demo-check"><span style="color:white;font-size:36px;font-weight:bold">✓</span></div>
-            <div class="demo-success-title">¡Reparación creada!</div>
-            <div class="demo-step-sub" style="text-align:center">Estado actualizado en tiempo real</div>
-          </div>
-          <div class="demo-card-status">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
-              <div style="font-size:13px;font-weight:700;color:#020B2E" id="demoResumen">iPhone 13 · Pantalla rota</div>
-              <div style="font-size:11px;color:#64748B;font-family:monospace">REP-<span id="demoId">2026</span></div>
-            </div>
-            <div class="demo-states">
-              <div class="demo-state active" id="demoState1">⏳ Pendiente</div>
-              <div class="demo-state-line"></div>
-              <div class="demo-state" id="demoState2">🔧 En curso</div>
-              <div class="demo-state-line"></div>
-              <div class="demo-state" id="demoState3">✅ Listo</div>
-            </div>
-            <button class="demo-advance" id="demoAdvanceBtn" onclick="demoAvanzar()">▶ Avanzar estado</button>
-          </div>
-          <button class="demo-reset" onclick="demoReset()">Probar otra reparación</button>
-        </div>
-
-      </div>
-    </div>
-
-    <div style="text-align:center;margin-top:24px;font-size:13px;color:#64748B">
-      💡 Demo simplificada. En TekPair real: IMEI, historial, garantía 90 días, anticipos, fotos, notas y mucho más.
-    </div>
+<!-- HOW -->
+<section class="how grid-bg" style="padding:88px 0;border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap" style="text-align:center">
+    <div class="eyebrow" data-i18n="how.tag">Cómo funciona</div>
+    <h2 style="font-family:var(--display);font-size:36px;font-weight:600;letter-spacing:-.03em;margin:14px 0 44px" data-i18n="how.title">Empieza en 3 minutos</h2>
   </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section class="how">
-  <div style="max-width:1000px;margin:0 auto;text-align:center">
-    <div class="section-tag" data-i18n="how.tag">Cómo funciona</div>
-    <h2 class="section-title" data-i18n="how.title">Empieza en 3 minutos</h2>
-  </div>
-  <div class="how-steps">
+  <div class="wrap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:24px">
     <div class="step">
-      <div class="step-num">1</div>
+      <div class="step-num mono">01</div>
       <div class="step-title" data-i18n="step1.title">Elige tu plan</div>
       <div class="step-desc" data-i18n="step1.desc">Selecciona el plan que mejor se adapta a tu negocio. Sin permanencia.</div>
     </div>
     <div class="step">
-      <div class="step-num">2</div>
+      <div class="step-num mono">02</div>
       <div class="step-title" data-i18n="step2.title">Crea tu cuenta</div>
       <div class="step-desc" data-i18n="step2.desc">Pago seguro con Stripe. Recibes tus credenciales por email al instante.</div>
     </div>
     <div class="step">
-      <div class="step-num">3</div>
+      <div class="step-num mono">03</div>
       <div class="step-title" data-i18n="step3.title">Gestiona tu tienda</div>
       <div class="step-desc" data-i18n="step3.desc">Accede desde cualquier dispositivo. Tus datos en la nube, siempre seguros.</div>
     </div>
@@ -477,16 +284,16 @@ nav{top:42px!important}
 </section>
 
 <!-- PRICING -->
-<section class="pricing" id="pricing">
-  <div style="max-width:1000px;margin:0 auto;text-align:center">
-    <div class="section-tag" data-i18n="pricing.tag">Precios</div>
-    <h2 class="section-title" data-i18n="pricing.title">Planes simples y transparentes</h2>
-    <p class="section-sub" style="margin:0 auto" data-i18n="pricing.sub">Sin costes ocultos. Cancela cuando quieras.</p>
+<section class="pricing" id="pricing" style="padding:88px 0">
+  <div class="wrap" style="text-align:center">
+    <div class="eyebrow" data-i18n="pricing.tag">Precios</div>
+    <h2 style="font-family:var(--display);font-size:36px;font-weight:600;letter-spacing:-.03em;margin:14px 0 10px" data-i18n="pricing.title">Planes simples y transparentes</h2>
+    <p style="font-size:16px;color:var(--muted);margin:0 auto" data-i18n="pricing.sub">Sin costes ocultos. Cancela cuando quieras.</p>
   </div>
-  <div class="pricing-grid">
+  <div class="wrap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px;align-items:start">
     <div class="price-card">
       <div class="price-name" data-i18n="plan1.name">Básico</div>
-      <div class="price-amount">€9,90<span data-i18n="per.month">/mes</span></div>
+      <div class="price-amount mono">€9,90<span data-i18n="per.month">/mes</span></div>
       <div class="price-desc" data-i18n="plan1.desc">Para empezar</div>
       <ul class="price-features">
         <li data-i18n="plan1.f1">1 usuario</li>
@@ -496,11 +303,12 @@ nav{top:42px!important}
         <li data-i18n="plan1.f5">Reportes básicos</li>
       </ul>
       <a href="/registro.html?plan=basico" class="price-btn price-btn-sec" data-i18n="plan.cta">Elegir plan</a>
+      <div class="price-guarantee" data-i18n="plan.guarantee">15 días gratis · No pagas hasta el día 15</div>
     </div>
     <div class="price-card popular">
       <div class="price-badge" data-i18n="popular">⭐ MÁS POPULAR</div>
       <div class="price-name" data-i18n="plan2.name">Pro</div>
-      <div class="price-amount">€19,90<span data-i18n="per.month">/mes</span></div>
+      <div class="price-amount mono">€19,90<span data-i18n="per.month">/mes</span></div>
       <div class="price-desc" data-i18n="plan2.desc">Para negocios en crecimiento</div>
       <ul class="price-features">
         <li data-i18n="plan2.f1">Hasta 3 usuarios</li>
@@ -511,10 +319,11 @@ nav{top:42px!important}
         <li data-i18n="plan2.f6">Soporte prioritario</li>
       </ul>
       <a href="/registro.html?plan=pro" class="price-btn price-btn-main" data-i18n="plan.cta">Elegir plan</a>
+      <div class="price-guarantee" data-i18n="plan.guarantee">15 días gratis · No pagas hasta el día 15</div>
     </div>
     <div class="price-card">
       <div class="price-name" data-i18n="plan3.name">Top</div>
-      <div class="price-amount">€34,90<span data-i18n="per.month">/mes</span></div>
+      <div class="price-amount mono">€34,90<span data-i18n="per.month">/mes</span></div>
       <div class="price-desc" data-i18n="plan3.desc">Para equipos grandes</div>
       <ul class="price-features">
         <li data-i18n="plan3.f1">Usuarios ilimitados</li>
@@ -524,107 +333,100 @@ nav{top:42px!important}
         <li data-i18n="plan3.f5">Onboarding personalizado</li>
       </ul>
       <a href="/registro.html?plan=top" class="price-btn price-btn-sec" data-i18n="plan.cta">Elegir plan</a>
+      <div class="price-guarantee" data-i18n="plan.guarantee">15 días gratis · No pagas hasta el día 15</div>
     </div>
   </div>
 </section>
 
-<!-- TESTIMONIOS -->
-<section class="testimonios">
-  <div style="max-width:1000px;margin:0 auto;text-align:center">
-    <div class="section-tag" data-i18n="test.tag">Testimonios</div>
-    <h2 class="section-title" data-i18n="test.title">Lo que dicen nuestros clientes</h2>
+<!-- TESTIMONIALS -->
+<section class="testimonios" style="padding:88px 0;background:var(--paper-2)">
+  <div class="wrap" style="text-align:center">
+    <div class="eyebrow" data-i18n="test.tag">Testimonios</div>
+    <h2 style="font-family:var(--display);font-size:36px;font-weight:600;letter-spacing:-.03em;margin:14px 0 44px" data-i18n="test.title">Lo que dicen nuestros clientes</h2>
   </div>
-  <div class="test-grid">
+  <div class="wrap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
     <div class="test-card">
       <div class="test-stars">★★★★★</div>
       <p class="test-text" data-i18n="test1.text">"Desde que uso Tekpair tengo todo controlado. Las reparaciones, el stock, las ventas... todo en un sitio. Ahorro 2 horas al día."</p>
-      <div class="test-author">
-        <div class="test-avatar">M</div>
-        <div><div class="test-name">Miguel Torres</div><div class="test-role" data-i18n="test1.role">Reparaciones Torres, Madrid</div></div>
-      </div>
+      <div class="test-author"><div class="test-av">RT</div><div class="test-role" data-i18n="test1.role">Reparaciones Torres, Madrid</div></div>
     </div>
     <div class="test-card">
       <div class="test-stars">★★★★★</div>
       <p class="test-text" data-i18n="test2.text">"El sistema de permisos para empleados es perfecto. Cada uno ve solo lo que necesita. Muy profesional."</p>
-      <div class="test-author">
-        <div class="test-avatar">S</div>
-        <div><div class="test-name">Sofia Martín</div><div class="test-role" data-i18n="test2.role">PhoneShop, Barcelona</div></div>
-      </div>
+      <div class="test-author"><div class="test-av">PS</div><div class="test-role" data-i18n="test2.role">PhoneShop, Barcelona</div></div>
     </div>
     <div class="test-card">
       <div class="test-stars">★★★★★</div>
       <p class="test-text" data-i18n="test3.text">"El reporte diario por email es increíble. Al cerrar la tienda ya tengo el resumen en el móvil. Imprescindible."</p>
-      <div class="test-author">
-        <div class="test-avatar">A</div>
-        <div><div class="test-name">Ahmed Benali</div><div class="test-role" data-i18n="test3.role">Mobile Fix, Valencia</div></div>
-      </div>
+      <div class="test-author"><div class="test-av">MF</div><div class="test-role" data-i18n="test3.role">Mobile Fix, Valencia</div></div>
     </div>
   </div>
 </section>
 
 <!-- FAQ -->
-<section class="faq" id="faq">
-  <div style="max-width:700px;margin:0 auto;text-align:center">
-    <div class="section-tag">FAQ</div>
-    <h2 class="section-title" data-i18n="faq.title">Preguntas frecuentes</h2>
-  </div>
-  <div class="faq-list">
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq1.q">¿Necesito instalar algo?</div>
-      <div class="faq-a" data-i18n="faq1.a">No. Tekpair funciona directamente desde el navegador web, en cualquier dispositivo. Sin instalaciones ni actualizaciones manuales.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq2.q">¿Puedo cancelar en cualquier momento?</div>
-      <div class="faq-a" data-i18n="faq2.a">Sí, sin permanencia ni penalizaciones. Puedes cancelar tu suscripción cuando quieras desde tu panel de cuenta.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq3.q">¿Mis datos están seguros?</div>
-      <div class="faq-a" data-i18n="faq3.a">Sí. Todos los datos se guardan cifrados en la nube con copias de seguridad automáticas. Cumplimos con el RGPD.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq4.q">¿Puedo migrar mis datos de otro programa?</div>
-      <div class="faq-a" data-i18n="faq4.a">Sí. Tekpair permite importar clientes, stock y reparaciones desde archivos CSV de otros programas de gestión.</div>
-    </div>
-    <div class="faq-item">
-      <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq5.q">¿Hay soporte en español?</div>
-      <div class="faq-a" data-i18n="faq5.a">Sí. Nuestro equipo de soporte habla español, inglés, francés y portugués. Disponible por WhatsApp y email.</div>
+<section class="faq" id="faq" style="padding:88px 0">
+  <div class="wrap" style="max-width:760px">
+    <h2 style="font-family:var(--display);font-size:36px;font-weight:600;letter-spacing:-.03em;text-align:center;margin-bottom:40px" data-i18n="faq.title">Preguntas frecuentes</h2>
+    <div class="faq-list">
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq1.q">¿Necesito instalar algo?</div>
+        <div class="faq-a" data-i18n="faq1.a">No. Tekpair funciona directamente desde el navegador web, en cualquier dispositivo. Sin instalaciones ni actualizaciones manuales.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq2.q">¿Puedo cancelar en cualquier momento?</div>
+        <div class="faq-a" data-i18n="faq2.a">Sí, sin permanencia ni penalizaciones. Puedes cancelar tu suscripción cuando quieras desde tu panel de cuenta.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq3.q">¿Mis datos están seguros?</div>
+        <div class="faq-a" data-i18n="faq3.a">Sí. Todos los datos se guardan cifrados en la nube con copias de seguridad automáticas. Cumplimos con el RGPD.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq4.q">¿Puedo migrar mis datos de otro programa?</div>
+        <div class="faq-a" data-i18n="faq4.a">Sí. Tekpair permite importar clientes, stock y reparaciones desde archivos CSV de otros programas de gestión.</div>
+      </div>
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq5.q">¿Hay soporte en español?</div>
+        <div class="faq-a" data-i18n="faq5.a">Sí. Nuestro equipo de soporte habla español, inglés, francés y portugués. Disponible por WhatsApp y email.</div>
+      </div>
     </div>
   </div>
 </section>
 
 <!-- CTA -->
-<section class="cta">
-  <h2 data-i18n="cta.title">¿Listo para transformar tu tienda?</h2>
-  <p data-i18n="cta.sub">Únete a más de 500 tiendas que ya gestionan su negocio con Tekpair</p>
-  <div class="cta-btns">
-    <a href="/registro.html" class="btn-primary">🚀 <span data-i18n="cta.btn1">Empezar ahora</span></a>
-    <a href="/app.html" class="btn-secondary" data-i18n="cta.btn2">Ver demo gratis</a>
+<section class="cta grid-bg" style="padding:88px 0;background:var(--ink);text-align:center;position:relative">
+  <div class="wrap">
+    <h2 style="font-family:var(--display);font-size:40px;font-weight:600;letter-spacing:-.03em;color:#fff;margin-bottom:14px" data-i18n="cta.title">¿Listo para transformar tu tienda?</h2>
+    <p style="font-size:17px;color:rgba(255,255,255,.6);margin-bottom:32px" data-i18n="cta.sub">Únete a más de 500 tiendas que ya gestionan su negocio con Tekpair</p>
+    <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+      <a href="/registro.html" class="btn-primary" data-i18n="cta.btn1">Prueba gratis 15 días</a>
+      <a href="/app.html" style="color:#fff;padding:14px 22px;border-radius:11px;font-weight:600;font-size:15px;border:1px solid rgba(255,255,255,.2)" data-i18n="cta.btn2">Ver demo gratis</a>
+    </div>
   </div>
 </section>
 
 <!-- FOOTER -->
-<footer>
-  <div class="footer-inner">
+<footer style="background:var(--ink);padding:48px 0 28px;border-top:1px solid rgba(255,255,255,.08)">
+  <div class="wrap" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:32px">
     <div>
-      <div class="footer-logo">⚡ Tekpair</div>
-      <div class="footer-desc" data-i18n="footer.desc">Software de gestión para tiendas de reparación móvil. Simple, potente y asequible.</div>
+      <div class="nav-logo" style="margin-bottom:12px"><span>◆</span> TekPair</div>
+      <p style="color:rgba(255,255,255,.5);font-size:13px;line-height:1.6;max-width:300px" data-i18n="footer.desc">Software de gestión para tiendas de venta y reparación móvil. Simple, potente y asequible.</p>
     </div>
-    <div class="footer-col">
-      <h4 data-i18n="footer.product">Producto</h4>
-      <a href="#features" data-i18n="nav.features">Características</a>
-      <a href="#pricing" data-i18n="nav.pricing">Precios</a>
-      <a href="/registro.html" data-i18n="nav.start">Registro</a>
-      <a href="/app.html" data-i18n="nav.login">Acceder</a>
+    <div>
+      <div style="color:#fff;font-size:13px;font-weight:600;margin-bottom:12px" data-i18n="footer.product">Producto</div>
+      <a href="#features" style="display:block;color:rgba(255,255,255,.5);font-size:13px;margin-bottom:8px" data-i18n="nav.features">Características</a>
+      <a href="#pricing" style="display:block;color:rgba(255,255,255,.5);font-size:13px;margin-bottom:8px" data-i18n="nav.pricing">Precios</a>
+      <a href="/registro.html" style="display:block;color:rgba(255,255,255,.5);font-size:13px;margin-bottom:8px" data-i18n="nav.start">Empezar gratis</a>
+      <a href="/app.html" style="display:block;color:rgba(255,255,255,.5);font-size:13px" data-i18n="nav.login">Entrar</a>
     </div>
-    <div class="footer-col">
-      <h4 data-i18n="footer.contact">Contacto</h4>
-      <a href="mailto:info@tekpair.tech">info@tekpair.tech</a>
-      <a href="https://wa.me/34TUNUMERO">WhatsApp</a>
+    <div>
+      <div style="color:#fff;font-size:13px;font-weight:600;margin-bottom:12px" data-i18n="footer.contact">Contacto</div>
+      <a href="mailto:info@tekpair.tech" style="display:block;color:rgba(255,255,255,.5);font-size:13px;margin-bottom:8px">info@tekpair.tech</a>
+      <a href="https://wa.me/34TUNUMERO" style="display:block;color:rgba(255,255,255,.5);font-size:13px">WhatsApp</a>
     </div>
   </div>
-  <div class="footer-bottom">
-    <span>© 2026 Tekpair. <span data-i18n="footer.rights">Todos los derechos reservados.</span> · <a href="/privacidad.html" style="color:rgba(255,255,255,.5);text-decoration:none">Privacidad</a> · <a href="/terminos.html" style="color:rgba(255,255,255,.5);text-decoration:none">Terminos</a></span>
-    <span>🔒 <span data-i18n="footer.secure">Pago seguro con Stripe</span></span>
+  <div class="wrap" style="display:flex;justify-content:space-between;align-items:center;margin-top:36px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)">
+    <span style="color:rgba(255,255,255,.4);font-size:12px">© 2026 TekPair. <span data-i18n="footer.rights">Todos los derechos reservados.</span></span>
+    <span style="color:rgba(255,255,255,.4);font-size:12px;font-family:var(--mono)">🔒 <span data-i18n="footer.secure">Pago seguro con Stripe</span></span>
   </div>
 </footer>
 
@@ -650,7 +452,7 @@ var T = {
     'step2.title':'Crea tu cuenta','step2.desc':'Pago seguro con Stripe. Recibes tus credenciales por email al instante.',
     'step3.title':'Gestiona tu tienda','step3.desc':'Accede desde cualquier dispositivo. Tus datos en la nube, siempre seguros.',
     'pricing.tag':'Precios','pricing.title':'Planes simples y transparentes','pricing.sub':'Sin costes ocultos. Cancela cuando quieras.',
-    'per.month':'/mes','popular':'⭐ MÁS POPULAR','plan.cta':'Elegir plan',
+    'per.month':'/mes','popular':'⭐ MÁS POPULAR','plan.cta':'Elegir plan','plan.guarantee':'15 días gratis · No pagas hasta el día 15','trust.charge':'No pagas hasta el día 15','trust.setup':'Listo en 3 minutos','trust.cancel':'Cancela cuando quieras','sticky.demo':'Demo',
     'plan1.name':'Básico','plan1.desc':'Para empezar','plan1.f1':'1 usuario','plan1.f2':'Ventas y reparaciones','plan1.f3':'Gestión de stock','plan1.f4':'Clientes y proveedores','plan1.f5':'Reportes básicos',
     'plan2.name':'Pro','plan2.desc':'Para negocios en crecimiento','plan2.f1':'Hasta 3 usuarios','plan2.f2':'Permisos por usuario','plan2.f3':'Reportes PDF completos','plan2.f4':'Email automático cierre','plan2.f5':'Importar datos CSV','plan2.f6':'Soporte prioritario',
     'plan3.name':'Top','plan3.desc':'Para equipos grandes','plan3.f1':'Usuarios ilimitados','plan3.f2':'Todo lo del plan Pro','plan3.f3':'Multi-tienda','plan3.f4':'Soporte 24/7','plan3.f5':'Onboarding personalizado',
@@ -686,7 +488,7 @@ var T = {
     'step2.title':'Create your account','step2.desc':'Secure payment with Stripe. Receive your credentials by email instantly.',
     'step3.title':'Manage your shop','step3.desc':'Access from any device. Your data in the cloud, always secure.',
     'pricing.tag':'Pricing','pricing.title':'Simple and transparent plans','pricing.sub':'No hidden costs. Cancel anytime.',
-    'per.month':'/month','popular':'⭐ MOST POPULAR','plan.cta':'Choose plan',
+    'per.month':'/month','popular':'⭐ MOST POPULAR','plan.cta':'Choose plan','plan.guarantee':'15 days free · No charge until day 15','trust.charge':'No charge until day 15','trust.setup':'Ready in 3 minutes','trust.cancel':'Cancel anytime','sticky.demo':'Demo',
     'plan1.name':'Basic','plan1.desc':'To get started','plan1.f1':'1 user','plan1.f2':'Sales and repairs','plan1.f3':'Stock management','plan1.f4':'Customers and suppliers','plan1.f5':'Basic reports',
     'plan2.name':'Pro','plan2.desc':'For growing businesses','plan2.f1':'Up to 3 users','plan2.f2':'Permissions per user','plan2.f3':'Full PDF reports','plan2.f4':'Automatic closing email','plan2.f5':'Import CSV data','plan2.f6':'Priority support',
     'plan3.name':'Top','plan3.desc':'For large teams','plan3.f1':'Unlimited users','plan3.f2':'Everything in Pro','plan3.f3':'Multi-store','plan3.f4':'24/7 support','plan3.f5':'Personalized onboarding',
@@ -722,7 +524,7 @@ var T = {
     'step2.title':'Créez votre compte','step2.desc':'Paiement sécurisé avec Stripe. Recevez vos identifiants par email.',
     'step3.title':'Gérez votre boutique','step3.desc':'Accédez depuis n\'importe quel appareil. Vos données dans le cloud.',
     'pricing.tag':'Tarifs','pricing.title':'Plans simples et transparents','pricing.sub':'Sans frais cachés. Annulez quand vous voulez.',
-    'per.month':'/mois','popular':'⭐ PLUS POPULAIRE','plan.cta':'Choisir ce plan',
+    'per.month':'/mois','popular':'⭐ PLUS POPULAIRE','plan.cta':'Choisir ce plan','plan.guarantee':'15 jours gratuits · Aucun débit avant le 15e jour','trust.charge':'Aucun débit avant le 15e jour','trust.setup':'Prêt en 3 minutes','trust.cancel':'Annulez à tout moment','sticky.demo':'Démo',
     'plan1.name':'Basique','plan1.desc':'Pour commencer','plan1.f1':'1 utilisateur','plan1.f2':'Ventes et réparations','plan1.f3':'Gestion du stock','plan1.f4':'Clients et fournisseurs','plan1.f5':'Rapports de base',
     'plan2.name':'Pro','plan2.desc':'Pour les entreprises en croissance','plan2.f1':'Jusqu\'à 3 utilisateurs','plan2.f2':'Permissions par utilisateur','plan2.f3':'Rapports PDF complets','plan2.f4':'Email automatique de clôture','plan2.f5':'Importation de données CSV','plan2.f6':'Support prioritaire',
     'plan3.name':'Top','plan3.desc':'Pour les grandes équipes','plan3.f1':'Utilisateurs illimités','plan3.f2':'Tout du plan Pro','plan3.f3':'Multi-boutique','plan3.f4':'Support 24/7','plan3.f5':'Onboarding personnalisé',
@@ -758,7 +560,7 @@ var T = {
     'step2.title':'Crie a sua conta','step2.desc':'Pagamento seguro com Stripe. Receba as suas credenciais por email.',
     'step3.title':'Gira a sua loja','step3.desc':'Aceda de qualquer dispositivo. Os seus dados na nuvem, sempre seguros.',
     'pricing.tag':'Preços','pricing.title':'Planos simples e transparentes','pricing.sub':'Sem custos ocultos. Cancele quando quiser.',
-    'per.month':'/mês','popular':'⭐ MAIS POPULAR','plan.cta':'Escolher plano',
+    'per.month':'/mês','popular':'⭐ MAIS POPULAR','plan.cta':'Escolher plano','plan.guarantee':'15 dias grátis · Não paga até ao dia 15','trust.charge':'Não paga até ao dia 15','trust.setup':'Pronto em 3 minutos','trust.cancel':'Cancele quando quiser','sticky.demo':'Demo',
     'plan1.name':'Básico','plan1.desc':'Para começar','plan1.f1':'1 utilizador','plan1.f2':'Vendas e reparações','plan1.f3':'Gestão de stock','plan1.f4':'Clientes e fornecedores','plan1.f5':'Relatórios básicos',
     'plan2.name':'Pro','plan2.desc':'Para negócios em crescimento','plan2.f1':'Até 3 utilizadores','plan2.f2':'Permissões por utilizador','plan2.f3':'Relatórios PDF completos','plan2.f4':'Email automático de encerramento','plan2.f5':'Importar dados CSV','plan2.f6':'Suporte prioritário',
     'plan3.name':'Top','plan3.desc':'Para grandes equipas','plan3.f1':'Utilizadores ilimitados','plan3.f2':'Tudo do plano Pro','plan3.f3':'Multi-loja','plan3.f4':'Suporte 24/7','plan3.f5':'Onboarding personalizado',
@@ -886,95 +688,17 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a) {
   }, {threshold: 0.3});
   stats.forEach(function(el){ observer.observe(el); });
 })();
-
-// ═══ DEMO INTERACTIVA ═══
-var demoData = { modelo:'', imei:'', cliente:'', tel:'', averia:'', precio:0 };
-var demoEstado = 0;
-
-document.querySelectorAll('.demo-device').forEach(function(btn) {
-  btn.addEventListener('click', function() {
-    demoData.modelo = btn.dataset.modelo;
-    demoData.imei = btn.dataset.imei;
-    demoData.cliente = btn.dataset.cliente;
-    demoData.tel = btn.dataset.tel;
-    demoData.averia = btn.dataset.averia;
-    demoData.precio = btn.dataset.precio;
-    document.getElementById('demoModelo').textContent = demoData.modelo;
-    document.getElementById('demoImei').textContent = demoData.imei;
-    document.getElementById('demoCli').textContent = demoData.cliente;
-    document.getElementById('demoTel').textContent = demoData.tel;
-    document.getElementById('demoAveria').textContent = demoData.averia;
-    document.getElementById('demoPrecio').textContent = demoData.precio;
-    document.getElementById('demoPaso1').style.display = 'none';
-    document.getElementById('demoPaso2').style.display = 'block';
-  });
-});
-
-function demoBack() {
-  document.getElementById('demoPaso2').style.display = 'none';
-  document.getElementById('demoPaso1').style.display = 'block';
-}
-
-function demoCrear() {
-  document.getElementById('demoResumen').textContent = demoData.modelo + ' · ' + demoData.averia;
-  document.getElementById('demoId').textContent = Math.floor(Math.random()*900+100);
-  document.getElementById('demoPaso2').style.display = 'none';
-  document.getElementById('demoPaso3').style.display = 'block';
-  demoEstado = 0;
-}
-
-function demoAvanzar() {
-  demoEstado++;
-  var s1 = document.getElementById('demoState1');
-  var s2 = document.getElementById('demoState2');
-  var s3 = document.getElementById('demoState3');
-  var btn = document.getElementById('demoAdvanceBtn');
-  if (demoEstado === 1) {
-    s1.classList.remove('active');
-    s1.classList.add('done');
-    s2.classList.add('active');
-    btn.innerHTML = '▶ Marcar como listo';
-  } else if (demoEstado === 2) {
-    s2.classList.remove('active');
-    s2.classList.add('done');
-    s3.classList.add('active');
-    btn.innerHTML = '✓ Entregado al cliente';
-    btn.style.background = '#00C896';
-    btn.style.color = 'white';
-    btn.style.borderColor = '#00C896';
-  } else if (demoEstado === 3) {
-    s3.classList.remove('active');
-    s3.classList.add('done');
-    btn.innerHTML = '🎉 ¡Reparación completada!';
-    btn.disabled = true;
-    btn.style.opacity = '.8';
-  }
-}
-
-function demoReset() {
-  document.getElementById('demoPaso3').style.display = 'none';
-  document.getElementById('demoPaso1').style.display = 'block';
-  ['demoState1','demoState2','demoState3'].forEach(function(id){
-    var el = document.getElementById(id);
-    el.classList.remove('active','done');
-  });
-  document.getElementById('demoState1').classList.add('active');
-  var btn = document.getElementById('demoAdvanceBtn');
-  btn.disabled = false;
-  btn.style.opacity = '1';
-  btn.style.background = 'white';
-  btn.style.color = '#0055FF';
-  btn.style.borderColor = '#0055FF';
-  btn.innerHTML = '▶ Avanzar estado';
-  demoEstado = 0;
-}
 </script>
 
 <!-- WHATSAPP FLOATING -->
-<a href="https://wa.me/34TUNUMERO?text=Hola%20TekPair,%20quiero%20saber%20m%C3%A1s%20del%20software" target="_blank" rel="noopener" style="position:fixed;bottom:20px;right:20px;width:56px;height:56px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none;box-shadow:0 6px 20px rgba(37,211,102,.4);z-index:200;transition:transform .2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
-  <svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.172-.015-.371-.015-.571-.015-.2 0-.523.074-.797.359-.273.3-1.045 1.02-1.045 2.475s1.07 2.865 1.219 3.075c.149.195 2.105 3.195 5.1 4.485.714.3 1.27.48 1.704.629.714.227 1.365.195 1.88.121.574-.091 1.767-.721 2.016-1.426.255-.705.255-1.29.18-1.425-.074-.135-.27-.21-.57-.345m-5.446 7.443h-.016c-1.77 0-3.524-.48-5.055-1.38l-.36-.214-3.75.975 1.005-3.645-.239-.375a9.869 9.869 0 0 1-1.516-5.26c0-5.445 4.455-9.885 9.942-9.885 2.654 0 5.145 1.035 7.021 2.91 1.875 1.859 2.909 4.35 2.909 6.99-.004 5.444-4.46 9.885-9.935 9.885M20.52 3.449C18.24 1.245 15.24 0 12.045 0 5.463 0 .104 5.334.101 11.893c0 2.096.549 4.14 1.595 5.945L0 24l6.335-1.652a12.062 12.062 0 0 0 5.71 1.447h.006c6.585 0 11.946-5.336 11.949-11.896 0-3.176-1.24-6.165-3.495-8.411"/></svg>
+<a href="https://wa.me/34TUNUMERO?text=Hola%20TekPair,%20quiero%20saber%20m%C3%A1s%20del%20software" target="_blank" rel="noopener" style="position:fixed;bottom:20px;right:20px;width:54px;height:54px;background:#25D366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 20px rgba(37,211,102,.4);z-index:200;transition:transform .2s" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
+  <svg width="30" height="30" viewBox="0 0 24 24" fill="white"><path d="M17.498 14.382c-.301-.15-1.767-.867-2.04-.966-.273-.101-.473-.15-.673.15-.197.295-.771.964-.944 1.162-.175.195-.349.21-.646.075-.3-.15-1.263-.465-2.403-1.485-.888-.795-1.484-1.77-1.66-2.07-.174-.3-.019-.465.13-.615.136-.135.301-.345.451-.523.146-.181.194-.301.297-.496.1-.21.049-.375-.025-.524-.075-.15-.672-1.62-.922-2.206-.24-.584-.487-.51-.672-.51-.172-.015-.371-.015-.571-.015-.2 0-.523.074-.797.359-.273.3-1.045 1.02-1.045 2.475s1.07 2.865 1.219 3.075c.149.195 2.105 3.195 5.1 4.485.714.3 1.27.48 1.704.629.714.227 1.365.195 1.88.121.574-.091 1.767-.721 2.016-1.426.255-.705.255-1.29.18-1.425-.074-.135-.27-.21-.57-.345m-5.446 7.443h-.016c-1.77 0-3.524-.48-5.055-1.38l-.36-.214-3.75.975 1.005-3.645-.239-.375a9.869 9.869 0 0 1-1.516-5.26c0-5.445 4.455-9.885 9.942-9.885 2.654 0 5.145 1.035 7.021 2.91 1.875 1.859 2.909 4.35 2.909 6.99-.004 5.444-4.46 9.885-9.935 9.885M20.52 3.449C18.24 1.245 15.24 0 12.045 0 5.463 0 .104 5.334.101 11.893c0 2.096.549 4.14 1.595 5.945L0 24l6.335-1.652a12.062 12.062 0 0 0 5.71 1.447h.006c6.585 0 11.946-5.336 11.949-11.896 0-3.176-1.24-6.165-3.495-8.411"/></svg>
 </a>
-<!-- /WHATSAPP -->
 
+<!-- STICKY CTA MÓVIL -->
+<div class="sticky-cta">
+  <a href="/registro.html" class="sc-main" data-i18n="nav.start">Empezar gratis</a>
+  <a href="/app.html" class="sc-sec" data-i18n="sticky.demo">Demo</a>
+</div>
 </body>
 </html>
