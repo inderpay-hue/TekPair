@@ -30,6 +30,10 @@ nav{position:fixed;top:0;left:0;right:0;background:rgba(14,14,16,.92);backdrop-f
 .nav-inner{max-width:1080px;margin:0 auto;padding:13px 24px;display:flex;align-items:center;justify-content:space-between}
 .nav-logo{color:#fff;font-family:var(--display);font-size:18px;font-weight:600;letter-spacing:-.02em;display:flex;align-items:center;gap:7px}
 .nav-logo span{color:var(--orange)}
+.logo-bolt{display:inline-flex;width:22px;height:22px;background:var(--orange);border-radius:6px;align-items:center;justify-content:center;vertical-align:middle}
+.logo-bolt svg{width:13px;height:13px;fill:#fff}
+.mk-bolt{display:inline-flex;width:16px;height:16px;background:var(--orange);border-radius:4px;align-items:center;justify-content:center;vertical-align:middle}
+.mk-bolt svg{width:10px;height:10px;fill:#fff}
 .nav-links{display:flex;align-items:center;gap:18px}
 .nav-links a{color:rgba(255,255,255,.6);font-size:13px;font-weight:500;transition:color .15s}
 .nav-links a:hover{color:#fff}
@@ -174,7 +178,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 
 <nav style="top:36px">
   <div class="nav-inner">
-    <a href="#" class="nav-logo"><span>◆</span> TekPair</a>
+    <a href="#" class="nav-logo"><span class="logo-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> TekPair</a>
     <div class="nav-links">
       <a href="#features" class="hide-mobile" data-i18n="nav.features">Características</a>
       <a href="#pricing" class="hide-mobile" data-i18n="nav.pricing">Precios</a>
@@ -213,7 +217,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
       <div class="hero-visual">
         <div class="mockup">
           <div class="mk-top">
-            <div class="mk-top-l"><span>◆</span> Panel de hoy</div>
+            <div class="mk-top-l"><span class="mk-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> Panel de hoy</div>
             <div class="live-badge"><span class="live-dot"></span> EN VIVO</div>
           </div>
           <div class="mk-stats">
@@ -439,7 +443,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 <footer style="background:var(--ink);padding:48px 0 28px;border-top:1px solid rgba(255,255,255,.08)">
   <div class="wrap" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:32px">
     <div>
-      <div class="nav-logo" style="margin-bottom:12px"><span>◆</span> TekPair</div>
+      <div class="nav-logo" style="margin-bottom:12px"><span class="logo-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> TekPair</div>
       <p style="color:rgba(255,255,255,.5);font-size:13px;line-height:1.6;max-width:300px" data-i18n="footer.desc">Software de gestión para tiendas de venta y reparación móvil. Simple, potente y asequible.</p>
     </div>
     <div>
