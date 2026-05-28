@@ -60,9 +60,11 @@ nav{position:fixed;top:0;left:0;right:0;background:rgba(2,11,46,.95);backdrop-fi
 .section-title{font-size:32px;font-weight:800;color:var(--dark);margin-bottom:12px;line-height:1.3}
 .section-sub{font-size:16px;color:#64748B;max-width:500px;line-height:1.7}
 .features-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;max-width:1000px;margin:48px auto 0}
-.feat-card{padding:24px;border-radius:14px;border:1px solid #E2E8F0;transition:transform .2s,box-shadow .2s}
-.feat-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,0,0,.08)}
-.feat-icon{font-size:32px;margin-bottom:12px}
+.feat-card{padding:28px 24px;border-radius:14px;border:1px solid #E2E8F0;background:white;transition:transform .2s,box-shadow .2s,border-color .2s}
+.feat-card:hover{transform:translateY(-4px);box-shadow:0 12px 32px rgba(0,85,255,.12);border-color:rgba(0,85,255,.35)}
+.feat-icon{width:48px;height:48px;border-radius:12px;background:rgba(0,85,255,.08);color:var(--blue);display:flex;align-items:center;justify-content:center;margin-bottom:16px;transition:background .2s,color .2s}
+.feat-icon svg{width:24px;height:24px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.feat-card:hover .feat-icon{background:var(--blue);color:white}
 .feat-title{font-size:16px;font-weight:700;margin-bottom:8px;color:var(--dark)}
 .feat-desc{font-size:13px;color:#64748B;line-height:1.6}
 
@@ -307,32 +309,32 @@ nav{top:42px!important}
   </div>
   <div class="features-grid">
     <div class="feat-card">
-      <div class="feat-icon">📱</div>
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2"/><line x1="12" y1="18" x2="12" y2="18"/></svg></div>
       <div class="feat-title" data-i18n="feat1.title">Ventas y TPV</div>
       <div class="feat-desc" data-i18n="feat1.desc">Registra ventas en segundos. Busca por IMEI, modelo o cliente. Múltiples formas de pago.</div>
     </div>
     <div class="feat-card">
-      <div class="feat-icon">🔧</div>
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18v3h3l6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.1-.5-.5-2.1z"/></svg></div>
       <div class="feat-title" data-i18n="feat2.title">Órdenes de reparación</div>
       <div class="feat-desc" data-i18n="feat2.desc">Checklist de recepción, componentes, anticipos, notas internas y seguimiento de estado.</div>
     </div>
     <div class="feat-card">
-      <div class="feat-icon">📦</div>
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.3 7 12 12 20.7 7"/><line x1="12" y1="22" x2="12" y2="12"/></svg></div>
       <div class="feat-title" data-i18n="feat3.title">Control de stock</div>
       <div class="feat-desc" data-i18n="feat3.desc">Gestiona tu inventario con alertas de stock mínimo. Categorías, IMEI y precios automáticos.</div>
     </div>
     <div class="feat-card">
-      <div class="feat-icon">👥</div>
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
       <div class="feat-title" data-i18n="feat4.title">Clientes y CRM</div>
       <div class="feat-desc" data-i18n="feat4.desc">Historial completo por cliente. Badge de cliente frecuente. Búsqueda por nombre, teléfono o DNI.</div>
     </div>
     <div class="feat-card">
-      <div class="feat-icon">📊</div>
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="3" y1="20" x2="21" y2="20"/></svg></div>
       <div class="feat-title" data-i18n="feat5.title">Reportes y cierres</div>
       <div class="feat-desc" data-i18n="feat5.desc">Reportes PDF con desglose por forma de pago. Cierre automático por email al final del día.</div>
     </div>
     <div class="feat-card">
-      <div class="feat-icon">👤</div>
+      <div class="feat-icon"><svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 11l-3 3-1.5-1.5"/></svg></div>
       <div class="feat-title" data-i18n="feat6.title">Usuarios y permisos</div>
       <div class="feat-desc" data-i18n="feat6.desc">Crea cuentas para tus empleados con permisos personalizados por sección.</div>
     </div>
@@ -502,28 +504,26 @@ nav{top:42px!important}
       <div class="price-desc" data-i18n="plan2.desc">Para negocios en crecimiento</div>
       <ul class="price-features">
         <li data-i18n="plan2.f1">Hasta 3 usuarios</li>
-        <li data-i18n="plan2.f2">Informe trimestral para gestor (modelo 303)</li>
-        <li data-i18n="plan2.f3">ZIP con facturas para gestoría</li>
-        <li data-i18n="plan2.f4">Gastos fijos automáticos</li>
-        <li data-i18n="plan2.f5">Cajas multi-servicio</li>
-        <li data-i18n="plan2.f6">Importar datos CSV</li>
-        <li data-i18n="plan2.f7">Soporte prioritario</li>
+        <li data-i18n="plan2.f2">Permisos por usuario</li>
+        <li data-i18n="plan2.f3">Reportes PDF completos</li>
+        <li data-i18n="plan2.f4">Email automático cierre</li>
+        <li data-i18n="plan2.f5">Importar datos CSV</li>
+        <li data-i18n="plan2.f6">Soporte prioritario</li>
       </ul>
       <a href="/registro.html?plan=pro" class="price-btn price-btn-main" data-i18n="plan.cta">Elegir plan</a>
     </div>
     <div class="price-card">
-      <div class="price-name" data-i18n="plan3.name">Premium</div>
+      <div class="price-name" data-i18n="plan3.name">Top</div>
       <div class="price-amount">€34,90<span data-i18n="per.month">/mes</span></div>
       <div class="price-desc" data-i18n="plan3.desc">Para equipos grandes</div>
       <ul class="price-features">
-        <li data-i18n="plan3.f1">Todo lo del plan Pro</li>
-        <li data-i18n="plan3.f2">Usuarios ilimitados</li>
-        <li data-i18n="plan3.f3">Citas online</li>
-        <li data-i18n="plan3.f4">Vista Kanban de reparaciones</li>
-        <li data-i18n="plan3.f5">Catálogo de servicios</li>
-        <li data-i18n="plan3.f6">Soporte prioritario</li>
+        <li data-i18n="plan3.f1">Usuarios ilimitados</li>
+        <li data-i18n="plan3.f2">Todo lo del plan Pro</li>
+        <li data-i18n="plan3.f3">Multi-tienda</li>
+        <li data-i18n="plan3.f4">Soporte 24/7</li>
+        <li data-i18n="plan3.f5">Onboarding personalizado</li>
       </ul>
-      <a href="/registro.html?plan=premium" class="price-btn price-btn-sec" data-i18n="plan.cta">Elegir plan</a>
+      <a href="/registro.html?plan=top" class="price-btn price-btn-sec" data-i18n="plan.cta">Elegir plan</a>
     </div>
   </div>
 </section>
@@ -618,7 +618,7 @@ nav{top:42px!important}
     </div>
     <div class="footer-col">
       <h4 data-i18n="footer.contact">Contacto</h4>
-      <a href="mailto:hola@tekpair.tech">hola@tekpair.tech</a>
+      <a href="mailto:info@tekpair.tech">info@tekpair.tech</a>
       <a href="https://wa.me/34TUNUMERO">WhatsApp</a>
     </div>
   </div>
@@ -652,8 +652,8 @@ var T = {
     'pricing.tag':'Precios','pricing.title':'Planes simples y transparentes','pricing.sub':'Sin costes ocultos. Cancela cuando quieras.',
     'per.month':'/mes','popular':'⭐ MÁS POPULAR','plan.cta':'Elegir plan',
     'plan1.name':'Básico','plan1.desc':'Para empezar','plan1.f1':'1 usuario','plan1.f2':'Ventas y reparaciones','plan1.f3':'Gestión de stock','plan1.f4':'Clientes y proveedores','plan1.f5':'Reportes básicos',
-    'plan2.name':'Pro','plan2.desc':'Para negocios en crecimiento','plan2.f1':'Hasta 3 usuarios','plan2.f2':'Informe trimestral para gestor (modelo 303)','plan2.f3':'ZIP con facturas para gestoría','plan2.f4':'Gastos fijos automáticos','plan2.f5':'Cajas multi-servicio','plan2.f6':'Importar datos CSV','plan2.f7':'Soporte prioritario',
-    'plan3.name':'Premium','plan3.desc':'Para equipos profesionales','plan3.f1':'Todo lo del plan Pro','plan3.f2':'Usuarios ilimitados','plan3.f3':'Citas online','plan3.f4':'Vista Kanban de reparaciones','plan3.f5':'Catálogo de servicios','plan3.f6':'Soporte prioritario',
+    'plan2.name':'Pro','plan2.desc':'Para negocios en crecimiento','plan2.f1':'Hasta 3 usuarios','plan2.f2':'Permisos por usuario','plan2.f3':'Reportes PDF completos','plan2.f4':'Email automático cierre','plan2.f5':'Importar datos CSV','plan2.f6':'Soporte prioritario',
+    'plan3.name':'Top','plan3.desc':'Para equipos grandes','plan3.f1':'Usuarios ilimitados','plan3.f2':'Todo lo del plan Pro','plan3.f3':'Multi-tienda','plan3.f4':'Soporte 24/7','plan3.f5':'Onboarding personalizado',
     'test.tag':'Testimonios','test.title':'Lo que dicen nuestros clientes',
     'test1.text':'"Desde que uso Tekpair tengo todo controlado. Las reparaciones, el stock, las ventas... todo en un sitio. Ahorro 2 horas al día."','test1.role':'Reparaciones Torres, Madrid',
     'test2.text':'"El sistema de permisos para empleados es perfecto. Cada uno ve solo lo que necesita. Muy profesional."','test2.role':'PhoneShop, Barcelona',
@@ -688,8 +688,8 @@ var T = {
     'pricing.tag':'Pricing','pricing.title':'Simple and transparent plans','pricing.sub':'No hidden costs. Cancel anytime.',
     'per.month':'/month','popular':'⭐ MOST POPULAR','plan.cta':'Choose plan',
     'plan1.name':'Basic','plan1.desc':'To get started','plan1.f1':'1 user','plan1.f2':'Sales and repairs','plan1.f3':'Stock management','plan1.f4':'Customers and suppliers','plan1.f5':'Basic reports',
-    'plan2.name':'Pro','plan2.desc':'For growing businesses','plan2.f1':'Up to 3 users','plan2.f2':'Quarterly accountant report (Spanish form 303)','plan2.f3':'ZIP bundle with invoices for accountant','plan2.f4':'Automatic recurring expenses','plan2.f5':'Multi-service cash boxes','plan2.f6':'Import CSV data','plan2.f7':'Priority support',
-    'plan3.name':'Premium','plan3.desc':'For professional teams','plan3.f1':'Everything in Pro','plan3.f2':'Unlimited users','plan3.f3':'Online appointments','plan3.f4':'Kanban view for repairs','plan3.f5':'Service catalog','plan3.f6':'Priority support',
+    'plan2.name':'Pro','plan2.desc':'For growing businesses','plan2.f1':'Up to 3 users','plan2.f2':'Permissions per user','plan2.f3':'Full PDF reports','plan2.f4':'Automatic closing email','plan2.f5':'Import CSV data','plan2.f6':'Priority support',
+    'plan3.name':'Top','plan3.desc':'For large teams','plan3.f1':'Unlimited users','plan3.f2':'Everything in Pro','plan3.f3':'Multi-store','plan3.f4':'24/7 support','plan3.f5':'Personalized onboarding',
     'test.tag':'Testimonials','test.title':'What our customers say',
     'test1.text':'"Since using Tekpair I have everything under control. Repairs, stock, sales... all in one place. I save 2 hours a day."','test1.role':'Torres Repairs, Madrid',
     'test2.text':'"The employee permissions system is perfect. Each one sees only what they need. Very professional."','test2.role':'PhoneShop, Barcelona',
@@ -724,8 +724,8 @@ var T = {
     'pricing.tag':'Tarifs','pricing.title':'Plans simples et transparents','pricing.sub':'Sans frais cachés. Annulez quand vous voulez.',
     'per.month':'/mois','popular':'⭐ PLUS POPULAIRE','plan.cta':'Choisir ce plan',
     'plan1.name':'Basique','plan1.desc':'Pour commencer','plan1.f1':'1 utilisateur','plan1.f2':'Ventes et réparations','plan1.f3':'Gestion du stock','plan1.f4':'Clients et fournisseurs','plan1.f5':'Rapports de base',
-    'plan2.name':'Pro','plan2.desc':'Pour les entreprises en croissance','plan2.f1':'Jusqu\'à 3 utilisateurs','plan2.f2':'Rapport trimestriel pour comptable','plan2.f3':'ZIP avec factures pour comptabilité','plan2.f4':'Dépenses fixes automatiques','plan2.f5':'Caisses multi-service','plan2.f6':'Importation de données CSV','plan2.f7':'Support prioritaire',
-    'plan3.name':'Premium','plan3.desc':'Pour équipes professionnelles','plan3.f1':'Tout du plan Pro','plan3.f2':'Utilisateurs illimités','plan3.f3':'Rendez-vous en ligne','plan3.f4':'Vue Kanban des réparations','plan3.f5':'Catalogue de services','plan3.f6':'Support prioritaire',
+    'plan2.name':'Pro','plan2.desc':'Pour les entreprises en croissance','plan2.f1':'Jusqu\'à 3 utilisateurs','plan2.f2':'Permissions par utilisateur','plan2.f3':'Rapports PDF complets','plan2.f4':'Email automatique de clôture','plan2.f5':'Importation de données CSV','plan2.f6':'Support prioritaire',
+    'plan3.name':'Top','plan3.desc':'Pour les grandes équipes','plan3.f1':'Utilisateurs illimités','plan3.f2':'Tout du plan Pro','plan3.f3':'Multi-boutique','plan3.f4':'Support 24/7','plan3.f5':'Onboarding personnalisé',
     'test.tag':'Témoignages','test.title':'Ce que disent nos clients',
     'test1.text':'"Depuis que j\'utilise Tekpair, j\'ai tout sous contrôle. Les réparations, le stock, les ventes... tout en un. J\'économise 2 heures par jour."','test1.role':'Torres Réparations, Madrid',
     'test2.text':'"Le système de permissions pour les employés est parfait. Chacun voit uniquement ce dont il a besoin."','test2.role':'PhoneShop, Barcelone',
@@ -760,8 +760,8 @@ var T = {
     'pricing.tag':'Preços','pricing.title':'Planos simples e transparentes','pricing.sub':'Sem custos ocultos. Cancele quando quiser.',
     'per.month':'/mês','popular':'⭐ MAIS POPULAR','plan.cta':'Escolher plano',
     'plan1.name':'Básico','plan1.desc':'Para começar','plan1.f1':'1 utilizador','plan1.f2':'Vendas e reparações','plan1.f3':'Gestão de stock','plan1.f4':'Clientes e fornecedores','plan1.f5':'Relatórios básicos',
-    'plan2.name':'Pro','plan2.desc':'Para negócios em crescimento','plan2.f1':'Até 3 utilizadores','plan2.f2':'Relatório trimestral para contabilista','plan2.f3':'ZIP com faturas para contabilidade','plan2.f4':'Despesas fixas automáticas','plan2.f5':'Caixas multi-serviço','plan2.f6':'Importar dados CSV','plan2.f7':'Suporte prioritário',
-    'plan3.name':'Premium','plan3.desc':'Para equipas profissionais','plan3.f1':'Tudo do plano Pro','plan3.f2':'Utilizadores ilimitados','plan3.f3':'Agendamentos online','plan3.f4':'Vista Kanban de reparações','plan3.f5':'Catálogo de serviços','plan3.f6':'Suporte prioritário',
+    'plan2.name':'Pro','plan2.desc':'Para negócios em crescimento','plan2.f1':'Até 3 utilizadores','plan2.f2':'Permissões por utilizador','plan2.f3':'Relatórios PDF completos','plan2.f4':'Email automático de encerramento','plan2.f5':'Importar dados CSV','plan2.f6':'Suporte prioritário',
+    'plan3.name':'Top','plan3.desc':'Para grandes equipas','plan3.f1':'Utilizadores ilimitados','plan3.f2':'Tudo do plano Pro','plan3.f3':'Multi-loja','plan3.f4':'Suporte 24/7','plan3.f5':'Onboarding personalizado',
     'test.tag':'Testemunhos','test.title':'O que dizem os nossos clientes',
     'test1.text':'"Desde que uso o Tekpair tenho tudo controlado. As reparações, o stock, as vendas... tudo num só lugar. Poupa 2 horas por dia."','test1.role':'Reparações Torres, Madrid',
     'test2.text':'"O sistema de permissões para funcionários é perfeito. Cada um vê apenas o que precisa."','test2.role':'PhoneShop, Barcelona',
