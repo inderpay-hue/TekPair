@@ -679,26 +679,49 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .stat-card{
   background:var(--white) !important;
   border:1px solid var(--border) !important;
-  border-left:1px solid var(--border) !important;
-  border-radius:16px !important;
-  padding:18px 20px !important;
-  position:relative;
-  overflow:hidden;
-  box-shadow:0 2px 8px -2px rgba(2,11,46,.06), 0 1px 3px -1px rgba(2,11,46,.04) !important;
+  border-radius:18px !important;
+  padding:22px 22px !important;
+  box-shadow:0 1px 3px rgba(2,11,46,.04) !important;
+  transition:transform .2s var(--ease),box-shadow .2s var(--ease) !important;
 }
-.stat-card::before{
-  content:"";position:absolute;left:0;top:0;bottom:0;width:4px;
-  background:var(--accent,var(--orange));
-  border-radius:4px 0 0 4px;
+.stat-card::before,.stat-card::after{display:none !important}
+.stat-lbl{
+  font-size:12px !important;color:var(--muted) !important;font-weight:500 !important;
+  text-transform:none !important;letter-spacing:-.01em !important;
+  margin:0 0 10px 0 !important;order:-1;
 }
-.stat-card::after{
-  content:"";position:absolute;right:-20px;top:-20px;width:80px;height:80px;border-radius:50%;
-  background:var(--accent,var(--orange));opacity:.05;
+.stat-val{
+  font-size:34px !important;font-weight:600 !important;line-height:1 !important;
+  letter-spacing:-.03em !important;color:var(--text) !important;
 }
-.stat-val{font-size:30px !important;font-weight:800 !important;letter-spacing:-.03em !important}
-.stat-lbl{font-size:11px !important;text-transform:uppercase;letter-spacing:.06em;font-weight:600 !important;color:var(--muted) !important;margin-top:6px !important}
-.stat-card:hover{transform:translateY(-2px);box-shadow:0 12px 28px -8px rgba(2,11,46,.14) !important}
+.stat-card{display:flex !important;flex-direction:column !important}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 10px 30px -10px rgba(2,11,46,.12) !important}
 /* === FIN STATS PREMIUM === */
+
+/* === ENCABEZADO INICIO PULIDO === */
+#pDash > div:has(#dStr){
+  padding:8px 0 18px !important;
+  margin-bottom:6px;
+}
+#dStr{
+  font-size:13px !important;color:var(--muted) !important;font-weight:500 !important;
+  text-transform:capitalize;letter-spacing:-.01em;
+}
+#dTienda{
+  font-size:24px !important;font-weight:700 !important;color:var(--text) !important;
+  letter-spacing:-.03em !important;margin-top:2px;
+}
+#btnPersonalizar{
+  background:var(--white) !important;color:var(--orange) !important;
+  border:1px solid var(--border) !important;border-radius:10px !important;
+  padding:9px 16px !important;font-weight:600 !important;
+  transition:background .15s,border-color .15s,transform .15s !important;
+}
+#btnPersonalizar:hover{
+  background:var(--orange-l,rgba(255,91,31,.08)) !important;
+  border-color:var(--orange) !important;transform:translateY(-1px);
+}
+/* === FIN ENCABEZADO INICIO === */
 </style>
   <script src="/assets/qrcode.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
