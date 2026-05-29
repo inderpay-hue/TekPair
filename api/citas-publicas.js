@@ -356,7 +356,7 @@ async function enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url) {
 <body style="font-family:Arial,sans-serif;background:#f7f9fc;margin:0;padding:0">
 <div style="max-width:520px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)">
   <div style="background:#0F172A;padding:28px;text-align:center">
-    <div style="color:#FF5B1F;font-size:22px;font-weight:800;margin-bottom:4px">⚡ ${esc(tiendaNombre)}</div>
+    <div style="color:#C2410C;font-size:22px;font-weight:800;margin-bottom:4px">⚡ ${esc(tiendaNombre)}</div>
     <div style="color:#94a3b8;font-size:13px">Presupuesto de reparación</div>
   </div>
   <div style="padding:26px">
@@ -365,10 +365,10 @@ async function enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url) {
     <table style="width:100%;border-collapse:collapse;font-size:14px;background:#F7F9FC;border-radius:8px;overflow:hidden;margin-bottom:16px">
       <thead><tr style="background:#E2E8F0"><th style="padding:10px 14px;text-align:left;color:#374151;font-weight:600">Servicio</th><th style="padding:10px 14px;text-align:right;color:#374151;font-weight:600">Precio</th></tr></thead>
       <tbody>${filas}</tbody>
-      <tfoot><tr style="border-top:2px solid #E2E8F0"><td style="padding:12px 14px;font-weight:800;color:#0F1729">TOTAL</td><td style="padding:12px 14px;text-align:right;font-weight:800;color:#FF5B1F;font-size:18px">${fmtEuros(rep.total)}</td></tr></tfoot>
+      <tfoot><tr style="border-top:2px solid #E2E8F0"><td style="padding:12px 14px;font-weight:800;color:#0F1729">TOTAL</td><td style="padding:12px 14px;text-align:right;font-weight:800;color:#C2410C;font-size:18px">${fmtEuros(rep.total)}</td></tr></tfoot>
     </table>
     <div style="text-align:center;margin:24px 0">
-      <a href="${url}" style="background:#FF5B1F;color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block">Ver y aceptar presupuesto →</a>
+      <a href="${url}" style="background:#C2410C;color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block">Ver y aceptar presupuesto →</a>
     </div>
     <p style="font-size:12px;color:#94a3b8;text-align:center;margin:0">Este enlace es válido durante 48 horas.</p>
   </div>
