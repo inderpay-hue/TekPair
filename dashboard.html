@@ -11129,7 +11129,7 @@ function emailReporte() {
   ventas.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
   fetch('/api/email', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN},
     body: JSON.stringify({
       email: email, tienda: TIENDA.nombre,
       reporte: {
@@ -11221,7 +11221,7 @@ function emailCierre(vH, rH, tV, tR) {
   vH.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
   fetch('/api/email', {
     method: 'POST',
-    headers: {'Content-Type': 'application/json'},
+    headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN},
     body: JSON.stringify({
       email: email, tienda: TIENDA.nombre,
       reporte: {fecha:hoy, numVentas:vH.length, totalVentas:tV.toFixed(2), numReps:rH.length, totalReps:tR.toFixed(2), total:(tV+tR).toFixed(2), pagos:pagos, ventas:vH, reps:rH}
@@ -13961,7 +13961,7 @@ async function enviarAyuda() {
   try {
     var r = await fetch('/api/ayuda', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN },
       body: JSON.stringify({
         tipo: tipo,
         mensaje: msg,
