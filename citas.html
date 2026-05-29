@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>Reservar cita</title>
 <link rel="manifest" href="/manifest.json">
-<meta name="theme-color" content="#00C896">
+<meta name="theme-color" content="#C2410C">
 <style>
   *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   :root{
-    --green:#00C896;--green-dark:#00A87D;
+    --green:#C2410C;--green-dark:#A33A0A;
     --black:#0A0A0A;--white:#fff;
     --bg:#F7F9FC;--border:#E2E8F0;
     --text:#0F1729;--muted:#64748B;--light:#F1F5F9;
@@ -23,7 +23,7 @@
 
   /* Header */
   .head{text-align:center;margin-bottom:28px}
-  .head-logo{width:64px;height:64px;border-radius:16px;background:linear-gradient(135deg,var(--green),#00E5AA);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:28px;color:white;box-shadow:0 8px 24px rgba(0,200,150,.3)}
+  .head-logo{width:64px;height:64px;border-radius:16px;background:var(--green);margin:0 auto 14px;display:flex;align-items:center;justify-content:center;font-size:28px;color:white;box-shadow:0 8px 24px rgba(194,65,12,.3)}
   .head-logo img{max-width:100%;max-height:100%;border-radius:14px;object-fit:cover}
   .head h1{font-size:22px;font-weight:800;letter-spacing:-0.02em;margin-bottom:4px}
   .head .sub{font-size:13px;color:var(--muted)}
@@ -39,8 +39,8 @@
   /* Servicios */
   .srv-list{display:flex;flex-direction:column;gap:8px}
   .srv-item{background:var(--bg);border:1.5px solid transparent;border-radius:12px;padding:14px;cursor:pointer;transition:all .15s var(--ease);display:flex;align-items:center;justify-content:space-between;gap:10px}
-  .srv-item:hover{border-color:var(--green);background:rgba(0,200,150,.04)}
-  .srv-item.selected{border-color:var(--green);background:rgba(0,200,150,.08)}
+  .srv-item:hover{border-color:var(--green);background:rgba(194,65,12,.04)}
+  .srv-item.selected{border-color:var(--green);background:rgba(194,65,12,.08)}
   .srv-item-name{font-size:14px;font-weight:700}
   .srv-item-cat{font-size:11px;color:var(--muted);margin-top:2px}
   .srv-item-price{font-size:14px;font-weight:800;color:var(--green);flex-shrink:0}
@@ -75,20 +75,20 @@
   .fg{margin-bottom:14px}
   .fl{display:block;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:5px}
   .fi{width:100%;padding:11px 14px;border:1.5px solid var(--border);border-radius:10px;font-size:14px;background:white;color:var(--text);font-family:inherit;-webkit-appearance:none;outline:none;transition:border-color .15s,box-shadow .15s}
-  .fi:focus{border-color:var(--green);box-shadow:0 0 0 4px rgba(0,200,150,.12)}
+  .fi:focus{border-color:var(--green);box-shadow:0 0 0 4px rgba(194,65,12,.12)}
   textarea.fi{resize:vertical;min-height:60px}
 
   /* Botones */
   .btn{display:block;width:100%;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;transition:all .15s var(--ease);font-family:inherit;text-align:center}
   .btn-primary{background:var(--black);color:white}
-  .btn-primary:hover{background:var(--green-dark);transform:translateY(-1px);box-shadow:0 8px 20px -4px rgba(0,200,150,.4)}
+  .btn-primary:hover{background:var(--green-dark);transform:translateY(-1px);box-shadow:0 8px 20px -4px rgba(194,65,12,.4)}
   .btn-primary:disabled{background:var(--border);color:var(--muted);transform:none;box-shadow:none;cursor:not-allowed}
   .btn-secondary{background:var(--light);color:var(--text);margin-top:8px}
   .btn-secondary:hover{background:var(--border)}
 
   /* Confirmación */
   .conf{text-align:center;padding:30px 20px}
-  .conf-icon{width:80px;height:80px;border-radius:50%;background:linear-gradient(135deg,var(--green),#00E5AA);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:white;font-size:40px;box-shadow:0 12px 30px rgba(0,200,150,.4);animation:pop .5s var(--ease)}
+  .conf-icon{width:80px;height:80px;border-radius:50%;background:var(--green);display:flex;align-items:center;justify-content:center;margin:0 auto 18px;color:white;font-size:40px;box-shadow:0 12px 30px rgba(194,65,12,.4);animation:pop .5s var(--ease)}
   @keyframes pop{0%{transform:scale(0)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
   .conf h2{font-size:24px;font-weight:800;margin-bottom:8px;letter-spacing:-0.02em}
   .conf p{color:var(--muted);margin-bottom:18px}
@@ -221,7 +221,7 @@ function renderApp() {
   if (t.logo_url) {
     html += '<div class="head-logo"><img src="' + esc(t.logo_url) + '" alt=""></div>';
   } else {
-    html += '<div class="head-logo">🔧</div>';
+    html += '<div class="head-logo" style="background:var(--green);width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 24px rgba(194,65,12,.3)"><svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M13 2L4 14h6l-1 8 11-13h-7z"/></svg></div>';
   }
   html += '<h1>' + esc(t.nombre || 'Reservar cita') + '</h1>';
   html += '<div class="sub">Reserva tu cita en menos de un minuto</div>';
@@ -240,7 +240,7 @@ function renderApp() {
   else if (STATE.paso === 3) html += renderPaso3();
   else if (STATE.paso === 4) html += renderPaso4();
 
-  html += '<div class="ft"><span class="ft-logo">⚡</span> Reservas gestionadas por <strong>TekPair</strong></div>';
+  html += '<div class="ft"><svg width="14" height="14" viewBox="0 0 24 24" fill="var(--green)"><path d="M13 2L4 14h6l-1 8 11-13h-7z"/></svg> Reservas gestionadas por <strong>TekPair</strong></div>';
 
   $('#app').innerHTML = html;
   attachHandlers();
@@ -461,7 +461,7 @@ function renderPaso3() {
   html += '<div class="fg"><label class="fl">Detalles del problema</label><textarea class="fi" id="cliNotas" placeholder="Cuéntanos lo que le pasa">' + esc(STATE.cliente.notas) + '</textarea></div>';
   html += '</div>';
 
-  html += '<div class="card" style="background:rgba(0,200,150,.05);border-color:rgba(0,200,150,.25)">';
+  html += '<div class="card" style="background:rgba(194,65,12,.05);border-color:rgba(194,65,12,.25)">';
   html += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px">Tu cita</div>';
   html += '<div style="font-size:14px;font-weight:700;margin-bottom:3px">' + esc(STATE.servicio.nombre || 'Consulta') + '</div>';
   html += '<div style="font-size:12px;color:var(--muted)">' + fmtFecha(STATE.fecha) + ' a las <strong style="color:var(--text)">' + STATE.hora + '</strong></div>';
@@ -489,6 +489,10 @@ function renderPaso4() {
   html += '</div>';
   html += '<p style="font-size:12px;color:var(--muted);margin-bottom:6px">Si no puedes venir, llámanos para cancelar.</p>';
   html += '</div>';
+  if (STATE.tienda.tel) {
+    var msgWA = encodeURIComponent('Hola, he reservado una cita para el ' + fmtFecha(STATE.fecha) + ' a las ' + STATE.hora + '. Mi nombre es ' + STATE.cliente.nombre + '.');
+    html += '<a href="https://wa.me/34' + STATE.tienda.tel.replace(/\D/g,'') + '?text=' + msgWA + '" target="_blank" style="display:block;width:100%;padding:13px;background:#25D366;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;text-align:center;text-decoration:none;margin-bottom:8px">💬 Confirmar por WhatsApp</a>';
+  }
   html += '<button class="btn btn-secondary" onclick="location.reload()">Reservar otra cita</button>';
   return html;
 }
