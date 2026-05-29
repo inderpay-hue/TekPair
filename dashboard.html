@@ -7616,6 +7616,175 @@ function rechazarPresupuesto(id) {
   renderReps();
 }
 
+// ═══ FIRMA DIGITAL DEL CLIENTE (FIRM-1 a FIRM-5) ═══
+// Permite al cliente firmar el presupuesto con dedo (tablet/móvil) o ratón (PC).
+// La firma se guarda como dataURL base64 en r.firma_cliente y r.firma_fecha (ISO).
+
+var _firmaCanvasState = {
+  ctx: null,
+  drawing: false,
+  hasDrawn: false,
+  lastX: 0,
+  lastY: 0,
+  repId: null
+};
+
+function abrirFirmaPresupuesto(id) {
+  if (!tienePerm('reps_editar')) { toast('Sin permiso', 'err'); return; }
+  var r = DB.reps.find(function(x){ return x.id === id; });
+  if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
+  if (r.estado !== 'Presupuesto') { toast('Solo se puede firmar un presupuesto', 'err'); return; }
+
+  _firmaCanvasState.repId = id;
+  _firmaCanvasState.hasDrawn = false;
+
+  // Rellenar resumen
+  var resumen = document.getElementById('firmaResumen');
+  if (resumen) {
+    var servicios = (r.servicios || []).map(function(s){ return s.nombre || ''; }).filter(Boolean).join(', ');
+    resumen.innerHTML =
+      '<div><strong>Cliente:</strong> ' + (r.clienteNombre || '—') + '</div>' +
+      '<div><strong>Dispositivo:</strong> ' + (r.marca || '') + ' ' + (r.modelo || '') + (r.imei ? ' · IMEI: ' + r.imei : '') + '</div>' +
+      '<div><strong>Avería:</strong> ' + (r.averia || '—') + '</div>' +
+      (servicios ? '<div><strong>Servicios:</strong> ' + servicios + '</div>' : '') +
+      '<div style="margin-top:8px;font-size:16px;font-weight:700;color:var(--green)"><strong>Total a pagar: ' + cur(r.total || 0) + '</strong></div>';
+  }
+
+  // Reset checkbox + canvas
+  var chk = document.getElementById('firmaAceptaTerminos');
+  if (chk) chk.checked = false;
+  firmaCanvasClear();
+
+  openM('mFirma');
+
+  // Inicializar canvas DESPUÉS de mostrar (sino width=0)
+  setTimeout(function(){ _initFirmaCanvas(); }, 100);
+}
+
+function _initFirmaCanvas() {
+  var canvas = document.getElementById('firmaCanvas');
+  if (!canvas) return;
+
+  // Ajustar tamaño real del canvas (pixel ratio para nitidez)
+  var rect = canvas.getBoundingClientRect();
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.floor(rect.width * dpr);
+  canvas.height = Math.floor(rect.height * dpr);
+  var ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.strokeStyle = '#0E0E10';
+  ctx.lineWidth = 2.2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  _firmaCanvasState.ctx = ctx;
+  _firmaCanvasState.hasDrawn = false;
+
+  // Quitar handlers viejos si los había (evita doble suscripción)
+  canvas.onmousedown = null; canvas.onmousemove = null; canvas.onmouseup = null; canvas.onmouseleave = null;
+  canvas.ontouchstart = null; canvas.ontouchmove = null; canvas.ontouchend = null;
+
+  function getXY(e) {
+    var r = canvas.getBoundingClientRect();
+    var x, y;
+    if (e.touches && e.touches.length) {
+      x = e.touches[0].clientX - r.left;
+      y = e.touches[0].clientY - r.top;
+    } else {
+      x = e.clientX - r.left;
+      y = e.clientY - r.top;
+    }
+    return { x: x, y: y };
+  }
+
+  function start(e) {
+    e.preventDefault();
+    _firmaCanvasState.drawing = true;
+    var p = getXY(e);
+    _firmaCanvasState.lastX = p.x;
+    _firmaCanvasState.lastY = p.y;
+  }
+  function move(e) {
+    if (!_firmaCanvasState.drawing) return;
+    e.preventDefault();
+    var p = getXY(e);
+    ctx.beginPath();
+    ctx.moveTo(_firmaCanvasState.lastX, _firmaCanvasState.lastY);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    _firmaCanvasState.lastX = p.x;
+    _firmaCanvasState.lastY = p.y;
+    _firmaCanvasState.hasDrawn = true;
+  }
+  function end(e) {
+    if (e) e.preventDefault();
+    _firmaCanvasState.drawing = false;
+  }
+
+  canvas.addEventListener('mousedown', start);
+  canvas.addEventListener('mousemove', move);
+  canvas.addEventListener('mouseup', end);
+  canvas.addEventListener('mouseleave', end);
+  canvas.addEventListener('touchstart', start, { passive: false });
+  canvas.addEventListener('touchmove', move, { passive: false });
+  canvas.addEventListener('touchend', end, { passive: false });
+}
+
+function firmaCanvasClear() {
+  var canvas = document.getElementById('firmaCanvas');
+  if (!canvas) return;
+  var ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  // Fondo blanco (necesario para que el PDF no salga transparente)
+  ctx.fillStyle = '#ffffff';
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+  _firmaCanvasState.hasDrawn = false;
+}
+
+function confirmarFirma() {
+  var id = _firmaCanvasState.repId;
+  if (!id) return;
+  var r = DB.reps.find(function(x){ return x.id === id; });
+  if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
+
+  var chk = document.getElementById('firmaAceptaTerminos');
+  if (!chk || !chk.checked) {
+    toast('Marca la casilla de aceptación', 'err');
+    return;
+  }
+  if (!_firmaCanvasState.hasDrawn) {
+    toast('El cliente debe firmar antes de confirmar', 'err');
+    return;
+  }
+
+  // Capturar firma como dataURL (PNG)
+  var canvas = document.getElementById('firmaCanvas');
+  var dataUrl = canvas.toDataURL('image/png');
+
+  // Guardar en la reparación
+  r.firma_cliente = dataUrl;
+  r.firma_fecha = new Date().toISOString();
+  r.estado = 'Pendiente';
+  r.fechaAceptacion = r.firma_fecha;
+
+  guardarDatos();
+
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('reparaciones', 'id=eq.' + r.id, {
+      estado: 'Pendiente',
+      firma_cliente: dataUrl,
+      firma_fecha: r.firma_fecha
+    });
+  }
+
+  audit('firmar', 'presupuesto', r.id, r.clienteNombre + ' · firmado', null);
+  closeM('mFirma');
+  toast('Firmado por ' + (r.clienteNombre || 'cliente') + ' · convertido a reparación', 'ok');
+  renderReps();
+  // Saltar a filtro Pendiente para que el usuario vea dónde fue
+  var tab = document.querySelector('#repTabs .tab[data-f="Pendiente"]');
+  if (tab) setRepFiltro(tab);
+}
+
 // === PLANTILLAS RÁPIDAS DE REPARACIÓN ===
 var PLANTILLAS_REP_DEFAULT = [
   {key:'pantalla',  icon:'📱', label:'Pantalla rota',     averia:'Pantalla rota',                    servicio:'Instalación de Pantalla', precio:0, chk:['Pantalla rota']},
@@ -8989,6 +9158,8 @@ function renderReps() {
     var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" data-action="confirm" class="row-btn btn-ent" title="Marcar entregado">&#10003;</button>' : '';
     // PRES-7: Si es un presupuesto, mostrar Aceptar / Rechazar destacados
     var btnPresAcept = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" data-action="confirm" class="row-btn btn-pres-acept" title="Aceptar presupuesto · crear reparación" style="background:var(--green);color:white;border-color:var(--green)">✓ Aceptar</button>' : '';
+    // FIRM-2: botón Firmar — aceptación con firma digital del cliente
+    var btnPresFirma = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" class="row-btn btn-pres-firma" title="Firmar y aceptar con el cliente" style="background:#8B5CF6;color:white;border-color:#8B5CF6">✍️ Firmar</button>' : '';
     var btnPresRech = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" data-action="del" class="row-btn btn-pres-rech" title="Rechazar presupuesto">✗ Rechazar</button>' : '';
     var btnEdit = '<button data-rid="' + r.id + '" data-action="edit" class="row-btn btn-edit-r" title="Editar">✏️</button>';
     var btnLink = '<button data-rid="' + r.id + '" data-action="link" class="row-btn btn-link-r" title="QR / Link / Imprimir">📱</button>';
@@ -9028,7 +9199,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + '</td>'
-      + '<td>' + btnE + btnPresAcept + btnPresRech + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
+      + '<td>' + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -9059,6 +9230,10 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-pres-rech').forEach(function(btn) {
     btn.addEventListener('click', function() { rechazarPresupuesto(this.dataset.rid); });
+  });
+  // FIRM-2: firmar presupuesto con el cliente (canvas)
+  el.querySelectorAll('.btn-pres-firma').forEach(function(btn) {
+    btn.addEventListener('click', function() { abrirFirmaPresupuesto(this.dataset.rid); });
   });
 }
 
@@ -13266,6 +13441,21 @@ function abrirDetalleRep(repId) {
   html += '<span style="font-size:22px;font-weight:800;color:var(--green)">' + cur(r.total || 0) + '</span>';
   html += '</div>';
 
+  // FIRM-6: si hay firma del cliente, mostrarla
+  if (r.firma_cliente) {
+    var fechaFirma = '';
+    if (r.firma_fecha) {
+      try {
+        var d = new Date(r.firma_fecha);
+        fechaFirma = d.toLocaleDateString('es', {day:'2-digit',month:'2-digit',year:'numeric'}) + ' a las ' + d.toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit'});
+      } catch(e){}
+    }
+    html += '<div style="margin-top:14px;background:rgba(168,85,247,.05);border:1px solid rgba(168,85,247,.2);border-radius:10px;padding:12px">';
+    html += '<div style="font-size:10px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">✍️ FIRMA DEL CLIENTE' + (fechaFirma ? ' · ' + fechaFirma : '') + '</div>';
+    html += '<div style="background:white;border:1px solid var(--border);border-radius:6px;padding:6px"><img src="' + esc(r.firma_cliente) + '" alt="Firma" style="max-width:100%;height:auto;display:block;max-height:120px;margin:0 auto"></div>';
+    html += '</div>';
+  }
+
   document.getElementById('detalleRepBox').innerHTML = html;
 
   // Botones
@@ -15961,6 +16151,33 @@ function impFacAnadirAlStock() {
     <div class="modal-h"><span>🔧 Reparación</span><span class="cls" onclick="closeM('mDetalleRep')">×</span></div>
     <div id="detalleRepBox"></div>
     <div id="detalleRepBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- ═══ MODAL FIRMA DIGITAL CLIENTE (FIRM-1) ═══ -->
+<div class="modal-bg" id="mFirma">
+  <div class="modal" style="max-width:600px">
+    <div class="modal-h">
+      <span>✍️ Aceptación y firma del cliente</span>
+      <span class="cls" onclick="closeM('mFirma')">×</span>
+    </div>
+    <div id="firmaResumen" style="background:var(--light);padding:12px 14px;border-radius:8px;margin-bottom:14px;font-size:13px;line-height:1.6"></div>
+    <div style="background:rgba(168,85,247,.06);border-left:3px solid #8B5CF6;padding:10px 12px;border-radius:6px;margin-bottom:14px;font-size:12px;color:var(--dark)">
+      <strong>Términos:</strong> El cliente acepta el presupuesto descrito y autoriza la reparación. La firma equivale a aprobación expresa. Una vez aceptado, el presupuesto se convierte en orden de reparación.
+    </div>
+    <label style="display:flex;align-items:flex-start;gap:8px;font-size:13px;margin-bottom:12px;cursor:pointer;user-select:none">
+      <input type="checkbox" id="firmaAceptaTerminos" style="margin-top:3px">
+      <span>He leído el presupuesto y acepto las condiciones de la reparación.</span>
+    </label>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:6px;font-weight:600">Firma del cliente (con el dedo en tablet/móvil, o con el ratón):</div>
+    <div style="border:2px dashed var(--border);border-radius:8px;background:white;position:relative;touch-action:none">
+      <canvas id="firmaCanvas" width="560" height="200" style="display:block;width:100%;height:200px;cursor:crosshair;border-radius:6px;background:white"></canvas>
+      <button type="button" onclick="firmaCanvasClear()" style="position:absolute;top:6px;right:6px;background:var(--light);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:6px;font-size:11px;cursor:pointer">↺ Borrar</button>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
+      <button onclick="closeM('mFirma')" style="background:var(--light);border:1px solid var(--border);color:var(--dark);padding:10px 16px;border-radius:8px;font-weight:600;cursor:pointer">Cancelar</button>
+      <button id="firmaBtnConfirmar" onclick="confirmarFirma()" style="background:var(--green);color:white;border:none;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer">✓ Confirmar y aceptar</button>
+    </div>
   </div>
 </div>
 
