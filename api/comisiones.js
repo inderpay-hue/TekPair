@@ -1,13 +1,37 @@
 // api/comisiones.js
 // Endpoint para consultar comisiones de afiliados.
 // Visibilidad:
-//   - Admin (info@tekpair.tech) ve TODAS las comisiones de todos los afiliados
+//   - Admin (info@tekpair.tech con rol=admin) ve TODAS las comisiones de todos los afiliados
 //   - Afiliados normales ven SOLO sus propias comisiones
 //   - Cualquier otro usuario: 403 Forbidden
 
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
 
 const ADMIN_EMAILS = ['info@tekpair.tech'];
+const BCRYPT_ROUNDS = 10;
+
+// COM-4: generador de password aleatorio fuerte (16 chars, base64url)
+// Antes la password era predecible: codigo.toLowerCase() + año (ej "juan2026")
+// Ahora es 96 bits de entropía aleatoria, imposible de adivinar.
+function generarPasswordAleatorio() {
+  // 12 bytes = 16 chars en base64. Quitamos +/= para que sea fácil de leer/copiar.
+  return crypto.randomBytes(12).toString('base64')
+    .replace(/\+/g, 'a')
+    .replace(/\//g, 'b')
+    .replace(/=/g, '');
+}
+
+// COM-9: validar y normalizar comision_pct con rango 0-100.
+// Antes `parseInt(comision_pct) || 20` convertía un válido 0 en 20 (||), y aceptaba
+// valores absurdos como 99999 o -50. Ahora rechaza fuera de rango.
+function normalizarComisionPct(raw, fallback = 20) {
+  if (raw === undefined || raw === null || raw === '') return fallback;
+  const n = parseInt(raw, 10);  // COM-11: radix explícito
+  if (isNaN(n) || n < 0 || n > 100) return null;  // null = inválido, el caller debe rechazar
+  return n;
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end();
@@ -40,17 +64,22 @@ export default async function handler(req, res) {
   };
 
   try {
-    // Obtener email del usuario desde la BD
-    const uR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(userId)}&select=email&limit=1`, {
+    // Obtener email y rol del usuario desde la BD
+    const uR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(userId)}&select=email,rol,activo&limit=1`, {
       headers: sbHeaders
     });
     const uArr = await uR.json();
-    const userEmail = (uArr[0]?.email || '').toLowerCase();
+    const usuario = uArr[0];
+    const userEmail = (usuario?.email || '').toLowerCase();
 
     if (!userEmail) return res.status(401).json({ error: 'Usuario no encontrado' });
+    if (usuario && usuario.activo === false) return res.status(401).json({ error: 'Cuenta desactivada' });
 
     // ═══ 2. Determinar rol del usuario ═══
-    const isAdmin = ADMIN_EMAILS.includes(userEmail);
+    // COM-5: chequear AMBOS — email en allowlist Y rol=admin en BD.
+    // Antes solo se chequeaba el email, así que si alguien tenía email info@tekpair.tech
+    // pero rol normal o activo=false igual le daba acceso total.
+    const isAdmin = ADMIN_EMAILS.includes(userEmail) && usuario.rol === 'admin';
 
     // ═══ POST: acciones de admin (marcar como pagado) ═══
     if (req.method === 'POST') {
@@ -83,7 +112,7 @@ export default async function handler(req, res) {
         let nextNum = 1;
         if (cntArr[0] && cntArr[0].justificante_numero) {
           const m = cntArr[0].justificante_numero.match(/JUST-\d{4}-(\d+)/);
-          if (m) nextNum = parseInt(m[1]) + 1;
+          if (m) nextNum = parseInt(m[1], 10) + 1;
         }
         const justificante = 'JUST-' + year + '-' + String(nextNum).padStart(3,'0');
         const fechaPago = body.fecha_pago || new Date().toISOString();
@@ -100,7 +129,8 @@ export default async function handler(req, res) {
         });
         if (!upR.ok) {
           const txt = await upR.text();
-          return res.status(500).json({ error: 'Error actualizando: ' + txt });
+          console.error('Error PATCH pagos_referidos (marcar_pagado):', upR.status, txt);
+          return res.status(500).json({ error: 'No se pudieron marcar las comisiones como pagadas' });
         }
         return res.json({ ok: true, marcados: ids.length, justificante_numero: justificante, fecha_pago: fechaPago });
       }
@@ -123,7 +153,7 @@ export default async function handler(req, res) {
         let nextNum = 1;
         if (cntArr[0] && cntArr[0].justificante_numero) {
           const m = cntArr[0].justificante_numero.match(/JUST-\d{4}-(\d+)/);
-          if (m) nextNum = parseInt(m[1]) + 1;
+          if (m) nextNum = parseInt(m[1], 10) + 1;
         }
         const justificante = 'JUST-' + year + '-' + String(nextNum).padStart(3,'0');
         const fechaPago = body.fecha_pago || new Date().toISOString();
@@ -142,7 +172,8 @@ export default async function handler(req, res) {
         });
         if (!upR.ok) {
           const txt = await upR.text();
-          return res.status(500).json({ error: 'Error actualizando: ' + txt });
+          console.error('Error PATCH pagos_referidos (marcar_codigo_pagado):', upR.status, txt);
+          return res.status(500).json({ error: 'No se pudieron marcar las comisiones como pagadas' });
         }
         return res.json({ ok: true, codigo: body.codigo, marcados: ids.length, justificante_numero: justificante, fecha_pago: fechaPago });
       }
@@ -154,6 +185,9 @@ export default async function handler(req, res) {
 
         const codigoNorm = codigo.toUpperCase().trim();
         const emailNorm = email.toLowerCase().trim();
+        // COM-9: validar rango de comision_pct (0-100)
+        const comisionPct = normalizarComisionPct(comision_pct, 20);
+        if (comisionPct === null) return res.status(400).json({ error: 'comision_pct debe estar entre 0 y 100' });
 
         // Verificar codigo unico en afiliados
         const dupAfR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigoNorm)}&select=codigo&limit=1`, { headers: sbHeaders });
@@ -165,33 +199,35 @@ export default async function handler(req, res) {
         const dupU = await dupUR.json();
         if (dupU.length) return res.status(400).json({ error: 'Ese email ya tiene cuenta en TekPair' });
 
-        // Generar password: codigo en minusculas + año actual
-        const year = new Date().getFullYear();
-        const passwordPlano = codigoNorm.toLowerCase() + year;
-        // Hash sha256 sin salt (igual que register.js)
-        const crypto = await import('crypto');
-        const passwordHash = crypto.createHash('sha256').update(passwordPlano).digest('hex');
+        // COM-4: Generar password aleatorio fuerte (96 bits entropía)
+        // Antes: codigo.toLowerCase() + year → predecible si conoces el código
+        const passwordPlano = generarPasswordAleatorio();
+        // COM-2: bcrypt cost 10 (consistente con login/register)
+        // Antes: SHA-256 sin salt → vulnerable a rainbow tables
+        const passwordHash = await bcrypt.hash(passwordPlano, BCRYPT_ROUNDS);
 
-        // 1. Crear usuario
+        // 1. Crear usuario (usa password_hash_v2 = bcrypt, no la columna legacy)
         const uR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
           method: 'POST',
           headers: {...sbHeaders, 'Prefer': 'return=representation'},
           body: JSON.stringify({
             nombre: nombre.trim(),
             email: emailNorm,
-            password_hash: passwordHash,
+            password_hash_v2: passwordHash,  // COM-2: bcrypt en v2 (no SHA-256 en v1)
+            rol: 'admin',  // comercial es admin de su propia tienda
             activo: true
           })
         });
         if (!uR.ok) {
           const t = await uR.text();
-          return res.status(500).json({ error: 'Error creando usuario: ' + t });
+          console.error('Error POST usuarios (crear_cuenta_comercial):', uR.status, t);
+          return res.status(500).json({ error: 'No se pudo crear el usuario' });
         }
         const uArr = await uR.json();
         const nuevoUserId = uArr[0]?.id;
         if (!nuevoUserId) return res.status(500).json({ error: 'Usuario creado sin ID' });
 
-        // 2. Crear tienda con plan TOP vitalicio
+        // 2. Crear tienda con plan Premium vitalicio (interno: 'premium')
         const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas`, {
           method: 'POST',
           headers: {...sbHeaders, 'Prefer': 'return=representation'},
@@ -210,7 +246,8 @@ export default async function handler(req, res) {
             headers: sbHeaders
           });
           const t = await tR.text();
-          return res.status(500).json({ error: 'Error creando tienda (revertido): ' + t });
+          console.error('Error POST tiendas (crear_cuenta_comercial, usuario revertido):', tR.status, t);
+          return res.status(500).json({ error: 'No se pudo crear la tienda. Reintenta en unos momentos.' });
         }
         const tArr = await tR.json();
         const nuevaTiendaId = tArr[0]?.id;
@@ -234,7 +271,7 @@ export default async function handler(req, res) {
           password: passwordPlano,
           codigo: codigoNorm,
           nombre: nombre.trim(),
-          comision_pct: parseInt(comision_pct) || 20
+          comision_pct: comisionPct
         });
       }
 
@@ -246,6 +283,9 @@ export default async function handler(req, res) {
         const codigoNorm = codigo.toUpperCase().trim();
         const emailNorm = email.toLowerCase().trim();
         const tiendaAfiliado = tienda_id_comercial || tiendaId;
+        // COM-9: validar rango de comision_pct
+        const comisionPct = normalizarComisionPct(comision_pct, 20);
+        if (comisionPct === null) return res.status(400).json({ error: 'comision_pct debe estar entre 0 y 100' });
 
         // Verificar codigo unico
         const existR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigoNorm)}&select=codigo&limit=1`, { headers: sbHeaders });
@@ -259,12 +299,16 @@ export default async function handler(req, res) {
             codigo: codigoNorm,
             nombre: nombre.trim(),
             email: emailNorm,
-            comision_pct: parseInt(comision_pct) || 20,
+            comision_pct: comisionPct,
             activo: true,
             tienda_id: tiendaAfiliado
           })
         });
-        if (!inR.ok) return res.status(500).json({ error: 'Error creando: ' + await inR.text() });
+        if (!inR.ok) {
+          const t = await inR.text();
+          console.error('Error POST afiliados (crear_afiliado):', inR.status, t);
+          return res.status(500).json({ error: 'No se pudo crear el afiliado' });
+        }
 
         // Enviar email de bienvenida si se solicita
         let emailEnviado = false;
@@ -290,7 +334,7 @@ export default async function handler(req, res) {
   <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:16px;margin:20px 0">
     <div style="font-size:11px;font-weight:700;color:#10B981;letter-spacing:1px;margin-bottom:10px">TU CÓDIGO DE AFILIADO</div>
     <div style="font-size:28px;font-weight:800;color:#0F172A;letter-spacing:2px;font-family:monospace">${codigoNorm}</div>
-    <div style="font-size:13px;color:#475569;margin-top:8px">Cuando un cliente lo use al suscribirse a TekPair, recibe 50% descuento durante 3 meses y tú cobras el <strong>${parseInt(comision_pct) || 20}%</strong> de comisión recurrente sobre cada pago.</div>
+    <div style="font-size:13px;color:#475569;margin-top:8px">Cuando un cliente lo use al suscribirse a TekPair, recibe 50% descuento durante 3 meses y tú cobras el <strong>${comisionPct}%</strong> de comisión recurrente sobre cada pago.</div>
   </div>
 
   <p style="font-size:14px;line-height:1.6;color:#475569">Accede a tu panel en <a href="https://tekpair.tech/app.html" style="color:#0055FF;text-decoration:none;font-weight:700">tekpair.tech</a> para consultar tus comisiones, clientes captados e historial de cobros.</p>
@@ -330,14 +374,23 @@ export default async function handler(req, res) {
         const update = {};
         if (nombre) update.nombre = nombre.trim();
         if (email) update.email = email.toLowerCase().trim();
-        if (comision_pct !== undefined) update.comision_pct = parseInt(comision_pct);
+        if (comision_pct !== undefined) {
+          // COM-9: validar rango también al editar
+          const c = normalizarComisionPct(comision_pct, null);
+          if (c === null) return res.status(400).json({ error: 'comision_pct debe estar entre 0 y 100' });
+          update.comision_pct = c;
+        }
         if (!Object.keys(update).length) return res.status(400).json({ error: 'Nada que actualizar' });
         const upR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigo)}`, {
           method: 'PATCH',
           headers: {...sbHeaders, 'Prefer': 'return=minimal'},
           body: JSON.stringify(update)
         });
-        if (!upR.ok) return res.status(500).json({ error: 'Error actualizando: ' + await upR.text() });
+        if (!upR.ok) {
+          const t = await upR.text();
+          console.error('Error PATCH afiliados (editar_afiliado):', upR.status, t);
+          return res.status(500).json({ error: 'No se pudo actualizar el afiliado' });
+        }
         return res.json({ ok: true });
       }
 
@@ -353,7 +406,11 @@ export default async function handler(req, res) {
           method: 'DELETE',
           headers: {...sbHeaders, 'Prefer': 'return=minimal'}
         });
-        if (!delR.ok) return res.status(500).json({ error: 'Error eliminando: ' + await delR.text() });
+        if (!delR.ok) {
+          const t = await delR.text();
+          console.error('Error DELETE afiliados (eliminar_afiliado):', delR.status, t);
+          return res.status(500).json({ error: 'No se pudo eliminar el afiliado' });
+        }
         return res.json({ ok: true });
       }
 
