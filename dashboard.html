@@ -12812,7 +12812,7 @@ async function fetchNotifRemotas() {
     var url = SUPABASE_URL + '/rest/v1/notificaciones?tienda_id=eq.' + encodeURIComponent(TIENDA_ID)
       + '&leida=eq.false&order=fecha.desc&limit=20';
     var r = await fetch(url, {
-      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JSON.parse(localStorage.getItem('tk_sess')||'{}').jwt_token||'') }
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + JWT_TOKEN }
     });
     if (!r.ok) return;
     var rows = await r.json();
@@ -12852,12 +12852,11 @@ async function fetchNotifRemotas() {
 async function marcarNotifRemotas(ids) {
   if (!ids.length || !TIENDA_ID || !SB_KEY) return;
   try {
-    var sess = JSON.parse(localStorage.getItem('tk_sess')||'{}');
     await fetch(SUPABASE_URL + '/rest/v1/notificaciones?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&id=in.(' + ids.join(',') + ')', {
       method: 'PATCH',
       headers: {
         'apikey': SB_KEY,
-        'Authorization': 'Bearer ' + (sess.jwt_token||''),
+        'Authorization': 'Bearer ' + JWT_TOKEN,
         'Content-Type': 'application/json',
         'Prefer': 'return=minimal'
       },
