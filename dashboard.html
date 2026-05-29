@@ -13164,6 +13164,14 @@ function refreshNotifs() {
   } else {
     bell.classList.remove('show');
   }
+  // PWA badge en icono de la app
+  try {
+    if (navigator.setAppBadge) {
+      unread.length > 0 ? navigator.setAppBadge(unread.length) : navigator.clearAppBadge();
+    } else if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({ type: 'SET_BADGE', count: unread.length });
+    }
+  } catch(e) {}
   var topBadge = document.getElementById('topbarBadge');
   if (topBadge) {
     if (unread.length > 0) {

@@ -1,17 +1,20 @@
 // TekPair Service Worker
-const CACHE_VERSION = 'tekpair-v202605292121';
+const CACHE_VERSION = 'tekpair-v202505292200';
 const ASSETS = [
   '/',
   '/dashboard.html',
   '/app.html',
   '/tpv.html',
   '/parte.html',
+  '/offline.html',
   '/manifest.json',
   '/icon-192.svg',
-  '/icon-512.svg'
+  '/icon-512.svg',
+  '/icon-192.png',
+  '/icon-512.png',
+  '/apple-touch-icon.png'
 ];
 
-// Instalar: cachear assets básicos
 self.addEventListener('install', e => {
   e.waitUntil(
     caches.open(CACHE_VERSION).then(c => c.addAll(ASSETS).catch(() => {}))
@@ -19,7 +22,6 @@ self.addEventListener('install', e => {
   self.skipWaiting();
 });
 
-// Activar: limpiar caches viejos
 self.addEventListener('activate', e => {
   e.waitUntil(
     caches.keys().then(keys =>
@@ -29,17 +31,12 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
-// Fetch: estrategia network-first para HTML, cache-first para resto
 self.addEventListener('fetch', e => {
-  // Solo manejar GET requests del mismo origen
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
-
-  // Nunca cachear llamadas a APIs externas (Supabase, etc.)
   if (url.hostname.includes('supabase') || url.pathname.includes('/api/')) return;
 
-  // HTML: network first (para ver siempre lo último)
   if (e.request.headers.get('accept')?.includes('text/html')) {
     e.respondWith(
       fetch(e.request)
@@ -48,12 +45,13 @@ self.addEventListener('fetch', e => {
           caches.open(CACHE_VERSION).then(c => c.put(e.request, clone));
           return r;
         })
-        .catch(() => caches.match(e.request).then(r => r || caches.match('/dashboard.html')))
+        .catch(() => caches.match(e.request)
+          .then(r => r || caches.match('/offline.html'))
+        )
     );
     return;
   }
 
-  // Otros assets: cache first
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).then(res => {
       if (res.ok) {
@@ -61,6 +59,17 @@ self.addEventListener('fetch', e => {
         caches.open(CACHE_VERSION).then(c => c.put(e.request, clone));
       }
       return res;
-    }))
+    }).catch(() => caches.match('/offline.html')))
   );
+});
+
+// Badge: recibir mensaje del dashboard para actualizar el badge del icono
+self.addEventListener('message', e => {
+  if (e.data?.type === 'SET_BADGE') {
+    if (navigator.setAppBadge) {
+      e.data.count > 0
+        ? navigator.setAppBadge(e.data.count)
+        : navigator.clearAppBadge();
+    }
+  }
 });
