@@ -138,6 +138,38 @@ body[data-theme="dark"] .stat-lbl{color:var(--muted) !important}
 body[data-theme="dark"] select{background:var(--white) !important;color:var(--text) !important;border-color:var(--border) !important}
 body[data-theme="dark"] .badge{opacity:.9}
 body[data-theme="dark"] .tbl-wrap{background:transparent}
+
+/* ═══ TEMA: TERRACOTA ═══ */
+body[data-theme="terracota"]{
+  --bg:#FFF7F5;--white:#FFFFFF;--border:#FFD9C9;--text:#1A0A00;
+  --muted:#9E5A2A;--light:#FFF1EB;--dark:#1A0A00;
+}
+body[data-theme="terracota"] .sidebar{background:#C2410C;border-right:none}
+body[data-theme="terracota"] .sidebar-group{color:rgba(255,255,255,.5)}
+body[data-theme="terracota"] .sidebar-ni{color:rgba(255,255,255,.8);border-left-color:transparent}
+body[data-theme="terracota"] .sidebar-ni:hover{background:rgba(255,255,255,.12);color:white}
+body[data-theme="terracota"] .sidebar-ni.active{background:rgba(255,255,255,.2);color:white;border-left-color:white}
+body[data-theme="terracota"] .sidebar-bell{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.3)}
+body[data-theme="terracota"] .sidebar-user{border-top-color:rgba(255,255,255,.3);color:rgba(255,255,255,.9)}
+body[data-theme="terracota"] .sidebar-logout{background:rgba(255,255,255,.2);color:white}
+body[data-theme="terracota"] .card{border-color:#FFD9C9}
+body[data-theme="terracota"] .tbl th{background:#C2410C;color:white !important}
+
+/* ═══ TEMA: ÁMBAR ═══ */
+body[data-theme="ambar"]{
+  --bg:#FFFAF7;--white:#FFFFFF;--border:#FED7AA;--text:#1A0A00;
+  --muted:#9A5B1A;--light:#FFF3E8;--dark:#1A0A00;
+}
+body[data-theme="ambar"] .sidebar{background:#EA580C;border-right:none}
+body[data-theme="ambar"] .sidebar-group{color:rgba(255,255,255,.5)}
+body[data-theme="ambar"] .sidebar-ni{color:rgba(255,255,255,.8);border-left-color:transparent}
+body[data-theme="ambar"] .sidebar-ni:hover{background:rgba(255,255,255,.12);color:white}
+body[data-theme="ambar"] .sidebar-ni.active{background:rgba(255,255,255,.2);color:white;border-left-color:white}
+body[data-theme="ambar"] .sidebar-bell{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.3)}
+body[data-theme="ambar"] .sidebar-user{border-top-color:rgba(255,255,255,.3);color:rgba(255,255,255,.9)}
+body[data-theme="ambar"] .sidebar-logout{background:rgba(255,255,255,.2);color:white}
+body[data-theme="ambar"] .card{border-color:#FED7AA}
+body[data-theme="ambar"] .tbl th{background:#EA580C;color:white !important}
 /* ═══ TEMA: NEGRO + NARANJA ═══ */
 body[data-theme="negro"]{
   --bg:#111111;--white:#1A1A1A;--border:#2A2A2A;--text:#F0F0F0;
@@ -3779,6 +3811,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <button type="button" id="btnTemaNaranja" onclick="setTema('naranja')" style="padding:12px 8px;border:2px solid #FFD9C9;background:#FF5B1F;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
           <div style="font-size:22px">🟠</div>
           <div style="font-size:11px;font-weight:700">Naranja</div>
+        </button>
+        <button type="button" id="btnTemaTerracota" onclick="setTema('terracota')" style="padding:12px 8px;border:2px solid #FFD9C9;background:#C2410C;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
+          <div style="font-size:22px">🔥</div>
+          <div style="font-size:11px;font-weight:700">Terracota</div>
+        </button>
+        <button type="button" id="btnTemaAmbar" onclick="setTema('ambar')" style="padding:12px 8px;border:2px solid #FED7AA;background:#EA580C;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
+          <div style="font-size:22px">🟧</div>
+          <div style="font-size:11px;font-weight:700">Ámbar</div>
         </button>
       </div>
     </div>
@@ -16066,14 +16106,14 @@ setInterval(function(){ if (DB.citas !== undefined) syncCitas(); }, 60000);
 
 // ═══ MODO OSCURO ═══
 function aplicarTema(tema) {
-  var temas = ['light','dark','negro','grafito','naranja'];
+  var temas = ['light','dark','negro','grafito','naranja','terracota','ambar'];
   if (tema && tema !== 'light') {
     document.body.setAttribute('data-theme', tema);
   } else {
     document.body.removeAttribute('data-theme');
   }
   // Marcar botón activo
-  var ids = { light:'btnTemaClaro', dark:'btnTemaOscuro', negro:'btnTemaNegro', grafito:'btnTemaGrafito', naranja:'btnTemaNaranja' };
+  var ids = { light:'btnTemaClaro', dark:'btnTemaOscuro', negro:'btnTemaNegro', grafito:'btnTemaGrafito', naranja:'btnTemaNaranja', terracota:'btnTemaTerracota', ambar:'btnTemaAmbar' };
   temas.forEach(function(t) {
     var btn = document.getElementById(ids[t]);
     if (!btn) return;
@@ -16087,6 +16127,8 @@ function aplicarTema(tema) {
       else if (t === 'dark') btn.style.borderColor = '#374151';
       else if (t === 'grafito') btn.style.borderColor = '#3A3A3C';
       else if (t === 'naranja') btn.style.borderColor = '#FFD9C9';
+      else if (t === 'terracota') btn.style.borderColor = '#FFD9C9';
+      else if (t === 'ambar') btn.style.borderColor = '#FED7AA';
       else btn.style.borderColor = 'var(--border)';
     }
   });
@@ -16094,7 +16136,7 @@ function aplicarTema(tema) {
 function setTema(tema) {
   localStorage.setItem('tk_theme', tema);
   aplicarTema(tema);
-  var nombres = { light:'☀️ Modo claro', dark:'🌙 Modo oscuro', negro:'🖤 Tema negro', grafito:'🪨 Tema grafito', naranja:'🟠 Tema naranja' };
+  var nombres = { light:'☀️ Modo claro', dark:'🌙 Modo oscuro', negro:'🖤 Tema negro', grafito:'🪨 Tema grafito', naranja:'🟠 Tema naranja', terracota:'🔥 Tema terracota', ambar:'🟧 Tema ámbar' };
   toast(nombres[tema] || 'Tema aplicado', 'ok');
 }
 // Aplicar tema al cargar
