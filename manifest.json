@@ -60,7 +60,7 @@
       "url": "/dashboard.html?action=new-rep",
       "icons": [
         {
-          "src": "/icon-192.svg",
+          "src": "/icon-192.png",
           "sizes": "192x192"
         }
       ]
@@ -72,7 +72,19 @@
       "url": "/dashboard.html?page=pPresupuestos",
       "icons": [
         {
-          "src": "/icon-192.svg",
+          "src": "/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Nuevo presupuesto",
+      "short_name": "Presupuesto",
+      "description": "Crear nuevo presupuesto",
+      "url": "/dashboard.html?action=new-pres",
+      "icons": [
+        {
+          "src": "/icon-192.png",
           "sizes": "192x192"
         }
       ]
@@ -84,7 +96,7 @@
       "url": "/tpv.html",
       "icons": [
         {
-          "src": "/icon-192.svg",
+          "src": "/icon-192.png",
           "sizes": "192x192"
         }
       ]
