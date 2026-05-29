@@ -550,6 +550,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 #toast.show{transform:translateX(-50%) translateY(0)}
 #toast.ok{background:#00875A}
 #toast.err{background:var(--red)}
+#toast.warn{background:#D97706;color:#fff}
 
 /* ═══ PARTS LIST ═══ */
 .part-item{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--light);font-size:12px}
@@ -9233,7 +9234,47 @@ function guardarStock() {
   var marca = document.getElementById('sMarca').value.trim();
   var modelo = document.getElementById('sModelo').value.trim();
   if (!marca || !modelo) { toast('Marca y modelo obligatorios', 'err'); return; }
-  
+
+  // STOCK-VAL: validaciones suaves (no bloqueantes, solo avisan)
+  // Se acumulan los warnings y se muestran como toasts informativos.
+  var _stockWarns = [];
+  var _imeiVal = (document.getElementById('sImei').value || '').trim();
+  var _precioV = parseFloat(document.getElementById('sPrecioV').value) || 0;
+  var _capVal = (document.getElementById('sCap').value || '').trim();
+  var _catVal = document.getElementById('sCat').value;
+
+  // 1. PVP = 0 → aviso (algunos productos legítimamente no tienen precio aún)
+  if (_precioV === 0) {
+    _stockWarns.push('⚠️ Producto sin precio de venta (PVP=0)');
+  }
+
+  // 2. IMEI debe ser numérico de 14-16 dígitos. Si tiene texto, probablemente
+  //    se metió la descripción ahí por error (ej: "funda" en IMEI).
+  //    Solo aplica a Teléfonos/Tablets que es donde se usa IMEI.
+  if (_imeiVal && (_catVal === 'Telefono' || _catVal === 'Tablet' || _catVal === 'Smartwatch')) {
+    if (!/^[0-9]{14,16}$/.test(_imeiVal)) {
+      _stockWarns.push('⚠️ El IMEI debe ser numérico (14-16 dígitos)');
+    }
+  }
+
+  // 3. Capacidad: si está rellena, sugerir formato estándar.
+  //    Aceptamos: 4GB, 8GB, 16GB, 32GB, 64GB, 128GB, 256GB, 512GB, 1TB, 2TB
+  //    También aceptamos solo números (8, 16, 32...) que se interpretan como GB.
+  if (_capVal && (_catVal === 'Telefono' || _catVal === 'Tablet')) {
+    var capOk = /^(4|8|16|32|64|128|256|512|1024|2048)\s*(GB)?$/i.test(_capVal)
+             || /^(1|2)\s*TB$/i.test(_capVal);
+    if (!capOk) {
+      _stockWarns.push('⚠️ Capacidad inusual: "' + _capVal + '" (esperado 16GB, 64GB, 128GB, 1TB...)');
+    }
+  }
+
+  // Mostrar warnings como toasts (no bloqueante, el guardado continúa)
+  if (_stockWarns.length) {
+    _stockWarns.forEach(function(w, i) {
+      setTimeout(function(){ toast(w, 'warn'); }, i * 500);
+    });
+  }
+
   // Recoger tipo y garantía (solo si está activa para esta categoría)
   var stockTipo = window._stockTipoSel || 'nuevo';
   var stockGarantiaMeses = parseInt(window._stockGarantiaMeses) || 0;
