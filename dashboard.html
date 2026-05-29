@@ -5109,6 +5109,9 @@ function navTo(id) {
   if (id === 'pServicios') renderServicios();
   if (id === 'pUsuarios') cargarUsuarios();
   if (id === 'pFacturas') renderFacturas();
+  // COM-NAV-FIX: comisiones también se carga aquí (antes solo se cargaba al
+  // hacer click en el sidebar, fallaba si navTo se llamaba directamente).
+  if (id === 'pComisiones' && typeof cargarComisiones === 'function') cargarComisiones();
 }
 
 function setNavActive(el) {
