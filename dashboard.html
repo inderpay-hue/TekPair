@@ -272,6 +272,16 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .qbtn-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .qbtn-label{font-size:13px;font-weight:700;color:var(--text);line-height:1.2}
 
+/* VIS-4: acciones primarias destacadas (Nueva venta + Abrir TPV) */
+.qbtn-primary{
+  background:linear-gradient(135deg, rgba(255,91,31,.04) 0%, rgba(255,91,31,.08) 100%);
+  border-color:rgba(255,91,31,.25);
+}
+.qbtn-primary:hover{
+  border-color:var(--orange);
+  background:linear-gradient(135deg, rgba(255,91,31,.06) 0%, rgba(255,91,31,.12) 100%);
+}
+
 /* VIS-3: botones de acción en filas (atenuados, color solo en hover) */
 .row-btn{
   background:transparent;
@@ -817,11 +827,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="stats-grid" id="metricsGrid"></div>
   <div class="quick-grid" id="dashQuickGrid">
-    <button class="qbtn-dash" onclick="abrirVenta()"><span class="qbtn-icon" style="background:rgba(255,91,31,.10);color:var(--blue)">📱</span><span class="qbtn-label">Nueva venta</span></button>
-    <button class="qbtn-dash" onclick="window.location.href='tpv.html'"><span class="qbtn-icon" style="background:rgba(0,200,150,.10);color:var(--green)">🛒</span><span class="qbtn-label">Abrir TPV</span></button>
+    <!-- VIS-4: Nueva venta y TPV son las acciones primarias (uso diario), destacadas con fondo naranja suave -->
+    <button class="qbtn-dash qbtn-primary" onclick="abrirVenta()"><span class="qbtn-icon" style="background:rgba(255,91,31,.15);color:var(--orange)">📱</span><span class="qbtn-label">Nueva venta</span></button>
+    <button class="qbtn-dash qbtn-primary" onclick="window.location.href='tpv.html'"><span class="qbtn-icon" style="background:rgba(255,91,31,.15);color:var(--orange)">🛒</span><span class="qbtn-label">Abrir TPV</span></button>
     <button class="qbtn-dash" onclick="abrirRep()"><span class="qbtn-icon" style="background:rgba(0,200,150,.10);color:var(--green)">🔧</span><span class="qbtn-label">Reparación</span></button>
     <button class="qbtn-dash" onclick="navTo('pStock');openM('mStock')"><span class="qbtn-icon" style="background:rgba(249,115,22,.10);color:var(--orange)">📦</span><span class="qbtn-label">Añadir stock</span></button>
-    <button class="qbtn-dash" onclick="navTo('pClis');openM('mCli')"><span class="qbtn-icon" style="background:rgba(255,91,31,.10);color:var(--purple)">👤</span><span class="qbtn-label">Nuevo cliente</span></button>
+    <button class="qbtn-dash" onclick="navTo('pClis');openM('mCli')"><span class="qbtn-icon" style="background:rgba(0,140,255,.10);color:var(--blue)">👤</span><span class="qbtn-label">Nuevo cliente</span></button>
   </div>
   <div class="card" id="cardUrgentes">
     <div class="sec-header">
@@ -6079,6 +6090,49 @@ function renderDashWidgets() {
   try { renderWidgetRepsEstado(); } catch(e){}
   try { renderWidgetTiempoMedio(); } catch(e){}
   try { renderWidgetClisInactivos(); } catch(e){}
+
+  // VIS-5: ocultar cards de Inicio cuyo contenido sea "vacío" + banner resumen
+  try { _colapsarCardsVacios(); } catch(e){}
+}
+
+// VIS-5: Detecta cards del Inicio con contenido "vacío" (clase .empty o texto neutro)
+// y los esconde. Muestra un banner verde con "✓ X cosas controladas hoy" al inicio.
+function _colapsarCardsVacios() {
+  var pDash = document.getElementById('pDash');
+  if (!pDash) return;
+  var cards = pDash.querySelectorAll('.card');
+  var ocultos = [];
+  cards.forEach(function(card){
+    // Saltar el card de stats / quick actions / notas / planBanner
+    if (card.id === 'cardNotas') return; // Notas siempre visible (input)
+    // Considerar "vacío" si SOLO tiene un .empty dentro del contenedor de datos
+    var box = card.querySelector('[id$="Box"]') || card.querySelector('[id$="Lista"]');
+    if (!box) return;
+    var emptyEl = box.querySelector('.empty');
+    var tieneDatos = box.children.length > 0 && (!emptyEl || box.children.length > 1);
+    if (!tieneDatos && emptyEl) {
+      // Está vacío → ocultar
+      card.style.display = 'none';
+      var titulo = (card.querySelector('.card-title') || {}).textContent || '';
+      // Extraer texto plano (sin emojis/contadores)
+      titulo = titulo.replace(/[🔧📦📝💰📊⏰🎂📞📈🏆⚠️🎁]/g, '').trim();
+      if (titulo) ocultos.push(titulo);
+    }
+  });
+  // Si hay ocultos, insertar mini-banner verde resumen
+  var prev = document.getElementById('dashTodoOkBanner');
+  if (prev) prev.remove();
+  if (ocultos.length >= 2) {
+    var banner = document.createElement('div');
+    banner.id = 'dashTodoOkBanner';
+    banner.style.cssText = 'background:#E7F6EC;border:1px solid #BBE5C9;border-left:4px solid var(--green);padding:10px 14px;border-radius:8px;margin:10px 0;font-size:13px;color:var(--dark);display:flex;align-items:center;gap:8px';
+    var lista = ocultos.length > 3 ? ocultos.slice(0,3).join(', ') + ' y ' + (ocultos.length - 3) + ' más' : ocultos.join(', ');
+    banner.innerHTML = '<span style="font-size:16px">✓</span><span><strong>Todo bajo control:</strong> sin pendientes en ' + lista + '.</span>';
+    var notasCard = document.getElementById('cardNotas');
+    if (notasCard && notasCard.parentNode) {
+      notasCard.parentNode.insertBefore(banner, notasCard.nextSibling);
+    }
+  }
 }
 
 // ═══ WIDGETS NUEVOS DEL DASHBOARD ═══
@@ -8870,7 +8924,7 @@ function renderReps() {
     html += '<tr>'
       + '<td><strong>' + r.clienteNombre + '</strong>' + badgeGarantia + '</td>'
       + '<td>' + r.marca + ' ' + r.modelo + (r.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">' + r.imei + '</span>' : '') + '</td>'
-      + '<td style="font-size:11px;color:var(--red)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + r.bloqueo : '')) + '</span>' : '') + '</td>'
+      + '<td style="font-size:11px;color:var(--dark)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + r.bloqueo : '')) + '</span>' : '') + '</td>'
       + '<td><select data-rid="' + r.id + '" class="sel-estado" style="border:1px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:6px">'
         + ['Pendiente','En Proceso','Por Entregar','Entregado','Garantia','Sin Solucion','Devuelto','Rechazado'].map(function(s) {
           return '<option' + (s === r.estado ? ' selected' : '') + '>' + s + '</option>';
