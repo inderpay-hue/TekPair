@@ -11949,7 +11949,7 @@ function renderSidebarLogo() {
   } else {
     img.style.display = 'none';
     if (txt) {
-      txt.textContent = '⚡ ' + nombre;
+      txt.innerHTML = '<span style="display:inline-flex;width:22px;height:22px;background:#FF5B1F;border-radius:6px;align-items:center;justify-content:center;flex-shrink:0;vertical-align:middle;margin-right:6px"><svg width="13" height="13" viewBox="0 0 24 24" fill="white"><path d="M13 2L4 14h6l-1 8 11-13h-7z"/></svg></span>' + nombre;
       txt.style.display = 'inline';
     }
   }
