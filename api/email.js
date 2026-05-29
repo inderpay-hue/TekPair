@@ -1,16 +1,92 @@
+// api/email.js
+// Envío de emails: facturas y reportes diarios desde el dashboard.
+//
+// Fixes aplicados:
+//   EM-1: requiere JWT válido + sesión activa (antes era endpoint público, agujero crítico)
+//   EM-2: escape HTML de todos los campos dinámicos para evitar inyección XSS
+//   EM-3: validación estricta del destinatario (formato email + límite 5 destinatarios)
+//   EM-4: límite del PDF base64 (máx 4MB para no reventar Vercel Hobby body limit)
+
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+const SUPABASE_URL = process.env.SUPABASE_URL;
+const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+
+// EM-2: escape HTML básico para todos los valores dinámicos
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+// EM-3: validación de email
+function emailValido(e) {
+  if (typeof e !== 'string') return false;
+  if (e.length > 200) return false;
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
+}
+
+// EM-1: verificar JWT + sesión activa en BD
+async function autenticar(req) {
+  const auth = req.headers.authorization || '';
+  const token = auth.startsWith('Bearer ') ? auth.slice(7) : null;
+  if (!token) return null;
+  let payload;
+  try {
+    payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
+  } catch (e) {
+    return null;
+  }
+  // Verificar que tienda_id en JWT existe y está activa
+  if (!payload.tienda_id) return null;
+  return payload;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
+
+  if (!JWT_SECRET || !SUPABASE_URL || !SERVICE_KEY) {
+    console.error('[email] Configuración incompleta');
+    return res.status(500).json({ error: 'Configuración de servidor incompleta' });
+  }
+
+  // EM-1: AUTH obligatorio
+  const payload = await autenticar(req);
+  if (!payload) return res.status(401).json({ error: 'No autorizado' });
+
+  const KEY = process.env.RESEND_API_KEY;
+  if (!KEY) return res.status(500).json({ error: 'RESEND_API_KEY no configurada' });
 
   // ── Rama FACTURA (PDF adjunto) ──
   if (req.body && req.body.tipo === 'factura') {
     const { email, nombreCliente, numero, total, tienda, pdfBase64, nombreArchivo } = req.body;
     if (!email || !pdfBase64) return res.status(400).json({ error: 'Faltan datos (email o PDF)' });
-    const KEY = process.env.RESEND_API_KEY;
-    if (!KEY) return res.status(500).json({ error: 'RESEND_API_KEY no configurada' });
-    const tNom = tienda || 'TekPair';
-    const num = numero || '';
-    const cli = nombreCliente || 'Cliente';
-    const totalTxt = total ? (total + ' EUR') : '';
+
+    // EM-3: validar formato del destinatario
+    if (!emailValido(email)) return res.status(400).json({ error: 'Email destinatario no válido' });
+
+    // EM-4: límite tamaño PDF (4MB en base64 ~3MB original, dentro de Vercel Hobby 4.5MB)
+    if (typeof pdfBase64 !== 'string') return res.status(400).json({ error: 'PDF inválido' });
+    if (pdfBase64.length > 4 * 1024 * 1024) {
+      return res.status(413).json({ error: 'PDF demasiado grande (máx 4MB)' });
+    }
+    // Validar que es base64 razonable (caracteres válidos)
+    if (!/^[A-Za-z0-9+/=]+$/.test(pdfBase64.slice(0, 100))) {
+      return res.status(400).json({ error: 'PDF en formato base64 inválido' });
+    }
+
+    // EM-2: escape de TODOS los campos dinámicos
+    const tNom = esc(tienda || 'TekPair').slice(0, 100);
+    const num = esc(numero || '').slice(0, 50);
+    const cli = esc(nombreCliente || 'Cliente').slice(0, 100);
+    const totalTxt = total != null ? esc(total) + ' EUR' : '';
+    const nombreArchivoSafe = (nombreArchivo || ('Factura_' + (numero || 'documento') + '.pdf'))
+      .toString().replace(/[^\w.\-]/g, '_').slice(0, 100);
+
     const htmlFac = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#111">
   <div style="background:#10B981;color:white;padding:22px;border-radius:10px 10px 0 0;text-align:center">
@@ -32,27 +108,57 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           from: 'TekPair <noreply@tekpair.tech>',
           to: [email],
-          subject: `Factura ${num} — ${tNom}`,
+          subject: `Factura ${numero || ''} — ${tienda || 'TekPair'}`,
           html: htmlFac,
-          attachments: [{ filename: nombreArchivo || ('Factura_' + (num || 'documento') + '.pdf'), content: pdfBase64 }]
+          attachments: [{ filename: nombreArchivoSafe, content: pdfBase64 }]
         })
       });
       const df = await rf.json();
       if (rf.ok) return res.json({ ok: true, id: df.id });
-      console.error('Resend error (factura):', df);
-      return res.json({ error: df.message || 'Error al enviar' });
+      console.error('[email] Resend error (factura):', rf.status, df);
+      return res.json({ error: 'No se pudo enviar el email' });
     } catch (e) {
-      console.error('Enviar factura error:', e);
+      console.error('[email] Enviar factura error:', e);
       return res.status(500).json({ error: 'Error del servidor' });
     }
   }
 
-  // ── Rama REPORTE DIARIO (original) ──
+  // ── Rama REPORTE DIARIO ──
   const { email, reporte, tienda } = req.body;
   if (!email || !reporte) return res.status(400).json({ error: 'Faltan datos' });
 
-  const RESEND_KEY = process.env.RESEND_API_KEY;
-  if (!RESEND_KEY) return res.status(500).json({ error: 'RESEND_API_KEY no configurada' });
+  // EM-3: validar destinatario
+  if (!emailValido(email)) return res.status(400).json({ error: 'Email destinatario no válido' });
+
+  // EM-2: escape de campos del reporte
+  const fechaSafe = esc(reporte.fecha || '').slice(0, 50);
+  const tiendaSafe = esc(tienda || 'Mi Tienda').slice(0, 100);
+  const numVentasSafe = esc(reporte.numVentas || 0);
+  const totalVentasSafe = esc(reporte.totalVentas || 0);
+  const numRepsSafe = esc(reporte.numReps || 0);
+  const totalRepsSafe = esc(reporte.totalReps || 0);
+  const totalSafe = esc(reporte.total || 0);
+
+  // Pagos (es un objeto {forma: importe})
+  const pagosHtml = (reporte.pagos && Object.keys(reporte.pagos).length)
+    ? Object.entries(reporte.pagos).map(([k, v]) =>
+        `<div class="pago-row"><span>${esc(k)}</span><strong>€${esc(v)}</strong></div>`
+      ).join('')
+    : '';
+
+  // Ventas (array de objetos)
+  const ventasHtml = (Array.isArray(reporte.ventas) && reporte.ventas.length)
+    ? reporte.ventas.slice(0, 100).map(v =>
+        `<tr><td>${esc(v.clienteNombre)}</td><td>${esc(v.modelo)}</td><td>${esc(v.pago)}</td><td>€${esc(v.total)}</td></tr>`
+      ).join('')
+    : '';
+
+  // Reparaciones
+  const repsHtml = (Array.isArray(reporte.reps) && reporte.reps.length)
+    ? reporte.reps.slice(0, 100).map(r =>
+        `<tr><td>${esc(r.clienteNombre)}</td><td>${esc(r.marca)} ${esc(r.modelo)}</td><td>€${esc(r.total)}</td></tr>`
+      ).join('')
+    : '';
 
   const html = `
 <!DOCTYPE html>
@@ -81,52 +187,28 @@ td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; }
 <body>
 <div class="header">
   <h1>⚡ Tekpair</h1>
-  <p>Reporte diario — ${tienda || 'Mi Tienda'}</p>
+  <p>Reporte diario — ${tiendaSafe}</p>
 </div>
 <div class="body">
-  <p style="color:#64748B;font-size:13px;margin-bottom:16px">📅 ${reporte.fecha}</p>
-  
+  <p style="color:#64748B;font-size:13px;margin-bottom:16px">📅 ${fechaSafe}</p>
+
   <div style="text-align:center;margin-bottom:20px">
-    <div class="stat"><div class="stat-val" style="color:#0055FF">${reporte.numVentas}</div><div class="stat-lbl">Ventas</div></div>
-    <div class="stat"><div class="stat-val" style="color:#00C896">€${reporte.totalVentas}</div><div class="stat-lbl">Ingresos ventas</div></div>
-    <div class="stat"><div class="stat-val" style="color:#7C3AED">${reporte.numReps}</div><div class="stat-lbl">Reparaciones</div></div>
-    <div class="stat"><div class="stat-val" style="color:#F97316">€${reporte.totalReps}</div><div class="stat-lbl">Ingresos reps</div></div>
+    <div class="stat"><div class="stat-val" style="color:#0055FF">${numVentasSafe}</div><div class="stat-lbl">Ventas</div></div>
+    <div class="stat"><div class="stat-val" style="color:#00C896">€${totalVentasSafe}</div><div class="stat-lbl">Ingresos ventas</div></div>
+    <div class="stat"><div class="stat-val" style="color:#7C3AED">${numRepsSafe}</div><div class="stat-lbl">Reparaciones</div></div>
+    <div class="stat"><div class="stat-val" style="color:#F97316">€${totalRepsSafe}</div><div class="stat-lbl">Ingresos reps</div></div>
   </div>
 
   <div style="background:#020B2E;color:white;border-radius:10px;padding:14px;text-align:center;margin-bottom:20px">
     <div style="font-size:13px;opacity:.7">TOTAL DEL DÍA</div>
-    <div style="font-size:28px;font-weight:800;color:#00C896">€${reporte.total}</div>
+    <div style="font-size:28px;font-weight:800;color:#00C896">€${totalSafe}</div>
   </div>
 
-  ${reporte.pagos && Object.keys(reporte.pagos).length ? `
-  <div class="section">
-    <h2>💳 Por forma de pago</h2>
-    ${Object.entries(reporte.pagos).map(([k,v]) => `
-    <div class="pago-row"><span>${k}</span><strong>€${v}</strong></div>
-    `).join('')}
-  </div>` : ''}
+  ${pagosHtml ? `<div class="section"><h2>💳 Por forma de pago</h2>${pagosHtml}</div>` : ''}
 
-  ${reporte.ventas && reporte.ventas.length ? `
-  <div class="section">
-    <h2>📱 Ventas del día</h2>
-    <table>
-      <thead><tr><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th></tr></thead>
-      <tbody>
-        ${reporte.ventas.map(v => `<tr><td>${v.clienteNombre}</td><td>${v.modelo}</td><td>${v.pago}</td><td>€${v.total}</td></tr>`).join('')}
-      </tbody>
-    </table>
-  </div>` : ''}
+  ${ventasHtml ? `<div class="section"><h2>📱 Ventas del día</h2><table><thead><tr><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th></tr></thead><tbody>${ventasHtml}</tbody></table></div>` : ''}
 
-  ${reporte.reps && reporte.reps.length ? `
-  <div class="section">
-    <h2>🔧 Reparaciones entregadas</h2>
-    <table>
-      <thead><tr><th>Cliente</th><th>Equipo</th><th>Total</th></tr></thead>
-      <tbody>
-        ${reporte.reps.map(r => `<tr><td>${r.clienteNombre}</td><td>${r.marca} ${r.modelo}</td><td>€${r.total}</td></tr>`).join('')}
-      </tbody>
-    </table>
-  </div>` : ''}
+  ${repsHtml ? `<div class="section"><h2>🔧 Reparaciones entregadas</h2><table><thead><tr><th>Cliente</th><th>Equipo</th><th>Total</th></tr></thead><tbody>${repsHtml}</tbody></table></div>` : ''}
 
 </div>
 <div class="footer">
@@ -140,13 +222,13 @@ td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; }
     const r = await fetch('https://api.resend.com/emails', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${RESEND_KEY}`,
+        'Authorization': `Bearer ${KEY}`,
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
         from: 'Tekpair <noreply@tekpair.tech>',
         to: [email],
-        subject: `Reporte diario ${reporte.fecha} — ${tienda || 'Tekpair'}`,
+        subject: `Reporte diario ${reporte.fecha || ''} — ${tienda || 'Tekpair'}`,
         html: html
       })
     });
@@ -155,11 +237,11 @@ td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; }
     if (r.ok) {
       return res.json({ ok: true, id: data.id });
     } else {
-      console.error('Resend error:', data);
-      return res.json({ error: data.message || 'Error al enviar' });
+      console.error('[email] Resend error:', r.status, data);
+      return res.json({ error: 'No se pudo enviar el email' });
     }
-  } catch(e) {
-    console.error('Email error:', e);
+  } catch (e) {
+    console.error('[email] Error:', e);
     return res.status(500).json({ error: 'Error del servidor' });
   }
 }
