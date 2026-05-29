@@ -7584,6 +7584,114 @@ function _limpiarModoPresupuesto() {
   if (banner) banner.style.display = 'none';
 }
 
+
+// ── PRES-C: Enviar presupuesto remoto al cliente ─────────────────────────────
+var _presEnviarId = null;
+
+function abrirModalEnviarPres(id) {
+  _presEnviarId = id;
+  var r = DB.reps.find(function(x){ return x.id === id; });
+  if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
+
+  // Buscar cliente para ver si tiene tel y email
+  var cli = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
+  if (!cli && r.clienteNombre) {
+    var nom = _norm(r.clienteNombre);
+    cli = DB.clis.find(function(c){ return _norm(((c.nombre||'')+' '+(c.apellidos||'')).trim()) === nom; });
+  }
+  var tel   = cli ? (cli.tel   || '') : '';
+  var email = cli ? (cli.email || '') : '';
+
+  // Info del presupuesto
+  var infoEl = document.getElementById('mPresEnviarInfo');
+  infoEl.innerHTML = '<strong>' + escHtml(r.clienteNombre||'Sin nombre') + '</strong> &mdash; '
+    + escHtml(r.marca+' '+r.modelo) + '<br>'
+    + (tel   ? '📲 ' + escHtml(tel)   + '&nbsp;&nbsp;' : '<span style="color:var(--red)">⚠️ Sin teléfono</span>&nbsp;&nbsp;')
+    + (email ? '📧 ' + escHtml(email) : '<span style="color:var(--muted)">Sin email</span>');
+
+  // Preseleccionar según datos disponibles
+  document.getElementById('chkPresWA').checked    = !!tel;
+  document.getElementById('chkPresEmail').checked = !!email;
+  document.getElementById('chkPresWA').disabled    = !tel;
+  document.getElementById('chkPresEmail').disabled = !email;
+
+  presEnviarToggle();
+  openM('mPresEnviar');
+}
+
+function presEnviarToggle() {
+  var wa    = document.getElementById('chkPresWA').checked;
+  var email = document.getElementById('chkPresEmail').checked;
+  var warn  = document.getElementById('presEnviarWarn');
+  var btn   = document.getElementById('btnPresEnviarConf');
+  if (!wa && !email) {
+    warn.style.display = 'block';
+    warn.textContent   = 'Selecciona al menos un método de envío.';
+    btn.disabled = true;
+  } else {
+    warn.style.display = 'none';
+    btn.disabled = false;
+  }
+}
+
+async function confirmarEnviarPres() {
+  if (!_presEnviarId) return;
+  var wa    = document.getElementById('chkPresWA').checked;
+  var email = document.getElementById('chkPresEmail').checked;
+  if (!wa && !email) { toast('Selecciona al menos un método', 'err'); return; }
+
+  var btn = document.getElementById('btnPresEnviarConf');
+  btn.disabled = true;
+  btn.textContent = 'Generando...';
+
+  var sess = JSON.parse(localStorage.getItem('tk_sess')||'{}');
+  var jwt  = sess.jwt_token || sess.jwt || '';
+
+  try {
+    var enviar = [];
+    if (wa)    enviar.push('wa');
+    if (email) enviar.push('email');
+
+    var res = await fetch('/api/citas-publicas', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + jwt },
+      body: JSON.stringify({ action: 'pres-generar-token', rep_id: _presEnviarId, enviar: enviar })
+    });
+    var data = await res.json();
+
+    if (!data.ok) {
+      toast(data.error || 'Error al generar enlace', 'err');
+      btn.disabled = false; btn.textContent = '📤 Generar y enviar';
+      return;
+    }
+
+    closeM('mPresEnviar');
+
+    // Si WhatsApp: abrir wa.me directamente
+    if (wa && data.tel && data.waMensaje) {
+      var telLimpio = data.tel.replace(/\D/g,'');
+      var waUrl = 'https://wa.me/' + telLimpio + '?text=' + data.waMensaje;
+      window.open(waUrl, '_blank');
+    }
+
+    // Si email: ya fue enviado por el servidor, solo notificar
+    var metodos = [];
+    if (wa && data.tel)     metodos.push('WhatsApp');
+    if (email && data.email) metodos.push('email');
+    toast('Enlace enviado por ' + (metodos.join(' y ') || 'enlace generado') + ' ✓', 'ok');
+
+    // Guardar URL en clipboard como bonus
+    if (navigator.clipboard && data.url) {
+      navigator.clipboard.writeText(data.url).catch(function(){});
+    }
+
+  } catch(e) {
+    console.error('confirmarEnviarPres:', e);
+    toast('Error de conexión', 'err');
+    btn.disabled = false; btn.textContent = '📤 Generar y enviar';
+  }
+}
+
 // Aceptar presupuesto → convertir a reparación normal (estado Pendiente)
 function aceptarPresupuesto(id) {
   if (!tienePerm('reps_editar')) { toast('Sin permiso', 'err'); return; }
@@ -9167,6 +9275,8 @@ function renderReps() {
     // FIRM-2: botón Firmar — aceptación con firma digital del cliente
     var btnPresFirma = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" class="row-btn btn-pres-firma" title="Firmar y aceptar con el cliente" style="background:#8B5CF6;color:white;border-color:#8B5CF6">✍️ Firmar</button>' : '';
     var btnPresRech = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" data-action="del" class="row-btn btn-pres-rech" title="Rechazar presupuesto">✗ Rechazar</button>' : '';
+    // PRES-C: botón Enviar al cliente (link remoto)
+    var btnPresEnviar = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" class="row-btn btn-pres-enviar" title="Enviar presupuesto al cliente por WhatsApp / Email" style="background:#0EA5E9;color:white;border-color:#0EA5E9">📤 Enviar</button>' : '';
     var btnEdit = '<button data-rid="' + r.id + '" data-action="edit" class="row-btn btn-edit-r" title="Editar">✏️</button>';
     var btnLink = '<button data-rid="' + r.id + '" data-action="link" class="row-btn btn-link-r" title="QR / Link / Imprimir">📱</button>';
     // WhatsApp: buscar cliente por cliId, si no, fallback por nombre coincidente
@@ -9205,7 +9315,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + '</td>'
-      + '<td>' + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
+      + '<td>' + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnPresEnviar + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -9236,6 +9346,9 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-pres-rech').forEach(function(btn) {
     btn.addEventListener('click', function() { rechazarPresupuesto(this.dataset.rid); });
+  el.querySelectorAll('.btn-pres-enviar').forEach(function(btn) {
+    btn.addEventListener('click', function() { abrirModalEnviarPres(this.dataset.rid); });
+  });
   });
   // FIRM-2: firmar presupuesto con el cliente (canvas)
   el.querySelectorAll('.btn-pres-firma').forEach(function(btn) {
@@ -16183,6 +16296,37 @@ function impFacAnadirAlStock() {
     <div style="display:flex;gap:8px;margin-top:14px;justify-content:flex-end">
       <button onclick="closeM('mFirma')" style="background:var(--light);border:1px solid var(--border);color:var(--dark);padding:10px 16px;border-radius:8px;font-weight:600;cursor:pointer">Cancelar</button>
       <button id="firmaBtnConfirmar" onclick="confirmarFirma()" style="background:var(--green);color:white;border:none;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer">✓ Confirmar y aceptar</button>
+    </div>
+  </div>
+</div>
+
+
+<!-- ═══ MODAL ENVIAR PRESUPUESTO REMOTO (PRES-C) ═══ -->
+<div class="modal-bg" id="mPresEnviar">
+  <div class="modal" style="max-width:420px">
+    <div class="modal-h">
+      <span>📤 Enviar presupuesto al cliente</span>
+      <span class="cls" onclick="closeM('mPresEnviar')">×</span>
+    </div>
+    <div id="mPresEnviarInfo" style="background:var(--light);padding:10px 12px;border-radius:8px;margin-bottom:14px;font-size:13px;color:var(--muted)">Cargando...</div>
+    <div class="fg">
+      <label class="fl">Enviar por</label>
+      <div style="display:flex;gap:8px">
+        <label style="flex:1;display:flex;align-items:center;gap:8px;background:white;border:1.5px solid var(--border);border-radius:9px;padding:10px 12px;cursor:pointer;font-size:13px;transition:border-color .15s" id="lblWA">
+          <input type="checkbox" id="chkPresWA" checked onchange="presEnviarToggle()"> 📲 WhatsApp
+        </label>
+        <label style="flex:1;display:flex;align-items:center;gap:8px;background:white;border:1.5px solid var(--border);border-radius:9px;padding:10px 12px;cursor:pointer;font-size:13px;transition:border-color .15s" id="lblEmail">
+          <input type="checkbox" id="chkPresEmail" onchange="presEnviarToggle()"> 📧 Email
+        </label>
+      </div>
+    </div>
+    <div id="presEnviarWarn" style="display:none;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:10px 12px;font-size:12px;color:#92400E;margin-bottom:10px"></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+      Se generará un enlace único válido <strong>48 horas</strong>. El cliente podrá revisar el presupuesto y aceptarlo desde su móvil sin necesidad de instalar nada.
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button onclick="closeM('mPresEnviar')" class="btn-secondary" style="padding:10px 16px;width:auto">Cancelar</button>
+      <button id="btnPresEnviarConf" onclick="confirmarEnviarPres()" style="background:#0EA5E9;color:white;border:none;padding:10px 18px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit">📤 Generar y enviar</button>
     </div>
   </div>
 </div>
