@@ -3,6 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<!-- RES-1: el token de reset está en query string. Sin esto se filtra a cualquier sitio
+     externo al que el usuario navegue desde aquí. -->
+<meta name="referrer" content="no-referrer">
+<meta name="robots" content="noindex,nofollow">
 <title>Restablecer contraseña · TekPair</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -84,7 +88,7 @@
     <div class="msg" id="msg"></div>
 
     <div class="foot">
-      <a href="/app">Volver al inicio de sesión</a>
+      <a href="/app.html">Volver al inicio de sesión</a>
     </div>
   </div>
 </div>
@@ -127,8 +131,12 @@
       var data = await r.json();
 
       if (data && data.ok) {
+        // RES-2: limpiar token de la URL tras éxito.
+        // Si el usuario comparte screenshot o hace history.back, no debe quedar el token.
+        try { history.replaceState({}, '', '/reset.html'); } catch (e) {}
         document.getElementById('form').style.display = 'none';
-        mostrar('¡Contraseña actualizada! Ya puedes iniciar sesión con tu nueva contraseña.', 'ok');
+        mostrar('¡Contraseña actualizada! Te redirigimos al login en 3 segundos...', 'ok');
+        setTimeout(function(){ window.location.href = '/app.html'; }, 3000);
       } else {
         mostrar((data && data.error) || 'No se pudo restablecer la contraseña.', 'err');
         btn.disabled = false;
