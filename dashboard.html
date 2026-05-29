@@ -5049,6 +5049,8 @@ window.addEventListener('DOMContentLoaded', function() {
   // Notificaciones
   setTimeout(refreshNotifs, 500);
   setInterval(refreshNotifs, 60000);
+  setInterval(fetchNotifRemotas, 30000);
+  setTimeout(fetchNotifRemotas, 3000); // primera consulta a los 3s
   initDesktop();
   window.addEventListener('resize', initDesktop);
   setTimeout(function() {
@@ -12795,6 +12797,99 @@ async function _pullTiendaCompleta() {
 
 var notifFilter = '';
 var notifTab = 'unread';
+
+
+// ── Polling notificaciones remotas (presupuesto_aceptado, etc.) ──────────────
+var _notifRemotasCache = [];
+var _notifRemotasLastFetch = 0;
+
+async function fetchNotifRemotas() {
+  if (!TIENDA_ID || !SB_KEY) return;
+  var ahora = Date.now();
+  if (ahora - _notifRemotasLastFetch < 25000) return; // min 25s entre fetches
+  _notifRemotasLastFetch = ahora;
+  try {
+    var url = SUPABASE_URL + '/rest/v1/notificaciones?tienda_id=eq.' + encodeURIComponent(TIENDA_ID)
+      + '&leida=eq.false&order=fecha.desc&limit=20';
+    var r = await fetch(url, {
+      headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JSON.parse(localStorage.getItem('tk_sess')||'{}').jwt_token||'') }
+    });
+    if (!r.ok) return;
+    var rows = await r.json();
+    if (!Array.isArray(rows)) return;
+
+    var nuevas = rows.filter(function(n) {
+      return !_notifRemotasCache.find(function(c){ return c.id === n.id; });
+    });
+
+    _notifRemotasCache = rows;
+
+    if (!nuevas.length) return;
+
+    // Hay notificaciones nuevas — recargar reps para reflejar estado actualizado
+    nuevas.forEach(function(n) {
+      if (n.tipo === 'presupuesto_aceptado' && n.rep_id) {
+        // Actualizar DB.reps localmente
+        var rep = DB.reps.find(function(r){ return r.id === n.rep_id; });
+        if (rep) rep.presupuesto_aceptado_at = n.fecha;
+      }
+    });
+
+    // Refrescar UI
+    refreshNotifs();
+    if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
+      renderPresupuestos();
+    }
+
+    // Marcar como leídas en Supabase después de mostrarlas (no bloqueante)
+    setTimeout(function() {
+      marcarNotifRemotas(nuevas.map(function(n){ return n.id; }));
+    }, 5000);
+
+  } catch(e) { console.error('fetchNotifRemotas:', e); }
+}
+
+async function marcarNotifRemotas(ids) {
+  if (!ids.length || !TIENDA_ID || !SB_KEY) return;
+  try {
+    var sess = JSON.parse(localStorage.getItem('tk_sess')||'{}');
+    await fetch(SUPABASE_URL + '/rest/v1/notificaciones?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&id=in.(' + ids.join(',') + ')', {
+      method: 'PATCH',
+      headers: {
+        'apikey': SB_KEY,
+        'Authorization': 'Bearer ' + (sess.jwt_token||''),
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({ leida: true })
+    });
+    _notifRemotasCache = _notifRemotasCache.filter(function(n){ return !ids.includes(n.id); });
+  } catch(e) { console.error('marcarNotifRemotas:', e); }
+}
+
+// Añadir notificaciones remotas a computeNotificaciones
+var _computeNotificacionesOrig = computeNotificaciones;
+computeNotificaciones = function() {
+  var notifs = _computeNotificacionesOrig();
+  // Mezclar con remotas no leídas
+  _notifRemotasCache.forEach(function(n) {
+    var icon = n.tipo === 'presupuesto_aceptado' ? '✅' : '🔔';
+    var color = n.tipo === 'presupuesto_aceptado' ? '#16A34A' : '#FF5B1F';
+    var href = n.tipo === 'presupuesto_aceptado' ? 'pPresupuestos' : 'pReps';
+    notifs.unshift({
+      id: 'remote_' + n.id,
+      tipo: n.tipo,
+      icon: icon,
+      color: color,
+      titulo: n.titulo || 'Notificación',
+      detalle: n.detalle || '',
+      href: href,
+      prio: 0,
+      manual: false
+    });
+  });
+  return notifs;
+};
 
 function refreshNotifs() {
   var list = computeNotificaciones();
