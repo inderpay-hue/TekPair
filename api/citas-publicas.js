@@ -217,11 +217,8 @@ async function presGenerarToken(body, authHeader) {
   } catch(e) {}
 
   // Enviar email si se solicita
-  console.log('PRES-EMAIL debug:', { enviar, cliEmail, cliTel, repId, url });
   if (enviar.includes('email') && cliEmail) {
     enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url).catch(e=>console.error('email presupuesto:',e));
-  } else if (enviar.includes('email') && !cliEmail) {
-    console.error('PRES-EMAIL: email solicitado pero cliEmail vacío. cliente_id:', rep.cliente_id);
   }
 
   return {
