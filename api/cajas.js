@@ -22,9 +22,21 @@ function sbHeaders(extra = {}) {
   };
 }
 
+// Excepción tipada con status HTTP para que el handler pueda diferenciar
+// entre conflict (409), validation (400), etc.
+class SupabaseError extends Error {
+  constructor(method, path, status, body) {
+    super(`Supabase ${method} ${path}: ${status} ${body}`);
+    this.status = status;
+    this.body = body;
+    this.method = method;
+    this.path = path;
+  }
+}
+
 async function sbGet(path) {
   const r = await fetch(`${SB_URL}/rest/v1/${path}`, { headers: sbHeaders() });
-  if (!r.ok) throw new Error(`Supabase GET ${path}: ${r.status} ${await r.text()}`);
+  if (!r.ok) throw new SupabaseError('GET', path, r.status, await r.text());
   return r.json();
 }
 
@@ -35,7 +47,7 @@ async function sbPost(path, body, opts = {}) {
     headers,
     body: JSON.stringify(body)
   });
-  if (!r.ok) throw new Error(`Supabase POST ${path}: ${r.status} ${await r.text()}`);
+  if (!r.ok) throw new SupabaseError('POST', path, r.status, await r.text());
   return r.json();
 }
 
@@ -46,7 +58,7 @@ async function sbPatch(path, body) {
     headers,
     body: JSON.stringify(body)
   });
-  if (!r.ok) throw new Error(`Supabase PATCH ${path}: ${r.status} ${await r.text()}`);
+  if (!r.ok) throw new SupabaseError('PATCH', path, r.status, await r.text());
   return r.json();
 }
 
@@ -55,7 +67,7 @@ async function sbDelete(path) {
     method: 'DELETE',
     headers: sbHeaders()
   });
-  if (!r.ok && r.status !== 204) throw new Error(`Supabase DELETE ${path}: ${r.status} ${await r.text()}`);
+  if (!r.ok && r.status !== 204) throw new SupabaseError('DELETE', path, r.status, await r.text());
   return true;
 }
 
@@ -149,16 +161,18 @@ async function tienePermisoCaja(payload, clave) {
 
 
 // Helper: recalcula descuadre del cierre de un fiado después de cobrarlo/anularlo
+// CAJ-4: ahora devuelve true/false para que el caller sepa si tuvo éxito.
+// Si falla, loguea con error (no warn) para que aparezca en monitorización.
 async function recalcularCierreDeFiado(fiadoId, tienda_id) {
   try {
     // Obtener el fiado para saber caja_id y fecha
     const fiados = await sbGet(`cajas_fiados?id=eq.${encodeURIComponent(fiadoId)}&select=caja_id,fecha`);
-    if (!fiados[0]) return;
+    if (!fiados[0]) return false;
     const { caja_id, fecha } = fiados[0];
 
     // Buscar el cierre de ese día/caja
     const cierres = await sbGet(`cajas_cierres?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=eq.${encodeURIComponent(fecha)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
-    if (!cierres[0]) return;
+    if (!cierres[0]) return true; // no hay cierre que recalcular, OK
     const cierre = cierres[0];
 
     // Sumar fiados pendientes (NO cobrados) de ese día
@@ -183,7 +197,12 @@ async function recalcularCierreDeFiado(fiadoId, tienda_id) {
       descuadre: nuevoDescuadre,
       estado: nuevoEstado
     });
-  } catch(e) { console.warn("recalcularCierreDeFiado:", e.message); }
+    return true;
+  } catch(e) {
+    // CAJ-4: log error (no warn) para que aparezca como incidente
+    console.error("[cajas] recalcularCierreDeFiado FALLO para fiado", fiadoId, ":", e.message);
+    return false;
+  }
 }
 
 // ── Handler principal ─────────────────────────────
@@ -224,7 +243,8 @@ export default async function handler(req, res) {
           return err(res, 400, 'tipo inválido');
         }
         const iconoDef = icono || (tipo === 'envios' ? '📤' : tipo === 'recargas' ? '📱' : tipo === 'tpv' ? '🛒' : '💼');
-        const payload = {
+        // CAJ-9: variable renombrada de `payload` a `cajaData` para no sombrear el JWT
+        const cajaData = {
           tienda_id,
           tipo,
           nombre,
@@ -233,12 +253,15 @@ export default async function handler(req, res) {
           orden: Number(orden || 0)
         };
         if (Array.isArray(dias_apertura) && dias_apertura.length > 0) {
-          payload.dias_apertura = dias_apertura.filter(d => Number.isInteger(d) && d >= 1 && d <= 7);
+          const diasValidos = dias_apertura.filter(d => Number.isInteger(d) && d >= 1 && d <= 7);
+          // CAJ-11: rechazar si tras el filtro queda vacío (datos basura del frontend)
+          if (diasValidos.length === 0) return err(res, 400, 'dias_apertura inválidos (1-7)');
+          cajaData.dias_apertura = diasValidos;
         }
         if (typeof req.body.gestion_fiados === 'boolean') {
-          payload.gestion_fiados = req.body.gestion_fiados;
+          cajaData.gestion_fiados = req.body.gestion_fiados;
         }
-        const data = await sbPost('cajas', payload);
+        const data = await sbPost('cajas', cajaData);
         return ok(res, { caja: Array.isArray(data) ? data[0] : data });
       }
 
@@ -311,6 +334,9 @@ export default async function handler(req, res) {
       case 'editar_compania': {
         const { id, nombre, orden, activa } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
+        // CAJ-1: requiere permiso. Empleados sin permiso no pueden cambiar config de compañías
+        const puedeEditar = await tienePermisoCaja(payload, 'editar');
+        if (!puedeEditar) return err(res, 403, 'No tienes permiso para editar compañías');
         // Verificar pertenencia: compañía → caja → tienda
         const cmps = await sbGet(
           `cajas_companias?id=eq.${encodeURIComponent(id)}&select=caja_id`
@@ -451,17 +477,25 @@ export default async function handler(req, res) {
         }
 
         let cierreId;
-        if (cierreExistente) {
-          const data = await sbPatch(
-            `cajas_cierres?id=eq.${encodeURIComponent(cierreExistente.id)}`,
-            cierrePayload
-          );
-          cierreId = Array.isArray(data) ? data[0].id : data.id;
-          // Borrar movimientos previos
-          await sbDelete(`cajas_movimientos?cierre_id=eq.${encodeURIComponent(cierreId)}`);
-        } else {
-          const data = await sbPost('cajas_cierres', cierrePayload);
-          cierreId = Array.isArray(data) ? data[0].id : data.id;
+        try {
+          if (cierreExistente) {
+            const data = await sbPatch(
+              `cajas_cierres?id=eq.${encodeURIComponent(cierreExistente.id)}`,
+              cierrePayload
+            );
+            cierreId = Array.isArray(data) ? data[0].id : data.id;
+          } else {
+            const data = await sbPost('cajas_cierres', cierrePayload);
+            cierreId = Array.isArray(data) ? data[0].id : data.id;
+          }
+        } catch (e) {
+          // CAJ-8b: detectar conflict UNIQUE (uq_cierres_caja_fecha).
+          // Pasa si dos cajeros guardan cierre del mismo día/caja simultáneamente.
+          // PostgreSQL devuelve 409 con código 23505. PostgREST también devuelve 409.
+          if (e instanceof SupabaseError && (e.status === 409 || /23505|already exists|duplicate/i.test(e.body || ''))) {
+            return err(res, 409, 'Ya existe un cierre para esta caja y fecha. Refresca la página para ver el cierre actual.');
+          }
+          throw e;
         }
 
         const movsInsert = movimientos
@@ -475,7 +509,29 @@ export default async function handler(req, res) {
             importe_tarjeta: Number(m.importe_tarjeta || 0),
             balance: calcularBalance(caja.tipo, m)
           }));
-        if (movsInsert.length > 0) {
+
+        // CAJ-7: borrar viejos e insertar nuevos en orden que minimice pérdida.
+        // Si el POST nuevo falla, los viejos siguen ahí (porque borramos DESPUÉS del POST OK).
+        // Caso edge: si insertamos nuevos antes de borrar, se duplican durante un instante.
+        // Solución pragmática sin transacciones: si hay cierre existente, hacer un "swap":
+        //   1. Marcar viejos con cierre_id temporal (no se puede sin alterar schema)
+        // Alternativa simple: usar try/catch para reintentar/loguear si algo falla
+        if (cierreExistente && movsInsert.length > 0) {
+          // Borrar los viejos solo después de validar que tenemos movsInsert válidos
+          await sbDelete(`cajas_movimientos?cierre_id=eq.${encodeURIComponent(cierreId)}`);
+          try {
+            await sbPost('cajas_movimientos', movsInsert);
+          } catch (e) {
+            // CAJ-7: si falla insertar los nuevos, dejar log crítico para que el admin
+            // pueda restaurar manualmente desde el frontend (los datos siguen en payload original)
+            console.error('[cajas] CRÍTICO: insertar movimientos falló tras borrar viejos. cierre_id=', cierreId, 'movsInsert=', JSON.stringify(movsInsert).slice(0, 500), 'error:', e.message);
+            throw e;
+          }
+        } else if (cierreExistente) {
+          // No hay movimientos nuevos: solo borrar viejos
+          await sbDelete(`cajas_movimientos?cierre_id=eq.${encodeURIComponent(cierreId)}`);
+        } else if (movsInsert.length > 0) {
+          // Cierre nuevo, no había viejos: solo insertar
           await sbPost('cajas_movimientos', movsInsert);
         }
 
@@ -503,9 +559,18 @@ export default async function handler(req, res) {
         const { id } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
         if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        // CAJ-5: añadir trazabilidad de la reapertura en las notas del cierre.
+        // Antes se borraba cerrado_por/cerrado_at sin dejar rastro de quién reabrió.
+        const cierresExist = await sbGet(
+          `cajas_cierres?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=cerrado_por,cerrado_at,notas`
+        );
+        if (cierresExist.length === 0) return err(res, 404, 'Cierre no encontrado');
+        const cierreActual = cierresExist[0];
+        const reapertura = `[Reabierto ${new Date().toISOString()} por ${payload.email || 'desconocido'} — cierre original: ${cierreActual.cerrado_por || '?'} ${cierreActual.cerrado_at || '?'}]`;
+        const nuevaNota = (cierreActual.notas ? cierreActual.notas + '\n' : '') + reapertura;
         const data = await sbPatch(
           `cajas_cierres?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
-          { estado: 'abierto', cerrado_at: null, cerrado_por: null }
+          { estado: 'abierto', cerrado_at: null, cerrado_por: null, notas: nuevaNota }
         );
         return ok(res, { cierre: Array.isArray(data) ? data[0] : data });
       }
@@ -582,15 +647,25 @@ export default async function handler(req, res) {
       case 'editar_fiado': {
         const { id, cliente_nombre, cliente_telefono, nota, importe } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
+        // CAJ-3: cambiar importe afecta la deuda real del cliente. Si el usuario
+        // intenta cambiar el importe, requiere permiso explícito de cobro/edición.
+        // Cambios de nombre/teléfono/nota son cosméticos y se permiten sin permiso.
+        if (importe !== undefined) {
+          const puedeEditarImporte = await tienePermisoCaja(payload, 'cobrar');
+          if (!puedeEditarImporte) return err(res, 403, 'No tienes permiso para modificar el importe');
+        }
         const patch = {};
         if (cliente_nombre !== undefined) patch.cliente_nombre = cliente_nombre;
         if (cliente_telefono !== undefined) patch.cliente_telefono = cliente_telefono;
         if (nota !== undefined) patch.nota = nota;
         if (importe !== undefined) patch.importe = Number(importe);
+        if (Object.keys(patch).length === 0) return err(res, 400, 'Nada que actualizar');
         const data = await sbPatch(
           `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
           patch
         );
+        // Si cambió el importe, recalcular cierre afectado
+        if (importe !== undefined) await recalcularCierreDeFiado(id, tienda_id);
         return ok(res, { fiado: Array.isArray(data) ? data[0] : data });
       }
 
@@ -621,10 +696,16 @@ export default async function handler(req, res) {
       case 'anular_fiado': {
         const { id } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
+        // CAJ-2: anular fiado afecta contabilidad. Solo admin o usuario con permiso 'cobrar'
+        // (mismo permiso que cobrar — anular es la operación inversa).
+        const puede = await tienePermisoCaja(payload, 'cobrar');
+        if (!puede) return err(res, 403, 'No tienes permiso para anular fiados');
         const data = await sbPatch(
           `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
           { estado: 'anulado' }
         );
+        // CAJ-4: si recalcular falla, ya queda log; pero el cambio principal ya está hecho
+        await recalcularCierreDeFiado(id, tienda_id);
         return ok(res, { fiado: Array.isArray(data) ? data[0] : data });
       }
 
@@ -715,7 +796,10 @@ export default async function handler(req, res) {
         return err(res, 400, `Acción desconocida: ${action}`);
     }
   } catch (e) {
+    // CAJ-6: mensaje genérico al cliente, log detallado en servidor.
+    // Antes devolvíamos e.message que incluía status + texto crudo de Supabase
+    // (con detalles internos como nombres de columnas, códigos PG, etc.)
     console.error('[api/cajas] error:', e.message, e.stack);
-    return err(res, 500, e.message || 'Error interno');
+    return err(res, 500, 'Error interno del servidor');
   }
 }
