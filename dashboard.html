@@ -92,6 +92,20 @@ body[data-theme="dark"] .modal select,
 body[data-theme="dark"] .modal textarea{background:var(--light);color:var(--text);border-color:var(--border)}
 
 
+
+/* ═══ TEMA DARK — fix texto oscuro en filas tablas ═══ */
+body[data-theme="dark"] .tbl td,
+body[data-theme="dark"] .tbl td *,
+body[data-theme="dark"] .tbl td strong{color:var(--text) !important}
+body[data-theme="dark"] .tbl th{color:var(--muted) !important}
+body[data-theme="dark"] .tbl tr:hover td{background:rgba(255,255,255,.03)}
+body[data-theme="dark"] .sec-title{color:var(--text)}
+body[data-theme="dark"] .qbtn-label{color:var(--text) !important}
+body[data-theme="dark"] .qbtn-dash{background:var(--white) !important}
+body[data-theme="dark"] .stat-lbl{color:var(--muted) !important}
+body[data-theme="dark"] select{background:var(--white) !important;color:var(--text) !important;border-color:var(--border) !important}
+body[data-theme="dark"] .badge{opacity:.9}
+body[data-theme="dark"] .tbl-wrap{background:transparent}
 /* ═══ TEMA: NEGRO + NARANJA ═══ */
 body[data-theme="negro"]{
   --bg:#111111;--white:#1A1A1A;--border:#2A2A2A;--text:#F0F0F0;
