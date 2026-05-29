@@ -7733,6 +7733,9 @@ function aceptarPresupuesto(id) {
     sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Pendiente' });
   }
   toast('Presupuesto aceptado · ahora es una reparación pendiente', 'ok');
+  if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
+    renderPresupuestos();
+  }
   renderReps();
   // Cambiar al filtro Pendiente para que el usuario vea dónde fue
   var tab = document.querySelector('#repTabs .tab[data-f="Pendiente"]');
@@ -7751,6 +7754,9 @@ function rechazarPresupuesto(id) {
     sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Rechazado' });
   }
   toast('Presupuesto rechazado', 'ok');
+  if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
+    renderPresupuestos();
+  }
   renderReps();
 }
 
@@ -9296,11 +9302,13 @@ function setPresFiltro(el) {
 function renderPresupuestos() {
   var busq = (_norm(document.getElementById('busPresupuesto') ? document.getElementById('busPresupuesto').value : ''));
   var list = DB.reps.slice().reverse().filter(function(r) {
-    if (r.estado !== 'Presupuesto') return false;
-    if (_presFiltro === 'aceptado')  return !!r.presupuesto_aceptado_at;
+    // Incluir Presupuesto (pendiente/aceptado) y Rechazado
+    var esPresup = r.estado === 'Presupuesto' || r.estado === 'Rechazado';
+    if (!esPresup) return false;
+    if (_presFiltro === 'aceptado')  return r.estado === 'Presupuesto' && !!r.presupuesto_aceptado_at;
     if (_presFiltro === 'rechazado') return r.estado === 'Rechazado';
-    if (_presFiltro === 'pendiente') return !r.presupuesto_aceptado_at;
-    return true;
+    if (_presFiltro === 'pendiente') return r.estado === 'Presupuesto' && !r.presupuesto_aceptado_at;
+    return true; // todos
   });
   if (busq) {
     list = list.filter(function(r) {
@@ -12827,9 +12835,10 @@ async function fetchNotifRemotas() {
     if (!nuevas.length) return;
 
     // Hay notificaciones nuevas — recargar reps para reflejar estado actualizado
+    var hayPresupAcept = nuevas.some(function(n){ return n.tipo === 'presupuesto_aceptado'; });
+
     nuevas.forEach(function(n) {
       if (n.tipo === 'presupuesto_aceptado' && n.rep_id) {
-        // Actualizar DB.reps localmente
         var rep = DB.reps.find(function(r){ return r.id === n.rep_id; });
         if (rep) rep.presupuesto_aceptado_at = n.fecha;
       }
@@ -12839,6 +12848,11 @@ async function fetchNotifRemotas() {
     refreshNotifs();
     if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
       renderPresupuestos();
+    }
+
+    // Si hay presupuesto aceptado, recargar reps completos desde Supabase
+    if (hayPresupAcept && typeof syncReps === 'function') {
+      syncReps().then(function(){ renderPresupuestos(); }).catch(function(){});
     }
 
     // Marcar como leídas en Supabase después de mostrarlas (no bloqueante)
