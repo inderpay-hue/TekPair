@@ -5301,18 +5301,25 @@ async function _syncQueueRetry() {
     }
     
     try {
-      var ok = false;
+      var res = {ok: false, status: 0};
       if (op.method === 'POST') {
-        ok = await _sbPostRaw(op.table, op.data);
+        res = await _sbPostRaw(op.table, op.data);
       } else if (op.method === 'PATCH') {
-        ok = await _sbPatchRaw(op.table, op.query, op.data);
+        res = await _sbPatchRaw(op.table, op.query, op.data);
       } else if (op.method === 'DELETE') {
-        ok = await _sbDeleteRaw(op.table, op.query);
+        res = await _sbDeleteRaw(op.table, op.query);
       }
-      
-      if (ok) {
+
+      if (res.ok) {
         _syncQueueRemove(op._opId);
         console.log('✓ Sync OK:', op.method, op.table);
+      } else if (!_esRetriable(res.status)) {
+        // Error persistente (4xx no-retriable): descartar la op en lugar de loop infinito
+        console.warn('✗ Sync descartado (no retriable):', op.method, op.table, 'HTTP ' + res.status);
+        _syncQueueRemove(op._opId);
+        if (typeof toast === 'function') {
+          toast('⚠️ No se pudo sincronizar ' + op.table + ' (HTTP ' + res.status + ')', 'err');
+        }
       }
     } catch(e) {
       console.warn('Reintento falló:', op.method, op.table, e);
@@ -5346,15 +5353,20 @@ function _syncIndicatorUpdate() {
 }
 
 // Funciones RAW (las originales, sin cola)
+// CLI-1: ahora devuelven {ok, status} para que la cola pueda decidir si reintentar.
+// Errores 4xx (columna inexistente, datos malformados, PK duplicada, sesión expirada)
+// son persistentes — reintentar no los arregla. Solo se debe reintentar:
+//   - errores de red (fetch lanza excepción)
+//   - 5xx (servidor caído temporalmente)
+//   - 408 / 429 (timeout, rate limit)
 function _sbPostRaw(table, data) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table, {
     method: 'POST',
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
     body: JSON.stringify(data)
   }).then(function(r) {
-    if (!r.ok) return false;
-    return true;
-  }).catch(function() { return false; });
+    return {ok: r.ok, status: r.status};
+  }).catch(function() { return {ok: false, status: 0}; });  // status 0 = error de red
 }
 
 function _sbPatchRaw(table, query, data) {
@@ -5362,14 +5374,27 @@ function _sbPatchRaw(table, query, data) {
     method: 'PATCH',
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json'},
     body: JSON.stringify(data)
-  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+  }).then(function(r) {
+    return {ok: r.ok, status: r.status};
+  }).catch(function() { return {ok: false, status: 0}; });
 }
 
 function _sbDeleteRaw(table, query) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
     method: 'DELETE',
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
-  }).then(function(r) { return r.ok; }).catch(function() { return false; });
+  }).then(function(r) {
+    return {ok: r.ok, status: r.status};
+  }).catch(function() { return {ok: false, status: 0}; });
+}
+
+// CLI-2: distinguir errores retriables (red/5xx) de persistentes (4xx)
+// 4xx debería rendirse y mostrar al usuario, no reintentar 100 veces
+function _esRetriable(status) {
+  return status === 0      // error de red
+      || status === 408    // timeout
+      || status === 429    // rate limit
+      || status >= 500;    // server error
 }
 
 // Iniciar el sistema
@@ -5394,40 +5419,60 @@ setTimeout(function(){ _syncQueueRetry(); _syncIndicatorUpdate(); }, 2000);
 
 
 function sbPost(table, data) {
-  return _sbPostRaw(table, data).then(function(ok) {
-    if (!ok) {
-      // Encolar para reintentar
-      _syncQueueAdd({
-        _opId: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
-        method: 'POST',
-        table: table,
-        data: data,
-        dataId: data.id || null,
-        attempts: 0,
-        ts: Date.now()
-      });
-      if (typeof toast === 'function') toast('⚠️ Sin conexión - guardado para sincronizar', 'err');
+  return _sbPostRaw(table, data).then(function(res) {
+    if (res.ok) return true;
+    // CLI-2: errores 4xx son persistentes — reintentar no ayuda. Avisar al usuario.
+    if (!_esRetriable(res.status)) {
+      console.error('sbPost ' + table + ' falló con status ' + res.status + ' (no retriable). Payload:', data);
+      if (typeof toast === 'function') {
+        var msg = '⚠️ Error al sincronizar ' + table + ' (HTTP ' + res.status + ')';
+        if (res.status === 401) msg = '⚠️ Sesión expirada — vuelve a iniciar sesión';
+        else if (res.status === 409) msg = '⚠️ Conflicto: el registro ya existe';
+        else if (res.status === 400) msg = '⚠️ Datos inválidos al guardar ' + table;
+        toast(msg, 'err');
+      }
+      return false;
     }
-    return ok;
+    // Solo encolar errores retriables (red caída, 5xx)
+    _syncQueueAdd({
+      _opId: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+      method: 'POST',
+      table: table,
+      data: data,
+      dataId: data.id || null,
+      attempts: 0,
+      ts: Date.now()
+    });
+    if (typeof toast === 'function') toast('⚠️ Sin conexión - guardado para sincronizar', 'err');
+    return false;
   });
 }
 
 function sbPatch(table, query, data) {
-  return _sbPatchRaw(table, query, data).then(function(ok) {
-    if (!ok) {
-      _syncQueueAdd({
-        _opId: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
-        method: 'PATCH',
-        table: table,
-        query: query,
-        data: data,
-        dataId: null,
-        attempts: 0,
-        ts: Date.now()
-      });
-      if (typeof toast === 'function') toast('⚠️ Sin conexión - guardado para sincronizar', 'err');
+  return _sbPatchRaw(table, query, data).then(function(res) {
+    if (res.ok) return true;
+    // CLI-2: igual que sbPost
+    if (!_esRetriable(res.status)) {
+      console.error('sbPatch ' + table + ' falló con status ' + res.status + ' (no retriable). Query: ' + query + ' Payload:', data);
+      if (typeof toast === 'function') {
+        var msg = '⚠️ Error al actualizar ' + table + ' (HTTP ' + res.status + ')';
+        if (res.status === 401) msg = '⚠️ Sesión expirada — vuelve a iniciar sesión';
+        else if (res.status === 400) msg = '⚠️ Datos inválidos al actualizar ' + table;
+        toast(msg, 'err');
+      }
+      return false;
     }
-    return ok;
+    _syncQueueAdd({
+      _opId: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+      method: 'PATCH',
+      table: table,
+      query: query,
+      data: data,
+      attempts: 0,
+      ts: Date.now()
+    });
+    if (typeof toast === 'function') toast('⚠️ Sin conexión - cambio guardado para sincronizar', 'err');
+    return false;
   });
 }
 
@@ -7035,7 +7080,7 @@ function crearClienteRapido() {
   var nom = document.getElementById('ncNom').value.trim();
   if (!nom) { toast('Escribe un nombre', 'err'); return; }
   var c = {
-    id: 'c' + Date.now(),
+    id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     nombre: nom,
     apellidos: document.getElementById('ncApe').value.trim(),
     tel: document.getElementById('ncTel').value.trim(),
@@ -9480,7 +9525,7 @@ function guardarCli() {
     if (c) Object.assign(c, data);
     if (SB_KEY && TIENDA_ID) sbPatch('clientes', 'id=eq.' + ECID, {nombre:data.nombre,apellidos:data.apellidos,tel:data.tel,email:data.email,dni:data.dni,fecha_nac:data.fechaNac||null});
   } else {
-    var nuevo = Object.assign({id: 'c' + Date.now(), tienda_id: TIENDA_ID}, data);
+    var nuevo = Object.assign({id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID}, data);
     DB.clis.push(nuevo);
     if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:nuevo.id,tienda_id:TIENDA_ID,nombre:nuevo.nombre,apellidos:nuevo.apellidos,tel:nuevo.tel,email:nuevo.email,dni:nuevo.dni,fecha_nac:nuevo.fechaNac||null});
   }
@@ -13697,7 +13742,7 @@ async function subirEntidadesASupabase(table, entidades, mapper) {
       var payload = mapper ? mapper(entidades[i]) : entidades[i];
       payload.tienda_id = TIENDA_ID;
       var r = await _sbPostRaw(table, payload);
-      if (r) ok++;
+      if (r.ok) ok++;
     } catch(e) {
       console.warn('subirEntidades ' + table + ' fallo:', e);
     }
@@ -14576,7 +14621,7 @@ function convertirCitaEnRep(id) {
   if (!cli) {
     var partes = (c.cliente_nombre || '').split(' ');
     cli = {
-      id: 'c' + Date.now(),
+      id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
       nombre: partes[0] || c.cliente_nombre,
       apellidos: partes.slice(1).join(' '),
       tel: c.cliente_tel || '',
