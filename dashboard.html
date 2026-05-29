@@ -16142,10 +16142,11 @@ function setTema(tema) {
 // Aplicar tema al cargar
 (function() {
   var saved = localStorage.getItem('tk_theme');
-  if (saved && saved !== 'light') {
-    document.body.setAttribute('data-theme', saved);
+  var temaActivo = saved || 'terracota';
+  if (temaActivo !== 'light') {
+    document.body.setAttribute('data-theme', temaActivo);
   }
-  setTimeout(function(){ aplicarTema(saved || 'light'); }, 100);
+  setTimeout(function(){ aplicarTema(temaActivo); }, 100);
 })();
 
 // ═══ IMPORTAR FACTURA PDF ═══
