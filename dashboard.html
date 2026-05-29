@@ -5255,6 +5255,26 @@ window.addEventListener('DOMContentLoaded', function() {
   // Notificaciones
   setTimeout(refreshNotifs, 500);
   setInterval(refreshNotifs, 60000);
+
+  // PWA shortcuts: manejar parámetros URL
+  (function handlePWAParams() {
+    try {
+      var params = new URLSearchParams(window.location.search);
+      var page = params.get('page');
+      var action = params.get('action');
+      if (page) {
+        setTimeout(function() { navTo(page); }, 300);
+      } else if (action === 'new-rep') {
+        setTimeout(function() { navTo('pReps'); abrirRep(); }, 300);
+      } else if (action === 'new-pres') {
+        setTimeout(function() { navTo('pPresupuestos'); abrirPresupuesto(); }, 300);
+      }
+      // Limpiar params de la URL sin recargar
+      if (page || action) {
+        window.history.replaceState({}, '', '/dashboard.html');
+      }
+    } catch(e) {}
+  })();
   setInterval(fetchNotifRemotas, 30000);
   setTimeout(fetchNotifRemotas, 3000); // primera consulta a los 3s
   initDesktop();
