@@ -6,8 +6,8 @@
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
-  "background_color": "#0F1117",
-  "theme_color": "#00C896",
+  "background_color": "#FFF7F5",
+  "theme_color": "#C2410C",
   "lang": "es",
   "categories": ["business", "productivity", "utilities"],
   "icons": [
@@ -36,6 +36,13 @@
       "short_name": "Nueva rep",
       "description": "Crea una nueva orden de reparación",
       "url": "/dashboard.html?action=new-rep",
+      "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
+    },
+    {
+      "name": "Presupuestos",
+      "short_name": "Presupuestos",
+      "description": "Ver y gestionar presupuestos",
+      "url": "/dashboard.html?page=pPresupuestos",
       "icons": [{ "src": "/icon-192.svg", "sizes": "192x192" }]
     },
     {
