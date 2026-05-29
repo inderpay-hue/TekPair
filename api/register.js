@@ -21,26 +21,13 @@ export default async function handler(req, res) {
   const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
   const RESEND_KEY = process.env.RESEND_API_KEY;
 
-  const { session_id, email, nombre, tienda_nombre, plan } = req.body;
-  if (!email || !nombre) return res.status(400).json({ error: 'Faltan datos' });
+  const { session_id } = req.body;
+  let { email, nombre, tienda_nombre, plan } = req.body;
 
   try {
-    // ═══ REG-4: Verificar que el email no existe ya ═══
-    // Si existe, abortar antes de tocar Stripe o crear nada.
-    const checkR = await fetch(
-      `${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=id&limit=1`,
-      { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } }
-    );
-    if (checkR.ok) {
-      const existentes = await checkR.json();
-      if (existentes && existentes.length > 0) {
-        return res.status(409).json({
-          error: 'Ya existe una cuenta con este email. Inicia sesión en lugar de registrarte.'
-        });
-      }
-    }
-
-    // ═══ 1. Recuperar info de Stripe (customer_id, sub_id, trial_end) ═══
+    // ═══ 1. Recuperar info de Stripe (customer_id, sub_id, trial_end, METADATA) ═══
+    // CHK-2 fix: ahora el success_url no lleva datos personales en URL.
+    // Si email/nombre/etc. no vienen en req.body, se leen del metadata de la session Stripe.
     let stripeCustomerId = null;
     let stripeSubId = null;
     let trialUntil = null;
@@ -53,6 +40,15 @@ export default async function handler(req, res) {
         });
         const session = await sR.json();
         stripeCustomerId = session.customer || null;
+        // CHK-2 fix: leer datos del metadata si no vinieron en body
+        if (session.metadata) {
+          if (!email && session.metadata.email) email = session.metadata.email;
+          if (!nombre && session.metadata.nombre) nombre = session.metadata.nombre;
+          if (!tienda_nombre && session.metadata.tienda_nombre) tienda_nombre = session.metadata.tienda_nombre;
+          if (!plan && session.metadata.plan) plan = session.metadata.plan;
+        }
+        // Fallback adicional: customer_email del Checkout si el metadata no lo tenía
+        if (!email && session.customer_email) email = session.customer_email;
         if (session.subscription) {
           if (typeof session.subscription === 'string') {
             stripeSubId = session.subscription;
@@ -69,6 +65,26 @@ export default async function handler(req, res) {
           }
         }
       } catch(e) { console.warn('No se pudo recuperar info de Stripe:', e.message); }
+    }
+
+    // Validar que tengamos datos mínimos tras leer Stripe
+    if (!email || !nombre) {
+      return res.status(400).json({ error: 'Faltan datos (email o nombre)' });
+    }
+
+    // ═══ REG-4: Verificar que el email no existe ya ═══
+    // Si existe, abortar antes de crear nada.
+    const checkR = await fetch(
+      `${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=id&limit=1`,
+      { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } }
+    );
+    if (checkR.ok) {
+      const existentes = await checkR.json();
+      if (existentes && existentes.length > 0) {
+        return res.status(409).json({
+          error: 'Ya existe una cuenta con este email. Inicia sesión en lugar de registrarte.'
+        });
+      }
     }
 
     // Si Stripe no nos dio el trial, calcularlo manual (15 días)
@@ -225,7 +241,7 @@ export default async function handler(req, res) {
       });
     }
 
-    return res.json({ ok: true, tienda_id, tempPass, sessionToken });
+    return res.json({ ok: true, tienda_id, tempPass, sessionToken, nombre });
 
   } catch(e) {
     console.error('Setup error:', e);

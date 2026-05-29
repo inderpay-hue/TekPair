@@ -28,36 +28,51 @@ p{color:#64748B;font-size:14px;margin-bottom:20px;line-height:1.6}
 <script>
 async function setup() {
   var params = new URLSearchParams(window.location.search);
-  var email = params.get('email');
-  var nombre = params.get('nombre');
-  var tienda = params.get('tienda');
-  var plan = params.get('plan');
   var session_id = params.get('session_id');
 
-  if (!email || !nombre) {
+  // CHK-2 fix: ya no leemos email/nombre/tienda/plan de la URL (era una fuga
+  // de datos personales hacia logs, historial y referrers). Ahora register.js
+  // los extrae de session.metadata en Stripe.
+  // Mantenemos lectura por compatibilidad con URLs viejas que pudieran estar
+  // en circulación (refresh de pestañas que estaban abiertas):
+  var emailLegacy = params.get('email');
+  var nombreLegacy = params.get('nombre');
+  var tiendaLegacy = params.get('tienda');
+  var planLegacy = params.get('plan');
+
+  if (!session_id) {
     document.getElementById('icon').textContent = '❌';
     document.getElementById('title').textContent = 'Error';
-    document.getElementById('msg').textContent = 'No se encontraron los datos de registro.';
+    document.getElementById('msg').textContent = 'No se encontró la sesión de pago. Vuelve a registrarte desde https://tekpair.tech/registro.html';
     return;
   }
 
   try {
+    var body = {session_id: session_id};
+    // Si por casualidad vienen en URL (compatibilidad), los enviamos también
+    if (emailLegacy) body.email = emailLegacy;
+    if (nombreLegacy) body.nombre = nombreLegacy;
+    if (tiendaLegacy) body.tienda_nombre = tiendaLegacy;
+    if (planLegacy) body.plan = planLegacy;
+
     var r = await fetch('/api/register', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({session_id, email, nombre, tienda_nombre: tienda, plan})
+      body: JSON.stringify(body)
     });
     var data = await r.json();
 
     if (data.ok) {
+      // El nombre puede venir en data.nombre (recomendado para el futuro) o de URL legacy
+      var nombreMostrar = (data.nombre || nombreLegacy || '').trim();
       document.getElementById('icon').textContent = '🎉';
       document.getElementById('title').textContent = 'Cuenta creada';
-      document.getElementById('msg').textContent = 'Hola ' + nombre + ', tu cuenta está lista. Te hemos enviado un email con tus credenciales de acceso.';
+      document.getElementById('msg').textContent = (nombreMostrar ? 'Hola ' + nombreMostrar + ', tu' : 'Tu') + ' cuenta está lista. Te hemos enviado un email con tus credenciales de acceso.';
       document.getElementById('note').textContent = '📧 Revisa tu bandeja de entrada (y spam) para ver tu contraseña temporal.';
       document.getElementById('note').style.display = 'block';
       document.getElementById('btnEntrar').style.display = 'block';
     } else {
-      if (data.error && data.error.includes('ya tiene una cuenta')) {
+      if (data.error && data.error.indexOf('ya') !== -1 && (data.error.indexOf('cuenta') !== -1 || data.error.indexOf('email') !== -1)) {
         document.getElementById('icon').textContent = '✅';
         document.getElementById('title').textContent = 'Ya tienes cuenta';
         document.getElementById('msg').textContent = 'Este email ya tiene una cuenta activa en Tekpair.';
@@ -71,7 +86,7 @@ async function setup() {
   } catch(e) {
     document.getElementById('icon').textContent = '❌';
     document.getElementById('title').textContent = 'Error de conexión';
-    document.getElementById('msg').textContent = 'No se pudo crear la cuenta. Por favor contacta con soporte@tekpair.tech';
+    document.getElementById('msg').textContent = 'No se pudo crear la cuenta. Por favor contacta con info@tekpair.tech';
   }
 }
 setup();
