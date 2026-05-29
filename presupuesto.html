@@ -3,67 +3,77 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <title>Presupuesto de reparación</title>
 <style>
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-:root{--orange:#FF5B1F;--dark:#0F172A;--green:#00C896;--red:#EF4444;--border:#E2E8F0;--bg:#F7F9FC;--text:#0F1729;--muted:#64748B}
-body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 40px}
-.header{background:var(--dark);padding:24px 20px 20px;text-align:center}
-.header-logo{width:52px;height:52px;border-radius:14px;margin:0 auto 12px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#1E293B}
+:root{--orange:#C2410C;--dark:#1C0A00;--green:#16A34A;--red:#DC2626;--border:#E2E8F0;--bg:#FDF8F5;--text:#1C0A00;--muted:#78716C}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;padding:0 0 60px}
+.header{background:var(--dark);padding:28px 20px 22px;text-align:center}
+.header-logo{width:56px;height:56px;border-radius:16px;margin:0 auto 14px;overflow:hidden;display:flex;align-items:center;justify-content:center;background:#2D1200}
 .header-logo img{max-width:100%;max-height:100%;object-fit:contain}
-.header-bolt{width:52px;height:52px;border-radius:14px;margin:0 auto 12px;background:var(--orange);display:flex;align-items:center;justify-content:center}
-.header-bolt svg{width:28px;height:28px;fill:white}
-.header-name{color:white;font-size:18px;font-weight:700;letter-spacing:-.3px}
-.header-sub{color:#94a3b8;font-size:13px;margin-top:3px}
+.header-bolt{width:56px;height:56px;border-radius:16px;margin:0 auto 14px;background:var(--orange);display:flex;align-items:center;justify-content:center}
+.header-bolt svg{width:30px;height:30px;fill:white}
+.header-name{color:white;font-size:19px;font-weight:700;letter-spacing:-.3px}
+.header-sub{color:#A8A29E;font-size:13px;margin-top:4px}
 .wrap{max-width:480px;margin:0 auto;padding:0 16px}
-.card{background:white;border-radius:14px;border:1px solid var(--border);padding:18px;margin-top:16px}
-.card-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px}
-.device-row{display:flex;align-items:center;gap:12px}
-.device-icon{width:44px;height:44px;background:#F1F5F9;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
-.device-icon svg{width:22px;height:22px;stroke:#64748B;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
-.device-name{font-size:16px;font-weight:700;color:var(--text)}
-.device-averia{font-size:13px;color:var(--muted);margin-top:2px}
-.srv-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid #F1F5F9;font-size:14px}
+.card{background:white;border-radius:16px;border:1px solid var(--border);padding:20px;margin-top:16px;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.card-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:14px}
+.device-row{display:flex;align-items:center;gap:14px}
+.device-icon{width:48px;height:48px;background:#FFF7F0;border-radius:12px;display:flex;align-items:center;justify-content:center;flex-shrink:0;border:1px solid #FFE4D0}
+.device-icon svg{width:24px;height:24px;stroke:var(--orange);fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.device-name{font-size:17px;font-weight:700;color:var(--text)}
+.device-averia{font-size:13px;color:var(--muted);margin-top:3px}
+.srv-row{display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #F5F5F4;font-size:14px}
 .srv-row:last-child{border-bottom:none}
 .srv-name{color:var(--text);flex:1;padding-right:12px}
 .srv-price{font-weight:700;color:var(--text);white-space:nowrap}
-.total-row{display:flex;justify-content:space-between;align-items:center;padding-top:12px;margin-top:4px;border-top:2px solid var(--border)}
+.total-row{display:flex;justify-content:space-between;align-items:center;padding-top:14px;margin-top:6px;border-top:2px solid #F5F5F4}
 .total-label{font-size:14px;font-weight:700;color:var(--muted)}
-.total-amount{font-size:26px;font-weight:800;color:var(--orange);letter-spacing:-.5px}
+.total-amount{font-size:28px;font-weight:800;color:var(--orange);letter-spacing:-.5px}
 .iva-note{font-size:11px;color:var(--muted);margin-top:4px;text-align:right}
-.firma-section{margin-top:0}
+.expire-banner{display:flex;align-items:center;gap:10px;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13px;color:#92400E}
+.expire-banner svg{width:16px;height:16px;stroke:#EA580C;fill:none;stroke-width:2;flex-shrink:0}
+.expire-banner strong{color:#C2410C}
 .firma-label{font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.5}
-canvas#firmaCanvas{width:100%;height:180px;border:2px dashed var(--border);border-radius:10px;background:#FAFBFC;display:block;touch-action:none;cursor:crosshair}
+canvas#firmaCanvas{width:100%;height:180px;border:2px dashed var(--border);border-radius:12px;background:#FAFAF9;display:block;touch-action:none;cursor:crosshair}
 canvas#firmaCanvas.has-firma{border-color:var(--orange);border-style:solid}
 .firma-actions{display:flex;gap:8px;margin-top:8px}
-.btn-firma-clear{flex:1;background:#F1F5F9;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}
-.btn-firma-clear:hover{background:#E2E8F0}
-.check-row{display:flex;align-items:flex-start;gap:12px;padding:14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:10px;cursor:pointer}
+.btn-firma-clear{flex:1;background:#F5F5F4;border:none;border-radius:8px;padding:9px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit}
+.check-row{display:flex;align-items:flex-start;gap:12px;padding:14px;background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;cursor:pointer;margin-top:14px}
 .check-box{width:22px;height:22px;border-radius:6px;border:2px solid #16A34A;background:white;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;transition:all .15s}
 .check-box.checked{background:#16A34A;border-color:#16A34A}
 .check-box.checked svg{display:block}
 .check-box svg{display:none;width:14px;height:14px;stroke:white;fill:none;stroke-width:3;stroke-linecap:round;stroke-linejoin:round}
 .check-text{font-size:14px;color:#166534;line-height:1.4}
-.btn-aceptar{width:100%;padding:16px;background:var(--orange);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;margin-top:16px;display:flex;align-items:center;justify-content:center;gap:8px}
-.btn-aceptar:hover{background:#C2491A}
+.btn-aceptar{width:100%;padding:16px;background:var(--orange);color:white;border:none;border-radius:12px;font-size:16px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-aceptar:hover{background:#A33A0A}
 .btn-aceptar:active{transform:scale(.98)}
-.btn-aceptar:disabled{background:#CBD5E1;cursor:not-allowed;transform:none}
+.btn-aceptar:disabled{background:#D6D3D1;cursor:not-allowed;transform:none}
 .btn-aceptar svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
-.expire-note{text-align:center;font-size:12px;color:var(--muted);margin-top:12px}
-.expire-note span{color:var(--orange)}
-
-/* Estados */
-#stateLoading,#stateError,#stateSuccess{display:none;text-align:center;padding:60px 20px}
-#stateLoading.show,#stateError.show,#stateSuccess.show{display:block}
+.btn-rechazar{width:100%;padding:13px;background:white;color:#DC2626;border:1.5px solid #FCA5A5;border-radius:12px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-rechazar:hover{background:#FEF2F2;border-color:#DC2626}
+.btn-rechazar:active{transform:scale(.98)}
+.btn-rechazar svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.rechazar-confirm{display:none;margin-top:12px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:12px;padding:16px}
+.rechazar-confirm.show{display:block}
+.rechazar-confirm p{font-size:13px;color:#7F1D1D;margin-bottom:12px;line-height:1.5}
+.rechazar-btns{display:flex;gap:8px}
+.btn-rech-si{flex:1;padding:10px;background:#DC2626;color:white;border:none;border-radius:8px;font-size:14px;font-weight:700;cursor:pointer;font-family:inherit}
+.btn-rech-no{flex:1;padding:10px;background:#F5F5F4;color:var(--muted);border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit}
+#stateLoading,#stateError,#stateSuccess,#stateRechazado{display:none;text-align:center;padding:80px 20px 40px}
+#stateLoading.show,#stateError.show,#stateSuccess.show,#stateRechazado.show{display:block}
 #stateMain{display:none}
 #stateMain.show{display:block}
 .state-icon{font-size:56px;margin-bottom:16px}
-.state-title{font-size:20px;font-weight:700;margin-bottom:8px}
-.state-msg{font-size:14px;color:var(--muted);line-height:1.6}
-.spinner{width:40px;height:40px;border:3px solid #E2E8F0;border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+.state-title{font-size:22px;font-weight:800;margin-bottom:10px;letter-spacing:-.3px}
+.state-msg{font-size:14px;color:var(--muted);line-height:1.7}
+.spinner{width:40px;height:40px;border:3px solid #E7E5E4;border-top-color:var(--orange);border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
 @keyframes spin{to{transform:rotate(360deg)}}
-.success-check{width:72px;height:72px;background:#F0FDF4;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 16px}
-.success-check svg{width:36px;height:36px;stroke:#16A34A;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.success-ring{width:80px;height:80px;background:#F0FDF4;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;border:2px solid #BBF7D0}
+.success-ring svg{width:40px;height:40px;stroke:#16A34A;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
+.rech-ring{width:80px;height:80px;background:#FEF2F2;border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto 18px;border:2px solid #FCA5A5}
+.rech-ring svg{width:40px;height:40px;stroke:#DC2626;fill:none;stroke-width:2.5;stroke-linecap:round;stroke-linejoin:round}
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--dark);color:white;padding:11px 22px;border-radius:30px;font-size:13px;font-weight:600;z-index:99;transition:transform .3s;white-space:nowrap}
 .toast.show{transform:translateX(-50%) translateY(0)}
 .toast.err{background:var(--red)}
@@ -72,10 +82,8 @@ canvas#firmaCanvas.has-firma{border-color:var(--orange);border-style:solid}
 <body>
 
 <div id="stateLoading" class="show">
-  <div style="padding-top:80px">
-    <div class="spinner"></div>
-    <div style="font-size:14px;color:var(--muted)">Cargando presupuesto...</div>
-  </div>
+  <div class="spinner"></div>
+  <div style="font-size:14px;color:var(--muted)">Cargando presupuesto...</div>
 </div>
 
 <div id="stateError">
@@ -85,13 +93,19 @@ canvas#firmaCanvas.has-firma{border-color:var(--orange);border-style:solid}
 </div>
 
 <div id="stateSuccess">
-  <div style="padding-top:80px">
-    <div class="success-check">
-      <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-    </div>
-    <div class="state-title" style="color:#166534">¡Presupuesto aceptado!</div>
-    <div class="state-msg">Te avisaremos cuando tu reparación esté lista.<br>Puedes cerrar esta página.</div>
+  <div class="success-ring">
+    <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
   </div>
+  <div class="state-title" style="color:#166534">¡Presupuesto aceptado!</div>
+  <div class="state-msg">Tu reparación ha sido autorizada.<br>Te avisaremos cuando esté lista.<br><br>Puedes cerrar esta página.</div>
+</div>
+
+<div id="stateRechazado">
+  <div class="rech-ring">
+    <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+  </div>
+  <div class="state-title" style="color:#991B1B">Presupuesto rechazado</div>
+  <div class="state-msg">Hemos notificado al taller.<br>Si cambias de opinión, contacta con ellos directamente.<br><br>Puedes cerrar esta página.</div>
 </div>
 
 <div id="stateMain">
@@ -128,30 +142,42 @@ canvas#firmaCanvas.has-firma{border-color:var(--orange);border-style:solid}
     </div>
 
     <div class="card">
-      <div class="card-title">Aceptar presupuesto</div>
-
-      <div class="firma-section">
-        <div class="firma-label">Firma opcional — dibuja con el dedo para confirmar tu identidad:</div>
-        <canvas id="firmaCanvas" width="600" height="180"></canvas>
-        <div class="firma-actions">
-          <button class="btn-firma-clear" onclick="limpiarFirma()">Borrar firma</button>
-        </div>
+      <div class="card-title">Tu decisión</div>
+      <div class="expire-banner" id="expireBanner" style="display:none">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Enlace válido hasta <strong id="expireDate">—</strong></span>
       </div>
 
-      <div style="margin-top:14px">
-        <div class="check-row" onclick="toggleCheck()">
-          <div class="check-box" id="checkBox">
-            <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
-          </div>
-          <div class="check-text">Acepto el presupuesto y autorizo al taller a realizar la reparación por el importe indicado.</div>
+      <div class="firma-label">Firma opcional — dibuja con el dedo para confirmar tu identidad:</div>
+      <canvas id="firmaCanvas" width="600" height="180"></canvas>
+      <div class="firma-actions">
+        <button class="btn-firma-clear" onclick="limpiarFirma()">Borrar firma</button>
+      </div>
+
+      <div class="check-row" onclick="toggleCheck()">
+        <div class="check-box" id="checkBox">
+          <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         </div>
+        <div class="check-text">Acepto el presupuesto y autorizo al taller a realizar la reparación por el importe indicado.</div>
       </div>
 
       <button class="btn-aceptar" id="btnAceptar" onclick="aceptar()" disabled>
         <svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
         Confirmar y aceptar
       </button>
-      <div class="expire-note">Enlace válido <span>48 horas</span> desde su envío</div>
+
+      <button class="btn-rechazar" id="btnRechazar" onclick="mostrarConfirmRechazar()">
+        <svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        No acepto este presupuesto
+      </button>
+
+      <div class="rechazar-confirm" id="rechazarConfirm">
+        <p>¿Seguro que quieres rechazar el presupuesto? El taller será notificado.</p>
+        <div class="rechazar-btns">
+          <button class="btn-rech-no" onclick="ocultarConfirmRechazar()">Cancelar</button>
+          <button class="btn-rech-si" onclick="rechazar()">Sí, rechazar</button>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -162,9 +188,9 @@ canvas#firmaCanvas.has-firma{border-color:var(--orange);border-style:solid}
 const API = '/api/citas-publicas';
 let TOKEN = '';
 let aceptado = false;
+let rechazado = false;
 let firmaTrazos = false;
 
-// ── Init ──────────────────────────────────────────────────────────────────────
 (function init() {
   const params = new URLSearchParams(location.search);
   TOKEN = params.get('t') || '';
@@ -181,7 +207,7 @@ async function cargarPresupuesto() {
     });
     const data = await res.json();
     if (!data.ok) {
-      if (data.yaAceptado) { showSuccess(); return; }
+      if (data.yaAceptado) { show('stateSuccess'); return; }
       showError(data.error || 'Enlace no válido.');
       return;
     }
@@ -192,7 +218,6 @@ async function cargarPresupuesto() {
 }
 
 function renderPresupuesto(rep, tienda) {
-  // Header
   document.getElementById('tiendaNombre').textContent = tienda.nombre || 'TekPair';
   const logoEl = document.getElementById('headerLogo');
   if (tienda.logo_url) {
@@ -201,11 +226,9 @@ function renderPresupuesto(rep, tienda) {
     logoEl.innerHTML = '<div class="header-bolt"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 11-13h-7z"/></svg></div>';
   }
 
-  // Dispositivo
   document.getElementById('deviceName').textContent = ((rep.marca||'')+' '+(rep.modelo||'')).trim() || 'Dispositivo';
   document.getElementById('deviceAveria').textContent = rep.averia || '';
 
-  // Servicios
   const list = document.getElementById('srvList');
   const servs = rep.servicios || [];
   if (servs.length) {
@@ -216,19 +239,34 @@ function renderPresupuesto(rep, tienda) {
     list.innerHTML = '<div class="srv-row"><span class="srv-name">Reparación</span><span class="srv-price">'+fmtEuros(rep.total)+'</span></div>';
   }
 
-  // Total
   document.getElementById('totalAmount').textContent = fmtEuros(rep.total);
   if (rep.iva > 0) {
     const ivaEl = document.getElementById('ivaNote');
-    ivaEl.textContent = 'Base: '+fmtEuros(rep.base)+' + IVA '+rep.iva+'%: '+fmtEuros(rep.ivaImporte);
+    ivaEl.textContent = 'Base: '+fmtEuros(rep.base)+' + IVA '+rep.iva+'%: '+fmtEuros(rep.iva_importe||rep.ivaImporte);
     ivaEl.style.display = 'block';
+  }
+
+  // Mostrar fecha expiración real
+  if (rep.presupuesto_token_exp) {
+    const exp = new Date(rep.presupuesto_token_exp);
+    const banner = document.getElementById('expireBanner');
+    const dateEl = document.getElementById('expireDate');
+    dateEl.textContent = exp.toLocaleDateString('es-ES', {weekday:'short', day:'numeric', month:'short', hour:'2-digit', minute:'2-digit'});
+    banner.style.display = 'flex';
+    // Si queda menos de 6h, color urgente
+    const horasRestantes = (exp - Date.now()) / 3600000;
+    if (horasRestantes < 6) {
+      banner.style.background = '#FEF2F2';
+      banner.style.borderColor = '#FCA5A5';
+      banner.style.color = '#991B1B';
+      banner.querySelector('svg').style.stroke = '#DC2626';
+    }
   }
 
   show('stateMain');
   initCanvas();
 }
 
-// ── Canvas firma ──────────────────────────────────────────────────────────────
 function initCanvas() {
   const canvas = document.getElementById('firmaCanvas');
   const ctx = canvas.getContext('2d');
@@ -237,19 +275,16 @@ function initCanvas() {
   canvas.width = rect.width * dpr;
   canvas.height = 180 * dpr;
   ctx.scale(dpr, dpr);
-  ctx.strokeStyle = '#0F1729';
+  ctx.strokeStyle = '#1C0A00';
   ctx.lineWidth = 2.5;
   ctx.lineCap = 'round';
   ctx.lineJoin = 'round';
-
   let drawing = false, lastX = 0, lastY = 0;
-
   function getPos(e) {
     const r = canvas.getBoundingClientRect();
     const src = e.touches ? e.touches[0] : e;
     return [(src.clientX - r.left), (src.clientY - r.top)];
   }
-
   function start(e) { e.preventDefault(); drawing = true; [lastX, lastY] = getPos(e); }
   function move(e) {
     e.preventDefault();
@@ -261,56 +296,44 @@ function initCanvas() {
     canvas.classList.add('has-firma');
   }
   function end(e) { e.preventDefault(); drawing = false; }
-
   canvas.addEventListener('mousedown', start);
   canvas.addEventListener('mousemove', move);
   canvas.addEventListener('mouseup', end);
-  canvas.addEventListener('touchstart', start, { passive:false });
-  canvas.addEventListener('touchmove', move, { passive:false });
-  canvas.addEventListener('touchend', end, { passive:false });
+  canvas.addEventListener('touchstart', start, {passive:false});
+  canvas.addEventListener('touchmove', move, {passive:false});
+  canvas.addEventListener('touchend', end, {passive:false});
 }
 
 function limpiarFirma() {
   const canvas = document.getElementById('firmaCanvas');
-  const ctx = canvas.getContext('2d');
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
   canvas.classList.remove('has-firma');
   firmaTrazos = false;
 }
 
-// ── Checkbox ──────────────────────────────────────────────────────────────────
 let checked = false;
 function toggleCheck() {
   checked = !checked;
-  const box = document.getElementById('checkBox');
-  box.classList.toggle('checked', checked);
+  document.getElementById('checkBox').classList.toggle('checked', checked);
   document.getElementById('btnAceptar').disabled = !checked;
 }
 
-// ── Aceptar ───────────────────────────────────────────────────────────────────
 async function aceptar() {
   if (!checked || aceptado) return;
   const btn = document.getElementById('btnAceptar');
   btn.disabled = true;
   btn.innerHTML = '<div class="spinner" style="width:20px;height:20px;border-width:2px;margin:0"></div> Enviando...';
-
   let firma = null;
-  if (firmaTrazos) {
-    const canvas = document.getElementById('firmaCanvas');
-    firma = canvas.toDataURL('image/png');
-  }
-
+  if (firmaTrazos) firma = document.getElementById('firmaCanvas').toDataURL('image/png');
   try {
     const res = await fetch(API, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'pres-aceptar', token: TOKEN, firma })
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({action:'pres-aceptar', token:TOKEN, firma})
     });
     const data = await res.json();
-    if (data.ok || data.yaAceptado) {
-      aceptado = true;
-      showSuccess();
-    } else {
+    if (data.ok || data.yaAceptado) { aceptado = true; show('stateSuccess'); }
+    else {
       toast(data.error || 'Error al aceptar. Inténtalo de nuevo.', true);
       btn.disabled = false;
       btn.innerHTML = '<svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg> Confirmar y aceptar';
@@ -322,25 +345,55 @@ async function aceptar() {
   }
 }
 
-// ── Helpers UI ────────────────────────────────────────────────────────────────
+function mostrarConfirmRechazar() {
+  document.getElementById('rechazarConfirm').classList.add('show');
+  document.getElementById('btnRechazar').style.display = 'none';
+}
+function ocultarConfirmRechazar() {
+  document.getElementById('rechazarConfirm').classList.remove('show');
+  document.getElementById('btnRechazar').style.display = 'flex';
+}
+
+async function rechazar() {
+  if (rechazado) return;
+  const btnSi = document.querySelector('.btn-rech-si');
+  btnSi.disabled = true;
+  btnSi.textContent = 'Enviando...';
+  try {
+    const res = await fetch(API, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify({action:'pres-rechazar', token:TOKEN})
+    });
+    const data = await res.json();
+    if (data.ok || data.yaRechazado) { rechazado = true; show('stateRechazado'); }
+    else {
+      toast(data.error || 'Error. Inténtalo de nuevo.', true);
+      btnSi.disabled = false;
+      btnSi.textContent = 'Sí, rechazar';
+    }
+  } catch(e) {
+    toast('Error de conexión.', true);
+    btnSi.disabled = false;
+    btnSi.textContent = 'Sí, rechazar';
+  }
+}
+
 function show(id) {
-  ['stateLoading','stateError','stateSuccess','stateMain'].forEach(s => {
-    const el = document.getElementById(s);
-    el.classList.toggle('show', s === id);
+  ['stateLoading','stateError','stateSuccess','stateRechazado','stateMain'].forEach(s => {
+    document.getElementById(s).classList.toggle('show', s === id);
   });
 }
 function showError(msg) { document.getElementById('errorMsg').textContent = msg; show('stateError'); }
-function showSuccess() { show('stateSuccess'); }
 function esc(s) { return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function fmtEuros(n) { return Number(n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2})+' €'; }
-
 let toastTimer;
 function toast(msg, err) {
   const el = document.getElementById('toast');
   el.textContent = msg;
-  el.className = 'toast show' + (err ? ' err' : '');
+  el.className = 'toast show'+(err?' err':'');
   clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
+  toastTimer = setTimeout(()=>el.classList.remove('show'), 3000);
 }
 </script>
 </body>

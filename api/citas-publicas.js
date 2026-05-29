@@ -382,6 +382,55 @@ async function enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url) {
   });
 }
 
+async function presRechazar(body, ip) {
+  if (!checkRateLimit(ip, 5, 3600000)) return { ok:false, error:'Demasiados intentos. Espera un momento.', status:429 };
+
+  const token = san(body.token, 200);
+  if (!token || token.length < 20) return { ok:false, error:'Token inválido', status:400 };
+
+  let reps;
+  try {
+    reps = await sbGet(`reparaciones?presupuesto_token=eq.${encodeURIComponent(token)}&select=id,tienda_id,cliente_nombre,presupuesto_token_exp,presupuesto_aceptado_at,estado&limit=1`);
+  } catch(e) { return { ok:false, error:'Error al verificar presupuesto', status:500 }; }
+
+  if (!reps?.length) return { ok:false, error:'Enlace inválido o caducado', status:404 };
+  const rep = reps[0];
+
+  if (rep.presupuesto_token_exp && new Date(rep.presupuesto_token_exp) < new Date()) {
+    return { ok:false, error:'Este enlace ha caducado.', status:410 };
+  }
+  if (rep.presupuesto_aceptado_at) {
+    return { ok:false, error:'Este presupuesto ya fue aceptado.', status:409, yaAceptado:true };
+  }
+  if (rep.estado === 'Rechazado') {
+    return { ok:true, yaRechazado:true };
+  }
+
+  try {
+    await sbPatch(`reparaciones?id=eq.${encodeURIComponent(rep.id)}&tienda_id=eq.${encodeURIComponent(rep.tienda_id)}`, {
+      estado: 'Rechazado',
+      presupuesto_token: null,
+    });
+  } catch(e) { return { ok:false, error:'Error al guardar rechazo', status:500 }; }
+
+  // Notificación al taller
+  try {
+    const ahora = new Date().toISOString();
+    await sbPost('notificaciones', {
+      id: 'presrech_'+Date.now()+'_'+Math.random().toString(36).slice(2,6),
+      tienda_id: rep.tienda_id,
+      tipo: 'presupuesto_rechazado',
+      titulo: 'Presupuesto rechazado',
+      detalle: `${rep.cliente_nombre||'Cliente'} rechazó el presupuesto`,
+      rep_id: rep.id,
+      leida: false,
+      fecha: ahora
+    });
+  } catch(e) { console.error('notif rechazo:', e); }
+
+  return { ok:true, mensaje:'Presupuesto rechazado.' };
+}
+
 // ── Handler principal ────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
@@ -405,6 +454,7 @@ export default async function handler(req, res) {
       case 'pres-generar-token': result = await presGenerarToken(body, req.headers['authorization']); break;
       case 'pres-get':        result = await presGet(body.token); break;
       case 'pres-aceptar':    result = await presAceptar(body, ip); break;
+      case 'pres-rechazar':   result = await presRechazar(body, ip); break;
       default: result = { ok:false, error:'Acción no reconocida', status:400 };
     }
   } catch(e) {
