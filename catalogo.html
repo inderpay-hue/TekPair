@@ -56,6 +56,19 @@ var filtro = '';
 var CALIDAD_BG = {Nuevo:'#DCFCE7',Reacondicionado:'#EBF1FF',Bueno:'#FEF9C3',Regular:'#FFE4E6','Para piezas':'#F1F5F9'};
 var CALIDAD_COL = {Nuevo:'#16A34A',Reacondicionado:'#0055FF',Bueno:'#CA8A04',Regular:'#DC2626','Para piezas':'#64748B'};
 
+// CAT-1: escape HTML para todos los campos dinámicos.
+// Antes: marca, modelo, cat, calidad iban directo al innerHTML.
+// Si un XSS previo (TPV, dashboard) inyectaba <img src=x onerror=...> en stock,
+// abrir catalogo.html lo ejecutaba. Ahora todos los strings se escapan.
+function esc(s) {
+  return String(s == null ? '' : s)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
 function setFiltro(f) {
   filtro = f;
   document.querySelectorAll('.filter-btn').forEach(function(btn) {
@@ -102,7 +115,7 @@ function renderCatalogo() {
   var html = '';
   Object.keys(catGroups).sort().forEach(function(cat) {
     var items = catGroups[cat];
-    html += '<div class="cat-title">' + cat + ' (' + items.length + ')</div>';
+    html += '<div class="cat-title">' + esc(cat) + ' (' + items.length + ')</div>';
     items.sort(function(a, b) { return (a.marca + a.modelo).localeCompare(b.marca + b.modelo); }).forEach(function(item) {
       var rk = item.marca + '|' + item.modelo;
       var reps = repC[rk] || 0;
@@ -112,8 +125,8 @@ function renderCatalogo() {
       html += '<div class="card">'
         + '<div class="card-row">'
         + '<div>'
-        + '<div class="card-name">' + item.marca + ' ' + item.modelo + '</div>'
-        + '<div class="card-cal" style="background:' + bg + ';color:' + col + '" data-ids="' + encodeURIComponent(JSON.stringify(item.ids)) + '" data-cal="' + item.calidad + '" onclick="cambiarCalidad(this)">' + (item.calidad || '+ Calidad') + '</div>'
+        + '<div class="card-name">' + esc(item.marca) + ' ' + esc(item.modelo) + '</div>'
+        + '<div class="card-cal" style="background:' + bg + ';color:' + col + '" data-ids="' + esc(encodeURIComponent(JSON.stringify(item.ids))) + '" data-cal="' + esc(item.calidad) + '" onclick="cambiarCalidad(this)">' + esc(item.calidad || '+ Calidad') + '</div>'
         + '</div>'
         + '<div class="stats">'
         + '<div><div class="stat-val" style="color:#0055FF">' + item.unidades + '</div><div class="stat-lbl">Stock</div></div>'
