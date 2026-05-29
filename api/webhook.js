@@ -37,20 +37,28 @@ export default async function handler(req, res) {
   };
 
   // ═══ Helper: encontrar tienda por customer_id, sub_id o email ═══
-  async function findTienda({customerId, subId, email}) {
-    // 1. Por stripe_sub_id (lo más fiable si ya está vinculado)
+  async function findTienda({customerId, subId, email, metadataTiendaId}) {
+    // W4: 1. Por tienda_id en metadata (lo más directo si el flujo lo ha guardado).
+    //     Útil si en el futuro pre-creas la tienda antes del Checkout y pasas
+    //     tienda_id en checkout.session.metadata.tienda_id.
+    if (metadataTiendaId) {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(metadataTiendaId)}&select=id,plan_email,plan&limit=1`, {headers: sbHeaders});
+      const arr = await r.json();
+      if (arr.length) return arr[0];
+    }
+    // 2. Por stripe_sub_id (lo más fiable si ya está vinculado)
     if (subId) {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_sub_id=eq.${encodeURIComponent(subId)}&select=id,plan_email,plan&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
     }
-    // 2. Por stripe_customer_id
+    // 3. Por stripe_customer_id
     if (customerId) {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_customer_id=eq.${encodeURIComponent(customerId)}&select=id,plan_email,plan&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
     }
-    // 3. Por plan_email (fallback inicial cuando aún no se ha vinculado)
+    // 4. Por plan_email (fallback inicial cuando aún no se ha vinculado)
     if (email) {
       const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?plan_email=eq.${encodeURIComponent(email)}&select=id,plan_email,plan&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
@@ -129,7 +137,11 @@ export default async function handler(req, res) {
           console.error('Error extrayendo promotion_code:', e);
         }
 
-        const tienda = await findTienda({customerId, email});
+        const tienda = await findTienda({
+          customerId,
+          email,
+          metadataTiendaId: session.metadata?.tienda_id  // W4: si flujo futuro lo añade
+        });
         if (tienda) {
           const update = {
             stripe_customer_id: customerId,
@@ -263,8 +275,13 @@ export default async function handler(req, res) {
               const afArr = await afR.json();
               if (afArr[0]?.activo) {
                 comisionPct = afArr[0].comision_pct || 0;
-                // Base imponible = monto sin IVA (Stripe cobra IVA incluido en el precio)
-                const baseImponible = +(montoNeto / 1.21).toFixed(2);
+                // W8: leer IVA real de Stripe en lugar de asumir 21% hardcoded.
+                // invoice.tax es el importe de IVA en céntimos. Si no existe (suscripción
+                // a cliente sin tax_id en zona sin IVA), tax es 0 y baseImponible = montoNeto.
+                // Esto permite que el sistema funcione correctamente para clientes UE y no-UE
+                // y tipos de IVA distintos del 21% (Canarias 7%, etc.).
+                const taxImporte = (invoice.tax || 0) / 100;
+                const baseImponible = +(montoNeto - taxImporte).toFixed(2);
                 comisionMonto = +(baseImponible * comisionPct / 100).toFixed(2);
               }
             }

@@ -18,6 +18,36 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
+// L4+L5: rate limiting en memoria.
+// Aguanta spam/fuerza bruta casual. Para multi-instancia Vercel migrar a Upstash.
+// Cada instancia Vercel tiene su propio Map → si Vercel escala el ataque puede
+// rotar instancias, pero en plan Hobby suele ser 1-2 instancias.
+const _rateLimits = new Map();
+
+function _rateCheck(key, maxAttempts, windowMs) {
+  const now = Date.now();
+  let entry = _rateLimits.get(key);
+  if (!entry || now > entry.resetAt) {
+    entry = { count: 0, resetAt: now + windowMs };
+  }
+  entry.count++;
+  _rateLimits.set(key, entry);
+
+  // Limpieza periódica para no llenar memoria
+  if (_rateLimits.size > 1000) {
+    for (const [k, v] of _rateLimits.entries()) {
+      if (now > v.resetAt) _rateLimits.delete(k);
+    }
+  }
+
+  return entry.count <= maxAttempts;
+}
+
+function _getClientIp(req) {
+  return (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
+    .toString().split(',')[0].trim();
+}
+
 function sha256(s) {
   return crypto.createHash('sha256').update(s).digest('hex');
 }
@@ -298,6 +328,19 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Configuración de servidor incompleta' });
     }
 
+    // L5: rate limit anti spam de emails.
+    // 1 solicitud por email cada 5 min, 5 por IP cada hora (alguien podría hostigar
+    // a varios usuarios desde la misma IP).
+    const srIp = _getClientIp(req);
+    const srEmailLower = srEmail.toLowerCase();
+    if (!_rateCheck('reset:email:' + srEmailLower, 1, 5 * 60 * 1000)) {
+      // Devolvemos ok igualmente para no revelar nada (igual que cuando el email no existe)
+      return res.json({ ok: true });
+    }
+    if (!_rateCheck('reset:ip:' + srIp, 5, 60 * 60 * 1000)) {
+      return res.status(429).json({ error: 'Demasiadas solicitudes. Espera una hora.' });
+    }
+
     try {
       const rsr = await fetch(
         `${SB_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(srEmail)}&activo=eq.true&select=*`,
@@ -356,6 +399,19 @@ export default async function handler(req, res) {
 
       const urs = usuariosRs[0];
       if (!urs.reset_expira || new Date(urs.reset_expira) < new Date()) {
+        // L6: limpiar el token expirado para que no quede flotando en BD.
+        // Si el usuario solicita reset de nuevo, generará uno nuevo.
+        // No bloqueante: si falla la limpieza, el flujo principal sigue igual.
+        try {
+          await fetch(
+            `${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(urs.id)}`,
+            {
+              method: 'PATCH',
+              headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+              body: JSON.stringify({ reset_token: null, reset_expira: null })
+            }
+          );
+        } catch (e) { console.warn('No se pudo limpiar token reset expirado:', e); }
         return res.json({ error: 'El enlace ha caducado. Solicita uno nuevo.' });
       }
 
@@ -401,6 +457,16 @@ export default async function handler(req, res) {
   // ───────── Login normal ─────────
   const { email, password } = req.body;
   if (!email || !password) return res.status(400).json({ error: 'Faltan datos' });
+
+  // L4: rate limit anti fuerza bruta.
+  // 10 intentos por combinación IP+email cada 15 min. Tras 10 fallos, bloqueo temporal.
+  // Doble clave (IP+email) para que un atacante no pueda bloquear a un usuario solo
+  // probando su email desde una IP cualquiera.
+  const ip = _getClientIp(req);
+  const rateKey = 'login:' + ip + ':' + email.toLowerCase();
+  if (!_rateCheck(rateKey, 10, 15 * 60 * 1000)) {
+    return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos.' });
+  }
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
   const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -470,8 +536,11 @@ export default async function handler(req, res) {
     }
 
     // 6. Crear sesión en BD (sistema actual, sigue funcionando)
+    // L8: 7 días en lugar de 30. Si el JWT se filtra (XSS, malware), reduce ventana
+    // de daño. Si los usuarios protestan por re-login frecuente, subir a 14d.
     const token = crypto.randomBytes(32).toString('hex');
-    const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const SESSION_DAYS = 7;
+    const expires = new Date(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000).toISOString();
     const sessionId = crypto.randomUUID();
     await fetch(`${SUPABASE_URL}/rest/v1/sesiones`, {
       method: 'POST',
@@ -487,7 +556,8 @@ export default async function handler(req, res) {
 
     // 7. Generar JWT firmado con claims completos (tienda_id + email + rol)
     //    Necesarios para chequeos en endpoints como /api/cajas
-    const expSeconds = Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60); // 30 días
+    // L8: JWT también a 7 días (consistente con expiración de sesión en BD)
+    const expSeconds = Math.floor(Date.now() / 1000) + (SESSION_DAYS * 24 * 60 * 60);
     const userJWT = jwt.sign(
       {
         sub: u.id,

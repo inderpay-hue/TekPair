@@ -12,6 +12,38 @@ import crypto from 'crypto';
 const ADMIN_EMAILS = ['info@tekpair.tech'];
 const BCRYPT_ROUNDS = 10;
 
+// COM-7: lock en memoria para evitar race condition al generar justificante_numero.
+// Si dos requests del admin marcan comisiones casi a la vez, se serializa la
+// generación de número correlativo. Solo cubre concurrencia dentro de la misma
+// instancia Vercel — múltiples instancias pueden colisionar todavía pero es
+// muy raro porque solo el admin ejecuta esto. Para eliminarlo del todo habría
+// que migrar a un sequence Postgres con nextval().
+let _justificanteLock = Promise.resolve();
+
+async function _generarJustificanteNumero(SUPABASE_URL, sbHeaders) {
+  // Encolar esta llamada detrás de la anterior
+  const prev = _justificanteLock;
+  let release;
+  _justificanteLock = new Promise(r => { release = r; });
+  try {
+    await prev;
+    const year = new Date().getFullYear();
+    const cntR = await fetch(
+      `${SUPABASE_URL}/rest/v1/pagos_referidos?justificante_numero=like.JUST-${year}-*&select=justificante_numero&order=justificante_numero.desc&limit=1`,
+      { headers: sbHeaders }
+    );
+    const cntArr = await cntR.json();
+    let nextNum = 1;
+    if (cntArr[0] && cntArr[0].justificante_numero) {
+      const m = cntArr[0].justificante_numero.match(/JUST-\d{4}-(\d+)/);
+      if (m) nextNum = parseInt(m[1], 10) + 1;
+    }
+    return 'JUST-' + year + '-' + String(nextNum).padStart(3, '0');
+  } finally {
+    release();
+  }
+}
+
 // COM-4: generador de password aleatorio fuerte (16 chars, base64url)
 // Antes la password era predecible: codigo.toLowerCase() + año (ej "juan2026")
 // Ahora es 96 bits de entropía aleatoria, imposible de adivinar.
@@ -103,18 +135,8 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'Hay comisiones no disponibles para pagar' });
         }
 
-        // Generar numero de justificante correlativo JUST-YYYY-XXX
-        const year = new Date().getFullYear();
-        const cntR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?justificante_numero=like.JUST-${year}-*&select=justificante_numero&order=justificante_numero.desc&limit=1`, {
-          headers: sbHeaders
-        });
-        const cntArr = await cntR.json();
-        let nextNum = 1;
-        if (cntArr[0] && cntArr[0].justificante_numero) {
-          const m = cntArr[0].justificante_numero.match(/JUST-\d{4}-(\d+)/);
-          if (m) nextNum = parseInt(m[1], 10) + 1;
-        }
-        const justificante = 'JUST-' + year + '-' + String(nextNum).padStart(3,'0');
+        // COM-7: Generar número de justificante con lock (serializa generaciones concurrentes)
+        const justificante = await _generarJustificanteNumero(SUPABASE_URL, sbHeaders);
         const fechaPago = body.fecha_pago || new Date().toISOString();
 
         const upR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?id=in.(${idsStr})`, {
@@ -145,17 +167,8 @@ export default async function handler(req, res) {
           return res.status(400).json({ error: 'No hay comisiones disponibles para pagar' });
         }
 
-        const year = new Date().getFullYear();
-        const cntR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?justificante_numero=like.JUST-${year}-*&select=justificante_numero&order=justificante_numero.desc&limit=1`, {
-          headers: sbHeaders
-        });
-        const cntArr = await cntR.json();
-        let nextNum = 1;
-        if (cntArr[0] && cntArr[0].justificante_numero) {
-          const m = cntArr[0].justificante_numero.match(/JUST-\d{4}-(\d+)/);
-          if (m) nextNum = parseInt(m[1], 10) + 1;
-        }
-        const justificante = 'JUST-' + year + '-' + String(nextNum).padStart(3,'0');
+        // COM-7: Generar número de justificante con lock
+        const justificante = await _generarJustificanteNumero(SUPABASE_URL, sbHeaders);
         const fechaPago = body.fecha_pago || new Date().toISOString();
         const ids = listArr.map(p => p.id);
         const idsStr = ids.join(',');
@@ -252,14 +265,35 @@ export default async function handler(req, res) {
         const tArr = await tR.json();
         const nuevaTiendaId = tArr[0]?.id;
 
-        // Vincular usuario con su tienda (fix bug Wizard)
-        // login.js lee usuarios.tienda_id directamente para crear el JWT
+        // COM-8: Vincular usuario con su tienda con rollback si falla.
+        // login.js lee usuarios.tienda_id directamente para crear el JWT.
+        // Antes este PATCH se ejecutaba sin chequear errores → si fallaba,
+        // quedaba usuario sin tienda_id apuntando a tienda existente. Ahora si falla,
+        // borramos usuario y tienda para mantener consistencia.
         if (nuevaTiendaId) {
-          await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(nuevoUserId)}`, {
+          const linkR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(nuevoUserId)}`, {
             method: 'PATCH',
             headers: {...sbHeaders, 'Prefer': 'return=minimal'},
             body: JSON.stringify({ tienda_id: nuevaTiendaId })
           });
+          if (!linkR.ok) {
+            const t = await linkR.text();
+            console.error('Error PATCH usuario.tienda_id (rollback iniciado):', linkR.status, t);
+            // Rollback: borrar tienda y usuario
+            try {
+              await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(nuevaTiendaId)}`, {
+                method: 'DELETE',
+                headers: sbHeaders
+              });
+            } catch (e) { console.warn('Rollback tienda falló:', e); }
+            try {
+              await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(nuevoUserId)}`, {
+                method: 'DELETE',
+                headers: sbHeaders
+              });
+            } catch (e) { console.warn('Rollback usuario falló:', e); }
+            return res.status(500).json({ error: 'No se pudo vincular el usuario con su tienda' });
+          }
         }
 
         // Devolver datos al frontend para mostrar credenciales
