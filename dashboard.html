@@ -6198,7 +6198,7 @@ function ofrecerGuardarModelo(rep) {
   setTimeout(function(){
     if (!confirm('Guardar "' + rep.marca + ' ' + rep.modelo + '" en tu catalogo de modelos?')) return;
     var nuevo = {
-      id: 'm' + Date.now(),
+      id: 'm' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
       tienda_id: TIENDA_ID,
       categoria: 'Telefono',
       marca: rep.marca,
@@ -6247,7 +6247,7 @@ function crearNota() {
   if (!texto) { input.focus(); return; }
 
   var nota = {
-    id: 'n' + Date.now(),
+    id: 'n' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
     tienda_id: TIENDA_ID,
     texto: texto,
     fecha_recordatorio: fechaEl.value ? new Date(fechaEl.value).toISOString() : null,
@@ -7153,7 +7153,7 @@ function guardarVenta() {
   }
 
   var venta = {
-    id: 'v' + Date.now(),
+    id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
     fecha: new Date().toLocaleDateString('es'),
     clienteId: SEL.vCli ? SEL.vCli.id : '',
     clienteNombre: SEL.vCli ? (SEL.vCli.nombre + ' ' + SEL.vCli.apellidos).trim() : 'Sin cliente',
@@ -8336,7 +8336,7 @@ function quitarPlantilla(i) {
 
 function anadirPlantilla() {
   SEL_PLANTILLAS_EDIT.push({
-    key: 'p' + Date.now(),
+    key: 'p' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
     icon: '🔧',
     label: 'Nueva plantilla',
     averia: '',
@@ -8554,7 +8554,7 @@ function guardarSrvSimple() {
     return;
   }
   var srv = {
-    id: 'srv' + Date.now(),
+    id: 'srv' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
     nombre: nom,
     categoria: cat,
     tipo: 'reparacion',
@@ -9182,7 +9182,7 @@ function autoGuardarServiciosNuevos(servicios) {
       return;
     }
     // Crear nuevo
-    var nuevoId = 'srv' + Date.now() + '_' + Math.floor(Math.random()*1000);
+    var nuevoId = 'srv' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '_' + Math.floor(Math.random()*1000);
     var nuevo = {
       id: nuevoId,
       nombre: nom,
@@ -9359,7 +9359,7 @@ function guardarRep() {
   document.querySelectorAll('.chk-btn.on').forEach(function(b) { checklist.push(b.textContent); });
 
   var rep = {
-    id: 'r' + Date.now(),
+    id: 'r' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
     token: genToken(),
     fecha: new Date().toLocaleDateString('es'),
     clienteId: SEL.rCli.id,
@@ -9801,7 +9801,7 @@ function cambiarEstado(id, estado) {
   if (estado === 'Garantia' && r.estado === 'Entregado') {
     if (confirm('Crear nueva reparacion en garantia para ' + r.clienteNombre + '?')) {
       var nueva = {
-        id: 'r' + Date.now(), fecha: new Date().toLocaleDateString('es'),
+        id: 'r' + Date.now() + '_' + Math.random().toString(36).slice(2,8), fecha: new Date().toLocaleDateString('es'),
         clienteId: r.clienteId, clienteNombre: r.clienteNombre,
         marca: r.marca, modelo: r.modelo, imei: r.imei || '',
         averia: 'Garantia: ' + r.averia, estado: 'Garantia', prioridad: 'Alta',
@@ -10227,7 +10227,7 @@ function guardarStock() {
     SEL.editStockId = null;
   } else {
     var nuevo = {
-      id: 's' + Date.now(),
+      id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
       categoria: document.getElementById('sCat').value,
       marca: marca, modelo: modelo,
       capacidad: document.getElementById('sCap').value,
@@ -10630,7 +10630,7 @@ function guardarProv() {
   
   // MODO CREAR
   var p = {
-    id: 'p' + Date.now(), tienda_id: TIENDA_ID,
+    id: 'p' + Date.now() + '_' + Math.random().toString(36).slice(2,8), tienda_id: TIENDA_ID,
     nombre: nom,
     contacto: document.getElementById('pCont').value.trim(),
     tel: document.getElementById('pTel').value.trim(),
@@ -10802,7 +10802,7 @@ function guardarGastoRec() {
   }
   // CREAR
   var r = {
-    id: 'gr' + Date.now(), tienda_id: TIENDA_ID,
+    id: 'gr' + Date.now() + '_' + Math.random().toString(36).slice(2,8), tienda_id: TIENDA_ID,
     concepto: conc, importe: importe, categoria: categoria, iva_tipo: iva_tipo,
     dia_mes: dia_mes, activo: activo,
     proveedor_id: proveedor_id,
@@ -10861,7 +10861,7 @@ function aplicarManualGastoRec(id) {
 function crearGastoDesdePlantilla(r, fecha, manual) {
   var iso = fecha.getFullYear() + '-' + String(fecha.getMonth() + 1).padStart(2, '0') + '-' + String(fecha.getDate()).padStart(2, '0');
   var g = {
-    id: 'g' + Date.now() + Math.floor(Math.random() * 1000), tienda_id: TIENDA_ID,
+    id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + Math.floor(Math.random() * 1000), tienda_id: TIENDA_ID,
     concepto: r.concepto,
     importe: r.importe || 0,
     fecha: iso,
@@ -11484,7 +11484,7 @@ function guardarGasto() {
   
   // MODO CREAR
   var g = {
-    id: 'g' + Date.now(), tienda_id: TIENDA_ID,
+    id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2,8), tienda_id: TIENDA_ID,
     concepto: conc,
     importe: parseFloat(document.getElementById('gImp').value) || 0,
     fecha: document.getElementById('gFecha').value,
@@ -13552,7 +13552,7 @@ function guardarServicio() {
     ESID = null;
   } else {
     // MODO CREAR
-    data.id = 'srv' + Date.now();
+    data.id = 'srv' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
     DB.servicios.push(data);
     if (SB_KEY && TIENDA_ID) {
       sbPost('servicios', {
@@ -14896,7 +14896,7 @@ function procesarImport() {
         if (!nom) return;
         var existe = DB.clis.find(function(c) { return c.tel && c.tel === tel && tel.length > 5; });
         if (existe) { dupes++; return; }
-        var nuevoCli = {id: 'c' + Date.now() + Math.random().toString(36).slice(2), nombre: nom, apellidos: ape, tel: tel, email: email, dni: dni};
+        var nuevoCli = {id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + Math.random().toString(36).slice(2), nombre: nom, apellidos: ape, tel: tel, email: email, dni: dni};
         DB.clis.push(nuevoCli);
         nuevosCli.push(nuevoCli);
         added++;
@@ -14940,7 +14940,7 @@ function procesarImport() {
           uds = parseInt(row.unidades || row.Quantity || '1') || 1;
         }
         var nuevoStock = {
-          id: 's' + Date.now() + Math.random().toString(36).slice(2),
+          id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + Math.random().toString(36).slice(2),
           categoria: cat, marca: marca, modelo: modelo, imei: '',
           unidades: uds, precioV: precioV, precioC: precioC,
           vendido: false, stockMin: 2, stockMax: 10, calidad: ''
@@ -16498,7 +16498,7 @@ function impFacAnadirAlStock() {
     var coste = parseFloat(p.coste) || 0;
     var precioV = margen > 0 && coste > 0 ? Math.round(coste * (1 + margen/100) * 100) / 100 : 0;
     var item = {
-      id: 's' + Date.now() + '_' + creados,
+      id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '_' + creados,
       categoria: p.cat || 'Telefono',
       marca: (p.marca || '').trim(),
       modelo: (p.modelo || '').trim(),
