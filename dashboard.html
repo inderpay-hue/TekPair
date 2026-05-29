@@ -9680,7 +9680,7 @@ function renderPresupuestos() {
   el.querySelectorAll('.btn-pres-edit2').forEach(function(btn) {
     btn.addEventListener('click', function() {
       var r = DB.reps.find(function(x){ return x.id === btn.dataset.rid; });
-      if (r) { SEL.modoPresupuesto = true; abrirRepModal(r); }
+      if (r) { SEL.modoPresupuesto = true; editarRep(r.id); }
     });
   });
   el.querySelectorAll('.btn-pres-rech2').forEach(function(btn) {
