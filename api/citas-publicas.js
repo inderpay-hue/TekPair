@@ -14,6 +14,8 @@
 //   - 'pres-aceptar'       : cliente acepta + firma opcional (público)
 // =====================================================
 
+import jwt from 'jsonwebtoken';
+
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
 const RESEND_KEY   = process.env.RESEND_API_KEY;
@@ -48,22 +50,16 @@ async function sbPatch(path, body) {
   if (!r.ok) { const t = await r.text().catch(() => ''); throw new Error(`PATCH ${path} → ${r.status}: ${t.slice(0,200)}`); }
 }
 
-// ── JWT verificación ligera (HS256) ──────────────────────────────────────────
+// ── JWT verificación con jsonwebtoken ────────────────────────────────────────
 async function verificarJWT(token) {
   if (!token || !JWT_SECRET) return null;
   try {
-    const [hB64, pB64, sigB64] = token.split('.');
-    if (!hB64 || !pB64 || !sigB64) return null;
-    const enc = new TextEncoder();
-    const key = await crypto.subtle.importKey('raw', enc.encode(JWT_SECRET), { name: 'HMAC', hash: 'SHA-256' }, false, ['verify']);
-    const data = enc.encode(`${hB64}.${pB64}`);
-    const sig = Uint8Array.from(atob(sigB64.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0));
-    const ok = await crypto.subtle.verify('HMAC', key, sig, data);
-    if (!ok) return null;
-    const payload = JSON.parse(atob(pB64.replace(/-/g,'+').replace(/_/g,'/')));
-    if (payload.exp && Date.now() / 1000 > payload.exp) return null;
+    const payload = jwt.verify(token, JWT_SECRET, { algorithms: ['HS256'] });
     return payload;
-  } catch { return null; }
+  } catch(e) {
+    console.error('verificarJWT error:', e.message);
+    return null;
+  }
 }
 
 // ── Rate limit ───────────────────────────────────────────────────────────────
