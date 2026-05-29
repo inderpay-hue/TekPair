@@ -8972,11 +8972,13 @@ function guardarRep() {
     });
   }
 
+  // PRES-6 FIX: capturar flag ANTES de closeM (que ejecuta _limpiarModoPresupuesto)
+  var _esPresupuesto = SEL.modoPresupuesto;
+
   closeM('mRep');
   // PRES-6: mensaje y comportamiento distinto según modo
-  if (SEL.modoPresupuesto) {
+  if (_esPresupuesto) {
     toast('Presupuesto creado · pendiente de respuesta del cliente', 'ok');
-    _limpiarModoPresupuesto();
     audit('crear', 'presupuesto', rep.id, rep.clienteNombre + ' · ' + (rep.modelo||'') + ' · ' + cur(rep.total), null);
     renderDash();
     // No abrimos tracking automáticamente para presupuestos
