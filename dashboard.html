@@ -90,6 +90,56 @@ body[data-theme="dark"] .modal input,
 body[data-theme="dark"] .modal select,
 body[data-theme="dark"] .modal textarea{background:var(--light);color:var(--text);border-color:var(--border)}
 
+
+/* ═══ TEMA: NEGRO + NARANJA ═══ */
+body[data-theme="negro"]{
+  --bg:#111111;--white:#1A1A1A;--border:#2A2A2A;--text:#F0F0F0;
+  --muted:#888;--light:#222222;--dark:#0A0A0A;
+  --shadow-sm:0 1px 2px rgba(0,0,0,.6);
+  --shadow:0 4px 12px rgba(0,0,0,.7);
+  --shadow-md:0 8px 24px rgba(0,0,0,.75);
+}
+body[data-theme="negro"] .sidebar{background:#0A0A0A;border-right:1px solid #222}
+body[data-theme="negro"] .card{background:#1A1A1A;border-color:#2A2A2A}
+body[data-theme="negro"] .modal{background:#1A1A1A;color:#F0F0F0}
+body[data-theme="negro"] input.fi,body[data-theme="negro"] select.fi,
+body[data-theme="negro"] textarea.fi,body[data-theme="negro"] .search-input{background:#222;border-color:#333;color:#F0F0F0}
+body[data-theme="negro"] .tbl th{background:#0A0A0A}
+body[data-theme="negro"] .tbl tr:hover td{background:#1E1E1E}
+body[data-theme="negro"] .tab{background:#1A1A1A;border-color:#2A2A2A;color:#888}
+body[data-theme="negro"] .tab.active{background:var(--blue);color:white;border-color:var(--blue)}
+body[data-theme="negro"] .modal-close-btn,.body[data-theme="negro"] .cls{background:#222;color:#888}
+body[data-theme="negro"] .rep-section{background:#222;border-color:#2A2A2A}
+body[data-theme="negro"] .modal-rep-header,body[data-theme="negro"] .modal-rep-footer{background:#1A1A1A;border-color:#2A2A2A}
+body[data-theme="negro"] .toast-bar{background:#0A0A0A;color:#F0F0F0}
+
+/* ═══ TEMA: GRAFITO + NARANJA ═══ */
+body[data-theme="grafito"]{
+  --bg:#F5F5F5;--white:#FFFFFF;--border:#E5E5EA;--text:#1C1C1E;
+  --muted:#8E8E93;--light:#F2F2F7;--dark:#1C1C1E;
+}
+body[data-theme="grafito"] .sidebar{background:#1C1C1E;border-right:1px solid #3A3A3C}
+body[data-theme="grafito"] .sidebar-ni{color:rgba(255,255,255,.6)}
+body[data-theme="grafito"] .sidebar-ni:hover{background:rgba(255,255,255,.06);color:white}
+body[data-theme="grafito"] .sidebar-ni.active{background:rgba(255,91,31,.15);color:white;border-left-color:var(--blue)}
+
+/* ═══ TEMA: NARANJA (sidebar naranja) ═══ */
+body[data-theme="naranja"]{
+  --bg:#FFFAF7;--white:#FFFFFF;--border:#FFD9C9;--text:#1A0A00;
+  --muted:#9E5A2A;--light:#FFF1EB;--dark:#C2491A;
+}
+body[data-theme="naranja"] .sidebar{background:#FF5B1F;border-right:none}
+body[data-theme="naranja"] .sidebar-group{color:rgba(255,255,255,.5)}
+body[data-theme="naranja"] .sidebar-ni{color:rgba(255,255,255,.8);border-left-color:transparent}
+body[data-theme="naranja"] .sidebar-ni:hover{background:rgba(255,255,255,.15);color:white}
+body[data-theme="naranja"] .sidebar-ni.active{background:rgba(255,255,255,.25);color:white;border-left-color:white}
+body[data-theme="naranja"] .sidebar-bell{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.3)}
+body[data-theme="naranja"] .sidebar-search-btn{background:rgba(255,255,255,.2);border-color:rgba(255,255,255,.3)}
+body[data-theme="naranja"] .sidebar-user{border-top-color:rgba(255,255,255,.3);color:rgba(255,255,255,.9)}
+body[data-theme="naranja"] .sidebar-logout{background:rgba(255,255,255,.2);color:white}
+body[data-theme="naranja"] .stat-card{border-left-color:var(--orange)}
+body[data-theme="naranja"] .card{border-color:#FFD9C9}
+body[data-theme="naranja"] .tbl th{background:#C2491A}
 /* Toggle de tema */
 .theme-toggle{
   background:transparent;border:1px solid rgba(255,255,255,.15);
@@ -3605,14 +3655,26 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
     <div class="card">
       <div class="card-title">Apariencia</div>
-      <div style="display:flex;gap:10px">
-        <button type="button" id="btnTemaClaro" onclick="setTema('light')" style="flex:1;padding:14px 12px;border:2px solid var(--border);background:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:8px;transition:all .15s var(--ease)">
-          <div style="font-size:28px">☀️</div>
-          <div style="font-size:13px;font-weight:700;color:var(--text)">Modo claro</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button type="button" id="btnTemaClaro" onclick="setTema('light')" style="padding:12px 8px;border:2px solid var(--border);background:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
+          <div style="font-size:22px">☀️</div>
+          <div style="font-size:11px;font-weight:700;color:var(--text)">Claro</div>
         </button>
-        <button type="button" id="btnTemaOscuro" onclick="setTema('dark')" style="flex:1;padding:14px 12px;border:2px solid var(--border);background:#1A1D24;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:8px;transition:all .15s var(--ease)">
-          <div style="font-size:28px">🌙</div>
-          <div style="font-size:13px;font-weight:700">Modo oscuro</div>
+        <button type="button" id="btnTemaOscuro" onclick="setTema('dark')" style="padding:12px 8px;border:2px solid var(--border);background:#1A1D24;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
+          <div style="font-size:22px">🌙</div>
+          <div style="font-size:11px;font-weight:700">Oscuro</div>
+        </button>
+        <button type="button" id="btnTemaNegro" onclick="setTema('negro')" style="padding:12px 8px;border:2px solid #222;background:#111;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
+          <div style="font-size:22px">🖤</div>
+          <div style="font-size:11px;font-weight:700">Negro</div>
+        </button>
+        <button type="button" id="btnTemaGrafito" onclick="setTema('grafito')" style="padding:12px 8px;border:2px solid #3A3A3C;background:#1C1C1E;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
+          <div style="font-size:22px">🪨</div>
+          <div style="font-size:11px;font-weight:700">Grafito</div>
+        </button>
+        <button type="button" id="btnTemaNaranja" onclick="setTema('naranja')" style="padding:12px 8px;border:2px solid #FFD9C9;background:#FF5B1F;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
+          <div style="font-size:22px">🟠</div>
+          <div style="font-size:11px;font-weight:700">Naranja</div>
         </button>
       </div>
     </div>
@@ -15900,40 +15962,43 @@ setInterval(function(){ if (DB.citas !== undefined) syncCitas(); }, 60000);
 
 // ═══ MODO OSCURO ═══
 function aplicarTema(tema) {
-  if (tema === 'dark') {
-    document.body.setAttribute('data-theme', 'dark');
+  var temas = ['light','dark','negro','grafito','naranja'];
+  if (tema && tema !== 'light') {
+    document.body.setAttribute('data-theme', tema);
   } else {
     document.body.removeAttribute('data-theme');
   }
-  // Marcar el botón activo en Ajustes (con borde verde)
-  var btnL = document.getElementById('btnTemaClaro');
-  var btnO = document.getElementById('btnTemaOscuro');
-  if (btnL && btnO) {
-    if (tema === 'dark') {
-      btnO.style.borderColor = 'var(--green)';
-      btnO.style.boxShadow = '0 0 0 4px rgba(0,200,150,.15)';
-      btnL.style.borderColor = 'var(--border)';
-      btnL.style.boxShadow = 'none';
+  // Marcar botón activo
+  var ids = { light:'btnTemaClaro', dark:'btnTemaOscuro', negro:'btnTemaNegro', grafito:'btnTemaGrafito', naranja:'btnTemaNaranja' };
+  temas.forEach(function(t) {
+    var btn = document.getElementById(ids[t]);
+    if (!btn) return;
+    if (t === tema || (t === 'light' && !tema)) {
+      btn.style.borderColor = 'var(--green)';
+      btn.style.boxShadow = '0 0 0 4px rgba(0,200,150,.2)';
     } else {
-      btnL.style.borderColor = 'var(--green)';
-      btnL.style.boxShadow = '0 0 0 4px rgba(0,200,150,.15)';
-      btnO.style.borderColor = 'var(--border)';
-      btnO.style.boxShadow = 'none';
+      btn.style.boxShadow = 'none';
+      // Restaurar borde original por tema
+      if (t === 'negro') btn.style.borderColor = '#222';
+      else if (t === 'dark') btn.style.borderColor = '#374151';
+      else if (t === 'grafito') btn.style.borderColor = '#3A3A3C';
+      else if (t === 'naranja') btn.style.borderColor = '#FFD9C9';
+      else btn.style.borderColor = 'var(--border)';
     }
-  }
+  });
 }
 function setTema(tema) {
   localStorage.setItem('tk_theme', tema);
   aplicarTema(tema);
-  toast(tema === 'dark' ? '🌙 Modo oscuro activado' : '☀️ Modo claro activado', 'ok');
+  var nombres = { light:'☀️ Modo claro', dark:'🌙 Modo oscuro', negro:'🖤 Tema negro', grafito:'🪨 Tema grafito', naranja:'🟠 Tema naranja' };
+  toast(nombres[tema] || 'Tema aplicado', 'ok');
 }
 // Aplicar tema al cargar
 (function() {
   var saved = localStorage.getItem('tk_theme');
-  if (saved === 'dark') {
-    document.body.setAttribute('data-theme', 'dark');
+  if (saved && saved !== 'light') {
+    document.body.setAttribute('data-theme', saved);
   }
-  // Marcar selección en botones cuando carguen
   setTimeout(function(){ aplicarTema(saved || 'light'); }, 100);
 })();
 
