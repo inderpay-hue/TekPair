@@ -831,6 +831,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="qbtn-dash qbtn-primary" onclick="abrirVenta()"><span class="qbtn-icon" style="background:rgba(255,91,31,.15);color:var(--orange)">📱</span><span class="qbtn-label">Nueva venta</span></button>
     <button class="qbtn-dash qbtn-primary" onclick="window.location.href='tpv.html'"><span class="qbtn-icon" style="background:rgba(255,91,31,.15);color:var(--orange)">🛒</span><span class="qbtn-label">Abrir TPV</span></button>
     <button class="qbtn-dash" onclick="abrirRep()"><span class="qbtn-icon" style="background:rgba(0,200,150,.10);color:var(--green)">🔧</span><span class="qbtn-label">Reparación</span></button>
+    <!-- PRES-3: Nuevo Presupuesto -->
+    <button class="qbtn-dash" onclick="abrirPresupuesto()"><span class="qbtn-icon" style="background:rgba(168,85,247,.10);color:#8B5CF6">📋</span><span class="qbtn-label">Presupuesto</span></button>
     <button class="qbtn-dash" onclick="navTo('pStock');openM('mStock')"><span class="qbtn-icon" style="background:rgba(249,115,22,.10);color:var(--orange)">📦</span><span class="qbtn-label">Añadir stock</span></button>
     <button class="qbtn-dash" onclick="navTo('pClis');openM('mCli')"><span class="qbtn-icon" style="background:rgba(0,140,255,.10);color:var(--blue)">👤</span><span class="qbtn-label">Nuevo cliente</span></button>
   </div>
@@ -970,6 +972,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="tabs" id="repTabs">
     <div class="tab active" data-f="todas" onclick="setRepFiltro(this)">Todas</div>
+    <div class="tab" data-f="Presupuesto" onclick="setRepFiltro(this)" style="background:rgba(168,85,247,.08);color:#8B5CF6;border:1px solid rgba(168,85,247,.2)">📋 Presupuestos</div>
     <div class="tab" data-f="Pendiente" onclick="setRepFiltro(this)">Pendiente</div>
     <div class="tab" data-f="En Proceso" onclick="setRepFiltro(this)">En Proceso</div>
     <div class="tab" data-f="Por Entregar" onclick="setRepFiltro(this)">Por Entregar</div>
@@ -4942,7 +4945,8 @@ var SEL = {
   vPago:'Efectivo',ePago:'Efectivo',rPri:'Normal',
   repFiltro:'todas',ventaFiltro:'todas',
   metricTab:'hoy',repTab:'hoy',repTipo:'todo',
-  selParts:[],esFinanciado:false
+  selParts:[],esFinanciado:false,
+  modoPresupuesto:false // PRES-9
 };
 var ECID = null;
 var ESID = null;
@@ -5168,6 +5172,8 @@ function openM(id) {
 function closeM(id) {
   var el = document.getElementById(id);
   if (el) el.classList.remove('open');
+  // PRES-8: si cierras el modal de reparación, asegúrate de limpiar modo presupuesto
+  if (id === 'mRep' && typeof _limpiarModoPresupuesto === 'function') _limpiarModoPresupuesto();
 }
 
 // ═══ TOAST ═══
@@ -7539,6 +7545,77 @@ function abrirRep() {
   }, 200);
 }
 
+// ═══ PRESUPUESTOS (PRES-1 a PRES-7) ═══
+// Reusan el modal mRep y la tabla 'reparaciones', pero con estado='Presupuesto'.
+// Se diferencian con el flag SEL.modoPresupuesto durante la creación.
+
+function abrirPresupuesto() {
+  // Marcamos modo presupuesto y reusamos abrirRep para limpiar todo
+  SEL.modoPresupuesto = true;
+  abrirRep();
+  // Personalizar el título y ocultar campo Fecha Entrega (no aplica a presupuestos)
+  var t = document.querySelector('#mRep .modal-title');
+  if (t) t.innerHTML = '📋 Nuevo Presupuesto';
+  var feLabel = document.querySelector('label[for="rFechaEnt"]');
+  if (feLabel) feLabel.style.opacity = '0.5';
+  // Banner explicativo dentro del modal
+  var banner = document.getElementById('presBanner');
+  if (!banner) {
+    banner = document.createElement('div');
+    banner.id = 'presBanner';
+    banner.style.cssText = 'background:rgba(168,85,247,.08);border-left:3px solid #8B5CF6;padding:10px 14px;border-radius:8px;margin:8px 16px 0;font-size:12px;color:var(--dark)';
+    banner.innerHTML = '<strong>📋 Modo presupuesto:</strong> esta entrada NO se contabiliza como reparación. Cuando el cliente acepte, podrás convertirla a reparación con un click.';
+    var body = document.querySelector('#mRep .modal-rep-body');
+    if (body && body.parentNode) body.parentNode.insertBefore(banner, body);
+  }
+  banner.style.display = '';
+}
+
+// Limpiar modo al cerrar (lo llama el onclick X del modal indirectamente)
+function _limpiarModoPresupuesto() {
+  SEL.modoPresupuesto = false;
+  var t = document.querySelector('#mRep .modal-title');
+  if (t) t.innerHTML = '🔧 Nueva Reparación';
+  var banner = document.getElementById('presBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+// Aceptar presupuesto → convertir a reparación normal (estado Pendiente)
+function aceptarPresupuesto(id) {
+  if (!tienePerm('reps_editar')) { toast('Sin permiso', 'err'); return; }
+  var r = DB.reps.find(function(x){ return x.id === id; });
+  if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
+  if (r.estado !== 'Presupuesto') { toast('Esto no es un presupuesto', 'err'); return; }
+  if (!confirm('¿Convertir este presupuesto en reparación pendiente?\n\nCliente: ' + r.clienteNombre + '\nDispositivo: ' + r.marca + ' ' + r.modelo + '\nTotal: ' + cur(r.total))) return;
+  r.estado = 'Pendiente';
+  r.fechaAceptacion = new Date().toISOString();
+  guardarDatos();
+  // Sincronizar a Supabase
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Pendiente' });
+  }
+  toast('Presupuesto aceptado · ahora es una reparación pendiente', 'ok');
+  renderReps();
+  // Cambiar al filtro Pendiente para que el usuario vea dónde fue
+  var tab = document.querySelector('#repTabs .tab[data-f="Pendiente"]');
+  if (tab) setRepFiltro(tab);
+}
+
+// Rechazar presupuesto → estado Rechazado (lo tienes ya)
+function rechazarPresupuesto(id) {
+  if (!tienePerm('reps_editar')) { toast('Sin permiso', 'err'); return; }
+  var r = DB.reps.find(function(x){ return x.id === id; });
+  if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
+  if (!confirm('¿Marcar este presupuesto como rechazado?\n\nQuedará en histórico para consulta posterior.')) return;
+  r.estado = 'Rechazado';
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Rechazado' });
+  }
+  toast('Presupuesto rechazado', 'ok');
+  renderReps();
+}
+
 // === PLANTILLAS RÁPIDAS DE REPARACIÓN ===
 var PLANTILLAS_REP_DEFAULT = [
   {key:'pantalla',  icon:'📱', label:'Pantalla rota',     averia:'Pantalla rota',                    servicio:'Instalación de Pantalla', precio:0, chk:['Pantalla rota']},
@@ -8678,7 +8755,7 @@ function guardarRep() {
     tipoBloqueo: (document.getElementById('rTipoBloq') ? document.getElementById('rTipoBloq').value : ''),
     bloqueo: (document.getElementById('rBloqVal') ? document.getElementById('rBloqVal').value.trim() : ''),
     averia: averia,
-    estado: 'Pendiente',
+    estado: SEL.modoPresupuesto ? 'Presupuesto' : 'Pendiente',
     prioridad: document.getElementById('rPrioridad').value,
     fechaEntrega: document.getElementById('rFechaEnt').value,
     fechaEntregaReal: '',
@@ -8727,6 +8804,15 @@ function guardarRep() {
   }
 
   closeM('mRep');
+  // PRES-6: mensaje y comportamiento distinto según modo
+  if (SEL.modoPresupuesto) {
+    toast('Presupuesto creado · pendiente de respuesta del cliente', 'ok');
+    _limpiarModoPresupuesto();
+    audit('crear', 'presupuesto', rep.id, rep.clienteNombre + ' · ' + (rep.modelo||'') + ' · ' + cur(rep.total), null);
+    renderDash();
+    // No abrimos tracking automáticamente para presupuestos
+    return;
+  }
   toast('Reparación creada', 'ok');
   audit('crear', 'reparacion', rep.id, rep.clienteNombre + ' · ' + (rep.modelo||'') + ' · ' + cur(rep.total), null);
   renderDash();
@@ -8889,7 +8975,9 @@ setTimeout(function(){
 
 function renderReps() {
   var list = DB.reps.slice().reverse().filter(function(r) {
-    return SEL.repFiltro === 'todas' || r.estado === SEL.repFiltro;
+    // PRES-2: 'Todas' excluye presupuestos (lista distinta). Solo se ven con filtro explícito.
+    if (SEL.repFiltro === 'todas') return r.estado !== 'Presupuesto';
+    return r.estado === SEL.repFiltro;
   });
   var el = document.getElementById('listaReps');
   if (!list.length) { el.innerHTML = '<div class="empty">Sin reparaciones</div>'; return; }
@@ -8899,6 +8987,9 @@ function renderReps() {
     + '</tr></thead><tbody>';
   list.forEach(function(r) {
     var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" data-action="confirm" class="row-btn btn-ent" title="Marcar entregado">&#10003;</button>' : '';
+    // PRES-7: Si es un presupuesto, mostrar Aceptar / Rechazar destacados
+    var btnPresAcept = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" data-action="confirm" class="row-btn btn-pres-acept" title="Aceptar presupuesto · crear reparación" style="background:var(--green);color:white;border-color:var(--green)">✓ Aceptar</button>' : '';
+    var btnPresRech = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" data-action="del" class="row-btn btn-pres-rech" title="Rechazar presupuesto">✗ Rechazar</button>' : '';
     var btnEdit = '<button data-rid="' + r.id + '" data-action="edit" class="row-btn btn-edit-r" title="Editar">✏️</button>';
     var btnLink = '<button data-rid="' + r.id + '" data-action="link" class="row-btn btn-link-r" title="QR / Link / Imprimir">📱</button>';
     // WhatsApp: buscar cliente por cliId, si no, fallback por nombre coincidente
@@ -8937,7 +9028,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + '</td>'
-      + '<td>' + btnE + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
+      + '<td>' + btnE + btnPresAcept + btnPresRech + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -8961,6 +9052,13 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-fact-r').forEach(function(btn) {
     btn.addEventListener('click', function() { factRep(this.dataset.rid); });
+  });
+  // PRES-7: aceptar/rechazar presupuesto
+  el.querySelectorAll('.btn-pres-acept').forEach(function(btn) {
+    btn.addEventListener('click', function() { aceptarPresupuesto(this.dataset.rid); });
+  });
+  el.querySelectorAll('.btn-pres-rech').forEach(function(btn) {
+    btn.addEventListener('click', function() { rechazarPresupuesto(this.dataset.rid); });
   });
 }
 
