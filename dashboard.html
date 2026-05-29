@@ -272,6 +272,27 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .qbtn-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
 .qbtn-label{font-size:13px;font-weight:700;color:var(--text);line-height:1.2}
 
+/* VIS-3: botones de acción en filas (atenuados, color solo en hover) */
+.row-btn{
+  background:transparent;
+  border:1px solid var(--border);
+  color:var(--muted);
+  padding:4px 8px;
+  border-radius:6px;
+  font-size:11px;
+  cursor:pointer;
+  margin-left:3px;
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+  line-height:1;
+}
+.row-btn:hover{background:var(--bg);color:var(--dark);border-color:var(--muted)}
+.row-btn[data-action="confirm"]:hover{background:var(--green);color:white;border-color:var(--green)}
+.row-btn[data-action="edit"]:hover{background:var(--blue);color:white;border-color:var(--blue)}
+.row-btn[data-action="link"]:hover{background:var(--blue);color:white;border-color:var(--blue)}
+.row-btn[data-action="wa"]:hover{background:#25D366;color:white;border-color:#25D366}
+.row-btn[data-action="fact"]:hover{background:#10B981;color:white;border-color:#10B981}
+.row-btn[data-action="del"]:hover{background:var(--red);color:white;border-color:var(--red)}
+
 /* ═══ WIDGET EDIT MODE ═══ */
 .card.widget-editing{border:2px dashed var(--blue) !important;position:relative !important;animation:widget-pulse 2s infinite}
 @keyframes widget-pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,91,31,.10)}50%{box-shadow:0 0 0 4px rgba(255,91,31,.10)}}
@@ -4943,7 +4964,15 @@ window.addEventListener('DOMContentLoaded', function() {
   var tiendaLS = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
   Object.assign(TIENDA, tiendaLS);
   if (!TIENDA.nombre) TIENDA.nombre = 'Mi Tienda';
-  document.getElementById('dTienda').textContent = TIENDA.nombre;
+  // VIS-1: header con saludo personalizado en lugar de nombre de tienda
+  // El nombre de la tienda ya se muestra en el sidebar; aquí saludo más humano.
+  (function(){
+    var h = new Date().getHours();
+    var saludo = h < 6 ? 'Buenas noches' : h < 13 ? 'Buenos días' : h < 21 ? 'Buenas tardes' : 'Buenas noches';
+    var primerNombre = (U.nombre || '').split(' ')[0] || '';
+    var dTiendaEl = document.getElementById('dTienda');
+    if (dTiendaEl) dTiendaEl.textContent = primerNombre ? saludo + ', ' + primerNombre : saludo;
+  })();
   renderSidebarLogo();
   document.getElementById('dStr').textContent = new Date().toLocaleDateString('es', {weekday:'long',day:'numeric',month:'long'});
 
@@ -5701,14 +5730,15 @@ async function renderDash() {
 
   var statsHtml = '';
   if (widgetVisible('widget_stats_ventas') && tienePerm('ventas_ver')) {
-    statsHtml += '<div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" style="color:var(--blue)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>';
+    // VIS-2: contadores en oscuro neutro, importes en verde. Color secundario sutil.
+    statsHtml += '<div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" style="color:var(--dark)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>';
     statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl">Ingresos ventas</div></div>';
   }
   if (widgetVisible('widget_stats_reps') && tienePerm('reps_ver')) {
-    statsHtml += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--orange)">' + repsActivas.length + '</div><div class="stat-lbl">En reparacion</div></div>';
+    statsHtml += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--dark)">' + repsActivas.length + '</div><div class="stat-lbl">En reparación</div></div>';
   }
   if (widgetVisible('widget_stats_total') && tienePerm('ventas_ver') && tienePerm('reps_ver')) {
-    statsHtml += '<div class="stat-card" style="--accent:var(--purple)"><div class="stat-val" style="color:var(--purple)">' + cur(tVentas + tReps) + '</div><div class="stat-lbl">Total ingresos</div></div>';
+    statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas + tReps) + '</div><div class="stat-lbl">Total ingresos</div></div>';
   }
   document.getElementById('metricsGrid').innerHTML = statsHtml;
   if (typeof renderDashWidgets === 'function') renderDashWidgets();
@@ -6810,10 +6840,10 @@ function renderVentas() {
     var badges = '';
     if (v.reembolsado) badges += '<span class="badge-reem">Reembolsado</span>';
     if (v.financiado && !v.reembolsado) badges += '<span class="badge-fin">Financiado</span>';
-    var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" class="btn-reem" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer" title="Reembolsar">\u21a9</button>' : '';
-    var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" class="btn-fin" style="background:rgba(255,91,31,.1);border:none;color:var(--purple);padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer" title="Financiación">\ud83d\udcb0</button>' : '';
-    var btnImpr = '<button data-vid="' + v.id + '" class="btn-impr-v" style="background:var(--light);border:none;padding:3px 6px;border-radius:5px;font-size:11px;cursor:pointer" title="Reimprimir ticket">\ud83d\udda8</button>';
-    var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" class="btn-fact-v" style="background:#10B981;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Generar factura">📄</button>' : '';
+    var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="Reembolsar">\u21a9</button>' : '';
+    var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="edit" class="row-btn btn-fin" title="Financiación">\ud83d\udcb0</button>' : '';
+    var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="Reimprimir ticket">\ud83d\udda8</button>';
+    var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="Generar factura">📄</button>' : '';
     html += '<tr style="' + (v.reembolsado ? 'opacity:.55' : '') + '">' +
       '<td>' + v.fecha + '</td>' +
       '<td>' + v.clienteNombre + badges + '</td>' +
@@ -8810,9 +8840,9 @@ function renderReps() {
     + '<th>Prioridad</th><th>F.Entrega</th><th>F.Entregado</th><th>Total</th><th></th>'
     + '</tr></thead><tbody>';
   list.forEach(function(r) {
-    var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" class="btn-ent" style="background:var(--green);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer">&#10003;</button>' : '';
-    var btnEdit = '<button data-rid="' + r.id + '" class="btn-edit-r" style="background:var(--light);border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Editar">✏️</button>';
-    var btnLink = '<button data-rid="' + r.id + '" class="btn-link-r" style="background:var(--blue);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="QR / Link / Imprimir">📱</button>';
+    var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" data-action="confirm" class="row-btn btn-ent" title="Marcar entregado">&#10003;</button>' : '';
+    var btnEdit = '<button data-rid="' + r.id + '" data-action="edit" class="row-btn btn-edit-r" title="Editar">✏️</button>';
+    var btnLink = '<button data-rid="' + r.id + '" data-action="link" class="row-btn btn-link-r" title="QR / Link / Imprimir">📱</button>';
     // WhatsApp: buscar cliente por cliId, si no, fallback por nombre coincidente
     var cliRep = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
     if (!cliRep && r.clienteNombre) {
@@ -8821,9 +8851,9 @@ function renderReps() {
         return _norm(((c.nombre||'') + ' ' + (c.apellidos||'')).trim()) === nomNorm;
       });
     }
-    var btnWA = (cliRep && cliRep.tel) ? '<button data-rid="' + r.id + '" class="btn-wa-r" style="background:#25D366;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Avisar por WhatsApp">📲</button>' : '';
-    var btnDel = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" class="btn-del-r" style="background:var(--red);color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Eliminar reparación">🗑️</button>' : '';
-    var btnFact = (r.estado === 'Entregado') ? '<button data-rid="' + r.id + '" class="btn-fact-r" style="background:#10B981;color:white;border:none;padding:3px 8px;border-radius:5px;font-size:10px;cursor:pointer;margin-left:3px" title="Generar factura">📄</button>' : '';
+    var btnWA = (cliRep && cliRep.tel) ? '<button data-rid="' + r.id + '" data-action="wa" class="row-btn btn-wa-r" title="Avisar por WhatsApp">📲</button>' : '';
+    var btnDel = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" data-action="del" class="row-btn btn-del-r" title="Eliminar reparación">🗑️</button>' : '';
+    var btnFact = (r.estado === 'Entregado') ? '<button data-rid="' + r.id + '" data-action="fact" class="row-btn btn-fact-r" title="Generar factura">📄</button>' : '';
     // Badge garantía: manual (esGarantia) o auto-detectada (rep similar reciente)
     var badgeGarantia = '';
     if (r.esGarantia) {
@@ -11538,7 +11568,9 @@ function guardarTienda() {
   };
   localStorage.setItem('tk_tienda', JSON.stringify(t));
   Object.assign(TIENDA, t);
-  document.getElementById('dTienda').textContent = t.nombre || 'Mi Tienda';
+  // VIS-1: dTienda muestra saludo, no nombre de tienda. Actualizamos sidebar.
+  var sbTiendaEl = document.getElementById('sidebarTienda');
+  if (sbTiendaEl) sbTiendaEl.textContent = t.nombre || 'Mi Tienda';
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {
     nombre: t.nombre, dir: t.dir, tel: t.tel, email: t.email, cif: t.cif, web: t.web,
     garantia: t.garantia, politica: t.politica, garantia_dias: grDef,
@@ -12174,7 +12206,8 @@ async function _pullTiendaCompleta() {
     }
 
     // Refrescar UI dependiente
-    var dT = document.getElementById('dTienda'); if (dT) dT.textContent = TIENDA.nombre;
+    // VIS-1: dTienda ahora muestra saludo, nombre de tienda solo en sidebar.
+    var sbT = document.getElementById('sidebarTienda'); if (sbT) sbT.textContent = TIENDA.nombre;
     if (typeof renderSidebarLogo === 'function') renderSidebarLogo();
   } catch(e) { console.error('Pull tienda error:', e); }
 }
