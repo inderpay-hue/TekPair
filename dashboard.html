@@ -5593,7 +5593,8 @@ function mapRep(r) {
     componentes: r.componentes ? (typeof r.componentes === 'string' ? JSON.parse(r.componentes) : r.componentes) : [],
     servicios: r.servicios ? (typeof r.servicios === 'string' ? JSON.parse(r.servicios) : r.servicios) : [],
     esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||'',
-    piezasDevueltas: r.piezas_devueltas === true
+    piezasDevueltas: r.piezas_devueltas === true,
+    presupuesto_aceptado_at: r.presupuesto_aceptado_at || null
   };
 }
 
@@ -9305,9 +9306,10 @@ function renderPresupuestos() {
     // Incluir Presupuesto (pendiente/aceptado) y Rechazado
     var esPresup = r.estado === 'Presupuesto' || r.estado === 'Rechazado';
     if (!esPresup) return false;
-    if (_presFiltro === 'aceptado')  return r.estado === 'Presupuesto' && !!r.presupuesto_aceptado_at;
     if (_presFiltro === 'rechazado') return r.estado === 'Rechazado';
-    if (_presFiltro === 'pendiente') return r.estado === 'Presupuesto' && !r.presupuesto_aceptado_at;
+    if (r.estado === 'Rechazado') return _presFiltro === 'todos'; // rechazados solo en Todos y Rechazados
+    if (_presFiltro === 'aceptado')  return !!r.presupuesto_aceptado_at;
+    if (_presFiltro === 'pendiente') return !r.presupuesto_aceptado_at;
     return true; // todos
   });
   if (busq) {
@@ -9336,7 +9338,9 @@ function renderPresupuestos() {
 
     // Estado visual
     var estadoBadge = '';
-    if (r.presupuesto_aceptado_at) {
+    if (r.estado === 'Rechazado') {
+      estadoBadge = '<span class="badge br">✗ Rechazado</span>';
+    } else if (r.presupuesto_aceptado_at) {
       estadoBadge = '<span class="badge bg" style="background:rgba(22,163,74,.1);color:#16A34A">✓ Aceptado</span>';
     } else {
       estadoBadge = '<span class="badge by">Pendiente</span>';
