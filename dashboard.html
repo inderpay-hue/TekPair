@@ -59,6 +59,7 @@ body[data-theme="dark"] input.fi::placeholder,
 body[data-theme="dark"] textarea.fi::placeholder,
 body[data-theme="dark"] .search-input::placeholder{color:var(--muted)}
 body[data-theme="dark"] .card{background:var(--white)}
+body[data-theme="dark"] .stat-card{background:var(--white) !important}
 body[data-theme="dark"] .rep-section{background:var(--light)}
 body[data-theme="dark"] .modal-rep-header,
 body[data-theme="dark"] .modal-rep-footer{background:var(--white);border-color:var(--border)}
@@ -348,7 +349,7 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 /* ═══ STATS ═══ */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.stat-card{background:white;border-radius:12px;padding:14px;border:1px solid var(--border);border-left:3px solid var(--accent,var(--border));box-shadow:var(--shadow-sm);transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
+.stat-card{background:var(--white);border-radius:12px;padding:14px;border:1px solid var(--border);border-left:3px solid var(--accent,var(--border));box-shadow:var(--shadow-sm);transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
 @media(min-width:900px){.stat-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}}
 .stat-val{font-size:24px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
 .stat-lbl{font-size:11px;color:var(--muted);margin-top:3px}
@@ -5914,11 +5915,11 @@ async function renderDash() {
   var statsHtml = '';
   if (widgetVisible('widget_stats_ventas') && tienePerm('ventas_ver')) {
     // VIS-2: contadores en oscuro neutro, importes en verde. Color secundario sutil.
-    statsHtml += '<div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" style="color:var(--dark)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>';
+    statsHtml += '<div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" style="color:var(--text)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>';
     statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl">Ingresos ventas</div></div>';
   }
   if (widgetVisible('widget_stats_reps') && tienePerm('reps_ver')) {
-    statsHtml += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--dark)">' + repsActivas.length + '</div><div class="stat-lbl">En reparación</div></div>';
+    statsHtml += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--text)">' + repsActivas.length + '</div><div class="stat-lbl">En reparación</div></div>';
   }
   if (widgetVisible('widget_stats_total') && tienePerm('ventas_ver') && tienePerm('reps_ver')) {
     statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas + tReps) + '</div><div class="stat-lbl">Total ingresos</div></div>';
