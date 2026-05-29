@@ -6114,8 +6114,11 @@ function _colapsarCardsVacios() {
       // Está vacío → ocultar
       card.style.display = 'none';
       var titulo = (card.querySelector('.card-title') || {}).textContent || '';
-      // Extraer texto plano (sin emojis/contadores)
-      titulo = titulo.replace(/[🔧📦📝💰📊⏰🎂📞📈🏆⚠️🎁]/g, '').trim();
+      // VIS-5b: regex amplio que limpia TODOS los emojis, símbolos y mojibake.
+      // Range completo de emojis Unicode + caracteres de reemplazo (U+FFFD).
+      titulo = titulo.replace(/[\u{1F300}-\u{1FAFF}\u{2600}-\u{27BF}\u{FFFD}\u200D\uFE0F]/gu, '').replace(/\s+/g, ' ').trim();
+      // Quitar contadores "(3)" o similares
+      titulo = titulo.replace(/\(\s*\d+\s*\)/g, '').trim();
       if (titulo) ocultos.push(titulo);
     }
   });
@@ -6127,10 +6130,11 @@ function _colapsarCardsVacios() {
     banner.id = 'dashTodoOkBanner';
     banner.style.cssText = 'background:#E7F6EC;border:1px solid #BBE5C9;border-left:4px solid var(--green);padding:10px 14px;border-radius:8px;margin:10px 0;font-size:13px;color:var(--dark);display:flex;align-items:center;gap:8px';
     var lista = ocultos.length > 3 ? ocultos.slice(0,3).join(', ') + ' y ' + (ocultos.length - 3) + ' más' : ocultos.join(', ');
-    banner.innerHTML = '<span style="font-size:16px">✓</span><span><strong>Todo bajo control:</strong> sin pendientes en ' + lista + '.</span>';
-    var notasCard = document.getElementById('cardNotas');
-    if (notasCard && notasCard.parentNode) {
-      notasCard.parentNode.insertBefore(banner, notasCard.nextSibling);
+    banner.innerHTML = '<span style="font-size:16px;color:var(--green);font-weight:700">✓</span><span><strong>Todo bajo control:</strong> sin pendientes en ' + lista + '.</span>';
+    // VIS-5b: insertar arriba del Inicio (después de quick actions), no al final
+    var quickGrid = document.getElementById('dashQuickGrid');
+    if (quickGrid && quickGrid.parentNode) {
+      quickGrid.parentNode.insertBefore(banner, quickGrid.nextSibling);
     }
   }
 }
