@@ -10770,6 +10770,9 @@ function setRepTipo(el) {
 }
 
 function getRepFechas() {
+  // Devuelve fechas en formato local "DD/M/YYYY" — usado para comparar contra
+  // DB.ventas.fecha y DB.reps.fechaEntregaReal que se guardan así.
+  // IMPORTANTE: la BD Supabase usa formato ISO; usar getRepFechasISO() para queries.
   var fechas = [];
   var n = SEL.repTab === 'hoy' ? 1
         : SEL.repTab === 'semana' ? 7
@@ -10783,17 +10786,38 @@ function getRepFechas() {
   return fechas;
 }
 
+// REP-FECHA-FIX: devuelve fechas en formato ISO YYYY-MM-DD para queries a Supabase.
+// El bug anterior: getRepFechas() devolvía "29/5/2026" y se enviaba como fecha=gte.29/5/2026
+// a Postgres → error "date/time field value out of range" + reportes con 0€ en reps.
+function getRepFechasISO() {
+  var fechas = [];
+  var n = SEL.repTab === 'hoy' ? 1
+        : SEL.repTab === 'semana' ? 7
+        : SEL.repTab === 'mes' ? 30
+        : SEL.repTab === 'trimestre' ? 90
+        : 3650;
+  for (var i = 0; i < n; i++) {
+    var d = new Date(); d.setDate(d.getDate() - i);
+    var iso = d.getFullYear() + '-' +
+              String(d.getMonth() + 1).padStart(2, '0') + '-' +
+              String(d.getDate()).padStart(2, '0');
+    fechas.push(iso);
+  }
+  return fechas;
+}
+
 // Variables globales para charts (para destruirlos antes de re-renderizar)
 var CHART_INGRESOS = null, CHART_PAGOS = null, CHART_SERVICIOS = null;
 
 async function renderReporte() {
   var fechas = getRepFechas();
+  var fechasISO = getRepFechasISO(); // REP-FECHA-FIX: para queries a Supabase
   var ventas = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function(v) { return !v.reembolsado && fechas.includes(v.fecha); }) : [];
   // v2.4: usar pagos reales (anticipos + finales) en lugar de reps entregadas
   var pagosReps = [];
-  if (SEL.repTipo !== 'ventas' && SB_KEY && fechas.length > 0) {
+  if (SEL.repTipo !== 'ventas' && SB_KEY && fechasISO.length > 0) {
     try {
-      var minF = fechas[0], maxF = fechas[fechas.length-1];
+      var minF = fechasISO[fechasISO.length-1], maxF = fechasISO[0]; // ISO: el menor es el último
       pagosReps = await sbGet('pagos_reparacion', 'fecha=gte.' + minF + '&fecha=lte.' + maxF) || [];
     } catch(e) { console.warn('No pagos:', e); }
   }
