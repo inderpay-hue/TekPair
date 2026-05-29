@@ -5178,7 +5178,23 @@ function navTo(id) {
   if (id === 'pGastos') renderGastos();
   if (id === 'pAjustes') { try { renderUbicacionesAjustes(); } catch(e){} cargarAjustes(); }
   if (id === 'pReportes') renderReporte();
-  if (id === 'pPresupuestos') renderPresupuestos();
+  if (id === 'pPresupuestos') {
+    renderPresupuestos();
+    // Sync ligero: recargar reps desde Supabase para tener estados frescos
+    if (SB_KEY && TIENDA_ID) {
+      sbGet('reparaciones', 'tienda_id=eq.' + TIENDA_ID + '&estado=in.(Presupuesto,Rechazado)&select=id,cliente_id,cliente_nombre,marca,modelo,averia,estado,total,base,iva,iva_importe,iva_modo,servicios,componentes,fecha,presupuesto_aceptado_at,presupuesto_token_exp,piezas_devueltas,es_garantia,rep_original_id,mo,comp,anticipo,restante,pago_final,fecha_entrega,fecha_entrega_real,nota,tipo_bloqueo,bloqueo,imei,prioridad').then(function(rows) {
+        if (!Array.isArray(rows)) return;
+        // Actualizar solo los presupuestos en DB.reps
+        rows.forEach(function(r) {
+          var mapped = mapRep(r);
+          var idx = DB.reps.findIndex(function(x){ return x.id === r.id; });
+          if (idx >= 0) DB.reps[idx] = mapped;
+          else DB.reps.push(mapped);
+        });
+        renderPresupuestos();
+      }).catch(function(e){ console.error('sync pres:', e); });
+    }
+  }
   if (id === 'pTienda') { navTo('pAjustes'); var btn=document.querySelector('.aj-tab[data-tab="negocio"]'); if(btn) ajTab(btn); return; }
   if (id === 'pServicios') renderServicios();
   if (id === 'pUsuarios') cargarUsuarios();
