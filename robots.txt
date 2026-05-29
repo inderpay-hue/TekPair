@@ -1,0 +1,39 @@
+# robots.txt para Tekpair
+# Permitimos indexar la landing publica y bloqueamos rutas privadas / utiles
+
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /app.html
+Disallow: /dashboard.html
+Disallow: /tpv.html
+Disallow: /catalogo.html
+Disallow: /reset.html
+Disallow: /parte.html
+Disallow: /registro-ok.html
+Disallow: /*.bak
+
+# Sitemap
+Sitemap: https://www.tekpair.tech/sitemap.xml
+
+# Bots especificos
+# GPTBot, ClaudeBot y otros bots de IA pueden indexar el contenido publico
+# (visibilidad en respuestas de IA conversacional)
+User-agent: GPTBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
+# Bots agresivos / scrapers
+User-agent: SemrushBot
+Crawl-delay: 10
+
+User-agent: AhrefsBot
+Crawl-delay: 10
