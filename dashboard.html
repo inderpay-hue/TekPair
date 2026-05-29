@@ -6037,16 +6037,16 @@ function forzarRelogin() {
 // ═══ DASHBOARD ═══
 async function renderDash() {
   var tab = SEL.metricTab;
-  var hoy = new Date().toLocaleDateString('es');
+  var hoy = hoyLocal();
   var semana = [];
   var mes = [];
   for (var i = 0; i < 7; i++) {
     var d = new Date(); d.setDate(d.getDate() - i);
-    semana.push(d.toLocaleDateString('es'));
+    semana.push(d.toISOString().slice(0,10));
   }
   for (var j = 0; j < 30; j++) {
     var d2 = new Date(); d2.setDate(d2.getDate() - j);
-    mes.push(d2.toLocaleDateString('es'));
+    mes.push(d2.toISOString().slice(0,10));
   }
 
   var filterDates = tab === 'hoy' ? [hoy] : tab === 'semana' ? semana : mes;
@@ -6066,11 +6066,8 @@ async function renderDash() {
   var tReps = 0;
   if (SB_KEY) {
     try {
-      // Convertir fechas locales (DD/MM/YYYY) a ISO (YYYY-MM-DD)
-      var fechasISO = filterDates.map(function(f){
-        var p = f.split('/');
-        return p[2] + '-' + p[1].padStart(2,'0') + '-' + p[0].padStart(2,'0');
-      });
+      // fechas ya en ISO YYYY-MM-DD
+      var fechasISO = filterDates.slice();
       var minF = fechasISO.sort()[0], maxF = fechasISO[fechasISO.length-1];
       var pagosRep = await sbGet('pagos_reparacion', 'fecha=gte.' + minF + '&fecha=lte.' + maxF) || [];
       tReps = pagosRep.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
@@ -6683,7 +6680,7 @@ function renderWidgetTendencia() {
 
   if (per.tab === 'hoy') {
     // 24 puntos (uno por hora)
-    var hoyStr = new Date().toLocaleDateString('es');
+    var hoyStr = hoyLocal();
     var horasCount = new Array(24).fill(0);
     DB.ventas.forEach(function(v) {
       if (v.reembolsado || v.fecha !== hoyStr) return;
@@ -6708,7 +6705,7 @@ function renderWidgetTendencia() {
     var dias = per.tab === 'semana' ? 7 : 30;
     for (var i = dias - 1; i >= 0; i--) {
       var d = new Date(); d.setDate(d.getDate() - i);
-      var fecha = d.toLocaleDateString('es');
+      var fecha = d.toISOString().slice(0,10);
       var totalD = 0;
       DB.ventas.forEach(function(v) {
         if (v.reembolsado || v.fecha !== fecha) return;
@@ -7144,7 +7141,7 @@ function guardarVenta() {
       cuotas.push({
         num: i + 1,
         importe: importeCuota,
-        fecha: fechaCuota.toLocaleDateString('es'),
+        fecha: fechaCuota.toISOString().slice(0,10),
         pagado: false,
         formaPago: '',
         fechaPago: ''
@@ -7154,7 +7151,7 @@ function guardarVenta() {
 
   var venta = {
     id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
-    fecha: new Date().toLocaleDateString('es'),
+    fecha: hoyLocal(),
     clienteId: SEL.vCli ? SEL.vCli.id : '',
     clienteNombre: SEL.vCli ? (SEL.vCli.nombre + ' ' + SEL.vCli.apellidos).trim() : 'Sin cliente',
     marca: SEL.vStock ? (SEL.vStock.marca || '') : '',
@@ -7241,7 +7238,7 @@ function renderVentas() {
     var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="Reimprimir ticket">\ud83d\udda8</button>';
     var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="Generar factura">📄</button>' : '';
     html += '<tr style="' + (v.reembolsado ? 'opacity:.55' : '') + '">' +
-      '<td>' + v.fecha + '</td>' +
+      '<td>' + fmtFecha(v.fecha) + '</td>' +
       '<td>' + v.clienteNombre + badges + '</td>' +
       '<td>' + v.modelo + '</td>' +
       '<td><span class="badge bb">' + v.pago + '</span></td>' +
@@ -7285,7 +7282,7 @@ function imprimirTicketVenta(id) {
     '</head><body>' +
     logoBlock + nombreLinea + dirLinea + telLinea +
     '<hr>' +
-    '<div style="display:flex;justify-content:space-between"><span>Fecha:</span><strong>' + esc(v.fecha) + '</strong></div>' +
+    '<div style="display:flex;justify-content:space-between"><span>Fecha:</span><strong>' + fmtFecha(v.fecha) + '</strong></div>' +
     '<div style="display:flex;justify-content:space-between"><span>Cliente:</span><strong>' + esc(v.clienteNombre || 'Sin cliente') + '</strong></div>' +
     '<div style="display:flex;justify-content:space-between"><span>Pago:</span><strong>' + esc(v.pago) + '</strong></div>' +
     (v.reembolsado ? '<div style="text-align:center;color:#c00;font-weight:800;margin-top:4px;border:1.5px solid #c00;padding:3px">REEMBOLSADA</div>' : '') +
@@ -8891,7 +8888,7 @@ function trackingTicket() {
     '<div class="title-rep c">RESGUARDO DE REPARACION</div>' +
 
     '<div class="row"><span class="lbl">Nº</span><span class="val" style="font-family:monospace;font-size:9px">' + esc(r.id) + '</span></div>' +
-    '<div class="row"><span class="lbl">Fecha</span><span class="val">' + esc(r.fecha) + '</span></div>' +
+    '<div class="row"><span class="lbl">Fecha</span><span class="val">' + fmtFecha(r.fecha) + '</span></div>' +
     '<div class="row"><span class="lbl">Cliente</span><span class="val">' + esc(r.clienteNombre) + '</span></div>' +
     '<div class="row"><span class="lbl">Equipo</span><span class="val">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</span></div>' +
     (r.imei ? '<div class="row"><span class="lbl">IMEI/SN</span><span class="val" style="font-family:monospace;font-size:9px">' + esc(r.imei) + '</span></div>' : '') +
@@ -9361,7 +9358,7 @@ function guardarRep() {
   var rep = {
     id: 'r' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
     token: genToken(),
-    fecha: new Date().toLocaleDateString('es'),
+    fecha: hoyLocal(),
     clienteId: SEL.rCli.id,
     clienteNombre: (SEL.rCli.nombre + ' ' + SEL.rCli.apellidos).trim(),
     marca: document.getElementById('rMarca').value.trim(),
@@ -9659,7 +9656,7 @@ function renderPresupuestos() {
       + '<td>' + escHtml(r.marca + ' ' + r.modelo) + '</td>'
       + '<td style="font-size:11px;color:var(--dark)">' + escHtml(r.averia||'—') + '</td>'
       + '<td style="font-weight:700;color:#8B5CF6">' + cur(r.total) + '</td>'
-      + '<td style="font-size:11px;color:var(--muted)">' + (r.fecha||'—') + '</td>'
+      + '<td style="font-size:11px;color:var(--muted)">' + fmtFecha(r.fecha||'') + '</td>'
       + '<td>' + estadoBadge + '</td>'
       + '<td>' + btnAcept + btnFirmar + btnEnviar + btnEditar + btnRech + '</td>'
       + '</tr>';
@@ -9801,7 +9798,7 @@ function cambiarEstado(id, estado) {
   if (estado === 'Garantia' && r.estado === 'Entregado') {
     if (confirm('Crear nueva reparacion en garantia para ' + r.clienteNombre + '?')) {
       var nueva = {
-        id: 'r' + Date.now() + '_' + Math.random().toString(36).slice(2,8), fecha: new Date().toLocaleDateString('es'),
+        id: 'r' + Date.now() + '_' + Math.random().toString(36).slice(2,8), fecha: hoyLocal(),
         clienteId: r.clienteId, clienteNombre: r.clienteNombre,
         marca: r.marca, modelo: r.modelo, imei: r.imei || '',
         averia: 'Garantia: ' + r.averia, estado: 'Garantia', prioridad: 'Alta',
@@ -11316,7 +11313,7 @@ function generarPDFGastos(periodo) {
 
   var filasDet = detalle.length ? detalle.map(function(r){
     return '<tr>' +
-      '<td>' + r.fecha + '</td>' +
+      '<td>' + fmtFecha(r.fecha) + '</td>' +
       '<td>' + esc(r.concepto) + '</td>' +
       '<td>' + esc(r.categoria) + '</td>' +
       '<td class="r">' + cur(r.base) + '</td>' +
@@ -11411,7 +11408,7 @@ function renderGastos() {
       }
       return '<tr><td>' + esc(g.concepto || '') + '</td>' +
         '<td><span class="badge bb">' + esc(cat) + '</span></td>' +
-        '<td>' + (g.fecha || '') + '</td>' +
+        '<td>' + fmtFecha(g.fecha) + '</td>' +
         '<td>' + ivaT + '%</td>' +
         '<td style="font-weight:700;color:var(--red)">' + cur(g.importe || 0) + '</td>' +
         '<td><span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado || 'Pagado') + '</span></td>' +
@@ -12116,7 +12113,7 @@ function emailReporte() {
     body: JSON.stringify({
       email: email, tienda: TIENDA.nombre,
       reporte: {
-        fecha: new Date().toLocaleDateString('es'),
+        fecha: hoyLocal(),
         numVentas: ventas.length, totalVentas: tV.toFixed(2),
         numReps: reps.length, totalReps: tR.toFixed(2),
         total: (tV + tR).toFixed(2), pagos: pagos,
@@ -13975,7 +13972,7 @@ function abrirFichaCli(cliId) {
       html += '<div style="display:flex;justify-content:space-between;align-items:start;gap:10px">';
       html += '<div style="flex:1;min-width:0">';
       html += '<div style="font-weight:700;font-size:13px">' + esc((v.marca || '') + ' ' + (v.modelo || '') || 'Venta') + '</div>';
-      html += '<div style="font-size:10px;color:var(--muted);margin-top:3px">📅 ' + esc(v.fecha || '') + ' · ' + esc(v.pago || '') + '</div>';
+      html += '<div style="font-size:10px;color:var(--muted);margin-top:3px">📅 ' + fmtFecha(v.fecha) + ' · ' + esc(v.pago || '') + '</div>';
       html += '</div>';
       html += '<div style="text-align:right;flex-shrink:0">';
       html += '<div style="font-size:10px;font-weight:700;color:' + colorE + '">' + estado + '</div>';
