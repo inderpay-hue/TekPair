@@ -7,12 +7,14 @@ export const CTA: React.FC<{
   subtitle?: string;
   button?: string;
   primaryColor?: string;
+  hideSubtitle?: boolean;
 }> = ({
   url = 'tekpair',
   suffix = '.tech',
-  subtitle = 'Prueba gratis 15 días',
+  subtitle = '',
   button = 'Empezar ahora →',
   primaryColor = COLORS.primary,
+  hideSubtitle = false,
 }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
@@ -29,9 +31,11 @@ export const CTA: React.FC<{
         <div style={{ fontSize: 100, fontWeight: 800, color: COLORS.white, transform: `scale(${urlScale})`, opacity: urlOpacity, letterSpacing: -3 }}>
           {url}<span style={{ color: primaryColor }}>{suffix}</span>
         </div>
-        <div style={{ fontSize: 36, color: COLORS.muted, opacity: subtitleSpring, transform: `translateY(${(1 - subtitleSpring) * 20}px)`, fontWeight: 500 }}>
-          {subtitle}
-        </div>
+        {!hideSubtitle && subtitle && (
+          <div style={{ fontSize: 36, color: COLORS.muted, opacity: subtitleSpring, transform: `translateY(${(1 - subtitleSpring) * 20}px)`, fontWeight: 500 }}>
+            {subtitle}
+          </div>
+        )}
         <div style={{ marginTop: 40, padding: '24px 60px', background: primaryColor, borderRadius: 16, fontSize: 36, fontWeight: 700, color: COLORS.white, transform: `scale(${buttonSpring * pulse})`, opacity: buttonSpring, boxShadow: `0 10px 40px ${primaryColor}80` }}>
           {button}
         </div>

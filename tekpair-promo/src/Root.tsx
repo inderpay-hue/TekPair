@@ -6,6 +6,13 @@ import { SabesQueGanasReel } from './SabesQueGanasReel';
 import { FacturasReel } from './FacturasReel';
 import { StockReel } from './StockReel';
 import { LeyGarantiaReel } from './LeyGarantiaReel';
+import { CobrosReel } from './CobrosReel';
+import { PDFReel } from './PDFReel';
+import { PlantillasReel } from './PlantillasReel';
+import { CitasOnlineReel } from './CitasOnlineReel';
+import { CatalogoReel } from './CatalogoReel';
+import { FacebookCover } from './covers/FacebookCover';
+import { YouTubeCover } from './covers/YouTubeCover';
 
 const TEKPAIR_BASE = {
   brand: 'TekPair',
@@ -54,6 +61,29 @@ export const RemotionRoot: React.FC = () => {
       <Composition id="LeyGarantia-Vertical" component={LeyGarantiaReel} durationInFrames={450} fps={30} width={1080} height={1920} />
       <Composition id="LeyGarantia-Cuadrado" component={LeyGarantiaReel} durationInFrames={450} fps={30} width={1080} height={1080} />
       <Composition id="LeyGarantia-Horizontal" component={LeyGarantiaReel} durationInFrames={450} fps={30} width={1920} height={1080} />
+
+      <Composition id="Cobros-Vertical" component={CobrosReel} durationInFrames={450} fps={30} width={1080} height={1920} />
+      <Composition id="Cobros-Cuadrado" component={CobrosReel} durationInFrames={450} fps={30} width={1080} height={1080} />
+      <Composition id="Cobros-Horizontal" component={CobrosReel} durationInFrames={450} fps={30} width={1920} height={1080} />
+
+      <Composition id="PDF-Vertical" component={PDFReel} durationInFrames={450} fps={30} width={1080} height={1920} />
+      <Composition id="PDF-Cuadrado" component={PDFReel} durationInFrames={450} fps={30} width={1080} height={1080} />
+      <Composition id="PDF-Horizontal" component={PDFReel} durationInFrames={450} fps={30} width={1920} height={1080} />
+
+      <Composition id="Plantillas-Vertical" component={PlantillasReel} durationInFrames={450} fps={30} width={1080} height={1920} />
+      <Composition id="Plantillas-Cuadrado" component={PlantillasReel} durationInFrames={450} fps={30} width={1080} height={1080} />
+      <Composition id="Plantillas-Horizontal" component={PlantillasReel} durationInFrames={450} fps={30} width={1920} height={1080} />
+
+      <Composition id="CitasOnline-Vertical" component={CitasOnlineReel} durationInFrames={450} fps={30} width={1080} height={1920} />
+      <Composition id="CitasOnline-Cuadrado" component={CitasOnlineReel} durationInFrames={450} fps={30} width={1080} height={1080} />
+      <Composition id="CitasOnline-Horizontal" component={CitasOnlineReel} durationInFrames={450} fps={30} width={1920} height={1080} />
+
+      <Composition id="Catalogo-Vertical" component={CatalogoReel} durationInFrames={450} fps={30} width={1080} height={1920} />
+      <Composition id="Catalogo-Cuadrado" component={CatalogoReel} durationInFrames={450} fps={30} width={1080} height={1080} />
+      <Composition id="Catalogo-Horizontal" component={CatalogoReel} durationInFrames={450} fps={30} width={1920} height={1080} />
+
+      <Composition id="FacebookCover" component={FacebookCover} durationInFrames={1} fps={30} width={1640} height={624} />
+      <Composition id="YouTubeCover" component={YouTubeCover} durationInFrames={1} fps={30} width={2560} height={1440} />
     </>
   );
 };
