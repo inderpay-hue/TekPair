@@ -908,6 +908,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
+  <script src="/lang/lang.js"></script>
 </head>
 <body>
 <div id="app">
@@ -925,6 +926,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </button>
     <div style="position:relative">
       <button class="sidebar-bell" id="btnTemaToggle" onclick="toggleTemaMenu()" title="Cambiar tema" style="font-size:16px">🎨</button>
+      <div style="position:relative">
+        <button class="sidebar-bell" id="btnLangToggle" onclick="toggleLangMenu()" title="Idioma" style="font-size:13px;font-weight:700;letter-spacing:-.5px" id="btnLangLabel">ES</button>
+        <div id="langMenu" style="display:none;position:absolute;right:0;top:38px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:130px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px" data-t="gen.idioma">Idioma</div>
+          <button onclick="setLang('es');toggleLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇪🇸 Español</button>
+          <button onclick="setLang('en');toggleLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇬🇧 English</button>
+          <button onclick="setLang('fr');toggleLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇫🇷 Français</button>
+          <button onclick="setLang('it');toggleLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇮🇹 Italiano</button>
+          <button onclick="setLang('de');toggleLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇩🇪 Deutsch</button>
+          <button onclick="setLang('pt');toggleLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇵🇹 Português</button>
+        </div>
+      </div>
       <div id="temaMenu" style="display:none;position:absolute;right:0;top:38px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:140px">
         <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px">Tema</div>
         <button onclick="setTema('terracota');toggleTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#C2410C;display:inline-block;flex-shrink:0"></span>Terracota</button>
@@ -957,7 +970,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span>Reparaciones
     </div>
     <div class="sidebar-ni" data-p="pPresupuestos" onclick="navTo('pPresupuestos');setSidebarActive(this)" style="color:rgba(168,85,247,.8)">
-      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>Presupuestos
+      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span data-t="nav.presupuestos">Presupuestos
     </div>
     <div class="sidebar-ni" data-p="pFacturas" onclick="navTo('pFacturas');setSidebarActive(this)">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>Facturas
@@ -966,12 +979,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></span>Citas <span class="sidebar-citas-badge" id="sidebarCitasBadge" style="display:none"></span>
     </div>
     <div class="sidebar-ni" data-p="pStock" onclick="navTo('pStock');setSidebarActive(this)">
-      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span>Stock
+      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="16.5" y1="9.4" x2="7.5" y2="4.21"/><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg></span data-t="nav.stock">Stock
     </div>
 
     <div class="sidebar-group">Gestión</div>
     <div class="sidebar-ni" data-p="pClis" onclick="navTo('pClis');setSidebarActive(this)">
-      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span>Clientes
+      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span data-t="nav.clientes">Clientes
     </div>
     <div class="sidebar-ni" data-p="pProvs" onclick="navTo('pProvs');setSidebarActive(this)">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg></span>Proveedores
@@ -980,7 +993,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>Servicios
     </div>
     <div class="sidebar-ni" onclick="window.location.href='catalogo.html'">
-      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>Catalogo
+      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span data-t="nav.stock">Catalogo
     </div>
     <div class="sidebar-ni" data-p="pCajas" onclick="navTo('pCajas');setSidebarActive(this)">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></span>Cajas
@@ -989,7 +1002,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="20" x2="12" y2="10"/><line x1="18" y1="20" x2="18" y2="4"/><line x1="6" y1="20" x2="6" y2="16"/></svg></span>Gastos
     </div>
     <div class="sidebar-ni" data-p="pReportes" onclick="navTo('pReportes');setSidebarActive(this)">
-      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span>Reportes
+      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span data-t="nav.reportes">Reportes
     </div>
 
     <div class="sidebar-group">Configuración</div>
@@ -997,10 +1010,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></span>Usuarios
     </div>
     <div class="sidebar-ni" data-p="pAjustes" onclick="navTo('pAjustes');setSidebarActive(this)">
-      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span>Ajustes
+      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span data-t="nav.ajustes">Ajustes
     </div>
     <div class="sidebar-ni" data-p="pAyuda" onclick="navTo('pAyuda');setSidebarActive(this)">
-      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span>Ayuda
+      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></span data-t="nav.ayuda">Ayuda
     </div>
   </div>
   <div class="sidebar-user">
@@ -1067,13 +1080,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="stats-grid" id="metricsGrid"></div>
   <div class="quick-grid" id="dashQuickGrid">
     <!-- VIS-4: Nueva venta y TPV son las acciones primarias (uso diario), destacadas con fondo naranja suave -->
-    <button class="qbtn-dash qbtn-primary" onclick="abrirVenta()"><span class="qbtn-icon" style="background:rgba(255,91,31,.15);color:var(--orange)">📱</span><span class="qbtn-label">Nueva venta</span></button>
-    <button class="qbtn-dash qbtn-primary" onclick="window.location.href='tpv.html'"><span class="qbtn-icon" style="background:rgba(255,91,31,.15);color:var(--orange)">🛒</span><span class="qbtn-label">Abrir TPV</span></button>
-    <button class="qbtn-dash" onclick="abrirRep()"><span class="qbtn-icon" style="background:rgba(0,200,150,.10);color:var(--green)">🔧</span><span class="qbtn-label">Reparación</span></button>
+    <button class="qbtn-dash qbtn-primary" onclick="abrirVenta()"><span class="qbtn-icon" style="background:rgba(255,91,31,.15);color:var(--orange)">📱</span><span class="qbtn-label" data-t="dash.nueva_venta">Nueva venta</span></button>
+    <button class="qbtn-dash qbtn-primary" onclick="window.location.href='tpv.html'"><span class="qbtn-icon" style="background:rgba(255,91,31,.15);color:var(--orange)">🛒</span><span class="qbtn-label" data-t="dash.abrir_tpv">Abrir TPV</span></button>
+    <button class="qbtn-dash" onclick="abrirRep()"><span class="qbtn-icon" style="background:rgba(0,200,150,.10);color:var(--green)">🔧</span><span class="qbtn-label" data-t="dash.reparacion">Reparación</span></button>
     <!-- PRES-3: Nuevo Presupuesto -->
-    <button class="qbtn-dash" onclick="abrirPresupuesto()"><span class="qbtn-icon" style="background:rgba(168,85,247,.10);color:#8B5CF6">📋</span><span class="qbtn-label">Presupuesto</span></button>
-    <button class="qbtn-dash" onclick="navTo('pStock');openM('mStock')"><span class="qbtn-icon" style="background:rgba(249,115,22,.10);color:var(--orange)">📦</span><span class="qbtn-label">Añadir stock</span></button>
-    <button class="qbtn-dash" onclick="navTo('pClis');openM('mCli')"><span class="qbtn-icon" style="background:rgba(0,140,255,.10);color:var(--blue)">👤</span><span class="qbtn-label">Nuevo cliente</span></button>
+    <button class="qbtn-dash" onclick="abrirPresupuesto()"><span class="qbtn-icon" style="background:rgba(168,85,247,.10);color:#8B5CF6">📋</span><span class="qbtn-label" data-t="dash.presupuesto">Presupuesto</span></button>
+    <button class="qbtn-dash" onclick="navTo('pStock');openM('mStock')"><span class="qbtn-icon" style="background:rgba(249,115,22,.10);color:var(--orange)">📦</span><span class="qbtn-label" data-t="dash.anadir_stock">Añadir stock</span></button>
+    <button class="qbtn-dash" onclick="navTo('pClis');openM('mCli')"><span class="qbtn-icon" style="background:rgba(0,140,255,.10);color:var(--blue)">👤</span><span class="qbtn-label" data-t="dash.nuevo_cliente">Nuevo cliente</span></button>
   </div>
   <div class="card" id="cardUrgentes">
     <div class="sec-header">
@@ -1202,7 +1215,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- PAGE: VENTAS -->
 <div class="page" id="pVentas">
   <div class="sec-header" style="margin-bottom:10px">
-    <div class="sec-title">Ventas</div>
+    <div class="sec-title" data-t="nav.ventas">Ventas</div>
     <button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirVenta()">+ Nueva</button>
   </div>
   <div class="search-wrap">
@@ -1220,7 +1233,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- PAGE: REPARACIONES -->
 <div class="page" id="pReps">
   <div class="sec-header" style="margin-bottom:10px">
-    <div class="sec-title">Reparaciones</div>
+    <div class="sec-title" data-t="nav.reparaciones">Reparaciones</div>
     <div style="display:flex;gap:6px;align-items:center">
       <div class="vista-toggle" style="display:flex;background:var(--light);border-radius:8px;padding:3px;gap:2px">
         <button class="vista-btn active" id="btnVistaLista" onclick="cambiarVista('lista')" title="Vista lista">☰</button>
@@ -5317,6 +5330,7 @@ window.addEventListener('DOMContentLoaded', function() {
   cargarDatosLocal();
   renderDash();
   checkUrgentes();
+  applyLang();
 
   // Load from Supabase
   if (SB_KEY && TIENDA_ID) {
@@ -6105,13 +6119,13 @@ async function renderDash() {
   if (widgetVisible('widget_stats_ventas') && tienePerm('ventas_ver')) {
     // VIS-2: contadores en oscuro neutro, importes en verde. Color secundario sutil.
     statsHtml += '<div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" style="color:var(--text)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>';
-    statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl">Ingresos ventas</div></div>';
+    statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl" data-t="dash.ingresos_ventas">Ingresos ventas</div></div>';
   }
   if (widgetVisible('widget_stats_reps') && tienePerm('reps_ver')) {
-    statsHtml += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--text)">' + repsActivas.length + '</div><div class="stat-lbl">En reparación</div></div>';
+    statsHtml += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--text)">' + repsActivas.length + '</div><div class="stat-lbl" data-t="dash.en_reparacion">En reparación</div></div>';
   }
   if (widgetVisible('widget_stats_total') && tienePerm('ventas_ver') && tienePerm('reps_ver')) {
-    statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas + tReps) + '</div><div class="stat-lbl">Total ingresos</div></div>';
+    statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas + tReps) + '</div><div class="stat-lbl" data-t="dash.total_ingresos">Total ingresos</div></div>';
   }
   document.getElementById('metricsGrid').innerHTML = statsHtml;
   if (typeof renderDashWidgets === 'function') renderDashWidgets();
@@ -7257,7 +7271,7 @@ function renderVentas() {
   });
   var el = document.getElementById('listaVentas');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📱</div>Sin registros</div>'; return; }
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th><th></th></tr></thead><tbody>';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th data-t="rep.cliente">Cliente</th><th data-t="rep.modelo">Modelo</th><th>Pago</th><th data-t="rep.total">Total</th><th></th></tr></thead><tbody>';
   list.forEach(function(v) {
     var badges = '';
     if (v.reembolsado) badges += '<span class="badge-reem">Reembolsado</span>';
@@ -9651,7 +9665,7 @@ function renderPresupuestos() {
     return;
   }
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr>'
-    + '<th>Cliente</th><th>Dispositivo</th><th>Avería</th><th>Total</th><th>Fecha</th><th>Estado</th><th></th>'
+    + '<th>Cliente</th><th>Dispositivo</th><th data-t="rep.averia">Avería</th><th>Total</th><th>Fecha</th><th data-t="rep.estado">Estado</th><th></th>'
     + '</tr></thead><tbody>';
 
   list.forEach(function(r) {
@@ -9727,7 +9741,7 @@ function renderReps() {
   if (!list.length) { el.innerHTML = '<div class="empty">Sin reparaciones</div>'; return; }
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr>'
     + '<th>Cliente</th><th>Modelo</th><th>Averia</th><th>Estado</th>'
-    + '<th>Prioridad</th><th>F.Entrega</th><th>F.Entregado</th><th>Total</th><th></th>'
+    + '<th data-t="rep.prioridad">Prioridad</th><th>F.Entrega</th><th>F.Entregado</th><th>Total</th><th></th>'
     + '</tr></thead><tbody>';
   list.forEach(function(r) {
     var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" data-action="confirm" class="row-btn btn-ent" title="Marcar entregado">&#10003;</button>' : '';
@@ -13424,6 +13438,21 @@ function felicitarCumple(cliId) {
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
 }
 
+function toggleLangMenu() {
+  var m = document.getElementById('langMenu');
+  if (!m) return;
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  if (m.style.display === 'block') {
+    setTimeout(function() {
+      document.addEventListener('click', function closeLang(e) {
+        if (!document.getElementById('langMenu').contains(e.target) && e.target.id !== 'btnLangToggle') {
+          document.getElementById('langMenu').style.display = 'none';
+        }
+        document.removeEventListener('click', closeLang);
+      });
+    }, 100);
+  }
+}
 function toggleTemaMenu() {
   var m = document.getElementById('temaMenu');
   if (!m) return;
