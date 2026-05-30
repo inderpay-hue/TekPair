@@ -7272,7 +7272,7 @@ function renderVentas() {
   });
   var el = document.getElementById('listaVentas');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📱</div>Sin registros</div>'; return; }
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="gen.fecha">Fecha</span></th><th data-t="rep.cliente"><span data-t="rep.cliente">Cliente</span></th><th data-t="rep.modelo">Modelo</th><th>Pago</th><th data-t="rep.total">Total</th><th></th></tr></thead><tbody>';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="gen.fecha">Fecha</span></th><th data-t="rep.cliente"><span data-t="rep.cliente">Cliente</span></th><th data-t="rep.modelo">Modelo</th><th><span data-t="tpv.forma_pago">Pago</span></th><th data-t="rep.total">Total</th><th></th></tr></thead><tbody>';
   list.forEach(function(v) {
     var badges = '';
     if (v.reembolsado) badges += '<span class="badge-reem">Reembolsado</span>';
@@ -9741,7 +9741,7 @@ function renderReps() {
   var el = document.getElementById('listaReps');
   if (!list.length) { el.innerHTML = '<div class="empty">Sin reparaciones</div>'; return; }
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr>'
-    + '<th>Cliente</th><th>Modelo</th><th>Averia</th><th>Estado</th>'
+    + '<th>Cliente</th><th>Modelo</th><th><span data-t="rep.averia">Avería</span></th><th>Estado</th>'
     + '<th data-t="rep.prioridad">Prioridad</th><th>F.Entrega</th><th>F.Entregado</th><th>Total</th><th></th>'
     + '</tr></thead><tbody>';
   list.forEach(function(r) {
@@ -14674,7 +14674,7 @@ var PERMS_LISTA = [
   {id:'reps_eliminar',label:'Eliminar reparaciones',grupo:'Reparaciones'},
   {id:'reps_entregar',label:'Entregar reparaciones',grupo:'Reparaciones'},
   // Stock
-  {id:'stock_ver',label:'Ver stock',grupo:'Stock'},
+  {id:'stock_ver',label:T('gen.ver_todas'),grupo:'Stock'},
   {id:'stock_crear',label:'Añadir stock',grupo:'Stock'},
   {id:'stock_editar',label:'Editar stock',grupo:'Stock'},
   {id:'stock_eliminar',label:'Eliminar stock',grupo:'Stock'},
