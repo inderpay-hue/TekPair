@@ -276,6 +276,8 @@ es: {
   'gen.importar': 'Importar',
   'gen.backup': 'Backup',
   'gen.inicio_rapido': 'Inicio rápido',
+  'dash.sin_pendientes_en': 'sin pendientes en',
+  'gen.y_mas': 'y {n} más',
   'gen.idioma': 'Idioma',
 },
 
@@ -536,6 +538,8 @@ en: {
   'gen.importar': 'Import',
   'gen.backup': 'Backup',
   'gen.inicio_rapido': 'Quick start',
+  'dash.sin_pendientes_en': 'no pending in',
+  'gen.y_mas': 'and {n} more',
   'gen.idioma': 'Language',
 },
 
@@ -796,6 +800,8 @@ fr: {
   'gen.importar': 'Importer',
   'gen.backup': 'Sauvegarde',
   'gen.inicio_rapido': 'Démarrage rapide',
+  'dash.sin_pendientes_en': 'rien en attente dans',
+  'gen.y_mas': 'et {n} de plus',
   'gen.idioma': 'Langue',
 },
 
@@ -1056,6 +1062,8 @@ it: {
   'gen.importar': 'Importa',
   'gen.backup': 'Backup',
   'gen.inicio_rapido': 'Avvio rapido',
+  'dash.sin_pendientes_en': 'nessun pendente in',
+  'gen.y_mas': 'e altri {n}',
   'gen.idioma': 'Lingua',
 },
 
@@ -1316,6 +1324,8 @@ de: {
   'gen.importar': 'Importieren',
   'gen.backup': 'Sicherung',
   'gen.inicio_rapido': 'Schnellstart',
+  'dash.sin_pendientes_en': 'keine ausstehenden in',
+  'gen.y_mas': 'und {n} weitere',
   'gen.idioma': 'Sprache',
 },
 
@@ -1576,6 +1586,8 @@ pt: {
   'gen.importar': 'Importar',
   'gen.backup': 'Cópia de segurança',
   'gen.inicio_rapido': 'Início rápido',
+  'dash.sin_pendientes_en': 'sem pendentes em',
+  'gen.y_mas': 'e mais {n}',
   'gen.idioma': 'Idioma',
 },
 
