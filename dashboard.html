@@ -7323,7 +7323,7 @@ function reembolsarVenta(id) {
   if (!v) return;
   if (!confirm('Reembolsar venta de ' + v.clienteNombre + ' por ' + cur(v.total) + '?')) return;
   v.reembolsado = true;
-  v.fechaReembolso = new Date().toLocaleDateString('es');
+  v.fechaReembolso = hoyLocal();
   if (v.stockId) {
     var s = DB.stock.find(function(x) { return x.id === v.stockId; });
     if (s) {
@@ -7389,7 +7389,7 @@ function registrarPagoCuota(vid, cidx) {
   var fp = formas[parseInt(sel) - 1] || 'Efectivo';
   v.cuotas[cidx].pagado = true;
   v.cuotas[cidx].formaPago = fp;
-  v.cuotas[cidx].fechaPago = new Date().toLocaleDateString('es');
+  v.cuotas[cidx].fechaPago = hoyLocal();
   var todasPagadas = v.cuotas.every(function(c) { return c.pagado; });
   if (todasPagadas) { v.estadoFinanciado = 'completado'; toast('Financiado completado!', 'ok'); }
   guardarDatos();
@@ -8830,7 +8830,7 @@ function trackingWA() {
   var tel = (cli && cli.tel) ? cli.tel.replace(/[^0-9]/g, '') : '';
   var msg = 'Hola ' + r.clienteNombre + '! Hemos recibido tu ' + r.marca + ' ' + r.modelo + '. Puedes seguir el estado de la reparacion en cualquier momento aqui:\n\n' + url + '\n\nGracias!';
   if (tel) {
-    window.open('https://wa.me/34' + tel + '?text=' + encodeURIComponent(msg));
+    window.open('https://wa.me/' + (tel.startsWith('34') ? '' : '34') + tel + '?text=' + encodeURIComponent(msg));
   } else {
     window.open('https://wa.me/?text=' + encodeURIComponent(msg));
   }
@@ -9860,7 +9860,7 @@ function cambiarEstado(id, estado) {
       asegurarToken(r).then(function(){
         var url = linkParte(r);
         var msg = 'Hola ' + r.clienteNombre + '! Tu ' + r.marca + ' ' + r.modelo + ' ya esta listo. Puedes pasarte a recogerlo cuando quieras.\n\nSigue el estado aqui: ' + url + '\n\nGracias!';
-        window.open('https://wa.me/34' + tel + '?text=' + encodeURIComponent(msg));
+        window.open('https://wa.me/' + (tel.startsWith('34') ? '' : '34') + tel + '?text=' + encodeURIComponent(msg));
       });
     }
   }
@@ -9882,7 +9882,7 @@ function confirmarEntrega() {
   var r = DB.reps.find(function(x) { return x.id === SEL.eRepId; });
   if (!r) return;
   r.estado = 'Entregado';
-  r.fechaEntregaReal = new Date().toLocaleDateString('es');
+  r.fechaEntregaReal = hoyLocal();
   r.pagoFinal = document.getElementById('ePago').value;
   r.restante = 0;
   guardarDatos();
@@ -9937,7 +9937,7 @@ function confirmarEntrega() {
         'Gracias por confiar en nosotros!'
       ].filter(function(l){ return l !== ''; });
       var msg = lineas.join('\n');
-      window.open('https://wa.me/34' + tel + '?text=' + encodeURIComponent(msg));
+      window.open('https://wa.me/' + (tel.startsWith('34') ? '' : '34') + tel + '?text=' + encodeURIComponent(msg));
     });
   }
 }
@@ -12225,7 +12225,7 @@ function checkCierreAuto() {
   var [h, m] = AJUSTES.cierre.hora.split(':').map(Number);
   if (ahora.getHours() === h && ahora.getMinutes() === m) {
     var ult = localStorage.getItem('tk_ult_cierre');
-    var hoy = ahora.toLocaleDateString('es');
+    var hoy = ahora.toISOString().slice(0,10);
     if (ult !== hoy) {
       localStorage.setItem('tk_ult_cierre', hoy);
       cierreDia();
@@ -12864,7 +12864,7 @@ function _saveDismissed(d) { localStorage.setItem('tk_notif_dismissed', JSON.str
 function computeNotificaciones() {
   var notifs = [];
   var hoyDate = new Date(); hoyDate.setHours(0,0,0,0);
-  var hoyES = new Date().toLocaleDateString('es');
+  var hoyES = hoyLocal();
   var nowMs = Date.now();
   var nf = (AJUSTES.notif && AJUSTES.notif.activa) || {};
   var diasAbandono = (AJUSTES.notif && AJUSTES.notif.diasAbandono) || 90;
@@ -13354,7 +13354,7 @@ function setNotifFilter(tipo) {
 
 function marcarLeida(id, leida) {
   var d = _getRead();
-  if (leida) d[id] = new Date().toLocaleDateString('es');
+  if (leida) d[id] = hoyLocal();
   else delete d[id];
   _saveRead(d);
   _pushNotifRead();
@@ -13416,7 +13416,7 @@ function toggleNotifs() {
 
 function dismissNotif(id) {
   var d = _getDismissed();
-  d[id] = new Date().toLocaleDateString('es');
+  d[id] = hoyLocal();
   _saveDismissed(d);
   refreshNotifs();
 }
@@ -15055,7 +15055,7 @@ function backupManual() {
   var blob = new Blob([data], {type: 'application/json'});
   var a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'tekpair_backup_' + new Date().toLocaleDateString('es').replace(/\//g, '-') + '.json';
+  a.download = 'tekpair_backup_' + hoyLocal() + '.json';
   a.click();
   toast('Backup descargado', 'ok');
 }
@@ -16516,7 +16516,7 @@ function impFacAnadirAlStock() {
       precioC: coste,
       precioV: precioV,
       proveedor: '',
-      notas: 'Importado desde factura ' + new Date().toLocaleDateString('es')
+      notas: 'Importado desde factura ' + hoyLocal()
     };
     DB.stock.push(item);
     creados++;
