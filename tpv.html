@@ -183,6 +183,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
+  <script src="/lang/lang.v4.js"></script>
 </head>
 <body>
 
@@ -190,7 +191,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
   <!-- LEFT: Products -->
   <div class="tpv-left">
     <div class="tpv-topbar">
-      <div class="tpv-logo">⚡ Tekpair TPV</div>
+      <div class="tpv-logo"><span data-t="tpv.titulo">⚡ Tekpair TPV</span></div>
       <div class="tpv-topbar-info">
         <span id="topDate"></span>
         <span id="topUser"></span>
@@ -200,10 +201,10 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 
     <!-- Caja del día -->
     <div class="caja-bar">
-      <div class="caja-info">💵 Caja hoy: <strong id="cajaTotal">€0.00</strong> efectivo</div>
+      <div class="caja-info"><span data-t="tpv.caja_hoy">Caja hoy</span>: <strong id="cajaTotal">€0.00</strong> efectivo</div>
       <div style="display:flex;gap:6px">
-        <button class="caja-btn" onclick="verHistorial()">📋 Historial</button>
-        <button class="caja-btn" onclick="verCaja()">Ver caja</button>
+        <button class="caja-btn" onclick="verHistorial()"><span data-t="tpv.historial">📋 Historial</span></button>
+        <button class="caja-btn" onclick="verCaja()"><span data-t="tpv.ver_caja">Ver caja</span></button>
       </div>
     </div>
 
@@ -211,20 +212,20 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
     <div class="tpv-search">
       <div class="search-wrap">
         <span class="search-ico">🔍</span>
-        <input class="tpv-search-input" id="tpvSearch" placeholder="Buscar producto, servicio o IMEI..." oninput="buscarProducto()" autocomplete="off">
+        <input class="tpv-search-input" id="tpvSearch" placeholder="Buscar..." data-t-ph="tpv.buscar" oninput="buscarProducto()" autocomplete="off">
         <div class="search-results" id="searchResults"></div>
       </div>
     </div>
 
     <!-- Categories -->
     <div class="tpv-cats">
-      <button class="cat-pill active" data-c="" onclick="setCat(this)">Todos</button>
-      <button class="cat-pill" data-c="favoritos" onclick="setCat(this)" style="border-color:#FBBF24;color:#92400E;font-weight:800">⭐ Favoritos</button>
-      <button class="cat-pill" data-c="Telefono" onclick="setCat(this)">📱 Telefonos</button>
-      <button class="cat-pill" data-c="Tablet" onclick="setCat(this)">📟 Tablets</button>
-      <button class="cat-pill" data-c="Accesorio" onclick="setCat(this)">🎧 Accesorios</button>
-      <button class="cat-pill" data-c="Repuesto" onclick="setCat(this)">🔧 Repuestos</button>
-      <button class="cat-pill" data-c="servicio" onclick="setCat(this)">🛠️ Servicios</button>
+      <button class="cat-pill active" data-c="" onclick="setCat(this)"><span data-t="tpv.todos">Todos</span></button>
+      <button class="cat-pill" data-c="favoritos" onclick="setCat(this)" style="border-color:#FBBF24;color:#92400E;font-weight:800"><span data-t="tpv.favoritos">⭐ Favoritos</span></button>
+      <button class="cat-pill" data-c="Telefono" onclick="setCat(this)"><span data-t="tpv.telefonos">📱 Teléfonos</span></button>
+      <button class="cat-pill" data-c="Tablet" onclick="setCat(this)"><span data-t="tpv.tablets">📟 Tablets</span></button>
+      <button class="cat-pill" data-c="Accesorio" onclick="setCat(this)"><span data-t="tpv.accesorios">🎧 Accesorios</span></button>
+      <button class="cat-pill" data-c="Repuesto" onclick="setCat(this)"><span data-t="tpv.repuestos">🔧 Repuestos</span></button>
+      <button class="cat-pill" data-c="servicio" onclick="setCat(this)"><span data-t="tpv.servicios">🛠️ Servicios</span></button>
     </div>
 
     <!-- Favorites bar -->
@@ -239,7 +240,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
     <div class="cart-header" style="display:flex;align-items:center;gap:10px">
       <button class="cart-close-mobile" onclick="toggleCartMobile()" title="Volver a productos">←</button>
       <div style="flex:1;min-width:0">
-        <div class="cart-title">🛒 Ticket</div>
+        <div class="cart-title"><span data-t="tpv.ticket">🛒 Ticket</span></div>
         <div class="cart-subtitle" id="cartClient" onclick="openModal('mCli')" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:2px 0" title="Click para asignar cliente">
           <span id="cartClientIcon">👤</span>
           <span id="cartClientText" style="flex:1">Asignar cliente</span>
@@ -268,7 +269,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 
       <!-- Totals -->
       <div class="cart-totals">
-        <div class="total-row"><span>Subtotal</span><span id="subtotal">€0.00</span></div>
+        <div class="total-row"><span><span data-t="tpv.subtotal">Subtotal</span></span><span id="subtotal">€0.00</span></div>
         <div class="total-row"><span>Descuento</span><span id="discTotal" style="color:#FF8080">-€0.00</span></div>
         <div class="total-row" id="ivaBaseRow" style="display:none"><span>Base imponible</span><span id="ivaBaseVal">€0.00</span></div>
         <div class="total-row" id="ivaImpRow" style="display:none"><span id="ivaImpLbl">IVA</span><span id="ivaImpVal">€0.00</span></div>
@@ -279,10 +280,10 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
       <div class="cart-payment">
         <div class="payment-title">Forma de pago</div>
         <div class="payment-btns">
-          <button class="pay-btn active" data-p="Efectivo" onclick="setPago(this)">💵 Efectivo</button>
-          <button class="pay-btn" data-p="Tarjeta" onclick="setPago(this)">💳 Tarjeta</button>
-          <button class="pay-btn" data-p="Bizum" onclick="setPago(this)">📱 Bizum</button>
-          <button class="pay-btn" data-p="Financiado" onclick="setPago(this)">📅 Financiado</button>
+          <button class="pay-btn active" data-p="Efectivo" onclick="setPago(this)"><span data-t="tpv.efectivo">💵 Efectivo</span></button>
+          <button class="pay-btn" data-p="Tarjeta" onclick="setPago(this)"><span data-t="tpv.tarjeta">💳 Tarjeta</span></button>
+          <button class="pay-btn" data-p="Bizum" onclick="setPago(this)"><span data-t="tpv.bizum">📱 Bizum</span></button>
+          <button class="pay-btn" data-p="Financiado" onclick="setPago(this)"><span data-t="tpv.financiado">📅 Financiado</span></button>
         </div>
 
         <!-- Efectivo recibido -->
@@ -290,7 +291,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
           <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px">Efectivo recibido</div>
           <input class="disc-input" id="efectivoInput" type="number" placeholder="0.00" oninput="calcCambio()" style="margin-bottom:6px">
           <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.7)">
-            <span>Cambio</span><span id="cambioVal" style="color:var(--green);font-weight:700">€0.00</span>
+            <span><span data-t="tpv.cambio">Cambio</span></span><span id="cambioVal" style="color:var(--green);font-weight:700">€0.00</span>
           </div>
         </div>
       </div>
@@ -327,7 +328,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 <!-- MODAL: Cliente -->
 <div class="modal-bg" id="mCli">
 <div class="modal">
-  <div class="modal-title">👤 Asignar Cliente</div>
+  <div class="modal-title"><span data-t="tpv.asignar_cliente">👤 Asignar Cliente</span></div>
   <div class="fg" style="position:relative">
     <label class="fl">Buscar cliente</label>
     <input class="fi" id="cliSearch" placeholder="Nombre, teléfono..." oninput="buscarCliente()" autocomplete="off">
@@ -355,7 +356,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
   <div class="modal-title">✅ Venta completada</div>
   <div id="ticketContent"></div>
   <div style="display:flex;gap:10px;margin-top:16px">
-    <button class="btn-primary" onclick="imprimirTicket()">🖨️ Imprimir</button>
+    <button class="btn-primary" onclick="imprimirTicket()"><span data-t="tpv.imprimir">🖨️ Imprimir</span></button>
     <button class="btn-secondary" onclick="nuevaVenta()">+ Nueva venta</button>
   </div>
 </div>
@@ -395,7 +396,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 <div class="modal" style="max-width:560px">
   <div class="modal-title">📋 Ventas de hoy</div>
   <div class="fg" style="margin-bottom:10px">
-    <input class="fi" id="histSearch" placeholder="Buscar cliente, producto, pago..." oninput="renderHistorial()" autocomplete="off">
+    <input class="fi" id="histSearch" placeholder="Buscar..." data-t-ph="gen.buscar" oninput="renderHistorial()" autocomplete="off">
   </div>
   <div id="histContent"></div>
   <button class="btn-secondary" onclick="closeModal('mHistorial')" style="margin-top:12px">Cerrar</button>
@@ -1202,7 +1203,7 @@ function mostrarTicket(venta, totals) {
       return '<div class="ticket-row"><span>' + escHtml(item.nombre) + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>';
     }).join('') +
     '<hr class="ticket-sep">' +
-    (totals.disc > 0 ? '<div class="ticket-row"><span>Subtotal</span><span>\u20ac' + totals.subtotal.toFixed(2) + '</span></div>' +
+    (totals.disc > 0 ? '<div class="ticket-row"><span><span data-t="tpv.subtotal">Subtotal</span></span><span>\u20ac' + totals.subtotal.toFixed(2) + '</span></div>' +
     '<div class="ticket-row"><span>Descuento</span><span>-\u20ac' + totals.disc.toFixed(2) + '</span></div>' : '') +
     (ivaOn ?
       '<div class="ticket-row"><span>Base imponible</span><span>\u20ac' + totals.base.toFixed(2) + '</span></div>' +
