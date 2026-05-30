@@ -1593,7 +1593,15 @@ function setLang(lang) {
   TEKPAIR_LANG = lang;
   localStorage.setItem('tp_lang', lang);
   document.documentElement.lang = lang;
+  var btn = document.getElementById('btnLangToggle');
+  if (btn) btn.textContent = lang.toUpperCase();
   applyLang();
+  try { if (typeof renderReps === 'function') renderReps(); } catch(e){}
+  try { if (typeof renderDash === 'function') renderDash(); } catch(e){}
+  try { if (typeof renderClis === 'function') renderClis(); } catch(e){}
+  try { if (typeof renderVentas === 'function') renderVentas(); } catch(e){}
+  try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
+  try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch(e){}
 }
 
 // Aplicar idioma a elementos con data-t
