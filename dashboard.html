@@ -923,6 +923,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       🔔
       <span class="notif-badge" id="sidebarBadge">0</span>
     </button>
+    <div style="position:relative">
+      <button class="sidebar-bell" id="btnTemaToggle" onclick="toggleTemaMenu()" title="Cambiar tema" style="font-size:16px">🎨</button>
+      <div id="temaMenu" style="display:none;position:absolute;right:0;top:38px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:140px">
+        <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px">Tema</div>
+        <button onclick="setTema('terracota');toggleTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#C2410C;display:inline-block;flex-shrink:0"></span>Terracota</button>
+        <button onclick="setTema('naranja');toggleTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#EA580C;display:inline-block;flex-shrink:0"></span>Naranja</button>
+        <button onclick="setTema('dark');toggleTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#1E3A5F;display:inline-block;flex-shrink:0"></span>Dark</button>
+        <button onclick="setTema('negro');toggleTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#111;border:1px solid #444;display:inline-block;flex-shrink:0"></span>Negro</button>
+        <button onclick="setTema('grafito');toggleTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#6B7280;display:inline-block;flex-shrink:0"></span>Grafito</button>
+        <button onclick="setTema('ambar');toggleTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#D97706;display:inline-block;flex-shrink:0"></span>Ámbar</button>
+        <button onclick="setTema('');toggleTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid #ddd;display:inline-block;flex-shrink:0"></span>Claro</button>
+      </div>
+    </div>
   </div>
   <div class="sidebar-search-btn" onclick="abrirBusquedaGlobal()" title="Buscar (⌘K)">
     <span style="font-size:13px">🔍</span>
@@ -13409,6 +13422,22 @@ function felicitarCumple(cliId) {
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
 }
 
+function toggleTemaMenu() {
+  var m = document.getElementById('temaMenu');
+  if (!m) return;
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  // Cerrar al hacer clic fuera
+  if (m.style.display === 'block') {
+    setTimeout(function() {
+      document.addEventListener('click', function closeTema(e) {
+        if (!document.getElementById('temaMenu').contains(e.target) && e.target.id !== 'btnTemaToggle') {
+          document.getElementById('temaMenu').style.display = 'none';
+        }
+        document.removeEventListener('click', closeTema);
+      });
+    }, 100);
+  }
+}
 function toggleNotifs() {
   var p = document.getElementById('notifPanel');
   if (!p) return;
