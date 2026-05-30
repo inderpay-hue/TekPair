@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guía de usuario — TekPair</title>
+<meta name="description" content="Guía completa de TekPair: aprende a gestionar reparaciones, TPV, stock, presupuestos, citas y más en tu taller de móviles.">
+<link rel="canonical" href="https://www.tekpair.tech/guia.html">
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-7V1W6B6KP4"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', 'G-7V1W6B6KP4');
+</script>
+<style>
+:root{--orange:#C2410C;--dark:#1C0A00;--text:#1E293B;--muted:#64748B;--bg:#F8FAFC;--border:#E2E8F0;--light:#F1F5F9;--green:#16A34A}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);line-height:1.7;-webkit-font-smoothing:antialiased}
+
+/* NAV */
+.nav{background:var(--dark);padding:14px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.nav-logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:white;font-weight:700;font-size:17px}
+.nav-logo-icon{width:32px;height:32px;background:var(--orange);border-radius:8px;display:flex;align-items:center;justify-content:center}
+.nav-logo-icon svg{width:18px;height:18px;fill:white}
+.nav-cta{background:var(--orange);color:white;padding:8px 18px;border-radius:8px;text-decoration:none;font-size:13px;font-weight:700}
+
+/* LAYOUT */
+.layout{display:flex;max-width:1100px;margin:0 auto;padding:32px 24px 80px;gap:40px}
+.sidebar{width:220px;flex-shrink:0;position:sticky;top:80px;height:fit-content}
+.sidebar-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);margin-bottom:12px;margin-top:20px}
+.sidebar-title:first-child{margin-top:0}
+.sidebar a{display:block;font-size:13px;color:var(--muted);text-decoration:none;padding:4px 0;border-left:2px solid transparent;padding-left:10px}
+.sidebar a:hover{color:var(--orange);border-left-color:var(--orange)}
+.content{flex:1;min-width:0}
+
+/* HERO */
+.hero{background:var(--dark);border-radius:16px;padding:28px 32px;margin-bottom:32px;color:white}
+.hero h1{font-size:26px;font-weight:800;letter-spacing:-.03em;margin-bottom:8px}
+.hero p{color:#94A3B8;font-size:15px}
+.hero-badges{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.badge{font-size:11px;padding:4px 12px;border-radius:20px;font-weight:600}
+.b-green{background:rgba(22,163,74,.2);color:#4ADE80}
+.b-orange{background:rgba(194,65,12,.3);color:#FB923C}
+.b-blue{background:rgba(59,130,246,.2);color:#93C5FD}
+
+/* SECTIONS */
+.section{margin-bottom:48px}
+.section-anchor{scroll-margin-top:90px}
+h2{font-size:22px;font-weight:800;color:var(--dark);margin-bottom:6px;letter-spacing:-.02em;display:flex;align-items:center;gap:10px}
+.section-num{width:28px;height:28px;background:var(--orange);color:white;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;flex-shrink:0}
+.section-desc{font-size:14px;color:var(--muted);margin-bottom:20px;margin-left:38px}
+h3{font-size:16px;font-weight:700;color:var(--dark);margin:20px 0 8px}
+p{font-size:15px;margin-bottom:12px}
+ul,ol{margin:0 0 12px 20px}
+li{font-size:14px;margin-bottom:6px}
+strong{color:var(--dark)}
+
+/* STEPS */
+.steps{display:flex;flex-direction:column;gap:12px}
+.step{background:white;border:1px solid var(--border);border-radius:12px;padding:16px 18px;display:flex;gap:14px;align-items:flex-start}
+.step-num{width:26px;height:26px;background:var(--orange);color:white;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;margin-top:1px}
+.step-body h4{font-size:14px;font-weight:700;color:var(--dark);margin-bottom:3px}
+.step-body p{font-size:13px;color:var(--muted);margin:0}
+
+/* TIPS */
+.tip{background:rgba(194,65,12,.05);border:1px solid rgba(194,65,12,.15);border-radius:10px;padding:12px 16px;margin:14px 0;font-size:13px;color:var(--text);display:flex;gap:10px;align-items:flex-start}
+.tip-icon{font-size:16px;flex-shrink:0}
+.tip-warn{background:rgba(234,179,8,.05);border-color:rgba(234,179,8,.2)}
+.tip-ok{background:rgba(22,163,74,.05);border-color:rgba(22,163,74,.2)}
+
+/* TABLE */
+.tbl-wrap{overflow-x:auto;margin:14px 0}
+table{width:100%;border-collapse:collapse;font-size:14px}
+thead{background:var(--dark);color:white}
+thead th{padding:10px 14px;text-align:left;font-weight:600;font-size:13px}
+tbody tr:nth-child(even){background:var(--light)}
+tbody td{padding:10px 14px;border-bottom:1px solid var(--border)}
+
+/* CTA */
+.cta-box{background:var(--dark);border-radius:14px;padding:24px;text-align:center;margin:32px 0;color:white}
+.cta-box h3{color:white;font-size:18px;margin:0 0 6px}
+.cta-box p{color:#94A3B8;font-size:13px;margin:0 0 16px}
+.cta-btn{display:inline-block;background:var(--orange);color:white;padding:11px 24px;border-radius:9px;font-weight:700;font-size:14px;text-decoration:none}
+
+/* DIVIDER */
+hr{border:none;border-top:1px solid var(--border);margin:40px 0}
+
+/* MOBILE */
+@media(max-width:768px){
+  .layout{flex-direction:column;padding:20px 16px 60px}
+  .sidebar{width:100%;position:relative;top:0}
+}
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <a href="/" class="nav-logo">
+    <div class="nav-logo-icon"><svg viewBox="0 0 24 24"><path d="M13 2L4 14h6l-1 8 11-13h-7z"/></svg></div>
+    TekPair
+  </a>
+  <a href="/registro.html" class="nav-cta">Prueba gratis</a>
+</nav>
+
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <nav class="sidebar">
+    <div class="sidebar-title">Primeros pasos</div>
+    <a href="#inicio">Configurar tu tienda</a>
+    <a href="#stock">Añadir stock</a>
+    <a href="#primera-rep">Primera reparación</a>
+
+    <div class="sidebar-title">Módulos</div>
+    <a href="#reparaciones">Reparaciones</a>
+    <a href="#tpv">TPV</a>
+    <a href="#ventas">Ventas</a>
+    <a href="#presupuestos">Presupuestos</a>
+    <a href="#citas">Citas online</a>
+    <a href="#clientes">Clientes</a>
+    <a href="#stock-modulo">Stock</a>
+    <a href="#facturas">Facturas</a>
+    <a href="#reportes">Reportes</a>
+    <a href="#ajustes">Ajustes</a>
+
+    <div class="sidebar-title">Ayuda</div>
+    <a href="#faq">Preguntas frecuentes</a>
+    <a href="mailto:info@tekpair.tech">Contactar soporte</a>
+  </nav>
+
+  <!-- CONTENT -->
+  <main class="content">
+
+    <div class="hero">
+      <h1>Guía de usuario TekPair</h1>
+      <p>Todo lo que necesitas saber para gestionar tu taller de reparación de móviles.</p>
+      <div class="hero-badges">
+        <span class="badge b-green">✓ Actualizada mayo 2026</span>
+        <span class="badge b-orange">⚡ Versión actual</span>
+        <span class="badge b-blue">📖 Lectura: 15 min</span>
+      </div>
+    </div>
+
+    <!-- PRIMEROS PASOS -->
+    <div class="section section-anchor" id="inicio">
+      <h2><span class="section-num">1</span> Configurar tu tienda</h2>
+      <p class="section-desc">Lo primero es rellenar los datos de tu negocio. Esto aparecerá en tus facturas, presupuestos y emails al cliente.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Accede a Ajustes → Mi Tienda</h4>
+            <p>En el sidebar izquierdo haz clic en "Ajustes" o ve a "Más opciones → Mi Tienda".</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Rellena los datos básicos</h4>
+            <p>Nombre del taller, dirección, teléfono, email, CIF y web. Estos datos aparecen en las facturas.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Sube tu logo (opcional)</h4>
+            <p>Tu logo aparecerá en los presupuestos que envíes a los clientes y en la página de citas online.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h4>Configura el IVA</h4>
+            <p>En la pestaña "Facturación" elige el tipo de IVA por defecto (21%, 10% o exento). Puedes cambiarlo en cada reparación o venta.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h4>Guarda los cambios</h4>
+            <p>Haz clic en "Guardar" al final de cada sección. Los cambios se sincronizan automáticamente.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- STOCK INICIAL -->
+    <div class="section section-anchor" id="stock">
+      <h2><span class="section-num">2</span> Añadir tu stock inicial</h2>
+      <p class="section-desc">Antes de registrar reparaciones, añade las piezas y productos que tienes en el taller.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Ve a Stock → + Añadir</h4>
+            <p>Haz clic en el botón verde "+ Añadir" en la esquina superior derecha de la sección Stock.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Rellena los datos del producto</h4>
+            <p>Nombre, categoría (Teléfono, Pantalla, Batería, Accesorio...), precio de coste, precio de venta (PVP), cantidad y ubicación.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Configura el stock mínimo</h4>
+            <p>Si el stock baja de este número, recibirás una alerta en el dashboard. Recomendado: 2-3 unidades para piezas frecuentes.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h4>Añade el IMEI si es un teléfono</h4>
+            <p>Para teléfonos de segunda mano o nuevos, el IMEI permite rastrearlo en futuras ventas o garantías.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip">
+        <span class="tip-icon">💡</span>
+        <span>Para importar muchos productos a la vez usa <strong>Stock → Importar factura</strong>. Puedes subir una factura de tu proveedor en PDF o CSV y TekPair detecta los productos automáticamente.</span>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- PRIMERA REPARACIÓN -->
+    <div class="section section-anchor" id="primera-rep">
+      <h2><span class="section-num">3</span> Crear tu primera reparación</h2>
+      <p class="section-desc">El flujo más habitual: un cliente entra con el móvil roto. Así lo registras en menos de un minuto.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Haz clic en "Reparación" en el dashboard</h4>
+            <p>Desde el Inicio, botón "Reparación". O desde el sidebar: Reparaciones → + Nueva.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Usa una plantilla rápida</h4>
+            <p>En la parte superior del formulario tienes plantillas: Pantalla rota, Cambio batería, No carga, Líquidos, Altavoz, Cámara, Botón, Software. Haz clic y el servicio se añade automáticamente.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Busca o crea el cliente</h4>
+            <p>Escribe el nombre o teléfono en el campo "Cliente". Si ya existe lo encuentra. Si es nuevo, haz clic en "+ Crear nuevo cliente".</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h4>Rellena marca y modelo</h4>
+            <p>El modelo se autocompleta con más de 5.000 referencias. También puedes añadir el IMEI para trazabilidad.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">5</div>
+          <div class="step-body">
+            <h4>Pon el precio y crea la orden</h4>
+            <p>Ajusta el precio del servicio. El IVA se calcula automáticamente. Haz clic en "Crear orden".</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip tip-ok">
+        <span class="tip-icon">✓</span>
+        <span>Cuando la reparación esté lista, cambia el estado a <strong>"Listo para entregar"</strong> y TekPair enviará automáticamente un aviso al cliente por WhatsApp o email.</span>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- REPARACIONES -->
+    <div class="section section-anchor" id="reparaciones">
+      <h2><span class="section-num">4</span> Módulo de Reparaciones</h2>
+      <p class="section-desc">Gestiona todas las reparaciones de tu taller con estados, prioridades y notificaciones automáticas.</p>
+
+      <h3>Estados de una reparación</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Estado</th><th>Significado</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Pendiente</strong></td><td>Recibida, pendiente de revisar o de piezas</td></tr>
+            <tr><td><strong>En proceso</strong></td><td>El técnico está trabajando en ella</td></tr>
+            <tr><td><strong>Listo para entregar</strong></td><td>Reparada, esperando que el cliente la recoja</td></tr>
+            <tr><td><strong>Entregado</strong></td><td>Cliente ha recogido el dispositivo</td></tr>
+            <tr><td><strong>Sin solución</strong></td><td>No se ha podido reparar</td></tr>
+            <tr><td><strong>Garantía</strong></td><td>Ha vuelto por un problema relacionado</td></tr>
+            <tr><td><strong>Devuelto</strong></td><td>Devuelto al cliente sin reparar</td></tr>
+            <tr><td><strong>Presupuesto</strong></td><td>Pendiente de aceptación del cliente</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Vistas disponibles</h3>
+      <ul>
+        <li><strong>Lista</strong> — tabla con todos los datos, ordenable por columnas</li>
+        <li><strong>Kanban</strong> — columnas por estado, arrastra para cambiar el estado</li>
+      </ul>
+
+      <h3>Filtros</h3>
+      <p>Filtra por estado (Todas, Pendiente, En proceso, Listo, Entregado...) usando las pestañas superiores. También puedes buscar por cliente, modelo o avería.</p>
+
+      <div class="tip">
+        <span class="tip-icon">💡</span>
+        <span>Usa la <strong>prioridad Alta</strong> para reparaciones urgentes — aparecerán destacadas en rojo en el dashboard y en la sección "Urgentes hoy".</span>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- TPV -->
+    <div class="section section-anchor" id="tpv">
+      <h2><span class="section-num">5</span> TPV — Punto de Venta</h2>
+      <p class="section-desc">Cobra ventas de productos, accesorios y servicios con el TPV táctil.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Abre el TPV</h4>
+            <p>Desde el dashboard haz clic en "Abrir TPV" o en el sidebar "TPV". Se abre en pantalla completa.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Añade productos al ticket</h4>
+            <p>Haz clic en cualquier producto del catálogo o búscalo por nombre, modelo o IMEI. Se añade al ticket de la derecha.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>Elige la forma de pago</h4>
+            <p>Efectivo, Tarjeta, Bizum o Financiado. Si es efectivo, introduce el importe recibido y el cambio se calcula automáticamente.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h4>Cobra y genera el ticket</h4>
+            <p>Haz clic en "Cobrar €XX". Se muestra el ticket de venta para imprimir o enviar al cliente.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip tip-warn">
+        <span class="tip-icon">⚠️</span>
+        <span>El TPV descuenta el stock automáticamente al vender. Asegúrate de tener las cantidades actualizadas antes de empezar a vender.</span>
+      </div>
+
+      <h3>Favoritos</h3>
+      <p>Marca los productos más vendidos con ⭐ para que aparezcan siempre en la pestaña "Favoritos" — acceso en un toque.</p>
+    </div>
+
+    <hr>
+
+    <!-- PRESUPUESTOS -->
+    <div class="section section-anchor" id="presupuestos">
+      <h2><span class="section-num">6</span> Presupuestos digitales</h2>
+      <p class="section-desc">Envía presupuestos profesionales al cliente por WhatsApp o email. El cliente los acepta con firma digital desde su móvil.</p>
+
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <h4>Crea un presupuesto</h4>
+            <p>Ve a Presupuestos → "+ Nuevo presupuesto". Rellena cliente, dispositivo, avería y servicios con sus precios.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <h4>Envía al cliente</h4>
+            <p>Haz clic en "📤 Enviar". Elige si enviar por WhatsApp, email o ambos. Se genera un enlace único válido 48 horas.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <h4>El cliente acepta o rechaza</h4>
+            <p>El cliente abre el enlace desde su móvil, revisa el presupuesto, firma digitalmente y acepta. Tú recibes una notificación al instante.</p>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <h4>La reparación se activa automáticamente</h4>
+            <p>Al aceptar, el presupuesto pasa al estado "En proceso". Ya puedes empezar a trabajar.</p>
+          </div>
+        </div>
+      </div>
+
+      <div class="tip tip-ok">
+        <span class="tip-icon">✓</span>
+        <span>Si el cliente no responde antes de 48h, el enlace caduca. Puedes reenviar el presupuesto desde la lista de Presupuestos → botón "Enviar".</span>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- CITAS -->
+    <div class="section section-anchor" id="citas">
+      <h2><span class="section-num">7</span> Citas online</h2>
+      <p class="section-desc">Tus clientes pueden reservar cita solos desde el móvil, sin llamarte ni escribirte.</p>
+
+      <h3>Configurar los horarios</h3>
+      <p>Ve a Ajustes → pestaña "Citas". Configura los días que abres y los tramos horarios (mañana/tarde). Puedes personalizar cada día de la semana.</p>
+
+      <h3>Compartir el enlace de citas</h3>
+      <p>En Ajustes → Citas encontrarás tu enlace único de reservas. Compártelo en:</p>
+      <ul>
+        <li>Tu perfil de Google My Business</li>
+        <li>Tu página de Instagram/Facebook</li>
+        <li>Tu firma de WhatsApp Business</li>
+        <li>Tu web si tienes una</li>
+      </ul>
+
+      <div class="tip">
+        <span class="tip-icon">💡</span>
+        <span>El enlace tiene el formato <strong>tekpair.tech/citas.html?slug=TUCODIGO</strong>. Puedes acortarlo con bit.ly para compartirlo más fácil.</span>
+      </div>
+
+      <h3>Gestionar las citas recibidas</h3>
+      <p>Las citas aparecen en la sección "Citas" del dashboard. Puedes confirmarlas, cancelarlas o convertirlas en reparaciones con un clic.</p>
+    </div>
+
+    <hr>
+
+    <!-- CLIENTES -->
+    <div class="section section-anchor" id="clientes">
+      <h2><span class="section-num">8</span> Clientes</h2>
+      <p class="section-desc">Ficha completa de cada cliente con historial de reparaciones, ventas y cobros pendientes.</p>
+
+      <h3>Crear un cliente</h3>
+      <p>Ve a Clientes → "+ Nuevo" o créalo directamente al registrar una reparación. Datos recomendados: nombre, teléfono, email y fecha de nacimiento (para felicitarle).</p>
+
+      <h3>Historial del cliente</h3>
+      <p>Desde la ficha del cliente puedes ver todas sus reparaciones anteriores, ventas, presupuestos pendientes y cobros. Muy útil cuando vuelve por garantía.</p>
+
+      <h3>Importar clientes</h3>
+      <p>Si tienes una lista en Excel o CSV, ve a Ajustes → Importar → Clientes. El sistema detecta los campos automáticamente.</p>
+    </div>
+
+    <hr>
+
+    <!-- STOCK -->
+    <div class="section section-anchor" id="stock-modulo">
+      <h2><span class="section-num">9</span> Stock y catálogo</h2>
+      <p class="section-desc">Control de inventario en tiempo real. El stock se descuenta automáticamente con cada venta o reparación.</p>
+
+      <h3>Categorías de stock</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Categoría</th><th>Uso</th></tr></thead>
+          <tbody>
+            <tr><td>Teléfonos</td><td>Móviles nuevos o de segunda mano para venta</td></tr>
+            <tr><td>Tablets</td><td>Tablets para venta</td></tr>
+            <tr><td>Pantallas</td><td>Pantallas de recambio para reparaciones</td></tr>
+            <tr><td>Baterías</td><td>Baterías de recambio</td></tr>
+            <tr><td>Accesorios</td><td>Fundas, cristales, cargadores...</td></tr>
+            <tr><td>Repuestos</td><td>Piezas internas (botones, conectores...)</td></tr>
+            <tr><td>Flex/Carga</td><td>Conectores de carga</td></tr>
+            <tr><td>Altavoz</td><td>Altavoces y micrófonos</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3>Alertas de stock mínimo</h3>
+      <p>Cuando un producto baja del mínimo que has configurado aparece en el dashboard en la sección "Stock crítico" y en el widget de inicio con el indicador rojo.</p>
+
+      <h3>Catálogo público</h3>
+      <p>El catálogo es una página donde tus clientes pueden ver los productos disponibles con precio. Actívalo en Ajustes → Catálogo.</p>
+    </div>
+
+    <hr>
+
+    <!-- FACTURAS -->
+    <div class="section section-anchor" id="facturas">
+      <h2><span class="section-num">10</span> Facturas</h2>
+      <p class="section-desc">Genera facturas legales con todos los datos fiscales de tu empresa y del cliente.</p>
+
+      <h3>Generar una factura</h3>
+      <p>Desde una reparación entregada o una venta cobrada, haz clic en el icono de factura. TekPair genera automáticamente el PDF con numeración correlativa.</p>
+
+      <h3>Numeración</h3>
+      <p>Las facturas se numeran automáticamente por año (ej: 2026-001, 2026-002...). Puedes configurar el prefijo y el número inicial en Ajustes → Facturación.</p>
+
+      <div class="tip tip-warn">
+        <span class="tip-icon">⚠️</span>
+        <span>Para emitir facturas legales necesitas tener rellenos el <strong>nombre fiscal, CIF y dirección</strong> de tu empresa en Ajustes → Mi Tienda.</span>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- REPORTES -->
+    <div class="section section-anchor" id="reportes">
+      <h2><span class="section-num">11</span> Reportes</h2>
+      <p class="section-desc">Analiza el rendimiento de tu taller con datos en tiempo real.</p>
+
+      <h3>Dashboard principal</h3>
+      <p>El inicio muestra ventas e ingresos del día, semana o mes. Cambia entre las pestañas "Hoy", "Semana" y "Mes" para ver diferentes periodos.</p>
+
+      <h3>Sección Reportes</h3>
+      <ul>
+        <li><strong>Ingresos por periodo</strong> — gráfica de ventas y reparaciones por día/semana/mes</li>
+        <li><strong>Top productos</strong> — los más vendidos del periodo</li>
+        <li><strong>Reparaciones por estado</strong> — cuántas hay en cada estado</li>
+        <li><strong>Caja del día</strong> — desglose por forma de pago</li>
+        <li><strong>Tendencia por horas</strong> — a qué horas recibes más trabajo</li>
+      </ul>
+    </div>
+
+    <hr>
+
+    <!-- AJUSTES -->
+    <div class="section section-anchor" id="ajustes">
+      <h2><span class="section-num">12</span> Ajustes</h2>
+      <p class="section-desc">Personaliza TekPair según las necesidades de tu taller.</p>
+
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Pestaña</th><th>Qué puedes configurar</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Mi Tienda</strong></td><td>Nombre, dirección, logo, datos fiscales, contacto</td></tr>
+            <tr><td><strong>Facturación</strong></td><td>IVA por defecto, numeración de facturas, textos legales</td></tr>
+            <tr><td><strong>Citas</strong></td><td>Horarios por día, duración de cita, enlace público</td></tr>
+            <tr><td><strong>Usuarios</strong></td><td>Añadir técnicos, asignar permisos por módulo</td></tr>
+            <tr><td><strong>Temas</strong></td><td>7 temas visuales: Claro, Oscuro, Negro, Terracota, Naranja, Grafito, Ámbar</td></tr>
+            <tr><td><strong>Garantía</strong></td><td>Días de garantía por defecto para reparaciones y ventas</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <hr>
+
+    <!-- FAQ -->
+    <div class="section section-anchor" id="faq">
+      <h2><span class="section-num">13</span> Preguntas frecuentes</h2>
+      <p class="section-desc"></p>
+
+      <h3>¿TekPair funciona sin internet?</h3>
+      <p>Sí. TekPair es una PWA (Progressive Web App) que funciona offline. Los datos se sincronizan automáticamente cuando vuelve la conexión. Para usarlo offline instálalo en el dispositivo desde el navegador (Safari en iPhone, Chrome en Android/PC).</p>
+
+      <h3>¿Cómo instalo TekPair en el móvil?</h3>
+      <p>Abre <strong>tekpair.tech</strong> en Safari (iPhone) o Chrome (Android). Toca el botón compartir → "Añadir a pantalla de inicio". Se instala como una app nativa sin pasar por la App Store.</p>
+
+      <h3>¿Puedo tener varios técnicos?</h3>
+      <p>Sí. Ve a Ajustes → Usuarios → "+ Nuevo usuario". Asigna nombre, email, contraseña y permisos. Cada técnico tiene su propio acceso.</p>
+
+      <h3>¿El stock se descuenta automáticamente?</h3>
+      <p>Sí. Cuando añades un componente a una reparación o vendes un producto en el TPV, el stock se descuenta automáticamente. No tienes que actualizarlo a mano.</p>
+
+      <h3>¿Cómo hacer backup de mis datos?</h3>
+      <p>Ve a "Más opciones → Backup". Genera un archivo JSON con todos tus datos (reparaciones, clientes, ventas, stock). Guárdalo en Google Drive o en tu ordenador.</p>
+
+      <h3>¿Puedo importar mis clientes desde Excel?</h3>
+      <p>Sí. Ve a "Más opciones → Importar". Sube tu archivo CSV o Excel con las columnas nombre, teléfono, email. TekPair detecta los campos automáticamente.</p>
+
+      <h3>¿Cómo cancelo la suscripción?</h3>
+      <p>Ve a Ajustes → Suscripción → Gestionar. Puedes cancelar en cualquier momento sin penalización. Tus datos se mantienen 30 días después de la cancelación.</p>
+
+      <h3>¿Dónde puedo pedir ayuda?</h3>
+      <p>Escríbenos a <a href="mailto:info@tekpair.tech">info@tekpair.tech</a>. Respondemos en menos de 24 horas en días laborables.</p>
+    </div>
+
+    <div class="cta-box">
+      <h3>¿Tienes alguna duda?</h3>
+      <p>Nuestro equipo responde en menos de 24 horas.</p>
+      <a href="mailto:info@tekpair.tech" class="cta-btn">Contactar soporte →</a>
+    </div>
+
+  </main>
+</div>
+
+<footer style="background:var(--dark);color:#64748B;text-align:center;padding:24px;font-size:13px">
+  <p><a href="/" style="color:#94A3B8;text-decoration:none">TekPair</a> · <a href="/blog/" style="color:#94A3B8;text-decoration:none">Blog</a> · <a href="/registro.html" style="color:#94A3B8;text-decoration:none">Prueba gratis</a></p>
+  <p style="margin-top:6px">© 2026 TekPair. Software para talleres de reparación de móviles.</p>
+</footer>
+
+</body>
+</html>
