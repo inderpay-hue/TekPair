@@ -1135,7 +1135,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="card" id="cardStockCritico">
     <div class="sec-header">
-      <div class="card-title" style="margin:0">📦 Stock crítico</div>
+      <div class="card-title" style="margin:0"><span data-t="dash.stock_critico">📦 Stock crítico</span></div>
       <button class="btn-sm" style="background:var(--orange);color:white" onclick="navTo('pStock')">Ver stock</button>
     </div>
     <div id="stockCriticoBox"></div>
@@ -1167,7 +1167,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="card" id="cardRepsEstado">
     <div class="sec-header">
-      <div class="card-title" style="margin:0">📊 Reparaciones por estado</div>
+      <div class="card-title" style="margin:0"><span data-t="dash.reps_por_estado">📊 Reparaciones por estado</span></div>
     </div>
     <div id="repsEstadoBox"></div>
   </div>
@@ -1179,14 +1179,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="card" id="cardClisInactivos">
     <div class="sec-header">
-      <div class="card-title" style="margin:0">👤 Clientes inactivos (>3 meses)</div>
+      <div class="card-title" style="margin:0"><span data-t="dash.clientes_inactivos">👤 Clientes inactivos (>3 meses)</span></div>
     </div>
     <div id="clisInactivosBox"></div>
   </div>
   <div class="card" id="cardCierre">
     <div class="sec-header">
-      <div class="card-title" style="margin:0">Cierre del dia</div>
-      <button class="btn-sm" style="background:var(--dark);color:white" onclick="cierreDia()">Generar</button>
+      <div class="card-title" style="margin:0"><span data-t="dash.cierre_dia">Cierre del día</span></div>
+      <button class="btn-sm" style="background:var(--dark);color:white" onclick="cierreDia()"><span data-t="gen.generar">Generar</span></button>
     </div>
     <div id="cierreBox"><div class="empty" style="padding:12px">Pulsa Generar para ver el resumen</div></div>
   </div>
@@ -1205,7 +1205,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="tabs" id="presTabsFiltro" style="margin-bottom:12px">
     <div class="tab active" data-pf="todos"    onclick="setPresFiltro(this)">Todos</div>
-    <div class="tab"        data-pf="pendiente" onclick="setPresFiltro(this)" data-t="pres.pendientes">Pendientes</div>
+    <div class="tab"        data-pf="pendiente" onclick="setPresFiltro(this)" data-t="pres.pendientes"><span data-t="pres.pendientes">Pendientes</span></div>
     <div class="tab"        data-pf="aceptado"  onclick="setPresFiltro(this)" style="color:#16A34A" data-t="pres.aceptados">Aceptados</div>
     <div class="tab"        data-pf="rechazado" onclick="setPresFiltro(this)" data-t="pres.rechazados">Rechazados</div>
   </div>
@@ -1223,7 +1223,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <input class="search-input" id="busVentas" placeholder="Buscar..." data-t-ph="gen.buscar" oninput="renderVentas()">
   </div>
   <div class="tabs" id="ventaTabs">
-    <div class="tab active" data-f="todas" onclick="setVentaFiltro(this)">Todas</div>
+    <div class="tab active" data-f="todas" onclick="setVentaFiltro(this)"><span data-t="tpv.todos">Todas</span></div>
     <div class="tab" data-f="reembolsos" onclick="setVentaFiltro(this)">↩ Reembolsos</div>
     <div class="tab" data-f="financiados" onclick="setVentaFiltro(this)">💰 Financiados</div>
   </div>
@@ -1283,7 +1283,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="sec-header" style="margin-bottom:10px">
     <div class="sec-title">📅 Citas</div>
     <div style="display:flex;gap:6px">
-      <button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirLinkCitas()" title="Compartir el enlace público">🔗 Link público</button>
+      <button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirLinkCitas()" title="Compartir el enlace público"><span data-t="citas.link_publico">🔗 Link público</span></button>
       <button class="btn-sm" style="background:var(--green);color:white" onclick="syncCitas()" title="Recargar">↻</button>
     </div>
   </div>
@@ -1298,10 +1298,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div id="vistaListaCitas">
     <div class="tabs" id="citasTabs">
       <div class="tab active" data-cf="hoy" onclick="setCitasFiltro(this)">Hoy</div>
-      <div class="tab" data-cf="proximas" onclick="setCitasFiltro(this)">Próximas</div>
+      <div class="tab" data-cf="proximas" onclick="setCitasFiltro(this)"><span data-t="citas.proximas">Próximas</span></div>
       <div class="tab" data-cf="pendiente" onclick="setCitasFiltro(this)">Pendientes</div>
-      <div class="tab" data-cf="confirmada" onclick="setCitasFiltro(this)">Confirmadas</div>
-      <div class="tab" data-cf="atendida" onclick="setCitasFiltro(this)">Atendidas</div>
+      <div class="tab" data-cf="confirmada" onclick="setCitasFiltro(this)"><span data-t="citas.confirmadas">Confirmadas</span></div>
+      <div class="tab" data-cf="atendida" onclick="setCitasFiltro(this)"><span data-t="citas.atendidas">Atendidas</span></div>
       <div class="tab" data-cf="todas" onclick="setCitasFiltro(this)">Todas</div>
     </div>
     <div id="listaCitas"></div>
@@ -3590,7 +3590,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="sec-header" style="margin-bottom:10px">
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
-      <div class="sec-title">Gastos</div>
+      <div class="sec-title"><span data-t="nav.gastos">Gastos</span></div>
     </div>
     <button class="btn-sm" style="background:var(--red);color:white" onclick="openM('mGasto')">+ Nuevo</button>
   </div>
@@ -7272,7 +7272,7 @@ function renderVentas() {
   });
   var el = document.getElementById('listaVentas');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📱</div>Sin registros</div>'; return; }
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Fecha</th><th data-t="rep.cliente">Cliente</th><th data-t="rep.modelo">Modelo</th><th>Pago</th><th data-t="rep.total">Total</th><th></th></tr></thead><tbody>';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="gen.fecha">Fecha</span></th><th data-t="rep.cliente"><span data-t="rep.cliente">Cliente</span></th><th data-t="rep.modelo">Modelo</th><th>Pago</th><th data-t="rep.total">Total</th><th></th></tr></thead><tbody>';
   list.forEach(function(v) {
     var badges = '';
     if (v.reembolsado) badges += '<span class="badge-reem">Reembolsado</span>';
@@ -10108,7 +10108,7 @@ function renderStock() {
     }
   }
   var thUbic = mostrarUbic ? '<th>📍</th>' : '';
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Producto</th><th>Cat.</th>' + thUbic + '<th>Uds.</th><th>PVP</th><th></th></tr></thead><tbody>';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="stock.producto">Producto</span></th><th>Cat.</th>' + thUbic + '<th><span data-t="stock.unidades">Uds.</span></th><th><span data-t="gen.pvp">PVP</span></th><th></th></tr></thead><tbody>';
   list.forEach(function(s) {
     html += '<tr>' +
       '<td><strong>' + s.marca + ' ' + s.modelo + '</strong>' +
@@ -10480,7 +10480,7 @@ function renderClis() {
   });
   var el = document.getElementById('listaClis');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udc65</div>Sin clientes</div>'; return; }
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th>Tel</th><th>Visitas</th><th></th></tr></thead><tbody>';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="cli.nombre">Nombre</span></th><th>Tel</th><th>Visitas</th><th></th></tr></thead><tbody>';
   list.forEach(function(c) {
     var vc = DB.ventas.filter(function(v) { return v.clienteId === c.id; }).length;
     var rc = DB.reps.filter(function(r) { return r.clienteId === c.id; }).length;
@@ -10606,7 +10606,7 @@ function eliminarReparacion(id) {
 function renderProvs() {
   var el = document.getElementById('listaProvs');
   if (!DB.provs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83c\udfed</div>Sin proveedores</div>'; return; }
-  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th>NIF/CIF</th><th>Tel</th><th>Email</th><th>Ciudad</th><th>Acciones</th></tr></thead><tbody>' +
+  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th>NIF/CIF</th><th>Tel</th><th><span data-t="cli.email">Email</span></th><th>Ciudad</th><th>Acciones</th></tr></thead><tbody>' +
     DB.provs.map(function(p) {
       return '<tr>' +
         '<td><strong>' + esc(p.nombre || '') + '</strong>' + (p.nota ? '<br><span style="font-size:9px;color:var(--blue)">' + esc(p.nota) + '</span>' : '') + '</td>' +
@@ -11162,7 +11162,7 @@ function generarHtmlInforme(periodo) {
     '<h1>Informe de gastos para el gestor</h1>' +
     '<div style="color:#555;font-size:11px;margin-bottom:8px">Periodo: <b>'+esc(etiqueta)+'</b> · '+detalle.length+' gasto(s)</div>' +
     '<div class="kpi"><div class="c"><div class="l">Base imponible</div><div class="v">'+cur(totalBase)+'</div></div><div class="c"><div class="l">IVA soportado</div><div class="v">'+cur(totalIva)+'</div></div><div class="c"><div class="l">Total gastos</div><div class="v" style="color:#DC2626">'+cur(totalTotal)+'</div></div></div>' +
-    '<h2>Detalle de gastos</h2><table><thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th class="r">Base</th><th class="r">IVA%</th><th class="r">IVA €</th><th class="r">Total</th><th>Estado</th><th>Justif.</th></tr></thead><tbody>'+filasDet+'</tbody></table>' +
+    '<h2>Detalle de gastos</h2><table><thead><tr><th>Fecha</th><th>Concepto</th><th><span data-t="stock.categoria">Categoría</span></th><th class="r">Base</th><th class="r">IVA%</th><th class="r">IVA €</th><th class="r">Total</th><th>Estado</th><th>Justif.</th></tr></thead><tbody>'+filasDet+'</tbody></table>' +
     '<h2>Resumen por categoría</h2><table><thead><tr><th>Categoría</th><th class="r">Nº</th><th class="r">Base</th><th class="r">IVA €</th><th class="r">Total</th></tr></thead><tbody>'+filasCat+'</tbody></table>' +
     '<h2>Resumen por tipo de IVA (modelo 303)</h2><table><thead><tr><th>Tipo</th><th class="r">Nº</th><th class="r">Base imponible</th><th class="r">Cuota IVA</th><th class="r">Total</th></tr></thead><tbody>'+filasIva+'<tr style="background:#FEE2E2"><td class="b">TOTAL</td><td class="r b">'+detalle.length+'</td><td class="r b">'+cur(totalBase)+'</td><td class="r b">'+cur(totalIva)+'</td><td class="r b">'+cur(totalTotal)+'</td></tr></tbody></table>' +
     '<div class="firmas"><div class="f">Firma y sello — Tienda</div><div class="f">Recibido — Gestor</div></div>' +
