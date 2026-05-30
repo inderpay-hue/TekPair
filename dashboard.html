@@ -1898,7 +1898,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           <input type="text" id="caja-icono" maxlength="4" placeholder="📤">
         </div>
         <div class="cajas-form-grupo">
-          <label>Color</label>
+          <label><span data-t="gen.color">Color</span></label>
           <input type="color" id="caja-color" value="#FF5B1F">
         </div>
       </div>
@@ -2065,7 +2065,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="cajas-modal-pie">
       <button class="cajas-btn cajas-btn-rojo" id="btn-quitar-fiado" style="margin-right:auto;display:none;" onclick="Cajas.quitarFiado()">Eliminar</button>
       <button class="cajas-btn cajas-btn-sec" onclick="Cajas.cerrarModalFiado()" data-t="gen.cancelar">Cancelar</button>
-      <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarFiado()">Guardar</button>
+      <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarFiado()"><span data-t="gen.guardar">Guardar</span></button>
     </div>
   </div>
 </div>
@@ -3716,10 +3716,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="card">
       <div class="card-title">Datos de la tienda</div>
       <div class="fg"><label class="fl">Nombre</label><input class="fi" id="tNom" placeholder="Mi Tienda"/></div>
-      <div class="fg"><label class="fl">Dirección</label><input class="fi" id="tDir" placeholder="Calle, número, ciudad"/></div>
+      <div class="fg"><label class="fl"><span data-t="cli.direccion">Dirección</span></label><input class="fi" id="tDir" placeholder="Calle, número, ciudad"/></div>
       <div class="fi-row">
-        <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="tTel" placeholder="6XX XXX XXX"/></div>
-        <div class="fg"><label class="fl">Email</label><input class="fi" id="tEmail" type="email" placeholder="info@tienda.com"/></div>
+        <div class="fg"><label class="fl"><span data-t="cli.telefono">Teléfono</span></label><input class="fi" id="tTel" placeholder="6XX XXX XXX"/></div>
+        <div class="fg"><label class="fl"><span data-t="cli.email">Email</span></label><input class="fi" id="tEmail" type="email" placeholder="info@tienda.com"/></div>
       </div>
       <div class="fi-row">
         <div class="fg"><label class="fl">CIF/NIF</label><input class="fi" id="tCif" placeholder="B12345678"/></div>
@@ -4253,7 +4253,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="patron-info">Secuencia: <strong id="patronSeq">(vacío)</strong></div>
     <div class="patron-acts">
       <button class="patron-btn-clear" onclick="patronLimpiar()">Borrar</button>
-      <button class="patron-btn-save" onclick="patronGuardar()">Guardar</button>
+      <button class="patron-btn-save" onclick="patronGuardar()"><span data-t="gen.guardar">Guardar</span></button>
     </div>
   </div>
   <button onclick="closeM('mPatron')" style="width:100%;background:none;border:1px solid var(--border);padding:10px;border-radius:8px;color:var(--muted);cursor:pointer;font-family:inherit;margin-top:8px" data-t="gen.cancelar">Cancelar</button>
@@ -4278,10 +4278,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 <div class="modal-bg" id="mVenta">
 <div class="modal">
-  <div class="modal-title">📱 Nueva Venta</div>
+  <div class="modal-title"><span data-t="tpv.nueva_venta">📱 Nueva Venta</span></div>
   <!-- Cliente -->
   <div class="fg" style="position:relative">
-    <label class="fl">Cliente</label>
+    <label class="fl"><span data-t="rep.cliente">Cliente</span></label>
     <input class="fi" id="vBusCli" placeholder="Buscar cliente..." oninput="busCliCtx('v')" autocomplete="off">
     <div class="autocomplete-res" id="vSelCli"></div>
   </div>
@@ -4291,7 +4291,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <!-- Producto/Servicio -->
   <div class="fg" style="position:relative">
-    <label class="fl">Producto o Servicio</label>
+    <label class="fl"><span data-t="gen.producto_servicio">Producto o Servicio</span></label>
     <input class="fi" id="vBusStock" placeholder="Buscar modelo, IMEI, servicio..." oninput="busStockVenta()" autocomplete="off">
     <div class="autocomplete-res" id="vStockRes"></div>
   </div>
@@ -4301,10 +4301,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <!-- Precio y pago -->
   <div class="fi-row">
-    <div class="fg"><label class="fl">Precio (EUR)</label><input class="fi" id="vPrecio" type="number" step="0.01" oninput="calcV()"></div>
-    <div class="fg"><label class="fl">Descuento (EUR)</label><input class="fi" id="vDescuento" type="number" step="0.01" value="0" oninput="calcV()"></div>
+    <div class="fg"><label class="fl"><span data-t="gen.precio_eur">Precio (EUR)</span></label><input class="fi" id="vPrecio" type="number" step="0.01" oninput="calcV()"></div>
+    <div class="fg"><label class="fl"><span data-t="gen.descuento_eur">Descuento (EUR)</span></label><input class="fi" id="vDescuento" type="number" step="0.01" value="0" oninput="calcV()"></div>
   </div>
-  <div class="fg"><label class="fl">Forma de pago</label>
+  <div class="fg"><label class="fl"><span data-t="tpv.forma_pago">Forma de pago</span></label>
     <select class="fi" id="vPago">
       <option>Efectivo</option><option>Tarjeta</option><option>Bizum</option><option>Transferencia</option><option>Financiado</option>
     </select>
@@ -4312,16 +4312,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <!-- Financiado options -->
   <div id="finOpts" style="display:none">
     <div class="card" style="background:rgba(255,91,31,.05);border-color:rgba(255,91,31,.2)">
-      <div class="card-title" style="color:var(--purple)">Opciones de financiacion</div>
+      <div class="card-title" style="color:var(--purple)"><span data-t="gen.opciones_financiacion">Opciones de financiación</span></div>
       <div class="fi-row">
-        <div class="fg"><label class="fl">Entrada (EUR)</label><input class="fi" id="vEntrada" type="number" step="0.01" value="0"></div>
-        <div class="fg"><label class="fl">Num cuotas</label><input class="fi" id="vNumCuotas" type="number" value="3" min="1" max="24"></div>
+        <div class="fg"><label class="fl"><span data-t="gen.entrada_eur">Entrada (EUR)</span></label><input class="fi" id="vEntrada" type="number" step="0.01" value="0"></div>
+        <div class="fg"><label class="fl"><span data-t="gen.num_cuotas">Núm. cuotas</span></label><input class="fi" id="vNumCuotas" type="number" value="3" min="1" max="24"></div>
       </div>
-      <div class="fg"><label class="fl">Dia de pago (cada mes)</label><input class="fi" id="vDiaPago" type="number" value="8" min="1" max="28"></div>
+      <div class="fg"><label class="fl"><span data-t="gen.dia_pago">Día de pago (cada mes)</span></label><input class="fi" id="vDiaPago" type="number" value="8" min="1" max="28"></div>
     </div>
   </div>
   <div class="fg" id="vIvaRow" style="display:none">
-    <label class="fl">Tipo de IVA</label>
+    <label class="fl"><span data-t="gen.tipo_iva">Tipo de IVA</span></label>
     <select class="fi" id="vIva" onchange="calcV()">
       <option value="0">0% — Exento</option>
       <option value="4">4% — Superreducido</option>
@@ -4342,7 +4342,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mVenta')" data-t="gen.cancelar">Cancelar</button>
-    <button class="btn-primary" onclick="guardarVenta()">Registrar venta</button>
+    <button class="btn-primary" onclick="guardarVenta()"><span data-t="gen.registrar_venta">Registrar venta</span></button>
   </div>
 </div>
 </div>
@@ -4351,7 +4351,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal-bg" id="mRep">
 <div class="modal modal-rep">
   <div class="modal-rep-header">
-    <div class="modal-title" style="margin:0">🔧 Nueva Reparación</div>
+    <div class="modal-title" style="margin:0"><span data-t="rep.nueva_reparacion">🔧 Nueva Reparación</span></div>
     <button class="modal-close-btn" onclick="closeM('mRep')" title="Cerrar (Esc)">×</button>
   </div>
 
@@ -4371,7 +4371,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="rep-section">
           <div class="rep-section-title"><span>👤</span> Cliente</div>
           <div class="fg" style="position:relative;margin-bottom:0">
-            <input class="fi" id="rBusCli" placeholder="Buscar cliente por nombre, teléfono o DNI..." oninput="busCliCtx('r')" autocomplete="off">
+            <input class="fi" id="rBusCli" placeholder="Buscar..." data-t-ph="rep.buscar_cliente" oninput="busCliCtx('r')" autocomplete="off">
             <div class="autocomplete-res" id="rSelCli"></div>
           </div>
           <div class="sel-box" id="rSelCliBox" style="margin-top:8px">
@@ -4385,7 +4385,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="rep-section">
           <div class="rep-section-title"><span>📱</span> Dispositivo</div>
           <div class="fi-row">
-            <div class="fg"><label class="fl">Marca</label><input class="fi" id="rMarca" placeholder="Apple, Samsung, Xiaomi..." oninput="actualizarAvisoGarantia()"></div>
+            <div class="fg"><label class="fl"><span data-t="rep.marca">Marca</span></label><input class="fi" id="rMarca" placeholder="Apple, Samsung, Xiaomi..." oninput="actualizarAvisoGarantia()"></div>
             <div class="fg" style="position:relative"><label class="fl">Modelo <span class="req">*</span></label><input class="fi" id="rModelo" placeholder="iPhone 14, Galaxy S23..." autocomplete="off" oninput="busModelo();actualizarAvisoGarantia()" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
           </div>
           <div class="fg"><label class="fl">IMEI / Nº Serie</label><input class="fi" id="rImei" placeholder="Opcional — útil para garantías"></div>
@@ -4473,7 +4473,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           <div class="fi-row">
             <div class="fg"><label class="fl">Fecha de entrega</label><input class="fi" id="rFechaEnt" type="date"></div>
             <div id="rIvaRow" class="fg" style="display:none">
-              <label class="fl">Tipo de IVA</label>
+              <label class="fl"><span data-t="gen.tipo_iva">Tipo de IVA</span></label>
               <select class="fi" id="rIva" onchange="calcR()">
                 <option value="0">0% — Exento</option>
                 <option value="4">4% — Superreducido</option>
@@ -4528,7 +4528,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- ENTREGAR REP -->
 <div class="modal-bg" id="mEntregar">
 <div class="modal">
-  <div class="modal-title">✅ Entregar reparacion</div>
+  <div class="modal-title"><span data-t="modal.entregar">✅ Entregar reparación</span></div>
   <div id="entregaInfo" style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px"></div>
   <div class="fg"><label class="fl">Pago final</label>
     <select class="fi" id="ePago"><option>Efectivo</option><option>Tarjeta</option><option>Bizum</option><option>Transferencia</option></select>
@@ -4554,12 +4554,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="fg" style="position:relative"><label class="fl">Modelo *</label><input class="fi" id="sModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModeloStock()" onfocus="busModeloStock()" onblur="setTimeout(function(){var d=document.getElementById('sModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="sModeloSug"></div></div>
   </div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Capacidad</label><input class="fi" id="sCap" placeholder="128GB..."></div>
-    <div class="fg"><label class="fl">Color</label><input class="fi" id="sColor" placeholder="Negro..."></div>
+    <div class="fg"><label class="fl"><span data-t="gen.capacidad">Capacidad</span></label><input class="fi" id="sCap" placeholder="128GB..."></div>
+    <div class="fg"><label class="fl"><span data-t="gen.color">Color</span></label><input class="fi" id="sColor" placeholder="Negro..."></div>
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl">IMEI</label><input class="fi" id="sImei" placeholder="Opcional"></div>
-    <div class="fg"><label class="fl">Unidades</label><input class="fi" id="sUds" type="number" value="1" min="1"></div>
+    <div class="fg"><label class="fl"><span data-t="stock.unidades">Unidades</span></label><input class="fi" id="sUds" type="number" value="1" min="1"></div>
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Precio compra (EUR)</label><input class="fi" id="sPrecioC" type="number" step="0.01" value="0"></div>
@@ -4599,7 +4599,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mStock')" data-t="gen.cancelar">Cancelar</button>
-    <button class="btn-primary" style="background:var(--orange)" onclick="guardarStock()">Guardar</button>
+    <button class="btn-primary" style="background:var(--orange)" onclick="guardarStock()"><span data-t="gen.guardar">Guardar</span></button>
   </div>
 </div>
 </div>
@@ -4607,14 +4607,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- CLIENTE -->
 <div class="modal-bg" id="mCli">
 <div class="modal">
-  <div class="modal-title" id="mCliTit">👤 Nuevo Cliente</div>
+  <div class="modal-title" id="mCliTit"><span data-t="cli.nuevo_titulo">👤 Nuevo Cliente</span></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="cNom" placeholder="Juan"></div>
-    <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="cApe" placeholder="Garcia"></div>
+    <div class="fg"><label class="fl"><span data-t="cli.nombre">Nombre</span> *</label><input class="fi" id="cNom" placeholder="Juan"></div>
+    <div class="fg"><label class="fl"><span data-t="cli.apellidos">Apellidos</span></label><input class="fi" id="cApe" placeholder="Garcia"></div>
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Telefono</label><input class="fi" id="cTel" type="tel" placeholder="6XX XXX XXX"></div>
-    <div class="fg"><label class="fl">Email</label><input class="fi" id="cEmail" type="email" placeholder="email@..."></div>
+    <div class="fg"><label class="fl"><span data-t="cli.email">Email</span></label><input class="fi" id="cEmail" type="email" placeholder="email@..."></div>
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl">DNI/NIE</label><input class="fi" id="cDni" placeholder="12345678A"></div>
@@ -4622,7 +4622,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mCli')" data-t="gen.cancelar">Cancelar</button>
-    <button class="btn-primary" onclick="guardarCli()">Guardar</button>
+    <button class="btn-primary" onclick="guardarCli()"><span data-t="gen.guardar">Guardar</span></button>
   </div>
 </div>
 </div>
@@ -4630,17 +4630,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- NUEVA CITA DESDE ADMIN (calendario) -->
 <div class="modal-bg" id="mNuevaCitaAdmin">
 <div class="modal">
-  <div class="modal-title">📅 Nueva cita</div>
+  <div class="modal-title"><span data-t="citas.nueva_titulo">📅 Nueva cita</span></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Fecha *</label><input class="fi" id="ncaFecha" type="date"></div>
-    <div class="fg"><label class="fl">Hora *</label><input class="fi" id="ncaHora" type="time" value="10:00"></div>
+    <div class="fg"><label class="fl"><span data-t="gen.fecha">Fecha</span> *</label><input class="fi" id="ncaFecha" type="date"></div>
+    <div class="fg"><label class="fl"><span data-t="gen.hora">Hora</span> *</label><input class="fi" id="ncaHora" type="time" value="10:00"></div>
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Nombre cliente *</label><input class="fi" id="ncaNombre" placeholder="Juan Garcia"></div>
-    <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="ncaTel" type="tel" placeholder="6XX XXX XXX"></div>
+    <div class="fg"><label class="fl"><span data-t="cli.telefono">Teléfono</span></label><input class="fi" id="ncaTel" type="tel" placeholder="6XX XXX XXX"></div>
   </div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Servicio</label>
+    <div class="fg"><label class="fl"><span data-t="nav.servicios">Servicio</span></label>
       <select class="fi" id="ncaServicio">
         <option>Diagnóstico</option>
         <option>Cambio pantalla</option>
@@ -4661,10 +4661,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
   </div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Marca</label><input class="fi" id="ncaMarca" placeholder="Apple"></div>
-    <div class="fg"><label class="fl">Modelo</label><input class="fi" id="ncaModelo" placeholder="iPhone 13"></div>
+    <div class="fg"><label class="fl"><span data-t="rep.marca">Marca</span></label><input class="fi" id="ncaMarca" placeholder="Apple"></div>
+    <div class="fg"><label class="fl"><span data-t="rep.modelo">Modelo</span></label><input class="fi" id="ncaModelo" placeholder="iPhone 13"></div>
   </div>
-  <div class="fg"><label class="fl">Notas</label><input class="fi" id="ncaNotas" placeholder="Opcional"></div>
+  <div class="fg"><label class="fl"><span data-t="cli.notas">Notas</span></label><input class="fi" id="ncaNotas" placeholder="Opcional"></div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mNuevaCitaAdmin')" data-t="gen.cancelar">Cancelar</button>
     <button class="btn-primary" onclick="guardarCitaAdmin()">Guardar cita</button>
@@ -4675,19 +4675,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- NUEVO CLIENTE RAPIDO -->
 <div class="modal-bg" id="mNuevoCli">
 <div class="modal">
-  <div class="modal-title">➕ Nuevo Cliente Rapido</div>
+  <div class="modal-title"><span data-t="cli.nuevo_rapido">➕ Nuevo Cliente Rápido</span></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="ncNom" placeholder="Juan"></div>
-    <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="ncApe" placeholder="Garcia"></div>
+    <div class="fg"><label class="fl"><span data-t="cli.nombre">Nombre</span> *</label><input class="fi" id="ncNom" placeholder="Juan"></div>
+    <div class="fg"><label class="fl"><span data-t="cli.apellidos">Apellidos</span></label><input class="fi" id="ncApe" placeholder="Garcia"></div>
   </div>
   <div class="fg"><label class="fl">Telefono</label><input class="fi" id="ncTel" type="tel" placeholder="6XX XXX XXX"></div>
   <div class="fg"><label class="fl">DNI/NIE</label><input class="fi" id="ncDni" placeholder="12345678A"></div>
-  <div class="fg"><label class="fl">Email</label><input class="fi" id="ncEmail" type="email" placeholder="correo@ejemplo.com"></div>
+  <div class="fg"><label class="fl"><span data-t="cli.email">Email</span></label><input class="fi" id="ncEmail" type="email" placeholder="correo@ejemplo.com"></div>
   <div class="fg"><label class="fl">Direccion</label><input class="fi" id="ncDir" placeholder="Calle, numero, ciudad"></div>
   <div class="fg"><label class="fl">Fecha de nacimiento</label><input class="fi" id="ncNac" type="date"></div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mNuevoCli')" data-t="gen.cancelar">Cancelar</button>
-    <button class="btn-primary" onclick="crearClienteRapido()">Crear</button>
+    <button class="btn-primary" onclick="crearClienteRapido()"><span data-t="gen.crear">Crear</span></button>
   </div>
 </div>
 </div>
@@ -4697,15 +4697,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal">
   <div class="modal-title">🏭 Proveedor</div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="pNom" placeholder="Proveedor SL"></div>
+    <div class="fg"><label class="fl"><span data-t="cli.nombre">Nombre</span> *</label><input class="fi" id="pNom" placeholder="Proveedor SL"></div>
     <div class="fg"><label class="fl">NIF/CIF</label><input class="fi" id="pNif" placeholder="B12345678"></div>
   </div>
   <div class="fg"><label class="fl">Persona de contacto</label><input class="fi" id="pCont" placeholder="Juan Garcia"></div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Telefono</label><input class="fi" id="pTel" placeholder="6XX XXX XXX"></div>
-    <div class="fg"><label class="fl">Email</label><input class="fi" id="pEmail" type="email" placeholder="email@..."></div>
+    <div class="fg"><label class="fl"><span data-t="cli.email">Email</span></label><input class="fi" id="pEmail" type="email" placeholder="email@..."></div>
   </div>
-  <div class="fg"><label class="fl">Dirección</label><input class="fi" id="pDir" placeholder="Calle, número, piso"></div>
+  <div class="fg"><label class="fl"><span data-t="cli.direccion">Dirección</span></label><input class="fi" id="pDir" placeholder="Calle, número, piso"></div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Código postal</label><input class="fi" id="pCp" placeholder="08001"></div>
     <div class="fg"><label class="fl">Ciudad</label><input class="fi" id="pCiudad" placeholder="Barcelona"></div>
@@ -4714,7 +4714,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="fg"><label class="fl">Nota</label><textarea class="fi" id="pNota" rows="2" placeholder="Notas..."></textarea></div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mProv')" data-t="gen.cancelar">Cancelar</button>
-    <button class="btn-primary" onclick="guardarProv()">Guardar</button>
+    <button class="btn-primary" onclick="guardarProv()"><span data-t="gen.guardar">Guardar</span></button>
   </div>
 </div>
 </div>
@@ -4729,7 +4729,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="fg"><label class="fl">Fecha</label><input class="fi" id="gFecha" type="date"></div>
   </div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Categoría</label>
+    <div class="fg"><label class="fl"><span data-t="stock.categoria">Categoría</span></label>
       <select class="fi" id="gCat">
         <option>Alquiler</option>
         <option>Suministros</option>
@@ -4777,7 +4777,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mGasto')" data-t="gen.cancelar">Cancelar</button>
-    <button class="btn-primary" style="background:var(--red)" onclick="guardarGasto()">Guardar</button>
+    <button class="btn-primary" style="background:var(--red)" onclick="guardarGasto()"><span data-t="gen.guardar">Guardar</span></button>
   </div>
 </div>
 </div>
@@ -4794,7 +4794,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
   </div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Categoría</label>
+    <div class="fg"><label class="fl"><span data-t="stock.categoria">Categoría</span></label>
       <select class="fi" id="grCat">
         <option>Alquiler</option>
         <option>Suministros</option>
@@ -4839,7 +4839,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal-bg" id="mServicio">
 <div class="modal">
   <div class="modal-title" id="mServicioTit">🛠️ Nuevo Servicio</div>
-  <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="srvNom" placeholder="Ej: Cambio pantalla iPhone 14"></div>
+  <div class="fg"><label class="fl"><span data-t="cli.nombre">Nombre</span> *</label><input class="fi" id="srvNom" placeholder="Ej: Cambio pantalla iPhone 14"></div>
   <div class="fg"><label class="fl">Categoria</label>
     <select class="fi" id="srvCat">
       <option>Pantalla</option><option>Bateria</option><option>Agua</option><option>Software</option>
@@ -4877,7 +4877,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mServicio')" data-t="gen.cancelar">Cancelar</button>
-    <button class="btn-primary" onclick="guardarServicio()">Guardar</button>
+    <button class="btn-primary" onclick="guardarServicio()"><span data-t="gen.guardar">Guardar</span></button>
   </div>
 </div>
 </div>
@@ -4889,7 +4889,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div id="permisosContainer2"></div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mPermisos')" data-t="gen.cancelar">Cancelar</button>
-    <button class="btn-primary" style="background:var(--purple)" onclick="guardarPermisos()">Guardar</button>
+    <button class="btn-primary" style="background:var(--purple)" onclick="guardarPermisos()"><span data-t="gen.guardar">Guardar</span></button>
   </div>
 </div>
 </div>
@@ -16819,7 +16819,7 @@ function impFacAnadirAlStock() {
     <div style="display:flex;gap:8px">
       <button type="button" class="btn-secondary" style="flex:1" onclick="restablecerPlantillas()" title="Restaurar las plantillas por defecto">↺ Restaurar defaults</button>
       <button type="button" class="btn-secondary" style="flex:1" onclick="closeM('mPlantillasRep')" data-t="gen.cancelar">Cancelar</button>
-      <button type="button" class="btn-primary" style="flex:1.5;background:var(--green)" onclick="guardarPlantillas()">Guardar</button>
+      <button type="button" class="btn-primary" style="flex:1.5;background:var(--green)" onclick="guardarPlantillas()"><span data-t="gen.guardar">Guardar</span></button>
     </div>
   </div>
 </div>
@@ -16845,7 +16845,7 @@ function impFacAnadirAlStock() {
   <div class="modal" style="max-width:420px">
     <div class="modal-h"><span>🛠️ Nuevo servicio</span><span class="cls" onclick="closeM('mCrearSrvSimple')">×</span></div>
     <div class="fg"><label class="fl">Nombre <span class="req">*</span></label><input class="fi" id="csrvNom" placeholder="Ej: Instalación de Pantalla iPhone 14"></div>
-    <div class="fg"><label class="fl">Categoría</label>
+    <div class="fg"><label class="fl"><span data-t="stock.categoria">Categoría</span></label>
       <select class="fi" id="csrvCat">
         <option value="Pantalla">Pantalla</option>
         <option value="Bateria">Batería</option>
@@ -16862,7 +16862,7 @@ function impFacAnadirAlStock() {
     </div>
     <div class="modal-actions">
       <button type="button" class="btn-secondary" onclick="closeM('mCrearSrvSimple')" data-t="gen.cancelar">Cancelar</button>
-      <button type="button" class="btn-primary" style="background:var(--green)" onclick="guardarSrvSimple()">Guardar</button>
+      <button type="button" class="btn-primary" style="background:var(--green)" onclick="guardarSrvSimple()"><span data-t="gen.guardar">Guardar</span></button>
     </div>
   </div>
 </div>
