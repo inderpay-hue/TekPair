@@ -9784,7 +9784,7 @@ function renderReps() {
       + '<td style="font-size:11px;color:var(--dark)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + r.bloqueo : '')) + '</span>' : '') + '</td>'
       + '<td><select data-rid="' + r.id + '" class="sel-estado" style="border:1px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:6px">'
         + ['Pendiente','En Proceso','Por Entregar','Entregado','Garantia','Sin Solucion','Devuelto','Rechazado'].map(function(s) {
-          return '<option' + (s === r.estado ? ' selected' : '') + '>' + s + '</option>';
+          return '<option value="'+s+'"' + (s === r.estado ? ' selected' : '') + '>' + (T('estado.'+s)||s) + '</option>';
         }).join('') + '</select></td>'
       + '<td>' + priBadge + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
