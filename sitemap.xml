@@ -28,6 +28,13 @@
   <!-- Post: como abrir taller reparacion movil -->
   <url>
     <loc>https://www.tekpair.tech/blog/como-abrir-taller-reparacion-movil.html</loc>
+  <!-- Post: gestionar reparaciones sin excel -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/como-gestionar-reparaciones-moviles-sin-excel.html</loc>
+    <lastmod>2026-05-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
     <lastmod>2026-05-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
