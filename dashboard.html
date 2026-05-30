@@ -1224,8 +1224,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="tabs" id="ventaTabs">
     <div class="tab active" data-f="todas" onclick="setVentaFiltro(this)"><span data-t="tpv.todos">Todas</span></div>
-    <div class="tab" data-f="reembolsos" onclick="setVentaFiltro(this)">↩ Reembolsos</div>
-    <div class="tab" data-f="financiados" onclick="setVentaFiltro(this)">💰 Financiados</div>
+    <div class="tab" data-f="reembolsos" onclick="setVentaFiltro(this)"><span data-t="gen.reembolsos">↩ Reembolsos</span></div>
+    <div class="tab" data-f="financiados" onclick="setVentaFiltro(this)"><span data-t="gen.financiados">💰 Financiados</span></div>
   </div>
   <div id="listaVentas"></div>
 </div>
@@ -6642,7 +6642,7 @@ function renderWidgetCobros() {
   }
   var html = '<div style="display:flex;flex-direction:column;gap:6px">';
   pendientes.slice(0,8).forEach(function(p) {
-    var cli = (DB.clis.find(function(c){ return c.id === p.venta.cliId; }) || {}).nombre || 'Sin cliente';
+    var cli = (DB.clis.find(function(c){ return c.id === p.venta.cliId; }) || {}).nombre || T('gen.sin_cliente');
     var color = p.vencida ? 'var(--red)' : 'var(--orange)';
     var badge = p.vencida ? '<span style="background:rgba(239,68,68,.12);color:var(--red);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700">VENCIDA</span>' : '';
     html += '<div style="background:var(--light);border-left:3px solid ' + color + ';padding:8px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:8px">';
@@ -7197,7 +7197,7 @@ function guardarVenta() {
     id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
     fecha: hoyLocal(),
     clienteId: SEL.vCli ? SEL.vCli.id : '',
-    clienteNombre: SEL.vCli ? (SEL.vCli.nombre + ' ' + SEL.vCli.apellidos).trim() : 'Sin cliente',
+    clienteNombre: SEL.vCli ? (SEL.vCli.nombre + ' ' + SEL.vCli.apellidos).trim() : T('gen.sin_cliente'),
     marca: SEL.vStock ? (SEL.vStock.marca || '') : '',
     modelo: SEL.vStock ? (SEL.vStock.modelo || '') : '',
     imei: SEL.vStock ? (SEL.vStock.imei || '') : '',
@@ -7327,7 +7327,7 @@ function imprimirTicketVenta(id) {
     logoBlock + nombreLinea + dirLinea + telLinea +
     '<hr>' +
     '<div style="display:flex;justify-content:space-between"><span>Fecha:</span><strong>' + fmtFecha(v.fecha) + '</strong></div>' +
-    '<div style="display:flex;justify-content:space-between"><span>Cliente:</span><strong>' + esc(v.clienteNombre || 'Sin cliente') + '</strong></div>' +
+    '<div style="display:flex;justify-content:space-between"><span>Cliente:</span><strong>' + esc(v.clienteNombre || T('gen.sin_cliente')) + '</strong></div>' +
     '<div style="display:flex;justify-content:space-between"><span>Pago:</span><strong>' + esc(v.pago) + '</strong></div>' +
     (v.reembolsado ? '<div style="text-align:center;color:#c00;font-weight:800;margin-top:4px;border:1.5px solid #c00;padding:3px">REEMBOLSADA</div>' : '') +
     '<hr>' +
@@ -9549,7 +9549,7 @@ function renderKanban() {
         }
         html += '<div class="kanban-card" draggable="true" data-rep="' + r.id + '" ondragstart="kanbanDragStart(event)" ondragend="kanbanDragEnd(event)" onclick="abrirDetalleRepKanban(\'' + r.id + '\')">';
         html += '<div class="kanban-card-pri ' + pri + '"></div>';
-        html += '<div class="kanban-card-cli">' + esc(r.clienteNombre || 'Sin cliente') + '</div>';
+        html += '<div class="kanban-card-cli">' + esc(r.clienteNombre || T('gen.sin_cliente')) + '</div>';
         html += '<div class="kanban-card-mod">' + esc((r.marca||'') + ' ' + (r.modelo||'')).trim() + '</div>';
         if (r.averia) html += '<div class="kanban-card-mod" style="font-style:italic">' + esc(r.averia.length>40?r.averia.slice(0,38)+'…':r.averia) + '</div>';
         html += '<div class="kanban-card-row">';
@@ -13840,7 +13840,7 @@ function renderBusquedaGlobal() {
       var cli = (DB.clis.find(function(c){ return c.id === r.cliId; }) || {});
       var hay = _norm((r.marca||'') + ' ' + (r.modelo||'') + ' ' + (r.averia||'') + ' ' + (cli.nombre||'') + ' ' + (cli.apellidos||'') + ' ' + (r.imei||''));
       if (hay.indexOf(q) !== -1) {
-        results.push({tipo:'rep', icon:'🔧', titulo:((r.marca||'') + ' ' + (r.modelo||'')).trim() + ' · ' + (r.averia||'').slice(0,40), sub:(cli.nombre||'Sin cliente') + ' · ' + (r.estado||'') + ' · ' + cur(r.total||0), id:r.id});
+        results.push({tipo:'rep', icon:'🔧', titulo:((r.marca||'') + ' ' + (r.modelo||'')).trim() + ' · ' + (r.averia||'').slice(0,40), sub:(cli.nombre||T('gen.sin_cliente')) + ' · ' + (r.estado||'') + ' · ' + cur(r.total||0), id:r.id});
       }
     });
   }
@@ -13851,7 +13851,7 @@ function renderBusquedaGlobal() {
       var cli = (DB.clis.find(function(c){ return c.id === v.cliId; }) || {});
       var hay = _norm((v.marca||'') + ' ' + (v.modelo||'') + ' ' + (cli.nombre||'') + ' ' + (cli.apellidos||'') + ' ' + (v.imei||''));
       if (hay.indexOf(q) !== -1) {
-        results.push({tipo:'venta', icon:'📱', titulo:((v.marca||'') + ' ' + (v.modelo||'')).trim() || 'Venta', sub:(cli.nombre||'Sin cliente') + ' · ' + (v.fecha||'') + ' · ' + cur(v.total||0) + (v.reembolsado?' · ↩ REEMBOLSADA':''), id:v.id});
+        results.push({tipo:'venta', icon:'📱', titulo:((v.marca||'') + ' ' + (v.modelo||'')).trim() || 'Venta', sub:(cli.nombre||T('gen.sin_cliente')) + ' · ' + (v.fecha||'') + ' · ' + cur(v.total||0) + (v.reembolsado?' · ↩ REEMBOLSADA':''), id:v.id});
       }
     });
   }
