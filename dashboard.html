@@ -1220,7 +1220,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
-    <input class="search-input" id="busVentas" placeholder="Buscar cliente, modelo..." oninput="renderVentas()">
+    <input class="search-input" id="busVentas" placeholder="Buscar..." data-t-ph="gen.buscar" oninput="renderVentas()">
   </div>
   <div class="tabs" id="ventaTabs">
     <div class="tab active" data-f="todas" onclick="setVentaFiltro(this)">Todas</div>
@@ -7248,7 +7248,7 @@ function guardarVenta() {
   }
 
   closeM('mVenta');
-  toast('Venta registrada', 'ok');
+  toast(T('gen.guardado'), 'ok');
   audit('crear', 'venta', venta.id, (venta.clienteNombre || 'Cliente puntual') + ' · ' + cur(venta.total), null);
   renderDash();
 }
@@ -7306,7 +7306,7 @@ function renderVentas() {
 
 function imprimirTicketVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
-  if (!v) { toast('Venta no encontrada', 'err'); return; }
+  if (!v) { toast(T('gen.error'), 'err'); return; }
   var logoBlock = TIENDA.logo_url
     ? '<div style="text-align:center;margin-bottom:6px"><img src="' + esc(TIENDA.logo_url) + '" style="max-height:50px;max-width:200px;object-fit:contain"></div>'
     : '<div style="text-align:center;font-size:14px;font-weight:800;margin-bottom:4px">\u26a1 ' + esc(TIENDA.nombre || 'Tekpair') + '</div>';
@@ -7376,7 +7376,7 @@ function reembolsarVenta(id) {
   }
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + id, {reembolsado: true, fecha_reembolso: v.fechaReembolso});
-  toast('Venta reembolsada', 'ok');
+  toast(T('venta.reembolsada'), 'ok');
   renderVentas();
   renderDash();
   _ofrecerAbonoFactura('venta', id);
@@ -8095,7 +8095,7 @@ function rechazarPresupuesto(id) {
   if (SB_KEY && TIENDA_ID) {
     sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Rechazado' });
   }
-  toast('Presupuesto rechazado', 'ok');
+  toast(T('pres.rechazado_ok'), 'ok');
   if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
     renderPresupuestos();
   }
@@ -9029,7 +9029,7 @@ function esc(s) {
 
 function editarRep(id) {
   var r = DB.reps.find(function(x){ return x.id === id; });
-  if (!r) { toast('Reparación no encontrada', 'err'); return; }
+  if (!r) { toast(T('gen.error'), 'err'); return; }
   // Reset y rellenar
   SEL.editRepId = id;
   SEL.rCli = DB.clis.find(function(c){ return c.id === r.clienteId; }) || {id:r.clienteId, nombre:r.clienteNombre, apellidos:''};
@@ -9330,7 +9330,7 @@ function guardarRep() {
   // Modo edicion
   if (SEL.editRepId) {
     var r = DB.reps.find(function(x){ return x.id === SEL.editRepId; });
-    if (!r) { toast('Reparación no encontrada', 'err'); SEL.editRepId = null; return; }
+    if (!r) { toast(T('gen.error'), 'err'); SEL.editRepId = null; return; }
     var componentesAntes = Array.isArray(r.componentes) ? r.componentes.slice() : [];
     var serviciosE = (SEL.rServicios || []).slice();
     autoGuardarServiciosNuevos(serviciosE);
@@ -9379,7 +9379,7 @@ function guardarRep() {
     closeM('mRep');
     renderReps();
     renderDash();
-    toast('Reparación actualizada', 'ok');
+    toast(T('rep.actualizada'), 'ok');
     audit('editar', 'reparacion', r.id, r.clienteNombre + ' · ' + (r.modelo||''), null);
     aplicarCambioStockPiezas(componentesAntes, r.componentes);
     return;
@@ -9470,7 +9470,7 @@ function guardarRep() {
     // No abrimos tracking automáticamente para presupuestos
     return;
   }
-  toast('Reparación creada', 'ok');
+  toast(T('rep.creada'), 'ok');
   audit('crear', 'reparacion', rep.id, rep.clienteNombre + ' · ' + (rep.modelo||'') + ' · ' + cur(rep.total), null);
   renderDash();
   checkUrgentes();
@@ -9850,7 +9850,7 @@ function cambiarEstado(id, estado) {
         esGarantia: true, repOriginalId: id
       };
       DB.reps.push(nueva);
-      toast('Reparacion en garantia creada', 'ok');
+      toast(T('rep.creada'), 'ok');
     }
   }
   var estadoAnterior = r.estado;
@@ -9870,12 +9870,12 @@ function cambiarEstado(id, estado) {
     aplicarCambioStockPiezas(r.componentes, []);
     r.piezasDevueltas = true;
     patchUnificado.piezas_devueltas = true;
-    toast('Piezas devueltas al stock', 'ok');
+    toast(T('stock.piezas_devueltas'), 'ok');
   } else if (saliendoCancelacion && Array.isArray(r.componentes) && r.componentes.length && r.piezasDevueltas) {
     aplicarCambioStockPiezas([], r.componentes);
     r.piezasDevueltas = false;
     patchUnificado.piezas_devueltas = false;
-    toast('Piezas re-descontadas del stock', 'ok');
+    toast(T('stock.piezas_redescontadas'), 'ok');
   }
 
   guardarDatos();
@@ -9913,7 +9913,7 @@ function abrirEntregar(id) {
 }
 
 function confirmarEntrega() {
-  if (!tienePerm('reps_entregar')) { toast('Sin permiso para entregar', 'err'); return; }
+  if (!tienePerm('reps_entregar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x) { return x.id === SEL.eRepId; });
   if (!r) return;
   r.estado = 'Entregado';
@@ -9944,7 +9944,7 @@ function confirmarEntrega() {
     });
   }
   closeM('mEntregar');
-  toast('Reparacion entregada', 'ok');
+  toast(T('estado.Entregado'), 'ok');
   renderReps();
   renderDash();
   // whatsapp_flow_v2: enviar parte de reparacion al entregar
@@ -10559,7 +10559,7 @@ function delCli(id) {
   DB.clis = DB.clis.filter(function(c) { return c.id !== id; });
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbDelete('clientes', 'id=eq.' + id);
-  toast('Cliente eliminado', 'ok');
+  toast(T('cli.eliminado'), 'ok');
   audit('eliminar', 'cliente', id, c ? ((c.nombre||'') + ' ' + (c.apellidos||'')).trim() : id, null);
   renderClis();
 }
@@ -10567,7 +10567,7 @@ function delCli(id) {
 function eliminarReparacion(id) {
   if (!tienePerm('reps_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x){ return x.id === id; });
-  if (!r) { toast('Reparación no encontrada', 'err'); return; }
+  if (!r) { toast(T('gen.error'), 'err'); return; }
 
   var msg = '¿Eliminar reparación de ' + r.clienteNombre + ' (' + (r.marca||'') + ' ' + (r.modelo||'') + ')?';
   // Solo se devuelven piezas si NO fueron ya devueltas (estados Devuelto/Rechazado/Sin Solucion)
@@ -10592,7 +10592,7 @@ function eliminarReparacion(id) {
   // Borrar de Supabase
   if (SB_KEY && TIENDA_ID) sbDelete('reparaciones', 'id=eq.' + id);
 
-  toast('Reparación eliminada', 'ok');
+  toast(T('rep.eliminada'), 'ok');
   audit('eliminar', 'reparacion', id, r.clienteNombre + ' · ' + (r.marca||'') + ' ' + (r.modelo||''), null);
 
   // Re-render y cerrar modales si están abiertos
@@ -14099,7 +14099,7 @@ function editarClienteDesdeFicha(cliId) {
 // ═══ DETALLE REPARACIÓN (vista lectura) ═══
 function abrirDetalleRep(repId) {
   var r = DB.reps.find(function(x){ return x.id === repId; });
-  if (!r) { toast('Reparación no encontrada', 'err'); return; }
+  if (!r) { toast(T('gen.error'), 'err'); return; }
   var cli = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
 
   // Check garantía
@@ -17886,7 +17886,7 @@ function resetPagosRep() {
 // Generar factura de una venta (desde la sección Ventas)
 function factVenta(id) {
   var v = DB.ventas.find(function(x) { return x.id === id; });
-  if (!v) { toast('Venta no encontrada', 'err'); return; }
+  if (!v) { toast(T('gen.error'), 'err'); return; }
   var cli = v.clienteId ? DB.clis.find(function(c) { return c.id === v.clienteId; }) : null;
   var datos = {
     id: v.id,
@@ -17907,7 +17907,7 @@ function factVenta(id) {
 
 function factRep(id) {
   var r = DB.reps.find(function(x){ return x.id === id; });
-  if (!r) { toast('Reparacion no encontrada', 'err'); return; }
+  if (!r) { toast(T('gen.error'), 'err'); return; }
   var cli = null;
   if (r.clienteId) cli = DB.clis.find(function(c){ return c.id === r.clienteId; });
   if (!cli && r.clienteId) cli = { id: r.clienteId, nombre: r.clienteNombre || '', apellidos: '' };
