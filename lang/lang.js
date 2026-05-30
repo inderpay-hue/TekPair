@@ -238,6 +238,7 @@ es: {
   'rep.dispositivo': 'Dispositivo',
   'rep.cobro': 'Cobro y logística',
   'rep.pagos': 'Pagos',
+  'nav.catalogo': 'Catálogo',
   'gen.idioma': 'Idioma',
 },
 
@@ -460,6 +461,7 @@ en: {
   'rep.dispositivo': 'Device',
   'rep.cobro': 'Payment & logistics',
   'rep.pagos': 'Payments',
+  'nav.catalogo': 'Catalogue',
   'gen.idioma': 'Language',
 },
 
@@ -682,6 +684,7 @@ fr: {
   'rep.dispositivo': 'Appareil',
   'rep.cobro': 'Paiement & logistique',
   'rep.pagos': 'Paiements',
+  'nav.catalogo': 'Catalogue',
   'gen.idioma': 'Langue',
 },
 
@@ -904,6 +907,7 @@ it: {
   'rep.dispositivo': 'Dispositivo',
   'rep.cobro': 'Pagamento & logistica',
   'rep.pagos': 'Pagamenti',
+  'nav.catalogo': 'Catalogo',
   'gen.idioma': 'Lingua',
 },
 
@@ -1126,6 +1130,7 @@ de: {
   'rep.dispositivo': 'Gerät',
   'rep.cobro': 'Zahlung & Logistik',
   'rep.pagos': 'Zahlungen',
+  'nav.catalogo': 'Katalog',
   'gen.idioma': 'Sprache',
 },
 
@@ -1348,6 +1353,7 @@ pt: {
   'rep.dispositivo': 'Dispositivo',
   'rep.cobro': 'Pagamento & logística',
   'rep.pagos': 'Pagamentos',
+  'nav.catalogo': 'Catálogo',
   'gen.idioma': 'Idioma',
 },
 
