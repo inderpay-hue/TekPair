@@ -655,10 +655,10 @@ function tienePerm(perm) {
 // ═══ SYNC VENTAS DESDE SUPABASE ═══
 function syncVentasDesdeSupabase() {
   if (!SB_KEY || !TIENDA_ID) return Promise.resolve();
-  var hoy = new Date().toLocaleDateString('es');
+  var hoy = new Date().toISOString().slice(0,10);
   // FIX TPV-10: traer también las de ayer por si el TPV está abierto pasada la medianoche
   var ayer = new Date(); ayer.setDate(ayer.getDate() - 1);
-  var ayerStr = ayer.toLocaleDateString('es');
+  var ayerStr = ayer.toISOString().slice(0,10);
   // fecha=in.(hoy,ayer) con valores entre comillas escapadas para REST de Supabase
   return sbGet('ventas', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=in.(' + encodeURIComponent('"' + hoy + '","' + ayerStr + '"') + ')').then(function(rows) {
     if (!Array.isArray(rows) || !rows.length) return;
@@ -1117,7 +1117,7 @@ function cobrar() {
   var totals = _computeTotals();
   var venta = {
     id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-    fecha: new Date().toLocaleDateString('es'),
+    fecha: new Date().toISOString().slice(0,10),
     clienteId: selectedCli ? selectedCli.id : '',
     clienteNombre: selectedCli ? (selectedCli.nombre + ' ' + (selectedCli.apellidos || '')).trim() : 'Sin cliente',
     marca: cart.length === 1 ? (cart[0].nombre.split(' ')[0] || '') : '',
@@ -1279,14 +1279,14 @@ function crearClienteRapido() {
 
 // ═══ CAJA ═══
 function updateCaja() {
-  var hoy = new Date().toLocaleDateString('es');
+  var hoy = new Date().toISOString().slice(0,10);
   var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy && !v.reembolsado && v.pago === 'Efectivo'; });
   var total = ventasHoy.reduce(function(a, v) { return a + v.total; }, 0);
   document.getElementById('cajaTotal').textContent = '\u20ac' + total.toFixed(2);
 }
 
 function verCaja() {
-  var hoy = new Date().toLocaleDateString('es');
+  var hoy = new Date().toISOString().slice(0,10);
   var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy && !v.reembolsado; });
   var pagos = {};
   ventasHoy.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
@@ -1313,7 +1313,7 @@ function verHistorial() {
 }
 
 function renderHistorial() {
-  var hoy = new Date().toLocaleDateString('es');
+  var hoy = new Date().toISOString().slice(0,10);
   var q = (document.getElementById('histSearch').value || '').toLowerCase();
   var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy; }).slice().reverse();
   if (q) {
