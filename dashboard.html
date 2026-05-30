@@ -969,7 +969,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sidebar-ni" data-p="pReps" onclick="navTo('pReps');setSidebarActive(this)">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span><span data-t="nav.reparaciones">Reparaciones</span>
     </div>
-    <div class="sidebar-ni" data-p="pPresupuestos" onclick="navTo('pPresupuestos');setSidebarActive(this)" style="color:rgba(168,85,247,.8)">
+    <div class="sidebar-ni" data-p="pPresupuestos" onclick="navTo('pPresupuestos');setSidebarActive(this)">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span data-t="nav.presupuestos">Presupuestos</span>
     </div>
     <div class="sidebar-ni" data-p="pFacturas" onclick="navTo('pFacturas');setSidebarActive(this)">
@@ -1097,13 +1097,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="card" id="cardPendientes">
     <div class="sec-header">
       <div class="card-title" style="margin:0">🔧 Reparaciones pendientes <span id="repsPendientesCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
-      <button class="btn-sm" style="background:var(--blue);color:white" onclick="navTo('pReps')">Ver todas</button>
+      <button class="btn-sm" style="background:var(--blue);color:white" onclick="navTo('pReps')"><span data-t="gen.ver_todas">Ver todas</span></button>
     </div>
     <div id="repsPendientesBox"></div>
   </div>
   <div class="card" id="cardPorEntregar">
     <div class="sec-header">
-      <div class="card-title" style="margin:0">📦 Por entregar <span id="repsEntregarCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+      <div class="card-title" style="margin:0"><span data-t="dash.por_entregar">📦 Por entregar</span> <span id="repsEntregarCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
       <button class="btn-sm" style="background:var(--green);color:white" onclick="navTo('pReps')">Ver todas</button>
     </div>
     <div id="repsEntregarBox"></div>
@@ -1436,9 +1436,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="sec-header" style="margin-bottom:10px">
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
-      <div class="sec-title" data-t="cli.titulo">Clientes</div>
+      <div class="sec-title" data-t="cli.titulo"><span data-t="cli.titulo">Clientes</span></div>
     </div>
-    <button class="btn-sm" style="background:var(--blue);color:white" onclick="ECID=null;limpiarFormCli();openM('mCli')">+ Nuevo</button>
+    <button class="btn-sm" style="background:var(--blue);color:white" onclick="ECID=null;limpiarFormCli();openM('mCli')"><span data-t="cli.nuevo">+ Nuevo</span></button>
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
@@ -1963,7 +1963,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="cajas-modal-pie">
       <button class="cajas-btn cajas-btn-rojo" id="btn-borrar-caja" style="display:none;margin-right:auto;" onclick="Cajas.borrarCaja()">Eliminar</button>
       <button class="cajas-btn cajas-btn-sec" onclick="Cajas.cerrarModal('modal-caja')" data-t="gen.cancelar">Cancelar</button>
-      <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarCaja()">Guardar</button>
+      <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarCaja()"><span data-t="gen.guardar">Guardar</span></button>
     </div>
   </div>
 </div>
@@ -6905,10 +6905,10 @@ function renderWidgetStockCritico() {
   }, 0);
   var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
   html += '<div style="background:var(--light);padding:10px;border-radius:8px;border-left:3px solid var(--red)">';
-  html += '<div style="font-size:11px;color:var(--muted);font-weight:600">Sin stock</div>';
+  html += '<div style="font-size:11px;color:var(--muted);font-weight:600"><span data-t="dash.sin_stock">Sin stock</span></div>';
   html += '<div style="font-size:18px;font-weight:800;color:var(--red)">' + sinStock.length + '</div></div>';
   html += '<div style="background:var(--light);padding:10px;border-radius:8px;border-left:3px solid var(--orange)">';
-  html += '<div style="font-size:11px;color:var(--muted);font-weight:600">Bajo mínimo</div>';
+  html += '<div style="font-size:11px;color:var(--muted);font-weight:600"><span data-t="dash.bajo_minimo">Bajo mínimo</span></div>';
   html += '<div style="font-size:18px;font-weight:800;color:var(--orange)">' + bajos.length + '</div></div>';
   html += '<div style="background:var(--light);padding:10px;border-radius:8px;border-left:3px solid var(--blue);grid-column:1/-1">';
   html += '<div style="font-size:11px;color:var(--muted);font-weight:600">Valor total inventario (precio coste)</div>';
@@ -7332,8 +7332,8 @@ function imprimirTicketVenta(id) {
     '<hr>' +
     itemsHtml +
     '<hr>' +
-    (v.descuento > 0 ? '<div style="display:flex;justify-content:space-between"><span>Subtotal</span><span>' + cur(v.precio || 0) + '</span></div>' +
-      '<div style="display:flex;justify-content:space-between"><span>Descuento</span><span>-' + cur(v.descuento) + '</span></div>' : '') +
+    (v.descuento > 0 ? '<div style="display:flex;justify-content:space-between"><span><span data-t="tpv.subtotal">Subtotal</span></span><span>' + cur(v.precio || 0) + '</span></div>' +
+      '<div style="display:flex;justify-content:space-between"><span><span data-t="tpv.descuento">Descuento</span></span><span>-' + cur(v.descuento) + '</span></div>' : '') +
     (ivaOn ?
       '<div style="display:flex;justify-content:space-between"><span>Base imponible</span><span>' + cur(v.base || 0) + '</span></div>' +
       '<div style="display:flex;justify-content:space-between"><span>IVA (' + v.iva + '%)</span><span>' + cur(v.ivaImporte || 0) + '</span></div>'
@@ -9688,9 +9688,9 @@ function renderPresupuestos() {
     }
 
     // Botones
-    var btnAcept  = '<button data-rid="' + r.id + '" class="row-btn btn-pres-acept2" title="Aceptar — convertir a reparación" style="background:var(--green);color:white;border-color:var(--green)">✓ Aceptar</button>';
-    var btnFirmar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-firma2" title="Firmar en tablet" style="background:#8B5CF6;color:white;border-color:#8B5CF6">✍️ Firmar</button>';
-    var btnEnviar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-enviar2" title="Enviar al cliente por WA/Email" style="background:#0EA5E9;color:white;border-color:#0EA5E9">📤 Enviar</button>';
+    var btnAcept  = '<button data-rid="' + r.id + '" class="row-btn btn-pres-acept2" title="Aceptar — convertir a reparación" style="background:var(--green);color:white;border-color:var(--green)"><span data-t="pres.aceptar">✓ Aceptar</span></button>';
+    var btnFirmar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-firma2" title="Firmar en tablet" style="background:#8B5CF6;color:white;border-color:#8B5CF6"><span data-t="pres.firmar">✍️ Firmar</span></button>';
+    var btnEnviar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-enviar2" title="Enviar al cliente por WA/Email" style="background:#0EA5E9;color:white;border-color:#0EA5E9"><span data-t="pres.enviar">📤 Enviar</span></button>';
     var btnEditar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-edit2" title="Editar presupuesto">✏️</button>';
     var btnRech   = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" class="row-btn btn-pres-rech2" title="Rechazar">✗</button>' : '';
 

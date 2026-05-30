@@ -235,6 +235,9 @@ es: {
   'nav.grupo_operacion': 'Operación',
   'nav.grupo_gestion': 'Gestión',
   'nav.grupo_config': 'Configuración',
+  'rep.dispositivo': 'Dispositivo',
+  'rep.cobro': 'Cobro y logística',
+  'rep.pagos': 'Pagos',
   'gen.idioma': 'Idioma',
 },
 
@@ -454,6 +457,9 @@ en: {
   'nav.grupo_operacion': 'Operations',
   'nav.grupo_gestion': 'Management',
   'nav.grupo_config': 'Settings',
+  'rep.dispositivo': 'Device',
+  'rep.cobro': 'Payment & logistics',
+  'rep.pagos': 'Payments',
   'gen.idioma': 'Language',
 },
 
@@ -673,6 +679,9 @@ fr: {
   'nav.grupo_operacion': 'Opérations',
   'nav.grupo_gestion': 'Gestion',
   'nav.grupo_config': 'Paramètres',
+  'rep.dispositivo': 'Appareil',
+  'rep.cobro': 'Paiement & logistique',
+  'rep.pagos': 'Paiements',
   'gen.idioma': 'Langue',
 },
 
@@ -892,6 +901,9 @@ it: {
   'nav.grupo_operacion': 'Operazioni',
   'nav.grupo_gestion': 'Gestione',
   'nav.grupo_config': 'Impostazioni',
+  'rep.dispositivo': 'Dispositivo',
+  'rep.cobro': 'Pagamento & logistica',
+  'rep.pagos': 'Pagamenti',
   'gen.idioma': 'Lingua',
 },
 
@@ -1111,6 +1123,9 @@ de: {
   'nav.grupo_operacion': 'Betrieb',
   'nav.grupo_gestion': 'Verwaltung',
   'nav.grupo_config': 'Einstellungen',
+  'rep.dispositivo': 'Gerät',
+  'rep.cobro': 'Zahlung & Logistik',
+  'rep.pagos': 'Zahlungen',
   'gen.idioma': 'Sprache',
 },
 
@@ -1330,6 +1345,9 @@ pt: {
   'nav.grupo_operacion': 'Operações',
   'nav.grupo_gestion': 'Gestão',
   'nav.grupo_config': 'Configurações',
+  'rep.dispositivo': 'Dispositivo',
+  'rep.cobro': 'Pagamento & logística',
+  'rep.pagos': 'Pagamentos',
   'gen.idioma': 'Idioma',
 },
 
