@@ -14291,88 +14291,40 @@ document.addEventListener('keydown', function(e) {
 // ═══ WHATSAPP MENSAJES i18n ═══
 var WA_MSGS = {
   es: {
-    saludar: function(nombre, tienda) { return 'Hola ' + nombre + ', ¿qué tal? Te escribo desde ' + tienda + '.'; },
-    recibida: function(nombre, marca, modelo, url) { return 'Hola ' + nombre + '! Hemos recibido tu ' + marca + ' ' + modelo + '. Puedes seguir el estado de la reparacion en cualquier momento aqui:
-
-' + url + '
-
-Gracias!'; },
-    lista: function(nombre, marca, modelo, url) { return 'Hola ' + nombre + '! Tu ' + marca + ' ' + modelo + ' ya esta listo. Puedes pasarte a recogerlo cuando quieras.
-
-Sigue el estado aqui: ' + url + '
-
-Gracias!'; },
-    cita: function(nombre, fecha, hora, tienda) { return 'Hola ' + nombre + ', te confirmo tu cita el ' + fecha + ' a las ' + hora + ' en ' + tienda + '. ¡Te esperamos!'; }
+    saludar: function(n,t){ return 'Hola '+n+', ¿qué tal? Te escribo desde '+t+'.'; },
+    recibida: function(n,ma,mo,u){ return 'Hola '+n+'! Hemos recibido tu '+ma+' '+mo+'. Puedes seguir el estado de la reparacion en cualquier momento aqui:\n\n'+u+'\n\nGracias!'; },
+    lista: function(n,ma,mo,u){ return 'Hola '+n+'! Tu '+ma+' '+mo+' ya esta listo. Puedes pasarte a recogerlo cuando quieras.\n\nSigue el estado aqui: '+u+'\n\nGracias!'; },
+    cita: function(n,f,h,t){ return 'Hola '+n+', te confirmo tu cita el '+f+' a las '+h+' en '+t+'. ¡Te esperamos!'; }
   },
   en: {
-    saludar: function(nombre, tienda) { return 'Hi ' + nombre + ', how are you? Writing from ' + tienda + '.'; },
-    recibida: function(nombre, marca, modelo, url) { return 'Hi ' + nombre + '! We have received your ' + marca + ' ' + modelo + '. You can track the repair status anytime here:
-
-' + url + '
-
-Thank you!'; },
-    lista: function(nombre, marca, modelo, url) { return 'Hi ' + nombre + '! Your ' + marca + ' ' + modelo + ' is ready. You can come pick it up whenever you want.
-
-Track status here: ' + url + '
-
-Thank you!'; },
-    cita: function(nombre, fecha, hora, tienda) { return 'Hi ' + nombre + ', confirming your appointment on ' + fecha + ' at ' + hora + ' at ' + tienda + '. See you there!'; }
+    saludar: function(n,t){ return 'Hi '+n+', how are you? Writing from '+t+'.'; },
+    recibida: function(n,ma,mo,u){ return 'Hi '+n+'! We have received your '+ma+' '+mo+'. You can track the repair status anytime here:\n\n'+u+'\n\nThank you!'; },
+    lista: function(n,ma,mo,u){ return 'Hi '+n+'! Your '+ma+' '+mo+' is ready. You can come pick it up whenever you want.\n\nTrack status here: '+u+'\n\nThank you!'; },
+    cita: function(n,f,h,t){ return 'Hi '+n+', confirming your appointment on '+f+' at '+h+' at '+t+'. See you there!'; }
   },
   fr: {
-    saludar: function(nombre, tienda) { return 'Bonjour ' + nombre + ', comment allez-vous ? Je vous écris depuis ' + tienda + '.'; },
-    recibida: function(nombre, marca, modelo, url) { return 'Bonjour ' + nombre + ' ! Nous avons reçu votre ' + marca + ' ' + modelo + '. Vous pouvez suivre l'état de la réparation ici:
-
-' + url + '
-
-Merci !'; },
-    lista: function(nombre, marca, modelo, url) { return 'Bonjour ' + nombre + ' ! Votre ' + marca + ' ' + modelo + ' est prêt. Vous pouvez venir le récupérer quand vous voulez.
-
-Suivez l'état ici: ' + url + '
-
-Merci !'; },
-    cita: function(nombre, fecha, hora, tienda) { return 'Bonjour ' + nombre + ', je confirme votre rendez-vous le ' + fecha + ' à ' + hora + ' chez ' + tienda + '. À bientôt !'; }
+    saludar: function(n,t){ return 'Bonjour '+n+', comment allez-vous ? Je vous écris depuis '+t+'.'; },
+    recibida: function(n,ma,mo,u){ return 'Bonjour '+n+' ! Nous avons reçu votre '+ma+' '+mo+'. Vous pouvez suivre l\'état de la réparation ici:\n\n'+u+'\n\nMerci !'; },
+    lista: function(n,ma,mo,u){ return 'Bonjour '+n+' ! Votre '+ma+' '+mo+' est prêt. Vous pouvez venir le récupérer quand vous voulez.\n\nSuivez l\'état ici: '+u+'\n\nMerci !'; },
+    cita: function(n,f,h,t){ return 'Bonjour '+n+', je confirme votre rendez-vous le '+f+' à '+h+' chez '+t+'. À bientôt !'; }
   },
   it: {
-    saludar: function(nombre, tienda) { return 'Ciao ' + nombre + ', come stai? Ti scrivo da ' + tienda + '.'; },
-    recibida: function(nombre, marca, modelo, url) { return 'Ciao ' + nombre + '! Abbiamo ricevuto il tuo ' + marca + ' ' + modelo + '. Puoi seguire lo stato della riparazione qui:
-
-' + url + '
-
-Grazie!'; },
-    lista: function(nombre, marca, modelo, url) { return 'Ciao ' + nombre + '! Il tuo ' + marca + ' ' + modelo + ' è pronto. Puoi passare a ritirarlo quando vuoi.
-
-Segui lo stato qui: ' + url + '
-
-Grazie!'; },
-    cita: function(nombre, fecha, hora, tienda) { return 'Ciao ' + nombre + ', confermo il tuo appuntamento il ' + fecha + ' alle ' + hora + ' da ' + tienda + '. A presto!'; }
+    saludar: function(n,t){ return 'Ciao '+n+', come stai? Ti scrivo da '+t+'.'; },
+    recibida: function(n,ma,mo,u){ return 'Ciao '+n+'! Abbiamo ricevuto il tuo '+ma+' '+mo+'. Puoi seguire lo stato della riparazione qui:\n\n'+u+'\n\nGrazie!'; },
+    lista: function(n,ma,mo,u){ return 'Ciao '+n+'! Il tuo '+ma+' '+mo+' è pronto. Puoi passare a ritirarlo quando vuoi.\n\nSegui lo stato qui: '+u+'\n\nGrazie!'; },
+    cita: function(n,f,h,t){ return 'Ciao '+n+', confermo il tuo appuntamento il '+f+' alle '+h+' da '+t+'. A presto!'; }
   },
   de: {
-    saludar: function(nombre, tienda) { return 'Hallo ' + nombre + ', wie geht es Ihnen? Ich schreibe von ' + tienda + '.'; },
-    recibida: function(nombre, marca, modelo, url) { return 'Hallo ' + nombre + '! Wir haben Ihr ' + marca + ' ' + modelo + ' erhalten. Sie können den Reparaturstatus hier verfolgen:
-
-' + url + '
-
-Vielen Dank!'; },
-    lista: function(nombre, marca, modelo, url) { return 'Hallo ' + nombre + '! Ihr ' + marca + ' ' + modelo + ' ist fertig. Sie können es abholen, wann Sie möchten.
-
-Status hier verfolgen: ' + url + '
-
-Vielen Dank!'; },
-    cita: function(nombre, fecha, hora, tienda) { return 'Hallo ' + nombre + ', ich bestätige Ihren Termin am ' + fecha + ' um ' + hora + ' Uhr bei ' + tienda + '. Bis dann!'; }
+    saludar: function(n,t){ return 'Hallo '+n+', wie geht es Ihnen? Ich schreibe von '+t+'.'; },
+    recibida: function(n,ma,mo,u){ return 'Hallo '+n+'! Wir haben Ihr '+ma+' '+mo+' erhalten. Sie können den Reparaturstatus hier verfolgen:\n\n'+u+'\n\nVielen Dank!'; },
+    lista: function(n,ma,mo,u){ return 'Hallo '+n+'! Ihr '+ma+' '+mo+' ist fertig. Sie können es abholen, wann Sie möchten.\n\nStatus hier verfolgen: '+u+'\n\nVielen Dank!'; },
+    cita: function(n,f,h,t){ return 'Hallo '+n+', ich bestätige Ihren Termin am '+f+' um '+h+' Uhr bei '+t+'. Bis dann!'; }
   },
   pt: {
-    saludar: function(nombre, tienda) { return 'Olá ' + nombre + ', como está? Escrevo-lhe desde ' + tienda + '.'; },
-    recibida: function(nombre, marca, modelo, url) { return 'Olá ' + nombre + '! Recebemos o seu ' + marca + ' ' + modelo + '. Pode acompanhar o estado da reparação aqui:
-
-' + url + '
-
-Obrigado!'; },
-    lista: function(nombre, marca, modelo, url) { return 'Olá ' + nombre + '! O seu ' + marca + ' ' + modelo + ' está pronto. Pode vir buscá-lo quando quiser.
-
-Acompanhe o estado aqui: ' + url + '
-
-Obrigado!'; },
-    cita: function(nombre, fecha, hora, tienda) { return 'Olá ' + nombre + ', confirmo a sua marcação no dia ' + fecha + ' às ' + hora + ' em ' + tienda + '. Até breve!'; }
+    saludar: function(n,t){ return 'Olá '+n+', como está? Escrevo-lhe desde '+t+'.'; },
+    recibida: function(n,ma,mo,u){ return 'Olá '+n+'! Recebemos o seu '+ma+' '+mo+'. Pode acompanhar o estado da reparação aqui:\n\n'+u+'\n\nObrigado!'; },
+    lista: function(n,ma,mo,u){ return 'Olá '+n+'! O seu '+ma+' '+mo+' está pronto. Pode vir buscá-lo quando quiser.\n\nAcompanhe o estado aqui: '+u+'\n\nObrigado!'; },
+    cita: function(n,f,h,t){ return 'Olá '+n+', confirmo a sua marcação no dia '+f+' às '+h+' em '+t+'. Até breve!'; }
   }
 };
 function waMsg(tipo) { return (WA_MSGS[TEKPAIR_LANG] || WA_MSGS.es)[tipo]; }
