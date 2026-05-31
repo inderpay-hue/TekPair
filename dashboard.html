@@ -4834,6 +4834,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
   </div>
   <div class="fg"><label class="fl">Notas</label><input class="fi" id="nNotas" placeholder="Observaciones..."></div>
+  <div style="display:flex;align-items:center;gap:10px;font-size:13px;margin:8px 0;padding:10px 12px;background:var(--light);border-radius:8px">
+    <input type="checkbox" id="nRecurrente" style="width:16px;height:16px;cursor:pointer" onchange="toggleNominaRec()">
+    <label for="nRecurrente" style="cursor:pointer;font-weight:500">🔁 Repetir mensualmente (nómina fija)</label>
+  </div>
+  <div id="nRecurrenteOpts" style="display:none;padding:0 4px">
+    <div class="fi-row">
+      <div class="fg"><label class="fl">Día de pago cada mes</label><input class="fi" id="nDiaMes" type="number" min="1" max="28" value="25" style="max-width:80px"></div>
+    </div>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">💡 Se generará automáticamente cada mes el día indicado</div>
+  </div>
   <div class="fg">
     <label class="fl">Adjuntar nómina (PDF o imagen)</label>
     <input type="file" id="nAdj" accept="application/pdf,image/jpeg,image/png" style="font-size:13px">
@@ -10975,7 +10985,9 @@ function crearGastoDesdePlantilla(r, fecha, manual) {
   var iso = fecha.getFullYear() + '-' + String(fecha.getMonth() + 1).padStart(2, '0') + '-' + String(fecha.getDate()).padStart(2, '0');
   var g = {
     id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + Math.floor(Math.random() * 1000), tienda_id: TIENDA_ID,
-    concepto: r.concepto,
+    concepto: (r.categoria === 'Nomina' && r.meta)
+      ? 'Nómina — ' + (r.meta.trabajador||'') + ' (' + iso.slice(0,7) + ')'
+      : r.concepto,
     importe: r.importe || 0,
     fecha: iso,
     estado: 'Pendiente',
@@ -10984,7 +10996,10 @@ function crearGastoDesdePlantilla(r, fecha, manual) {
     proveedor_id: r.proveedor_id || null,
     proveedor_nombre: r.proveedor_nombre || null,
     proveedor_nif: r.proveedor_nif || null,
-    numero_factura: null
+    numero_factura: null,
+    meta: (r.meta && r.categoria === 'Nomina')
+      ? Object.assign({}, r.meta, {periodo: iso.slice(0,7)})
+      : (r.meta || null)
   };
   DB.gastos.push(g);
   if (SB_KEY && TIENDA_ID) sbPost('gastos', g);
@@ -11237,6 +11252,37 @@ function generarHtmlInforme(periodo) {
     '<h2>Detalle de gastos</h2><table><thead><tr><th>"+T("gastos.fecha")+"</th><th>"+T("gastos.concepto")+"</th><th>"+T("gastos.categoria")+"</th><th class=\"r\">"+T("gastos.base_imponible")+"</th><th class=\"r\">"+T("gen.iva")+"%</th><th class=\"r\">"+T("gen.iva")+" €</th><th class=\"r\">"+T("gastos.importe")+"</th><th>"+T("gastos.estado")+"</th><th>"+T("gastos.justif")+"</th></tr></thead><tbody>'+filasDet+'</tbody></table>' +
     '<h2>Resumen por categoría</h2><table><thead><tr><th>"+T("gastos.categoria")+"</th><th class=\"r\">Nº</th><th class=\"r\">"+T("gastos.base_imponible")+"</th><th class=\"r\">"+T("gen.iva")+" €</th><th class=\"r\">Total</th></tr></thead><tbody>'+filasCat+'</tbody></table>' +
     '<h2>Resumen por tipo de IVA (modelo 303)</h2><table><thead><tr><th>"+T("gen.iva")+"</th><th class=\"r\">Nº</th><th class=\"r\">"+T("gastos.base_imponible")+"</th><th class=\"r\">"+T("gastos.cuota_iva")+"</th><th class=\"r\">Total</th></tr></thead><tbody>'+filasIva+'<tr style="background:#FEE2E2"><td class="b">TOTAL</td><td class="r b">'+detalle.length+'</td><td class="r b">'+cur(totalBase)+'</td><td class="r b">'+cur(totalIva)+'</td><td class="r b">'+cur(totalTotal)+'</td></tr></tbody></table>' +
+    (function(){
+      var nominas = detalle.filter(function(g){ return g.categoria === 'Nomina' && g.meta; });
+      if (!nominas.length) return '';
+      var totalBruto = 0, totalNeto = 0, totalEmp = 0, totalIrpf = 0, totalSsTrab = 0, totalSsEmp = 0;
+      var filasN = nominas.map(function(g){
+        var m = g.meta;
+        totalBruto += m.bruto||0; totalNeto += m.neto||0; totalEmp += m.coste_empresa||0;
+        totalIrpf += (m.bruto||0)*(m.irpf_pct||0)/100;
+        totalSsTrab += (m.bruto||0)*(m.ss_trab_pct||0)/100;
+        totalSsEmp += (m.bruto||0)*(m.ss_emp_pct||0)/100;
+        return '<tr><td>'+esc(m.trabajador||'')+'</td><td>'+esc(m.periodo||'')+'</td>' +
+          '<td class="r">'+cur(m.bruto||0)+'</td>' +
+          '<td class="r" style="color:#DC2626">'+cur((m.bruto||0)*(m.irpf_pct||0)/100)+'</td>' +
+          '<td class="r" style="color:#DC2626">'+cur((m.bruto||0)*(m.ss_trab_pct||0)/100)+'</td>' +
+          '<td class="r" style="color:#10B981;font-weight:700">'+cur(m.neto||0)+'</td>' +
+          '<td class="r" style="color:#7C3AED">'+cur(m.coste_empresa||0)+'</td></tr>';
+      }).join('');
+      return '<h2>💼 Nóminas</h2>' +
+        '<table><thead><tr>' +
+        '<th>Trabajador</th><th>Periodo</th>' +
+        '<th class="r">Bruto</th><th class="r">IRPF</th><th class="r">SS Trab.</th>' +
+        '<th class="r" style="color:#10B981">Neto</th><th class="r" style="color:#7C3AED">Coste empresa</th>' +
+        '</tr></thead><tbody>' + filasN +
+        '<tr style="background:#F3E8FF"><td class="b" colspan="2">TOTAL</td>' +
+        '<td class="r b">'+cur(totalBruto)+'</td>' +
+        '<td class="r b" style="color:#DC2626">'+cur(totalIrpf)+'</td>' +
+        '<td class="r b" style="color:#DC2626">'+cur(totalSsTrab)+'</td>' +
+        '<td class="r b" style="color:#10B981">'+cur(totalNeto)+'</td>' +
+        '<td class="r b" style="color:#7C3AED">'+cur(totalEmp)+'</td></tr>' +
+        '</tbody></table>';
+    })() +
     '<div class="firmas"><div class="f">'+T('gastos.firma_tienda')+'</div><div class="f">'+T('gastos.firma_gestor')+'</div></div>' +
     '<div style="text-align:center;font-size:10px;color:#999;margin-top:30px;padding-top:10px;border-top:1px solid #eee">Generado por TekPair &middot; tekpair.tech</div>' +
     '</body></html>';
@@ -11534,6 +11580,12 @@ function renderGastos() {
 
 
 // ═══ MÓDULO NÓMINAS ═══
+function toggleNominaRec() {
+  var chk = document.getElementById('nRecurrente');
+  var opts = document.getElementById('nRecurrenteOpts');
+  if (opts) opts.style.display = (chk && chk.checked) ? '' : 'none';
+}
+
 function calcNomina() {
   var bruto = parseFloat(document.getElementById('nBruto').value) || 0;
   var irpf = parseFloat(document.getElementById('nIrpf').value) || 0;
@@ -11585,6 +11637,8 @@ function abrirModalNomina(id) {
     document.getElementById('nNotas').value = '';
     document.getElementById('nEstado').value = 'Pagado';
   }
+  var chkRec = document.getElementById('nRecurrente');
+  if (chkRec) { chkRec.checked = false; toggleNominaRec(); }
   calcNomina();
   openM('mNomina');
 }
@@ -11647,9 +11701,37 @@ function guardarNomina() {
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPost('gastos', g);
   if (adjFile) subirAdjuntoGasto(g, adjFile);
+
+  // Si es nómina recurrente, crear plantilla en gastos_recurrentes
+  var esRec = document.getElementById('nRecurrente');
+  if (esRec && esRec.checked) {
+    var diaMes = parseInt(document.getElementById('nDiaMes').value) || 25;
+    var rec = {
+      id: 'nr' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+      tienda_id: TIENDA_ID,
+      concepto: 'Nómina — ' + trabajador,
+      importe: parseFloat(coste_empresa.toFixed(2)),
+      categoria: 'Nomina',
+      iva_tipo: 0,
+      dia_mes: diaMes,
+      activo: true,
+      ultimo_aplicado: null,
+      proveedor_nombre: null,
+      proveedor_nif: null,
+      meta: meta
+    };
+    if (!Array.isArray(DB.gastos_recurrentes)) DB.gastos_recurrentes = [];
+    DB.gastos_recurrentes.push(rec);
+    guardarDatos();
+    if (SB_KEY && TIENDA_ID) sbPost('gastos_recurrentes', rec);
+    toast('Nómina guardada y programada mensualmente ✓', 'ok');
+  } else {
+    toast('Nómina guardada ✓', 'ok');
+  }
+
   closeM('mNomina');
-  toast('Nómina guardada ✓', 'ok');
   renderGastos();
+  if (typeof renderGastosRec === 'function') renderGastosRec();
 }
 
 function guardarGasto() {
