@@ -42,7 +42,7 @@ var T = {
   },
   en: {
     'hero.adios':'Goodbye','hero.hola':'Hello TekPair.','hero.subtitle':'The simplest software for mobile repair shops. Repairs by IMEI, POS, stock, customers and appointments — all from your phone, tablet or computer.',
-    'mk.panel':'Today's panel','mk.live':'LIVE','mk.ingresos':'revenue','mk.reparaciones':'repairs','mk.encurso':'In progress','mk.listo':'done','mk.run':'in progress','mk.wait':'waiting','mk.objetivo':'Daily goal',
+    'mk.panel':"Today's panel",'mk.live':'LIVE','mk.ingresos':'revenue','mk.reparaciones':'repairs','mk.encurso':'In progress','mk.listo':'done','mk.run':'in progress','mk.wait':'waiting','mk.objetivo':'Daily goal',
     'hero.eyebrow':'Built for repair shops','hero.cta1':'Start free 15 days →',
     'nav.features':'Features','nav.pricing':'Pricing','nav.faq':'FAQ','nav.login':'Login','nav.start':'Get started free',
     'hero.badge':'New · Software for mobile sales & repair shops',
