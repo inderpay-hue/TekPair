@@ -245,6 +245,7 @@ var currentLang = 'es';
 
 function setLang(lang) {
   currentLang = lang;
+  localStorage.setItem('tp_lang_landing', lang);
   document.documentElement.lang = lang;
   var dict = T[lang] || T.es;
   document.querySelectorAll('[data-i18n]').forEach(function(el) {
@@ -270,7 +271,7 @@ function toggleFaq(el) {
 
 // Detectar idioma: localStorage primero, luego navegador
 function initLanding() {
-  var savedLang = localStorage.getItem('tp_lang');
+  var savedLang = localStorage.getItem('tp_lang_landing');
   var browserLang = navigator.language.substring(0, 2);
   var initLang = savedLang || ((['es','en','fr','it','de','pt'].includes(browserLang)) ? browserLang : 'es');
   var sel = document.querySelector('.lang-sel');
