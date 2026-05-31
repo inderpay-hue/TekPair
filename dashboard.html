@@ -4147,7 +4147,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="page" id="pImportar">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
     <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
-    <div class="sec-title">Importar datos</div>
+    <div class="sec-title"><span data-t="gen.importar">Importar datos</span></div>
   </div>
   <div class="card">
     <div class="card-title">Importar desde CSV</div>
@@ -10959,7 +10959,7 @@ function renderGastosRec() {
     return;
   }
   var ordenada = lista.slice().sort(function(a,b){ return (a.dia_mes || 0) - (b.dia_mes || 0); });
-  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Concepto</th><th>Proveedor</th><th>Día</th><th>Importe</th><th>IVA</th><th>Estado</th><th>Último</th><th>Acciones</th></tr></thead><tbody>' +
+  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="gastos.concepto">Concepto</span></th><th><span data-t="nav.proveedores">Proveedor</span></th><th><span data-t="gen.dia">Día</span></th><th><span data-t="gastos.importe">Importe</span></th><th><span data-t="gen.iva">IVA</span></th><th>Estado</th><th><span data-t="gen.ultimo">Último</span></th><th>Acciones</th></tr></thead><tbody>' +
     ordenada.map(function(r) {
       var ivaT = (r.iva_tipo != null) ? r.iva_tipo : 21;
       var estado = r.activo
@@ -13676,7 +13676,7 @@ async function cargarUsuarios() {
   container.className = 'tbl-wrap';
   var table = document.createElement('table');
   table.className = 'tbl';
-  table.innerHTML = '<thead><tr><th>Nombre</th><th>Rol</th><th>Estado</th><th></th></tr></thead>';
+  table.innerHTML = '<thead><tr><th>Nombre</th><th><span data-t="gen.rol">Rol</span></th><th>Estado</th><th></th></tr></thead>';
   var tbody = document.createElement('tbody');
   lista.forEach(function(u) {
     var esYo = U && u.email === U.email;
