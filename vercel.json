@@ -69,11 +69,11 @@
       ]
     },
     {
-      "source": "/index.html",
+      "source": "/landing-i18n.js",
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate, max-age=0"
+          "value": "no-store, max-age=0"
         }
       ]
     },
@@ -82,12 +82,12 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate, max-age=0"
+          "value": "no-store, max-age=0"
         }
       ]
     },
     {
-      "source": "/landing-i18n.js",
+      "source": "/index.html",
       "headers": [
         {
           "key": "Cache-Control",
