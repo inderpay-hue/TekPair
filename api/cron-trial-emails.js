@@ -142,7 +142,7 @@ export default async function handler(req, res) {
 // ═══ EMAIL FALTAN 3 DÍAS ═══
 async function sendEmail3Days(tienda, RESEND_KEY) {
   if (!RESEND_KEY) return false;
-  const planLabel = ({basico:'Básico', pro:'Pro', top:'Top', premium:'Premium'})[tienda.plan] || 'Básico';
+  const planLabel = ({basico:'Básico', pro:'Pro', top:'Premium', premium:'Premium'})[tienda.plan] || 'Básico';
   const planPrecio = ({basico:'9,90', pro:'19,90', top:'34,90', premium:'34,90'})[tienda.plan] || '9,90';
 
   try {
@@ -195,7 +195,7 @@ async function sendEmail3Days(tienda, RESEND_KEY) {
 // ═══ EMAIL FALTA 1 DÍA ═══
 async function sendEmail1Day(tienda, RESEND_KEY) {
   if (!RESEND_KEY) return false;
-  const planLabel = ({basico:'Básico', pro:'Pro', top:'Top', premium:'Premium'})[tienda.plan] || 'Básico';
+  const planLabel = ({basico:'Básico', pro:'Pro', top:'Premium', premium:'Premium'})[tienda.plan] || 'Básico';
   const planPrecio = ({basico:'9,90', pro:'19,90', top:'34,90', premium:'34,90'})[tienda.plan] || '9,90';
 
   try {

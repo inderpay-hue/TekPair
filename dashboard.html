@@ -5054,7 +5054,7 @@ function mostrarModalUpgrade(featureName, planRequerido) {
     multi_tienda: '🏪 Multi-tienda',
     ubicaciones: '📍 Ubicaciones múltiples'
   })[featureName] || featureName;
-  var planLabel = ({basico:'Básico', pro:'Pro', premium:'Premium', top:'Top'})[planRequerido] || planRequerido;
+  var planLabel = ({basico:'Básico', pro:'Pro', premium:'Premium', top:'Premium'})[planRequerido] || planRequerido;
   document.getElementById('upgFeatName').textContent = feat;
   document.getElementById('upgPlanReq').textContent = planLabel;
   // Resaltar el plan recomendado
@@ -5205,7 +5205,7 @@ function clickUpgradePlan(plan) {
 function renderSuscripcionInfo() {
   var box = document.getElementById('suscripcionInfo');
   if (!box) return;
-  var planLabel = ({basico:'Básico', pro:'Pro ⭐', premium:'Premium', top:'Top'})[PLAN_INFO.plan] || PLAN_INFO.plan;
+  var planLabel = ({basico:'Básico', pro:'Pro ⭐', premium:'Premium', top:'Premium'})[PLAN_INFO.plan] || PLAN_INFO.plan;
   var planPrecio = ({basico:'9,90', pro:'19,90', premium:'34,90', top:'34,90'})[PLAN_INFO.plan] || '—';
   var statusLabel = ({trial:'🎁 Periodo de prueba', active:'✓ Activa', past_due:'⚠️ Pago pendiente', cancelled:'❌ Cancelada'})[PLAN_INFO.status] || PLAN_INFO.status;
   var statusColor = ({trial:'var(--blue)', active:'var(--green)', past_due:'var(--orange)', cancelled:'var(--red)'})[PLAN_INFO.status] || 'var(--muted)';
@@ -13787,7 +13787,7 @@ async function openNuevoUsuario() {
     var plan = (tiendaData && tiendaData[0] && tiendaData[0].plan) || 'basico';
     var limite = PLAN_LIMITES[plan] || 1;
     if (activos >= limite) {
-      var planNames = {basico: 'Basico (max 1)', pro: 'Pro (max 3)', top: 'Top (ilimitado)'};
+      var planNames = {basico: 'Basico (max 1)', pro: 'Pro (max 3)', top: 'Premium (ilimitado)'};
       alert('Has alcanzado el limite de usuarios de tu plan ' + (planNames[plan] || plan) + '.\nActualiza tu plan en tekpair.tech para anadir mas usuarios.');
       return;
     }
