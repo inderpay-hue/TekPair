@@ -1072,10 +1072,39 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
     <button id="btnPersonalizar" onclick="toggleModoEdicion()" style="background:white;color:var(--blue);border:1px solid var(--border);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">✏️ Personalizar</button>
   </div>
-  <div class="tabs" id="metricTabs">
-    <div class="tab active" data-t="dash.hoy" onclick="setMetricTab(this)"><span data-t="dash.hoy">Hoy</span></div>
-    <div class="tab" data-t="dash.semana" onclick="setMetricTab(this)">Semana</div>
-    <div class="tab" data-t="dash.mes" onclick="setMetricTab(this)">Mes</div>
+  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+    <div class="tabs" id="metricTabs" style="margin:0">
+      <div class="tab active" data-t="dash.hoy" onclick="setMetricTab(this)"><span data-t="dash.hoy">Hoy</span></div>
+      <div class="tab" data-t="dash.semana" onclick="setMetricTab(this)">Semana</div>
+      <div class="tab" data-t="dash.mes" onclick="setMetricTab(this)">Mes</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
+      <div style="position:relative">
+        <button onclick="toggleTemaMenu()" title="Tema" style="background:white;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:14px;cursor:pointer;font-family:inherit;color:var(--text)">🎨</button>
+        <div id="temaMenuDash" style="display:none;position:absolute;right:0;top:36px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:140px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px" data-t="gen.tema">Tema</div>
+          <button onclick="setTema('terracota');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#C2410C;display:inline-block"></span>Terracota</button>
+          <button onclick="setTema('naranja');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#EA580C;display:inline-block"></span>Naranja</button>
+          <button onclick="setTema('dark');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#1E3A5F;display:inline-block"></span>Dark</button>
+          <button onclick="setTema('negro');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#111;border:1px solid #444;display:inline-block"></span>Negro</button>
+          <button onclick="setTema('grafito');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#6B7280;display:inline-block"></span>Grafito</button>
+          <button onclick="setTema('ambar');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#D97706;display:inline-block"></span>Ámbar</button>
+          <button onclick="setTema('');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid #ddd;display:inline-block"></span>Claro</button>
+        </div>
+      </div>
+      <div style="position:relative">
+        <button onclick="toggleLangMenuDash()" id="btnLangDash" style="background:white;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--text);min-width:44px">ES</button>
+        <div id="langMenuDash" style="display:none;position:absolute;right:0;top:36px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:130px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px" data-t="gen.idioma">Idioma</div>
+          <button onclick="setLang('es');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇪🇸 Español</button>
+          <button onclick="setLang('en');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇬🇧 English</button>
+          <button onclick="setLang('fr');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇫🇷 Français</button>
+          <button onclick="setLang('it');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇮🇹 Italiano</button>
+          <button onclick="setLang('de');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇩🇪 Deutsch</button>
+          <button onclick="setLang('pt');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇵🇹 Português</button>
+        </div>
+      </div>
+    </div>
   </div>
   <div class="stats-grid" id="metricsGrid"></div>
   <div class="quick-grid" id="dashQuickGrid">
@@ -13450,6 +13479,44 @@ function toggleLangMenu() {
           document.getElementById('langMenu').style.display = 'none';
         }
         document.removeEventListener('click', closeLang);
+      });
+    }, 100);
+  }
+}
+function closeTemaMenuDash() {
+  var m = document.getElementById('temaMenuDash');
+  if (m) m.style.display = 'none';
+}
+function toggleTemaMenu() {
+  var m = document.getElementById('temaMenuDash');
+  if (m) {
+    m.style.display = m.style.display === 'none' ? 'block' : 'none';
+    if (m.style.display === 'block') {
+      setTimeout(function() {
+        document.addEventListener('click', function ct(e) {
+          if (!m.contains(e.target) && !e.target.matches('[onclick*="toggleTemaMenu"]')) m.style.display='none';
+          document.removeEventListener('click', ct);
+        });
+      }, 100);
+    }
+    return;
+  }
+}
+function closeLangMenuDash() {
+  var m = document.getElementById('langMenuDash');
+  if (m) m.style.display = 'none';
+}
+function toggleLangMenuDash() {
+  var m = document.getElementById('langMenuDash');
+  if (!m) return;
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  var btn = document.getElementById('btnLangDash');
+  if (btn) btn.textContent = (typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es').toUpperCase();
+  if (m.style.display === 'block') {
+    setTimeout(function() {
+      document.addEventListener('click', function cl(e) {
+        if (!m.contains(e.target) && e.target.id !== 'btnLangDash') m.style.display='none';
+        document.removeEventListener('click', cl);
       });
     }, 100);
   }
