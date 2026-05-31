@@ -1056,7 +1056,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
       <div style="position:relative">
         <button onclick="toggleTemaMenu()" title="Tema" style="background:white;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:14px;cursor:pointer;font-family:inherit;color:var(--text)">🎨</button>
-        <div id="temaMenuDash" style="display:none;position:absolute;right:0;top:36px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:140px">
+        <div id="temaMenu" style="display:none;position:absolute;right:0;top:36px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:140px">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px" data-t="gen.tema">Tema</div>
           <button onclick="setTema('terracota');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#C2410C;display:inline-block"></span>Terracota</button>
           <button onclick="setTema('naranja');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#EA580C;display:inline-block"></span>Naranja</button>
@@ -1068,8 +1068,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         </div>
       </div>
       <div style="position:relative">
-        <button onclick="toggleLangMenuDash()" id="btnLangDash" style="background:white;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--text);min-width:44px">ES</button>
-        <div id="langMenuDash" style="display:none;position:absolute;right:0;top:36px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:130px">
+        <button onclick="toggleLangMenuDash()" id="btnLangToggle" style="background:white;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--text);min-width:44px">ES</button>
+        <div id="langMenu" style="display:none;position:absolute;right:0;top:36px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:130px">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px" data-t="gen.idioma">Idioma</div>
           <button onclick="setLang('es');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇪🇸 Español</button>
           <button onclick="setLang('en');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇬🇧 English</button>
@@ -13459,11 +13459,11 @@ function toggleLangMenu() {
   }
 }
 function closeTemaMenuDash() {
-  var m = document.getElementById('temaMenuDash');
+  var m = document.getElementById('temaMenu');
   if (m) m.style.display = 'none';
 }
 function toggleTemaMenu() {
-  var m = document.getElementById('temaMenuDash');
+  var m = document.getElementById('temaMenu');
   if (m) {
     m.style.display = m.style.display === 'none' ? 'block' : 'none';
     if (m.style.display === 'block') {
@@ -13478,11 +13478,11 @@ function toggleTemaMenu() {
   }
 }
 function closeLangMenuDash() {
-  var m = document.getElementById('langMenuDash');
+  var m = document.getElementById('langMenu');
   if (m) m.style.display = 'none';
 }
 function toggleLangMenuDash() {
-  var m = document.getElementById('langMenuDash');
+  var m = document.getElementById('langMenu');
   if (!m) return;
   m.style.display = m.style.display === 'none' ? 'block' : 'none';
   var btn = document.getElementById('btnLangDash');
