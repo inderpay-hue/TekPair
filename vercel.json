@@ -51,15 +51,6 @@
       ]
     },
     {
-      "source": "/app.html",
-      "headers": [
-        {
-          "key": "Cache-Control",
-          "value": "no-cache, no-store, must-revalidate, max-age=0"
-        }
-      ]
-    },
-    {
       "source": "/login-i18n.js",
       "headers": [
         {
@@ -88,6 +79,15 @@
     },
     {
       "source": "/index.html",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, max-age=0"
+        }
+      ]
+    },
+    {
+      "source": "/app.html",
       "headers": [
         {
           "key": "Cache-Control",
