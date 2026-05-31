@@ -7062,7 +7062,7 @@ function renderWidgetClisInactivos() {
     html += '<div style="font-size:10px;color:var(--muted)">Hace ' + meses + ' meses · ' + it.ultima.toLocaleDateString('es') + '</div>';
     html += '</div>';
     if (it.cli.tel) {
-      var msg = encodeURIComponent('Hola ' + (it.cli.nombre || '') + ', ¿qué tal? Te escribo desde ' + (TIENDA.nombre || 'la tienda') + '.');
+      var msg = encodeURIComponent(waMsg('saludar')(it.cli.nombre || '', TIENDA.nombre || 'la tienda'));
       html += '<a href="https://wa.me/' + it.cli.tel.replace(/\D/g,'') + '?text=' + msg + '" target="_blank" rel="noopener noreferrer" class="btn-sm" style="background:#25D366;color:white;font-size:11px;padding:4px 10px;text-decoration:none">💬 Saludar</a>';
     }
     html += '</div>';
@@ -8874,7 +8874,7 @@ function trackingWA() {
   if (!r) return;
   var cli = DB.clis.find(function(c){ return c.id === r.clienteId; });
   var tel = (cli && cli.tel) ? cli.tel.replace(/[^0-9]/g, '') : '';
-  var msg = 'Hola ' + r.clienteNombre + '! Hemos recibido tu ' + r.marca + ' ' + r.modelo + '. Puedes seguir el estado de la reparacion en cualquier momento aqui:\n\n' + url + '\n\nGracias!';
+  var msg = waMsg('recibida')(r.clienteNombre, r.marca, r.modelo, url);
   if (tel) {
     window.open('https://wa.me/' + (tel.startsWith('34') ? '' : '34') + tel + '?text=' + encodeURIComponent(msg));
   } else {
@@ -9905,7 +9905,7 @@ function cambiarEstado(id, estado) {
     if (tel && confirm('Avisar al cliente por WhatsApp?')) {
       asegurarToken(r).then(function(){
         var url = linkParte(r);
-        var msg = 'Hola ' + r.clienteNombre + '! Tu ' + r.marca + ' ' + r.modelo + ' ya esta listo. Puedes pasarte a recogerlo cuando quieras.\n\nSigue el estado aqui: ' + url + '\n\nGracias!';
+        var msg = waMsg('lista')(r.clienteNombre, r.marca, r.modelo, url);
         window.open('https://wa.me/' + (tel.startsWith('34') ? '' : '34') + tel + '?text=' + encodeURIComponent(msg));
       });
     }
@@ -14284,6 +14284,95 @@ document.addEventListener('keydown', function(e) {
   }
 });
 
+// ═══ WHATSAPP MENSAJES i18n ═══
+var WA_MSGS = {
+  es: {
+    saludar: function(nombre, tienda) { return 'Hola ' + nombre + ', ¿qué tal? Te escribo desde ' + tienda + '.'; },
+    recibida: function(nombre, marca, modelo, url) { return 'Hola ' + nombre + '! Hemos recibido tu ' + marca + ' ' + modelo + '. Puedes seguir el estado de la reparacion en cualquier momento aqui:
+
+' + url + '
+
+Gracias!'; },
+    lista: function(nombre, marca, modelo, url) { return 'Hola ' + nombre + '! Tu ' + marca + ' ' + modelo + ' ya esta listo. Puedes pasarte a recogerlo cuando quieras.
+
+Sigue el estado aqui: ' + url + '
+
+Gracias!'; },
+    cita: function(nombre, fecha, hora, tienda) { return 'Hola ' + nombre + ', te confirmo tu cita el ' + fecha + ' a las ' + hora + ' en ' + tienda + '. ¡Te esperamos!'; }
+  },
+  en: {
+    saludar: function(nombre, tienda) { return 'Hi ' + nombre + ', how are you? Writing from ' + tienda + '.'; },
+    recibida: function(nombre, marca, modelo, url) { return 'Hi ' + nombre + '! We have received your ' + marca + ' ' + modelo + '. You can track the repair status anytime here:
+
+' + url + '
+
+Thank you!'; },
+    lista: function(nombre, marca, modelo, url) { return 'Hi ' + nombre + '! Your ' + marca + ' ' + modelo + ' is ready. You can come pick it up whenever you want.
+
+Track status here: ' + url + '
+
+Thank you!'; },
+    cita: function(nombre, fecha, hora, tienda) { return 'Hi ' + nombre + ', confirming your appointment on ' + fecha + ' at ' + hora + ' at ' + tienda + '. See you there!'; }
+  },
+  fr: {
+    saludar: function(nombre, tienda) { return 'Bonjour ' + nombre + ', comment allez-vous ? Je vous écris depuis ' + tienda + '.'; },
+    recibida: function(nombre, marca, modelo, url) { return 'Bonjour ' + nombre + ' ! Nous avons reçu votre ' + marca + ' ' + modelo + '. Vous pouvez suivre l'état de la réparation ici:
+
+' + url + '
+
+Merci !'; },
+    lista: function(nombre, marca, modelo, url) { return 'Bonjour ' + nombre + ' ! Votre ' + marca + ' ' + modelo + ' est prêt. Vous pouvez venir le récupérer quand vous voulez.
+
+Suivez l'état ici: ' + url + '
+
+Merci !'; },
+    cita: function(nombre, fecha, hora, tienda) { return 'Bonjour ' + nombre + ', je confirme votre rendez-vous le ' + fecha + ' à ' + hora + ' chez ' + tienda + '. À bientôt !'; }
+  },
+  it: {
+    saludar: function(nombre, tienda) { return 'Ciao ' + nombre + ', come stai? Ti scrivo da ' + tienda + '.'; },
+    recibida: function(nombre, marca, modelo, url) { return 'Ciao ' + nombre + '! Abbiamo ricevuto il tuo ' + marca + ' ' + modelo + '. Puoi seguire lo stato della riparazione qui:
+
+' + url + '
+
+Grazie!'; },
+    lista: function(nombre, marca, modelo, url) { return 'Ciao ' + nombre + '! Il tuo ' + marca + ' ' + modelo + ' è pronto. Puoi passare a ritirarlo quando vuoi.
+
+Segui lo stato qui: ' + url + '
+
+Grazie!'; },
+    cita: function(nombre, fecha, hora, tienda) { return 'Ciao ' + nombre + ', confermo il tuo appuntamento il ' + fecha + ' alle ' + hora + ' da ' + tienda + '. A presto!'; }
+  },
+  de: {
+    saludar: function(nombre, tienda) { return 'Hallo ' + nombre + ', wie geht es Ihnen? Ich schreibe von ' + tienda + '.'; },
+    recibida: function(nombre, marca, modelo, url) { return 'Hallo ' + nombre + '! Wir haben Ihr ' + marca + ' ' + modelo + ' erhalten. Sie können den Reparaturstatus hier verfolgen:
+
+' + url + '
+
+Vielen Dank!'; },
+    lista: function(nombre, marca, modelo, url) { return 'Hallo ' + nombre + '! Ihr ' + marca + ' ' + modelo + ' ist fertig. Sie können es abholen, wann Sie möchten.
+
+Status hier verfolgen: ' + url + '
+
+Vielen Dank!'; },
+    cita: function(nombre, fecha, hora, tienda) { return 'Hallo ' + nombre + ', ich bestätige Ihren Termin am ' + fecha + ' um ' + hora + ' Uhr bei ' + tienda + '. Bis dann!'; }
+  },
+  pt: {
+    saludar: function(nombre, tienda) { return 'Olá ' + nombre + ', como está? Escrevo-lhe desde ' + tienda + '.'; },
+    recibida: function(nombre, marca, modelo, url) { return 'Olá ' + nombre + '! Recebemos o seu ' + marca + ' ' + modelo + '. Pode acompanhar o estado da reparação aqui:
+
+' + url + '
+
+Obrigado!'; },
+    lista: function(nombre, marca, modelo, url) { return 'Olá ' + nombre + '! O seu ' + marca + ' ' + modelo + ' está pronto. Pode vir buscá-lo quando quiser.
+
+Acompanhe o estado aqui: ' + url + '
+
+Obrigado!'; },
+    cita: function(nombre, fecha, hora, tienda) { return 'Olá ' + nombre + ', confirmo a sua marcação no dia ' + fecha + ' às ' + hora + ' em ' + tienda + '. Até breve!'; }
+  }
+};
+function waMsg(tipo) { return (WA_MSGS[TEKPAIR_LANG] || WA_MSGS.es)[tipo]; }
+
 // ═══ WHATSAPP PLANTILLAS ═══
 var PLANTILLAS_WA_DEFAULT = {
   rep_lista: {nombre:'Reparación lista', texto:'¡Hola {nombre}! 📱\n\nTu {modelo} ya está reparado y listo para recoger.\n\nTotal: {total}\n\nTe esperamos en {tienda}. ¡Saludos!'},
@@ -15801,7 +15890,7 @@ function abrirCita(id) {
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
   if (c.cliente_tel) html += '<a href="tel:' + esc(c.cliente_tel) + '" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px">📞 Llamar</a>';
   if (c.cliente_tel) {
-    var msg = encodeURIComponent('Hola ' + (c.cliente_nombre || '') + ', te confirmo tu cita el ' + fechaTxt + ' a las ' + (c.hora||'') + ' en ' + (TIENDA.nombre||'') + '. ¡Te esperamos!');
+    var msg = encodeURIComponent(waMsg('cita')(c.cliente_nombre || '', fechaTxt, c.hora||'', TIENDA.nombre||''));
     var tel = c.cliente_tel.replace(/[^0-9]/g, '');
     html += '<a href="https://wa.me/' + tel + '?text=' + msg + '" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px;background:#25D366;color:white">💬 WhatsApp</a>';
   }
