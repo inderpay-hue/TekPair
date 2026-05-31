@@ -1314,7 +1314,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <button class="cal-nav-btn" onclick="cambiarMes(-1)" title="Mes anterior">‹</button>
         <div class="cal-mes-ano" id="calMesAno">—</div>
         <button class="cal-nav-btn" onclick="cambiarMes(1)" title="Mes siguiente">›</button>
-        <button class="cal-hoy-btn" onclick="irHoy()">Hoy</button>
+        <button class="cal-hoy-btn" onclick="irHoy()"><span data-t="dash.hoy">Hoy</span></button>
       </div>
       <div class="cal-grid" id="calGrid">
         <div class="cal-weekday">Lun</div>
@@ -3610,8 +3610,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
     <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">Generar</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-      <button class="btn-sm" onclick="generarPDFGastos(window.GPERIODO || 'trimestre')" style="background:#111;color:white">📄 PDF informe</button>
-      <button class="btn-sm" onclick="generarZipGastos(window.GPERIODO || 'trimestre')" style="background:#FF7A45;color:white">📦 ZIP completo</button>
+      <button class="btn-sm" onclick="generarPDFGastos(window.GPERIODO || 'trimestre')" style="background:#111;color:white"><span data-t="gen.pdf_informe">📄 PDF informe</span></button>
+      <button class="btn-sm" onclick="generarZipGastos(window.GPERIODO || 'trimestre')" style="background:#FF7A45;color:white"><span data-t="gen.zip_completo">📦 ZIP completo</span></button>
     </div>
   </div>
   <div class="card" style="margin-bottom:14px;padding:16px">
@@ -3620,7 +3620,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div style="font-weight:700;font-size:15px">🔁 Gastos recurrentes (plantillas)</div>
         <div style="font-size:12px;color:var(--muted);margin-top:2px">Alquiler, suscripciones, etc. Se generan automáticamente cada mes</div>
       </div>
-      <button class="btn-sm" onclick="abrirNuevoGastoRec()" style="background:#FF7A45;color:white">+ Nueva plantilla</button>
+      <button class="btn-sm" onclick="abrirNuevoGastoRec()" style="background:#FF7A45;color:white"><span data-t="gen.nueva_plantilla">+ Nueva plantilla</span></button>
     </div>
     <div id="listaGastosRec"></div>
   </div>
@@ -3642,7 +3642,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="tabs">
     <div class="tab active" data-ti="todo" onclick="setRepTipo(this)"><span data-t="tpv.todos">Todo</span></div>
-    <div class="tab" data-ti="ventas" onclick="setRepTipo(this)">Ventas</div>
+    <div class="tab" data-ti="ventas" onclick="setRepTipo(this)"><span data-t="nav.ventas">Ventas</span></div>
     <div class="tab" data-ti="reparaciones" onclick="setRepTipo(this)">Reparaciones</div>
   </div>
   <div id="reporteResumen"></div>
@@ -3670,8 +3670,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
 
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
-    <button class="btn-primary" style="background:var(--blue)" onclick="generarPDFGestor()">📄 PDF para gestor</button>
-    <button class="btn-secondary" onclick="verReportePDF()">🖨️ Imprimir reporte</button>
+    <button class="btn-primary" style="background:var(--blue)" onclick="generarPDFGestor()"><span data-t="gen.pdf_para_gestor">📄 PDF para gestor</span></button>
+    <button class="btn-secondary" onclick="verReportePDF()"><span data-t="gen.imprimir_reporte">🖨️ Imprimir reporte</span></button>
   </div>
 </div>
 
@@ -5042,7 +5042,7 @@ function mostrarModalUpgrade(featureName, planRequerido) {
     kanban: '🔧 Vista Kanban',
     auditoria: '📜 Historial de actividad',
     backup: '💾 Backup completo',
-    reportes_pdf: '📄 Reportes PDF para gestor',
+    reportes_pdf: T('gen.pdf_para_gestor'),
     importar_pdf: '📤 Importar facturas PDF',
     catalogo_servicios: '🛠️ Catálogo de servicios',
     plantillas_rep: '📋 Plantillas de reparación',
@@ -6548,7 +6548,7 @@ function renderWidgetCajaDia() {
   var card = document.getElementById('cardCajaDia');
   if (card) {
     var t = card.querySelector('.card-title');
-    if (t) t.textContent = '💰 Caja: ' + (per.tab === 'hoy' ? 'hoy' : per.tab === 'semana' ? 'últimos 7 días' : 'último mes');
+    if (t) t.textContent = '💰 ' + T('nav.cajas') + ': ' + (per.tab === 'hoy' ? T('dash.hoy') : per.tab === 'semana' ? T('gen.ultimos_7_dias') : T('gen.ultimo_mes'));
   }
   var pagos = {Efectivo:0, Tarjeta:0, Bizum:0, Transferencia:0};
   DB.ventas.forEach(function(v) {
@@ -11437,7 +11437,7 @@ function generarPDFGastos(periodo) {
 
 function renderGastos() {
   var el = document.getElementById('listaGastos');
-  if (!DB.gastos.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udccb</div>Sin gastos</div>'; return; }
+  if (!DB.gastos.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udccb</div><span data-t="gen.sin_gastos">Sin gastos</span></div>'; return; }
   var list = DB.gastos.slice().reverse();
   el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Concepto</th><th>Categoría</th><th>Fecha</th><th>IVA</th><th>Importe</th><th>Estado</th><th>Adjunto</th></tr></thead><tbody>' +
     list.map(function(g) {
@@ -11798,7 +11798,7 @@ async function renderReporte() {
     (SEL.repTipo !== 'reparaciones' ? '<div class="stat-card"><div class="stat-val" style="color:var(--blue)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>' +
     '<div class="stat-card"><div class="stat-val" style="color:var(--green)">' + cur(tV) + '</div><div class="stat-lbl">Ingresos ventas</div></div>' : '') +
     (SEL.repTipo !== 'ventas' ? '<div class="stat-card"><div class="stat-val" style="color:var(--purple)">' + reps.length + '</div><div class="stat-lbl">Reparaciones</div></div>' +
-    '<div class="stat-card"><div class="stat-val" style="color:var(--orange)">' + cur(tR) + '</div><div class="stat-lbl">Ingresos reps</div></div>' : '') +
+    '<div class="stat-card"><div class="stat-val" style="color:var(--orange)">' + cur(tR) + '</div><div class="stat-lbl"><span data-t="gen.ingresos_reps">Ingresos reps</span></div></div>' : '') +
     '</div>' +
     '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">Total: ' + cur(tV + tR) + '</div>';
 
@@ -12011,7 +12011,7 @@ function generarPDFGestor() {
   ventas.forEach(function(v) { pagos[v.pago||'Sin especificar'] = (pagos[v.pago||'Sin especificar'] || 0) + v.total; });
   reps.forEach(function(r) { if (r.pagoFinal) pagos[r.pagoFinal] = (pagos[r.pagoFinal] || 0) + r.total; });
 
-  var labelPeriodo = ({hoy:'Hoy', semana:'Última semana', mes:'Último mes', trimestre:'Último trimestre', total:'Histórico completo'})[SEL.repTab] || SEL.repTab;
+  var labelPeriodo = ({hoy:T('dash.hoy'), semana:T('gen.ultima_semana'), mes:T('gen.ultimo_mes'), trimestre:T('gen.ultimo_trimestre'), total:T('gen.historico_completo')})[SEL.repTab] || SEL.repTab;
   var fechaIni = fechas[fechas.length-1];
   var fechaFin = fechas[0];
   var hoy = new Date().toLocaleDateString('es');
