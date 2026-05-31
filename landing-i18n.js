@@ -271,9 +271,8 @@ function toggleFaq(el) {
 
 // Detectar idioma: localStorage primero, luego navegador
 function initLanding() {
-  var savedLang = localStorage.getItem('tp_lang_landing');
   var browserLang = navigator.language.substring(0, 2);
-  var initLang = savedLang || ((['es','en','fr','it','de','pt'].includes(browserLang)) ? browserLang : 'es');
+  var initLang = (['es','en','fr','it','de','pt'].includes(browserLang)) ? browserLang : 'es';
   var sel = document.querySelector('.lang-sel');
   if (sel) sel.value = initLang;
   setLang(initLang);
