@@ -271,7 +271,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
       <div class="cart-totals">
         <div class="total-row"><span><span data-t="tpv.subtotal">Subtotal</span></span><span id="subtotal">€0.00</span></div>
         <div class="total-row"><span>Descuento</span><span id="discTotal" style="color:#FF8080">-€0.00</span></div>
-        <div class="total-row" id="ivaBaseRow" style="display:none"><span>Base imponible</span><span id="ivaBaseVal">€0.00</span></div>
+        <div class="total-row" id="ivaBaseRow" style="display:none"><span><span data-t="gen.base_imponible">Base imponible</span></span><span id="ivaBaseVal">€0.00</span></div>
         <div class="total-row" id="ivaImpRow" style="display:none"><span id="ivaImpLbl">IVA</span><span id="ivaImpVal">€0.00</span></div>
         <div class="total-row main"><span id="totalLbl">TOTAL</span><span id="grandTotal">€0.00</span></div>
       </div>
@@ -419,11 +419,11 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
   <div class="fg"><label class="fl">Descripcion *</label><input class="fi" id="rvDesc" placeholder="Producto o servicio..."></div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Precio (€) *</label><input class="fi" id="rvPrecio" type="number" step="0.01" placeholder="0.00"></div>
-    <div class="fg"><label class="fl">Cantidad</label><input class="fi" id="rvQty" type="number" value="1" min="1"></div>
+    <div class="fg"><label class="fl"><span data-t="gen.cantidad">Cantidad</span></label><input class="fi" id="rvQty" type="number" value="1" min="1"></div>
   </div>
   <div style="display:flex;gap:10px;margin-top:4px">
     <button class="btn-secondary" onclick="closeModal('mRapida')">Cancelar</button>
-    <button class="btn-primary" onclick="addVentaRapida()">Añadir</button>
+    <button class="btn-primary" onclick="addVentaRapida()"><span data-t="gen.anadir">Añadir</span></button>
   </div>
 </div>
 </div>
@@ -1332,7 +1332,7 @@ function renderHistorial() {
   }
   var el = document.getElementById('histContent');
   if (!ventasHoy.length) {
-    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">Sin ventas hoy</div>';
+    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px"><span data-t="gen.sin_ventas_hoy">Sin ventas hoy</span></div>';
     return;
   }
   var totalDia = ventasHoy.filter(function(v){return !v.reembolsado;}).reduce(function(a,v){return a+(v.total||0);},0);
