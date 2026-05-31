@@ -131,7 +131,7 @@ function olvidePassword() {
   fetch('/api/login', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({ action: 'solicitar-reset', email: em })
+    body: JSON.stringify({ action: 'solicitar-reset', email: em, lang: localStorage.getItem('tp_lang') || 'es' })
   }).then(function(r){ return r.json(); }).then(function(data){
     if (data && data.ok) {
       errEl.style.color = '#15803d';
