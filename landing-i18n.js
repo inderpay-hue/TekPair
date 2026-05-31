@@ -246,6 +246,10 @@ function setLang(lang) {
     if (dict[key] !== undefined) {
       if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA') {
         el.placeholder = dict[key];
+      } else if (el.classList && el.classList.contains('eyebrow')) {
+        var dot = el.querySelector('.dot');
+        el.innerHTML = dict[key];
+        if (dot) el.insertBefore(dot, el.firstChild);
       } else {
         el.innerHTML = dict[key];
       }
@@ -259,9 +263,16 @@ function toggleFaq(el) {
 }
 
 // Detectar idioma: localStorage primero, luego navegador
-var savedLang = localStorage.getItem('tp_lang');
-var browserLang = navigator.language.substring(0, 2);
-var initLang = savedLang || ((['es','en','fr','it','de','pt'].includes(browserLang)) ? browserLang : 'es');
-var sel = document.querySelector('.lang-sel');
-if (sel) sel.value = initLang;
-setLang(initLang);
+function initLanding() {
+  var savedLang = localStorage.getItem('tp_lang');
+  var browserLang = navigator.language.substring(0, 2);
+  var initLang = savedLang || ((['es','en','fr','it','de','pt'].includes(browserLang)) ? browserLang : 'es');
+  var sel = document.querySelector('.lang-sel');
+  if (sel) sel.value = initLang;
+  setLang(initLang);
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initLanding);
+} else {
+  initLanding();
+}
