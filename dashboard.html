@@ -1073,9 +1073,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button id="btnPersonalizar" onclick="toggleModoEdicion()" style="background:white;color:var(--blue);border:1px solid var(--border);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">✏️ Personalizar</button>
   </div>
   <div class="tabs" id="metricTabs">
-    <div class="tab active" data-t="hoy" onclick="setMetricTab(this)"><span data-t="dash.hoy">Hoy</span></div>
-    <div class="tab" data-t="semana" onclick="setMetricTab(this)">Semana</div>
-    <div class="tab" data-t="mes" onclick="setMetricTab(this)">Mes</div>
+    <div class="tab active" data-t="dash.hoy" onclick="setMetricTab(this)"><span data-t="dash.hoy">Hoy</span></div>
+    <div class="tab" data-t="dash.semana" onclick="setMetricTab(this)">Semana</div>
+    <div class="tab" data-t="dash.mes" onclick="setMetricTab(this)">Mes</div>
   </div>
   <div class="stats-grid" id="metricsGrid"></div>
   <div class="quick-grid" id="dashQuickGrid">
@@ -3634,11 +3634,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sec-title">Reportes</div>
   </div>
   <div class="tabs">
-    <div class="tab active" data-t="hoy" onclick="setRepTab(this)">Hoy</div>
-    <div class="tab" data-t="semana" onclick="setRepTab(this)">Semana</div>
-    <div class="tab" data-t="mes" onclick="setRepTab(this)">Mes</div>
-    <div class="tab" data-t="trimestre" onclick="setRepTab(this)">Trimestre</div>
-    <div class="tab" data-t="total" onclick="setRepTab(this)">Total</div>
+    <div class="tab active" data-t="dash.hoy" onclick="setRepTab(this)">Hoy</div>
+    <div class="tab" data-t="dash.semana" onclick="setRepTab(this)">Semana</div>
+    <div class="tab" data-t="dash.mes" onclick="setRepTab(this)">Mes</div>
+    <div class="tab" data-t="gen.trimestre" onclick="setRepTab(this)">Trimestre</div>
+    <div class="tab" data-t="gen.total_periodo" onclick="setRepTab(this)">Total</div>
   </div>
   <div class="tabs">
     <div class="tab active" data-ti="todo" onclick="setRepTipo(this)"><span data-t="tpv.todos">Todo</span></div>
