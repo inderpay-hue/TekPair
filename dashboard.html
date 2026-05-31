@@ -2428,7 +2428,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   // ── Modal Caja ──────────────────────────────────
   function abrirModalNuevaCaja() {
     Estado.cajaEditando = null;
-    $('modal-caja-titulo').textContent = 'Nueva caja';
+    $('modal-caja-titulo').textContent = T('gen.nueva_caja').replace('+','').trim();
     $('caja-id').value = '';
     $('caja-tipo').value = 'envios';
     $('caja-nombre').value = 'Caja Envíos';
@@ -2451,7 +2451,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     const caja = Estado.cajas.find(c => c.id === id);
     if (!caja) return;
     Estado.cajaEditando = caja;
-    $('modal-caja-titulo').textContent = 'Editar caja';
+    $('modal-caja-titulo').textContent = T('gen.editar_caja');
     $('caja-id').value = caja.id;
     $('caja-tipo').value = caja.tipo;
     $('caja-nombre').value = caja.nombre;
@@ -2481,7 +2481,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       });
       const cmps = r.companias || [];
       if (cmps.length === 0) {
-        lista.innerHTML = '<div style="color:#6b7280;font-size:12px;text-align:center;padding:8px;">Aún no hay compañías. Añade la primera abajo.</div>';
+        lista.innerHTML = '<div style="color:#6b7280;font-size:12px;text-align:center;padding:8px;">' + T('gen.no_hay_companias') + '</div>';
         return;
       }
       lista.innerHTML = cmps.map(c => `
@@ -2997,7 +2997,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     cnt.textContent = fiados.length > 0 ? `(${fiados.length})` : '';
 
     if (fiados.length === 0) {
-      lista.innerHTML = '<div style="color:#92400e;font-size:13px;text-align:center;padding:14px;font-style:italic;">No hay pendientes anotados</div>';
+      lista.innerHTML = '<div style="color:#92400e;font-size:13px;text-align:center;padding:14px;font-style:italic;">' + T('gen.no_hay_pendientes') + '</div>';
       bloqueTotal.style.display = 'none';
       return;
     }
@@ -3046,14 +3046,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     const sel = $('fiado-compania-select');
     if (!sel) return;
     const cmps = Estado.cierreEditando?.companias || [];
-    sel.innerHTML = '<option value="">— Sin compañía —</option>' +
+    sel.innerHTML = '<option value="">' + T('gen.sin_companias') + '</option>' +
       cmps.map(c => `<option value="${c.id}" ${c.id === companiaIdSel ? 'selected' : ''}>${escapar(c.nombre)}</option>`).join('');
   }
 
   function abrirModalFiado() {
     // Nuevo fiado: campos vacíos
     $('fiado-temp-key').value = '';
-    $('modal-fiado-titulo').textContent = '📝 Nuevo pendiente';
+    $('modal-fiado-titulo').textContent = T('gen.nuevo_pendiente');
     poblarSelectCompaniaFiado('');
     $('fiado-importe').value = 0;
     $('fiado-cliente').value = '';
@@ -3081,7 +3081,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     const f = (Estado.fiadosTemp || []).find(x => x.tempKey === tempKey);
     if (!f) return;
     $('fiado-temp-key').value = tempKey;
-    $('modal-fiado-titulo').textContent = '✏ Editar pendiente';
+    $('modal-fiado-titulo').textContent = T('gen.editar_pendiente');
     poblarSelectCompaniaFiado(f.compania_id || '');
     $('fiado-importe').value = f.importe || 0;
     $('fiado-cliente').value = f.cliente_nombre || '';
@@ -3176,7 +3176,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       pintarCobros();
     } catch(e) {
       console.warn('Error cargando cobros:', e);
-      $('lista-cobros').innerHTML = '<div class="cobro-vacio">Error cargando cobros</div>';
+      $('lista-cobros').innerHTML = T('gen.error_cobros');
     }
   }
 
@@ -5784,7 +5784,7 @@ function _syncIndicatorUpdate() {
   }
   
   if (q.length > 0) {
-    box.innerHTML = '⚠️ ' + q.length + ' sin sincronizar';
+    box.innerHTML = '⚠️ ' + q.length + ' ' + T('gen.sin_sincronizar');
     box.style.display = 'block';
   } else {
     box.style.display = 'none';
@@ -6200,7 +6200,7 @@ function busModelo() {
   }).slice(0, 8);
 
   if (!matches.length) {
-    box.innerHTML = '<div class="cli-item" style="color:var(--muted);font-style:italic;cursor:default">Sin coincidencias - se guardara como nuevo</div>';
+    box.innerHTML = '<div class="cli-item" style="color:var(--muted);font-style:italic;cursor:default">' + T('gen.sin_coincidencias') + '</div>';
     box.classList.add('open');
     return;
   }
@@ -6600,7 +6600,7 @@ function renderWidgetCajaDia() {
         html2 += '<div style="background:var(--light);padding:10px 12px;border-radius:8px;border-left:3px solid ' + color + '"><div style="font-size:11px;color:var(--muted);font-weight:600">' + (iconos2[k] || '') + ' ' + k + '</div><div style="font-size:16px;font-weight:800;color:' + color + ';margin-top:2px">' + cur(v) + '</div></div>';
       });
       html2 += '</div>';
-      if (total === 0) html2 = '<div class="empty" style="padding:12px;font-size:12px">Sin movimientos en este periodo</div>';
+      if (total === 0) html2 = '<div class="empty" style="padding:12px;font-size:12px">' + T('gen.sin_movimientos') + '</div>';
       box.innerHTML = html2;
     }).catch(function(e){ console.warn('pagos:', e); });
   }
@@ -6654,7 +6654,7 @@ function renderWidgetCobros() {
   pendientes.sort(function(a,b){ return a.fecha - b.fecha; });
   if (countEl) countEl.textContent = pendientes.length ? '(' + pendientes.length + ')' : '';
   if (!pendientes.length) {
-    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">✅ Sin cobros pendientes en este periodo</div>';
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">' + T('gen.sin_cobros') + '</div>';
     return;
   }
   var html = '<div style="display:flex;flex-direction:column;gap:6px">';
@@ -6703,7 +6703,7 @@ function renderWidgetCumples() {
   lista.sort(function(a,b){ return a.dias - b.dias; });
   if (countEl) countEl.textContent = lista.length ? '(' + lista.length + ')' : '';
   if (!lista.length) {
-    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">Sin cumpleaños en este periodo</div>';
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">' + T('gen.sin_cumples') + '</div>';
     return;
   }
   var html = '<div style="display:flex;flex-direction:column;gap:6px">';
@@ -6731,7 +6731,7 @@ function renderWidgetTendencia() {
   var card = document.getElementById('cardTendencia');
   if (card) {
     var t = card.querySelector('.card-title');
-    if (t) t.textContent = '📈 Tendencia ' + (per.tab === 'hoy' ? 'hoy (por horas)' : per.tab === 'semana' ? '7 días' : '30 días');
+    if (t) t.textContent = per.tab === 'hoy' ? T('dash.tendencia_hoy') : per.tab === 'semana' ? T('dash.tendencia_semana') : T('dash.tendencia_mes');
   }
 
   var puntos = [];
@@ -6827,7 +6827,7 @@ function renderWidgetTopProds() {
   var card = document.getElementById('cardTopProds');
   if (card) {
     var t = card.querySelector('.card-title');
-    if (t) t.textContent = '🏆 Top productos (' + (per.tab === 'hoy' ? 'hoy' : per.tab === 'semana' ? '7 días' : '30 días') + ')';
+    if (t) t.textContent = per.tab === 'hoy' ? T('dash.top_productos') : per.tab === 'semana' ? T('dash.top_productos_semana') : T('dash.top_productos_mes');
   }
   var conteo = {};
   var ingresos = {};
@@ -6843,7 +6843,7 @@ function renderWidgetTopProds() {
   var top = Object.keys(conteo).map(function(k){ return {nombre:k, count:conteo[k], ingresos:ingresos[k]}; })
     .sort(function(a,b){ return b.count - a.count; }).slice(0,5);
   if (!top.length) {
-    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">Sin ventas en este periodo</div>';
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">' + T('gen.sin_ventas_hoy') + '</div>';
     return;
   }
   var maxCount = top[0].count;
@@ -6871,7 +6871,7 @@ function renderWidgetTopAverias() {
   var card = document.getElementById('cardTopAverias');
   if (card) {
     var t = card.querySelector('.card-title');
-    if (t) t.textContent = '🔧 Top averías (' + (per.tab === 'hoy' ? 'hoy' : per.tab === 'semana' ? '7 días' : '30 días') + ')';
+    if (t) t.textContent = per.tab === 'hoy' ? T('dash.top_averias') : per.tab === 'semana' ? T('dash.top_averias_semana') : T('dash.top_averias_mes');
   }
   var conteo = {};
   DB.reps.forEach(function(r) {
@@ -6884,7 +6884,7 @@ function renderWidgetTopAverias() {
   var top = Object.keys(conteo).map(function(k){ return {nombre:k, count:conteo[k]}; })
     .sort(function(a,b){ return b.count - a.count; }).slice(0,5);
   if (!top.length) {
-    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">Sin reparaciones en este periodo</div>';
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">' + T('gen.sin_reps_entregadas') + '</div>';
     return;
   }
   var maxCount = top[0].count;
@@ -6960,7 +6960,7 @@ function renderWidgetRepsEstado() {
   var total = 0;
   Object.keys(estados).forEach(function(k){ total += estados[k]; });
   if (total === 0) {
-    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">No hay reparaciones activas</div>';
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">' + T('gen.sin_reps_activas') + '</div>';
     return;
   }
   var colores = {Pendiente:'#F97316', 'En Proceso':'#FF5B1F', 'Por Entregar':'#00C896', Garantia:'#FF5B1F', 'Sin Solucion':'#EF4444'};
@@ -6990,7 +6990,7 @@ function renderWidgetTiempoMedio() {
   var card = document.getElementById('cardTiempoMedio');
   if (card) {
     var t = card.querySelector('.card-title');
-    if (t) t.textContent = '⏱️ Tiempo medio reparación (' + (per.tab === 'hoy' ? 'hoy' : per.tab === 'semana' ? '7 días' : '30 días') + ')';
+    if (t) t.textContent = per.tab === 'hoy' ? T('dash.tiempo_medio') : per.tab === 'semana' ? T('dash.tiempo_medio_semana') : T('dash.tiempo_medio_mes');
   }
   var entregadas = DB.reps.filter(function(r) {
     if (r.estado !== 'Entregado' || !r.fecha || !r.fechaEntregaReal) return false;
@@ -6998,7 +6998,7 @@ function renderWidgetTiempoMedio() {
     return fr && fr >= per.inicio && fr <= per.fin;
   });
   if (!entregadas.length) {
-    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">Sin reparaciones entregadas en este periodo</div>';
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">' + T('gen.sin_reps_entregadas') + '</div>';
     return;
   }
   var totalMs = 0; var min = Infinity; var max = 0;
@@ -7056,7 +7056,7 @@ function renderWidgetClisInactivos() {
   }).sort(function(a,b){ return a.ultima - b.ultima; });
 
   if (!lista.length) {
-    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">✅ No hay clientes inactivos</div>';
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">' + T('gen.no_clientes_inactivos') + '</div>';
     return;
   }
   var html = '<div style="font-size:11px;color:var(--muted);margin-bottom:8px">' + lista.length + ' cliente(s) sin actividad en 3+ meses</div>';
@@ -7288,7 +7288,7 @@ function renderVentas() {
     return matchQ && !v.reembolsado;
   });
   var el = document.getElementById('listaVentas');
-  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📱</div>Sin registros</div>'; return; }
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📱</div>' + T('gen.sin_registros') + '</div>'; return; }
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="gen.fecha">Fecha</span></th><th data-t="rep.cliente"><span data-t="rep.cliente">Cliente</span></th><th data-t="rep.modelo">Modelo</th><th><span data-t="tpv.forma_pago">Pago</span></th><th data-t="rep.total">Total</th><th></th></tr></thead><tbody>';
   list.forEach(function(v) {
     var badges = '';
