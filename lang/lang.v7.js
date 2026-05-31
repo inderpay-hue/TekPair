@@ -2905,6 +2905,24 @@ function setLang(lang) {
   // Actualizar botón nómina (no usa data-t para evitar mostrar la clave)
   var _btnNom = document.getElementById('btnNominaGasto');
   if (_btnNom) _btnNom.textContent = (TRANSLATIONS[lang] || TRANSLATIONS.es)['nom.btn'] || '💼 Nómina';
+  // Actualizar textos del modal nómina
+  var _d = TRANSLATIONS[lang] || TRANSLATIONS.es;
+  var _nm = {
+    'mNominaTit': 'nom.titulo', 'nLblTrabajador': 'nom.trabajador',
+    'nLblDni': 'nom.dni', 'nLblPeriodo': 'nom.periodo',
+    'nLblFechaPago': 'nom.fecha_pago', 'nLblBruto': 'nom.bruto',
+    'nLblIrpf': 'nom.irpf', 'nLblSsTrab': 'nom.ss_trab',
+    'nLblSsEmp': 'nom.ss_emp', 'nLblNotas': 'nom.notas',
+    'nLblAdjuntar': 'nom.adjuntar', 'nLblRecurrente': 'nom.recurrente',
+    'nLblDiaPago': 'nom.dia_pago', 'nLblAvisoRec': 'nom.aviso_rec',
+    'nBtnGuardar': 'nom.guardar', 'nLblBrutoRes': 'nom.bruto_lbl',
+    'nLblIrpfRes': 'nom.irpf_ret', 'nLblSsTrabRes': 'nom.ss_trab_ret',
+    'nLblNeto': 'nom.neto', 'nLblCosteEmp': 'nom.coste_emp'
+  };
+  Object.keys(_nm).forEach(function(id) {
+    var el = document.getElementById(id);
+    if (el) el.textContent = _d[_nm[id]] || el.textContent;
+  });
   document.documentElement.lang = lang;
   var btn = document.getElementById('btnLangToggle');
   if (btn) btn.textContent = lang.toUpperCase();
