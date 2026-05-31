@@ -12161,6 +12161,10 @@ function emailReporte() {
   if (!email) return;
   var pagos = {};
   ventas.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
+  reps.forEach(function(r) {
+    var metodo = r.pagoFinal || 'Efectivo';
+    pagos[metodo] = (pagos[metodo] || 0) + (r.total || 0);
+  });
   fetch('/api/email', {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN},
