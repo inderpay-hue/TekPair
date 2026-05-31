@@ -155,7 +155,7 @@ var T = {
     'feat2.title':'TPV & Vendite','feat2.desc':'Vendi accessori, ricambi e servizi dal tuo tablet. Emetti scontrini e gestisci la cassa.',
     'feat3.title':'Stock intelligente','feat3.desc':'Controllo del magazzino con avvisi automatici di scorta minima. Importa fatture con un clic.',
     'feat4.title':'Clienti & CRM','feat4.desc':'Storico completo per cliente: riparazioni, vendite, appuntamenti. Invia messaggi WhatsApp con un clic.',
-    'feat5.title':'Appuntamenti','feat5.desc':'I clienti prenotano online. Tu ricevi la notifica e gestisci l'agenda senza sforzo.',
+    'feat5.title':'Appuntamenti','feat5.desc':'I clienti prenotano online. Tu ricevi la notifica e gestisci l\'agenda senza sforzo.',
     'feat6.title':'Report & Analytics','feat6.desc':'Rapporto giornaliero per email. Visualizza le entrate per mese, settimana o operatore.',
     'plan.tag':'PREZZI','plan.title':'Semplice e trasparente','plan.sub':'15 giorni di prova gratuita. Nessuna carta di credito richiesta.',
     'plan1.name':'Starter','plan1.price':'19','plan1.period':'/mese','plan1.desc':'Per negozi fino a 2 operatori','plan1.cta':'Inizia gratis',
@@ -170,10 +170,10 @@ var T = {
     'test3.text':'"Il rapporto giornaliero via email è incredibile. Quando chiudo il negozio ho già il riepilogo sul telefono."','test3.role':'Mobile Fix, Valencia',
     'faq.title':'Domande frequenti',
     'faq1.q':'Devo installare qualcosa?','faq1.a':'No. TekPair funziona direttamente dal browser web, su qualsiasi dispositivo.',
-    'faq2.q':'Posso annullare in qualsiasi momento?','faq2.a':'Sì, senza impegni né penali.',
-    'faq3.q':'I miei dati sono al sicuro?','faq3.a':'Sì. Tutti i dati sono archiviati cifrati nel cloud con backup automatici.',
-    'faq4.q':'Posso migrare i miei dati da un altro programma?','faq4.a':'Sì. TekPair consente di importare clienti, stock e riparazioni da file CSV.',
-    'faq5.q':'C'è supporto in italiano?','faq5.a':'Sì. Il nostro team parla spagnolo, inglese, francese, italiano e tedesco.',
+    'faq2.q':'Posso annullare in qualsiasi momento?','faq2.a':'S\xec, senza impegni né penali.',
+    'faq3.q':'I miei dati sono al sicuro?','faq3.a':'S\xec. Tutti i dati sono archiviati cifrati nel cloud con backup automatici.',
+    'faq4.q':'Posso migrare i miei dati da un altro programma?','faq4.a':'S\xec. TekPair consente di importare clienti, stock e riparazioni da file CSV.',
+    'faq5.q':'C\'è supporto in italiano?','faq5.a':'S\xec. Il nostro team parla spagnolo, inglese, francese, italiano e tedesco.',
     'cta.title':'Pronto a trasformare il tuo negozio?','cta.sub':'Unisciti a oltre 500 negozi che gestiscono già la loro attività con TekPair','cta.btn1':'Inizia ora','cta.btn2':'Vedi demo gratis',
     'footer.desc':'Software di gestione per negozi di riparazione smartphone.','footer.product':'Prodotto','footer.contact':'Contatto','footer.rights':'Tutti i diritti riservati.','footer.secure':'Pagamento sicuro con Stripe'
   },
@@ -241,3 +241,4 @@ var browserLang = navigator.language.substring(0,2);
 if (['es','en','fr','it','de','pt'].includes(browserLang)) {
   document.querySelector('.lang-sel').value = browserLang;
   setLang(browserLang);
+}
