@@ -160,6 +160,17 @@ export default async function handler(req, res) {
       ).join('')
     : '';
 
+  const lang = req.body.lang || 'es';
+  const RPT = {
+    es: { subj: `Reporte diario ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Reporte diario', ventas:'Ventas', ingVentas:'Ingresos ventas', reps:'Reparaciones', ingReps:'Ingresos reps', totalDia:'TOTAL DEL DÍA', pagos:'${L.pagos}', ventasDia:'${L.ventasDia}', repsDia:'${L.repsDia}', cliente:'Cliente', modelo:'Modelo', pago:'Pago', total:'Total', equipo:'Equipo', footer:'${L.footer}' },
+    en: { subj: `Daily report ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Daily report', ventas:'Sales', ingVentas:'Sales revenue', reps:'Repairs', ingReps:'Repair revenue', totalDia:'TOTAL FOR THE DAY', pagos:'💳 By payment method', ventasDia:'📱 Sales of the day', repsDia:'🔧 Repairs delivered', cliente:'Customer', modelo:'Model', pago:'Payment', total:'Total', equipo:'Device', footer:'This report is generated automatically at end of day.' },
+    fr: { subj: `Rapport quotidien ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Rapport quotidien', ventas:'Ventes', ingVentas:'Revenus ventes', reps:'Réparations', ingReps:'Revenus réparations', totalDia:'TOTAL DU JOUR', pagos:'💳 Par mode de paiement', ventasDia:'📱 Ventes du jour', repsDia:'🔧 Réparations livrées', cliente:'Client', modelo:'Modèle', pago:'Paiement', total:'Total', equipo:'Appareil', footer:'Ce rapport est généré automatiquement en fin de journée.' },
+    it: { subj: `Rapporto giornaliero ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Rapporto giornaliero', ventas:'Vendite', ingVentas:'Ricavi vendite', reps:'Riparazioni', ingReps:'Ricavi riparazioni', totalDia:'TOTALE DEL GIORNO', pagos:'💳 Per metodo di pagamento', ventasDia:'📱 Vendite del giorno', repsDia:'🔧 Riparazioni consegnate', cliente:'Cliente', modelo:'Modello', pago:'Pagamento', total:'Totale', equipo:'Dispositivo', footer:'Questo rapporto viene generato automaticamente a fine giornata.' },
+    de: { subj: `Tagesbericht ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Tagesbericht', ventas:'Verkäufe', ingVentas:'Verkaufseinnahmen', reps:'Reparaturen', ingReps:'Reparatureinnahmen', totalDia:'TAGESGESAMT', pagos:'💳 Nach Zahlungsart', ventasDia:'📱 Verkäufe des Tages', repsDia:'🔧 Ausgelieferte Reparaturen', cliente:'Kunde', modelo:'Modell', pago:'Zahlung', total:'Gesamt', equipo:'Gerät', footer:'Dieser Bericht wird automatisch am Ende des Tages generiert.' },
+    pt: { subj: `Relatório diário ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Relatório diário', ventas:'Vendas', ingVentas:'Receitas vendas', reps:'Reparações', ingReps:'Receitas reparações', totalDia:'TOTAL DO DIA', pagos:'💳 Por forma de pagamento', ventasDia:'📱 Vendas do dia', repsDia:'🔧 Reparações entregues', cliente:'Cliente', modelo:'Modelo', pago:'Pagamento', total:'Total', equipo:'Dispositivo', footer:'Este relatório é gerado automaticamente no fecho do dia.' }
+  };
+  const L = RPT[lang] || RPT.es;
+
   const html = `
 <!DOCTYPE html>
 <html>
@@ -187,28 +198,28 @@ td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; }
 <body>
 <div class="header">
   <h1>⚡ Tekpair</h1>
-  <p>Reporte diario — ${tiendaSafe}</p>
+  <p>${L.header} — ${tiendaSafe}</p>
 </div>
 <div class="body">
   <p style="color:#64748B;font-size:13px;margin-bottom:16px">📅 ${fechaSafe}</p>
 
   <div style="text-align:center;margin-bottom:20px">
-    <div class="stat"><div class="stat-val" style="color:#0055FF">${numVentasSafe}</div><div class="stat-lbl">Ventas</div></div>
-    <div class="stat"><div class="stat-val" style="color:#00C896">€${totalVentasSafe}</div><div class="stat-lbl">Ingresos ventas</div></div>
-    <div class="stat"><div class="stat-val" style="color:#7C3AED">${numRepsSafe}</div><div class="stat-lbl">Reparaciones</div></div>
-    <div class="stat"><div class="stat-val" style="color:#F97316">€${totalRepsSafe}</div><div class="stat-lbl">Ingresos reps</div></div>
+    <div class="stat"><div class="stat-val" style="color:#0055FF">${numVentasSafe}</div><div class="stat-lbl">${L.ventas}</div></div>
+    <div class="stat"><div class="stat-val" style="color:#00C896">€${totalVentasSafe}</div><div class="stat-lbl">${L.ingVentas}</div></div>
+    <div class="stat"><div class="stat-val" style="color:#7C3AED">${numRepsSafe}</div><div class="stat-lbl">${L.reps}</div></div>
+    <div class="stat"><div class="stat-val" style="color:#F97316">€${totalRepsSafe}</div><div class="stat-lbl">${L.ingReps}</div></div>
   </div>
 
   <div style="background:#020B2E;color:white;border-radius:10px;padding:14px;text-align:center;margin-bottom:20px">
-    <div style="font-size:13px;opacity:.7">TOTAL DEL DÍA</div>
+    <div style="font-size:13px;opacity:.7">${L.totalDia}</div>
     <div style="font-size:28px;font-weight:800;color:#00C896">€${totalSafe}</div>
   </div>
 
   ${pagosHtml ? `<div class="section"><h2>💳 Por forma de pago</h2>${pagosHtml}</div>` : ''}
 
-  ${ventasHtml ? `<div class="section"><h2>📱 Ventas del día</h2><table><thead><tr><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th></tr></thead><tbody>${ventasHtml}</tbody></table></div>` : ''}
+  ${ventasHtml ? `<div class="section"><h2>📱 Ventas del día</h2><table><thead><tr><th>${L.cliente}</th><th>${L.modelo}</th><th>${L.pago}</th><th>${L.total}</th></tr></thead><tbody>${ventasHtml}</tbody></table></div>` : ''}
 
-  ${repsHtml ? `<div class="section"><h2>🔧 Reparaciones entregadas</h2><table><thead><tr><th>Cliente</th><th>Equipo</th><th>Total</th></tr></thead><tbody>${repsHtml}</tbody></table></div>` : ''}
+  ${repsHtml ? `<div class="section"><h2>🔧 Reparaciones entregadas</h2><table><thead><tr><th>${L.cliente}</th><th>${L.equipo}</th><th>${L.total}</th></tr></thead><tbody>${repsHtml}</tbody></table></div>` : ''}
 
 </div>
 <div class="footer">
@@ -228,7 +239,7 @@ td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; }
       body: JSON.stringify({
         from: 'Tekpair <noreply@tekpair.tech>',
         to: [email],
-        subject: `Reporte diario ${reporte.fecha || ''} — ${tienda || 'Tekpair'}`,
+        subject: L.subj,
         html: html
       })
     });
