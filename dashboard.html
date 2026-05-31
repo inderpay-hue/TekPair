@@ -13443,6 +13443,22 @@ function felicitarCumple(cliId) {
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
 }
 
+function toggleTemaMenu() {
+  var m = document.getElementById('temaMenu');
+  if (!m) return;
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  if (m.style.display === 'block') {
+    setTimeout(function() {
+      document.addEventListener('click', function ct(e) {
+        var m2 = document.getElementById('temaMenu');
+        if (m2 && !m2.contains(e.target) && !e.target.matches('[onclick*="toggleTemaMenu"]')) {
+          m2.style.display = 'none';
+        }
+        document.removeEventListener('click', ct);
+      });
+    }, 100);
+  }
+}
 function toggleLangMenu() {
   var m = document.getElementById('langMenu');
   if (!m) return;
