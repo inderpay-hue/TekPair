@@ -85,6 +85,15 @@
           "value": "no-cache, no-store, must-revalidate, max-age=0"
         }
       ]
+    },
+    {
+      "source": "/landing-i18n.js",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     }
   ]
 }
