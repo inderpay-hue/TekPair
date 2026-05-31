@@ -27,7 +27,14 @@ Vielen Dank!'; } },
 Total: '+total+' €.
 Obrigado!'; } }
   };
-  function FL(){ return FACT_I18N[window.TEKPAIR_LANG] || FACT_I18N.es; }
+  function FL(){ 
+  var base = FACT_I18N[window.TEKPAIR_LANG] || FACT_I18N.es;
+  // Si el dueño configuró un nombre de impuesto personalizado, usarlo
+  if (window.AJUSTES && window.AJUSTES.iva && window.AJUSTES.iva.nombre) {
+    base = Object.assign({}, base, {iva: window.AJUSTES.iva.nombre});
+  }
+  return base;
+}
   'use strict';
 
   // ═══ Interceptor JWT 401 (autocontenido, idempotente) ═══

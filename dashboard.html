@@ -3952,13 +3952,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           </select>
         </div>
         <div class="fg">
-          <label class="fl">Tipo de IVA por defecto (%)</label>
-          <select class="fi" id="ajIvaTipoDefault">
-            <option value="21">21% — General</option>
-            <option value="10">10% — Reducido</option>
-            <option value="4">4% — Superreducido</option>
-            <option value="0">0% — Exento</option>
-          </select>
+          <label class="fl">Nombre del impuesto (IVA, TVA, MwSt, VAT...)</label>
+          <input class="fi" id="ajIvaNombre" type="text" placeholder="IVA" maxlength="10" style="max-width:140px"/>
+        </div>
+        <div class="fg">
+          <label class="fl">Tipo por defecto (%)</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="fi" id="ajIvaTipoDefault" type="number" min="0" max="100" step="0.1" placeholder="21" style="max-width:100px"/>
+            <span style="font-size:13px;color:var(--muted)">%</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl">Tipos adicionales permitidos (separados por coma)</label>
+          <input class="fi" id="ajIvaTiposExtra" type="text" placeholder="21, 10, 4, 0" style="max-width:220px"/>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px">Ej: 21, 10, 4, 0 — aparecerán como opciones al crear ventas y reparaciones</div>
         </div>
         <div style="font-size:11px;color:var(--muted);line-height:1.5;background:var(--light);padding:10px 12px;border-radius:8px;margin-top:6px">
           💡 <strong>Modo "incluido":</strong> el precio que escribes ya incluye el IVA. El cliente ve el precio final.<br>
@@ -5259,7 +5266,7 @@ setInterval(function() { refrescarPlan(); }, 5 * 60 * 1000);
     }
   }, 200);
 })();
-var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
+var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21],nombre:'IVA',tiposExtra:'21, 10, 4, 0'},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
 
 // ═══ DB ═══
 var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[],gastos_recurrentes:[]};
@@ -5328,7 +5335,7 @@ window.addEventListener('DOMContentLoaded', function() {
   if (aj.moneda) AJUSTES.moneda = aj.moneda;
   if (aj.cierre) AJUSTES.cierre = aj.cierre;
   if (aj.nombre) AJUSTES.nombre = aj.nombre;
-  if (aj.iva) AJUSTES.iva = Object.assign({activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]}, aj.iva);
+  if (aj.iva) AJUSTES.iva = Object.assign({activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21],nombre:'IVA',tiposExtra:'21, 10, 4, 0'}, aj.iva);
   if (aj.notif) {
     AJUSTES.notif = AJUSTES.notif || {};
     AJUSTES.notif.activa = Object.assign({vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true}, aj.notif.activa || {});
@@ -12793,6 +12800,14 @@ function cargarAjustes() {
   document.getElementById('ajIvaActivo').checked = !!iva.activo;
   document.getElementById('ajIvaModo').value = iva.modo || 'incluido';
   document.getElementById('ajIvaTipoDefault').value = String(iva.tipoDefault != null ? iva.tipoDefault : 21);
+  var ajIvaNombreEl = document.getElementById('ajIvaNombre');
+  if (ajIvaNombreEl) ajIvaNombreEl.value = iva.nombre || 'IVA';
+  var ajIvaTiposExtraEl = document.getElementById('ajIvaTiposExtra');
+  if (ajIvaTiposExtraEl) ajIvaTiposExtraEl.value = iva.tiposExtra || '21, 10, 4, 0';
+  var ajIvaNombreEl = document.getElementById('ajIvaNombre');
+  if (ajIvaNombreEl) ajIvaNombreEl.value = iva.nombre || 'IVA';
+  var ajIvaTiposExtraEl = document.getElementById('ajIvaTiposExtra');
+  if (ajIvaTiposExtraEl) ajIvaTiposExtraEl.value = iva.tiposExtra || '21, 10, 4, 0';
   toggleIvaCfg();
   // Notificaciones
   var n = (AJUSTES.notif && AJUSTES.notif.activa) || {};
@@ -12831,6 +12846,22 @@ function guardarAjustes() {
   AJUSTES.iva.activo = document.getElementById('ajIvaActivo').checked;
   AJUSTES.iva.modo = document.getElementById('ajIvaModo').value;
   AJUSTES.iva.tipoDefault = parseFloat(document.getElementById('ajIvaTipoDefault').value) || 21;
+  var ajNomEl = document.getElementById('ajIvaNombre');
+  if (ajNomEl) AJUSTES.iva.nombre = ajNomEl.value.trim() || 'IVA';
+  var ajExtraEl = document.getElementById('ajIvaTiposExtra');
+  if (ajExtraEl) {
+    var extras = ajExtraEl.value.split(',').map(function(x){ return parseFloat(x.trim()); }).filter(function(x){ return !isNaN(x); });
+    AJUSTES.iva.tiposPermitidos = extras.length ? extras : [0,4,10,21];
+    AJUSTES.iva.tiposExtra = ajExtraEl.value.trim();
+  }
+  var ajNomEl = document.getElementById('ajIvaNombre');
+  if (ajNomEl) AJUSTES.iva.nombre = ajNomEl.value.trim() || 'IVA';
+  var ajExtraEl = document.getElementById('ajIvaTiposExtra');
+  if (ajExtraEl) {
+    var extras = ajExtraEl.value.split(',').map(function(x){ return parseFloat(x.trim()); }).filter(function(x){ return !isNaN(x); });
+    AJUSTES.iva.tiposPermitidos = extras.length ? extras : [0,4,10,21];
+    AJUSTES.iva.tiposExtra = ajExtraEl.value.trim();
+  }
   if (!AJUSTES.iva.tiposPermitidos) AJUSTES.iva.tiposPermitidos = [0,4,10,21];
   // Notificaciones
   AJUSTES.notif = AJUSTES.notif || {};
@@ -13105,7 +13136,7 @@ async function _pullTiendaCompleta() {
 
     // Ajustes
     if (t.ajustes_config && typeof t.ajustes_config === 'object') {
-      var defaults = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21]},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
+      var defaults = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21],nombre:'IVA',tiposExtra:'21, 10, 4, 0'},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
       AJUSTES = Object.assign(defaults, t.ajustes_config);
       // Asegurar subobjetos completos
       AJUSTES.cierre = Object.assign(defaults.cierre, AJUSTES.cierre || {});
