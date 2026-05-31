@@ -12165,7 +12165,7 @@ function emailReporte() {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN},
     body: JSON.stringify({
-      email: email, tienda: TIENDA.nombre,
+      email: email, tienda: TIENDA.nombre, lang: TEKPAIR_LANG || 'es',
       reporte: {
         fecha: hoyLocal(),
         numVentas: ventas.length, totalVentas: tV.toFixed(2),
