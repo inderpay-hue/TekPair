@@ -4848,8 +4848,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <label class="fl" id="nLblAdjuntar">Adjuntar nómina (PDF o imagen)</label>
     <input type="file" id="nAdj" accept="application/pdf,image/jpeg,image/png" style="font-size:13px">
   </div>
-  <div class="fg"><label class="fl">Estado</label>
-    <select class="fi" id="nEstado"><option>Pagado</option><option>Pendiente</option></select>
+  <div class="fg"><label class="fl" id="nLblEstado">Estado</label>
+    <select class="fi" id="nEstado"><option id="nEstPagado">Pagado</option><option id="nEstPendiente">Pendiente</option></select>
   </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mNomina')">Cancelar</button>
