@@ -105,7 +105,16 @@ async function migrarUsuarioABcrypt(SB_URL, SK, usuarioId, plainPwd) {
   }
 }
 
-async function enviarEmailReset(email, nombre, enlace) {
+async function enviarEmailReset(email, nombre, enlace, lang = 'es') {
+  const RESET_I18N = {
+    es: { subj:'Restablece tu contraseña de TekPair', hola:'Hola', recibido:'Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Pulsa el botón para crear una nueva:', btn:'Restablecer contraseña', caduca:'Este enlace caduca en <strong>1 hora</strong>. Si no has solicitado este cambio, puedes ignorar este email: tu contraseña no se modificará.' },
+    en: { subj:'Reset your TekPair password', hola:'Hi', recibido:'We received a request to reset your account password. Click the button to create a new one:', btn:'Reset password', caduca:'This link expires in <strong>1 hour</strong>. If you did not request this change, you can ignore this email: your password will not be changed.' },
+    fr: { subj:'Réinitialisez votre mot de passe TekPair', hola:'Bonjour', recibido:'Nous avons reçu une demande de réinitialisation du mot de passe de votre compte. Cliquez sur le bouton pour en créer un nouveau :', btn:'Réinitialiser le mot de passe', caduca:'Ce lien expire dans <strong>1 heure</strong>. Si vous n'avez pas demandé ce changement, ignorez cet email.' },
+    it: { subj:'Reimposta la password di TekPair', hola:'Ciao', recibido:'Abbiamo ricevuto una richiesta di reimpostazione della password del tuo account. Clicca il pulsante per crearne una nuova:', btn:'Reimposta password', caduca:'Questo link scade tra <strong>1 ora</strong>. Se non hai richiesto questo cambiamento, ignora questa email.' },
+    de: { subj:'Setzen Sie Ihr TekPair-Passwort zurück', hola:'Hallo', recibido:'Wir haben eine Anfrage zum Zurücksetzen Ihres Kontopassworts erhalten. Klicken Sie auf die Schaltfläche, um ein neues zu erstellen:', btn:'Passwort zurücksetzen', caduca:'Dieser Link läuft in <strong>1 Stunde</strong> ab. Wenn Sie diese Änderung nicht angefordert haben, können Sie diese E-Mail ignorieren.' },
+    pt: { subj:'Redefina a sua palavra-passe do TekPair', hola:'Olá', recibido:'Recebemos um pedido para redefinir a palavra-passe da sua conta. Clique no botão para criar uma nova:', btn:'Redefinir palavra-passe', caduca:'Este link expira em <strong>1 hora</strong>. Se não solicitou esta alteração, pode ignorar este email.' }
+  };
+  const R = RESET_I18N[lang] || RESET_I18N.es;
   const RESEND_KEY = process.env.RESEND_API_KEY;
   if (!RESEND_KEY) { console.error('RESEND_API_KEY no configurada'); return; }
   try {
@@ -115,7 +124,7 @@ async function enviarEmailReset(email, nombre, enlace) {
       body: JSON.stringify({
         from: 'Tekpair <hola@tekpair.tech>',
         to: email,
-        subject: 'Restablece tu contraseña de TekPair',
+        subject: R.subj,
         html: `
 <!DOCTYPE html>
 <html><head><meta charset="UTF-8"></head>
@@ -125,12 +134,12 @@ async function enviarEmailReset(email, nombre, enlace) {
     <div style="font-size:22px;font-weight:800;color:white">&#9889; TekPair</div>
   </div>
   <div style="padding:32px">
-    <p style="font-size:16px;color:#333">Hola${nombre ? ' ' + nombre : ''},</p>
-    <p style="color:#666;line-height:1.6">Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Pulsa el botón para crear una nueva:</p>
+    <p style="font-size:16px;color:#333">${R.hola}${nombre ? ' ' + nombre : ''},</p>
+    <p style="color:#666;line-height:1.6">${R.recibido}</p>
     <div style="text-align:center;margin:28px 0">
-      <a href="${enlace}" style="background:#10B981;color:white;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block">Restablecer contraseña</a>
+      <a href="${enlace}" style="background:#10B981;color:white;padding:14px 32px;border-radius:10px;text-decoration:none;font-weight:700;font-size:15px;display:inline-block">${R.btn}</a>
     </div>
-    <p style="color:#999;font-size:13px;line-height:1.6">Este enlace caduca en <strong>1 hora</strong>. Si no has solicitado este cambio, puedes ignorar este email: tu contraseña no se modificará.</p>
+    <p style="color:#999;font-size:13px;line-height:1.6">${R.caduca}</p>
     <div style="border-top:1px solid #eee;padding-top:16px;margin-top:16px">
       <p style="color:#999;font-size:12px;margin:0">TekPair &middot; tekpair.tech</p>
     </div>
@@ -322,7 +331,7 @@ export default async function handler(req, res) {
 
   // ───────── Acción: solicitar recuperación de contraseña ─────────
   if (action === 'solicitar-reset') {
-    const { email: srEmail } = req.body;
+    const { email: srEmail, lang: srLang } = req.body;
     if (!srEmail) return res.status(400).json({ error: 'Falta el email' });
     if (!SB_URL || !SK) {
       return res.status(500).json({ error: 'Configuración de servidor incompleta' });
@@ -364,7 +373,7 @@ export default async function handler(req, res) {
         );
 
         const enlace = `https://tekpair.tech/reset.html?token=${token}`;
-        await enviarEmailReset(usr.email, usr.nombre, enlace);
+        await enviarEmailReset(usr.email, usr.nombre, enlace, srLang || 'es');
       }
 
       return res.json({ ok: true });
