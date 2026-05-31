@@ -2902,6 +2902,9 @@ function T(key) {
 function setLang(lang) {
   TEKPAIR_LANG = lang;
   localStorage.setItem('tp_lang', lang);
+  // Actualizar botón nómina (no usa data-t para evitar mostrar la clave)
+  var _btnNom = document.getElementById('btnNominaGasto');
+  if (_btnNom) _btnNom.textContent = (TRANSLATIONS[lang] || TRANSLATIONS.es)['nom.btn'] || '💼 Nómina';
   document.documentElement.lang = lang;
   var btn = document.getElementById('btnLangToggle');
   if (btn) btn.textContent = lang.toUpperCase();
