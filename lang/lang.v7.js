@@ -1339,7 +1339,7 @@ fr: {
   'nom.bruto_lbl': 'Salaire brut',
   'nom.guardada': 'Fiche de paie enregistrée ✓',
   'nom.guardada_rec': 'Fiche enregistrée et programmée mensuellement ✓',
-  'nom.error_trab': 'Saisir le nom de l'employé',
+  'nom.error_trab': 'Saisir le nom de l\'employé',
   'nom.error_bruto': 'Saisir le salaire brut',
   'nom.actualizada': 'Fiche de paie mise à jour ✓',
   'nom.informe_titulo': '💼 Paie',
