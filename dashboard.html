@@ -11179,9 +11179,9 @@ function generarHtmlInforme(periodo) {
     '<h1>Informe de gastos para el gestor</h1>' +
     '<div style="color:#555;font-size:11px;margin-bottom:8px">Periodo: <b>'+esc(etiqueta)+'</b> · '+detalle.length+' gasto(s)</div>' +
     '<div class="kpi"><div class="c"><div class="l">Base imponible</div><div class="v">'+cur(totalBase)+'</div></div><div class="c"><div class="l">IVA soportado</div><div class="v">'+cur(totalIva)+'</div></div><div class="c"><div class="l">Total gastos</div><div class="v" style="color:#DC2626">'+cur(totalTotal)+'</div></div></div>' +
-    '<h2>Detalle de gastos</h2><table><thead><tr><th>Fecha</th><th>Concepto</th><th><span data-t="stock.categoria">Categoría</span></th><th class="r">Base</th><th class="r">IVA%</th><th class="r">IVA €</th><th class="r">Total</th><th>Estado</th><th>Justif.</th></tr></thead><tbody>'+filasDet+'</tbody></table>' +
-    '<h2>Resumen por categoría</h2><table><thead><tr><th>Categoría</th><th class="r">Nº</th><th class="r">Base</th><th class="r">IVA €</th><th class="r">Total</th></tr></thead><tbody>'+filasCat+'</tbody></table>' +
-    '<h2>Resumen por tipo de IVA (modelo 303)</h2><table><thead><tr><th>Tipo</th><th class="r">Nº</th><th class="r">Base imponible</th><th class="r">Cuota IVA</th><th class="r">Total</th></tr></thead><tbody>'+filasIva+'<tr style="background:#FEE2E2"><td class="b">TOTAL</td><td class="r b">'+detalle.length+'</td><td class="r b">'+cur(totalBase)+'</td><td class="r b">'+cur(totalIva)+'</td><td class="r b">'+cur(totalTotal)+'</td></tr></tbody></table>' +
+    '<h2>Detalle de gastos</h2><table><thead><tr><th>"+T("gastos.fecha")+"</th><th>"+T("gastos.concepto")+"</th><th>"+T("gastos.categoria")+"</th><th class=\"r\">"+T("gastos.base_imponible")+"</th><th class=\"r\">"+T("gen.iva")+"%</th><th class=\"r\">"+T("gen.iva")+" €</th><th class=\"r\">"+T("gastos.importe")+"</th><th>"+T("gastos.estado")+"</th><th>"+T("gastos.justif")+"</th></tr></thead><tbody>'+filasDet+'</tbody></table>' +
+    '<h2>Resumen por categoría</h2><table><thead><tr><th>"+T("gastos.categoria")+"</th><th class=\"r\">Nº</th><th class=\"r\">"+T("gastos.base_imponible")+"</th><th class=\"r\">"+T("gen.iva")+" €</th><th class=\"r\">Total</th></tr></thead><tbody>'+filasCat+'</tbody></table>' +
+    '<h2>Resumen por tipo de IVA (modelo 303)</h2><table><thead><tr><th>"+T("gen.iva")+"</th><th class=\"r\">Nº</th><th class=\"r\">"+T("gastos.base_imponible")+"</th><th class=\"r\">"+T("gastos.cuota_iva")+"</th><th class=\"r\">Total</th></tr></thead><tbody>'+filasIva+'<tr style="background:#FEE2E2"><td class="b">TOTAL</td><td class="r b">'+detalle.length+'</td><td class="r b">'+cur(totalBase)+'</td><td class="r b">'+cur(totalIva)+'</td><td class="r b">'+cur(totalTotal)+'</td></tr></tbody></table>' +
     '<div class="firmas"><div class="f">'+T('gastos.firma_tienda')+'</div><div class="f">'+T('gastos.firma_gestor')+'</div></div>' +
     '<div style="text-align:center;font-size:10px;color:#999;margin-top:30px;padding-top:10px;border-top:1px solid #eee">Generado por TekPair &middot; tekpair.tech</div>' +
     '</body></html>';
@@ -11434,9 +11434,9 @@ function generarPDFGastos(periodo) {
     '<h2>' + T('gastos.detalle') + '</h2>' +
     '<table><thead><tr><th>Fecha</th><th>Concepto</th><th>Categoría</th><th class="r">Base</th><th class="r">IVA%</th><th class="r">IVA €</th><th class="r">Total</th><th>Estado</th><th>Justif.</th></tr></thead><tbody>' + filasDet + '</tbody></table>' +
     '<h2>' + T('gastos.resumen_cat') + '</h2>' +
-    '<table><thead><tr><th>Categoría</th><th class="r">Nº</th><th class="r">Base</th><th class="r">IVA €</th><th class="r">Total</th></tr></thead><tbody>' + filasCat + '</tbody></table>' +
+    '<table><thead><tr><th>"+T("gastos.categoria")+"</th><th class=\"r\">Nº</th><th class=\"r\">"+T("gastos.base_imponible")+"</th><th class=\"r\">"+T("gen.iva")+" €</th><th class=\"r\">Total</th></tr></thead><tbody>' + filasCat + '</tbody></table>' +
     '<h2>' + T('gastos.resumen_iva') + '</h2>' +
-    '<table><thead><tr><th>Tipo</th><th class="r">Nº</th><th class="r">Base imponible</th><th class="r">Cuota IVA</th><th class="r">Total</th></tr></thead><tbody>' + filasIva +
+    '<table><thead><tr><th>"+T("gen.iva")+"</th><th class=\"r\">Nº</th><th class=\"r\">"+T("gastos.base_imponible")+"</th><th class=\"r\">"+T("gastos.cuota_iva")+"</th><th class=\"r\">Total</th></tr></thead><tbody>' + filasIva +
     '<tr style="background:#FEE2E2"><td class="b">TOTAL</td><td class="r b">' + detalle.length + '</td><td class="r b">' + cur(totalBase) + '</td><td class="r b">' + cur(totalIva) + '</td><td class="r b">' + cur(totalTotal) + '</td></tr>' +
     '</tbody></table>' +
     '<div class="firmas"><div class="f">Firma y sello — Tienda</div><div class="f">Recibido — Gestor</div></div>' +
