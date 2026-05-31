@@ -88,23 +88,6 @@ button:disabled{background:var(--faint);cursor:not-allowed;transform:none;box-sh
 <script>
 
 
-function setLoginLang(lang) {
-  localStorage.setItem('tp_lang', lang);
-  if (typeof setLang === 'function') setLang(lang);
-  // Actualizar selector
-  var sel = document.getElementById('loginLangSel');
-  if (sel) sel.value = lang;
-}
-
-// Inicializar idioma al cargar
-(function() {
-  var lang = localStorage.getItem('tp_lang') || navigator.language.substring(0,2);
-  if (!['es','en','fr','it','de','pt'].includes(lang)) lang = 'es';
-  var sel = document.getElementById('loginLangSel');
-  if (sel) sel.value = lang;
-  if (typeof setLang === 'function') setLang(lang);
-})();
-
 function entrar() {
   var em = document.getElementById('em').value;
   var pw = document.getElementById('pw').value;
