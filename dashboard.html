@@ -2614,7 +2614,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           const fechaVisible = `${partes[2]}/${partes[1]}/${partes[0]}`;
           // Nombre del día de la semana
           const d = new Date(fechaAnterior + 'T12:00:00');
-          const diaSemana = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][d.getDay()];
+          const dias = [T('fecha.domingo'),T('fecha.lunes'),T('fecha.martes'),T('fecha.miercoles'),T('fecha.jueves'),T('fecha.viernes'),T('fecha.sabado')];
+          const diaSemana = dias[d.getDay()];
           lbl.innerHTML = `Cambio del ${fechaVisible} <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(${diaSemana} · automático)</span>`;
         } else if (!fechaAnterior && !data.cierre) {
           lbl.innerHTML = `Saldo inicial <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(primer día - no hay cierres previos)</span>`;
@@ -3508,14 +3509,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       resumenDias = r.dias || {};
     } catch(e) { console.warn('Calendario resumen:', e); }
 
-    const meses = ['enero','febrero','marzo','abril','mayo','junio',
-                   'julio','agosto','septiembre','octubre','noviembre','diciembre'];
+    const meses = [T('fecha.enero'),T('fecha.febrero'),T('fecha.marzo'),T('fecha.abril'),T('fecha.mayo'),T('fecha.junio'),T('fecha.julio'),T('fecha.agosto'),T('fecha.septiembre'),T('fecha.octubre'),T('fecha.noviembre'),T('fecha.diciembre')];
     $('tpcal-titulo').textContent = `${meses[m]} ${y}`;
 
     const hoyIso = fmtIsoCal(new Date());
     const fechaSelIso = Estado.fechaActual;
 
-    let html = ['L','M','X','J','V','S','D'].map(d =>
+    let html = [T('fecha.L'),T('fecha.M'),T('fecha.X'),T('fecha.J'),T('fecha.V'),T('fecha.S'),T('fecha.D')].map(d =>
       `<div class="tpcal-dow">${d}</div>`
     ).join('');
 
@@ -5309,7 +5309,7 @@ window.addEventListener('DOMContentLoaded', function() {
   // El nombre de la tienda ya se muestra en el sidebar; aquí saludo más humano.
   (function(){
     var h = new Date().getHours();
-    var saludo = h < 6 ? 'Buenas noches' : h < 13 ? 'Buenos días' : h < 21 ? 'Buenas tardes' : 'Buenas noches';
+    var saludo = h < 6 ? T('dash.buenas_noches') : h < 13 ? T('dash.buenos_dias') : h < 21 ? T('dash.buenas_tardes') : T('dash.buenas_noches');
     var primerNombre = (U.nombre || '').split(' ')[0] || '';
     var dTiendaEl = document.getElementById('dTienda');
     if (dTiendaEl) dTiendaEl.textContent = primerNombre ? saludo + ', ' + primerNombre : saludo;
@@ -14534,13 +14534,13 @@ function toggleModoEdicion() {
   var btn = document.getElementById('btnPersonalizar');
   if (modoEdicionWidgets) {
     if (btn) {
-      btn.innerHTML = '✓ Listo';
+      btn.innerHTML = '✓ ' + T('gen.listo');
       btn.style.background = 'var(--green)';
       btn.style.color = 'white';
       btn.style.borderColor = 'var(--green)';
     }
     activarControlesEdicion();
-    toast('Modo edición — usa ↑↓ para reordenar', 'ok');
+    toast(T('gen.modo_edicion'), 'ok');
   } else {
     if (btn) {
       btn.innerHTML = '✏️ ' + T('gen.personalizar');
