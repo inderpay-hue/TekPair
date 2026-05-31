@@ -3597,6 +3597,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div class="sec-title"><span data-t="nav.gastos">Gastos</span></div>
     </div>
     <button class="btn-sm" style="background:var(--red);color:white" onclick="openM('mGasto')">+ Nuevo</button>
+    <button class="btn-sm" style="background:#7C3AED;color:white;margin-left:6px" onclick="abrirModalNomina()">💼 Nómina</button>
   </div>
   <div class="card" style="margin-bottom:14px;padding:16px">
     <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
@@ -4751,6 +4752,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <option>Servicios profesionales</option>
         <option>Transporte</option>
         <option selected>Otros</option>
+        <option>Nomina</option>
       </select>
     </div>
     <div class="fg"><label class="fl">Tipo IVA</label>
@@ -4789,6 +4791,59 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mGasto')" data-t="gen.cancelar">Cancelar</button>
     <button class="btn-primary" style="background:var(--red)" onclick="guardarGasto()"><span data-t="gen.guardar">Guardar</span></button>
+  </div>
+</div>
+</div>
+
+
+<!-- NÓMINA -->
+<div class="modal-bg" id="mNomina">
+<div class="modal" style="max-width:520px">
+  <div class="modal-title" id="mNominaTit">💼 Nueva nómina</div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Trabajador *</label><input class="fi" id="nTrabajador" placeholder="Nombre completo"></div>
+    <div class="fg"><label class="fl">DNI/NIE</label><input class="fi" id="nDni" placeholder="12345678A"></div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Periodo *</label><input class="fi" id="nPeriodo" type="month"></div>
+    <div class="fg"><label class="fl">Fecha pago</label><input class="fi" id="nFecha" type="date"></div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Salario bruto (€)</label><input class="fi" id="nBruto" type="number" step="0.01" value="0" oninput="calcNomina()"></div>
+    <div class="fg"><label class="fl">IRPF / Retención (%)</label><input class="fi" id="nIrpf" type="number" step="0.1" value="15" oninput="calcNomina()"></div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">SS trabajador (%)</label><input class="fi" id="nSsTrab" type="number" step="0.1" value="6.35" oninput="calcNomina()"></div>
+    <div class="fg"><label class="fl">SS empresa (%)</label><input class="fi" id="nSsEmp" type="number" step="0.1" value="29.9" oninput="calcNomina()"></div>
+  </div>
+  <div style="background:var(--light);border-radius:10px;padding:14px;margin:10px 0;font-size:13px">
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span style="color:var(--muted)">Salario bruto</span><strong id="nResumenBruto">€0.00</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span style="color:var(--muted)">— IRPF</span><span id="nResumenIrpf" style="color:#DC2626">-€0.00</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-bottom:1px solid var(--border)">
+      <span style="color:var(--muted)">— SS trabajador</span><span id="nResumenSsTrab" style="color:#DC2626">-€0.00</span>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:15px">
+      <strong>Neto a pagar</strong><strong id="nResumenNeto" style="color:#10B981">€0.00</strong>
+    </div>
+    <div style="display:flex;justify-content:space-between;padding:4px 0;border-top:1px solid var(--border);margin-top:4px">
+      <span style="color:var(--muted);font-size:12px">Coste total empresa</span><span id="nResumenEmp" style="font-size:12px;color:#7C3AED">€0.00</span>
+    </div>
+  </div>
+  <div class="fg"><label class="fl">Notas</label><input class="fi" id="nNotas" placeholder="Observaciones..."></div>
+  <div class="fg">
+    <label class="fl">Adjuntar nómina (PDF o imagen)</label>
+    <input type="file" id="nAdj" accept="application/pdf,image/jpeg,image/png" style="font-size:13px">
+  </div>
+  <div class="fg"><label class="fl">Estado</label>
+    <select class="fi" id="nEstado"><option>Pagado</option><option>Pendiente</option></select>
+  </div>
+  <div class="modal-actions">
+    <button class="btn-secondary" onclick="closeM('mNomina')">Cancelar</button>
+    <button class="btn-primary" style="background:#7C3AED" onclick="guardarNomina()">💾 Guardar nómina</button>
   </div>
 </div>
 </div>
@@ -11475,6 +11530,126 @@ function renderGastos() {
         '<td><span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado || 'Pagado') + '</span></td>' +
         '<td>' + adjCell + '</td></tr>';
     }).join('') + '</tbody></table></div>';
+}
+
+
+// ═══ MÓDULO NÓMINAS ═══
+function calcNomina() {
+  var bruto = parseFloat(document.getElementById('nBruto').value) || 0;
+  var irpf = parseFloat(document.getElementById('nIrpf').value) || 0;
+  var ssTrab = parseFloat(document.getElementById('nSsTrab').value) || 0;
+  var ssEmp = parseFloat(document.getElementById('nSsEmp').value) || 0;
+  var impIrpf = bruto * irpf / 100;
+  var impSsTrab = bruto * ssTrab / 100;
+  var impSsEmp = bruto * ssEmp / 100;
+  var neto = bruto - impIrpf - impSsTrab;
+  var costeEmp = bruto + impSsEmp;
+  var fmt = function(v){ return '€' + v.toFixed(2); };
+  document.getElementById('nResumenBruto').textContent = fmt(bruto);
+  document.getElementById('nResumenIrpf').textContent = '-' + fmt(impIrpf);
+  document.getElementById('nResumenSsTrab').textContent = '-' + fmt(impSsTrab);
+  document.getElementById('nResumenNeto').textContent = fmt(neto);
+  document.getElementById('nResumenEmp').textContent = fmt(costeEmp);
+}
+
+function abrirModalNomina(id) {
+  SEL.editNominaId = id || null;
+  var tit = document.getElementById('mNominaTit');
+  if (tit) tit.textContent = id ? '✏️ Editar nómina' : '💼 Nueva nómina';
+  // Valores por defecto
+  var hoy = hoyLocal();
+  var mes = hoy.slice(0, 7);
+  if (id) {
+    var g = DB.gastos.find(function(x){ return x.id === id; });
+    if (g && g.meta) {
+      document.getElementById('nTrabajador').value = g.meta.trabajador || '';
+      document.getElementById('nDni').value = g.meta.dni || '';
+      document.getElementById('nPeriodo').value = g.meta.periodo || mes;
+      document.getElementById('nFecha').value = g.fecha || hoy;
+      document.getElementById('nBruto').value = g.meta.bruto || 0;
+      document.getElementById('nIrpf').value = g.meta.irpf_pct || 15;
+      document.getElementById('nSsTrab').value = g.meta.ss_trab_pct || 6.35;
+      document.getElementById('nSsEmp').value = g.meta.ss_emp_pct || 29.9;
+      document.getElementById('nNotas').value = g.meta.notas || '';
+      document.getElementById('nEstado').value = g.estado || 'Pagado';
+    }
+  } else {
+    document.getElementById('nTrabajador').value = '';
+    document.getElementById('nDni').value = '';
+    document.getElementById('nPeriodo').value = mes;
+    document.getElementById('nFecha').value = hoy;
+    document.getElementById('nBruto').value = 0;
+    document.getElementById('nIrpf').value = 15;
+    document.getElementById('nSsTrab').value = 6.35;
+    document.getElementById('nSsEmp').value = 29.9;
+    document.getElementById('nNotas').value = '';
+    document.getElementById('nEstado').value = 'Pagado';
+  }
+  calcNomina();
+  openM('mNomina');
+}
+
+function guardarNomina() {
+  if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var trabajador = document.getElementById('nTrabajador').value.trim();
+  if (!trabajador) { toast('Escribe el nombre del trabajador', 'err'); return; }
+  var bruto = parseFloat(document.getElementById('nBruto').value) || 0;
+  if (!bruto) { toast('Introduce el salario bruto', 'err'); return; }
+  var irpf_pct = parseFloat(document.getElementById('nIrpf').value) || 0;
+  var ss_trab_pct = parseFloat(document.getElementById('nSsTrab').value) || 0;
+  var ss_emp_pct = parseFloat(document.getElementById('nSsEmp').value) || 0;
+  var neto = bruto - (bruto * irpf_pct / 100) - (bruto * ss_trab_pct / 100);
+  var coste_empresa = bruto + (bruto * ss_emp_pct / 100);
+  var periodo = document.getElementById('nPeriodo').value;
+  var fecha = document.getElementById('nFecha').value || hoyLocal();
+  var estado = document.getElementById('nEstado').value;
+  var notas = document.getElementById('nNotas').value.trim();
+  var dni = document.getElementById('nDni').value.trim();
+  var adjInput = document.getElementById('nAdj');
+  var adjFile = (adjInput && adjInput.files && adjInput.files[0]) ? adjInput.files[0] : null;
+
+  var meta = {
+    trabajador: trabajador, dni: dni, periodo: periodo,
+    bruto: bruto, irpf_pct: irpf_pct, ss_trab_pct: ss_trab_pct,
+    ss_emp_pct: ss_emp_pct, neto: parseFloat(neto.toFixed(2)),
+    coste_empresa: parseFloat(coste_empresa.toFixed(2)), notas: notas
+  };
+
+  if (SEL.editNominaId) {
+    var ex = DB.gastos.find(function(x){ return x.id === SEL.editNominaId; });
+    if (ex) {
+      ex.concepto = 'Nómina — ' + trabajador + ' (' + periodo + ')';
+      ex.importe = parseFloat(coste_empresa.toFixed(2));
+      ex.fecha = fecha; ex.estado = estado;
+      ex.categoria = 'Nomina'; ex.iva_tipo = 0; ex.meta = meta;
+      guardarDatos();
+      if (SB_KEY && TIENDA_ID) sbPatch('gastos', 'id=eq.' + encodeURIComponent(ex.id), {
+        concepto: ex.concepto, importe: ex.importe, fecha: ex.fecha,
+        estado: ex.estado, categoria: ex.categoria, iva_tipo: 0, meta: meta
+      });
+      SEL.editNominaId = null;
+      closeM('mNomina'); toast('Nómina actualizada ✓', 'ok'); renderGastos(); return;
+    }
+  }
+
+  var g = {
+    id: 'n' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+    tienda_id: TIENDA_ID,
+    concepto: 'Nómina — ' + trabajador + ' (' + periodo + ')',
+    importe: parseFloat(coste_empresa.toFixed(2)),
+    fecha: fecha, estado: estado,
+    categoria: 'Nomina', iva_tipo: 0,
+    proveedor_id: null, proveedor_nombre: null,
+    proveedor_nif: null, numero_factura: null,
+    meta: meta
+  };
+  DB.gastos.push(g);
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) sbPost('gastos', g);
+  if (adjFile) subirAdjuntoGasto(g, adjFile);
+  closeM('mNomina');
+  toast('Nómina guardada ✓', 'ok');
+  renderGastos();
 }
 
 function guardarGasto() {
