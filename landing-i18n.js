@@ -1,6 +1,7 @@
 var T = {
   es: {
     'hero.adios':'Adiós','hero.hola':'Hola TekPair.','hero.subtitle':'El software más sencillo para tiendas de reparación de móviles. Reparaciones por IMEI, TPV, stock, clientes y citas — todo desde tu móvil, tablet u ordenador.',
+    'mk.panel':'Panel de hoy','mk.live':'EN VIVO','mk.ingresos':'ingresos','mk.reparaciones':'reparaciones','mk.encurso':'En curso','mk.listo':'listo','mk.run':'en curso','mk.wait':'en espera','mk.objetivo':'Objetivo del día',
     'hero.eyebrow':'Hecho para talleres de reparación','hero.cta1':'Prueba 15 días →',
     'nav.features':'Características','nav.pricing':'Precios','nav.faq':'FAQ','nav.login':'Entrar','nav.start':'Empezar gratis',
     'hero.badge':'Nuevo · Software para tiendas móvil',
@@ -41,6 +42,7 @@ var T = {
   },
   en: {
     'hero.adios':'Goodbye','hero.hola':'Hello TekPair.','hero.subtitle':'The simplest software for mobile repair shops. Repairs by IMEI, POS, stock, customers and appointments — all from your phone, tablet or computer.',
+    'mk.panel':'Today's panel','mk.live':'LIVE','mk.ingresos':'revenue','mk.reparaciones':'repairs','mk.encurso':'In progress','mk.listo':'done','mk.run':'in progress','mk.wait':'waiting','mk.objetivo':'Daily goal',
     'hero.eyebrow':'Built for repair shops','hero.cta1':'Start free 15 days →',
     'nav.features':'Features','nav.pricing':'Pricing','nav.faq':'FAQ','nav.login':'Login','nav.start':'Get started free',
     'hero.badge':'New · Software for mobile sales & repair shops',
@@ -81,6 +83,7 @@ var T = {
   },
   fr: {
     'hero.adios':'Adieu','hero.hola':'Bonjour TekPair.','hero.subtitle':'Le logiciel le plus simple pour les boutiques de réparation mobile. Réparations par IMEI, TPV, stock, clients et rendez-vous — depuis votre téléphone, tablette ou ordinateur.',
+    'mk.panel':'Tableau du jour','mk.live':'EN DIRECT','mk.ingresos':'revenus','mk.reparaciones':'réparations','mk.encurso':'En cours','mk.listo':'prêt','mk.run':'en cours','mk.wait':'en attente','mk.objetivo':'Objectif du jour',
     'hero.eyebrow':'Pour les boutiques de réparation','hero.cta1':'Essai gratuit 15 jours →',
     'nav.features':'Fonctionnalités','nav.pricing':'Tarifs','nav.faq':'FAQ','nav.login':'Connexion','nav.start':'Commencer gratuitement',
     'hero.badge':'Nouveau · Logiciel pour boutiques de réparation mobile',
@@ -121,6 +124,7 @@ var T = {
   },
   pt: {
     'hero.adios':'Adeus','hero.hola':'Olá TekPair.','hero.subtitle':'O software mais simples para lojas de reparação de telemóveis. Reparações por IMEI, TPV, stock, clientes e marcações — tudo do seu telemóvel, tablet ou computador.',
+    'mk.panel':'Painel de hoje','mk.live':'AO VIVO','mk.ingresos':'receitas','mk.reparaciones':'reparações','mk.encurso':'Em curso','mk.listo':'pronto','mk.run':'em curso','mk.wait':'em espera','mk.objetivo':'Objetivo do dia',
     'hero.eyebrow':'Para lojas de reparação','hero.cta1':'Experimente 15 dias →',
     'nav.features':'Funcionalidades','nav.pricing':'Preços','nav.faq':'FAQ','nav.login':'Entrar','nav.start':'Começar grátis',
     'hero.badge':'Novo · Software para lojas de telemóveis',
@@ -161,6 +165,7 @@ var T = {
   },
   it: {
     'hero.adios':'Addio','hero.hola':'Ciao TekPair.','hero.subtitle':'Il software più semplice per i negozi di riparazione smartphone. Riparazioni per IMEI, TPV, stock, clienti e appuntamenti — tutto dal tuo telefono, tablet o computer.',
+    'mk.panel':'Pannello di oggi','mk.live':'IN DIRETTA','mk.ingresos':'entrate','mk.reparaciones':'riparazioni','mk.encurso':'In corso','mk.listo':'pronto','mk.run':'in corso','mk.wait':'in attesa','mk.objetivo':'Obiettivo del giorno',
     'hero.eyebrow':'Per i negozi di riparazione','hero.cta1':'Prova gratis 15 giorni →',
     'nav.features':'Caratteristiche','nav.pricing':'Prezzi','nav.faq':'FAQ','nav.login':'Accedi','nav.start':'Inizia gratis',
     'hero.badge':'Nuovo · Software per negozi di riparazione mobile',
@@ -201,6 +206,7 @@ var T = {
   },
   de: {
     'hero.adios':'Tschüss','hero.hola':'Hallo TekPair.','hero.subtitle':'Die einfachste Software für Handy-Reparaturshops. Reparaturen per IMEI, Kasse, Lager, Kunden und Termine — alles von deinem Handy, Tablet oder Computer.',
+    'mk.panel':'Heutiges Panel','mk.live':'LIVE','mk.ingresos':'Einnahmen','mk.reparaciones':'Reparaturen','mk.encurso':'In Arbeit','mk.listo':'fertig','mk.run':'in Arbeit','mk.wait':'wartend','mk.objetivo':'Tagesziel',
     'hero.eyebrow':'Für Reparaturshops','hero.cta1':'15 Tage kostenlos testen →',
     'nav.features':'Funktionen','nav.pricing':'Preise','nav.faq':'FAQ','nav.login':'Anmelden','nav.start':'Kostenlos starten',
     'hero.badge':'Neu · Software für Handy-Reparaturshops',
