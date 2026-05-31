@@ -213,7 +213,7 @@ async function iniciarPago() {
     var r = await fetch('/api/checkout', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({plan: planSel, nombre: nom, email: email, tienda_nombre: tienda})
+      body: JSON.stringify({plan: planSel, nombre: nom, email: email, tienda_nombre: tienda, lang: localStorage.getItem('tp_lang') || 'es'})
     });
     var data = await r.json();
     if (data.ok && data.url) {

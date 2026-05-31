@@ -204,6 +204,17 @@ export default async function handler(req, res) {
     // REG-6: solo enviamos email si llegamos hasta aquí (usuario y tienda creados OK)
     if (RESEND_KEY) {
       const planLabel = ({basico:'Básico', pro:'Pro', top:'Premium'})[plan] || 'Básico';
+      const lang = (session && session.metadata && session.metadata.lang) || 'es';
+      const WELCOME = {
+        es: { subj:'✓ Bienvenido a Tekpair — Tus credenciales', hola:'Hola', suscripcion:'Tu suscripción', activa:'está activa con 15 días de prueba gratis.', credenciales:'Tus credenciales', pass:'Contraseña temporal', aviso:'⚠️ Cambia tu contraseña tras el primer acceso.', btn:'Entrar a Tekpair →', prueba:'Tu prueba gratis termina el', cobro:'Después se cobrará automáticamente. Puedes cancelar en cualquier momento desde Mi cuenta.', cuenta:'Tu cuenta está lista' },
+        en: { subj:'✓ Welcome to Tekpair — Your credentials', hola:'Hi', suscripcion:'Your subscription', activa:'is active with a 15-day free trial.', credenciales:'Your credentials', pass:'Temporary password', aviso:'⚠️ Change your password after first login.', btn:'Sign in to Tekpair →', prueba:'Your free trial ends on', cobro:'After that, you will be charged automatically. You can cancel anytime from My account.', cuenta:'Your account is ready' },
+        fr: { subj:'✓ Bienvenue sur Tekpair — Vos identifiants', hola:'Bonjour', suscripcion:'Votre abonnement', activa:'est actif avec 15 jours d'essai gratuit.', credenciales:'Vos identifiants', pass:'Mot de passe temporaire', aviso:'⚠️ Changez votre mot de passe après la première connexion.', btn:'Accéder à Tekpair →', prueba:'Votre essai gratuit se termine le', cobro:'Ensuite, vous serez facturé automatiquement. Vous pouvez annuler à tout moment.', compte:'Votre compte est prêt' },
+        it: { subj:'✓ Benvenuto su Tekpair — Le tue credenziali', hola:'Ciao', suscripcion:'Il tuo abbonamento', activa:'è attivo con 15 giorni di prova gratuita.', credenciales:'Le tue credenziali', pass:'Password temporanea', aviso:'⚠️ Cambia la password dopo il primo accesso.', btn:'Accedi a Tekpair →', prueba:'La tua prova gratuita termina il', cobro:'Successivamente verrà addebitato automaticamente. Puoi annullare in qualsiasi momento.', cuenta:'Il tuo account è pronto' },
+        de: { subj:'✓ Willkommen bei Tekpair — Ihre Zugangsdaten', hola:'Hallo', suscripcion:'Ihr Abonnement', activa:'ist mit 15 Tagen kostenloser Testphase aktiv.', credenciales:'Ihre Zugangsdaten', pass:'Temporäres Passwort', aviso:'⚠️ Ändern Sie Ihr Passwort nach der ersten Anmeldung.', btn:'Bei Tekpair anmelden →', prueba:'Ihre kostenlose Testphase endet am', cobro:'Danach wird automatisch abgerechnet. Sie können jederzeit kündigen.', cuenta:'Ihr Konto ist bereit' },
+        pt: { subj:'✓ Bem-vindo ao Tekpair — As suas credenciais', hola:'Olá', suscripcion:'A sua subscrição', activa:'está ativa com 15 dias de prova gratuita.', credenciales:'As suas credenciais', pass:'Palavra-passe temporária', aviso:'⚠️ Mude a sua palavra-passe após o primeiro acesso.', btn:'Entrar no Tekpair →', prueba:'A sua prova gratuita termina a', cobro:'Depois será cobrado automaticamente. Pode cancelar a qualquer momento em A minha conta.', cuenta:'A sua conta está pronta' }
+      };
+      const W = WELCOME[lang] || WELCOME.es;
+      const trialDate = new Date(trialUntil).toLocaleDateString(lang === 'en' ? 'en-GB' : lang === 'de' ? 'de-DE' : lang === 'fr' ? 'fr-FR' : lang === 'it' ? 'it-IT' : lang === 'pt' ? 'pt-PT' : 'es-ES');
       // REG-9: escapar nombre por si trae caracteres especiales (aunque emails no ejecutan JS, romper HTML es feo)
       const nombreEsc = String(nombre).replace(/[<>&"']/g, function(c) {
         return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c];
@@ -217,24 +228,24 @@ export default async function handler(req, res) {
         body: JSON.stringify({
           from: 'Tekpair <hola@tekpair.tech>',
           to: [email],
-          subject: '✓ Bienvenido a Tekpair — Tus credenciales',
+          subject: W.subj,
           html: `
 <!DOCTYPE html><html><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:20px;color:#111">
   <div style="background:#020B2E;color:white;padding:24px;border-radius:10px 10px 0 0;text-align:center">
     <h1 style="margin:0;font-size:24px">⚡ Tekpair</h1>
-    <p style="margin:8px 0 0;opacity:.7">Tu cuenta está lista</p>
+    <p style="margin:8px 0 0;opacity:.7">${W.cuenta}</p>
   </div>
   <div style="background:white;padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
-    <p>Hola <strong>${nombreEsc}</strong>,</p>
-    <p>Tu suscripción <strong style="color:#0055FF">plan ${planLabel}</strong> está activa con 15 días de prueba gratis.</p>
+    <p>${W.hola} <strong>${nombreEsc}</strong>,</p>
+    <p>${W.suscripcion} <strong style="color:#0055FF">plan ${planLabel}</strong> ${W.activa}</p>
     <div style="background:#F8FAFC;border-radius:8px;padding:16px;margin:16px 0;font-family:monospace">
       <div><strong>Email:</strong> ${email}</div>
-      <div style="margin-top:8px"><strong>Contraseña temporal:</strong> ${tempPass}</div>
+      <div style="margin-top:8px"><strong>${W.pass}:</strong> ${tempPass}</div>
     </div>
-    <p style="color:#EF4444;font-size:13px">⚠️ Cambia tu contraseña tras el primer acceso.</p>
-    <a href="https://tekpair.tech/app.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:16px">Entrar a Tekpair →</a>
-    <p style="color:#64748B;font-size:12px;margin-top:16px">Tu prueba gratis termina el ${new Date(trialUntil).toLocaleDateString('es')}. Después se cobrará automáticamente. Puedes cancelar en cualquier momento desde Mi cuenta.</p>
+    <p style="color:#EF4444;font-size:13px">${W.aviso}</p>
+    <a href="https://tekpair.tech/app.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:16px">${W.btn}</a>
+    <p style="color:#64748B;font-size:12px;margin-top:16px">${W.prueba} ${trialDate}. ${W.cobro}</p>
   </div>
 </body></html>`
         })

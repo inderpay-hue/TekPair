@@ -71,6 +71,7 @@ export default async function handler(req, res) {
     params.append('metadata[email]', email);
     params.append('metadata[tienda_nombre]', tienda_nombre || nombre);
     params.append('metadata[plan]', plan);
+  params.append('metadata[lang]', body.lang || 'es');
     params.append('allow_promotion_codes', 'true');
     params.append('subscription_data[trial_period_days]', '15');
     // Pasar metadata también a la subscription para que el webhook tenga acceso
