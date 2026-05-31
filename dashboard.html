@@ -17015,7 +17015,7 @@ function mostrarSidebarComisiones() {
   newItem.id = 'sidebarItemComisiones';
   newItem.setAttribute('data-p', 'pComisiones');
   newItem.onclick = function() { navTo('pComisiones'); setSidebarActive(this); cargarComisiones(); };
-  newItem.innerHTML = '<span class="sidebar-ni-icon">💼</span>' + (COMISIONES_MODO === 'admin' ? 'Comisiones (admin)' : 'Mis comisiones');
+  newItem.innerHTML = '<span class="sidebar-ni-icon">💼</span>' + (COMISIONES_MODO === 'admin' ? T('nav.comisiones') + ' (admin)' : T('nav.mis_comisiones'));
   refItem.parentNode.insertBefore(newItem, refItem);
 }
 
