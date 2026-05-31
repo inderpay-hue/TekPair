@@ -359,7 +359,7 @@ es: {
   'nom.irpf_ret': '— IRS',
   'nom.ss_trab_ret': '— SS trabalhador',
   'nom.bruto_lbl': 'Salário bruto',
-  'nom.estado': 'Estado', 'nom.pagado': 'Pagado', 'nom.pendiente': 'Pendiente', 'nom.estado': 'Estado', 'nom.pagado': 'Pago', 'nom.pendiente': 'Pendente', 'nom.guardada': 'Recibo guardado ✓',
+  'nom.estado': 'Estado', 'nom.pagado': 'Pagado', 'nom.pendiente': 'Pendiente', 'nom.cancelar': 'Cancelar', 'nom.estado': 'Estado', 'nom.pagado': 'Pago', 'nom.pendiente': 'Pendente', 'nom.cancelar': 'Cancelar', 'nom.guardada': 'Recibo guardado ✓',
   'nom.guardada_rec': 'Recibo guardado e programado mensalmente ✓',
   'nom.error_trab': 'Escreva o nome do trabalhador',
   'nom.error_bruto': 'Introduza o salário bruto',
@@ -848,7 +848,7 @@ en: {
   'nom.irpf_ret': '— Lohnsteuer',
   'nom.ss_trab_ret': '— AN-SV',
   'nom.bruto_lbl': 'Bruttogehalt',
-  'nom.estado': 'Status', 'nom.pagado': 'Bezahlt', 'nom.pendiente': 'Ausstehend', 'nom.guardada': 'Gehaltsabrechnung gespeichert ✓',
+  'nom.estado': 'Status', 'nom.pagado': 'Bezahlt', 'nom.pendiente': 'Ausstehend', 'nom.cancelar': 'Abbrechen', 'nom.guardada': 'Gehaltsabrechnung gespeichert ✓',
   'nom.guardada_rec': 'Gehaltsabrechnung gespeichert und monatlich geplant ✓',
   'nom.error_trab': 'Mitarbeitername eingeben',
   'nom.error_bruto': 'Bruttogehalt eingeben',
@@ -880,7 +880,7 @@ en: {
   'nom.irpf_ret': '— Income tax',
   'nom.ss_trab_ret': '— Employee SS',
   'nom.bruto_lbl': 'Gross salary',
-  'nom.estado': 'Status', 'nom.pagado': 'Paid', 'nom.pendiente': 'Pending', 'nom.guardada': 'Payslip saved ✓',
+  'nom.estado': 'Status', 'nom.pagado': 'Paid', 'nom.pendiente': 'Pending', 'nom.cancelar': 'Cancel', 'nom.guardada': 'Payslip saved ✓',
   'nom.guardada_rec': 'Payslip saved and scheduled monthly ✓',
   'nom.error_trab': 'Enter the employee name',
   'nom.error_bruto': 'Enter the gross salary',
@@ -1337,7 +1337,7 @@ fr: {
   'nom.irpf_ret': '— Impôt retenu',
   'nom.ss_trab_ret': '— Cotisation salariale',
   'nom.bruto_lbl': 'Salaire brut',
-  'nom.estado': 'Statut', 'nom.pagado': 'Payé', 'nom.pendiente': 'En attente', 'nom.guardada': 'Fiche de paie enregistrée ✓',
+  'nom.estado': 'Statut', 'nom.pagado': 'Payé', 'nom.pendiente': 'En attente', 'nom.cancelar': 'Annuler', 'nom.guardada': 'Fiche de paie enregistrée ✓',
   'nom.guardada_rec': 'Fiche enregistrée et programmée mensuellement ✓',
   'nom.error_trab': 'Saisir le nom de l\'employé',
   'nom.error_bruto': 'Saisir le salaire brut',
@@ -1794,7 +1794,7 @@ it: {
   'nom.irpf_ret': '— IRPEF',
   'nom.ss_trab_ret': '— Contributi dip.',
   'nom.bruto_lbl': 'Stipendio lordo',
-  'nom.estado': 'Stato', 'nom.pagado': 'Pagato', 'nom.pendiente': 'In attesa', 'nom.guardada': 'Busta paga salvata ✓',
+  'nom.estado': 'Stato', 'nom.pagado': 'Pagato', 'nom.pendiente': 'In attesa', 'nom.cancelar': 'Annulla', 'nom.guardada': 'Busta paga salvata ✓',
   'nom.guardada_rec': 'Busta paga salvata e programmata mensilmente ✓',
   'nom.error_trab': 'Inserire il nome del dipendente',
   'nom.error_bruto': 'Inserire lo stipendio lordo',
@@ -2909,6 +2909,8 @@ function setLang(lang) {
   var _nEst = document.getElementById('nLblEstado'); if (_nEst) _nEst.textContent = _nd['nom.estado'] || 'Estado';
   var _nPag = document.getElementById('nEstPagado'); if (_nPag) _nPag.textContent = _nd['nom.pagado'] || 'Pagado';
   var _nPen = document.getElementById('nEstPendiente'); if (_nPen) _nPen.textContent = _nd['nom.pendiente'] || 'Pendiente';
+  var _nCan = document.getElementById('nBtnCancelar'); if (_nCan) _nCan.textContent = _nd['nom.cancelar'] || 'Cancelar';
+  var _nEstLbl = document.getElementById('nLblEstado'); if (_nEstLbl) _nEstLbl.textContent = _nd['nom.estado'] || 'Estado';
   // Actualizar textos del modal nómina
   var _d = TRANSLATIONS[lang] || TRANSLATIONS.es;
   var _nm = {
