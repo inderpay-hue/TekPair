@@ -5301,6 +5301,12 @@ window.addEventListener('DOMContentLoaded', function() {
   PLAN_INFO.plan_until = sess.plan_until || null;
   PLAN_INFO.token = sess.token || '';
 
+  // Aplicar idioma guardado
+  (function(){
+    var lang = localStorage.getItem('tp_lang') || 'es';
+    if (typeof setLang === 'function') setLang(lang);
+  })();
+
   document.getElementById('uName').textContent = U.nombre || '';
   var tiendaLS = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
   Object.assign(TIENDA, tiendaLS);
