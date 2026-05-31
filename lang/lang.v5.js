@@ -359,6 +359,7 @@ es: {
   'gen.zona_horaria': 'Zona horaria',
   'gen.guardar_cambios': 'Guardar cambios',
   'gen.nuevo_usuario': '+ Nuevo usuario',
+  'gen.personalizar': 'Personalizar',
   'gen.idioma': 'Idioma',
 },
 
@@ -702,6 +703,7 @@ en: {
   'gen.zona_horaria': 'Time zone',
   'gen.guardar_cambios': 'Save changes',
   'gen.nuevo_usuario': '+ New user',
+  'gen.personalizar': 'Customise',
   'gen.idioma': 'Language',
 },
 
@@ -1045,6 +1047,7 @@ fr: {
   'gen.zona_horaria': 'Fuseau horaire',
   'gen.guardar_cambios': 'Enregistrer',
   'gen.nuevo_usuario': '+ Nouvel utilisateur',
+  'gen.personalizar': 'Personnaliser',
   'gen.idioma': 'Langue',
 },
 
@@ -1388,6 +1391,7 @@ it: {
   'gen.zona_horaria': 'Fuso orario',
   'gen.guardar_cambios': 'Salva modifiche',
   'gen.nuevo_usuario': '+ Nuovo utente',
+  'gen.personalizar': 'Personalizza',
   'gen.idioma': 'Lingua',
 },
 
@@ -1731,6 +1735,7 @@ de: {
   'gen.zona_horaria': 'Zeitzone',
   'gen.guardar_cambios': 'Änderungen speichern',
   'gen.nuevo_usuario': '+ Neuer Benutzer',
+  'gen.personalizar': 'Anpassen',
   'gen.idioma': 'Sprache',
 },
 
@@ -2074,6 +2079,7 @@ pt: {
   'gen.zona_horaria': 'Fuso horário',
   'gen.guardar_cambios': 'Guardar alterações',
   'gen.nuevo_usuario': '+ Novo utilizador',
+  'gen.personalizar': 'Personalizar',
   'gen.idioma': 'Idioma',
 },
 
