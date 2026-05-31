@@ -3687,10 +3687,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
   <!-- Tabs de categoría -->
   <div class="aj-tabs" id="ajTabs">
-    <button class="aj-tab active" data-tab="negocio"   onclick="ajTab(this)">🏪 Mi negocio</button>
-    <button class="aj-tab"        data-tab="prefs"     onclick="ajTab(this)">🎛️ Preferencias</button>
-    <button class="aj-tab"        data-tab="notif"     onclick="ajTab(this)">🔔 Notificaciones</button>
-    <button class="aj-tab"        data-tab="cuenta"    onclick="ajTab(this)">🔒 Cuenta</button>
+    <button class="aj-tab active" data-tab="negocio"   onclick="ajTab(this)"><span data-t="gen.mi_negocio">🏪 Mi negocio</span></button>
+    <button class="aj-tab"        data-tab="prefs"     onclick="ajTab(this)"><span data-t="gen.preferencias">🎛️ Preferencias</span></button>
+    <button class="aj-tab"        data-tab="notif"     onclick="ajTab(this)"><span data-t="gen.notificaciones">🔔 Notificaciones</span></button>
+    <button class="aj-tab"        data-tab="cuenta"    onclick="ajTab(this)"><span data-t="gen.cuenta">🔒 Cuenta</span></button>
   </div>
 
   <!-- ══ TAB: MI NEGOCIO ══ -->
@@ -3705,7 +3705,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         </div>
         <div style="flex:1">
           <input type="file" id="logoFileInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden onchange="subirLogo(event)"/>
-          <button class="btn-sm" type="button" style="background:var(--blue);color:white;margin-bottom:6px" onclick="document.getElementById('logoFileInput').click()">Cambiar logo</button>
+          <button class="btn-sm" type="button" style="background:var(--blue);color:white;margin-bottom:6px" onclick="document.getElementById('logoFileInput').click()"><span data-t="gen.cambiar_logo">Cambiar logo</span></button>
           <button class="btn-sm" type="button" id="btnQuitarLogo" style="background:#ef4444;color:white;display:none" onclick="quitarLogo()">Quitar logo</button>
           <div style="font-size:11px;color:#64748b;margin-top:8px">PNG, JPG, WEBP o SVG. Max 2 MB.</div>
           <div id="logoStatus" style="font-size:11px;color:#E0531C;margin-top:4px"></div>
@@ -3882,7 +3882,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div class="fg"><label class="fl">Política de venta</label><textarea class="fi" id="tPoliticaVentas" rows="2" placeholder="Condiciones de devolución y cambio..."></textarea></div>
     </div>
 
-    <button class="btn-primary" onclick="guardarTienda()">Guardar cambios</button>
+    <button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button>
   </div>
 
   <!-- ══ TAB: PREFERENCIAS ══ -->
@@ -3923,8 +3923,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
 
     <div class="card">
-      <div class="card-title">Preferencias generales</div>
-      <div class="fg"><label class="fl">Moneda</label>
+      <div class="card-title"><span data-t="gen.preferencias_generales">Preferencias generales</span></div>
+      <div class="fg"><label class="fl"><span data-t="gen.moneda">Moneda</span></label>
         <select class="fi" id="ajMoneda">
           <option value="EUR">€ Euro</option>
           <option value="USD">$ Dólar</option>
