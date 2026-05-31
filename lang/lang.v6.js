@@ -308,6 +308,9 @@ es: {
   'gen.sin_cliente': 'Sin cliente',
   'gen.ticket_medio': 'Ticket medio',
   'gen.num_ventas': 'Núm. ventas',
+  'gen.visitas': 'Visitas',
+  'gen.nueva_caja': '+ Nueva caja',
+  'gen.tipo': 'Tipo',
   'gen.idioma': 'Idioma',
 },
 
@@ -600,6 +603,9 @@ en: {
   'gen.sin_cliente': 'No customer',
   'gen.ticket_medio': 'Average ticket',
   'gen.num_ventas': 'No. of sales',
+  'gen.visitas': 'Visits',
+  'gen.nueva_caja': '+ New cash register',
+  'gen.tipo': 'Type',
   'gen.idioma': 'Language',
 },
 
@@ -892,6 +898,9 @@ fr: {
   'gen.sin_cliente': 'Sans client',
   'gen.ticket_medio': 'Panier moyen',
   'gen.num_ventas': 'Nb. ventes',
+  'gen.visitas': 'Visites',
+  'gen.nueva_caja': '+ Nouvelle caisse',
+  'gen.tipo': 'Type',
   'gen.idioma': 'Langue',
 },
 
@@ -1184,6 +1193,9 @@ it: {
   'gen.sin_cliente': 'Senza cliente',
   'gen.ticket_medio': 'Scontrino medio',
   'gen.num_ventas': 'N. vendite',
+  'gen.visitas': 'Visite',
+  'gen.nueva_caja': '+ Nuova cassa',
+  'gen.tipo': 'Tipo',
   'gen.idioma': 'Lingua',
 },
 
@@ -1476,6 +1488,9 @@ de: {
   'gen.sin_cliente': 'Kein Kunde',
   'gen.ticket_medio': 'Durchschnittsbetrag',
   'gen.num_ventas': 'Anz. Verkäufe',
+  'gen.visitas': 'Besuche',
+  'gen.nueva_caja': '+ Neue Kasse',
+  'gen.tipo': 'Typ',
   'gen.idioma': 'Sprache',
 },
 
@@ -1768,6 +1783,9 @@ pt: {
   'gen.sin_cliente': 'Sem cliente',
   'gen.ticket_medio': 'Ticket médio',
   'gen.num_ventas': 'N.º vendas',
+  'gen.visitas': 'Visitas',
+  'gen.nueva_caja': '+ Nova caixa',
+  'gen.tipo': 'Tipo',
   'gen.idioma': 'Idioma',
 },
 

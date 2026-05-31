@@ -1073,7 +1073,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button id="btnPersonalizar" onclick="toggleModoEdicion()" style="background:white;color:var(--blue);border:1px solid var(--border);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">✏️ Personalizar</button>
   </div>
   <div class="tabs" id="metricTabs">
-    <div class="tab active" data-t="hoy" onclick="setMetricTab(this)">Hoy</div>
+    <div class="tab active" data-t="hoy" onclick="setMetricTab(this)"><span data-t="dash.hoy">Hoy</span></div>
     <div class="tab" data-t="semana" onclick="setMetricTab(this)">Semana</div>
     <div class="tab" data-t="mes" onclick="setMetricTab(this)">Mes</div>
   </div>
@@ -1197,7 +1197,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="page" id="pPresupuestos">
   <div class="sec-header" style="margin-bottom:10px">
     <div class="sec-title" style="color:#8B5CF6">📋 Presupuestos</div>
-    <button class="btn-sm" style="background:#8B5CF6;color:white;font-size:13px;padding:8px 16px" onclick="abrirPresupuesto()">+ Nuevo presupuesto</button>
+    <button class="btn-sm" style="background:#8B5CF6;color:white;font-size:13px;padding:8px 16px" onclick="abrirPresupuesto()"><span data-t="pres.nuevo">+ Nuevo presupuesto</span></button>
   </div>
   <div class="search-wrap">
     <span class="search-icon">🔍</span>
@@ -1340,7 +1340,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="sec-header" style="margin-bottom:10px">
     <div class="sec-title">Stock</div>
     <div style="display:flex;gap:6px">
-      <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirImportFactura()" title="Importar PDF de factura del proveedor">📤 Importar factura</button>
+      <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirImportFactura()" title="Importar PDF de factura del proveedor"><span data-t="stock.importar_factura">📤 Importar factura</span></button>
       <button class="btn-sm" style="background:var(--orange);color:white" onclick="openM('mStock')" data-t="stock.anadir">+ Añadir</button>
     </div>
   </div>
@@ -1373,7 +1373,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 <!-- PAGE: MAS -->
 <div class="page" id="pMas">
-  <div class="sec-title" style="margin-bottom:14px">Más opciones</div>
+  <div class="sec-title" style="margin-bottom:14px"><span data-t="nav.mas_opciones">Más opciones</span></div>
   <div class="quick-grid">
     <button class="qbtn qbtn2 c-green"  onclick="navTo('pFacturas')">
       <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
@@ -1802,9 +1802,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="sec-header" style="margin-bottom:10px">
     <div style="display:flex;align-items:center;gap:8px">
       <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
-      <div class="sec-title">💰 Cajas</div>
+      <div class="sec-title"><span data-t="nav.cajas">💰 Cajas</span></div>
     </div>
-    <button class="btn-sm" style="background:var(--green);color:white" onclick="Cajas.abrirModalNuevaCaja()">+ Nueva caja</button>
+    <button class="btn-sm" style="background:var(--green);color:white" onclick="Cajas.abrirModalNuevaCaja()"><span data-t="gen.nueva_caja">+ Nueva caja</span></button>
   </div>
 
   <div class="cajas-header">
@@ -3641,7 +3641,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="tab" data-t="total" onclick="setRepTab(this)">Total</div>
   </div>
   <div class="tabs">
-    <div class="tab active" data-ti="todo" onclick="setRepTipo(this)">Todo</div>
+    <div class="tab active" data-ti="todo" onclick="setRepTipo(this)"><span data-t="tpv.todos">Todo</span></div>
     <div class="tab" data-ti="ventas" onclick="setRepTipo(this)">Ventas</div>
     <div class="tab" data-ti="reparaciones" onclick="setRepTipo(this)">Reparaciones</div>
   </div>
@@ -10108,7 +10108,7 @@ function renderStock() {
     }
   }
   var thUbic = mostrarUbic ? '<th>📍</th>' : '';
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="stock.producto">Producto</span></th><th>Cat.</th>' + thUbic + '<th><span data-t="stock.unidades">Uds.</span></th><th><span data-t="gen.pvp">PVP</span></th><th></th></tr></thead><tbody>';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="stock.producto">Producto</span></th><th><span data-t="stock.categoria">Cat.</span></th>' + thUbic + '<th><span data-t="stock.unidades">Uds.</span></th><th><span data-t="gen.pvp">PVP</span></th><th></th></tr></thead><tbody>';
   list.forEach(function(s) {
     html += '<tr>' +
       '<td><strong>' + s.marca + ' ' + s.modelo + '</strong>' +
@@ -10480,7 +10480,7 @@ function renderClis() {
   });
   var el = document.getElementById('listaClis');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udc65</div>Sin clientes</div>'; return; }
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="cli.nombre">Nombre</span></th><th>Tel</th><th>Visitas</th><th></th></tr></thead><tbody>';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="cli.nombre">Nombre</span></th><th><span data-t="cli.telefono">Tel</span></th><th><span data-t="gen.visitas">Visitas</span></th><th></th></tr></thead><tbody>';
   list.forEach(function(c) {
     var vc = DB.ventas.filter(function(v) { return v.clienteId === c.id; }).length;
     var rc = DB.reps.filter(function(r) { return r.clienteId === c.id; }).length;
