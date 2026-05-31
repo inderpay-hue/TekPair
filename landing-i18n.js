@@ -1,5 +1,6 @@
 var T = {
   es: {
+    'hero.eyebrow':'Hecho para talleres de reparación','hero.cta1':'Prueba 15 días →',
     'nav.features':'Características','nav.pricing':'Precios','nav.faq':'FAQ','nav.login':'Entrar','nav.start':'Empezar gratis',
     'hero.badge':'Nuevo · Software para tiendas móvil',
     'hero.title':'Gestiona tu tienda de <span>venta y reparación móvil</span>',
@@ -38,6 +39,7 @@ var T = {
     'footer.product':'Producto','footer.contact':'Contacto','footer.rights':'Todos los derechos reservados.','footer.secure':'Pago seguro con Stripe'
   },
   en: {
+    'hero.eyebrow':'Built for repair shops','hero.cta1':'Start free 15 days →',
     'nav.features':'Features','nav.pricing':'Pricing','nav.faq':'FAQ','nav.login':'Login','nav.start':'Get started free',
     'hero.badge':'New · Software for mobile sales & repair shops',
     'hero.title':'Manage your <span>mobile sales & repair shop</span> without the hassle',
@@ -76,6 +78,7 @@ var T = {
     'footer.product':'Product','footer.contact':'Contact','footer.rights':'All rights reserved.','footer.secure':'Secure payment with Stripe'
   },
   fr: {
+    'hero.eyebrow':'Pour les boutiques de réparation','hero.cta1':'Essai gratuit 15 jours →',
     'nav.features':'Fonctionnalités','nav.pricing':'Tarifs','nav.faq':'FAQ','nav.login':'Connexion','nav.start':'Commencer gratuitement',
     'hero.badge':'Nouveau · Logiciel pour boutiques de réparation mobile',
     'hero.title':'Gérez votre boutique de <span>vente et réparation mobile</span> sans complications',
@@ -114,6 +117,7 @@ var T = {
     'footer.product':'Produit','footer.contact':'Contact','footer.rights':'Tous droits réservés.','footer.secure':'Paiement sécurisé avec Stripe'
   },
   pt: {
+    'hero.eyebrow':'Para lojas de reparação','hero.cta1':'Experimente 15 dias →',
     'nav.features':'Funcionalidades','nav.pricing':'Preços','nav.faq':'FAQ','nav.login':'Entrar','nav.start':'Começar grátis',
     'hero.badge':'Novo · Software para lojas de telemóveis',
     'hero.title':'Gerencie sua loja de <span>venda e reparação móvel</span> sem complicações',
@@ -152,6 +156,7 @@ var T = {
     'footer.product':'Produto','footer.contact':'Contacto','footer.rights':'Todos os direitos reservados.','footer.secure':'Pagamento seguro com Stripe'
   },
   it: {
+    'hero.eyebrow':'Per i negozi di riparazione','hero.cta1':'Prova gratis 15 giorni →',
     'nav.features':'Caratteristiche','nav.pricing':'Prezzi','nav.faq':'FAQ','nav.login':'Accedi','nav.start':'Inizia gratis',
     'hero.badge':'Nuovo · Software per negozi di riparazione mobile',
     'hero.title':'Gestisci il tuo negozio di <span>vendita e riparazione mobile</span>',
@@ -190,6 +195,7 @@ var T = {
     'footer.product':'Prodotto','footer.contact':'Contatto','footer.rights':'Tutti i diritti riservati.','footer.secure':'Pagamento sicuro con Stripe'
   },
   de: {
+    'hero.eyebrow':'Für Reparaturshops','hero.cta1':'15 Tage kostenlos testen →',
     'nav.features':'Funktionen','nav.pricing':'Preise','nav.faq':'FAQ','nav.login':'Anmelden','nav.start':'Kostenlos starten',
     'hero.badge':'Neu · Software für Handy-Reparaturshops',
     'hero.title':'Verwalte deinen <span>Handy-Verkauf & Reparaturshop</span> ohne Aufwand',
