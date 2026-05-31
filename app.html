@@ -57,12 +57,14 @@ button:disabled{background:var(--faint);cursor:not-allowed;transform:none;box-sh
 <div class="aurora"></div>
 <div class="grid-bg"></div>
 <div class="box">
+  <a href="/" style="display:inline-flex;align-items:center;gap:6px;font-size:12px;color:rgba(255,255,255,.45);text-decoration:none;margin-bottom:18px;transition:color .15s" onmouseover="this.style.color='rgba(255,255,255,.8)'" onmouseout="this.style.color='rgba(255,255,255,.45)'">← Volver a tekpair.tech</a>
   <div class="logo">
+    <a href="/" style="display:inline-flex;align-items:center;text-decoration:none">
     <div class="logo-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></div>
-    <span class="ln">Tek<span>Pair</span></span>
+    <span class="ln">Tek<span>Pair</span></span></a>
   </div>
   <div style="text-align:right;margin-bottom:12px">
-    <select id="loginLangSel" onchange="setLoginLang(this.value)" style="background:transparent;border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.7);padding:4px 8px;border-radius:6px;font-size:12px;cursor:pointer">
+    <select id="loginLangSel" onchange="setLoginLang(this.value)" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.25);color:#fff;padding:5px 10px;border-radius:7px;font-size:13px;cursor:pointer;font-weight:500">
       <option value="es">🇪🇸 ES</option>
       <option value="en">🇬🇧 EN</option>
       <option value="fr">🇫🇷 FR</option>
