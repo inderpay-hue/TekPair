@@ -1318,7 +1318,7 @@ fr: {
   'nom.titulo': '💼 Nouvelle fiche de paie',
   'nom.editar': '✏️ Modifier fiche de paie',
   'nom.trabajador': 'Employé',
-  'nom.dni': 'N° pièce d'identité',
+  'nom.dni': 'N° pièce d\'identité',
   'nom.periodo': 'Période',
   'nom.fecha_pago': 'Date de paiement',
   'nom.bruto': 'Salaire brut (€)',
