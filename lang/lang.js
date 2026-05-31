@@ -332,6 +332,7 @@ es: {
   'gen.ultimos_7_dias': 'últimos 7 días',
   'gen.imprimir_reporte': '🖨️ Imprimir reporte',
   'gen.pdf_para_gestor': '📄 PDF para gestor',
+  'nav.mis_comisiones': 'Mis comisiones',
   'gen.idioma': 'Idioma',
 },
 
@@ -648,6 +649,7 @@ en: {
   'gen.ultimos_7_dias': 'last 7 days',
   'gen.imprimir_reporte': '🖨️ Print report',
   'gen.pdf_para_gestor': '📄 PDF for accountant',
+  'nav.mis_comisiones': 'My commissions',
   'gen.idioma': 'Language',
 },
 
@@ -964,6 +966,7 @@ fr: {
   'gen.ultimos_7_dias': '7 derniers jours',
   'gen.imprimir_reporte': '🖨️ Imprimer rapport',
   'gen.pdf_para_gestor': '📄 PDF pour comptable',
+  'nav.mis_comisiones': 'Mes commissions',
   'gen.idioma': 'Langue',
 },
 
@@ -1280,6 +1283,7 @@ it: {
   'gen.ultimos_7_dias': 'ultimi 7 giorni',
   'gen.imprimir_reporte': '🖨️ Stampa report',
   'gen.pdf_para_gestor': '📄 PDF per contabile',
+  'nav.mis_comisiones': 'Le mie commissioni',
   'gen.idioma': 'Lingua',
 },
 
@@ -1596,6 +1600,7 @@ de: {
   'gen.ultimos_7_dias': 'letzte 7 Tage',
   'gen.imprimir_reporte': '🖨️ Bericht drucken',
   'gen.pdf_para_gestor': '📄 PDF für Buchhalter',
+  'nav.mis_comisiones': 'Meine Provisionen',
   'gen.idioma': 'Sprache',
 },
 
@@ -1912,6 +1917,7 @@ pt: {
   'gen.ultimos_7_dias': 'últimos 7 dias',
   'gen.imprimir_reporte': '🖨️ Imprimir relatório',
   'gen.pdf_para_gestor': '📄 PDF para contabilista',
+  'nav.mis_comisiones': 'As minhas comissões',
   'gen.idioma': 'Idioma',
 },
 
