@@ -946,7 +946,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
-  <script src="/lang/lang.v8.js?v=35e25d2"></script>
+  <script src="/lang/lang.v8.js?v=b533c4d"></script>
 </head>
 <body>
 <div id="app">
@@ -9719,7 +9719,7 @@ function guardarRep() {
       sbPatch('reparaciones', 'id=eq.' + r.id, {
         cliente_id:r.clienteId, cliente_nombre:r.clienteNombre,
         marca:r.marca, modelo:r.modelo, imei:r.imei, averia:r.averia,
-        prioridad:r.prioridad, fecha_entrega:r.fechaEntrega, nota:r.nota,
+        prioridad:r.prioridad, fecha_entrega:r.fechaEntrega || null, nota:r.nota,
         mo:r.mo, comp:r.comp, anticipo:r.anticipo, total:r.total, restante:r.restante,
         tipo_bloqueo: r.tipoBloqueo || null, bloqueo: r.bloqueo || null,
         iva: r.iva, iva_modo: r.ivaModo, base: r.base, iva_importe: r.ivaImporte,
@@ -9797,7 +9797,7 @@ function guardarRep() {
       cliente_id:rep.clienteId, cliente_nombre:rep.clienteNombre,
       marca:rep.marca, modelo:rep.modelo, imei:rep.imei,
       averia:rep.averia, estado:rep.estado, prioridad:rep.prioridad,
-      fecha_entrega:rep.fechaEntrega, nota:rep.nota,
+      fecha_entrega:rep.fechaEntrega || null, nota:rep.nota,
       mo:rep.mo, comp:rep.comp, anticipo:rep.anticipo,
       restante:rep.restante, total:rep.total, token:rep.token,
       tipo_bloqueo: rep.tipoBloqueo || null, bloqueo: rep.bloqueo || null,
