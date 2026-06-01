@@ -378,7 +378,7 @@ async function enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url) {
   await fetch('https://api.resend.com/emails',{
     method:'POST',
     headers:{'Authorization':`Bearer ${RESEND_KEY}`,'Content-Type':'application/json'},
-    body: JSON.stringify({ from:'TekPair <info@tekpair.tech>', to:[cliEmail], subject:`Presupuesto de reparación — ${rep.marca||''} ${rep.modelo||''}`, html })
+    body: JSON.stringify({ from:'TekPair <noreply@tekpair.tech>', to:[cliEmail], subject:`Presupuesto de reparación — ${rep.marca||''} ${rep.modelo||''}`, html })
   });
 }
 

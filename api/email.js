@@ -106,7 +106,7 @@ export default async function handler(req, res) {
         method: 'POST',
         headers: { 'Authorization': `Bearer ${KEY}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          from: 'TekPair <info@tekpair.tech>',
+          from: 'TekPair <noreply@tekpair.tech>',
           to: [email],
           subject: `Factura ${numero || ''} — ${tienda || 'TekPair'}`,
           html: htmlFac,
