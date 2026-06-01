@@ -16594,8 +16594,53 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/sw.js').then(function(reg) {
       console.log('SW registrado:', reg.scope);
+
+      // ── Aviso de nueva versión ─────────────────────────────────────────────
+      // Cuando se despliega una versión nueva, el navegador instala un SW nuevo.
+      // Si ya había uno controlando esta pestaña, avisamos para que el usuario recargue
+      // y coja el código fresco (evita el clásico "sigue roto" por JS viejo en memoria).
+      function _vigilarWorker(worker) {
+        if (!worker) return;
+        worker.addEventListener('statechange', function() {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            mostrarAvisoNuevaVersion();
+          }
+        });
+      }
+      if (reg.waiting && navigator.serviceWorker.controller) mostrarAvisoNuevaVersion();
+      _vigilarWorker(reg.installing);
+      reg.addEventListener('updatefound', function() { _vigilarWorker(reg.installing); });
+
+      // Buscar actualizaciones al volver a la pestaña y cada 5 minutos.
+      function _buscarUpdate() { try { reg.update(); } catch (e) {} }
+      document.addEventListener('visibilitychange', function() { if (!document.hidden) _buscarUpdate(); });
+      setInterval(_buscarUpdate, 5 * 60 * 1000);
     }).catch(function(e){ console.warn('SW error:', e); });
   });
+}
+
+// Banner discreto de versión nueva (una sola vez por carga).
+var _avisoVersionMostrado = false;
+function mostrarAvisoNuevaVersion() {
+  if (_avisoVersionMostrado || document.getElementById('bannerNuevaVersion')) return;
+  _avisoVersionMostrado = true;
+  var b = document.createElement('div');
+  b.id = 'bannerNuevaVersion';
+  b.style.cssText = 'position:fixed;left:50%;bottom:18px;transform:translateX(-50%);z-index:2147483647;' +
+    'background:#0F172A;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.35);' +
+    'display:flex;align-items:center;gap:14px;font-size:14px;font-family:inherit;max-width:92vw';
+  var msg = document.createElement('span');
+  msg.textContent = '✨ Hay una versión nueva de TekPair';
+  var btn = document.createElement('button');
+  btn.textContent = 'Recargar';
+  btn.style.cssText = 'background:#10B981;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:14px;white-space:nowrap';
+  btn.onclick = function() { location.reload(); };
+  var x = document.createElement('button');
+  x.textContent = '✕'; x.title = 'Más tarde';
+  x.style.cssText = 'background:transparent;color:#94a3b8;border:none;cursor:pointer;font-size:16px;line-height:1';
+  x.onclick = function() { b.remove(); };
+  b.appendChild(msg); b.appendChild(btn); b.appendChild(x);
+  document.body.appendChild(b);
 }
 
 // Capturar prompt de instalación (Chrome / Edge / Android)
