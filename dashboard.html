@@ -434,6 +434,15 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* ═══ STATS ═══ */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 /* VIS-16: zonas del dashboard */
+/* GAR-1: Selector tipo garantía */
+.gar-tipo-btn{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:8px 10px;border:1.5px solid var(--border);border-radius:9px;background:var(--white);cursor:pointer;font-family:inherit;font-size:12px;font-weight:600;color:var(--text);transition:all .15s;text-align:left}
+.gar-tipo-btn:hover{border-color:var(--blue);background:var(--light)}
+.gar-tipo-btn.active{border-color:var(--blue);background:rgba(255,91,31,.06);color:var(--blue)}
+.gar-tipo-btn.gar-tipo-warn.active{border-color:#F59E0B;background:rgba(245,158,11,.06);color:#92400E}
+.gar-tipo-btn.gar-tipo-none.active{border-color:#94A3B8;background:rgba(148,163,184,.06);color:#64748B}
+.gar-tipo-desc{font-size:10px;font-weight:400;color:var(--muted);margin-top:1px}
+.gar-tipo-btn.active .gar-tipo-desc{color:inherit;opacity:.7}
+
 /* VIS-19: página Más opciones */
 .pmas-group-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:16px 0 8px;display:flex;align-items:center;gap:8px}
 .pmas-group-label::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -4621,15 +4630,48 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           
           <!-- GARANTÍA DE ESTA REPARACIÓN -->
           <div id="rBloqueGarantia" style="margin-bottom:0;padding:12px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">
-            <div class="fl" style="margin-bottom:8px;display:flex;align-items:center;justify-content:space-between">
+            <div class="fl" style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
               <span>🛡️ Garantía de esta reparación</span>
               <span id="rGarSelDias" style="font-size:11px;color:var(--blue);font-weight:700"></span>
             </div>
-            <div class="gar-selector" id="rGarSelector"></div>
-            <div id="rGarCustomRow" style="display:flex;gap:6px;align-items:center;margin-top:8px">
-              <span style="font-size:11px;color:var(--muted)">o personalizar:</span>
-              <input type="number" class="fi" id="rGarDiasCustom" min="0" max="730" placeholder="" style="max-width:90px;padding:6px 10px;font-size:12px">
-              <span style="font-size:11px;color:var(--muted)">días</span>
+            <!-- GAR-1: Selector de tipo de garantía -->
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px" id="rGarTipoSelector">
+              <button type="button" id="garTipoRep" class="gar-tipo-btn active" onclick="selGarTipo('reparacion')" title="Garantía sobre el trabajo y piezas realizados en este taller">
+                🔧 <span data-t="gar.tipo_reparacion">Reparación</span>
+                <span class="gar-tipo-desc" data-t="gar.tipo_reparacion_desc">Mano de obra y piezas</span>
+              </button>
+              <button type="button" id="garTipoProd" class="gar-tipo-btn" onclick="selGarTipo('producto')" title="Garantía del producto vendido (móvil, accesorio...)">
+                📱 <span data-t="gar.tipo_producto">Producto</span>
+                <span class="gar-tipo-desc" data-t="gar.tipo_producto_desc">Dispositivo vendido</span>
+              </button>
+              <button type="button" id="garTipoAper" class="gar-tipo-btn gar-tipo-warn" onclick="selGarTipo('apertura')" title="La apertura anula la garantía del fabricante — aparece como aviso en el recibo">
+                ⚠️ <span data-t="gar.tipo_apertura">Anula garantía</span>
+                <span class="gar-tipo-desc" data-t="gar.tipo_apertura_desc">Apertura anula fabricante</span>
+              </button>
+              <button type="button" id="garTipoSin" class="gar-tipo-btn gar-tipo-none" onclick="selGarTipo('sin')" title="Sin garantía — no aparece nada en el recibo">
+                🚫 <span data-t="gar.tipo_sin">Sin garantía</span>
+                <span class="gar-tipo-desc" data-t="gar.tipo_sin_desc">No aparece en recibo</span>
+              </button>
+            </div>
+            <!-- GAR-2: Días (solo si tipo != apertura y != sin) -->
+            <div id="rGarDiasBloque">
+              <div class="gar-selector" id="rGarSelector"></div>
+              <div id="rGarCustomRow" style="display:flex;gap:6px;align-items:center;margin-top:8px">
+                <span style="font-size:11px;color:var(--muted)">o personalizar:</span>
+                <input type="number" class="fi" id="rGarDiasCustom" min="0" max="730" placeholder="" style="max-width:90px;padding:6px 10px;font-size:12px">
+                <span style="font-size:11px;color:var(--muted)">días</span>
+              </div>
+            </div>
+            <!-- GAR-3: Visibilidad -->
+            <div id="rGarVisBloque" style="margin-top:10px;display:flex;align-items:center;gap:10px;padding:8px 10px;background:var(--white);border-radius:8px;border:1px solid var(--border)">
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;flex:1">
+                <input type="checkbox" id="rGarPublica" checked onchange="actualizarGarVis()" style="width:15px;height:15px;cursor:pointer">
+                <div>
+                  <div style="font-size:12px;font-weight:600;color:var(--text)" data-t="gar.publica">Mostrar en factura/recibo</div>
+                  <div style="font-size:10px;color:var(--muted)" data-t="gar.publica_desc">El cliente verá los términos de garantía</div>
+                </div>
+              </label>
+              <span id="rGarVisLabel" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:#EAF3DE;color:#27500A">Pública</span>
             </div>
           </div>
         </div>
@@ -6142,6 +6184,8 @@ function mapRep(r) {
     componentes: r.componentes ? (typeof r.componentes === 'string' ? JSON.parse(r.componentes) : r.componentes) : [],
     servicios: r.servicios ? (typeof r.servicios === 'string' ? JSON.parse(r.servicios) : r.servicios) : [],
     esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||'',
+    garantiaTipo:r.garantia_tipo||'reparacion', garantiaPublica:r.garantia_publica!==false,
+    garantiaFechaFin:r.garantia_fecha_fin||'',
     piezasDevueltas: r.piezas_devueltas === true,
     presupuesto_aceptado_at: r.presupuesto_aceptado_at || null
   };
@@ -9183,10 +9227,26 @@ function trackingTicket() {
     (TIENDA.garRepActiva !== false ? (
       '<div class="terms">' +
         '<div class="t-title">CONDICIONES DE GARANTIA</div>' +
-        (r.garantiaDias === 0
-          ? '<div class="t-row"><strong>Esta reparación se entrega SIN garantía</strong> (placa, humedad u otro motivo). El cliente acepta este punto.</div>'
-          : '<div class="t-row"><strong>Garantía:</strong> ' + (r.garantiaDias || TIENDA.grDiasDefault || 90) + ' días sobre la pieza reparada y mano de obra desde la fecha de entrega.</div>'
-        ) +
+        (function(){
+          var tipo = r.garantiaTipo || 'reparacion';
+          var dias = (typeof r.garantiaDias === 'number') ? r.garantiaDias : (TIENDA.grDiasDefault || 90);
+          var publica = r.garantiaPublica !== false;
+          if (!publica || tipo === 'sin') {
+            return '<div class="t-row"><strong>Esta reparación se entrega SIN garantía</strong> (placa, humedad u otro motivo). El cliente acepta este punto.</div>';
+          }
+          if (tipo === 'apertura') {
+            return '<div class="t-row" style="color:#92400E"><strong>⚠️ Aviso importante:</strong> La apertura del dispositivo anula la garantía original del fabricante. El cliente acepta este punto.</div>';
+          }
+          if (dias === 0) {
+            return '<div class="t-row"><strong>Esta reparación se entrega SIN garantía.</strong></div>';
+          }
+          var textoTipo = tipo === 'producto' ? 'del producto vendido' : 'de la reparación (mano de obra y piezas)';
+          var fechaFin = r.garantiaFechaFin || '';
+          if (!fechaFin && r.fechaEntregaReal) {
+            try { var d = new Date(r.fechaEntregaReal); d.setDate(d.getDate()+dias); fechaFin = d.toLocaleDateString('es-ES',{day:'numeric',month:'long',year:'numeric'}); } catch(e){}
+          }
+          return '<div class="t-row"><strong>🛡️ Garantía ' + textoTipo + ':</strong> ' + dias + ' días desde la fecha de entrega' + (fechaFin ? ' (hasta ' + fechaFin + ')' : '') + '.</div>';
+        })() +
         (TIENDA.garantia ? '<div class="t-row">' + esc(TIENDA.garantia) + '</div>' : '') +
         '<div class="t-row"><strong>Excluido:</strong> golpes, humedad, mal uso, daños no relacionados con la pieza reparada.</div>' +
         '<div class="t-row"><strong>Reclamación:</strong> presentar este ticket. Pasados 30 días sin recoger se considera abandono. La empresa no se responsabiliza de los datos del dispositivo.</div>' +
@@ -9321,6 +9381,8 @@ function editarRep(id) {
 
   // Cargar garantía de esta rep
   window._repGarantiaDias = (typeof r.garantiaDias === 'number') ? r.garantiaDias : (TIENDA.grDiasDefault || 90);
+  window._repGarantiaTipo = r.garantiaTipo || 'reparacion';
+  window._repGarantiaPublica = (typeof r.garantiaPublica === 'boolean') ? r.garantiaPublica : true;
   renderRepGarantia();
 
   // Cambiar titulo
@@ -9339,7 +9401,17 @@ function renderRepGarantia() {
     return;
   }
   bloque.style.display = 'block';
-  
+
+  // GAR-1: inicializar tipo si no está definido
+  if (!window._repGarantiaTipo) window._repGarantiaTipo = 'reparacion';
+  if (typeof window._repGarantiaPublica === 'undefined') window._repGarantiaPublica = true;
+
+  // Aplicar tipo visual
+  selGarTipo(window._repGarantiaTipo);
+  // Aplicar visibilidad
+  var cb = document.getElementById('rGarPublica');
+  if (cb) { cb.checked = window._repGarantiaPublica; actualizarGarVis(); }
+
   var tieneAvanzada = (typeof tieneFeature === 'function') ? tieneFeature('gar_rep_avanzada') : true;
   
   var dias = window._repGarantiaDias;
@@ -9390,6 +9462,56 @@ function selectRepGar(dias) {
   renderRepGarantia();
 }
 
+// GAR-1: selector tipo garantía
+function selGarTipo(tipo) {
+  window._repGarantiaTipo = tipo;
+  // Actualizar botones activos
+  var tipos = ['reparacion','producto','apertura','sin'];
+  var ids = {reparacion:'garTipoRep', producto:'garTipoProd', apertura:'garTipoAper', sin:'garTipoSin'};
+  tipos.forEach(function(t) {
+    var btn = document.getElementById(ids[t]);
+    if (btn) btn.classList.toggle('active', t === tipo);
+  });
+  // Mostrar/ocultar bloque de días
+  var diasBloque = document.getElementById('rGarDiasBloque');
+  var visBloque = document.getElementById('rGarVisBloque');
+  if (diasBloque) diasBloque.style.display = (tipo === 'apertura' || tipo === 'sin') ? 'none' : 'block';
+  // Apertura y sin garantía → forzar no pública / pública respectivamente
+  if (tipo === 'apertura') {
+    var cb = document.getElementById('rGarPublica');
+    if (cb) { cb.checked = true; actualizarGarVis(); }
+  }
+  if (tipo === 'sin') {
+    var cb = document.getElementById('rGarPublica');
+    if (cb) { cb.checked = false; actualizarGarVis(); }
+    if (visBloque) visBloque.style.display = 'none';
+  } else {
+    if (visBloque) visBloque.style.display = 'flex';
+  }
+  // Actualizar label días
+  var lbl = document.getElementById('rGarSelDias');
+  if (lbl) {
+    if (tipo === 'sin') lbl.textContent = 'Sin garantía';
+    else if (tipo === 'apertura') lbl.textContent = 'Aviso apertura';
+    else lbl.textContent = (window._repGarantiaDias || TIENDA.grDiasDefault || 90) + ' días';
+  }
+}
+
+// GAR-3: toggle visibilidad
+function actualizarGarVis() {
+  var cb = document.getElementById('rGarPublica');
+  var lbl = document.getElementById('rGarVisLabel');
+  if (!cb || !lbl) return;
+  window._repGarantiaPublica = cb.checked;
+  if (cb.checked) {
+    lbl.textContent = 'Pública';
+    lbl.style.background = '#EAF3DE'; lbl.style.color = '#27500A';
+  } else {
+    lbl.textContent = 'Interna 🔒';
+    lbl.style.background = '#F1F5F9'; lbl.style.color = '#64748B';
+  }
+}
+
 // Hook listener para custom rep + abrir modal nuevo
 document.addEventListener('DOMContentLoaded', function(){
   var inp = document.getElementById('rGarDiasCustom');
@@ -9414,6 +9536,8 @@ document.addEventListener('DOMContentLoaded', function(){
       if (id === 'mRep' && !SEL.editRepId) {
         // Reparación nueva → resetear garantía al default
         window._repGarantiaDias = TIENDA.grDiasDefault || 90;
+        window._repGarantiaTipo = 'reparacion';
+        window._repGarantiaPublica = true;
         setTimeout(renderRepGarantia, 30);
       } else if (id === 'mStock') {
         // Stock: inicializar tipo/garantía
@@ -9588,6 +9712,8 @@ function guardarRep() {
     r.total = calcE.total;
     r.restante = Math.max(0, calcE.total - antiE);
     r.garantiaDias = (typeof window._repGarantiaDias === 'number') ? window._repGarantiaDias : (r.garantiaDias || TIENDA.grDiasDefault || 90);
+    r.garantiaTipo = window._repGarantiaTipo || r.garantiaTipo || 'reparacion';
+    r.garantiaPublica = (typeof window._repGarantiaPublica === 'boolean') ? window._repGarantiaPublica : (r.garantiaPublica !== false);
     guardarDatos();
     if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
       sbPatch('reparaciones', 'id=eq.' + r.id, {
@@ -9597,7 +9723,13 @@ function guardarRep() {
         mo:r.mo, comp:r.comp, anticipo:r.anticipo, total:r.total, restante:r.restante,
         tipo_bloqueo: r.tipoBloqueo || null, bloqueo: r.bloqueo || null,
         iva: r.iva, iva_modo: r.ivaModo, base: r.base, iva_importe: r.ivaImporte,
-        componentes: r.componentes, servicios: r.servicios
+        componentes: r.componentes, servicios: r.servicios,
+        garantia_dias: r.garantiaDias,
+        garantia_tipo: r.garantiaTipo || null,
+        garantia_publica: r.garantiaPublica !== false,
+        garantia_fecha_fin: (r.fechaEntrega && r.garantiaDias > 0 && r.garantiaTipo !== 'sin' && r.garantiaTipo !== 'apertura')
+          ? (function(){ var d = new Date(r.fechaEntrega); d.setDate(d.getDate() + r.garantiaDias); return d.toISOString().slice(0,10); })()
+          : null
       });
     }
     SEL.editRepId = null;
@@ -9650,7 +9782,9 @@ function guardarRep() {
     restante: Math.max(0, total - anticipo),
     total: total, pagoFinal: '',
     esGarantia: false, repOriginalId: '',
-    garantiaDias: (typeof window._repGarantiaDias === 'number') ? window._repGarantiaDias : (TIENDA.grDiasDefault || 90)
+    garantiaDias: (typeof window._repGarantiaDias === 'number') ? window._repGarantiaDias : (TIENDA.grDiasDefault || 90),
+    garantiaTipo: window._repGarantiaTipo || 'reparacion',
+    garantiaPublica: (typeof window._repGarantiaPublica === 'boolean') ? window._repGarantiaPublica : true
   };
 
   DB.reps.push(rep);
@@ -9668,7 +9802,13 @@ function guardarRep() {
       restante:rep.restante, total:rep.total, token:rep.token,
       tipo_bloqueo: rep.tipoBloqueo || null, bloqueo: rep.bloqueo || null,
       iva: rep.iva, iva_modo: rep.ivaModo, base: rep.base, iva_importe: rep.ivaImporte,
-      componentes: rep.componentes, servicios: rep.servicios
+      componentes: rep.componentes, servicios: rep.servicios,
+      garantia_dias: rep.garantiaDias,
+      garantia_tipo: rep.garantiaTipo || null,
+      garantia_publica: rep.garantiaPublica !== false,
+      garantia_fecha_fin: (rep.fechaEntrega && rep.garantiaDias > 0 && rep.garantiaTipo !== 'sin' && rep.garantiaTipo !== 'apertura')
+        ? (function(){ var d = new Date(rep.fechaEntrega); d.setDate(d.getDate() + rep.garantiaDias); return d.toISOString().slice(0,10); })()
+        : null
     });
     // Insertar pagos en pagos_reparacion
     (SEL.repPagos || []).forEach(function(p) {
@@ -12752,17 +12892,17 @@ function toggleGarRep() {
   var sw = document.getElementById('garRepActiva');
   var opts = document.getElementById('garRepOptions');
   if (sw && opts) opts.style.display = sw.checked ? 'block' : 'none';
-  actualizarAvisoGarantia();
+  actualizarAvisoGarantiaAjustes();
 }
 
 function toggleGarVen() {
   var sw = document.getElementById('garVenActiva');
   var opts = document.getElementById('garVenOptions');
   if (sw && opts) opts.style.display = sw.checked ? 'block' : 'none';
-  actualizarAvisoGarantia();
+  actualizarAvisoGarantiaAjustes();
 }
 
-function actualizarAvisoGarantia() {
+function actualizarAvisoGarantiaAjustes() {
   var aviso = document.getElementById('garEstadoAviso');
   if (!aviso) return;
   var rep = document.getElementById('garRepActiva');
@@ -13883,22 +14023,6 @@ function felicitarCumple(cliId) {
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
 }
 
-function toggleTemaMenu() {
-  var m = document.getElementById('temaMenu');
-  if (!m) return;
-  m.style.display = m.style.display === 'none' ? 'block' : 'none';
-  if (m.style.display === 'block') {
-    setTimeout(function() {
-      document.addEventListener('click', function ct(e) {
-        var m2 = document.getElementById('temaMenu');
-        if (m2 && !m2.contains(e.target) && !e.target.matches('[onclick*="toggleTemaMenu"]')) {
-          m2.style.display = 'none';
-        }
-        document.removeEventListener('click', ct);
-      });
-    }, 100);
-  }
-}
 function toggleLangMenu() {
   var m = document.getElementById('langMenu');
   if (!m) return;
@@ -13917,21 +14041,6 @@ function toggleLangMenu() {
 function closeTemaMenuDash() {
   var m = document.getElementById('temaMenu');
   if (m) m.style.display = 'none';
-}
-function toggleTemaMenu() {
-  var m = document.getElementById('temaMenu');
-  if (m) {
-    m.style.display = m.style.display === 'none' ? 'block' : 'none';
-    if (m.style.display === 'block') {
-      setTimeout(function() {
-        document.addEventListener('click', function ct(e) {
-          if (!m.contains(e.target) && !e.target.matches('[onclick*="toggleTemaMenu"]')) m.style.display='none';
-          document.removeEventListener('click', ct);
-        });
-      }, 100);
-    }
-    return;
-  }
 }
 function closeLangMenuDash() {
   var m = document.getElementById('langMenu');
