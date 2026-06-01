@@ -17826,6 +17826,14 @@ async function wizardStep1Submit() {
     });
     var data = await r.json();
     if (!data.ok) { alert('Error: ' + (data.error || 'desconocido')); return; }
+    // COM-10: si el email ya tenía cuenta, se añadió solo como afiliado → ir directo al step 3
+    if (data.solo_afiliado) {
+      toast('Afiliado añadido · ' + data.email + ' ya tenía cuenta en TekPair', 'ok');
+      var wiz = document.getElementById('mWizAfil');
+      if (wiz) wiz.remove();
+      cargarComisiones();
+      return;
+    }
     // Guardar datos de la cuenta creada
     d.user_id = data.user_id;
     d.tienda_id = data.tienda_id;
