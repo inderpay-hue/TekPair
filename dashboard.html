@@ -9429,10 +9429,10 @@ function trackingWA() {
   var r = TRACKING.rep, url = TRACKING.url;
   if (!r) return;
   var cli = DB.clis.find(function(c){ return c.id === r.clienteId; });
-  var tel = (cli && cli.tel) ? cli.tel.replace(/[^0-9]/g, '') : '';
+  var tel = (cli && cli.tel) ? waTel(cli.tel) : '';
   var msg = waMsg('recibida')(r.clienteNombre, r.marca, r.modelo, url);
   if (tel) {
-    window.open('https://wa.me/' + (tel.startsWith('34') ? '' : '34') + tel + '?text=' + encodeURIComponent(msg));
+    window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
   } else {
     window.open('https://wa.me/?text=' + encodeURIComponent(msg));
   }
@@ -10553,12 +10553,12 @@ function cambiarEstado(id, estado) {
   // whatsapp_flow_v2: avisar cliente cuando pasa a Por Entregar
   if (estado === 'Por Entregar') {
     var cli = DB.clis.find(function(c){ return c.id === r.clienteId; });
-    var tel = (cli && cli.tel) ? cli.tel.replace(/[^0-9]/g, '') : '';
+    var tel = (cli && cli.tel) ? waTel(cli.tel) : '';
     if (tel && confirm('Avisar al cliente por WhatsApp?')) {
       asegurarToken(r).then(function(){
         var url = linkParte(r);
         var msg = waMsg('lista')(r.clienteNombre, r.marca, r.modelo, url);
-        window.open('https://wa.me/' + (tel.startsWith('34') ? '' : '34') + tel + '?text=' + encodeURIComponent(msg));
+        window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
       });
     }
   }
@@ -10613,7 +10613,7 @@ function confirmarEntrega() {
   // whatsapp_flow_v2: enviar parte de reparacion al entregar
   var tel = '';
   var cli = DB.clis.find(function(c) { return c.id === r.clienteId; });
-  if (cli && cli.tel) tel = cli.tel.replace(/[^0-9]/g, '');
+  if (cli && cli.tel) tel = waTel(cli.tel);
   if (tel && confirm('Enviar comprobante de reparacion por WhatsApp?')) {
     asegurarToken(r).then(function(){
       var tienda = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.nombre) ? TIENDA.nombre : 'Tekpair';
@@ -10635,7 +10635,7 @@ function confirmarEntrega() {
         'Gracias por confiar en nosotros!'
       ].filter(function(l){ return l !== ''; });
       var msg = lineas.join('\n');
-      window.open('https://wa.me/' + (tel.startsWith('34') ? '' : '34') + tel + '?text=' + encodeURIComponent(msg));
+      window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
     });
   }
 }
@@ -14353,8 +14353,7 @@ function felicitarCumple(cliId) {
   var nombre = c.nombre || '';
   var tienda = (TIENDA && TIENDA.nombre) || 'nuestra tienda';
   var msg = plantilla.replace(/\{nombre\}/g, nombre).replace(/\{tienda\}/g, tienda);
-  var tel = String(c.tel).replace(/[^0-9]/g, '');
-  if (tel.length === 9) tel = '34' + tel; // España, prefijo
+  var tel = waTel(c.tel);
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
 }
 
