@@ -7197,23 +7197,25 @@ function _norm(s) {
 
 // ═══ URGENTES ═══
 function checkUrgentes() {
-  var hoy = new Date();
-  var en2 = new Date(); en2.setDate(en2.getDate() + 2);
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var en2 = new Date(); en2.setDate(en2.getDate() + 2); en2.setHours(23,59,59,999);
+  var ESTADOS_CERRADOS = ['Entregado','Devuelto','Rechazado','Sin Solucion','Presupuesto'];
   var urgentes = DB.reps.filter(function(r) {
     if (!r.fechaEntrega) return false;
-    var ESTADOS_CERRADOS = ['Entregado','Devuelto','Rechazado','Sin Solucion'];
     if (ESTADOS_CERRADOS.indexOf(r.estado) >= 0) return false;
-    var fe = new Date(r.fechaEntrega);
-    return fe <= en2;
-  });
+    var fe = new Date(r.fechaEntrega); fe.setHours(23,59,59,999);
+    return fe >= hoy && fe <= en2;
+  }).sort(function(a,b){ return new Date(a.fechaEntrega) - new Date(b.fechaEntrega); });
   var el = document.getElementById('urgentesBox');
   if (!urgentes.length) { el.innerHTML = '<div class="empty" style="padding:12px">'+T('dash.sin_urgencias')+'</div>'; return; }
   el.innerHTML = urgentes.map(function(r) {
-    var fe = new Date(r.fechaEntrega);
-    var dias = Math.ceil((fe - hoy) / 86400000);
+    var fe = new Date(r.fechaEntrega); fe.setHours(0,0,0,0);
+    var dias = Math.round((fe - hoy) / 86400000);
+    var label = dias === 0 ? 'Hoy' : dias === 1 ? 'Ma\u00f1ana' : 'En ' + dias + ' d\u00edas';
+    var color = dias === 0 ? 'var(--red)' : 'var(--orange)';
     return '<div class="urgent-card">' +
       '<strong>' + r.clienteNombre + '</strong> \u2014 ' + r.marca + ' ' + r.modelo +
-      '<br><span style="color:var(--red);font-size:11px;font-weight:700">\u23f0 Entrega en ' + dias + ' dia' + (dias !== 1 ? 's' : '') + '</span>' +
+      '<br><span style="color:' + color + ';font-size:11px;font-weight:700">\u23f0 ' + label + '</span>' +
       ' \u00b7 ' + r.averia + '</div>';
   }).join('');
 }
