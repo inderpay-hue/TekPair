@@ -149,7 +149,8 @@ async function crearCita(body, ip) {
   let creada;
   try { const rows = await sbPost('citas', payload); creada=(rows&&rows[0])||payload; }
   catch(e) { return { ok:false, error:'No se pudo guardar la cita. Intenta más tarde.', status:500 }; }
-  enviarEmailAdminCita(tienda, creada).catch(e=>console.error('emailAdmin cita:',e));
+  // await: igual que en presupuesto, sin él la función se congela antes de enviar el email.
+  try { await enviarEmailAdminCita(tienda, creada); } catch(e){ console.error('emailAdmin cita:',e); }
   return { ok:true, cita:creada };
 }
 
@@ -216,10 +217,12 @@ async function presGenerarToken(body, authHeader) {
     if (ts?.length) tiendaNombre = ts[0].nombre||tiendaNombre;
   } catch(e) {}
 
-  // Enviar email si se solicita
+  // Enviar email si se solicita. IMPORTANTE: await — sin él, la función serverless devuelve
+  // la respuesta y Vercel congela la ejecución antes de que el fetch a Resend termine → el
+  // email nunca sale (era el bug de "se envía pero no llega").
   if (enviar.includes('email') && cliEmail) {
     console.log('[pres-email] intentando enviar a', cliEmail, 'rep', repId);
-    enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url).catch(e=>console.error('email presupuesto:',e));
+    try { await enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url); } catch(e){ console.error('email presupuesto:',e); }
   } else if (enviar.includes('email')) {
     console.warn('[pres-email] pediste email pero el cliente NO tiene email guardado. rep', repId, '| email cliente:', JSON.stringify(cliEmail));
   }
