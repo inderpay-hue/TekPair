@@ -49,7 +49,7 @@ module.exports = [
   },
   // ── JS de navegador en la raíz ──
   {
-    files: ['factura.js', 'landing-i18n.js', 'login-i18n.js'],
+    files: ['factura.js', 'landing-i18n.js', 'login-i18n.js', 'js/**/*.js'],
     languageOptions: { ecmaVersion: 2022, sourceType: 'script', globals: { ...globals.browser } },
     rules: { ...cazaBugs },
   },
