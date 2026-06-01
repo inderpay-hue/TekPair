@@ -18473,7 +18473,7 @@ function badgeEstadoComision(estado, fechaDisp) {
 }
 
 function abrirModalPago(opciones) {
-  var hoy = new Date().toISOString().slice(0,10);
+  var hoy = hoyLocal();
   var html = '<div id="mPagoCom" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">' +
     '<div style="background:white;max-width:440px;width:100%;border-radius:14px;overflow:hidden">' +
       '<div style="background:linear-gradient(135deg,#10B981,#059669);color:white;padding:18px 22px">' +
