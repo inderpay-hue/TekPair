@@ -6547,7 +6547,7 @@ async function renderDash() {
     var activeId = _getWidgetSelectorActive();
     // Tabs
     var tabsHtml = WIDGET_SELECTOR_OPTS.map(function(opt) {
-      return '<button class="widget-sel-tab' + (opt.id===activeId?' active':'') + '" onclick="(function(){_setWidgetSelectorActive('' + opt.id + '');document.querySelectorAll('.widget-sel-tab').forEach(function(t){t.classList.remove('active')});this.classList.add('active');_renderWidgetSelectorBody('' + opt.id + '')}).call(this)">' +
+      return '<button class="widget-sel-tab' + (opt.id===activeId?' active':'') + '" data-wid="' + opt.id + '">' +
         opt.icon + ' ' + (T('dash.ws_' + opt.id)||opt.label) +
       '</button>';
     }).join('');
@@ -6559,9 +6559,11 @@ async function renderDash() {
       div.className = 'widget-selector-card';
       div.innerHTML = '<div class="widget-selector-tabs">' + tabsHtml + '</div><div id="wsSelectorBody"></div>';
       grid.appendChild(div);
+      div.querySelector('.widget-selector-tabs').addEventListener('click', function(e) { var btn = e.target.closest('[data-wid]'); if (!btn) return; var wid = btn.dataset.wid; _setWidgetSelectorActive(wid); div.querySelectorAll('.widget-sel-tab').forEach(function(t){t.classList.remove('active')}); btn.classList.add('active'); _renderWidgetSelectorBody(wid); });
     } else {
       existing.querySelector('.widget-selector-tabs').innerHTML = tabsHtml;
     }
+      existing.querySelector('.widget-selector-tabs').onclick = function(e) { var btn = e.target.closest('[data-wid]'); if (!btn) return; var wid = btn.dataset.wid; _setWidgetSelectorActive(wid); existing.querySelectorAll('.widget-sel-tab').forEach(function(t){t.classList.remove('active')}); btn.classList.add('active'); _renderWidgetSelectorBody(wid); };
     _renderWidgetSelectorBody(activeId);
   }
 
