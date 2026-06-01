@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gérer le stock de pièces dans un atelier de réparation | TekPair Blog</title>
+  <meta name="description" content="Apprenez à contrôler l'inventaire de pièces de votre atelier : quoi stocker, comment éviter les ruptures et réduire le capital immobilisé." />
+  <meta name="keywords" content="gerer stock pieces atelier reparation, inventaire pieces telephone, controle stock atelier reparation" />
+  <link rel="canonical" href="https://tekpair.tech/blog/fr/gerer-stock-pieces-atelier-reparation.html" />
+  <link rel="alternate" hreflang="es" href="https://tekpair.tech/blog/como-gestionar-stock-piezas-taller-moviles.html" />
+  <link rel="alternate" hreflang="en" href="https://tekpair.tech/blog/en/how-to-manage-parts-inventory-repair-shop.html" />
+  <link rel="alternate" hreflang="de" href="https://tekpair.tech/blog/de/ersatzteillager-werkstatt-verwalten.html" />
+  <link rel="alternate" hreflang="fr" href="https://tekpair.tech/blog/fr/gerer-stock-pieces-atelier-reparation.html" />
+  <link rel="alternate" hreflang="it" href="https://tekpair.tech/blog/it/gestire-magazzino-ricambi-officina.html" />
+  <link rel="alternate" hreflang="pt" href="https://tekpair.tech/blog/pt/gerir-stock-pecas-oficina-reparacao.html" />
+  <link rel="alternate" hreflang="x-default" href="https://tekpair.tech/blog/como-gestionar-stock-piezas-taller-moviles.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Gérer le stock de pièces dans un atelier de réparation" />
+  <meta property="og:description" content="Guide pratique pour gérer l'inventaire de pièces dans un atelier de réparation." />
+  <meta property="og:url" content="https://tekpair.tech/blog/fr/gerer-stock-pieces-atelier-reparation.html" />
+  <meta property="og:image" content="https://tekpair.tech/assets/og-blog.png" />
+  <meta property="og:site_name" content="TekPair" />
+  <meta property="article:published_time" content="2026-06-01" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Gérer le stock de pièces dans un atelier de réparation" />
+  <meta name="twitter:description" content="Guide pratique pour gérer l'inventaire de pièces dans un atelier de réparation." />
+  <meta name="twitter:image" content="https://tekpair.tech/assets/og-blog.png" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Gérer le stock de pièces dans un atelier de réparation","description":"Apprenez à contrôler l'inventaire de pièces de votre atelier : quoi stocker, comment éviter les ruptures et réduire le capital immobilisé.","author":{"@type":"Organization","name":"TekPair","url":"https://tekpair.tech"},"publisher":{"@type":"Organization","name":"TekPair","logo":{"@type":"ImageObject","url":"https://tekpair.tech/assets/logo.png"}},"datePublished":"2026-06-01","dateModified":"2026-06-01","mainEntityOfPage":{"@type":"WebPage","@id":"https://tekpair.tech/blog/fr/gerer-stock-pieces-atelier-reparation.html"},"image":"https://tekpair.tech/assets/og-blog.png"}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --terracota: #C2410C; --terracota-dark: #9A3309; --terracota-light: #FEF0E8; --text: #1C1917; --text-muted: #78716C; --border: #E7E5E4; --bg: #FFFFFF; --bg-alt: #FAFAF9; }
+    body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--bg); line-height: 1.7; font-size: 17px; }
+    nav { border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; background: #fff; }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--terracota); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--terracota); }
+    .article-hero { background: var(--terracota-light); padding: 3.5rem 1.5rem 3rem; text-align: center; }
+    .article-hero .category { display: inline-block; background: var(--terracota); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.25rem 0.75rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .article-hero h1 { font-size: clamp(1.75rem, 4vw, 2.6rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.03em; max-width: 680px; margin: 0 auto 1rem; color: var(--text); }
+    .article-hero .intro { max-width: 600px; margin: 0 auto; color: var(--text-muted); font-size: 1.05rem; }
+    .article-meta { margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 1rem; }
+    .article-wrapper { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+    .toc { background: var(--bg-alt); border: 1px solid var(--border); border-left: 4px solid var(--terracota); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; }
+    .toc p { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--terracota); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .toc a { color: var(--text); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
+    .toc a:hover { color: var(--terracota); text-decoration: underline; }
+    h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 2.5rem 0 1rem; color: var(--text); scroll-margin-top: 16px; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 1.75rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1.1rem; color: #44403C; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    li { color: #44403C; }
+    strong { color: var(--text); font-weight: 600; }
+    .callout { background: var(--terracota-light); border-left: 4px solid var(--terracota); border-radius: 0 8px 8px 0; padding: 1.1rem 1.25rem; margin: 1.75rem 0; }
+    .callout p { margin: 0; color: #7C2D12; font-size: 0.95rem; }
+    .callout strong { color: #7C2D12; }
+    .table-wrap { overflow-x: auto; margin: 1.75rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th { background: var(--terracota); color: #fff; font-weight: 600; text-align: left; padding: 0.7rem 1rem; }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #44403C; }
+    tr:nth-child(even) td { background: var(--bg-alt); }
+    tr:last-child td { border-bottom: none; }
+    .checklist { list-style: none; padding: 0; margin: 1.25rem 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); color: #44403C; font-size: 0.95rem; }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before { content: "✓"; flex-shrink: 0; width: 20px; height: 20px; background: var(--terracota); color: #fff; border-radius: 50%; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .faq-section { margin-top: 3rem; }
+    .faq-section h2 { margin-top: 0; }
+    details { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; }
+    summary { padding: 1rem 1.25rem; font-weight: 600; font-size: 0.97rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bg-alt); transition: background .2s; }
+    summary:hover { background: var(--terracota-light); }
+    summary::after { content: "+"; font-size: 1.2rem; color: var(--terracota); font-weight: 700; }
+    details[open] summary::after { content: "−"; }
+    details[open] summary { background: var(--terracota-light); }
+    .faq-body { padding: 1rem 1.25rem; font-size: 0.95rem; color: #44403C; }
+    .cta-box { background: var(--terracota); color: #fff; border-radius: 12px; padding: 2.5rem 2rem; text-align: center; margin-top: 3.5rem; }
+    .cta-box h2 { color: #fff; font-size: 1.5rem; margin: 0 0 0.75rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); margin-bottom: 1.5rem; font-size: 1rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--terracota); font-weight: 700; font-size: 0.95rem; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; transition: transform .15s, box-shadow .15s; }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+    .post-nav { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 1rem; }
+    .post-nav a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; display: flex; flex-direction: column; gap: 0.25rem; max-width: 48%; }
+    .post-nav a span { color: var(--text); font-weight: 600; font-size: 0.95rem; }
+    .post-nav a:hover span { color: var(--terracota); }
+    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+    footer a { color: var(--terracota); text-decoration: none; }
+    @media (max-width: 600px) { .nav-links { display: none; } .article-hero { padding: 2.5rem 1.25rem 2rem; } .article-wrapper { padding: 2rem 1.25rem 3rem; } .post-nav { flex-direction: column; } .post-nav a { max-width: 100%; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="https://tekpair.tech" class="nav-logo">TekPair</a>
+    <div class="nav-links">
+      <a href="https://tekpair.tech/blog/">Blog</a>
+      <a href="https://tekpair.tech/#funcionalidades">Fonctionnalités</a>
+      <a href="https://tekpair.tech/#precios">Tarifs</a>
+      <a href="https://tekpair.tech/app.html">Connexion</a>
+    </div>
+  </nav>
+  <header class="article-hero">
+    <div class="category">Gestion de l'atelier</div>
+    <h1>Gérer le stock de pièces dans un atelier de réparation</h1>
+    <p class="intro">Manquer d'une pièce au moment précis où vous en avez besoin est frustrant. Avoir trop de stock immobilise de l'argent. La clé est l'équilibre.</p>
+    <div class="article-meta">
+      <span>&#128197; 1er juin 2026</span>
+      <span>&#9201; 7 min de lecture</span>
+    </div>
+  </header>
+  <main class="article-wrapper">
+    <div class="toc" role="navigation" aria-label="Dans cet article">
+      <p>Dans cet article</p>
+      <ol>
+        <li><a href="#s1">Pourquoi le contrôle des stocks est crucial</a></li><li><a href="#s2">Quelles pièces toujours avoir en stock</a></li><li><a href="#s3">Comment organiser votre stock</a></li><li><a href="#s4">Comment tenir le registre</a></li><li><a href="#s5">Comment éviter les ruptures</a></li><li><a href="#s6">Réduire le capital immobilisé</a></li>
+        <li><a href="#faq">Questions fréquentes</a></li>
+      </ol>
+    </div>
+    <p>Le stock de pièces est l'un des aspects les plus négligés dans les petits ateliers. La plupart achètent des pièces au fur et à mesure des besoins, sans système. Cela fonctionne au début, mais devient problématique avec le volume.</p>
+    <p>Un bon contrôle des stocks ne nécessite pas de logiciel complexe. Il exige une méthode claire et la constance pour la maintenir.</p>
+    <h2 id="s1">1. Pourquoi le contrôle des stocks est crucial</h2>
+    <p>Un atelier sans contrôle des stocks souffre de quatre problèmes directs :</p>
+    <ul><li><strong>Ruptures de stock :</strong> le client apporte son téléphone, vous diagnostiquez et constatez que la pièce manque. Le client attend ou va chez un concurrent.</li><li><strong>Commandes urgentes :</strong> acheter des pièces en urgence coûte toujours plus cher.</li><li><strong>Capital immobilisé :</strong> trop de stock sur des pièces à faible rotation signifie de l'argent qui dort.</li><li><strong>Pertes et désorganisation :</strong> sans système, les pièces se perdent ou sont utilisées pour la mauvaise réparation.</li></ul>
+    <h2 id="s2">2. Quelles pièces toujours avoir en stock</h2>
+    <p>Toutes les pièces ne méritent pas le même niveau de stock. Classez-les par taux de rotation :</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Catégorie</th><th>Exemples</th><th>Stock recommandé</th></tr></thead>
+      <tbody><tr><td><strong>Forte rotation</strong></td><td>Écrans iPhone/Samsung haut de gamme, batteries</td><td>2–5 unités par référence</td></tr><tr><td><strong>Rotation moyenne</strong></td><td>Écrans milieu de gamme, connecteurs</td><td>1–2 unités par référence</td></tr><tr><td><strong>Faible rotation</strong></td><td>Pièces de modèles anciens ou rares</td><td>0–1 unité (sur commande)</td></tr><tr><td><strong>Consommables</strong></td><td>Adhésifs, vis, plastiques</td><td>Stock généreux, coût faible</td></tr><tr><td><strong>Outillage</strong></td><td>Ventouses, outils de levier, tournevis</td><td>1 jeu complet + pièces critiques</td></tr></tbody>
+    </table></div>
+    <div class="callout"><p><strong>Conseil :</strong> analysez vos réparations des 3 derniers mois pour identifier les pièces les plus utilisées. Stock permanent pour celles-là. Le reste sur commande.</p></div>
+    <h2 id="s3">3. Comment organiser physiquement votre stock</h2>
+    <p>Un espace de stockage bien organisé fait gagner du temps à chaque réparation.</p>
+    <h3>Système d'organisation physique</h3>
+    <p>Le système le plus efficace combine deux critères : marque de l'appareil et type de pièce.</p>
+    <ul><li><strong>Par marque et modèle :</strong> une zone pour Apple, une pour Samsung, une pour Xiaomi, etc.</li><li><strong>Étiquetage clair :</strong> chaque compartiment avec sa référence visible.</li><li><strong>Pièces usagées vs neuves :</strong> ne jamais mélanger pièces neuves et reconditionnées. Zones séparées.</li><li><strong>Accès fréquent à portée :</strong> les pièces à forte rotation dans la zone la plus accessible.</li></ul>
+    <h3>Matériel de stockage</h3>
+    <p>Vous n'avez pas besoin d'une solution coûteuse :</p>
+    <ul><li>Boîtes en plastique transparent avec compartiments.</li><li>Sachets antistatiques pour les pièces sensibles.</li><li>Étagères ou plateaux étiquetés pour les modèles à forte rotation.</li><li>Petits tiroirs pour les pièces minuscules (vis, connecteurs).</li></ul>
+    <div class="callout"><p><strong>Règle d'or :</strong> si vous mettez plus de 30 secondes à trouver une pièce, votre système doit être amélioré.</p></div>
+    <h2 id="s4">4. Comment tenir le registre des stocks</h2>
+    <p>L'organisation physique ne suffit pas. Vous avez besoin d'un registre à jour.</p>
+    <h3>Ce qu'il faut enregistrer pour chaque pièce</h3>
+    <p>Le registre minimum doit inclure :</p>
+    <ul class="checklist"><li>Référence ou code de la pièce</li><li>Description (marque, modèle, type de pièce)</li><li>Fournisseur habituel et prix d'achat</li><li>Quantité actuelle en stock</li><li>Quantité minimale (point de commande)</li><li>Date du dernier approvisionnement</li><li>Réparations dans lesquelles elle a été utilisée</li></ul>
+    <div class="callout"><p><strong>TekPair gère cela automatiquement :</strong> chaque fois que vous utilisez une pièce, le stock se met à jour tout seul. Alerte quand une référence atteint le minimum. <a href="https://tekpair.tech" style="color:var(--terracota-dark);font-weight:600;">Essayez gratuitement →</a></p></div>
+    <h2 id="s5">5. Comment éviter les ruptures de stock</h2>
+    <p>Une rupture de stock se produit quand il vous manque une pièce nécessaire. La plupart sont évitables :</p>
+    <ul><li><strong>Point de commande :</strong> définissez une quantité minimale pour chaque référence. Quand le stock atteint ce niveau, il est temps de commander.</li><li><strong>Stock de sécurité :</strong> pour les pièces les plus critiques, gardez toujours 1–2 unités supplémentaires.</li><li><strong>Révision hebdomadaire :</strong> 15 minutes par semaine pour vérifier les niveaux des références les plus utilisées.</li><li><strong>Plusieurs fournisseurs :</strong> pour les pièces critiques, avoir plus d'un fournisseur donne de la flexibilité.</li><li><strong>Enregistrement en temps réel :</strong> noter chaque pièce utilisée au moment de l'utilisation, pas en fin de journée.</li></ul>
+    <h2 id="s6">6. Comment réduire le capital immobilisé</h2>
+    <p>Le capital immobilisé en stock est de l'argent qui ne travaille pas pour vous. Trois stratégies pour le réduire :</p>
+    <ul><li><strong>Acheter fréquemment en petites quantités :</strong> plutôt que 10 écrans d'un coup, achetez-en 2–3 et réapprovisionnez au point de commande.</li><li><strong>Identifier le stock mort :</strong> les pièces sans mouvement depuis plus de 6 mois sont candidates au retour, à la vente au prix coûtant ou à la liquidation.</li><li><strong>Négocier des délais de paiement :</strong> certains fournisseurs acceptent la consignation ou des délais à 30–60 jours.</li></ul>
+    <div class="callout"><p><strong>TekPair vous montre votre stock dormant :</strong> identifiez les références qui n'ont pas bougé depuis le plus longtemps. <a href="https://tekpair.tech" style="color:var(--terracota-dark);font-weight:600;">Essayez gratuitement →</a></p></div>
+    <section class="faq-section" id="faq">
+      <h2>Questions fréquentes</h2>
+      <details><summary>Combien de pièces stocker pour commencer ?</summary><div class="faq-body">Pour un nouvel atelier, les 5–10 références les plus courantes de votre zone. Le reste sur commande jusqu'à avoir des données réelles.</div></details><details><summary>Comment savoir quand recommander une pièce ?</summary><div class="faq-body">Définissez un point de commande pour chaque référence en tenant compte du délai de livraison. Quand le stock atteint ce niveau, commandez.</div></details><details><summary>Pièces d'origine ou compatibles ?</summary><div class="faq-body">Cela dépend du client. Les originales offrent meilleure qualité mais coûtent plus. Les compatibles sont moins chères. L'idéal est d'avoir les deux.</div></details><details><summary>Comment gérer les pièces non utilisées ?</summary><div class="faq-body">Les pièces non utilisées doivent immédiatement retourner en inventaire avec leur registre mis à jour.</div></details><details><summary>Que faire si je reçois une pièce défectueuse ?</summary><div class="faq-body">Enregistrez-la comme défectueuse et retirez-la du stock. Documentez le défaut et contactez le fournisseur.</div></details>
+    </section>
+    <div class="cta-box">
+      <h2>Gérez le stock de votre atelier sans tableur</h2>
+      <p>TekPair gère automatiquement le stock : enregistre les entrées et sorties, vous alerte et relie chaque pièce à sa réparation.</p>
+      <a href="https://tekpair.tech" class="cta-btn">Démarrez gratuitement sur TekPair →</a>
+    </div>
+    <div class="post-nav">
+      <a href="../fr/comment-rediger-devis-reparation-professionnel.html">← Article précédent<span>Comment rédiger un devis de réparation professionnel</span></a>
+      <a href="notifier-client-telephone-repare.html" style="text-align:right;">Article suivant →<span>Comment notifier le client quand son téléphone est réparé</span></a>
+    </div>
+  </main>
+  <footer>
+    <p>&#169; 2026 <a href="https://tekpair.tech">TekPair</a> &middot; Logiciel de gestion pour ateliers de réparation</p>
+    <p style="margin-top:0.5rem;">
+      <a href="https://tekpair.tech/blog/">Blog</a> &middot;
+      <a href="https://tekpair.tech/privacidad.html">Confidentialité</a> &middot;
+      <a href="https://tekpair.tech/terminos.html">CGU</a>
+    </p>
+  </footer>
+</body>
+</html>
