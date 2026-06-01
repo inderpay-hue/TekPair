@@ -631,7 +631,10 @@
 
       return fetch('/api/email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer ' + (window.JWT_TOKEN || '')
+        },
         body: JSON.stringify({
           tipo: 'factura',
           email: c.email,
