@@ -6359,32 +6359,42 @@ async function renderDash() {
 
   // v2.4: usar pagos reales (anticipos + finales) en lugar de reps entregadas
   var tReps = 0;
+  // Renderizar stats inmediatamente con tReps=0 (datos locales rápidos)
+  // Luego actualizar cuando llegan los pagos de Supabase
+  var _renderStats = function(tRepsVal) {
+    var _html = '';
+    if (widgetVisible('widget_stats_ventas') && tienePerm('ventas_ver')) {
+      _html += '<div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" style="color:var(--text)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>';
+      _html += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl" data-t="dash.ingresos_ventas">Ingresos ventas</div></div>';
+    }
+    if (widgetVisible('widget_stats_pendientes') && tienePerm('reps_ver')) {
+      _html += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--text)">' + repsPendienteReparar.length + '</div><div class="stat-lbl" data-t="dash.pendientes_reparar">Pendientes reparar</div></div>';
+    }
+    if (widgetVisible('widget_stats_entregar') && tienePerm('reps_ver')) {
+      _html += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + repsPorEntregar.length + '</div><div class="stat-lbl" data-t="dash.por_entregar_stat">Por entregar</div></div>';
+    }
+    if (widgetVisible('widget_stats_total') && tienePerm('ventas_ver') && tienePerm('reps_ver')) {
+      _html += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas + tRepsVal) + '</div><div class="stat-lbl" data-t="dash.total_ingresos">Total ingresos</div></div>';
+    }
+    var grid = document.getElementById('metricsGrid');
+    if (grid) { grid.innerHTML = _html; if (typeof applyLang === 'function') applyLang(); }
+  };
+
+  // Render inmediato con tReps=0
+  _renderStats(0);
+
   if (SB_KEY) {
     try {
-      // fechas ya en ISO YYYY-MM-DD
       var fechasISO = filterDates.slice();
       var minF = fechasISO.sort()[0], maxF = fechasISO[fechasISO.length-1];
       var pagosRep = await sbGet('pagos_reparacion', 'fecha=gte.' + minF + '&fecha=lte.' + maxF) || [];
       tReps = pagosRep.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
+      // Re-renderizar stats con tReps real
+      _renderStats(tReps);
     } catch(e) { console.warn('tReps:', e); }
   }
 
-  var statsHtml = '';
-  if (widgetVisible('widget_stats_ventas') && tienePerm('ventas_ver')) {
-    // VIS-2: contadores en oscuro neutro, importes en verde. Color secundario sutil.
-    statsHtml += '<div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" style="color:var(--text)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>';
-    statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl" data-t="dash.ingresos_ventas">Ingresos ventas</div></div>';
-  }
-  if (widgetVisible('widget_stats_pendientes') && tienePerm('reps_ver')) {
-    statsHtml += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--text)">' + repsPendienteReparar.length + '</div><div class="stat-lbl" data-t="dash.pendientes_reparar">Pendientes reparar</div></div>';
-  }
-  if (widgetVisible('widget_stats_entregar') && tienePerm('reps_ver')) {
-    statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + repsPorEntregar.length + '</div><div class="stat-lbl" data-t="dash.por_entregar_stat">Por entregar</div></div>';
-  }
-  if (widgetVisible('widget_stats_total') && tienePerm('ventas_ver') && tienePerm('reps_ver')) {
-    statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas + tReps) + '</div><div class="stat-lbl" data-t="dash.total_ingresos">Total ingresos</div></div>';
-  }
-  document.getElementById('metricsGrid').innerHTML = statsHtml;
+  // Stats ya renderizados en _renderStats() — solo lanzar widgets
   if (typeof renderDashWidgets === 'function') renderDashWidgets();
 }
 
