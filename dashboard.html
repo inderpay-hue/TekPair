@@ -6951,8 +6951,9 @@ function renderDashWidgets() {
   });
   if (emptyEl) emptyEl.style.display = esVacio ? 'block' : 'none';
   wrappers.forEach(function(el){ el.style.display = esVacio ? 'none' : ''; });
-  var pend = DB.reps.filter(function(r){ return r.estado === 'Pendiente' || r.estado === 'En Proceso'; });
-  var ent = DB.reps.filter(function(r){ return r.estado === 'Por Entregar'; });
+  // estado normalizado (minúsculas) para tolerar variantes históricas 'En proceso'/'Por entregar'
+  var pend = DB.reps.filter(function(r){ var e=(r.estado||'').toLowerCase(); return e === 'pendiente' || e === 'en proceso'; });
+  var ent = DB.reps.filter(function(r){ return (r.estado||'').toLowerCase() === 'por entregar'; });
 
   // Ordenar por prioridad (Alta primero) y luego por fecha de entrega
   var prioVal = function(p){ return p === 'Alta' ? 0 : p === 'Normal' ? 1 : 2; };
@@ -6966,15 +6967,15 @@ function renderDashWidgets() {
   var renderList = function(list, emptyMsg, color){
     if (!list.length) return '<div class="empty" style="padding:12px;font-size:12px">' + emptyMsg + '</div>';
     return '<div style="display:flex;flex-direction:column;gap:6px">' + list.slice(0,8).map(function(r){
-      var cli = (DB.clis.find(function(c){ return c.id === r.cliId; }) || {}).nombre || T('gen.sin_cliente');
+      var cli = r.clienteNombre || (DB.clis.find(function(c){ return c.id === r.clienteId; }) || {}).nombre || T('gen.sin_cliente');
       var prioBadge = r.prioridad === 'Alta'
         ? '<span style="background:rgba(239,68,68,.12);color:var(--red);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600">ALTA</span>'
         : '';
       var fecha = r.fechaEntrega ? '<span style="font-size:10px;color:var(--muted)">⏱ ' + r.fechaEntrega + '</span>' : '';
       return '<div class="dash-rep-item" data-rid="' + r.id + '" style="background:var(--light);border-left:3px solid ' + color + ';padding:8px 10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px">' +
         '<div style="flex:1;min-width:0;overflow:hidden">' +
-          '<div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + (r.marca || '') + ' ' + (r.modelo || '') + '</div>' +
-          '<div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + cli + ' · ' + (r.averia || '') + '</div>' +
+          '<div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.marca || '') + ' ' + escHtml(r.modelo || '') + '</div>' +
+          '<div style="font-size:10px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(cli) + ' · ' + escHtml(r.averia || '') + '</div>' +
         '</div>' +
         '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">' + prioBadge + fecha + '</div>' +
       '</div>';
@@ -7185,12 +7186,12 @@ function renderWidgetCobros() {
   }
   var html = '<div style="display:flex;flex-direction:column;gap:6px">';
   pendientes.slice(0,8).forEach(function(p) {
-    var cli = (DB.clis.find(function(c){ return c.id === p.venta.cliId; }) || {}).nombre || T('gen.sin_cliente');
+    var cli = p.venta.clienteNombre || (DB.clis.find(function(c){ return c.id === p.venta.clienteId; }) || {}).nombre || T('gen.sin_cliente');
     var color = p.vencida ? 'var(--red)' : 'var(--orange)';
     var badge = p.vencida ? '<span style="background:rgba(239,68,68,.12);color:var(--red);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:700">VENCIDA</span>' : '';
     html += '<div style="background:var(--light);border-left:3px solid ' + color + ';padding:8px 10px;border-radius:6px;display:flex;justify-content:space-between;align-items:center;gap:8px">';
     html += '<div style="flex:1;min-width:0">';
-    html += '<div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + cli + ' · ' + cur(p.cuota.importe) + '</div>';
+    html += '<div style="font-weight:600;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(cli) + ' · ' + cur(p.cuota.importe) + '</div>';
     html += '<div style="font-size:10px;color:var(--muted)">Cuota ' + (p.idx+1) + ' · vence ' + p.cuota.fecha + '</div>';
     html += '</div>' + badge + '</div>';
   });
@@ -7464,7 +7465,9 @@ function renderWidgetStockCritico() {
     todos.forEach(function(s) {
       var color = s.unidades === 0 ? 'var(--red)' : 'var(--orange)';
       html += '<div style="font-size:11px;padding:6px 10px;background:var(--light);border-radius:6px;border-left:3px solid ' + color + ';display:flex;justify-content:space-between;gap:8px">';
-      html += '<span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">' + (s.tipo || '') + ' ' + (s.marca || '') + ' ' + (s.modelo || '') + '</span>';
+      var nombreProd = [s.marca, s.modelo].filter(Boolean).join(' ') || s.categoria || 'Producto';
+      var extraProd = [s.capacidad, s.color].filter(Boolean).join(' ');
+      html += '<span style="font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">' + escHtml(nombreProd) + (extraProd ? ' ' + escHtml(extraProd) : '') + '</span>';
       html += '<span style="color:' + color + ';font-weight:700;flex-shrink:0">' + s.unidades + '/' + (s.stockMin||0) + '</span></div>';
     });
     html += '</div>';
@@ -7565,13 +7568,13 @@ function renderWidgetClisInactivos() {
   var lista = DB.clis.map(function(c) {
     var ultV = 0;
     DB.ventas.forEach(function(v) {
-      if (v.cliId !== c.id) return;
+      if (v.clienteId !== c.id) return;
       var fv = _parseDateAny(v.fecha);
       if (fv && fv > ultV) ultV = fv;
     });
     var ultR = 0;
     DB.reps.forEach(function(r) {
-      if (r.cliId !== c.id) return;
+      if (r.clienteId !== c.id) return;
       var fr = _parseDateAny(r.fecha);
       if (fr && fr > ultR) ultR = fr;
     });
@@ -8515,7 +8518,7 @@ function abrirModalEnviarPres(id) {
   if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
 
   // Buscar cliente para ver si tiene tel y email
-  var cli = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
+  var cli = r.clienteId ? DB.clis.find(function(c){ return c.id === r.clienteId; }) : null;
   if (!cli && r.clienteNombre) {
     var nom = _norm(r.clienteNombre);
     cli = DB.clis.find(function(c){ return _norm(((c.nombre||'')+' '+(c.apellidos||'')).trim()) === nom; });
@@ -10318,7 +10321,7 @@ function renderPresupuestos() {
     + '</tr></thead><tbody>';
 
   list.forEach(function(r) {
-    var cliRep = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
+    var cliRep = r.clienteId ? DB.clis.find(function(c){ return c.id === r.clienteId; }) : null;
     if (!cliRep && r.clienteNombre) {
       var nomNorm = _norm(r.clienteNombre);
       cliRep = DB.clis.find(function(c){
@@ -10404,7 +10407,7 @@ function renderReps() {
     var btnEdit = '<button data-rid="' + r.id + '" data-action="edit" class="row-btn btn-edit-r" title="Editar">✏️</button>';
     var btnLink = '<button data-rid="' + r.id + '" data-action="link" class="row-btn btn-link-r" title="QR / Link / Imprimir">📱</button>';
     // WhatsApp: buscar cliente por cliId, si no, fallback por nombre coincidente
-    var cliRep = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
+    var cliRep = r.clienteId ? DB.clis.find(function(c){ return c.id === r.clienteId; }) : null;
     if (!cliRep && r.clienteNombre) {
       var nomNorm = _norm(r.clienteNombre);
       cliRep = DB.clis.find(function(c){
@@ -10418,8 +10421,8 @@ function renderReps() {
     var badgeGarantia = '';
     if (r.esGarantia) {
       badgeGarantia = '<br><span class="badge bp">Garantia</span>';
-    } else if ((r.cliId || r.clienteNombre) && r.estado !== 'Entregado' && r.estado !== 'Rechazado') {
-      var info = checkGarantia(r.cliId, r.marca, r.modelo, r.fecha, r.clienteNombre);
+    } else if ((r.clienteId || r.clienteNombre) && r.estado !== 'Entregado' && r.estado !== 'Rechazado') {
+      var info = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre);
       if (info && info.rep.id !== r.id) {
         badgeGarantia = '<br><span class="badge-garantia" title="Reparación previa entregada el ' + info.rep.fechaEntregaReal + ' (' + info.dias + ' días)">🛡️ EN GARANTÍA</span>';
       }
@@ -13021,11 +13024,13 @@ function renderWidgetCierre() {
   if (!widgetVisible('widget_cierre')) return;
   var el = document.getElementById('cierreBox');
   if (!el) return;
-  var hoy = new Date().toLocaleDateString('es');
+  // FIX: usar hoyLocal() (ISO YYYY-MM-DD) — v.fecha es ISO. Antes toLocaleDateString('es')
+  // daba 'D/M/AAAA' y NUNCA coincidía con v.fecha → 0 ventas siempre y desglose de pagos mal.
+  var hoy = hoyLocal();
   var vH = DB.ventas.filter(function(v) { return !v.reembolsado && v.fecha === hoy; });
   var tV = vH.reduce(function(a, v) { return a + v.total; }, 0);
-  // Reparaciones entregadas hoy (dato local, sin await)
-  var rH = DB.reps.filter(function(r) { return r.fechaEntregaReal === hoyLocal() && r.estado === 'Entregado'; });
+  // Reparaciones entregadas hoy (dato local, sin await). slice(0,10) tolera timestamp.
+  var rH = DB.reps.filter(function(r) { return (r.fechaEntregaReal||'').slice(0,10) === hoy && (r.estado||'').toLowerCase() === 'entregado'; });
   var tR = rH.reduce(function(a, r) { return a + (r.total || 0); }, 0);
   var pagos = {};
   vH.forEach(function(v) { pagos[v.pago || 'Efectivo'] = (pagos[v.pago || 'Efectivo'] || 0) + v.total; });
@@ -13057,7 +13062,8 @@ async function cierreDia() {
   var hoyISO = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
 
   // Ventas: igual que antes (filtro por fecha local)
-  var vH = DB.ventas.filter(function(v) { return !v.reembolsado && v.fecha === hoy; });
+  // FIX: comparar contra hoyISO (v.fecha es ISO); 'hoy' localizado no coincidía → 0 ventas
+  var vH = DB.ventas.filter(function(v) { return !v.reembolsado && v.fecha === hoyISO; });
   var tV = vH.reduce(function(a, v) { return a + v.total; }, 0);
 
   // Reparaciones: ahora se leen los PAGOS reales de hoy (de pagos_reparacion)
@@ -14803,7 +14809,7 @@ function renderBusquedaGlobal() {
   // Reparaciones
   if (tienePerm('reps_ver')) {
     DB.reps.forEach(function(r) {
-      var cli = (DB.clis.find(function(c){ return c.id === r.cliId; }) || {});
+      var cli = (DB.clis.find(function(c){ return c.id === r.clienteId; }) || {});
       var hay = _norm((r.marca||'') + ' ' + (r.modelo||'') + ' ' + (r.averia||'') + ' ' + (cli.nombre||'') + ' ' + (cli.apellidos||'') + ' ' + (r.imei||''));
       if (hay.indexOf(q) !== -1) {
         results.push({tipo:'rep', icon:'🔧', titulo:((r.marca||'') + ' ' + (r.modelo||'')).trim() + ' · ' + (r.averia||'').slice(0,40), sub:(cli.nombre||T('gen.sin_cliente')) + ' · ' + (r.estado||'') + ' · ' + cur(r.total||0), id:r.id});
@@ -14814,7 +14820,7 @@ function renderBusquedaGlobal() {
   // Ventas
   if (tienePerm('ventas_ver')) {
     DB.ventas.forEach(function(v) {
-      var cli = (DB.clis.find(function(c){ return c.id === v.cliId; }) || {});
+      var cli = (DB.clis.find(function(c){ return c.id === v.clienteId; }) || {});
       var hay = _norm((v.marca||'') + ' ' + (v.modelo||'') + ' ' + (cli.nombre||'') + ' ' + (cli.apellidos||'') + ' ' + (v.imei||''));
       if (hay.indexOf(q) !== -1) {
         results.push({tipo:'venta', icon:'📱', titulo:((v.marca||'') + ' ' + (v.modelo||'')).trim() || 'Venta', sub:(cli.nombre||T('gen.sin_cliente')) + ' · ' + (v.fecha||'') + ' · ' + cur(v.total||0) + (v.reembolsado?' · ↩ REEMBOLSADA':''), id:v.id});
@@ -14951,7 +14957,7 @@ function abrirFichaCli(cliId) {
   // Lista de reps (busco por cliId Y también por nombre coincidente, para incluir reps huérfanas)
   var nombreNorm = _norm(((c.nombre || '') + ' ' + (c.apellidos || '')).trim());
   var reps = DB.reps.filter(function(r){
-    if (r.cliId === cliId) return true;
+    if (r.clienteId === cliId) return true;
     // Match por nombre cuando cliId está vacío o no coincide pero el nombre sí
     var nomRep = _norm(r.clienteNombre || '');
     if (nomRep && nombreNorm && nomRep === nombreNorm) return true;
@@ -14960,7 +14966,7 @@ function abrirFichaCli(cliId) {
     return _parseDateAny(b.fecha || '') - _parseDateAny(a.fecha || '');
   });
   var ventas = DB.ventas.filter(function(v){
-    if (v.cliId === cliId) return true;
+    if (v.clienteId === cliId) return true;
     var nomV = _norm(v.clienteNombre || '');
     if (nomV && nombreNorm && nomV === nombreNorm) return true;
     return false;
@@ -15067,10 +15073,10 @@ function editarClienteDesdeFicha(cliId) {
 function abrirDetalleRep(repId) {
   var r = DB.reps.find(function(x){ return x.id === repId; });
   if (!r) { toast(T('gen.error'), 'err'); return; }
-  var cli = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
+  var cli = r.clienteId ? DB.clis.find(function(c){ return c.id === r.clienteId; }) : null;
 
   // Check garantía
-  var infoGar = checkGarantia(r.cliId, r.marca, r.modelo, r.fecha, r.clienteNombre);
+  var infoGar = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre);
 
   var html = '';
   // Cabecera
@@ -15302,7 +15308,7 @@ function abrirWhatsAppFiado(fiadoId) {
 function abrirWhatsAppRep(repId) {
   var r = DB.reps.find(function(x){ return x.id === repId; });
   if (!r) return;
-  var cli = r.cliId ? DB.clis.find(function(c){ return c.id === r.cliId; }) : null;
+  var cli = r.clienteId ? DB.clis.find(function(c){ return c.id === r.clienteId; }) : null;
   if (!cli && r.clienteNombre) {
     var nomNorm = _norm(r.clienteNombre);
     cli = DB.clis.find(function(c){
@@ -15340,7 +15346,7 @@ function abrirWhatsAppRep(repId) {
 function abrirWhatsAppCuota(ventaId, idxCuota) {
   var v = DB.ventas.find(function(x){ return x.id === ventaId; });
   if (!v) return;
-  var cli = DB.clis.find(function(c){ return c.id === v.cliId; });
+  var cli = DB.clis.find(function(c){ return c.id === v.clienteId; });
   if (!cli || !cli.tel) { toast('Cliente sin teléfono', 'err'); return; }
   var c = v.cuotas[idxCuota];
   if (!c) return;
@@ -15410,7 +15416,7 @@ function checkGarantia(cliId, marca, modelo, fechaActual, clienteNombre) {
   var nombreNorm = _norm(clienteNombre || '');
   var candidatas = DB.reps.filter(function(r) {
     // Match cliente: por cliId exacto, o por nombre normalizado como fallback
-    var matchCli = (cliId && r.cliId === cliId);
+    var matchCli = (cliId && r.clienteId === cliId);
     if (!matchCli && nombreNorm && r.clienteNombre) {
       matchCli = _norm(r.clienteNombre) === nombreNorm;
     }
