@@ -18008,6 +18008,9 @@ var COMISIONES_DATA = null;
 
 async function detectarAccesoComisiones() {
   if (!JWT_TOKEN) return;
+  // COM-12: Comisiones solo para administradores. Los empleados no deben ver el menú
+  // ni la sección (el backend también lo bloquea, esto es defensa en profundidad + UI).
+  if (!U || U.rol !== 'admin') return;
   try {
     var r = await fetch('/api/comisiones', {
       method: 'GET',
