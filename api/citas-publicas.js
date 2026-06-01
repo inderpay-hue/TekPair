@@ -218,7 +218,10 @@ async function presGenerarToken(body, authHeader) {
 
   // Enviar email si se solicita
   if (enviar.includes('email') && cliEmail) {
+    console.log('[pres-email] intentando enviar a', cliEmail, 'rep', repId);
     enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url).catch(e=>console.error('email presupuesto:',e));
+  } else if (enviar.includes('email')) {
+    console.warn('[pres-email] pediste email pero el cliente NO tiene email guardado. rep', repId, '| email cliente:', JSON.stringify(cliEmail));
   }
 
   return {
@@ -375,11 +378,17 @@ async function enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url) {
   <div style="text-align:center;padding:16px;color:#aaa;font-size:11px">TekPair · tekpair.tech</div>
 </div>
 </body></html>`;
-  await fetch('https://api.resend.com/emails',{
+  const rp = await fetch('https://api.resend.com/emails',{
     method:'POST',
     headers:{'Authorization':`Bearer ${RESEND_KEY}`,'Content-Type':'application/json'},
     body: JSON.stringify({ from:'TekPair <noreply@tekpair.tech>', to:[cliEmail], subject:`Presupuesto de reparación — ${rep.marca||''} ${rep.modelo||''}`, html })
   });
+  if (!rp.ok) {
+    const t = await rp.text().catch(() => '');
+    console.error('[pres-email] Resend RECHAZÓ:', rp.status, '| to:', cliEmail, '| resp:', t.slice(0, 400));
+  } else {
+    console.log('[pres-email] enviado OK a', cliEmail);
+  }
 }
 
 async function presRechazar(body, ip) {
