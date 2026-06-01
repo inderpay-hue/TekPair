@@ -84,8 +84,11 @@ function verificarToken(req) {
   }
 }
 
+// CAJ-SEC-1: esSuperAdmin verifica email + rol para evitar escalada de privilegios
+// Un JWT con email info@tekpair.tech pero rol distinto no obtiene acceso super-admin
+const SUPER_ADMIN_EMAILS = ['info@tekpair.tech'];
 function esSuperAdmin(payload) {
-  return payload?.email === 'info@tekpair.tech';
+  return SUPER_ADMIN_EMAILS.includes(payload?.email) && payload?.rol === 'admin';
 }
 
 function esAdminTienda(payload) {
@@ -207,7 +210,11 @@ async function recalcularCierreDeFiado(fiadoId, tienda_id) {
 
 // ── Handler principal ─────────────────────────────
 export default async function handler(req, res) {
-  res.setHeader('Access-Control-Allow-Origin', '*');
+  // CAJ-SEC-2: CORS restringido a dominios TekPair
+  const allowedOrigins = ['https://tekpair.tech', 'https://www.tekpair.tech'];
+  const origin = req.headers.origin || '';
+  res.setHeader('Access-Control-Allow-Origin', allowedOrigins.includes(origin) ? origin : 'https://www.tekpair.tech');
+  res.setHeader('Vary', 'Origin');
   res.setHeader('Access-Control-Allow-Methods', 'GET,POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
   if (req.method === 'OPTIONS') return res.status(200).end();
