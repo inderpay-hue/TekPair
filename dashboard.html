@@ -6363,6 +6363,8 @@ function forzarRelogin() {
 
 // ═══ DASHBOARD ═══
 async function renderDash() {
+  // Limpiar caché de pagos al cambiar periodo para no mostrar datos del anterior
+  window._cachedPagosRep = null;
   var tab = SEL.metricTab;
   var hoy = hoyLocal();
   var semana = [];
@@ -6396,177 +6398,6 @@ async function renderDash() {
   var tReps = 0;
   // Renderizar stats inmediatamente con tReps=0 (datos locales rápidos)
   // Luego actualizar cuando llegan los pagos de Supabase
-  // Opciones para el widget selector de la derecha
-  var WIDGET_SELECTOR_OPTS = [
-    {id:'ops', icon:'🔧', labelKey:'dash.ws_ops', label:'Operaciones'},
-    {id:'urgentes', icon:'🚨', labelKey:'dash.ws_urgentes', label:'Urgentes hoy'},
-    {id:'cobros', icon:'💰', labelKey:'dash.ws_cobros', label:'Cobros pendientes'},
-    {id:'cierre', icon:'📊', labelKey:'dash.ws_cierre', label:'Cierre del día'},
-    {id:'stock', icon:'📦', labelKey:'dash.ws_stock', label:'Stock crítico'},
-    {id:'averias', icon:'📋', labelKey:'dash.ws_averias', label:'Top averías'}
-  ];
-
-  function _getWidgetSelectorActive() {
-    try { return localStorage.getItem('tk_ws_' + TIENDA_ID + '_' + (U&&U.id||'')) || 'ops'; } catch(e) { return 'ops'; }
-  }
-  function _setWidgetSelectorActive(id) {
-    try { localStorage.setItem('tk_ws_' + TIENDA_ID + '_' + (U&&U.id||''), id); } catch(e) {}
-  }
-
-  function _renderWidgetSelectorBody(id) {
-    var box = document.getElementById('wsSelectorBody');
-    if (!box) return;
-    if (id === 'ops') {
-      var pend = repsPendienteReparar.length;
-      var entr = repsPorEntregar.length;
-      box.innerHTML =
-        '<div style="padding:14px 16px">' +
-          '<div class="fin-ops-row">' +
-            '<div class="fin-op-mini">' +
-              '<div class="fin-op-mini-icon" style="background:rgba(249,115,22,.12)">🔧</div>' +
-              '<div><div class="fin-op-mini-num">' + pend + '</div><div class="fin-op-mini-lbl" data-t="dash.pendientes_reparar">Pendientes reparar</div></div>' +
-            '</div>' +
-            '<div class="fin-op-mini">' +
-              '<div class="fin-op-mini-icon" style="background:rgba(0,200,150,.12)">📦</div>' +
-              '<div><div class="fin-op-mini-num" style="color:var(--green)">' + entr + '</div><div class="fin-op-mini-lbl" data-t="dash.por_entregar_stat">Por entregar</div></div>' +
-            '</div>' +
-          '</div>' +
-          // Reps en proceso
-          (function(){
-            var enProceso = DB.reps.filter(function(r){ return r.estado==='En Proceso'; }).length;
-            var garantia = DB.reps.filter(function(r){ return r.estado==='Garantía'; }).length;
-            return '<div class="fin-ops-row" style="margin-top:6px">' +
-              '<div class="fin-op-mini">' +
-                '<div class="fin-op-mini-icon" style="background:rgba(0,85,255,.10)">⚙️</div>' +
-                '<div><div class="fin-op-mini-num" style="color:var(--blue)">' + enProceso + '</div><div class="fin-op-mini-lbl" data-t="rep.en_proceso">En proceso</div></div>' +
-              '</div>' +
-              '<div class="fin-op-mini">' +
-                '<div class="fin-op-mini-icon" style="background:rgba(168,85,247,.10)">🛡️</div>' +
-                '<div><div class="fin-op-mini-num" style="color:#8B5CF6">' + garantia + '</div><div class="fin-op-mini-lbl" data-t="rep.garantia">Garantía</div></div>' +
-              '</div>' +
-            '</div>';
-          })() +
-        '</div>';
-    } else if (id === 'urgentes') {
-      var urg = DB.reps.filter(function(r){ return r.prioridad==='Urgente' && r.estado!=='Entregado' && r.estado!=='Rechazado'; }).slice(0,5);
-      var html = '<div style="padding:14px 16px">';
-      if (!urg.length) {
-        html += '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">✅ Sin urgentes</div>';
-      } else {
-        urg.forEach(function(r) {
-          html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">' +
-            '<div style="width:6px;height:6px;border-radius:50%;background:var(--orange);flex-shrink:0"></div>' +
-            '<div style="flex:1;min-width:0">' +
-              '<div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.clienteNombre||'Sin cliente') + '</div>' +
-              '<div style="font-size:10px;color:var(--muted)">' + escHtml(r.marca||'') + ' ' + escHtml(r.modelo||'') + '</div>' +
-            '</div>' +
-            '<div style="font-size:10px;background:rgba(249,115,22,.12);color:var(--orange);padding:2px 7px;border-radius:10px;font-weight:700;flex-shrink:0">' + escHtml(r.estado||'') + '</div>' +
-          '</div>';
-        });
-      }
-      html += '</div>';
-      box.innerHTML = html;
-    } else if (id === 'cobros') {
-      var cobros = DB.reps.filter(function(r){ return (r.restante||0) > 0 && r.estado !== 'Entregado'; }).slice(0,5);
-      var totalPend = cobros.reduce(function(a,r){ return a+(r.restante||0); }, 0);
-      var html = '<div style="padding:14px 16px">';
-      html += '<div style="font-size:10px;color:var(--muted);margin-bottom:8px">' + T('dash.ws_cobros_total') + ': <strong style="color:var(--orange)">' + cur(totalPend) + '</strong></div>';
-      if (!cobros.length) {
-        html += '<div style="font-size:12px;color:var(--muted);text-align:center;padding:16px 0">✅ Sin cobros pendientes</div>';
-      } else {
-        cobros.forEach(function(r) {
-          html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">' +
-            '<div style="min-width:0;flex:1">' +
-              '<div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.clienteNombre||'Sin cliente') + '</div>' +
-              '<div style="font-size:10px;color:var(--muted)">' + escHtml(r.modelo||'') + '</div>' +
-            '</div>' +
-            '<div style="font-size:12px;font-weight:800;color:var(--orange);flex-shrink:0;margin-left:8px">' + cur(r.restante) + '</div>' +
-          '</div>';
-        });
-      }
-      html += '</div>';
-      box.innerHTML = html;
-    } else if (id === 'cierre') {
-      var hoyReps = DB.reps.filter(function(r){ return r.fechaEntregaReal === hoyLocal(); });
-      var hoyVentas = DB.ventas.filter(function(v){ return v.fecha === hoyLocal() && !v.reembolsado; });
-      var totalHoy = hoyReps.reduce(function(a,r){ return a+(r.total||0); }, 0) + hoyVentas.reduce(function(a,v){ return a+(v.total||0); }, 0);
-      box.innerHTML = '<div style="padding:14px 16px">' +
-        '<div class="fin-ops-row">' +
-          '<div class="fin-op-mini"><div class="fin-op-mini-icon" style="background:rgba(0,200,150,.12)">🔧</div>' +
-          '<div><div class="fin-op-mini-num" style="color:var(--green)">' + hoyReps.length + '</div><div class="fin-op-mini-lbl">Reps entregadas hoy</div></div></div>' +
-          '<div class="fin-op-mini"><div class="fin-op-mini-icon" style="background:rgba(0,85,255,.10)">📱</div>' +
-          '<div><div class="fin-op-mini-num" style="color:var(--blue)">' + hoyVentas.length + '</div><div class="fin-op-mini-lbl">Ventas hoy</div></div></div>' +
-        '</div>' +
-        '<div style="margin-top:10px;background:var(--light);border-radius:8px;padding:10px 12px">' +
-          '<div style="font-size:10px;color:var(--muted)">Total caja hoy</div>' +
-          '<div style="font-size:22px;font-weight:800;color:var(--green)">' + cur(totalHoy) + '</div>' +
-        '</div>' +
-      '</div>';
-    } else if (id === 'stock') {
-      var criticos = DB.stock.filter(function(s){ return !s.vendido && (s.unidades||0) <= 2; }).slice(0,6);
-      var html = '<div style="padding:14px 16px">';
-      if (!criticos.length) {
-        html += '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">✅ Stock en buen estado</div>';
-      } else {
-        criticos.forEach(function(s) {
-          var uds = s.unidades||0;
-          html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">' +
-            '<div style="font-size:11px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(s.nombre||'') + '</div>' +
-            '<div style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;flex-shrink:0;' + (uds===0?'background:rgba(239,68,68,.12);color:#EF4444':'background:rgba(249,115,22,.12);color:var(--orange)') + '">' + uds + ' ud.</div>' +
-          '</div>';
-        });
-      }
-      html += '</div>';
-      box.innerHTML = html;
-    } else if (id === 'averias') {
-      var counts = {};
-      DB.reps.forEach(function(r){ if(r.averia) counts[r.averia] = (counts[r.averia]||0)+1; });
-      var sorted = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; }).slice(0,5);
-      var max = sorted.length ? counts[sorted[0]] : 1;
-      var html = '<div style="padding:14px 16px">';
-      sorted.forEach(function(av) {
-        var pct = Math.round(counts[av]/max*100);
-        html += '<div style="margin-bottom:8px">' +
-          '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">' +
-            '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%">' + escHtml(av) + '</span>' +
-            '<span style="font-weight:700;flex-shrink:0">' + counts[av] + '</span>' +
-          '</div>' +
-          '<div style="height:4px;border-radius:2px;background:var(--border)"><div style="height:100%;border-radius:2px;background:var(--orange);width:' + pct + '%"></div></div>' +
-        '</div>';
-      });
-      if (!sorted.length) html += '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">Sin datos</div>';
-      html += '</div>';
-      box.innerHTML = html;
-    }
-    if (typeof applyLang === 'function') applyLang();
-  }
-
-  function renderWidgetSelector() {
-    var grid = document.getElementById('metricsGrid');
-    if (!grid) return;
-    var activeId = _getWidgetSelectorActive();
-    // Tabs
-    var tabsHtml = WIDGET_SELECTOR_OPTS.map(function(opt) {
-      return '<button class="widget-sel-tab' + (opt.id===activeId?' active':'') + '" data-wid="' + opt.id + '">' +
-        opt.icon + ' ' + (T('dash.ws_' + opt.id)||opt.label) +
-      '</button>';
-    }).join('');
-    // Buscar si ya existe el selector
-    var existing = document.getElementById('widgetSelectorCard');
-    if (!existing) {
-      var div = document.createElement('div');
-      div.id = 'widgetSelectorCard';
-      div.className = 'widget-selector-card';
-      div.innerHTML = '<div class="widget-selector-tabs">' + tabsHtml + '</div><div id="wsSelectorBody"></div>';
-      grid.appendChild(div);
-      div.querySelector('.widget-selector-tabs').addEventListener('click', function(e) { var btn = e.target.closest('[data-wid]'); if (!btn) return; var wid = btn.dataset.wid; _setWidgetSelectorActive(wid); div.querySelectorAll('.widget-sel-tab').forEach(function(t){t.classList.remove('active')}); btn.classList.add('active'); _renderWidgetSelectorBody(wid); });
-    } else {
-      existing.querySelector('.widget-selector-tabs').innerHTML = tabsHtml;
-    }
-      existing.querySelector('.widget-selector-tabs').onclick = function(e) { var btn = e.target.closest('[data-wid]'); if (!btn) return; var wid = btn.dataset.wid; _setWidgetSelectorActive(wid); existing.querySelectorAll('.widget-sel-tab').forEach(function(t){t.classList.remove('active')}); btn.classList.add('active'); _renderWidgetSelectorBody(wid); };
-    _renderWidgetSelectorBody(activeId);
-  }
-
   var _renderStats = function(tRepsVal, pagosRepData) {
     var mostrarFinanzas = tienePerm('ventas_ver');
     var mostrarOps = tienePerm('reps_ver');
@@ -6639,8 +6470,180 @@ async function renderDash() {
     }
   };
 
-  // Render inmediato con tReps=0
-  _renderStats(0);
+  // Opciones para el widget selector de la derecha
+var WIDGET_SELECTOR_OPTS = [
+  {id:'ops', icon:'🔧', labelKey:'dash.ws_ops', label:'Operaciones'},
+  {id:'urgentes', icon:'🚨', labelKey:'dash.ws_urgentes', label:'Urgentes hoy'},
+  {id:'cobros', icon:'💰', labelKey:'dash.ws_cobros', label:'Cobros pendientes'},
+  {id:'cierre', icon:'📊', labelKey:'dash.ws_cierre', label:'Cierre del día'},
+  {id:'stock', icon:'📦', labelKey:'dash.ws_stock', label:'Stock crítico'},
+  {id:'averias', icon:'📋', labelKey:'dash.ws_averias', label:'Top averías'}
+];
+
+function _getWidgetSelectorActive() {
+  try { return localStorage.getItem('tk_ws_' + TIENDA_ID + '_' + (U&&U.id||'')) || 'ops'; } catch(e) { return 'ops'; }
+}
+function _setWidgetSelectorActive(id) {
+  try { localStorage.setItem('tk_ws_' + TIENDA_ID + '_' + (U&&U.id||''), id); } catch(e) {}
+}
+
+function _renderWidgetSelectorBody(id) {
+  var box = document.getElementById('wsSelectorBody');
+  if (!box) return;
+  if (id === 'ops') {
+    var pend = repsPendienteReparar.length;
+    var entr = repsPorEntregar.length;
+    box.innerHTML =
+      '<div style="padding:14px 16px">' +
+        '<div class="fin-ops-row">' +
+          '<div class="fin-op-mini">' +
+            '<div class="fin-op-mini-icon" style="background:rgba(249,115,22,.12)">🔧</div>' +
+            '<div><div class="fin-op-mini-num">' + pend + '</div><div class="fin-op-mini-lbl" data-t="dash.pendientes_reparar">Pendientes reparar</div></div>' +
+          '</div>' +
+          '<div class="fin-op-mini">' +
+            '<div class="fin-op-mini-icon" style="background:rgba(0,200,150,.12)">📦</div>' +
+            '<div><div class="fin-op-mini-num" style="color:var(--green)">' + entr + '</div><div class="fin-op-mini-lbl" data-t="dash.por_entregar_stat">Por entregar</div></div>' +
+          '</div>' +
+        '</div>' +
+        // Reps en proceso
+        (function(){
+          var enProceso = DB.reps.filter(function(r){ return r.estado==='En Proceso'; }).length;
+          var garantia = DB.reps.filter(function(r){ return r.estado==='Garantía'; }).length;
+          return '<div class="fin-ops-row" style="margin-top:6px">' +
+            '<div class="fin-op-mini">' +
+              '<div class="fin-op-mini-icon" style="background:rgba(0,85,255,.10)">⚙️</div>' +
+              '<div><div class="fin-op-mini-num" style="color:var(--blue)">' + enProceso + '</div><div class="fin-op-mini-lbl" data-t="rep.en_proceso">En proceso</div></div>' +
+            '</div>' +
+            '<div class="fin-op-mini">' +
+              '<div class="fin-op-mini-icon" style="background:rgba(168,85,247,.10)">🛡️</div>' +
+              '<div><div class="fin-op-mini-num" style="color:#8B5CF6">' + garantia + '</div><div class="fin-op-mini-lbl" data-t="rep.garantia">Garantía</div></div>' +
+            '</div>' +
+          '</div>';
+        })() +
+      '</div>';
+  } else if (id === 'urgentes') {
+    var urg = DB.reps.filter(function(r){ return r.prioridad==='Urgente' && r.estado!=='Entregado' && r.estado!=='Rechazado'; }).slice(0,5);
+    var html = '<div style="padding:14px 16px">';
+    if (!urg.length) {
+      html += '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">✅ Sin urgentes</div>';
+    } else {
+      urg.forEach(function(r) {
+        html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">' +
+          '<div style="width:6px;height:6px;border-radius:50%;background:var(--orange);flex-shrink:0"></div>' +
+          '<div style="flex:1;min-width:0">' +
+            '<div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.clienteNombre||'Sin cliente') + '</div>' +
+            '<div style="font-size:10px;color:var(--muted)">' + escHtml(r.marca||'') + ' ' + escHtml(r.modelo||'') + '</div>' +
+          '</div>' +
+          '<div style="font-size:10px;background:rgba(249,115,22,.12);color:var(--orange);padding:2px 7px;border-radius:10px;font-weight:700;flex-shrink:0">' + escHtml(r.estado||'') + '</div>' +
+        '</div>';
+      });
+    }
+    html += '</div>';
+    box.innerHTML = html;
+  } else if (id === 'cobros') {
+    var cobros = DB.reps.filter(function(r){ return (r.restante||0) > 0 && r.estado !== 'Entregado'; }).slice(0,5);
+    var totalPend = cobros.reduce(function(a,r){ return a+(r.restante||0); }, 0);
+    var html = '<div style="padding:14px 16px">';
+    html += '<div style="font-size:10px;color:var(--muted);margin-bottom:8px">' + T('dash.ws_cobros_total') + ': <strong style="color:var(--orange)">' + cur(totalPend) + '</strong></div>';
+    if (!cobros.length) {
+      html += '<div style="font-size:12px;color:var(--muted);text-align:center;padding:16px 0">✅ Sin cobros pendientes</div>';
+    } else {
+      cobros.forEach(function(r) {
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">' +
+          '<div style="min-width:0;flex:1">' +
+            '<div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.clienteNombre||'Sin cliente') + '</div>' +
+            '<div style="font-size:10px;color:var(--muted)">' + escHtml(r.modelo||'') + '</div>' +
+          '</div>' +
+          '<div style="font-size:12px;font-weight:800;color:var(--orange);flex-shrink:0;margin-left:8px">' + cur(r.restante) + '</div>' +
+        '</div>';
+      });
+    }
+    html += '</div>';
+    box.innerHTML = html;
+  } else if (id === 'cierre') {
+    var hoyReps = DB.reps.filter(function(r){ return r.fechaEntregaReal === hoyLocal(); });
+    var hoyVentas = DB.ventas.filter(function(v){ return v.fecha === hoyLocal() && !v.reembolsado; });
+    var totalHoy = hoyReps.reduce(function(a,r){ return a+(r.total||0); }, 0) + hoyVentas.reduce(function(a,v){ return a+(v.total||0); }, 0);
+    box.innerHTML = '<div style="padding:14px 16px">' +
+      '<div class="fin-ops-row">' +
+        '<div class="fin-op-mini"><div class="fin-op-mini-icon" style="background:rgba(0,200,150,.12)">🔧</div>' +
+        '<div><div class="fin-op-mini-num" style="color:var(--green)">' + hoyReps.length + '</div><div class="fin-op-mini-lbl">Reps entregadas hoy</div></div></div>' +
+        '<div class="fin-op-mini"><div class="fin-op-mini-icon" style="background:rgba(0,85,255,.10)">📱</div>' +
+        '<div><div class="fin-op-mini-num" style="color:var(--blue)">' + hoyVentas.length + '</div><div class="fin-op-mini-lbl">Ventas hoy</div></div></div>' +
+      '</div>' +
+      '<div style="margin-top:10px;background:var(--light);border-radius:8px;padding:10px 12px">' +
+        '<div style="font-size:10px;color:var(--muted)">Total caja hoy</div>' +
+        '<div style="font-size:22px;font-weight:800;color:var(--green)">' + cur(totalHoy) + '</div>' +
+      '</div>' +
+    '</div>';
+  } else if (id === 'stock') {
+    var criticos = DB.stock.filter(function(s){ return !s.vendido && (s.unidades||0) <= 2; }).slice(0,6);
+    var html = '<div style="padding:14px 16px">';
+    if (!criticos.length) {
+      html += '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">✅ Stock en buen estado</div>';
+    } else {
+      criticos.forEach(function(s) {
+        var uds = s.unidades||0;
+        html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">' +
+          '<div style="font-size:11px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(s.nombre||'') + '</div>' +
+          '<div style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;flex-shrink:0;' + (uds===0?'background:rgba(239,68,68,.12);color:#EF4444':'background:rgba(249,115,22,.12);color:var(--orange)') + '">' + uds + ' ud.</div>' +
+        '</div>';
+      });
+    }
+    html += '</div>';
+    box.innerHTML = html;
+  } else if (id === 'averias') {
+    var counts = {};
+    DB.reps.forEach(function(r){ if(r.averia) counts[r.averia] = (counts[r.averia]||0)+1; });
+    var sorted = Object.keys(counts).sort(function(a,b){ return counts[b]-counts[a]; }).slice(0,5);
+    var max = sorted.length ? counts[sorted[0]] : 1;
+    var html = '<div style="padding:14px 16px">';
+    sorted.forEach(function(av) {
+      var pct = Math.round(counts[av]/max*100);
+      html += '<div style="margin-bottom:8px">' +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px">' +
+          '<span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:70%">' + escHtml(av) + '</span>' +
+          '<span style="font-weight:700;flex-shrink:0">' + counts[av] + '</span>' +
+        '</div>' +
+        '<div style="height:4px;border-radius:2px;background:var(--border)"><div style="height:100%;border-radius:2px;background:var(--orange);width:' + pct + '%"></div></div>' +
+      '</div>';
+    });
+    if (!sorted.length) html += '<div style="font-size:12px;color:var(--muted);text-align:center;padding:20px 0">Sin datos</div>';
+    html += '</div>';
+    box.innerHTML = html;
+  }
+  if (typeof applyLang === 'function') applyLang();
+}
+
+function renderWidgetSelector() {
+  var grid = document.getElementById('metricsGrid');
+  if (!grid) return;
+  var activeId = _getWidgetSelectorActive();
+  // Tabs
+  var tabsHtml = WIDGET_SELECTOR_OPTS.map(function(opt) {
+    return '<button class="widget-sel-tab' + (opt.id===activeId?' active':'') + '" data-wid="' + opt.id + '">' +
+      opt.icon + ' ' + (T('dash.ws_' + opt.id)||opt.label) +
+    '</button>';
+  }).join('');
+  // Buscar si ya existe el selector
+  var existing = document.getElementById('widgetSelectorCard');
+  if (!existing) {
+    var div = document.createElement('div');
+    div.id = 'widgetSelectorCard';
+    div.className = 'widget-selector-card';
+    div.innerHTML = '<div class="widget-selector-tabs">' + tabsHtml + '</div><div id="wsSelectorBody"></div>';
+    grid.appendChild(div);
+    div.querySelector('.widget-selector-tabs').addEventListener('click', function(e) { var btn = e.target.closest('[data-wid]'); if (!btn) return; var wid = btn.dataset.wid; _setWidgetSelectorActive(wid); div.querySelectorAll('.widget-sel-tab').forEach(function(t){t.classList.remove('active')}); btn.classList.add('active'); _renderWidgetSelectorBody(wid); });
+  } else {
+    existing.querySelector('.widget-selector-tabs').innerHTML = tabsHtml;
+  }
+    existing.querySelector('.widget-selector-tabs').onclick = function(e) { var btn = e.target.closest('[data-wid]'); if (!btn) return; var wid = btn.dataset.wid; _setWidgetSelectorActive(wid); existing.querySelectorAll('.widget-sel-tab').forEach(function(t){t.classList.remove('active')}); btn.classList.add('active'); _renderWidgetSelectorBody(wid); };
+  _renderWidgetSelectorBody(activeId);
+}
+
+
+// Render inmediato con tReps=0 (usar caché si existe para esta pestaña)
+  _renderStats(0, window._cachedPagosRep || []);
 
   if (SB_KEY) {
     try {
@@ -6649,6 +6652,8 @@ async function renderDash() {
       var pagosRep = await sbGet('pagos_reparacion', 'fecha=gte.' + minF + '&fecha=lte.' + maxF) || [];
       tReps = pagosRep.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
       // Re-renderizar stats con tReps real + datos de pagos por método
+      // Guardar en caché global para que cambios de tab Hoy/Semana/Mes lo usen
+      window._cachedPagosRep = pagosRep;
       _renderStats(tReps, pagosRep);
     } catch(e) { console.warn('tReps:', e); }
   }
