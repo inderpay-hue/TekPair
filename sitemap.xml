@@ -9,7 +9,7 @@
     <priority>1.0</priority>
   </url>
 
-  <!-- Pagina de registro (importante para conversion) -->
+  <!-- Pagina de registro -->
   <url>
     <loc>https://www.tekpair.tech/registro.html</loc>
     <lastmod>2026-05-29</lastmod>
@@ -17,27 +17,157 @@
     <priority>0.8</priority>
   </url>
 
-  <!-- Blog (landing) -->
+  <!-- Blog landing -->
   <url>
     <loc>https://www.tekpair.tech/blog/</loc>
-    <lastmod>2026-05-29</lastmod>
+    <lastmod>2026-06-01</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
   </url>
 
-  <!-- Post: como abrir taller reparacion movil -->
+  <!-- Post 0: como abrir taller -->
   <url>
     <loc>https://www.tekpair.tech/blog/como-abrir-taller-reparacion-movil.html</loc>
-  <!-- Post: gestionar reparaciones sin excel -->
+    <lastmod>2026-05-29</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+  </url>
+
+  <!-- Post 0: gestionar reparaciones sin excel -->
   <url>
     <loc>https://www.tekpair.tech/blog/como-gestionar-reparaciones-moviles-sin-excel.html</loc>
     <lastmod>2026-05-30</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
-    <lastmod>2026-05-29</lastmod>
+
+  <!-- Post 1: cobrar en taller - ES -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/como-cobrar-en-un-taller-de-reparacion-de-moviles.html</loc>
+    <lastmod>2026-05-30</lastmod>
     <changefreq>monthly</changefreq>
-    <priority>0.9</priority>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 1: EN -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/en/how-to-charge-customers-phone-repair-shop.html</loc>
+    <lastmod>2026-05-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 1: DE -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/de/abrechnung-handy-reparatur-werkstatt.html</loc>
+    <lastmod>2026-05-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 1: FR -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/fr/comment-encaisser-atelier-reparation-telephone.html</loc>
+    <lastmod>2026-05-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 1: IT -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/it/come-riscuotere-pagamenti-officina-riparazioni.html</loc>
+    <lastmod>2026-05-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 1: PT -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/pt/como-cobrar-oficina-reparacao-telemoveis.html</loc>
+    <lastmod>2026-05-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Post 2: presupuesto profesional - ES -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/como-hacer-presupuesto-reparacion-profesional.html</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 2: EN -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/en/how-to-write-professional-repair-quote.html</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 2: DE -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/de/professionellen-kostenvoranschlag-erstellen.html</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 2: FR -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/fr/comment-rediger-devis-reparation-professionnel.html</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 2: IT -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/it/come-scrivere-preventivo-riparazione-professionale.html</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 2: PT -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/pt/como-fazer-orcamento-reparacao-profissional.html</loc>
+    <lastmod>2026-05-31</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+
+  <!-- Post 3: stock piezas - ES -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/como-gestionar-stock-piezas-taller-moviles.html</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 3: EN -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/en/how-to-manage-parts-inventory-repair-shop.html</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 3: DE -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/de/ersatzteillager-werkstatt-verwalten.html</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 3: FR -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/fr/gerer-stock-pieces-atelier-reparation.html</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 3: IT -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/it/gestire-magazzino-ricambi-officina.html</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <!-- Post 3: PT -->
+  <url>
+    <loc>https://www.tekpair.tech/blog/pt/gerir-stock-pecas-oficina-reparacao.html</loc>
+    <lastmod>2026-06-01</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
   </url>
 
 </urlset>
