@@ -65,6 +65,20 @@ function normalizarComisionPct(raw, fallback = 20) {
   return n;
 }
 
+// COM-RATE: rate limiting — máx 60 req/min por usuario
+const _comLimits = new Map();
+function _checkComLimit(key) {
+  const now = Date.now();
+  const WINDOW = 60 * 1000;
+  const MAX = 60;
+  let e = _comLimits.get(key);
+  if (!e || now > e.resetAt) e = { count: 0, resetAt: now + WINDOW };
+  e.count++;
+  _comLimits.set(key, e);
+  if (_comLimits.size > 1000) for (const [k,v] of _comLimits) if (now > v.resetAt) _comLimits.delete(k);
+  return e.count <= MAX;
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'GET' && req.method !== 'POST') return res.status(405).end();
 
@@ -88,6 +102,7 @@ export default async function handler(req, res) {
   const tiendaId = decoded.tienda_id || '';
 
   if (!userId || !tiendaId) return res.status(401).json({ error: 'Token incompleto' });
+  if (!_checkComLimit(userId)) return res.status(429).json({ error: 'Demasiadas peticiones' });
 
   const sbHeaders = {
     'apikey': SERVICE_KEY,

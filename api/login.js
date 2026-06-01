@@ -232,8 +232,8 @@ export default async function handler(req, res) {
     if (!cpEmail || !password_actual || !password_nueva) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
-    if (String(password_nueva).length < 6) {
-      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 6 caracteres' });
+    if (String(password_nueva).length < 8) {
+      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres' });
     }
     if (!SB_URL || !SK) {
       return res.status(500).json({ error: 'Configuración de servidor incompleta' });
