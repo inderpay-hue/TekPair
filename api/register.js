@@ -33,12 +33,13 @@ export default async function handler(req, res) {
     let trialUntil = null;
     let planUntil = null;
 
+    let session = null;
     if (session_id && STRIPE_KEY) {
       try {
         const sR = await fetch(`https://api.stripe.com/v1/checkout/sessions/${session_id}?expand[]=subscription`, {
           headers: {'Authorization': `Bearer ${STRIPE_KEY}`}
         });
-        const session = await sR.json();
+        session = await sR.json();
         stripeCustomerId = session.customer || null;
         // CHK-2 fix: leer datos del metadata si no vinieron en body
         if (session.metadata) {
