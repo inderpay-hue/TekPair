@@ -91,6 +91,30 @@ function hasURL(s) { return /https?:\/\/|www\.|\.com|\.net|\.es|\.org|\.tech/i.t
 const BAD_TELS = new Set(['0','1','2','6','7','12','15','22','24','28','33','41','44','45','48','54','55','66','111','123','444','777','000','111111','123456','1234567']);
 function fmtEuros(n) { return Number(n||0).toLocaleString('es-ES',{minimumFractionDigits:2,maximumFractionDigits:2}) + ' €'; }
 
+// Envía un email por Resend con REINTENTOS (3). Vercel→Resend a veces da ETIMEDOUT transitorio;
+// sin reintento, el email se pierde aunque todo lo demás esté bien. Devuelve true si se envió.
+async function _resendSend(payload) {
+  if (!RESEND_KEY) { console.error('[resend] sin RESEND_API_KEY'); return false; }
+  for (let intento = 1; intento <= 3; intento++) {
+    try {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const t = await r.text().catch(() => '');
+      if (r.ok) { console.log('[resend] OK ->', payload.to, '(intento ' + intento + ')'); return true; }
+      console.error('[resend] status', r.status, '->', payload.to, '|', t.slice(0, 300));
+      if (r.status < 500 && r.status !== 429) return false; // 4xx de config: no reintentar (salvo 429)
+    } catch (e) {
+      console.error('[resend] intento', intento, 'error de red:', (e && e.message) || e);
+    }
+    if (intento < 3) await new Promise(res => setTimeout(res, 500 * intento));
+  }
+  console.error('[resend] AGOTADOS 3 intentos ->', payload.to);
+  return false;
+}
+
 // ── ACCIONES CITAS ────────────────────────────────────────────────────────────
 
 async function getTienda(slug) {
@@ -159,7 +183,7 @@ async function enviarEmailAdminCita(tienda, cita) {
   const fechaFmt = new Date(cita.fecha+'T00:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const subject = `Nueva cita: ${cita.cliente_nombre} - ${fechaFmt} ${cita.hora}`;
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;background:#f7f9fc;margin:0;padding:0"><div style="max-width:520px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)"><div style="background:#0F172A;padding:28px;text-align:center"><div style="color:#00C896;font-size:22px;font-weight:800;margin-bottom:4px">⚡ ${esc(tienda.nombre||'TekPair')}</div><div style="color:#94a3b8;font-size:13px">Nueva cita reservada</div></div><div style="padding:26px"><table style="width:100%;border-collapse:collapse;font-size:14px;background:#F7F9FC;border-radius:8px;overflow:hidden"><tr><td style="padding:10px 14px;color:#64748B">Cliente</td><td style="padding:10px 14px;font-weight:700">${esc(cita.cliente_nombre)}</td></tr><tr><td style="padding:10px 14px;color:#64748B">Teléfono</td><td style="padding:10px 14px"><a href="tel:${esc(cita.cliente_tel)}" style="color:#00C896">${esc(cita.cliente_tel)}</a></td></tr>${cita.cliente_email?`<tr><td style="padding:10px 14px;color:#64748B">Email</td><td style="padding:10px 14px">${esc(cita.cliente_email)}</td></tr>`:''}<tr><td style="padding:10px 14px;color:#64748B">Fecha</td><td style="padding:10px 14px;font-weight:700">${esc(fechaFmt)}</td></tr><tr><td style="padding:10px 14px;color:#64748B">Hora</td><td style="padding:10px 14px;font-weight:700">${esc(cita.hora)}</td></tr><tr><td style="padding:10px 14px;color:#64748B">Servicio</td><td style="padding:10px 14px">${esc(cita.servicio||'Consulta')}</td></tr>${(cita.marca||cita.modelo)?`<tr><td style="padding:10px 14px;color:#64748B">Dispositivo</td><td style="padding:10px 14px">${esc(((cita.marca||'')+' '+(cita.modelo||'')).trim())}</td></tr>`:''}</table><p style="font-size:12px;color:#64748B;margin:18px 0 0">Entra a tu dashboard para gestionarla.</p></div><div style="text-align:center;padding:16px;color:#aaa;font-size:11px">TekPair · tekpair.tech</div></div></body></html>`;
-  await fetch('https://api.resend.com/emails',{ method:'POST', headers:{'Authorization':`Bearer ${RESEND_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({from:'TekPair <info@tekpair.tech>',to:[tienda.email],subject,html}) });
+  await _resendSend({ from:'TekPair <info@tekpair.tech>', to:[tienda.email], subject, html });
 }
 
 // ── ACCIONES PRESUPUESTOS (PRES-C) ───────────────────────────────────────────
@@ -381,17 +405,7 @@ async function enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url) {
   <div style="text-align:center;padding:16px;color:#aaa;font-size:11px">TekPair · tekpair.tech</div>
 </div>
 </body></html>`;
-  const rp = await fetch('https://api.resend.com/emails',{
-    method:'POST',
-    headers:{'Authorization':`Bearer ${RESEND_KEY}`,'Content-Type':'application/json'},
-    body: JSON.stringify({ from:'TekPair <noreply@tekpair.tech>', to:[cliEmail], subject:`Presupuesto de reparación — ${rep.marca||''} ${rep.modelo||''}`, html })
-  });
-  if (!rp.ok) {
-    const t = await rp.text().catch(() => '');
-    console.error('[pres-email] Resend RECHAZÓ:', rp.status, '| to:', cliEmail, '| resp:', t.slice(0, 400));
-  } else {
-    console.log('[pres-email] enviado OK a', cliEmail);
-  }
+  await _resendSend({ from:'TekPair <noreply@tekpair.tech>', to:[cliEmail], subject:`Presupuesto de reparación — ${rep.marca||''} ${rep.modelo||''}`, html });
 }
 
 async function presRechazar(body, ip) {
