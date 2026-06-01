@@ -126,9 +126,18 @@
   }
 
   function _supabaseHeaders() {
+    var token = window.JWT_TOKEN;
+    if (!token) {
+      // Sin JWT válido no podemos hacer operaciones autenticadas
+      // Mostrar modal de sesión expirada si está disponible
+      if (typeof window.__tekpairMostrarSesionExpirada === 'function') {
+        window.__tekpairMostrarSesionExpirada();
+      }
+      throw new Error('Sesión no iniciada. Vuelve a iniciar sesión.');
+    }
     return {
       'apikey': window.SB_KEY,
-      'Authorization': 'Bearer ' + (window.JWT_TOKEN || window.SB_KEY),
+      'Authorization': 'Bearer ' + token,
       'Content-Type': 'application/json',
       'Prefer': 'return=representation'
     };

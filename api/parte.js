@@ -34,7 +34,7 @@ setInterval(() => {
   }
 }, 60_000).unref?.();
 
-const ID_RE = /^r[0-9]{8,20}$/;
+const ID_RE = /^r[0-9a-z_]{8,40}$/i; // acepta r<timestamp>_<random6>
 const TOKEN_RE = /^[a-z0-9]{12,32}$/;
 
 export default async function handler(req, res) {
