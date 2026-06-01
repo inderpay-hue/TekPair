@@ -87,7 +87,7 @@
 
     <div id="form">
       <label for="pw1">Nueva contraseña</label>
-      <input type="password" id="pw1" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+      <input type="password" id="pw1" placeholder="Mínimo 8 caracteres" minlength="8" autocomplete="new-password">
       <label for="pw2">Repetir nueva contraseña</label>
       <input type="password" id="pw2" placeholder="Repite la contraseña" autocomplete="new-password">
       <button id="btn" onclick="enviarReset()">Guardar nueva contraseña</button>
@@ -123,7 +123,7 @@
     var pw1 = document.getElementById('pw1').value || '';
     var pw2 = document.getElementById('pw2').value || '';
 
-    if (pw1.length < 6) { mostrar('La contraseña debe tener al menos 6 caracteres.', 'err'); return; }
+    if (pw1.length < 8) { mostrar('La contraseña debe tener al menos 8 caracteres.', 'err'); return; }
     if (pw1 !== pw2) { mostrar('Las contraseñas no coinciden.', 'err'); return; }
 
     var btn = document.getElementById('btn');
