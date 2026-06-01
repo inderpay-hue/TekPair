@@ -981,7 +981,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
-  <script src="/lang/lang.v8.js?v=fin003"></script>
+  <script src="/lang/lang.v8.js?v=home001"></script>
 </head>
 <body>
 <div id="app">
@@ -1262,7 +1262,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="card-title" style="margin:0"><span data-t="dash.cierre_dia">Cierre del día</span></div>
         <button class="btn-sm" style="background:var(--dark);color:white" onclick="cierreDia()"><span data-t="gen.generar">Generar</span></button>
       </div>
-      <div id="cierreBox"><div class="empty" style="padding:12px">Pulsa Generar para ver el resumen</div></div>
+      <div id="cierreBox"><div class="empty" style="padding:12px" data-t="dash.cierre_cargando">Calculando cierre...</div></div>
     </div>
   </div>
 
@@ -6978,7 +6978,7 @@ function renderDashWidgets() {
   };
 
   document.getElementById('repsPendientesBox').innerHTML = renderList(pend, 'No hay reparaciones pendientes', '#F97316');
-  document.getElementById('repsEntregarBox').innerHTML = renderList(ent, T('dash.sin_stock'), '#00C896');
+  document.getElementById('repsEntregarBox').innerHTML = renderList(ent, T('dash.sin_entregas'), '#00C896');
   document.getElementById('repsPendientesCount').textContent = pend.length ? '(' + pend.length + ')' : '';
   document.getElementById('repsEntregarCount').textContent = ent.length ? '(' + ent.length + ')' : '';
   if (typeof renderNotas === 'function') renderNotas();
@@ -7001,6 +7001,10 @@ function renderDashWidgets() {
   try { renderWidgetRepsEstado(); } catch(e){}
   try { renderWidgetTiempoMedio(); } catch(e){}
   try { renderWidgetClisInactivos(); } catch(e){}
+  // FIX-HOME-1: urgentes se rellena en cada render del home
+  try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch(e){}
+  // FIX-HOME-2: cierre se precalcula automáticamente (sin await, sin email, sin PDF)
+  try { if (typeof renderWidgetCierre === 'function') renderWidgetCierre(); } catch(e){}
 
   // VIS-5: ocultar cards de Inicio cuyo contenido sea "vacío" + banner resumen
   try { _colapsarCardsVacios(); } catch(e){}
@@ -13000,6 +13004,40 @@ function emailReporte() {
 }
 
 // ═══ CIERRE DEL DIA ═══
+async // FIX-HOME-2: renderWidgetCierre — rellena cierreBox automáticamente al cargar
+// versión sync (sin await) usando DB local, sin toast ni PDF/email
+function renderWidgetCierre() {
+  if (!widgetVisible('widget_cierre')) return;
+  var el = document.getElementById('cierreBox');
+  if (!el) return;
+  var hoy = new Date().toLocaleDateString('es');
+  var vH = DB.ventas.filter(function(v) { return !v.reembolsado && v.fecha === hoy; });
+  var tV = vH.reduce(function(a, v) { return a + v.total; }, 0);
+  // Reparaciones entregadas hoy (dato local, sin await)
+  var rH = DB.reps.filter(function(r) { return r.fechaEntregaReal === hoyLocal() && r.estado === 'Entregado'; });
+  var tR = rH.reduce(function(a, r) { return a + (r.total || 0); }, 0);
+  var pagos = {};
+  vH.forEach(function(v) { pagos[v.pago || 'Efectivo'] = (pagos[v.pago || 'Efectivo'] || 0) + v.total; });
+  rH.forEach(function(r) { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); });
+  var total = tV + tR;
+  if (total === 0 && !vH.length && !rH.length) {
+    el.innerHTML = '<div class="empty" style="padding:12px">' + T('dash.cierre_sin_movimientos') + '</div>';
+    return;
+  }
+  var pagosHtml = Object.keys(pagos).map(function(m) {
+    return '<div class="cierre-stat"><span>💳 ' + escHtml(m) + '</span><strong>' + cur(pagos[m]) + '</strong></div>';
+  }).join('');
+  el.innerHTML =
+    '<div class="cierre-stat"><span>' + T('dash.ventas_hoy') + ' (' + vH.length + ')</span><strong style="color:var(--blue)">' + cur(tV) + '</strong></div>' +
+    '<div class="cierre-stat"><span>' + T('dash.reps_hoy') + ' (' + rH.length + ')</span><strong style="color:var(--purple)">' + cur(tR) + '</strong></div>' +
+    pagosHtml +
+    '<div style="display:flex;justify-content:space-between;padding:10px 12px;background:var(--dark);color:white;border-radius:8px;margin-top:8px;font-weight:800">' +
+    '<span>TOTAL</span><span style="color:var(--green)">' + cur(total) + '</span></div>' +
+    '<div style="margin-top:8px;text-align:center">' +
+    '<button class="btn-sm" style="background:var(--dark);color:white" onclick="cierreDia()">' + T('gen.generar') + ' PDF / Email</button>' +
+    '</div>';
+}
+
 async function cierreDia() {
   if (!tienePerm('caja_cerrar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var hoy = new Date().toLocaleDateString('es');
