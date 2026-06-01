@@ -162,7 +162,7 @@ var STATE = {
 
 // ═══ HELPERS ═══
 function $(sel){ return document.querySelector(sel); }
-function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 function pad(n){ return String(n).padStart(2,'0'); }
 function fmtFecha(yyyymmdd) {
   var p = yyyymmdd.split('-');
