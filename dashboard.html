@@ -5201,6 +5201,17 @@ function escHtml(s) {
     return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c];
   });
 }
+// Normaliza un teléfono para enlaces wa.me: solo dígitos + prefijo de país si falta.
+// España (34) por defecto, consistente con factura.js. wa.me exige número internacional sin '+'.
+function waTel(tel) {
+  var t = String(tel == null ? '' : tel).replace(/[^0-9+]/g, '');
+  if (!t) return '';
+  if (t.charAt(0) === '+') t = t.slice(1);
+  t = t.replace(/\D/g, '');
+  if (t.indexOf('00') === 0) t = t.slice(2);   // 0034... → 34...
+  if (t.length === 9) t = '34' + t;            // número español sin prefijo
+  return t;
+}
 var TIENDA = {
   nombre:'Mi Tienda',dir:'',tel:'',email:'',cif:'',web:'',
   garantia:'',politica:'',logo_url:'',
@@ -7599,7 +7610,7 @@ function renderWidgetClisInactivos() {
     html += '</div>';
     if (it.cli.tel) {
       var msg = encodeURIComponent(waMsg('saludar')(it.cli.nombre || '', TIENDA.nombre || 'la tienda'));
-      html += '<a href="https://wa.me/' + it.cli.tel.replace(/\D/g,'') + '?text=' + msg + '" target="_blank" rel="noopener noreferrer" class="btn-sm" style="background:#25D366;color:white;font-size:11px;padding:4px 10px;text-decoration:none">💬 Saludar</a>';
+      html += '<a href="https://wa.me/' + waTel(it.cli.tel) + '?text=' + msg + '" target="_blank" rel="noopener noreferrer" class="btn-sm" style="background:#25D366;color:white;font-size:11px;padding:4px 10px;text-decoration:none">💬 Saludar</a>';
     }
     html += '</div>';
   });
@@ -8593,7 +8604,7 @@ async function confirmarEnviarPres() {
 
     // Si WhatsApp: abrir wa.me directamente
     if (wa && data.tel && data.waMensaje) {
-      var telLimpio = data.tel.replace(/\D/g,'');
+      var telLimpio = waTel(data.tel);
       var waUrl = 'https://wa.me/' + telLimpio + '?text=' + data.waMensaje;
       window.open(waUrl, '_blank');
     }
@@ -15387,7 +15398,7 @@ function renderPreviewWA() {
 function enviarWhatsApp() {
   if (!_waContexto || !_waContexto.cli) return;
   var msg = document.getElementById('waMensaje').value;
-  var tel = (_waContexto.cli.tel || '').replace(/\D/g, '');
+  var tel = waTel(_waContexto.cli.tel);
   if (!tel) { toast('Sin teléfono', 'err'); return; }
   var url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
@@ -16755,7 +16766,7 @@ function abrirCita(id) {
   if (c.cliente_tel) html += '<a href="tel:' + esc(c.cliente_tel) + '" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px">📞 Llamar</a>';
   if (c.cliente_tel) {
     var msg = encodeURIComponent(waMsg('cita')(c.cliente_nombre || '', fechaTxt, c.hora||'', TIENDA.nombre||''));
-    var tel = c.cliente_tel.replace(/[^0-9]/g, '');
+    var tel = waTel(c.cliente_tel);
     html += '<a href="https://wa.me/' + tel + '?text=' + msg + '" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px;background:#25D366;color:white">💬 WhatsApp</a>';
   }
   html += '</div>';
