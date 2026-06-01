@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "lint": "eslint .",
-    "lint:api": "eslint api/"
+    "lint:api": "eslint api/",
+    "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",

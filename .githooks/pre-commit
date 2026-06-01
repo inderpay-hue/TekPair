@@ -1,0 +1,22 @@
+#!/bin/sh
+# Pre-commit hook de TekPair: corre ESLint y BLOQUEA el commit si hay errores.
+# Los warnings no bloquean. Para saltarlo puntualmente: git commit --no-verify
+#
+# Activación (una vez por máquina):  git config core.hooksPath .githooks
+
+# Si ESLint no está instalado (clon fresco sin npm install), no bloquear.
+if [ ! -x "./node_modules/.bin/eslint" ]; then
+  echo "⚠ ESLint no instalado (corre 'npm install'). Saltando lint."
+  exit 0
+fi
+
+echo "▶ ESLint (pre-commit)…"
+./node_modules/.bin/eslint .
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✖ ESLint encontró ERRORES — commit cancelado."
+  echo "  Arréglalos, o usa 'git commit --no-verify' si es intencional."
+  exit 1
+fi
+echo "✓ ESLint OK"
+exit 0
