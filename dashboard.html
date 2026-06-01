@@ -14446,10 +14446,13 @@ function tienePerm(perm) {
   return U.permisos[perm] === true;
 }
 
-// Para widgets: visible por defecto, solo se oculta si admin (de la tienda) pone explícitamente false
-// El admin TAMBIÉN respeta sus propias prefs (puede ocultar widgets de su dashboard)
+// Para widgets: visible por defecto, solo se oculta si el usuario pone explícitamente false
+// Admin con permisos.todo o rol=admin NUNCA tiene widgets defaultOn ocultos por permisos
+// (solo puede ocultarlos desde el gestor de orden de widgets)
 function widgetVisible(perm) {
   if (!U) return false;
+  // Admin nunca tiene widgets bloqueados por permisos
+  if (U.rol === 'admin' || (U.permisos && U.permisos.todo)) return true;
   if (U.permisos && U.permisos[perm] === false) return false;
   return true;
 }
