@@ -1078,7 +1078,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           <button onclick="setTema('negro');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#111;border:1px solid #444;display:inline-block"></span>Negro</button>
           <button onclick="setTema('grafito');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#6B7280;display:inline-block"></span>Grafito</button>
           <button onclick="setTema('ambar');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#D97706;display:inline-block"></span>Ámbar</button>
-          <button onclick="setTema('');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid #ddd;display:inline-block"></span>Claro</button>
+          <button onclick="setTema('light');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid #ddd;display:inline-block"></span>Claro</button>
         </div>
       </div>
       <div style="position:relative;flex:1">
@@ -6637,7 +6637,6 @@ function renderWidgetSelector() {
   } else {
     existing.querySelector('.widget-selector-tabs').innerHTML = tabsHtml;
   }
-    existing.querySelector('.widget-selector-tabs').onclick = function(e) { var btn = e.target.closest('[data-wid]'); if (!btn) return; var wid = btn.dataset.wid; _setWidgetSelectorActive(wid); existing.querySelectorAll('.widget-sel-tab').forEach(function(t){t.classList.remove('active')}); btn.classList.add('active'); _renderWidgetSelectorBody(wid); };
   _renderWidgetSelectorBody(activeId);
 }
 
