@@ -12653,17 +12653,17 @@ function toggleGarRep() {
   var sw = document.getElementById('garRepActiva');
   var opts = document.getElementById('garRepOptions');
   if (sw && opts) opts.style.display = sw.checked ? 'block' : 'none';
-  actualizarAvisoGarantia();
+  actualizarAvisoGarantiaAjustes();
 }
 
 function toggleGarVen() {
   var sw = document.getElementById('garVenActiva');
   var opts = document.getElementById('garVenOptions');
   if (sw && opts) opts.style.display = sw.checked ? 'block' : 'none';
-  actualizarAvisoGarantia();
+  actualizarAvisoGarantiaAjustes();
 }
 
-function actualizarAvisoGarantia() {
+function actualizarAvisoGarantiaAjustes() {
   var aviso = document.getElementById('garEstadoAviso');
   if (!aviso) return;
   var rep = document.getElementById('garRepActiva');
@@ -13784,22 +13784,6 @@ function felicitarCumple(cliId) {
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
 }
 
-function toggleTemaMenu() {
-  var m = document.getElementById('temaMenu');
-  if (!m) return;
-  m.style.display = m.style.display === 'none' ? 'block' : 'none';
-  if (m.style.display === 'block') {
-    setTimeout(function() {
-      document.addEventListener('click', function ct(e) {
-        var m2 = document.getElementById('temaMenu');
-        if (m2 && !m2.contains(e.target) && !e.target.matches('[onclick*="toggleTemaMenu"]')) {
-          m2.style.display = 'none';
-        }
-        document.removeEventListener('click', ct);
-      });
-    }, 100);
-  }
-}
 function toggleLangMenu() {
   var m = document.getElementById('langMenu');
   if (!m) return;
@@ -13818,21 +13802,6 @@ function toggleLangMenu() {
 function closeTemaMenuDash() {
   var m = document.getElementById('temaMenu');
   if (m) m.style.display = 'none';
-}
-function toggleTemaMenu() {
-  var m = document.getElementById('temaMenu');
-  if (m) {
-    m.style.display = m.style.display === 'none' ? 'block' : 'none';
-    if (m.style.display === 'block') {
-      setTimeout(function() {
-        document.addEventListener('click', function ct(e) {
-          if (!m.contains(e.target) && !e.target.matches('[onclick*="toggleTemaMenu"]')) m.style.display='none';
-          document.removeEventListener('click', ct);
-        });
-      }, 100);
-    }
-    return;
-  }
 }
 function closeLangMenuDash() {
   var m = document.getElementById('langMenu');
