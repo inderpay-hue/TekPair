@@ -158,7 +158,7 @@ async function enviarEmailAdminCita(tienda, cita) {
   const fechaFmt = new Date(cita.fecha+'T00:00:00').toLocaleDateString('es-ES',{weekday:'long',day:'numeric',month:'long',year:'numeric'});
   const subject = `Nueva cita: ${cita.cliente_nombre} - ${fechaFmt} ${cita.hora}`;
   const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;background:#f7f9fc;margin:0;padding:0"><div style="max-width:520px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)"><div style="background:#0F172A;padding:28px;text-align:center"><div style="color:#00C896;font-size:22px;font-weight:800;margin-bottom:4px">⚡ ${esc(tienda.nombre||'TekPair')}</div><div style="color:#94a3b8;font-size:13px">Nueva cita reservada</div></div><div style="padding:26px"><table style="width:100%;border-collapse:collapse;font-size:14px;background:#F7F9FC;border-radius:8px;overflow:hidden"><tr><td style="padding:10px 14px;color:#64748B">Cliente</td><td style="padding:10px 14px;font-weight:700">${esc(cita.cliente_nombre)}</td></tr><tr><td style="padding:10px 14px;color:#64748B">Teléfono</td><td style="padding:10px 14px"><a href="tel:${esc(cita.cliente_tel)}" style="color:#00C896">${esc(cita.cliente_tel)}</a></td></tr>${cita.cliente_email?`<tr><td style="padding:10px 14px;color:#64748B">Email</td><td style="padding:10px 14px">${esc(cita.cliente_email)}</td></tr>`:''}<tr><td style="padding:10px 14px;color:#64748B">Fecha</td><td style="padding:10px 14px;font-weight:700">${esc(fechaFmt)}</td></tr><tr><td style="padding:10px 14px;color:#64748B">Hora</td><td style="padding:10px 14px;font-weight:700">${esc(cita.hora)}</td></tr><tr><td style="padding:10px 14px;color:#64748B">Servicio</td><td style="padding:10px 14px">${esc(cita.servicio||'Consulta')}</td></tr>${(cita.marca||cita.modelo)?`<tr><td style="padding:10px 14px;color:#64748B">Dispositivo</td><td style="padding:10px 14px">${esc(((cita.marca||'')+' '+(cita.modelo||'')).trim())}</td></tr>`:''}</table><p style="font-size:12px;color:#64748B;margin:18px 0 0">Entra a tu dashboard para gestionarla.</p></div><div style="text-align:center;padding:16px;color:#aaa;font-size:11px">TekPair · tekpair.tech</div></div></body></html>`;
-  await fetch('https://api.resend.com/emails',{ method:'POST', headers:{'Authorization':`Bearer ${RESEND_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({from:'TekPair <hola@tekpair.tech>',to:[tienda.email],subject,html}) });
+  await fetch('https://api.resend.com/emails',{ method:'POST', headers:{'Authorization':`Bearer ${RESEND_KEY}`,'Content-Type':'application/json'}, body:JSON.stringify({from:'TekPair <info@tekpair.tech>',to:[tienda.email],subject,html}) });
 }
 
 // ── ACCIONES PRESUPUESTOS (PRES-C) ───────────────────────────────────────────
@@ -378,7 +378,7 @@ async function enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url) {
   await fetch('https://api.resend.com/emails',{
     method:'POST',
     headers:{'Authorization':`Bearer ${RESEND_KEY}`,'Content-Type':'application/json'},
-    body: JSON.stringify({ from:'TekPair <hola@tekpair.tech>', to:[cliEmail], subject:`Presupuesto de reparación — ${rep.marca||''} ${rep.modelo||''}`, html })
+    body: JSON.stringify({ from:'TekPair <info@tekpair.tech>', to:[cliEmail], subject:`Presupuesto de reparación — ${rep.marca||''} ${rep.modelo||''}`, html })
   });
 }
 

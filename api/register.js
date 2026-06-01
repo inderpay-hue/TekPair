@@ -255,7 +255,7 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: 'Tekpair <hola@tekpair.tech>',
+          from: 'Tekpair <info@tekpair.tech>',
           to: [email],
           subject: W.subj,
           html: `

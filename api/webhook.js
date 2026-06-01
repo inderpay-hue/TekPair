@@ -103,7 +103,7 @@ export default async function handler(req, res) {
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json'},
-        body: JSON.stringify({from:'Tekpair <hola@tekpair.tech>', to:[to], subject, html})
+        body: JSON.stringify({from:'Tekpair <info@tekpair.tech>', to:[to], subject, html})
       });
     } catch(e){ console.error('Email error:', e); }
   }
@@ -236,7 +236,7 @@ export default async function handler(req, res) {
     <h2 style="color:#374151">Suscripción cancelada</h2>
     <p>Tu suscripción a Tekpair ha sido cancelada. Tus datos se conservarán durante 30 días por si quieres reactivar.</p>
     <a href="https://tekpair.tech/registro.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:16px">Volver a Tekpair →</a>
-    <p style="color:#94A3B8;font-size:12px;margin-top:16px">¿Algún comentario? hola@tekpair.tech</p>
+    <p style="color:#94A3B8;font-size:12px;margin-top:16px">¿Algún comentario? info@tekpair.tech</p>
   </div>
 </div>`);
           }
@@ -356,7 +356,7 @@ export default async function handler(req, res) {
     <p>Hemos intentado cobrar tu suscripción pero el pago no se ha procesado. Intento ${attemptCount}.</p>
     <p>Por favor actualiza tu método de pago para mantener el acceso.</p>
     <a href="https://tekpair.tech/app.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:16px">Actualizar método →</a>
-    <p style="color:#94A3B8;font-size:12px;margin-top:16px">¿Necesitas ayuda? hola@tekpair.tech</p>
+    <p style="color:#94A3B8;font-size:12px;margin-top:16px">¿Necesitas ayuda? info@tekpair.tech</p>
   </div>
 </div>`);
         }
