@@ -3,6 +3,12 @@
 // Centraliza TODO el estado de suscripción en `tiendas`:
 //   plan, plan_status, plan_until, stripe_customer_id, stripe_sub_id, trial_until, plan_email
 
+// W7: desactivar el body parser de Vercel. La verificación de firma de Stripe necesita
+// el body EXACTO en crudo (getRawBody). Si Vercel parsea el body antes, el stream queda
+// consumido y la firma siempre falla. Este handler nunca usa req.body, solo getRawBody,
+// así que desactivarlo es seguro y obligatorio para que los webhooks funcionen.
+export const config = { api: { bodyParser: false } };
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
