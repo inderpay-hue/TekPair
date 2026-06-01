@@ -434,6 +434,27 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* ═══ STATS ═══ */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
 /* VIS-16: zonas del dashboard */
+/* VIS-19: página Más opciones */
+.pmas-group-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:16px 0 8px;display:flex;align-items:center;gap:8px}
+.pmas-group-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.pmas-group-label:first-child{margin-top:0}
+.pmas-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:4px}
+@media(min-width:900px){.pmas-grid{grid-template-columns:repeat(3,1fr)}}
+.pmas-btn{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--white);border:1px solid var(--border);border-radius:12px;cursor:pointer;font-family:inherit;text-align:left;transition:transform .12s var(--ease),box-shadow .12s var(--ease),border-color .12s var(--ease);box-shadow:var(--shadow-sm)}
+.pmas-btn:hover{border-color:#cbd5e1;box-shadow:var(--shadow-md);transform:translateY(-1px)}
+.pmas-btn:active{transform:translateY(0) scale(.99)}
+.pmas-icon{width:42px;height:42px;border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.pmas-icon.c-green{background:rgba(0,200,150,.10);color:var(--green)}
+.pmas-icon.c-terra{background:rgba(194,65,12,.10);color:#C2410C}
+.pmas-icon.c-orange{background:rgba(249,115,22,.10);color:var(--orange)}
+.pmas-icon.c-red{background:rgba(239,68,68,.10);color:var(--red)}
+.pmas-icon.c-dark{background:rgba(15,23,41,.08);color:var(--dark)}
+.pmas-icon.c-teal{background:rgba(20,184,166,.10);color:#0F9488}
+.pmas-icon.c-slate{background:rgba(100,116,139,.10);color:#64748B}
+.pmas-icon.c-brown{background:rgba(146,64,14,.10);color:#92400E}
+.pmas-title{font-size:13px;font-weight:700;color:var(--text);line-height:1.2;margin-bottom:2px}
+.pmas-desc{font-size:11px;color:var(--muted);line-height:1.3}
+
 .dash-zone-label{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 8px}
 .dash-zone-label::after{content:'';flex:1;height:1px;background:var(--border)}
 .dash-zone-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
@@ -916,7 +937,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
-  <script src="/lang/lang.v8.js?v=d888837"></script>
+  <script src="/lang/lang.v8.js?v=35e25d2"></script>
 </head>
 <body>
 <div id="app">
@@ -1410,59 +1431,94 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 <!-- PAGE: MAS -->
 <div class="page" id="pMas">
-  <div class="sec-title" style="margin-bottom:14px"><span data-t="nav.mas_opciones">Más opciones</span></div>
-  <div class="quick-grid">
-    <button class="qbtn qbtn2 c-green"  onclick="navTo('pFacturas')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      <span data-t="fact.titulo">Facturas</span></button>
-    <button class="qbtn qbtn2 c-terra"  onclick="navTo('pPresupuestos')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
-      <span data-t="pres.titulo">Presupuestos</span></button>
-    <button class="qbtn qbtn2 c-orange" onclick="navTo('pCitas')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-      <span data-t="nav.citas">Citas</span></button>
-    <button class="qbtn qbtn2 c-dark"   onclick="navTo('pClis')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-      <span data-t="nav.clientes">Clientes</span></button>
-    <button class="qbtn qbtn2 c-teal"   onclick="navTo('pProvs')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-      <span data-t="nav.proveedores">Proveedores</span></button>
-    <button class="qbtn qbtn2 c-green"  onclick="navTo('pCajas')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
-      <span data-t="nav.cajas">Cajas</span></button>
-    <button class="qbtn qbtn2 c-red"    onclick="navTo('pGastos')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
-      <span data-t="nav.gastos">Gastos</span></button>
-    <button class="qbtn qbtn2 c-terra"  onclick="navTo('pReportes')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-      <span data-t="nav.reportes">Reportes</span></button>
-    <button class="qbtn qbtn2 c-orange" onclick="navTo('pTienda')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-      <span data-t="gen.mi_tienda">Mi Tienda</span></button>
-    <button class="qbtn qbtn2 c-brown"  onclick="navTo('pAjustes')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      <span data-t="nav.ajustes">Ajustes</span></button>
-    <button class="qbtn qbtn2 c-orange" onclick="navTo('pServicios')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>
-      <span data-t="nav.servicios">Servicios</span></button>
-    <button class="qbtn qbtn2 c-slate"  onclick="window.location.href='catalogo.html'">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
-      <span data-t="nav.catalogo">Catálogo</span></button>
-    <button class="qbtn qbtn2 c-slate"  id="btnUsuarios" onclick="navTo('pUsuarios')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-      <span data-t="nav.usuarios">Usuarios</span></button>
-    <button class="qbtn qbtn2 c-green"  onclick="navTo('pImportar')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
-      <span data-t="gen.importar">Importar</span></button>
-    <button class="qbtn qbtn2 c-brown"  onclick="backupManual()">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-      <span data-t="gen.backup">Backup</span></button>
-    <button class="qbtn qbtn2 c-teal"   onclick="window.open('/guia.html','_blank')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-      <span data-t="nav.ayuda">Ayuda</span></button>
-    <button class="qbtn qbtn2 c-brown"  onclick="window.open('/tekpair-inicio-rapido.pdf','_blank')">
-      <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
-      <span data-t="gen.inicio_rapido">Inicio rápido</span></button>
+  <div class="sec-title" style="margin-bottom:16px"><span data-t="nav.mas_opciones">Más opciones</span></div>
+
+  <!-- GRUPO OPERACIÓN -->
+  <div class="pmas-group-label"><span data-t="nav.grupo_operacion">Operación</span></div>
+  <div class="pmas-grid">
+    <button class="pmas-btn" onclick="navTo('pFacturas')">
+      <div class="pmas-icon c-green"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="fact.titulo">Facturas</div><div class="pmas-desc" data-t="mas.desc_facturas">Genera y descarga facturas</div></div>
+    </button>
+    <button class="pmas-btn" onclick="navTo('pPresupuestos')">
+      <div class="pmas-icon c-terra"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="9" y1="7" x2="15" y2="7"/><line x1="9" y1="12" x2="15" y2="12"/><line x1="9" y1="17" x2="13" y2="17"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="pres.titulo">Presupuestos</div><div class="pmas-desc" data-t="mas.desc_presupuestos">Envía presupuestos a clientes</div></div>
+    </button>
+    <button class="pmas-btn" onclick="navTo('pCitas')">
+      <div class="pmas-icon c-orange"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="nav.citas">Citas</div><div class="pmas-desc" data-t="mas.desc_citas">Agenda y gestiona citas</div></div>
+    </button>
+    <button class="pmas-btn" onclick="navTo('pGastos')">
+      <div class="pmas-icon c-red"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="nav.gastos">Gastos</div><div class="pmas-desc" data-t="mas.desc_gastos">Registra gastos del negocio</div></div>
+    </button>
+    <button class="pmas-btn" onclick="navTo('pReportes')">
+      <div class="pmas-icon c-terra"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="nav.reportes">Reportes</div><div class="pmas-desc" data-t="mas.desc_reportes">Estadísticas e informes</div></div>
+    </button>
+    <button class="pmas-btn" onclick="navTo('pCajas')">
+      <div class="pmas-icon c-green"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="nav.cajas">Cajas</div><div class="pmas-desc" data-t="mas.desc_cajas">Control de caja diaria</div></div>
+    </button>
+  </div>
+
+  <!-- GRUPO GESTIÓN -->
+  <div class="pmas-group-label"><span data-t="nav.grupo_gestion">Gestión</span></div>
+  <div class="pmas-grid">
+    <button class="pmas-btn" onclick="navTo('pClis')">
+      <div class="pmas-icon c-dark"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="nav.clientes">Clientes</div><div class="pmas-desc" data-t="mas.desc_clientes">Base de datos de clientes</div></div>
+    </button>
+    <button class="pmas-btn" onclick="navTo('pProvs')">
+      <div class="pmas-icon c-teal"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="nav.proveedores">Proveedores</div><div class="pmas-desc" data-t="mas.desc_proveedores">Gestiona tus proveedores</div></div>
+    </button>
+    <button class="pmas-btn" onclick="navTo('pServicios')">
+      <div class="pmas-icon c-orange"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="nav.servicios">Servicios</div><div class="pmas-desc" data-t="mas.desc_servicios">Catálogo de servicios y precios</div></div>
+    </button>
+    <button class="pmas-btn" onclick="window.location.href='catalogo.html'">
+      <div class="pmas-icon c-slate"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="nav.catalogo">Catálogo</div><div class="pmas-desc" data-t="mas.desc_catalogo">Modelos y referencias</div></div>
+    </button>
+  </div>
+
+  <!-- GRUPO CONFIGURACIÓN -->
+  <div class="pmas-group-label"><span data-t="nav.grupo_config">Configuración</span></div>
+  <div class="pmas-grid">
+    <button class="pmas-btn" onclick="navTo('pTienda')">
+      <div class="pmas-icon c-orange"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="gen.mi_tienda">Mi Tienda</div><div class="pmas-desc" data-t="mas.desc_tienda">Datos y perfil de la tienda</div></div>
+    </button>
+    <button class="pmas-btn" onclick="navTo('pAjustes')">
+      <div class="pmas-icon c-brown"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="nav.ajustes">Ajustes</div><div class="pmas-desc" data-t="mas.desc_ajustes">Preferencias y configuración</div></div>
+    </button>
+    <button class="pmas-btn" id="btnUsuarios" onclick="navTo('pUsuarios')">
+      <div class="pmas-icon c-slate"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="nav.usuarios">Usuarios</div><div class="pmas-desc" data-t="mas.desc_usuarios">Gestiona accesos y permisos</div></div>
+    </button>
+  </div>
+
+  <!-- GRUPO HERRAMIENTAS -->
+  <div class="pmas-group-label"><span data-t="mas.grupo_herramientas">Herramientas</span></div>
+  <div class="pmas-grid">
+    <button class="pmas-btn" onclick="navTo('pImportar')">
+      <div class="pmas-icon c-green"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="gen.importar">Importar</div><div class="pmas-desc" data-t="mas.desc_importar">Importa clientes y stock</div></div>
+    </button>
+    <button class="pmas-btn" onclick="backupManual()">
+      <div class="pmas-icon c-brown"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="gen.backup">Backup</div><div class="pmas-desc" data-t="mas.desc_backup">Descarga copia de seguridad</div></div>
+    </button>
+    <button class="pmas-btn" onclick="window.open('/guia.html','_blank')">
+      <div class="pmas-icon c-teal"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="nav.ayuda">Ayuda</div><div class="pmas-desc" data-t="mas.desc_ayuda">Guía de uso y soporte</div></div>
+    </button>
+    <button class="pmas-btn" onclick="window.open('/tekpair-inicio-rapido.pdf','_blank')">
+      <div class="pmas-icon c-brown"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="gen.inicio_rapido">Inicio rápido</div><div class="pmas-desc" data-t="mas.desc_inicio_rapido">Guía PDF de primeros pasos</div></div>
+    </button>
   </div>
 </div>
 
@@ -12653,17 +12709,17 @@ function toggleGarRep() {
   var sw = document.getElementById('garRepActiva');
   var opts = document.getElementById('garRepOptions');
   if (sw && opts) opts.style.display = sw.checked ? 'block' : 'none';
-  actualizarAvisoGarantiaAjustes();
+  actualizarAvisoGarantia();
 }
 
 function toggleGarVen() {
   var sw = document.getElementById('garVenActiva');
   var opts = document.getElementById('garVenOptions');
   if (sw && opts) opts.style.display = sw.checked ? 'block' : 'none';
-  actualizarAvisoGarantiaAjustes();
+  actualizarAvisoGarantia();
 }
 
-function actualizarAvisoGarantiaAjustes() {
+function actualizarAvisoGarantia() {
   var aviso = document.getElementById('garEstadoAviso');
   if (!aviso) return;
   var rep = document.getElementById('garRepActiva');
@@ -13784,6 +13840,22 @@ function felicitarCumple(cliId) {
   window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
 }
 
+function toggleTemaMenu() {
+  var m = document.getElementById('temaMenu');
+  if (!m) return;
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  if (m.style.display === 'block') {
+    setTimeout(function() {
+      document.addEventListener('click', function ct(e) {
+        var m2 = document.getElementById('temaMenu');
+        if (m2 && !m2.contains(e.target) && !e.target.matches('[onclick*="toggleTemaMenu"]')) {
+          m2.style.display = 'none';
+        }
+        document.removeEventListener('click', ct);
+      });
+    }, 100);
+  }
+}
 function toggleLangMenu() {
   var m = document.getElementById('langMenu');
   if (!m) return;
@@ -13802,6 +13874,21 @@ function toggleLangMenu() {
 function closeTemaMenuDash() {
   var m = document.getElementById('temaMenu');
   if (m) m.style.display = 'none';
+}
+function toggleTemaMenu() {
+  var m = document.getElementById('temaMenu');
+  if (m) {
+    m.style.display = m.style.display === 'none' ? 'block' : 'none';
+    if (m.style.display === 'block') {
+      setTimeout(function() {
+        document.addEventListener('click', function ct(e) {
+          if (!m.contains(e.target) && !e.target.matches('[onclick*="toggleTemaMenu"]')) m.style.display='none';
+          document.removeEventListener('click', ct);
+        });
+      }, 100);
+    }
+    return;
+  }
 }
 function closeLangMenuDash() {
   var m = document.getElementById('langMenu');
