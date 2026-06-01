@@ -7,6 +7,7 @@
 <meta name="referrer" content="no-referrer">
 <meta name="robots" content="noindex,nofollow">
 <title>Tekpair — Cuenta creada</title>
+<style>.lang-sel-ok{position:fixed;top:12px;right:12px;z-index:100;background:rgba(255,255,255,.95);border:1px solid #e2e8f0;border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer;font-family:inherit}</style>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;background:#F7F9FC;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
@@ -28,6 +29,10 @@ p{color:#64748B;font-size:14px;margin-bottom:20px;line-height:1.6}
 </script>
 </head>
 <body>
+<select class="lang-sel-ok" id="okLangSel" onchange="localStorage.setItem('tp_lang',this.value)">
+  <option value="es">🇪🇸</option><option value="en">🇬🇧</option><option value="fr">🇫🇷</option>
+  <option value="it">🇮🇹</option><option value="de">🇩🇪</option><option value="pt">🇵🇹</option>
+</select>
 <div class="card">
   <div class="icon" id="icon">⏳</div>
   <h1 id="title">Creando tu cuenta...</h1>
@@ -37,6 +42,17 @@ p{color:#64748B;font-size:14px;margin-bottom:20px;line-height:1.6}
 </div>
 
 <script>
+
+const REGOK_TEXTS = {
+  es: { creating:'Creando tu cuenta...', creating_msg:'Por favor espera un momento.', ok_title:'Cuenta creada', ok_msg_pre:'Hola ', ok_msg_suf:' tu cuenta está lista. Te hemos enviado un email con tus credenciales de acceso.', ok_msg_no_name:'Tu cuenta está lista. Te hemos enviado un email con tus credenciales de acceso.', note:'📧 Revisa tu bandeja de entrada (y spam) para ver tu contraseña temporal.', btn:'Entrar a Tekpair →', exists_title:'Ya tienes cuenta', exists_msg:'Este email ya tiene una cuenta activa en Tekpair.', err_title:'Error', err_session:'No se encontró la sesión de pago. Vuelve a registrarte desde https://tekpair.tech/registro.html', err_conn:'No se pudo crear la cuenta. Por favor contacta con info@tekpair.tech' },
+  en: { creating:'Creating your account...', creating_msg:'Please wait a moment.', ok_title:'Account created', ok_msg_pre:'Hello ', ok_msg_suf:' your account is ready. We have sent you an email with your login credentials.', ok_msg_no_name:'Your account is ready. We have sent you an email with your login credentials.', note:'📧 Check your inbox (and spam) for your temporary password.', btn:'Sign in to Tekpair →', exists_title:'Account already exists', exists_msg:'This email already has an active account on Tekpair.', err_title:'Error', err_session:'Payment session not found. Please register again at https://tekpair.tech/registro.html', err_conn:'Could not create the account. Please contact info@tekpair.tech' },
+  fr: { creating:'Création de votre compte...', creating_msg:'Veuillez patienter un instant.', ok_title:'Compte créé', ok_msg_pre:'Bonjour ', ok_msg_suf:' votre compte est prêt. Nous vous avons envoyé un email avec vos identifiants.', ok_msg_no_name:'Votre compte est prêt. Nous vous avons envoyé un email avec vos identifiants.', note:'📧 Vérifiez votre boîte de réception (et spam) pour votre mot de passe temporaire.', btn:'Accéder à Tekpair →', exists_title:'Compte existant', exists_msg:'Cet email a déjà un compte actif sur Tekpair.', err_title:'Erreur', err_session:'Session de paiement introuvable. Veuillez vous réinscrire sur https://tekpair.tech/registro.html', err_conn:'Impossible de créer le compte. Contactez info@tekpair.tech' },
+  it: { creating:'Creazione del tuo account...', creating_msg:'Attendi un momento.', ok_title:'Account creato', ok_msg_pre:'Ciao ', ok_msg_suf:' il tuo account è pronto. Ti abbiamo inviato un'email con le tue credenziali.', ok_msg_no_name:'Il tuo account è pronto. Ti abbiamo inviato un'email con le tue credenziali.', note:'📧 Controlla la posta in arrivo (e spam) per la tua password temporanea.', btn:'Accedi a Tekpair →', exists_title:'Account già esistente', exists_msg:'Questa email ha già un account attivo su Tekpair.', err_title:'Errore', err_session:'Sessione di pagamento non trovata. Registrati di nuovo su https://tekpair.tech/registro.html', err_conn:'Impossibile creare l'account. Contatta info@tekpair.tech' },
+  de: { creating:'Ihr Konto wird erstellt...', creating_msg:'Bitte warten Sie einen Moment.', ok_title:'Konto erstellt', ok_msg_pre:'Hallo ', ok_msg_suf:' Ihr Konto ist bereit. Wir haben Ihnen eine E-Mail mit Ihren Anmeldedaten gesendet.', ok_msg_no_name:'Ihr Konto ist bereit. Wir haben Ihnen eine E-Mail mit Ihren Anmeldedaten gesendet.', note:'📧 Prüfen Sie Ihren Posteingang (und Spam) für Ihr temporäres Passwort.', btn:'Bei Tekpair anmelden →', exists_title:'Konto existiert bereits', exists_msg:'Diese E-Mail hat bereits ein aktives Konto bei Tekpair.', err_title:'Fehler', err_session:'Zahlungssitzung nicht gefunden. Bitte registrieren Sie sich erneut unter https://tekpair.tech/registro.html', err_conn:'Konto konnte nicht erstellt werden. Kontaktieren Sie info@tekpair.tech' },
+  pt: { creating:'A criar a tua conta...', creating_msg:'Por favor aguarda um momento.', ok_title:'Conta criada', ok_msg_pre:'Olá ', ok_msg_suf:' a tua conta está pronta. Enviámos-te um email com as tuas credenciais de acesso.', ok_msg_no_name:'A tua conta está pronta. Enviámos-te um email com as tuas credenciais de acesso.', note:'📧 Verifica a tua caixa de entrada (e spam) para ver a tua senha temporária.', btn:'Entrar no Tekpair →', exists_title:'Já tens conta', exists_msg:'Este email já tem uma conta ativa no Tekpair.', err_title:'Erro', err_session:'Sessão de pagamento não encontrada. Volta a registar-te em https://tekpair.tech/registro.html', err_conn:'Não foi possível criar a conta. Contacta info@tekpair.tech' }
+};
+function getOkLang(){ return localStorage.getItem('tp_lang') || navigator.language.slice(0,2) || 'es'; }
+
 async function setup() {
   var params = new URLSearchParams(window.location.search);
   var session_id = params.get('session_id');
@@ -52,9 +68,10 @@ async function setup() {
   var planLegacy = params.get('plan');
 
   if (!session_id) {
+    var Ls = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
     document.getElementById('icon').textContent = '❌';
-    document.getElementById('title').textContent = 'Error';
-    document.getElementById('msg').textContent = 'No se encontró la sesión de pago. Vuelve a registrarte desde https://tekpair.tech/registro.html';
+    document.getElementById('title').textContent = Ls.err_title;
+    document.getElementById('msg').textContent = Ls.err_session;
     return;
   }
 
@@ -76,28 +93,34 @@ async function setup() {
     if (data.ok) {
       // El nombre puede venir en data.nombre (recomendado para el futuro) o de URL legacy
       var nombreMostrar = (data.nombre || nombreLegacy || '').trim();
+      var L = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
       document.getElementById('icon').textContent = '🎉';
-      document.getElementById('title').textContent = 'Cuenta creada';
-      document.getElementById('msg').textContent = (nombreMostrar ? 'Hola ' + nombreMostrar + ', tu' : 'Tu') + ' cuenta está lista. Te hemos enviado un email con tus credenciales de acceso.';
-      document.getElementById('note').textContent = '📧 Revisa tu bandeja de entrada (y spam) para ver tu contraseña temporal.';
+      document.getElementById('title').textContent = L.ok_title;
+      document.getElementById('msg').textContent = nombreMostrar ? L.ok_msg_pre + nombreMostrar + ', ' + L.ok_msg_suf : L.ok_msg_no_name;
+      document.getElementById('note').textContent = L.note;
       document.getElementById('note').style.display = 'block';
       document.getElementById('btnEntrar').style.display = 'block';
+      document.getElementById('btnEntrar').textContent = L.btn;
     } else {
       if (data.error && data.error.indexOf('ya') !== -1 && (data.error.indexOf('cuenta') !== -1 || data.error.indexOf('email') !== -1)) {
+        var Le = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
         document.getElementById('icon').textContent = '✅';
-        document.getElementById('title').textContent = 'Ya tienes cuenta';
-        document.getElementById('msg').textContent = 'Este email ya tiene una cuenta activa en Tekpair.';
+        document.getElementById('title').textContent = Le.exists_title;
+        document.getElementById('msg').textContent = Le.exists_msg;
         document.getElementById('btnEntrar').style.display = 'block';
+        document.getElementById('btnEntrar').textContent = Le.btn;
       } else {
+        var Lerr = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
         document.getElementById('icon').textContent = '❌';
-        document.getElementById('title').textContent = 'Error';
+        document.getElementById('title').textContent = Lerr.err_title;
         document.getElementById('msg').textContent = data.error || 'Error al crear la cuenta. Contacta con soporte.';
       }
     }
   } catch(e) {
+    var Lc = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
     document.getElementById('icon').textContent = '❌';
-    document.getElementById('title').textContent = 'Error de conexión';
-    document.getElementById('msg').textContent = 'No se pudo crear la cuenta. Por favor contacta con info@tekpair.tech';
+    document.getElementById('title').textContent = Lc.err_title;
+    document.getElementById('msg').textContent = Lc.err_conn;
   }
 }
 setup();

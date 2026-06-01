@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+.lang-sel-reg{position:fixed;top:12px;right:12px;z-index:100;background:rgba(255,255,255,.95);border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+</style>
 <title>TekPair — Empieza ahora</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -79,6 +82,15 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </head>
 <body>
 
+<select class="lang-sel-reg" onchange="setRegLang(this.value)" id="regLangSel">
+  <option value="es">🇪🇸 ES</option>
+  <option value="en">🇬🇧 EN</option>
+  <option value="fr">🇫🇷 FR</option>
+  <option value="it">🇮🇹 IT</option>
+  <option value="de">🇩🇪 DE</option>
+  <option value="pt">🇵🇹 PT</option>
+</select>
+
 <div class="hero">
   <div class="hero-aurora"></div>
   <div class="hero-grid"></div>
@@ -87,8 +99,8 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
       <div class="logo-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></div>
       <span class="logo-txt">Tek<span>Pair</span></span>
     </div>
-    <h1>Software para tiendas<br>de reparación móvil</h1>
-    <p>Gestiona ventas, reparaciones, stock y clientes desde cualquier dispositivo</p>
+    <h1 id="heroH1">Software para tiendas<br>de reparación móvil</h1>
+    <p id="heroP">Gestiona ventas, reparaciones, stock y clientes desde cualquier dispositivo</p>
   </div>
 </div>
 
@@ -166,16 +178,221 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 
 <script>
 var planSel = null;
+
+const REG_TEXTS = {
+  es: {
+    title: 'TekPair — Empieza ahora',
+    hero_h1: 'Software para tiendas<br>de reparación móvil',
+    hero_p: 'Gestiona ventas, reparaciones, stock y clientes desde cualquier dispositivo',
+    plan_basico: 'Básico', plan_pro: 'Pro', plan_premium: 'Premium',
+    price_basico: '€9,90', price_pro: '€19,90', price_premium: '€34,90',
+    per_month: '/mes',
+    desc_basico: 'Para empezar', desc_pro: 'Para negocios en crecimiento', desc_premium: 'Para equipos profesionales',
+    btn_basico: 'Elegir Básico', btn_pro: 'Elegir Pro', btn_premium: 'Elegir Premium',
+    form_title: 'Crea tu cuenta',
+    plan_sel: 'Plan seleccionado:',
+    cambiar: 'Cambiar',
+    label_nom: 'Tu nombre *', label_email: 'Email *', label_tienda: 'Nombre de tu tienda *',
+    placeholder_nom: 'Juan García', placeholder_email: 'juan@mitienda.com', placeholder_tienda: 'Reparaciones García',
+    btn_pagar: 'Continuar al pago', btn_procesando: 'Procesando...',
+    stripe_note: 'Pago seguro con Stripe · No pagas hasta el día 15',
+    err_campos: 'Por favor rellena todos los campos', err_email: 'Email no válido', err_conn: 'Error de conexión. Intenta de nuevo.',
+    trust_pago: 'Pago seguro', trust_permanencia: 'Sin permanencia', trust_device: 'Cualquier dispositivo',
+    f_1u: '1 usuario', f_3u: 'Hasta 3 usuarios', f_inf_u: 'Usuarios ilimitados',
+    f_ventas: 'Ventas y reparaciones', f_stock: 'Gestión de stock', f_clis: 'Clientes y proveedores',
+    f_reportes: 'Reportes básicos', f_permisos: 'Permisos por usuario', f_pdf: 'Reportes PDF + informe gestor',
+    f_zip: 'ZIP gestoría y gastos recurrentes', f_cajas: 'Cajas multi-servicio', f_csv: 'Importar datos CSV',
+    f_soporte: 'Soporte prioritario', f_todo_pro: 'Todo lo del plan Pro', f_citas: 'Citas online',
+    f_kanban: 'Vista Kanban de reparaciones', f_catalogo: 'Catálogo de servicios', f_popular: 'MÁS POPULAR'
+  },
+  en: {
+    title: 'TekPair — Get started',
+    hero_h1: 'Software for mobile<br>repair shops',
+    hero_p: 'Manage sales, repairs, stock and customers from any device',
+    plan_basico: 'Basic', plan_pro: 'Pro', plan_premium: 'Premium',
+    price_basico: '€9.90', price_pro: '€19.90', price_premium: '€34.90',
+    per_month: '/mo',
+    desc_basico: 'To get started', desc_pro: 'For growing businesses', desc_premium: 'For professional teams',
+    btn_basico: 'Choose Basic', btn_pro: 'Choose Pro', btn_premium: 'Choose Premium',
+    form_title: 'Create your account',
+    plan_sel: 'Selected plan:',
+    cambiar: 'Change',
+    label_nom: 'Your name *', label_email: 'Email *', label_tienda: 'Shop name *',
+    placeholder_nom: 'John Smith', placeholder_email: 'john@myshop.com', placeholder_tienda: 'Smith Repairs',
+    btn_pagar: 'Continue to payment', btn_procesando: 'Processing...',
+    stripe_note: 'Secure payment with Stripe · No charge until day 15',
+    err_campos: 'Please fill in all fields', err_email: 'Invalid email', err_conn: 'Connection error. Please try again.',
+    trust_pago: 'Secure payment', trust_permanencia: 'No commitment', trust_device: 'Any device',
+    f_1u: '1 user', f_3u: 'Up to 3 users', f_inf_u: 'Unlimited users',
+    f_ventas: 'Sales and repairs', f_stock: 'Stock management', f_clis: 'Customers and suppliers',
+    f_reportes: 'Basic reports', f_permisos: 'User permissions', f_pdf: 'PDF reports + manager summary',
+    f_zip: 'Accounting ZIP and recurring expenses', f_cajas: 'Multi-service cash register', f_csv: 'CSV data import',
+    f_soporte: 'Priority support', f_todo_pro: 'Everything in Pro', f_citas: 'Online appointments',
+    f_kanban: 'Kanban repair view', f_catalogo: 'Service catalogue', f_popular: 'MOST POPULAR'
+  },
+  fr: {
+    title: 'TekPair — Commencer',
+    hero_h1: 'Logiciel pour boutiques<br>de réparation mobile',
+    hero_p: 'Gérez ventes, réparations, stock et clients depuis n'importe quel appareil',
+    plan_basico: 'Basique', plan_pro: 'Pro', plan_premium: 'Premium',
+    price_basico: '9,90€', price_pro: '19,90€', price_premium: '34,90€',
+    per_month: '/mois',
+    desc_basico: 'Pour commencer', desc_pro: 'Pour les entreprises en croissance', desc_premium: 'Pour les équipes professionnelles',
+    btn_basico: 'Choisir Basique', btn_pro: 'Choisir Pro', btn_premium: 'Choisir Premium',
+    form_title: 'Créez votre compte',
+    plan_sel: 'Plan sélectionné :',
+    cambiar: 'Changer',
+    label_nom: 'Votre nom *', label_email: 'Email *', label_tienda: 'Nom de votre boutique *',
+    placeholder_nom: 'Jean Dupont', placeholder_email: 'jean@maboutique.com', placeholder_tienda: 'Réparations Dupont',
+    btn_pagar: 'Continuer vers le paiement', btn_procesando: 'Traitement...',
+    stripe_note: 'Paiement sécurisé avec Stripe · Pas de débit avant le 15',
+    err_campos: 'Veuillez remplir tous les champs', err_email: 'Email invalide', err_conn: 'Erreur de connexion. Réessayez.',
+    trust_pago: 'Paiement sécurisé', trust_permanencia: 'Sans engagement', trust_device: 'Tout appareil',
+    f_1u: '1 utilisateur', f_3u: "Jusqu'à 3 utilisateurs", f_inf_u: 'Utilisateurs illimités',
+    f_ventas: 'Ventes et réparations', f_stock: 'Gestion des stocks', f_clis: 'Clients et fournisseurs',
+    f_reportes: 'Rapports de base', f_permisos: 'Permissions utilisateurs', f_pdf: 'Rapports PDF + résumé gestionnaire',
+    f_zip: 'ZIP comptabilité et dépenses récurrentes', f_cajas: 'Caisse multi-services', f_csv: 'Import données CSV',
+    f_soporte: 'Support prioritaire', f_todo_pro: 'Tout du plan Pro', f_citas: 'Rendez-vous en ligne',
+    f_kanban: 'Vue Kanban des réparations', f_catalogo: 'Catalogue de services', f_popular: 'LE PLUS POPULAIRE'
+  },
+  it: {
+    title: 'TekPair — Inizia ora',
+    hero_h1: 'Software per negozi<br>di riparazione mobile',
+    hero_p: 'Gestisci vendite, riparazioni, stock e clienti da qualsiasi dispositivo',
+    plan_basico: 'Base', plan_pro: 'Pro', plan_premium: 'Premium',
+    price_basico: '€9,90', price_pro: '€19,90', price_premium: '€34,90',
+    per_month: '/mese',
+    desc_basico: 'Per iniziare', desc_pro: 'Per aziende in crescita', desc_premium: 'Per team professionali',
+    btn_basico: 'Scegli Base', btn_pro: 'Scegli Pro', btn_premium: 'Scegli Premium',
+    form_title: 'Crea il tuo account',
+    plan_sel: 'Piano selezionato:',
+    cambiar: 'Cambia',
+    label_nom: 'Il tuo nome *', label_email: 'Email *', label_tienda: 'Nome del negozio *',
+    placeholder_nom: 'Mario Rossi', placeholder_email: 'mario@mionegozio.com', placeholder_tienda: 'Riparazioni Rossi',
+    btn_pagar: 'Continua al pagamento', btn_procesando: 'Elaborazione...',
+    stripe_note: 'Pagamento sicuro con Stripe · Nessun addebito fino al giorno 15',
+    err_campos: 'Compila tutti i campi', err_email: 'Email non valida', err_conn: 'Errore di connessione. Riprova.',
+    trust_pago: 'Pagamento sicuro', trust_permanencia: 'Senza vincoli', trust_device: 'Qualsiasi dispositivo',
+    f_1u: '1 utente', f_3u: 'Fino a 3 utenti', f_inf_u: 'Utenti illimitati',
+    f_ventas: 'Vendite e riparazioni', f_stock: 'Gestione magazzino', f_clis: 'Clienti e fornitori',
+    f_reportes: 'Report di base', f_permisos: 'Permessi utente', f_pdf: 'Report PDF + riepilogo gestore',
+    f_zip: 'ZIP contabilità e spese ricorrenti', f_cajas: 'Cassa multi-servizio', f_csv: 'Importa dati CSV',
+    f_soporte: 'Supporto prioritario', f_todo_pro: 'Tutto del piano Pro', f_citas: 'Appuntamenti online',
+    f_kanban: 'Vista Kanban riparazioni', f_catalogo: 'Catalogo servizi', f_popular: 'PIÙ POPOLARE'
+  },
+  de: {
+    title: 'TekPair — Jetzt starten',
+    hero_h1: 'Software für<br>Handy-Reparaturshops',
+    hero_p: 'Verwalten Sie Verkäufe, Reparaturen, Lager und Kunden von jedem Gerät',
+    plan_basico: 'Basis', plan_pro: 'Pro', plan_premium: 'Premium',
+    price_basico: '9,90€', price_pro: '19,90€', price_premium: '34,90€',
+    per_month: '/Monat',
+    desc_basico: 'Zum Einstieg', desc_pro: 'Für wachsende Unternehmen', desc_premium: 'Für professionelle Teams',
+    btn_basico: 'Basis wählen', btn_pro: 'Pro wählen', btn_premium: 'Premium wählen',
+    form_title: 'Konto erstellen',
+    plan_sel: 'Gewählter Plan:',
+    cambiar: 'Ändern',
+    label_nom: 'Ihr Name *', label_email: 'E-Mail *', label_tienda: 'Shopname *',
+    placeholder_nom: 'Max Müller', placeholder_email: 'max@meinshop.de', placeholder_tienda: 'Reparaturen Müller',
+    btn_pagar: 'Weiter zur Zahlung', btn_procesando: 'Verarbeitung...',
+    stripe_note: 'Sichere Zahlung mit Stripe · Keine Abbuchung bis Tag 15',
+    err_campos: 'Bitte alle Felder ausfüllen', err_email: 'Ungültige E-Mail', err_conn: 'Verbindungsfehler. Bitte erneut versuchen.',
+    trust_pago: 'Sichere Zahlung', trust_permanencia: 'Keine Bindung', trust_device: 'Jedes Gerät',
+    f_1u: '1 Benutzer', f_3u: 'Bis zu 3 Benutzern', f_inf_u: 'Unbegrenzte Benutzer',
+    f_ventas: 'Verkäufe und Reparaturen', f_stock: 'Lagerverwaltung', f_clis: 'Kunden und Lieferanten',
+    f_reportes: 'Grundberichte', f_permisos: 'Benutzerrechte', f_pdf: 'PDF-Berichte + Manager-Zusammenfassung',
+    f_zip: 'Buchhaltungs-ZIP und wiederkehrende Ausgaben', f_cajas: 'Multi-Service-Kasse', f_csv: 'CSV-Daten importieren',
+    f_soporte: 'Prioritätssupport', f_todo_pro: 'Alles aus Pro', f_citas: 'Online-Termine',
+    f_kanban: 'Kanban-Ansicht Reparaturen', f_catalogo: 'Servicekatalog', f_popular: 'AM BELIEBTESTEN'
+  },
+  pt: {
+    title: 'TekPair — Começar agora',
+    hero_h1: 'Software para lojas<br>de reparação de telemóveis',
+    hero_p: 'Gere vendas, reparações, stock e clientes em qualquer dispositivo',
+    plan_basico: 'Básico', plan_pro: 'Pro', plan_premium: 'Premium',
+    price_basico: '€9,90', price_pro: '€19,90', price_premium: '€34,90',
+    per_month: '/mês',
+    desc_basico: 'Para começar', desc_pro: 'Para negócios em crescimento', desc_premium: 'Para equipas profissionais',
+    btn_basico: 'Escolher Básico', btn_pro: 'Escolher Pro', btn_premium: 'Escolher Premium',
+    form_title: 'Cria a tua conta',
+    plan_sel: 'Plano selecionado:',
+    cambiar: 'Mudar',
+    label_nom: 'O teu nome *', label_email: 'Email *', label_tienda: 'Nome da loja *',
+    placeholder_nom: 'João Silva', placeholder_email: 'joao@minhaloja.com', placeholder_tienda: 'Reparações Silva',
+    btn_pagar: 'Continuar para pagamento', btn_procesando: 'A processar...',
+    stripe_note: 'Pagamento seguro com Stripe · Não cobrado até ao dia 15',
+    err_campos: 'Por favor preenche todos os campos', err_email: 'Email inválido', err_conn: 'Erro de ligação. Tenta de novo.',
+    trust_pago: 'Pagamento seguro', trust_permanencia: 'Sem permanência', trust_device: 'Qualquer dispositivo',
+    f_1u: '1 utilizador', f_3u: 'Até 3 utilizadores', f_inf_u: 'Utilizadores ilimitados',
+    f_ventas: 'Vendas e reparações', f_stock: 'Gestão de stock', f_clis: 'Clientes e fornecedores',
+    f_reportes: 'Relatórios básicos', f_permisos: 'Permissões de utilizador', f_pdf: 'Relatórios PDF + resumo gestor',
+    f_zip: 'ZIP contabilidade e despesas recorrentes', f_cajas: 'Caixa multi-serviço', f_csv: 'Importar dados CSV',
+    f_soporte: 'Suporte prioritário', f_todo_pro: 'Tudo do plano Pro', f_citas: 'Marcações online',
+    f_kanban: 'Vista Kanban reparações', f_catalogo: 'Catálogo de serviços', f_popular: 'MAIS POPULAR'
+  }
+};
+
+function getLang() {
+  return localStorage.getItem('tp_lang') || navigator.language.slice(0,2) || 'es';
+}
+
+function applyRegLang(lang) {
+  var L = REG_TEXTS[lang] || REG_TEXTS.es;
+  document.title = L.title;
+  document.documentElement.lang = lang;
+  // Hero
+  var h1 = document.getElementById('heroH1'); if (h1) h1.innerHTML = L.hero_h1;
+  var hp = document.getElementById('heroP'); if (hp) hp.textContent = L.hero_p;
+  // Planes
+  var ids = ['basico','pro','top'];
+  var keys = ['basico','pro','premium'];
+  ids.forEach(function(id, i) {
+    var k = keys[i];
+    var el = document.getElementById('planName_'+id); if (el) el.textContent = L['plan_'+k];
+    var ep = document.getElementById('planPrice_'+id); if (ep) ep.innerHTML = L['price_'+k]+'<span>'+L.per_month+'</span>';
+    var ed = document.getElementById('planDesc_'+id); if (ed) ed.textContent = L['desc_'+k];
+    var eb = document.getElementById('planBtn_'+id); if (eb) eb.textContent = L['btn_'+k];
+  });
+  // Features
+  document.querySelectorAll('[data-t]').forEach(function(el) {
+    var key = el.getAttribute('data-t');
+    if (L[key]) el.innerHTML = L[key];
+  });
+  // Formulario
+  var ft = document.getElementById('formTitle'); if (ft) ft.textContent = L.form_title;
+  var ps = document.getElementById('planSelTxt'); if (ps) ps.textContent = L.plan_sel;
+  var cb = document.getElementById('btnCambiar'); if (cb) cb.textContent = L.cambiar;
+  var ln = document.getElementById('labelNom'); if (ln) ln.textContent = L.label_nom;
+  var le = document.getElementById('labelEmail'); if (le) le.textContent = L.label_email;
+  var lt = document.getElementById('labelTienda'); if (lt) lt.textContent = L.label_tienda;
+  var rn = document.getElementById('rNom'); if (rn) rn.placeholder = L.placeholder_nom;
+  var re = document.getElementById('rEmail'); if (re) re.placeholder = L.placeholder_email;
+  var rt = document.getElementById('rTienda'); if (rt) rt.placeholder = L.placeholder_tienda;
+  var bp = document.getElementById('btnPagar'); if (bp && bp.textContent !== L.btn_procesando) bp.textContent = L.btn_pagar;
+  var sn = document.getElementById('stripeNote'); if (sn) sn.textContent = L.stripe_note;
+  // Trust
+  ['trust_pago','trust_permanencia','trust_device'].forEach(function(k) {
+    var el = document.getElementById(k); if (el) el.textContent = L[k];
+  });
+  // Popular badge
+  var pop = document.getElementById('popularBadge'); if (pop) pop.querySelector('span') && (pop.querySelector('.pop-txt').textContent = L.f_popular);
+}
+
+function setRegLang(lang) {
+  localStorage.setItem('tp_lang', lang);
+  applyRegLang(lang);
+}
+
 var PLANES = {
-  basico: {nombre:'Básico', precio:'€9,90/mes'},
-  pro: {nombre:'Pro', precio:'€19,90/mes'},
-  top: {nombre:'Premium', precio:'€34,90/mes'}
+  basico: {nombre: function(){ return (REG_TEXTS[getLang()]||REG_TEXTS.es).plan_basico; }, precio: function(){ var L=REG_TEXTS[getLang()]||REG_TEXTS.es; return L.price_basico+L.per_month; }},
+  pro:    {nombre: function(){ return (REG_TEXTS[getLang()]||REG_TEXTS.es).plan_pro; },    precio: function(){ var L=REG_TEXTS[getLang()]||REG_TEXTS.es; return L.price_pro+L.per_month; }},
+  top:    {nombre: function(){ return (REG_TEXTS[getLang()]||REG_TEXTS.es).plan_premium; }, precio: function(){ var L=REG_TEXTS[getLang()]||REG_TEXTS.es; return L.price_premium+L.per_month; }}
 };
 
 function selPlan(id, el) {
   planSel = id;
-  document.getElementById('planNombre').textContent = PLANES[id].nombre;
-  document.getElementById('planPrecio').textContent = PLANES[id].precio;
+  document.getElementById('planNombre').textContent = PLANES[id].nombre();
+  document.getElementById('planPrecio').textContent = PLANES[id].precio();
   document.getElementById('formSection').classList.add('show');
   document.getElementById('formSection').scrollIntoView({behavior:'smooth'});
 }
@@ -224,12 +441,21 @@ async function iniciarPago() {
       btn.disabled = false;
     }
   } catch(e) {
-    err.textContent = 'Error de conexión. Intenta de nuevo.';
+    var L2 = REG_TEXTS[getLang()]||REG_TEXTS.es;
+    err.textContent = L2.err_conn;
     err.style.display = 'block';
-    btn.textContent = 'Continuar al pago';
+    btn.textContent = L2.btn_pagar;
     btn.disabled = false;
   }
 }
+
+// Inicializar idioma al cargar
+document.addEventListener('DOMContentLoaded', function() {
+  var lang = getLang();
+  var sel = document.getElementById('regLangSel');
+  if (sel) sel.value = lang;
+  applyRegLang(lang);
+});
 </script>
 </body>
 </html>

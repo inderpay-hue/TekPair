@@ -77,6 +77,11 @@
 </script>
 </head>
 <body>
+<style>.lang-sel-reset{position:fixed;top:12px;right:12px;z-index:100;background:rgba(255,255,255,.95);border:1px solid #e2e8f0;border-radius:8px;padding:5px 10px;font-size:13px;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.08)}</style>
+<select class="lang-sel-reset" id="resetLangSel" onchange="localStorage.setItem('tp_lang',this.value);applyResetLang(this.value)">
+  <option value="es">🇪🇸</option><option value="en">🇬🇧</option><option value="fr">🇫🇷</option>
+  <option value="it">🇮🇹</option><option value="de">🇩🇪</option><option value="pt">🇵🇹</option>
+</select>
 <div class="card">
   <div class="head">
     <div class="brand"><span class="bolt">&#9889;</span> TekPair</div>
@@ -102,6 +107,32 @@
 </div>
 
 <script>
+
+const RESET_TEXTS = {
+  es: { title:'Restablecer contraseña · TekPair', h1:'Restablecer contraseña', sub:'Escribe tu nueva contraseña para acceder a TekPair.', label1:'Nueva contraseña', label2:'Repetir nueva contraseña', ph1:'Mínimo 8 caracteres', ph2:'Repite la contraseña', btn:'Guardar nueva contraseña', btn_saving:'Guardando...', back:'Volver al inicio de sesión', err_len:'La contraseña debe tener al menos 8 caracteres.', err_match:'Las contraseñas no coinciden.', err_token:'Enlace no válido. Solicita un nuevo enlace de recuperación desde la pantalla de inicio de sesión.', err_conn:'Error de conexión. Inténtalo de nuevo.', ok_msg:'¡Contraseña actualizada! Te redirigimos al login en 3 segundos...' },
+  en: { title:'Reset password · TekPair', h1:'Reset password', sub:'Enter your new password to access TekPair.', label1:'New password', label2:'Repeat new password', ph1:'Minimum 8 characters', ph2:'Repeat password', btn:'Save new password', btn_saving:'Saving...', back:'Back to login', err_len:'Password must be at least 8 characters.', err_match:'Passwords do not match.', err_token:'Invalid link. Request a new recovery link from the login screen.', err_conn:'Connection error. Please try again.', ok_msg:'Password updated! Redirecting to login in 3 seconds...' },
+  fr: { title:'Réinitialiser le mot de passe · TekPair', h1:'Réinitialiser le mot de passe', sub:'Entrez votre nouveau mot de passe pour accéder à TekPair.', label1:'Nouveau mot de passe', label2:'Répéter le mot de passe', ph1:'Minimum 8 caractères', ph2:'Répétez le mot de passe', btn:'Enregistrer le nouveau mot de passe', btn_saving:'Enregistrement...', back:'Retour à la connexion', err_len:'Le mot de passe doit comporter au moins 8 caractères.', err_match:'Les mots de passe ne correspondent pas.', err_token:'Lien invalide. Demandez un nouveau lien depuis la page de connexion.', err_conn:'Erreur de connexion. Réessayez.', ok_msg:'Mot de passe mis à jour ! Redirection vers la connexion dans 3 secondes...' },
+  it: { title:'Reimposta password · TekPair', h1:'Reimposta password', sub:'Inserisci la nuova password per accedere a TekPair.', label1:'Nuova password', label2:'Ripeti la password', ph1:'Minimo 8 caratteri', ph2:'Ripeti la password', btn:'Salva nuova password', btn_saving:'Salvataggio...', back:'Torna al login', err_len:'La password deve avere almeno 8 caratteri.', err_match:'Le password non corrispondono.', err_token:'Link non valido. Richiedi un nuovo link dalla schermata di login.', err_conn:'Errore di connessione. Riprova.', ok_msg:'Password aggiornata! Reindirizzamento al login in 3 secondi...' },
+  de: { title:'Passwort zurücksetzen · TekPair', h1:'Passwort zurücksetzen', sub:'Geben Sie Ihr neues Passwort ein, um auf TekPair zuzugreifen.', label1:'Neues Passwort', label2:'Passwort wiederholen', ph1:'Mindestens 8 Zeichen', ph2:'Passwort wiederholen', btn:'Neues Passwort speichern', btn_saving:'Speichern...', back:'Zurück zur Anmeldung', err_len:'Das Passwort muss mindestens 8 Zeichen haben.', err_match:'Die Passwörter stimmen nicht überein.', err_token:'Ungültiger Link. Fordern Sie einen neuen Link auf der Anmeldeseite an.', err_conn:'Verbindungsfehler. Bitte erneut versuchen.', ok_msg:'Passwort aktualisiert! Weiterleitung zur Anmeldung in 3 Sekunden...' },
+  pt: { title:'Redefinir palavra-passe · TekPair', h1:'Redefinir palavra-passe', sub:'Escreve a tua nova palavra-passe para aceder ao TekPair.', label1:'Nova palavra-passe', label2:'Repetir palavra-passe', ph1:'Mínimo 8 caracteres', ph2:'Repete a palavra-passe', btn:'Guardar nova palavra-passe', btn_saving:'A guardar...', back:'Voltar ao início de sessão', err_len:'A palavra-passe deve ter pelo menos 8 caracteres.', err_match:'As palavras-passe não coincidem.', err_token:'Link inválido. Solicita um novo link na página de início de sessão.', err_conn:'Erro de ligação. Tenta de novo.', ok_msg:'Palavra-passe atualizada! A redirecionar para o login em 3 segundos...' }
+};
+function getResetLang(){ return localStorage.getItem('tp_lang') || navigator.language.slice(0,2) || 'es'; }
+function applyResetLang(lang) {
+  var L = RESET_TEXTS[lang] || RESET_TEXTS.es;
+  document.title = L.title;
+  document.documentElement.lang = lang;
+  var h1 = document.querySelector('h1'); if(h1) h1.textContent = L.h1;
+  var sub = document.querySelector('.sub'); if(sub) sub.textContent = L.sub;
+  var labels = document.querySelectorAll('label');
+  if(labels[0]) labels[0].textContent = L.label1;
+  if(labels[1]) labels[1].textContent = L.label2;
+  var pw1 = document.getElementById('pw1'); if(pw1) pw1.placeholder = L.ph1;
+  var pw2 = document.getElementById('pw2'); if(pw2) pw2.placeholder = L.ph2;
+  var btn = document.getElementById('btn'); if(btn && btn.textContent !== L.btn_saving) btn.textContent = L.btn;
+  var back = document.querySelector('.foot a'); if(back) back.textContent = L.back;
+  var sel = document.getElementById('resetLangSel'); if(sel) sel.value = lang;
+}
+
   function getToken() {
     var params = new URLSearchParams(window.location.search);
     return params.get('token') || '';
@@ -116,15 +147,16 @@
   var TOKEN = getToken();
   if (!TOKEN) {
     document.getElementById('form').style.display = 'none';
-    mostrar('Enlace no válido. Solicita un nuevo enlace de recuperación desde la pantalla de inicio de sesión.', 'err');
+    mostrar((RESET_TEXTS[getResetLang()]||RESET_TEXTS.es).err_token, 'err');
   }
 
   async function enviarReset() {
     var pw1 = document.getElementById('pw1').value || '';
     var pw2 = document.getElementById('pw2').value || '';
 
-    if (pw1.length < 8) { mostrar('La contraseña debe tener al menos 8 caracteres.', 'err'); return; }
-    if (pw1 !== pw2) { mostrar('Las contraseñas no coinciden.', 'err'); return; }
+    var RL = RESET_TEXTS[getResetLang()]||RESET_TEXTS.es;
+    if (pw1.length < 8) { mostrar(RL.err_len, 'err'); return; }
+    if (pw1 !== pw2) { mostrar(RL.err_match, 'err'); return; }
 
     var btn = document.getElementById('btn');
     btn.disabled = true;
@@ -143,7 +175,7 @@
         // Si el usuario comparte screenshot o hace history.back, no debe quedar el token.
         try { history.replaceState({}, '', '/reset.html'); } catch (e) {}
         document.getElementById('form').style.display = 'none';
-        mostrar('¡Contraseña actualizada! Te redirigimos al login en 3 segundos...', 'ok');
+        mostrar((RESET_TEXTS[getResetLang()]||RESET_TEXTS.es).ok_msg, 'ok');
         setTimeout(function(){ window.location.href = '/app.html'; }, 3000);
       } else {
         mostrar((data && data.error) || 'No se pudo restablecer la contraseña.', 'err');
@@ -151,11 +183,12 @@
         btn.textContent = 'Guardar nueva contraseña';
       }
     } catch (e) {
-      mostrar('Error de conexión. Inténtalo de nuevo.', 'err');
+      mostrar((RESET_TEXTS[getResetLang()]||RESET_TEXTS.es).err_conn, 'err');
       btn.disabled = false;
       btn.textContent = 'Guardar nueva contraseña';
     }
   }
+  document.addEventListener('DOMContentLoaded', function(){ applyResetLang(getResetLang()); });
 </script>
 </body>
 </html>
