@@ -14724,6 +14724,22 @@ async function openNuevoUsuario() {
   crearUsuario(nom, email, pass, rol);
 }
 
+// Gestión de usuarios vía backend (login.js ?action=usuarios-admin) en lugar de escribir
+// 'usuarios' directo: el servidor verifica que eres admin de la tienda, hashea con bcrypt y
+// filtra los campos (evita escalada de privilegios y exposición de hashes en el navegador).
+async function _adminUsuarios(op, payload) {
+  try {
+    var r = await fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (JWT_TOKEN || '') },
+      body: JSON.stringify(Object.assign({ action: 'usuarios-admin', op: op }, payload))
+    });
+    var data = await r.json().catch(function(){ return {}; });
+    if (!r.ok || !data.ok) { toast(data.error || ('Error (HTTP ' + r.status + ')'), 'err'); return false; }
+    return true;
+  } catch (e) { toast('Sin conexión', 'err'); return false; }
+}
+
 async function crearUsuario(nom, email, pass, rol) {
   // Comprobar límite de usuarios del plan actual
   var limite = (PLAN_LIMITS[PLAN_INFO.plan] || PLAN_LIMITS.basico).usuarios;
@@ -14734,29 +14750,20 @@ async function crearUsuario(nom, email, pass, rol) {
     toast('Has alcanzado el límite de ' + limite + ' usuario' + (limite===1?'':'s') + ' en tu plan', 'err');
     return;
   }
-  var msgBuffer = new TextEncoder().encode(pass);
-  var hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-  var hash = Array.from(new Uint8Array(hashBuffer)).map(function(b) { return b.toString(16).padStart(2, '0'); }).join('');
-  var ok = await sbPost('usuarios', {
-    tienda_id: TIENDA_ID, nombre: nom, email: email,
-    password_hash: hash, rol: rol, activo: true,
-    permisos: rol === 'admin' ? {todo: true} : {}
-  });
-  toast(ok ? 'Usuario creado' : 'Error', ok ? 'ok' : 'err');
-  if (ok) cargarUsuarios();
+  // El backend hashea con bcrypt y asigna tienda_id/rol de forma segura.
+  var ok = await _adminUsuarios('crear', { nombre: nom, email: email, password: pass, rol: rol });
+  if (ok) { toast('Usuario creado', 'ok'); cargarUsuarios(); }
 }
 
 async function toggleUsuario(id, activo) {
-  var ok = await sbPatch('usuarios', 'id=eq.' + id, {activo: !activo});
-  toast(ok ? (activo ? 'Desactivado' : 'Activado') : 'Error', ok ? 'ok' : 'err');
-  if (ok) cargarUsuarios();
+  var ok = await _adminUsuarios('toggle', { target_id: id, activo: !activo });
+  if (ok) { toast(activo ? 'Desactivado' : 'Activado', 'ok'); cargarUsuarios(); }
 }
 
 async function eliminarUsuario(id) {
   if (!confirm('Eliminar usuario?')) return;
-  var ok = await sbDelete('usuarios', 'id=eq.' + id);
-  toast(ok ? 'Eliminado' : 'Error', ok ? 'ok' : 'err');
-  if (ok) cargarUsuarios();
+  var ok = await _adminUsuarios('borrar', { target_id: id });
+  if (ok) { toast('Eliminado', 'ok'); cargarUsuarios(); }
 }
 
 // ═══ PERMISOS ═══
@@ -15897,9 +15904,9 @@ function renderPermisosUI() {
 
 async function guardarPermisos() {
   if (!editPermId) return;
-  var ok = await sbPatch('usuarios', 'id=eq.' + editPermId, {permisos: permsCurrent});
-  toast(ok ? 'Permisos guardados' : 'Error', ok ? 'ok' : 'err');
+  var ok = await _adminUsuarios('permisos', { target_id: editPermId, permisos: permsCurrent });
   if (ok) {
+    toast('Permisos guardados', 'ok');
     closeM('mPermisos');
     cargarUsuarios();
     // Si edité MIS PROPIOS permisos, actualizar sesión local y refrescar UI

@@ -105,6 +105,30 @@ async function migrarUsuarioABcrypt(SB_URL, SK, usuarioId, plainPwd) {
   }
 }
 
+// ═══ Verificación de admin para gestión de usuarios (acción usuarios-admin) ═══
+// Verifica el JWT y CONFIRMA contra BD que el llamante es admin ACTIVO de su tienda.
+// No se fía del claim 'rol' del JWT (podría estar caduco): relee de la tabla.
+async function verificarAdminJWT(SB_URL, SK, req) {
+  const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+  if (!JWT_SECRET) return null;
+  const auth = req.headers.authorization || '';
+  const tk = auth.startsWith('Bearer ') ? auth.slice(7) : ((req.body && req.body.jwt_token) || '');
+  if (!tk) return null;
+  let payload;
+  try { payload = jwt.verify(tk, JWT_SECRET, { algorithms: ['HS256'] }); } catch (e) { return null; }
+  const uid = payload.sub, tiendaId = payload.tienda_id;
+  if (!uid || !tiendaId) return null;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(uid)}&select=id,rol,activo,tienda_id&limit=1`, {
+      headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` }
+    });
+    const arr = await r.json();
+    const me = arr[0];
+    if (!me || me.activo === false || me.rol !== 'admin' || String(me.tienda_id) !== String(tiendaId)) return null;
+    return { uid, tiendaId };
+  } catch (e) { return null; }
+}
+
 async function enviarEmailReset(email, nombre, enlace, lang = 'es') {
   const RESET_I18N = {
     es: { subj:'Restablece tu contraseña de TekPair', hola:'Hola', recibido:'Hemos recibido una solicitud para restablecer la contraseña de tu cuenta. Pulsa el botón para crear una nueva:', btn:'Restablecer contraseña', caduca:'Este enlace caduca en <strong>1 hora</strong>. Si no has solicitado este cambio, puedes ignorar este email: tu contraseña no se modificará.' },
@@ -459,6 +483,92 @@ export default async function handler(req, res) {
       return res.json({ ok: true });
     } catch (e) {
       console.error('reset error:', e);
+      return res.status(500).json({ error: 'Error del servidor' });
+    }
+  }
+
+  // ───────── Acción: gestión de usuarios (solo admin de la tienda) ─────────
+  // Centraliza crear/permisos/activar/borrar usuario en el backend (service key) en lugar de
+  // escribir 'usuarios' directo desde el navegador → evita escalada de privilegios y exposición
+  // de hashes. Whitelist de campos y de rol. op: 'crear' | 'permisos' | 'toggle' | 'borrar'.
+  if (action === 'usuarios-admin') {
+    if (!SB_URL || !SK) return res.status(500).json({ error: 'Configuración de servidor incompleta' });
+    const admin = await verificarAdminJWT(SB_URL, SK, req);
+    if (!admin) return res.status(403).json({ error: 'Solo el administrador puede gestionar usuarios' });
+    const tiendaId = admin.tiendaId;
+    const op = req.body.op;
+    const sbH = { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Content-Type': 'application/json' };
+
+    async function targetEnTienda(id) {
+      const r = await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tiendaId)}&select=id,rol&limit=1`, { headers: sbH });
+      const arr = await r.json();
+      return arr[0] || null;
+    }
+
+    try {
+      if (op === 'permisos') {
+        const { target_id, permisos } = req.body;
+        if (!target_id) return res.status(400).json({ error: 'Falta target_id' });
+        if (!await targetEnTienda(target_id)) return res.status(404).json({ error: 'Usuario no encontrado en tu tienda' });
+        const up = await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(target_id)}&tienda_id=eq.${encodeURIComponent(tiendaId)}`, {
+          method: 'PATCH', headers: { ...sbH, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ permisos: (permisos && typeof permisos === 'object') ? permisos : {} })
+        });
+        if (!up.ok) return res.status(500).json({ error: 'No se pudieron guardar los permisos' });
+        return res.json({ ok: true });
+      }
+
+      if (op === 'toggle') {
+        const { target_id, activo } = req.body;
+        if (!target_id) return res.status(400).json({ error: 'Falta target_id' });
+        if (target_id === admin.uid) return res.status(400).json({ error: 'No puedes desactivar tu propia cuenta' });
+        if (!await targetEnTienda(target_id)) return res.status(404).json({ error: 'Usuario no encontrado en tu tienda' });
+        const up = await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(target_id)}&tienda_id=eq.${encodeURIComponent(tiendaId)}`, {
+          method: 'PATCH', headers: { ...sbH, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ activo: !!activo })
+        });
+        if (!up.ok) return res.status(500).json({ error: 'No se pudo actualizar' });
+        return res.json({ ok: true });
+      }
+
+      if (op === 'borrar') {
+        const { target_id } = req.body;
+        if (!target_id) return res.status(400).json({ error: 'Falta target_id' });
+        if (target_id === admin.uid) return res.status(400).json({ error: 'No puedes eliminar tu propia cuenta' });
+        if (!await targetEnTienda(target_id)) return res.status(404).json({ error: 'Usuario no encontrado en tu tienda' });
+        const del = await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(target_id)}&tienda_id=eq.${encodeURIComponent(tiendaId)}`, {
+          method: 'DELETE', headers: { ...sbH, 'Prefer': 'return=minimal' }
+        });
+        if (!del.ok) return res.status(500).json({ error: 'No se pudo eliminar' });
+        return res.json({ ok: true });
+      }
+
+      if (op === 'crear') {
+        let { nombre, email: nEmail, password: nPass, rol: nRol, permisos } = req.body;
+        if (!nombre || !nEmail || !nPass) return res.status(400).json({ error: 'Faltan datos (nombre, email o contraseña)' });
+        if (String(nPass).length < 8) return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
+        nRol = (nRol === 'admin') ? 'admin' : 'empleado';  // whitelist de rol (evita inyectar otros)
+        nEmail = String(nEmail).toLowerCase().trim();
+        const chk = await fetch(`${SB_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(nEmail)}&select=id&limit=1`, { headers: sbH });
+        const ex = await chk.json();
+        if (ex && ex.length) return res.status(409).json({ error: 'Ya existe un usuario con ese email' });
+        const hashV2 = await generarHashBcrypt(nPass);  // bcrypt (no SHA-256 como hacía el front)
+        const nuevoId = 'usr_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
+        const ins = await fetch(`${SB_URL}/rest/v1/usuarios`, {
+          method: 'POST', headers: { ...sbH, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({
+            id: nuevoId, tienda_id: tiendaId, nombre: String(nombre).slice(0, 100), email: nEmail,
+            password_hash_v2: hashV2, rol: nRol, activo: true,
+            permisos: nRol === 'admin' ? { todo: true } : ((permisos && typeof permisos === 'object') ? permisos : {})
+          })
+        });
+        if (!ins.ok) { console.error('crear usuario:', ins.status, await ins.text()); return res.status(500).json({ error: 'No se pudo crear el usuario' }); }
+        return res.json({ ok: true, id: nuevoId });
+      }
+
+      return res.status(400).json({ error: 'Operación no reconocida' });
+    } catch (e) {
+      console.error('usuarios-admin error:', e);
       return res.status(500).json({ error: 'Error del servidor' });
     }
   }
