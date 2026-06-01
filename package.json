@@ -2,8 +2,18 @@
   "name": "tekpair",
   "version": "1.0.0",
   "private": true,
+  "scripts": {
+    "lint": "eslint .",
+    "lint:api": "eslint api/"
+  },
   "dependencies": {
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.3"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "eslint": "^9.39.4",
+    "eslint-plugin-html": "^8.1.4",
+    "globals": "^17.6.0"
   }
 }
