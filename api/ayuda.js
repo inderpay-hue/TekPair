@@ -164,7 +164,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Tekpair Soporte <noreply@tekpair.tech>',
+        from: 'Tekpair Soporte <info@tekpair.tech>',
         to: [DEST_EMAIL],
         reply_to: emailSafe || undefined,
         subject: `[Soporte ${tipoSafe}] ${nombreSafe} - ${tiendaSafe}`,

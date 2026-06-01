@@ -153,7 +153,7 @@ async function sendEmail3Days(tienda, RESEND_KEY) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Tekpair <hola@tekpair.tech>',
+        from: 'Tekpair <info@tekpair.tech>',
         to: [tienda.plan_email],
         subject: '⏳ Tu prueba de Tekpair termina en 3 días',
         html: `
@@ -206,7 +206,7 @@ async function sendEmail1Day(tienda, RESEND_KEY) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Tekpair <hola@tekpair.tech>',
+        from: 'Tekpair <info@tekpair.tech>',
         to: [tienda.plan_email],
         subject: '⚡ Mañana empezamos a cobrar tu Tekpair',
         html: `
