@@ -14447,12 +14447,8 @@ function tienePerm(perm) {
 }
 
 // Para widgets: visible por defecto, solo se oculta si el usuario pone explícitamente false
-// Admin con permisos.todo o rol=admin NUNCA tiene widgets defaultOn ocultos por permisos
-// (solo puede ocultarlos desde el gestor de orden de widgets)
 function widgetVisible(perm) {
   if (!U) return false;
-  // Admin nunca tiene widgets bloqueados por permisos
-  if (U.rol === 'admin' || (U.permisos && U.permisos.todo)) return true;
   if (U.permisos && U.permisos[perm] === false) return false;
   return true;
 }
@@ -15499,7 +15495,9 @@ function renderPermisosUI() {
     if (soloWidgets.length) {
       var divW = document.createElement('div');
       divW.style = 'margin-bottom:14px';
-      divW.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">Dashboard <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">(qué se ve en la pantalla principal)</span></div>';
+      var esPropio = U && editPermId === U.id;
+      divW.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">Dashboard <span style="font-weight:500;text-transform:none;letter-spacing:0;color:var(--muted)">(qué se ve en la pantalla principal)</span></div>'
+        + (esPropio ? '<div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;padding:8px 10px;font-size:11px;color:var(--orange);margin-bottom:10px">⚠️ Estás editando tu propio dashboard. Los widgets desactivados desaparecerán de tu pantalla de inicio.</div>' : '');
       container.appendChild(divW.firstChild ? divW : divW);
       soloWidgets.forEach(function(p) {
         var activo = permsCurrent[p.id] !== false;
