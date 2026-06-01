@@ -6210,7 +6210,7 @@ async function renderDash() {
   var filterDates = tab === 'hoy' ? [hoy] : tab === 'semana' ? semana : mes;
 
   var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && filterDates.includes(v.fecha); });
-  var repsActivas = DB.reps.filter(function(r) { return r.estado !== 'Entregado' && r.estado !== 'Rechazado'; });
+  var repsActivas = DB.reps.filter(function(r) { var cerrado = ['Entregado','Rechazado','Devuelto','Sin Solucion','Presupuesto']; return cerrado.indexOf(r.estado) === -1; });
 
   var tVentas = ventas.reduce(function(a, v) {
     if(v.financiado && v.cuotas) {
