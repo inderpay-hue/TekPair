@@ -5574,8 +5574,7 @@ window.addEventListener('DOMContentLoaded', function() {
   TIENDA_ID = sess.tienda_id || (U && U.tienda_id) || '';
   // Load permisos from session
   if (sess.usuario && sess.usuario.permisos) U.permisos = sess.usuario.permisos;
-  else if (U.permisos) U.permisos = U.permisos;
-  else U.permisos = {};
+  else if (!U.permisos) U.permisos = {};
 
   // ═══ PLAN ═══
   PLAN_INFO.plan = sess.plan || 'basico';
@@ -8695,11 +8694,11 @@ function abrirFirmaPresupuesto(id) {
   var resumen = document.getElementById('firmaResumen');
   if (resumen) {
     var servicios = (r.servicios || []).map(function(s){ return s.nombre || ''; }).filter(Boolean).join(', ');
+    resumen.innerHTML =
       '<div><strong>Cliente:</strong> ' + esc(r.clienteNombre || '—') + '</div>' +
       '<div><strong>Dispositivo:</strong> ' + esc(r.marca || '') + ' ' + esc(r.modelo || '') + (r.imei ? ' · IMEI: ' + esc(r.imei) : '') + '</div>' +
       '<div><strong>Avería:</strong> ' + esc(r.averia || '—') + '</div>' +
       (servicios ? '<div><strong>Servicios:</strong> ' + esc(servicios) + '</div>' : '') +
-      (servicios ? '<div><strong>Servicios:</strong> ' + servicios + '</div>' : '') +
       '<div style="margin-top:8px;font-size:16px;font-weight:700;color:var(--green)"><strong>Total a pagar: ' + cur(r.total || 0) + '</strong></div>';
   }
 
@@ -14145,8 +14144,9 @@ async function marcarNotifRemotas(ids) {
   } catch(e) { console.error('marcarNotifRemotas:', e); }
 }
 
-// Añadir notificaciones remotas a computeNotificaciones
+// Añadir notificaciones remotas a computeNotificaciones (monkey-patch intencional)
 var _computeNotificacionesOrig = computeNotificaciones;
+// eslint-disable-next-line no-func-assign
 computeNotificaciones = function() {
   var notifs = _computeNotificacionesOrig();
   // Mezclar con remotas no leídas
