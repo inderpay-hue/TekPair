@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Come gestire il magazzino ricambi di un'officina | TekPair Blog</title>
+  <meta name="description" content="Scopri come controllare l'inventario ricambi della tua officina: cosa tenere a magazzino, come evitare rotture di stock e ridurre il capitale immobilizzato." />
+  <meta name="keywords" content="gestire magazzino ricambi officina, inventario ricambi telefono, controllo stock officina riparazioni" />
+  <link rel="canonical" href="https://tekpair.tech/blog/it/gestire-magazzino-ricambi-officina.html" />
+  <link rel="alternate" hreflang="es" href="https://tekpair.tech/blog/como-gestionar-stock-piezas-taller-moviles.html" />
+  <link rel="alternate" hreflang="en" href="https://tekpair.tech/blog/en/how-to-manage-parts-inventory-repair-shop.html" />
+  <link rel="alternate" hreflang="de" href="https://tekpair.tech/blog/de/ersatzteillager-werkstatt-verwalten.html" />
+  <link rel="alternate" hreflang="fr" href="https://tekpair.tech/blog/fr/gerer-stock-pieces-atelier-reparation.html" />
+  <link rel="alternate" hreflang="it" href="https://tekpair.tech/blog/it/gestire-magazzino-ricambi-officina.html" />
+  <link rel="alternate" hreflang="pt" href="https://tekpair.tech/blog/pt/gerir-stock-pecas-oficina-reparacao.html" />
+  <link rel="alternate" hreflang="x-default" href="https://tekpair.tech/blog/como-gestionar-stock-piezas-taller-moviles.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Come gestire il magazzino ricambi di un'officina" />
+  <meta property="og:description" content="Guida pratica alla gestione del magazzino ricambi in un'officina di riparazione." />
+  <meta property="og:url" content="https://tekpair.tech/blog/it/gestire-magazzino-ricambi-officina.html" />
+  <meta property="og:image" content="https://tekpair.tech/assets/og-blog.png" />
+  <meta property="og:site_name" content="TekPair" />
+  <meta property="article:published_time" content="2026-06-01" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Come gestire il magazzino ricambi di un'officina" />
+  <meta name="twitter:description" content="Guida pratica alla gestione del magazzino ricambi in un'officina di riparazione." />
+  <meta name="twitter:image" content="https://tekpair.tech/assets/og-blog.png" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Come gestire il magazzino ricambi di un'officina","description":"Scopri come controllare l'inventario ricambi della tua officina: cosa tenere a magazzino, come evitare rotture di stock e ridurre il capitale immobilizzato.","author":{"@type":"Organization","name":"TekPair","url":"https://tekpair.tech"},"publisher":{"@type":"Organization","name":"TekPair","logo":{"@type":"ImageObject","url":"https://tekpair.tech/assets/logo.png"}},"datePublished":"2026-06-01","dateModified":"2026-06-01","mainEntityOfPage":{"@type":"WebPage","@id":"https://tekpair.tech/blog/it/gestire-magazzino-ricambi-officina.html"},"image":"https://tekpair.tech/assets/og-blog.png"}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --terracota: #C2410C; --terracota-dark: #9A3309; --terracota-light: #FEF0E8; --text: #1C1917; --text-muted: #78716C; --border: #E7E5E4; --bg: #FFFFFF; --bg-alt: #FAFAF9; }
+    body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--bg); line-height: 1.7; font-size: 17px; }
+    nav { border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; background: #fff; }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--terracota); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--terracota); }
+    .article-hero { background: var(--terracota-light); padding: 3.5rem 1.5rem 3rem; text-align: center; }
+    .article-hero .category { display: inline-block; background: var(--terracota); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.25rem 0.75rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .article-hero h1 { font-size: clamp(1.75rem, 4vw, 2.6rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.03em; max-width: 680px; margin: 0 auto 1rem; color: var(--text); }
+    .article-hero .intro { max-width: 600px; margin: 0 auto; color: var(--text-muted); font-size: 1.05rem; }
+    .article-meta { margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 1rem; }
+    .article-wrapper { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+    .toc { background: var(--bg-alt); border: 1px solid var(--border); border-left: 4px solid var(--terracota); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; }
+    .toc p { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--terracota); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .toc a { color: var(--text); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
+    .toc a:hover { color: var(--terracota); text-decoration: underline; }
+    h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 2.5rem 0 1rem; color: var(--text); scroll-margin-top: 16px; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 1.75rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1.1rem; color: #44403C; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    li { color: #44403C; }
+    strong { color: var(--text); font-weight: 600; }
+    .callout { background: var(--terracota-light); border-left: 4px solid var(--terracota); border-radius: 0 8px 8px 0; padding: 1.1rem 1.25rem; margin: 1.75rem 0; }
+    .callout p { margin: 0; color: #7C2D12; font-size: 0.95rem; }
+    .callout strong { color: #7C2D12; }
+    .table-wrap { overflow-x: auto; margin: 1.75rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th { background: var(--terracota); color: #fff; font-weight: 600; text-align: left; padding: 0.7rem 1rem; }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #44403C; }
+    tr:nth-child(even) td { background: var(--bg-alt); }
+    tr:last-child td { border-bottom: none; }
+    .checklist { list-style: none; padding: 0; margin: 1.25rem 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); color: #44403C; font-size: 0.95rem; }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before { content: "✓"; flex-shrink: 0; width: 20px; height: 20px; background: var(--terracota); color: #fff; border-radius: 50%; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .faq-section { margin-top: 3rem; }
+    .faq-section h2 { margin-top: 0; }
+    details { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; }
+    summary { padding: 1rem 1.25rem; font-weight: 600; font-size: 0.97rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bg-alt); transition: background .2s; }
+    summary:hover { background: var(--terracota-light); }
+    summary::after { content: "+"; font-size: 1.2rem; color: var(--terracota); font-weight: 700; }
+    details[open] summary::after { content: "−"; }
+    details[open] summary { background: var(--terracota-light); }
+    .faq-body { padding: 1rem 1.25rem; font-size: 0.95rem; color: #44403C; }
+    .cta-box { background: var(--terracota); color: #fff; border-radius: 12px; padding: 2.5rem 2rem; text-align: center; margin-top: 3.5rem; }
+    .cta-box h2 { color: #fff; font-size: 1.5rem; margin: 0 0 0.75rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); margin-bottom: 1.5rem; font-size: 1rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--terracota); font-weight: 700; font-size: 0.95rem; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; transition: transform .15s, box-shadow .15s; }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+    .post-nav { margin-top: 3rem; padding-top: 2rem; border-top: 1px solid var(--border); display: flex; justify-content: space-between; gap: 1rem; }
+    .post-nav a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; display: flex; flex-direction: column; gap: 0.25rem; max-width: 48%; }
+    .post-nav a span { color: var(--text); font-weight: 600; font-size: 0.95rem; }
+    .post-nav a:hover span { color: var(--terracota); }
+    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+    footer a { color: var(--terracota); text-decoration: none; }
+    @media (max-width: 600px) { .nav-links { display: none; } .article-hero { padding: 2.5rem 1.25rem 2rem; } .article-wrapper { padding: 2rem 1.25rem 3rem; } .post-nav { flex-direction: column; } .post-nav a { max-width: 100%; } }
+  </style>
+</head>
+<body>
+  <nav>
+    <a href="https://tekpair.tech" class="nav-logo">TekPair</a>
+    <div class="nav-links">
+      <a href="https://tekpair.tech/blog/">Blog</a>
+      <a href="https://tekpair.tech/#funcionalidades">Funzionalità</a>
+      <a href="https://tekpair.tech/#precios">Prezzi</a>
+      <a href="https://tekpair.tech/app.html">Accedi</a>
+    </div>
+  </nav>
+  <header class="article-hero">
+    <div class="category">Gestione dell'officina</div>
+    <h1>Come gestire il magazzino ricambi di un'officina di riparazioni</h1>
+    <p class="intro">Rimanere senza un ricambio nel momento in cui ne hai bisogno è frustrante. Avere troppo magazzino immobilizza denaro. La chiave è l'equilibrio.</p>
+    <div class="article-meta">
+      <span>&#128197; 1° giugno 2026</span>
+      <span>&#9201; 7 min di lettura</span>
+    </div>
+  </header>
+  <main class="article-wrapper">
+    <div class="toc" role="navigation" aria-label="In questo articolo">
+      <p>In questo articolo</p>
+      <ol>
+        <li><a href="#s1">Perché il controllo del magazzino è fondamentale</a></li><li><a href="#s2">Quali ricambi tenere sempre a magazzino</a></li><li><a href="#s3">Come organizzare il magazzino</a></li><li><a href="#s4">Come tenere il registro</a></li><li><a href="#s5">Come evitare le rotture di stock</a></li><li><a href="#s6">Ridurre il capitale immobilizzato</a></li>
+        <li><a href="#faq">Domande frequenti</a></li>
+      </ol>
+    </div>
+    <p>Il magazzino ricambi è uno degli aspetti più trascurati nelle piccole officine. La maggior parte acquista i ricambi man mano che servono, senza sistema. Funziona all'inizio, ma con il volume diventa un problema.</p>
+    <p>Un buon controllo del magazzino non richiede software complesso. Richiede un metodo chiaro e la costanza nel mantenerlo.</p>
+    <h2 id="s1">1. Perché il controllo del magazzino è fondamentale</h2>
+    <p>Un'officina senza controllo del magazzino soffre di quattro problemi diretti:</p>
+    <ul><li><strong>Rotture di stock:</strong> il cliente porta il telefono, si fa la diagnosi e si scopre che il ricambio manca. Il cliente aspetta o va da un concorrente.</li><li><strong>Ordini urgenti:</strong> acquistare ricambi urgentemente costa sempre di più.</li><li><strong>Capitale immobilizzato:</strong> troppo magazzino su ricambi a bassa rotazione significa denaro fermo.</li><li><strong>Perdite e disorganizzazione:</strong> senza un sistema, i ricambi si perdono o vengono usati per la riparazione sbagliata.</li></ul>
+    <h2 id="s2">2. Quali ricambi tenere sempre a magazzino</h2>
+    <p>Non tutti i ricambi meritano lo stesso livello di magazzino. Classificali per tasso di rotazione:</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Categoria</th><th>Esempi</th><th>Magazzino consigliato</th></tr></thead>
+      <tbody><tr><td><strong>Alta rotazione</strong></td><td>Display iPhone/Samsung top di gamma, batterie</td><td>2–5 unità per referenza</td></tr><tr><td><strong>Media rotazione</strong></td><td>Display fascia media, connettori di ricarica</td><td>1–2 unità per referenza</td></tr><tr><td><strong>Bassa rotazione</strong></td><td>Ricambi di modelli vecchi o poco comuni</td><td>0–1 unità (su ordine)</td></tr><tr><td><strong>Materiali di consumo</strong></td><td>Adesivi, viti, plastiche, attrezzi</td><td>Scorta abbondante, costo basso</td></tr><tr><td><strong>Utensili</strong></td><td>Ventose, leve, cacciaviti</td><td>1 set completo + ricambi critici</td></tr></tbody>
+    </table></div>
+    <div class="callout"><p><strong>Consiglio:</strong> analizza le riparazioni degli ultimi 3 mesi per identificare i ricambi più utilizzati. Quelli meritano un magazzino permanente. Il resto su ordine.</p></div>
+    <h2 id="s3">3. Come organizzare fisicamente il magazzino</h2>
+    <p>Un magazzino ben organizzato fa risparmiare tempo a ogni riparazione.</p>
+    <h3>Sistema di organizzazione fisica</h3>
+    <p>Il sistema più efficace per una piccola officina combina due criteri: marca del dispositivo e tipo di ricambio.</p>
+    <ul><li><strong>Per marca e modello:</strong> una zona per Apple, una per Samsung, una per Xiaomi, ecc.</li><li><strong>Etichettatura chiara:</strong> ogni scompartimento con riferimento visibile.</li><li><strong>Ricambi usati vs nuovi:</strong> non mischiare mai ricambi nuovi con ricondizionati. Zone separate.</li><li><strong>Accesso frequente vicino:</strong> i ricambi ad alta rotazione nella zona più accessibile.</li></ul>
+    <h3>Materiali di stoccaggio</h3>
+    <p>Non hai bisogno di una soluzione costosa:</p>
+    <ul><li>Scatole di plastica trasparente con scompartimenti per accesso rapido.</li><li>Buste antistatiche per ricambi sensibili (display, schede).</li><li>Ripiani o vassoi etichettati per i modelli ad alta rotazione.</li><li>Piccoli cassetti per i ricambi minuscoli (viti, connettori).</li></ul>
+    <div class="callout"><p><strong>Regola d'oro:</strong> se impieghi più di 30 secondi a trovare un ricambio, il tuo sistema va migliorato.</p></div>
+    <h2 id="s4">4. Come tenere il registro dell'inventario</h2>
+    <p>L'organizzazione fisica non basta. Hai bisogno di un registro aggiornato.</p>
+    <h3>Cosa registrare per ogni ricambio</h3>
+    <p>Il registro minimo dell'inventario deve includere:</p>
+    <ul class="checklist"><li>Referenza o codice del ricambio</li><li>Descrizione (marca, modello, tipo di ricambio)</li><li>Fornitore abituale e prezzo di acquisto</li><li>Quantità attuale a magazzino</li><li>Quantità minima (punto di riordino)</li><li>Data dell'ultimo carico</li><li>Riparazioni in cui è stato utilizzato</li></ul>
+    <div class="callout"><p><strong>TekPair gestisce questo automaticamente:</strong> ogni volta che usi un ricambio, il magazzino si aggiorna da solo. Ricevi un avviso al raggiungimento del minimo. <a href="https://tekpair.tech" style="color:var(--terracota-dark);font-weight:600;">Prova gratis →</a></p></div>
+    <h2 id="s5">5. Come evitare le rotture di stock</h2>
+    <p>Una rottura di stock si verifica quando ti manca un ricambio necessario. La maggior parte sono evitabili:</p>
+    <ul><li><strong>Punto di riordino:</strong> definisci una quantità minima per ogni referenza. Quando il magazzino raggiunge quel livello, ordina.</li><li><strong>Scorta di sicurezza:</strong> per i ricambi più critici, tieni sempre 1–2 unità extra.</li><li><strong>Revisione settimanale:</strong> 15 minuti a settimana per controllare le referenze più usate.</li><li><strong>Più fornitori:</strong> avere più di un fornitore per i ricambi critici dà flessibilità.</li><li><strong>Registrazione in tempo reale:</strong> annotare ogni ricambio usato al momento dell'uso, non a fine giornata.</li></ul>
+    <h2 id="s6">6. Come ridurre il capitale immobilizzato</h2>
+    <p>Il capitale immobilizzato a magazzino non lavora per te. Tre strategie per ridurlo:</p>
+    <ul><li><strong>Acquisti frequenti in piccole quantità:</strong> invece di comprare 10 display, acquistane 2–3 e riordina al punto di riordino.</li><li><strong>Identificare il magazzino fermo:</strong> ricambi fermi da oltre 6 mesi sono candidati alla restituzione, vendita a prezzo di costo o liquidazione.</li><li><strong>Negoziare condizioni di pagamento:</strong> alcuni fornitori accettano conto deposito o pagamenti a 30–60 giorni.</li></ul>
+    <div class="callout"><p><strong>TekPair ti mostra il tuo magazzino fermo:</strong> identifica le referenze che non si muovono da più tempo. <a href="https://tekpair.tech" style="color:var(--terracota-dark);font-weight:600;">Prova gratis →</a></p></div>
+    <section class="faq-section" id="faq">
+      <h2>Domande frequenti</h2>
+      <details><summary>Quanti ricambi tenere a magazzino per iniziare?</summary><div class="faq-body">Per una nuova officina, le 5–10 referenze più comuni nella tua area. Il resto su ordine finché non hai dati reali di domanda.</div></details><details><summary>Come capisco quando riordinare un ricambio?</summary><div class="faq-body">Definisci un punto di riordino per ogni referenza considerando i tempi di consegna. Quando il magazzino raggiunge quel livello, ordina.</div></details><details><summary>Meglio ricambi originali o compatibili?</summary><div class="faq-body">Dipende dal cliente. Gli originali offrono qualità migliore. I compatibili sono più economici. L'ideale è avere entrambe le opzioni.</div></details><details><summary>Come gestisco i ricambi avanzati da una riparazione?</summary><div class="faq-body">I ricambi non utilizzati devono tornare immediatamente in inventario con il registro aggiornato.</div></details><details><summary>Cosa faccio se ricevo un ricambio difettoso?</summary><div class="faq-body">Registralo come difettoso e mettilo da parte immediatamente. Documenta il difetto e contatta il fornitore.</div></details>
+    </section>
+    <div class="cta-box">
+      <h2>Gestisci il magazzino della tua officina senza fogli di calcolo</h2>
+      <p>TekPair gestisce automaticamente il magazzino ricambi: registra carichi e scarichi, avvisa quando riordinare e collega ogni ricambio alla sua riparazione.</p>
+      <a href="https://tekpair.tech" class="cta-btn">Inizia gratis su TekPair →</a>
+    </div>
+    <div class="post-nav">
+      <a href="../it/come-scrivere-preventivo-riparazione-professionale.html">← Articolo precedente<span>Come scrivere un preventivo di riparazione professionale</span></a>
+      <a href="notificare-cliente-telefono-riparato.html" style="text-align:right;">Articolo successivo →<span>Come notificare il cliente quando il telefono è pronto</span></a>
+    </div>
+  </main>
+  <footer>
+    <p>&#169; 2026 <a href="https://tekpair.tech">TekPair</a> &middot; Software di gestione per officine di riparazione</p>
+    <p style="margin-top:0.5rem;">
+      <a href="https://tekpair.tech/blog/">Blog</a> &middot;
+      <a href="https://tekpair.tech/privacidad.html">Privacy</a> &middot;
+      <a href="https://tekpair.tech/terminos.html">Termini</a>
+    </p>
+  </footer>
+</body>
+</html>
