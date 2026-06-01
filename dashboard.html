@@ -7608,7 +7608,9 @@ function renderWidgetClisInactivos() {
 function setMetricTab(el) {
   document.querySelectorAll('#metricTabs .tab').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
-  SEL.metricTab = el.dataset.t;
+  // data-t es la CLAVE i18n ('dash.hoy'/'dash.semana'/'dash.mes'); renderDash espera el periodo
+  // pelado ('hoy'/'semana'/'mes'). Sin el replace, el ternario caía siempre en 'mes'.
+  SEL.metricTab = (el.dataset.t || '').replace('dash.', '');
   renderDash();
 }
 
@@ -7625,10 +7627,15 @@ function _norm(s) {
 function checkUrgentes() {
   var hoy = new Date(); hoy.setHours(0,0,0,0);
   var en2 = new Date(); en2.setDate(en2.getDate() + 2); en2.setHours(23,59,59,999);
-  var ESTADOS_CERRADOS = ['Entregado','Devuelto','Rechazado','Sin Solucion','Presupuesto'];
+  // Estados "cerrados" en minúsculas para comparar sin importar mayúsculas/acentos
+  // de datos antiguos (el codebase tiene variantes como 'En proceso'/'Por entregar').
+  var ESTADOS_CERRADOS = ['entregado','devuelto','rechazado','sin solucion','sin solución','presupuesto'];
   var urgentes = DB.reps.filter(function(r) {
     if (!r.fechaEntrega) return false;
-    if (ESTADOS_CERRADOS.indexOf(r.estado) >= 0) return false;
+    // Si tiene fecha de entrega REAL, ya se entregó (aunque el estado venga sucio) → fuera de urgentes
+    if (r.fechaEntregaReal) return false;
+    var est = (r.estado || '').toString().trim().toLowerCase();
+    if (ESTADOS_CERRADOS.indexOf(est) >= 0) return false;
     var fe = new Date(r.fechaEntrega); fe.setHours(23,59,59,999);
     return fe >= hoy && fe <= en2;
   }).sort(function(a,b){ return new Date(a.fechaEntrega) - new Date(b.fechaEntrega); });
@@ -7640,9 +7647,9 @@ function checkUrgentes() {
     var label = dias === 0 ? 'Hoy' : dias === 1 ? 'Ma\u00f1ana' : 'En ' + dias + ' d\u00edas';
     var color = dias === 0 ? 'var(--red)' : 'var(--orange)';
     return '<div class="urgent-card">' +
-      '<strong>' + r.clienteNombre + '</strong> \u2014 ' + r.marca + ' ' + r.modelo +
+      '<strong>' + escHtml(r.clienteNombre) + '</strong> \u2014 ' + escHtml(r.marca) + ' ' + escHtml(r.modelo) +
       '<br><span style="color:' + color + ';font-size:11px;font-weight:700">\u23f0 ' + label + '</span>' +
-      ' \u00b7 ' + r.averia + '</div>';
+      ' \u00b7 ' + escHtml(r.averia) + '</div>';
   }).join('');
 }
 
