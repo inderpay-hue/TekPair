@@ -443,6 +443,30 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 .gar-tipo-desc{font-size:10px;font-weight:400;color:var(--muted);margin-top:1px}
 .gar-tipo-btn.active .gar-tipo-desc{color:inherit;opacity:.7}
 
+/* VIS-FIN: Widget resumen financiero */
+.fin-widget{background:var(--white);border-radius:14px;padding:16px 18px;border:1px solid var(--border);box-shadow:var(--shadow-sm);margin-bottom:10px}
+.fin-widget-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.fin-widget-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
+.fin-total-num{font-size:28px;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1}
+.fin-total-lbl{font-size:11px;color:var(--muted);margin-top:3px;margin-bottom:12px}
+.fin-split{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.fin-split-item{background:var(--light);border-radius:10px;padding:10px 12px}
+.fin-split-num{font-size:17px;font-weight:800;letter-spacing:-.01em}
+.fin-split-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+.fin-split-count{font-size:10px;color:var(--muted)}
+.fin-bar-wrap{height:5px;border-radius:3px;background:var(--border);overflow:hidden;margin-bottom:8px;display:flex}
+.fin-bar-v{background:var(--green);height:100%;transition:width .4s}
+.fin-bar-r{background:var(--blue);height:100%;transition:width .4s}
+.fin-legend{display:flex;gap:12px;margin-bottom:14px}
+.fin-legend-item{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--muted)}
+.fin-legend-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.fin-sep{height:1px;background:var(--border);margin:0 -18px 14px}
+.fin-pagos{display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:6px}
+.fin-pago-item{background:var(--light);border-radius:8px;padding:8px 10px;display:flex;align-items:center;gap:8px}
+.fin-pago-icon{width:28px;height:28px;border-radius:7px;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:13px}
+.fin-pago-num{font-size:14px;font-weight:800;line-height:1}
+.fin-pago-lbl{font-size:10px;color:var(--muted);margin-top:1px}
+
 /* VIS-19: página Más opciones */
 .pmas-group-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin:16px 0 8px;display:flex;align-items:center;gap:8px}
 .pmas-group-label::after{content:'';flex:1;height:1px;background:var(--border)}
@@ -946,7 +970,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
-  <script src="/lang/lang.v8.js?v=b533c4d"></script>
+  <script src="/lang/lang.v8.js?v=fin001"></script>
 </head>
 <body>
 <div id="app">
@@ -6361,21 +6385,98 @@ async function renderDash() {
   var tReps = 0;
   // Renderizar stats inmediatamente con tReps=0 (datos locales rápidos)
   // Luego actualizar cuando llegan los pagos de Supabase
-  var _renderStats = function(tRepsVal) {
+  var _renderStats = function(tRepsVal, pagosRepData) {
+    var mostrarFinanzas = tienePerm('ventas_ver');
+    var mostrarOps = tienePerm('reps_ver');
+    if (!mostrarFinanzas && !mostrarOps) return;
+
+    var totalIngresos = tVentas + tRepsVal;
+    var pctVentas = totalIngresos > 0 ? Math.round(tVentas / totalIngresos * 100) : 0;
+    var pctReps = totalIngresos > 0 ? 100 - pctVentas : 0;
+
+    // Calcular totales por forma de pago (ventas + pagos reparación)
+    var pagosTotales = {};
+    if (mostrarFinanzas) {
+      // Ventas (del periodo)
+      ventas.forEach(function(v) {
+        var m = v.pago || 'Efectivo';
+        pagosTotales[m] = (pagosTotales[m] || 0) + v.total;
+      });
+      // Pagos reparación (del periodo, si disponibles)
+      if (pagosRepData) {
+        pagosRepData.forEach(function(p) {
+          var m = p.metodo || 'Efectivo';
+          pagosTotales[m] = (pagosTotales[m] || 0) + Number(p.importe || 0);
+        });
+      }
+    }
+
+    var iconosPago = {Efectivo:'💵', Tarjeta:'💳', Bizum:'📲', Transferencia:'🏦', Financiado:'📅'};
+    var coloresPago = {Efectivo:'var(--green)', Tarjeta:'var(--blue)', Bizum:'var(--blue)', Transferencia:'var(--orange)', Financiado:'var(--muted)'};
+    var bgPago = {Efectivo:'rgba(0,200,150,.10)', Tarjeta:'rgba(0,85,255,.10)', Bizum:'rgba(0,85,255,.10)', Transferencia:'rgba(249,115,22,.10)', Financiado:'rgba(100,116,139,.10)'};
+
     var _html = '';
-    if (widgetVisible('widget_stats_ventas') && tienePerm('ventas_ver')) {
-      _html += '<div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" style="color:var(--text)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>';
-      _html += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl" data-t="dash.ingresos_ventas">Ingresos ventas</div></div>';
+
+    // ── Widget 1: Resumen financiero ──
+    if (mostrarFinanzas && (widgetVisible('widget_stats_ventas') || widgetVisible('widget_stats_total'))) {
+      var pagosHtml = Object.keys(pagosTotales).filter(function(k){ return pagosTotales[k] > 0; }).map(function(m) {
+        return '<div class="fin-pago-item">' +
+          '<div class="fin-pago-icon" style="background:' + (bgPago[m]||'var(--light)') + '">' + (iconosPago[m]||'💰') + '</div>' +
+          '<div><div class="fin-pago-num">' + cur(pagosTotales[m]) + '</div>' +
+          '<div class="fin-pago-lbl">' + m + '</div></div>' +
+        '</div>';
+      }).join('');
+      if (!pagosHtml) pagosHtml = '<div style="font-size:11px;color:var(--muted);padding:6px 0">' + T('gen.sin_movimientos') + '</div>';
+
+      _html += '<div class="fin-widget">' +
+        '<div class="fin-widget-header">' +
+          '<span class="fin-widget-title" data-t="dash.resumen_financiero">Resumen financiero</span>' +
+        '</div>' +
+        // Total
+        '<div class="fin-total-num">' + cur(totalIngresos) + '</div>' +
+        '<div class="fin-total-lbl" data-t="dash.total_ingresos">Total ingresos</div>' +
+        // Split ventas / reparaciones
+        '<div class="fin-split">' +
+          '<div class="fin-split-item">' +
+            '<div class="fin-split-num" style="color:var(--green)">' + cur(tVentas) + '</div>' +
+            '<div class="fin-split-lbl" data-t="dash.ingresos_ventas">Ingresos ventas</div>' +
+            '<div class="fin-split-count">' + ventas.length + ' ' + T('dash.ventas_count') + '</div>' +
+          '</div>' +
+          '<div class="fin-split-item">' +
+            '<div class="fin-split-num" style="color:var(--blue)">' + cur(tRepsVal) + '</div>' +
+            '<div class="fin-split-lbl" data-t="dash.ingresos_reps">Ingresos reparaciones</div>' +
+            (pagosRepData ? '<div class="fin-split-count">' + pagosRepData.length + ' ' + T('dash.pagos_count') + '</div>' : '') +
+          '</div>' +
+        '</div>' +
+        // Barra proporcional
+        '<div class="fin-bar-wrap">' +
+          '<div class="fin-bar-v" style="width:' + pctVentas + '%"></div>' +
+          '<div class="fin-bar-r" style="width:' + pctReps + '%"></div>' +
+        '</div>' +
+        '<div class="fin-legend">' +
+          '<div class="fin-legend-item"><div class="fin-legend-dot" style="background:var(--green)"></div><span data-t="dash.ventas_lbl">Ventas</span></div>' +
+          '<div class="fin-legend-item"><div class="fin-legend-dot" style="background:var(--blue)"></div><span data-t="dash.reps_lbl">Reparaciones</span></div>' +
+        '</div>' +
+        // Separador
+        '<div class="fin-sep"></div>' +
+        // Pagos por forma
+        '<div class="fin-widget-title" style="margin-bottom:8px" data-t="dash.por_forma_pago">Por forma de pago</div>' +
+        '<div class="fin-pagos">' + pagosHtml + '</div>' +
+      '</div>';
     }
-    if (widgetVisible('widget_stats_pendientes') && tienePerm('reps_ver')) {
-      _html += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--text)">' + repsPendienteReparar.length + '</div><div class="stat-lbl" data-t="dash.pendientes_reparar">Pendientes reparar</div></div>';
+
+    // ── Widget 2: Operaciones (pendientes + por entregar) ──
+    if (mostrarOps && (widgetVisible('widget_stats_pendientes') || widgetVisible('widget_stats_entregar'))) {
+      var opsHtml = '';
+      if (widgetVisible('widget_stats_pendientes')) {
+        opsHtml += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--text)">' + repsPendienteReparar.length + '</div><div class="stat-lbl" data-t="dash.pendientes_reparar">Pendientes reparar</div></div>';
+      }
+      if (widgetVisible('widget_stats_entregar')) {
+        opsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + repsPorEntregar.length + '</div><div class="stat-lbl" data-t="dash.por_entregar_stat">Por entregar</div></div>';
+      }
+      _html += opsHtml;
     }
-    if (widgetVisible('widget_stats_entregar') && tienePerm('reps_ver')) {
-      _html += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + repsPorEntregar.length + '</div><div class="stat-lbl" data-t="dash.por_entregar_stat">Por entregar</div></div>';
-    }
-    if (widgetVisible('widget_stats_total') && tienePerm('ventas_ver') && tienePerm('reps_ver')) {
-      _html += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas + tRepsVal) + '</div><div class="stat-lbl" data-t="dash.total_ingresos">Total ingresos</div></div>';
-    }
+
     var grid = document.getElementById('metricsGrid');
     if (grid) { grid.innerHTML = _html; if (typeof applyLang === 'function') applyLang(); }
   };
@@ -6389,8 +6490,8 @@ async function renderDash() {
       var minF = fechasISO.sort()[0], maxF = fechasISO[fechasISO.length-1];
       var pagosRep = await sbGet('pagos_reparacion', 'fecha=gte.' + minF + '&fecha=lte.' + maxF) || [];
       tReps = pagosRep.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
-      // Re-renderizar stats con tReps real
-      _renderStats(tReps);
+      // Re-renderizar stats con tReps real + datos de pagos por método
+      _renderStats(tReps, pagosRep);
     } catch(e) { console.warn('tReps:', e); }
   }
 
