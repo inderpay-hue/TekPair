@@ -433,6 +433,14 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 
 /* ═══ STATS ═══ */
 .stats-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+/* VIS-16: zonas del dashboard */
+.dash-zone-label{display:flex;align-items:center;gap:8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin:4px 0 8px}
+.dash-zone-label::after{content:'';flex:1;height:1px;background:var(--border)}
+.dash-zone-2col{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+.dash-zone-3col{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:10px}
+@media(max-width:1199px){.dash-zone-3col{grid-template-columns:1fr 1fr}}
+@media(max-width:899px){.dash-zone-2col,.dash-zone-3col{grid-template-columns:1fr}}
+
 .stat-card{background:var(--white);border-radius:12px;padding:14px;border:1px solid var(--border);border-left:3px solid var(--accent,var(--border));box-shadow:var(--shadow-sm);transition:transform .2s var(--ease),box-shadow .2s var(--ease)}
 @media(min-width:900px){.stat-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md)}}
 .stat-val{font-size:24px;font-weight:800;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
@@ -994,6 +1002,33 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="sidebar-user">
     <div id="sidebarName"></div>
     <div id="sidebarTienda" style="font-size:11px;opacity:.7;margin-top:2px"></div>
+    <div style="display:flex;gap:6px;margin:8px 0 6px;position:relative">
+      <div style="position:relative;flex:1">
+        <button id="btnSbTema" onclick="toggleSbTemaMenu()" style="width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.85);padding:5px 8px;border-radius:7px;font-size:11px;cursor:pointer;font-family:inherit;text-align:left">🎨 <span id="sbTemaLabel">Tema</span></button>
+        <div id="sbTemaMenu" style="display:none;position:absolute;bottom:34px;left:0;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.18);min-width:140px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px" data-t="gen.tema">Tema</div>
+          <button onclick="setTema('terracota');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#C2410C;display:inline-block"></span>Terracota</button>
+          <button onclick="setTema('naranja');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#EA580C;display:inline-block"></span>Naranja</button>
+          <button onclick="setTema('dark');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#1E3A5F;display:inline-block"></span>Dark</button>
+          <button onclick="setTema('negro');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#111;border:1px solid #444;display:inline-block"></span>Negro</button>
+          <button onclick="setTema('grafito');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#6B7280;display:inline-block"></span>Grafito</button>
+          <button onclick="setTema('ambar');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#D97706;display:inline-block"></span>Ámbar</button>
+          <button onclick="setTema('');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid #ddd;display:inline-block"></span>Claro</button>
+        </div>
+      </div>
+      <div style="position:relative;flex:1">
+        <button id="btnSbLang" onclick="toggleSbLangMenu()" style="width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.85);padding:5px 8px;border-radius:7px;font-size:11px;cursor:pointer;font-family:inherit;text-align:left">🌐 <span id="sbLangLabel">ES</span></button>
+        <div id="sbLangMenu" style="display:none;position:absolute;bottom:34px;left:0;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.18);min-width:130px">
+          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px" data-t="gen.idioma">Idioma</div>
+          <button onclick="setLang('es');closeSbLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)">🇪🇸 Español</button>
+          <button onclick="setLang('en');closeSbLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)">🇬🇧 English</button>
+          <button onclick="setLang('fr');closeSbLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)">🇫🇷 Français</button>
+          <button onclick="setLang('it');closeSbLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)">🇮🇹 Italiano</button>
+          <button onclick="setLang('de');closeSbLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)">🇩🇪 Deutsch</button>
+          <button onclick="setLang('pt');closeSbLangMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)">🇵🇹 Português</button>
+        </div>
+      </div>
+    </div>
     <button class="sidebar-logout" onclick="logout()">← Cerrar sesion</button>
   </div>
 </div>
@@ -1053,33 +1088,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div class="tab" data-t="dash.semana" onclick="setMetricTab(this)">Semana</div>
       <div class="tab" data-t="dash.mes" onclick="setMetricTab(this)">Mes</div>
     </div>
-    <div style="display:flex;align-items:center;gap:6px;margin-left:auto">
-      <div style="position:relative">
-        <button onclick="toggleTemaMenu()" title="Tema" style="background:white;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:14px;cursor:pointer;font-family:inherit;color:var(--text)">🎨</button>
-        <div id="temaMenu" style="display:none;position:absolute;right:0;top:36px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:140px">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px" data-t="gen.tema">Tema</div>
-          <button onclick="setTema('terracota');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#C2410C;display:inline-block"></span>Terracota</button>
-          <button onclick="setTema('naranja');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#EA580C;display:inline-block"></span>Naranja</button>
-          <button onclick="setTema('dark');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#1E3A5F;display:inline-block"></span>Dark</button>
-          <button onclick="setTema('negro');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#111;border:1px solid #444;display:inline-block"></span>Negro</button>
-          <button onclick="setTema('grafito');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#6B7280;display:inline-block"></span>Grafito</button>
-          <button onclick="setTema('ambar');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#D97706;display:inline-block"></span>Ámbar</button>
-          <button onclick="setTema('');closeTemaMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'"><span style="width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid #ddd;display:inline-block"></span>Claro</button>
-        </div>
-      </div>
-      <div style="position:relative">
-        <button onclick="toggleLangMenuDash()" id="btnLangToggle" style="background:white;border:1px solid var(--border);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;color:var(--text);min-width:44px">ES</button>
-        <div id="langMenu" style="display:none;position:absolute;right:0;top:36px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:200;box-shadow:0 4px 16px rgba(0,0,0,.15);min-width:130px">
-          <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px" data-t="gen.idioma">Idioma</div>
-          <button onclick="setLang('es');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇪🇸 Español</button>
-          <button onclick="setLang('en');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇬🇧 English</button>
-          <button onclick="setLang('fr');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇫🇷 Français</button>
-          <button onclick="setLang('it');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇮🇹 Italiano</button>
-          <button onclick="setLang('de');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇩🇪 Deutsch</button>
-          <button onclick="setLang('pt');closeLangMenuDash()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)" onmouseover="this.style.background='var(--light)'" onmouseout="this.style.background='none'">🇵🇹 Português</button>
-        </div>
-      </div>
-    </div>
   </div>
   <div class="stats-grid" id="metricsGrid"></div>
   <div class="quick-grid" id="dashQuickGrid">
@@ -1092,107 +1100,132 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="qbtn-dash" onclick="navTo('pStock');openM('mStock')"><span class="qbtn-icon" style="background:rgba(249,115,22,.10);color:var(--orange)">📦</span><span class="qbtn-label" data-t="dash.anadir_stock">Añadir stock</span></button>
     <button class="qbtn-dash" onclick="navTo('pClis');openM('mCli')"><span class="qbtn-icon" style="background:rgba(0,140,255,.10);color:var(--blue)">👤</span><span class="qbtn-label" data-t="dash.nuevo_cliente">Nuevo cliente</span></button>
   </div>
-  <div class="card" id="cardUrgentes">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0">Urgentes hoy</div>
-    </div>
-    <div id="urgentesBox"></div>
+  <!-- VIS-16 ZONA OPERACIONES -->
+  <div class="dash-zone-label" id="zoneOperaciones">
+    <span data-t="dash.zona_operaciones">Operaciones</span>
   </div>
-  <div class="card" id="cardPendientes">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0">🔧 Reparaciones pendientes <span id="repsPendientesCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
-      <button class="btn-sm" style="background:var(--blue);color:white" onclick="navTo('pReps')"><span data-t="gen.ver_todas">Ver todas</span></button>
+  <div class="dash-zone-2col">
+    <div class="card" id="cardUrgentes">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0">Urgentes hoy</div>
+      </div>
+      <div id="urgentesBox"></div>
     </div>
-    <div id="repsPendientesBox"></div>
+    <div class="card" id="cardPendientes">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0">🔧 Reparaciones pendientes <span id="repsPendientesCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+        <button class="btn-sm" style="background:var(--blue);color:white" onclick="navTo('pReps')"><span data-t="gen.ver_todas">Ver todas</span></button>
+      </div>
+      <div id="repsPendientesBox"></div>
+    </div>
   </div>
-  <div class="card" id="cardPorEntregar">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0"><span data-t="dash.por_entregar">📦 Por entregar</span> <span id="repsEntregarCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
-      <button class="btn-sm" style="background:var(--green);color:white" onclick="navTo('pReps')">Ver todas</button>
+  <div class="dash-zone-2col">
+    <div class="card" id="cardPorEntregar">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0"><span data-t="dash.por_entregar">📦 Por entregar</span> <span id="repsEntregarCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+        <button class="btn-sm" style="background:var(--green);color:white" onclick="navTo('pReps')">Ver todas</button>
+      </div>
+      <div id="repsEntregarBox"></div>
     </div>
-    <div id="repsEntregarBox"></div>
+    <div class="card" id="cardNotas">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0">📝 Notas y recordatorios <span id="notasCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+      </div>
+      <div style="display:flex;gap:6px;margin-bottom:8px;align-items:stretch">
+        <input id="notaInput" class="fi" placeholder="Escribe una nota..." style="flex:1" maxlength="500" onkeydown="if(event.key==='Enter')crearNota()">
+        <input id="notaFecha" type="datetime-local" class="fi" style="flex:0 0 auto;width:175px" title="Recordatorio (opcional)">
+        <button onclick="crearNota()" style="background:var(--blue);color:white;border:none;padding:0 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:18px">+</button>
+      </div>
+      <div id="notasBox"></div>
+    </div>
   </div>
-  <div class="card" id="cardNotas">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0">📝 Notas y recordatorios <span id="notasCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
-    </div>
-    <div style="display:flex;gap:6px;margin-bottom:8px;align-items:stretch">
-      <input id="notaInput" class="fi" placeholder="Escribe una nota..." style="flex:1" maxlength="500" onkeydown="if(event.key==='Enter')crearNota()">
-      <input id="notaFecha" type="datetime-local" class="fi" style="flex:0 0 auto;width:175px" title="Recordatorio (opcional)">
-      <button onclick="crearNota()" style="background:var(--blue);color:white;border:none;padding:0 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:18px">+</button>
-    </div>
-    <div id="notasBox"></div>
+
+  <!-- VIS-16 ZONA FINANZAS -->
+  <div class="dash-zone-label" id="zoneFinanzas">
+    <span data-t="dash.zona_finanzas">Finanzas</span>
   </div>
-  <!-- WIDGETS NUEVOS -->
-  <div class="card" id="cardCajaDia">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0">💰 Caja del día</div>
-      <span id="cajaDiaTotal" style="font-size:14px;font-weight:800;color:var(--blue)"></span>
+  <div class="dash-zone-3col">
+    <div class="card" id="cardCajaDia">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0">💰 Caja del día</div>
+        <span id="cajaDiaTotal" style="font-size:14px;font-weight:800;color:var(--blue)"></span>
+      </div>
+      <div id="cajaDiaBox"></div>
     </div>
-    <div id="cajaDiaBox"></div>
+    <div class="card" id="cardCobros">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0">💵 Cobros pendientes <span id="cobrosCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+      </div>
+      <div id="cobrosBox"></div>
+    </div>
+    <div class="card" id="cardCierre">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0"><span data-t="dash.cierre_dia">Cierre del día</span></div>
+        <button class="btn-sm" style="background:var(--dark);color:white" onclick="cierreDia()"><span data-t="gen.generar">Generar</span></button>
+      </div>
+      <div id="cierreBox"><div class="empty" style="padding:12px">Pulsa Generar para ver el resumen</div></div>
+    </div>
   </div>
-  <div class="card" id="cardCobros">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0">💵 Cobros pendientes <span id="cobrosCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
-    </div>
-    <div id="cobrosBox"></div>
+
+  <!-- VIS-16 ZONA ANALÍTICA -->
+  <div class="dash-zone-label" id="zoneAnalitica">
+    <span data-t="dash.zona_analitica">Analítica</span>
   </div>
-  <div class="card" id="cardStockCritico">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0"><span data-t="dash.stock_critico">📦 Stock crítico</span></div>
-      <button class="btn-sm" style="background:var(--orange);color:white" onclick="navTo('pStock')">Ver stock</button>
+  <div class="dash-zone-3col">
+    <div class="card" id="cardRepsEstado">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0"><span data-t="dash.reps_por_estado">📊 Reparaciones por estado</span></div>
+      </div>
+      <div id="repsEstadoBox"></div>
     </div>
-    <div id="stockCriticoBox"></div>
+    <div class="card" id="cardTendencia">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0">📈 Tendencia 7 días</div>
+        <span id="tendenciaTotal" style="font-size:12px;color:var(--muted);font-weight:600"></span>
+      </div>
+      <div id="tendenciaBox"></div>
+    </div>
+    <div class="card" id="cardStockCritico">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0"><span data-t="dash.stock_critico">📦 Stock crítico</span></div>
+        <button class="btn-sm" style="background:var(--orange);color:white" onclick="navTo('pStock')">Ver stock</button>
+      </div>
+      <div id="stockCriticoBox"></div>
+    </div>
   </div>
-  <div class="card" id="cardCumples">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0">🎂 Cumpleaños esta semana <span id="cumplesCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+  <div class="dash-zone-3col">
+    <div class="card" id="cardTopProds">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0">🏆 Top productos (mes)</div>
+      </div>
+      <div id="topProdsBox"></div>
     </div>
-    <div id="cumplesBox"></div>
+    <div class="card" id="cardTopAverias">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0">🔧 Top averías (mes)</div>
+      </div>
+      <div id="topAveriasBox"></div>
+    </div>
+    <div class="card" id="cardCumples">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0">🎂 Cumpleaños esta semana <span id="cumplesCount" style="font-size:11px;color:var(--muted);font-weight:500"></span></div>
+      </div>
+      <div id="cumplesBox"></div>
+    </div>
   </div>
-  <div class="card" id="cardTendencia">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0">📈 Tendencia 7 días</div>
-      <span id="tendenciaTotal" style="font-size:12px;color:var(--muted);font-weight:600"></span>
+  <div class="dash-zone-2col">
+    <div class="card" id="cardTiempoMedio">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0">⏱️ Tiempo medio de reparación</div>
+      </div>
+      <div id="tiempoMedioBox"></div>
     </div>
-    <div id="tendenciaBox"></div>
-  </div>
-  <div class="card" id="cardTopProds">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0">🏆 Top productos (mes)</div>
+    <div class="card" id="cardClisInactivos">
+      <div class="sec-header">
+        <div class="card-title" style="margin:0"><span data-t="dash.clientes_inactivos">👤 Clientes inactivos (>3 meses)</span></div>
+      </div>
+      <div id="clisInactivosBox"></div>
     </div>
-    <div id="topProdsBox"></div>
-  </div>
-  <div class="card" id="cardTopAverias">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0">🔧 Top averías (mes)</div>
-    </div>
-    <div id="topAveriasBox"></div>
-  </div>
-  <div class="card" id="cardRepsEstado">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0"><span data-t="dash.reps_por_estado">📊 Reparaciones por estado</span></div>
-    </div>
-    <div id="repsEstadoBox"></div>
-  </div>
-  <div class="card" id="cardTiempoMedio">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0">⏱️ Tiempo medio de reparación</div>
-    </div>
-    <div id="tiempoMedioBox"></div>
-  </div>
-  <div class="card" id="cardClisInactivos">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0"><span data-t="dash.clientes_inactivos">👤 Clientes inactivos (>3 meses)</span></div>
-    </div>
-    <div id="clisInactivosBox"></div>
-  </div>
-  <div class="card" id="cardCierre">
-    <div class="sec-header">
-      <div class="card-title" style="margin:0"><span data-t="dash.cierre_dia">Cierre del día</span></div>
-      <button class="btn-sm" style="background:var(--dark);color:white" onclick="cierreDia()"><span data-t="gen.generar">Generar</span></button>
-    </div>
-    <div id="cierreBox"><div class="empty" style="padding:12px">Pulsa Generar para ver el resumen</div></div>
   </div>
 </div>
 
@@ -5378,6 +5411,8 @@ window.addEventListener('DOMContentLoaded', function() {
     var lang = localStorage.getItem('tp_lang') || 'es';
     if (typeof setLang === 'function') setLang(lang);
   })();
+  // VIS-17: sincronizar labels sidebar controles
+  setTimeout(function(){ if (typeof actualizarSbControls === 'function') actualizarSbControls(); }, 200);
 
   document.getElementById('uName').textContent = U.nombre || '';
   var tiendaLS = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
@@ -13795,6 +13830,48 @@ function closeLangMenuDash() {
   var m = document.getElementById('langMenu');
   if (m) m.style.display = 'none';
 }
+function toggleSbTemaMenu() {
+  var m = document.getElementById('sbTemaMenu');
+  if (!m) return;
+  var ml = document.getElementById('sbLangMenu');
+  if (ml) ml.style.display = 'none';
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  if (m.style.display === 'block') {
+    setTimeout(function() {
+      document.addEventListener('click', function ct(e) {
+        if (!m.contains(e.target) && e.target.id !== 'btnSbTema') m.style.display = 'none';
+        document.removeEventListener('click', ct);
+      });
+    }, 100);
+  }
+}
+function closeSbTemaMenu() { var m = document.getElementById('sbTemaMenu'); if (m) m.style.display = 'none'; }
+function toggleSbLangMenu() {
+  var m = document.getElementById('sbLangMenu');
+  if (!m) return;
+  var mt = document.getElementById('sbTemaMenu');
+  if (mt) mt.style.display = 'none';
+  m.style.display = m.style.display === 'none' ? 'block' : 'none';
+  if (m.style.display === 'block') {
+    setTimeout(function() {
+      document.addEventListener('click', function cl(e) {
+        if (!m.contains(e.target) && e.target.id !== 'btnSbLang') m.style.display = 'none';
+        document.removeEventListener('click', cl);
+      });
+    }, 100);
+  }
+}
+function closeSbLangMenu() { var m = document.getElementById('sbLangMenu'); if (m) m.style.display = 'none'; }
+function actualizarSbControls() {
+  var lbl = document.getElementById('sbLangLabel');
+  if (lbl) lbl.textContent = (typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es').toUpperCase();
+  var temaLabel = document.getElementById('sbTemaLabel');
+  if (temaLabel) {
+    var t = localStorage.getItem('tk_tema') || '';
+    var nombres = {terracota:'Terracota',naranja:'Naranja',dark:'Dark',negro:'Negro',grafito:'Grafito',ambar:'\u00c1mbar','':'Claro'};
+    temaLabel.textContent = nombres[t] !== undefined ? nombres[t] : 'Tema';
+  }
+}
 function toggleLangMenuDash() {
   var m = document.getElementById('langMenu');
   if (!m) return;
@@ -14859,7 +14936,8 @@ function aplicarOrdenWidgets() {
   var orden = getWidgetOrder();
   var pDash = document.getElementById('pDash');
   if (!pDash) return;
-  // Mover cada card al final en el orden indicado
+  // VIS-16 fix: cards ahora viven dentro de wrappers .dash-zone-*
+  // Solo reordena cards que siguen sueltos en pDash (compatibilidad layout legacy)
   orden.forEach(function(id) {
     var card = document.getElementById(id);
     if (card && card.parentNode === pDash) pDash.appendChild(card);
@@ -16694,6 +16772,7 @@ function setTema(tema) {
   aplicarTema(tema);
   var nombres = { light:'☀️ Modo claro', dark:'🌙 Modo oscuro', negro:'🖤 Tema negro', grafito:'🪨 Tema grafito', naranja:'🟠 Tema naranja', terracota:'🔥 Tema terracota', ambar:'🟧 Tema ámbar' };
   toast(nombres[tema] || 'Tema aplicado', 'ok');
+  if (typeof actualizarSbControls === 'function') actualizarSbControls();
 }
 // Aplicar tema al cargar
 (function() {
