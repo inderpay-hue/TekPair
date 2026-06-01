@@ -1121,6 +1121,40 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="qbtn-dash" onclick="navTo('pStock');openM('mStock')"><span class="qbtn-icon" style="background:rgba(249,115,22,.10);color:var(--orange)">📦</span><span class="qbtn-label" data-t="dash.anadir_stock">Añadir stock</span></button>
     <button class="qbtn-dash" onclick="navTo('pClis');openM('mCli')"><span class="qbtn-icon" style="background:rgba(0,140,255,.10);color:var(--blue)">👤</span><span class="qbtn-label" data-t="dash.nuevo_cliente">Nuevo cliente</span></button>
   </div>
+  <!-- VIS-18: empty state para tienda nueva -->
+  <div id="dashEmptyState" style="display:none">
+    <div style="text-align:center;padding:40px 20px 20px">
+      <div style="font-size:52px;margin-bottom:16px">🔧</div>
+      <div style="font-size:20px;font-weight:800;color:var(--dark);margin-bottom:8px" id="emptyWelcomeTitle" data-t="dash.bienvenido">¡Bienvenido a TekPair!</div>
+      <div style="font-size:14px;color:var(--muted);margin-bottom:28px;line-height:1.6" data-t="dash.empty_subtitle">Tu taller está listo. Empieza creando tu primera reparación o añadiendo un cliente.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px">
+      <button onclick="abrirRep()" style="background:var(--white);border:2px dashed var(--border);border-radius:14px;padding:20px 16px;cursor:pointer;font-family:inherit;text-align:center;transition:border-color .15s,background .15s" onmouseover="this.style.borderColor='var(--blue)';this.style.background='var(--light)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--white)'">
+        <div style="font-size:28px;margin-bottom:8px">🔧</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)" data-t="dash.empty_nueva_rep">Nueva reparación</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="dash.empty_nueva_rep_desc">Registra el primer dispositivo</div>
+      </button>
+      <button onclick="navTo('pClis');openM('mCli')" style="background:var(--white);border:2px dashed var(--border);border-radius:14px;padding:20px 16px;cursor:pointer;font-family:inherit;text-align:center;transition:border-color .15s,background .15s" onmouseover="this.style.borderColor='var(--blue)';this.style.background='var(--light)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--white)'">
+        <div style="font-size:28px;margin-bottom:8px">👤</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)" data-t="dash.empty_nuevo_cliente">Nuevo cliente</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="dash.empty_nuevo_cliente_desc">Añade tu primer cliente</div>
+      </button>
+      <button onclick="abrirVenta()" style="background:var(--white);border:2px dashed var(--border);border-radius:14px;padding:20px 16px;cursor:pointer;font-family:inherit;text-align:center;transition:border-color .15s,background .15s" onmouseover="this.style.borderColor='var(--blue)';this.style.background='var(--light)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--white)'">
+        <div style="font-size:28px;margin-bottom:8px">📱</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)" data-t="dash.empty_nueva_venta">Nueva venta</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="dash.empty_nueva_venta_desc">Registra tu primera venta</div>
+      </button>
+      <button onclick="navTo('pAjustes')" style="background:var(--white);border:2px dashed var(--border);border-radius:14px;padding:20px 16px;cursor:pointer;font-family:inherit;text-align:center;transition:border-color .15s,background .15s" onmouseover="this.style.borderColor='var(--blue)';this.style.background='var(--light)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--white)'">
+        <div style="font-size:28px;margin-bottom:8px">⚙️</div>
+        <div style="font-size:13px;font-weight:700;color:var(--text)" data-t="dash.empty_configurar">Configurar tienda</div>
+        <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="dash.empty_configurar_desc">Personaliza tu perfil</div>
+      </button>
+    </div>
+    <div style="background:var(--light);border-radius:10px;padding:14px 16px;font-size:12px;color:var(--muted);text-align:center">
+      💡 <span data-t="dash.empty_tip">Cuando crees tu primera reparación, esta pantalla desaparecerá automáticamente.</span>
+    </div>
+  </div>
+
   <!-- VIS-16 ZONA OPERACIONES -->
   <div class="dash-zone-label" id="zoneOperaciones">
     <span data-t="dash.zona_operaciones">Operaciones</span>
@@ -6591,6 +6625,15 @@ function iniciarRefrescoNotas() {
 
 
 function renderDashWidgets() {
+  // VIS-18: empty state si BD vacía
+  var esVacio = DB.reps.length === 0 && DB.clis.length === 0 && DB.ventas.length === 0;
+  var emptyEl = document.getElementById('dashEmptyState');
+  var wrappers = document.querySelectorAll('#pDash .dash-zone-2col, #pDash .dash-zone-3col');
+  ['zoneOperaciones','zoneFinanzas','zoneAnalitica'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.style.display = esVacio ? 'none' : '';
+  });
+  if (emptyEl) emptyEl.style.display = esVacio ? 'block' : 'none';
+  wrappers.forEach(function(el){ el.style.display = esVacio ? 'none' : ''; });
   var pend = DB.reps.filter(function(r){ return r.estado === 'Pendiente' || r.estado === 'En Proceso'; });
   var ent = DB.reps.filter(function(r){ return r.estado === 'Por Entregar'; });
 
