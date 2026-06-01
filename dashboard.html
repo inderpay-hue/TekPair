@@ -6210,7 +6210,10 @@ async function renderDash() {
   var filterDates = tab === 'hoy' ? [hoy] : tab === 'semana' ? semana : mes;
 
   var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && filterDates.includes(v.fecha); });
-  var repsActivas = DB.reps.filter(function(r) { var cerrado = ['Entregado','Rechazado','Devuelto','Sin Solucion','Presupuesto']; return cerrado.indexOf(r.estado) === -1; });
+  var ESTADOS_CERRADOS_STAT = ['Entregado','Rechazado','Devuelto','Sin Solucion','Presupuesto'];
+  var repsPendienteReparar = DB.reps.filter(function(r) { return ['Pendiente','En Proceso','En proceso'].indexOf(r.estado) !== -1; });
+  var repsPorEntregar = DB.reps.filter(function(r) { return ['Por Entregar','Por entregar'].indexOf(r.estado) !== -1; });
+  var repsActivas = DB.reps.filter(function(r) { return ESTADOS_CERRADOS_STAT.indexOf(r.estado) === -1; });
 
   var tVentas = ventas.reduce(function(a, v) {
     if(v.financiado && v.cuotas) {
@@ -6238,8 +6241,11 @@ async function renderDash() {
     statsHtml += '<div class="stat-card" style="--accent:var(--blue)"><div class="stat-val" style="color:var(--text)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>';
     statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas) + '</div><div class="stat-lbl" data-t="dash.ingresos_ventas">Ingresos ventas</div></div>';
   }
-  if (widgetVisible('widget_stats_reps') && tienePerm('reps_ver')) {
-    statsHtml += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--text)">' + repsActivas.length + '</div><div class="stat-lbl" data-t="dash.en_reparacion">En reparación</div></div>';
+  if (widgetVisible('widget_stats_pendientes') && tienePerm('reps_ver')) {
+    statsHtml += '<div class="stat-card" style="--accent:var(--orange)"><div class="stat-val" style="color:var(--text)">' + repsPendienteReparar.length + '</div><div class="stat-lbl" data-t="dash.pendientes_reparar">Pendientes reparar</div></div>';
+  }
+  if (widgetVisible('widget_stats_entregar') && tienePerm('reps_ver')) {
+    statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + repsPorEntregar.length + '</div><div class="stat-lbl" data-t="dash.por_entregar_stat">Por entregar</div></div>';
   }
   if (widgetVisible('widget_stats_total') && tienePerm('ventas_ver') && tienePerm('reps_ver')) {
     statsHtml += '<div class="stat-card" style="--accent:var(--green)"><div class="stat-val" style="color:var(--green)">' + cur(tVentas + tReps) + '</div><div class="stat-lbl" data-t="dash.total_ingresos">Total ingresos</div></div>';
@@ -15198,7 +15204,8 @@ var PERMS_LISTA = [
   {id:'herramientas_backup',label:'Hacer backup',grupo:'Herramientas'},
   // Widgets del dashboard (defaultOn: true → si no están explícitamente OFF, se muestran)
   {id:'widget_stats_ventas',label:'Stat: Ventas e ingresos',grupo:'Dashboard',defaultOn:true},
-  {id:'widget_stats_reps',label:'Stat: En reparación',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_stats_pendientes',label:'Stat: Pendientes reparar',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_stats_entregar',label:'Stat: Por entregar',grupo:'Dashboard',defaultOn:true},
   {id:'widget_stats_total',label:'Stat: Total ingresos',grupo:'Dashboard',defaultOn:true},
   {id:'widget_quickactions',label:'Acciones rápidas (5 botones)',grupo:'Dashboard',defaultOn:true},
   {id:'widget_urgentes',label:'Card: Urgentes hoy',grupo:'Dashboard',defaultOn:true},
