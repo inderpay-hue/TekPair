@@ -8397,10 +8397,10 @@ function abrirFirmaPresupuesto(id) {
   var resumen = document.getElementById('firmaResumen');
   if (resumen) {
     var servicios = (r.servicios || []).map(function(s){ return s.nombre || ''; }).filter(Boolean).join(', ');
-    resumen.innerHTML =
-      '<div><strong>Cliente:</strong> ' + (r.clienteNombre || '—') + '</div>' +
-      '<div><strong>Dispositivo:</strong> ' + (r.marca || '') + ' ' + (r.modelo || '') + (r.imei ? ' · IMEI: ' + r.imei : '') + '</div>' +
-      '<div><strong>Avería:</strong> ' + (r.averia || '—') + '</div>' +
+      '<div><strong>Cliente:</strong> ' + esc(r.clienteNombre || '—') + '</div>' +
+      '<div><strong>Dispositivo:</strong> ' + esc(r.marca || '') + ' ' + esc(r.modelo || '') + (r.imei ? ' · IMEI: ' + esc(r.imei) : '') + '</div>' +
+      '<div><strong>Avería:</strong> ' + esc(r.averia || '—') + '</div>' +
+      (servicios ? '<div><strong>Servicios:</strong> ' + esc(servicios) + '</div>' : '') +
       (servicios ? '<div><strong>Servicios:</strong> ' + servicios + '</div>' : '') +
       '<div style="margin-top:8px;font-size:16px;font-weight:700;color:var(--green)"><strong>Total a pagar: ' + cur(r.total || 0) + '</strong></div>';
   }
@@ -10271,8 +10271,8 @@ function abrirEntregar(id) {
   var r = DB.reps.find(function(x) { return x.id === id; });
   if (!r) return;
   document.getElementById('entregaInfo').innerHTML =
-    '<strong>' + r.clienteNombre + '</strong> \u2014 ' + r.marca + ' ' + r.modelo +
-    '<br><span style="color:var(--muted)">' + r.averia + '</span>' +
+    '<strong>' + esc(r.clienteNombre) + '</strong> — ' + esc(r.marca) + ' ' + esc(r.modelo) +
+    '<br><span style="color:var(--muted)">' + esc(r.averia) + '</span>' +
     '<br><br>Restante: <strong style="color:var(--green)">' + cur(r.restante) + '</strong>';
   openM('mEntregar');
 }

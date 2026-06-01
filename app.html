@@ -50,7 +50,7 @@ button:disabled{background:var(--faint);cursor:not-allowed;transform:none;box-sh
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
-  <script src="/lang/lang.v8.js?v=3e7885d"></script>
+  <script src="/lang/lang.v8.js?v=b533c4d"></script>
   <script src="/login-i18n.js?v=3e7885d"></script>
 </head>
 <body>
@@ -93,6 +93,7 @@ function entrar() {
   var pw = document.getElementById('pw').value;
   if (!em || !pw) { document.getElementById('err').textContent = 'Rellena todos los campos'; return; }
   document.getElementById('err').textContent = '';
+  document.getElementById('btn').disabled = true;
   document.getElementById('btn').textContent = (LOGIN_TEXTS[localStorage.getItem('tp_lang')||'es']||LOGIN_TEXTS.es).entrando;
   fetch('/api/login', {
     method: 'POST',
