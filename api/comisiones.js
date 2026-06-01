@@ -207,10 +207,43 @@ export default async function handler(req, res) {
         const dupAf = await dupAfR.json();
         if (dupAf.length) return res.status(400).json({ error: 'Ese codigo de afiliado ya existe' });
 
-        // Verificar email unico en usuarios
-        const dupUR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(emailNorm)}&select=email&limit=1`, { headers: sbHeaders });
+        // Verificar si el email ya existe en usuarios
+        // COM-10: si ya existe, añadirlo como afiliado sin crear cuenta nueva
+        const dupUR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(emailNorm)}&select=email,id,tienda_id&limit=1`, { headers: sbHeaders });
         const dupU = await dupUR.json();
-        if (dupU.length) return res.status(400).json({ error: 'Ese email ya tiene cuenta en TekPair' });
+        if (dupU.length) {
+          // El email ya tiene cuenta — solo crear el registro de afiliado
+          const existingUser = dupU[0];
+          const tiendaAfiliado = existingUser.tienda_id || tiendaId;
+          const comisionPctAfil = normalizarComisionPct(comision_pct, 20);
+
+          const afilR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados`, {
+            method: 'POST',
+            headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+            body: JSON.stringify({
+              codigo: codigoNorm,
+              nombre: nombre.trim(),
+              email: emailNorm,
+              comision_pct: comisionPctAfil,
+              activo: true,
+              tienda_id: tiendaAfiliado
+            })
+          });
+          if (!afilR.ok) {
+            const t = await afilR.text();
+            console.error('Error POST afiliados (usuario existente):', afilR.status, t);
+            return res.status(500).json({ error: 'No se pudo crear el afiliado' });
+          }
+          return res.json({
+            ok: true,
+            solo_afiliado: true,
+            email: emailNorm,
+            codigo: codigoNorm,
+            nombre: nombre.trim(),
+            comision_pct: comisionPctAfil,
+            mensaje: 'El email ya tiene cuenta en TekPair — añadido solo como afiliado'
+          });
+        }
 
         // COM-4: Generar password aleatorio fuerte (96 bits entropía)
         // Antes: codigo.toLowerCase() + year → predecible si conoces el código
