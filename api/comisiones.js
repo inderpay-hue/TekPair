@@ -499,14 +499,21 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Accion desconocida' });
     }
 
-    // Buscar si es afiliado
-    const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?tienda_id=eq.${encodeURIComponent(tiendaId)}&select=*&limit=1`, {
-      headers: sbHeaders
-    });
-    const afiliadosArr = await afR.json();
-    const miAfiliado = afiliadosArr[0] || null;
+    // COM-12: el acceso de afiliado es SOLO para el admin de la tienda.
+    // El registro `afiliados` está ligado a la tienda (tienda_id), que comparten admin y
+    // empleados. Sin el chequeo de rol, cualquier EMPLEADO de una tienda afiliada veía las
+    // comisiones del dueño. Un empleado (rol != admin) no debe verlas.
+    const esAdminTienda = usuario && usuario.rol === 'admin';
+    let miAfiliado = null;
+    if (esAdminTienda) {
+      const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?tienda_id=eq.${encodeURIComponent(tiendaId)}&select=*&limit=1`, {
+        headers: sbHeaders
+      });
+      const afiliadosArr = await afR.json();
+      miAfiliado = afiliadosArr[0] || null;
+    }
 
-    // Si NO es admin NI afiliado → no tiene acceso
+    // Si NO es super-admin NI admin-afiliado → no tiene acceso
     if (!isAdmin && !miAfiliado) {
       return res.status(403).json({ error: 'Acceso denegado' });
     }
