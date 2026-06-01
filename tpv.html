@@ -259,8 +259,8 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
       <div class="cart-discount">
         <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:6px">Descuento</div>
         <div class="disc-row">
-          <input class="disc-input" id="discVal" type="number" placeholder="0" min="0" oninput="calcTotal()">
-          <select class="disc-type" id="discType" onchange="calcTotal()">
+          <input class="disc-input" id="discVal" type="number" placeholder="0" min="0" max="9999999" oninput="limitarDescuento();calcTotal()">
+          <select class="disc-type" id="discType" onchange="limitarDescuento();calcTotal()">
             <option value="eur">€</option>
             <option value="pct">%</option>
           </select>
@@ -1068,6 +1068,18 @@ function _renderCambio(total) {
   document.getElementById('cambioVal').textContent = '\u20ac' + cambio.toFixed(2);
 }
 
+function limitarDescuento() {
+  var tipo = document.getElementById('discType').value;
+  var inp = document.getElementById('discVal');
+  if (!inp) return;
+  if (tipo === 'pct') {
+    var v = parseFloat(inp.value) || 0;
+    if (v > 100) { inp.value = 100; }
+    inp.setAttribute('max', '100');
+  } else {
+    inp.removeAttribute('max');
+  }
+}
 function calcTotal() {
   var t = _computeTotals();
   document.getElementById('subtotal').textContent = '\u20ac' + t.subtotal.toFixed(2);
