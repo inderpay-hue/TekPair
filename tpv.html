@@ -294,6 +294,25 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
             <span><span data-t="tpv.cambio">Cambio</span></span><span id="cambioVal" style="color:var(--green);font-weight:700">€0.00</span>
           </div>
         </div>
+
+        <!-- Financiado: entrada + cuotas + día de pago -->
+        <div id="financiadoPanel" style="display:none">
+          <div style="display:flex;gap:8px;margin-bottom:6px">
+            <div style="flex:1">
+              <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px"><span data-t="gen.entrada_eur">Entrada (€)</span></div>
+              <input class="disc-input" id="finEntrada" type="number" step="0.01" min="0" value="0" oninput="calcFinanciado()">
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px"><span data-t="gen.num_cuotas">Nº cuotas</span></div>
+              <input class="disc-input" id="finNumCuotas" type="number" min="1" max="24" value="3" oninput="calcFinanciado()">
+            </div>
+            <div style="flex:1">
+              <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px"><span data-t="gen.dia_pago">Día pago</span></div>
+              <input class="disc-input" id="finDiaPago" type="number" min="1" max="28" value="8" oninput="calcFinanciado()">
+            </div>
+          </div>
+          <div id="finPreview" style="font-size:12px;color:var(--green);font-weight:700"></div>
+        </div>
       </div>
 
       <!-- Numpad -->
@@ -1129,6 +1148,40 @@ function setPago(el) {
   el.classList.add('active');
   selectedPago = el.dataset.p;
   document.getElementById('efectivoPanel').style.display = selectedPago === 'Efectivo' ? 'block' : 'none';
+  document.getElementById('financiadoPanel').style.display = selectedPago === 'Financiado' ? 'block' : 'none';
+  if (selectedPago === 'Financiado') calcFinanciado();
+}
+
+// Genera el cuadro de cuotas del pago financiado (misma lógica que Ventas):
+// pendiente = total - entrada, repartido en N cuotas mensuales (día fijo), residuo en la última.
+function calcCuotasFinanciado() {
+  var totals = _computeTotals();
+  var entrada = parseFloat(document.getElementById('finEntrada').value) || 0;
+  var numCuotas = parseInt(document.getElementById('finNumCuotas').value, 10) || 3;
+  var diaPago = parseInt(document.getElementById('finDiaPago').value, 10) || 8;
+  if (numCuotas < 1) numCuotas = 1;
+  var pendiente = Math.round((totals.total - entrada) * 100) / 100;
+  var montoCuota = Math.round((pendiente / numCuotas) * 100) / 100;
+  var cuotas = [];
+  for (var i = 0; i < numCuotas; i++) {
+    var f = new Date();
+    f.setMonth(f.getMonth() + i + 1);
+    f.setDate(diaPago);
+    var importe = (i === numCuotas - 1)
+      ? Math.round((pendiente - montoCuota * (numCuotas - 1)) * 100) / 100
+      : montoCuota;
+    cuotas.push({ num: i + 1, importe: importe, fecha: f.toISOString().slice(0, 10), pagado: false, formaPago: '', fechaPago: '' });
+  }
+  return { cuotas: cuotas, entrada: entrada, pendiente: pendiente, montoCuota: montoCuota, numCuotas: numCuotas };
+}
+
+// Vista previa en vivo bajo los campos
+function calcFinanciado() {
+  var fin = calcCuotasFinanciado();
+  var el = document.getElementById('finPreview');
+  if (!el) return;
+  el.textContent = fin.numCuotas + ' × €' + fin.montoCuota.toFixed(2) + '/mes' +
+    (fin.entrada > 0 ? ' · entrada €' + fin.entrada.toFixed(2) : '');
 }
 
 // ═══ CHECKOUT ═══
@@ -1136,6 +1189,9 @@ function cobrar() {
   if (!cart.length) return;
   if (!tienePerm('ventas_crear')) { toast('Sin permiso para crear ventas', 'err'); return; }
   var totals = _computeTotals();
+  var esFinanciado = selectedPago === 'Financiado';
+  if (esFinanciado && !selectedCli) { toast('Selecciona un cliente para financiar', 'err'); return; }
+  var fin = esFinanciado ? calcCuotasFinanciado() : null;
   var venta = {
     id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     fecha: hoyLocal(),
@@ -1153,7 +1209,9 @@ function cobrar() {
     ivaImporte: totals.ivaImporte,
     total: totals.total,
     reembolsado: false,
-    financiado: selectedPago === 'Financiado',
+    financiado: esFinanciado,
+    cuotas: fin ? fin.cuotas : null,
+    entrada: fin ? fin.entrada : 0,
     items: cart.slice()
   };
 
@@ -1186,6 +1244,7 @@ function cobrar() {
       marca: venta.marca, modelo: venta.modelo, imei: '',
       pago: venta.pago, precio: venta.precio, descuento: venta.descuento,
       total: venta.total, reembolsado: false, financiado: venta.financiado,
+      cuotas: venta.cuotas ? JSON.stringify(venta.cuotas) : null, entrada: venta.entrada || 0,
       iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte
     });
   }
@@ -1250,6 +1309,14 @@ function nuevaVenta() {
   document.getElementById('efectivoInput').value = '';
   document.getElementById('numInput').value = '';
   numStr = '';
+  // Reset método de pago a Efectivo
+  selectedPago = 'Efectivo';
+  document.querySelectorAll('.pay-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.p === 'Efectivo'); });
+  document.getElementById('efectivoPanel').style.display = 'block';
+  document.getElementById('financiadoPanel').style.display = 'none';
+  document.getElementById('finEntrada').value = '0';
+  document.getElementById('finNumCuotas').value = '3';
+  document.getElementById('finDiaPago').value = '8';
   renderCart();
   renderProducts();
   closeModal('mTicket');
