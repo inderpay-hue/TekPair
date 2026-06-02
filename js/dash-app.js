@@ -8381,9 +8381,10 @@ function sbStorageSignedUrl(bucket, path, expiresIn) {
 
 // Comprime imagen JPG/PNG en cliente con Canvas. Devuelve Promise<Blob>.
 // PDFs se devuelven tal cual.
-function comprimirImagen(file, maxLado, quality) {
+function comprimirImagen(file, maxLado, quality, formato) {
   maxLado = maxLado || 1600;
   quality = quality || 0.75;
+  formato = formato || 'image/jpeg';
   return new Promise(function(resolve, reject) {
     if (!file) return reject(new Error('Sin archivo'));
     // PDF: no se toca
@@ -8404,7 +8405,7 @@ function comprimirImagen(file, maxLado, quality) {
         if (!blob) return reject(new Error('Error al comprimir'));
         // Forzamos JPEG para máxima compresión salvo que ya sea webp/png pequeño
         resolve(blob);
-      }, 'image/jpeg', quality);
+      }, formato, quality);
     };
     img.onerror = function() {
       URL.revokeObjectURL(url);
@@ -8438,10 +8439,12 @@ async function subirLogo(ev) {
       await sbStorageDelete('logos', paths);
     }
 
-    // 2. Subir nuevo
-    var ext = (file.name.split('.').pop() || 'png').toLowerCase();
+    // 2. Comprimir (logo no necesita >600px; PNG conserva transparencia; SVG se sube tal cual) y subir
+    var esImgRaster = /^image\//.test(file.type) && file.type !== 'image/svg+xml';
+    var logoBlob = esImgRaster ? await comprimirImagen(file, 600, 0.9, 'image/png') : file;
+    var ext = esImgRaster ? 'png' : (file.name.split('.').pop() || 'png').toLowerCase();
     var path = TIENDA_ID + '/logo.' + ext;
-    var resp = await sbStorageUpload('logos', path, file);
+    var resp = await sbStorageUpload('logos', path, logoBlob);
     if (!resp.ok) {
       var err = await resp.text();
       throw new Error(err || 'Error al subir');
