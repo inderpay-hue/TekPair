@@ -273,7 +273,7 @@ export default async function handler(req, res) {
       <div style="margin-top:8px"><strong>${W.pass}:</strong> ${tempPass}</div>
     </div>
     <p style="color:#EF4444;font-size:13px">${W.aviso}</p>
-    <a href="https://tekpair.tech/app.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:16px">${W.btn}</a>
+    <a href="https://www.tekpair.tech/app.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:16px">${W.btn}</a>
     <p style="color:#64748B;font-size:12px;margin-top:16px">${W.prueba} ${trialDate}. ${W.cobro}</p>
   </div>
 </body></html>`

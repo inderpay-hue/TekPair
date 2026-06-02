@@ -419,7 +419,7 @@ export default async function handler(req, res) {
     <div style="font-size:13px;color:#475569;margin-top:8px">Cuando un cliente lo use al suscribirse a TekPair, recibe 50% descuento durante 3 meses y tú cobras el <strong>${comisionPct}%</strong> de comisión recurrente sobre cada pago.</div>
   </div>
 
-  <p style="font-size:14px;line-height:1.6;color:#475569">Accede a tu panel en <a href="https://tekpair.tech/app.html" style="color:#0055FF;text-decoration:none;font-weight:700">tekpair.tech</a> para consultar tus comisiones, clientes captados e historial de cobros.</p>
+  <p style="font-size:14px;line-height:1.6;color:#475569">Accede a tu panel en <a href="https://www.tekpair.tech/app.html" style="color:#0055FF;text-decoration:none;font-weight:700">tekpair.tech</a> para consultar tus comisiones, clientes captados e historial de cobros.</p>
 
   <div style="background:#F8FAFC;border-left:3px solid #94A3B8;border-radius:6px;padding:14px;margin-top:20px;font-size:12px;color:#475569;line-height:1.55">
     <div style="font-weight:700;color:#0F172A;margin-bottom:6px">📋 CONDICIONES DEL PROGRAMA</div>
