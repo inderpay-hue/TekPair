@@ -634,6 +634,7 @@ function navTo(id) {
           else DB.reps.push(mapped);
         });
         renderPresupuestos();
+        actualizarBadgePresupuestos();
       }).catch(function(e){ console.error('sync pres:', e); });
     }
   }
@@ -1848,6 +1849,7 @@ function renderDashWidgets() {
 
   // VIS-5: ocultar cards de Inicio cuyo contenido sea "vacío" + banner resumen
   try { _colapsarCardsVacios(); } catch(e){}
+  try { actualizarBadgePresupuestos(); } catch(e){}
 }
 
 // VIS-5: Detecta cards del Inicio con contenido "vacío" (clase .empty o texto neutro)
@@ -5221,6 +5223,16 @@ function renderPresupuestos() {
   el.querySelectorAll('.btn-pres-imprimir2').forEach(function(btn) {
     btn.addEventListener('click', function() { imprimirPresupuesto(this.dataset.rid); });
   });
+}
+
+// Badge del sidebar: nº de presupuestos ACEPTADOS por el cliente pendientes de procesar
+// (estado todavía 'Presupuesto'). Es lo accionable: el cliente dijo sí, falta convertir a reparación.
+function actualizarBadgePresupuestos() {
+  var b = document.getElementById('badgePresup');
+  if (!b) return;
+  var n = (DB.reps || []).filter(function(r){ return r.estado === 'Presupuesto' && r.presupuesto_aceptado_at; }).length;
+  if (n > 0) { b.textContent = n; b.style.display = 'inline-flex'; }
+  else { b.style.display = 'none'; }
 }
 
 // Imprime el presupuesto en A4 con línea de firma para que el cliente lo firme en papel.
@@ -8996,6 +9008,7 @@ async function fetchNotifRemotas() {
         if (rep) rep.presupuesto_aceptado_at = n.fecha;
       }
     });
+    actualizarBadgePresupuestos();
 
     // Refrescar UI
     refreshNotifs();
