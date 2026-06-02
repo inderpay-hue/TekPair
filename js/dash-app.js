@@ -5185,6 +5185,7 @@ function renderPresupuestos() {
     var btnEditar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-edit2" title="Editar presupuesto">✏️</button>';
     var btnRech   = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" class="row-btn btn-pres-rech2" title="Rechazar">✗</button>' : '';
     var btnImprimir = '<button data-rid="' + r.id + '" class="row-btn btn-pres-imprimir2" title="Imprimir para firmar en papel">🖨️</button>';
+    var btnDetalle = '<button data-rid="' + r.id + '" class="row-btn btn-pres-detalle2" title="Ver detalle y avisos enviados">👁️</button>';
 
     html += '<tr>'
       + '<td><strong>' + escHtml(r.clienteNombre||'—') + '</strong></td>'
@@ -5193,7 +5194,7 @@ function renderPresupuestos() {
       + '<td style="font-weight:700;color:#8B5CF6">' + cur(r.total) + '</td>'
       + '<td style="font-size:11px;color:var(--muted)">' + fmtFecha(r.fecha||'') + '</td>'
       + '<td>' + estadoBadge + '</td>'
-      + '<td>' + btnAcept + btnFirmar + btnEnviar + btnImprimir + btnEditar + btnRech + '</td>'
+      + '<td>' + btnDetalle + btnAcept + btnFirmar + btnEnviar + btnImprimir + btnEditar + btnRech + '</td>'
       + '</tr>';
   });
   html += '</tbody></table></div>';
@@ -5211,6 +5212,9 @@ function renderPresupuestos() {
   });
   el.querySelectorAll('.btn-pres-enviar2').forEach(function(btn) {
     btn.addEventListener('click', function() { abrirModalEnviarPres(this.dataset.rid); });
+  });
+  el.querySelectorAll('.btn-pres-detalle2').forEach(function(btn) {
+    btn.addEventListener('click', function() { abrirDetalleRep(this.dataset.rid); });
   });
   el.querySelectorAll('.btn-pres-edit2').forEach(function(btn) {
     btn.addEventListener('click', function() {
@@ -5313,6 +5317,7 @@ function renderReps() {
     var btnPresRech = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" data-action="del" class="row-btn btn-pres-rech" title="Rechazar presupuesto">✗ Rechazar</button>' : '';
     // PRES-C: botón Enviar al cliente (link remoto)
     var btnPresEnviar = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" class="row-btn btn-pres-enviar" title="Enviar presupuesto al cliente por WhatsApp / Email" style="background:#0EA5E9;color:white;border-color:#0EA5E9">📤 Enviar</button>' : '';
+    var btnDetalleR = '<button data-rid="' + r.id + '" data-action="ver" class="row-btn btn-ver-r" title="Ver detalle y avisos enviados">👁️</button>';
     var btnEdit = '<button data-rid="' + r.id + '" data-action="edit" class="row-btn btn-edit-r" title="Editar">✏️</button>';
     var btnLink = '<button data-rid="' + r.id + '" data-action="link" class="row-btn btn-link-r" title="QR / Link / Imprimir">📱</button>';
     // WhatsApp: buscar cliente por cliId, si no, fallback por nombre coincidente
@@ -5351,7 +5356,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + '</td>'
-      + '<td>' + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnPresEnviar + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
+      + '<td>' + btnDetalleR + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnPresEnviar + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -5360,6 +5365,9 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-ent').forEach(function(btn) {
     btn.addEventListener('click', function() { cambiarEstado(this.dataset.rid, 'Entregado'); });
+  });
+  el.querySelectorAll('.btn-ver-r').forEach(function(btn) {
+    btn.addEventListener('click', function() { abrirDetalleRep(this.dataset.rid); });
   });
   el.querySelectorAll('.btn-edit-r').forEach(function(btn) {
     btn.addEventListener('click', function() { editarRep(this.dataset.rid); });
