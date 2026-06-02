@@ -5181,6 +5181,7 @@ function renderPresupuestos() {
     var btnEnviar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-enviar2" title="Enviar al cliente por WA/Email" style="background:#0EA5E9;color:white;border-color:#0EA5E9"><span data-t="pres.enviar">📤 Enviar</span></button>';
     var btnEditar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-edit2" title="Editar presupuesto">✏️</button>';
     var btnRech   = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" class="row-btn btn-pres-rech2" title="Rechazar">✗</button>' : '';
+    var btnImprimir = '<button data-rid="' + r.id + '" class="row-btn btn-pres-imprimir2" title="Imprimir para firmar en papel">🖨️</button>';
 
     html += '<tr>'
       + '<td><strong>' + escHtml(r.clienteNombre||'—') + '</strong></td>'
@@ -5189,7 +5190,7 @@ function renderPresupuestos() {
       + '<td style="font-weight:700;color:#8B5CF6">' + cur(r.total) + '</td>'
       + '<td style="font-size:11px;color:var(--muted)">' + fmtFecha(r.fecha||'') + '</td>'
       + '<td>' + estadoBadge + '</td>'
-      + '<td>' + btnAcept + btnFirmar + btnEnviar + btnEditar + btnRech + '</td>'
+      + '<td>' + btnAcept + btnFirmar + btnEnviar + btnImprimir + btnEditar + btnRech + '</td>'
       + '</tr>';
   });
   html += '</tbody></table></div>';
@@ -5217,6 +5218,65 @@ function renderPresupuestos() {
   el.querySelectorAll('.btn-pres-rech2').forEach(function(btn) {
     btn.addEventListener('click', function() { rechazarPresupuesto(this.dataset.rid); });
   });
+  el.querySelectorAll('.btn-pres-imprimir2').forEach(function(btn) {
+    btn.addEventListener('click', function() { imprimirPresupuesto(this.dataset.rid); });
+  });
+}
+
+// Imprime el presupuesto en A4 con línea de firma para que el cliente lo firme en papel.
+function imprimirPresupuesto(repId) {
+  var r = DB.reps.find(function(x){ return x.id === repId; });
+  if (!r) return;
+  var tienda = (typeof TIENDA !== 'undefined' && TIENDA) ? TIENDA : { nombre: 'TekPair' };
+  var servicios = Array.isArray(r.servicios) ? r.servicios : [];
+  var componentes = Array.isArray(r.componentes) ? r.componentes : [];
+  var items = servicios.concat(componentes);
+  var filas = items.map(function(s){
+    var nom = s.nombre || s.desc || 'Concepto';
+    var pre = (s.precio != null ? s.precio : (s.pvp != null ? s.pvp : 0));
+    return '<tr><td>' + escHtml(nom) + '</td><td style="text-align:right">' + cur(pre) + '</td></tr>';
+  }).join('') || '<tr><td colspan="2" style="color:#888">Sin conceptos detallados</td></tr>';
+  var fecha = new Date().toLocaleDateString('es', {day:'2-digit',month:'2-digit',year:'numeric'});
+  var w = window.open('', '_blank', 'width=820,height=1000');
+  if (!w) { toast('Permite las ventanas emergentes para imprimir', 'err'); return; }
+  var logo = tienda.logo_url
+    ? '<img src="' + escHtml(tienda.logo_url) + '" style="max-height:60px;max-width:220px;object-fit:contain">'
+    : '<div style="font-size:22px;font-weight:800">' + escHtml(tienda.nombre || 'TekPair') + '</div>';
+  var datosTienda = [tienda.dir, tienda.tel, tienda.cif ? 'CIF: ' + tienda.cif : '', tienda.email].filter(Boolean).map(escHtml).join(' · ');
+  var ivaHtml = '';
+  if (r.ivaModo && r.ivaModo !== 'sin') {
+    ivaHtml = '<tr><td style="text-align:right;color:#555">Base imponible</td><td style="text-align:right">' + cur(r.base||0) + '</td></tr>'
+            + '<tr><td style="text-align:right;color:#555">IVA (' + (r.iva||0) + '%)</td><td style="text-align:right">' + cur(r.ivaImporte||0) + '</td></tr>';
+  }
+  w.document.write(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Presupuesto ' + escHtml(r.clienteNombre||'') + '</title><style>'
+    + '@page{size:A4;margin:18mm}'
+    + 'body{font-family:-apple-system,Helvetica,Arial,sans-serif;color:#111;font-size:13px;line-height:1.5}'
+    + 'table{width:100%;border-collapse:collapse;margin:12px 0}'
+    + 'th,td{padding:7px 4px;border-bottom:1px solid #eee}'
+    + 'th{text-align:left;background:#f5f5f5;font-size:12px}'
+    + '.tot td{font-size:18px;font-weight:800;border-bottom:none}'
+    + '.firma{margin-top:55px;display:flex;justify-content:space-between;gap:36px}'
+    + '.firma .l{flex:1;border-top:1px solid #333;padding-top:6px;font-size:11px;color:#555;text-align:center}'
+    + '</style></head><body>'
+    + '<div style="display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #111;padding-bottom:10px">'
+    +   '<div>' + logo + '<div style="font-size:11px;color:#555;margin-top:5px">' + datosTienda + '</div></div>'
+    +   '<div style="text-align:right"><div style="font-size:22px;font-weight:800;color:#C2410C">PRESUPUESTO</div><div style="font-size:11px;color:#555">Fecha: ' + fecha + '</div></div>'
+    + '</div>'
+    + '<div style="margin:16px 0">'
+    +   '<strong>Cliente:</strong> ' + escHtml(r.clienteNombre||'-') + '<br>'
+    +   '<strong>Dispositivo:</strong> ' + escHtml(((r.marca||'') + ' ' + (r.modelo||'')).trim()) + (r.imei ? ' · IMEI: ' + escHtml(r.imei) : '') + '<br>'
+    +   '<strong>Avería:</strong> ' + escHtml(r.averia||'-')
+    + '</div>'
+    + '<table><thead><tr><th>Concepto</th><th style="text-align:right">Precio</th></tr></thead><tbody>' + filas + '</tbody>'
+    + '<tfoot>' + ivaHtml + '<tr class="tot"><td style="text-align:right">TOTAL</td><td style="text-align:right;color:#C2410C">' + cur(r.total||0) + '</td></tr></tfoot></table>'
+    + (tienda.garantia ? '<div style="font-size:11px;color:#666;margin-top:8px">' + escHtml(tienda.garantia) + '</div>' : '')
+    + '<div style="margin-top:26px;font-size:12px;color:#333">El cliente acepta el presupuesto y autoriza la reparación por el importe indicado.</div>'
+    + '<div class="firma"><div class="l">Firma del cliente</div><div class="l">Nombre y DNI</div><div class="l">Fecha</div></div>'
+    + '<script>window.onload=function(){setTimeout(function(){window.print();},250);}<\/script>'
+    + '</body></html>'
+  );
+  w.document.close();
 }
 
 function renderReps() {
