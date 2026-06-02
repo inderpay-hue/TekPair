@@ -610,6 +610,7 @@
     var msg = FL().waMsg(c.nombre, f.numero, total, tienda);
     var url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
     window.open(url, '_blank');
+    if (window.registrarAviso) window.registrarAviso({ tipo:'factura_enviada', canal:'whatsapp', destinatario:c.tel, ref_tipo:'factura', ref_id:(f.reparacion_id||f.rep_id||f.id||null), asunto:'Factura ' + (f.numero||'') + ' enviada por WhatsApp' });
   };
 
   window.enviarFacturaEmail = function(f) {
@@ -651,6 +652,7 @@
     }).then(function(res) {
       if (res.ok && res.data && res.data.ok) {
         _toast('Factura enviada a ' + c.email, 'ok');
+        if (window.registrarAviso) window.registrarAviso({ tipo:'factura_enviada', canal:'email', destinatario:c.email, ref_tipo:'factura', ref_id:(f.reparacion_id||f.rep_id||f.id||null), asunto:'Factura ' + (f.numero||'') + ' enviada por email' });
         var m = document.getElementById('mEnvioFactura');
         if (m) m.remove();
       } else {
