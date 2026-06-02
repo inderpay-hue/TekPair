@@ -516,9 +516,11 @@ function setSidebarActive(el) {
 
 // ────────── Popup de Novedades ──────────
 // Para una nueva actualización: cambia NOVEDADES_VERSION y NOVEDADES_ITEMS.
-var NOVEDADES_VERSION = '2026-05-28';
+var NOVEDADES_VERSION = '2026-06-02';
 var NOVEDADES_ITEMS = [
-  { emoji: '\ud83d\udce4', titulo: 'Env\u00eda facturas a tus clientes', texto: 'Ahora puedes enviar cualquier factura por email (con el PDF adjunto) o por WhatsApp. Disponible al emitir la factura y desde la lista de Facturas, en los botones de cada fila.' }
+  { emoji: '\ud83d\udce7', titulo: 'Notificaciones y correos arreglados', texto: 'Hemos corregido el env\u00edo de presupuestos y facturas por email: ahora salen con reintentos autom\u00e1ticos y llegan correctamente. Si antes alg\u00fan correo no llegaba, ya est\u00e1 solucionado.' },
+  { emoji: '\ud83d\udc65', titulo: 'Registro de clientes sin errores', texto: 'Resueltos los fallos al dar de alta clientes y al mostrarlos en reparaciones, widgets y avisos. Los datos del cliente ahora aparecen siempre correctamente.' },
+  { emoji: '\ud83d\udce8', titulo: 'Historial de avisos enviados', texto: 'Cada presupuesto, factura o aviso que mandes a un cliente (por email o WhatsApp) queda registrado autom\u00e1ticamente. Cons\u00faltalo con el bot\u00f3n \ud83d\udc41\ufe0f en Reparaciones y Presupuestos.' }
 ];
 
 function mostrarNovedades() {
