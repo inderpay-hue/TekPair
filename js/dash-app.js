@@ -624,7 +624,7 @@ function navTo(id) {
     renderPresupuestos();
     // Sync ligero: recargar reps desde Supabase para tener estados frescos
     if (SB_KEY && TIENDA_ID) {
-      sbGet('reparaciones', 'tienda_id=eq.' + TIENDA_ID + '&estado=in.(Presupuesto,Rechazado)&select=id,cliente_id,cliente_nombre,marca,modelo,averia,estado,total,base,iva,iva_importe,iva_modo,servicios,componentes,fecha,presupuesto_aceptado_at,presupuesto_token_exp,piezas_devueltas,es_garantia,rep_original_id,mo,comp,anticipo,restante,pago_final,fecha_entrega,fecha_entrega_real,nota,tipo_bloqueo,bloqueo,imei,prioridad').then(function(rows) {
+      sbGet('reparaciones', 'tienda_id=eq.' + TIENDA_ID + '&estado=in.(Presupuesto,Rechazado)&select=id,cliente_id,cliente_nombre,marca,modelo,averia,estado,total,base,iva,iva_importe,iva_modo,servicios,componentes,fecha,presupuesto_aceptado_at,presupuesto_token_exp,piezas_devueltas,es_garantia,rep_original_id,mo,comp,anticipo,restante,pago_final,fecha_entrega,fecha_entrega_real,nota,tipo_bloqueo,bloqueo,imei,prioridad,firma_cliente,firma_fecha,presupuesto_aceptado_ip').then(function(rows) {
         if (!Array.isArray(rows)) return;
         // Actualizar solo los presupuestos en DB.reps
         rows.forEach(function(r) {
@@ -1054,7 +1054,10 @@ function mapRep(r) {
     garantiaTipo:r.garantia_tipo||'reparacion', garantiaPublica:r.garantia_publica!==false,
     garantiaFechaFin:r.garantia_fecha_fin||'',
     piezasDevueltas: r.piezas_devueltas === true,
-    presupuesto_aceptado_at: r.presupuesto_aceptado_at || null
+    presupuesto_aceptado_at: r.presupuesto_aceptado_at || null,
+    presupuesto_aceptado_ip: r.presupuesto_aceptado_ip || null,
+    firma_cliente: r.firma_cliente || null,
+    firma_fecha: r.firma_fecha || null
   };
 }
 
@@ -5166,7 +5169,8 @@ function renderPresupuestos() {
     if (r.estado === 'Rechazado') {
       estadoBadge = '<span class="badge br">✗ Rechazado</span>';
     } else if (r.presupuesto_aceptado_at) {
-      estadoBadge = '<span class="badge bg" style="background:rgba(22,163,74,.1);color:#16A34A">✓ Aceptado</span>';
+      var _fAc = ''; try { _fAc = new Date(r.presupuesto_aceptado_at).toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}); } catch(e){}
+      estadoBadge = '<span class="badge bg" style="background:rgba(22,163,74,.1);color:#16A34A">✓ Aceptado' + (_fAc ? ' · ' + _fAc : '') + (r.firma_cliente ? ' ✍️' : '') + '</span>';
     } else {
       estadoBadge = '<span class="badge by">Pendiente</span>';
     }
@@ -9997,6 +10001,16 @@ function abrirDetalleRep(repId) {
     html += '<div style="font-size:10px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">✍️ FIRMA DEL CLIENTE' + (fechaFirma ? ' · ' + fechaFirma : '') + '</div>';
     html += '<div style="background:white;border:1px solid var(--border);border-radius:6px;padding:6px"><img src="' + esc(r.firma_cliente) + '" alt="Firma" style="max-width:100%;height:auto;display:block;max-height:120px;margin:0 auto"></div>';
     html += '</div>';
+  }
+
+  // Prueba de aceptación del presupuesto (registro legal: fecha + IP + firma)
+  if (r.presupuesto_aceptado_at) {
+    var _fAcc = '';
+    try { var _da = new Date(r.presupuesto_aceptado_at); _fAcc = _da.toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' a las ' + _da.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}); } catch(e){}
+    html += '<div style="margin-top:10px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.25);border-radius:10px;padding:10px 12px;font-size:12px;color:#166534">' +
+      '<strong>✓ Presupuesto aceptado por el cliente</strong>' + (_fAcc ? ' el ' + _fAcc : '') +
+      (r.presupuesto_aceptado_ip ? ' · IP ' + esc(r.presupuesto_aceptado_ip) : '') +
+      (r.firma_cliente ? ' · firmado ✍️' : '') + '</div>';
   }
 
   document.getElementById('detalleRepBox').innerHTML = html;
