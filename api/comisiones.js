@@ -55,6 +55,23 @@ function generarPasswordAleatorio() {
     .replace(/=/g, '');
 }
 
+// SEGURIDAD: código secreto de superadmin para acciones críticas.
+// Vive SOLO en process.env.SUPERADMIN_SECRET (no en BD ni en el JWT/sesión) → aunque se
+// filtren datos o un token, nadie puede ejecutar cambios sin conocer el código.
+// Fail-closed: si no está configurado, las acciones críticas se rechazan.
+function verificarSecreto(codigo) {
+  const secret = process.env.SUPERADMIN_SECRET;
+  if (!secret) return false;
+  if (typeof codigo !== 'string' || !codigo) return false;
+  const a = Buffer.from(codigo);
+  const b = Buffer.from(secret);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
+const ACCIONES_CRITICAS = [
+  'marcar_pagado', 'marcar_codigo_pagado', 'crear_cuenta_comercial',
+  'crear_afiliado', 'editar_afiliado', 'eliminar_afiliado', 'dar_de_baja_comercial',
+];
+
 // COM-9: validar y normalizar comision_pct con rango 0-100.
 // Antes `parseInt(comision_pct) || 20` convertía un válido 0 en 20 (||), y aceptaba
 // valores absurdos como 99999 o -50. Ahora rechaza fuera de rango.
@@ -134,6 +151,11 @@ export default async function handler(req, res) {
 
       const body = req.body || {};
       const action = body.action;
+
+      // SEGURIDAD: acciones críticas exigen el código secreto de superadmin (2º factor).
+      if (ACCIONES_CRITICAS.includes(action) && !verificarSecreto(body.codigo_secreto)) {
+        return res.status(403).json({ error: 'Código secreto incorrecto o no configurado', need_secret: true });
+      }
 
       if (action === 'marcar_pagado' && Array.isArray(body.ids) && body.ids.length) {
         const ids = body.ids.filter(n => Number.isInteger(n));
@@ -494,6 +516,51 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: 'No se pudo eliminar el afiliado' });
         }
         return res.json({ ok: true });
+      }
+
+      // ═══ Dar de baja un comercial → su tienda pasa a requerir suscripción ═══
+      if (action === 'dar_de_baja_comercial') {
+        const email = (body.email || '').toLowerCase().trim();
+        const codigo = (body.codigo || '').toUpperCase().trim();
+        if (!email && !codigo) return res.status(400).json({ error: 'Falta email o código del comercial' });
+
+        // Resolver el email del comercial (vía código si hace falta)
+        let afEmail = email;
+        if (!afEmail && codigo) {
+          const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigo)}&select=email&limit=1`, { headers: sbHeaders });
+          afEmail = ((await afR.json())[0]?.email || '').toLowerCase();
+        }
+        if (!afEmail) return res.status(404).json({ error: 'Comercial no encontrado' });
+
+        // Usuario y tienda del comercial
+        const uR2 = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(afEmail)}&select=id,tienda_id&limit=1`, { headers: sbHeaders });
+        const u2 = (await uR2.json())[0];
+        if (!u2) return res.status(404).json({ error: 'Usuario del comercial no encontrado' });
+        let tiendaComercialId = u2.tienda_id || null;
+        if (!tiendaComercialId) {
+          const tR2 = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?usuario_id=eq.${encodeURIComponent(u2.id)}&select=id&limit=1`, { headers: sbHeaders });
+          tiendaComercialId = (await tR2.json())[0]?.id || null;
+        }
+        if (!tiendaComercialId) return res.status(404).json({ error: 'Tienda del comercial no encontrada' });
+
+        // Caducar el plan → cae en el flujo normal de "suscripción vencida, debe pagar"
+        const ahora = new Date().toISOString();
+        const upT = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tiendaComercialId)}`, {
+          method: 'PATCH',
+          headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ plan_status: 'cancelled', plan_until: ahora })
+        });
+        if (!upT.ok) {
+          console.error('Error PATCH tiendas (dar_de_baja_comercial):', upT.status, await upT.text());
+          return res.status(500).json({ error: 'No se pudo dar de baja la tienda del comercial' });
+        }
+        // El afiliado deja de estar activo (no genera comisiones nuevas; su histórico se conserva)
+        await fetch(`${SUPABASE_URL}/rest/v1/afiliados?email=eq.${encodeURIComponent(afEmail)}`, {
+          method: 'PATCH',
+          headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ activo: false })
+        });
+        return res.json({ ok: true, mensaje: 'Comercial dado de baja. Su tienda ahora requiere suscripción.' });
       }
 
       return res.status(400).json({ error: 'Accion desconocida' });

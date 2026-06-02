@@ -4189,6 +4189,41 @@ function mostrarSidebarComisiones() {
   refItem.parentNode.insertBefore(newItem, refItem);
 }
 
+// 🔒 Código secreto de superadmin — vive SOLO en memoria (nunca localStorage) para que,
+// aunque se filtren datos/sesión, nadie pueda ejecutar acciones críticas sin conocerlo.
+var _codigoSecreto = null;
+function pedirCodigoSecreto() {
+  if (!_codigoSecreto) {
+    _codigoSecreto = (prompt('🔒 Código secreto de superadmin (requerido para esta acción):') || '').trim() || null;
+  }
+  return _codigoSecreto;
+}
+function olvidarCodigoSecreto() { _codigoSecreto = null; toast('Código secreto olvidado', 'ok'); }
+// Si el backend responde need_secret, limpiamos el código cacheado para poder reintentar.
+function chequearNeedSecret(data) {
+  if (data && data.need_secret) { _codigoSecreto = null; alert('🔒 Código secreto incorrecto o no configurado en el servidor (SUPERADMIN_SECRET).'); return true; }
+  return false;
+}
+
+// Dar de baja un comercial: su tienda pierde el acceso gratis y deberá suscribirse.
+async function darDeBajaComercial(email, codigo, nombre) {
+  if (!confirm('¿Dar de baja a ' + (nombre || codigo) + '?\n\nSu tienda dejará de tener acceso gratis y deberá suscribirse (pagar) para seguir usando TekPair.')) return;
+  var cod = pedirCodigoSecreto();
+  if (!cod) { alert('Acción cancelada: falta el código secreto.'); return; }
+  try {
+    var r = await fetch('/api/comisiones', {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'dar_de_baja_comercial', email: email, codigo: codigo, codigo_secreto: cod })
+    });
+    var data = await r.json().catch(function(){ return {}; });
+    if (chequearNeedSecret(data)) return;
+    if (!data.ok) { alert('Error: ' + (data.error || 'desconocido')); return; }
+    toast(data.mensaje || 'Comercial dado de baja', 'ok');
+    cargarComisiones();
+  } catch (e) { alert('Error de conexión'); }
+}
+
 async function cargarComisiones() {
   var content = document.getElementById('comContent');
   if (!content) return;
@@ -4297,11 +4332,12 @@ async function wizardStep1Submit() {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        action: 'crear_cuenta_comercial',
+        action: 'crear_cuenta_comercial', codigo_secreto: pedirCodigoSecreto(),
         codigo: d.codigo, nombre: d.nombre, email: d.email, comision_pct: d.comision_pct
       })
     });
     var data = await r.json();
+    if (chequearNeedSecret(data)) return;
     if (!data.ok) { alert('Error: ' + (data.error || 'desconocido')); return; }
     // COM-10: si el email ya tenía cuenta, se añadió solo como afiliado → ir directo al step 3
     if (data.solo_afiliado) {
@@ -4393,7 +4429,7 @@ async function wizardActivar() {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        action: 'crear_afiliado',
+        action: 'crear_afiliado', codigo_secreto: pedirCodigoSecreto(),
         codigo: d.codigo, nombre: d.nombre, email: d.email,
         comision_pct: d.comision_pct,
         tienda_id_comercial: d.tienda_id,
@@ -4466,7 +4502,7 @@ async function guardarAfiliado(esEdicion) {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        action: esEdicion ? 'editar_afiliado' : 'crear_afiliado',
+        action: esEdicion ? 'editar_afiliado' : 'crear_afiliado', codigo_secreto: pedirCodigoSecreto(),
         codigo: codigo, nombre: nombre, email: email, comision_pct: pct
       })
     });
@@ -4487,7 +4523,7 @@ async function eliminarAfiliado(codigo) {
     var r = await fetch('/api/comisiones', {
       method: 'POST',
       headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'eliminar_afiliado', codigo: codigo })
+      body: JSON.stringify({ action: 'eliminar_afiliado', codigo: codigo, codigo_secreto: pedirCodigoSecreto() })
     });
     var data = await r.json();
     if (data.ok) {
@@ -4685,7 +4721,7 @@ async function marcarPagado(pagoId, monto, codigo) {
         var r = await fetch('/api/comisiones', {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'marcar_pagado', ids: [pagoId], fecha_pago: opts.fecha_pago })
+          body: JSON.stringify({ action: 'marcar_pagado', ids: [pagoId], fecha_pago: opts.fecha_pago, codigo_secreto: pedirCodigoSecreto() })
         });
         var data = await r.json();
         if (data.ok) {
@@ -4729,7 +4765,7 @@ async function marcarTodoPagado(codigo, montoTotal) {
         var r = await fetch('/api/comisiones', {
           method: 'POST',
           headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'marcar_codigo_pagado', codigo: codigo, fecha_pago: opts.fecha_pago })
+          body: JSON.stringify({ action: 'marcar_codigo_pagado', codigo: codigo, fecha_pago: opts.fecha_pago, codigo_secreto: pedirCodigoSecreto() })
         });
         var data = await r.json();
         if (data.ok) {
@@ -4784,7 +4820,7 @@ function renderComisionesAdmin(data) {
   html += '</div></div>';
 
   html += '<div class="card" style="margin-bottom:14px">';
-  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="card-title" style="margin:0">👥 Afiliados</div><button onclick="abrirNuevoAfiliado()" style="background:var(--blue);color:white;border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">+ Nuevo afiliado</button></div>';
+  html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px"><div class="card-title" style="margin:0">👥 Afiliados</div><div style="display:flex;gap:6px"><button onclick="olvidarCodigoSecreto()" title="Reintroducir el código secreto" style="background:#F1F5F9;color:#475569;border:none;padding:7px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">🔑</button><button onclick="abrirNuevoAfiliado()" style="background:var(--blue);color:white;border:none;padding:7px 14px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer">+ Nuevo afiliado</button></div></div>';
   if (!data.afiliados || !data.afiliados.length) {
     html += '<div style="padding:20px;color:var(--muted);text-align:center">No hay afiliados activos</div>';
   } else {
@@ -4802,6 +4838,9 @@ function renderComisionesAdmin(data) {
     data.afiliados.forEach(function(a, idx) {
       var tieneTiendas = a.tiendas_detalle && a.tiendas_detalle.length > 0;
       var codigoEsc = a.codigo.replace(/'/g, "\\'");
+      var emailEsc = (a.email || '').replace(/'/g, "\\'");
+      var nombreEsc = (a.nombre || '').replace(/'/g, "\\'");
+      var btnBaja = '<button title="Dar de baja (su tienda deberá suscribirse)" onclick="darDeBajaComercial(\'' + emailEsc + '\',\'' + codigoEsc + '\',\'' + nombreEsc + '\')" style="background:none;border:none;cursor:pointer;padding:4px 6px;font-size:14px;color:#F97316">&#128683;</button>';
       html += '<tr>';
       html += '<td style="padding:10px;border-bottom:1px solid #F1F5F9"><strong>' + a.codigo + '</strong>';
       if (tieneTiendas) {
@@ -4815,10 +4854,10 @@ function renderComisionesAdmin(data) {
       html += '<td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9;color:var(--green)">' + eurFmt(a.comisiones_pagadas) + '</td>';
       html += '<td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9;color:#F97316;font-weight:700;background:rgba(249,115,22,.04)">' + eurFmt(a.comisiones_pendientes) + '</td>';
       if (a.comisiones_pendientes > 0) {
-        html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9"><button onclick="marcarTodoPagado(\'' + codigoEsc + '\', ' + a.comisiones_pendientes + ')" style="background:var(--green);color:white;border:none;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">💰 Pagar todo</button></td>';
+        html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9;white-space:nowrap"><button onclick="marcarTodoPagado(\'' + codigoEsc + '\', ' + a.comisiones_pendientes + ')" style="background:var(--green);color:white;border:none;padding:6px 12px;border-radius:6px;font-size:11px;font-weight:700;cursor:pointer">💰 Pagar todo</button>' + btnBaja + '</td>';
       } else {
         var afilJSON = JSON.stringify(a).replace(/'/g, '&apos;').replace(/"/g,'&quot;');
-        html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9;font-size:11px"><button title="Editar" onclick="abrirEditarAfiliado(JSON.parse(this.dataset.af))" data-af="' + afilJSON + '" style="background:none;border:none;cursor:pointer;padding:4px 6px;font-size:14px;color:var(--blue)">&#9999;</button><button title="Eliminar" onclick="eliminarAfiliado(&apos;' + codigoEsc + '&apos;)" style="background:none;border:none;cursor:pointer;padding:4px 6px;font-size:14px;color:var(--red)">&#128465;</button></td>';
+        html += '<td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9;font-size:11px"><button title="Editar" onclick="abrirEditarAfiliado(JSON.parse(this.dataset.af))" data-af="' + afilJSON + '" style="background:none;border:none;cursor:pointer;padding:4px 6px;font-size:14px;color:var(--blue)">&#9999;</button><button title="Eliminar" onclick="eliminarAfiliado(&apos;' + codigoEsc + '&apos;)" style="background:none;border:none;cursor:pointer;padding:4px 6px;font-size:14px;color:var(--red)">&#128465;</button>' + btnBaja + '</td>';
       }
       html += '</tr>';
 
