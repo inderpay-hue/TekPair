@@ -115,6 +115,51 @@ async function _resendSend(payload) {
   return false;
 }
 
+// Registra un aviso enviado en la tabla `avisos` (historial de comunicaciones). No bloqueante:
+// si la tabla aún no existe, solo loguea. Backend usa service key → bypassa RLS.
+async function registrarAviso(tiendaId, d) {
+  try {
+    await sbPost('avisos', {
+      id: 'av_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      tienda_id: tiendaId,
+      tipo: d.tipo,
+      canal: d.canal || 'email',
+      destinatario: d.destinatario || null,
+      ref_tipo: d.ref_tipo || 'reparacion',
+      ref_id: d.ref_id || null,
+      asunto: d.asunto || null,
+      estado: d.estado || 'enviado',
+      fecha: new Date().toISOString()
+    });
+  } catch (e) { console.error('[aviso] no se pudo registrar:', (e && e.message) || e); }
+}
+
+// Email al TALLER cuando el cliente acepta/rechaza un presupuesto (+ registra el aviso).
+async function _emailTallerDecision(rep, accion) { // accion: 'aceptado' | 'rechazado'
+  let tienda = null;
+  try {
+    const ts = await sbGet(`tiendas?id=eq.${encodeURIComponent(rep.tienda_id)}&select=nombre,email&limit=1`);
+    tienda = ts && ts[0];
+  } catch (e) {}
+  if (!tienda || !tienda.email) return;
+  const aceptado = accion === 'aceptado';
+  const equipo = ((rep.marca || '') + ' ' + (rep.modelo || '')).trim();
+  const color = aceptado ? '#16A34A' : '#DC2626';
+  const subject = (aceptado ? '✅ Presupuesto ACEPTADO' : '❌ Presupuesto RECHAZADO') + ' — ' + (rep.cliente_nombre || 'Cliente');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;background:#f7f9fc;margin:0;padding:0">
+<div style="max-width:520px;margin:40px auto;background:white;border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,.08)">
+  <div style="background:${color};padding:24px;text-align:center"><div style="color:white;font-size:20px;font-weight:800">${aceptado ? '✅ Presupuesto aceptado' : '❌ Presupuesto rechazado'}</div></div>
+  <div style="padding:26px;font-size:14px;color:#0F1729">
+    <p><strong>${esc(rep.cliente_nombre || 'Un cliente')}</strong> ha <strong style="color:${color}">${aceptado ? 'ACEPTADO' : 'RECHAZADO'}</strong> el presupuesto${equipo ? ' de su <strong>' + esc(equipo) + '</strong>' : ''}.</p>
+    ${aceptado ? '<p style="color:#64748B">Ya puedes empezar la reparación. Entra a tu dashboard para gestionarla.</p>' : '<p style="color:#64748B">El cliente no ha aprobado el presupuesto.</p>'}
+  </div>
+  <div style="text-align:center;padding:16px;color:#aaa;font-size:11px">TekPair · tekpair.tech</div>
+</div></body></html>`;
+  const ok = await _resendSend({ from: 'TekPair <info@tekpair.tech>', to: [tienda.email], subject, html });
+  await registrarAviso(rep.tienda_id, { tipo: 'presupuesto_' + accion, canal: 'email', destinatario: tienda.email, ref_id: rep.id, asunto: subject, estado: ok ? 'enviado' : 'fallo' });
+}
+
 // ── ACCIONES CITAS ────────────────────────────────────────────────────────────
 
 async function getTienda(slug) {
@@ -247,6 +292,7 @@ async function presGenerarToken(body, authHeader) {
   if (enviar.includes('email') && cliEmail) {
     console.log('[pres-email] intentando enviar a', cliEmail, 'rep', repId);
     try { await enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url); } catch(e){ console.error('email presupuesto:',e); }
+    await registrarAviso(tiendaId, { tipo:'presupuesto_enviado', canal:'email', destinatario:cliEmail, ref_id:repId, asunto:'Presupuesto enviado por email' });
   } else if (enviar.includes('email')) {
     console.warn('[pres-email] pediste email pero el cliente NO tiene email guardado. rep', repId, '| email cliente:', JSON.stringify(cliEmail));
   }
@@ -326,7 +372,7 @@ async function presAceptar(body, ip) {
   // Verificar token válido y no expirado
   let reps;
   try {
-    reps = await sbGet(`reparaciones?presupuesto_token=eq.${encodeURIComponent(token)}&select=id,tienda_id,cliente_nombre,presupuesto_token_exp,presupuesto_aceptado_at,estado&limit=1`);
+    reps = await sbGet(`reparaciones?presupuesto_token=eq.${encodeURIComponent(token)}&select=id,tienda_id,cliente_nombre,marca,modelo,presupuesto_token_exp,presupuesto_aceptado_at,estado&limit=1`);
   } catch(e) { return { ok:false, error:'Error al verificar presupuesto', status:500 }; }
 
   if (!reps?.length) return { ok:false, error:'Enlace inválido o caducado', status:404 };
@@ -373,6 +419,9 @@ async function presAceptar(body, ip) {
     });
   } catch(e) { console.error('notif presupuesto:', e); } // no bloqueante
 
+  // Email al taller + registrar aviso (aceptación)
+  await _emailTallerDecision(rep, 'aceptado');
+
   return { ok:true, mensaje:'Presupuesto aceptado correctamente.' };
 }
 
@@ -416,7 +465,7 @@ async function presRechazar(body, ip) {
 
   let reps;
   try {
-    reps = await sbGet(`reparaciones?presupuesto_token=eq.${encodeURIComponent(token)}&select=id,tienda_id,cliente_nombre,presupuesto_token_exp,presupuesto_aceptado_at,estado&limit=1`);
+    reps = await sbGet(`reparaciones?presupuesto_token=eq.${encodeURIComponent(token)}&select=id,tienda_id,cliente_nombre,marca,modelo,presupuesto_token_exp,presupuesto_aceptado_at,estado&limit=1`);
   } catch(e) { return { ok:false, error:'Error al verificar presupuesto', status:500 }; }
 
   if (!reps?.length) return { ok:false, error:'Enlace inválido o caducado', status:404 };
@@ -453,6 +502,9 @@ async function presRechazar(body, ip) {
       fecha: ahora
     });
   } catch(e) { console.error('notif rechazo:', e); }
+
+  // Email al taller + registrar aviso (rechazo)
+  await _emailTallerDecision(rep, 'rechazado');
 
   return { ok:true, mensaje:'Presupuesto rechazado.' };
 }
