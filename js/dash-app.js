@@ -3433,6 +3433,7 @@ async function confirmarEnviarPres() {
       var telLimpio = waTel(data.tel);
       var waUrl = 'https://wa.me/' + telLimpio + '?text=' + data.waMensaje;
       window.open(waUrl, '_blank');
+      registrarAviso({ tipo:'presupuesto_enviado', canal:'whatsapp', destinatario:data.tel, ref_id:_presEnviarId, asunto:'Presupuesto enviado por WhatsApp' });
     }
 
     // Si email: ya fue enviado por el servidor, solo notificar
@@ -10089,7 +10090,11 @@ function abrirDetalleRep(repId) {
       (r.firma_cliente ? ' · firmado ✍️' : '') + '</div>';
   }
 
+  // Historial de avisos enviados de esta reparación
+  html += '<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📨 Avisos enviados</div><div id="avisosHistorial"><div style="font-size:11px;color:var(--muted)">Cargando…</div></div></div>';
+
   document.getElementById('detalleRepBox').innerHTML = html;
+  _cargarHistorialAvisos(r.id);
 
   // Botones
   var btns = '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="closeM(\'mDetalleRep\')">Cerrar</button>';
@@ -10248,6 +10253,7 @@ function abrirWhatsAppRep(repId) {
   if (!cli.tel) { toast('Cliente sin teléfono', 'err'); return; }
   _waContexto = {
     tipo: 'rep',
+    refId: r.id, refTipo: 'reparacion',
     cli: cli,
     datos: {
       nombre: cli.nombre || '',
@@ -10313,6 +10319,40 @@ function renderPreviewWA() {
   document.getElementById('waMensaje').value = aplicarVariablesWA(p.texto, _waContexto.datos);
 }
 
+// Registra un aviso (envío) en la tabla `avisos` — historial de comunicaciones.
+// Frontend → REST con anon+JWT (la policy avisos_insert_tienda lo permite). No bloqueante.
+function registrarAviso(d) {
+  if (!SB_KEY || !TIENDA_ID || typeof _sbPostRaw !== 'function') return;
+  try {
+    _sbPostRaw('avisos', {
+      id: 'av_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+      tienda_id: TIENDA_ID, tipo: d.tipo || 'aviso', canal: d.canal || 'whatsapp',
+      destinatario: d.destinatario || null, ref_tipo: d.ref_tipo || 'reparacion',
+      ref_id: d.ref_id || null, asunto: d.asunto || null, estado: d.estado || 'enviado',
+      fecha: new Date().toISOString()
+    });
+  } catch (e) {}
+}
+try { window.registrarAviso = registrarAviso; } catch(e){}
+
+// Carga y muestra el historial de avisos de una reparación en #avisosHistorial.
+function _cargarHistorialAvisos(repId) {
+  var box = document.getElementById('avisosHistorial');
+  if (!box || !SB_KEY || typeof sbGet !== 'function') return;
+  sbGet('avisos', 'ref_id=eq.' + encodeURIComponent(repId) + '&order=fecha.desc&limit=40').then(function(rows){
+    if (!Array.isArray(rows) || !rows.length) { box.innerHTML = '<div style="font-size:11px;color:var(--muted)">Sin avisos registrados</div>'; return; }
+    var TIPO = {presupuesto_enviado:'Presupuesto enviado', presupuesto_aceptado:'Aceptado por el cliente', presupuesto_rechazado:'Rechazado por el cliente', factura_enviada:'Factura enviada', aviso_rep:'Aviso al cliente', aviso_cliente:'Aviso al cliente', cita_aviso:'Aviso de cita'};
+    var CANAL = {whatsapp:'📱 WhatsApp', email:'📧 Email', sistema:'🔔 Sistema'};
+    box.innerHTML = rows.map(function(a){
+      var f = ''; try { var d = new Date(a.fecha); f = d.toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'2-digit'}) + ' ' + d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}); } catch(e){}
+      var fallo = a.estado === 'fallo' ? ' <span style="color:var(--red)">(fallo)</span>' : '';
+      return '<div style="display:flex;justify-content:space-between;gap:8px;padding:5px 0;border-bottom:1px solid var(--light);font-size:11px">'
+        + '<span>' + (CANAL[a.canal]||escHtml(a.canal||'')) + ' · ' + escHtml(TIPO[a.tipo]||a.tipo||'') + fallo + '</span>'
+        + '<span style="color:var(--muted);white-space:nowrap">' + f + '</span></div>';
+    }).join('');
+  }).catch(function(){ box.innerHTML = '<div style="font-size:11px;color:var(--muted)">No se pudo cargar el historial</div>'; });
+}
+
 function enviarWhatsApp() {
   if (!_waContexto || !_waContexto.cli) return;
   var msg = document.getElementById('waMensaje').value;
@@ -10320,6 +10360,7 @@ function enviarWhatsApp() {
   if (!tel) { toast('Sin teléfono', 'err'); return; }
   var url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
   window.open(url, '_blank');
+  registrarAviso({ tipo: 'aviso_' + (_waContexto.tipo || 'cliente'), canal: 'whatsapp', destinatario: _waContexto.cli.tel, ref_id: _waContexto.refId || (_waContexto.cli && _waContexto.cli.id), ref_tipo: _waContexto.refTipo || 'cliente' });
   closeM('mWhatsApp');
 }
 
