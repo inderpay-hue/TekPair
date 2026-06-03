@@ -3270,35 +3270,35 @@ function cambiarTipoBloq() {
   if (!tipo) {
     input.disabled = true;
     input.value = '';
-    input.placeholder = 'No aplica';
-    lbl.textContent = 'Código';
+    input.placeholder = T('rep.ph_no_aplica');
+    lbl.textContent = T('rep.codigo');
     input.readOnly = false; input.style.cursor = ''; input.onclick = null;
     return;
   }
   input.disabled = false;
   if (tipo === 'PIN') {
-    lbl.textContent = 'PIN numérico';
-    input.placeholder = '4-6 dígitos';
+    lbl.textContent = T('rep.bloq_pin');
+    input.placeholder = T('rep.ph_pin');
     input.type = 'text';
     input.inputMode = 'numeric';
     input.readOnly = false; input.style.cursor = ''; input.onclick = null;
   } else if (tipo === 'Patron') {
-    lbl.textContent = 'Patrón (toca para dibujar)';
-    input.placeholder = 'Pulsa el boton para dibujar';
+    lbl.textContent = T('rep.bloq_patron_lbl');
+    input.placeholder = T('rep.ph_patron');
     input.type = 'text';
     input.readOnly = true;
     input.style.cursor = 'pointer';
     input.onclick = patronAbrir;
     return;
   } else if (tipo === 'Contrasena') {
-    lbl.textContent = 'Contraseña';
-    input.placeholder = 'Texto / alfanumérico';
+    lbl.textContent = T('rep.bloq_contrasena');
+    input.placeholder = T('rep.ph_contrasena');
     input.type = 'text';
     input.inputMode = 'text';
     input.readOnly = false; input.style.cursor = ''; input.onclick = null;
   } else if (tipo === 'Huella') {
-    lbl.textContent = 'Código de respaldo';
-    input.placeholder = 'PIN/contraseña alternativa';
+    lbl.textContent = T('rep.bloq_huella_lbl');
+    input.placeholder = T('rep.ph_huella');
     input.type = 'text';
     input.inputMode = 'text';
     input.readOnly = false; input.style.cursor = ''; input.onclick = null;
@@ -3307,7 +3307,7 @@ function cambiarTipoBloq() {
 
 function abrirRep() {
   SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.rServicios = [];
-  var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = '🔧 Nueva Reparación';
+  var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_nuevo');
   ['rBusCli','rMarca','rModelo','rImei','rAveria','rNota','rSrvBus','rBloqVal'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
@@ -4540,7 +4540,7 @@ function editarRep(id) {
   renderRepGarantia();
 
   // Cambiar titulo
-  var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = '✏️ Editar Reparación';
+  var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_editar');
 
   openM('mRep');
 }
@@ -6003,11 +6003,26 @@ function guardarStock() {
   renderStock();
 }
 
+// Alta de stock: resetea SIEMPRE el estado para no arrastrar una edición previa
+// (si editabas un producto, lo cancelabas y pulsabas "+ Añadir", abría en modo
+// edición y al guardar sobrescribía el producto anterior). También pone el título.
+function nuevoStock() {
+  SEL.editStockId = null;
+  var tit = document.getElementById('mStockTit'); if (tit) tit.textContent = T('stock.titulo_add');
+  var def = { sCat:'Telefono', sMarca:'', sModelo:'', sCap:'', sColor:'', sImei:'', sUds:'1', sPrecioC:'0', sPrecioV:'0', sMin:'2', sMax:'10' };
+  Object.keys(def).forEach(function(id) { var e = document.getElementById(id); if (e) e.value = def[id]; });
+  var su = document.getElementById('sUbic'); if (su) su.value = '';
+  window._stockTipoSel = 'nuevo';
+  window._stockGarantiaMeses = null;
+  openM('mStock');
+  setTimeout(function() { try { renderStockGarantia(); } catch (e) {} }, 50);
+}
+
 function editarStock(id) {
   var s = DB.stock.find(function(x) { return x.id === id; });
   if (!s) return;
   SEL.editStockId = id;
-  document.getElementById('mStockTit').textContent = '\u270f\ufe0f Editar Stock';
+  document.getElementById('mStockTit').textContent = T('stock.titulo_editar');
   document.getElementById('sCat').value = s.categoria || 'Telefono';
   document.getElementById('sMarca').value = s.marca || '';
   document.getElementById('sModelo').value = s.modelo || '';

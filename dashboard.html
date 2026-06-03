@@ -1162,7 +1162,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="qbtn-dash" onclick="abrirRep()"><span class="qbtn-icon" style="background:rgba(0,200,150,.10);color:var(--green)">🔧</span><span class="qbtn-label" data-t="dash.reparacion">Reparación</span></button>
     <!-- PRES-3: Nuevo Presupuesto -->
     <button class="qbtn-dash" onclick="abrirPresupuesto()"><span class="qbtn-icon" style="background:rgba(168,85,247,.10);color:#8B5CF6">📋</span><span class="qbtn-label" data-t="dash.presupuesto">Presupuesto</span></button>
-    <button class="qbtn-dash" onclick="navTo('pStock');openM('mStock')"><span class="qbtn-icon" style="background:rgba(249,115,22,.10);color:var(--orange)">📦</span><span class="qbtn-label" data-t="dash.anadir_stock">Añadir stock</span></button>
+    <button class="qbtn-dash" onclick="navTo('pStock');nuevoStock()"><span class="qbtn-icon" style="background:rgba(249,115,22,.10);color:var(--orange)">📦</span><span class="qbtn-label" data-t="dash.anadir_stock">Añadir stock</span></button>
     <button class="qbtn-dash" onclick="navTo('pClis');openM('mCli')"><span class="qbtn-icon" style="background:rgba(0,140,255,.10);color:var(--blue)">👤</span><span class="qbtn-label" data-t="dash.nuevo_cliente">Nuevo cliente</span></button>
   </div>
   <!-- VIS-18: empty state para tienda nueva -->
@@ -1477,7 +1477,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sec-title">Stock</div>
     <div style="display:flex;gap:6px">
       <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirImportFactura()" title="Importar PDF de factura del proveedor"><span data-t="stock.importar_factura">📤 Importar factura</span></button>
-      <button class="btn-sm" style="background:var(--orange);color:white" onclick="openM('mStock')" data-t="stock.anadir">+ Añadir</button>
+      <button class="btn-sm" style="background:var(--orange);color:white" onclick="nuevoStock()" data-t="stock.anadir">+ Añadir</button>
     </div>
   </div>
   <div class="search-wrap">
