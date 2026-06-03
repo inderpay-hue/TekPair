@@ -3371,9 +3371,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <!-- ALTA MÚLTIPLE: varios teléfonos del mismo modelo, cada uno con su IMEI y precio -->
   <div class="fg" id="sImeiMultiWrap" style="display:none">
-    <label class="fl">📋 Varios IMEIs a la vez <span style="color:var(--muted);font-weight:400">(uno por línea: <code>IMEI precio</code>)</span></label>
-    <textarea class="fi" id="sImeiMulti" rows="4" placeholder="356789012345678 320&#10;356789012345679 340&#10;356789012345680 390" style="resize:vertical;font-family:monospace;font-size:12px;line-height:1.5"></textarea>
-    <div style="font-size:11px;color:var(--muted);margin-top:4px">Crea 1 unidad por línea con el Color/Capacidad de arriba. Si no pones precio, usa el «Precio venta». Déjalo vacío para un alta normal.</div>
+    <label class="fl">📋 Varios IMEIs a la vez <span style="color:var(--muted);font-weight:400">(uno por línea: <code>IMEI color precio</code>)</span></label>
+    <textarea class="fi" id="sImeiMulti" rows="4" placeholder="356789012345678 Negro 320&#10;356789012345679 Azul 340&#10;356789012345680 Negro 390" style="resize:vertical;font-family:monospace;font-size:12px;line-height:1.5"></textarea>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">Crea 1 unidad por línea. El <b>color</b> y el <b>precio</b> son opcionales: si faltan, usan los campos «Color» y «Precio venta» de arriba (la Capacidad es común). Así metes varios colores del mismo modelo de golpe. Déjalo vacío para un alta normal.</div>
   </div>
   <!-- ALTA MÚLTIPLE COLORES: repuestos/accesorios del mismo modelo en varios colores -->
   <div class="fg" id="sColorMultiWrap" style="display:none">

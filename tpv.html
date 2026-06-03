@@ -796,11 +796,13 @@ function renderProducts() {
     grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Sin productos en esta categoria</div>';
     return;
   }
+  window._tpvGrupos = [];  // índice de grupos para el onclick (evita inyección por comillas en nombres)
   grid.innerHTML = products.map(function(p) {
     var icon = p.icon || icons[p.categoria] || '📦';
     if (p.esGrupo) {
       var nombreG = (p.marca ? p.marca + ' ' : '') + p.modelo;
-      return '<div class="prod-card" onclick="addStockGroup(\'' + escHtml(p.key) + '\')">' +
+      var gi = window._tpvGrupos.push(p.key) - 1;
+      return '<div class="prod-card" onclick="addStockGroup(' + gi + ')">' +
         '<div class="prod-icon">' + escHtml(icon) + '</div>' +
         '<div class="prod-name">' + escHtml(nombreG) + '</div>' +
         '<div class="prod-price">desde €' + parseFloat(p.min || 0).toFixed(2) + '</div>' +
@@ -1012,7 +1014,9 @@ function groupStockProducts(list) {
   return result;
 }
 // Al pulsar una tarjeta agrupada: si hay 1 unidad la añade directa; si hay varias, selector.
-function addStockGroup(key) {
+function addStockGroup(gi) {
+  var key = (window._tpvGrupos || [])[gi];
+  if (!key) return;
   var units = getProducts().filter(function(p) {
     return p._type === 'stock' && groupKey(p) === key && p.unidades > 0;
   });
