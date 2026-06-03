@@ -55,6 +55,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 .brand-pill.active{background:var(--orange);color:white;border-color:var(--orange)}
 .brand-count{font-size:10px;background:rgba(0,0,0,.08);padding:1px 6px;border-radius:10px;font-weight:700;line-height:1.5}
 .brand-logo{width:18px;height:18px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:800;flex-shrink:0}
+.brand-logo-img{width:18px;height:18px;border-radius:5px;object-fit:contain;background:#fff;flex-shrink:0;display:inline-block;vertical-align:middle}
 .brand-pill.active .brand-count{background:rgba(255,255,255,.28)}
 
 /* PRODUCTS GRID */
@@ -992,6 +993,39 @@ function brandStyle(m) {
   }
   return { color: color, letra: (m || '?').trim().charAt(0).toUpperCase() };
 }
+// Logos reales de marcas conocidas (favicon oficial por dominio). Si la marca no
+// está mapeada o el logo no carga (offline), se usa el chip de color como fallback.
+var BRAND_DOMAINS = {
+  apple:'apple.com', iphone:'apple.com', ipad:'apple.com', samsung:'samsung.com',
+  galaxy:'samsung.com', xiaomi:'xiaomi.com', redmi:'xiaomi.com', poco:'xiaomi.com',
+  huawei:'huawei.com', google:'google.com', pixel:'google.com', oppo:'oppo.com',
+  oneplus:'oneplus.com', realme:'realme.com', motorola:'motorola.com', moto:'motorola.com',
+  sony:'sony.com', xperia:'sony.com', lg:'lg.com', nokia:'nokia.com', honor:'hihonor.com',
+  vivo:'vivo.com', asus:'asus.com', tcl:'tcl.com', alcatel:'alcatel-mobile.com',
+  zte:'zte.com.cn', nothing:'nothing.tech', oukitel:'oukitel.com', doogee:'doogee.com'
+};
+function brandDomain(m) {
+  var key = (m || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (BRAND_DOMAINS[key]) return BRAND_DOMAINS[key];
+  for (var k in BRAND_DOMAINS) { if (key.indexOf(k) !== -1) return BRAND_DOMAINS[k]; }
+  return null;
+}
+function brandLogoHtml(m) {
+  var bs = brandStyle(m);
+  var dom = brandDomain(m);
+  if (dom) {
+    return '<img class="brand-logo-img" alt="" data-letra="' + escHtml(bs.letra) + '" data-color="' + bs.color + '" ' +
+      'src="https://www.google.com/s2/favicons?domain=' + encodeURIComponent(dom) + '&sz=64" onerror="brandLogoFallback(this)">';
+  }
+  return '<span class="brand-logo" style="background:' + bs.color + '">' + escHtml(bs.letra) + '</span>';
+}
+function brandLogoFallback(img) {
+  var s = document.createElement('span');
+  s.className = 'brand-logo';
+  s.style.background = img.getAttribute('data-color') || '#888';
+  s.textContent = img.getAttribute('data-letra') || '?';
+  if (img.parentNode) img.parentNode.replaceChild(s, img);
+}
 function renderBrandBar() {
   var bar = document.getElementById('brandBar');
   if (!bar) return;
@@ -1010,9 +1044,8 @@ function renderBrandBar() {
   window._tpvMarcas = marcas;
   var html = '<button class="brand-pill ' + (currentMarca === '' ? 'active' : '') + '" onclick="setMarca(\'\')">' + escHtml(T('tpv.todas_marcas')) + '</button>';
   html += marcas.map(function(m, i) {
-    var bs = brandStyle(m);
     return '<button class="brand-pill ' + (currentMarca === m ? 'active' : '') + '" onclick="setMarcaIdx(' + i + ')">' +
-      '<span class="brand-logo" style="background:' + bs.color + '">' + escHtml(bs.letra) + '</span>' +
+      brandLogoHtml(m) +
       escHtml(m) + ' <span class="brand-count">' + counts[m] + '</span></button>';
   }).join('');
   bar.innerHTML = html;
