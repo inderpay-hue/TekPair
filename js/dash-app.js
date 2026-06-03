@@ -656,9 +656,21 @@ function setNavActive(el) {
 
 // ═══ MODALS ═══
 function openM(id) {
-  if (id === 'mStock') { try { renderSelectorUbicacion(); } catch(e){} }
+  if (id === 'mStock') {
+    try { renderSelectorUbicacion(); } catch(e){}
+    try { var mi = document.getElementById('sImeiMulti'); if (mi) mi.value = ''; toggleStockMultiImei(); } catch(e){}
+  }
   var el = document.getElementById(id);
   if (el) el.classList.add('open');
+}
+
+// Mostrar el textarea de alta múltiple de IMEIs solo en categorías con IMEI y en modo alta
+function toggleStockMultiImei() {
+  var wrap = document.getElementById('sImeiMultiWrap');
+  if (!wrap) return;
+  var cat = document.getElementById('sCat').value;
+  var aplica = ['Telefono','Tablet','Smartwatch'].indexOf(cat) !== -1;
+  wrap.style.display = (aplica && !SEL.editStockId) ? 'block' : 'none';
 }
 function closeM(id) {
   var el = document.getElementById(id);
@@ -5837,6 +5849,52 @@ function guardarStock() {
     }
     SEL.editStockId = null;
   } else {
+    // ALTA MÚLTIPLE: si el textarea de IMEIs tiene líneas, crear 1 unidad por línea
+    var _multiEl = document.getElementById('sImeiMulti');
+    var _multiRaw = (_multiEl ? _multiEl.value : '').trim();
+    var _multiCat = document.getElementById('sCat').value;
+    var _multiAplica = ['Telefono','Tablet','Smartwatch'].indexOf(_multiCat) !== -1;
+    var _lineas = (_multiAplica && _multiRaw)
+      ? _multiRaw.split('\n').map(function(l){ return l.trim(); }).filter(Boolean) : [];
+    if (_lineas.length) {
+      var _precioBaseV = parseFloat(document.getElementById('sPrecioV').value) || 0;
+      var _capV = document.getElementById('sCap').value;
+      var _colorV = document.getElementById('sColor').value;
+      var _precioCV = parseFloat(document.getElementById('sPrecioC').value) || 0;
+      var _minV = parseInt(document.getElementById('sMin').value) || 2;
+      var _maxV = parseInt(document.getElementById('sMax').value) || 10;
+      var _ubicV = tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : null;
+      var _creados = 0;
+      _lineas.forEach(function(l, i) {
+        var partes = l.split(/[\s,;]+/).filter(Boolean);
+        var imeiL = partes[0] || '';
+        if (!imeiL) return;
+        var precioL = (partes.length > 1) ? parseFloat(String(partes[partes.length - 1]).replace(',', '.')) : NaN;
+        var precioFinal = (!isNaN(precioL) && precioL > 0) ? precioL : _precioBaseV;
+        var item = {
+          id: 's' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 8),
+          categoria: _multiCat, marca: marca, modelo: modelo,
+          capacidad: _capV, color: _colorV, imei: imeiL, unidades: 1,
+          precioC: _precioCV, precioV: precioFinal, stockMin: _minV, stockMax: _maxV,
+          vendido: false, calidad: '', tipo: stockTipo, garantiaMeses: stockGarantiaMeses, ubicacion: _ubicV
+        };
+        DB.stock.push(item);
+        if (SB_KEY && TIENDA_ID) sbPost('stock', {
+          id:item.id, tienda_id:TIENDA_ID, categoria:item.categoria, marca:item.marca,
+          modelo:item.modelo, capacidad:item.capacidad, color:item.color, imei:item.imei,
+          unidades:item.unidades, precio_c:item.precioC, precio_v:item.precioV,
+          stock_min:item.stockMin, stock_max:item.stockMax, vendido:false,
+          tipo:item.tipo || 'nuevo', garantia_meses: parseInt(item.garantiaMeses)||0, ubicacion:item.ubicacion || null
+        });
+        _creados++;
+      });
+      window._stockTipoSel = null; window._stockGarantiaMeses = null;
+      guardarDatos();
+      closeM('mStock');
+      toast(_creados + ' unidades añadidas', 'ok');
+      renderStock();
+      return;
+    }
     var nuevo = {
       id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
       categoria: document.getElementById('sCat').value,
@@ -6028,7 +6086,7 @@ document.addEventListener('DOMContentLoaded', function(){
     });
   }
   var sCat = document.getElementById('sCat');
-  if (sCat) sCat.addEventListener('change', renderStockGarantia);
+  if (sCat) sCat.addEventListener('change', function(){ renderStockGarantia(); toggleStockMultiImei(); });
   // NOTA: el hook de openM para mStock se gestiona desde el override unificado en rep helpers
 });
 
