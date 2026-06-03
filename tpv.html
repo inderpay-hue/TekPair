@@ -56,6 +56,13 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 .brand-count{font-size:10px;background:rgba(0,0,0,.08);padding:1px 6px;border-radius:10px;font-weight:700;line-height:1.5}
 .brand-logo{width:18px;height:18px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:800;flex-shrink:0}
 .brand-logo-img{width:18px;height:18px;border-radius:5px;object-fit:contain;background:#fff;flex-shrink:0;display:inline-block;vertical-align:middle}
+.scroller-wrap{position:relative;flex-shrink:0}
+.scroll-arrow{position:absolute;top:0;bottom:0;width:30px;border:none;background:rgba(255,255,255,.95);color:var(--text,#333);font-size:18px;font-weight:800;cursor:pointer;z-index:6;display:none;align-items:center;justify-content:center;padding:0}
+.scroll-arrow:hover{background:#fff}
+.scroll-arrow.left{left:0;box-shadow:8px 0 10px -5px rgba(0,0,0,.18)}
+.scroll-arrow.right{right:0;box-shadow:-8px 0 10px -5px rgba(0,0,0,.18)}
+.scroller-wrap.has-left .scroll-arrow.left{display:flex}
+.scroller-wrap.has-right .scroll-arrow.right{display:flex}
 .brand-pill.active .brand-count{background:rgba(255,255,255,.28)}
 
 /* PRODUCTS GRID */
@@ -691,7 +698,7 @@ window.addEventListener('DOMContentLoaded', function() {
   renderFavBar();
   renderProducts();
   renderBrandBar();
-  ['.tpv-cats', '#brandBar'].forEach(function(s) { enableWheelH(document.querySelector(s)); });
+  ['.tpv-cats', '#brandBar'].forEach(function(s) { var e = document.querySelector(s); enableWheelH(e); attachScrollArrows(e); });
   updateCaja();
   // Sync con Supabase (ventas + favoritos + tienda + ajustes)
   syncTPV();
@@ -1043,6 +1050,38 @@ function enableWheelH(el) {
     el.scrollLeft += e.deltaY;
   }, { passive: false });
 }
+// Flechas ◀ ▶ a los lados de una barra scrollable. Aparecen solo si hay desbordamiento
+// y se ocultan en los extremos. Alternativa visual al scroll con rueda/trackpad.
+function attachScrollArrows(el) {
+  if (!el || el._arrows) return;
+  el._arrows = true;
+  var wrap = document.createElement('div');
+  wrap.className = 'scroller-wrap';
+  el.parentNode.insertBefore(wrap, el);
+  wrap.appendChild(el);
+  function arrow(dir, sym) {
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'scroll-arrow ' + dir;
+    b.textContent = sym;
+    b.addEventListener('click', function(e) {
+      e.preventDefault();
+      var amt = el.clientWidth * 0.8;
+      el.scrollBy({ left: dir === 'left' ? -amt : amt, behavior: 'smooth' });
+    });
+    wrap.appendChild(b);
+  }
+  arrow('left', '‹');
+  arrow('right', '›');
+  el._updateArrows = function() {
+    var max = el.scrollWidth - el.clientWidth;
+    wrap.classList.toggle('has-left', el.scrollLeft > 4);
+    wrap.classList.toggle('has-right', max > 4 && el.scrollLeft < max - 4);
+  };
+  el.addEventListener('scroll', el._updateArrows);
+  window.addEventListener('resize', el._updateArrows);
+  setTimeout(el._updateArrows, 60);
+}
 function renderBrandBar() {
   var bar = document.getElementById('brandBar');
   if (!bar) return;
@@ -1067,6 +1106,7 @@ function renderBrandBar() {
   }).join('');
   bar.innerHTML = html;
   bar.style.display = 'flex';
+  if (bar._updateArrows) bar._updateArrows();
 }
 function setMarcaIdx(i) { setMarca((window._tpvMarcas || [])[i] || ''); }
 function setMarca(m) {
