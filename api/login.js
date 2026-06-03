@@ -543,6 +543,24 @@ export default async function handler(req, res) {
         return res.json({ ok: true });
       }
 
+      if (op === 'codigo') {
+        const { target_id, codigo } = req.body;
+        if (!target_id) return res.status(400).json({ error: 'Falta target_id' });
+        if (!await targetEnTienda(target_id)) return res.status(404).json({ error: 'Usuario no encontrado en tu tienda' });
+        const cod = (codigo == null || String(codigo).trim() === '') ? null : String(codigo).trim();
+        if (cod !== null && !/^[0-9]{3,12}$/.test(cod)) return res.status(400).json({ error: 'El código debe ser de 3 a 12 dígitos' });
+        const up = await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(target_id)}&tienda_id=eq.${encodeURIComponent(tiendaId)}`, {
+          method: 'PATCH', headers: { ...sbH, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ codigo: cod })
+        });
+        if (!up.ok) {
+          const t = await up.text().catch(() => '');
+          if (/duplicate|unique|usuarios_codigo/i.test(t)) return res.status(409).json({ error: 'Ese código ya lo usa otro empleado' });
+          return res.status(500).json({ error: 'No se pudo guardar el código' });
+        }
+        return res.json({ ok: true });
+      }
+
       if (op === 'crear') {
         let { nombre, email: nEmail, password: nPass, rol: nRol, permisos } = req.body;
         if (!nombre || !nEmail || !nPass) return res.status(400).json({ error: 'Faltan datos (nombre, email o contraseña)' });

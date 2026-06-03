@@ -9756,6 +9756,14 @@ async function cargarUsuarios() {
     btnP.dataset.uid = u.id; btnP.dataset.unom = u.nombre;
     btnP.addEventListener('click', function() { editarPermisos(this.dataset.uid, this.dataset.unom); });
     tdAcc.appendChild(btnP);
+    // Código para fichar la caja (admin se lo da a cada empleado)
+    var btnC = document.createElement('button');
+    btnC.textContent = u.codigo ? ('🔢 ' + u.codigo) : '🔢';
+    btnC.style = 'background:rgba(0,85,255,.1);border:none;color:var(--blue);padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer';
+    btnC.title = 'Código para fichar la caja';
+    btnC.dataset.uid = u.id; btnC.dataset.unom = u.nombre; btnC.dataset.ucod = u.codigo || '';
+    btnC.addEventListener('click', function() { setCodigoUsuario(this.dataset.uid, this.dataset.unom, this.dataset.ucod); });
+    tdAcc.appendChild(btnC);
     // Desactivar y eliminar solo a OTROS usuarios (no a uno mismo)
     if (!esYo) {
       var btnT = document.createElement('button');
@@ -9817,6 +9825,15 @@ async function _adminUsuarios(op, payload) {
     if (!r.ok || !data.ok) { toast(data.error || ('Error (HTTP ' + r.status + ')'), 'err'); return false; }
     return true;
   } catch (e) { toast('Sin conexión', 'err'); return false; }
+}
+
+async function setCodigoUsuario(uid, nom, actual) {
+  var cod = prompt('Código (PIN) de ' + nom + ' para fichar la caja.\n3-12 dígitos. Vacío = quitar el código.', actual || '');
+  if (cod === null) return;  // cancelado
+  cod = cod.trim();
+  if (cod && !/^[0-9]{3,12}$/.test(cod)) { toast('El código debe ser de 3 a 12 dígitos', 'err'); return; }
+  var ok = await _adminUsuarios('codigo', { target_id: uid, codigo: cod });
+  if (ok) { toast(cod ? 'Código guardado' : 'Código quitado', 'ok'); cargarUsuarios(); }
 }
 
 async function crearUsuario(nom, email, pass, rol) {
