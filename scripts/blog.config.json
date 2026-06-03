@@ -1,0 +1,7 @@
+{
+  "baseUrl": "https://www.tekpair.tech",
+  "queueDir": "_blog-queue",
+  "blogDir": "blog",
+  "sitemap": "sitemap.xml",
+  "langs": ["es", "en", "fr", "it", "de", "pt"]
+}
