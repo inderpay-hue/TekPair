@@ -3746,7 +3746,9 @@ function aplicarPlantillaRep(key) {
   if (p.chk && p.chk.length) {
     document.querySelectorAll('#mRep .chk-btn').forEach(function(b) {
       var txt = (b.dataset.cond || b.textContent).trim();
-      if (p.chk.some(function(c){ return txt.indexOf(c) !== -1; })) {
+      // Bidireccional: compatible con guardados antiguos que incluían el emoji
+      // ("🔌 Sin cargador") y con los nuevos limpios ("Sin cargador").
+      if (p.chk.some(function(c){ c = String(c); return txt.indexOf(c) !== -1 || c.indexOf(txt) !== -1; })) {
         b.classList.add('on');
       }
     });
