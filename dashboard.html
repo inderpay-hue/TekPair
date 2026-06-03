@@ -981,7 +981,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
-  <script src="/lang/lang.v8.js?v=home001"></script>
+  <script src="/lang/lang.v8.js?v=20260603i18n"></script>
 </head>
 <body>
 <div id="app">
@@ -3371,15 +3371,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <!-- ALTA MÚLTIPLE: varios teléfonos del mismo modelo, cada uno con su IMEI y precio -->
   <div class="fg" id="sImeiMultiWrap" style="display:none">
-    <label class="fl">📋 Varios IMEIs a la vez <span style="color:var(--muted);font-weight:400">(uno por línea: <code>IMEI color precio</code>)</span></label>
+    <label class="fl">📋 <span data-t="stock.multi_imei_label">Varios IMEIs a la vez</span> <span data-t="stock.multi_imei_hint" style="color:var(--muted);font-weight:400">(uno por línea: IMEI color precio)</span></label>
     <textarea class="fi" id="sImeiMulti" rows="4" placeholder="356789012345678 Negro 320&#10;356789012345679 Azul 340&#10;356789012345680 Negro 390" style="resize:vertical;font-family:monospace;font-size:12px;line-height:1.5"></textarea>
-    <div style="font-size:11px;color:var(--muted);margin-top:4px">Crea 1 unidad por línea. El <b>color</b> y el <b>precio</b> son opcionales: si faltan, usan los campos «Color» y «Precio venta» de arriba (la Capacidad es común). Así metes varios colores del mismo modelo de golpe. Déjalo vacío para un alta normal.</div>
+    <div data-t="stock.multi_imei_help" style="font-size:11px;color:var(--muted);margin-top:4px">Crea 1 unidad por línea. El color y el precio son opcionales: si faltan, usan los campos «Color» y «Precio venta» de arriba (la Capacidad es común). Así metes varios colores del mismo modelo de golpe. Déjalo vacío para un alta normal.</div>
   </div>
   <!-- ALTA MÚLTIPLE COLORES: repuestos/accesorios del mismo modelo en varios colores -->
   <div class="fg" id="sColorMultiWrap" style="display:none">
-    <label class="fl">🎨 Varios colores a la vez <span style="color:var(--muted);font-weight:400">(uno por línea: <code>Color cantidad precio</code>)</span></label>
+    <label class="fl">🎨 <span data-t="stock.multi_color_label">Varios colores a la vez</span> <span data-t="stock.multi_color_hint" style="color:var(--muted);font-weight:400">(uno por línea: Color cantidad precio)</span></label>
     <textarea class="fi" id="sColorMulti" rows="4" placeholder="Negro 5 18&#10;Blanco 3 18&#10;Azul 2 22" style="resize:vertical;font-family:monospace;font-size:12px;line-height:1.5"></textarea>
-    <div style="font-size:11px;color:var(--muted);margin-top:4px">Crea 1 variante por línea con la Capacidad de arriba. Cantidad y precio son opcionales: si faltan, usan «Unidades» y «Precio venta». Déjalo vacío para un alta normal.</div>
+    <div data-t="stock.multi_color_help" style="font-size:11px;color:var(--muted);margin-top:4px">Crea 1 variante por línea con la Capacidad de arriba. Cantidad y precio son opcionales: si faltan, usan «Unidades» y «Precio venta». Déjalo vacío para un alta normal.</div>
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Precio compra (EUR)</label><input class="fi" id="sPrecioC" type="number" step="0.01" value="0"></div>

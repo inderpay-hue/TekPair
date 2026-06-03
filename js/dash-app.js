@@ -5910,7 +5910,7 @@ function guardarStock() {
       window._stockTipoSel = null; window._stockGarantiaMeses = null;
       guardarDatos();
       closeM('mStock');
-      toast(_creados + ' unidades añadidas', 'ok');
+      toast(_creados + ' ' + T('stock.unidades_anadidas'), 'ok');
       renderStock();
       return;
     }
@@ -5960,7 +5960,7 @@ function guardarStock() {
       window._stockTipoSel = null; window._stockGarantiaMeses = null;
       guardarDatos();
       closeM('mStock');
-      toast(_cCreados + ' variantes añadidas', 'ok');
+      toast(_cCreados + ' ' + T('stock.variantes_anadidas'), 'ok');
       renderStock();
       return;
     }
