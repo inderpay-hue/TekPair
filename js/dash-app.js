@@ -3745,7 +3745,7 @@ function aplicarPlantillaRep(key) {
   // Activar chips de estado
   if (p.chk && p.chk.length) {
     document.querySelectorAll('#mRep .chk-btn').forEach(function(b) {
-      var txt = b.textContent.trim();
+      var txt = (b.dataset.cond || b.textContent).trim();
       if (p.chk.some(function(c){ return txt.indexOf(c) !== -1; })) {
         b.classList.add('on');
       }
@@ -4905,7 +4905,7 @@ function guardarRep() {
   var calcN = calcIVA(subtotal, tipoIvaN);
   var total = calcN.total;
   var checklist = [];
-  document.querySelectorAll('.chk-btn.on').forEach(function(b) { checklist.push(b.textContent); });
+  document.querySelectorAll('.chk-btn.on').forEach(function(b) { checklist.push((b.dataset.cond || b.textContent).trim()); });
 
   var rep = {
     id: 'r' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
