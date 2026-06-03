@@ -6029,6 +6029,13 @@ function anadirMasImeis() {
   var _bm = document.getElementById('sBtnMasImeis'); if (_bm) _bm.style.display = 'none';
   toggleStockMulti();   // alta=true → muestra el cuadro "Varios IMEIs a la vez"
   toast(T('stock.mas_imeis_hint'), 'ok');
+  // Bajar hasta el cuadro de IMEIs y enfocarlo (puede quedar fuera de vista)
+  setTimeout(function() {
+    var w = document.getElementById('sImeiMultiWrap');
+    var ta = document.getElementById('sImeiMulti');
+    if (w && w.scrollIntoView) w.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (ta) ta.focus();
+  }, 80);
 }
 
 function editarStock(id) {
