@@ -3161,28 +3161,28 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           <div class="rep-section-title"><span>📱</span> Dispositivo</div>
           <div class="fi-row">
             <div class="fg"><label class="fl"><span data-t="rep.marca">Marca</span></label><input class="fi" id="rMarca" placeholder="Apple, Samsung, Xiaomi..." oninput="actualizarAvisoGarantia()"></div>
-            <div class="fg" style="position:relative"><label class="fl">Modelo <span class="req">*</span></label><input class="fi" id="rModelo" placeholder="iPhone 14, Galaxy S23..." autocomplete="off" oninput="busModelo();actualizarAvisoGarantia()" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
+            <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo">Modelo</span> <span class="req">*</span></label><input class="fi" id="rModelo" placeholder="iPhone 14, Galaxy S23..." autocomplete="off" oninput="busModelo();actualizarAvisoGarantia()" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
           </div>
-          <div class="fg"><label class="fl">IMEI / Nº Serie</label><input class="fi" id="rImei" placeholder="Opcional — útil para garantías"></div>
+          <div class="fg"><label class="fl"><span data-t="rep.imei">IMEI / Nº Serie</span></label><input class="fi" id="rImei" placeholder="Opcional — útil para garantías"></div>
           <div class="fi-row" style="margin-bottom:0">
-            <div class="fg" style="flex:0 0 38%;margin-bottom:0"><label class="fl">Bloqueo</label><select class="fi" id="rTipoBloq" onchange="cambiarTipoBloq()"><option value="">Sin bloqueo</option><option value="PIN">PIN numérico</option><option value="Patron">Patrón</option><option value="Contrasena">Contraseña</option><option value="Huella">Huella / FaceID</option></select></div>
-            <div class="fg" style="flex:1;margin-bottom:0"><label class="fl" id="rBloqLbl">Código</label><input class="fi" id="rBloqVal" placeholder="No aplica" disabled></div>
+            <div class="fg" style="flex:0 0 38%;margin-bottom:0"><label class="fl"><span data-t="rep.bloqueo">Bloqueo</span></label><select class="fi" id="rTipoBloq" onchange="cambiarTipoBloq()"><option value="" data-t="rep.bloq_sin">Sin bloqueo</option><option value="PIN" data-t="rep.bloq_pin">PIN numérico</option><option value="Patron" data-t="rep.bloq_patron">Patrón</option><option value="Contrasena" data-t="rep.bloq_contrasena">Contraseña</option><option value="Huella" data-t="rep.bloq_huella">Huella / FaceID</option></select></div>
+            <div class="fg" style="flex:1;margin-bottom:0"><label class="fl" id="rBloqLbl" data-t="rep.codigo">Código</label><input class="fi" id="rBloqVal" placeholder="No aplica" disabled></div>
           </div>
         </div>
 
         <!-- Sección: Avería -->
         <div class="rep-section">
           <div class="rep-section-title"><span>🔧</span> Avería</div>
-          <div class="fg"><label class="fl">Describe el problema <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Ej: pantalla rota, no enciende, batería..."></div>
+          <div class="fg"><label class="fl"><span data-t="rep.describe_problema">Describe el problema</span> <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Ej: pantalla rota, no enciende, batería..."></div>
           <div class="fg" style="margin-bottom:0">
-            <label class="fl">Estado del equipo (al recibir)</label>
+            <label class="fl" data-t="rep.estado_equipo">Estado del equipo (al recibir)</label>
             <div class="chk-grid">
-              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>🔌</span> Sin cargador</button>
-              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>💥</span> Pantalla rota</button>
-              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>🔨</span> Golpes</button>
-              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>📦</span> Sin funda</button>
-              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>💧</span> Humedad</button>
-              <button type="button" class="chk-btn" onclick="toggleChk(this)"><span>🔒</span> Bloqueado</button>
+              <button type="button" class="chk-btn" data-cond="Sin cargador" onclick="toggleChk(this)"><span>🔌</span> <span data-t="rep.cond_sin_cargador">Sin cargador</span></button>
+              <button type="button" class="chk-btn" data-cond="Pantalla rota" onclick="toggleChk(this)"><span>💥</span> <span data-t="rep.pantalla_rota">Pantalla rota</span></button>
+              <button type="button" class="chk-btn" data-cond="Golpes" onclick="toggleChk(this)"><span>🔨</span> <span data-t="rep.cond_golpes">Golpes</span></button>
+              <button type="button" class="chk-btn" data-cond="Sin funda" onclick="toggleChk(this)"><span>📦</span> <span data-t="rep.cond_sin_funda">Sin funda</span></button>
+              <button type="button" class="chk-btn" data-cond="Humedad" onclick="toggleChk(this)"><span>💧</span> <span data-t="rep.cond_humedad">Humedad</span></button>
+              <button type="button" class="chk-btn" data-cond="Bloqueado" onclick="toggleChk(this)"><span>🔒</span> <span data-t="rep.cond_bloqueado">Bloqueado</span></button>
             </div>
           </div>
         </div>
@@ -3288,7 +3288,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
             <div id="rGarDiasBloque">
               <div class="gar-selector" id="rGarSelector"></div>
               <div id="rGarCustomRow" style="display:flex;gap:6px;align-items:center;margin-top:8px">
-                <span style="font-size:11px;color:var(--muted)">o personalizar:</span>
+                <span style="font-size:11px;color:var(--muted)" data-t="stock.personalizar">o personalizar:</span>
                 <input type="number" class="fi" id="rGarDiasCustom" min="0" max="730" placeholder="" style="max-width:90px;padding:6px 10px;font-size:12px">
                 <span style="font-size:11px;color:var(--muted)">días</span>
               </div>
@@ -3352,14 +3352,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal-bg" id="mStock">
 <div class="modal">
   <div class="modal-title" id="mStockTit">📦 Añadir Stock</div>
-  <div class="fg"><label class="fl">Categoria</label>
+  <div class="fg"><label class="fl"><span data-t="stock.categoria">Categoría</span></label>
     <select class="fi" id="sCat">
-      <option>Telefono</option><option>Tablet</option><option>Smartwatch</option><option>Pantalla</option><option>Tapa</option><option>Bateria</option><option>Flex de Carga</option><option>Altavoz</option><option>Repuesto</option><option>Accesorio</option><option>Otro</option>
+      <option value="Telefono" data-t="stock.cat_telefono">Teléfono</option><option value="Tablet" data-t="stock.cat_tablet">Tablet</option><option value="Smartwatch" data-t="stock.cat_smartwatch">Smartwatch</option><option value="Pantalla" data-t="stock.cat_pantalla">Pantalla</option><option value="Tapa" data-t="stock.cat_tapa">Tapa</option><option value="Bateria" data-t="stock.cat_bateria">Batería</option><option value="Flex de Carga" data-t="stock.cat_flex">Flex de carga</option><option value="Altavoz" data-t="stock.cat_altavoz">Altavoz</option><option value="Repuesto" data-t="stock.cat_repuesto">Repuesto</option><option value="Accesorio" data-t="stock.cat_accesorio">Accesorio</option><option value="Otro" data-t="stock.cat_otro">Otro</option>
     </select>
   </div>
   <div class="fi-row">
-    <div class="fg" style="position:relative"><label class="fl">Marca *</label><input class="fi" id="sMarca" placeholder="Apple, Samsung..."></div>
-    <div class="fg" style="position:relative"><label class="fl">Modelo *</label><input class="fi" id="sModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModeloStock()" onfocus="busModeloStock()" onblur="setTimeout(function(){var d=document.getElementById('sModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="sModeloSug"></div></div>
+    <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.marca">Marca</span> *</label><input class="fi" id="sMarca" placeholder="Apple, Samsung..."></div>
+    <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo">Modelo</span> *</label><input class="fi" id="sModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModeloStock()" onfocus="busModeloStock()" onblur="setTimeout(function(){var d=document.getElementById('sModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="sModeloSug"></div></div>
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl"><span data-t="gen.capacidad">Capacidad</span></label><input class="fi" id="sCap" placeholder="128GB..."></div>
@@ -3382,36 +3382,36 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div data-t="stock.multi_color_help" style="font-size:11px;color:var(--muted);margin-top:4px">Crea 1 variante por línea con la Capacidad de arriba. Cantidad y precio son opcionales: si faltan, usan «Unidades» y «Precio venta». Déjalo vacío para un alta normal.</div>
   </div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Precio compra (EUR)</label><input class="fi" id="sPrecioC" type="number" step="0.01" value="0"></div>
-    <div class="fg"><label class="fl">Precio venta (EUR)</label><input class="fi" id="sPrecioV" type="number" step="0.01" value="0"></div>
+    <div class="fg"><label class="fl"><span data-t="stock.precio_compra">Precio compra (EUR)</span></label><input class="fi" id="sPrecioC" type="number" step="0.01" value="0"></div>
+    <div class="fg"><label class="fl"><span data-t="stock.precio_venta">Precio venta (EUR)</span></label><input class="fi" id="sPrecioV" type="number" step="0.01" value="0"></div>
   </div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Stock min</label><input class="fi" id="sMin" type="number" value="2"></div>
-    <div class="fg"><label class="fl">Stock max</label><input class="fi" id="sMax" type="number" value="10"></div>
+    <div class="fg"><label class="fl"><span data-t="stock.min">Stock mín.</span></label><input class="fi" id="sMin" type="number" value="2"></div>
+    <div class="fg"><label class="fl"><span data-t="stock.max">Stock máx.</span></label><input class="fi" id="sMax" type="number" value="10"></div>
   </div>
   <div class="fg" id="sUbicWrap" style="display:none">
-    <label class="fl">📍 Ubicación</label>
+    <label class="fl" data-t="stock.ubicacion">📍 Ubicación</label>
     <select class="fi" id="sUbic">
-      <option value="">— Sin ubicación —</option>
+      <option value="" data-t="stock.sin_ubicacion">— Sin ubicación —</option>
     </select>
   </div>
 
   <!-- TIPO + GARANTÍA (visible solo si garVenActiva y solo para Telefono/Tablet/Smartwatch) -->
   <div id="sBloqueGarantia" style="display:none;background:var(--bg2);border-radius:10px;padding:12px;margin-top:10px;border:1px solid var(--border)">
     <div id="sBloqueTipo" style="margin-bottom:10px">
-      <div class="fl" style="margin-bottom:6px">📦 Tipo de producto</div>
+      <div class="fl" style="margin-bottom:6px" data-t="stock.tipo_producto">📦 Tipo de producto</div>
       <div class="tipo-prod">
-        <button type="button" class="tipo-prod-btn active" id="sTipoNuevo" onclick="setTipoStock('nuevo')">✨ Nuevo</button>
-        <button type="button" class="tipo-prod-btn" id="sTipoUsado" onclick="setTipoStock('usado')">♻️ Segunda mano</button>
+        <button type="button" class="tipo-prod-btn active" id="sTipoNuevo" onclick="setTipoStock('nuevo')"><span data-t="stock.nuevo_btn">✨ Nuevo</span></button>
+        <button type="button" class="tipo-prod-btn" id="sTipoUsado" onclick="setTipoStock('usado')"><span data-t="stock.segunda_mano">♻️ Segunda mano</span></button>
       </div>
     </div>
     <div>
-      <div class="fl" style="margin-bottom:6px">🛡️ Garantía</div>
+      <div class="fl" style="margin-bottom:6px" data-t="stock.garantia">🛡️ Garantía</div>
       <div class="gar-selector" id="sGarSelector"></div>
       <div id="sGarCustomRow" style="display:flex;gap:6px;align-items:center;margin-top:8px">
-        <span style="font-size:11px;color:var(--muted)">o personalizar:</span>
+        <span style="font-size:11px;color:var(--muted)" data-t="stock.personalizar">o personalizar:</span>
         <input type="number" class="fi" id="sGarMesesCustom" min="0" max="120" placeholder="" style="max-width:90px;padding:6px 10px;font-size:12px">
-        <span style="font-size:11px;color:var(--muted)">meses</span>
+        <span style="font-size:11px;color:var(--muted)" data-t="stock.meses">meses</span>
       </div>
       <div id="sAvisoLegal" style="margin-top:10px;padding:8px 10px;border-radius:6px;font-size:11px;display:none"></div>
     </div>
