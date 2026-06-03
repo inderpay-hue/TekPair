@@ -6009,6 +6009,7 @@ function guardarStock() {
 function nuevoStock() {
   SEL.editStockId = null;
   var tit = document.getElementById('mStockTit'); if (tit) tit.textContent = T('stock.titulo_add');
+  var _bmn = document.getElementById('sBtnMasImeis'); if (_bmn) _bmn.style.display = 'none';
   var def = { sCat:'Telefono', sMarca:'', sModelo:'', sCap:'', sColor:'', sImei:'', sUds:'1', sPrecioC:'0', sPrecioV:'0', sMin:'2', sMax:'10' };
   Object.keys(def).forEach(function(id) { var e = document.getElementById(id); if (e) e.value = def[id]; });
   var su = document.getElementById('sUbic'); if (su) su.value = '';
@@ -6018,11 +6019,25 @@ function nuevoStock() {
   setTimeout(function() { try { renderStockGarantia(); } catch (e) {} }, 50);
 }
 
+// Desde el modal de Editar (un teléfono): pasa a modo ALTA manteniendo
+// marca/modelo/capacidad/precio para añadir nuevas unidades con sus IMEIs.
+function anadirMasImeis() {
+  SEL.editStockId = null;
+  document.getElementById('mStockTit').textContent = T('stock.titulo_add');
+  document.getElementById('sImei').value = '';
+  document.getElementById('sUds').value = '1';
+  var _bm = document.getElementById('sBtnMasImeis'); if (_bm) _bm.style.display = 'none';
+  toggleStockMulti();   // alta=true → muestra el cuadro "Varios IMEIs a la vez"
+  toast(T('stock.mas_imeis_hint'), 'ok');
+}
+
 function editarStock(id) {
   var s = DB.stock.find(function(x) { return x.id === id; });
   if (!s) return;
   SEL.editStockId = id;
   document.getElementById('mStockTit').textContent = T('stock.titulo_editar');
+  var _bm = document.getElementById('sBtnMasImeis');
+  if (_bm) _bm.style.display = (STOCK_CATS_IMEI.indexOf(s.categoria || 'Telefono') !== -1) ? '' : 'none';
   document.getElementById('sCat').value = s.categoria || 'Telefono';
   document.getElementById('sMarca').value = s.marca || '';
   document.getElementById('sModelo').value = s.modelo || '';
