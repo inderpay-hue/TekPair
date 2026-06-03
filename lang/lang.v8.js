@@ -3444,6 +3444,19 @@ var TRANSLATIONS = {
   Object.keys(_add3).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_add3[l]).forEach(function(k){TRANSLATIONS[l][k]=_add3[l][k];});});
 })();
 
+// ── i18n títulos de modal + etiquetas dinámicas de bloqueo ──
+(function(){
+  var _add4={
+    es: {'rep.titulo_nuevo': '🔧 Nueva Reparación', 'rep.titulo_editar': '✏️ Editar Reparación', 'stock.titulo_add': '📦 Añadir Stock', 'stock.titulo_editar': '✏️ Editar Stock', 'rep.bloq_patron_lbl': 'Patrón (toca para dibujar)', 'rep.bloq_huella_lbl': 'Código de respaldo', 'rep.ph_no_aplica': 'No aplica', 'rep.ph_pin': '4-6 dígitos', 'rep.ph_patron': 'Pulsa el botón para dibujar', 'rep.ph_contrasena': 'Texto / alfanumérico', 'rep.ph_huella': 'PIN/contraseña alternativa', },
+    en: {'rep.titulo_nuevo': '🔧 New Repair', 'rep.titulo_editar': '✏️ Edit Repair', 'stock.titulo_add': '📦 Add Stock', 'stock.titulo_editar': '✏️ Edit Stock', 'rep.bloq_patron_lbl': 'Pattern (tap to draw)', 'rep.bloq_huella_lbl': 'Backup code', 'rep.ph_no_aplica': 'Not applicable', 'rep.ph_pin': '4-6 digits', 'rep.ph_patron': 'Tap the button to draw', 'rep.ph_contrasena': 'Text / alphanumeric', 'rep.ph_huella': 'Alternate PIN/password', },
+    fr: {'rep.titulo_nuevo': '🔧 Nouvelle réparation', 'rep.titulo_editar': '✏️ Modifier la réparation', 'stock.titulo_add': '📦 Ajouter du stock', 'stock.titulo_editar': '✏️ Modifier le stock', 'rep.bloq_patron_lbl': 'Schéma (toucher pour dessiner)', 'rep.bloq_huella_lbl': 'Code de secours', 'rep.ph_no_aplica': 'Sans objet', 'rep.ph_pin': '4-6 chiffres', 'rep.ph_patron': 'Appuyez sur le bouton pour dessiner', 'rep.ph_contrasena': 'Texte / alphanumérique', 'rep.ph_huella': 'PIN/mot de passe alternatif', },
+    it: {'rep.titulo_nuevo': '🔧 Nuova riparazione', 'rep.titulo_editar': '✏️ Modifica riparazione', 'stock.titulo_add': '📦 Aggiungi stock', 'stock.titulo_editar': '✏️ Modifica stock', 'rep.bloq_patron_lbl': 'Sequenza (tocca per disegnare)', 'rep.bloq_huella_lbl': 'Codice di backup', 'rep.ph_no_aplica': 'Non applicabile', 'rep.ph_pin': '4-6 cifre', 'rep.ph_patron': 'Premi il pulsante per disegnare', 'rep.ph_contrasena': 'Testo / alfanumerico', 'rep.ph_huella': 'PIN/password alternativa', },
+    de: {'rep.titulo_nuevo': '🔧 Neue Reparatur', 'rep.titulo_editar': '✏️ Reparatur bearbeiten', 'stock.titulo_add': '📦 Bestand hinzufügen', 'stock.titulo_editar': '✏️ Bestand bearbeiten', 'rep.bloq_patron_lbl': 'Muster (zum Zeichnen tippen)', 'rep.bloq_huella_lbl': 'Backup-Code', 'rep.ph_no_aplica': 'Nicht zutreffend', 'rep.ph_pin': '4-6 Ziffern', 'rep.ph_patron': 'Zum Zeichnen tippen', 'rep.ph_contrasena': 'Text / alphanumerisch', 'rep.ph_huella': 'Alternative PIN/Passwort', },
+    pt: {'rep.titulo_nuevo': '🔧 Nova reparação', 'rep.titulo_editar': '✏️ Editar reparação', 'stock.titulo_add': '📦 Adicionar stock', 'stock.titulo_editar': '✏️ Editar stock', 'rep.bloq_patron_lbl': 'Padrão (toca para desenhar)', 'rep.bloq_huella_lbl': 'Código de recuperação', 'rep.ph_no_aplica': 'Não aplicável', 'rep.ph_pin': '4-6 dígitos', 'rep.ph_patron': 'Toca no botão para desenhar', 'rep.ph_contrasena': 'Texto / alfanumérico', 'rep.ph_huella': 'PIN/palavra-passe alternativa', },
+  };
+  Object.keys(_add4).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_add4[l]).forEach(function(k){TRANSLATIONS[l][k]=_add4[l][k];});});
+})();
+
 function T(key) {
   var lang = TEKPAIR_LANG;
   var dict = TRANSLATIONS[lang] || TRANSLATIONS['es'];
