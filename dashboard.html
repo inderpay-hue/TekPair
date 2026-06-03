@@ -4262,9 +4262,61 @@ function toggleTiendasAfiliado(rowId) {
 // ═══ Wizard 3 pasos para nuevo afiliado ═══
 window._wizardAfilData = {};
 
+// Modal ÚNICO para crear comercial (más cómodo que el wizard de 3 pasos).
 function abrirNuevoAfiliado() {
-  window._wizardAfilData = {};
-  abrirWizardStep(1);
+  cerrarWizardAfil();
+  var inp = 'width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px';
+  var lab = 'display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px';
+  var html = '<div id="mWizAfil" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">' +
+    '<div style="background:white;max-width:480px;width:100%;border-radius:14px;overflow:hidden;max-height:92vh;overflow-y:auto">' +
+      '<div style="background:linear-gradient(135deg,#FF5B1F,#FF7A45);color:white;padding:18px 22px"><div style="font-size:18px;font-weight:800">👔 Nuevo comercial</div></div>' +
+      '<div style="padding:20px 22px">' +
+        '<label style="' + lab + '">Nombre completo *</label><input type="text" id="ncNombre" placeholder="Nombre Apellidos" style="' + inp + '">' +
+        '<label style="' + lab + '">Email *</label><input type="email" id="ncEmail" placeholder="comercial@email.com" style="' + inp + '">' +
+        '<label style="' + lab + '">Código afiliado *</label><input type="text" id="ncCodigo" placeholder="DEMBA, PEDRO..." style="' + inp + ';text-transform:uppercase;font-family:monospace">' +
+        '<label style="' + lab + '">Comisión (%) *</label><input type="number" id="ncPct" value="20" min="0" max="100" style="' + inp + '">' +
+        '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#475569;cursor:pointer;padding:10px;background:#F8FAFC;border-radius:8px"><input type="checkbox" id="ncEmailAuto" checked style="width:18px;height:18px"><span>Enviar email al comercial con sus credenciales y código</span></label>' +
+        '<div style="background:#FEF3C7;border-radius:8px;padding:10px;font-size:12px;color:#92400E;margin-top:12px;line-height:1.5">Se crea su cuenta TekPair (plan TOP vitalicio gratis). Al terminar te recordamos crear el <strong>cupón en Stripe</strong> con el mismo código.</div>' +
+      '</div>' +
+      '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
+        '<button onclick="cerrarWizardAfil()" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">Cancelar</button>' +
+        '<button onclick="crearComercialTekpair()" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--blue);color:white;cursor:pointer;font-weight:700;font-size:13px">Crear comercial</button>' +
+      '</div>' +
+    '</div></div>';
+  var w = document.createElement('div'); w.innerHTML = html;
+  while (w.firstChild) document.body.appendChild(w.firstChild);
+}
+
+async function crearComercialTekpair() {
+  var nombre = (document.getElementById('ncNombre').value || '').trim();
+  var email = (document.getElementById('ncEmail').value || '').trim().toLowerCase();
+  var codigo = (document.getElementById('ncCodigo').value || '').trim().toUpperCase();
+  var pct = parseInt(document.getElementById('ncPct').value) || 20;
+  var enviarEmail = document.getElementById('ncEmailAuto').checked;
+  if (!nombre || !email || !codigo) { alert('Nombre, email y código son obligatorios'); return; }
+  if (pct < 0 || pct > 100) { alert('Comisión entre 0 y 100'); return; }
+  var sec = pedirCodigoSecreto();
+  if (!sec) { alert('Falta el código secreto'); return; }
+  var hdr = { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' };
+  try {
+    // 1) Crear la cuenta del comercial
+    var r1 = await fetch('/api/comisiones', { method: 'POST', headers: hdr, body: JSON.stringify({ action: 'crear_cuenta_comercial', codigo_secreto: sec, codigo: codigo, nombre: nombre, email: email, comision_pct: pct }) });
+    var d1 = await r1.json();
+    if (chequearNeedSecret(d1)) return;
+    if (!d1.ok) { alert('Error: ' + (d1.error || 'desconocido')); return; }
+    if (d1.solo_afiliado) { cerrarWizardAfil(); toast('Afiliado añadido · ' + email + ' ya tenía cuenta', 'ok'); cargarComisiones(); return; }
+    // 2) Crear el afiliado + (opcional) email
+    var r2 = await fetch('/api/comisiones', { method: 'POST', headers: hdr, body: JSON.stringify({ action: 'crear_afiliado', codigo_secreto: sec, codigo: codigo, nombre: nombre, email: email, comision_pct: pct, tienda_id_comercial: d1.tienda_id, password_plano: d1.password, enviar_email: enviarEmail }) });
+    var d2 = await r2.json();
+    if (chequearNeedSecret(d2)) return;
+    cerrarWizardAfil();
+    var msg = '✅ Comercial ' + codigo + ' creado.\n\nEmail: ' + email + '\nContraseña: ' + d1.password + '\n\n';
+    if (enviarEmail) msg += (d2 && d2.email_enviado) ? 'Email enviado al comercial.' : 'Aviso: el email no se envió, pásale las credenciales a mano.';
+    else msg += 'Pásale las credenciales al comercial.';
+    msg += '\n\n⚠️ Recuerda crear el cupón en Stripe con el código ' + codigo + ' (Porcentaje · Repeating 3 meses) para que su descuento funcione.';
+    alert(msg);
+    cargarComisiones();
+  } catch (e) { alert('Error de conexión: ' + e.message); }
 }
 
 function abrirWizardStep(step) {
