@@ -983,11 +983,21 @@ var BRAND_COLORS = {
   zte:'#0055A5', alcatel:'#E5007D', tcl:'#E60012', asus:'#00539B',
   ulefone:'#E2001A', doogee:'#F7941E', cubot:'#1A9CDB'
 };
+// Empareja una marca con un mapa: exacto → por palabra (Redmi Pad → redmi) →
+// por prefijo (RedmiPad → redmi). Nunca por substring suelto, que daba falsos
+// positivos como "ipad" dentro de "redmipad" → Apple.
+function brandMatch(m, map) {
+  var norm = (m || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (map[norm]) return map[norm];
+  var words = (m || '').toLowerCase().split(/[^a-z0-9]+/);
+  for (var w = 0; w < words.length; w++) { if (words[w] && map[words[w]]) return map[words[w]]; }
+  for (var k in map) { if (k.length >= 3 && norm.indexOf(k) === 0) return map[k]; }
+  return null;
+}
 function brandStyle(m) {
-  var key = (m || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  var color = BRAND_COLORS[key];
-  if (!color) { for (var k in BRAND_COLORS) { if (key.indexOf(k) !== -1) { color = BRAND_COLORS[k]; break; } } }
+  var color = brandMatch(m, BRAND_COLORS);
   if (!color) {
+    var key = (m || '').toLowerCase().replace(/[^a-z0-9]/g, '');
     var h = 0; for (var i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 360;
     color = 'hsl(' + h + ',55%,42%)';
   }
@@ -1004,12 +1014,7 @@ var BRAND_DOMAINS = {
   vivo:'vivo.com', asus:'asus.com', tcl:'tcl.com', alcatel:'alcatel-mobile.com',
   zte:'zte.com.cn', nothing:'nothing.tech', oukitel:'oukitel.com', doogee:'doogee.com'
 };
-function brandDomain(m) {
-  var key = (m || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-  if (BRAND_DOMAINS[key]) return BRAND_DOMAINS[key];
-  for (var k in BRAND_DOMAINS) { if (key.indexOf(k) !== -1) return BRAND_DOMAINS[k]; }
-  return null;
-}
+function brandDomain(m) { return brandMatch(m, BRAND_DOMAINS); }
 function brandLogoHtml(m) {
   var bs = brandStyle(m);
   var dom = brandDomain(m);
