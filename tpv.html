@@ -54,6 +54,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 .brand-pill{padding:6px 12px;border-radius:18px;border:1.5px solid var(--border);background:white;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s;font-family:inherit;display:inline-flex;align-items:center;gap:6px}
 .brand-pill.active{background:var(--orange);color:white;border-color:var(--orange)}
 .brand-count{font-size:10px;background:rgba(0,0,0,.08);padding:1px 6px;border-radius:10px;font-weight:700;line-height:1.5}
+.brand-logo{width:18px;height:18px;border-radius:5px;display:inline-flex;align-items:center;justify-content:center;color:white;font-size:11px;font-weight:800;flex-shrink:0}
 .brand-pill.active .brand-count{background:rgba(255,255,255,.28)}
 
 /* PRODUCTS GRID */
@@ -970,6 +971,27 @@ function setCat(el) {
 // ═══ MARCAS-CARPETA ═══
 // Al elegir una categoría de producto, muestra sus marcas como carpetas ordenadas
 // por nº de unidades (más usadas primero). Sin marca seleccionada → todos los productos.
+// Color de marca (chip): colores oficiales para las comunes; para el resto, un
+// color estable derivado del nombre. Devuelve {color, letra} para el chip.
+var BRAND_COLORS = {
+  apple:'#333333', iphone:'#333333', samsung:'#1428A0', galaxy:'#1428A0',
+  xiaomi:'#FF6900', redmi:'#FF6900', poco:'#FFCD00', huawei:'#C7000B',
+  google:'#4285F4', pixel:'#4285F4', oppo:'#1D8C3E', oneplus:'#EB0028',
+  realme:'#FFC915', motorola:'#5C92FA', moto:'#5C92FA', sony:'#000000',
+  lg:'#A50034', nokia:'#124191', honor:'#0095D9', vivo:'#415FFF',
+  zte:'#0055A5', alcatel:'#E5007D', tcl:'#E60012', asus:'#00539B',
+  ulefone:'#E2001A', doogee:'#F7941E', cubot:'#1A9CDB'
+};
+function brandStyle(m) {
+  var key = (m || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  var color = BRAND_COLORS[key];
+  if (!color) { for (var k in BRAND_COLORS) { if (key.indexOf(k) !== -1) { color = BRAND_COLORS[k]; break; } } }
+  if (!color) {
+    var h = 0; for (var i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 360;
+    color = 'hsl(' + h + ',55%,42%)';
+  }
+  return { color: color, letra: (m || '?').trim().charAt(0).toUpperCase() };
+}
 function renderBrandBar() {
   var bar = document.getElementById('brandBar');
   if (!bar) return;
@@ -988,7 +1010,10 @@ function renderBrandBar() {
   window._tpvMarcas = marcas;
   var html = '<button class="brand-pill ' + (currentMarca === '' ? 'active' : '') + '" onclick="setMarca(\'\')">' + escHtml(T('tpv.todas_marcas')) + '</button>';
   html += marcas.map(function(m, i) {
-    return '<button class="brand-pill ' + (currentMarca === m ? 'active' : '') + '" onclick="setMarcaIdx(' + i + ')">📁 ' + escHtml(m) + ' <span class="brand-count">' + counts[m] + '</span></button>';
+    var bs = brandStyle(m);
+    return '<button class="brand-pill ' + (currentMarca === m ? 'active' : '') + '" onclick="setMarcaIdx(' + i + ')">' +
+      '<span class="brand-logo" style="background:' + bs.color + '">' + escHtml(bs.letra) + '</span>' +
+      escHtml(m) + ' <span class="brand-count">' + counts[m] + '</span></button>';
   }).join('');
   bar.innerHTML = html;
   bar.style.display = 'flex';
