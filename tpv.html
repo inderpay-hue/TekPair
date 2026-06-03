@@ -691,6 +691,7 @@ window.addEventListener('DOMContentLoaded', function() {
   renderFavBar();
   renderProducts();
   renderBrandBar();
+  ['.tpv-cats', '#brandBar'].forEach(function(s) { enableWheelH(document.querySelector(s)); });
   updateCaja();
   // Sync con Supabase (ventas + favoritos + tienda + ajustes)
   syncTPV();
@@ -1030,6 +1031,17 @@ function brandLogoFallback(img) {
   s.style.background = img.getAttribute('data-color') || '#888';
   s.textContent = img.getAttribute('data-letra') || '?';
   if (img.parentNode) img.parentNode.replaceChild(s, img);
+}
+// Convierte la rueda vertical del ratón en scroll horizontal. En PC de mesa la
+// rueda no desplaza contenedores horizontales; con esto sí. El trackpad va igual.
+function enableWheelH(el) {
+  if (!el || el._wh) return;
+  el._wh = true;
+  el.addEventListener('wheel', function(e) {
+    if (e.deltaY === 0 || el.scrollWidth <= el.clientWidth) return;
+    e.preventDefault();
+    el.scrollLeft += e.deltaY;
+  }, { passive: false });
 }
 function renderBrandBar() {
   var bar = document.getElementById('brandBar');

@@ -3460,6 +3460,9 @@ var TRANSLATIONS = {
 // i18n marcas TPV
 (function(){var _a={es:{'tpv.todas_marcas':'Todas',},en:{'tpv.todas_marcas':'All',},fr:{'tpv.todas_marcas':'Toutes',},it:{'tpv.todas_marcas':'Tutte',},de:{'tpv.todas_marcas':'Alle',},pt:{'tpv.todas_marcas':'Todas',},};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
+// i18n añadir más IMEIs
+(function(){var _a={es:{'stock.mas_imeis':'Añadir más IMEIs de este modelo','stock.mas_imeis_hint':'Añade los nuevos IMEIs abajo (uno por línea). El modelo y el precio se mantienen.',},en:{'stock.mas_imeis':'Add more IMEIs to this model','stock.mas_imeis_hint':'Add the new IMEIs below (one per line). The model and price are kept.',},fr:{'stock.mas_imeis':'Ajouter d\'autres IMEI à ce modèle','stock.mas_imeis_hint':'Ajoutez les nouveaux IMEI ci-dessous (un par ligne). Le modèle et le prix sont conservés.',},it:{'stock.mas_imeis':'Aggiungi altri IMEI a questo modello','stock.mas_imeis_hint':'Aggiungi i nuovi IMEI qui sotto (uno per riga). Modello e prezzo si mantengono.',},de:{'stock.mas_imeis':'Weitere IMEIs zu diesem Modell hinzufügen','stock.mas_imeis_hint':'Füge die neuen IMEIs unten hinzu (eine pro Zeile). Modell und Preis bleiben erhalten.',},pt:{'stock.mas_imeis':'Adicionar mais IMEIs deste modelo','stock.mas_imeis_hint':'Adiciona os novos IMEIs abaixo (um por linha). O modelo e o preço mantêm-se.',},};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
 function T(key) {
   var lang = TEKPAIR_LANG;
   var dict = TRANSLATIONS[lang] || TRANSLATIONS['es'];

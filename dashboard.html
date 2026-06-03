@@ -3369,6 +3369,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="fg"><label class="fl">IMEI</label><input class="fi" id="sImei" placeholder="Opcional"></div>
     <div class="fg"><label class="fl"><span data-t="stock.unidades">Unidades</span></label><input class="fi" id="sUds" type="number" value="1" min="1"></div>
   </div>
+  <button type="button" class="btn-secondary" id="sBtnMasImeis" style="display:none;width:100%;margin:2px 0 8px;border-color:var(--orange);color:var(--orange)" onclick="anadirMasImeis()">➕ <span data-t="stock.mas_imeis">Añadir más IMEIs de este modelo</span></button>
   <!-- ALTA MÚLTIPLE: varios teléfonos del mismo modelo, cada uno con su IMEI y precio -->
   <div class="fg" id="sImeiMultiWrap" style="display:none">
     <label class="fl">📋 <span data-t="stock.multi_imei_label">Varios IMEIs a la vez</span> <span data-t="stock.multi_imei_hint" style="color:var(--muted);font-weight:400">(uno por línea: IMEI color precio)</span></label>
