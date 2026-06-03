@@ -135,6 +135,13 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 /* MODAL */
 .modal-bg{position:fixed;inset:0;background:rgba(2,11,46,.7);backdrop-filter:blur(4px);z-index:200;display:none;align-items:center;justify-content:center}
 .modal-bg.open{display:flex}
+.pick-unit-list{display:flex;flex-direction:column;gap:6px;max-height:55vh;overflow-y:auto;margin:4px 0 12px}
+.pick-unit-row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:13px 14px;background:var(--bg);border:1px solid var(--border);border-radius:10px;cursor:pointer;font-size:13px;text-align:left;transition:border-color .12s,background .12s}
+.pick-unit-row:hover{border-color:var(--blue);background:rgba(0,85,255,.05)}
+.pick-unit-row:active{transform:scale(.99)}
+.pick-unit-row .pu-left{font-weight:600;color:var(--text);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick-unit-row .pu-right{font-weight:800;color:var(--blue);font-family:monospace;white-space:nowrap}
+.pick-unit-row .pu-cant{color:var(--muted);font-weight:600}
 .modal{background:white;border-radius:20px;padding:24px;width:90%;max-width:460px;max-height:90vh;overflow-y:auto}
 .modal-title{font-size:18px;font-weight:800;margin-bottom:16px;color:var(--dark)}
 .fg{margin-bottom:12px}
@@ -432,6 +439,15 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 </div>
 
 <!-- MODAL: Venta rapida -->
+<!-- SELECTOR DE UNIDAD (cuando un modelo tiene varias unidades/IMEIs) -->
+<div class="modal-bg" id="mPickUnit">
+<div class="modal" style="max-width:460px">
+  <div class="modal-title">📱 <span id="pickUnitTit"></span> · elige unidad</div>
+  <div class="pick-unit-list" id="pickUnitList"></div>
+  <button class="btn-secondary" style="width:100%" onclick="closeModal('mPickUnit')" data-t="gen.cancelar">Cancelar</button>
+</div>
+</div>
+
 <div class="modal-bg" id="mRapida">
 <div class="modal">
   <div class="modal-title">⚡ Venta rapida</div>
@@ -766,6 +782,8 @@ function renderProducts() {
       return !currentCat || p.categoria === currentCat;
     });
   }
+  // Agrupar unidades del mismo modelo en una sola tarjeta (no en favoritos)
+  if (currentCat !== 'favoritos') products = groupStockProducts(products);
   var grid = document.getElementById('productsGrid');
   var icons = {Telefono:'📱', Tablet:'📟', Smartwatch:'⌚', Accesorio:'🎧', Repuesto:'🔧', servicio:'🛠️', Otro:'📦', fijo:'⭐'};
 
@@ -780,6 +798,15 @@ function renderProducts() {
   }
   grid.innerHTML = products.map(function(p) {
     var icon = p.icon || icons[p.categoria] || '📦';
+    if (p.esGrupo) {
+      var nombreG = (p.marca ? p.marca + ' ' : '') + p.modelo;
+      return '<div class="prod-card" onclick="addStockGroup(\'' + escHtml(p.key) + '\')">' +
+        '<div class="prod-icon">' + escHtml(icon) + '</div>' +
+        '<div class="prod-name">' + escHtml(nombreG) + '</div>' +
+        '<div class="prod-price">desde €' + parseFloat(p.min || 0).toFixed(2) + '</div>' +
+        '<div class="prod-stock">Stock: ' + p.unidades + ' · ' + p.units.length + ' uds.</div>' +
+        '</div>';
+    }
     var fav = isFav(p._type, p.id);
     var nombre = p.esFijo ? p.modelo : ((p.marca && p.marca !== 'Servicio') ? p.marca + ' ' : '') + p.modelo;
     var stockTxt = p.esFijo ? 'Precio fijo' : (p.esServicio ? p.calidad : 'Stock: ' + p.unidades);
@@ -950,6 +977,64 @@ document.addEventListener('click', function(e) {
     document.getElementById('searchResults').classList.remove('open');
   }
 });
+
+// ═══ AGRUPACIÓN DE UNIDADES POR MODELO ═══
+// Cada unidad sigue siendo su propia entrada (con su IMEI/color/GB y su precio),
+// pero el catálogo muestra 1 tarjeta por modelo; al vender, si hay varias, se elige.
+function groupKey(p) {
+  return (p.categoria || '') + '|' + (p.marca || '') + '|' + (p.modelo || '');
+}
+function groupStockProducts(list) {
+  var map = {}, idx = {}, result = [];
+  list.forEach(function(p) {
+    if (p._type !== 'stock') { result.push(p); return; }  // servicios/fijos: sin agrupar
+    var k = groupKey(p);
+    if (map[k] === undefined) {
+      map[k] = p; idx[k] = result.length; result.push(p);   // 1ª unidad: provisional
+    } else {
+      var g = map[k];
+      if (!g.esGrupo) {  // aparece una 2ª unidad → convertir a grupo
+        var first = map[k];
+        g = { esGrupo: true, _type: 'grupo', key: k, categoria: first.categoria,
+              marca: first.marca, modelo: first.modelo, icon: first.icon,
+              units: [first], unidades: (parseInt(first.unidades, 10) || 0),
+              min: (parseFloat(first.precioV || 0) > 0 ? parseFloat(first.precioV) : Infinity) };
+        map[k] = g; result[idx[k]] = g;
+      }
+      g.units.push(p);
+      g.unidades += (parseInt(p.unidades, 10) || 0);
+      var pv = parseFloat(p.precioV || 0);
+      if (pv > 0 && pv < g.min) g.min = pv;
+    }
+  });
+  // si algún 'min' quedó en Infinity (todas a 0), normalizar a 0
+  result.forEach(function(g) { if (g.esGrupo && g.min === Infinity) g.min = 0; });
+  return result;
+}
+// Al pulsar una tarjeta agrupada: si hay 1 unidad la añade directa; si hay varias, selector.
+function addStockGroup(key) {
+  var units = getProducts().filter(function(p) {
+    return p._type === 'stock' && groupKey(p) === key && p.unidades > 0;
+  });
+  if (!units.length) { toast('Sin stock', 'err'); return; }
+  if (units.length === 1) { addToCart(units[0].id, false); return; }
+  var nombre = (units[0].marca ? units[0].marca + ' ' : '') + units[0].modelo;
+  document.getElementById('pickUnitTit').textContent = nombre;
+  document.getElementById('pickUnitList').innerHTML = units.map(function(u) {
+    var parts = [];
+    if (u.color) parts.push(escHtml(u.color));
+    if (u.capacidad) parts.push(escHtml(u.capacidad));
+    if (u.imei) parts.push('…' + escHtml(String(u.imei).slice(-4)));
+    var left = parts.join(' · ') || escHtml(u.modelo);
+    var cant = (parseInt(u.unidades, 10) > 1) ? '<span class="pu-cant">x' + u.unidades + '</span> ' : '';
+    return '<button class="pick-unit-row" onclick="pickUnit(\'' + escHtml(u.id) + '\')">' +
+      '<span class="pu-left">' + left + '</span>' +
+      '<span class="pu-right">' + cant + '€' + parseFloat(u.precioV || 0).toFixed(2) + '</span>' +
+      '</button>';
+  }).join('');
+  openModal('mPickUnit');
+}
+function pickUnit(id) { closeModal('mPickUnit'); addToCart(id, false); }
 
 // ═══ CART ═══
 function addToCart(id, esServicio) {

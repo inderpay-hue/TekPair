@@ -3369,6 +3369,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="fg"><label class="fl">IMEI</label><input class="fi" id="sImei" placeholder="Opcional"></div>
     <div class="fg"><label class="fl"><span data-t="stock.unidades">Unidades</span></label><input class="fi" id="sUds" type="number" value="1" min="1"></div>
   </div>
+  <!-- ALTA MÚLTIPLE: varios teléfonos del mismo modelo, cada uno con su IMEI y precio -->
+  <div class="fg" id="sImeiMultiWrap" style="display:none">
+    <label class="fl">📋 Varios IMEIs a la vez <span style="color:var(--muted);font-weight:400">(uno por línea: <code>IMEI precio</code>)</span></label>
+    <textarea class="fi" id="sImeiMulti" rows="4" placeholder="356789012345678 320&#10;356789012345679 340&#10;356789012345680 390" style="resize:vertical;font-family:monospace;font-size:12px;line-height:1.5"></textarea>
+    <div style="font-size:11px;color:var(--muted);margin-top:4px">Crea 1 unidad por línea con el Color/Capacidad de arriba. Si no pones precio, usa el «Precio venta». Déjalo vacío para un alta normal.</div>
+  </div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Precio compra (EUR)</label><input class="fi" id="sPrecioC" type="number" step="0.01" value="0"></div>
     <div class="fg"><label class="fl">Precio venta (EUR)</label><input class="fi" id="sPrecioV" type="number" step="0.01" value="0"></div>
