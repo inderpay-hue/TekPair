@@ -190,7 +190,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
-  <script src="/lang/lang.v8.js?v=d888837"></script>
+  <script src="/lang/lang.v8.js?v=20260603i18n"></script>
 </head>
 <body>
 
@@ -442,7 +442,7 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 <!-- SELECTOR DE UNIDAD (cuando un modelo tiene varias unidades/IMEIs) -->
 <div class="modal-bg" id="mPickUnit">
 <div class="modal" style="max-width:460px">
-  <div class="modal-title">📱 <span id="pickUnitTit"></span> · elige unidad</div>
+  <div class="modal-title">📱 <span id="pickUnitTit"></span> · <span data-t="tpv.elige_unidad">elige unidad</span></div>
   <div class="pick-unit-list" id="pickUnitList"></div>
   <button class="btn-secondary" style="width:100%" onclick="closeModal('mPickUnit')" data-t="gen.cancelar">Cancelar</button>
 </div>
@@ -805,8 +805,8 @@ function renderProducts() {
       return '<div class="prod-card" onclick="addStockGroup(' + gi + ')">' +
         '<div class="prod-icon">' + escHtml(icon) + '</div>' +
         '<div class="prod-name">' + escHtml(nombreG) + '</div>' +
-        '<div class="prod-price">desde €' + parseFloat(p.min || 0).toFixed(2) + '</div>' +
-        '<div class="prod-stock">Stock: ' + p.unidades + ' · ' + p.units.length + ' uds.</div>' +
+        '<div class="prod-price">' + T('tpv.desde') + ' €' + parseFloat(p.min || 0).toFixed(2) + '</div>' +
+        '<div class="prod-stock">' + T('tpv.stock_label') + ': ' + p.unidades + ' · ' + p.units.length + ' ' + T('tpv.uds') + '</div>' +
         '</div>';
     }
     var fav = isFav(p._type, p.id);

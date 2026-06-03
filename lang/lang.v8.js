@@ -3152,6 +3152,65 @@ var TRANSLATIONS = {
 };
 
 // Función principal de traducción
+// Claves añadidas (jun-2026): stock múltiple IMEI/colores + TPV agrupado por modelo.
+// Se fusionan en TRANSLATIONS para no tener que editar los 6 bloques de idioma por separado.
+(function () {
+  var _add = {
+    es: {
+      'tpv.elige_unidad': 'elige unidad', 'tpv.desde': 'desde', 'tpv.uds': 'uds.', 'tpv.stock_label': 'Stock',
+      'stock.multi_imei_label': 'Varios IMEIs a la vez', 'stock.multi_imei_hint': '(uno por línea: IMEI color precio)',
+      'stock.multi_imei_help': 'Crea 1 unidad por línea. El color y el precio son opcionales: si faltan, usan los campos «Color» y «Precio venta» de arriba (la Capacidad es común). Así metes varios colores del mismo modelo de golpe. Déjalo vacío para un alta normal.',
+      'stock.multi_color_label': 'Varios colores a la vez', 'stock.multi_color_hint': '(uno por línea: Color cantidad precio)',
+      'stock.multi_color_help': 'Crea 1 variante por línea con la Capacidad de arriba. Cantidad y precio son opcionales: si faltan, usan «Unidades» y «Precio venta». Déjalo vacío para un alta normal.',
+      'stock.unidades_anadidas': 'unidades añadidas', 'stock.variantes_anadidas': 'variantes añadidas'
+    },
+    en: {
+      'tpv.elige_unidad': 'choose unit', 'tpv.desde': 'from', 'tpv.uds': 'units', 'tpv.stock_label': 'Stock',
+      'stock.multi_imei_label': 'Multiple IMEIs at once', 'stock.multi_imei_hint': '(one per line: IMEI color price)',
+      'stock.multi_imei_help': 'Creates 1 unit per line. Color and price are optional: if omitted, the «Color» and «Sale price» fields above are used (Capacity is shared). This lets you add several colors of the same model at once. Leave empty for a normal entry.',
+      'stock.multi_color_label': 'Multiple colors at once', 'stock.multi_color_hint': '(one per line: Color quantity price)',
+      'stock.multi_color_help': 'Creates 1 variant per line with the Capacity above. Quantity and price are optional: if omitted, «Units» and «Sale price» are used. Leave empty for a normal entry.',
+      'stock.unidades_anadidas': 'units added', 'stock.variantes_anadidas': 'variants added'
+    },
+    fr: {
+      'tpv.elige_unidad': "choisir l'unité", 'tpv.desde': 'à partir de', 'tpv.uds': 'unités', 'tpv.stock_label': 'Stock',
+      'stock.multi_imei_label': 'Plusieurs IMEI à la fois', 'stock.multi_imei_hint': '(un par ligne : IMEI couleur prix)',
+      'stock.multi_imei_help': "Crée 1 unité par ligne. La couleur et le prix sont facultatifs : s'ils manquent, les champs « Couleur » et « Prix de vente » ci-dessus sont utilisés (la capacité est commune). Vous pouvez ainsi ajouter plusieurs couleurs du même modèle d'un coup. Laissez vide pour une saisie normale.",
+      'stock.multi_color_label': 'Plusieurs couleurs à la fois', 'stock.multi_color_hint': '(un par ligne : Couleur quantité prix)',
+      'stock.multi_color_help': "Crée 1 variante par ligne avec la capacité ci-dessus. La quantité et le prix sont facultatifs : s'ils manquent, « Unités » et « Prix de vente » sont utilisés. Laissez vide pour une saisie normale.",
+      'stock.unidades_anadidas': 'unités ajoutées', 'stock.variantes_anadidas': 'variantes ajoutées'
+    },
+    it: {
+      'tpv.elige_unidad': 'scegli unità', 'tpv.desde': 'da', 'tpv.uds': 'unità', 'tpv.stock_label': 'Stock',
+      'stock.multi_imei_label': 'Più IMEI insieme', 'stock.multi_imei_hint': '(uno per riga: IMEI colore prezzo)',
+      'stock.multi_imei_help': 'Crea 1 unità per riga. Colore e prezzo sono facoltativi: se mancano, si usano i campi «Colore» e «Prezzo di vendita» qui sopra (la Capacità è comune). Così aggiungi più colori dello stesso modello in una volta. Lascia vuoto per un inserimento normale.',
+      'stock.multi_color_label': 'Più colori insieme', 'stock.multi_color_hint': '(uno per riga: Colore quantità prezzo)',
+      'stock.multi_color_help': 'Crea 1 variante per riga con la Capacità qui sopra. Quantità e prezzo sono facoltativi: se mancano, si usano «Unità» e «Prezzo di vendita». Lascia vuoto per un inserimento normale.',
+      'stock.unidades_anadidas': 'unità aggiunte', 'stock.variantes_anadidas': 'varianti aggiunte'
+    },
+    de: {
+      'tpv.elige_unidad': 'Einheit wählen', 'tpv.desde': 'ab', 'tpv.uds': 'Stück', 'tpv.stock_label': 'Bestand',
+      'stock.multi_imei_label': 'Mehrere IMEIs auf einmal', 'stock.multi_imei_hint': '(eins pro Zeile: IMEI Farbe Preis)',
+      'stock.multi_imei_help': 'Erstellt 1 Einheit pro Zeile. Farbe und Preis sind optional: Fehlen sie, werden die Felder «Farbe» und «Verkaufspreis» oben verwendet (die Kapazität ist gemeinsam). So fügst du mehrere Farben desselben Modells auf einmal hinzu. Leer lassen für eine normale Eingabe.',
+      'stock.multi_color_label': 'Mehrere Farben auf einmal', 'stock.multi_color_hint': '(eins pro Zeile: Farbe Menge Preis)',
+      'stock.multi_color_help': 'Erstellt 1 Variante pro Zeile mit der Kapazität oben. Menge und Preis sind optional: Fehlen sie, werden «Einheiten» und «Verkaufspreis» verwendet. Leer lassen für eine normale Eingabe.',
+      'stock.unidades_anadidas': 'Einheiten hinzugefügt', 'stock.variantes_anadidas': 'Varianten hinzugefügt'
+    },
+    pt: {
+      'tpv.elige_unidad': 'escolher unidade', 'tpv.desde': 'desde', 'tpv.uds': 'unid.', 'tpv.stock_label': 'Estoque',
+      'stock.multi_imei_label': 'Vários IMEIs de uma vez', 'stock.multi_imei_hint': '(um por linha: IMEI cor preço)',
+      'stock.multi_imei_help': 'Cria 1 unidade por linha. A cor e o preço são opcionais: se faltarem, usam-se os campos «Cor» e «Preço de venda» acima (a Capacidade é comum). Assim adicionas várias cores do mesmo modelo de uma vez. Deixa vazio para um registo normal.',
+      'stock.multi_color_label': 'Várias cores de uma vez', 'stock.multi_color_hint': '(um por linha: Cor quantidade preço)',
+      'stock.multi_color_help': 'Cria 1 variante por linha com a Capacidade acima. Quantidade e preço são opcionais: se faltarem, usam-se «Unidades» e «Preço de venda». Deixa vazio para um registo normal.',
+      'stock.unidades_anadidas': 'unidades adicionadas', 'stock.variantes_anadidas': 'variantes adicionadas'
+    }
+  };
+  Object.keys(_add).forEach(function (l) {
+    if (!TRANSLATIONS[l]) TRANSLATIONS[l] = {};
+    Object.keys(_add[l]).forEach(function (k) { TRANSLATIONS[l][k] = _add[l][k]; });
+  });
+})();
+
 function T(key) {
   var lang = TEKPAIR_LANG;
   var dict = TRANSLATIONS[lang] || TRANSLATIONS['es'];
