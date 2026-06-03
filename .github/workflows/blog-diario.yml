@@ -1,0 +1,38 @@
+name: Blog diario
+
+on:
+  schedule:
+    - cron: '0 8 * * *'   # 08:00 UTC ≈ 10:00 España (verano CEST). En invierno publica ~09:00.
+  workflow_dispatch: {}    # permite lanzarlo a mano desde la pestaña Actions
+
+permissions:
+  contents: write
+
+concurrency:
+  group: blog-diario
+  cancel-in-progress: false
+
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Publicar el siguiente post de la cola
+        run: node scripts/publicar-siguiente.js
+
+      - name: Commit y push si hubo publicación
+        run: |
+          if [ -n "$(git status --porcelain)" ]; then
+            git config user.name "TekPair Blog Bot"
+            git config user.email "blog@tekpair.tech"
+            git add -A
+            git commit -m "blog: publicación diaria automática [skip ci]"
+            git push
+            echo "publicado=si" >> "$GITHUB_OUTPUT"
+          else
+            echo "Cola vacía: nada que publicar hoy."
+          fi
