@@ -3457,6 +3457,9 @@ var TRANSLATIONS = {
   Object.keys(_add4).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_add4[l]).forEach(function(k){TRANSLATIONS[l][k]=_add4[l][k];});});
 })();
 
+// i18n marcas TPV
+(function(){var _a={es:{'tpv.todas_marcas':'Todas',},en:{'tpv.todas_marcas':'All',},fr:{'tpv.todas_marcas':'Toutes',},it:{'tpv.todas_marcas':'Tutte',},de:{'tpv.todas_marcas':'Alle',},pt:{'tpv.todas_marcas':'Todas',},};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
 function T(key) {
   var lang = TEKPAIR_LANG;
   var dict = TRANSLATIONS[lang] || TRANSLATIONS['es'];
