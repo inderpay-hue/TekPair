@@ -605,6 +605,11 @@ function ajTab(btn) {
 }
 
 function navTo(id) {
+  // Cajas: si el admin denegó el permiso a este trabajador, no puede abrirla ni por enlace directo
+  if (id === 'pCajas' && U && U.rol !== 'admin' && !(U.permisos && U.permisos.todo)
+      && U.permisos && U.permisos.cajas_ver === false) {
+    toast(T('gen.sin_permiso'), 'err'); return;
+  }
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   var el = document.getElementById(id);
   if (el) {
@@ -5861,7 +5866,7 @@ function guardarStock() {
     var _multiEl = document.getElementById('sImeiMulti');
     var _multiRaw = (_multiEl ? _multiEl.value : '').trim();
     var _multiCat = document.getElementById('sCat').value;
-    var _multiAplica = ['Telefono','Tablet','Smartwatch'].indexOf(_multiCat) !== -1;
+    var _multiAplica = (typeof STOCK_CATS_IMEI !== 'undefined' ? STOCK_CATS_IMEI : ['Telefono','Tablet','Smartwatch']).indexOf(_multiCat) !== -1;
     var _lineas = (_multiAplica && _multiRaw)
       ? _multiRaw.split('\n').map(function(l){ return l.trim(); }).filter(Boolean) : [];
     if (_lineas.length) {
@@ -5874,15 +5879,21 @@ function guardarStock() {
       var _ubicV = tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : null;
       var _creados = 0;
       _lineas.forEach(function(l, i) {
-        var partes = l.split(/[\s,;]+/).filter(Boolean);
-        var imeiL = partes[0] || '';
+        // Formato por línea: "IMEI [color] [precio]". El IMEI es el 1er token; un número
+        // al final es el precio; el texto intermedio es el color (admite varias palabras).
+        var toks = l.split(/\s+/).filter(Boolean);
+        var imeiL = toks.shift() || '';
         if (!imeiL) return;
-        var precioL = (partes.length > 1) ? parseFloat(String(partes[partes.length - 1]).replace(',', '.')) : NaN;
+        var precioL = NaN;
+        if (toks.length && /^[0-9]+([.,][0-9]+)?$/.test(toks[toks.length - 1])) {
+          precioL = parseFloat(String(toks.pop()).replace(',', '.'));
+        }
+        var colorL = toks.join(' ').trim() || _colorV;   // si la línea no trae color, usa el del formulario
         var precioFinal = (!isNaN(precioL) && precioL > 0) ? precioL : _precioBaseV;
         var item = {
           id: 's' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 8),
           categoria: _multiCat, marca: marca, modelo: modelo,
-          capacidad: _capV, color: _colorV, imei: imeiL, unidades: 1,
+          capacidad: _capV, color: colorL, imei: imeiL, unidades: 1,
           precioC: _precioCV, precioV: precioFinal, stockMin: _minV, stockMax: _maxV,
           vendido: false, calidad: '', tipo: stockTipo, garantiaMeses: stockGarantiaMeses, ubicacion: _ubicV
         };
@@ -10680,6 +10691,11 @@ function aplicarPermisos() {
   hideNav('pTienda', 'tienda_ver');
   hideNav('pAjustes', 'ajustes_ver');
   hideNav('pImportar', 'herramientas_importar');
+  // Cajas: visible por defecto; el admin la deniega poniendo cajas_ver = false → el trabajador no la ve
+  if (U.permisos && U.permisos.cajas_ver === false) {
+    document.querySelectorAll('.sidebar-ni[data-p="pCajas"], .ni[data-p="pCajas"], .pmas-btn[onclick*="pCajas"], .qbtn[onclick*="pCajas"]')
+      .forEach(function(el){ el.style.display = 'none'; });
+  }
 
   // Quick action buttons en dashboard
   document.querySelectorAll('#pDash .qbtn-dash, #pDash .qbtn').forEach(function(btn) {
@@ -10816,6 +10832,7 @@ var PERMS_LISTA = [
   {id:'caja_cerrar',label:'Cerrar caja',grupo:'Caja'},
   {id:'caja_historico',label:'Ver histórico de cierres',grupo:'Caja'},
   // Cajas Multi-Servicio (módulo nuevo)
+  {id:'cajas_ver',label:'Ver el módulo de Cajas',grupo:'Cajas Multi-Servicio',defaultOn:true},
   {id:'cajasm_cerrar',label:'Hacer cierre / cuadrar caja',grupo:'Cajas Multi-Servicio'},
   {id:'cajasm_cobrar',label:'Cobrar pendientes / fiados',grupo:'Cajas Multi-Servicio'},
   {id:'cajasm_gestionar',label:'Crear/editar cajas y compañías',grupo:'Cajas Multi-Servicio'},
