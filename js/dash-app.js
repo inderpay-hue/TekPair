@@ -678,14 +678,17 @@ function cargarPedidos(cb) {
     .then(function() { return sbGet('pedidos', 'tienda_id=eq.' + TIENDA_ID); })
     .then(function(rows) {
       DB.pedidos = Array.isArray(rows) ? rows : [];
-      if (cb) cb(); else if (_getWidgetSelectorActive() === 'pedidos') renderPedidosWidget();
+      if (cb) cb(); else renderPedidosWidget();
     })
     .catch(function() { DB.pedidos = DB.pedidos || []; if (cb) cb(); });
 }
 function renderPedidosWidget() {
-  var box = document.getElementById('wsSelectorBody');
+  var cont = document.getElementById('cardPedidos');
+  var box = document.getElementById('pedidosBox');
   if (!box) return;
-  if (!DB.pedidos) { box.innerHTML = '<div style="padding:18px;color:var(--muted);font-size:12px">…</div>'; cargarPedidos(function() { renderPedidosWidget(); }); return; }
+  if (cont && !widgetVisible('widget_pedidos')) { cont.style.display = 'none'; return; }
+  if (cont) cont.style.display = '';
+  if (!DB.pedidos) { box.innerHTML = '<div style="padding:14px;color:var(--muted);font-size:12px">…</div>'; cargarPedidos(function() { renderPedidosWidget(); }); return; }
   var pend = DB.pedidos.filter(function(p) { return p.estado !== 'recibido'; });
   var ord = { por_pedir: 0, pedido: 1 };
   pend.sort(function(a, b) { var d = (ord[a.estado] || 0) - (ord[b.estado] || 0); if (d) return d; return (a.fecha_estimada || '9999').localeCompare(b.fecha_estimada || '9999'); });
@@ -1580,7 +1583,7 @@ async function renderDash() {
     var grid = document.getElementById('metricsGrid');
     if (grid) {
       grid.innerHTML = _html;
-      renderWidgetSelector();
+      // Selector de pestañas retirado: ahora cada cosa es su propia tarjeta (sin duplicar)
       if (typeof applyLang === 'function') applyLang();
     }
   };
@@ -2144,6 +2147,7 @@ function renderDashWidgets() {
   // FIX-HOME-2: cierre se precalcula automáticamente (sin await, sin email, sin PDF)
   try { if (typeof renderWidgetCierre === 'function') renderWidgetCierre(); } catch(e){}
   try { if (typeof renderWidgetComoCobras === 'function') renderWidgetComoCobras(); } catch(e){}
+  try { if (typeof renderPedidosWidget === 'function') renderPedidosWidget(); } catch(e){}
 
   // VIS-5: ocultar cards de Inicio cuyo contenido sea "vacío" + banner resumen
   try { _colapsarCardsVacios(); } catch(e){}
@@ -11136,6 +11140,7 @@ function aplicarPermisos() {
   if (!widgetVisible('widget_caja')) hideEl('cardCajaDia');
   if (!widgetVisible('widget_cobros')) hideEl('cardCobros');
   if (!widgetVisible('widget_comocobras') || !puedeVerCaja()) hideEl('cardComoCobras');
+  if (!widgetVisible('widget_pedidos')) hideEl('cardPedidos');
   if (!widgetVisible('widget_stockcritico')) hideEl('cardStockCritico');
   if (!widgetVisible('widget_cumples')) hideEl('cardCumples');
   if (!widgetVisible('widget_tendencia')) hideEl('cardTendencia');
@@ -11218,6 +11223,7 @@ var PERMS_LISTA = [
   {id:'widget_notas',label:'Card: Notas y recordatorios',grupo:'Dashboard',defaultOn:true},
   {id:'widget_cierre',label:'Card: Cierre del día',grupo:'Dashboard',defaultOn:true},
   {id:'widget_comocobras',label:'Card: Cómo cobras (efectivo/tarjeta/Bizum)',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_pedidos',label:'Card: Pedidos pendientes',grupo:'Dashboard',defaultOn:true},
   {id:'widget_caja',label:'Card: Caja del día desglosada',grupo:'Dashboard',defaultOn:true},
   {id:'widget_cobros',label:'Card: Cobros pendientes (financiados)',grupo:'Dashboard',defaultOn:true},
   {id:'widget_stockcritico',label:'Card: Stock crítico',grupo:'Dashboard',defaultOn:true},
