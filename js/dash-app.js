@@ -1814,11 +1814,18 @@ function renderPedidosPage() {
     if (filt === 'todos') return true;
     return p.estado === filt;
   });
+  // Buscador (pieza / proveedor / nota)
+  var q = (window._pedBuscar || '').trim().toLowerCase();
+  if (q) lista = lista.filter(function(p) { return ((p.pieza || '') + ' ' + (p.proveedor || '') + ' ' + (p.nota || '')).toLowerCase().indexOf(q) !== -1; });
   var ord = { por_pedir: 0, pedido: 1, recibido: 2 };
   lista.sort(function(a, b) { var d = (ord[a.estado] || 0) - (ord[b.estado] || 0); if (d) return d; return (b.fecha_pedido || b.fecha_estimada || '').localeCompare(a.fecha_pedido || a.fecha_estimada || ''); });
-  if (!lista.length) { box.innerHTML = '<div class="empty" style="padding:30px;text-align:center;color:var(--muted)">' + T('pedidos.vacio') + '</div>'; return; }
+  // Estado visual del botón Agrupar
+  var agOn = !!window._pedAgrupar;
+  var agBtn = document.getElementById('pedAgruparBtn');
+  if (agBtn) { agBtn.style.background = agOn ? 'var(--orange)' : '#fff'; agBtn.style.color = agOn ? '#fff' : 'var(--text)'; agBtn.style.borderColor = agOn ? 'var(--orange)' : 'var(--border)'; }
+  if (!lista.length) { box.innerHTML = '<div class="empty" style="padding:30px;text-align:center;color:var(--muted)">' + (q ? T('pedidos.sin_resultados') : T('pedidos.vacio')) + '</div>'; return; }
   var est = { por_pedir: { e: '🔴', next: T('pedidos.marcar_pedido') }, pedido: { e: '🟡', next: T('pedidos.marcar_recibido') }, recibido: { e: '✅', next: '' } };
-  box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">' + lista.map(function(p) {
+  function card(p) {
     var c = est[p.estado] || est.por_pedir;
     var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? ('€' + parseFloat(p.importe).toFixed(2)) : ''), (p.cantidad > 1 ? ('x' + p.cantidad) : ''), (p.fecha_pedido ? (T('pedidos.pedido_el') + ' ' + _pedFecha(p.fecha_pedido)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
     var acciones = (p.estado !== 'recibido')
@@ -1832,8 +1839,27 @@ function renderPedidosPage() {
       '<div style="display:flex;gap:5px;margin-top:9px">' + acciones +
         '<button style="background:rgba(239,68,68,.1);color:var(--red);border:none;border-radius:7px;padding:6px 9px;font-size:11.5px;cursor:pointer" onclick="eliminarPedido(\'' + p.id + '\')">🗑️</button>' +
       '</div></div>';
-  }).join('') + '</div>';
+  }
+  var gridOpen = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">';
+  if (agOn) {
+    var groups = {};
+    lista.forEach(function(p) { var k = (p.proveedor || '').trim() || T('pedidos.sin_proveedor'); (groups[k] = groups[k] || []).push(p); });
+    var keys = Object.keys(groups).sort(function(a, b) { if (a === T('pedidos.sin_proveedor')) return 1; if (b === T('pedidos.sin_proveedor')) return -1; return a.localeCompare(b); });
+    box.innerHTML = keys.map(function(k) {
+      var items = groups[k];
+      var tot = items.reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
+      return '<div style="margin-bottom:16px">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800;font-size:13.5px">🏢 ' + escHtml(k) +
+          ' <span style="background:var(--light);border-radius:8px;padding:1px 8px;font-size:11px;color:var(--muted)">' + items.length + '</span>' +
+          (tot > 0 ? '<span style="margin-left:auto;color:var(--muted);font-size:12px">' + cur(tot) + '</span>' : '') + '</div>' +
+        gridOpen + items.map(card).join('') + '</div></div>';
+    }).join('');
+  } else {
+    box.innerHTML = gridOpen + lista.map(card).join('') + '</div>';
+  }
 }
+function setPedBuscar(v) { window._pedBuscar = v; renderPedidosPage(); }
+function togglePedAgrupar() { window._pedAgrupar = !window._pedAgrupar; renderPedidosPage(); }
 
 async function renderDash() {
   // Limpiar caché de pagos al cambiar periodo para no mostrar datos del anterior
