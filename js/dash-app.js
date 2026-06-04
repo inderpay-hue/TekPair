@@ -11266,6 +11266,20 @@ async function editarPermisos(id, nombre) {
   openM('mPermisos');
 }
 
+// Preset "Cards Negocio TekPair": deja el inicio como el diseño — muestra solo las
+// tarjetas clave y oculta el resto. El admin luego ajusta y pulsa Guardar.
+function aplicarPresetNegocio() {
+  var ON = ['widget_stats_ventas','widget_stats_pendientes','widget_stats_entregar','widget_stats_total',
+            'widget_quickactions','widget_urgentes','widget_pedidos','widget_notas',
+            'widget_comocobras','widget_cierre','widget_cobros','widget_caja','widget_tendencia'];
+  PERMS_LISTA.filter(function(p) { return p.grupo === 'Dashboard'; }).forEach(function(p) {
+    if (ON.indexOf(p.id) !== -1) delete permsCurrent[p.id];   // visible
+    else permsCurrent[p.id] = false;                          // oculto
+  });
+  renderPermisosUI();
+  toast('Diseño Negocio aplicado — pulsa Guardar para fijarlo', 'ok');
+}
+
 function renderPermisosUI() {
   var container = document.getElementById('permisosContainer2');
   if (!container) return;
@@ -11280,6 +11294,9 @@ function renderPermisosUI() {
     + '<button onclick="aplicarRolPreset(\'lectura\')" style="background:#F1F5F9;color:var(--muted);border:1px solid var(--border);padding:6px 10px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit">👁️ Solo lectura</button>'
     + '</div>'
     + '<div style="font-size:11px;color:var(--muted);margin-top:8px;line-height:1.4">Aplica una plantilla y luego marca/desmarca lo que quieras ajustar.</div>'
+    + '<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:6px;letter-spacing:.5px">Diseño del inicio</div>'
+    + '<button onclick="aplicarPresetNegocio()" style="background:linear-gradient(135deg,#FF7A45,#F2682B);color:#fff;border:none;padding:9px 13px;border-radius:8px;font-size:12.5px;font-weight:700;cursor:pointer;font-family:inherit">🎯 Cards Negocio TekPair</button>'
+    + '<div style="font-size:11px;color:var(--muted);margin-top:6px;line-height:1.4">Deja el inicio limpio y enfocado (como el diseño): muestra solo las tarjetas clave y oculta el resto. Luego puedes ajustar lo que quieras y pulsar Guardar.</div></div>'
     + '</div>';
 
   if (permsCurrent.todo) {
