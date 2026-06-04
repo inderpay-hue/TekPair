@@ -1484,6 +1484,19 @@ function forzarRelogin() {
 
 // ═══ DASHBOARD ═══
 // ════ INICIO NUEVO (diseño render con datos reales) ════
+// Periodo seleccionado en el segmentado (admin: Hoy/Semana/Mes)
+function setInvPeriodo(per, btn) {
+  window._invPer = per;
+  if (btn && btn.parentNode) { Array.prototype.forEach.call(btn.parentNode.children, function(b) { b.classList.remove('on'); }); btn.classList.add('on'); }
+  renderInicioNuevo();
+}
+function _invIso(d) { var m = ('0' + (d.getMonth() + 1)).slice(-2); var dd = ('0' + d.getDate()).slice(-2); return d.getFullYear() + '-' + m + '-' + dd; }
+function _invIncome(d1, d2) {
+  var t = 0;
+  (DB.ventas || []).forEach(function(v) { if (!v.reembolsado && v.fecha >= d1 && v.fecha <= d2) t += (v.total || 0); });
+  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f && f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') t += (r.total || 0); });
+  return t;
+}
 function renderInicioNuevo() {
   if (!document.getElementById('pInicioNuevo')) return;
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
@@ -1498,9 +1511,6 @@ function renderInicioNuevo() {
     return (r.prioridad === 'Alta') || (fe && new Date(fe) <= finDia);
   });
   var puede = (typeof puedeVerCaja === 'function') ? puedeVerCaja() : (U && U.rol === 'admin');
-  var cajaHoy = 0;
-  (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha === hoy; }).forEach(function(v) { cajaHoy += (v.total || 0); });
-  reps.filter(function(r) { return (r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado'; }).forEach(function(r) { cajaHoy += (r.total || 0); });
   var citasHoy = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; }).length;
   var hh = (new Date()).getHours();
   var sal = hh < 13 ? 'Buenos días' : (hh < 21 ? 'Buenas tardes' : 'Buenas noches');
@@ -1508,14 +1518,28 @@ function renderInicioNuevo() {
   _st('inv-fecha', new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }));
   _st('inv-saludo', sal + (nom ? ', ' + nom : '') + ' 👋');
   var pl = document.getElementById('inv-pulse');
+
+  // Cargar pedidos (ambas vistas los usan)
+  if (!DB.pedidos && typeof cargarPedidos === 'function') { cargarPedidos(function() { renderInicioNuevo(); }); }
+
+  // Toggle vista negocio (admin) / operativa (empleado)
+  var admEl = document.getElementById('inv-admin');
+  var empEl = document.getElementById('inv-emp');
+  if (admEl) admEl.style.display = puede ? '' : 'none';
+  if (empEl) empEl.style.display = puede ? 'none' : '';
+
+  if (puede) { renderInicioAdmin(reps, enRep, listas, urgentes); return; }
+
+  // ─── VISTA OPERATIVA (EMPLEADO, sin dinero) ───
   if (pl) pl.innerHTML = 'Tienes <b>' + enRep.length + ' reparaciones en curso</b>, <b>' + listas.length + ' listas para entregar</b> y <b>' + urgentes.length + ' urgente' + (urgentes.length === 1 ? '' : 's') + '</b>.';
   _st('inv-k-rep', enRep.length); _st('inv-k-listas', listas.length); _st('inv-k-citas', citasHoy); _st('inv-k-urg', urgentes.length);
   function _tr(id, cls, txt) { var e = document.getElementById(id); if (e) { e.className = 'tr ' + cls; e.textContent = txt; } }
   _tr('inv-tr-listas', listas.length ? 'up' : 'fl', listas.length ? '▲ ' + listas.length : '=');
   _tr('inv-tr-citas', citasHoy ? 'up' : 'fl', citasHoy ? '▲ ' + citasHoy : '=');
   _tr('inv-tr-urg', urgentes.length ? 'al' : 'fl', urgentes.length ? '!' : '=');
-  var kc = document.getElementById('inv-kpi-caja');
-  if (kc) { if (puede) { kc.style.display = ''; _st('inv-k-caja', cur(cajaHoy)); } else kc.style.display = 'none'; }
+  var porPedir = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido' && p.estado !== 'pedido'; }).length;
+  _st('inv-k-caja', porPedir); _st('inv-k-caja-l', 'Piezas por pedir');
+  _tr('inv-tr-caja', porPedir ? 'al' : 'fl', porPedir ? '!' : '=');
   var aten = [];
   urgentes.slice(0, 4).forEach(function(r) {
     aten.push({ dot: 'd-red', tt: ((r.marca || '') + ' ' + (r.modelo || '')).trim() + (r.clienteNombre || r.cliente_nombre ? ' · ' + (r.clienteNombre || r.cliente_nombre) : ''), ss: (r.averia || ''), tag: 'Urgente', tagc: 'tg-red' });
@@ -1529,7 +1553,6 @@ function renderInicioNuevo() {
   }).join('') : '<div class="inv-empty">Todo bajo control ✓</div>';
   var pe = document.getElementById('inv-pedidos');
   if (pe) {
-    if (!DB.pedidos && typeof cargarPedidos === 'function') { cargarPedidos(function() { renderInicioNuevo(); }); }
     var ped = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido'; }).slice(0, 5);
     pe.innerHTML = ped.length ? ped.map(function(p) {
       var st = p.estado === 'pedido' ? '🟡' : '🔴';
@@ -1540,6 +1563,100 @@ function renderInicioNuevo() {
   var ne = document.getElementById('inv-notas');
   if (ne && typeof window._pedNotas !== 'undefined') ne.innerHTML = '<div style="padding:14px 18px;font-size:13px;color:var(--inv-ink2);white-space:pre-wrap">' + escHtml(window._pedNotas || 'Sin notas') + '</div>';
   else if (ne) ne.innerHTML = '<div class="inv-empty">—</div>';
+}
+
+// ─── VISTA NEGOCIO (ADMIN, financiero estilo render 3-pro) ───
+function renderInicioAdmin(reps, enRep, listas, urgentes) {
+  function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
+  function _setAttr(id, a, v) { var e = document.getElementById(id); if (e) e.setAttribute(a, v); }
+  var hoy = hoyLocal();
+  var per = window._invPer || 'hoy';
+  // Rango del periodo
+  var d1, d2 = hoy;
+  if (per === 'semana') { var ds = new Date(hoy + 'T00:00:00'); ds.setDate(ds.getDate() - 6); d1 = _invIso(ds); }
+  else if (per === 'mes') { d1 = hoy.slice(0, 8) + '01'; }
+  else { d1 = hoy; }
+  var perLbl = per === 'semana' ? 'esta semana' : (per === 'mes' ? 'este mes' : 'hoy');
+
+  // Headline ingresos del periodo + tendencia semanal (7d vs 7d anteriores)
+  var ingPer = _invIncome(d1, d2);
+  var ws = new Date(hoy + 'T00:00:00'); ws.setDate(ws.getDate() - 6);
+  var wp1 = new Date(hoy + 'T00:00:00'); wp1.setDate(wp1.getDate() - 13);
+  var wp2 = new Date(hoy + 'T00:00:00'); wp2.setDate(wp2.getDate() - 7);
+  var estaSem = _invIncome(_invIso(ws), hoy);
+  var antSem = _invIncome(_invIso(wp1), _invIso(wp2));
+  var pct = antSem > 0 ? Math.round((estaSem - antSem) / antSem * 100) : (estaSem > 0 ? 100 : 0);
+  _st('inv-a-perlbl', perLbl);
+  _st('inv-a-big', cur(ingPer));
+  var trEl = document.getElementById('inv-a-trend');
+  if (trEl) { trEl.className = 'hup' + (pct < 0 ? ' down' : ''); trEl.textContent = (pct < 0 ? '▼ ' : '▲ ') + Math.abs(pct) + '% vs semana anterior'; }
+  var plA = document.getElementById('inv-pulse');
+  if (plA) plA.innerHTML = (pct >= 0 ? 'Vas <b style="color:var(--inv-green)">+' + pct + '%</b> respecto a la semana pasada.' : 'Vas <b style="color:var(--inv-red)">' + pct + '%</b> respecto a la semana pasada.') + ' · <b>' + enRep.length + '</b> en curso · <b>' + listas.length + '</b> listas';
+
+  // Sparkline últimos 7 días
+  var days = [];
+  for (var i = 6; i >= 0; i--) { var dd = new Date(hoy + 'T00:00:00'); dd.setDate(dd.getDate() - i); var iso = _invIso(dd); days.push({ d: dd, v: _invIncome(iso, iso) }); }
+  var maxV = Math.max.apply(null, days.map(function(o) { return o.v; }).concat([1]));
+  var nd = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
+  var pts = days.map(function(o, idx) { return { x: 14 + idx * (252 / 6), y: 104 - (o.v / maxV) * 88 }; });
+  var line = pts.map(function(p, idx) { return (idx === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
+  var area = line + ' L' + pts[6].x.toFixed(1) + ',120 L' + pts[0].x.toFixed(1) + ',120 Z';
+  _setAttr('inv-a-line', 'd', line); _setAttr('inv-a-area', 'd', area);
+  _setAttr('inv-a-dot', 'cx', pts[6].x.toFixed(1)); _setAttr('inv-a-dot', 'cy', pts[6].y.toFixed(1));
+  var xl = document.getElementById('inv-a-xlabels');
+  if (xl) xl.innerHTML = days.map(function(o) { return '<span>' + nd[o.d.getDay()] + '</span>'; }).join('');
+
+  // Minis: caja hoy, ventas hoy (nº), cobros pendientes
+  var cajaHoy = _invIncome(hoy, hoy);
+  var ventasHoy = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha === hoy; }).length;
+  var cobrosArr = (DB.reps || []).filter(function(r) { return (r.restante || 0) > 0 && r.estado !== 'Cancelado'; });
+  var cobrosTot = cobrosArr.reduce(function(a, r) { return a + (r.restante || 0); }, 0);
+  _st('inv-a-caja', cur(cajaHoy)); _st('inv-a-ventas', ventasHoy);
+  _st('inv-a-cobros', cur(cobrosTot)); _st('inv-a-cobros-l', 'Cobros pendientes · ' + cobrosArr.length);
+
+  // Ingresos vs gastos (mes)
+  var m1 = hoy.slice(0, 8) + '01';
+  var ingMes = _invIncome(m1, hoy);
+  var gasMes = (DB.gastos || []).filter(function(g) { var f = (g.fecha || '').slice(0, 10); return f >= m1 && f <= hoy; }).reduce(function(a, g) { return a + (parseFloat(g.importe) || 0); }, 0);
+  var ben = ingMes - gasMes;
+  var margen = ingMes > 0 ? Math.round(ben / ingMes * 100) : 0;
+  _st('inv-a-ing', cur(ingMes)); _st('inv-a-gas', cur(gasMes)); _st('inv-a-ben', cur(ben));
+  var mb = document.getElementById('inv-a-margenbar'); if (mb) mb.style.width = Math.max(0, Math.min(100, margen)) + '%';
+  _st('inv-a-margen', 'Margen del ' + margen + '% sobre ingresos del mes');
+
+  // Cómo cobras (periodo)
+  var pagos = {};
+  (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).forEach(function(v) { var m = v.pago || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (v.total || 0); });
+  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); } });
+  var totalP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
+  var clsMap = { 'Efectivo': 's-cash', 'Tarjeta': 's-card', 'Bizum': 's-biz', 'Transferencia': 's-tr' };
+  var icoMap = { 'Efectivo': '💵', 'Tarjeta': '💳', 'Bizum': '📲', 'Transferencia': '🏦' };
+  var ordenP = Object.keys(pagos).sort(function(a, b) { return pagos[b] - pagos[a]; });
+  var stk = document.getElementById('inv-a-stack');
+  var pays = document.getElementById('inv-a-pays');
+  if (totalP > 0) {
+    if (stk) stk.innerHTML = ordenP.map(function(m) { return '<i class="' + (clsMap[m] || 's-tr') + '" style="width:' + (pagos[m] / totalP * 100) + '%"></i>'; }).join('');
+    if (pays) pays.innerHTML = ordenP.map(function(m) { return '<div class="payrow"><span class="pd ' + (clsMap[m] || 's-tr') + '"></span><span class="pn">' + (icoMap[m] || '💳') + ' ' + escHtml(m) + '</span><span class="pv">' + cur(pagos[m]) + '</span><span class="pp">' + Math.round(pagos[m] / totalP * 100) + '%</span></div>'; }).join('');
+  } else { if (stk) stk.innerHTML = ''; if (pays) pays.innerHTML = '<div class="inv-empty" style="padding:8px 0">Sin cobros en este periodo</div>'; }
+
+  // Lo que más deja (periodo, por avería + ventas)
+  var cat = {};
+  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var k = (r.averia || '').trim() || 'Reparación'; cat['🔧 ' + k] = (cat['🔧 ' + k] || 0) + (r.total || 0); } });
+  var ventasTot = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).reduce(function(a, v) { return a + (v.total || 0); }, 0);
+  if (ventasTot > 0) cat['🛒 Ventas / accesorios'] = ventasTot;
+  var topArr = Object.keys(cat).map(function(k) { return { k: k, v: cat[k] }; }).sort(function(a, b) { return b.v - a.v; }).slice(0, 4);
+  var topEl = document.getElementById('inv-a-top');
+  if (topEl) topEl.innerHTML = topArr.length ? topArr.map(function(o) { return '<div class="pl"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%">' + escHtml(o.k) + '</span><span class="v">' + cur(o.v) + '</span></div>'; }).join('') : '<div class="inv-empty" style="padding:8px 0">Sin ingresos en este periodo</div>';
+
+  // Pedidos por recibir
+  var peds = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido'; });
+  var comp = peds.reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
+  var pedsEl = document.getElementById('inv-a-peds');
+  if (pedsEl) pedsEl.innerHTML = peds.length ? peds.slice(0, 5).map(function(p) {
+    var st = p.estado === 'pedido' ? '🟡' : '🔴';
+    return '<div class="ped"><span class="st">' + st + '</span><span class="pz">' + escHtml(p.pieza || p.proveedor || 'Pedido') + '</span><span class="am">' + (p.importe ? cur(parseFloat(p.importe) || 0) : '—') + '</span></div>';
+  }).join('') : '<div class="inv-empty" style="padding:8px 0">Sin pedidos pendientes</div>';
+  _st('inv-a-comp', cur(comp));
 }
 
 async function renderDash() {
