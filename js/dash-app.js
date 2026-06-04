@@ -604,18 +604,83 @@ function ajTab(btn) {
   if (tab === 'negocio' && typeof cargarTienda === 'function') cargarTienda();
 }
 
+// ════════════ NOTAS Y RECORDATORIOS (tarjeta del inicio, 2ª columna) ════════════
+function cargarNotasRecordatorios(cb) {
+  if (!SB_KEY || !TIENDA_ID) { window._recordatorios = window._recordatorios || []; if (cb) cb(); return; }
+  sbGet('tiendas', 'id=eq.' + TIENDA_ID + '&select=pedidos_notas,recordatorios').then(function(r) {
+    var t = (r && r[0]) || {};
+    window._pedNotas = t.pedidos_notas || '';
+    window._recordatorios = Array.isArray(t.recordatorios) ? t.recordatorios : [];
+    if (cb) cb(); else renderNotasRecordatorios();
+  }).catch(function() { window._recordatorios = window._recordatorios || []; if (cb) cb(); });
+}
+function renderNotasRecordatorios() {
+  var grid = document.getElementById('metricsGrid');
+  if (!grid) return;
+  if (!window._notasCargadas) { window._notasCargadas = true; cargarNotasRecordatorios(function() { renderNotasRecordatorios(); }); return; }
+  var recs = window._recordatorios || [];
+  var card = document.getElementById('notasCard');
+  if (!card) { card = document.createElement('div'); card.id = 'notasCard'; card.className = 'widget-selector-card'; grid.appendChild(card); }
+  var recsHtml = recs.length ? recs.map(function(r, i) {
+    var fecha = r.f ? (' <span style="color:var(--muted);font-size:10px">· ' + _pedFecha(r.f) + '</span>') : '';
+    return '<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border)">' +
+      '<input type="checkbox" ' + (r.d ? 'checked' : '') + ' onchange="toggleRecordatorio(' + i + ')" style="cursor:pointer">' +
+      '<span style="flex:1;font-size:12px;' + (r.d ? 'text-decoration:line-through;color:var(--muted)' : '') + '">' + escHtml(r.t || '') + fecha + '</span>' +
+      '<button onclick="delRecordatorio(' + i + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;line-height:1">×</button></div>';
+  }).join('') : '<div style="font-size:11px;color:var(--muted);padding:5px 0">' + T('notas.sin_recordatorios') + '</div>';
+  card.innerHTML = '<div style="padding:13px 15px">' +
+    '<div style="font-weight:700;font-size:14px;margin-bottom:8px">📌 ' + T('notas.titulo') + '</div>' +
+    '<textarea id="dashNotas" placeholder="' + escHtml(T('notas.ph')) + '" oninput="guardarNotasDash()" style="width:100%;box-sizing:border-box;min-height:62px;resize:vertical;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;font-family:inherit"></textarea>' +
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin:10px 0 4px">✔️ ' + T('notas.recordatorios') + '</div>' +
+    recsHtml +
+    '<div style="display:flex;gap:5px;margin-top:8px">' +
+      '<input id="recInput" placeholder="' + escHtml(T('notas.nuevo_ph')) + '" onkeydown="if(event.key===\'Enter\')addRecordatorio()" style="flex:1;min-width:0;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-size:12px;font-family:inherit">' +
+      '<input id="recFecha" type="date" style="border:1px solid var(--border);border-radius:7px;padding:5px;font-size:11px" title="' + escHtml(T('notas.fecha_opt')) + '">' +
+      '<button onclick="addRecordatorio()" style="background:var(--orange);color:#fff;border:none;border-radius:7px;padding:6px 11px;font-size:14px;cursor:pointer">+</button>' +
+    '</div></div>';
+  var ta = document.getElementById('dashNotas'); if (ta) ta.value = (typeof window._pedNotas === 'string') ? window._pedNotas : '';
+}
+function guardarNotasDash() {
+  var ta = document.getElementById('dashNotas'); if (!ta) return;
+  window._pedNotas = ta.value;
+  if (window._pedNotasTimer) clearTimeout(window._pedNotasTimer);
+  window._pedNotasTimer = setTimeout(function() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas }); }, 800);
+}
+function _guardarRecordatorios() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { recordatorios: window._recordatorios || [] }); }
+function addRecordatorio() {
+  var inp = document.getElementById('recInput'), fe = document.getElementById('recFecha');
+  var t = (inp.value || '').trim(); if (!t) return;
+  window._recordatorios = window._recordatorios || [];
+  window._recordatorios.unshift({ t: t, f: fe.value || null, d: false });
+  _guardarRecordatorios(); renderNotasRecordatorios();
+}
+function toggleRecordatorio(i) { var r = (window._recordatorios || [])[i]; if (!r) return; r.d = !r.d; _guardarRecordatorios(); renderNotasRecordatorios(); }
+function delRecordatorio(i) { if (!window._recordatorios) return; window._recordatorios.splice(i, 1); _guardarRecordatorios(); renderNotasRecordatorios(); }
+
 // ════════════ PEDIDOS PENDIENTES (piezas que hacen falta) ════════════
 function _uuidPed() {
   try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); });
 }
 function _pedFecha(f) { if (!f) return ''; var p = String(f).slice(0, 10).split('-'); return p.length === 3 ? (p[2] + '/' + p[1]) : f; }
+function _fillProvDatalist() {
+  var dl = document.getElementById('pedProvList');
+  if (!dl) return;
+  dl.innerHTML = (DB.provs || []).filter(function(p) { return p && p.nombre; })
+    .map(function(p) { return '<option value="' + escHtml(p.nombre) + '">'; }).join('');
+}
 function cargarPedidos(cb) {
   if (!SB_KEY || !TIENDA_ID) { DB.pedidos = DB.pedidos || []; if (cb) cb(); return; }
-  sbGet('pedidos', 'tienda_id=eq.' + TIENDA_ID).then(function(rows) {
-    DB.pedidos = Array.isArray(rows) ? rows : [];
-    if (cb) cb(); else if (_getWidgetSelectorActive() === 'pedidos') renderPedidosWidget();
-  }).catch(function() { DB.pedidos = DB.pedidos || []; if (cb) cb(); });
+  // Notas (columna nueva): tolerante si aún no existe
+  sbGet('tiendas', 'id=eq.' + TIENDA_ID + '&select=pedidos_notas')
+    .then(function(r) { window._pedNotas = (r && r[0] && r[0].pedidos_notas) || ''; })
+    .catch(function() {})
+    .then(function() { return sbGet('pedidos', 'tienda_id=eq.' + TIENDA_ID); })
+    .then(function(rows) {
+      DB.pedidos = Array.isArray(rows) ? rows : [];
+      if (cb) cb(); else if (_getWidgetSelectorActive() === 'pedidos') renderPedidosWidget();
+    })
+    .catch(function() { DB.pedidos = DB.pedidos || []; if (cb) cb(); });
 }
 function renderPedidosWidget() {
   var box = document.getElementById('wsSelectorBody');
@@ -632,7 +697,7 @@ function renderPedidosWidget() {
   } else {
     html += pend.map(function(p) {
       var c = est[p.estado] || est.por_pedir;
-      var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? ('€' + parseFloat(p.importe).toFixed(2)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
+      var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? ('€' + parseFloat(p.importe).toFixed(2)) : ''), (p.fecha_pedido ? (T('pedidos.pedido_el') + ' ' + _pedFecha(p.fecha_pedido)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
       return '<div style="border:1px solid var(--border);border-radius:9px;padding:9px 10px;margin-bottom:7px">' +
         '<div style="font-weight:700;font-size:13px">' + c.e + ' ' + escHtml(p.pieza) + (p.cantidad > 1 ? (' <span style="color:var(--muted)">x' + p.cantidad + '</span>') : '') + '</div>' +
         (meta ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + meta + '</div>' : '') +
@@ -643,19 +708,23 @@ function renderPedidosWidget() {
         '</div></div>';
     }).join('');
   }
-  html += '<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">' +
-    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px">📝 ' + T('pedidos.notas') + '</div>' +
-    '<textarea id="pedidosNotas" placeholder="' + escHtml(T('pedidos.notas_ph')) + '" oninput="guardarNotasPedidos()" style="width:100%;box-sizing:border-box;min-height:58px;resize:vertical;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;font-family:inherit"></textarea></div>';
   html += '</div>';
   box.innerHTML = html;
-  var ta = document.getElementById('pedidosNotas'); if (ta) { try { ta.value = localStorage.getItem('tk_pednotas_' + TIENDA_ID) || ''; } catch (e) {} }
 }
-function guardarNotasPedidos() { var ta = document.getElementById('pedidosNotas'); if (!ta) return; try { localStorage.setItem('tk_pednotas_' + TIENDA_ID, ta.value); } catch (e) {} }
+function guardarNotasPedidos() {
+  var ta = document.getElementById('pedidosNotas'); if (!ta) return;
+  window._pedNotas = ta.value;
+  if (window._pedNotasTimer) clearTimeout(window._pedNotasTimer);
+  window._pedNotasTimer = setTimeout(function() {
+    if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas });
+  }, 800);
+}
 function nuevoPedido() {
   SEL.editPedidoId = null;
   document.getElementById('mPedidoTit').textContent = T('pedidos.nuevo');
-  ['pedPieza', 'pedProv', 'pedImporte', 'pedFecha', 'pedNota'].forEach(function(id) { var e = document.getElementById(id); if (e) e.value = ''; });
+  ['pedPieza', 'pedProv', 'pedImporte', 'pedFecha', 'pedFechaPed', 'pedNota'].forEach(function(id) { var e = document.getElementById(id); if (e) e.value = ''; });
   document.getElementById('pedCant').value = '1';
+  _fillProvDatalist();
   openM('mPedido');
   setTimeout(function() { var e = document.getElementById('pedPieza'); if (e) e.focus(); }, 60);
 }
@@ -664,10 +733,12 @@ function editarPedido(id) {
   if (!p) return;
   SEL.editPedidoId = id;
   document.getElementById('mPedidoTit').textContent = T('pedidos.editar');
+  _fillProvDatalist();
   document.getElementById('pedPieza').value = p.pieza || '';
   document.getElementById('pedCant').value = p.cantidad || 1;
   document.getElementById('pedProv').value = p.proveedor || '';
   document.getElementById('pedImporte').value = p.importe || '';
+  document.getElementById('pedFechaPed').value = p.fecha_pedido || '';
   document.getElementById('pedFecha').value = p.fecha_estimada || '';
   document.getElementById('pedNota').value = p.nota || '';
   openM('mPedido');
@@ -680,6 +751,7 @@ function guardarPedido() {
     cantidad: parseInt(document.getElementById('pedCant').value, 10) || 1,
     proveedor: (document.getElementById('pedProv').value || '').trim() || null,
     importe: parseFloat(document.getElementById('pedImporte').value) || 0,
+    fecha_pedido: document.getElementById('pedFechaPed').value || null,
     fecha_estimada: document.getElementById('pedFecha').value || null,
     nota: (document.getElementById('pedNota').value || '').trim() || null
   };
@@ -701,7 +773,9 @@ function avanzarPedido(id) {
   if (!p) return;
   if (p.estado === 'por_pedir') {
     p.estado = 'pedido';
-    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), { estado: 'pedido' });
+    var patch1 = { estado: 'pedido' };
+    if (!p.fecha_pedido) { p.fecha_pedido = hoyLocal(); patch1.fecha_pedido = p.fecha_pedido; }   // auto: hoy
+    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch1);
     toast(T('pedidos.marcado_pedido'), 'ok');
   } else if (p.estado === 'pedido') {
     p.estado = 'recibido';
@@ -1696,6 +1770,7 @@ function renderWidgetSelector() {
     existing.querySelector('.widget-selector-tabs').innerHTML = tabsHtml;
   }
   _renderWidgetSelectorBody(activeId);
+  renderNotasRecordatorios();
 }
 
 
