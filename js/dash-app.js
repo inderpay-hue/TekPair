@@ -2143,6 +2143,7 @@ function renderDashWidgets() {
   try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch(e){}
   // FIX-HOME-2: cierre se precalcula automáticamente (sin await, sin email, sin PDF)
   try { if (typeof renderWidgetCierre === 'function') renderWidgetCierre(); } catch(e){}
+  try { if (typeof renderWidgetComoCobras === 'function') renderWidgetComoCobras(); } catch(e){}
 
   // VIS-5: ocultar cards de Inicio cuyo contenido sea "vacío" + banner resumen
   try { _colapsarCardsVacios(); } catch(e){}
@@ -8375,6 +8376,37 @@ function emailReporte() {
 // ═══ CIERRE DEL DIA ═══
 // FIX-HOME-2: renderWidgetCierre — rellena cierreBox automáticamente al cargar
 // versión sync (sin await) usando DB local, sin toast ni PDF/email
+function renderWidgetComoCobras() {
+  var cont = document.getElementById('cardComoCobras');
+  if (!cont) return;
+  // Solo admin/encargado con permiso de caja, y solo si la tarjeta está activada
+  if (!widgetVisible('widget_comocobras') || !puedeVerCaja()) { cont.style.display = 'none'; return; }
+  var el = document.getElementById('comoCobrasBox');
+  if (!el) return;
+  var hoy = hoyLocal();
+  var pagos = {};
+  DB.ventas.filter(function(v) { return !v.reembolsado && v.fecha === hoy; })
+    .forEach(function(v) { var m = v.pago || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (v.total || 0); });
+  DB.reps.filter(function(r) { return (r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado'; })
+    .forEach(function(r) { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); });
+  var total = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
+  if (total <= 0) { cont.style.display = 'none'; return; }
+  cont.style.display = '';
+  var col = { 'Efectivo': '#159E72', 'Tarjeta': '#3B6FF5', 'Bizum': '#EC5C24', 'Transferencia': '#7C5CFC' };
+  var ico = { 'Efectivo': '💵', 'Tarjeta': '💳', 'Bizum': '📲', 'Transferencia': '🏦' };
+  var orden = Object.keys(pagos).sort(function(a, b) { return pagos[b] - pagos[a]; });
+  var bar = orden.map(function(m) { return '<i style="height:100%;width:' + (pagos[m] / total * 100) + '%;background:' + (col[m] || '#A79C92') + '"></i>'; }).join('');
+  var rows = orden.map(function(m) {
+    var pct = Math.round(pagos[m] / total * 100);
+    return '<div style="display:flex;align-items:center;gap:9px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13px">' +
+      '<span style="width:9px;height:9px;border-radius:50%;flex-shrink:0;background:' + (col[m] || '#A79C92') + '"></span>' +
+      '<span style="flex:1;font-weight:600">' + (ico[m] || '💳') + ' ' + escHtml(m) + '</span>' +
+      '<strong style="font-weight:800">' + cur(pagos[m]) + '</strong>' +
+      '<span style="font-size:11px;color:var(--muted);font-weight:700;width:36px;text-align:right">' + pct + '%</span></div>';
+  }).join('');
+  el.innerHTML = '<div style="display:flex;height:12px;border-radius:20px;overflow:hidden;margin:4px 0 12px">' + bar + '</div>' + rows;
+}
+
 function renderWidgetCierre() {
   if (!widgetVisible('widget_cierre')) return;
   if (!puedeVerCaja()) { try { hideEl('cardCierre'); } catch(e){} return; }
@@ -11103,6 +11135,7 @@ function aplicarPermisos() {
   if (!widgetVisible('widget_cierre')) hideEl('cardCierre');
   if (!widgetVisible('widget_caja')) hideEl('cardCajaDia');
   if (!widgetVisible('widget_cobros')) hideEl('cardCobros');
+  if (!widgetVisible('widget_comocobras') || !puedeVerCaja()) hideEl('cardComoCobras');
   if (!widgetVisible('widget_stockcritico')) hideEl('cardStockCritico');
   if (!widgetVisible('widget_cumples')) hideEl('cardCumples');
   if (!widgetVisible('widget_tendencia')) hideEl('cardTendencia');
@@ -11184,6 +11217,7 @@ var PERMS_LISTA = [
   {id:'widget_porentregar',label:'Card: Por entregar',grupo:'Dashboard',defaultOn:true},
   {id:'widget_notas',label:'Card: Notas y recordatorios',grupo:'Dashboard',defaultOn:true},
   {id:'widget_cierre',label:'Card: Cierre del día',grupo:'Dashboard',defaultOn:true},
+  {id:'widget_comocobras',label:'Card: Cómo cobras (efectivo/tarjeta/Bizum)',grupo:'Dashboard',defaultOn:true},
   {id:'widget_caja',label:'Card: Caja del día desglosada',grupo:'Dashboard',defaultOn:true},
   {id:'widget_cobros',label:'Card: Cobros pendientes (financiados)',grupo:'Dashboard',defaultOn:true},
   {id:'widget_stockcritico',label:'Card: Stock crítico',grupo:'Dashboard',defaultOn:true},
