@@ -655,8 +655,8 @@ function addRecordatorio() {
   window._recordatorios.unshift({ t: t, f: fe.value || null, d: false });
   _guardarRecordatorios(); renderNotasRecordatorios();
 }
-function toggleRecordatorio(i) { var r = (window._recordatorios || [])[i]; if (!r) return; r.d = !r.d; _guardarRecordatorios(); renderNotasRecordatorios(); }
-function delRecordatorio(i) { if (!window._recordatorios) return; window._recordatorios.splice(i, 1); _guardarRecordatorios(); renderNotasRecordatorios(); }
+function toggleRecordatorio(i) { var r = (window._recordatorios || [])[i]; if (!r) return; r.d = !r.d; _guardarRecordatorios(); renderNotasRecordatorios(); try { renderInvNotas(); } catch(e){} }
+function delRecordatorio(i) { if (!window._recordatorios) return; window._recordatorios.splice(i, 1); _guardarRecordatorios(); renderNotasRecordatorios(); try { renderInvNotas(); } catch(e){} }
 
 // ════════════ PEDIDOS PENDIENTES (piezas que hacen falta) ════════════
 function _uuidPed() {
@@ -684,6 +684,7 @@ function cargarPedidos(cb) {
     .catch(function() { DB.pedidos = DB.pedidos || []; if (cb) cb(); });
 }
 function renderPedidosWidget() {
+  try { renderInvPedidos(); } catch(e){}
   var cont = document.getElementById('cardPedidos');
   var box = document.getElementById('pedidosBox');
   if (!box) return;
@@ -1551,18 +1552,8 @@ function renderInicioNuevo() {
   if (ae) ae.innerHTML = aten.length ? aten.slice(0, 5).map(function(a) {
     return '<div class="inv-row"><span class="inv-dot ' + a.dot + '"></span><div class="m"><div class="tt">' + escHtml(a.tt) + '</div><div class="ss">' + escHtml(a.ss) + '</div></div><span class="inv-tag ' + a.tagc + '">' + a.tag + '</span></div>';
   }).join('') : '<div class="inv-empty">Todo bajo control ✓</div>';
-  var pe = document.getElementById('inv-pedidos');
-  if (pe) {
-    var ped = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido'; }).slice(0, 5);
-    pe.innerHTML = ped.length ? ped.map(function(p) {
-      var st = p.estado === 'pedido' ? '🟡' : '🔴';
-      var dt = p.estado === 'pedido' ? (p.fecha_estimada ? ('llega ' + _pedFecha(p.fecha_estimada)) : 'pedido') : 'por pedir';
-      return '<div class="inv-ped"><span class="st">' + st + '</span><span class="pz">' + escHtml(p.pieza || '') + '</span><span class="dt">' + dt + '</span></div>';
-    }).join('') : '<div class="inv-empty">Sin pedidos pendientes</div>';
-  }
-  var ne = document.getElementById('inv-notas');
-  if (ne && typeof window._pedNotas !== 'undefined') ne.innerHTML = '<div style="padding:14px 18px;font-size:13px;color:var(--inv-ink2);white-space:pre-wrap">' + escHtml(window._pedNotas || 'Sin notas') + '</div>';
-  else if (ne) ne.innerHTML = '<div class="inv-empty">—</div>';
+  renderInvPedidos();
+  renderInvNotas();
 }
 
 // ─── VISTA NEGOCIO (ADMIN, financiero estilo render 3-pro) ───
@@ -1680,6 +1671,75 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
     return '<div class="ped"><span class="st">' + st + '</span><span class="pz">' + escHtml(p.pieza || p.proveedor || 'Pedido') + '</span><span class="am">' + (p.importe ? cur(parseFloat(p.importe) || 0) : '—') + '</span></div>';
   }).join('') : '<div class="inv-empty" style="padding:8px 0">Sin pedidos pendientes</div>';
   _st('inv-a-comp', cur(comp));
+}
+
+// ─── Pedidos funcionales en la vista nueva (empleado) ───
+function renderInvPedidos() {
+  var box = document.getElementById('inv-pedidos');
+  if (!box) return;
+  if (!DB.pedidos) { box.innerHTML = '<div class="inv-empty">…</div>'; if (typeof cargarPedidos === 'function') cargarPedidos(function() { renderInvPedidos(); }); return; }
+  var pend = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido'; });
+  var ord = { por_pedir: 0, pedido: 1 };
+  pend.sort(function(a, b) { var d = (ord[a.estado] || 0) - (ord[b.estado] || 0); if (d) return d; return (a.fecha_estimada || '9999').localeCompare(b.fecha_estimada || '9999'); });
+  var est = { por_pedir: { e: '🔴', next: T('pedidos.marcar_pedido') }, pedido: { e: '🟡', next: T('pedidos.marcar_recibido') } };
+  var html = '<div style="padding:12px 16px">';
+  html += '<button onclick="nuevoPedido()" style="width:100%;margin-bottom:10px;padding:9px;background:linear-gradient(135deg,#FF7544,var(--inv-or));color:#fff;border:none;border-radius:10px;font:inherit;font-weight:700;font-size:13px;cursor:pointer">+ ' + T('pedidos.nuevo') + '</button>';
+  if (!pend.length) {
+    html += '<div class="inv-empty" style="text-align:center;padding:8px 0">' + T('pedidos.vacio') + '</div>';
+  } else {
+    html += pend.map(function(p) {
+      var c = est[p.estado] || est.por_pedir;
+      var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? ('€' + parseFloat(p.importe).toFixed(2)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
+      return '<div style="border:1px solid var(--inv-line);border-radius:11px;padding:9px 11px;margin-bottom:7px">' +
+        '<div style="font-weight:700;font-size:13px;color:var(--inv-ink)">' + c.e + ' ' + escHtml(p.pieza) + (p.cantidad > 1 ? (' <span style="color:var(--inv-ink3)">x' + p.cantidad + '</span>') : '') + '</div>' +
+        (meta ? '<div style="font-size:11px;color:var(--inv-ink3);margin-top:2px">' + meta + '</div>' : '') +
+        '<div style="display:flex;gap:5px;margin-top:7px">' +
+          '<button style="background:var(--inv-green);color:#fff;border:none;border-radius:7px;padding:5px 9px;font-size:11px;cursor:pointer;flex:1" onclick="avanzarPedido(\'' + p.id + '\')">' + c.next + '</button>' +
+          '<button style="background:#F4EDE5;border:none;border-radius:7px;padding:5px 8px;font-size:11px;cursor:pointer" onclick="editarPedido(\'' + p.id + '\')">✏️</button>' +
+          '<button style="background:rgba(226,72,60,.1);color:var(--inv-red);border:none;border-radius:7px;padding:5px 8px;font-size:11px;cursor:pointer" onclick="eliminarPedido(\'' + p.id + '\')">🗑️</button>' +
+        '</div></div>';
+    }).join('');
+  }
+  box.innerHTML = html + '</div>';
+}
+
+// ─── Notas + recordatorios funcionales en la vista nueva ───
+function renderInvNotas() {
+  var box = document.getElementById('inv-notas');
+  if (!box) return;
+  if (!window._notasCargadas) { window._notasCargadas = true; cargarNotasRecordatorios(function() { renderInvNotas(); }); return; }
+  var recs = window._recordatorios || [];
+  var recsHtml = recs.length ? recs.map(function(r, i) {
+    var fecha = r.f ? (' <span style="color:var(--inv-ink3);font-size:10px">· ' + _pedFecha(r.f) + '</span>') : '';
+    return '<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--inv-line)">' +
+      '<input type="checkbox" ' + (r.d ? 'checked' : '') + ' onchange="toggleRecordatorio(' + i + ')" style="cursor:pointer">' +
+      '<span style="flex:1;font-size:12px;' + (r.d ? 'text-decoration:line-through;color:var(--inv-ink3)' : 'color:var(--inv-ink)') + '">' + escHtml(r.t || '') + fecha + '</span>' +
+      '<button onclick="delRecordatorio(' + i + ')" style="background:none;border:none;color:var(--inv-red);cursor:pointer;font-size:14px;line-height:1">×</button></div>';
+  }).join('') : '<div class="inv-empty" style="padding:5px 0">' + T('notas.sin_recordatorios') + '</div>';
+  box.innerHTML = '<div style="padding:13px 16px">' +
+    '<textarea id="invNotasTa" placeholder="' + escHtml(T('notas.ph')) + '" oninput="guardarInvNotas()" style="width:100%;box-sizing:border-box;min-height:56px;resize:vertical;border:1px solid var(--inv-line);border-radius:10px;padding:9px;font-size:12px;font-family:inherit;background:#FDFBF9;color:var(--inv-ink)"></textarea>' +
+    '<div style="font-size:11px;font-weight:700;color:var(--inv-ink3);text-transform:uppercase;letter-spacing:.3px;margin:10px 0 4px">✔️ ' + T('notas.recordatorios') + '</div>' +
+    recsHtml +
+    '<div style="display:flex;gap:5px;margin-top:8px">' +
+      '<input id="invRecInput" placeholder="' + escHtml(T('notas.nuevo_ph')) + '" onkeydown="if(event.key===\'Enter\')addRecInv()" style="flex:1;min-width:0;border:1px solid var(--inv-line);border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit">' +
+      '<input id="invRecFecha" type="date" style="border:1px solid var(--inv-line);border-radius:8px;padding:5px;font-size:11px">' +
+      '<button onclick="addRecInv()" style="background:var(--inv-or);color:#fff;border:none;border-radius:8px;padding:6px 11px;font-size:14px;cursor:pointer">+</button>' +
+    '</div></div>';
+  var ta = document.getElementById('invNotasTa'); if (ta) ta.value = (typeof window._pedNotas === 'string') ? window._pedNotas : '';
+}
+function guardarInvNotas() {
+  var ta = document.getElementById('invNotasTa'); if (!ta) return;
+  window._pedNotas = ta.value;
+  if (window._pedNotasTimer) clearTimeout(window._pedNotasTimer);
+  window._pedNotasTimer = setTimeout(function() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas }); }, 800);
+}
+function addRecInv() {
+  var inp = document.getElementById('invRecInput'), fe = document.getElementById('invRecFecha');
+  if (!inp) return;
+  var t = (inp.value || '').trim(); if (!t) return;
+  window._recordatorios = window._recordatorios || [];
+  window._recordatorios.unshift({ t: t, f: (fe && fe.value) || null, d: false });
+  _guardarRecordatorios(); renderInvNotas();
 }
 
 async function renderDash() {
