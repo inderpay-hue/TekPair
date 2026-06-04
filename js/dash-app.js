@@ -879,6 +879,7 @@ function navTo(id) {
   if (id === 'pClis') renderClis();
   if (id === 'pProvs') renderProvs();
   if (id === 'pCajas') Cajas.renderCajas();
+  if (id === 'pInicioNuevo') renderInicioNuevo();
   if (id === 'pGastos') renderGastos();
   if (id === 'pAjustes') { try { renderUbicacionesAjustes(); } catch(e){} cargarAjustes(); }
   if (id === 'pReportes') renderReporte();
@@ -1480,6 +1481,61 @@ function forzarRelogin() {
 })();
 
 // ═══ DASHBOARD ═══
+// ════ INICIO NUEVO (diseño render con datos reales) ════
+function renderInicioNuevo() {
+  if (!document.getElementById('pInicioNuevo')) return;
+  function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
+  var reps = DB.reps || [];
+  var enRep = reps.filter(function(r) { return ['Pendiente', 'En Proceso', 'En proceso'].indexOf(r.estado) !== -1; });
+  var listas = reps.filter(function(r) { return ['Por Entregar', 'Por entregar'].indexOf(r.estado) !== -1; });
+  var hoy = hoyLocal();
+  var finDia = new Date(hoy + 'T23:59:59');
+  var urgentes = reps.filter(function(r) {
+    if (['Entregado', 'Cancelado'].indexOf(r.estado) !== -1) return false;
+    var fe = r.fechaEntrega || r.fecha_entrega;
+    return (r.prioridad === 'Alta') || (fe && new Date(fe) <= finDia);
+  });
+  var puede = (typeof puedeVerCaja === 'function') ? puedeVerCaja() : (U && U.rol === 'admin');
+  var cajaHoy = 0;
+  (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha === hoy; }).forEach(function(v) { cajaHoy += (v.total || 0); });
+  reps.filter(function(r) { return (r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado'; }).forEach(function(r) { cajaHoy += (r.total || 0); });
+  var citasHoy = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; }).length;
+  var hh = (new Date()).getHours();
+  var sal = hh < 13 ? 'Buenos días' : (hh < 21 ? 'Buenas tardes' : 'Buenas noches');
+  var nom = (U && U.nombre) ? U.nombre.split(' ')[0] : '';
+  _st('inv-fecha', new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }));
+  _st('inv-saludo', sal + (nom ? ', ' + nom : '') + ' 👋');
+  var pl = document.getElementById('inv-pulse');
+  if (pl) pl.innerHTML = 'Tienes <b>' + enRep.length + ' reparaciones en curso</b>, <b>' + listas.length + ' listas para entregar</b> y <b>' + urgentes.length + ' urgente' + (urgentes.length === 1 ? '' : 's') + '</b>.';
+  _st('inv-k-rep', enRep.length); _st('inv-k-listas', listas.length); _st('inv-k-citas', citasHoy); _st('inv-k-urg', urgentes.length);
+  var kc = document.getElementById('inv-kpi-caja');
+  if (kc) { if (puede) { kc.style.display = ''; _st('inv-k-caja', cur(cajaHoy)); } else kc.style.display = 'none'; }
+  var aten = [];
+  urgentes.slice(0, 4).forEach(function(r) {
+    aten.push({ dot: 'd-red', tt: ((r.marca || '') + ' ' + (r.modelo || '')).trim() + (r.clienteNombre || r.cliente_nombre ? ' · ' + (r.clienteNombre || r.cliente_nombre) : ''), ss: (r.averia || ''), tag: 'Urgente', tagc: 'tg-red' });
+  });
+  var stockBajo = (DB.stock || []).filter(function(s) { return (s.unidades || 0) > 0 && (s.unidades || 0) <= (s.stockMin || 0); });
+  if (stockBajo.length) aten.push({ dot: 'd-amber', tt: 'Stock bajo mínimo · ' + stockBajo.length, ss: stockBajo.slice(0, 2).map(function(s) { return ((s.marca || '') + ' ' + (s.modelo || '')).trim(); }).join(', '), tag: 'Pedir', tagc: 'tg-amber' });
+  _st('inv-aten-n', aten.length);
+  var ae = document.getElementById('inv-atencion');
+  if (ae) ae.innerHTML = aten.length ? aten.slice(0, 5).map(function(a) {
+    return '<div class="inv-row"><span class="inv-dot ' + a.dot + '"></span><div class="m"><div class="tt">' + escHtml(a.tt) + '</div><div class="ss">' + escHtml(a.ss) + '</div></div><span class="inv-tag ' + a.tagc + '">' + a.tag + '</span></div>';
+  }).join('') : '<div class="inv-empty">Todo bajo control ✓</div>';
+  var pe = document.getElementById('inv-pedidos');
+  if (pe) {
+    if (!DB.pedidos && typeof cargarPedidos === 'function') { cargarPedidos(function() { renderInicioNuevo(); }); }
+    var ped = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido'; }).slice(0, 5);
+    pe.innerHTML = ped.length ? ped.map(function(p) {
+      var st = p.estado === 'pedido' ? '🟡' : '🔴';
+      var dt = p.estado === 'pedido' ? (p.fecha_estimada ? ('llega ' + _pedFecha(p.fecha_estimada)) : 'pedido') : 'por pedir';
+      return '<div class="inv-ped"><span class="st">' + st + '</span><span class="pz">' + escHtml(p.pieza || '') + '</span><span class="dt">' + dt + '</span></div>';
+    }).join('') : '<div class="inv-empty">Sin pedidos pendientes</div>';
+  }
+  var ne = document.getElementById('inv-notas');
+  if (ne && typeof window._pedNotas !== 'undefined') ne.innerHTML = '<div style="padding:14px 18px;font-size:13px;color:var(--inv-ink2);white-space:pre-wrap">' + escHtml(window._pedNotas || 'Sin notas') + '</div>';
+  else if (ne) ne.innerHTML = '<div class="inv-empty">—</div>';
+}
+
 async function renderDash() {
   // Limpiar caché de pagos al cambiar periodo para no mostrar datos del anterior
   window._cachedPagosRep = null;

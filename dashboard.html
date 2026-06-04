@@ -1146,6 +1146,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div style="font-size:18px;font-weight:800;color:var(--dark)" id="dTienda"></div>
     </div>
     <button id="btnPersonalizar" onclick="toggleModoEdicion()" style="background:white;color:var(--blue);border:1px solid var(--border);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">✏️ Personalizar</button>
+    <button onclick="navTo('pInicioNuevo')" style="background:linear-gradient(135deg,#FF7A45,#EC5C24);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">✨ Inicio nuevo</button>
   </div>
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <div class="tabs" id="metricTabs" style="margin:0">
@@ -2941,6 +2942,70 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="btn-sm" style="background:var(--blue);color:white" onclick="ESID=null;limpiarFormSrv();openM('mServicio')">+ Nuevo</button>
   </div>
   <div id="listaServicios"></div>
+</div>
+
+<!-- ════════ INICIO NUEVO (diseño render, datos reales) ════════ -->
+<style>
+#pInicioNuevo{--inv-ink:#221D19;--inv-ink2:#6B6259;--inv-ink3:#A79C92;--inv-line:#ECE4DA;--inv-or:#EC5C24;--inv-ord:#CC4A18;--inv-blue:#3B6FF5;--inv-green:#159E72;--inv-purple:#7C5CFC;--inv-red:#E2483C;--inv-amber:#E69412;--inv-sh:0 1px 3px rgba(34,29,25,.05),0 12px 34px -14px rgba(34,29,25,.16);--inv-sm:0 1px 2px rgba(34,29,25,.05);color:var(--inv-ink)}
+#pInicioNuevo .inv-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+#pInicioNuevo .inv-eyebrow{font-size:12.5px;color:var(--inv-ink3);font-weight:600}
+#pInicioNuevo h1.inv-h1{font-size:clamp(24px,3.2vw,31px);font-weight:800;letter-spacing:-.6px;margin:3px 0 7px;color:var(--inv-ink)}
+#pInicioNuevo .inv-pulse{font-size:14.5px;color:var(--inv-ink2)}#pInicioNuevo .inv-pulse b{color:var(--inv-ink);font-weight:700}
+#pInicioNuevo .inv-seg{display:inline-flex;background:#fff;border:1px solid var(--inv-line);border-radius:12px;padding:3px;box-shadow:var(--inv-sm)}
+#pInicioNuevo .inv-seg button{border:none;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--inv-ink2);padding:8px 16px;border-radius:9px;cursor:pointer}#pInicioNuevo .inv-seg button.on{background:var(--inv-or);color:#fff;box-shadow:0 4px 10px rgba(236,92,36,.3)}
+#pInicioNuevo .inv-kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+#pInicioNuevo .inv-kpi{background:#fff;border:1px solid var(--inv-line);border-radius:18px;padding:17px;box-shadow:var(--inv-sh);position:relative;transition:transform .18s}#pInicioNuevo .inv-kpi:hover{transform:translateY(-3px)}
+#pInicioNuevo .inv-kpi .ic{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:21px;margin-bottom:13px}
+#pInicioNuevo .inv-kpi .num{font-size:31px;font-weight:800;letter-spacing:-1.2px;line-height:1}#pInicioNuevo .inv-kpi .lbl{font-size:12.5px;color:var(--inv-ink2);font-weight:600;margin-top:5px}
+#pInicioNuevo .ib{background:rgba(59,111,245,.1);color:var(--inv-blue)}#pInicioNuevo .ig{background:rgba(21,158,114,.12);color:var(--inv-green)}#pInicioNuevo .io{background:rgba(236,92,36,.11);color:var(--inv-or)}#pInicioNuevo .ip{background:rgba(124,92,252,.12);color:var(--inv-purple)}#pInicioNuevo .ir{background:rgba(226,72,60,.1);color:var(--inv-red)}
+#pInicioNuevo .inv-sect{font-size:12px;font-weight:700;color:var(--inv-ink3);text-transform:uppercase;letter-spacing:1px;margin:0 2px 12px}
+#pInicioNuevo .inv-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+#pInicioNuevo .inv-act{display:flex;align-items:center;gap:13px;padding:17px 19px;border-radius:18px;font-weight:700;font-size:15px;border:1px solid var(--inv-line);background:#fff;box-shadow:var(--inv-sm);cursor:pointer;transition:transform .16s}#pInicioNuevo .inv-act:hover{transform:translateY(-2px)}
+#pInicioNuevo .inv-act .ai{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex-shrink:0}
+#pInicioNuevo .inv-act.p{background:linear-gradient(135deg,#FF7544,var(--inv-or));color:#fff;border:none;box-shadow:0 10px 24px -8px rgba(236,92,36,.5)}#pInicioNuevo .inv-act.p .ai{background:rgba(255,255,255,.22)}
+#pInicioNuevo .inv-act .sub{display:block;font-size:11.5px;font-weight:500;color:var(--inv-ink3);margin-top:1px}#pInicioNuevo .inv-act.p .sub{color:rgba(255,255,255,.85)}
+#pInicioNuevo .inv-lower{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:16px}
+#pInicioNuevo .inv-card{background:#fff;border:1px solid var(--inv-line);border-radius:18px;box-shadow:var(--inv-sh);overflow:hidden;display:flex;flex-direction:column}
+#pInicioNuevo .inv-ch{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px}#pInicioNuevo .inv-ch h3{font-size:14.5px;font-weight:800;display:flex;gap:8px;align-items:center}
+#pInicioNuevo .inv-badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(236,92,36,.11);color:var(--inv-ord)}
+#pInicioNuevo .inv-row{display:flex;align-items:center;gap:11px;padding:11px 18px;border-top:1px solid var(--inv-line)}
+#pInicioNuevo .inv-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}#pInicioNuevo .d-red{background:var(--inv-red)}#pInicioNuevo .d-amber{background:var(--inv-amber)}#pInicioNuevo .d-blue{background:var(--inv-blue)}
+#pInicioNuevo .inv-row .m{flex:1;min-width:0}#pInicioNuevo .inv-row .tt{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#pInicioNuevo .inv-row .ss{font-size:11.5px;color:var(--inv-ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#pInicioNuevo .inv-tag{font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;text-transform:uppercase;letter-spacing:.3px}
+#pInicioNuevo .tg-red{background:rgba(226,72,60,.12);color:var(--inv-red)}#pInicioNuevo .tg-amber{background:rgba(230,148,18,.14);color:#b9770a}#pInicioNuevo .tg-blue{background:rgba(59,111,245,.1);color:var(--inv-blue)}
+#pInicioNuevo .inv-ped{display:flex;align-items:center;gap:9px;padding:10px 18px;border-top:1px solid var(--inv-line);font-size:12.5px}#pInicioNuevo .inv-ped .st{font-size:14px}#pInicioNuevo .inv-ped .pz{font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#pInicioNuevo .inv-ped .dt{font-size:10.5px;color:var(--inv-ink3);font-weight:600}
+#pInicioNuevo .inv-empty{padding:14px 18px;font-size:12px;color:var(--inv-ink3)}
+@media(max-width:960px){#pInicioNuevo .inv-lower{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){#pInicioNuevo .inv-kpis{grid-template-columns:repeat(2,1fr)}#pInicioNuevo .inv-actions{grid-template-columns:repeat(2,1fr)}#pInicioNuevo .inv-lower{grid-template-columns:1fr}}
+</style>
+<div class="page" id="pInicioNuevo">
+  <div class="inv-hero">
+    <div><div class="inv-eyebrow" id="inv-fecha"></div><h1 class="inv-h1" id="inv-saludo">Hola</h1>
+      <div class="inv-pulse" id="inv-pulse"></div></div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <div class="inv-seg"><button class="on">Hoy</button><button>Semana</button><button>Mes</button></div>
+      <button onclick="navTo('pInicio')" style="background:#fff;border:1px solid var(--inv-line);color:var(--inv-ink2);padding:8px 12px;border-radius:10px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer">← Clásico</button>
+    </div>
+  </div>
+  <div class="inv-kpis">
+    <div class="inv-kpi"><div class="ic ib">🔧</div><div class="num" id="inv-k-rep">0</div><div class="lbl">En reparación</div></div>
+    <div class="inv-kpi"><div class="ic ig">📦</div><div class="num" id="inv-k-listas">0</div><div class="lbl">Listas hoy</div></div>
+    <div class="inv-kpi" id="inv-kpi-caja"><div class="ic io">💶</div><div class="num" id="inv-k-caja">€0</div><div class="lbl">Caja hoy</div></div>
+    <div class="inv-kpi"><div class="ic ip">📅</div><div class="num" id="inv-k-citas">0</div><div class="lbl">Citas hoy</div></div>
+    <div class="inv-kpi"><div class="ic ir">🚨</div><div class="num" id="inv-k-urg">0</div><div class="lbl">Urgente</div></div>
+  </div>
+  <div class="inv-sect">Acciones rápidas</div>
+  <div class="inv-actions">
+    <div class="inv-act p" onclick="abrirRep()"><div class="ai">🔧</div><div>Nueva reparación<span class="sub">Registrar entrada</span></div></div>
+    <div class="inv-act p" onclick="window.location.href='tpv.html'"><div class="ai">🛒</div><div>Abrir TPV<span class="sub">Cobrar / vender</span></div></div>
+    <div class="inv-act" onclick="navTo('pPresupuestos')"><div class="ai ib">📄</div><div>Presupuesto<span class="sub">Crear y enviar</span></div></div>
+    <div class="inv-act" onclick="nuevoPedido()"><div class="ai ip">📦</div><div>Nuevo pedido<span class="sub">Piezas / material</span></div></div>
+  </div>
+  <div class="inv-lower">
+    <div class="inv-card"><div class="inv-ch"><h3>⚠️ Necesita tu atención</h3><span class="inv-badge" id="inv-aten-n">0</span></div><div id="inv-atencion"></div></div>
+    <div class="inv-card"><div class="inv-ch"><h3>📦 Pedidos</h3></div><div id="inv-pedidos"></div></div>
+    <div class="inv-card"><div class="inv-ch"><h3>📌 Notas</h3></div><div id="inv-notas"></div></div>
+  </div>
 </div>
 
 <!-- USUARIOS -->
