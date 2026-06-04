@@ -791,8 +791,35 @@ function avanzarPedido(id) {
       toast(T('pedidos.recibido_gasto'), 'ok');
     } else { toast(T('pedidos.marcado_recibido'), 'ok'); }
     if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
+    // Añadir al stock directo al recibir
+    var uds = parseInt(p.cantidad, 10) || 1;
+    if (confirm(T('pedidos.add_stock').replace('{n}', uds).replace('{pieza}', p.pieza || ''))) {
+      _crearStockDesdePedido(p, uds);
+    }
   }
   renderPedidosWidget();
+}
+// Crea un item de stock (repuesto) a partir de un pedido recibido
+function _crearStockDesdePedido(p, uds) {
+  DB.stock = DB.stock || [];
+  var costeUnit = (parseFloat(p.importe) || 0) > 0 ? (parseFloat(p.importe) / (uds || 1)) : 0;
+  var item = {
+    id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    categoria: 'Repuesto', marca: '', modelo: p.pieza || '', capacidad: '', color: '', imei: '',
+    unidades: uds, precioC: costeUnit, precioV: 0, stockMin: 2, stockMax: 10,
+    vendido: false, calidad: '', tipo: 'nuevo', garantiaMeses: 0, ubicacion: null
+  };
+  DB.stock.push(item);
+  if (SB_KEY && TIENDA_ID) sbPost('stock', {
+    id: item.id, tienda_id: TIENDA_ID, categoria: item.categoria, marca: item.marca,
+    modelo: item.modelo, capacidad: item.capacidad, color: item.color, imei: item.imei,
+    unidades: item.unidades, precio_c: item.precioC, precio_v: item.precioV,
+    stock_min: item.stockMin, stock_max: item.stockMax, vendido: false,
+    tipo: 'nuevo', garantia_meses: 0, ubicacion: null
+  });
+  try { guardarDatos(); } catch(e){}
+  try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
+  toast(T('pedidos.stock_anadido').replace('{n}', uds), 'ok');
 }
 function eliminarPedido(id) {
   if (!confirm(T('pedidos.confirmar_borrar'))) return;
@@ -1620,12 +1647,14 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   var xl = document.getElementById('inv-a-xlabels');
   if (xl) xl.innerHTML = serie.map(function(o) { return '<span>' + o.lbl + '</span>'; }).join('');
 
-  // Minis: caja hoy, ventas hoy (nº), cobros pendientes
-  var cajaHoy = _invIncome(hoy, hoy);
-  var ventasHoy = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha === hoy; }).length;
+  // Minis variables por periodo: caja (ingresos), ventas (nº) + cobros pendientes (vivo)
+  var sufLbl = per === 'semana' ? 'de la semana' : (per === 'mes' ? 'del mes' : 'de hoy');
+  var cajaPer = _invIncome(d1, d2);
+  var ventasPer = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).length;
   var cobrosArr = (DB.reps || []).filter(function(r) { return (r.restante || 0) > 0 && r.estado !== 'Cancelado'; });
   var cobrosTot = cobrosArr.reduce(function(a, r) { return a + (r.restante || 0); }, 0);
-  _st('inv-a-caja', cur(cajaHoy)); _st('inv-a-ventas', ventasHoy);
+  _st('inv-a-caja', cur(cajaPer)); _st('inv-a-caja-l', 'Caja ' + sufLbl);
+  _st('inv-a-ventas', ventasPer); _st('inv-a-ventas-l', 'Ventas ' + sufLbl);
   _st('inv-a-cobros', cur(cobrosTot)); _st('inv-a-cobros-l', 'Cobros pendientes · ' + cobrosArr.length);
 
   // Ingresos vs gastos (mes)
