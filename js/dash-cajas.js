@@ -417,16 +417,21 @@
       $('cierre-fecha').value = Estado.fechaActual;
       $('cierre-saldo-inicial').value = data.cierre?.saldo_inicial ?? data.saldo_sugerido ?? 0;
 
-      // Apertura: si ya está fichada, mostrar quién; si no, pedir el código del empleado
+      // Apertura: "Abierta por: X" si ya está fichada; si no, "Operando: X" (empleado del gate)
       var _abPor = data.cierre && data.cierre.abierto_por;
-      var _inpCod = $('cierre-codigo-emple');
+      var _fila = $('cierre-apertura-fila');
       var _lblAb = $('cierre-abierto-por');
+      var _oper = (window._cajaSesion && window._cajaSesion.nombre) || '';
       if (_abPor) {
-        if (_inpCod) { _inpCod.value = ''; _inpCod.style.display = 'none'; }
-        if (_lblAb) { _lblAb.textContent = '✓ ' + T('caja.abierta_por') + ': ' + _abPor; _lblAb.style.display = 'block'; }
-      } else {
-        if (_inpCod) { _inpCod.value = ''; _inpCod.style.display = ''; }
-        if (_lblAb) { _lblAb.style.display = 'none'; }
+        _lblAb.textContent = '✓ ' + T('caja.abierta_por') + ': ' + _abPor;
+        _lblAb.style.color = '#16a34a';
+        if (_fila) _fila.style.display = '';
+      } else if (_oper) {
+        _lblAb.textContent = T('caja.operando') + ': ' + _oper;
+        _lblAb.style.color = '#2563eb';
+        if (_fila) _fila.style.display = '';
+      } else if (_fila) {
+        _fila.style.display = 'none';
       }
 
       // Actualizar label "Cambio del día anterior" con la fecha real del último cierre
@@ -700,7 +705,8 @@
     const payload = {
       caja_id: $('cierre-caja-id').value,
       fecha: $('cierre-fecha').value,
-      codigo_apertura: ($('cierre-codigo-emple') ? $('cierre-codigo-emple').value : '').trim(),
+      codigo_apertura: (window._cajaSesion && window._cajaSesion.codigo) || '',
+      abierto_por_nombre: (window._cajaSesion && window._cajaSesion.nombre) || '',
       saldo_inicial: Number($('cierre-saldo-inicial').value || 0),
       saldo_real_final: Number($('cierre-saldo-real').value || 0),
       importe_tpv: Number($('cierre-importe-tpv')?.value || 0),
