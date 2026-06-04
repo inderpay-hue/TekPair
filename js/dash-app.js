@@ -678,18 +678,6 @@ function _stockMatch(pieza) {
   if (!n) return null;
   return (DB.stock || []).find(function(s) { return !s.vendido && _stockNombre(s).toLowerCase() === n; }) || null;
 }
-// Autocompletado del campo pieza con los productos del stock
-function _fillStockDatalist() {
-  var dl = document.getElementById('pedPiezaList');
-  if (!dl) return;
-  var seen = {}, opts = [];
-  (DB.stock || []).forEach(function(s) {
-    if (s.vendido) return;
-    var nm = _stockNombre(s);
-    if (nm && !seen[nm.toLowerCase()]) { seen[nm.toLowerCase()] = 1; opts.push('<option value="' + escHtml(nm) + '">'); }
-  });
-  dl.innerHTML = opts.join('');
-}
 // ¿Categoría con IMEI? (1 unidad = 1 IMEI)
 function _esImeiCat(cat) { return (typeof STOCK_CATS_IMEI !== 'undefined' ? STOCK_CATS_IMEI : ['Telefono', 'Tablet', 'Smartwatch']).indexOf(cat || '') !== -1; }
 // Proveedor habitual de un producto (según el último pedido con ese nombre)
@@ -734,7 +722,6 @@ function pedSelStock(id) {
   var s = (DB.stock || []).find(function(x) { return x.id === id; });
   if (!s) return;
   var inp = document.getElementById('pedPieza'); if (inp) inp.value = _stockNombre(s);
-  window._pedSelStockId = id;
   var sugs = document.getElementById('pedPiezaSugs'); if (sugs) sugs.style.display = 'none';
   // Autorrellenar proveedor habitual e importe (coste) si están vacíos
   var pv = document.getElementById('pedProv');
@@ -846,6 +833,7 @@ function editarPedido(id) {
 }
 // Añadir una línea de producto a la lista del pedido (modo nuevo)
 function pedAddItem() {
+  if (SEL.editPedidoId) return; // en modo editar no se acumulan líneas
   var pieza = (document.getElementById('pedPieza').value || '').trim();
   if (!pieza) { toast(T('pedidos.falta_pieza'), 'err'); var pe = document.getElementById('pedPieza'); if (pe) pe.focus(); return; }
   window._pedItems = window._pedItems || [];
@@ -1039,6 +1027,7 @@ function _crearGastoDesdePedido(p) {
   };
   DB.gastos = DB.gastos || [];
   DB.gastos.push(g);
+  if (SB_KEY && TIENDA_ID) sbPost('gastos', g);
   try { guardarDatos(); } catch (e) {}
   try { if (typeof renderGastos === 'function') renderGastos(); } catch (e) {}
   return g.id;
@@ -1739,9 +1728,9 @@ function renderInicioNuevo() {
   var hoy = hoyLocal();
   var finDia = new Date(hoy + 'T23:59:59');
   var urgentes = reps.filter(function(r) {
-    if (['Entregado', 'Cancelado'].indexOf(r.estado) !== -1) return false;
+    if (['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'].indexOf(r.estado) !== -1) return false;
     var fe = r.fechaEntrega || r.fecha_entrega;
-    return (r.prioridad === 'Alta') || (fe && new Date(fe) <= finDia);
+    return (r.prioridad === 'Alta' || r.prioridad === 'Urgente') || (fe && new Date(fe) <= finDia);
   });
   var puede = (typeof puedeVerCaja === 'function') ? puedeVerCaja() : (U && U.rol === 'admin');
   var citasHoy = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; }).length;
@@ -1760,6 +1749,8 @@ function renderInicioNuevo() {
   var empEl = document.getElementById('inv-emp');
   if (admEl) admEl.style.display = puede ? '' : 'none';
   if (empEl) empEl.style.display = puede ? 'none' : '';
+  var segEl = document.querySelector('#pInicioNuevo .inv-seg');
+  if (segEl) segEl.style.display = puede ? '' : 'none'; // el periodo solo afecta a la vista negocio
 
   if (puede) { renderInicioAdmin(reps, enRep, listas, urgentes); return; }
 
@@ -1856,7 +1847,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   var sufLbl = per === 'semana' ? T('inicio.suf_semana') : (per === 'mes' ? T('inicio.suf_mes') : T('inicio.suf_hoy'));
   var cajaPer = _invIncome(d1, d2);
   var ventasPer = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).length;
-  var cobrosArr = (DB.reps || []).filter(function(r) { return (r.restante || 0) > 0 && r.estado !== 'Cancelado'; });
+  var cobrosArr = (DB.reps || []).filter(function(r) { return (r.restante || 0) > 0 && ['Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'].indexOf(r.estado) === -1; });
   var cobrosTot = cobrosArr.reduce(function(a, r) { return a + (r.restante || 0); }, 0);
   _st('inv-a-caja', cur(cajaPer)); _st('inv-a-caja-l', T('inicio.caja') + ' ' + sufLbl);
   _st('inv-a-ventas', ventasPer); _st('inv-a-ventas-l', T('inicio.ventas') + ' ' + sufLbl);
