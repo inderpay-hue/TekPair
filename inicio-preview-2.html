@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>TekPair · Inicio — Operativo</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg1:#FFF8F2;--bg2:#FFEFE4;--ink:#241F1B;--ink2:#6E635A;--ink3:#A89C92;--line:#F0E6DC;--orange:#F2682B;--blue:#2F6BFF;--green:#16B981;--purple:#8B5CF6;--red:#EF4444;--amber:#F59E0B;--shadow:0 1px 2px rgba(36,31,27,.04),0 8px 24px rgba(36,31,27,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh;padding:26px clamp(16px,4vw,44px) 60px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:8px}
+h1{font-size:clamp(24px,3vw,30px);font-weight:800;letter-spacing:-.5px}
+.sub{font-size:14px;color:var(--ink2);margin-bottom:22px}.sub b{color:var(--ink)}
+.strip{display:flex;gap:10px;flex-wrap:wrap}
+.chipk{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 14px;font-size:13px;font-weight:700;box-shadow:var(--shadow);display:flex;align-items:center;gap:8px}
+.chipk b{font-size:16px}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:22px 0}
+.col{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.col-h{padding:14px 16px;font-weight:800;font-size:14px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.col-h .n{font-size:12px;font-weight:800;padding:2px 9px;border-radius:20px;background:var(--line);color:var(--ink2)}
+.col.red .col-h{color:var(--red)} .col.red .n{background:rgba(239,68,68,.12);color:var(--red)}
+.col.amber .col-h{color:#B9770A} .col.amber .n{background:rgba(245,158,11,.14);color:#B9770A}
+.col.green .col-h{color:#0E9E6E} .col.green .n{background:rgba(22,185,129,.13);color:#0E9E6E}
+.tk{padding:12px 14px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s}
+.tk:hover{background:#FFFBF8}
+.tk .ph{font-size:13.5px;font-weight:700}
+.tk .cl{font-size:12px;color:var(--ink2);margin:2px 0 6px}
+.tk .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink3)}
+.tk .when{font-weight:700;padding:2px 8px;border-radius:6px}
+.w-red{background:rgba(239,68,68,.1);color:var(--red)} .w-amber{background:rgba(245,158,11,.14);color:#B9770A} .w-green{background:rgba(22,185,129,.12);color:#0E9E6E}
+.act-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.act{display:flex;align-items:center;gap:11px;padding:14px 16px;border-radius:16px;font-weight:700;font-size:14.5px;border:1px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(36,31,27,.05);cursor:pointer}
+.act .ai{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px}
+.act.p{background:linear-gradient(135deg,#FF7A45,var(--orange));color:#fff;border:none;box-shadow:0 8px 20px rgba(242,104,43,.3)}.act.p .ai{background:rgba(255,255,255,.22)}
+.section-t{font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin:0 2px 12px}
+.tip{margin-top:26px;text-align:center;font-size:12px;color:var(--ink3)}
+@media(max-width:860px){.board{grid-template-columns:1fr}.act-row{grid-template-columns:repeat(2,1fr)}}
+</style></head><body><div class="wrap">
+<div class="top"><div><h1>Hola, TECNO 🔧</h1></div>
+<div class="strip"><div class="chipk">💶 <b>€245</b> caja hoy</div><div class="chipk">📅 <b>2</b> citas</div><div class="chipk">🛒 <b>8</b> ventas</div></div></div>
+<div class="sub">Tu <b>tablero del día</b>: lo que entra, lo que estás reparando y lo que toca entregar.</div>
+
+<div class="board">
+  <div class="col red"><div class="col-h"><span>🚨 Urgente / hoy</span><span class="n">2</span></div>
+    <div class="tk"><div class="ph">OPPO Reno 12F</div><div class="cl">Andrés Flores · Pantalla rota</div><div class="meta"><span class="when w-red">Prometido HOY</span> · IMEI ···4471</div></div>
+    <div class="tk"><div class="ph">iPhone 13</div><div class="cl">María Ruiz · Batería</div><div class="meta"><span class="when w-red">Cliente espera</span></div></div>
+  </div>
+  <div class="col amber"><div class="col-h"><span>⏳ En proceso</span><span class="n">11</span></div>
+    <div class="tk"><div class="ph">Samsung Galaxy A50</div><div class="cl">Brenda Pineda · No carga</div><div class="meta"><span class="when w-amber">6 días</span></div></div>
+    <div class="tk"><div class="ph">Xiaomi Redmi Note 12</div><div class="cl">Luis Soto · Software</div><div class="meta"><span class="when w-amber">2 días</span></div></div>
+    <div class="tk"><div class="ph">+ 9 reparaciones más…</div><div class="cl" style="color:var(--orange);font-weight:700">Ver todas</div></div>
+  </div>
+  <div class="col green"><div class="col-h"><span>✅ Listas para entregar</span><span class="n">3</span></div>
+    <div class="tk"><div class="ph">iPhone 12 · Pantalla</div><div class="cl">Carlos M. · €89 a cobrar</div><div class="meta"><span class="when w-green">Avisar cliente</span></div></div>
+    <div class="tk"><div class="ph">Huawei P30 · Tapa</div><div class="cl">Ana G. · Pagado ✓</div><div class="meta"><span class="when w-green">Listo</span></div></div>
+    <div class="tk"><div class="ph">Tablet Lenovo · Carga</div><div class="cl">Pedro L. · €45 a cobrar</div></div>
+  </div>
+</div>
+
+<div class="section-t">Acciones rápidas</div>
+<div class="act-row">
+  <div class="act p"><div class="ai">🔧</div>Nueva reparación</div>
+  <div class="act p"><div class="ai">🛒</div>Abrir TPV</div>
+  <div class="act"><div class="ai" style="background:rgba(47,107,255,.12);color:var(--blue)">📄</div>Presupuesto</div>
+  <div class="act"><div class="ai" style="background:rgba(139,92,246,.12);color:var(--purple)">📦</div>Pedidos</div>
+</div>
+<div class="tip">Vista previa · Operativo · datos de ejemplo</div>
+</div></body></html>

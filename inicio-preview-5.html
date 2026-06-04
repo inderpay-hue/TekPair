@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>TekPair · Inicio — Oscuro Pro</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#15110E;--bg2:#1E1813;--card:#221B16;--ink:#F5EFEA;--ink2:#A99C90;--ink3:#6F635A;--line:#322820;--orange:#FF7A3D;--blue:#5B8CFF;--green:#2EE6A0;--red:#FF6B6B;--amber:#FFC24B}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:radial-gradient(1100px 500px at 80% -10%,rgba(255,122,61,.14),transparent 60%),var(--bg);min-height:100vh;padding:26px clamp(16px,4vw,44px) 60px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto}
+.hero{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:24px}
+.eyebrow{font-size:13px;color:var(--ink3);font-weight:600}
+h1{font-size:clamp(26px,3.4vw,34px);font-weight:800;letter-spacing:-.6px;margin:3px 0 8px}
+.pulse{font-size:14.5px;color:var(--ink2)}.pulse b{color:var(--ink)}
+.seg{display:flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:3px}
+.seg button{border:none;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--ink2);padding:7px 14px;border-radius:9px;cursor:pointer}.seg button.on{background:var(--orange);color:#1a1209;box-shadow:0 6px 16px rgba(255,122,61,.35)}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+.kpi{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px;position:relative;transition:transform .18s,border-color .18s}
+.kpi:hover{transform:translateY(-3px);border-color:#4a3a2c}
+.kpi .ic{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;margin-bottom:12px}
+.kpi .num{font-size:30px;font-weight:800;letter-spacing:-1px}
+.kpi .lbl{font-size:12.5px;color:var(--ink2);font-weight:600;margin-top:3px}
+.kpi .tr{position:absolute;top:16px;right:14px;font-size:11px;font-weight:700;padding:3px 7px;border-radius:20px}
+.up{background:rgba(46,230,160,.14);color:var(--green)}.fl{background:rgba(111,99,90,.2);color:var(--ink3)}.al{background:rgba(255,107,107,.14);color:var(--red)}
+.ib{background:rgba(91,140,255,.14);color:var(--blue)}.ig{background:rgba(46,230,160,.13);color:var(--green)}.io{background:rgba(255,122,61,.15);color:var(--orange)}.ip{background:rgba(187,134,252,.15);color:#C9A6FF}.ir{background:rgba(255,107,107,.14);color:var(--red)}
+.section-t{font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin:0 2px 12px}
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px}
+.act{display:flex;align-items:center;gap:12px;padding:16px 18px;border-radius:16px;font-weight:700;font-size:15px;border:1px solid var(--line);background:var(--card);cursor:pointer;transition:transform .16s}
+.act:hover{transform:translateY(-2px)}
+.act .ai{width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:19px}
+.act.p{background:linear-gradient(135deg,#FF9355,var(--orange));color:#1a1209;border:none;box-shadow:0 10px 24px rgba(255,122,61,.3)}.act.p .ai{background:rgba(0,0,0,.14)}
+.act .sub{display:block;font-size:11.5px;font-weight:500;color:var(--ink3);margin-top:1px}.act.p .sub{color:rgba(26,18,9,.7)}
+.lower{display:grid;grid-template-columns:1.25fr 1fr;gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:18px;overflow:hidden}
+.card-h{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px}
+.card-h h3{font-size:15px;font-weight:800;display:flex;gap:8px;align-items:center}
+.badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(255,122,61,.15);color:var(--orange)}
+.row{display:flex;align-items:center;gap:12px;padding:12px 18px;border-top:1px solid var(--line)}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}.d-red{background:var(--red)}.d-amber{background:var(--amber)}.d-blue{background:var(--blue)}
+.row .main{flex:1;min-width:0}.row .tt{font-size:13.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row .ss{font-size:12px;color:var(--ink2)}
+.tag{font-size:10.5px;font-weight:800;padding:3px 8px;border-radius:7px;text-transform:uppercase;letter-spacing:.4px}
+.tg-red{background:rgba(255,107,107,.14);color:var(--red)}.tg-amber{background:rgba(255,194,75,.16);color:var(--amber)}.tg-blue{background:rgba(91,140,255,.14);color:var(--blue)}
+.nb{padding:14px 18px 18px}
+textarea{width:100%;min-height:72px;background:var(--bg2);border:1px solid var(--line);border-radius:12px;padding:11px;font:inherit;font-size:13px;color:var(--ink);resize:vertical}
+textarea:focus{outline:none;border-color:var(--orange)}
+.rt{font-size:11px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:.8px;margin:14px 0 6px}
+.rmd{display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--line);font-size:13px}
+.chk{width:18px;height:18px;border-radius:6px;border:2px solid var(--line);display:grid;place-items:center;font-size:11px}.chk.on{background:var(--green);border-color:var(--green);color:#0c2018}
+.rmd.done span{text-decoration:line-through;color:var(--ink3)}.rmd .rf{font-size:11px;color:var(--ink3);font-weight:600}
+.tip{margin-top:26px;text-align:center;font-size:12px;color:var(--ink3)}
+@media(max-width:860px){.kpis{grid-template-columns:repeat(2,1fr)}.actions{grid-template-columns:repeat(2,1fr)}.lower{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+<div class="hero"><div>
+  <div class="eyebrow">jueves, 4 de junio</div>
+  <h1>Buenas tardes, TECNO 👋</h1>
+  <div class="pulse">Tienes <b>11 reparaciones en curso</b>, <b>3 listas para entregar</b> y <b>1 urgente</b>.</div>
+</div><div class="seg"><button class="on">Hoy</button><button>Semana</button><button>Mes</button></div></div>
+
+<div class="kpis">
+  <div class="kpi"><div class="ic ib">🔧</div><div class="num">11</div><div class="lbl">En reparación</div><div class="tr fl">=</div></div>
+  <div class="kpi"><div class="ic ig">📦</div><div class="num">3</div><div class="lbl">Listas hoy</div><div class="tr up">▲ 2</div></div>
+  <div class="kpi"><div class="ic io">💶</div><div class="num">€245</div><div class="lbl">Caja hoy</div><div class="tr up">▲ 18%</div></div>
+  <div class="kpi"><div class="ic ip">📅</div><div class="num">2</div><div class="lbl">Citas hoy</div><div class="tr fl">=</div></div>
+  <div class="kpi"><div class="ic ir">🚨</div><div class="num">1</div><div class="lbl">Urgente</div><div class="tr al">!</div></div>
+</div>
+
+<div class="section-t">Acciones rápidas</div>
+<div class="actions">
+  <div class="act p"><div class="ai">🔧</div><div>Nueva reparación<span class="sub">Registrar entrada</span></div></div>
+  <div class="act p"><div class="ai">🛒</div><div>Abrir TPV<span class="sub">Cobrar / vender</span></div></div>
+  <div class="act"><div class="ai ib">📄</div><div>Presupuesto<span class="sub">Crear y enviar</span></div></div>
+  <div class="act"><div class="ai ip">📦</div><div>Pedidos<span class="sub">Piezas que faltan</span></div></div>
+</div>
+
+<div class="lower">
+  <div class="card"><div class="card-h"><h3>⚠️ Necesita tu atención</h3><span class="badge">4</span></div>
+    <div class="row"><span class="dot d-red"></span><div class="main"><div class="tt">OPPO Reno 12F · Andrés Flores</div><div class="ss">Pantalla rota · prometida para hoy</div></div><span class="tag tg-red">Urgente</span></div>
+    <div class="row"><span class="dot d-amber"></span><div class="main"><div class="tt">Samsung Galaxy A50 · Brenda Pineda</div><div class="ss">No carga · lleva 6 días</div></div><span class="tag tg-amber">Vencida</span></div>
+    <div class="row"><span class="dot d-blue"></span><div class="main"><div class="tt">3 cobros pendientes · €180</div><div class="ss">Entregadas sin pagar</div></div><span class="tag tg-blue">Cobrar</span></div>
+    <div class="row"><span class="dot d-amber"></span><div class="main"><div class="tt">Stock bajo mínimo</div><div class="ss">Pantalla iPhone 13, Batería A52 y 1 más</div></div><span class="tag tg-amber">Pedir</span></div>
+  </div>
+  <div class="card"><div class="card-h"><h3>📌 Notas y recordatorios</h3></div>
+    <div class="nb"><textarea>Revisar garantía del iPhone de María antes del viernes.</textarea>
+      <div class="rt">✔️ Recordatorios</div>
+      <div class="rmd done"><div class="chk on">✓</div><span>Llamar a Andrés (OPPO)</span></div>
+      <div class="rmd"><div class="chk"></div><span style="flex:1">Pedir pantallas A52</span><span class="rf">vie 6</span></div>
+      <div class="rmd"><div class="chk"></div><span style="flex:1">Hacer cierre de caja</span><span class="rf">hoy</span></div>
+    </div>
+  </div>
+</div>
+<div class="tip">Vista previa · Oscuro Pro · datos de ejemplo</div>
+</div></body></html>
