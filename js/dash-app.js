@@ -1746,7 +1746,7 @@ function renderInicioNuevo() {
   var puede = (typeof puedeVerCaja === 'function') ? puedeVerCaja() : (U && U.rol === 'admin');
   var citasHoy = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; }).length;
   var hh = (new Date()).getHours();
-  var sal = hh < 13 ? 'Buenos días' : (hh < 21 ? 'Buenas tardes' : 'Buenas noches');
+  var sal = hh < 13 ? T('inicio.saludo_manana') : (hh < 21 ? T('inicio.saludo_tarde') : T('inicio.saludo_noche'));
   var nom = (U && U.nombre) ? U.nombre.split(' ')[0] : '';
   _st('inv-fecha', new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }));
   _st('inv-saludo', sal + (nom ? ', ' + nom : '') + ' 👋');
@@ -1764,26 +1764,26 @@ function renderInicioNuevo() {
   if (puede) { renderInicioAdmin(reps, enRep, listas, urgentes); return; }
 
   // ─── VISTA OPERATIVA (EMPLEADO, sin dinero) ───
-  if (pl) pl.innerHTML = 'Tienes <b>' + enRep.length + ' reparaciones en curso</b>, <b>' + listas.length + ' listas para entregar</b> y <b>' + urgentes.length + ' urgente' + (urgentes.length === 1 ? '' : 's') + '</b>.';
+  if (pl) { var uw = (urgentes.length === 1 ? T('inicio.urgente_s') : T('inicio.urgente_p')); pl.innerHTML = T('inicio.pulse').replace('{r}', '<b>' + enRep.length + '</b>').replace('{l}', '<b>' + listas.length + '</b>').replace('{u}', '<b>' + urgentes.length + ' ' + uw + '</b>'); }
   _st('inv-k-rep', enRep.length); _st('inv-k-listas', listas.length); _st('inv-k-citas', citasHoy); _st('inv-k-urg', urgentes.length);
   function _tr(id, cls, txt) { var e = document.getElementById(id); if (e) { e.className = 'tr ' + cls; e.textContent = txt; } }
   _tr('inv-tr-listas', listas.length ? 'up' : 'fl', listas.length ? '▲ ' + listas.length : '=');
   _tr('inv-tr-citas', citasHoy ? 'up' : 'fl', citasHoy ? '▲ ' + citasHoy : '=');
   _tr('inv-tr-urg', urgentes.length ? 'al' : 'fl', urgentes.length ? '!' : '=');
   var porPedir = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido' && p.estado !== 'pedido'; }).length;
-  _st('inv-k-caja', porPedir); _st('inv-k-caja-l', 'Piezas por pedir');
+  _st('inv-k-caja', porPedir); _st('inv-k-caja-l', T('inicio.kpi_piezas'));
   _tr('inv-tr-caja', porPedir ? 'al' : 'fl', porPedir ? '!' : '=');
   var aten = [];
   urgentes.slice(0, 4).forEach(function(r) {
-    aten.push({ dot: 'd-red', tt: ((r.marca || '') + ' ' + (r.modelo || '')).trim() + (r.clienteNombre || r.cliente_nombre ? ' · ' + (r.clienteNombre || r.cliente_nombre) : ''), ss: (r.averia || ''), tag: 'Urgente', tagc: 'tg-red' });
+    aten.push({ dot: 'd-red', tt: ((r.marca || '') + ' ' + (r.modelo || '')).trim() + (r.clienteNombre || r.cliente_nombre ? ' · ' + (r.clienteNombre || r.cliente_nombre) : ''), ss: (r.averia || ''), tag: T('inicio.tag_urgente'), tagc: 'tg-red' });
   });
   var stockBajo = (DB.stock || []).filter(function(s) { return (s.unidades || 0) > 0 && (s.unidades || 0) <= (s.stockMin || 0); });
-  if (stockBajo.length) aten.push({ dot: 'd-amber', tt: 'Stock bajo mínimo · ' + stockBajo.length, ss: stockBajo.slice(0, 2).map(function(s) { return ((s.marca || '') + ' ' + (s.modelo || '')).trim(); }).join(', '), tag: 'Pedir', tagc: 'tg-amber' });
+  if (stockBajo.length) aten.push({ dot: 'd-amber', tt: T('inicio.stock_bajo') + ' · ' + stockBajo.length, ss: stockBajo.slice(0, 2).map(function(s) { return ((s.marca || '') + ' ' + (s.modelo || '')).trim(); }).join(', '), tag: T('inicio.tag_pedir'), tagc: 'tg-amber' });
   _st('inv-aten-n', aten.length);
   var ae = document.getElementById('inv-atencion');
   if (ae) ae.innerHTML = aten.length ? aten.slice(0, 5).map(function(a) {
     return '<div class="inv-row"><span class="inv-dot ' + a.dot + '"></span><div class="m"><div class="tt">' + escHtml(a.tt) + '</div><div class="ss">' + escHtml(a.ss) + '</div></div><span class="inv-tag ' + a.tagc + '">' + a.tag + '</span></div>';
-  }).join('') : '<div class="inv-empty">Todo bajo control ✓</div>';
+  }).join('') : '<div class="inv-empty">' + T('inicio.todo_control') + '</div>';
   renderInvPedidos();
   renderInvNotas();
 }
@@ -1807,7 +1807,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   if (per === 'semana') { d1 = _invIso(monday); d2 = _invIso(sunday); }
   else if (per === 'mes') { d1 = _invIso(mesIni); d2 = _invIso(mesFin); }
   else { d1 = hoy; d2 = hoy; }
-  var perLbl = per === 'semana' ? 'esta semana' : (per === 'mes' ? 'este mes' : 'hoy');
+  var perLbl = per === 'semana' ? T('inicio.per_semana') : (per === 'mes' ? T('inicio.per_mes') : T('inicio.per_hoy'));
 
   // Headline ingresos del periodo + tendencia semanal (7d vs 7d anteriores)
   var ingPer = _invIncome(d1, d2);
@@ -1820,13 +1820,13 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   _st('inv-a-perlbl', perLbl);
   _st('inv-a-big', cur(ingPer));
   var trEl = document.getElementById('inv-a-trend');
-  if (trEl) { trEl.className = 'hup' + (pct < 0 ? ' down' : ''); trEl.textContent = (pct < 0 ? '▼ ' : '▲ ') + Math.abs(pct) + '% vs semana anterior'; }
+  if (trEl) { trEl.className = 'hup' + (pct < 0 ? ' down' : ''); trEl.textContent = (pct < 0 ? '▼ ' : '▲ ') + Math.abs(pct) + '% ' + T('inicio.vs_semana'); }
   var plA = document.getElementById('inv-pulse');
-  if (plA) plA.innerHTML = (pct >= 0 ? 'Vas <b style="color:var(--inv-green)">+' + pct + '%</b> respecto a la semana pasada.' : 'Vas <b style="color:var(--inv-red)">' + pct + '%</b> respecto a la semana pasada.') + ' · <b>' + enRep.length + '</b> en curso · <b>' + listas.length + '</b> listas';
+  if (plA) { var pctTxt = '<b style="color:var(--inv-' + (pct >= 0 ? 'green' : 'red') + ')">' + (pct >= 0 ? '+' : '') + pct + '%</b>'; plA.innerHTML = T('inicio.vas').replace('{p}', pctTxt) + ' · <b>' + enRep.length + '</b> ' + T('inicio.en_curso') + ' · <b>' + listas.length + '</b> ' + T('inicio.listas_corto'); }
 
   // Gráfica adaptada al periodo: semana/hoy → Lun-Dom; mes → por semanas (S1..S5)
   var serie = [], dotIdx = 0, j, dx, iso2;
-  var ndic = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  var ndic = (T('inicio.dow') || 'Lun,Mar,Mié,Jue,Vie,Sáb,Dom').split(',');
   if (per === 'mes') {
     var lastDay = mesFin.getDate();
     var nb = Math.ceil(lastDay / 7);
@@ -1834,7 +1834,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
       var a = j * 7 + 1, b = Math.min(j * 7 + 7, lastDay);
       var ba = _invIso(new Date(baseH.getFullYear(), baseH.getMonth(), a));
       var bb = _invIso(new Date(baseH.getFullYear(), baseH.getMonth(), b));
-      serie.push({ lbl: 'S' + (j + 1), v: _invIncome(ba, bb) });
+      serie.push({ lbl: T('inicio.sem') + (j + 1), v: _invIncome(ba, bb) });
     }
     dotIdx = Math.floor((baseH.getDate() - 1) / 7);
   } else {
@@ -1853,14 +1853,14 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   if (xl) xl.innerHTML = serie.map(function(o) { return '<span>' + o.lbl + '</span>'; }).join('');
 
   // Minis variables por periodo: caja (ingresos), ventas (nº) + cobros pendientes (vivo)
-  var sufLbl = per === 'semana' ? 'de la semana' : (per === 'mes' ? 'del mes' : 'de hoy');
+  var sufLbl = per === 'semana' ? T('inicio.suf_semana') : (per === 'mes' ? T('inicio.suf_mes') : T('inicio.suf_hoy'));
   var cajaPer = _invIncome(d1, d2);
   var ventasPer = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).length;
   var cobrosArr = (DB.reps || []).filter(function(r) { return (r.restante || 0) > 0 && r.estado !== 'Cancelado'; });
   var cobrosTot = cobrosArr.reduce(function(a, r) { return a + (r.restante || 0); }, 0);
-  _st('inv-a-caja', cur(cajaPer)); _st('inv-a-caja-l', 'Caja ' + sufLbl);
-  _st('inv-a-ventas', ventasPer); _st('inv-a-ventas-l', 'Ventas ' + sufLbl);
-  _st('inv-a-cobros', cur(cobrosTot)); _st('inv-a-cobros-l', 'Cobros pendientes · ' + cobrosArr.length);
+  _st('inv-a-caja', cur(cajaPer)); _st('inv-a-caja-l', T('inicio.caja') + ' ' + sufLbl);
+  _st('inv-a-ventas', ventasPer); _st('inv-a-ventas-l', T('inicio.ventas') + ' ' + sufLbl);
+  _st('inv-a-cobros', cur(cobrosTot)); _st('inv-a-cobros-l', T('inicio.cobros_pend') + ' · ' + cobrosArr.length);
 
   // Ingresos vs gastos (mes)
   var m1 = hoy.slice(0, 8) + '01';
@@ -1870,7 +1870,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   var margen = ingMes > 0 ? Math.round(ben / ingMes * 100) : 0;
   _st('inv-a-ing', cur(ingMes)); _st('inv-a-gas', cur(gasMes)); _st('inv-a-ben', cur(ben));
   var mb = document.getElementById('inv-a-margenbar'); if (mb) mb.style.width = Math.max(0, Math.min(100, margen)) + '%';
-  _st('inv-a-margen', 'Margen del ' + margen + '% sobre ingresos del mes');
+  _st('inv-a-margen', T('inicio.margen').replace('{m}', margen));
 
   // Cómo cobras (periodo)
   var pagos = {};
@@ -1885,16 +1885,16 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   if (totalP > 0) {
     if (stk) stk.innerHTML = ordenP.map(function(m) { return '<i class="' + (clsMap[m] || 's-tr') + '" style="width:' + (pagos[m] / totalP * 100) + '%"></i>'; }).join('');
     if (pays) pays.innerHTML = ordenP.map(function(m) { return '<div class="payrow"><span class="pd ' + (clsMap[m] || 's-tr') + '"></span><span class="pn">' + (icoMap[m] || '💳') + ' ' + escHtml(m) + '</span><span class="pv">' + cur(pagos[m]) + '</span><span class="pp">' + Math.round(pagos[m] / totalP * 100) + '%</span></div>'; }).join('');
-  } else { if (stk) stk.innerHTML = ''; if (pays) pays.innerHTML = '<div class="inv-empty" style="padding:8px 0">Sin cobros en este periodo</div>'; }
+  } else { if (stk) stk.innerHTML = ''; if (pays) pays.innerHTML = '<div class="inv-empty" style="padding:8px 0">' + T('inicio.sin_cobros') + '</div>'; }
 
   // Lo que más deja (periodo, por avería + ventas)
   var cat = {};
-  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var k = (r.averia || '').trim() || 'Reparación'; cat['🔧 ' + k] = (cat['🔧 ' + k] || 0) + (r.total || 0); } });
+  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var k = (r.averia || '').trim() || T('inicio.reparacion'); cat['🔧 ' + k] = (cat['🔧 ' + k] || 0) + (r.total || 0); } });
   var ventasTot = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).reduce(function(a, v) { return a + (v.total || 0); }, 0);
-  if (ventasTot > 0) cat['🛒 Ventas / accesorios'] = ventasTot;
+  if (ventasTot > 0) cat['🛒 ' + T('inicio.ventas_accesorios')] = ventasTot;
   var topArr = Object.keys(cat).map(function(k) { return { k: k, v: cat[k] }; }).sort(function(a, b) { return b.v - a.v; }).slice(0, 4);
   var topEl = document.getElementById('inv-a-top');
-  if (topEl) topEl.innerHTML = topArr.length ? topArr.map(function(o) { return '<div class="pl"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%">' + escHtml(o.k) + '</span><span class="v">' + cur(o.v) + '</span></div>'; }).join('') : '<div class="inv-empty" style="padding:8px 0">Sin ingresos en este periodo</div>';
+  if (topEl) topEl.innerHTML = topArr.length ? topArr.map(function(o) { return '<div class="pl"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:65%">' + escHtml(o.k) + '</span><span class="v">' + cur(o.v) + '</span></div>'; }).join('') : '<div class="inv-empty" style="padding:8px 0">' + T('inicio.sin_ingresos') + '</div>';
 
   // Pedidos por recibir
   var peds = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido'; });
@@ -1902,8 +1902,8 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   var pedsEl = document.getElementById('inv-a-peds');
   if (pedsEl) pedsEl.innerHTML = peds.length ? peds.slice(0, 5).map(function(p) {
     var st = p.estado === 'pedido' ? '🟡' : '🔴';
-    return '<div class="ped"><span class="st">' + st + '</span><span class="pz">' + escHtml(p.pieza || p.proveedor || 'Pedido') + '</span><span class="am">' + (p.importe ? cur(parseFloat(p.importe) || 0) : '—') + '</span></div>';
-  }).join('') : '<div class="inv-empty" style="padding:8px 0">Sin pedidos pendientes</div>';
+    return '<div class="ped"><span class="st">' + st + '</span><span class="pz">' + escHtml(p.pieza || p.proveedor || T('inicio.pedidos')) + '</span><span class="am">' + (p.importe ? cur(parseFloat(p.importe) || 0) : '—') + '</span></div>';
+  }).join('') : '<div class="inv-empty" style="padding:8px 0">' + T('pedidos.vacio') + '</div>';
   _st('inv-a-comp', cur(comp));
 }
 
