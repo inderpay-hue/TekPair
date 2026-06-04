@@ -604,6 +604,137 @@ function ajTab(btn) {
   if (tab === 'negocio' && typeof cargarTienda === 'function') cargarTienda();
 }
 
+// ════════════ PEDIDOS PENDIENTES (piezas que hacen falta) ════════════
+function _uuidPed() {
+  try { if (window.crypto && crypto.randomUUID) return crypto.randomUUID(); } catch (e) {}
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); });
+}
+function _pedFecha(f) { if (!f) return ''; var p = String(f).slice(0, 10).split('-'); return p.length === 3 ? (p[2] + '/' + p[1]) : f; }
+function cargarPedidos(cb) {
+  if (!SB_KEY || !TIENDA_ID) { DB.pedidos = DB.pedidos || []; if (cb) cb(); return; }
+  sbGet('pedidos', 'tienda_id=eq.' + TIENDA_ID).then(function(rows) {
+    DB.pedidos = Array.isArray(rows) ? rows : [];
+    if (cb) cb(); else if (_getWidgetSelectorActive() === 'pedidos') renderPedidosWidget();
+  }).catch(function() { DB.pedidos = DB.pedidos || []; if (cb) cb(); });
+}
+function renderPedidosWidget() {
+  var box = document.getElementById('wsSelectorBody');
+  if (!box) return;
+  if (!DB.pedidos) { box.innerHTML = '<div style="padding:18px;color:var(--muted);font-size:12px">…</div>'; cargarPedidos(function() { renderPedidosWidget(); }); return; }
+  var pend = DB.pedidos.filter(function(p) { return p.estado !== 'recibido'; });
+  var ord = { por_pedir: 0, pedido: 1 };
+  pend.sort(function(a, b) { var d = (ord[a.estado] || 0) - (ord[b.estado] || 0); if (d) return d; return (a.fecha_estimada || '9999').localeCompare(b.fecha_estimada || '9999'); });
+  var est = { por_pedir: { e: '🔴', next: T('pedidos.marcar_pedido') }, pedido: { e: '🟡', next: T('pedidos.marcar_recibido') } };
+  var html = '<div style="padding:12px 14px">';
+  html += '<button class="btn-primary" style="width:100%;margin-bottom:10px;padding:9px" onclick="nuevoPedido()">+ ' + T('pedidos.nuevo') + '</button>';
+  if (!pend.length) {
+    html += '<div style="text-align:center;color:var(--muted);font-size:12px;padding:12px 0">' + T('pedidos.vacio') + '</div>';
+  } else {
+    html += pend.map(function(p) {
+      var c = est[p.estado] || est.por_pedir;
+      var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? ('€' + parseFloat(p.importe).toFixed(2)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
+      return '<div style="border:1px solid var(--border);border-radius:9px;padding:9px 10px;margin-bottom:7px">' +
+        '<div style="font-weight:700;font-size:13px">' + c.e + ' ' + escHtml(p.pieza) + (p.cantidad > 1 ? (' <span style="color:var(--muted)">x' + p.cantidad + '</span>') : '') + '</div>' +
+        (meta ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + meta + '</div>' : '') +
+        '<div style="display:flex;gap:5px;margin-top:7px">' +
+          '<button style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;flex:1" onclick="avanzarPedido(\'' + p.id + '\')">' + c.next + '</button>' +
+          '<button style="background:var(--light);border:none;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer" onclick="editarPedido(\'' + p.id + '\')">✏️</button>' +
+          '<button style="background:rgba(239,68,68,.1);color:var(--red);border:none;border-radius:6px;padding:5px 8px;font-size:11px;cursor:pointer" onclick="eliminarPedido(\'' + p.id + '\')">🗑️</button>' +
+        '</div></div>';
+    }).join('');
+  }
+  html += '<div style="margin-top:10px;border-top:1px solid var(--border);padding-top:10px">' +
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-bottom:5px">📝 ' + T('pedidos.notas') + '</div>' +
+    '<textarea id="pedidosNotas" placeholder="' + escHtml(T('pedidos.notas_ph')) + '" oninput="guardarNotasPedidos()" style="width:100%;box-sizing:border-box;min-height:58px;resize:vertical;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;font-family:inherit"></textarea></div>';
+  html += '</div>';
+  box.innerHTML = html;
+  var ta = document.getElementById('pedidosNotas'); if (ta) { try { ta.value = localStorage.getItem('tk_pednotas_' + TIENDA_ID) || ''; } catch (e) {} }
+}
+function guardarNotasPedidos() { var ta = document.getElementById('pedidosNotas'); if (!ta) return; try { localStorage.setItem('tk_pednotas_' + TIENDA_ID, ta.value); } catch (e) {} }
+function nuevoPedido() {
+  SEL.editPedidoId = null;
+  document.getElementById('mPedidoTit').textContent = T('pedidos.nuevo');
+  ['pedPieza', 'pedProv', 'pedImporte', 'pedFecha', 'pedNota'].forEach(function(id) { var e = document.getElementById(id); if (e) e.value = ''; });
+  document.getElementById('pedCant').value = '1';
+  openM('mPedido');
+  setTimeout(function() { var e = document.getElementById('pedPieza'); if (e) e.focus(); }, 60);
+}
+function editarPedido(id) {
+  var p = (DB.pedidos || []).find(function(x) { return x.id === id; });
+  if (!p) return;
+  SEL.editPedidoId = id;
+  document.getElementById('mPedidoTit').textContent = T('pedidos.editar');
+  document.getElementById('pedPieza').value = p.pieza || '';
+  document.getElementById('pedCant').value = p.cantidad || 1;
+  document.getElementById('pedProv').value = p.proveedor || '';
+  document.getElementById('pedImporte').value = p.importe || '';
+  document.getElementById('pedFecha').value = p.fecha_estimada || '';
+  document.getElementById('pedNota').value = p.nota || '';
+  openM('mPedido');
+}
+function guardarPedido() {
+  var pieza = (document.getElementById('pedPieza').value || '').trim();
+  if (!pieza) { toast(T('pedidos.falta_pieza'), 'err'); return; }
+  var datos = {
+    pieza: pieza,
+    cantidad: parseInt(document.getElementById('pedCant').value, 10) || 1,
+    proveedor: (document.getElementById('pedProv').value || '').trim() || null,
+    importe: parseFloat(document.getElementById('pedImporte').value) || 0,
+    fecha_estimada: document.getElementById('pedFecha').value || null,
+    nota: (document.getElementById('pedNota').value || '').trim() || null
+  };
+  DB.pedidos = DB.pedidos || [];
+  if (SEL.editPedidoId) {
+    var p = DB.pedidos.find(function(x) { return x.id === SEL.editPedidoId; });
+    if (p) { Object.assign(p, datos); if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), datos); }
+  } else {
+    var nuevo = Object.assign({ id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null) }, datos);
+    DB.pedidos.unshift(nuevo);
+    if (SB_KEY) sbPost('pedidos', nuevo);
+  }
+  closeM('mPedido');
+  renderPedidosWidget();
+  toast(T('pedidos.guardado'), 'ok');
+}
+function avanzarPedido(id) {
+  var p = (DB.pedidos || []).find(function(x) { return x.id === id; });
+  if (!p) return;
+  if (p.estado === 'por_pedir') {
+    p.estado = 'pedido';
+    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), { estado: 'pedido' });
+    toast(T('pedidos.marcado_pedido'), 'ok');
+  } else if (p.estado === 'pedido') {
+    p.estado = 'recibido';
+    var patch = { estado: 'recibido' };
+    if (!p.gasto_id && (parseFloat(p.importe) || 0) > 0) {
+      var gid = _crearGastoDesdePedido(p);
+      p.gasto_id = gid; patch.gasto_id = gid;
+      toast(T('pedidos.recibido_gasto'), 'ok');
+    } else { toast(T('pedidos.marcado_recibido'), 'ok'); }
+    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
+  }
+  renderPedidosWidget();
+}
+function eliminarPedido(id) {
+  if (!confirm(T('pedidos.confirmar_borrar'))) return;
+  DB.pedidos = (DB.pedidos || []).filter(function(x) { return x.id !== id; });
+  if (SB_KEY) sbDelete('pedidos', 'id=eq.' + encodeURIComponent(id));
+  renderPedidosWidget();
+}
+function _crearGastoDesdePedido(p) {
+  var g = {
+    id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID,
+    concepto: T('pedidos.concepto_gasto') + ': ' + p.pieza + (p.proveedor ? (' (' + p.proveedor + ')') : ''),
+    importe: parseFloat(p.importe) || 0, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Stock/Compras',
+    iva_tipo: 21, proveedor_id: null, proveedor_nombre: p.proveedor || null, proveedor_nif: null, numero_factura: null
+  };
+  DB.gastos = DB.gastos || [];
+  DB.gastos.push(g);
+  try { guardarDatos(); } catch (e) {}
+  try { if (typeof renderGastos === 'function') renderGastos(); } catch (e) {}
+  return g.id;
+}
+
 // ── Puerta de código de Cajas: identifica al empleado al entrar ──
 async function pedirCodigoCaja() {
   var users = [];
@@ -1385,6 +1516,7 @@ var WIDGET_SELECTOR_OPTS = [
   {id:'ops', icon:'🔧', labelKey:'dash.ws_ops', label:'Operaciones'},
   {id:'urgentes', icon:'🚨', labelKey:'dash.ws_urgentes', label:'Urgentes hoy'},
   {id:'cobros', icon:'💰', labelKey:'dash.ws_cobros', label:'Cobros pendientes'},
+  {id:'pedidos', icon:'📦', labelKey:'dash.ws_pedidos', label:'Pedidos'},
   {id:'cierre', icon:'📊', labelKey:'dash.ws_cierre', label:'Cierre del día'},
   {id:'stock', icon:'📦', labelKey:'dash.ws_stock', label:'Stock crítico'},
   {id:'averias', icon:'📋', labelKey:'dash.ws_averias', label:'Top averías'}
@@ -1481,6 +1613,9 @@ function _renderWidgetSelectorBody(id) {
     }
     html += '</div>';
     box.innerHTML = html;
+  } else if (id === 'pedidos') {
+    renderPedidosWidget();
+    return;
   } else if (id === 'cierre' && puedeVerCaja()) {
     var hoyReps = DB.reps.filter(function(r){ return r.fechaEntregaReal === hoyLocal(); });
     var hoyVentas = DB.ventas.filter(function(v){ return v.fecha === hoyLocal() && !v.reembolsado; });
