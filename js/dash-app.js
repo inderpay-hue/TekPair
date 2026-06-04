@@ -685,6 +685,8 @@ function cargarPedidos(cb) {
 }
 function renderPedidosWidget() {
   try { renderInvPedidos(); } catch(e){}
+  try { if (document.getElementById('pedidosPageBox')) renderPedidosPage(); } catch(e){}
+  try { updatePedidosBadge(); } catch(e){}
   var cont = document.getElementById('cardPedidos');
   var box = document.getElementById('pedidosBox');
   if (!box) return;
@@ -909,6 +911,7 @@ function navTo(id) {
   if (id === 'pProvs') renderProvs();
   if (id === 'pCajas') Cajas.renderCajas();
   if (id === 'pInicioNuevo') renderInicioNuevo();
+  if (id === 'pPedidos') renderPedidosPage();
   if (id === 'pGastos') renderGastos();
   if (id === 'pAjustes') { try { renderUbicacionesAjustes(); } catch(e){} cargarAjustes(); }
   if (id === 'pReportes') renderReporte();
@@ -1424,6 +1427,7 @@ async function cargarDatosSupabase() {
 function refrescarVistasActivas() {
   try { if (typeof renderDash === 'function') renderDash(); } catch(e){}
   try { if (typeof renderInicioNuevo === 'function') renderInicioNuevo(); } catch(e){}
+  try { if (!DB.pedidos && typeof cargarPedidos === 'function') cargarPedidos(function(){ updatePedidosBadge(); }); else updatePedidosBadge(); } catch(e){}
   try { if (typeof renderVentas === 'function') renderVentas(); } catch(e){}
   try { if (typeof renderReps === 'function') renderReps(); } catch(e){}
   try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
@@ -1769,6 +1773,66 @@ function addRecInv() {
   window._recordatorios = window._recordatorios || [];
   window._recordatorios.unshift({ t: t, f: (fe && fe.value) || null, d: false });
   _guardarRecordatorios(); renderInvNotas();
+}
+
+// ════════════ SECCIÓN PEDIDOS (página completa) ════════════
+function updatePedidosBadge() {
+  var b = document.getElementById('badgePedidos');
+  if (!b) return;
+  var n = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido'; }).length;
+  if (n > 0) { b.textContent = n; b.style.display = 'inline-flex'; } else { b.style.display = 'none'; }
+}
+function setPedFiltro(f) { window._pedFiltro = f; renderPedidosPage(); }
+function renderPedidosPage() {
+  var box = document.getElementById('pedidosPageBox');
+  if (!box) return;
+  if (!DB.pedidos) { box.innerHTML = '<div class="empty">…</div>'; if (typeof cargarPedidos === 'function') cargarPedidos(function() { renderPedidosPage(); }); return; }
+  updatePedidosBadge();
+  var filt = window._pedFiltro || 'pendientes';
+  var all = DB.pedidos || [];
+  var cnt = {
+    pendientes: all.filter(function(p) { return p.estado !== 'recibido'; }).length,
+    por_pedir: all.filter(function(p) { return p.estado === 'por_pedir'; }).length,
+    pedido: all.filter(function(p) { return p.estado === 'pedido'; }).length,
+    recibido: all.filter(function(p) { return p.estado === 'recibido'; }).length,
+    todos: all.length
+  };
+  var tabs = [
+    { k: 'pendientes', e: '📋', t: 'Pendientes' },
+    { k: 'por_pedir', e: '🔴', t: 'Por pedir' },
+    { k: 'pedido', e: '🟡', t: 'Pedidos' },
+    { k: 'recibido', e: '✅', t: 'Recibidos' },
+    { k: 'todos', e: '📦', t: 'Todos' }
+  ];
+  var fc = document.getElementById('pedidosPageFiltros');
+  if (fc) fc.innerHTML = tabs.map(function(tb) {
+    var on = filt === tb.k;
+    return '<button onclick="setPedFiltro(\'' + tb.k + '\')" style="border:1px solid ' + (on ? 'var(--orange)' : 'var(--border)') + ';background:' + (on ? 'var(--orange)' : '#fff') + ';color:' + (on ? '#fff' : 'var(--text)') + ';border-radius:9px;padding:6px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">' + tb.e + ' ' + tb.t + ' <span style="opacity:.7">' + (cnt[tb.k] || 0) + '</span></button>';
+  }).join('');
+  var lista = all.filter(function(p) {
+    if (filt === 'pendientes') return p.estado !== 'recibido';
+    if (filt === 'todos') return true;
+    return p.estado === filt;
+  });
+  var ord = { por_pedir: 0, pedido: 1, recibido: 2 };
+  lista.sort(function(a, b) { var d = (ord[a.estado] || 0) - (ord[b.estado] || 0); if (d) return d; return (b.fecha_pedido || b.fecha_estimada || '').localeCompare(a.fecha_pedido || a.fecha_estimada || ''); });
+  if (!lista.length) { box.innerHTML = '<div class="empty" style="padding:30px;text-align:center;color:var(--muted)">' + T('pedidos.vacio') + '</div>'; return; }
+  var est = { por_pedir: { e: '🔴', next: T('pedidos.marcar_pedido') }, pedido: { e: '🟡', next: T('pedidos.marcar_recibido') }, recibido: { e: '✅', next: '' } };
+  box.innerHTML = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">' + lista.map(function(p) {
+    var c = est[p.estado] || est.por_pedir;
+    var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? ('€' + parseFloat(p.importe).toFixed(2)) : ''), (p.cantidad > 1 ? ('x' + p.cantidad) : ''), (p.fecha_pedido ? (T('pedidos.pedido_el') + ' ' + _pedFecha(p.fecha_pedido)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
+    var acciones = (p.estado !== 'recibido')
+      ? '<button style="background:var(--green);color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:11.5px;cursor:pointer;flex:1" onclick="avanzarPedido(\'' + p.id + '\')">' + c.next + '</button>' +
+        '<button style="background:var(--light);border:none;border-radius:7px;padding:6px 9px;font-size:11.5px;cursor:pointer" onclick="editarPedido(\'' + p.id + '\')">✏️</button>'
+      : '<span style="flex:1;font-size:11.5px;color:var(--green);font-weight:700">✅ ' + T('pedidos.marcado_recibido') + '</span>';
+    return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff">' +
+      '<div style="font-weight:800;font-size:14px">' + c.e + ' ' + escHtml(p.pieza || '') + '</div>' +
+      (meta ? '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">' + meta + '</div>' : '') +
+      (p.nota ? '<div style="font-size:11.5px;color:var(--muted);margin-top:3px;font-style:italic">“' + escHtml(p.nota) + '”</div>' : '') +
+      '<div style="display:flex;gap:5px;margin-top:9px">' + acciones +
+        '<button style="background:rgba(239,68,68,.1);color:var(--red);border:none;border-radius:7px;padding:6px 9px;font-size:11.5px;cursor:pointer" onclick="eliminarPedido(\'' + p.id + '\')">🗑️</button>' +
+      '</div></div>';
+  }).join('') + '</div>';
 }
 
 async function renderDash() {
