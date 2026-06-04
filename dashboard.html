@@ -3005,6 +3005,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 #pInicioNuevo .payrow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--inv-line);font-size:13px}#pInicioNuevo .payrow:last-child{border:none}
 #pInicioNuevo .payrow .pd{width:9px;height:9px;border-radius:50%}#pInicioNuevo .payrow .pn{flex:1;font-weight:600}#pInicioNuevo .payrow .pv{font-weight:800}#pInicioNuevo .payrow .pp{font-size:11px;color:var(--inv-ink3);font-weight:700;width:38px;text-align:right}
 #pInicioNuevo .inv-card2 .ped{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--inv-line);font-size:13px}#pInicioNuevo .inv-card2 .ped:last-child{border:none}#pInicioNuevo .inv-card2 .ped .st{font-size:14px}#pInicioNuevo .inv-card2 .ped .pz{flex:1;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#pInicioNuevo .inv-card2 .ped .am{font-weight:800;color:var(--inv-ink2);font-size:12.5px}
+#pInicioNuevo .inv-clk{cursor:pointer;transition:transform .15s,box-shadow .15s}#pInicioNuevo .inv-clk:hover{transform:translateY(-3px);box-shadow:0 16px 40px -16px rgba(34,29,25,.22)}
+#pInicioNuevo .inv-chartcard.inv-clk:hover{box-shadow:0 26px 52px -18px rgba(34,29,25,.5)}
 @media(max-width:860px){#pInicioNuevo .inv-grid{grid-template-columns:1fr}#pInicioNuevo .inv-row3{grid-template-columns:1fr}}
 @media(max-width:960px){#pInicioNuevo .inv-lower{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){#pInicioNuevo .inv-kpis{grid-template-columns:repeat(2,1fr)}#pInicioNuevo .inv-actions{grid-template-columns:repeat(2,1fr)}#pInicioNuevo .inv-lower{grid-template-columns:1fr}}
@@ -3021,7 +3023,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <!-- ═══ VISTA NEGOCIO (ADMIN) ═══ -->
   <div id="inv-admin" style="display:none">
     <div class="inv-grid">
-      <div class="inv-chartcard">
+      <div class="inv-chartcard inv-clk" onclick="navTo('pReportes')" title="Ver reportes">
         <div class="hl">Ingresos <span id="inv-a-perlbl">hoy</span></div>
         <div class="hbig" id="inv-a-big">€0</div>
         <div class="hup" id="inv-a-trend">▲ 0%</div>
@@ -3034,27 +3036,34 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="xlabels" id="inv-a-xlabels"></div>
       </div>
       <div class="inv-side">
-        <div class="inv-mini"><div class="ic ig">💶</div><div><div class="num" id="inv-a-caja">€0</div><div class="lbl" id="inv-a-caja-l">Caja de hoy</div></div></div>
-        <div class="inv-mini"><div class="ic ib">🛒</div><div><div class="num" id="inv-a-ventas">0</div><div class="lbl" id="inv-a-ventas-l">Ventas hoy</div></div></div>
-        <div class="inv-mini"><div class="ic ir">⏰</div><div><div class="num" id="inv-a-cobros">€0</div><div class="lbl" id="inv-a-cobros-l">Cobros pendientes</div></div></div>
+        <div class="inv-mini inv-clk" onclick="navTo('pReportes')"><div class="ic ig">💶</div><div><div class="num" id="inv-a-caja">€0</div><div class="lbl" id="inv-a-caja-l">Caja de hoy</div></div></div>
+        <div class="inv-mini inv-clk" onclick="navTo('pVentas')"><div class="ic ib">🛒</div><div><div class="num" id="inv-a-ventas">0</div><div class="lbl" id="inv-a-ventas-l">Ventas hoy</div></div></div>
+        <div class="inv-mini inv-clk" onclick="navTo('pReps')"><div class="ic ir">⏰</div><div><div class="num" id="inv-a-cobros">€0</div><div class="lbl" id="inv-a-cobros-l">Cobros pendientes</div></div></div>
       </div>
     </div>
+    <div class="inv-sect">Acciones rápidas</div>
+    <div class="inv-actions">
+      <div class="inv-act p" onclick="abrirRep()"><div class="ai">🔧</div><div>Nueva reparación<span class="sub">Registrar entrada</span></div></div>
+      <div class="inv-act p" onclick="window.location.href='tpv.html'"><div class="ai">🛒</div><div>Abrir TPV<span class="sub">Cobrar / vender</span></div></div>
+      <div class="inv-act" onclick="navTo('pPresupuestos')"><div class="ai ib">📄</div><div>Presupuesto<span class="sub">Crear y enviar</span></div></div>
+      <div class="inv-act" onclick="navTo('pPedidos')"><div class="ai ip">📦</div><div>Nuevo pedido<span class="sub">Piezas / material</span></div></div>
+    </div>
     <div class="inv-row3">
-      <div class="inv-card2"><h3>📊 Ingresos vs gastos (mes)</h3>
+      <div class="inv-card2 inv-clk" onclick="navTo('pGastos')"><h3>📊 Ingresos vs gastos (mes)</h3>
         <div class="pl"><span>Ingresos</span><span class="v" style="color:var(--inv-green)" id="inv-a-ing">€0</span></div>
         <div class="pl"><span>Gastos</span><span class="v" style="color:var(--inv-red)" id="inv-a-gas">€0</span></div>
         <div class="pl tot"><span>Beneficio</span><span class="v" id="inv-a-ben">€0</span></div>
         <div class="prog"><i id="inv-a-margenbar" style="width:0%"></i></div>
         <div class="mini2" id="inv-a-margen">Margen 0%</div>
       </div>
-      <div class="inv-card2"><h3>💳 Cómo cobras</h3>
+      <div class="inv-card2 inv-clk" onclick="navTo('pReportes')"><h3>💳 Cómo cobras</h3>
         <div class="stack" id="inv-a-stack"></div>
         <div id="inv-a-pays"></div>
       </div>
-      <div class="inv-card2"><h3>🏆 Lo que más deja</h3>
+      <div class="inv-card2 inv-clk" onclick="navTo('pReportes')"><h3>🏆 Lo que más deja</h3>
         <div id="inv-a-top"></div>
       </div>
-      <div class="inv-card2"><h3>📦 Pedidos por recibir</h3>
+      <div class="inv-card2 inv-clk" onclick="navTo('pPedidos')"><h3>📦 Pedidos por recibir</h3>
         <div id="inv-a-peds"></div>
         <div class="pl tot" style="border-top:1px dashed var(--inv-line);margin-top:6px"><span>Comprometido</span><span class="v" style="color:var(--inv-ink2)" id="inv-a-comp">€0</span></div>
         <div class="mini2">Entrará en Gastos al recibir</div>
