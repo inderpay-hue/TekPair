@@ -26,7 +26,12 @@ svg{display:block;width:100%;height:120px;margin-top:18px;position:relative;over
 .mini .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex-shrink:0}
 .mini .num{font-size:25px;font-weight:800;letter-spacing:-.6px;line-height:1}.mini .lbl{font-size:12.5px;color:var(--ink2);font-weight:600;margin-top:2px}
 .ig{background:rgba(21,158,114,.12);color:var(--green)}.ir{background:rgba(226,72,60,.1);color:var(--red)}.ib{background:rgba(59,111,245,.1);color:var(--blue)}.io{background:rgba(236,92,36,.11);color:var(--orange)}
-.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+.row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:18px}
+.stack{display:flex;height:13px;border-radius:20px;overflow:hidden;margin-bottom:14px}
+.stack i{height:100%}
+.s-cash{background:var(--green)}.s-card{background:var(--blue)}.s-biz{background:var(--orange)}
+.payrow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--line);font-size:13px}.payrow:last-child{border:none}
+.payrow .pd{width:9px;height:9px;border-radius:50%}.payrow .pn{flex:1;font-weight:600}.payrow .pv{font-weight:800}.payrow .pp{font-size:11px;color:var(--ink3);font-weight:700;width:38px;text-align:right}
 .card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);padding:18px}
 .card h3{font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:7px}
 .pl{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--line);font-size:13.5px}.pl:last-child{border:none}.pl .v{font-weight:800}
@@ -67,6 +72,12 @@ svg{display:block;width:100%;height:120px;margin-top:18px;position:relative;over
     <div class="pl tot"><span>Beneficio</span><span class="v">€4.440</span></div>
     <div class="prog"><i style="width:60%"></i></div>
     <div class="mini2">Margen del 60% — por encima de tu media (54%)</div>
+  </div>
+  <div class="card"><h3>💳 Cómo cobras (semana)</h3>
+    <div class="stack"><i class="s-cash" style="width:53%"></i><i class="s-card" style="width:34%"></i><i class="s-biz" style="width:13%"></i></div>
+    <div class="payrow"><span class="pd s-cash"></span><span class="pn">💵 Efectivo</span><span class="pv">€980</span><span class="pp">53%</span></div>
+    <div class="payrow"><span class="pd s-card"></span><span class="pn">💳 Tarjeta</span><span class="pv">€640</span><span class="pp">34%</span></div>
+    <div class="payrow"><span class="pd s-biz"></span><span class="pn">📲 Bizum</span><span class="pv">€240</span><span class="pp">13%</span></div>
   </div>
   <div class="card"><h3>🏆 Lo que más deja</h3>
     <div class="pl"><span>📱 Cambio de pantalla</span><span class="v">€1.240</span></div>
