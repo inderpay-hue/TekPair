@@ -1571,11 +1571,19 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   function _setAttr(id, a, v) { var e = document.getElementById(id); if (e) e.setAttribute(a, v); }
   var hoy = hoyLocal();
   var per = window._invPer || 'hoy';
+  var baseH = new Date(hoy + 'T00:00:00');
+  // Lunes de la semana actual (getDay: 0=Dom..6=Sáb → dow 0=Lun..6=Dom)
+  var dow = (baseH.getDay() + 6) % 7;
+  var monday = new Date(baseH); monday.setDate(baseH.getDate() - dow);
+  var sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
+  // Primer y último día del mes
+  var mesIni = new Date(baseH.getFullYear(), baseH.getMonth(), 1);
+  var mesFin = new Date(baseH.getFullYear(), baseH.getMonth() + 1, 0);
   // Rango del periodo
-  var d1, d2 = hoy;
-  if (per === 'semana') { var ds = new Date(hoy + 'T00:00:00'); ds.setDate(ds.getDate() - 6); d1 = _invIso(ds); }
-  else if (per === 'mes') { d1 = hoy.slice(0, 8) + '01'; }
-  else { d1 = hoy; }
+  var d1, d2;
+  if (per === 'semana') { d1 = _invIso(monday); d2 = _invIso(sunday); }
+  else if (per === 'mes') { d1 = _invIso(mesIni); d2 = _invIso(mesFin); }
+  else { d1 = hoy; d2 = hoy; }
   var perLbl = per === 'semana' ? 'esta semana' : (per === 'mes' ? 'este mes' : 'hoy');
 
   // Headline ingresos del periodo + tendencia semanal (7d vs 7d anteriores)
@@ -1593,18 +1601,33 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   var plA = document.getElementById('inv-pulse');
   if (plA) plA.innerHTML = (pct >= 0 ? 'Vas <b style="color:var(--inv-green)">+' + pct + '%</b> respecto a la semana pasada.' : 'Vas <b style="color:var(--inv-red)">' + pct + '%</b> respecto a la semana pasada.') + ' · <b>' + enRep.length + '</b> en curso · <b>' + listas.length + '</b> listas';
 
-  // Sparkline últimos 7 días
-  var days = [];
-  for (var i = 6; i >= 0; i--) { var dd = new Date(hoy + 'T00:00:00'); dd.setDate(dd.getDate() - i); var iso = _invIso(dd); days.push({ d: dd, v: _invIncome(iso, iso) }); }
-  var maxV = Math.max.apply(null, days.map(function(o) { return o.v; }).concat([1]));
-  var nd = ['Dom', 'Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb'];
-  var pts = days.map(function(o, idx) { return { x: 14 + idx * (252 / 6), y: 104 - (o.v / maxV) * 88 }; });
+  // Gráfica adaptada al periodo: semana/hoy → Lun-Dom; mes → por semanas (S1..S5)
+  var serie = [], dotIdx = 0, j, dx, iso2;
+  var ndic = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+  if (per === 'mes') {
+    var lastDay = mesFin.getDate();
+    var nb = Math.ceil(lastDay / 7);
+    for (j = 0; j < nb; j++) {
+      var a = j * 7 + 1, b = Math.min(j * 7 + 7, lastDay);
+      var ba = _invIso(new Date(baseH.getFullYear(), baseH.getMonth(), a));
+      var bb = _invIso(new Date(baseH.getFullYear(), baseH.getMonth(), b));
+      serie.push({ lbl: 'S' + (j + 1), v: _invIncome(ba, bb) });
+    }
+    dotIdx = Math.floor((baseH.getDate() - 1) / 7);
+  } else {
+    for (j = 0; j < 7; j++) { dx = new Date(monday); dx.setDate(monday.getDate() + j); iso2 = _invIso(dx); serie.push({ lbl: ndic[j], v: _invIncome(iso2, iso2) }); }
+    dotIdx = dow;
+  }
+  var maxV = Math.max.apply(null, serie.map(function(o) { return o.v; }).concat([1]));
+  var n1 = serie.length > 1 ? serie.length - 1 : 1;
+  var pts = serie.map(function(o, idx) { return { x: 14 + idx * (252 / n1), y: 104 - (o.v / maxV) * 88 }; });
   var line = pts.map(function(p, idx) { return (idx === 0 ? 'M' : 'L') + p.x.toFixed(1) + ',' + p.y.toFixed(1); }).join(' ');
-  var area = line + ' L' + pts[6].x.toFixed(1) + ',120 L' + pts[0].x.toFixed(1) + ',120 Z';
+  var area = line + ' L' + pts[pts.length - 1].x.toFixed(1) + ',120 L' + pts[0].x.toFixed(1) + ',120 Z';
   _setAttr('inv-a-line', 'd', line); _setAttr('inv-a-area', 'd', area);
-  _setAttr('inv-a-dot', 'cx', pts[6].x.toFixed(1)); _setAttr('inv-a-dot', 'cy', pts[6].y.toFixed(1));
+  if (dotIdx < 0) dotIdx = 0; if (dotIdx >= pts.length) dotIdx = pts.length - 1;
+  _setAttr('inv-a-dot', 'cx', pts[dotIdx].x.toFixed(1)); _setAttr('inv-a-dot', 'cy', pts[dotIdx].y.toFixed(1));
   var xl = document.getElementById('inv-a-xlabels');
-  if (xl) xl.innerHTML = days.map(function(o) { return '<span>' + nd[o.d.getDay()] + '</span>'; }).join('');
+  if (xl) xl.innerHTML = serie.map(function(o) { return '<span>' + o.lbl + '</span>'; }).join('');
 
   // Minis: caja hoy, ventas hoy (nº), cobros pendientes
   var cajaHoy = _invIncome(hoy, hoy);
