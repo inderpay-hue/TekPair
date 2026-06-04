@@ -445,6 +445,7 @@ window.addEventListener('DOMContentLoaded', function() {
   // Load local data
   cargarDatosLocal();
   renderDash();
+  try { renderInicioNuevo(); } catch(e){}
   checkUrgentes();
   applyLang();
 
@@ -1394,6 +1395,7 @@ async function cargarDatosSupabase() {
 // Refresca todas las vistas activas (no solo el dashboard)
 function refrescarVistasActivas() {
   try { if (typeof renderDash === 'function') renderDash(); } catch(e){}
+  try { if (typeof renderInicioNuevo === 'function') renderInicioNuevo(); } catch(e){}
   try { if (typeof renderVentas === 'function') renderVentas(); } catch(e){}
   try { if (typeof renderReps === 'function') renderReps(); } catch(e){}
   try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
@@ -1508,6 +1510,10 @@ function renderInicioNuevo() {
   var pl = document.getElementById('inv-pulse');
   if (pl) pl.innerHTML = 'Tienes <b>' + enRep.length + ' reparaciones en curso</b>, <b>' + listas.length + ' listas para entregar</b> y <b>' + urgentes.length + ' urgente' + (urgentes.length === 1 ? '' : 's') + '</b>.';
   _st('inv-k-rep', enRep.length); _st('inv-k-listas', listas.length); _st('inv-k-citas', citasHoy); _st('inv-k-urg', urgentes.length);
+  function _tr(id, cls, txt) { var e = document.getElementById(id); if (e) { e.className = 'tr ' + cls; e.textContent = txt; } }
+  _tr('inv-tr-listas', listas.length ? 'up' : 'fl', listas.length ? '▲ ' + listas.length : '=');
+  _tr('inv-tr-citas', citasHoy ? 'up' : 'fl', citasHoy ? '▲ ' + citasHoy : '=');
+  _tr('inv-tr-urg', urgentes.length ? 'al' : 'fl', urgentes.length ? '!' : '=');
   var kc = document.getElementById('inv-kpi-caja');
   if (kc) { if (puede) { kc.style.display = ''; _st('inv-k-caja', cur(cajaHoy)); } else kc.style.display = 'none'; }
   var aten = [];

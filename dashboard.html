@@ -1005,7 +1005,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="sidebar-nav">
     <div class="sidebar-group"><span data-t="nav.grupo_operacion">Operación</span></div>
-    <div class="sidebar-ni active" data-p="pDash" onclick="navTo('pDash');setSidebarActive(this)">
+    <div class="sidebar-ni active" data-p="pInicioNuevo" onclick="navTo('pInicioNuevo');setSidebarActive(this)">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span><span data-t="nav.inicio">Inicio</span>
     </div>
     <div class="sidebar-ni" onclick="window.location.href='tpv.html'" style="background:rgba(0,200,150,.1);border-left:3px solid var(--green)">
@@ -1138,7 +1138,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="content" id="content">
 
 <!-- PAGE: DASHBOARD -->
-<div class="page active" id="pDash">
+<div class="page" id="pDash">
   <div id="planBanner"></div>
   <div style="padding:4px 0 10px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
     <div>
@@ -2957,6 +2957,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 #pInicioNuevo .inv-kpi{background:#fff;border:1px solid var(--inv-line);border-radius:18px;padding:17px;box-shadow:var(--inv-sh);position:relative;transition:transform .18s}#pInicioNuevo .inv-kpi:hover{transform:translateY(-3px)}
 #pInicioNuevo .inv-kpi .ic{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:21px;margin-bottom:13px}
 #pInicioNuevo .inv-kpi .num{font-size:31px;font-weight:800;letter-spacing:-1.2px;line-height:1}#pInicioNuevo .inv-kpi .lbl{font-size:12.5px;color:var(--inv-ink2);font-weight:600;margin-top:5px}
+#pInicioNuevo .inv-kpi .tr{position:absolute;top:17px;right:16px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px}#pInicioNuevo .tr.up{background:rgba(21,158,114,.12);color:var(--inv-green)}#pInicioNuevo .tr.fl{background:rgba(167,156,146,.16);color:var(--inv-ink3)}#pInicioNuevo .tr.al{background:rgba(226,72,60,.12);color:var(--inv-red)}
 #pInicioNuevo .ib{background:rgba(59,111,245,.1);color:var(--inv-blue)}#pInicioNuevo .ig{background:rgba(21,158,114,.12);color:var(--inv-green)}#pInicioNuevo .io{background:rgba(236,92,36,.11);color:var(--inv-or)}#pInicioNuevo .ip{background:rgba(124,92,252,.12);color:var(--inv-purple)}#pInicioNuevo .ir{background:rgba(226,72,60,.1);color:var(--inv-red)}
 #pInicioNuevo .inv-sect{font-size:12px;font-weight:700;color:var(--inv-ink3);text-transform:uppercase;letter-spacing:1px;margin:0 2px 12px}
 #pInicioNuevo .inv-actions{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
@@ -2978,21 +2979,21 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 @media(max-width:960px){#pInicioNuevo .inv-lower{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){#pInicioNuevo .inv-kpis{grid-template-columns:repeat(2,1fr)}#pInicioNuevo .inv-actions{grid-template-columns:repeat(2,1fr)}#pInicioNuevo .inv-lower{grid-template-columns:1fr}}
 </style>
-<div class="page" id="pInicioNuevo">
+<div class="page active" id="pInicioNuevo">
   <div class="inv-hero">
     <div><div class="inv-eyebrow" id="inv-fecha"></div><h1 class="inv-h1" id="inv-saludo">Hola</h1>
       <div class="inv-pulse" id="inv-pulse"></div></div>
     <div style="display:flex;gap:8px;align-items:center">
       <div class="inv-seg"><button class="on">Hoy</button><button>Semana</button><button>Mes</button></div>
-      <button onclick="navTo('pInicio')" style="background:#fff;border:1px solid var(--inv-line);color:var(--inv-ink2);padding:8px 12px;border-radius:10px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer">← Clásico</button>
+      <button onclick="navTo('pDash')" style="background:#fff;border:1px solid var(--inv-line);color:var(--inv-ink2);padding:8px 12px;border-radius:10px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer">← Clásico</button>
     </div>
   </div>
   <div class="inv-kpis">
-    <div class="inv-kpi"><div class="ic ib">🔧</div><div class="num" id="inv-k-rep">0</div><div class="lbl">En reparación</div></div>
-    <div class="inv-kpi"><div class="ic ig">📦</div><div class="num" id="inv-k-listas">0</div><div class="lbl">Listas hoy</div></div>
-    <div class="inv-kpi" id="inv-kpi-caja"><div class="ic io">💶</div><div class="num" id="inv-k-caja">€0</div><div class="lbl">Caja hoy</div></div>
-    <div class="inv-kpi"><div class="ic ip">📅</div><div class="num" id="inv-k-citas">0</div><div class="lbl">Citas hoy</div></div>
-    <div class="inv-kpi"><div class="ic ir">🚨</div><div class="num" id="inv-k-urg">0</div><div class="lbl">Urgente</div></div>
+    <div class="inv-kpi"><div class="ic ib">🔧</div><div class="num" id="inv-k-rep">0</div><div class="lbl">En reparación</div><div class="tr fl" id="inv-tr-rep">=</div></div>
+    <div class="inv-kpi"><div class="ic ig">📦</div><div class="num" id="inv-k-listas">0</div><div class="lbl">Listas hoy</div><div class="tr fl" id="inv-tr-listas">=</div></div>
+    <div class="inv-kpi" id="inv-kpi-caja"><div class="ic io">💶</div><div class="num" id="inv-k-caja">€0</div><div class="lbl">Caja hoy</div><div class="tr fl" id="inv-tr-caja">=</div></div>
+    <div class="inv-kpi"><div class="ic ip">📅</div><div class="num" id="inv-k-citas">0</div><div class="lbl">Citas hoy</div><div class="tr fl" id="inv-tr-citas">=</div></div>
+    <div class="inv-kpi"><div class="ic ir">🚨</div><div class="num" id="inv-k-urg">0</div><div class="lbl">Urgente</div><div class="tr fl" id="inv-tr-urg">=</div></div>
   </div>
   <div class="inv-sect">Acciones rápidas</div>
   <div class="inv-actions">
