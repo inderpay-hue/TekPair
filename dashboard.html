@@ -2976,6 +2976,33 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 #pInicioNuevo .tg-red{background:rgba(226,72,60,.12);color:var(--inv-red)}#pInicioNuevo .tg-amber{background:rgba(230,148,18,.14);color:#b9770a}#pInicioNuevo .tg-blue{background:rgba(59,111,245,.1);color:var(--inv-blue)}
 #pInicioNuevo .inv-ped{display:flex;align-items:center;gap:9px;padding:10px 18px;border-top:1px solid var(--inv-line);font-size:12.5px}#pInicioNuevo .inv-ped .st{font-size:14px}#pInicioNuevo .inv-ped .pz{font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#pInicioNuevo .inv-ped .dt{font-size:10.5px;color:var(--inv-ink3);font-weight:600}
 #pInicioNuevo .inv-empty{padding:14px 18px;font-size:12px;color:var(--inv-ink3)}
+/* ── Vista Negocio (admin) ── */
+#pInicioNuevo .inv-grid{display:grid;grid-template-columns:1.5fr 1fr;gap:18px;margin-bottom:18px}
+#pInicioNuevo .inv-chartcard{background:linear-gradient(150deg,#241E1A,#36302A);color:#fff;border-radius:22px;padding:24px 26px 14px;box-shadow:0 18px 44px -16px rgba(34,29,25,.45);position:relative;overflow:hidden}
+#pInicioNuevo .inv-chartcard::after{content:"";position:absolute;right:-50px;top:-50px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(236,92,36,.4),transparent 70%)}
+#pInicioNuevo .inv-chartcard .hl{font-size:13px;color:rgba(255,255,255,.6);font-weight:600;position:relative}
+#pInicioNuevo .inv-chartcard .hbig{font-size:46px;font-weight:900;letter-spacing:-1.8px;margin:4px 0;position:relative}
+#pInicioNuevo .inv-chartcard .hup{display:inline-flex;align-items:center;gap:5px;font-size:12.5px;font-weight:700;background:rgba(21,158,114,.25);color:#56E0AB;padding:4px 11px;border-radius:20px;position:relative}
+#pInicioNuevo .inv-chartcard .hup.down{background:rgba(226,72,60,.25);color:#FF9A8F}
+#pInicioNuevo .inv-chartcard svg{display:block;width:100%;height:120px;margin-top:18px;position:relative;overflow:visible}
+#pInicioNuevo .inv-chartcard .xlabels{display:flex;justify-content:space-between;font-size:10.5px;color:rgba(255,255,255,.45);margin-top:4px;position:relative}
+#pInicioNuevo .inv-side{display:flex;flex-direction:column;gap:14px}
+#pInicioNuevo .inv-mini{background:#fff;border:1px solid var(--inv-line);border-radius:18px;padding:17px 19px;box-shadow:var(--inv-sh);display:flex;align-items:center;gap:14px}
+#pInicioNuevo .inv-mini .ic{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;flex-shrink:0}
+#pInicioNuevo .inv-mini .num{font-size:25px;font-weight:800;letter-spacing:-.6px;line-height:1}#pInicioNuevo .inv-mini .lbl{font-size:12.5px;color:var(--inv-ink2);font-weight:600;margin-top:2px}
+#pInicioNuevo .inv-row3{display:grid;grid-template-columns:repeat(auto-fit,minmax(238px,1fr));gap:18px}
+#pInicioNuevo .inv-card2{background:#fff;border:1px solid var(--inv-line);border-radius:18px;box-shadow:var(--inv-sh);padding:18px}
+#pInicioNuevo .inv-card2 h3{font-size:14px;font-weight:800;margin-bottom:14px;display:flex;align-items:center;gap:7px}
+#pInicioNuevo .inv-card2 .pl{display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--inv-line);font-size:13.5px}#pInicioNuevo .inv-card2 .pl:last-child{border:none}#pInicioNuevo .inv-card2 .pl .v{font-weight:800}
+#pInicioNuevo .inv-card2 .pl.tot{font-size:15px;padding-top:11px}#pInicioNuevo .inv-card2 .pl.tot .v{color:var(--inv-green)}
+#pInicioNuevo .inv-card2 .prog{height:9px;border-radius:20px;background:var(--inv-line);overflow:hidden;margin:8px 0 5px}#pInicioNuevo .inv-card2 .prog i{display:block;height:100%;border-radius:20px;background:linear-gradient(90deg,#FF7544,var(--inv-or))}
+#pInicioNuevo .inv-card2 .mini2{font-size:11.5px;color:var(--inv-ink3)}
+#pInicioNuevo .stack{display:flex;height:13px;border-radius:20px;overflow:hidden;margin-bottom:14px;background:var(--inv-line)}#pInicioNuevo .stack i{height:100%}
+#pInicioNuevo .s-cash{background:var(--inv-green)}#pInicioNuevo .s-card{background:var(--inv-blue)}#pInicioNuevo .s-biz{background:var(--inv-or)}#pInicioNuevo .s-tr{background:var(--inv-purple)}
+#pInicioNuevo .payrow{display:flex;align-items:center;gap:9px;padding:8px 0;border-bottom:1px solid var(--inv-line);font-size:13px}#pInicioNuevo .payrow:last-child{border:none}
+#pInicioNuevo .payrow .pd{width:9px;height:9px;border-radius:50%}#pInicioNuevo .payrow .pn{flex:1;font-weight:600}#pInicioNuevo .payrow .pv{font-weight:800}#pInicioNuevo .payrow .pp{font-size:11px;color:var(--inv-ink3);font-weight:700;width:38px;text-align:right}
+#pInicioNuevo .inv-card2 .ped{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--inv-line);font-size:13px}#pInicioNuevo .inv-card2 .ped:last-child{border:none}#pInicioNuevo .inv-card2 .ped .st{font-size:14px}#pInicioNuevo .inv-card2 .ped .pz{flex:1;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#pInicioNuevo .inv-card2 .ped .am{font-weight:800;color:var(--inv-ink2);font-size:12.5px}
+@media(max-width:860px){#pInicioNuevo .inv-grid{grid-template-columns:1fr}#pInicioNuevo .inv-row3{grid-template-columns:1fr}}
 @media(max-width:960px){#pInicioNuevo .inv-lower{grid-template-columns:1fr 1fr}}
 @media(max-width:760px){#pInicioNuevo .inv-kpis{grid-template-columns:repeat(2,1fr)}#pInicioNuevo .inv-actions{grid-template-columns:repeat(2,1fr)}#pInicioNuevo .inv-lower{grid-template-columns:1fr}}
 </style>
@@ -2984,14 +3011,60 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div><div class="inv-eyebrow" id="inv-fecha"></div><h1 class="inv-h1" id="inv-saludo">Hola</h1>
       <div class="inv-pulse" id="inv-pulse"></div></div>
     <div style="display:flex;gap:8px;align-items:center">
-      <div class="inv-seg"><button class="on">Hoy</button><button>Semana</button><button>Mes</button></div>
+      <div class="inv-seg"><button class="on" onclick="setInvPeriodo('hoy',this)">Hoy</button><button onclick="setInvPeriodo('semana',this)">Semana</button><button onclick="setInvPeriodo('mes',this)">Mes</button></div>
       <button onclick="navTo('pDash')" style="background:#fff;border:1px solid var(--inv-line);color:var(--inv-ink2);padding:8px 12px;border-radius:10px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer">← Clásico</button>
     </div>
   </div>
+  <!-- ═══ VISTA NEGOCIO (ADMIN) ═══ -->
+  <div id="inv-admin" style="display:none">
+    <div class="inv-grid">
+      <div class="inv-chartcard">
+        <div class="hl">Ingresos <span id="inv-a-perlbl">hoy</span></div>
+        <div class="hbig" id="inv-a-big">€0</div>
+        <div class="hup" id="inv-a-trend">▲ 0%</div>
+        <svg viewBox="0 0 280 120" preserveAspectRatio="none">
+          <defs><linearGradient id="invg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#FF7544" stop-opacity=".55"/><stop offset="1" stop-color="#FF7544" stop-opacity="0"/></linearGradient></defs>
+          <path id="inv-a-area" d="" fill="url(#invg)"/>
+          <path id="inv-a-line" d="" fill="none" stroke="#FF8A5C" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <circle id="inv-a-dot" cx="-9" cy="0" r="5" fill="#fff" stroke="#FF8A5C" stroke-width="3"/>
+        </svg>
+        <div class="xlabels" id="inv-a-xlabels"></div>
+      </div>
+      <div class="inv-side">
+        <div class="inv-mini"><div class="ic ig">💶</div><div><div class="num" id="inv-a-caja">€0</div><div class="lbl">Caja de hoy</div></div></div>
+        <div class="inv-mini"><div class="ic ib">🛒</div><div><div class="num" id="inv-a-ventas">0</div><div class="lbl">Ventas hoy</div></div></div>
+        <div class="inv-mini"><div class="ic ir">⏰</div><div><div class="num" id="inv-a-cobros">€0</div><div class="lbl" id="inv-a-cobros-l">Cobros pendientes</div></div></div>
+      </div>
+    </div>
+    <div class="inv-row3">
+      <div class="inv-card2"><h3>📊 Ingresos vs gastos (mes)</h3>
+        <div class="pl"><span>Ingresos</span><span class="v" style="color:var(--inv-green)" id="inv-a-ing">€0</span></div>
+        <div class="pl"><span>Gastos</span><span class="v" style="color:var(--inv-red)" id="inv-a-gas">€0</span></div>
+        <div class="pl tot"><span>Beneficio</span><span class="v" id="inv-a-ben">€0</span></div>
+        <div class="prog"><i id="inv-a-margenbar" style="width:0%"></i></div>
+        <div class="mini2" id="inv-a-margen">Margen 0%</div>
+      </div>
+      <div class="inv-card2"><h3>💳 Cómo cobras</h3>
+        <div class="stack" id="inv-a-stack"></div>
+        <div id="inv-a-pays"></div>
+      </div>
+      <div class="inv-card2"><h3>🏆 Lo que más deja</h3>
+        <div id="inv-a-top"></div>
+      </div>
+      <div class="inv-card2"><h3>📦 Pedidos por recibir</h3>
+        <div id="inv-a-peds"></div>
+        <div class="pl tot" style="border-top:1px dashed var(--inv-line);margin-top:6px"><span>Comprometido</span><span class="v" style="color:var(--inv-ink2)" id="inv-a-comp">€0</span></div>
+        <div class="mini2">Entrará en Gastos al recibir</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══ VISTA OPERATIVA (EMPLEADO) ═══ -->
+  <div id="inv-emp">
   <div class="inv-kpis">
     <div class="inv-kpi"><div class="ic ib">🔧</div><div class="num" id="inv-k-rep">0</div><div class="lbl">En reparación</div><div class="tr fl" id="inv-tr-rep">=</div></div>
     <div class="inv-kpi"><div class="ic ig">📦</div><div class="num" id="inv-k-listas">0</div><div class="lbl">Listas hoy</div><div class="tr fl" id="inv-tr-listas">=</div></div>
-    <div class="inv-kpi" id="inv-kpi-caja"><div class="ic io">💶</div><div class="num" id="inv-k-caja">€0</div><div class="lbl">Caja hoy</div><div class="tr fl" id="inv-tr-caja">=</div></div>
+    <div class="inv-kpi" id="inv-kpi-caja"><div class="ic io">📦</div><div class="num" id="inv-k-caja">0</div><div class="lbl" id="inv-k-caja-l">Piezas por pedir</div><div class="tr fl" id="inv-tr-caja">=</div></div>
     <div class="inv-kpi"><div class="ic ip">📅</div><div class="num" id="inv-k-citas">0</div><div class="lbl">Citas hoy</div><div class="tr fl" id="inv-tr-citas">=</div></div>
     <div class="inv-kpi"><div class="ic ir">🚨</div><div class="num" id="inv-k-urg">0</div><div class="lbl">Urgente</div><div class="tr fl" id="inv-tr-urg">=</div></div>
   </div>
@@ -3006,6 +3079,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="inv-card"><div class="inv-ch"><h3>⚠️ Necesita tu atención</h3><span class="inv-badge" id="inv-aten-n">0</span></div><div id="inv-atencion"></div></div>
     <div class="inv-card"><div class="inv-ch"><h3>📦 Pedidos</h3></div><div id="inv-pedidos"></div></div>
     <div class="inv-card"><div class="inv-ch"><h3>📌 Notas</h3></div><div id="inv-notas"></div></div>
+  </div>
   </div>
 </div>
 
