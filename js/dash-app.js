@@ -972,14 +972,14 @@ function _abrirAltaImeiDesdePedido(item, uds) {
   toast(T('pedidos.imei_hint').replace('{n}', uds), 'ok');
 }
 // Recibe un pedido al stock: suma a un item existente o crea uno nuevo (repuesto)
-function _recibirAStock(p, uds, existe) {
+function _recibirAStock(p, uds, existe, silent) {
   DB.stock = DB.stock || [];
   if (existe) {
     existe.unidades = (parseInt(existe.unidades, 10) || 0) + uds;
     if (SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(existe.id), { unidades: existe.unidades });
     try { guardarDatos(); } catch(e){}
     try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
-    toast(T('pedidos.stock_sumado').replace('{n}', uds).replace('{total}', existe.unidades), 'ok');
+    if (!silent) toast(T('pedidos.stock_sumado').replace('{n}', uds).replace('{total}', existe.unidades), 'ok');
     return;
   }
   var costeUnit = (parseFloat(p.importe) || 0) > 0 ? (parseFloat(p.importe) / (uds || 1)) : 0;
@@ -999,7 +999,30 @@ function _recibirAStock(p, uds, existe) {
   });
   try { guardarDatos(); } catch(e){}
   try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
-  toast(T('pedidos.stock_anadido').replace('{n}', uds), 'ok');
+  if (!silent) toast(T('pedidos.stock_anadido').replace('{n}', uds), 'ok');
+}
+// Recibir de golpe todos los productos «pedido» de un proveedor (no IMEI)
+function recibirGrupo(encKey) {
+  var key = decodeURIComponent(encKey);
+  var sinProv = T('pedidos.sin_proveedor');
+  var grp = (DB.pedidos || []).filter(function(p) { return p.estado === 'pedido' && (((p.proveedor || '').trim() || sinProv) === key); });
+  if (!grp.length) return;
+  var imeiItems = [], normales = [];
+  grp.forEach(function(p) { var ex = _stockMatch(p.pieza); if (ex && _esImeiCat(ex.categoria)) imeiItems.push(p); else normales.push({ p: p, ex: ex }); });
+  if (!normales.length) { toast(T('pedidos.grupo_solo_imei'), 'err'); return; }
+  if (!confirm(T('pedidos.confirmar_grupo_recibir').replace('{n}', normales.length).replace('{prov}', key))) return;
+  normales.forEach(function(o) {
+    var p = o.p, uds = parseInt(p.cantidad, 10) || 1;
+    p.estado = 'recibido';
+    var patch = { estado: 'recibido' };
+    if (!p.gasto_id && (parseFloat(p.importe) || 0) > 0) { var gid = _crearGastoDesdePedido(p); p.gasto_id = gid; patch.gasto_id = gid; }
+    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
+    _recibirAStock(p, uds, o.ex, true);
+  });
+  renderPedidosWidget();
+  var msg = T('pedidos.grupo_recibido').replace('{n}', normales.length);
+  if (imeiItems.length) msg += ' · ' + T('pedidos.grupo_imei_pend').replace('{n}', imeiItems.length);
+  toast(msg, 'ok');
 }
 function eliminarPedido(id) {
   if (!confirm(T('pedidos.confirmar_borrar'))) return;
@@ -2027,11 +2050,13 @@ function renderPedidosPage() {
       var items = groups[k];
       var tot = items.reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
       var nPorPedir = items.filter(function(p) { return p.estado === 'por_pedir'; }).length;
+      var nPedido = items.filter(function(p) { return p.estado === 'pedido'; }).length;
       var btnGrupo = nPorPedir ? '<button onclick="marcarGrupoPedido(\'' + encodeURIComponent(k) + '\')" style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:5px 11px;font:inherit;font-size:11px;font-weight:700;cursor:pointer">🟡 ' + T('pedidos.marcar_grupo') + ' (' + nPorPedir + ')</button>' : '';
+      var btnRecibir = nPedido ? '<button onclick="recibirGrupo(\'' + encodeURIComponent(k) + '\')" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:5px 11px;font:inherit;font-size:11px;font-weight:700;cursor:pointer">✅ ' + T('pedidos.recibir_grupo') + ' (' + nPedido + ')</button>' : '';
       return '<div style="margin-bottom:16px">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800;font-size:13.5px">🏢 ' + escHtml(k) +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800;font-size:13.5px;flex-wrap:wrap">🏢 ' + escHtml(k) +
           ' <span style="background:var(--light);border-radius:8px;padding:1px 8px;font-size:11px;color:var(--muted)">' + items.length + '</span>' +
-          '<span style="margin-left:auto;display:flex;align-items:center;gap:10px">' + (tot > 0 ? '<span style="color:var(--muted);font-size:12px">' + cur(tot) + '</span>' : '') + btnGrupo + '</span></div>' +
+          '<span style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + (tot > 0 ? '<span style="color:var(--muted);font-size:12px">' + cur(tot) + '</span>' : '') + btnGrupo + btnRecibir + '</span></div>' +
         gridOpen + items.map(card).join('') + '</div></div>';
     }).join('');
   } else {
