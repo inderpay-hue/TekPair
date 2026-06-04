@@ -3016,15 +3016,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div><div class="inv-eyebrow" id="inv-fecha"></div><h1 class="inv-h1" id="inv-saludo">Hola</h1>
       <div class="inv-pulse" id="inv-pulse"></div></div>
     <div style="display:flex;gap:8px;align-items:center">
-      <div class="inv-seg"><button class="on" onclick="setInvPeriodo('hoy',this)">Hoy</button><button onclick="setInvPeriodo('semana',this)">Semana</button><button onclick="setInvPeriodo('mes',this)">Mes</button></div>
-      <button onclick="navTo('pDash')" style="background:#fff;border:1px solid var(--inv-line);color:var(--inv-ink2);padding:8px 12px;border-radius:10px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer">← Clásico</button>
+      <div class="inv-seg"><button class="on" onclick="setInvPeriodo('hoy',this)" data-t="dash.hoy">Hoy</button><button onclick="setInvPeriodo('semana',this)" data-t="dash.semana">Semana</button><button onclick="setInvPeriodo('mes',this)" data-t="dash.mes">Mes</button></div>
+      <button onclick="navTo('pDash')" style="background:#fff;border:1px solid var(--inv-line);color:var(--inv-ink2);padding:8px 12px;border-radius:10px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer">← <span data-t="inicio.clasico">Clásico</span></button>
     </div>
   </div>
   <!-- ═══ VISTA NEGOCIO (ADMIN) ═══ -->
   <div id="inv-admin" style="display:none">
     <div class="inv-grid">
       <div class="inv-chartcard inv-clk" onclick="navTo('pReportes')" title="Ver reportes">
-        <div class="hl">Ingresos <span id="inv-a-perlbl">hoy</span></div>
+        <div class="hl"><span data-t="inicio.ingresos">Ingresos</span> <span id="inv-a-perlbl">hoy</span></div>
         <div class="hbig" id="inv-a-big">€0</div>
         <div class="hup" id="inv-a-trend">▲ 0%</div>
         <svg viewBox="0 0 280 120" preserveAspectRatio="none">
@@ -3041,32 +3041,32 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="inv-mini inv-clk" onclick="navTo('pReps')"><div class="ic ir">⏰</div><div><div class="num" id="inv-a-cobros">€0</div><div class="lbl" id="inv-a-cobros-l">Cobros pendientes</div></div></div>
       </div>
     </div>
-    <div class="inv-sect">Acciones rápidas</div>
+    <div class="inv-sect" data-t="inicio.acciones">Acciones rápidas</div>
     <div class="inv-actions">
-      <div class="inv-act p" onclick="abrirRep()"><div class="ai">🔧</div><div>Nueva reparación<span class="sub">Registrar entrada</span></div></div>
-      <div class="inv-act p" onclick="window.location.href='tpv.html'"><div class="ai">🛒</div><div>Abrir TPV<span class="sub">Cobrar / vender</span></div></div>
-      <div class="inv-act" onclick="navTo('pPresupuestos')"><div class="ai ib">📄</div><div>Presupuesto<span class="sub">Crear y enviar</span></div></div>
-      <div class="inv-act" onclick="navTo('pPedidos')"><div class="ai ip">📦</div><div>Nuevo pedido<span class="sub">Piezas / material</span></div></div>
+      <div class="inv-act p" onclick="abrirRep()"><div class="ai">🔧</div><div><span data-t="inicio.act_rep">Nueva reparación</span><span class="sub" data-t="inicio.act_rep_sub">Registrar entrada</span></div></div>
+      <div class="inv-act p" onclick="window.location.href='tpv.html'"><div class="ai">🛒</div><div><span data-t="inicio.act_tpv">Abrir TPV</span><span class="sub" data-t="inicio.act_tpv_sub">Cobrar / vender</span></div></div>
+      <div class="inv-act" onclick="navTo('pPresupuestos')"><div class="ai ib">📄</div><div><span data-t="inicio.act_pres">Presupuesto</span><span class="sub" data-t="inicio.act_pres_sub">Crear y enviar</span></div></div>
+      <div class="inv-act" onclick="navTo('pPedidos')"><div class="ai ip">📦</div><div><span data-t="inicio.act_ped">Nuevo pedido</span><span class="sub" data-t="inicio.act_ped_sub">Piezas / material</span></div></div>
     </div>
     <div class="inv-row3">
-      <div class="inv-card2 inv-clk" onclick="navTo('pGastos')"><h3>📊 Ingresos vs gastos (mes)</h3>
-        <div class="pl"><span>Ingresos</span><span class="v" style="color:var(--inv-green)" id="inv-a-ing">€0</span></div>
-        <div class="pl"><span>Gastos</span><span class="v" style="color:var(--inv-red)" id="inv-a-gas">€0</span></div>
-        <div class="pl tot"><span>Beneficio</span><span class="v" id="inv-a-ben">€0</span></div>
+      <div class="inv-card2 inv-clk" onclick="navTo('pGastos')"><h3>📊 <span data-t="inicio.ing_gastos">Ingresos vs gastos (mes)</span></h3>
+        <div class="pl"><span data-t="inicio.ingresos">Ingresos</span><span class="v" style="color:var(--inv-green)" id="inv-a-ing">€0</span></div>
+        <div class="pl"><span data-t="inicio.gastos">Gastos</span><span class="v" style="color:var(--inv-red)" id="inv-a-gas">€0</span></div>
+        <div class="pl tot"><span data-t="inicio.beneficio">Beneficio</span><span class="v" id="inv-a-ben">€0</span></div>
         <div class="prog"><i id="inv-a-margenbar" style="width:0%"></i></div>
         <div class="mini2" id="inv-a-margen">Margen 0%</div>
       </div>
-      <div class="inv-card2 inv-clk" onclick="navTo('pReportes')"><h3>💳 Cómo cobras</h3>
+      <div class="inv-card2 inv-clk" onclick="navTo('pReportes')"><h3>💳 <span data-t="inicio.como_cobras">Cómo cobras</span></h3>
         <div class="stack" id="inv-a-stack"></div>
         <div id="inv-a-pays"></div>
       </div>
-      <div class="inv-card2 inv-clk" onclick="navTo('pReportes')"><h3>🏆 Lo que más deja</h3>
+      <div class="inv-card2 inv-clk" onclick="navTo('pReportes')"><h3>🏆 <span data-t="inicio.lo_que_deja">Lo que más deja</span></h3>
         <div id="inv-a-top"></div>
       </div>
-      <div class="inv-card2 inv-clk" onclick="navTo('pPedidos')"><h3>📦 Pedidos por recibir</h3>
+      <div class="inv-card2 inv-clk" onclick="navTo('pPedidos')"><h3>📦 <span data-t="inicio.pedidos_recibir">Pedidos por recibir</span></h3>
         <div id="inv-a-peds"></div>
-        <div class="pl tot" style="border-top:1px dashed var(--inv-line);margin-top:6px"><span>Comprometido</span><span class="v" style="color:var(--inv-ink2)" id="inv-a-comp">€0</span></div>
-        <div class="mini2">Entrará en Gastos al recibir</div>
+        <div class="pl tot" style="border-top:1px dashed var(--inv-line);margin-top:6px"><span data-t="inicio.comprometido">Comprometido</span><span class="v" style="color:var(--inv-ink2)" id="inv-a-comp">€0</span></div>
+        <div class="mini2" data-t="inicio.entrara_gastos">Entrará en Gastos al recibir</div>
       </div>
     </div>
   </div>
@@ -3074,23 +3074,23 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <!-- ═══ VISTA OPERATIVA (EMPLEADO) ═══ -->
   <div id="inv-emp">
   <div class="inv-kpis">
-    <div class="inv-kpi"><div class="ic ib">🔧</div><div class="num" id="inv-k-rep">0</div><div class="lbl">En reparación</div><div class="tr fl" id="inv-tr-rep">=</div></div>
-    <div class="inv-kpi"><div class="ic ig">📦</div><div class="num" id="inv-k-listas">0</div><div class="lbl">Listas hoy</div><div class="tr fl" id="inv-tr-listas">=</div></div>
+    <div class="inv-kpi"><div class="ic ib">🔧</div><div class="num" id="inv-k-rep">0</div><div class="lbl" data-t="inicio.kpi_reparacion">En reparación</div><div class="tr fl" id="inv-tr-rep">=</div></div>
+    <div class="inv-kpi"><div class="ic ig">📦</div><div class="num" id="inv-k-listas">0</div><div class="lbl" data-t="inicio.kpi_listas">Listas hoy</div><div class="tr fl" id="inv-tr-listas">=</div></div>
     <div class="inv-kpi" id="inv-kpi-caja"><div class="ic io">📦</div><div class="num" id="inv-k-caja">0</div><div class="lbl" id="inv-k-caja-l">Piezas por pedir</div><div class="tr fl" id="inv-tr-caja">=</div></div>
-    <div class="inv-kpi"><div class="ic ip">📅</div><div class="num" id="inv-k-citas">0</div><div class="lbl">Citas hoy</div><div class="tr fl" id="inv-tr-citas">=</div></div>
-    <div class="inv-kpi"><div class="ic ir">🚨</div><div class="num" id="inv-k-urg">0</div><div class="lbl">Urgente</div><div class="tr fl" id="inv-tr-urg">=</div></div>
+    <div class="inv-kpi"><div class="ic ip">📅</div><div class="num" id="inv-k-citas">0</div><div class="lbl" data-t="inicio.kpi_citas">Citas hoy</div><div class="tr fl" id="inv-tr-citas">=</div></div>
+    <div class="inv-kpi"><div class="ic ir">🚨</div><div class="num" id="inv-k-urg">0</div><div class="lbl" data-t="inicio.kpi_urgente">Urgente</div><div class="tr fl" id="inv-tr-urg">=</div></div>
   </div>
-  <div class="inv-sect">Acciones rápidas</div>
+  <div class="inv-sect" data-t="inicio.acciones">Acciones rápidas</div>
   <div class="inv-actions">
-    <div class="inv-act p" onclick="abrirRep()"><div class="ai">🔧</div><div>Nueva reparación<span class="sub">Registrar entrada</span></div></div>
-    <div class="inv-act p" onclick="window.location.href='tpv.html'"><div class="ai">🛒</div><div>Abrir TPV<span class="sub">Cobrar / vender</span></div></div>
-    <div class="inv-act" onclick="navTo('pPresupuestos')"><div class="ai ib">📄</div><div>Presupuesto<span class="sub">Crear y enviar</span></div></div>
-    <div class="inv-act" onclick="nuevoPedido()"><div class="ai ip">📦</div><div>Nuevo pedido<span class="sub">Piezas / material</span></div></div>
+    <div class="inv-act p" onclick="abrirRep()"><div class="ai">🔧</div><div><span data-t="inicio.act_rep">Nueva reparación</span><span class="sub" data-t="inicio.act_rep_sub">Registrar entrada</span></div></div>
+    <div class="inv-act p" onclick="window.location.href='tpv.html'"><div class="ai">🛒</div><div><span data-t="inicio.act_tpv">Abrir TPV</span><span class="sub" data-t="inicio.act_tpv_sub">Cobrar / vender</span></div></div>
+    <div class="inv-act" onclick="navTo('pPresupuestos')"><div class="ai ib">📄</div><div><span data-t="inicio.act_pres">Presupuesto</span><span class="sub" data-t="inicio.act_pres_sub">Crear y enviar</span></div></div>
+    <div class="inv-act" onclick="nuevoPedido()"><div class="ai ip">📦</div><div><span data-t="inicio.act_ped">Nuevo pedido</span><span class="sub" data-t="inicio.act_ped_sub">Piezas / material</span></div></div>
   </div>
   <div class="inv-lower">
-    <div class="inv-card"><div class="inv-ch"><h3>⚠️ Necesita tu atención</h3><span class="inv-badge" id="inv-aten-n">0</span></div><div id="inv-atencion"></div></div>
-    <div class="inv-card"><div class="inv-ch"><h3>📦 Pedidos</h3></div><div id="inv-pedidos"></div></div>
-    <div class="inv-card"><div class="inv-ch"><h3>📌 Notas</h3></div><div id="inv-notas"></div></div>
+    <div class="inv-card"><div class="inv-ch"><h3>⚠️ <span data-t="inicio.atencion">Necesita tu atención</span></h3><span class="inv-badge" id="inv-aten-n">0</span></div><div id="inv-atencion"></div></div>
+    <div class="inv-card"><div class="inv-ch"><h3>📦 <span data-t="inicio.pedidos">Pedidos</span></h3></div><div id="inv-pedidos"></div></div>
+    <div class="inv-card"><div class="inv-ch"><h3>📌 <span data-t="inicio.notas">Notas</span></h3></div><div id="inv-notas"></div></div>
   </div>
   </div>
 </div>
