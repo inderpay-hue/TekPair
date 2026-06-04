@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>TekPair · Inicio 1 (mejorado)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg1:#FBF8F4;--bg2:#F4EDE5;--ink:#221D19;--ink2:#6B6259;--ink3:#A79C92;--line:#ECE4DA;--orange:#EC5C24;--orange-d:#CC4A18;--blue:#3B6FF5;--green:#159E72;--purple:#7C5CFC;--red:#E2483C;--amber:#E69412;--shadow:0 1px 3px rgba(34,29,25,.05),0 12px 34px -14px rgba(34,29,25,.16);--sm:0 1px 2px rgba(34,29,25,.05)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:linear-gradient(165deg,var(--bg1),var(--bg2));min-height:100vh;padding:28px clamp(16px,4vw,44px) 60px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto}
+.hero{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
+.eyebrow{font-size:12.5px;color:var(--ink3);font-weight:600}
+h1{font-size:clamp(24px,3.2vw,31px);font-weight:800;letter-spacing:-.6px;margin:3px 0 7px}
+.pulse{font-size:14.5px;color:var(--ink2)}.pulse b{color:var(--ink);font-weight:700}
+.seg{display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:3px;box-shadow:var(--sm)}
+.seg button{border:none;background:none;font:inherit;font-size:13px;font-weight:600;color:var(--ink2);padding:8px 16px;border-radius:9px;cursor:pointer}.seg button.on{background:var(--orange);color:#fff;box-shadow:0 4px 10px rgba(236,92,36,.3)}
+.kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
+.kpi{background:#fff;border:1px solid var(--line);border-radius:18px;padding:17px;box-shadow:var(--shadow);position:relative;transition:transform .18s,box-shadow .18s}.kpi:hover{transform:translateY(-3px);box-shadow:0 16px 40px -16px rgba(34,29,25,.2)}
+.kpi .ic{width:42px;height:42px;border-radius:13px;display:grid;place-items:center;font-size:21px;margin-bottom:13px}
+.kpi .num{font-size:31px;font-weight:800;letter-spacing:-1.2px;line-height:1}.kpi .lbl{font-size:12.5px;color:var(--ink2);font-weight:600;margin-top:5px}
+.kpi .tr{position:absolute;top:17px;right:16px;font-size:11px;font-weight:700;padding:3px 8px;border-radius:20px}
+.up{background:rgba(21,158,114,.12);color:var(--green)}.fl{background:rgba(167,156,146,.16);color:var(--ink3)}.al{background:rgba(226,72,60,.12);color:var(--red)}
+.ib{background:rgba(59,111,245,.1);color:var(--blue)}.ig{background:rgba(21,158,114,.12);color:var(--green)}.io{background:rgba(236,92,36,.11);color:var(--orange)}.ip{background:rgba(124,92,252,.12);color:var(--purple)}.ir{background:rgba(226,72,60,.1);color:var(--red)}
+.section-t{font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin:0 2px 12px}
+.actions{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:26px}
+.act{display:flex;align-items:center;gap:13px;padding:17px 19px;border-radius:18px;font-weight:700;font-size:15px;border:1px solid var(--line);background:#fff;box-shadow:var(--sm);cursor:pointer;transition:transform .16s,box-shadow .16s}.act:hover{transform:translateY(-2px);box-shadow:var(--shadow)}
+.act .ai{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-size:20px;flex-shrink:0}
+.act.p{background:linear-gradient(135deg,#FF7544,var(--orange));color:#fff;border:none;box-shadow:0 10px 24px -8px rgba(236,92,36,.5)}.act.p .ai{background:rgba(255,255,255,.22)}
+.act .sub{display:block;font-size:11.5px;font-weight:500;color:var(--ink3);margin-top:1px}.act.p .sub{color:rgba(255,255,255,.85)}
+.lower{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:16px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.ch{display:flex;align-items:center;justify-content:space-between;padding:16px 18px 12px}.ch h3{font-size:14.5px;font-weight:800;display:flex;gap:8px;align-items:center}
+.badge{font-size:11px;font-weight:700;padding:3px 9px;border-radius:20px;background:rgba(236,92,36,.11);color:var(--orange-d)}
+.row{display:flex;align-items:center;gap:11px;padding:11px 18px;border-top:1px solid var(--line)}
+.dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}.d-red{background:var(--red)}.d-amber{background:var(--amber)}.d-blue{background:var(--blue)}
+.row .m{flex:1;min-width:0}.row .tt{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.row .ss{font-size:11.5px;color:var(--ink2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tag{font-size:10px;font-weight:800;padding:3px 8px;border-radius:7px;text-transform:uppercase;letter-spacing:.3px}
+.tg-red{background:rgba(226,72,60,.12);color:var(--red)}.tg-amber{background:rgba(230,148,18,.14);color:#b9770a}.tg-blue{background:rgba(59,111,245,.1);color:var(--blue)}
+.ped{display:flex;align-items:center;gap:9px;padding:10px 18px;border-top:1px solid var(--line);font-size:12.5px}.ped .st{font-size:14px}.ped .pz{font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ped .dt{font-size:10.5px;color:var(--ink3);font-weight:600}
+.nb{padding:13px 18px 16px;flex:1}
+textarea{width:100%;min-height:50px;border:1px solid var(--line);border-radius:10px;padding:9px;font:inherit;font-size:12px;resize:vertical;background:#FDFBF9;color:var(--ink)}textarea:focus{outline:none;border-color:var(--orange)}
+.rmd{display:flex;align-items:center;gap:9px;padding:6px 0;border-top:1px solid var(--line);font-size:12px}.chk{width:16px;height:16px;border-radius:5px;border:2px solid var(--line);display:grid;place-items:center;font-size:10px}.chk.on{background:var(--green);border-color:var(--green);color:#fff}.rmd.done span{text-decoration:line-through;color:var(--ink3)}.rf{font-size:10.5px;color:var(--ink3);font-weight:600}
+.tip{margin-top:26px;text-align:center;font-size:12px;color:var(--ink3)}
+@media(max-width:960px){.lower{grid-template-columns:1fr 1fr}}
+@media(max-width:760px){.kpis{grid-template-columns:repeat(2,1fr)}.actions{grid-template-columns:repeat(2,1fr)}.lower{grid-template-columns:1fr}}
+</style></head><body><div class="wrap">
+
+<div class="hero">
+  <div><div class="eyebrow">jueves, 4 de junio</div><h1>Buenas tardes, TECNO 👋</h1>
+    <div class="pulse">Tienes <b>11 reparaciones en curso</b>, <b>3 listas para entregar</b> y <b>1 urgente</b>.</div></div>
+  <div class="seg"><button class="on">Hoy</button><button>Semana</button><button>Mes</button></div>
+</div>
+
+<div class="kpis">
+  <div class="kpi"><div class="ic ib">🔧</div><div class="num">11</div><div class="lbl">En reparación</div><div class="tr fl">=</div></div>
+  <div class="kpi"><div class="ic ig">📦</div><div class="num">3</div><div class="lbl">Listas hoy</div><div class="tr up">▲ 2</div></div>
+  <div class="kpi"><div class="ic io">💶</div><div class="num">€245</div><div class="lbl">Caja hoy</div><div class="tr up">▲ 18%</div></div>
+  <div class="kpi"><div class="ic ip">📅</div><div class="num">2</div><div class="lbl">Citas hoy</div><div class="tr fl">=</div></div>
+  <div class="kpi"><div class="ic ir">🚨</div><div class="num">1</div><div class="lbl">Urgente</div><div class="tr al">!</div></div>
+</div>
+
+<div class="section-t">Acciones rápidas</div>
+<div class="actions">
+  <div class="act p"><div class="ai">🔧</div><div>Nueva reparación<span class="sub">Registrar entrada</span></div></div>
+  <div class="act p"><div class="ai">🛒</div><div>Abrir TPV<span class="sub">Cobrar / vender</span></div></div>
+  <div class="act"><div class="ai ib">📄</div><div>Presupuesto<span class="sub">Crear y enviar</span></div></div>
+  <div class="act"><div class="ai ip">📦</div><div>Nuevo pedido<span class="sub">Piezas / material</span></div></div>
+</div>
+
+<div class="lower">
+  <div class="card"><div class="ch"><h3>⚠️ Necesita tu atención</h3><span class="badge">4</span></div>
+    <div class="row"><span class="dot d-red"></span><div class="m"><div class="tt">OPPO Reno 12F · Andrés</div><div class="ss">Pantalla rota · prometida para hoy</div></div><span class="tag tg-red">Urgente</span></div>
+    <div class="row"><span class="dot d-amber"></span><div class="m"><div class="tt">Samsung Galaxy A50 · Brenda</div><div class="ss">No carga · lleva 6 días</div></div><span class="tag tg-amber">Vencida</span></div>
+    <div class="row"><span class="dot d-blue"></span><div class="m"><div class="tt">3 cobros pendientes · €180</div><div class="ss">Entregadas sin pagar</div></div><span class="tag tg-blue">Cobrar</span></div>
+    <div class="row"><span class="dot d-amber"></span><div class="m"><div class="tt">Stock bajo mínimo · 3</div><div class="ss">Pantalla iPhone 13 y 2 más</div></div><span class="tag tg-amber">Pedir</span></div>
+  </div>
+  <div class="card"><div class="ch"><h3>📦 Pedidos</h3><span class="badge">2 en camino</span></div>
+    <div class="ped"><span class="st">🟡</span><span class="pz">Moviltec · 3 artículos</span><span class="dt">llega 6/06</span></div>
+    <div class="ped"><span class="st">🟡</span><span class="pz">PartsExpress · 2 artículos</span><span class="dt">llega 7/06</span></div>
+    <div class="ped"><span class="st">🔴</span><span class="pz">Tapa Huawei P30</span><span class="dt">por pedir</span></div>
+    <div class="ped"><span class="st">🔴</span><span class="pz">Cristales templados</span><span class="dt">por pedir</span></div>
+  </div>
+  <div class="card"><div class="ch"><h3>📌 Notas</h3></div>
+    <div class="nb"><textarea>Pedir adaptadores USB-C.</textarea>
+      <div class="rmd"><div class="chk"></div><span style="flex:1">Pedir pantallas A52</span><span class="rf">vie 6</span></div>
+      <div class="rmd done"><div class="chk on">✓</div><span>Llamar a Andrés</span></div>
+    </div>
+  </div>
+</div>
+<div class="tip">Vista previa · 1 mejorado (compacto + pedidos + acabado pro) · datos de ejemplo</div>
+</div></body></html>
