@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>TekPair · Inicio — Bento</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg1:#FFF8F2;--bg2:#FFEFE4;--ink:#241F1B;--ink2:#6E635A;--ink3:#A89C92;--line:#F0E6DC;--orange:#F2682B;--orange-d:#D9531A;--blue:#2F6BFF;--green:#16B981;--purple:#8B5CF6;--red:#EF4444;--amber:#F59E0B;--shadow:0 1px 2px rgba(36,31,27,.04),0 8px 24px rgba(36,31,27,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh;padding:26px clamp(16px,4vw,40px) 56px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1200px;margin:0 auto}
+.bento{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:minmax(108px,auto);gap:14px}
+.t{background:#fff;border:1px solid var(--line);border-radius:20px;box-shadow:var(--shadow);padding:18px;transition:transform .16s}.t:hover{transform:translateY(-3px)}
+.greet{grid-column:span 2;grid-row:span 2;background:linear-gradient(140deg,#2B2622,#3D352E);color:#fff;display:flex;flex-direction:column;justify-content:space-between;position:relative;overflow:hidden}
+.greet::after{content:"";position:absolute;right:-50px;top:-50px;width:200px;height:200px;border-radius:50%;background:radial-gradient(circle,rgba(242,104,43,.5),transparent 70%)}
+.greet .logo{width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#FF8A52,var(--orange));display:grid;place-items:center;font-size:26px;box-shadow:0 8px 20px rgba(242,104,43,.4)}
+.greet h1{font-size:27px;font-weight:800;letter-spacing:-.6px;margin:14px 0 6px;position:relative}
+.greet .p{font-size:14px;color:rgba(255,255,255,.75);position:relative}.greet .p b{color:#fff}
+.greet .seg{display:inline-flex;background:rgba(255,255,255,.1);border-radius:11px;padding:3px;margin-top:14px;position:relative;width:max-content}
+.greet .seg button{border:none;background:none;color:rgba(255,255,255,.7);font:inherit;font-size:12.5px;font-weight:600;padding:6px 13px;border-radius:8px;cursor:pointer}.greet .seg button.on{background:var(--orange);color:#fff}
+.kpi .ic{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-size:18px;margin-bottom:9px}
+.kpi .num{font-size:27px;font-weight:800;letter-spacing:-1px;line-height:1}.kpi .lbl{font-size:12px;color:var(--ink2);font-weight:600;margin-top:3px}
+.ib{background:rgba(47,107,255,.12);color:var(--blue)}.ig{background:rgba(22,185,129,.13);color:var(--green)}.io{background:rgba(242,104,43,.13);color:var(--orange)}.ir{background:rgba(239,68,68,.12);color:var(--red)}
+.head{font-size:14px;font-weight:800;display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+.head .b{font-size:10.5px;font-weight:700;padding:2px 8px;border-radius:20px;background:rgba(242,104,43,.12);color:var(--orange-d)}
+.aten{grid-column:span 2;grid-row:span 2}
+.r{display:flex;align-items:center;gap:10px;padding:9px 0;border-top:1px solid var(--line)}.r:first-of-type{border-top:none}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}.d-red{background:var(--red)}.d-amber{background:var(--amber)}.d-blue{background:var(--blue)}
+.r .m{flex:1;min-width:0}.r .tt{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.r .ss{font-size:11.5px;color:var(--ink2)}
+.tag{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:6px;text-transform:uppercase}.tg-red{background:rgba(239,68,68,.12);color:var(--red)}.tg-amber{background:rgba(245,158,11,.14);color:#B9770A}.tg-blue{background:rgba(47,107,255,.12);color:var(--blue)}
+.ped-t{grid-column:span 2}
+.ped{display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--line);font-size:12.5px}.ped:first-of-type{border:none}.ped .pz{font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.ped .dt{font-size:10.5px;color:var(--ink3);font-weight:600}
+.notes-t{grid-column:span 2}
+textarea{width:100%;min-height:48px;border:1px solid var(--line);border-radius:10px;padding:9px;font:inherit;font-size:12px;resize:vertical;background:#FFFDFB;color:var(--ink)}textarea:focus{outline:none;border-color:var(--orange)}
+.rmd{display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--line);font-size:12px}.chk{width:16px;height:16px;border-radius:5px;border:2px solid var(--line);display:grid;place-items:center;font-size:10px}.chk.on{background:var(--green);border-color:var(--green);color:#fff}.rmd.done span{text-decoration:line-through;color:var(--ink3)}.rf{font-size:10px;color:var(--ink3);font-weight:600}
+.act{display:flex;flex-direction:column;justify-content:center;gap:6px;cursor:pointer}.act .ai{font-size:22px}.act .al{font-size:13px;font-weight:700}
+.act.p{background:linear-gradient(135deg,#FF7A45,var(--orange));color:#fff;border:none;box-shadow:0 8px 20px rgba(242,104,43,.3)}
+.tip{margin-top:24px;text-align:center;font-size:12px;color:var(--ink3)}
+@media(max-width:900px){.bento{grid-template-columns:repeat(2,1fr)}.greet,.aten,.ped-t,.notes-t{grid-column:span 2}}
+</style></head><body><div class="wrap">
+<div class="bento">
+
+  <div class="t greet">
+    <div><div class="logo">📦</div></div>
+    <div><h1>Buenas tardes,<br>TECNO 👋</h1>
+      <div class="p"><b>11</b> en reparación · <b>3</b> listas · <b>1</b> urgente</div>
+      <div class="seg"><button class="on">Hoy</button><button>Semana</button><button>Mes</button></div></div>
+  </div>
+
+  <div class="t kpi"><div class="ic ig">📦</div><div class="num">3</div><div class="lbl">Listas hoy</div></div>
+  <div class="t kpi"><div class="ic io">💶</div><div class="num">€245</div><div class="lbl">Caja hoy</div></div>
+  <div class="t kpi"><div class="ic ib">📅</div><div class="num">2</div><div class="lbl">Citas hoy</div></div>
+  <div class="t kpi"><div class="ic ir">🚨</div><div class="num">1</div><div class="lbl">Urgente</div></div>
+
+  <div class="t aten">
+    <div class="head">⚠️ Necesita atención <span class="b">4</span></div>
+    <div class="r"><span class="dot d-red"></span><div class="m"><div class="tt">OPPO Reno 12F · Andrés</div><div class="ss">Pantalla rota · hoy</div></div><span class="tag tg-red">Urgente</span></div>
+    <div class="r"><span class="dot d-amber"></span><div class="m"><div class="tt">Samsung A50 · Brenda</div><div class="ss">No carga · 6 días</div></div><span class="tag tg-amber">Vencida</span></div>
+    <div class="r"><span class="dot d-blue"></span><div class="m"><div class="tt">3 cobros pendientes</div><div class="ss">€180 sin pagar</div></div><span class="tag tg-blue">Cobrar</span></div>
+    <div class="r"><span class="dot d-amber"></span><div class="m"><div class="tt">Stock bajo mínimo</div><div class="ss">3 productos</div></div><span class="tag tg-amber">Pedir</span></div>
+  </div>
+
+  <div class="t ped-t">
+    <div class="head">📦 Pedidos pendientes <span class="b">4</span></div>
+    <div class="ped"><span>🟡</span><span class="pz">Pantalla iPhone 13</span><span class="dt">llega 6/06</span></div>
+    <div class="ped"><span>🟡</span><span class="pz">Batería A52</span><span class="dt">llega 7/06</span></div>
+    <div class="ped"><span>🔴</span><span class="pz">Tapa Huawei P30</span><span class="dt">por pedir</span></div>
+  </div>
+
+  <div class="t act p"><div class="ai">🔧</div><div class="al">Nueva reparación</div></div>
+  <div class="t act p"><div class="ai">🛒</div><div class="al">Abrir TPV</div></div>
+
+  <div class="t notes-t">
+    <div class="head">📌 Notas y recordatorios</div>
+    <textarea>Pedir adaptadores USB-C al distribuidor.</textarea>
+    <div class="rmd"><div class="chk"></div><span style="flex:1">Pedir pantallas A52</span><span class="rf">vie 6</span></div>
+    <div class="rmd done"><div class="chk on">✓</div><span>Llamar a Andrés</span></div>
+  </div>
+
+</div>
+<div class="tip">Vista previa · Bento (tarjetas modernas, con Pedidos) · datos de ejemplo</div>
+</div></body></html>

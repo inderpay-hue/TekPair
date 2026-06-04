@@ -1,32 +1,39 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
-<title>TekPair · Inicio — 5 propuestas</title>
+<title>TekPair · Inicio — propuestas</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{--bg1:#FFF8F2;--bg2:#FFEFE4;--ink:#241F1B;--ink2:#6E635A;--ink3:#A89C92;--line:#F0E6DC;--orange:#F2682B;--shadow:0 1px 2px rgba(36,31,27,.04),0 8px 24px rgba(36,31,27,.06)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh;padding:48px clamp(18px,5vw,60px)}
-.wrap{max-width:820px;margin:0 auto}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh;padding:46px clamp(18px,5vw,60px)}
+.wrap{max-width:860px;margin:0 auto}
 h1{font-size:clamp(26px,4vw,36px);font-weight:800;letter-spacing:-1px}
-.sub{font-size:15px;color:var(--ink2);margin:8px 0 30px}
-.list{display:flex;flex-direction:column;gap:14px}
-a.card{display:flex;align-items:center;gap:18px;background:#fff;border:1px solid var(--line);border-radius:18px;padding:20px 22px;box-shadow:var(--shadow);text-decoration:none;color:inherit;transition:transform .16s,box-shadow .16s}
+.sub{font-size:15px;color:var(--ink2);margin:8px 0 26px}
+.list{display:flex;flex-direction:column;gap:12px}
+a.card{display:flex;align-items:center;gap:16px;background:#fff;border:1px solid var(--line);border-radius:16px;padding:17px 20px;box-shadow:var(--shadow);text-decoration:none;color:inherit;transition:transform .16s,box-shadow .16s}
 a.card:hover{transform:translateY(-3px);box-shadow:0 14px 34px rgba(36,31,27,.12)}
-.badge{width:54px;height:54px;border-radius:15px;display:grid;place-items:center;font-size:26px;flex-shrink:0}
-.b1{background:rgba(242,104,43,.13)}.b2{background:rgba(245,158,11,.14)}.b3{background:rgba(22,185,129,.13)}.b4{background:rgba(168,156,146,.16)}.b5{background:#241F1B}
-.t{font-size:18px;font-weight:800}
-.d{font-size:13.5px;color:var(--ink2);margin-top:3px}
-.go{margin-left:auto;font-size:22px;color:var(--ink3)}
-.foot{margin-top:34px;font-size:13px;color:var(--ink2);text-align:center;line-height:1.7}
+a.card.star{border-color:var(--orange);box-shadow:0 8px 24px rgba(242,104,43,.16)}
+.badge{width:50px;height:50px;border-radius:14px;display:grid;place-items:center;font-size:24px;flex-shrink:0}
+.b1{background:rgba(242,104,43,.13)}.b2{background:rgba(245,158,11,.14)}.b3{background:rgba(22,185,129,.13)}.b4{background:rgba(168,156,146,.16)}.b5{background:#241F1B}.b6{background:rgba(47,107,255,.13)}.b7{background:rgba(245,158,11,.14)}.b8{background:rgba(139,92,246,.14)}
+.t{font-size:16.5px;font-weight:800;display:flex;align-items:center;gap:8px}
+.pill{font-size:10px;font-weight:800;padding:2px 8px;border-radius:20px;background:rgba(22,185,129,.14);color:#0E9E6E;text-transform:uppercase;letter-spacing:.4px}
+.pill.you{background:rgba(242,104,43,.14);color:var(--orange)}
+.d{font-size:13px;color:var(--ink2);margin-top:3px}
+.go{margin-left:auto;font-size:20px;color:var(--ink3)}
+.foot{margin-top:30px;font-size:13px;color:var(--ink2);text-align:center;line-height:1.7}
 </style></head><body><div class="wrap">
-<h1>5 propuestas de pantalla de inicio 🎨</h1>
-<div class="sub">Ábrelas, compáralas y dime cuál (o qué mezcla) te gusta. Luego la construyo de verdad.</div>
+<h1>Propuestas de pantalla de inicio 🎨</h1>
+<div class="sub">9 versiones. Las que llevan <span class="pill">Pedidos</span> incluyen el panel de piezas pendientes.</div>
 <div class="list">
-  <a class="card" href="/inicio-preview.html"><div class="badge b1">⚖️</div><div><div class="t">1 · Equilibrado</div><div class="d">El completo: pulso del día + KPIs + atención + notas. Todo a la vista, ordenado.</div></div><div class="go">→</div></a>
-  <a class="card" href="/inicio-preview-2.html"><div class="badge b2">🔧</div><div><div class="t">2 · Operativo</div><div class="d">Tablero del día: urgente / en proceso / listas para entregar. Para currar sin perderse.</div></div><div class="go">→</div></a>
-  <a class="card" href="/inicio-preview-3.html"><div class="badge b3">💼</div><div><div class="t">3 · Negocio</div><div class="d">Los números: ingresos de la semana con gráfico, beneficio, lo que más deja. Para el dueño.</div></div><div class="go">→</div></a>
-  <a class="card" href="/inicio-preview-4.html"><div class="badge b4">🌿</div><div><div class="t">4 · Minimal / Zen</div><div class="d">Limpísimo, mucho aire, lo justo. Elegante y calmado, estilo Apple.</div></div><div class="go">→</div></a>
-  <a class="card" href="/inicio-preview-5.html"><div class="badge b5">🌙</div><div><div class="t">5 · Oscuro Pro</div><div class="d">Modo oscuro premium con brillo naranja. Vibe tech moderno, mismo contenido que el 1.</div></div><div class="go">→</div></a>
+  <a class="card star" href="/inicio-preview-1b.html"><div class="badge b1">⭐</div><div><div class="t">1B · Equilibrado + logo centrado <span class="pill you">Tu dirección</span> <span class="pill">Pedidos</span></div><div class="d">La 1 con el logo en círculo arriba (centrado) + panel de Pedidos. La que estás eligiendo.</div></div><div class="go">→</div></a>
+  <a class="card" href="/inicio-preview.html"><div class="badge b1">⚖️</div><div><div class="t">1 · Equilibrado</div><div class="d">Pulso del día + KPIs + atención + notas. La base, sin logo centrado.</div></div><div class="go">→</div></a>
+  <a class="card" href="/inicio-preview-6.html"><div class="badge b6">🎛️</div><div><div class="t">6 · Control total <span class="pill">Pedidos</span></div><div class="d">Todo a la vez: KPIs + 3 columnas (atención · pedidos · notas).</div></div><div class="go">→</div></a>
+  <a class="card" href="/inicio-preview-7.html"><div class="badge b7">🔧</div><div><div class="t">7 · Operativo + Pedidos <span class="pill">Pedidos</span></div><div class="d">Tablero del día (urgente/en proceso/listas) + las piezas que esperas.</div></div><div class="go">→</div></a>
+  <a class="card" href="/inicio-preview-8.html"><div class="badge b8">🍱</div><div><div class="t">8 · Bento <span class="pill">Pedidos</span></div><div class="d">Tarjetas modernas de distintos tamaños. Look premium tipo "bento grid".</div></div><div class="go">→</div></a>
+  <a class="card" href="/inicio-preview-2.html"><div class="badge b2">📋</div><div><div class="t">2 · Operativo</div><div class="d">Tablero del día puro: urgente / en proceso / listas.</div></div><div class="go">→</div></a>
+  <a class="card" href="/inicio-preview-3.html"><div class="badge b3">💼</div><div><div class="t">3 · Negocio</div><div class="d">Los números: ingresos de la semana con gráfico, beneficio.</div></div><div class="go">→</div></a>
+  <a class="card" href="/inicio-preview-4.html"><div class="badge b4">🌿</div><div><div class="t">4 · Minimal / Zen</div><div class="d">Limpísimo, mucho aire. Elegante estilo Apple.</div></div><div class="go">→</div></a>
+  <a class="card" href="/inicio-preview-5.html"><div class="badge b5">🌙</div><div><div class="t">5 · Oscuro Pro</div><div class="d">Modo oscuro premium con brillo naranja.</div></div><div class="go">→</div></a>
 </div>
-<div class="foot">Las 5 usan tu paleta cálida · datos de ejemplo<br>Puedes quedarte con una o pedir una mezcla (ej. "el 1 pero con el gráfico del 3").</div>
+<div class="foot">Tu paleta cálida · datos de ejemplo<br>Puedes quedarte con una o pedir una mezcla.</div>
 </div></body></html>
