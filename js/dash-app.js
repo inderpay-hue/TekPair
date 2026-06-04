@@ -692,6 +692,13 @@ function _fillStockDatalist() {
 }
 // ¿Categoría con IMEI? (1 unidad = 1 IMEI)
 function _esImeiCat(cat) { return (typeof STOCK_CATS_IMEI !== 'undefined' ? STOCK_CATS_IMEI : ['Telefono', 'Tablet', 'Smartwatch']).indexOf(cat || '') !== -1; }
+// Proveedor habitual de un producto (según el último pedido con ese nombre)
+function _provHabitual(nombre) {
+  var n = (nombre || '').trim().toLowerCase(); if (!n) return '';
+  var arr = (DB.pedidos || []).filter(function(p) { return (p.pieza || '').trim().toLowerCase() === n && p.proveedor; });
+  arr.sort(function(a, b) { return (b.fecha_pedido || b.fecha_estimada || '').localeCompare(a.fecha_pedido || a.fecha_estimada || ''); });
+  return arr.length ? arr[0].proveedor : '';
+}
 // Desplegable de variantes de stock al escribir + aviso de stock exacto
 function onPedPiezaInput() {
   var inp = document.getElementById('pedPieza'), h = document.getElementById('pedStockHint'), sugs = document.getElementById('pedPiezaSugs');
@@ -705,9 +712,12 @@ function onPedPiezaInput() {
         var imei = _esImeiCat(s.categoria);
         var uds = parseInt(s.unidades, 10) || 0;
         var col = uds <= (s.stockMin || 0) ? 'var(--orange)' : 'var(--muted)';
-        return '<div onmousedown="pedSelStock(\'' + s.id + '\')" style="padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:12.5px" onmouseover="this.style.background=\'#faf7f3\'" onmouseout="this.style.background=\'#fff\'">' +
+        var coste = parseFloat(s.precioC) || 0;
+        var prov = _provHabitual(_stockNombre(s));
+        var sub = [(coste > 0 ? ('€' + coste.toFixed(2) + ' ' + T('pedidos.coste')) : ''), (prov ? ('· ' + escHtml(prov)) : '')].filter(Boolean).join(' ');
+        return '<div onmousedown="pedSelStock(\'' + s.id + '\')" style="padding:7px 11px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:12.5px" onmouseover="this.style.background=\'#faf7f3\'" onmouseout="this.style.background=\'#fff\'">' +
           '<span>' + (imei ? '📱' : '🔧') + '</span>' +
-          '<span style="flex:1;font-weight:600">' + escHtml(_stockNombre(s)) + '</span>' +
+          '<div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(_stockNombre(s)) + '</div>' + (sub ? '<div style="font-size:10.5px;color:var(--muted)">' + sub + '</div>' : '') + '</div>' +
           '<span style="color:' + col + ';font-weight:700;white-space:nowrap">' + uds + ' uds</span></div>';
       }).join('');
       sugs.style.display = '';
@@ -726,6 +736,12 @@ function pedSelStock(id) {
   var inp = document.getElementById('pedPieza'); if (inp) inp.value = _stockNombre(s);
   window._pedSelStockId = id;
   var sugs = document.getElementById('pedPiezaSugs'); if (sugs) sugs.style.display = 'none';
+  // Autorrellenar proveedor habitual e importe (coste) si están vacíos
+  var pv = document.getElementById('pedProv');
+  if (pv && !pv.value) { var ph = _provHabitual(_stockNombre(s)); if (ph) pv.value = ph; }
+  var im = document.getElementById('pedImporte');
+  var coste = parseFloat(s.precioC) || 0;
+  if (im && !im.value && coste > 0) im.value = coste.toFixed(2);
   var h = document.getElementById('pedStockHint');
   if (h) { h.style.display = ''; h.textContent = (_esImeiCat(s.categoria) ? '📱 ' : '✅ ') + T('pedidos.en_stock').replace('{n}', parseInt(s.unidades, 10) || 0); }
 }
@@ -785,13 +801,27 @@ function guardarNotasPedidos() {
     if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas });
   }, 800);
 }
+// Modo NUEVO: pedido con varias líneas (un proveedor, varios productos)
+function _pedModo(multi) {
+  var addRow = document.getElementById('pedAddRow');
+  var addBtn = document.getElementById('pedAddBtn');
+  var list = document.getElementById('pedItemsList');
+  var fpw = document.getElementById('pedFechaPedWrap');
+  if (addBtn) addBtn.style.display = multi ? '' : 'none';
+  if (list) list.style.display = multi ? '' : 'none';
+  if (fpw) fpw.style.display = multi ? 'none' : '';
+  if (addRow) addRow.style.alignItems = 'flex-end';
+}
 function nuevoPedido() {
   SEL.editPedidoId = null;
+  window._pedItems = [];
   document.getElementById('mPedidoTit').textContent = T('pedidos.nuevo');
   ['pedPieza', 'pedProv', 'pedImporte', 'pedFecha', 'pedFechaPed', 'pedNota'].forEach(function(id) { var e = document.getElementById(id); if (e) e.value = ''; });
   document.getElementById('pedCant').value = '1';
-  _fillProvDatalist(); _fillStockDatalist();
+  _fillProvDatalist();
   var h0 = document.getElementById('pedStockHint'); if (h0) h0.style.display = 'none';
+  _pedModo(true);
+  renderPedItems();
   openM('mPedido');
   setTimeout(function() { var e = document.getElementById('pedPieza'); if (e) e.focus(); }, 60);
 }
@@ -799,8 +829,9 @@ function editarPedido(id) {
   var p = (DB.pedidos || []).find(function(x) { return x.id === id; });
   if (!p) return;
   SEL.editPedidoId = id;
+  window._pedItems = [];
   document.getElementById('mPedidoTit').textContent = T('pedidos.editar');
-  _fillProvDatalist(); _fillStockDatalist();
+  _fillProvDatalist();
   document.getElementById('pedPieza').value = p.pieza || '';
   onPedPiezaInput();
   document.getElementById('pedCant').value = p.cantidad || 1;
@@ -809,32 +840,83 @@ function editarPedido(id) {
   document.getElementById('pedFechaPed').value = p.fecha_pedido || '';
   document.getElementById('pedFecha').value = p.fecha_estimada || '';
   document.getElementById('pedNota').value = p.nota || '';
+  _pedModo(false);
+  renderPedItems();
   openM('mPedido');
 }
-function guardarPedido() {
+// Añadir una línea de producto a la lista del pedido (modo nuevo)
+function pedAddItem() {
   var pieza = (document.getElementById('pedPieza').value || '').trim();
-  if (!pieza) { toast(T('pedidos.falta_pieza'), 'err'); return; }
-  var datos = {
+  if (!pieza) { toast(T('pedidos.falta_pieza'), 'err'); var pe = document.getElementById('pedPieza'); if (pe) pe.focus(); return; }
+  window._pedItems = window._pedItems || [];
+  window._pedItems.push({
     pieza: pieza,
     cantidad: parseInt(document.getElementById('pedCant').value, 10) || 1,
-    proveedor: (document.getElementById('pedProv').value || '').trim() || null,
-    importe: parseFloat(document.getElementById('pedImporte').value) || 0,
-    fecha_pedido: document.getElementById('pedFechaPed').value || null,
-    fecha_estimada: document.getElementById('pedFecha').value || null,
-    nota: (document.getElementById('pedNota').value || '').trim() || null
-  };
+    importe: parseFloat(document.getElementById('pedImporte').value) || 0
+  });
+  document.getElementById('pedPieza').value = '';
+  document.getElementById('pedCant').value = '1';
+  document.getElementById('pedImporte').value = '';
+  var h = document.getElementById('pedStockHint'); if (h) h.style.display = 'none';
+  var sg = document.getElementById('pedPiezaSugs'); if (sg) sg.style.display = 'none';
+  renderPedItems();
+  var pe2 = document.getElementById('pedPieza'); if (pe2) pe2.focus();
+}
+function pedDelItem(i) {
+  if (!window._pedItems) return;
+  window._pedItems.splice(i, 1);
+  renderPedItems();
+}
+function renderPedItems() {
+  var el = document.getElementById('pedItemsList');
+  if (!el) return;
+  if (SEL.editPedidoId) { el.innerHTML = ''; return; }
+  var items = window._pedItems || [];
+  if (!items.length) { el.innerHTML = '<div style="font-size:11.5px;color:var(--muted);padding:6px 2px">' + T('pedidos.items_vacio') + '</div>'; return; }
+  var tot = items.reduce(function(a, it) { return a + (parseFloat(it.importe) || 0); }, 0);
+  el.innerHTML = items.map(function(it, i) {
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12.5px">' +
+      '<span style="flex:1;font-weight:600">' + escHtml(it.pieza) + (it.cantidad > 1 ? ' <span style="color:var(--muted)">x' + it.cantidad + '</span>' : '') + '</span>' +
+      (it.importe > 0 ? '<span style="font-weight:700;color:var(--muted)">€' + parseFloat(it.importe).toFixed(2) + '</span>' : '') +
+      '<button onclick="pedDelItem(' + i + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:15px;line-height:1">×</button></div>';
+  }).join('') + '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;padding:4px 2px"><span>' + items.length + ' ' + T('pedidos.lineas') + '</span>' + (tot > 0 ? '<span>' + cur(tot) + '</span>' : '') + '</div>';
+}
+function guardarPedido() {
   DB.pedidos = DB.pedidos || [];
+  // EDITAR: un solo pedido
   if (SEL.editPedidoId) {
+    var pieza = (document.getElementById('pedPieza').value || '').trim();
+    if (!pieza) { toast(T('pedidos.falta_pieza'), 'err'); return; }
+    var datos = {
+      pieza: pieza,
+      cantidad: parseInt(document.getElementById('pedCant').value, 10) || 1,
+      proveedor: (document.getElementById('pedProv').value || '').trim() || null,
+      importe: parseFloat(document.getElementById('pedImporte').value) || 0,
+      fecha_pedido: document.getElementById('pedFechaPed').value || null,
+      fecha_estimada: document.getElementById('pedFecha').value || null,
+      nota: (document.getElementById('pedNota').value || '').trim() || null
+    };
     var p = DB.pedidos.find(function(x) { return x.id === SEL.editPedidoId; });
     if (p) { Object.assign(p, datos); if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), datos); }
-  } else {
-    var nuevo = Object.assign({ id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null) }, datos);
+    closeM('mPedido'); renderPedidosWidget(); toast(T('pedidos.guardado'), 'ok');
+    return;
+  }
+  // NUEVO: si hay una pieza escrita sin añadir, la añadimos
+  if ((document.getElementById('pedPieza').value || '').trim()) pedAddItem();
+  var items = window._pedItems || [];
+  if (!items.length) { toast(T('pedidos.falta_pieza'), 'err'); return; }
+  var prov = (document.getElementById('pedProv').value || '').trim() || null;
+  var fest = document.getElementById('pedFecha').value || null;
+  var nota = (document.getElementById('pedNota').value || '').trim() || null;
+  items.forEach(function(it) {
+    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, cantidad: it.cantidad, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, nota: nota };
     DB.pedidos.unshift(nuevo);
     if (SB_KEY) sbPost('pedidos', nuevo);
-  }
+  });
+  window._pedItems = [];
   closeM('mPedido');
   renderPedidosWidget();
-  toast(T('pedidos.guardado'), 'ok');
+  toast(T('pedidos.guardado_n').replace('{n}', items.length), 'ok');
 }
 function avanzarPedido(id) {
   var p = (DB.pedidos || []).find(function(x) { return x.id === id; });
