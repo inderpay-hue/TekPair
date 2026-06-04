@@ -690,13 +690,44 @@ function _fillStockDatalist() {
   });
   dl.innerHTML = opts.join('');
 }
-// Aviso de stock actual al escribir/elegir una pieza
+// ¿Categoría con IMEI? (1 unidad = 1 IMEI)
+function _esImeiCat(cat) { return (typeof STOCK_CATS_IMEI !== 'undefined' ? STOCK_CATS_IMEI : ['Telefono', 'Tablet', 'Smartwatch']).indexOf(cat || '') !== -1; }
+// Desplegable de variantes de stock al escribir + aviso de stock exacto
 function onPedPiezaInput() {
-  var inp = document.getElementById('pedPieza'), h = document.getElementById('pedStockHint');
-  if (!inp || !h) return;
-  var m = _stockMatch(inp.value);
-  if (m) { h.style.display = ''; h.textContent = '✅ ' + T('pedidos.en_stock').replace('{n}', parseInt(m.unidades, 10) || 0); }
-  else { h.style.display = 'none'; }
+  var inp = document.getElementById('pedPieza'), h = document.getElementById('pedStockHint'), sugs = document.getElementById('pedPiezaSugs');
+  if (!inp) return;
+  var q = (inp.value || '').trim().toLowerCase();
+  if (!q) { if (sugs) sugs.style.display = 'none'; if (h) h.style.display = 'none'; return; }
+  var matches = (DB.stock || []).filter(function(s) { return !s.vendido && _stockNombre(s).toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
+  if (sugs) {
+    if (matches.length) {
+      sugs.innerHTML = matches.map(function(s) {
+        var imei = _esImeiCat(s.categoria);
+        var uds = parseInt(s.unidades, 10) || 0;
+        var col = uds <= (s.stockMin || 0) ? 'var(--orange)' : 'var(--muted)';
+        return '<div onmousedown="pedSelStock(\'' + s.id + '\')" style="padding:8px 11px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:12.5px" onmouseover="this.style.background=\'#faf7f3\'" onmouseout="this.style.background=\'#fff\'">' +
+          '<span>' + (imei ? '📱' : '🔧') + '</span>' +
+          '<span style="flex:1;font-weight:600">' + escHtml(_stockNombre(s)) + '</span>' +
+          '<span style="color:' + col + ';font-weight:700;white-space:nowrap">' + uds + ' uds</span></div>';
+      }).join('');
+      sugs.style.display = '';
+    } else { sugs.style.display = 'none'; }
+  }
+  if (h) {
+    var m = _stockMatch(inp.value);
+    if (m) { h.style.display = ''; h.textContent = (_esImeiCat(m.categoria) ? '📱 ' : '✅ ') + T('pedidos.en_stock').replace('{n}', parseInt(m.unidades, 10) || 0); }
+    else { h.style.display = 'none'; }
+  }
+}
+// Seleccionar un producto del desplegable → fija el nombre exacto de la variante
+function pedSelStock(id) {
+  var s = (DB.stock || []).find(function(x) { return x.id === id; });
+  if (!s) return;
+  var inp = document.getElementById('pedPieza'); if (inp) inp.value = _stockNombre(s);
+  window._pedSelStockId = id;
+  var sugs = document.getElementById('pedPiezaSugs'); if (sugs) sugs.style.display = 'none';
+  var h = document.getElementById('pedStockHint');
+  if (h) { h.style.display = ''; h.textContent = (_esImeiCat(s.categoria) ? '📱 ' : '✅ ') + T('pedidos.en_stock').replace('{n}', parseInt(s.unidades, 10) || 0); }
 }
 function cargarPedidos(cb) {
   if (!SB_KEY || !TIENDA_ID) { DB.pedidos = DB.pedidos || []; if (cb) cb(); return; }
@@ -823,15 +854,40 @@ function avanzarPedido(id) {
       toast(T('pedidos.recibido_gasto'), 'ok');
     } else { toast(T('pedidos.marcado_recibido'), 'ok'); }
     if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
-    // Al recibir: sumar al stock (si el producto ya existe) o crearlo
+    // Al recibir: registrar en stock
     var uds = parseInt(p.cantidad, 10) || 1;
     var existe = _stockMatch(p.pieza);
-    var msg = existe
-      ? T('pedidos.add_stock_sumar').replace('{n}', uds).replace('{pieza}', p.pieza || '').replace('{cur}', parseInt(existe.unidades, 10) || 0)
-      : T('pedidos.add_stock').replace('{n}', uds).replace('{pieza}', p.pieza || '');
-    if (confirm(msg)) { _recibirAStock(p, uds, existe); }
+    if (existe && _esImeiCat(existe.categoria)) {
+      // IMEI: no se suma, se registran las unidades con su IMEI
+      if (confirm(T('pedidos.add_stock_imei').replace('{n}', uds).replace('{pieza}', p.pieza || ''))) {
+        _abrirAltaImeiDesdePedido(existe, uds);
+      }
+    } else {
+      var msg = existe
+        ? T('pedidos.add_stock_sumar').replace('{n}', uds).replace('{pieza}', p.pieza || '').replace('{cur}', parseInt(existe.unidades, 10) || 0)
+        : T('pedidos.add_stock').replace('{n}', uds).replace('{pieza}', p.pieza || '');
+      if (confirm(msg)) { _recibirAStock(p, uds, existe); }
+    }
   }
   renderPedidosWidget();
+}
+// Abre el alta de Stock pre-rellenada para registrar N unidades con IMEI
+function _abrirAltaImeiDesdePedido(item, uds) {
+  if (typeof nuevoStock !== 'function') return;
+  nuevoStock();
+  var set = function(id, v) { var e = document.getElementById(id); if (e) e.value = v; };
+  set('sCat', item.categoria || 'Telefono');
+  set('sMarca', item.marca || '');
+  set('sModelo', item.modelo || '');
+  if (item.capacidad) set('sCap', item.capacidad);
+  if (item.precioC) set('sPrecioC', item.precioC);
+  try { toggleStockMulti(); } catch (e) {}
+  setTimeout(function() {
+    var w = document.getElementById('sImeiMultiWrap'), ta = document.getElementById('sImeiMulti');
+    if (w && w.scrollIntoView) w.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    if (ta) ta.focus();
+  }, 120);
+  toast(T('pedidos.imei_hint').replace('{n}', uds), 'ok');
 }
 // Recibe un pedido al stock: suma a un item existente o crea uno nuevo (repuesto)
 function _recibirAStock(p, uds, existe) {
