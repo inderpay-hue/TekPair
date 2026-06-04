@@ -487,12 +487,18 @@ export default async function handler(req, res) {
         // El servidor traduce el código a nombre (no se fía del cliente).
         const yaAbierta = cierreExistente && cierreExistente.abierto_por;
         const codAp = (req.body.codigo_apertura || '').toString().trim();
-        if (!yaAbierta && codAp) {
-          const us = await sbGet(
-            `usuarios?tienda_id=eq.${encodeURIComponent(tienda_id)}&codigo=eq.${encodeURIComponent(codAp)}&select=nombre&limit=1`
-          );
-          if (!us.length) return err(res, 400, 'Código de empleado no válido');
-          cierrePayload.abierto_por = us[0].nombre;
+        const nomAp = (req.body.abierto_por_nombre || '').toString().trim();
+        if (!yaAbierta) {
+          if (codAp) {
+            const us = await sbGet(
+              `usuarios?tienda_id=eq.${encodeURIComponent(tienda_id)}&codigo=eq.${encodeURIComponent(codAp)}&select=nombre&limit=1`
+            );
+            if (!us.length) return err(res, 400, 'Código de empleado no válido');
+            cierrePayload.abierto_por = us[0].nombre;
+          } else if (nomAp && esAdminTienda(payload)) {
+            // Admin operando sin código: se registra por su propio nombre (de confianza)
+            cierrePayload.abierto_por = nomAp.slice(0, 100);
+          }
         }
 
         let cierreId;

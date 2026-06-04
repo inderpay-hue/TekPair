@@ -604,12 +604,59 @@ function ajTab(btn) {
   if (tab === 'negocio' && typeof cargarTienda === 'function') cargarTienda();
 }
 
+// ── Puerta de código de Cajas: identifica al empleado al entrar ──
+async function pedirCodigoCaja() {
+  var users = [];
+  try { users = await sbGet('usuarios', 'tienda_id=eq.' + TIENDA_ID + '&select=nombre,codigo,rol,activo'); } catch (e) {}
+  var conCodigo = (users || []).filter(function(u) { return u.activo !== false && u.codigo; });
+  if (conCodigo.length === 0) {
+    // Nadie tiene código configurado → sin puerta (entra como el usuario logueado)
+    window._cajaSesion = { codigo: '', nombre: (U ? U.nombre : '') };
+    window._cajaGateOk = true;
+    navTo('pCajas');
+    return;
+  }
+  window._cajaUsersCache = conCodigo;
+  var inp = document.getElementById('codigo-caja-input'); if (inp) inp.value = '';
+  var err = document.getElementById('codigo-caja-error'); if (err) err.style.display = 'none';
+  var adminBtn = document.getElementById('codigo-caja-admin');
+  if (adminBtn) adminBtn.style.display = (U && U.rol === 'admin') ? '' : 'none';
+  document.getElementById('modal-codigo-caja').classList.add('activo');
+  setTimeout(function() { if (inp) inp.focus(); }, 80);
+}
+function validarCodigoCaja() {
+  var cod = (document.getElementById('codigo-caja-input').value || '').trim();
+  var match = (window._cajaUsersCache || []).find(function(u) { return String(u.codigo) === cod; });
+  if (!match) {
+    var err = document.getElementById('codigo-caja-error');
+    if (err) { err.textContent = T('caja.codigo_no_valido'); err.style.display = 'block'; }
+    return;
+  }
+  window._cajaSesion = { codigo: cod, nombre: match.nombre };
+  window._cajaGateOk = true;
+  document.getElementById('modal-codigo-caja').classList.remove('activo');
+  navTo('pCajas');
+}
+function entrarCajaAdmin() {
+  window._cajaSesion = { codigo: '', nombre: (U ? U.nombre : '') };
+  window._cajaGateOk = true;
+  document.getElementById('modal-codigo-caja').classList.remove('activo');
+  navTo('pCajas');
+}
+function cerrarCodigoCaja() {
+  document.getElementById('modal-codigo-caja').classList.remove('activo');
+  // No entra en Cajas: se queda donde estaba
+}
+
 function navTo(id) {
   // Cajas: si el admin denegó el permiso a este trabajador, no puede abrirla ni por enlace directo
   if (id === 'pCajas' && U && U.rol !== 'admin' && !(U.permisos && U.permisos.todo)
       && U.permisos && U.permisos.cajas_ver === false) {
     toast(T('gen.sin_permiso'), 'err'); return;
   }
+  // Puerta de código: al entrar en Cajas se identifica al empleado por su código
+  if (id === 'pCajas' && !window._cajaGateOk) { pedirCodigoCaja(); return; }
+  if (id !== 'pCajas') window._cajaGateOk = false;
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   var el = document.getElementById(id);
   if (el) {
