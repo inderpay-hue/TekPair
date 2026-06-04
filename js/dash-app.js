@@ -670,6 +670,34 @@ function _fillProvDatalist() {
   dl.innerHTML = (DB.provs || []).filter(function(p) { return p && p.nombre; })
     .map(function(p) { return '<option value="' + escHtml(p.nombre) + '">'; }).join('');
 }
+// Nombre legible de un producto de stock (para vincular pedidos)
+function _stockNombre(s) { return [s.marca, s.modelo, s.capacidad, s.color].map(function(x) { return (x || '').trim(); }).filter(Boolean).join(' '); }
+// Busca un item de stock que coincida exactamente con el nombre de la pieza
+function _stockMatch(pieza) {
+  var n = (pieza || '').trim().toLowerCase();
+  if (!n) return null;
+  return (DB.stock || []).find(function(s) { return !s.vendido && _stockNombre(s).toLowerCase() === n; }) || null;
+}
+// Autocompletado del campo pieza con los productos del stock
+function _fillStockDatalist() {
+  var dl = document.getElementById('pedPiezaList');
+  if (!dl) return;
+  var seen = {}, opts = [];
+  (DB.stock || []).forEach(function(s) {
+    if (s.vendido) return;
+    var nm = _stockNombre(s);
+    if (nm && !seen[nm.toLowerCase()]) { seen[nm.toLowerCase()] = 1; opts.push('<option value="' + escHtml(nm) + '">'); }
+  });
+  dl.innerHTML = opts.join('');
+}
+// Aviso de stock actual al escribir/elegir una pieza
+function onPedPiezaInput() {
+  var inp = document.getElementById('pedPieza'), h = document.getElementById('pedStockHint');
+  if (!inp || !h) return;
+  var m = _stockMatch(inp.value);
+  if (m) { h.style.display = ''; h.textContent = '✅ ' + T('pedidos.en_stock').replace('{n}', parseInt(m.unidades, 10) || 0); }
+  else { h.style.display = 'none'; }
+}
 function cargarPedidos(cb) {
   if (!SB_KEY || !TIENDA_ID) { DB.pedidos = DB.pedidos || []; if (cb) cb(); return; }
   // Notas (columna nueva): tolerante si aún no existe
@@ -731,7 +759,8 @@ function nuevoPedido() {
   document.getElementById('mPedidoTit').textContent = T('pedidos.nuevo');
   ['pedPieza', 'pedProv', 'pedImporte', 'pedFecha', 'pedFechaPed', 'pedNota'].forEach(function(id) { var e = document.getElementById(id); if (e) e.value = ''; });
   document.getElementById('pedCant').value = '1';
-  _fillProvDatalist();
+  _fillProvDatalist(); _fillStockDatalist();
+  var h0 = document.getElementById('pedStockHint'); if (h0) h0.style.display = 'none';
   openM('mPedido');
   setTimeout(function() { var e = document.getElementById('pedPieza'); if (e) e.focus(); }, 60);
 }
@@ -740,8 +769,9 @@ function editarPedido(id) {
   if (!p) return;
   SEL.editPedidoId = id;
   document.getElementById('mPedidoTit').textContent = T('pedidos.editar');
-  _fillProvDatalist();
+  _fillProvDatalist(); _fillStockDatalist();
   document.getElementById('pedPieza').value = p.pieza || '';
+  onPedPiezaInput();
   document.getElementById('pedCant').value = p.cantidad || 1;
   document.getElementById('pedProv').value = p.proveedor || '';
   document.getElementById('pedImporte').value = p.importe || '';
@@ -793,17 +823,27 @@ function avanzarPedido(id) {
       toast(T('pedidos.recibido_gasto'), 'ok');
     } else { toast(T('pedidos.marcado_recibido'), 'ok'); }
     if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
-    // Añadir al stock directo al recibir
+    // Al recibir: sumar al stock (si el producto ya existe) o crearlo
     var uds = parseInt(p.cantidad, 10) || 1;
-    if (confirm(T('pedidos.add_stock').replace('{n}', uds).replace('{pieza}', p.pieza || ''))) {
-      _crearStockDesdePedido(p, uds);
-    }
+    var existe = _stockMatch(p.pieza);
+    var msg = existe
+      ? T('pedidos.add_stock_sumar').replace('{n}', uds).replace('{pieza}', p.pieza || '').replace('{cur}', parseInt(existe.unidades, 10) || 0)
+      : T('pedidos.add_stock').replace('{n}', uds).replace('{pieza}', p.pieza || '');
+    if (confirm(msg)) { _recibirAStock(p, uds, existe); }
   }
   renderPedidosWidget();
 }
-// Crea un item de stock (repuesto) a partir de un pedido recibido
-function _crearStockDesdePedido(p, uds) {
+// Recibe un pedido al stock: suma a un item existente o crea uno nuevo (repuesto)
+function _recibirAStock(p, uds, existe) {
   DB.stock = DB.stock || [];
+  if (existe) {
+    existe.unidades = (parseInt(existe.unidades, 10) || 0) + uds;
+    if (SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(existe.id), { unidades: existe.unidades });
+    try { guardarDatos(); } catch(e){}
+    try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
+    toast(T('pedidos.stock_sumado').replace('{n}', uds).replace('{total}', existe.unidades), 'ok');
+    return;
+  }
   var costeUnit = (parseFloat(p.importe) || 0) > 0 ? (parseFloat(p.importe) / (uds || 1)) : 0;
   var item = {
     id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -1848,10 +1888,12 @@ function renderPedidosPage() {
     box.innerHTML = keys.map(function(k) {
       var items = groups[k];
       var tot = items.reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
+      var nPorPedir = items.filter(function(p) { return p.estado === 'por_pedir'; }).length;
+      var btnGrupo = nPorPedir ? '<button onclick="marcarGrupoPedido(\'' + encodeURIComponent(k) + '\')" style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:5px 11px;font:inherit;font-size:11px;font-weight:700;cursor:pointer">🟡 ' + T('pedidos.marcar_grupo') + ' (' + nPorPedir + ')</button>' : '';
       return '<div style="margin-bottom:16px">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800;font-size:13.5px">🏢 ' + escHtml(k) +
           ' <span style="background:var(--light);border-radius:8px;padding:1px 8px;font-size:11px;color:var(--muted)">' + items.length + '</span>' +
-          (tot > 0 ? '<span style="margin-left:auto;color:var(--muted);font-size:12px">' + cur(tot) + '</span>' : '') + '</div>' +
+          '<span style="margin-left:auto;display:flex;align-items:center;gap:10px">' + (tot > 0 ? '<span style="color:var(--muted);font-size:12px">' + cur(tot) + '</span>' : '') + btnGrupo + '</span></div>' +
         gridOpen + items.map(card).join('') + '</div></div>';
     }).join('');
   } else {
@@ -1860,6 +1902,26 @@ function renderPedidosPage() {
 }
 function setPedBuscar(v) { window._pedBuscar = v; renderPedidosPage(); }
 function togglePedAgrupar() { window._pedAgrupar = !window._pedAgrupar; renderPedidosPage(); }
+// Marcar de golpe como "pedido" todos los "por pedir" de un proveedor
+function marcarGrupoPedido(encKey) {
+  var key = decodeURIComponent(encKey);
+  var sinProv = T('pedidos.sin_proveedor');
+  var targets = (DB.pedidos || []).filter(function(p) {
+    if (p.estado !== 'por_pedir') return false;
+    return ((p.proveedor || '').trim() || sinProv) === key;
+  });
+  if (!targets.length) return;
+  if (!confirm(T('pedidos.confirmar_grupo_pedido').replace('{n}', targets.length))) return;
+  var hoy = hoyLocal();
+  targets.forEach(function(p) {
+    p.estado = 'pedido';
+    var patch = { estado: 'pedido' };
+    if (!p.fecha_pedido) { p.fecha_pedido = hoy; patch.fecha_pedido = hoy; }
+    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
+  });
+  renderPedidosWidget();
+  toast(T('pedidos.grupo_marcado').replace('{n}', targets.length), 'ok');
+}
 
 async function renderDash() {
   // Limpiar caché de pagos al cambiar periodo para no mostrar datos del anterior

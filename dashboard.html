@@ -3547,7 +3547,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="modal">
     <div class="modal-title" id="mPedidoTit">📦 Nuevo pedido</div>
     <div class="fi-row">
-      <div class="fg" style="flex:2"><label class="fl"><span data-t="pedidos.pieza">Pieza</span> *</label><input class="fi" id="pedPieza" placeholder="Pantalla iPhone 13..."></div>
+      <div class="fg" style="flex:2"><label class="fl"><span data-t="pedidos.pieza">Pieza</span> *</label><input class="fi" id="pedPieza" list="pedPiezaList" autocomplete="off" oninput="onPedPiezaInput()" placeholder="Pantalla iPhone 13..."><datalist id="pedPiezaList"></datalist><div id="pedStockHint" style="display:none;font-size:11px;color:var(--green);font-weight:700;margin-top:4px"></div></div>
       <div class="fg" style="flex:1"><label class="fl"><span data-t="pedidos.cantidad">Cantidad</span></label><input class="fi" id="pedCant" type="number" value="1" min="1"></div>
     </div>
     <div class="fi-row">
