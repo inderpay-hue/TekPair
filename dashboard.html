@@ -3547,7 +3547,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="modal">
     <div class="modal-title" id="mPedidoTit">📦 Nuevo pedido</div>
     <div class="fi-row">
-      <div class="fg" style="flex:2"><label class="fl"><span data-t="pedidos.pieza">Pieza</span> *</label><input class="fi" id="pedPieza" list="pedPiezaList" autocomplete="off" oninput="onPedPiezaInput()" placeholder="Pantalla iPhone 13..."><datalist id="pedPiezaList"></datalist><div id="pedStockHint" style="display:none;font-size:11px;color:var(--green);font-weight:700;margin-top:4px"></div></div>
+      <div class="fg" style="flex:2;position:relative"><label class="fl"><span data-t="pedidos.pieza">Pieza</span> *</label><input class="fi" id="pedPieza" autocomplete="off" oninput="onPedPiezaInput()" onblur="setTimeout(function(){var d=document.getElementById('pedPiezaSugs');if(d)d.style.display='none';},200)" placeholder="Pantalla iPhone 13..."><div id="pedPiezaSugs" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 30px -8px rgba(0,0,0,.2);max-height:240px;overflow:auto;margin-top:4px"></div><div id="pedStockHint" style="display:none;font-size:11px;color:var(--green);font-weight:700;margin-top:4px"></div></div>
       <div class="fg" style="flex:1"><label class="fl"><span data-t="pedidos.cantidad">Cantidad</span></label><input class="fi" id="pedCant" type="number" value="1" min="1"></div>
     </div>
     <div class="fi-row">
