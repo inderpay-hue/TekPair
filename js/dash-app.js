@@ -1390,8 +1390,19 @@ var WIDGET_SELECTOR_OPTS = [
   {id:'averias', icon:'📋', labelKey:'dash.ws_averias', label:'Top averías'}
 ];
 
+// ¿Puede ver info de caja? Mismo criterio que el acceso a Cajas: oculto si el admin
+// le quitó el permiso cajas_ver al empleado.
+function puedeVerCaja() {
+  if (!U) return false;
+  if (U.rol === 'admin' || (U.permisos && U.permisos.todo)) return true;
+  return !(U.permisos && U.permisos.cajas_ver === false);
+}
 function _getWidgetSelectorActive() {
-  try { return localStorage.getItem('tk_ws_' + TIENDA_ID + '_' + (U&&U.id||'')) || 'ops'; } catch(e) { return 'ops'; }
+  try {
+    var a = localStorage.getItem('tk_ws_' + TIENDA_ID + '_' + (U&&U.id||'')) || 'ops';
+    if (a === 'cierre' && !puedeVerCaja()) return 'ops';
+    return a;
+  } catch(e) { return 'ops'; }
 }
 function _setWidgetSelectorActive(id) {
   try { localStorage.setItem('tk_ws_' + TIENDA_ID + '_' + (U&&U.id||''), id); } catch(e) {}
@@ -1470,7 +1481,7 @@ function _renderWidgetSelectorBody(id) {
     }
     html += '</div>';
     box.innerHTML = html;
-  } else if (id === 'cierre') {
+  } else if (id === 'cierre' && puedeVerCaja()) {
     var hoyReps = DB.reps.filter(function(r){ return r.fechaEntregaReal === hoyLocal(); });
     var hoyVentas = DB.ventas.filter(function(v){ return v.fecha === hoyLocal() && !v.reembolsado; });
     var totalHoy = hoyReps.reduce(function(a,r){ return a+(r.total||0); }, 0) + hoyVentas.reduce(function(a,v){ return a+(v.total||0); }, 0);
@@ -1530,7 +1541,9 @@ function renderWidgetSelector() {
   if (!grid) return;
   var activeId = _getWidgetSelectorActive();
   // Tabs
-  var tabsHtml = WIDGET_SELECTOR_OPTS.map(function(opt) {
+  var tabsHtml = WIDGET_SELECTOR_OPTS.filter(function(opt) {
+    return opt.id !== 'cierre' || puedeVerCaja();   // "Cierre hoy" oculto si no puede ver caja
+  }).map(function(opt) {
     return '<button class="widget-sel-tab' + (opt.id===activeId?' active':'') + '" data-wid="' + opt.id + '">' +
       opt.icon + ' ' + (T('dash.ws_' + opt.id)||opt.label) +
     '</button>';
@@ -8154,6 +8167,7 @@ function emailReporte() {
 // versión sync (sin await) usando DB local, sin toast ni PDF/email
 function renderWidgetCierre() {
   if (!widgetVisible('widget_cierre')) return;
+  if (!puedeVerCaja()) { try { hideEl('cardCierre'); } catch(e){} return; }
   var el = document.getElementById('cierreBox');
   if (!el) return;
   // FIX: usar hoyLocal() (ISO YYYY-MM-DD) — v.fecha es ISO. Antes toLocaleDateString('es')
