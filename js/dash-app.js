@@ -1729,21 +1729,21 @@ function setInvVista(v, btn) {
 // ── Personalización del inicio por tienda (qué tarjetas se ven) ──
 // Catálogo de tarjetas personalizables (admin=solo se muestra a quien ve caja)
 var INV_WIDGETS = [
-  { id: 'tb_cobros', vista: 'Tablero', label: 'Cobros pendientes', admin: true },
-  { id: 'tb_ventas', vista: 'Tablero', label: 'Ventas de hoy' },
-  { id: 'tb_comocobras', vista: 'Tablero', label: 'Cómo cobras hoy', admin: true },
-  { id: 'tb_citas', vista: 'Tablero', label: 'Citas de hoy' },
-  { id: 'tb_pedidos', vista: 'Tablero', label: 'Pedidos por recibir' },
-  { id: 'tb_stock', vista: 'Tablero', label: 'Stock crítico' },
-  { id: 'tb_garantias', vista: 'Tablero', label: 'Garantías que vencen' },
-  { id: 'tb_entregas', vista: 'Tablero', label: 'Entregas de hoy' },
-  { id: 'tb_averias', vista: 'Tablero', label: 'Averías más frecuentes' },
-  { id: 'tb_clientes', vista: 'Tablero', label: 'Cumpleaños de clientes' },
-  { id: 'tb_notas', vista: 'Tablero', label: 'Notas y recordatorios' },
-  { id: 'rs_inggastos', vista: 'Resumen', label: 'Ingresos vs gastos', admin: true },
-  { id: 'rs_comocobras', vista: 'Resumen', label: 'Cómo cobras', admin: true },
-  { id: 'rs_lodeja', vista: 'Resumen', label: 'Lo que más deja', admin: true },
-  { id: 'rs_pedidos', vista: 'Resumen', label: 'Pedidos por recibir', admin: true },
+  { id: 'tb_cobros', vista: 'Tablero', label: 'Cobros pendientes', tkey: 'tb.cobros_h', admin: true },
+  { id: 'tb_ventas', vista: 'Tablero', label: 'Ventas de hoy', tkey: 'tb.ventas_h' },
+  { id: 'tb_comocobras', vista: 'Tablero', label: 'Cómo cobras hoy', tkey: 'tb.comocobras_h', admin: true },
+  { id: 'tb_citas', vista: 'Tablero', label: 'Citas de hoy', tkey: 'tb.citas_h' },
+  { id: 'tb_pedidos', vista: 'Tablero', label: 'Pedidos por recibir', tkey: 'tb.pedidos_h' },
+  { id: 'tb_stock', vista: 'Tablero', label: 'Stock crítico', tkey: 'tb.stock_h' },
+  { id: 'tb_garantias', vista: 'Tablero', label: 'Garantías que vencen', tkey: 'tb.garantias_h' },
+  { id: 'tb_entregas', vista: 'Tablero', label: 'Entregas de hoy', tkey: 'tb.entregas_h' },
+  { id: 'tb_averias', vista: 'Tablero', label: 'Averías más frecuentes', tkey: 'tb.averias_h' },
+  { id: 'tb_clientes', vista: 'Tablero', label: 'Cumpleaños de clientes', tkey: 'tb.cumples_h' },
+  { id: 'tb_notas', vista: 'Tablero', label: 'Notas y recordatorios', tkey: 'inicio.notas' },
+  { id: 'rs_inggastos', vista: 'Resumen', label: 'Ingresos vs gastos', tkey: 'inicio.ing_gastos', admin: true },
+  { id: 'rs_comocobras', vista: 'Resumen', label: 'Cómo cobras', tkey: 'inicio.como_cobras', admin: true },
+  { id: 'rs_lodeja', vista: 'Resumen', label: 'Lo que más deja', tkey: 'inicio.lo_que_deja', admin: true },
+  { id: 'rs_pedidos', vista: 'Resumen', label: 'Pedidos por recibir', tkey: 'inicio.pedidos_recibir', admin: true },
 ];
 function _invCargarCfg() {
   if (window._inicioCfg) return window._inicioCfg;
@@ -1804,7 +1804,8 @@ function renderEditarInicio() {
       items = INV_WIDGETS.filter(function(w) { return w.vista === grp && (!w.admin || admin); });
     }
     if (!items.length) return;
-    html += '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 4px">' + T('inicio.tarjetas') + ' · ' + grp + (ordenable ? ' <span style="font-weight:500;text-transform:none">— ' + T('inicio.ordena') + '</span>' : '') + '</div>';
+    var grpLbl = grp === 'Tablero' ? T('inicio.v_tablero') : T('inicio.v_resumen');
+    html += '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 4px">' + T('inicio.tarjetas') + ' · ' + grpLbl + (ordenable ? ' <span style="font-weight:500;text-transform:none">— ' + T('inicio.ordena') + '</span>' : '') + '</div>';
     items.forEach(function(w, idx) {
       var arrows = '';
       if (ordenable) {
@@ -1815,7 +1816,7 @@ function renderEditarInicio() {
       }
       html += '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)">' +
         arrows +
-        '<span style="flex:1;font-size:13px;font-weight:600;min-width:0">' + escHtml(w.label) + (w.admin ? ' <span style="font-size:10px;color:var(--muted)">· ' + T('inicio.solo_admin') + '</span>' : '') + '</span>' +
+        '<span style="flex:1;font-size:13px;font-weight:600;min-width:0">' + escHtml(w.tkey ? T(w.tkey) : w.label) + (w.admin ? ' <span style="font-size:10px;color:var(--muted)">· ' + T('inicio.solo_admin') + '</span>' : '') + '</span>' +
         toggleHtml(w.id) +
         '</div>';
     });
@@ -2156,11 +2157,11 @@ function renderPedidosPage() {
     todos: all.length
   };
   var tabs = [
-    { k: 'pendientes', e: '📋', t: 'Pendientes' },
-    { k: 'por_pedir', e: '🔴', t: 'Por pedir' },
-    { k: 'pedido', e: '🟡', t: 'Pedidos' },
-    { k: 'recibido', e: '✅', t: 'Recibidos' },
-    { k: 'todos', e: '📦', t: 'Todos' }
+    { k: 'pendientes', e: '📋', t: T('pedidos.tab_pendientes') },
+    { k: 'por_pedir', e: '🔴', t: T('pedidos.tab_por_pedir') },
+    { k: 'pedido', e: '🟡', t: T('pedidos.tab_pedidos') },
+    { k: 'recibido', e: '✅', t: T('pedidos.tab_recibidos') },
+    { k: 'todos', e: '📦', t: T('pedidos.tab_todos') }
   ];
   var fc = document.getElementById('pedidosPageFiltros');
   if (fc) fc.innerHTML = tabs.map(function(tb) {
