@@ -1703,6 +1703,13 @@ function setInvPeriodo(per, btn) {
   if (btn && btn.parentNode) { Array.prototype.forEach.call(btn.parentNode.children, function(b) { b.classList.remove('on'); }); btn.classList.add('on'); }
   renderInicioNuevo();
 }
+// Paginador de vistas del inicio: Resumen / Tablero
+function setInvVista(v, btn) {
+  window._invVista = v;
+  try { localStorage.setItem('tk_inicio_vista', v); } catch(e){}
+  if (btn && btn.parentNode) Array.prototype.forEach.call(btn.parentNode.children, function(b) { b.classList.toggle('on', b === btn); });
+  renderInicioNuevo();
+}
 function _invIso(d) { var m = ('0' + (d.getMonth() + 1)).slice(-2); var dd = ('0' + d.getDate()).slice(-2); return d.getFullYear() + '-' + m + '-' + dd; }
 function _invIncome(d1, d2) {
   var t = 0;
@@ -1735,12 +1742,29 @@ function renderInicioNuevo() {
   // Cargar pedidos (ambas vistas los usan)
   if (!DB.pedidos && typeof cargarPedidos === 'function') { cargarPedidos(function() { renderInicioNuevo(); }); }
 
-  // Toggle vista negocio (admin) / operativa (empleado)
+  // Vista activa (paginador Resumen / Tablero)
+  var vista = window._invVista || localStorage.getItem('tk_inicio_vista') || 'resumen';
+  window._invVista = vista;
+  try { Array.prototype.forEach.call(document.querySelectorAll('#pInicioNuevo .inv-vbtn'), function(b){ b.classList.toggle('on', b.getAttribute('data-v') === vista); }); } catch(e){}
+
   var admEl = document.getElementById('inv-admin');
   var empEl = document.getElementById('inv-emp');
+  var tbEl = document.getElementById('inv-tablero');
+  var segEl = document.querySelector('#pInicioNuevo .inv-seg');
+
+  if (vista === 'tablero') {
+    if (admEl) admEl.style.display = 'none';
+    if (empEl) empEl.style.display = 'none';
+    if (tbEl) tbEl.style.display = '';
+    if (segEl) segEl.style.display = 'none'; // el tablero es siempre del día
+    renderInicioTablero(puede, reps, enRep, listas, urgentes);
+    return;
+  }
+
+  // Vista Resumen: negocio (admin) / operativa (empleado)
+  if (tbEl) tbEl.style.display = 'none';
   if (admEl) admEl.style.display = puede ? '' : 'none';
   if (empEl) empEl.style.display = puede ? 'none' : '';
-  var segEl = document.querySelector('#pInicioNuevo .inv-seg');
   if (segEl) segEl.style.display = puede ? '' : 'none'; // el periodo solo afecta a la vista negocio
 
   if (puede) { renderInicioAdmin(reps, enRep, listas, urgentes); return; }
@@ -2066,6 +2090,142 @@ function marcarGrupoPedido(encKey) {
   });
   renderPedidosWidget();
   toast(T('pedidos.grupo_marcado').replace('{n}', targets.length), 'ok');
+}
+
+// ════ VISTA TABLERO (inicio operativo, datos reales, por rol) ════
+function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
+  var hoy = hoyLocal();
+  var finDia = new Date(hoy + 'T23:59:59');
+  reps = reps || DB.reps || [];
+  var pl = document.getElementById('inv-pulse');
+  if (pl) pl.innerHTML = 'Tu <b>tablero del día</b>: lo que entra, lo que estás reparando y lo que toca entregar.';
+
+  // ── Datos ──
+  var ventasHoy = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha === hoy; });
+  var ventasTot = ventasHoy.reduce(function(a, v) { return a + (v.total || 0); }, 0);
+  var cajaHoy = _invIncome(hoy, hoy);
+  var citas = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; });
+  var cerr = ['Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
+  var cobrosArr = (DB.reps || []).filter(function(r) { return (r.restante || 0) > 0 && cerr.indexOf(r.estado) === -1; });
+  var cobrosTot = cobrosArr.reduce(function(a, r) { return a + (r.restante || 0); }, 0);
+  var stockBajo = (DB.stock || []).filter(function(s) { return !s.vendido && (s.unidades || 0) <= (s.stockMin || 0); });
+  var peds = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido'; });
+  var porPedir = peds.filter(function(p) { return p.estado !== 'pedido'; }).length;
+  if (!DB.pedidos && typeof cargarPedidos === 'function') cargarPedidos(function() { renderInicioNuevo(); });
+
+  // ── Chips ──
+  var chips = document.getElementById('inv-tb-chips');
+  if (chips) {
+    var c = [];
+    if (puede) {
+      c.push('💶 <b>' + cur(cajaHoy) + '</b> caja hoy');
+      c.push('🛒 <b>' + cur(ventasTot) + '</b> · ' + ventasHoy.length + ' ventas');
+      if (cobrosTot > 0) c.push('💰 <b>' + cur(cobrosTot) + '</b> por cobrar');
+    } else {
+      c.push('🚨 <b>' + urgentes.length + '</b> urgentes');
+      c.push('🛒 <b>' + ventasHoy.length + '</b> ventas');
+    }
+    c.push('🔧 <b>' + enRep.length + '</b> en proceso');
+    c.push('✅ <b>' + listas.length + '</b> listas');
+    c.push('📅 <b>' + citas.length + '</b> citas');
+    if (!puede) c.push('📦 <b>' + porPedir + '</b> por pedir');
+    chips.innerHTML = c.map(function(x) { return '<div class="inv-chipk">' + x + '</div>'; }).join('');
+  }
+
+  // ── Tablero (3 columnas) ──
+  function nom(r) { return escHtml(((r.marca || '') + ' ' + (r.modelo || '')).trim() || 'Reparación'); }
+  function cli(r) { return escHtml(r.clienteNombre || r.cliente_nombre || ''); }
+  function tkUrg(r) {
+    var fe = r.fechaEntrega || r.fecha_entrega;
+    var hoyEnt = fe && fe.slice(0, 10) === hoy;
+    var w = hoyEnt ? 'Prometido HOY' : (r.prioridad === 'Urgente' ? 'Urgente' : 'Cliente espera');
+    return '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph"><span>' + nom(r) + '</span></div><div class="cl">' + cli(r) + (r.averia ? ' · ' + escHtml(r.averia) : '') + '</div><div class="meta"><span class="when w-red">' + w + '</span></div></div>';
+  }
+  function tkProc(r) {
+    var dias = '';
+    var f = r.fecha || r.fecha_entrada; if (f) { var d = Math.floor((finDia - new Date(f.slice(0, 10) + 'T00:00:00')) / 86400000); if (d >= 0) dias = d + (d === 1 ? ' día' : ' días'); }
+    return '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph"><span>' + nom(r) + '</span></div><div class="cl">' + cli(r) + (r.averia ? ' · ' + escHtml(r.averia) : '') + '</div>' + (dias ? '<div class="meta"><span class="when w-amber">' + dias + '</span></div>' : '') + '</div>';
+  }
+  function tkLista(r) {
+    var eur = '';
+    if (puede) eur = (r.restante > 0) ? '<span class="eur">' + cur(r.restante) + '</span>' : '<span class="eur">Pagado ✓</span>';
+    return '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph"><span>' + nom(r) + '</span>' + eur + '</div><div class="cl">' + cli(r) + '</div><div class="meta"><span class="when w-green">' + (r.restante > 0 ? 'Avisar cliente' : 'Listo') + '</span></div></div>';
+  }
+  var board = document.getElementById('inv-tb-board');
+  if (board) {
+    var colU = urgentes.length ? urgentes.slice(0, 4).map(tkUrg).join('') : '<div class="inv-empty">Nada urgente ✓</div>';
+    var procShown = enRep.slice(0, 3).map(tkProc).join('');
+    if (enRep.length > 3) procShown += '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph" style="color:var(--inv-or)"><span>+ ' + (enRep.length - 3) + ' reparaciones más…</span></div><div class="cl" style="color:var(--inv-or);font-weight:700">Ver todas →</div></div>';
+    if (!enRep.length) procShown = '<div class="inv-empty">Sin reparaciones en proceso</div>';
+    var colL = listas.length ? listas.slice(0, 4).map(tkLista).join('') : '<div class="inv-empty">Nada por entregar</div>';
+    board.innerHTML =
+      '<div class="inv-col red"><div class="inv-col-h"><span>🚨 Urgente / hoy</span><span class="n">' + urgentes.length + '</span></div>' + colU + '</div>' +
+      '<div class="inv-col amber"><div class="inv-col-h"><span>⏳ En proceso</span><span class="n">' + enRep.length + '</span></div>' + procShown + '</div>' +
+      '<div class="inv-col green"><div class="inv-col-h"><span>✅ Listas para entregar</span><span class="n">' + listas.length + '</span></div>' + colL + '</div>';
+  }
+
+  // ── Tarjetas (por rol) ──
+  var cards = [];
+  // Cobros pendientes (admin)
+  if (puede) {
+    var cob = cobrosArr.slice(0, 4).map(function(r) {
+      return '<div class="inv-li"><div class="ic ir">⏰</div><div class="m"><div class="tt">' + nom(r) + ' · ' + cli(r) + '</div><div class="ss">' + (r.estado === 'Entregado' ? 'entregada sin pagar' : 'a cobrar') + '</div></div><span class="rt eur">' + cur(r.restante) + '</span></div>';
+    }).join('') || '<div class="inv-empty">Sin cobros pendientes ✓</div>';
+    cards.push('<div class="inv-tcard"><h4>💳 Cobros pendientes <span class="lk" onclick="navTo(\'pReps\')">Ver →</span></h4>' + cob + (cobrosArr.length ? '<div class="inv-tot"><span>Total · ' + cobrosArr.length + '</span><span style="color:var(--inv-red)">' + cur(cobrosTot) + '</span></div>' : '') + '</div>');
+  }
+  // Ventas de hoy
+  var vRows = ventasHoy.slice(0, 3).map(function(v) {
+    var t = (v.lineas && v.lineas[0] && (v.lineas[0].nombre)) || (v.items && v.items[0] && v.items[0].nombre) || 'Venta';
+    return '<div class="inv-li"><div class="ic ip">🛒</div><div class="m"><div class="tt">' + escHtml(t) + '</div><div class="ss">' + escHtml(v.pago || '') + '</div></div>' + (puede ? '<span class="rt eur">' + cur(v.total || 0) + '</span>' : '<span class="rt">1</span>') + '</div>';
+  }).join('') || '<div class="inv-empty">Sin ventas hoy</div>';
+  cards.push('<div class="inv-tcard"><h4>🛒 Ventas de hoy <span class="lk" onclick="navTo(\'pVentas\')">Ver →</span></h4>' + vRows + '<div class="inv-tot"><span>' + ventasHoy.length + ' ventas hoy</span>' + (puede ? '<span style="color:#0E9E6E">' + cur(ventasTot) + '</span>' : '<span>' + ventasHoy.length + '</span>') + '</div></div>');
+  // Cómo cobras (admin)
+  if (puede) {
+    var pagos = {};
+    ventasHoy.forEach(function(v) { var m = v.pago || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (v.total || 0); });
+    reps.forEach(function(r) { if ((r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); } });
+    var totP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
+    var cls = { 'Efectivo': 's-cash', 'Tarjeta': 's-card', 'Bizum': 's-biz', 'Transferencia': 's-tr' };
+    var ico = { 'Efectivo': '💵', 'Tarjeta': '💳', 'Bizum': '📲', 'Transferencia': '🏦' };
+    var ord = Object.keys(pagos).sort(function(a, b) { return pagos[b] - pagos[a]; });
+    var inner;
+    if (totP > 0) {
+      inner = '<div style="padding:12px 14px"><div class="stack">' + ord.map(function(m) { return '<i class="' + (cls[m] || 's-tr') + '" style="width:' + (pagos[m] / totP * 100) + '%"></i>'; }).join('') + '</div>' +
+        ord.map(function(m) { return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11.5px"><span style="width:8px;height:8px;border-radius:50%" class="' + (cls[m] || 's-tr') + '"></span><span style="flex:1;font-weight:600">' + (ico[m] || '💳') + ' ' + escHtml(m) + '</span><span style="font-weight:800">' + cur(pagos[m]) + '</span></div>'; }).join('') + '</div>';
+    } else inner = '<div class="inv-empty">Sin cobros hoy</div>';
+    cards.push('<div class="inv-tcard"><h4>💳 Cómo cobras hoy <span class="lk" onclick="navTo(\'pReportes\')">Reportes →</span></h4>' + inner + '</div>');
+  }
+  // Citas de hoy
+  var citRows = citas.slice(0, 3).map(function(c2) {
+    var h = c2.hora || (c2.fecha || '').slice(11, 16) || '';
+    var who = escHtml(c2.clienteNombre || c2.cliente_nombre || c2.cliente || '');
+    var mot = escHtml(c2.motivo || c2.servicio || c2.nota || '');
+    return '<div class="inv-li"><div class="ic ib">🕐</div><div class="m"><div class="tt">' + (h ? h + ' · ' : '') + who + '</div><div class="ss">' + mot + '</div></div></div>';
+  }).join('') || '<div class="inv-empty">Sin citas hoy</div>';
+  cards.push('<div class="inv-tcard"><h4>📅 Citas de hoy <span class="lk" onclick="navTo(\'pCitas\')">Agenda →</span></h4>' + citRows + '</div>');
+  // Pedidos por recibir
+  var pedRows = peds.slice(0, 4).map(function(p) {
+    var st = p.estado === 'pedido' ? '🟡' : '🔴';
+    var ic = p.estado === 'pedido' ? 'ia' : 'ir';
+    return '<div class="inv-li"><div class="ic ' + ic + '">' + st + '</div><div class="m"><div class="tt">' + escHtml(p.pieza || p.proveedor || 'Pedido') + '</div><div class="ss">' + escHtml(p.proveedor || (p.estado === 'pedido' ? 'en camino' : 'por pedir')) + '</div></div>' + (puede && p.importe ? '<span class="rt eur">' + cur(parseFloat(p.importe) || 0) + '</span>' : '<span class="inv-tag ' + (p.estado === 'pedido' ? 'ia' : 'ir') + '">' + (p.estado === 'pedido' ? 'En camino' : 'Pedir') + '</span>') + '</div>';
+  }).join('') || '<div class="inv-empty">Sin pedidos pendientes</div>';
+  cards.push('<div class="inv-tcard"><h4>📦 Pedidos por recibir <span class="lk" onclick="navTo(\'pPedidos\')">Ver →</span></h4>' + pedRows + '</div>');
+  // Stock crítico
+  var stRows = stockBajo.slice(0, 4).map(function(s) {
+    var u = parseInt(s.unidades, 10) || 0;
+    return '<div class="inv-li"><div class="ic ' + (u === 0 ? 'ir' : 'ia') + '">' + (u === 0 ? '🔴' : '⚠️') + '</div><div class="m"><div class="tt">' + escHtml(((s.marca || '') + ' ' + (s.modelo || '')).trim() || 'Producto') + '</div><div class="ss">' + (u === 0 ? 'sin stock' : 'bajo mínimo') + '</div></div><span class="inv-tag ' + (u === 0 ? 'ir' : 'ia') + '">' + u + ' uds</span></div>';
+  }).join('') || '<div class="inv-empty">Stock al día ✓</div>';
+  cards.push('<div class="inv-tcard"><h4>⚠️ Stock crítico <span class="lk" onclick="navTo(\'pStock\')">Ver →</span></h4>' + stRows + (stockBajo.length ? '<div class="inv-tot"><span>Referencias a reponer</span><span style="color:#B9770A">' + stockBajo.length + '</span></div>' : '') + '</div>');
+  // Notas y recordatorios
+  var recs = window._recordatorios || [];
+  if (!window._notasCargadas && typeof cargarNotasRecordatorios === 'function') { window._notasCargadas = true; cargarNotasRecordatorios(function() { renderInicioNuevo(); }); }
+  var notRows = recs.slice(0, 4).map(function(r) {
+    return '<div class="inv-li"><div class="ic ' + (r.d ? 'ig' : 'ip') + '">' + (r.d ? '✓' : '☐') + '</div><div class="m"><div class="tt" style="' + (r.d ? 'text-decoration:line-through;color:var(--inv-ink3)' : '') + '">' + escHtml(r.t || '') + '</div></div>' + (r.f ? '<span class="inv-tag ia">' + _pedFecha(r.f) + '</span>' : '') + '</div>';
+  }).join('') || '<div class="inv-empty">Sin recordatorios</div>';
+  cards.push('<div class="inv-tcard"><h4>📌 Notas y recordatorios <span class="lk" onclick="navTo(\'pAyuda\')">&nbsp;</span></h4>' + notRows + '</div>');
+
+  var cont = document.getElementById('inv-tb-cards');
+  if (cont) cont.innerHTML = cards.join('');
 }
 
 // ════ GUÍA DE USO (Ayuda) en 6 idiomas ════

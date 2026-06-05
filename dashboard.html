@@ -3006,6 +3006,40 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 #pInicioNuevo .inv-card2 .ped{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--inv-line);font-size:13px}#pInicioNuevo .inv-card2 .ped:last-child{border:none}#pInicioNuevo .inv-card2 .ped .st{font-size:14px}#pInicioNuevo .inv-card2 .ped .pz{flex:1;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#pInicioNuevo .inv-card2 .ped .am{font-weight:800;color:var(--inv-ink2);font-size:12.5px}
 #pInicioNuevo .inv-clk{cursor:pointer;transition:transform .15s,box-shadow .15s}#pInicioNuevo .inv-clk:hover{transform:translateY(-3px);box-shadow:0 16px 40px -16px rgba(34,29,25,.22)}
 #pInicioNuevo .inv-chartcard.inv-clk:hover{box-shadow:0 26px 52px -18px rgba(34,29,25,.5)}
+/* Paginador de vistas */
+#pInicioNuevo .inv-vistas{display:inline-flex;background:#fff;border:1px solid var(--inv-line);border-radius:12px;padding:3px;box-shadow:var(--inv-sm);margin-bottom:18px}
+#pInicioNuevo .inv-vbtn{border:none;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--inv-ink2);padding:8px 16px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px}
+#pInicioNuevo .inv-vbtn.on{background:var(--inv-or);color:#fff;box-shadow:0 4px 10px rgba(236,92,36,.3)}
+/* Acciones arriba (6) */
+#pInicioNuevo .inv-actions-top{grid-template-columns:repeat(6,1fr);margin-bottom:24px}
+#pInicioNuevo .inv-actions-top .inv-act{padding:14px 14px}
+#pInicioNuevo .ia{background:rgba(230,148,18,.14);color:#b9770a}
+/* ── Vista Tablero ── */
+#pInicioNuevo .inv-strip{display:flex;gap:9px;flex-wrap:wrap;margin-bottom:18px}
+#pInicioNuevo .inv-chipk{background:#fff;border:1px solid var(--inv-line);border-radius:12px;padding:8px 13px;font-size:12.5px;font-weight:700;box-shadow:var(--inv-sm);display:flex;align-items:center;gap:7px}#pInicioNuevo .inv-chipk b{font-size:15px}
+#pInicioNuevo .inv-board{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:18px}
+#pInicioNuevo .inv-col{background:#fff;border:1px solid var(--inv-line);border-radius:16px;box-shadow:var(--inv-sh);overflow:hidden;display:flex;flex-direction:column}
+#pInicioNuevo .inv-col-h{padding:12px 15px;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--inv-line)}
+#pInicioNuevo .inv-col-h .n{font-size:11.5px;font-weight:800;padding:2px 9px;border-radius:20px;background:var(--inv-line);color:var(--inv-ink2)}
+#pInicioNuevo .inv-col.red .inv-col-h{color:var(--inv-red)}#pInicioNuevo .inv-col.red .n{background:rgba(226,72,60,.12);color:var(--inv-red)}
+#pInicioNuevo .inv-col.amber .inv-col-h{color:#B9770A}#pInicioNuevo .inv-col.amber .n{background:rgba(230,148,18,.14);color:#B9770A}
+#pInicioNuevo .inv-col.green .inv-col-h{color:#0E9E6E}#pInicioNuevo .inv-col.green .n{background:rgba(21,158,114,.13);color:#0E9E6E}
+#pInicioNuevo .inv-tk{padding:10px 14px;border-bottom:1px solid var(--inv-line);cursor:pointer;transition:background .15s}#pInicioNuevo .inv-tk:last-child{border-bottom:none}#pInicioNuevo .inv-tk:hover{background:#FCFAF7}
+#pInicioNuevo .inv-tk .ph{font-size:12.5px;font-weight:700;display:flex;justify-content:space-between;gap:8px}#pInicioNuevo .inv-tk .ph .eur{color:#0E9E6E;font-weight:800;flex-shrink:0}
+#pInicioNuevo .inv-tk .cl{font-size:11px;color:var(--inv-ink2);margin:2px 0 5px}
+#pInicioNuevo .inv-tk .meta{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--inv-ink3)}#pInicioNuevo .inv-tk .when{font-weight:700;padding:2px 7px;border-radius:6px}
+#pInicioNuevo .w-red{background:rgba(226,72,60,.1);color:var(--inv-red)}#pInicioNuevo .w-amber{background:rgba(230,148,18,.14);color:#B9770A}#pInicioNuevo .w-green{background:rgba(21,158,114,.12);color:#0E9E6E}
+#pInicioNuevo .inv-tgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:15px}
+#pInicioNuevo .inv-tcard{background:#fff;border:1px solid var(--inv-line);border-radius:15px;box-shadow:var(--inv-sh);overflow:hidden;display:flex;flex-direction:column}
+#pInicioNuevo .inv-tcard h4{font-size:13px;font-weight:800;padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between}#pInicioNuevo .inv-tcard h4 .lk{font-size:10.5px;color:var(--inv-or);font-weight:700;cursor:pointer}
+#pInicioNuevo .inv-li{display:flex;align-items:center;gap:9px;padding:8px 14px;border-top:1px solid var(--inv-line);font-size:12px}
+#pInicioNuevo .inv-li .ic{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;font-size:12px;flex-shrink:0}
+#pInicioNuevo .inv-li .m{flex:1;min-width:0}#pInicioNuevo .inv-li .tt{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#pInicioNuevo .inv-li .ss{font-size:10.5px;color:var(--inv-ink3)}
+#pInicioNuevo .inv-li .rt{font-size:12px;font-weight:800}#pInicioNuevo .inv-li .rt.eur{color:#0E9E6E}
+#pInicioNuevo .inv-tot{display:flex;justify-content:space-between;padding:9px 14px;border-top:1px dashed var(--inv-line);font-size:11.5px;font-weight:800;margin-top:auto}
+#pInicioNuevo .inv-tag{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:6px}
+@media(max-width:1000px){#pInicioNuevo .inv-board,#pInicioNuevo .inv-tgrid{grid-template-columns:1fr 1fr}#pInicioNuevo .inv-actions-top{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:680px){#pInicioNuevo .inv-board,#pInicioNuevo .inv-tgrid{grid-template-columns:1fr}}
 @media(max-width:1024px){#pInicioNuevo .inv-kpis{grid-template-columns:repeat(3,1fr)}#pInicioNuevo .inv-actions{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:960px){#pInicioNuevo .inv-lower{grid-template-columns:1fr 1fr}}
 @media(max-width:860px){#pInicioNuevo .inv-grid{grid-template-columns:1fr}#pInicioNuevo .inv-row3{grid-template-columns:1fr}}
@@ -3021,6 +3055,23 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <button onclick="navTo('pDash')" style="background:#fff;border:1px solid var(--inv-line);color:var(--inv-ink2);padding:8px 12px;border-radius:10px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer">← <span data-t="inicio.clasico">Clásico</span></button>
     </div>
   </div>
+
+  <!-- Paginador de vistas (Resumen / Tablero) -->
+  <div class="inv-vistas">
+    <button class="inv-vbtn on" data-v="resumen" onclick="setInvVista('resumen',this)">📊 <span data-t="inicio.v_resumen">Resumen</span></button>
+    <button class="inv-vbtn" data-v="tablero" onclick="setInvVista('tablero',this)">📋 <span data-t="inicio.v_tablero">Tablero</span></button>
+  </div>
+
+  <!-- Acciones rápidas (compartidas, arriba) -->
+  <div class="inv-actions inv-actions-top">
+    <div class="inv-act p" onclick="abrirRep()"><div class="ai">🔧</div><div><span data-t="inicio.act_rep">Nueva reparación</span><span class="sub" data-t="inicio.act_rep_sub">Registrar entrada</span></div></div>
+    <div class="inv-act p" onclick="window.location.href='tpv.html'"><div class="ai">🛒</div><div><span data-t="inicio.act_tpv">Abrir TPV</span><span class="sub" data-t="inicio.act_tpv_sub">Cobrar / vender</span></div></div>
+    <div class="inv-act" onclick="window.location.href='tpv.html'"><div class="ai ig">💳</div><div><span data-t="inicio.act_venta">Nueva venta</span><span class="sub" data-t="inicio.act_venta_sub">Cobro rápido</span></div></div>
+    <div class="inv-act" onclick="navTo('pPresupuestos')"><div class="ai ib">📄</div><div><span data-t="inicio.act_pres">Presupuesto</span><span class="sub" data-t="inicio.act_pres_sub">Crear y enviar</span></div></div>
+    <div class="inv-act" onclick="nuevoPedido()"><div class="ai ip">📦</div><div><span data-t="inicio.act_ped">Nuevo pedido</span><span class="sub" data-t="inicio.act_ped_sub">Piezas / material</span></div></div>
+    <div class="inv-act" onclick="navTo('pClis')"><div class="ai ia">👤</div><div><span data-t="inicio.act_cliente">Cliente</span><span class="sub" data-t="inicio.act_cliente_sub">Nuevo / buscar</span></div></div>
+  </div>
+
   <!-- ═══ VISTA NEGOCIO (ADMIN) ═══ -->
   <div id="inv-admin" style="display:none">
     <div class="inv-grid">
@@ -3041,13 +3092,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="inv-mini inv-clk" onclick="navTo('pVentas')"><div class="ic ib">🛒</div><div><div class="num" id="inv-a-ventas">0</div><div class="lbl" id="inv-a-ventas-l">Ventas hoy</div></div></div>
         <div class="inv-mini inv-clk" onclick="navTo('pReps')"><div class="ic ir">⏰</div><div><div class="num" id="inv-a-cobros">€0</div><div class="lbl" id="inv-a-cobros-l">Cobros pendientes</div></div></div>
       </div>
-    </div>
-    <div class="inv-sect" data-t="inicio.acciones">Acciones rápidas</div>
-    <div class="inv-actions">
-      <div class="inv-act p" onclick="abrirRep()"><div class="ai">🔧</div><div><span data-t="inicio.act_rep">Nueva reparación</span><span class="sub" data-t="inicio.act_rep_sub">Registrar entrada</span></div></div>
-      <div class="inv-act p" onclick="window.location.href='tpv.html'"><div class="ai">🛒</div><div><span data-t="inicio.act_tpv">Abrir TPV</span><span class="sub" data-t="inicio.act_tpv_sub">Cobrar / vender</span></div></div>
-      <div class="inv-act" onclick="navTo('pPresupuestos')"><div class="ai ib">📄</div><div><span data-t="inicio.act_pres">Presupuesto</span><span class="sub" data-t="inicio.act_pres_sub">Crear y enviar</span></div></div>
-      <div class="inv-act" onclick="navTo('pPedidos')"><div class="ai ip">📦</div><div><span data-t="inicio.act_ped">Nuevo pedido</span><span class="sub" data-t="inicio.act_ped_sub">Piezas / material</span></div></div>
     </div>
     <div class="inv-row3">
       <div class="inv-card2 inv-clk" onclick="navTo('pGastos')"><h3>📊 <span data-t="inicio.ing_gastos">Ingresos vs gastos (mes)</span></h3>
@@ -3081,18 +3125,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="inv-kpi"><div class="ic ip">📅</div><div class="num" id="inv-k-citas">0</div><div class="lbl" data-t="inicio.kpi_citas">Citas hoy</div><div class="tr fl" id="inv-tr-citas">=</div></div>
     <div class="inv-kpi"><div class="ic ir">🚨</div><div class="num" id="inv-k-urg">0</div><div class="lbl" data-t="inicio.kpi_urgente">Urgente</div><div class="tr fl" id="inv-tr-urg">=</div></div>
   </div>
-  <div class="inv-sect" data-t="inicio.acciones">Acciones rápidas</div>
-  <div class="inv-actions">
-    <div class="inv-act p" onclick="abrirRep()"><div class="ai">🔧</div><div><span data-t="inicio.act_rep">Nueva reparación</span><span class="sub" data-t="inicio.act_rep_sub">Registrar entrada</span></div></div>
-    <div class="inv-act p" onclick="window.location.href='tpv.html'"><div class="ai">🛒</div><div><span data-t="inicio.act_tpv">Abrir TPV</span><span class="sub" data-t="inicio.act_tpv_sub">Cobrar / vender</span></div></div>
-    <div class="inv-act" onclick="navTo('pPresupuestos')"><div class="ai ib">📄</div><div><span data-t="inicio.act_pres">Presupuesto</span><span class="sub" data-t="inicio.act_pres_sub">Crear y enviar</span></div></div>
-    <div class="inv-act" onclick="nuevoPedido()"><div class="ai ip">📦</div><div><span data-t="inicio.act_ped">Nuevo pedido</span><span class="sub" data-t="inicio.act_ped_sub">Piezas / material</span></div></div>
-  </div>
   <div class="inv-lower">
     <div class="inv-card"><div class="inv-ch"><h3>⚠️ <span data-t="inicio.atencion">Necesita tu atención</span></h3><span class="inv-badge" id="inv-aten-n">0</span></div><div id="inv-atencion"></div></div>
     <div class="inv-card"><div class="inv-ch"><h3>📦 <span data-t="inicio.pedidos">Pedidos</span></h3></div><div id="inv-pedidos"></div></div>
     <div class="inv-card"><div class="inv-ch"><h3>📌 <span data-t="inicio.notas">Notas</span></h3></div><div id="inv-notas"></div></div>
   </div>
+  </div>
+
+  <!-- ═══ VISTA TABLERO (operativo, datos reales, por rol) ═══ -->
+  <div id="inv-tablero" style="display:none">
+    <div class="inv-strip" id="inv-tb-chips"></div>
+    <div class="inv-board" id="inv-tb-board"></div>
+    <div class="inv-tgrid" id="inv-tb-cards"></div>
   </div>
 </div>
 
