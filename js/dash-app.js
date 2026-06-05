@@ -405,6 +405,9 @@ window.addEventListener('DOMContentLoaded', function() {
   // Load permisos from session
   if (sess.usuario && sess.usuario.permisos) U.permisos = sess.usuario.permisos;
   else if (!U.permisos) U.permisos = {};
+  // Refrescar permisos/rol desde el servidor: si el admin los cambió, el empleado
+  // los recibe al recargar (sin tener que cerrar sesión y volver a entrar).
+  refrescarPermisosSesion();
 
   // ═══ PLAN ═══
   PLAN_INFO.plan = sess.plan || 'basico';
@@ -11240,6 +11243,23 @@ async function eliminarUsuario(id) {
 // ═══ PERMISOS ═══
 
 // ═══ APLICAR PERMISOS ═══
+// Re-lee rol/permisos del usuario logueado desde Supabase y actualiza la sesión.
+// Soluciona que un cambio de permisos por el admin no llegaba hasta cerrar sesión.
+function refrescarPermisosSesion() {
+  if (!SB_KEY || !JWT_TOKEN || !U || !U.id) return;
+  sbGet('usuarios', 'id=eq.' + encodeURIComponent(U.id) + '&select=rol,permisos,activo').then(function(rows) {
+    var u = rows && rows[0];
+    if (!u) return;
+    var changed = false;
+    if (u.permisos && typeof u.permisos === 'object' && JSON.stringify(u.permisos) !== JSON.stringify(U.permisos || {})) { U.permisos = u.permisos; changed = true; }
+    if (u.rol && u.rol !== U.rol) { U.rol = u.rol; changed = true; }
+    if (!changed) return;
+    try { localStorage.setItem('tk_user', JSON.stringify(U)); } catch(e){}
+    try { var s = JSON.parse(localStorage.getItem('tk_sess') || '{}'); if (s.usuario) { s.usuario.permisos = U.permisos; s.usuario.rol = U.rol; localStorage.setItem('tk_sess', JSON.stringify(s)); } } catch(e){}
+    try { aplicarPermisos(); } catch(e){}
+    try { if (typeof refrescarVistasActivas === 'function') refrescarVistasActivas(); } catch(e){}
+  }).catch(function(){});
+}
 function tienePerm(perm) {
   if (!U) return false;
   if (U.rol === 'admin') return true;
