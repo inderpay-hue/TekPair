@@ -3468,7 +3468,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           <div class="rep-section-title"><span>📱</span> Dispositivo</div>
           <div class="fi-row">
             <div class="fg"><label class="fl"><span data-t="rep.marca">Marca</span></label><input class="fi" id="rMarca" placeholder="Apple, Samsung, Xiaomi..." oninput="actualizarAvisoGarantia()"></div>
-            <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo">Modelo</span> <span class="req">*</span></label><input class="fi" id="rModelo" placeholder="iPhone 14, Galaxy S23..." autocomplete="off" oninput="busModelo();actualizarAvisoGarantia()" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
+            <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo">Modelo</span> <span class="req">*</span></label><input class="fi" id="rModelo" placeholder="iPhone 14, Galaxy S23..." autocomplete="off" oninput="busModelo();actualizarAvisoGarantia();try{sugerirPiezasRep()}catch(e){}" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
           </div>
           <div class="fg"><label class="fl"><span data-t="rep.imei">IMEI / Nº Serie</span></label><input class="fi" id="rImei" placeholder="Opcional — útil para garantías"></div>
           <div class="fi-row" style="margin-bottom:0">
@@ -3480,7 +3480,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <!-- Sección: Avería -->
         <div class="rep-section">
           <div class="rep-section-title"><span>🔧</span> Avería</div>
-          <div class="fg"><label class="fl"><span data-t="rep.describe_problema">Describe el problema</span> <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Ej: pantalla rota, no enciende, batería..."></div>
+          <div class="fg"><label class="fl"><span data-t="rep.describe_problema">Describe el problema</span> <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Ej: pantalla rota, no enciende, batería..." oninput="try{sugerirPiezasRep()}catch(e){}"></div>
           <div class="fg" style="margin-bottom:0">
             <label class="fl" data-t="rep.estado_equipo">Estado del equipo (al recibir)</label>
             <div class="chk-grid">
@@ -3522,6 +3522,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
             <input class="fi" id="compBus" placeholder="🔍 Buscar pieza, batería, pantalla..." oninput="busComp()" autocomplete="off">
             <div class="autocomplete-res" id="compRes"></div>
           </div>
+          <div id="repPiezasSug" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
           <div id="partsList"></div>
         </div>
 

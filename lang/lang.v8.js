@@ -3608,6 +3608,10 @@ it:{'pedidos.tab_pendientes':'In sospeso','pedidos.tab_por_pedir':'Da ordinare',
 de:{'pedidos.tab_pendientes':'Ausstehend','pedidos.tab_por_pedir':'Zu bestellen','pedidos.tab_pedidos':'Bestellt','pedidos.tab_recibidos':'Empfangen','pedidos.tab_todos':'Alle'},
 pt:{'pedidos.tab_pendientes':'Pendentes','pedidos.tab_por_pedir':'A pedir','pedidos.tab_pedidos':'Pedidos','pedidos.tab_recibidos':'Recebidos','pedidos.tab_todos':'Todos'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+// ════ Sugerencia de piezas en reparación (6 idiomas) ════
+(function(){var _a={
+es:{'rep.piezas_sug':'🔧 Piezas de este modelo en stock'},en:{'rep.piezas_sug':'🔧 Parts for this model in stock'},fr:{'rep.piezas_sug':'🔧 Pièces de ce modèle en stock'},it:{'rep.piezas_sug':'🔧 Pezzi di questo modello in magazzino'},de:{'rep.piezas_sug':'🔧 Teile für dieses Modell auf Lager'},pt:{'rep.piezas_sug':'🔧 Peças deste modelo em stock'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 // ════ Movimientos de stock (entradas/salidas) en 6 idiomas ════
 (function(){var _a={
 es:{'mov.btn':'🔄 Movimientos','mov.titulo':'Entradas y salidas','mov.hoy':'Hoy','mov.semana':'Semana','mov.mes':'Mes','mov.anio':'Año','mov.rango':'Personalizado','mov.entradas':'Entradas','mov.salidas':'Salidas','mov.entrada':'Entrada','mov.salida':'Salida','mov.vacio':'Sin movimientos en este periodo'},
