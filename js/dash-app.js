@@ -9520,41 +9520,34 @@ function setRepTipo(el) {
   renderReporte();
 }
 
+// Rango de días del periodo BASADO EN CALENDARIO (consistente con el inicio):
+//  hoy = solo hoy · semana = Lunes→hoy · mes = día 1→hoy · trimestre = trimestre actual.
+// Devuelve un array de Date, del más reciente (hoy) al más antiguo.
+function _repRangoDias() {
+  var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  var inicio;
+  if (SEL.repTab === 'hoy') { inicio = new Date(hoy); }
+  else if (SEL.repTab === 'semana') { var dow = (hoy.getDay() + 6) % 7; inicio = new Date(hoy); inicio.setDate(hoy.getDate() - dow); }
+  else if (SEL.repTab === 'mes') { inicio = new Date(hoy.getFullYear(), hoy.getMonth(), 1); }
+  else if (SEL.repTab === 'trimestre') { inicio = new Date(hoy.getFullYear(), Math.floor(hoy.getMonth() / 3) * 3, 1); }
+  else { inicio = new Date(hoy); inicio.setDate(hoy.getDate() - 3649); }  // "todo": ~10 años
+  var dias = [];
+  var d = new Date(hoy);
+  while (d >= inicio) { dias.push(new Date(d)); d.setDate(d.getDate() - 1); }
+  return dias;
+}
 function getRepFechas() {
-  // Devuelve fechas en formato local "DD/M/YYYY" — usado para comparar contra
-  // DB.ventas.fecha y DB.reps.fechaEntregaReal que se guardan así.
-  // IMPORTANTE: la BD Supabase usa formato ISO; usar getRepFechasISO() para queries.
-  var fechas = [];
-  var n = SEL.repTab === 'hoy' ? 1
-        : SEL.repTab === 'semana' ? 7
-        : SEL.repTab === 'mes' ? 30
-        : SEL.repTab === 'trimestre' ? 90
-        : 3650;
-  for (var i = 0; i < n; i++) {
-    var d = new Date(); d.setDate(d.getDate() - i);
-    fechas.push(d.toLocaleDateString('es'));
-  }
-  return fechas;
+  // Formato local "DD/M/YYYY" — compara contra DB.ventas.fecha / DB.reps.fechaEntregaReal.
+  return _repRangoDias().map(function(d) { return d.toLocaleDateString('es'); });
 }
 
 // REP-FECHA-FIX: devuelve fechas en formato ISO YYYY-MM-DD para queries a Supabase.
 // El bug anterior: getRepFechas() devolvía "29/5/2026" y se enviaba como fecha=gte.29/5/2026
 // a Postgres → error "date/time field value out of range" + reportes con 0€ en reps.
 function getRepFechasISO() {
-  var fechas = [];
-  var n = SEL.repTab === 'hoy' ? 1
-        : SEL.repTab === 'semana' ? 7
-        : SEL.repTab === 'mes' ? 30
-        : SEL.repTab === 'trimestre' ? 90
-        : 3650;
-  for (var i = 0; i < n; i++) {
-    var d = new Date(); d.setDate(d.getDate() - i);
-    var iso = d.getFullYear() + '-' +
-              String(d.getMonth() + 1).padStart(2, '0') + '-' +
-              String(d.getDate()).padStart(2, '0');
-    fechas.push(iso);
-  }
-  return fechas;
+  return _repRangoDias().map(function(d) {
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  });
 }
 
 // Variables globales para charts (para destruirlos antes de re-renderizar)
@@ -9803,7 +9796,7 @@ function generarPDFGestor() {
   ventas.forEach(function(v) { pagos[v.pago||'Sin especificar'] = (pagos[v.pago||'Sin especificar'] || 0) + v.total; });
   reps.forEach(function(r) { if (r.pagoFinal) pagos[r.pagoFinal] = (pagos[r.pagoFinal] || 0) + r.total; });
 
-  var labelPeriodo = ({hoy:T('dash.hoy'), semana:T('gen.ultima_semana'), mes:T('gen.ultimo_mes'), trimestre:T('gen.ultimo_trimestre'), total:T('gen.historico_completo')})[SEL.repTab] || SEL.repTab;
+  var labelPeriodo = ({hoy:T('dash.hoy'), semana:T('inicio.per_semana'), mes:T('inicio.per_mes'), trimestre:T('gen.ultimo_trimestre'), total:T('gen.historico_completo')})[SEL.repTab] || SEL.repTab;
   var fechaIni = fechas[fechas.length-1];
   var fechaFin = fechas[0];
   var hoy = new Date().toLocaleDateString('es');
