@@ -1494,6 +1494,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="sec-header" style="margin-bottom:10px">
     <div class="sec-title">Stock</div>
     <div style="display:flex;gap:6px">
+      <button class="btn-sm" id="btnStockLog" style="display:none;background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirStockLog()" title="Historial de cambios de stock"><span data-t="stock.historial">📋 Historial</span></button>
       <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirImportFactura()" title="Importar PDF de factura del proveedor"><span data-t="stock.importar_factura">📤 Importar factura</span></button>
       <button class="btn-sm" style="background:var(--orange);color:white" onclick="nuevoStock()" data-t="stock.anadir">+ Añadir</button>
     </div>
@@ -3762,6 +3763,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="btn-primary" style="background:var(--orange)" onclick="guardarStock()"><span data-t="gen.guardar">Guardar</span></button>
   </div>
 </div>
+</div>
+
+<!-- HISTORIAL / AUDITORÍA DE STOCK (admin) -->
+<div class="modal-bg" id="mStockLog">
+  <div class="modal">
+    <div class="modal-title">📋 <span data-t="stock.log_titulo">Historial de stock</span></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="stock.log_sub">Quién ha creado, editado o eliminado productos y cuándo.</div>
+    <div id="stockLogBody" style="max-height:60vh;overflow:auto"><div class="empty">…</div></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px">
+      <button class="btn-secondary" onclick="closeM('mStockLog')" data-t="gen.cerrar">Cerrar</button>
+    </div>
+  </div>
 </div>
 
 <!-- CLIENTE -->
