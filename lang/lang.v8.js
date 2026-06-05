@@ -3608,6 +3608,15 @@ it:{'pedidos.tab_pendientes':'In sospeso','pedidos.tab_por_pedir':'Da ordinare',
 de:{'pedidos.tab_pendientes':'Ausstehend','pedidos.tab_por_pedir':'Zu bestellen','pedidos.tab_pedidos':'Bestellt','pedidos.tab_recibidos':'Empfangen','pedidos.tab_todos':'Alle'},
 pt:{'pedidos.tab_pendientes':'Pendentes','pedidos.tab_por_pedir':'A pedir','pedidos.tab_pedidos':'Pedidos','pedidos.tab_recibidos':'Recebidos','pedidos.tab_todos':'Todos'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+// ════ Gestor de modelos (admin) en 6 idiomas ════
+(function(){var _a={
+es:{'stock.modelos_btn':'🏷️ Modelos','stock.modelos_titulo':'Catálogo de modelos','stock.modelos_sub':'Tus modelos guardados (para sugerencias). Corrige los mal escritos, añade o borra.','stock.modelos_vacio':'Aún no hay modelos guardados','stock.modelos_anadido':'Modelo guardado ✓'},
+en:{'stock.modelos_btn':'🏷️ Models','stock.modelos_titulo':'Model catalog','stock.modelos_sub':'Your saved models (for suggestions). Fix typos, add or delete.','stock.modelos_vacio':'No saved models yet','stock.modelos_anadido':'Model saved ✓'},
+fr:{'stock.modelos_btn':'🏷️ Modèles','stock.modelos_titulo':'Catalogue de modèles','stock.modelos_sub':'Vos modèles enregistrés (pour les suggestions). Corrigez les fautes, ajoutez ou supprimez.','stock.modelos_vacio':'Aucun modèle enregistré','stock.modelos_anadido':'Modèle enregistré ✓'},
+it:{'stock.modelos_btn':'🏷️ Modelli','stock.modelos_titulo':'Catalogo modelli','stock.modelos_sub':'I tuoi modelli salvati (per i suggerimenti). Correggi gli errori, aggiungi o elimina.','stock.modelos_vacio':'Ancora nessun modello salvato','stock.modelos_anadido':'Modello salvato ✓'},
+de:{'stock.modelos_btn':'🏷️ Modelle','stock.modelos_titulo':'Modellkatalog','stock.modelos_sub':'Deine gespeicherten Modelle (für Vorschläge). Tippfehler korrigieren, hinzufügen oder löschen.','stock.modelos_vacio':'Noch keine Modelle gespeichert','stock.modelos_anadido':'Modell gespeichert ✓'},
+pt:{'stock.modelos_btn':'🏷️ Modelos','stock.modelos_titulo':'Catálogo de modelos','stock.modelos_sub':'Os teus modelos guardados (para sugestões). Corrige erros, adiciona ou elimina.','stock.modelos_vacio':'Ainda sem modelos guardados','stock.modelos_anadido':'Modelo guardado ✓'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 // ════ Auditoría / actividad del equipo (6 idiomas) ════
 (function(){var _a={
 es:{'gen.cerrar':'Cerrar','stock.historial':'📋 Auditoría','stock.log_titulo':'Auditoría','stock.log_sub':'Todo lo que hace el equipo: stock, reparaciones, ventas, clientes…','stock.log_vacio':'Sin actividad todavía','stock.log_crear':'Añadió','stock.log_editar':'Editó','stock.log_eliminar':'Eliminó','audit.reembolso':'Reembolsó','audit.estado':'Cambió estado','audit.entrada':'Entrada','audit.salida':'Salida'},

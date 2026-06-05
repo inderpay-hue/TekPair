@@ -7159,6 +7159,7 @@ function filtrarUbicStock() { renderStock(); }
 function renderStock() {
   poblarFiltroUbicStock();
   var _blog = document.getElementById('btnStockLog'); if (_blog) _blog.style.display = (U && U.rol === 'admin') ? '' : 'none';
+  var _bmdl = document.getElementById('btnModelos'); if (_bmdl) _bmdl.style.display = (U && U.rol === 'admin') ? '' : 'none';
   var q = (document.getElementById('busStock').value || '').toLowerCase();
   var activeTab = document.querySelector('.stock-tab-btn.active');
   var cat = activeTab ? activeTab.getAttribute('data-cat') : '';
@@ -7799,6 +7800,47 @@ function eliminarStock(id) {
   if (SB_KEY && TIENDA_ID) sbDelete('stock', 'id=eq.' + id);
   toast('Eliminado', 'ok');
   renderStock();
+}
+// Gestión del catálogo de modelos (solo admin): corregir/añadir/borrar
+function abrirModelos() { openM('mModelos'); renderModelos(); }
+function renderModelos() {
+  var el = document.getElementById('modelosBody'); if (!el) return;
+  var qEl = document.getElementById('mdlBuscar'); var q = (qEl ? qEl.value : '').toLowerCase().trim();
+  var todos = (DB.modelosCustom || []).filter(function(m) { return m.custom; });
+  var list = q ? todos.filter(function(m) { return ((m.marca || '') + ' ' + (m.modelo || '')).toLowerCase().indexOf(q) !== -1; }) : todos;
+  if (!list.length) { el.innerHTML = '<div class="empty">' + T('stock.modelos_vacio') + '</div>'; return; }
+  el.innerHTML = list.map(function(m) {
+    var idx = (DB.modelosCustom || []).indexOf(m);
+    return '<div style="display:flex;gap:6px;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">' +
+      '<input value="' + escHtml(m.marca || '') + '" onchange="updateModelo(' + idx + ',\'marca\',this.value)" style="flex:1;min-width:0;border:1px solid var(--border);border-radius:7px;padding:5px 8px;font-size:12px;font-family:inherit">' +
+      '<input value="' + escHtml(m.modelo || '') + '" onchange="updateModelo(' + idx + ',\'modelo\',this.value)" style="flex:1.4;min-width:0;border:1px solid var(--border);border-radius:7px;padding:5px 8px;font-size:12px;font-family:inherit">' +
+      '<button onclick="delModelo(' + idx + ')" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:5px 9px;border-radius:7px;cursor:pointer;flex-shrink:0">🗑️</button>' +
+      '</div>';
+  }).join('');
+}
+function updateModelo(idx, field, value) {
+  var m = (DB.modelosCustom || [])[idx]; if (!m) return;
+  m[field] = (value || '').trim();
+  try { guardarDatos(); } catch(e){}
+  if (SB_KEY && TIENDA_ID && m._id && typeof _sbPatchRaw === 'function') { var patch = {}; patch[field] = m[field]; _sbPatchRaw('modelos_custom', 'id=eq.' + encodeURIComponent(m._id), patch); }
+  toast(T('inicio.guardado_ok') ? T('stock.modelos_anadido') : 'OK', 'ok');
+}
+function delModelo(idx) {
+  var m = (DB.modelosCustom || [])[idx]; if (!m) return;
+  if (!confirm('¿Borrar "' + ((m.marca || '') + ' ' + (m.modelo || '')).trim() + '"?')) return;
+  if (SB_KEY && TIENDA_ID && m._id && typeof _sbDeleteRaw === 'function') _sbDeleteRaw('modelos_custom', 'id=eq.' + encodeURIComponent(m._id));
+  DB.modelosCustom.splice(idx, 1);
+  try { guardarDatos(); } catch(e){}
+  renderModelos();
+}
+function addModeloManual() {
+  var ma = document.getElementById('mdlMarca'), mo = document.getElementById('mdlModelo');
+  var marca = (ma ? ma.value : '').trim(), modelo = (mo ? mo.value : '').trim();
+  if (!marca || !modelo) { toast(T('pedidos.falta_pieza'), 'err'); return; }
+  _aprenderModelo(marca, modelo, 'Telefono');
+  if (ma) ma.value = ''; if (mo) mo.value = '';
+  renderModelos();
+  toast(T('stock.modelos_anadido'), 'ok');
 }
 // Vista de auditoría de stock (solo admin)
 function abrirStockLog() {
