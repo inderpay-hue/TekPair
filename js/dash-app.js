@@ -3094,6 +3094,7 @@ function seleccionarModelo(cat, marca, modelo) {
   if (rModelo) rModelo.value = modelo;
   var sug = document.getElementById('rModeloSug');
   if (sug) { sug.classList.remove('open'); sug.innerHTML = ''; }
+  try { sugerirPiezasRep(); } catch(e){}
   // Foco al siguiente campo
   var imei = document.getElementById('rImei'); if (imei) imei.focus();
 }
@@ -4800,6 +4801,7 @@ function abrirRep() {
   ['rBusCli','rMarca','rModelo','rImei','rAveria','rNota','rSrvBus','rBloqVal'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
+  try { sugerirPiezasRep(); } catch(e){}
   if (typeof resetPagosRep === 'function') resetPagosRep();
   document.getElementById('rSelCliBox').classList.remove('show');
   document.getElementById('rSelCli').classList.remove('open');
@@ -5613,6 +5615,38 @@ function addPart(id) {
   document.getElementById('compRes').classList.remove('open');
   renderParts();
   calcR();
+  try { sugerirPiezasRep(); } catch(e){}
+}
+// Sugiere piezas del stock que encajan con el modelo de la reparación (1 clic para añadir).
+// Si la avería menciona pantalla/tapa/batería, esas se resaltan y van primero.
+function sugerirPiezasRep() {
+  var box = document.getElementById('repPiezasSug'); if (!box) return;
+  var modEl = document.getElementById('rModelo'); var mod = (modEl ? modEl.value : '').trim().toLowerCase();
+  if (!mod || mod.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  var aver = (document.getElementById('rAveria') ? document.getElementById('rAveria').value : '').toLowerCase();
+  var sel = {}; (SEL.selParts || []).forEach(function(p) { sel[p.id] = 1; });
+  var rel = function(s) {
+    var c = (s.categoria || '').toLowerCase();
+    if (aver.indexOf('pantalla') !== -1 && c === 'pantalla') return 0;
+    if ((aver.indexOf('tapa') !== -1 || aver.indexOf('cristal') !== -1 || aver.indexOf('trasera') !== -1) && c === 'tapa') return 0;
+    if (aver.indexOf('bater') !== -1 && c === 'bateria') return 0;
+    if ((aver.indexOf('carga') !== -1 || aver.indexOf('flex') !== -1) && c === 'flex de carga') return 0;
+    return 1;
+  };
+  var parts = (DB.stock || []).filter(function(s) {
+    if (s.vendido || (parseInt(s.unidades, 10) || 0) <= 0) return false;
+    if (['Telefono', 'Tablet', 'Smartwatch'].indexOf(s.categoria) !== -1) return false;
+    if (sel[s.id]) return false;
+    var pm = (s.modelo || '').toLowerCase(); if (!pm) return false;
+    return pm.indexOf(mod) !== -1 || mod.indexOf(pm) !== -1;
+  }).sort(function(a, b) { return rel(a) - rel(b); }).slice(0, 8);
+  if (!parts.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'flex';
+  box.innerHTML = '<div style="width:100%;font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px">' + T('rep.piezas_sug') + '</div>' + parts.map(function(s) {
+    var hot = rel(s) === 0;
+    return '<button type="button" onclick="addPart(\'' + s.id + '\')" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:16px;border:1.5px solid ' + (hot ? 'var(--orange)' : 'var(--border)') + ';background:' + (hot ? 'rgba(249,115,22,.08)' : '#fff') + ';color:var(--text);font:inherit;font-size:12px;font-weight:600;cursor:pointer">' +
+      '➕ ' + escHtml(((s.categoria || '') + ' ' + (s.modelo || '') + (s.color ? ' · ' + s.color : '')).trim()) + ' <span style="color:var(--green);font-weight:700">' + cur(s.precioV) + '</span> <span style="color:var(--muted)">·' + s.unidades + '</span></button>';
+  }).join('');
 }
 
 function renderParts() {
@@ -6014,6 +6048,7 @@ function editarRep(id) {
   } else {
     document.getElementById('partsList').innerHTML = '';
   }
+  try { sugerirPiezasRep(); } catch(e){}
 
   // Renderizar servicios
   renderServiciosRep();
