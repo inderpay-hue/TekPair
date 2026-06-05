@@ -712,23 +712,38 @@ function onPedPiezaInput() {
   var q = (inp.value || '').trim().toLowerCase();
   if (!q) { if (sugs) sugs.style.display = 'none'; if (h) h.style.display = 'none'; return; }
   var _pcatEl = document.getElementById('pedCat'); var _pcat = _pcatEl ? _pcatEl.value : '';
-  var matches = (DB.stock || []).filter(function(s) { return !s.vendido && (!_pcat || (s.categoria || '') === _pcat) && _stockNombre(s).toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
+  var matches = (DB.stock || []).filter(function(s) { return !s.vendido && (!_pcat || (s.categoria || '') === _pcat) && _stockNombre(s).toLowerCase().indexOf(q) !== -1; }).slice(0, 6);
+  // Catálogo de modelos (custom + predefinidos), igual que al añadir al stock:
+  // así sugiere TODOS los modelos guardados y autorellena la marca.
+  var seenM = {}, pool = [], stockKeys = {};
+  matches.forEach(function(s) { stockKeys[((s.marca || '') + '|' + (s.modelo || '')).toLowerCase()] = 1; });
+  (DB.modelosCustom || []).forEach(function(m) { var k = ((m.marca || '') + '|' + (m.modelo || '')).toLowerCase(); if (!seenM[k]) { seenM[k] = 1; pool.push(m); } });
+  if (typeof MODELOS_PRE !== 'undefined' && Array.isArray(MODELOS_PRE)) MODELOS_PRE.forEach(function(m) { var k = ((m.marca || '') + '|' + (m.modelo || '')).toLowerCase(); if (!seenM[k]) { seenM[k] = 1; pool.push(m); } });
+  var modelos = pool.filter(function(m) {
+    var k = ((m.marca || '') + '|' + (m.modelo || '')).toLowerCase();
+    if (stockKeys[k]) return false;  // ya está como variante de stock arriba
+    return ((m.marca || '') + ' ' + (m.modelo || '')).toLowerCase().indexOf(q) !== -1;
+  }).slice(0, 8);
   if (sugs) {
-    if (matches.length) {
-      sugs.innerHTML = matches.map(function(s) {
-        var imei = _esImeiCat(s.categoria);
-        var uds = parseInt(s.unidades, 10) || 0;
-        var col = uds <= (s.stockMin || 0) ? 'var(--orange)' : 'var(--muted)';
-        var coste = parseFloat(s.precioC) || 0;
-        var prov = _provHabitual(_stockNombre(s));
-        var sub = [(coste > 0 ? ('€' + coste.toFixed(2) + ' ' + T('pedidos.coste')) : ''), (prov ? ('· ' + escHtml(prov)) : '')].filter(Boolean).join(' ');
-        return '<div onmousedown="pedSelStock(\'' + s.id + '\')" style="padding:7px 11px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:12.5px" onmouseover="this.style.background=\'#faf7f3\'" onmouseout="this.style.background=\'#fff\'">' +
-          '<span>' + (imei ? '📱' : '🔧') + '</span>' +
-          '<div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(_stockNombre(s)) + '</div>' + (sub ? '<div style="font-size:10.5px;color:var(--muted)">' + sub + '</div>' : '') + '</div>' +
-          '<span style="color:' + col + ';font-weight:700;white-space:nowrap">' + uds + ' uds</span></div>';
-      }).join('');
-      sugs.style.display = '';
-    } else { sugs.style.display = 'none'; }
+    var html = matches.map(function(s) {
+      var imei = _esImeiCat(s.categoria);
+      var uds = parseInt(s.unidades, 10) || 0;
+      var col = uds <= (s.stockMin || 0) ? 'var(--orange)' : 'var(--muted)';
+      var coste = parseFloat(s.precioC) || 0;
+      var prov = _provHabitual(_stockNombre(s));
+      var sub = [(coste > 0 ? ('€' + coste.toFixed(2) + ' ' + T('pedidos.coste')) : ''), (prov ? ('· ' + escHtml(prov)) : '')].filter(Boolean).join(' ');
+      return '<div onmousedown="pedSelStock(\'' + s.id + '\')" style="padding:7px 11px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:12.5px" onmouseover="this.style.background=\'#faf7f3\'" onmouseout="this.style.background=\'#fff\'">' +
+        '<span>' + (imei ? '📱' : '🔧') + '</span>' +
+        '<div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(_stockNombre(s)) + '</div>' + (sub ? '<div style="font-size:10.5px;color:var(--muted)">' + sub + '</div>' : '') + '</div>' +
+        '<span style="color:' + col + ';font-weight:700;white-space:nowrap">' + uds + ' uds</span></div>';
+    }).join('');
+    html += modelos.map(function(m) {
+      var marca = (m.marca || ''), modelo = (m.modelo || '');
+      return '<div onmousedown="pedSelModelo(\'' + marca.replace(/'/g, "\\'") + '\',\'' + modelo.replace(/'/g, "\\'") + '\')" style="padding:7px 11px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:12.5px" onmouseover="this.style.background=\'#faf7f3\'" onmouseout="this.style.background=\'#fff\'">' +
+        '<span>' + (m.custom ? '⭐' : '🔎') + '</span>' +
+        '<div style="flex:1;min-width:0;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml((marca + ' ' + modelo).trim()) + '</div></div>';
+    }).join('');
+    if (html) { sugs.innerHTML = html; sugs.style.display = ''; } else { sugs.style.display = 'none'; }
   }
   if (h) {
     var m = _stockMatch(inp.value);
@@ -863,6 +878,29 @@ function _pedModeloDe(p) {
   if (marca && pieza.toLowerCase().indexOf(marca.toLowerCase()) === 0) return pieza.slice(marca.length).trim();
   return pieza;
 }
+// Seleccionar un modelo del catálogo en el pedido → rellena marca + modelo
+function pedSelModelo(marca, modelo) {
+  var pm = document.getElementById('pedMarca'); if (pm) pm.value = marca || '';
+  var inp = document.getElementById('pedPieza'); if (inp) inp.value = modelo || '';
+  var sugs = document.getElementById('pedPiezaSugs'); if (sugs) sugs.style.display = 'none';
+  try { renderPedMarcas(); } catch(e){}
+  var pv = document.getElementById('pedProv');
+  if (pv && !pv.value) { var ph = _provHabitual(_pedNombreCompleto(marca, modelo)); if (ph) pv.value = ph; }
+}
+// Aprende un modelo nuevo (silencioso): lo añade al catálogo para sugerirlo luego.
+// Se llama al guardar stock, pedidos, etc. — así el catálogo se amplía solo.
+function _aprenderModelo(marca, modelo, cat) {
+  marca = (marca || '').trim(); modelo = (modelo || '').trim();
+  if (!marca || !modelo) return;
+  var key = (marca + '|' + modelo).toLowerCase();
+  if (typeof MODELOS_PRE !== 'undefined' && MODELOS_PRE.some(function(m) { return (m.marca + '|' + m.modelo).toLowerCase() === key; })) return;
+  DB.modelosCustom = DB.modelosCustom || [];
+  if (DB.modelosCustom.some(function(m) { return ((m.marca || '') + '|' + (m.modelo || '')).toLowerCase() === key; })) return;
+  var nuevo = { id: 'm' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID, categoria: cat || 'Telefono', marca: marca, modelo: modelo, creado_por: U ? U.email : '' };
+  DB.modelosCustom.unshift({ cat: cat || 'Telefono', marca: marca, modelo: modelo, custom: true, _id: nuevo.id });
+  try { guardarDatos(); } catch(e){}
+  if (SB_KEY && TIENDA_ID && typeof _sbPostRaw === 'function') _sbPostRaw('modelos_custom', nuevo);
+}
 function nuevoPedido() {
   SEL.editPedidoId = null;
   window._pedItems = [];
@@ -917,6 +955,7 @@ function pedAddItem() {
     cantidad: parseInt(document.getElementById('pedCant').value, 10) || 1,
     importe: parseFloat(document.getElementById('pedImporte').value) || 0
   });
+  _aprenderModelo(marca, modelo, (_pcat && _pcat.value));
   document.getElementById('pedPieza').value = '';
   document.getElementById('pedCant').value = '1';
   document.getElementById('pedImporte').value = '';
@@ -952,6 +991,7 @@ function guardarPedido() {
     var _emarca = (document.getElementById('pedMarca').value || '').trim();
     var _emodelo = (document.getElementById('pedPieza').value || '').trim();
     if (!_emodelo) { toast(T('pedidos.falta_pieza'), 'err'); return; }
+    _aprenderModelo(_emarca, _emodelo, (document.getElementById('pedCat') && document.getElementById('pedCat').value));
     var datos = {
       pieza: _pedNombreCompleto(_emarca, _emodelo),
       marca: _emarca || null,
@@ -1058,6 +1098,7 @@ function _recibirAStock(p, uds, existe, silent, cat) {
   if (existe) {
     existe.unidades = (parseInt(existe.unidades, 10) || 0) + uds;
     if (SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(existe.id), { unidades: existe.unidades });
+    _logMov('entrada', _stockNombre(existe), uds, p.proveedor || T('pedidos.pieza'));
     try { guardarDatos(); } catch(e){}
     try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
     if (!silent) toast(T('pedidos.stock_sumado').replace('{n}', uds).replace('{total}', existe.unidades), 'ok');
@@ -1078,6 +1119,7 @@ function _recibirAStock(p, uds, existe, silent, cat) {
     stock_min: item.stockMin, stock_max: item.stockMax, vendido: false,
     tipo: 'nuevo', garantia_meses: 0, ubicacion: null
   });
+  _logMov('entrada', ((item.marca || '') + ' ' + (item.modelo || '')).trim(), uds, p.proveedor || T('pedidos.pieza'));
   try { guardarDatos(); } catch(e){}
   try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
   if (!silent) toast(T('pedidos.stock_anadido').replace('{n}', uds), 'ok');
@@ -7247,6 +7289,11 @@ function busModeloStock() {
 function _logStock(accion, producto, detalle, stockId) {
   if (typeof audit === 'function') audit(accion, 'stock', stockId || '', (producto || '') + (detalle ? ' · ' + detalle : ''), null);
 }
+// Movimiento de inventario: entrada (pedido/alta) o salida (reparación/venta).
+// Se guarda en el mismo sistema audit(); la cantidad va dentro de 'cambios'.
+function _logMov(accion, producto, cantidad, ref) {
+  if (typeof audit === 'function') audit(accion, 'stock', ref || '', (producto || '') + (cantidad ? ' ×' + cantidad : ''), { mov: true, cantidad: cantidad || 1, ref: ref || '' });
+}
 function guardarStock() {
   var perm = SEL.editStockId ? 'stock_editar' : 'stock_crear';
   if (!tienePerm(perm)) { toast(T('gen.sin_permiso'), 'err'); return; }
@@ -7254,6 +7301,7 @@ function guardarStock() {
   var modelo = document.getElementById('sModelo').value.trim();
   if (!marca || !modelo) { toast('Marca y modelo obligatorios', 'err'); return; }
   _logStock(SEL.editStockId ? 'editar' : 'crear', (marca + ' ' + modelo).trim(), null, SEL.editStockId || null);
+  _aprenderModelo(marca, modelo, document.getElementById('sCat').value);
 
   // STOCK-VAL: validaciones suaves (no bloqueantes, solo avisan)
   // Se acumulan los warnings y se muestran como toasts informativos.
