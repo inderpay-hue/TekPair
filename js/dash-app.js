@@ -616,10 +616,17 @@ function ajTab(btn) {
 // ════════════ NOTAS Y RECORDATORIOS (tarjeta del inicio, 2ª columna) ════════════
 function cargarNotasRecordatorios(cb) {
   if (!SB_KEY || !TIENDA_ID) { window._recordatorios = window._recordatorios || []; if (cb) cb(); return; }
-  sbGet('tiendas', 'id=eq.' + TIENDA_ID + '&select=pedidos_notas,recordatorios').then(function(r) {
+  sbGet('tiendas', 'id=eq.' + TIENDA_ID + '&select=pedidos_notas,recordatorios,inicio_config').then(function(r) {
     var t = (r && r[0]) || {};
     window._pedNotas = t.pedidos_notas || '';
     window._recordatorios = Array.isArray(t.recordatorios) ? t.recordatorios : [];
+    // Config del inicio personalizado (sincronizada por tienda)
+    if (t.inicio_config && typeof t.inicio_config === 'object' && !Array.isArray(t.inicio_config)) {
+      window._inicioCfg = t.inicio_config;
+      try { localStorage.setItem('tk_inicio_cfg', JSON.stringify(t.inicio_config)); } catch(e){}
+      if (t.inicio_config._vista) { window._invVista = t.inicio_config._vista; try { localStorage.setItem('tk_inicio_vista', t.inicio_config._vista); } catch(e){} }
+      try { renderInicioNuevo(); } catch(e){}
+    }
     if (cb) cb(); else renderNotasRecordatorios();
   }).catch(function() { window._recordatorios = window._recordatorios || []; if (cb) cb(); });
 }
@@ -1818,9 +1825,14 @@ function renderEditarInicio() {
 function guardarEditarInicio() {
   window._inicioCfg = Object.assign({}, window._invCfgTmp);
   window._inicioCfg._order = (window._invCfgTmpOrder || _inicioOrder()).slice();
+  window._inicioCfg._vista = window._invCfgTmpVista || 'resumen';
   _invGuardarCfg();
-  try { localStorage.setItem('tk_inicio_vista', window._invCfgTmpVista || 'resumen'); } catch(e){}
-  window._invVista = window._invCfgTmpVista || 'resumen';
+  try { localStorage.setItem('tk_inicio_vista', window._inicioCfg._vista); } catch(e){}
+  window._invVista = window._inicioCfg._vista;
+  // Sincroniza config + orden + vista entre dispositivos de la tienda
+  if (SB_KEY && TIENDA_ID && typeof _sbPatchRaw === 'function') {
+    _sbPatchRaw('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { inicio_config: window._inicioCfg });
+  }
   closeM('mEditarInicio');
   renderInicioNuevo();
   if (typeof toast === 'function') toast(T('inicio.guardado_ok'), 'ok');
