@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>TekPair · Inicio 2 (Operativo) · Empleado</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+:root{--bg1:#FFF8F2;--bg2:#FFEFE4;--ink:#241F1B;--ink2:#6E635A;--ink3:#A89C92;--line:#F0E6DC;--orange:#F2682B;--orange-d:#CC4A18;--blue:#2F6BFF;--green:#16B981;--purple:#8B5CF6;--red:#EF4444;--amber:#F59E0B;--shadow:0 1px 2px rgba(36,31,27,.04),0 8px 24px rgba(36,31,27,.06)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh;padding:24px clamp(16px,4vw,44px) 60px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto}
+.ribbon{display:flex;align-items:center;gap:9px;background:rgba(47,107,255,.07);border:1px solid rgba(47,107,255,.2);color:#2552cf;border-radius:12px;padding:8px 14px;font-size:12px;font-weight:600;margin-bottom:16px}
+.pager{margin-left:auto;display:flex;gap:6px}.dot{width:7px;height:7px;border-radius:50%;background:#cbb9aa}.dot.on{background:var(--orange);width:18px;border-radius:4px}
+.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
+h1{font-size:clamp(23px,3vw,29px);font-weight:800;letter-spacing:-.5px}
+.sub{font-size:14px;color:var(--ink2);margin-bottom:20px}.sub b{color:var(--ink)}
+.strip{display:flex;gap:9px;flex-wrap:wrap}
+.chipk{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 13px;font-size:12.5px;font-weight:700;box-shadow:var(--shadow);display:flex;align-items:center;gap:7px}
+.chipk b{font-size:15px}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:20px 0}
+.col{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.col-h{padding:13px 15px;font-weight:800;font-size:13.5px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.col-h .n{font-size:12px;font-weight:800;padding:2px 9px;border-radius:20px;background:var(--line);color:var(--ink2)}
+.col.red .col-h{color:var(--red)} .col.red .n{background:rgba(239,68,68,.12);color:var(--red)}
+.col.amber .col-h{color:#B9770A} .col.amber .n{background:rgba(245,158,11,.14);color:#B9770A}
+.col.green .col-h{color:#0E9E6E} .col.green .n{background:rgba(22,185,129,.13);color:#0E9E6E}
+.tk{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s}.tk:last-child{border-bottom:none}
+.tk:hover{background:#FFFBF8}
+.tk .ph{font-size:13px;font-weight:700}
+.tk .cl{font-size:11.5px;color:var(--ink2);margin:2px 0 6px}
+.tk .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink3)}
+.tk .when{font-weight:700;padding:2px 8px;border-radius:6px}
+.w-red{background:rgba(239,68,68,.1);color:var(--red)} .w-amber{background:rgba(245,158,11,.14);color:#B9770A} .w-green{background:rgba(22,185,129,.12);color:#0E9E6E}
+.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:22px}
+.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
+.card h3{font-size:13.5px;font-weight:800;padding:13px 15px 9px;display:flex;align-items:center;justify-content:space-between}
+.card h3 .lk{font-size:11px;color:var(--orange);font-weight:700}
+.li{display:flex;align-items:center;gap:9px;padding:9px 15px;border-top:1px solid var(--line);font-size:12.5px}
+.li .ic{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;flex-shrink:0}
+.li .m{flex:1;min-width:0}.li .tt{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.li .ss{font-size:11px;color:var(--ink3)}
+.li .rt{font-size:11px;font-weight:700;color:var(--ink2)}
+.ib{background:rgba(47,107,255,.1);color:var(--blue)}.ip{background:rgba(139,92,246,.12);color:var(--purple)}.ia{background:rgba(245,158,11,.14);color:#B9770A}.ig{background:rgba(22,185,129,.12);color:#0E9E6E}
+.tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px}
+.section-t{font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin:0 2px 12px}
+.act-row{display:grid;grid-template-columns:repeat(6,1fr);gap:11px}
+.act{display:flex;flex-direction:column;align-items:center;gap:7px;padding:15px 10px;border-radius:16px;font-weight:700;font-size:12.5px;text-align:center;border:1px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(36,31,27,.05);cursor:pointer}
+.act .ai{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-size:18px}
+.act.p{background:linear-gradient(135deg,#FF7A45,var(--orange));color:#fff;border:none;box-shadow:0 8px 20px rgba(242,104,43,.3)}.act.p .ai{background:rgba(255,255,255,.22)}
+.tip{margin-top:26px;text-align:center;font-size:12px;color:var(--ink3)}
+@media(max-width:900px){.board,.row3{grid-template-columns:1fr}.act-row{grid-template-columns:repeat(3,1fr)}}
+</style></head><body><div class="wrap">
+<div class="ribbon">📋 Página <b>2 de 2</b> · Tablero operativo (empleado · sin dinero)<span class="pager"><span class="dot"></span><span class="dot on"></span></span></div>
+
+<div class="top"><div><h1>Hola, Carlos 🔧</h1></div>
+<div class="strip"><div class="chipk">🚨 <b>2</b> urgentes</div><div class="chipk">📅 <b>2</b> citas</div><div class="chipk">🛒 <b>8</b> ventas hoy</div><div class="chipk">📦 <b>3</b> por pedir</div></div></div>
+<div class="sub">Tu <b>tablero del día</b>: lo que entra, lo que estás reparando y lo que toca entregar.</div>
+
+<div class="board">
+  <div class="col red"><div class="col-h"><span>🚨 Urgente / hoy</span><span class="n">2</span></div>
+    <div class="tk"><div class="ph">OPPO Reno 12F</div><div class="cl">Andrés Flores · Pantalla rota</div><div class="meta"><span class="when w-red">Prometido HOY</span> · IMEI ···4471</div></div>
+    <div class="tk"><div class="ph">iPhone 13</div><div class="cl">María Ruiz · Batería</div><div class="meta"><span class="when w-red">Cliente espera</span></div></div>
+  </div>
+  <div class="col amber"><div class="col-h"><span>⏳ En proceso</span><span class="n">11</span></div>
+    <div class="tk"><div class="ph">Samsung Galaxy A50</div><div class="cl">Brenda Pineda · No carga</div><div class="meta"><span class="when w-amber">6 días</span></div></div>
+    <div class="tk"><div class="ph">Xiaomi Redmi Note 12</div><div class="cl">Luis Soto · Software</div><div class="meta"><span class="when w-amber">2 días</span></div></div>
+    <div class="tk"><div class="ph" style="color:var(--orange)">+ 9 reparaciones más…</div><div class="cl" style="color:var(--orange);font-weight:700">Ver todas →</div></div>
+  </div>
+  <div class="col green"><div class="col-h"><span>✅ Listas para entregar</span><span class="n">3</span></div>
+    <div class="tk"><div class="ph">iPhone 12 · Pantalla</div><div class="cl">Carlos M.</div><div class="meta"><span class="when w-green">Avisar cliente</span></div></div>
+    <div class="tk"><div class="ph">Huawei P30 · Tapa</div><div class="cl">Ana G.</div><div class="meta"><span class="when w-green">Listo</span></div></div>
+    <div class="tk"><div class="ph">Tablet Lenovo · Carga</div><div class="cl">Pedro L.</div><div class="meta"><span class="when w-green">Avisar cliente</span></div></div>
+  </div>
+</div>
+
+<div class="row3">
+  <div class="card"><h3>📅 Citas de hoy <span class="lk">Ver agenda →</span></h3>
+    <div class="li"><div class="ic ib">🕙</div><div class="m"><div class="tt">10:30 · Laura Gómez</div><div class="ss">Diagnóstico iPhone 11</div></div><span class="tag ib">Confirmada</span></div>
+    <div class="li"><div class="ic ib">🕐</div><div class="m"><div class="tt">13:00 · Marc Vidal</div><div class="ss">Recogida Samsung S21</div></div><span class="tag ia">Pendiente</span></div>
+  </div>
+  <div class="card"><h3>🛒 Ventas de hoy <span class="lk">Ver ventas →</span></h3>
+    <div class="li"><div class="ic ip">🎧</div><div class="m"><div class="tt">Auriculares + funda</div><div class="ss">10:12 · Tarjeta</div></div><span class="rt">2 art.</span></div>
+    <div class="li"><div class="ic ip">🔌</div><div class="m"><div class="tt">Cargador USB-C</div><div class="ss">11:40 · Efectivo</div></div><span class="rt">1 art.</span></div>
+    <div class="li"><div class="ic ip">🛒</div><div class="m"><div class="tt">8 ventas en total</div><div class="ss">hoy</div></div><span class="rt">Ver →</span></div>
+  </div>
+  <div class="card"><h3>📦 Stock para pedir <span class="lk">Ver stock →</span></h3>
+    <div class="li"><div class="ic ia">⚠️</div><div class="m"><div class="tt">Pantalla iPhone 13</div><div class="ss">0 uds · bajo mínimo</div></div><span class="tag ia">Pedir</span></div>
+    <div class="li"><div class="ic ia">⚠️</div><div class="m"><div class="tt">Batería Samsung A52</div><div class="ss">1 ud · bajo mínimo</div></div><span class="tag ia">Pedir</span></div>
+    <div class="li"><div class="ic ig">✓</div><div class="m"><div class="tt">Cristales templados</div><div class="ss">pedido · llega 7/06</div></div><span class="tag ig">En camino</span></div>
+  </div>
+</div>
+
+<div class="section-t">Acciones rápidas</div>
+<div class="act-row">
+  <div class="act p"><div class="ai">🔧</div>Nueva reparación</div>
+  <div class="act p"><div class="ai">🛒</div>Abrir TPV</div>
+  <div class="act"><div class="ai" style="background:rgba(22,185,129,.12);color:#0E9E6E">💳</div>Nueva venta</div>
+  <div class="act"><div class="ai" style="background:rgba(47,107,255,.12);color:var(--blue)">📄</div>Presupuesto</div>
+  <div class="act"><div class="ai" style="background:rgba(139,92,246,.12);color:var(--purple)">📦</div>Pedido</div>
+  <div class="act"><div class="ai" style="background:rgba(245,158,11,.14);color:#B9770A">👤</div>Cliente</div>
+</div>
+<div class="tip">Vista previa · Página 2 (Operativo) · EMPLEADO · datos de ejemplo</div>
+</div></body></html>
