@@ -1329,7 +1329,6 @@ async function _syncQueueRetry() {
   var q = _syncQueueGet();
   if (!q.length) return;
   
-  console.log('🔄 Reintentando', q.length, 'operaciones pendientes...');
   
   for (var i = 0; i < q.length; i++) {
     var op = q[i];
@@ -1356,7 +1355,6 @@ async function _syncQueueRetry() {
 
       if (res.ok) {
         _syncQueueRemove(op._opId);
-        console.log('✓ Sync OK:', op.method, op.table);
       } else if (!_esRetriable(res.status)) {
         // Error persistente (4xx no-retriable): descartar la op en lugar de loop infinito
         console.warn('✗ Sync descartado (no retriable):', op.method, op.table, 'HTTP ' + res.status);
@@ -1443,7 +1441,6 @@ function _esRetriable(status) {
 
 // Iniciar el sistema
 window.addEventListener('online', function() {
-  console.log('📶 Internet vuelto, reintentando pendientes...');
   setTimeout(_syncQueueRetry, 1000);
 });
 window.addEventListener('beforeunload', function(e) {
@@ -1615,30 +1612,23 @@ async function cargarDatosSupabase() {
 
 // Refresca todas las vistas activas (no solo el dashboard)
 function refrescarVistasActivas() {
-  try { if (typeof renderDash === 'function') renderDash(); } catch(e){}
-  try { if (typeof renderInicioNuevo === 'function') renderInicioNuevo(); } catch(e){}
+  // Globales baratos: siempre (badges, urgentes, notificaciones, logo)
   try { if (!DB.pedidos && typeof cargarPedidos === 'function') cargarPedidos(function(){ updatePedidosBadge(); }); else updatePedidosBadge(); } catch(e){}
-  try { if (typeof renderVentas === 'function') renderVentas(); } catch(e){}
-  try { if (typeof renderReps === 'function') renderReps(); } catch(e){}
-  try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
-  try { if (typeof renderClis === 'function') renderClis(); } catch(e){}
-  try { if (typeof renderProvs === 'function') renderProvs(); } catch(e){}
-  try { if (typeof renderGastos === 'function') renderGastos(); } catch(e){}
-  try { if (typeof renderGastosRec === 'function') renderGastosRec(); } catch(e){}
-  try { if (typeof renderServicios === 'function') renderServicios(); } catch(e){}
   try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch(e){}
   try { if (typeof refreshNotifs === 'function') refreshNotifs(); } catch(e){}
   try { if (typeof renderSidebarLogo === 'function') renderSidebarLogo(); } catch(e){}
-  // Si Ajustes está activa, recargar el form para reflejar valores remotos
-  try {
-    var pAj = document.getElementById('pAjustes');
-    if (pAj && pAj.classList.contains('active') && typeof cargarAjustes === 'function') cargarAjustes();
-  } catch(e){}
-  // Si Mi Tienda está activa, recargar
-  try {
-    var pT = document.getElementById('pTienda');
-    if (pT && pT.classList.contains('active') && typeof cargarTienda === 'function') cargarTienda();
-  } catch(e){}
+  // Solo re-renderiza la PÁGINA ACTIVA (las demás se renderizan al navegar a ellas).
+  // Antes se re-renderizaban las ~16 páginas en cada sync (cada 60s + focus), aunque
+  // estuvieran ocultas: trabajo y peticiones de red innecesarios.
+  var activa = (document.querySelector('.page.active') || {}).id || '';
+  var MAP = {
+    pInicioNuevo: 'renderInicioNuevo', pDash: 'renderDash', pVentas: 'renderVentas',
+    pReps: 'renderReps', pStock: 'renderStock', pClis: 'renderClis', pProvs: 'renderProvs',
+    pGastos: 'renderGastos', pServicios: 'renderServicios', pPedidos: 'renderPedidosPage',
+    pAjustes: 'cargarAjustes', pTienda: 'cargarTienda'
+  };
+  try { var fn = MAP[activa]; if (fn && typeof window[fn] === 'function') window[fn](); } catch(e){}
+  try { if (activa === 'pGastos' && typeof renderGastosRec === 'function') renderGastosRec(); } catch(e){}
 }
 
 // Sync completa: descarga + refresco de pantalla
@@ -2078,8 +2068,6 @@ function marcarGrupoPedido(encKey) {
 }
 
 async function renderDash() {
-  // Limpiar caché de pagos al cambiar periodo para no mostrar datos del anterior
-  window._cachedPagosRep = null;
   var tab = SEL.metricTab;
   var hoy = hoyLocal();
   var semana = [];
@@ -2374,20 +2362,30 @@ function renderWidgetSelector() {
 }
 
 
-// Render inmediato con tReps=0 (usar caché si existe para esta pestaña)
-  _renderStats(0, window._cachedPagosRep || []);
+  // Caché de pagos_reparacion por RANGO (clave minF_maxF) con TTL corto +
+  // invalidación explícita al crear/editar un pago (_invalidarCachePagosRep()).
+  // Evita re-consultar Supabase en cada renderDash (se llama tras casi toda acción).
+  var fechasISO = filterDates.slice().sort();
+  var minF = fechasISO[0], maxF = fechasISO[fechasISO.length - 1];
+  var cacheKey = minF + '_' + maxF;
+  var cache = window._pagosRepCache;
+  var cacheHit = cache && cache.key === cacheKey && (Date.now() - cache.ts < 20000);
+
+  // Render inmediato (con la caché de este rango si la hay)
+  _renderStats(0, cacheHit ? cache.data : []);
 
   if (SB_KEY) {
-    try {
-      var fechasISO = filterDates.slice();
-      var minF = fechasISO.sort()[0], maxF = fechasISO[fechasISO.length-1];
-      var pagosRep = await sbGet('pagos_reparacion', 'fecha=gte.' + minF + '&fecha=lte.' + maxF) || [];
-      tReps = pagosRep.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
-      // Re-renderizar stats con tReps real + datos de pagos por método
-      // Guardar en caché global para que cambios de tab Hoy/Semana/Mes lo usen
-      window._cachedPagosRep = pagosRep;
-      _renderStats(tReps, pagosRep);
-    } catch(e) { console.warn('tReps:', e); }
+    if (cacheHit) {
+      tReps = cache.data.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
+      _renderStats(tReps, cache.data);
+    } else {
+      try {
+        var pagosRep = await sbGet('pagos_reparacion', 'fecha=gte.' + minF + '&fecha=lte.' + maxF) || [];
+        tReps = pagosRep.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
+        window._pagosRepCache = { key: cacheKey, data: pagosRep, ts: Date.now() };
+        _renderStats(tReps, pagosRep);
+      } catch(e) { console.warn('tReps:', e); }
+    }
   }
 
   // Stats ya renderizados en _renderStats() — solo lanzar widgets
@@ -3117,7 +3115,7 @@ function renderWidgetTopProds() {
     html += '<div style="width:18px;font-size:11px;color:var(--muted);font-weight:700;text-align:center">' + (i+1) + '</div>';
     html += '<div style="flex:1;min-width:0">';
     html += '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:3px;gap:8px">';
-    html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + p.nombre + '</span>';
+    html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(p.nombre) + '</span>';
     html += '<span style="color:var(--blue);flex-shrink:0">' + p.count + ' uds</span></div>';
     html += '<div style="background:var(--light);height:6px;border-radius:3px;overflow:hidden">';
     html += '<div style="width:' + pct + '%;height:100%;background:var(--blue)"></div></div>';
@@ -3158,7 +3156,7 @@ function renderWidgetTopAverias() {
     html += '<div style="width:18px;font-size:11px;color:var(--muted);font-weight:700;text-align:center">' + (i+1) + '</div>';
     html += '<div style="flex:1;min-width:0">';
     html += '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:600;margin-bottom:3px;gap:8px">';
-    html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + p.nombre + '</span>';
+    html += '<span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(p.nombre) + '</span>';
     html += '<span style="color:var(--orange);flex-shrink:0">' + p.count + '</span></div>';
     html += '<div style="background:var(--light);height:6px;border-radius:3px;overflow:hidden">';
     html += '<div style="width:' + pct + '%;height:100%;background:var(--orange)"></div></div>';
@@ -5847,6 +5845,7 @@ function guardarRep() {
         tipo: p.tipo || 'anticipo'
       });
     });
+    if ((SEL.repPagos || []).length) window._pagosRepCache = null; // invalidar caché de stats
   }
 
   // PRES-6 FIX: capturar flag ANTES de closeM (que ejecuta _limpiarModoPresupuesto)
@@ -6410,6 +6409,7 @@ function confirmarEntrega() {
           tipo: 'final',
           nota: 'Auto-creado al entregar reparación'
         });
+        window._pagosRepCache = null; // invalidar caché de stats
       }
     });
   }
@@ -10647,7 +10647,7 @@ async function cargarUsuarios() {
   lista.forEach(function(u) {
     var esYo = U && u.email === U.email;
     var tr = document.createElement('tr');
-    tr.innerHTML = '<td><strong>' + u.nombre + '</strong>' + (esYo ? ' <span class="badge bb">Tu</span>' : '') + '<br><span style="font-size:10px;color:var(--muted)">' + u.email + '</span></td>' +
+    tr.innerHTML = '<td><strong>' + escHtml(u.nombre) + '</strong>' + (esYo ? ' <span class="badge bb">Tu</span>' : '') + '<br><span style="font-size:10px;color:var(--muted)">' + escHtml(u.email) + '</span></td>' +
       '<td><span class="badge ' + (u.rol === 'admin' ? 'br' : 'bb') + '">' + u.rol + '</span></td>' +
       '<td><span class="badge ' + (u.activo ? 'bg' : 'bo') + '">' + (u.activo ? 'Activo' : 'Inactivo') + '</span></td>';
     var tdAcc = document.createElement('td');
@@ -12670,7 +12670,6 @@ var DEFERRED_INSTALL_PROMPT = null;
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', function() {
     navigator.serviceWorker.register('/sw.js').then(function(reg) {
-      console.log('SW registrado:', reg.scope);
 
       // ── Aviso de nueva versión ─────────────────────────────────────────────
       // Cuando se despliega una versión nueva, el navegador instala un SW nuevo.

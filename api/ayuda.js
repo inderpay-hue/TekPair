@@ -70,7 +70,7 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Demasiadas solicitudes. Espera una hora.' });
   }
 
-  const { tipo, mensaje, email, nombre, tienda, tienda_id } = req.body;
+  const { tipo, mensaje, email, nombre, tienda } = req.body;
 
   if (!mensaje || !String(mensaje).trim()) {
     return res.status(400).json({ error: 'Mensaje vacío' });
