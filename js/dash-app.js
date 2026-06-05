@@ -1710,6 +1710,74 @@ function setInvVista(v, btn) {
   if (btn && btn.parentNode) Array.prototype.forEach.call(btn.parentNode.children, function(b) { b.classList.toggle('on', b === btn); });
   renderInicioNuevo();
 }
+// ── Personalización del inicio por tienda (qué tarjetas se ven) ──
+// Catálogo de tarjetas personalizables (admin=solo se muestra a quien ve caja)
+var INV_WIDGETS = [
+  { id: 'tb_cobros', vista: 'Tablero', label: 'Cobros pendientes', admin: true },
+  { id: 'tb_ventas', vista: 'Tablero', label: 'Ventas de hoy' },
+  { id: 'tb_comocobras', vista: 'Tablero', label: 'Cómo cobras hoy', admin: true },
+  { id: 'tb_citas', vista: 'Tablero', label: 'Citas de hoy' },
+  { id: 'tb_pedidos', vista: 'Tablero', label: 'Pedidos por recibir' },
+  { id: 'tb_stock', vista: 'Tablero', label: 'Stock crítico' },
+  { id: 'tb_notas', vista: 'Tablero', label: 'Notas y recordatorios' },
+  { id: 'rs_inggastos', vista: 'Resumen', label: 'Ingresos vs gastos', admin: true },
+  { id: 'rs_comocobras', vista: 'Resumen', label: 'Cómo cobras', admin: true },
+  { id: 'rs_lodeja', vista: 'Resumen', label: 'Lo que más deja', admin: true },
+  { id: 'rs_pedidos', vista: 'Resumen', label: 'Pedidos por recibir', admin: true },
+];
+function _invCargarCfg() {
+  if (window._inicioCfg) return window._inicioCfg;
+  try { window._inicioCfg = JSON.parse(localStorage.getItem('tk_inicio_cfg') || '{}'); } catch(e) { window._inicioCfg = {}; }
+  return window._inicioCfg;
+}
+function _invWidgetOn(id) { var c = _invCargarCfg(); return c[id] !== false; }
+function _invGuardarCfg() { try { localStorage.setItem('tk_inicio_cfg', JSON.stringify(window._inicioCfg || {})); } catch(e){} }
+// Modal "Editar inicio"
+function abrirEditarInicio() {
+  _invCargarCfg();
+  window._invCfgTmp = Object.assign({}, window._inicioCfg);
+  window._invCfgTmpVista = localStorage.getItem('tk_inicio_vista') || 'resumen';
+  renderEditarInicio();
+  openM('mEditarInicio');
+}
+function setEditVista(v) { window._invCfgTmpVista = v; renderEditarInicio(); }
+function toggleInvWidget(id) { var t = window._invCfgTmp || (window._invCfgTmp = {}); t[id] = (t[id] === false); renderEditarInicio(); }
+function renderEditarInicio() {
+  var box = document.getElementById('editInicioBody'); if (!box) return;
+  var admin = (typeof puedeVerCaja === 'function') ? puedeVerCaja() : true;
+  var vista = window._invCfgTmpVista || 'resumen';
+  var tmp = window._invCfgTmp || {};
+  var html = '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:7px">' + T('inicio.vista_defecto') + '</div>';
+  html += '<div style="display:flex;gap:8px;margin-bottom:16px">';
+  [['resumen', '📊 ' + T('inicio.v_resumen')], ['tablero', '📋 ' + T('inicio.v_tablero')]].forEach(function(v) {
+    var on = vista === v[0];
+    html += '<button onclick="setEditVista(\'' + v[0] + '\')" style="flex:1;padding:9px;border-radius:10px;border:1px solid ' + (on ? 'var(--orange)' : 'var(--border)') + ';background:' + (on ? 'var(--orange)' : '#fff') + ';color:' + (on ? '#fff' : 'var(--text)') + ';font:inherit;font-weight:700;font-size:13px;cursor:pointer">' + v[1] + '</button>';
+  });
+  html += '</div>';
+  ['Tablero', 'Resumen'].forEach(function(grp) {
+    var items = INV_WIDGETS.filter(function(w) { return w.vista === grp && (!w.admin || admin); });
+    if (!items.length) return;
+    html += '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:10px 0 4px">' + T('inicio.tarjetas') + ' · ' + grp + '</div>';
+    items.forEach(function(w) {
+      var on = tmp[w.id] !== false;
+      html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border)">' +
+        '<span style="font-size:13px;font-weight:600">' + escHtml(w.label) + (w.admin ? ' <span style="font-size:10px;color:var(--muted)">· ' + T('inicio.solo_admin') + '</span>' : '') + '</span>' +
+        '<button onclick="toggleInvWidget(\'' + w.id + '\')" aria-pressed="' + on + '" style="width:46px;height:26px;border-radius:20px;border:none;cursor:pointer;background:' + (on ? 'var(--green)' : '#cbd5e1') + ';position:relative;flex-shrink:0;transition:background .15s"><span style="position:absolute;top:3px;left:' + (on ? '23px' : '3px') + ';width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s"></span></button>' +
+        '</div>';
+    });
+  });
+  box.innerHTML = html;
+}
+function guardarEditarInicio() {
+  window._inicioCfg = Object.assign({}, window._invCfgTmp);
+  _invGuardarCfg();
+  try { localStorage.setItem('tk_inicio_vista', window._invCfgTmpVista || 'resumen'); } catch(e){}
+  window._invVista = window._invCfgTmpVista || 'resumen';
+  closeM('mEditarInicio');
+  renderInicioNuevo();
+  if (typeof toast === 'function') toast(T('inicio.guardado_ok'), 'ok');
+}
+function restablecerEditarInicio() { window._invCfgTmp = {}; window._invCfgTmpVista = 'resumen'; renderEditarInicio(); }
 function _invIso(d) { var m = ('0' + (d.getMonth() + 1)).slice(-2); var dd = ('0' + d.getDate()).slice(-2); return d.getFullYear() + '-' + m + '-' + dd; }
 function _invIncome(d1, d2) {
   var t = 0;
@@ -1746,6 +1814,7 @@ function renderInicioNuevo() {
   var vista = window._invVista || localStorage.getItem('tk_inicio_vista') || 'resumen';
   window._invVista = vista;
   try { Array.prototype.forEach.call(document.querySelectorAll('#pInicioNuevo .inv-vbtn'), function(b){ b.classList.toggle('on', b.getAttribute('data-v') === vista); }); } catch(e){}
+  var editBtn = document.getElementById('inv-edit-btn'); if (editBtn) editBtn.style.display = puede ? '' : 'none'; // personalizar: solo admin
 
   var admEl = document.getElementById('inv-admin');
   var empEl = document.getElementById('inv-emp');
@@ -1798,6 +1867,8 @@ function renderInicioNuevo() {
 function renderInicioAdmin(reps, enRep, listas, urgentes) {
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
   function _setAttr(id, a, v) { var e = document.getElementById(id); if (e) e.setAttribute(a, v); }
+  // Personalización: mostrar/ocultar tarjetas del Resumen
+  [['inv-card-inggastos', 'rs_inggastos'], ['inv-card-rscomocobras', 'rs_comocobras'], ['inv-card-lodeja', 'rs_lodeja'], ['inv-card-rspedidos', 'rs_pedidos']].forEach(function(p) { var e = document.getElementById(p[0]); if (e) e.style.display = _invWidgetOn(p[1]) ? '' : 'none'; });
   var hoy = hoyLocal();
   var per = window._invPer || 'hoy';
   var baseH = new Date(hoy + 'T00:00:00');
@@ -2167,7 +2238,7 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
   // ── Tarjetas (por rol) ──
   var cards = [];
   // Cobros pendientes (admin)
-  if (puede) {
+  if (puede && _invWidgetOn('tb_cobros')) {
     var cob = cobrosArr.slice(0, 4).map(function(r) {
       return '<div class="inv-li"><div class="ic ir">⏰</div><div class="m"><div class="tt">' + nom(r) + ' · ' + cli(r) + '</div><div class="ss">' + (r.estado === 'Entregado' ? 'entregada sin pagar' : 'a cobrar') + '</div></div><span class="rt eur">' + cur(r.restante) + '</span></div>';
     }).join('') || '<div class="inv-empty">Sin cobros pendientes ✓</div>';
@@ -2178,9 +2249,9 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
     var t = (v.lineas && v.lineas[0] && (v.lineas[0].nombre)) || (v.items && v.items[0] && v.items[0].nombre) || 'Venta';
     return '<div class="inv-li"><div class="ic ip">🛒</div><div class="m"><div class="tt">' + escHtml(t) + '</div><div class="ss">' + escHtml(v.pago || '') + '</div></div>' + (puede ? '<span class="rt eur">' + cur(v.total || 0) + '</span>' : '<span class="rt">1</span>') + '</div>';
   }).join('') || '<div class="inv-empty">Sin ventas hoy</div>';
-  cards.push('<div class="inv-tcard"><h4>🛒 Ventas de hoy <span class="lk" onclick="navTo(\'pVentas\')">Ver →</span></h4>' + vRows + '<div class="inv-tot"><span>' + ventasHoy.length + ' ventas hoy</span>' + (puede ? '<span style="color:#0E9E6E">' + cur(ventasTot) + '</span>' : '<span>' + ventasHoy.length + '</span>') + '</div></div>');
+  if (_invWidgetOn('tb_ventas')) cards.push('<div class="inv-tcard"><h4>🛒 Ventas de hoy <span class="lk" onclick="navTo(\'pVentas\')">Ver →</span></h4>' + vRows + '<div class="inv-tot"><span>' + ventasHoy.length + ' ventas hoy</span>' + (puede ? '<span style="color:#0E9E6E">' + cur(ventasTot) + '</span>' : '<span>' + ventasHoy.length + '</span>') + '</div></div>');
   // Cómo cobras (admin)
-  if (puede) {
+  if (puede && _invWidgetOn('tb_comocobras')) {
     var pagos = {};
     ventasHoy.forEach(function(v) { var m = v.pago || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (v.total || 0); });
     reps.forEach(function(r) { if ((r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); } });
@@ -2202,27 +2273,27 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
     var mot = escHtml(c2.motivo || c2.servicio || c2.nota || '');
     return '<div class="inv-li"><div class="ic ib">🕐</div><div class="m"><div class="tt">' + (h ? h + ' · ' : '') + who + '</div><div class="ss">' + mot + '</div></div></div>';
   }).join('') || '<div class="inv-empty">Sin citas hoy</div>';
-  cards.push('<div class="inv-tcard"><h4>📅 Citas de hoy <span class="lk" onclick="navTo(\'pCitas\')">Agenda →</span></h4>' + citRows + '</div>');
+  if (_invWidgetOn('tb_citas')) cards.push('<div class="inv-tcard"><h4>📅 Citas de hoy <span class="lk" onclick="navTo(\'pCitas\')">Agenda →</span></h4>' + citRows + '</div>');
   // Pedidos por recibir
   var pedRows = peds.slice(0, 4).map(function(p) {
     var st = p.estado === 'pedido' ? '🟡' : '🔴';
     var ic = p.estado === 'pedido' ? 'ia' : 'ir';
     return '<div class="inv-li"><div class="ic ' + ic + '">' + st + '</div><div class="m"><div class="tt">' + escHtml(p.pieza || p.proveedor || 'Pedido') + '</div><div class="ss">' + escHtml(p.proveedor || (p.estado === 'pedido' ? 'en camino' : 'por pedir')) + '</div></div>' + (puede && p.importe ? '<span class="rt eur">' + cur(parseFloat(p.importe) || 0) + '</span>' : '<span class="inv-tag ' + (p.estado === 'pedido' ? 'ia' : 'ir') + '">' + (p.estado === 'pedido' ? 'En camino' : 'Pedir') + '</span>') + '</div>';
   }).join('') || '<div class="inv-empty">Sin pedidos pendientes</div>';
-  cards.push('<div class="inv-tcard"><h4>📦 Pedidos por recibir <span class="lk" onclick="navTo(\'pPedidos\')">Ver →</span></h4>' + pedRows + '</div>');
+  if (_invWidgetOn('tb_pedidos')) cards.push('<div class="inv-tcard"><h4>📦 Pedidos por recibir <span class="lk" onclick="navTo(\'pPedidos\')">Ver →</span></h4>' + pedRows + '</div>');
   // Stock crítico
   var stRows = stockBajo.slice(0, 4).map(function(s) {
     var u = parseInt(s.unidades, 10) || 0;
     return '<div class="inv-li"><div class="ic ' + (u === 0 ? 'ir' : 'ia') + '">' + (u === 0 ? '🔴' : '⚠️') + '</div><div class="m"><div class="tt">' + escHtml(((s.marca || '') + ' ' + (s.modelo || '')).trim() || 'Producto') + '</div><div class="ss">' + (u === 0 ? 'sin stock' : 'bajo mínimo') + '</div></div><span class="inv-tag ' + (u === 0 ? 'ir' : 'ia') + '">' + u + ' uds</span></div>';
   }).join('') || '<div class="inv-empty">Stock al día ✓</div>';
-  cards.push('<div class="inv-tcard"><h4>⚠️ Stock crítico <span class="lk" onclick="navTo(\'pStock\')">Ver →</span></h4>' + stRows + (stockBajo.length ? '<div class="inv-tot"><span>Referencias a reponer</span><span style="color:#B9770A">' + stockBajo.length + '</span></div>' : '') + '</div>');
+  if (_invWidgetOn('tb_stock')) cards.push('<div class="inv-tcard"><h4>⚠️ Stock crítico <span class="lk" onclick="navTo(\'pStock\')">Ver →</span></h4>' + stRows + (stockBajo.length ? '<div class="inv-tot"><span>Referencias a reponer</span><span style="color:#B9770A">' + stockBajo.length + '</span></div>' : '') + '</div>');
   // Notas y recordatorios
   var recs = window._recordatorios || [];
   if (!window._notasCargadas && typeof cargarNotasRecordatorios === 'function') { window._notasCargadas = true; cargarNotasRecordatorios(function() { renderInicioNuevo(); }); }
   var notRows = recs.slice(0, 4).map(function(r) {
     return '<div class="inv-li"><div class="ic ' + (r.d ? 'ig' : 'ip') + '">' + (r.d ? '✓' : '☐') + '</div><div class="m"><div class="tt" style="' + (r.d ? 'text-decoration:line-through;color:var(--inv-ink3)' : '') + '">' + escHtml(r.t || '') + '</div></div>' + (r.f ? '<span class="inv-tag ia">' + _pedFecha(r.f) + '</span>' : '') + '</div>';
   }).join('') || '<div class="inv-empty">Sin recordatorios</div>';
-  cards.push('<div class="inv-tcard"><h4>📌 Notas y recordatorios <span class="lk" onclick="navTo(\'pAyuda\')">&nbsp;</span></h4>' + notRows + '</div>');
+  if (_invWidgetOn('tb_notas')) cards.push('<div class="inv-tcard"><h4>📌 Notas y recordatorios <span class="lk" onclick="navTo(\'pAyuda\')">&nbsp;</span></h4>' + notRows + '</div>');
 
   var cont = document.getElementById('inv-tb-cards');
   if (cont) cont.innerHTML = cards.join('');
