@@ -1720,6 +1720,10 @@ var INV_WIDGETS = [
   { id: 'tb_citas', vista: 'Tablero', label: 'Citas de hoy' },
   { id: 'tb_pedidos', vista: 'Tablero', label: 'Pedidos por recibir' },
   { id: 'tb_stock', vista: 'Tablero', label: 'Stock crítico' },
+  { id: 'tb_garantias', vista: 'Tablero', label: 'Garantías que vencen' },
+  { id: 'tb_entregas', vista: 'Tablero', label: 'Entregas de hoy' },
+  { id: 'tb_averias', vista: 'Tablero', label: 'Averías más frecuentes' },
+  { id: 'tb_clientes', vista: 'Tablero', label: 'Cumpleaños de clientes' },
   { id: 'tb_notas', vista: 'Tablero', label: 'Notas y recordatorios' },
   { id: 'rs_inggastos', vista: 'Resumen', label: 'Ingresos vs gastos', admin: true },
   { id: 'rs_comocobras', vista: 'Resumen', label: 'Cómo cobras', admin: true },
@@ -2321,6 +2325,58 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
     return '<div class="inv-li"><div class="ic ' + (u === 0 ? 'ir' : 'ia') + '">' + (u === 0 ? '🔴' : '⚠️') + '</div><div class="m"><div class="tt">' + escHtml(((s.marca || '') + ' ' + (s.modelo || '')).trim() || 'Producto') + '</div><div class="ss">' + (u === 0 ? 'sin stock' : 'bajo mínimo') + '</div></div><span class="inv-tag ' + (u === 0 ? 'ir' : 'ia') + '">' + u + ' uds</span></div>';
   }).join('') || '<div class="inv-empty">Stock al día ✓</div>';
   if (_invWidgetOn('tb_stock')) cards.push('<div class="inv-tcard"><h4>⚠️ Stock crítico <span class="lk" onclick="navTo(\'pStock\')">Ver →</span></h4>' + stRows + (stockBajo.length ? '<div class="inv-tot"><span>Referencias a reponer</span><span style="color:#B9770A">' + stockBajo.length + '</span></div>' : '') + '</div>');
+  // Garantías que vencen
+  if (_invWidgetOn('tb_garantias')) {
+    var gar = reps.map(function(r) {
+      if (!r.garantiaFechaFin) return null;
+      var f = new Date(String(r.garantiaFechaFin).slice(0, 10) + 'T00:00:00');
+      var dias = Math.ceil((f - new Date(hoy + 'T00:00:00')) / 86400000);
+      if (isNaN(dias) || dias < 0 || dias > 30) return null;
+      return { r: r, dias: dias };
+    }).filter(Boolean).sort(function(a, b) { return a.dias - b.dias; }).slice(0, 4);
+    var gRows = gar.map(function(o) {
+      return '<div class="inv-li"><div class="ic ' + (o.dias <= 7 ? 'ir' : 'ia') + '">🛡️</div><div class="m"><div class="tt">' + nom(o.r) + ' · ' + cli(o.r) + '</div><div class="ss">vence en ' + o.dias + (o.dias === 1 ? ' día' : ' días') + '</div></div></div>';
+    }).join('') || '<div class="inv-empty">Sin garantías próximas a vencer</div>';
+    cards.push('<div class="inv-tcard"><h4>🛡️ Garantías que vencen <span class="lk" onclick="navTo(\'pReps\')">Ver →</span></h4>' + gRows + '</div>');
+  }
+  // Entregas de hoy
+  if (_invWidgetOn('tb_entregas')) {
+    var ent = reps.filter(function(r) { return (r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado'; });
+    var eRows = ent.slice(0, 4).map(function(r) {
+      var h = (r.fechaEntregaReal || '').slice(11, 16);
+      return '<div class="inv-li"><div class="ic ig">✓</div><div class="m"><div class="tt">' + nom(r) + ' · ' + cli(r) + '</div><div class="ss">' + (h ? 'entregado ' + h : 'entregado hoy') + '</div></div><span class="inv-tag ig">Hecho</span></div>';
+    }).join('') || '<div class="inv-empty">Aún sin entregas hoy</div>';
+    cards.push('<div class="inv-tcard"><h4>📤 Entregas de hoy <span class="lk" onclick="navTo(\'pReps\')">Ver →</span></h4>' + eRows + (ent.length ? '<div class="inv-tot"><span>Entregadas hoy</span><span style="color:#0E9E6E">' + ent.length + '</span></div>' : '') + '</div>');
+  }
+  // Averías más frecuentes
+  if (_invWidgetOn('tb_averias')) {
+    var avCount = {};
+    reps.forEach(function(r) { var a = (r.averia || '').trim(); if (a) avCount[a] = (avCount[a] || 0) + 1; });
+    var avArr = Object.keys(avCount).map(function(k) { return { k: k, n: avCount[k] }; }).sort(function(a, b) { return b.n - a.n; }).slice(0, 5);
+    var maxA = avArr.length ? avArr[0].n : 1;
+    var avInner = avArr.length ? '<div style="padding:11px 14px">' + avArr.map(function(o) {
+      return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:11.5px"><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--inv-ink2)">' + escHtml(o.k) + '</span><span style="width:84px;height:7px;border-radius:4px;background:var(--inv-line);overflow:hidden;flex-shrink:0"><i style="display:block;height:100%;border-radius:4px;width:' + (o.n / maxA * 100) + '%;background:var(--inv-or)"></i></span><span style="font-weight:800;width:24px;text-align:right">' + o.n + '</span></div>';
+    }).join('') + '</div>' : '<div class="inv-empty">Sin datos de averías</div>';
+    cards.push('<div class="inv-tcard"><h4>🏆 Averías más frecuentes <span class="lk" onclick="navTo(\'pReportes\')">Reportes →</span></h4>' + avInner + '</div>');
+  }
+  // Cumpleaños de clientes
+  if (_invWidgetOn('tb_clientes')) {
+    var hoyD = new Date(hoy + 'T00:00:00');
+    var cumples = (DB.clis || []).map(function(c2) {
+      if (!c2.fechaNac || typeof _parseDateAny !== 'function') return null;
+      var d = _parseDateAny(c2.fechaNac); if (!d) return null;
+      var cump = new Date(hoyD.getFullYear(), d.getMonth(), d.getDate());
+      if (cump < hoyD) cump.setFullYear(hoyD.getFullYear() + 1);
+      var dias = Math.round((cump - hoyD) / 86400000);
+      if (dias > 7) return null;
+      return { c: c2, dias: dias };
+    }).filter(Boolean).sort(function(a, b) { return a.dias - b.dias; }).slice(0, 4);
+    var cuRows = cumples.map(function(o) {
+      var when = o.dias === 0 ? 'hoy 🎂' : ('en ' + o.dias + (o.dias === 1 ? ' día' : ' días'));
+      return '<div class="inv-li"><div class="ic ig">🎂</div><div class="m"><div class="tt">' + escHtml(((o.c.nombre || '') + ' ' + (o.c.apellidos || '')).trim()) + '</div><div class="ss">cumple ' + when + '</div></div>' + (o.dias === 0 ? '<span class="inv-tag ig">Felicitar</span>' : '') + '</div>';
+    }).join('') || '<div class="inv-empty">Sin cumpleaños esta semana</div>';
+    cards.push('<div class="inv-tcard"><h4>🎂 Cumpleaños de clientes <span class="lk" onclick="navTo(\'pClis\')">Clientes →</span></h4>' + cuRows + '</div>');
+  }
   // Notas y recordatorios (interactivo)
   if (_invWidgetOn('tb_notas')) {
     if (!window._notasCargadas && typeof cargarNotasRecordatorios === 'function') { window._notasCargadas = true; cargarNotasRecordatorios(function() { renderInicioNuevo(); }); }
