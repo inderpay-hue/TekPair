@@ -1,0 +1,73 @@
+{
+  "date": "2026-06-10",
+  "readtime": "7 min de lectura",
+  "category": "Gestión",
+  "posts": {
+    "es": {
+      "dest": "blog/errores-taller-reparacion-moviles.html",
+      "path": "/blog/errores-taller-reparacion-moviles.html",
+      "url": "https://www.tekpair.tech/blog/errores-taller-reparacion-moviles.html",
+      "title": "Errores que hacen perder dinero a un taller de reparación",
+      "excerpt": "Los fallos más comunes que arruinan la rentabilidad de un taller y cómo evitarlos.",
+      "dateLabel": "10 de junio de 2026",
+      "readtime": "7 min de lectura",
+      "category": "Gestión",
+      "readlink": "Leer guía completa →"
+    },
+    "en": {
+      "dest": "blog/en/repair-shop-mistakes.html",
+      "path": "/blog/en/repair-shop-mistakes.html",
+      "url": "https://www.tekpair.tech/blog/en/repair-shop-mistakes.html",
+      "title": "Mistakes that make a repair shop lose money",
+      "excerpt": "The most common mistakes that ruin a shop's profitability and how to avoid them.",
+      "dateLabel": "June 10, 2026",
+      "readtime": "7 min read",
+      "category": "Management",
+      "readlink": "Read full guide →"
+    },
+    "fr": {
+      "dest": "blog/fr/erreurs-atelier-reparation.html",
+      "path": "/blog/fr/erreurs-atelier-reparation.html",
+      "url": "https://www.tekpair.tech/blog/fr/erreurs-atelier-reparation.html",
+      "title": "Les erreurs qui font perdre de l'argent à un atelier de réparation",
+      "excerpt": "Les erreurs les plus courantes qui ruinent la rentabilité d'un atelier et comment les éviter.",
+      "dateLabel": "10 juin 2026",
+      "readtime": "7 min de lecture",
+      "category": "Gestion",
+      "readlink": "Lire le guide complet →"
+    },
+    "it": {
+      "dest": "blog/it/errori-officina-riparazione.html",
+      "path": "/blog/it/errori-officina-riparazione.html",
+      "url": "https://www.tekpair.tech/blog/it/errori-officina-riparazione.html",
+      "title": "Gli errori che fanno perdere soldi a un'officina di riparazione",
+      "excerpt": "Gli errori più comuni che rovinano la redditività di un'officina e come evitarli.",
+      "dateLabel": "10 giugno 2026",
+      "readtime": "7 min di lettura",
+      "category": "Gestione",
+      "readlink": "Leggi la guida completa →"
+    },
+    "de": {
+      "dest": "blog/de/fehler-reparaturwerkstatt.html",
+      "path": "/blog/de/fehler-reparaturwerkstatt.html",
+      "url": "https://www.tekpair.tech/blog/de/fehler-reparaturwerkstatt.html",
+      "title": "Fehler, die eine Reparaturwerkstatt Geld kosten",
+      "excerpt": "Die häufigsten Fehler, die die Rentabilität einer Werkstatt ruinieren, und wie du sie vermeidest.",
+      "dateLabel": "10. Juni 2026",
+      "readtime": "7 Min. Lesezeit",
+      "category": "Verwaltung",
+      "readlink": "Anleitung lesen →"
+    },
+    "pt": {
+      "dest": "blog/pt/erros-oficina-reparacao.html",
+      "path": "/blog/pt/erros-oficina-reparacao.html",
+      "url": "https://www.tekpair.tech/blog/pt/erros-oficina-reparacao.html",
+      "title": "Erros que fazem uma oficina de reparação perder dinheiro",
+      "excerpt": "Os erros mais comuns que arruínam a rentabilidade de uma oficina e como evitá-los.",
+      "dateLabel": "10 de junho de 2026",
+      "readtime": "7 min de leitura",
+      "category": "Gestão",
+      "readlink": "Ler guia completo →"
+    }
+  }
+}
