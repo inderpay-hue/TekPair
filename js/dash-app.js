@@ -5617,6 +5617,21 @@ function addPart(id) {
   calcR();
   try { sugerirPiezasRep(); } catch(e){}
 }
+// ¿El modelo de la pieza encaja EXACTAMENTE con el del dispositivo? Evita que
+// "iPhone 11" traiga "11 Pro" / "11 Pro Max": exige el mismo conjunto de
+// palabras-variante (pro/max/plus/mini/ultra/se/lite...).
+var _MODEL_VARIANTS = ['pro', 'max', 'plus', 'mini', 'ultra', 'se', 'lite', 'fe', 'neo', 'note', 'air'];
+function _normModelo(x) { return (x || '').toLowerCase().replace(/[^a-z0-9 ]/g, ' ').replace(/\s+/g, ' ').trim(); }
+function _modeloEncaja(deviceMod, partMod) {
+  var d = _normModelo(deviceMod), p = _normModelo(partMod);
+  if (!d || !p) return false;
+  if (p.indexOf(d) === -1 && d.indexOf(p) === -1) return false;  // uno contiene al otro
+  var dv = d.split(' ').filter(function(t) { return _MODEL_VARIANTS.indexOf(t) !== -1; });
+  var pv = p.split(' ').filter(function(t) { return _MODEL_VARIANTS.indexOf(t) !== -1; });
+  for (var i = 0; i < pv.length; i++) { if (dv.indexOf(pv[i]) === -1) return false; }  // pieza tiene variante que el equipo no
+  for (var j = 0; j < dv.length; j++) { if (pv.indexOf(dv[j]) === -1) return false; }  // equipo tiene variante que la pieza no
+  return true;
+}
 // Sugiere piezas del stock que encajan con el modelo de la reparación (1 clic para añadir).
 // Si la avería menciona pantalla/tapa/batería, esas se resaltan y van primero.
 function sugerirPiezasRep() {
@@ -5637,8 +5652,7 @@ function sugerirPiezasRep() {
     if (s.vendido || (parseInt(s.unidades, 10) || 0) <= 0) return false;
     if (['Telefono', 'Tablet', 'Smartwatch'].indexOf(s.categoria) !== -1) return false;
     if (sel[s.id]) return false;
-    var pm = (s.modelo || '').toLowerCase(); if (!pm) return false;
-    return pm.indexOf(mod) !== -1 || mod.indexOf(pm) !== -1;
+    return _modeloEncaja(mod, s.modelo);
   }).sort(function(a, b) { return rel(a) - rel(b); }).slice(0, 8);
   if (!parts.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
   box.style.display = 'flex';
@@ -6301,6 +6315,7 @@ function aplicarCambioStockPiezas(antes, despues, refRep) {
   Object.keys(mapAntes).forEach(function(id){ idsAfectados[id] = true; });
   Object.keys(mapDespues).forEach(function(id){ idsAfectados[id] = true; });
 
+  var _negativos = [];
   Object.keys(idsAfectados).forEach(function(id) {
     var cantAntes = mapAntes[id] || 0;
     var cantDespues = mapDespues[id] || 0;
@@ -6318,7 +6333,12 @@ function aplicarCambioStockPiezas(antes, despues, refRep) {
     // Movimiento: delta>0 = pieza usada en reparación (salida); delta<0 = devuelta (entrada)
     if (delta > 0) _logMov('salida', _stockNombre(s), delta, _refTxt || T('inicio.reparacion'));
     else if (delta < 0) _logMov('entrada', _stockNombre(s), -delta, _refTxt || T('inicio.reparacion'));
+    if (s.unidades < 0 && delta > 0) _negativos.push(_stockNombre(s) + ' (' + s.unidades + ')');
   });
+  // Aviso: alguna pieza ha quedado en stock negativo (no tenías unidades suficientes)
+  if (_negativos.length && typeof toast === 'function') {
+    setTimeout(function() { toast(T('rep.stock_negativo').replace('{p}', _negativos.join(', ')), 'err'); }, 400);
+  }
 
   guardarDatos();
   if (typeof renderStock === 'function') {
