@@ -1647,6 +1647,33 @@ async function cargarDatosSupabase() {
     // Aplicar plantillas de gastos recurrentes que toquen
     try { aplicarGastosRecurrentes(); } catch(e) { console.warn('Aplicar recurrentes:', e); }
   } catch(e) { console.error('Supabase load error:', e); }
+  // Servicios: carga aislada (si falla, no rompe el resto del sync). Antes no se
+  // cargaban de la nube y "desaparecían" al recargar / en otro dispositivo.
+  try {
+    var servicios = await sbGet('servicios', 'tienda_id=eq.' + TIENDA_ID);
+    if (Array.isArray(servicios)) {
+      if (!servicios.length && (DB.servicios || []).length) {
+        // Nube vacía pero hay servicios locales (posible guardado previo solo-local):
+        // se SUBEN en vez de borrarlos, y se mantienen los locales.
+        (DB.servicios || []).forEach(function(s) {
+          if (SB_KEY && TIENDA_ID) sbPost('servicios', { id: s.id, tienda_id: TIENDA_ID, nombre: s.nombre, categoria: s.categoria, tipo: s.tipo, precio_fijo: s.precioFijo, precio: s.precio });
+        });
+      } else {
+        // Preserva el precio de coste local (no siempre está en la nube)
+        var prevCoste = {};
+        (DB.servicios || []).forEach(function(s) { if (s.precioCoste) prevCoste[s.id] = s.precioCoste; });
+        DB.servicios = servicios.map(function(s) {
+          return {
+            id: s.id, nombre: s.nombre || '', categoria: s.categoria || 'Otro', tipo: s.tipo || 'ambos',
+            precioFijo: s.precio_fijo !== false, precio: parseFloat(s.precio) || 0,
+            precioCoste: (s.precio_coste != null ? parseFloat(s.precio_coste) : (prevCoste[s.id] || 0)) || 0
+          };
+        });
+      }
+      guardarDatos();
+      try { if (typeof renderServicios === 'function' && document.getElementById('pServicios')) renderServicios(); } catch(e){}
+    }
+  } catch(e) { /* tabla servicios opcional: si no existe, se mantiene lo local */ }
 }
 
 // Refresca todas las vistas activas (no solo el dashboard)
@@ -11139,7 +11166,7 @@ function calcMargenSrv() {
 }
 
 function guardarServicio() {
-  if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  if (!tienePerm('servicios_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var nom = document.getElementById('srvNom').value.trim();
   if (!nom) { toast('Escribe un nombre', 'err'); return; }
   var pcEl = document.getElementById('srvPrecioCoste');
