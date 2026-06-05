@@ -11288,8 +11288,10 @@ function renderCatalogo() {
   var q = (qEl ? qEl.value : '').toLowerCase();
   var filtro = _catFiltro || '';
   var marcaF = (_catFiltroMarca || '').toLowerCase();
-  // Base filtrada solo por categoría (para construir los chips de marca)
-  var catBase = (DB.stock || []).filter(function(s) { return !s.vendido && (!filtro || (s.categoria || 'Otro') === filtro); });
+  // Base filtrada solo por categoría (para construir los chips de marca).
+  // Solo items con stock real (>0), igual que la página de Stock — así no
+  // aparecen modelos agotados que confundían (ej: "Repuestos" a 0 unidades).
+  var catBase = (DB.stock || []).filter(function(s) { return !s.vendido && (parseInt(s.unidades, 10) || 0) > 0 && (!filtro || (s.categoria || 'Otro') === filtro); });
   renderCatFiltroMarcas(catBase);
   // Mapa stockId → color (incluye vendidos) para contar ventas por color
   var stockColor = {};
