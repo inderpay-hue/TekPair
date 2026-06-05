@@ -179,6 +179,20 @@ function checkFeature(featureName) {
   return false;
 }
 
+// ═══ NOVEDADES: banner de mejoras para las tiendas (se muestra 1 vez por versión) ═══
+var NOVEDADES_VERSION = '202606';
+function renderNovedades() {
+  var el = document.getElementById('novedadesBody'); if (!el) return;
+  var keys = ['nov.f1', 'nov.f2', 'nov.f3', 'nov.f4', 'nov.f5', 'nov.f6', 'nov.f7'];
+  el.innerHTML = keys.map(function(k) { return '<div style="padding:9px 2px;border-bottom:1px solid var(--border);font-size:13px;line-height:1.5">' + T(k) + '</div>'; }).join('');
+}
+function abrirNovedades() { renderNovedades(); openM('mNovedades'); }
+function cerrarNovedades() { try { localStorage.setItem('tk_novedades', NOVEDADES_VERSION); } catch(e){} closeM('mNovedades'); }
+function mostrarNovedadesSiNuevo() {
+  try { if (localStorage.getItem('tk_novedades') === NOVEDADES_VERSION) return; } catch(e) { return; }
+  renderNovedades();
+  openM('mNovedades');
+}
 // Renderizar banner de plan (trial, próximo cobro, expirado, etc.)
 function renderPlanBanner() {
   var box = document.getElementById('planBanner');
@@ -423,6 +437,8 @@ window.addEventListener('DOMContentLoaded', function() {
   })();
   // VIS-17: sincronizar labels sidebar controles
   setTimeout(function(){ if (typeof actualizarSbControls === 'function') actualizarSbControls(); }, 200);
+  // Banner de novedades (1 vez por versión)
+  setTimeout(function(){ try { mostrarNovedadesSiNuevo(); } catch(e){} }, 1600);
 
   document.getElementById('uName').textContent = U.nombre || '';
   var tiendaLS = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
@@ -7274,7 +7290,7 @@ function renderStock() {
       (s.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">IMEI: ' + s.imei + '</span>' : '') + '</td>' +
       '<td><span class="badge bb" style="font-size:9px">' + (s.categoria || '') + '</span></td>' +
       (mostrarUbic ? '<td>' + (s.ubicacion ? '<span class="badge" style="background:rgba(255,91,31,.10);color:var(--purple);font-size:9px">' + esc(s.ubicacion) + '</span>' : '<span style="color:var(--muted);font-size:10px">—</span>') + '</td>' : '') +
-      '<td style="font-weight:700;color:' + (s.unidades <= s.stockMin ? 'var(--orange)' : 'var(--text)') + '">' + s.unidades + '</td>' +
+      '<td style="font-weight:700;color:' + (s.unidades < 0 ? 'var(--red)' : (s.unidades <= s.stockMin ? 'var(--orange)' : 'var(--text)')) + '">' + s.unidades + (s.unidades < 0 ? ' <button onclick="corregirStockCero(\'' + s.id + '\')" title="Poner a 0" style="background:rgba(239,68,68,.12);border:none;color:var(--red);border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer;font-weight:800">→0</button>' : '') + '</td>' +
       '<td>' + cur(s.precioV) + '</td>' +
       '<td><button data-sid="' + s.id + '" class="btn-edit-s" style="background:var(--light);border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">\u270f\ufe0f</button>' +
       '<button data-sid="' + s.id + '" class="btn-del-s" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:3px">\ud83d\uddd1\ufe0f</button></td></tr>';
@@ -7855,6 +7871,18 @@ document.addEventListener('DOMContentLoaded', function(){
   // NOTA: el hook de openM para mStock se gestiona desde el override unificado en rep helpers
 });
 
+// Corregir rápido un stock negativo a 0 (admin o empleado con permiso de editar stock)
+function corregirStockCero(id) {
+  if (!tienePerm('stock_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var s = (DB.stock || []).find(function(x) { return x.id === id; });
+  if (!s) return;
+  s.unidades = 0;
+  if (SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), { unidades: 0 });
+  _logStock('editar', _stockNombre(s), 'corregido a 0', s.id);
+  guardarDatos();
+  renderStock();
+  toast(T('stock.corregido_cero'), 'ok');
+}
 function eliminarStock(id) {
   if (!tienePerm('stock_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   if (!confirm('Eliminar este producto?')) return;

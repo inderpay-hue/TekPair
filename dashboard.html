@@ -3250,6 +3250,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
     <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
     <div class="sec-title">Ayuda</div>
+    <button class="btn-sm" style="margin-left:auto;background:rgba(255,91,31,.1);border:1px solid rgba(255,91,31,.25);color:var(--orange);font-weight:700" onclick="abrirNovedades()"><span data-t="nov.btn">✨ Novedades</span></button>
   </div>
   <div class="card">
     <div class="card-title">📖 <span data-t="guia.titulo">Guía de uso</span></div>
@@ -3798,6 +3799,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div id="stockLogBody" style="max-height:60vh;overflow:auto"><div class="empty">…</div></div>
     <div style="display:flex;justify-content:flex-end;margin-top:14px">
       <button class="btn-secondary" onclick="closeM('mStockLog')" data-t="gen.cerrar">Cerrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- NOVEDADES (banner de mejoras para las tiendas) -->
+<div class="modal-bg" id="mNovedades">
+  <div class="modal" style="max-width:500px">
+    <div class="modal-title">✨ <span data-t="nov.titulo">Novedades en TekPair</span></div>
+    <div style="font-size:13px;color:var(--muted);margin-bottom:14px" data-t="nov.sub">Esto es lo nuevo que hemos preparado para tu tienda:</div>
+    <div id="novedadesBody" style="max-height:58vh;overflow:auto"></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:16px">
+      <button class="btn-primary" style="background:var(--orange)" onclick="cerrarNovedades()" data-t="nov.entendido">¡Entendido!</button>
     </div>
   </div>
 </div>
