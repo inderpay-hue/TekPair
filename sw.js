@@ -1,5 +1,5 @@
 // TekPair Service Worker
-const CACHE_VERSION = 'tekpair-v202606050021';
+const CACHE_VERSION = 'tekpair-v202606050022';
 const ASSETS = [
   '/offline.html',
   '/manifest.json',
@@ -47,6 +47,27 @@ self.addEventListener('fetch', e => {
     return;
   }
 
+  // Código (JS/CSS/lang): stale-while-revalidate → sirve caché al instante y
+  // refresca en segundo plano, así un cambio de JS llega al cliente en la
+  // siguiente recarga sin depender de bumpear CACHE_VERSION.
+  const esCodigo = /\.(js|css|mjs)$/.test(url.pathname) || url.pathname.startsWith('/lang/');
+  if (esCodigo) {
+    e.respondWith(
+      caches.match(e.request).then(cached => {
+        const red = fetch(e.request).then(res => {
+          if (res.ok) {
+            const clone = res.clone();
+            caches.open(CACHE_VERSION).then(c => c.put(e.request, clone));
+          }
+          return res;
+        }).catch(() => cached);
+        return cached || red;
+      })
+    );
+    return;
+  }
+
+  // Resto de estáticos (iconos, imágenes, manifest): cache-first.
   e.respondWith(
     caches.match(e.request).then(r => r || fetch(e.request).then(res => {
       if (res.ok) {

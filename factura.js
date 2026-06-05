@@ -23,7 +23,6 @@
   }
   return base;
 }
-  'use strict';
 
   // ═══ Interceptor JWT 401 (autocontenido, idempotente) ═══
   if (!window.__tekpair401Installed) {
