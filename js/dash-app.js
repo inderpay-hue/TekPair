@@ -4128,6 +4128,7 @@ function guardarVenta() {
     if (s) {
       s.unidades = Math.max(0, s.unidades - 1);
       if (s.unidades === 0) s.vendido = true;
+      _logMov('salida', _stockNombre(s), 1, (venta.clienteNombre || T('inicio.ventas')));
       // Sincronizar con Supabase para que no quede inconsistente
       if (SB_KEY && TIENDA_ID) {
         sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
@@ -6244,9 +6245,10 @@ function autoGuardarServiciosNuevos(servicios) {
 // Ajusta stock al añadir/quitar piezas en reparaciones.
 // Una pieza = 1 unidad. Permite stock negativo silenciosamente.
 // =============================================================
-function aplicarCambioStockPiezas(antes, despues) {
+function aplicarCambioStockPiezas(antes, despues, refRep) {
   antes = antes || [];
   despues = despues || [];
+  var _refTxt = refRep ? (((refRep.clienteNombre || '') + ' · ' + ((refRep.marca || '') + ' ' + (refRep.modelo || '')).trim()).trim()) : '';
 
   var mapAntes = {};
   antes.forEach(function(p) {
@@ -6278,6 +6280,9 @@ function aplicarCambioStockPiezas(antes, despues) {
     if (typeof SB_KEY !== 'undefined' && SB_KEY && typeof TIENDA_ID !== 'undefined' && TIENDA_ID) {
       sbPatch('stock', 'id=eq.' + s.id, { unidades: s.unidades });
     }
+    // Movimiento: delta>0 = pieza usada en reparación (salida); delta<0 = devuelta (entrada)
+    if (delta > 0) _logMov('salida', _stockNombre(s), delta, _refTxt || T('inicio.reparacion'));
+    else if (delta < 0) _logMov('entrada', _stockNombre(s), -delta, _refTxt || T('inicio.reparacion'));
   });
 
   guardarDatos();
@@ -6380,7 +6385,7 @@ function guardarRep() {
     renderDash();
     toast(T('rep.actualizada'), 'ok');
     audit('editar', 'reparacion', r.id, r.clienteNombre + ' · ' + (r.modelo||''), null);
-    aplicarCambioStockPiezas(componentesAntes, r.componentes);
+    aplicarCambioStockPiezas(componentesAntes, r.componentes, r);
     return;
   }
 
@@ -6431,7 +6436,7 @@ function guardarRep() {
 
   DB.reps.push(rep);
   guardarDatos();
-  aplicarCambioStockPiezas([], rep.componentes);
+  aplicarCambioStockPiezas([], rep.componentes, rep);
 
   if (SB_KEY && TIENDA_ID) {
     sbPost('reparaciones', {
@@ -6954,12 +6959,12 @@ function cambiarEstado(id, estado) {
   var patchUnificado = { estado: estado };
 
   if (entrandoCancelacion && Array.isArray(r.componentes) && r.componentes.length && !r.piezasDevueltas) {
-    aplicarCambioStockPiezas(r.componentes, []);
+    aplicarCambioStockPiezas(r.componentes, [], r);
     r.piezasDevueltas = true;
     patchUnificado.piezas_devueltas = true;
     toast(T('stock.piezas_devueltas'), 'ok');
   } else if (saliendoCancelacion && Array.isArray(r.componentes) && r.componentes.length && r.piezasDevueltas) {
-    aplicarCambioStockPiezas([], r.componentes);
+    aplicarCambioStockPiezas([], r.componentes, r);
     r.piezasDevueltas = false;
     patchUnificado.piezas_devueltas = false;
     toast(T('stock.piezas_redescontadas'), 'ok');
@@ -7842,6 +7847,75 @@ function addModeloManual() {
   renderModelos();
   toast(T('stock.modelos_anadido'), 'ok');
 }
+// ═══ Movimientos de stock: entradas y salidas con filtros de periodo ═══
+function _movRango() {
+  var hoy = hoyLocal();
+  var p = window._movPeriodo || 'hoy';
+  if (p === 'rango') {
+    var d = document.getElementById('movDesde'), h = document.getElementById('movHasta');
+    return { d1: (d && d.value) || hoy, d2: (h && h.value) || hoy };
+  }
+  var base = new Date(hoy + 'T00:00:00');
+  if (p === 'semana') { var dow = (base.getDay() + 6) % 7; var mon = new Date(base); mon.setDate(base.getDate() - dow); var sun = new Date(mon); sun.setDate(mon.getDate() + 6); return { d1: _invIso(mon), d2: _invIso(sun) }; }
+  if (p === 'mes') { var mi = new Date(base.getFullYear(), base.getMonth(), 1); var mf = new Date(base.getFullYear(), base.getMonth() + 1, 0); return { d1: _invIso(mi), d2: _invIso(mf) }; }
+  if (p === 'anio') { return { d1: base.getFullYear() + '-01-01', d2: base.getFullYear() + '-12-31' }; }
+  return { d1: hoy, d2: hoy };
+}
+function _movCant(r) {
+  var c = r.cambios;
+  if (c && typeof c === 'string') { try { c = JSON.parse(c); } catch(e) { c = null; } }
+  if (c && c.cantidad) return parseInt(c.cantidad, 10) || 1;
+  return 1;
+}
+function setMovPeriodo(p, btn) {
+  window._movPeriodo = p;
+  try { Array.prototype.forEach.call(document.querySelectorAll('#movChips .cat-tab-btn'), function(b) { b.classList.toggle('active', b === btn); }); } catch(e){}
+  var rw = document.getElementById('movRangoWrap'); if (rw) rw.style.display = (p === 'rango') ? 'flex' : 'none';
+  renderMovimientos();
+}
+function abrirMovimientos() {
+  window._movPeriodo = window._movPeriodo || 'hoy';
+  openM('mMovimientos');
+  renderMovimientos();
+}
+function renderMovimientos() {
+  var el = document.getElementById('movBody'); if (!el) return;
+  el.innerHTML = '<div class="empty">…</div>';
+  var rango = _movRango();
+  var pintar = function(rows) {
+    var movs = (rows || []).filter(function(r) {
+      if ((r.entidad || r.modulo) !== 'stock') return false;
+      if (['entrada', 'salida', 'crear', 'eliminar'].indexOf(r.accion) === -1) return false;
+      var d = (r.ts || r.fecha || '').slice(0, 10);
+      return d >= rango.d1 && d <= rango.d2;
+    });
+    var nIn = 0, nOut = 0;
+    movs.forEach(function(r) { var c = _movCant(r); if (r.accion === 'entrada' || r.accion === 'crear') nIn += c; else nOut += c; });
+    var res = document.getElementById('movResumen');
+    if (res) res.innerHTML = '<div style="flex:1;background:rgba(22,163,74,.10);border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--green)">📥 ' + nIn + '</div><div style="font-size:10px;color:var(--muted)">' + T('mov.entradas') + '</div></div>' +
+      '<div style="flex:1;background:rgba(249,115,22,.10);border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--orange)">📤 ' + nOut + '</div><div style="font-size:10px;color:var(--muted)">' + T('mov.salidas') + '</div></div>';
+    if (!movs.length) { el.innerHTML = '<div class="empty">' + T('mov.vacio') + '</div>'; return; }
+    el.innerHTML = movs.map(function(r) {
+      var esIn = (r.accion === 'entrada' || r.accion === 'crear');
+      var f = (r.ts || r.fecha) ? new Date(r.ts || r.fecha) : null;
+      var fStr = f ? (f.toLocaleDateString() + ' ' + f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : '';
+      var ref = r.entidad_id || '';
+      var usuario = r.usuario_nom || r.usuarioNom || '';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">' +
+        '<span style="font-size:16px">' + (esIn ? '📥' : '📤') + '</span>' +
+        '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600">' + escHtml(r.detalle || '') + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)"><span style="color:' + (esIn ? 'var(--green)' : 'var(--orange)') + ';font-weight:700">' + (esIn ? T('mov.entrada') : T('mov.salida')) + '</span>' + (ref ? ' · ' + escHtml(ref) : '') + (usuario ? ' · ' + escHtml(usuario) : '') + '</div>' +
+        '</div>' +
+        '<span style="font-size:10.5px;color:var(--muted);white-space:nowrap">' + fStr + '</span></div>';
+    }).join('');
+  };
+  if (SB_KEY && TIENDA_ID) {
+    sbGet('audit', 'tienda_id=eq.' + TIENDA_ID + '&order=ts.desc&limit=500').then(function(rows) {
+      pintar((Array.isArray(rows) && rows.length) ? rows : (DB.audit || []));
+    }).catch(function() { pintar(DB.audit || []); });
+  } else pintar(DB.audit || []);
+}
 // Vista de auditoría de stock (solo admin)
 function abrirStockLog() {
   openM('mStockLog');
@@ -7997,7 +8071,7 @@ function eliminarReparacion(id) {
 
   // Re-sumar piezas al stock SOLO si no estaban ya devueltas
   if (!r.piezasDevueltas && Array.isArray(r.componentes) && r.componentes.length) {
-    aplicarCambioStockPiezas(r.componentes, []);
+    aplicarCambioStockPiezas(r.componentes, [], r);
   }
 
   // Borrar de array local
