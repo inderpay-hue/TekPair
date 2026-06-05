@@ -1561,7 +1561,8 @@ function mapRep(r) {
     presupuesto_aceptado_at: r.presupuesto_aceptado_at || null,
     presupuesto_aceptado_ip: r.presupuesto_aceptado_ip || null,
     firma_cliente: r.firma_cliente || null,
-    firma_fecha: r.firma_fecha || null
+    firma_fecha: r.firma_fecha || null,
+    clienteAvisado: r.cliente_avisado === true
   };
 }
 
@@ -2178,11 +2179,21 @@ function marcarGrupoPedido(encKey) {
   toast(T('pedidos.grupo_marcado').replace('{n}', targets.length), 'ok');
 }
 
-// ── Marcar reparación como "avisada" (cliente notificado) — local por tienda ──
-function _estaAvisado(id) { try { return JSON.parse(localStorage.getItem('tk_avisados') || '[]').indexOf(id) !== -1; } catch(e) { return false; } }
+// ── Marcar reparación como "avisada" (cliente notificado) ──
+// Persiste en la columna reparaciones.cliente_avisado (sincroniza entre equipos)
+// con respaldo en localStorage para que funcione aunque aún no exista la columna.
+function _estaAvisado(id) {
+  var r = (DB.reps || []).find(function(x) { return x.id === id; });
+  if (r && r.clienteAvisado) return true;
+  try { return JSON.parse(localStorage.getItem('tk_avisados') || '[]').indexOf(id) !== -1; } catch(e) { return false; }
+}
 function _marcarAvisado(id) {
   if (!id) return;
+  var r = (DB.reps || []).find(function(x) { return x.id === id; });
+  if (r) r.clienteAvisado = true;
   try { var s = JSON.parse(localStorage.getItem('tk_avisados') || '[]'); if (s.indexOf(id) === -1) { s.push(id); localStorage.setItem('tk_avisados', JSON.stringify(s.slice(-500))); } } catch(e){}
+  // Sync silencioso (no molesta si la columna aún no existe)
+  if (SB_KEY && TIENDA_ID && typeof _sbPatchRaw === 'function') { try { _sbPatchRaw('reparaciones', 'id=eq.' + encodeURIComponent(id), { cliente_avisado: true }); } catch(e){} }
   try { renderInicioNuevo(); } catch(e){}
 }
 
