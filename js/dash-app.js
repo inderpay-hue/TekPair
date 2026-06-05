@@ -7542,7 +7542,7 @@ function editarStock(id) {
     if (selU) selU.value = s.ubicacion || '';
   }, 50);
   // Pre-cargar tipo/garantía
-  window._stockTipoSel = s.tipo || 'nuevo';
+  window._stockTipoSel = (s.tipo === 'usado' ? 'segunda' : (s.tipo || 'nuevo'));  // compat: 'usado' antiguo → 'segunda'
   window._stockGarantiaMeses = s.garantiaMeses || null;
   openM('mStock');
   setTimeout(function(){ renderStockGarantia(); try { renderStockMarcas(); } catch(e){} }, 50);
@@ -7551,9 +7551,9 @@ function editarStock(id) {
 // === HELPERS GARANTÍA STOCK ===
 function setTipoStock(tipo) {
   window._stockTipoSel = tipo;
-  document.getElementById('sTipoNuevo').classList.toggle('active', tipo === 'nuevo');
-  document.getElementById('sTipoUsado').classList.toggle('active', tipo === 'usado');
-  // Auto-seleccionar default según tipo
+  // Marca el botón activo (4 estados: nuevo/seminuevo/segunda/reacond)
+  try { Array.prototype.forEach.call(document.querySelectorAll('#sBloqueTipo .tipo-prod-btn'), function(b) { b.classList.toggle('active', b.getAttribute('data-tipo') === tipo); }); } catch(e){}
+  // Garantía: solo 'nuevo' usa el default de nuevos (36m ley); el resto, el de usados
   var defM = (tipo === 'nuevo') ? (TIENDA.gvMesesDefaultNuevo || 36) : (TIENDA.gvMesesDefaultUsado || 12);
   window._stockGarantiaMeses = defM;
   renderStockGarantia();
@@ -7579,10 +7579,9 @@ function renderStockGarantia() {
   var mostrarTipo = TIENDA.gvMostrarTipo !== false;
   if (bloqueTipo) bloqueTipo.style.display = mostrarTipo ? 'block' : 'none';
   
-  // Tipo actual
+  // Tipo actual (4 estados: nuevo/seminuevo/segunda/reacond)
   var tipo = window._stockTipoSel || 'nuevo';
-  document.getElementById('sTipoNuevo').classList.toggle('active', tipo === 'nuevo');
-  document.getElementById('sTipoUsado').classList.toggle('active', tipo === 'usado');
+  try { Array.prototype.forEach.call(document.querySelectorAll('#sBloqueTipo .tipo-prod-btn'), function(b) { b.classList.toggle('active', b.getAttribute('data-tipo') === tipo); }); } catch(e){}
   
   // Renderizar chips meses
   var sel = document.getElementById('sGarSelector');
@@ -11311,6 +11310,7 @@ function renderCatalogo() {
     g.ids.push(s.id);
     var col = (s.color || '').trim();
     if (col) { if (!g.colores[col]) g.colores[col] = { stock: 0, vend: 0 }; g.colores[col].stock += parseInt(s.unidades, 10) || 0; }
+    if (s.imei) { g.units = g.units || []; g.units.push({ imei: s.imei, color: col, precio: parseFloat(s.precioV) || 0 }); }
   });
   // Conteos de reparaciones y ventas por marca|modelo (+ ventas por color vía stockId)
   var repC = {}, venC = {};
@@ -11337,12 +11337,13 @@ function renderCatalogo() {
       var rk = it.marca + '|' + it.modelo;
       var reps = repC[rk] || 0, vens = venC[rk] || 0;
       var imeiTag = it.conImei > 0 ? '<span style="font-size:10px;color:var(--muted)"> · 📱 ' + it.conImei + ' ' + T('catalogo.con_imei') + '</span>' : '';
+      var pvpTag = (it.conImei === 0 && it.pvp > 0) ? '<span style="font-size:11px;color:var(--green);font-weight:700;margin-left:6px">' + cur(it.pvp) + '</span>' : '';
       var calBadge = _catCalBadge(it);
       var stockCol = it.unidades <= 0 ? 'var(--red)' : 'var(--blue)';
       html += '<div class="card" style="padding:12px;margin-bottom:8px">' +
         '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">' +
         '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:13px;font-weight:700">' + escHtml(it.marca) + ' ' + escHtml(it.modelo) + imeiTag + '</div>' +
+        '<div style="font-size:13px;font-weight:700">' + escHtml(it.marca) + ' ' + escHtml(it.modelo) + pvpTag + imeiTag + '</div>' +
         calBadge +
         '</div>' +
         '<div style="display:flex;gap:12px;text-align:center;flex-shrink:0">' +
@@ -11351,6 +11352,7 @@ function renderCatalogo() {
         '<div><div style="font-size:18px;font-weight:800;color:var(--green)">' + vens + '</div><div style="font-size:9px;color:var(--muted)">' + T('catalogo.ventas') + '</div></div>' +
         '</div></div>' +
         _catColoresHtml(it) +
+        _catUnidadesHtml(it) +
         '</div>';
     });
   });
@@ -11372,6 +11374,18 @@ function _catColoresHtml(it) {
       '<span style="color:var(--muted)">' + o.stock + '</span>' + vendTxt + top + '</span>';
   }).join('');
   return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;padding-top:9px;border-top:1px dashed var(--border)">' + pills + '</div>';
+}
+// Lista de unidades con IMEI: muestra IMEI · color · precio de cada teléfono
+function _catUnidadesHtml(it) {
+  if (!it.units || !it.units.length) return '';
+  var rows = it.units.slice(0, 30).map(function(u) {
+    var colDot = u.color ? '<span style="display:inline-flex;align-items:center;gap:4px"><span style="width:9px;height:9px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:' + _catColorHex(u.color) + '"></span>' + escHtml(u.color) + '</span>' : '';
+    var precio = u.precio > 0 ? '<span style="color:var(--green);font-weight:700">' + cur(u.precio) + '</span>' : '';
+    var parts = ['<span style="font-family:monospace;font-size:11px">' + escHtml(u.imei) + '</span>', colDot, precio].filter(Boolean).join(' <span style="color:var(--border)">·</span> ');
+    return '<div style="display:flex;align-items:center;gap:6px;font-size:11.5px;padding:3px 0;color:var(--ink2,#475569)">📱 ' + parts + '</div>';
+  }).join('');
+  var mas = it.units.length > 30 ? '<div style="font-size:10px;color:var(--muted);padding-top:3px">+ ' + (it.units.length - 30) + '…</div>' : '';
+  return '<div style="margin-top:9px;padding-top:9px;border-top:1px dashed var(--border)">' + rows + mas + '</div>';
 }
 function _catCalBadge(it) {
   var encIds = encodeURIComponent(JSON.stringify(it.ids));
