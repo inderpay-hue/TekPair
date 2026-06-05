@@ -251,6 +251,14 @@ function setupNavToBlocker() {
   if (typeof navTo !== 'function') { setTimeout(setupNavToBlocker, 200); return; }
   _navToOriginal = navTo;
   window.navTo = function(pageId) {
+    // Páginas solo-admin: bloquear acceso de empleados aunque lleguen por otra vía
+    try {
+      var esAdmin = (typeof U !== 'undefined' && U) ? (U.rol === 'admin' || (U.permisos && U.permisos.todo)) : true;
+      if (!esAdmin) {
+        if (pageId === 'pUsuarios' || pageId === 'pComisiones') { if (typeof toast === 'function') toast('Solo el administrador', 'err'); return; }
+        if (pageId === 'pAjustes' && !(typeof tienePerm === 'function' && tienePerm('ajustes_ver'))) { if (typeof toast === 'function') toast('No tienes acceso a Ajustes', 'err'); return; }
+      }
+    } catch(e) {}
     var pageFeatureMap = {
       pCitas: 'citas',
       pServicios: 'catalogo_servicios',
@@ -2373,7 +2381,8 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
     }).filter(Boolean).sort(function(a, b) { return a.dias - b.dias; }).slice(0, 4);
     var cuRows = cumples.map(function(o) {
       var when = o.dias === 0 ? 'hoy 🎂' : ('en ' + o.dias + (o.dias === 1 ? ' día' : ' días'));
-      return '<div class="inv-li"><div class="ic ig">🎂</div><div class="m"><div class="tt">' + escHtml(((o.c.nombre || '') + ' ' + (o.c.apellidos || '')).trim()) + '</div><div class="ss">cumple ' + when + '</div></div>' + (o.dias === 0 ? '<span class="inv-tag ig">Felicitar</span>' : '') + '</div>';
+      var btn = o.c.tel ? '<button onclick="felicitarCumple(\'' + o.c.id + '\')" style="background:#25D366;color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">💬 Felicitar</button>' : '<span class="inv-tag ia">sin tel.</span>';
+      return '<div class="inv-li"><div class="ic ig">🎂</div><div class="m"><div class="tt">' + escHtml(((o.c.nombre || '') + ' ' + (o.c.apellidos || '')).trim()) + '</div><div class="ss">cumple ' + when + '</div></div>' + btn + '</div>';
     }).join('') || '<div class="inv-empty">Sin cumpleaños esta semana</div>';
     cards.push('<div class="inv-tcard"><h4>🎂 Cumpleaños de clientes <span class="lk" onclick="navTo(\'pClis\')">Clientes →</span></h4>' + cuRows + '</div>');
   }
@@ -12081,8 +12090,8 @@ function aplicarPermisos() {
     if (onclick.includes('tpv.html') && !tienePerm('ventas_crear')) btn.style.display = 'none';
   });
 
-  // Mas menu (móvil)
-  document.querySelectorAll('#pMas .qbtn').forEach(function(btn) {
+  // Mas menu (móvil) — incluye los botones grandes .pmas-btn (Ajustes, Usuarios…)
+  document.querySelectorAll('#pMas .qbtn, #pMas .pmas-btn').forEach(function(btn) {
     var onclick = btn.getAttribute('onclick') || '';
     if (onclick.includes('pReportes') && !tienePerm('reportes_ver')) btn.style.display = 'none';
     if (onclick.includes('pGastos') && !tienePerm('gastos_ver')) btn.style.display = 'none';
