@@ -3608,6 +3608,15 @@ it:{'pedidos.tab_pendientes':'In sospeso','pedidos.tab_por_pedir':'Da ordinare',
 de:{'pedidos.tab_pendientes':'Ausstehend','pedidos.tab_por_pedir':'Zu bestellen','pedidos.tab_pedidos':'Bestellt','pedidos.tab_recibidos':'Empfangen','pedidos.tab_todos':'Alle'},
 pt:{'pedidos.tab_pendientes':'Pendentes','pedidos.tab_por_pedir':'A pedir','pedidos.tab_pedidos':'Pedidos','pedidos.tab_recibidos':'Recebidos','pedidos.tab_todos':'Todos'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+// ════ Estados del teléfono en stock (6 idiomas) ════
+(function(){var _a={
+es:{'stock.seminuevo':'🌓 Seminuevo','stock.reacond':'🛠️ Reacondicionado'},
+en:{'stock.seminuevo':'🌓 Like new','stock.reacond':'🛠️ Refurbished'},
+fr:{'stock.seminuevo':'🌓 Comme neuf','stock.reacond':'🛠️ Reconditionné'},
+it:{'stock.seminuevo':'🌓 Seminuovo','stock.reacond':'🛠️ Ricondizionato'},
+de:{'stock.seminuevo':'🌓 Neuwertig','stock.reacond':'🛠️ Generalüberholt'},
+pt:{'stock.seminuevo':'🌓 Seminovo','stock.reacond':'🛠️ Recondicionado'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 // ════ Catálogo (stock por modelo) en 6 idiomas ════
 (function(){var _a={
 es:{'catalogo.sub':'Tu stock agrupado por modelo: unidades, reparaciones y ventas de cada uno.','catalogo.buscar':'Buscar marca o modelo...','catalogo.todos':'Todos','catalogo.modelos':'modelos','catalogo.sin':'Sin productos','catalogo.stock':'Stock','catalogo.reparaciones':'Reparac.','catalogo.ventas':'Ventas','catalogo.calidad':'Calidad','catalogo.con_imei':'con IMEI','catalogo.cal_nuevo':'Nuevo','catalogo.cal_reacond':'Reacondicionado','catalogo.cal_bueno':'Bueno','catalogo.cal_regular':'Regular','catalogo.cal_piezas':'Para piezas','catalogo.vend':'vend.'},

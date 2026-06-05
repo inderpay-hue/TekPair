@@ -3737,9 +3737,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div id="sBloqueGarantia" style="display:none;background:var(--bg2);border-radius:10px;padding:12px;margin-top:10px;border:1px solid var(--border)">
     <div id="sBloqueTipo" style="margin-bottom:10px">
       <div class="fl" style="margin-bottom:6px" data-t="stock.tipo_producto">📦 Tipo de producto</div>
-      <div class="tipo-prod">
-        <button type="button" class="tipo-prod-btn active" id="sTipoNuevo" onclick="setTipoStock('nuevo')"><span data-t="stock.nuevo_btn">✨ Nuevo</span></button>
-        <button type="button" class="tipo-prod-btn" id="sTipoUsado" onclick="setTipoStock('usado')"><span data-t="stock.segunda_mano">♻️ Segunda mano</span></button>
+      <div class="tipo-prod" style="flex-wrap:wrap">
+        <button type="button" class="tipo-prod-btn active" id="sTipoNuevo" data-tipo="nuevo" onclick="setTipoStock('nuevo')" style="min-width:46%"><span data-t="stock.nuevo_btn">✨ Nuevo</span></button>
+        <button type="button" class="tipo-prod-btn" data-tipo="seminuevo" onclick="setTipoStock('seminuevo')" style="min-width:46%"><span data-t="stock.seminuevo">🌓 Seminuevo</span></button>
+        <button type="button" class="tipo-prod-btn" id="sTipoUsado" data-tipo="segunda" onclick="setTipoStock('segunda')" style="min-width:46%"><span data-t="stock.segunda_mano">♻️ Segunda mano</span></button>
+        <button type="button" class="tipo-prod-btn" data-tipo="reacond" onclick="setTipoStock('reacond')" style="min-width:46%"><span data-t="stock.reacond">🛠️ Reacondicionado</span></button>
       </div>
     </div>
     <div>
