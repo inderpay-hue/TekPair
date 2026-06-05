@@ -741,6 +741,7 @@ function pedSelStock(id) {
   if (!s) return;
   var inp = document.getElementById('pedPieza'); if (inp) inp.value = _stockNombre(s);
   var pcs = document.getElementById('pedCat'); if (pcs && s.categoria) pcs.value = s.categoria;
+  actualizarHintPedido();
   var sugs = document.getElementById('pedPiezaSugs'); if (sugs) sugs.style.display = 'none';
   // Autorrellenar proveedor habitual e importe (coste) si están vacíos
   var pv = document.getElementById('pedProv');
@@ -818,6 +819,12 @@ function _pedModo(multi) {
   if (fpw) fpw.style.display = multi ? 'none' : '';
   if (addRow) addRow.style.alignItems = 'flex-end';
 }
+// Aviso "los IMEIs se piden al recibir" — solo en categorías con IMEI
+function actualizarHintPedido() {
+  var h = document.getElementById('pedImeiHint'); if (!h) return;
+  var c = document.getElementById('pedCat');
+  h.style.display = (c && _esImeiCat(c.value)) ? '' : 'none';
+}
 function nuevoPedido() {
   SEL.editPedidoId = null;
   window._pedItems = [];
@@ -825,6 +832,7 @@ function nuevoPedido() {
   ['pedPieza', 'pedProv', 'pedImporte', 'pedFecha', 'pedFechaPed', 'pedNota'].forEach(function(id) { var e = document.getElementById(id); if (e) e.value = ''; });
   document.getElementById('pedCant').value = '1';
   var _pcn = document.getElementById('pedCat'); if (_pcn) _pcn.value = 'Telefono';
+  actualizarHintPedido();
   _fillProvDatalist();
   var h0 = document.getElementById('pedStockHint'); if (h0) h0.style.display = 'none';
   _pedModo(true);
@@ -841,6 +849,7 @@ function editarPedido(id) {
   _fillProvDatalist();
   document.getElementById('pedPieza').value = p.pieza || '';
   var _pc = document.getElementById('pedCat'); if (_pc) _pc.value = p.categoria || 'Telefono';
+  actualizarHintPedido();
   onPedPiezaInput();
   document.getElementById('pedCant').value = p.cantidad || 1;
   document.getElementById('pedProv').value = p.proveedor || '';
