@@ -2052,6 +2052,21 @@ function addRecInv() {
   window._recordatorios.unshift({ t: t, f: (fe && fe.value) || null, d: false });
   _guardarRecordatorios(); renderInvNotas();
 }
+// Notas interactivas del Tablero
+function guardarTbNotas() {
+  var ta = document.getElementById('invTbNotasTa'); if (!ta) return;
+  window._pedNotas = ta.value;
+  if (window._pedNotasTimer) clearTimeout(window._pedNotasTimer);
+  window._pedNotasTimer = setTimeout(function() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas }); }, 800);
+}
+function addRecTb() {
+  var inp = document.getElementById('invTbRecInput'), fe = document.getElementById('invTbRecFecha');
+  if (!inp) return;
+  var t = (inp.value || '').trim(); if (!t) return;
+  window._recordatorios = window._recordatorios || [];
+  window._recordatorios.unshift({ t: t, f: (fe && fe.value) || null, d: false });
+  _guardarRecordatorios(); renderInicioNuevo();
+}
 
 // ════════════ SECCIÓN PEDIDOS (página completa) ════════════
 function updatePedidosBadge() {
@@ -2163,6 +2178,14 @@ function marcarGrupoPedido(encKey) {
   toast(T('pedidos.grupo_marcado').replace('{n}', targets.length), 'ok');
 }
 
+// ── Marcar reparación como "avisada" (cliente notificado) — local por tienda ──
+function _estaAvisado(id) { try { return JSON.parse(localStorage.getItem('tk_avisados') || '[]').indexOf(id) !== -1; } catch(e) { return false; } }
+function _marcarAvisado(id) {
+  if (!id) return;
+  try { var s = JSON.parse(localStorage.getItem('tk_avisados') || '[]'); if (s.indexOf(id) === -1) { s.push(id); localStorage.setItem('tk_avisados', JSON.stringify(s.slice(-500))); } } catch(e){}
+  try { renderInicioNuevo(); } catch(e){}
+}
+
 // ════ VISTA TABLERO (inicio operativo, datos reales, por rol) ════
 function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
   var hoy = hoyLocal();
@@ -2218,9 +2241,9 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
     return '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph"><span>' + nom(r) + '</span></div><div class="cl">' + cli(r) + (r.averia ? ' · ' + escHtml(r.averia) : '') + '</div>' + (dias ? '<div class="meta"><span class="when w-amber">' + dias + '</span></div>' : '') + '</div>';
   }
   function tkLista(r) {
-    var eur = '';
-    if (puede) eur = (r.restante > 0) ? '<span class="eur">' + cur(r.restante) + '</span>' : '<span class="eur">Pagado ✓</span>';
-    return '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph"><span>' + nom(r) + '</span>' + eur + '</div><div class="cl">' + cli(r) + '</div><div class="meta"><span class="when w-green">' + (r.restante > 0 ? 'Avisar cliente' : 'Listo') + '</span></div></div>';
+    var eur = (puede && r.restante > 0) ? '<span class="eur">' + cur(r.restante) + '</span>' : '';
+    var tag = _estaAvisado(r.id) ? '<span class="when w-green">Avisado ✓</span>' : '<span class="when w-amber">Sin avisar</span>';
+    return '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph"><span>' + nom(r) + '</span>' + eur + '</div><div class="cl">' + cli(r) + '</div><div class="meta">' + tag + '</div></div>';
   }
   var board = document.getElementById('inv-tb-board');
   if (board) {
@@ -2287,13 +2310,24 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
     return '<div class="inv-li"><div class="ic ' + (u === 0 ? 'ir' : 'ia') + '">' + (u === 0 ? '🔴' : '⚠️') + '</div><div class="m"><div class="tt">' + escHtml(((s.marca || '') + ' ' + (s.modelo || '')).trim() || 'Producto') + '</div><div class="ss">' + (u === 0 ? 'sin stock' : 'bajo mínimo') + '</div></div><span class="inv-tag ' + (u === 0 ? 'ir' : 'ia') + '">' + u + ' uds</span></div>';
   }).join('') || '<div class="inv-empty">Stock al día ✓</div>';
   if (_invWidgetOn('tb_stock')) cards.push('<div class="inv-tcard"><h4>⚠️ Stock crítico <span class="lk" onclick="navTo(\'pStock\')">Ver →</span></h4>' + stRows + (stockBajo.length ? '<div class="inv-tot"><span>Referencias a reponer</span><span style="color:#B9770A">' + stockBajo.length + '</span></div>' : '') + '</div>');
-  // Notas y recordatorios
-  var recs = window._recordatorios || [];
-  if (!window._notasCargadas && typeof cargarNotasRecordatorios === 'function') { window._notasCargadas = true; cargarNotasRecordatorios(function() { renderInicioNuevo(); }); }
-  var notRows = recs.slice(0, 4).map(function(r) {
-    return '<div class="inv-li"><div class="ic ' + (r.d ? 'ig' : 'ip') + '">' + (r.d ? '✓' : '☐') + '</div><div class="m"><div class="tt" style="' + (r.d ? 'text-decoration:line-through;color:var(--inv-ink3)' : '') + '">' + escHtml(r.t || '') + '</div></div>' + (r.f ? '<span class="inv-tag ia">' + _pedFecha(r.f) + '</span>' : '') + '</div>';
-  }).join('') || '<div class="inv-empty">Sin recordatorios</div>';
-  if (_invWidgetOn('tb_notas')) cards.push('<div class="inv-tcard"><h4>📌 Notas y recordatorios <span class="lk" onclick="navTo(\'pAyuda\')">&nbsp;</span></h4>' + notRows + '</div>');
+  // Notas y recordatorios (interactivo)
+  if (_invWidgetOn('tb_notas')) {
+    if (!window._notasCargadas && typeof cargarNotasRecordatorios === 'function') { window._notasCargadas = true; cargarNotasRecordatorios(function() { renderInicioNuevo(); }); }
+    var recs = window._recordatorios || [];
+    var recsHtml = recs.slice(0, 5).map(function(r, i) {
+      var fecha = r.f ? ' <span style="color:var(--inv-ink3);font-size:10px">· ' + _pedFecha(r.f) + '</span>' : '';
+      return '<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-top:1px solid var(--inv-line);font-size:12px">' +
+        '<input type="checkbox" ' + (r.d ? 'checked' : '') + ' onchange="toggleRecordatorio(' + i + ');renderInicioNuevo()" style="cursor:pointer">' +
+        '<span style="flex:1;min-width:0;' + (r.d ? 'text-decoration:line-through;color:var(--inv-ink3)' : 'color:var(--inv-ink)') + '">' + escHtml(r.t || '') + fecha + '</span>' +
+        '<button onclick="delRecordatorio(' + i + ');renderInicioNuevo()" style="background:none;border:none;color:var(--inv-red);cursor:pointer;font-size:14px;line-height:1">×</button></div>';
+    }).join('');
+    var notHtml = '<div style="padding:11px 14px">' +
+      '<textarea id="invTbNotasTa" placeholder="Escribe una nota…" oninput="guardarTbNotas()" style="width:100%;box-sizing:border-box;min-height:46px;resize:vertical;border:1px solid var(--inv-line);border-radius:9px;padding:8px;font-size:12px;font-family:inherit;background:#FDFBF9;color:var(--inv-ink)">' + escHtml(window._pedNotas || '') + '</textarea>' +
+      recsHtml +
+      '<div style="display:flex;gap:5px;margin-top:8px"><input id="invTbRecInput" placeholder="Nuevo recordatorio…" onkeydown="if(event.key===\'Enter\')addRecTb()" style="flex:1;min-width:0;border:1px solid var(--inv-line);border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit"><input id="invTbRecFecha" type="date" style="border:1px solid var(--inv-line);border-radius:8px;padding:5px;font-size:11px"><button onclick="addRecTb()" style="background:var(--inv-or);color:#fff;border:none;border-radius:8px;padding:6px 11px;font-size:14px;cursor:pointer">+</button></div>' +
+      '</div>';
+    cards.push('<div class="inv-tcard"><h4>📌 Notas y recordatorios</h4>' + notHtml + '</div>');
+  }
 
   var cont = document.getElementById('inv-tb-cards');
   if (cont) cont.innerHTML = cards.join('');
@@ -6666,6 +6700,8 @@ function cambiarEstado(id, estado) {
         var url = linkParte(r);
         var msg = waMsg('lista')(r.clienteNombre, r.marca, r.modelo, url);
         window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
+        _marcarAvisado(r.id);
+        try { registrarAviso({ tipo: 'rep_lista', ref_id: r.id, canal: 'whatsapp', destinatario: tel, asunto: 'Reparación lista' }); } catch(e){}
       });
     }
   }
@@ -11649,6 +11685,7 @@ function abrirWhatsAppRep(repId) {
   }
   if (!cli) { toast('Cliente no encontrado', 'err'); return; }
   if (!cli.tel) { toast('Cliente sin teléfono', 'err'); return; }
+  _marcarAvisado(repId); // marca como avisado para el tablero
   _waContexto = {
     tipo: 'rep',
     refId: r.id, refTipo: 'reparacion',
