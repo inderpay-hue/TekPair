@@ -1513,6 +1513,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="stock-tab-btn" data-cat="Accesorio">Accesorios</button>
     <button class="stock-tab-btn" data-cat="__low__">⚠️ Stock bajo</button>
   </div>
+  <div id="stockMarcasFiltro" style="display:none;flex-wrap:wrap;gap:6px;margin:0 0 10px"></div>
   <div id="alertasStock"></div>
   <div id="filtroUbicWrap" style="display:none;margin-bottom:10px">
     <select id="filtroUbicStock" class="fi" onchange="filtrarUbicStock()" style="max-width:240px">
@@ -3631,6 +3632,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
     <!-- Añadir productos al pedido -->
     <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px"><span data-t="pedidos.productos">Productos</span> *</div>
+    <div class="fg"><label class="fl"><span data-t="stock.categoria">Categoría</span></label>
+      <select class="fi" id="pedCat">
+        <option value="Telefono" data-t="stock.cat_telefono">Teléfono</option><option value="Tablet" data-t="stock.cat_tablet">Tablet</option><option value="Smartwatch" data-t="stock.cat_smartwatch">Smartwatch</option><option value="Pantalla" data-t="stock.cat_pantalla">Pantalla</option><option value="Tapa" data-t="stock.cat_tapa">Tapa</option><option value="Bateria" data-t="stock.cat_bateria">Batería</option><option value="Flex de Carga" data-t="stock.cat_flex">Flex de carga</option><option value="Altavoz" data-t="stock.cat_altavoz">Altavoz</option><option value="Repuesto" data-t="stock.cat_repuesto">Repuesto</option><option value="Accesorio" data-t="stock.cat_accesorio">Accesorio</option><option value="Otro" data-t="stock.cat_otro">Otro</option>
+      </select>
+    </div>
     <div class="fi-row" id="pedAddRow" style="align-items:flex-end">
       <div class="fg" style="flex:2;position:relative"><label class="fl"><span data-t="pedidos.pieza">Pieza</span></label><input class="fi" id="pedPieza" autocomplete="off" oninput="onPedPiezaInput()" onkeydown="if(event.key==='Enter'){event.preventDefault();pedAddItem();}" onblur="setTimeout(function(){var d=document.getElementById('pedPiezaSugs');if(d)d.style.display='none';},200)" placeholder="Pantalla iPhone 13..."><div id="pedPiezaSugs" style="display:none;position:absolute;left:0;right:0;top:100%;z-index:50;background:#fff;border:1px solid var(--border);border-radius:10px;box-shadow:0 12px 30px -8px rgba(0,0,0,.2);max-height:240px;overflow:auto;margin-top:4px"></div><div id="pedStockHint" style="display:none;font-size:11px;color:var(--green);font-weight:700;margin-top:4px"></div></div>
       <div class="fg" style="flex:.7"><label class="fl"><span data-t="pedidos.cantidad">Cantidad</span></label><input class="fi" id="pedCant" type="number" value="1" min="1"></div>

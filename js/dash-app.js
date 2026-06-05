@@ -740,6 +740,7 @@ function pedSelStock(id) {
   var s = (DB.stock || []).find(function(x) { return x.id === id; });
   if (!s) return;
   var inp = document.getElementById('pedPieza'); if (inp) inp.value = _stockNombre(s);
+  var pcs = document.getElementById('pedCat'); if (pcs && s.categoria) pcs.value = s.categoria;
   var sugs = document.getElementById('pedPiezaSugs'); if (sugs) sugs.style.display = 'none';
   // Autorrellenar proveedor habitual e importe (coste) si están vacíos
   var pv = document.getElementById('pedProv');
@@ -823,6 +824,7 @@ function nuevoPedido() {
   document.getElementById('mPedidoTit').textContent = T('pedidos.nuevo');
   ['pedPieza', 'pedProv', 'pedImporte', 'pedFecha', 'pedFechaPed', 'pedNota'].forEach(function(id) { var e = document.getElementById(id); if (e) e.value = ''; });
   document.getElementById('pedCant').value = '1';
+  var _pcn = document.getElementById('pedCat'); if (_pcn) _pcn.value = 'Telefono';
   _fillProvDatalist();
   var h0 = document.getElementById('pedStockHint'); if (h0) h0.style.display = 'none';
   _pedModo(true);
@@ -838,6 +840,7 @@ function editarPedido(id) {
   document.getElementById('mPedidoTit').textContent = T('pedidos.editar');
   _fillProvDatalist();
   document.getElementById('pedPieza').value = p.pieza || '';
+  var _pc = document.getElementById('pedCat'); if (_pc) _pc.value = p.categoria || 'Telefono';
   onPedPiezaInput();
   document.getElementById('pedCant').value = p.cantidad || 1;
   document.getElementById('pedProv').value = p.proveedor || '';
@@ -855,8 +858,10 @@ function pedAddItem() {
   var pieza = (document.getElementById('pedPieza').value || '').trim();
   if (!pieza) { toast(T('pedidos.falta_pieza'), 'err'); var pe = document.getElementById('pedPieza'); if (pe) pe.focus(); return; }
   window._pedItems = window._pedItems || [];
+  var _pcat = document.getElementById('pedCat');
   window._pedItems.push({
     pieza: pieza,
+    categoria: (_pcat && _pcat.value) || 'Telefono',
     cantidad: parseInt(document.getElementById('pedCant').value, 10) || 1,
     importe: parseFloat(document.getElementById('pedImporte').value) || 0
   });
@@ -882,7 +887,7 @@ function renderPedItems() {
   var tot = items.reduce(function(a, it) { return a + (parseFloat(it.importe) || 0); }, 0);
   el.innerHTML = items.map(function(it, i) {
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12.5px">' +
-      '<span style="flex:1;font-weight:600">' + escHtml(it.pieza) + (it.cantidad > 1 ? ' <span style="color:var(--muted)">x' + it.cantidad + '</span>' : '') + '</span>' +
+      '<span style="flex:1;font-weight:600">' + (_esImeiCat(it.categoria) ? '📱 ' : '🔧 ') + escHtml(it.pieza) + (it.cantidad > 1 ? ' <span style="color:var(--muted)">x' + it.cantidad + '</span>' : '') + '</span>' +
       (it.importe > 0 ? '<span style="font-weight:700;color:var(--muted)">€' + parseFloat(it.importe).toFixed(2) + '</span>' : '') +
       '<button onclick="pedDelItem(' + i + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:15px;line-height:1">×</button></div>';
   }).join('') + '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;padding:4px 2px"><span>' + items.length + ' ' + T('pedidos.lineas') + '</span>' + (tot > 0 ? '<span>' + cur(tot) + '</span>' : '') + '</div>';
@@ -895,6 +900,7 @@ function guardarPedido() {
     if (!pieza) { toast(T('pedidos.falta_pieza'), 'err'); return; }
     var datos = {
       pieza: pieza,
+      categoria: (document.getElementById('pedCat') && document.getElementById('pedCat').value) || null,
       cantidad: parseInt(document.getElementById('pedCant').value, 10) || 1,
       proveedor: (document.getElementById('pedProv').value || '').trim() || null,
       importe: parseFloat(document.getElementById('pedImporte').value) || 0,
@@ -915,7 +921,7 @@ function guardarPedido() {
   var fest = document.getElementById('pedFecha').value || null;
   var nota = (document.getElementById('pedNota').value || '').trim() || null;
   items.forEach(function(it) {
-    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, cantidad: it.cantidad, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, nota: nota };
+    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, categoria: it.categoria || null, cantidad: it.cantidad, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, nota: nota };
     DB.pedidos.unshift(nuevo);
     if (SB_KEY) sbPost('pedidos', nuevo);
   });
@@ -942,33 +948,46 @@ function avanzarPedido(id) {
       toast(T('pedidos.recibido_gasto'), 'ok');
     } else { toast(T('pedidos.marcado_recibido'), 'ok'); }
     if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
-    // Al recibir: registrar en stock
+    // Al recibir: registrar en stock. La categoría del pedido manda; si no
+    // la tiene (pedidos antiguos), se usa la del item de stock que coincida.
     var uds = parseInt(p.cantidad, 10) || 1;
     var existe = _stockMatch(p.pieza);
-    if (existe && _esImeiCat(existe.categoria)) {
+    var cat = p.categoria || (existe ? existe.categoria : '');
+    if (_esImeiCat(cat)) {
       // IMEI: no se suma, se registran las unidades con su IMEI
       if (confirm(T('pedidos.add_stock_imei').replace('{n}', uds).replace('{pieza}', p.pieza || ''))) {
-        _abrirAltaImeiDesdePedido(existe, uds);
+        _abrirAltaImeiDesdePedido(p, uds, existe, cat);
       }
     } else {
       var msg = existe
         ? T('pedidos.add_stock_sumar').replace('{n}', uds).replace('{pieza}', p.pieza || '').replace('{cur}', parseInt(existe.unidades, 10) || 0)
         : T('pedidos.add_stock').replace('{n}', uds).replace('{pieza}', p.pieza || '');
-      if (confirm(msg)) { _recibirAStock(p, uds, existe); }
+      if (confirm(msg)) { _recibirAStock(p, uds, existe, false, cat); }
     }
   }
   renderPedidosWidget();
 }
-// Abre el alta de Stock pre-rellenada para registrar N unidades con IMEI
-function _abrirAltaImeiDesdePedido(item, uds) {
+// Abre el alta de Stock pre-rellenada para registrar N unidades con IMEI.
+// Funciona con un item de stock existente o con un pedido nuevo (sin stock aún).
+function _abrirAltaImeiDesdePedido(p, uds, existe, cat) {
   if (typeof nuevoStock !== 'function') return;
   nuevoStock();
   var set = function(id, v) { var e = document.getElementById(id); if (e) e.value = v; };
-  set('sCat', item.categoria || 'Telefono');
-  set('sMarca', item.marca || '');
-  set('sModelo', item.modelo || '');
-  if (item.capacidad) set('sCap', item.capacidad);
-  if (item.precioC) set('sPrecioC', item.precioC);
+  if (existe) {
+    set('sCat', existe.categoria || cat || 'Telefono');
+    set('sMarca', existe.marca || '');
+    set('sModelo', existe.modelo || '');
+    if (existe.capacidad) set('sCap', existe.capacidad);
+    if (existe.precioC) set('sPrecioC', existe.precioC);
+  } else {
+    // Teléfono pedido que aún no estaba en stock: la pieza pasa a Modelo y
+    // la marca la elige el usuario con los chips de marca.
+    set('sCat', cat || 'Telefono');
+    set('sModelo', p.pieza || '');
+    var costeU = (parseFloat(p.importe) || 0) > 0 ? (parseFloat(p.importe) / (uds || 1)) : 0;
+    if (costeU > 0) set('sPrecioC', costeU.toFixed(2));
+  }
+  try { renderStockMarcas(); } catch (e) {}
   try { toggleStockMulti(); } catch (e) {}
   setTimeout(function() {
     var w = document.getElementById('sImeiMultiWrap'), ta = document.getElementById('sImeiMulti');
@@ -978,7 +997,7 @@ function _abrirAltaImeiDesdePedido(item, uds) {
   toast(T('pedidos.imei_hint').replace('{n}', uds), 'ok');
 }
 // Recibe un pedido al stock: suma a un item existente o crea uno nuevo (repuesto)
-function _recibirAStock(p, uds, existe, silent) {
+function _recibirAStock(p, uds, existe, silent, cat) {
   DB.stock = DB.stock || [];
   if (existe) {
     existe.unidades = (parseInt(existe.unidades, 10) || 0) + uds;
@@ -991,7 +1010,7 @@ function _recibirAStock(p, uds, existe, silent) {
   var costeUnit = (parseFloat(p.importe) || 0) > 0 ? (parseFloat(p.importe) / (uds || 1)) : 0;
   var item = {
     id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-    categoria: 'Repuesto', marca: '', modelo: p.pieza || '', capacidad: '', color: '', imei: '',
+    categoria: cat || p.categoria || 'Repuesto', marca: '', modelo: p.pieza || '', capacidad: '', color: '', imei: '',
     unidades: uds, precioC: costeUnit, precioV: 0, stockMin: 2, stockMax: 10,
     vendido: false, calidad: '', tipo: 'nuevo', garantiaMeses: 0, ubicacion: null
   };
@@ -1014,7 +1033,7 @@ function recibirGrupo(encKey) {
   var grp = (DB.pedidos || []).filter(function(p) { return p.estado === 'pedido' && (((p.proveedor || '').trim() || sinProv) === key); });
   if (!grp.length) return;
   var imeiItems = [], normales = [];
-  grp.forEach(function(p) { var ex = _stockMatch(p.pieza); if (ex && _esImeiCat(ex.categoria)) imeiItems.push(p); else normales.push({ p: p, ex: ex }); });
+  grp.forEach(function(p) { var ex = _stockMatch(p.pieza); var c = p.categoria || (ex ? ex.categoria : ''); if (_esImeiCat(c)) imeiItems.push(p); else normales.push({ p: p, ex: ex, cat: c }); });
   if (!normales.length) { toast(T('pedidos.grupo_solo_imei'), 'err'); return; }
   if (!confirm(T('pedidos.confirmar_grupo_recibir').replace('{n}', normales.length).replace('{prov}', key))) return;
   normales.forEach(function(o) {
@@ -1023,7 +1042,7 @@ function recibirGrupo(encKey) {
     var patch = { estado: 'recibido' };
     if (!p.gasto_id && (parseFloat(p.importe) || 0) > 0) { var gid = _crearGastoDesdePedido(p); p.gasto_id = gid; patch.gasto_id = gid; }
     if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
-    _recibirAStock(p, uds, o.ex, true);
+    _recibirAStock(p, uds, o.ex, true, o.cat);
   });
   renderPedidosWidget();
   var msg = T('pedidos.grupo_recibido').replace('{n}', normales.length);
@@ -7015,10 +7034,17 @@ function renderStock() {
   var q = (document.getElementById('busStock').value || '').toLowerCase();
   var activeTab = document.querySelector('.stock-tab-btn.active');
   var cat = activeTab ? activeTab.getAttribute('data-cat') : '';
-  var list = DB.stock.filter(function(s) {
+  var marcaF = (window._stockFiltroMarca || '').toLowerCase();
+  // Base filtrada solo por categoría (sirve para construir los chips de marca)
+  var catBase = DB.stock.filter(function(s) {
     if (s.unidades <= 0) return false;
     if (cat === '__low__') { if (s.unidades > s.stockMin) return false; }
     else if (cat && (s.categoria || '') !== cat) return false;
+    return true;
+  });
+  renderStockFiltroMarcas(catBase);
+  var list = catBase.filter(function(s) {
+    if (marcaF && (s.marca || '').trim().toLowerCase() !== marcaF) return false;
     if (q && !(s.marca + ' ' + s.modelo + ' ' + (s.imei || '') + ' ' + (s.color || '') + ' ' + (s.categoria || '')).toLowerCase().includes(q)) return false;
     return true;
   });
@@ -7402,6 +7428,35 @@ function setStockMarca(m) {
   e.value = m;
   renderStockMarcas();
   var mod = document.getElementById('sModelo'); if (mod) { mod.focus(); try { busModeloStock(); } catch (err) {} }
+}
+// Filtro por marca en la PÁGINA de stock: chips de las marcas presentes en la
+// categoría activa, ordenadas por nº de unidades. Click filtra la lista.
+function renderStockFiltroMarcas(catBase) {
+  var box = document.getElementById('stockMarcasFiltro'); if (!box) return;
+  var counts = {};
+  (catBase || []).forEach(function(s) {
+    var m = (s.marca || '').trim(); if (!m) return;
+    var k = m.toLowerCase();
+    if (!counts[k]) counts[k] = { nombre: m, n: 0 };
+    counts[k].n += (parseInt(s.unidades, 10) || 1);
+  });
+  var arr = Object.keys(counts).map(function(k) { return counts[k]; }).sort(function(a, b) { return b.n - a.n; });
+  if (arr.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }  // 0-1 marcas: no aporta filtrar
+  box.style.display = 'flex';
+  var sel = (window._stockFiltroMarca || '').toLowerCase();
+  var chip = function(label, val, on, inner) {
+    return '<button type="button" onclick="setStockFiltroMarca(\'' + (val || '').replace(/'/g, "\\'") + '\')" style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:18px;border:1.5px solid ' + (on ? 'var(--orange)' : 'var(--border)') + ';background:' + (on ? 'rgba(249,115,22,.10)' : '#fff') + ';color:var(--text);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">' + inner + '</button>';
+  };
+  var html = chip(T('tpv.todas_marcas'), '', !sel, '🏷️ ' + T('tpv.todas_marcas'));
+  html += arr.slice(0, 16).map(function(o) {
+    var on = o.nombre.toLowerCase() === sel;
+    return chip(o.nombre, o.nombre, on, _stkBrandChip(o.nombre) + '<span>' + escHtml(o.nombre) + '</span><span style="color:var(--muted);font-weight:700">' + o.n + '</span>');
+  }).join('');
+  box.innerHTML = html;
+}
+function setStockFiltroMarca(m) {
+  window._stockFiltroMarca = (window._stockFiltroMarca === m) ? '' : m;  // toggle
+  renderStock();
 }
 function nuevoStock() {
   SEL.editStockId = null;
@@ -12826,6 +12881,7 @@ document.addEventListener('click', function(e){
   if (!b) return;
   document.querySelectorAll('.stock-tab-btn').forEach(function(x){ x.classList.remove('active'); });
   b.classList.add('active');
+  window._stockFiltroMarca = '';   // al cambiar de categoría, limpiar filtro de marca
   if (typeof renderStock === 'function') renderStock();
 });
 
