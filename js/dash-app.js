@@ -11235,6 +11235,10 @@ function eliminarServicio(id) {
 
 // ═══ CATÁLOGO (stock por modelo) — integrado, sincronizado con Supabase ═══
 var _catFiltro = '';
+var _catFiltroMarca = '';
+// Swatch de color para el desglose por color (nombres comunes ES/EN)
+var CAT_COLOR_HEX = { negro:'#222', black:'#222', blanco:'#eee', white:'#eee', azul:'#2563eb', blue:'#2563eb', rojo:'#dc2626', red:'#dc2626', verde:'#16a34a', green:'#16a34a', dorado:'#d4af37', gold:'#d4af37', plata:'#c0c0c0', silver:'#c0c0c0', gris:'#6b7280', gray:'#6b7280', grey:'#6b7280', rosa:'#ec4899', pink:'#ec4899', morado:'#7c3aed', purple:'#7c3aed', violeta:'#7c3aed', amarillo:'#eab308', yellow:'#eab308', naranja:'#f97316', orange:'#f97316', titanio:'#8a8d8f', grafito:'#383838' };
+function _catColorHex(c) { var k = (c || '').toLowerCase().replace(/[^a-z]/g, ''); for (var key in CAT_COLOR_HEX) { if (k.indexOf(key) !== -1) return CAT_COLOR_HEX[key]; } return '#cbd5e1'; }
 var CAT_CALIDADES = [
   { v: 'Nuevo', k: 'catalogo.cal_nuevo', bg: 'rgba(22,163,74,.12)', col: '#16A34A' },
   { v: 'Reacondicionado', k: 'catalogo.cal_reacond', bg: 'rgba(0,85,255,.10)', col: 'var(--blue)' },
@@ -11248,33 +11252,78 @@ function _catNombre(cat) {
 }
 function setCatFiltro(f, btn) {
   _catFiltro = f;
+  _catFiltroMarca = '';  // al cambiar de categoría, limpiar filtro de marca
   try { Array.prototype.forEach.call(document.querySelectorAll('#catTabs .cat-tab-btn'), function(b) { b.classList.toggle('active', b === btn); }); } catch(e){}
   renderCatalogo();
+}
+function setCatFiltroMarca(m) {
+  _catFiltroMarca = (_catFiltroMarca === m) ? '' : m;  // toggle
+  renderCatalogo();
+}
+// Chips de marca del catálogo (marcas presentes en la categoría activa)
+function renderCatFiltroMarcas(catBase) {
+  var box = document.getElementById('catMarcasFiltro'); if (!box) return;
+  var counts = {};
+  (catBase || []).forEach(function(s) {
+    var m = (s.marca || '').trim(); if (!m) return;
+    var k = m.toLowerCase();
+    if (!counts[k]) counts[k] = { nombre: m, n: 0 };
+    counts[k].n += (parseInt(s.unidades, 10) || 1);
+  });
+  var arr = Object.keys(counts).map(function(k) { return counts[k]; }).sort(function(a, b) { return b.n - a.n; });
+  if (arr.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'flex';
+  var sel = (_catFiltroMarca || '').toLowerCase();
+  var chip = function(val, on, inner) {
+    return '<button type="button" onclick="setCatFiltroMarca(\'' + (val || '').replace(/'/g, "\\'") + '\')" style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:18px;border:1.5px solid ' + (on ? 'var(--orange)' : 'var(--border)') + ';background:' + (on ? 'rgba(249,115,22,.10)' : '#fff') + ';color:var(--text);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">' + inner + '</button>';
+  };
+  var html = chip('', !sel, '🏷️ ' + T('tpv.todas_marcas'));
+  html += arr.slice(0, 16).map(function(o) {
+    return chip(o.nombre, o.nombre.toLowerCase() === sel, _stkBrandChip(o.nombre) + '<span>' + escHtml(o.nombre) + '</span><span style="color:var(--muted);font-weight:700">' + o.n + '</span>');
+  }).join('');
+  box.innerHTML = html;
 }
 function renderCatalogo() {
   var el = document.getElementById('catalogoContainer'); if (!el) return;
   var qEl = document.getElementById('catSearch');
   var q = (qEl ? qEl.value : '').toLowerCase();
   var filtro = _catFiltro || '';
+  var marcaF = (_catFiltroMarca || '').toLowerCase();
+  // Base filtrada solo por categoría (para construir los chips de marca)
+  var catBase = (DB.stock || []).filter(function(s) { return !s.vendido && (!filtro || (s.categoria || 'Otro') === filtro); });
+  renderCatFiltroMarcas(catBase);
+  // Mapa stockId → color (incluye vendidos) para contar ventas por color
+  var stockColor = {};
+  (DB.stock || []).forEach(function(s) { stockColor[s.id] = (s.color || '').trim(); });
   var grupos = {};
-  (DB.stock || []).forEach(function(s) {
-    if (s.vendido) return;
-    var cat = s.categoria || 'Otro', marca = s.marca || '—', modelo = s.modelo || '—';
-    if (filtro && cat !== filtro) return;
-    if (q && (marca + ' ' + modelo + ' ' + (s.imei || '')).toLowerCase().indexOf(q) === -1) return;
+  catBase.forEach(function(s) {
+    var marca = s.marca || '—', modelo = s.modelo || '—';
+    if (marcaF && marca.toLowerCase() !== marcaF) return;
+    if (q && (marca + ' ' + modelo + ' ' + (s.imei || '') + ' ' + (s.color || '')).toLowerCase().indexOf(q) === -1) return;
+    var cat = s.categoria || 'Otro';
     var key = cat + '::' + marca.toLowerCase() + '::' + modelo.toLowerCase();
-    if (!grupos[key]) grupos[key] = { cat: cat, marca: marca, modelo: modelo, unidades: 0, conImei: 0, pvp: 0, calidad: '', ids: [] };
+    if (!grupos[key]) grupos[key] = { cat: cat, marca: marca, modelo: modelo, unidades: 0, conImei: 0, pvp: 0, calidad: '', ids: [], colores: {} };
     var g = grupos[key];
     g.unidades += parseInt(s.unidades, 10) || 0;
     if (s.imei) g.conImei++;
     if ((parseFloat(s.precioV) || 0) > 0 && !g.pvp) g.pvp = parseFloat(s.precioV) || 0;
     if (s.calidad && !g.calidad) g.calidad = s.calidad;
     g.ids.push(s.id);
+    var col = (s.color || '').trim();
+    if (col) { if (!g.colores[col]) g.colores[col] = { stock: 0, vend: 0 }; g.colores[col].stock += parseInt(s.unidades, 10) || 0; }
   });
-  // Conteos de reparaciones y ventas por marca|modelo
+  // Conteos de reparaciones y ventas por marca|modelo (+ ventas por color vía stockId)
   var repC = {}, venC = {};
   (DB.reps || []).forEach(function(r) { var k = (r.marca || '') + '|' + (r.modelo || ''); repC[k] = (repC[k] || 0) + 1; });
-  (DB.ventas || []).forEach(function(v) { if (v.reembolsado) return; var k = (v.marca || '') + '|' + (v.modelo || ''); venC[k] = (venC[k] || 0) + 1; });
+  (DB.ventas || []).forEach(function(v) {
+    if (v.reembolsado) return;
+    var k = (v.marca || '') + '|' + (v.modelo || ''); venC[k] = (venC[k] || 0) + 1;
+    // ventas por color: resolver color del item vendido
+    var col = stockColor[v.stockId] || '';
+    if (col) {
+      Object.keys(grupos).forEach(function(gk) { var g = grupos[gk]; if (g.marca === v.marca && g.modelo === v.modelo && g.colores[col]) g.colores[col].vend++; });
+    }
+  });
   var keys = Object.keys(grupos);
   var tot = document.getElementById('catTotal'); if (tot) tot.textContent = keys.length ? (keys.length + ' ' + T('catalogo.modelos')) : '';
   if (!keys.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📚</div>' + T('catalogo.sin') + '</div>'; return; }
@@ -11300,10 +11349,29 @@ function renderCatalogo() {
         '<div><div style="font-size:18px;font-weight:800;color:' + stockCol + '">' + it.unidades + '</div><div style="font-size:9px;color:var(--muted)">' + T('catalogo.stock') + '</div></div>' +
         '<div><div style="font-size:18px;font-weight:800;color:#7C3AED">' + reps + '</div><div style="font-size:9px;color:var(--muted)">' + T('catalogo.reparaciones') + '</div></div>' +
         '<div><div style="font-size:18px;font-weight:800;color:var(--green)">' + vens + '</div><div style="font-size:9px;color:var(--muted)">' + T('catalogo.ventas') + '</div></div>' +
-        '</div></div></div>';
+        '</div></div>' +
+        _catColoresHtml(it) +
+        '</div>';
     });
   });
   el.innerHTML = html;
+}
+// Desglose por color de un modelo: stock y vendidas por color, el más vendido marcado
+function _catColoresHtml(it) {
+  var cols = Object.keys(it.colores || {});
+  if (cols.length < 2) return '';  // solo tiene sentido si hay varios colores
+  var maxVend = 0; cols.forEach(function(c) { if (it.colores[c].vend > maxVend) maxVend = it.colores[c].vend; });
+  cols.sort(function(a, b) { return (it.colores[b].vend - it.colores[a].vend) || (it.colores[b].stock - it.colores[a].stock); });
+  var pills = cols.map(function(c) {
+    var o = it.colores[c];
+    var top = (maxVend > 0 && o.vend === maxVend) ? ' 🔥' : '';
+    var vendTxt = o.vend > 0 ? ' · <span style="color:var(--green);font-weight:700">' + o.vend + ' ' + T('catalogo.vend') + '</span>' : '';
+    return '<span style="display:inline-flex;align-items:center;gap:5px;background:var(--light);border-radius:12px;padding:3px 9px;font-size:11px">' +
+      '<span style="width:10px;height:10px;border-radius:50%;border:1px solid rgba(0,0,0,.15);background:' + _catColorHex(c) + ';flex-shrink:0"></span>' +
+      '<span style="font-weight:600">' + escHtml(c) + '</span>' +
+      '<span style="color:var(--muted)">' + o.stock + '</span>' + vendTxt + top + '</span>';
+  }).join('');
+  return '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:9px;padding-top:9px;border-top:1px dashed var(--border)">' + pills + '</div>';
 }
 function _catCalBadge(it) {
   var encIds = encodeURIComponent(JSON.stringify(it.ids));
