@@ -711,7 +711,8 @@ function onPedPiezaInput() {
   if (!inp) return;
   var q = (inp.value || '').trim().toLowerCase();
   if (!q) { if (sugs) sugs.style.display = 'none'; if (h) h.style.display = 'none'; return; }
-  var matches = (DB.stock || []).filter(function(s) { return !s.vendido && _stockNombre(s).toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
+  var _pcatEl = document.getElementById('pedCat'); var _pcat = _pcatEl ? _pcatEl.value : '';
+  var matches = (DB.stock || []).filter(function(s) { return !s.vendido && (!_pcat || (s.categoria || '') === _pcat) && _stockNombre(s).toLowerCase().indexOf(q) !== -1; }).slice(0, 8);
   if (sugs) {
     if (matches.length) {
       sugs.innerHTML = matches.map(function(s) {
@@ -7068,6 +7069,7 @@ function filtrarUbicStock() { renderStock(); }
 
 function renderStock() {
   poblarFiltroUbicStock();
+  var _blog = document.getElementById('btnStockLog'); if (_blog) _blog.style.display = (U && U.rol === 'admin') ? '' : 'none';
   var q = (document.getElementById('busStock').value || '').toLowerCase();
   var activeTab = document.querySelector('.stock-tab-btn.active');
   var cat = activeTab ? activeTab.getAttribute('data-cat') : '';
@@ -7193,12 +7195,31 @@ function busModeloStock() {
   });
 }
 
+// Auditoría de stock: registra quién crea/edita/elimina y cuándo (tabla stock_log).
+// Escritura aislada (fire-and-forget): si la tabla no existe, no afecta a nada.
+function _logStock(accion, producto, detalle, stockId) {
+  if (!SB_KEY || !TIENDA_ID || typeof _sbPostRaw !== 'function') return;
+  try {
+    _sbPostRaw('stock_log', {
+      id: 'log' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      tienda_id: TIENDA_ID,
+      fecha: new Date().toISOString(),
+      usuario: (U && U.nombre) ? U.nombre : '',
+      rol: (U && U.rol) ? U.rol : '',
+      accion: accion,
+      producto: producto || '',
+      detalle: detalle || null,
+      stock_id: stockId || null
+    });
+  } catch (e) {}
+}
 function guardarStock() {
   var perm = SEL.editStockId ? 'stock_editar' : 'stock_crear';
   if (!tienePerm(perm)) { toast(T('gen.sin_permiso'), 'err'); return; }
   var marca = document.getElementById('sMarca').value.trim();
   var modelo = document.getElementById('sModelo').value.trim();
   if (!marca || !modelo) { toast('Marca y modelo obligatorios', 'err'); return; }
+  _logStock(SEL.editStockId ? 'editar' : 'crear', (marca + ' ' + modelo).trim(), null, SEL.editStockId || null);
 
   // STOCK-VAL: validaciones suaves (no bloqueantes, solo avisan)
   // Se acumulan los warnings y se muestran como toasts informativos.
@@ -7689,11 +7710,39 @@ document.addEventListener('DOMContentLoaded', function(){
 function eliminarStock(id) {
   if (!tienePerm('stock_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   if (!confirm('Eliminar este producto?')) return;
+  var _s = (DB.stock || []).find(function(x) { return x.id === id; });
+  _logStock('eliminar', _s ? ((_s.marca || '') + ' ' + (_s.modelo || '')).trim() : id, (_s && _s.imei) ? ('IMEI ' + _s.imei) : ((_s && _s.color) ? _s.color : null), id);
   DB.stock = DB.stock.filter(function(s) { return s.id !== id; });
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbDelete('stock', 'id=eq.' + id);
   toast('Eliminado', 'ok');
   renderStock();
+}
+// Vista de auditoría de stock (solo admin)
+function abrirStockLog() {
+  openM('mStockLog');
+  renderStockLog();
+}
+function renderStockLog() {
+  var el = document.getElementById('stockLogBody'); if (!el) return;
+  if (!SB_KEY || !TIENDA_ID) { el.innerHTML = '<div class="empty">' + T('stock.log_vacio') + '</div>'; return; }
+  el.innerHTML = '<div class="empty">…</div>';
+  sbGet('stock_log', 'tienda_id=eq.' + TIENDA_ID + '&order=fecha.desc&limit=100').then(function(rows) {
+    if (!Array.isArray(rows) || !rows.length) { el.innerHTML = '<div class="empty">' + T('stock.log_vacio') + '</div>'; return; }
+    var acc = { crear: { e: '➕', t: T('stock.log_crear'), c: 'var(--green)' }, editar: { e: '✏️', t: T('stock.log_editar'), c: 'var(--blue)' }, eliminar: { e: '🗑️', t: T('stock.log_eliminar'), c: 'var(--red)' } };
+    el.innerHTML = rows.map(function(r) {
+      var a = acc[r.accion] || { e: '•', t: r.accion || '', c: 'var(--muted)' };
+      var f = r.fecha ? new Date(r.fecha) : null;
+      var fStr = f ? (f.toLocaleDateString() + ' ' + f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : '';
+      return '<div style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--border)">' +
+        '<span style="font-size:16px">' + a.e + '</span>' +
+        '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600">' + escHtml(r.producto || '') + (r.detalle ? ' <span style="color:var(--muted);font-weight:400">· ' + escHtml(r.detalle) + '</span>' : '') + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)"><span style="color:' + a.c + ';font-weight:700">' + a.t + '</span> · ' + escHtml(r.usuario || '—') + (r.rol ? ' (' + escHtml(r.rol) + ')' : '') + '</div>' +
+        '</div>' +
+        '<span style="font-size:10.5px;color:var(--muted);white-space:nowrap">' + fStr + '</span></div>';
+    }).join('');
+  }).catch(function() { el.innerHTML = '<div class="empty">' + T('stock.log_vacio') + '</div>'; });
 }
 
 // ═══ CLIENTES ═══
