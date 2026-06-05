@@ -3651,14 +3651,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal">
   <div class="modal-title" id="mStockTit">📦 Añadir Stock</div>
   <div class="fg"><label class="fl"><span data-t="stock.categoria">Categoría</span></label>
-    <select class="fi" id="sCat">
+    <select class="fi" id="sCat" onchange="try{renderStockMarcas()}catch(e){}">
       <option value="Telefono" data-t="stock.cat_telefono">Teléfono</option><option value="Tablet" data-t="stock.cat_tablet">Tablet</option><option value="Smartwatch" data-t="stock.cat_smartwatch">Smartwatch</option><option value="Pantalla" data-t="stock.cat_pantalla">Pantalla</option><option value="Tapa" data-t="stock.cat_tapa">Tapa</option><option value="Bateria" data-t="stock.cat_bateria">Batería</option><option value="Flex de Carga" data-t="stock.cat_flex">Flex de carga</option><option value="Altavoz" data-t="stock.cat_altavoz">Altavoz</option><option value="Repuesto" data-t="stock.cat_repuesto">Repuesto</option><option value="Accesorio" data-t="stock.cat_accesorio">Accesorio</option><option value="Otro" data-t="stock.cat_otro">Otro</option>
     </select>
   </div>
   <div class="fi-row">
-    <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.marca">Marca</span> *</label><input class="fi" id="sMarca" placeholder="Apple, Samsung..."></div>
+    <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.marca">Marca</span> *</label><input class="fi" id="sMarca" placeholder="Apple, Samsung..." oninput="try{renderStockMarcas()}catch(e){}"></div>
     <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo">Modelo</span> *</label><input class="fi" id="sModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModeloStock()" onfocus="busModeloStock()" onblur="setTimeout(function(){var d=document.getElementById('sModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="sModeloSug"></div></div>
   </div>
+  <div id="sMarcasSug" style="display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 10px"></div>
   <div class="fi-row">
     <div class="fg"><label class="fl"><span data-t="gen.capacidad">Capacidad</span></label><input class="fi" id="sCap" placeholder="128GB..."></div>
     <div class="fg"><label class="fl"><span data-t="gen.color">Color</span></label><input class="fi" id="sColor" placeholder="Negro..."></div>
