@@ -7372,9 +7372,14 @@ function guardarStock() {
   var _capVal = (document.getElementById('sCap').value || '').trim();
   var _catVal = document.getElementById('sCat').value;
 
-  // 1. PVP = 0 → aviso (algunos productos legítimamente no tienen precio aún)
+  // 1. PVP = 0 → aviso que NO cierra el modal: confirma seguir o vuelve a añadir
+  //    el precio sin perder lo escrito (Cancelar = seguir editando).
   if (_precioV === 0) {
-    _stockWarns.push('⚠️ Producto sin precio de venta (PVP=0)');
+    if (!confirm(T('stock.sin_precio_confirm'))) {
+      var _pvEl = document.getElementById('sPrecioV');
+      if (_pvEl) { try { _pvEl.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e){} _pvEl.focus(); }
+      return;  // mantiene el modal abierto con todos los datos
+    }
   }
 
   // 2. IMEI debe ser numérico de 14-16 dígitos. Si tiene texto, probablemente
