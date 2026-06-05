@@ -7236,6 +7236,14 @@ function renderStock() {
   poblarFiltroUbicStock();
   var _blog = document.getElementById('btnStockLog'); if (_blog) _blog.style.display = (U && U.rol === 'admin') ? '' : 'none';
   var _bmdl = document.getElementById('btnModelos'); if (_bmdl) _bmdl.style.display = (U && U.rol === 'admin') ? '' : 'none';
+  // Aviso + botón para corregir TODOS los stock negativos de golpe
+  var _nb = document.getElementById('stockNegBanner');
+  if (_nb) {
+    var _negs = (DB.stock || []).filter(function(s) { return (parseInt(s.unidades, 10) || 0) < 0; });
+    if (_negs.length && (typeof tienePerm !== 'function' || tienePerm('stock_editar'))) {
+      _nb.innerHTML = '<div style="background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:9px 12px;margin-bottom:10px;display:flex;align-items:center;gap:10px;font-size:12.5px;flex-wrap:wrap"><span>⚠️ ' + T('stock.neg_aviso').replace('{n}', _negs.length) + '</span><button onclick="corregirTodosNegativos()" style="margin-left:auto;background:var(--red);color:#fff;border:none;border-radius:7px;padding:6px 12px;font-size:12px;font-weight:700;cursor:pointer">' + T('stock.corregir_todos') + '</button></div>';
+    } else { _nb.innerHTML = ''; }
+  }
   var q = (document.getElementById('busStock').value || '').toLowerCase();
   var activeTab = document.querySelector('.stock-tab-btn.active');
   var cat = activeTab ? activeTab.getAttribute('data-cat') : '';
@@ -7871,6 +7879,21 @@ document.addEventListener('DOMContentLoaded', function(){
   // NOTA: el hook de openM para mStock se gestiona desde el override unificado en rep helpers
 });
 
+// Corregir TODOS los stock negativos a 0 de una vez (escribe en nube + local)
+function corregirTodosNegativos() {
+  if (!tienePerm('stock_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var negs = (DB.stock || []).filter(function(s) { return (parseInt(s.unidades, 10) || 0) < 0; });
+  if (!negs.length) { toast(T('stock.sin_negativos'), 'ok'); return; }
+  if (!confirm(T('stock.corregir_todos_confirm').replace('{n}', negs.length))) return;
+  negs.forEach(function(s) {
+    s.unidades = 0;
+    if (SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), { unidades: 0 });
+  });
+  _logStock('editar', negs.length + ' items', 'negativos corregidos a 0', null);
+  guardarDatos();
+  renderStock();
+  toast(T('stock.corregido_n').replace('{n}', negs.length), 'ok');
+}
 // Corregir rápido un stock negativo a 0 (admin o empleado con permiso de editar stock)
 function corregirStockCero(id) {
   if (!tienePerm('stock_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
