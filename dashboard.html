@@ -3052,6 +3052,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div class="inv-pulse" id="inv-pulse"></div></div>
     <div style="display:flex;gap:8px;align-items:center">
       <div class="inv-seg"><button class="on" onclick="setInvPeriodo('hoy',this)" data-t="dash.hoy">Hoy</button><button onclick="setInvPeriodo('semana',this)" data-t="dash.semana">Semana</button><button onclick="setInvPeriodo('mes',this)" data-t="dash.mes">Mes</button></div>
+      <button id="inv-edit-btn" onclick="abrirEditarInicio()" style="display:none;background:#fff;border:1px solid var(--inv-line);color:var(--inv-ink2);padding:8px 12px;border-radius:10px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">✏️ <span data-t="inicio.editar">Editar</span></button>
       <button onclick="navTo('pDash')" style="background:#fff;border:1px solid var(--inv-line);color:var(--inv-ink2);padding:8px 12px;border-radius:10px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer">← <span data-t="inicio.clasico">Clásico</span></button>
     </div>
   </div>
@@ -3094,21 +3095,21 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
     </div>
     <div class="inv-row3">
-      <div class="inv-card2 inv-clk" onclick="navTo('pGastos')"><h3>📊 <span data-t="inicio.ing_gastos">Ingresos vs gastos (mes)</span></h3>
+      <div class="inv-card2 inv-clk" id="inv-card-inggastos" onclick="navTo('pGastos')"><h3>📊 <span data-t="inicio.ing_gastos">Ingresos vs gastos (mes)</span></h3>
         <div class="pl"><span data-t="inicio.ingresos">Ingresos</span><span class="v" style="color:var(--inv-green)" id="inv-a-ing">€0</span></div>
         <div class="pl"><span data-t="inicio.gastos">Gastos</span><span class="v" style="color:var(--inv-red)" id="inv-a-gas">€0</span></div>
         <div class="pl tot"><span data-t="inicio.beneficio">Beneficio</span><span class="v" id="inv-a-ben">€0</span></div>
         <div class="prog"><i id="inv-a-margenbar" style="width:0%"></i></div>
         <div class="mini2" id="inv-a-margen">Margen 0%</div>
       </div>
-      <div class="inv-card2 inv-clk" onclick="navTo('pReportes')"><h3>💳 <span data-t="inicio.como_cobras">Cómo cobras</span></h3>
+      <div class="inv-card2 inv-clk" id="inv-card-rscomocobras" onclick="navTo('pReportes')"><h3>💳 <span data-t="inicio.como_cobras">Cómo cobras</span></h3>
         <div class="stack" id="inv-a-stack"></div>
         <div id="inv-a-pays"></div>
       </div>
-      <div class="inv-card2 inv-clk" onclick="navTo('pReportes')"><h3>🏆 <span data-t="inicio.lo_que_deja">Lo que más deja</span></h3>
+      <div class="inv-card2 inv-clk" id="inv-card-lodeja" onclick="navTo('pReportes')"><h3>🏆 <span data-t="inicio.lo_que_deja">Lo que más deja</span></h3>
         <div id="inv-a-top"></div>
       </div>
-      <div class="inv-card2 inv-clk" onclick="navTo('pPedidos')"><h3>📦 <span data-t="inicio.pedidos_recibir">Pedidos por recibir</span></h3>
+      <div class="inv-card2 inv-clk" id="inv-card-rspedidos" onclick="navTo('pPedidos')"><h3>📦 <span data-t="inicio.pedidos_recibir">Pedidos por recibir</span></h3>
         <div id="inv-a-peds"></div>
         <div class="pl tot" style="border-top:1px dashed var(--inv-line);margin-top:6px"><span data-t="inicio.comprometido">Comprometido</span><span class="v" style="color:var(--inv-ink2)" id="inv-a-comp">€0</span></div>
         <div class="mini2" data-t="inicio.entrara_gastos">Entrará en Gastos al recibir</div>
@@ -3137,6 +3138,22 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="inv-strip" id="inv-tb-chips"></div>
     <div class="inv-board" id="inv-tb-board"></div>
     <div class="inv-tgrid" id="inv-tb-cards"></div>
+  </div>
+</div>
+
+<!-- PERSONALIZAR INICIO -->
+<div class="modal-bg" id="mEditarInicio">
+  <div class="modal">
+    <div class="modal-title">✏️ <span data-t="inicio.editar_titulo">Personalizar inicio</span></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px"><span data-t="inicio.editar_sub">Elige tu vista por defecto y qué tarjetas mostrar. Solo afecta a esta tienda.</span></div>
+    <div id="editInicioBody"></div>
+    <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px;flex-wrap:wrap">
+      <button class="btn-secondary" onclick="restablecerEditarInicio()" data-t="inicio.restablecer">Restablecer</button>
+      <div style="display:flex;gap:8px">
+        <button class="btn-secondary" onclick="closeM('mEditarInicio')" data-t="gen.cancelar">Cancelar</button>
+        <button class="btn-primary" style="background:var(--orange)" onclick="guardarEditarInicio()"><span data-t="gen.guardar">Guardar</span></button>
+      </div>
+    </div>
   </div>
 </div>
 
