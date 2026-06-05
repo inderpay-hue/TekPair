@@ -3619,12 +3619,12 @@ pt:{'gen.cerrar':'Fechar','stock.historial':'📋 Auditoria','stock.log_titulo':
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 // ════ Aviso IMEIs al recibir (pedidos) en 6 idiomas ════
 (function(){var _a={
-es:{'pedidos.imei_al_recibir':'📱 Los IMEIs, color y precio de cada unidad se piden al marcar el pedido como RECIBIDO (cuando lleguen).'},
-en:{'pedidos.imei_al_recibir':'📱 The IMEI, colour and price of each unit are entered when you mark the order as RECEIVED (on arrival).'},
-fr:{'pedidos.imei_al_recibir':'📱 Les IMEI, couleur et prix de chaque unité sont saisis à la réception de la commande (à l\'arrivée).'},
-it:{'pedidos.imei_al_recibir':'📱 IMEI, colore e prezzo di ogni unità si inseriscono quando segni l\'ordine come RICEVUTO (all\'arrivo).'},
-de:{'pedidos.imei_al_recibir':'📱 IMEIs, Farbe und Preis jeder Einheit werden eingegeben, wenn du die Bestellung als ERHALTEN markierst (bei Ankunft).'},
-pt:{'pedidos.imei_al_recibir':'📱 Os IMEIs, cor e preço de cada unidade pedem-se ao marcar o pedido como RECEBIDO (quando chegarem).'},
+es:{'pedidos.imei_al_recibir':'📱 Los IMEIs, color y precio de cada unidad se piden al marcar el pedido como RECIBIDO (cuando lleguen).','pedidos.modelo':'Modelo o pieza'},
+en:{'pedidos.imei_al_recibir':'📱 The IMEI, colour and price of each unit are entered when you mark the order as RECEIVED (on arrival).','pedidos.modelo':'Model or part'},
+fr:{'pedidos.imei_al_recibir':'📱 Les IMEI, couleur et prix de chaque unité sont saisis à la réception de la commande (à l\'arrivée).','pedidos.modelo':'Modèle ou pièce'},
+it:{'pedidos.imei_al_recibir':'📱 IMEI, colore e prezzo di ogni unità si inseriscono quando segni l\'ordine come RICEVUTO (all\'arrivo).','pedidos.modelo':'Modello o pezzo'},
+de:{'pedidos.imei_al_recibir':'📱 IMEIs, Farbe und Preis jeder Einheit werden eingegeben, wenn du die Bestellung als ERHALTEN markierst (bei Ankunft).','pedidos.modelo':'Modell oder Teil'},
+pt:{'pedidos.imei_al_recibir':'📱 Os IMEIs, cor e preço de cada unidade pedem-se ao marcar o pedido como RECEBIDO (quando chegarem).','pedidos.modelo':'Modelo ou peça'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 // ════ Estados del teléfono en stock (6 idiomas) ════
 (function(){var _a={
