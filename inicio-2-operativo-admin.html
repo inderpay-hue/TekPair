@@ -1,60 +1,63 @@
 <!DOCTYPE html>
 <html lang="es"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
-<title>TekPair · Inicio 2 (Operativo) · Admin</title>
+<title>TekPair · Inicio 2 (Operativo completo) · Admin</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
 :root{--bg1:#FFF8F2;--bg2:#FFEFE4;--ink:#241F1B;--ink2:#6E635A;--ink3:#A89C92;--line:#F0E6DC;--orange:#F2682B;--orange-d:#CC4A18;--blue:#2F6BFF;--green:#16B981;--purple:#8B5CF6;--red:#EF4444;--amber:#F59E0B;--shadow:0 1px 2px rgba(36,31,27,.04),0 8px 24px rgba(36,31,27,.06)}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh;padding:24px clamp(16px,4vw,44px) 60px;-webkit-font-smoothing:antialiased}
-.wrap{max-width:1180px;margin:0 auto}
-.ribbon{display:flex;align-items:center;gap:9px;background:rgba(242,104,43,.07);border:1px solid rgba(242,104,43,.2);color:var(--orange-d);border-radius:12px;padding:8px 14px;font-size:12px;font-weight:600;margin-bottom:16px}
+body{font-family:'Inter',system-ui,sans-serif;color:var(--ink);background:linear-gradient(160deg,var(--bg1),var(--bg2));min-height:100vh;padding:24px clamp(14px,3.5vw,40px) 60px;-webkit-font-smoothing:antialiased}
+.wrap{max-width:1280px;margin:0 auto}
+.ribbon{display:flex;align-items:center;gap:9px;background:rgba(242,104,43,.07);border:1px solid rgba(242,104,43,.2);color:var(--orange-d);border-radius:12px;padding:8px 14px;font-size:12px;font-weight:600;margin-bottom:14px}
 .pager{margin-left:auto;display:flex;gap:6px}.dot{width:7px;height:7px;border-radius:50%;background:#cbb9aa}.dot.on{background:var(--orange);width:18px;border-radius:4px}
-.top{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:6px}
-h1{font-size:clamp(23px,3vw,29px);font-weight:800;letter-spacing:-.5px}
-.sub{font-size:14px;color:var(--ink2);margin-bottom:20px}.sub b{color:var(--ink)}
-.strip{display:flex;gap:9px;flex-wrap:wrap}
-.chipk{background:#fff;border:1px solid var(--line);border-radius:12px;padding:8px 13px;font-size:12.5px;font-weight:700;box-shadow:var(--shadow);display:flex;align-items:center;gap:7px}
-.chipk b{font-size:15px}
-.chipk.money b{color:#0E9E6E}.chipk.due b{color:var(--red)}
-.board{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin:20px 0}
-.col{background:#fff;border:1px solid var(--line);border-radius:18px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
-.col-h{padding:13px 15px;font-weight:800;font-size:13.5px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
-.col-h .n{font-size:12px;font-weight:800;padding:2px 9px;border-radius:20px;background:var(--line);color:var(--ink2)}
+.top{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin-bottom:6px}
+h1{font-size:clamp(22px,2.8vw,28px);font-weight:800;letter-spacing:-.5px}
+.sub{font-size:13.5px;color:var(--ink2);margin-bottom:18px}.sub b{color:var(--ink)}
+.strip{display:flex;gap:8px;flex-wrap:wrap}
+.chipk{background:#fff;border:1px solid var(--line);border-radius:12px;padding:7px 12px;font-size:12px;font-weight:700;box-shadow:var(--shadow);display:flex;align-items:center;gap:6px}
+.chipk b{font-size:14.5px}.chipk.money b{color:#0E9E6E}.chipk.due b{color:var(--red)}
+.board{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin:18px 0}
+.col{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.col-h{padding:12px 15px;font-weight:800;font-size:13px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line)}
+.col-h .n{font-size:11.5px;font-weight:800;padding:2px 9px;border-radius:20px;background:var(--line);color:var(--ink2)}
 .col.red .col-h{color:var(--red)} .col.red .n{background:rgba(239,68,68,.12);color:var(--red)}
 .col.amber .col-h{color:#B9770A} .col.amber .n{background:rgba(245,158,11,.14);color:#B9770A}
 .col.green .col-h{color:#0E9E6E} .col.green .n{background:rgba(22,185,129,.13);color:#0E9E6E}
-.tk{padding:11px 14px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s}.tk:last-child{border-bottom:none}
+.tk{padding:10px 14px;border-bottom:1px solid var(--line);cursor:pointer;transition:background .15s}.tk:last-child{border-bottom:none}
 .tk:hover{background:#FFFBF8}
-.tk .ph{font-size:13px;font-weight:700;display:flex;justify-content:space-between;gap:8px}
-.tk .ph .eur{color:#0E9E6E;font-weight:800;flex-shrink:0}
-.tk .cl{font-size:11.5px;color:var(--ink2);margin:2px 0 6px}
-.tk .meta{display:flex;align-items:center;gap:8px;font-size:11px;color:var(--ink3)}
-.tk .when{font-weight:700;padding:2px 8px;border-radius:6px}
+.tk .ph{font-size:12.5px;font-weight:700;display:flex;justify-content:space-between;gap:8px}.tk .ph .eur{color:#0E9E6E;font-weight:800;flex-shrink:0}
+.tk .cl{font-size:11px;color:var(--ink2);margin:2px 0 5px}
+.tk .meta{display:flex;align-items:center;gap:8px;font-size:10.5px;color:var(--ink3)}
+.tk .when{font-weight:700;padding:2px 7px;border-radius:6px}
 .w-red{background:rgba(239,68,68,.1);color:var(--red)} .w-amber{background:rgba(245,158,11,.14);color:#B9770A} .w-green{background:rgba(22,185,129,.12);color:#0E9E6E}
-.row3{display:grid;grid-template-columns:repeat(3,1fr);gap:15px;margin-bottom:22px}
-.card{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow);overflow:hidden}
-.card h3{font-size:13.5px;font-weight:800;padding:13px 15px 9px;display:flex;align-items:center;justify-content:space-between}
-.card h3 .lk{font-size:11px;color:var(--orange);font-weight:700}
-.li{display:flex;align-items:center;gap:9px;padding:9px 15px;border-top:1px solid var(--line);font-size:12.5px}
-.li .ic{width:26px;height:26px;border-radius:8px;display:grid;place-items:center;font-size:13px;flex-shrink:0}
-.li .m{flex:1;min-width:0}.li .tt{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.li .ss{font-size:11px;color:var(--ink3)}
+.grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:15px;box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.card h3{font-size:13px;font-weight:800;padding:12px 14px 8px;display:flex;align-items:center;justify-content:space-between}
+.card h3 .lk{font-size:10.5px;color:var(--orange);font-weight:700}
+.li{display:flex;align-items:center;gap:9px;padding:8px 14px;border-top:1px solid var(--line);font-size:12px}
+.li .ic{width:25px;height:25px;border-radius:8px;display:grid;place-items:center;font-size:12px;flex-shrink:0}
+.li .m{flex:1;min-width:0}.li .tt{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.li .ss{font-size:10.5px;color:var(--ink3)}
 .li .rt{font-size:12px;font-weight:800}.li .rt.eur{color:#0E9E6E}
 .ib{background:rgba(47,107,255,.1);color:var(--blue)}.ip{background:rgba(139,92,246,.12);color:var(--purple)}.ia{background:rgba(245,158,11,.14);color:#B9770A}.ig{background:rgba(22,185,129,.12);color:#0E9E6E}.ir{background:rgba(239,68,68,.1);color:var(--red)}
-.tag{font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px}
-.tot{display:flex;justify-content:space-between;padding:10px 15px;border-top:1px dashed var(--line);font-size:12px;font-weight:800}
-.section-t{font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin:0 2px 12px}
-.act-row{display:grid;grid-template-columns:repeat(6,1fr);gap:11px}
-.act{display:flex;flex-direction:column;align-items:center;gap:7px;padding:15px 10px;border-radius:16px;font-weight:700;font-size:12.5px;text-align:center;border:1px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(36,31,27,.05);cursor:pointer}
-.act .ai{width:36px;height:36px;border-radius:11px;display:grid;place-items:center;font-size:18px}
+.tag{font-size:9.5px;font-weight:800;padding:2px 7px;border-radius:6px}
+.tot{display:flex;justify-content:space-between;padding:9px 14px;border-top:1px dashed var(--line);font-size:11.5px;font-weight:800;margin-top:auto}
+.pay{padding:12px 14px}
+.stack{display:flex;height:11px;border-radius:20px;overflow:hidden;margin-bottom:11px}.stack i{height:100%}
+.s-cash{background:var(--green)}.s-card{background:var(--blue)}.s-biz{background:var(--orange)}
+.pr{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11.5px}.pr .pd{width:8px;height:8px;border-radius:50%}.pr .pn{flex:1;font-weight:600}.pr .pv{font-weight:800}.pr .pp{font-size:10px;color:var(--ink3);font-weight:700;width:34px;text-align:right}
+.section-t{font-size:12px;font-weight:700;color:var(--ink3);text-transform:uppercase;letter-spacing:1px;margin:4px 2px 12px}
+.act-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
+.act{display:flex;flex-direction:column;align-items:center;gap:6px;padding:14px 8px;border-radius:15px;font-weight:700;font-size:12px;text-align:center;border:1px solid var(--line);background:#fff;box-shadow:0 1px 2px rgba(36,31,27,.05);cursor:pointer}
+.act .ai{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;font-size:17px}
 .act.p{background:linear-gradient(135deg,#FF7A45,var(--orange));color:#fff;border:none;box-shadow:0 8px 20px rgba(242,104,43,.3)}.act.p .ai{background:rgba(255,255,255,.22)}
-.tip{margin-top:26px;text-align:center;font-size:12px;color:var(--ink3)}
-@media(max-width:900px){.board,.row3{grid-template-columns:1fr}.act-row{grid-template-columns:repeat(3,1fr)}}
+.tip{margin-top:24px;text-align:center;font-size:12px;color:var(--ink3)}
+@media(max-width:1000px){.board,.grid{grid-template-columns:1fr 1fr}.act-row{grid-template-columns:repeat(3,1fr)}}
+@media(max-width:680px){.board,.grid{grid-template-columns:1fr}.act-row{grid-template-columns:repeat(2,1fr)}}
 </style></head><body><div class="wrap">
-<div class="ribbon">📋 Página <b>2 de 2</b> · Tablero operativo (admin · con caja y cobros)<span class="pager"><span class="dot"></span><span class="dot on"></span></span></div>
+<div class="ribbon">📋 Página <b>2 de 2</b> · Tablero operativo COMPLETO (admin · con caja, cobros y formas de pago)<span class="pager"><span class="dot"></span><span class="dot on"></span></span></div>
 
 <div class="top"><div><h1>Hola, TECNO 🔧</h1></div>
-<div class="strip"><div class="chipk money">💶 <b>€245</b> caja hoy</div><div class="chipk money">🛒 <b>€312</b> · 8 ventas</div><div class="chipk due">💰 <b>€180</b> por cobrar</div><div class="chipk">📅 <b>2</b> citas</div></div></div>
-<div class="sub">Tu <b>tablero del día</b>: trabajo en curso, lo que toca entregar y el dinero pendiente.</div>
+<div class="strip"><div class="chipk money">💶 <b>€245</b> caja hoy</div><div class="chipk money">🛒 <b>€312</b> · 8 ventas</div><div class="chipk due">💰 <b>€180</b> por cobrar</div><div class="chipk">🔧 <b>11</b> en proceso</div><div class="chipk">📅 <b>2</b> citas</div></div></div>
+<div class="sub">Tu <b>tablero del día</b>: trabajo en curso, entregas, cobros pendientes y todo lo que necesitas a la vista.</div>
 
 <div class="board">
   <div class="col red"><div class="col-h"><span>🚨 Urgente / hoy</span><span class="n">2</span></div>
@@ -73,21 +76,64 @@ h1{font-size:clamp(23px,3vw,29px);font-weight:800;letter-spacing:-.5px}
   </div>
 </div>
 
-<div class="row3">
+<!-- Fila A: dinero del día -->
+<div class="grid">
   <div class="card"><h3>💳 Cobros pendientes <span class="lk">Ver →</span></h3>
     <div class="li"><div class="ic ir">⏰</div><div class="m"><div class="tt">iPhone 12 · Carlos M.</div><div class="ss">entregada sin pagar</div></div><span class="rt eur">€89</span></div>
     <div class="li"><div class="ic ir">⏰</div><div class="m"><div class="tt">Tablet Lenovo · Pedro L.</div><div class="ss">a cobrar al entregar</div></div><span class="rt eur">€45</span></div>
     <div class="li"><div class="ic ir">⏰</div><div class="m"><div class="tt">Reparación · Sara V.</div><div class="ss">resto financiado</div></div><span class="rt eur">€46</span></div>
     <div class="tot"><span>Total pendiente · 3</span><span style="color:var(--red)">€180</span></div>
   </div>
+  <div class="card"><h3>🛒 Ventas de hoy <span class="lk">Ver ventas →</span></h3>
+    <div class="li"><div class="ic ip">🎧</div><div class="m"><div class="tt">Auriculares + funda</div><div class="ss">10:12 · Tarjeta</div></div><span class="rt eur">€34</span></div>
+    <div class="li"><div class="ic ip">🔌</div><div class="m"><div class="tt">Cargador USB-C</div><div class="ss">11:40 · Efectivo</div></div><span class="rt eur">€12</span></div>
+    <div class="li"><div class="ic ip">📱</div><div class="m"><div class="tt">Protector + montaje</div><div class="ss">12:25 · Bizum</div></div><span class="rt eur">€15</span></div>
+    <div class="tot"><span>8 ventas hoy</span><span style="color:#0E9E6E">€312</span></div>
+  </div>
+  <div class="card"><h3>💳 Cómo cobras hoy <span class="lk">Reportes →</span></h3>
+    <div class="pay"><div class="stack"><i class="s-cash" style="width:53%"></i><i class="s-card" style="width:34%"></i><i class="s-biz" style="width:13%"></i></div>
+      <div class="pr"><span class="pd s-cash"></span><span class="pn">💵 Efectivo</span><span class="pv">€289</span><span class="pp">53%</span></div>
+      <div class="pr"><span class="pd s-card"></span><span class="pn">💳 Tarjeta</span><span class="pv">€185</span><span class="pp">34%</span></div>
+      <div class="pr"><span class="pd s-biz"></span><span class="pn">📲 Bizum</span><span class="pv">€72</span><span class="pp">13%</span></div>
+    </div>
+  </div>
+</div>
+
+<!-- Fila B: agenda, stock y pedidos -->
+<div class="grid">
   <div class="card"><h3>📅 Citas de hoy <span class="lk">Ver agenda →</span></h3>
     <div class="li"><div class="ic ib">🕙</div><div class="m"><div class="tt">10:30 · Laura Gómez</div><div class="ss">Diagnóstico iPhone 11</div></div><span class="tag ib">Confirmada</span></div>
     <div class="li"><div class="ic ib">🕐</div><div class="m"><div class="tt">13:00 · Marc Vidal</div><div class="ss">Recogida Samsung S21</div></div><span class="tag ia">Pendiente</span></div>
+    <div class="li"><div class="ic ib">🕕</div><div class="m"><div class="tt">18:00 · Nora P.</div><div class="ss">Presupuesto tablet</div></div><span class="tag ib">Confirmada</span></div>
   </div>
-  <div class="card"><h3>📦 Stock crítico <span class="lk">Ver stock →</span></h3>
-    <div class="li"><div class="ic ia">⚠️</div><div class="m"><div class="tt">Pantalla iPhone 13</div><div class="ss">0 uds · bajo mínimo</div></div><span class="tag ia">Pedir</span></div>
-    <div class="li"><div class="ic ia">⚠️</div><div class="m"><div class="tt">Batería Samsung A52</div><div class="ss">1 ud · bajo mínimo</div></div><span class="tag ia">Pedir</span></div>
-    <div class="li"><div class="ic ig">✓</div><div class="m"><div class="tt">Cristales templados</div><div class="ss">pedido · llega 7/06</div></div><span class="tag ig">En camino</span></div>
+  <div class="card"><h3>📦 Pedidos por recibir <span class="lk">Ver pedidos →</span></h3>
+    <div class="li"><div class="ic ia">🟡</div><div class="m"><div class="tt">Moviltec · 3 artículos</div><div class="ss">llega 6/06</div></div><span class="rt eur">€245</span></div>
+    <div class="li"><div class="ic ia">🟡</div><div class="m"><div class="tt">PartsExpress · 2 art.</div><div class="ss">llega 7/06</div></div><span class="rt eur">€86</span></div>
+    <div class="li"><div class="ic ir">🔴</div><div class="m"><div class="tt">Tapa Huawei P30</div><div class="ss">por pedir</div></div><span class="tag ir">Pedir</span></div>
+    <div class="tot"><span>Comprometido</span><span>€331</span></div>
+  </div>
+  <div class="card"><h3>⚠️ Stock crítico <span class="lk">Ver stock →</span></h3>
+    <div class="li"><div class="ic ir">🔴</div><div class="m"><div class="tt">Pantalla iPhone 13</div><div class="ss">sin stock</div></div><span class="tag ir">0 uds</span></div>
+    <div class="li"><div class="ic ia">⚠️</div><div class="m"><div class="tt">Batería Samsung A52</div><div class="ss">bajo mínimo</div></div><span class="tag ia">1 ud</span></div>
+    <div class="li"><div class="ic ia">⚠️</div><div class="m"><div class="tt">Conector carga iPhone</div><div class="ss">bajo mínimo</div></div><span class="tag ia">2 uds</span></div>
+    <div class="tot"><span>Referencias a reponer</span><span style="color:#B9770A">5</span></div>
+  </div>
+</div>
+
+<!-- Fila C: garantías, notas y clientes -->
+<div class="grid">
+  <div class="card"><h3>🛡️ Garantías que vencen <span class="lk">Ver →</span></h3>
+    <div class="li"><div class="ic ia">🛡️</div><div class="m"><div class="tt">Pantalla iPhone 12 · Marta</div><div class="ss">vence en 4 días</div></div><span class="tag ia">3 meses</span></div>
+    <div class="li"><div class="ic ig">🛡️</div><div class="m"><div class="tt">Batería Xiaomi · Jordi</div><div class="ss">vence en 22 días</div></div><span class="tag ig">6 meses</span></div>
+  </div>
+  <div class="card"><h3>📌 Notas y recordatorios <span class="lk">Editar →</span></h3>
+    <div class="li"><div class="ic ip">☐</div><div class="m"><div class="tt">Pedir adaptadores USB-C</div></div><span class="tag ia">vie 6</span></div>
+    <div class="li"><div class="ic ip">☐</div><div class="m"><div class="tt">Llamar a proveedor de tapas</div></div></div>
+    <div class="li"><div class="ic ig">✓</div><div class="m"><div class="tt" style="text-decoration:line-through;color:var(--ink3)">Cuadrar caja de ayer</div></div></div>
+  </div>
+  <div class="card"><h3>👥 Clientes <span class="lk">Ver clientes →</span></h3>
+    <div class="li"><div class="ic ig">🎂</div><div class="m"><div class="tt">Cumple: Andrés Flores</div><div class="ss">hoy · cliente habitual</div></div><span class="tag ig">Felicitar</span></div>
+    <div class="li"><div class="ic ib">✨</div><div class="m"><div class="tt">2 clientes nuevos</div><div class="ss">esta semana</div></div><span class="tag ib">Nuevos</span></div>
   </div>
 </div>
 
@@ -100,5 +146,5 @@ h1{font-size:clamp(23px,3vw,29px);font-weight:800;letter-spacing:-.5px}
   <div class="act"><div class="ai" style="background:rgba(139,92,246,.12);color:var(--purple)">📦</div>Pedido</div>
   <div class="act"><div class="ai" style="background:rgba(245,158,11,.14);color:#B9770A">👤</div>Cliente</div>
 </div>
-<div class="tip">Vista previa · Página 2 (Operativo) · ADMIN · datos de ejemplo</div>
+<div class="tip">Vista previa · Página 2 (Operativo COMPLETO) · ADMIN · datos de ejemplo</div>
 </div></body></html>
