@@ -1149,7 +1149,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div style="font-size:18px;font-weight:800;color:var(--dark)" id="dTienda"></div>
     </div>
     <button id="btnPersonalizar" onclick="toggleModoEdicion()" style="background:white;color:var(--blue);border:1px solid var(--border);padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">✏️ Personalizar</button>
-    <button onclick="navTo('pInicioNuevo')" style="background:linear-gradient(135deg,#FF7A45,#EC5C24);color:#fff;border:none;padding:6px 12px;border-radius:8px;font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;flex-shrink:0">✨ Inicio nuevo</button>
   </div>
   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
     <div class="tabs" id="metricTabs" style="margin:0">
@@ -2949,7 +2948,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 <!-- ════════ INICIO NUEVO (diseño render, datos reales) ════════ -->
 <style>
-#pInicioNuevo{--inv-ink:#221D19;--inv-ink2:#6B6259;--inv-ink3:#A79C92;--inv-line:#ECE4DA;--inv-or:#EC5C24;--inv-ord:#CC4A18;--inv-blue:#3B6FF5;--inv-green:#159E72;--inv-purple:#7C5CFC;--inv-red:#E2483C;--inv-amber:#E69412;--inv-sh:0 1px 3px rgba(34,29,25,.05),0 12px 34px -14px rgba(34,29,25,.16);--inv-sm:0 1px 2px rgba(34,29,25,.05);color:var(--inv-ink)}
+#pInicioNuevo{--inv-ink:#221D19;--inv-ink2:#6B6259;--inv-ink3:#A79C92;--inv-line:#ECE4DA;--inv-or:#EC5C24;--inv-ord:#CC4A18;--inv-blue:#3B6FF5;--inv-green:#159E72;--inv-purple:#7C5CFC;--inv-red:#E2483C;--inv-amber:#E69412;--inv-sh:0 1px 3px rgba(34,29,25,.05),0 12px 34px -14px rgba(34,29,25,.16);--inv-sm:0 1px 2px rgba(34,29,25,.05);color:var(--inv-ink);max-width:1180px;margin-left:auto;margin-right:auto}
 #pInicioNuevo .inv-hero{display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;margin-bottom:22px}
 #pInicioNuevo .inv-eyebrow{font-size:12.5px;color:var(--inv-ink3);font-weight:600}
 #pInicioNuevo h1.inv-h1{font-size:clamp(24px,3.2vw,31px);font-weight:800;letter-spacing:-.6px;margin:3px 0 7px;color:var(--inv-ink)}
@@ -3007,9 +3006,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 #pInicioNuevo .inv-card2 .ped{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--inv-line);font-size:13px}#pInicioNuevo .inv-card2 .ped:last-child{border:none}#pInicioNuevo .inv-card2 .ped .st{font-size:14px}#pInicioNuevo .inv-card2 .ped .pz{flex:1;font-weight:700;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#pInicioNuevo .inv-card2 .ped .am{font-weight:800;color:var(--inv-ink2);font-size:12.5px}
 #pInicioNuevo .inv-clk{cursor:pointer;transition:transform .15s,box-shadow .15s}#pInicioNuevo .inv-clk:hover{transform:translateY(-3px);box-shadow:0 16px 40px -16px rgba(34,29,25,.22)}
 #pInicioNuevo .inv-chartcard.inv-clk:hover{box-shadow:0 26px 52px -18px rgba(34,29,25,.5)}
-@media(max-width:860px){#pInicioNuevo .inv-grid{grid-template-columns:1fr}#pInicioNuevo .inv-row3{grid-template-columns:1fr}}
+@media(max-width:1024px){#pInicioNuevo .inv-kpis{grid-template-columns:repeat(3,1fr)}#pInicioNuevo .inv-actions{grid-template-columns:repeat(2,1fr)}}
 @media(max-width:960px){#pInicioNuevo .inv-lower{grid-template-columns:1fr 1fr}}
+@media(max-width:860px){#pInicioNuevo .inv-grid{grid-template-columns:1fr}#pInicioNuevo .inv-row3{grid-template-columns:1fr}}
 @media(max-width:760px){#pInicioNuevo .inv-kpis{grid-template-columns:repeat(2,1fr)}#pInicioNuevo .inv-actions{grid-template-columns:repeat(2,1fr)}#pInicioNuevo .inv-lower{grid-template-columns:1fr}}
+@media(max-width:560px){#pInicioNuevo .inv-hero{flex-direction:column;align-items:flex-start;gap:12px}#pInicioNuevo .inv-grid{gap:14px}#pInicioNuevo .inv-row3{gap:14px}}
 </style>
 <div class="page active" id="pInicioNuevo">
   <div class="inv-hero">
