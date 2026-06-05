@@ -11111,27 +11111,19 @@ function renderServicios() {
       } else {
         precioHtml = '<span style="font-size:14px;font-weight:700;color:var(--blue)">Variable</span>';
       }
-      var cont = document.createElement('div');
-      cont.className = 'card';
-      cont.style = 'padding:12px;margin-bottom:8px';
-      cont.innerHTML = '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">' +
-        '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">' + s.nombre + '</div>' +
-        '<div style="font-size:11px;color:var(--muted)">' + (s.tipo === 'reparacion' ? 'Solo reparaciones' : s.tipo === 'venta' ? 'Solo ventas' : 'Ventas y reparaciones') + '</div></div>' +
+      var sid = String(s.id).replace(/'/g, "\\'");
+      var tipoTxt = (s.tipo === 'reparacion' ? 'Solo reparaciones' : s.tipo === 'venta' ? 'Solo ventas' : 'Ventas y reparaciones');
+      // onclick inline: con el patr\u00f3n anterior (addEventListener + cont.outerHTML)
+      // la serializaci\u00f3n a string perd\u00eda los listeners y los botones no hac\u00edan nada.
+      html += '<div class="card" style="padding:12px;margin-bottom:8px">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">' +
+        '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700">' + escHtml(s.nombre || '') + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">' + tipoTxt + '</div></div>' +
         precioHtml +
+        '</div>' +
+        '<button onclick="editarServicio(\'' + sid + '\')" style="background:var(--light);border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-top:8px;margin-right:6px">\u270f\ufe0f</button>' +
+        '<button onclick="eliminarServicio(\'' + sid + '\')" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-top:8px">\ud83d\uddd1\ufe0f</button>' +
         '</div>';
-      var btnE = document.createElement('button');
-      btnE.textContent = '\u270f\ufe0f';
-      btnE.style = 'background:var(--light);border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-top:8px;margin-right:6px';
-      btnE.dataset.sid = s.id;
-      btnE.addEventListener('click', function() { editarServicio(this.dataset.sid); });
-      var btnD = document.createElement('button');
-      btnD.textContent = '\ud83d\uddd1\ufe0f';
-      btnD.style = 'background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-top:8px';
-      btnD.dataset.sid = s.id;
-      btnD.addEventListener('click', function() { eliminarServicio(this.dataset.sid); });
-      cont.appendChild(btnE);
-      cont.appendChild(btnD);
-      html += cont.outerHTML;
     });
   });
   el.innerHTML = html;
@@ -11234,6 +11226,7 @@ function eliminarServicio(id) {
   if (!tienePerm('servicios_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   if (!confirm('Eliminar este servicio?')) return;
   DB.servicios = (DB.servicios || []).filter(function(s) { return s.id !== id; });
+  if (SB_KEY && TIENDA_ID) sbDelete('servicios', 'id=eq.' + encodeURIComponent(id));  // faltaba: borrar también en la nube
   guardarDatos();
   toast('Eliminado', 'ok');
   renderServicios();

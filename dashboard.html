@@ -3657,7 +3657,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal">
   <div class="modal-title" id="mStockTit">📦 Añadir Stock</div>
   <div class="fg"><label class="fl"><span data-t="stock.categoria">Categoría</span></label>
-    <select class="fi" id="sCat" onchange="try{renderStockMarcas()}catch(e){}">
+    <select class="fi" id="sCat" onchange="try{renderStockMarcas()}catch(e){} try{renderStockGarantia()}catch(e){} try{toggleStockMulti()}catch(e){}">
       <option value="Telefono" data-t="stock.cat_telefono">Teléfono</option><option value="Tablet" data-t="stock.cat_tablet">Tablet</option><option value="Smartwatch" data-t="stock.cat_smartwatch">Smartwatch</option><option value="Pantalla" data-t="stock.cat_pantalla">Pantalla</option><option value="Tapa" data-t="stock.cat_tapa">Tapa</option><option value="Bateria" data-t="stock.cat_bateria">Batería</option><option value="Flex de Carga" data-t="stock.cat_flex">Flex de carga</option><option value="Altavoz" data-t="stock.cat_altavoz">Altavoz</option><option value="Repuesto" data-t="stock.cat_repuesto">Repuesto</option><option value="Accesorio" data-t="stock.cat_accesorio">Accesorio</option><option value="Otro" data-t="stock.cat_otro">Otro</option>
     </select>
   </div>
