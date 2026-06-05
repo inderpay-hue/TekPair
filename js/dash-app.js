@@ -6242,10 +6242,11 @@ document.addEventListener('DOMContentLoaded', function(){
     window.openM = function(id) {
       origOpenM_garantias(id);
       if (id === 'mRep' && !SEL.editRepId) {
-        // Reparación nueva → resetear garantía al default
+        // Reparación nueva → resetear garantía al default. Por defecto INTERNA
+        // (no sale en factura/recibo); el usuario la marca como pública si quiere.
         window._repGarantiaDias = TIENDA.grDiasDefault || 90;
         window._repGarantiaTipo = 'reparacion';
-        window._repGarantiaPublica = true;
+        window._repGarantiaPublica = false;
         setTimeout(renderRepGarantia, 30);
       } else if (id === 'mStock') {
         // Stock: inicializar tipo/garantía
