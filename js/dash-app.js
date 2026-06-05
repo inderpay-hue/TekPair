@@ -7352,6 +7352,57 @@ function guardarStock() {
 // Alta de stock: resetea SIEMPRE el estado para no arrastrar una edición previa
 // (si editabas un producto, lo cancelabas y pulsabas "+ Añadir", abría en modo
 // edición y al guardar sobrescribía el producto anterior). También pone el título.
+// ═══ Marcas sugeridas en el alta/edición de stock (estilo TPV) ═══
+var STK_BRAND_COLORS = { apple:'#333',iphone:'#333',ipad:'#333',samsung:'#1428A0',galaxy:'#1428A0',xiaomi:'#FF6900',redmi:'#FF6900',poco:'#FFCD00',huawei:'#C7000B',google:'#4285F4',pixel:'#4285F4',oppo:'#1D8C3E',oneplus:'#EB0028',realme:'#FFC915',motorola:'#5C92FA',moto:'#5C92FA',sony:'#000',xperia:'#000',lg:'#A50034',nokia:'#124191',honor:'#0095D9',vivo:'#415FFF',zte:'#0055A5',alcatel:'#E5007D',tcl:'#E60012',asus:'#00539B',nothing:'#000' };
+var STK_BRAND_DOMAINS = { apple:'apple.com',iphone:'apple.com',ipad:'apple.com',samsung:'samsung.com',galaxy:'samsung.com',xiaomi:'xiaomi.com',redmi:'xiaomi.com',poco:'xiaomi.com',huawei:'huawei.com',google:'google.com',pixel:'google.com',oppo:'oppo.com',oneplus:'oneplus.com',realme:'realme.com',motorola:'motorola.com',moto:'motorola.com',sony:'sony.com',xperia:'sony.com',lg:'lg.com',nokia:'nokia.com',honor:'hihonor.com',vivo:'vivo.com',asus:'asus.com',tcl:'tcl.com',alcatel:'alcatel-mobile.com',zte:'zte.com.cn',nothing:'nothing.tech' };
+var STK_BRANDS_COMUNES = ['Apple','Samsung','Xiaomi','Huawei','Google','OPPO','Realme','Motorola','OnePlus','Honor','Nokia','Sony','TCL','Vivo'];
+function _stkBrandMatch(m, map) {
+  var norm = (m || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  if (map[norm]) return map[norm];
+  var words = (m || '').toLowerCase().split(/[^a-z0-9]+/);
+  for (var w = 0; w < words.length; w++) { if (words[w] && map[words[w]]) return map[words[w]]; }
+  for (var k in map) { if (k.length >= 3 && norm.indexOf(k) === 0) return map[k]; }
+  return null;
+}
+function _stkBrandChip(m) {
+  var color = _stkBrandMatch(m, STK_BRAND_COLORS);
+  if (!color) { var key = (m || '').toLowerCase().replace(/[^a-z0-9]/g, ''); var h = 0; for (var i = 0; i < key.length; i++) h = (h * 31 + key.charCodeAt(i)) % 360; color = 'hsl(' + h + ',55%,42%)'; }
+  var letra = (m || '?').trim().charAt(0).toUpperCase();
+  var dom = _stkBrandMatch(m, STK_BRAND_DOMAINS);
+  if (dom) return '<img alt="" data-l="' + escHtml(letra) + '" data-c="' + color + '" src="https://www.google.com/s2/favicons?domain=' + encodeURIComponent(dom) + '&sz=64" onerror="_stkBrandFallback(this)" style="width:18px;height:18px;border-radius:4px;object-fit:contain">';
+  return '<span style="display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:' + color + ';color:#fff;font-size:10px;font-weight:800">' + escHtml(letra) + '</span>';
+}
+function _stkBrandFallback(img) { var s = document.createElement('span'); s.style.cssText = 'display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:4px;background:' + (img.getAttribute('data-c') || '#888') + ';color:#fff;font-size:10px;font-weight:800'; s.textContent = img.getAttribute('data-l') || '?'; if (img.parentNode) img.parentNode.replaceChild(s, img); }
+function renderStockMarcas() {
+  var box = document.getElementById('sMarcasSug'); if (!box) return;
+  var catEl = document.getElementById('sCat'); var cat = catEl ? (catEl.value || '') : '';
+  // Marcas ya existentes en stock para esta categoría, ordenadas por frecuencia
+  var counts = {};
+  (DB.stock || []).forEach(function(s) {
+    if (cat && (s.categoria || '').toLowerCase() !== cat.toLowerCase()) return;
+    var m = (s.marca || '').trim(); if (!m) return;
+    var k = m.toLowerCase();
+    if (!counts[k]) counts[k] = { nombre: m, n: 0 };
+    counts[k].n++;
+  });
+  var nombres = Object.keys(counts).map(function(k) { return counts[k]; }).sort(function(a, b) { return b.n - a.n; }).map(function(o) { return o.nombre; });
+  // Completar con marcas comunes que no estén ya presentes
+  var lower = nombres.map(function(x) { return x.toLowerCase(); });
+  STK_BRANDS_COMUNES.forEach(function(m) { if (lower.indexOf(m.toLowerCase()) === -1) nombres.push(m); });
+  nombres = nombres.slice(0, 14);
+  var smEl = document.getElementById('sMarca');
+  var sel = (smEl ? smEl.value : '').trim().toLowerCase();
+  box.innerHTML = nombres.map(function(m) {
+    var on = m.toLowerCase() === sel;
+    return '<button type="button" onclick="setStockMarca(\'' + m.replace(/'/g, "\\'") + '\')" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:18px;border:1.5px solid ' + (on ? 'var(--orange)' : 'var(--border)') + ';background:' + (on ? 'rgba(249,115,22,.10)' : '#fff') + ';color:var(--text);font:inherit;font-size:12px;font-weight:600;cursor:pointer">' + _stkBrandChip(m) + '<span>' + escHtml(m) + '</span></button>';
+  }).join('');
+}
+function setStockMarca(m) {
+  var e = document.getElementById('sMarca'); if (!e) return;
+  e.value = m;
+  renderStockMarcas();
+  var mod = document.getElementById('sModelo'); if (mod) { mod.focus(); try { busModeloStock(); } catch (err) {} }
+}
 function nuevoStock() {
   SEL.editStockId = null;
   var tit = document.getElementById('mStockTit'); if (tit) tit.textContent = T('stock.titulo_add');
@@ -7362,7 +7413,7 @@ function nuevoStock() {
   window._stockTipoSel = 'nuevo';
   window._stockGarantiaMeses = null;
   openM('mStock');
-  setTimeout(function() { try { renderStockGarantia(); } catch (e) {} }, 50);
+  setTimeout(function() { try { renderStockGarantia(); } catch (e) {} try { renderStockMarcas(); } catch (e) {} }, 50);
 }
 
 // Desde el modal de Editar (un teléfono): pasa a modo ALTA manteniendo
@@ -7411,7 +7462,7 @@ function editarStock(id) {
   window._stockTipoSel = s.tipo || 'nuevo';
   window._stockGarantiaMeses = s.garantiaMeses || null;
   openM('mStock');
-  setTimeout(function(){ renderStockGarantia(); }, 50);
+  setTimeout(function(){ renderStockGarantia(); try { renderStockMarcas(); } catch(e){} }, 50);
 }
 
 // === HELPERS GARANTÍA STOCK ===
