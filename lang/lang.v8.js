@@ -3608,6 +3608,15 @@ it:{'pedidos.tab_pendientes':'In sospeso','pedidos.tab_por_pedir':'Da ordinare',
 de:{'pedidos.tab_pendientes':'Ausstehend','pedidos.tab_por_pedir':'Zu bestellen','pedidos.tab_pedidos':'Bestellt','pedidos.tab_recibidos':'Empfangen','pedidos.tab_todos':'Alle'},
 pt:{'pedidos.tab_pendientes':'Pendentes','pedidos.tab_por_pedir':'A pedir','pedidos.tab_pedidos':'Pedidos','pedidos.tab_recibidos':'Recebidos','pedidos.tab_todos':'Todos'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+// ════ Confirmación sin precio en stock (6 idiomas) ════
+(function(){var _a={
+es:{'stock.sin_precio_confirm':'Has dejado el precio de venta en 0. ¿Guardar igualmente?\n\nPulsa Cancelar para añadir el precio sin perder lo que has escrito.'},
+en:{'stock.sin_precio_confirm':'Sale price is 0. Save anyway?\n\nClick Cancel to add the price without losing what you typed.'},
+fr:{'stock.sin_precio_confirm':'Prix de vente à 0. Enregistrer quand même ?\n\nAnnulez pour ajouter le prix sans perdre ce que vous avez saisi.'},
+it:{'stock.sin_precio_confirm':'Prezzo di vendita a 0. Salvare comunque?\n\nAnnulla per aggiungere il prezzo senza perdere i dati.'},
+de:{'stock.sin_precio_confirm':'Verkaufspreis ist 0. Trotzdem speichern?\n\nAbbrechen, um den Preis hinzuzufügen, ohne etwas zu verlieren.'},
+pt:{'stock.sin_precio_confirm':'Preço de venda a 0. Guardar mesmo assim?\n\nCancela para adicionar o preço sem perder o que escreveste.'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 // ════ Sugerencia de piezas en reparación (6 idiomas) ════
 (function(){var _a={
 es:{'rep.piezas_sug':'🔧 Piezas de este modelo en stock','rep.stock_negativo':'⚠️ Stock negativo: {p}. Repón con un pedido o ajústalo en Stock.'},en:{'rep.piezas_sug':'🔧 Parts for this model in stock','rep.stock_negativo':'⚠️ Negative stock: {p}. Restock with an order or adjust it in Stock.'},fr:{'rep.piezas_sug':'🔧 Pièces de ce modèle en stock','rep.stock_negativo':'⚠️ Stock négatif : {p}. Réapprovisionnez via une commande ou ajustez dans Stock.'},it:{'rep.piezas_sug':'🔧 Pezzi di questo modello in magazzino','rep.stock_negativo':'⚠️ Scorte negative: {p}. Rifornisci con un ordine o correggi in Magazzino.'},de:{'rep.piezas_sug':'🔧 Teile für dieses Modell auf Lager','rep.stock_negativo':'⚠️ Negativer Bestand: {p}. Per Bestellung auffüllen oder im Bestand korrigieren.'},pt:{'rep.piezas_sug':'🔧 Peças deste modelo em stock','rep.stock_negativo':'⚠️ Stock negativo: {p}. Repõe com um pedido ou ajusta no Stock.'},
