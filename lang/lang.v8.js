@@ -3608,6 +3608,15 @@ it:{'pedidos.tab_pendientes':'In sospeso','pedidos.tab_por_pedir':'Da ordinare',
 de:{'pedidos.tab_pendientes':'Ausstehend','pedidos.tab_por_pedir':'Zu bestellen','pedidos.tab_pedidos':'Bestellt','pedidos.tab_recibidos':'Empfangen','pedidos.tab_todos':'Alle'},
 pt:{'pedidos.tab_pendientes':'Pendentes','pedidos.tab_por_pedir':'A pedir','pedidos.tab_pedidos':'Pedidos','pedidos.tab_recibidos':'Recebidos','pedidos.tab_todos':'Todos'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+// ════ Movimientos de stock (entradas/salidas) en 6 idiomas ════
+(function(){var _a={
+es:{'mov.btn':'🔄 Movimientos','mov.titulo':'Entradas y salidas','mov.hoy':'Hoy','mov.semana':'Semana','mov.mes':'Mes','mov.anio':'Año','mov.rango':'Personalizado','mov.entradas':'Entradas','mov.salidas':'Salidas','mov.entrada':'Entrada','mov.salida':'Salida','mov.vacio':'Sin movimientos en este periodo'},
+en:{'mov.btn':'🔄 Movements','mov.titulo':'Stock in & out','mov.hoy':'Today','mov.semana':'Week','mov.mes':'Month','mov.anio':'Year','mov.rango':'Custom','mov.entradas':'In','mov.salidas':'Out','mov.entrada':'In','mov.salida':'Out','mov.vacio':'No movements in this period'},
+fr:{'mov.btn':'🔄 Mouvements','mov.titulo':'Entrées et sorties','mov.hoy':'Aujourd\'hui','mov.semana':'Semaine','mov.mes':'Mois','mov.anio':'Année','mov.rango':'Personnalisé','mov.entradas':'Entrées','mov.salidas':'Sorties','mov.entrada':'Entrée','mov.salida':'Sortie','mov.vacio':'Aucun mouvement sur cette période'},
+it:{'mov.btn':'🔄 Movimenti','mov.titulo':'Entrate e uscite','mov.hoy':'Oggi','mov.semana':'Settimana','mov.mes':'Mese','mov.anio':'Anno','mov.rango':'Personalizzato','mov.entradas':'Entrate','mov.salidas':'Uscite','mov.entrada':'Entrata','mov.salida':'Uscita','mov.vacio':'Nessun movimento in questo periodo'},
+de:{'mov.btn':'🔄 Bewegungen','mov.titulo':'Ein- und Ausgänge','mov.hoy':'Heute','mov.semana':'Woche','mov.mes':'Monat','mov.anio':'Jahr','mov.rango':'Benutzerdef.','mov.entradas':'Eingänge','mov.salidas':'Ausgänge','mov.entrada':'Eingang','mov.salida':'Ausgang','mov.vacio':'Keine Bewegungen in diesem Zeitraum'},
+pt:{'mov.btn':'🔄 Movimentos','mov.titulo':'Entradas e saídas','mov.hoy':'Hoje','mov.semana':'Semana','mov.mes':'Mês','mov.anio':'Ano','mov.rango':'Personalizado','mov.entradas':'Entradas','mov.salidas':'Saídas','mov.entrada':'Entrada','mov.salida':'Saída','mov.vacio':'Sem movimentos neste período'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 // ════ Gestor de modelos (admin) en 6 idiomas ════
 (function(){var _a={
 es:{'stock.modelos_btn':'🏷️ Modelos','stock.modelos_titulo':'Catálogo de modelos','stock.modelos_sub':'Tus modelos guardados (para sugerencias). Corrige los mal escritos, añade o borra.','stock.modelos_vacio':'Aún no hay modelos guardados','stock.modelos_anadido':'Modelo guardado ✓'},
