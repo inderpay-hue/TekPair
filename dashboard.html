@@ -888,6 +888,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .stock-tab-btn{flex:0 0 auto;background:#fff;color:#9E3A15;border:1px solid #e5e7eb;border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
 .stock-tab-btn:hover{background:#f3f4f6}
 .stock-tab-btn.active{background:#FF5B1F;color:#fff;border-color:#FF5B1F}
+.cat-tab-btn{flex:0 0 auto;background:#fff;color:#9E3A15;border:1px solid #e5e7eb;border-radius:999px;padding:7px 14px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;transition:all .15s}
+.cat-tab-btn:hover{background:#f3f4f6}
+.cat-tab-btn.active{background:#FF5B1F;color:#fff;border-color:#FF5B1F}
 
 /* patron_v1: modal del patron de bloqueo */
 .patron-wrap{padding:14px;background:#0F172A;border-radius:12px;margin:10px 0;display:flex;flex-direction:column;align-items:center;gap:10px}
@@ -1043,7 +1046,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sidebar-ni" data-p="pServicios" onclick="navTo('pServicios');setSidebarActive(this)">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span><span data-t="nav.servicios">Servicios</span>
     </div>
-    <div class="sidebar-ni" onclick="window.location.href='catalogo.html'">
+    <div class="sidebar-ni" onclick="navTo('pCatalogo')">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span><span data-t="nav.catalogo">Catálogo</span>
     </div>
     <div class="sidebar-ni" data-p="pCajas" onclick="navTo('pCajas');setSidebarActive(this)">
@@ -1523,6 +1526,33 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div id="listaStock"></div>
 </div>
 
+<!-- PAGE: CATÁLOGO (stock por modelo, sincronizado) -->
+<div class="page" id="pCatalogo">
+  <div class="sec-header" style="margin-bottom:6px">
+    <div class="sec-title" data-t="nav.catalogo">Catálogo</div>
+    <div id="catTotal" style="font-size:12px;color:var(--muted);font-weight:700"></div>
+  </div>
+  <div style="font-size:12px;color:var(--muted);margin-bottom:10px" data-t="catalogo.sub">Tu stock agrupado por modelo: unidades, reparaciones y ventas de cada uno.</div>
+  <div class="search-wrap">
+    <span class="search-icon">🔍</span>
+    <input class="search-input" id="catSearch" placeholder="Buscar marca o modelo..." data-t-ph="catalogo.buscar" oninput="renderCatalogo()">
+  </div>
+  <div id="catTabs" style="display:flex;gap:6px;overflow-x:auto;padding:8px 2px 10px;margin-bottom:6px;-webkit-overflow-scrolling:touch">
+    <button class="cat-tab-btn active" data-cat="" onclick="setCatFiltro('',this)" data-t="catalogo.todos">Todos</button>
+    <button class="cat-tab-btn" data-cat="Telefono" onclick="setCatFiltro('Telefono',this)" data-t="stock.cat_telefono">Teléfono</button>
+    <button class="cat-tab-btn" data-cat="Tablet" onclick="setCatFiltro('Tablet',this)" data-t="stock.cat_tablet">Tablet</button>
+    <button class="cat-tab-btn" data-cat="Smartwatch" onclick="setCatFiltro('Smartwatch',this)" data-t="stock.cat_smartwatch">Smartwatch</button>
+    <button class="cat-tab-btn" data-cat="Pantalla" onclick="setCatFiltro('Pantalla',this)" data-t="stock.cat_pantalla">Pantalla</button>
+    <button class="cat-tab-btn" data-cat="Tapa" onclick="setCatFiltro('Tapa',this)" data-t="stock.cat_tapa">Tapa</button>
+    <button class="cat-tab-btn" data-cat="Bateria" onclick="setCatFiltro('Bateria',this)" data-t="stock.cat_bateria">Batería</button>
+    <button class="cat-tab-btn" data-cat="Flex de Carga" onclick="setCatFiltro('Flex de Carga',this)" data-t="stock.cat_flex">Flex de carga</button>
+    <button class="cat-tab-btn" data-cat="Altavoz" onclick="setCatFiltro('Altavoz',this)" data-t="stock.cat_altavoz">Altavoz</button>
+    <button class="cat-tab-btn" data-cat="Repuesto" onclick="setCatFiltro('Repuesto',this)" data-t="stock.cat_repuesto">Repuesto</button>
+    <button class="cat-tab-btn" data-cat="Accesorio" onclick="setCatFiltro('Accesorio',this)" data-t="stock.cat_accesorio">Accesorio</button>
+  </div>
+  <div id="catalogoContainer"><div class="empty">…</div></div>
+</div>
+
 <!-- PAGE: MAS -->
 <div class="page" id="pMas">
   <div class="sec-title" style="margin-bottom:16px"><span data-t="nav.mas_opciones">Más opciones</span></div>
@@ -1571,7 +1601,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div class="pmas-icon c-orange"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
       <div class="pmas-body"><div class="pmas-title" data-t="nav.servicios">Servicios</div><div class="pmas-desc" data-t="mas.desc_servicios">Catálogo de servicios y precios</div></div>
     </button>
-    <button class="pmas-btn" onclick="window.location.href='catalogo.html'">
+    <button class="pmas-btn" onclick="navTo('pCatalogo')">
       <div class="pmas-icon c-slate"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></div>
       <div class="pmas-body"><div class="pmas-title" data-t="nav.catalogo">Catálogo</div><div class="pmas-desc" data-t="mas.desc_catalogo">Modelos y referencias</div></div>
     </button>

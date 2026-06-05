@@ -1163,6 +1163,7 @@ function navTo(id) {
   }
   if (id === 'pTienda') { navTo('pAjustes'); var btn=document.querySelector('.aj-tab[data-tab="negocio"]'); if(btn) ajTab(btn); return; }
   if (id === 'pServicios') renderServicios();
+  if (id === 'pCatalogo') { try { renderCatalogo(); } catch(e){} }
   if (id === 'pUsuarios') cargarUsuarios();
   if (id === 'pFacturas') renderFacturas();
   // COM-NAV-FIX: comisiones también se carga aquí (antes solo se cargaba al
@@ -11232,6 +11233,102 @@ function eliminarServicio(id) {
   renderServicios();
 }
 
+// ═══ CATÁLOGO (stock por modelo) — integrado, sincronizado con Supabase ═══
+var _catFiltro = '';
+var CAT_CALIDADES = [
+  { v: 'Nuevo', k: 'catalogo.cal_nuevo', bg: 'rgba(22,163,74,.12)', col: '#16A34A' },
+  { v: 'Reacondicionado', k: 'catalogo.cal_reacond', bg: 'rgba(0,85,255,.10)', col: 'var(--blue)' },
+  { v: 'Bueno', k: 'catalogo.cal_bueno', bg: 'rgba(202,138,4,.12)', col: '#CA8A04' },
+  { v: 'Regular', k: 'catalogo.cal_regular', bg: 'rgba(220,38,38,.10)', col: '#DC2626' },
+  { v: 'Para piezas', k: 'catalogo.cal_piezas', bg: 'rgba(100,116,139,.12)', col: '#64748B' }
+];
+function _catNombre(cat) {
+  var map = { 'Telefono': 'stock.cat_telefono', 'Tablet': 'stock.cat_tablet', 'Smartwatch': 'stock.cat_smartwatch', 'Pantalla': 'stock.cat_pantalla', 'Tapa': 'stock.cat_tapa', 'Bateria': 'stock.cat_bateria', 'Flex de Carga': 'stock.cat_flex', 'Altavoz': 'stock.cat_altavoz', 'Repuesto': 'stock.cat_repuesto', 'Accesorio': 'stock.cat_accesorio', 'Otro': 'stock.cat_otro' };
+  return map[cat] ? T(map[cat]) : cat;
+}
+function setCatFiltro(f, btn) {
+  _catFiltro = f;
+  try { Array.prototype.forEach.call(document.querySelectorAll('#catTabs .cat-tab-btn'), function(b) { b.classList.toggle('active', b === btn); }); } catch(e){}
+  renderCatalogo();
+}
+function renderCatalogo() {
+  var el = document.getElementById('catalogoContainer'); if (!el) return;
+  var qEl = document.getElementById('catSearch');
+  var q = (qEl ? qEl.value : '').toLowerCase();
+  var filtro = _catFiltro || '';
+  var grupos = {};
+  (DB.stock || []).forEach(function(s) {
+    if (s.vendido) return;
+    var cat = s.categoria || 'Otro', marca = s.marca || '—', modelo = s.modelo || '—';
+    if (filtro && cat !== filtro) return;
+    if (q && (marca + ' ' + modelo + ' ' + (s.imei || '')).toLowerCase().indexOf(q) === -1) return;
+    var key = cat + '::' + marca.toLowerCase() + '::' + modelo.toLowerCase();
+    if (!grupos[key]) grupos[key] = { cat: cat, marca: marca, modelo: modelo, unidades: 0, conImei: 0, pvp: 0, calidad: '', ids: [] };
+    var g = grupos[key];
+    g.unidades += parseInt(s.unidades, 10) || 0;
+    if (s.imei) g.conImei++;
+    if ((parseFloat(s.precioV) || 0) > 0 && !g.pvp) g.pvp = parseFloat(s.precioV) || 0;
+    if (s.calidad && !g.calidad) g.calidad = s.calidad;
+    g.ids.push(s.id);
+  });
+  // Conteos de reparaciones y ventas por marca|modelo
+  var repC = {}, venC = {};
+  (DB.reps || []).forEach(function(r) { var k = (r.marca || '') + '|' + (r.modelo || ''); repC[k] = (repC[k] || 0) + 1; });
+  (DB.ventas || []).forEach(function(v) { if (v.reembolsado) return; var k = (v.marca || '') + '|' + (v.modelo || ''); venC[k] = (venC[k] || 0) + 1; });
+  var keys = Object.keys(grupos);
+  var tot = document.getElementById('catTotal'); if (tot) tot.textContent = keys.length ? (keys.length + ' ' + T('catalogo.modelos')) : '';
+  if (!keys.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📚</div>' + T('catalogo.sin') + '</div>'; return; }
+  var catGroups = {};
+  keys.forEach(function(k) { var it = grupos[k]; (catGroups[it.cat] = catGroups[it.cat] || []).push(it); });
+  var html = '';
+  Object.keys(catGroups).sort().forEach(function(cat) {
+    var items = catGroups[cat].sort(function(a, b) { return (a.marca + a.modelo).localeCompare(b.marca + b.modelo); });
+    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:6px 0;border-bottom:2px solid var(--border);margin:14px 0 8px">' + escHtml(_catNombre(cat)) + ' (' + items.length + ')</div>';
+    items.forEach(function(it) {
+      var rk = it.marca + '|' + it.modelo;
+      var reps = repC[rk] || 0, vens = venC[rk] || 0;
+      var imeiTag = it.conImei > 0 ? '<span style="font-size:10px;color:var(--muted)"> · 📱 ' + it.conImei + ' ' + T('catalogo.con_imei') + '</span>' : '';
+      var calBadge = _catCalBadge(it);
+      var stockCol = it.unidades <= 0 ? 'var(--red)' : 'var(--blue)';
+      html += '<div class="card" style="padding:12px;margin-bottom:8px">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px">' +
+        '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:700">' + escHtml(it.marca) + ' ' + escHtml(it.modelo) + imeiTag + '</div>' +
+        calBadge +
+        '</div>' +
+        '<div style="display:flex;gap:12px;text-align:center;flex-shrink:0">' +
+        '<div><div style="font-size:18px;font-weight:800;color:' + stockCol + '">' + it.unidades + '</div><div style="font-size:9px;color:var(--muted)">' + T('catalogo.stock') + '</div></div>' +
+        '<div><div style="font-size:18px;font-weight:800;color:#7C3AED">' + reps + '</div><div style="font-size:9px;color:var(--muted)">' + T('catalogo.reparaciones') + '</div></div>' +
+        '<div><div style="font-size:18px;font-weight:800;color:var(--green)">' + vens + '</div><div style="font-size:9px;color:var(--muted)">' + T('catalogo.ventas') + '</div></div>' +
+        '</div></div></div>';
+    });
+  });
+  el.innerHTML = html;
+}
+function _catCalBadge(it) {
+  var encIds = encodeURIComponent(JSON.stringify(it.ids));
+  var curCal = CAT_CALIDADES.filter(function(c) { return c.v === it.calidad; })[0];
+  var opts = '<option value="">' + T('catalogo.calidad') + '</option>' + CAT_CALIDADES.map(function(c) {
+    return '<option value="' + c.v + '"' + (c.v === it.calidad ? ' selected' : '') + '>' + T(c.k) + '</option>';
+  }).join('');
+  var style = curCal
+    ? 'background:' + curCal.bg + ';color:' + curCal.col
+    : 'background:var(--light);color:var(--muted)';
+  return '<select onchange="setCalidadModelo(this.getAttribute(\'data-ids\'),this.value)" data-ids="' + escHtml(encIds) + '" style="margin-top:5px;border:none;border-radius:10px;font-size:10px;font-weight:700;padding:3px 8px;cursor:pointer;font-family:inherit;' + style + '">' + opts + '</select>';
+}
+function setCalidadModelo(encIds, cal) {
+  var ids;
+  try { ids = JSON.parse(decodeURIComponent(encIds)); } catch(e) { return; }
+  if (!Array.isArray(ids)) return;
+  (DB.stock || []).forEach(function(s) {
+    if (ids.indexOf(s.id) === -1) return;
+    s.calidad = cal;
+    if (SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), { calidad: cal });
+  });
+  guardarDatos();
+  renderCatalogo();
+}
+
 // ═══ USUARIOS ═══
 async function cargarUsuarios() {
   var el = document.getElementById('listaUsuarios');
@@ -12288,7 +12385,7 @@ function aplicarPermisos() {
   // Sidebar items extra (catalogo, backup, ayuda)
   document.querySelectorAll('.sidebar-ni').forEach(function(btn) {
     var onclick = btn.getAttribute('onclick') || '';
-    if (onclick.includes('catalogo') && !tienePerm('catalogo')) btn.style.display = 'none';
+    if ((onclick.includes('catalogo') || onclick.includes('pCatalogo')) && !tienePerm('catalogo')) btn.style.display = 'none';
     if (onclick.includes('backupManual') && !tienePerm('herramientas_backup')) btn.style.display = 'none';
     if (onclick.includes('pUsuarios')) btn.style.display = 'none'; // solo admin
     if (onclick.includes('tpv.html') && !tienePerm('ventas_crear')) btn.style.display = 'none';
@@ -12302,7 +12399,7 @@ function aplicarPermisos() {
     if (onclick.includes('pServicios') && !tienePerm('servicios_ver')) btn.style.display = 'none';
     if (onclick.includes('pProvs') && !tienePerm('provs_ver')) btn.style.display = 'none';
     if (onclick.includes('pClis') && !tienePerm('clis_ver')) btn.style.display = 'none';
-    if (onclick.includes('catalogo') && !tienePerm('catalogo')) btn.style.display = 'none';
+    if ((onclick.includes('catalogo') || onclick.includes('pCatalogo')) && !tienePerm('catalogo')) btn.style.display = 'none';
     if (onclick.includes('pImportar') && !tienePerm('herramientas_importar')) btn.style.display = 'none';
     if (onclick.includes('backupManual') && !tienePerm('herramientas_backup')) btn.style.display = 'none';
     if (onclick.includes('pTienda') && !tienePerm('tienda_ver')) btn.style.display = 'none';
