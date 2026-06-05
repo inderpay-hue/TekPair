@@ -2267,7 +2267,8 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
   var finDia = new Date(hoy + 'T23:59:59');
   reps = reps || DB.reps || [];
   var pl = document.getElementById('inv-pulse');
-  if (pl) pl.innerHTML = 'Tu <b>tablero del día</b>: lo que entra, lo que estás reparando y lo que toca entregar.';
+  if (pl) pl.innerHTML = T('tb.pulse');
+  function _tbDias(n) { return n + ' ' + (n === 1 ? T('tb.dia') : T('tb.dias')); }
 
   // ── Datos ──
   var ventasHoy = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha === hoy; });
@@ -2287,50 +2288,50 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
   if (chips) {
     var c = [];
     if (puede) {
-      c.push('💶 <b>' + cur(cajaHoy) + '</b> caja hoy');
-      c.push('🛒 <b>' + cur(ventasTot) + '</b> · ' + ventasHoy.length + ' ventas');
-      if (cobrosTot > 0) c.push('💰 <b>' + cur(cobrosTot) + '</b> por cobrar');
+      c.push('💶 <b>' + cur(cajaHoy) + '</b> ' + T('tb.caja_hoy'));
+      c.push('🛒 <b>' + cur(ventasTot) + '</b> · ' + ventasHoy.length + ' ' + T('tb.ventas'));
+      if (cobrosTot > 0) c.push('💰 <b>' + cur(cobrosTot) + '</b> ' + T('tb.por_cobrar'));
     } else {
-      c.push('🚨 <b>' + urgentes.length + '</b> urgentes');
-      c.push('🛒 <b>' + ventasHoy.length + '</b> ventas');
+      c.push('🚨 <b>' + urgentes.length + '</b> ' + T('tb.urgentes'));
+      c.push('🛒 <b>' + ventasHoy.length + '</b> ' + T('tb.ventas'));
     }
-    c.push('🔧 <b>' + enRep.length + '</b> en proceso');
-    c.push('✅ <b>' + listas.length + '</b> listas');
-    c.push('📅 <b>' + citas.length + '</b> citas');
-    if (!puede) c.push('📦 <b>' + porPedir + '</b> por pedir');
+    c.push('🔧 <b>' + enRep.length + '</b> ' + T('tb.en_proceso'));
+    c.push('✅ <b>' + listas.length + '</b> ' + T('tb.listas'));
+    c.push('📅 <b>' + citas.length + '</b> ' + T('tb.citas'));
+    if (!puede) c.push('📦 <b>' + porPedir + '</b> ' + T('tb.por_pedir'));
     chips.innerHTML = c.map(function(x) { return '<div class="inv-chipk">' + x + '</div>'; }).join('');
   }
 
   // ── Tablero (3 columnas) ──
-  function nom(r) { return escHtml(((r.marca || '') + ' ' + (r.modelo || '')).trim() || 'Reparación'); }
+  function nom(r) { return escHtml(((r.marca || '') + ' ' + (r.modelo || '')).trim() || T('tb.reparacion')); }
   function cli(r) { return escHtml(r.clienteNombre || r.cliente_nombre || ''); }
   function tkUrg(r) {
     var fe = r.fechaEntrega || r.fecha_entrega;
     var hoyEnt = fe && fe.slice(0, 10) === hoy;
-    var w = hoyEnt ? 'Prometido HOY' : (r.prioridad === 'Urgente' ? 'Urgente' : 'Cliente espera');
+    var w = hoyEnt ? T('tb.prometido_hoy') : (r.prioridad === 'Urgente' ? T('tb.urgente') : T('tb.cliente_espera'));
     return '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph"><span>' + nom(r) + '</span></div><div class="cl">' + cli(r) + (r.averia ? ' · ' + escHtml(r.averia) : '') + '</div><div class="meta"><span class="when w-red">' + w + '</span></div></div>';
   }
   function tkProc(r) {
     var dias = '';
-    var f = r.fecha || r.fecha_entrada; if (f) { var d = Math.floor((finDia - new Date(f.slice(0, 10) + 'T00:00:00')) / 86400000); if (d >= 0) dias = d + (d === 1 ? ' día' : ' días'); }
+    var f = r.fecha || r.fecha_entrada; if (f) { var d = Math.floor((finDia - new Date(f.slice(0, 10) + 'T00:00:00')) / 86400000); if (d >= 0) dias = _tbDias(d); }
     return '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph"><span>' + nom(r) + '</span></div><div class="cl">' + cli(r) + (r.averia ? ' · ' + escHtml(r.averia) : '') + '</div>' + (dias ? '<div class="meta"><span class="when w-amber">' + dias + '</span></div>' : '') + '</div>';
   }
   function tkLista(r) {
     var eur = (puede && r.restante > 0) ? '<span class="eur">' + cur(r.restante) + '</span>' : '';
-    var tag = _estaAvisado(r.id) ? '<span class="when w-green">Avisado ✓</span>' : '<span class="when w-amber">Sin avisar</span>';
+    var tag = _estaAvisado(r.id) ? '<span class="when w-green">' + T('tb.avisado') + '</span>' : '<span class="when w-amber">' + T('tb.sin_avisar') + '</span>';
     return '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph"><span>' + nom(r) + '</span>' + eur + '</div><div class="cl">' + cli(r) + '</div><div class="meta">' + tag + '</div></div>';
   }
   var board = document.getElementById('inv-tb-board');
   if (board) {
-    var colU = urgentes.length ? urgentes.slice(0, 4).map(tkUrg).join('') : '<div class="inv-empty">Nada urgente ✓</div>';
+    var colU = urgentes.length ? urgentes.slice(0, 4).map(tkUrg).join('') : '<div class="inv-empty">' + T('tb.nada_urgente') + '</div>';
     var procShown = enRep.slice(0, 3).map(tkProc).join('');
-    if (enRep.length > 3) procShown += '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph" style="color:var(--inv-or)"><span>+ ' + (enRep.length - 3) + ' reparaciones más…</span></div><div class="cl" style="color:var(--inv-or);font-weight:700">Ver todas →</div></div>';
-    if (!enRep.length) procShown = '<div class="inv-empty">Sin reparaciones en proceso</div>';
-    var colL = listas.length ? listas.slice(0, 4).map(tkLista).join('') : '<div class="inv-empty">Nada por entregar</div>';
+    if (enRep.length > 3) procShown += '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph" style="color:var(--inv-or)"><span>+ ' + (enRep.length - 3) + ' ' + T('tb.mas_reps') + '</span></div><div class="cl" style="color:var(--inv-or);font-weight:700">' + T('tb.ver_todas') + '</div></div>';
+    if (!enRep.length) procShown = '<div class="inv-empty">' + T('tb.sin_proceso') + '</div>';
+    var colL = listas.length ? listas.slice(0, 4).map(tkLista).join('') : '<div class="inv-empty">' + T('tb.nada_entregar') + '</div>';
     board.innerHTML =
-      '<div class="inv-col red"><div class="inv-col-h"><span>🚨 Urgente / hoy</span><span class="n">' + urgentes.length + '</span></div>' + colU + '</div>' +
-      '<div class="inv-col amber"><div class="inv-col-h"><span>⏳ En proceso</span><span class="n">' + enRep.length + '</span></div>' + procShown + '</div>' +
-      '<div class="inv-col green"><div class="inv-col-h"><span>✅ Listas para entregar</span><span class="n">' + listas.length + '</span></div>' + colL + '</div>';
+      '<div class="inv-col red"><div class="inv-col-h"><span>' + T('tb.col_urgente') + '</span><span class="n">' + urgentes.length + '</span></div>' + colU + '</div>' +
+      '<div class="inv-col amber"><div class="inv-col-h"><span>' + T('tb.col_proceso') + '</span><span class="n">' + enRep.length + '</span></div>' + procShown + '</div>' +
+      '<div class="inv-col green"><div class="inv-col-h"><span>' + T('tb.col_listas') + '</span><span class="n">' + listas.length + '</span></div>' + colL + '</div>';
   }
 
   // ── Tarjetas (por rol) ──
@@ -2338,16 +2339,16 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
   // Cobros pendientes (admin)
   if (puede && _invWidgetOn('tb_cobros')) {
     var cob = cobrosArr.slice(0, 4).map(function(r) {
-      return '<div class="inv-li"><div class="ic ir">⏰</div><div class="m"><div class="tt">' + nom(r) + ' · ' + cli(r) + '</div><div class="ss">' + (r.estado === 'Entregado' ? 'entregada sin pagar' : 'a cobrar') + '</div></div><span class="rt eur">' + cur(r.restante) + '</span></div>';
-    }).join('') || '<div class="inv-empty">Sin cobros pendientes ✓</div>';
-    cards.push('<div class="inv-tcard" data-w="tb_cobros"><h4>💳 Cobros pendientes <span class="lk" onclick="navTo(\'pReps\')">Ver →</span></h4>' + cob + (cobrosArr.length ? '<div class="inv-tot"><span>Total · ' + cobrosArr.length + '</span><span style="color:var(--inv-red)">' + cur(cobrosTot) + '</span></div>' : '') + '</div>');
+      return '<div class="inv-li"><div class="ic ir">⏰</div><div class="m"><div class="tt">' + nom(r) + ' · ' + cli(r) + '</div><div class="ss">' + (r.estado === 'Entregado' ? T('tb.entregada_sin_pagar') : T('tb.a_cobrar')) + '</div></div><span class="rt eur">' + cur(r.restante) + '</span></div>';
+    }).join('') || '<div class="inv-empty">' + T('tb.sin_cobros_pend') + '</div>';
+    cards.push('<div class="inv-tcard" data-w="tb_cobros"><h4>' + T('tb.cobros_h') + ' <span class="lk" onclick="navTo(\'pReps\')">' + T('tb.ver') + '</span></h4>' + cob + (cobrosArr.length ? '<div class="inv-tot"><span>' + T('tb.total') + ' · ' + cobrosArr.length + '</span><span style="color:var(--inv-red)">' + cur(cobrosTot) + '</span></div>' : '') + '</div>');
   }
   // Ventas de hoy
   var vRows = ventasHoy.slice(0, 3).map(function(v) {
-    var t = (v.lineas && v.lineas[0] && (v.lineas[0].nombre)) || (v.items && v.items[0] && v.items[0].nombre) || 'Venta';
+    var t = (v.lineas && v.lineas[0] && (v.lineas[0].nombre)) || (v.items && v.items[0] && v.items[0].nombre) || T('tb.venta');
     return '<div class="inv-li"><div class="ic ip">🛒</div><div class="m"><div class="tt">' + escHtml(t) + '</div><div class="ss">' + escHtml(v.pago || '') + '</div></div>' + (puede ? '<span class="rt eur">' + cur(v.total || 0) + '</span>' : '<span class="rt">1</span>') + '</div>';
-  }).join('') || '<div class="inv-empty">Sin ventas hoy</div>';
-  if (_invWidgetOn('tb_ventas')) cards.push('<div class="inv-tcard" data-w="tb_ventas"><h4>🛒 Ventas de hoy <span class="lk" onclick="navTo(\'pVentas\')">Ver →</span></h4>' + vRows + '<div class="inv-tot"><span>' + ventasHoy.length + ' ventas hoy</span>' + (puede ? '<span style="color:#0E9E6E">' + cur(ventasTot) + '</span>' : '<span>' + ventasHoy.length + '</span>') + '</div></div>');
+  }).join('') || '<div class="inv-empty">' + T('tb.sin_ventas') + '</div>';
+  if (_invWidgetOn('tb_ventas')) cards.push('<div class="inv-tcard" data-w="tb_ventas"><h4>' + T('tb.ventas_h') + ' <span class="lk" onclick="navTo(\'pVentas\')">' + T('tb.ver') + '</span></h4>' + vRows + '<div class="inv-tot"><span>' + ventasHoy.length + ' ' + T('tb.ventas_hoy_n') + '</span>' + (puede ? '<span style="color:#0E9E6E">' + cur(ventasTot) + '</span>' : '<span>' + ventasHoy.length + '</span>') + '</div></div>');
   // Cómo cobras (admin)
   if (puede && _invWidgetOn('tb_comocobras')) {
     var pagos = {};
@@ -2361,8 +2362,8 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
     if (totP > 0) {
       inner = '<div style="padding:12px 14px"><div class="stack">' + ord.map(function(m) { return '<i class="' + (cls[m] || 's-tr') + '" style="width:' + (pagos[m] / totP * 100) + '%"></i>'; }).join('') + '</div>' +
         ord.map(function(m) { return '<div style="display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11.5px"><span style="width:8px;height:8px;border-radius:50%" class="' + (cls[m] || 's-tr') + '"></span><span style="flex:1;font-weight:600">' + (ico[m] || '💳') + ' ' + escHtml(m) + '</span><span style="font-weight:800">' + cur(pagos[m]) + '</span></div>'; }).join('') + '</div>';
-    } else inner = '<div class="inv-empty">Sin cobros hoy</div>';
-    cards.push('<div class="inv-tcard" data-w="tb_comocobras"><h4>💳 Cómo cobras hoy <span class="lk" onclick="navTo(\'pReportes\')">Reportes →</span></h4>' + inner + '</div>');
+    } else inner = '<div class="inv-empty">' + T('tb.sin_cobros_hoy') + '</div>';
+    cards.push('<div class="inv-tcard" data-w="tb_comocobras"><h4>' + T('tb.comocobras_h') + ' <span class="lk" onclick="navTo(\'pReportes\')">' + T('tb.reportes') + '</span></h4>' + inner + '</div>');
   }
   // Citas de hoy
   var citRows = citas.slice(0, 3).map(function(c2) {
@@ -2370,21 +2371,21 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
     var who = escHtml(c2.clienteNombre || c2.cliente_nombre || c2.cliente || '');
     var mot = escHtml(c2.motivo || c2.servicio || c2.nota || '');
     return '<div class="inv-li"><div class="ic ib">🕐</div><div class="m"><div class="tt">' + (h ? h + ' · ' : '') + who + '</div><div class="ss">' + mot + '</div></div></div>';
-  }).join('') || '<div class="inv-empty">Sin citas hoy</div>';
-  if (_invWidgetOn('tb_citas')) cards.push('<div class="inv-tcard" data-w="tb_citas"><h4>📅 Citas de hoy <span class="lk" onclick="navTo(\'pCitas\')">Agenda →</span></h4>' + citRows + '</div>');
+  }).join('') || '<div class="inv-empty">' + T('tb.sin_citas') + '</div>';
+  if (_invWidgetOn('tb_citas')) cards.push('<div class="inv-tcard" data-w="tb_citas"><h4>' + T('tb.citas_h') + ' <span class="lk" onclick="navTo(\'pCitas\')">' + T('tb.agenda') + '</span></h4>' + citRows + '</div>');
   // Pedidos por recibir
   var pedRows = peds.slice(0, 4).map(function(p) {
     var st = p.estado === 'pedido' ? '🟡' : '🔴';
     var ic = p.estado === 'pedido' ? 'ia' : 'ir';
-    return '<div class="inv-li"><div class="ic ' + ic + '">' + st + '</div><div class="m"><div class="tt">' + escHtml(p.pieza || p.proveedor || 'Pedido') + '</div><div class="ss">' + escHtml(p.proveedor || (p.estado === 'pedido' ? 'en camino' : 'por pedir')) + '</div></div>' + (puede && p.importe ? '<span class="rt eur">' + cur(parseFloat(p.importe) || 0) + '</span>' : '<span class="inv-tag ' + (p.estado === 'pedido' ? 'ia' : 'ir') + '">' + (p.estado === 'pedido' ? 'En camino' : 'Pedir') + '</span>') + '</div>';
-  }).join('') || '<div class="inv-empty">Sin pedidos pendientes</div>';
-  if (_invWidgetOn('tb_pedidos')) cards.push('<div class="inv-tcard" data-w="tb_pedidos"><h4>📦 Pedidos por recibir <span class="lk" onclick="navTo(\'pPedidos\')">Ver →</span></h4>' + pedRows + '</div>');
+    return '<div class="inv-li"><div class="ic ' + ic + '">' + st + '</div><div class="m"><div class="tt">' + escHtml(p.pieza || p.proveedor || T('tb.pedido')) + '</div><div class="ss">' + escHtml(p.proveedor || '') + (p.proveedor ? '' : (p.estado === 'pedido' ? T('tb.en_camino_low') : T('tb.por_pedir_low'))) + '</div></div>' + (puede && p.importe ? '<span class="rt eur">' + cur(parseFloat(p.importe) || 0) + '</span>' : '<span class="inv-tag ' + (p.estado === 'pedido' ? 'ia' : 'ir') + '">' + (p.estado === 'pedido' ? T('tb.en_camino_tag') : T('tb.pedir_tag')) + '</span>') + '</div>';
+  }).join('') || '<div class="inv-empty">' + T('tb.sin_pedidos') + '</div>';
+  if (_invWidgetOn('tb_pedidos')) cards.push('<div class="inv-tcard" data-w="tb_pedidos"><h4>' + T('tb.pedidos_h') + ' <span class="lk" onclick="navTo(\'pPedidos\')">' + T('tb.ver') + '</span></h4>' + pedRows + '</div>');
   // Stock crítico
   var stRows = stockBajo.slice(0, 4).map(function(s) {
     var u = parseInt(s.unidades, 10) || 0;
-    return '<div class="inv-li"><div class="ic ' + (u === 0 ? 'ir' : 'ia') + '">' + (u === 0 ? '🔴' : '⚠️') + '</div><div class="m"><div class="tt">' + escHtml(((s.marca || '') + ' ' + (s.modelo || '')).trim() || 'Producto') + '</div><div class="ss">' + (u === 0 ? 'sin stock' : 'bajo mínimo') + '</div></div><span class="inv-tag ' + (u === 0 ? 'ir' : 'ia') + '">' + u + ' uds</span></div>';
-  }).join('') || '<div class="inv-empty">Stock al día ✓</div>';
-  if (_invWidgetOn('tb_stock')) cards.push('<div class="inv-tcard" data-w="tb_stock"><h4>⚠️ Stock crítico <span class="lk" onclick="navTo(\'pStock\')">Ver →</span></h4>' + stRows + (stockBajo.length ? '<div class="inv-tot"><span>Referencias a reponer</span><span style="color:#B9770A">' + stockBajo.length + '</span></div>' : '') + '</div>');
+    return '<div class="inv-li"><div class="ic ' + (u === 0 ? 'ir' : 'ia') + '">' + (u === 0 ? '🔴' : '⚠️') + '</div><div class="m"><div class="tt">' + escHtml(((s.marca || '') + ' ' + (s.modelo || '')).trim() || T('tb.producto')) + '</div><div class="ss">' + (u === 0 ? T('tb.sin_stock') : T('tb.bajo_min')) + '</div></div><span class="inv-tag ' + (u === 0 ? 'ir' : 'ia') + '">' + u + ' ' + T('tb.uds') + '</span></div>';
+  }).join('') || '<div class="inv-empty">' + T('tb.stock_dia') + '</div>';
+  if (_invWidgetOn('tb_stock')) cards.push('<div class="inv-tcard" data-w="tb_stock"><h4>' + T('tb.stock_h') + ' <span class="lk" onclick="navTo(\'pStock\')">' + T('tb.ver') + '</span></h4>' + stRows + (stockBajo.length ? '<div class="inv-tot"><span>' + T('tb.refs_reponer') + '</span><span style="color:#B9770A">' + stockBajo.length + '</span></div>' : '') + '</div>');
   // Garantías que vencen
   if (_invWidgetOn('tb_garantias')) {
     var gar = reps.map(function(r) {
@@ -2395,18 +2396,18 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
       return { r: r, dias: dias };
     }).filter(Boolean).sort(function(a, b) { return a.dias - b.dias; }).slice(0, 4);
     var gRows = gar.map(function(o) {
-      return '<div class="inv-li"><div class="ic ' + (o.dias <= 7 ? 'ir' : 'ia') + '">🛡️</div><div class="m"><div class="tt">' + nom(o.r) + ' · ' + cli(o.r) + '</div><div class="ss">vence en ' + o.dias + (o.dias === 1 ? ' día' : ' días') + '</div></div></div>';
-    }).join('') || '<div class="inv-empty">Sin garantías próximas a vencer</div>';
-    cards.push('<div class="inv-tcard" data-w="tb_garantias"><h4>🛡️ Garantías que vencen <span class="lk" onclick="navTo(\'pReps\')">Ver →</span></h4>' + gRows + '</div>');
+      return '<div class="inv-li"><div class="ic ' + (o.dias <= 7 ? 'ir' : 'ia') + '">🛡️</div><div class="m"><div class="tt">' + nom(o.r) + ' · ' + cli(o.r) + '</div><div class="ss">' + T('tb.vence_en') + ' ' + _tbDias(o.dias) + '</div></div></div>';
+    }).join('') || '<div class="inv-empty">' + T('tb.sin_garantias') + '</div>';
+    cards.push('<div class="inv-tcard" data-w="tb_garantias"><h4>' + T('tb.garantias_h') + ' <span class="lk" onclick="navTo(\'pReps\')">' + T('tb.ver') + '</span></h4>' + gRows + '</div>');
   }
   // Entregas de hoy
   if (_invWidgetOn('tb_entregas')) {
     var ent = reps.filter(function(r) { return (r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado'; });
     var eRows = ent.slice(0, 4).map(function(r) {
       var h = (r.fechaEntregaReal || '').slice(11, 16);
-      return '<div class="inv-li"><div class="ic ig">✓</div><div class="m"><div class="tt">' + nom(r) + ' · ' + cli(r) + '</div><div class="ss">' + (h ? 'entregado ' + h : 'entregado hoy') + '</div></div><span class="inv-tag ig">Hecho</span></div>';
-    }).join('') || '<div class="inv-empty">Aún sin entregas hoy</div>';
-    cards.push('<div class="inv-tcard" data-w="tb_entregas"><h4>📤 Entregas de hoy <span class="lk" onclick="navTo(\'pReps\')">Ver →</span></h4>' + eRows + (ent.length ? '<div class="inv-tot"><span>Entregadas hoy</span><span style="color:#0E9E6E">' + ent.length + '</span></div>' : '') + '</div>');
+      return '<div class="inv-li"><div class="ic ig">✓</div><div class="m"><div class="tt">' + nom(r) + ' · ' + cli(r) + '</div><div class="ss">' + (h ? T('tb.entregado') + ' ' + h : T('tb.entregado_hoy')) + '</div></div><span class="inv-tag ig">' + T('tb.hecho') + '</span></div>';
+    }).join('') || '<div class="inv-empty">' + T('tb.sin_entregas') + '</div>';
+    cards.push('<div class="inv-tcard" data-w="tb_entregas"><h4>' + T('tb.entregas_h') + ' <span class="lk" onclick="navTo(\'pReps\')">' + T('tb.ver') + '</span></h4>' + eRows + (ent.length ? '<div class="inv-tot"><span>' + T('tb.entregadas_hoy') + '</span><span style="color:#0E9E6E">' + ent.length + '</span></div>' : '') + '</div>');
   }
   // Averías más frecuentes
   if (_invWidgetOn('tb_averias')) {
@@ -2416,8 +2417,8 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
     var maxA = avArr.length ? avArr[0].n : 1;
     var avInner = avArr.length ? '<div style="padding:11px 14px">' + avArr.map(function(o) {
       return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:11.5px"><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--inv-ink2)">' + escHtml(o.k) + '</span><span style="width:84px;height:7px;border-radius:4px;background:var(--inv-line);overflow:hidden;flex-shrink:0"><i style="display:block;height:100%;border-radius:4px;width:' + (o.n / maxA * 100) + '%;background:var(--inv-or)"></i></span><span style="font-weight:800;width:24px;text-align:right">' + o.n + '</span></div>';
-    }).join('') + '</div>' : '<div class="inv-empty">Sin datos de averías</div>';
-    cards.push('<div class="inv-tcard" data-w="tb_averias"><h4>🏆 Averías más frecuentes <span class="lk" onclick="navTo(\'pReportes\')">Reportes →</span></h4>' + avInner + '</div>');
+    }).join('') + '</div>' : '<div class="inv-empty">' + T('tb.sin_averias') + '</div>';
+    cards.push('<div class="inv-tcard" data-w="tb_averias"><h4>' + T('tb.averias_h') + ' <span class="lk" onclick="navTo(\'pReportes\')">' + T('tb.reportes') + '</span></h4>' + avInner + '</div>');
   }
   // Cumpleaños de clientes
   if (_invWidgetOn('tb_clientes')) {
@@ -2432,11 +2433,11 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
       return { c: c2, dias: dias };
     }).filter(Boolean).sort(function(a, b) { return a.dias - b.dias; }).slice(0, 4);
     var cuRows = cumples.map(function(o) {
-      var when = o.dias === 0 ? 'hoy 🎂' : ('en ' + o.dias + (o.dias === 1 ? ' día' : ' días'));
-      var btn = o.c.tel ? '<button onclick="felicitarCumple(\'' + o.c.id + '\')" style="background:#25D366;color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">💬 Felicitar</button>' : '<span class="inv-tag ia">sin tel.</span>';
-      return '<div class="inv-li"><div class="ic ig">🎂</div><div class="m"><div class="tt">' + escHtml(((o.c.nombre || '') + ' ' + (o.c.apellidos || '')).trim()) + '</div><div class="ss">cumple ' + when + '</div></div>' + btn + '</div>';
-    }).join('') || '<div class="inv-empty">Sin cumpleaños esta semana</div>';
-    cards.push('<div class="inv-tcard" data-w="tb_clientes"><h4>🎂 Cumpleaños de clientes <span class="lk" onclick="navTo(\'pClis\')">Clientes →</span></h4>' + cuRows + '</div>');
+      var when = o.dias === 0 ? T('tb.cumple_hoy') : (T('tb.en') + ' ' + _tbDias(o.dias));
+      var btn = o.c.tel ? '<button onclick="felicitarCumple(\'' + o.c.id + '\')" style="background:#25D366;color:#fff;border:none;border-radius:7px;padding:5px 10px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap">' + T('tb.felicitar') + '</button>' : '<span class="inv-tag ia">' + T('tb.sin_tel') + '</span>';
+      return '<div class="inv-li"><div class="ic ig">🎂</div><div class="m"><div class="tt">' + escHtml(((o.c.nombre || '') + ' ' + (o.c.apellidos || '')).trim()) + '</div><div class="ss">' + T('tb.cumple') + ' ' + when + '</div></div>' + btn + '</div>';
+    }).join('') || '<div class="inv-empty">' + T('tb.sin_cumples') + '</div>';
+    cards.push('<div class="inv-tcard" data-w="tb_clientes"><h4>' + T('tb.cumples_h') + ' <span class="lk" onclick="navTo(\'pClis\')">' + T('tb.clientes_link') + '</span></h4>' + cuRows + '</div>');
   }
   // Notas y recordatorios (interactivo)
   if (_invWidgetOn('tb_notas')) {
@@ -2450,11 +2451,11 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
         '<button onclick="delRecordatorio(' + i + ');renderInicioNuevo()" style="background:none;border:none;color:var(--inv-red);cursor:pointer;font-size:14px;line-height:1">×</button></div>';
     }).join('');
     var notHtml = '<div style="padding:11px 14px">' +
-      '<textarea id="invTbNotasTa" placeholder="Escribe una nota…" oninput="guardarTbNotas()" style="width:100%;box-sizing:border-box;min-height:46px;resize:vertical;border:1px solid var(--inv-line);border-radius:9px;padding:8px;font-size:12px;font-family:inherit;background:#FDFBF9;color:var(--inv-ink)">' + escHtml(window._pedNotas || '') + '</textarea>' +
+      '<textarea id="invTbNotasTa" placeholder="' + T('tb.escribe_nota') + '" oninput="guardarTbNotas()" style="width:100%;box-sizing:border-box;min-height:46px;resize:vertical;border:1px solid var(--inv-line);border-radius:9px;padding:8px;font-size:12px;font-family:inherit;background:#FDFBF9;color:var(--inv-ink)">' + escHtml(window._pedNotas || '') + '</textarea>' +
       recsHtml +
-      '<div style="display:flex;gap:5px;margin-top:8px"><input id="invTbRecInput" placeholder="Nuevo recordatorio…" onkeydown="if(event.key===\'Enter\')addRecTb()" style="flex:1;min-width:0;border:1px solid var(--inv-line);border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit"><input id="invTbRecFecha" type="date" style="border:1px solid var(--inv-line);border-radius:8px;padding:5px;font-size:11px"><button onclick="addRecTb()" style="background:var(--inv-or);color:#fff;border:none;border-radius:8px;padding:6px 11px;font-size:14px;cursor:pointer">+</button></div>' +
+      '<div style="display:flex;gap:5px;margin-top:8px"><input id="invTbRecInput" placeholder="' + T('tb.nuevo_rec') + '" onkeydown="if(event.key===\'Enter\')addRecTb()" style="flex:1;min-width:0;border:1px solid var(--inv-line);border-radius:8px;padding:6px 8px;font-size:12px;font-family:inherit"><input id="invTbRecFecha" type="date" style="border:1px solid var(--inv-line);border-radius:8px;padding:5px;font-size:11px"><button onclick="addRecTb()" style="background:var(--inv-or);color:#fff;border:none;border-radius:8px;padding:6px 11px;font-size:14px;cursor:pointer">+</button></div>' +
       '</div>';
-    cards.push('<div class="inv-tcard" data-w="tb_notas"><h4>📌 Notas y recordatorios</h4>' + notHtml + '</div>');
+    cards.push('<div class="inv-tcard" data-w="tb_notas"><h4>📌 ' + T('inicio.notas') + '</h4>' + notHtml + '</div>');
   }
 
   var cont = document.getElementById('inv-tb-cards');
