@@ -1102,6 +1102,7 @@ function navTo(id) {
   if (id === 'pCajas') Cajas.renderCajas();
   if (id === 'pInicioNuevo') renderInicioNuevo();
   if (id === 'pPedidos') renderPedidosPage();
+  if (id === 'pAyuda') { try { renderGuiaAyuda(); } catch(e){} }
   if (id === 'pGastos') renderGastos();
   if (id === 'pAjustes') { try { renderUbicacionesAjustes(); } catch(e){} cargarAjustes(); }
   if (id === 'pReportes') renderReporte();
@@ -2065,6 +2066,75 @@ function marcarGrupoPedido(encKey) {
   });
   renderPedidosWidget();
   toast(T('pedidos.grupo_marcado').replace('{n}', targets.length), 'ok');
+}
+
+// ════ GUÍA DE USO (Ayuda) en 6 idiomas ════
+var GUIA_AYUDA = {
+  es: [
+    { e: '🚀', t: 'Primeros pasos', items: ['Configura tu tienda en <strong>Ajustes</strong>: nombre, logo, datos fiscales e IVA.', 'Importa tus <strong>clientes y stock</strong> desde CSV (Más → Importar) para arrancar con tus datos.', 'Crea usuarios para tu equipo en <strong>Usuarios</strong> y dale a cada uno solo los permisos que necesita.'] },
+    { e: '🔧', t: 'Reparaciones', items: ['Pulsa <strong>Nueva reparación</strong>: cliente, equipo, avería y, si quieres, fotos y firma.', 'Cambia el <strong>estado</strong> (Pendiente → En proceso → Por entregar) según avances.', 'Al entregar, <strong>avisa al cliente por WhatsApp</strong> con un toque y registra el cobro.', 'Marca la <strong>prioridad</strong> Alta/Urgente para que salga en "Necesita tu atención".'] },
+    { e: '📄', t: 'Presupuestos', items: ['Crea un presupuesto y <strong>envíalo al cliente</strong> por enlace; él lo acepta online.', 'Cuando lo acepta, conviértelo en <strong>reparación con un clic</strong>, sin reescribir nada.'] },
+    { e: '🛒', t: 'TPV y ventas', items: ['Abre el <strong>TPV</strong> para cobrar ventas rápido, por código de barras y varias formas de pago.', 'Cada venta <strong>descuenta el stock</strong> automáticamente.'] },
+    { e: '📦', t: 'Stock y pedidos', items: ['Define un <strong>mínimo por producto</strong>; TekPair te avisa cuando hay que reponer.', 'En <strong>Pedidos</strong> creas pedidos a proveedores; al marcarlos recibidos, suben al stock solos.', 'Agrupa pedidos por proveedor y recibe todo de golpe.'] },
+    { e: '💶', t: 'Caja y cierres', items: ['Abre caja con tu fondo inicial y cierra al final del día.', 'El <strong>cierre</strong> te dice al instante si cuadra y el desglose por forma de pago.'] },
+    { e: '📊', t: 'Saca el máximo partido', items: ['Mira el <strong>Inicio</strong> (vista Negocio) para ver ingresos, cómo cobras y qué te deja más margen.', 'Revisa <strong>Reportes</strong> para decidir con datos qué servicios potenciar.', 'Usa <strong>roles</strong>: el empleado ve lo operativo, tú ves la caja y los números.', 'Registra la <strong>garantía</strong> de cada reparación: si el cliente vuelve, la consultas al instante.'] },
+  ],
+  en: [
+    { e: '🚀', t: 'Getting started', items: ['Set up your shop in <strong>Settings</strong>: name, logo, tax details and VAT.', 'Import your <strong>customers and stock</strong> from CSV (More → Import) to start with your data.', 'Create users for your team in <strong>Users</strong> and give each only the permissions they need.'] },
+    { e: '🔧', t: 'Repairs', items: ['Tap <strong>New repair</strong>: customer, device, fault and, if you want, photos and signature.', 'Change the <strong>status</strong> (Pending → In progress → Ready) as you go.', 'On handover, <strong>notify the customer on WhatsApp</strong> in one tap and record the payment.', 'Set <strong>priority</strong> High/Urgent so it shows in "Needs your attention".'] },
+    { e: '📄', t: 'Quotes', items: ['Create a quote and <strong>send it to the customer</strong> by link; they accept it online.', 'Once accepted, turn it into a <strong>repair in one click</strong>, no rewriting.'] },
+    { e: '🛒', t: 'POS & sales', items: ['Open the <strong>POS</strong> to charge sales fast, by barcode and several payment methods.', 'Every sale <strong>deducts stock</strong> automatically.'] },
+    { e: '📦', t: 'Stock & orders', items: ['Set a <strong>minimum per product</strong>; TekPair warns you when to restock.', 'In <strong>Orders</strong> you create supplier orders; mark them received and they add to stock.', 'Group orders by supplier and receive everything at once.'] },
+    { e: '💶', t: 'Cash & closing', items: ['Open the till with your float and close at the end of the day.', 'The <strong>closing</strong> tells you instantly if it balances, with the breakdown by payment method.'] },
+    { e: '📊', t: 'Get the most out of it', items: ['Check the <strong>Home</strong> (Business view) for income, how you get paid and best-margin items.', 'Review <strong>Reports</strong> to decide with data which services to push.', 'Use <strong>roles</strong>: staff see the operational side, you see the cash and numbers.', 'Record each repair\'s <strong>warranty</strong>: if the customer returns, check it instantly.'] },
+  ],
+  fr: [
+    { e: '🚀', t: 'Premiers pas', items: ['Configurez votre atelier dans <strong>Réglages</strong> : nom, logo, données fiscales et TVA.', 'Importez vos <strong>clients et stock</strong> depuis un CSV (Plus → Importer) pour démarrer avec vos données.', 'Créez des utilisateurs pour votre équipe dans <strong>Utilisateurs</strong>, avec les permissions nécessaires.'] },
+    { e: '🔧', t: 'Réparations', items: ['Appuyez sur <strong>Nouvelle réparation</strong> : client, appareil, panne et, si besoin, photos et signature.', 'Changez l\'<strong>état</strong> (En attente → En cours → Prêt) au fil de l\'avancement.', 'À la remise, <strong>prévenez le client sur WhatsApp</strong> en un geste et enregistrez l\'encaissement.', 'Mettez la <strong>priorité</strong> Haute/Urgente pour l\'afficher dans « Nécessite votre attention ».'] },
+    { e: '📄', t: 'Devis', items: ['Créez un devis et <strong>envoyez-le au client</strong> par lien ; il l\'accepte en ligne.', 'Une fois accepté, convertissez-le en <strong>réparation en un clic</strong>, sans tout réécrire.'] },
+    { e: '🛒', t: 'TPV et ventes', items: ['Ouvrez le <strong>TPV</strong> pour encaisser vite, par code-barres et plusieurs moyens de paiement.', 'Chaque vente <strong>décompte le stock</strong> automatiquement.'] },
+    { e: '📦', t: 'Stock et commandes', items: ['Définissez un <strong>minimum par produit</strong> ; TekPair vous alerte quand réapprovisionner.', 'Dans <strong>Commandes</strong>, créez des commandes fournisseur ; marquées reçues, elles entrent au stock.', 'Groupez les commandes par fournisseur et recevez tout d\'un coup.'] },
+    { e: '💶', t: 'Caisse et clôtures', items: ['Ouvrez la caisse avec votre fond et clôturez en fin de journée.', 'La <strong>clôture</strong> indique aussitôt si ça tombe juste, avec le détail par moyen de paiement.'] },
+    { e: '📊', t: 'Tirez-en le maximum', items: ['Consultez l\'<strong>Accueil</strong> (vue Affaires) : revenus, modes d\'encaissement et produits à marge.', 'Regardez les <strong>Rapports</strong> pour décider avec des données quels services pousser.', 'Utilisez les <strong>rôles</strong> : l\'employé voit l\'opérationnel, vous voyez la caisse et les chiffres.', 'Enregistrez la <strong>garantie</strong> de chaque réparation : au retour du client, consultez-la aussitôt.'] },
+  ],
+  it: [
+    { e: '🚀', t: 'Primi passi', items: ['Configura la tua officina in <strong>Impostazioni</strong>: nome, logo, dati fiscali e IVA.', 'Importa <strong>clienti e magazzino</strong> da CSV (Altro → Importa) per partire con i tuoi dati.', 'Crea utenti per il team in <strong>Utenti</strong>, con i permessi necessari a ciascuno.'] },
+    { e: '🔧', t: 'Riparazioni', items: ['Premi <strong>Nuova riparazione</strong>: cliente, dispositivo, guasto e, se vuoi, foto e firma.', 'Cambia lo <strong>stato</strong> (In attesa → In corso → Pronto) man mano.', 'Alla consegna, <strong>avvisa il cliente su WhatsApp</strong> con un tocco e registra l\'incasso.', 'Imposta la <strong>priorità</strong> Alta/Urgente per mostrarla in "Richiede attenzione".'] },
+    { e: '📄', t: 'Preventivi', items: ['Crea un preventivo e <strong>invialo al cliente</strong> via link; lo accetta online.', 'Una volta accettato, convertilo in <strong>riparazione con un clic</strong>, senza riscrivere.'] },
+    { e: '🛒', t: 'POS e vendite', items: ['Apri il <strong>POS</strong> per incassare in fretta, per codice a barre e vari metodi di pagamento.', 'Ogni vendita <strong>scala il magazzino</strong> automaticamente.'] },
+    { e: '📦', t: 'Magazzino e ordini', items: ['Imposta un <strong>minimo per prodotto</strong>; TekPair ti avvisa quando rifornire.', 'In <strong>Ordini</strong> crei ordini ai fornitori; segnati ricevuti, entrano in magazzino.', 'Raggruppa gli ordini per fornitore e ricevi tutto insieme.'] },
+    { e: '💶', t: 'Cassa e chiusure', items: ['Apri la cassa col tuo fondo e chiudi a fine giornata.', 'La <strong>chiusura</strong> ti dice subito se torna, con il dettaglio per metodo di pagamento.'] },
+    { e: '📊', t: 'Sfrutta al massimo', items: ['Guarda la <strong>Home</strong> (vista Business): ricavi, come incassi e cosa rende di più.', 'Controlla i <strong>Report</strong> per decidere con i dati quali servizi spingere.', 'Usa i <strong>ruoli</strong>: il dipendente vede l\'operativo, tu la cassa e i numeri.', 'Registra la <strong>garanzia</strong> di ogni riparazione: se il cliente torna, la consulti subito.'] },
+  ],
+  de: [
+    { e: '🚀', t: 'Erste Schritte', items: ['Richte deine Werkstatt in <strong>Einstellungen</strong> ein: Name, Logo, Steuerdaten und MwSt.', 'Importiere <strong>Kunden und Bestand</strong> aus CSV (Mehr → Importieren), um mit deinen Daten zu starten.', 'Lege Nutzer für dein Team unter <strong>Nutzer</strong> an, mit den jeweils nötigen Rechten.'] },
+    { e: '🔧', t: 'Reparaturen', items: ['Tippe auf <strong>Neue Reparatur</strong>: Kunde, Gerät, Defekt und optional Fotos und Unterschrift.', 'Ändere den <strong>Status</strong> (Offen → In Arbeit → Fertig) im Verlauf.', 'Bei Übergabe <strong>benachrichtige den Kunden per WhatsApp</strong> mit einem Tipp und erfasse die Zahlung.', 'Setze die <strong>Priorität</strong> Hoch/Dringend, damit es in „Braucht Aufmerksamkeit" erscheint.'] },
+    { e: '📄', t: 'Angebote', items: ['Erstelle ein Angebot und <strong>sende es dem Kunden</strong> per Link; er nimmt es online an.', 'Nach Annahme wandle es mit <strong>einem Klick in eine Reparatur</strong>, ohne neu zu schreiben.'] },
+    { e: '🛒', t: 'Kasse & Verkäufe', items: ['Öffne die <strong>Kasse</strong>, um schnell zu kassieren – per Barcode und mehreren Zahlarten.', 'Jeder Verkauf <strong>bucht den Bestand</strong> automatisch ab.'] },
+    { e: '📦', t: 'Bestand & Bestellungen', items: ['Lege ein <strong>Minimum je Produkt</strong> fest; TekPair warnt dich beim Nachbestellen.', 'Unter <strong>Bestellungen</strong> legst du Lieferantenbestellungen an; als erhalten markiert, gehen sie ins Lager.', 'Gruppiere Bestellungen nach Lieferant und empfange alles auf einmal.'] },
+    { e: '💶', t: 'Kasse & Abschluss', items: ['Öffne die Kasse mit deinem Wechselgeld und schließe am Tagesende ab.', 'Der <strong>Abschluss</strong> sagt sofort, ob es stimmt, mit Aufschlüsselung nach Zahlart.'] },
+    { e: '📊', t: 'Hol das Beste heraus', items: ['Schau auf die <strong>Startseite</strong> (Geschäftsansicht): Einnahmen, Zahlungsarten und margenstärkste Artikel.', 'Prüfe die <strong>Berichte</strong>, um datenbasiert zu entscheiden, welche Leistungen du pushst.', 'Nutze <strong>Rollen</strong>: Mitarbeiter sehen das Operative, du Kasse und Zahlen.', 'Erfasse die <strong>Garantie</strong> jeder Reparatur: kommt der Kunde zurück, siehst du sie sofort.'] },
+  ],
+  pt: [
+    { e: '🚀', t: 'Primeiros passos', items: ['Configura a tua loja em <strong>Definições</strong>: nome, logótipo, dados fiscais e IVA.', 'Importa <strong>clientes e stock</strong> de CSV (Mais → Importar) para arrancar com os teus dados.', 'Cria utilizadores para a equipa em <strong>Utilizadores</strong>, com as permissões necessárias a cada um.'] },
+    { e: '🔧', t: 'Reparações', items: ['Toca em <strong>Nova reparação</strong>: cliente, equipamento, avaria e, se quiseres, fotos e assinatura.', 'Muda o <strong>estado</strong> (Pendente → Em processo → Por entregar) à medida que avanças.', 'Na entrega, <strong>avisa o cliente por WhatsApp</strong> com um toque e regista a cobrança.', 'Marca a <strong>prioridade</strong> Alta/Urgente para aparecer em "Precisa da tua atenção".'] },
+    { e: '📄', t: 'Orçamentos', items: ['Cria um orçamento e <strong>envia-o ao cliente</strong> por link; ele aceita online.', 'Quando aceita, converte-o em <strong>reparação com um clique</strong>, sem reescrever.'] },
+    { e: '🛒', t: 'TPV e vendas', items: ['Abre o <strong>TPV</strong> para cobrar vendas depressa, por código de barras e vários meios de pagamento.', 'Cada venda <strong>desconta o stock</strong> automaticamente.'] },
+    { e: '📦', t: 'Stock e pedidos', items: ['Define um <strong>mínimo por produto</strong>; o TekPair avisa quando repor.', 'Em <strong>Pedidos</strong> crias pedidos a fornecedores; marcados recebidos, sobem ao stock.', 'Agrupa pedidos por fornecedor e recebe tudo de uma vez.'] },
+    { e: '💶', t: 'Caixa e fechos', items: ['Abre a caixa com o teu fundo e fecha no fim do dia.', 'O <strong>fecho</strong> diz-te de imediato se bate certo, com o detalhe por meio de pagamento.'] },
+    { e: '📊', t: 'Tira o máximo partido', items: ['Vê o <strong>Início</strong> (vista Negócio): receitas, como recebes e o que dá mais margem.', 'Revê os <strong>Relatórios</strong> para decidir com dados que serviços potenciar.', 'Usa <strong>perfis</strong>: o empregado vê o operacional, tu vês a caixa e os números.', 'Regista a <strong>garantia</strong> de cada reparação: se o cliente voltar, consultas de imediato.'] },
+  ],
+};
+function renderGuiaAyuda() {
+  var box = document.getElementById('guiaAyuda');
+  if (!box) return;
+  var L = GUIA_AYUDA[window.TEKPAIR_LANG] || GUIA_AYUDA.es;
+  box.innerHTML = L.map(function(s) {
+    return '<details style="border:1px solid var(--border);border-radius:10px;margin-bottom:8px;overflow:hidden">' +
+      '<summary style="padding:11px 14px;font-weight:700;font-size:13px;cursor:pointer">' + s.e + ' ' + escHtml(s.t) + '</summary>' +
+      '<div style="padding:2px 14px 12px"><ul style="margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px;font-size:12.5px;color:var(--text)">' +
+      s.items.map(function(i) { return '<li>' + i + '</li>'; }).join('') + '</ul></div></details>';
+  }).join('');
 }
 
 async function renderDash() {
