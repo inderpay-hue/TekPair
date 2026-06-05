@@ -4176,6 +4176,7 @@ function reembolsarVenta(id) {
   var v = DB.ventas.find(function(x) { return x.id === id; });
   if (!v) return;
   if (!confirm('Reembolsar venta de ' + v.clienteNombre + ' por ' + cur(v.total) + '?')) return;
+  if (typeof audit === 'function') audit('reembolso', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total) + ' · ' + ((v.marca || '') + ' ' + (v.modelo || '')).trim(), null);
   v.reembolsado = true;
   v.fechaReembolso = hoyLocal();
   if (v.stockId) {
@@ -7195,23 +7196,10 @@ function busModeloStock() {
   });
 }
 
-// Auditoría de stock: registra quién crea/edita/elimina y cuándo (tabla stock_log).
-// Escritura aislada (fire-and-forget): si la tabla no existe, no afecta a nada.
+// Auditoría de stock: reutiliza el sistema audit() existente (tabla 'audit'),
+// que ya registra reparaciones, ventas, clientes, citas... así queda todo junto.
 function _logStock(accion, producto, detalle, stockId) {
-  if (!SB_KEY || !TIENDA_ID || typeof _sbPostRaw !== 'function') return;
-  try {
-    _sbPostRaw('stock_log', {
-      id: 'log' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-      tienda_id: TIENDA_ID,
-      fecha: new Date().toISOString(),
-      usuario: (U && U.nombre) ? U.nombre : '',
-      rol: (U && U.rol) ? U.rol : '',
-      accion: accion,
-      producto: producto || '',
-      detalle: detalle || null,
-      stock_id: stockId || null
-    });
-  } catch (e) {}
+  if (typeof audit === 'function') audit(accion, 'stock', stockId || '', (producto || '') + (detalle ? ' · ' + detalle : ''), null);
 }
 function guardarStock() {
   var perm = SEL.editStockId ? 'stock_editar' : 'stock_crear';
@@ -7723,26 +7711,43 @@ function abrirStockLog() {
   openM('mStockLog');
   renderStockLog();
 }
+var AUDIT_ACC = {
+  crear: { e: '➕', c: 'var(--green)' }, editar: { e: '✏️', c: 'var(--blue)' }, eliminar: { e: '🗑️', c: 'var(--red)' },
+  reembolso: { e: '↩️', c: 'var(--red)' }, cambio_estado: { e: '🔄', c: 'var(--blue)' }, firmar: { e: '✍️', c: 'var(--green)' },
+  exportar: { e: '📤', c: 'var(--muted)' }, subir: { e: '📎', c: 'var(--muted)' }, entrada: { e: '📥', c: 'var(--green)' }, salida: { e: '📤', c: 'var(--orange)' }
+};
+var AUDIT_MOD = { stock: '📦', reparacion: '🔧', venta: '🛒', cliente: '👤', presupuesto: '📄', cita: '📅', gasto: '💸', gasto_recurrente: '💸', gastos: '💸', gastos_zip: '💸', gasto_adjunto: '💸', reporte: '📊', pedido: '📋', caja: '💶' };
+function _auditAccLabel(a) {
+  var m = { crear: T('stock.log_crear'), editar: T('stock.log_editar'), eliminar: T('stock.log_eliminar'), reembolso: T('audit.reembolso'), cambio_estado: T('audit.estado'), entrada: T('audit.entrada'), salida: T('audit.salida') };
+  return m[a] || (a || '').replace(/_/g, ' ');
+}
 function renderStockLog() {
   var el = document.getElementById('stockLogBody'); if (!el) return;
-  if (!SB_KEY || !TIENDA_ID) { el.innerHTML = '<div class="empty">' + T('stock.log_vacio') + '</div>'; return; }
   el.innerHTML = '<div class="empty">…</div>';
-  sbGet('stock_log', 'tienda_id=eq.' + TIENDA_ID + '&order=fecha.desc&limit=100').then(function(rows) {
+  var pintar = function(rows) {
     if (!Array.isArray(rows) || !rows.length) { el.innerHTML = '<div class="empty">' + T('stock.log_vacio') + '</div>'; return; }
-    var acc = { crear: { e: '➕', t: T('stock.log_crear'), c: 'var(--green)' }, editar: { e: '✏️', t: T('stock.log_editar'), c: 'var(--blue)' }, eliminar: { e: '🗑️', t: T('stock.log_eliminar'), c: 'var(--red)' } };
-    el.innerHTML = rows.map(function(r) {
-      var a = acc[r.accion] || { e: '•', t: r.accion || '', c: 'var(--muted)' };
-      var f = r.fecha ? new Date(r.fecha) : null;
+    el.innerHTML = rows.slice(0, 200).map(function(r) {
+      var a = AUDIT_ACC[r.accion] || { e: '•', c: 'var(--muted)' };
+      var mEmo = AUDIT_MOD[r.entidad] || '•';
+      var usuario = r.usuario_nom || r.usuarioNom || '—';
+      var f = (r.ts || r.fecha) ? new Date(r.ts || r.fecha) : null;
       var fStr = f ? (f.toLocaleDateString() + ' ' + f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : '';
+      var det = r.detalle || '';
       return '<div style="display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--border)">' +
         '<span style="font-size:16px">' + a.e + '</span>' +
         '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:13px;font-weight:600">' + escHtml(r.producto || '') + (r.detalle ? ' <span style="color:var(--muted);font-weight:400">· ' + escHtml(r.detalle) + '</span>' : '') + '</div>' +
-        '<div style="font-size:11px;color:var(--muted)"><span style="color:' + a.c + ';font-weight:700">' + a.t + '</span> · ' + escHtml(r.usuario || '—') + (r.rol ? ' (' + escHtml(r.rol) + ')' : '') + '</div>' +
+        '<div style="font-size:13px;font-weight:600">' + mEmo + ' ' + escHtml(det || (r.entidad || '')) + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)"><span style="color:' + a.c + ';font-weight:700">' + escHtml(_auditAccLabel(r.accion)) + '</span> · ' + escHtml(r.entidad || '') + ' · ' + escHtml(usuario) + '</div>' +
         '</div>' +
         '<span style="font-size:10.5px;color:var(--muted);white-space:nowrap">' + fStr + '</span></div>';
     }).join('');
-  }).catch(function() { el.innerHTML = '<div class="empty">' + T('stock.log_vacio') + '</div>'; });
+  };
+  if (SB_KEY && TIENDA_ID) {
+    sbGet('audit', 'tienda_id=eq.' + TIENDA_ID + '&order=ts.desc&limit=200').then(function(rows) {
+      if (Array.isArray(rows) && rows.length) pintar(rows);
+      else pintar(DB.audit || []);  // fallback al historial local
+    }).catch(function() { pintar(DB.audit || []); });
+  } else { pintar(DB.audit || []); }
 }
 
 // ═══ CLIENTES ═══
