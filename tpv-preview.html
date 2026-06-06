@@ -120,12 +120,39 @@ body.t-orange .prod:hover{box-shadow:0 26px 50px -18px rgba(0,0,0,.6),0 0 0 1px 
 body.t-orange .pstock{background:#FFC24B;box-shadow:0 0 14px -2px #FFC24B}
 body.t-orange .totals .grand .val{text-shadow:0 2px 24px rgba(255,146,72,.45)}
 body.t-orange .logo .z{background:linear-gradient(135deg,#FFB152,#F97316)}
+/* ---- TEMA LIMPIO / NATURAL (claro) ---- */
+body.t-clean{--ink:#1B2A20;--ink2:#52635A;--muted:#9BA89F;--glass:#fff;--glass2:#fff;--bd:#E7ECE6;--bdhi:transparent;--accent:#2E7D5B;--accent2:#37B07C;--shadow:0 10px 26px -12px rgba(30,55,40,.14)}
+body.t-clean{background:#F3F6F1}
+body.t-clean .aurora{background:#F3F6F1}
+body.t-clean .aurora span{display:none}
+body.t-clean .glass,body.t-clean .prod,body.t-clean .right,body.t-clean .pill,body.t-clean .bpill,body.t-clean .search input,body.t-clean .pay,body.t-clean .chip,body.t-clean .disc input,body.t-clean .disc .ap{backdrop-filter:none;-webkit-backdrop-filter:none}
+body.t-clean .plogo,body.t-clean .ti .ic{background:#F3F6F1}
+body.t-clean .qty,body.t-clean .qty button,body.t-clean .client .av{background:#F0F4EF}
+body.t-clean .pname,body.t-clean .pprice,body.t-clean .ti .nm,body.t-clean .ti .tot,body.t-clean .totals .grand .lbl,body.t-clean .totals .grand .val,body.t-clean .search input,body.t-clean .disc input,body.t-clean .disc .ap,body.t-clean .qty span,body.t-clean .qty button,body.t-clean .thead .t,body.t-clean .chip b,body.t-clean .logo{color:var(--ink)}
+body.t-clean .pill.on{background:#1B2A20;color:#fff;box-shadow:0 8px 20px -8px rgba(27,42,32,.5)}
+body.t-clean .pay.on{border-color:#2E7D5B;background:rgba(46,125,91,.08);color:#2E7D5B;box-shadow:0 0 0 3px rgba(46,125,91,.12)}
+body.t-clean .cobrar{color:#fff;background:linear-gradient(135deg,#37B07C,#2E7D5B);box-shadow:0 14px 30px -10px rgba(46,125,91,.5)}
+body.t-clean .totals .grand .val{text-shadow:none}
+body.t-clean .pstock{color:#0a1f18}
+/* ---- TEMA DARK (sobrio, sólido) ---- */
+body.t-dark{--ink:#EEF1F6;--ink2:#9AA4B4;--muted:#5C6675;--glass:#171B22;--glass2:#1B2029;--bd:#262C36;--bdhi:rgba(255,255,255,.05);--accent:#5B8CFF;--accent2:#2DD4A7;--shadow:0 12px 30px -14px rgba(0,0,0,.6)}
+body.t-dark{background:#0E1117}
+body.t-dark .aurora{background:#0E1117}
+body.t-dark .aurora span{display:none}
+body.t-dark .glass,body.t-dark .prod,body.t-dark .right,body.t-dark .pill,body.t-dark .bpill,body.t-dark .search input,body.t-dark .pay,body.t-dark .chip{backdrop-filter:none;-webkit-backdrop-filter:none}
+body.t-dark .plogo,body.t-dark .ti .ic{background:#1F2530}
+body.t-dark .qty{background:#1F2530}
+body.t-dark .qty button{background:#262C36}
+body.t-dark .pill.on{background:var(--accent);color:#08101f;box-shadow:0 8px 20px -8px rgba(91,140,255,.55)}
+body.t-dark .cobrar{color:#04221a;background:linear-gradient(135deg,#3df0c4,#2DD4A7)}
 </style>
 </head>
 <body>
 <div class="sw">
-  <button class="on" onclick="setT('',this)">✨ Aurora azul</button>
-  <button onclick="setT('t-orange',this)">🔥 TekPair naranja</button>
+  <button class="on" onclick="setT('',this)">✨ Aurora</button>
+  <button onclick="setT('t-orange',this)">🔥 Naranja</button>
+  <button onclick="setT('t-clean',this)">🌿 Limpio</button>
+  <button onclick="setT('t-dark',this)">🌙 Dark</button>
 </div>
 <div class="aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span><div class="grain"></div></div>
 <div class="wrap">
