@@ -717,6 +717,16 @@ function _stockMatch(pieza) {
 }
 // ¿Categoría con IMEI? (1 unidad = 1 IMEI)
 function _esImeiCat(cat) { return (typeof STOCK_CATS_IMEI !== 'undefined' ? STOCK_CATS_IMEI : ['Telefono', 'Tablet', 'Smartwatch']).indexOf(cat || '') !== -1; }
+// Etiqueta traducida de la categoría de un pedido/stock (Teléfono, Pantalla, Batería…)
+function _pedCatLabel(cat) {
+  var m = { 'Telefono': 'stock.cat_telefono', 'Tablet': 'stock.cat_tablet', 'Smartwatch': 'stock.cat_smartwatch', 'Pantalla': 'stock.cat_pantalla', 'Tapa': 'stock.cat_tapa', 'Bateria': 'stock.cat_bateria', 'Flex de Carga': 'stock.cat_flex', 'Altavoz': 'stock.cat_altavoz', 'Repuesto': 'stock.cat_repuesto', 'Accesorio': 'stock.cat_accesorio', 'Otro': 'stock.cat_otro' };
+  var k = m[cat]; return k ? T(k) : (cat || '');
+}
+// Badge HTML de categoría (vacío si no hay categoría)
+function _pedCatBadge(cat) {
+  var l = _pedCatLabel(cat); if (!l) return '';
+  return '<span style="display:inline-block;background:rgba(124,58,237,.1);color:var(--purple);border-radius:6px;padding:1px 7px;font-size:10.5px;font-weight:700;margin-left:6px;vertical-align:middle">' + (_esImeiCat(cat) ? '📱 ' : '🔧 ') + escHtml(l) + '</span>';
+}
 // Proveedor habitual de un producto (según el último pedido con ese nombre)
 function _provHabitual(nombre) {
   var n = (nombre || '').trim().toLowerCase(); if (!n) return '';
@@ -827,7 +837,7 @@ function renderPedidosWidget() {
       var c = est[p.estado] || est.por_pedir;
       var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? ('€' + parseFloat(p.importe).toFixed(2)) : ''), (p.fecha_pedido ? (T('pedidos.pedido_el') + ' ' + _pedFecha(p.fecha_pedido)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
       return '<div style="border:1px solid var(--border);border-radius:9px;padding:9px 10px;margin-bottom:7px">' +
-        '<div style="font-weight:700;font-size:13px">' + c.e + ' ' + escHtml(p.pieza) + (p.cantidad > 1 ? (' <span style="color:var(--muted)">x' + p.cantidad + '</span>') : '') + '</div>' +
+        '<div style="font-weight:700;font-size:13px">' + c.e + ' ' + escHtml(p.pieza) + _pedCatBadge(p.categoria) + (p.cantidad > 1 ? (' <span style="color:var(--muted)">x' + p.cantidad + '</span>') : '') + '</div>' +
         (meta ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + meta + '</div>' : '') +
         '<div style="display:flex;gap:5px;margin-top:7px">' +
           '<button style="background:var(--green);color:#fff;border:none;border-radius:6px;padding:5px 9px;font-size:11px;cursor:pointer;flex:1" onclick="avanzarPedido(\'' + p.id + '\')">' + c.next + '</button>' +
@@ -2363,7 +2373,7 @@ function renderPedidosPage() {
         '<button style="background:var(--light);border:none;border-radius:7px;padding:6px 9px;font-size:11.5px;cursor:pointer" onclick="editarPedido(\'' + p.id + '\')">✏️</button>'
       : '<span style="flex:1;font-size:11.5px;color:var(--green);font-weight:700">✅ ' + T('pedidos.marcado_recibido') + '</span>';
     return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff">' +
-      '<div style="font-weight:800;font-size:14px">' + c.e + ' ' + escHtml(p.pieza || '') + '</div>' +
+      '<div style="font-weight:800;font-size:14px">' + c.e + ' ' + escHtml(p.pieza || '') + _pedCatBadge(p.categoria) + '</div>' +
       (meta ? '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">' + meta + '</div>' : '') +
       (p.nota ? '<div style="font-size:11.5px;color:var(--muted);margin-top:3px;font-style:italic">“' + escHtml(p.nota) + '”</div>' : '') +
       '<div style="display:flex;gap:5px;margin-top:9px">' + acciones +
@@ -2389,7 +2399,7 @@ function renderPedidosPage() {
         var rows = items.map(function(p) {
           var imp = (parseFloat(p.importe) || 0) > 0 ? ' · ' + cur(parseFloat(p.importe)) : '';
           return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border)">' +
-            '<span style="flex:1;font-size:13px">✅ <b>' + escHtml(p.pieza || '') + '</b>' + (p.cantidad > 1 ? ' <span style="color:var(--muted)">x' + p.cantidad + '</span>' : '') + '<span style="color:var(--muted);font-size:11.5px">' + imp + '</span></span>' +
+            '<span style="flex:1;font-size:13px">✅ <b>' + escHtml(p.pieza || '') + '</b>' + _pedCatBadge(p.categoria) + (p.cantidad > 1 ? ' <span style="color:var(--muted)">x' + p.cantidad + '</span>' : '') + '<span style="color:var(--muted);font-size:11.5px">' + imp + '</span></span>' +
             '<button style="background:rgba(239,68,68,.1);color:var(--red);border:none;border-radius:6px;padding:4px 7px;font-size:11px;cursor:pointer" onclick="eliminarPedido(\'' + p.id + '\')">🗑️</button>' +
           '</div>';
         }).join('');
@@ -6043,6 +6053,7 @@ function trackingEtiqueta() {
     '</style></head><body>' +
     '<div class="qr">' + qrSvg + '</div>' +
     '<div class="info">' +
+      _etqLogoHtml() +
       '<div class="id">' + esc(r.id) + '</div>' +
       '<div class="cli">' + esc(r.clienteNombre || '') + '</div>' +
       '<div class="eq">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</div>' +
@@ -6055,6 +6066,14 @@ function trackingEtiqueta() {
   w.document.close();
 }
 
+// Cabecera de etiqueta: logo de la tienda si existe, si no el nombre (compacto).
+// Se usa dentro de la columna de info de las etiquetas de venta y reparación.
+function _etqLogoHtml() {
+  var t = (typeof TIENDA !== 'undefined' && TIENDA) ? TIENDA : {};
+  if (t.logo_url) return '<img src="' + esc(t.logo_url) + '" style="max-height:5mm;max-width:30mm;object-fit:contain;display:block;margin-bottom:1px">';
+  if (t.nombre) return '<div style="font-weight:800;font-size:8px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(t.nombre) + '</div>';
+  return '';
+}
 // Estado del teléfono (sin emoji, para impresión en etiqueta)
 function _etqEstado(tipo) {
   var m = { nuevo: 'etq.estado_nuevo', seminuevo: 'etq.estado_seminuevo', segunda: 'etq.estado_segunda', usado: 'etq.estado_segunda', reacond: 'etq.estado_reacond' };
@@ -6091,6 +6110,7 @@ function imprimirEtiquetaStock(sid) {
     '</style></head><body>' +
     (hasQr ? '<div class="qr">' + qrSvg + '</div>' : '') +
     '<div class="info">' +
+      _etqLogoHtml() +
       '<div class="nm">' + esc(nombre) + '</div>' +
       (specs ? '<div class="sp">' + esc(specs) + '</div>' : '') +
       (estado ? '<div class="es">' + esc(estado) + '</div>' : '') +
