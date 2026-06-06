@@ -9509,7 +9509,10 @@ function setRepTab(el) {
   // fix tabs reportes v2: limpiar solo los hermanos en el mismo container
   el.parentNode.querySelectorAll('.tab').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
-  SEL.repTab = el.dataset.t;
+  // data-rt = clave de periodo (hoy/semana/mes/...). Antes leía data-t, que es la
+  // clave de i18n ("dash.hoy") → SEL.repTab quedaba mal y todos los tabs mostraban lo mismo.
+  SEL.repTab = el.dataset.rt || el.dataset.t;
+  var rw = document.getElementById('repRangoWrap'); if (rw) rw.style.display = (SEL.repTab === 'rango') ? 'flex' : 'none';
   renderReporte();
 }
 
@@ -9525,6 +9528,16 @@ function setRepTipo(el) {
 // Devuelve un array de Date, del más reciente (hoy) al más antiguo.
 function _repRangoDias() {
   var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  // Rango personalizado: usa los inputs de fecha (desde/hasta).
+  if (SEL.repTab === 'rango') {
+    var dEl = document.getElementById('repDesde'), hEl = document.getElementById('repHasta');
+    var fin = (hEl && hEl.value) ? new Date(hEl.value + 'T00:00:00') : new Date(hoy);
+    var ini = (dEl && dEl.value) ? new Date(dEl.value + 'T00:00:00') : new Date(fin);
+    if (ini > fin) { var _t = ini; ini = fin; fin = _t; }
+    var dr = [], dd = new Date(fin);
+    while (dd >= ini && dr.length < 1200) { dr.push(new Date(dd)); dd.setDate(dd.getDate() - 1); }
+    return dr;
+  }
   var inicio;
   if (SEL.repTab === 'hoy') { inicio = new Date(hoy); }
   else if (SEL.repTab === 'semana') { var dow = (hoy.getDay() + 6) % 7; inicio = new Date(hoy); inicio.setDate(hoy.getDate() - dow); }
@@ -9605,7 +9618,7 @@ function renderGraficas(ventas, reps, pagos, fechas) {
   Chart.defaults.font.family = 'inherit';
 
   // === Gráfica 1: Evolución de ingresos por día ===
-  var soloDias = SEL.repTab === 'mes' || SEL.repTab === 'trimestre' || SEL.repTab === 'semana';
+  var soloDias = SEL.repTab === 'mes' || SEL.repTab === 'trimestre' || SEL.repTab === 'semana' || SEL.repTab === 'rango';
   if (soloDias) {
     document.getElementById('cardChartIngresos').style.display = '';
     var fechasOrden = fechas.slice().reverse(); // del más antiguo al más reciente
@@ -9796,7 +9809,7 @@ function generarPDFGestor() {
   ventas.forEach(function(v) { pagos[v.pago||'Sin especificar'] = (pagos[v.pago||'Sin especificar'] || 0) + v.total; });
   reps.forEach(function(r) { if (r.pagoFinal) pagos[r.pagoFinal] = (pagos[r.pagoFinal] || 0) + r.total; });
 
-  var labelPeriodo = ({hoy:T('dash.hoy'), semana:T('inicio.per_semana'), mes:T('inicio.per_mes'), trimestre:T('gen.ultimo_trimestre'), total:T('gen.historico_completo')})[SEL.repTab] || SEL.repTab;
+  var labelPeriodo = ({hoy:T('dash.hoy'), semana:T('inicio.per_semana'), mes:T('inicio.per_mes'), trimestre:T('gen.ultimo_trimestre'), total:T('gen.historico_completo'), rango:T('mov.rango')})[SEL.repTab] || SEL.repTab;
   var fechaIni = fechas[fechas.length-1];
   var fechaFin = fechas[0];
   var hoy = new Date().toLocaleDateString('es');
