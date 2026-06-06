@@ -3407,6 +3407,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="fg"><label class="fl"><span data-t="gen.num_cuotas">Núm. cuotas</span></label><input class="fi" id="vNumCuotas" type="number" value="3" min="1" max="24"></div>
       </div>
       <div class="fg"><label class="fl"><span data-t="gen.dia_pago">Día de pago (cada mes)</span></label><input class="fi" id="vDiaPago" type="number" value="8" min="1" max="28"></div>
+      <div class="fg"><label class="fl"><span data-t="gen.entrada_pago">Entrada pagada con</span></label>
+        <select class="fi" id="vEntradaPago">
+          <option value="Efectivo" data-t="gen.efectivo">Efectivo</option>
+          <option value="Tarjeta" data-t="gen.tarjeta">Tarjeta</option>
+          <option value="Bizum">Bizum</option>
+        </select>
+      </div>
     </div>
   </div>
   <div class="fg" id="vIvaRow" style="display:none">

@@ -1690,7 +1690,7 @@ function mapVenta(v) {
     descuento:parseFloat(v.descuento)||0, total:parseFloat(v.total)||0,
     reembolsado:v.reembolsado||false, fechaReembolso:v.fecha_reembolso||'',
     stockId:v.stock_id||'', financiado:v.financiado||false,
-    cuotas:v.cuotas?(typeof v.cuotas==='string'?JSON.parse(v.cuotas):v.cuotas):null, entrada:parseFloat(v.entrada)||0
+    cuotas:v.cuotas?(typeof v.cuotas==='string'?JSON.parse(v.cuotas):v.cuotas):null, entrada:parseFloat(v.entrada)||0, entradaPago:v.entrada_pago||null
   };
 }
 
@@ -4136,7 +4136,8 @@ function guardarVenta() {
     stockId: SEL.vStock && !SEL.vStock.esServicio ? SEL.vStock.id : '',
     financiado: esFinanciado,
     cuotas: cuotas,
-    entrada: entrada
+    entrada: entrada,
+    entradaPago: (esFinanciado && entrada > 0) ? ((document.getElementById('vEntradaPago') || {}).value || 'Efectivo') : null
   };
 
   // Reduce stock
@@ -4167,7 +4168,7 @@ function guardarVenta() {
       pago: venta.pago, precio: venta.precio, descuento: venta.descuento,
       total: venta.total,
       reembolsado: false, financiado: venta.financiado,
-      cuotas: cuotas ? JSON.stringify(cuotas) : null, entrada: entrada,
+      cuotas: cuotas ? JSON.stringify(cuotas) : null, entrada: entrada, entrada_pago: venta.entradaPago || null,
       iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte
     });
   }
