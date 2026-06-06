@@ -2480,11 +2480,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sec-title">Reportes</div>
   </div>
   <div class="tabs">
-    <div class="tab active" data-t="dash.hoy" onclick="setRepTab(this)">Hoy</div>
-    <div class="tab" data-t="dash.semana" onclick="setRepTab(this)">Semana</div>
-    <div class="tab" data-t="dash.mes" onclick="setRepTab(this)">Mes</div>
-    <div class="tab" data-t="gen.trimestre" onclick="setRepTab(this)">Trimestre</div>
-    <div class="tab" data-t="gen.total_periodo" onclick="setRepTab(this)">Total</div>
+    <div class="tab active" data-rt="hoy" data-t="dash.hoy" onclick="setRepTab(this)">Hoy</div>
+    <div class="tab" data-rt="semana" data-t="dash.semana" onclick="setRepTab(this)">Semana</div>
+    <div class="tab" data-rt="mes" data-t="dash.mes" onclick="setRepTab(this)">Mes</div>
+    <div class="tab" data-rt="trimestre" data-t="gen.trimestre" onclick="setRepTab(this)">Trimestre</div>
+    <div class="tab" data-rt="total" data-t="gen.total_periodo" onclick="setRepTab(this)">Total</div>
+    <div class="tab" data-rt="rango" data-t="mov.rango" onclick="setRepTab(this)">Personalizado</div>
+  </div>
+  <div id="repRangoWrap" style="display:none;gap:8px;margin-bottom:10px;flex-wrap:wrap">
+    <input type="date" id="repDesde" class="fi" style="flex:1;min-width:120px" onchange="renderReporte()">
+    <input type="date" id="repHasta" class="fi" style="flex:1;min-width:120px" onchange="renderReporte()">
   </div>
   <div class="tabs">
     <div class="tab active" data-ti="todo" onclick="setRepTipo(this)"><span data-t="tpv.todos">Todo</span></div>
@@ -4699,7 +4704,7 @@ function abrirNuevoAfiliado() {
       '<div style="background:linear-gradient(135deg,#FF5B1F,#FF7A45);color:white;padding:18px 22px"><div style="font-size:18px;font-weight:800">👔 Nuevo comercial</div></div>' +
       '<div style="padding:20px 22px">' +
         '<label style="' + lab + '">Nombre completo *</label><input type="text" id="ncNombre" placeholder="Nombre Apellidos" style="' + inp + '">' +
-        '<label style="' + lab + '">Email *</label><input type="email" id="ncEmail" placeholder="comercial@email.com" style="' + inp + '">' +
+        '<label style="' + lab + '">Email *</label><input type="email" id="comEmail" placeholder="comercial@email.com" style="' + inp + '">' +
         '<label style="' + lab + '">Código afiliado *</label><input type="text" id="ncCodigo" placeholder="DEMBA, PEDRO..." style="' + inp + ';text-transform:uppercase;font-family:monospace">' +
         '<label style="' + lab + '">Comisión (%) *</label><input type="number" id="ncPct" value="20" min="0" max="100" style="' + inp + '">' +
         '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#475569;cursor:pointer;padding:10px;background:#F8FAFC;border-radius:8px"><input type="checkbox" id="ncEmailAuto" checked style="width:18px;height:18px"><span>Enviar email al comercial con sus credenciales y código</span></label>' +
@@ -4716,7 +4721,7 @@ function abrirNuevoAfiliado() {
 
 async function crearComercialTekpair() {
   var nombre = (document.getElementById('ncNombre').value || '').trim();
-  var email = (document.getElementById('ncEmail').value || '').trim().toLowerCase();
+  var email = (document.getElementById('comEmail').value || '').trim().toLowerCase();
   var codigo = (document.getElementById('ncCodigo').value || '').trim().toUpperCase();
   var pct = parseInt(document.getElementById('ncPct').value) || 20;
   var enviarEmail = document.getElementById('ncEmailAuto').checked;
