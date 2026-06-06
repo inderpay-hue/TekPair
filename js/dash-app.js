@@ -6055,6 +6055,54 @@ function trackingEtiqueta() {
   w.document.close();
 }
 
+// Estado del teléfono (sin emoji, para impresión en etiqueta)
+function _etqEstado(tipo) {
+  var m = { nuevo: 'etq.estado_nuevo', seminuevo: 'etq.estado_seminuevo', segunda: 'etq.estado_segunda', usado: 'etq.estado_segunda', reacond: 'etq.estado_reacond' };
+  var k = m[tipo]; return k ? T(k) : '';
+}
+// Etiqueta de VENTA (rollo 62x30mm): marca/modelo, capacidad, color, estado, IMEI y precio.
+// QR del IMEI (si lo tiene) para escanear. Se imprime desde la lista de Stock.
+function imprimirEtiquetaStock(sid) {
+  var s = (DB.stock || []).find(function(x) { return x.id === sid; });
+  if (!s) return;
+  var qrSvg = '';
+  if (s.imei) {
+    try { var qr = qrcode(0, 'M'); qr.addData(s.imei); qr.make(); qrSvg = qr.createImgTag(4, 4); } catch (e) {}
+  }
+  var nombre = ((s.marca || '') + ' ' + (s.modelo || '')).trim();
+  var specs = [s.capacidad, s.color].map(function(x) { return (x || '').trim(); }).filter(Boolean).join(' · ');
+  var estado = _etqEstado(s.tipo);
+  var precio = (parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '';
+  var hasQr = !!qrSvg;
+  var w = window.open('', '_blank', 'width=400,height=300');
+  if (!w) { toast(T('etq.popup') || 'Permite popups para imprimir', 'err'); return; }
+  w.document.write(
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiqueta</title><style>' +
+    '@page { size: 62mm 30mm; margin: 0; }' +
+    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:62mm;height:30mm;margin:0;padding:1.5mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
+    '.qr{flex-shrink:0}' +
+    '.qr img{width:20mm;height:20mm;display:block}' +
+    '.info{flex:1;min-width:0;line-height:1.2;display:flex;flex-direction:column;height:100%;justify-content:center}' +
+    '.nm{font-weight:800;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.sp{font-size:8px;color:#333;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.es{font-size:7.5px;color:#555;margin-top:1px}' +
+    '.im{font-size:7px;font-family:monospace;color:#444;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.pr{font-size:17px;font-weight:800;margin-top:2px}' +
+    '</style></head><body>' +
+    (hasQr ? '<div class="qr">' + qrSvg + '</div>' : '') +
+    '<div class="info">' +
+      '<div class="nm">' + esc(nombre) + '</div>' +
+      (specs ? '<div class="sp">' + esc(specs) + '</div>' : '') +
+      (estado ? '<div class="es">' + esc(estado) + '</div>' : '') +
+      (s.imei ? '<div class="im">IMEI: ' + esc(s.imei) + '</div>' : '') +
+      (precio ? '<div class="pr">' + esc(precio) + '</div>' : '') +
+    '</div>' +
+    '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
+    '</body></html>'
+  );
+  w.document.close();
+}
+
 function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"']/g, function(c){
     return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
@@ -7344,11 +7392,15 @@ function renderStock() {
       (mostrarUbic ? '<td>' + (s.ubicacion ? '<span class="badge" style="background:rgba(255,91,31,.10);color:var(--purple);font-size:9px">' + esc(s.ubicacion) + '</span>' : '<span style="color:var(--muted);font-size:10px">—</span>') + '</td>' : '') +
       '<td style="font-weight:700;color:' + (s.unidades < 0 ? 'var(--red)' : (s.unidades <= s.stockMin ? 'var(--orange)' : 'var(--text)')) + '">' + s.unidades + (s.unidades < 0 ? ' <button onclick="corregirStockCero(\'' + s.id + '\')" title="Poner a 0" style="background:rgba(239,68,68,.12);border:none;color:var(--red);border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer;font-weight:800">→0</button>' : '') + '</td>' +
       '<td>' + cur(s.precioV) + '</td>' +
-      '<td><button data-sid="' + s.id + '" class="btn-edit-s" style="background:var(--light);border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">\u270f\ufe0f</button>' +
+      '<td><button data-sid="' + s.id + '" class="btn-etq-s" title="' + T('etq.imprimir') + '" style="background:rgba(124,58,237,.1);border:none;color:var(--purple);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">\ud83c\udff7\ufe0f</button>' +
+      '<button data-sid="' + s.id + '" class="btn-edit-s" style="background:var(--light);border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:3px">\u270f\ufe0f</button>' +
       '<button data-sid="' + s.id + '" class="btn-del-s" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:3px">\ud83d\uddd1\ufe0f</button></td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
+  el.querySelectorAll('.btn-etq-s').forEach(function(btn) {
+    btn.addEventListener('click', function() { imprimirEtiquetaStock(this.dataset.sid); });
+  });
   el.querySelectorAll('.btn-edit-s').forEach(function(btn) {
     btn.addEventListener('click', function() { editarStock(this.dataset.sid); });
   });
