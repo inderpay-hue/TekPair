@@ -6070,9 +6070,10 @@ function trackingEtiqueta() {
 // Se usa dentro de la columna de info de las etiquetas de venta y reparación.
 function _etqLogoHtml() {
   var t = (typeof TIENDA !== 'undefined' && TIENDA) ? TIENDA : {};
-  if (t.logo_url) return '<img src="' + esc(t.logo_url) + '" style="max-height:5mm;max-width:30mm;object-fit:contain;display:block;margin-bottom:1px">';
-  if (t.nombre) return '<div style="font-weight:800;font-size:8px;margin-bottom:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(t.nombre) + '</div>';
-  return '';
+  var img = t.logo_url ? '<img src="' + esc(t.logo_url) + '" style="max-height:5mm;max-width:14mm;object-fit:contain;flex-shrink:0">' : '';
+  var nom = t.nombre ? '<span style="font-weight:800;font-size:8px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(t.nombre) + '</span>' : '';
+  if (!img && !nom) return '';
+  return '<div style="display:flex;align-items:center;gap:1.5mm;margin-bottom:1px;min-width:0">' + img + nom + '</div>';
 }
 // Estado del teléfono (sin emoji, para impresión en etiqueta)
 function _etqEstado(tipo) {
