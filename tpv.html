@@ -40,7 +40,8 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 
 /* TOPBAR */
 .tpv-topbar{background:transparent;color:var(--t-ink);padding:14px 16px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.tpv-logo{font-size:16px;font-weight:800}
+.tpv-logo{font-size:17px;font-weight:800;letter-spacing:-.3px;display:flex;align-items:center;gap:9px;color:var(--t-ink)}
+.tpv-logo .z{width:34px;height:34px;border-radius:11px;background:linear-gradient(135deg,#FF8a5c,#F97316);display:flex;align-items:center;justify-content:center;color:#fff;font-size:18px;box-shadow:0 8px 20px -6px rgba(249,115,22,.6);flex-shrink:0}
 .tpv-topbar-info{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--t-ink2)}
 .tpv-btn-back{background:var(--t-surf);border:1px solid var(--t-bd);color:var(--t-ink);padding:7px 13px;border-radius:11px;font-size:12px;cursor:pointer;font-family:inherit;backdrop-filter:var(--t-blur);-webkit-backdrop-filter:var(--t-blur)}
 
@@ -255,7 +256,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
   <!-- LEFT: Products -->
   <div class="tpv-left">
     <div class="tpv-topbar">
-      <div class="tpv-logo"><span data-t="tpv.titulo">⚡ Tekpair TPV</span></div>
+      <div class="tpv-logo"><span class="z">⚡</span> Tekpair TPV</div>
       <div class="tpv-topbar-info">
         <span id="topDate"></span>
         <span id="topUser"></span>
