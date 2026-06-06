@@ -319,7 +319,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
 
       <!-- Discount -->
       <div class="cart-discount">
-        <div style="font-size:11px;font-weight:700;color:rgba(255,255,255,.5);text-transform:uppercase;margin-bottom:6px">Descuento</div>
+        <div style="font-size:11px;font-weight:700;color:var(--t-mut);text-transform:uppercase;margin-bottom:6px">Descuento</div>
         <div class="disc-row">
           <input class="disc-input" id="discVal" type="number" placeholder="0" min="0" max="9999999" oninput="limitarDescuento();calcTotal()">
           <select class="disc-type" id="discType" onchange="limitarDescuento();calcTotal()">
@@ -350,9 +350,9 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
 
         <!-- Efectivo recibido -->
         <div id="efectivoPanel" style="display:block">
-          <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:6px">Efectivo recibido</div>
+          <div style="font-size:11px;color:var(--t-mut);margin-bottom:6px">Efectivo recibido</div>
           <input class="disc-input" id="efectivoInput" type="number" placeholder="0.00" oninput="calcCambio()" style="margin-bottom:6px">
-          <div style="display:flex;justify-content:space-between;font-size:13px;color:rgba(255,255,255,.7)">
+          <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--t-ink2)">
             <span><span data-t="tpv.cambio">Cambio</span></span><span id="cambioVal" style="color:var(--green);font-weight:700">€0.00</span>
           </div>
         </div>
@@ -361,20 +361,20 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
         <div id="financiadoPanel" style="display:none">
           <div style="display:flex;gap:8px;margin-bottom:6px">
             <div style="flex:1">
-              <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px"><span data-t="gen.entrada_eur">Entrada (€)</span></div>
+              <div style="font-size:11px;color:var(--t-mut);margin-bottom:4px"><span data-t="gen.entrada_eur">Entrada (€)</span></div>
               <input class="disc-input" id="finEntrada" type="number" step="0.01" min="0" value="0" oninput="calcFinanciado()">
             </div>
             <div style="flex:1">
-              <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px"><span data-t="gen.num_cuotas">Nº cuotas</span></div>
+              <div style="font-size:11px;color:var(--t-mut);margin-bottom:4px"><span data-t="gen.num_cuotas">Nº cuotas</span></div>
               <input class="disc-input" id="finNumCuotas" type="number" min="1" max="24" value="3" oninput="calcFinanciado()">
             </div>
             <div style="flex:1">
-              <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px"><span data-t="gen.dia_pago">Día pago</span></div>
+              <div style="font-size:11px;color:var(--t-mut);margin-bottom:4px"><span data-t="gen.dia_pago">Día pago</span></div>
               <input class="disc-input" id="finDiaPago" type="number" min="1" max="28" value="8" oninput="calcFinanciado()">
             </div>
           </div>
           <div id="finEntradaPagoRow" style="display:none;margin-bottom:6px">
-            <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px"><span data-t="gen.entrada_pago">Entrada pagada con</span></div>
+            <div style="font-size:11px;color:var(--t-mut);margin-bottom:4px"><span data-t="gen.entrada_pago">Entrada pagada con</span></div>
             <div style="display:flex;gap:6px">
               <button type="button" class="ent-pay-btn active" data-ep="Efectivo" onclick="setEntradaPago(this)">💵 <span data-t="gen.efectivo">Efectivo</span></button>
               <button type="button" class="ent-pay-btn" data-ep="Tarjeta" onclick="setEntradaPago(this)">💳 <span data-t="gen.tarjeta">Tarjeta</span></button>
