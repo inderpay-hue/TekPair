@@ -2830,6 +2830,21 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </label>
     </div>
 
+    <div class="card">
+      <div class="card-title">🏷️ <span data-t="etq.tam_titulo">Tamaño de etiqueta</span></div>
+      <div class="fg"><label class="fl"><span data-t="etq.tam_rollo">Rollo / etiqueta de tu impresora</span></label>
+        <select class="fi" id="ajEtqSize" onchange="setEtqSize(this.value)">
+          <option value="62cont">62mm continua (DK-22205)</option>
+          <option value="62x29">62 × 29 mm (DK-11209)</option>
+          <option value="90x29">29 × 90 mm (DK-11201)</option>
+          <option value="50x30">50 × 30 mm</option>
+          <option value="40x30">40 × 30 mm</option>
+          <option value="38x25">38 × 25 mm</option>
+        </select>
+      </div>
+      <p style="font-size:11.5px;color:var(--muted);margin:2px 2px 0"><span data-t="etq.tam_ayuda">Elige el rollo que tienes puesto. Las etiquetas de venta y reparación se ajustan a esta medida. Recuerda poner el mismo tamaño en el driver de la impresora.</span></p>
+    </div>
+
     <button class="btn-primary" onclick="guardarAjustes()">Guardar preferencias</button>
   </div>
 
