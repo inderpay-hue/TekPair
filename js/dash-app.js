@@ -6037,14 +6037,16 @@ function trackingEtiqueta() {
     qrSvg = qr.createImgTag(4, 4);
   } catch(e) {}
 
-  var w = window.open('', '_blank', 'width=400,height=300');
+  var m = _etqMedida(), pw = m.w, ph = m.h;
+  var qrMm = Math.max(14, Math.min(ph - 4, Math.round(pw * 0.4)));
+  var w = window.open('', '_blank', 'width=500,height=360');
   if (!w) { toast('Permite popups para imprimir', 'err'); return; }
   w.document.write(
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiqueta</title><style>' +
-    '@page { size: 62mm 30mm; margin: 0; }' +
-    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:62mm;height:30mm;margin:0;padding:1mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
+    '@page { size: ' + pw + 'mm ' + ph + 'mm; margin: 0; }' +
+    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;height:' + ph + 'mm;margin:0;padding:1mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
     '.qr{flex-shrink:0}' +
-    '.qr img{width:25mm;height:25mm;display:block}' +
+    '.qr img{width:' + qrMm + 'mm;height:' + qrMm + 'mm;display:block}' +
     '.info{flex:1;min-width:0;line-height:1.25}' +
     '.id{font-weight:800;font-size:9px;font-family:monospace}' +
     '.cli{font-weight:700;font-size:9px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
@@ -6066,6 +6068,28 @@ function trackingEtiqueta() {
   w.document.close();
 }
 
+// Tamaños de etiqueta soportados (ancho x alto en mm). El usuario elige en Ajustes.
+var ETQ_SIZES = {
+  '62cont': { w: 62, h: 30, label: '62mm continua (DK-22205)' },
+  '62x29':  { w: 62, h: 29, label: '62 × 29 mm (DK-11209)' },
+  '90x29':  { w: 90, h: 29, label: '29 × 90 mm (DK-11201)' },
+  '50x30':  { w: 50, h: 30, label: '50 × 30 mm' },
+  '40x30':  { w: 40, h: 30, label: '40 × 30 mm' },
+  '38x25':  { w: 38, h: 25, label: '38 × 25 mm' }
+};
+// Medida de etiqueta elegida (con fallback a 62mm continua). Acepta "WxH" libre.
+function _etqMedida() {
+  var k = '';
+  try { k = localStorage.getItem('tk_etq_size') || ''; } catch (e) {}
+  if (ETQ_SIZES[k]) return ETQ_SIZES[k];
+  if (/^\d{2,3}x\d{2,3}$/.test(k)) { var p = k.split('x'); return { w: parseInt(p[0], 10), h: parseInt(p[1], 10), label: k + ' mm' }; }
+  return ETQ_SIZES['62cont'];
+}
+function setEtqSize(v) {
+  try { localStorage.setItem('tk_etq_size', v); } catch (e) {}
+  var m = _etqMedida();
+  toast(T('etq.tam_guardado').replace('{m}', m.label), 'ok');
+}
 // Cabecera de etiqueta: logo de la tienda si existe, si no el nombre (compacto).
 // Se usa dentro de la columna de info de las etiquetas de venta y reparación.
 function _etqLogoHtml() {
@@ -6080,34 +6104,37 @@ function _etqEstado(tipo) {
   var m = { nuevo: 'etq.estado_nuevo', seminuevo: 'etq.estado_seminuevo', segunda: 'etq.estado_segunda', usado: 'etq.estado_segunda', reacond: 'etq.estado_reacond' };
   var k = m[tipo]; return k ? T(k) : '';
 }
-// Etiqueta de VENTA (rollo 62x30mm): marca/modelo, capacidad, color, estado, IMEI y precio.
-// QR del IMEI (si lo tiene) para escanear. Se imprime desde la lista de Stock.
+// Etiqueta de VENTA: marca/modelo, capacidad, color, estado, IMEI y precio.
+// Se adapta al tamaño elegido en Ajustes (_etqMedida). QR del IMEI si cabe.
 function imprimirEtiquetaStock(sid) {
   var s = (DB.stock || []).find(function(x) { return x.id === sid; });
   if (!s) return;
+  var m = _etqMedida(), pw = m.w, ph = m.h;
+  var showQr = !!s.imei && pw >= 45;  // en etiquetas estrechas, sin QR para dar sitio al texto
   var qrSvg = '';
-  if (s.imei) {
-    try { var qr = qrcode(0, 'M'); qr.addData(s.imei); qr.make(); qrSvg = qr.createImgTag(4, 4); } catch (e) {}
-  }
+  if (showQr) { try { var qr = qrcode(0, 'M'); qr.addData(s.imei); qr.make(); qrSvg = qr.createImgTag(4, 4); } catch (e) {} }
+  var hasQr = !!qrSvg;
+  var qrMm = Math.max(12, Math.min(ph - 6, Math.round(pw * 0.34)));
   var nombre = ((s.marca || '') + ' ' + (s.modelo || '')).trim();
   var specs = [s.capacidad, s.color].map(function(x) { return (x || '').trim(); }).filter(Boolean).join(' · ');
   var estado = _etqEstado(s.tipo);
   var precio = (parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '';
-  var hasQr = !!qrSvg;
-  var w = window.open('', '_blank', 'width=400,height=300');
+  var fNm = ph >= 29 ? 11 : (ph >= 27 ? 10 : 9);
+  var fPr = ph >= 29 ? 17 : (ph >= 27 ? 15 : 13);
+  var w = window.open('', '_blank', 'width=500,height=360');
   if (!w) { toast(T('etq.popup') || 'Permite popups para imprimir', 'err'); return; }
   w.document.write(
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiqueta</title><style>' +
-    '@page { size: 62mm 30mm; margin: 0; }' +
-    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:62mm;height:30mm;margin:0;padding:1.5mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
+    '@page { size: ' + pw + 'mm ' + ph + 'mm; margin: 0; }' +
+    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;height:' + ph + 'mm;margin:0;padding:1.5mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
     '.qr{flex-shrink:0}' +
-    '.qr img{width:20mm;height:20mm;display:block}' +
+    '.qr img{width:' + qrMm + 'mm;height:' + qrMm + 'mm;display:block}' +
     '.info{flex:1;min-width:0;line-height:1.2;display:flex;flex-direction:column;height:100%;justify-content:center}' +
-    '.nm{font-weight:800;font-size:11px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.nm{font-weight:800;font-size:' + fNm + 'px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.sp{font-size:8px;color:#333;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.es{font-size:7.5px;color:#555;margin-top:1px}' +
     '.im{font-size:7px;font-family:monospace;color:#444;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-    '.pr{font-size:17px;font-weight:800;margin-top:2px}' +
+    '.pr{font-size:' + fPr + 'px;font-weight:800;margin-top:2px}' +
     '</style></head><body>' +
     (hasQr ? '<div class="qr">' + qrSvg + '</div>' : '') +
     '<div class="info">' +
@@ -10760,6 +10787,7 @@ async function cambiarPassword() {
 
 function cargarAjustes() {
   document.getElementById('ajMoneda').value = AJUSTES.moneda || 'EUR';
+  try { var _es = document.getElementById('ajEtqSize'); if (_es) { var _ev = ''; try { _ev = localStorage.getItem('tk_etq_size') || ''; } catch (e) {} _es.value = (_ev && _es.querySelector('option[value="' + _ev + '"]')) ? _ev : '62cont'; } } catch (e) {}
   document.getElementById('ajNombre').value = AJUSTES.nombre || (U ? U.nombre : '');
   document.getElementById('ajCierreHora').value = AJUSTES.cierre.hora || '21:30';
   document.getElementById('ajCierreEmail').value = AJUSTES.cierre.email || '';
