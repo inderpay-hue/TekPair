@@ -236,11 +236,17 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
   <button data-th="dark" onclick="setTpvTheme('dark')" title="Dark">🌙</button>
 </div>
 <script>
-function setTpvTheme(t){
+// Aplica el tema (sin escribir en la nube) — usado al cargar desde la tienda
+function aplicarTpvTema(t){
+  if(!t) return;
   document.body.setAttribute('data-theme', t);
   try{ localStorage.setItem('tk_tpv_theme', t); }catch(e){}
   document.querySelectorAll('#tpvThemeSw button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-th')===t); });
-  if(typeof SB_KEY!=='undefined'&&SB_KEY&&typeof TIENDA_ID!=='undefined'&&TIENDA_ID&&typeof _sbPatchRaw==='function'){ try{ _sbPatchRaw('tiendas','id=eq.'+encodeURIComponent(TIENDA_ID),{tpv_tema:t}); }catch(e){} }
+}
+// El usuario elige tema → aplica + guarda por tienda (sincroniza entre dispositivos)
+function setTpvTheme(t){
+  aplicarTpvTema(t);
+  if(typeof SB_KEY!=='undefined'&&SB_KEY&&typeof TIENDA_ID!=='undefined'&&TIENDA_ID&&typeof sbPatch==='function'){ try{ sbPatch('tiendas','id=eq.'+encodeURIComponent(TIENDA_ID),{tpv_tema:t}); }catch(e){} }
 }
 document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.getAttribute('data-theme')||'aurora'); document.querySelectorAll('#tpvThemeSw button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-th')===t); }); });
 </script>
@@ -665,6 +671,7 @@ async function pullTiendaTPV() {
     };
     Object.assign(TIENDA, tiendaData);
     localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
+    if (t.tpv_tema) { try { aplicarTpvTema(t.tpv_tema); } catch(e){} }  // tema por tienda (sincronizado)
 
     if (t.ajustes_config && typeof t.ajustes_config === 'object') {
       AJUSTES = Object.assign({iva:{activo:false,modo:'incluido',tipoDefault:21}}, t.ajustes_config);
@@ -709,11 +716,33 @@ async function pullFavsTPV() {
   } catch(e) { console.error('Pull favs TPV error:', e); }
 }
 
+// Baja el stock REAL desde Supabase (el TPV solo leía localStorage → podía estar
+// desactualizado si el stock cambiaba en el panel, otro dispositivo, reparación o pedido).
+function pullStockTPV() {
+  if (!SB_KEY || !TIENDA_ID) return Promise.resolve();
+  return sbGet('stock', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID)).then(function(rows) {
+    if (!Array.isArray(rows)) return;
+    DB.stock = rows.map(function(s) {
+      return {
+        id: s.id, categoria: s.categoria || 'Telefono', marca: s.marca || '', modelo: s.modelo || '',
+        capacidad: s.capacidad || '', color: s.color || '', imei: s.imei || '',
+        unidades: parseInt(s.unidades, 10) || 0, stockMin: parseInt(s.stock_min, 10) || 2, stockMax: parseInt(s.stock_max, 10) || 10,
+        precioC: parseFloat(s.precio_c) || 0, precioV: parseFloat(s.precio_v) || 0,
+        vendido: s.vendido || false, calidad: s.calidad || '', tipo: s.tipo || 'nuevo',
+        garantiaMeses: parseInt(s.garantia_meses, 10) || 0, ubicacion: s.ubicacion || null
+      };
+    });
+    try { localStorage.setItem('tk_db', JSON.stringify(DB)); } catch(e){}
+    renderProducts();
+    try { if (typeof buscarProducto === 'function' && document.getElementById('tpvSearch') && document.getElementById('tpvSearch').value) buscarProducto(); } catch(e){}
+  }).catch(function(){});
+}
 function syncTPV() {
   return Promise.all([
     syncVentasDesdeSupabase(),
     pullFavsTPV(),
-    pullTiendaTPV()
+    pullTiendaTPV(),
+    pullStockTPV()
   ]);
 }
 function isFav(type, id) { return favs.some(function(f){ return f.type === type && f.id === id; }); }
