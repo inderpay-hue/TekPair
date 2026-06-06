@@ -124,6 +124,8 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
 .payment-title{color:rgba(255,255,255,.6);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
 .payment-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:10px}
 .pay-btn{padding:10px;border-radius:10px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.ent-pay-btn{flex:1;padding:7px 6px;border-radius:8px;border:1.5px solid rgba(255,255,255,.15);background:rgba(255,255,255,.06);color:rgba(255,255,255,.7);font-size:11px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s}
+.ent-pay-btn.active{background:#00C896;border-color:#00C896;color:#fff}
 .pay-btn.active{background:var(--blue);color:white;border-color:var(--blue)}
 
 /* NUMPAD */
@@ -334,6 +336,14 @@ button:focus-visible,input:focus-visible{outline:none;box-shadow:var(--ring)}
             <div style="flex:1">
               <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px"><span data-t="gen.dia_pago">Día pago</span></div>
               <input class="disc-input" id="finDiaPago" type="number" min="1" max="28" value="8" oninput="calcFinanciado()">
+            </div>
+          </div>
+          <div id="finEntradaPagoRow" style="display:none;margin-bottom:6px">
+            <div style="font-size:11px;color:rgba(255,255,255,.5);margin-bottom:4px"><span data-t="gen.entrada_pago">Entrada pagada con</span></div>
+            <div style="display:flex;gap:6px">
+              <button type="button" class="ent-pay-btn active" data-ep="Efectivo" onclick="setEntradaPago(this)">💵 <span data-t="gen.efectivo">Efectivo</span></button>
+              <button type="button" class="ent-pay-btn" data-ep="Tarjeta" onclick="setEntradaPago(this)">💳 <span data-t="gen.tarjeta">Tarjeta</span></button>
+              <button type="button" class="ent-pay-btn" data-ep="Bizum" onclick="setEntradaPago(this)">📲 Bizum</button>
             </div>
           </div>
           <div id="finPreview" style="font-size:12px;color:var(--green);font-weight:700"></div>
@@ -1432,6 +1442,15 @@ function calcFinanciado() {
   if (!el) return;
   el.textContent = fin.numCuotas + ' × €' + fin.montoCuota.toFixed(2) + '/mes' +
     (fin.entrada > 0 ? ' · entrada €' + fin.entrada.toFixed(2) : '');
+  // El selector de método de pago de la entrada solo tiene sentido si hay entrada
+  var epRow = document.getElementById('finEntradaPagoRow');
+  if (epRow) epRow.style.display = fin.entrada > 0 ? 'block' : 'none';
+}
+var selectedEntradaPago = 'Efectivo';
+function setEntradaPago(el) {
+  selectedEntradaPago = el.getAttribute('data-ep');
+  var row = document.getElementById('finEntradaPagoRow');
+  if (row) row.querySelectorAll('.ent-pay-btn').forEach(function(b) { b.classList.toggle('active', b === el); });
 }
 
 // ═══ CHECKOUT ═══
@@ -1462,6 +1481,7 @@ function cobrar() {
     financiado: esFinanciado,
     cuotas: fin ? fin.cuotas : null,
     entrada: fin ? fin.entrada : 0,
+    entradaPago: (esFinanciado && fin && fin.entrada > 0) ? selectedEntradaPago : null,
     items: cart.slice()
   };
 
@@ -1495,6 +1515,7 @@ function cobrar() {
       pago: venta.pago, precio: venta.precio, descuento: venta.descuento,
       total: venta.total, reembolsado: false, financiado: venta.financiado,
       cuotas: venta.cuotas ? JSON.stringify(venta.cuotas) : null, entrada: venta.entrada || 0,
+      entrada_pago: venta.entradaPago || null,
       iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte
     });
   }
