@@ -698,6 +698,9 @@ function _uuidPed() {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 0x3 | 0x8)).toString(16); });
 }
 function _pedFecha(f) { if (!f) return ''; var p = String(f).slice(0, 10).split('-'); return p.length === 3 ? (p[2] + '/' + p[1]) : f; }
+function _pedFechaLarga(f) { if (!f) return ''; var p = String(f).slice(0, 10).split('-'); return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0]) : f; }
+// Fecha en que se recibió el pedido (yyyy-mm-dd). Fallback para pedidos antiguos sin el campo.
+function _pedFechaRecibida(p) { return (p && (p.fecha_recibido || '')).slice(0, 10) || (p && (p.fecha_pedido || '')).slice(0, 10) || ''; }
 function _fillProvDatalist() {
   var dl = document.getElementById('pedProvList');
   if (!dl) return;
@@ -1053,6 +1056,8 @@ function avanzarPedido(id) {
   } else if (p.estado === 'pedido') {
     p.estado = 'recibido';
     var patch = { estado: 'recibido' };
+    p.fecha_recibido = hoyLocal();   // día de recepción (escritura best-effort, ver abajo)
+    if (SB_KEY && typeof _sbPatchRaw === 'function') { try { _sbPatchRaw('pedidos', 'id=eq.' + encodeURIComponent(p.id), { fecha_recibido: p.fecha_recibido }); } catch (e) {} }
     if (!p.gasto_id && (parseFloat(p.importe) || 0) > 0) {
       var gid = _crearGastoDesdePedido(p);
       p.gasto_id = gid; patch.gasto_id = gid;
@@ -1154,6 +1159,8 @@ function recibirGrupo(encKey) {
     var p = o.p, uds = parseInt(p.cantidad, 10) || 1;
     p.estado = 'recibido';
     var patch = { estado: 'recibido' };
+    p.fecha_recibido = hoyLocal();   // día de recepción (escritura best-effort)
+    if (SB_KEY && typeof _sbPatchRaw === 'function') { try { _sbPatchRaw('pedidos', 'id=eq.' + encodeURIComponent(p.id), { fecha_recibido: p.fecha_recibido }); } catch (e) {} }
     if (!p.gasto_id && (parseFloat(p.importe) || 0) > 0) { var gid = _crearGastoDesdePedido(p); p.gasto_id = gid; patch.gasto_id = gid; }
     if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
     _recibirAStock(p, uds, o.ex, true, o.cat);
@@ -2364,6 +2371,41 @@ function renderPedidosPage() {
       '</div></div>';
   }
   var gridOpen = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">';
+  // Pestaña RECIBIDOS: agrupar por DÍA de recepción (recientes primero) y dentro por PROVEEDOR.
+  if (filt === 'recibido') {
+    var byDay = {};
+    lista.forEach(function(p) { var dk = _pedFechaRecibida(p) || 'zzz'; (byDay[dk] = byDay[dk] || []).push(p); });
+    var dayKeys = Object.keys(byDay).sort(function(a, b) { return b.localeCompare(a); });
+    box.innerHTML = dayKeys.map(function(dk) {
+      var dayItems = byDay[dk];
+      var dayLabel = dk === 'zzz' ? T('pedidos.sin_fecha') : _pedFechaLarga(dk);
+      var byProv = {};
+      dayItems.forEach(function(p) { var k = (p.proveedor || '').trim() || T('pedidos.sin_proveedor'); (byProv[k] = byProv[k] || []).push(p); });
+      var provKeys = Object.keys(byProv).sort(function(a, b) { if (a === T('pedidos.sin_proveedor')) return 1; if (b === T('pedidos.sin_proveedor')) return -1; return a.localeCompare(b); });
+      var provBoxes = provKeys.map(function(pk) {
+        var items = byProv[pk];
+        var tot = items.reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
+        var totUds = items.reduce(function(a, p) { return a + (parseInt(p.cantidad, 10) || 1); }, 0);
+        var rows = items.map(function(p) {
+          var imp = (parseFloat(p.importe) || 0) > 0 ? ' · ' + cur(parseFloat(p.importe)) : '';
+          return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border)">' +
+            '<span style="flex:1;font-size:13px">✅ <b>' + escHtml(p.pieza || '') + '</b>' + (p.cantidad > 1 ? ' <span style="color:var(--muted)">x' + p.cantidad + '</span>' : '') + '<span style="color:var(--muted);font-size:11.5px">' + imp + '</span></span>' +
+            '<button style="background:rgba(239,68,68,.1);color:var(--red);border:none;border-radius:6px;padding:4px 7px;font-size:11px;cursor:pointer" onclick="eliminarPedido(\'' + p.id + '\')">🗑️</button>' +
+          '</div>';
+        }).join('');
+        return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff;margin-bottom:10px">' +
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:800;font-size:13.5px">🏢 ' + escHtml(pk) +
+            ' <span style="background:var(--light);border-radius:8px;padding:1px 8px;font-size:11px;color:var(--muted);font-weight:700">' + totUds + ' ' + T('pedidos.uds') + '</span>' +
+            (tot > 0 ? '<span style="margin-left:auto;color:var(--muted);font-size:12px">' + cur(tot) + '</span>' : '') + '</div>' +
+          rows + '</div>';
+      }).join('');
+      return '<div style="margin-bottom:18px">' +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800;font-size:14px;color:var(--orange)">📅 ' + dayLabel +
+          ' <span style="background:var(--light);color:var(--muted);border-radius:8px;padding:1px 8px;font-size:11px">' + dayItems.length + '</span></div>' +
+        provBoxes + '</div>';
+    }).join('');
+    return;
+  }
   if (agOn) {
     var groups = {};
     lista.forEach(function(p) { var k = (p.proveedor || '').trim() || T('pedidos.sin_proveedor'); (groups[k] = groups[k] || []).push(p); });
