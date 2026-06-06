@@ -9693,8 +9693,10 @@ function _repRangoDias() {
   return dias;
 }
 function getRepFechas() {
-  // Formato local "DD/M/YYYY" — compara contra DB.ventas.fecha / DB.reps.fechaEntregaReal.
-  return _repRangoDias().map(function(d) { return d.toLocaleDateString('es'); });
+  // ISO "YYYY-MM-DD" — coincide con DB.ventas.fecha y DB.reps.fechaEntregaReal (ambos ISO).
+  // BUG (arreglado): antes devolvía toLocaleDateString 'DD/M/YYYY', que NUNCA casaba con
+  // los datos ISO → ventas, gráficas e informes salían todo a 0.
+  return getRepFechasISO();
 }
 
 // REP-FECHA-FIX: devuelve fechas en formato ISO YYYY-MM-DD para queries a Supabase.
@@ -9766,14 +9768,14 @@ function renderGraficas(ventas, reps, pagos, fechas) {
     document.getElementById('cardChartIngresos').style.display = '';
     var fechasOrden = fechas.slice().reverse(); // del más antiguo al más reciente
     var labels = fechasOrden.map(function(f){
-      var p = f.split('/');
-      return p[0] + '/' + p[1];
+      var p = String(f).split('-');   // f en ISO "YYYY-MM-DD" → etiqueta "DD/MM"
+      return p.length === 3 ? (p[2] + '/' + p[1]) : f;
     });
     var dataV = fechasOrden.map(function(f){
       return ventas.filter(function(v){ return v.fecha === f; }).reduce(function(a,v){ return a+v.total; }, 0);
     });
     var dataR = fechasOrden.map(function(f){
-      return reps.filter(function(r){ return r.fechaEntregaReal === f; }).reduce(function(a,r){ return a+r.total; }, 0);
+      return reps.filter(function(r){ return (r.fechaEntregaReal||'').slice(0,10) === f; }).reduce(function(a,r){ return a+r.total; }, 0);
     });
     if (CHART_INGRESOS) CHART_INGRESOS.destroy();
     var ctx = document.getElementById('chartIngresos');
@@ -10063,7 +10065,7 @@ function generarPDFGestor() {
 function verReportePDF() {
   var fechas = getRepFechas();
   var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && fechas.includes(v.fecha); });
-  var reps = DB.reps.filter(function(r) { return r.estado === 'Entregado' && fechas.includes(r.fechaEntregaReal); });
+  var reps = DB.reps.filter(function(r) { return (r.estado||'').toLowerCase() === 'entregado' && fechas.includes((r.fechaEntregaReal||'').slice(0,10)); });
   var tV = ventas.reduce(function(a, v) { return a + v.total; }, 0);
   var tR = reps.reduce(function(a, r) { return a + r.total; }, 0);
   var html = '<html><head><meta charset="UTF-8"><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th{background:#020B2E;color:white;padding:8px}td{padding:8px;border-bottom:1px solid #eee}.tot{display:flex;justify-content:space-between;padding:10px;font-weight:700;font-size:16px;background:#f5f5f5;margin:10px 0}</style></head><body>' +
@@ -10085,7 +10087,7 @@ function verReportePDF() {
 function emailReporte() {
   var fechas = getRepFechas();
   var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && fechas.includes(v.fecha); });
-  var reps = DB.reps.filter(function(r) { return r.estado === 'Entregado' && fechas.includes(r.fechaEntregaReal); });
+  var reps = DB.reps.filter(function(r) { return (r.estado||'').toLowerCase() === 'entregado' && fechas.includes((r.fechaEntregaReal||'').slice(0,10)); });
   var tV = ventas.reduce(function(a, v) { return a + v.total; }, 0);
   var tR = reps.reduce(function(a, r) { return a + r.total; }, 0);
   var email = TIENDA.email || AJUSTES.cierre.email || prompt('Email para enviar el reporte:');
