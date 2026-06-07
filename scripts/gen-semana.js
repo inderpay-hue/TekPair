@@ -141,6 +141,9 @@ function pageHtml(p, HREF) {
 
 let n = 0;
 for (const art of ARTICLES) {
+  // Saltar artículos ya publicados (su HTML destino ya existe): evita duplicados al regenerar.
+  const _pub = path.join(ROOT, art.slug.es);
+  if (fs.existsSync(_pub)) { console.log('Ya publicado, salto: ' + art.id); continue; }
   n++;
   const num = String(n).padStart(3, '0');
   const dir = path.join(ROOT, '_blog-queue', num + '-' + art.id);
