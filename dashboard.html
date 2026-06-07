@@ -984,7 +984,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
-  <script src="/lang/lang.v8.js?v=20260603i18n"></script>
+  <script src="/lang/lang.v8.js?v=20260607cobrum"></script>
 </head>
 <body>
 <div id="app">
@@ -2523,6 +2523,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:14px">
     <button class="btn-primary" style="background:var(--blue)" onclick="generarPDFGestor()"><span data-t="gen.pdf_para_gestor">📄 PDF para gestor</span></button>
     <button class="btn-secondary" onclick="verReportePDF()"><span data-t="gen.imprimir_reporte">🖨️ Imprimir reporte</span></button>
+  </div>
+  <div style="display:grid;grid-template-columns:1fr auto;gap:8px;margin-top:8px">
+    <button class="btn-secondary" onclick="enviarReporteCobrum()"><span data-t="gen.enviar_cobrum">🔗 Enviar a Cobrum</span></button>
+    <button class="btn-secondary" title="Configurar token de Cobrum" onclick="configCobrumToken()">🔑</button>
   </div>
 </div>
 
@@ -4225,7 +4229,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal" id="finModalContent"></div>
 </div>
 
-<script src="/js/dash-app.js"></script>
+<script src="/js/dash-app.js?v=20260607cobrum"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

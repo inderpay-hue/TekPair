@@ -9745,11 +9745,69 @@ async function renderReporte() {
     '</div>' +
     '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">Total: ' + cur(tV + tR) + '</div>';
 
+  // Guardar datos del periodo para "Enviar a Cobrum" (ventas + pagos de reparación)
+  window._repExport = { ventas: ventas, pagosReps: pagosReps };
+
   // Renderizar gráficas (asíncrono para que el DOM se actualice primero)
   setTimeout(function(){ renderGraficas(ventas, reps, pagos, fechas); }, 50);
   // Renderizar desglose IVA
   renderDesgloseIVA(ventas, reps);
 }
+
+// ═══ ENVIAR REPORTE A COBRUM (app de finanzas) ═══
+// Envía el periodo mostrado día por día (idempotente por fecha → reenviar no duplica).
+// Ventas y Reparaciones van como dos categorías separadas en Cobrum.
+var COBRUM_API = 'https://finanzas-app-six-zeta.vercel.app/api/integraciones';
+
+function configCobrumToken() {
+  var actual = localStorage.getItem('cobrum_token') || '';
+  var tk = (prompt('Pega tu token de Cobrum.\n(En Cobrum: Ajustes → Conectar Bipe/TekPair → Generar token)', actual) || '').trim();
+  if (tk === '' && actual) {
+    if (confirm('¿Borrar el token guardado?')) { localStorage.removeItem('cobrum_token'); toast('Token borrado', 'success'); }
+    return null;
+  }
+  if (tk) { localStorage.setItem('cobrum_token', tk); toast('Token guardado', 'success'); }
+  return tk || null;
+}
+window.configCobrumToken = configCobrumToken;
+
+async function enviarReporteCobrum() {
+  var exp = window._repExport;
+  if (!exp) { toast('Abre un reporte primero', 'err'); return; }
+  var token = localStorage.getItem('cobrum_token') || '';
+  if (!token) { token = configCobrumToken(); if (!token) return; }
+
+  // Agrupar ventas y reparaciones por día
+  var porDia = {};
+  (exp.ventas || []).forEach(function(v){
+    var f = v.fecha; if (!f) return;
+    (porDia[f] = porDia[f] || { ventas: 0, reps: 0 }).ventas += Number(v.total || 0);
+  });
+  (exp.pagosReps || []).forEach(function(p){
+    var f = (p.fecha || '').slice(0, 10); if (!f) return;
+    (porDia[f] = porDia[f] || { ventas: 0, reps: 0 }).reps += Number(p.importe || 0);
+  });
+  var dias = Object.keys(porDia).sort();
+  if (!dias.length) { toast('No hay datos en este periodo', 'err'); return; }
+  if (!confirm('Se enviarán ' + dias.length + ' día(s) de ventas y reparaciones a Cobrum.\nReenviar el mismo periodo NO duplica (se actualiza). ¿Continuar?')) return;
+
+  var okCount = 0, errCount = 0;
+  for (var i = 0; i < dias.length; i++) {
+    var d = dias[i], r2 = Math.round(porDia[d].reps * 100) / 100, v2 = Math.round(porDia[d].ventas * 100) / 100;
+    try {
+      var resp = await fetch(COBRUM_API, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': token },
+        body: JSON.stringify({ source: 'tekpair', fecha: d, ingresos: v2, reparaciones: r2, ref: d })
+      });
+      var j = await resp.json().catch(function(){ return {}; });
+      if (resp.status === 401) { toast('Token de Cobrum no válido', 'err'); localStorage.removeItem('cobrum_token'); return; }
+      if (resp.ok && j.ok) okCount++; else errCount++;
+    } catch (e) { errCount++; }
+  }
+  toast('Enviado a Cobrum: ' + okCount + ' día(s)' + (errCount ? (' · ' + errCount + ' con error') : ''), errCount ? 'err' : 'success');
+}
+window.enviarReporteCobrum = enviarReporteCobrum;
 
 function renderGraficas(ventas, reps, pagos, fechas) {
   if (typeof Chart === 'undefined') return;
