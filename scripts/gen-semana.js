@@ -5,7 +5,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const BASE = 'https://www.tekpair.tech';
 const LANGS = ['es', 'en', 'fr', 'it', 'de', 'pt'];
-const ARTICLES = require('./gen-semana.content.js');
+const ARTICLES = require(process.env.BLOG_CONTENT || './gen-semana.content.js');
 
 function head(p, HREF) {
   const alts = LANGS.map(l => `  <link rel="alternate" hreflang="${l}" href="${HREF[l]}" />`).join('\n');
