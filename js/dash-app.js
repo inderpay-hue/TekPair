@@ -9771,34 +9771,51 @@ function configCobrumToken() {
 }
 window.configCobrumToken = configCobrumToken;
 
+// Normaliza la forma de pago a una etiqueta para la cuenta en Cobrum
+function _metodoLabel(m) {
+  m = String(m || '').trim().toLowerCase();
+  if (!m) return 'Otros';
+  var map = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', bizum: 'Bizum', transferencia: 'Transferencia', otros: 'Otros' };
+  return map[m] || (m.charAt(0).toUpperCase() + m.slice(1));
+}
+
 async function enviarReporteCobrum() {
   var exp = window._repExport;
   if (!exp) { toast('Abre un reporte primero', 'err'); return; }
   var token = localStorage.getItem('cobrum_token') || '';
   if (!token) { token = configCobrumToken(); if (!token) return; }
 
-  // Agrupar ventas y reparaciones por día
+  // Agrupar por día → forma de pago → { ventas, reps }
   var porDia = {};
-  (exp.ventas || []).forEach(function(v){
-    var f = v.fecha; if (!f) return;
-    (porDia[f] = porDia[f] || { ventas: 0, reps: 0 }).ventas += Number(v.total || 0);
-  });
-  (exp.pagosReps || []).forEach(function(p){
-    var f = (p.fecha || '').slice(0, 10); if (!f) return;
-    (porDia[f] = porDia[f] || { ventas: 0, reps: 0 }).reps += Number(p.importe || 0);
-  });
+  function bucket(f, met) {
+    porDia[f] = porDia[f] || {};
+    var lbl = _metodoLabel(met);
+    return (porDia[f][lbl] = porDia[f][lbl] || { ventas: 0, reps: 0 });
+  }
+  (exp.ventas || []).forEach(function(v){ var f = v.fecha; if (f) bucket(f, v.pago).ventas += Number(v.total || 0); });
+  (exp.pagosReps || []).forEach(function(p){ var f = (p.fecha || '').slice(0, 10); if (f) bucket(f, p.metodo).reps += Number(p.importe || 0); });
+
   var dias = Object.keys(porDia).sort();
   if (!dias.length) { toast('No hay datos en este periodo', 'err'); return; }
-  if (!confirm('Se enviarán ' + dias.length + ' día(s) de ventas y reparaciones a Cobrum.\nReenviar el mismo periodo NO duplica (se actualiza). ¿Continuar?')) return;
+  if (!confirm('Se enviarán ' + dias.length + ' día(s) a Cobrum, separados por forma de pago (una cuenta por método).\nReenviar el mismo periodo NO duplica (se actualiza). ¿Continuar?')) return;
 
   var okCount = 0, errCount = 0;
   for (var i = 0; i < dias.length; i++) {
-    var d = dias[i], r2 = Math.round(porDia[d].reps * 100) / 100, v2 = Math.round(porDia[d].ventas * 100) / 100;
+    var d = dias[i];
+    var lineas = [];
+    Object.keys(porDia[d]).forEach(function(metLbl){
+      var b = porDia[d][metLbl];
+      var cuenta = 'TekPair ' + metLbl;
+      var ven = Math.round(b.ventas * 100) / 100, rep = Math.round(b.reps * 100) / 100;
+      if (ven > 0) lineas.push({ tipo: 'ingreso', cuenta: cuenta, categoria: 'Ventas', monto: ven });
+      if (rep > 0) lineas.push({ tipo: 'ingreso', cuenta: cuenta, categoria: 'Reparaciones', monto: rep });
+    });
+    if (!lineas.length) continue;
     try {
       var resp = await fetch(COBRUM_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': token },
-        body: JSON.stringify({ source: 'tekpair', fecha: d, ingresos: v2, reparaciones: r2, ref: d })
+        body: JSON.stringify({ source: 'tekpair', fecha: d, ref: d, lineas: lineas })
       });
       var j = await resp.json().catch(function(){ return {}; });
       if (resp.status === 401) { toast('Token de Cobrum no válido', 'err'); localStorage.removeItem('cobrum_token'); return; }
