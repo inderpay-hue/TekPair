@@ -3707,6 +3707,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <option value="Telefono" data-t="stock.cat_telefono">Teléfono</option><option value="Tablet" data-t="stock.cat_tablet">Tablet</option><option value="Smartwatch" data-t="stock.cat_smartwatch">Smartwatch</option><option value="Pantalla" data-t="stock.cat_pantalla">Pantalla</option><option value="Tapa" data-t="stock.cat_tapa">Tapa</option><option value="Bateria" data-t="stock.cat_bateria">Batería</option><option value="Flex de Carga" data-t="stock.cat_flex">Flex de carga</option><option value="Altavoz" data-t="stock.cat_altavoz">Altavoz</option><option value="Repuesto" data-t="stock.cat_repuesto">Repuesto</option><option value="Accesorio" data-t="stock.cat_accesorio">Accesorio</option><option value="Otro" data-t="stock.cat_otro">Otro</option>
       </select>
     </div>
+    <div class="fg"><label class="fl"><span data-t="tpv.forma_pago">Forma de pago</span></label>
+      <select class="fi" id="pedMetodo">
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="bizum">Bizum</option>
+        <option value="transferencia" selected>Transferencia</option>
+      </select>
+    </div>
     <div id="pedImeiHint" style="display:none;background:rgba(255,91,31,.07);border:1px solid rgba(255,91,31,.2);border-radius:9px;padding:8px 11px;font-size:11.5px;color:var(--ink2,#475569);margin-bottom:8px" data-t="pedidos.imei_al_recibir">📱 Los IMEIs, color y precio de cada unidad se piden al marcar el pedido como RECIBIDO (cuando lleguen).</div>
     <div class="fg"><label class="fl"><span data-t="rep.marca">Marca</span></label><input class="fi" id="pedMarca" autocomplete="off" placeholder="Apple, Samsung..." oninput="try{renderPedMarcas()}catch(e){}"></div>
     <div id="pedMarcasSug" style="display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 8px"></div>
@@ -4112,8 +4120,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <label class="fl" id="nLblAdjuntar">Adjuntar nómina (PDF o imagen)</label>
     <input type="file" id="nAdj" accept="application/pdf,image/jpeg,image/png" style="font-size:13px">
   </div>
-  <div class="fg"><label class="fl" id="nLblEstado">Estado</label>
-    <select class="fi" id="nEstado"><option id="nEstPagado">Pagado</option><option id="nEstPendiente">Pendiente</option></select>
+  <div class="fi-row">
+    <div class="fg"><label class="fl" id="nLblEstado">Estado</label>
+      <select class="fi" id="nEstado"><option id="nEstPagado">Pagado</option><option id="nEstPendiente">Pendiente</option></select>
+    </div>
+    <div class="fg"><label class="fl"><span data-t="tpv.forma_pago">Forma de pago</span></label>
+      <select class="fi" id="nMetodo">
+        <option value="efectivo">Efectivo</option>
+        <option value="tarjeta">Tarjeta</option>
+        <option value="bizum">Bizum</option>
+        <option value="transferencia" selected>Transferencia</option>
+      </select>
+    </div>
   </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mNomina')" id="nBtnCancelar">Cancelar</button>
@@ -4155,6 +4173,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <option value="21" selected>21% (general)</option>
       </select>
     </div>
+  </div>
+  <div class="fg"><label class="fl"><span data-t="tpv.forma_pago">Forma de pago</span></label>
+    <select class="fi" id="grMetodo">
+      <option value="efectivo">Efectivo</option>
+      <option value="tarjeta">Tarjeta</option>
+      <option value="bizum">Bizum</option>
+      <option value="transferencia" selected>Transferencia</option>
+    </select>
   </div>
   <div class="fg" style="position:relative">
     <label class="fl">Proveedor (opcional)</label>
@@ -4239,7 +4265,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal" id="finModalContent"></div>
 </div>
 
-<script src="/js/dash-app.js?v=20260608croncob"></script>
+<script src="/js/dash-app.js?v=20260608metodos"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
