@@ -1403,6 +1403,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="tab" data-f="En Proceso" data-t="estado.En Proceso" onclick="setRepFiltro(this)">En Proceso</div>
     <div class="tab" data-f="Por Entregar" data-t="estado.Por Entregar" onclick="setRepFiltro(this)">Por Entregar</div>
     <div class="tab" data-f="Entregado" data-t="estado.Entregado" onclick="setRepFiltro(this)">Entregado</div>
+    <div class="tab" data-f="adeber" data-t="rep.a_deber_tab" onclick="setRepFiltro(this)" style="background:rgba(249,115,22,.08);color:#EA580C;border:1px solid rgba(249,115,22,.25)">💸 A deber</div>
     <div class="tab" data-f="Garantia" data-t="estado.Garantia" onclick="setRepFiltro(this)">Garantia</div>
     <div class="tab" data-f="Sin Solucion" data-t="estado.Sin Solucion" onclick="setRepFiltro(this)">Sin Solucion</div>
     <div class="tab" data-f="Devuelto" data-t="estado.Devuelto" onclick="setRepFiltro(this)">Devuelto</div>
@@ -3566,6 +3567,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
             <div class="fg" style="flex:1">
               <label class="fl">💳 Pagos</label>
               <div id="rPagosBox" style="background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:10px">
+                <!-- Anticipo directo: meter de golpe lo que el cliente adelanta -->
+                <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--border)">
+                  <div style="flex:1;min-width:80px"><label style="font-size:10px;color:var(--muted);font-weight:600" data-t="rep.anticipo_dir">ANTICIPO €</label><input id="rAntDirImporte" type="number" step="0.01" min="0" class="fi" placeholder="0,00" style="padding:6px 8px" onkeydown="if(event.key==='Enter'){event.preventDefault();anadirAnticipoDirecto();}"></div>
+                  <div style="flex:1;min-width:100px"><label style="font-size:10px;color:var(--muted);font-weight:600" data-t="rep.metodo">MÉTODO</label><select id="rAntDirMetodo" class="fi" style="padding:6px 8px"><option value="Efectivo">Efectivo</option><option value="Tarjeta">Tarjeta</option><option value="Bizum">Bizum</option><option value="Transferencia">Transferencia</option></select></div>
+                  <button type="button" class="btn-sm" onclick="anadirAnticipoDirecto()" title="Añadir anticipo" style="background:var(--blue);color:white;font-size:16px;font-weight:700;padding:6px 14px;line-height:1">+</button>
+                </div>
                 <div id="rPagosLista" style="font-size:13px;margin-bottom:8px"></div>
                 <div id="rPagosResumen" style="font-size:12px;color:var(--muted);margin-bottom:8px;padding-top:8px;border-top:1px dashed var(--border)"></div>
                 <button type="button" class="btn-sm" onclick="mostrarFormPago()" style="background:var(--green);color:white;font-size:12px;width:100%">+ Añadir pago</button>
@@ -3663,7 +3670,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <span id="rTotalLbl">TOTAL</span>
         <span id="rTotal">€0.00</span>
       </div>
-      <div id="rAnticipoRow" style="font-size:11px;color:var(--muted);display:none"><span data-t="rep.anticipo">Anticipo pagado</span>: <span id="rAnticipo" style="font-weight:700;color:var(--green)">€0.00</span></div>
+      <div id="rAnticipoRow" style="font-size:11px;color:var(--muted);display:none"><span data-t="rep.anticipo_pagado">Anticipo pagado</span>: <span id="rAnticipo" style="font-weight:700;color:var(--green)">€0.00</span></div>
       <div style="font-size:11px;color:var(--muted)"><span data-t="rep.queda_deber">Queda a deber</span>: <span id="rRestante" style="font-weight:700">€0.00</span></div>
     </div>
     <div class="rep-footer-buttons">
@@ -5613,6 +5620,25 @@ function confirmarPago() {
       metodo: metodo,
       tipo: tipo
     });
+  }
+}
+
+// Atajo: añadir directamente lo que el cliente adelanta (anticipo) sin abrir el form de pago
+function anadirAnticipoDirecto() {
+  var inp = document.getElementById('rAntDirImporte');
+  var importe = parseFloat(inp.value) || 0;
+  if (importe <= 0) { toast('Importe inválido', 'err'); return; }
+  var metodo = document.getElementById('rAntDirMetodo').value;
+  var fecha = hoyLocal();
+  SEL.repPagos = SEL.repPagos || [];
+  var tipo = SEL.repPagos.length === 0 ? 'anticipo' : 'parcial';
+  var pagoId = 'pg' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  SEL.repPagos.push({ id: pagoId, fecha: fecha, importe: importe, metodo: metodo, tipo: tipo });
+  inp.value = '';
+  renderListaPagos();
+  toast('Anticipo añadido', 'ok');
+  if (SEL.editRepId && SB_KEY && TIENDA_ID) {
+    sbPost('pagos_reparacion', { id: pagoId, tienda_id: TIENDA_ID, reparacion_id: SEL.editRepId, fecha: fecha, importe: importe, metodo: metodo, tipo: tipo });
   }
 }
 
