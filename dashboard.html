@@ -3680,7 +3680,17 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal">
   <div class="modal-title"><span data-t="modal.entregar">✅ Entregar reparación</span></div>
   <div id="entregaInfo" style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px"></div>
-  <div class="fg"><label class="fl">Pago final</label>
+  <!-- Entregar a deber: solo se muestra si queda restante por cobrar -->
+  <div id="eADeberBox" style="display:none;margin-bottom:14px">
+    <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;background:#FFF7ED;border:1px solid #FDBA74;border-radius:10px">
+      <input type="checkbox" id="eADeber" onchange="toggleEntregaDeber()" style="width:17px;height:17px;cursor:pointer;flex-shrink:0">
+      <div>
+        <div style="font-weight:600;font-size:13px;color:#9A3412"><span data-t="entrega.a_deber">Entregar a deber (no cobro ahora)</span></div>
+        <div style="font-size:11px;color:#B45309;margin-top:2px"><span data-t="entrega.a_deber_desc">Entregas el equipo y el restante queda pendiente de cobro (fiado).</span></div>
+      </div>
+    </label>
+  </div>
+  <div class="fg" id="ePagoBox"><label class="fl"><span data-t="entrega.pago_final">Pago final</span></label>
     <select class="fi" id="ePago"><option>Efectivo</option><option>Tarjeta</option><option>Bizum</option><option>Transferencia</option></select>
   </div>
   <div class="modal-actions">

@@ -7222,47 +7222,73 @@ function abrirEntregar(id) {
   SEL.eRepId = id;
   var r = DB.reps.find(function(x) { return x.id === id; });
   if (!r) return;
+  var resta = parseFloat(r.restante) || 0;
   document.getElementById('entregaInfo').innerHTML =
     '<strong>' + esc(r.clienteNombre) + '</strong> — ' + esc(r.marca) + ' ' + esc(r.modelo) +
     '<br><span style="color:var(--muted)">' + esc(r.averia) + '</span>' +
-    '<br><br>Restante: <strong style="color:var(--green)">' + cur(r.restante) + '</strong>';
+    '<br><br>' + T('rep.queda_deber') + ': <strong style="color:' + (resta > 0 ? '#F97316' : 'var(--green)') + '">' + cur(resta) + '</strong>';
+  // La opción "entregar a deber" solo tiene sentido si queda algo por cobrar
+  var box = document.getElementById('eADeberBox');
+  var chk = document.getElementById('eADeber');
+  if (chk) chk.checked = false;
+  if (box) box.style.display = resta > 0 ? 'block' : 'none';
+  var pagoBox = document.getElementById('ePagoBox');
+  if (pagoBox) pagoBox.style.display = 'block';
   openM('mEntregar');
+}
+
+// Al marcar "entregar a deber" ocultamos el método de pago (no se cobra ahora)
+function toggleEntregaDeber() {
+  var chk = document.getElementById('eADeber');
+  var pagoBox = document.getElementById('ePagoBox');
+  if (pagoBox) pagoBox.style.display = (chk && chk.checked) ? 'none' : 'block';
 }
 
 function confirmarEntrega() {
   if (!tienePerm('reps_entregar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x) { return x.id === SEL.eRepId; });
   if (!r) return;
+  var resta = parseFloat(r.restante) || 0;
+  var chk = document.getElementById('eADeber');
+  var aDeber = !!(chk && chk.checked && resta > 0); // entregar dejando el restante pendiente (fiado)
   r.estado = 'Entregado';
   r.fechaEntregaReal = hoyLocal();
-  r.pagoFinal = document.getElementById('ePago').value;
-  r.restante = 0;
-  guardarDatos();
-  if (SB_KEY && TIENDA_ID) {
-    sbPatch('reparaciones', 'id=eq.' + r.id, {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0});
+  if (aDeber) {
+    // No se cobra: el restante se mantiene como pendiente. No se crea pago final.
+    guardarDatos();
+    if (SB_KEY && TIENDA_ID) {
+      sbPatch('reparaciones', 'id=eq.' + r.id, {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal});
+    }
+  } else {
+    r.pagoFinal = document.getElementById('ePago').value;
+    r.restante = 0;
+    guardarDatos();
+    if (SB_KEY && TIENDA_ID) {
+      sbPatch('reparaciones', 'id=eq.' + r.id, {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0});
 
-    // Auto-crear pago tipo='final' en pagos_reparacion con la diferencia
-    sbGet('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(r.id) + '&select=importe').then(function(pagosExistentes) {
-      var sumaPagosExistentes = (pagosExistentes || []).reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
-      var importeFinal = (parseFloat(r.total) || 0) - sumaPagosExistentes;
-      if (importeFinal > 0) {
-        var d = new Date();
-        var fechaISO = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-        sbPost('pagos_reparacion', {
-          tienda_id: TIENDA_ID,
-          reparacion_id: r.id,
-          fecha: fechaISO,
-          importe: +importeFinal.toFixed(2),
-          metodo: r.pagoFinal || 'Efectivo',
-          tipo: 'final',
-          nota: 'Auto-creado al entregar reparación'
-        });
-        window._pagosRepCache = null; // invalidar caché de stats
-      }
-    });
+      // Auto-crear pago tipo='final' en pagos_reparacion con la diferencia
+      sbGet('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(r.id) + '&select=importe').then(function(pagosExistentes) {
+        var sumaPagosExistentes = (pagosExistentes || []).reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
+        var importeFinal = (parseFloat(r.total) || 0) - sumaPagosExistentes;
+        if (importeFinal > 0) {
+          var d = new Date();
+          var fechaISO = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+          sbPost('pagos_reparacion', {
+            tienda_id: TIENDA_ID,
+            reparacion_id: r.id,
+            fecha: fechaISO,
+            importe: +importeFinal.toFixed(2),
+            metodo: r.pagoFinal || 'Efectivo',
+            tipo: 'final',
+            nota: 'Auto-creado al entregar reparación'
+          });
+          window._pagosRepCache = null; // invalidar caché de stats
+        }
+      });
+    }
   }
   closeM('mEntregar');
-  toast(T('estado.Entregado'), 'ok');
+  toast(aDeber ? (T('estado.Entregado') + ' · ' + T('rep.queda_deber') + ' ' + cur(resta)) : T('estado.Entregado'), 'ok');
   renderReps();
   renderDash();
   // whatsapp_flow_v2: enviar parte de reparacion al entregar
@@ -7282,8 +7308,9 @@ function confirmarEntrega() {
         'Averia: ' + r.averia,
         '',
         'Fecha entrega: ' + r.fechaEntregaReal,
-        'Forma de pago: ' + (r.pagoFinal || '-'),
+        (aDeber ? '' : 'Forma de pago: ' + (r.pagoFinal || '-')),
         'Total: ' + cur(r.total),
+        (aDeber ? 'Pendiente de pago: ' + cur(resta) : ''),
         '',
         'Comprobante online: ' + url,
         '',
