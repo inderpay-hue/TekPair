@@ -158,7 +158,7 @@ function _cobrumMetodo(m) {
 async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
   const COBRUM_URL = 'https://finanzas-app-six-zeta.vercel.app/api/integraciones';
   let enviados = 0, errores = 0;
-  const tr = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?cobrum_sync=eq.true&cobrum_token=not.is.null&select=id,nombre,cobrum_token`, { headers });
+  const tr = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?or=(cobrum_sync.eq.true,cierre_email_auto.eq.true)&select=id,nombre,cobrum_token,cobrum_sync,cierre_email_auto,email`, { headers });
   if (!tr.ok) return { enviados, errores: 1 };
   const tiendas = await tr.json();
   for (const t of tiendas) {
@@ -198,13 +198,34 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
         });
       } catch (e) { /* sin fiados */ }
 
-      if (!lineas.length && !fiados.length) continue;
-      const cr = await fetch(COBRUM_URL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': t.cobrum_token },
-        body: JSON.stringify({ source: 'tekpair', fecha: ayer, ref: ayer, lineas, fiados }),
-      });
-      if (cr.ok) enviados++; else errores++;
+      // 1) Volcado a Cobrum (si la tienda lo tiene activado)
+      if (t.cobrum_sync && t.cobrum_token && (lineas.length || fiados.length)) {
+        try {
+          const cr = await fetch(COBRUM_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': t.cobrum_token },
+            body: JSON.stringify({ source: 'tekpair', fecha: ayer, ref: ayer, lineas, fiados }),
+          });
+          if (cr.ok) enviados++; else errores++;
+        } catch (e) { errores++; }
+      }
+      // 2) Email diario del cierre (servidor → funciona con el PC apagado)
+      if (t.cierre_email_auto && t.email) {
+        try {
+          const noReemb = (ventas || []).filter((v) => !v.reembolsado);
+          const totV = noReemb.reduce((s, v) => s + Number(v.total || 0), 0);
+          const totR = (pagos || []).reduce((s, p) => s + Number(p.importe || 0), 0);
+          const pagosObj = {};
+          noReemb.forEach((v) => { const k = v.pago || 'Efectivo'; pagosObj[k] = (pagosObj[k] || 0) + Number(v.total || 0); });
+          (pagos || []).forEach((p) => { const k = p.metodo || 'Efectivo'; pagosObj[k] = (pagosObj[k] || 0) + Number(p.importe || 0); });
+          const reporte = { fecha: ayer, numVentas: noReemb.length, totalVentas: totV.toFixed(2), numReps: (pagos || []).length, totalReps: totR.toFixed(2), total: (totV + totR).toFixed(2), pagos: pagosObj, ventas: [], reps: [] };
+          await fetch('https://www.tekpair.tech/api/email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${process.env.CRON_SECRET}` },
+            body: JSON.stringify({ email: t.email, tienda: t.nombre, reporte }),
+          });
+        } catch (e) { console.error('[cron-email] tienda', t.id, e.message); }
+      }
     } catch (e) { console.error('[cron-cobrum] tienda', t.id, e.message); errores++; }
   }
   return { enviados, errores };

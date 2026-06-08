@@ -54,8 +54,9 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Configuración de servidor incompleta' });
   }
 
-  // EM-1: AUTH obligatorio
-  const payload = await autenticar(req);
+  // EM-1: AUTH obligatorio — JWT de usuario, O el cron del servidor con CRON_SECRET
+  const cronAuth = process.env.CRON_SECRET && (req.headers.authorization || '') === `Bearer ${process.env.CRON_SECRET}`;
+  const payload = cronAuth ? { cron: true } : await autenticar(req);
   if (!payload) return res.status(401).json({ error: 'No autorizado' });
 
   const KEY = process.env.RESEND_API_KEY;
