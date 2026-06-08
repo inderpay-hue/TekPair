@@ -164,14 +164,28 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
   for (const t of tiendas) {
     try {
       const q = (path) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers }).then((r) => r.ok ? r.json() : []);
-      const [ventas, pagos, gastos] = await Promise.all([
-        q(`ventas?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=total,pago,reembolsado`),
+      const [ventas, pagos, gastos, finVentas] = await Promise.all([
+        q(`ventas?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=total,pago,reembolsado,financiado,entrada,entrada_pago`),
         q(`pagos_reparacion?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=importe,metodo`),
         q(`gastos?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=importe,metodo_pago`),
+        // Todas las ventas financiadas vivas (cualquier fecha) → para cuotas pagadas ayer + saldo pendiente
+        q(`ventas?tienda_id=eq.${t.id}&financiado=eq.true&reembolsado=eq.false&select=id,cliente_nombre,total,entrada,cuotas`),
       ]);
+      const parseCuotas = (c) => { try { return Array.isArray(c) ? c : JSON.parse(c || '[]'); } catch (e) { return []; } };
       const porMet = {};
       const bk = (m) => { const l = _cobrumMetodo(m); return (porMet[l] = porMet[l] || { v: 0, r: 0, g: 0 }); };
-      (ventas || []).forEach((v) => { if (!v.reembolsado) bk(v.pago).v += Number(v.total || 0); });
+      (ventas || []).forEach((v) => {
+        if (v.reembolsado) return;
+        // Venta financiada: el día de la venta solo entra la ENTRADA (por su forma de pago). El resto son cuotas.
+        if (v.financiado) bk(v.entrada_pago).v += Number(v.entrada || 0);
+        else bk(v.pago).v += Number(v.total || 0);
+      });
+      // Cuotas de financiadas pagadas AYER → ingreso el día que se cobran, por su forma de pago
+      (finVentas || []).forEach((v) => {
+        parseCuotas(v.cuotas).forEach((c) => {
+          if (c && c.pagado && c.fechaPago === ayer) bk(c.formaPago).v += Number(c.importe || 0);
+        });
+      });
       (pagos || []).forEach((p) => { bk(p.metodo).r += Number(p.importe || 0); });
       (gastos || []).forEach((g) => { bk(g.metodo_pago).g += Number(g.importe || 0); });
       const lineas = [];
@@ -191,7 +205,7 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
         // Pendientes: reparaciones ENTREGADAS con saldo por cobrar
         const pendRep = await q(`reparaciones?tienda_id=eq.${t.id}&restante=gt.0&select=id,cliente_nombre,restante,estado`);
         (pendRep || []).forEach((r) => {
-          if (Number(r.restante) > 0 && entregada(r)) fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, monto: Math.round(Number(r.restante) * 100) / 100, estado: 'pendiente', sin_ingreso: true });
+          if (Number(r.restante) > 0 && entregada(r)) fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, concepto: 'Reparación', monto: Math.round(Number(r.restante) * 100) / 100, estado: 'pendiente', sin_ingreso: true });
         });
         // Cobrados: reparaciones ENTREGADAS con PAGO ayer que quedaron saldadas (por fecha de PAGO).
         const pagosAyer = await q(`pagos_reparacion?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=reparacion_id`);
@@ -200,10 +214,23 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
           const repsCob = await q(`reparaciones?tienda_id=eq.${t.id}&id=in.(${repIds.join(',')})&select=id,cliente_nombre,total,anticipo,restante,estado`);
           (repsCob || []).forEach((r) => {
             if (Number(r.restante || 0) <= 0 && Number(r.anticipo || 0) < Number(r.total || 0) && entregada(r)) {
-              fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, monto: Math.round(Number(r.total) * 100) / 100, estado: 'cobrado', sin_ingreso: true });
+              fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, concepto: 'Reparación', monto: Math.round(Number(r.total) * 100) / 100, estado: 'cobrado', sin_ingreso: true });
             }
           });
         }
+        // FINANCIADO (ventas a plazos): lo pendiente = total − entrada − cuotas pagadas. sin_ingreso=true
+        // (el ingreso ya entra por la entrada el día de la venta + cada cuota el día que se paga).
+        (finVentas || []).forEach((v) => {
+          const cuotas = parseCuotas(v.cuotas);
+          const pagadoCuotas = cuotas.filter((c) => c && c.pagado).reduce((s, c) => s + Number(c.importe || 0), 0);
+          const pendiente = Math.round((Number(v.total || 0) - Number(v.entrada || 0) - pagadoCuotas) * 100) / 100;
+          if (pendiente > 0.005) {
+            fiados.push({ ref: 'venta:' + v.id, cliente_nombre: v.cliente_nombre || null, concepto: 'Venta a plazos', monto: pendiente, estado: 'pendiente', sin_ingreso: true });
+          } else if (cuotas.some((c) => c && c.pagado && c.fechaPago === ayer)) {
+            // Se completó AYER (última cuota pagada ayer) → marcar cobrado
+            fiados.push({ ref: 'venta:' + v.id, cliente_nombre: v.cliente_nombre || null, concepto: 'Venta a plazos', monto: 0, estado: 'cobrado', sin_ingreso: true });
+          }
+        });
       } catch (e) { /* sin fiados */ }
 
       // 1) Volcado a Cobrum (si la tienda lo tiene activado)
