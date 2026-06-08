@@ -9418,6 +9418,8 @@ function guardarGasto() {
     if (pMatch) proveedor_id = pMatch.id;
   }
   
+  var metodo_pago = document.getElementById('gMetodo') ? document.getElementById('gMetodo').value : 'efectivo';
+
   // MODO EDICIÓN
   if (SEL && SEL.editGastoId) {
     var existente = DB.gastos.find(function(x){ return x.id === SEL.editGastoId; });
@@ -9432,6 +9434,7 @@ function guardarGasto() {
       existente.proveedor_nombre = proveedor_nombre || null;
       existente.proveedor_nif = proveedor_nif || null;
       existente.numero_factura = numero_factura || null;
+      existente.metodo_pago = metodo_pago;
       guardarDatos();
       if (SB_KEY && TIENDA_ID) {
         sbPatch('gastos', 'id=eq.' + encodeURIComponent(existente.id), {
@@ -9444,7 +9447,8 @@ function guardarGasto() {
           proveedor_id: existente.proveedor_id,
           proveedor_nombre: existente.proveedor_nombre,
           proveedor_nif: existente.proveedor_nif,
-          numero_factura: existente.numero_factura
+          numero_factura: existente.numero_factura,
+          metodo_pago: existente.metodo_pago
         });
       }
       if (adjFile) {
@@ -9470,7 +9474,8 @@ function guardarGasto() {
     proveedor_id: proveedor_id,
     proveedor_nombre: proveedor_nombre || null,
     proveedor_nif: proveedor_nif || null,
-    numero_factura: numero_factura || null
+    numero_factura: numero_factura || null,
+    metodo_pago: metodo_pago
   };
   DB.gastos.push(g);
   guardarDatos();
@@ -9746,7 +9751,8 @@ async function renderReporte() {
     '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">Total: ' + cur(tV + tR) + '</div>';
 
   // Guardar datos del periodo para "Enviar a Cobrum" (ventas + pagos de reparación)
-  window._repExport = { ventas: ventas, pagosReps: pagosReps };
+  var _gastosPeriodo = (DB.gastos || []).filter(function(g){ return g && fechas.indexOf((g.fecha || '').slice(0, 10)) >= 0; });
+  window._repExport = { ventas: ventas, pagosReps: pagosReps, gastos: _gastosPeriodo };
 
   // Renderizar gráficas (asíncrono para que el DOM se actualice primero)
   setTimeout(function(){ renderGraficas(ventas, reps, pagos, fechas); }, 50);
@@ -9790,10 +9796,11 @@ async function enviarReporteCobrum() {
   function bucket(f, met) {
     porDia[f] = porDia[f] || {};
     var lbl = _metodoLabel(met);
-    return (porDia[f][lbl] = porDia[f][lbl] || { ventas: 0, reps: 0 });
+    return (porDia[f][lbl] = porDia[f][lbl] || { ventas: 0, reps: 0, gastos: 0 });
   }
   (exp.ventas || []).forEach(function(v){ var f = v.fecha; if (f) bucket(f, v.pago).ventas += Number(v.total || 0); });
   (exp.pagosReps || []).forEach(function(p){ var f = (p.fecha || '').slice(0, 10); if (f) bucket(f, p.metodo).reps += Number(p.importe || 0); });
+  (exp.gastos || []).forEach(function(g){ var f = (g.fecha || '').slice(0, 10); if (f) bucket(f, g.metodo_pago || g.forma_pago || g.metodo).gastos += Number(g.importe || 0); });
 
   var dias = Object.keys(porDia).sort();
   if (!dias.length) { toast('No hay datos en este periodo', 'err'); return; }
@@ -9806,9 +9813,10 @@ async function enviarReporteCobrum() {
     Object.keys(porDia[d]).forEach(function(metLbl){
       var b = porDia[d][metLbl];
       var cuenta = 'TekPair ' + metLbl;
-      var ven = Math.round(b.ventas * 100) / 100, rep = Math.round(b.reps * 100) / 100;
+      var ven = Math.round(b.ventas * 100) / 100, rep = Math.round(b.reps * 100) / 100, gas = Math.round((b.gastos || 0) * 100) / 100;
       if (ven > 0) lineas.push({ tipo: 'ingreso', cuenta: cuenta, categoria: 'Ventas', monto: ven });
       if (rep > 0) lineas.push({ tipo: 'ingreso', cuenta: cuenta, categoria: 'Reparaciones', monto: rep });
+      if (gas > 0) lineas.push({ tipo: 'gasto', cuenta: cuenta, categoria: 'Gastos negocio', monto: gas });
     });
     if (!lineas.length) continue;
     try {
