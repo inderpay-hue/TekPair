@@ -9769,10 +9769,19 @@ function configCobrumToken() {
   var actual = localStorage.getItem('cobrum_token') || '';
   var tk = (prompt('Pega tu token de Cobrum.\n(En Cobrum: Ajustes → Conectar Bipe/TekPair → Generar token)', actual) || '').trim();
   if (tk === '' && actual) {
-    if (confirm('¿Borrar el token guardado?')) { localStorage.removeItem('cobrum_token'); toast('Token borrado', 'success'); }
+    if (confirm('¿Borrar el token guardado?')) {
+      localStorage.removeItem('cobrum_token');
+      if (SB_KEY && TIENDA_ID) try { sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { cobrum_token: null, cobrum_sync: false }); } catch (e) {}
+      toast('Token borrado', 'success');
+    }
     return null;
   }
-  if (tk) { localStorage.setItem('cobrum_token', tk); toast('Token guardado', 'success'); }
+  if (tk) {
+    localStorage.setItem('cobrum_token', tk);
+    // Guardar también en la tienda (BD) para el envío automático del servidor (PC apagado)
+    if (SB_KEY && TIENDA_ID) try { sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { cobrum_token: tk, cobrum_sync: true }); } catch (e) {}
+    toast('Token guardado (envío automático activado)', 'success');
+  }
   return tk || null;
 }
 window.configCobrumToken = configCobrumToken;

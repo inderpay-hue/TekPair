@@ -131,12 +131,66 @@ export default async function handler(req, res) {
       }
     }
 
-    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores });
+    // ── Envío diario a Cobrum (funciona con el PC apagado): tiendas con cobrum_sync ──
+    let cobrum = { enviados: 0, errores: 0 };
+    try {
+      const ayerD = new Date(now.getTime() - 86400000);
+      const ayer = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(ayerD);
+      cobrum = await pushCobrumDiario(SUPABASE_URL, headers, ayer);
+    } catch (e) { console.error('[cron] cobrum:', e.message); }
+
+    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum });
 
   } catch(e) {
     console.error('[cron] Error general:', e);
     return res.status(500).json({ error: 'Error del servidor' });
   }
+}
+
+// ═══ ENVÍO DIARIO A COBRUM (servidor) ═══
+// Para cada tienda con cobrum_sync, calcula el día anterior (ventas + reparaciones + gastos
+// por forma de pago) y lo manda a Cobrum. Idempotente por fecha (ref=ayer → no duplica).
+function _cobrumMetodo(m) {
+  m = String(m || '').trim().toLowerCase();
+  const map = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', bizum: 'Bizum', transferencia: 'Transferencia' };
+  return map[m] || (m ? m.charAt(0).toUpperCase() + m.slice(1) : 'Otros');
+}
+async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
+  const COBRUM_URL = 'https://finanzas-app-six-zeta.vercel.app/api/integraciones';
+  let enviados = 0, errores = 0;
+  const tr = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?cobrum_sync=eq.true&cobrum_token=not.is.null&select=id,nombre,cobrum_token`, { headers });
+  if (!tr.ok) return { enviados, errores: 1 };
+  const tiendas = await tr.json();
+  for (const t of tiendas) {
+    try {
+      const q = (path) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers }).then((r) => r.ok ? r.json() : []);
+      const [ventas, pagos, gastos] = await Promise.all([
+        q(`ventas?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=total,pago,reembolsado`),
+        q(`pagos_reparacion?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=importe,metodo`),
+        q(`gastos?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=importe,metodo_pago`),
+      ]);
+      const porMet = {};
+      const bk = (m) => { const l = _cobrumMetodo(m); return (porMet[l] = porMet[l] || { v: 0, r: 0, g: 0 }); };
+      (ventas || []).forEach((v) => { if (!v.reembolsado) bk(v.pago).v += Number(v.total || 0); });
+      (pagos || []).forEach((p) => { bk(p.metodo).r += Number(p.importe || 0); });
+      (gastos || []).forEach((g) => { bk(g.metodo_pago).g += Number(g.importe || 0); });
+      const lineas = [];
+      Object.keys(porMet).forEach((l) => {
+        const x = porMet[l], c = 'TekPair ' + l;
+        if (x.v > 0) lineas.push({ tipo: 'ingreso', cuenta: c, categoria: 'Ventas', monto: Math.round(x.v * 100) / 100 });
+        if (x.r > 0) lineas.push({ tipo: 'ingreso', cuenta: c, categoria: 'Reparaciones', monto: Math.round(x.r * 100) / 100 });
+        if (x.g > 0) lineas.push({ tipo: 'gasto', cuenta: c, categoria: 'Gastos negocio', monto: Math.round(x.g * 100) / 100 });
+      });
+      if (!lineas.length) continue;
+      const cr = await fetch(COBRUM_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': t.cobrum_token },
+        body: JSON.stringify({ source: 'tekpair', fecha: ayer, ref: ayer, lineas }),
+      });
+      if (cr.ok) enviados++; else errores++;
+    } catch (e) { console.error('[cron-cobrum] tienda', t.id, e.message); errores++; }
+  }
+  return { enviados, errores };
 }
 
 // ═══ EMAIL FALTAN 3 DÍAS ═══
