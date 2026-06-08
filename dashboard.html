@@ -3728,6 +3728,22 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 </div>
 
+<!-- COBRAR SALDO A DEBER -->
+<div class="modal-bg" id="mCobrarRep">
+<div class="modal">
+  <div class="modal-title"><span data-t="rep.registrar_pago">💵 Registrar pago</span></div>
+  <div id="cobrarRepInfo" style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px"></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl"><span data-t="rep.importe">Importe €</span></label><input class="fi" id="cobrarRepImporte" type="number" step="0.01" min="0.01" placeholder="0,00"></div>
+    <div class="fg"><label class="fl"><span data-t="rep.metodo">Método</span></label><select class="fi" id="cobrarRepMetodo"><option>Efectivo</option><option>Tarjeta</option><option>Bizum</option><option>Transferencia</option></select></div>
+  </div>
+  <div class="modal-actions">
+    <button class="btn-secondary" onclick="closeM('mCobrarRep')" data-t="gen.cancelar">Cancelar</button>
+    <button class="btn-primary" style="background:var(--green)" onclick="confirmarCobroRep()"><span data-t="rep.cobrar_btn">Cobrar</span></button>
+  </div>
+</div>
+</div>
+
 <!-- STOCK -->
 <div class="modal-bg" id="mPedido">
   <div class="modal">
