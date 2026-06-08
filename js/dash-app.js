@@ -964,6 +964,7 @@ function editarPedido(id) {
   document.getElementById('pedImporte').value = p.importe || '';
   document.getElementById('pedFechaPed').value = p.fecha_pedido || '';
   document.getElementById('pedFecha').value = p.fecha_estimada || '';
+  var _pmet = document.getElementById('pedMetodo'); if (_pmet) _pmet.value = p.metodo_pago || 'transferencia';
   document.getElementById('pedNota').value = p.nota || '';
   _pedModo(false);
   renderPedItems();
@@ -1030,6 +1031,7 @@ function guardarPedido() {
       importe: parseFloat(document.getElementById('pedImporte').value) || 0,
       fecha_pedido: document.getElementById('pedFechaPed').value || null,
       fecha_estimada: document.getElementById('pedFecha').value || null,
+      metodo_pago: (document.getElementById('pedMetodo') || {}).value || 'transferencia',
       nota: (document.getElementById('pedNota').value || '').trim() || null
     };
     var p = DB.pedidos.find(function(x) { return x.id === SEL.editPedidoId; });
@@ -1044,8 +1046,9 @@ function guardarPedido() {
   var prov = (document.getElementById('pedProv').value || '').trim() || null;
   var fest = document.getElementById('pedFecha').value || null;
   var nota = (document.getElementById('pedNota').value || '').trim() || null;
+  var metPed = (document.getElementById('pedMetodo') || {}).value || 'transferencia';
   items.forEach(function(it) {
-    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, marca: it.marca || null, categoria: it.categoria || null, cantidad: it.cantidad, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, nota: nota };
+    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, marca: it.marca || null, categoria: it.categoria || null, cantidad: it.cantidad, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, metodo_pago: metPed, nota: nota };
     DB.pedidos.unshift(nuevo);
     if (SB_KEY) sbPost('pedidos', nuevo);
   });
@@ -1191,7 +1194,8 @@ function _crearGastoDesdePedido(p) {
     id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID,
     concepto: T('pedidos.concepto_gasto') + ': ' + p.pieza + (p.proveedor ? (' (' + p.proveedor + ')') : ''),
     importe: parseFloat(p.importe) || 0, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Stock/Compras',
-    iva_tipo: 21, proveedor_id: null, proveedor_nombre: p.proveedor || null, proveedor_nif: null, numero_factura: null
+    iva_tipo: 21, proveedor_id: null, proveedor_nombre: p.proveedor || null, proveedor_nif: null, numero_factura: null,
+    metodo_pago: p.metodo_pago || 'transferencia'
   };
   DB.gastos = DB.gastos || [];
   DB.gastos.push(g);
@@ -8522,6 +8526,7 @@ function editarGastoRec(id) {
   document.getElementById('grIvaTipo').value = String(r.iva_tipo != null ? r.iva_tipo : 21);
   document.getElementById('grProvNom').value = r.proveedor_nombre || '';
   document.getElementById('grProvNif').value = r.proveedor_nif || '';
+  var _grm = document.getElementById('grMetodo'); if (_grm) _grm.value = r.metodo_pago || 'transferencia';
   document.getElementById('grActivo').checked = !!r.activo;
   var sel = document.getElementById('grDia');
   if (sel && !sel.options.length) {
@@ -8551,6 +8556,7 @@ function guardarGastoRec() {
     var pMatch = (DB.provs || []).find(function(p){ return (p.nombre || '').toLowerCase() === proveedor_nombre.toLowerCase(); });
     if (pMatch) proveedor_id = pMatch.id;
   }
+  var metRec = (document.getElementById('grMetodo') || {}).value || 'transferencia';
   if (SEL && SEL.editGastoRecId) {
     var existente = (DB.gastos_recurrentes || []).find(function(x){ return x.id === SEL.editGastoRecId; });
     if (existente) {
@@ -8563,6 +8569,7 @@ function guardarGastoRec() {
       existente.proveedor_id = proveedor_id;
       existente.proveedor_nombre = proveedor_nombre || null;
       existente.proveedor_nif = proveedor_nif || null;
+      existente.metodo_pago = metRec;
       guardarDatos();
       if (SB_KEY && TIENDA_ID) {
         sbPatch('gastos_recurrentes', 'id=eq.' + encodeURIComponent(existente.id), {
@@ -8574,7 +8581,8 @@ function guardarGastoRec() {
           activo: existente.activo,
           proveedor_id: existente.proveedor_id,
           proveedor_nombre: existente.proveedor_nombre,
-          proveedor_nif: existente.proveedor_nif
+          proveedor_nif: existente.proveedor_nif,
+          metodo_pago: existente.metodo_pago
         });
       }
       SEL.editGastoRecId = null;
@@ -8592,6 +8600,7 @@ function guardarGastoRec() {
     proveedor_id: proveedor_id,
     proveedor_nombre: proveedor_nombre || null,
     proveedor_nif: proveedor_nif || null,
+    metodo_pago: metRec,
     ultimo_aplicado: null
   };
   if (!Array.isArray(DB.gastos_recurrentes)) DB.gastos_recurrentes = [];
@@ -8658,6 +8667,7 @@ function crearGastoDesdePlantilla(r, fecha, manual) {
     proveedor_nombre: r.proveedor_nombre || null,
     proveedor_nif: r.proveedor_nif || null,
     numero_factura: null,
+    metodo_pago: r.metodo_pago || 'transferencia',
     meta: (r.meta && r.categoria === 'Nomina')
       ? Object.assign({}, r.meta, {periodo: iso.slice(0,7)})
       : (r.meta || null)
@@ -9285,6 +9295,7 @@ function abrirModalNomina(id) {
       document.getElementById('nSsEmp').value = g.meta.ss_emp_pct || 29.9;
       document.getElementById('nNotas').value = g.meta.notas || '';
       document.getElementById('nEstado').value = g.estado || 'Pagado';
+      var _nm = document.getElementById('nMetodo'); if (_nm) _nm.value = g.metodo_pago || 'transferencia';
     }
   } else {
     document.getElementById('nTrabajador').value = '';
@@ -9297,6 +9308,7 @@ function abrirModalNomina(id) {
     document.getElementById('nSsEmp').value = 29.9;
     document.getElementById('nNotas').value = '';
     document.getElementById('nEstado').value = 'Pagado';
+    var _nm2 = document.getElementById('nMetodo'); if (_nm2) _nm2.value = 'transferencia';
   }
   var chkRec = document.getElementById('nRecurrente');
   if (chkRec) { chkRec.checked = false; toggleNominaRec(); }
@@ -9320,6 +9332,7 @@ function guardarNomina() {
   var estado = document.getElementById('nEstado').value;
   var notas = document.getElementById('nNotas').value.trim();
   var dni = document.getElementById('nDni').value.trim();
+  var metNom = (document.getElementById('nMetodo') || {}).value || 'transferencia';
   var adjInput = document.getElementById('nAdj');
   var adjFile = (adjInput && adjInput.files && adjInput.files[0]) ? adjInput.files[0] : null;
 
@@ -9336,11 +9349,11 @@ function guardarNomina() {
       ex.concepto = 'Nómina — ' + trabajador + ' (' + periodo + ')';
       ex.importe = parseFloat(coste_empresa.toFixed(2));
       ex.fecha = fecha; ex.estado = estado;
-      ex.categoria = 'Nomina'; ex.iva_tipo = 0; ex.meta = meta;
+      ex.categoria = 'Nomina'; ex.iva_tipo = 0; ex.meta = meta; ex.metodo_pago = metNom;
       guardarDatos();
       if (SB_KEY && TIENDA_ID) sbPatch('gastos', 'id=eq.' + encodeURIComponent(ex.id), {
         concepto: ex.concepto, importe: ex.importe, fecha: ex.fecha,
-        estado: ex.estado, categoria: ex.categoria, iva_tipo: 0, meta: meta
+        estado: ex.estado, categoria: ex.categoria, iva_tipo: 0, meta: meta, metodo_pago: metNom
       });
       SEL.editNominaId = null;
       closeM('mNomina'); toast(T('nom.actualizada'), 'ok'); renderGastos(); return;
@@ -9356,7 +9369,7 @@ function guardarNomina() {
     categoria: 'Nomina', iva_tipo: 0,
     proveedor_id: null, proveedor_nombre: null,
     proveedor_nif: null, numero_factura: null,
-    meta: meta
+    meta: meta, metodo_pago: metNom
   };
   DB.gastos.push(g);
   guardarDatos();
