@@ -10976,6 +10976,8 @@ function guardarAjustes() {
   AJUSTES.cierre.hora = document.getElementById('ajCierreHora').value;
   AJUSTES.cierre.email = document.getElementById('ajCierreEmail').value;
   AJUSTES.cierre.activo = document.getElementById('ajCierreActivo').checked;
+  // Guardar en la tienda (BD) para el email automático del servidor (PC apagado)
+  if (SB_KEY && TIENDA_ID) { try { sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { cierre_email_auto: AJUSTES.cierre.activo }); } catch (e) {} }
   // IVA
   AJUSTES.iva = AJUSTES.iva || {};
   AJUSTES.iva.activo = document.getElementById('ajIvaActivo').checked;
