@@ -183,21 +183,23 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
       });
       // FIADOS (lo por cobrar = restante de reparaciones). Informativo: sin_ingreso=true
       // (el ingreso ya entra por los pagos de reparación del volcado diario → no doblar).
+      // Una reparación SOLO es fiado si el cliente ya se llevó el móvil (estado 'Entregado') y debe dinero.
+      // Si el móvil sigue en la tienda, el saldo pendiente NO es fiado (la tienda tiene el equipo).
+      const entregada = (r) => (r.estado || '').toLowerCase() === 'entregado';
       const fiados = [];
       try {
-        // Pendientes: cualquier reparación con saldo por cobrar (snapshot actual, sin límite de fecha)
-        const pendRep = await q(`reparaciones?tienda_id=eq.${t.id}&restante=gt.0&select=id,cliente_nombre,restante`);
+        // Pendientes: reparaciones ENTREGADAS con saldo por cobrar
+        const pendRep = await q(`reparaciones?tienda_id=eq.${t.id}&restante=gt.0&select=id,cliente_nombre,restante,estado`);
         (pendRep || []).forEach((r) => {
-          if (Number(r.restante) > 0) fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, monto: Math.round(Number(r.restante) * 100) / 100, estado: 'pendiente', sin_ingreso: true });
+          if (Number(r.restante) > 0 && entregada(r)) fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, monto: Math.round(Number(r.restante) * 100) / 100, estado: 'pendiente', sin_ingreso: true });
         });
-        // Cobrados: reparaciones con PAGO ayer que quedaron saldadas (por fecha de PAGO, no de creación
-        // → funciona aunque el fiado lleve meses pendiente).
+        // Cobrados: reparaciones ENTREGADAS con PAGO ayer que quedaron saldadas (por fecha de PAGO).
         const pagosAyer = await q(`pagos_reparacion?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=reparacion_id`);
         const repIds = [...new Set((pagosAyer || []).map((p) => p.reparacion_id).filter(Boolean))];
         if (repIds.length) {
-          const repsCob = await q(`reparaciones?tienda_id=eq.${t.id}&id=in.(${repIds.join(',')})&select=id,cliente_nombre,total,anticipo,restante`);
+          const repsCob = await q(`reparaciones?tienda_id=eq.${t.id}&id=in.(${repIds.join(',')})&select=id,cliente_nombre,total,anticipo,restante,estado`);
           (repsCob || []).forEach((r) => {
-            if (Number(r.restante || 0) <= 0 && Number(r.anticipo || 0) < Number(r.total || 0)) {
+            if (Number(r.restante || 0) <= 0 && Number(r.anticipo || 0) < Number(r.total || 0) && entregada(r)) {
               fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, monto: Math.round(Number(r.total) * 100) / 100, estado: 'cobrado', sin_ingreso: true });
             }
           });
