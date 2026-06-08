@@ -1527,7 +1527,8 @@ async function _syncQueueRetry() {
         res = await _sbDeleteRaw(op.table, op.query);
       }
 
-      if (res.ok) {
+      if (res.ok || res.status === 409) {
+        // 409 = ya existe en servidor (reenvío idempotente) → considerar guardado, quitar sin alarmar.
         _syncQueueRemove(op._opId);
       } else if (!_esRetriable(res.status)) {
         // Error persistente (4xx no-retriable): descartar la op en lugar de loop infinito
@@ -1636,13 +1637,15 @@ setTimeout(function(){ _syncQueueRetry(); _syncIndicatorUpdate(); }, 2000);
 function sbPost(table, data) {
   return _sbPostRaw(table, data).then(function(res) {
     if (res.ok) return true;
+    // 409 = el registro YA existe (PK/único). Con ids generados en cliente + sync "al menos una vez",
+    // un POST puede reenviarse cuando el dato ya se guardó → es idempotente, NO un error. Tratar como OK.
+    if (res.status === 409) { console.warn('sbPost ' + table + ' 409 (ya existe) — tratado como guardado.'); return true; }
     // CLI-2: errores 4xx son persistentes — reintentar no ayuda. Avisar al usuario.
     if (!_esRetriable(res.status)) {
       console.error('sbPost ' + table + ' falló con status ' + res.status + ' (no retriable). Payload:', data);
       if (typeof toast === 'function') {
         var msg = '⚠️ Error al sincronizar ' + table + ' (HTTP ' + res.status + ')';
         if (res.status === 401) msg = '⚠️ Sesión expirada — vuelve a iniciar sesión';
-        else if (res.status === 409) msg = '⚠️ Conflicto: el registro ya existe';
         else if (res.status === 400) msg = '⚠️ Datos inválidos al guardar ' + table;
         toast(msg, 'err');
       }
@@ -4468,7 +4471,8 @@ function registrarPagoCuotaRep(rid, cidx) {
   if (SB_KEY && TIENDA_ID) {
     sbPatch('reparaciones', 'id=eq.' + rid, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
     // La cuota se registra como pago_reparacion -> el ingreso del día entra solo (y va a Cobrum por el volcado).
-    sbPost('pagos_reparacion', { tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoyLocal(), importe: parseFloat(r.cuotas[cidx].importe) || 0, metodo: fp, tipo: 'cuota' });
+    // id determinista por (rep, nº cuota) -> pagar/reenviar la misma cuota no duplica ingreso.
+    sbPost('pagos_reparacion', { id: 'pg_cuo_' + rid + '_' + cidx, tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoyLocal(), importe: parseFloat(r.cuotas[cidx].importe) || 0, metodo: fp, tipo: 'cuota' });
     window._pagosRepCache = null;
   }
   closeM('finModal');
@@ -4502,7 +4506,7 @@ function confirmarCobroRep() {
   if (SB_KEY && TIENDA_ID) {
     sbPatch('reparaciones', 'id=eq.' + r.id, { restante: r.restante });
     // El pago se registra en pagos_reparacion -> el ingreso del día entra solo (y va a Cobrum por el volcado).
-    sbPost('pagos_reparacion', { tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: imp, metodo: met, tipo: 'parcial' });
+    sbPost('pagos_reparacion', { id: 'pg' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: imp, metodo: met, tipo: 'parcial' });
     window._pagosRepCache = null;
   }
   closeM('mCobrarRep');
@@ -6851,7 +6855,8 @@ function guardarRep() {
     if (esFinRep) {
       // Financiado: la ENTRADA se registra como pago (tipo anticipo) -> el ingreso del día entra solo.
       if (finEntrada > 0) {
-        sbPost('pagos_reparacion', { tienda_id: TIENDA_ID, reparacion_id: rep.id, fecha: rep.fecha, importe: finEntrada, metodo: finEntradaPago, tipo: 'anticipo' });
+        // id determinista -> un reenvío no duplica el ingreso de la entrada
+        sbPost('pagos_reparacion', { id: 'pg_ent_' + rep.id, tienda_id: TIENDA_ID, reparacion_id: rep.id, fecha: rep.fecha, importe: finEntrada, metodo: finEntradaPago, tipo: 'anticipo' });
         window._pagosRepCache = null;
       }
     } else {
