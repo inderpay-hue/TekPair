@@ -67,7 +67,7 @@ var PLAN_FEATURES = {
            'permisos_usuarios','reportes_pdf','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
-           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado'],
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica'],
   top:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
@@ -75,7 +75,7 @@ var PLAN_FEATURES = {
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
-           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado'],
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica'],
   premium:['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
@@ -83,7 +83,7 @@ var PLAN_FEATURES = {
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
-           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado']
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica']
 };
 
 // Límite de usuarios por plan
@@ -2798,6 +2798,20 @@ function renderGuiaAyuda() {
 }
 
 async function renderDash() {
+  // Analítica avanzada (zona Analítica + periodos Semana/Mes) es de Pro/Premium. Básico: solo Hoy.
+  var verAnalitica = (typeof tieneFeature === 'function') ? tieneFeature('analitica') : true;
+  (function() {
+    var zl = document.getElementById('zoneAnalitica');
+    var zc = document.getElementById('zoneAnaliticaCards');
+    if (zl) zl.style.display = verAnalitica ? '' : 'none';
+    if (zc) zc.style.display = verAnalitica ? '' : 'none';
+    var mtabs = document.querySelectorAll('#metricTabs .tab');
+    for (var i = 1; i < mtabs.length; i++) mtabs[i].style.display = verAnalitica ? '' : 'none'; // Semana/Mes
+    if (!verAnalitica && SEL.metricTab !== 'hoy') {
+      SEL.metricTab = 'hoy';
+      if (mtabs[0]) { Array.prototype.forEach.call(mtabs, function(t){ t.classList.remove('active'); }); mtabs[0].classList.add('active'); }
+    }
+  })();
   var tab = SEL.metricTab;
   var hoy = hoyLocal();
   var semana = [];
