@@ -183,19 +183,25 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
       });
       // FIADOS (lo por cobrar = restante de reparaciones). Informativo: sin_ingreso=true
       // (el ingreso ya entra por los pagos de reparación del volcado diario → no doblar).
-      const hace = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(Date.now() - 35 * 86400000));
       const fiados = [];
       try {
-        const [pendRep, cobRep] = await Promise.all([
-          q(`reparaciones?tienda_id=eq.${t.id}&restante=gt.0&select=id,cliente_nombre,restante,fecha`),
-          q(`reparaciones?tienda_id=eq.${t.id}&restante=eq.0&total=gt.0&fecha=gte.${hace}&select=id,cliente_nombre,total,anticipo,fecha`),
-        ]);
+        // Pendientes: cualquier reparación con saldo por cobrar (snapshot actual, sin límite de fecha)
+        const pendRep = await q(`reparaciones?tienda_id=eq.${t.id}&restante=gt.0&select=id,cliente_nombre,restante`);
         (pendRep || []).forEach((r) => {
-          if (Number(r.restante) > 0) fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, monto: Math.round(Number(r.restante) * 100) / 100, fecha: (r.fecha || '').slice(0, 10), estado: 'pendiente', sin_ingreso: true });
+          if (Number(r.restante) > 0) fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, monto: Math.round(Number(r.restante) * 100) / 100, estado: 'pendiente', sin_ingreso: true });
         });
-        (cobRep || []).forEach((r) => {
-          if (Number(r.anticipo || 0) < Number(r.total || 0)) fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, monto: Math.round(Number(r.total) * 100) / 100, fecha: (r.fecha || '').slice(0, 10), estado: 'cobrado', sin_ingreso: true });
-        });
+        // Cobrados: reparaciones con PAGO ayer que quedaron saldadas (por fecha de PAGO, no de creación
+        // → funciona aunque el fiado lleve meses pendiente).
+        const pagosAyer = await q(`pagos_reparacion?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=reparacion_id`);
+        const repIds = [...new Set((pagosAyer || []).map((p) => p.reparacion_id).filter(Boolean))];
+        if (repIds.length) {
+          const repsCob = await q(`reparaciones?tienda_id=eq.${t.id}&id=in.(${repIds.join(',')})&select=id,cliente_nombre,total,anticipo,restante`);
+          (repsCob || []).forEach((r) => {
+            if (Number(r.restante || 0) <= 0 && Number(r.anticipo || 0) < Number(r.total || 0)) {
+              fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, monto: Math.round(Number(r.total) * 100) / 100, estado: 'cobrado', sin_ingreso: true });
+            }
+          });
+        }
       } catch (e) { /* sin fiados */ }
 
       // 1) Volcado a Cobrum (si la tienda lo tiene activado)
