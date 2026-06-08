@@ -4477,6 +4477,40 @@ function registrarPagoCuotaRep(rid, cidx) {
   renderDash();
 }
 
+// ═══ COBRAR SALDO DE REPARACIÓN A DEBER (sin financiar) ═══
+function cobrarSaldoRep(id) {
+  var r = DB.reps.find(function(x) { return x.id === id; });
+  if (!r) { toast(T('gen.error'), 'err'); return; }
+  SEL.cobrarRepId = id;
+  var resta = parseFloat(r.restante) || 0;
+  document.getElementById('cobrarRepInfo').innerHTML =
+    '<strong>' + esc(r.clienteNombre) + '</strong> — ' + esc(r.marca) + ' ' + esc(r.modelo) +
+    '<br><br>' + T('rep.queda_deber') + ': <strong style="color:#F97316">' + cur(resta) + '</strong>';
+  document.getElementById('cobrarRepImporte').value = resta.toFixed(2);
+  document.getElementById('cobrarRepMetodo').value = 'Efectivo';
+  openM('mCobrarRep');
+}
+
+function confirmarCobroRep() {
+  var r = DB.reps.find(function(x) { return x.id === SEL.cobrarRepId; });
+  if (!r) return;
+  var imp = parseFloat(document.getElementById('cobrarRepImporte').value) || 0;
+  if (imp <= 0) { toast('Importe inválido', 'err'); return; }
+  var met = document.getElementById('cobrarRepMetodo').value;
+  r.restante = Math.max(0, Math.round(((parseFloat(r.restante) || 0) - imp) * 100) / 100);
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('reparaciones', 'id=eq.' + r.id, { restante: r.restante });
+    // El pago se registra en pagos_reparacion -> el ingreso del día entra solo (y va a Cobrum por el volcado).
+    sbPost('pagos_reparacion', { tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: imp, metodo: met, tipo: 'parcial' });
+    window._pagosRepCache = null;
+  }
+  closeM('mCobrarRep');
+  toast(r.restante > 0 ? (T('rep.queda_deber') + ': ' + cur(r.restante)) : 'Saldado ✓', 'ok');
+  renderReps();
+  renderDash();
+}
+
 // ═══ BUSQUEDA CLIENTES ═══
 function busCliCtx(ctx) {
   var inputId = ctx === 'v' ? 'vBusCli' : ctx === 'r' ? 'rBusCli' : 'fiado-busca-cli';
@@ -7222,6 +7256,8 @@ function renderReps() {
     var btnDel = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" data-action="del" class="row-btn btn-del-r" title="Eliminar reparación">🗑️</button>' : '';
     var btnFact = (r.estado === 'Entregado') ? '<button data-rid="' + r.id + '" data-action="fact" class="row-btn btn-fact-r" title="Generar factura">📄</button>' : '';
     var btnFin = (r.financiado && r.estadoFinanciado !== 'completado') ? '<button data-rid="' + r.id + '" class="row-btn btn-fin-r" title="Cuotas / financiación" style="background:#8B5CF6;color:white;border-color:#8B5CF6">💰</button>' : '';
+    // Cobrar saldo a deber (entregada con restante, sin financiar)
+    var btnCobrar = (!r.financiado && r.estado === 'Entregado' && (parseFloat(r.restante) || 0) > 0) ? '<button data-rid="' + r.id + '" class="row-btn btn-cobrar-r" title="Registrar pago / cobrar saldo" style="background:var(--green);color:white;border-color:var(--green)">💵</button>' : '';
     // Badge garantía: manual (esGarantia) o auto-detectada (rep similar reciente)
     var badgeGarantia = '';
     if (r.esGarantia) {
@@ -7248,7 +7284,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + ((parseFloat(r.restante) || 0) > 0 ? '<br><span style="font-size:10px;font-weight:700;color:#EA580C" title="' + T('rep.queda_deber') + '">⏳ ' + cur(r.restante) + '</span>' : '') + '</td>'
-      + '<td>' + btnDetalleR + btnFin + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnPresEnviar + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
+      + '<td>' + btnDetalleR + btnFin + btnCobrar + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnPresEnviar + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -7263,6 +7299,9 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-fin-r').forEach(function(btn) {
     btn.addEventListener('click', function() { verFinanciadoRep(this.dataset.rid); });
+  });
+  el.querySelectorAll('.btn-cobrar-r').forEach(function(btn) {
+    btn.addEventListener('click', function() { cobrarSaldoRep(this.dataset.rid); });
   });
   el.querySelectorAll('.btn-edit-r').forEach(function(btn) {
     btn.addEventListener('click', function() { editarRep(this.dataset.rid); });
