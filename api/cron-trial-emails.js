@@ -197,24 +197,27 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
       });
       // FIADOS (lo por cobrar = restante de reparaciones). Informativo: sin_ingreso=true
       // (el ingreso ya entra por los pagos de reparación del volcado diario → no doblar).
-      // Una reparación SOLO es fiado si el cliente ya se llevó el móvil (estado 'Entregado') y debe dinero.
-      // Si el móvil sigue en la tienda, el saldo pendiente NO es fiado (la tienda tiene el equipo).
+      // Una reparación es fiado si el cliente ya tiene el móvil y debe dinero: estado 'Entregado',
+      // O es financiada (a plazos) activa (el cliente se lo llevó al firmar la financiación).
+      // Si el móvil sigue en la tienda (no entregado, no financiado), el saldo pendiente NO es fiado.
       const entregada = (r) => (r.estado || '').toLowerCase() === 'entregado';
+      const financiadaActiva = (r) => r.financiado === true && (r.estado_financiado || '') !== 'completado';
+      const esFiado = (r) => entregada(r) || financiadaActiva(r);
       const fiados = [];
       try {
-        // Pendientes: reparaciones ENTREGADAS con saldo por cobrar
-        const pendRep = await q(`reparaciones?tienda_id=eq.${t.id}&restante=gt.0&select=id,cliente_nombre,restante,estado`);
+        // Pendientes: reparaciones entregadas o financiadas con saldo por cobrar
+        const pendRep = await q(`reparaciones?tienda_id=eq.${t.id}&restante=gt.0&select=id,cliente_nombre,restante,estado,financiado,estado_financiado`);
         (pendRep || []).forEach((r) => {
-          if (Number(r.restante) > 0 && entregada(r)) fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, concepto: 'Reparación', monto: Math.round(Number(r.restante) * 100) / 100, estado: 'pendiente', sin_ingreso: true });
+          if (Number(r.restante) > 0 && esFiado(r)) fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, concepto: r.financiado ? 'Reparación financiada' : 'Reparación', monto: Math.round(Number(r.restante) * 100) / 100, estado: 'pendiente', sin_ingreso: true });
         });
         // Cobrados: reparaciones ENTREGADAS con PAGO ayer que quedaron saldadas (por fecha de PAGO).
         const pagosAyer = await q(`pagos_reparacion?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=reparacion_id`);
         const repIds = [...new Set((pagosAyer || []).map((p) => p.reparacion_id).filter(Boolean))];
         if (repIds.length) {
-          const repsCob = await q(`reparaciones?tienda_id=eq.${t.id}&id=in.(${repIds.join(',')})&select=id,cliente_nombre,total,anticipo,restante,estado`);
+          const repsCob = await q(`reparaciones?tienda_id=eq.${t.id}&id=in.(${repIds.join(',')})&select=id,cliente_nombre,total,anticipo,restante,estado,financiado,estado_financiado`);
           (repsCob || []).forEach((r) => {
-            if (Number(r.restante || 0) <= 0 && Number(r.anticipo || 0) < Number(r.total || 0) && entregada(r)) {
-              fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, concepto: 'Reparación', monto: Math.round(Number(r.total) * 100) / 100, estado: 'cobrado', sin_ingreso: true });
+            if (Number(r.restante || 0) <= 0 && Number(r.anticipo || 0) < Number(r.total || 0) && (entregada(r) || r.financiado === true)) {
+              fiados.push({ ref: 'rep:' + r.id, cliente_nombre: r.cliente_nombre || null, concepto: r.financiado ? 'Reparación financiada' : 'Reparación', monto: Math.round(Number(r.total) * 100) / 100, estado: 'cobrado', sin_ingreso: true });
             }
           });
         }

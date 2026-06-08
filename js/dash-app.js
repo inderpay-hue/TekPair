@@ -1724,6 +1724,9 @@ function mapRep(r) {
     nota:r.nota||'', tipoBloqueo:r.tipo_bloqueo||'', bloqueo:r.bloqueo||'', mo:parseFloat(r.mo)||0, comp:parseFloat(r.comp)||0,
     anticipo:parseFloat(r.anticipo)||0, restante:parseFloat(r.restante)||0,
     total:parseFloat(r.total)||0, pagoFinal:r.pago_final||'',
+    financiado:r.financiado||false, entrada:parseFloat(r.entrada)||0, entradaPago:r.entrada_pago||'',
+    cuotas: r.cuotas ? (typeof r.cuotas === 'string' ? JSON.parse(r.cuotas) : r.cuotas) : null,
+    estadoFinanciado:r.estado_financiado||'',
     iva:parseFloat(r.iva)||0, ivaModo:r.iva_modo||'sin', base:parseFloat(r.base)||0, ivaImporte:parseFloat(r.iva_importe)||0,
     componentes: r.componentes ? (typeof r.componentes === 'string' ? JSON.parse(r.componentes) : r.componentes) : [],
     servicios: r.servicios ? (typeof r.servicios === 'string' ? JSON.parse(r.servicios) : r.servicios) : [],
@@ -4417,6 +4420,63 @@ function registrarPagoCuota(vid, cidx) {
   renderVentas();
 }
 
+// ═══ FINANCIADO EN REPARACIONES (mismo modelo que ventas) ═══
+function verFinanciadoRep(id) {
+  var r = DB.reps.find(function(x) { return x.id === id; });
+  if (!r || !r.cuotas) { toast(T('gen.error'), 'err'); return; }
+  var pagado = r.cuotas.filter(function(c) { return c.pagado; }).reduce(function(a, c) { return a + (parseFloat(c.importe) || 0); }, 0);
+  var pendiente = Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - pagado) * 100) / 100);
+  var html = '<div class="modal-title">💰 Financiado</div>' +
+    '<div style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px">' +
+    '<strong>' + esc(r.clienteNombre) + '</strong> — ' + esc(r.marca) + ' ' + esc(r.modelo) + '<br>' +
+    '<span style="font-size:11px;color:var(--muted)">Total: ' + cur(r.total) + ' | Entrada: ' + cur(r.entrada || 0) + ' | Pagado: ' + cur(pagado) + ' | ' + T('rep.queda_deber') + ': ' + cur(pendiente) + '</span></div>' +
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">CUOTAS:</div>';
+  r.cuotas.forEach(function(cu, i) {
+    var vencido = !cu.pagado && cu.fecha && cu.fecha < hoyLocal();
+    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:' +
+      (cu.pagado ? 'rgba(0,200,150,.08)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
+      '<div><div style="font-size:13px;font-weight:600">Cuota ' + (i + 1) + ' — ' + cur(cu.importe) + '</div>' +
+      '<div style="font-size:10px;color:var(--muted)">Vence: ' + (cu.fecha || '-') + (cu.pagado ? ' | Pagado: ' + cu.formaPago : '') + '</div></div>' +
+      '<div>' + (cu.pagado
+        ? '<span style="color:var(--green);font-size:11px;font-weight:700">✓ Pagado</span>'
+        : '<button data-rid="' + id + '" data-cidx="' + i + '" class="btn-pcr btn-primary" style="padding:5px 10px;font-size:11px;width:auto">Registrar</button>'
+      ) + '</div></div>';
+  });
+  html += '<button class="btn-secondary" style="margin-top:12px" onclick="closeM(&quot;finModal&quot;)">Cerrar</button>';
+  document.getElementById('finModalContent').innerHTML = html;
+  openM('finModal');
+  document.getElementById('finModalContent').querySelectorAll('.btn-pcr').forEach(function(btn) {
+    btn.addEventListener('click', function() { registrarPagoCuotaRep(this.dataset.rid, parseInt(this.dataset.cidx)); });
+  });
+}
+
+function registrarPagoCuotaRep(rid, cidx) {
+  var r = DB.reps.find(function(x) { return x.id === rid; });
+  if (!r || !r.cuotas || !r.cuotas[cidx]) return;
+  var formas = ['Efectivo', 'Tarjeta', 'Bizum', 'Transferencia'];
+  var sel = prompt('Forma de pago:\n1. Efectivo\n2. Tarjeta\n3. Bizum\n4. Transferencia\n\nEscribe el numero:');
+  if (!sel) return;
+  var fp = formas[parseInt(sel) - 1] || 'Efectivo';
+  r.cuotas[cidx].pagado = true;
+  r.cuotas[cidx].formaPago = fp;
+  r.cuotas[cidx].fechaPago = hoyLocal();
+  var pagadoCuotas = r.cuotas.filter(function(c) { return c.pagado; }).reduce(function(a, c) { return a + (parseFloat(c.importe) || 0); }, 0);
+  r.restante = Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - pagadoCuotas) * 100) / 100);
+  var todas = r.cuotas.every(function(c) { return c.pagado; });
+  if (todas) { r.estadoFinanciado = 'completado'; r.restante = 0; toast('Financiado completado!', 'ok'); }
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('reparaciones', 'id=eq.' + rid, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
+    // La cuota se registra como pago_reparacion -> el ingreso del día entra solo (y va a Cobrum por el volcado).
+    sbPost('pagos_reparacion', { tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoyLocal(), importe: parseFloat(r.cuotas[cidx].importe) || 0, metodo: fp, tipo: 'cuota' });
+    window._pagosRepCache = null;
+  }
+  closeM('finModal');
+  verFinanciadoRep(rid);
+  renderReps();
+  renderDash();
+}
+
 // ═══ BUSQUEDA CLIENTES ═══
 function busCliCtx(ctx) {
   var inputId = ctx === 'v' ? 'vBusCli' : ctx === 'r' ? 'rBusCli' : 'fiado-busca-cli';
@@ -4883,6 +4943,13 @@ function abrirRep() {
   document.getElementById('rTotal').textContent = cur(0);
   document.getElementById('rRestante').textContent = cur(0);
   var _antiRow = document.getElementById('rAnticipoRow'); if (_antiRow) _antiRow.style.display = 'none';
+  // Reset financiación a plazos
+  var _finWrap = document.getElementById('rFinanciarWrap'); if (_finWrap) _finWrap.style.display = '';
+  var _fin = document.getElementById('rFinanciar'); if (_fin) _fin.checked = false;
+  var _finE = document.getElementById('rFinEntrada'); if (_finE) _finE.value = '';
+  var _finN = document.getElementById('rFinNumCuotas'); if (_finN) _finN.value = '3';
+  var _finD = document.getElementById('rFinDiaPago'); if (_finD) _finD.value = '8';
+  if (typeof toggleFinanciarRep === 'function') toggleFinanciarRep();
   document.querySelectorAll('.chk-btn').forEach(function(b) { b.classList.remove('on'); });
   var tb = document.getElementById('rTipoBloq'); if (tb) { tb.value = ''; cambiarTipoBloq(); }
   // Limpiar errores de validación
@@ -5664,6 +5731,54 @@ function calcR() {
   var restEl = document.getElementById('rRestante');
   restEl.textContent = cur(resta);
   restEl.style.color = resta > 0 ? '#F97316' : 'var(--green)';
+  window._rTotalActual = c.total;
+  if (typeof calcFinRep === 'function') calcFinRep();
+}
+
+// ═══ FINANCIAR REPARACIÓN A PLAZOS ═══
+function toggleFinanciarRep() {
+  var on = document.getElementById('rFinanciar').checked;
+  var box = document.getElementById('rFinBox');
+  if (box) box.style.display = on ? 'block' : 'none';
+  // Al financiar, ocultar el sistema de pagos normal (la entrada + cuotas lo sustituye)
+  var pagosBox = document.getElementById('rPagosBox');
+  var pagoForm = document.getElementById('rPagoForm');
+  if (pagosBox) pagosBox.style.display = on ? 'none' : 'block';
+  if (on && pagoForm) pagoForm.style.display = 'none';
+  if (on) calcFinRep();
+}
+
+function calcFinRep() {
+  var prev = document.getElementById('rFinPreview');
+  var chk = document.getElementById('rFinanciar');
+  if (!prev || !chk) return;
+  if (!chk.checked) { prev.textContent = ''; return; }
+  var total = window._rTotalActual || 0;
+  var entrada = parseFloat(document.getElementById('rFinEntrada').value) || 0;
+  var n = parseInt(document.getElementById('rFinNumCuotas').value) || 1;
+  if (n < 1) n = 1;
+  var pendiente = Math.max(0, Math.round((total - entrada) * 100) / 100);
+  var porCuota = Math.round((pendiente / n) * 100) / 100;
+  prev.textContent = n + ' × ' + cur(porCuota) + ' = ' + cur(pendiente);
+}
+
+// Genera el array de cuotas a partir de los campos del formulario (mismo modelo que ventas)
+function generarCuotasRep(total) {
+  var entrada = parseFloat(document.getElementById('rFinEntrada').value) || 0;
+  var n = parseInt(document.getElementById('rFinNumCuotas').value) || 1;
+  if (n < 1) n = 1;
+  var diaPago = parseInt(document.getElementById('rFinDiaPago').value) || 8;
+  var pendiente = Math.round((total - entrada) * 100) / 100;
+  var montoCuota = Math.round((pendiente / n) * 100) / 100;
+  var cuotas = [];
+  for (var i = 0; i < n; i++) {
+    var fc = new Date();
+    fc.setMonth(fc.getMonth() + i + 1);
+    fc.setDate(diaPago);
+    var imp = (i === n - 1) ? Math.round((pendiente - montoCuota * (n - 1)) * 100) / 100 : montoCuota;
+    cuotas.push({ num: i + 1, importe: imp, fecha: fc.toISOString().slice(0, 10), pagado: false, formaPago: '', fechaPago: '' });
+  }
+  return cuotas;
 }
 
 function busComp() {
@@ -6244,6 +6359,11 @@ function editarRep(id) {
   window._repGarantiaPublica = (typeof r.garantiaPublica === 'boolean') ? r.garantiaPublica : true;
   renderRepGarantia();
 
+  // Financiación: no se edita en el form (se crea al alta; cuotas vía modal 💰). Ocultar opción.
+  var finWrap = document.getElementById('rFinanciarWrap'); if (finWrap) finWrap.style.display = 'none';
+  var finChk = document.getElementById('rFinanciar'); if (finChk) finChk.checked = false;
+  if (typeof toggleFinanciarRep === 'function') toggleFinanciarRep();
+
   // Cambiar titulo
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_editar');
 
@@ -6625,6 +6745,16 @@ function guardarRep() {
   var checklist = [];
   document.querySelectorAll('.chk-btn.on').forEach(function(b) { checklist.push((b.dataset.cond || b.textContent).trim()); });
 
+  // Financiación a plazos (entrada + cuotas). Sustituye al sistema de pagos normal.
+  var esFinRep = !!(document.getElementById('rFinanciar') && document.getElementById('rFinanciar').checked);
+  var finEntrada = 0, finCuotas = null, finEntradaPago = '';
+  if (esFinRep) {
+    finEntrada = parseFloat(document.getElementById('rFinEntrada').value) || 0;
+    finEntradaPago = document.getElementById('rFinEntradaPago').value || 'Efectivo';
+    finCuotas = generarCuotasRep(total);
+    anticipo = finEntrada; // en financiado, lo pagado de inicio es la entrada
+  }
+
   var rep = {
     id: 'r' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
     token: genToken(),
@@ -6651,6 +6781,8 @@ function guardarRep() {
     componentes: SEL.selParts.slice(),
     restante: Math.max(0, total - anticipo),
     total: total, pagoFinal: '',
+    financiado: esFinRep, entrada: finEntrada, entradaPago: esFinRep ? finEntradaPago : '',
+    cuotas: finCuotas, estadoFinanciado: esFinRep ? 'activo' : '',
     esGarantia: false, repOriginalId: '',
     garantiaDias: (typeof window._repGarantiaDias === 'number') ? window._repGarantiaDias : (TIENDA.grDiasDefault || 90),
     garantiaTipo: window._repGarantiaTipo || 'reparacion',
@@ -6678,20 +6810,30 @@ function guardarRep() {
       garantia_publica: rep.garantiaPublica !== false,
       garantia_fecha_fin: (rep.fechaEntrega && rep.garantiaDias > 0 && rep.garantiaTipo !== 'sin' && rep.garantiaTipo !== 'apertura')
         ? (function(){ var d = new Date(rep.fechaEntrega); d.setDate(d.getDate() + rep.garantiaDias); return d.toISOString().slice(0,10); })()
-        : null
+        : null,
+      financiado: rep.financiado, entrada: rep.entrada, entrada_pago: rep.entradaPago || null,
+      cuotas: rep.cuotas ? JSON.stringify(rep.cuotas) : null, estado_financiado: rep.estadoFinanciado || null
     });
-    // Insertar pagos en pagos_reparacion
-    (SEL.repPagos || []).forEach(function(p) {
-      sbPost('pagos_reparacion', {
-        tienda_id: TIENDA_ID,
-        reparacion_id: rep.id,
-        fecha: p.fecha,
-        importe: parseFloat(p.importe) || 0,
-        metodo: p.metodo || 'Efectivo',
-        tipo: p.tipo || 'anticipo'
+    if (esFinRep) {
+      // Financiado: la ENTRADA se registra como pago (tipo anticipo) -> el ingreso del día entra solo.
+      if (finEntrada > 0) {
+        sbPost('pagos_reparacion', { tienda_id: TIENDA_ID, reparacion_id: rep.id, fecha: rep.fecha, importe: finEntrada, metodo: finEntradaPago, tipo: 'anticipo' });
+        window._pagosRepCache = null;
+      }
+    } else {
+      // Insertar pagos en pagos_reparacion (sistema normal)
+      (SEL.repPagos || []).forEach(function(p) {
+        sbPost('pagos_reparacion', {
+          tienda_id: TIENDA_ID,
+          reparacion_id: rep.id,
+          fecha: p.fecha,
+          importe: parseFloat(p.importe) || 0,
+          metodo: p.metodo || 'Efectivo',
+          tipo: p.tipo || 'anticipo'
+        });
       });
-    });
-    if ((SEL.repPagos || []).length) window._pagosRepCache = null; // invalidar caché de stats
+      if ((SEL.repPagos || []).length) window._pagosRepCache = null; // invalidar caché de stats
+    }
   }
 
   // PRES-6 FIX: capturar flag ANTES de closeM (que ejecuta _limpiarModoPresupuesto)
@@ -7044,8 +7186,8 @@ function imprimirPresupuesto(repId) {
 
 function renderReps() {
   var list = DB.reps.slice().reverse().filter(function(r) {
-    // 'A deber': reparaciones ENTREGADAS con saldo pendiente (el cliente se llevó el equipo y debe).
-    if (SEL.repFiltro === 'adeber') return r.estado === 'Entregado' && (parseFloat(r.restante) || 0) > 0;
+    // 'A deber': reparaciones ENTREGADAS o FINANCIADAS con saldo pendiente (el cliente tiene el equipo y debe).
+    if (SEL.repFiltro === 'adeber') return (parseFloat(r.restante) || 0) > 0 && (r.estado === 'Entregado' || (r.financiado && r.estadoFinanciado !== 'completado'));
     // PRES-2: 'Todas' excluye presupuestos (lista distinta). Solo se ven con filtro explícito.
     if (SEL.repFiltro === 'todas') return r.estado !== 'Presupuesto';
     return r.estado === SEL.repFiltro;
@@ -7079,6 +7221,7 @@ function renderReps() {
     var btnWA = (cliRep && cliRep.tel) ? '<button data-rid="' + r.id + '" data-action="wa" class="row-btn btn-wa-r" title="Avisar por WhatsApp">📲</button>' : '';
     var btnDel = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" data-action="del" class="row-btn btn-del-r" title="Eliminar reparación">🗑️</button>' : '';
     var btnFact = (r.estado === 'Entregado') ? '<button data-rid="' + r.id + '" data-action="fact" class="row-btn btn-fact-r" title="Generar factura">📄</button>' : '';
+    var btnFin = (r.financiado && r.estadoFinanciado !== 'completado') ? '<button data-rid="' + r.id + '" class="row-btn btn-fin-r" title="Cuotas / financiación" style="background:#8B5CF6;color:white;border-color:#8B5CF6">💰</button>' : '';
     // Badge garantía: manual (esGarantia) o auto-detectada (rep similar reciente)
     var badgeGarantia = '';
     if (r.esGarantia) {
@@ -7092,8 +7235,9 @@ function renderReps() {
     var priBadge = r.prioridad && r.prioridad !== 'Normal'
       ? '<span class="badge ' + (r.prioridad === 'Urgente' ? 'br' : 'bo') + '">' + r.prioridad + '</span>'
       : '<span style="color:var(--muted);font-size:11px">Normal</span>';
+    var badgeFin = r.financiado ? '<br><span style="display:inline-block;background:rgba(139,92,246,.12);color:#6D28D9;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">💰 ' + (r.estadoFinanciado === 'completado' ? T('fin.completado') : T('fin.badge')) + '</span>' : '';
     html += '<tr>'
-      + '<td><strong>' + r.clienteNombre + '</strong>' + badgeGarantia + '</td>'
+      + '<td><strong>' + r.clienteNombre + '</strong>' + badgeGarantia + badgeFin + '</td>'
       + '<td>' + r.marca + ' ' + r.modelo + (r.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">' + r.imei + '</span>' : '') + '</td>'
       + '<td style="font-size:11px;color:var(--dark)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + r.bloqueo : '')) + '</span>' : '') + '</td>'
       + '<td><select data-rid="' + r.id + '" class="sel-estado" style="border:1px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:6px">'
@@ -7104,7 +7248,7 @@ function renderReps() {
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + ((parseFloat(r.restante) || 0) > 0 ? '<br><span style="font-size:10px;font-weight:700;color:#EA580C" title="' + T('rep.queda_deber') + '">⏳ ' + cur(r.restante) + '</span>' : '') + '</td>'
-      + '<td>' + btnDetalleR + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnPresEnviar + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
+      + '<td>' + btnDetalleR + btnFin + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnPresEnviar + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -7116,6 +7260,9 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-ver-r').forEach(function(btn) {
     btn.addEventListener('click', function() { abrirDetalleRep(this.dataset.rid); });
+  });
+  el.querySelectorAll('.btn-fin-r').forEach(function(btn) {
+    btn.addEventListener('click', function() { verFinanciadoRep(this.dataset.rid); });
   });
   el.querySelectorAll('.btn-edit-r').forEach(function(btn) {
     btn.addEventListener('click', function() { editarRep(this.dataset.rid); });
