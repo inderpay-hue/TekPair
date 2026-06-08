@@ -7044,6 +7044,8 @@ function imprimirPresupuesto(repId) {
 
 function renderReps() {
   var list = DB.reps.slice().reverse().filter(function(r) {
+    // 'A deber': reparaciones ENTREGADAS con saldo pendiente (el cliente se llevó el equipo y debe).
+    if (SEL.repFiltro === 'adeber') return r.estado === 'Entregado' && (parseFloat(r.restante) || 0) > 0;
     // PRES-2: 'Todas' excluye presupuestos (lista distinta). Solo se ven con filtro explícito.
     if (SEL.repFiltro === 'todas') return r.estado !== 'Presupuesto';
     return r.estado === SEL.repFiltro;
@@ -7101,7 +7103,7 @@ function renderReps() {
       + '<td>' + priBadge + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
-      + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + '</td>'
+      + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + ((parseFloat(r.restante) || 0) > 0 ? '<br><span style="font-size:10px;font-weight:700;color:#EA580C" title="' + T('rep.queda_deber') + '">⏳ ' + cur(r.restante) + '</span>' : '') + '</td>'
       + '<td>' + btnDetalleR + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnPresEnviar + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
   });
   html += '</tbody></table></div>';
