@@ -164,7 +164,10 @@ function mostrarModalUpgrade(featureName, planRequerido) {
     plantillas_rep: '📋 Plantillas de reparación',
     permisos_usuarios: '👥 Permisos por usuario',
     multi_tienda: '🏪 Multi-tienda',
-    ubicaciones: '📍 Ubicaciones múltiples'
+    ubicaciones: '📍 Ubicaciones múltiples',
+    analitica: '📊 Analítica avanzada',
+    financiado: '💰 Financiación a plazos',
+    inicio_avanzado: '🆕 Inicio nuevo con Tablero'
   })[featureName] || featureName;
   var planLabel = ({basico:'Básico', pro:'Pro', premium:'Premium', top:'Premium'})[planRequerido] || planRequerido;
   document.getElementById('upgFeatName').textContent = feat;
@@ -220,6 +223,14 @@ function renderPlanBanner() {
       html = '<div class="plan-banner warning">⏳ Tu suscripción se cancelará el ' + new Date(PLAN_INFO.plan_until).toLocaleDateString('es') + '. <a onclick="abrirStripePortal()">Reactivar</a></div>';
     } else {
       html = '<div class="plan-banner urgent">❌ Tu suscripción ha terminado. <button onclick="abrirStripePortal()">Renovar →</button></div>';
+    }
+  }
+  // Plan activo: invitar a mejorar (Básico → Pro, Pro → Premium)
+  if (!html && PLAN_INFO.status !== 'trial' && PLAN_INFO.status !== 'past_due' && PLAN_INFO.status !== 'cancelled') {
+    if (PLAN_INFO.plan === 'basico') {
+      html = '<div class="plan-banner info">🚀 <strong>Mejora a Pro</strong> y desbloquea analítica avanzada, financiación a plazos y más. <button onclick="mostrarModalUpgrade(\'analitica\',\'pro\')">Ver planes →</button></div>';
+    } else if (PLAN_INFO.plan === 'pro') {
+      html = '<div class="plan-banner info">✨ <strong>Pásate a Premium</strong>: Inicio nuevo con Tablero, citas, multi-tienda y más. <button onclick="mostrarModalUpgrade(\'inicio_avanzado\',\'premium\')">Ver planes →</button></div>';
     }
   }
   box.innerHTML = html;
