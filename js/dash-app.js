@@ -9834,6 +9834,36 @@ async function enviarReporteCobrum() {
 }
 window.enviarReporteCobrum = enviarReporteCobrum;
 
+// Envío AUTOMÁTICO del día a Cobrum (se llama desde el cierre automático de las 21:30).
+// Silencioso, idempotente por fecha (ref=hoy → no duplica), usa el token de localStorage.
+async function enviarHoyACobrum() {
+  var token = localStorage.getItem('cobrum_token') || '';
+  if (!token) return; // no configurado → no hace nada
+  var d = new Date();
+  var hoy = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  var porMet = {};
+  function bk(met) { var l = _metodoLabel(met); return (porMet[l] = porMet[l] || { ventas: 0, reps: 0, gastos: 0 }); }
+  (DB.ventas || []).forEach(function(v){ if (!v.reembolsado && (v.fecha || '').slice(0, 10) === hoy) bk(v.pago).ventas += Number(v.total || 0); });
+  (DB.gastos || []).forEach(function(g){ if ((g.fecha || '').slice(0, 10) === hoy) bk(g.metodo_pago || g.forma_pago || g.metodo).gastos += Number(g.importe || 0); });
+  try {
+    var pr = await sbGet('pagos_reparacion', 'fecha=gte.' + hoy + '&fecha=lte.' + hoy) || [];
+    pr.forEach(function(p){ bk(p.metodo).reps += Number(p.importe || 0); });
+  } catch (e) { /* sin pagos */ }
+  var lineas = [];
+  Object.keys(porMet).forEach(function(l){
+    var x = porMet[l], c = 'TekPair ' + l;
+    if (x.ventas > 0) lineas.push({ tipo: 'ingreso', cuenta: c, categoria: 'Ventas', monto: Math.round(x.ventas * 100) / 100 });
+    if (x.reps > 0) lineas.push({ tipo: 'ingreso', cuenta: c, categoria: 'Reparaciones', monto: Math.round(x.reps * 100) / 100 });
+    if (x.gastos > 0) lineas.push({ tipo: 'gasto', cuenta: c, categoria: 'Gastos negocio', monto: Math.round(x.gastos * 100) / 100 });
+  });
+  if (!lineas.length) return;
+  try {
+    var resp = await fetch(COBRUM_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': token }, body: JSON.stringify({ source: 'tekpair', fecha: hoy, ref: hoy, lineas: lineas }) });
+    if (resp.ok) toast('Datos del día enviados a Cobrum', 'success');
+  } catch (e) { /* silencioso */ }
+}
+window.enviarHoyACobrum = enviarHoyACobrum;
+
 function renderGraficas(ventas, reps, pagos, fechas) {
   if (typeof Chart === 'undefined') return;
 
@@ -10364,6 +10394,7 @@ function checkCierreAuto() {
     if (ult !== hoy) {
       localStorage.setItem('tk_ult_cierre', hoy);
       cierreDia();
+      try { enviarHoyACobrum(); } catch (e) { /* no romper el cierre */ }
     }
   }
 }
