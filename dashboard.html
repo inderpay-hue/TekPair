@@ -4018,8 +4018,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </select>
     </div>
   </div>
-  <div class="fg"><label class="fl">Estado</label>
-    <select class="fi" id="gEstado"><option>Pagado</option><option>Pendiente</option></select>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">Estado</label>
+      <select class="fi" id="gEstado"><option>Pagado</option><option>Pendiente</option></select>
+    </div>
+    <div class="fg"><label class="fl"><span data-t="tpv.forma_pago">Forma de pago</span></label>
+      <select class="fi" id="gMetodo">
+        <option value="efectivo" data-t="tpv.efectivo">Efectivo</option>
+        <option value="tarjeta" data-t="tpv.tarjeta">Tarjeta</option>
+        <option value="bizum">Bizum</option>
+        <option value="transferencia" data-t="tpv.transferencia">Transferencia</option>
+      </select>
+    </div>
   </div>
   <div class="fg" style="position:relative">
     <label class="fl">Proveedor (opcional)</label>
@@ -4229,7 +4239,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal" id="finModalContent"></div>
 </div>
 
-<script src="/js/dash-app.js?v=20260607cobrum2"></script>
+<script src="/js/dash-app.js?v=20260608gastos"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
