@@ -140,6 +140,13 @@ async function refrescarPlan() {
       // Re-render banners y bloqueos
       renderPlanBanner();
       aplicarBloqueosPlan();
+      // Primer login (sin plan cacheado): si ahora sabemos que es Premium y se le había
+      // mandado al Clásico automáticamente, devolverlo al Inicio nuevo (solo si sigue ahí).
+      if (typeof tieneFeature === 'function' && tieneFeature('inicio_avanzado') && window._inicioAutoRedirect) {
+        var pd = document.getElementById('pDash');
+        if (pd && pd.classList.contains('active')) navTo('pInicioNuevo');
+      }
+      window._inicioAutoRedirect = false;
     }
   } catch(e) { console.warn('refrescarPlan error', e); }
 }
@@ -260,7 +267,7 @@ function aplicarBloqueosPlan() {
   // Inicio por plan: si Básico/Pro están viendo el Inicio nuevo (Premium), llevarlos al Clásico
   if (!tieneFeature('inicio_avanzado')) {
     var pin = document.getElementById('pInicioNuevo');
-    if (pin && pin.classList.contains('active')) navTo('pDash');
+    if (pin && pin.classList.contains('active')) { window._inicioAutoRedirect = true; navTo('pDash'); }
   }
 }
 
