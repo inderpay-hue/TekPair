@@ -4882,6 +4882,7 @@ function abrirRep() {
   document.getElementById('partsList').innerHTML = '';
   document.getElementById('rTotal').textContent = cur(0);
   document.getElementById('rRestante').textContent = cur(0);
+  var _antiRow = document.getElementById('rAnticipoRow'); if (_antiRow) _antiRow.style.display = 'none';
   document.querySelectorAll('.chk-btn').forEach(function(b) { b.classList.remove('on'); });
   var tb = document.getElementById('rTipoBloq'); if (tb) { tb.value = ''; cambiarTipoBloq(); }
   // Limpiar errores de validación
@@ -5654,8 +5655,15 @@ function calcR() {
     if (lbl) lbl.textContent = 'Total';
   }
   document.getElementById('rTotal').textContent = cur(c.total);
-  // Restante calculado sobre el total final (con IVA si aplica)
-  document.getElementById('rRestante').textContent = cur(Math.max(0, c.total - anti));
+  // Anticipo pagado (suma de pagos) + lo que queda a deber (restante sobre el total final con IVA)
+  var resta = Math.max(0, c.total - anti);
+  var antiRow = document.getElementById('rAnticipoRow');
+  var antiEl = document.getElementById('rAnticipo');
+  if (antiEl) antiEl.textContent = cur(anti);
+  if (antiRow) antiRow.style.display = anti > 0 ? 'block' : 'none';
+  var restEl = document.getElementById('rRestante');
+  restEl.textContent = cur(resta);
+  restEl.style.color = resta > 0 ? '#F97316' : 'var(--green)';
 }
 
 function busComp() {

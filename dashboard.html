@@ -3663,7 +3663,8 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <span id="rTotalLbl">TOTAL</span>
         <span id="rTotal">€0.00</span>
       </div>
-      <div style="font-size:11px;color:var(--muted)">Restante: <span id="rRestante" style="font-weight:700">€0.00</span></div>
+      <div id="rAnticipoRow" style="font-size:11px;color:var(--muted);display:none"><span data-t="rep.anticipo">Anticipo pagado</span>: <span id="rAnticipo" style="font-weight:700;color:var(--green)">€0.00</span></div>
+      <div style="font-size:11px;color:var(--muted)"><span data-t="rep.queda_deber">Queda a deber</span>: <span id="rRestante" style="font-weight:700">€0.00</span></div>
     </div>
     <div class="rep-footer-buttons">
       <button class="btn-secondary" onclick="closeM('mRep')" data-t="gen.cancelar">Cancelar</button>
