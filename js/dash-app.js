@@ -72,7 +72,7 @@ var PLAN_FEATURES = {
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
-           'multi_tienda','soporte_24_7','api_access','onboarding_personal',
+           'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
            'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado'],
@@ -80,7 +80,7 @@ var PLAN_FEATURES = {
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
-           'multi_tienda','soporte_24_7','api_access','onboarding_personal',
+           'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
            'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado']
@@ -2073,8 +2073,22 @@ function renderInicioNuevo() {
   // Cargar pedidos (ambas vistas los usan)
   if (!DB.pedidos && typeof cargarPedidos === 'function') { cargarPedidos(function() { renderInicioNuevo(); }); }
 
+  // ── Inicio por plan: Tablero y periodos Semana/Mes son de Premium ──
+  var invAvanzado = (typeof tieneFeature === 'function') ? tieneFeature('inicio_avanzado') : true;
+  (function() {
+    var tabBtn = document.querySelector('#pInicioNuevo .inv-vbtn[data-v="tablero"]');
+    if (tabBtn) tabBtn.style.display = invAvanzado ? '' : 'none';
+    var segBtns = document.querySelectorAll('#pInicioNuevo .inv-seg button');
+    for (var i = 1; i < segBtns.length; i++) segBtns[i].style.display = invAvanzado ? '' : 'none'; // ocultar Semana/Mes
+    if (!invAvanzado) {
+      window._invPer = 'hoy';
+      if ((window._invVista || '') === 'tablero') { window._invVista = 'resumen'; try { localStorage.setItem('tk_inicio_vista', 'resumen'); } catch (e) {} }
+    }
+  })();
+
   // Vista activa (paginador Resumen / Tablero)
   var vista = window._invVista || localStorage.getItem('tk_inicio_vista') || 'resumen';
+  if (!invAvanzado) vista = 'resumen'; // Básico/Pro: forzar Resumen
   window._invVista = vista;
   try { Array.prototype.forEach.call(document.querySelectorAll('#pInicioNuevo .inv-vbtn'), function(b){ b.classList.toggle('on', b.getAttribute('data-v') === vista); }); } catch(e){}
   var editBtn = document.getElementById('inv-edit-btn'); if (editBtn) editBtn.style.display = puede ? '' : 'none'; // personalizar: solo admin
