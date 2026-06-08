@@ -256,6 +256,12 @@ function aplicarBloqueosPlan() {
       }
     }
   }, 1100);
+
+  // Inicio por plan: si Básico/Pro están viendo el Inicio nuevo (Premium), llevarlos al Clásico
+  if (!tieneFeature('inicio_avanzado')) {
+    var pin = document.getElementById('pInicioNuevo');
+    if (pin && pin.classList.contains('active')) navTo('pDash');
+  }
 }
 
 // Override navTo para bloquear páginas
@@ -1256,6 +1262,8 @@ function cerrarCodigoCaja() {
 }
 
 function navTo(id) {
+  // Inicio por plan: el Inicio nuevo (avanzado) es de Premium. Básico/Pro van al panel Clásico.
+  if (id === 'pInicioNuevo' && typeof tieneFeature === 'function' && !tieneFeature('inicio_avanzado')) id = 'pDash';
   // Cajas: si el admin denegó el permiso a este trabajador, no puede abrirla ni por enlace directo
   if (id === 'pCajas' && U && U.rol !== 'admin' && !(U.permisos && U.permisos.todo)
       && U.permisos && U.permisos.cajas_ver === false) {
