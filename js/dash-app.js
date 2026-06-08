@@ -67,7 +67,7 @@ var PLAN_FEATURES = {
            'permisos_usuarios','reportes_pdf','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
-           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio'],
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado'],
   top:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
@@ -75,7 +75,7 @@ var PLAN_FEATURES = {
            'multi_tienda','soporte_24_7','api_access','onboarding_personal',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
-           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio'],
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado'],
   premium:['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
@@ -83,7 +83,7 @@ var PLAN_FEATURES = {
            'multi_tienda','soporte_24_7','api_access','onboarding_personal',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
-           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio']
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado']
 };
 
 // Límite de usuarios por plan
@@ -530,6 +530,12 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // Pago select listener
   document.getElementById('vPago').addEventListener('change', function() {
+    // Financiado es de plan Pro/Premium: si no lo tiene, avisar y volver a Efectivo
+    if (this.value === 'Financiado' && typeof checkFeature === 'function' && !checkFeature('financiado')) {
+      this.value = 'Efectivo';
+      document.getElementById('finOpts').style.display = 'none';
+      return;
+    }
     document.getElementById('finOpts').style.display = this.value === 'Financiado' ? 'block' : 'none';
   });
 
@@ -4099,6 +4105,11 @@ function abrirVenta() {
   document.getElementById('vStockRes').classList.remove('open');
   document.getElementById('vSelCli').classList.remove('open');
   document.getElementById('finOpts').style.display = 'none';
+  // Financiado es Pro/Premium: ocultar la opción del selector si el plan no la tiene
+  var _vPago = document.getElementById('vPago');
+  var _vFinOpt = document.getElementById('vPagoFinOpt');
+  if (_vFinOpt) _vFinOpt.hidden = (typeof tieneFeature === 'function' && !tieneFeature('financiado'));
+  if (_vPago && _vFinOpt && _vFinOpt.hidden && _vPago.value === 'Financiado') _vPago.value = 'Efectivo';
   // Reset IVA selector to default
   var ivaSelV = document.getElementById('vIva');
   if (ivaSelV) ivaSelV.value = String((AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21);
@@ -4981,8 +4992,8 @@ function abrirRep() {
   document.getElementById('rTotal').textContent = cur(0);
   document.getElementById('rRestante').textContent = cur(0);
   var _antiRow = document.getElementById('rAnticipoRow'); if (_antiRow) _antiRow.style.display = 'none';
-  // Reset financiación a plazos
-  var _finWrap = document.getElementById('rFinanciarWrap'); if (_finWrap) _finWrap.style.display = '';
+  // Reset financiación a plazos (solo Pro/Premium)
+  var _finWrap = document.getElementById('rFinanciarWrap'); if (_finWrap) _finWrap.style.display = (typeof tieneFeature === 'function' && !tieneFeature('financiado')) ? 'none' : '';
   var _fin = document.getElementById('rFinanciar'); if (_fin) _fin.checked = false;
   var _finE = document.getElementById('rFinEntrada'); if (_finE) _finE.value = '';
   var _finN = document.getElementById('rFinNumCuotas'); if (_finN) _finN.value = '3';
