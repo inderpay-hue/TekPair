@@ -1670,11 +1670,16 @@ function _es409Grave(res) {
 function _sbPatchRaw(table, query, data) {
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
     method: 'PATCH',
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json'},
+    // return=representation → la respuesta trae las filas actualizadas; así detectamos
+    // un UPDATE de 0 filas (bloqueo RLS silencioso) que PostgREST devolvería como 204 OK.
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
     body: JSON.stringify(data)
   }).then(function(r) {
-    return {ok: r.ok, status: r.status};
-  }).catch(function() { return {ok: false, status: 0}; });
+    if (!r.ok) return {ok: false, status: r.status, rows: 0};
+    return r.json().then(function(body) {
+      return {ok: true, status: r.status, rows: Array.isArray(body) ? body.length : 1};
+    }, function() { return {ok: true, status: r.status, rows: 1}; });
+  }).catch(function() { return {ok: false, status: 0, rows: 0}; });
 }
 
 function _sbDeleteRaw(table, query) {
@@ -1755,7 +1760,16 @@ function sbPost(table, data) {
 
 function sbPatch(table, query, data) {
   return _sbPatchRaw(table, query, data).then(function(res) {
-    if (res.ok) return true;
+    if (res.ok) {
+      // RLS-silencioso: 200/204 pero 0 filas actualizadas = la fila no es visible/editable
+      // para este usuario (policy RLS de UPDATE bloqueando) o el id no existe. NO es un guardado real.
+      if (res.rows === 0) {
+        console.error('sbPatch ' + table + ' devolvió 0 filas (RLS bloquea UPDATE o id inexistente). Query: ' + query + ' Payload:', data);
+        if (typeof toast === 'function') toast('⚠️ La nube no aplicó el cambio en ' + table + ' (permiso/RLS). Avisa a soporte.', 'err');
+        return false;
+      }
+      return true;
+    }
     // CLI-2: igual que sbPost
     if (!_esRetriable(res.status)) {
       console.error('sbPatch ' + table + ' falló con status ' + res.status + ' (no retriable). Query: ' + query + ' Payload:', data);
