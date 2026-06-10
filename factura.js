@@ -203,7 +203,7 @@
       // Completa: todos los datos
       box.innerHTML =
         '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">Datos fiscales cliente (obligatorios)</div>' +
-        '<input id="factCliNomFiscal" placeholder="Nombre fiscal / Razón social *" value="' + _esc(cli.nombreFiscal || cli.nombre || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
+        '<input id="factCliNomFiscal" placeholder="Nombre fiscal / Razón social *" value="' + _esc(cli.nombreFiscal || ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim()) + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
         '<input id="factCliNif" placeholder="NIF/CIF *" value="' + _esc(cli.dni || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
         '<input id="factCliDir" placeholder="Dirección fiscal *" value="' + _esc(cli.dirFiscal || cli.dir || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
         '<div style="display:flex;gap:8px">' +
