@@ -9663,26 +9663,77 @@ function generarPDFGastos(periodo) {
 function renderGastos() {
   var el = document.getElementById('listaGastos');
   if (!DB.gastos.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udccb</div><span data-t="gen.sin_gastos">Sin gastos</span></div>'; return; }
-  var list = DB.gastos.slice().reverse();
-  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Concepto</th><th>Categoría</th><th>Fecha</th><th>IVA</th><th>Importe</th><th>Estado</th><th>Adjunto</th></tr></thead><tbody>' +
-    list.map(function(g) {
-      var ivaT = (g.iva_tipo != null) ? g.iva_tipo : 21;
-      var cat = g.categoria || 'Otros';
-      var adjCell;
-      if (g.adjunto_url) {
-        adjCell = '<button class="btn-sm" onclick="verAdjuntoGasto(\'' + g.id + '\')" title="' + esc(g.adjunto_nombre || '') + '" style="background:#10B981;color:white;padding:4px 8px;font-size:11px">📎 Ver</button>' +
-          ' <button class="btn-sm" onclick="quitarAdjuntoGasto(\'' + g.id + '\')" title="Quitar adjunto" style="background:transparent;color:var(--red);padding:4px 6px;font-size:11px;border:1px solid var(--red)">✕</button>';
-      } else {
-        adjCell = '<button class="btn-sm" onclick="triggerAdjuntoGasto(\'' + g.id + '\')" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">+ Adjuntar</button>';
-      }
-      return '<tr><td>' + esc(g.concepto || '') + '</td>' +
-        '<td><span class="badge bb">' + esc(cat) + '</span></td>' +
-        '<td>' + fmtFecha(g.fecha) + '</td>' +
-        '<td>' + ivaT + '%</td>' +
-        '<td style="font-weight:700;color:var(--red)">' + cur(g.importe || 0) + '</td>' +
-        '<td><span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado || 'Pagado') + '</span></td>' +
-        '<td>' + adjCell + '</td></tr>';
-    }).join('') + '</tbody></table></div>';
+  // Genera las 7 celdas de una fila de gasto (fila suelta o detalle de grupo)
+  function _celdasGasto(g, indent) {
+    var ivaT = (g.iva_tipo != null) ? g.iva_tipo : 21;
+    var cat = g.categoria || 'Otros';
+    var adjCell;
+    if (g.adjunto_url) {
+      adjCell = '<button class="btn-sm" onclick="verAdjuntoGasto(\'' + g.id + '\')" title="' + esc(g.adjunto_nombre || '') + '" style="background:#10B981;color:white;padding:4px 8px;font-size:11px">📎 Ver</button>' +
+        ' <button class="btn-sm" onclick="quitarAdjuntoGasto(\'' + g.id + '\')" title="Quitar adjunto" style="background:transparent;color:var(--red);padding:4px 6px;font-size:11px;border:1px solid var(--red)">✕</button>';
+    } else {
+      adjCell = '<button class="btn-sm" onclick="triggerAdjuntoGasto(\'' + g.id + '\')" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">+ Adjuntar</button>';
+    }
+    return '<td style="' + (indent ? 'padding-left:24px' : '') + '">' + esc(g.concepto || '') + '</td>' +
+      '<td><span class="badge bb">' + esc(cat) + '</span></td>' +
+      '<td>' + fmtFecha(g.fecha) + '</td>' +
+      '<td>' + ivaT + '%</td>' +
+      '<td style="font-weight:700;color:var(--red)">' + cur(g.importe || 0) + '</td>' +
+      '<td><span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado || 'Pagado') + '</span></td>' +
+      '<td>' + adjCell + '</td>';
+  }
+
+  // Agrupar por día + proveedor: las líneas de un mismo pedido comparten ambos,
+  // así un pedido con N piezas ocupa 1 fila plegable en vez de N.
+  var groups = {}, order = [];
+  DB.gastos.forEach(function(g) {
+    var dia = (g.fecha || '').slice(0, 10);
+    var prov = (g.proveedor_nombre || '').trim();
+    var key = dia + '||' + prov.toLowerCase();
+    if (!groups[key]) { groups[key] = { dia: dia, prov: prov, items: [], total: 0 }; order.push(key); }
+    groups[key].items.push(g);
+    groups[key].total += parseFloat(g.importe) || 0;
+  });
+  // Orden: día más reciente primero, luego proveedor alfabético
+  order.sort(function(a, b) {
+    var ga = groups[a], gb = groups[b];
+    if (ga.dia !== gb.dia) return (gb.dia || '').localeCompare(ga.dia || '');
+    return (ga.prov || '').localeCompare(gb.prov || '');
+  });
+
+  var rows = '';
+  order.forEach(function(key, gi) {
+    var grp = groups[key];
+    // Grupo de 1 gasto → fila normal (agrupar no ahorra espacio y añade un clic)
+    if (grp.items.length === 1) { rows += '<tr>' + _celdasGasto(grp.items[0], false) + '</tr>'; return; }
+    // Cabecera plegable (colapsada por defecto) con total del grupo
+    var catSet = {}; grp.items.forEach(function(x) { catSet[x.categoria || 'Otros'] = 1; });
+    var cats = Object.keys(catSet);
+    var catLbl = cats.length === 1 ? cats[0] : (cats.length + ' categorías');
+    var provLbl = grp.prov || '(sin proveedor)';
+    rows += '<tr class="gasto-grp" style="cursor:pointer;background:var(--bg2,#F8FAFC)" onclick="toggleGrupoGasto(' + gi + ')">' +
+      '<td style="font-weight:700"><span id="gcar-' + gi + '">▸</span> ' + esc(provLbl) + ' <span style="color:var(--muted,#64748B);font-weight:500">· ' + grp.items.length + ' gastos</span></td>' +
+      '<td><span class="badge bb">' + esc(catLbl) + '</span></td>' +
+      '<td>' + fmtFecha(grp.dia) + '</td>' +
+      '<td></td>' +
+      '<td style="font-weight:800;color:var(--red)">' + cur(grp.total) + '</td>' +
+      '<td></td><td></td></tr>';
+    grp.items.forEach(function(g) {
+      rows += '<tr class="gd-' + gi + '" style="display:none">' + _celdasGasto(g, true) + '</tr>';
+    });
+  });
+
+  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Concepto / Proveedor</th><th>Categoría</th><th>Fecha</th><th>IVA</th><th>Importe</th><th>Estado</th><th>Adjunto</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+// Pliega/despliega las líneas de un grupo de gastos sin re-renderizar
+function toggleGrupoGasto(gi) {
+  var rows = document.querySelectorAll('.gd-' + gi);
+  if (!rows.length) return;
+  var ocultar = rows[0].style.display !== 'none';
+  for (var i = 0; i < rows.length; i++) rows[i].style.display = ocultar ? 'none' : '';
+  var car = document.getElementById('gcar-' + gi);
+  if (car) car.textContent = ocultar ? '▸' : '▾';
 }
 
 
