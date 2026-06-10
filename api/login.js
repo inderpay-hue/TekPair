@@ -246,6 +246,54 @@ export default async function handler(req, res) {
   }
 
 
+  // ───────── Acción: renovar-jwt ─────────
+  // Canjea el token de sesión (largo, ya guardado en el cliente) por un JWT fresco con
+  // los claims actuales (tienda_id, email, rol). Resuelve el caso de sesiones abiertas
+  // antes del sellado RLS, cuyo JWT viejo carece de tienda_id y la nube rechaza sus writes.
+  if (action === 'renovar-jwt') {
+    if (req.method !== 'POST' && req.method !== 'GET') return res.status(405).end();
+    const token = (req.body && req.body.token) || req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'No token' });
+    const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+    if (!SB_URL || !SK || !JWT_SECRET) return res.status(500).json({ error: 'Configuración de servidor incompleta' });
+    try {
+      // 1. Validar sesión vigente
+      const sR = await fetch(`${SB_URL}/rest/v1/sesiones?token=eq.${encodeURIComponent(token)}&select=usuario_id,tienda_id,expires_at&limit=1`, {
+        headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` }
+      });
+      const sesiones = await sR.json();
+      if (!Array.isArray(sesiones) || !sesiones.length) return res.status(401).json({ error: 'Sesión inválida' });
+      const sess = sesiones[0];
+      if (sess.expires_at && new Date(sess.expires_at) < new Date()) return res.status(401).json({ error: 'Sesión caducada' });
+      // 2. Cargar usuario y verificar que sigue ACTIVO (no revocado)
+      const uR = await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(sess.usuario_id)}&select=id,email,rol,activo,tienda_id&limit=1`, {
+        headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` }
+      });
+      const usrs = await uR.json();
+      const u = usrs && usrs[0];
+      if (!u || u.activo === false) return res.status(401).json({ error: 'Usuario inactivo' });
+      // 3. Acuñar JWT fresco (mismos claims que el login)
+      const SESSION_DAYS = 7;
+      const nowSec = Math.floor(Date.now() / 1000);
+      const userJWT = jwt.sign({
+        sub: u.id,
+        tienda_id: u.tienda_id,
+        email: u.email,
+        rol: u.rol || 'empleado',
+        role: 'authenticated',
+        aud: 'authenticated',
+        iss: 'tekpair',
+        iat: nowSec,
+        exp: nowSec + (SESSION_DAYS * 24 * 60 * 60)
+      }, JWT_SECRET, { algorithm: 'HS256' });
+      return res.json({ ok: true, jwt_token: userJWT, tienda_id: u.tienda_id });
+    } catch (e) {
+      console.error('renovar-jwt error:', e);
+      return res.status(500).json({ error: 'Error del servidor' });
+    }
+  }
+
+
   // El resto de acciones requieren POST
   if (req.method !== 'POST') return res.status(405).end();
 
