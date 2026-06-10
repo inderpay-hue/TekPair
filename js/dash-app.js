@@ -115,6 +115,38 @@ function planDiasRestantes() {
   return Math.max(0, Math.floor((new Date(fecha) - new Date()) / 86400000));
 }
 
+// Decodifica el payload de un JWT (base64url) sin verificar firma. {} si ilegible.
+function _jwtClaims(t) {
+  try { return JSON.parse(atob(String(t).split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))); }
+  catch (e) { return {}; }
+}
+
+// Las sesiones abiertas antes del sellado RLS (jun-2026) llevan un JWT sin `tienda_id`,
+// y la nube rechaza sus writes en silencio. Canjeamos el token de sesión (ya guardado)
+// por un JWT fresco con tienda_id y recargamos una vez. Anti-bucle por pestaña.
+function _autoRenovarJWT(sess) {
+  try {
+    if (!JWT_TOKEN || !sess || !sess.token) return;
+    var claims = _jwtClaims(JWT_TOKEN);
+    if (claims && claims.tienda_id) return;                  // JWT ya correcto
+    if (sessionStorage.getItem('tk_jwt_renew_try')) return;  // ya intentado esta sesión
+    sessionStorage.setItem('tk_jwt_renew_try', '1');
+    fetch('/api/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'renovar-jwt', token: sess.token })
+    }).then(function (r) { return r.json(); }).then(function (j) {
+      if (j && j.jwt_token) {
+        var s = JSON.parse(localStorage.getItem('tk_sess') || '{}');
+        s.jwt_token = j.jwt_token;
+        if (j.tienda_id) s.tienda_id = j.tienda_id;
+        localStorage.setItem('tk_sess', JSON.stringify(s));
+        location.reload();
+      }
+    }).catch(function () {});
+  } catch (e) {}
+}
+
 // Refrescar plan desde /api/me (llamado al cargar)
 async function refrescarPlan() {
   if (!PLAN_INFO.token) return;
@@ -438,6 +470,7 @@ window.addEventListener('DOMContentLoaded', function() {
   var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
   SB_KEY = sess.sb_key || '';
   JWT_TOKEN = sess.jwt_token || '';
+  _autoRenovarJWT(sess); // si el JWT no trae tienda_id (sesión previa al sellado RLS), canjearlo y recargar
   setTimeout(function(){ detectarAccesoComisiones(); }, 800);
   TIENDA_ID = sess.tienda_id || (U && U.tienda_id) || '';
   // Load permisos from session
