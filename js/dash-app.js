@@ -968,6 +968,7 @@ function nuevoPedido() {
   document.getElementById('pedCant').value = '1';
   var _pcn = document.getElementById('pedCat'); if (_pcn) _pcn.value = 'Telefono';
   actualizarHintPedido();
+  try { renderPedidoCalidad(); } catch (e) {}
   renderPedMarcas();
   _fillProvDatalist();
   var h0 = document.getElementById('pedStockHint'); if (h0) h0.style.display = 'none';
@@ -987,6 +988,7 @@ function editarPedido(id) {
   document.getElementById('pedPieza').value = _pedModeloDe(p);
   var _pc = document.getElementById('pedCat'); if (_pc) _pc.value = p.categoria || 'Telefono';
   actualizarHintPedido();
+  try { renderPedidoCalidad(); var _pcal = document.getElementById('pedCalidad'); if (_pcal && p.calidad) _pcal.value = p.calidad; } catch (e) {}
   renderPedMarcas();
   onPedPiezaInput();
   document.getElementById('pedCant').value = p.cantidad || 1;
@@ -1001,6 +1003,19 @@ function editarPedido(id) {
   openM('mPedido');
 }
 // Añadir una línea de producto a la lista del pedido (modo nuevo)
+// Muestra el selector de calidad en pedidos solo si la categoría es Pantalla
+function renderPedidoCalidad() {
+  var wrap = document.getElementById('pedCalidadWrap');
+  var sel = document.getElementById('pedCalidad');
+  if (!wrap || !sel) return;
+  var cat = (document.getElementById('pedCat') || {}).value || 'Telefono';
+  if (cat !== 'Pantalla') { wrap.style.display = 'none'; return; }
+  wrap.style.display = 'block';
+  var prev = sel.value;
+  sel.innerHTML = '<option value="">— ' + (T('catalogo.calidad') || 'Calidad') + ' —</option>' +
+    CALIDADES_PANTALLA.map(function(c) { return '<option value="' + esc(c.v) + '"' + (c.v === prev ? ' selected' : '') + '>' + esc(c.v) + '</option>'; }).join('');
+}
+
 function pedAddItem() {
   if (SEL.editPedidoId) return; // en modo editar no se acumulan líneas
   var marca = (document.getElementById('pedMarca').value || '').trim();
@@ -1008,10 +1023,13 @@ function pedAddItem() {
   if (!modelo) { toast(T('pedidos.falta_pieza'), 'err'); var pe = document.getElementById('pedPieza'); if (pe) pe.focus(); return; }
   window._pedItems = window._pedItems || [];
   var _pcat = document.getElementById('pedCat');
+  var _pcalEl = document.getElementById('pedCalidad');
+  var _pcal = (_pcat && _pcat.value === 'Pantalla' && _pcalEl) ? (_pcalEl.value || '') : '';
   window._pedItems.push({
     marca: marca,
     pieza: _pedNombreCompleto(marca, modelo),
     categoria: (_pcat && _pcat.value) || 'Telefono',
+    calidad: _pcal,
     cantidad: parseInt(document.getElementById('pedCant').value, 10) || 1,
     importe: parseFloat(document.getElementById('pedImporte').value) || 0
   });
@@ -1039,7 +1057,7 @@ function renderPedItems() {
   var tot = items.reduce(function(a, it) { return a + (parseFloat(it.importe) || 0); }, 0);
   el.innerHTML = items.map(function(it, i) {
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12.5px">' +
-      '<span style="flex:1;font-weight:600">' + (_esImeiCat(it.categoria) ? '📱 ' : '🔧 ') + escHtml(it.pieza) + (it.cantidad > 1 ? ' <span style="color:var(--muted)">x' + it.cantidad + '</span>' : '') + '</span>' +
+      '<span style="flex:1;font-weight:600">' + (_esImeiCat(it.categoria) ? '📱 ' : '🔧 ') + escHtml(it.pieza) + (it.calidad ? ' <span style="font-size:10px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 6px;border-radius:5px">' + escHtml(it.calidad) + '</span>' : '') + (it.cantidad > 1 ? ' <span style="color:var(--muted)">x' + it.cantidad + '</span>' : '') + '</span>' +
       (it.importe > 0 ? '<span style="font-weight:700;color:var(--muted)">€' + parseFloat(it.importe).toFixed(2) + '</span>' : '') +
       '<button onclick="pedDelItem(' + i + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:15px;line-height:1">×</button></div>';
   }).join('') + '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;padding:4px 2px"><span>' + items.length + ' ' + T('pedidos.lineas') + '</span>' + (tot > 0 ? '<span>' + cur(tot) + '</span>' : '') + '</div>';
@@ -1056,6 +1074,7 @@ function guardarPedido() {
       pieza: _pedNombreCompleto(_emarca, _emodelo),
       marca: _emarca || null,
       categoria: (document.getElementById('pedCat') && document.getElementById('pedCat').value) || null,
+      calidad: (((document.getElementById('pedCat') || {}).value === 'Pantalla') ? ((document.getElementById('pedCalidad') || {}).value || null) : null),
       cantidad: parseInt(document.getElementById('pedCant').value, 10) || 1,
       proveedor: (document.getElementById('pedProv').value || '').trim() || null,
       importe: parseFloat(document.getElementById('pedImporte').value) || 0,
@@ -1078,7 +1097,7 @@ function guardarPedido() {
   var nota = (document.getElementById('pedNota').value || '').trim() || null;
   var metPed = (document.getElementById('pedMetodo') || {}).value || 'transferencia';
   items.forEach(function(it) {
-    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, marca: it.marca || null, categoria: it.categoria || null, cantidad: it.cantidad, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, metodo_pago: metPed, nota: nota };
+    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, marca: it.marca || null, categoria: it.categoria || null, calidad: it.calidad || null, cantidad: it.cantidad, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, metodo_pago: metPed, nota: nota };
     DB.pedidos.unshift(nuevo);
     if (SB_KEY) sbPost('pedidos', nuevo);
   });
@@ -1111,6 +1130,8 @@ function avanzarPedido(id) {
     // la tiene (pedidos antiguos), se usa la del item de stock que coincida.
     var uds = parseInt(p.cantidad, 10) || 1;
     var existe = _stockMatch(p.pieza);
+    // No fusionar pantallas (u otros) de distinta calidad: si difiere, crear item aparte
+    if (existe && p.calidad && (existe.calidad || '') !== p.calidad) existe = null;
     var cat = p.categoria || (existe ? existe.categoria : '');
     if (_esImeiCat(cat)) {
       // IMEI: no se suma, se registran las unidades con su IMEI
@@ -1173,7 +1194,7 @@ function _recibirAStock(p, uds, existe, silent, cat) {
     id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     categoria: cat || p.categoria || 'Repuesto', marca: p.marca || '', modelo: _pedModeloDe(p), capacidad: '', color: '', imei: '',
     unidades: uds, precioC: costeUnit, precioV: 0, stockMin: 2, stockMax: 10,
-    vendido: false, calidad: '', tipo: 'nuevo', garantiaMeses: 0, ubicacion: null
+    vendido: false, calidad: p.calidad || '', tipo: 'nuevo', garantiaMeses: 0, ubicacion: null
   };
   DB.stock.push(item);
   if (SB_KEY && TIENDA_ID) sbPost('stock', {
@@ -1181,7 +1202,7 @@ function _recibirAStock(p, uds, existe, silent, cat) {
     modelo: item.modelo, capacidad: item.capacidad, color: item.color, imei: item.imei,
     unidades: item.unidades, precio_c: item.precioC, precio_v: item.precioV,
     stock_min: item.stockMin, stock_max: item.stockMax, vendido: false,
-    tipo: 'nuevo', garantia_meses: 0, ubicacion: null
+    calidad: item.calidad || null, tipo: 'nuevo', garantia_meses: 0, ubicacion: null
   });
   _logMov('entrada', ((item.marca || '') + ' ' + (item.modelo || '')).trim(), uds, p.proveedor || T('pedidos.pieza'));
   try { guardarDatos(); } catch(e){}
@@ -1195,7 +1216,7 @@ function recibirGrupo(encKey) {
   var grp = (DB.pedidos || []).filter(function(p) { return p.estado === 'pedido' && (((p.proveedor || '').trim() || sinProv) === key); });
   if (!grp.length) return;
   var imeiItems = [], normales = [];
-  grp.forEach(function(p) { var ex = _stockMatch(p.pieza); var c = p.categoria || (ex ? ex.categoria : ''); if (_esImeiCat(c)) imeiItems.push(p); else normales.push({ p: p, ex: ex, cat: c }); });
+  grp.forEach(function(p) { var ex = _stockMatch(p.pieza); if (ex && p.calidad && (ex.calidad || '') !== p.calidad) ex = null; var c = p.categoria || (ex ? ex.categoria : ''); if (_esImeiCat(c)) imeiItems.push(p); else normales.push({ p: p, ex: ex, cat: c }); });
   if (!normales.length) { toast(T('pedidos.grupo_solo_imei'), 'err'); return; }
   if (!confirm(T('pedidos.confirmar_grupo_recibir').replace('{n}', normales.length).replace('{prov}', key))) return;
   normales.forEach(function(o) {
@@ -5896,7 +5917,7 @@ function busComp() {
     var ya = SEL.selParts.find(function(p) { return p.id === s.id; });
     return '<div class="cli-item" data-sid="' + escHtml(s.id) + '" style="' + (ya ? 'background:rgba(0,200,150,.06)' : '') + '">' +
       '<span style="background:var(--light);padding:2px 6px;border-radius:4px;font-size:10px;font-weight:700;color:var(--muted);margin-right:6px">' + escHtml(s.categoria || 'Otro') + '</span>' +
-      escHtml(s.modelo) + ' (' + escHtml(s.marca) + ')' + (s.color ? ' · ' + escHtml(s.color) : '') + ' · Stock: ' + s.unidades + (ya ? ' ✓' : '') +
+      escHtml(s.modelo) + ' (' + escHtml(s.marca) + ')' + (s.color ? ' · ' + escHtml(s.color) : '') + (s.calidad ? ' <span style="font-size:10px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 5px;border-radius:4px">' + escHtml(s.calidad) + '</span>' : '') + ' · Stock: ' + s.unidades + (ya ? ' ✓' : '') +
       '<span style="float:right;color:var(--green);font-weight:700">' + cur(s.precioV) + '</span></div>';
   }).join('');
   if (matches.length) res.classList.add('open');
@@ -7732,6 +7753,7 @@ function renderStock() {
     html += '<tr>' +
       '<td><strong>' + s.marca + ' ' + s.modelo + '</strong>' +
       ((s.capacidad || s.color) ? '<br><span style="font-size:9px;color:var(--muted)">' + [s.capacidad, s.color].filter(Boolean).join(' · ') + '</span>' : '') +
+      (s.calidad ? ' <span style="font-size:9px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 5px;border-radius:4px">' + esc(s.calidad) + '</span>' : '') +
       (s.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">IMEI: ' + s.imei + '</span>' : '') + '</td>' +
       '<td><span class="badge bb" style="font-size:9px">' + (s.categoria || '') + '</span></td>' +
       (mostrarUbic ? '<td>' + (s.ubicacion ? '<span class="badge" style="background:rgba(255,91,31,.10);color:var(--purple);font-size:9px">' + esc(s.ubicacion) + '</span>' : '<span style="color:var(--muted);font-size:10px">—</span>') + '</td>' : '') +
@@ -7836,6 +7858,7 @@ function guardarStock() {
   var _precioV = parseFloat(document.getElementById('sPrecioV').value) || 0;
   var _capVal = (document.getElementById('sCap').value || '').trim();
   var _catVal = document.getElementById('sCat').value;
+  var _calVal = (document.getElementById('sCalidad') || {}).value || '';
 
   // 1. PVP = 0 → aviso que NO cierra el modal: confirma seguir o vuelve a añadir
   //    el precio sin perder lo escrito (Cancelar = seguir editando).
@@ -7940,7 +7963,7 @@ function guardarStock() {
           categoria: _multiCat, marca: marca, modelo: modelo,
           capacidad: _capV, color: colorL, imei: imeiL, unidades: 1,
           precioC: _precioCV, precioV: precioFinal, stockMin: _minV, stockMax: _maxV,
-          vendido: false, calidad: '', tipo: stockTipo, garantiaMeses: stockGarantiaMeses, ubicacion: _ubicV
+          vendido: false, calidad: _calVal, tipo: stockTipo, garantiaMeses: stockGarantiaMeses, ubicacion: _ubicV
         };
         DB.stock.push(item);
         if (SB_KEY && TIENDA_ID) sbPost('stock', {
@@ -7948,6 +7971,7 @@ function guardarStock() {
           modelo:item.modelo, capacidad:item.capacidad, color:item.color, imei:item.imei,
           unidades:item.unidades, precio_c:item.precioC, precio_v:item.precioV,
           stock_min:item.stockMin, stock_max:item.stockMax, vendido:false,
+          calidad:item.calidad || null,
           tipo:item.tipo || 'nuevo', garantia_meses: parseInt(item.garantiaMeses)||0, ubicacion:item.ubicacion || null
         });
         _creados++;
@@ -7990,7 +8014,7 @@ function guardarStock() {
           categoria: _multiCat, marca: marca, modelo: modelo,
           capacidad: _cCap, color: color, imei: '', unidades: cantidad,
           precioC: _cPrecioC, precioV: precioFinal, stockMin: _cMin, stockMax: _cMax,
-          vendido: false, calidad: '', tipo: stockTipo, garantiaMeses: stockGarantiaMeses, ubicacion: _cUbic
+          vendido: false, calidad: _calVal, tipo: stockTipo, garantiaMeses: stockGarantiaMeses, ubicacion: _cUbic
         };
         DB.stock.push(item);
         if (SB_KEY && TIENDA_ID) sbPost('stock', {
@@ -7998,6 +8022,7 @@ function guardarStock() {
           modelo:item.modelo, capacidad:item.capacidad, color:item.color, imei:item.imei,
           unidades:item.unidades, precio_c:item.precioC, precio_v:item.precioV,
           stock_min:item.stockMin, stock_max:item.stockMax, vendido:false,
+          calidad:item.calidad || null,
           tipo:item.tipo || 'nuevo', garantia_meses: parseInt(item.garantiaMeses)||0, ubicacion:item.ubicacion || null
         });
         _cCreados++;
@@ -8021,7 +8046,7 @@ function guardarStock() {
       precioV: parseFloat(document.getElementById('sPrecioV').value) || 0,
       stockMin: parseInt(document.getElementById('sMin').value) || 2,
       stockMax: parseInt(document.getElementById('sMax').value) || 10,
-      vendido: false, calidad: '',
+      vendido: false, calidad: _calVal,
       tipo: stockTipo,
       garantiaMeses: stockGarantiaMeses,
       ubicacion: tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : null
@@ -8033,6 +8058,7 @@ function guardarStock() {
       color:nuevo.color, imei:nuevo.imei, unidades:nuevo.unidades,
       precio_c:nuevo.precioC, precio_v:nuevo.precioV,
       stock_min:nuevo.stockMin, stock_max:nuevo.stockMax, vendido:false,
+      calidad: nuevo.calidad || null,
       tipo: nuevo.tipo || 'nuevo', garantia_meses: parseInt(nuevo.garantiaMeses)||0,
       ubicacion: nuevo.ubicacion || null
     });
@@ -8138,6 +8164,7 @@ function nuevoStock() {
   var su = document.getElementById('sUbic'); if (su) su.value = '';
   window._stockTipoSel = 'nuevo';
   window._stockGarantiaMeses = null;
+  renderStockCalidad('');
   openM('mStock');
   setTimeout(function() { try { renderStockGarantia(); } catch (e) {} try { renderStockMarcas(); } catch (e) {} }, 50);
 }
@@ -8187,8 +8214,22 @@ function editarStock(id) {
   // Pre-cargar tipo/garantía
   window._stockTipoSel = (s.tipo === 'usado' ? 'segunda' : (s.tipo || 'nuevo'));  // compat: 'usado' antiguo → 'segunda'
   window._stockGarantiaMeses = s.garantiaMeses || null;
+  renderStockCalidad(s.calidad || '');
   openM('mStock');
   setTimeout(function(){ renderStockGarantia(); try { renderStockMarcas(); } catch(e){} }, 50);
+}
+
+// Pobla el selector de calidad del stock según la categoría (Pantalla: Original/OLED/TFT…; resto: condición)
+function renderStockCalidad(valSel) {
+  var sel = document.getElementById('sCalidad');
+  if (!sel) return;
+  var cat = (document.getElementById('sCat') || {}).value || 'Telefono';
+  var prev = (typeof valSel === 'string') ? valSel : sel.value;
+  var lista = (typeof calidadesDe === 'function') ? calidadesDe(cat) : [];
+  var hint = document.getElementById('sCalidadHint');
+  if (hint) hint.textContent = (cat === 'Pantalla') ? '— Original / OLED / TFT…' : '';
+  sel.innerHTML = '<option value="">— ' + (T('catalogo.calidad') || 'Calidad') + ' —</option>' +
+    lista.map(function(c) { return '<option value="' + esc(c.v) + '"' + (c.v === prev ? ' selected' : '') + '>' + esc(calLabel(c)) + '</option>'; }).join('');
 }
 
 // === HELPERS GARANTÍA STOCK ===
@@ -12213,6 +12254,20 @@ var CAT_CALIDADES = [
   { v: 'Regular', k: 'catalogo.cal_regular', bg: 'rgba(220,38,38,.10)', col: '#DC2626' },
   { v: 'Para piezas', k: 'catalogo.cal_piezas', bg: 'rgba(100,116,139,.12)', col: '#64748B' }
 ];
+// Calidades de PANTALLA (términos técnicos universales, sin traducción). Permite distinguir
+// varias pantallas del mismo modelo por su tipo. Otras categorías usan CAT_CALIDADES (condición).
+var CALIDADES_PANTALLA = [
+  { v: 'Original', bg: 'rgba(22,163,74,.12)', col: '#16A34A' },
+  { v: 'OLED', bg: 'rgba(124,92,252,.12)', col: '#7C5CFC' },
+  { v: 'Soft OLED', bg: 'rgba(124,92,252,.10)', col: '#7C5CFC' },
+  { v: 'Hard OLED', bg: 'rgba(0,85,255,.10)', col: 'var(--blue)' },
+  { v: 'Incell', bg: 'rgba(202,138,4,.12)', col: '#CA8A04' },
+  { v: 'TFT', bg: 'rgba(100,116,139,.12)', col: '#64748B' }
+];
+// Lista de calidades aplicable según la categoría del producto
+function calidadesDe(cat) { return cat === 'Pantalla' ? CALIDADES_PANTALLA : CAT_CALIDADES; }
+// Etiqueta de una calidad (i18n si tiene clave, si no el valor literal)
+function calLabel(c) { return (c && c.k) ? T(c.k) : (c ? c.v : ''); }
 function _catNombre(cat) {
   var map = { 'Telefono': 'stock.cat_telefono', 'Tablet': 'stock.cat_tablet', 'Smartwatch': 'stock.cat_smartwatch', 'Pantalla': 'stock.cat_pantalla', 'Tapa': 'stock.cat_tapa', 'Bateria': 'stock.cat_bateria', 'Flex de Carga': 'stock.cat_flex', 'Altavoz': 'stock.cat_altavoz', 'Repuesto': 'stock.cat_repuesto', 'Accesorio': 'stock.cat_accesorio', 'Otro': 'stock.cat_otro' };
   return map[cat] ? T(map[cat]) : cat;
@@ -12359,9 +12414,10 @@ function _catUnidadesHtml(it) {
 }
 function _catCalBadge(it) {
   var encIds = encodeURIComponent(JSON.stringify(it.ids));
-  var curCal = CAT_CALIDADES.filter(function(c) { return c.v === it.calidad; })[0];
-  var opts = '<option value="">' + T('catalogo.calidad') + '</option>' + CAT_CALIDADES.map(function(c) {
-    return '<option value="' + c.v + '"' + (c.v === it.calidad ? ' selected' : '') + '>' + T(c.k) + '</option>';
+  var _listaCal = (typeof calidadesDe === 'function') ? calidadesDe(it.cat) : CAT_CALIDADES;
+  var curCal = _listaCal.filter(function(c) { return c.v === it.calidad; })[0];
+  var opts = '<option value="">' + T('catalogo.calidad') + '</option>' + _listaCal.map(function(c) {
+    return '<option value="' + c.v + '"' + (c.v === it.calidad ? ' selected' : '') + '>' + calLabel(c) + '</option>';
   }).join('');
   var style = curCal
     ? 'background:' + curCal.bg + ';color:' + curCal.col

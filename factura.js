@@ -327,11 +327,16 @@
       return {
         nombre: cli.nombre || '',
         apellidos: cli.apellidos || '',
+        tel: cli.tel || '',
         nif: nif.trim(),
         tipo_factura: 'simplificada'
       };
     } else {
+      var cliC = (FACT.datos && FACT.datos.cliente) || {};
       return {
+        nombre: cliC.nombre || '',
+        apellidos: cliC.apellidos || '',
+        tel: cliC.tel || '',
         nombre_fiscal: ((document.getElementById('factCliNomFiscal') || {}).value || '').trim(),
         nif: ((document.getElementById('factCliNif') || {}).value || '').trim(),
         dir_fiscal: ((document.getElementById('factCliDir') || {}).value || '').trim(),
@@ -784,6 +789,7 @@
 
           var cliL = [];
           if (cli.nif) cliL.push('NIF/CIF: ' + cli.nif);
+          if (cli.tel) cliL.push('Tel: ' + cli.tel);
           if (!esSimplificada) {
             if (cli.dir_fiscal) cliL.push(cli.dir_fiscal);
             var cliCP = [cli.cp, cli.ciudad].filter(Boolean).join(' '); if (cliCP) cliL.push(cliCP);
@@ -902,9 +908,11 @@
     if (esSimplificada) {
       cliNombre = ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim() || 'Cliente';
       if (cli.nif) cliLineas.push('NIF: ' + cli.nif);
+      if (cli.tel) cliLineas.push('Tel: ' + cli.tel);
     } else {
       cliNombre = cli.nombre_fiscal || 'Cliente';
       if (cli.nif) cliLineas.push('NIF/CIF: ' + cli.nif);
+      if (cli.tel) cliLineas.push('Tel: ' + cli.tel);
       if (cli.dir_fiscal) cliLineas.push(cli.dir_fiscal);
       var cliCP = [cli.cp, cli.ciudad].filter(Boolean).join(' ');
       if (cliCP) cliLineas.push(cliCP);
