@@ -3819,3 +3819,12 @@ it:{'catalogo.sub':'Il tuo magazzino raggruppato per modello: unità, riparazion
 de:{'catalogo.sub':'Dein Bestand nach Modell gruppiert: Einheiten, Reparaturen und Verkäufe.','catalogo.buscar':'Marke oder Modell suchen...','catalogo.todos':'Alle','catalogo.modelos':'Modelle','catalogo.sin':'Keine Produkte','catalogo.stock':'Bestand','catalogo.reparaciones':'Reparat.','catalogo.ventas':'Verkäufe','catalogo.calidad':'Qualität','catalogo.con_imei':'mit IMEI','catalogo.cal_nuevo':'Neu','catalogo.cal_reacond':'Generalüberholt','catalogo.cal_bueno':'Gut','catalogo.cal_regular':'Mittel','catalogo.cal_piezas':'Für Teile','catalogo.vend':'verk.'},
 pt:{'catalogo.sub':'O teu stock agrupado por modelo: unidades, reparações e vendas de cada um.','catalogo.buscar':'Procurar marca ou modelo...','catalogo.todos':'Todos','catalogo.modelos':'modelos','catalogo.sin':'Sem produtos','catalogo.stock':'Stock','catalogo.reparaciones':'Reparaç.','catalogo.ventas':'Vendas','catalogo.calidad':'Qualidade','catalogo.con_imei':'com IMEI','catalogo.cal_nuevo':'Novo','catalogo.cal_reacond':'Recondicionado','catalogo.cal_bueno':'Bom','catalogo.cal_regular':'Regular','catalogo.cal_piezas':'Para peças','catalogo.vend':'vend.'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+/* pedidos: precio compra/venta separados */
+(function(){var _a={
+es:{'pedidos.precio_compra':'P. compra (ud)','pedidos.precio_venta':'P. venta (ud)'},
+en:{'pedidos.precio_compra':'Buy price (ea)','pedidos.precio_venta':'Sell price (ea)'},
+fr:{'pedidos.precio_compra':'Prix achat (u)','pedidos.precio_venta':'Prix vente (u)'},
+it:{'pedidos.precio_compra':'Prezzo acq. (cad)','pedidos.precio_venta':'Prezzo vend. (cad)'},
+de:{'pedidos.precio_compra':'EK-Preis (St.)','pedidos.precio_venta':'VK-Preis (St.)'},
+pt:{'pedidos.precio_compra':'Preço compra (un)','pedidos.precio_venta':'Preço venda (un)'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
