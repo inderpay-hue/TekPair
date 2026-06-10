@@ -4379,7 +4379,7 @@ function guardarVenta() {
       cliente_id: venta.clienteId, cliente_nombre: venta.clienteNombre,
       marca: venta.marca, modelo: venta.modelo, imei: venta.imei,
       pago: venta.pago, precio: venta.precio, descuento: venta.descuento,
-      total: venta.total,
+      total: venta.total, stock_id: venta.stockId || null,
       reembolsado: false, financiado: venta.financiado,
       cuotas: cuotas ? JSON.stringify(cuotas) : null, entrada: entrada, entrada_pago: venta.entradaPago || null,
       iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte
@@ -4499,20 +4499,18 @@ function reembolsarVenta(id) {
   if (typeof audit === 'function') audit('reembolso', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total) + ' · ' + ((v.marca || '') + ' ' + (v.modelo || '')).trim(), null);
   v.reembolsado = true;
   v.fechaReembolso = hoyLocal();
-  if (v.stockId) {
-    var s = DB.stock.find(function(x) { return x.id === v.stockId; });
-    if (s) {
-      s.unidades = (s.unidades || 0) + 1;
-      // Si volvía a tener unidades, marcar como no vendido
-      if (s.unidades > 0 && s.vendido) s.vendido = false;
-      // Sincronizar con Supabase
-      if (SB_KEY && TIENDA_ID) {
-        sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
-          unidades: s.unidades,
-          vendido: s.vendido
-        });
-      }
+  // Devolver el artículo al stock. Por stockId; si no (ventas antiguas sin stock_id guardado),
+  // buscar por IMEI (los móviles tienen IMEI único).
+  var s = v.stockId ? DB.stock.find(function(x) { return x.id === v.stockId; }) : null;
+  if (!s && v.imei) s = DB.stock.find(function(x) { return (x.imei || '') && (x.imei || '') === v.imei; });
+  if (s) {
+    s.unidades = (s.unidades || 0) + 1;
+    if (s.unidades > 0 && s.vendido) s.vendido = false;
+    if (SB_KEY && TIENDA_ID) {
+      sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), { unidades: s.unidades, vendido: s.vendido });
     }
+  } else {
+    toast('Venta reembolsada. Revisa el stock manualmente (no se encontró el artículo original)', 'err', 5000);
   }
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + id, {reembolsado: true, fecha_reembolso: v.fechaReembolso});
