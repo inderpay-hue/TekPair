@@ -1580,8 +1580,8 @@ async function _syncQueueRetry() {
         res = await _sbDeleteRaw(op.table, op.query);
       }
 
-      if (res.ok || res.status === 409) {
-        // 409 = ya existe en servidor (reenvío idempotente) → considerar guardado, quitar sin alarmar.
+      if (res.ok || (res.status === 409 && !_es409Grave(res))) {
+        // 409 duplicado (ya existe) → reenvío idempotente, quitar sin alarmar. (FK/check 409 cae al else.)
         _syncQueueRemove(op._opId);
       } else if (!_esRetriable(res.status)) {
         // Error persistente (4xx no-retriable): descartar la op en lugar de loop infinito
@@ -1635,8 +1635,17 @@ function _sbPostRaw(table, data) {
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=minimal'},
     body: JSON.stringify(data)
   }).then(function(r) {
-    return {ok: r.ok, status: r.status};
+    if (r.ok) return {ok: true, status: r.status};
+    // En 409 leemos el código Postgres: 23505=ya existe (idempotente), 23503=FK rota, etc.
+    return r.text().then(function(body) {
+      var code = ''; try { code = (JSON.parse(body) || {}).code || ''; } catch (e) {}
+      return {ok: false, status: r.status, code: code};
+    }).catch(function() { return {ok: false, status: r.status, code: ''}; });
   }).catch(function() { return {ok: false, status: 0}; });  // status 0 = error de red
+}
+// 409 que NO es duplicado (clave foránea / check / not-null) → error real, no idempotente
+function _es409Grave(res) {
+  return res && res.status === 409 && ['23503', '23514', '23P01', '23502'].indexOf(res.code) !== -1;
 }
 
 function _sbPatchRaw(table, query, data) {
@@ -1690,9 +1699,15 @@ setTimeout(function(){ _syncQueueRetry(); _syncIndicatorUpdate(); }, 2000);
 function sbPost(table, data) {
   return _sbPostRaw(table, data).then(function(res) {
     if (res.ok) return true;
-    // 409 = el registro YA existe (PK/único). Con ids generados en cliente + sync "al menos una vez",
-    // un POST puede reenviarse cuando el dato ya se guardó → es idempotente, NO un error. Tratar como OK.
-    if (res.status === 409) { console.warn('sbPost ' + table + ' 409 (ya existe) — tratado como guardado.'); return true; }
+    // 409 con código 23505 (PK/único) = el registro YA existe. Con ids de cliente + sync "al menos una vez",
+    // un POST puede reenviarse cuando el dato ya se guardó → idempotente, NO error. Tratar como OK.
+    // PERO un 409 por clave foránea/check (FK rota, etc.) SÍ es un fallo real: avisar, no tragárselo.
+    if (res.status === 409 && !_es409Grave(res)) { console.warn('sbPost ' + table + ' 409 (ya existe) — tratado como guardado.'); return true; }
+    if (_es409Grave(res)) {
+      console.error('sbPost ' + table + ' 409 GRAVE (' + res.code + ') — no se guardó. Payload:', data);
+      if (typeof toast === 'function') toast('⚠️ No se pudo guardar en ' + table + ' (referencia inválida)', 'err');
+      return false;
+    }
     // CLI-2: errores 4xx son persistentes — reintentar no ayuda. Avisar al usuario.
     if (!_esRetriable(res.status)) {
       console.error('sbPost ' + table + ' falló con status ' + res.status + ' (no retriable). Payload:', data);
@@ -2089,9 +2104,35 @@ function restablecerEditarInicio() {
   renderEditarInicio();
 }
 function _invIso(d) { var m = ('0' + (d.getMonth() + 1)).slice(-2); var dd = ('0' + d.getDate()).slice(-2); return d.getFullYear() + '-' + m + '-' + dd; }
+// Ingreso REAL de ventas por método en [d1,d2]. Financiadas: entrada (día de venta) + cuotas (día de pago);
+// no financiadas: total el día de la venta. Devuelve { metodo: importe }. (Evita contar el total a plazos el día 1.)
+function _ventasIngresoPorMetodo(ventas, d1, d2) {
+  var por = {};
+  (ventas || []).forEach(function(v) {
+    if (v.reembolsado) return;
+    if (v.financiado && v.cuotas) {
+      if (v.fecha >= d1 && v.fecha <= d2 && (v.entrada || 0) > 0) {
+        var me = v.entradaPago || 'Efectivo'; por[me] = (por[me] || 0) + (parseFloat(v.entrada) || 0);
+      }
+      (v.cuotas || []).forEach(function(c) {
+        if (c && c.pagado && c.fechaPago && c.fechaPago >= d1 && c.fechaPago <= d2) {
+          var mc = c.formaPago || 'Efectivo'; por[mc] = (por[mc] || 0) + (parseFloat(c.importe) || 0);
+        }
+      });
+    } else if (v.fecha >= d1 && v.fecha <= d2) {
+      var m = v.pago || 'Efectivo'; por[m] = (por[m] || 0) + (parseFloat(v.total) || 0);
+    }
+  });
+  return por;
+}
+function _ventasIngresoTotal(ventas, d1, d2) {
+  var por = _ventasIngresoPorMetodo(ventas, d1, d2), t = 0;
+  Object.keys(por).forEach(function(k) { t += por[k]; });
+  return t;
+}
+
 function _invIncome(d1, d2) {
-  var t = 0;
-  (DB.ventas || []).forEach(function(v) { if (!v.reembolsado && v.fecha >= d1 && v.fecha <= d2) t += (v.total || 0); });
+  var t = _ventasIngresoTotal(DB.ventas, d1, d2);
   (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f && f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') t += (r.total || 0); });
   return t;
 }
@@ -2275,7 +2316,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
 
   // Cómo cobras (periodo)
   var pagos = {};
-  (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).forEach(function(v) { var m = v.pago || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (v.total || 0); });
+  var _vpmCobra = _ventasIngresoPorMetodo(DB.ventas, d1, d2); Object.keys(_vpmCobra).forEach(function(m) { pagos[m] = (pagos[m] || 0) + _vpmCobra[m]; });
   (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); } });
   var totalP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
   var clsMap = { 'Efectivo': 's-cash', 'Tarjeta': 's-card', 'Bizum': 's-biz', 'Transferencia': 's-tr' };
@@ -2291,7 +2332,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   // Lo que más deja (periodo, por avería + ventas)
   var cat = {};
   (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var k = (r.averia || '').trim() || T('inicio.reparacion'); cat['🔧 ' + k] = (cat['🔧 ' + k] || 0) + (r.total || 0); } });
-  var ventasTot = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).reduce(function(a, v) { return a + (v.total || 0); }, 0);
+  var ventasTot = _ventasIngresoTotal(DB.ventas, d1, d2);
   if (ventasTot > 0) cat['🛒 ' + T('inicio.ventas_accesorios')] = ventasTot;
   var topArr = Object.keys(cat).map(function(k) { return { k: k, v: cat[k] }; }).sort(function(a, b) { return b.v - a.v; }).slice(0, 4);
   var topEl = document.getElementById('inv-a-top');
@@ -2566,7 +2607,7 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
 
   // ── Datos ──
   var ventasHoy = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha === hoy; });
-  var ventasTot = ventasHoy.reduce(function(a, v) { return a + (v.total || 0); }, 0);
+  var ventasTot = _ventasIngresoTotal(DB.ventas, hoy, hoy);
   var cajaHoy = _invIncome(hoy, hoy);
   var citas = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; });
   var cerr = ['Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
@@ -2646,7 +2687,7 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
   // Cómo cobras (admin)
   if (puede && _invWidgetOn('tb_comocobras')) {
     var pagos = {};
-    ventasHoy.forEach(function(v) { var m = v.pago || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (v.total || 0); });
+    var _vpmTb = _ventasIngresoPorMetodo(DB.ventas, hoy, hoy); Object.keys(_vpmTb).forEach(function(m) { pagos[m] = (pagos[m] || 0) + _vpmTb[m]; });
     reps.forEach(function(r) { if ((r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); } });
     var totP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
     var cls = { 'Efectivo': 's-cash', 'Tarjeta': 's-card', 'Bizum': 's-biz', 'Transferencia': 's-tr' };
@@ -6494,6 +6535,12 @@ function editarRep(id) {
   var finWrap = document.getElementById('rFinanciarWrap'); if (finWrap) finWrap.style.display = 'none';
   var finChk = document.getElementById('rFinanciar'); if (finChk) finChk.checked = false;
   if (typeof toggleFinanciarRep === 'function') toggleFinanciarRep();
+  // Si la reparación es financiada, ocultar el bloque de pagos normal: la entrada y las cuotas se
+  // gestionan SOLO con el modal 💰. Editarlas aquí descuadraría restante vs cuotas.
+  var _pagosBox = document.getElementById('rPagosBox');
+  var _pagoForm = document.getElementById('rPagoForm');
+  if (_pagosBox) _pagosBox.style.display = r.financiado ? 'none' : '';
+  if (_pagoForm && r.financiado) _pagoForm.style.display = 'none';
 
   // Cambiar titulo
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_editar');
@@ -10171,7 +10218,16 @@ async function enviarReporteCobrum() {
     var lbl = _metodoLabel(met);
     return (porDia[f][lbl] = porDia[f][lbl] || { ventas: 0, reps: 0, gastos: 0 });
   }
-  (exp.ventas || []).forEach(function(v){ var f = v.fecha; if (f) bucket(f, v.pago).ventas += Number(v.total || 0); });
+  (exp.ventas || []).forEach(function(v){
+    if (v.reembolsado) return;
+    if (v.financiado && v.cuotas) {
+      // Financiada: entrada el día de la venta + cada cuota el día que se paga (NO el total el día 1)
+      if (v.fecha && (parseFloat(v.entrada) || 0) > 0) bucket(v.fecha, v.entradaPago || 'Efectivo').ventas += parseFloat(v.entrada) || 0;
+      (v.cuotas || []).forEach(function(c){ if (c && c.pagado && c.fechaPago) bucket(String(c.fechaPago).slice(0, 10), c.formaPago || 'Efectivo').ventas += parseFloat(c.importe) || 0; });
+    } else if (v.fecha) {
+      bucket(v.fecha, v.pago).ventas += Number(v.total || 0);
+    }
+  });
   (exp.pagosReps || []).forEach(function(p){ var f = (p.fecha || '').slice(0, 10); if (f) bucket(f, p.metodo).reps += Number(p.importe || 0); });
   (exp.gastos || []).forEach(function(g){ var f = (g.fecha || '').slice(0, 10); if (f) bucket(f, g.metodo_pago || g.forma_pago || g.metodo).gastos += Number(g.importe || 0); });
 
@@ -10216,7 +10272,8 @@ async function enviarHoyACobrum() {
   var hoy = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   var porMet = {};
   function bk(met) { var l = _metodoLabel(met); return (porMet[l] = porMet[l] || { ventas: 0, reps: 0, gastos: 0 }); }
-  (DB.ventas || []).forEach(function(v){ if (!v.reembolsado && (v.fecha || '').slice(0, 10) === hoy) bk(v.pago).ventas += Number(v.total || 0); });
+  // Financiado-aware: entrada (venta hoy) + cuotas pagadas hoy, por su método (no el total a plazos)
+  (function(){ var _vpmH = _ventasIngresoPorMetodo(DB.ventas, hoy, hoy); Object.keys(_vpmH).forEach(function(m){ bk(m).ventas += _vpmH[m]; }); })();
   (DB.gastos || []).forEach(function(g){ if ((g.fecha || '').slice(0, 10) === hoy) bk(g.metodo_pago || g.forma_pago || g.metodo).gastos += Number(g.importe || 0); });
   try {
     var pr = await sbGet('pagos_reparacion', 'fecha=gte.' + hoy + '&fecha=lte.' + hoy) || [];
@@ -10615,8 +10672,7 @@ function renderWidgetComoCobras() {
   if (!el) return;
   var hoy = hoyLocal();
   var pagos = {};
-  DB.ventas.filter(function(v) { return !v.reembolsado && v.fecha === hoy; })
-    .forEach(function(v) { var m = v.pago || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (v.total || 0); });
+  (function(){ var _vpmW = _ventasIngresoPorMetodo(DB.ventas, hoy, hoy); Object.keys(_vpmW).forEach(function(m){ pagos[m] = (pagos[m] || 0) + _vpmW[m]; }); })();
   DB.reps.filter(function(r) { return (r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado'; })
     .forEach(function(r) { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); });
   var total = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
