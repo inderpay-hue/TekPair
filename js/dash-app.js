@@ -837,7 +837,7 @@ function cargarPedidos(cb) {
   sbGet('tiendas', 'id=eq.' + TIENDA_ID + '&select=pedidos_notas')
     .then(function(r) { window._pedNotas = (r && r[0] && r[0].pedidos_notas) || ''; })
     .catch(function() {})
-    .then(function() { return sbGet('pedidos', 'tienda_id=eq.' + TIENDA_ID); })
+    .then(function() { return sbGetAll('pedidos', 'tienda_id=eq.' + TIENDA_ID); })
     .then(function(rows) {
       DB.pedidos = Array.isArray(rows) ? rows : [];
       if (cb) cb(); else renderPedidosWidget();
@@ -1507,6 +1507,25 @@ function sbGet(table, query) {
   });
 }
 
+// Como sbGet pero PAGINADO. PostgREST devuelve máx. 1000 filas por petición; en tiendas con mucho
+// volumen eso "perdía" datos (clientes/ventas/etc. más allá de 1000 no se cargaban). Trae TODO en lotes.
+// La query NO debe traer su propio 'order' (aquí se ordena por id para paginar de forma estable).
+function sbGetAll(table, query) {
+  var PAGE = 1000, all = [];
+  function pag(offset) {
+    var url = SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*&order=id.asc&limit=' + PAGE + '&offset=' + offset;
+    return fetch(url, { headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)} })
+      .then(function(r) { return r.ok ? r.json() : []; }, function() { return []; })
+      .then(function(rows) {
+        if (!Array.isArray(rows) || !rows.length) return all;
+        all = all.concat(rows);
+        if (rows.length < PAGE) return all; // última página
+        return pag(offset + PAGE);
+      }, function() { return all; });
+  }
+  return pag(0).catch(function() { return all; });
+}
+
 
 // ═══════════════════════════════════════════════════════════
 // SISTEMA ANTI-PÉRDIDA DE DATOS (cola de sync con reintentos)
@@ -1838,13 +1857,13 @@ async function cargarDatosSupabase() {
   }
   try {
     var [ventas, reps, stock, clis, gastos, provs, gastosRec] = await Promise.all([
-      sbGet('ventas', 'tienda_id=eq.' + TIENDA_ID),
-      sbGet('reparaciones', 'tienda_id=eq.' + TIENDA_ID),
-      sbGet('stock', 'tienda_id=eq.' + TIENDA_ID),
-      sbGet('clientes', 'tienda_id=eq.' + TIENDA_ID),
-      sbGet('gastos', 'tienda_id=eq.' + TIENDA_ID),
-      sbGet('proveedores', 'tienda_id=eq.' + TIENDA_ID),
-      sbGet('gastos_recurrentes', 'tienda_id=eq.' + TIENDA_ID)
+      sbGetAll('ventas', 'tienda_id=eq.' + TIENDA_ID),
+      sbGetAll('reparaciones', 'tienda_id=eq.' + TIENDA_ID),
+      sbGetAll('stock', 'tienda_id=eq.' + TIENDA_ID),
+      sbGetAll('clientes', 'tienda_id=eq.' + TIENDA_ID),
+      sbGetAll('gastos', 'tienda_id=eq.' + TIENDA_ID),
+      sbGetAll('proveedores', 'tienda_id=eq.' + TIENDA_ID),
+      sbGetAll('gastos_recurrentes', 'tienda_id=eq.' + TIENDA_ID)
     ]);
     if (Array.isArray(ventas)) DB.ventas = ventas.map(mapVenta);
     if (Array.isArray(reps)) DB.reps = reps.map(mapRep);
@@ -1860,7 +1879,7 @@ async function cargarDatosSupabase() {
   // Servicios: carga aislada (si falla, no rompe el resto del sync). Antes no se
   // cargaban de la nube y "desaparecían" al recargar / en otro dispositivo.
   try {
-    var servicios = await sbGet('servicios', 'tienda_id=eq.' + TIENDA_ID);
+    var servicios = await sbGetAll('servicios', 'tienda_id=eq.' + TIENDA_ID);
     if (Array.isArray(servicios)) {
       if (!servicios.length && (DB.servicios || []).length) {
         // Nube vacía pero hay servicios locales (posible guardado previo solo-local):
