@@ -1836,6 +1836,10 @@ function factVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
   if (!v) { toast('Venta no encontrada', 'err'); return; }
   var cli = v.clienteId ? DB.clis.find(function(c){ return c.id === v.clienteId; }) : null;
+  // Fallback: si el cliente no está en DB.clis pero la venta guardó el nombre, usarlo igualmente
+  if (!cli && v.clienteNombre && v.clienteNombre !== 'Sin cliente') {
+    cli = { nombre: v.clienteNombre, apellidos: '', tel: '' };
+  }
   var datos = {
     id: v.id,
     fecha: v.fecha,

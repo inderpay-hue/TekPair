@@ -3758,9 +3758,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <!-- Añadir productos al pedido -->
     <div style="font-size:12px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 6px"><span data-t="pedidos.productos">Productos</span> *</div>
     <div class="fg"><label class="fl"><span data-t="stock.categoria">Categoría</span></label>
-      <select class="fi" id="pedCat" onchange="try{actualizarHintPedido()}catch(e){}">
+      <select class="fi" id="pedCat" onchange="try{actualizarHintPedido()}catch(e){} try{renderPedidoCalidad()}catch(e){}">
         <option value="Telefono" data-t="stock.cat_telefono">Teléfono</option><option value="Tablet" data-t="stock.cat_tablet">Tablet</option><option value="Smartwatch" data-t="stock.cat_smartwatch">Smartwatch</option><option value="Pantalla" data-t="stock.cat_pantalla">Pantalla</option><option value="Tapa" data-t="stock.cat_tapa">Tapa</option><option value="Bateria" data-t="stock.cat_bateria">Batería</option><option value="Flex de Carga" data-t="stock.cat_flex">Flex de carga</option><option value="Altavoz" data-t="stock.cat_altavoz">Altavoz</option><option value="Repuesto" data-t="stock.cat_repuesto">Repuesto</option><option value="Accesorio" data-t="stock.cat_accesorio">Accesorio</option><option value="Otro" data-t="stock.cat_otro">Otro</option>
       </select>
+    </div>
+    <div class="fg" id="pedCalidadWrap" style="display:none"><label class="fl">🔎 <span data-t="stock.calidad">Calidad</span> <span style="color:var(--muted);font-weight:400;font-size:10px">— Original / OLED / TFT…</span></label>
+      <select class="fi" id="pedCalidad"></select>
     </div>
     <div class="fg"><label class="fl"><span data-t="tpv.forma_pago">Forma de pago</span></label>
       <select class="fi" id="pedMetodo">
@@ -3793,7 +3796,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal">
   <div class="modal-title" id="mStockTit">📦 Añadir Stock</div>
   <div class="fg"><label class="fl"><span data-t="stock.categoria">Categoría</span></label>
-    <select class="fi" id="sCat" onchange="try{renderStockMarcas()}catch(e){} try{renderStockGarantia()}catch(e){} try{toggleStockMulti()}catch(e){}">
+    <select class="fi" id="sCat" onchange="try{renderStockMarcas()}catch(e){} try{renderStockGarantia()}catch(e){} try{toggleStockMulti()}catch(e){} try{renderStockCalidad()}catch(e){}">
       <option value="Telefono" data-t="stock.cat_telefono">Teléfono</option><option value="Tablet" data-t="stock.cat_tablet">Tablet</option><option value="Smartwatch" data-t="stock.cat_smartwatch">Smartwatch</option><option value="Pantalla" data-t="stock.cat_pantalla">Pantalla</option><option value="Tapa" data-t="stock.cat_tapa">Tapa</option><option value="Bateria" data-t="stock.cat_bateria">Batería</option><option value="Flex de Carga" data-t="stock.cat_flex">Flex de carga</option><option value="Altavoz" data-t="stock.cat_altavoz">Altavoz</option><option value="Repuesto" data-t="stock.cat_repuesto">Repuesto</option><option value="Accesorio" data-t="stock.cat_accesorio">Accesorio</option><option value="Otro" data-t="stock.cat_otro">Otro</option>
     </select>
   </div>
@@ -3805,6 +3808,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="fi-row">
     <div class="fg"><label class="fl"><span data-t="gen.capacidad">Capacidad</span></label><input class="fi" id="sCap" placeholder="128GB..."></div>
     <div class="fg"><label class="fl"><span data-t="gen.color">Color</span></label><input class="fi" id="sColor" placeholder="Negro..."></div>
+  </div>
+  <div class="fg" id="sCalidadWrap"><label class="fl">🔎 <span data-t="stock.calidad">Calidad</span> <span id="sCalidadHint" style="color:var(--muted);font-weight:400;font-size:10px"></span></label>
+    <select class="fi" id="sCalidad"></select>
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl">IMEI</label><input class="fi" id="sImei" placeholder="Opcional"></div>
@@ -5716,7 +5722,7 @@ function resetPagosRep() {
 // ═══ FACTURAS ═══
 (function() {
   var s = document.createElement('script');
-  s.src = 'factura.js?v=906dc53';
+  s.src = 'factura.js?v=20260610tel';
   s.defer = true;
   document.body.appendChild(s);
 })();
@@ -5726,6 +5732,10 @@ function factVenta(id) {
   var v = DB.ventas.find(function(x) { return x.id === id; });
   if (!v) { toast(T('gen.error'), 'err'); return; }
   var cli = v.clienteId ? DB.clis.find(function(c) { return c.id === v.clienteId; }) : null;
+  // Fallback: si el cliente no está en DB.clis pero la venta guardó el nombre, usarlo igualmente
+  if (!cli && v.clienteNombre && v.clienteNombre !== 'Sin cliente' && v.clienteNombre !== T('gen.sin_cliente')) {
+    cli = { nombre: v.clienteNombre, apellidos: '', tel: '' };
+  }
   var datos = {
     id: v.id,
     fecha: v.fecha,
