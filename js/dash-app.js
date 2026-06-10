@@ -4232,6 +4232,11 @@ function guardarVenta() {
   var calcV2 = calcIVA(subtotal, tipoIvaV);
   var total = calcV2.total;
   var esFinanciado = pago === 'Financiado';
+  // Revalidar plan: financiar es de Pro/Premium (defensa por si se manipula el DOM)
+  if (esFinanciado && typeof tieneFeature === 'function' && !tieneFeature('financiado')) {
+    if (typeof checkFeature === 'function') checkFeature('financiado');
+    return;
+  }
 
   var cuotas = null;
   var entrada = 0;
@@ -4469,10 +4474,8 @@ function verFinanciado(id) {
     '<span style="font-size:11px;color:var(--muted)">Total: ' + cur(v.total) + ' | Entrada: ' + cur(v.entrada || 0) + ' | Pagado: ' + cur(pagado) + ' | Pendiente: ' + cur(pendiente) + '</span></div>' +
     '<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">CUOTAS:</div>';
   v.cuotas.forEach(function(cu, i) {
-    var hoy = new Date();
-    var partes = cu.fecha.split('/');
-    var venc = new Date(partes[2], partes[1] - 1, partes[0]);
-    var vencido = !cu.pagado && venc < hoy;
+    // Las cuotas guardan la fecha en ISO (YYYY-MM-DD); comparar como ISO para detectar vencidas
+    var vencido = !cu.pagado && cu.fecha && String(cu.fecha).slice(0, 10) < hoyLocal();
     html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:' +
       (cu.pagado ? 'rgba(0,200,150,.08)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
       '<div><div style="font-size:13px;font-weight:600">Cuota ' + (i + 1) + ' - ' + cur(cu.importe) + '</div>' +
@@ -4586,6 +4589,10 @@ function confirmarCobroRep() {
   if (!r) return;
   var imp = parseFloat(document.getElementById('cobrarRepImporte').value) || 0;
   if (imp <= 0) { toast('Importe inválido', 'err'); return; }
+  // No permitir cobrar más de lo que se debe (evita inflar ingresos por encima del total)
+  var _resta = parseFloat(r.restante) || 0;
+  if (imp > _resta) imp = _resta;
+  if (imp <= 0) { toast('Esta reparación ya está saldada', 'ok'); closeM('mCobrarRep'); return; }
   var met = document.getElementById('cobrarRepMetodo').value;
   r.restante = Math.max(0, Math.round(((parseFloat(r.restante) || 0) - imp) * 100) / 100);
   guardarDatos();
@@ -5892,7 +5899,7 @@ function generarCuotasRep(total) {
   var n = parseInt(document.getElementById('rFinNumCuotas').value) || 1;
   if (n < 1) n = 1;
   var diaPago = parseInt(document.getElementById('rFinDiaPago').value) || 8;
-  var pendiente = Math.round((total - entrada) * 100) / 100;
+  var pendiente = Math.max(0, Math.round((total - entrada) * 100) / 100);
   var montoCuota = Math.round((pendiente / n) * 100) / 100;
   var cuotas = [];
   for (var i = 0; i < n; i++) {
@@ -6871,9 +6878,12 @@ function guardarRep() {
 
   // Financiación a plazos (entrada + cuotas). Sustituye al sistema de pagos normal.
   var esFinRep = !!(document.getElementById('rFinanciar') && document.getElementById('rFinanciar').checked);
+  // Revalidar plan: financiar es de Pro/Premium (defensa por si se manipula el DOM)
+  if (esFinRep && typeof tieneFeature === 'function' && !tieneFeature('financiado')) { esFinRep = false; }
   var finEntrada = 0, finCuotas = null, finEntradaPago = '';
   if (esFinRep) {
     finEntrada = parseFloat(document.getElementById('rFinEntrada').value) || 0;
+    if (finEntrada > total) { toast('La entrada no puede superar el total', 'err'); return; }
     finEntradaPago = document.getElementById('rFinEntradaPago').value || 'Efectivo';
     finCuotas = generarCuotasRep(total);
     anticipo = finEntrada; // en financiado, lo pagado de inicio es la entrada
@@ -7415,9 +7425,9 @@ function renderReps() {
   });
   el.querySelectorAll('.btn-pres-rech').forEach(function(btn) {
     btn.addEventListener('click', function() { rechazarPresupuesto(this.dataset.rid); });
+  });
   el.querySelectorAll('.btn-pres-enviar').forEach(function(btn) {
     btn.addEventListener('click', function() { abrirModalEnviarPres(this.dataset.rid); });
-  });
   });
   // FIRM-2: firmar presupuesto con el cliente (canvas)
   el.querySelectorAll('.btn-pres-firma').forEach(function(btn) {
@@ -7541,9 +7551,16 @@ function confirmarEntrega() {
   } else {
     r.pagoFinal = document.getElementById('ePago').value;
     r.restante = 0;
+    // Financiada cobrada al entregar: completar el plan de cuotas para que el modal 💰 no las reofrezca (evita doble cobro)
+    if (r.financiado && Array.isArray(r.cuotas)) {
+      r.cuotas.forEach(function(c) { if (c && !c.pagado) { c.pagado = true; c.formaPago = r.pagoFinal; c.fechaPago = hoyLocal(); } });
+      r.estadoFinanciado = 'completado';
+    }
     guardarDatos();
     if (SB_KEY && TIENDA_ID) {
-      sbPatch('reparaciones', 'id=eq.' + r.id, {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0});
+      var _patchE = {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0};
+      if (r.financiado) { _patchE.cuotas = JSON.stringify(r.cuotas || []); _patchE.estado_financiado = 'completado'; }
+      sbPatch('reparaciones', 'id=eq.' + r.id, _patchE);
 
       // Auto-crear pago tipo='final' en pagos_reparacion con la diferencia
       sbGet('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(r.id) + '&select=importe').then(function(pagosExistentes) {
