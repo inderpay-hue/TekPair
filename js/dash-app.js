@@ -6338,12 +6338,16 @@ function trackingEtiqueta() {
 
   var m = _etqMedida(), pw = m.w, ph = m.h;
   var qrMm = Math.max(14, Math.min(ph - 4, Math.round(pw * 0.4)));
+  // Cinta continua (DK-22205): ancho fijo + largo automático (el driver corta a contenido).
+  // Si fijamos 62x30 el driver lo toma como etiqueta troquelada y avisa "el rollo no coincide".
+  var pageCss = m.cont ? (pw + 'mm auto') : (pw + 'mm ' + ph + 'mm');
+  var bodyH = m.cont ? ('min-height:' + ph + 'mm') : ('height:' + ph + 'mm');
   var w = window.open('', '_blank', 'width=500,height=360');
   if (!w) { toast('Permite popups para imprimir', 'err'); return; }
   w.document.write(
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiqueta</title><style>' +
-    '@page { size: ' + pw + 'mm ' + ph + 'mm; margin: 0; }' +
-    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;height:' + ph + 'mm;margin:0;padding:1mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
+    '@page { size: ' + pageCss + '; margin: 0; }' +
+    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;' + bodyH + ';margin:0;padding:1mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
     '.qr{flex-shrink:0}' +
     '.qr img{width:' + qrMm + 'mm;height:' + qrMm + 'mm;display:block}' +
     '.info{flex:1;min-width:0;line-height:1.25}' +
@@ -6369,7 +6373,7 @@ function trackingEtiqueta() {
 
 // Tamaños de etiqueta soportados (ancho x alto en mm). El usuario elige en Ajustes.
 var ETQ_SIZES = {
-  '62cont': { w: 62, h: 30, label: '62mm continua (DK-22205)' },
+  '62cont': { w: 62, h: 30, cont: true, label: '62mm continua (DK-22205)' },
   '62x29':  { w: 62, h: 29, label: '62 × 29 mm (DK-11209)' },
   '90x29':  { w: 90, h: 29, label: '29 × 90 mm (DK-11201)' },
   '50x30':  { w: 50, h: 30, label: '50 × 30 mm' },
@@ -6409,6 +6413,9 @@ function imprimirEtiquetaStock(sid) {
   var s = (DB.stock || []).find(function(x) { return x.id === sid; });
   if (!s) return;
   var m = _etqMedida(), pw = m.w, ph = m.h;
+  // Cinta continua: ancho fijo + largo automático (evita el aviso "el rollo no coincide")
+  var pageCss = m.cont ? (pw + 'mm auto') : (pw + 'mm ' + ph + 'mm');
+  var bodyH = m.cont ? ('min-height:' + ph + 'mm') : ('height:' + ph + 'mm');
   var showQr = !!s.imei && pw >= 45;  // en etiquetas estrechas, sin QR para dar sitio al texto
   var qrSvg = '';
   if (showQr) { try { var qr = qrcode(0, 'M'); qr.addData(s.imei); qr.make(); qrSvg = qr.createImgTag(4, 4); } catch (e) {} }
@@ -6424,8 +6431,8 @@ function imprimirEtiquetaStock(sid) {
   if (!w) { toast(T('etq.popup') || 'Permite popups para imprimir', 'err'); return; }
   w.document.write(
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiqueta</title><style>' +
-    '@page { size: ' + pw + 'mm ' + ph + 'mm; margin: 0; }' +
-    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;height:' + ph + 'mm;margin:0;padding:1.5mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
+    '@page { size: ' + pageCss + '; margin: 0; }' +
+    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;' + bodyH + ';margin:0;padding:1.5mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
     '.qr{flex-shrink:0}' +
     '.qr img{width:' + qrMm + 'mm;height:' + qrMm + 'mm;display:block}' +
     '.info{flex:1;min-width:0;line-height:1.2;display:flex;flex-direction:column;height:100%;justify-content:center}' +
