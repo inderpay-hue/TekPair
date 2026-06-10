@@ -1765,7 +1765,7 @@ function sbPatch(table, query, data) {
       // para este usuario (policy RLS de UPDATE bloqueando) o el id no existe. NO es un guardado real.
       if (res.rows === 0) {
         console.error('sbPatch ' + table + ' devolvió 0 filas (RLS bloquea UPDATE o id inexistente). Query: ' + query + ' Payload:', data);
-        if (typeof toast === 'function') toast('⚠️ La nube no aplicó el cambio en ' + table + ' (permiso/RLS). Avisa a soporte.', 'err');
+        if (typeof toast === 'function') toast('⚠️ La nube rechazó el cambio — cierra sesión y vuelve a entrar, y reintenta', 'err');
         return false;
       }
       return true;
