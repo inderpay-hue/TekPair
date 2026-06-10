@@ -1,0 +1,73 @@
+{
+  "date": "2026-06-13",
+  "readtime": "7 min",
+  "category": "Gestión",
+  "posts": {
+    "es": {
+      "dest": "blog/garantia-legal-comercial-reparaciones.html",
+      "path": "/blog/garantia-legal-comercial-reparaciones",
+      "url": "https://www.tekpair.tech/blog/garantia-legal-comercial-reparaciones.html",
+      "title": "Garantía legal vs. garantía comercial en reparaciones de móviles",
+      "excerpt": "Diferencia entre la garantía que obliga la ley y la que ofreces tú, plazos, qué cubre cada una y cómo dejarlo claro en el comprobante.",
+      "dateLabel": "13 jun 2026",
+      "readtime": "7 min",
+      "category": "Gestión",
+      "readlink": "Leer artículo →"
+    },
+    "en": {
+      "dest": "blog/en/legal-vs-commercial-warranty-repairs.html",
+      "path": "/blog/en/legal-vs-commercial-warranty-repairs",
+      "url": "https://www.tekpair.tech/blog/en/legal-vs-commercial-warranty-repairs.html",
+      "title": "Legal vs. commercial warranty in phone repairs",
+      "excerpt": "The difference between the warranty the law requires and the one you offer, terms, what each covers and how to state it on the receipt.",
+      "dateLabel": "Jun 13, 2026",
+      "readtime": "7 min",
+      "category": "Management",
+      "readlink": "Read article →"
+    },
+    "fr": {
+      "dest": "blog/fr/garantie-legale-commerciale-reparations.html",
+      "path": "/blog/fr/garantie-legale-commerciale-reparations",
+      "url": "https://www.tekpair.tech/blog/fr/garantie-legale-commerciale-reparations.html",
+      "title": "Garantie légale vs. garantie commerciale en réparation mobile",
+      "excerpt": "La différence entre la garantie imposée par la loi et celle que vous offrez, durées, ce que couvre chacune et comment l’indiquer sur le reçu.",
+      "dateLabel": "13 juin 2026",
+      "readtime": "7 min",
+      "category": "Gestion",
+      "readlink": "Lire l’article →"
+    },
+    "it": {
+      "dest": "blog/it/garanzia-legale-commerciale-riparazioni.html",
+      "path": "/blog/it/garanzia-legale-commerciale-riparazioni",
+      "url": "https://www.tekpair.tech/blog/it/garanzia-legale-commerciale-riparazioni.html",
+      "title": "Garanzia legale vs. garanzia commerciale nelle riparazioni mobili",
+      "excerpt": "La differenza tra la garanzia imposta dalla legge e quella che offri tu, termini, cosa copre ciascuna e come indicarlo sulla ricevuta.",
+      "dateLabel": "13 giu 2026",
+      "readtime": "7 min",
+      "category": "Gestione",
+      "readlink": "Leggi l’articolo →"
+    },
+    "de": {
+      "dest": "blog/de/gesetzliche-vs-kommerzielle-garantie-reparaturen.html",
+      "path": "/blog/de/gesetzliche-vs-kommerzielle-garantie-reparaturen",
+      "url": "https://www.tekpair.tech/blog/de/gesetzliche-vs-kommerzielle-garantie-reparaturen.html",
+      "title": "Gesetzliche vs. kommerzielle Garantie bei Handy-Reparaturen",
+      "excerpt": "Der Unterschied zwischen der gesetzlich vorgeschriebenen Garantie und der, die du anbietest, Fristen, Deckung und wie du es auf dem Beleg festhältst.",
+      "dateLabel": "13. Juni 2026",
+      "readtime": "7 Min.",
+      "category": "Verwaltung",
+      "readlink": "Artikel lesen →"
+    },
+    "pt": {
+      "dest": "blog/pt/garantia-legal-comercial-reparacoes.html",
+      "path": "/blog/pt/garantia-legal-comercial-reparacoes",
+      "url": "https://www.tekpair.tech/blog/pt/garantia-legal-comercial-reparacoes.html",
+      "title": "Garantia legal vs. garantia comercial em reparações de telemóveis",
+      "excerpt": "A diferença entre a garantia que a lei obriga e a que ofereces, prazos, o que cada uma cobre e como deixá-lo claro no comprovativo.",
+      "dateLabel": "13 jun 2026",
+      "readtime": "7 min",
+      "category": "Gestão",
+      "readlink": "Ler artigo →"
+    }
+  }
+}
