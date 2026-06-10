@@ -1024,9 +1024,14 @@ function editarPedido(id) {
   try { renderPedidoCalidad(); var _pcal = document.getElementById('pedCalidad'); if (_pcal && p.calidad) _pcal.value = p.calidad; } catch (e) {}
   renderPedMarcas();
   onPedPiezaInput();
-  document.getElementById('pedCant').value = p.cantidad || 1;
+  var _ecant = p.cantidad || 1;
+  document.getElementById('pedCant').value = _ecant;
   document.getElementById('pedProv').value = p.proveedor || '';
-  document.getElementById('pedImporte').value = p.importe || '';
+  // Compra por unidad: usa precio_compra si existe; si no (pedidos antiguos), deriva de importe/cantidad
+  var _compraU = (p.precio_compra != null && p.precio_compra !== '') ? parseFloat(p.precio_compra) : ((parseFloat(p.importe) || 0) / (_ecant || 1));
+  document.getElementById('pedImporte').value = _compraU ? (Math.round(_compraU * 100) / 100) : '';
+  var _pvEl = document.getElementById('pedVenta');
+  if (_pvEl) _pvEl.value = (p.precio_venta != null && parseFloat(p.precio_venta) > 0) ? parseFloat(p.precio_venta) : '';
   document.getElementById('pedFechaPed').value = p.fecha_pedido || '';
   document.getElementById('pedFecha').value = p.fecha_estimada || '';
   var _pmet = document.getElementById('pedMetodo'); if (_pmet) _pmet.value = p.metodo_pago || 'transferencia';
@@ -1058,18 +1063,25 @@ function pedAddItem() {
   var _pcat = document.getElementById('pedCat');
   var _pcalEl = document.getElementById('pedCalidad');
   var _pcal = (_pcat && _pcat.value === 'Pantalla' && _pcalEl) ? (_pcalEl.value || '') : '';
+  var _cant = parseInt(document.getElementById('pedCant').value, 10) || 1;
+  var _compra = parseFloat(document.getElementById('pedImporte').value) || 0;  // precio compra por unidad
+  var _ventaEl = document.getElementById('pedVenta');
+  var _venta = _ventaEl ? (parseFloat(_ventaEl.value) || 0) : 0;               // precio venta (PVP) por unidad
   window._pedItems.push({
     marca: marca,
     pieza: _pedNombreCompleto(marca, modelo),
     categoria: (_pcat && _pcat.value) || 'Telefono',
     calidad: _pcal,
-    cantidad: parseInt(document.getElementById('pedCant').value, 10) || 1,
-    importe: parseFloat(document.getElementById('pedImporte').value) || 0
+    cantidad: _cant,
+    precio_compra: _compra,
+    precio_venta: _venta,
+    importe: Math.round(_compra * _cant * 100) / 100  // coste total de la línea (compatibilidad gastos)
   });
   _aprenderModelo(marca, modelo, (_pcat && _pcat.value));
   document.getElementById('pedPieza').value = '';
   document.getElementById('pedCant').value = '1';
   document.getElementById('pedImporte').value = '';
+  if (_ventaEl) _ventaEl.value = '';
   // Mantenemos la marca (suele repetirse en el mismo pedido)
   var h = document.getElementById('pedStockHint'); if (h) h.style.display = 'none';
   var sg = document.getElementById('pedPiezaSugs'); if (sg) sg.style.display = 'none';
@@ -1089,9 +1101,11 @@ function renderPedItems() {
   if (!items.length) { el.innerHTML = '<div style="font-size:11.5px;color:var(--muted);padding:6px 2px">' + T('pedidos.items_vacio') + '</div>'; return; }
   var tot = items.reduce(function(a, it) { return a + (parseFloat(it.importe) || 0); }, 0);
   el.innerHTML = items.map(function(it, i) {
+    var _v = parseFloat(it.precio_venta) || 0;
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12.5px">' +
       '<span style="flex:1;font-weight:600">' + (_esImeiCat(it.categoria) ? '📱 ' : '🔧 ') + escHtml(it.pieza) + (it.calidad ? ' <span style="font-size:10px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 6px;border-radius:5px">' + escHtml(it.calidad) + '</span>' : '') + (it.cantidad > 1 ? ' <span style="color:var(--muted)">x' + it.cantidad + '</span>' : '') + '</span>' +
-      (it.importe > 0 ? '<span style="font-weight:700;color:var(--muted)">€' + parseFloat(it.importe).toFixed(2) + '</span>' : '') +
+      (it.importe > 0 ? '<span style="font-weight:700;color:var(--muted)" title="Compra (total)">🛒 €' + parseFloat(it.importe).toFixed(2) + '</span>' : '') +
+      (_v > 0 ? '<span style="font-weight:700;color:var(--green)" title="Venta (ud)">🏷️ €' + _v.toFixed(2) + '</span>' : '') +
       '<button onclick="pedDelItem(' + i + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:15px;line-height:1">×</button></div>';
   }).join('') + '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;padding:4px 2px"><span>' + items.length + ' ' + T('pedidos.lineas') + '</span>' + (tot > 0 ? '<span>' + cur(tot) + '</span>' : '') + '</div>';
 }
@@ -1103,14 +1117,20 @@ function guardarPedido() {
     var _emodelo = (document.getElementById('pedPieza').value || '').trim();
     if (!_emodelo) { toast(T('pedidos.falta_pieza'), 'err'); return; }
     _aprenderModelo(_emarca, _emodelo, (document.getElementById('pedCat') && document.getElementById('pedCat').value));
+    var _ecant = parseInt(document.getElementById('pedCant').value, 10) || 1;
+    var _ecompra = parseFloat(document.getElementById('pedImporte').value) || 0;
+    var _eventaEl = document.getElementById('pedVenta');
+    var _eventa = _eventaEl ? (parseFloat(_eventaEl.value) || 0) : 0;
     var datos = {
       pieza: _pedNombreCompleto(_emarca, _emodelo),
       marca: _emarca || null,
       categoria: (document.getElementById('pedCat') && document.getElementById('pedCat').value) || null,
       calidad: (((document.getElementById('pedCat') || {}).value === 'Pantalla') ? ((document.getElementById('pedCalidad') || {}).value || null) : null),
-      cantidad: parseInt(document.getElementById('pedCant').value, 10) || 1,
+      cantidad: _ecant,
       proveedor: (document.getElementById('pedProv').value || '').trim() || null,
-      importe: parseFloat(document.getElementById('pedImporte').value) || 0,
+      precio_compra: _ecompra,
+      precio_venta: _eventa,
+      importe: Math.round(_ecompra * _ecant * 100) / 100,
       fecha_pedido: document.getElementById('pedFechaPed').value || null,
       fecha_estimada: document.getElementById('pedFecha').value || null,
       metodo_pago: (document.getElementById('pedMetodo') || {}).value || 'transferencia',
@@ -1130,7 +1150,7 @@ function guardarPedido() {
   var nota = (document.getElementById('pedNota').value || '').trim() || null;
   var metPed = (document.getElementById('pedMetodo') || {}).value || 'transferencia';
   items.forEach(function(it) {
-    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, marca: it.marca || null, categoria: it.categoria || null, calidad: it.calidad || null, cantidad: it.cantidad, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, metodo_pago: metPed, nota: nota };
+    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, marca: it.marca || null, categoria: it.categoria || null, calidad: it.calidad || null, cantidad: it.cantidad, precio_compra: it.precio_compra || 0, precio_venta: it.precio_venta || 0, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, metodo_pago: metPed, nota: nota };
     DB.pedidos.unshift(nuevo);
     if (SB_KEY) sbPost('pedidos', nuevo);
   });
@@ -1192,14 +1212,18 @@ function _abrirAltaImeiDesdePedido(p, uds, existe, cat) {
     set('sModelo', existe.modelo || '');
     if (existe.capacidad) set('sCap', existe.capacidad);
     if (existe.precioC) set('sPrecioC', existe.precioC);
+    var ventaUe = parseFloat(p.precio_venta) || 0;
+    if (ventaUe > 0) set('sPrecioV', ventaUe.toFixed(2));
   } else {
     // Teléfono pedido que aún no estaba en stock: marca y modelo del pedido
     // van directos a sus campos → el nombre coincide con el del pedido.
     set('sCat', cat || 'Telefono');
     set('sMarca', p.marca || '');
     set('sModelo', _pedModeloDe(p));
-    var costeU = (parseFloat(p.importe) || 0) > 0 ? (parseFloat(p.importe) / (uds || 1)) : 0;
+    var costeU = (parseFloat(p.importe) || 0) > 0 ? (parseFloat(p.importe) / (uds || 1)) : (parseFloat(p.precio_compra) || 0);
     if (costeU > 0) set('sPrecioC', costeU.toFixed(2));
+    var ventaU = parseFloat(p.precio_venta) || 0;
+    if (ventaU > 0) set('sPrecioV', ventaU.toFixed(2));
   }
   try { renderStockMarcas(); } catch (e) {}
   try { toggleStockMulti(); } catch (e) {}
@@ -1222,11 +1246,12 @@ function _recibirAStock(p, uds, existe, silent, cat) {
     if (!silent) toast(T('pedidos.stock_sumado').replace('{n}', uds).replace('{total}', existe.unidades), 'ok');
     return;
   }
-  var costeUnit = (parseFloat(p.importe) || 0) > 0 ? (parseFloat(p.importe) / (uds || 1)) : 0;
+  var costeUnit = (parseFloat(p.importe) || 0) > 0 ? (parseFloat(p.importe) / (uds || 1)) : (parseFloat(p.precio_compra) || 0);
+  var ventaUnit = parseFloat(p.precio_venta) || 0;  // PVP del pedido → precio venta del stock
   var item = {
     id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     categoria: cat || p.categoria || 'Repuesto', marca: p.marca || '', modelo: _pedModeloDe(p), capacidad: '', color: '', imei: '',
-    unidades: uds, precioC: costeUnit, precioV: 0, stockMin: 2, stockMax: 10,
+    unidades: uds, precioC: costeUnit, precioV: ventaUnit, stockMin: 2, stockMax: 10,
     vendido: false, calidad: p.calidad || '', tipo: 'nuevo', garantiaMeses: 0, ubicacion: null
   };
   DB.stock.push(item);
