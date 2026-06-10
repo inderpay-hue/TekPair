@@ -11022,7 +11022,7 @@ function aplicarGatingGarantias() {
   }
 }
 
-function guardarTienda() {
+async function guardarTienda() {
   if (!tienePerm('tienda_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var prev = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
   var gvEl = document.getElementById('tGarantiaVentas');
@@ -11080,11 +11080,16 @@ function guardarTienda() {
   // VIS-1: dTienda muestra saludo, no nombre de tienda. Actualizamos sidebar.
   var sbTiendaEl = document.getElementById('sidebarTienda');
   if (sbTiendaEl) sbTiendaEl.textContent = t.nombre || 'Mi Tienda';
-  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {
-    nombre: t.nombre, dir: t.dir, tel: t.tel, email: t.email, cif: t.cif, web: t.web,
-    garantia: t.garantia, politica: t.politica, garantia_dias: grDef,
-    garantia_ventas: t.garantiaVentas, politica_ventas: t.politicaVentas
-  });
+  if (SB_KEY && TIENDA_ID) {
+    var okDB = await sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {
+      nombre: t.nombre, dir: t.dir, tel: t.tel, email: t.email, cif: t.cif, web: t.web,
+      garantia: t.garantia, politica: t.politica, garantia_dias: grDef,
+      garantia_ventas: t.garantiaVentas, politica_ventas: t.politicaVentas
+    });
+    // Si la DB rechazó (p.ej. columna faltante), no mentimos con "guardada":
+    // sbPatch ya mostró el error; avisamos que quedó solo en local.
+    if (!okDB) { toast('⚠️ Guardado solo en este equipo — la nube rechazó el cambio', 'err'); return; }
+  }
   toast('Tienda guardada', 'ok');
 }
 
