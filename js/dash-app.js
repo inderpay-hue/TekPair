@@ -930,6 +930,9 @@ function _pedModo(multi) {
   if (list) list.style.display = multi ? '' : 'none';
   if (fpw) fpw.style.display = multi ? 'none' : '';
   if (addRow) addRow.style.alignItems = 'flex-end';
+  // Total real + factura: solo en pedido NUEVO (es a nivel de pedido, no de línea suelta)
+  var trw = document.getElementById('pedTotalRealWrap');
+  if (trw) trw.style.display = multi ? '' : 'none';
 }
 // Aviso "los IMEIs se piden al recibir" — solo en categorías con IMEI
 function actualizarHintPedido() {
@@ -1109,7 +1112,7 @@ function renderPedItems() {
       '<button onclick="pedDelItem(' + i + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:15px;line-height:1">×</button></div>';
   }).join('') + '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;padding:4px 2px"><span>' + items.length + ' ' + T('pedidos.lineas') + '</span>' + (tot > 0 ? '<span>' + cur(tot) + '</span>' : '') + '</div>';
 }
-function guardarPedido() {
+async function guardarPedido() {
   DB.pedidos = DB.pedidos || [];
   // EDITAR: un solo pedido
   if (SEL.editPedidoId) {
@@ -1149,12 +1152,21 @@ function guardarPedido() {
   var fest = document.getElementById('pedFecha').value || null;
   var nota = (document.getElementById('pedNota').value || '').trim() || null;
   var metPed = (document.getElementById('pedMetodo') || {}).value || 'transferencia';
+  // Total real pagado + factura: nivel pedido (compartido por todas las líneas vía 'grupo')
+  var grupo = 'pg' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+  var totalReal = parseFloat((document.getElementById('pedTotalReal') || {}).value) || 0;
+  var pdfInfo = null;
+  var pdfEl = document.getElementById('pedPdf');
+  var pdfFile = (pdfEl && pdfEl.files && pdfEl.files[0]) ? pdfEl.files[0] : null;
+  if (pdfFile) { toast(T('pedidos.subiendo_factura') || 'Subiendo factura…', 'ok'); pdfInfo = await _subirPdfPedido(pdfFile, grupo); }
   items.forEach(function(it) {
-    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, marca: it.marca || null, categoria: it.categoria || null, calidad: it.calidad || null, cantidad: it.cantidad, precio_compra: it.precio_compra || 0, precio_venta: it.precio_venta || 0, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, metodo_pago: metPed, nota: nota };
+    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, marca: it.marca || null, categoria: it.categoria || null, calidad: it.calidad || null, cantidad: it.cantidad, precio_compra: it.precio_compra || 0, precio_venta: it.precio_venta || 0, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, metodo_pago: metPed, nota: nota, grupo: grupo, total_real: totalReal || null, pdf_url: pdfInfo ? pdfInfo.path : null, pdf_nombre: pdfInfo ? pdfInfo.nombre : null };
     DB.pedidos.unshift(nuevo);
     if (SB_KEY) sbPost('pedidos', nuevo);
   });
   window._pedItems = [];
+  var _ptr = document.getElementById('pedTotalReal'); if (_ptr) _ptr.value = '';
+  if (pdfEl) pdfEl.value = '';
   closeM('mPedido');
   renderPedidosWidget();
   toast(T('pedidos.guardado_n').replace('{n}', items.length), 'ok');
@@ -1173,11 +1185,9 @@ function avanzarPedido(id) {
     var patch = { estado: 'recibido' };
     p.fecha_recibido = hoyLocal();   // día de recepción (escritura best-effort, ver abajo)
     if (SB_KEY && typeof _sbPatchRaw === 'function') { try { _sbPatchRaw('pedidos', 'id=eq.' + encodeURIComponent(p.id), { fecha_recibido: p.fecha_recibido }); } catch (e) {} }
-    if (!p.gasto_id && (parseFloat(p.importe) || 0) > 0) {
-      var gid = _crearGastoDesdePedido(p);
-      p.gasto_id = gid; patch.gasto_id = gid;
-      toast(T('pedidos.recibido_gasto'), 'ok');
-    } else { toast(T('pedidos.marcado_recibido'), 'ok'); }
+    var gid = _gastoAlRecibir(p);
+    if (gid) { p.gasto_id = gid; patch.gasto_id = gid; toast(T('pedidos.recibido_gasto'), 'ok'); }
+    else { toast(T('pedidos.marcado_recibido'), 'ok'); }
     if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
     // Al recibir: registrar en stock. La categoría del pedido manda; si no
     // la tiene (pedidos antiguos), se usa la del item de stock que coincida.
@@ -1283,7 +1293,7 @@ function recibirGrupo(encKey) {
     var patch = { estado: 'recibido' };
     p.fecha_recibido = hoyLocal();   // día de recepción (escritura best-effort)
     if (SB_KEY && typeof _sbPatchRaw === 'function') { try { _sbPatchRaw('pedidos', 'id=eq.' + encodeURIComponent(p.id), { fecha_recibido: p.fecha_recibido }); } catch (e) {} }
-    if (!p.gasto_id && (parseFloat(p.importe) || 0) > 0) { var gid = _crearGastoDesdePedido(p); p.gasto_id = gid; patch.gasto_id = gid; }
+    var gid = _gastoAlRecibir(p); if (gid) { p.gasto_id = gid; patch.gasto_id = gid; }
     if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
     _recibirAStock(p, uds, o.ex, true, o.cat);
   });
@@ -1312,6 +1322,66 @@ function _crearGastoDesdePedido(p) {
   try { guardarDatos(); } catch (e) {}
   try { if (typeof renderGastos === 'function') renderGastos(); } catch (e) {}
   return g.id;
+}
+
+// Sube el PDF/factura de un pedido al bucket de adjuntos. Devuelve {path, nombre, mime} o null.
+async function _subirPdfPedido(file, grupo) {
+  if (!SB_KEY || !TIENDA_ID || !file) return null;
+  try {
+    var esPdf = file.type === 'application/pdf';
+    var blob = esPdf ? file : await comprimirImagen(file, 1600, 0.75);
+    var ext = esPdf ? 'pdf' : 'jpg';
+    var mime = esPdf ? 'application/pdf' : (blob.type || 'image/jpeg');
+    var path = TIENDA_ID + '/pedido-' + grupo + '-' + Date.now() + '.' + ext;
+    var blobToUpload = new Blob([blob], { type: mime });
+    blobToUpload.name = file.name;
+    var resp = await sbStorageUpload('gastos-adjuntos', path, blobToUpload);
+    if (!resp.ok) { console.error('Upload PDF pedido falló:', resp.status); toast('Error al subir la factura', 'err'); return null; }
+    return { path: path, nombre: file.name, mime: mime };
+  } catch (e) { console.error('_subirPdfPedido:', e); toast('Error al procesar la factura', 'err'); return null; }
+}
+
+// Crea UN gasto consolidado para todo un pedido (total real pagado + factura adjunta).
+function _crearGastoPedidoGrupo(p) {
+  var g = {
+    id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID,
+    concepto: (T('pedidos.concepto_gasto_pedido') || 'Pedido') + (p.proveedor ? ' — ' + p.proveedor : ''),
+    importe: parseFloat(p.total_real) || 0, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Stock/Compras',
+    iva_tipo: 21, proveedor_id: null, proveedor_nombre: p.proveedor || null, proveedor_nif: null, numero_factura: null,
+    metodo_pago: p.metodo_pago || 'transferencia',
+    adjunto_url: p.pdf_url || null, adjunto_nombre: p.pdf_nombre || null
+  };
+  DB.gastos = DB.gastos || [];
+  DB.gastos.push(g);
+  if (SB_KEY && TIENDA_ID) sbPost('gastos', g);
+  try { guardarDatos(); } catch (e) {}
+  try { if (typeof renderGastos === 'function') renderGastos(); } catch (e) {}
+  return g.id;
+}
+
+// Marca todas las líneas de un grupo con el mismo gasto_id (para no duplicar gastos al recibir).
+function _marcarGrupoGasto(grupo, gid) {
+  (DB.pedidos || []).forEach(function (x) {
+    if (x.grupo === grupo && x.gasto_id !== gid) {
+      x.gasto_id = gid;
+      if (SB_KEY && TIENDA_ID) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(x.id), { gasto_id: gid });
+    }
+  });
+}
+
+// Devuelve el gasto_id a asignar al recibir una línea (consolida por grupo si hay total_real).
+function _gastoAlRecibir(p) {
+  if (p.gasto_id) return p.gasto_id;
+  // Pedido con total real pagado → UN solo gasto para todo el grupo (con la factura)
+  if (p.grupo && (parseFloat(p.total_real) || 0) > 0) {
+    var hermano = (DB.pedidos || []).find(function (x) { return x.grupo === p.grupo && x.gasto_id; });
+    var gid = hermano ? hermano.gasto_id : _crearGastoPedidoGrupo(p);
+    _marcarGrupoGasto(p.grupo, gid);
+    return gid;
+  }
+  // Clásico: un gasto por línea según su coste
+  if ((parseFloat(p.importe) || 0) > 0) return _crearGastoDesdePedido(p);
+  return null;
 }
 
 // ── Puerta de código de Cajas: identifica al empleado al entrar ──
