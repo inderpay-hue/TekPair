@@ -1410,6 +1410,8 @@ function _gastoAlRecibir(p) {
 
 // ═══ DEUDA A PROVEEDORES (pedidos pendientes/financiados) ═══
 var _SIN_PROV = '(sin proveedor)';
+// Solo el admin (o permiso 'todo') ve los IMPORTES de deuda. El empleado puede registrar pagos.
+function _esAdmin() { return !!(typeof U !== 'undefined' && U && (U.rol === 'admin' || (U.permisos && U.permisos.todo))); }
 // { proveedor: deuda } — suma de (importe - pagado_importe) de pedidos no pagados
 function _deudaProveedores() {
   var map = {};
@@ -1422,31 +1424,61 @@ function _deudaProveedores() {
   });
   return map;
 }
-// Panel de deuda en la página de pedidos
+// Panel de deuda en la página de pedidos. Empleado: sin importes (solo registrar pago).
 function renderDeudaProveedores() {
   var box = document.getElementById('deudaProvBox');
   if (!box) return;
   var map = _deudaProveedores();
   var provs = Object.keys(map).sort(function (a, b) { return map[b] - map[a]; });
   if (!provs.length) { box.innerHTML = ''; return; }
+  var admin = _esAdmin();
   var total = provs.reduce(function (a, p) { return a + map[p]; }, 0);
-  box.innerHTML = '<div style="background:var(--card,#fff);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px">' +
-    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-weight:800;font-size:13px">💳 ' + (T('pedidos.deuda_proveedores') || 'Deuda a proveedores') + '</div><div style="font-weight:800;color:var(--red)">' + cur(total) + '</div></div>' +
+  var cab = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-weight:800;font-size:13px">💳 ' + (T('pedidos.deuda_proveedores') || 'Deuda a proveedores') + '</div>' +
+    (admin ? '<div style="display:flex;align-items:center;gap:10px"><button class="btn-sm" style="background:var(--light);border:none;border-radius:7px;padding:3px 9px;font-size:11px;cursor:pointer" onclick="abrirPagosProveedor()">📜 ' + (T('pedidos.ver_pagos') || 'Ver pagos') + '</button><span style="font-weight:800;color:var(--red)">' + cur(total) + '</span></div>' : '') + '</div>';
+  box.innerHTML = '<div style="background:var(--card,#fff);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px">' + cab +
     provs.map(function (p) {
       return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--border);font-size:13px">' +
         '<span style="font-weight:600">' + esc(p) + '</span>' +
-        '<span style="display:flex;align-items:center;gap:10px"><span style="font-weight:700;color:var(--red)">' + cur(map[p]) + '</span>' +
+        '<span style="display:flex;align-items:center;gap:10px">' +
+        (admin ? '<span style="font-weight:700;color:var(--red)">' + cur(map[p]) + '</span>' : '') +
         '<button class="btn-sm" style="background:var(--green);color:#fff;padding:4px 10px;border:none;border-radius:7px;cursor:pointer;font-weight:700" onclick="abrirPagoProveedor(\'' + encodeURIComponent(p) + '\')">' + (T('pedidos.registrar_pago') || 'Registrar pago') + '</button></span></div>';
     }).join('') + '</div>';
 }
 function abrirPagoProveedor(encProv) {
   var prov = decodeURIComponent(encProv);
+  var admin = _esAdmin();
   var deuda = _deudaProveedores()[prov] || 0;
-  var val = prompt((T('pedidos.pago_prompt') || '¿Cuánto pagas a {prov}? (debes {deuda})').replace('{prov}', prov).replace('{deuda}', cur(deuda)), deuda > 0 ? deuda.toFixed(2) : '');
+  var msg = admin
+    ? (T('pedidos.pago_prompt') || '¿Cuánto pagas a {prov}? (debes {deuda})').replace('{prov}', prov).replace('{deuda}', cur(deuda))
+    : (T('pedidos.pago_prompt_emp') || '¿Cuánto pagas a {prov}?').replace('{prov}', prov);
+  var val = prompt(msg, (admin && deuda > 0) ? deuda.toFixed(2) : '');
   if (val == null) return;
   var importe = parseFloat(String(val).replace(',', '.')) || 0;
   if (importe <= 0) { toast(T('pedidos.pago_invalido') || 'Importe inválido', 'err'); return; }
   registrarPagoProveedor(prov, importe);
+}
+// Modal: historial de pagos a proveedores (solo admin), con fecha e importe
+function abrirPagosProveedor() {
+  if (!_esAdmin()) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var pagos = (DB.pagosProv || []).slice().sort(function (a, b) { return String(b.fecha || '').localeCompare(String(a.fecha || '')) || String(b.id).localeCompare(String(a.id)); });
+  var cuerpo;
+  if (!pagos.length) {
+    cuerpo = '<div style="padding:24px;text-align:center;color:var(--muted)">' + (T('pedidos.sin_pagos') || 'Aún no hay pagos registrados') + '</div>';
+  } else {
+    cuerpo = pagos.map(function (pg) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:9px 2px;border-bottom:1px solid var(--border);font-size:13px">' +
+        '<div><div style="font-weight:700">' + esc(pg.proveedor || _SIN_PROV) + '</div><div style="font-size:11px;color:var(--muted)">' + fmtFecha(pg.fecha) + (pg.usuario ? ' · ' + esc(pg.usuario) : '') + '</div></div>' +
+        '<div style="font-weight:800;color:var(--green)">' + cur(pg.importe || 0) + '</div></div>';
+    }).join('');
+  }
+  var ov = document.createElement('div');
+  ov.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;display:flex;align-items:center;justify-content:center;padding:16px';
+  ov.onclick = function (e) { if (e.target === ov) document.body.removeChild(ov); };
+  ov.innerHTML = '<div style="background:#fff;border-radius:14px;max-width:460px;width:100%;max-height:85vh;display:flex;flex-direction:column;overflow:hidden" onclick="event.stopPropagation()">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;padding:14px 16px;border-bottom:1px solid var(--border)"><div style="font-weight:800">📜 ' + (T('pedidos.historial_pagos') || 'Pagos a proveedores') + '</div><button style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--muted)">×</button></div>' +
+    '<div style="overflow-y:auto;padding:6px 16px 16px">' + cuerpo + '</div></div>';
+  ov.querySelector('button').onclick = function () { document.body.removeChild(ov); };
+  document.body.appendChild(ov);
 }
 // Aplica el pago FIFO (más antiguos primero) a los pedidos pendientes + crea el gasto del pago real
 function registrarPagoProveedor(prov, importe) {
@@ -1479,6 +1511,11 @@ function registrarPagoProveedor(prov, importe) {
   DB.gastos = DB.gastos || [];
   DB.gastos.push(g);
   if (SB_KEY && TIENDA_ID) sbPost('gastos', g);
+  // Registro del pago para el historial (lista de pagos por proveedor con fecha e importe)
+  var pago = { id: 'pp' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID, proveedor: (prov === _SIN_PROV ? null : prov), importe: Math.round(importe * 100) / 100, fecha: hoyLocal(), usuario: (U ? U.nombre : null) };
+  DB.pagosProv = DB.pagosProv || [];
+  DB.pagosProv.unshift(pago);
+  if (SB_KEY && TIENDA_ID) sbPost('pagos_proveedor', pago);
   try { guardarDatos(); } catch (e) {}
   try { renderGastos(); } catch (e) {}
   try { renderPedidosWidget(); } catch (e) {}
@@ -2103,14 +2140,15 @@ async function cargarDatosSupabase() {
     localStorage.setItem('tk_db_backup_pre_sync', localStorage.getItem('tk_db') || '{}');
   }
   try {
-    var [ventas, reps, stock, clis, gastos, provs, gastosRec] = await Promise.all([
+    var [ventas, reps, stock, clis, gastos, provs, gastosRec, pagosProv] = await Promise.all([
       sbGetAll('ventas', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('reparaciones', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('stock', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('clientes', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('gastos', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('proveedores', 'tienda_id=eq.' + TIENDA_ID),
-      sbGetAll('gastos_recurrentes', 'tienda_id=eq.' + TIENDA_ID)
+      sbGetAll('gastos_recurrentes', 'tienda_id=eq.' + TIENDA_ID),
+      sbGetAll('pagos_proveedor', 'tienda_id=eq.' + TIENDA_ID).catch(function () { return []; })
     ]);
     if (Array.isArray(ventas)) DB.ventas = ventas.map(mapVenta);
     if (Array.isArray(reps)) DB.reps = reps.map(mapRep);
@@ -2119,6 +2157,7 @@ async function cargarDatosSupabase() {
     if (Array.isArray(gastos)) DB.gastos = gastos;
     if (Array.isArray(provs)) DB.provs = provs;
     if (Array.isArray(gastosRec)) DB.gastos_recurrentes = gastosRec;
+    if (Array.isArray(pagosProv)) DB.pagosProv = pagosProv;
     guardarDatos();
     // Aplicar plantillas de gastos recurrentes que toquen
     try { aplicarGastosRecurrentes(); } catch(e) { console.warn('Aplicar recurrentes:', e); }
@@ -2714,7 +2753,7 @@ function _pedPagoBadge(p) {
   var fin = p.estado_pago === 'financiado';
   var lbl = fin ? (T('pedidos.pago_financiado') || 'Financiado') : (T('pedidos.pago_pendiente') || 'Pendiente');
   var col = fin ? '#3B6FF5' : '#E69412';
-  return ' <span style="font-size:10px;font-weight:700;color:' + col + ';background:' + col + '1a;padding:1px 6px;border-radius:5px">💳 ' + esc(lbl) + (debe > 0.005 ? ' ' + cur(debe) : '') + '</span>';
+  return ' <span style="font-size:10px;font-weight:700;color:' + col + ';background:' + col + '1a;padding:1px 6px;border-radius:5px">💳 ' + esc(lbl) + (debe > 0.005 && _esAdmin() ? ' ' + cur(debe) : '') + '</span>';
 }
 function renderPedidosPage() {
   var box = document.getElementById('pedidosPageBox');
