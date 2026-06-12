@@ -3785,6 +3785,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
     <div id="pedItemsList" style="margin:8px 0 4px"></div>
 
+    <div id="pedTotalRealWrap" style="border-top:1px dashed var(--border);margin-top:8px;padding-top:10px">
+      <div class="fi-row" style="align-items:flex-end">
+        <div class="fg" style="flex:1"><label class="fl">💶 <span data-t="pedidos.total_real">Total real pagado (€)</span></label><input class="fi" id="pedTotalReal" type="number" step="0.01" placeholder="0.00"></div>
+        <div class="fg" style="flex:1.4"><label class="fl">📎 <span data-t="pedidos.adjuntar_factura">Adjuntar factura (PDF/imagen)</span></label><input class="fi" id="pedPdf" type="file" accept="application/pdf,image/*" style="padding:7px"></div>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:2px" data-t="pedidos.total_real_hint">Lo que pagaste de verdad por todo el pedido. Al recibirlo se crea un gasto con este total y la factura adjunta (aunque el pedido tenga cosas que no añadas al stock).</div>
+    </div>
+
     <div class="fg"><label class="fl"><span data-t="pedidos.nota">Nota</span></label><input class="fi" id="pedNota" placeholder="Opcional"></div>
     <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px">
       <button class="btn-secondary" onclick="closeM('mPedido')" data-t="gen.cancelar">Cancelar</button>
