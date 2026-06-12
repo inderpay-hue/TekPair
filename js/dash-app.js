@@ -222,10 +222,10 @@ function checkFeature(featureName) {
 }
 
 // ═══ NOVEDADES: banner de mejoras para las tiendas (se muestra 1 vez por versión) ═══
-var NOVEDADES_VERSION = '202606';
+var NOVEDADES_VERSION = '2026-06-13';
 function renderNovedades() {
   var el = document.getElementById('novedadesBody'); if (!el) return;
-  var keys = ['nov.f1', 'nov.f2', 'nov.f3', 'nov.f4', 'nov.f5', 'nov.f6', 'nov.f7'];
+  var keys = ['nov.f1', 'nov.f2', 'nov.f3', 'nov.f4', 'nov.f5'];
   el.innerHTML = keys.map(function(k) { return '<div style="padding:9px 2px;border-bottom:1px solid var(--border);font-size:13px;line-height:1.5">' + T(k) + '</div>'; }).join('');
 }
 function abrirNovedades() { renderNovedades(); openM('mNovedades'); }
@@ -560,7 +560,6 @@ window.addEventListener('DOMContentLoaded', function() {
   // Sync continua: cuando vuelves a la pestaña + cada 60s
   window.addEventListener('focus', function(){ syncCompleto(true); });
   window.addEventListener('visibilitychange', function(){ if (!document.hidden) syncCompleto(true); });
-  setTimeout(mostrarNovedades, 800);
   setInterval(function(){ if (!document.hidden) syncCompleto(true); }, 60000);
 
   // Admin check
@@ -623,54 +622,6 @@ function setSidebarActive(el) {
   el.classList.add('active');
 }
 
-// ────────── Popup de Novedades ──────────
-// Para una nueva actualización: cambia NOVEDADES_VERSION y NOVEDADES_ITEMS.
-var NOVEDADES_VERSION = '2026-06-02';
-var NOVEDADES_ITEMS = [
-  { emoji: '\ud83d\udce7', titulo: 'Notificaciones y correos arreglados', texto: 'Hemos corregido el env\u00edo de presupuestos y facturas por email: ahora salen con reintentos autom\u00e1ticos y llegan correctamente. Si antes alg\u00fan correo no llegaba, ya est\u00e1 solucionado.' },
-  { emoji: '\ud83d\udc65', titulo: 'Registro de clientes sin errores', texto: 'Resueltos los fallos al dar de alta clientes y al mostrarlos en reparaciones, widgets y avisos. Los datos del cliente ahora aparecen siempre correctamente.' },
-  { emoji: '\ud83d\udce8', titulo: 'Historial de avisos enviados', texto: 'Cada presupuesto, factura o aviso que mandes a un cliente (por email o WhatsApp) queda registrado autom\u00e1ticamente. Cons\u00faltalo con el bot\u00f3n \ud83d\udc41\ufe0f en Reparaciones y Presupuestos.' }
-];
-
-function mostrarNovedades() {
-  try {
-    if (localStorage.getItem('tekpair_novedades') === NOVEDADES_VERSION) return;
-  } catch (e) { return; }
-
-  var items = NOVEDADES_ITEMS.map(function(n) {
-    return '<div style="display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--border)">' +
-      '<div style="font-size:24px;flex-shrink:0">' + n.emoji + '</div>' +
-      '<div><div style="font-weight:700;font-size:14px;margin-bottom:2px">' + n.titulo + '</div>' +
-      '<div style="font-size:12px;color:var(--muted);line-height:1.5">' + n.texto + '</div></div>' +
-      '</div>';
-  }).join('');
-
-  var wrap = document.createElement('div');
-  wrap.className = 'modal-bg open';
-  wrap.id = 'mNovedades';
-  wrap.innerHTML =
-    '<div class="modal" style="max-width:460px">' +
-      '<div style="text-align:center;margin-bottom:6px">' +
-        '<div style="font-size:32px">\u2728</div>' +
-        '<div class="modal-title" style="margin:4px 0 2px">\u00a1Novedades en TekPair!</div>' +
-        '<div style="font-size:12px;color:var(--muted)">Esto es lo nuevo que ya tienes disponible</div>' +
-      '</div>' +
-      '<div style="margin:10px 0">' + items + '</div>' +
-      '<div style="font-size:11px;color:var(--muted);text-align:center;margin:8px 0 4px">' +
-        '\u00bfVes alg\u00fan fallo o tienes una sugerencia? Escr\u00edbenos desde la secci\u00f3n de Ayuda.' +
-      '</div>' +
-      '<div class="modal-actions">' +
-        '<button class="btn-primary" style="width:100%;background:#10B981" onclick="cerrarNovedades()">Entendido</button>' +
-      '</div>' +
-    '</div>';
-  document.body.appendChild(wrap);
-}
-
-function cerrarNovedades() {
-  try { localStorage.setItem('tekpair_novedades', NOVEDADES_VERSION); } catch (e) {}
-  var m = document.getElementById('mNovedades');
-  if (m) m.parentNode.removeChild(m);
-}
 
 function initDesktop() {
   var isDesktop = window.innerWidth >= 900;
