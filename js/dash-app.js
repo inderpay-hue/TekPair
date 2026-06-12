@@ -1056,6 +1056,7 @@ function editarPedido(id) {
   document.getElementById('pedFechaPed').value = p.fecha_pedido || '';
   document.getElementById('pedFecha').value = p.fecha_estimada || '';
   var _pmet = document.getElementById('pedMetodo'); if (_pmet) _pmet.value = p.metodo_pago || 'transferencia';
+  var _pep = document.getElementById('pedEstadoPago'); if (_pep) _pep.value = p.estado_pago || 'pagado';
   document.getElementById('pedNota').value = p.nota || '';
   _pedModo(false);
   renderPedItems();
@@ -1155,7 +1156,8 @@ async function guardarPedido() {
       fecha_pedido: document.getElementById('pedFechaPed').value || null,
       fecha_estimada: document.getElementById('pedFecha').value || null,
       metodo_pago: (document.getElementById('pedMetodo') || {}).value || 'transferencia',
-      nota: (document.getElementById('pedNota').value || '').trim() || null
+      nota: (document.getElementById('pedNota').value || '').trim() || null,
+      estado_pago: (document.getElementById('pedEstadoPago') || {}).value || 'pagado'
     };
     var p = DB.pedidos.find(function(x) { return x.id === SEL.editPedidoId; });
     if (p) { Object.assign(p, datos); if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), datos); }
@@ -1177,8 +1179,9 @@ async function guardarPedido() {
   var pdfEl = document.getElementById('pedPdf');
   var pdfFile = (pdfEl && pdfEl.files && pdfEl.files[0]) ? pdfEl.files[0] : null;
   if (pdfFile) { toast(T('pedidos.subiendo_factura') || 'Subiendo factura…', 'ok'); pdfInfo = await _subirPdfPedido(pdfFile, grupo); }
+  var estadoPago = (document.getElementById('pedEstadoPago') || {}).value || 'pagado';
   items.forEach(function(it) {
-    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, marca: it.marca || null, categoria: it.categoria || null, calidad: it.calidad || null, cantidad: it.cantidad, precio_compra: it.precio_compra || 0, precio_venta: it.precio_venta || 0, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, metodo_pago: metPed, nota: nota, grupo: grupo, total_real: totalReal || null, pdf_url: pdfInfo ? pdfInfo.path : null, pdf_nombre: pdfInfo ? pdfInfo.nombre : null };
+    var nuevo = { id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (U ? U.nombre : null), pieza: it.pieza, marca: it.marca || null, categoria: it.categoria || null, calidad: it.calidad || null, cantidad: it.cantidad, precio_compra: it.precio_compra || 0, precio_venta: it.precio_venta || 0, importe: it.importe, proveedor: prov, fecha_pedido: null, fecha_estimada: fest, metodo_pago: metPed, nota: nota, grupo: grupo, total_real: totalReal || null, pdf_url: pdfInfo ? pdfInfo.path : null, pdf_nombre: pdfInfo ? pdfInfo.nombre : null, estado_pago: estadoPago, pagado_importe: 0 };
     DB.pedidos.unshift(nuevo);
     if (SB_KEY) sbPost('pedidos', nuevo);
   });
@@ -1390,6 +1393,9 @@ function _marcarGrupoGasto(grupo, gid) {
 // Devuelve el gasto_id a asignar al recibir una línea (consolida por grupo si hay total_real).
 function _gastoAlRecibir(p) {
   if (p.gasto_id) return p.gasto_id;
+  // Pendiente/financiado: aún no se ha pagado → no se crea gasto al recibir.
+  // El gasto se crea al "Registrar pago a proveedor" (que es cuando sale el dinero).
+  if (p.estado_pago && p.estado_pago !== 'pagado') return null;
   // Pedido con total real pagado → UN solo gasto para todo el grupo (con la factura)
   if (p.grupo && (parseFloat(p.total_real) || 0) > 0) {
     var hermano = (DB.pedidos || []).find(function (x) { return x.grupo === p.grupo && x.gasto_id; });
@@ -1400,6 +1406,86 @@ function _gastoAlRecibir(p) {
   // Clásico: un gasto por línea según su coste
   if ((parseFloat(p.importe) || 0) > 0) return _crearGastoDesdePedido(p);
   return null;
+}
+
+// ═══ DEUDA A PROVEEDORES (pedidos pendientes/financiados) ═══
+var _SIN_PROV = '(sin proveedor)';
+// { proveedor: deuda } — suma de (importe - pagado_importe) de pedidos no pagados
+function _deudaProveedores() {
+  var map = {};
+  (DB.pedidos || []).forEach(function (p) {
+    if (!p.estado_pago || p.estado_pago === 'pagado') return;
+    var debe = (parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0);
+    if (debe <= 0.005) return;
+    var prov = (p.proveedor || '').trim() || _SIN_PROV;
+    map[prov] = (map[prov] || 0) + debe;
+  });
+  return map;
+}
+// Panel de deuda en la página de pedidos
+function renderDeudaProveedores() {
+  var box = document.getElementById('deudaProvBox');
+  if (!box) return;
+  var map = _deudaProveedores();
+  var provs = Object.keys(map).sort(function (a, b) { return map[b] - map[a]; });
+  if (!provs.length) { box.innerHTML = ''; return; }
+  var total = provs.reduce(function (a, p) { return a + map[p]; }, 0);
+  box.innerHTML = '<div style="background:var(--card,#fff);border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:12px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><div style="font-weight:800;font-size:13px">💳 ' + (T('pedidos.deuda_proveedores') || 'Deuda a proveedores') + '</div><div style="font-weight:800;color:var(--red)">' + cur(total) + '</div></div>' +
+    provs.map(function (p) {
+      return '<div style="display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--border);font-size:13px">' +
+        '<span style="font-weight:600">' + esc(p) + '</span>' +
+        '<span style="display:flex;align-items:center;gap:10px"><span style="font-weight:700;color:var(--red)">' + cur(map[p]) + '</span>' +
+        '<button class="btn-sm" style="background:var(--green);color:#fff;padding:4px 10px;border:none;border-radius:7px;cursor:pointer;font-weight:700" onclick="abrirPagoProveedor(\'' + encodeURIComponent(p) + '\')">' + (T('pedidos.registrar_pago') || 'Registrar pago') + '</button></span></div>';
+    }).join('') + '</div>';
+}
+function abrirPagoProveedor(encProv) {
+  var prov = decodeURIComponent(encProv);
+  var deuda = _deudaProveedores()[prov] || 0;
+  var val = prompt((T('pedidos.pago_prompt') || '¿Cuánto pagas a {prov}? (debes {deuda})').replace('{prov}', prov).replace('{deuda}', cur(deuda)), deuda > 0 ? deuda.toFixed(2) : '');
+  if (val == null) return;
+  var importe = parseFloat(String(val).replace(',', '.')) || 0;
+  if (importe <= 0) { toast(T('pedidos.pago_invalido') || 'Importe inválido', 'err'); return; }
+  registrarPagoProveedor(prov, importe);
+}
+// Aplica el pago FIFO (más antiguos primero) a los pedidos pendientes + crea el gasto del pago real
+function registrarPagoProveedor(prov, importe) {
+  if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var pend = (DB.pedidos || []).filter(function (p) {
+    if (!p.estado_pago || p.estado_pago === 'pagado') return false;
+    if ((parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0) <= 0.005) return false;
+    return ((p.proveedor || '').trim() || _SIN_PROV) === prov;
+  }).sort(function (a, b) { return String(a.id).localeCompare(String(b.id)); }); // id lleva timestamp → más antiguo primero
+  var restante = importe, saldados = 0;
+  pend.forEach(function (p) {
+    if (restante <= 0.005) return;
+    var debe = (parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0);
+    var aplica = Math.min(restante, debe);
+    p.pagado_importe = Math.round(((parseFloat(p.pagado_importe) || 0) + aplica) * 100) / 100;
+    restante = Math.round((restante - aplica) * 100) / 100;
+    var patch = { pagado_importe: p.pagado_importe };
+    if (p.pagado_importe >= (parseFloat(p.importe) || 0) - 0.005) { p.estado_pago = 'pagado'; patch.estado_pago = 'pagado'; saldados++; }
+    if (SB_KEY && TIENDA_ID) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
+  });
+  var aplicado = Math.round((importe - restante) * 100) / 100;
+  // Gasto del pago real (lo que sale de caja/banco)
+  var g = {
+    id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID,
+    concepto: (T('pedidos.concepto_pago_prov') || 'Pago a proveedor') + (prov && prov !== _SIN_PROV ? ' — ' + prov : ''),
+    importe: Math.round(importe * 100) / 100, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Stock/Compras',
+    iva_tipo: 21, proveedor_id: null, proveedor_nombre: (prov === _SIN_PROV ? null : prov), proveedor_nif: null, numero_factura: null,
+    metodo_pago: 'transferencia'
+  };
+  DB.gastos = DB.gastos || [];
+  DB.gastos.push(g);
+  if (SB_KEY && TIENDA_ID) sbPost('gastos', g);
+  try { guardarDatos(); } catch (e) {}
+  try { renderGastos(); } catch (e) {}
+  try { renderPedidosWidget(); } catch (e) {}
+  try { renderDeudaProveedores(); } catch (e) {}
+  try { if (typeof audit === 'function') audit('crear', 'pago_proveedor', { proveedor: prov, importe: importe, saldados: saldados }); } catch (e) {}
+  var sobra = restante > 0.005 ? (' · ' + (T('pedidos.pago_saldo_favor') || 'Sobran') + ' ' + cur(restante)) : '';
+  toast((T('pedidos.pago_ok') || 'Pago registrado') + ': ' + cur(aplicado) + ' · ' + saldados + ' ' + (T('pedidos.saldados') || 'saldados') + sobra, 'ok');
 }
 
 // ── Puerta de código de Cajas: identifica al empleado al entrar ──
@@ -2621,11 +2707,21 @@ function updatePedidosBadge() {
   if (n > 0) { b.textContent = n; b.style.display = 'inline-flex'; } else { b.style.display = 'none'; }
 }
 function setPedFiltro(f) { window._pedFiltro = f; renderPedidosPage(); }
+// Badge de estado de pago para una línea de pedido (vacío si está pagado)
+function _pedPagoBadge(p) {
+  if (!p.estado_pago || p.estado_pago === 'pagado') return '';
+  var debe = (parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0);
+  var fin = p.estado_pago === 'financiado';
+  var lbl = fin ? (T('pedidos.pago_financiado') || 'Financiado') : (T('pedidos.pago_pendiente') || 'Pendiente');
+  var col = fin ? '#3B6FF5' : '#E69412';
+  return ' <span style="font-size:10px;font-weight:700;color:' + col + ';background:' + col + '1a;padding:1px 6px;border-radius:5px">💳 ' + esc(lbl) + (debe > 0.005 ? ' ' + cur(debe) : '') + '</span>';
+}
 function renderPedidosPage() {
   var box = document.getElementById('pedidosPageBox');
   if (!box) return;
   if (!DB.pedidos) { box.innerHTML = '<div class="empty">…</div>'; if (typeof cargarPedidos === 'function') cargarPedidos(function() { renderPedidosPage(); }); return; }
   updatePedidosBadge();
+  try { renderDeudaProveedores(); } catch (e) {}
   var filt = window._pedFiltro || 'pendientes';
   var all = DB.pedidos || [];
   var cnt = {
@@ -2671,7 +2767,7 @@ function renderPedidosPage() {
         '<button style="background:var(--light);border:none;border-radius:7px;padding:6px 9px;font-size:11.5px;cursor:pointer" onclick="editarPedido(\'' + p.id + '\')">✏️</button>'
       : '<span style="flex:1;font-size:11.5px;color:var(--green);font-weight:700">✅ ' + T('pedidos.marcado_recibido') + '</span>';
     return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff">' +
-      '<div style="font-weight:800;font-size:14px">' + c.e + ' ' + escHtml(p.pieza || '') + _pedCatBadge(p.categoria) + '</div>' +
+      '<div style="font-weight:800;font-size:14px">' + c.e + ' ' + escHtml(p.pieza || '') + _pedCatBadge(p.categoria) + _pedPagoBadge(p) + '</div>' +
       (meta ? '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">' + meta + '</div>' : '') +
       (p.nota ? '<div style="font-size:11.5px;color:var(--muted);margin-top:3px;font-style:italic">“' + escHtml(p.nota) + '”</div>' : '') +
       '<div style="display:flex;gap:5px;margin-top:9px">' + acciones +
