@@ -3232,6 +3232,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sec-title">📦 <span data-t="nav.pedidos">Pedidos</span></div>
     <button class="btn-sm" style="background:var(--orange);color:#fff" onclick="nuevoPedido()">+ <span data-t="pedidos.nuevo">Nuevo pedido</span></button>
   </div>
+  <div id="deudaProvBox"></div>
   <div id="pedidosPageFiltros" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
     <input id="pedBuscarInput" oninput="setPedBuscar(this.value)" placeholder="🔍 Buscar pieza, proveedor o nota…" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px">
@@ -3777,6 +3778,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <option value="tarjeta">Tarjeta</option>
         <option value="bizum">Bizum</option>
         <option value="transferencia" selected>Transferencia</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">💳 <span data-t="pedidos.estado_pago">Estado de pago</span></label>
+      <select class="fi" id="pedEstadoPago">
+        <option value="pagado" selected data-t="pedidos.pago_pagado">Pagado</option>
+        <option value="pendiente" data-t="pedidos.pago_pendiente">Pendiente de pago</option>
+        <option value="financiado" data-t="pedidos.pago_financiado">Financiado</option>
       </select>
     </div>
     <div id="pedImeiHint" style="display:none;background:rgba(255,91,31,.07);border:1px solid rgba(255,91,31,.2);border-radius:9px;padding:8px 11px;font-size:11.5px;color:var(--ink2,#475569);margin-bottom:8px" data-t="pedidos.imei_al_recibir">📱 Los IMEIs, color y precio de cada unidad se piden al marcar el pedido como RECIBIDO (cuando lleguen).</div>
