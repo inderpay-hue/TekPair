@@ -3873,3 +3873,42 @@ it:{'pedidos.ver_pagos':'Vedi pagamenti','pedidos.pago_prompt_emp':'Quanto paghi
 de:{'pedidos.ver_pagos':'Zahlungen ansehen','pedidos.pago_prompt_emp':'Wie viel zahlst du an {prov}?','pedidos.sin_pagos':'Noch keine Zahlungen erfasst','pedidos.historial_pagos':'Lieferantenzahlungen'},
 pt:{'pedidos.ver_pagos':'Ver pagamentos','pedidos.pago_prompt_emp':'Quanto pagas a {prov}?','pedidos.sin_pagos':'Ainda não há pagamentos','pedidos.historial_pagos':'Pagamentos a fornecedores'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+/* novedades 2026-06-13 (sobrescribe nov.f1..f5) */
+(function(){var _a={
+es:{
+'nov.f1':'🏷️ Etiquetas de oferta — marca un producto en oferta y la etiqueta sale con el precio anterior tachado y el sello OFERTA.',
+'nov.f2':'💳 Deuda a proveedores — marca pedidos como Pagado, Pendiente o Financiado, controla lo que debes a cada proveedor y registra los pagos.',
+'nov.f3':'📦 Pedidos mejorados — precio de compra y de venta por producto, y total real pagado con la factura PDF adjunta.',
+'nov.f4':'🖥️ Vista escritorio — en tablets y móviles plegables aprovecha toda la pantalla (botón en “Más”).',
+'nov.f5':'💸 Gastos agrupados — los gastos se agrupan por proveedor y día para verlos más ordenados.'},
+en:{
+'nov.f1':'🏷️ Offer labels — mark a product as on offer and its label prints the previous price struck through with an OFFER badge.',
+'nov.f2':'💳 Supplier debt — mark orders as Paid, Pending or Financed, track what you owe each supplier and record payments.',
+'nov.f3':'📦 Better orders — separate buy and sell price per product, plus the actual total paid with the invoice PDF attached.',
+'nov.f4':'🖥️ Desktop view — on tablets and foldable phones use the full screen (button in “More”).',
+'nov.f5':'💸 Grouped expenses — expenses are grouped by supplier and day for a tidier view.'},
+fr:{
+'nov.f1':'🏷️ Étiquettes de promo — marque un produit en promo et son étiquette affiche l’ancien prix barré avec le tampon PROMO.',
+'nov.f2':'💳 Dette fournisseurs — marque les commandes Payé, En attente ou Financé, suis ce que tu dois à chaque fournisseur et enregistre les paiements.',
+'nov.f3':'📦 Commandes améliorées — prix d’achat et de vente par produit, et total réel payé avec la facture PDF jointe.',
+'nov.f4':'🖥️ Vue bureau — sur tablettes et téléphones pliables, utilise tout l’écran (bouton dans « Plus »).',
+'nov.f5':'💸 Dépenses groupées — les dépenses sont regroupées par fournisseur et par jour, plus claires.'},
+it:{
+'nov.f1':'🏷️ Etichette in offerta — segna un prodotto in offerta e l’etichetta mostra il prezzo precedente barrato con il bollino OFFERTA.',
+'nov.f2':'💳 Debito fornitori — segna gli ordini come Pagato, In sospeso o Finanziato, controlla quanto devi a ogni fornitore e registra i pagamenti.',
+'nov.f3':'📦 Ordini migliorati — prezzo di acquisto e di vendita per prodotto, e totale reale pagato con la fattura PDF allegata.',
+'nov.f4':'🖥️ Vista desktop — su tablet e telefoni pieghevoli usa tutto lo schermo (pulsante in “Altro”).',
+'nov.f5':'💸 Spese raggruppate — le spese si raggruppano per fornitore e giorno, più ordinate.'},
+de:{
+'nov.f1':'🏷️ Angebots-Etiketten — markiere ein Produkt als Angebot; das Etikett zeigt den alten Preis durchgestrichen mit ANGEBOT-Stempel.',
+'nov.f2':'💳 Lieferantenschuld — markiere Bestellungen als Bezahlt, Offen oder Finanziert, behalte den Überblick über Schulden und erfasse Zahlungen.',
+'nov.f3':'📦 Bessere Bestellungen — Einkaufs- und Verkaufspreis pro Produkt sowie tatsächlich gezahlter Betrag mit angehängter PDF-Rechnung.',
+'nov.f4':'🖥️ Desktop-Ansicht — auf Tablets und Foldables den ganzen Bildschirm nutzen (Schalter unter „Mehr“).',
+'nov.f5':'💸 Gruppierte Ausgaben — Ausgaben werden nach Lieferant und Tag gruppiert, übersichtlicher.'},
+pt:{
+'nov.f1':'🏷️ Etiquetas de promoção — marca um produto em promoção e a etiqueta sai com o preço anterior riscado e o selo PROMOÇÃO.',
+'nov.f2':'💳 Dívida a fornecedores — marca pedidos como Pago, Pendente ou Financiado, controla o que deves a cada fornecedor e regista os pagamentos.',
+'nov.f3':'📦 Pedidos melhorados — preço de compra e de venda por produto, e total real pago com a fatura PDF anexada.',
+'nov.f4':'🖥️ Vista desktop — em tablets e telemóveis dobráveis aproveita o ecrã todo (botão em “Mais”).',
+'nov.f5':'💸 Despesas agrupadas — as despesas agrupam-se por fornecedor e dia, mais organizadas.'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
