@@ -3837,3 +3837,21 @@ it:{'pedidos.total_real':'Totale reale pagato (€)','pedidos.adjuntar_factura':
 de:{'pedidos.total_real':'Tatsächlich gezahlt (€)','pedidos.adjuntar_factura':'Rechnung anhängen (PDF/Bild)','pedidos.total_real_hint':'Was du wirklich für die ganze Bestellung gezahlt hast. Beim Empfang wird eine Ausgabe mit dieser Summe und der angehängten Rechnung erstellt (auch wenn die Bestellung Artikel enthält, die nicht ins Lager kommen).','pedidos.concepto_gasto_pedido':'Bestellung','pedidos.subiendo_factura':'Rechnung wird hochgeladen…'},
 pt:{'pedidos.total_real':'Total real pago (€)','pedidos.adjuntar_factura':'Anexar fatura (PDF/imagem)','pedidos.total_real_hint':'O que pagaste mesmo pelo pedido todo. Ao receber cria-se uma despesa com este total e a fatura anexada (mesmo que o pedido tenha coisas que não adicionas ao stock).','pedidos.concepto_gasto_pedido':'Pedido','pedidos.subiendo_factura':'A enviar fatura…'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+/* stock: etiqueta de oferta */
+(function(){var _a={
+es:{'stock.en_oferta':'En oferta','stock.precio_antes':'Precio antes (EUR)'},
+en:{'stock.en_oferta':'On offer','stock.precio_antes':'Previous price (EUR)'},
+fr:{'stock.en_oferta':'En promo','stock.precio_antes':'Prix avant (EUR)'},
+it:{'stock.en_oferta':'In offerta','stock.precio_antes':'Prezzo prima (EUR)'},
+de:{'stock.en_oferta':'Im Angebot','stock.precio_antes':'Vorheriger Preis (EUR)'},
+pt:{'stock.en_oferta':'Em promoção','stock.precio_antes':'Preço antes (EUR)'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+/* vista escritorio (plegables/tablets) */
+(function(){var _a={
+es:{'mas.vista_escritorio':'Vista escritorio','mas.vista_escritorio_desc':'Aprovecha toda la pantalla (tablets y plegables)'},
+en:{'mas.vista_escritorio':'Desktop view','mas.vista_escritorio_desc':'Use the full screen (tablets and foldables)'},
+fr:{'mas.vista_escritorio':'Vue bureau','mas.vista_escritorio_desc':'Utilise tout l’écran (tablettes et pliables)'},
+it:{'mas.vista_escritorio':'Vista desktop','mas.vista_escritorio_desc':'Usa tutto lo schermo (tablet e pieghevoli)'},
+de:{'mas.vista_escritorio':'Desktop-Ansicht','mas.vista_escritorio_desc':'Nutzt den ganzen Bildschirm (Tablets und Foldables)'},
+pt:{'mas.vista_escritorio':'Vista desktop','mas.vista_escritorio_desc':'Aproveita o ecrã todo (tablets e dobráveis)'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();

@@ -462,6 +462,23 @@ var ESID = null;
 var editPermId = null;
 var permsCurrent = {};
 
+// ═══ VISTA ESCRITORIO (plegables/tablets): fuerza el ancho de viewport ═══
+function _aplicarVistaEscritorio(on) {
+  var m = document.querySelector('meta[name="viewport"]');
+  if (m) m.setAttribute('content', on ? 'width=1100' : 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
+  try { on ? localStorage.setItem('tk_vista_escritorio', '1') : localStorage.removeItem('tk_vista_escritorio'); } catch (e) {}
+  var d = document.getElementById('vistaEscritorioDesc');
+  if (d) d.textContent = on ? '✓ Activada — usando toda la pantalla' : 'Aprovecha toda la pantalla (tablets y plegables)';
+  var b = document.getElementById('btnVistaEscritorio');
+  if (b) b.style.boxShadow = on ? 'inset 0 0 0 2px var(--blue)' : '';
+}
+function toggleVistaEscritorio() {
+  var on = false;
+  try { on = localStorage.getItem('tk_vista_escritorio') !== '1'; } catch (e) { on = true; }
+  _aplicarVistaEscritorio(on);
+  if (typeof toast === 'function') toast(on ? 'Vista escritorio activada' : 'Vista móvil restaurada', 'ok');
+}
+
 // ═══ INIT ═══
 window.addEventListener('DOMContentLoaded', function() {
   U = JSON.parse(localStorage.getItem('tk_user') || 'null');
@@ -471,6 +488,7 @@ window.addEventListener('DOMContentLoaded', function() {
   SB_KEY = sess.sb_key || '';
   JWT_TOKEN = sess.jwt_token || '';
   _autoRenovarJWT(sess); // si el JWT no trae tienda_id (sesión previa al sellado RLS), canjearlo y recargar
+  try { _aplicarVistaEscritorio(localStorage.getItem('tk_vista_escritorio') === '1'); } catch (e) {}
   setTimeout(function(){ detectarAccesoComisiones(); }, 800);
   TIENDA_ID = sess.tienda_id || (U && U.tienda_id) || '';
   // Load permisos from session
@@ -1983,7 +2001,8 @@ function mapStock(s) {
     precioC:parseFloat(s.precio_c)||0, precioV:parseFloat(s.precio_v)||0,
     vendido:s.vendido||false, calidad:s.calidad||'',
     tipo: s.tipo || 'nuevo', garantiaMeses: parseInt(s.garantia_meses)||0,
-    ubicacion: s.ubicacion || null
+    ubicacion: s.ubicacion || null,
+    enOferta: !!s.en_oferta, precioAntes: parseFloat(s.precio_antes)||0
   };
 }
 
@@ -6584,22 +6603,34 @@ function imprimirEtiquetaStock(sid) {
   var specs = [s.capacidad, s.color].map(function(x) { return (x || '').trim(); }).filter(Boolean).join(' · ');
   var estado = _etqEstado(s.tipo);
   var precio = (parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '';
+  var esOferta = !!s.enOferta && (parseFloat(s.precioAntes) || 0) > 0;
+  var precioHtml = '';
+  if (precio) {
+    precioHtml = esOferta
+      ? '<div class="of">OFERTA</div><div class="an">' + esc(cur(s.precioAntes)) + '</div><div class="pr pro">' + esc(precio) + '</div>'
+      : '<div class="pr">' + esc(precio) + '</div>';
+  }
   var fNm = ph >= 29 ? 11 : (ph >= 27 ? 10 : 9);
+  if (nombre.length > 22) fNm = Math.max(7, Math.round(fNm * 22 / nombre.length));  // nombres largos: reducir fuente para que quepan
   var fPr = ph >= 29 ? 17 : (ph >= 27 ? 15 : 13);
   var w = window.open('', '_blank', 'width=500,height=360');
   if (!w) { toast(T('etq.popup') || 'Permite popups para imprimir', 'err'); return; }
   w.document.write(
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiqueta</title><style>' +
     '@page { size: ' + pageCss + '; margin: 0; }' +
-    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;' + bodyH + ';margin:0;padding:1.5mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
+    'html{margin:0;padding:0}' +
+    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;' + bodyH + ';margin:0;padding:1.5mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box;overflow:' + (m.cont ? 'visible' : 'hidden') + '}' +
     '.qr{flex-shrink:0}' +
     '.qr img{width:' + qrMm + 'mm;height:' + qrMm + 'mm;display:block}' +
-    '.info{flex:1;min-width:0;line-height:1.2;display:flex;flex-direction:column;height:100%;justify-content:center}' +
-    '.nm{font-weight:800;font-size:' + fNm + 'px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.info{flex:1;min-width:0;line-height:1.2;display:flex;flex-direction:column;height:100%;justify-content:center;overflow:hidden}' +
+    '.nm{font-weight:800;font-size:' + fNm + 'px;line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}' +
     '.sp{font-size:8px;color:#333;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.es{font-size:7.5px;color:#555;margin-top:1px}' +
     '.im{font-size:7px;font-family:monospace;color:#444;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.pr{font-size:' + fPr + 'px;font-weight:800;margin-top:2px}' +
+    '.of{display:inline-block;align-self:flex-start;background:#e11d48;color:#fff;font-weight:800;font-size:7px;padding:0 4px;border-radius:2px;margin-top:2px}' +
+    '.an{font-size:8px;color:#777;text-decoration:line-through;font-weight:700;margin-top:1px}' +
+    '.pro{color:#e11d48}' +
     '</style></head><body>' +
     (hasQr ? '<div class="qr">' + qrSvg + '</div>' : '') +
     '<div class="info">' +
@@ -6608,7 +6639,7 @@ function imprimirEtiquetaStock(sid) {
       (specs ? '<div class="sp">' + esc(specs) + '</div>' : '') +
       (estado ? '<div class="es">' + esc(estado) + '</div>' : '') +
       (s.imei ? '<div class="im">IMEI: ' + esc(s.imei) + '</div>' : '') +
-      (precio ? '<div class="pr">' + esc(precio) + '</div>' : '') +
+      precioHtml +
     '</div>' +
     '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
     '</body></html>'
@@ -8089,6 +8120,9 @@ function guardarStock() {
   var _capVal = (document.getElementById('sCap').value || '').trim();
   var _catVal = document.getElementById('sCat').value;
   var _calVal = (document.getElementById('sCalidad') || {}).value || '';
+  // Oferta: precio anterior (lo que costaba antes) + interruptor
+  var _enOferta = !!(document.getElementById('sEnOferta') || {}).checked;
+  var _precioAntes = _enOferta ? (parseFloat((document.getElementById('sPrecioAntes') || {}).value) || 0) : 0;
 
   // 1. PVP = 0 → aviso que NO cierra el modal: confirma seguir o vuelve a añadir
   //    el precio sin perder lo escrito (Cancelar = seguir editando).
@@ -8147,6 +8181,7 @@ function guardarStock() {
       s.tipo = stockTipo;
       s.garantiaMeses = stockGarantiaMeses;
       s.ubicacion = tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : s.ubicacion;
+      s.enOferta = _enOferta; s.precioAntes = _precioAntes;
       if (SB_KEY && TIENDA_ID) {
         sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
           categoria: s.categoria, marca: s.marca, modelo: s.modelo,
@@ -8154,7 +8189,8 @@ function guardarStock() {
           unidades: s.unidades, stock_min: s.stockMin, stock_max: s.stockMax,
           precio_c: s.precioC, precio_v: s.precioV,
           tipo: s.tipo || 'nuevo', garantia_meses: parseInt(s.garantiaMeses)||0,
-          ubicacion: s.ubicacion || null
+          ubicacion: s.ubicacion || null,
+          en_oferta: _enOferta, precio_antes: _precioAntes || null
         });
       }
     }
@@ -8279,7 +8315,8 @@ function guardarStock() {
       vendido: false, calidad: _calVal,
       tipo: stockTipo,
       garantiaMeses: stockGarantiaMeses,
-      ubicacion: tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : null
+      ubicacion: tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : null,
+      enOferta: _enOferta, precioAntes: _precioAntes
     };
     DB.stock.push(nuevo);
     if (SB_KEY && TIENDA_ID) sbPost('stock', {
@@ -8290,7 +8327,8 @@ function guardarStock() {
       stock_min:nuevo.stockMin, stock_max:nuevo.stockMax, vendido:false,
       calidad: nuevo.calidad || null,
       tipo: nuevo.tipo || 'nuevo', garantia_meses: parseInt(nuevo.garantiaMeses)||0,
-      ubicacion: nuevo.ubicacion || null
+      ubicacion: nuevo.ubicacion || null,
+      en_oferta: _enOferta, precio_antes: _precioAntes || null
     });
   }
   // Reset selección
@@ -8392,6 +8430,9 @@ function nuevoStock() {
   var def = { sCat:'Telefono', sMarca:'', sModelo:'', sCap:'', sColor:'', sImei:'', sUds:'1', sPrecioC:'0', sPrecioV:'0', sMin:'2', sMax:'10' };
   Object.keys(def).forEach(function(id) { var e = document.getElementById(id); if (e) e.value = def[id]; });
   var su = document.getElementById('sUbic'); if (su) su.value = '';
+  var _so = document.getElementById('sEnOferta'); if (_so) _so.checked = false;
+  var _spa = document.getElementById('sPrecioAntes'); if (_spa) _spa.value = '';
+  var _saw = document.getElementById('sPrecioAntesWrap'); if (_saw) _saw.style.display = 'none';
   window._stockTipoSel = 'nuevo';
   window._stockGarantiaMeses = null;
   renderStockCalidad('');
@@ -8436,6 +8477,9 @@ function editarStock(id) {
   document.getElementById('sPrecioV').value = s.precioV || 0;
   document.getElementById('sMin').value = s.stockMin || 2;
   document.getElementById('sMax').value = s.stockMax || 10;
+  var _so = document.getElementById('sEnOferta');
+  if (_so) { _so.checked = !!s.enOferta; var _saw = document.getElementById('sPrecioAntesWrap'); if (_saw) _saw.style.display = s.enOferta ? '' : 'none'; }
+  var _spa = document.getElementById('sPrecioAntes'); if (_spa) _spa.value = (parseFloat(s.precioAntes) || 0) ? s.precioAntes : '';
   setTimeout(function() {
     renderSelectorUbicacion();
     var selU = document.getElementById('sUbic');
