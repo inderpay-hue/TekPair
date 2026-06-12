@@ -142,8 +142,11 @@ function _autoRenovarJWT(sess) {
         if (j.tienda_id) s.tienda_id = j.tienda_id;
         localStorage.setItem('tk_sess', JSON.stringify(s));
         location.reload();
+      } else {
+        // No se renovó: permitir reintento en la próxima carga (no dejar la sesión coja en silencio)
+        try { sessionStorage.removeItem('tk_jwt_renew_try'); } catch (e) {}
       }
-    }).catch(function () {});
+    }).catch(function () { try { sessionStorage.removeItem('tk_jwt_renew_try'); } catch (e) {} });
   } catch (e) {}
 }
 
@@ -624,7 +627,7 @@ function setSidebarActive(el) {
 
 
 function initDesktop() {
-  var isDesktop = window.innerWidth >= 900;
+  var isDesktop = window.innerWidth >= 840;  // alineado al breakpoint CSS (plegables ~884px)
   var sidebar = document.getElementById('sidebar');
   var appContent = document.getElementById('app-content');
   if (isDesktop) {
