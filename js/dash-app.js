@@ -1203,6 +1203,113 @@ async function _archivoAIA(file) {
   }
   return null;
 }
+
+// ═══ FACTURA CON IA: foto/PDF de factura → datos → crear gasto (con la factura adjunta) ═══
+function abrirFacturaIA() {
+  var t = document.getElementById('facIaTexto'); if (t) t.value = '';
+  var p = document.getElementById('facIaPreview'); if (p) p.innerHTML = '';
+  var cr = document.getElementById('facIaConfirm'); if (cr) cr.style.display = 'none';
+  window._facIaFile = null; window._facIaDatos = null;
+  openM('mFacturaIA');
+}
+async function analizarFacturaTexto() {
+  var texto = ((document.getElementById('facIaTexto') || {}).value || '').trim();
+  if (texto.length < 5) { toast(T('fac_ia.vacio') || 'Pega o sube la factura primero', 'err'); return; }
+  window._facIaFile = null;
+  await _analizarFacturaBody({ action: 'parse-factura', texto: texto.slice(0, 20000) });
+}
+async function analizarFacturaArchivo(input) {
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  input.value = '';
+  window._facIaFile = file; // se adjuntará al gasto
+  var btn = document.getElementById('facIaAnalizarBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + (T('pedidos.pegar_leyendo') || 'Leyendo archivo…'); }
+  try {
+    var datos = await _archivoAIA(file);
+    if (!datos) { toast('⚠️ ' + (T('pedidos.pegar_archivo_err') || 'No se pudo leer el archivo'), 'err'); return; }
+    await _analizarFacturaBody(Object.assign({ action: 'parse-factura' }, datos));
+  } catch (e) {
+    console.error('analizarFacturaArchivo:', e);
+    toast('⚠️ ' + (e.message || 'No se pudo leer el archivo'), 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '✨ ' + (T('fac_ia.analizar') || 'Analizar con IA'); }
+  }
+}
+async function _analizarFacturaBody(body) {
+  var btn = document.getElementById('facIaAnalizarBtn');
+  var prev = document.getElementById('facIaPreview');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + (T('pedidos.pegar_analizando') || 'Analizando…'); }
+  if (prev) prev.innerHTML = '';
+  try {
+    var r = await fetch('/api/ayuda?action=parse-factura', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN },
+      body: JSON.stringify(body)
+    });
+    var data = await r.json();
+    if (!r.ok || !data.ok) { toast('⚠️ ' + (data.error || 'No se pudo analizar'), 'err'); return; }
+    window._facIaDatos = data.factura || {};
+    renderPreviewFactura();
+  } catch (e) {
+    console.error('_analizarFacturaBody:', e);
+    toast('⚠️ Error al analizar la factura', 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '✨ ' + (T('fac_ia.analizar') || 'Analizar con IA'); }
+  }
+}
+function _facField(label, inner) {
+  return '<div style="flex:1;min-width:0"><label class="fl" style="font-size:11px">' + label + '</label>' + inner + '</div>';
+}
+function renderPreviewFactura() {
+  var f = window._facIaDatos || {};
+  var prev = document.getElementById('facIaPreview');
+  if (!prev) return;
+  var ivas = [0, 4, 10, 21];
+  prev.innerHTML = '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:7px">' +
+    _facField(T('fac_ia.concepto') || 'Concepto', '<input class="fi" id="facF_concepto" value="' + esc(f.concepto || '') + '">') +
+    _facField(T('fac_ia.proveedor') || 'Proveedor', '<input class="fi" id="facF_prov" value="' + esc(f.proveedor || '') + '">') +
+    '<div style="display:flex;gap:7px">' +
+      _facField(T('fac_ia.importe') || 'Importe (€)', '<input class="fi" id="facF_importe" type="number" step="0.01" value="' + (parseFloat(f.importe) || 0) + '">') +
+      _facField('IVA', '<select class="fi" id="facF_iva">' + ivas.map(function (v) { return '<option value="' + v + '"' + (v === parseInt(f.iva_tipo, 10) ? ' selected' : '') + '>' + v + '%</option>'; }).join('') + '</select>') +
+    '</div>' +
+    '<div style="display:flex;gap:7px">' +
+      _facField(T('fac_ia.fecha') || 'Fecha', '<input class="fi" id="facF_fecha" type="date" value="' + esc(f.fecha || hoyLocal()) + '">') +
+      _facField(T('fac_ia.numero') || 'Nº factura', '<input class="fi" id="facF_num" value="' + esc(f.numero || '') + '">') +
+    '</div>' +
+    (window._facIaFile ? '<div style="font-size:11px;color:var(--green)">📎 ' + esc(window._facIaFile.name) + '</div>' : '') +
+    '</div>';
+  var cr = document.getElementById('facIaConfirm');
+  if (cr) cr.style.display = 'flex';
+}
+async function crearGastoFactura() {
+  if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var importe = parseFloat((document.getElementById('facF_importe') || {}).value) || 0;
+  if (importe <= 0) { toast(T('fac_ia.sin_importe') || 'Pon el importe', 'err'); return; }
+  var prov = ((document.getElementById('facF_prov') || {}).value || '').trim() || null;
+  var concepto = ((document.getElementById('facF_concepto') || {}).value || '').trim() || ('Compra' + (prov ? (' a ' + prov) : ''));
+  var g = {
+    id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID,
+    concepto: concepto, importe: Math.round(importe * 100) / 100,
+    fecha: (document.getElementById('facF_fecha') || {}).value || hoyLocal(),
+    estado: 'Pagado', categoria: 'Stock/Compras',
+    iva_tipo: parseInt((document.getElementById('facF_iva') || {}).value, 10) || 21,
+    proveedor_id: null, proveedor_nombre: prov,
+    proveedor_nif: (window._facIaDatos && window._facIaDatos.proveedor_nif) || null,
+    numero_factura: ((document.getElementById('facF_num') || {}).value || '').trim() || null,
+    metodo_pago: 'transferencia'
+  };
+  DB.gastos = DB.gastos || [];
+  DB.gastos.push(g);
+  if (SB_KEY && TIENDA_ID) { try { await sbPost('gastos', g); } catch (e) {} }
+  try { guardarDatos(); } catch (e) {}
+  // Adjuntar la foto/PDF al gasto (si vino de archivo)
+  if (window._facIaFile) { try { await subirAdjuntoGasto(g, window._facIaFile); } catch (e) { console.warn('adjunto factura:', e); } }
+  window._facIaFile = null; window._facIaDatos = null;
+  closeM('mFacturaIA');
+  try { renderGastos(); } catch (e) {}
+  toast(T('fac_ia.creado') || 'Gasto creado desde la factura', 'ok');
+}
 function renderPreviewPegado() {
   var prev = document.getElementById('pegPreview');
   if (!prev) return;
