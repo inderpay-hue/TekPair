@@ -58,6 +58,15 @@ export default async function handler(req, res) {
   }
   if (!payload.tienda_id) return res.status(401).json({ error: 'JWT sin tienda_id' });
 
+  // ── ACCIÓN: parse-pedido (IA Gemini) — extrae líneas de un email/albarán pegado ──
+  if ((req.query.action || (req.body && req.body.action)) === 'parse-pedido') {
+    const uId = payload.sub || payload.user_id || 'unknown';
+    if (!_rateCheck('parseped:user:' + uId, 30, 10 * 60 * 1000)) {
+      return res.status(429).json({ error: 'Demasiados análisis seguidos. Espera unos minutos.' });
+    }
+    return parsePedidoGemini(req, res);
+  }
+
   // AYU-2: rate limit
   //   - 3 mensajes / 10 min por usuario (sub)
   //   - 10 mensajes / hora por IP (anti spam masivo desde misma IP)
@@ -183,5 +192,66 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error('[ayuda] Error envío Resend:', e);
     return res.json({ ok: true, warning: 'Email no enviado pero mensaje guardado' });
+  }
+}
+
+// Extrae líneas de pedido de un texto libre (email/albarán) con Gemini Flash (capa gratuita de Google).
+// Devuelve { ok, lineas: [{pieza, marca, categoria, calidad, cantidad, precio_compra, precio_venta, sku}] }
+async function parsePedidoGemini(req, res) {
+  const GEMINI_KEY = process.env.GEMINI_API_KEY;
+  if (!GEMINI_KEY) return res.status(503).json({ error: 'IA no configurada (falta GEMINI_API_KEY en el servidor)' });
+  const texto = String((req.body && req.body.texto) || '').trim().slice(0, 20000);
+  if (!texto) return res.status(400).json({ error: 'Texto vacío' });
+
+  const sistema = 'Eres un extractor de pedidos de proveedor para una tienda de reparación de móviles. ' +
+    'Recibes el texto pegado de un email o albarán (desordenado, multilínea) y devuelves SOLO un JSON válido. ' +
+    'Formato exacto: {"lineas":[{"pieza":"","marca":"","categoria":"","calidad":"","cantidad":1,"precio_compra":0,"sku":""}]}. ' +
+    'Reglas: ' +
+    '- "pieza": nombre del producto limpio y legible (sin el "x N" ni el SKU). ' +
+    '- "marca": Apple, Samsung, Xiaomi, etc. si se deduce; si no, "". ' +
+    '- "categoria": una de Pantalla, Bateria, Telefono, Funda, Accesorio, Repuesto, Otros (la que mejor encaje). ' +
+    '- "calidad": SOLO para pantallas, una de Original, OLED, "TFT Incell"; si no aplica o no está claro, "". ' +
+    '- "cantidad": entero del "x N" (por defecto 1). ' +
+    '- "precio_compra": el COSTE unitario en número (punto decimal, sin símbolo de moneda). El proveedor da el COSTE, nunca el precio de venta. ' +
+    '- "sku": el código/SKU si aparece, si no "". ' +
+    'Ignora líneas de Subtotal, Envío, Método de pago, TOTAL y cabeceras de tabla. No inventes productos.';
+
+  try {
+    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(GEMINI_KEY), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        system_instruction: { parts: [{ text: sistema }] },
+        contents: [{ parts: [{ text: 'PEDIDO:\n' + texto }] }],
+        generationConfig: { temperature: 0, responseMimeType: 'application/json' }
+      })
+    });
+    if (!r.ok) {
+      const t = await r.text();
+      console.error('[parse-pedido] Gemini error', r.status, t);
+      return res.status(502).json({ error: 'La IA no pudo procesar el pedido (HTTP ' + r.status + ')' });
+    }
+    const data = await r.json();
+    let txt = (((data.candidates || [])[0] || {}).content || {}).parts;
+    txt = (txt && txt[0] && txt[0].text) || '';
+    const i = txt.indexOf('{');
+    const j = txt.lastIndexOf('}');
+    if (i >= 0 && j > i) txt = txt.slice(i, j + 1);
+    let parsed;
+    try { parsed = JSON.parse(txt); } catch (e) { return res.status(502).json({ error: 'La IA devolvió una respuesta no válida' }); }
+    const lineas = Array.isArray(parsed.lineas) ? parsed.lineas.slice(0, 200).map((l) => ({
+      pieza: String(l.pieza || '').slice(0, 200),
+      marca: String(l.marca || '').slice(0, 60),
+      categoria: String(l.categoria || 'Otros').slice(0, 40),
+      calidad: String(l.calidad || '').slice(0, 40),
+      cantidad: Math.max(1, parseInt(l.cantidad, 10) || 1),
+      precio_compra: Math.max(0, parseFloat(l.precio_compra) || 0),
+      precio_venta: 0,
+      sku: String(l.sku || '').slice(0, 60)
+    })) : [];
+    return res.json({ ok: true, lineas });
+  } catch (e) {
+    console.error('[parse-pedido] error', e);
+    return res.status(500).json({ error: 'Error procesando el pedido' });
   }
 }
