@@ -1562,6 +1562,7 @@ function recibirTodosPedidos() {
       if (raw == null) { saltados++; return; }
       var imeis = String(raw).split(/[\s,;]+/).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 50);
       if (!imeis.length) { saltados++; return; }
+      if (imeis.length !== uds && !confirm((T('pedidos.imeis_descuadre') || 'Has puesto {a} IMEI(s) pero el pedido es de {b} ud. Se registrarán solo {a} en stock. ¿Continuar?').replace(/{a}/g, imeis.length).replace('{b}', uds))) { saltados++; return; }
       _recibirImeisDePedido(p, imeis, cat);
     } else {
       _recibirAStock(p, uds, existe, true, cat);
@@ -1599,6 +1600,7 @@ function recibirGrupo(encKey) {
       if (raw == null) { saltados++; return; }
       var imeis = String(raw).split(/[\s,;]+/).map(function(s) { return s.trim(); }).filter(Boolean).slice(0, 50);
       if (!imeis.length) { saltados++; return; }
+      if (imeis.length !== uds && !confirm((T('pedidos.imeis_descuadre') || 'Has puesto {a} IMEI(s) pero el pedido es de {b} ud. Se registrarán solo {a} en stock. ¿Continuar?').replace(/{a}/g, imeis.length).replace('{b}', uds))) { saltados++; return; }
       _recibirImeisDePedido(p, imeis, cat);
     } else {
       _recibirAStock(p, uds, ex, true, cat);
@@ -12405,9 +12407,11 @@ async function _pullTiendaCompleta() {
     // AUTO-REPARACIÓN DE SYNC: si la nube NO tiene nombre/ajustes pero el local SÍ (un guardado
     // que no aterrizó en su día por JWT viejo), subirlos ahora que el JWT es válido → se propagan
     // a los demás equipos. Solo sube cuando la nube está vacía (no pisa datos buenos).
+    // Solo curamos nombre/política (tienen test de vacío fiable). Los ajustes NO se auto-suben:
+    // AJUSTES siempre arrastra los valores por defecto, así que un PC sin configurar podría subir
+    // ajustes vacíos y machacar los reales de otro equipo. Los ajustes se sincronizan al guardarlos.
     var _heal = {};
     if ((!t.nombre || !String(t.nombre).trim()) && tiendaData.nombre && tiendaData.nombre !== 'Mi Tienda') _heal.nombre = tiendaData.nombre;
-    if ((!t.ajustes_config || typeof t.ajustes_config !== 'object') && AJUSTES && typeof AJUSTES === 'object' && Object.keys(AJUSTES).length > 1) _heal.ajustes_config = AJUSTES;
     if ((!t.politica || !String(t.politica).trim()) && TIENDA.politica) _heal.politica = TIENDA.politica;
     if (Object.keys(_heal).length && SB_KEY && TIENDA_ID) {
       try { sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), _heal); } catch (e) {}
