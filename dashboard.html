@@ -2871,6 +2871,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
     </div>
 
+    <!-- Descargar la app de escritorio (se oculta cuando ya estás dentro de la app) -->
+    <div class="card" id="ajDescargaApp">
+      <div class="card-title">💻 App de escritorio</div>
+      <p style="font-size:11.5px;color:var(--muted);margin:0 2px 12px">Instala TekPair como programa en tu ordenador: pantalla completa, impresión de etiquetas y tickets sin diálogo y sincronización instantánea entre equipos. Disponible para Windows y Mac.</p>
+      <a href="/descargar" target="_blank" rel="noopener" class="btn-primary" style="display:inline-block;text-decoration:none">📥 Descargar TekPair para escritorio</a>
+    </div>
+
     <button class="btn-primary" onclick="guardarAjustes()">Guardar preferencias</button>
   </div>
 
@@ -4411,7 +4418,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260615imprAjustes"></script>
+<script src="/js/dash-app.js?v=20260615descarga"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

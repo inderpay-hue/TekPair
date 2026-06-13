@@ -104,5 +104,12 @@
         }
       ]
     }
+  ],
+  "redirects": [
+    {
+      "source": "/descargar",
+      "destination": "https://github.com/inderpay-hue/tekpair-desktop/releases/latest",
+      "permanent": false
+    }
   ]
 }

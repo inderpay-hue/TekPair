@@ -12141,6 +12141,9 @@ function _renderImpresorasAjustes() {
   if (!card) return;
   var desktop = (typeof tkIsDesktop === 'function' && tkIsDesktop());
   card.style.display = desktop ? '' : 'none';
+  // La tarjeta de descarga de la app: visible en el navegador, oculta dentro de la app.
+  var dl = document.getElementById('ajDescargaApp');
+  if (dl) dl.style.display = desktop ? 'none' : '';
   if (!desktop) return;
   try {
     var e = localStorage.getItem('tk_impresora_etq') || '(sin elegir)';
