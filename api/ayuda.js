@@ -229,7 +229,7 @@ async function parsePedidoGemini(req, res) {
     if (!r.ok) {
       const t = await r.text();
       console.error('[parse-pedido] Gemini error', r.status, t);
-      return res.status(502).json({ error: 'La IA no pudo procesar el pedido (HTTP ' + r.status + ')' });
+      return res.status(502).json({ error: 'IA HTTP ' + r.status + ': ' + String(t).replace(/\s+/g, ' ').slice(0, 260) });
     }
     const data = await r.json();
     let txt = (((data.candidates || [])[0] || {}).content || {}).parts;
