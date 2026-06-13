@@ -10352,13 +10352,14 @@ function renderGastos() {
     } else {
       adjCell = '<button class="btn-sm" onclick="triggerAdjuntoGasto(\'' + g.id + '\')" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">+ Adjuntar</button>';
     }
+    var editBtn = '<button class="btn-sm" onclick="editarGasto(\'' + g.id + '\')" title="Editar gasto" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">✏️</button> ';
     return '<td style="' + (indent ? 'padding-left:24px' : '') + '">' + esc(g.concepto || '') + '</td>' +
       '<td><span class="badge bb">' + esc(cat) + '</span></td>' +
       '<td>' + fmtFecha(g.fecha) + '</td>' +
       '<td>' + ivaT + '%</td>' +
       '<td style="font-weight:700;color:var(--red)">' + cur(g.importe || 0) + '</td>' +
       '<td><span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado || 'Pagado') + '</span></td>' +
-      '<td>' + adjCell + '</td>';
+      '<td style="white-space:nowrap">' + editBtn + adjCell + '</td>';
   }
 
   // Agrupar por día + proveedor: las líneas de un mismo pedido comparten ambos,
@@ -10571,6 +10572,41 @@ function guardarNomina() {
   closeM('mNomina');
   renderGastos();
   if (typeof renderGastosRec === 'function') renderGastosRec();
+}
+
+// Abre el modal en modo CREAR (resetea el modo edición y limpia el formulario).
+function abrirNuevoGasto() {
+  if (typeof SEL === 'object' && SEL) SEL.editGastoId = null;
+  var set = function (id, val) { var e = document.getElementById(id); if (e) e.value = val; };
+  set('gConc', ''); set('gImp', '0'); set('gFecha', hoyLocal());
+  set('gCat', 'Otros'); set('gIvaTipo', '21'); set('gEstado', 'Pagado'); set('gMetodo', 'efectivo');
+  set('gProvNom', ''); set('gProvNif', ''); set('gNumFact', '');
+  try { limpiarGAdj(); } catch (e) {}
+  var t = document.getElementById('gModalTitle'); if (t) t.textContent = '📋 Nuevo Gasto';
+  openM('mGasto');
+}
+
+// Abre el modal en modo EDICIÓN, pre-rellenado con los datos del gasto.
+function editarGasto(id) {
+  if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var g = (DB.gastos || []).find(function (x) { return x.id === id; });
+  if (!g) { toast(T('gen.error'), 'err'); return; }
+  if (typeof SEL !== 'object' || !SEL) window.SEL = {};
+  SEL.editGastoId = id;
+  var set = function (eid, val) { var e = document.getElementById(eid); if (e) e.value = val; };
+  set('gConc', g.concepto || '');
+  set('gImp', g.importe != null ? g.importe : 0);
+  set('gFecha', (g.fecha || '').slice(0, 10));
+  set('gCat', g.categoria || 'Otros');
+  set('gIvaTipo', String(g.iva_tipo != null ? g.iva_tipo : 21));
+  set('gEstado', g.estado || 'Pagado');
+  set('gMetodo', g.metodo_pago || 'efectivo');
+  set('gProvNom', g.proveedor_nombre || '');
+  set('gProvNif', g.proveedor_nif || '');
+  set('gNumFact', g.numero_factura || '');
+  try { limpiarGAdj(); } catch (e) {}
+  var t = document.getElementById('gModalTitle'); if (t) t.textContent = '✏️ Editar gasto';
+  openM('mGasto');
 }
 
 function guardarGasto() {
