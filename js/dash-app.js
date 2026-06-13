@@ -12402,6 +12402,17 @@ async function _pullTiendaCompleta() {
     Object.assign(TIENDA, tiendaData);
     localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
 
+    // AUTO-REPARACIÓN DE SYNC: si la nube NO tiene nombre/ajustes pero el local SÍ (un guardado
+    // que no aterrizó en su día por JWT viejo), subirlos ahora que el JWT es válido → se propagan
+    // a los demás equipos. Solo sube cuando la nube está vacía (no pisa datos buenos).
+    var _heal = {};
+    if ((!t.nombre || !String(t.nombre).trim()) && tiendaData.nombre && tiendaData.nombre !== 'Mi Tienda') _heal.nombre = tiendaData.nombre;
+    if ((!t.ajustes_config || typeof t.ajustes_config !== 'object') && AJUSTES && typeof AJUSTES === 'object' && Object.keys(AJUSTES).length > 1) _heal.ajustes_config = AJUSTES;
+    if ((!t.politica || !String(t.politica).trim()) && TIENDA.politica) _heal.politica = TIENDA.politica;
+    if (Object.keys(_heal).length && SB_KEY && TIENDA_ID) {
+      try { sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), _heal); } catch (e) {}
+    }
+
     // Favoritos TPV (compartidos por toda la tienda) - merge-safe
     if (Array.isArray(t.tpv_favs)) {
       try {
