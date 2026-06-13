@@ -58,13 +58,14 @@ export default async function handler(req, res) {
   }
   if (!payload.tienda_id) return res.status(401).json({ error: 'JWT sin tienda_id' });
 
-  // ── ACCIÓN: parse-pedido (IA Gemini) — extrae líneas de un email/albarán pegado ──
-  if ((req.query.action || (req.body && req.body.action)) === 'parse-pedido') {
+  // ── ACCIONES IA (Groq): extraer líneas de pedido / datos de factura de texto/foto/PDF ──
+  const _accionIA = req.query.action || (req.body && req.body.action);
+  if (_accionIA === 'parse-pedido' || _accionIA === 'parse-factura') {
     const uId = payload.sub || payload.user_id || 'unknown';
-    if (!_rateCheck('parseped:user:' + uId, 30, 10 * 60 * 1000)) {
+    if (!_rateCheck('parseia:user:' + uId, 30, 10 * 60 * 1000)) {
       return res.status(429).json({ error: 'Demasiados análisis seguidos. Espera unos minutos.' });
     }
-    return parsePedidoIA(req, res);
+    return _accionIA === 'parse-factura' ? parseFacturaIA(req, res) : parsePedidoIA(req, res);
   }
 
   // AYU-2: rate limit
@@ -267,5 +268,80 @@ async function parsePedidoIA(req, res) {
   } catch (e) {
     console.error('[parse-pedido] error', e);
     return res.status(500).json({ error: 'Error procesando el pedido' });
+  }
+}
+
+// Extrae los datos de una factura/ticket de proveedor (texto, foto o PDF) con Groq.
+// Devuelve { ok, factura: {proveedor, proveedor_nif, numero, fecha, base, iva_tipo, importe, concepto} }
+async function parseFacturaIA(req, res) {
+  const GROQ_KEY = process.env.GROQ_API_KEY;
+  if (!GROQ_KEY) return res.status(503).json({ error: 'IA no configurada (falta GROQ_API_KEY en el servidor)' });
+  const texto = String((req.body && req.body.texto) || '').trim().slice(0, 20000);
+  const imagenes = Array.isArray(req.body && req.body.imagenes)
+    ? req.body.imagenes.filter((u) => typeof u === 'string' && u.startsWith('data:image')).slice(0, 5) : [];
+  if (!texto && !imagenes.length) return res.status(400).json({ error: 'Texto vacío' });
+
+  const sistema = 'Eres un extractor de facturas/tickets de proveedor para una tienda. ' +
+    'Recibes el texto o la imagen de UNA factura y devuelves SOLO un JSON válido. ' +
+    'Formato exacto: {"proveedor":"","proveedor_nif":"","numero":"","fecha":"","base":0,"iva_tipo":21,"importe":0,"concepto":""}. ' +
+    'Reglas: ' +
+    '- "proveedor": nombre del emisor de la factura (la empresa que te vende). ' +
+    '- "proveedor_nif": CIF/NIF del proveedor si aparece, si no "". ' +
+    '- "numero": número de factura si aparece, si no "". ' +
+    '- "fecha": fecha de la factura en formato AAAA-MM-DD; si no se ve, "". ' +
+    '- "base": base imponible (sin IVA) en número; si no se distingue, 0. ' +
+    '- "iva_tipo": 0, 4, 10 o 21 según el IVA aplicado (por defecto 21). ' +
+    '- "importe": TOTAL a pagar (con IVA) en número, punto decimal sin símbolo. Es el dato más importante. ' +
+    '- "concepto": breve descripción de lo comprado (o "Compra a {proveedor}"). ' +
+    'No inventes datos; si algo no está, déjalo vacío o 0.';
+
+  try {
+    const cuerpo = imagenes.length ? {
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      temperature: 0,
+      messages: [
+        { role: 'system', content: sistema },
+        { role: 'user', content: [{ type: 'text', text: 'Extrae los datos de esta factura:' }].concat(imagenes.map((u) => ({ type: 'image_url', image_url: { url: u } }))) }
+      ]
+    } : {
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: sistema },
+        { role: 'user', content: 'FACTURA:\n' + texto }
+      ]
+    };
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
+      body: JSON.stringify(cuerpo)
+    });
+    if (!r.ok) {
+      const t = await r.text();
+      console.error('[parse-factura] Groq error', r.status, t);
+      return res.status(502).json({ error: 'IA HTTP ' + r.status + ': ' + String(t).replace(/\s+/g, ' ').slice(0, 260) });
+    }
+    const data = await r.json();
+    let txt = (((data.choices || [])[0] || {}).message || {}).content || '';
+    const i = txt.indexOf('{');
+    const j = txt.lastIndexOf('}');
+    if (i >= 0 && j > i) txt = txt.slice(i, j + 1);
+    let f;
+    try { f = JSON.parse(txt); } catch (e) { return res.status(502).json({ error: 'La IA devolvió una respuesta no válida' }); }
+    f = f || {};
+    return res.json({ ok: true, factura: {
+      proveedor: String(f.proveedor || '').slice(0, 120),
+      proveedor_nif: String(f.proveedor_nif || '').slice(0, 40),
+      numero: String(f.numero || '').slice(0, 60),
+      fecha: /^\d{4}-\d{2}-\d{2}$/.test(String(f.fecha || '')) ? f.fecha : '',
+      base: Math.max(0, parseFloat(f.base) || 0),
+      iva_tipo: [0, 4, 10, 21].includes(parseInt(f.iva_tipo, 10)) ? parseInt(f.iva_tipo, 10) : 21,
+      importe: Math.max(0, parseFloat(f.importe) || 0),
+      concepto: String(f.concepto || '').slice(0, 200)
+    } });
+  } catch (e) {
+    console.error('[parse-factura] error', e);
+    return res.status(500).json({ error: 'Error procesando la factura' });
   }
 }

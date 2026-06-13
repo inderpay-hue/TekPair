@@ -2445,6 +2445,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div class="sec-title"><span data-t="nav.gastos">Gastos</span></div>
     </div>
     <button class="btn-sm" style="background:var(--red);color:white" onclick="openM('mGasto')">+ Nuevo</button>
+    <button class="btn-sm" style="background:#7C5CFC;color:white;margin-left:6px" onclick="abrirFacturaIA()">📸 <span data-t="fac_ia.btn">Factura IA</span></button>
     <button class="btn-sm" style="background:#7C3AED;color:white;margin-left:6px" onclick="abrirModalNomina()" id="btnNominaGasto">💼 Nómina</button>
   </div>
   <div class="card" style="margin-bottom:14px;padding:16px">
@@ -4175,6 +4176,26 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <button class="btn-primary" style="background:var(--red)" onclick="guardarGasto()"><span data-t="gen.guardar">Guardar</span></button>
   </div>
 </div>
+</div>
+
+<div class="modal-bg" id="mFacturaIA">
+  <div class="modal">
+    <div class="modal-title">📸 <span data-t="fac_ia.titulo">Factura del proveedor (IA)</span></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:8px" data-t="fac_ia.hint">Sube una foto o PDF de la factura (o pégala). La IA saca proveedor, importe, IVA y fecha → creas el gasto con la factura adjunta.</div>
+    <label class="btn-sm" style="display:block;text-align:center;border:1px dashed var(--border);padding:10px;border-radius:9px;cursor:pointer;font-weight:600">📎 <span data-t="fac_ia.subir">Subir foto o PDF de la factura</span>
+      <input type="file" id="facIaArchivo" accept="application/pdf,image/*" style="display:none" onchange="analizarFacturaArchivo(this)">
+    </label>
+    <div style="text-align:center;font-size:11px;color:var(--muted);margin:6px 0" data-t="pedidos.pegar_o">— o —</div>
+    <textarea id="facIaTexto" class="fi" rows="4" placeholder="Pega aquí el texto de la factura…" style="width:100%;font-family:inherit;font-size:12.5px;resize:vertical"></textarea>
+    <div style="display:flex;gap:8px;margin-top:8px">
+      <button class="btn-secondary" onclick="closeM('mFacturaIA')" data-t="gen.cancelar">Cancelar</button>
+      <button class="btn-primary" id="facIaAnalizarBtn" style="background:#7C5CFC;flex:1" onclick="analizarFacturaTexto()">✨ <span data-t="fac_ia.analizar">Analizar con IA</span></button>
+    </div>
+    <div id="facIaPreview" style="margin-top:12px"></div>
+    <div id="facIaConfirm" style="display:none;justify-content:flex-end;margin-top:12px">
+      <button class="btn-primary" style="background:var(--red)" onclick="crearGastoFactura()">+ <span data-t="fac_ia.crear">Crear gasto</span></button>
+    </div>
+  </div>
 </div>
 
 
