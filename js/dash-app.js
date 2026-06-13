@@ -225,10 +225,10 @@ function checkFeature(featureName) {
 }
 
 // ═══ NOVEDADES: banner de mejoras para las tiendas (se muestra 1 vez por versión) ═══
-var NOVEDADES_VERSION = '2026-06-13';
+var NOVEDADES_VERSION = '2026-06-14';
 function renderNovedades() {
   var el = document.getElementById('novedadesBody'); if (!el) return;
-  var keys = ['nov.f1', 'nov.f2', 'nov.f3', 'nov.f4', 'nov.f5'];
+  var keys = ['nov.f6', 'nov.f7', 'nov.f1', 'nov.f2', 'nov.f3', 'nov.f4', 'nov.f5'];
   el.innerHTML = keys.map(function(k) { return '<div style="padding:9px 2px;border-bottom:1px solid var(--border);font-size:13px;line-height:1.5">' + T(k) + '</div>'; }).join('');
 }
 function abrirNovedades() { renderNovedades(); openM('mNovedades'); }
