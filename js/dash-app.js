@@ -1411,6 +1411,65 @@ function _recibirAStock(p, uds, existe, silent, cat) {
   try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
   if (!silent) toast(T('pedidos.stock_anadido').replace('{n}', uds), 'ok');
 }
+// Crea un item de stock por cada IMEI (1 unidad) desde un pedido. Para "Recibir todos".
+function _recibirImeisDePedido(p, imeis, cat) {
+  DB.stock = DB.stock || [];
+  var uds = parseInt(p.cantidad, 10) || 1;
+  var costeUnit = (parseFloat(p.importe) || 0) > 0 ? (parseFloat(p.importe) / uds) : (parseFloat(p.precio_compra) || 0);
+  var ventaUnit = parseFloat(p.precio_venta) || 0;
+  imeis.forEach(function (imei, i) {
+    var item = {
+      id: 's' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 6),
+      categoria: cat || p.categoria || 'Telefono', marca: p.marca || '', modelo: _pedModeloDe(p), capacidad: '', color: '', imei: imei,
+      unidades: 1, precioC: costeUnit, precioV: ventaUnit, stockMin: 2, stockMax: 10,
+      vendido: false, calidad: p.calidad || '', tipo: 'nuevo', garantiaMeses: 0, ubicacion: null
+    };
+    DB.stock.push(item);
+    if (SB_KEY && TIENDA_ID) sbPost('stock', {
+      id: item.id, tienda_id: TIENDA_ID, categoria: item.categoria, marca: item.marca,
+      modelo: item.modelo, capacidad: '', color: '', imei: item.imei,
+      unidades: 1, precio_c: item.precioC, precio_v: item.precioV,
+      stock_min: 2, stock_max: 10, vendido: false,
+      calidad: item.calidad || null, tipo: 'nuevo', garantia_meses: 0, ubicacion: null
+    });
+    _logMov('entrada', ((item.marca || '') + ' ' + (item.modelo || '')).trim() + ' ' + imei, 1, p.proveedor || T('pedidos.pieza'));
+  });
+}
+// Recibir TODOS los pedidos en estado 'pedido' de golpe. No-IMEI en bloque; IMEI pidiendo los códigos.
+function recibirTodosPedidos() {
+  if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var pend = (DB.pedidos || []).filter(function (p) { return p.estado === 'pedido'; });
+  if (!pend.length) { toast(T('pedidos.nada_recibir') || 'No hay pedidos por recibir', 'err'); return; }
+  if (!confirm((T('pedidos.recibir_todos_confirm') || '¿Marcar como recibidos los {n} pedidos y sumarlos al stock?').replace('{n}', pend.length))) return;
+  var recibidos = 0, saltados = 0;
+  pend.forEach(function (p) {
+    var uds = parseInt(p.cantidad, 10) || 1;
+    var existe = _stockMatch(p.pieza);
+    if (existe && p.calidad && (existe.calidad || '') !== p.calidad) existe = null;
+    var cat = p.categoria || (existe ? existe.categoria : '');
+    if (_esImeiCat(cat)) {
+      var raw = prompt((T('pedidos.imeis_prompt') || 'IMEIs de "{pieza}" ({n} uds), uno por línea:').replace('{pieza}', p.pieza || '').replace('{n}', uds), '');
+      if (raw == null) { saltados++; return; }
+      var imeis = String(raw).split(/[\s,;]+/).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 50);
+      if (!imeis.length) { saltados++; return; }
+      _recibirImeisDePedido(p, imeis, cat);
+    } else {
+      _recibirAStock(p, uds, existe, true, cat);
+    }
+    p.estado = 'recibido';
+    p.fecha_recibido = hoyLocal();
+    var patch = { estado: 'recibido' };
+    if (SB_KEY && typeof _sbPatchRaw === 'function') { try { _sbPatchRaw('pedidos', 'id=eq.' + encodeURIComponent(p.id), { fecha_recibido: p.fecha_recibido }); } catch (e) {} }
+    var gid = _gastoAlRecibir(p);
+    if (gid) { p.gasto_id = gid; patch.gasto_id = gid; }
+    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
+    recibidos++;
+  });
+  try { guardarDatos(); } catch (e) {}
+  renderPedidosWidget();
+  try { renderStock(); } catch (e) {}
+  toast((T('pedidos.recibidos_n') || '{n} pedidos recibidos').replace('{n}', recibidos) + (saltados ? ' · ' + saltados + ' ' + (T('pedidos.pendientes_resto') || 'sin IMEI, pendientes') : ''), 'ok');
+}
 // Recibir de golpe todos los productos «pedido» de un proveedor (no IMEI)
 function recibirGrupo(encKey) {
   var key = decodeURIComponent(encKey);
