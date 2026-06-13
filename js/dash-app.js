@@ -1098,6 +1098,26 @@ function abrirPegarPedido() {
 async function analizarPedidoPegado() {
   var texto = ((document.getElementById('pegTexto') || {}).value || '').trim();
   if (texto.length < 5) { toast(T('pedidos.pegar_vacio') || 'Pega el pedido primero', 'err'); return; }
+  await _analizarPedidoBody({ action: 'parse-pedido', texto: texto.slice(0, 20000) });
+}
+async function analizarPedidoArchivo(input) {
+  var file = input && input.files && input.files[0];
+  if (!file) return;
+  input.value = '';
+  var btn = document.getElementById('pegAnalizarBtn');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + (T('pedidos.pegar_leyendo') || 'Leyendo archivo…'); }
+  try {
+    var datos = await _archivoAIA(file);
+    if (!datos) { toast('⚠️ ' + (T('pedidos.pegar_archivo_err') || 'No se pudo leer el archivo'), 'err'); return; }
+    await _analizarPedidoBody(Object.assign({ action: 'parse-pedido' }, datos));
+  } catch (e) {
+    console.error('analizarPedidoArchivo:', e);
+    toast('⚠️ ' + (e.message || 'No se pudo leer el archivo'), 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '✨ ' + (T('pedidos.pegar_analizar') || 'Analizar con IA'); }
+  }
+}
+async function _analizarPedidoBody(body) {
   var btn = document.getElementById('pegAnalizarBtn');
   var prev = document.getElementById('pegPreview');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + (T('pedidos.pegar_analizando') || 'Analizando…'); }
@@ -1106,7 +1126,7 @@ async function analizarPedidoPegado() {
     var r = await fetch('/api/ayuda?action=parse-pedido', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN },
-      body: JSON.stringify({ action: 'parse-pedido', texto: texto.slice(0, 20000) })
+      body: JSON.stringify(body)
     });
     var data = await r.json();
     if (!r.ok || !data.ok) { toast('⚠️ ' + (data.error || 'No se pudo analizar'), 'err'); return; }
@@ -1115,11 +1135,73 @@ async function analizarPedidoPegado() {
     window._pegLineas = lineas;
     renderPreviewPegado();
   } catch (e) {
-    console.error('analizarPedidoPegado:', e);
+    console.error('_analizarPedidoBody:', e);
     toast('⚠️ Error al analizar el pedido', 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '✨ ' + (T('pedidos.pegar_analizar') || 'Analizar con IA'); }
   }
+}
+// Carga pdf.js bajo demanda (solo al subir un PDF)
+function _cargarPdfJs() {
+  return new Promise(function (resolve, reject) {
+    if (window.pdfjsLib) return resolve(window.pdfjsLib);
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload = function () {
+      try { window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'; } catch (e) {}
+      resolve(window.pdfjsLib);
+    };
+    s.onerror = function () { reject(new Error('No se pudo cargar el lector de PDF')); };
+    document.head.appendChild(s);
+  });
+}
+// Imagen → dataURL JPEG comprimido (max 1600px)
+function _comprimirImagenAIA(file) {
+  return new Promise(function (resolve, reject) {
+    var img = new Image();
+    var url = URL.createObjectURL(file);
+    img.onload = function () {
+      URL.revokeObjectURL(url);
+      var max = 1600, w = img.width, h = img.height;
+      if (w > max || h > max) { var rr = Math.min(max / w, max / h); w = Math.round(w * rr); h = Math.round(h * rr); }
+      var c = document.createElement('canvas'); c.width = w; c.height = h;
+      c.getContext('2d').drawImage(img, 0, 0, w, h);
+      resolve(c.toDataURL('image/jpeg', 0.7));
+    };
+    img.onerror = function () { URL.revokeObjectURL(url); reject(new Error('Imagen no válida')); };
+    img.src = url;
+  });
+}
+// Archivo (PDF o imagen) → { texto } o { imagenes:[dataURL] } para la IA
+async function _archivoAIA(file) {
+  if (file.type === 'application/pdf') {
+    var pdfjsLib = await _cargarPdfJs();
+    var buf = await file.arrayBuffer();
+    var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+    var maxP = Math.min(pdf.numPages, 5);
+    var textoTotal = '';
+    for (var p = 1; p <= maxP; p++) {
+      var page = await pdf.getPage(p);
+      var tc = await page.getTextContent();
+      textoTotal += tc.items.map(function (it) { return it.str; }).join(' ') + '\n';
+    }
+    if (textoTotal.trim().length > 40) return { texto: textoTotal.slice(0, 20000) };
+    // PDF escaneado (sin texto): renderizar páginas a imagen para visión
+    var imagenes = [];
+    for (var pg = 1; pg <= maxP; pg++) {
+      var pageR = await pdf.getPage(pg);
+      var vp = pageR.getViewport({ scale: 1.6 });
+      var canvas = document.createElement('canvas');
+      canvas.width = vp.width; canvas.height = vp.height;
+      await pageR.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      imagenes.push(canvas.toDataURL('image/jpeg', 0.7));
+    }
+    return { imagenes: imagenes };
+  }
+  if (/^image\//.test(file.type)) {
+    return { imagenes: [await _comprimirImagenAIA(file)] };
+  }
+  return null;
 }
 function renderPreviewPegado() {
   var prev = document.getElementById('pegPreview');
