@@ -5127,9 +5127,11 @@ function imprimirTicketVenta(id) {
     '<script>window.onload=function(){setTimeout(function(){window.print();},200);}<\/script>' +
     '</body></html>';
 
-  var w = window.open('', '_blank', 'width=380,height=600');
-  if (!w) { toast('Activa pop-ups para imprimir', 'err'); return; }
-  w.document.open(); w.document.write(html); w.document.close();
+  if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintTicket === 'function') {
+    tkPrintTicket(html, 80, function () { _docPopupImprimir(html, 380, 600); });
+    return;
+  }
+  _docPopupImprimir(html, 380, 600);
 }
 
 function reembolsarVenta(id) {
@@ -6870,9 +6872,6 @@ function trackingTicket() {
     qrSvg = qr.createImgTag(6, 8);
   } catch(e) {}
 
-  var w = window.open('', '_blank', 'width=400,height=820');
-  if (!w) { toast('Permite popups para imprimir', 'err'); return; }
-
   var logoBlock = tienda.logo_url
     ? '<div class="logo-img"><img src="' + esc(tienda.logo_url) + '" alt=""></div>'
     : '';
@@ -6880,7 +6879,7 @@ function trackingTicket() {
   var ubic = [tienda.ciudad, tienda.pais].filter(Boolean).join(', ');
   var origin = location.origin;
 
-  w.document.write(
+  var html =
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ticket reparacion</title><style>' +
     '@page { size: 80mm auto; margin: 0; }' +
     'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:80mm;margin:0;padding:5mm 4mm;color:#000;font-size:10.5px;line-height:1.35}' +
@@ -6978,9 +6977,12 @@ function trackingTicket() {
     '<div class="c" style="font-size:9px;color:#888;margin-top:6px;border-top:1px dashed #ccc;padding-top:4px">Generado por TekPair &middot; tekpair.tech</div>' +
 
     '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
-    '</body></html>'
-  );
-  w.document.close();
+    '</body></html>';
+  if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintTicket === 'function') {
+    tkPrintTicket(html, 80, function () { _docPopupImprimir(html, 400, 820); });
+    return;
+  }
+  _docPopupImprimir(html, 400, 820);
 }
 
 function trackingEtiqueta() {
@@ -7000,9 +7002,7 @@ function trackingEtiqueta() {
   // Si fijamos 62x30 el driver lo toma como etiqueta troquelada y avisa "el rollo no coincide".
   var pageCss = m.cont ? (pw + 'mm auto') : (pw + 'mm ' + ph + 'mm');
   var bodyH = m.cont ? ('min-height:' + ph + 'mm') : ('height:' + ph + 'mm');
-  var w = window.open('', '_blank', 'width=500,height=360');
-  if (!w) { toast('Permite popups para imprimir', 'err'); return; }
-  w.document.write(
+  var html =
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiqueta</title><style>' +
     '@page { size: ' + pageCss + '; margin: 0; }' +
     'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;' + bodyH + ';margin:0;padding:1mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box}' +
@@ -7024,9 +7024,12 @@ function trackingEtiqueta() {
     '</div>' +
     '<div style="position:fixed;bottom:1px;left:0;right:0;text-align:center;font-size:5px;color:#999">tekpair.tech</div>' +
     '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
-    '</body></html>'
-  );
-  w.document.close();
+    '</body></html>';
+  if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintLabel === 'function') {
+    tkPrintLabel(html, pw, m.cont ? null : ph, function () { _etqPopupImprimir(html); });
+    return;
+  }
+  _etqPopupImprimir(html);
 }
 
 // Tamaños de etiqueta soportados (ancho x alto en mm). El usuario elige en Ajustes.
@@ -7137,6 +7140,13 @@ function _etqPopupImprimir(fullHtml) {
   if (!w) { toast(T('etq.popup') || 'Permite popups para imprimir', 'err'); return; }
   w.document.write(fullHtml);
   w.document.close();
+}
+
+// Popup genérico para tickets/recibos (tamaño de ventana configurable).
+function _docPopupImprimir(html, vw, vh) {
+  var w = window.open('', '_blank', 'width=' + (vw || 400) + ',height=' + (vh || 700));
+  if (!w) { toast('Permite popups para imprimir', 'err'); return; }
+  w.document.open(); w.document.write(html); w.document.close();
 }
 
 function esc(s) {

@@ -31,7 +31,7 @@
     }).catch(function () { return []; });
   }
 
-  var PRINTER_KEY = 'tk_impresora_etq';
+  var DEFAULT_KEY = 'tk_impresora_etq';
 
   // Selector de impresora minimalista (overlay propio, sin depender de los modales del SPA).
   function _elegirImpresora(lista) {
@@ -64,22 +64,23 @@
     });
   }
 
-  // Devuelve la impresora guardada; si no hay (o force), pide elegir y la guarda.
-  function tkGetPrinter(force) {
+  // Devuelve la impresora guardada para `key`; si no hay (o force), pide elegir y la guarda.
+  // Cada tipo de documento usa su propia key (etiquetas / tickets), así pueden ir a
+  // impresoras distintas (etiquetadora vs impresora de tickets).
+  function tkGetPrinter(force, key) {
+    key = key || DEFAULT_KEY;
     var saved = '';
-    try { saved = localStorage.getItem(PRINTER_KEY) || ''; } catch (e) {}
+    try { saved = localStorage.getItem(key) || ''; } catch (e) {}
     if (saved && !force) return Promise.resolve(saved);
     return tkListPrinters().then(function (lista) {
-      // Si la guardada ya no existe, también re-elige
-      if (saved && !force && lista.indexOf(saved) !== -1) return saved;
       return _elegirImpresora(lista).then(function (sel) {
-        if (sel) { try { localStorage.setItem(PRINTER_KEY, sel); } catch (e) {} }
+        if (sel) { try { localStorage.setItem(key, sel); } catch (e) {} }
         return sel;
       });
     });
   }
   window.tkGetPrinter = tkGetPrinter;
-  window.tkChangePrinter = function () { return tkGetPrinter(true); };
+  window.tkChangePrinter = function (key) { return tkGetPrinter(true, key); };
 
   // Carga html2canvas bajo demanda (solo en la app de escritorio).
   var _h2cPromise = null;
@@ -101,14 +102,15 @@
     return _loadHtml2canvas().then(function (html2canvas) {
       return new Promise(function (resolve, reject) {
         var ifr = document.createElement('iframe');
+        var hpx = hmm ? Math.ceil(hmm * 4 + 40) : 4000; // hmm null (tickets) -> iframe alto; se recorta al contenido
         ifr.style.cssText = 'position:fixed;left:-10000px;top:0;border:0;background:#fff;width:' +
-          Math.ceil(wmm * 4 + 40) + 'px;height:' + Math.ceil(hmm * 4 + 40) + 'px';
+          Math.ceil(wmm * 4 + 40) + 'px;height:' + hpx + 'px';
         document.body.appendChild(ifr);
         var doc = ifr.contentWindow.document;
         doc.open(); doc.write(fullHtml); doc.close();
         // Espera a que el layout y las imágenes (QR/logo) estén listas.
         setTimeout(function () {
-          html2canvas(doc.body, { scale: 3, backgroundColor: '#ffffff', logging: false })
+          html2canvas(doc.body, { scale: 3, backgroundColor: '#ffffff', logging: false, windowWidth: doc.body.scrollWidth, windowHeight: doc.body.scrollHeight })
             .then(function (canvas) { try { document.body.removeChild(ifr); } catch (e) {} resolve(canvas); })
             .catch(function (err) { try { document.body.removeChild(ifr); } catch (e) {} reject(err); });
         }, 350);
@@ -127,27 +129,45 @@
     });
   }
 
-  // API principal: imprime la etiqueta en silencio. Si falla, usa fallbackFn().
-  function tkPrintLabel(fullHtml, wmm, hmm, fallbackFn) {
+  // Núcleo: renderiza HTML -> PNG -> impresión nativa silenciosa. Si falla, usa fallback.
+  //   opts = { wmm, hmm (null = alto automático), printerKey, label, fallback }
+  function tkPrintHTML(fullHtml, opts) {
+    opts = opts || {};
+    var wmm = opts.wmm || 50;
+    var key = opts.printerKey || DEFAULT_KEY;
+    var nombre = opts.label || 'Documento';
     function fall(msg) {
       if (msg && typeof toast === 'function') toast(msg, 'err');
-      if (typeof fallbackFn === 'function') fallbackFn();
+      if (typeof opts.fallback === 'function') opts.fallback();
     }
-    tkGetPrinter(false).then(function (printer) {
+    tkGetPrinter(false, key).then(function (printer) {
       if (!printer) { fall(''); return; }  // canceló el selector → vuelve al diálogo
-      _htmlACanvas(fullHtml, wmm, hmm).then(function (canvas) {
+      _htmlACanvas(fullHtml, wmm, opts.hmm).then(function (canvas) {
+        // Si el alto es automático, lo deduce del aspecto del render (para el media de Mac).
+        var hmm = opts.hmm || Math.max(10, Math.round(wmm * canvas.height / Math.max(1, canvas.width)));
         _canvasABytes(canvas).then(function (bytes) {
           tkInvoke('print_label', {
             printer: printer, data: bytes,
-            widthMm: wmm || 50, heightMm: hmm || 30, copies: 1
+            widthMm: wmm, heightMm: hmm, copies: 1
           }).then(function () {
-            if (typeof toast === 'function') toast('🖨️ Etiqueta enviada a ' + printer, 'ok');
+            if (typeof toast === 'function') toast('🖨️ ' + nombre + ' → ' + printer, 'ok');
           }).catch(function (err) {
             fall('Error al imprimir: ' + (err && err.message ? err.message : err));
           });
-        }).catch(function () { fall('No se pudo preparar la etiqueta'); });
-      }).catch(function () { fall('No se pudo renderizar la etiqueta'); });
+        }).catch(function () { fall('No se pudo preparar la imagen'); });
+      }).catch(function () { fall('No se pudo renderizar el documento'); });
     }).catch(function () { fall(''); });
   }
+  window.tkPrintHTML = tkPrintHTML;
+
+  // Atajos por tipo de documento (cada uno recuerda su propia impresora).
+  function tkPrintLabel(fullHtml, wmm, hmm, fallbackFn) {
+    tkPrintHTML(fullHtml, { wmm: wmm, hmm: hmm, printerKey: 'tk_impresora_etq', label: 'Etiqueta', fallback: fallbackFn });
+  }
   window.tkPrintLabel = tkPrintLabel;
+
+  function tkPrintTicket(fullHtml, wmm, fallbackFn) {
+    tkPrintHTML(fullHtml, { wmm: wmm || 80, hmm: null, printerKey: 'tk_impresora_ticket', label: 'Ticket', fallback: fallbackFn });
+  }
+  window.tkPrintTicket = tkPrintTicket;
 })();
