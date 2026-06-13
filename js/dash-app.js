@@ -72,7 +72,7 @@ var PLAN_FEATURES = {
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
-           'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado',
+           'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
            'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica'],
@@ -80,7 +80,7 @@ var PLAN_FEATURES = {
            'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
-           'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado',
+           'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
            'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica']
@@ -202,7 +202,8 @@ function mostrarModalUpgrade(featureName, planRequerido) {
     ubicaciones: '📍 Ubicaciones múltiples',
     analitica: '📊 Analítica avanzada',
     financiado: '💰 Financiación a plazos',
-    inicio_avanzado: '🆕 Inicio nuevo con Tablero'
+    inicio_avanzado: '🆕 Inicio nuevo con Tablero',
+    ia: '🤖 Funciones con IA (pegar pedido, factura con foto)'
   })[featureName] || featureName;
   var planLabel = ({basico:'Básico', pro:'Pro', premium:'Premium', top:'Premium'})[planRequerido] || planRequerido;
   document.getElementById('upgFeatName').textContent = feat;
@@ -1089,6 +1090,7 @@ function renderPedItems() {
 }
 // ═══ PEGAR PEDIDO (IA Gemini): pegar email/albarán → extraer líneas → revisar → añadir ═══
 function abrirPegarPedido() {
+  if (typeof checkFeature === 'function' && !checkFeature('ia')) return;  // IA solo Premium
   var t = document.getElementById('pegTexto'); if (t) t.value = '';
   var p = document.getElementById('pegPreview'); if (p) p.innerHTML = '';
   var cr = document.getElementById('pegConfirmRow'); if (cr) cr.style.display = 'none';
@@ -1206,6 +1208,7 @@ async function _archivoAIA(file) {
 
 // ═══ FACTURA CON IA: foto/PDF de factura → datos → crear gasto (con la factura adjunta) ═══
 function abrirFacturaIA() {
+  if (typeof checkFeature === 'function' && !checkFeature('ia')) return;  // IA solo Premium
   var t = document.getElementById('facIaTexto'); if (t) t.value = '';
   var p = document.getElementById('facIaPreview'); if (p) p.innerHTML = '';
   var cr = document.getElementById('facIaConfirm'); if (cr) cr.style.display = 'none';
