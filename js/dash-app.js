@@ -4964,6 +4964,9 @@ function guardarVenta() {
   var entrada = 0;
   if (esFinanciado) {
     entrada = parseFloat(document.getElementById('vEntrada').value) || 0;
+    if (entrada > 0 && !((document.getElementById('vEntradaPago') || {}).value || '')) {
+      toast('Elige cómo se pagó la entrada', 'err'); return;
+    }
     var numCuotas = parseInt(document.getElementById('vNumCuotas').value) || 3;
     var diaPago = parseInt(document.getElementById('vDiaPago').value) || 8;
     // Cuotas redondeadas a 2 decimales; el residuo se mete en la última cuota
@@ -7653,7 +7656,8 @@ function guardarRep() {
   if (esFinRep) {
     finEntrada = parseFloat(document.getElementById('rFinEntrada').value) || 0;
     if (finEntrada > total) { toast('La entrada no puede superar el total', 'err'); return; }
-    finEntradaPago = document.getElementById('rFinEntradaPago').value || 'Efectivo';
+    finEntradaPago = document.getElementById('rFinEntradaPago').value || '';
+    if (finEntrada > 0 && !finEntradaPago) { toast('Elige cómo se pagó la entrada', 'err'); return; }
     finCuotas = generarCuotasRep(total);
     anticipo = finEntrada; // en financiado, lo pagado de inicio es la entrada
   }
