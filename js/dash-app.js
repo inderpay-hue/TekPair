@@ -2382,7 +2382,11 @@ function mapVenta(v) {
     descuento:parseFloat(v.descuento)||0, total:parseFloat(v.total)||0,
     reembolsado:v.reembolsado||false, fechaReembolso:v.fecha_reembolso||'',
     stockId:v.stock_id||'', financiado:v.financiado||false,
-    cuotas:v.cuotas?(typeof v.cuotas==='string'?JSON.parse(v.cuotas):v.cuotas):null, entrada:parseFloat(v.entrada)||0, entradaPago:v.entrada_pago||null
+    cuotas:v.cuotas?(typeof v.cuotas==='string'?JSON.parse(v.cuotas):v.cuotas):null, entrada:parseFloat(v.entrada)||0, entradaPago:v.entrada_pago||null,
+    // IVA: estaba sin mapear → las facturas salían con IVA 0 al recargar / en otros equipos.
+    iva:parseFloat(v.iva)||0, ivaModo:v.iva_modo||'sin', base:parseFloat(v.base)||0, ivaImporte:parseFloat(v.iva_importe)||0,
+    // Líneas de la venta (carrito multiproducto del TPV). Si la columna no existe aún, queda null.
+    items: (function(){ try { return v.items ? (typeof v.items==='string'?JSON.parse(v.items):v.items) : null; } catch(e){ return null; } })()
   };
 }
 
