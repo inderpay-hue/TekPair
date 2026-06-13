@@ -1580,7 +1580,8 @@ function cobrar() {
       total: venta.total, reembolsado: false, financiado: venta.financiado,
       cuotas: venta.cuotas ? JSON.stringify(venta.cuotas) : null, entrada: venta.entrada || 0,
       entrada_pago: venta.entradaPago || null,
-      iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte
+      iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte,
+      items: (venta.items && venta.items.length) ? JSON.stringify(venta.items) : null
     });
   }
 

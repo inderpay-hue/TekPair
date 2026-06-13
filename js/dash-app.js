@@ -4995,7 +4995,8 @@ function guardarVenta() {
     financiado: esFinanciado,
     cuotas: cuotas,
     entrada: entrada,
-    entradaPago: (esFinanciado && entrada > 0) ? ((document.getElementById('vEntradaPago') || {}).value || 'Efectivo') : null
+    entradaPago: (esFinanciado && entrada > 0) ? ((document.getElementById('vEntradaPago') || {}).value || 'Efectivo') : null,
+    items: [{ nombre: (((SEL.vStock ? ((SEL.vStock.marca || '') + ' ' + (SEL.vStock.modelo || '')) : '').trim()) || 'Venta'), qty: 1, precio: precio }]
   };
 
   // Reduce stock
@@ -5027,7 +5028,8 @@ function guardarVenta() {
       total: venta.total, stock_id: venta.stockId || null,
       reembolsado: false, financiado: venta.financiado,
       cuotas: cuotas ? JSON.stringify(cuotas) : null, entrada: entrada, entrada_pago: venta.entradaPago || null,
-      iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte
+      iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte,
+      items: (venta.items && venta.items.length) ? JSON.stringify(venta.items) : null
     });
   }
 
