@@ -559,12 +559,15 @@ window.addEventListener('DOMContentLoaded', function() {
   if (SB_KEY && TIENDA_ID) {
     syncCompleto(true).then(function() { cargarNotas(); iniciarRefrescoNotas(); cargarModelosCustom(); });
     cargarModelosPre();
+    try { _initRealtime(); } catch(e){}
   }
 
-  // Sync continua: cuando vuelves a la pestaña + cada 60s
+  // Sync continua: cuando vuelves a la pestaña + red de seguridad cada 60s.
+  // Con Realtime conectado (_rtReady) los cambios llegan al instante por websocket,
+  // así que el poll de 60s solo se dispara como fallback si el websocket está caído.
   window.addEventListener('focus', function(){ syncCompleto(true); });
   window.addEventListener('visibilitychange', function(){ if (!document.hidden) syncCompleto(true); });
-  setInterval(function(){ if (!document.hidden) syncCompleto(true); }, 60000);
+  setInterval(function(){ if (!document.hidden && !_rtReady) syncCompleto(true); }, 60000);
 
   // Admin check
   if (!U.rol || U.rol !== 'admin') {
@@ -2527,6 +2530,52 @@ async function syncCompleto(silencioso) {
   } finally {
     _syncEnCurso = false;
   }
+}
+
+// ═══ REALTIME: sincronización instantánea entre dispositivos ═══
+// Abre un websocket a Supabase Realtime y, ante cualquier cambio en las tablas de
+// ESTA tienda hecho desde otro equipo, dispara syncCompleto() al instante (con debounce
+// para colapsar ráfagas). Reutiliza toda la lógica de descarga/render ya existente.
+// Requiere SQL: tablas en la publicación supabase_realtime + replica identity full.
+var _rtClient = null, _rtChannel = null, _rtTimer = null, _rtReady = false, _rtInit = false;
+function _rtSyncDebounced() {
+  if (_rtTimer) clearTimeout(_rtTimer);
+  _rtTimer = setTimeout(function () {
+    _rtTimer = null;
+    if (typeof syncCompleto === 'function' && !document.hidden) syncCompleto(true);
+  }, 600);
+}
+function _initRealtime() {
+  if (_rtInit || !SB_KEY || !TIENDA_ID || typeof JWT_TOKEN === 'undefined' || !JWT_TOKEN) return;
+  _rtInit = true;
+  function start() {
+    try {
+      if (!window.supabase || !window.supabase.createClient) { _rtInit = false; return; }
+      _rtClient = window.supabase.createClient(SUPABASE_URL, SB_KEY, {
+        auth: { persistSession: false, autoRefreshToken: false }
+      });
+      _rtClient.realtime.setAuth(JWT_TOKEN);
+      var TABLAS = ['reparaciones', 'ventas', 'stock', 'clientes', 'gastos', 'proveedores',
+        'pedidos', 'gastos_recurrentes', 'pagos_proveedor', 'servicios', 'citas', 'tiendas'];
+      var ch = _rtClient.channel('tk-' + TIENDA_ID);
+      TABLAS.forEach(function (tbl) {
+        var filtro = (tbl === 'tiendas') ? ('id=eq.' + TIENDA_ID) : ('tienda_id=eq.' + TIENDA_ID);
+        ch.on('postgres_changes', { event: '*', schema: 'public', table: tbl, filter: filtro }, _rtSyncDebounced);
+      });
+      ch.subscribe(function (status) {
+        _rtReady = (status === 'SUBSCRIBED');
+        try { console.log('[Realtime]', status); } catch (e) {}
+      });
+      _rtChannel = ch;
+    } catch (e) { _rtInit = false; try { console.warn('Realtime init:', e); } catch (e2) {} }
+  }
+  if (window.supabase && window.supabase.createClient) { start(); return; }
+  var s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js';
+  s.async = true;
+  s.onload = start;
+  s.onerror = function () { _rtInit = false; try { console.warn('Realtime: sin supabase-js (seguimos con poll 60s)'); } catch (e) {} };
+  document.head.appendChild(s);
 }
 
 // ═══ SESION EXPIRADA (JWT 401 handler) ═══
