@@ -2857,6 +2857,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <p style="font-size:11.5px;color:var(--muted);margin:2px 2px 0"><span data-t="etq.tam_ayuda">Elige el rollo que tienes puesto. Las etiquetas de venta y reparación se ajustan a esta medida. Recuerda poner el mismo tamaño en el driver de la impresora.</span></p>
     </div>
 
+    <!-- Solo visible dentro de la app de escritorio (TekPair Desktop) -->
+    <div class="card" id="ajImpresorasCard" style="display:none">
+      <div class="card-title">🖨️ Impresoras (app de escritorio)</div>
+      <p style="font-size:11.5px;color:var(--muted);margin:0 2px 10px">Elige a qué impresora salen las etiquetas y los tickets/recibos sin diálogo. Solo afecta a esta app instalada en este equipo.</p>
+      <div class="fg" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="min-width:0"><label class="fl">Etiquetas</label><div id="ajImpEtq" style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div></div>
+        <button onclick="cambiarImpresora('etq')" style="padding:7px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;cursor:pointer;font-size:12px;white-space:nowrap">Cambiar</button>
+      </div>
+      <div class="fg" style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+        <div style="min-width:0"><label class="fl">Tickets / recibos</label><div id="ajImpTicket" style="font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">—</div></div>
+        <button onclick="cambiarImpresora('ticket')" style="padding:7px 14px;border:1px solid #cbd5e1;border-radius:8px;background:#f8fafc;cursor:pointer;font-size:12px;white-space:nowrap">Cambiar</button>
+      </div>
+    </div>
+
     <button class="btn-primary" onclick="guardarAjustes()">Guardar preferencias</button>
   </div>
 
@@ -4397,7 +4411,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260615tickets"></script>
+<script src="/js/dash-app.js?v=20260615imprAjustes"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

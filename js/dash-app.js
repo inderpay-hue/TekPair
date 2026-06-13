@@ -12132,6 +12132,29 @@ function cargarAjustes() {
   document.getElementById('ajPlantillaCumple').value = (AJUSTES.notif && AJUSTES.notif.plantillaCumple) || '¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉';
   document.getElementById('ajDiasAbandono').value = (AJUSTES.notif && AJUSTES.notif.diasAbandono) || 90;
   toggleCumpleCfg();
+  try { _renderImpresorasAjustes(); } catch (e) {}
+}
+
+// Tarjeta de impresoras en Ajustes (solo dentro de la app de escritorio Tauri).
+function _renderImpresorasAjustes() {
+  var card = document.getElementById('ajImpresorasCard');
+  if (!card) return;
+  var desktop = (typeof tkIsDesktop === 'function' && tkIsDesktop());
+  card.style.display = desktop ? '' : 'none';
+  if (!desktop) return;
+  try {
+    var e = localStorage.getItem('tk_impresora_etq') || '(sin elegir)';
+    var t = localStorage.getItem('tk_impresora_ticket') || '(sin elegir)';
+    var eEl = document.getElementById('ajImpEtq'); if (eEl) eEl.textContent = e;
+    var tEl = document.getElementById('ajImpTicket'); if (tEl) tEl.textContent = t;
+  } catch (err) {}
+}
+
+// Abre el selector de impresora para etiquetas o tickets y refresca la tarjeta.
+function cambiarImpresora(tipo) {
+  if (typeof tkChangePrinter !== 'function') { toast('Solo disponible en la app de escritorio', 'err'); return; }
+  var key = (tipo === 'ticket') ? 'tk_impresora_ticket' : 'tk_impresora_etq';
+  tkChangePrinter(key).then(function () { _renderImpresorasAjustes(); });
 }
 
 function toggleIvaCfg() {
