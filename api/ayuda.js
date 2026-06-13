@@ -201,7 +201,9 @@ async function parsePedidoIA(req, res) {
   const GROQ_KEY = process.env.GROQ_API_KEY;
   if (!GROQ_KEY) return res.status(503).json({ error: 'IA no configurada (falta GROQ_API_KEY en el servidor)' });
   const texto = String((req.body && req.body.texto) || '').trim().slice(0, 20000);
-  if (!texto) return res.status(400).json({ error: 'Texto vacío' });
+  const imagenes = Array.isArray(req.body && req.body.imagenes)
+    ? req.body.imagenes.filter((u) => typeof u === 'string' && u.startsWith('data:image')).slice(0, 5) : [];
+  if (!texto && !imagenes.length) return res.status(400).json({ error: 'Texto vacío' });
 
   const sistema = 'Eres un extractor de pedidos de proveedor para una tienda de reparación de móviles. ' +
     'Recibes el texto pegado de un email o albarán (desordenado, multilínea) y devuelves SOLO un JSON válido. ' +
@@ -217,18 +219,27 @@ async function parsePedidoIA(req, res) {
     'Ignora líneas de Subtotal, Envío, Método de pago, TOTAL y cabeceras de tabla. No inventes productos.';
 
   try {
+    const cuerpo = imagenes.length ? {
+      // Visión (foto/PDF escaneado): modelo con visión de Groq
+      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      temperature: 0,
+      messages: [
+        { role: 'system', content: sistema },
+        { role: 'user', content: [{ type: 'text', text: 'Extrae los productos de este pedido/albarán (puede tener varias páginas):' }].concat(imagenes.map((u) => ({ type: 'image_url', image_url: { url: u } }))) }
+      ]
+    } : {
+      model: 'llama-3.3-70b-versatile',
+      temperature: 0,
+      response_format: { type: 'json_object' },
+      messages: [
+        { role: 'system', content: sistema },
+        { role: 'user', content: 'PEDIDO:\n' + texto }
+      ]
+    };
     const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
-      body: JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
-        temperature: 0,
-        response_format: { type: 'json_object' },
-        messages: [
-          { role: 'system', content: sistema },
-          { role: 'user', content: 'PEDIDO:\n' + texto }
-        ]
-      })
+      body: JSON.stringify(cuerpo)
     });
     if (!r.ok) {
       const t = await r.text();
