@@ -1563,7 +1563,7 @@ function recibirTodosPedidos() {
     if (_esImeiCat(cat)) {
       var raw = prompt((T('pedidos.imeis_prompt') || 'IMEIs de "{pieza}" ({n} uds), uno por línea:').replace('{pieza}', p.pieza || '').replace('{n}', uds), '');
       if (raw == null) { saltados++; return; }
-      var imeis = String(raw).split(/[\s,;]+/).map(function (s) { return s.trim(); }).filter(Boolean).slice(0, 50);
+      var imeis = String(raw).split(/[\s,;]+/).map(function (s) { return s.trim(); }).filter(Boolean).filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 50);
       if (!imeis.length) { saltados++; return; }
       if (imeis.length !== uds && !confirm((T('pedidos.imeis_descuadre') || 'Has puesto {a} IMEI(s) pero el pedido es de {b} ud. Se registrarán solo {a} en stock. ¿Continuar?').replace(/{a}/g, imeis.length).replace('{b}', uds))) { saltados++; return; }
       _recibirImeisDePedido(p, imeis, cat);
@@ -1601,7 +1601,7 @@ function recibirGrupo(encKey) {
     if (_esImeiCat(cat)) {
       var raw = prompt((T('pedidos.imeis_prompt') || 'IMEIs de "{pieza}" ({n} uds), uno por línea:').replace('{pieza}', p.pieza || '').replace('{n}', uds), '');
       if (raw == null) { saltados++; return; }
-      var imeis = String(raw).split(/[\s,;]+/).map(function(s) { return s.trim(); }).filter(Boolean).slice(0, 50);
+      var imeis = String(raw).split(/[\s,;]+/).map(function(s) { return s.trim(); }).filter(Boolean).filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 50);
       if (!imeis.length) { saltados++; return; }
       if (imeis.length !== uds && !confirm((T('pedidos.imeis_descuadre') || 'Has puesto {a} IMEI(s) pero el pedido es de {b} ud. Se registrarán solo {a} en stock. ¿Continuar?').replace(/{a}/g, imeis.length).replace('{b}', uds))) { saltados++; return; }
       _recibirImeisDePedido(p, imeis, cat);
@@ -1962,6 +1962,8 @@ function closeM(id) {
   if (el) el.classList.remove('open');
   // PRES-8: si cierras el modal de reparación, asegúrate de limpiar modo presupuesto
   if (id === 'mRep' && typeof _limpiarModoPresupuesto === 'function') _limpiarModoPresupuesto();
+  // Cancelar la edición de un gasto: que no quede "pegado" en modo edición.
+  if (id === 'mGasto' && typeof SEL === 'object' && SEL) SEL.editGastoId = null;
 }
 
 // ═══ TOAST ═══
@@ -10599,12 +10601,18 @@ function abrirNuevoGasto() {
 
 // Abre el modal en modo EDICIÓN, pre-rellenado con los datos del gasto.
 function editarGasto(id) {
-  if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  if (!tienePerm('gastos_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var g = (DB.gastos || []).find(function (x) { return x.id === id; });
   if (!g) { toast(T('gen.error'), 'err'); return; }
   if (typeof SEL !== 'object' || !SEL) window.SEL = {};
   SEL.editGastoId = id;
   var set = function (eid, val) { var e = document.getElementById(eid); if (e) e.value = val; };
+  // Si la categoría del gasto no está entre las opciones (p. ej. de una factura IA),
+  // la añadimos para no perderla al pre-rellenar y que no cambie sola al guardar.
+  var catSel = document.getElementById('gCat');
+  if (catSel && g.categoria && !Array.prototype.some.call(catSel.options, function (o) { return o.value === g.categoria; })) {
+    var opt = document.createElement('option'); opt.value = g.categoria; opt.textContent = g.categoria; catSel.appendChild(opt);
+  }
   set('gConc', g.concepto || '');
   set('gImp', g.importe != null ? g.importe : 0);
   set('gFecha', (g.fecha || '').slice(0, 10));
@@ -10621,7 +10629,8 @@ function editarGasto(id) {
 }
 
 function guardarGasto() {
-  if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var _esEdit = !!(typeof SEL === 'object' && SEL && SEL.editGastoId);
+  if (!tienePerm(_esEdit ? 'gastos_editar' : 'gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var conc = document.getElementById('gConc').value.trim();
   if (!conc) { toast('Escribe un concepto', 'err'); return; }
   var catEl = document.getElementById('gCat');
