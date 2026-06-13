@@ -905,6 +905,8 @@ function _pedModo(multi) {
   // Total real + factura: solo en pedido NUEVO (es a nivel de pedido, no de línea suelta)
   var trw = document.getElementById('pedTotalRealWrap');
   if (trw) trw.style.display = multi ? '' : 'none';
+  var bpp = document.getElementById('btnPegarPedido');
+  if (bpp) bpp.style.display = multi ? '' : 'none';
 }
 // Aviso "los IMEIs se piden al recibir" — solo en categorías con IMEI
 function actualizarHintPedido() {
@@ -1085,6 +1087,81 @@ function renderPedItems() {
       '<button onclick="pedDelItem(' + i + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:15px;line-height:1">×</button></div>';
   }).join('') + '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;padding:4px 2px"><span>' + items.length + ' ' + T('pedidos.lineas') + '</span>' + (tot > 0 ? '<span>' + cur(tot) + '</span>' : '') + '</div>';
 }
+// ═══ PEGAR PEDIDO (IA Gemini): pegar email/albarán → extraer líneas → revisar → añadir ═══
+function abrirPegarPedido() {
+  var t = document.getElementById('pegTexto'); if (t) t.value = '';
+  var p = document.getElementById('pegPreview'); if (p) p.innerHTML = '';
+  var cr = document.getElementById('pegConfirmRow'); if (cr) cr.style.display = 'none';
+  window._pegLineas = [];
+  openM('mPegarPedido');
+}
+async function analizarPedidoPegado() {
+  var texto = ((document.getElementById('pegTexto') || {}).value || '').trim();
+  if (texto.length < 5) { toast(T('pedidos.pegar_vacio') || 'Pega el pedido primero', 'err'); return; }
+  var btn = document.getElementById('pegAnalizarBtn');
+  var prev = document.getElementById('pegPreview');
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + (T('pedidos.pegar_analizando') || 'Analizando…'); }
+  if (prev) prev.innerHTML = '';
+  try {
+    var r = await fetch('/api/ayuda?action=parse-pedido', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN },
+      body: JSON.stringify({ action: 'parse-pedido', texto: texto.slice(0, 20000) })
+    });
+    var data = await r.json();
+    if (!r.ok || !data.ok) { toast('⚠️ ' + (data.error || 'No se pudo analizar'), 'err'); return; }
+    var lineas = data.lineas || [];
+    if (!lineas.length) { if (prev) prev.innerHTML = '<div style="padding:14px;text-align:center;color:var(--muted)">' + (T('pedidos.pegar_sin_lineas') || 'No se detectaron productos. Revisa el texto.') + '</div>'; return; }
+    window._pegLineas = lineas;
+    renderPreviewPegado();
+  } catch (e) {
+    console.error('analizarPedidoPegado:', e);
+    toast('⚠️ Error al analizar el pedido', 'err');
+  } finally {
+    if (btn) { btn.disabled = false; btn.innerHTML = '✨ ' + (T('pedidos.pegar_analizar') || 'Analizar con IA'); }
+  }
+}
+function renderPreviewPegado() {
+  var prev = document.getElementById('pegPreview');
+  if (!prev) return;
+  var cats = ['Telefono', 'Tablet', 'Smartwatch', 'Pantalla', 'Tapa', 'Bateria', 'Flex de Carga', 'Altavoz', 'Repuesto', 'Accesorio', 'Funda', 'Otro'];
+  var lineas = window._pegLineas || [];
+  prev.innerHTML = '<div style="font-size:12px;font-weight:700;margin-bottom:6px">' + lineas.length + ' ' + (T('pedidos.lineas') || 'líneas') + ' — ' + (T('pedidos.pegar_revisa') || 'revisa y edita') + '</div>' +
+    lineas.map(function (l, i) {
+      var catOpts = cats.map(function (c) { return '<option value="' + c + '"' + (c === l.categoria ? ' selected' : '') + '>' + esc(c) + '</option>'; }).join('');
+      return '<div style="border:1px solid var(--border);border-radius:9px;padding:8px;margin-bottom:6px">' +
+        '<input class="fi" style="font-size:12.5px;margin-bottom:5px" value="' + esc(l.pieza || '') + '" oninput="window._pegLineas[' + i + '].pieza=this.value">' +
+        '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
+          '<select class="fi" style="flex:1.4;min-width:120px;font-size:11.5px;padding:5px" onchange="window._pegLineas[' + i + '].categoria=this.value">' + catOpts + '</select>' +
+          '<input class="fi" type="number" min="1" style="width:54px;font-size:11.5px;padding:5px" title="Cantidad" value="' + (parseInt(l.cantidad, 10) || 1) + '" oninput="window._pegLineas[' + i + '].cantidad=parseInt(this.value,10)||1">' +
+          '<input class="fi" type="number" step="0.01" style="width:76px;font-size:11.5px;padding:5px" title="Compra €" placeholder="compra" value="' + (parseFloat(l.precio_compra) || 0) + '" oninput="window._pegLineas[' + i + '].precio_compra=parseFloat(this.value)||0">' +
+          '<input class="fi" type="number" step="0.01" style="width:76px;font-size:11.5px;padding:5px" title="Venta €" placeholder="venta" value="' + ((parseFloat(l.precio_venta) || 0) || '') + '" oninput="window._pegLineas[' + i + '].precio_venta=parseFloat(this.value)||0">' +
+          '<button class="btn-sm" style="background:rgba(239,68,68,.1);color:var(--red);padding:5px 8px;border:none;border-radius:6px;cursor:pointer" onclick="window._pegLineas.splice(' + i + ',1);renderPreviewPegado()">🗑️</button>' +
+        '</div></div>';
+    }).join('');
+  var cr = document.getElementById('pegConfirmRow');
+  if (cr) cr.style.display = lineas.length ? 'flex' : 'none';
+}
+function confirmarPedidoPegado() {
+  var lineas = window._pegLineas || [];
+  if (!lineas.length) { closeM('mPegarPedido'); return; }
+  window._pedItems = window._pedItems || [];
+  lineas.forEach(function (l) {
+    var cant = parseInt(l.cantidad, 10) || 1;
+    var compra = parseFloat(l.precio_compra) || 0;
+    window._pedItems.push({
+      marca: l.marca || '', pieza: l.pieza || '', categoria: l.categoria || 'Otros', calidad: l.calidad || '',
+      cantidad: cant, precio_compra: compra, precio_venta: parseFloat(l.precio_venta) || 0,
+      importe: Math.round(compra * cant * 100) / 100
+    });
+  });
+  var n = lineas.length;
+  window._pegLineas = [];
+  closeM('mPegarPedido');
+  renderPedItems();
+  toast((T('pedidos.pegar_anadidas') || 'Líneas añadidas') + ': ' + n, 'ok');
+}
+
 async function guardarPedido() {
   DB.pedidos = DB.pedidos || [];
   // EDITAR: un solo pedido
