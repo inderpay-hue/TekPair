@@ -1302,7 +1302,7 @@ function addToCart(id, esServicio) {
       id: p.id + '_' + Date.now(), nombre: nombreProd,
       precio: precioCustom, qty: 1,
       esServicio: p.esServicio || false, stockMax: p.unidades,
-      precioVariable: true, idOriginal: p.id
+      precioVariable: true, idOriginal: p.id, imei: p.imei || ''
     });
     renderCart();
     toast('Anadido', 'ok');
@@ -1318,7 +1318,7 @@ function addToCart(id, esServicio) {
     cart.push({
       id: p.id, nombre: nombreProd,
       precio: precioBase, qty: 1,
-      esServicio: p.esServicio || false, stockMax: p.unidades
+      esServicio: p.esServicio || false, stockMax: p.unidades, imei: p.imei || ''
     });
   }
   renderCart();
@@ -1461,7 +1461,9 @@ function calcCambio() {
 function toggleNumpad() {
   var w = document.getElementById('numpadWrap');
   if (!w) return;
-  var abrir = (w.style.display === 'none' || !w.style.display);
+  // Solo está plegado cuando display === 'none' (arranca así). Si está visible (''),
+  // el segundo clic lo pliega. Antes "!display" trataba '' como cerrado y nunca plegaba.
+  var abrir = (w.style.display === 'none');
   w.style.display = abrir ? '' : 'none';
   if (abrir) { try { w.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); } catch (e) {} }
 }
