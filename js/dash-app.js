@@ -560,6 +560,8 @@ window.addEventListener('DOMContentLoaded', function() {
     syncCompleto(true).then(function() { cargarNotas(); iniciarRefrescoNotas(); cargarModelosCustom(); });
     cargarModelosPre();
     try { _initRealtime(); } catch(e){}
+    // Si hoy ya se cerró pero el envío a Cobrum falló, reintenta al abrir.
+    setTimeout(function () { try { _enviarCierreCobrumPendiente(); } catch (e) {} }, 8000);
   }
 
   // Sync continua: cuando vuelves a la pestaña + red de seguridad cada 60s.
@@ -992,6 +994,7 @@ function nuevoPedido() {
   setTimeout(function() { var e = document.getElementById('pedPieza'); if (e) e.focus(); }, 60);
 }
 function editarPedido(id) {
+  if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var p = (DB.pedidos || []).find(function(x) { return x.id === id; });
   if (!p) return;
   SEL.editPedidoId = id;
@@ -1419,6 +1422,7 @@ async function guardarPedido() {
   toast(T('pedidos.guardado_n').replace('{n}', items.length), 'ok');
 }
 function avanzarPedido(id) {
+  if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var p = (DB.pedidos || []).find(function(x) { return x.id === id; });
   if (!p) return;
   if (p.estado === 'por_pedir') {
@@ -1622,6 +1626,7 @@ function recibirGrupo(encKey) {
   toast((T('pedidos.recibidos_n') || '{n} pedidos recibidos').replace('{n}', recibidos) + (saltados ? ' · ' + saltados + ' ' + (T('pedidos.pendientes_resto') || 'pendientes') : ''), 'ok');
 }
 function eliminarPedido(id) {
+  if (!tienePerm('stock_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   if (!confirm(T('pedidos.confirmar_borrar'))) return;
   DB.pedidos = (DB.pedidos || []).filter(function(x) { return x.id !== id; });
   if (SB_KEY) sbDelete('pedidos', 'id=eq.' + encodeURIComponent(id));
@@ -3225,6 +3230,7 @@ function setPedBuscar(v) { window._pedBuscar = v; renderPedidosPage(); }
 function togglePedAgrupar() { window._pedAgrupar = !window._pedAgrupar; renderPedidosPage(); }
 // Marcar de golpe como "pedido" todos los "por pedir" de un proveedor
 function marcarGrupoPedido(encKey) {
+  if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var key = decodeURIComponent(encKey);
   var sinProv = T('pedidos.sin_proveedor');
   var targets = (DB.pedidos || []).filter(function(p) {
@@ -11090,7 +11096,7 @@ window.enviarReporteCobrum = enviarReporteCobrum;
 // Silencioso, idempotente por fecha (ref=hoy → no duplica), usa el token de localStorage.
 async function enviarHoyACobrum() {
   var token = localStorage.getItem('cobrum_token') || '';
-  if (!token) return; // no configurado → no hace nada
+  if (!token) return 'notoken'; // no configurado → no hace nada
   var d = new Date();
   var hoy = d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
   var porMet = {};
@@ -11109,13 +11115,44 @@ async function enviarHoyACobrum() {
     if (x.reps > 0) lineas.push({ tipo: 'ingreso', cuenta: c, categoria: 'Reparaciones', monto: Math.round(x.reps * 100) / 100 });
     if (x.gastos > 0) lineas.push({ tipo: 'gasto', cuenta: c, categoria: 'Gastos negocio', monto: Math.round(x.gastos * 100) / 100 });
   });
-  if (!lineas.length) return;
+  if (!lineas.length) return 'empty';
   try {
     var resp = await fetch(COBRUM_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': token }, body: JSON.stringify({ source: 'tekpair', fecha: hoy, ref: hoy, lineas: lineas }) });
-    if (resp.ok) toast('Datos del día enviados a Cobrum', 'success');
-  } catch (e) { /* silencioso */ }
+    if (resp.ok) { toast('Datos del día enviados a Cobrum', 'success'); return 'ok'; }
+    return 'fail';
+  } catch (e) { return 'fail'; }
 }
 window.enviarHoyACobrum = enviarHoyACobrum;
+
+// Envío del cierre a Cobrum con AVISO + REINTENTOS. Es idempotente por fecha
+// (ref=hoy → Cobrum no duplica), así que reintentar es seguro. Marca tk_cobrum_enviado
+// (fecha UTC, igual que tk_ult_cierre) para no reenviar de más.
+function _cobrumEnviadoHoy() { return localStorage.getItem('tk_cobrum_enviado') === new Date().toISOString().slice(0, 10); }
+function _marcarCobrumEnviado() { try { localStorage.setItem('tk_cobrum_enviado', new Date().toISOString().slice(0, 10)); } catch (e) {} }
+function _enviarCierreCobrumConReintento(intento) {
+  intento = intento || 0;
+  if (!localStorage.getItem('cobrum_token')) return;   // no configurado
+  if (_cobrumEnviadoHoy()) return;                     // ya enviado hoy
+  enviarHoyACobrum().then(function (st) {
+    if (st === 'ok' || st === 'empty' || st === 'notoken') { _marcarCobrumEnviado(); return; }
+    if (intento < 3) {
+      if (intento === 0) toast('⚠️ No se pudo enviar el cierre a Cobrum. Reintentando…', 'warn');
+      setTimeout(function () { _enviarCierreCobrumConReintento(intento + 1); }, 60000);
+    } else {
+      toast('⚠️ El cierre no llegó a Cobrum. Se reintentará al volver a abrir TekPair.', 'err');
+    }
+  }).catch(function () {
+    if (intento < 3) setTimeout(function () { _enviarCierreCobrumConReintento(intento + 1); }, 60000);
+  });
+}
+// Al arrancar: si hoy ya se hizo el cierre pero Cobrum no lo recibió, reintenta.
+function _enviarCierreCobrumPendiente() {
+  if (localStorage.getItem('tk_ult_cierre') === new Date().toISOString().slice(0, 10) &&
+      localStorage.getItem('cobrum_token') && !_cobrumEnviadoHoy()) {
+    _enviarCierreCobrumConReintento(0);
+  }
+}
+window._enviarCierreCobrumPendiente = _enviarCierreCobrumPendiente;
 
 function renderGraficas(ventas, reps, pagos, fechas) {
   if (typeof Chart === 'undefined') return;
@@ -11645,8 +11682,9 @@ function checkCierreAuto() {
     var hoy = ahora.toISOString().slice(0,10);
     if (ult !== hoy) {
       localStorage.setItem('tk_ult_cierre', hoy);
+      try { localStorage.removeItem('tk_cobrum_enviado'); } catch (e) {} // nuevo cierre → permite reenviar
       cierreDia();
-      try { enviarHoyACobrum(); } catch (e) { /* no romper el cierre */ }
+      try { _enviarCierreCobrumConReintento(0); } catch (e) { /* no romper el cierre */ }
     }
   }
 }
