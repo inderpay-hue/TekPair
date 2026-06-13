@@ -108,7 +108,7 @@
   "redirects": [
     {
       "source": "/descargar",
-      "destination": "https://github.com/inderpay-hue/tekpair-desktop/releases/latest",
+      "destination": "https://github.com/inderpay-hue/tekpair-desktop/releases/latest/download/TekPair-Setup.exe",
       "permanent": false
     }
   ]
