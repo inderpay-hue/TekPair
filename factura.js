@@ -194,14 +194,23 @@
 
     var cli = FACT.datos && FACT.datos.cliente || {};
 
+    // Buscador de cliente: clave cuando la venta se hizo SIN cliente y luego piden factura.
+    // Al elegir uno, se autorrellenan sus datos fiscales y la factura queda vinculada a él.
+    var buscador =
+      '<div style="position:relative;margin-bottom:10px">' +
+        '<input id="factCliBuscar" oninput="window._factBuscarCli()" autocomplete="off" placeholder="🔍 Buscar y asignar cliente..." style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">' +
+        (cli && cli.id ? '<div style="font-size:11px;color:#10B981;margin-top:4px">✓ Cliente asignado: ' + _esc(((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim()) + '</div>' : '') +
+        '<div id="factCliBuscarRes" style="position:absolute;left:0;right:0;top:42px;background:white;border:1px solid #E5E7EB;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:5;max-height:200px;overflow:auto;display:none"></div>' +
+      '</div>';
+
     if (FACT.tipo === 'simplificada') {
       // Solo NIF opcional
-      box.innerHTML =
+      box.innerHTML = buscador +
         '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">Datos cliente (opcional)</div>' +
         '<input id="factCliNif" placeholder="NIF/DNI (opcional)" value="' + _esc(cli.dni || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">';
     } else {
       // Completa: todos los datos
-      box.innerHTML =
+      box.innerHTML = buscador +
         '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">Datos fiscales cliente (obligatorios)</div>' +
         '<input id="factCliNomFiscal" placeholder="Nombre fiscal / Razón social *" value="' + _esc(cli.nombreFiscal || ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim()) + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
         '<input id="factCliNif" placeholder="NIF/CIF *" value="' + _esc(cli.dni || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
@@ -213,6 +222,40 @@
         '</div>';
     }
   }
+
+  // ────────── Buscar / asignar cliente a la factura ──────────
+  window._factBuscarCli = function() {
+    var inp = document.getElementById('factCliBuscar');
+    var res = document.getElementById('factCliBuscarRes');
+    if (!inp || !res) return;
+    var q = (inp.value || '').trim().toLowerCase();
+    if (!q) { res.style.display = 'none'; res.innerHTML = ''; return; }
+    var clis = (window.DB && window.DB.clis) || [];
+    var matches = clis.filter(function(c) {
+      return ((c.nombre || '') + ' ' + (c.apellidos || '') + ' ' + (c.tel || '') + ' ' + (c.dni || '')).toLowerCase().indexOf(q) !== -1;
+    }).slice(0, 6);
+    if (!matches.length) {
+      res.innerHTML = '<div style="padding:9px 11px;color:#94A3B8;font-size:13px">Sin resultados</div>';
+    } else {
+      res.innerHTML = matches.map(function(c) {
+        return '<div onclick="window._factElegirCli(\'' + _esc(c.id) + '\')" style="padding:9px 11px;cursor:pointer;border-bottom:1px solid #F1F5F9;font-size:13px">' +
+          '<strong>' + _esc(((c.nombre || '') + ' ' + (c.apellidos || '')).trim() || 'Cliente') + '</strong>' +
+          (c.tel ? ' &middot; ' + _esc(c.tel) : '') + (c.dni ? ' &middot; ' + _esc(c.dni) : '') + '</div>';
+      }).join('');
+    }
+    res.style.display = 'block';
+  };
+  window._factElegirCli = function(id) {
+    var clis = (window.DB && window.DB.clis) || [];
+    var c = clis.find(function(x) { return x.id === id; });
+    if (!c) return;
+    FACT.datos.cliente = c;   // al emitir, vincula cliente_id y guarda los datos fiscales en su ficha
+    var res = document.getElementById('factCliBuscarRes');
+    if (res) { res.style.display = 'none'; res.innerHTML = ''; }
+    _renderDatosCliente();
+    _renderOrigen();
+    if (typeof window.toast === 'function') window.toast('Cliente asignado a la factura', 'ok');
+  };
 
   // ────────── Render origen ──────────
   function _renderOrigen() {
