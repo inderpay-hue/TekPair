@@ -2444,7 +2444,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
       <div class="sec-title"><span data-t="nav.gastos">Gastos</span></div>
     </div>
-    <button class="btn-sm" style="background:var(--red);color:white" onclick="openM('mGasto')">+ Nuevo</button>
+    <button class="btn-sm" style="background:var(--red);color:white" onclick="abrirNuevoGasto()">+ Nuevo</button>
     <button class="btn-sm" style="background:#7C5CFC;color:white;margin-left:6px" onclick="abrirFacturaIA()">📸 <span data-t="fac_ia.btn">Factura IA</span></button>
     <button class="btn-sm" style="background:#7C3AED;color:white;margin-left:6px" onclick="abrirModalNomina()" id="btnNominaGasto">💼 Nómina</button>
   </div>
@@ -4128,7 +4128,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- GASTO -->
 <div class="modal-bg" id="mGasto">
 <div class="modal">
-  <div class="modal-title">📋 Nuevo Gasto</div>
+  <div class="modal-title" id="gModalTitle">📋 Nuevo Gasto</div>
   <div class="fg"><label class="fl">Concepto *</label><input class="fi" id="gConc" placeholder="Alquiler, luz, stock..."></div>
   <div class="fi-row">
     <div class="fg"><label class="fl">Importe total (EUR)</label><input class="fi" id="gImp" type="number" step="0.01" value="0"></div>
@@ -4418,7 +4418,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260615factura"></script>
+<script src="/js/dash-app.js?v=20260615editgasto"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
