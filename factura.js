@@ -373,7 +373,7 @@
     if (FACT.origen === 'venta') {
       return (d.items || []).map(function(i) {
         return {
-          desc: i.nombre || '-',
+          desc: (i.nombre || '-') + (i.imei ? '  ·  IMEI: ' + i.imei : ''),
           cantidad: parseFloat(i.cantidad) || 1,
           precio: parseFloat(i.precio) || 0,
           total: (parseFloat(i.cantidad) || 1) * (parseFloat(i.precio) || 0)
