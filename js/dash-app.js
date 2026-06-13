@@ -4873,7 +4873,16 @@ function checkUrgentes() {
 }
 
 // ═══ VENTAS ═══
+// "Nueva venta" abre el TPV, que permite añadir y vender VARIOS productos en una
+// misma venta (cliente, IVA, descuento, financiado) y guarda las líneas para la
+// factura. Antes el modal mVenta solo dejaba 1 producto. El modal sigue disponible
+// vía abrirVentaSimple() por si se quisiera el formulario rápido de 1 línea.
 function abrirVenta() {
+  if (typeof tienePerm === 'function' && !tienePerm('ventas_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  window.location.href = 'tpv.html';
+}
+
+function abrirVentaSimple() {
   SEL.vStock = null; SEL.vCli = null;
   document.getElementById('vBusCli').value = '';
   document.getElementById('vBusStock').value = '';
