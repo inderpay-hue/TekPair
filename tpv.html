@@ -383,7 +383,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
           <div id="finEntradaPagoRow" style="display:none;margin-bottom:6px">
             <div style="font-size:11px;color:var(--t-mut);margin-bottom:4px"><span data-t="gen.entrada_pago">Entrada pagada con</span></div>
             <div style="display:flex;gap:6px">
-              <button type="button" class="ent-pay-btn active" data-ep="Efectivo" onclick="setEntradaPago(this)">💵 <span data-t="gen.efectivo">Efectivo</span></button>
+              <button type="button" class="ent-pay-btn" data-ep="Efectivo" onclick="setEntradaPago(this)">💵 <span data-t="gen.efectivo">Efectivo</span></button>
               <button type="button" class="ent-pay-btn" data-ep="Tarjeta" onclick="setEntradaPago(this)">💳 <span data-t="gen.tarjeta">Tarjeta</span></button>
               <button type="button" class="ent-pay-btn" data-ep="Bizum" onclick="setEntradaPago(this)">📲 Bizum</button>
             </div>
@@ -1488,7 +1488,13 @@ function setPago(el) {
   selectedPago = el.dataset.p;
   document.getElementById('efectivoPanel').style.display = selectedPago === 'Efectivo' ? 'block' : 'none';
   document.getElementById('financiadoPanel').style.display = selectedPago === 'Financiado' ? 'block' : 'none';
-  if (selectedPago === 'Financiado') calcFinanciado();
+  if (selectedPago === 'Financiado') {
+    // Forzar elegir método de la entrada cada vez (sin "Efectivo" por defecto)
+    selectedEntradaPago = '';
+    var _epr = document.getElementById('finEntradaPagoRow');
+    if (_epr) _epr.querySelectorAll('.ent-pay-btn').forEach(function (b) { b.classList.remove('active'); });
+    calcFinanciado();
+  }
 }
 
 // Genera el cuadro de cuotas del pago financiado (misma lógica que Ventas):
@@ -1525,7 +1531,7 @@ function calcFinanciado() {
   var epRow = document.getElementById('finEntradaPagoRow');
   if (epRow) epRow.style.display = fin.entrada > 0 ? 'block' : 'none';
 }
-var selectedEntradaPago = 'Efectivo';
+var selectedEntradaPago = '';
 function setEntradaPago(el) {
   selectedEntradaPago = el.getAttribute('data-ep');
   var row = document.getElementById('finEntradaPagoRow');
@@ -1540,6 +1546,10 @@ function cobrar() {
   var esFinanciado = selectedPago === 'Financiado';
   if (esFinanciado && !selectedCli) { toast('Selecciona un cliente para financiar', 'err'); return; }
   var fin = esFinanciado ? calcCuotasFinanciado() : null;
+  // Si hay entrada en el financiado, obliga a elegir con qué se pagó (sin default).
+  if (esFinanciado && fin && fin.entrada > 0 && !selectedEntradaPago) {
+    toast('Elige cómo se pagó la entrada (efectivo, tarjeta o bizum)', 'err'); return;
+  }
   var venta = {
     id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     fecha: hoyLocal(),
@@ -1668,6 +1678,9 @@ function nuevaVenta() {
   document.getElementById('finEntrada').value = '0';
   document.getElementById('finNumCuotas').value = '3';
   document.getElementById('finDiaPago').value = '8';
+  // Reset del método de la entrada → la próxima venta financiada vuelve a obligar a elegir
+  selectedEntradaPago = '';
+  document.querySelectorAll('#finEntradaPagoRow .ent-pay-btn').forEach(function (b) { b.classList.remove('active'); });
   renderCart();
   renderProducts();
   closeModal('mTicket');
