@@ -64,7 +64,7 @@ export default async function handler(req, res) {
     if (!_rateCheck('parseped:user:' + uId, 30, 10 * 60 * 1000)) {
       return res.status(429).json({ error: 'Demasiados análisis seguidos. Espera unos minutos.' });
     }
-    return parsePedidoGemini(req, res);
+    return parsePedidoIA(req, res);
   }
 
   // AYU-2: rate limit
@@ -197,9 +197,9 @@ export default async function handler(req, res) {
 
 // Extrae líneas de pedido de un texto libre (email/albarán) con Gemini Flash (capa gratuita de Google).
 // Devuelve { ok, lineas: [{pieza, marca, categoria, calidad, cantidad, precio_compra, precio_venta, sku}] }
-async function parsePedidoGemini(req, res) {
-  const GEMINI_KEY = process.env.GEMINI_API_KEY;
-  if (!GEMINI_KEY) return res.status(503).json({ error: 'IA no configurada (falta GEMINI_API_KEY en el servidor)' });
+async function parsePedidoIA(req, res) {
+  const GROQ_KEY = process.env.GROQ_API_KEY;
+  if (!GROQ_KEY) return res.status(503).json({ error: 'IA no configurada (falta GROQ_API_KEY en el servidor)' });
   const texto = String((req.body && req.body.texto) || '').trim().slice(0, 20000);
   if (!texto) return res.status(400).json({ error: 'Texto vacío' });
 
@@ -217,23 +217,26 @@ async function parsePedidoGemini(req, res) {
     'Ignora líneas de Subtotal, Envío, Método de pago, TOTAL y cabeceras de tabla. No inventes productos.';
 
   try {
-    const r = await fetch('https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=' + encodeURIComponent(GEMINI_KEY), {
+    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
       body: JSON.stringify({
-        system_instruction: { parts: [{ text: sistema }] },
-        contents: [{ parts: [{ text: 'PEDIDO:\n' + texto }] }],
-        generationConfig: { temperature: 0, responseMimeType: 'application/json' }
+        model: 'llama-3.3-70b-versatile',
+        temperature: 0,
+        response_format: { type: 'json_object' },
+        messages: [
+          { role: 'system', content: sistema },
+          { role: 'user', content: 'PEDIDO:\n' + texto }
+        ]
       })
     });
     if (!r.ok) {
       const t = await r.text();
-      console.error('[parse-pedido] Gemini error', r.status, t);
+      console.error('[parse-pedido] Groq error', r.status, t);
       return res.status(502).json({ error: 'IA HTTP ' + r.status + ': ' + String(t).replace(/\s+/g, ' ').slice(0, 260) });
     }
     const data = await r.json();
-    let txt = (((data.candidates || [])[0] || {}).content || {}).parts;
-    txt = (txt && txt[0] && txt[0].text) || '';
+    let txt = (((data.choices || [])[0] || {}).message || {}).content || '';
     const i = txt.indexOf('{');
     const j = txt.lastIndexOf('}');
     if (i >= 0 && j > i) txt = txt.slice(i, j + 1);
