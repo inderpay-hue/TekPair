@@ -260,7 +260,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
       <div class="tpv-topbar-info">
         <span id="topDate"></span>
         <span id="topUser"></span>
-        <button class="tpv-btn-back" onclick="openRepTPV()" style="background:#0EA5E9;color:#fff;border-color:#0EA5E9">🔧 <span data-t="tpv.reparacion">Reparación</span></button>
+        <button class="tpv-btn-back" onclick="window.location.href='dashboard.html?action=new-rep'" style="background:#0EA5E9;color:#fff;border-color:#0EA5E9">🔧 <span data-t="tpv.reparacion">Reparación</span></button>
         <button class="tpv-btn-back" onclick="window.location.href='dashboard.html'">← Dashboard</button>
       </div>
     </div>
@@ -425,37 +425,6 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
       </button>
     </div>
   </div>
-</div>
-
-<!-- MODAL: Reparación rápida (intake desde el TPV; el detalle se gestiona en el panel) -->
-<div class="modal-bg" id="mRepTPV">
-<div class="modal">
-  <div class="modal-title">🔧 <span data-t="tpv.nueva_reparacion">Nueva reparación</span></div>
-  <div class="fg">
-    <label class="fl">Cliente</label>
-    <div style="display:flex;gap:8px;align-items:center">
-      <div id="repTpvCliText" style="flex:1;font-size:13px;color:var(--muted)">Sin cliente</div>
-      <button class="caja-btn" type="button" onclick="openModal('mCli')">👤 <span data-t="tpv.asignar">Asignar</span></button>
-    </div>
-  </div>
-  <div class="fi-row">
-    <div class="fg"><label class="fl">Marca</label><input class="fi" id="repTpvMarca" placeholder="Apple" autocomplete="off"></div>
-    <div class="fg"><label class="fl">Modelo</label><input class="fi" id="repTpvModelo" placeholder="iPhone 12" autocomplete="off"></div>
-  </div>
-  <div class="fg"><label class="fl">IMEI / Nº serie (opcional)</label><input class="fi" id="repTpvImei" placeholder="..." autocomplete="off"></div>
-  <div class="fg"><label class="fl">Avería</label><textarea class="fi" id="repTpvAveria" rows="2" placeholder="No carga, pantalla rota..."></textarea></div>
-  <div class="fi-row">
-    <div class="fg"><label class="fl">Presupuesto (€)</label><input class="fi" id="repTpvPresu" type="number" step="0.01" min="0" value="0"></div>
-    <div class="fg"><label class="fl">Anticipo (€)</label><input class="fi" id="repTpvAnt" type="number" step="0.01" min="0" value="0"></div>
-  </div>
-  <div class="fg"><label class="fl">Anticipo pagado con</label>
-    <select class="fi" id="repTpvAntPago"><option>Efectivo</option><option>Tarjeta</option><option>Bizum</option></select>
-  </div>
-  <div style="display:flex;gap:8px;margin-top:14px">
-    <button class="caja-btn" type="button" style="flex:1" onclick="closeModal('mRepTPV')">Cancelar</button>
-    <button type="button" style="flex:2;background:#0EA5E9;color:#fff;border:none;border-radius:12px;padding:13px;font-weight:800;font-size:15px;cursor:pointer" onclick="guardarRepTPV()">Guardar reparación</button>
-  </div>
-</div>
 </div>
 
 <!-- MODAL: Cliente -->
@@ -1725,7 +1694,6 @@ function asignarCliente(id) {
   selectedCli = c;
   document.getElementById('cartClientIcon').textContent = '👤';
   document.getElementById('cartClientText').textContent = (c.nombre + ' ' + (c.apellidos || '')).trim();
-  if (typeof _refreshRepTpvCli === 'function') _refreshRepTpvCli();
   closeModal('mCli');
   toast('Cliente asignado', 'ok');
 }
@@ -1746,78 +1714,6 @@ function crearClienteRapido() {
   if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:'',dni:c.dni});
   asignarCliente(c.id);
   toast('Cliente creado', 'ok');
-}
-
-// ═══ REPARACIÓN RÁPIDA (intake desde el TPV) ═══
-// Da de alta una reparación (estado Pendiente) sin salir del TPV. El detalle completo
-// (servicios, garantía, firma, financiado, fotos) se gestiona luego en el panel, que es
-// la única fuente de verdad → aquí no se duplica esa lógica.
-function _refreshRepTpvCli() {
-  var el = document.getElementById('repTpvCliText');
-  if (!el) return;
-  el.textContent = selectedCli ? (selectedCli.nombre + ' ' + (selectedCli.apellidos || '')).trim() : 'Sin cliente';
-  el.style.color = selectedCli ? 'var(--t-ink, #0F1729)' : 'var(--muted, #888)';
-}
-
-function openRepTPV() {
-  if (typeof tienePerm === 'function' && !tienePerm('reps_crear')) { toast('Sin permiso para crear reparaciones', 'err'); return; }
-  ['repTpvMarca', 'repTpvModelo', 'repTpvImei', 'repTpvAveria'].forEach(function (id) { var e = document.getElementById(id); if (e) e.value = ''; });
-  var p = document.getElementById('repTpvPresu'); if (p) p.value = '0';
-  var a = document.getElementById('repTpvAnt'); if (a) a.value = '0';
-  _refreshRepTpvCli();
-  openModal('mRepTPV');
-}
-
-function guardarRepTPV() {
-  if (typeof tienePerm === 'function' && !tienePerm('reps_crear')) { toast('Sin permiso', 'err'); return; }
-  if (!selectedCli) { toast('Asigna un cliente primero', 'err'); return; }
-  var v = function (id) { var e = document.getElementById(id); return e ? e.value.trim() : ''; };
-  var marca = v('repTpvMarca'), modelo = v('repTpvModelo'), averia = v('repTpvAveria');
-  if (!marca && !modelo) { toast('Indica el equipo (marca o modelo)', 'err'); return; }
-  if (!averia) { toast('Describe la avería', 'err'); return; }
-  var presu = parseFloat(document.getElementById('repTpvPresu').value) || 0;
-  var ant = parseFloat(document.getElementById('repTpvAnt').value) || 0;
-  var antPago = v('repTpvAntPago') || 'Efectivo';
-  if (ant > presu) { toast('El anticipo no puede superar el presupuesto', 'err'); return; }
-  if (!SB_KEY || !TIENDA_ID) { toast('Sin conexión: no se pudo guardar', 'err'); return; }
-  var id = 'r' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  var token = 'tk' + Date.now().toString(36) + Math.random().toString(36).slice(2, 10);
-  var rep = {
-    id: id, tienda_id: TIENDA_ID, fecha: hoyLocal(),
-    cliente_id: selectedCli.id, cliente_nombre: (selectedCli.nombre + ' ' + (selectedCli.apellidos || '')).trim(),
-    marca: marca, modelo: modelo, imei: v('repTpvImei'),
-    averia: averia, estado: 'Pendiente', prioridad: 'Normal',
-    fecha_entrega: null, nota: '',
-    mo: 0, comp: 0, anticipo: ant,
-    restante: Math.max(0, presu - ant), total: presu, token: token,
-    tipo_bloqueo: null, bloqueo: null,
-    iva: 0, iva_modo: 'sin', base: presu, iva_importe: 0,
-    componentes: [], servicios: [{ nombre: (averia.slice(0, 40) || 'Reparación'), precio: presu }],
-    garantia_dias: (typeof TIENDA === 'object' && TIENDA && TIENDA.grDiasDefault) || 90,
-    garantia_tipo: 'reparacion', garantia_publica: true, garantia_fecha_fin: null,
-    financiado: false, entrada: 0, entrada_pago: null, cuotas: null, estado_financiado: null
-  };
-  // El anticipo se registra como pago (tipo 'anticipo') con su método → así el cierre
-  // de caja sabe si entró por efectivo/tarjeta/bizum, igual que en el panel.
-  function _crearPagoAnticipo() {
-    if (ant > 0 && SB_KEY && TIENDA_ID) {
-      sbPost('pagos_reparacion', { id: 'pg_ant_' + id, tienda_id: TIENDA_ID, reparacion_id: id, fecha: hoyLocal(), importe: ant, metodo: antPago, tipo: 'anticipo' });
-    }
-  }
-  // sbPost resuelve false en error (no rechaza) → comprobamos el valor y no cerramos si falla.
-  var res = sbPost('reparaciones', rep);
-  if (res && typeof res.then === 'function') {
-    res.then(function (ok) {
-      if (ok === false) { toast('Error al guardar la reparación. Reintenta.', 'err'); return; }
-      _crearPagoAnticipo();
-      toast('🔧 Reparación creada', 'ok');
-      closeModal('mRepTPV');
-    });
-  } else {
-    _crearPagoAnticipo();
-    toast('🔧 Reparación creada', 'ok');
-    closeModal('mRepTPV');
-  }
 }
 
 // ═══ CAJA ═══
