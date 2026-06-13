@@ -7094,9 +7094,7 @@ function imprimirEtiquetaStock(sid) {
   if (nombre.length > 22) fNm = Math.max(7, Math.round(fNm * 22 / nombre.length));  // nombres largos: reducir fuente para que quepan
   var fPr = ph >= 29 ? 17 : (ph >= 27 ? 15 : 13);
   if (esOferta) fPr = Math.max(11, fPr - 3);  // oferta en 1 línea: reducir algo para que quepa
-  var w = window.open('', '_blank', 'width=500,height=360');
-  if (!w) { toast(T('etq.popup') || 'Permite popups para imprimir', 'err'); return; }
-  w.document.write(
+  var fullHtml =
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Etiqueta</title><style>' +
     '@page { size: ' + pageCss + '; margin: 0; }' +
     'html{margin:0;padding:0}' +
@@ -7124,8 +7122,20 @@ function imprimirEtiquetaStock(sid) {
       precioHtml +
     '</div>' +
     '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
-    '</body></html>'
-  );
+    '</body></html>';
+  // App de escritorio (Tauri): impresión nativa silenciosa. Si falla/cancela, cae al diálogo.
+  if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintLabel === 'function') {
+    tkPrintLabel(fullHtml, pw, ph, function () { _etqPopupImprimir(fullHtml); });
+    return;
+  }
+  _etqPopupImprimir(fullHtml);
+}
+
+// Abre el popup clásico y deja que el navegador lance su diálogo de impresión.
+function _etqPopupImprimir(fullHtml) {
+  var w = window.open('', '_blank', 'width=500,height=360');
+  if (!w) { toast(T('etq.popup') || 'Permite popups para imprimir', 'err'); return; }
+  w.document.write(fullHtml);
   w.document.close();
 }
 
