@@ -9021,6 +9021,20 @@ function guardarStock() {
       renderStock();
       return;
     }
+    // F64: un teléfono con varias unidades y UN solo IMEI en el campo simple → la unidad #2+
+    // quedaría sin IMEI. Cada equipo tiene un IMEI único: redirigir al campo «Varios IMEIs».
+    var _imeiSingle = (document.getElementById('sImei').value || '').trim();
+    var _udsSingle = parseInt(document.getElementById('sUds').value) || 1;
+    var _catImei = (typeof STOCK_CATS_IMEI !== 'undefined' ? STOCK_CATS_IMEI : ['Telefono', 'Tablet', 'Smartwatch']).indexOf(document.getElementById('sCat').value) !== -1;
+    if (_catImei && _imeiSingle && _udsSingle > 1) {
+      if (confirm('Has puesto 1 IMEI para ' + _udsSingle + ' unidades, pero cada equipo tiene un IMEI único.\n\nUsa el campo «Varios IMEIs a la vez» (uno por línea) para registrar el IMEI de cada unidad.\n\n¿Crear solo 1 unidad con este IMEI? (Cancelar = volver a editar)')) {
+        var _udsEl = document.getElementById('sUds'); if (_udsEl) _udsEl.value = '1';
+      } else {
+        var _mw = document.getElementById('sImeiMultiWrap');
+        if (_mw) { _mw.style.display = 'block'; try { document.getElementById('sImeiMulti').focus(); } catch (e) {} }
+        return;
+      }
+    }
     var nuevo = {
       id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
       categoria: document.getElementById('sCat').value,
