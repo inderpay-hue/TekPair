@@ -5302,10 +5302,32 @@ function reembolsarVenta(id) {
   toast(T('venta.reembolsada'), 'ok');
   renderVentas();
   renderDash();
-  // F47: _ofrecerAbonoFactura nunca se implementó → llamarla lanzaba ReferenceError no capturado
-  // tras cada reembolso. Protegido hasta que exista la funcionalidad de factura de abono.
-  if (typeof _ofrecerAbonoFactura === 'function') _ofrecerAbonoFactura('venta', id);
+  // F49: el reembolso también debe refrescar el Inicio nuevo (ingresos/caja del día) y avisos,
+  // que antes quedaban con cifras viejas porque solo se re-renderizaba renderDash (clásico).
+  try { if (typeof renderInicioNuevo === 'function') renderInicioNuevo(); } catch (e) {}
+  try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch (e) {}
+  // F50/F51: si la venta tenía factura emitida, ofrecer emitir la rectificativa (abono).
+  _ofrecerAbonoPorVenta(id);
   }, { okLabel: 'Reembolsar', danger: true });
+}
+
+// F50/F51: tras reembolsar una venta con factura emitida (y no abonada aún), ofrecer emitir
+// su rectificativa (abono). La factura original se conserva por ley; el abono la anula.
+function _ofrecerAbonoPorVenta(ventaId) {
+  if (typeof window.emitirAbonoFactura !== 'function' || !SB_KEY || !TIENDA_ID) return;
+  var url = SUPABASE_URL + '/rest/v1/facturas?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) +
+    '&origen_tipo=eq.venta&origen_id=eq.' + encodeURIComponent(ventaId) + '&select=*';
+  fetch(url, { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + (JWT_TOKEN || SB_KEY) } })
+    .then(function(r) { return r.ok ? r.json() : []; })
+    .then(function(arr) {
+      arr = Array.isArray(arr) ? arr : [];
+      var orig = arr.find(function(x) { return !x.rectifica_a && x.estado === 'emitida'; });
+      if (!orig) return;
+      if (arr.some(function(x) { return x.rectifica_a === orig.id; })) return; // ya abonada
+      confirmar('Esta venta tenía la factura ' + (orig.numero || '') + ' emitida.\n\n¿Emitir su factura rectificativa (abono) por ' + cur(orig.total) + '?', function() {
+        window.emitirAbonoFactura(orig);
+      }, { okLabel: 'Emitir abono', danger: true });
+    }).catch(function() {});
 }
 
 // ═══ FINANCIADOS ═══
