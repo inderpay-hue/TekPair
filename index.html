@@ -339,6 +339,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
+<a href="#main" style="position:absolute;left:-9999px;top:0;z-index:100000;background:#FF5B1F;color:#fff;padding:10px 16px;border-radius:0 0 8px 0;font-weight:700;text-decoration:none" onfocus="this.style.left='0'" onblur="this.style.left='-9999px'">Saltar al contenido</a>
 
 
 
@@ -366,6 +367,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 <div class="promo-bar">⚡ Oferta limitada — 50% descuento × 3 meses con código <code>EARLY50</code> · Solo quedan 10 plazas</div>
 
 <!-- HERO -->
+<main id="main" role="main">
 <section class="hero grid-bg">
   <div class="hero-aurora" id="heroAurora"></div>
   <div class="wrap">
@@ -376,7 +378,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
         <p class="sub" data-i18n="hero.subtitle">El software más sencillo para tiendas de reparación de móviles. Reparaciones por IMEI, TPV, stock, clientes y citas — todo desde tu móvil, tablet u ordenador.</p>
         <div class="hero-btns">
           <a href="/registro.html" class="btn-primary" data-i18n="hero.cta1">Prueba 15 días <span>→</span></a>
-          <a href="/app.html" class="btn-ghost" data-i18n="hero.cta2">Ver demo</a>
+          <a href="/app.html" class="btn-ghost" data-i18n="hero.cta2">Acceder</a>
         </div>
         <div class="hero-trust">
           <span data-i18n="trust.charge">No pagas hasta el día 15</span>
@@ -645,11 +647,12 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
     <p style="font-size:17px;color:rgba(255,255,255,.6);margin-bottom:32px" data-i18n="cta.sub">Únete a más de 500 tiendas que ya gestionan su negocio con Tekpair</p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <a href="/registro.html" class="btn-primary" data-i18n="cta.btn1">Prueba gratis 15 días</a>
-      <a href="/app.html" style="color:#fff;padding:14px 22px;border-radius:11px;font-weight:600;font-size:15px;border:1px solid rgba(255,255,255,.2)" data-i18n="cta.btn2">Ver demo gratis</a>
+      <a href="/app.html" style="color:#fff;padding:14px 22px;border-radius:11px;font-weight:600;font-size:15px;border:1px solid rgba(255,255,255,.2)" data-i18n="cta.btn2">Acceder</a>
     </div>
   </div>
 </section>
 
+</main>
 <!-- FOOTER -->
 <footer style="background:var(--ink);padding:48px 0 28px;border-top:1px solid rgba(255,255,255,.08)">
   <div class="wrap" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px">
@@ -819,7 +822,7 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a) {
 <!-- STICKY CTA MÓVIL -->
 <div class="sticky-cta">
   <a href="/registro.html" class="sc-main" data-i18n="nav.start">Empezar gratis</a>
-  <a href="/app.html" class="sc-sec" data-i18n="sticky.demo">Demo</a>
+  <a href="/app.html" class="sc-sec" data-i18n="sticky.demo">Acceder</a>
 </div>
 </body>
 </html>
