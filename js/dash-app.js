@@ -2418,7 +2418,8 @@ function mapVenta(v) {
 
 function mapRep(r) {
   return {
-    id:r.id, fecha:r.fecha, clienteId:r.cliente_id, clienteNombre:r.cliente_nombre,
+    // token: sin él, el link público del QR salía con &t=undefined → "link caducado" (F27).
+    id:r.id, token:r.token||'', fecha:r.fecha, clienteId:r.cliente_id, clienteNombre:r.cliente_nombre,
     marca:r.marca||'', modelo:r.modelo||'', imei:r.imei||'',
     averia:r.averia||'', estado:r.estado||'Pendiente', prioridad:r.prioridad||'Normal',
     fechaEntrega:r.fecha_entrega||'', fechaEntregaReal:r.fecha_entrega_real||'',
