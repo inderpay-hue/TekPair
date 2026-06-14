@@ -446,7 +446,16 @@
           const d = new Date(fechaAnterior + 'T12:00:00');
           const dias = [T('fecha.domingo'),T('fecha.lunes'),T('fecha.martes'),T('fecha.miercoles'),T('fecha.jueves'),T('fecha.viernes'),T('fecha.sabado')];
           const diaSemana = dias[d.getDay()];
-          lbl.innerHTML = `Cambio del ${fechaVisible} <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(${diaSemana} · automático)</span>`;
+          // F44/F45: avisar si la caja lleva varios días sin cerrar (el saldo inicial es viejo).
+          // Umbral >4 días para tolerar fines de semana y puentes sin falsos positivos.
+          const hoyD = new Date(Estado.fechaActual + 'T12:00:00');
+          const diffDias = Math.round((hoyD - d) / 86400000);
+          let aviso = '';
+          if (diffDias > 4) {
+            aviso = ` <span style="text-transform:none;font-weight:700;color:#dc2626;font-size:10px;">⚠️ ${diffDias} días sin cerrar — verifica el saldo inicial</span>`;
+            try { toast(`⚠️ Esta caja lleva ${diffDias} días sin cerrar. El saldo inicial es del ${fechaVisible} — verifícalo antes de cuadrar.`, 'error'); } catch (e) {}
+          }
+          lbl.innerHTML = `Cambio del ${fechaVisible} <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(${diaSemana} · automático)</span>${aviso}`;
         } else if (!fechaAnterior && !data.cierre) {
           lbl.innerHTML = `Saldo inicial <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(primer día - no hay cierres previos)</span>`;
         } else {
