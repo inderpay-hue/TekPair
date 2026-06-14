@@ -7,9 +7,11 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;color:#0F1729;background:#F7F9FC;padding-bottom:40px}
-nav{background:#020B2E;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+nav{background:#020B2E;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .nav-logo{color:white;font-size:18px;font-weight:800;text-decoration:none}
+.nav-right{display:flex;align-items:center;gap:14px}
 .nav-back{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px}
+.lang-sel{background:rgba(255,255,255,.95);border:1px solid #e2e8f0;border-radius:8px;padding:5px 8px;font-size:13px;cursor:pointer;font-family:inherit}
 .container{max-width:760px;margin:40px auto;background:white;border-radius:14px;padding:40px;border:1px solid #E2E8F0}
 h1{font-size:26px;font-weight:800;color:#020B2E;margin-bottom:8px}
 .date{font-size:13px;color:#64748B;margin-bottom:32px}
@@ -29,39 +31,103 @@ a{color:#FF5B1F}
 <body>
 <nav>
   <a href="/" class="nav-logo">⚡ Tekpair</a>
-  <a href="/" class="nav-back">← Volver al inicio</a>
-</nav>
-<div class="container">
-  <h1>Política de Cookies</h1>
-  <div class="date">Última actualización: 15 de junio de 2026</div>
-
-  <div class="highlight">
-    Usamos cookies propias (técnicas, necesarias para que la web funcione) y de terceros (analítica y chat de soporte). Las de terceros <strong>solo se activan si las aceptas</strong> en el aviso que aparece al entrar.
+  <div class="nav-right">
+    <select class="lang-sel" id="legalLangSel" onchange="setLegalLang(this.value)" aria-label="Idioma">
+      <option value="es">🇪🇸 ES</option><option value="en">🇬🇧 EN</option><option value="fr">🇫🇷 FR</option>
+      <option value="it">🇮🇹 IT</option><option value="de">🇩🇪 DE</option><option value="pt">🇵🇹 PT</option>
+    </select>
+    <a href="/" class="nav-back" id="navBack">← Volver al inicio</a>
   </div>
+</nav>
+<div class="container" id="legalBody"></div>
 
-  <h2>1. ¿Qué es una cookie?</h2>
-  <p>Una cookie es un pequeño archivo de texto que un sitio web guarda en tu navegador. Sirve para recordar tu actividad o preferencias, o para obtener información estadística sobre el uso de la web.</p>
-
-  <h2>2. Cookies que utilizamos</h2>
-  <table>
-    <thead><tr><th>Tipo</th><th>Proveedor</th><th>Finalidad</th><th>Consentimiento</th></tr></thead>
-    <tbody>
-      <tr><td>Técnicas / necesarias</td><td>Tekpair (propias, <code>localStorage</code>)</td><td>Mantener tu sesión, idioma y preferencias. Imprescindibles para el funcionamiento.</td><td>No requiere (exentas)</td></tr>
-      <tr><td>Analítica</td><td>Google Analytics (Google LLC)</td><td>Medir de forma agregada y anónima cómo se usa la web (IP anonimizada).</td><td><strong>Requiere aceptación</strong></td></tr>
-      <tr><td>Chat de soporte</td><td>Tawk.to</td><td>Mostrar el chat de atención al cliente en la web pública.</td><td><strong>Requiere aceptación</strong></td></tr>
-    </tbody>
-  </table>
-
-  <h2>3. Gestión del consentimiento</h2>
-  <p>Al acceder por primera vez verás un aviso para <strong>Aceptar</strong> o <strong>Rechazar</strong> las cookies no necesarias. Tu elección se guarda en tu navegador. Si rechazas, no se cargan Google Analytics ni el chat.</p>
-  <p>Puedes cambiar tu decisión en cualquier momento:</p>
-  <button class="btn-consent" type="button" onclick="try{localStorage.removeItem('tp_cookie_consent');}catch(e){};location.reload();">Cambiar mis preferencias de cookies</button>
-
-  <h2>4. Cómo desactivar las cookies en tu navegador</h2>
-  <p>Además, puedes bloquear o eliminar cookies desde la configuración de tu navegador (Chrome, Firefox, Safari, Edge). Consulta la ayuda de tu navegador para más detalles.</p>
-
-  <h2>5. Más información</h2>
-  <p>Para el tratamiento de datos personales, consulta nuestra <a href="/privacidad.html">Política de Privacidad</a>. Para cualquier duda: <a href="mailto:privacidad@tekpair.tech">privacidad@tekpair.tech</a>.</p>
-</div>
+<script>
+var LEGAL_COOKIES = {
+  es: {back:'← Volver al inicio', html:
+    '<h1>Política de Cookies</h1><div class="date">Última actualización: 15 de junio de 2026</div>'+
+    '<div class="highlight">Usamos cookies propias (técnicas, necesarias para que la web funcione) y de terceros (analítica y chat de soporte). Las de terceros <strong>solo se activan si las aceptas</strong> en el aviso que aparece al entrar.</div>'+
+    '<h2>1. ¿Qué es una cookie?</h2><p>Una cookie es un pequeño archivo de texto que un sitio web guarda en tu navegador para recordar tu actividad o preferencias, o para obtener estadísticas de uso.</p>'+
+    '<h2>2. Cookies que utilizamos</h2><table><thead><tr><th>Tipo</th><th>Proveedor</th><th>Finalidad</th><th>Consentimiento</th></tr></thead><tbody>'+
+    '<tr><td>Técnicas / necesarias</td><td>Tekpair (propias)</td><td>Mantener tu sesión, idioma y preferencias.</td><td>No requiere (exentas)</td></tr>'+
+    '<tr><td>Analítica</td><td>Google Analytics</td><td>Medir de forma anónima el uso de la web (IP anonimizada).</td><td><strong>Requiere aceptación</strong></td></tr>'+
+    '<tr><td>Chat de soporte</td><td>Tawk.to</td><td>Mostrar el chat de atención al cliente.</td><td><strong>Requiere aceptación</strong></td></tr></tbody></table>'+
+    '<h2>3. Gestión del consentimiento</h2><p>Al entrar verás un aviso para <strong>Aceptar</strong> o <strong>Rechazar</strong> las cookies no necesarias. Si rechazas, no se cargan Google Analytics ni el chat. Puedes cambiar tu decisión:</p>'+
+    '<button class="btn-consent" type="button" onclick="revocar()">Cambiar mis preferencias de cookies</button>'+
+    '<h2>4. Desactivar cookies en tu navegador</h2><p>Puedes bloquear o eliminar cookies desde la configuración de tu navegador (Chrome, Firefox, Safari, Edge).</p>'+
+    '<h2>5. Más información</h2><p>Para el tratamiento de datos personales, consulta nuestra <a href="/privacidad.html">Política de Privacidad</a>. Dudas: <a href="mailto:privacidad@tekpair.tech">privacidad@tekpair.tech</a>.</p>'},
+  en: {back:'← Back to home', html:
+    '<h1>Cookie Policy</h1><div class="date">Last updated: 15 June 2026</div>'+
+    '<div class="highlight">We use our own cookies (technical, necessary for the site to work) and third-party cookies (analytics and support chat). Third-party cookies <strong>are only enabled if you accept them</strong> in the banner shown on entry.</div>'+
+    '<h2>1. What is a cookie?</h2><p>A cookie is a small text file a website stores in your browser to remember your activity or preferences, or to gather usage statistics.</p>'+
+    '<h2>2. Cookies we use</h2><table><thead><tr><th>Type</th><th>Provider</th><th>Purpose</th><th>Consent</th></tr></thead><tbody>'+
+    '<tr><td>Technical / necessary</td><td>Tekpair (own)</td><td>Keep your session, language and preferences.</td><td>Not required (exempt)</td></tr>'+
+    '<tr><td>Analytics</td><td>Google Analytics</td><td>Measure site usage anonymously (anonymized IP).</td><td><strong>Requires acceptance</strong></td></tr>'+
+    '<tr><td>Support chat</td><td>Tawk.to</td><td>Show the customer support chat.</td><td><strong>Requires acceptance</strong></td></tr></tbody></table>'+
+    '<h2>3. Managing consent</h2><p>On entry you will see a banner to <strong>Accept</strong> or <strong>Reject</strong> non-necessary cookies. If you reject, Google Analytics and the chat are not loaded. You can change your choice:</p>'+
+    '<button class="btn-consent" type="button" onclick="revocar()">Change my cookie preferences</button>'+
+    '<h2>4. Disabling cookies in your browser</h2><p>You can block or delete cookies from your browser settings (Chrome, Firefox, Safari, Edge).</p>'+
+    '<h2>5. More information</h2><p>For personal data processing, see our <a href="/privacidad.html">Privacy Policy</a>. Questions: <a href="mailto:privacidad@tekpair.tech">privacidad@tekpair.tech</a>.</p>'},
+  fr: {back:'← Retour à l\'accueil', html:
+    '<h1>Politique de cookies</h1><div class="date">Dernière mise à jour : 15 juin 2026</div>'+
+    '<div class="highlight">Nous utilisons des cookies propres (techniques, nécessaires au fonctionnement) et tiers (analytique et chat de support). Les cookies tiers <strong>ne sont activés que si vous les acceptez</strong> dans la bannière affichée à l\'entrée.</div>'+
+    '<h2>1. Qu\'est-ce qu\'un cookie ?</h2><p>Un cookie est un petit fichier texte qu\'un site enregistre dans votre navigateur pour mémoriser votre activité ou vos préférences, ou obtenir des statistiques d\'utilisation.</p>'+
+    '<h2>2. Cookies que nous utilisons</h2><table><thead><tr><th>Type</th><th>Fournisseur</th><th>Finalité</th><th>Consentement</th></tr></thead><tbody>'+
+    '<tr><td>Techniques / nécessaires</td><td>Tekpair (propres)</td><td>Maintenir votre session, langue et préférences.</td><td>Non requis (exemptés)</td></tr>'+
+    '<tr><td>Analytique</td><td>Google Analytics</td><td>Mesurer l\'usage du site de façon anonyme (IP anonymisée).</td><td><strong>Requiert acceptation</strong></td></tr>'+
+    '<tr><td>Chat de support</td><td>Tawk.to</td><td>Afficher le chat d\'assistance.</td><td><strong>Requiert acceptation</strong></td></tr></tbody></table>'+
+    '<h2>3. Gestion du consentement</h2><p>À l\'entrée, une bannière vous permet d\'<strong>Accepter</strong> ou de <strong>Refuser</strong> les cookies non nécessaires. Si vous refusez, Google Analytics et le chat ne sont pas chargés. Vous pouvez changer d\'avis :</p>'+
+    '<button class="btn-consent" type="button" onclick="revocar()">Modifier mes préférences de cookies</button>'+
+    '<h2>4. Désactiver les cookies dans votre navigateur</h2><p>Vous pouvez bloquer ou supprimer les cookies depuis les paramètres de votre navigateur (Chrome, Firefox, Safari, Edge).</p>'+
+    '<h2>5. Plus d\'informations</h2><p>Pour le traitement des données, consultez notre <a href="/privacidad.html">Politique de confidentialité</a>. Questions : <a href="mailto:privacidad@tekpair.tech">privacidad@tekpair.tech</a>.</p>'},
+  it: {back:'← Torna alla home', html:
+    '<h1>Politica sui cookie</h1><div class="date">Ultimo aggiornamento: 15 giugno 2026</div>'+
+    '<div class="highlight">Usiamo cookie propri (tecnici, necessari al funzionamento) e di terze parti (analitica e chat di supporto). I cookie di terze parti <strong>si attivano solo se li accetti</strong> nel banner mostrato all\'ingresso.</div>'+
+    '<h2>1. Cos\'è un cookie?</h2><p>Un cookie è un piccolo file di testo che un sito salva nel browser per ricordare la tua attività o preferenze, o per ottenere statistiche d\'uso.</p>'+
+    '<h2>2. Cookie che utilizziamo</h2><table><thead><tr><th>Tipo</th><th>Fornitore</th><th>Finalità</th><th>Consenso</th></tr></thead><tbody>'+
+    '<tr><td>Tecnici / necessari</td><td>Tekpair (propri)</td><td>Mantenere sessione, lingua e preferenze.</td><td>Non richiesto (esenti)</td></tr>'+
+    '<tr><td>Analitica</td><td>Google Analytics</td><td>Misurare l\'uso del sito in forma anonima (IP anonimizzato).</td><td><strong>Richiede accettazione</strong></td></tr>'+
+    '<tr><td>Chat di supporto</td><td>Tawk.to</td><td>Mostrare la chat di assistenza.</td><td><strong>Richiede accettazione</strong></td></tr></tbody></table>'+
+    '<h2>3. Gestione del consenso</h2><p>All\'ingresso un banner ti permette di <strong>Accettare</strong> o <strong>Rifiutare</strong> i cookie non necessari. Se rifiuti, Google Analytics e la chat non vengono caricati. Puoi cambiare scelta:</p>'+
+    '<button class="btn-consent" type="button" onclick="revocar()">Modifica le preferenze sui cookie</button>'+
+    '<h2>4. Disattivare i cookie nel browser</h2><p>Puoi bloccare o eliminare i cookie dalle impostazioni del browser (Chrome, Firefox, Safari, Edge).</p>'+
+    '<h2>5. Maggiori informazioni</h2><p>Per il trattamento dei dati, consulta la nostra <a href="/privacidad.html">Informativa sulla privacy</a>. Domande: <a href="mailto:privacidad@tekpair.tech">privacidad@tekpair.tech</a>.</p>'},
+  de: {back:'← Zurück zur Startseite', html:
+    '<h1>Cookie-Richtlinie</h1><div class="date">Zuletzt aktualisiert: 15. Juni 2026</div>'+
+    '<div class="highlight">Wir verwenden eigene Cookies (technisch, für die Funktion notwendig) und Drittanbieter-Cookies (Analyse und Support-Chat). Drittanbieter-Cookies <strong>werden nur aktiviert, wenn Sie sie akzeptieren</strong> im Banner beim Aufrufen.</div>'+
+    '<h2>1. Was ist ein Cookie?</h2><p>Ein Cookie ist eine kleine Textdatei, die eine Website in Ihrem Browser speichert, um Ihre Aktivität oder Einstellungen zu merken oder Nutzungsstatistiken zu erhalten.</p>'+
+    '<h2>2. Verwendete Cookies</h2><table><thead><tr><th>Typ</th><th>Anbieter</th><th>Zweck</th><th>Einwilligung</th></tr></thead><tbody>'+
+    '<tr><td>Technisch / notwendig</td><td>Tekpair (eigene)</td><td>Sitzung, Sprache und Einstellungen speichern.</td><td>Nicht erforderlich (ausgenommen)</td></tr>'+
+    '<tr><td>Analyse</td><td>Google Analytics</td><td>Nutzung anonym messen (anonymisierte IP).</td><td><strong>Erfordert Zustimmung</strong></td></tr>'+
+    '<tr><td>Support-Chat</td><td>Tawk.to</td><td>Den Kundensupport-Chat anzeigen.</td><td><strong>Erfordert Zustimmung</strong></td></tr></tbody></table>'+
+    '<h2>3. Verwaltung der Einwilligung</h2><p>Beim Aufrufen erscheint ein Banner zum <strong>Akzeptieren</strong> oder <strong>Ablehnen</strong> nicht notwendiger Cookies. Bei Ablehnung werden Google Analytics und der Chat nicht geladen. Sie können Ihre Wahl ändern:</p>'+
+    '<button class="btn-consent" type="button" onclick="revocar()">Meine Cookie-Einstellungen ändern</button>'+
+    '<h2>4. Cookies im Browser deaktivieren</h2><p>Sie können Cookies in den Browsereinstellungen blockieren oder löschen (Chrome, Firefox, Safari, Edge).</p>'+
+    '<h2>5. Weitere Informationen</h2><p>Zur Datenverarbeitung siehe unsere <a href="/privacidad.html">Datenschutzerklärung</a>. Fragen: <a href="mailto:privacidad@tekpair.tech">privacidad@tekpair.tech</a>.</p>'},
+  pt: {back:'← Voltar ao início', html:
+    '<h1>Política de Cookies</h1><div class="date">Última atualização: 15 de junho de 2026</div>'+
+    '<div class="highlight">Usamos cookies próprios (técnicos, necessários ao funcionamento) e de terceiros (analítica e chat de apoio). Os cookies de terceiros <strong>só são ativados se os aceitares</strong> no aviso mostrado ao entrar.</div>'+
+    '<h2>1. O que é um cookie?</h2><p>Um cookie é um pequeno ficheiro de texto que um site guarda no teu navegador para recordar a tua atividade ou preferências, ou obter estatísticas de utilização.</p>'+
+    '<h2>2. Cookies que utilizamos</h2><table><thead><tr><th>Tipo</th><th>Fornecedor</th><th>Finalidade</th><th>Consentimento</th></tr></thead><tbody>'+
+    '<tr><td>Técnicos / necessários</td><td>Tekpair (próprios)</td><td>Manter a sessão, idioma e preferências.</td><td>Não requer (isentos)</td></tr>'+
+    '<tr><td>Analítica</td><td>Google Analytics</td><td>Medir a utilização de forma anónima (IP anonimizado).</td><td><strong>Requer aceitação</strong></td></tr>'+
+    '<tr><td>Chat de apoio</td><td>Tawk.to</td><td>Mostrar o chat de apoio ao cliente.</td><td><strong>Requer aceitação</strong></td></tr></tbody></table>'+
+    '<h2>3. Gestão do consentimento</h2><p>Ao entrar verás um aviso para <strong>Aceitar</strong> ou <strong>Recusar</strong> os cookies não necessários. Se recusares, o Google Analytics e o chat não são carregados. Podes mudar a tua decisão:</p>'+
+    '<button class="btn-consent" type="button" onclick="revocar()">Alterar as minhas preferências de cookies</button>'+
+    '<h2>4. Desativar cookies no navegador</h2><p>Podes bloquear ou eliminar cookies nas definições do teu navegador (Chrome, Firefox, Safari, Edge).</p>'+
+    '<h2>5. Mais informação</h2><p>Para o tratamento de dados, consulta a nossa <a href="/privacidad.html">Política de Privacidade</a>. Dúvidas: <a href="mailto:privacidad@tekpair.tech">privacidad@tekpair.tech</a>.</p>'}
+};
+function revocar(){ try{localStorage.removeItem('tp_cookie_consent');}catch(e){} location.reload(); }
+function setLegalLang(lang){
+  var l = LEGAL_COOKIES[lang] ? lang : 'es';
+  try{ localStorage.setItem('tp_lang', l); }catch(e){}
+  document.documentElement.lang = l;
+  document.getElementById('legalBody').innerHTML = LEGAL_COOKIES[l].html;
+  var nb = document.getElementById('navBack'); if(nb) nb.textContent = LEGAL_COOKIES[l].back;
+  var sel = document.getElementById('legalLangSel'); if(sel) sel.value = l;
+  var titles = {es:'Política de Cookies',en:'Cookie Policy',fr:'Politique de cookies',it:'Politica sui cookie',de:'Cookie-Richtlinie',pt:'Política de Cookies'};
+  document.title = titles[l] + ' — Tekpair';
+}
+(function(){ var l = (localStorage.getItem('tp_lang') || (navigator.language||'es').slice(0,2)); setLegalLang(LEGAL_COOKIES[l]?l:'es'); })();
+</script>
 </body>
 </html>

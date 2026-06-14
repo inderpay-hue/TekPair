@@ -20,7 +20,7 @@ const LANGS = ['en', 'fr', 'it', 'de', 'pt'];
 const ALL = ['es', 'en', 'fr', 'it', 'de', 'pt'];
 const OG_LOCALE = { es: 'es_ES', en: 'en_GB', fr: 'fr_FR', it: 'it_IT', de: 'de_DE', pt: 'pt_PT' };
 const META = {
-  en: { title: 'TekPair — Software for phone repair & resale shops', desc: 'Manage sales, repairs, stock and customers of your phone shop from any device. 15-day free trial.' },
+  en: { title: 'TekPair — Software for phone repair and resale shops', desc: 'Manage sales, repairs, stock and customers of your phone shop from any device. 15-day free trial.' },
   fr: { title: 'TekPair — Logiciel pour magasins de réparation et vente de mobiles', desc: 'Gérez ventes, réparations, stock et clients de votre magasin mobile depuis n\'importe quel appareil. Essai gratuit 15 jours.' },
   it: { title: 'TekPair — Software per negozi di riparazione e vendita di cellulari', desc: 'Gestisci vendite, riparazioni, magazzino e clienti del tuo negozio di telefonia da qualsiasi dispositivo. Prova gratuita 15 giorni.' },
   de: { title: 'TekPair — Software für Handy-Reparatur- und Verkaufsläden', desc: 'Verwalte Verkäufe, Reparaturen, Lager und Kunden deines Handyshops von jedem Gerät. 15 Tage kostenlos testen.' },
@@ -105,6 +105,9 @@ function applyHead(html, lang) {
     html = html.replace(/(<meta name="twitter:title" content=")[^"]*(">)/, '$1' + escAttr(m.title) + '$2');
     html = html.replace(/(<meta name="twitter:description" content=")[^"]*(">)/, '$1' + escAttr(m.desc) + '$2');
     html = html.replace(/(<meta property="og:locale" content=")[^"]*(">)/, '$1' + OG_LOCALE[lang] + '$2');
+    // F182: og:locale:alternate (variantes regionales relevantes, p.ej. en_US para EE.UU.)
+    var OG_ALT = { en: 'en_US', pt: 'pt_BR', es: 'es_MX' };
+    if (OG_ALT[lang]) html = html.replace(/(<meta property="og:locale" content="[^"]*">)/, '$1\n<meta property="og:locale:alternate" content="' + OG_ALT[lang] + '">');
     html = html.replace(/(<meta property="og:url" content=")[^"]*(">)/, '$1' + url + '$2');
     html = html.replace(/(<link rel="canonical" href=")[^"]*(">)/, '$1' + url + '$2');
     // forzar idioma del JS para que no re-detecte el navegador
