@@ -2959,13 +2959,19 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   var wp2 = new Date(hoy + 'T00:00:00'); wp2.setDate(wp2.getDate() - 7);
   var estaSem = _invIncome(_invIso(ws), hoy);
   var antSem = _invIncome(_invIso(wp1), _invIso(wp2));
-  var pct = antSem > 0 ? Math.round((estaSem - antSem) / antSem * 100) : (estaSem > 0 ? 100 : 0);
+  // F71: si la semana anterior fue 0, un % no tiene sentido (daba "+2649%" o "+100%" con base ridícula).
+  // pct=null → "nuevo / sin base comparable". Y se topa a ±999% para no mostrar cifras absurdas.
+  var pct = antSem > 0 ? Math.round((estaSem - antSem) / antSem * 100) : null;
+  var pctCap = (pct === null) ? null : Math.max(-999, Math.min(999, pct));
   _st('inv-a-perlbl', perLbl);
   _st('inv-a-big', cur(ingPer));
   var trEl = document.getElementById('inv-a-trend');
-  if (trEl) { trEl.className = 'hup' + (pct < 0 ? ' down' : ''); trEl.textContent = (pct < 0 ? '▼ ' : '▲ ') + Math.abs(pct) + '% ' + T('inicio.vs_semana'); }
+  if (trEl) {
+    if (pctCap === null) { trEl.className = 'hup'; trEl.textContent = ''; }
+    else { trEl.className = 'hup' + (pctCap < 0 ? ' down' : ''); trEl.textContent = (pctCap < 0 ? '▼ ' : '▲ ') + Math.abs(pctCap) + '% ' + T('inicio.vs_semana'); }
+  }
   var plA = document.getElementById('inv-pulse');
-  if (plA) { var pctTxt = '<b style="color:var(--inv-' + (pct >= 0 ? 'green' : 'red') + ')">' + (pct >= 0 ? '+' : '') + pct + '%</b>'; plA.innerHTML = T('inicio.vas').replace('{p}', pctTxt) + ' · <b>' + enRep.length + '</b> ' + T('inicio.en_curso') + ' · <b>' + listas.length + '</b> ' + T('inicio.listas_corto'); }
+  if (plA) { var pctTxt = (pctCap === null) ? '<b>—</b>' : '<b style="color:var(--inv-' + (pctCap >= 0 ? 'green' : 'red') + ')">' + (pctCap >= 0 ? '+' : '') + pctCap + '%</b>'; plA.innerHTML = T('inicio.vas').replace('{p}', pctTxt) + ' · <b>' + enRep.length + '</b> ' + T('inicio.en_curso') + ' · <b>' + listas.length + '</b> ' + T('inicio.listas_corto'); }
 
   // Gráfica adaptada al periodo: semana/hoy → Lun-Dom; mes → por semanas (S1..S5)
   var serie = [], dotIdx = 0, j, dx, iso2;
@@ -8197,7 +8203,10 @@ function renderPresupuestos() {
 function actualizarBadgePresupuestos() {
   var b = document.getElementById('badgePresup');
   if (!b) return;
-  var n = (DB.reps || []).filter(function(r){ return r.estado === 'Presupuesto' && r.presupuesto_aceptado_at; }).length;
+  // F62: el badge contaba solo los aceptados-sin-convertir (presupuesto_aceptado_at) → no casaban
+  // con el filtro "Pendientes" y parecían fantasmas. Ahora cuenta TODOS los presupuestos abiertos,
+  // que es justo lo que muestra el filtro "Todos" (siempre visibles al abrir la sección).
+  var n = (DB.reps || []).filter(function(r){ return r.estado === 'Presupuesto'; }).length;
   if (n > 0) { b.textContent = n; b.style.display = 'inline-flex'; }
   else { b.style.display = 'none'; }
 }
@@ -8727,8 +8736,8 @@ function renderStock() {
       '<td style="font-weight:700;color:' + (s.unidades < 0 ? 'var(--red)' : (s.unidades <= s.stockMin ? 'var(--orange)' : 'var(--text)')) + '">' + s.unidades + (s.unidades < 0 ? ' <button onclick="corregirStockCero(\'' + s.id + '\')" title="Poner a 0" style="background:rgba(239,68,68,.12);border:none;color:var(--red);border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer;font-weight:800">→0</button>' : '') + '</td>' +
       '<td>' + cur(s.precioV) + '</td>' +
       '<td><button data-sid="' + s.id + '" class="btn-etq-s" title="' + T('etq.imprimir') + '" style="background:rgba(124,58,237,.1);border:none;color:var(--purple);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">\ud83c\udff7\ufe0f</button>' +
-      '<button data-sid="' + s.id + '" class="btn-edit-s" style="background:var(--light);border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:3px">\u270f\ufe0f</button>' +
-      '<button data-sid="' + s.id + '" class="btn-del-s" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:3px">\ud83d\uddd1\ufe0f</button></td></tr>';
+      '<button data-sid="' + s.id + '" class="btn-edit-s" title="' + (T('gen.editar') || 'Editar') + '" aria-label="' + (T('gen.editar') || 'Editar') + '" style="background:var(--light);border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:3px">\u270f\ufe0f</button>' +
+      '<button data-sid="' + s.id + '" class="btn-del-s" title="' + (T('gen.eliminar') || 'Eliminar') + '" aria-label="' + (T('gen.eliminar') || 'Eliminar') + '" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:3px">\ud83d\uddd1\ufe0f</button></td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -9617,13 +9626,23 @@ function editCli(id) {
 function delCli(id) {
   if (!tienePerm('clis_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var c = DB.clis.find(function(x){ return x.id === id; });
-  if (!confirm('Eliminar cliente?')) return;
-  DB.clis = DB.clis.filter(function(c) { return c.id !== id; });
-  guardarDatos();
-  if (SB_KEY && TIENDA_ID) sbDelete('clientes', 'id=eq.' + id);
-  toast(T('cli.eliminado'), 'ok');
-  audit('eliminar', 'cliente', id, c ? ((c.nombre||'') + ' ' + (c.apellidos||'')).trim() : id, null);
-  renderClis();
+  var nombre = c ? ((c.nombre||'') + ' ' + (c.apellidos||'')).trim() : '';
+  // F65: avisar de datos asociados (no se borran en cascada, pero quedarían sin cliente vinculado)
+  var nVentas = (DB.ventas || []).filter(function(v){ return v.clienteId === id; }).length;
+  var nReps = (DB.reps || []).filter(function(r){ return r.clienteId === id; }).length;
+  var msg = '¿Eliminar el cliente ' + (nombre || '') + '?';
+  if (nVentas || nReps) {
+    msg += '\n\n⚠️ Tiene ' + nVentas + ' venta(s) y ' + nReps + ' reparación(es) asociadas. No se borran (se conservan por contabilidad), pero quedarán sin cliente vinculado.';
+  }
+  // F66: modal en vez de confirm() nativo (consistente con el resto de la app)
+  confirmar(msg, function () {
+    DB.clis = DB.clis.filter(function(x) { return x.id !== id; });
+    guardarDatos();
+    if (SB_KEY && TIENDA_ID) sbDelete('clientes', 'id=eq.' + id);
+    toast(T('cli.eliminado'), 'ok');
+    audit('eliminar', 'cliente', id, nombre || id, null);
+    renderClis();
+  }, { okLabel: 'Eliminar', danger: true });
 }
 
 function eliminarReparacion(id) {
