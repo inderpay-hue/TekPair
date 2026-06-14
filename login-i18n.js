@@ -10,6 +10,12 @@ function setLoginLang(lang) {
   localStorage.setItem('tp_lang', lang);
   var t = LOGIN_TEXTS[lang] || LOGIN_TEXTS.es;
   var el = function(id){ return document.getElementById(id); };
+  // F147/F150/F151: idioma del documento, título de pestaña y placeholder del email
+  try { document.documentElement.lang = lang; } catch(e) {}
+  var _pt = { es:'Iniciar sesión', en:'Sign in', fr:'Se connecter', it:'Accedi', de:'Anmelden', pt:'Iniciar sessão' }[lang] || 'Iniciar sesión';
+  document.title = _pt + ' — TekPair';
+  var _ph = { es:'tu@email.com', en:'you@email.com', fr:'vous@email.com', it:'tu@email.com', de:'du@email.com', pt:'tu@email.com' }[lang] || 'tu@email.com';
+  if (el('em')) el('em').setAttribute('placeholder', _ph);
   if (el('loginTitle')) el('loginTitle').textContent = t.title;
   if (el('loginSubtitle')) el('loginSubtitle').textContent = t.sub;
   if (el('loginEmailLabel')) el('loginEmailLabel').textContent = t.email;

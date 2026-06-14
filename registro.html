@@ -99,49 +99,49 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 
 <div class="plans" id="plansSection">
   <div class="plan" onclick="selPlan('basico',this)">
-    <div class="plan-name">Básico</div>
-    <div class="plan-price">€9,90<span>/mes</span></div>
-    <div class="plan-desc">Para empezar</div>
+    <div class="plan-name" id="planName_basico">Básico</div>
+    <div class="plan-price" id="planPrice_basico">€9,90<span>/mes</span></div>
+    <div class="plan-desc" id="planDesc_basico">Para empezar</div>
     <ul class="plan-features">
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>1 usuario</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Ventas y reparaciones</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Gestión de stock</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Clientes y proveedores</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Reportes básicos</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_1u">1 usuario</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_ventas">Ventas y reparaciones</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_stock">Gestión de stock</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_clis">Clientes y proveedores</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_reportes">Reportes básicos</span></li>
     </ul>
-    <button class="plan-btn plan-btn-sec">Elegir Básico</button>
+    <button class="plan-btn plan-btn-sec" id="planBtn_basico">Elegir Básico</button>
   </div>
 
   <div class="plan popular" onclick="selPlan('pro',this)">
-    <div class="plan-badge"><svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg> MÁS POPULAR</div>
-    <div class="plan-name">Pro</div>
-    <div class="plan-price">€19,90<span>/mes</span></div>
-    <div class="plan-desc">Para negocios en crecimiento</div>
+    <div class="plan-badge" id="popularBadge"><svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg> <span class="pop-txt">MÁS POPULAR</span></div>
+    <div class="plan-name" id="planName_pro">Pro</div>
+    <div class="plan-price" id="planPrice_pro">€19,90<span>/mes</span></div>
+    <div class="plan-desc" id="planDesc_pro">Para negocios en crecimiento</div>
     <ul class="plan-features">
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Hasta 3 usuarios</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Permisos por usuario</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Reportes PDF + informe gestor</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>ZIP gestoría y gastos recurrentes</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Cajas multi-servicio</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Importar datos CSV</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Soporte prioritario</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_3u">Hasta 3 usuarios</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_permisos">Permisos por usuario</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_pdf">Reportes PDF + informe gestor</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_zip">ZIP gestoría y gastos recurrentes</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_cajas">Cajas multi-servicio</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_csv">Importar datos CSV</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_soporte">Soporte prioritario</span></li>
     </ul>
-    <button class="plan-btn plan-btn-main">Elegir Pro</button>
+    <button class="plan-btn plan-btn-main" id="planBtn_pro">Elegir Pro</button>
   </div>
 
   <div class="plan" onclick="selPlan('top',this)">
-    <div class="plan-name">Premium</div>
-    <div class="plan-price">€34,90<span>/mes</span></div>
-    <div class="plan-desc">Para equipos profesionales</div>
+    <div class="plan-name" id="planName_top">Premium</div>
+    <div class="plan-price" id="planPrice_top">€34,90<span>/mes</span></div>
+    <div class="plan-desc" id="planDesc_top">Para equipos profesionales</div>
     <ul class="plan-features">
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Todo lo del plan Pro</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Usuarios ilimitados</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Citas online</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Vista Kanban de reparaciones</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Catálogo de servicios</li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg>Soporte prioritario</li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_todo_pro">Todo lo del plan Pro</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_inf_u">Usuarios ilimitados</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_citas">Citas online</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_kanban">Vista Kanban de reparaciones</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_catalogo">Catálogo de servicios</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_soporte">Soporte prioritario</span></li>
     </ul>
-    <button class="plan-btn plan-btn-sec">Elegir Premium</button>
+    <button class="plan-btn plan-btn-sec" id="planBtn_top">Elegir Premium</button>
   </div>
 </div>
 
