@@ -404,7 +404,8 @@ function renderSuscripcionInfo() {
   html += '<div style="font-size:13px;color:var(--muted)">' + planPrecio + ' €/mes</div></div>';
   html += '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">Estado</div>';
   html += '<div style="font-size:14px;font-weight:700;color:' + statusColor + '">' + statusLabel + '</div>';
-  if (dias !== null) {
+  if (dias !== null && dias >= 0 && dias <= 3650) {
+    // Tope de cordura: >10 años = dato anómalo (cuenta test/vitalicia) → no mostramos el absurdo "26863 días".
     var label = PLAN_INFO.status === 'trial' ? 'días de prueba restantes' : 'días hasta próximo cobro';
     html += '<div style="font-size:13px;color:var(--muted)">' + dias + ' ' + label + '</div>';
   }
@@ -2829,7 +2830,7 @@ function renderInicioNuevo() {
   var puede = (typeof puedeVerCaja === 'function') ? puedeVerCaja() : (U && U.rol === 'admin');
   var citasHoy = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; }).length;
   var hh = (new Date()).getHours();
-  var sal = hh < 13 ? T('inicio.saludo_manana') : (hh < 21 ? T('inicio.saludo_tarde') : T('inicio.saludo_noche'));
+  var sal = hh < 6 ? T('inicio.saludo_noche') : hh < 13 ? T('inicio.saludo_manana') : (hh < 21 ? T('inicio.saludo_tarde') : T('inicio.saludo_noche'));
   var nom = (U && U.nombre) ? U.nombre.split(' ')[0] : '';
   _st('inv-fecha', new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }));
   _st('inv-saludo', sal + (nom ? ', ' + nom : '') + ' 👋');
