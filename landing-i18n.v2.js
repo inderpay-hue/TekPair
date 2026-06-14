@@ -1,6 +1,6 @@
 var T = {
   es: {
-    'hero.adios':'Adiós','hero.hola':'Hola TekPair.','hero.subtitle':'El software más sencillo para tiendas de reparación de móviles. Reparaciones por IMEI, TPV, stock, clientes y citas — todo desde tu móvil, tablet u ordenador.',
+    'hero.adios':'Adiós','promo.bar':'⚡ Oferta limitada — 50% descuento × 3 meses con código <code>EARLY50</code> · Solo quedan 10 plazas','hero.hola':'Hola TekPair.','hero.subtitle':'El software más sencillo para tiendas de reparación de móviles. Reparaciones por IMEI, TPV, stock, clientes y citas — todo desde tu móvil, tablet u ordenador.',
     'mk.panel':'Panel de hoy','mk.live':'EN VIVO','mk.ingresos':'ingresos','mk.reparaciones':'reparaciones','mk.encurso':'En curso','mk.listo':'listo','mk.run':'en curso','mk.wait':'en espera','mk.objetivo':'Objetivo del día',
     'hero.eyebrow':'Hecho para talleres de reparación','hero.cta1':'Prueba 15 días →',
     'nav.features':'Características','nav.pricing':'Precios','nav.faq':'FAQ','nav.login':'Entrar','nav.start':'Empezar gratis',
@@ -42,7 +42,7 @@ var T = {
     'footer.product':'Producto','footer.contact':'Contacto','footer.rights':'Todos los derechos reservados.','footer.secure':'Pago seguro con Stripe'
   },
   en: {
-    'hero.adios':'Goodbye','hero.hola':'Hello TekPair.','hero.subtitle':'The simplest software for mobile repair shops. Repairs by IMEI, POS, stock, customers and appointments — all from your phone, tablet or computer.',
+    'hero.adios':'Goodbye','promo.bar':'⚡ Limited offer — 50% off × 3 months with code <code>EARLY50</code> · Only 10 spots left','hero.hola':'Hello TekPair.','hero.subtitle':'The simplest software for mobile repair shops. Repairs by IMEI, POS, stock, customers and appointments — all from your phone, tablet or computer.',
     'mk.panel':"Today's panel",'mk.live':'LIVE','mk.ingresos':'revenue','mk.reparaciones':'repairs','mk.encurso':'In progress','mk.listo':'done','mk.run':'in progress','mk.wait':'waiting','mk.objetivo':'Daily goal',
     'hero.eyebrow':'Built for repair shops','hero.cta1':'Start free 15 days →',
     'nav.features':'Features','nav.pricing':'Pricing','nav.faq':'FAQ','nav.login':'Login','nav.start':'Get started free',
@@ -84,7 +84,7 @@ var T = {
     'footer.product':'Product','footer.contact':'Contact','footer.rights':'All rights reserved.','footer.secure':'Secure payment with Stripe'
   },
   fr: {
-    'hero.adios':'Adieu','hero.hola':'Bonjour TekPair.','hero.subtitle':'Le logiciel le plus simple pour les boutiques de réparation mobile. Réparations par IMEI, TPV, stock, clients et rendez-vous — depuis votre téléphone, tablette ou ordinateur.',
+    'hero.adios':'Adieu','promo.bar':'⚡ Offre limitée — 50% de réduction × 3 mois avec le code <code>EARLY50</code> · Plus que 10 places','hero.hola':'Bonjour TekPair.','hero.subtitle':'Le logiciel le plus simple pour les boutiques de réparation mobile. Réparations par IMEI, TPV, stock, clients et rendez-vous — depuis votre téléphone, tablette ou ordinateur.',
     'mk.panel':'Tableau du jour','mk.live':'EN DIRECT','mk.ingresos':'revenus','mk.reparaciones':'réparations','mk.encurso':'En cours','mk.listo':'prêt','mk.run':'en cours','mk.wait':'en attente','mk.objetivo':'Objectif du jour',
     'hero.eyebrow':'Pour les boutiques de réparation','hero.cta1':'Essai gratuit 15 jours →',
     'nav.features':'Fonctionnalités','nav.pricing':'Tarifs','nav.faq':'FAQ','nav.login':'Connexion','nav.start':'Commencer gratuitement',
@@ -126,7 +126,7 @@ var T = {
     'footer.product':'Produit','footer.contact':'Contact','footer.rights':'Tous droits réservés.','footer.secure':'Paiement sécurisé avec Stripe'
   },
   pt: {
-    'hero.adios':'Adeus','hero.hola':'Olá TekPair.','hero.subtitle':'O software mais simples para lojas de reparação de telemóveis. Reparações por IMEI, TPV, stock, clientes e marcações — tudo do seu telemóvel, tablet ou computador.',
+    'hero.adios':'Adeus','promo.bar':'⚡ Oferta limitada — 50% de desconto × 3 meses com o código <code>EARLY50</code> · Restam apenas 10 vagas','hero.hola':'Olá TekPair.','hero.subtitle':'O software mais simples para lojas de reparação de telemóveis. Reparações por IMEI, TPV, stock, clientes e marcações — tudo do seu telemóvel, tablet ou computador.',
     'mk.panel':'Painel de hoje','mk.live':'AO VIVO','mk.ingresos':'receitas','mk.reparaciones':'reparações','mk.encurso':'Em curso','mk.listo':'pronto','mk.run':'em curso','mk.wait':'em espera','mk.objetivo':'Objetivo do dia',
     'hero.eyebrow':'Para lojas de reparação','hero.cta1':'Experimente 15 dias →',
     'nav.features':'Funcionalidades','nav.pricing':'Preços','nav.faq':'FAQ','nav.login':'Entrar','nav.start':'Começar grátis',
@@ -168,7 +168,7 @@ var T = {
     'footer.product':'Produto','footer.contact':'Contacto','footer.rights':'Todos os direitos reservados.','footer.secure':'Pagamento seguro com Stripe'
   },
   it: {
-    'hero.adios':'Addio','hero.hola':'Ciao TekPair.','hero.subtitle':'Il software più semplice per i negozi di riparazione smartphone. Riparazioni per IMEI, TPV, stock, clienti e appuntamenti — tutto dal tuo telefono, tablet o computer.',
+    'hero.adios':'Addio','promo.bar':'⚡ Offerta limitata — 50% di sconto × 3 mesi con il codice <code>EARLY50</code> · Solo 10 posti rimasti','hero.hola':'Ciao TekPair.','hero.subtitle':'Il software più semplice per i negozi di riparazione smartphone. Riparazioni per IMEI, TPV, stock, clienti e appuntamenti — tutto dal tuo telefono, tablet o computer.',
     'mk.panel':'Pannello di oggi','mk.live':'IN DIRETTA','mk.ingresos':'entrate','mk.reparaciones':'riparazioni','mk.encurso':'In corso','mk.listo':'pronto','mk.run':'in corso','mk.wait':'in attesa','mk.objetivo':'Obiettivo del giorno',
     'hero.eyebrow':'Per i negozi di riparazione','hero.cta1':'Prova gratis 15 giorni →',
     'nav.features':'Caratteristiche','nav.pricing':'Prezzi','nav.faq':'FAQ','nav.login':'Accedi','nav.start':'Inizia gratis',
@@ -210,7 +210,7 @@ var T = {
     'footer.product':'Prodotto','footer.contact':'Contatto','footer.rights':'Tutti i diritti riservati.','footer.secure':'Pagamento sicuro con Stripe'
   },
   de: {
-    'hero.adios':'Tschüss','hero.hola':'Hallo TekPair.','hero.subtitle':'Die einfachste Software für Handy-Reparaturshops. Reparaturen per IMEI, Kasse, Lager, Kunden und Termine — alles von deinem Handy, Tablet oder Computer.',
+    'hero.adios':'Tschüss','promo.bar':'⚡ Begrenztes Angebot — 50% Rabatt × 3 Monate mit Code <code>EARLY50</code> · Nur noch 10 Plätze','hero.hola':'Hallo TekPair.','hero.subtitle':'Die einfachste Software für Handy-Reparaturshops. Reparaturen per IMEI, Kasse, Lager, Kunden und Termine — alles von deinem Handy, Tablet oder Computer.',
     'mk.panel':'Heutiges Panel','mk.live':'LIVE','mk.ingresos':'Einnahmen','mk.reparaciones':'Reparaturen','mk.encurso':'In Arbeit','mk.listo':'fertig','mk.run':'in Arbeit','mk.wait':'wartend','mk.objetivo':'Tagesziel',
     'hero.eyebrow':'Für Reparaturshops','hero.cta1':'15 Tage kostenlos testen →',
     'nav.features':'Funktionen','nav.pricing':'Preise','nav.faq':'FAQ','nav.login':'Anmelden','nav.start':'Kostenlos starten',
