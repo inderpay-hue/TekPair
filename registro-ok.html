@@ -58,6 +58,8 @@ function _mostrarVolver(){
 async function setup() {
   // F172: sincronizar el selector con el idioma realmente aplicado (evita bandera ES + contenido EN)
   var _okSel = document.getElementById('okLangSel'); if (_okSel) _okSel.value = getOkLang();
+  // F181: idioma del documento (antes <html lang> y title se quedaban en ES con contenido EN)
+  try { document.documentElement.lang = getOkLang(); } catch (e) {}
   var params = new URLSearchParams(window.location.search);
   var session_id = params.get('session_id');
 
@@ -74,7 +76,7 @@ async function setup() {
   if (!session_id) {
     var Ls = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
     document.getElementById('icon').textContent = '❌';
-    document.getElementById('title').textContent = Ls.err_title;
+    document.getElementById('title').textContent = Ls.err_title; document.title = Ls.err_title + ' — TekPair';
     document.getElementById('msg').innerHTML = _linkify(Ls.err_session);
     _mostrarVolver();
     return;
@@ -100,7 +102,7 @@ async function setup() {
       var nombreMostrar = (data.nombre || nombreLegacy || '').trim();
       var L = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
       document.getElementById('icon').textContent = '🎉';
-      document.getElementById('title').textContent = L.ok_title;
+      document.getElementById('title').textContent = L.ok_title; document.title = L.ok_title + ' — TekPair';
       document.getElementById('msg').textContent = nombreMostrar ? L.ok_msg_pre + nombreMostrar + ', ' + L.ok_msg_suf : L.ok_msg_no_name;
       document.getElementById('note').textContent = L.note;
       document.getElementById('note').style.display = 'block';
@@ -110,14 +112,14 @@ async function setup() {
       if (data.error && data.error.indexOf('ya') !== -1 && (data.error.indexOf('cuenta') !== -1 || data.error.indexOf('email') !== -1)) {
         var Le = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
         document.getElementById('icon').textContent = '✅';
-        document.getElementById('title').textContent = Le.exists_title;
+        document.getElementById('title').textContent = Le.exists_title; document.title = Le.exists_title + ' — TekPair';
         document.getElementById('msg').textContent = Le.exists_msg;
         document.getElementById('btnEntrar').style.display = 'block';
         document.getElementById('btnEntrar').textContent = Le.btn;
       } else {
         var Lerr = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
         document.getElementById('icon').textContent = '❌';
-        document.getElementById('title').textContent = Lerr.err_title;
+        document.getElementById('title').textContent = Lerr.err_title; document.title = Lerr.err_title + ' — TekPair';
         document.getElementById('msg').innerHTML = _linkify(data.error || Lerr.err_conn);
         _mostrarVolver();
       }
@@ -125,7 +127,7 @@ async function setup() {
   } catch(e) {
     var Lc = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
     document.getElementById('icon').textContent = '❌';
-    document.getElementById('title').textContent = Lc.err_title;
+    document.getElementById('title').textContent = Lc.err_title; document.title = Lc.err_title + ' — TekPair';
     document.getElementById('msg').innerHTML = _linkify(Lc.err_conn);
     _mostrarVolver();
   }

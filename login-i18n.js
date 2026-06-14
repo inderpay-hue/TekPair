@@ -25,6 +25,14 @@ function setLoginLang(lang) {
   if (el('loginRegFoot')) el('loginRegFoot').innerHTML = t.reg + ' <a href="/registro.html">' + t.regLink + '</a>';
   if (el('loginLangSel')) el('loginLangSel').value = lang;
   if (el('lnkVolver')) el('lnkVolver').textContent = t.volver || '← Volver a tekpair.tech';
+  // F179: enlaces legales del footer traducidos
+  var _lg = {
+    fLgAviso: { es:'Aviso legal', en:'Legal notice', fr:'Mentions légales', it:'Note legali', de:'Impressum', pt:'Aviso legal' },
+    fLgPriv: { es:'Privacidad', en:'Privacy', fr:'Confidentialité', it:'Privacy', de:'Datenschutz', pt:'Privacidade' },
+    fLgTerms: { es:'Términos', en:'Terms', fr:'Conditions', it:'Termini', de:'AGB', pt:'Termos' },
+    fLgCookies: { es:'Cookies', en:'Cookies', fr:'Cookies', it:'Cookie', de:'Cookies', pt:'Cookies' }
+  };
+  Object.keys(_lg).forEach(function(id){ if (el(id)) el(id).textContent = _lg[id][lang] || _lg[id].es; });
 }
 document.addEventListener('DOMContentLoaded', function() {
   setLoginLang(localStorage.getItem('tp_lang') || 'es');

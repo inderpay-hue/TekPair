@@ -86,7 +86,7 @@ button:disabled{background:var(--faint);cursor:not-allowed;transform:none;box-sh
 function entrar() {
   var em = document.getElementById('em').value;
   var pw = document.getElementById('pw').value;
-  if (!em || !pw) { document.getElementById('err').textContent = 'Rellena todos los campos'; return; }
+  if (!em || !pw) { document.getElementById('err').textContent = (LOGIN_TEXTS[localStorage.getItem('tp_lang')||'es']||LOGIN_TEXTS.es).rellena; return; }
   document.getElementById('err').textContent = '';
   document.getElementById('btn').disabled = true;
   document.getElementById('btn').textContent = (LOGIN_TEXTS[localStorage.getItem('tp_lang')||'es']||LOGIN_TEXTS.es).entrando;
@@ -101,13 +101,13 @@ function entrar() {
       localStorage.setItem('tk_sess', JSON.stringify(data));
       window.location.href = 'dashboard.html';
     } else {
-      document.getElementById('btn').textContent = 'Entrar';
+      document.getElementById('btn').textContent = (LOGIN_TEXTS[localStorage.getItem('tp_lang')||'es']||LOGIN_TEXTS.es).btn;
       document.getElementById('btn').disabled = false;
       document.getElementById('err').textContent = data.error || 'Error al entrar';
     }
   }).catch(function(err){
     console.error('Login error:', err);
-    document.getElementById('btn').textContent = 'Entrar';
+    document.getElementById('btn').textContent = (LOGIN_TEXTS[localStorage.getItem('tp_lang')||'es']||LOGIN_TEXTS.es).btn;
     document.getElementById('btn').disabled = false;
     document.getElementById('err').textContent = (LOGIN_TEXTS[localStorage.getItem('tp_lang')||'es']||LOGIN_TEXTS.es).error_conn;
   });
@@ -147,7 +147,7 @@ document.getElementById('pw').onkeypress = function(e){ if(e.key==='Enter') entr
 document.getElementById('em').onkeypress = function(e){ if(e.key==='Enter') entrar(); };
 </script>
 <footer style="position:fixed;bottom:8px;left:0;right:0;text-align:center;font-size:11px;color:#94a3b8;z-index:2">
-  <a href="/aviso-legal.html" style="color:inherit">Aviso legal</a> · <a href="/privacidad.html" style="color:inherit">Privacidad</a> · <a href="/terminos.html" style="color:inherit">Términos</a> · <a href="/cookies.html" style="color:inherit">Cookies</a>
+  <a href="/aviso-legal.html" id="fLgAviso" style="color:inherit">Aviso legal</a> · <a href="/privacidad.html" id="fLgPriv" style="color:inherit">Privacidad</a> · <a href="/terminos.html" id="fLgTerms" style="color:inherit">Términos</a> · <a href="/cookies.html" id="fLgCookies" style="color:inherit">Cookies</a>
 </footer>
 </body>
 </html>
