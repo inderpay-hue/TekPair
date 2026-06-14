@@ -1909,10 +1909,15 @@ function navTo(id) {
   }
   // F36: sincronizar el resaltado del menú lateral con la página activa,
   // aunque se navegue sin clic directo (botones "+más", llamadas programáticas).
+  // Las páginas sin entrada propia en el menú resaltan su sección lógica (alias).
   try {
-    document.querySelectorAll('.sidebar-ni').forEach(function(n) { n.classList.remove('active'); });
-    var sbni = document.querySelector('.sidebar-ni[data-p="' + id + '"]');
-    if (sbni) sbni.classList.add('active');
+    var _navAlias = { pDash: 'pInicioNuevo', pCatalogo: 'pServicios', pTienda: 'pAjustes', pImportar: 'pStock' };
+    var _sid = _navAlias[id] || id;
+    var sbni = document.querySelector('.sidebar-ni[data-p="' + _sid + '"]');
+    if (sbni) {
+      document.querySelectorAll('.sidebar-ni').forEach(function(n) { n.classList.remove('active'); });
+      sbni.classList.add('active');
+    }
   } catch (e) {}
   document.getElementById('content').scrollTop = 0;
   // Trigger renders
