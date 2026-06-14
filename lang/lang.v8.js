@@ -385,6 +385,8 @@ var TRANSLATIONS = {
   "gen.ingresos_reps": "Ingresos reps",
   "gen.por_forma_pago": "💳 Por forma de pago",
   "gen.top_servicios": "🛠️ Top servicios",
+  "rep.desglose_iva": "Desglose por IVA",
+  "rep.evolucion_ingresos": "Evolución de ingresos",
   "gen.sin_datos": "Sin datos",
   "gen.periodo": "Periodo",
   "gen.pdf_informe": "📄 PDF informe",
@@ -928,6 +930,8 @@ var TRANSLATIONS = {
   "gen.ingresos_reps": "Repair revenue",
   "gen.por_forma_pago": "💳 By payment method",
   "gen.top_servicios": "🛠️ Top services",
+  "rep.desglose_iva": "VAT breakdown",
+  "rep.evolucion_ingresos": "Revenue trend",
   "gen.sin_datos": "No data",
   "gen.periodo": "Period",
   "gen.pdf_informe": "📄 PDF report",
@@ -1471,6 +1475,8 @@ var TRANSLATIONS = {
   "gen.ingresos_reps": "Revenus réparations",
   "gen.por_forma_pago": "💳 Par mode de paiement",
   "gen.top_servicios": "🛠️ Top services",
+  "rep.desglose_iva": "Détail par TVA",
+  "rep.evolucion_ingresos": "Évolution des revenus",
   "gen.sin_datos": "Aucune donnée",
   "gen.periodo": "Période",
   "gen.pdf_informe": "📄 Rapport PDF",
@@ -2014,6 +2020,8 @@ var TRANSLATIONS = {
   "gen.ingresos_reps": "Ricavi riparazioni",
   "gen.por_forma_pago": "💳 Per metodo di pagamento",
   "gen.top_servicios": "🛠️ Top servizi",
+  "rep.desglose_iva": "Dettaglio IVA",
+  "rep.evolucion_ingresos": "Andamento ricavi",
   "gen.sin_datos": "Nessun dato",
   "gen.periodo": "Periodo",
   "gen.pdf_informe": "📄 Rapporto PDF",
@@ -2557,6 +2565,8 @@ var TRANSLATIONS = {
   "gen.ingresos_reps": "Reparatureinnahmen",
   "gen.por_forma_pago": "💳 Nach Zahlungsmethode",
   "gen.top_servicios": "🛠️ Top Dienste",
+  "rep.desglose_iva": "MwSt.-Aufschlüsselung",
+  "rep.evolucion_ingresos": "Umsatzentwicklung",
   "gen.sin_datos": "Keine Daten",
   "gen.periodo": "Zeitraum",
   "gen.pdf_informe": "📄 PDF-Bericht",
@@ -3100,6 +3110,8 @@ var TRANSLATIONS = {
   "gen.ingresos_reps": "Receita reparações",
   "gen.por_forma_pago": "💳 Por método de pagamento",
   "gen.top_servicios": "🛠️ Top serviços",
+  "rep.desglose_iva": "Detalhamento por IVA",
+  "rep.evolucion_ingresos": "Evolução de receitas",
   "gen.sin_datos": "Sem dados",
   "gen.periodo": "Período",
   "gen.pdf_informe": "📄 Relatório PDF",
@@ -3691,6 +3703,14 @@ function setLang(lang) {
   try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch(e){}
   try { if (typeof actualizarSbControls === 'function') actualizarSbControls(); } catch(e){}
   try { var _pr = document.getElementById('pReportes'); if (typeof renderReporte === 'function' && _pr && _pr.classList.contains('active')) renderReporte(); } catch(e){}
+  // Item dinámico de Comisiones (se crea una vez; re-traducir su texto al cambiar idioma)
+  try {
+    var _ci = document.getElementById('sidebarItemComisiones');
+    if (_ci) {
+      var _adm = (typeof COMISIONES_MODO !== 'undefined' && COMISIONES_MODO === 'admin');
+      _ci.innerHTML = '<span class="sidebar-ni-icon">💼</span>' + (_adm ? T('nav.comisiones') + ' (admin)' : T('nav.mis_comisiones'));
+    }
+  } catch(e){}
 }
 
 // Aplicar idioma a elementos con data-t
