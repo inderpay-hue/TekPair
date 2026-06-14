@@ -144,6 +144,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
     <button class="plan-btn plan-btn-sec" id="planBtn_top">Elegir Premium</button>
   </div>
 </div>
+<div data-t="vat_note" style="text-align:center;font-size:12px;color:var(--faint);margin:-2px 16px 0">IVA no incluido</div>
 
 <div class="form-section" id="formSection">
   <div class="plan-sel">
@@ -181,7 +182,7 @@ const REG_TEXTS = {
     hero_p: 'Gestiona ventas, reparaciones, stock y clientes desde cualquier dispositivo',
     plan_basico: 'Básico', plan_pro: 'Pro', plan_premium: 'Premium',
     price_basico: '€9,90', price_pro: '€19,90', price_premium: '€34,90',
-    per_month: '/mes',
+    per_month: '/mes', vat_note: 'IVA no incluido',
     desc_basico: 'Para empezar', desc_pro: 'Para negocios en crecimiento', desc_premium: 'Para equipos profesionales',
     btn_basico: 'Elegir Básico', btn_pro: 'Elegir Pro', btn_premium: 'Elegir Premium',
     form_title: 'Crea tu cuenta',
@@ -206,7 +207,7 @@ const REG_TEXTS = {
     hero_p: 'Manage sales, repairs, stock and customers from any device',
     plan_basico: 'Basic', plan_pro: 'Pro', plan_premium: 'Premium',
     price_basico: '€9.90', price_pro: '€19.90', price_premium: '€34.90',
-    per_month: '/mo',
+    per_month: '/mo', vat_note: 'VAT not included',
     desc_basico: 'To get started', desc_pro: 'For growing businesses', desc_premium: 'For professional teams',
     btn_basico: 'Choose Basic', btn_pro: 'Choose Pro', btn_premium: 'Choose Premium',
     form_title: 'Create your account',
@@ -231,7 +232,7 @@ const REG_TEXTS = {
     hero_p: 'Gérez ventes, réparations, stock et clients depuis n\'importe quel appareil',
     plan_basico: 'Basique', plan_pro: 'Pro', plan_premium: 'Premium',
     price_basico: '9,90€', price_pro: '19,90€', price_premium: '34,90€',
-    per_month: '/mois',
+    per_month: '/mois', vat_note: 'TVA non incluse',
     desc_basico: 'Pour commencer', desc_pro: 'Pour les entreprises en croissance', desc_premium: 'Pour les équipes professionnelles',
     btn_basico: 'Choisir Basique', btn_pro: 'Choisir Pro', btn_premium: 'Choisir Premium',
     form_title: 'Créez votre compte',
@@ -256,7 +257,7 @@ const REG_TEXTS = {
     hero_p: 'Gestisci vendite, riparazioni, stock e clienti da qualsiasi dispositivo',
     plan_basico: 'Base', plan_pro: 'Pro', plan_premium: 'Premium',
     price_basico: '€9,90', price_pro: '€19,90', price_premium: '€34,90',
-    per_month: '/mese',
+    per_month: '/mese', vat_note: 'IVA esclusa',
     desc_basico: 'Per iniziare', desc_pro: 'Per aziende in crescita', desc_premium: 'Per team professionali',
     btn_basico: 'Scegli Base', btn_pro: 'Scegli Pro', btn_premium: 'Scegli Premium',
     form_title: 'Crea il tuo account',
@@ -281,7 +282,7 @@ const REG_TEXTS = {
     hero_p: 'Verwalten Sie Verkäufe, Reparaturen, Lager und Kunden von jedem Gerät',
     plan_basico: 'Basis', plan_pro: 'Pro', plan_premium: 'Premium',
     price_basico: '9,90€', price_pro: '19,90€', price_premium: '34,90€',
-    per_month: '/Monat',
+    per_month: '/Monat', vat_note: 'zzgl. MwSt.',
     desc_basico: 'Zum Einstieg', desc_pro: 'Für wachsende Unternehmen', desc_premium: 'Für professionelle Teams',
     btn_basico: 'Basis wählen', btn_pro: 'Pro wählen', btn_premium: 'Premium wählen',
     form_title: 'Konto erstellen',
@@ -306,7 +307,7 @@ const REG_TEXTS = {
     hero_p: 'Gere vendas, reparações, stock e clientes em qualquer dispositivo',
     plan_basico: 'Básico', plan_pro: 'Pro', plan_premium: 'Premium',
     price_basico: '€9,90', price_pro: '€19,90', price_premium: '€34,90',
-    per_month: '/mês',
+    per_month: '/mês', vat_note: 'IVA não incluído',
     desc_basico: 'Para começar', desc_pro: 'Para negócios em crescimento', desc_premium: 'Para equipas profissionais',
     btn_basico: 'Escolher Básico', btn_pro: 'Escolher Pro', btn_premium: 'Escolher Premium',
     form_title: 'Cria a tua conta',
@@ -452,5 +453,8 @@ document.addEventListener('DOMContentLoaded', function() {
   applyRegLang(lang);
 });
 </script>
+<footer style="text-align:center;font-size:12px;color:#8A94A6;padding:24px 16px 32px">
+  <a href="/aviso-legal.html" style="color:inherit;margin:0 5px">Aviso legal</a> · <a href="/privacidad.html" style="color:inherit;margin:0 5px">Privacidad</a> · <a href="/terminos.html" style="color:inherit;margin:0 5px">Términos</a> · <a href="/cookies.html" style="color:inherit;margin:0 5px">Cookies</a>
+</footer>
 </body>
 </html>
