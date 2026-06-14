@@ -11112,12 +11112,12 @@ async function renderReporte() {
 
   document.getElementById('reporteResumen').innerHTML =
     '<div class="stats-grid">' +
-    (SEL.repTipo !== 'reparaciones' ? '<div class="stat-card"><div class="stat-val" style="color:var(--blue)">' + ventas.length + '</div><div class="stat-lbl">Ventas</div></div>' +
-    '<div class="stat-card"><div class="stat-val" style="color:var(--green)">' + cur(tV) + '</div><div class="stat-lbl">Ingresos ventas</div></div>' : '') +
-    (SEL.repTipo !== 'ventas' ? '<div class="stat-card"><div class="stat-val" style="color:var(--purple)">' + reps.length + '</div><div class="stat-lbl">Reparaciones</div></div>' +
+    (SEL.repTipo !== 'reparaciones' ? '<div class="stat-card"><div class="stat-val" style="color:var(--blue)">' + ventas.length + '</div><div class="stat-lbl">' + T('nav.ventas') + '</div></div>' +
+    '<div class="stat-card"><div class="stat-val" style="color:var(--green)">' + cur(tV) + '</div><div class="stat-lbl">' + T('dash.ingresos_ventas') + '</div></div>' : '') +
+    (SEL.repTipo !== 'ventas' ? '<div class="stat-card"><div class="stat-val" style="color:var(--purple)">' + reps.length + '</div><div class="stat-lbl">' + T('nav.reparaciones') + '</div></div>' +
     '<div class="stat-card"><div class="stat-val" style="color:var(--orange)">' + cur(tR) + '</div><div class="stat-lbl"><span data-t="gen.ingresos_reps">Ingresos reps</span></div></div>' : '') +
     '</div>' +
-    '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">Total: ' + cur(tV + tR) + '</div>';
+    '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">' + T('gen.total') + ': ' + cur(tV + tR) + '</div>';
 
   // Guardar datos del periodo para "Enviar a Cobrum" (ventas + pagos de reparación)
   var _gastosPeriodo = (DB.gastos || []).filter(function(g){ return g && fechas.indexOf((g.fecha || '').slice(0, 10)) >= 0; });
@@ -16440,8 +16440,9 @@ function aplicarTema(tema) {
 function setTema(tema) {
   localStorage.setItem('tk_theme', tema);
   aplicarTema(tema);
-  var nombres = { light:'☀️ Modo claro', dark:'🌙 Modo oscuro', negro:'🖤 Tema negro', grafito:'🪨 Tema grafito', naranja:'🟠 Tema naranja', terracota:'🔥 Tema terracota', ambar:'🟧 Tema ámbar' };
-  toast(nombres[tema] || 'Tema aplicado', 'ok');
+  var emojisTema = { light:'☀️', dark:'🌙', negro:'🖤', grafito:'🪨', naranja:'🟠', terracota:'🔥', ambar:'🟧' };
+  var _tn = (typeof _temaNombres === 'function') ? _temaNombres() : {};
+  toast((emojisTema[tema] || '🎨') + ' ' + (_tn[tema] || tema), 'ok');
   if (typeof actualizarSbControls === 'function') actualizarSbControls();
 }
 // Aplicar tema al cargar

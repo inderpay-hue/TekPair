@@ -985,7 +985,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
-  <script src="/lang/lang.v8.js?v=20260614bugs"></script>
+  <script src="/lang/lang.v8.js?v=20260614rep"></script>
 </head>
 <body>
 <div id="app">
@@ -2485,7 +2485,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="page" id="pReportes">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
     <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
-    <div class="sec-title">Reportes</div>
+    <div class="sec-title" data-t="nav.reportes">Reportes</div>
   </div>
   <div class="tabs">
     <div class="tab active" data-rt="hoy" data-t="dash.hoy" onclick="setRepTab(this)">Hoy</div>
@@ -2502,28 +2502,28 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="tabs">
     <div class="tab active" data-ti="todo" onclick="setRepTipo(this)"><span data-t="tpv.todos">Todo</span></div>
     <div class="tab" data-ti="ventas" onclick="setRepTipo(this)"><span data-t="nav.ventas">Ventas</span></div>
-    <div class="tab" data-ti="reparaciones" onclick="setRepTipo(this)">Reparaciones</div>
+    <div class="tab" data-ti="reparaciones" onclick="setRepTipo(this)"><span data-t="nav.reparaciones">Reparaciones</span></div>
   </div>
   <div id="reporteResumen"></div>
 
   <!-- Gráficas -->
   <div id="reporteGraficas" style="margin-top:14px">
     <div class="card" id="cardChartIngresos" style="display:none">
-      <div class="card-title">📈 Evolución de ingresos</div>
+      <div class="card-title">📈 <span data-t="rep.evolucion_ingresos">Evolución de ingresos</span></div>
       <div style="height:240px;position:relative"><canvas id="chartIngresos"></canvas></div>
     </div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px" id="cardChartsRow">
       <div class="card" style="padding:14px">
-        <div class="card-title" style="margin-bottom:8px">💳 Por forma de pago</div>
+        <div class="card-title" style="margin-bottom:8px">💳 <span data-t="dash.por_forma_pago">Por forma de pago</span></div>
         <div style="height:200px;position:relative"><canvas id="chartPagos"></canvas></div>
       </div>
       <div class="card" style="padding:14px">
-        <div class="card-title" style="margin-bottom:8px">🔧 Top servicios</div>
+        <div class="card-title" style="margin-bottom:8px" data-t="gen.top_servicios">🛠️ Top servicios</div>
         <div style="height:200px;position:relative"><canvas id="chartServicios"></canvas></div>
       </div>
     </div>
     <div class="card" style="margin-top:10px" id="cardIVA">
-      <div class="card-title">📋 Desglose por IVA</div>
+      <div class="card-title">📋 <span data-t="rep.desglose_iva">Desglose por IVA</span></div>
       <div id="ivaDesglose" style="font-size:12px"></div>
     </div>
   </div>
@@ -3342,7 +3342,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- ═══ COMISIONES (solo afiliados/admin) ═══ -->
 <div class="page" id="pComisiones">
   <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px">
-    <div class="sec-title" id="comTitle">💼 Comisiones</div>
+    <div class="sec-title" id="comTitle">💼 <span data-t="nav.comisiones">Comisiones</span></div>
   </div>
   <div id="comContent">
     <div style="text-align:center;padding:40px;color:var(--muted)">Cargando...</div>
@@ -4419,7 +4419,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260614f36b"></script>
+<script src="/js/dash-app.js?v=20260614rep"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
