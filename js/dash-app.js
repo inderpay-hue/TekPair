@@ -15609,25 +15609,40 @@ function actualizarUltimoBackupUI() {
     el.style.color = dias > 30 ? 'var(--orange)' : 'var(--muted)';
   }
 }
+// Throttle: como mucho un aviso de backup por día (evita machacar en cada recarga)
+function _backupAvisoThrottle() {
+  var last = parseInt(localStorage.getItem('tk_backup_aviso') || '0', 10);
+  if (Date.now() - last < 86400000) return false;
+  localStorage.setItem('tk_backup_aviso', String(Date.now()));
+  return true;
+}
 function comprobarBackupVencido() {
-  if (!AJUSTES.backupAuto) return;
   var ult = localStorage.getItem('tk_ultimo_backup');
   var dias = AJUSTES.backupCadaDias || 30;
+  // Alerta proactiva SIEMPRE si nunca se ha hecho backup (independiente del toggle)
   if (!ult) {
-    setTimeout(function(){ toast('💾 Recuerda hacer un backup en Ajustes', 'ok'); }, 5000);
+    if (_backupAvisoThrottle()) {
+      setTimeout(function(){ toast('⚠️ Nunca has hecho un backup. Protege tus datos en Ajustes › Backup', 'err'); }, 5000);
+    }
     return;
   }
+  if (!AJUSTES.backupAuto) return;
   var elapsed = Math.floor((Date.now() - new Date(ult).getTime()) / 86400000);
-  if (elapsed >= dias) {
-    setTimeout(function(){ toast('💾 Toca hacer backup (último: hace ' + elapsed + ' días)', 'ok'); }, 5000);
+  if (elapsed >= dias && _backupAvisoThrottle()) {
+    setTimeout(function(){ toast('💾 Toca hacer backup (último: hace ' + elapsed + ' días)', 'err'); }, 5000);
   }
 }
 // Inicializar UI de backup
 setTimeout(function() {
+  // F35: recordatorio de backup ON por defecto (solo si el usuario no lo desactivó explícitamente)
+  if (AJUSTES.backupAuto === undefined || AJUSTES.backupAuto === null) {
+    AJUSTES.backupAuto = true;
+    try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
+  }
   var chk = document.getElementById('ajBackupAuto');
   var sel = document.getElementById('ajBackupCadaDias');
-  if (chk) chk.checked = AJUSTES.backupAuto || false;
-  if (sel && AJUSTES.backupCadaDias) sel.value = AJUSTES.backupCadaDias;
+  if (chk) chk.checked = AJUSTES.backupAuto !== false;
+  if (sel) sel.value = AJUSTES.backupCadaDias || 30;
   actualizarUltimoBackupUI();
   comprobarBackupVencido();
 }, 1500);
