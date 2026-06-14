@@ -4419,7 +4419,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260615f48"></script>
+<script src="/js/dash-app.js?v=20260615f50"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -5987,6 +5987,7 @@ function filtrarFacturas() {
         '<button data-fidx="' + idx + '" class="btn-pdf-f" style="background:#10B981;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer" title="Ver / descargar PDF">📄 PDF</button> ' +
         '<button data-fidx="' + idx + '" class="btn-wa-f" style="background:#25D366;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Enviar por WhatsApp">📱</button> ' +
         '<button data-fidx="' + idx + '" class="btn-mail-f" style="background:#FF5B1F;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Enviar por Email">📧</button>' +
+        (!esAbono && !abonada ? ' <button data-fidx="' + idx + '" class="btn-abono-f" style="background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Emitir factura rectificativa (abono)">↩️ Abono</button>' : '') +
       '</td>' +
       '</tr>';
   });
@@ -6011,6 +6012,16 @@ function filtrarFacturas() {
         } else {
           toast('Módulo de factura no disponible', 'err');
         }
+      });
+    });
+    cont.querySelectorAll('.btn-abono-f').forEach(function(btn) {
+      btn.addEventListener('click', function() {
+        var f = lista[parseInt(this.dataset.fidx, 10)];
+        if (!f || typeof window.emitirAbonoFactura !== 'function') { toast('Módulo de factura no disponible', 'err'); return; }
+        confirmar('¿Emitir factura rectificativa (abono) de ' + (f.numero || '') + ' por ' + cur(f.total) + '?\n\nGenera una factura negativa que anula la original (la original se conserva por ley).', function() {
+          window.emitirAbonoFactura(f);
+          setTimeout(renderFacturas, 1800);
+        }, { okLabel: 'Emitir abono', danger: true });
       });
     });
     cont.querySelectorAll('.btn-mail-f').forEach(function(btn) {
