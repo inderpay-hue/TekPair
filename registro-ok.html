@@ -56,6 +56,8 @@ function _mostrarVolver(){
 }
 
 async function setup() {
+  // F172: sincronizar el selector con el idioma realmente aplicado (evita bandera ES + contenido EN)
+  var _okSel = document.getElementById('okLangSel'); if (_okSel) _okSel.value = getOkLang();
   var params = new URLSearchParams(window.location.search);
   var session_id = params.get('session_id');
 
