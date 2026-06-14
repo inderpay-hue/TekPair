@@ -1907,6 +1907,13 @@ function navTo(id) {
     el.classList.add('active');
     el.scrollTop = 0;
   }
+  // F36: sincronizar el resaltado del menú lateral con la página activa,
+  // aunque se navegue sin clic directo (botones "+más", llamadas programáticas).
+  try {
+    document.querySelectorAll('.sidebar-ni').forEach(function(n) { n.classList.remove('active'); });
+    var sbni = document.querySelector('.sidebar-ni[data-p="' + id + '"]');
+    if (sbni) sbni.classList.add('active');
+  } catch (e) {}
   document.getElementById('content').scrollTop = 0;
   // Trigger renders
   if (id === 'pVentas') renderVentas();
@@ -13141,9 +13148,8 @@ function actualizarSbControls() {
   var nm = _temaNombres();
   var temaLabel = document.getElementById('sbTemaLabel');
   if (temaLabel) {
-    var t = localStorage.getItem('tk_tema') || '';
-    var key = (t === '' ? 'light' : t);
-    temaLabel.textContent = nm[key] !== undefined ? nm[key] : (nm.light || 'Tema');
+    var key = localStorage.getItem('tk_theme') || 'terracota';
+    temaLabel.textContent = nm[key] !== undefined ? nm[key] : (nm.terracota || 'Tema');
   }
   // Botones del selector de tema (etiquetas traducidas)
   try {
