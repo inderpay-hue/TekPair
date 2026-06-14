@@ -5,9 +5,81 @@
   <!-- Landing principal -->
   <url>
     <loc>https://www.tekpair.tech/</loc>
-    <lastmod>2026-06-02</lastmod>
+    <lastmod>2026-06-15</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.tekpair.tech/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekpair.tech/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.tekpair.tech/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.tekpair.tech/de/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/"/>
+  </url>
+  <url>
+    <loc>https://www.tekpair.tech/en/</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.tekpair.tech/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekpair.tech/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.tekpair.tech/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.tekpair.tech/de/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/"/>
+  </url>
+  <url>
+    <loc>https://www.tekpair.tech/fr/</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.tekpair.tech/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekpair.tech/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.tekpair.tech/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.tekpair.tech/de/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/"/>
+  </url>
+  <url>
+    <loc>https://www.tekpair.tech/it/</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.tekpair.tech/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekpair.tech/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.tekpair.tech/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.tekpair.tech/de/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/"/>
+  </url>
+  <url>
+    <loc>https://www.tekpair.tech/de/</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.tekpair.tech/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekpair.tech/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.tekpair.tech/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.tekpair.tech/de/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/"/>
+  </url>
+  <url>
+    <loc>https://www.tekpair.tech/pt/</loc>
+    <lastmod>2026-06-15</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>1.0</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://www.tekpair.tech/"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://www.tekpair.tech/en/"/>
+    <xhtml:link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/fr/"/>
+    <xhtml:link rel="alternate" hreflang="it" href="https://www.tekpair.tech/it/"/>
+    <xhtml:link rel="alternate" hreflang="de" href="https://www.tekpair.tech/de/"/>
+    <xhtml:link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/pt/"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/"/>
   </url>
   <!-- Registro -->
   <url>
