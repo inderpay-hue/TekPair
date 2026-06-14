@@ -6080,22 +6080,24 @@ function aceptarPresupuesto(id) {
   var r = DB.reps.find(function(x){ return x.id === id; });
   if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
   if (r.estado !== 'Presupuesto') { toast('Esto no es un presupuesto', 'err'); return; }
-  if (!confirm('¿Convertir este presupuesto en reparación pendiente?\n\nCliente: ' + r.clienteNombre + '\nDispositivo: ' + r.marca + ' ' + r.modelo + '\nTotal: ' + cur(r.total))) return;
-  r.estado = 'Pendiente';
-  r.fechaAceptacion = new Date().toISOString();
-  guardarDatos();
-  // Sincronizar a Supabase
-  if (SB_KEY && TIENDA_ID) {
-    sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Pendiente' });
-  }
-  toast('Presupuesto aceptado · ahora es una reparación pendiente', 'ok');
-  if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
-    renderPresupuestos();
-  }
-  renderReps();
-  // Cambiar al filtro Pendiente para que el usuario vea dónde fue
-  var tab = document.querySelector('#repTabs .tab[data-f="Pendiente"]');
-  if (tab) setRepFiltro(tab);
+  // F46: modal en vez de confirm() nativo (el nativo congelaba la automatización, patrón F30)
+  confirmar('¿Convertir este presupuesto en reparación pendiente?\n\nCliente: ' + r.clienteNombre + '\nDispositivo: ' + r.marca + ' ' + r.modelo + '\nTotal: ' + cur(r.total), function () {
+    r.estado = 'Pendiente';
+    r.fechaAceptacion = new Date().toISOString();
+    guardarDatos();
+    // Sincronizar a Supabase
+    if (SB_KEY && TIENDA_ID) {
+      sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Pendiente' });
+    }
+    toast('Presupuesto aceptado · ahora es una reparación pendiente', 'ok');
+    if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
+      renderPresupuestos();
+    }
+    renderReps();
+    // Cambiar al filtro Pendiente para que el usuario vea dónde fue
+    var tab = document.querySelector('#repTabs .tab[data-f="Pendiente"]');
+    if (tab) setRepFiltro(tab);
+  }, { okLabel: 'Convertir' });
 }
 
 // Rechazar presupuesto → estado Rechazado (lo tienes ya)
@@ -6103,17 +6105,18 @@ function rechazarPresupuesto(id) {
   if (!tienePerm('reps_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x){ return x.id === id; });
   if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
-  if (!confirm('¿Marcar este presupuesto como rechazado?\n\nQuedará en histórico para consulta posterior.')) return;
-  r.estado = 'Rechazado';
-  guardarDatos();
-  if (SB_KEY && TIENDA_ID) {
-    sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Rechazado' });
-  }
-  toast(T('pres.rechazado_ok'), 'ok');
-  if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
-    renderPresupuestos();
-  }
-  renderReps();
+  confirmar('¿Marcar este presupuesto como rechazado?\n\nQuedará en histórico para consulta posterior.', function () {
+    r.estado = 'Rechazado';
+    guardarDatos();
+    if (SB_KEY && TIENDA_ID) {
+      sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Rechazado' });
+    }
+    toast(T('pres.rechazado_ok'), 'ok');
+    if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
+      renderPresupuestos();
+    }
+    renderReps();
+  }, { okLabel: 'Rechazar', danger: true });
 }
 
 // ═══ FIRMA DIGITAL DEL CLIENTE (FIRM-1 a FIRM-5) ═══
