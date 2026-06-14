@@ -1914,6 +1914,7 @@ function navTo(id) {
   if (id === 'pProvs') renderProvs();
   if (id === 'pCajas') Cajas.renderCajas();
   if (id === 'pInicioNuevo') renderInicioNuevo();
+  if (id === 'pDash') renderDash();   // F13: el dashboard Clásico no se re-renderizaba al abrirlo → salía €0/0 ventas
   if (id === 'pPedidos') renderPedidosPage();
   if (id === 'pAyuda') { try { renderGuiaAyuda(); } catch(e){} }
   if (id === 'pGastos') renderGastos();
