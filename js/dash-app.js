@@ -6920,9 +6920,18 @@ function asegurarToken(r) {
     var url = SUPABASE_URL + '/rest/v1/reparaciones?id=eq.' + r.id;
     return fetch(url, {
       method: 'PATCH',
-      headers: {'apikey': SB_KEY, 'Authorization':'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type':'application/json', 'Prefer':'return=minimal'},
+      headers: {'apikey': SB_KEY, 'Authorization':'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type':'application/json', 'Prefer':'return=representation'},
       body: JSON.stringify({token: r.token})
-    }).then(function(){ return r.token; }).catch(function(){ return r.token; });
+    }).then(function(resp){
+      // F27: si el token no se persiste (RLS o columna ausente), el link público NO abrirá.
+      // Antes el fallo se tragaba en silencio → "parte caducado". Ahora lo avisamos.
+      return resp.json().then(function(rows){
+        if (!resp.ok || !Array.isArray(rows) || !rows.length) {
+          try { toast('⚠️ No se pudo guardar el token del parte (permisos). El link podría no abrir.', 'err'); } catch(e){}
+        }
+        return r.token;
+      }).catch(function(){ return r.token; });
+    }).catch(function(){ return r.token; });
   }
   return Promise.resolve(r.token);
 }
@@ -8277,7 +8286,7 @@ function renderReps() {
       + '<td style="font-size:11px;color:var(--dark)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + r.bloqueo : '')) + '</span>' : '') + '</td>'
       + '<td><select data-rid="' + r.id + '" class="sel-estado" style="border:1px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:6px">'
         + ['Pendiente','En Proceso','Por Entregar','Entregado','Garantia','Sin Solucion','Devuelto','Rechazado'].map(function(s) {
-          return '<option value="'+s+'"' + (s === r.estado ? ' selected' : '') + '>' + (T('estado.'+s)||s) + '</option>';
+          return '<option value="'+s+'"' + (s === r.estado ? ' selected' : '') + '>' + _estadoLabel(s) + '</option>';
         }).join('') + '</select></td>'
       + '<td>' + priBadge + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
@@ -9039,7 +9048,7 @@ function renderStockMarcas() {
   var sel = (smEl ? smEl.value : '').trim().toLowerCase();
   box.innerHTML = nombres.map(function(m) {
     var on = m.toLowerCase() === sel;
-    return '<button type="button" onclick="setStockMarca(\'' + m.replace(/'/g, "\\'") + '\')" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:18px;border:1.5px solid ' + (on ? 'var(--orange)' : 'var(--border)') + ';background:' + (on ? 'rgba(249,115,22,.10)' : '#fff') + ';color:var(--text);font:inherit;font-size:12px;font-weight:600;cursor:pointer">' + _stkBrandChip(m) + '<span>' + escHtml(m) + '</span></button>';
+    return '<button type="button" onclick="setStockMarca(\'' + m.replace(/'/g, "\\'") + '\')" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:18px;border:1.5px solid ' + (on ? 'var(--orange)' : 'var(--border)') + ';background:' + (on ? 'rgba(249,115,22,.10)' : '#fff') + ';color:var(--text);font:inherit;font-size:12px;font-weight:600;cursor:pointer">' + _stkBrandChip(m) + '<span>' + escHtml(_tcMarca(m)) + '</span></button>';
   }).join('');
 }
 function setStockMarca(m) {
@@ -9069,7 +9078,7 @@ function renderStockFiltroMarcas(catBase) {
   var html = chip(T('tpv.todas_marcas'), '', !sel, '🏷️ ' + T('tpv.todas_marcas'));
   html += arr.slice(0, 16).map(function(o) {
     var on = o.nombre.toLowerCase() === sel;
-    return chip(o.nombre, o.nombre, on, _stkBrandChip(o.nombre) + '<span>' + escHtml(o.nombre) + '</span><span style="color:var(--muted);font-weight:700">' + o.n + '</span>');
+    return chip(o.nombre, o.nombre, on, _stkBrandChip(o.nombre) + '<span>' + escHtml(_tcMarca(o.nombre)) + '</span><span style="color:var(--muted);font-weight:700">' + o.n + '</span>');
   }).join('');
   box.innerHTML = html;
 }
@@ -11115,7 +11124,7 @@ async function renderReporte() {
     (SEL.repTipo !== 'reparaciones' ? '<div class="stat-card"><div class="stat-val" style="color:var(--blue)">' + ventas.length + '</div><div class="stat-lbl">' + T('nav.ventas') + '</div></div>' +
     '<div class="stat-card"><div class="stat-val" style="color:var(--green)">' + cur(tV) + '</div><div class="stat-lbl">' + T('dash.ingresos_ventas') + '</div></div>' : '') +
     (SEL.repTipo !== 'ventas' ? '<div class="stat-card"><div class="stat-val" style="color:var(--purple)">' + reps.length + '</div><div class="stat-lbl">' + T('nav.reparaciones') + '</div></div>' +
-    '<div class="stat-card"><div class="stat-val" style="color:var(--orange)">' + cur(tR) + '</div><div class="stat-lbl"><span data-t="gen.ingresos_reps">Ingresos reps</span></div></div>' : '') +
+    '<div class="stat-card"><div class="stat-val" style="color:var(--orange)">' + cur(tR) + '</div><div class="stat-lbl">' + T('gen.ingresos_reps') + '</div></div>' : '') +
     '</div>' +
     '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">' + T('gen.total') + ': ' + cur(tV + tR) + '</div>';
 
@@ -11161,6 +11170,16 @@ function _metodoLabel(m) {
   if (!m) return 'Otros';
   var map = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', bizum: 'Bizum', transferencia: 'Transferencia', otros: 'Otros' };
   return map[m] || (m.charAt(0).toUpperCase() + m.slice(1));
+}
+// F40: etiqueta de estado de reparación con tildes correctas para mostrar.
+// El value del <option> sigue siendo el canónico (sin tilde) para no romper filtros/DB.
+function _estadoLabel(s) {
+  var m = {
+    'Pendiente': 'Pendiente', 'En Proceso': 'En proceso', 'Por Entregar': 'Por entregar',
+    'Entregado': 'Entregado', 'Garantia': 'Garantía', 'Sin Solucion': 'Sin solución',
+    'Devuelto': 'Devuelto', 'Rechazado': 'Rechazado', 'Presupuesto': 'Presupuesto'
+  };
+  return m[s] || s;
 }
 // Etiqueta de método de pago traducida al idioma actual (para gráficos/labels)
 function _metodoLabelT(m) {
@@ -13454,6 +13473,28 @@ function renderCatFiltroMarcas(catBase) {
 function _tcMarca(s) {
   return String(s || '').replace(/(^|[\s\-/])(\S)/g, function(m, p, c) { return p + c.toUpperCase(); });
 }
+// F15: Title Case para modelos preservando mayúsculas conocidas (no rompe "iPhone").
+// Diccionario para tokens que NO son simple capitalización; el resto se capitaliza
+// solo si venían todo en minúscula (palabras con mayúsculas internas se respetan).
+var _MODELO_DICT = {
+  iphone: 'iPhone', ipad: 'iPad', ipod: 'iPod', imac: 'iMac', macbook: 'MacBook',
+  airpods: 'AirPods', galaxy: 'Galaxy', redmi: 'Redmi', poco: 'POCO', oneplus: 'OnePlus',
+  realme: 'realme', xiaomi: 'Xiaomi', huawei: 'Huawei', honor: 'Honor', oppo: 'OPPO',
+  vivo: 'vivo', moto: 'Moto', nokia: 'Nokia', pixel: 'Pixel', mate: 'Mate', nova: 'Nova',
+  se: 'SE', plus: 'Plus', pro: 'Pro', max: 'Max', mini: 'Mini', ultra: 'Ultra',
+  lite: 'Lite', note: 'Note', edge: 'Edge', fold: 'Fold', flip: 'Flip', neo: 'Neo'
+};
+function _tcModelo(s) {
+  s = String(s || '').trim();
+  if (!s) return s;
+  return s.split(/\s+/).map(function(w) {
+    var lw = w.toLowerCase();
+    if (_MODELO_DICT[lw]) return _MODELO_DICT[lw];
+    if (/^[a-z]/.test(w) && /\d/.test(w)) return w.charAt(0).toUpperCase() + w.slice(1); // a52 → A52
+    if (w === lw) return w.charAt(0).toUpperCase() + w.slice(1);                          // galaxy → Galaxy
+    return w; // ya tiene mayúsculas internas (iPhone, BQ, 5G) → respetar
+  }).join(' ');
+}
 function renderCatalogo() {
   var el = document.getElementById('catalogoContainer'); if (!el) return;
   var qEl = document.getElementById('catSearch');
@@ -13475,7 +13516,7 @@ function renderCatalogo() {
     if (q && (marca + ' ' + modelo + ' ' + (s.imei || '') + ' ' + (s.color || '')).toLowerCase().indexOf(q) === -1) return;
     var cat = s.categoria || 'Otro';
     var key = cat + '::' + marca.toLowerCase() + '::' + modelo.toLowerCase();
-    if (!grupos[key]) grupos[key] = { cat: cat, marca: _tcMarca(marca), modelo: modelo, unidades: 0, conImei: 0, pvp: 0, calidad: '', ids: [], colores: {} };
+    if (!grupos[key]) grupos[key] = { cat: cat, marca: _tcMarca(marca), modelo: _tcModelo(modelo), unidades: 0, conImei: 0, pvp: 0, calidad: '', ids: [], colores: {} };
     var g = grupos[key];
     g.unidades += parseInt(s.unidades, 10) || 0;
     if (s.imei) g.conImei++;
@@ -13488,14 +13529,15 @@ function renderCatalogo() {
   });
   // Conteos de reparaciones y ventas por marca|modelo (+ ventas por color vía stockId)
   var repC = {}, venC = {};
-  (DB.reps || []).forEach(function(r) { var k = (r.marca || '') + '|' + (r.modelo || ''); repC[k] = (repC[k] || 0) + 1; });
+  (DB.reps || []).forEach(function(r) { var k = ((r.marca || '') + '|' + (r.modelo || '')).toLowerCase(); repC[k] = (repC[k] || 0) + 1; });
   (DB.ventas || []).forEach(function(v) {
     if (v.reembolsado) return;
-    var k = (v.marca || '') + '|' + (v.modelo || ''); venC[k] = (venC[k] || 0) + 1;
-    // ventas por color: resolver color del item vendido
+    var k = ((v.marca || '') + '|' + (v.modelo || '')).toLowerCase(); venC[k] = (venC[k] || 0) + 1;
+    // ventas por color: resolver color del item vendido (match case-insensitive)
     var col = stockColor[v.stockId] || '';
     if (col) {
-      Object.keys(grupos).forEach(function(gk) { var g = grupos[gk]; if (g.marca === v.marca && g.modelo === v.modelo && g.colores[col]) g.colores[col].vend++; });
+      var vm = (v.marca || '').toLowerCase(), vmod = (v.modelo || '').toLowerCase();
+      Object.keys(grupos).forEach(function(gk) { var g = grupos[gk]; if ((g.marca || '').toLowerCase() === vm && (g.modelo || '').toLowerCase() === vmod && g.colores[col]) g.colores[col].vend++; });
     }
   });
   var keys = Object.keys(grupos);
@@ -13508,7 +13550,7 @@ function renderCatalogo() {
     var items = catGroups[cat].sort(function(a, b) { return (a.marca + a.modelo).localeCompare(b.marca + b.modelo); });
     html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;padding:6px 0;border-bottom:2px solid var(--border);margin:14px 0 8px">' + escHtml(_catNombre(cat)) + ' (' + items.length + ')</div>';
     items.forEach(function(it) {
-      var rk = it.marca + '|' + it.modelo;
+      var rk = (it.marca + '|' + it.modelo).toLowerCase();
       var reps = repC[rk] || 0, vens = venC[rk] || 0;
       var imeiTag = it.conImei > 0 ? '<span style="font-size:10px;color:var(--muted)"> · 📱 ' + it.conImei + ' ' + T('catalogo.con_imei') + '</span>' : '';
       var pvpTag = (it.conImei === 0 && it.pvp > 0) ? '<span style="font-size:11px;color:var(--green);font-weight:700;margin-left:6px">' + cur(it.pvp) + '</span>' : '';
