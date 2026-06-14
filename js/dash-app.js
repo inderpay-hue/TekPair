@@ -13323,9 +13323,15 @@ function renderCatFiltroMarcas(catBase) {
   };
   var html = chip('', !sel, '🏷️ ' + T('tpv.todas_marcas'));
   html += arr.slice(0, 16).map(function(o) {
-    return chip(o.nombre, o.nombre.toLowerCase() === sel, _stkBrandChip(o.nombre) + '<span>' + escHtml(o.nombre) + '</span><span style="color:var(--muted);font-weight:700">' + o.n + '</span>');
+    return chip(o.nombre, o.nombre.toLowerCase() === sel, _stkBrandChip(o.nombre) + '<span>' + escHtml(_tcMarca(o.nombre)) + '</span><span style="color:var(--muted);font-weight:700">' + o.n + '</span>');
   }).join('');
   box.innerHTML = html;
+}
+// F14-15: marcas consistentes en el catálogo. La agrupación ya es case-insensitive,
+// pero el display tomaba la caja del PRIMER item ("samsung" vs "Samsung"). Capitaliza
+// la 1ª letra de cada palabra sin tocar el resto (no rompe acrónimos tipo "BQ").
+function _tcMarca(s) {
+  return String(s || '').replace(/(^|[\s\-/])(\S)/g, function(m, p, c) { return p + c.toUpperCase(); });
 }
 function renderCatalogo() {
   var el = document.getElementById('catalogoContainer'); if (!el) return;
@@ -13348,7 +13354,7 @@ function renderCatalogo() {
     if (q && (marca + ' ' + modelo + ' ' + (s.imei || '') + ' ' + (s.color || '')).toLowerCase().indexOf(q) === -1) return;
     var cat = s.categoria || 'Otro';
     var key = cat + '::' + marca.toLowerCase() + '::' + modelo.toLowerCase();
-    if (!grupos[key]) grupos[key] = { cat: cat, marca: marca, modelo: modelo, unidades: 0, conImei: 0, pvp: 0, calidad: '', ids: [], colores: {} };
+    if (!grupos[key]) grupos[key] = { cat: cat, marca: _tcMarca(marca), modelo: modelo, unidades: 0, conImei: 0, pvp: 0, calidad: '', ids: [], colores: {} };
     var g = grupos[key];
     g.unidades += parseInt(s.unidades, 10) || 0;
     if (s.imei) g.conImei++;
@@ -15545,6 +15551,8 @@ if ('serviceWorker' in navigator) {
 var _avisoVersionMostrado = false;
 function mostrarAvisoNuevaVersion() {
   if (_avisoVersionMostrado || document.getElementById('bannerNuevaVersion')) return;
+  // No re-mostrar si se cerró/recargó hace < 10 min (evita el spam con despliegues seguidos).
+  try { if (Date.now() - (parseInt(localStorage.getItem('tk_ver_dismiss') || '0', 10) || 0) < 600000) return; } catch (e) {}
   _avisoVersionMostrado = true;
   var b = document.createElement('div');
   b.id = 'bannerNuevaVersion';
@@ -15556,11 +15564,11 @@ function mostrarAvisoNuevaVersion() {
   var btn = document.createElement('button');
   btn.textContent = 'Recargar';
   btn.style.cssText = 'background:#10B981;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:14px;white-space:nowrap';
-  btn.onclick = function() { location.reload(); };
+  btn.onclick = function() { try { localStorage.setItem('tk_ver_dismiss', String(Date.now())); } catch (e) {} location.reload(); };
   var x = document.createElement('button');
   x.textContent = '✕'; x.title = 'Más tarde';
   x.style.cssText = 'background:transparent;color:#94a3b8;border:none;cursor:pointer;font-size:16px;line-height:1';
-  x.onclick = function() { b.remove(); };
+  x.onclick = function() { try { localStorage.setItem('tk_ver_dismiss', String(Date.now())); } catch (e) {} b.remove(); };
   b.appendChild(msg); b.appendChild(btn); b.appendChild(x);
   document.body.appendChild(b);
 }
