@@ -5273,15 +5273,28 @@ function reembolsarVenta(id) {
   v.fechaReembolso = hoyLocal();
   // Devolver el artículo al stock. Por stockId; si no (ventas antiguas sin stock_id guardado),
   // buscar por IMEI (los móviles tienen IMEI único).
-  var s = v.stockId ? DB.stock.find(function(x) { return x.id === v.stockId; }) : null;
-  if (!s && v.imei) s = DB.stock.find(function(x) { return (x.imei || '') && (x.imei || '') === v.imei; });
-  if (s) {
-    s.unidades = (s.unidades || 0) + 1;
-    if (s.unidades > 0 && s.vendido) s.vendido = false;
+  // F48: devolver artículo(s) al stock. Las ventas del TPV son multi-producto (v.items con el id
+  // de stock por línea, igual que se descontó en cobrar()); las viejas del panel eran de un solo
+  // artículo (v.stockId / v.imei). Antes solo se restauraba el modo single → el TPV perdía stock.
+  function _restaurarStock(sid, qty, imei) {
+    var st = sid ? DB.stock.find(function(x) { return x.id === sid; }) : null;
+    if (!st && imei) st = DB.stock.find(function(x) { return (x.imei || '') && (x.imei || '') === imei; });
+    if (!st) return false;
+    st.unidades = (st.unidades || 0) + (parseInt(qty, 10) || 1);
+    if (st.unidades > 0 && st.vendido) st.vendido = false;
     if (SB_KEY && TIENDA_ID) {
-      sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), { unidades: s.unidades, vendido: s.vendido });
+      sbPatch('stock', 'id=eq.' + encodeURIComponent(st.id), { unidades: st.unidades, vendido: st.vendido });
     }
-  } else {
+    return true;
+  }
+  var _items = Array.isArray(v.items) ? v.items : [];
+  var _rest = 0;
+  _items.forEach(function(it) {
+    if (it.esServicio || it.esRapida || it.esFijo) return; // servicios/rápidas no tocan stock
+    if (_restaurarStock(it.id, it.qty, it.imei)) _rest++;
+  });
+  // Fallback: venta de un solo artículo sin items, o si ningún item casó con el stock
+  if (!_rest && !_restaurarStock(v.stockId, 1, v.imei)) {
     toast('Venta reembolsada. Revisa el stock manualmente (no se encontró el artículo original)', 'err', 5000);
   }
   guardarDatos();
@@ -5289,7 +5302,9 @@ function reembolsarVenta(id) {
   toast(T('venta.reembolsada'), 'ok');
   renderVentas();
   renderDash();
-  _ofrecerAbonoFactura('venta', id);
+  // F47: _ofrecerAbonoFactura nunca se implementó → llamarla lanzaba ReferenceError no capturado
+  // tras cada reembolso. Protegido hasta que exista la funcionalidad de factura de abono.
+  if (typeof _ofrecerAbonoFactura === 'function') _ofrecerAbonoFactura('venta', id);
   }, { okLabel: 'Reembolsar', danger: true });
 }
 
@@ -8394,7 +8409,7 @@ function cambiarEstado(id, estado) {
 
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, patchUnificado);
-  if (entrandoCancelacion) { _ofrecerAbonoFactura('reparacion', r.id); }
+  if (entrandoCancelacion && typeof _ofrecerAbonoFactura === 'function') { _ofrecerAbonoFactura('reparacion', r.id); }
   toast(T('rep.estado_actualizado'), 'ok');
   audit('cambio_estado', 'reparacion', r.id, r.clienteNombre + ' · ' + (r.modelo||'') + ' · ' + estadoAnterior + ' → ' + estado, {antes:estadoAnterior, despues:estado});
   renderDash();
