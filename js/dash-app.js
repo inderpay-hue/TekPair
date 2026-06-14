@@ -179,7 +179,8 @@ async function refrescarPlan() {
       // mandado al Clásico automáticamente, devolverlo al Inicio nuevo (solo si sigue ahí).
       if (typeof tieneFeature === 'function' && tieneFeature('inicio_avanzado') && window._inicioAutoRedirect) {
         var pd = document.getElementById('pDash');
-        if (pd && pd.classList.contains('active')) navTo('pInicioNuevo');
+        // F70: no pisar una navegación por hash (#citas, #catalogo…) explícita del usuario
+        if (pd && pd.classList.contains('active') && !location.hash) navTo('pInicioNuevo');
       }
       window._inicioAutoRedirect = false;
     }
@@ -314,7 +315,8 @@ function aplicarBloqueosPlan() {
   // Inicio por plan: si Básico/Pro están viendo el Inicio nuevo (Premium), llevarlos al Clásico
   if (!tieneFeature('inicio_avanzado')) {
     var pin = document.getElementById('pInicioNuevo');
-    if (pin && pin.classList.contains('active')) { window._inicioAutoRedirect = true; navTo('pDash'); }
+    // F70: respetar navegación por hash explícita (no redirigir por plan si hay #seccion)
+    if (pin && pin.classList.contains('active') && !location.hash) { window._inicioAutoRedirect = true; navTo('pDash'); }
   }
 }
 
@@ -15958,7 +15960,11 @@ function renderCitas() {
       if (c.marca || c.modelo) html += '<div style="font-size:11px;color:var(--muted)">' + esc((c.marca||'') + ' ' + (c.modelo||'')).trim() + '</div>';
       if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted)">📞 ' + esc(c.cliente_tel) + '</div>';
       html += '</div>';
-      html += '<div style="font-size:11px;font-weight:700;color:' + colorEstado[c.estado || 'pendiente'] + ';text-transform:uppercase;letter-spacing:.3px;flex-shrink:0">' + iconEstado[c.estado || 'pendiente'] + ' ' + (c.estado || 'pendiente') + '</div>';
+      var _citaVencida = c.fecha && c.fecha < hoyLocal() && (c.estado === 'pendiente' || c.estado === 'confirmada');
+      html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">';
+      if (_citaVencida) html += '<div style="font-size:10px;font-weight:800;color:#fff;background:var(--red);padding:2px 7px;border-radius:8px">⚠️ ' + (T('cita.vencida') || 'VENCIDA') + '</div>';
+      html += '<div style="font-size:11px;font-weight:700;color:' + colorEstado[c.estado || 'pendiente'] + ';text-transform:uppercase;letter-spacing:.3px">' + iconEstado[c.estado || 'pendiente'] + ' ' + (c.estado || 'pendiente') + '</div>';
+      html += '</div>';
       html += '</div></div>';
     });
   });
@@ -16311,7 +16317,11 @@ function _renderListaDelDia() {
       if (c.marca || c.modelo) html += '<div style="font-size:11px;color:var(--muted)">' + esc((c.marca||'') + ' ' + (c.modelo||'')).trim() + '</div>';
       if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted)">📞 ' + esc(c.cliente_tel) + '</div>';
       html += '</div>';
-      html += '<div style="font-size:11px;font-weight:700;color:' + colorEstado[c.estado || 'pendiente'] + ';text-transform:uppercase;letter-spacing:.3px;flex-shrink:0">' + iconEstado[c.estado || 'pendiente'] + ' ' + (c.estado || 'pendiente') + '</div>';
+      var _citaVencida = c.fecha && c.fecha < hoyLocal() && (c.estado === 'pendiente' || c.estado === 'confirmada');
+      html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">';
+      if (_citaVencida) html += '<div style="font-size:10px;font-weight:800;color:#fff;background:var(--red);padding:2px 7px;border-radius:8px">⚠️ ' + (T('cita.vencida') || 'VENCIDA') + '</div>';
+      html += '<div style="font-size:11px;font-weight:700;color:' + colorEstado[c.estado || 'pendiente'] + ';text-transform:uppercase;letter-spacing:.3px">' + iconEstado[c.estado || 'pendiente'] + ' ' + (c.estado || 'pendiente') + '</div>';
+      html += '</div>';
       html += '</div></div>';
     });
     
