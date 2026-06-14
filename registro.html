@@ -160,11 +160,13 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
     <button onclick="cambiarPlan()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline;font-family:var(--sans)">Cambiar</button>
   </div>
   <div class="form-title">Crea tu cuenta</div>
-  <div class="fg"><label class="fl">Tu nombre *</label><input class="fi" id="rNom" placeholder="Juan García"/></div>
-  <div class="fg"><label class="fl">Email *</label><input class="fi" id="rEmail" type="email" placeholder="juan@mitienda.com"/></div>
-  <div class="fg"><label class="fl">Nombre de tu tienda *</label><input class="fi" id="rTienda" placeholder="Reparaciones García"/></div>
+  <form id="regForm" onsubmit="iniciarPago();return false">
+  <div class="fg"><label class="fl" for="rNom">Tu nombre *</label><input class="fi" id="rNom" name="name" autocomplete="name" required placeholder="Juan García"/></div>
+  <div class="fg"><label class="fl" for="rEmail">Email *</label><input class="fi" id="rEmail" name="email" type="email" autocomplete="email" required placeholder="juan@mitienda.com"/></div>
+  <div class="fg"><label class="fl" for="rTienda">Nombre de tu tienda *</label><input class="fi" id="rTienda" name="organization" autocomplete="organization" required placeholder="Reparaciones García"/></div>
   <div class="err" id="rErr"></div>
-  <button class="btn-pagar" id="btnPagar" onclick="iniciarPago()">Continuar al pago</button>
+  <button class="btn-pagar" id="btnPagar" type="submit">Continuar al pago</button>
+  </form>
   <p style="text-align:center;font-size:11px;color:var(--faint);margin-top:12px">Pago seguro con Stripe · No pagas hasta el día 15</p>
 </div>
 

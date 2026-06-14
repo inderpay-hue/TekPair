@@ -73,11 +73,13 @@ button:disabled{background:var(--faint);cursor:not-allowed;transform:none;box-sh
   </div>
   <h2 id="loginTitle">Bienvenido de nuevo</h2>
   <p class="lead" id="loginSubtitle">Inicia sesión en tu tienda</p>
-  <label id="loginEmailLabel">Email</label>
-  <input type="email" id="em" placeholder="tu@email.com" />
-  <label id="loginPassLabel">Contraseña</label>
-  <input type="password" id="pw" placeholder="••••••••" />
-  <button id="btn">Entrar</button>
+  <form id="loginForm" onsubmit="return false">
+  <label id="loginEmailLabel" for="em">Email</label>
+  <input type="email" id="em" name="email" autocomplete="email" required placeholder="tu@email.com" />
+  <label id="loginPassLabel" for="pw">Contraseña</label>
+  <input type="password" id="pw" name="password" autocomplete="current-password" required placeholder="••••••••" />
+  <button id="btn" type="button">Entrar</button>
+  </form>
   <div class="err" id="err"></div>
   <div style="text-align:center;margin-top:14px">
     <a id="lnkVolver" href="/" style="font-size:12px;color:var(--muted);text-decoration:none;transition:color .15s" onmouseover="this.style.color='var(--orange)'" onmouseout="this.style.color='var(--muted)'">← Volver a tekpair.tech</a>
@@ -149,6 +151,7 @@ function olvidePassword() {
 var _lnkR = document.getElementById('lnkReset');
 if (_lnkR) _lnkR.onclick = function(e){ e.preventDefault(); olvidePassword(); };
 document.getElementById('pw').onkeypress = function(e){ if(e.key==='Enter') entrar(); };
+document.getElementById('em').onkeypress = function(e){ if(e.key==='Enter') entrar(); };
 </script>
 </body>
 </html>
