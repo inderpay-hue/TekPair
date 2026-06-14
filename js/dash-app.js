@@ -602,6 +602,22 @@ window.addEventListener('DOMContentLoaded', function() {
       }
     } catch(e) {}
   })();
+
+  // Navegación por hash (#ventas, #reparaciones, #stock...) → enlaces directos a una sección.
+  var _HASH_NAV = { inicio:'pInicioNuevo', dashboard:'pDash', dash:'pDash', ventas:'pVentas',
+    reparaciones:'pReps', reps:'pReps', presupuestos:'pPresupuestos', stock:'pStock',
+    clientes:'pClis', clis:'pClis', proveedores:'pProvs', provs:'pProvs', gastos:'pGastos',
+    pedidos:'pPedidos', servicios:'pServicios', cajas:'pCajas', caja:'pCajas',
+    ajustes:'pAjustes', tienda:'pTienda' };
+  function _navFromHash() {
+    try {
+      var h = (location.hash || '').replace(/^#\/?/, '').toLowerCase().trim();
+      if (h && _HASH_NAV[h] && typeof navTo === 'function') navTo(_HASH_NAV[h]);
+    } catch(e) {}
+  }
+  window.addEventListener('hashchange', _navFromHash);
+  if (location.hash) setTimeout(_navFromHash, 400);
+
   setInterval(fetchNotifRemotas, 30000);
   setTimeout(fetchNotifRemotas, 3000); // primera consulta a los 3s
   initDesktop();
@@ -7975,11 +7991,15 @@ function renderPresupuestos() {
     }
 
     // Botones
-    var btnAcept  = '<button data-rid="' + r.id + '" class="row-btn btn-pres-acept2" title="Aceptar — convertir a reparación" style="background:var(--green);color:white;border-color:var(--green)"><span data-t="pres.aceptar">✓ Aceptar</span></button>';
-    var btnFirmar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-firma2" title="Firmar en tablet" style="background:#8B5CF6;color:white;border-color:#8B5CF6"><span data-t="pres.firmar">✍️ Firmar</span></button>';
-    var btnEnviar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-enviar2" title="Enviar al cliente por WA/Email" style="background:#0EA5E9;color:white;border-color:#0EA5E9"><span data-t="pres.enviar">📤 Enviar</span></button>';
+    var esRech = (r.estado === 'Rechazado');
+    var aceptadoCli = !!r.presupuesto_aceptado_at;
+    // Aceptar/convertir: oculto si ya rechazado. Si el cliente ya aceptó online → "Convertir".
+    var btnAcept  = esRech ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-acept2" title="' + (aceptadoCli ? 'Convertir a reparación' : 'Aceptar — convertir a reparación') + '" style="background:var(--green);color:white;border-color:var(--green)">' + (aceptadoCli ? '<span>➡️ Convertir</span>' : '<span data-t="pres.aceptar">✓ Aceptar</span>') + '</button>';
+    var btnFirmar = esRech ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-firma2" title="Firmar en tablet" style="background:#8B5CF6;color:white;border-color:#8B5CF6"><span data-t="pres.firmar">✍️ Firmar</span></button>';
+    var btnEnviar = esRech ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-enviar2" title="Enviar al cliente por WA/Email" style="background:#0EA5E9;color:white;border-color:#0EA5E9"><span data-t="pres.enviar">📤 Enviar</span></button>';
     var btnEditar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-edit2" title="Editar presupuesto">✏️</button>';
-    var btnRech   = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" class="row-btn btn-pres-rech2" title="Rechazar">✗</button>' : '';
+    // Rechazar: oculto si ya rechazado o si el cliente ya lo aceptó (sería contradictorio).
+    var btnRech   = (esRech || aceptadoCli || !tienePerm('reps_eliminar')) ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-rech2" title="Rechazar">✗</button>';
     var btnImprimir = '<button data-rid="' + r.id + '" class="row-btn btn-pres-imprimir2" title="Imprimir para firmar en papel">🖨️</button>';
     var btnDetalle = '<button data-rid="' + r.id + '" class="row-btn btn-pres-detalle2" title="Ver detalle y avisos enviados">👁️</button>';
 
@@ -8098,6 +8118,17 @@ function renderReps() {
     if (SEL.repFiltro === 'adeber') return (parseFloat(r.restante) || 0) > 0 && (r.estado === 'Entregado' || (r.financiado && r.estadoFinanciado !== 'completado'));
     // PRES-2: 'Todas' excluye presupuestos (lista distinta). Solo se ven con filtro explícito.
     if (SEL.repFiltro === 'todas') return r.estado !== 'Presupuesto';
+    // 'Garantía': mismo criterio que el badge 🛡️ EN GARANTÍA (manual esGarantia O auto-detectada),
+    // no por estado (antes filtraba r.estado==='Garantia', que casi nunca existe → salía vacío).
+    if (SEL.repFiltro === 'Garantia') {
+      if (r.estado === 'Presupuesto' || r.estado === 'Rechazado') return false;
+      if (r.esGarantia) return true;
+      if (r.clienteId || r.clienteNombre) {
+        var _g = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre);
+        return !!(_g && _g.rep && _g.rep.id !== r.id);
+      }
+      return false;
+    }
     return r.estado === SEL.repFiltro;
   });
   var el = document.getElementById('listaReps');
@@ -14541,7 +14572,7 @@ function aplicarPermisos() {
   if (!widgetVisible('widget_cierre')) hideEl('cardCierre');
   if (!widgetVisible('widget_caja')) hideEl('cardCajaDia');
   if (!widgetVisible('widget_cobros')) hideEl('cardCobros');
-  if (!widgetVisible('widget_comocobras') || !puedeVerCaja()) hideEl('cardComoCobras');
+  if (!widgetVisible('widget_comocobras') || typeof puedeVerCaja !== 'function' || !puedeVerCaja()) hideEl('cardComoCobras');
   if (!widgetVisible('widget_pedidos')) hideEl('cardPedidos');
   if (!widgetVisible('widget_stockcritico')) hideEl('cardStockCritico');
   if (!widgetVisible('widget_cumples')) hideEl('cardCumples');
