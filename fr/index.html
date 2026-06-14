@@ -685,7 +685,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
     <div>
       <div style="color:#fff;font-size:13px;font-weight:600;margin-bottom:12px" data-i18n="footer.contact">Contact</div>
       <a href="mailto:info@tekpair.tech" style="display:block;color:rgba(255,255,255,.5);font-size:13px;margin-bottom:8px">info@tekpair.tech</a>
-      <a href="javascript:void(0)" onclick="if(window.Tawk_API&&Tawk_API.maximize)Tawk_API.maximize()" style="display:block;color:rgba(255,255,255,.5);font-size:13px">Chat de soporte</a>
+      <a href="mailto:info@tekpair.tech" onclick="if(window.Tawk_API&&Tawk_API.maximize){Tawk_API.maximize();return false}/* F158: si el chat no cargó (cookies rechazadas) → fallback a email vía href */" style="display:block;color:rgba(255,255,255,.5);font-size:13px">Chat de soporte</a>
     </div>
     <div>
       <div style="color:#fff;font-size:13px;font-weight:600;margin-bottom:12px" data-i18n="footer.legal">Legal</div>

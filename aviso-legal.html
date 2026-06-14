@@ -7,9 +7,11 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;color:#0F1729;background:#F7F9FC;padding-bottom:40px}
-nav{background:#020B2E;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+nav{background:#020B2E;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .nav-logo{color:white;font-size:18px;font-weight:800;text-decoration:none}
+.nav-right{display:flex;align-items:center;gap:14px}
 .nav-back{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px}
+.lang-sel{background:rgba(255,255,255,.95);border:1px solid #e2e8f0;border-radius:8px;padding:5px 8px;font-size:13px;cursor:pointer;font-family:inherit}
 .container{max-width:760px;margin:40px auto;background:white;border-radius:14px;padding:40px;border:1px solid #E2E8F0}
 h1{font-size:26px;font-weight:800;color:#020B2E;margin-bottom:8px}
 .date{font-size:13px;color:#64748B;margin-bottom:32px}
@@ -25,41 +27,51 @@ a{color:#FF5B1F}
 <body>
 <nav>
   <a href="/" class="nav-logo">⚡ Tekpair</a>
-  <a href="/" class="nav-back">← Volver al inicio</a>
+  <div class="nav-right">
+    <select class="lang-sel" id="legalLangSel" onchange="setLegalLang(this.value)" aria-label="Idioma">
+      <option value="es">🇪🇸 ES</option><option value="en">🇬🇧 EN</option><option value="fr">🇫🇷 FR</option>
+      <option value="it">🇮🇹 IT</option><option value="de">🇩🇪 DE</option><option value="pt">🇵🇹 PT</option>
+    </select>
+    <a href="/" class="nav-back" id="navBack">← Volver al inicio</a>
+  </div>
 </nav>
-<div class="container">
-  <h1>Aviso Legal</h1>
-  <div class="date">Última actualización: 15 de junio de 2026</div>
+<div class="container" id="legalBody"></div>
 
-  <p>En cumplimiento del artículo 10 de la Ley 34/2002, de Servicios de la Sociedad de la Información y de Comercio Electrónico (LSSI-CE), se informa de los datos identificativos del titular de este sitio web.</p>
-
-  <h2>1. Titular del sitio web</h2>
-  <ul>
-    <li><strong>Titular:</strong> Tekpair</li>
-    <li><strong>NIF / CIF:</strong> <span style="color:#92400E">[COMPLETAR]</span></li>
-    <li><strong>Domicilio:</strong> <span style="color:#92400E">[COMPLETAR]</span></li>
-    <li><strong>Sitio web:</strong> tekpair.tech</li>
-    <li><strong>Email de contacto:</strong> <a href="mailto:legal@tekpair.tech">legal@tekpair.tech</a></li>
-  </ul>
-  <div class="todo">⚠️ Nota para el administrador: completa el NIF/CIF y el domicilio fiscal del titular. La LSSI obliga a publicar estos datos identificativos.</div>
-
-  <h2>2. Objeto</h2>
-  <p>Tekpair es una plataforma web (SaaS) de gestión para tiendas de venta y reparación de dispositivos móviles. El acceso y uso del sitio implica la aceptación de las condiciones recogidas en este Aviso Legal, los <a href="/terminos.html">Términos y Condiciones</a> y la <a href="/privacidad.html">Política de Privacidad</a>.</p>
-
-  <h2>3. Condiciones de uso</h2>
-  <p>El usuario se compromete a hacer un uso adecuado de los contenidos y servicios y a no emplearlos para actividades ilícitas o contrarias a la buena fe y al orden público.</p>
-
-  <h2>4. Propiedad intelectual e industrial</h2>
-  <p>Todos los contenidos del sitio (textos, logotipos, diseño, software) son titularidad de Tekpair o de terceros que han autorizado su uso, y están protegidos por la normativa de propiedad intelectual e industrial.</p>
-
-  <h2>5. Responsabilidad</h2>
-  <p>Tekpair no se hace responsable de los daños derivados del mal uso del sitio ni de interrupciones del servicio ajenas a su control. El servicio se presta "tal cual", según lo detallado en los <a href="/terminos.html">Términos y Condiciones</a>.</p>
-
-  <h2>6. Legislación aplicable</h2>
-  <p>Este Aviso Legal se rige por la legislación española. Para la resolución de cualquier controversia, las partes se someten a los juzgados y tribunales que correspondan conforme a derecho.</p>
-
-  <h2>7. Contacto</h2>
-  <p>Para cualquier consulta de carácter legal: <a href="mailto:legal@tekpair.tech">legal@tekpair.tech</a>.</p>
-</div>
+<script>
+var TODO_NIF = '<div class="todo">⚠️ [ADMIN] Completar NIF/CIF y domicilio fiscal del titular (obligatorio por la LSSI).</div>';
+function _avisoHtml(L){
+  return '<h1>'+L.h1+'</h1><div class="date">'+L.date+'</div>'+
+    '<p>'+L.intro+'</p>'+
+    '<h2>1. '+L.s1+'</h2><ul>'+
+    '<li><strong>'+L.titular+':</strong> Tekpair</li>'+
+    '<li><strong>NIF / CIF:</strong> <span style="color:#92400E">[COMPLETAR]</span></li>'+
+    '<li><strong>'+L.domicilio+':</strong> <span style="color:#92400E">[COMPLETAR]</span></li>'+
+    '<li><strong>'+L.web+':</strong> tekpair.tech</li>'+
+    '<li><strong>'+L.email+':</strong> <a href="mailto:legal@tekpair.tech">legal@tekpair.tech</a></li></ul>'+TODO_NIF+
+    '<h2>2. '+L.s2+'</h2><p>'+L.s2p+'</p>'+
+    '<h2>3. '+L.s3+'</h2><p>'+L.s3p+'</p>'+
+    '<h2>4. '+L.s4+'</h2><p>'+L.s4p+'</p>'+
+    '<h2>5. '+L.s5+'</h2><p>'+L.s5p+'</p>'+
+    '<h2>6. '+L.s6+'</h2><p>'+L.s6p+'</p>';
+}
+var LEGAL_AVISO = {
+  es:{back:'← Volver al inicio',title:'Aviso Legal',h1:'Aviso Legal',date:'Última actualización: 15 de junio de 2026',intro:'En cumplimiento del artículo 10 de la Ley 34/2002 (LSSI-CE), se informa de los datos identificativos del titular de este sitio web.',s1:'Titular del sitio web',titular:'Titular',domicilio:'Domicilio',web:'Sitio web',email:'Email de contacto',s2:'Objeto',s2p:'Tekpair es una plataforma web (SaaS) de gestión para tiendas de venta y reparación de móviles. El uso del sitio implica la aceptación de este Aviso Legal, los Términos y la Política de Privacidad.',s3:'Condiciones de uso',s3p:'El usuario se compromete a hacer un uso adecuado de los contenidos y a no emplearlos para actividades ilícitas o contrarias a la buena fe.',s4:'Propiedad intelectual',s4p:'Todos los contenidos (textos, logotipos, diseño, software) son titularidad de Tekpair o de terceros que han autorizado su uso, y están protegidos por la normativa aplicable.',s5:'Responsabilidad',s5p:'Tekpair no se hace responsable de los daños derivados del mal uso del sitio ni de interrupciones del servicio ajenas a su control.',s6:'Legislación aplicable',s6p:'Este Aviso Legal se rige por la legislación española y los tribunales que correspondan conforme a derecho.'},
+  en:{back:'← Back to home',title:'Legal Notice',h1:'Legal Notice',date:'Last updated: 15 June 2026',intro:'In compliance with Article 10 of Spanish Law 34/2002 (LSSI-CE), the identifying details of the owner of this website are provided.',s1:'Website owner',titular:'Owner',domicilio:'Address',web:'Website',email:'Contact email',s2:'Purpose',s2p:'Tekpair is a web platform (SaaS) for managing mobile phone sales and repair shops. Use of the site implies acceptance of this Legal Notice, the Terms and the Privacy Policy.',s3:'Terms of use',s3p:'The user agrees to make proper use of the contents and not to use them for unlawful activities or activities contrary to good faith.',s4:'Intellectual property',s4p:'All contents (text, logos, design, software) belong to Tekpair or to third parties who have authorised their use, and are protected by applicable law.',s5:'Liability',s5p:'Tekpair is not liable for damages arising from misuse of the site or from service interruptions beyond its control.',s6:'Applicable law',s6p:'This Legal Notice is governed by Spanish law and the competent courts under the law.'},
+  fr:{back:'← Retour à l\'accueil',title:'Mentions légales',h1:'Mentions légales',date:'Dernière mise à jour : 15 juin 2026',intro:'En application de l\'article 10 de la loi espagnole 34/2002 (LSSI-CE), les données identifiant le propriétaire de ce site web sont fournies.',s1:'Propriétaire du site',titular:'Propriétaire',domicilio:'Adresse',web:'Site web',email:'Email de contact',s2:'Objet',s2p:'Tekpair est une plateforme web (SaaS) de gestion pour magasins de vente et réparation de mobiles. L\'utilisation du site implique l\'acceptation des présentes mentions, des Conditions et de la Politique de confidentialité.',s3:'Conditions d\'utilisation',s3p:'L\'utilisateur s\'engage à faire un usage approprié des contenus et à ne pas les employer pour des activités illicites ou contraires à la bonne foi.',s4:'Propriété intellectuelle',s4p:'Tous les contenus (textes, logos, design, logiciel) appartiennent à Tekpair ou à des tiers ayant autorisé leur usage, et sont protégés par la loi applicable.',s5:'Responsabilité',s5p:'Tekpair n\'est pas responsable des dommages résultant d\'un mauvais usage du site ni des interruptions de service indépendantes de sa volonté.',s6:'Loi applicable',s6p:'Les présentes mentions sont régies par le droit espagnol et les tribunaux compétents selon la loi.'},
+  it:{back:'← Torna alla home',title:'Note legali',h1:'Note legali',date:'Ultimo aggiornamento: 15 giugno 2026',intro:'In conformità all\'articolo 10 della legge spagnola 34/2002 (LSSI-CE), si forniscono i dati identificativi del titolare di questo sito web.',s1:'Titolare del sito',titular:'Titolare',domicilio:'Indirizzo',web:'Sito web',email:'Email di contatto',s2:'Oggetto',s2p:'Tekpair è una piattaforma web (SaaS) di gestione per negozi di vendita e riparazione di cellulari. L\'uso del sito implica l\'accettazione di queste Note legali, dei Termini e dell\'Informativa sulla privacy.',s3:'Condizioni d\'uso',s3p:'L\'utente si impegna a fare un uso adeguato dei contenuti e a non utilizzarli per attività illecite o contrarie alla buona fede.',s4:'Proprietà intellettuale',s4p:'Tutti i contenuti (testi, loghi, design, software) appartengono a Tekpair o a terzi che ne hanno autorizzato l\'uso, e sono protetti dalla normativa applicabile.',s5:'Responsabilità',s5p:'Tekpair non è responsabile dei danni derivanti da un uso improprio del sito né da interruzioni del servizio al di fuori del suo controllo.',s6:'Legge applicabile',s6p:'Queste Note legali sono regolate dalla legge spagnola e dai tribunali competenti a norma di legge.'},
+  de:{back:'← Zurück zur Startseite',title:'Impressum',h1:'Impressum',date:'Zuletzt aktualisiert: 15. Juni 2026',intro:'Gemäß Artikel 10 des spanischen Gesetzes 34/2002 (LSSI-CE) werden die Identifikationsdaten des Inhabers dieser Website angegeben.',s1:'Inhaber der Website',titular:'Inhaber',domicilio:'Anschrift',web:'Website',email:'Kontakt-E-Mail',s2:'Gegenstand',s2p:'Tekpair ist eine Web-Plattform (SaaS) zur Verwaltung von Handy-Verkaufs- und Reparaturläden. Die Nutzung der Website setzt die Annahme dieses Impressums, der AGB und der Datenschutzerklärung voraus.',s3:'Nutzungsbedingungen',s3p:'Der Nutzer verpflichtet sich, die Inhalte angemessen zu nutzen und nicht für rechtswidrige oder treuwidrige Zwecke einzusetzen.',s4:'Geistiges Eigentum',s4p:'Alle Inhalte (Texte, Logos, Design, Software) gehören Tekpair oder Dritten, die ihre Nutzung genehmigt haben, und sind durch geltendes Recht geschützt.',s5:'Haftung',s5p:'Tekpair haftet nicht für Schäden aus dem Missbrauch der Website oder aus Serviceunterbrechungen außerhalb seiner Kontrolle.',s6:'Anwendbares Recht',s6p:'Dieses Impressum unterliegt spanischem Recht und den gesetzlich zuständigen Gerichten.'},
+  pt:{back:'← Voltar ao início',title:'Aviso Legal',h1:'Aviso Legal',date:'Última atualização: 15 de junho de 2026',intro:'Em cumprimento do artigo 10 da Lei espanhola 34/2002 (LSSI-CE), informam-se os dados identificativos do titular deste sítio web.',s1:'Titular do sítio',titular:'Titular',domicilio:'Morada',web:'Sítio web',email:'Email de contacto',s2:'Objeto',s2p:'A Tekpair é uma plataforma web (SaaS) de gestão para lojas de venda e reparação de telemóveis. O uso do sítio implica a aceitação deste Aviso Legal, dos Termos e da Política de Privacidade.',s3:'Condições de uso',s3p:'O utilizador compromete-se a fazer um uso adequado dos conteúdos e a não os empregar para atividades ilícitas ou contrárias à boa-fé.',s4:'Propriedade intelectual',s4p:'Todos os conteúdos (textos, logótipos, design, software) pertencem à Tekpair ou a terceiros que autorizaram o seu uso, e estão protegidos pela legislação aplicável.',s5:'Responsabilidade',s5p:'A Tekpair não se responsabiliza por danos decorrentes do uso indevido do sítio nem por interrupções do serviço alheias ao seu controlo.',s6:'Legislação aplicável',s6p:'Este Aviso Legal rege-se pela legislação espanhola e pelos tribunais competentes nos termos da lei.'}
+};
+function setLegalLang(lang){
+  var l = LEGAL_AVISO[lang] ? lang : 'es';
+  try{ localStorage.setItem('tp_lang', l); }catch(e){}
+  document.documentElement.lang = l;
+  document.getElementById('legalBody').innerHTML = _avisoHtml(LEGAL_AVISO[l]);
+  var nb = document.getElementById('navBack'); if(nb) nb.textContent = LEGAL_AVISO[l].back;
+  var sel = document.getElementById('legalLangSel'); if(sel) sel.value = l;
+  document.title = LEGAL_AVISO[l].title + ' — Tekpair';
+}
+(function(){ var l = (localStorage.getItem('tp_lang') || (navigator.language||'es').slice(0,2)); setLegalLang(LEGAL_AVISO[l]?l:'es'); })();
+</script>
 </body>
 </html>
