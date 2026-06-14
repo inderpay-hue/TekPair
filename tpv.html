@@ -1440,8 +1440,10 @@ function calcTotal() {
   document.getElementById('btnCheckout').textContent = 'Cobrar \u20ac' + t.total.toFixed(2);
   // IVA rows
   var ivaOn = !!(AJUSTES.iva && AJUSTES.iva.activo);
-  document.getElementById('ivaBaseRow').style.display = ivaOn ? 'flex' : 'none';
-  document.getElementById('ivaImpRow').style.display = ivaOn ? 'flex' : 'none';
+  // F42: no mostrar "Base imponible / IVA €0.00" con el carrito vacío (confunde)
+  var ivaShow = ivaOn && (t.base > 0);
+  document.getElementById('ivaBaseRow').style.display = ivaShow ? 'flex' : 'none';
+  document.getElementById('ivaImpRow').style.display = ivaShow ? 'flex' : 'none';
   if (ivaOn) {
     document.getElementById('ivaBaseVal').textContent = '\u20ac' + t.base.toFixed(2);
     document.getElementById('ivaImpVal').textContent = '\u20ac' + t.ivaImporte.toFixed(2);
@@ -1641,7 +1643,7 @@ function mostrarTicket(venta, totals) {
     '<hr class="ticket-sep">' +
     (totals.disc > 0 ? '<div class="ticket-row"><span><span data-t="tpv.subtotal">Subtotal</span></span><span>\u20ac' + totals.subtotal.toFixed(2) + '</span></div>' +
     '<div class="ticket-row"><span>Descuento</span><span>-\u20ac' + totals.disc.toFixed(2) + '</span></div>' : '') +
-    (ivaOn ?
+    (ivaOn && totals.base > 0 ?
       '<div class="ticket-row"><span>Base imponible</span><span>\u20ac' + totals.base.toFixed(2) + '</span></div>' +
       '<div class="ticket-row"><span>IVA (' + totals.ivaTipo + '%)</span><span>\u20ac' + totals.ivaImporte.toFixed(2) + '</span></div>'
       : ''
