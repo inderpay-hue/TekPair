@@ -1771,11 +1771,12 @@ function abrirPagoProveedor(encProv) {
   var msg = admin
     ? (T('pedidos.pago_prompt') || '¿Cuánto pagas a {prov}? (debes {deuda})').replace('{prov}', prov).replace('{deuda}', cur(deuda))
     : (T('pedidos.pago_prompt_emp') || '¿Cuánto pagas a {prov}?').replace('{prov}', prov);
-  var val = prompt(msg, (admin && deuda > 0) ? deuda.toFixed(2) : '');
-  if (val == null) return;
-  var importe = parseFloat(String(val).replace(',', '.')) || 0;
-  if (importe <= 0) { toast(T('pedidos.pago_invalido') || 'Importe inválido', 'err'); return; }
-  registrarPagoProveedor(prov, importe);
+  pedirImporte(msg, (admin && deuda > 0) ? deuda.toFixed(2) : '', function (val) {
+    if (val == null || val === '') return;
+    var importe = parseFloat(String(val).replace(',', '.')) || 0;
+    if (importe <= 0) { toast(T('pedidos.pago_invalido') || 'Importe inválido', 'err'); return; }
+    registrarPagoProveedor(prov, importe);
+  });
 }
 // Modal: historial de pagos a proveedores (solo admin), con fecha e importe
 function abrirPagosProveedor() {
@@ -5178,11 +5179,76 @@ function imprimirTicketVenta(id) {
   _docPopupImprimir(html, 380, 600);
 }
 
+// ── Modales in-app que reemplazan confirm()/prompt() nativos (feos y que bloquean el navegador automatizado) ──
+function _modalOverlay(inner) {
+  var bg = document.createElement('div');
+  bg.style.cssText = 'position:fixed;inset:0;background:rgba(2,11,46,.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit';
+  var box = document.createElement('div');
+  box.style.cssText = 'background:var(--white,#fff);color:var(--text,#0F1729);border-radius:16px;padding:20px;max-width:380px;width:100%;box-shadow:0 16px 50px rgba(0,0,0,.4)';
+  box.innerHTML = inner;
+  bg.appendChild(box);
+  document.body.appendChild(bg);
+  return { bg: bg, box: box, close: function () { try { document.body.removeChild(bg); } catch (e) {} } };
+}
+// Confirmación sí/no. Llama onYes() si confirma y devuelve Promise<bool>.
+function confirmar(msg, onYes, opts) {
+  opts = opts || {};
+  return new Promise(function (resolve) {
+    var m = _modalOverlay(
+      '<div style="font-size:14.5px;line-height:1.5;white-space:pre-line;margin-bottom:18px">' + escHtml(String(msg)) + '</div>' +
+      '<div style="display:flex;gap:10px;justify-content:flex-end">' +
+        '<button id="_cfNo" style="padding:9px 16px;border:1px solid var(--border,#E5E7EB);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + (opts.cancelLabel || 'Cancelar') + '</button>' +
+        '<button id="_cfYes" style="padding:9px 16px;border:none;background:' + (opts.danger ? '#EF4444' : 'var(--green,#10B981)') + ';color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + (opts.okLabel || 'Confirmar') + '</button>' +
+      '</div>'
+    );
+    function fin(val) { m.close(); if (val && typeof onYes === 'function') onYes(); resolve(val); }
+    m.box.querySelector('#_cfYes').onclick = function () { fin(true); };
+    m.box.querySelector('#_cfNo').onclick = function () { fin(false); };
+    m.bg.addEventListener('click', function (e) { if (e.target === m.bg) fin(false); });
+  });
+}
+window.confirmar = confirmar;
+// Selector de forma de pago (reemplaza el prompt "1.Efectivo 2.Tarjeta..."). onPick recibe el método o null.
+function pedirMetodoPago(onPick, titulo) {
+  var METODOS = [['Efectivo', '💵'], ['Tarjeta', '💳'], ['Bizum', '📲'], ['Transferencia', '🏦']];
+  var btns = METODOS.map(function (mt) {
+    return '<button data-m="' + mt[0] + '" style="display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;margin-bottom:8px;border:1px solid var(--border,#E5E7EB);background:var(--light,#F8FAFC);color:inherit;border-radius:10px;cursor:pointer;font:inherit;font-size:14px;font-weight:600;text-align:left">' + mt[1] + ' ' + mt[0] + '</button>';
+  }).join('');
+  var m = _modalOverlay(
+    '<div style="font-size:15px;font-weight:800;margin-bottom:14px">' + escHtml(titulo || '¿Cómo se ha pagado?') + '</div>' + btns +
+    '<button id="_mpCancel" style="width:100%;padding:9px;border:none;background:transparent;color:var(--muted,#94A3B8);cursor:pointer;font:inherit">Cancelar</button>'
+  );
+  function fin(val) { m.close(); if (typeof onPick === 'function') onPick(val); }
+  m.box.querySelectorAll('[data-m]').forEach(function (b) { b.onclick = function () { fin(b.getAttribute('data-m')); }; });
+  m.box.querySelector('#_mpCancel').onclick = function () { fin(null); };
+  m.bg.addEventListener('click', function (e) { if (e.target === m.bg) fin(null); });
+}
+window.pedirMetodoPago = pedirMetodoPago;
+// Input numérico (reemplaza prompt() de importes). onOk recibe el texto o null si cancela.
+function pedirImporte(msg, defaultVal, onOk) {
+  var m = _modalOverlay(
+    '<div style="font-size:14.5px;line-height:1.5;white-space:pre-line;margin-bottom:12px">' + escHtml(String(msg)) + '</div>' +
+    '<input id="_piInput" type="number" step="0.01" inputmode="decimal" value="' + escHtml(String(defaultVal == null ? '' : defaultVal)) + '" style="width:100%;padding:11px;border:1px solid var(--border,#E5E7EB);border-radius:9px;font:inherit;font-size:16px;margin-bottom:16px;color:inherit;background:var(--light,#fff)">' +
+    '<div style="display:flex;gap:10px;justify-content:flex-end">' +
+      '<button id="_piNo" style="padding:9px 16px;border:1px solid var(--border,#E5E7EB);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">Cancelar</button>' +
+      '<button id="_piYes" style="padding:9px 16px;border:none;background:var(--green,#10B981);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">Aceptar</button>' +
+    '</div>'
+  );
+  var inp = m.box.querySelector('#_piInput');
+  try { inp.focus(); inp.select(); } catch (e) {}
+  function fin(val) { m.close(); if (typeof onOk === 'function') onOk(val); }
+  m.box.querySelector('#_piYes').onclick = function () { fin(inp.value); };
+  m.box.querySelector('#_piNo').onclick = function () { fin(null); };
+  inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') fin(inp.value); });
+  m.bg.addEventListener('click', function (e) { if (e.target === m.bg) fin(null); });
+}
+window.pedirImporte = pedirImporte;
+
 function reembolsarVenta(id) {
   if (!tienePerm('ventas_reembolso')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var v = DB.ventas.find(function(x) { return x.id === id; });
   if (!v) return;
-  if (!confirm('Reembolsar venta de ' + v.clienteNombre + ' por ' + cur(v.total) + '?')) return;
+  confirmar('Reembolsar venta de ' + v.clienteNombre + ' por ' + cur(v.total) + '?', function () {
   if (typeof audit === 'function') audit('reembolso', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total) + ' · ' + ((v.marca || '') + ' ' + (v.modelo || '')).trim(), null);
   v.reembolsado = true;
   v.fechaReembolso = hoyLocal();
@@ -5205,6 +5271,7 @@ function reembolsarVenta(id) {
   renderVentas();
   renderDash();
   _ofrecerAbonoFactura('venta', id);
+  }, { okLabel: 'Reembolsar', danger: true });
 }
 
 // ═══ FINANCIADOS ═══
@@ -5241,10 +5308,8 @@ function verFinanciado(id) {
 function registrarPagoCuota(vid, cidx) {
   var v = DB.ventas.find(function(x) { return x.id === vid; });
   if (!v || !v.cuotas) return;
-  var formas = ['Efectivo', 'Tarjeta', 'Bizum', 'Transferencia'];
-  var sel = prompt('Forma de pago:\n1. Efectivo\n2. Tarjeta\n3. Bizum\n4. Transferencia\n\nEscribe el numero:');
-  if (!sel) return;
-  var fp = formas[parseInt(sel) - 1] || 'Efectivo';
+  pedirMetodoPago(function (fp) {
+  if (!fp) return;
   v.cuotas[cidx].pagado = true;
   v.cuotas[cidx].formaPago = fp;
   v.cuotas[cidx].fechaPago = hoyLocal();
@@ -5255,6 +5320,7 @@ function registrarPagoCuota(vid, cidx) {
   closeM('finModal');
   verFinanciado(vid);
   renderVentas();
+  }, 'Cuota ' + (cidx + 1) + ' — ¿cómo se ha pagado?');
 }
 
 // ═══ FINANCIADO EN REPARACIONES (mismo modelo que ventas) ═══
@@ -5290,10 +5356,8 @@ function verFinanciadoRep(id) {
 function registrarPagoCuotaRep(rid, cidx) {
   var r = DB.reps.find(function(x) { return x.id === rid; });
   if (!r || !r.cuotas || !r.cuotas[cidx]) return;
-  var formas = ['Efectivo', 'Tarjeta', 'Bizum', 'Transferencia'];
-  var sel = prompt('Forma de pago:\n1. Efectivo\n2. Tarjeta\n3. Bizum\n4. Transferencia\n\nEscribe el numero:');
-  if (!sel) return;
-  var fp = formas[parseInt(sel) - 1] || 'Efectivo';
+  pedirMetodoPago(function (fp) {
+  if (!fp) return;
   r.cuotas[cidx].pagado = true;
   r.cuotas[cidx].formaPago = fp;
   r.cuotas[cidx].fechaPago = hoyLocal();
@@ -5313,6 +5377,7 @@ function registrarPagoCuotaRep(rid, cidx) {
   verFinanciadoRep(rid);
   renderReps();
   renderDash();
+  }, 'Cuota ' + (cidx + 1) + ' — ¿cómo se ha pagado?');
 }
 
 // ═══ COBRAR SALDO DE REPARACIÓN A DEBER (sin financiar) ═══
