@@ -609,7 +609,10 @@ window.addEventListener('DOMContentLoaded', function() {
     reparaciones:'pReps', reps:'pReps', presupuestos:'pPresupuestos', stock:'pStock',
     clientes:'pClis', clis:'pClis', proveedores:'pProvs', provs:'pProvs', gastos:'pGastos',
     pedidos:'pPedidos', servicios:'pServicios', cajas:'pCajas', caja:'pCajas',
-    ajustes:'pAjustes', tienda:'pTienda' };
+    ajustes:'pAjustes', tienda:'pTienda',
+    // F52: faltaban → #reportes y otros dejaban la pantalla en blanco
+    reportes:'pReportes', reports:'pReportes', comisiones:'pComisiones', facturas:'pFacturas',
+    catalogo:'pCatalogo', usuarios:'pUsuarios', ayuda:'pAyuda', citas:'pCitas', mas:'pMas' };
   function _navFromHash() {
     try {
       var h = (location.hash || '').replace(/^#\/?/, '').toLowerCase().trim();
@@ -11138,6 +11141,9 @@ async function renderReporte() {
   var fechas = getRepFechas();
   var fechasISO = getRepFechasISO(); // REP-FECHA-FIX: para queries a Supabase
   var ventas = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function(v) { return !v.reembolsado && fechas.includes(v.fecha); }) : [];
+  // F56: reembolsos del periodo (no entran en ingresos, pero el contador debe verlos)
+  var reembolsos = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function(v) { return v.reembolsado && fechas.includes(v.fechaReembolso || v.fecha); }) : [];
+  var tReemb = reembolsos.reduce(function(a, v) { return a + (parseFloat(v.total) || 0); }, 0);
   // v2.4: usar pagos reales (anticipos + finales) en lugar de reps entregadas
   var pagosReps = [];
   if (SEL.repTipo !== 'ventas' && SB_KEY && fechasISO.length > 0) {
@@ -11165,6 +11171,8 @@ async function renderReporte() {
     '<div class="stat-card"><div class="stat-val" style="color:var(--green)">' + cur(tV) + '</div><div class="stat-lbl">' + T('dash.ingresos_ventas') + '</div></div>' : '') +
     (SEL.repTipo !== 'ventas' ? '<div class="stat-card"><div class="stat-val" style="color:var(--purple)">' + reps.length + '</div><div class="stat-lbl">' + T('nav.reparaciones') + '</div></div>' +
     '<div class="stat-card"><div class="stat-val" style="color:var(--orange)">' + cur(tR) + '</div><div class="stat-lbl">' + T('gen.ingresos_reps') + '</div></div>' : '') +
+    // F56: tarjeta de reembolsos del periodo (solo si hay) — visibles para el contador
+    (reembolsos.length ? '<div class="stat-card"><div class="stat-val" style="color:var(--red)">-' + cur(tReemb) + '</div><div class="stat-lbl">' + T('gen.reembolsos') + ' (' + reembolsos.length + ')</div></div>' : '') +
     '</div>' +
     '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">' + T('gen.total') + ': ' + cur(tV + tR) + '</div>';
 
