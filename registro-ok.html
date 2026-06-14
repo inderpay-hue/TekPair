@@ -32,6 +32,7 @@ p{color:#64748B;font-size:14px;margin-bottom:20px;line-height:1.6}
   <p id="msg">Por favor espera un momento.</p>
   <div class="note" id="note" style="display:none"></div>
   <a href="https://www.tekpair.tech/app.html" class="btn" id="btnEntrar" style="display:none">Entrar a Tekpair →</a>
+  <a href="https://www.tekpair.tech/registro.html" class="btn" id="btnVolver" style="display:none;background:#fff;color:#0055FF;border:1.5px solid #0055FF">← Volver al registro</a>
 </div>
 
 <script>
@@ -45,6 +46,14 @@ const REGOK_TEXTS = {
   pt: { creating:'A criar a tua conta...', creating_msg:'Por favor aguarda um momento.', ok_title:'Conta criada', ok_msg_pre:'Olá ', ok_msg_suf:' a tua conta está pronta. Enviámos-te um email com as tuas credenciais de acesso.', ok_msg_no_name:'A tua conta está pronta. Enviámos-te um email com as tuas credenciais de acesso.', note:'📧 Verifica a tua caixa de entrada (e spam) para ver a tua senha temporária.', btn:'Entrar no Tekpair →', exists_title:'Já tens conta', exists_msg:'Este email já tem uma conta ativa no Tekpair.', err_title:'Erro', err_session:'Sessão de pagamento não encontrada. Volta a registar-te em https://www.tekpair.tech/registro.html', err_conn:'Não foi possível criar a conta. Contacta info@tekpair.tech' }
 };
 function getOkLang(){ return localStorage.getItem('tp_lang') || navigator.language.slice(0,2) || 'es'; }
+// F143: convertir URLs del mensaje en enlaces clicables
+function _linkify(t){ return String(t).replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" style="color:#0055FF">$1</a>'); }
+// F144/F145: CTA "Volver al registro" en estados de error
+function _mostrarVolver(){
+  var lbl = { es:'← Volver al registro', en:'← Back to register', fr:'← Retour à l\'inscription', it:'← Torna alla registrazione', de:'← Zurück zur Registrierung', pt:'← Voltar ao registo' }[getOkLang()] || '← Volver al registro';
+  var b = document.getElementById('btnVolver');
+  if (b) { b.textContent = lbl; b.style.display = 'block'; }
+}
 
 async function setup() {
   var params = new URLSearchParams(window.location.search);
@@ -64,7 +73,8 @@ async function setup() {
     var Ls = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
     document.getElementById('icon').textContent = '❌';
     document.getElementById('title').textContent = Ls.err_title;
-    document.getElementById('msg').textContent = Ls.err_session;
+    document.getElementById('msg').innerHTML = _linkify(Ls.err_session);
+    _mostrarVolver();
     return;
   }
 
@@ -106,14 +116,16 @@ async function setup() {
         var Lerr = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
         document.getElementById('icon').textContent = '❌';
         document.getElementById('title').textContent = Lerr.err_title;
-        document.getElementById('msg').textContent = data.error || 'Error al crear la cuenta. Contacta con soporte.';
+        document.getElementById('msg').innerHTML = _linkify(data.error || Lerr.err_conn);
+        _mostrarVolver();
       }
     }
   } catch(e) {
     var Lc = REGOK_TEXTS[getOkLang()]||REGOK_TEXTS.es;
     document.getElementById('icon').textContent = '❌';
     document.getElementById('title').textContent = Lc.err_title;
-    document.getElementById('msg').textContent = Lc.err_conn;
+    document.getElementById('msg').innerHTML = _linkify(Lc.err_conn);
+    _mostrarVolver();
   }
 }
 setup();

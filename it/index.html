@@ -17,6 +17,13 @@
 <link rel="alternate" hreflang="de" href="https://www.tekpair.tech/de/">
 <link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/pt/">
 <link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/">
+<link rel="alternate" hreflang="es" href="https://www.tekpair.tech/">
+<link rel="alternate" hreflang="en" href="https://www.tekpair.tech/en/">
+<link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/fr/">
+<link rel="alternate" hreflang="it" href="https://www.tekpair.tech/it/">
+<link rel="alternate" hreflang="de" href="https://www.tekpair.tech/de/">
+<link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/pt/">
+<link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/">
 
 <!-- IDX-8: favicon (icon naranja con rayo blanco) -->
 <link rel="icon" type="image/x-icon" href="/favicon.ico">
@@ -372,7 +379,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
     </div>
   </div>
 </nav>
-<div class="promo-bar">⚡ Oferta limitada — 50% descuento × 3 meses con código <code>EARLY50</code> · Solo quedan 10 plazas</div>
+<div class="promo-bar" data-i18n="promo.bar">⚡ Offerta limitata — 50% di sconto × 3 mesi con il codice <code>EARLY50</code> · Solo 10 posti rimasti</div>
 
 <!-- HERO -->
 <main id="main" role="main">
@@ -382,7 +389,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
     <div class="hero-grid">
       <div class="hero-left">
         <div class="eyebrow" data-i18n="hero.eyebrow">Per i negozi di riparazione</div>
-        <h1><span data-i18n="hero.adios">Addio</span> <span class="rotator" id="heroRotator">Excel.</span><br><span data-i18n="hero.hola">Ciao TekPair.</span></h1>
+        <h1><span data-i18n="hero.adios">Addio</span> <span class="rotator" id="heroRotator">Excel.</span> <br><span data-i18n="hero.hola">Ciao TekPair.</span></h1>
         <p class="sub" data-i18n="hero.subtitle">Vendite, riparazioni, stock e clienti in un'unica app. Da qualsiasi dispositivo, senza installazioni.</p>
         <div class="hero-btns">
           <a href="/registro.html" class="btn-primary" data-i18n="hero.cta1">Prova gratis 15 giorni</a>
@@ -397,8 +404,8 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
       <div class="hero-visual">
         <div class="mockup">
           <div class="mk-top">
-            <div class="mk-top-l"><span class="mk-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span data-i18n="mk.panel"> Panel de hoy</div>
-            <div class="live-badge"><span class="live-dot"></span data-i18n="mk.live"> EN VIVO</div>
+            <div class="mk-top-l"><span class="mk-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> <span data-i18n="mk.panel">Pannello di oggi</span></div>
+            <div class="live-badge"><span class="live-dot"></span> <span data-i18n="mk.live">IN DIRETTA</span></div>
           </div>
           <div class="mk-stats">
             <div class="mk-stat"><div class="mk-stat-n">€<span class="count" data-target="847">0</span></div><div class="mk-stat-l" data-i18n="mk.ingresos">entrate</div></div>
@@ -755,7 +762,17 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a) {
 
 // 1. Rotator del hero
 (function(){
-  var palabras = ['Excel.', 'libretas.', 'la calculadora.', 'al caos.', 'a los papelitos.', 'a las pérdidas.'];
+  // F165: palabras del rotator por idioma (antes solo ES → en /en/ mezclaba idiomas)
+  var ROT_WORDS = {
+    es: ['Excel.', 'libretas.', 'la calculadora.', 'al caos.', 'a los papelitos.', 'a las pérdidas.'],
+    en: ['Excel.', 'notebooks.', 'the calculator.', 'chaos.', 'sticky notes.', 'losses.'],
+    fr: ['Excel.', 'aux carnets.', 'à la calculatrice.', 'au chaos.', 'aux post-its.', 'aux pertes.'],
+    it: ['Excel.', 'ai quaderni.', 'alla calcolatrice.', 'al caos.', 'ai foglietti.', 'alle perdite.'],
+    de: ['Excel.', 'Notizbüchern.', 'dem Taschenrechner.', 'dem Chaos.', 'Zetteln.', 'Verlusten.'],
+    pt: ['Excel.', 'aos cadernos.', 'à calculadora.', 'ao caos.', 'aos papelinhos.', 'às perdas.']
+  };
+  var _rl = (window.__PAGE_LANG || (typeof localStorage !== 'undefined' && localStorage.getItem('tp_lang_landing')) || 'es');
+  var palabras = ROT_WORDS[_rl] || ROT_WORDS.es;
   var rot = document.getElementById('heroRotator');
   if (!rot) return;
   var idx = 0;
