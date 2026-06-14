@@ -7,9 +7,11 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;color:#0F1729;background:#F7F9FC;padding-bottom:40px}
-nav{background:#020B2E;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+nav{background:#020B2E;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .nav-logo{color:white;font-size:18px;font-weight:800;text-decoration:none}
+.nav-right{display:flex;align-items:center;gap:14px}
 .nav-back{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px}
+.lang-sel{background:rgba(255,255,255,.95);border:1px solid #e2e8f0;border-radius:8px;padding:5px 8px;font-size:13px;cursor:pointer;font-family:inherit}
 .container{max-width:760px;margin:40px auto;background:white;border-radius:14px;padding:40px;border:1px solid #E2E8F0}
 h1{font-size:26px;font-weight:800;color:#020B2E;margin-bottom:8px}
 .date{font-size:13px;color:#64748B;margin-bottom:32px}
@@ -17,93 +19,132 @@ h2{font-size:17px;font-weight:700;color:#020B2E;margin:28px 0 10px}
 p{font-size:14px;color:#374151;line-height:1.8;margin-bottom:12px}
 ul{padding-left:20px;margin-bottom:12px}
 li{font-size:14px;color:#374151;line-height:1.8;margin-bottom:4px}
-.highlight{background:#FEF3C7;border-left:3px solid #F59E0B;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:13px;color:#0F1729}
-a{color:#0055FF}
+a{color:#FF5B1F}
 </style>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
 <nav>
   <a href="/" class="nav-logo">⚡ Tekpair</a>
-  <a href="/" class="nav-back">← Volver al inicio</a>
-</nav>
-<div class="container">
-  <h1>Términos y Condiciones de Uso</h1>
-  <div class="date">Última actualización: 7 de mayo de 2026</div>
-
-  <div class="highlight">
-    Al registrarte y usar Tekpair, aceptas estos términos. Por favor léelos detenidamente antes de usar el servicio.
+  <div class="nav-right">
+    <select class="lang-sel" id="legalLangSel" onchange="setLegalLang(this.value)" aria-label="Idioma">
+      <option value="es">🇪🇸 ES</option><option value="en">🇬🇧 EN</option><option value="fr">🇫🇷 FR</option>
+      <option value="it">🇮🇹 IT</option><option value="de">🇩🇪 DE</option><option value="pt">🇵🇹 PT</option>
+    </select>
+    <a href="/" class="nav-back" id="navBack">← Volver al inicio</a>
   </div>
+</nav>
+<div class="container" id="legalBody"></div>
 
-  <h2>1. Descripción del servicio</h2>
-  <p>Tekpair es un software de gestión en la nube (SaaS) diseñado para tiendas de venta y reparación de dispositivos móviles. Permite gestionar ventas, reparaciones, stock, clientes y generar reportes.</p>
-  <p>El servicio se presta a través de la plataforma web accesible en <strong>tekpair.tech</strong>.</p>
-
-  <h2>2. Registro y cuenta</h2>
-  <ul>
-    <li>Para usar Tekpair debes crear una cuenta con un email válido.</li>
-    <li>Eres responsable de mantener la confidencialidad de tus credenciales de acceso.</li>
-    <li>Debes notificarnos inmediatamente si sospechas un acceso no autorizado a tu cuenta.</li>
-    <li>Debes proporcionar información veraz y actualizada en el registro.</li>
-  </ul>
-
-  <h2>3. Planes y facturación</h2>
-  <ul>
-    <li>Tekpair ofrece tres planes de suscripción mensual: Básico (€9,90/mes), Pro (€19,90/mes) y Top (€34,90/mes).</li>
-    <li>El cobro se realiza mensualmente de forma automática a través de Stripe.</li>
-    <li>Los precios incluyen IVA cuando aplique según la legislación vigente.</li>
-    <li>Puedes cambiar de plan en cualquier momento. El cambio se aplica al siguiente período de facturación.</li>
-    <li>No se realizan reembolsos por períodos parciales de uso.</li>
-  </ul>
-
-  <h2>4. Cancelación</h2>
-  <ul>
-    <li>Puedes cancelar tu suscripción en cualquier momento sin penalización.</li>
-    <li>Al cancelar, mantendrás acceso hasta el final del período de facturación pagado.</li>
-    <li>Tras la cancelación, tus datos se conservan 30 días para permitir la reactivación.</li>
-    <li>Pasados los 30 días, los datos se eliminan definitivamente.</li>
-    <li>Te recomendamos exportar tus datos antes de cancelar.</li>
-  </ul>
-
-  <h2>5. Uso aceptable</h2>
-  <p>Al usar Tekpair te comprometes a:</p>
-  <ul>
-    <li>Usar el servicio únicamente para fines legales y legítimos de gestión empresarial.</li>
-    <li>No intentar acceder a cuentas de otros usuarios.</li>
-    <li>No realizar ingeniería inversa ni intentar copiar el software.</li>
-    <li>No usar el servicio para actividades ilegales o fraudulentas.</li>
-    <li>Cumplir con la normativa de protección de datos aplicable a los datos de tus clientes.</li>
-  </ul>
-
-  <h2>6. Propiedad de los datos</h2>
-  <p>Los datos que introduces en Tekpair (clientes, reparaciones, ventas, etc.) son de tu exclusiva propiedad. Tekpair actúa únicamente como proveedor de infraestructura para almacenarlos y procesarlos.</p>
-  <p>Puedes exportar tus datos en cualquier momento en formato JSON o CSV.</p>
-
-  <h2>7. Propiedad intelectual</h2>
-  <p>Tekpair, su diseño, código, logotipos y contenidos son propiedad de Tekpair y están protegidos por las leyes de propiedad intelectual. Queda prohibida su reproducción total o parcial sin autorización expresa.</p>
-
-  <h2>8. Disponibilidad del servicio</h2>
-  <p>Nos comprometemos a mantener una disponibilidad del 99,9%. Sin embargo, puede haber interrupciones por mantenimiento programado (notificado con antelación) o causas de fuerza mayor.</p>
-  <p>No somos responsables de pérdidas derivadas de interrupciones del servicio fuera de nuestro control.</p>
-
-  <h2>9. Limitación de responsabilidad</h2>
-  <p>Tekpair no será responsable de:</p>
-  <ul>
-    <li>Pérdidas de negocio derivadas del uso o interrupción del servicio.</li>
-    <li>Errores en los datos introducidos por el usuario.</li>
-    <li>Daños indirectos o consecuentes.</li>
-  </ul>
-  <p>La responsabilidad máxima de Tekpair se limita al importe pagado por el usuario en los últimos 3 meses.</p>
-
-  <h2>10. Modificaciones del servicio</h2>
-  <p>Nos reservamos el derecho de modificar, añadir o eliminar funcionalidades del servicio. Los cambios significativos serán notificados con al menos 30 días de antelación por email.</p>
-  <p>También podemos modificar los precios, notificándolo con 30 días de antelación. Si no estás de acuerdo, puedes cancelar antes de que entren en vigor.</p>
-
-  <h2>11. Legislación aplicable</h2>
-  <p>Estos términos se rigen por la legislación española. Para cualquier disputa, las partes se someten a los Juzgados y Tribunales de España, con renuncia expresa a cualquier otro fuero.</p>
-
-  <h2>12. Contacto</h2>
-  <p>Para cualquier consulta sobre estos términos: <a href="mailto:legal@tekpair.tech">legal@tekpair.tech</a></p>
-</div>
+<script>
+var EMAIL = 'legal@tekpair.tech';
+var TERMS = {
+  es:{back:'← Volver al inicio',title:'Términos y Condiciones',h1:'Términos y Condiciones de Uso',date:'Última actualización: 15 de junio de 2026',s:[
+    {h:'1. Descripción del servicio',b:['Tekpair es un software de gestión en la nube (SaaS) para tiendas de venta y reparación de móviles: ventas, reparaciones, stock, clientes y reportes.','El servicio se presta a través de la plataforma web en <strong>tekpair.tech</strong>.']},
+    {h:'2. Registro y cuenta',b:[['Para usar Tekpair debes crear una cuenta con un email válido.','Eres responsable de la confidencialidad de tus credenciales.','Debes notificarnos de inmediato cualquier acceso no autorizado.','Debes facilitar información veraz y actualizada.']]},
+    {h:'3. Planes y facturación',b:[['Tres planes mensuales: Básico (€9,90/mes), Pro (€19,90/mes) y Top (€34,90/mes).','El cobro es mensual y automático mediante Stripe.','Los precios se muestran sin IVA, que se añadirá cuando corresponda según la legislación vigente.','Puedes cambiar de plan en cualquier momento; se aplica al siguiente período.','No se realizan reembolsos por períodos parciales de uso.']]},
+    {h:'4. Cancelación',b:[['Puedes cancelar en cualquier momento sin penalización.','Mantendrás acceso hasta el final del período pagado.','Tras cancelar, tus datos se conservan 30 días para reactivación.','Pasados 30 días, se eliminan definitivamente.','Te recomendamos exportar tus datos antes de cancelar.']]},
+    {h:'5. Uso aceptable',b:['Al usar Tekpair te comprometes a:',['Usar el servicio solo para fines legales de gestión empresarial.','No acceder a cuentas de otros usuarios.','No hacer ingeniería inversa ni copiar el software.','No usar el servicio para actividades ilegales o fraudulentas.','Cumplir la normativa de protección de datos de tus clientes.']]},
+    {h:'6. Propiedad de los datos',b:['Los datos que introduces (clientes, reparaciones, ventas, etc.) son de tu exclusiva propiedad. Tekpair actúa como proveedor de infraestructura para almacenarlos y procesarlos.','Puedes exportar tus datos en cualquier momento en JSON o CSV.']},
+    {h:'7. Propiedad intelectual',b:['Tekpair, su diseño, código, logotipos y contenidos son propiedad de Tekpair y están protegidos por las leyes de propiedad intelectual. Prohibida su reproducción sin autorización expresa.']},
+    {h:'8. Disponibilidad',b:['Nos comprometemos a una disponibilidad del 99,9%. Puede haber interrupciones por mantenimiento programado (notificado) o fuerza mayor.','No somos responsables de pérdidas por interrupciones fuera de nuestro control.']},
+    {h:'9. Limitación de responsabilidad',b:['Tekpair no será responsable de:',['Pérdidas de negocio por el uso o interrupción del servicio.','Errores en los datos introducidos por el usuario.','Daños indirectos o consecuentes.'],'La responsabilidad máxima se limita al importe pagado en los últimos 3 meses.']},
+    {h:'10. Modificaciones',b:['Podemos modificar, añadir o eliminar funcionalidades. Los cambios significativos se notifican con 30 días de antelación por email.','También podemos modificar precios avisando con 30 días. Si no estás de acuerdo, puedes cancelar antes de que entren en vigor.']},
+    {h:'11. Legislación aplicable',b:['Estos términos se rigen por la legislación española. Para cualquier disputa, las partes se someten a los Juzgados y Tribunales de España.']},
+    {h:'12. Contacto',b:['Para cualquier consulta: <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]},
+  en:{back:'← Back to home',title:'Terms & Conditions',h1:'Terms and Conditions of Use',date:'Last updated: 15 June 2026',s:[
+    {h:'1. Service description',b:['Tekpair is cloud management software (SaaS) for mobile phone sales and repair shops: sales, repairs, stock, customers and reports.','The service is provided through the web platform at <strong>tekpair.tech</strong>.']},
+    {h:'2. Registration and account',b:[['To use Tekpair you must create an account with a valid email.','You are responsible for keeping your credentials confidential.','You must notify us immediately of any unauthorised access.','You must provide truthful, up-to-date information.']]},
+    {h:'3. Plans and billing',b:[['Three monthly plans: Basic (€9.90/mo), Pro (€19.90/mo) and Top (€34.90/mo).','Billing is monthly and automatic via Stripe.','Prices are shown excluding VAT, which is added where applicable under current law.','You can change plan at any time; it applies from the next period.','No refunds are given for partial usage periods.']]},
+    {h:'4. Cancellation',b:[['You can cancel at any time with no penalty.','You keep access until the end of the paid period.','After cancelling, your data is kept for 30 days for reactivation.','After 30 days, it is permanently deleted.','We recommend exporting your data before cancelling.']]},
+    {h:'5. Acceptable use',b:['By using Tekpair you agree to:',['Use the service only for lawful business management purposes.','Not access other users\' accounts.','Not reverse-engineer or copy the software.','Not use the service for illegal or fraudulent activities.','Comply with data protection law regarding your customers\' data.']]},
+    {h:'6. Data ownership',b:['The data you enter (customers, repairs, sales, etc.) is your sole property. Tekpair acts as the infrastructure provider that stores and processes it.','You can export your data at any time in JSON or CSV.']},
+    {h:'7. Intellectual property',b:['Tekpair, its design, code, logos and content are the property of Tekpair and protected by intellectual property law. Reproduction without express authorisation is prohibited.']},
+    {h:'8. Availability',b:['We aim for 99.9% availability. There may be interruptions due to scheduled maintenance (notified) or force majeure.','We are not liable for losses from interruptions beyond our control.']},
+    {h:'9. Limitation of liability',b:['Tekpair shall not be liable for:',['Business losses from use or interruption of the service.','Errors in data entered by the user.','Indirect or consequential damages.'],'Maximum liability is limited to the amount paid in the last 3 months.']},
+    {h:'10. Service changes',b:['We may modify, add or remove features. Significant changes are notified 30 days in advance by email.','We may also change prices with 30 days\' notice. If you disagree, you can cancel before they take effect.']},
+    {h:'11. Applicable law',b:['These terms are governed by Spanish law. For any dispute, the parties submit to the courts of Spain.']},
+    {h:'12. Contact',b:['For any query: <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]},
+  fr:{back:'← Retour à l\'accueil',title:'Conditions générales',h1:'Conditions générales d\'utilisation',date:'Dernière mise à jour : 15 juin 2026',s:[
+    {h:'1. Description du service',b:['Tekpair est un logiciel de gestion cloud (SaaS) pour magasins de vente et réparation de mobiles : ventes, réparations, stock, clients et rapports.','Le service est fourni via la plateforme web sur <strong>tekpair.tech</strong>.']},
+    {h:'2. Inscription et compte',b:[['Pour utiliser Tekpair, vous devez créer un compte avec un email valide.','Vous êtes responsable de la confidentialité de vos identifiants.','Vous devez nous signaler immédiatement tout accès non autorisé.','Vous devez fournir des informations exactes et à jour.']]},
+    {h:'3. Forfaits et facturation',b:[['Trois forfaits mensuels : Basique (9,90 €/mois), Pro (19,90 €/mois) et Top (34,90 €/mois).','Facturation mensuelle et automatique via Stripe.','Les prix sont affichés hors TVA, ajoutée le cas échéant selon la loi en vigueur.','Vous pouvez changer de forfait à tout moment ; appliqué à la période suivante.','Aucun remboursement pour les périodes d\'utilisation partielles.']]},
+    {h:'4. Résiliation',b:[['Vous pouvez résilier à tout moment sans pénalité.','Vous conservez l\'accès jusqu\'à la fin de la période payée.','Après résiliation, vos données sont conservées 30 jours pour réactivation.','Au-delà de 30 jours, elles sont supprimées définitivement.','Nous recommandons d\'exporter vos données avant de résilier.']]},
+    {h:'5. Usage acceptable',b:['En utilisant Tekpair, vous vous engagez à :',['Utiliser le service uniquement à des fins légales de gestion d\'entreprise.','Ne pas accéder aux comptes d\'autres utilisateurs.','Ne pas faire d\'ingénierie inverse ni copier le logiciel.','Ne pas utiliser le service pour des activités illégales ou frauduleuses.','Respecter la réglementation sur la protection des données de vos clients.']]},
+    {h:'6. Propriété des données',b:['Les données que vous saisissez (clients, réparations, ventes, etc.) sont votre propriété exclusive. Tekpair agit comme fournisseur d\'infrastructure pour les stocker et traiter.','Vous pouvez exporter vos données à tout moment en JSON ou CSV.']},
+    {h:'7. Propriété intellectuelle',b:['Tekpair, son design, code, logos et contenus sont la propriété de Tekpair et protégés par le droit de la propriété intellectuelle. Toute reproduction sans autorisation expresse est interdite.']},
+    {h:'8. Disponibilité',b:['Nous visons une disponibilité de 99,9 %. Des interruptions sont possibles pour maintenance programmée (notifiée) ou force majeure.','Nous ne sommes pas responsables des pertes dues à des interruptions indépendantes de notre volonté.']},
+    {h:'9. Limitation de responsabilité',b:['Tekpair ne sera pas responsable de :',['Pertes commerciales liées à l\'usage ou à l\'interruption du service.','Erreurs dans les données saisies par l\'utilisateur.','Dommages indirects ou consécutifs.'],'La responsabilité maximale est limitée au montant payé au cours des 3 derniers mois.']},
+    {h:'10. Modifications',b:['Nous pouvons modifier, ajouter ou retirer des fonctionnalités. Les changements importants sont notifiés 30 jours à l\'avance par email.','Nous pouvons aussi modifier les prix avec un préavis de 30 jours. En cas de désaccord, vous pouvez résilier avant l\'entrée en vigueur.']},
+    {h:'11. Loi applicable',b:['Les présentes conditions sont régies par le droit espagnol. Pour tout litige, les parties se soumettent aux tribunaux d\'Espagne.']},
+    {h:'12. Contact',b:['Pour toute question : <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]},
+  it:{back:'← Torna alla home',title:'Termini e condizioni',h1:'Termini e condizioni d\'uso',date:'Ultimo aggiornamento: 15 giugno 2026',s:[
+    {h:'1. Descrizione del servizio',b:['Tekpair è un software gestionale in cloud (SaaS) per negozi di vendita e riparazione di cellulari: vendite, riparazioni, magazzino, clienti e report.','Il servizio è fornito tramite la piattaforma web su <strong>tekpair.tech</strong>.']},
+    {h:'2. Registrazione e account',b:[['Per usare Tekpair devi creare un account con un\'email valida.','Sei responsabile della riservatezza delle tue credenziali.','Devi segnalarci subito ogni accesso non autorizzato.','Devi fornire informazioni veritiere e aggiornate.']]},
+    {h:'3. Piani e fatturazione',b:[['Tre piani mensili: Base (9,90 €/mese), Pro (19,90 €/mese) e Top (34,90 €/mese).','Addebito mensile e automatico tramite Stripe.','I prezzi sono mostrati IVA esclusa, aggiunta ove applicabile secondo la legge vigente.','Puoi cambiare piano in qualsiasi momento; si applica dal periodo successivo.','Nessun rimborso per periodi d\'uso parziali.']]},
+    {h:'4. Cancellazione',b:[['Puoi cancellare in qualsiasi momento senza penali.','Mantieni l\'accesso fino alla fine del periodo pagato.','Dopo la cancellazione, i dati sono conservati 30 giorni per la riattivazione.','Dopo 30 giorni vengono eliminati definitivamente.','Consigliamo di esportare i dati prima di cancellare.']]},
+    {h:'5. Uso accettabile',b:['Usando Tekpair ti impegni a:',['Usare il servizio solo per scopi legali di gestione aziendale.','Non accedere agli account di altri utenti.','Non fare reverse engineering né copiare il software.','Non usare il servizio per attività illegali o fraudolente.','Rispettare la normativa sulla protezione dei dati dei tuoi clienti.']]},
+    {h:'6. Proprietà dei dati',b:['I dati che inserisci (clienti, riparazioni, vendite, ecc.) sono di tua esclusiva proprietà. Tekpair agisce come fornitore di infrastruttura per archiviarli ed elaborarli.','Puoi esportare i tuoi dati in qualsiasi momento in JSON o CSV.']},
+    {h:'7. Proprietà intellettuale',b:['Tekpair, il suo design, codice, loghi e contenuti sono di proprietà di Tekpair e protetti dalle leggi sulla proprietà intellettuale. Vietata la riproduzione senza autorizzazione espressa.']},
+    {h:'8. Disponibilità',b:['Puntiamo a una disponibilità del 99,9%. Possono verificarsi interruzioni per manutenzione programmata (notificata) o forza maggiore.','Non siamo responsabili delle perdite dovute a interruzioni fuori dal nostro controllo.']},
+    {h:'9. Limitazione di responsabilità',b:['Tekpair non sarà responsabile di:',['Perdite di business dovute all\'uso o interruzione del servizio.','Errori nei dati inseriti dall\'utente.','Danni indiretti o consequenziali.'],'La responsabilità massima è limitata all\'importo pagato negli ultimi 3 mesi.']},
+    {h:'10. Modifiche',b:['Possiamo modificare, aggiungere o rimuovere funzionalità. Le modifiche significative sono notificate con 30 giorni di anticipo via email.','Possiamo anche modificare i prezzi con 30 giorni di preavviso. In caso di disaccordo, puoi cancellare prima dell\'entrata in vigore.']},
+    {h:'11. Legge applicabile',b:['Questi termini sono regolati dalla legge spagnola. Per qualsiasi controversia, le parti si sottomettono ai tribunali della Spagna.']},
+    {h:'12. Contatto',b:['Per qualsiasi domanda: <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]},
+  de:{back:'← Zurück zur Startseite',title:'AGB',h1:'Allgemeine Geschäftsbedingungen',date:'Zuletzt aktualisiert: 15. Juni 2026',s:[
+    {h:'1. Leistungsbeschreibung',b:['Tekpair ist eine Cloud-Verwaltungssoftware (SaaS) für Handy-Verkaufs- und Reparaturläden: Verkäufe, Reparaturen, Lager, Kunden und Berichte.','Der Dienst wird über die Web-Plattform unter <strong>tekpair.tech</strong> bereitgestellt.']},
+    {h:'2. Registrierung und Konto',b:[['Zur Nutzung von Tekpair müssen Sie ein Konto mit gültiger E-Mail erstellen.','Sie sind für die Vertraulichkeit Ihrer Zugangsdaten verantwortlich.','Melden Sie uns unbefugten Zugriff unverzüglich.','Sie müssen wahrheitsgemäße, aktuelle Angaben machen.']]},
+    {h:'3. Tarife und Abrechnung',b:[['Drei Monatstarife: Basic (9,90 €/Monat), Pro (19,90 €/Monat) und Top (34,90 €/Monat).','Monatliche, automatische Abrechnung über Stripe.','Preise verstehen sich zzgl. MwSt., die ggf. nach geltendem Recht hinzukommt.','Tarifwechsel jederzeit möglich; gilt ab der nächsten Periode.','Keine Rückerstattung für anteilige Nutzungszeiträume.']]},
+    {h:'4. Kündigung',b:[['Sie können jederzeit ohne Strafe kündigen.','Sie behalten Zugang bis zum Ende des bezahlten Zeitraums.','Nach Kündigung werden Ihre Daten 30 Tage zur Reaktivierung aufbewahrt.','Nach 30 Tagen werden sie endgültig gelöscht.','Wir empfehlen, Ihre Daten vor der Kündigung zu exportieren.']]},
+    {h:'5. Zulässige Nutzung',b:['Mit der Nutzung von Tekpair verpflichten Sie sich:',['Den Dienst nur für rechtmäßige geschäftliche Zwecke zu nutzen.','Nicht auf Konten anderer Nutzer zuzugreifen.','Keine Rückentwicklung oder Kopie der Software.','Den Dienst nicht für illegale oder betrügerische Aktivitäten zu nutzen.','Die Datenschutzvorschriften für die Daten Ihrer Kunden einzuhalten.']]},
+    {h:'6. Dateneigentum',b:['Die von Ihnen eingegebenen Daten (Kunden, Reparaturen, Verkäufe usw.) sind Ihr alleiniges Eigentum. Tekpair fungiert als Infrastrukturanbieter zur Speicherung und Verarbeitung.','Sie können Ihre Daten jederzeit als JSON oder CSV exportieren.']},
+    {h:'7. Geistiges Eigentum',b:['Tekpair, sein Design, Code, Logos und Inhalte sind Eigentum von Tekpair und durch das Recht des geistigen Eigentums geschützt. Vervielfältigung ohne ausdrückliche Genehmigung ist untersagt.']},
+    {h:'8. Verfügbarkeit',b:['Wir streben eine Verfügbarkeit von 99,9 % an. Unterbrechungen sind durch geplante Wartung (angekündigt) oder höhere Gewalt möglich.','Wir haften nicht für Verluste durch Unterbrechungen außerhalb unserer Kontrolle.']},
+    {h:'9. Haftungsbeschränkung',b:['Tekpair haftet nicht für:',['Geschäftsverluste durch Nutzung oder Unterbrechung des Dienstes.','Fehler in den vom Nutzer eingegebenen Daten.','Indirekte oder Folgeschäden.'],'Die maximale Haftung ist auf den in den letzten 3 Monaten gezahlten Betrag begrenzt.']},
+    {h:'10. Änderungen',b:['Wir können Funktionen ändern, hinzufügen oder entfernen. Wesentliche Änderungen werden 30 Tage im Voraus per E-Mail mitgeteilt.','Wir können auch Preise mit 30 Tagen Vorlauf ändern. Bei Nichteinverständnis können Sie vor Inkrafttreten kündigen.']},
+    {h:'11. Anwendbares Recht',b:['Diese AGB unterliegen spanischem Recht. Für Streitigkeiten unterwerfen sich die Parteien den Gerichten Spaniens.']},
+    {h:'12. Kontakt',b:['Bei Fragen: <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]},
+  pt:{back:'← Voltar ao início',title:'Termos e Condições',h1:'Termos e Condições de Uso',date:'Última atualização: 15 de junho de 2026',s:[
+    {h:'1. Descrição do serviço',b:['A Tekpair é um software de gestão na nuvem (SaaS) para lojas de venda e reparação de telemóveis: vendas, reparações, stock, clientes e relatórios.','O serviço é prestado através da plataforma web em <strong>tekpair.tech</strong>.']},
+    {h:'2. Registo e conta',b:[['Para usar a Tekpair tens de criar uma conta com um email válido.','És responsável pela confidencialidade das tuas credenciais.','Deves notificar-nos de imediato sobre qualquer acesso não autorizado.','Deves fornecer informação verdadeira e atualizada.']]},
+    {h:'3. Planos e faturação',b:[['Três planos mensais: Básico (9,90 €/mês), Pro (19,90 €/mês) e Top (34,90 €/mês).','Cobrança mensal e automática via Stripe.','Os preços são apresentados sem IVA, que será adicionado quando aplicável segundo a lei vigente.','Podes mudar de plano a qualquer momento; aplica-se no período seguinte.','Não há reembolsos por períodos de uso parciais.']]},
+    {h:'4. Cancelamento',b:[['Podes cancelar a qualquer momento sem penalização.','Mantens acesso até ao fim do período pago.','Após o cancelamento, os dados são conservados 30 dias para reativação.','Passados 30 dias, são eliminados definitivamente.','Recomendamos exportar os teus dados antes de cancelar.']]},
+    {h:'5. Uso aceitável',b:['Ao usar a Tekpair comprometes-te a:',['Usar o serviço apenas para fins legais de gestão empresarial.','Não aceder a contas de outros utilizadores.','Não fazer engenharia inversa nem copiar o software.','Não usar o serviço para atividades ilegais ou fraudulentas.','Cumprir a legislação de proteção de dados dos teus clientes.']]},
+    {h:'6. Propriedade dos dados',b:['Os dados que introduzes (clientes, reparações, vendas, etc.) são da tua exclusiva propriedade. A Tekpair atua como fornecedor de infraestrutura para os armazenar e processar.','Podes exportar os teus dados a qualquer momento em JSON ou CSV.']},
+    {h:'7. Propriedade intelectual',b:['A Tekpair, o seu design, código, logótipos e conteúdos são propriedade da Tekpair e estão protegidos pela lei da propriedade intelectual. Proibida a reprodução sem autorização expressa.']},
+    {h:'8. Disponibilidade',b:['Visamos uma disponibilidade de 99,9%. Pode haver interrupções por manutenção programada (notificada) ou força maior.','Não somos responsáveis por perdas resultantes de interrupções fora do nosso controlo.']},
+    {h:'9. Limitação de responsabilidade',b:['A Tekpair não será responsável por:',['Perdas de negócio pelo uso ou interrupção do serviço.','Erros nos dados introduzidos pelo utilizador.','Danos indiretos ou consequentes.'],'A responsabilidade máxima limita-se ao valor pago nos últimos 3 meses.']},
+    {h:'10. Modificações',b:['Podemos modificar, adicionar ou remover funcionalidades. As alterações significativas são notificadas com 30 dias de antecedência por email.','Também podemos alterar preços com 30 dias de aviso. Em caso de desacordo, podes cancelar antes de entrarem em vigor.']},
+    {h:'11. Legislação aplicável',b:['Estes termos regem-se pela legislação espanhola. Para qualquer litígio, as partes submetem-se aos tribunais de Espanha.']},
+    {h:'12. Contacto',b:['Para qualquer questão: <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]}
+};
+function _render(L){
+  var h = '<h1>'+L.h1+'</h1><div class="date">'+L.date+'</div>';
+  L.s.forEach(function(sec){
+    h += '<h2>'+sec.h+'</h2>';
+    sec.b.forEach(function(blk){
+      if (Array.isArray(blk)) h += '<ul>'+blk.map(function(li){return '<li>'+li+'</li>';}).join('')+'</ul>';
+      else h += '<p>'+blk+'</p>';
+    });
+  });
+  return h;
+}
+function setLegalLang(lang){
+  var l = TERMS[lang] ? lang : 'es';
+  try{ localStorage.setItem('tp_lang', l); }catch(e){}
+  document.documentElement.lang = l;
+  document.getElementById('legalBody').innerHTML = _render(TERMS[l]);
+  var nb = document.getElementById('navBack'); if(nb) nb.textContent = TERMS[l].back;
+  var sel = document.getElementById('legalLangSel'); if(sel) sel.value = l;
+  document.title = TERMS[l].title + ' — Tekpair';
+}
+(function(){ var l = (localStorage.getItem('tp_lang') || (navigator.language||'es').slice(0,2)); setLegalLang(TERMS[l]?l:'es'); })();
+</script>
 </body>
 </html>
