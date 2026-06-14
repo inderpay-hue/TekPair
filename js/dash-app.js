@@ -2568,7 +2568,7 @@ async function syncCompleto(silencioso) {
 // ESTA tienda hecho desde otro equipo, dispara syncCompleto() al instante (con debounce
 // para colapsar ráfagas). Reutiliza toda la lógica de descarga/render ya existente.
 // Requiere SQL: tablas en la publicación supabase_realtime + replica identity full.
-var _rtClient = null, _rtChannel = null, _rtTimer = null, _rtReady = false, _rtInit = false;
+var _rtClient = null, _rtTimer = null, _rtReady = false, _rtInit = false;
 function _rtSyncDebounced() {
   if (_rtTimer) clearTimeout(_rtTimer);
   _rtTimer = setTimeout(function () {
@@ -2588,26 +2588,22 @@ function _initRealtime() {
       _rtClient.realtime.setAuth(JWT_TOKEN);
       var TABLAS = ['reparaciones', 'ventas', 'stock', 'clientes', 'gastos', 'proveedores',
         'pedidos', 'gastos_recurrentes', 'pagos_proveedor', 'servicios', 'citas', 'tiendas'];
-      var ch = _rtClient.channel('tk-' + TIENDA_ID);
+      // UN canal por tabla: así el subscribe sabe QUÉ tabla es (log con nombre) y una tabla
+      // que rechace la suscripción no tumba a las demás (antes iban todas en un canal → F20).
       TABLAS.forEach(function (tbl) {
         var filtro = (tbl === 'tiendas') ? ('id=eq.' + TIENDA_ID) : ('tienda_id=eq.' + TIENDA_ID);
+        var ch = _rtClient.channel('tk-' + TIENDA_ID + '-' + tbl);
         ch.on('postgres_changes', { event: '*', schema: 'public', table: tbl, filter: filtro }, _rtSyncDebounced);
-      });
-      var _rtErr = 0;
-      ch.subscribe(function (status) {
-        _rtReady = (status === 'SUBSCRIBED');
-        if (status === 'SUBSCRIBED') { _rtErr = 0; return; }
-        // CHANNEL_ERROR/TIMED_OUT: supabase-js reintenta solo y spamea la consola. Tras 3 fallos
-        // paramos el canal y seguimos con el sync por sondeo (60s) — la app sigue sincronizando (F20).
-        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-          _rtErr++;
-          if (_rtErr >= 3) {
-            try { _rtClient.removeChannel(ch); } catch (e) {}
-            try { console.warn('[Realtime] no disponible (revisa la publicación/RLS); usando sync por sondeo cada 60s.'); } catch (e) {}
+        var errs = 0;
+        ch.subscribe(function (status) {
+          try { console.log('[Realtime]', tbl, status); } catch (e) {}
+          if (status === 'SUBSCRIBED') { _rtReady = true; errs = 0; return; }
+          if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+            errs++;
+            if (errs >= 3) { try { _rtClient.removeChannel(ch); } catch (e) {} } // deja de reintentar esa tabla
           }
-        }
+        });
       });
-      _rtChannel = ch;
     } catch (e) { _rtInit = false; try { console.warn('Realtime init:', e); } catch (e2) {} }
   }
   if (window.supabase && window.supabase.createClient) { start(); return; }
