@@ -5805,6 +5805,7 @@ function cambiarTipoBloq() {
 function abrirRep() {
   SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.rServicios = [];
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_nuevo');
+  var _bg = document.getElementById('btnGuardarRepTxt'); if (_bg) _bg.textContent = 'Crear orden';
   ['rBusCli','rMarca','rModelo','rImei','rAveria','rNota','rSrvBus','rBloqVal'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
@@ -7203,6 +7204,8 @@ function editarRep(id) {
   if (!r) { toast(T('gen.error'), 'err'); return; }
   // Reset y rellenar
   SEL.editRepId = id;
+  var _bge = document.getElementById('btnGuardarRepTxt'); if (_bge) _bge.textContent = 'Guardar cambios';
+  var _te = document.querySelector('#mRep .modal-title'); if (_te) _te.textContent = '✏️ Editar reparación';
   SEL.rCli = DB.clis.find(function(c){ return c.id === r.clienteId; }) || {id:r.clienteId, nombre:r.clienteNombre, apellidos:''};
   SEL.selParts = [];
   // Cargar servicios (con migración de legacy mo)
@@ -7556,6 +7559,7 @@ function aplicarCambioStockPiezas(antes, despues, refRep) {
 function guardarRep() {
   if (!tienePerm('reps_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var modelo = document.getElementById('rModelo').value.trim();
+  var marca = document.getElementById('rMarca').value.trim();
   var averia = document.getElementById('rAveria').value.trim();
   // Limpiar errores previos
   document.querySelectorAll('#mRep .fi.error').forEach(function(el){ el.classList.remove('error'); });
@@ -7565,6 +7569,10 @@ function guardarRep() {
   if (!SEL.rCli) {
     var inpC = document.getElementById('rBusCli');
     if (inpC) { inpC.classList.add('error'); primerError = primerError || inpC; }
+  }
+  if (!marca) {
+    var inpMa = document.getElementById('rMarca');
+    if (inpMa) { inpMa.classList.add('error'); primerError = primerError || inpMa; }
   }
   if (!modelo) {
     var inpM = document.getElementById('rModelo');
