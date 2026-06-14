@@ -2661,9 +2661,13 @@ function forzarRelogin() {
     try {
       urlStr = typeof url === 'string' ? url : (url && url.url) || '';
     } catch(e) { urlStr = ''; }
-    var esSupabase = urlStr.indexOf('supabase.co') !== -1;
+    // F82: avisar con el modal también ante 401 de la API propia (/api/*), no solo de Supabase.
+    // Se excluyen Cobrum/finanzas-app (manejo propio) y /api/login (no aplica en el panel).
+    var esAuth = urlStr.indexOf('supabase.co') !== -1 ||
+      (urlStr.indexOf('/api/') !== -1 && urlStr.indexOf('cobrum') === -1 &&
+       urlStr.indexOf('finanzas-app') === -1 && urlStr.indexOf('/api/login') === -1);
     var promesa = origFetch.apply(this, arguments);
-    if (!esSupabase) return promesa;
+    if (!esAuth) return promesa;
     return promesa.then(function(response) {
       if (response && response.status === 401) {
         mostrarModalSesionExpirada();
