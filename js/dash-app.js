@@ -2593,9 +2593,19 @@ function _initRealtime() {
         var filtro = (tbl === 'tiendas') ? ('id=eq.' + TIENDA_ID) : ('tienda_id=eq.' + TIENDA_ID);
         ch.on('postgres_changes', { event: '*', schema: 'public', table: tbl, filter: filtro }, _rtSyncDebounced);
       });
+      var _rtErr = 0;
       ch.subscribe(function (status) {
         _rtReady = (status === 'SUBSCRIBED');
-        try { console.log('[Realtime]', status); } catch (e) {}
+        if (status === 'SUBSCRIBED') { _rtErr = 0; return; }
+        // CHANNEL_ERROR/TIMED_OUT: supabase-js reintenta solo y spamea la consola. Tras 3 fallos
+        // paramos el canal y seguimos con el sync por sondeo (60s) — la app sigue sincronizando (F20).
+        if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
+          _rtErr++;
+          if (_rtErr >= 3) {
+            try { _rtClient.removeChannel(ch); } catch (e) {}
+            try { console.warn('[Realtime] no disponible (revisa la publicación/RLS); usando sync por sondeo cada 60s.'); } catch (e) {}
+          }
+        }
       });
       _rtChannel = ch;
     } catch (e) { _rtInit = false; try { console.warn('Realtime init:', e); } catch (e2) {} }
