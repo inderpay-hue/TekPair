@@ -985,7 +985,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   gtag('js', new Date());
   gtag('config', 'G-7V1W6B6KP4');
 </script>
-  <script src="/lang/lang.v8.js?v=20260607cobrum"></script>
+  <script src="/lang/lang.v8.js?v=20260614i18n"></script>
 </head>
 <body>
 <div id="app">
@@ -1079,13 +1079,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <button id="btnSbTema" onclick="toggleSbTemaMenu()" style="width:100%;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);color:rgba(255,255,255,.85);padding:5px 8px;border-radius:7px;font-size:11px;cursor:pointer;font-family:inherit;text-align:left">🎨 <span id="sbTemaLabel">Tema</span></button>
         <div id="sbTemaMenu" style="display:none;position:absolute;bottom:34px;left:0;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:6px;z-index:300;box-shadow:0 4px 16px rgba(0,0,0,.18);min-width:140px">
           <div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--muted);padding:4px 8px 6px" data-t="gen.tema">Tema</div>
-          <button onclick="setTema('terracota');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#C2410C;display:inline-block"></span>Terracota</button>
-          <button onclick="setTema('naranja');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#EA580C;display:inline-block"></span>Naranja</button>
-          <button onclick="setTema('dark');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#1E3A5F;display:inline-block"></span>Dark</button>
-          <button onclick="setTema('negro');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#111;border:1px solid #444;display:inline-block"></span>Negro</button>
-          <button onclick="setTema('grafito');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#6B7280;display:inline-block"></span>Grafito</button>
-          <button onclick="setTema('ambar');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#D97706;display:inline-block"></span>Ámbar</button>
-          <button onclick="setTema('light');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid #ddd;display:inline-block"></span>Claro</button>
+          <button onclick="setTema('terracota');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#C2410C;display:inline-block"></span><span class="temaLbl" data-tema="terracota">Terracota</span></button>
+          <button onclick="setTema('naranja');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#EA580C;display:inline-block"></span><span class="temaLbl" data-tema="naranja">Naranja</span></button>
+          <button onclick="setTema('dark');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#1E3A5F;display:inline-block"></span><span class="temaLbl" data-tema="dark">Dark</span></button>
+          <button onclick="setTema('negro');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#111;border:1px solid #444;display:inline-block"></span><span class="temaLbl" data-tema="negro">Negro</span></button>
+          <button onclick="setTema('grafito');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#6B7280;display:inline-block"></span><span class="temaLbl" data-tema="grafito">Grafito</span></button>
+          <button onclick="setTema('ambar');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#D97706;display:inline-block"></span><span class="temaLbl" data-tema="ambar">Ámbar</span></button>
+          <button onclick="setTema('light');closeSbTemaMenu()" style="display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;background:none;cursor:pointer;border-radius:6px;font-size:12px;font-family:inherit;color:var(--text)"><span style="width:12px;height:12px;border-radius:50%;background:#fff;border:1px solid #ddd;display:inline-block"></span><span class="temaLbl" data-tema="light">Claro</span></button>
         </div>
       </div>
       <div style="position:relative;flex:1">
@@ -4419,7 +4419,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260615rtdiag"></script>
+<script src="/js/dash-app.js?v=20260614i18n"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

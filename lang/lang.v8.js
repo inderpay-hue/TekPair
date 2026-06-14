@@ -3689,6 +3689,8 @@ function setLang(lang) {
   try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
   try { if (typeof renderCatalogo === 'function' && document.getElementById('pCatalogo') && document.getElementById('pCatalogo').classList.contains('active')) renderCatalogo(); } catch(e){}
   try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch(e){}
+  try { if (typeof actualizarSbControls === 'function') actualizarSbControls(); } catch(e){}
+  try { var _pr = document.getElementById('pReportes'); if (typeof renderReporte === 'function' && _pr && _pr.classList.contains('active')) renderReporte(); } catch(e){}
 }
 
 // Aplicar idioma a elementos con data-t
