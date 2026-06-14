@@ -686,7 +686,8 @@ export default async function handler(req, res) {
     }
 
     if (!resultado.ok) {
-      return res.json({ error: 'Email o contraseña incorrectos' });
+      // F194: 401 en credenciales inválidas (antes devolvía 200). El cliente lee data.ok, no rompe.
+      return res.status(401).json({ error: 'Email o contraseña incorrectos' });
     }
 
     // MIGRACIÓN SILENCIOSA: si la cuenta usa SHA-256 (v1), escribir bcrypt (v2)
