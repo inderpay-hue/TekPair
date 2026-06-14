@@ -10579,8 +10579,19 @@ function renderGastos() {
       '<td>' + fmtFecha(g.fecha) + '</td>' +
       '<td>' + ivaT + '%</td>' +
       '<td style="font-weight:700;color:var(--red)">' + cur(g.importe || 0) + '</td>' +
-      '<td><span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado || 'Pagado') + '</span></td>' +
+      '<td>' + _estadoGastoCell(g) + '</td>' +
       '<td style="white-space:nowrap">' + editBtn + adjCell + '</td>';
+  }
+  // F79: gasto pendiente con fecha pasada → badge "⚠️ Nd" (días vencido) además del estado
+  function _estadoGastoCell(g) {
+    var badge = '<span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado || 'Pagado') + '</span>';
+    var pend = (g.estado && g.estado !== 'Pagado');
+    var fd = (g.fecha || '').slice(0, 10);
+    if (pend && fd && fd < hoyLocal()) {
+      var dias = Math.floor((Date.now() - new Date(fd + 'T12:00:00').getTime()) / 86400000);
+      if (dias > 0) badge += ' <span class="badge" style="background:var(--red);color:#fff" title="Pendiente de pago desde hace ' + dias + ' días">⚠️ ' + dias + 'd</span>';
+    }
+    return badge;
   }
 
   // Agrupar por día + proveedor: las líneas de un mismo pedido comparten ambos,
@@ -14279,6 +14290,16 @@ function abrirDetalleRep(repId) {
   var btns = '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="closeM(\'mDetalleRep\')">Cerrar</button>';
   if (cli && cli.tel) btns += '<button class="btn-sm" style="background:#25D366;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirWhatsAppRep(\'' + r.id + '\')">📲 WhatsApp</button>';
   btns += '<button class="btn-sm" style="background:var(--blue);color:white;flex:1" onclick="closeM(\'mDetalleRep\');copiarLinkRep(\'' + r.id + '\')">📱 QR/Link</button>';
+  // F68: acciones de avance del flujo (faltaban en el modal abierto desde Kanban)
+  var _repCerradas = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
+  if (tienePerm('reps_editar')) {
+    if (r.estado === 'Pendiente') btns += '<button class="btn-sm" style="background:#3B82F6;color:white;flex:1" onclick="closeM(\'mDetalleRep\');cambiarEstado(\'' + r.id + '\',\'En Proceso\')">▶️ En proceso</button>';
+    else if (r.estado === 'En Proceso') btns += '<button class="btn-sm" style="background:#00C896;color:white;flex:1" onclick="closeM(\'mDetalleRep\');cambiarEstado(\'' + r.id + '\',\'Por Entregar\')">📦 Por entregar</button>';
+    if (_repCerradas.indexOf(r.estado) === -1) btns += '<button class="btn-sm" style="background:#16a34a;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirEntregar(\'' + r.id + '\')">✅ Entregar</button>';
+  }
+  if (!r.financiado && r.estado === 'Entregado' && (parseFloat(r.restante) || 0) > 0) btns += '<button class="btn-sm" style="background:var(--green);color:white;flex:1" onclick="closeM(\'mDetalleRep\');cobrarSaldoRep(\'' + r.id + '\')">💵 Cobrar</button>';
+  if (r.financiado && r.estadoFinanciado !== 'completado') btns += '<button class="btn-sm" style="background:#8B5CF6;color:white;flex:1" onclick="closeM(\'mDetalleRep\');verFinanciado(\'' + r.id + '\')">💰 Cuotas</button>';
+  if (r.estado === 'Entregado') btns += '<button class="btn-sm" style="background:#0EA5E9;color:white;flex:1" onclick="closeM(\'mDetalleRep\');factRep(\'' + r.id + '\')">📄 Factura</button>';
   if (tienePerm('reps_editar')) btns += '<button class="btn-sm" style="background:var(--orange);color:white;flex:1" onclick="closeM(\'mDetalleRep\');navTo(\'pReps\');setTimeout(function(){editarRep(\'' + r.id + '\')},100)">✏️ Editar</button>';
   if (tienePerm('reps_eliminar')) btns += '<button class="btn-sm" style="background:var(--red);color:white;flex:1" onclick="eliminarReparacion(\'' + r.id + '\')">🗑️ Eliminar</button>';
   document.getElementById('detalleRepBtns').innerHTML = btns;
