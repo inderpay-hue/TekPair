@@ -11150,6 +11150,22 @@ function _metodoLabel(m) {
   var map = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', bizum: 'Bizum', transferencia: 'Transferencia', otros: 'Otros' };
   return map[m] || (m.charAt(0).toUpperCase() + m.slice(1));
 }
+// Etiqueta de método de pago traducida al idioma actual (para gráficos/labels)
+function _metodoLabelT(m) {
+  var raw = String(m || '').trim();
+  var lk = raw.toLowerCase();
+  if (!lk) lk = 'otros';
+  var key = 'tpv.' + lk;
+  var t = (typeof T === 'function') ? T(key) : '';
+  if (t && t !== key) return t;
+  var L = (typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es');
+  var extra = {
+    transferencia: { es: 'Transferencia', en: 'Transfer', fr: 'Virement', it: 'Bonifico', de: 'Überweisung', pt: 'Transferência' },
+    otros: { es: 'Otros', en: 'Other', fr: 'Autres', it: 'Altri', de: 'Andere', pt: 'Outros' }
+  };
+  if (extra[lk]) return extra[lk][L] || extra[lk].es;
+  return raw || _metodoLabel(m);
+}
 
 async function enviarReporteCobrum() {
   var exp = window._repExport;
@@ -11330,7 +11346,7 @@ function renderGraficas(ventas, reps, pagos, fechas) {
     CHART_PAGOS = new Chart(ctxP, {
       type: 'doughnut',
       data: {
-        labels: Object.keys(pagos),
+        labels: Object.keys(pagos).map(_metodoLabelT),
         datasets: [{
           data: Object.values(pagos),
           backgroundColor: ['#00C896','#FF5B1F','#3B82F6','#8B5CF6','#EF4444','#FBBF24'],
@@ -13106,15 +13122,36 @@ function toggleSbLangMenu() {
   }
 }
 function closeSbLangMenu() { var m = document.getElementById('sbLangMenu'); if (m) m.style.display = 'none'; }
+// Nombres de tema traducidos al idioma actual
+function _temaNombres() {
+  var L = (typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es');
+  var M = {
+    es: { terracota: 'Terracota', naranja: 'Naranja', dark: 'Dark', negro: 'Negro', grafito: 'Grafito', ambar: '\u00c1mbar', light: 'Claro' },
+    en: { terracota: 'Terracotta', naranja: 'Orange', dark: 'Dark', negro: 'Black', grafito: 'Graphite', ambar: 'Amber', light: 'Light' },
+    fr: { terracota: 'Terre cuite', naranja: 'Orange', dark: 'Dark', negro: 'Noir', grafito: 'Graphite', ambar: 'Ambre', light: 'Clair' },
+    it: { terracota: 'Terracotta', naranja: 'Arancione', dark: 'Dark', negro: 'Nero', grafito: 'Grafite', ambar: 'Ambra', light: 'Chiaro' },
+    de: { terracota: 'Terrakotta', naranja: 'Orange', dark: 'Dark', negro: 'Schwarz', grafito: 'Graphit', ambar: 'Bernstein', light: 'Hell' },
+    pt: { terracota: 'Terracota', naranja: 'Laranja', dark: 'Dark', negro: 'Preto', grafito: 'Grafite', ambar: '\u00c2mbar', light: 'Claro' }
+  };
+  return M[L] || M.es;
+}
 function actualizarSbControls() {
   var lbl = document.getElementById('sbLangLabel');
   if (lbl) lbl.textContent = (typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es').toUpperCase();
+  var nm = _temaNombres();
   var temaLabel = document.getElementById('sbTemaLabel');
   if (temaLabel) {
     var t = localStorage.getItem('tk_tema') || '';
-    var nombres = {terracota:'Terracota',naranja:'Naranja',dark:'Dark',negro:'Negro',grafito:'Grafito',ambar:'\u00c1mbar','':'Claro'};
-    temaLabel.textContent = nombres[t] !== undefined ? nombres[t] : 'Tema';
+    var key = (t === '' ? 'light' : t);
+    temaLabel.textContent = nm[key] !== undefined ? nm[key] : (nm.light || 'Tema');
   }
+  // Botones del selector de tema (etiquetas traducidas)
+  try {
+    document.querySelectorAll('.temaLbl').forEach(function (s) {
+      var k = s.getAttribute('data-tema');
+      if (k && nm[k] !== undefined) s.textContent = nm[k];
+    });
+  } catch (e) {}
 }
 function toggleLangMenuDash() {
   var m = document.getElementById('langMenu');
