@@ -534,7 +534,7 @@ window.addEventListener('DOMContentLoaded', function() {
     if (dTiendaEl) dTiendaEl.textContent = primerNombre ? saludo + ', ' + primerNombre : saludo;
   })();
   renderSidebarLogo();
-  document.getElementById('dStr').textContent = new Date().toLocaleDateString('es', {weekday:'long',day:'numeric',month:'long'});
+  document.getElementById('dStr').textContent = new Date().toLocaleDateString((typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es'), {weekday:'long',day:'numeric',month:'long'});
 
   // Load ajustes
   var aj = JSON.parse(localStorage.getItem('tk_ajustes') || '{}');
@@ -2844,7 +2844,7 @@ function renderInicioNuevo() {
   var hh = (new Date()).getHours();
   var sal = hh < 6 ? T('inicio.saludo_noche') : hh < 13 ? T('inicio.saludo_manana') : (hh < 21 ? T('inicio.saludo_tarde') : T('inicio.saludo_noche'));
   var nom = (U && U.nombre) ? U.nombre.split(' ')[0] : '';
-  _st('inv-fecha', new Date().toLocaleDateString('es', { weekday: 'long', day: 'numeric', month: 'long' }));
+  _st('inv-fecha', new Date().toLocaleDateString((typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es'), { weekday: 'long', day: 'numeric', month: 'long' }));
   _st('inv-saludo', sal + (nom ? ', ' + nom : '') + ' 👋');
   var pl = document.getElementById('inv-pulse');
 
