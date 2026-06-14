@@ -144,7 +144,7 @@
           "name": "¿Mis datos están seguros?",
           "acceptedAnswer": {
             "@type": "Answer",
-            "text": "Sí. Todos los datos se guardan cifrados en la nube con copias de seguridad automáticas. Cumplimos con el RGPD."
+            "text": "Sí. Todos los datos se guardan cifrados en la nube, en servidores de la UE y con copias de seguridad automáticas."
           }
         },
         {
@@ -335,15 +335,8 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 .live-dot,.eyebrow .dot{animation:none}
 }
 </style>
-<!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-7V1W6B6KP4"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-  gtag('config', 'G-7V1W6B6KP4');
-</script>
-  <script src="/landing-i18n.v2.js?v=nov20260615"></script>
+<script src="/landing-i18n.v2.js?v=nov20260615"></script>
+  <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
 
@@ -541,7 +534,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
   <div class="wrap" style="text-align:center">
     <div class="eyebrow" data-i18n="pricing.tag">Precios</div>
     <h2 style="font-family:var(--display);font-size:36px;font-weight:600;letter-spacing:-.03em;margin:14px 0 10px" data-i18n="pricing.title">Planes simples y transparentes</h2>
-    <p style="font-size:16px;color:var(--muted);margin:0 auto" data-i18n="pricing.sub">Sin costes ocultos. Cancela cuando quieras.</p>
+    <p style="font-size:16px;color:var(--muted);margin:0 auto" data-i18n="pricing.sub">Sin costes ocultos. Cancela cuando quieras. IVA no incluido.</p>
   </div>
   <div class="wrap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px;align-items:start">
     <div class="price-card reveal">
@@ -631,7 +624,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
       </div>
       <div class="faq-item reveal">
         <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq3.q">¿Mis datos están seguros?</div>
-        <div class="faq-a" data-i18n="faq3.a">Sí. Todos los datos se guardan cifrados en la nube con copias de seguridad automáticas. Cumplimos con el RGPD.</div>
+        <div class="faq-a" data-i18n="faq3.a">Sí. Todos los datos se guardan cifrados en la nube, en servidores de la UE y con copias de seguridad automáticas.</div>
       </div>
       <div class="faq-item reveal">
         <div class="faq-q" onclick="toggleFaq(this)" data-i18n="faq4.q">¿Puedo migrar mis datos de otro programa?</div>
@@ -659,7 +652,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 
 <!-- FOOTER -->
 <footer style="background:var(--ink);padding:48px 0 28px;border-top:1px solid rgba(255,255,255,.08)">
-  <div class="wrap" style="display:grid;grid-template-columns:2fr 1fr 1fr;gap:32px">
+  <div class="wrap" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px">
     <div>
       <div class="nav-logo" style="margin-bottom:12px"><span class="logo-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> TekPair</div>
       <p style="color:rgba(255,255,255,.5);font-size:13px;line-height:1.6;max-width:300px" data-i18n="footer.desc">Software de gestión para tiendas de venta y reparación móvil. Simple, potente y asequible.</p>
@@ -675,6 +668,13 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
       <div style="color:#fff;font-size:13px;font-weight:600;margin-bottom:12px" data-i18n="footer.contact">Contacto</div>
       <a href="mailto:info@tekpair.tech" style="display:block;color:rgba(255,255,255,.5);font-size:13px;margin-bottom:8px">info@tekpair.tech</a>
       <a href="javascript:void(0)" onclick="if(window.Tawk_API&&Tawk_API.maximize)Tawk_API.maximize()" style="display:block;color:rgba(255,255,255,.5);font-size:13px">Chat de soporte</a>
+    </div>
+    <div>
+      <div style="color:#fff;font-size:13px;font-weight:600;margin-bottom:12px" data-i18n="footer.legal">Legal</div>
+      <a href="/aviso-legal.html" style="display:block;color:rgba(255,255,255,.5);font-size:13px;margin-bottom:8px">Aviso legal</a>
+      <a href="/privacidad.html" style="display:block;color:rgba(255,255,255,.5);font-size:13px;margin-bottom:8px">Privacidad</a>
+      <a href="/terminos.html" style="display:block;color:rgba(255,255,255,.5);font-size:13px;margin-bottom:8px">Términos</a>
+      <a href="/cookies.html" style="display:block;color:rgba(255,255,255,.5);font-size:13px">Cookies</a>
     </div>
   </div>
   <div class="wrap" style="display:flex;justify-content:space-between;align-items:center;margin-top:36px;padding-top:20px;border-top:1px solid rgba(255,255,255,.08)">
@@ -813,19 +813,8 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a) {
 })();
 </script>
 
-<!-- TAWK.TO CHAT -->
-<script type="text/javascript">
-var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
-(function(){
-var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
-s1.async=true;
-s1.src='https://embed.tawk.to/6a1868a576b2c01c2f51f05a/1jpnlhhe8';
-s1.charset='UTF-8';
-s1.setAttribute('crossorigin','*');
-s0.parentNode.insertBefore(s1,s0);
-})();
-</script>
-<!-- /TAWK.TO -->
+<!-- TAWK.TO CHAT — F113: solo se carga tras consentimiento (lo gestiona cookies-consent.js) -->
+<script>window.TP_ENABLE_TAWK = true;</script>
 
 <!-- STICKY CTA MÓVIL -->
 <div class="sticky-cta">

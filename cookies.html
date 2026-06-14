@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Política de Cookies — Tekpair</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:Arial,sans-serif;color:#0F1729;background:#F7F9FC;padding-bottom:40px}
+nav{background:#020B2E;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.nav-logo{color:white;font-size:18px;font-weight:800;text-decoration:none}
+.nav-back{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px}
+.container{max-width:760px;margin:40px auto;background:white;border-radius:14px;padding:40px;border:1px solid #E2E8F0}
+h1{font-size:26px;font-weight:800;color:#020B2E;margin-bottom:8px}
+.date{font-size:13px;color:#64748B;margin-bottom:32px}
+h2{font-size:17px;font-weight:700;color:#020B2E;margin:28px 0 10px}
+p{font-size:14px;color:#374151;line-height:1.8;margin-bottom:12px}
+ul{padding-left:20px;margin-bottom:12px}
+li{font-size:14px;color:#374151;line-height:1.8;margin-bottom:4px}
+table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px}
+th,td{border:1px solid #E2E8F0;padding:8px 10px;text-align:left;vertical-align:top}
+th{background:#F1F5F9;font-weight:700}
+.highlight{background:#FFF1EB;border-left:3px solid #FF5B1F;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:13px;color:#0F1729}
+a{color:#FF5B1F}
+.btn-consent{display:inline-block;background:#FF5B1F;color:#fff;border:none;font-size:14px;font-weight:700;padding:11px 20px;border-radius:10px;cursor:pointer;font-family:inherit;margin-top:6px}
+</style>
+  <script src="/cookies-consent.js" defer></script>
+</head>
+<body>
+<nav>
+  <a href="/" class="nav-logo">⚡ Tekpair</a>
+  <a href="/" class="nav-back">← Volver al inicio</a>
+</nav>
+<div class="container">
+  <h1>Política de Cookies</h1>
+  <div class="date">Última actualización: 15 de junio de 2026</div>
+
+  <div class="highlight">
+    Usamos cookies propias (técnicas, necesarias para que la web funcione) y de terceros (analítica y chat de soporte). Las de terceros <strong>solo se activan si las aceptas</strong> en el aviso que aparece al entrar.
+  </div>
+
+  <h2>1. ¿Qué es una cookie?</h2>
+  <p>Una cookie es un pequeño archivo de texto que un sitio web guarda en tu navegador. Sirve para recordar tu actividad o preferencias, o para obtener información estadística sobre el uso de la web.</p>
+
+  <h2>2. Cookies que utilizamos</h2>
+  <table>
+    <thead><tr><th>Tipo</th><th>Proveedor</th><th>Finalidad</th><th>Consentimiento</th></tr></thead>
+    <tbody>
+      <tr><td>Técnicas / necesarias</td><td>Tekpair (propias, <code>localStorage</code>)</td><td>Mantener tu sesión, idioma y preferencias. Imprescindibles para el funcionamiento.</td><td>No requiere (exentas)</td></tr>
+      <tr><td>Analítica</td><td>Google Analytics (Google LLC)</td><td>Medir de forma agregada y anónima cómo se usa la web (IP anonimizada).</td><td><strong>Requiere aceptación</strong></td></tr>
+      <tr><td>Chat de soporte</td><td>Tawk.to</td><td>Mostrar el chat de atención al cliente en la web pública.</td><td><strong>Requiere aceptación</strong></td></tr>
+    </tbody>
+  </table>
+
+  <h2>3. Gestión del consentimiento</h2>
+  <p>Al acceder por primera vez verás un aviso para <strong>Aceptar</strong> o <strong>Rechazar</strong> las cookies no necesarias. Tu elección se guarda en tu navegador. Si rechazas, no se cargan Google Analytics ni el chat.</p>
+  <p>Puedes cambiar tu decisión en cualquier momento:</p>
+  <button class="btn-consent" type="button" onclick="try{localStorage.removeItem('tp_cookie_consent');}catch(e){};location.reload();">Cambiar mis preferencias de cookies</button>
+
+  <h2>4. Cómo desactivar las cookies en tu navegador</h2>
+  <p>Además, puedes bloquear o eliminar cookies desde la configuración de tu navegador (Chrome, Firefox, Safari, Edge). Consulta la ayuda de tu navegador para más detalles.</p>
+
+  <h2>5. Más información</h2>
+  <p>Para el tratamiento de datos personales, consulta nuestra <a href="/privacidad.html">Política de Privacidad</a>. Para cualquier duda: <a href="mailto:privacidad@tekpair.tech">privacidad@tekpair.tech</a>.</p>
+</div>
+</body>
+</html>
