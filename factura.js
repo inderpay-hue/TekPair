@@ -1142,6 +1142,4 @@
       _toast('Error generando abono: ' + err.message, 'err');
     });
   };
-
-  console.log('[factura.js] módulo cargado');
 })();
