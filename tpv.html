@@ -921,7 +921,9 @@ function renderProducts() {
       '<button class="prod-fav ' + (fav ? 'on' : '') + '" onclick="toggleFav(\'' + escHtml(p._type) + '\',\'' + escHtml(p.id) + '\',event)" title="Favorito">' + (fav ? '★' : '☆') + '</button>' +
       '<div class="prod-icon">' + escHtml(icon) + '</div>' +
       '<div class="prod-name">' + escHtml(nombre) + '</div>' +
-      '<div class="prod-price">\u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div>' +
+      ((parseFloat(p.precioV) || 0) > 0
+        ? '<div class="prod-price">\u20ac' + parseFloat(p.precioV).toFixed(2) + '</div>'
+        : '<div class="prod-price" style="color:var(--blue);font-size:13px">Precio al cobrar</div>') +
       '<div class="prod-stock">' + escHtml(stockTxt) + '</div>' +
       '</div>';
   }).join('');

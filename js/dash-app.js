@@ -11251,7 +11251,7 @@ function renderGraficas(ventas, reps, pagos, fechas) {
         labels: Object.keys(pagos),
         datasets: [{
           data: Object.values(pagos),
-          backgroundColor: ['#FF5B1F','#00C896','#F97316','#FF5B1F','#EF4444','#FBBF24'],
+          backgroundColor: ['#00C896','#FF5B1F','#3B82F6','#8B5CF6','#EF4444','#FBBF24'],
           borderWidth: 2,
           borderColor: isDark ? '#1A1D24' : '#fff'
         }]
