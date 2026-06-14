@@ -7,9 +7,11 @@
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;color:#0F1729;background:#F7F9FC;padding-bottom:40px}
-nav{background:#020B2E;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+nav{background:#020B2E;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:12px}
 .nav-logo{color:white;font-size:18px;font-weight:800;text-decoration:none}
+.nav-right{display:flex;align-items:center;gap:14px}
 .nav-back{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px}
+.lang-sel{background:rgba(255,255,255,.95);border:1px solid #e2e8f0;border-radius:8px;padding:5px 8px;font-size:13px;cursor:pointer;font-family:inherit}
 .container{max-width:760px;margin:40px auto;background:white;border-radius:14px;padding:40px;border:1px solid #E2E8F0}
 h1{font-size:26px;font-weight:800;color:#020B2E;margin-bottom:8px}
 .date{font-size:13px;color:#64748B;margin-bottom:32px}
@@ -18,95 +20,139 @@ p{font-size:14px;color:#374151;line-height:1.8;margin-bottom:12px}
 ul{padding-left:20px;margin-bottom:12px}
 li{font-size:14px;color:#374151;line-height:1.8;margin-bottom:4px}
 .highlight{background:#EBF1FF;border-left:3px solid #0055FF;padding:12px 16px;border-radius:0 8px 8px 0;margin:16px 0;font-size:13px;color:#0F1729}
-a{color:#0055FF}
+a{color:#FF5B1F}
 </style>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
 <nav>
   <a href="/" class="nav-logo">⚡ Tekpair</a>
-  <a href="/" class="nav-back">← Volver al inicio</a>
-</nav>
-<div class="container">
-  <h1>Política de Privacidad</h1>
-  <div class="date">Última actualización: 7 de mayo de 2026</div>
-
-  <div class="highlight">
-    En Tekpair nos tomamos muy en serio la privacidad de tus datos. Esta política explica qué datos recogemos, cómo los usamos y tus derechos como usuario.
+  <div class="nav-right">
+    <select class="lang-sel" id="legalLangSel" onchange="setLegalLang(this.value)" aria-label="Idioma">
+      <option value="es">🇪🇸 ES</option><option value="en">🇬🇧 EN</option><option value="fr">🇫🇷 FR</option>
+      <option value="it">🇮🇹 IT</option><option value="de">🇩🇪 DE</option><option value="pt">🇵🇹 PT</option>
+    </select>
+    <a href="/" class="nav-back" id="navBack">← Volver al inicio</a>
   </div>
+</nav>
+<div class="container" id="legalBody"></div>
 
-  <h2>1. Responsable del tratamiento</h2>
-  <p>El responsable del tratamiento de los datos personales recogidos a través de tekpair.tech es:</p>
-  <ul>
-    <li><strong>Nombre:</strong> Tekpair</li>
-    <li><strong>Web:</strong> tekpair.tech</li>
-    <li><strong>Email de contacto:</strong> privacidad@tekpair.tech</li>
-  </ul>
-
-  <h2>2. Datos que recogemos</h2>
-  <p>Recogemos los siguientes datos personales:</p>
-  <ul>
-    <li><strong>Datos de registro:</strong> nombre, email y nombre de tu tienda al crear una cuenta.</li>
-    <li><strong>Datos de pago:</strong> gestionados de forma segura por Stripe. Tekpair no almacena datos de tarjetas.</li>
-    <li><strong>Datos de uso:</strong> información sobre cómo utilizas la aplicación para mejorar el servicio.</li>
-    <li><strong>Datos que introduces:</strong> clientes, reparaciones, ventas y stock de tu tienda. Estos son tuyos y solo tú puedes acceder a ellos.</li>
-  </ul>
-
-  <h2>3. Finalidad del tratamiento</h2>
-  <p>Usamos tus datos para:</p>
-  <ul>
-    <li>Prestar el servicio de gestión de tienda contratado.</li>
-    <li>Gestionar tu suscripción y facturación.</li>
-    <li>Enviarte comunicaciones relacionadas con el servicio (actualizaciones, avisos importantes).</li>
-    <li>Mejorar la aplicación mediante análisis de uso anónimo.</li>
-    <li>Cumplir con obligaciones legales.</li>
-  </ul>
-
-  <h2>4. Base legal del tratamiento</h2>
-  <ul>
-    <li><strong>Ejecución del contrato:</strong> necesitamos tus datos para prestarte el servicio.</li>
-    <li><strong>Interés legítimo:</strong> para mejorar el servicio y prevenir fraudes.</li>
-    <li><strong>Consentimiento:</strong> para comunicaciones de marketing (puedes revocarlos en cualquier momento).</li>
-  </ul>
-
-  <h2>5. Almacenamiento y seguridad</h2>
-  <p>Tus datos se almacenan en servidores seguros proporcionados por <strong>Supabase</strong> (infraestructura en la UE). Utilizamos cifrado SSL/TLS para todas las comunicaciones y seguimos las mejores prácticas de seguridad.</p>
-  <p>Los datos de tu tienda (clientes, reparaciones, etc.) son de tu exclusiva propiedad. Tekpair actúa como encargado del tratamiento, no como responsable de esos datos.</p>
-
-  <h2>6. Compartición de datos con terceros</h2>
-  <p>Solo compartimos datos con los siguientes proveedores necesarios para el servicio:</p>
-  <ul>
-    <li><strong>Stripe</strong> — procesamiento de pagos (política: stripe.com/privacy)</li>
-    <li><strong>Supabase</strong> — almacenamiento de datos (política: supabase.com/privacy)</li>
-    <li><strong>Resend</strong> — envío de emails transaccionales</li>
-    <li><strong>Vercel</strong> — alojamiento de la aplicación</li>
-  </ul>
-  <p>No vendemos tus datos a terceros en ningún caso.</p>
-
-  <h2>7. Conservación de datos</h2>
-  <p>Conservamos tus datos mientras mantengas una cuenta activa. Si cancelas tu suscripción, tus datos se conservan durante 30 días para permitirte reactivar la cuenta. Pasado ese plazo, se eliminan definitivamente.</p>
-
-  <h2>8. Tus derechos (RGPD)</h2>
-  <p>Como usuario tienes los siguientes derechos:</p>
-  <ul>
-    <li><strong>Acceso:</strong> solicitar una copia de tus datos personales.</li>
-    <li><strong>Rectificación:</strong> corregir datos incorrectos.</li>
-    <li><strong>Supresión:</strong> solicitar la eliminación de tus datos.</li>
-    <li><strong>Portabilidad:</strong> recibir tus datos en formato estructurado.</li>
-    <li><strong>Oposición:</strong> oponerte a determinados tratamientos.</li>
-    <li><strong>Limitación:</strong> solicitar la limitación del tratamiento.</li>
-  </ul>
-  <p>Para ejercer estos derechos, envía un email a <a href="mailto:privacidad@tekpair.tech">privacidad@tekpair.tech</a> con el asunto "Ejercicio de derechos RGPD".</p>
-  <p>También tienes derecho a presentar una reclamación ante la <strong>Agencia Española de Protección de Datos</strong> (aepd.es).</p>
-
-  <h2>9. Cookies</h2>
-  <p>Tekpair utiliza únicamente cookies técnicas necesarias para el funcionamiento del servicio (sesión de usuario). No utilizamos cookies de seguimiento ni publicidad.</p>
-
-  <h2>10. Cambios en esta política</h2>
-  <p>Podemos actualizar esta política ocasionalmente. Te notificaremos por email ante cambios significativos. La fecha de última actualización siempre está visible al inicio del documento.</p>
-
-  <h2>11. Contacto</h2>
-  <p>Para cualquier consulta sobre privacidad: <a href="mailto:privacidad@tekpair.tech">privacidad@tekpair.tech</a></p>
-</div>
+<script>
+var EMAIL = 'privacidad@tekpair.tech';
+// Cada sección: {h: título, b: bloques} donde bloque = string (<p>) o array (<ul>)
+var PRIV = {
+  es: {back:'← Volver al inicio', title:'Política de Privacidad', h1:'Política de Privacidad', date:'Última actualización: 15 de junio de 2026',
+    hi:'En Tekpair nos tomamos muy en serio la privacidad de tus datos. Esta política explica qué datos recogemos, cómo los usamos y tus derechos.',
+    s:[
+    {h:'1. Responsable del tratamiento', b:['El responsable del tratamiento de los datos recogidos a través de tekpair.tech es:', ['<strong>Nombre:</strong> Tekpair','<strong>Web:</strong> tekpair.tech','<strong>Email:</strong> '+EMAIL]]},
+    {h:'2. Datos que recogemos', b:['Recogemos los siguientes datos personales:', ['<strong>Registro:</strong> nombre, email y nombre de tu tienda.','<strong>Pago:</strong> gestionado de forma segura por Stripe. No almacenamos datos de tarjetas.','<strong>Uso:</strong> cómo utilizas la app, para mejorar el servicio.','<strong>Datos que introduces:</strong> clientes, reparaciones, ventas y stock. Son tuyos y solo tú accedes a ellos.']]},
+    {h:'3. Finalidad del tratamiento', b:['Usamos tus datos para:', ['Prestar el servicio de gestión contratado.','Gestionar tu suscripción y facturación.','Enviarte comunicaciones del servicio (actualizaciones, avisos).','Mejorar la app mediante análisis de uso anónimo.','Cumplir obligaciones legales.']]},
+    {h:'4. Base legal', b:[['<strong>Ejecución del contrato:</strong> para prestarte el servicio.','<strong>Interés legítimo:</strong> mejorar el servicio y prevenir fraudes.','<strong>Consentimiento:</strong> comunicaciones de marketing (revocable en cualquier momento).']]},
+    {h:'5. Almacenamiento y seguridad', b:['Tus datos se almacenan en servidores seguros de <strong>Supabase</strong> (infraestructura en la UE), con cifrado SSL/TLS y buenas prácticas de seguridad.','Los datos de tu tienda son de tu exclusiva propiedad. Tekpair actúa como encargado del tratamiento, no como responsable de esos datos.']},
+    {h:'6. Terceros', b:['Solo compartimos datos con proveedores necesarios para el servicio:', ['<strong>Stripe</strong> — pagos','<strong>Supabase</strong> — almacenamiento (UE)','<strong>Resend</strong> — emails transaccionales','<strong>Vercel</strong> — alojamiento'], 'No vendemos tus datos a terceros en ningún caso.']},
+    {h:'7. Conservación', b:['Conservamos tus datos mientras tu cuenta esté activa. Si cancelas, se conservan 30 días para reactivar la cuenta; pasado ese plazo se eliminan definitivamente.']},
+    {h:'8. Tus derechos (RGPD)', b:['Tienes derecho a:', ['<strong>Acceso</strong>','<strong>Rectificación</strong>','<strong>Supresión</strong>','<strong>Portabilidad</strong>','<strong>Oposición</strong>','<strong>Limitación</strong>'], 'Para ejercerlos, escribe a <a href="mailto:'+EMAIL+'">'+EMAIL+'</a> con el asunto "Ejercicio de derechos RGPD". También puedes reclamar ante la <strong>Agencia Española de Protección de Datos</strong> (aepd.es).']},
+    {h:'9. Cookies', b:['Consulta nuestra <a href="/cookies.html">Política de Cookies</a>. La analítica y el chat solo se cargan con tu consentimiento.']},
+    {h:'10. Cambios', b:['Podemos actualizar esta política. Te avisaremos por email ante cambios significativos. La fecha de actualización está siempre visible arriba.']},
+    {h:'11. Contacto', b:['Para cualquier consulta: <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]},
+  en: {back:'← Back to home', title:'Privacy Policy', h1:'Privacy Policy', date:'Last updated: 15 June 2026',
+    hi:'At Tekpair we take your data privacy very seriously. This policy explains what data we collect, how we use it and your rights.',
+    s:[
+    {h:'1. Data controller', b:['The controller of data collected through tekpair.tech is:', ['<strong>Name:</strong> Tekpair','<strong>Web:</strong> tekpair.tech','<strong>Email:</strong> '+EMAIL]]},
+    {h:'2. Data we collect', b:['We collect the following personal data:', ['<strong>Sign-up:</strong> name, email and your shop name.','<strong>Payment:</strong> securely handled by Stripe. We do not store card data.','<strong>Usage:</strong> how you use the app, to improve the service.','<strong>Data you enter:</strong> customers, repairs, sales and stock. They are yours and only you can access them.']]},
+    {h:'3. Purpose', b:['We use your data to:', ['Provide the contracted management service.','Manage your subscription and billing.','Send you service communications (updates, important notices).','Improve the app via anonymous usage analytics.','Comply with legal obligations.']]},
+    {h:'4. Legal basis', b:[['<strong>Performance of contract:</strong> to provide the service.','<strong>Legitimate interest:</strong> improving the service and preventing fraud.','<strong>Consent:</strong> marketing communications (revocable at any time).']]},
+    {h:'5. Storage and security', b:['Your data is stored on secure <strong>Supabase</strong> servers (EU infrastructure), with SSL/TLS encryption and security best practices.','Your shop data is your sole property. Tekpair acts as data processor, not controller, of that data.']},
+    {h:'6. Third parties', b:['We only share data with providers necessary for the service:', ['<strong>Stripe</strong> — payments','<strong>Supabase</strong> — storage (EU)','<strong>Resend</strong> — transactional emails','<strong>Vercel</strong> — hosting'], 'We never sell your data to third parties.']},
+    {h:'7. Retention', b:['We keep your data while your account is active. If you cancel, it is kept for 30 days so you can reactivate; after that it is permanently deleted.']},
+    {h:'8. Your rights (GDPR)', b:['You have the right to:', ['<strong>Access</strong>','<strong>Rectification</strong>','<strong>Erasure</strong>','<strong>Portability</strong>','<strong>Objection</strong>','<strong>Restriction</strong>'], 'To exercise them, email <a href="mailto:'+EMAIL+'">'+EMAIL+'</a> with the subject "GDPR rights request". You may also lodge a complaint with the Spanish Data Protection Agency (aepd.es).']},
+    {h:'9. Cookies', b:['See our <a href="/cookies.html">Cookie Policy</a>. Analytics and chat only load with your consent.']},
+    {h:'10. Changes', b:['We may update this policy. We will notify you by email of significant changes. The update date is always shown above.']},
+    {h:'11. Contact', b:['For any query: <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]},
+  fr: {back:'← Retour à l\'accueil', title:'Politique de confidentialité', h1:'Politique de confidentialité', date:'Dernière mise à jour : 15 juin 2026',
+    hi:'Chez Tekpair, nous prenons la confidentialité de vos données très au sérieux. Cette politique explique quelles données nous collectons, comment nous les utilisons et vos droits.',
+    s:[
+    {h:'1. Responsable du traitement', b:['Le responsable des données collectées via tekpair.tech est :', ['<strong>Nom :</strong> Tekpair','<strong>Web :</strong> tekpair.tech','<strong>Email :</strong> '+EMAIL]]},
+    {h:'2. Données collectées', b:['Nous collectons les données personnelles suivantes :', ['<strong>Inscription :</strong> nom, email et nom de votre magasin.','<strong>Paiement :</strong> géré en toute sécurité par Stripe. Nous ne stockons pas les données de carte.','<strong>Usage :</strong> comment vous utilisez l\'app, pour améliorer le service.','<strong>Données saisies :</strong> clients, réparations, ventes et stock. Elles vous appartiennent et vous seul y accédez.']]},
+    {h:'3. Finalité', b:['Nous utilisons vos données pour :', ['Fournir le service de gestion souscrit.','Gérer votre abonnement et facturation.','Vous envoyer des communications de service (mises à jour, avis).','Améliorer l\'app via une analyse d\'usage anonyme.','Respecter les obligations légales.']]},
+    {h:'4. Base légale', b:[['<strong>Exécution du contrat :</strong> pour fournir le service.','<strong>Intérêt légitime :</strong> améliorer le service et prévenir la fraude.','<strong>Consentement :</strong> communications marketing (révocable à tout moment).']]},
+    {h:'5. Stockage et sécurité', b:['Vos données sont stockées sur des serveurs sécurisés <strong>Supabase</strong> (infrastructure UE), avec chiffrement SSL/TLS et bonnes pratiques de sécurité.','Les données de votre magasin sont votre propriété exclusive. Tekpair agit comme sous-traitant, non comme responsable de ces données.']},
+    {h:'6. Tiers', b:['Nous ne partageons des données qu\'avec les prestataires nécessaires :', ['<strong>Stripe</strong> — paiements','<strong>Supabase</strong> — stockage (UE)','<strong>Resend</strong> — emails transactionnels','<strong>Vercel</strong> — hébergement'], 'Nous ne vendons jamais vos données à des tiers.']},
+    {h:'7. Conservation', b:['Nous conservons vos données tant que votre compte est actif. En cas de résiliation, elles sont conservées 30 jours pour réactivation ; ensuite elles sont supprimées définitivement.']},
+    {h:'8. Vos droits (RGPD)', b:['Vous avez le droit à :', ['<strong>Accès</strong>','<strong>Rectification</strong>','<strong>Effacement</strong>','<strong>Portabilité</strong>','<strong>Opposition</strong>','<strong>Limitation</strong>'], 'Pour les exercer, écrivez à <a href="mailto:'+EMAIL+'">'+EMAIL+'</a> avec l\'objet « Exercice des droits RGPD ». Vous pouvez aussi réclamer auprès de l\'agence espagnole de protection des données (aepd.es).']},
+    {h:'9. Cookies', b:['Consultez notre <a href="/cookies.html">Politique de cookies</a>. L\'analytique et le chat ne se chargent qu\'avec votre consentement.']},
+    {h:'10. Modifications', b:['Nous pouvons mettre à jour cette politique. Nous vous informerons par email des changements importants. La date de mise à jour est toujours indiquée ci-dessus.']},
+    {h:'11. Contact', b:['Pour toute question : <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]},
+  it: {back:'← Torna alla home', title:'Informativa sulla privacy', h1:'Informativa sulla privacy', date:'Ultimo aggiornamento: 15 giugno 2026',
+    hi:'In Tekpair prendiamo molto sul serio la privacy dei tuoi dati. Questa informativa spiega quali dati raccogliamo, come li usiamo e i tuoi diritti.',
+    s:[
+    {h:'1. Titolare del trattamento', b:['Il titolare dei dati raccolti tramite tekpair.tech è:', ['<strong>Nome:</strong> Tekpair','<strong>Web:</strong> tekpair.tech','<strong>Email:</strong> '+EMAIL]]},
+    {h:'2. Dati raccolti', b:['Raccogliamo i seguenti dati personali:', ['<strong>Registrazione:</strong> nome, email e nome del tuo negozio.','<strong>Pagamento:</strong> gestito in sicurezza da Stripe. Non conserviamo dati delle carte.','<strong>Uso:</strong> come usi l\'app, per migliorare il servizio.','<strong>Dati inseriti:</strong> clienti, riparazioni, vendite e magazzino. Sono tuoi e solo tu vi accedi.']]},
+    {h:'3. Finalità', b:['Usiamo i tuoi dati per:', ['Fornire il servizio di gestione sottoscritto.','Gestire abbonamento e fatturazione.','Inviarti comunicazioni di servizio (aggiornamenti, avvisi).','Migliorare l\'app con analisi d\'uso anonime.','Adempiere agli obblighi di legge.']]},
+    {h:'4. Base giuridica', b:[['<strong>Esecuzione del contratto:</strong> per fornire il servizio.','<strong>Interesse legittimo:</strong> migliorare il servizio e prevenire frodi.','<strong>Consenso:</strong> comunicazioni di marketing (revocabile in qualsiasi momento).']]},
+    {h:'5. Archiviazione e sicurezza', b:['I tuoi dati sono archiviati su server sicuri <strong>Supabase</strong> (infrastruttura UE), con cifratura SSL/TLS e buone pratiche di sicurezza.','I dati del tuo negozio sono di tua esclusiva proprietà. Tekpair agisce come responsabile del trattamento, non come titolare di tali dati.']},
+    {h:'6. Terze parti', b:['Condividiamo dati solo con i fornitori necessari:', ['<strong>Stripe</strong> — pagamenti','<strong>Supabase</strong> — archiviazione (UE)','<strong>Resend</strong> — email transazionali','<strong>Vercel</strong> — hosting'], 'Non vendiamo mai i tuoi dati a terzi.']},
+    {h:'7. Conservazione', b:['Conserviamo i dati finché il tuo account è attivo. In caso di cancellazione, vengono conservati 30 giorni per la riattivazione; poi sono eliminati definitivamente.']},
+    {h:'8. I tuoi diritti (GDPR)', b:['Hai diritto a:', ['<strong>Accesso</strong>','<strong>Rettifica</strong>','<strong>Cancellazione</strong>','<strong>Portabilità</strong>','<strong>Opposizione</strong>','<strong>Limitazione</strong>'], 'Per esercitarli, scrivi a <a href="mailto:'+EMAIL+'">'+EMAIL+'</a> con oggetto "Esercizio diritti GDPR". Puoi anche presentare reclamo all\'autorità spagnola per la protezione dei dati (aepd.es).']},
+    {h:'9. Cookie', b:['Consulta la nostra <a href="/cookies.html">Politica sui cookie</a>. Analitica e chat si caricano solo con il tuo consenso.']},
+    {h:'10. Modifiche', b:['Possiamo aggiornare questa informativa. Ti avviseremo via email per modifiche significative. La data di aggiornamento è sempre indicata sopra.']},
+    {h:'11. Contatto', b:['Per qualsiasi domanda: <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]},
+  de: {back:'← Zurück zur Startseite', title:'Datenschutzerklärung', h1:'Datenschutzerklärung', date:'Zuletzt aktualisiert: 15. Juni 2026',
+    hi:'Bei Tekpair nehmen wir den Schutz Ihrer Daten sehr ernst. Diese Erklärung erläutert, welche Daten wir erheben, wie wir sie nutzen und Ihre Rechte.',
+    s:[
+    {h:'1. Verantwortlicher', b:['Verantwortlich für die über tekpair.tech erhobenen Daten ist:', ['<strong>Name:</strong> Tekpair','<strong>Web:</strong> tekpair.tech','<strong>E-Mail:</strong> '+EMAIL]]},
+    {h:'2. Erhobene Daten', b:['Wir erheben folgende personenbezogene Daten:', ['<strong>Registrierung:</strong> Name, E-Mail und Name Ihres Shops.','<strong>Zahlung:</strong> sicher von Stripe abgewickelt. Wir speichern keine Kartendaten.','<strong>Nutzung:</strong> wie Sie die App nutzen, zur Verbesserung des Dienstes.','<strong>Eingegebene Daten:</strong> Kunden, Reparaturen, Verkäufe und Lager. Sie gehören Ihnen, nur Sie greifen darauf zu.']]},
+    {h:'3. Zweck', b:['Wir nutzen Ihre Daten, um:', ['Den beauftragten Verwaltungsdienst bereitzustellen.','Abonnement und Abrechnung zu verwalten.','Service-Mitteilungen zu senden (Updates, wichtige Hinweise).','Die App durch anonyme Nutzungsanalyse zu verbessern.','Gesetzliche Pflichten zu erfüllen.']]},
+    {h:'4. Rechtsgrundlage', b:[['<strong>Vertragserfüllung:</strong> zur Bereitstellung des Dienstes.','<strong>Berechtigtes Interesse:</strong> Verbesserung des Dienstes und Betrugsprävention.','<strong>Einwilligung:</strong> Marketing-Mitteilungen (jederzeit widerrufbar).']]},
+    {h:'5. Speicherung und Sicherheit', b:['Ihre Daten werden auf sicheren <strong>Supabase</strong>-Servern (EU-Infrastruktur) mit SSL/TLS-Verschlüsselung und Sicherheits-Best-Practices gespeichert.','Ihre Shop-Daten sind Ihr alleiniges Eigentum. Tekpair handelt als Auftragsverarbeiter, nicht als Verantwortlicher dieser Daten.']},
+    {h:'6. Dritte', b:['Wir teilen Daten nur mit den für den Dienst notwendigen Anbietern:', ['<strong>Stripe</strong> — Zahlungen','<strong>Supabase</strong> — Speicherung (EU)','<strong>Resend</strong> — transaktionale E-Mails','<strong>Vercel</strong> — Hosting'], 'Wir verkaufen Ihre Daten niemals an Dritte.']},
+    {h:'7. Aufbewahrung', b:['Wir bewahren Ihre Daten auf, solange Ihr Konto aktiv ist. Bei Kündigung werden sie 30 Tage zur Reaktivierung aufbewahrt; danach endgültig gelöscht.']},
+    {h:'8. Ihre Rechte (DSGVO)', b:['Sie haben das Recht auf:', ['<strong>Auskunft</strong>','<strong>Berichtigung</strong>','<strong>Löschung</strong>','<strong>Übertragbarkeit</strong>','<strong>Widerspruch</strong>','<strong>Einschränkung</strong>'], 'Zur Ausübung schreiben Sie an <a href="mailto:'+EMAIL+'">'+EMAIL+'</a> mit dem Betreff „DSGVO-Anfrage". Sie können sich auch bei der spanischen Datenschutzbehörde (aepd.es) beschweren.']},
+    {h:'9. Cookies', b:['Siehe unsere <a href="/cookies.html">Cookie-Richtlinie</a>. Analyse und Chat werden nur mit Ihrer Einwilligung geladen.']},
+    {h:'10. Änderungen', b:['Wir können diese Erklärung aktualisieren. Bei wesentlichen Änderungen informieren wir Sie per E-Mail. Das Aktualisierungsdatum steht stets oben.']},
+    {h:'11. Kontakt', b:['Bei Fragen: <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]},
+  pt: {back:'← Voltar ao início', title:'Política de Privacidade', h1:'Política de Privacidade', date:'Última atualização: 15 de junho de 2026',
+    hi:'Na Tekpair levamos a privacidade dos teus dados muito a sério. Esta política explica que dados recolhemos, como os usamos e os teus direitos.',
+    s:[
+    {h:'1. Responsável pelo tratamento', b:['O responsável pelos dados recolhidos através de tekpair.tech é:', ['<strong>Nome:</strong> Tekpair','<strong>Web:</strong> tekpair.tech','<strong>Email:</strong> '+EMAIL]]},
+    {h:'2. Dados que recolhemos', b:['Recolhemos os seguintes dados pessoais:', ['<strong>Registo:</strong> nome, email e nome da tua loja.','<strong>Pagamento:</strong> gerido em segurança pela Stripe. Não guardamos dados de cartões.','<strong>Uso:</strong> como utilizas a app, para melhorar o serviço.','<strong>Dados que introduzes:</strong> clientes, reparações, vendas e stock. São teus e só tu acedes a eles.']]},
+    {h:'3. Finalidade', b:['Usamos os teus dados para:', ['Prestar o serviço de gestão contratado.','Gerir a tua subscrição e faturação.','Enviar comunicações do serviço (atualizações, avisos).','Melhorar a app com análise de uso anónima.','Cumprir obrigações legais.']]},
+    {h:'4. Base legal', b:[['<strong>Execução do contrato:</strong> para prestar o serviço.','<strong>Interesse legítimo:</strong> melhorar o serviço e prevenir fraudes.','<strong>Consentimento:</strong> comunicações de marketing (revogável a qualquer momento).']]},
+    {h:'5. Armazenamento e segurança', b:['Os teus dados são armazenados em servidores seguros da <strong>Supabase</strong> (infraestrutura na UE), com cifragem SSL/TLS e boas práticas de segurança.','Os dados da tua loja são da tua exclusiva propriedade. A Tekpair atua como subcontratante, não como responsável desses dados.']},
+    {h:'6. Terceiros', b:['Só partilhamos dados com os fornecedores necessários:', ['<strong>Stripe</strong> — pagamentos','<strong>Supabase</strong> — armazenamento (UE)','<strong>Resend</strong> — emails transacionais','<strong>Vercel</strong> — alojamento'], 'Nunca vendemos os teus dados a terceiros.']},
+    {h:'7. Conservação', b:['Conservamos os teus dados enquanto a tua conta estiver ativa. Se cancelares, são conservados 30 dias para reativação; depois são eliminados definitivamente.']},
+    {h:'8. Os teus direitos (RGPD)', b:['Tens direito a:', ['<strong>Acesso</strong>','<strong>Retificação</strong>','<strong>Eliminação</strong>','<strong>Portabilidade</strong>','<strong>Oposição</strong>','<strong>Limitação</strong>'], 'Para os exercer, escreve para <a href="mailto:'+EMAIL+'">'+EMAIL+'</a> com o assunto "Exercício de direitos RGPD". Também podes reclamar junto da autoridade espanhola de proteção de dados (aepd.es).']},
+    {h:'9. Cookies', b:['Consulta a nossa <a href="/cookies.html">Política de Cookies</a>. A analítica e o chat só carregam com o teu consentimento.']},
+    {h:'10. Alterações', b:['Podemos atualizar esta política. Avisar-te-emos por email em alterações significativas. A data de atualização está sempre visível acima.']},
+    {h:'11. Contacto', b:['Para qualquer questão: <a href="mailto:'+EMAIL+'">'+EMAIL+'</a>']}
+  ]}
+};
+function _render(L){
+  var h = '<h1>'+L.h1+'</h1><div class="date">'+L.date+'</div><div class="highlight">'+L.hi+'</div>';
+  L.s.forEach(function(sec){
+    h += '<h2>'+sec.h+'</h2>';
+    sec.b.forEach(function(blk){
+      if (Array.isArray(blk)) h += '<ul>'+blk.map(function(li){return '<li>'+li+'</li>';}).join('')+'</ul>';
+      else h += '<p>'+blk+'</p>';
+    });
+  });
+  return h;
+}
+function setLegalLang(lang){
+  var l = PRIV[lang] ? lang : 'es';
+  try{ localStorage.setItem('tp_lang', l); }catch(e){}
+  document.documentElement.lang = l;
+  document.getElementById('legalBody').innerHTML = _render(PRIV[l]);
+  var nb = document.getElementById('navBack'); if(nb) nb.textContent = PRIV[l].back;
+  var sel = document.getElementById('legalLangSel'); if(sel) sel.value = l;
+  document.title = PRIV[l].title + ' — Tekpair';
+}
+(function(){ var l = (localStorage.getItem('tp_lang') || (navigator.language||'es').slice(0,2)); setLegalLang(PRIV[l]?l:'es'); })();
+</script>
 </body>
 </html>
