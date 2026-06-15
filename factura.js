@@ -1080,11 +1080,21 @@
 
     window.__ultimoFacturaHTML = html;
     window.__ultimoFacturaNum = f.numero || '';
-    var w = window.open('', '_blank');
-    if (!w) { _toast('Activa las ventanas emergentes para ver el PDF', 'err'); return; }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
+    // F559: abrir vía Blob URL en vez de window.open('')+document.write. Algunos navegadores
+    // dejaban la pestaña en about:blank sin renderizar; un blob: muestra una URL real y pinta
+    // de forma fiable (el <script>window.print()</script> embebido sigue disparándose).
+    try {
+      var _blob = new Blob([html], { type: 'text/html' });
+      var _burl = URL.createObjectURL(_blob);
+      var w = window.open(_burl, '_blank');
+      if (!w) { _toast('Activa las ventanas emergentes para ver el PDF', 'err'); URL.revokeObjectURL(_burl); return; }
+      setTimeout(function () { try { URL.revokeObjectURL(_burl); } catch (e) {} }, 60000);
+    } catch (e) {
+      // Fallback al método clásico si Blob/URL no estuvieran disponibles.
+      var w2 = window.open('', '_blank');
+      if (!w2) { _toast('Activa las ventanas emergentes para ver el PDF', 'err'); return; }
+      w2.document.open(); w2.document.write(html); w2.document.close();
+    }
   };
 
   // ────────── Emitir factura rectificativa (abono) ──────────
