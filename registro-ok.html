@@ -83,7 +83,7 @@ async function setup() {
   }
 
   try {
-    var body = {session_id: session_id};
+    var body = {session_id: session_id, lang: getOkLang()};
     // Si por casualidad vienen en URL (compatibilidad), los enviamos también
     if (emailLegacy) body.email = emailLegacy;
     if (nombreLegacy) body.nombre = nombreLegacy;

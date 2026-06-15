@@ -11,6 +11,26 @@
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
+// F195: traducir mensajes de error al idioma del cliente (body.lang o Accept-Language).
+function _apiLang(req) {
+  try {
+    let l = (req.body && req.body.lang) || '';
+    if (!l) { const al = (req.headers && req.headers['accept-language']) || ''; l = al.split(',')[0].slice(0, 2).toLowerCase(); }
+    return ['es', 'en', 'fr', 'it', 'de', 'pt'].includes(l) ? l : 'es';
+  } catch (e) { return 'es'; }
+}
+const _RMSG = {
+  'Demasiados intentos de registro. Espera un momento.': { en:'Too many registration attempts. Please wait a moment.', fr:'Trop de tentatives d\'inscription. Patientez un instant.', it:'Troppi tentativi di registrazione. Attendi un momento.', de:'Zu viele Registrierungsversuche. Bitte einen Moment warten.', pt:'Demasiadas tentativas de registo. Aguarda um momento.' },
+  'Faltan datos': { en:'Missing data', fr:'Données manquantes', it:'Dati mancanti', de:'Fehlende Daten', pt:'Dados em falta' },
+  'Error al crear cuenta': { en:'Could not create account', fr:'Impossible de créer le compte', it:'Impossibile creare l\'account', de:'Konto konnte nicht erstellt werden', pt:'Não foi possível criar a conta' }
+};
+function _loc(msg, req) {
+  const l = _apiLang(req);
+  if (l === 'es') return msg;
+  const t = _RMSG[msg];
+  return (t && t[l]) || msg;
+}
+
 const BCRYPT_ROUNDS = 10;
 
 // REG-11: rate limiting — máx 5 registros por IP cada hora
@@ -40,7 +60,7 @@ export default async function handler(req, res) {
   // REG-11: rate limit por IP
   const ip = _getIp(req);
   if (!_checkRegLimit(ip)) {
-    return res.status(429).json({ error: 'Demasiados intentos de registro. Espera un momento.' });
+    return res.status(429).json({ error: _loc('Demasiados intentos de registro. Espera un momento.', req) });
   }
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -97,7 +117,7 @@ export default async function handler(req, res) {
 
     // Validar que tengamos datos mínimos tras leer Stripe
     if (!email || !nombre) {
-      return res.status(400).json({ error: 'Faltan datos (email o nombre)' });
+      return res.status(400).json({ error: _loc('Faltan datos', req) });
     }
 
     // ═══ REG-4: Verificar que el email no existe ya ═══
@@ -285,6 +305,6 @@ export default async function handler(req, res) {
 
   } catch(e) {
     console.error('Setup error:', e);
-    return res.status(500).json({ error: 'Error al crear cuenta' });
+    return res.status(500).json({ error: _loc('Error al crear cuenta', req) });
   }
 }
