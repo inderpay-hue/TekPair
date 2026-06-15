@@ -1431,6 +1431,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="sec-header" style="margin-bottom:10px">
     <div class="sec-title"><span data-t="citas.titulo">📅 Citas</span></div>
     <div style="display:flex;gap:6px">
+      <button class="btn-sm" style="background:var(--orange);color:white" onclick="abrirNuevaCitaFecha(hoyLocal())" title="Crear una cita manual"><span data-t="citas.nueva">+ Nueva cita</span></button>
       <button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirLinkCitas()" title="Compartir el enlace público"><span data-t="citas.link_publico">🔗 Link público</span></button>
       <button class="btn-sm" style="background:var(--green);color:white" onclick="syncCitas()" title="Recargar">↻</button>
     </div>
@@ -4351,8 +4352,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal">
   <div class="modal-title" id="mServicioTit">🛠️ Nuevo Servicio</div>
   <div class="fg"><label class="fl"><span data-t="cli.nombre">Nombre</span> *</label><input class="fi" id="srvNom" placeholder="Ej: Cambio pantalla iPhone 14"></div>
-  <div class="fg"><label class="fl">Categoria</label>
+  <div class="fg"><label class="fl">Categoría</label>
     <select class="fi" id="srvCat">
+      <option value="" disabled selected>— Selecciona categoría —</option>
       <option>Pantalla</option><option>Bateria</option><option>Agua</option><option>Software</option>
       <option>Carga</option><option>Camara</option><option>Altavoz</option><option>Otro</option>
     </select>
@@ -4372,6 +4374,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <input type="radio" name="srvPT" id="srvVariable" value="variable"> Variable
     </label>
   </div>
+  <div style="font-size:11px;color:var(--muted);margin:-4px 0 8px">Variable: el precio se decide al cobrar (útil para diagnóstico o presupuestos).</div>
   <div class="fi-row">
     <div class="fg"><label class="fl">🔒 Precio coste (€) <span style="font-size:9px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">— privado</span></label><input class="fi" id="srvPrecioCoste" type="number" step="0.01" placeholder="0.00" oninput="calcMargenSrv()"></div>
     <div class="fg"><label class="fl">Precio venta (€)</label><input class="fi" id="srvPrecio" type="number" step="0.01" placeholder="0.00" oninput="calcMargenSrv()"></div>
@@ -4411,7 +4414,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260617rep4"></script>
+<script src="/js/dash-app.js?v=20260617cita"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

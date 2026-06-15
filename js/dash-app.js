@@ -9773,11 +9773,14 @@ function renderMovimientos() {
       var d = (r.ts || r.fecha || '').slice(0, 10);
       return d >= rango.d1 && d <= rango.d2;
     });
-    var nIn = 0, nOut = 0;
-    movs.forEach(function(r) { var c = _movCant(r); if (r.accion === 'entrada' || r.accion === 'crear') nIn += c; else nOut += c; });
+    // F281: distinguir nº de MOVIMIENTOS (filas) de UNIDADES sumadas — antes el header
+    // mostraba unidades ("3") y la lista 2 filas, lo que parecía un descuadre.
+    var nIn = 0, nOut = 0, uIn = 0, uOut = 0;
+    movs.forEach(function(r) { var c = _movCant(r); if (r.accion === 'entrada' || r.accion === 'crear') { nIn++; uIn += c; } else { nOut++; uOut += c; } });
     var res = document.getElementById('movResumen');
-    if (res) res.innerHTML = '<div style="flex:1;background:rgba(22,163,74,.10);border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--green)">📥 ' + nIn + '</div><div style="font-size:10px;color:var(--muted)">' + T('mov.entradas') + '</div></div>' +
-      '<div style="flex:1;background:rgba(249,115,22,.10);border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--orange)">📤 ' + nOut + '</div><div style="font-size:10px;color:var(--muted)">' + T('mov.salidas') + '</div></div>';
+    var _uds = function(n, u) { return n + (u !== n ? ' <span style="font-size:11px;font-weight:600;color:var(--muted)">(' + u + ' uds)</span>' : ''); };
+    if (res) res.innerHTML = '<div style="flex:1;background:rgba(22,163,74,.10);border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--green)">📥 ' + _uds(nIn, uIn) + '</div><div style="font-size:10px;color:var(--muted)">' + T('mov.entradas') + '</div></div>' +
+      '<div style="flex:1;background:rgba(249,115,22,.10);border-radius:10px;padding:8px 10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--orange)">📤 ' + _uds(nOut, uOut) + '</div><div style="font-size:10px;color:var(--muted)">' + T('mov.salidas') + '</div></div>';
     if (!movs.length) { el.innerHTML = '<div class="empty">' + T('mov.vacio') + '</div>'; return; }
     el.innerHTML = movs.map(function(r) {
       var esIn = (r.accion === 'entrada' || r.accion === 'crear');
@@ -9785,10 +9788,11 @@ function renderMovimientos() {
       var fStr = f ? (f.toLocaleDateString() + ' ' + f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : '';
       var ref = r.entidad_id || '';
       var usuario = r.usuario_nom || r.usuarioNom || '';
+      var _cant = _movCant(r); // F282: mostrar ×N de forma consistente en todas las filas
       return '<div style="display:flex;align-items:center;gap:10px;padding:8px 4px;border-bottom:1px solid var(--border)">' +
         '<span style="font-size:16px">' + (esIn ? '📥' : '📤') + '</span>' +
         '<div style="flex:1;min-width:0">' +
-        '<div style="font-size:13px;font-weight:600">' + escHtml(r.detalle || '') + '</div>' +
+        '<div style="font-size:13px;font-weight:600">' + escHtml(r.detalle || '') + (_cant > 1 ? ' <span style="color:var(--muted);font-weight:700">×' + _cant + '</span>' : '') + '</div>' +
         '<div style="font-size:11px;color:var(--muted)"><span style="color:' + (esIn ? 'var(--green)' : 'var(--orange)') + ';font-weight:700">' + (esIn ? T('mov.entrada') : T('mov.salida')) + '</span>' + (ref ? ' · ' + escHtml(ref) : '') + (usuario ? ' · ' + escHtml(usuario) : '') + '</div>' +
         '</div>' +
         '<span style="font-size:10.5px;color:var(--muted);white-space:nowrap">' + fStr + '</span></div>';
@@ -13719,7 +13723,7 @@ function limpiarFormSrv() {
   document.getElementById('srvNom').value = '';
   document.getElementById('srvPrecio').value = '';
   var pc = document.getElementById('srvPrecioCoste'); if (pc) pc.value = '';
-  document.getElementById('srvCat').value = 'Pantalla';
+  document.getElementById('srvCat').value = ''; // F288: arranca sin categoría (elección consciente)
   document.getElementById('srvTipo').value = 'ambos';
   document.getElementById('srvFijo').checked = true;
   var mb = document.getElementById('srvMargenBox'); if (mb) mb.style.display = 'none';
@@ -13749,6 +13753,8 @@ function guardarServicio() {
   // F240: validación de nombre (longitud + texto duplicado)
   var errSrv2 = _validarNombreServicio(nom);
   if (errSrv2) { toast(errSrv2, 'err'); return; }
+  // F288: forzar elección de categoría (el select arranca en "— Selecciona —")
+  if (!document.getElementById('srvCat').value) { toast('Elige una categoría', 'err'); document.getElementById('srvCat').focus(); return; }
   var pcEl = document.getElementById('srvPrecioCoste');
   var data = {
     nombre: nom,
@@ -16287,7 +16293,7 @@ function renderCitas() {
   });
 
   if (!filtradas.length) {
-    lista.innerHTML = '<div class="empty" style="padding:30px"><div style="font-size:32px;margin-bottom:8px">📅</div>No hay citas con ese filtro.<br><br><button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirLinkCitas()">Compartir link público</button></div>';
+    lista.innerHTML = '<div class="empty" style="padding:30px"><div style="font-size:32px;margin-bottom:8px">📅</div>No hay citas con ese filtro.<br><span style="font-size:12px;color:var(--muted)">Las citas aparecen aquí cuando un cliente reserva en tu link público, o créalas a mano.</span><br><br><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn-sm" style="background:var(--orange);color:white" onclick="abrirNuevaCitaFecha(hoyLocal())">+ Nueva cita manual</button><button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirLinkCitas()">Compartir link público</button></div></div>';
     return;
   }
 
