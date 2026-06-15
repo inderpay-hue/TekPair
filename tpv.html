@@ -218,7 +218,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
   .cart-fab,.cart-close-mobile{display:none!important}
 }
 </style>
-<script src="/lang/lang.v8.js?v=20260617i18nb"></script>
+<script src="/lang/lang.v8.js?v=20260617i18nc"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -306,7 +306,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
         <div class="cart-title"><span data-t="tpv.ticket">🛒 Ticket</span></div>
         <div class="cart-subtitle" id="cartClient" onclick="openModal('mCli')" style="cursor:pointer;display:flex;align-items:center;gap:6px;padding:2px 0" title="Click para asignar cliente">
           <span id="cartClientIcon">👤</span>
-          <span id="cartClientText" style="flex:1">Asignar cliente</span>
+          <span id="cartClientText" style="flex:1" data-t="tpv.asignar_cliente">Asignar cliente</span>
           <span style="font-size:10px;opacity:.7">✏️</span>
         </div>
       </div>
@@ -320,7 +320,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
 
       <!-- Discount -->
       <div class="cart-discount">
-        <div style="font-size:11px;font-weight:700;color:var(--t-mut);text-transform:uppercase;margin-bottom:6px">Descuento</div>
+        <div style="font-size:11px;font-weight:700;color:var(--t-mut);text-transform:uppercase;margin-bottom:6px" data-t="tpv.descuento">Descuento</div>
         <div class="disc-row">
           <input class="disc-input" id="discVal" type="number" placeholder="0" min="0" max="9999999" oninput="limitarDescuento();calcTotal()">
           <select class="disc-type" id="discType" onchange="limitarDescuento();calcTotal()">
@@ -333,7 +333,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
       <!-- Totals -->
       <div class="cart-totals">
         <div class="total-row"><span><span data-t="tpv.subtotal">Subtotal</span></span><span id="subtotal">€0.00</span></div>
-        <div class="total-row"><span>Descuento</span><span id="discTotal" style="color:#FF8080">-€0.00</span></div>
+        <div class="total-row"><span data-t="tpv.descuento">Descuento</span><span id="discTotal" style="color:#FF8080">-€0.00</span></div>
         <div class="total-row" id="ivaBaseRow" style="display:none"><span><span data-t="gen.base_imponible">Base imponible</span></span><span id="ivaBaseVal">€0.00</span></div>
         <div class="total-row" id="ivaImpRow" style="display:none"><span id="ivaImpLbl">IVA</span><span id="ivaImpVal">€0.00</span></div>
         <div class="total-row main"><span id="totalLbl">TOTAL</span><span id="grandTotal">€0.00</span></div>
@@ -341,7 +341,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
 
       <!-- Payment method -->
       <div class="cart-payment">
-        <div class="payment-title">Forma de pago</div>
+        <div class="payment-title" data-t="tpv.forma_pago">Forma de pago</div>
         <div class="payment-btns">
           <button class="pay-btn active" data-p="Efectivo" onclick="setPago(this)"><span data-t="tpv.efectivo">💵 Efectivo</span></button>
           <button class="pay-btn" data-p="Tarjeta" onclick="setPago(this)"><span data-t="tpv.tarjeta">💳 Tarjeta</span></button>
@@ -351,7 +351,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
 
         <!-- Efectivo recibido -->
         <div id="efectivoPanel" style="display:block">
-          <div style="font-size:11px;color:var(--t-mut);margin-bottom:6px">Efectivo recibido</div>
+          <div style="font-size:11px;color:var(--t-mut);margin-bottom:6px" data-t="tpv.efectivo_recibido">Efectivo recibido</div>
           <input class="disc-input" id="efectivoInput" type="number" placeholder="0.00" oninput="calcCambio()" style="margin-bottom:6px">
           <div style="display:flex;justify-content:space-between;font-size:13px;color:var(--t-ink2)">
             <span><span data-t="tpv.cambio">Cambio</span></span><span id="cambioVal" style="color:var(--green);font-weight:700">€0.00</span>
@@ -415,7 +415,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
     <!-- Checkout (siempre visible) -->
     <div class="checkout-wrap">
       <button class="btn-checkout" id="btnCheckout" onclick="cobrar()" disabled>
-        Cobrar €0.00
+        <span data-t="tpv.cobrar">Cobrar</span> €0.00
       </button>
     </div>
   </div>
@@ -937,7 +937,7 @@ function renderProducts() {
       '<div class="prod-name">' + escHtml(nombre) + '</div>' +
       ((parseFloat(p.precioV) || 0) > 0
         ? '<div class="prod-price">\u20ac' + parseFloat(p.precioV).toFixed(2) + '</div>'
-        : '<div class="prod-price" style="color:var(--blue);font-size:13px">Precio al cobrar</div>') +
+        : '<div class="prod-price" style="color:var(--blue);font-size:13px">' + T('tpv.precio_cobrar') + '</div>') +
       '<div class="prod-stock">' + escHtml(stockTxt) + '</div>' +
       '</div>';
   }).join('');
@@ -1451,7 +1451,7 @@ function calcTotal() {
   document.getElementById('subtotal').textContent = '\u20ac' + t.subtotal.toFixed(2);
   document.getElementById('discTotal').textContent = '-\u20ac' + t.disc.toFixed(2);
   document.getElementById('grandTotal').textContent = '\u20ac' + t.total.toFixed(2);
-  document.getElementById('btnCheckout').textContent = 'Cobrar \u20ac' + t.total.toFixed(2);
+  document.getElementById('btnCheckout').textContent = T('tpv.cobrar') + ' \u20ac' + t.total.toFixed(2);
   // IVA rows
   var ivaOn = !!(AJUSTES.iva && AJUSTES.iva.activo);
   // F42: no mostrar "Base imponible / IVA €0.00" con el carrito vacío (confunde)

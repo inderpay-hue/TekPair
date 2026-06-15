@@ -3622,6 +3622,12 @@ de:{'notif.no_leidas':'Ungelesen','notif.leidas':'Gelesen','notif.marcar_leidas'
 pt:{'notif.no_leidas':'Não lidas','notif.leidas':'Lidas','notif.marcar_leidas':'✓ Marcar lidas','app.version_nueva':'✨ Há uma nova versão do TekPair','app.recargar':'Recarregar','gen.cliente':'Cliente','gen.modelo':'Modelo','gen.pago':'Pagamento','gen.estado':'Estado','gen.prioridad':'Prioridade','gen.averia':'Avaria','gen.buscar_global':'Procurar clientes, reparações, vendas, produtos…','fact.col_numero':'Número','fact.col_origen':'Origem','fact.col_base':'Base','fact.col_iva':'IVA','fact.total_facturado':'Total faturado','rep.col_fentrega':'Entrega','rep.col_fentregado':'Entregue','fact.abono_confirm':'Esta venda tinha a fatura {num}.\n\nEmitir a sua nota de crédito (reembolso) de {total}?'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
+// i18n filtros Citas (F326)
+(function(){var _a={es:{'citas.pendientes':'Pendientes'},en:{'citas.pendientes':'Pending'},fr:{'citas.pendientes':'En attente'},it:{'citas.pendientes':'In sospeso'},de:{'citas.pendientes':'Ausstehend'},pt:{'citas.pendientes':'Pendentes'}};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+// i18n TPV checkout (F660/F653)
+(function(){var _a={es:{'tpv.precio_cobrar':'Precio al cobrar','tpv.sin_cliente':'Sin cliente'},en:{'tpv.precio_cobrar':'Price at checkout','tpv.sin_cliente':'No customer'},fr:{'tpv.precio_cobrar':'Prix à l\'encaissement','tpv.sin_cliente':'Sans client'},it:{'tpv.precio_cobrar':'Prezzo alla cassa','tpv.sin_cliente':'Senza cliente'},de:{'tpv.precio_cobrar':'Preis an der Kasse','tpv.sin_cliente':'Kein Kunde'},pt:{'tpv.precio_cobrar':'Preço ao cobrar','tpv.sin_cliente':'Sem cliente'}};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
 // i18n tabs de categoría de Stock (F523)
 (function(){var _a={
 es:{'stockcat.telefonos':'Teléfonos','stockcat.tablets':'Tablets','stockcat.smartwatch':'Smartwatch','stockcat.pantallas':'Pantallas','stockcat.tapas':'Tapas','stockcat.baterias':'Baterías','stockcat.flex':'Flex Carga','stockcat.repuestos':'Repuestos','stockcat.accesorios':'Accesorios','stockcat.stock_bajo':'⚠️ Stock bajo'},
