@@ -1,5 +1,5 @@
 // TekPair Service Worker
-const CACHE_VERSION = 'tekpair-v202606171130';
+const CACHE_VERSION = 'tekpair-v202606171200';
 const ASSETS = [
   '/offline.html',
   '/manifest.json',
@@ -47,22 +47,21 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Código (JS/CSS/lang): stale-while-revalidate → sirve caché al instante y
-  // refresca en segundo plano, así un cambio de JS llega al cliente en la
-  // siguiente recarga sin depender de bumpear CACHE_VERSION.
+  // Código (JS/CSS/lang): NETWORK-FIRST. Online siempre se baja la última versión; la caché
+  // es solo fallback offline. Antes era stale-while-revalidate, que servía SIEMPRE la copia
+  // cacheada primero → un fix desplegado tardaba (o no llegaba, si un SW viejo había cacheado
+  // ignorando el ?v=). Con network-first un deploy llega en la siguiente recarga, sin depender
+  // del ?v= ni de bumpear CACHE_VERSION.
   const esCodigo = /\.(js|css|mjs)$/.test(url.pathname) || url.pathname.startsWith('/lang/');
   if (esCodigo) {
     e.respondWith(
-      caches.match(e.request).then(cached => {
-        const red = fetch(e.request).then(res => {
-          if (res.ok) {
-            const clone = res.clone();
-            caches.open(CACHE_VERSION).then(c => c.put(e.request, clone));
-          }
-          return res;
-        }).catch(() => cached);
-        return cached || red;
-      })
+      fetch(e.request).then(res => {
+        if (res.ok) {
+          const clone = res.clone();
+          caches.open(CACHE_VERSION).then(c => c.put(e.request, clone));
+        }
+        return res;
+      }).catch(() => caches.match(e.request))
     );
     return;
   }
