@@ -3622,6 +3622,39 @@ de:{'notif.no_leidas':'Ungelesen','notif.leidas':'Gelesen','notif.marcar_leidas'
 pt:{'notif.no_leidas':'Não lidas','notif.leidas':'Lidas','notif.marcar_leidas':'✓ Marcar lidas','app.version_nueva':'✨ Há uma nova versão do TekPair','app.recargar':'Recarregar','gen.cliente':'Cliente','gen.modelo':'Modelo','gen.pago':'Pagamento','gen.estado':'Estado','gen.prioridad':'Prioridade','gen.averia':'Avaria','gen.buscar_global':'Procurar clientes, reparações, vendas, produtos…','fact.col_numero':'Número','fact.col_origen':'Origem','fact.col_base':'Base','fact.col_iva':'IVA','fact.total_facturado':'Total faturado','rep.col_fentrega':'Entrega','rep.col_fentregado':'Entregue','fact.abono_confirm':'Esta venda tinha a fatura {num}.\n\nEmitir a sua nota de crédito (reembolso) de {total}?'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
+// i18n tabs de categoría de Stock (F523)
+(function(){var _a={
+es:{'stockcat.telefonos':'Teléfonos','stockcat.tablets':'Tablets','stockcat.smartwatch':'Smartwatch','stockcat.pantallas':'Pantallas','stockcat.tapas':'Tapas','stockcat.baterias':'Baterías','stockcat.flex':'Flex Carga','stockcat.repuestos':'Repuestos','stockcat.accesorios':'Accesorios','stockcat.stock_bajo':'⚠️ Stock bajo'},
+en:{'stockcat.telefonos':'Phones','stockcat.tablets':'Tablets','stockcat.smartwatch':'Smartwatch','stockcat.pantallas':'Screens','stockcat.tapas':'Back covers','stockcat.baterias':'Batteries','stockcat.flex':'Charging flex','stockcat.repuestos':'Parts','stockcat.accesorios':'Accessories','stockcat.stock_bajo':'⚠️ Low stock'},
+fr:{'stockcat.telefonos':'Téléphones','stockcat.tablets':'Tablettes','stockcat.smartwatch':'Montre','stockcat.pantallas':'Écrans','stockcat.tapas':'Caches arrière','stockcat.baterias':'Batteries','stockcat.flex':'Nappe charge','stockcat.repuestos':'Pièces','stockcat.accesorios':'Accessoires','stockcat.stock_bajo':'⚠️ Stock bas'},
+it:{'stockcat.telefonos':'Telefoni','stockcat.tablets':'Tablet','stockcat.smartwatch':'Smartwatch','stockcat.pantallas':'Schermi','stockcat.tapas':'Cover','stockcat.baterias':'Batterie','stockcat.flex':'Flex carica','stockcat.repuestos':'Ricambi','stockcat.accesorios':'Accessori','stockcat.stock_bajo':'⚠️ Scorte basse'},
+de:{'stockcat.telefonos':'Telefone','stockcat.tablets':'Tablets','stockcat.smartwatch':'Smartwatch','stockcat.pantallas':'Bildschirme','stockcat.tapas':'Rückseiten','stockcat.baterias':'Akkus','stockcat.flex':'Lade-Flex','stockcat.repuestos':'Ersatzteile','stockcat.accesorios':'Zubehör','stockcat.stock_bajo':'⚠️ Niedriger Bestand'},
+pt:{'stockcat.telefonos':'Telemóveis','stockcat.tablets':'Tablets','stockcat.smartwatch':'Smartwatch','stockcat.pantallas':'Ecrãs','stockcat.tapas':'Tampas','stockcat.baterias':'Baterias','stockcat.flex':'Flex de carga','stockcat.repuestos':'Peças','stockcat.accesorios':'Acessórios','stockcat.stock_bajo':'⚠️ Stock baixo'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+// i18n notif sub-filtros (F501)
+(function(){var _a={
+es:{'notif.cuotas':'Cuotas','notif.cumples':'Cumpleaños','notif.marcar_no_leidas':'Marcar no leídas'},
+en:{'notif.cuotas':'Instalments','notif.cumples':'Birthdays','notif.marcar_no_leidas':'Mark unread'},
+fr:{'notif.cuotas':'Échéances','notif.cumples':'Anniversaires','notif.marcar_no_leidas':'Marquer non lues'},
+it:{'notif.cuotas':'Rate','notif.cumples':'Compleanni','notif.marcar_no_leidas':'Segna non lette'},
+de:{'notif.cuotas':'Raten','notif.cumples':'Geburtstage','notif.marcar_no_leidas':'Als ungelesen'},
+pt:{'notif.cuotas':'Prestações','notif.cumples':'Aniversários','notif.marcar_no_leidas':'Marcar não lidas'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+// i18n sweep estático (headers Facturas/Presupuestos/Ayuda, botones +Nueva)
+(function(){var _a={es:{'gen.nueva':'+ Nueva'},en:{'gen.nueva':'+ New'},fr:{'gen.nueva':'+ Nouvelle'},it:{'gen.nueva':'+ Nuova'},de:{'gen.nueva':'+ Neu'},pt:{'gen.nueva':'+ Nova'}};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+// i18n badges garantía/financiado + tipos de factura (F627/F548)
+(function(){var _a={
+es:{'rep.en_garantia':'EN GARANTÍA','fact.tipo_simplificada':'Simplificada','fact.tipo_completa':'Completa'},
+en:{'rep.en_garantia':'UNDER WARRANTY','fact.tipo_simplificada':'Simplified','fact.tipo_completa':'Complete'},
+fr:{'rep.en_garantia':'SOUS GARANTIE','fact.tipo_simplificada':'Simplifiée','fact.tipo_completa':'Complète'},
+it:{'rep.en_garantia':'IN GARANZIA','fact.tipo_simplificada':'Semplificata','fact.tipo_completa':'Completa'},
+de:{'rep.en_garantia':'IN GARANTIE','fact.tipo_simplificada':'Vereinfacht','fact.tipo_completa':'Vollständig'},
+pt:{'rep.en_garantia':'EM GARANTIA','fact.tipo_simplificada':'Simplificada','fact.tipo_completa':'Completa'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
 // i18n título "Editar cliente" (F710/F711 — antes hardcodeado en español)
 (function(){var _a={es:{'cli.editar_titulo':'Editar Cliente'},en:{'cli.editar_titulo':'Edit Customer'},fr:{'cli.editar_titulo':'Modifier le client'},it:{'cli.editar_titulo':'Modifica cliente'},de:{'cli.editar_titulo':'Kunde bearbeiten'},pt:{'cli.editar_titulo':'Editar cliente'}};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
