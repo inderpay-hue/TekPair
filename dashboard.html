@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260617i18n"></script>
+<script src="/lang/lang.v8.js?v=20260617i18n2"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -3537,7 +3537,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
         <!-- Sección: Avería -->
         <div class="rep-section">
-          <div class="rep-section-title"><span>🔧</span> Avería</div>
+          <div class="rep-section-title"><span>🔧</span> <span data-t="rep.sec_averia">Avería</span></div>
           <div class="fg"><label class="fl"><span data-t="rep.describe_problema">Describe el problema</span> <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Ej: pantalla rota, no enciende, batería..." required oninput="try{sugerirPiezasRep()}catch(e){}"></div>
           <div class="fg" style="margin-bottom:0">
             <label class="fl" data-t="rep.estado_equipo">Estado del equipo (al recibir)</label>
@@ -3560,7 +3560,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <!-- Sección: Servicios de reparación (NUEVA) -->
         <div class="rep-section">
           <div class="rep-section-title">
-            <span>🛠️</span> Servicios de reparación
+            <span>🛠️</span> <span data-t="rep.sec_servicios">Servicios de reparación</span>
             <button type="button" class="add-srv-btn" onclick="agregarServicioRep()">+ Agregar nuevo</button>
           </div>
           <div class="srv-search-row">
@@ -3575,7 +3575,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
         <!-- Sección: Componentes -->
         <div class="rep-section">
-          <div class="rep-section-title"><span>📦</span> Componentes (stock)</div>
+          <div class="rep-section-title"><span>📦</span> <span data-t="rep.sec_componentes">Componentes (stock)</span></div>
           <div class="fg" style="position:relative;margin-bottom:8px">
             <input class="fi" id="compBus" placeholder="🔍 Buscar pieza, batería, pantalla..." oninput="busComp()" autocomplete="off">
             <div class="autocomplete-res" id="compRes"></div>
@@ -3586,10 +3586,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
         <!-- Sección: Cobro y logística -->
         <div class="rep-section">
-          <div class="rep-section-title"><span>💰</span> Cobro y logística</div>
+          <div class="rep-section-title"><span>💰</span> <span data-t="rep.sec_cobro">Cobro y logística</span></div>
           <div class="fi-row">
             <div class="fg" style="flex:1">
-              <label class="fl">💳 Pagos</label>
+              <label class="fl">💳 <span data-t="rep.lbl_pagos">Pagos</span></label>
               <div id="rPagosBox" style="background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:10px">
                 <!-- Anticipo directo: meter de golpe lo que el cliente adelanta -->
                 <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--border)">
@@ -3655,7 +3655,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           <!-- GARANTÍA DE ESTA REPARACIÓN -->
           <div id="rBloqueGarantia" style="margin-bottom:0;padding:12px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">
             <div class="fl" style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
-              <span>🛡️ Garantía de esta reparación</span>
+              <span>🛡️ <span data-t="rep.sec_garantia">Garantía de esta reparación</span></span>
               <span id="rGarSelDias" style="font-size:11px;color:var(--blue);font-weight:700"></span>
             </div>
             <!-- GAR-1: Selector de tipo de garantía -->
