@@ -93,7 +93,7 @@ function entrar() {
   fetch('/api/login', {
     method: 'POST',
     headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({email: em, password: pw})
+    body: JSON.stringify({email: em, password: pw, lang: localStorage.getItem('tp_lang')||'es'})
   }).then(function(r){ return r.json(); }).then(function(data){
     if (data.ok) {
       localStorage.setItem('tk_user', JSON.stringify(data.usuario));

@@ -18,6 +18,35 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
+// F195: traducir mensajes de error al idioma del cliente (body.lang o Accept-Language).
+function _apiLang(req) {
+  try {
+    let l = (req.body && req.body.lang) || '';
+    if (!l) { const al = (req.headers && req.headers['accept-language']) || ''; l = al.split(',')[0].slice(0, 2).toLowerCase(); }
+    return ['es', 'en', 'fr', 'it', 'de', 'pt'].includes(l) ? l : 'es';
+  } catch (e) { return 'es'; }
+}
+const _MSG = {
+  'Faltan datos': { en:'Missing data', fr:'Données manquantes', it:'Dati mancanti', de:'Fehlende Daten', pt:'Dados em falta' },
+  'Email o contraseña incorrectos': { en:'Incorrect email or password', fr:'E-mail ou mot de passe incorrect', it:'Email o password errati', de:'E-Mail oder Passwort falsch', pt:'Email ou palavra-passe incorretos' },
+  'Demasiados intentos. Espera unos minutos.': { en:'Too many attempts. Please wait a few minutes.', fr:'Trop de tentatives. Patientez quelques minutes.', it:'Troppi tentativi. Attendi qualche minuto.', de:'Zu viele Versuche. Bitte einige Minuten warten.', pt:'Demasiadas tentativas. Aguarda alguns minutos.' },
+  'Demasiadas solicitudes. Espera una hora.': { en:'Too many requests. Please wait an hour.', fr:'Trop de demandes. Patientez une heure.', it:'Troppe richieste. Attendi un\'ora.', de:'Zu viele Anfragen. Bitte eine Stunde warten.', pt:'Demasiados pedidos. Aguarda uma hora.' },
+  'Falta el email': { en:'Email is required', fr:'L\'e-mail est requis', it:'Email obbligatoria', de:'E-Mail erforderlich', pt:'Email obrigatório' },
+  'La nueva contraseña debe tener al menos 8 caracteres': { en:'The new password must be at least 8 characters', fr:'Le nouveau mot de passe doit comporter au moins 8 caractères', it:'La nuova password deve avere almeno 8 caratteri', de:'Das neue Passwort muss mindestens 8 Zeichen haben', pt:'A nova palavra-passe deve ter pelo menos 8 caracteres' },
+  'La contraseña actual no es correcta': { en:'The current password is incorrect', fr:'Le mot de passe actuel est incorrect', it:'La password attuale non è corretta', de:'Das aktuelle Passwort ist falsch', pt:'A palavra-passe atual não está correta' },
+  'No autenticado': { en:'Not authenticated', fr:'Non authentifié', it:'Non autenticato', de:'Nicht authentifiziert', pt:'Não autenticado' },
+  'Sesión inválida': { en:'Invalid session', fr:'Session invalide', it:'Sessione non valida', de:'Ungültige Sitzung', pt:'Sessão inválida' },
+  'Sesión caducada': { en:'Session expired', fr:'Session expirée', it:'Sessione scaduta', de:'Sitzung abgelaufen', pt:'Sessão expirada' },
+  'Tienda no encontrada': { en:'Shop not found', fr:'Boutique introuvable', it:'Negozio non trovato', de:'Shop nicht gefunden', pt:'Loja não encontrada' },
+  'Usuario inactivo': { en:'Inactive user', fr:'Utilisateur inactif', it:'Utente inattivo', de:'Inaktiver Benutzer', pt:'Utilizador inativo' }
+};
+function _loc(msg, req) {
+  const l = _apiLang(req);
+  if (l === 'es') return msg;
+  const t = _MSG[msg];
+  return (t && t[l]) || msg;
+}
+
 // L4+L5: rate limiting en memoria.
 // Aguanta spam/fuerza bruta casual. Para multi-instancia Vercel migrar a Upstash.
 // Cada instancia Vercel tiene su propio Map → si Vercel escala el ataque puede
@@ -214,7 +243,7 @@ export default async function handler(req, res) {
         headers: {'apikey': SK, 'Authorization': `Bearer ${SK}`}
       });
       const tiendas = await tR.json();
-      if (!tiendas.length) return res.status(404).json({ error: 'Tienda no encontrada' });
+      if (!tiendas.length) return res.status(404).json({ error: _loc('Tienda no encontrada', req) });
       const t = tiendas[0];
 
       // 3. Calcular días restantes de trial / próximo cobro
@@ -271,7 +300,7 @@ export default async function handler(req, res) {
       });
       const usrs = await uR.json();
       const u = usrs && usrs[0];
-      if (!u || u.activo === false) return res.status(401).json({ error: 'Usuario inactivo' });
+      if (!u || u.activo === false) return res.status(401).json({ error: _loc('Usuario inactivo', req) });
       // 3. Acuñar JWT fresco (mismos claims que el login)
       const SESSION_DAYS = 7;
       const nowSec = Math.floor(Date.now() / 1000);
@@ -302,10 +331,10 @@ export default async function handler(req, res) {
     const { email: cpEmail, password_actual, password_nueva } = req.body;
 
     if (!cpEmail || !password_actual || !password_nueva) {
-      return res.status(400).json({ error: 'Faltan datos' });
+      return res.status(400).json({ error: _loc('Faltan datos', req) });
     }
     if (String(password_nueva).length < 8) {
-      return res.status(400).json({ error: 'La nueva contraseña debe tener al menos 8 caracteres' });
+      return res.status(400).json({ error: _loc('La nueva contraseña debe tener al menos 8 caracteres', req) });
     }
     if (!SB_URL || !SK) {
       return res.status(500).json({ error: 'Configuración de servidor incompleta' });
@@ -352,7 +381,7 @@ export default async function handler(req, res) {
       // Verificar contraseña actual (soporta v1 y v2)
       const checkActual = await verificarPassword(ucp, password_actual);
       if (!checkActual.ok) {
-        return res.json({ error: 'La contraseña actual no es correcta' });
+        return res.json({ error: _loc('La contraseña actual no es correcta', req) });
       }
       // Comprobar que la nueva sea distinta
       const checkNuevaIgual = await verificarPassword(ucp, password_nueva);
@@ -404,7 +433,7 @@ export default async function handler(req, res) {
   // ───────── Acción: solicitar recuperación de contraseña ─────────
   if (action === 'solicitar-reset') {
     const { email: srEmail, lang: srLang } = req.body;
-    if (!srEmail) return res.status(400).json({ error: 'Falta el email' });
+    if (!srEmail) return res.status(400).json({ error: _loc('Falta el email', req) });
     if (!SB_URL || !SK) {
       return res.status(500).json({ error: 'Configuración de servidor incompleta' });
     }
@@ -419,7 +448,7 @@ export default async function handler(req, res) {
       return res.json({ ok: true });
     }
     if (!_rateCheck('reset:ip:' + srIp, 5, 60 * 60 * 1000)) {
-      return res.status(429).json({ error: 'Demasiadas solicitudes. Espera una hora.' });
+      return res.status(429).json({ error: _loc('Demasiadas solicitudes. Espera una hora.', req) });
     }
 
     try {
@@ -459,7 +488,7 @@ export default async function handler(req, res) {
   if (action === 'reset') {
     const { token, password_nueva } = req.body;
     if (!token || !password_nueva) {
-      return res.status(400).json({ error: 'Faltan datos' });
+      return res.status(400).json({ error: _loc('Faltan datos', req) });
     }
     if (String(password_nueva).length < 8) {
       return res.status(400).json({ error: 'La contraseña debe tener al menos 8 caracteres' });
@@ -641,7 +670,7 @@ export default async function handler(req, res) {
 
   // ───────── Login normal ─────────
   const { email, password } = req.body;
-  if (!email || !password) return res.status(400).json({ error: 'Faltan datos' });
+  if (!email || !password) return res.status(400).json({ error: _loc('Faltan datos', req) });
 
   // L4: rate limit anti fuerza bruta.
   // 10 intentos por combinación IP+email cada 15 min. Tras 10 fallos, bloqueo temporal.
@@ -650,7 +679,7 @@ export default async function handler(req, res) {
   const ip = _getClientIp(req);
   const rateKey = 'login:' + ip + ':' + email.toLowerCase();
   if (!_rateCheck(rateKey, 10, 15 * 60 * 1000)) {
-    return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos.' });
+    return res.status(429).json({ error: _loc('Demasiados intentos. Espera unos minutos.', req) });
   }
 
   const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -687,7 +716,7 @@ export default async function handler(req, res) {
 
     if (!resultado.ok) {
       // F194: 401 en credenciales inválidas (antes devolvía 200). El cliente lee data.ok, no rompe.
-      return res.status(401).json({ error: 'Email o contraseña incorrectos' });
+      return res.status(401).json({ error: _loc('Email o contraseña incorrectos', req) });
     }
 
     // MIGRACIÓN SILENCIOSA: si la cuenta usa SHA-256 (v1), escribir bcrypt (v2)
