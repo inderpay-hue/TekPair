@@ -11470,6 +11470,17 @@ function getRepFechasISO() {
 var CHART_INGRESOS = null, CHART_PAGOS = null, CHART_SERVICIOS = null;
 
 async function renderReporte() {
+  // F261: asegurar datos frescos. El reporte calcula sobre DB.ventas en memoria; si una
+  // venta se hizo en el TPV (otra pestaña) o el panel llevaba rato abierto, podía estar
+  // desfasado y mostrar 0€. Refrescamos vía syncCompleto (carga TODO paginado, sin asumir
+  // formato de fecha) y re-renderizamos. Guarda de 20s para no entrar en bucle ni spamear.
+  if (SB_KEY && TIENDA_ID) {
+    var _nowMs = Date.now();
+    if (!window._repLastSync || (_nowMs - window._repLastSync) > 20000) {
+      window._repLastSync = _nowMs; // se fija ANTES del await → el re-render no re-dispara sync
+      syncCompleto(true).then(function(){ try { renderReporte(); } catch(e){} }).catch(function(){});
+    }
+  }
   var fechas = getRepFechas();
   var fechasISO = getRepFechasISO(); // REP-FECHA-FIX: para queries a Supabase
   // F257/F261: filtrar por RANGO [min,max] sobre la fecha-solo-día (slice 0,10), no por
