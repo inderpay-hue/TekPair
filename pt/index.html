@@ -228,6 +228,13 @@ nav{position:fixed;top:0;left:0;right:0;background:rgba(14,14,16,.92);backdrop-f
 .promo-bar{background:var(--orange);color:#fff;text-align:center;padding:8px 16px;font-size:12px;font-weight:500;position:fixed;top:0;left:0;right:0;z-index:101}
 .promo-bar code{font-family:var(--mono);background:rgba(255,255,255,.2);padding:1px 6px;border-radius:4px}
 .hide-mobile{display:inline}
+/* F120: menú burger en móvil */
+.nav-burger{display:none;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;line-height:1}
+.nav-mobile-menu{display:none;position:absolute;top:100%;left:0;right:0;background:var(--ink);border-top:1px solid rgba(255,255,255,.08);padding:6px 0;box-shadow:0 10px 28px rgba(0,0,0,.35)}
+.nav-mobile-menu.open{display:block}
+.nav-mobile-menu a{display:block;color:rgba(255,255,255,.85);font-size:15px;padding:13px 24px;text-decoration:none;font-weight:500}
+.nav-mobile-menu a:hover{background:rgba(255,255,255,.06);color:#fff}
+@media(max-width:860px){.nav-burger{display:block}}
 
 /* HERO */
 .hero{padding:150px 0 80px;position:relative}
@@ -383,6 +390,14 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
       <a href="/app.html" class="nav-login" data-i18n="nav.login">Entrar</a>
       <a href="/registro.html" class="nav-cta" data-i18n="nav.start">Começar grátis</a>
     </div>
+    <button class="nav-burger" onclick="toggleNavMenu()" aria-label="Menú" aria-expanded="false">☰</button>
+  </div>
+  <div class="nav-mobile-menu" id="navMobileMenu">
+    <a href="#features" onclick="closeNavMenu()" data-i18n="nav.features">Funcionalidades</a>
+    <a href="#novedades" onclick="closeNavMenu()" data-i18n="nov.tag">Novidades</a>
+    <a href="#pricing" onclick="closeNavMenu()" data-i18n="nav.pricing">Preços</a>
+    <a href="#faq" onclick="closeNavMenu()" data-i18n="nav.faq">FAQ</a>
+    <a href="/app.html" data-i18n="nav.login">Entrar</a>
   </div>
 </nav>
 <div class="promo-bar" data-i18n="promo.bar">⚡ Oferta limitada — 50% de desconto × 3 meses com o código <code>EARLY50</code> · Restam apenas 10 vagas</div>
@@ -765,6 +780,17 @@ document.querySelectorAll('a[href^="#"]').forEach(function(a) {
     revs.forEach(function(r){ obs.observe(r); });
   }
 })();
+
+// F120: menú burger móvil
+function toggleNavMenu(){
+  var m = document.getElementById('navMobileMenu'); if(!m) return;
+  var open = m.classList.toggle('open');
+  var b = document.querySelector('.nav-burger'); if(b) b.setAttribute('aria-expanded', open ? 'true' : 'false');
+}
+function closeNavMenu(){
+  var m = document.getElementById('navMobileMenu'); if(m) m.classList.remove('open');
+  var b = document.querySelector('.nav-burger'); if(b) b.setAttribute('aria-expanded','false');
+}
 
 // 1. Rotator del hero
 (function(){
