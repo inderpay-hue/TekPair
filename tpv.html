@@ -90,7 +90,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .prod-card:hover{border-color:var(--t-bdhi);transform:translateY(-5px);box-shadow:0 26px 50px -18px rgba(0,0,0,.5),0 0 0 1px color-mix(in srgb,var(--t-acc) 30%,transparent),inset 0 1px 0 var(--t-bdhi)}
 .prod-card:active{transform:scale(.97)}
 .prod-icon{font-size:26px;margin-bottom:8px}
-.prod-name{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:4px;flex:1;color:var(--t-ink)}
+.prod-name{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:4px;flex:1;color:var(--t-ink);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;overflow-wrap:anywhere}
 .prod-price{font-size:16px;font-weight:800;color:var(--t-ink);letter-spacing:-.3px}
 .prod-stock{font-size:10px;color:var(--t-mut);margin-top:2px}
 .prod-fav{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:var(--t-surf2);border:1px solid var(--t-bd);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;line-height:1;color:var(--t-mut);transition:all .15s;z-index:2}
@@ -434,7 +434,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
     <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">O CREAR NUEVO</div>
     <div class="fi-row">
       <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="ncNom" placeholder="Juan"></div>
-      <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="ncApe" placeholder="Garcia"></div>
+      <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="ncApe" placeholder="García"></div>
     </div>
     <div class="fi-row">
       <div class="fg"><label class="fl">Telefono</label><input class="fi" id="ncTel" placeholder="6XX XXX XXX"></div>
