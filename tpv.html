@@ -1743,15 +1743,24 @@ function verCaja() {
   var pagos = {};
   ventasHoy.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
   var total = ventasHoy.reduce(function(a, v) { return a + v.total; }, 0);
+  // F245: reembolsos del d\u00eda (los que se devolvieron hoy) \u2192 bruto/reembolso/neto
+  var reembHoy = DB.ventas.filter(function(v) { return v.reembolsado && (v.fechaReembolso || v.fecha) === hoy; });
+  var totReemb = reembHoy.reduce(function(a, v) { return a + (v.total || 0); }, 0);
+  // F243: concordancia singular/plural
+  var lblN = ventasHoy.length + ' ' + (ventasHoy.length === 1 ? 'venta' : 'ventas');
 
   document.getElementById('cajaContent').innerHTML =
-    '<div style="margin-bottom:12px;font-size:13px;color:var(--muted)">' + escHtml(hoy) + ' \u2014 ' + ventasHoy.length + ' ventas</div>' +
-    Object.entries(pagos).map(function(e) {
+    '<div style="margin-bottom:12px;font-size:13px;color:var(--muted)">' + escHtml(hoy) + ' \u2014 ' + lblN + '</div>' +
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Por forma de pago</div>' +
+    (Object.keys(pagos).length ? Object.entries(pagos).map(function(e) {
       return '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px">' +
         '<span>' + escHtml(e[0]) + '</span><strong>\u20ac' + e[1].toFixed(2) + '</strong></div>';
-    }).join('') +
-    '<div style="display:flex;justify-content:space-between;padding:12px 0;font-size:18px;font-weight:800;color:var(--blue)">' +
-    '<span>TOTAL</span><span>\u20ac' + total.toFixed(2) + '</span></div>';
+    }).join('') : '<div style="padding:10px 0;color:var(--muted);font-size:13px;border-bottom:1px solid var(--border)">Sin ventas hoy</div>') +
+    // F245: desglose bruto / reembolsos / neto
+    '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--muted)"><span>Ventas brutas</span><span>\u20ac' + total.toFixed(2) + '</span></div>' +
+    (totReemb > 0 ? '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--red)"><span>Reembolsos (' + reembHoy.length + ')</span><span>-\u20ac' + totReemb.toFixed(2) + '</span></div>' : '') +
+    '<div style="display:flex;justify-content:space-between;padding:12px 0;font-size:18px;font-weight:800;color:var(--blue);border-top:2px solid var(--border);margin-top:4px">' +
+    '<span>NETO</span><span>\u20ac' + (total - totReemb).toFixed(2) + '</span></div>';
   openModal('mCaja');
 }
 
@@ -1764,10 +1773,15 @@ function verHistorial() {
   syncVentasDesdeSupabase().then(function(){ renderHistorial(); });
 }
 
+// Timestamp de una venta a partir de su id ('v'+Date.now()) para ordenar cronol\u00f3gicamente
+function _ventaTs(v) { var n = parseInt(String(v.id || '').replace(/^v/, '')); return isNaN(n) ? 0 : n; }
+
 function renderHistorial() {
   var hoy = hoyLocal();
   var q = (document.getElementById('histSearch').value || '').toLowerCase();
-  var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy; }).slice().reverse();
+  // F252: ordenar por hora descendente (m\u00e1s reciente arriba), no por orden de inserci\u00f3n
+  var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy; }).slice()
+    .sort(function(a, b) { return _ventaTs(b) - _ventaTs(a); });
   if (q) {
     ventasHoy = ventasHoy.filter(function(v) {
       return ((v.clienteNombre || '') + ' ' + (v.modelo || '') + ' ' + (v.pago || '')).toLowerCase().indexOf(q) !== -1;
@@ -1779,7 +1793,12 @@ function renderHistorial() {
     return;
   }
   var totalDia = ventasHoy.filter(function(v){return !v.reembolsado;}).reduce(function(a,v){return a+(v.total||0);},0);
-  var html = '<div style="background:var(--bg);padding:10px 14px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;font-size:13px"><span>' + ventasHoy.length + ' venta' + (ventasHoy.length!==1?'s':'') + '</span><strong style="color:var(--green)">\u20ac' + totalDia.toFixed(2) + '</strong></div>';
+  // F249: separar ventas reales de reembolsos en el contador (antes "3 ventas" contaba reembolsos)
+  var nReales = ventasHoy.filter(function(v){ return !v.reembolsado; }).length;
+  var nReemb = ventasHoy.filter(function(v){ return v.reembolsado; }).length;
+  var lblCount = nReales + ' ' + (nReales === 1 ? 'venta' : 'ventas') +
+    (nReemb ? ' \u00b7 ' + nReemb + ' ' + (nReemb === 1 ? 'reembolso' : 'reembolsos') : '');
+  var html = '<div style="background:var(--bg);padding:10px 14px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;font-size:13px"><span>' + lblCount + '</span><strong style="color:var(--green)">\u20ac' + totalDia.toFixed(2) + '</strong></div>';
   html += '<div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">';
   html += ventasHoy.map(function(v) {
     var hora = '';
