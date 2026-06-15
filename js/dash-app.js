@@ -1600,36 +1600,11 @@ function recibirTodosPedidos() {
   if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var pend = (DB.pedidos || []).filter(function (p) { return p.estado === 'pedido'; });
   if (!pend.length) { toast(T('pedidos.nada_recibir') || 'No hay pedidos por recibir', 'err'); return; }
-  if (!confirm((T('pedidos.recibir_todos_confirm') || '¿Marcar como recibidos los {n} pedidos y sumarlos al stock?').replace('{n}', pend.length))) return;
-  var recibidos = 0, saltados = 0;
-  pend.forEach(function (p) {
-    var uds = parseInt(p.cantidad, 10) || 1;
-    var existe = _stockMatch(p.pieza);
-    if (existe && p.calidad && (existe.calidad || '') !== p.calidad) existe = null;
-    var cat = p.categoria || (existe ? existe.categoria : '');
-    if (_esImeiCat(cat)) {
-      var raw = prompt((T('pedidos.imeis_prompt') || 'IMEIs de "{pieza}" ({n} uds), uno por línea:').replace('{pieza}', p.pieza || '').replace('{n}', uds), '');
-      if (raw == null) { saltados++; return; }
-      var imeis = String(raw).split(/[\s,;]+/).map(function (s) { return s.trim(); }).filter(Boolean).filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 50);
-      if (!imeis.length) { saltados++; return; }
-      if (imeis.length !== uds && !confirm((T('pedidos.imeis_descuadre') || 'Has puesto {a} IMEI(s) pero el pedido es de {b} ud. Se registrarán solo {a} en stock. ¿Continuar?').replace(/{a}/g, imeis.length).replace('{b}', uds))) { saltados++; return; }
-      _recibirImeisDePedido(p, imeis, cat);
-    } else {
-      _recibirAStock(p, uds, existe, true, cat);
-    }
-    p.estado = 'recibido';
-    p.fecha_recibido = hoyLocal();
-    var patch = { estado: 'recibido' };
-    if (SB_KEY && typeof _sbPatchRaw === 'function') { try { _sbPatchRaw('pedidos', 'id=eq.' + encodeURIComponent(p.id), { fecha_recibido: p.fecha_recibido }); } catch (e) {} }
-    var gid = _gastoAlRecibir(p);
-    if (gid) { p.gasto_id = gid; patch.gasto_id = gid; }
-    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
-    recibidos++;
-  });
-  try { guardarDatos(); } catch (e) {}
-  renderPedidosWidget();
-  try { renderStock(); } catch (e) {}
-  toast((T('pedidos.recibidos_n') || '{n} pedidos recibidos').replace('{n}', recibidos) + (saltados ? ' · ' + saltados + ' ' + (T('pedidos.pendientes_resto') || 'sin IMEI, pendientes') : ''), 'ok');
+  confirmar((T('pedidos.recibir_todos_confirm') || '¿Marcar como recibidos los {n} pedidos y sumarlos al stock?').replace('{n}', pend.length), function () {
+    _procesarRecibirLista(pend, 0, { recibidos: 0, saltados: 0 }, function (ctr) {
+      toast((T('pedidos.recibidos_n') || '{n} pedidos recibidos').replace('{n}', ctr.recibidos) + (ctr.saltados ? ' · ' + ctr.saltados + ' ' + (T('pedidos.pendientes_resto') || 'sin IMEI, pendientes') : ''), 'ok');
+    });
+  }, { okLabel: T('pedidos.recibir_ok') || 'Recibir todos' });
 }
 // Recibir de golpe todos los productos «pedido» de un proveedor (no IMEI)
 function recibirGrupo(encKey) {
@@ -1638,35 +1613,11 @@ function recibirGrupo(encKey) {
   var sinProv = T('pedidos.sin_proveedor');
   var grp = (DB.pedidos || []).filter(function(p) { return p.estado === 'pedido' && (((p.proveedor || '').trim() || sinProv) === key); });
   if (!grp.length) return;
-  if (!confirm(T('pedidos.confirmar_grupo_recibir').replace('{n}', grp.length).replace('{prov}', key))) return;
-  var recibidos = 0, saltados = 0;
-  grp.forEach(function(p) {
-    var uds = parseInt(p.cantidad, 10) || 1;
-    var ex = _stockMatch(p.pieza);
-    if (ex && p.calidad && (ex.calidad || '') !== p.calidad) ex = null;
-    var cat = p.categoria || (ex ? ex.categoria : '');
-    if (_esImeiCat(cat)) {
-      var raw = prompt((T('pedidos.imeis_prompt') || 'IMEIs de "{pieza}" ({n} uds), uno por línea:').replace('{pieza}', p.pieza || '').replace('{n}', uds), '');
-      if (raw == null) { saltados++; return; }
-      var imeis = String(raw).split(/[\s,;]+/).map(function(s) { return s.trim(); }).filter(Boolean).filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 50);
-      if (!imeis.length) { saltados++; return; }
-      if (imeis.length !== uds && !confirm((T('pedidos.imeis_descuadre') || 'Has puesto {a} IMEI(s) pero el pedido es de {b} ud. Se registrarán solo {a} en stock. ¿Continuar?').replace(/{a}/g, imeis.length).replace('{b}', uds))) { saltados++; return; }
-      _recibirImeisDePedido(p, imeis, cat);
-    } else {
-      _recibirAStock(p, uds, ex, true, cat);
-    }
-    p.estado = 'recibido';
-    p.fecha_recibido = hoyLocal();
-    var patch = { estado: 'recibido' };
-    if (SB_KEY && typeof _sbPatchRaw === 'function') { try { _sbPatchRaw('pedidos', 'id=eq.' + encodeURIComponent(p.id), { fecha_recibido: p.fecha_recibido }); } catch (e) {} }
-    var gid = _gastoAlRecibir(p); if (gid) { p.gasto_id = gid; patch.gasto_id = gid; }
-    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
-    recibidos++;
-  });
-  try { guardarDatos(); } catch (e) {}
-  renderPedidosWidget();
-  try { renderStock(); } catch (e) {}
-  toast((T('pedidos.recibidos_n') || '{n} pedidos recibidos').replace('{n}', recibidos) + (saltados ? ' · ' + saltados + ' ' + (T('pedidos.pendientes_resto') || 'pendientes') : ''), 'ok');
+  confirmar(T('pedidos.confirmar_grupo_recibir').replace('{n}', grp.length).replace('{prov}', key), function () {
+    _procesarRecibirLista(grp, 0, { recibidos: 0, saltados: 0 }, function (ctr) {
+      toast((T('pedidos.recibidos_n') || '{n} pedidos recibidos').replace('{n}', ctr.recibidos) + (ctr.saltados ? ' · ' + ctr.saltados + ' ' + (T('pedidos.pendientes_resto') || 'pendientes') : ''), 'ok');
+    });
+  }, { okLabel: T('pedidos.recibir_ok') || 'Recibir' });
 }
 function eliminarPedido(id) {
   if (!tienePerm('stock_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
@@ -5298,6 +5249,73 @@ function pedirImporte(msg, defaultVal, onOk) {
   m.bg.addEventListener('click', function (e) { if (e.target === m.bg) fin(null); });
 }
 window.pedirImporte = pedirImporte;
+
+// Modal de texto multilínea (p.ej. pegar varios IMEIs). onOk recibe el texto, o null si cancela.
+function pedirTexto(msg, opts, onOk) {
+  opts = opts || {};
+  var m = _modalOverlay(
+    '<div style="font-size:14.5px;line-height:1.5;white-space:pre-line;margin-bottom:12px">' + escHtml(String(msg)) + '</div>' +
+    '<textarea id="_ptArea" rows="' + (opts.rows || 4) + '" placeholder="' + escHtml(opts.placeholder || '') + '" style="width:100%;padding:10px;border:1px solid var(--border,#E5E7EB);border-radius:9px;font:inherit;font-size:13px;resize:vertical;color:inherit;background:var(--light,#fff)"></textarea>' +
+    '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:14px">' +
+      '<button id="_ptNo" style="padding:9px 16px;border:1px solid var(--border,#E5E7EB);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + (opts.cancelLabel || 'Cancelar') + '</button>' +
+      '<button id="_ptYes" style="padding:9px 16px;border:none;background:var(--green,#10B981);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + (opts.okLabel || 'Aceptar') + '</button>' +
+    '</div>'
+  );
+  var ta = m.box.querySelector('#_ptArea');
+  setTimeout(function () { try { ta.focus(); } catch (e) {} }, 50);
+  function fin(val) { m.close(); if (typeof onOk === 'function') onOk(val); }
+  m.box.querySelector('#_ptYes').onclick = function () { fin(ta.value); };
+  m.box.querySelector('#_ptNo').onclick = function () { fin(null); };
+  m.bg.addEventListener('click', function (e) { if (e.target === m.bg) fin(null); });
+}
+window.pedirTexto = pedirTexto;
+
+// Marca un pedido como recibido (estado + fecha + gasto + sync). No toca el stock.
+function _finalizarRecibido(p) {
+  p.estado = 'recibido';
+  p.fecha_recibido = hoyLocal();
+  var patch = { estado: 'recibido' };
+  if (SB_KEY && typeof _sbPatchRaw === 'function') { try { _sbPatchRaw('pedidos', 'id=eq.' + encodeURIComponent(p.id), { fecha_recibido: p.fecha_recibido }); } catch (e) {} }
+  var gid = _gastoAlRecibir(p); if (gid) { p.gasto_id = gid; patch.gasto_id = gid; }
+  if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
+}
+
+// F207 (bulk): procesa una lista de pedidos a recibir de uno en uno, encadenando MODALES
+// (en vez de prompt()/confirm() nativos que bloqueaban la automatización). Recursivo asíncrono.
+function _procesarRecibirLista(lista, idx, ctr, onDone) {
+  if (idx >= lista.length) {
+    try { guardarDatos(); } catch (e) {}
+    renderPedidosWidget(); try { renderStock(); } catch (e) {}
+    if (onDone) onDone(ctr);
+    return;
+  }
+  var p = lista[idx];
+  var next = function () { _procesarRecibirLista(lista, idx + 1, ctr, onDone); };
+  var uds = parseInt(p.cantidad, 10) || 1;
+  var existe = _stockMatch(p.pieza);
+  if (existe && p.calidad && (existe.calidad || '') !== p.calidad) existe = null;
+  var cat = p.categoria || (existe ? existe.categoria : '');
+  if (_esImeiCat(cat)) {
+    pedirTexto((T('pedidos.imeis_prompt') || 'IMEIs de "{pieza}" ({n} uds), uno por línea:').replace('{pieza}', p.pieza || '').replace('{n}', uds),
+      { rows: 4, placeholder: '356789012345678\n356789012345679', okLabel: T('pedidos.add_stock_ok') || 'Registrar' },
+      function (raw) {
+        if (raw == null) { ctr.saltados++; return next(); }
+        var imeis = String(raw).split(/[\s,;]+/).map(function (s) { return s.trim(); }).filter(Boolean).filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 50);
+        if (!imeis.length) { ctr.saltados++; return next(); }
+        if (imeis.length !== uds) {
+          confirmar((T('pedidos.imeis_descuadre') || 'Has puesto {a} IMEI(s) pero el pedido es de {b} ud. Se registrarán solo {a} en stock. ¿Continuar?').replace(/{a}/g, imeis.length).replace('{b}', uds), null, { okLabel: 'Continuar' })
+            .then(function (ok) { if (ok) { _recibirImeisDePedido(p, imeis, cat); _finalizarRecibido(p); ctr.recibidos++; } else { ctr.saltados++; } next(); });
+        } else {
+          _recibirImeisDePedido(p, imeis, cat); _finalizarRecibido(p); ctr.recibidos++; next();
+        }
+      });
+  } else {
+    _recibirAStock(p, uds, existe, true, cat);
+    _finalizarRecibido(p);
+    ctr.recibidos++;
+    next();
+  }
+}
 
 function reembolsarVenta(id) {
   if (!tienePerm('ventas_reembolso')) { toast(T('gen.sin_permiso'), 'err'); return; }
