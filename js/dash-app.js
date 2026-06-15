@@ -618,6 +618,9 @@ window.addEventListener('DOMContentLoaded', function() {
   function _navFromHash() {
     try {
       var h = (location.hash || '').replace(/^#\/?/, '').toLowerCase().trim();
+      // F648/F649: el TPV es una página aparte (tpv.html), no un .page del SPA. #tpv/#pos
+      // deben llevar a esa página, no quedarse sin efecto en la vista actual.
+      if (h === 'tpv' || h === 'pos') { window.location.href = 'tpv.html'; return; }
       if (h && _HASH_NAV[h] && typeof navTo === 'function') navTo(_HASH_NAV[h]);
     } catch(e) {}
   }

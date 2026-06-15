@@ -218,7 +218,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
   .cart-fab,.cart-close-mobile{display:none!important}
 }
 </style>
-<script src="/lang/lang.v8.js?v=20260603i18n"></script>
+<script src="/lang/lang.v8.js?v=20260617i18n2"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -784,8 +784,12 @@ function toggleFav(type, id, ev) {
 // ═══ INIT ═══
 window.addEventListener('DOMContentLoaded', function() {
   if (!U) { window.location.href = 'app.html'; return; }
+  // F650: el TPV tenía data-t pero nunca aplicaba el idioma → salía todo en español.
+  try { if (typeof applyLang === 'function') applyLang(); } catch(e){}
   document.getElementById('topUser').textContent = U.nombre || '';
-  document.getElementById('topDate').textContent = new Date().toLocaleDateString('es', {weekday:'short',day:'numeric',month:'short'});
+  // F664: fecha en el idioma activo, no fija en español
+  var _loc = (typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es');
+  document.getElementById('topDate').textContent = new Date().toLocaleDateString(_loc, {weekday:'short',day:'numeric',month:'short'});
   renderFavBar();
   renderProducts();
   renderBrandBar();
