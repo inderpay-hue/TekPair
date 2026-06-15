@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260617rep4"></script>
+<script src="/lang/lang.v8.js?v=20260617b2b"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -1162,7 +1162,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <!-- PRES-3: Nuevo Presupuesto -->
     <button class="qbtn-dash" onclick="abrirPresupuesto()"><span class="qbtn-icon" style="background:rgba(168,85,247,.10);color:#8B5CF6">📋</span><span class="qbtn-label" data-t="dash.presupuesto">Presupuesto</span></button>
     <button class="qbtn-dash" onclick="navTo('pStock');nuevoStock()"><span class="qbtn-icon" style="background:rgba(249,115,22,.10);color:var(--orange)">📦</span><span class="qbtn-label" data-t="dash.anadir_stock">Añadir stock</span></button>
-    <button class="qbtn-dash" onclick="navTo('pClis');openM('mCli')"><span class="qbtn-icon" style="background:rgba(0,140,255,.10);color:var(--blue)">👤</span><span class="qbtn-label" data-t="dash.nuevo_cliente">Nuevo cliente</span></button>
+    <button class="qbtn-dash" onclick="navTo('pClis');ECID=null;limpiarFormCli();openM('mCli')"><span class="qbtn-icon" style="background:rgba(0,140,255,.10);color:var(--blue)">👤</span><span class="qbtn-label" data-t="dash.nuevo_cliente">Nuevo cliente</span></button>
   </div>
   <!-- VIS-18: empty state para tienda nueva -->
   <div id="dashEmptyState" style="display:none">
@@ -1177,7 +1177,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div style="font-size:13px;font-weight:700;color:var(--text)" data-t="dash.empty_nueva_rep">Nueva reparación</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="dash.empty_nueva_rep_desc">Registra el primer dispositivo</div>
       </button>
-      <button onclick="navTo('pClis');openM('mCli')" style="background:var(--white);border:2px dashed var(--border);border-radius:14px;padding:20px 16px;cursor:pointer;font-family:inherit;text-align:center;transition:border-color .15s,background .15s" onmouseover="this.style.borderColor='var(--blue)';this.style.background='var(--light)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--white)'">
+      <button onclick="navTo('pClis');ECID=null;limpiarFormCli();openM('mCli')" style="background:var(--white);border:2px dashed var(--border);border-radius:14px;padding:20px 16px;cursor:pointer;font-family:inherit;text-align:center;transition:border-color .15s,background .15s" onmouseover="this.style.borderColor='var(--blue)';this.style.background='var(--light)'" onmouseout="this.style.borderColor='var(--border)';this.style.background='var(--white)'">
         <div style="font-size:28px;margin-bottom:8px">👤</div>
         <div style="font-size:13px;font-weight:700;color:var(--text)" data-t="dash.empty_nuevo_cliente">Nuevo cliente</div>
         <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="dash.empty_nuevo_cliente_desc">Añade tu primer cliente</div>
@@ -4008,18 +4008,54 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal-bg" id="mCli">
 <div class="modal">
   <div class="modal-title" id="mCliTit"><span data-t="cli.nuevo_titulo">👤 Nuevo Cliente</span></div>
-  <div class="fi-row">
-    <div class="fg"><label class="fl"><span data-t="cli.nombre">Nombre</span> *</label><input class="fi" id="cNom" placeholder="Juan"></div>
-    <div class="fg"><label class="fl"><span data-t="cli.apellidos">Apellidos</span></label><input class="fi" id="cApe" placeholder="García"></div>
+  <!-- F229: tipo de cliente (particular / empresa) -->
+  <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;background:var(--light);padding:8px 12px;border-radius:8px;margin-bottom:12px">
+    <input type="checkbox" id="cEsEmpresa" onchange="toggleCliEmpresa()"> <strong data-t="cli.es_empresa">Es empresa (factura con CIF y razón social)</strong>
+  </label>
+  <!-- Particular -->
+  <div id="cBoxParticular">
+    <div class="fi-row">
+      <div class="fg"><label class="fl"><span data-t="cli.nombre">Nombre</span> *</label><input class="fi" id="cNom" placeholder="Juan" autocomplete="off"></div>
+      <div class="fg"><label class="fl"><span data-t="cli.apellidos">Apellidos</span></label><input class="fi" id="cApe" placeholder="García" autocomplete="off"></div>
+    </div>
+  </div>
+  <!-- Empresa -->
+  <div id="cBoxEmpresa" style="display:none">
+    <div class="fg"><label class="fl"><span data-t="cli.razon_social">Razón social</span> *</label><input class="fi" id="cRazon" placeholder="Talleres García S.L." autocomplete="off"></div>
+    <div class="fg"><label class="fl" data-t="cli.persona_contacto">Persona de contacto</label><input class="fi" id="cPersonaCont" placeholder="Juan García" autocomplete="off"></div>
   </div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Telefono</label><input class="fi" id="cTel" type="tel" placeholder="6XX XXX XXX"></div>
-    <div class="fg"><label class="fl"><span data-t="cli.email">Email</span></label><input class="fi" id="cEmail" type="email" placeholder="email@..."></div>
+    <div class="fg" style="flex:0 0 34%"><label class="fl" data-t="cli.prefijo">Prefijo</label>
+      <select class="fi" id="cTelPref">
+        <option value="+34">🇪🇸 +34</option><option value="+351">🇵🇹 +351</option><option value="+33">🇫🇷 +33</option>
+        <option value="+49">🇩🇪 +49</option><option value="+44">🇬🇧 +44</option><option value="+39">🇮🇹 +39</option>
+        <option value="+376">🇦🇩 +376</option><option value="+212">🇲🇦 +212</option><option value="+40">🇷🇴 +40</option>
+        <option value="+48">🇵🇱 +48</option><option value="+1">🇺🇸 +1</option>
+      </select>
+    </div>
+    <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="cTel" type="tel" inputmode="tel" placeholder="6XX XXX XXX" autocomplete="tel"></div>
   </div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">DNI/NIE</label><input class="fi" id="cDni" placeholder="12345678A"></div>
-    <div class="fg"><label class="fl">Fecha de nacimiento</label><input class="fi" id="cFnac" type="date"></div>
+    <div class="fg"><label class="fl"><span id="cDniLbl">DNI/NIE</span></label><input class="fi" id="cDni" placeholder="12345678A" autocomplete="off"></div>
+    <div class="fg"><label class="fl"><span data-t="cli.email">Email</span></label><input class="fi" id="cEmail" type="email" placeholder="email@..." autocomplete="off"></div>
   </div>
+  <!-- F230: dirección estructurada (para facturas) -->
+  <div class="fg"><label class="fl" data-t="cli.direccion">Dirección</label><input class="fi" id="cDir" placeholder="Calle y número" autocomplete="off"></div>
+  <div class="fi-row">
+    <div class="fg" style="flex:0 0 30%"><label class="fl" data-t="cli.cp">C. Postal</label><input class="fi" id="cCp" placeholder="28001" inputmode="numeric" autocomplete="off"></div>
+    <div class="fg"><label class="fl" data-t="cli.ciudad">Ciudad</label><input class="fi" id="cCiudad" placeholder="Madrid" autocomplete="off"></div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl" data-t="cli.provincia">Provincia</label><input class="fi" id="cProv" placeholder="Madrid" autocomplete="off"></div>
+    <div class="fg"><label class="fl" data-t="cli.pais">País</label>
+      <select class="fi" id="cPais">
+        <option>España</option><option>Portugal</option><option>Francia</option><option>Alemania</option>
+        <option>Italia</option><option>Reino Unido</option><option>Andorra</option><option>Marruecos</option>
+        <option>Rumanía</option><option>Polonia</option><option data-t="gen.otro">Otro</option>
+      </select>
+    </div>
+  </div>
+  <div class="fg" id="cFnacBox"><label class="fl">Fecha de nacimiento <span style="font-size:9px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">— opcional, para felicitar/promos</span></label><input class="fi" id="cFnac" type="date"></div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mCli')" data-t="gen.cancelar">Cancelar</button>
     <button class="btn-primary" onclick="guardarCli()"><span data-t="gen.guardar">Guardar</span></button>
@@ -4414,7 +4450,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260617cita"></script>
+<script src="/js/dash-app.js?v=20260617b2b"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
