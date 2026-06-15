@@ -1519,7 +1519,7 @@ function avanzarPedido(id) {
       var msg = existe
         ? T('pedidos.add_stock_sumar').replace('{n}', uds).replace('{pieza}', p.pieza || '').replace('{cur}', parseInt(existe.unidades, 10) || 0)
         : T('pedidos.add_stock').replace('{n}', uds).replace('{pieza}', p.pieza || '');
-      confirmar(msg, function () { _recibirAStock(p, uds, existe, false, cat); }, { okLabel: _pedBtnLbl('stock') });
+      confirmar(msg, function () { tpWithBusy(T('pedidos.recibiendo') || 'Recibiendo…', function () { _recibirAStock(p, uds, existe, false, cat); }); }, { okLabel: _pedBtnLbl('stock') });
     }
   }
   renderPedidosWidget();
@@ -2020,6 +2020,60 @@ function toast(msg, type) {
   t.textContent = msg;
   t.className = 'show' + (type ? ' ' + type : '');
   setTimeout(function() { t.className = ''; }, 2500);
+}
+
+// ═══ SPINNER GLOBAL DE MUTACIONES ═══
+// Overlay que bloquea la interacción mientras una operación pesada (reembolso, recibir
+// pedido…) reescribe stock y re-renderiza. Bloquear la UI evita además el multi-click que
+// duplicaba líneas. Usa un contador para soportar llamadas anidadas.
+var _tpBusyCount = 0;
+function tpBusy(on, msg) {
+  if (on) {
+    _tpBusyCount++;
+    var ov = document.getElementById('tpBusyOverlay');
+    if (!ov) {
+      if (!document.getElementById('tpBusyStyle')) {
+        var st = document.createElement('style');
+        st.id = 'tpBusyStyle';
+        st.textContent = '@keyframes tpSpin{to{transform:rotate(360deg)}}' +
+          '#tpBusyOverlay{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;' +
+          'align-items:center;justify-content:center;gap:14px;background:rgba(15,23,41,.38);' +
+          'backdrop-filter:blur(1px);cursor:wait}' +
+          '#tpBusyOverlay .tpb-spin{width:44px;height:44px;border:4px solid rgba(255,255,255,.35);' +
+          'border-top-color:#fff;border-radius:50%;animation:tpSpin .8s linear infinite}' +
+          '#tpBusyOverlay .tpb-msg{color:#fff;font-weight:600;font-size:14px;text-shadow:0 1px 3px rgba(0,0,0,.3)}';
+        document.head.appendChild(st);
+      }
+      ov = document.createElement('div');
+      ov.id = 'tpBusyOverlay';
+      ov.innerHTML = '<div class="tpb-spin"></div><div class="tpb-msg"></div>';
+      document.body.appendChild(ov);
+    }
+    ov.querySelector('.tpb-msg').textContent = msg || T('gen.procesando') || 'Procesando…';
+    ov.style.display = 'flex';
+  } else {
+    _tpBusyCount = Math.max(0, _tpBusyCount - 1);
+    if (_tpBusyCount === 0) {
+      var o = document.getElementById('tpBusyOverlay');
+      if (o) o.style.display = 'none';
+    }
+  }
+}
+// Ejecuta fn mostrando el spinner. Cede un frame para que el overlay PINTE antes del
+// trabajo síncrono pesado (si no, el hilo se bloquea y el spinner no llega a verse).
+// Soporta fn síncrona o que devuelva Promise.
+function tpWithBusy(msg, fn) {
+  tpBusy(true, msg);
+  return new Promise(function(resolve) {
+    setTimeout(function() {
+      var done = function() { tpBusy(false); resolve(); };
+      try {
+        var r = fn();
+        if (r && typeof r.then === 'function') r.then(done, function(e){ console.error(e); done(); });
+        else done();
+      } catch (e) { console.error(e); done(); }
+    }, 30);
+  });
 }
 
 // ═══ LOCAL DATA ═══
@@ -5358,6 +5412,7 @@ function reembolsarVenta(id) {
   var v = DB.ventas.find(function(x) { return x.id === id; });
   if (!v) return;
   confirmar('Reembolsar venta de ' + v.clienteNombre + ' por ' + cur(v.total) + '?', function () {
+  tpWithBusy(T('venta.reembolsando') || 'Reembolsando…', function () {
   if (typeof audit === 'function') audit('reembolso', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total) + ' · ' + ((v.marca || '') + ' ' + (v.modelo || '')).trim(), null);
   v.reembolsado = true;
   v.fechaReembolso = hoyLocal();
@@ -5396,8 +5451,11 @@ function reembolsarVenta(id) {
   // que antes quedaban con cifras viejas porque solo se re-renderizaba renderDash (clásico).
   try { if (typeof renderInicioNuevo === 'function') renderInicioNuevo(); } catch (e) {}
   try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch (e) {}
-  // F50/F51: si la venta tenía factura emitida, ofrecer emitir la rectificativa (abono).
-  _ofrecerAbonoPorVenta(id);
+  }).then(function () {
+    // F50/F51: si la venta tenía factura emitida, ofrecer emitir la rectificativa (abono).
+    // Fuera del spinner: abre su propio modal de confirmación.
+    _ofrecerAbonoPorVenta(id);
+  });
   }, { okLabel: 'Reembolsar', danger: true });
 }
 
