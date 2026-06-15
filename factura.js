@@ -767,8 +767,16 @@
   window.generarFacturaPDFDoc = function(f) {
     return new Promise(function(resolve, reject) {
       if (!f) { reject(new Error('Sin datos de factura')); return; }
-      if (!window.jspdf || !window.jspdf.jsPDF) { reject(new Error('Libreria PDF no cargada')); return; }
+      // jsPDF bajo demanda (ya no viene en el <head>)
+      var _ready = (window.jspdf && window.jspdf.jsPDF)
+        ? Promise.resolve()
+        : (typeof window.cargarJsPDF === 'function' ? window.cargarJsPDF() : Promise.reject(new Error('Libreria PDF no cargada')));
+      _ready.then(function(){ _dibujarFacturaPDF(f, resolve, reject); }, function(e){ reject(e); });
+    });
+  };
 
+  function _dibujarFacturaPDF(f, resolve, reject) {
+    {
       var emi = f.emisor_snapshot || {};
       var cli = f.cliente_snapshot || {};
       var lineas = f.lineas || [];
@@ -918,8 +926,8 @@
           reject(eDoc);
         }
       });
-    });
-  };
+    }
+  }
 
   window.generarFacturaPDF = function(f) {
     if (!f) { _toast('No hay datos de factura para el PDF', 'err'); return; }

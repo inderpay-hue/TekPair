@@ -10345,6 +10345,20 @@ function cargarJSZip() {
   });
 }
 
+// Chart.js bajo demanda (solo en Reportes). Antes venía en el <head> en cada carga.
+function cargarChart() {
+  if (window.Chart) return Promise.resolve(window.Chart);
+  if (window._chartLoading) return window._chartLoading;
+  window._chartLoading = new Promise(function(resolve, reject) {
+    var s = document.createElement('script');
+    s.src = 'https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js';
+    s.onload = function() { window.Chart ? resolve(window.Chart) : reject(new Error('Chart no se cargó')); };
+    s.onerror = function() { reject(new Error('No se pudo descargar Chart.js')); };
+    document.head.appendChild(s);
+  });
+  return window._chartLoading;
+}
+
 // Calcula rango [ini, fin] + etiqueta legible para un periodo dado
 function calcPeriodoGasto(periodo) {
   var hoy = new Date();
@@ -11582,7 +11596,11 @@ function _enviarCierreCobrumPendiente() {
 window._enviarCierreCobrumPendiente = _enviarCierreCobrumPendiente;
 
 function renderGraficas(ventas, reps, pagos, fechas) {
-  if (typeof Chart === 'undefined') return;
+  // Chart.js se carga bajo demanda: si aún no está, lo traemos y reintentamos.
+  if (typeof Chart === 'undefined') {
+    cargarChart().then(function(){ renderGraficas(ventas, reps, pagos, fechas); }).catch(function(){});
+    return;
+  }
 
   // Tema dark/light aware
   var isDark = document.body.getAttribute('data-theme') === 'dark';
@@ -15707,13 +15725,11 @@ function fechaArchivo() {
 
 async function exportarTodo() {
   if (!checkFeature('backup')) return;
-  if (typeof JSZip === 'undefined') {
-    toast('Librería ZIP no cargada. Recarga la página.', 'err');
-    return;
-  }
   toast('⏳ Generando backup...', 'ok');
   try {
-    var zip = new JSZip();
+    // JSZip se carga bajo demanda (ya no viene en el <head>)
+    var JSZipLib = await cargarJSZip();
+    var zip = new JSZipLib();
     // Datos completos
     var backup = {
       version: '1.0',
@@ -16837,13 +16853,14 @@ function impFacMostrarError(msg) {
 
 async function impFacProcesarPDF(file) {
   if (!file || file.type !== 'application/pdf') { impFacMostrarError('Solo se aceptan PDFs.'); return; }
-  if (typeof pdfjsLib === 'undefined') { impFacMostrarError('Librería PDF no cargada. Recarga la página.'); return; }
 
   document.getElementById('impFacPaso1').style.display = 'none';
   document.getElementById('impFacPaso2').style.display = '';
   document.getElementById('impFacLoadingMsg').textContent = 'Extrayendo texto...';
 
   try {
+    // pdf.js se carga bajo demanda (ya no viene en el <head>)
+    var pdfjsLib = await _cargarPdfJs();
     var arrBuffer = await file.arrayBuffer();
     var pdf = await pdfjsLib.getDocument({data: arrBuffer}).promise;
     var fullText = '';
