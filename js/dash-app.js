@@ -791,7 +791,7 @@ function _fillProvDatalist() {
     .map(function(p) { return '<option value="' + escHtml(p.nombre) + '">'; }).join('');
 }
 // Nombre legible de un producto de stock (para vincular pedidos)
-function _stockNombre(s) { return [s.marca, s.modelo, s.capacidad, s.color].map(function(x) { return (x || '').trim(); }).filter(Boolean).join(' '); }
+function _stockNombre(s) { return [_eqNombre(s.marca, s.modelo), (s.capacidad || '').trim(), (s.color || '').trim()].filter(Boolean).join(' '); }
 // Busca un item de stock que coincida exactamente con el nombre de la pieza
 function _stockMatch(pieza) {
   var n = (pieza || '').trim().toLowerCase();
@@ -1005,6 +1005,15 @@ function _esModeloDispositivo(m) {
 // Etiqueta legible de categoría (acentos correctos en la UI)
 var _CAT_LABELS = { 'Telefono':'Teléfono', 'Bateria':'Batería', 'Camara':'Cámara' };
 function _catLabel(cat) { return _CAT_LABELS[cat] || cat || ''; }
+// F269/F270: nombre de equipo sin duplicar la marca cuando el modelo ya la incluye
+// ("Xiaomi" + "Xiaomi Redmi Note 12" → "Xiaomi Redmi Note 12", no "Xiaomi Xiaomi …").
+function _eqNombre(marca, modelo) {
+  marca = (marca || '').trim(); modelo = (modelo || '').trim();
+  if (!marca) return modelo;
+  if (!modelo) return marca;
+  if (modelo.toLowerCase().indexOf(marca.toLowerCase()) === 0) return modelo; // el modelo ya empieza por la marca
+  return (marca + ' ' + modelo).trim();
+}
 function setPedMarca(m) {
   var e = document.getElementById('pedMarca'); if (!e) return;
   e.value = m; renderPedMarcas();
@@ -1599,7 +1608,7 @@ function _recibirAStock(p, uds, existe, silent, cat) {
     stock_min: item.stockMin, stock_max: item.stockMax, vendido: false,
     calidad: item.calidad || null, tipo: 'nuevo', garantia_meses: 0, ubicacion: null
   });
-  _logMov('entrada', ((item.marca || '') + ' ' + (item.modelo || '')).trim(), uds, p.proveedor || T('pedidos.pieza'));
+  _logMov('entrada', _eqNombre(item.marca, item.modelo), uds, p.proveedor || T('pedidos.pieza'));
   try { guardarDatos(); } catch(e){}
   try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
   if (!silent) toast(T('pedidos.stock_anadido').replace('{n}', uds), 'ok');
@@ -1625,7 +1634,7 @@ function _recibirImeisDePedido(p, imeis, cat) {
       stock_min: 2, stock_max: 10, vendido: false,
       calidad: item.calidad || null, tipo: 'nuevo', garantia_meses: 0, ubicacion: null
     });
-    _logMov('entrada', ((item.marca || '') + ' ' + (item.modelo || '')).trim() + ' ' + imei, 1, p.proveedor || T('pedidos.pieza'));
+    _logMov('entrada', _eqNombre(item.marca, item.modelo) + ' ' + imei, 1, p.proveedor || T('pedidos.pieza'));
   });
 }
 // Recibir TODOS los pedidos en estado 'pedido' de golpe. No-IMEI en bloque; IMEI pidiendo los códigos.
@@ -4094,7 +4103,7 @@ function busModelo() {
   }
 
   box.innerHTML = (esTopUsados ? '<div class="cli-item" style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;cursor:default;pointer-events:none">' + (T('rep.tus_mas_usados') || 'Tus más usados') + '</div>' : '') + matches.map(function(m, i){
-    var label = m.marca + ' ' + m.modelo;
+    var label = _eqNombre(m.marca, m.modelo);
     // F218: separadores claros — antes el texto salía pegado ("…20WtuyoTelefono")
     var tag = m.custom
       ? '<span style="font-size:9px;background:rgba(255,91,31,.12);color:var(--purple);padding:2px 6px;border-radius:4px;margin-left:6px">· tuyo</span>'
@@ -8512,7 +8521,7 @@ function imprimirPresupuesto(repId) {
 function renderReps() {
   var list = DB.reps.slice().reverse().filter(function(r) {
     // 'A deber': reparaciones ENTREGADAS o FINANCIADAS con saldo pendiente (el cliente tiene el equipo y debe).
-    if (SEL.repFiltro === 'adeber') return (parseFloat(r.restante) || 0) > 0 && (r.estado === 'Entregado' || (r.financiado && r.estadoFinanciado !== 'completado'));
+    if (SEL.repFiltro === 'adeber') return !r.esGarantia && (parseFloat(r.restante) || 0) > 0 && (r.estado === 'Entregado' || (r.financiado && r.estadoFinanciado !== 'completado'));
     // PRES-2: 'Todas' excluye presupuestos (lista distinta). Solo se ven con filtro explícito.
     if (SEL.repFiltro === 'todas') return r.estado !== 'Presupuesto';
     // 'Garantía': mismo criterio que el badge 🛡️ EN GARANTÍA (manual esGarantia O auto-detectada),
@@ -8585,7 +8594,12 @@ function renderReps() {
       + '<td>' + priBadge + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
       + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
-      + '<td style="font-weight:700;color:var(--green)">' + cur(r.total) + ((parseFloat(r.restante) || 0) > 0 ? '<br><span style="font-size:10px;font-weight:700;color:#EA580C" title="' + T('rep.queda_deber') + '">⏳ ' + cur(r.restante) + '</span>' : '') + '</td>'
+      + '<td style="font-weight:700;color:var(--green)">' + (r.esGarantia
+          // F274: una reparación EN GARANTÍA no se cobra al cliente → "sin coste", con el
+          // total mostrado como coste interno (cuánto te cuesta cubrir la garantía), sin "a deber".
+          ? '<span style="color:#2563EB" title="Cubierto por garantía — no se cobra al cliente">🛡️ ' + (T('rep.garantia_sin_coste') || 'Sin coste') + '</span>' + ((parseFloat(r.total) || 0) > 0 ? '<br><span style="font-size:10px;color:var(--muted)" title="Coste interno de la garantía">' + cur(r.total) + '</span>' : '')
+          : cur(r.total) + ((parseFloat(r.restante) || 0) > 0 ? '<br><span style="font-size:10px;font-weight:700;color:#EA580C" title="' + T('rep.queda_deber') + '">⏳ ' + cur(r.restante) + '</span>' : '')
+        ) + '</td>'
       + '<td>' + btnDetalleR + btnFin + btnCobrar + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnPresEnviar + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
   });
   html += '</tbody></table></div>';
@@ -8975,7 +8989,7 @@ function renderStock() {
     var alertas = DB.stock.filter(function(s) { return s.unidades > 0 && s.unidades <= s.stockMin; });
     elA.innerHTML = alertas.length ? alertas.map(function(s) {
       return '<div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px">' +
-        '\u26a0\ufe0f <strong>' + s.marca + ' ' + s.modelo + '</strong> \u2014 Solo ' + s.unidades + ' ud.</div>';
+        '\u26a0\ufe0f <strong>' + escHtml(_eqNombre(s.marca, s.modelo)) + '</strong> \u2014 Solo ' + s.unidades + ' ud.</div>';
     }).join('') : '';
     elA.style.display = '';
   } else {
@@ -9001,7 +9015,7 @@ function renderStock() {
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="stock.producto">Producto</span></th><th><span data-t="stock.categoria">Cat.</span></th>' + thUbic + '<th><span data-t="stock.unidades">Uds.</span></th><th><span data-t="gen.pvp">PVP</span></th><th></th></tr></thead><tbody>';
   list.forEach(function(s) {
     html += '<tr>' +
-      '<td><strong>' + s.marca + ' ' + s.modelo + '</strong>' +
+      '<td><strong>' + escHtml(_eqNombre(s.marca, s.modelo)) + '</strong>' +
       ((s.capacidad || s.color) ? '<br><span style="font-size:9px;color:var(--muted)">' + [s.capacidad, s.color].filter(Boolean).join(' · ') + '</span>' : '') +
       (s.calidad ? ' <span style="font-size:9px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 5px;border-radius:4px">' + esc(s.calidad) + '</span>' : '') +
       (s.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">IMEI: ' + s.imei + '</span>' : '') + '</td>' +
@@ -9061,7 +9075,7 @@ function busModeloStock() {
   res.innerHTML = matches.map(function(m){
     var marca = m.marca || '';
     var modelo = m.modelo || '';
-    var label = marca + ' ' + modelo;
+    var label = _eqNombre(marca, modelo);
     var tag = m.custom
       ? '<span style="font-size:9px;background:rgba(255,91,31,.12);color:var(--purple);padding:2px 6px;border-radius:4px;margin-left:6px">tuyo</span>'
       : '';
@@ -14620,7 +14634,7 @@ function abrirDetalleRep(repId) {
     else if (r.estado === 'En Proceso') btns += '<button class="btn-sm" style="background:#00C896;color:white;flex:1" onclick="closeM(\'mDetalleRep\');cambiarEstado(\'' + r.id + '\',\'Por Entregar\')">📦 Por entregar</button>';
     if (_repCerradas.indexOf(r.estado) === -1) btns += '<button class="btn-sm" style="background:#16a34a;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirEntregar(\'' + r.id + '\')">✅ Entregar</button>';
   }
-  if (!r.financiado && r.estado === 'Entregado' && (parseFloat(r.restante) || 0) > 0) btns += '<button class="btn-sm" style="background:var(--green);color:white;flex:1" onclick="closeM(\'mDetalleRep\');cobrarSaldoRep(\'' + r.id + '\')">💵 Cobrar</button>';
+  if (!r.financiado && !r.esGarantia && r.estado === 'Entregado' && (parseFloat(r.restante) || 0) > 0) btns += '<button class="btn-sm" style="background:var(--green);color:white;flex:1" onclick="closeM(\'mDetalleRep\');cobrarSaldoRep(\'' + r.id + '\')">💵 Cobrar</button>';
   if (r.financiado && r.estadoFinanciado !== 'completado') btns += '<button class="btn-sm" style="background:#8B5CF6;color:white;flex:1" onclick="closeM(\'mDetalleRep\');verFinanciado(\'' + r.id + '\')">💰 Cuotas</button>';
   if (r.estado === 'Entregado') btns += '<button class="btn-sm" style="background:#0EA5E9;color:white;flex:1" onclick="closeM(\'mDetalleRep\');factRep(\'' + r.id + '\')">📄 Factura</button>';
   // Reabrir en garantía: explícito en la Entregada (antes había que crear una rep nueva a mano)
