@@ -3622,6 +3622,19 @@ de:{'notif.no_leidas':'Ungelesen','notif.leidas':'Gelesen','notif.marcar_leidas'
 pt:{'notif.no_leidas':'Não lidas','notif.leidas':'Lidas','notif.marcar_leidas':'✓ Marcar lidas','app.version_nueva':'✨ Há uma nova versão do TekPair','app.recargar':'Recarregar','gen.cliente':'Cliente','gen.modelo':'Modelo','gen.pago':'Pagamento','gen.estado':'Estado','gen.prioridad':'Prioridade','gen.averia':'Avaria','gen.buscar_global':'Procurar clientes, reparações, vendas, produtos…','fact.col_numero':'Número','fact.col_origen':'Origem','fact.col_base':'Base','fact.col_iva':'IVA','fact.total_facturado':'Total faturado','rep.col_fentrega':'Entrega','rep.col_fentregado':'Entregue','fact.abono_confirm':'Esta venda tinha a fatura {num}.\n\nEmitir a sua nota de crédito (reembolso) de {total}?'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
+// i18n SLA "en taller" (F562)
+(function(){var _a={es:{'rep.en_taller':'{n}d en taller — revisar'},en:{'rep.en_taller':'{n}d in shop — review'},fr:{'rep.en_taller':'{n}j en atelier — à revoir'},it:{'rep.en_taller':'{n}g in officina — da rivedere'},de:{'rep.en_taller':'{n}T in Werkstatt — prüfen'},pt:{'rep.en_taller':'{n}d na oficina — rever'}};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+// i18n presupuestos (F692/F693) + Help (F594) + cajas (F451)
+(function(){var _a={
+es:{'pres.convertir':'➡️ Convertir','help.contacto':'Contacto soporte','help.mensaje':'Mensaje','help.describe_ph':'Describe tu problema…','help.enviar':'Enviar mensaje','cajas.sin_cerrar':'Sin cerrar'},
+en:{'pres.convertir':'➡️ Convert','help.contacto':'Support contact','help.mensaje':'Message','help.describe_ph':'Describe your issue…','help.enviar':'Send message','cajas.sin_cerrar':'Not closed'},
+fr:{'pres.convertir':'➡️ Convertir','help.contacto':'Contact support','help.mensaje':'Message','help.describe_ph':'Décrivez votre problème…','help.enviar':'Envoyer le message','cajas.sin_cerrar':'Non clôturée'},
+it:{'pres.convertir':'➡️ Converti','help.contacto':'Contatto assistenza','help.mensaje':'Messaggio','help.describe_ph':'Descrivi il problema…','help.enviar':'Invia messaggio','cajas.sin_cerrar':'Non chiusa'},
+de:{'pres.convertir':'➡️ Umwandeln','help.contacto':'Support-Kontakt','help.mensaje':'Nachricht','help.describe_ph':'Beschreibe dein Problem…','help.enviar':'Nachricht senden','cajas.sin_cerrar':'Nicht abgeschlossen'},
+pt:{'pres.convertir':'➡️ Converter','help.contacto':'Contacto suporte','help.mensaje':'Mensagem','help.describe_ph':'Descreve o teu problema…','help.enviar':'Enviar mensagem','cajas.sin_cerrar':'Por fechar'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
 // i18n filtros Citas (F326)
 (function(){var _a={es:{'citas.pendientes':'Pendientes'},en:{'citas.pendientes':'Pending'},fr:{'citas.pendientes':'En attente'},it:{'citas.pendientes':'In sospeso'},de:{'citas.pendientes':'Ausstehend'},pt:{'citas.pendientes':'Pendentes'}};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 

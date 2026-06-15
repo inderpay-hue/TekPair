@@ -8322,8 +8322,17 @@ function renderKanban() {
         html += '<div class="kanban-card-cli">' + esc(r.clienteNombre || T('gen.sin_cliente')) + '</div>';
         html += '<div class="kanban-card-mod">' + esc((r.marca||'') + ' ' + (r.modelo||'')).trim() + '</div>';
         if (r.averia) html += '<div class="kanban-card-mod" style="font-style:italic">' + esc(r.averia.length>40?r.averia.slice(0,38)+'…':r.averia) + '</div>';
+        // F562: SLA por antigüedad de entrada. Una reparación abierta >14 días en taller se
+        // marca en rojo aunque no tenga fecha de entrega prometida (estancada = a revisar).
+        var slaBadge = '';
+        var _fi = _parseDateAny(r.fecha);
+        if (_fi) {
+          var _enTaller = Math.floor((new Date() - _fi) / 86400000);
+          if (_enTaller >= 14) slaBadge = '<span class="kanban-card-dias urgente" title="' + esc(T('rep.en_taller').replace('{n}', _enTaller)) + '">⏳ ' + _enTaller + 'd</span>';
+        }
         html += '<div class="kanban-card-row">';
         html += '<span class="kanban-card-total">' + cur(r.total || 0) + '</span>';
+        if (slaBadge) html += slaBadge;
         if (dias) html += '<span class="kanban-card-dias' + diasClass + '">' + dias + '</span>';
         html += '</div>';
         html += '</div>';
@@ -8451,21 +8460,21 @@ function renderPresupuestos() {
     // Estado visual
     var estadoBadge = '';
     if (r.estado === 'Rechazado') {
-      estadoBadge = '<span class="badge br">✗ Rechazado</span>';
+      estadoBadge = '<span class="badge br">✗ ' + T('estado.Rechazado') + '</span>';
     } else if (r.presupuesto_aceptado_at) {
       var _fAc = ''; try { _fAc = new Date(r.presupuesto_aceptado_at).toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}); } catch(e){}
-      estadoBadge = '<span class="badge bg" style="background:rgba(22,163,74,.1);color:#16A34A">✓ Aceptado' + (_fAc ? ' · ' + _fAc : '') + (r.firma_cliente ? ' ✍️' : '') + '</span>';
+      estadoBadge = '<span class="badge bg" style="background:rgba(22,163,74,.1);color:#16A34A">' + T('pres.aceptado') + '' + (_fAc ? ' · ' + _fAc : '') + (r.firma_cliente ? ' ✍️' : '') + '</span>';
     } else {
-      estadoBadge = '<span class="badge by">Pendiente</span>';
+      estadoBadge = '<span class="badge by">' + T('estado.Pendiente') + '</span>';
     }
 
     // Botones
     var esRech = (r.estado === 'Rechazado');
     var aceptadoCli = !!r.presupuesto_aceptado_at;
     // Aceptar/convertir: oculto si ya rechazado. Si el cliente ya aceptó online → "Convertir".
-    var btnAcept  = esRech ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-acept2" title="' + (aceptadoCli ? 'Convertir a reparación' : 'Aceptar — convertir a reparación') + '" style="background:var(--green);color:white;border-color:var(--green)">' + (aceptadoCli ? '<span>➡️ Convertir</span>' : '<span data-t="pres.aceptar">✓ Aceptar</span>') + '</button>';
-    var btnFirmar = esRech ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-firma2" title="Firmar en tablet" style="background:#8B5CF6;color:white;border-color:#8B5CF6"><span data-t="pres.firmar">✍️ Firmar</span></button>';
-    var btnEnviar = esRech ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-enviar2" title="Enviar al cliente por WA/Email" style="background:#0EA5E9;color:white;border-color:#0EA5E9"><span data-t="pres.enviar">📤 Enviar</span></button>';
+    var btnAcept  = esRech ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-acept2" title="' + (aceptadoCli ? 'Convertir a reparación' : 'Aceptar — convertir a reparación') + '" style="background:var(--green);color:white;border-color:var(--green)">' + (aceptadoCli ? T('pres.convertir') : T('pres.aceptar')) + '</button>';
+    var btnFirmar = esRech ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-firma2" title="Firmar en tablet" style="background:#8B5CF6;color:white;border-color:#8B5CF6">' + T('pres.firmar') + '</button>';
+    var btnEnviar = esRech ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-enviar2" title="Enviar al cliente por WA/Email" style="background:#0EA5E9;color:white;border-color:#0EA5E9">' + T('pres.enviar') + '</button>';
     var btnEditar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-edit2" title="Editar presupuesto">✏️</button>';
     // Rechazar: oculto si ya rechazado o si el cliente ya lo aceptó (sería contradictorio).
     var btnRech   = (esRech || aceptadoCli || !tienePerm('reps_eliminar')) ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-rech2" title="Rechazar">✗</button>';
