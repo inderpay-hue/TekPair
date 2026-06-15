@@ -974,7 +974,12 @@ function renderPedMarcas() {
   });
   var nombres = Object.keys(counts).map(function(k) { return counts[k]; }).sort(function(a, b) { return b.n - a.n; }).map(function(o) { return o.nombre; });
   var lower = nombres.map(function(x) { return x.toLowerCase(); });
-  (typeof STK_BRANDS_COMUNES !== 'undefined' ? STK_BRANDS_COMUNES : []).forEach(function(m) { if (lower.indexOf(m.toLowerCase()) === -1) nombres.push(m); });
+  // F308/F309: sugerir marcas según la categoría — accesorios (Anker/JBL/Logitech…) si la
+  // categoría no es de dispositivo; marcas de móvil en otro caso; mezcla si no hay categoría.
+  var esAccCat = cat && ['Accesorio','Cable','Cargador','Auricular','Funda','Protector'].indexOf(cat) !== -1;
+  var comunes = !cat ? _CHIP_MARCAS_TELEFONO.concat(_CHIP_MARCAS_ACCESORIO)
+    : (esAccCat ? _CHIP_MARCAS_ACCESORIO : _CHIP_MARCAS_TELEFONO);
+  comunes.forEach(function(m) { if (lower.indexOf(m.toLowerCase()) === -1) { nombres.push(m); lower.push(m.toLowerCase()); } });
   nombres = nombres.slice(0, 14);
   var smEl = document.getElementById('pedMarca');
   var sel = (smEl ? smEl.value : '').trim().toLowerCase();
@@ -984,7 +989,10 @@ function renderPedMarcas() {
   }).join('');
 }
 // F206: categoría sugerida según la marca (audio/cargadores/almacenamiento = Accesorio)
-var _MARCAS_ACCESORIO = ['anker','jbl','belkin','baseus','ugreen','spigen','aukey','bose','sennheiser','soundcore','tronsmart','jaybird','pny','sandisk','kingston','generico','genérico','generic','tooq','nanocable'];
+var _MARCAS_ACCESORIO = ['anker','jbl','belkin','baseus','ugreen','spigen','aukey','bose','sennheiser','soundcore','tronsmart','jaybird','pny','sandisk','kingston','generico','genérico','generic','tooq','nanocable','logitech','razer','hama','jaybird'];
+// F308/F309: nombres "bonitos" para los chips de marca según el tipo de pedido
+var _CHIP_MARCAS_ACCESORIO = ['Anker','JBL','Belkin','Baseus','UGREEN','Spigen','Logitech','Bose','Genérico'];
+var _CHIP_MARCAS_TELEFONO = ['Apple','Samsung','Xiaomi','Huawei','Google','OPPO','Realme','Motorola','OnePlus','Honor','Nokia','Sony','TCL','Vivo'];
 var _MARCAS_TELEFONO = ['apple','samsung','xiaomi','huawei','google','oppo','realme','motorola','oneplus','honor','nokia','tcl','vivo','pixel','lg','bq'];
 function _catPorMarca(m) {
   var l = (m || '').toLowerCase().trim();
@@ -6240,6 +6248,8 @@ function abrirPresupuesto() {
   // Personalizar el título y ocultar campo Fecha Entrega (no aplica a presupuestos)
   var t = document.querySelector('#mRep .modal-title');
   if (t) t.innerHTML = '📋 Nuevo Presupuesto';
+  // F299: el botón decía "Crear orden" (heredado de reparación) → "Crear presupuesto"
+  var _bgp = document.getElementById('btnGuardarRepTxt'); if (_bgp) _bgp.textContent = 'Crear presupuesto';
   var feLabel = document.querySelector('label[for="rFechaEnt"]');
   if (feLabel) feLabel.style.opacity = '0.5';
   // Banner explicativo dentro del modal
@@ -9889,10 +9899,10 @@ function renderClis() {
     html += '<tr>' +
       '<td><strong>' + c.nombre + ' ' + c.apellidos + '</strong>' + ((vc + rc) >= 3 ? '<br><span class="badge by">\u2b50 Frecuente</span>' : '') + '</td>' +
       '<td style="font-size:11px">' + (c.tel || '\u2014') + '</td>' +
-      '<td><span class="badge bb">' + vc + 'v</span> <span class="badge bp">' + rc + 'r</span></td>' +
+      '<td><span class="badge bb" title="Ventas">' + vc + 'v</span> <span class="badge bp" title="Reparaciones">' + rc + 'r</span></td>' +
       '<td style="display:flex;gap:3px">' +
-      '<button data-cid="' + c.id + '" class="btn-edit-c" style="background:var(--light);border:none;padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">\u270f\ufe0f</button>' +
-      '<button data-cid="' + c.id + '" class="btn-del-c" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">\ud83d\uddd1\ufe0f</button>' +
+      '<button data-cid="' + c.id + '" class="btn-edit-c" title="Editar cliente" style="background:var(--light);border:none;padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">\u270f\ufe0f</button>' +
+      '<button data-cid="' + c.id + '" class="btn-del-c" title="Eliminar cliente" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">\ud83d\uddd1\ufe0f</button>' +
       '</td></tr>';
   });
   html += '</tbody></table></div>';
@@ -9920,6 +9930,9 @@ function limpiarFormCli() {
   var emp = document.getElementById('cEsEmpresa'); if (emp) emp.checked = false;
   var pref = document.getElementById('cTelPref'); if (pref) pref.value = '+34';
   var pais = document.getElementById('cPais'); if (pais) pais.value = 'España';
+  // F423: por defecto el título es "Nuevo Cliente" (editCli lo cambia después). Antes, tras
+  // editar un cliente, el botón "+ Nuevo" seguía mostrando "✏️ Editar Cliente".
+  var t = document.getElementById('mCliTit'); if (t) t.textContent = '👤 Nuevo Cliente';
   if (typeof toggleCliEmpresa === 'function') toggleCliEmpresa();
 }
 
@@ -9978,8 +9991,8 @@ function editCli(id) {
   var c = DB.clis.find(function(x) { return x.id === id; });
   if (!c) return;
   ECID = id;
-  document.getElementById('mCliTit').textContent = '\u270f\ufe0f Editar Cliente';
   limpiarFormCli();
+  document.getElementById('mCliTit').textContent = '\u270f\ufe0f Editar Cliente';
   var esEmp = !!c.esEmpresa;
   document.getElementById('cEsEmpresa').checked = esEmp;
   if (esEmp) {
