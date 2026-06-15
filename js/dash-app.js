@@ -992,6 +992,19 @@ function _catPorMarca(m) {
   if (_MARCAS_TELEFONO.indexOf(l) !== -1) return 'Telefono';
   return '';
 }
+// F217: categorías que NO son dispositivos reparables (no deben salir en el autocomplete de
+// modelo de una reparación). El catálogo de modelos a veces se contamina con accesorios mal
+// categorizados (p.ej. "Anker Cargador" aprendido como Telefono antes de F206).
+var _CATS_NO_DISPOSITIVO = ['Accesorio','Repuesto','Pantalla','Tapa','Flex de Carga','Bateria','Batería','Altavoz','Cargador','Cable','Auricular','Funda','Protector'];
+function _esModeloDispositivo(m) {
+  if (!m) return false;
+  if (_MARCAS_ACCESORIO.indexOf((m.marca || '').toLowerCase().trim()) !== -1) return false; // Anker/JBL/Genérico…
+  if (_CATS_NO_DISPOSITIVO.indexOf(m.cat || '') !== -1) return false;
+  return true;
+}
+// Etiqueta legible de categoría (acentos correctos en la UI)
+var _CAT_LABELS = { 'Telefono':'Teléfono', 'Bateria':'Batería', 'Camara':'Cámara' };
+function _catLabel(cat) { return _CAT_LABELS[cat] || cat || ''; }
 function setPedMarca(m) {
   var e = document.getElementById('pedMarca'); if (!e) return;
   e.value = m; renderPedMarcas();
@@ -4022,11 +4035,32 @@ function cargarModelosCustom() {
     .catch(function(){});
 }
 
+// F225: modelos más usados por el usuario (de sus reparaciones), para sugerir al hacer
+// foco sin escribir. Solo dispositivos reparables y deduplicados.
+function _modelosMasUsados(pool, n) {
+  var freq = {};
+  (DB.reps || []).forEach(function(r){
+    if (!r.modelo) return;
+    var k = ((r.marca || '') + '|' + r.modelo).toLowerCase();
+    freq[k] = (freq[k] || 0) + 1;
+  });
+  var byKey = {};
+  pool.forEach(function(m){ byKey[(m.marca + '|' + m.modelo).toLowerCase()] = m; });
+  return Object.keys(freq)
+    .sort(function(a, b){ return freq[b] - freq[a]; })
+    .map(function(k){
+      if (byKey[k]) return byKey[k];
+      var p = k.split('|'); // rep cuyo modelo no está en el catálogo: reconstruir mínimamente
+      return { marca: (p[0] || ''), modelo: (p[1] || ''), cat: 'Telefono' };
+    })
+    .filter(_esModeloDispositivo)
+    .slice(0, n);
+}
+
 function busModelo() {
   var q = (document.getElementById('rModelo').value || '').toLowerCase().trim();
   var box = document.getElementById('rModeloSug');
   if (!box) return;
-  if (!q || q.length < 1) { box.classList.remove('open'); box.innerHTML=''; return; }
 
   // Combinar custom (primero) + pre, evitar duplicados por modelo+marca
   var seen = {};
@@ -4040,26 +4074,34 @@ function busModelo() {
     if (!seen[k]) { seen[k] = 1; pool.push(m); }
   });
 
-  // Filtrar por query: matchea marca, modelo, o "marca modelo"
-  var matches = pool.filter(function(m){
-    var hay = (m.marca + ' ' + m.modelo).toLowerCase();
-    return hay.includes(q);
-  }).slice(0, 8);
-
-  if (!matches.length) {
-    box.innerHTML = '<div class="cli-item" style="color:var(--muted);font-style:italic;cursor:default">' + T('gen.sin_coincidencias') + '</div>';
-    box.classList.add('open');
-    return;
+  var matches, esTopUsados = false;
+  if (!q || q.length < 1) {
+    // F225: foco sin texto → tus modelos más usados
+    esTopUsados = true;
+    matches = _modelosMasUsados(pool, 6);
+    if (!matches.length) { box.classList.remove('open'); box.innerHTML = ''; return; }
+  } else {
+    // F217: solo dispositivos reparables (fuera accesorios mal categorizados como "Anker Cargador")
+    matches = pool.filter(_esModeloDispositivo).filter(function(m){
+      var hay = (m.marca + ' ' + m.modelo).toLowerCase();
+      return hay.includes(q);
+    }).slice(0, 8);
+    if (!matches.length) {
+      box.innerHTML = '<div class="cli-item" style="color:var(--muted);font-style:italic;cursor:default">' + T('gen.sin_coincidencias') + '</div>';
+      box.classList.add('open');
+      return;
+    }
   }
 
-  box.innerHTML = matches.map(function(m, i){
+  box.innerHTML = (esTopUsados ? '<div class="cli-item" style="color:var(--muted);font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;cursor:default;pointer-events:none">' + (T('rep.tus_mas_usados') || 'Tus más usados') + '</div>' : '') + matches.map(function(m, i){
     var label = m.marca + ' ' + m.modelo;
+    // F218: separadores claros — antes el texto salía pegado ("…20WtuyoTelefono")
     var tag = m.custom
-      ? '<span style="font-size:9px;background:rgba(255,91,31,.12);color:var(--purple);padding:2px 6px;border-radius:4px;margin-left:6px">tuyo</span>'
+      ? '<span style="font-size:9px;background:rgba(255,91,31,.12);color:var(--purple);padding:2px 6px;border-radius:4px;margin-left:6px">· tuyo</span>'
       : '';
     return '<div class="cli-item" data-i="' + i + '" data-cat="' + esc(m.cat || '') + '" data-marca="' + esc(m.marca || '') + '" data-modelo="' + esc(m.modelo || '') + '">' +
       '<strong>' + esc(label) + '</strong>' + tag +
-      '<span style="float:right;color:var(--muted);font-size:10px">' + esc(m.cat || '') + '</span>' +
+      '<span style="float:right;color:var(--muted);font-size:10px">' + esc(_catLabel(m.cat)) + '</span>' +
     '</div>';
   }).join('');
   box.classList.add('open');
@@ -6038,12 +6080,16 @@ function cambiarTipoBloq() {
   if (!tipo) {
     input.disabled = true;
     input.value = '';
+    input.required = false;
     input.placeholder = T('rep.ph_no_aplica');
     lbl.textContent = T('rep.codigo');
     input.readOnly = false; input.style.cursor = ''; input.onclick = null;
     return;
   }
   input.disabled = false;
+  // F222: con bloqueo de PIN/Contraseña el código es obligatorio (si no, el técnico no
+  // puede entrar al equipo). El Patrón se dibuja y Huella/FaceID se pide al recibir.
+  input.required = (tipo === 'PIN' || tipo === 'Contrasena');
   if (tipo === 'PIN') {
     lbl.textContent = T('rep.bloq_pin');
     input.placeholder = T('rep.ph_pin');
@@ -7865,6 +7911,15 @@ function guardarRep() {
     var inpA = document.getElementById('rAveria');
     if (inpA) { inpA.classList.add('error'); primerError = primerError || inpA; }
   }
+  // F222: con bloqueo PIN/Contraseña, el código no puede quedar vacío (si no, el técnico
+  // no podrá entrar al equipo). Patrón se dibuja y Huella/FaceID se piden al recibir.
+  var _tipoBloq = (document.getElementById('rTipoBloq') || {}).value || '';
+  var _bloqVal = (document.getElementById('rBloqVal') || {}).value || '';
+  var _faltaCodigo = (_tipoBloq === 'PIN' || _tipoBloq === 'Contrasena') && !_bloqVal.trim();
+  if (_faltaCodigo) {
+    var inpB = document.getElementById('rBloqVal');
+    if (inpB) { inpB.classList.add('error'); primerError = primerError || inpB; }
+  }
   if (primerError) {
     primerError.scrollIntoView({behavior:'smooth', block:'center'});
     setTimeout(function(){ primerError.focus(); }, 300);
@@ -7872,6 +7927,7 @@ function guardarRep() {
     if (!SEL.rCli) faltan.push('cliente');
     if (!modelo) faltan.push('modelo');
     if (!averia) faltan.push('avería');
+    if (_faltaCodigo) faltan.push('código de bloqueo');
     toast('Falta: ' + faltan.join(', '), 'err');
     return;
   }
