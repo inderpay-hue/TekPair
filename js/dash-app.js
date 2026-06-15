@@ -11472,9 +11472,15 @@ var CHART_INGRESOS = null, CHART_PAGOS = null, CHART_SERVICIOS = null;
 async function renderReporte() {
   var fechas = getRepFechas();
   var fechasISO = getRepFechasISO(); // REP-FECHA-FIX: para queries a Supabase
-  var ventas = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function(v) { return !v.reembolsado && fechas.includes(v.fecha); }) : [];
+  // F257/F261: filtrar por RANGO [min,max] sobre la fecha-solo-día (slice 0,10), no por
+  // includes() exacto. Antes, si v.fecha traía hora (p.ej. del TPV "2026-06-17T02:14") o
+  // cualquier desfase de formato, NUNCA casaba → reportes a 0€ aun habiendo ventas.
+  var _minISO = fechasISO.length ? fechasISO[fechasISO.length - 1] : '0000-01-01';
+  var _maxISO = fechasISO.length ? fechasISO[0] : '9999-12-31';
+  function _enRango(f) { var d = String(f || '').slice(0, 10); return d >= _minISO && d <= _maxISO; }
+  var ventas = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function(v) { return !v.reembolsado && _enRango(v.fecha); }) : [];
   // F56: reembolsos del periodo (no entran en ingresos, pero el contador debe verlos)
-  var reembolsos = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function(v) { return v.reembolsado && fechas.includes(v.fechaReembolso || v.fecha); }) : [];
+  var reembolsos = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function(v) { return v.reembolsado && _enRango(v.fechaReembolso || v.fecha); }) : [];
   var tReemb = reembolsos.reduce(function(a, v) { return a + (parseFloat(v.total) || 0); }, 0);
   // v2.4: usar pagos reales (anticipos + finales) en lugar de reps entregadas
   var pagosReps = [];
@@ -11509,7 +11515,7 @@ async function renderReporte() {
     '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">' + T('gen.total') + ': ' + cur(tV + tR) + '</div>';
 
   // Guardar datos del periodo para "Enviar a Cobrum" (ventas + pagos de reparación)
-  var _gastosPeriodo = (DB.gastos || []).filter(function(g){ return g && fechas.indexOf((g.fecha || '').slice(0, 10)) >= 0; });
+  var _gastosPeriodo = (DB.gastos || []).filter(function(g){ return g && _enRango(g.fecha); });
   window._repExport = { ventas: ventas, pagosReps: pagosReps, gastos: _gastosPeriodo };
 
   // Renderizar gráficas (asíncrono para que el DOM se actualice primero)
@@ -11723,7 +11729,7 @@ function renderGraficas(ventas, reps, pagos, fechas) {
       return p.length === 3 ? (p[2] + '/' + p[1]) : f;
     });
     var dataV = fechasOrden.map(function(f){
-      return ventas.filter(function(v){ return v.fecha === f; }).reduce(function(a,v){ return a+v.total; }, 0);
+      return ventas.filter(function(v){ return String(v.fecha || '').slice(0, 10) === f; }).reduce(function(a,v){ return a+v.total; }, 0);
     });
     var dataR = fechasOrden.map(function(f){
       return reps.filter(function(r){ return (r.fechaEntregaReal||'').slice(0,10) === f; }).reduce(function(a,r){ return a+r.total; }, 0);
