@@ -2,7 +2,7 @@
   "name": "TekPair — Software para tu tienda de reparaciones",
   "short_name": "TekPair",
   "description": "El sistema completo para tu tienda de reparaciones. Clientes, órdenes, stock, TPV y caja en una sola app.",
-  "start_url": "/dashboard.html",
+  "start_url": "/app.html",
   "scope": "/",
   "display": "standalone",
   "orientation": "portrait-primary",
