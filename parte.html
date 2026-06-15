@@ -146,8 +146,14 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,san
       ? '<div class="row"><span class="k">Pendiente de pago</span><span class="v" style="color:var(--orange)">'+formatCur(r.restante)+'</span></div>'
       : '';
 
+    // F480: no exponer el IMEI completo en la página pública (PII). Mostrar solo los 4 últimos.
+    var _imeiMask = '';
+    if (r.imei) {
+      var _im = String(r.imei).trim();
+      _imeiMask = _im.length > 4 ? ('•••• ' + _im.slice(-4)) : _im;
+    }
     var imei = r.imei
-      ? '<div class="row"><span class="k">IMEI / Nº Serie</span><span class="v" style="font-family:monospace;font-size:11px">'+escapeHtml(r.imei)+'</span></div>'
+      ? '<div class="row"><span class="k">IMEI / Nº Serie</span><span class="v" style="font-family:monospace;font-size:11px">'+escapeHtml(_imeiMask)+'</span></div>'
       : '';
 
     var fechaEnt = r.fecha_entrega

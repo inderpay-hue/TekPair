@@ -13843,6 +13843,11 @@ function guardarServicio() {
   if (errSrv2) { toast(errSrv2, 'err'); return; }
   // F288: forzar elección de categoría (el select arranca en "— Selecciona —")
   if (!document.getElementById('srvCat').value) { toast('Elige una categoría', 'err'); document.getElementById('srvCat').focus(); return; }
+  // F374: evitar servicios duplicados por nombre (excluyendo el que se edita)
+  var _nomNormSrv = _norm(nom);
+  if ((DB.servicios || []).some(function(s) { return s.id !== ESID && _norm(s.nombre) === _nomNormSrv; })) {
+    toast('Ya existe un servicio con ese nombre', 'err'); return;
+  }
   var pcEl = document.getElementById('srvPrecioCoste');
   var data = {
     nombre: nom,
@@ -14707,7 +14712,9 @@ function abrirDetalleRep(repId) {
     try { var _da = new Date(r.presupuesto_aceptado_at); _fAcc = _da.toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' a las ' + _da.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}); } catch(e){}
     html += '<div style="margin-top:10px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.25);border-radius:10px;padding:10px 12px;font-size:12px;color:#166534">' +
       '<strong>✓ Presupuesto aceptado por el cliente</strong>' + (_fAcc ? ' el ' + _fAcc : '') +
-      (r.presupuesto_aceptado_ip ? ' · IP ' + esc(r.presupuesto_aceptado_ip) : '') +
+      // F407: no mostrar la IP en claro (dato personal). Se conserva como evidencia legal y
+      // queda accesible al pasar el ratón sobre "IP registrada".
+      (r.presupuesto_aceptado_ip ? ' · <span title="' + esc(r.presupuesto_aceptado_ip) + '" style="text-decoration:underline dotted;cursor:help">IP registrada</span>' : '') +
       (r.firma_cliente ? ' · firmado ✍️' : '') + '</div>';
   }
 
