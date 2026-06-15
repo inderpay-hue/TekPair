@@ -1133,6 +1133,16 @@
       }).then(function(arr) {
         var ab = Array.isArray(arr) ? arr[0] : arr;
         _toast('✓ Abono ' + ab.numero + ' generado', 'ok');
+        // F202: referencia bidireccional — marcar la factura original como rectificada por este abono.
+        // Best-effort: si la columna 'rectificada_por' aún no existe, falla en silencio (el badge
+        // "Abonada" ya funciona por lookup inverso). SQL: alter table facturas add column rectificada_por text;
+        try {
+          fetch(window.SUPABASE_URL + '/rest/v1/facturas?id=eq.' + encodeURIComponent(orig.id), {
+            method: 'PATCH',
+            headers: _supabaseHeaders(),
+            body: JSON.stringify({ rectificada_por: ab.id })
+          }).catch(function(){});
+        } catch (e) {}
         if (typeof window.generarFacturaPDF === 'function') {
           window.generarFacturaPDF(ab);
         }

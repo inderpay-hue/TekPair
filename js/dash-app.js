@@ -4051,7 +4051,7 @@ function ofrecerGuardarModelo(rep) {
     if (SB_KEY && TIENDA_ID) {
       sbPost('modelos_custom', nuevo).catch(function(){});
     }
-    toast('Modelo anadido al catalogo', 'ok');
+    toast('Modelo añadido al catálogo', 'ok');
   }, 600);
 }
 
