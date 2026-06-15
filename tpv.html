@@ -1563,6 +1563,11 @@ function cobrar() {
   if (!cart.length) return;
   if (!tienePerm('ventas_crear')) { toast('Sin permiso para crear ventas', 'err'); return; }
   var totals = _computeTotals();
+  // F679/F609: el ticket simplificado solo es válido hasta 400€. Por encima, conviene
+  // identificar al cliente para poder emitir factura completa. Aviso no bloqueante.
+  if (!selectedCli && (totals.total || 0) > 400) {
+    toast('Venta de ' + totals.total.toFixed(2) + '€ sin cliente: por encima de 400€ conviene asignar uno para la factura', 'err', 4000);
+  }
   var esFinanciado = selectedPago === 'Financiado';
   if (esFinanciado && !selectedCli) { toast('Selecciona un cliente para financiar', 'err'); return; }
   var fin = esFinanciado ? calcCuotasFinanciado() : null;
