@@ -53,4 +53,11 @@ module.exports = [
     languageOptions: { ecmaVersion: 2022, sourceType: 'script', globals: { ...globals.browser } },
     rules: { ...cazaBugs },
   },
+  // ── Tooling Node (validador i18n, config y specs E2E). Node + browser porque los callbacks
+  //    de page.evaluate() corren en el navegador (window/document). ──
+  {
+    files: ['scripts/**/*.cjs', 'tests/**/*.cjs', '*.config.cjs'],
+    languageOptions: { ecmaVersion: 2022, sourceType: 'commonjs', globals: { ...globals.node, ...globals.browser } },
+    rules: { ...cazaBugs },
+  },
 ];

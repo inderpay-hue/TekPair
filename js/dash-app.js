@@ -9959,7 +9959,7 @@ function limpiarFormCli() {
   var pais = document.getElementById('cPais'); if (pais) pais.value = 'España';
   // F423: por defecto el título es "Nuevo Cliente" (editCli lo cambia después). Antes, tras
   // editar un cliente, el botón "+ Nuevo" seguía mostrando "✏️ Editar Cliente".
-  var t = document.getElementById('mCliTit'); if (t) t.textContent = '👤 Nuevo Cliente';
+  var t = document.getElementById('mCliTit'); if (t) t.textContent = '👤 ' + T('cli.nuevo_titulo');
   if (typeof toggleCliEmpresa === 'function') toggleCliEmpresa();
 }
 
@@ -10029,7 +10029,7 @@ function editCli(id) {
   if (!c) return;
   ECID = id;
   limpiarFormCli();
-  document.getElementById('mCliTit').textContent = '\u270f\ufe0f Editar Cliente';
+  document.getElementById('mCliTit').textContent = '\u270f\ufe0f ' + T('cli.editar_titulo');
   var esEmp = !!c.esEmpresa;
   document.getElementById('cEsEmpresa').checked = esEmp;
   if (esEmp) {
