@@ -3622,6 +3622,16 @@ de:{'notif.no_leidas':'Ungelesen','notif.leidas':'Gelesen','notif.marcar_leidas'
 pt:{'notif.no_leidas':'Não lidas','notif.leidas':'Lidas','notif.marcar_leidas':'✓ Marcar lidas','app.version_nueva':'✨ Há uma nova versão do TekPair','app.recargar':'Recarregar','gen.cliente':'Cliente','gen.modelo':'Modelo','gen.pago':'Pagamento','gen.estado':'Estado','gen.prioridad':'Prioridade','gen.averia':'Avaria','gen.buscar_global':'Procurar clientes, reparações, vendas, produtos…','fact.col_numero':'Número','fact.col_origen':'Origem','fact.col_base':'Base','fact.col_iva':'IVA','fact.total_facturado':'Total faturado','rep.col_fentrega':'Entrega','rep.col_fentregado':'Entregue','fact.abono_confirm':'Esta venda tinha a fatura {num}.\n\nEmitir a sua nota de crédito (reembolso) de {total}?'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
+// i18n claves colgantes detectadas por el validador (se mostraban crudas)
+(function(){var _a={
+es:{'tpv.reparacion':'Reparación','stock.calidad':'Calidad','tpv.transferencia':'Transferencia','cita.vencida':'VENCIDA','pedidos.imeis_descuadre':'Has puesto {a} IMEI(s) pero el pedido es de {b} ud. Se registrarán solo {a} en stock. ¿Continuar?'},
+en:{'tpv.reparacion':'Repair','stock.calidad':'Quality','tpv.transferencia':'Transfer','cita.vencida':'OVERDUE','pedidos.imeis_descuadre':'You entered {a} IMEI(s) but the order is for {b} units. Only {a} will be added to stock. Continue?'},
+fr:{'tpv.reparacion':'Réparation','stock.calidad':'Qualité','tpv.transferencia':'Virement','cita.vencida':'EN RETARD','pedidos.imeis_descuadre':'Vous avez saisi {a} IMEI mais la commande est de {b} unités. Seuls {a} seront ajoutés au stock. Continuer ?'},
+it:{'tpv.reparacion':'Riparazione','stock.calidad':'Qualità','tpv.transferencia':'Bonifico','cita.vencida':'SCADUTA','pedidos.imeis_descuadre':'Hai inserito {a} IMEI ma l\'ordine è di {b} unità. Solo {a} verranno aggiunti allo stock. Continuare?'},
+de:{'tpv.reparacion':'Reparatur','stock.calidad':'Qualität','tpv.transferencia':'Überweisung','cita.vencida':'ÜBERFÄLLIG','pedidos.imeis_descuadre':'Du hast {a} IMEI(s) eingegeben, aber die Bestellung umfasst {b} Einheiten. Nur {a} werden ins Lager gebucht. Fortfahren?'},
+pt:{'tpv.reparacion':'Reparação','stock.calidad':'Qualidade','tpv.transferencia':'Transferência','cita.vencida':'VENCIDA','pedidos.imeis_descuadre':'Inseriste {a} IMEI mas o pedido é de {b} unidades. Só {a} serão adicionados ao stock. Continuar?'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
 // i18n secciones del modal Edit Repair (F638)
 (function(){var _a={
 es:{'rep.sec_averia':'Avería','rep.sec_servicios':'Servicios de reparación','rep.sec_componentes':'Componentes (stock)','rep.sec_cobro':'Cobro y logística','rep.lbl_pagos':'Pagos','rep.sec_garantia':'Garantía de esta reparación'},
