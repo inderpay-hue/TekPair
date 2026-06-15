@@ -99,6 +99,7 @@ footer a:hover { color: var(--orange); }
   .hero { padding: 40px 0 20px; }
   .post-card { padding: 20px; }
   .post-card h2 { font-size: 20px; }
+  .hide-sm { display: none; }
 }
 </style>
 <link rel="alternate" type="application/rss+xml" title="Blog de TekPair" href="/blog/rss.xml">
@@ -111,7 +112,20 @@ footer a:hover { color: var(--orange); }
     <a href="/" class="logo">
       <span class="logo-bolt">⚡</span> TekPair
     </a>
-    <a href="/registro.html" class="nav-cta">Probar gratis</a>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end">
+      <a href="/#features" style="color:inherit;text-decoration:none;font-size:14px;font-weight:500" class="hide-sm">Características</a>
+      <a href="/#pricing" style="color:inherit;text-decoration:none;font-size:14px;font-weight:500" class="hide-sm">Precios</a>
+      <select onchange="if(this.value)location.href=this.value" aria-label="Idioma / Language" style="border:1px solid #e2e8f0;border-radius:8px;padding:5px 8px;font-size:13px;cursor:pointer;font-family:inherit;background:#fff">
+        <option value="">🌐</option>
+        <option value="/blog/">🇪🇸 ES</option>
+        <option value="/blog/en/">🇬🇧 EN</option>
+        <option value="/blog/fr/">🇫🇷 FR</option>
+        <option value="/blog/it/">🇮🇹 IT</option>
+        <option value="/blog/de/">🇩🇪 DE</option>
+        <option value="/blog/pt/">🇵🇹 PT</option>
+      </select>
+      <a href="/registro.html" class="nav-cta">Probar gratis</a>
+    </div>
   </div>
 </header>
 
@@ -124,17 +138,19 @@ footer a:hover { color: var(--orange); }
 
 <section class="posts">
   <div class="container">
+    <input type="search" id="blogSearch" oninput="filtrarBlog()" placeholder="🔍 Buscar artículos…" aria-label="Buscar artículos" style="width:100%;max-width:440px;padding:11px 14px;border:1px solid #E2E8F0;border-radius:10px;font:inherit;font-size:14px;outline:none;margin-bottom:22px">
+    <div id="blogNoResults" style="display:none;color:#64748B;padding:6px 2px 16px">Sin resultados para tu búsqueda.</div>
 
     <!-- BLOG:CARDS -->
     <article class="post-card">
-      <div class="post-meta">14 junio 2026 · 8 min lectura · Marketing</div>
+      <div class="post-meta">14 jun 2026 · 8 min lectura · Marketing</div>
       <h2><a href="/blog/captar-clientes-taller-reparacion.html">Cómo conseguir más clientes en tu taller de reparación de móviles</a></h2>
       <p>Reparar bien no basta: hay que conseguir que te encuentren y que vuelvan. Guía práctica de Google Business, reseñas, WhatsApp, fidelización y promos locales para captar más clientes en tu taller en 2026.</p>
       <a href="/blog/captar-clientes-taller-reparacion.html" class="post-link">Leer guía completa →</a>
     </article>
 
     <article class="post-card">
-      <div class="post-meta">14 junio 2026 · 8 min lectura · Gestión</div>
+      <div class="post-meta">14 jun 2026 · 8 min lectura · Gestión</div>
       <h2><a href="/blog/precios-reparacion-movil-taller.html">Cómo fijar los precios de reparación de móviles en tu taller</a></h2>
       <p>Pieza + mano de obra + margen: aprende a poner precio a tus reparaciones de móvil sin perder margen ni competir solo por ser el más barato, con horquillas orientativas y los errores que te hacen trabajar gratis.</p>
       <a href="/blog/precios-reparacion-movil-taller.html" class="post-link">Leer guía completa →</a>
@@ -211,42 +227,42 @@ footer a:hover { color: var(--orange); }
     </article>
 
     <article class="post-card">
-      <div class="post-meta">29 mayo 2026 · 9 min lectura · Emprendimiento</div>
+      <div class="post-meta">29 may 2026 · 9 min lectura · Emprendimiento</div>
       <h2><a href="/blog/como-abrir-taller-reparacion-movil.html">Cómo abrir un taller de reparación de móviles en 2026: guía paso a paso</a></h2>
       <p>Trámites, inversión inicial (€2.500-€8.000), licencias, equipamiento mínimo, formación, software y los primeros 10 clientes. Todo lo que necesitas saber para montar tu taller sin perderte en el camino.</p>
       <a href="/blog/como-abrir-taller-reparacion-movil.html" class="post-link">Leer guía completa →</a>
     </article>
 
     <article class="post-card">
-      <div class="post-meta">30 mayo 2026 · 6 min lectura · Gestión</div>
+      <div class="post-meta">30 may 2026 · 6 min lectura · Gestión</div>
       <h2><a href="/blog/como-gestionar-reparaciones-moviles-sin-excel.html">Cómo gestionar las reparaciones de tu taller sin Excel ni papel (2026)</a></h2>
       <p>Stock descontrolado, móviles sin dueño y facturas perdidas. Los 5 problemas más comunes de los talleres de reparación y cómo resolverlos paso a paso.</p>
       <a href="/blog/como-gestionar-reparaciones-moviles-sin-excel.html" class="post-link">Leer guía completa →</a>
     </article>
 
     <article class="post-card">
-      <div class="post-meta">2 junio 2026 · 6 min lectura · Atención al cliente</div>
+      <div class="post-meta">2 jun 2026 · 6 min lectura · Atención al cliente</div>
       <h2><a href="/blog/como-avisar-cliente-movil-reparado.html">Cómo avisar al cliente cuando su móvil está listo</a></h2>
       <p>Qué canal usar (WhatsApp, SMS, email), qué decir exactamente y cómo reducir el tiempo que los dispositivos esperan sin que nadie los recoja. Con plantillas listas para tu taller.</p>
       <a href="/blog/como-avisar-cliente-movil-reparado.html" class="post-link">Leer guía completa →</a>
     </article>
 
     <article class="post-card">
-      <div class="post-meta">31 mayo 2026 · 7 min lectura · Presupuestos</div>
+      <div class="post-meta">31 may 2026 · 7 min lectura · Presupuestos</div>
       <h2><a href="/blog/como-hacer-presupuesto-reparacion-profesional.html">Cómo hacer un presupuesto de reparación profesional</a></h2>
       <p>Aprende a redactar presupuestos que transmitan profesionalidad, eviten disputas y consigan más aceptaciones. Guía práctica con plantilla incluida.</p>
       <a href="/blog/como-hacer-presupuesto-reparacion-profesional.html" class="post-link">Leer guía completa →</a>
     </article>
 
     <article class="post-card">
-      <div class="post-meta">31 mayo 2026 · 7 min lectura · Cobros</div>
+      <div class="post-meta">31 may 2026 · 7 min lectura · Cobros</div>
       <h2><a href="/blog/como-cobrar-en-un-taller-de-reparacion-de-moviles.html">Cómo cobrar en un taller de reparación de móviles</a></h2>
       <p>Métodos de pago, anticipos, recibos y cómo evitar impagos. Organiza los cobros de tu taller con una guía práctica pensada para técnicos.</p>
       <a href="/blog/como-cobrar-en-un-taller-de-reparacion-de-moviles.html" class="post-link">Leer guía completa →</a>
     </article>
 
     <article class="post-card">
-      <div class="post-meta">1 junio 2026 · 6 min lectura · Stock</div>
+      <div class="post-meta">1 jun 2026 · 6 min lectura · Stock</div>
       <h2><a href="/blog/como-gestionar-stock-piezas-taller-moviles.html">Cómo gestionar el stock de piezas en un taller de reparación</a></h2>
       <p>Qué stockar, cómo evitar roturas y cómo reducir el capital inmovilizado. Controla el inventario de piezas sin pasarte de compras.</p>
       <a href="/blog/como-gestionar-stock-piezas-taller-moviles.html" class="post-link">Leer guía completa →</a>
@@ -257,9 +273,22 @@ footer a:hover { color: var(--orange); }
 
 <footer>
   <div class="container">
-    <p>© 2026 TekPair · <a href="/">Inicio</a> · <a href="mailto:info@tekpair.tech">info@tekpair.tech</a></p>
+    <p>© 2026 TekPair · <a href="/">Inicio</a> · <a href="/aviso-legal.html">Aviso legal</a> · <a href="/privacidad.html">Privacidad</a> · <a href="/terminos.html">Términos</a> · <a href="/cookies.html">Cookies</a> · <a href="mailto:info@tekpair.tech">info@tekpair.tech</a></p>
   </div>
 </footer>
+
+<script>
+function filtrarBlog(){
+  var q = (document.getElementById('blogSearch').value || '').toLowerCase().trim();
+  var vis = 0;
+  document.querySelectorAll('.post-card').forEach(function(c){
+    var match = !q || c.textContent.toLowerCase().indexOf(q) !== -1;
+    c.style.display = match ? '' : 'none';
+    if (match) vis++;
+  });
+  var nr = document.getElementById('blogNoResults'); if (nr) nr.style.display = (q && vis === 0) ? 'block' : 'none';
+}
+</script>
 
 </body>
 </html>
