@@ -630,6 +630,9 @@ window.addEventListener('DOMContentLoaded', function() {
   // boot varias veces durante los primeros ~2,5s, y paramos en cuanto el usuario
   // navega manualmente (cualquier hashchange) o la vista ya coincide.
   var _bootHash = (location.hash || '').replace(/^#\/?/, '').toLowerCase().trim();
+  // F648/F649: cargar dashboard.html#tpv (o #pos) directo debe ir a la página del TPV. Antes
+  // este caso se perdía porque el boot solo miraba _HASH_NAV (que no incluye tpv/pos).
+  if (_bootHash === 'tpv' || _bootHash === 'pos') { window.location.href = 'tpv.html'; return; }
   if (_bootHash && _HASH_NAV[_bootHash]) {
     var _bootTarget = _HASH_NAV[_bootHash];
     // Páginas de aterrizaje por defecto: si el arranque se queda aquí pero el hash pedía
@@ -5290,7 +5293,7 @@ function renderVentas() {
   list.forEach(function(v) {
     var badges = '';
     if (v.reembolsado) badges += '<span class="badge-reem">Reembolsado</span>';
-    if (v.financiado && !v.reembolsado) badges += '<span class="badge-fin">Financiado</span>';
+    if (v.financiado && !v.reembolsado) badges += '<span class="badge-fin">' + T('fin.badge') + '</span>';
     var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="Reembolsar">\u21a9</button>' : '';
     var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="edit" class="row-btn btn-fin" title="Financiación">\ud83d\udcb0</button>' : '';
     var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="Reimprimir ticket">\ud83d\udda8</button>';
@@ -5814,7 +5817,7 @@ function actualizarAvisoGarantia() {
   var info = checkGarantia(SEL.rCli.id, marca, modelo, null, ((SEL.rCli.nombre || '') + ' ' + (SEL.rCli.apellidos || '')).trim());
   if (!info) { alert.style.display = 'none'; return; }
   var fechaPrev = info.rep.fechaEntregaReal;
-  alert.innerHTML = '<strong style="color:var(--blue)">🛡️ EN GARANTÍA</strong><br>' +
+  alert.innerHTML = '<strong style="color:var(--blue)">🛡️ ' + T('rep.en_garantia') + '</strong><br>' +
     '<span style="font-size:11px;color:var(--muted)">Reparación previa entregada el ' + fechaPrev + ' (' + info.dias + ' días). ' +
     'Le quedan ' + info.restantes + ' días de garantía. Avería previa: "' + esc(info.rep.averia || '') + '"</span>';
   alert.style.display = 'block';
@@ -8639,7 +8642,7 @@ function renderReps() {
     } else if ((r.clienteId || r.clienteNombre) && r.estado !== 'Entregado' && r.estado !== 'Rechazado') {
       var info = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre);
       if (info && info.rep.id !== r.id) {
-        badgeGarantia = '<br><span class="badge-garantia" title="Reparación previa entregada el ' + info.rep.fechaEntregaReal + ' (' + info.dias + ' días)">🛡️ EN GARANTÍA</span>';
+        badgeGarantia = '<br><span class="badge-garantia" title="Reparación previa entregada el ' + info.rep.fechaEntregaReal + ' (' + info.dias + ' días)">🛡️ ' + T('rep.en_garantia') + '</span>';
       }
     }
     var priBadge = r.prioridad && r.prioridad !== 'Normal'
@@ -13550,14 +13553,14 @@ function refreshNotifs() {
   // Chips por tipo (solo del tab activo)
   var counts = {};
   current.forEach(function(n) { counts[n.tipo] = (counts[n.tipo] || 0) + 1; });
-  var labels = {reparaciones:'⏰ Reparaciones', citas:'📅 Citas', stock:'📦 Stock', cuotas:'💰 Cuotas', cumples:'🎂 Cumples'};
+  var labels = {reparaciones:'⏰ ' + T('nav.reparaciones'), citas:'📅 ' + T('nav.citas'), stock:'📦 ' + T('nav.stock'), cuotas:'💰 ' + T('notif.cuotas'), cumples:'🎂 ' + T('notif.cumples')};
 
   if (actionsEl) {
     if (current.length === 0) {
       actionsEl.style.display = 'none';
     } else {
       actionsEl.style.display = 'flex';
-      var chipsHtml = '<button class="notif-chip ' + (notifFilter === '' ? 'active' : '') + '" onclick="setNotifFilter(\'\')">Todas (' + current.length + ')</button>';
+      var chipsHtml = '<button class="notif-chip ' + (notifFilter === '' ? 'active' : '') + '" onclick="setNotifFilter(\'\')">' + T('tpv.todos') + ' (' + current.length + ')</button>';
       Object.keys(labels).forEach(function(k) {
         if (!counts[k]) return;
         chipsHtml += '<button class="notif-chip ' + (notifFilter === k ? 'active' : '') + '" onclick="setNotifFilter(\'' + k + '\')">' + labels[k] + ' (' + counts[k] + ')</button>';
@@ -13565,7 +13568,7 @@ function refreshNotifs() {
       if (notifTab === 'unread') {
         chipsHtml += '<button class="notif-clear" onclick="marcarTodasLeidas()">' + T('notif.marcar_leidas') + '</button>';
       } else {
-        chipsHtml += '<button class="notif-clear" onclick="marcarTodasNoLeidas()">↺ Marcar no leídas</button>';
+        chipsHtml += '<button class="notif-clear" onclick="marcarTodasNoLeidas()">↺ ' + T('notif.marcar_no_leidas') + '</button>';
       }
       actionsEl.innerHTML = chipsHtml;
     }
