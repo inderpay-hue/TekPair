@@ -19,4 +19,14 @@ if [ $? -ne 0 ]; then
   exit 1
 fi
 echo "✓ ESLint OK"
+
+# Validador i18n: bloquea si hay claves usadas pero sin definir, o idiomas incompletos.
+echo "▶ i18n (pre-commit)…"
+node scripts/i18n-validate.cjs
+if [ $? -ne 0 ]; then
+  echo ""
+  echo "✖ Validador i18n encontró problemas — commit cancelado."
+  echo "  Añade las claves que faltan en lang/lang.v8.js, o usa 'git commit --no-verify'."
+  exit 1
+fi
 exit 0
