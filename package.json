@@ -6,6 +6,7 @@
     "lint": "eslint .",
     "lint:api": "eslint api/",
     "i18n": "node scripts/i18n-validate.cjs",
+    "e2e": "playwright test",
     "prepare": "git config core.hooksPath .githooks || true"
   },
   "dependencies": {

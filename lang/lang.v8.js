@@ -3622,6 +3622,9 @@ de:{'notif.no_leidas':'Ungelesen','notif.leidas':'Gelesen','notif.marcar_leidas'
 pt:{'notif.no_leidas':'Não lidas','notif.leidas':'Lidas','notif.marcar_leidas':'✓ Marcar lidas','app.version_nueva':'✨ Há uma nova versão do TekPair','app.recargar':'Recarregar','gen.cliente':'Cliente','gen.modelo':'Modelo','gen.pago':'Pagamento','gen.estado':'Estado','gen.prioridad':'Prioridade','gen.averia':'Avaria','gen.buscar_global':'Procurar clientes, reparações, vendas, produtos…','fact.col_numero':'Número','fact.col_origen':'Origem','fact.col_base':'Base','fact.col_iva':'IVA','fact.total_facturado':'Total faturado','rep.col_fentrega':'Entrega','rep.col_fentregado':'Entregue','fact.abono_confirm':'Esta venda tinha a fatura {num}.\n\nEmitir a sua nota de crédito (reembolso) de {total}?'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
+// i18n título "Editar cliente" (F710/F711 — antes hardcodeado en español)
+(function(){var _a={es:{'cli.editar_titulo':'Editar Cliente'},en:{'cli.editar_titulo':'Edit Customer'},fr:{'cli.editar_titulo':'Modifier le client'},it:{'cli.editar_titulo':'Modifica cliente'},de:{'cli.editar_titulo':'Kunde bearbeiten'},pt:{'cli.editar_titulo':'Editar cliente'}};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
 // i18n claves colgantes detectadas por el validador (se mostraban crudas)
 (function(){var _a={
 es:{'tpv.reparacion':'Reparación','stock.calidad':'Calidad','tpv.transferencia':'Transferencia','cita.vencida':'VENCIDA','pedidos.imeis_descuadre':'Has puesto {a} IMEI(s) pero el pedido es de {b} ud. Se registrarán solo {a} en stock. ¿Continuar?'},
