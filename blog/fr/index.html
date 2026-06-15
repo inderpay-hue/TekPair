@@ -99,6 +99,7 @@ footer a:hover { color: var(--orange); }
   .hero { padding: 40px 0 20px; }
   .post-card { padding: 20px; }
   .post-card h2 { font-size: 20px; }
+  .hide-sm { display: none; }
 }
 </style>
   <script src="/cookies-consent.js" defer></script>
@@ -110,7 +111,7 @@ footer a:hover { color: var(--orange); }
     <a href="/" class="logo">
       <span class="logo-bolt">⚡</span> TekPair
     </a>
-    <a href="/registro.html" class="nav-cta">Essai gratuit</a>
+    <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:flex-end"><a href="/#features" style="color:inherit;text-decoration:none;font-size:14px;font-weight:500" class="hide-sm">Fonctionnalités</a><a href="/#pricing" style="color:inherit;text-decoration:none;font-size:14px;font-weight:500" class="hide-sm">Tarifs</a><select onchange="if(this.value)location.href=this.value" aria-label="Idioma / Language" style="border:1px solid #e2e8f0;border-radius:8px;padding:5px 8px;font-size:13px;cursor:pointer;font-family:inherit;background:#fff"><option value="">🌐</option><option value="/blog/">🇪🇸 ES</option><option value="/blog/en/">🇬🇧 EN</option><option value="/blog/fr/">🇫🇷 FR</option><option value="/blog/it/">🇮🇹 IT</option><option value="/blog/de/">🇩🇪 DE</option><option value="/blog/pt/">🇵🇹 PT</option></select><a href="/registro.html" class="nav-cta">Essai gratuit</a></div>
   </div>
 </header>
 
@@ -124,6 +125,7 @@ footer a:hover { color: var(--orange); }
 <section class="posts">
   <div class="container">
 
+    <input type="search" id="blogSearch" oninput="filtrarBlog()" placeholder="🔍 Rechercher des articles…" aria-label="search" style="width:100%;max-width:440px;padding:11px 14px;border:1px solid #E2E8F0;border-radius:10px;font:inherit;font-size:14px;outline:none;margin-bottom:22px"><div id="blogNoResults" style="display:none;color:#64748B;padding:6px 2px 16px">Aucun résultat pour votre recherche.</div>
     <!-- BLOG:CARDS -->
     <article class="post-card">
       <div class="post-meta">14 juin 2026 · 8 min de lecture · Marketing</div>
@@ -256,9 +258,10 @@ footer a:hover { color: var(--orange); }
 
 <footer>
   <div class="container">
-    <p>© 2026 TekPair · <a href="/">Accueil</a> · <a href="mailto:info@tekpair.tech">info@tekpair.tech</a></p>
+    <p>© 2026 TekPair · <a href="/">Accueil</a> · <a href="/aviso-legal.html">Mentions légales</a> · <a href="/privacidad.html">Confidentialité</a> · <a href="/terminos.html">Conditions</a> · <a href="/cookies.html">Cookies</a> · <a href="mailto:info@tekpair.tech">info@tekpair.tech</a></p>
   </div>
 </footer>
 
+<script>function filtrarBlog(){var q=(document.getElementById('blogSearch').value||'').toLowerCase().trim();var v=0;document.querySelectorAll('.post-card').forEach(function(c){var m=!q||c.textContent.toLowerCase().indexOf(q)!==-1;c.style.display=m?'':'none';if(m)v++;});var n=document.getElementById('blogNoResults');if(n)n.style.display=(q&&v===0)?'block':'none';}</script>
 </body>
 </html>
