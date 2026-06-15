@@ -963,9 +963,24 @@ function renderPedMarcas() {
     return '<button type="button" onclick="setPedMarca(\'' + m.replace(/'/g, "\\'") + '\')" style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:18px;border:1.5px solid ' + (on ? 'var(--orange)' : 'var(--border)') + ';background:' + (on ? 'rgba(249,115,22,.10)' : '#fff') + ';color:var(--text);font:inherit;font-size:12px;font-weight:600;cursor:pointer">' + _stkBrandChip(m) + '<span>' + escHtml(m) + '</span></button>';
   }).join('');
 }
+// F206: categoría sugerida según la marca (audio/cargadores/almacenamiento = Accesorio)
+var _MARCAS_ACCESORIO = ['anker','jbl','belkin','baseus','ugreen','spigen','aukey','bose','sennheiser','soundcore','tronsmart','jaybird','pny','sandisk','kingston','generico','genérico','generic','tooq','nanocable'];
+var _MARCAS_TELEFONO = ['apple','samsung','xiaomi','huawei','google','oppo','realme','motorola','oneplus','honor','nokia','tcl','vivo','pixel','lg','bq'];
+function _catPorMarca(m) {
+  var l = (m || '').toLowerCase().trim();
+  if (_MARCAS_ACCESORIO.indexOf(l) !== -1) return 'Accesorio';
+  if (_MARCAS_TELEFONO.indexOf(l) !== -1) return 'Telefono';
+  return '';
+}
 function setPedMarca(m) {
   var e = document.getElementById('pedMarca'); if (!e) return;
   e.value = m; renderPedMarcas();
+  // F206: auto-detectar categoría según la marca, solo si está en el valor por defecto
+  try {
+    var cat = _catPorMarca(m);
+    var ce = document.getElementById('pedCat');
+    if (ce && cat && (!ce.value || ce.value === 'Telefono')) { ce.value = cat; try { renderPedidoCalidad(); } catch (e3) {} }
+  } catch (e2) {}
   var mod = document.getElementById('pedPieza'); if (mod) mod.focus();
 }
 // Nombre completo (marca + modelo) y modelo sin la marca (para recibir a stock)
@@ -1063,6 +1078,10 @@ function renderPedidoCalidad() {
 
 function pedAddItem() {
   if (SEL.editPedidoId) return; // en modo editar no se acumulan líneas
+  // F205: anti doble-click — ignora una segunda llamada en <600ms (evita líneas duplicadas)
+  var _now = Date.now();
+  if (window._pedAddLast && (_now - window._pedAddLast) < 600) return;
+  window._pedAddLast = _now;
   var marca = (document.getElementById('pedMarca').value || '').trim();
   var modelo = (document.getElementById('pedPieza').value || '').trim();
   if (!modelo) { toast(T('pedidos.falta_pieza'), 'err'); var pe = document.getElementById('pedPieza'); if (pe) pe.focus(); return; }
@@ -1469,16 +1488,18 @@ function avanzarPedido(id) {
     // No fusionar pantallas (u otros) de distinta calidad: si difiere, crear item aparte
     if (existe && p.calidad && (existe.calidad || '') !== p.calidad) existe = null;
     var cat = p.categoria || (existe ? existe.categoria : '');
+    // F207: modal en vez de confirm() nativo (el nativo no se disparaba con la automatización
+    // → quedaba el gasto registrado pero sin sumar el stock).
     if (_esImeiCat(cat)) {
-      // IMEI: no se suma, se registran las unidades con su IMEI
-      if (confirm(T('pedidos.add_stock_imei').replace('{n}', uds).replace('{pieza}', p.pieza || ''))) {
+      // IMEI: no se suma, se registran las unidades con su IMEI (modal de alta multi-IMEI)
+      confirmar(T('pedidos.add_stock_imei').replace('{n}', uds).replace('{pieza}', p.pieza || ''), function () {
         _abrirAltaImeiDesdePedido(p, uds, existe, cat);
-      }
+      }, { okLabel: T('pedidos.recibir_imei_ok') || 'Registrar IMEIs' });
     } else {
       var msg = existe
         ? T('pedidos.add_stock_sumar').replace('{n}', uds).replace('{pieza}', p.pieza || '').replace('{cur}', parseInt(existe.unidades, 10) || 0)
         : T('pedidos.add_stock').replace('{n}', uds).replace('{pieza}', p.pieza || '');
-      if (confirm(msg)) { _recibirAStock(p, uds, existe, false, cat); }
+      confirmar(msg, function () { _recibirAStock(p, uds, existe, false, cat); }, { okLabel: T('pedidos.add_stock_ok') || 'Sumar al stock' });
     }
   }
   renderPedidosWidget();
@@ -9081,7 +9102,7 @@ function guardarStock() {
 // ═══ Marcas sugeridas en el alta/edición de stock (estilo TPV) ═══
 var STK_BRAND_COLORS = { apple:'#333',iphone:'#333',ipad:'#333',samsung:'#1428A0',galaxy:'#1428A0',xiaomi:'#FF6900',redmi:'#FF6900',poco:'#FFCD00',huawei:'#C7000B',google:'#4285F4',pixel:'#4285F4',oppo:'#1D8C3E',oneplus:'#EB0028',realme:'#FFC915',motorola:'#5C92FA',moto:'#5C92FA',sony:'#000',xperia:'#000',lg:'#A50034',nokia:'#124191',honor:'#0095D9',vivo:'#415FFF',zte:'#0055A5',alcatel:'#E5007D',tcl:'#E60012',asus:'#00539B',nothing:'#000' };
 var STK_BRAND_DOMAINS = { apple:'apple.com',iphone:'apple.com',ipad:'apple.com',samsung:'samsung.com',galaxy:'samsung.com',xiaomi:'xiaomi.com',redmi:'xiaomi.com',poco:'xiaomi.com',huawei:'huawei.com',google:'google.com',pixel:'google.com',oppo:'oppo.com',oneplus:'oneplus.com',realme:'realme.com',motorola:'motorola.com',moto:'motorola.com',sony:'sony.com',xperia:'sony.com',lg:'lg.com',nokia:'nokia.com',honor:'hihonor.com',vivo:'vivo.com',asus:'asus.com',tcl:'tcl.com',alcatel:'alcatel-mobile.com',zte:'zte.com.cn',nothing:'nothing.tech' };
-var STK_BRANDS_COMUNES = ['Apple','Samsung','Xiaomi','Huawei','Google','OPPO','Realme','Motorola','OnePlus','Honor','Nokia','Sony','TCL','Vivo'];
+var STK_BRANDS_COMUNES = ['Apple','Samsung','Xiaomi','Huawei','Google','OPPO','Realme','Motorola','OnePlus','Honor','Nokia','Sony','TCL','Vivo','Anker','JBL','Belkin','Baseus','UGREEN','Spigen','Bose','Genérico'];
 function _stkBrandMatch(m, map) {
   var norm = (m || '').toLowerCase().replace(/[^a-z0-9]/g, '');
   if (map[norm]) return map[norm];
