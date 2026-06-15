@@ -5825,6 +5825,23 @@ function openNuevoCliRapido(ctx) {
   openM('mNuevoCli');
 }
 
+// F413: valida DNI/NIE español por la letra de control (mod-23). Devuelve true si es válido
+// O si NO parece un DNI/NIE español (pasaporte/ID extranjero/CIF → no lo bloqueamos).
+function _dniEspanolValido(dni) {
+  var s = (dni || '').toUpperCase().replace(/[\s-]/g, '');
+  var letras = 'TRWAGMYFPDXBNJZSQVHLCKE';
+  // DNI: 8 dígitos + letra
+  var mDni = /^(\d{8})([A-Z])$/.exec(s);
+  if (mDni) return letras[parseInt(mDni[1], 10) % 23] === mDni[2];
+  // NIE: X/Y/Z + 7 dígitos + letra
+  var mNie = /^([XYZ])(\d{7})([A-Z])$/.exec(s);
+  if (mNie) {
+    var pref = { X: '0', Y: '1', Z: '2' }[mNie[1]];
+    return letras[parseInt(pref + mNie[2], 10) % 23] === mNie[3];
+  }
+  return true; // no es un patrón DNI/NIE español → no validamos (CIF, pasaporte, etc.)
+}
+
 // F232: ¿ya existe un cliente con este teléfono o DNI?
 function _clienteDuplicado(tel, dni) {
   var t = _norm(tel || ''), d = _norm(dni || '');
@@ -9947,6 +9964,16 @@ function guardarCli() {
   var nom = esEmp ? razon.trim() : nomPart;
   if (!nom) { toast(esEmp ? 'Escribe la razón social' : 'Escribe un nombre', 'err'); document.getElementById(esEmp ? 'cRazon' : 'cNom').focus(); return; }
   var _v = function(id){ var el=document.getElementById(id); return el ? el.value.trim() : ''; };
+  // F413: validar DNI/NIE español (solo particular; empresa usa CIF, que no validamos aquí).
+  // Solo bloquea si TIENE formato de DNI/NIE pero la letra de control no cuadra (típico typo).
+  if (!esEmp) {
+    var _dniV = _v('cDni');
+    if (_dniV && !_dniEspanolValido(_dniV)) {
+      toast('El DNI/NIE no es válido (la letra de control no corresponde). Corrígelo o déjalo vacío.', 'err');
+      var _dEl = document.getElementById('cDni'); if (_dEl) { _dEl.classList.add('error'); _dEl.focus(); }
+      return;
+    }
+  }
   var data = {
     nombre: nom,
     apellidos: esEmp ? '' : apePart,
@@ -11079,8 +11106,26 @@ function calcNomina() {
   document.getElementById('nResumenEmp').textContent = fmt(costeEmp);
 }
 
+// F438: poblar el datalist de trabajadores con los usuarios de la tienda (mantiene texto
+// libre como fallback para quien no esté de alta como usuario).
+function _poblarTrabajadoresNomina() {
+  var dl = document.getElementById('nTrabajadorList'); if (!dl) return;
+  dl.innerHTML = (DB.usuarios || []).map(function(u) {
+    return '<option value="' + escapeAttr(u.nombre || u.email || '') + '"></option>';
+  }).join('');
+}
+// Si el nombre escrito coincide con un usuario, vincula su id y autorrellena el DNI.
+function _nominaAutoUser() {
+  var nom = (document.getElementById('nTrabajador') || {}).value || '';
+  var u = (DB.usuarios || []).find(function(x) { return (x.nombre || '') === nom || (x.email || '') === nom; });
+  window._nominaUsuarioId = u ? u.id : null;
+  if (u && u.dni) { var d = document.getElementById('nDni'); if (d && !d.value.trim()) d.value = u.dni; }
+}
+
 function abrirModalNomina(id) {
   SEL.editNominaId = id || null;
+  window._nominaUsuarioId = null;
+  _poblarTrabajadoresNomina();
   var tit = document.getElementById('mNominaTit');
   if (tit) tit.textContent = id ? T('nom.editar') : T('nom.titulo');
   // Valores por defecto
@@ -11090,6 +11135,7 @@ function abrirModalNomina(id) {
     var g = DB.gastos.find(function(x){ return x.id === id; });
     if (g && g.meta) {
       document.getElementById('nTrabajador').value = g.meta.trabajador || '';
+      window._nominaUsuarioId = g.meta.usuario_id || null;
       document.getElementById('nDni').value = g.meta.dni || '';
       document.getElementById('nPeriodo').value = g.meta.periodo || mes;
       document.getElementById('nFecha').value = g.fecha || hoy;
@@ -11142,6 +11188,7 @@ function guardarNomina() {
 
   var meta = {
     trabajador: trabajador, dni: dni, periodo: periodo,
+    usuario_id: window._nominaUsuarioId || null, // F438: vínculo nómina ↔ usuario
     bruto: bruto, irpf_pct: irpf_pct, ss_trab_pct: ss_trab_pct,
     ss_emp_pct: ss_emp_pct, neto: parseFloat(neto.toFixed(2)),
     coste_empresa: parseFloat(coste_empresa.toFixed(2)), notas: notas
