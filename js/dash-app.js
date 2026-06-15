@@ -5768,27 +5768,60 @@ function actualizarAvisoGarantia() {
 }
 
 function openNuevoCliRapido(ctx) {
-  document.getElementById('ncNom').value = '';
+  window._cliCtx = ctx;
+  window._cliRapidoForzar = false; // F232: reset del bypass de "posible duplicado"
+  // F227: pre-rellenar con lo que escribió el usuario en el buscador (nombre, o teléfono si parece)
+  var inputId = ctx === 'v' ? 'vBusCli' : ctx === 'r' ? 'rBusCli' : 'fiado-busca-cli';
+  var typed = ((document.getElementById(inputId) || {}).value || '').trim();
+  var soloDig = typed.replace(/[\s+().-]/g, '');
+  var pareceTel = !!typed && /^[+\d]/.test(typed) && soloDig.length >= 6 && /^\d+$/.test(soloDig);
+  document.getElementById('ncNom').value = pareceTel ? '' : typed;
   document.getElementById('ncApe').value = '';
-  document.getElementById('ncTel').value = '';
+  document.getElementById('ncTel').value = pareceTel ? typed : '';
   var ncDni = document.getElementById('ncDni'); if(ncDni) ncDni.value = '';
   openM('mNuevoCli');
-  window._cliCtx = ctx;
+}
+
+// F232: ¿ya existe un cliente con este teléfono o DNI?
+function _clienteDuplicado(tel, dni) {
+  var t = _norm(tel || ''), d = _norm(dni || '');
+  if (!t && !d) return null;
+  return (DB.clis || []).find(function(c){
+    if (t && t.length >= 6 && _norm(c.tel || '') === t) return true;
+    if (d && d.length >= 5 && _norm(c.dni || '') === d) return true;
+    return false;
+  }) || null;
 }
 
 function crearClienteRapido() {
   var nom = document.getElementById('ncNom').value.trim();
   if (!nom) { toast('Escribe un nombre', 'err'); return; }
+  var telV = document.getElementById('ncTel').value.trim();
+  var dniV = document.getElementById('ncDni').value.trim();
+  // F232: avisar de posible duplicado (salvo que el usuario ya haya decidido crear igualmente)
+  if (!window._cliRapidoForzar) {
+    var dup = _clienteDuplicado(telV, dniV);
+    if (dup) {
+      var coincide = (telV && _norm(dup.tel || '') === _norm(telV)) ? 'teléfono' : 'DNI/NIF';
+      confirmar('Posible duplicado: ya existe «' + ((dup.nombre || '') + ' ' + (dup.apellidos || '')).trim() + '» con ese ' + coincide + '.\n\n¿Usar el cliente existente en vez de crear uno nuevo?',
+        null, { okLabel: 'Usar el existente' }).then(function(ok){
+          if (ok) { closeM('mNuevoCli'); selCli(dup.id, window._cliCtx || 'v'); }
+          else { window._cliRapidoForzar = true; } // el siguiente «Crear» lo crea igualmente
+        });
+      return;
+    }
+  }
   var c = {
     id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     nombre: nom,
     apellidos: document.getElementById('ncApe').value.trim(),
-    tel: document.getElementById('ncTel').value.trim(),
+    tel: telV,
     email: (document.getElementById('ncEmail')||{}).value ? document.getElementById('ncEmail').value.trim() : '',
-    dni: document.getElementById('ncDni').value.trim(),
+    dni: dniV,
     direccion: (document.getElementById('ncDir')||{}).value ? document.getElementById('ncDir').value.trim() : '',
     fecha_nacimiento: (document.getElementById('ncNac')||{}).value || null
   };
+  window._cliRapidoForzar = false;
   DB.clis.push(c);
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:c.email,dni:c.dni,dir_fiscal:c.direccion,fecha_nac:c.fecha_nacimiento});
@@ -6832,9 +6865,23 @@ function abrirCrearSrvSimple(prefName) {
   }, 50);
 }
 
+// F240: valida el nombre de un servicio. Devuelve mensaje de error o null si es válido.
+function _validarNombreServicio(nom) {
+  nom = (nom || '').trim();
+  if (nom.length < 3) return 'El nombre del servicio es muy corto (mínimo 3 caracteres)';
+  if (nom.length > 60) return 'El nombre del servicio es muy largo (máximo 60 caracteres)';
+  // Texto repetido ("HISTORIA/WESTERN HISTORIA/WESTERN") → casi siempre un error de pegado
+  var mitad = nom.slice(0, Math.floor(nom.length / 2)).trim();
+  if (mitad.length >= 4 && _norm(nom) === _norm(mitad + ' ' + mitad)) return 'El nombre parece estar duplicado. Revísalo.';
+  if (!/[a-zA-ZÀ-ÿ0-9]/.test(nom)) return 'El nombre debe contener letras o números';
+  return null;
+}
+
 function guardarSrvSimple() {
   var nom = (document.getElementById('csrvNom').value || '').trim();
-  if (!nom) { toast('Falta el nombre', 'err'); return; }
+  // F240: validación de nombre (evita servicios basura tipo "CV" o nombres rotos)
+  var errSrv = _validarNombreServicio(nom);
+  if (errSrv) { toast(errSrv, 'err'); return; }
   var cat = document.getElementById('csrvCat').value || 'Otro';
   // Comprobar duplicado por nombre normalizado
   var nomNorm = _norm(nom);
@@ -13668,7 +13715,9 @@ function calcMargenSrv() {
 function guardarServicio() {
   if (!tienePerm('servicios_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var nom = document.getElementById('srvNom').value.trim();
-  if (!nom) { toast('Escribe un nombre', 'err'); return; }
+  // F240: validación de nombre (longitud + texto duplicado)
+  var errSrv2 = _validarNombreServicio(nom);
+  if (errSrv2) { toast(errSrv2, 'err'); return; }
   var pcEl = document.getElementById('srvPrecioCoste');
   var data = {
     nombre: nom,
