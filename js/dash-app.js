@@ -16333,12 +16333,19 @@ function setCitasFiltro(el) {
 async function syncCitas() {
   if (!SB_KEY || !TIENDA_ID) return;
   try {
-    var rows = await sbGet('citas', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&order=fecha.asc,hora.asc');
-    DB.citas = rows || [];
+    // F449: fetch directo y SILENCIOSO (sin el toast de error de sbGet). Un sync de fondo que
+    // falla por un parpadeo de red no debe mostrar "⚠ Failed to fetch"; se conservan las
+    // citas ya cacheadas y se reintentará en el siguiente ciclo.
+    var url = SUPABASE_URL + '/rest/v1/citas?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) +
+      '&order=fecha.asc,hora.asc&select=*';
+    var resp = await fetch(url, { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + (JWT_TOKEN || SB_KEY) } });
+    if (!resp.ok) { console.warn('Sync citas HTTP', resp.status); return; }
+    var rows = await resp.json();
+    DB.citas = Array.isArray(rows) ? rows : [];
     guardarDatos();
     renderCitas();
     actualizarBadgeCitas();
-  } catch(e) { console.warn('Sync citas error:', e); }
+  } catch(e) { console.warn('Sync citas error (silenciado):', e); }
 }
 
 // F328/F339: contadores por filtro en los tabs de Citas (reconcilia el badge del sidebar
