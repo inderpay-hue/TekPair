@@ -4275,7 +4275,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal" style="max-width:520px">
   <div class="modal-title" id="mNominaTit"></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl" id="nLblTrabajador">Trabajador *</label><input class="fi" id="nTrabajador" placeholder="Nombre completo"></div>
+    <div class="fg"><label class="fl" id="nLblTrabajador">Trabajador *</label><input class="fi" id="nTrabajador" placeholder="Elige o escribe el nombre" list="nTrabajadorList" autocomplete="off" onchange="_nominaAutoUser()" oninput="_nominaAutoUser()"><datalist id="nTrabajadorList"></datalist></div>
     <div class="fg"><label class="fl" id="nLblDni">DNI/NIE</label><input class="fi" id="nDni" placeholder="12345678A"></div>
   </div>
   <div class="fi-row">
@@ -4470,7 +4470,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260617citas"></script>
+<script src="/js/dash-app.js?v=20260617f413"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
