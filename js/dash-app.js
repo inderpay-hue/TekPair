@@ -2559,7 +2559,7 @@ function mapStock(s) {
 }
 
 function mapCli(c) {
-  return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||'', fechaNac:c.fecha_nac||'', nombreFiscal:c.nombre_fiscal||'', dirFiscal:c.dir_fiscal||'', cp:c.cp||'', provincia:c.provincia||'', ciudad:c.ciudad||''};
+  return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||'', fechaNac:c.fecha_nac||'', nombreFiscal:c.nombre_fiscal||'', dirFiscal:c.dir_fiscal||'', cp:c.cp||'', provincia:c.provincia||'', ciudad:c.ciudad||'', esEmpresa:c.es_empresa||false, personaContacto:c.persona_contacto||'', pais:c.pais||'España', telPrefijo:c.tel_prefijo||'+34'};
 }
 
 async function cargarDatosSupabase() {
@@ -9879,31 +9879,65 @@ function renderClis() {
   });
 }
 
+// F229: alternar entre formulario de particular y de empresa
+function toggleCliEmpresa() {
+  var esEmp = !!(document.getElementById('cEsEmpresa') || {}).checked;
+  var bp = document.getElementById('cBoxParticular'); if (bp) bp.style.display = esEmp ? 'none' : '';
+  var be = document.getElementById('cBoxEmpresa'); if (be) be.style.display = esEmp ? '' : 'none';
+  var lbl = document.getElementById('cDniLbl'); if (lbl) lbl.textContent = esEmp ? 'CIF' : 'DNI/NIE';
+  var dni = document.getElementById('cDni'); if (dni) dni.placeholder = esEmp ? 'B12345678' : '12345678A';
+  var fb = document.getElementById('cFnacBox'); if (fb) fb.style.display = esEmp ? 'none' : ''; // cumpleaños no aplica a empresa
+}
+
 function limpiarFormCli() {
-  ['cNom','cApe','cTel','cEmail','cDni','cFnac'].forEach(function(id) { var el=document.getElementById(id); if(el) el.value = ''; });
+  ['cNom','cApe','cRazon','cPersonaCont','cTel','cEmail','cDni','cFnac','cDir','cCp','cCiudad','cProv'].forEach(function(id) { var el=document.getElementById(id); if(el) el.value = ''; });
+  var emp = document.getElementById('cEsEmpresa'); if (emp) emp.checked = false;
+  var pref = document.getElementById('cTelPref'); if (pref) pref.value = '+34';
+  var pais = document.getElementById('cPais'); if (pais) pais.value = 'España';
+  if (typeof toggleCliEmpresa === 'function') toggleCliEmpresa();
 }
 
 function guardarCli() {
   var perm = ECID ? 'clis_editar' : 'clis_crear';
   if (!tienePerm(perm)) { toast(T('gen.sin_permiso'), 'err'); return; }
-  var nom = document.getElementById('cNom').value.trim();
-  if (!nom) { toast('Escribe un nombre', 'err'); return; }
+  var esEmp = !!(document.getElementById('cEsEmpresa') || {}).checked;
+  // Para empresa el "nombre" principal es la razón social (así listas/búsqueda/factura la usan).
+  var razon = (document.getElementById('cRazon') || {}).value || '';
+  var nomPart = document.getElementById('cNom').value.trim();
+  var apePart = document.getElementById('cApe').value.trim();
+  var nom = esEmp ? razon.trim() : nomPart;
+  if (!nom) { toast(esEmp ? 'Escribe la razón social' : 'Escribe un nombre', 'err'); document.getElementById(esEmp ? 'cRazon' : 'cNom').focus(); return; }
+  var _v = function(id){ var el=document.getElementById(id); return el ? el.value.trim() : ''; };
   var data = {
     nombre: nom,
-    apellidos: document.getElementById('cApe').value.trim(),
-    tel: document.getElementById('cTel').value.trim(),
-    email: document.getElementById('cEmail').value.trim(),
-    dni: document.getElementById('cDni').value.trim(),
-    fechaNac: document.getElementById('cFnac').value.trim()
+    apellidos: esEmp ? '' : apePart,
+    esEmpresa: esEmp,
+    personaContacto: esEmp ? _v('cPersonaCont') : '',
+    // nombre_fiscal: razón social (empresa) o "Nombre Apellidos" (particular) → lo usa la factura
+    nombreFiscal: esEmp ? nom : (nomPart + ' ' + apePart).trim(),
+    tel: _v('cTel'),
+    telPrefijo: (document.getElementById('cTelPref') || {}).value || '+34',
+    email: _v('cEmail'),
+    dni: _v('cDni'), // DNI/NIE (particular) o CIF (empresa)
+    dirFiscal: _v('cDir'),
+    cp: _v('cCp'),
+    ciudad: _v('cCiudad'),
+    provincia: _v('cProv'),
+    pais: (document.getElementById('cPais') || {}).value || 'España',
+    fechaNac: esEmp ? '' : _v('cFnac')
   };
+  var _row = function(d){ return {nombre:d.nombre,apellidos:d.apellidos,tel:d.tel,email:d.email,dni:d.dni,fecha_nac:d.fechaNac||null,
+    es_empresa:d.esEmpresa,persona_contacto:d.personaContacto||null,nombre_fiscal:d.nombreFiscal||null,
+    dir_fiscal:d.dirFiscal||null,cp:d.cp||null,ciudad:d.ciudad||null,provincia:d.provincia||null,
+    pais:d.pais||null,tel_prefijo:d.telPrefijo||null}; };
   if (ECID) {
     var c = DB.clis.find(function(x) { return x.id === ECID; });
     if (c) Object.assign(c, data);
-    if (SB_KEY && TIENDA_ID) sbPatch('clientes', 'id=eq.' + ECID, {nombre:data.nombre,apellidos:data.apellidos,tel:data.tel,email:data.email,dni:data.dni,fecha_nac:data.fechaNac||null});
+    if (SB_KEY && TIENDA_ID) sbPatch('clientes', 'id=eq.' + ECID, _row(data));
   } else {
     var nuevo = Object.assign({id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID}, data);
     DB.clis.push(nuevo);
-    if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:nuevo.id,tienda_id:TIENDA_ID,nombre:nuevo.nombre,apellidos:nuevo.apellidos,tel:nuevo.tel,email:nuevo.email,dni:nuevo.dni,fecha_nac:nuevo.fechaNac||null});
+    if (SB_KEY && TIENDA_ID) sbPost('clientes', Object.assign({id:nuevo.id,tienda_id:TIENDA_ID}, _row(nuevo)));
   }
   guardarDatos();
   var idGuardado = ECID;
@@ -9919,13 +9953,28 @@ function editCli(id) {
   if (!c) return;
   ECID = id;
   document.getElementById('mCliTit').textContent = '\u270f\ufe0f Editar Cliente';
-  document.getElementById('cNom').value = c.nombre || '';
-  document.getElementById('cApe').value = c.apellidos || '';
+  limpiarFormCli();
+  var esEmp = !!c.esEmpresa;
+  document.getElementById('cEsEmpresa').checked = esEmp;
+  if (esEmp) {
+    document.getElementById('cRazon').value = c.nombre || c.nombreFiscal || '';
+    document.getElementById('cPersonaCont').value = c.personaContacto || '';
+  } else {
+    document.getElementById('cNom').value = c.nombre || '';
+    document.getElementById('cApe').value = c.apellidos || '';
+  }
   document.getElementById('cTel').value = c.tel || '';
+  document.getElementById('cTelPref').value = c.telPrefijo || '+34';
   document.getElementById('cEmail').value = c.email || '';
   document.getElementById('cDni').value = c.dni || '';
+  document.getElementById('cDir').value = c.dirFiscal || '';
+  document.getElementById('cCp').value = c.cp || '';
+  document.getElementById('cCiudad').value = c.ciudad || '';
+  document.getElementById('cProv').value = c.provincia || '';
+  document.getElementById('cPais').value = c.pais || 'Espa\u00f1a';
   var fnac = document.getElementById('cFnac');
   if (fnac) fnac.value = c.fechaNac || '';
+  toggleCliEmpresa();
   openM('mCli');
 }
 
