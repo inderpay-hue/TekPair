@@ -5283,7 +5283,7 @@ function renderVentas() {
   });
   var el = document.getElementById('listaVentas');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📱</div>' + T('gen.sin_registros') + '</div>'; return; }
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="gen.fecha">Fecha</span></th><th data-t="rep.cliente"><span data-t="rep.cliente">Cliente</span></th><th data-t="rep.modelo">Modelo</th><th><span data-t="tpv.forma_pago">Pago</span></th><th data-t="rep.total">Total</th><th></th></tr></thead><tbody>';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('gen.fecha') + '</th><th>' + T('gen.cliente') + '</th><th>' + T('gen.modelo') + '</th><th>' + T('gen.pago') + '</th><th>' + T('gen.total') + '</th><th></th></tr></thead><tbody>';
   list.forEach(function(v) {
     var badges = '';
     if (v.reembolsado) badges += '<span class="badge-reem">Reembolsado</span>';
@@ -5564,7 +5564,7 @@ function _ofrecerAbonoPorVenta(ventaId) {
       var orig = arr.find(function(x) { return !x.rectifica_a && x.estado === 'emitida'; });
       if (!orig) return;
       if (arr.some(function(x) { return x.rectifica_a === orig.id; })) return; // ya abonada
-      confirmar('Esta venta tenía la factura ' + (orig.numero || '') + ' emitida.\n\n¿Emitir su factura rectificativa (abono) por ' + cur(orig.total) + '?', function() {
+      confirmar(T('fact.abono_confirm').replace('{num}', orig.numero || '').replace('{total}', cur(orig.total)), function() {
         window.emitirAbonoFactura(orig);
       }, { okLabel: 'Emitir abono', danger: true });
     }).catch(function() {});
@@ -8600,8 +8600,8 @@ function renderReps() {
   var el = document.getElementById('listaReps');
   if (!list.length) { el.innerHTML = '<div class="empty">Sin reparaciones</div>'; return; }
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr>'
-    + '<th>Cliente</th><th>Modelo</th><th><span data-t="rep.averia">Avería</span></th><th>Estado</th>'
-    + '<th data-t="rep.prioridad">Prioridad</th><th>F.Entrega</th><th>F.Entregado</th><th>Total</th><th></th>'
+    + '<th>' + T('gen.cliente') + '</th><th>' + T('gen.modelo') + '</th><th>' + T('gen.averia') + '</th><th>' + T('gen.estado') + '</th>'
+    + '<th>' + T('gen.prioridad') + '</th><th>' + T('rep.col_fentrega') + '</th><th>' + T('rep.col_fentregado') + '</th><th>' + T('gen.total') + '</th><th></th>'
     + '</tr></thead><tbody>';
   list.forEach(function(r) {
     var btnE = r.estado === 'Por Entregar' ? '<button data-rid="' + r.id + '" data-action="confirm" class="row-btn btn-ent" title="Marcar entregado">&#10003;</button>' : '';
@@ -11736,7 +11736,9 @@ function _estadoLabel(s) {
     'Entregado': 'Entregado', 'Garantia': 'Garantía', 'Sin Solucion': 'Sin solución',
     'Devuelto': 'Devuelto', 'Rechazado': 'Rechazado', 'Presupuesto': 'Presupuesto'
   };
-  return m[s] || s;
+  // F625/F627: usar la traducción (estado.* existe en 6 idiomas); fallback al texto ES.
+  var k = 'estado.' + s, tr = (typeof T === 'function') ? T(k) : k;
+  return (tr && tr !== k) ? tr : (m[s] || s);
 }
 // Etiqueta de método de pago traducida al idioma actual (para gráficos/labels)
 function _metodoLabelT(m) {
@@ -13558,7 +13560,7 @@ function refreshNotifs() {
         chipsHtml += '<button class="notif-chip ' + (notifFilter === k ? 'active' : '') + '" onclick="setNotifFilter(\'' + k + '\')">' + labels[k] + ' (' + counts[k] + ')</button>';
       });
       if (notifTab === 'unread') {
-        chipsHtml += '<button class="notif-clear" onclick="marcarTodasLeidas()">✓ Marcar leídas</button>';
+        chipsHtml += '<button class="notif-clear" onclick="marcarTodasLeidas()">' + T('notif.marcar_leidas') + '</button>';
       } else {
         chipsHtml += '<button class="notif-clear" onclick="marcarTodasNoLeidas()">↺ Marcar no leídas</button>';
       }
@@ -16320,9 +16322,9 @@ function mostrarAvisoNuevaVersion() {
     'background:#0F172A;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.35);' +
     'display:flex;align-items:center;gap:14px;font-size:14px;font-family:inherit;max-width:92vw';
   var msg = document.createElement('span');
-  msg.textContent = '✨ Hay una versión nueva de TekPair';
+  msg.textContent = T('app.version_nueva');
   var btn = document.createElement('button');
-  btn.textContent = 'Recargar';
+  btn.textContent = T('app.recargar');
   btn.style.cssText = 'background:#10B981;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:14px;white-space:nowrap';
   btn.onclick = function() { try { localStorage.setItem('tk_ver_dismiss', String(Date.now())); } catch (e) {} location.reload(); };
   var x = document.createElement('button');
