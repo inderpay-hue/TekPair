@@ -584,6 +584,22 @@ function _sbErrorToast(method, table, info) {
   if (typeof toast === 'function') toast('⚠ Sync ' + table + ': ' + String(msg).substring(0,60), 'err');
 }
 
+// F285: registrar una SALIDA de stock en el log de movimientos/auditoría (igual esquema que
+// dash-app `audit()`+`_logMov()`). Antes las ventas del TPV no aparecían como salidas.
+function _tpvLogSalida(nombre, qty, stockId, cliente) {
+  if (!SB_KEY || !TIENDA_ID) return;
+  var entry = {
+    id: 'a' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    tienda_id: TIENDA_ID, ts: new Date().toISOString(),
+    usuario_id: (U && U.id) || '?', usuario_nom: (U && (U.nombre || U.email)) || 'TPV',
+    accion: 'salida', entidad: 'stock', entidad_id: stockId || '',
+    detalle: (nombre || '') + (qty ? ' ×' + qty : '') + (cliente ? ' · ' + cliente : ''),
+    cambios: { mov: true, cantidad: qty || 1, ref: 'venta' }
+  };
+  try { if (window.DB && DB.audit) { DB.audit.unshift(entry); if (DB.audit.length > 1000) DB.audit = DB.audit.slice(0, 1000); } } catch (e) {}
+  sbPost('audit', entry);
+}
+
 function sbPost(table, data) {
   if (!SB_KEY) return Promise.resolve(false);
   return fetch(SUPABASE_URL + '/rest/v1/' + table, {
@@ -1588,6 +1604,8 @@ function cobrar() {
             vendido: s.vendido
           });
         }
+        // F285: dejar constancia de la salida en el log de movimientos
+        _tpvLogSalida(item.nombre, item.qty, s.id, venta.clienteNombre);
       }
     }
   });
