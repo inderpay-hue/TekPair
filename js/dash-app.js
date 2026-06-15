@@ -622,7 +622,27 @@ window.addEventListener('DOMContentLoaded', function() {
     } catch(e) {}
   }
   window.addEventListener('hashchange', _navFromHash);
-  if (location.hash) setTimeout(_navFromHash, 400);
+  // F211: un F5 sobre #reparaciones debe restaurar esa vista, no caer a Inicio.
+  // El render de arranque puede pisar la navegación, así que reaplicamos el hash de
+  // boot varias veces durante los primeros ~2,5s, y paramos en cuanto el usuario
+  // navega manualmente (cualquier hashchange) o la vista ya coincide.
+  var _bootHash = (location.hash || '').replace(/^#\/?/, '').toLowerCase().trim();
+  if (_bootHash && _HASH_NAV[_bootHash]) {
+    var _bootTarget = _HASH_NAV[_bootHash];
+    // Páginas de aterrizaje por defecto: si el arranque se queda aquí pero el hash pedía
+    // otra cosa, es el bug F211; si el usuario ya está en otra sección, no le movemos.
+    var _landing = { pInicioNuevo:1, pDash:1 };
+    var _tries = 0;
+    var _applyBoot = function(){
+      var tg = document.getElementById(_bootTarget);
+      if (tg && tg.classList.contains('active')) return;       // ya estamos donde toca
+      var cur = document.querySelector('.page.active');
+      if (cur && !_landing[cur.id]) return;                    // el usuario navegó a otra sección: no le pisamos
+      if (typeof navTo === 'function') navTo(_bootTarget);
+      if (++_tries < 6) setTimeout(_applyBoot, 350);
+    };
+    _applyBoot();
+  }
 
   setInterval(fetchNotifRemotas, 30000);
   setTimeout(fetchNotifRemotas, 3000); // primera consulta a los 3s
@@ -1937,7 +1957,22 @@ function navTo(id) {
   // COM-NAV-FIX: comisiones también se carga aquí (antes solo se cargaba al
   // hacer click en el sidebar, fallaba si navTo se llamaba directamente).
   if (id === 'pComisiones' && typeof cargarComisiones === 'function') cargarComisiones();
+  // F211: reflejar la sección activa en la URL para que un F5 vuelva a la misma vista.
+  // replaceState NO dispara 'hashchange', así que no reentra en _navFromHash.
+  try {
+    var _h = _PAGE_HASH[id];
+    if (_h && ('#' + _h) !== location.hash) {
+      history.replaceState(history.state, '', location.pathname + location.search + '#' + _h);
+    }
+  } catch (e) {}
 }
+
+// F211: mapa inverso pageId → hash (canónico) para persistir la vista en la URL.
+var _PAGE_HASH = { pInicioNuevo:'inicio', pDash:'dashboard', pVentas:'ventas', pReps:'reparaciones',
+  pPresupuestos:'presupuestos', pStock:'stock', pClis:'clientes', pProvs:'proveedores', pGastos:'gastos',
+  pPedidos:'pedidos', pServicios:'servicios', pCajas:'cajas', pAjustes:'ajustes', pReportes:'reportes',
+  pComisiones:'comisiones', pFacturas:'facturas', pCatalogo:'catalogo', pUsuarios:'usuarios',
+  pAyuda:'ayuda', pCitas:'citas', pMas:'mas' };
 
 function setNavActive(el) {
   document.querySelectorAll('.ni').forEach(function(n) { n.classList.remove('active'); });
@@ -8441,27 +8476,59 @@ function renderReps() {
 }
 
 
+// F-garantia: abrir una reparación nueva EN GARANTÍA a partir de una ya Entregada.
+// Antes vivía dentro de cambiarEstado con confirm() nativo y, sobre todo, NO persistía
+// la nueva reparación en Supabase (solo DB.reps.push) → se perdía al recargar / no sincronizaba.
+// Aquí: modal confirmar(), inserta en Supabase, NO toca el estado de la original.
+function reabrirEnGarantia(id) {
+  if (!tienePerm('reps_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var r = DB.reps.find(function(x) { return x.id === id; });
+  if (!r) { toast('Reparación no encontrada', 'err'); return; }
+  var msg = '¿Abrir una reparación EN GARANTÍA para ' + (r.clienteNombre || 'el cliente') + '?\n\n' +
+    (r.marca || '') + ' ' + (r.modelo || '') + (r.imei ? '\nIMEI: ' + r.imei : '') +
+    '\n\nSe crea una reparación nueva vinculada a esta, sin coste, para resolver el problema cubierto por la garantía.';
+  confirmar(msg, function() {
+    var nueva = {
+      id: 'r' + Date.now() + '_' + Math.random().toString(36).slice(2,8), fecha: hoyLocal(),
+      clienteId: r.clienteId, clienteNombre: r.clienteNombre,
+      marca: r.marca, modelo: r.modelo, imei: r.imei || '',
+      averia: 'Garantía: ' + (r.averia || ''), estado: 'Garantia', prioridad: 'Alta',
+      fechaEntrega: '', fechaEntregaReal: '', nota: 'Garantía de rep #' + id,
+      mo: 0, comp: 0, anticipo: 0, restante: 0, total: 0, pagoFinal: '',
+      iva: 0, ivaModo: r.ivaModo || '', base: 0, ivaImporte: 0,
+      componentes: [], servicios: [],
+      esGarantia: true, repOriginalId: id
+    };
+    DB.reps.push(nueva);
+    guardarDatos();
+    // Persistir en Supabase (el bug anterior se saltaba esto)
+    if (SB_KEY && TIENDA_ID) {
+      sbPost('reparaciones', {
+        id: nueva.id, tienda_id: TIENDA_ID, fecha: nueva.fecha,
+        cliente_id: nueva.clienteId, cliente_nombre: nueva.clienteNombre,
+        marca: nueva.marca, modelo: nueva.modelo, imei: nueva.imei,
+        averia: nueva.averia, estado: nueva.estado, prioridad: nueva.prioridad,
+        nota: nueva.nota, mo: 0, comp: 0, anticipo: 0, restante: 0, total: 0,
+        iva: 0, base: 0, iva_importe: 0,
+        componentes: [], servicios: [],
+        es_garantia: true, rep_original_id: id
+      });
+    }
+    try { audit('garantia_abierta', 'reparacion', nueva.id, (r.clienteNombre||'') + ' · ' + (r.modelo||'') + ' · garantía de #' + id, {original:id}); } catch(e){}
+    toast(T('rep.creada'), 'ok');
+    navTo('pReps');
+    setTimeout(function(){ try { editarRep(nueva.id); } catch(e){} }, 150);
+  }, { okLabel: '🛡️ Abrir garantía' });
+}
+
 function cambiarEstado(id, estado) {
   if (!tienePerm('reps_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x) { return x.id === id; });
   if (!r) return;
   // estado_cobro_v2: ahora 'Entregado' abre cobro, no 'Por Entregar'
   if (estado === 'Entregado' && r.estado !== 'Entregado') { abrirEntregar(id); return; }
-  if (estado === 'Garantia' && r.estado === 'Entregado') {
-    if (confirm('Crear nueva reparacion en garantia para ' + r.clienteNombre + '?')) {
-      var nueva = {
-        id: 'r' + Date.now() + '_' + Math.random().toString(36).slice(2,8), fecha: hoyLocal(),
-        clienteId: r.clienteId, clienteNombre: r.clienteNombre,
-        marca: r.marca, modelo: r.modelo, imei: r.imei || '',
-        averia: 'Garantia: ' + r.averia, estado: 'Garantia', prioridad: 'Alta',
-        fechaEntrega: '', fechaEntregaReal: '', nota: 'Garantia de rep #' + id,
-        mo: 0, comp: 0, anticipo: 0, restante: 0, total: 0, pagoFinal: '',
-        esGarantia: true, repOriginalId: id
-      };
-      DB.reps.push(nueva);
-      toast(T('rep.creada'), 'ok');
-    }
-  }
+  // 'Garantía' desde una Entregada → abrir reparación en garantía (no cambiar la original)
+  if (estado === 'Garantia' && r.estado === 'Entregado') { reabrirEnGarantia(id); return; }
   var estadoAnterior = r.estado;
   r.estado = estado;
 
@@ -14358,6 +14425,8 @@ function abrirDetalleRep(repId) {
   if (!r.financiado && r.estado === 'Entregado' && (parseFloat(r.restante) || 0) > 0) btns += '<button class="btn-sm" style="background:var(--green);color:white;flex:1" onclick="closeM(\'mDetalleRep\');cobrarSaldoRep(\'' + r.id + '\')">💵 Cobrar</button>';
   if (r.financiado && r.estadoFinanciado !== 'completado') btns += '<button class="btn-sm" style="background:#8B5CF6;color:white;flex:1" onclick="closeM(\'mDetalleRep\');verFinanciado(\'' + r.id + '\')">💰 Cuotas</button>';
   if (r.estado === 'Entregado') btns += '<button class="btn-sm" style="background:#0EA5E9;color:white;flex:1" onclick="closeM(\'mDetalleRep\');factRep(\'' + r.id + '\')">📄 Factura</button>';
+  // Reabrir en garantía: explícito en la Entregada (antes había que crear una rep nueva a mano)
+  if (r.estado === 'Entregado' && !r.esGarantia && tienePerm('reps_editar')) btns += '<button class="btn-sm" style="background:#2563EB;color:white;flex:1" onclick="closeM(\'mDetalleRep\');reabrirEnGarantia(\'' + r.id + '\')">🛡️ Reabrir en garantía</button>';
   if (tienePerm('reps_editar')) btns += '<button class="btn-sm" style="background:var(--orange);color:white;flex:1" onclick="closeM(\'mDetalleRep\');navTo(\'pReps\');setTimeout(function(){editarRep(\'' + r.id + '\')},100)">✏️ Editar</button>';
   if (tienePerm('reps_eliminar')) btns += '<button class="btn-sm" style="background:var(--red);color:white;flex:1" onclick="eliminarReparacion(\'' + r.id + '\')">🗑️ Eliminar</button>';
   document.getElementById('detalleRepBtns').innerHTML = btns;
