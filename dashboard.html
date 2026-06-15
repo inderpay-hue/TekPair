@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260617spin"></script>
+<script src="/lang/lang.v8.js?v=20260617rep"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -3525,9 +3525,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           <div class="rep-section-title"><span>📱</span> Dispositivo</div>
           <div class="fi-row">
             <div class="fg"><label class="fl"><span data-t="rep.marca">Marca</span></label><input class="fi" id="rMarca" placeholder="Apple, Samsung, Xiaomi..." oninput="actualizarAvisoGarantia()"></div>
-            <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo">Modelo</span> <span class="req">*</span></label><input class="fi" id="rModelo" placeholder="iPhone 14, Galaxy S23..." autocomplete="off" oninput="busModelo();actualizarAvisoGarantia();try{sugerirPiezasRep()}catch(e){}" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
+            <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo">Modelo</span> <span class="req">*</span></label><input class="fi" id="rModelo" placeholder="iPhone 14, Galaxy S23..." autocomplete="off" required oninput="busModelo();actualizarAvisoGarantia();try{sugerirPiezasRep()}catch(e){}" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
           </div>
-          <div class="fg"><label class="fl"><span data-t="rep.imei">IMEI / Nº Serie</span></label><input class="fi" id="rImei" placeholder="Opcional — útil para garantías"></div>
+          <div class="fg"><label class="fl"><span data-t="rep.imei">IMEI / Nº Serie</span></label><input class="fi" id="rImei" placeholder="Opcional — útil para garantías" inputmode="numeric" autocomplete="off"></div>
           <div class="fi-row" style="margin-bottom:0">
             <div class="fg" style="flex:0 0 38%;margin-bottom:0"><label class="fl"><span data-t="rep.bloqueo">Bloqueo</span></label><select class="fi" id="rTipoBloq" onchange="cambiarTipoBloq()"><option value="" data-t="rep.bloq_sin">Sin bloqueo</option><option value="PIN" data-t="rep.bloq_pin">PIN numérico</option><option value="Patron" data-t="rep.bloq_patron">Patrón</option><option value="Contrasena" data-t="rep.bloq_contrasena">Contraseña</option><option value="Huella" data-t="rep.bloq_huella">Huella / FaceID</option></select></div>
             <div class="fg" style="flex:1;margin-bottom:0"><label class="fl" id="rBloqLbl" data-t="rep.codigo">Código</label><input class="fi" id="rBloqVal" placeholder="No aplica" disabled></div>
@@ -3537,7 +3537,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <!-- Sección: Avería -->
         <div class="rep-section">
           <div class="rep-section-title"><span>🔧</span> Avería</div>
-          <div class="fg"><label class="fl"><span data-t="rep.describe_problema">Describe el problema</span> <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Ej: pantalla rota, no enciende, batería..." oninput="try{sugerirPiezasRep()}catch(e){}"></div>
+          <div class="fg"><label class="fl"><span data-t="rep.describe_problema">Describe el problema</span> <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Ej: pantalla rota, no enciende, batería..." required oninput="try{sugerirPiezasRep()}catch(e){}"></div>
           <div class="fg" style="margin-bottom:0">
             <label class="fl" data-t="rep.estado_equipo">Estado del equipo (al recibir)</label>
             <div class="chk-grid">
@@ -3592,7 +3592,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
               <div id="rPagosBox" style="background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:10px">
                 <!-- Anticipo directo: meter de golpe lo que el cliente adelanta -->
                 <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--border)">
-                  <div style="flex:1;min-width:80px"><label style="font-size:10px;color:var(--muted);font-weight:600" data-t="rep.anticipo_dir">ANTICIPO €</label><input id="rAntDirImporte" type="number" step="0.01" min="0" class="fi" placeholder="0,00" style="padding:6px 8px" onkeydown="if(event.key==='Enter'){event.preventDefault();anadirAnticipoDirecto();}"></div>
+                  <div style="flex:1;min-width:80px"><label style="font-size:10px;color:var(--muted);font-weight:600" data-t="rep.anticipo_dir">ANTICIPO €</label><input id="rAntDirImporte" type="number" step="0.01" min="0" inputmode="decimal" class="fi" placeholder="0,00" style="padding:6px 8px" onkeydown="if(event.key==='Enter'){event.preventDefault();anadirAnticipoDirecto();}"></div>
                   <div style="flex:1;min-width:100px"><label style="font-size:10px;color:var(--muted);font-weight:600" data-t="rep.metodo">MÉTODO</label><select id="rAntDirMetodo" class="fi" style="padding:6px 8px"><option value="Efectivo">Efectivo</option><option value="Tarjeta">Tarjeta</option><option value="Bizum">Bizum</option><option value="Transferencia">Transferencia</option></select></div>
                   <button type="button" class="btn-sm" onclick="anadirAnticipoDirecto()" title="Añadir anticipo" style="background:var(--blue);color:white;font-size:16px;font-weight:700;padding:6px 14px;line-height:1">+</button>
                 </div>
@@ -4411,7 +4411,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260617lazy"></script>
+<script src="/js/dash-app.js?v=20260617rep"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
