@@ -1017,14 +1017,19 @@ function _catLabel(cat) { return _CAT_LABELS[cat] || cat || ''; }
 // como dispositivo (Telefono/Tablet/Smartwatch) antes del fix F206 → recategorizar a Accesorio.
 function _migrarCategoriasAccesorios() {
   try {
-    if (localStorage.getItem('tk_migr_accesorios_v1')) return;
+    if (localStorage.getItem('tk_migr_accesorios_v2')) return;
     if (!DB.stock || !DB.stock.length) return; // aún sin datos: que lo intente otro sync
-    var devCats = ['Telefono', 'Tablet', 'Smartwatch'];
+    // F511 (corrige el v1, que se marcaba pronto y solo pillaba 2): una marca de accesorio
+    // (Anker/JBL/Bose/Logitech…) NUNCA debe estar en categoría de dispositivo NI de repuesto.
+    // OJO: se excluyen las marcas genéricas, porque "Genérico Pantalla" sí es un repuesto válido.
+    var _GENERICAS = ['generico', 'genérico', 'generic'];
+    var marcasAcc = _MARCAS_ACCESORIO.filter(function(m) { return _GENERICAS.indexOf(m) === -1; });
+    var catsMal = ['Telefono','Tablet','Smartwatch','Pantalla','Tapa','Flex de Carga','Bateria','Batería','Altavoz'];
     var n = 0;
     var _fix = function(arr, table) {
       (arr || []).forEach(function(it) {
         var marca = (it.marca || '').toLowerCase().trim();
-        if (_MARCAS_ACCESORIO.indexOf(marca) !== -1 && devCats.indexOf(it.categoria) !== -1) {
+        if (marcasAcc.indexOf(marca) !== -1 && catsMal.indexOf(it.categoria) !== -1) {
           it.categoria = 'Accesorio'; n++;
           if (SB_KEY && TIENDA_ID) sbPatch(table, 'id=eq.' + encodeURIComponent(it.id), { categoria: 'Accesorio' });
         }
@@ -1032,7 +1037,7 @@ function _migrarCategoriasAccesorios() {
     };
     _fix(DB.stock, 'stock');
     _fix(DB.pedidos, 'pedidos');
-    localStorage.setItem('tk_migr_accesorios_v1', '1');
+    localStorage.setItem('tk_migr_accesorios_v2', '1');
     if (n) { guardarDatos(); if (typeof toast === 'function') toast(n + ' accesorio(s) recategorizados', 'ok'); }
   } catch (e) { console.warn('migr accesorios:', e); }
 }
@@ -3085,7 +3090,9 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   // F71: si la semana anterior fue 0, un % no tiene sentido (daba "+2649%" o "+100%" con base ridícula).
   // pct=null → "nuevo / sin base comparable". Y se topa a ±999% para no mostrar cifras absurdas.
   var pct = antSem > 0 ? Math.round((estaSem - antSem) / antSem * 100) : null;
-  var pctCap = (pct === null) ? null : Math.max(-999, Math.min(999, pct));
+  // F494: un % por encima de ±999 viene de una base mínima → no es comparable de verdad.
+  // Mostrarlo como "—" en vez de un "+999%" que parece preciso pero engaña.
+  var pctCap = (pct === null || Math.abs(pct) >= 999) ? null : pct;
   _st('inv-a-perlbl', perLbl);
   _st('inv-a-big', cur(ingPer));
   var trEl = document.getElementById('inv-a-trend');
@@ -9075,7 +9082,7 @@ function renderStock() {
       '<td><span class="badge bb" style="font-size:9px">' + (s.categoria || '') + '</span></td>' +
       (mostrarUbic ? '<td>' + (s.ubicacion ? '<span class="badge" style="background:rgba(255,91,31,.10);color:var(--purple);font-size:9px">' + esc(s.ubicacion) + '</span>' : '<span style="color:var(--muted);font-size:10px">—</span>') + '</td>' : '') +
       '<td style="font-weight:700;color:' + (s.unidades < 0 ? 'var(--red)' : (s.unidades <= s.stockMin ? 'var(--orange)' : 'var(--text)')) + '">' + s.unidades + (s.unidades < 0 ? ' <button onclick="corregirStockCero(\'' + s.id + '\')" title="Poner a 0" style="background:rgba(239,68,68,.12);border:none;color:var(--red);border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer;font-weight:800">→0</button>' : '') + '</td>' +
-      '<td>' + cur(s.precioV) + '</td>' +
+      '<td>' + ((parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '<span style="color:var(--red);font-weight:700" title="Sin precio de venta — si se vende no generará ingreso">⚠ ' + cur(0) + '</span>') + '</td>' +
       '<td><button data-sid="' + s.id + '" class="btn-etq-s" title="' + T('etq.imprimir') + '" style="background:rgba(124,58,237,.1);border:none;color:var(--purple);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">\ud83c\udff7\ufe0f</button>' +
       '<button data-sid="' + s.id + '" class="btn-edit-s" title="' + (T('gen.editar') || 'Editar') + '" aria-label="' + (T('gen.editar') || 'Editar') + '" style="background:var(--light);border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:3px">\u270f\ufe0f</button>' +
       '<button data-sid="' + s.id + '" class="btn-del-s" title="' + (T('gen.eliminar') || 'Eliminar') + '" aria-label="' + (T('gen.eliminar') || 'Eliminar') + '" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:3px">\ud83d\uddd1\ufe0f</button></td></tr>';
