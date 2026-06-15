@@ -560,7 +560,7 @@ window.addEventListener('DOMContentLoaded', function() {
 
   // Load from Supabase
   if (SB_KEY && TIENDA_ID) {
-    syncCompleto(true).then(function() { cargarNotas(); iniciarRefrescoNotas(); cargarModelosCustom(); });
+    syncCompleto(true).then(function() { cargarNotas(); iniciarRefrescoNotas(); cargarModelosCustom(); _migrarCategoriasAccesorios(); });
     cargarModelosPre();
     try { _initRealtime(); } catch(e){}
     // Si hoy ya se cerró pero el envío a Cobrum falló, reintenta al abrir.
@@ -1005,6 +1005,29 @@ function _esModeloDispositivo(m) {
 // Etiqueta legible de categoría (acentos correctos en la UI)
 var _CAT_LABELS = { 'Telefono':'Teléfono', 'Bateria':'Batería', 'Camara':'Cámara' };
 function _catLabel(cat) { return _CAT_LABELS[cat] || cat || ''; }
+// F305: migración única — items de marcas de accesorio (Anker/JBL/Genérico…) que quedaron
+// como dispositivo (Telefono/Tablet/Smartwatch) antes del fix F206 → recategorizar a Accesorio.
+function _migrarCategoriasAccesorios() {
+  try {
+    if (localStorage.getItem('tk_migr_accesorios_v1')) return;
+    if (!DB.stock || !DB.stock.length) return; // aún sin datos: que lo intente otro sync
+    var devCats = ['Telefono', 'Tablet', 'Smartwatch'];
+    var n = 0;
+    var _fix = function(arr, table) {
+      (arr || []).forEach(function(it) {
+        var marca = (it.marca || '').toLowerCase().trim();
+        if (_MARCAS_ACCESORIO.indexOf(marca) !== -1 && devCats.indexOf(it.categoria) !== -1) {
+          it.categoria = 'Accesorio'; n++;
+          if (SB_KEY && TIENDA_ID) sbPatch(table, 'id=eq.' + encodeURIComponent(it.id), { categoria: 'Accesorio' });
+        }
+      });
+    };
+    _fix(DB.stock, 'stock');
+    _fix(DB.pedidos, 'pedidos');
+    localStorage.setItem('tk_migr_accesorios_v1', '1');
+    if (n) { guardarDatos(); if (typeof toast === 'function') toast(n + ' accesorio(s) recategorizados', 'ok'); }
+  } catch (e) { console.warn('migr accesorios:', e); }
+}
 // F269/F270: nombre de equipo sin duplicar la marca cuando el modelo ya la incluye
 // ("Xiaomi" + "Xiaomi Redmi Note 12" → "Xiaomi Redmi Note 12", no "Xiaomi Xiaomi …").
 function _eqNombre(marca, modelo) {
@@ -1920,6 +1943,9 @@ function navTo(id) {
   // Puerta de código: al entrar en Cajas se identifica al empleado por su código
   if (id === 'pCajas' && !window._cajaGateOk) { pedirCodigoCaja(); return; }
   if (id !== 'pCajas') window._cajaGateOk = false;
+  // F293: al cambiar de página, cerrar cualquier modal abierto (si no, quedaban apilados
+  // de la pantalla anterior — p.ej. abrir Servicio y ver detrás el de Proveedor).
+  try { document.querySelectorAll('.modal-bg.open').forEach(function(m) { m.classList.remove('open'); }); } catch (e) {}
   document.querySelectorAll('.page').forEach(function(p) { p.classList.remove('active'); });
   var el = document.getElementById(id);
   if (el) {
@@ -14161,25 +14187,25 @@ async function cargarUsuarios() {
 
 var PLAN_LIMITES = {basico: 1, pro: 3, top: 999};
 
-async function openNuevoUsuario() {
-  // Check plan limit
-  if (SB_KEY && TIENDA_ID) {
-    var usuarios = await sbGet('usuarios', 'tienda_id=eq.' + TIENDA_ID);
-    var activos = (usuarios || []).filter(function(u) { return u.activo; }).length;
-    // Get plan from tienda
-    var tiendaData = await sbGet('tiendas', 'id=eq.' + TIENDA_ID);
-    var plan = (tiendaData && tiendaData[0] && tiendaData[0].plan) || 'basico';
-    var limite = PLAN_LIMITES[plan] || 1;
-    if (activos >= limite) {
-      var planNames = {basico: 'Basico (max 1)', pro: 'Pro (max 3)', top: 'Premium (ilimitado)'};
-      alert('Has alcanzado el limite de usuarios de tu plan ' + (planNames[plan] || plan) + '.\nActualiza tu plan en tekpair.tech para anadir mas usuarios.');
-      return;
-    }
-  }
-  var nom = prompt('Nombre:'); if (!nom) return;
-  var email = prompt('Email:'); if (!email) return;
-  var pass = prompt('Contrasena:'); if (!pass) return;
-  var rol = prompt('Rol (admin/empleado):', 'empleado') || 'empleado';
+// F341: antes usaba 4 prompt() nativos en cadena → bloqueaban el renderer (y colgaban la
+// automatización >30s). Ahora abre un modal en condiciones. El límite de plan se valida en
+// crearUsuario(), así que aquí solo abrimos el formulario.
+function openNuevoUsuario() {
+  ['nuNombre', 'nuEmail', 'nuPass'].forEach(function(id) { var el = document.getElementById(id); if (el) el.value = ''; });
+  var rol = document.getElementById('nuRol'); if (rol) rol.value = 'empleado';
+  openM('mNuevoUsuario');
+  setTimeout(function() { var n = document.getElementById('nuNombre'); if (n) n.focus(); }, 100);
+}
+
+function submitNuevoUsuario() {
+  var nom = (document.getElementById('nuNombre').value || '').trim();
+  var email = (document.getElementById('nuEmail').value || '').trim();
+  var pass = (document.getElementById('nuPass').value || '');
+  var rol = (document.getElementById('nuRol') || {}).value || 'empleado';
+  if (!nom) { toast('Escribe el nombre', 'err'); return; }
+  if (!email || email.indexOf('@') < 1) { toast('Email no válido', 'err'); return; }
+  if (pass.length < 8) { toast('La contraseña debe tener al menos 8 caracteres', 'err'); return; }
+  closeM('mNuevoUsuario');
   crearUsuario(nom, email, pass, rol);
 }
 
@@ -16295,6 +16321,27 @@ async function syncCitas() {
   } catch(e) { console.warn('Sync citas error:', e); }
 }
 
+// F328/F339: contadores por filtro en los tabs de Citas (reconcilia el badge del sidebar
+// con la vista — una cita pendiente atrasada ya no "desaparece" del filtro Hoy sin pista).
+function _actualizarContadoresCitas() {
+  var hoyStr = hoyLocal();
+  var cnt = { hoy:0, proximas:0, pendiente:0, confirmada:0, atendida:0, todas:0 };
+  (DB.citas || []).forEach(function(c) {
+    cnt.todas++;
+    if (c.fecha === hoyStr && c.estado !== 'cancelada') cnt.hoy++;
+    if (c.fecha >= hoyStr && c.estado !== 'cancelada' && c.estado !== 'atendida') cnt.proximas++;
+    if (c.estado === 'pendiente') cnt.pendiente++;
+    if (c.estado === 'confirmada') cnt.confirmada++;
+    if (c.estado === 'atendida') cnt.atendida++;
+  });
+  document.querySelectorAll('.tab[data-cf]').forEach(function(t) {
+    var n = cnt[t.dataset.cf] || 0;
+    var badge = t.querySelector('.cf-count');
+    if (!badge) { badge = document.createElement('span'); badge.className = 'cf-count'; badge.style.cssText = 'font-size:10px;font-weight:700;opacity:.65;margin-left:3px'; t.appendChild(badge); }
+    badge.textContent = n ? '(' + n + ')' : '';
+  });
+}
+
 function actualizarBadgeCitas() {
   var hoyStr = hoyLocal();
   // Próximas: hoy o mañana, pendientes (no canceladas / no atendidas)
@@ -16327,6 +16374,7 @@ function renderCitas() {
   if (!DB.citas) DB.citas = [];
 
   var hoyStr = hoyLocal();
+  _actualizarContadoresCitas(); // F328/F339: contador por filtro para localizar la cita del badge
 
   var filtradas = DB.citas.slice().filter(function(c) {
     if (SEL_CITAS_FILTRO === 'hoy') return c.fecha === hoyStr && c.estado !== 'cancelada';

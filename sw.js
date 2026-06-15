@@ -1,5 +1,5 @@
 // TekPair Service Worker
-const CACHE_VERSION = 'tekpair-v202606170330';
+const CACHE_VERSION = 'tekpair-v202606170430';
 const ASSETS = [
   '/offline.html',
   '/manifest.json',

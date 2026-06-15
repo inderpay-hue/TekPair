@@ -4063,6 +4063,26 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 </div>
 
+<!-- NUEVO USUARIO (F341: modal en vez de prompt() nativos que colgaban el renderer) -->
+<div class="modal-bg" id="mNuevoUsuario">
+<div class="modal">
+  <div class="modal-title">👥 Nuevo usuario</div>
+  <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="nuNombre" placeholder="Juan García" autocomplete="off"></div>
+  <div class="fg"><label class="fl">Email *</label><input class="fi" id="nuEmail" type="email" placeholder="juan@correo.com" autocomplete="off" inputmode="email"></div>
+  <div class="fg"><label class="fl">Contraseña *</label><input class="fi" id="nuPass" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password"></div>
+  <div class="fg"><label class="fl">Rol</label>
+    <select class="fi" id="nuRol">
+      <option value="empleado">Empleado</option>
+      <option value="admin">Administrador</option>
+    </select>
+  </div>
+  <div class="modal-actions">
+    <button class="btn-secondary" onclick="closeM('mNuevoUsuario')" data-t="gen.cancelar">Cancelar</button>
+    <button class="btn-primary" onclick="submitNuevoUsuario()">Crear usuario</button>
+  </div>
+</div>
+</div>
+
 <!-- NUEVA CITA DESDE ADMIN (calendario) -->
 <div class="modal-bg" id="mNuevaCitaAdmin">
 <div class="modal">
@@ -4450,7 +4470,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260617b2b"></script>
+<script src="/js/dash-app.js?v=20260617crit"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
