@@ -1494,12 +1494,12 @@ function avanzarPedido(id) {
       // IMEI: no se suma, se registran las unidades con su IMEI (modal de alta multi-IMEI)
       confirmar(T('pedidos.add_stock_imei').replace('{n}', uds).replace('{pieza}', p.pieza || ''), function () {
         _abrirAltaImeiDesdePedido(p, uds, existe, cat);
-      }, { okLabel: T('pedidos.recibir_imei_ok') || 'Registrar IMEIs' });
+      }, { okLabel: _pedBtnLbl('imei') });
     } else {
       var msg = existe
         ? T('pedidos.add_stock_sumar').replace('{n}', uds).replace('{pieza}', p.pieza || '').replace('{cur}', parseInt(existe.unidades, 10) || 0)
         : T('pedidos.add_stock').replace('{n}', uds).replace('{pieza}', p.pieza || '');
-      confirmar(msg, function () { _recibirAStock(p, uds, existe, false, cat); }, { okLabel: T('pedidos.add_stock_ok') || 'Sumar al stock' });
+      confirmar(msg, function () { _recibirAStock(p, uds, existe, false, cat); }, { okLabel: _pedBtnLbl('stock') });
     }
   }
   renderPedidosWidget();
@@ -1604,7 +1604,7 @@ function recibirTodosPedidos() {
     _procesarRecibirLista(pend, 0, { recibidos: 0, saltados: 0 }, function (ctr) {
       toast((T('pedidos.recibidos_n') || '{n} pedidos recibidos').replace('{n}', ctr.recibidos) + (ctr.saltados ? ' · ' + ctr.saltados + ' ' + (T('pedidos.pendientes_resto') || 'sin IMEI, pendientes') : ''), 'ok');
     });
-  }, { okLabel: T('pedidos.recibir_ok') || 'Recibir todos' });
+  }, { okLabel: _pedBtnLbl('recibir') });
 }
 // Recibir de golpe todos los productos «pedido» de un proveedor (no IMEI)
 function recibirGrupo(encKey) {
@@ -1617,7 +1617,7 @@ function recibirGrupo(encKey) {
     _procesarRecibirLista(grp, 0, { recibidos: 0, saltados: 0 }, function (ctr) {
       toast((T('pedidos.recibidos_n') || '{n} pedidos recibidos').replace('{n}', ctr.recibidos) + (ctr.saltados ? ' · ' + ctr.saltados + ' ' + (T('pedidos.pendientes_resto') || 'pendientes') : ''), 'ok');
     });
-  }, { okLabel: T('pedidos.recibir_ok') || 'Recibir' });
+  }, { okLabel: _pedBtnLbl('recibir') });
 }
 function eliminarPedido(id) {
   if (!tienePerm('stock_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
@@ -5269,6 +5269,7 @@ function pedirTexto(msg, opts, onOk) {
   m.bg.addEventListener('click', function (e) { if (e.target === m.bg) fin(null); });
 }
 window.pedirTexto = pedirTexto;
+function _pedBtnLbl(k){var L=(typeof TEKPAIR_LANG!=="undefined"?TEKPAIR_LANG:"es");var M={imei:{es:"Registrar IMEIs",en:"Register IMEIs",fr:"Enregistrer les IMEI",it:"Registra IMEI",de:"IMEIs erfassen",pt:"Registar IMEIs"},stock:{es:"Sumar al stock",en:"Add to stock",fr:"Ajouter au stock",it:"Aggiungi al magazzino",de:"Zum Lager hinzufügen",pt:"Adicionar ao stock"},recibir:{es:"Recibir",en:"Receive",fr:"Recevoir",it:"Ricevi",de:"Empfangen",pt:"Receber"}};return (M[k]&&M[k][L])||(M[k]&&M[k].es)||"";}
 
 // Marca un pedido como recibido (estado + fecha + gasto + sync). No toca el stock.
 function _finalizarRecibido(p) {
@@ -5297,7 +5298,7 @@ function _procesarRecibirLista(lista, idx, ctr, onDone) {
   var cat = p.categoria || (existe ? existe.categoria : '');
   if (_esImeiCat(cat)) {
     pedirTexto((T('pedidos.imeis_prompt') || 'IMEIs de "{pieza}" ({n} uds), uno por línea:').replace('{pieza}', p.pieza || '').replace('{n}', uds),
-      { rows: 4, placeholder: '356789012345678\n356789012345679', okLabel: T('pedidos.add_stock_ok') || 'Registrar' },
+      { rows: 4, placeholder: '356789012345678\n356789012345679', okLabel: _pedBtnLbl('imei') },
       function (raw) {
         if (raw == null) { ctr.saltados++; return next(); }
         var imeis = String(raw).split(/[\s,;]+/).map(function (s) { return s.trim(); }).filter(Boolean).filter(function (x, i, a) { return a.indexOf(x) === i; }).slice(0, 50);
