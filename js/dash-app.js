@@ -11717,24 +11717,28 @@ async function renderReporte() {
 // Ventas y Reparaciones van como dos categorías separadas en Cobrum.
 var COBRUM_API = 'https://finanzas-app-six-zeta.vercel.app/api/integraciones';
 
+// #10: antes usaba prompt()+confirm() nativos que congelaban el renderer (el "freeze >45s" al
+// pulsar "Enviar a Cobrum" sin token). Ahora pide el token con un modal (pedirTexto).
 function configCobrumToken() {
   var actual = localStorage.getItem('cobrum_token') || '';
-  var tk = (prompt('Pega tu token de Cobrum.\n(En Cobrum: Ajustes → Conectar Bipe/TekPair → Generar token)', actual) || '').trim();
-  if (tk === '' && actual) {
-    if (confirm('¿Borrar el token guardado?')) {
-      localStorage.removeItem('cobrum_token');
-      if (SB_KEY && TIENDA_ID) try { sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { cobrum_token: null, cobrum_sync: false }); } catch (e) {}
-      toast('Token borrado', 'success');
-    }
-    return null;
-  }
-  if (tk) {
-    localStorage.setItem('cobrum_token', tk);
-    // Guardar también en la tienda (BD) para el envío automático del servidor (PC apagado)
-    if (SB_KEY && TIENDA_ID) try { sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { cobrum_token: tk, cobrum_sync: true }); } catch (e) {}
-    toast('Token guardado (envío automático activado)', 'success');
-  }
-  return tk || null;
+  pedirTexto('Pega tu token de Cobrum.\n(En Cobrum: Ajustes → Conectar Bipe/TekPair → Generar token)',
+    { rows: 2, okLabel: 'Guardar', placeholder: actual ? '(hay un token guardado — pega uno nuevo, o deja vacío para borrarlo)' : '' },
+    function (val) {
+      if (val === null) return; // cancelado
+      var tk = (val || '').trim();
+      if (!tk) {
+        if (actual) {
+          localStorage.removeItem('cobrum_token');
+          if (SB_KEY && TIENDA_ID) try { sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { cobrum_token: null, cobrum_sync: false }); } catch (e) {}
+          toast('Token de Cobrum borrado', 'ok');
+        }
+        return;
+      }
+      localStorage.setItem('cobrum_token', tk);
+      // Guardar también en la tienda (BD) para el envío automático del servidor (PC apagado)
+      if (SB_KEY && TIENDA_ID) try { sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { cobrum_token: tk, cobrum_sync: true }); } catch (e) {}
+      toast('Token guardado (envío automático activado)', 'ok');
+    });
 }
 window.configCobrumToken = configCobrumToken;
 
@@ -11778,7 +11782,7 @@ async function enviarReporteCobrum() {
   var exp = window._repExport;
   if (!exp) { toast('Abre un reporte primero', 'err'); return; }
   var token = localStorage.getItem('cobrum_token') || '';
-  if (!token) { token = configCobrumToken(); if (!token) return; }
+  if (!token) { configCobrumToken(); toast('Configura tu token de Cobrum y reintenta el envío', 'err'); return; }
 
   // Agrupar por día → forma de pago → { ventas, reps }
   var porDia = {};
