@@ -126,6 +126,10 @@
     { "source": "/faq.html", "destination": "/#faq", "permanent": false },
     { "source": "/faq", "destination": "/#faq", "permanent": false },
     { "source": "/novedades.html", "destination": "/#novedades", "permanent": false },
-    { "source": "/novedades", "destination": "/#novedades", "permanent": false }
+    { "source": "/novedades", "destination": "/#novedades", "permanent": false },
+    { "source": "/login.html", "destination": "/app.html", "permanent": false },
+    { "source": "/login", "destination": "/app.html", "permanent": false },
+    { "source": "/entrar.html", "destination": "/app.html", "permanent": false },
+    { "source": "/entrar", "destination": "/app.html", "permanent": false }
   ]
 }
