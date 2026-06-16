@@ -3280,10 +3280,12 @@ function addRecTb() {
 
 // ════════════ SECCIÓN PEDIDOS (página completa) ════════════
 function updatePedidosBadge() {
-  var b = document.getElementById('badgePedidos');
-  if (!b) return;
   var n = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido'; }).length;
-  if (n > 0) { b.textContent = n; b.style.display = 'inline-flex'; } else { b.style.display = 'none'; }
+  ['badgePedidos', 'badgePedidosMas'].forEach(function(id) {
+    var b = document.getElementById(id);
+    if (!b) return;
+    if (n > 0) { b.textContent = n; b.style.display = 'inline-flex'; } else { b.style.display = 'none'; }
+  });
 }
 function setPedFiltro(f) { window._pedFiltro = f; renderPedidosPage(); }
 // Badge de estado de pago para una línea de pedido (vacío si está pagado)
