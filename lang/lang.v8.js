@@ -3645,6 +3645,16 @@ pt:{'gen.convertir':'Converter','fact.emitir_abono':'Emitir nota de crédito','p
 // i18n precio variable TPV (#11)
 (function(){var _a={es:{'tpv.precio_producto':'💶 Precio del producto','gen.aceptar':'Aceptar'},en:{'tpv.precio_producto':'💶 Product price','gen.aceptar':'OK'},fr:{'tpv.precio_producto':'💶 Prix du produit','gen.aceptar':'OK'},it:{'tpv.precio_producto':'💶 Prezzo del prodotto','gen.aceptar':'OK'},de:{'tpv.precio_producto':'💶 Produktpreis','gen.aceptar':'OK'},pt:{'tpv.precio_producto':'💶 Preço do produto','gen.aceptar':'OK'}};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
+// i18n modal Comparar planes / Mejora tu plan
+(function(){var _a={
+es:{'upg.titulo':'🚀 Mejora tu plan','upg.funcion_pre':'La función','upg.funcion_post':'está disponible en el plan','upg.por_mes':'€/mes','upg.feats_basico':'Ventas, reparaciones, stock<br>1 usuario','upg.feats_pro':'Todo + citas, kanban,<br>reportes PDF, backup,<br>3 usuarios','upg.feats_premium':'Todo + backups,<br>API, soporte prioritario,<br>usuarios ilimitados','upg.plan_actual':'Plan actual','upg.cambiar_pro':'Cambiar a Pro','upg.cambiar_premium':'Cambiar a Premium','upg.footer':'💳 Cancela cuando quieras · 🔒 Pago seguro con Stripe'},
+en:{'upg.titulo':'🚀 Upgrade your plan','upg.funcion_pre':'The feature','upg.funcion_post':'is available on the plan','upg.por_mes':'€/mo','upg.feats_basico':'Sales, repairs, stock<br>1 user','upg.feats_pro':'Everything + appointments, kanban,<br>PDF reports, backup,<br>3 users','upg.feats_premium':'Everything + backups,<br>API, priority support,<br>unlimited users','upg.plan_actual':'Current plan','upg.cambiar_pro':'Switch to Pro','upg.cambiar_premium':'Switch to Premium','upg.footer':'💳 Cancel anytime · 🔒 Secure payment with Stripe'},
+fr:{'upg.titulo':'🚀 Améliorez votre forfait','upg.funcion_pre':'La fonction','upg.funcion_post':'est disponible dans le forfait','upg.por_mes':'€/mois','upg.feats_basico':'Ventes, réparations, stock<br>1 utilisateur','upg.feats_pro':'Tout + rendez-vous, kanban,<br>rapports PDF, sauvegarde,<br>3 utilisateurs','upg.feats_premium':'Tout + sauvegardes,<br>API, support prioritaire,<br>utilisateurs illimités','upg.plan_actual':'Forfait actuel','upg.cambiar_pro':'Passer à Pro','upg.cambiar_premium':'Passer à Premium','upg.footer':'💳 Annulez quand vous voulez · 🔒 Paiement sécurisé via Stripe'},
+it:{'upg.titulo':'🚀 Migliora il piano','upg.funcion_pre':'La funzione','upg.funcion_post':'è disponibile nel piano','upg.por_mes':'€/mese','upg.feats_basico':'Vendite, riparazioni, stock<br>1 utente','upg.feats_pro':'Tutto + appuntamenti, kanban,<br>report PDF, backup,<br>3 utenti','upg.feats_premium':'Tutto + backup,<br>API, supporto prioritario,<br>utenti illimitati','upg.plan_actual':'Piano attuale','upg.cambiar_pro':'Passa a Pro','upg.cambiar_premium':'Passa a Premium','upg.footer':'💳 Disdici quando vuoi · 🔒 Pagamento sicuro con Stripe'},
+de:{'upg.titulo':'🚀 Plan upgraden','upg.funcion_pre':'Die Funktion','upg.funcion_post':'ist im Plan verfügbar','upg.por_mes':'€/Mon.','upg.feats_basico':'Verkäufe, Reparaturen, Lager<br>1 Nutzer','upg.feats_pro':'Alles + Termine, Kanban,<br>PDF-Berichte, Backup,<br>3 Nutzer','upg.feats_premium':'Alles + Backups,<br>API, Prioritäts-Support,<br>unbegrenzte Nutzer','upg.plan_actual':'Aktueller Plan','upg.cambiar_pro':'Zu Pro wechseln','upg.cambiar_premium':'Zu Premium wechseln','upg.footer':'💳 Jederzeit kündbar · 🔒 Sichere Zahlung mit Stripe'},
+pt:{'upg.titulo':'🚀 Melhora o teu plano','upg.funcion_pre':'A função','upg.funcion_post':'está disponível no plano','upg.por_mes':'€/mês','upg.feats_basico':'Vendas, reparações, stock<br>1 utilizador','upg.feats_pro':'Tudo + marcações, kanban,<br>relatórios PDF, backup,<br>3 utilizadores','upg.feats_premium':'Tudo + backups,<br>API, suporte prioritário,<br>utilizadores ilimitados','upg.plan_actual':'Plano atual','upg.cambiar_pro':'Mudar para Pro','upg.cambiar_premium':'Mudar para Premium','upg.footer':'💳 Cancela quando quiseres · 🔒 Pagamento seguro com Stripe'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
 // i18n modales Comisiones (Nuevo comercial / Editar afiliado)
 (function(){var _a={
 es:{'com.nuevo_comercial':'👔 Nuevo comercial','com.nombre_completo':'Nombre completo','com.codigo_afiliado':'Código afiliado','com.comision_pct':'Comisión (%)','com.enviar_email':'Enviar email al comercial con sus credenciales y código','com.cuenta_nota':'Se crea su cuenta TekPair (plan Premium vitalicio gratis). Al terminar te recordamos crear el <strong>cupón en Stripe</strong> con el mismo código.','com.crear_comercial':'Crear comercial','com.editar_afiliado':'EDITAR AFILIADO','com.nuevo_afiliado':'NUEVO AFILIADO','com.pct_base':'Porcentaje sobre la base imponible (sin IVA)','com.crear_afiliado':'Crear afiliado','com.guardar_cambios':'Guardar cambios'},
@@ -3943,6 +3953,10 @@ function applyLang() {
   });
   document.querySelectorAll('[data-t-ph]').forEach(function(el) {
     el.placeholder = T(el.getAttribute('data-t-ph'));
+  });
+  // data-t-html: para valores que contienen markup (p.ej. <br>). Traducciones de confianza.
+  document.querySelectorAll('[data-t-html]').forEach(function(el) {
+    el.innerHTML = T(el.getAttribute('data-t-html'));
   });
 }
 
