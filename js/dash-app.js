@@ -6420,7 +6420,7 @@ function aceptarPresupuesto(id) {
   if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
   if (r.estado !== 'Presupuesto') { toast('Esto no es un presupuesto', 'err'); return; }
   // F46: modal en vez de confirm() nativo (el nativo congelaba la automatización, patrón F30)
-  confirmar('¿Convertir este presupuesto en reparación pendiente?\n\nCliente: ' + r.clienteNombre + '\nDispositivo: ' + r.marca + ' ' + r.modelo + '\nTotal: ' + cur(r.total), function () {
+  confirmar(T('pres.convertir_confirm').replace('{cli}', r.clienteNombre).replace('{disp}', (r.marca + ' ' + r.modelo).trim()).replace('{total}', cur(r.total)), function () {
     r.estado = 'Pendiente';
     r.fechaAceptacion = new Date().toISOString();
     guardarDatos();
@@ -6436,7 +6436,7 @@ function aceptarPresupuesto(id) {
     // Cambiar al filtro Pendiente para que el usuario vea dónde fue
     var tab = document.querySelector('#repTabs .tab[data-f="Pendiente"]');
     if (tab) setRepFiltro(tab);
-  }, { okLabel: 'Convertir' });
+  }, { okLabel: T('gen.convertir') });
 }
 
 // Rechazar presupuesto → estado Rechazado (lo tienes ya)
@@ -13886,7 +13886,7 @@ function limpiarFormSrv() {
   document.getElementById('srvTipo').value = 'ambos';
   document.getElementById('srvFijo').checked = true;
   var mb = document.getElementById('srvMargenBox'); if (mb) mb.style.display = 'none';
-  document.getElementById('mServicioTit').textContent = '\ud83d\udee0\ufe0f Nuevo Servicio';
+  document.getElementById('mServicioTit').textContent = T('srv.nuevo_titulo');
 }
 
 function calcMargenSrv() {
@@ -13967,7 +13967,7 @@ function editarServicio(id) {
   var s = (DB.servicios || []).find(function(x) { return x.id === id; });
   if (!s) return;
   ESID = id;
-  document.getElementById('mServicioTit').textContent = '\u270f\ufe0f Editar Servicio';
+  document.getElementById('mServicioTit').textContent = T('srv.editar_titulo');
   document.getElementById('srvNom').value = s.nombre || '';
   document.getElementById('srvCat').value = s.categoria || 'Otro';
   document.getElementById('srvTipo').value = s.tipo || 'ambos';
