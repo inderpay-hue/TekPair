@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260617cmdk"></script>
+<script src="/lang/lang.v8.js?v=20260617busq"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -1412,7 +1412,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sec-title" data-t="nav.facturas">Facturas</div>
   </div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px;align-items:center">
-    <input class="fi" id="factBuscar" placeholder="🔍 Buscar por número o cliente..." oninput="filtrarFacturas()" autocomplete="off" style="flex:1;min-width:180px">
+    <input class="fi" id="factBuscar" placeholder="🔍 Buscar por número o cliente..." data-t-ph="busq.ph_facturas" oninput="filtrarFacturas()" autocomplete="off" style="flex:1;min-width:180px">
     <select class="fi" id="factFiltroTipo" onchange="filtrarFacturas()" style="width:auto">
       <option value="" data-t="gen.todos_tipos">Todos los tipos</option>
       <option value="completa" data-t="fact.tipo_completa">Completa</option>
@@ -1518,7 +1518,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div id="alertasStock"></div>
   <div id="filtroUbicWrap" style="display:none;margin-bottom:10px">
     <select id="filtroUbicStock" class="fi" onchange="filtrarUbicStock()" style="max-width:240px">
-      <option value="">📍 Todas las ubicaciones</option>
+      <option value="" data-t="ubic.todas">📍 Todas las ubicaciones</option>
     </select>
   </div>
   <div id="listaStock"></div>
@@ -3250,7 +3250,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div id="deudaProvBox"></div>
   <div id="pedidosPageFiltros" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
   <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:12px">
-    <input id="pedBuscarInput" oninput="setPedBuscar(this.value)" placeholder="🔍 Buscar pieza, proveedor o nota…" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px">
+    <input id="pedBuscarInput" oninput="setPedBuscar(this.value)" placeholder="🔍 Buscar pieza, proveedor o nota…" data-t-ph="busq.ph_pedidos" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:9px;padding:8px 11px;font:inherit;font-size:13px">
     <button id="pedAgruparBtn" onclick="togglePedAgrupar()" style="border:1px solid var(--border);background:#fff;border-radius:9px;padding:8px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">👥 <span data-t="pedidos.agrupar">Agrupar por proveedor</span></button>
     <button id="pedRecibirTodosBtn" onclick="recibirTodosPedidos()" style="border:none;background:var(--green);color:#fff;border-radius:9px;padding:8px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">✅ <span data-t="pedidos.recibir_todos">Recibir todos</span></button>
   </div>
@@ -3565,7 +3565,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
           </div>
           <div class="srv-search-row">
             <div style="position:relative;flex:1">
-              <input class="fi" id="rSrvBus" placeholder="🔍 Buscar servicio del catálogo..." oninput="busServicioRep()" autocomplete="off">
+              <input class="fi" id="rSrvBus" placeholder="🔍 Buscar servicio del catálogo..." data-t-ph="busq.ph_servicio" oninput="busServicioRep()" autocomplete="off">
               <div class="autocomplete-res" id="rSrvRes"></div>
             </div>
             <button type="button" class="btn-explorar" onclick="explorarServicios()" data-t="rep.explorar">Explorar</button>
@@ -3577,7 +3577,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="rep-section">
           <div class="rep-section-title"><span>📦</span> <span data-t="rep.sec_componentes">Componentes (stock)</span></div>
           <div class="fg" style="position:relative;margin-bottom:8px">
-            <input class="fi" id="compBus" placeholder="🔍 Buscar pieza, batería, pantalla..." oninput="busComp()" autocomplete="off">
+            <input class="fi" id="compBus" placeholder="🔍 Buscar pieza, batería, pantalla..." data-t-ph="busq.ph_componente" oninput="busComp()" autocomplete="off">
             <div class="autocomplete-res" id="compRes"></div>
           </div>
           <div id="repPiezasSug" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
