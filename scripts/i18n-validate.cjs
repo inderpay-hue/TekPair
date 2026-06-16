@@ -76,7 +76,7 @@ function recogerClavesUsadas() {
   const usadas = new Map(); // key -> Set(ficheros)
   const add = (k, f) => { if (!usadas.has(k)) usadas.set(k, new Set()); usadas.get(k).add(f); };
   const patrones = [
-    /data-t(?:-ph|-attr)?="([^"]+)"/g,       // atributos data-t / data-t-ph
+    /data-t(?:-ph|-attr|-html)?="([^"]+)"/g,       // atributos data-t / data-t-ph
     /[^a-zA-Z0-9_]T\(\s*'([^']+)'\s*\)/g,    // T('clave')
     /[^a-zA-Z0-9_]T\(\s*"([^"]+)"\s*\)/g,    // T("clave")
   ];

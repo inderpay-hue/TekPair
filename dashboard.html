@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260618com"></script>
+<script src="/lang/lang.v8.js?v=20260618upg"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4542,35 +4542,35 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- ═══ MODAL UPGRADE PLAN ═══ -->
 <div class="modal-bg" id="mUpgrade">
   <div class="modal" style="max-width:680px">
-    <div class="modal-h"><span>🚀 Mejora tu plan</span><span class="cls" onclick="closeM('mUpgrade')">×</span></div>
+    <div class="modal-h"><span data-t="upg.titulo">🚀 Mejora tu plan</span><span class="cls" onclick="closeM('mUpgrade')">×</span></div>
     <div style="text-align:center;margin-bottom:18px">
-      <div style="font-size:13px;color:var(--muted);margin-bottom:4px">La función <strong id="upgFeatName" style="color:var(--text)"></strong> está disponible en el plan</div>
+      <div style="font-size:13px;color:var(--muted);margin-bottom:4px"><span data-t="upg.funcion_pre">La función</span> <strong id="upgFeatName" style="color:var(--text)"></strong> <span data-t="upg.funcion_post">está disponible en el plan</span></div>
       <div style="font-size:18px;font-weight:800;color:var(--blue)" id="upgPlanReq">Pro</div>
     </div>
 
     <div class="upg-grid">
       <div class="upg-plan" data-plan="basico">
         <div class="upg-plan-name">Básico</div>
-        <div class="upg-plan-price">9,90<small>€/mes</small></div>
-        <div class="upg-plan-feats">Ventas, reparaciones, stock<br>1 usuario</div>
-        <button class="upg-plan-btn" onclick="clickUpgradePlan('basico')">Plan actual</button>
+        <div class="upg-plan-price">9,90<small data-t="upg.por_mes">€/mes</small></div>
+        <div class="upg-plan-feats" data-t-html="upg.feats_basico">Ventas, reparaciones, stock<br>1 usuario</div>
+        <button class="upg-plan-btn" onclick="clickUpgradePlan('basico')" data-t="upg.plan_actual">Plan actual</button>
       </div>
       <div class="upg-plan" data-plan="pro">
         <div class="upg-plan-name">Pro</div>
-        <div class="upg-plan-price">19,90<small>€/mes</small></div>
-        <div class="upg-plan-feats">Todo + citas, kanban,<br>reportes PDF, backup,<br>3 usuarios</div>
-        <button class="upg-plan-btn" onclick="clickUpgradePlan('pro')">Cambiar a Pro</button>
+        <div class="upg-plan-price">19,90<small data-t="upg.por_mes">€/mes</small></div>
+        <div class="upg-plan-feats" data-t-html="upg.feats_pro">Todo + citas, kanban,<br>reportes PDF, backup,<br>3 usuarios</div>
+        <button class="upg-plan-btn" onclick="clickUpgradePlan('pro')" data-t="upg.cambiar_pro">Cambiar a Pro</button>
       </div>
       <div class="upg-plan" data-plan="premium">
         <div class="upg-plan-name">Premium</div>
-        <div class="upg-plan-price">34,90<small>€/mes</small></div>
-        <div class="upg-plan-feats">Todo + backups,<br>API, soporte prioritario,<br>usuarios ilimitados</div>
-        <button class="upg-plan-btn" onclick="clickUpgradePlan('premium')">Cambiar a Premium</button>
+        <div class="upg-plan-price">34,90<small data-t="upg.por_mes">€/mes</small></div>
+        <div class="upg-plan-feats" data-t-html="upg.feats_premium">Todo + backups,<br>API, soporte prioritario,<br>usuarios ilimitados</div>
+        <button class="upg-plan-btn" onclick="clickUpgradePlan('premium')" data-t="upg.cambiar_premium">Cambiar a Premium</button>
       </div>
     </div>
 
     <div style="font-size:11px;color:var(--muted);text-align:center;border-top:1px solid var(--border);padding-top:12px">
-      💳 Cancela cuando quieras · 🔒 Pago seguro con Stripe
+      <span data-t="upg.footer">💳 Cancela cuando quieras · 🔒 Pago seguro con Stripe</span>
     </div>
   </div>
 </div>
