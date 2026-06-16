@@ -218,7 +218,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
   .cart-fab,.cart-close-mobile{display:none!important}
 }
 </style>
-<script src="/lang/lang.v8.js?v=20260617close"></script>
+<script src="/lang/lang.v8.js?v=20260617tpvm"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -426,23 +426,23 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
 <div class="modal">
   <div class="modal-title"><span data-t="tpv.asignar_cliente">👤 Asignar Cliente</span></div>
   <div class="fg" style="position:relative">
-    <label class="fl">Buscar cliente</label>
-    <input class="fi" id="cliSearch" placeholder="Nombre, teléfono..." oninput="buscarCliente()" autocomplete="off">
+    <label class="fl" data-t="tpv.buscar_cliente">Buscar cliente</label>
+    <input class="fi" id="cliSearch" placeholder="Nombre, teléfono..." data-t-ph="tpv.ph_buscar_cli" oninput="buscarCliente()" autocomplete="off">
     <div style="margin-top:6px;max-height:200px;overflow-y:auto" id="cliResults"></div>
   </div>
   <div style="border-top:1px solid var(--border);margin:12px 0;padding-top:12px">
-    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px">O CREAR NUEVO</div>
+    <div style="font-size:12px;font-weight:700;color:var(--muted);margin-bottom:8px" data-t="tpv.o_crear_nuevo">O CREAR NUEVO</div>
     <div class="fi-row">
-      <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="ncNom" placeholder="Juan"></div>
-      <div class="fg"><label class="fl">Apellidos</label><input class="fi" id="ncApe" placeholder="García"></div>
+      <div class="fg"><label class="fl"><span data-t="cli.nombre">Nombre</span> *</label><input class="fi" id="ncNom" placeholder="Juan"></div>
+      <div class="fg"><label class="fl" data-t="cli.apellidos">Apellidos</label><input class="fi" id="ncApe" placeholder="García"></div>
     </div>
     <div class="fi-row">
-      <div class="fg"><label class="fl">Telefono</label><input class="fi" id="ncTel" placeholder="6XX XXX XXX"></div>
+      <div class="fg"><label class="fl" data-t="cli.telefono">Telefono</label><input class="fi" id="ncTel" placeholder="6XX XXX XXX"></div>
       <div class="fg"><label class="fl">DNI</label><input class="fi" id="ncDni" placeholder="12345678A"></div>
     </div>
-    <button class="btn-primary" onclick="crearClienteRapido()" style="margin-top:4px">Crear y asignar</button>
+    <button class="btn-primary" onclick="crearClienteRapido()" style="margin-top:4px" data-t="tpv.crear_asignar">Crear y asignar</button>
   </div>
-  <button class="btn-secondary" onclick="closeModal('mCli')" style="margin-top:8px">Cancelar</button>
+  <button class="btn-secondary" onclick="closeModal('mCli')" style="margin-top:8px" data-t="gen.cancelar">Cancelar</button>
 </div>
 </div>
 
@@ -490,21 +490,21 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
 <!-- MODAL: Historial -->
 <div class="modal-bg" id="mHistorial">
 <div class="modal" style="max-width:560px">
-  <div class="modal-title">📋 Ventas de hoy</div>
+  <div class="modal-title"data-t="tpv.ventas_hoy_titulo">📋 Ventas de hoy</div>
   <div class="fg" style="margin-bottom:10px">
     <input class="fi" id="histSearch" placeholder="Buscar..." data-t-ph="gen.buscar" oninput="renderHistorial()" autocomplete="off">
   </div>
   <div id="histContent"></div>
-  <button class="btn-secondary" onclick="closeModal('mHistorial')" style="margin-top:12px">Cerrar</button>
+  <button class="btn-secondary" onclick="closeModal('mHistorial')" style="margin-top:12px" data-t="gen.cerrar">Cerrar</button>
 </div>
 </div>
 
 <!-- MODAL: Caja -->
 <div class="modal-bg" id="mCaja">
 <div class="modal">
-  <div class="modal-title">💵 Caja del día</div>
+  <div class="modal-title" data-t="tpv.caja_dia">💵 Caja del día</div>
   <div id="cajaContent"></div>
-  <button class="btn-secondary" onclick="closeModal('mCaja')" style="margin-top:12px">Cerrar</button>
+  <button class="btn-secondary" onclick="closeModal('mCaja')" style="margin-top:12px" data-t="gen.cerrar">Cerrar</button>
 </div>
 </div>
 
@@ -1774,20 +1774,20 @@ function verCaja() {
   var reembHoy = DB.ventas.filter(function(v) { return v.reembolsado && (v.fechaReembolso || v.fecha) === hoy; });
   var totReemb = reembHoy.reduce(function(a, v) { return a + (v.total || 0); }, 0);
   // F243: concordancia singular/plural
-  var lblN = ventasHoy.length + ' ' + (ventasHoy.length === 1 ? 'venta' : 'ventas');
+  var lblN = ventasHoy.length + ' ' + (ventasHoy.length === 1 ? T('tpv.venta') : T('tpv.ventas'));
 
   document.getElementById('cajaContent').innerHTML =
     '<div style="margin-bottom:12px;font-size:13px;color:var(--muted)">' + escHtml(hoy) + ' \u2014 ' + lblN + '</div>' +
-    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Por forma de pago</div>' +
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">' + T('tpv.por_forma_pago') + '</div>' +
     (Object.keys(pagos).length ? Object.entries(pagos).map(function(e) {
       return '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px">' +
         '<span>' + escHtml(e[0]) + '</span><strong>\u20ac' + e[1].toFixed(2) + '</strong></div>';
-    }).join('') : '<div style="padding:10px 0;color:var(--muted);font-size:13px;border-bottom:1px solid var(--border)">Sin ventas hoy</div>') +
+    }).join('') : '<div style="padding:10px 0;color:var(--muted);font-size:13px;border-bottom:1px solid var(--border)">' + T('gen.sin_ventas_hoy') + '</div>') +
     // F245: desglose bruto / reembolsos / neto
-    '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--muted)"><span>Ventas brutas</span><span>\u20ac' + total.toFixed(2) + '</span></div>' +
-    (totReemb > 0 ? '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--red)"><span>Reembolsos (' + reembHoy.length + ')</span><span>-\u20ac' + totReemb.toFixed(2) + '</span></div>' : '') +
+    '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--muted)"><span>' + T('tpv.ventas_brutas') + '</span><span>\u20ac' + total.toFixed(2) + '</span></div>' +
+    (totReemb > 0 ? '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--red)"><span>' + T('tpv.reembolsos') + ' (' + reembHoy.length + ')</span><span>-\u20ac' + totReemb.toFixed(2) + '</span></div>' : '') +
     '<div style="display:flex;justify-content:space-between;padding:12px 0;font-size:18px;font-weight:800;color:var(--blue);border-top:2px solid var(--border);margin-top:4px">' +
-    '<span>NETO</span><span>\u20ac' + (total - totReemb).toFixed(2) + '</span></div>';
+    '<span>' + T('tpv.neto') + '</span><span>\u20ac' + (total - totReemb).toFixed(2) + '</span></div>';
   openModal('mCaja');
 }
 
@@ -1816,15 +1816,15 @@ function renderHistorial() {
   }
   var el = document.getElementById('histContent');
   if (!ventasHoy.length) {
-    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px"><span data-t="gen.sin_ventas_hoy">Sin ventas hoy</span></div>';
+    el.innerHTML = '<div style="text-align:center;padding:40px 20px;color:var(--muted);font-size:13px">' + T('gen.sin_ventas_hoy') + '</div>';
     return;
   }
   var totalDia = ventasHoy.filter(function(v){return !v.reembolsado;}).reduce(function(a,v){return a+(v.total||0);},0);
   // F249: separar ventas reales de reembolsos en el contador (antes "3 ventas" contaba reembolsos)
   var nReales = ventasHoy.filter(function(v){ return !v.reembolsado; }).length;
   var nReemb = ventasHoy.filter(function(v){ return v.reembolsado; }).length;
-  var lblCount = nReales + ' ' + (nReales === 1 ? 'venta' : 'ventas') +
-    (nReemb ? ' \u00b7 ' + nReemb + ' ' + (nReemb === 1 ? 'reembolso' : 'reembolsos') : '');
+  var lblCount = nReales + ' ' + (nReales === 1 ? T('tpv.venta') : T('tpv.ventas')) +
+    (nReemb ? ' \u00b7 ' + nReemb + ' ' + (nReemb === 1 ? T('tpv.reembolso') : T('tpv.reembolsos_p')) : '');
   var html = '<div style="background:var(--bg);padding:10px 14px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;font-size:13px"><span>' + lblCount + '</span><strong style="color:var(--green)">\u20ac' + totalDia.toFixed(2) + '</strong></div>';
   html += '<div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">';
   html += ventasHoy.map(function(v) {
