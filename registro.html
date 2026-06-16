@@ -50,8 +50,8 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .plan-btn:hover{transform:translateY(-1px)}
 .plan-btn-main{background:var(--orange);color:#fff}
 .plan-btn-main:hover{box-shadow:0 10px 24px -8px rgba(255,91,31,.5)}
-.plan-btn-sec{background:var(--paper-2);color:var(--ink)}
-.plan-btn-sec:hover{background:var(--line)}
+.plan-btn-sec{background:#fff;color:var(--orange);border:1.5px solid var(--orange)}
+.plan-btn-sec:hover{background:var(--orange-l)}
 .form-section{background:var(--card);border-radius:14px;padding:24px;margin:24px 16px;max-width:448px;margin-left:auto;margin-right:auto;border:1.5px solid var(--line);display:none;box-shadow:0 16px 40px -16px rgba(2,11,46,.16)}
 .form-section.show{display:block;animation:rise .5s cubic-bezier(.2,.7,.2,1)}
 @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
@@ -162,14 +162,14 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   <div class="err" id="rErr"></div>
   <button class="btn-pagar" id="btnPagar" type="submit">Continuar al pago</button>
   </form>
-  <p style="text-align:center;font-size:11px;color:var(--faint);margin-top:12px">Pago seguro con Stripe · No pagas hasta el día 15</p>
+  <p id="stripeNote" style="text-align:center;font-size:11px;color:var(--faint);margin-top:12px">Pago seguro con Stripe · No pagas hasta el día 15</p>
 </div>
 
 <div class="trust">
   <div class="trust-items">
-    <div class="trust-item"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> Pago seguro</div>
-    <div class="trust-item"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg> Sin permanencia</div>
-    <div class="trust-item"><svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/></svg> Cualquier dispositivo</div>
+    <div class="trust-item"><svg viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg> <span id="trust_pago">Pago seguro</span></div>
+    <div class="trust-item"><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg> <span id="trust_permanencia">Sin permanencia</span></div>
+    <div class="trust-item"><svg viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="2"/></svg> <span id="trust_device">Cualquier dispositivo</span></div>
   </div>
 </div>
 
@@ -200,7 +200,8 @@ const REG_TEXTS = {
     f_reportes: 'Reportes básicos', f_permisos: 'Permisos por usuario', f_pdf: 'Reportes PDF + informe gestor',
     f_zip: 'ZIP gestoría y gastos recurrentes', f_cajas: 'Cajas multi-servicio', f_csv: 'Importar datos CSV',
     f_soporte: 'Soporte prioritario', f_todo_pro: 'Todo lo del plan Pro', f_citas: 'Citas online',
-    f_kanban: 'Vista Kanban de reparaciones', f_catalogo: 'Catálogo de servicios', f_popular: 'MÁS POPULAR'
+    f_kanban: 'Vista Kanban de reparaciones', f_catalogo: 'Catálogo de servicios', f_popular: 'MÁS POPULAR',
+    footer_aviso: 'Aviso legal', footer_priv: 'Privacidad', footer_terminos: 'Términos', footer_cookies: 'Cookies'
   },
   en: {
     title: 'TekPair — Get started',
@@ -225,7 +226,8 @@ const REG_TEXTS = {
     f_reportes: 'Basic reports', f_permisos: 'User permissions', f_pdf: 'PDF reports + manager summary',
     f_zip: 'Accounting ZIP and recurring expenses', f_cajas: 'Multi-service cash register', f_csv: 'CSV data import',
     f_soporte: 'Priority support', f_todo_pro: 'Everything in Pro', f_citas: 'Online appointments',
-    f_kanban: 'Kanban repair view', f_catalogo: 'Service catalogue', f_popular: 'MOST POPULAR'
+    f_kanban: 'Kanban repair view', f_catalogo: 'Service catalogue', f_popular: 'MOST POPULAR',
+    footer_aviso: 'Legal notice', footer_priv: 'Privacy', footer_terminos: 'Terms', footer_cookies: 'Cookies'
   },
   fr: {
     title: 'TekPair — Commencer',
@@ -250,7 +252,8 @@ const REG_TEXTS = {
     f_reportes: 'Rapports de base', f_permisos: 'Permissions utilisateurs', f_pdf: 'Rapports PDF + résumé gestionnaire',
     f_zip: 'ZIP comptabilité et dépenses récurrentes', f_cajas: 'Caisse multi-services', f_csv: 'Import données CSV',
     f_soporte: 'Support prioritaire', f_todo_pro: 'Tout du plan Pro', f_citas: 'Rendez-vous en ligne',
-    f_kanban: 'Vue Kanban des réparations', f_catalogo: 'Catalogue de services', f_popular: 'LE PLUS POPULAIRE'
+    f_kanban: 'Vue Kanban des réparations', f_catalogo: 'Catalogue de services', f_popular: 'LE PLUS POPULAIRE',
+    footer_aviso: 'Mentions légales', footer_priv: 'Confidentialité', footer_terminos: 'Conditions', footer_cookies: 'Cookies'
   },
   it: {
     title: 'TekPair — Inizia ora',
@@ -275,7 +278,8 @@ const REG_TEXTS = {
     f_reportes: 'Report di base', f_permisos: 'Permessi utente', f_pdf: 'Report PDF + riepilogo gestore',
     f_zip: 'ZIP contabilità e spese ricorrenti', f_cajas: 'Cassa multi-servizio', f_csv: 'Importa dati CSV',
     f_soporte: 'Supporto prioritario', f_todo_pro: 'Tutto del piano Pro', f_citas: 'Appuntamenti online',
-    f_kanban: 'Vista Kanban riparazioni', f_catalogo: 'Catalogo servizi', f_popular: 'PIÙ POPOLARE'
+    f_kanban: 'Vista Kanban riparazioni', f_catalogo: 'Catalogo servizi', f_popular: 'PIÙ POPOLARE',
+    footer_aviso: 'Note legali', footer_priv: 'Privacy', footer_terminos: 'Termini', footer_cookies: 'Cookie'
   },
   de: {
     title: 'TekPair — Jetzt starten',
@@ -300,7 +304,8 @@ const REG_TEXTS = {
     f_reportes: 'Grundberichte', f_permisos: 'Benutzerrechte', f_pdf: 'PDF-Berichte + Manager-Zusammenfassung',
     f_zip: 'Buchhaltungs-ZIP und wiederkehrende Ausgaben', f_cajas: 'Multi-Service-Kasse', f_csv: 'CSV-Daten importieren',
     f_soporte: 'Prioritätssupport', f_todo_pro: 'Alles aus Pro', f_citas: 'Online-Termine',
-    f_kanban: 'Kanban-Ansicht Reparaturen', f_catalogo: 'Servicekatalog', f_popular: 'AM BELIEBTESTEN'
+    f_kanban: 'Kanban-Ansicht Reparaturen', f_catalogo: 'Servicekatalog', f_popular: 'AM BELIEBTESTEN',
+    footer_aviso: 'Impressum', footer_priv: 'Datenschutz', footer_terminos: 'AGB', footer_cookies: 'Cookies'
   },
   pt: {
     title: 'TekPair — Começar agora',
@@ -325,7 +330,8 @@ const REG_TEXTS = {
     f_reportes: 'Relatórios básicos', f_permisos: 'Permissões de utilizador', f_pdf: 'Relatórios PDF + resumo gestor',
     f_zip: 'ZIP contabilidade e despesas recorrentes', f_cajas: 'Caixa multi-serviço', f_csv: 'Importar dados CSV',
     f_soporte: 'Suporte prioritário', f_todo_pro: 'Tudo do plano Pro', f_citas: 'Marcações online',
-    f_kanban: 'Vista Kanban reparações', f_catalogo: 'Catálogo de serviços', f_popular: 'MAIS POPULAR'
+    f_kanban: 'Vista Kanban reparações', f_catalogo: 'Catálogo de serviços', f_popular: 'MAIS POPULAR',
+    footer_aviso: 'Aviso legal', footer_priv: 'Privacidade', footer_terminos: 'Termos', footer_cookies: 'Cookies'
   }
 };
 
@@ -455,7 +461,7 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 </script>
 <footer style="text-align:center;font-size:12px;color:#8A94A6;padding:24px 16px 32px">
-  <a href="/aviso-legal.html" style="color:inherit;margin:0 5px">Aviso legal</a> · <a href="/privacidad.html" style="color:inherit;margin:0 5px">Privacidad</a> · <a href="/terminos.html" style="color:inherit;margin:0 5px">Términos</a> · <a href="/cookies.html" style="color:inherit;margin:0 5px">Cookies</a>
+  <a href="/aviso-legal.html" data-t="footer_aviso" style="color:inherit;margin:0 5px">Aviso legal</a> · <a href="/privacidad.html" data-t="footer_priv" style="color:inherit;margin:0 5px">Privacidad</a> · <a href="/terminos.html" data-t="footer_terminos" style="color:inherit;margin:0 5px">Términos</a> · <a href="/cookies.html" data-t="footer_cookies" style="color:inherit;margin:0 5px">Cookies</a>
 </footer>
 </body>
 </html>
