@@ -122,6 +122,10 @@
       "permanent": false
     },
     { "source": "/precios.html", "destination": "/#pricing", "permanent": false },
-    { "source": "/precios", "destination": "/#pricing", "permanent": false }
+    { "source": "/precios", "destination": "/#pricing", "permanent": false },
+    { "source": "/faq.html", "destination": "/#faq", "permanent": false },
+    { "source": "/faq", "destination": "/#faq", "permanent": false },
+    { "source": "/novedades.html", "destination": "/#novedades", "permanent": false },
+    { "source": "/novedades", "destination": "/#novedades", "permanent": false }
   ]
 }
