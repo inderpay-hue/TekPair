@@ -3642,6 +3642,9 @@ de:{'gen.convertir':'Umwandeln','fact.emitir_abono':'Gutschrift ausstellen','pre
 pt:{'gen.convertir':'Converter','fact.emitir_abono':'Emitir nota de crédito','pres.convertir_confirm':'Converter este orçamento em reparação pendente?\n\nCliente: {cli}\nDispositivo: {disp}\nTotal: {total}','fact.abono_confirm2':'Emitir nota de crédito da fatura {num} de {total}?\n\nGera uma fatura negativa que anula a original (a original conserva-se por lei).'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
+// i18n precio variable TPV (#11)
+(function(){var _a={es:{'tpv.precio_producto':'💶 Precio del producto','gen.aceptar':'Aceptar'},en:{'tpv.precio_producto':'💶 Product price','gen.aceptar':'OK'},fr:{'tpv.precio_producto':'💶 Prix du produit','gen.aceptar':'OK'},it:{'tpv.precio_producto':'💶 Prezzo del prodotto','gen.aceptar':'OK'},de:{'tpv.precio_producto':'💶 Produktpreis','gen.aceptar':'OK'},pt:{'tpv.precio_producto':'💶 Preço do produto','gen.aceptar':'OK'}};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
 // i18n modales Gasto (Nuevo + Plantilla)
 (function(){var _a={
 es:{'gastos.importe_total':'Importe total (EUR)','gastos.tipo_iva':'Tipo IVA','gastos.pagado':'Pagado','gastos.pendiente':'Pendiente','gastos.proveedor_opc':'Proveedor (opcional)','gastos.nif_proveedor':'NIF/CIF proveedor','gastos.num_factura':'Nº factura','gastos.justificante':'Justificante (PDF o imagen, máx 10MB)'},
