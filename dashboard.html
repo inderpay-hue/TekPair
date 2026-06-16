@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260617cierre"></script>
+<script src="/lang/lang.v8.js?v=20260617cita"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4092,27 +4092,27 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="fg"><label class="fl"><span data-t="gen.hora">Hora</span> *</label><input class="fi" id="ncaHora" type="time" value="10:00"></div>
   </div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Nombre cliente *</label><input class="fi" id="ncaNombre" placeholder="Juan García"></div>
+    <div class="fg"><label class="fl"><span data-t="cita.nombre_cliente">Nombre cliente</span> *</label><input class="fi" id="ncaNombre" placeholder="Juan García"></div>
     <div class="fg"><label class="fl"><span data-t="cli.telefono">Teléfono</span></label><input class="fi" id="ncaTel" type="tel" placeholder="6XX XXX XXX"></div>
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl"><span data-t="nav.servicios">Servicio</span></label>
       <select class="fi" id="ncaServicio">
-        <option>Diagnóstico</option>
-        <option>Cambio pantalla</option>
-        <option>Cambio batería</option>
-        <option>Reparación general</option>
-        <option>Compra-venta</option>
+        <option data-t="cita.srv_diagnostico">Diagnóstico</option>
+        <option data-t="cita.srv_cambio_pantalla">Cambio pantalla</option>
+        <option data-t="cita.srv_cambio_bateria">Cambio batería</option>
+        <option data-t="cita.srv_rep_general">Reparación general</option>
+        <option data-t="cita.srv_compra_venta">Compra-venta</option>
         <option>Otros</option>
       </select>
     </div>
-    <div class="fg"><label class="fl">Duración</label>
+    <div class="fg"><label class="fl" data-t="cita.duracion">Duración</label>
       <select class="fi" id="ncaDuracion">
         <option value="15">15 min</option>
         <option value="30" selected>30 min</option>
         <option value="45">45 min</option>
-        <option value="60">1 hora</option>
-        <option value="90">1h 30min</option>
+        <option value="60" data-t="cita.dur_1h">1 hora</option>
+        <option value="90" data-t="cita.dur_1h30">1h 30min</option>
       </select>
     </div>
   </div>
@@ -4123,7 +4123,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="fg"><label class="fl"><span data-t="cli.notas">Notas</span></label><input class="fi" id="ncaNotas" placeholder="Opcional"></div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mNuevaCitaAdmin')" data-t="gen.cancelar">Cancelar</button>
-    <button class="btn-primary" onclick="guardarCitaAdmin()">Guardar cita</button>
+    <button class="btn-primary" onclick="guardarCitaAdmin()" data-t="cita.guardar">Guardar cita</button>
   </div>
 </div>
 </div>
@@ -4151,23 +4151,23 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- PROVEEDOR -->
 <div class="modal-bg" id="mProv">
 <div class="modal">
-  <div class="modal-title">🏭 Proveedor</div>
+  <div class="modal-title" data-t="prov.titulo">🏭 Proveedor</div>
   <div class="fi-row">
     <div class="fg"><label class="fl"><span data-t="prov.nombre">Nombre del proveedor</span> *</label><input class="fi" id="pNom" placeholder="Proveedor SL"></div>
-    <div class="fg"><label class="fl">NIF/CIF</label><input class="fi" id="pNif" placeholder="B12345678"></div>
+    <div class="fg"><label class="fl" data-t="prov.nif">NIF/CIF</label><input class="fi" id="pNif" placeholder="B12345678"></div>
   </div>
-  <div class="fg"><label class="fl">Persona de contacto</label><input class="fi" id="pCont" placeholder="Juan García"></div>
+  <div class="fg"><label class="fl" data-t="cli.persona_contacto">Persona de contacto</label><input class="fi" id="pCont" placeholder="Juan García"></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Telefono</label><input class="fi" id="pTel" placeholder="6XX XXX XXX"></div>
+    <div class="fg"><label class="fl" data-t="cli.telefono">Telefono</label><input class="fi" id="pTel" placeholder="6XX XXX XXX"></div>
     <div class="fg"><label class="fl"><span data-t="cli.email">Email</span></label><input class="fi" id="pEmail" type="email" placeholder="email@..."></div>
   </div>
   <div class="fg"><label class="fl"><span data-t="cli.direccion">Dirección</span></label><input class="fi" id="pDir" placeholder="Calle, número, piso"></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Código postal</label><input class="fi" id="pCp" placeholder="08001"></div>
-    <div class="fg"><label class="fl">Ciudad</label><input class="fi" id="pCiudad" placeholder="Barcelona"></div>
-    <div class="fg"><label class="fl">Provincia</label><input class="fi" id="pProvincia" placeholder="Barcelona"></div>
+    <div class="fg"><label class="fl" data-t="cli.cp">Código postal</label><input class="fi" id="pCp" placeholder="08001"></div>
+    <div class="fg"><label class="fl" data-t="cli.ciudad">Ciudad</label><input class="fi" id="pCiudad" placeholder="Barcelona"></div>
+    <div class="fg"><label class="fl" data-t="cli.provincia">Provincia</label><input class="fi" id="pProvincia" placeholder="Barcelona"></div>
   </div>
-  <div class="fg"><label class="fl">Nota</label><textarea class="fi" id="pNota" rows="2" placeholder="Notas..."></textarea></div>
+  <div class="fg"><label class="fl" data-t="prov.nota">Nota</label><textarea class="fi" id="pNota" rows="2" placeholder="Notas..."></textarea></div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mProv')" data-t="gen.cancelar">Cancelar</button>
     <button class="btn-primary" onclick="guardarProv()"><span data-t="gen.guardar">Guardar</span></button>
