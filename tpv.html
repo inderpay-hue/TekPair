@@ -218,7 +218,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
   .cart-fab,.cart-close-mobile{display:none!important}
 }
 </style>
-<script src="/lang/lang.v8.js?v=20260617bug7"></script>
+<script src="/lang/lang.v8.js?v=20260617tpvfix"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -505,6 +505,19 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
   <div class="modal-title" data-t="tpv.caja_dia">💵 Caja del día</div>
   <div id="cajaContent"></div>
   <button class="btn-secondary" onclick="closeModal('mCaja')" style="margin-top:12px" data-t="gen.cerrar">Cerrar</button>
+</div>
+</div>
+
+<!-- #11: precio de producto variable (antes prompt() nativo que congelaba) -->
+<div class="modal-bg" id="mPrecioVar">
+<div class="modal" style="max-width:360px">
+  <div class="modal-title" data-t="tpv.precio_producto">💶 Precio del producto</div>
+  <div style="font-size:13px;color:var(--t-mut,#64748b);margin-bottom:10px">"<span id="precioVarNombre"></span>"</div>
+  <input class="fi" id="precioVarInput" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0,00" onkeydown="if(event.key==='Enter')confirmarPrecioVar()">
+  <div class="modal-actions" style="margin-top:14px">
+    <button class="btn-secondary" onclick="closeModal('mPrecioVar')" data-t="gen.cancelar">Cancelar</button>
+    <button class="btn-primary" onclick="confirmarPrecioVar()" data-t="gen.aceptar">Aceptar</button>
+  </div>
 </div>
 </div>
 
@@ -862,6 +875,20 @@ function toast(msg, type) {
 
 function openModal(id) { document.getElementById(id).classList.add('open'); }
 function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function pedirPrecioVar(nombre, onOk) {
+  window._precioVarCb = onOk;
+  var nm = document.getElementById('precioVarNombre'); if (nm) nm.textContent = nombre || '';
+  var inp = document.getElementById('precioVarInput'); if (inp) inp.value = '';
+  openModal('mPrecioVar');
+  setTimeout(function(){ if (inp) inp.focus(); }, 100);
+}
+function confirmarPrecioVar() {
+  var v = parseFloat(String((document.getElementById('precioVarInput')||{}).value || '').replace(',', '.'));
+  if (!v || v <= 0) { toast('Precio inválido', 'err'); return; }
+  closeModal('mPrecioVar');
+  var cb = window._precioVarCb; window._precioVarCb = null;
+  if (cb) cb(v);
+}
 
 // ═══ PRODUCTS ═══
 function getProducts() {
@@ -1308,20 +1335,18 @@ function addToCart(id, esServicio) {
   var nombreProd = (p.marca !== 'Servicio' ? p.marca + ' ' : '') + p.modelo;
   var precioBase = parseFloat(p.precioV || 0);
 
-  // PRECIO VARIABLE: si precio es 0, preguntar al usuario
+  // PRECIO VARIABLE: si precio es 0, pedirlo con un MODAL (antes prompt() nativo que congelaba — #11).
   if (precioBase === 0) {
-    var input = prompt('Precio de "' + nombreProd + '" (\u20ac):', '');
-    if (input === null) return; // cancelado
-    var precioCustom = parseFloat(String(input).replace(',', '.'));
-    if (!precioCustom || precioCustom <= 0) { toast('Precio invalido', 'err'); return; }
-    cart.push({
-      id: p.id + '_' + Date.now(), nombre: nombreProd,
-      precio: precioCustom, qty: 1,
-      esServicio: p.esServicio || false, stockMax: p.unidades,
-      precioVariable: true, idOriginal: p.id, imei: p.imei || ''
+    pedirPrecioVar(nombreProd, function(precioCustom) {
+      cart.push({
+        id: p.id + '_' + Date.now(), nombre: nombreProd,
+        precio: precioCustom, qty: 1,
+        esServicio: p.esServicio || false, stockMax: p.unidades,
+        precioVariable: true, idOriginal: p.id, imei: p.imei || ''
+      });
+      renderCart();
+      toast('Añadido', 'ok');
     });
-    renderCart();
-    toast('Añadido', 'ok');
     return;
   }
 
@@ -1452,6 +1477,8 @@ function calcTotal() {
   document.getElementById('discTotal').textContent = '-\u20ac' + t.disc.toFixed(2);
   document.getElementById('grandTotal').textContent = '\u20ac' + t.total.toFixed(2);
   document.getElementById('btnCheckout').textContent = T('tpv.cobrar') + ' \u20ac' + t.total.toFixed(2);
+  // #12/#13: no permitir cobrar 0\u20ac (descuento que anula el total, o cantidad llevada a 0).
+  document.getElementById('btnCheckout').disabled = !(t.total > 0.001);
   // IVA rows
   var ivaOn = !!(AJUSTES.iva && AJUSTES.iva.activo);
   // F42: no mostrar "Base imponible / IVA €0.00" con el carrito vacío (confunde)
