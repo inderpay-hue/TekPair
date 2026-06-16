@@ -666,9 +666,9 @@
       }
       mensajeKO = faltaTotal < -0.5 ? `❌ Falta: ${eur(faltaTotal)}` : `❌ Sobra: +${eur(faltaTotal)}`;
 
-      html += `<div class="item"><span class="label">Total enviado:</span><span><b>${eur(totalEnviado)}</b></span></div>`;
-      html += `<div class="item"><span class="label">Saldo inicial:</span><span>${eur(saldoInicial)}</span></div>`;
-      html += `<div class="item"><span class="label">Efectivo en caja:</span><span>${eur(efectivoCaja)}</span></div>`;
+      html += `<div class="item"><span class="label">${T('cajas.total_enviado')}</span><span><b>${eur(totalEnviado)}</b></span></div>`;
+      html += `<div class="item"><span class="label">${T('cajas.saldo_inicial')}</span><span>${eur(saldoInicial)}</span></div>`;
+      html += `<div class="item"><span class="label">${T('cajas.efectivo_caja')}</span><span>${eur(efectivoCaja)}</span></div>`;
       html += `<div class="item"><span class="label">Importe TPV:</span><span>${eur(importeTpv)}</span></div>`;
       if (totalFiados > 0) {
         html += `<div class="item" style="grid-column:1/-1;background:#fef3c7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#92400e;">📝 Pendiente de cobro:</span><span style="color:#92400e;font-weight:600;">${eur(totalFiados)}</span></div>`;
@@ -696,7 +696,7 @@
       mensajeKO = `❌ Falta: ${eur(faltaTotal)}`;
 
       html += `<div class="item" style="grid-column:1/-1;background:#dbeafe;padding:6px 10px;border-radius:6px;"><span class="label" style="color:#C2491A;font-weight:600;">Total vendido:</span><span style="color:#C2491A;font-weight:700;">${eur(totalVendido)}</span></div>`;
-      html += `<div class="item"><span class="label">Efectivo en caja:</span><span>${eur(efectivoCaja)}</span></div>`;
+      html += `<div class="item"><span class="label">${T('cajas.efectivo_caja')}</span><span>${eur(efectivoCaja)}</span></div>`;
       html += `<div class="item"><span class="label">Importe TPV:</span><span>${eur(importeTpv)}</span></div>`;
       if (totalFiados > 0) {
         html += `<div class="item" style="grid-column:1/-1;background:#fef3c7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#92400e;">📝 Pendiente de cobro:</span><span style="color:#92400e;font-weight:600;">${eur(totalFiados)}</span></div>`;

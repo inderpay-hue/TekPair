@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260617cajas"></script>
+<script src="/lang/lang.v8.js?v=20260617cierre"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2347,7 +2347,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
       <div class="cajas-form-fila">
         <div class="cajas-form-grupo">
-          <label>Fecha</label>
+          <label data-t="gen.fecha">Fecha</label>
           <input type="date" id="cierre-fecha" disabled>
         </div>
         <div class="cajas-form-grupo">
@@ -2385,15 +2385,15 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
       <div class="cajas-form-fila" style="margin-top:12px;">
         <div class="cajas-form-grupo">
-          <label>💶 Efectivo en caja € <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(lo que cuentas físicamente)</span></label>
+          <label><span data-t="cajas.efectivo_caja_lbl">💶 Efectivo en caja €</span> <span data-t="cajas.cuentas_fisicamente" style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(lo que cuentas físicamente)</span></label>
           <input type="number" step="0.01" id="cierre-saldo-real" value="0" oninput="Cajas.recalcular()">
         </div>
         <div class="cajas-form-grupo">
-          <label>💳 Importe TPV € <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(lo que pone el datáfono)</span></label>
+          <label><span data-t="cajas.importe_tpv_lbl">💳 Importe TPV €</span> <span data-t="cajas.pone_datafono" style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(lo que pone el datáfono)</span></label>
           <input type="number" step="0.01" id="cierre-importe-tpv" value="0" oninput="Cajas.recalcular()">
         </div>
         <div class="cajas-form-grupo">
-          <label>Cambio que dejo para mañana €</label>
+          <label data-t="cajas.cambio_manana">Cambio que dejo para mañana €</label>
           <input type="number" step="0.01" id="cierre-cambio-siguiente" value="0">
         </div>
       </div>
@@ -2403,33 +2403,33 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div id="bloque-pendientes-dia" style="display:none;background:#fef3c7;border:1px solid #fde68a;border-radius:10px;padding:14px 16px;margin:14px 0;">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
           <label style="margin:0;font-size:12px;color:#78350f;font-weight:700;text-transform:uppercase;letter-spacing:.3px;">
-            📝 Pendientes del día <span id="pendientes-count" style="font-weight:400;color:#92400e;"></span>
+            <span data-t="cajas.pendientes_dia">📝 Pendientes del día</span> <span id="pendientes-count" style="font-weight:400;color:#92400e;"></span>
           </label>
-          <button type="button" class="cajas-btn cajas-btn-verde" style="padding:6px 12px;font-size:12px;" onclick="Cajas.abrirModalFiado()">+ Añadir pendiente</button>
+          <button type="button" class="cajas-btn cajas-btn-verde" style="padding:6px 12px;font-size:12px;" onclick="Cajas.abrirModalFiado()" data-t="cajas.anadir_pendiente">+ Añadir pendiente</button>
         </div>
         <div id="lista-pendientes-dia"></div>
         <div id="total-pendientes-dia" style="display:none;border-top:1px dashed #f59e0b;padding-top:8px;margin-top:8px;text-align:right;font-size:13px;color:#78350f;">
-          Total pendiente: <strong id="total-pendientes-importe">0,00 €</strong>
+          <span data-t="cajas.total_pendiente">Total pendiente:</span> <strong id="total-pendientes-importe">0,00 €</strong>
         </div>
       </div>
 
       <div class="cajas-form-grupo">
-        <label>Notas (opcional)</label>
-        <textarea id="cierre-notas" rows="2" placeholder="Anota cualquier incidencia..."></textarea>
+        <label data-t="cajas.notas">Notas (opcional)</label>
+        <textarea id="cierre-notas" rows="2" placeholder="Anota cualquier incidencia..." data-t-ph="cajas.ph_notas"></textarea>
       </div>
     </div>
     <div class="cajas-modal-pie">
       <button class="cajas-btn cajas-btn-sec" onclick="Cajas.cerrarModal('modal-cierre')" data-t="gen.cancelar">Cancelar</button>
-      <button class="cajas-btn cajas-btn-sec" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;" onclick="Cajas.marcarFestivoDesdeModal()" title="Saltar este cierre y marcar el día como festivo">🏖 Día festivo</button>
-      <button class="cajas-btn" onclick="Cajas.guardarCierre('abierto')">Guardar borrador</button>
-      <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarCierre('cerrado')">Cerrar caja</button>
+      <button class="cajas-btn cajas-btn-sec" style="background:#fef3c7;color:#92400e;border:1px solid #fde68a;" onclick="Cajas.marcarFestivoDesdeModal()" title="Saltar este cierre y marcar el día como festivo" data-t="cajas.dia_festivo">🏖 Día festivo</button>
+      <button class="cajas-btn" onclick="Cajas.guardarCierre('abierto')" data-t="cajas.guardar_borrador">Guardar borrador</button>
+      <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarCierre('cerrado')" data-t="cajas.cerrar_caja">Cerrar caja</button>
     </div>
   </div>
 </div>
 
 
 <!-- ════ LÓGICA JS ════ -->
-<script src="/js/dash-cajas.js?v=20260617bug7"></script>
+<script src="/js/dash-cajas.js?v=20260617cierre"></script>
 
 <div class="page" id="pGastos">
   <div class="sec-header" style="margin-bottom:10px">
