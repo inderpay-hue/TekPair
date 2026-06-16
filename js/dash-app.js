@@ -14422,7 +14422,7 @@ function renderBusquedaGlobal() {
   var box = document.getElementById('busquedaGlobalResultados');
   var countEl = document.getElementById('busquedaGlobalCount');
   if (!q || q.length < 2) {
-    box.innerHTML = '<div class="search-global-empty">Escribe al menos 2 letras para buscar...</div>';
+    box.innerHTML = '<div class="search-global-empty">' + T('busq.min_letras') + '</div>';
     if (countEl) countEl.textContent = '';
     _busquedaGlobalResultados = [];
     return;
@@ -14445,7 +14445,7 @@ function renderBusquedaGlobal() {
       var cli = (DB.clis.find(function(c){ return c.id === r.clienteId; }) || {});
       var hay = _norm((r.marca||'') + ' ' + (r.modelo||'') + ' ' + (r.averia||'') + ' ' + (cli.nombre||'') + ' ' + (cli.apellidos||'') + ' ' + (r.imei||''));
       if (hay.indexOf(q) !== -1) {
-        results.push({tipo:'rep', icon:'🔧', titulo:((r.marca||'') + ' ' + (r.modelo||'')).trim() + ' · ' + (r.averia||'').slice(0,40), sub:(cli.nombre||T('gen.sin_cliente')) + ' · ' + (r.estado||'') + ' · ' + cur(r.total||0), id:r.id});
+        results.push({tipo:'rep', icon:'🔧', titulo:((r.marca||'') + ' ' + (r.modelo||'')).trim() + ' · ' + (r.averia||'').slice(0,40), sub:(cli.nombre||T('gen.sin_cliente')) + ' · ' + _estadoLabel(r.estado||'') + ' · ' + cur(r.total||0), id:r.id});
       }
     });
   }
@@ -14489,11 +14489,11 @@ function renderBusquedaGlobal() {
   if (countEl) countEl.textContent = results.length + ' resultado' + (results.length === 1 ? '' : 's');
 
   if (!results.length) {
-    box.innerHTML = '<div class="search-global-empty">Sin resultados para "' + esc(q) + '"</div>';
+    box.innerHTML = '<div class="search-global-empty">' + T('busq.sin_resultados').replace('{q}', esc(q)) + '</div>';
     return;
   }
 
-  var grupos = [['cliente','CLIENTES'],['rep','REPARACIONES'],['venta','VENTAS'],['stock','STOCK'],['servicio','SERVICIOS']];
+  var grupos = [['cliente',T('nav.clientes')],['rep',T('nav.reparaciones')],['venta',T('nav.ventas')],['stock',T('nav.stock')],['servicio',T('nav.servicios')]];
   var html = '';
   var idx = 0;
   grupos.forEach(function(g) {
