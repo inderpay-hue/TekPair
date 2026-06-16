@@ -9010,7 +9010,7 @@ function renderSelectorUbicacion() {
   var sel = document.getElementById('sUbic');
   var lista = (TIENDA.ubicaciones || []);
   var valActual = sel.value || '';
-  sel.innerHTML = '<option value="">— Sin ubicación —</option>' +
+  sel.innerHTML = '<option value="">' + T('stock.sin_ubicacion') + '</option>' +
     lista.map(function(u) { return '<option value="' + esc(u) + '">' + esc(u) + '</option>'; }).join('');
   if (valActual) sel.value = valActual;
 }
@@ -9023,9 +9023,9 @@ function poblarFiltroUbicStock() {
   var sel = document.getElementById('filtroUbicStock');
   var valActual = sel.value || '';
   var lista = (TIENDA.ubicaciones || []);
-  sel.innerHTML = '<option value="">📍 Todas las ubicaciones</option>' +
+  sel.innerHTML = '<option value="">' + T('ubic.todas') + '</option>' +
     lista.map(function(u) { return '<option value="' + esc(u) + '">' + esc(u) + '</option>'; }).join('') +
-    '<option value="__sin__">— Sin ubicación —</option>';
+    '<option value="__sin__">' + T('stock.sin_ubicacion') + '</option>';
   if (valActual) sel.value = valActual;
 }
 
