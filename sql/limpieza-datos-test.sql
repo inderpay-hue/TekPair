@@ -63,6 +63,16 @@ where tienda_id = :'tid'
 -- Cajas DEMO (descomenta si aplica y el nombre de tabla es correcto)
 -- delete from cajas where tienda_id = :'tid' and (nombre ilike '%demo%' or nombre ilike '%prueba%');
 
+-- ───────────────────────────── 3) NORMALIZAR MARCAS (#3 informe: "Generico" vs "Genérico") ─────
+-- El display ya deduplica por acentos, pero conviene unificar el dato. Previsualiza:
+--   select marca, count(*) from stock where tienda_id = :'tid' and lower(marca) like '%gen_rico%' group by marca;
+-- Unificar a "Genérico":
+update stock set marca = 'Genérico'
+where tienda_id = :'tid' and marca is not null
+  and lower(translate(marca,'áéíóúÁÉÍÓÚ','aeiouAEIOU')) = 'generico' and marca <> 'Genérico';
+-- (repite para pedidos si guardan marca:)
+-- update pedidos set marca = 'Genérico' where tienda_id = :'tid' and lower(translate(marca,'áéíóúÁÉÍÓÚ','aeiouAEIOU')) = 'generico' and marca <> 'Genérico';
+
 -- Revisa los recuentos de filas borradas. Si todo bien:
 --   commit;
 -- Si NO:
