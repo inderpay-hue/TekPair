@@ -2716,6 +2716,22 @@ async function syncCompleto(silencioso) {
 // para colapsar ráfagas). Reutiliza toda la lógica de descarga/render ya existente.
 // Requiere SQL: tablas en la publicación supabase_realtime + replica identity full.
 var _rtClient = null, _rtTimer = null, _rtReady = false, _rtInit = false;
+var _rtChannels = [], _rtGlobalErrs = 0, _rtDead = false;
+// Apaga Realtime por completo y cae al poll de 60s. Idempotente.
+// Se llama cuando hay tormenta de reconexión (websocket que parpadea) o sesión expirada:
+// un token muerto reconectaría los 12 canales en bucle infinito si no cortamos aquí.
+function _rtTeardown() {
+  if (_rtDead) return;
+  _rtDead = true; _rtReady = false;
+  try {
+    _rtChannels.forEach(function (ch) { try { _rtClient.removeChannel(ch); } catch (e) {} });
+    if (_rtClient && _rtClient.realtime && typeof _rtClient.realtime.disconnect === 'function') {
+      _rtClient.realtime.disconnect();
+    }
+  } catch (e) {}
+  _rtChannels = [];
+  try { console.warn('[Realtime] desactivado; se usa el poll de 60s'); } catch (e) {}
+}
 function _rtSyncDebounced() {
   if (_rtTimer) clearTimeout(_rtTimer);
   _rtTimer = setTimeout(function () {
@@ -2729,6 +2745,8 @@ function _initRealtime() {
   function start() {
     try {
       if (!window.supabase || !window.supabase.createClient) { _rtInit = false; return; }
+      // Idempotencia: si ya hay un cliente con canales vivos, no recrear (anti doble-subscribe #29).
+      if (_rtClient && typeof _rtClient.getChannels === 'function' && _rtClient.getChannels().length) return;
       _rtClient = window.supabase.createClient(SUPABASE_URL, SB_KEY, {
         auth: { persistSession: false, autoRefreshToken: false }
       });
@@ -2738,16 +2756,25 @@ function _initRealtime() {
       // UN canal por tabla: así el subscribe sabe QUÉ tabla es (log con nombre) y una tabla
       // que rechace la suscripción no tumba a las demás (antes iban todas en un canal → F20).
       TABLAS.forEach(function (tbl) {
+        var topic = 'tk-' + TIENDA_ID + '-' + tbl;
+        // No recrear un canal que ya existe para esta tabla (defensa anti doble-subscribe).
+        var vivos = (typeof _rtClient.getChannels === 'function') ? _rtClient.getChannels() : [];
+        for (var i = 0; i < vivos.length; i++) { if (vivos[i].topic === 'realtime:' + topic) return; }
         var filtro = (tbl === 'tiendas') ? ('id=eq.' + TIENDA_ID) : ('tienda_id=eq.' + TIENDA_ID);
-        var ch = _rtClient.channel('tk-' + TIENDA_ID + '-' + tbl);
+        var ch = _rtClient.channel(topic);
         ch.on('postgres_changes', { event: '*', schema: 'public', table: tbl, filter: filtro }, _rtSyncDebounced);
+        _rtChannels.push(ch);
         var errs = 0;
         ch.subscribe(function (status) {
           try { console.log('[Realtime]', tbl, status); } catch (e) {}
+          if (_rtDead) return;
           if (status === 'SUBSCRIBED') { _rtReady = true; errs = 0; return; }
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
-            errs++;
+            errs++; _rtGlobalErrs++;
             if (errs >= 3) { try { _rtClient.removeChannel(ch); } catch (e) {} } // deja de reintentar esa tabla
+            // Tormenta global (websocket que parpadea / token muerto): en vez de reconectar
+            // los 12 canales en bucle infinito, apaga Realtime y cae al poll de 60s (#29).
+            if (_rtGlobalErrs >= 40) _rtTeardown();
           }
         });
       });
@@ -2768,6 +2795,8 @@ var _sesionExpirada = false;
 function mostrarModalSesionExpirada() {
   if (_sesionExpirada) return;
   _sesionExpirada = true;
+  // Token muerto → corta Realtime para que no reconecte los 12 canales en bucle (#29).
+  try { _rtTeardown(); } catch (e) {}
   try {
     document.querySelectorAll('.modal-bg.open').forEach(function(m){
       m.classList.remove('open');
