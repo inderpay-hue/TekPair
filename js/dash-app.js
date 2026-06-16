@@ -11591,6 +11591,16 @@ function setRepTab(el) {
   // clave de i18n ("dash.hoy") → SEL.repTab quedaba mal y todos los tabs mostraban lo mismo.
   SEL.repTab = el.dataset.rt || el.dataset.t;
   var rw = document.getElementById('repRangoWrap'); if (rw) rw.style.display = (SEL.repTab === 'rango') ? 'flex' : 'none';
+  // F519: al entrar en "Personalizado", prefijar un rango por defecto (1º de mes → hoy) si los
+  // inputs están vacíos. Antes salían en blanco → el informe mostraba solo hoy y parecía roto.
+  if (SEL.repTab === 'rango') {
+    var dEl = document.getElementById('repDesde'), hEl = document.getElementById('repHasta');
+    if (hEl && !hEl.value) hEl.value = hoyLocal();
+    if (dEl && !dEl.value) {
+      var _h = new Date(); var _ini = new Date(_h.getFullYear(), _h.getMonth(), 1);
+      dEl.value = _ini.getFullYear() + '-' + String(_ini.getMonth() + 1).padStart(2, '0') + '-01';
+    }
+  }
   renderReporte();
 }
 
@@ -16494,7 +16504,7 @@ function renderCitas() {
   });
 
   if (!filtradas.length) {
-    lista.innerHTML = '<div class="empty" style="padding:30px"><div style="font-size:32px;margin-bottom:8px">📅</div>No hay citas con ese filtro.<br><span style="font-size:12px;color:var(--muted)">Las citas aparecen aquí cuando un cliente reserva en tu link público, o créalas a mano.</span><br><br><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn-sm" style="background:var(--orange);color:white" onclick="abrirNuevaCitaFecha(hoyLocal())">+ Nueva cita manual</button><button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirLinkCitas()">Compartir link público</button></div></div>';
+    lista.innerHTML = '<div class="empty" style="padding:30px"><div style="font-size:32px;margin-bottom:8px">📅</div>' + T('citas.sin_filtro') + '<br><span style="font-size:12px;color:var(--muted)">' + T('citas.aparecen_aqui') + '</span><br><br><div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap"><button class="btn-sm" style="background:var(--orange);color:white" onclick="abrirNuevaCitaFecha(hoyLocal())">' + T('citas.nueva_manual') + '</button><button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirLinkCitas()">' + T('citas.compartir_link') + '</button></div></div>';
     return;
   }
 
