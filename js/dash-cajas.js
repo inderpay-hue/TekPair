@@ -452,8 +452,9 @@
           const diffDias = Math.round((hoyD - d) / 86400000);
           let aviso = '';
           if (diffDias > 4) {
+            // BUG #5: el aviso va INLINE en la caja. El toast se quitó porque este render se
+            // re-ejecuta al cambiar de vista → reaparecía constantemente (incluso en Citas/Gastos).
             aviso = ` <span style="text-transform:none;font-weight:700;color:#dc2626;font-size:10px;">⚠️ ${diffDias} días sin cerrar — verifica el saldo inicial</span>`;
-            try { toast(`⚠️ Esta caja lleva ${diffDias} días sin cerrar. El saldo inicial es del ${fechaVisible} — verifícalo antes de cuadrar.`, 'error'); } catch (e) {}
           }
           lbl.innerHTML = `Cambio del ${fechaVisible} <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(${diaSemana} · automático)</span>${aviso}`;
         } else if (!fechaAnterior && !data.cierre) {
