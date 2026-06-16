@@ -3642,6 +3642,16 @@ de:{'gen.convertir':'Umwandeln','fact.emitir_abono':'Gutschrift ausstellen','pre
 pt:{'gen.convertir':'Converter','fact.emitir_abono':'Emitir nota de crédito','pres.convertir_confirm':'Converter este orçamento em reparação pendente?\n\nCliente: {cli}\nDispositivo: {disp}\nTotal: {total}','fact.abono_confirm2':'Emitir nota de crédito da fatura {num} de {total}?\n\nGera uma fatura negativa que anula a original (a original conserva-se por lei).'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
+// i18n modales Gasto (Nuevo + Plantilla)
+(function(){var _a={
+es:{'gastos.importe_total':'Importe total (EUR)','gastos.tipo_iva':'Tipo IVA','gastos.pagado':'Pagado','gastos.pendiente':'Pendiente','gastos.proveedor_opc':'Proveedor (opcional)','gastos.nif_proveedor':'NIF/CIF proveedor','gastos.num_factura':'Nº factura','gastos.justificante':'Justificante (PDF o imagen, máx 10MB)'},
+en:{'gastos.importe_total':'Total amount (EUR)','gastos.tipo_iva':'VAT rate','gastos.pagado':'Paid','gastos.pendiente':'Pending','gastos.proveedor_opc':'Supplier (optional)','gastos.nif_proveedor':'Supplier tax ID','gastos.num_factura':'Invoice no.','gastos.justificante':'Receipt (PDF or image, max 10MB)'},
+fr:{'gastos.importe_total':'Montant total (EUR)','gastos.tipo_iva':'Taux TVA','gastos.pagado':'Payé','gastos.pendiente':'En attente','gastos.proveedor_opc':'Fournisseur (facultatif)','gastos.nif_proveedor':'N° fiscal fournisseur','gastos.num_factura':'N° facture','gastos.justificante':'Justificatif (PDF ou image, max 10 Mo)'},
+it:{'gastos.importe_total':'Importo totale (EUR)','gastos.tipo_iva':'Aliquota IVA','gastos.pagado':'Pagato','gastos.pendiente':'In sospeso','gastos.proveedor_opc':'Fornitore (facoltativo)','gastos.nif_proveedor':'P.IVA fornitore','gastos.num_factura':'N° fattura','gastos.justificante':'Giustificativo (PDF o immagine, max 10MB)'},
+de:{'gastos.importe_total':'Gesamtbetrag (EUR)','gastos.tipo_iva':'MwSt.-Satz','gastos.pagado':'Bezahlt','gastos.pendiente':'Offen','gastos.proveedor_opc':'Lieferant (optional)','gastos.nif_proveedor':'USt-IdNr. Lieferant','gastos.num_factura':'Rechnungsnr.','gastos.justificante':'Beleg (PDF oder Bild, max 10MB)'},
+pt:{'gastos.importe_total':'Valor total (EUR)','gastos.tipo_iva':'Taxa IVA','gastos.pagado':'Pago','gastos.pendiente':'Pendente','gastos.proveedor_opc':'Fornecedor (opcional)','gastos.nif_proveedor':'NIF/CIF fornecedor','gastos.num_factura':'Nº fatura','gastos.justificante':'Comprovativo (PDF ou imagem, máx 10MB)'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
 // i18n modales Proveedor + Nueva cita
 (function(){var _a={
 es:{'prov.titulo':'🏭 Proveedor','prov.nif':'NIF/CIF','prov.nota':'Nota','cita.nombre_cliente':'Nombre cliente','cita.servicio':'Servicio','cita.srv_diagnostico':'Diagnóstico','cita.srv_cambio_pantalla':'Cambio pantalla','cita.srv_cambio_bateria':'Cambio batería','cita.srv_rep_general':'Reparación general','cita.srv_compra_venta':'Compra-venta','cita.duracion':'Duración','cita.dur_1h':'1 hora','cita.dur_1h30':'1h 30min','cita.notas':'Notas','cita.guardar':'Guardar cita'},
