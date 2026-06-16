@@ -972,20 +972,22 @@ function actualizarHintPedido() {
 function renderPedMarcas() {
   var box = document.getElementById('pedMarcasSug'); if (!box) return;
   var catEl = document.getElementById('pedCat'); var cat = catEl ? (catEl.value || '') : '';
+  // BUG #4: deduplicar marcas sin tildes/mayúsculas ("Generico" vs "Genérico" salían las dos).
+  var _fold = function(x) { return (x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim(); };
   var counts = {};
   (DB.stock || []).forEach(function(s) {
     if (cat && (s.categoria || '').toLowerCase() !== cat.toLowerCase()) return;
     var m = (s.marca || '').trim(); if (!m) return;
-    var k = m.toLowerCase(); if (!counts[k]) counts[k] = { nombre: m, n: 0 }; counts[k].n++;
+    var k = _fold(m); if (!counts[k]) counts[k] = { nombre: m, n: 0 }; counts[k].n++;
   });
   var nombres = Object.keys(counts).map(function(k) { return counts[k]; }).sort(function(a, b) { return b.n - a.n; }).map(function(o) { return o.nombre; });
-  var lower = nombres.map(function(x) { return x.toLowerCase(); });
+  var lower = nombres.map(_fold);
   // F308/F309: sugerir marcas según la categoría — accesorios (Anker/JBL/Logitech…) si la
   // categoría no es de dispositivo; marcas de móvil en otro caso; mezcla si no hay categoría.
   var esAccCat = cat && ['Accesorio','Cable','Cargador','Auricular','Funda','Protector'].indexOf(cat) !== -1;
   var comunes = !cat ? _CHIP_MARCAS_TELEFONO.concat(_CHIP_MARCAS_ACCESORIO)
     : (esAccCat ? _CHIP_MARCAS_ACCESORIO : _CHIP_MARCAS_TELEFONO);
-  comunes.forEach(function(m) { if (lower.indexOf(m.toLowerCase()) === -1) { nombres.push(m); lower.push(m.toLowerCase()); } });
+  comunes.forEach(function(m) { if (lower.indexOf(_fold(m)) === -1) { nombres.push(m); lower.push(_fold(m)); } });
   nombres = nombres.slice(0, 14);
   var smEl = document.getElementById('pedMarca');
   var sel = (smEl ? smEl.value : '').trim().toLowerCase();
