@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260617bug7"></script>
+<script src="/lang/lang.v8.js?v=20260617cajas"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2102,23 +2102,23 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
       <div class="cajas-form-fila">
         <div class="cajas-form-grupo">
-          <label>Tipo de caja</label>
+          <label data-t="cajas.tipo">Tipo de caja</label>
           <select id="caja-tipo">
-            <option value="envios">📤 Envíos de dinero</option>
-            <option value="recargas">📱 Recargas móviles</option>
-            <option value="tpv">🛒 TPV</option>
-            <option value="custom">💼 Personalizada</option>
+            <option value="envios" data-t="cajas.tipo_envios">📤 Envíos de dinero</option>
+            <option value="recargas" data-t="cajas.tipo_recargas">📱 Recargas móviles</option>
+            <option value="tpv" data-t="cajas.tipo_tpv">🛒 TPV</option>
+            <option value="custom" data-t="cajas.tipo_custom">💼 Personalizada</option>
           </select>
         </div>
         <div class="cajas-form-grupo">
-          <label>Nombre</label>
-          <input type="text" id="caja-nombre" placeholder="Ej: Caja Envíos">
+          <label data-t="cajas.nombre">Nombre</label>
+          <input type="text" id="caja-nombre" placeholder="Ej: Caja Envíos" data-t-ph="cajas.ph_nombre">
         </div>
       </div>
 
       <div class="cajas-form-fila">
         <div class="cajas-form-grupo">
-          <label>Icono (emoji)</label>
+          <label data-t="cajas.icono">Icono (emoji)</label>
           <input type="text" id="caja-icono" maxlength="4" placeholder="📤">
         </div>
         <div class="cajas-form-grupo">
@@ -2128,11 +2128,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
 
       <div class="cajas-form-grupo">
-        <label>¿Quién puede editar un cierre ya cerrado?</label>
+        <label data-t="cajas.quien_edita">¿Quién puede editar un cierre ya cerrado?</label>
         <select id="caja-permiso">
-          <option value="admin">Solo administrador (recomendado)</option>
-          <option value="todos">Cualquier empleado</option>
-          <option value="nadie">Nadie (bloqueado)</option>
+          <option value="admin" data-t="cajas.perm_admin">Solo administrador (recomendado)</option>
+          <option value="todos" data-t="cajas.perm_todos">Cualquier empleado</option>
+          <option value="nadie" data-t="cajas.perm_nadie">Nadie (bloqueado)</option>
         </select>
       </div>
 
@@ -2140,9 +2140,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <label style="display:flex;align-items:center;gap:10px;cursor:pointer;text-transform:none;letter-spacing:normal;font-size:13px;color:#78350f;">
           <input type="checkbox" id="caja-gestion-fiados" style="width:18px;height:18px;cursor:pointer;flex-shrink:0;">
           <span>
-            <strong>Activar gestión de fiados / pendientes</strong>
+            <strong data-t="cajas.fiados_activar">Activar gestión de fiados / pendientes</strong>
             <span style="display:block;font-weight:400;font-size:11px;color:#92400e;margin-top:3px;">
-              Permite registrar clientes que dejan a deber sin descuadrar la caja.
+              <span data-t="cajas.fiados_desc">Permite registrar clientes que dejan a deber sin descuadrar la caja.</span>
             </span>
           </span>
         </label>
@@ -2150,19 +2150,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
       <div class="cajas-form-grupo" style="background:#eff6ff;border-radius:8px;padding:12px 14px;border:1px solid #FFD9C9;">
         <label style="font-size:12px;color:#C2491A;font-weight:600;text-transform:uppercase;letter-spacing:.3px;margin-bottom:8px;display:block;">
-          📅 Días de apertura
+          <span data-t="cajas.dias_apertura">📅 Días de apertura</span>
         </label>
         <p style="font-size:11px;color:#9E3A15;margin:0 0 10px;">
-          Marca los días que esta caja está abierta. Los días desmarcados aparecerán como festivos.
+          <span data-t="cajas.dias_desc">Marca los días que esta caja está abierta. Los días desmarcados aparecerán como festivos.</span>
         </p>
         <div style="display:grid;grid-template-columns:repeat(7,1fr);gap:5px;">
-          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="1"><span>Lun</span></label>
-          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="2"><span>Mar</span></label>
-          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="3"><span>Mié</span></label>
-          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="4"><span>Jue</span></label>
-          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="5"><span>Vie</span></label>
-          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="6"><span>Sáb</span></label>
-          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="7"><span>Dom</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="1"><span data-t="cajas.dia_lun">Lun</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="2"><span data-t="cajas.dia_mar">Mar</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="3"><span data-t="cajas.dia_mie">Mié</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="4"><span data-t="cajas.dia_jue">Jue</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="5"><span data-t="cajas.dia_vie">Vie</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="6"><span data-t="cajas.dia_sab">Sáb</span></label>
+          <label class="dia-apertura-chip"><input type="checkbox" class="dia-checkbox" value="7"><span data-t="cajas.dia_dom">Dom</span></label>
         </div>
       </div>
 
@@ -2171,21 +2171,21 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div id="caja-companias-bloque" style="display:none;">
         <hr style="border-color:#e5e7eb;margin:16px 0;">
         <label style="font-size:12px;color:#374151;font-weight:600;text-transform:uppercase;letter-spacing:.3px;">
-          Compañías de esta caja
+          <span data-t="cajas.companias">Compañías de esta caja</span>
         </label>
         <p style="font-size:12px;color:#6b7280;margin:3px 0 6px;">
-          Añade las que uses (Ria, Western Union, Disha, Más Móvil…)
+          <span data-t="cajas.companias_desc">Añade las que uses (Ria, Western Union, Disha, Más Móvil…)</span>
         </p>
         <div class="companias-lista" id="lista-companias"></div>
         <div style="display:flex;gap:6px;margin-top:8px;">
-          <input type="text" id="nueva-compania-nombre" placeholder="Nombre de la compañía"
+          <input type="text" id="nueva-compania-nombre" placeholder="Nombre de la compañía" data-t-ph="cajas.ph_compania"
                  style="flex:1;background:#fff;border:1px solid #d1d5db;padding:8px 10px;border-radius:8px;">
-          <button class="cajas-btn" onclick="Cajas.crearCompania()">+ Añadir</button>
+          <button class="cajas-btn" onclick="Cajas.crearCompania()" data-t="cajas.anadir">+ Añadir</button>
         </div>
       </div>
     </div>
     <div class="cajas-modal-pie">
-      <button class="cajas-btn cajas-btn-rojo" id="btn-borrar-caja" style="display:none;margin-right:auto;" onclick="Cajas.borrarCaja()">Eliminar</button>
+      <button class="cajas-btn cajas-btn-rojo" id="btn-borrar-caja" style="display:none;margin-right:auto;" onclick="Cajas.borrarCaja()" data-t="cajas.eliminar">Eliminar</button>
       <button class="cajas-btn cajas-btn-sec" onclick="Cajas.cerrarModal('modal-caja')" data-t="gen.cancelar">Cancelar</button>
       <button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarCaja()"><span data-t="gen.guardar">Guardar</span></button>
     </div>
@@ -2199,7 +2199,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="cajas-modal-overlay" id="modal-cobrar-pendiente" style="z-index:100000;">
   <div class="cajas-modal" style="max-width:440px;">
     <div class="cajas-modal-header">
-      <h3>💰 Registrar cobro</h3>
+      <h3 data-t="cajas.registrar_cobro">💰 Registrar cobro</h3>
       <button class="cajas-modal-cerrar" onclick="Cajas.cerrarModalCobrar()">✕</button>
     </div>
     <div class="cajas-modal-cuerpo">
@@ -2209,13 +2209,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div id="cobrar-cliente" style="font-size:16px;font-weight:700;color:#111827;"></div>
         <div id="cobrar-compania" style="font-size:12px;color:#6b7280;margin-top:6px;"></div>
         <div style="margin-top:10px;padding-top:10px;border-top:1px dashed #d1d5db;display:flex;justify-content:space-between;align-items:center;">
-          <span style="font-size:13px;color:#6b7280;">Importe a cobrar</span>
+          <span style="font-size:13px;color:#6b7280;" data-t="cajas.importe_cobrar">Importe a cobrar</span>
           <span id="cobrar-importe" style="font-size:20px;font-weight:700;color:#92400e;"></span>
         </div>
       </div>
 
       <div class="cajas-form-grupo">
-        <label>¿Cómo paga el cliente?</label>
+        <label data-t="cajas.como_paga">¿Cómo paga el cliente?</label>
         <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:6px;">
           <label class="metodo-opcion" style="display:flex;align-items:center;gap:8px;padding:14px 12px;border:2px solid #d1d5db;border-radius:10px;cursor:pointer;transition:all .15s;">
             <input type="radio" name="metodo-pago" value="efectivo" id="metodo-efectivo" style="width:18px;height:18px;cursor:pointer;">
@@ -2229,12 +2229,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
 
       <div style="background:#dbeafe;border-radius:8px;padding:10px 12px;font-size:12px;color:#C2491A;margin-top:8px;">
-        ℹ️ El cobro se registrará en el día original del fiado para que ese día quede cuadrado.
+        <span data-t="cajas.cobro_dia_original">ℹ️ El cobro se registrará en el día original del fiado para que ese día quede cuadrado.</span>
       </div>
     </div>
     <div class="cajas-modal-pie">
       <button class="cajas-btn cajas-btn-sec" onclick="Cajas.cerrarModalCobrar()" data-t="gen.cancelar">Cancelar</button>
-      <button class="cajas-btn cajas-btn-verde" onclick="Cajas.confirmarCobro()">✓ Registrar cobro</button>
+      <button class="cajas-btn cajas-btn-verde" onclick="Cajas.confirmarCobro()" data-t="cajas.confirmar_cobro">✓ Registrar cobro</button>
     </div>
   </div>
 </div>
@@ -4470,7 +4470,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260617bug7"></script>
+<script src="/js/dash-app.js?v=20260617cajas"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -5055,9 +5055,9 @@ function renderWizardStep1() {
         '<input type="text" id="wzNombre" value="' + (d.nombre || '') + '" placeholder="Nombre Apellidos" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px">' +
         '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Email *</label>' +
         '<input type="email" id="wzEmail" value="' + (d.email || '') + '" placeholder="comercial@email.com" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px">' +
-        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Codigo afiliado *</label>' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Código afiliado *</label>' +
         '<input type="text" id="wzCodigo" value="' + (d.codigo || '') + '" placeholder="DEMBA, PEDRO..." style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px;text-transform:uppercase;font-family:monospace">' +
-        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Comision (%) *</label>' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Comisión (%) *</label>' +
         '<input type="number" id="wzPct" value="' + (d.comision_pct || 20) + '" min="0" max="100" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:14px">' +
         '<div style="background:#EFF6FF;border-radius:8px;padding:12px;font-size:12px;color:#C2491A;line-height:1.5">Al continuar se creara la cuenta TekPair del comercial con plan TOP vitalicio gratuito. La contraseña se genera automaticamente.</div>' +
       '</div>' +
@@ -5154,7 +5154,7 @@ function renderWizardStep3() {
           '<div><strong>Nombre:</strong> ' + d.nombre + '</div>' +
           '<div><strong>Email:</strong> ' + d.email + '</div>' +
           '<div><strong>Codigo:</strong> <span style="font-family:monospace;background:#EFF6FF;color:#FF5B1F;padding:2px 8px;border-radius:4px;font-weight:700">' + d.codigo + '</span></div>' +
-          '<div><strong>Comision:</strong> ' + d.comision_pct + '% sobre base imponible</div>' +
+          '<div><strong>Comisión:</strong> ' + d.comision_pct + '% sobre base imponible</div>' +
           '<div><strong>Plan TekPair:</strong> TOP vitalicio</div>' +
         '</div>' +
         '<label style="display:flex;align-items:center;gap:8px;font-size:13px;color:#475569;cursor:pointer;padding:10px;background:#F8FAFC;border-radius:8px;margin-bottom:14px">' +
@@ -5214,13 +5214,13 @@ function abrirModalAfiliado(af) {
         '<div style="font-size:18px;font-weight:800;margin-top:4px">' + (esEdicion ? af.codigo : 'Nuevo comercial') + '</div>' +
       '</div>' +
       '<div style="padding:20px 22px">' +
-        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Codigo afiliado *</label>' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Código afiliado *</label>' +
         '<input type="text" id="afCodigo" value="' + (af.codigo || '') + '" ' + (esEdicion ? 'readonly' : '') + ' placeholder="DEMBA, PEDRO..." style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px;text-transform:uppercase;' + (esEdicion ? 'background:#F1F5F9;color:#94A3B8' : '') + '">' +
         '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Nombre completo *</label>' +
         '<input type="text" id="afNombre" value="' + (af.nombre || '') + '" placeholder="Nombre Apellidos" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px">' +
         '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Email *</label>' +
         '<input type="email" id="afEmail" value="' + (af.email || '') + '" placeholder="comercial@email.com" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:12px">' +
-        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Comision (%) *</label>' +
+        '<label style="display:block;font-size:12px;font-weight:700;color:#475569;margin-bottom:4px">Comisión (%) *</label>' +
         '<input type="number" id="afPct" value="' + (af.comision_pct || 20) + '" min="0" max="100" style="width:100%;padding:10px;border:1px solid #CBD5E1;border-radius:8px;font-size:14px;margin-bottom:6px">' +
         '<div style="font-size:11px;color:var(--muted)">Porcentaje sobre la base imponible (sin IVA)</div>' +
       '</div>' +
@@ -5354,7 +5354,7 @@ function generarJustificantePDF(datos) {
   if (datos.email) doc.text(datos.email, W / 2 + 10, y);
   y += 12;
   doc.text('Programa de afiliados TekPair', margin, y);
-  doc.text('Codigo afiliado: ' + datos.codigo, W / 2 + 10, y);
+  doc.text('Código afiliado: ' + datos.codigo, W / 2 + 10, y);
 
   y += 36;
   // Fecha
@@ -5443,7 +5443,7 @@ function abrirModalPago(opciones) {
     '<div style="background:white;max-width:440px;width:100%;border-radius:14px;overflow:hidden">' +
       '<div style="background:linear-gradient(135deg,#10B981,#059669);color:white;padding:18px 22px">' +
         '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.9">REGISTRAR PAGO</div>' +
-        '<div style="font-size:18px;font-weight:800;margin-top:4px">Comision a ' + opciones.codigo + '</div>' +
+        '<div style="font-size:18px;font-weight:800;margin-top:4px">Comisión a ' + opciones.codigo + '</div>' +
         '<div style="font-size:24px;font-weight:800;margin-top:8px">' + eurFmt(opciones.monto) + '</div>' +
       '</div>' +
       '<div style="padding:20px 22px">' +
@@ -5657,7 +5657,7 @@ function renderComisionesAdmin(data) {
     html += '<div style="padding:20px;color:var(--muted);text-align:center">No hay pagos registrados todavía</div>';
   } else {
     html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px;margin-top:8px">';
-    html += '<thead><tr style="background:#F8FAFC"><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Fecha cobro</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Codigo</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Cliente pago</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">%</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Comision</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Estado</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Fecha pago</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Accion</th></tr></thead><tbody>';
+    html += '<thead><tr style="background:#F8FAFC"><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Fecha de cobro</th><th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Código</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Pago cliente</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">%</th><th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Comisión</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Estado</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Fecha pago</th><th style="padding:8px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Acción</th></tr></thead><tbody>';
     data.pagos.forEach(function(p) {
       var codigoSafe = (p.codigo_referido || '').replace(/'/g, "\\'");
       var accionHTML;
