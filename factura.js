@@ -165,6 +165,7 @@
               '<div style="display:flex;gap:8px">' +
                 '<button type="button" id="factTipoSimp" onclick="window.setTipoFactura(\'simplificada\')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #10B981;background:#ECFDF5;cursor:pointer;font-weight:600;font-size:13px">🎫 Simplificada</button>' +
                 '<button type="button" id="factTipoComp" onclick="window.setTipoFactura(\'completa\')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #E5E7EB;background:white;cursor:pointer;font-weight:600;font-size:13px;color:#475569">📄 Completa</button>' +
+                '<button type="button" id="factTipoTicket" onclick="window.setTipoFactura(\'ticket\')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #E5E7EB;background:white;cursor:pointer;font-weight:600;font-size:13px;color:#475569">🧾 Ticket</button>' +
               '</div>' +
               '<div id="factTipoInfo" style="font-size:11px;color:#64748B;margin-top:6px">Simplificada: válida hasta 400€. Incluye solo NIF del cliente si quieres.</div>' +
             '</div>' +
@@ -203,7 +204,11 @@
         '<div id="factCliBuscarRes" style="position:absolute;left:0;right:0;top:42px;background:white;border:1px solid #E5E7EB;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:5;max-height:200px;overflow:auto;display:none"></div>' +
       '</div>';
 
-    if (FACT.tipo === 'simplificada') {
+    if (FACT.tipo === 'ticket') {
+      // Recibo básico: solo necesita nombre + teléfono (que ya vienen del cliente).
+      box.innerHTML = buscador +
+        '<div style="font-size:11.5px;color:#64748B;background:#F8FAFC;border-radius:8px;padding:9px 11px">🧾 Se imprimirá el nombre y teléfono del cliente y la reparación. Sin IVA ni datos fiscales — no es una factura.</div>';
+    } else if (FACT.tipo === 'simplificada') {
       // Solo NIF opcional
       box.innerHTML = buscador +
         '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">Datos cliente (opcional)</div>' +
@@ -286,16 +291,19 @@
     FACT.tipo = tipo;
     var simp = document.getElementById('factTipoSimp');
     var comp = document.getElementById('factTipoComp');
+    var tick = document.getElementById('factTipoTicket');
     var info = document.getElementById('factTipoInfo');
-    if (tipo === 'simplificada') {
-      if (simp) { simp.style.borderColor = '#10B981'; simp.style.background = '#ECFDF5'; }
-      if (comp) { comp.style.borderColor = '#E5E7EB'; comp.style.background = 'white'; }
-      if (info) info.textContent = 'Simplificada: válida hasta 400€. Incluye solo NIF del cliente si quieres.';
-    } else {
-      if (simp) { simp.style.borderColor = '#E5E7EB'; simp.style.background = 'white'; }
-      if (comp) { comp.style.borderColor = '#10B981'; comp.style.background = '#ECFDF5'; }
-      if (info) info.textContent = 'Completa: con datos fiscales del cliente. Sin límite de importe.';
-    }
+    var emitBtn = document.getElementById('factEmitirBtn');
+    function setBtn(el, on) { if (!el) return; el.style.borderColor = on ? '#10B981' : '#E5E7EB'; el.style.background = on ? '#ECFDF5' : 'white'; el.style.color = on ? '#0F1729' : '#475569'; }
+    setBtn(simp, tipo === 'simplificada');
+    setBtn(comp, tipo === 'completa');
+    setBtn(tick, tipo === 'ticket');
+    if (info) info.textContent = tipo === 'simplificada' ? 'Simplificada: válida hasta 400€. Incluye solo NIF del cliente si quieres.'
+      : tipo === 'completa' ? 'Completa: con datos fiscales del cliente. Sin límite de importe.'
+      : 'Ticket: recibo básico (nombre, teléfono y reparación). No es una factura ni lleva IVA — para clientes que no la necesitan.';
+    if (emitBtn) emitBtn.textContent = tipo === 'ticket' ? '🖨️ Imprimir ticket' : '✓ Emitir factura';
+    var numPrev = document.getElementById('factNumeroPreview');
+    if (numPrev) numPrev.style.display = (tipo === 'ticket') ? 'none' : '';
     _renderDatosCliente();
   };
 
@@ -526,8 +534,55 @@
   }
 
   // ────────── Emitir factura (expuesto) ──────────
+  // Ticket básico (recibo): solo imprime, NO emite factura ni consume número fiscal.
+  function _imprimirTicketRecibo() {
+    var d = FACT.datos || {};
+    var emi = (typeof window.TIENDA !== 'undefined' && window.TIENDA) || {};
+    var cli = d.cliente || {};
+    var nombre = ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim();
+    var tel = cli.tel || cli.telefono || '';
+    var esRep = FACT.origen === 'reparacion';
+    var equipo = ((d.marca || '') + ' ' + (d.modelo || '')).trim();
+    var averia = d.averia || '';
+    var total = parseFloat(d.total) || 0;
+    var metodo = d.pagoFinal || d.pago || '';
+    var fecha = '';
+    try { fecha = new Date().toLocaleDateString(localStorage.getItem('tp_lang') || 'es', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch (e) { fecha = new Date().toISOString().slice(0, 10); }
+    var nomTienda = emi.nombre || 'Mi Tienda';
+    var telTienda = emi.tel || '';
+    var dirTienda = emi.dir || '';
+    var fmt = (typeof _fmtEur === 'function') ? _fmtEur : function(v) { return (v || 0).toFixed(2) + ' €'; };
+    var row = function(k, v) { return '<div style="display:flex;justify-content:space-between;gap:10px;margin:2px 0"><span style="color:#555">' + k + '</span><span style="font-weight:600;text-align:right">' + _esc(v) + '</span></div>'; };
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ticket</title><style>' +
+      '@media print{.npb{display:none!important}}' +
+      '@page{size:80mm auto;margin:0}html{margin:0}body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:80mm;margin:0;padding:6mm 5mm;color:#000;font-size:11.5px;line-height:1.45}' +
+      'h2{font-size:15px;text-align:center;margin:0 0 2px}.muted{color:#555;text-align:center;font-size:10.5px}hr{border:none;border-top:1px dashed #999;margin:8px 0}.tot{font-size:15px;font-weight:800;display:flex;justify-content:space-between;margin-top:4px}.foot{text-align:center;color:#777;font-size:9.5px;margin-top:10px}' +
+      '</style></head><body>' +
+      '<div class="npb" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;text-align:center;padding:7px;font-size:11px">Si sale pequeño: Escala 100%, Papel = tu rollo. <button onclick="window.print()" style="margin-left:6px;background:#FF5B1F;color:#fff;border:none;border-radius:5px;padding:4px 12px;font:inherit;font-weight:700;cursor:pointer">🖨️ Imprimir</button></div>' +
+      '<h2>' + _esc(nomTienda) + '</h2>' +
+      (dirTienda || telTienda ? '<div class="muted">' + _esc([dirTienda, telTienda].filter(Boolean).join(' · ')) + '</div>' : '') +
+      '<div class="muted" style="margin-top:4px">' + _esc(esRep ? 'RECIBO DE REPARACIÓN' : 'RECIBO') + ' · ' + _esc(fecha) + '</div>' +
+      '<hr>' +
+      (nombre ? row('Cliente', nombre) : '') +
+      (tel ? row('Teléfono', tel) : '') +
+      (esRep && equipo ? row('Equipo', equipo) : '') +
+      (esRep && averia ? row('Avería', averia) : '') +
+      (metodo ? row('Pago', metodo) : '') +
+      '<hr>' +
+      '<div class="tot"><span>TOTAL</span><span>' + fmt(total) + '</span></div>' +
+      '<div class="foot">Este documento no es una factura.<br>' + _esc(nomTienda) + '</div>' +
+      '</body></html>';
+    var w = window.open('', '_blank', 'width=420,height=640');
+    if (!w) { _toast('Permite las ventanas emergentes para imprimir', 'err'); return; }
+    w.document.write(html); w.document.close();
+    if (typeof window.cerrarModalFactura === 'function') window.cerrarModalFactura();
+  }
+
   window.emitirFactura = function() {
     var btn = document.getElementById('factEmitirBtn');
+
+    // Ticket básico: recibo solo-imprimir, sin número fiscal ni guardado.
+    if (FACT.tipo === 'ticket') { _imprimirTicketRecibo(); return; }
 
     // Validar
     if (FACT.tipo === 'completa') {
