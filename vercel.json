@@ -130,6 +130,7 @@
     { "source": "/login.html", "destination": "/app.html", "permanent": false },
     { "source": "/login", "destination": "/app.html", "permanent": false },
     { "source": "/entrar.html", "destination": "/app.html", "permanent": false },
-    { "source": "/entrar", "destination": "/app.html", "permanent": false }
+    { "source": "/entrar", "destination": "/app.html", "permanent": false },
+    { "source": "/r/:code", "destination": "/registro.html?ref=:code", "permanent": false }
   ]
 }

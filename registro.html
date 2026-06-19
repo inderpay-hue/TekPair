@@ -76,6 +76,9 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 </head>
 <body>
 
+<!-- Referidos: banner si llega por un link de invitación (?ref=CODE) -->
+<div id="refBanner" style="display:none;background:linear-gradient(90deg,#7C5CFC,#5B8DEF);color:#fff;text-align:center;padding:11px 16px;font-size:13.5px;font-weight:600">🎁 <span id="refBannerTxt">Te han invitado — os lleváis 1 mes gratis ambos al registrarte y pagar.</span></div>
+
 <select aria-label="Idioma / Language" class="lang-sel-reg" onchange="setRegLang(this.value)" id="regLangSel">
   <option value="es">🇪🇸 ES</option>
   <option value="en">🇬🇧 EN</option>
@@ -201,7 +204,7 @@ const REG_TEXTS = {
     f_zip: 'ZIP gestoría y gastos recurrentes', f_cajas: 'Cajas multi-servicio', f_csv: 'Importar datos CSV',
     f_soporte: 'Soporte prioritario', f_todo_pro: 'Todo lo del plan Pro', f_citas: 'Citas online',
     f_kanban: 'Vista Kanban de reparaciones', f_catalogo: 'Catálogo de servicios', f_popular: 'MÁS POPULAR', f_soporte_onb: 'Soporte prioritario + onboarding',
-    footer_aviso: 'Aviso legal', footer_priv: 'Privacidad', footer_terminos: 'Términos', footer_cookies: 'Cookies'
+    footer_aviso: 'Aviso legal', footer_priv: 'Privacidad', footer_terminos: 'Términos', footer_cookies: 'Cookies', ref_banner: 'Te han invitado a TekPair — os lleváis 1 mes gratis ambos al registrarte y pagar.'
   },
   en: {
     title: 'TekPair — Get started',
@@ -227,7 +230,7 @@ const REG_TEXTS = {
     f_zip: 'Accounting ZIP and recurring expenses', f_cajas: 'Multi-service cash register', f_csv: 'CSV data import',
     f_soporte: 'Priority support', f_todo_pro: 'Everything in Pro', f_citas: 'Online appointments',
     f_kanban: 'Kanban repair view', f_catalogo: 'Service catalogue', f_popular: 'MOST POPULAR', f_soporte_onb: 'Priority support + onboarding',
-    footer_aviso: 'Legal notice', footer_priv: 'Privacy', footer_terminos: 'Terms', footer_cookies: 'Cookies'
+    footer_aviso: 'Legal notice', footer_priv: 'Privacy', footer_terminos: 'Terms', footer_cookies: 'Cookies', ref_banner: 'You\'ve been invited to TekPair — you both get 1 month free when you sign up and pay.'
   },
   fr: {
     title: 'TekPair — Commencer',
@@ -253,7 +256,7 @@ const REG_TEXTS = {
     f_zip: 'ZIP comptabilité et dépenses récurrentes', f_cajas: 'Caisse multi-services', f_csv: 'Import données CSV',
     f_soporte: 'Support prioritaire', f_todo_pro: 'Tout du plan Pro', f_citas: 'Rendez-vous en ligne',
     f_kanban: 'Vue Kanban des réparations', f_catalogo: 'Catalogue de services', f_popular: 'LE PLUS POPULAIRE', f_soporte_onb: 'Support prioritaire + onboarding',
-    footer_aviso: 'Mentions légales', footer_priv: 'Confidentialité', footer_terminos: 'Conditions', footer_cookies: 'Cookies'
+    footer_aviso: 'Mentions légales', footer_priv: 'Confidentialité', footer_terminos: 'Conditions', footer_cookies: 'Cookies', ref_banner: 'Vous avez été invité sur TekPair — vous gagnez tous les deux 1 mois gratuit en vous inscrivant et en payant.'
   },
   it: {
     title: 'TekPair — Inizia ora',
@@ -279,7 +282,7 @@ const REG_TEXTS = {
     f_zip: 'ZIP contabilità e spese ricorrenti', f_cajas: 'Cassa multi-servizio', f_csv: 'Importa dati CSV',
     f_soporte: 'Supporto prioritario', f_todo_pro: 'Tutto del piano Pro', f_citas: 'Appuntamenti online',
     f_kanban: 'Vista Kanban riparazioni', f_catalogo: 'Catalogo servizi', f_popular: 'PIÙ POPOLARE', f_soporte_onb: 'Supporto prioritario + onboarding',
-    footer_aviso: 'Note legali', footer_priv: 'Privacy', footer_terminos: 'Termini', footer_cookies: 'Cookie'
+    footer_aviso: 'Note legali', footer_priv: 'Privacy', footer_terminos: 'Termini', footer_cookies: 'Cookie', ref_banner: 'Sei stato invitato su TekPair — ottenete entrambi 1 mese gratis registrandoti e pagando.'
   },
   de: {
     title: 'TekPair — Jetzt starten',
@@ -305,7 +308,7 @@ const REG_TEXTS = {
     f_zip: 'Buchhaltungs-ZIP und wiederkehrende Ausgaben', f_cajas: 'Multi-Service-Kasse', f_csv: 'CSV-Daten importieren',
     f_soporte: 'Prioritätssupport', f_todo_pro: 'Alles aus Pro', f_citas: 'Online-Termine',
     f_kanban: 'Kanban-Ansicht Reparaturen', f_catalogo: 'Servicekatalog', f_popular: 'AM BELIEBTESTEN', f_soporte_onb: 'Priorisierter Support + Onboarding',
-    footer_aviso: 'Impressum', footer_priv: 'Datenschutz', footer_terminos: 'AGB', footer_cookies: 'Cookies'
+    footer_aviso: 'Impressum', footer_priv: 'Datenschutz', footer_terminos: 'AGB', footer_cookies: 'Cookies', ref_banner: 'Du wurdest zu TekPair eingeladen — ihr beide bekommt 1 Monat gratis, wenn du dich anmeldest und bezahlst.'
   },
   pt: {
     title: 'TekPair — Começar agora',
@@ -331,7 +334,7 @@ const REG_TEXTS = {
     f_zip: 'ZIP contabilidade e despesas recorrentes', f_cajas: 'Caixa multi-serviço', f_csv: 'Importar dados CSV',
     f_soporte: 'Suporte prioritário', f_todo_pro: 'Tudo do plano Pro', f_citas: 'Marcações online',
     f_kanban: 'Vista Kanban reparações', f_catalogo: 'Catálogo de serviços', f_popular: 'MAIS POPULAR', f_soporte_onb: 'Suporte prioritário + onboarding',
-    footer_aviso: 'Aviso legal', footer_priv: 'Privacidade', footer_terminos: 'Termos', footer_cookies: 'Cookies'
+    footer_aviso: 'Aviso legal', footer_priv: 'Privacidade', footer_terminos: 'Termos', footer_cookies: 'Cookies', ref_banner: 'Foste convidado para o TekPair — ambos ganham 1 mês grátis ao registares-te e pagar.'
   }
 };
 
@@ -432,7 +435,7 @@ async function iniciarPago() {
     var r = await fetch('/api/checkout', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({plan: planSel, nombre: nom, email: email, tienda_nombre: tienda, lang: localStorage.getItem('tp_lang') || 'es'})
+      body: JSON.stringify({plan: planSel, nombre: nom, email: email, tienda_nombre: tienda, lang: localStorage.getItem('tp_lang') || 'es', ref: (window._refCode || '')})
     });
     var data = await r.json();
     if (data.ok && data.url) {
@@ -458,6 +461,17 @@ document.addEventListener('DOMContentLoaded', function() {
   var sel = document.getElementById('regLangSel');
   if (sel) sel.value = lang;
   applyRegLang(lang);
+  // Referidos: si llega ?ref=CODE, guardarlo y mostrar el banner.
+  try {
+    var ref = new URLSearchParams(location.search).get('ref') || '';
+    ref = ref.replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+    if (ref) {
+      window._refCode = ref;
+      var L = REG_TEXTS[lang] || REG_TEXTS.es;
+      var t = document.getElementById('refBannerTxt'); if (t && L.ref_banner) t.textContent = L.ref_banner;
+      var b = document.getElementById('refBanner'); if (b) b.style.display = 'block';
+    }
+  } catch (e) {}
 });
 </script>
 <footer style="text-align:center;font-size:12px;color:#8A94A6;padding:24px 16px 32px">
