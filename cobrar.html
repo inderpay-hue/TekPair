@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<title>Pagar cuota · TekPair</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{--or:#FF5B1F;--or-d:#C2491A;--ink:#0F1729;--muted:#64748B;--line:#E2E8F0;--bg:#F7F9FC;--green:#16A34A}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5;padding:18px;display:flex;justify-content:center}
+  .wrap{width:100%;max-width:430px}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;box-shadow:0 10px 30px -12px rgba(2,11,46,.12);margin-top:18px}
+  .shop{text-align:center;font-weight:800;font-size:18px;margin-bottom:2px}
+  .shop .bolt{color:var(--or)}
+  .sub{text-align:center;color:var(--muted);font-size:13px;margin-bottom:14px}
+  .amount{text-align:center;font-size:38px;font-weight:800;letter-spacing:-.02em;margin:6px 0}
+  .vence{text-align:center;color:var(--muted);font-size:13px;margin-bottom:6px}
+  .equipo{text-align:center;font-size:13px;color:var(--ink);margin-bottom:16px}
+  .elige{font-weight:700;font-size:13px;margin:14px 0 8px}
+  .metodo{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
+  .metodo h3{font-size:14px;margin-bottom:6px;display:flex;align-items:center;gap:7px}
+  .copyrow{display:flex;align-items:center;gap:8px;background:var(--bg);border-radius:9px;padding:9px 11px;margin-top:6px;font-size:14px;font-weight:600;word-break:break-all}
+  .copyrow button{margin-left:auto;flex-shrink:0;border:none;background:var(--or);color:#fff;border-radius:7px;padding:6px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer}
+  .concepto{font-size:11.5px;color:var(--muted);margin-top:6px}
+  .ppbtn{display:inline-block;background:#003087;color:#fff;text-decoration:none;border-radius:9px;padding:10px 18px;font-weight:700;font-size:14px;margin-top:4px}
+  .pagar{width:100%;border:none;background:var(--green);color:#fff;border-radius:12px;padding:15px;font:inherit;font-size:16px;font-weight:800;cursor:pointer;margin-top:8px}
+  .pagar:disabled{opacity:.55;cursor:default}
+  .hint{font-size:12px;color:var(--muted);text-align:center;margin-top:10px}
+  .foot{text-align:center;font-size:12px;color:var(--muted);margin-top:16px}
+  .foot a{color:var(--or);text-decoration:none}
+  .powered{text-align:center;font-size:11px;color:#94A3B8;margin-top:14px}
+  .msg{border-radius:12px;padding:14px;font-size:14px;margin-top:10px}
+  .msg.ok{background:rgba(22,163,74,.1);color:#15803D}
+  .msg.err{background:rgba(239,68,68,.1);color:#B91C1C}
+  .center{text-align:center;padding:30px 0;color:var(--muted)}
+  .ok-big{text-align:center;padding:24px 0}
+  .ok-big .ic{font-size:48px}
+  .ok-big h2{font-size:20px;margin:8px 0 6px}
+  .method-pick{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin:12px 0}
+  .method-pick button{border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 14px;font:inherit;font-size:14px;font-weight:600;cursor:pointer}
+  .method-pick button:hover{border-color:var(--or)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card" id="card"><div class="center" id="loading">Cargando…</div></div>
+  <div class="powered">Powered by <strong>TekPair</strong></div>
+</div>
+<script>
+(function(){
+  var L = (localStorage.getItem('tp_lang') || (navigator.language||'es').slice(0,2) || 'es').toLowerCase();
+  var T = {
+    es:{title:'Pagar cuota',err:'Enlace no válido o caducado.',ya:'Esta cuota ya consta como pagada. ¡Gracias!',cuota:'Tu cuota {n} de {t}',vence:'Vence el {f}',elige:'Elige cómo pagar:',bizum:'Pagar con Bizum',envia:'Envía {a} al número',transfer:'Transferencia bancaria',paypal:'Pagar con PayPal',ppbtn:'Ir a PayPal →',copiar:'Copiar',copiado:'¡Copiado!',concepto:'Concepto: {c}',pagado:'✅ He realizado el pago',tras:'Cuando hayas pagado, pulsa el botón para avisar a la tienda.',pick:'¿Con qué método has pagado?',cash:'Otro',gracias:'¡Gracias!',graciasMsg:'Hemos avisado a {s}. Verificarán tu pago en breve.',dudas:'¿Dudas? Contacta:',enviando:'Enviando…'},
+    en:{title:'Pay instalment',err:'Invalid or expired link.',ya:'This instalment is already marked as paid. Thanks!',cuota:'Your instalment {n} of {t}',vence:'Due on {f}',elige:'Choose how to pay:',bizum:'Pay with Bizum',envia:'Send {a} to the number',transfer:'Bank transfer',paypal:'Pay with PayPal',ppbtn:'Go to PayPal →',copiar:'Copy',copiado:'Copied!',concepto:'Reference: {c}',pagado:'✅ I have paid',tras:'Once you have paid, tap the button to notify the shop.',pick:'Which method did you use?',cash:'Other',gracias:'Thank you!',graciasMsg:'We have notified {s}. They will verify your payment shortly.',dudas:'Questions? Contact:',enviando:'Sending…'},
+    fr:{title:'Payer l\'échéance',err:'Lien invalide ou expiré.',ya:'Cette échéance est déjà payée. Merci !',cuota:'Votre échéance {n} sur {t}',vence:'Échéance le {f}',elige:'Choisissez le mode de paiement :',bizum:'Payer avec Bizum',envia:'Envoyez {a} au numéro',transfer:'Virement bancaire',paypal:'Payer avec PayPal',ppbtn:'Aller sur PayPal →',copiar:'Copier',copiado:'Copié !',concepto:'Référence : {c}',pagado:'✅ J\'ai payé',tras:'Une fois payé, appuyez sur le bouton pour prévenir la boutique.',pick:'Quel moyen avez-vous utilisé ?',cash:'Autre',gracias:'Merci !',graciasMsg:'Nous avons prévenu {s}. Votre paiement sera vérifié sous peu.',dudas:'Des questions ? Contactez :',enviando:'Envoi…'},
+    it:{title:'Paga la rata',err:'Link non valido o scaduto.',ya:'Questa rata risulta già pagata. Grazie!',cuota:'La tua rata {n} di {t}',vence:'Scade il {f}',elige:'Scegli come pagare:',bizum:'Paga con Bizum',envia:'Invia {a} al numero',transfer:'Bonifico bancario',paypal:'Paga con PayPal',ppbtn:'Vai su PayPal →',copiar:'Copia',copiado:'Copiato!',concepto:'Causale: {c}',pagado:'✅ Ho pagato',tras:'Dopo aver pagato, tocca il pulsante per avvisare il negozio.',pick:'Con quale metodo hai pagato?',cash:'Altro',gracias:'Grazie!',graciasMsg:'Abbiamo avvisato {s}. Verificheranno il pagamento a breve.',dudas:'Domande? Contatta:',enviando:'Invio…'},
+    de:{title:'Rate zahlen',err:'Ungültiger oder abgelaufener Link.',ya:'Diese Rate gilt bereits als bezahlt. Danke!',cuota:'Deine Rate {n} von {t}',vence:'Fällig am {f}',elige:'Zahlungsart wählen:',bizum:'Mit Bizum zahlen',envia:'Sende {a} an die Nummer',transfer:'Banküberweisung',paypal:'Mit PayPal zahlen',ppbtn:'Zu PayPal →',copiar:'Kopieren',copiado:'Kopiert!',concepto:'Verwendungszweck: {c}',pagado:'✅ Ich habe bezahlt',tras:'Nach der Zahlung auf den Button tippen, um den Laden zu benachrichtigen.',pick:'Womit hast du bezahlt?',cash:'Andere',gracias:'Danke!',graciasMsg:'Wir haben {s} benachrichtigt. Die Zahlung wird in Kürze geprüft.',dudas:'Fragen? Kontakt:',enviando:'Senden…'},
+    pt:{title:'Pagar prestação',err:'Link inválido ou expirado.',ya:'Esta prestação já consta como paga. Obrigado!',cuota:'A tua prestação {n} de {t}',vence:'Vence a {f}',elige:'Escolhe como pagar:',bizum:'Pagar com Bizum',envia:'Envia {a} para o número',transfer:'Transferência bancária',paypal:'Pagar com PayPal',ppbtn:'Ir para PayPal →',copiar:'Copiar',copiado:'Copiado!',concepto:'Referência: {c}',pagado:'✅ Já paguei',tras:'Depois de pagar, toca no botão para avisar a loja.',pick:'Que método usaste?',cash:'Outro',gracias:'Obrigado!',graciasMsg:'Avisámos {s}. Vão verificar o teu pagamento em breve.',dudas:'Dúvidas? Contacta:',enviando:'A enviar…'}
+  };
+  var t = T[L] || T.es;
+  document.documentElement.lang = L; document.title = t.title + ' · TekPair';
+  var q = new URLSearchParams(location.search);
+  var id = q.get('id') || '', tok = q.get('t') || '', n = q.get('n') || '';
+  var card = document.getElementById('card');
+  function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+  function tr(s,o){ o=o||{}; return s.replace(/\{(\w)\}/g,function(_,k){ return o[k]!=null?o[k]:''; }); }
+  function fmt(v){ try{ return new Intl.NumberFormat(L,{style:'currency',currency:'EUR'}).format(v||0); }catch(e){ return (v||0)+' €'; } }
+  function err(m){ card.innerHTML = '<div class="msg err">'+esc(m||t.err)+'</div>'; }
+
+  if (!id || !tok || n === '') { err(t.err); return; }
+
+  fetch('/api/parte?action=cobro&id='+encodeURIComponent(id)+'&t='+encodeURIComponent(tok)+'&n='+encodeURIComponent(n))
+    .then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
+    .then(function(res){
+      if (!res.ok || !res.j || !res.j.ok) { err((res.j&&res.j.error)||t.err); return; }
+      render(res.j);
+    })
+    .catch(function(){ err(t.err); });
+
+  function render(d){
+    if (d.cuota.pagado) { card.innerHTML = '<div class="msg ok">'+esc(t.ya)+'</div>'; return; }
+    var c = d.tienda.cobro || {};
+    var imp = fmt(d.cuota.importe);
+    var html = '<div class="shop">⚡ '+esc(d.tienda.nombre)+'</div>';
+    html += '<div class="sub">'+tr(t.cuota,{n:d.cuota.num,t:d.cuota.total})+'</div>';
+    html += '<div class="amount">'+imp+'</div>';
+    if (d.cuota.vence) html += '<div class="vence">'+tr(t.vence,{f:d.cuota.vence})+'</div>';
+    html += '<div class="equipo">'+esc(d.equipo)+(d.cliente?' · '+esc(d.cliente):'')+'</div>';
+    html += '<div class="elige">'+esc(t.elige)+'</div>';
+    var any = false;
+    if (c.bizum_on && c.bizum) { any=true;
+      html += '<div class="metodo"><h3>💜 '+esc(t.bizum)+'</h3><div style="font-size:12.5px;color:var(--muted)">'+tr(t.envia,{a:imp})+':</div>'+
+        '<div class="copyrow"><span>'+esc(c.bizum)+'</span><button data-cp="'+esc(c.bizum)+'">'+esc(t.copiar)+'</button></div>'+
+        '<div class="concepto">'+tr(t.concepto,{c:esc(d.concepto)})+'</div></div>';
+    }
+    if (c.transfer_on && c.iban) { any=true;
+      html += '<div class="metodo"><h3>🏦 '+esc(t.transfer)+'</h3>'+
+        '<div class="copyrow"><span>'+esc(c.iban)+'</span><button data-cp="'+esc(c.iban)+'">'+esc(t.copiar)+'</button></div>'+
+        '<div class="concepto">'+tr(t.concepto,{c:esc(d.concepto)})+'</div></div>';
+    }
+    if (c.paypal_on && c.paypal) { any=true;
+      var pp = /^https?:/.test(c.paypal) ? c.paypal : 'https://'+c.paypal.replace(/^\/+/,'');
+      html += '<div class="metodo"><h3>💳 '+esc(t.paypal)+'</h3><a class="ppbtn" href="'+esc(pp)+'" target="_blank" rel="noopener">'+esc(t.ppbtn)+'</a></div>';
+    }
+    if (c.mensaje) html += '<div class="hint">'+esc(c.mensaje)+'</div>';
+    if (!any) { html += '<div class="msg err" style="margin-top:0">'+esc(t.err)+'</div>'; }
+    html += '<button class="pagar" id="btnPagado">'+esc(t.pagado)+'</button>';
+    html += '<div class="hint">'+esc(t.tras)+'</div>';
+    if (d.tienda.telefono) html += '<div class="foot">'+esc(t.dudas)+' <a href="tel:'+esc(d.tienda.telefono)+'">'+esc(d.tienda.telefono)+'</a></div>';
+    card.innerHTML = html;
+
+    Array.prototype.forEach.call(card.querySelectorAll('[data-cp]'), function(b){
+      b.addEventListener('click', function(){
+        var v = b.getAttribute('data-cp');
+        try { navigator.clipboard.writeText(v); } catch(e){}
+        var o = b.textContent; b.textContent = t.copiado; setTimeout(function(){ b.textContent = o; }, 1500);
+      });
+    });
+    document.getElementById('btnPagado').addEventListener('click', function(){ pickMetodo(d); });
+  }
+
+  function pickMetodo(d){
+    var c = d.tienda.cobro || {};
+    var opts = [];
+    if (c.bizum_on && c.bizum) opts.push(['bizum','💜 Bizum']);
+    if (c.transfer_on && c.iban) opts.push(['transferencia','🏦 '+t.transfer]);
+    if (c.paypal_on && c.paypal) opts.push(['paypal','💳 PayPal']);
+    opts.push(['otro', t.cash]);
+    var html = '<div class="shop">'+esc(t.pick)+'</div><div class="method-pick">';
+    opts.forEach(function(o){ html += '<button data-m="'+o[0]+'">'+esc(o[1])+'</button>'; });
+    html += '</div>';
+    card.innerHTML = html;
+    Array.prototype.forEach.call(card.querySelectorAll('[data-m]'), function(b){
+      b.addEventListener('click', function(){ confirmar(d, b.getAttribute('data-m')); });
+    });
+  }
+
+  function confirmar(d, metodo){
+    card.innerHTML = '<div class="center">'+esc(t.enviando)+'</div>';
+    fetch('/api/parte?action=confirmar-pago', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ id:id, t:tok, n:parseInt(n,10), metodo:metodo })
+    }).then(function(r){ return r.json().then(function(j){ return {ok:r.ok,j:j}; }); })
+      .then(function(res){
+        if (!res.ok || !res.j || !res.j.ok) { err((res.j&&res.j.error)||t.err); return; }
+        card.innerHTML = '<div class="ok-big"><div class="ic">✅</div><h2>'+esc(t.gracias)+'</h2>'+
+          '<div style="color:var(--muted);font-size:14px">'+esc(tr(t.graciasMsg,{s:d.tienda.nombre}))+'</div></div>';
+      })
+      .catch(function(){ err(t.err); });
+  }
+})();
+</script>
+</body>
+</html>
