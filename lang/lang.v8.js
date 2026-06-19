@@ -3890,6 +3890,14 @@ de:{'fin.editar_total':'Betrag ändern','fin.nuevo_total':'Neuer Gesamtbetrag (�
 pt:{'fin.editar_total':'Editar valor','fin.nuevo_total':'Novo valor total (€).\nJá cobrado: {c} (não podes baixar disso).','fin.total_invalido':'Valor inválido','fin.min_cobrado':'Não podes baixar do total já cobrado ({c})','fin.todas_pagadas':'Todas as prestações estão pagas; o valor não pode ser alterado','fin.editado':'Valor atualizado · prestações recalculadas'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 (function(){var _a={
+es:{'fin.cuanto_paga':'¿Cuánto paga ahora? (€)\nQuedan {q} de esta cuota.','fin.parcial':'pagado {p} · queda {q}','fin.completar':'Completar'},
+en:{'fin.cuanto_paga':'How much is paid now? (€)\n{q} left on this instalment.','fin.parcial':'paid {p} · {q} left','fin.completar':'Complete'},
+fr:{'fin.cuanto_paga':'Combien paie-t-il maintenant ? (€)\nIl reste {q} sur cette échéance.','fin.parcial':'payé {p} · reste {q}','fin.completar':'Compléter'},
+it:{'fin.cuanto_paga':'Quanto paga ora? (€)\nRestano {q} di questa rata.','fin.parcial':'pagato {p} · resta {q}','fin.completar':'Completa'},
+de:{'fin.cuanto_paga':'Wie viel wird jetzt gezahlt? (€)\nNoch {q} von dieser Rate offen.','fin.parcial':'gezahlt {p} · offen {q}','fin.completar':'Abschließen'},
+pt:{'fin.cuanto_paga':'Quanto paga agora? (€)\nFaltam {q} desta prestação.','fin.parcial':'pago {p} · falta {q}','fin.completar':'Completar'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
 es:{'inicio.kpi_proceso_pend':'En proceso · {p} en cola','tb.trabajando':'trabajando','tb.en_cola':'en cola'},
 en:{'inicio.kpi_proceso_pend':'In progress · {p} queued','tb.trabajando':'working','tb.en_cola':'queued'},
 fr:{'inicio.kpi_proceso_pend':'En cours · {p} en attente','tb.trabajando':'en cours','tb.en_cola':'en attente'},

@@ -5850,13 +5850,17 @@ function verFinanciado(id) {
   v.cuotas.forEach(function(cu, i) {
     // Las cuotas guardan la fecha en ISO (YYYY-MM-DD); comparar como ISO para detectar vencidas
     var vencido = !cu.pagado && cu.fecha && String(cu.fecha).slice(0, 10) < hoyLocal();
+    var pag = _cuotaPagado(cu);
+    var parcial = pag > 0.005 && !cu.pagado;
+    var subPag = cu.pagado ? (' | Pagado: ' + cu.formaPago)
+      : (parcial ? ' \u00b7 ' + T('fin.parcial').replace('{p}', cur(pag)).replace('{q}', cur(Math.round(((parseFloat(cu.importe) || 0) - pag) * 100) / 100)) : '');
     html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:' +
-      (cu.pagado ? 'rgba(0,200,150,.08)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
+      (cu.pagado ? 'rgba(0,200,150,.08)' : parcial ? 'rgba(230,148,18,.10)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
       '<div><div style="font-size:13px;font-weight:600">Cuota ' + (i + 1) + ' - ' + cur(cu.importe) + '</div>' +
-      '<div style="font-size:10px;color:var(--muted)">Vence: ' + cu.fecha + (cu.pagado ? ' | Pagado: ' + cu.formaPago : '') + '</div></div>' +
+      '<div style="font-size:10px;color:var(--muted)">Vence: ' + cu.fecha + subPag + '</div></div>' +
       '<div>' + (cu.pagado
         ? '<span style="color:var(--green);font-size:11px;font-weight:700">\u2713 Pagado</span>'
-        : '<button data-vid="' + id + '" data-cidx="' + i + '" class="btn-pc btn-primary" style="padding:5px 10px;font-size:11px;width:auto">Registrar</button>'
+        : '<button data-vid="' + id + '" data-cidx="' + i + '" class="btn-pc btn-primary" style="padding:5px 10px;font-size:11px;width:auto">' + (parcial ? T('fin.completar') : 'Registrar') + '</button>'
       ) + '</div></div>';
   });
   if (v.estadoFinanciado !== 'completado' && tienePerm('ventas_editar')) {
@@ -5918,20 +5922,31 @@ function editarTotalFinanciado(vid) {
 
 function registrarPagoCuota(vid, cidx) {
   var v = DB.ventas.find(function(x) { return x.id === vid; });
-  if (!v || !v.cuotas) return;
-  pedirMetodoPago(function (fp) {
-  if (!fp) return;
-  v.cuotas[cidx].pagado = true;
-  v.cuotas[cidx].formaPago = fp;
-  v.cuotas[cidx].fechaPago = hoyLocal();
-  var todasPagadas = v.cuotas.every(function(c) { return c.pagado; });
-  if (todasPagadas) { v.estadoFinanciado = 'completado'; toast('Financiado completado!', 'ok'); }
-  guardarDatos();
-  if(SB_KEY&&TIENDA_ID)sbPatch('ventas','id=eq.'+vid,{cuotas:JSON.stringify(v.cuotas)});
-  closeM('finModal');
-  verFinanciado(vid);
-  renderVentas();
-  }, 'Cuota ' + (cidx + 1) + ' — ¿cómo se ha pagado?');
+  if (!v || !v.cuotas || !v.cuotas[cidx]) return;
+  var c = v.cuotas[cidx];
+  var imp = parseFloat(c.importe) || 0;
+  var yaPag = _cuotaPagado(c);
+  var queda = Math.round((imp - yaPag) * 100) / 100;
+  if (queda <= 0.005) return;
+  pedirImporte(T('fin.cuanto_paga').replace('{q}', cur(queda)), queda, function(val) {
+    if (val === null) return;
+    var pago = Math.round((parseFloat(String(val).replace(',', '.')) || 0) * 100) / 100;
+    if (!(pago > 0)) { toast(T('fin.total_invalido'), 'err'); return; }
+    if (pago > queda + 0.005) pago = queda;
+    pedirMetodoPago(function (fp) {
+      if (!fp) return;
+      c.pagadoImporte = Math.round((yaPag + pago) * 100) / 100;
+      c.formaPago = fp;
+      c.fechaPago = hoyLocal();
+      c.pagado = c.pagadoImporte >= imp - 0.005;
+      if (v.cuotas.every(function(cc) { return cc.pagado; })) { v.estadoFinanciado = 'completado'; toast('Financiado completado!', 'ok'); }
+      guardarDatos();
+      if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { cuotas: JSON.stringify(v.cuotas) });
+      closeM('finModal');
+      verFinanciado(vid);
+      renderVentas();
+    }, 'Cuota ' + (cidx + 1) + ' — ¿cómo se ha pagado?');
+  });
 }
 
 // ═══ FINANCIADO EN REPARACIONES (mismo modelo que ventas) ═══
@@ -5947,14 +5962,18 @@ function verFinanciadoRep(id) {
     '<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">CUOTAS:</div>';
   r.cuotas.forEach(function(cu, i) {
     var vencido = !cu.pagado && cu.fecha && cu.fecha < hoyLocal();
+    var pag = _cuotaPagado(cu);
+    var parcial = pag > 0.005 && !cu.pagado;
+    var subPag = cu.pagado ? (' | Pagado: ' + cu.formaPago)
+      : (parcial ? ' · ' + T('fin.parcial').replace('{p}', cur(pag)).replace('{q}', cur(Math.round(((parseFloat(cu.importe) || 0) - pag) * 100) / 100)) : '');
     html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:' +
-      (cu.pagado ? 'rgba(0,200,150,.08)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
+      (cu.pagado ? 'rgba(0,200,150,.08)' : parcial ? 'rgba(230,148,18,.10)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
       '<div><div style="font-size:13px;font-weight:600">Cuota ' + (i + 1) + ' — ' + cur(cu.importe) + '</div>' +
-      '<div style="font-size:10px;color:var(--muted)">Vence: ' + (cu.fecha || '-') + (cu.pagado ? ' | Pagado: ' + cu.formaPago : '') + '</div></div>' +
+      '<div style="font-size:10px;color:var(--muted)">Vence: ' + (cu.fecha || '-') + subPag + '</div></div>' +
       '<div style="display:flex;gap:6px;align-items:center">' + (cu.pagado
         ? '<span style="color:var(--green);font-size:11px;font-weight:700">✓ Pagado</span>'
         : '<button data-rid="' + id + '" data-cidx="' + i + '" class="btn-lcr" title="' + T('cobro.enviar_link') + '" style="padding:5px 9px;font-size:12px;width:auto;border:1px solid var(--border);background:#fff;border-radius:7px;cursor:pointer">📤</button>' +
-          '<button data-rid="' + id + '" data-cidx="' + i + '" class="btn-pcr btn-primary" style="padding:5px 10px;font-size:11px;width:auto">Registrar</button>'
+          '<button data-rid="' + id + '" data-cidx="' + i + '" class="btn-pcr btn-primary" style="padding:5px 10px;font-size:11px;width:auto">' + (parcial ? T('fin.completar') : 'Registrar') + '</button>'
       ) + '</div></div>';
   });
   html += '<button class="btn-secondary" style="margin-top:12px" onclick="closeM(&quot;finModal&quot;)">Cerrar</button>';
@@ -5971,28 +5990,39 @@ function verFinanciadoRep(id) {
 function registrarPagoCuotaRep(rid, cidx) {
   var r = DB.reps.find(function(x) { return x.id === rid; });
   if (!r || !r.cuotas || !r.cuotas[cidx]) return;
-  pedirMetodoPago(function (fp) {
-  if (!fp) return;
-  r.cuotas[cidx].pagado = true;
-  r.cuotas[cidx].formaPago = fp;
-  r.cuotas[cidx].fechaPago = hoyLocal();
-  var pagadoCuotas = r.cuotas.filter(function(c) { return c.pagado; }).reduce(function(a, c) { return a + (parseFloat(c.importe) || 0); }, 0);
-  r.restante = Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - pagadoCuotas) * 100) / 100);
-  var todas = r.cuotas.every(function(c) { return c.pagado; });
-  if (todas) { r.estadoFinanciado = 'completado'; r.restante = 0; toast('Financiado completado!', 'ok'); }
-  guardarDatos();
-  if (SB_KEY && TIENDA_ID) {
-    sbPatch('reparaciones', 'id=eq.' + rid, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
-    // La cuota se registra como pago_reparacion -> el ingreso del día entra solo (y va a Cobrum por el volcado).
-    // id determinista por (rep, nº cuota) -> pagar/reenviar la misma cuota no duplica ingreso.
-    sbPost('pagos_reparacion', { id: 'pg_cuo_' + rid + '_' + cidx, tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoyLocal(), importe: parseFloat(r.cuotas[cidx].importe) || 0, metodo: fp, tipo: 'cuota' });
-    window._pagosRepCache = null;
-  }
-  closeM('finModal');
-  verFinanciadoRep(rid);
-  renderReps();
-  renderDash();
-  }, 'Cuota ' + (cidx + 1) + ' — ¿cómo se ha pagado?');
+  var c = r.cuotas[cidx];
+  var imp = parseFloat(c.importe) || 0;
+  var yaPag = _cuotaPagado(c);
+  var queda = Math.round((imp - yaPag) * 100) / 100;
+  if (queda <= 0.005) return;
+  // Pago PARCIAL: preguntar cuánto paga ahora (por defecto lo que queda).
+  pedirImporte(T('fin.cuanto_paga').replace('{q}', cur(queda)), queda, function(val) {
+    if (val === null) return;
+    var pago = Math.round((parseFloat(String(val).replace(',', '.')) || 0) * 100) / 100;
+    if (!(pago > 0)) { toast(T('fin.total_invalido'), 'err'); return; }
+    if (pago > queda + 0.005) pago = queda; // nunca más de lo que queda
+    pedirMetodoPago(function (fp) {
+      if (!fp) return;
+      c.pagadoImporte = Math.round((yaPag + pago) * 100) / 100;
+      c.formaPago = fp;
+      c.fechaPago = hoyLocal();
+      c.pagado = c.pagadoImporte >= imp - 0.005;
+      var pagadoCuotas = r.cuotas.reduce(function(a, cc) { return a + _cuotaPagado(cc); }, 0);
+      r.restante = Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - pagadoCuotas) * 100) / 100);
+      if (r.cuotas.every(function(cc) { return cc.pagado; })) { r.estadoFinanciado = 'completado'; r.restante = 0; toast('Financiado completado!', 'ok'); }
+      guardarDatos();
+      if (SB_KEY && TIENDA_ID) {
+        sbPatch('reparaciones', 'id=eq.' + rid, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
+        // Cada pago (parcial o total) = un pago_reparacion propio (id único) → no machaca anteriores.
+        sbPost('pagos_reparacion', { id: 'pg_cuo_' + rid + '_' + cidx + '_' + Date.now(), tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoyLocal(), importe: pago, metodo: fp, tipo: 'cuota' });
+        window._pagosRepCache = null;
+      }
+      closeM('finModal');
+      verFinanciadoRep(rid);
+      renderReps();
+      renderDash();
+    }, 'Cuota ' + (cidx + 1) + ' — ¿cómo se ha pagado?');
+  });
 }
 
 // ═══ FINANCIACIÓN · LINK DE COBRO (Modelo C) ═══
