@@ -2863,6 +2863,7 @@ var INV_WIDGETS = [
   { id: 'tb_garantias', vista: 'Tablero', label: 'Garantías que vencen', tkey: 'tb.garantias_h' },
   { id: 'tb_entregas', vista: 'Tablero', label: 'Entregas de hoy', tkey: 'tb.entregas_h' },
   { id: 'tb_averias', vista: 'Tablero', label: 'Averías más frecuentes', tkey: 'tb.averias_h' },
+  { id: 'tb_mesvsmes', vista: 'Tablero', label: 'Ingresos mes vs mes anterior', tkey: 'tb.mvm_h', admin: true },
   { id: 'tb_clientes', vista: 'Tablero', label: 'Cumpleaños de clientes', tkey: 'tb.cumples_h' },
   { id: 'tb_notas', vista: 'Tablero', label: 'Notas y recordatorios', tkey: 'inicio.notas' },
   { id: 'rs_inggastos', vista: 'Resumen', label: 'Ingresos vs gastos', tkey: 'inicio.ing_gastos', admin: true },
@@ -3666,14 +3667,32 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
   }
   // Averías más frecuentes
   if (_invWidgetOn('tb_averias')) {
+    // #14: top 5 averías DEL MES en curso (lo accionable: qué piezas conviene tener en stock ahora).
+    var _avMes = hoy.slice(0, 7);
     var avCount = {};
-    reps.forEach(function(r) { var a = (r.averia || '').trim(); if (a) avCount[a] = (avCount[a] || 0) + 1; });
+    reps.forEach(function(r) { var f = String(r.fecha || r.fecha_entrada || ''); if (f.slice(0, 7) !== _avMes) return; var a = (r.averia || '').trim(); if (a) avCount[a] = (avCount[a] || 0) + 1; });
     var avArr = Object.keys(avCount).map(function(k) { return { k: k, n: avCount[k] }; }).sort(function(a, b) { return b.n - a.n; }).slice(0, 5);
     var maxA = avArr.length ? avArr[0].n : 1;
     var avInner = avArr.length ? '<div style="padding:11px 14px">' + avArr.map(function(o) {
       return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;font-size:11.5px"><span style="flex:1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-weight:600;color:var(--inv-ink2)">' + escHtml(o.k) + '</span><span style="width:84px;height:7px;border-radius:4px;background:var(--inv-line);overflow:hidden;flex-shrink:0"><i style="display:block;height:100%;border-radius:4px;width:' + (o.n / maxA * 100) + '%;background:var(--inv-or)"></i></span><span style="font-weight:800;width:24px;text-align:right">' + o.n + '</span></div>';
-    }).join('') + '</div>' : '<div class="inv-empty">' + T('tb.sin_averias') + '</div>';
+    }).join('') + '<div style="margin-top:4px;padding-top:8px;border-top:1px solid var(--inv-line);font-size:11px;color:var(--inv-ink2)">💡 ' + T('tb.averias_stock') + ' <strong>' + escHtml(avArr[0].k) + '</strong></div></div>' : '<div class="inv-empty">' + T('tb.sin_averias') + '</div>';
     cards.push('<div class="inv-tcard" data-w="tb_averias"><h4>' + T('tb.averias_h') + ' <span class="lk" onclick="navTo(\'pReportes\')">' + T('tb.reportes') + '</span></h4>' + avInner + '</div>');
+  }
+  // #15: ingresos del mes vs mes anterior (solo quien ve caja).
+  if (puede && _invWidgetOn('tb_mesvsmes')) {
+    var _now = new Date(hoy + 'T00:00:00');
+    var _mIni = _invIso(new Date(_now.getFullYear(), _now.getMonth(), 1));
+    var _mFin = _invIso(_now);
+    var _pIni = _invIso(new Date(_now.getFullYear(), _now.getMonth() - 1, 1));
+    var _pFin = _invIso(new Date(_now.getFullYear(), _now.getMonth() - 1, Math.min(_now.getDate(), new Date(_now.getFullYear(), _now.getMonth(), 0).getDate())));
+    var _ingMes = _invIncome(_mIni, _mFin), _ingPrev = _invIncome(_pIni, _pFin);
+    var _delta = _ingPrev > 0 ? Math.round((_ingMes - _ingPrev) / _ingPrev * 100) : (_ingMes > 0 ? 100 : 0);
+    var _col = _delta >= 0 ? 'var(--inv-green)' : 'var(--inv-red)';
+    var _mvm = '<div style="padding:13px 15px">' +
+      '<div style="display:flex;align-items:baseline;gap:8px"><span style="font-size:26px;font-weight:800;letter-spacing:-.02em">' + cur(_ingMes) + '</span>' +
+      '<span style="font-weight:800;font-size:14px;color:' + _col + '">' + (_delta >= 0 ? '+' : '') + _delta + '%</span></div>' +
+      '<div style="font-size:11.5px;color:var(--inv-ink2);margin-top:3px">' + T('tb.mvm_prev') + ' <strong>' + cur(_ingPrev) + '</strong></div></div>';
+    cards.push('<div class="inv-tcard" data-w="tb_mesvsmes"><h4>' + T('tb.mvm_h') + ' <span class="lk" onclick="navTo(\'pReportes\')">' + T('tb.reportes') + '</span></h4>' + _mvm + '</div>');
   }
   // Cumpleaños de clientes
   if (_invWidgetOn('tb_clientes')) {
