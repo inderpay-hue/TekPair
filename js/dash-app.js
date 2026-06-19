@@ -3000,7 +3000,14 @@ function _ventasIngresoTotal(ventas, d1, d2) {
 
 function _invIncome(d1, d2) {
   var t = _ventasIngresoTotal(DB.ventas, d1, d2);
-  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f && f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') t += (r.total || 0); });
+  // Reparaciones entregadas: contar lo COBRADO (total − restante), no el total, para no inflar
+  // con saldos pendientes. Caja real, coherente con Reports (que usa pagos reales).
+  (DB.reps || []).forEach(function(r) {
+    var f = (r.fechaEntregaReal || '').slice(0, 10);
+    if (f && f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') {
+      t += Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0));
+    }
+  });
   return t;
 }
 // #8: reparaciones estancadas — activas y con >14 días en el taller. Alerta roja arriba del inicio.
@@ -3225,7 +3232,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   // Cómo cobras (periodo)
   var pagos = {};
   var _vpmCobra = _ventasIngresoPorMetodo(DB.ventas, d1, d2); Object.keys(_vpmCobra).forEach(function(m) { pagos[m] = (pagos[m] || 0) + _vpmCobra[m]; });
-  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); } });
+  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0)); } });
   var totalP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
   var clsMap = { 'Efectivo': 's-cash', 'Tarjeta': 's-card', 'Bizum': 's-biz', 'Transferencia': 's-tr' };
   var icoMap = { 'Efectivo': '💵', 'Tarjeta': '💳', 'Bizum': '📲', 'Transferencia': '🏦' };
@@ -3239,7 +3246,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
 
   // Lo que más deja (periodo, por avería + ventas)
   var cat = {};
-  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var k = (r.averia || '').trim() || T('inicio.reparacion'); cat['🔧 ' + k] = (cat['🔧 ' + k] || 0) + (r.total || 0); } });
+  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var k = (r.averia || '').trim() || T('inicio.reparacion'); cat['🔧 ' + k] = (cat['🔧 ' + k] || 0) + Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0)); } });
   var ventasTot = _ventasIngresoTotal(DB.ventas, d1, d2);
   if (ventasTot > 0) cat['🛒 ' + T('inicio.ventas_accesorios')] = ventasTot;
   var topArr = Object.keys(cat).map(function(k) { return { k: k, v: cat[k] }; }).sort(function(a, b) { return b.v - a.v; }).slice(0, 4);
@@ -3610,7 +3617,7 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
   if (puede && _invWidgetOn('tb_comocobras')) {
     var pagos = {};
     var _vpmTb = _ventasIngresoPorMetodo(DB.ventas, hoy, hoy); Object.keys(_vpmTb).forEach(function(m) { pagos[m] = (pagos[m] || 0) + _vpmTb[m]; });
-    reps.forEach(function(r) { if ((r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); } });
+    reps.forEach(function(r) { if ((r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0)); } });
     var totP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
     var cls = { 'Efectivo': 's-cash', 'Tarjeta': 's-card', 'Bizum': 's-biz', 'Transferencia': 's-tr' };
     var ico = { 'Efectivo': '💵', 'Tarjeta': '💳', 'Bizum': '📲', 'Transferencia': '🏦' };
@@ -3846,13 +3853,11 @@ async function renderDash() {
   var repsPorEntregar = DB.reps.filter(function(r) { return ['Por Entregar','Por entregar'].indexOf(r.estado) !== -1; });
   var repsActivas = DB.reps.filter(function(r) { return ESTADOS_CERRADOS_STAT.indexOf(r.estado) === -1; });
 
-  var tVentas = ventas.reduce(function(a, v) {
-    if(v.financiado && v.cuotas) {
-      var pagado = (v.entrada||0) + v.cuotas.filter(function(c){return c.pagado;}).reduce(function(s,c){return s+c.importe;},0);
-      return a + pagado;
-    }
-    return a + v.total;
-  }, 0);
+  // CAJA REAL (unificado con el dashboard): financiadas = entrada (día de venta) + cuotas
+  // cobradas por su fecha de pago; no financiadas = total el día de la venta; reembolsadas
+  // excluidas. Así Reports y el inicio muestran la MISMA cifra (lo que entró en caja).
+  var _rd1 = filterDates[0], _rd2 = filterDates[filterDates.length - 1];
+  var tVentas = _ventasIngresoTotal(DB.ventas, _rd1, _rd2);
 
   // v2.4: usar pagos reales (anticipos + finales) en lugar de reps entregadas
   var tReps = 0;
@@ -3869,10 +3874,10 @@ async function renderDash() {
 
     var pagosTotales = {};
     if (mostrarFinanzas) {
-      ventas.forEach(function(v) {
-        var m = v.pago || 'Efectivo';
-        pagosTotales[m] = (pagosTotales[m] || 0) + v.total;
-      });
+      // Caja real por método (igual que tVentas): financiadas cuentan entrada + cuotas cobradas,
+      // no el total a plazos. Antes sumaba v.total de todas → no cuadraba con el ingreso.
+      var _vpm = _ventasIngresoPorMetodo(DB.ventas, _rd1, _rd2);
+      Object.keys(_vpm).forEach(function(m) { pagosTotales[m] = (pagosTotales[m] || 0) + _vpm[m]; });
       if (pagosRepData) {
         pagosRepData.forEach(function(p) {
           var m = p.metodo || 'Efectivo';
