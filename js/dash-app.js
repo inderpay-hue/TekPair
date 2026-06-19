@@ -3041,6 +3041,13 @@ function restablecerEditarInicio() {
   renderEditarInicio();
 }
 function _invIso(d) { var m = ('0' + (d.getMonth() + 1)).slice(-2); var dd = ('0' + d.getDate()).slice(-2); return d.getFullYear() + '-' + m + '-' + dd; }
+// Importe realmente cobrado de una cuota (soporta pagos PARCIALES). Backward-compatible:
+// cuotas antiguas sin pagadoImporte → importe completo si pagado, 0 si no.
+function _cuotaPagado(c) {
+  if (!c) return 0;
+  if (c.pagadoImporte != null) return parseFloat(c.pagadoImporte) || 0;
+  return c.pagado ? (parseFloat(c.importe) || 0) : 0;
+}
 // Ingreso REAL de ventas por método en [d1,d2]. Financiadas: entrada (día de venta) + cuotas (día de pago);
 // no financiadas: total el día de la venta. Devuelve { metodo: importe }. (Evita contar el total a plazos el día 1.)
 function _ventasIngresoPorMetodo(ventas, d1, d2) {
@@ -3052,8 +3059,9 @@ function _ventasIngresoPorMetodo(ventas, d1, d2) {
         var me = v.entradaPago || 'Efectivo'; por[me] = (por[me] || 0) + (parseFloat(v.entrada) || 0);
       }
       (v.cuotas || []).forEach(function(c) {
-        if (c && c.pagado && c.fechaPago && c.fechaPago >= d1 && c.fechaPago <= d2) {
-          var mc = c.formaPago || 'Efectivo'; por[mc] = (por[mc] || 0) + (parseFloat(c.importe) || 0);
+        // Pago parcial: cuenta lo cobrado (pagadoImporte) en su fecha de pago, aunque la cuota no esté cerrada.
+        if (c && c.fechaPago && c.fechaPago >= d1 && c.fechaPago <= d2) {
+          var mc = c.formaPago || 'Efectivo'; por[mc] = (por[mc] || 0) + _cuotaPagado(c);
         }
       });
     } else if (v.fecha >= d1 && v.fecha <= d2) {
@@ -5832,7 +5840,7 @@ function _ofrecerAbonoPorVenta(ventaId) {
 function verFinanciado(id) {
   var v = DB.ventas.find(function(x) { return x.id === id; });
   if (!v || !v.cuotas) return;
-  var pagado = v.cuotas.filter(function(c) { return c.pagado; }).reduce(function(a, c) { return a + c.importe; }, 0);
+  var pagado = v.cuotas.reduce(function(a, c) { return a + _cuotaPagado(c); }, 0);
   var pendiente = v.total - pagado - (v.entrada || 0);
   var html = '<div class="modal-title">\ud83d\udcb0 Financiado</div>' +
     '<div style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px">' +
@@ -5868,7 +5876,7 @@ function editarTotalFinanciado(vid) {
   var v = DB.ventas.find(function(x){ return x.id === vid; });
   if (!v || !v.cuotas) return;
   if (!tienePerm('ventas_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
-  var cobrado = (parseFloat(v.entrada) || 0) + v.cuotas.filter(function(c){ return c.pagado; }).reduce(function(a, c){ return a + (parseFloat(c.importe) || 0); }, 0);
+  var cobrado = (parseFloat(v.entrada) || 0) + v.cuotas.reduce(function(a, c){ return a + _cuotaPagado(c); }, 0);
   cobrado = Math.round(cobrado * 100) / 100;
   var pendientes = v.cuotas.filter(function(c){ return !c.pagado; });
   pedirTexto(T('fin.nuevo_total').replace('{c}', cur(cobrado)), { rows: 1, placeholder: String(v.total || 0), okLabel: T('gen.guardar') }, function(val) {
@@ -5930,7 +5938,7 @@ function registrarPagoCuota(vid, cidx) {
 function verFinanciadoRep(id) {
   var r = DB.reps.find(function(x) { return x.id === id; });
   if (!r || !r.cuotas) { toast(T('gen.error'), 'err'); return; }
-  var pagado = r.cuotas.filter(function(c) { return c.pagado; }).reduce(function(a, c) { return a + (parseFloat(c.importe) || 0); }, 0);
+  var pagado = r.cuotas.reduce(function(a, c) { return a + _cuotaPagado(c); }, 0);
   var pendiente = Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - pagado) * 100) / 100);
   var html = '<div class="modal-title">💰 Financiado</div>' +
     '<div style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px">' +
@@ -6082,7 +6090,7 @@ function confirmarCobro(attemptId) {
   r.cuotas[cidx].pagado = true;
   r.cuotas[cidx].formaPago = fp;
   r.cuotas[cidx].fechaPago = hoyLocal();
-  var pagadoCuotas = r.cuotas.filter(function(c){ return c.pagado; }).reduce(function(acc, c){ return acc + (parseFloat(c.importe) || 0); }, 0);
+  var pagadoCuotas = r.cuotas.reduce(function(acc, c){ return acc + _cuotaPagado(c); }, 0);
   r.restante = Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - pagadoCuotas) * 100) / 100);
   if (r.cuotas.every(function(c){ return c.pagado; })) { r.estadoFinanciado = 'completado'; r.restante = 0; }
   guardarDatos();
@@ -12262,7 +12270,7 @@ async function enviarReporteCobrum() {
     if (v.financiado && v.cuotas) {
       // Financiada: entrada el día de la venta + cada cuota el día que se paga (NO el total el día 1)
       if (v.fecha && (parseFloat(v.entrada) || 0) > 0) bucket(v.fecha, v.entradaPago || 'Efectivo').ventas += parseFloat(v.entrada) || 0;
-      (v.cuotas || []).forEach(function(c){ if (c && c.pagado && c.fechaPago) bucket(String(c.fechaPago).slice(0, 10), c.formaPago || 'Efectivo').ventas += parseFloat(c.importe) || 0; });
+      (v.cuotas || []).forEach(function(c){ if (c && c.fechaPago) bucket(String(c.fechaPago).slice(0, 10), c.formaPago || 'Efectivo').ventas += _cuotaPagado(c); });
     } else if (v.fecha) {
       bucket(v.fecha, v.pago).ventas += Number(v.total || 0);
     }
