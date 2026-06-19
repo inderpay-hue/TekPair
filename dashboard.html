@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260619g"></script>
+<script src="/lang/lang.v8.js?v=20260619j"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2572,39 +2572,39 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div style="flex:1">
           <input type="file" id="logoFileInput" accept="image/png,image/jpeg,image/webp,image/svg+xml" hidden onchange="subirLogo(event)"/>
           <button class="btn-sm" type="button" style="background:var(--blue);color:white;margin-bottom:6px" onclick="document.getElementById('logoFileInput').click()"><span data-t="gen.cambiar_logo">Cambiar logo</span></button>
-          <button class="btn-sm" type="button" id="btnQuitarLogo" style="background:#ef4444;color:white;display:none" onclick="quitarLogo()">Quitar logo</button>
-          <div style="font-size:11px;color:#64748b;margin-top:8px">PNG, JPG, WEBP o SVG. Max 2 MB.</div>
+          <button class="btn-sm" type="button" id="btnQuitarLogo" style="background:#ef4444;color:white;display:none" onclick="quitarLogo()" data-t="ajt.quitar_logo">Quitar logo</button>
+          <div style="font-size:11px;color:#64748b;margin-top:8px" data-t="ajt.logo_formatos">PNG, JPG, WEBP o SVG. Max 2 MB.</div>
           <div id="logoStatus" style="font-size:11px;color:#E0531C;margin-top:4px"></div>
         </div>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">Datos de la tienda</div>
-      <div class="fg"><label class="fl">Nombre</label><input class="fi" id="tNom" placeholder="Mi Tienda"/></div>
+      <div class="card-title" data-t="ajt.datos_tienda">Datos de la tienda</div>
+      <div class="fg"><label class="fl" data-t="gen.nombre">Nombre</label><input class="fi" id="tNom" placeholder="Mi Tienda"/></div>
       <div class="fg"><label class="fl"><span data-t="cli.direccion">Dirección</span></label><input class="fi" id="tDir" placeholder="Calle, número, ciudad"/></div>
       <div class="fi-row">
         <div class="fg"><label class="fl"><span data-t="cli.telefono">Teléfono</span></label><input class="fi" id="tTel" placeholder="6XX XXX XXX"/></div>
         <div class="fg"><label class="fl"><span data-t="cli.email">Email</span></label><input class="fi" id="tEmail" type="email" placeholder="info@tienda.com"/></div>
       </div>
       <div class="fi-row">
-        <div class="fg"><label class="fl">CIF/NIF</label><input class="fi" id="tCif" placeholder="B12345678"/></div>
-        <div class="fg"><label class="fl">Web</label><input class="fi" id="tWeb" placeholder="www.tienda.com"/></div>
+        <div class="fg"><label class="fl" data-t="ajt.cif">CIF/NIF</label><input class="fi" id="tCif" placeholder="B12345678"/></div>
+        <div class="fg"><label class="fl" data-t="ajt.web">Web</label><input class="fi" id="tWeb" placeholder="www.tienda.com"/></div>
       </div>
     </div>
 
     <!-- Sprint 1 financiación: datos de cobro online (Modelo C — el dinero va directo a la tienda) -->
     <div class="card">
-      <div class="card-title">💳 Datos de cobro online</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Métodos que el cliente verá al pagar una cuota desde su móvil con el link de cobro. El dinero va <strong>directo a tu cuenta</strong>, TekPair no lo toca ni cobra comisión.</div>
+      <div class="card-title">💳 <span data-t="ajt.cobro_titulo">Datos de cobro online</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px" data-t-html="ajt.cobro_desc">Métodos que el cliente verá al pagar una cuota desde su móvil con el link de cobro. El dinero va <strong>directo a tu cuenta</strong>, TekPair no lo toca ni cobra comisión.</div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:6px"><input type="checkbox" id="cobroBizumOn"> 💜 Bizum</label>
       <div class="fg"><input class="fi" id="cobroBizum" placeholder="Teléfono Bizum (6XX XXX XXX)" inputmode="tel"/></div>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin:10px 0 6px"><input type="checkbox" id="cobroTransferOn"> 🏦 Transferencia</label>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin:10px 0 6px"><input type="checkbox" id="cobroTransferOn"> 🏦 <span data-t="ajt.transferencia">Transferencia</span></label>
       <div class="fg"><input class="fi" id="cobroIban" placeholder="IBAN (ES12 3456 7890 …)"/></div>
       <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin:10px 0 6px"><input type="checkbox" id="cobroPaypalOn"> 💳 PayPal</label>
       <div class="fg"><input class="fi" id="cobroPaypal" placeholder="paypal.me/tutienda"/></div>
-      <div class="fg" style="margin-top:8px"><label class="fl">Mensaje para el cliente (opcional)</label><input class="fi" id="cobroMensaje" placeholder="Tras pagar, confírmanos por WhatsApp 📲"/></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px">El concepto de cada cobro se genera solo: <code>REP-{nº}-CUOTA-{n}</code>, para que reconozcas el ingreso.</div>
+      <div class="fg" style="margin-top:8px"><label class="fl" data-t="ajt.cobro_mensaje">Mensaje para el cliente (opcional)</label><input class="fi" id="cobroMensaje" placeholder="Tras pagar, confírmanos por WhatsApp 📲"/></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t-html="ajt.cobro_concepto">El concepto de cada cobro se genera solo: <code>REP-{nº}-CUOTA-{n}</code>, para que reconozcas el ingreso.</div>
     </div>
 
     <!-- Referidos: invita a otras tiendas, ambas ganan 1 mes gratis -->
@@ -4525,7 +4525,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260619g"></script>
+<script src="/js/dash-app.js?v=20260619j"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
