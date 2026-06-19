@@ -3198,9 +3198,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="xlabels" id="inv-a-xlabels"></div>
       </div>
       <div class="inv-side">
-        <div class="inv-mini inv-clk" onclick="navTo('pReportes')"><div class="ic ig">💶</div><div><div class="num" id="inv-a-caja">€0</div><div class="lbl" id="inv-a-caja-l">Caja de hoy</div></div></div>
+        <div class="inv-mini inv-clk" onclick="navTo('pCajas')"><div class="ic ig">💶</div><div><div class="num" id="inv-a-caja">€0</div><div class="lbl" id="inv-a-caja-l">Caja de hoy</div></div></div>
         <div class="inv-mini inv-clk" onclick="navTo('pVentas')"><div class="ic ib">🛒</div><div><div class="num" id="inv-a-ventas">0</div><div class="lbl" id="inv-a-ventas-l">Ventas hoy</div></div></div>
-        <div class="inv-mini inv-clk" onclick="navTo('pReps')"><div class="ic ir">⏰</div><div><div class="num" id="inv-a-cobros">€0</div><div class="lbl" id="inv-a-cobros-l">Cobros pendientes</div></div></div>
+        <div class="inv-mini inv-clk" onclick="_kpiReps('adeber')"><div class="ic ir">⏰</div><div><div class="num" id="inv-a-cobros">€0</div><div class="lbl" id="inv-a-cobros-l">Cobros pendientes</div></div></div>
       </div>
     </div>
     <div class="inv-row3">
@@ -3229,11 +3229,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <!-- ═══ VISTA OPERATIVA (EMPLEADO) ═══ -->
   <div id="inv-emp">
   <div class="inv-kpis">
-    <div class="inv-kpi"><div class="ic ib">🔧</div><div class="num" id="inv-k-rep">0</div><div class="lbl" data-t="inicio.kpi_reparacion">En reparación</div><div class="tr fl" id="inv-tr-rep">=</div></div>
-    <div class="inv-kpi"><div class="ic ig">📦</div><div class="num" id="inv-k-listas">0</div><div class="lbl" data-t="inicio.kpi_listas">Listas hoy</div><div class="tr fl" id="inv-tr-listas">=</div></div>
-    <div class="inv-kpi" id="inv-kpi-caja"><div class="ic io">📦</div><div class="num" id="inv-k-caja">0</div><div class="lbl" id="inv-k-caja-l">Piezas por pedir</div><div class="tr fl" id="inv-tr-caja">=</div></div>
-    <div class="inv-kpi"><div class="ic ip">📅</div><div class="num" id="inv-k-citas">0</div><div class="lbl" data-t="inicio.kpi_citas">Citas hoy</div><div class="tr fl" id="inv-tr-citas">=</div></div>
-    <div class="inv-kpi"><div class="ic ir">🚨</div><div class="num" id="inv-k-urg">0</div><div class="lbl" data-t="inicio.kpi_urgente">Urgente</div><div class="tr fl" id="inv-tr-urg">=</div></div>
+    <div class="inv-kpi inv-clk" onclick="_kpiReps('En Proceso')"><div class="ic ib">🔧</div><div class="num" id="inv-k-rep">0</div><div class="lbl" id="inv-k-rep-l" data-t="inicio.kpi_reparacion">En reparación</div><div class="tr fl" id="inv-tr-rep">=</div></div>
+    <div class="inv-kpi inv-clk" onclick="_kpiReps('Por Entregar')"><div class="ic ig">📦</div><div class="num" id="inv-k-listas">0</div><div class="lbl" data-t="inicio.kpi_listas">Listas hoy</div><div class="tr fl" id="inv-tr-listas">=</div></div>
+    <div class="inv-kpi inv-clk" id="inv-kpi-caja" onclick="navTo('pPedidos')"><div class="ic io">📦</div><div class="num" id="inv-k-caja">0</div><div class="lbl" id="inv-k-caja-l">Piezas por pedir</div><div class="tr fl" id="inv-tr-caja">=</div></div>
+    <div class="inv-kpi inv-clk" onclick="navTo('pCitas')"><div class="ic ip">📅</div><div class="num" id="inv-k-citas">0</div><div class="lbl" data-t="inicio.kpi_citas">Citas hoy</div><div class="tr fl" id="inv-tr-citas">=</div></div>
+    <div class="inv-kpi inv-clk" onclick="_kpiReps('todas')"><div class="ic ir">🚨</div><div class="num" id="inv-k-urg">0</div><div class="lbl" data-t="inicio.kpi_urgente">Urgente</div><div class="tr fl" id="inv-tr-urg">=</div></div>
   </div>
   <div class="inv-lower">
     <div class="inv-card"><div class="inv-ch"><h3>⚠️ <span data-t="inicio.atencion">Necesita tu atención</span></h3><span class="inv-badge" id="inv-aten-n">0</span></div><div id="inv-atencion"></div></div>
