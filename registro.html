@@ -140,7 +140,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
       <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_citas">Citas online</span></li>
       <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_kanban">Vista Kanban de reparaciones</span></li>
       <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_catalogo">Catálogo de servicios</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_soporte">Soporte prioritario</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_soporte_onb">Soporte prioritario + onboarding</span></li>
     </ul>
     <button class="plan-btn plan-btn-sec" id="planBtn_top">Elegir Premium</button>
   </div>
@@ -200,7 +200,7 @@ const REG_TEXTS = {
     f_reportes: 'Reportes básicos', f_permisos: 'Permisos por usuario', f_pdf: 'Reportes PDF + informe gestor',
     f_zip: 'ZIP gestoría y gastos recurrentes', f_cajas: 'Cajas multi-servicio', f_csv: 'Importar datos CSV',
     f_soporte: 'Soporte prioritario', f_todo_pro: 'Todo lo del plan Pro', f_citas: 'Citas online',
-    f_kanban: 'Vista Kanban de reparaciones', f_catalogo: 'Catálogo de servicios', f_popular: 'MÁS POPULAR',
+    f_kanban: 'Vista Kanban de reparaciones', f_catalogo: 'Catálogo de servicios', f_popular: 'MÁS POPULAR', f_soporte_onb: 'Soporte prioritario + onboarding',
     footer_aviso: 'Aviso legal', footer_priv: 'Privacidad', footer_terminos: 'Términos', footer_cookies: 'Cookies'
   },
   en: {
@@ -226,7 +226,7 @@ const REG_TEXTS = {
     f_reportes: 'Basic reports', f_permisos: 'User permissions', f_pdf: 'PDF reports + manager summary',
     f_zip: 'Accounting ZIP and recurring expenses', f_cajas: 'Multi-service cash register', f_csv: 'CSV data import',
     f_soporte: 'Priority support', f_todo_pro: 'Everything in Pro', f_citas: 'Online appointments',
-    f_kanban: 'Kanban repair view', f_catalogo: 'Service catalogue', f_popular: 'MOST POPULAR',
+    f_kanban: 'Kanban repair view', f_catalogo: 'Service catalogue', f_popular: 'MOST POPULAR', f_soporte_onb: 'Priority support + onboarding',
     footer_aviso: 'Legal notice', footer_priv: 'Privacy', footer_terminos: 'Terms', footer_cookies: 'Cookies'
   },
   fr: {
@@ -252,7 +252,7 @@ const REG_TEXTS = {
     f_reportes: 'Rapports de base', f_permisos: 'Permissions utilisateurs', f_pdf: 'Rapports PDF + résumé gestionnaire',
     f_zip: 'ZIP comptabilité et dépenses récurrentes', f_cajas: 'Caisse multi-services', f_csv: 'Import données CSV',
     f_soporte: 'Support prioritaire', f_todo_pro: 'Tout du plan Pro', f_citas: 'Rendez-vous en ligne',
-    f_kanban: 'Vue Kanban des réparations', f_catalogo: 'Catalogue de services', f_popular: 'LE PLUS POPULAIRE',
+    f_kanban: 'Vue Kanban des réparations', f_catalogo: 'Catalogue de services', f_popular: 'LE PLUS POPULAIRE', f_soporte_onb: 'Support prioritaire + onboarding',
     footer_aviso: 'Mentions légales', footer_priv: 'Confidentialité', footer_terminos: 'Conditions', footer_cookies: 'Cookies'
   },
   it: {
@@ -278,7 +278,7 @@ const REG_TEXTS = {
     f_reportes: 'Report di base', f_permisos: 'Permessi utente', f_pdf: 'Report PDF + riepilogo gestore',
     f_zip: 'ZIP contabilità e spese ricorrenti', f_cajas: 'Cassa multi-servizio', f_csv: 'Importa dati CSV',
     f_soporte: 'Supporto prioritario', f_todo_pro: 'Tutto del piano Pro', f_citas: 'Appuntamenti online',
-    f_kanban: 'Vista Kanban riparazioni', f_catalogo: 'Catalogo servizi', f_popular: 'PIÙ POPOLARE',
+    f_kanban: 'Vista Kanban riparazioni', f_catalogo: 'Catalogo servizi', f_popular: 'PIÙ POPOLARE', f_soporte_onb: 'Supporto prioritario + onboarding',
     footer_aviso: 'Note legali', footer_priv: 'Privacy', footer_terminos: 'Termini', footer_cookies: 'Cookie'
   },
   de: {
@@ -304,7 +304,7 @@ const REG_TEXTS = {
     f_reportes: 'Grundberichte', f_permisos: 'Benutzerrechte', f_pdf: 'PDF-Berichte + Manager-Zusammenfassung',
     f_zip: 'Buchhaltungs-ZIP und wiederkehrende Ausgaben', f_cajas: 'Multi-Service-Kasse', f_csv: 'CSV-Daten importieren',
     f_soporte: 'Prioritätssupport', f_todo_pro: 'Alles aus Pro', f_citas: 'Online-Termine',
-    f_kanban: 'Kanban-Ansicht Reparaturen', f_catalogo: 'Servicekatalog', f_popular: 'AM BELIEBTESTEN',
+    f_kanban: 'Kanban-Ansicht Reparaturen', f_catalogo: 'Servicekatalog', f_popular: 'AM BELIEBTESTEN', f_soporte_onb: 'Priorisierter Support + Onboarding',
     footer_aviso: 'Impressum', footer_priv: 'Datenschutz', footer_terminos: 'AGB', footer_cookies: 'Cookies'
   },
   pt: {
@@ -330,7 +330,7 @@ const REG_TEXTS = {
     f_reportes: 'Relatórios básicos', f_permisos: 'Permissões de utilizador', f_pdf: 'Relatórios PDF + resumo gestor',
     f_zip: 'ZIP contabilidade e despesas recorrentes', f_cajas: 'Caixa multi-serviço', f_csv: 'Importar dados CSV',
     f_soporte: 'Suporte prioritário', f_todo_pro: 'Tudo do plano Pro', f_citas: 'Marcações online',
-    f_kanban: 'Vista Kanban reparações', f_catalogo: 'Catálogo de serviços', f_popular: 'MAIS POPULAR',
+    f_kanban: 'Vista Kanban reparações', f_catalogo: 'Catálogo de serviços', f_popular: 'MAIS POPULAR', f_soporte_onb: 'Suporte prioritário + onboarding',
     footer_aviso: 'Aviso legal', footer_priv: 'Privacidade', footer_terminos: 'Termos', footer_cookies: 'Cookies'
   }
 };
