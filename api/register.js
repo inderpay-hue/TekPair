@@ -77,6 +77,7 @@ export default async function handler(req, res) {
     // Si email/nombre/etc. no vienen en req.body, se leen del metadata de la session Stripe.
     let stripeCustomerId = null;
     let stripeSubId = null;
+    let refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
     let trialUntil = null;
     let planUntil = null;
 
@@ -94,6 +95,7 @@ export default async function handler(req, res) {
           if (!nombre && session.metadata.nombre) nombre = session.metadata.nombre;
           if (!tienda_nombre && session.metadata.tienda_nombre) tienda_nombre = session.metadata.tienda_nombre;
           if (!plan && session.metadata.plan) plan = session.metadata.plan;
+          if (session.metadata.ref) refCode = String(session.metadata.ref).replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
         }
         // Fallback adicional: customer_email del Checkout si el metadata no lo tenía
         if (!email && session.customer_email) email = session.customer_email;
@@ -299,6 +301,25 @@ export default async function handler(req, res) {
 </body></html>`
         })
       });
+    }
+
+    // ═══ Referidos: si vino con código, registrar la invitación (status pending) ═══
+    if (refCode) {
+      try {
+        const refR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?referral_code=eq.${encodeURIComponent(refCode)}&select=id&limit=1`, {
+          headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
+        });
+        const refRows = await refR.json();
+        const referrerId = Array.isArray(refRows) && refRows[0] && refRows[0].id;
+        // No auto-referidos (misma tienda) ni código inexistente.
+        if (referrerId && referrerId !== tienda_id) {
+          await fetch(`${SUPABASE_URL}/rest/v1/referrals`, {
+            method: 'POST',
+            headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+            body: JSON.stringify({ referrer_tienda_id: referrerId, referred_tienda_id: tienda_id, referred_email: email, referred_nombre: tienda_nombre || nombre, codigo: refCode, status: 'pending' })
+          });
+        }
+      } catch (e) { console.error('Referral record error (no bloqueante):', e); }
     }
 
     return res.json({ ok: true, tienda_id, tempPass, sessionToken, nombre });

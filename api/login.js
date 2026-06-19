@@ -413,6 +413,44 @@ export default async function handler(req, res) {
     }
   }
 
+  // ───────── Referidos: código de invitación de la tienda activa + historial ─────────
+  if (action === 'mi-referido') {
+    const token = (req.body && req.body.token) || req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'No token' });
+    try {
+      const sR = await fetch(`${SB_URL}/rest/v1/sesiones?token=eq.${encodeURIComponent(token)}&select=usuario_id,tienda_id,expires_at&limit=1`, { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } });
+      const ses = await sR.json();
+      if (!Array.isArray(ses) || !ses.length) return res.status(401).json({ error: _loc('Sesión inválida', req) });
+      const sess = ses[0];
+      if (sess.expires_at && new Date(sess.expires_at) < new Date()) return res.status(401).json({ error: _loc('Sesión caducada', req) });
+      const tiendaId = sess.tienda_id;
+      if (!tiendaId) return res.status(400).json({ error: 'Sin tienda' });
+      // Obtener (o generar) el código de la tienda activa
+      const tR = await fetch(`${SB_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tiendaId)}&select=referral_code&limit=1`, { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } });
+      const tA = await tR.json();
+      let codigo = tA && tA[0] && tA[0].referral_code;
+      if (!codigo) {
+        const ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+        codigo = '';
+        for (let i = 0; i < 8; i++) codigo += ABC[Math.floor(Math.random() * ABC.length)];
+        try {
+          await fetch(`${SB_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tiendaId)}`, { method: 'PATCH', headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify({ referral_code: codigo }) });
+        } catch (e) { /* si choca el unique (rarísimo) el cliente reintenta */ }
+      }
+      // Historial de invitaciones de esta tienda
+      let referidos = [];
+      try {
+        const rR = await fetch(`${SB_URL}/rest/v1/referrals?referrer_tienda_id=eq.${encodeURIComponent(tiendaId)}&order=created_at.desc&select=referred_nombre,referred_email,status,created_at`, { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } });
+        if (rR.ok) { const rows = await rR.json(); if (Array.isArray(rows)) referidos = rows; }
+      } catch (e) { /* sin historial */ }
+      const ganados = referidos.filter(function (r) { return r.status === 'rewarded'; }).length;
+      return res.json({ ok: true, codigo, link: `https://www.tekpair.tech/r/${codigo}`, referidos, ganados });
+    } catch (e) {
+      console.error('mi-referido error:', e);
+      return res.status(500).json({ error: 'Error del servidor' });
+    }
+  }
+
 
   // El resto de acciones requieren POST
   if (req.method !== 'POST') return res.status(405).end();

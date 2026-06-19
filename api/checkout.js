@@ -144,6 +144,9 @@ export default async function handler(req, res) {
     params.append('metadata[tienda_nombre]', tienda_nombre || nombre);
     params.append('metadata[plan]', plan);
     params.append('metadata[lang]', req.body.lang || 'es');
+    // Referidos: código de invitación (lo lee register.js para registrar la invitación).
+    const refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+    if (refCode) { params.append('metadata[ref]', refCode); params.append('subscription_data[metadata][ref]', refCode); }
     params.append('allow_promotion_codes', 'true');
     params.append('subscription_data[trial_period_days]', '15');
     // Pasar metadata también a la subscription para que el webhook tenga acceso
