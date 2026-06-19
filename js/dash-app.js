@@ -9313,6 +9313,8 @@ function cambiarEstado(id, estado) {
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + id, patchUnificado);
   if (entrandoCancelacion && typeof _ofrecerAbonoFactura === 'function') { _ofrecerAbonoFactura('reparacion', r.id); }
+  // No reparable: ofrecer avisar al cliente con una plantilla según el motivo.
+  if (entrandoCancelacion) { try { _ofrecerAvisoNoReparable(r); } catch (e) {} }
   toast(T('rep.estado_actualizado'), 'ok');
   audit('cambio_estado', 'reparacion', r.id, r.clienteNombre + ' · ' + (r.modelo||'') + ' · ' + estadoAnterior + ' → ' + estado, {antes:estadoAnterior, despues:estado});
   renderDash();
@@ -9333,6 +9335,40 @@ function cambiarEstado(id, estado) {
       });
     }
   }
+}
+
+// "No reparable": al marcar Devuelto/Rechazado/Sin Solución, ofrecer avisar al cliente
+// con una plantilla de WhatsApp según el motivo (solo aviso, sin cobro).
+function _ofrecerAvisoNoReparable(r) {
+  if (!r) return;
+  var cli = r.clienteId ? (DB.clis || []).find(function(c) { return c.id === r.clienteId; }) : null;
+  var tel = (cli && cli.tel) ? waTel(cli.tel) : '';
+  var nombre = (r.clienteNombre || '').trim().split(' ')[0] || '';
+  var equipo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
+  var tienda = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.nombre) || 'TekPair';
+  function tpl(key) { return T(key).replace('{n}', nombre).replace('{eq}', equipo).replace('{t}', tienda); }
+  var btnCss = 'display:block;width:100%;padding:12px 14px;margin-bottom:8px;border:1px solid var(--border,#E5E7EB);background:var(--light,#F8FAFC);color:inherit;border-radius:10px;cursor:pointer;font:inherit;font-size:13.5px;font-weight:600;text-align:left';
+  var inner = '<div style="font-size:15px;font-weight:800;margin-bottom:6px">' + T('noreparable.titulo') + '</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:14px">' + T('noreparable.sub') + '</div>';
+  if (tel) {
+    inner += '<button data-k="noreparable.wa_norentable" style="' + btnCss + '">💸 ' + T('noreparable.m_norentable') + '</button>' +
+      '<button data-k="noreparable.wa_pieza" style="' + btnCss + '">🔧 ' + T('noreparable.m_pieza') + '</button>' +
+      '<button data-k="noreparable.wa_otro" style="' + btnCss + '">📦 ' + T('noreparable.m_otro') + '</button>';
+  } else {
+    inner += '<div style="font-size:12.5px;color:var(--muted)">' + T('noreparable.sin_tel') + '</div>';
+  }
+  inner += '<button id="_nrCancel" style="width:100%;padding:9px;border:none;background:transparent;color:var(--muted,#94A3B8);cursor:pointer;font:inherit;margin-top:4px">' + T('gen.cancelar') + '</button>';
+  var m = _modalOverlay(inner);
+  m.box.querySelectorAll('[data-k]').forEach(function(b) {
+    b.onclick = function() {
+      window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(tpl(b.getAttribute('data-k'))), '_blank');
+      try { _marcarAvisado(r.id); } catch (e) {}
+      try { registrarAviso({ tipo: 'aviso_rep', canal: 'whatsapp', destinatario: (cli ? cli.tel : ''), ref_id: r.id, ref_tipo: 'reparacion' }); } catch (e) {}
+      m.close();
+    };
+  });
+  m.box.querySelector('#_nrCancel').onclick = function() { m.close(); };
+  m.bg.addEventListener('click', function(e) { if (e.target === m.bg) m.close(); });
 }
 
 function abrirEntregar(id) {
