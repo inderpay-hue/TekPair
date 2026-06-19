@@ -179,6 +179,7 @@
           '<div style="padding:14px 20px;border-top:1px solid #E5E7EB;display:flex;gap:10px;background:#F8FAFC">' +
             '<button type="button" onclick="window.cerrarModalFactura()" style="padding:10px 16px;border-radius:8px;border:1px solid #E5E7EB;background:white;cursor:pointer;font-weight:600">Cancelar</button>' +
             '<button type="button" id="factEmitirBtn" onclick="window.emitirFactura()" style="flex:1;padding:10px 16px;border-radius:8px;border:none;background:#10B981;color:white;cursor:pointer;font-weight:700">✓ Emitir factura</button>' +
+            '<button type="button" id="factTicketWaBtn" onclick="window.enviarTicketWhatsApp()" style="display:none;padding:10px 14px;border-radius:8px;border:none;background:#25D366;color:white;cursor:pointer;font-weight:700">📲 WhatsApp</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -304,6 +305,8 @@
     if (emitBtn) emitBtn.textContent = tipo === 'ticket' ? '🖨️ Imprimir ticket' : '✓ Emitir factura';
     var numPrev = document.getElementById('factNumeroPreview');
     if (numPrev) numPrev.style.display = (tipo === 'ticket') ? 'none' : '';
+    var waBtn = document.getElementById('factTicketWaBtn');
+    if (waBtn) waBtn.style.display = (tipo === 'ticket') ? '' : 'none';
     _renderDatosCliente();
   };
 
@@ -577,6 +580,31 @@
     w.document.write(html); w.document.close();
     if (typeof window.cerrarModalFactura === 'function') window.cerrarModalFactura();
   }
+
+  // Ticket por WhatsApp: envía el comprobante como TEXTO al cliente (wa.me solo manda texto).
+  window.enviarTicketWhatsApp = function() {
+    var d = FACT.datos || {};
+    var emi = (typeof window.TIENDA !== 'undefined' && window.TIENDA) || {};
+    var cli = d.cliente || {};
+    if (((cli.tel || cli.telefono || '') + '').replace(/\D/g, '').length < 6) { _toast('El cliente no tiene teléfono', 'err'); return; }
+    var tel = ((cli.telPrefijo || '+34') + (cli.tel || cli.telefono || '')).replace(/[^0-9]/g, '');
+    var nombre = (cli.nombre || '').trim().split(' ')[0] || '';
+    var esRep = FACT.origen === 'reparacion';
+    var equipo = ((d.marca || '') + ' ' + (d.modelo || '')).trim();
+    var total = parseFloat(d.total) || 0;
+    var metodo = d.pagoFinal || d.pago || '';
+    var fmt = (typeof _fmtEur === 'function') ? _fmtEur : function(v) { return (v || 0).toFixed(2) + ' €'; };
+    var nomTienda = emi.nombre || 'Mi Tienda';
+    var L = ['*' + nomTienda + '*', esRep ? 'Recibo de reparación' : 'Recibo', ''];
+    if (nombre) L.push('Hola ' + nombre + ',');
+    if (esRep && equipo) L.push('Equipo: ' + equipo);
+    if (esRep && d.averia) L.push('Avería: ' + d.averia);
+    L.push('Total: ' + fmt(total));
+    if (metodo) L.push('Pago: ' + metodo);
+    L.push('', 'Gracias por confiar en nosotros.');
+    window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(L.join('\n')), '_blank');
+    if (typeof window.cerrarModalFactura === 'function') window.cerrarModalFactura();
+  };
 
   window.emitirFactura = function() {
     var btn = document.getElementById('factEmitirBtn');
