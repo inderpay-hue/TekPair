@@ -3211,12 +3211,13 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   _st('inv-a-ventas', ventasPer); _st('inv-a-ventas-l', T('inicio.ventas') + ' ' + sufLbl);
   _st('inv-a-cobros', cur(cobrosTot)); _st('inv-a-cobros-l', T('inicio.cobros_pend') + ' · ' + cobrosArr.length);
 
-  // Ingresos vs gastos (mes)
-  var m1 = hoy.slice(0, 8) + '01';
-  var ingMes = _invIncome(m1, hoy);
-  var gasMes = (DB.gastos || []).filter(function(g) { var f = (g.fecha || '').slice(0, 10); return f >= m1 && f <= hoy; }).reduce(function(a, g) { return a + (parseFloat(g.importe) || 0); }, 0);
+  // Ingresos vs gastos — sigue el MISMO periodo que el resto del Resumen (Hoy/Semana/Mes),
+  // así no hay contradicción "Ingresos del mes" junto a "Cómo cobras hoy". Misma fuente (caja real).
+  var ingMes = _invIncome(d1, d2);
+  var gasMes = (DB.gastos || []).filter(function(g) { var f = (g.fecha || '').slice(0, 10); return f >= d1 && f <= d2; }).reduce(function(a, g) { return a + (parseFloat(g.importe) || 0); }, 0);
   var ben = ingMes - gasMes;
   var margen = ingMes > 0 ? Math.round(ben / ingMes * 100) : 0;
+  _st('inv-a-igl', T('inicio.ing_gastos_t') + ' ' + sufLbl);
   _st('inv-a-ing', cur(ingMes)); _st('inv-a-gas', cur(gasMes)); _st('inv-a-ben', cur(ben));
   var mb = document.getElementById('inv-a-margenbar'); if (mb) mb.style.width = Math.max(0, Math.min(100, margen)) + '%';
   _st('inv-a-margen', T('inicio.margen').replace('{m}', margen));
