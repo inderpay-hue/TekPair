@@ -3010,6 +3010,13 @@ function _invIncome(d1, d2) {
   });
   return t;
 }
+// W4: los KPIs del inicio navegan a Reparaciones con el filtro adecuado (antes a Reportes genérico).
+function _kpiReps(f) {
+  try { SEL.repFiltro = f || 'todas'; } catch (e) {}
+  try { navTo('pReps'); } catch (e) {}
+  try { if (typeof renderReps === 'function') renderReps(); } catch (e) {}
+}
+
 // #8: reparaciones estancadas — activas y con >14 días en el taller. Alerta roja arriba del inicio.
 function renderEstancadas() {
   var box = document.getElementById('inv-estancadas');
@@ -3112,7 +3119,11 @@ function renderInicioNuevo() {
 
   // ─── VISTA OPERATIVA (EMPLEADO, sin dinero) ───
   if (pl) { var uw = (urgentes.length === 1 ? T('inicio.urgente_s') : T('inicio.urgente_p')); pl.innerHTML = T('inicio.pulse').replace('{r}', '<b>' + enRep.length + '</b>').replace('{l}', '<b>' + listas.length + '</b>').replace('{u}', '<b>' + urgentes.length + ' ' + uw + '</b>'); }
-  _st('inv-k-rep', enRep.length); _st('inv-k-listas', listas.length); _st('inv-k-citas', citasHoy); _st('inv-k-urg', urgentes.length);
+  // W13: separar "en proceso" (en el banco) de "pendientes" (en cola), antes iban juntos.
+  var _enProc = reps.filter(function(r){ return ['En Proceso', 'En proceso'].indexOf(r.estado) !== -1; }).length;
+  var _pendN = reps.filter(function(r){ return r.estado === 'Pendiente'; }).length;
+  _st('inv-k-rep', _enProc); _st('inv-k-rep-l', T('inicio.kpi_proceso_pend').replace('{p}', _pendN));
+  _st('inv-k-listas', listas.length); _st('inv-k-citas', citasHoy); _st('inv-k-urg', urgentes.length);
   function _tr(id, cls, txt) { var e = document.getElementById(id); if (e) { e.className = 'tr ' + cls; e.textContent = txt; } }
   _tr('inv-tr-listas', listas.length ? 'up' : 'fl', listas.length ? '▲ ' + listas.length : '=');
   _tr('inv-tr-citas', citasHoy ? 'up' : 'fl', citasHoy ? '▲ ' + citasHoy : '=');
@@ -3593,9 +3604,13 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
     if (enRep.length > 3) procShown += '<div class="inv-tk" onclick="navTo(\'pReps\')"><div class="ph" style="color:var(--inv-or)"><span>+ ' + (enRep.length - 3) + ' ' + T('tb.mas_reps') + '</span></div><div class="cl" style="color:var(--inv-or);font-weight:700">' + T('tb.ver_todas') + '</div></div>';
     if (!enRep.length) procShown = '<div class="inv-empty">' + T('tb.sin_proceso') + '</div>';
     var colL = listas.length ? listas.slice(0, 4).map(tkLista).join('') : '<div class="inv-empty">' + T('tb.nada_entregar') + '</div>';
+    // W13: desglosar la columna activa en "trabajando" (En Proceso) y "en cola" (Pendiente).
+    var _tbProc = reps.filter(function(r){ return ['En Proceso', 'En proceso'].indexOf(r.estado) !== -1; }).length;
+    var _tbPend = reps.filter(function(r){ return r.estado === 'Pendiente'; }).length;
+    var _procSub = '<span style="font-weight:500;opacity:.7;font-size:11px"> · ' + _tbProc + ' ' + T('tb.trabajando') + ' · ' + _tbPend + ' ' + T('tb.en_cola') + '</span>';
     board.innerHTML =
       '<div class="inv-col red"><div class="inv-col-h"><span>' + T('tb.col_urgente') + '</span><span class="n">' + urgentes.length + '</span></div>' + colU + '</div>' +
-      '<div class="inv-col amber"><div class="inv-col-h"><span>' + T('tb.col_proceso') + '</span><span class="n">' + enRep.length + '</span></div>' + procShown + '</div>' +
+      '<div class="inv-col amber"><div class="inv-col-h"><span>' + T('tb.col_proceso') + _procSub + '</span><span class="n">' + enRep.length + '</span></div>' + procShown + '</div>' +
       '<div class="inv-col green"><div class="inv-col-h"><span>' + T('tb.col_listas') + '</span><span class="n">' + listas.length + '</span></div>' + colL + '</div>';
   }
 
