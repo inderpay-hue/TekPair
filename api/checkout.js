@@ -32,6 +32,57 @@ export default async function handler(req, res) {
     return res.status(429).json({ error: 'Demasiados intentos. Espera un momento.' });
   }
 
+  // ═══ MULTI-TIENDA Fase 2 · ADD-ON: tienda extra para un dueño YA registrado ═══
+  // Cobra al MISMO customer Stripe (suscripción add-on). El webhook crea la tienda
+  // y el enlace usuario_tiendas al completarse el pago. Requiere env STRIPE_ADDON_PRICE_ID.
+  if (req.body && req.body.action === 'addon') {
+    const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
+    const SUPABASE_URL = process.env.SUPABASE_URL;
+    const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+    const ADDON_PRICE = process.env.STRIPE_ADDON_PRICE_ID;
+    const token = req.body.token;
+    const tiendaNombre = String(req.body.tienda_nombre || '').trim();
+    if (!token || !tiendaNombre) return res.status(400).json({ error: 'Faltan datos' });
+    if (tiendaNombre.length > 100) return res.status(400).json({ error: 'Nombre demasiado largo' });
+    if (!ADDON_PRICE) { console.error('Falta STRIPE_ADDON_PRICE_ID'); return res.status(500).json({ error: 'Add-on no configurado (falta STRIPE_ADDON_PRICE_ID)' }); }
+    try {
+      const sR = await fetch(`${SUPABASE_URL}/rest/v1/sesiones?token=eq.${encodeURIComponent(token)}&select=usuario_id,expires_at&limit=1`, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
+      const ses = await sR.json();
+      if (!Array.isArray(ses) || !ses.length) return res.status(401).json({ error: 'Sesión inválida' });
+      if (ses[0].expires_at && new Date(ses[0].expires_at) < new Date()) return res.status(401).json({ error: 'Sesión caducada' });
+      const uR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(ses[0].usuario_id)}&select=id,rol,activo,tienda_id,email&limit=1`, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
+      const us = await uR.json();
+      const u = us && us[0];
+      if (!u || u.activo === false || u.rol !== 'admin') return res.status(403).json({ error: 'Solo el administrador puede añadir tiendas' });
+      const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(u.tienda_id)}&select=stripe_customer_id,plan&limit=1`, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
+      const tA = await tR.json();
+      const customerId = tA && tA[0] && tA[0].stripe_customer_id;
+      const planDueno = (tA && tA[0] && tA[0].plan) || 'pro';
+      if (!customerId) return res.status(400).json({ error: 'Tu cuenta no tiene método de pago activo. Completa tu suscripción primero.' });
+      const params = new URLSearchParams();
+      params.append('mode', 'subscription');
+      params.append('payment_method_types[]', 'card');
+      params.append('line_items[0][price]', ADDON_PRICE);
+      params.append('line_items[0][quantity]', '1');
+      params.append('customer', customerId);
+      params.append('success_url', 'https://www.tekpair.tech/dashboard.html?tienda_creada=1');
+      params.append('cancel_url', 'https://www.tekpair.tech/dashboard.html');
+      params.append('metadata[tipo]', 'addon');
+      params.append('metadata[owner_usuario_id]', u.id);
+      params.append('metadata[tienda_nombre]', tiendaNombre);
+      params.append('metadata[plan]', planDueno);
+      params.append('subscription_data[metadata][tipo]', 'addon');
+      params.append('subscription_data[metadata][owner_usuario_id]', u.id);
+      const stripeR = await fetch('https://api.stripe.com/v1/checkout/sessions', { method: 'POST', headers: { 'Authorization': `Bearer ${STRIPE_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: params.toString() });
+      const session = await stripeR.json();
+      if (!stripeR.ok) { console.error('Stripe addon checkout error:', stripeR.status, session); return res.json({ error: 'No se pudo iniciar el pago. Intenta de nuevo.' }); }
+      return res.json({ ok: true, url: session.url });
+    } catch (e) {
+      console.error('Addon checkout error:', e);
+      return res.status(500).json({ error: 'Error del servidor' });
+    }
+  }
+
   const { plan, nombre, email, tienda_nombre } = req.body;
   if (!plan || !email || !nombre) return res.status(400).json({ error: 'Faltan datos' });
 

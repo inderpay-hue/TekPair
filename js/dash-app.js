@@ -564,6 +564,14 @@ window.addEventListener('DOMContentLoaded', function() {
     cargarModelosPre();
     try { _initRealtime(); } catch(e){}
     try { cargarMisTiendas(); } catch(e){}
+    // Vuelta del pago de una tienda nueva (add-on): avisa y refresca el selector
+    // (el webhook crea la tienda; damos un margen por si tarda en llegar).
+    try {
+      if (/[?&]tienda_creada=1/.test(location.search)) {
+        history.replaceState(null, '', location.pathname + location.hash);
+        setTimeout(function() { try { toast(T('mt.creada'), 'ok'); cargarMisTiendas(); } catch (e) {} }, 2000);
+      }
+    } catch (e) {}
     // Si hoy ya se cerró pero el envío a Cobrum falló, reintenta al abrir.
     setTimeout(function () { try { _enviarCierreCobrumPendiente(); } catch (e) {} }, 8000);
   }
@@ -2818,13 +2826,40 @@ function cargarMisTiendas() {
   fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'mis-tiendas', token: sess.token }) })
     .then(function(r) { return r.json(); })
     .then(function(j) {
-      if (!j || !j.ok || !Array.isArray(j.tiendas) || j.tiendas.length < 2) return; // selector solo con 2+ tiendas
+      if (!j || !j.ok || !Array.isArray(j.tiendas)) return;
       var sel = document.getElementById('tiendaSelector'); var wrap = document.getElementById('tiendaSelectorWrap');
+      var addBtn = document.getElementById('tiendaAddBtn');
       if (!sel || !wrap) return;
+      var esAdmin = !!(U && (U.rol === 'admin' || (U.permisos && U.permisos.todo)));
+      var multi = j.tiendas.length >= 2;
       var activa = j.activa || (sess.tienda_id || '');
-      sel.innerHTML = j.tiendas.map(function(t) { return '<option value="' + esc(t.id) + '"' + (t.id === activa ? ' selected' : '') + '>🏪 ' + esc(t.nombre || t.id) + '</option>'; }).join('');
-      wrap.style.display = 'block';
+      if (multi) {
+        sel.innerHTML = j.tiendas.map(function(t) { return '<option value="' + esc(t.id) + '"' + (t.id === activa ? ' selected' : '') + '>🏪 ' + esc(t.nombre || t.id) + '</option>'; }).join('');
+        sel.style.display = '';
+      } else { sel.style.display = 'none'; }
+      if (addBtn) addBtn.style.display = esAdmin ? 'block' : 'none';
+      // El wrap se ve si hay selector (2+ tiendas) o si el admin puede añadir.
+      wrap.style.display = (multi || esAdmin) ? 'block' : 'none';
     }).catch(function() {});
+}
+// Crear una tienda nueva (add-on de pago). Lleva al checkout de Stripe; el webhook
+// crea la tienda y el enlace al completarse el pago.
+function anadirTienda() {
+  if (!(U && (U.rol === 'admin' || (U.permisos && U.permisos.todo)))) { toast(T('gen.sin_permiso'), 'err'); return; }
+  pedirTexto(T('mt.anadir_prompt'), { rows: 1, okLabel: T('mt.anadir_ok') }, function(nombre) {
+    if (nombre === null) return;
+    nombre = (nombre || '').trim();
+    if (!nombre) { toast(T('mt.anadir_falta'), 'err'); return; }
+    var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
+    if (!sess.token) { toast(T('gen.error'), 'err'); return; }
+    toast(T('mt.anadir_yendo'), 'ok');
+    fetch('/api/checkout', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'addon', token: sess.token, tienda_nombre: nombre }) })
+      .then(function(r) { return r.json(); })
+      .then(function(j) {
+        if (j && j.ok && j.url) { window.location.href = j.url; return; }
+        toast((j && j.error) || T('gen.error'), 'err');
+      }).catch(function() { toast(T('gen.error'), 'err'); });
+  });
 }
 function cambiarTienda(tiendaId) {
   var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
