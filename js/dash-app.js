@@ -3273,7 +3273,8 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   // Ingresos vs gastos — sigue el MISMO periodo que el resto del Resumen (Hoy/Semana/Mes),
   // así no hay contradicción "Ingresos del mes" junto a "Cómo cobras hoy". Misma fuente (caja real).
   var ingMes = _invIncome(d1, d2);
-  var gasMes = (DB.gastos || []).filter(function(g) { var f = (g.fecha || '').slice(0, 10); return f >= d1 && f <= d2; }).reduce(function(a, g) { return a + (parseFloat(g.importe) || 0); }, 0);
+  // W11: caja real = solo gastos PAGADOS (los pendientes salen en "Lo que debes", no en caja).
+  var gasMes = (DB.gastos || []).filter(function(g) { var f = (g.fecha || '').slice(0, 10); return f >= d1 && f <= d2 && (g.estado || 'Pagado') !== 'Pendiente'; }).reduce(function(a, g) { return a + (parseFloat(g.importe) || 0); }, 0);
   var ben = ingMes - gasMes;
   var margen = ingMes > 0 ? Math.round(ben / ingMes * 100) : 0;
   _st('inv-a-igl', T('inicio.ing_gastos_t') + ' ' + sufLbl);
