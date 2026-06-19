@@ -2588,6 +2588,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
     </div>
 
+    <!-- Sprint 1 financiación: datos de cobro online (Modelo C — el dinero va directo a la tienda) -->
+    <div class="card">
+      <div class="card-title">💳 Datos de cobro online</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Métodos que el cliente verá al pagar una cuota desde su móvil con el link de cobro. El dinero va <strong>directo a tu cuenta</strong>, TekPair no lo toca ni cobra comisión.</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:6px"><input type="checkbox" id="cobroBizumOn"> 💜 Bizum</label>
+      <div class="fg"><input class="fi" id="cobroBizum" placeholder="Teléfono Bizum (6XX XXX XXX)" inputmode="tel"/></div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin:10px 0 6px"><input type="checkbox" id="cobroTransferOn"> 🏦 Transferencia</label>
+      <div class="fg"><input class="fi" id="cobroIban" placeholder="IBAN (ES12 3456 7890 …)"/></div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin:10px 0 6px"><input type="checkbox" id="cobroPaypalOn"> 💳 PayPal</label>
+      <div class="fg"><input class="fi" id="cobroPaypal" placeholder="paypal.me/tutienda"/></div>
+      <div class="fg" style="margin-top:8px"><label class="fl">Mensaje para el cliente (opcional)</label><input class="fi" id="cobroMensaje" placeholder="Tras pagar, confírmanos por WhatsApp 📲"/></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px">El concepto de cada cobro se genera solo: <code>REP-{nº}-CUOTA-{n}</code>, para que reconozcas el ingreso.</div>
+    </div>
+
     <div class="card">
       <div class="card-title">📅 Citas online — Horarios</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Configura los horarios de tu tienda. Los clientes solo verán los huecos disponibles cuando reserven cita.</div>

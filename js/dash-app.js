@@ -12568,6 +12568,14 @@ function cargarTienda() {
   var pv = document.getElementById('tPoliticaVentas');
   if (gv) gv.value = t.garantiaVentas || '';
   if (pv) pv.value = t.politicaVentas || '';
+  // Datos de cobro online (Sprint 1 financiación)
+  var cd = t.cobroDatos || {};
+  var _sv = function(id, v){ var e = document.getElementById(id); if (e) e.value = v || ''; };
+  var _sc = function(id, v){ var e = document.getElementById(id); if (e) e.checked = !!v; };
+  _sc('cobroBizumOn', cd.bizum_on); _sv('cobroBizum', cd.bizum);
+  _sc('cobroTransferOn', cd.transfer_on); _sv('cobroIban', cd.iban);
+  _sc('cobroPaypalOn', cd.paypal_on); _sv('cobroPaypal', cd.paypal);
+  _sv('cobroMensaje', cd.mensaje);
   
   // Cargar nueva config de garantías
   var swRep = document.getElementById('garRepActiva');
@@ -12774,7 +12782,16 @@ async function guardarTienda() {
     gvMesesDefaultUsado: gvDU,
     gvPermitirCustom: !!(document.getElementById('gvPermitirCustom')||{}).checked,
     gvMostrarTipo: !!(document.getElementById('gvMostrarTipo')||{}).checked,
-    gvAvisoLegal: !!(document.getElementById('gvAvisoLegal')||{}).checked
+    gvAvisoLegal: !!(document.getElementById('gvAvisoLegal')||{}).checked,
+    cobroDatos: {
+      bizum_on: !!(document.getElementById('cobroBizumOn')||{}).checked,
+      bizum: ((document.getElementById('cobroBizum')||{}).value || '').trim(),
+      transfer_on: !!(document.getElementById('cobroTransferOn')||{}).checked,
+      iban: ((document.getElementById('cobroIban')||{}).value || '').trim(),
+      paypal_on: !!(document.getElementById('cobroPaypalOn')||{}).checked,
+      paypal: ((document.getElementById('cobroPaypal')||{}).value || '').trim(),
+      mensaje: ((document.getElementById('cobroMensaje')||{}).value || '').trim()
+    }
   };
   localStorage.setItem('tk_tienda', JSON.stringify(t));
   Object.assign(TIENDA, t);
@@ -12785,7 +12802,8 @@ async function guardarTienda() {
     var okDB = await sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {
       nombre: t.nombre, dir: t.dir, tel: t.tel, email: t.email, cif: t.cif, web: t.web,
       garantia: t.garantia, politica: t.politica, garantia_dias: grDef,
-      garantia_ventas: t.garantiaVentas, politica_ventas: t.politicaVentas
+      garantia_ventas: t.garantiaVentas, politica_ventas: t.politicaVentas,
+      cobro_datos: t.cobroDatos
     });
     // Si la DB rechazó (p.ej. columna faltante), no mentimos con "guardada":
     // sbPatch ya mostró el error; avisamos que quedó solo en local.
@@ -13456,7 +13474,8 @@ async function _pullTiendaCompleta() {
       garantiaVentas: t.garantia_ventas || '', politicaVentas: t.politica_ventas || '',
       plantillasRep: (t.plantillas_rep ? (typeof t.plantillas_rep === 'string' ? JSON.parse(t.plantillas_rep) : t.plantillas_rep) : null),
       logo_url: t.logo_url || '',
-      citas_slug: t.citas_slug || ''
+      citas_slug: t.citas_slug || '',
+      cobroDatos: (t.cobro_datos ? (typeof t.cobro_datos === 'string' ? JSON.parse(t.cobro_datos) : t.cobro_datos) : {})
     };
     Object.assign(TIENDA, tiendaData);
     localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
