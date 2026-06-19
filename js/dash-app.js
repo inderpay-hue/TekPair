@@ -5690,11 +5690,60 @@ function verFinanciado(id) {
         : '<button data-vid="' + id + '" data-cidx="' + i + '" class="btn-pc btn-primary" style="padding:5px 10px;font-size:11px;width:auto">Registrar</button>'
       ) + '</div></div>';
   });
-  html += '<button class="btn-secondary" style="margin-top:12px" onclick="closeM(&quot;finModal&quot;)">Cerrar</button>';
+  if (v.estadoFinanciado !== 'completado' && tienePerm('ventas_editar')) {
+    html += '<button class="btn-secondary" style="margin-top:12px;border-color:var(--orange);color:var(--orange-d,#C2491A)" onclick="editarTotalFinanciado(\'' + id + '\')">✏️ ' + T('fin.editar_total') + '</button>';
+  }
+  html += '<button class="btn-secondary" style="margin-top:8px" onclick="closeM(&quot;finModal&quot;)">Cerrar</button>';
   document.getElementById('finModalContent').innerHTML = html;
   openM('finModal');
   document.getElementById('finModalContent').querySelectorAll('.btn-pc').forEach(function(btn) {
     btn.addEventListener('click', function() { registrarPagoCuota(this.dataset.vid, parseInt(this.dataset.cidx)); });
+  });
+}
+
+// #43: editar el importe de una venta financiada (antes solo Reembolsar+rehacer).
+// Guardrail: el nuevo total nunca puede ser menor que lo ya cobrado (entrada + cuotas pagadas).
+function editarTotalFinanciado(vid) {
+  var v = DB.ventas.find(function(x){ return x.id === vid; });
+  if (!v || !v.cuotas) return;
+  if (!tienePerm('ventas_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var cobrado = (parseFloat(v.entrada) || 0) + v.cuotas.filter(function(c){ return c.pagado; }).reduce(function(a, c){ return a + (parseFloat(c.importe) || 0); }, 0);
+  cobrado = Math.round(cobrado * 100) / 100;
+  var pendientes = v.cuotas.filter(function(c){ return !c.pagado; });
+  pedirTexto(T('fin.nuevo_total').replace('{c}', cur(cobrado)), { rows: 1, placeholder: String(v.total || 0), okLabel: T('gen.guardar') }, function(val) {
+    if (val === null) return;
+    var nuevo = parseFloat(String(val).replace(',', '.'));
+    if (!isFinite(nuevo) || nuevo <= 0) { toast(T('fin.total_invalido'), 'err'); return; }
+    nuevo = Math.round(nuevo * 100) / 100;
+    if (nuevo < cobrado) { toast(T('fin.min_cobrado').replace('{c}', cur(cobrado)), 'err'); return; }
+    if (!pendientes.length && nuevo !== cobrado) { toast(T('fin.todas_pagadas'), 'err'); return; }
+    // Redistribuir el pendiente entre las cuotas NO pagadas (las pagadas no se tocan).
+    var nuevoPendiente = Math.round((nuevo - cobrado) * 100) / 100;
+    if (pendientes.length) {
+      var per = Math.floor((nuevoPendiente / pendientes.length) * 100) / 100;
+      var acum = 0, k = 0;
+      v.cuotas.forEach(function(c){
+        if (c.pagado) return;
+        k++;
+        if (k === pendientes.length) { c.importe = Math.round((nuevoPendiente - acum) * 100) / 100; }
+        else { c.importe = per; acum = Math.round((acum + per) * 100) / 100; }
+      });
+    }
+    v.total = nuevo;
+    // Recalcular base/IVA desde el nuevo total para que la factura cuadre.
+    if (v.ivaModo && v.ivaModo !== 'sin' && (parseFloat(v.iva) || 0) > 0) {
+      var rate = (parseFloat(v.iva) || 0) / 100;
+      v.base = Math.round((nuevo / (1 + rate)) * 100) / 100;
+      v.ivaImporte = Math.round((nuevo - v.base) * 100) / 100;
+    } else { v.base = nuevo; v.ivaImporte = 0; }
+    if (v.cuotas.every(function(c){ return c.pagado; })) v.estadoFinanciado = 'completado';
+    guardarDatos();
+    if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { total: v.total, base: v.base, iva_importe: v.ivaImporte, cuotas: JSON.stringify(v.cuotas), estado_financiado: v.estadoFinanciado || 'activo' });
+    audit('editar', 'venta', vid, '', null);
+    toast(T('fin.editado'), 'ok');
+    closeM('finModal');
+    verFinanciado(vid);
+    try { renderVentas(); renderDash(); } catch (e) {}
   });
 }
 
