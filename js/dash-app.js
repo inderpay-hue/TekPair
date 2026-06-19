@@ -563,6 +563,7 @@ window.addEventListener('DOMContentLoaded', function() {
     syncCompleto(true).then(function() { cargarNotas(); iniciarRefrescoNotas(); cargarModelosCustom(); _migrarCategoriasAccesorios(); });
     cargarModelosPre();
     try { _initRealtime(); } catch(e){}
+    try { cargarMisTiendas(); } catch(e){}
     // Si hoy ya se cerró pero el envío a Cobrum falló, reintenta al abrir.
     setTimeout(function () { try { _enviarCierreCobrumPendiente(); } catch (e) {} }, 8000);
   }
@@ -2808,6 +2809,37 @@ function mostrarModalSesionExpirada() {
 function forzarRelogin() {
   try { localStorage.removeItem('tk_sess'); } catch(e) {}
   window.location.href = '/app.html';
+}
+
+// ═══ MULTI-TIENDA · selector de tienda activa ═══
+function cargarMisTiendas() {
+  var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
+  if (!sess.token) return;
+  fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'mis-tiendas', token: sess.token }) })
+    .then(function(r) { return r.json(); })
+    .then(function(j) {
+      if (!j || !j.ok || !Array.isArray(j.tiendas) || j.tiendas.length < 2) return; // selector solo con 2+ tiendas
+      var sel = document.getElementById('tiendaSelector'); var wrap = document.getElementById('tiendaSelectorWrap');
+      if (!sel || !wrap) return;
+      var activa = j.activa || (sess.tienda_id || '');
+      sel.innerHTML = j.tiendas.map(function(t) { return '<option value="' + esc(t.id) + '"' + (t.id === activa ? ' selected' : '') + '>🏪 ' + esc(t.nombre || t.id) + '</option>'; }).join('');
+      wrap.style.display = 'block';
+    }).catch(function() {});
+}
+function cambiarTienda(tiendaId) {
+  var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
+  if (!sess.token || !tiendaId || tiendaId === sess.tienda_id) return;
+  toast(T('mt.cambiando'), 'ok');
+  fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'cambiar-tienda', token: sess.token, tienda_id: tiendaId }) })
+    .then(function(r) { return r.json(); })
+    .then(function(j) {
+      if (!j || !j.ok || !j.jwt_token) { toast((j && j.error) || T('gen.error'), 'err'); return; }
+      sess.jwt_token = j.jwt_token; sess.tienda_id = j.tienda_id;
+      localStorage.setItem('tk_sess', JSON.stringify(sess));
+      // Limpiar cachés de datos de la tienda anterior para no mezclar (tk_db es un blob único).
+      ['tk_db', 'tk_tienda', 'tk_db_backup_pre_sync', 'tk_avisados', 'tk_ajustes'].forEach(function(k) { try { localStorage.removeItem(k); } catch (e) {} });
+      window.location.reload();
+    }).catch(function() { toast(T('gen.error'), 'err'); });
 }
 
 (function interceptarFetch401() {

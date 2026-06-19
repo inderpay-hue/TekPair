@@ -206,6 +206,21 @@ async function enviarEmailReset(email, nombre, enlace, lang = 'es') {
   }
 }
 
+// Multi-tienda: ¿el usuario está autorizado para esa tienda? Su tienda primaria
+// (usuarios.tienda_id) o un enlace en usuario_tiendas. Evita saltos entre tiendas ajenas.
+async function _tiendaAutorizada(SB_URL, SK, usuarioId, primaryTiendaId, targetTiendaId) {
+  if (!targetTiendaId) return false;
+  if (String(targetTiendaId) === String(primaryTiendaId)) return true;
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/usuario_tiendas?usuario_id=eq.${encodeURIComponent(usuarioId)}&tienda_id=eq.${encodeURIComponent(targetTiendaId)}&select=tienda_id&limit=1`, {
+      headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` }
+    });
+    if (!r.ok) return false;
+    const rows = await r.json();
+    return Array.isArray(rows) && rows.length > 0;
+  } catch (e) { return false; }
+}
+
 export default async function handler(req, res) {
   const SB_URL = process.env.SUPABASE_URL;
   const SK = process.env.SUPABASE_SERVICE_KEY;
@@ -301,12 +316,18 @@ export default async function handler(req, res) {
       const usrs = await uR.json();
       const u = usrs && usrs[0];
       if (!u || u.activo === false) return res.status(401).json({ error: _loc('Usuario inactivo', req) });
-      // 3. Acuñar JWT fresco (mismos claims que el login)
+      // 3. Tienda ACTIVA: la de la sesión si el usuario está autorizado para ella
+      //    (multi-tienda); si no, su tienda primaria. Single-tienda: idéntico a antes.
+      let activeTienda = u.tienda_id;
+      if (sess.tienda_id && String(sess.tienda_id) !== String(u.tienda_id)) {
+        if (await _tiendaAutorizada(SB_URL, SK, u.id, u.tienda_id, sess.tienda_id)) activeTienda = sess.tienda_id;
+      }
+      // 4. Acuñar JWT fresco (mismos claims que el login)
       const SESSION_DAYS = 7;
       const nowSec = Math.floor(Date.now() / 1000);
       const userJWT = jwt.sign({
         sub: u.id,
-        tienda_id: u.tienda_id,
+        tienda_id: activeTienda,
         email: u.email,
         rol: u.rol || 'empleado',
         role: 'authenticated',
@@ -315,9 +336,79 @@ export default async function handler(req, res) {
         iat: nowSec,
         exp: nowSec + (SESSION_DAYS * 24 * 60 * 60)
       }, JWT_SECRET, { algorithm: 'HS256' });
-      return res.json({ ok: true, jwt_token: userJWT, tienda_id: u.tienda_id });
+      return res.json({ ok: true, jwt_token: userJWT, tienda_id: activeTienda });
     } catch (e) {
       console.error('renovar-jwt error:', e);
+      return res.status(500).json({ error: 'Error del servidor' });
+    }
+  }
+
+  // ───────── Multi-tienda: listar las tiendas del usuario ─────────
+  if (action === 'mis-tiendas') {
+    const token = (req.body && req.body.token) || req.headers.authorization?.replace('Bearer ', '');
+    if (!token) return res.status(401).json({ error: 'No token' });
+    try {
+      const sR = await fetch(`${SB_URL}/rest/v1/sesiones?token=eq.${encodeURIComponent(token)}&select=usuario_id,tienda_id,expires_at&limit=1`, { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } });
+      const ses = await sR.json();
+      if (!Array.isArray(ses) || !ses.length) return res.status(401).json({ error: _loc('Sesión inválida', req) });
+      const sess = ses[0];
+      if (sess.expires_at && new Date(sess.expires_at) < new Date()) return res.status(401).json({ error: _loc('Sesión caducada', req) });
+      const uR = await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(sess.usuario_id)}&select=id,activo,tienda_id&limit=1`, { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } });
+      const us = await uR.json();
+      const u = us && us[0];
+      if (!u || u.activo === false) return res.status(401).json({ error: _loc('Usuario inactivo', req) });
+      // ids autorizados: primaria + enlaces
+      const ids = [u.tienda_id];
+      try {
+        const lR = await fetch(`${SB_URL}/rest/v1/usuario_tiendas?usuario_id=eq.${encodeURIComponent(u.id)}&select=tienda_id`, { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } });
+        if (lR.ok) { const links = await lR.json(); (Array.isArray(links) ? links : []).forEach(function (l) { if (l.tienda_id && ids.indexOf(l.tienda_id) === -1) ids.push(l.tienda_id); }); }
+      } catch (e) { /* tabla puede no existir aún → solo primaria */ }
+      // nombres
+      let tiendas = ids.map(function (id) { return { id: id, nombre: '' }; });
+      try {
+        const inList = ids.map(function (id) { return '"' + id + '"'; }).join(',');
+        const tR = await fetch(`${SB_URL}/rest/v1/tiendas?id=in.(${encodeURIComponent(inList)})&select=id,nombre`, { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } });
+        if (tR.ok) { const rows = await tR.json(); const nm = {}; (Array.isArray(rows) ? rows : []).forEach(function (t) { nm[t.id] = t.nombre || ''; }); tiendas = ids.map(function (id) { return { id: id, nombre: nm[id] || id }; }); }
+      } catch (e) { /* sin nombres */ }
+      return res.json({ ok: true, tiendas: tiendas, activa: sess.tienda_id || u.tienda_id, primaria: u.tienda_id });
+    } catch (e) {
+      console.error('mis-tiendas error:', e);
+      return res.status(500).json({ error: 'Error del servidor' });
+    }
+  }
+
+  // ───────── Multi-tienda: cambiar de tienda activa ─────────
+  if (action === 'cambiar-tienda') {
+    const token = (req.body && req.body.token) || req.headers.authorization?.replace('Bearer ', '');
+    const target = req.body && req.body.tienda_id;
+    if (!token || !target) return res.status(400).json({ error: 'Faltan datos' });
+    const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+    if (!JWT_SECRET) return res.status(500).json({ error: 'Configuración de servidor incompleta' });
+    try {
+      const sR = await fetch(`${SB_URL}/rest/v1/sesiones?token=eq.${encodeURIComponent(token)}&select=usuario_id,tienda_id,expires_at&limit=1`, { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } });
+      const ses = await sR.json();
+      if (!Array.isArray(ses) || !ses.length) return res.status(401).json({ error: _loc('Sesión inválida', req) });
+      const sess = ses[0];
+      if (sess.expires_at && new Date(sess.expires_at) < new Date()) return res.status(401).json({ error: _loc('Sesión caducada', req) });
+      const uR = await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(sess.usuario_id)}&select=id,email,rol,activo,tienda_id&limit=1`, { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } });
+      const us = await uR.json();
+      const u = us && us[0];
+      if (!u || u.activo === false) return res.status(401).json({ error: _loc('Usuario inactivo', req) });
+      // SEGURIDAD: solo se puede cambiar a una tienda autorizada (primaria o enlace).
+      if (!(await _tiendaAutorizada(SB_URL, SK, u.id, u.tienda_id, target))) {
+        return res.status(403).json({ error: _loc('Tienda no encontrada', req) });
+      }
+      // Persistir la tienda activa en la sesión (para que renovar-jwt la mantenga).
+      try { await fetch(`${SB_URL}/rest/v1/sesiones?token=eq.${encodeURIComponent(token)}`, { method: 'PATCH', headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify({ tienda_id: target }) }); } catch (e) { /* no bloqueante */ }
+      const nowSec = Math.floor(Date.now() / 1000);
+      const userJWT = jwt.sign({
+        sub: u.id, tienda_id: target, email: u.email, rol: u.rol || 'empleado',
+        role: 'authenticated', aud: 'authenticated', iss: 'tekpair',
+        iat: nowSec, exp: nowSec + (7 * 24 * 60 * 60)
+      }, JWT_SECRET, { algorithm: 'HS256' });
+      return res.json({ ok: true, jwt_token: userJWT, tienda_id: target });
+    } catch (e) {
+      console.error('cambiar-tienda error:', e);
       return res.status(500).json({ error: 'Error del servidor' });
     }
   }
