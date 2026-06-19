@@ -7691,7 +7691,8 @@ function trackingTicket() {
     '<div class="c" style="font-size:9px">Conserve este resguardo. Necesario para la entrega.</div>' +
     '<div class="c" style="font-size:9px;color:#888;margin-top:6px;border-top:1px dashed #ccc;padding-top:4px">Generado por TekPair &middot; tekpair.tech</div>' +
 
-    '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
+    '<style>@media print{.npbar{display:none!important}}</style>' +
+    '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:11px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
     '</body></html>';
   if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintTicket === 'function') {
     tkPrintTicket(html, 80, function () { _docPopupImprimir(html, 400, 820); });
@@ -7738,7 +7739,8 @@ function trackingEtiqueta() {
       '<div class="av">' + esc(r.averia || '') + '</div>' +
     '</div>' +
     '<div style="position:fixed;bottom:1px;left:0;right:0;text-align:center;font-size:5px;color:#999">tekpair.tech</div>' +
-    '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
+    '<style>@media print{.npbar{display:none!important}}</style>' +
+    '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:11px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
     '</body></html>';
   if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintLabel === 'function') {
     tkPrintLabel(html, pw, m.cont ? null : ph, function () { _etqPopupImprimir(html); });
@@ -7839,7 +7841,8 @@ function imprimirEtiquetaStock(sid) {
       (s.imei ? '<div class="im">IMEI: ' + esc(s.imei) + '</div>' : '') +
       precioHtml +
     '</div>' +
-    '<script>window.onload=function(){setTimeout(function(){window.print();},300);}<\/script>' +
+    '<style>@media print{.npbar{display:none!important}}</style>' +
+    '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:11px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
     '</body></html>';
   // App de escritorio (Tauri): impresión nativa silenciosa. Si falla/cancela, cae al diálogo.
   if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintLabel === 'function') {
