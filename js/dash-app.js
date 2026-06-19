@@ -2606,7 +2606,7 @@ function mapStock(s) {
 }
 
 function mapCli(c) {
-  return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||'', fechaNac:c.fecha_nac||'', nombreFiscal:c.nombre_fiscal||'', dirFiscal:c.dir_fiscal||'', cp:c.cp||'', provincia:c.provincia||'', ciudad:c.ciudad||'', esEmpresa:c.es_empresa||false, personaContacto:c.persona_contacto||'', pais:c.pais||'España', telPrefijo:c.tel_prefijo||'+34'};
+  return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||'', fechaNac:c.fecha_nac||'', nombreFiscal:c.nombre_fiscal||'', dirFiscal:c.dir_fiscal||'', cp:c.cp||'', provincia:c.provincia||'', ciudad:c.ciudad||'', esEmpresa:c.es_empresa||false, personaContacto:c.persona_contacto||'', pais:c.pais||'España', telPrefijo:c.tel_prefijo||'+34', marketingConsent:c.marketing_consent||false};
 }
 
 async function cargarDatosSupabase() {
@@ -3002,8 +3002,40 @@ function _invIncome(d1, d2) {
   (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f && f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') t += (r.total || 0); });
   return t;
 }
+// #8: reparaciones estancadas — activas y con >14 días en el taller. Alerta roja arriba del inicio.
+function renderEstancadas() {
+  var box = document.getElementById('inv-estancadas');
+  if (!box) return;
+  var finDia = new Date(hoyLocal() + 'T23:59:59');
+  var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
+  var est = (DB.reps || []).filter(function(r) {
+    if (CERR.indexOf(r.estado) !== -1) return false;
+    var f = r.fecha || r.fecha_entrada; if (!f) return false;
+    var d = Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000);
+    r._diasTaller = d;
+    return d > 14;
+  }).sort(function(a, b) { return b._diasTaller - a._diasTaller; });
+  if (!est.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  var rows = est.slice(0, 8).map(function(r) {
+    var equipo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
+    var nom = r.clienteNombre || '';
+    var titulo = equipo || nom || ('#' + (r.numero || ''));
+    return '<div onclick="editarRep(\'' + r.id + '\')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;background:#fff" onmouseover="this.style.background=\'#FEF2F2\'" onmouseout="this.style.background=\'#fff\'">' +
+      '<div style="min-width:0"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(titulo) + '</div>' +
+      '<div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(nom) + (r.averia ? ' · ' + esc(r.averia) : '') + '</div></div>' +
+      '<div style="flex-shrink:0;font-weight:800;font-size:13px;color:#DC2626">' + r._diasTaller + ' ' + T('estan.dias') + '</div></div>';
+  }).join('');
+  box.innerHTML = '<div style="background:#FEF2F2;border:1px solid #FECACA;border-left:4px solid #DC2626;border-radius:12px;padding:14px 16px;margin-bottom:18px">' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:16px">🚨</span><strong style="color:#B91C1C;font-size:14px">' + est.length + ' ' + T('estan.titulo') + '</strong></div>' +
+    '<div style="display:flex;flex-direction:column;gap:4px">' + rows + '</div>' +
+    (est.length > 8 ? '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;cursor:pointer" onclick="navTo(\'pReps\')">+' + (est.length - 8) + ' ' + T('estan.mas') + ' →</div>' : '') +
+    '</div>';
+  box.style.display = 'block';
+}
+
 function renderInicioNuevo() {
   if (!document.getElementById('pInicioNuevo')) return;
+  try { renderEstancadas(); } catch (e) {}
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
   var reps = DB.reps || [];
   var enRep = reps.filter(function(r) { return ['Pendiente', 'En Proceso', 'En proceso'].indexOf(r.estado) !== -1; });
@@ -10000,12 +10032,33 @@ function toggleCliEmpresa() {
 function limpiarFormCli() {
   ['cNom','cApe','cRazon','cPersonaCont','cTel','cEmail','cDni','cFnac','cDir','cCp','cCiudad','cProv'].forEach(function(id) { var el=document.getElementById(id); if(el) el.value = ''; });
   var emp = document.getElementById('cEsEmpresa'); if (emp) emp.checked = false;
+  var cons = document.getElementById('cMarketingConsent'); if (cons) cons.checked = false;
+  var rb = document.getElementById('cRepetBanner'); if (rb) rb.style.display = 'none';
   var pref = document.getElementById('cTelPref'); if (pref) pref.value = '+34';
   var pais = document.getElementById('cPais'); if (pais) pais.value = 'España';
   // F423: por defecto el título es "Nuevo Cliente" (editCli lo cambia después). Antes, tras
   // editar un cliente, el botón "+ Nuevo" seguía mostrando "✏️ Editar Cliente".
   var t = document.getElementById('mCliTit'); if (t) t.textContent = '👤 ' + T('cli.nuevo_titulo');
   if (typeof toggleCliEmpresa === 'function') toggleCliEmpresa();
+}
+
+// #10: al teclear un teléfono que YA existe (creando cliente nuevo), avisa y ofrece abrir su ficha
+// en vez de duplicar y reescribir todo.
+function onCliTelInput() {
+  var banner = document.getElementById('cRepetBanner');
+  if (!banner) return;
+  if (ECID) { banner.style.display = 'none'; return; } // editando: no aplica
+  var raw = (document.getElementById('cTel') || {}).value || '';
+  var tel = raw.replace(/\s+/g, '');
+  if (tel.length < 6) { banner.style.display = 'none'; return; }
+  var match = (DB.clis || []).find(function(c){ return ((c.tel || '').replace(/\s+/g, '')) === tel; });
+  if (!match) { banner.style.display = 'none'; return; }
+  var nreps = (DB.reps || []).filter(function(r){ return r.clienteId === match.id; }).length;
+  var nom = ((match.nombre || '') + ' ' + (match.apellidos || '')).trim() || (match.nombre || '');
+  banner.innerHTML = '⚠️ <strong>' + esc(nom) + '</strong> ' + T('cli.repe_ya_existe') +
+    (nreps ? ' · ' + nreps + ' ' + T('nav.reparaciones').toLowerCase() : '') +
+    ' <button type="button" onclick="editCli(\'' + match.id + '\')" style="margin-left:6px;border:none;background:var(--orange);color:#fff;border-radius:7px;padding:4px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">' + T('cli.repe_abrir') + '</button>';
+  banner.style.display = 'block';
 }
 
 function guardarCli() {
@@ -10045,12 +10098,13 @@ function guardarCli() {
     ciudad: _v('cCiudad'),
     provincia: _v('cProv'),
     pais: (document.getElementById('cPais') || {}).value || 'España',
-    fechaNac: esEmp ? '' : _v('cFnac')
+    fechaNac: esEmp ? '' : _v('cFnac'),
+    marketingConsent: !!(document.getElementById('cMarketingConsent') || {}).checked
   };
   var _row = function(d){ return {nombre:d.nombre,apellidos:d.apellidos,tel:d.tel,email:d.email,dni:d.dni,fecha_nac:d.fechaNac||null,
     es_empresa:d.esEmpresa,persona_contacto:d.personaContacto||null,nombre_fiscal:d.nombreFiscal||null,
     dir_fiscal:d.dirFiscal||null,cp:d.cp||null,ciudad:d.ciudad||null,provincia:d.provincia||null,
-    pais:d.pais||null,tel_prefijo:d.telPrefijo||null}; };
+    pais:d.pais||null,tel_prefijo:d.telPrefijo||null,marketing_consent:!!d.marketingConsent}; };
   if (ECID) {
     var c = DB.clis.find(function(x) { return x.id === ECID; });
     if (c) Object.assign(c, data);
@@ -10095,6 +10149,8 @@ function editCli(id) {
   document.getElementById('cPais').value = c.pais || 'Espa\u00f1a';
   var fnac = document.getElementById('cFnac');
   if (fnac) fnac.value = c.fechaNac || '';
+  var cons = document.getElementById('cMarketingConsent'); if (cons) cons.checked = !!c.marketingConsent;
+  var rb = document.getElementById('cRepetBanner'); if (rb) rb.style.display = 'none';
   toggleCliEmpresa();
   openM('mCli');
 }
