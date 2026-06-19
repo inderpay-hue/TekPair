@@ -3146,6 +3146,9 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
   </div>
 
+  <!-- #8: reparaciones estancadas (>14 días en taller sin entregar) -->
+  <div id="inv-estancadas" style="display:none"></div>
+
   <!-- Paginador de vistas (Resumen / Tablero) -->
   <div class="inv-vistas">
     <button class="inv-vbtn on" data-v="resumen" onclick="setInvVista('resumen',this)">📊 <span data-t="inicio.v_resumen">Resumen</span></button>
@@ -4038,8 +4041,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <option value="+48">🇵🇱 +48</option><option value="+1">🇺🇸 +1</option>
       </select>
     </div>
-    <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="cTel" type="tel" inputmode="tel" placeholder="6XX XXX XXX" autocomplete="tel"></div>
+    <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="cTel" type="tel" inputmode="tel" placeholder="6XX XXX XXX" autocomplete="tel" oninput="onCliTelInput()"></div>
   </div>
+  <!-- #10: aviso de cliente ya existente con ese teléfono -->
+  <div id="cRepetBanner" style="display:none;background:var(--orange-l,#FFF1EB);border:1px solid var(--orange-br,#FFD9C9);border-radius:9px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;color:var(--ink2,#475569)"></div>
   <div class="fi-row">
     <div class="fg"><label class="fl"><span id="cDniLbl">DNI/NIE</span></label><input class="fi" id="cDni" placeholder="12345678A" autocomplete="off"></div>
     <div class="fg"><label class="fl"><span data-t="cli.email">Email</span></label><input class="fi" id="cEmail" type="email" placeholder="email@..." autocomplete="off"></div>
@@ -4061,6 +4066,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
   </div>
   <div class="fg" id="cFnacBox"><label class="fl">Fecha de nacimiento <span style="font-size:9px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">— opcional, para felicitar/promos</span></label><input class="fi" id="cFnac" type="date"></div>
+  <!-- #17: consentimiento RGPD para marketing (WhatsApp/email). Prerrequisito legal de las campañas. -->
+  <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12.5px;background:var(--light);padding:9px 12px;border-radius:8px;margin-bottom:4px">
+    <input type="checkbox" id="cMarketingConsent" style="margin-top:2px">
+    <span data-t="cli.consent_marketing">El cliente autoriza recibir avisos y promociones por WhatsApp o email (RGPD).</span>
+  </label>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mCli')" data-t="gen.cancelar">Cancelar</button>
     <button class="btn-primary" onclick="guardarCli()"><span data-t="gen.guardar">Guardar</span></button>
