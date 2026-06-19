@@ -296,23 +296,46 @@ export default async function handler(req, res) {
               const refArr = await rR.json();
               const ref = Array.isArray(refArr) && refArr[0];
               if (ref) {
-                let referrerSub = null;
-                try {
-                  const rt = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(ref.referrer_tienda_id)}&select=stripe_sub_id&limit=1`, {headers: sbHeaders});
-                  const rtA = await rt.json();
-                  referrerSub = (rtA[0] && rtA[0].stripe_sub_id) || null;
-                } catch (e) { /* sin sub del referrer */ }
-                const aplicarCupon = async (sub) => {
-                  if (!sub) return;
-                  const p = new URLSearchParams(); p.append('coupon', REFERRAL_COUPON);
-                  const cr = await fetch(`https://api.stripe.com/v1/subscriptions/${sub}`, { method: 'POST', headers: { 'Authorization': `Bearer ${STRIPE_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
-                  if (!cr.ok) console.error('Cupón referido no aplicado a', sub, cr.status, (await cr.text()).slice(0, 150));
+                // Datos de ambas tiendas para anti-fraude.
+                const refrR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(ref.referrer_tienda_id)}&select=cif,plan_email,stripe_customer_id,stripe_sub_id&limit=1`, {headers: sbHeaders});
+                const referrer = (await refrR.json())[0] || {};
+                const reddR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tienda.id)}&select=cif,plan_email&limit=1`, {headers: sbHeaders});
+                const referred = (await reddR.json())[0] || {};
+                const norm = (s) => (s || '').toString().trim().toLowerCase().replace(/\s+/g, '');
+                // Huella de la tarjeta por defecto de cada cliente Stripe (misma tarjeta = misma persona).
+                const cardFp = async (custId) => {
+                  if (!custId) return null;
+                  try {
+                    const r = await fetch(`https://api.stripe.com/v1/customers/${custId}/payment_methods?type=card&limit=1`, { headers: { 'Authorization': `Bearer ${STRIPE_KEY}` } });
+                    if (!r.ok) return null;
+                    const d = await r.json();
+                    return (d && d.data && d.data[0] && d.data[0].card && d.data[0].card.fingerprint) || null;
+                  } catch (e) { return null; }
                 };
-                await aplicarCupon(subId);        // tienda invitada (esta)
-                await aplicarCupon(referrerSub);  // tienda que invitó
+                let fraude = null;
+                if (norm(referrer.cif) && norm(referrer.cif) === norm(referred.cif)) fraude = 'mismo CIF';
+                else if (norm(referrer.plan_email) && norm(referrer.plan_email) === norm(referred.plan_email)) fraude = 'mismo email';
+                else {
+                  const fpRef = await cardFp(referrer.stripe_customer_id);
+                  const fpRed = await cardFp(customerId);
+                  if (fpRef && fpRed && fpRef === fpRed) fraude = 'misma tarjeta';
+                }
                 const nowIso = new Date().toISOString();
-                await fetch(`${SUPABASE_URL}/rest/v1/referrals?id=eq.${ref.id}`, { method: 'PATCH', headers: {...sbHeaders, 'Prefer': 'return=minimal'}, body: JSON.stringify({ status: 'rewarded', qualified_at: nowIso, rewarded_at: nowIso }) });
-                console.log('Referido premiado:', ref.id, '→ cupón a', ref.referrer_tienda_id, 'y', tienda.id);
+                if (fraude) {
+                  await fetch(`${SUPABASE_URL}/rest/v1/referrals?id=eq.${ref.id}`, { method: 'PATCH', headers: {...sbHeaders, 'Prefer': 'return=minimal'}, body: JSON.stringify({ status: 'rechazado', nota: 'anti-fraude: ' + fraude }) });
+                  console.warn('Referido RECHAZADO (anti-fraude):', ref.id, fraude);
+                } else {
+                  const aplicarCupon = async (sub) => {
+                    if (!sub) return;
+                    const p = new URLSearchParams(); p.append('coupon', REFERRAL_COUPON);
+                    const cr = await fetch(`https://api.stripe.com/v1/subscriptions/${sub}`, { method: 'POST', headers: { 'Authorization': `Bearer ${STRIPE_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
+                    if (!cr.ok) console.error('Cupón referido no aplicado a', sub, cr.status, (await cr.text()).slice(0, 150));
+                  };
+                  await aplicarCupon(subId);                 // tienda invitada (esta)
+                  await aplicarCupon(referrer.stripe_sub_id); // tienda que invitó
+                  await fetch(`${SUPABASE_URL}/rest/v1/referrals?id=eq.${ref.id}`, { method: 'PATCH', headers: {...sbHeaders, 'Prefer': 'return=minimal'}, body: JSON.stringify({ status: 'rewarded', qualified_at: nowIso, rewarded_at: nowIso }) });
+                  console.log('Referido premiado:', ref.id, '→ cupón a', ref.referrer_tienda_id, 'y', tienda.id);
+                }
               }
             }
           } catch (e) { console.error('Referido reward error (no bloqueante):', e); }
