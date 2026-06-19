@@ -119,6 +119,30 @@ export default async function handler(req, res) {
         const email = session.customer_email || session.metadata?.email;
         const plan = session.metadata?.plan;
 
+        // ═══ ADD-ON (multi-tienda Fase 2): crear tienda extra + enlace usuario_tiendas ═══
+        if (session.metadata?.tipo === 'addon') {
+          const ownerId = session.metadata?.owner_usuario_id;
+          const nombreTienda = (session.metadata?.tienda_nombre || 'Nueva tienda').slice(0, 100);
+          if (ownerId) {
+            const planNueva = plan || 'pro';
+            const nuevaId = 'tienda_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
+            try {
+              await fetch(`${SUPABASE_URL}/rest/v1/tiendas`, {
+                method: 'POST', headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+                body: JSON.stringify({ id: nuevaId, nombre: nombreTienda, plan: planNueva, plan_status: 'active', plan_email: email, stripe_customer_id: customerId, stripe_sub_id: subId })
+              });
+              await fetch(`${SUPABASE_URL}/rest/v1/usuario_tiendas`, {
+                method: 'POST', headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+                body: JSON.stringify({ usuario_id: ownerId, tienda_id: nuevaId })
+              });
+              console.log('Add-on: tienda creada', nuevaId, 'enlazada a usuario', ownerId);
+            } catch (e) { console.error('Add-on tienda create error:', e); }
+          } else {
+            console.warn('Add-on sin owner_usuario_id en metadata, no se crea tienda');
+          }
+          break; // no seguir al flujo normal de vinculación
+        }
+
         // Detectar promotion_code usado (para tracking de afiliados)
         let codigoReferido = null;
         try {
