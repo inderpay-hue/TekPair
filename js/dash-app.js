@@ -3048,9 +3048,49 @@ function renderEstancadas() {
   box.style.display = 'block';
 }
 
+// W12: "Lo que debes" — pedidos no pagados + gastos pendientes, ordenado por antigüedad.
+// Paralelo a "Cobros pendientes" (lo que te deben). Solo admin ve los importes.
+function renderLoQueDebes() {
+  var box = document.getElementById('inv-debes');
+  if (!box) return;
+  if (!_esAdmin()) { box.style.display = 'none'; return; }
+  var hoy = new Date(hoyLocal() + 'T23:59:59');
+  var items = [];
+  (DB.pedidos || []).forEach(function(p) {
+    if (!p.estado_pago || p.estado_pago === 'pagado') return;
+    var debe = Math.round(((parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0)) * 100) / 100;
+    if (debe <= 0.005) return;
+    items.push({ nombre: (p.proveedor || '').trim() || _SIN_PROV, concepto: p.pieza || p.nota || T('nav.pedidos'), debe: debe, fecha: p.fecha_pedido || p.fecha_estimada || '' });
+  });
+  (DB.gastos || []).forEach(function(g) {
+    if ((g.estado || 'Pagado') !== 'Pendiente') return;
+    var debe = parseFloat(g.importe) || 0;
+    if (debe <= 0.005) return;
+    items.push({ nombre: g.proveedor_nombre || g.concepto || g.categoria || T('nav.gastos'), concepto: g.proveedor_nombre ? (g.concepto || '') : (g.categoria || ''), debe: debe, fecha: g.fecha || '' });
+  });
+  if (!items.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  items.forEach(function(it) { it.dias = it.fecha ? Math.max(0, Math.floor((hoy - new Date(String(it.fecha).slice(0, 10) + 'T00:00:00')) / 86400000)) : 0; });
+  items.sort(function(a, b) { return b.dias - a.dias; });
+  var total = Math.round(items.reduce(function(a, i) { return a + i.debe; }, 0) * 100) / 100;
+  var rows = items.slice(0, 8).map(function(it) {
+    var vencido = it.dias >= 30;
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:#fff;margin-bottom:6px">' +
+      '<div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(it.nombre) + ' · ' + cur(it.debe) + '</div>' +
+      '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(it.concepto) + '</div></div>' +
+      '<div style="flex-shrink:0;font-weight:800;font-size:12.5px;color:' + (vencido ? '#DC2626' : 'var(--muted)') + '">' + it.dias + ' ' + T('estan.dias') + '</div></div>';
+  }).join('');
+  box.innerHTML = '<div style="background:rgba(226,72,60,.06);border:1px solid rgba(226,72,60,.25);border-left:4px solid #DC2626;border-radius:12px;padding:14px 16px;margin-bottom:18px">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">💸</span><strong style="color:#B91C1C;font-size:14px">' + T('debes.titulo') + '</strong></div><span style="font-weight:800;color:#DC2626">' + cur(total) + '</span></div>' +
+    '<div>' + rows + '</div>' +
+    (items.length > 8 ? '<div style="font-size:11.5px;color:var(--muted);margin-top:6px;cursor:pointer" onclick="navTo(\'pPedidos\')">+' + (items.length - 8) + ' →</div>' : '') +
+    '</div>';
+  box.style.display = 'block';
+}
+
 function renderInicioNuevo() {
   if (!document.getElementById('pInicioNuevo')) return;
   try { renderEstancadas(); } catch (e) {}
+  try { renderLoQueDebes(); } catch (e) {}
   try { if (window._cobrosPend === undefined) cargarConfirmacionesPend(); else renderConfirmacionesPend(); } catch (e) {}
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
   var reps = DB.reps || [];
