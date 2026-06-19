@@ -3087,10 +3087,45 @@ function renderLoQueDebes() {
   box.style.display = 'block';
 }
 
+// F564: reparaciones LISTAS (Por Entregar) que aún NO se han avisado al cliente.
+// Reúso la infra de aviso por WhatsApp (abrirWhatsAppRep marca avisado al abrir).
+function renderListasSinAvisar() {
+  var box = document.getElementById('inv-sinavisar');
+  if (!box) return;
+  var sin = (DB.reps || []).filter(function(r) {
+    return ['Por Entregar', 'Por entregar'].indexOf(r.estado) !== -1 && !_estaAvisado(r.id);
+  });
+  if (!sin.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  var rows = sin.slice(0, 8).map(function(r) {
+    var equipo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
+    var nom = r.clienteNombre || '';
+    var cli = r.clienteId ? (DB.clis || []).find(function(c){ return c.id === r.clienteId; }) : null;
+    var sinTel = !(cli && cli.tel) && !r.clienteTel;
+    var btn = sinTel
+      ? '<span style="flex-shrink:0;font-size:11px;color:var(--muted)">' + T('tb.sin_tel') + '</span>'
+      : '<button onclick="avisarListo(\'' + r.id + '\')" style="flex-shrink:0;border:none;background:#25D366;color:#fff;border-radius:7px;padding:6px 11px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">📲 ' + T('listas.avisar') + '</button>';
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:#fff;margin-bottom:6px">' +
+      '<div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(equipo || nom) + '</div>' +
+      '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(nom) + '</div></div>' + btn + '</div>';
+  }).join('');
+  box.innerHTML = '<div style="background:rgba(0,200,150,.07);border:1px solid rgba(0,200,150,.3);border-left:4px solid #16A34A;border-radius:12px;padding:14px 16px;margin-bottom:18px">' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:16px">📦</span><strong style="color:#0F7355;font-size:14px">' + sin.length + ' ' + T('listas.titulo') + '</strong></div>' +
+    '<div>' + rows + '</div>' +
+    (sin.length > 8 ? '<div style="font-size:11.5px;color:var(--muted);margin-top:6px;cursor:pointer" onclick="navTo(\'pReps\')">+' + (sin.length - 8) + ' →</div>' : '') +
+    '</div>';
+  box.style.display = 'block';
+}
+// Avisar al cliente (abre WhatsApp y marca avisado) + refresca el alerta.
+function avisarListo(repId) {
+  try { abrirWhatsAppRep(repId); } catch (e) {}
+  setTimeout(function(){ try { renderListasSinAvisar(); } catch (e) {} }, 150);
+}
+
 function renderInicioNuevo() {
   if (!document.getElementById('pInicioNuevo')) return;
   try { renderEstancadas(); } catch (e) {}
   try { renderLoQueDebes(); } catch (e) {}
+  try { renderListasSinAvisar(); } catch (e) {}
   try { if (window._cobrosPend === undefined) cargarConfirmacionesPend(); else renderConfirmacionesPend(); } catch (e) {}
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
   var reps = DB.reps || [];
