@@ -3901,6 +3901,9 @@ pt:{'inicio.kpi_proceso_pend':'Em curso · {p} em fila','tb.trabajando':'a traba
 es:{'debes.titulo':'Lo que debes a proveedores'},en:{'debes.titulo':'What you owe suppliers'},fr:{'debes.titulo':'Ce que vous devez aux fournisseurs'},it:{'debes.titulo':'Quanto devi ai fornitori'},de:{'debes.titulo':'Was du Lieferanten schuldest'},pt:{'debes.titulo':'O que deves a fornecedores'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 (function(){var _a={
+es:{'mt.cambiando':'Cambiando de tienda…'},en:{'mt.cambiando':'Switching shop…'},fr:{'mt.cambiando':'Changement de boutique…'},it:{'mt.cambiando':'Cambio negozio…'},de:{'mt.cambiando':'Laden wechseln…'},pt:{'mt.cambiando':'A mudar de loja…'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
 es:{'listas.titulo':'listas para entregar · avisa al cliente','listas.avisar':'Avisar'},
 en:{'listas.titulo':'ready to collect · notify the customer','listas.avisar':'Notify'},
 fr:{'listas.titulo':'prêtes à récupérer · prévenez le client','listas.avisar':'Prévenir'},
