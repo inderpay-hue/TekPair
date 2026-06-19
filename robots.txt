@@ -10,6 +10,7 @@ Disallow: /tpv.html
 Disallow: /catalogo.html
 Disallow: /reset.html
 Disallow: /parte.html
+Disallow: /cobrar.html
 Disallow: /registro-ok.html
 Disallow: /*.bak
 

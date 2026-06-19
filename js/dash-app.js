@@ -5727,9 +5727,10 @@ function verFinanciadoRep(id) {
       (cu.pagado ? 'rgba(0,200,150,.08)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
       '<div><div style="font-size:13px;font-weight:600">Cuota ' + (i + 1) + ' — ' + cur(cu.importe) + '</div>' +
       '<div style="font-size:10px;color:var(--muted)">Vence: ' + (cu.fecha || '-') + (cu.pagado ? ' | Pagado: ' + cu.formaPago : '') + '</div></div>' +
-      '<div>' + (cu.pagado
+      '<div style="display:flex;gap:6px;align-items:center">' + (cu.pagado
         ? '<span style="color:var(--green);font-size:11px;font-weight:700">✓ Pagado</span>'
-        : '<button data-rid="' + id + '" data-cidx="' + i + '" class="btn-pcr btn-primary" style="padding:5px 10px;font-size:11px;width:auto">Registrar</button>'
+        : '<button data-rid="' + id + '" data-cidx="' + i + '" class="btn-lcr" title="' + T('cobro.enviar_link') + '" style="padding:5px 9px;font-size:12px;width:auto;border:1px solid var(--border);background:#fff;border-radius:7px;cursor:pointer">📤</button>' +
+          '<button data-rid="' + id + '" data-cidx="' + i + '" class="btn-pcr btn-primary" style="padding:5px 10px;font-size:11px;width:auto">Registrar</button>'
       ) + '</div></div>';
   });
   html += '<button class="btn-secondary" style="margin-top:12px" onclick="closeM(&quot;finModal&quot;)">Cerrar</button>';
@@ -5737,6 +5738,9 @@ function verFinanciadoRep(id) {
   openM('finModal');
   document.getElementById('finModalContent').querySelectorAll('.btn-pcr').forEach(function(btn) {
     btn.addEventListener('click', function() { registrarPagoCuotaRep(this.dataset.rid, parseInt(this.dataset.cidx)); });
+  });
+  document.getElementById('finModalContent').querySelectorAll('.btn-lcr').forEach(function(btn) {
+    btn.addEventListener('click', function() { enviarLinkCobro(this.dataset.rid, parseInt(this.dataset.cidx)); });
   });
 }
 
@@ -5765,6 +5769,54 @@ function registrarPagoCuotaRep(rid, cidx) {
   renderReps();
   renderDash();
   }, 'Cuota ' + (cidx + 1) + ' — ¿cómo se ha pagado?');
+}
+
+// ═══ FINANCIACIÓN · LINK DE COBRO (Modelo C) ═══
+// Envía al cliente un link público para pagar la cuota por Bizum/IBAN/PayPal.
+// El dinero va directo a la tienda; TekPair solo enlaza cliente y tienda.
+function enviarLinkCobro(rid, cidx) {
+  var r = DB.reps.find(function(x){ return x.id === rid; });
+  if (!r || !r.cuotas || !r.cuotas[cidx]) return;
+  var cd = (TIENDA && TIENDA.cobroDatos) || {};
+  if (!cd.bizum_on && !cd.transfer_on && !cd.paypal_on) {
+    toast(T('cobro.sin_datos'), 'err');
+    if (typeof navTo === 'function') setTimeout(function(){ navTo('pTienda'); }, 800);
+    return;
+  }
+  asegurarToken(r).then(function(token){
+    var base = (location.origin && location.origin.indexOf('http') === 0) ? location.origin : 'https://www.tekpair.tech';
+    var link = base + '/cobrar.html?id=' + encodeURIComponent(r.id) + '&t=' + encodeURIComponent(token) + '&n=' + cidx;
+    var cu = r.cuotas[cidx];
+    var cliente = (DB.clis || []).find(function(c){ return c.id === r.clienteId; });
+    var nombre = (r.clienteNombre || '').trim().split(' ')[0] || '';
+    var equipo = ((r.marca||'') + ' ' + (r.modelo||'')).trim();
+    var tienda = (TIENDA && TIENDA.nombre) || 'TekPair';
+    // Plantilla en español (Sprint 1). Multi-idioma editable = refinamiento posterior.
+    var msg = '¡Hola ' + nombre + '! 👋\n\n' +
+      'Tu cuota ' + (cidx + 1) + '/' + r.cuotas.length + ' de tu ' + equipo + ' vence el ' + (cu.fecha || '') + '.\n' +
+      '💰 Importe: ' + cur(cu.importe) + '\n\n' +
+      'Puedes pagarla cómodamente desde aquí:\n🔗 ' + link + '\n\n' +
+      'Tienes Bizum, transferencia y otras opciones.\n\n— ' + tienda;
+    var telRaw = cliente ? ((cliente.telPrefijo||'+34') + (cliente.tel||'')) : '';
+    var telE164 = telRaw.replace(/[^0-9]/g, '');
+    window._cobroLinkActual = link;
+    var waUrl = 'https://wa.me/' + telE164 + '?text=' + encodeURIComponent(msg);
+    var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(link);
+    var html = '<div class="modal-title">📤 ' + T('cobro.enviar_titulo') + '</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">' + T('cobro.enviar_sub') + '</div>' +
+      (telE164 ? '<a href="' + waUrl + '" target="_blank" rel="noopener" style="display:block;text-align:center;background:#25D366;color:#fff;margin-bottom:8px;text-decoration:none;padding:12px;border-radius:9px;font-weight:700">📲 WhatsApp</a>' : '<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">' + T('cobro.sin_tel') + '</div>') +
+      '<button class="btn-secondary" style="width:100%;margin-bottom:10px" onclick="_copiarCobroLink()">📋 ' + T('cobro.copiar') + '</button>' +
+      '<div style="text-align:center;margin:8px 0"><img src="' + qrUrl + '" alt="QR" style="width:170px;height:170px;border-radius:10px;border:1px solid var(--border)"><div style="font-size:11px;color:var(--muted);margin-top:4px">' + T('cobro.qr') + '</div></div>' +
+      '<div style="word-break:break-all;font-size:11px;background:var(--light);border-radius:8px;padding:8px;color:var(--muted)">' + esc(link) + '</div>' +
+      '<button class="btn-secondary" style="margin-top:12px;width:100%" onclick="closeM(\'mCobroLink\')">' + T('gen.cerrar') + '</button>';
+    var cont = document.getElementById('cobroLinkContent');
+    if (cont) { cont.innerHTML = html; openM('mCobroLink'); }
+  });
+}
+function _copiarCobroLink() {
+  var link = window._cobroLinkActual || '';
+  try { navigator.clipboard.writeText(link).then(function(){ toast(T('cobro.copiado'), 'ok'); }); }
+  catch (e) { toast(link, 'ok'); }
 }
 
 // ═══ COBRAR SALDO DE REPARACIÓN A DEBER (sin financiar) ═══
