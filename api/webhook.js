@@ -285,6 +285,38 @@ export default async function handler(req, res) {
           await updateTienda(tienda.id, update);
           console.log('Pago OK:', tienda.id);
 
+          // ═══ REFERIDOS ENTRE TIENDAS (Fase 2): premio al PRIMER pago real de la invitada ═══
+          // 1 mes gratis (cupón Stripe) para la tienda que invitó Y la invitada. Solo una vez
+          // (status pending → rewarded). Requiere env STRIPE_REFERRAL_COUPON_ID (cupón 100% off, once).
+          try {
+            const REFERRAL_COUPON = process.env.STRIPE_REFERRAL_COUPON_ID;
+            const amountPaid = (invoice.amount_paid || 0) / 100;
+            if (REFERRAL_COUPON && amountPaid > 0) {
+              const rR = await fetch(`${SUPABASE_URL}/rest/v1/referrals?referred_tienda_id=eq.${encodeURIComponent(tienda.id)}&status=eq.pending&select=id,referrer_tienda_id&limit=1`, {headers: sbHeaders});
+              const refArr = await rR.json();
+              const ref = Array.isArray(refArr) && refArr[0];
+              if (ref) {
+                let referrerSub = null;
+                try {
+                  const rt = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(ref.referrer_tienda_id)}&select=stripe_sub_id&limit=1`, {headers: sbHeaders});
+                  const rtA = await rt.json();
+                  referrerSub = (rtA[0] && rtA[0].stripe_sub_id) || null;
+                } catch (e) { /* sin sub del referrer */ }
+                const aplicarCupon = async (sub) => {
+                  if (!sub) return;
+                  const p = new URLSearchParams(); p.append('coupon', REFERRAL_COUPON);
+                  const cr = await fetch(`https://api.stripe.com/v1/subscriptions/${sub}`, { method: 'POST', headers: { 'Authorization': `Bearer ${STRIPE_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
+                  if (!cr.ok) console.error('Cupón referido no aplicado a', sub, cr.status, (await cr.text()).slice(0, 150));
+                };
+                await aplicarCupon(subId);        // tienda invitada (esta)
+                await aplicarCupon(referrerSub);  // tienda que invitó
+                const nowIso = new Date().toISOString();
+                await fetch(`${SUPABASE_URL}/rest/v1/referrals?id=eq.${ref.id}`, { method: 'PATCH', headers: {...sbHeaders, 'Prefer': 'return=minimal'}, body: JSON.stringify({ status: 'rewarded', qualified_at: nowIso, rewarded_at: nowIso }) });
+                console.log('Referido premiado:', ref.id, '→ cupón a', ref.referrer_tienda_id, 'y', tienda.id);
+              }
+            }
+          } catch (e) { console.error('Referido reward error (no bloqueante):', e); }
+
           // ═══ REGISTRAR PAGO REFERIDO (para comisiones de afiliados) ═══
           try {
             // Leer tienda completa para saber codigo_referido
