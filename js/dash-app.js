@@ -2710,7 +2710,10 @@ async function syncCompleto(silencioso) {
     await Promise.all([
       cargarDatosSupabase(),
       _pullNotifRead(),
-      _pullTiendaCompleta()
+      _pullTiendaCompleta(),
+      // F340: refrescar citas + su badge en CADA sync (focus/Realtime/poll), no solo
+      // cada 60s — antes el badge de citas quedaba desfasado tras un cambio de otro equipo.
+      (typeof syncCitas === 'function' ? syncCitas() : Promise.resolve())
     ]);
     refrescarVistasActivas();
     if (!silencioso && typeof toast === 'function') toast('Sincronizado', 'ok');
