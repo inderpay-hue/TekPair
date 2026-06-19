@@ -2880,6 +2880,40 @@ function cambiarTienda(tiendaId) {
     }).catch(function() { toast(T('gen.error'), 'err'); });
 }
 
+// ═══ REFERIDOS · "Invita amigos" (Mi Tienda) ═══
+function cargarInvitaAmigos() {
+  var box = document.getElementById('refBox');
+  if (!box) return;
+  var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
+  if (!sess.token) { box.innerHTML = ''; return; }
+  fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'mi-referido', token: sess.token }) })
+    .then(function(r) { return r.json(); })
+    .then(function(j) {
+      if (!j || !j.ok || !j.codigo) { box.innerHTML = '<div style="font-size:12px;color:var(--muted)">' + T('ref.error') + '</div>'; return; }
+      window._refLink = j.link;
+      var STATUS = { pending: T('ref.st_pending'), qualified: T('ref.st_qualified'), rewarded: T('ref.st_rewarded'), refunded: T('ref.st_refunded') };
+      var msgWa = encodeURIComponent(T('ref.wa_msg').replace('{link}', j.link));
+      var qr = 'https://api.qrserver.com/v1/create-qr-code/?size=140x140&data=' + encodeURIComponent(j.link);
+      var hist = (j.referidos || []).map(function(x) {
+        var nom = esc(x.referred_nombre || x.referred_email || '—');
+        var st = STATUS[x.status] || x.status;
+        var col = x.status === 'rewarded' ? 'var(--green)' : (x.status === 'qualified' ? 'var(--orange)' : 'var(--muted)');
+        return '<div style="display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid var(--border);font-size:12px"><span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + nom + '</span><span style="color:' + col + ';font-weight:700;white-space:nowrap">' + esc(st) + '</span></div>';
+      }).join('');
+      box.innerHTML =
+        '<div style="background:var(--light);border-radius:10px;padding:10px 12px;font-weight:700;font-size:13px;word-break:break-all;margin-bottom:10px">' + esc(j.link) + '</div>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">' +
+          '<a href="https://wa.me/?text=' + msgWa + '" target="_blank" rel="noopener" style="flex:1;min-width:130px;text-align:center;background:#25D366;color:#fff;text-decoration:none;border-radius:8px;padding:9px;font-size:12.5px;font-weight:700">📲 WhatsApp</a>' +
+          '<button onclick="_copiarRefLink()" style="flex:1;min-width:130px;border:1px solid var(--border);background:#fff;border-radius:8px;padding:9px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">📋 ' + T('ref.copiar') + '</button>' +
+        '</div>' +
+        '<div style="display:flex;align-items:center;gap:12px;margin-bottom:8px"><img src="' + qr + '" alt="QR" style="width:72px;height:72px;border-radius:8px;border:1px solid var(--border)"><div style="font-size:13px"><strong style="font-size:18px">' + (j.ganados || 0) + '</strong> ' + T('ref.ganados') + '</div></div>' +
+        (hist ? '<div style="font-size:11px;font-weight:700;color:var(--muted);margin:10px 0 2px;text-transform:uppercase;letter-spacing:.4px">' + T('ref.historial') + '</div>' + hist : '<div style="font-size:11.5px;color:var(--muted);margin-top:6px">' + T('ref.sin_invitados') + '</div>');
+    }).catch(function() { box.innerHTML = '<div style="font-size:12px;color:var(--muted)">' + T('ref.error') + '</div>'; });
+}
+function _copiarRefLink() {
+  try { navigator.clipboard.writeText(window._refLink || '').then(function() { toast(T('cobro.copiado'), 'ok'); }); } catch (e) {}
+}
+
 (function interceptarFetch401() {
   if (typeof window.fetch !== 'function') return;
   if (window.__tkFetchInterceptado) return;
@@ -12943,6 +12977,7 @@ function checkCierreAuto() {
 
 // ═══ MI TIENDA ═══
 function cargarTienda() {
+  try { cargarInvitaAmigos(); } catch (e) {}
   var t = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
   document.getElementById('tNom').value = t.nombre || '';
   document.getElementById('tDir').value = t.dir || '';
