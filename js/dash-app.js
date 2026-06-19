@@ -570,7 +570,7 @@ window.addEventListener('DOMContentLoaded', function() {
   // Sync continua: cuando vuelves a la pestaña + red de seguridad cada 60s.
   // Con Realtime conectado (_rtReady) los cambios llegan al instante por websocket,
   // así que el poll de 60s solo se dispara como fallback si el websocket está caído.
-  window.addEventListener('focus', function(){ syncCompleto(true); });
+  window.addEventListener('focus', function(){ syncCompleto(true); try { cargarConfirmacionesPend(); } catch(e){} });
   window.addEventListener('visibilitychange', function(){ if (!document.hidden) syncCompleto(true); });
   setInterval(function(){ if (!document.hidden && !_rtReady) syncCompleto(true); }, 60000);
 
@@ -3044,6 +3044,7 @@ function renderEstancadas() {
 function renderInicioNuevo() {
   if (!document.getElementById('pInicioNuevo')) return;
   try { renderEstancadas(); } catch (e) {}
+  try { if (window._cobrosPend === undefined) cargarConfirmacionesPend(); else renderConfirmacionesPend(); } catch (e) {}
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
   var reps = DB.reps || [];
   var enRep = reps.filter(function(r) { return ['Pendiente', 'En Proceso', 'En proceso'].indexOf(r.estado) !== -1; });
@@ -5822,6 +5823,84 @@ function _copiarCobroLink() {
   var link = window._cobroLinkActual || '';
   try { navigator.clipboard.writeText(link).then(function(){ toast(T('cobro.copiado'), 'ok'); }); }
   catch (e) { toast(link, 'ok'); }
+}
+
+// ═══ FINANCIACIÓN · PARTE C — CONFIRMACIONES DE PAGO DEL DUEÑO ═══
+// El cliente declaró un pago en /cobrar (payment_attempts). El dueño verifica su
+// Bizum/banco y confirma (marca la cuota pagada) o rechaza.
+var _COBRO_METODO_LBL = { bizum: 'Bizum', transferencia: 'Transferencia', paypal: 'PayPal', otro: 'Otro' };
+function cargarConfirmacionesPend(cb) {
+  if (!SB_KEY || !TIENDA_ID) { if (cb) cb(); return; }
+  sbGet('payment_attempts', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&estado=eq.pendiente_confirmacion&order=created_at.desc').then(function(rows) {
+    window._cobrosPend = Array.isArray(rows) ? rows : [];
+    renderConfirmacionesPend();
+    if (cb) cb();
+  });
+}
+function renderConfirmacionesPend() {
+  var box = document.getElementById('inv-cobros-pend');
+  if (!box) return;
+  if (!(U && (U.rol === 'admin' || (U.permisos && (U.permisos.todo || U.permisos.ventas_ver))))) { box.style.display = 'none'; return; }
+  var arr = window._cobrosPend || [];
+  if (!arr.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  var rows = arr.map(function(a) {
+    var r = (DB.reps || []).find(function(x){ return x.id === a.reparacion_id; });
+    var nom = r ? (r.clienteNombre || '') : '';
+    var equipo = r ? ((r.marca || '') + ' ' + (r.modelo || '')).trim() : '';
+    var met = _COBRO_METODO_LBL[a.metodo_declarado] || a.metodo_declarado || '';
+    var sub = (T('cobro.cuota') + ' ' + ((a.cuota_idx | 0) + 1)) + (equipo ? ' · ' + esc(equipo) : '') + (a.comentario ? ' · “' + esc(a.comentario) + '”' : '');
+    return '<div style="display:flex;align-items:center;gap:10px;padding:9px 10px;border-radius:8px;background:#fff;margin-bottom:6px">' +
+      '<div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px">' + esc(nom || a.reparacion_id) + ' · ' + cur(a.importe || 0) + ' <span style="font-weight:600;color:var(--muted)">(' + esc(met) + ')</span></div>' +
+      '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + sub + '</div></div>' +
+      '<button onclick="confirmarCobro(\'' + a.id + '\')" style="flex-shrink:0;border:none;background:var(--green,#16A34A);color:#fff;border-radius:7px;padding:6px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">✅ ' + T('cobro.confirmar') + '</button>' +
+      '<button onclick="rechazarCobro(\'' + a.id + '\')" style="flex-shrink:0;border:1px solid var(--border);background:#fff;color:var(--ink2,#475569);border-radius:7px;padding:6px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">✕</button>' +
+      '</div>';
+  }).join('');
+  box.innerHTML = '<div style="background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.35);border-left:4px solid #E6A700;border-radius:12px;padding:14px 16px;margin-bottom:18px">' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:16px">🔔</span><strong style="color:#9A6700;font-size:14px">' + arr.length + ' ' + T('cobro.pend_titulo') + '</strong></div>' +
+    '<div>' + rows + '</div></div>';
+  box.style.display = 'block';
+}
+function confirmarCobro(attemptId) {
+  var a = (window._cobrosPend || []).find(function(x){ return x.id === attemptId; });
+  if (!a) return;
+  var r = (DB.reps || []).find(function(x){ return x.id === a.reparacion_id; });
+  if (!r || !r.cuotas || !r.cuotas[a.cuota_idx]) { toast(T('gen.error'), 'err'); return; }
+  var cidx = a.cuota_idx | 0;
+  if (r.cuotas[cidx].pagado) { _resolverIntento(attemptId, 'confirmado'); toast(T('cobro.ya_pagada'), 'ok'); return; }
+  var fp = _COBRO_METODO_LBL[a.metodo_declarado] || 'Otro';
+  r.cuotas[cidx].pagado = true;
+  r.cuotas[cidx].formaPago = fp;
+  r.cuotas[cidx].fechaPago = hoyLocal();
+  var pagadoCuotas = r.cuotas.filter(function(c){ return c.pagado; }).reduce(function(acc, c){ return acc + (parseFloat(c.importe) || 0); }, 0);
+  r.restante = Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - pagadoCuotas) * 100) / 100);
+  if (r.cuotas.every(function(c){ return c.pagado; })) { r.estadoFinanciado = 'completado'; r.restante = 0; }
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('reparaciones', 'id=eq.' + r.id, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
+    sbPost('pagos_reparacion', { id: 'pg_cuo_' + r.id + '_' + cidx, tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: parseFloat(r.cuotas[cidx].importe) || 0, metodo: fp, tipo: 'cuota' });
+    window._pagosRepCache = null;
+  }
+  _resolverIntento(attemptId, 'confirmado');
+  toast(T('cobro.confirmado'), 'ok');
+  try { renderReps(); } catch (e) {}
+  try { renderInicioNuevo(); renderDash(); } catch (e) {}
+}
+function rechazarCobro(attemptId) {
+  pedirTexto(T('cobro.motivo_rechazo'), { okLabel: T('cobro.rechazar_ok') }, function(motivo) {
+    if (motivo === null) return; // cancelado (el cliente sigue pudiendo reintentar)
+    _resolverIntento(attemptId, 'rechazado', (motivo || '').trim() || null);
+    toast(T('cobro.rechazado'), 'ok');
+  });
+}
+function _resolverIntento(attemptId, estado, motivo) {
+  window._cobrosPend = (window._cobrosPend || []).filter(function(x){ return x.id !== attemptId; });
+  renderConfirmacionesPend();
+  if (SB_KEY && TIENDA_ID) {
+    var patch = { estado: estado, resuelto_por: (U ? U.nombre : null), resuelto_at: new Date().toISOString() };
+    if (motivo) patch.motivo_rechazo = motivo;
+    sbPatch('payment_attempts', 'id=eq.' + encodeURIComponent(attemptId), patch);
+  }
 }
 
 // ═══ COBRAR SALDO DE REPARACIÓN A DEBER (sin financiar) ═══
