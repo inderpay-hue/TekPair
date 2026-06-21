@@ -15309,21 +15309,21 @@ function abrirDetalleRep(repId) {
   html += '<div style="font-size:18px;font-weight:800">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</div>';
   if (r.imei) html += '<div style="font-size:11px;font-family:monospace;opacity:.85;margin-top:3px">IMEI: ' + esc(r.imei) + '</div>';
   html += '<div style="display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px;flex-wrap:wrap">';
-  html += '<span style="background:rgba(255,255,255,.20);padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700">' + esc(r.estado) + '</span>';
-  if (r.prioridad && r.prioridad !== 'Normal') html += '<span style="background:rgba(255,255,255,.20);padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700">' + esc(r.prioridad) + '</span>';
+  html += '<span style="background:rgba(255,255,255,.20);padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700">' + esc(T('estado.' + r.estado) || r.estado) + '</span>';
+  if (r.prioridad && r.prioridad !== 'Normal') html += '<span style="background:rgba(255,255,255,.20);padding:3px 10px;border-radius:6px;font-size:11px;font-weight:700">' + esc(T('rep.prio_' + ({Alta:'alta',Urgente:'urgente'}[r.prioridad] || 'normal')) || r.prioridad) + '</span>';
   html += '</div></div>';
 
   // Garantía
   if (infoGar && infoGar.rep.id !== r.id) {
     html += '<div style="background:rgba(255,91,31,.08);border-left:3px solid var(--blue);padding:10px 12px;border-radius:8px;margin-bottom:14px;font-size:12px">';
-    html += '<strong style="color:var(--blue)">🛡️ EN GARANTÍA</strong><br>';
-    html += '<span style="font-size:11px;color:var(--muted)">Reparación previa entregada el ' + esc(infoGar.rep.fechaEntregaReal) + ' (' + infoGar.dias + ' días). Le quedan ' + infoGar.restantes + ' días.</span>';
+    html += '<strong style="color:var(--blue)">🛡️ ' + T('det.en_garantia') + '</strong><br>';
+    html += '<span style="font-size:11px;color:var(--muted)">' + T('det.gar_previa').replace('{f}', esc(infoGar.rep.fechaEntregaReal)).replace('{d}', infoGar.dias).replace('{r}', infoGar.restantes) + '</span>';
     html += '</div>';
   }
 
   // Avería
   html += '<div style="margin-bottom:12px">';
-  html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">AVERÍA</div>';
+  html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">' + T('det.averia') + '</div>';
   html += '<div style="font-size:13px;color:var(--red);font-weight:600">' + esc(r.averia || '—') + '</div>';
   if (r.tipoBloqueo) html += '<div style="margin-top:6px;display:inline-block;background:rgba(255,91,31,.1);color:var(--purple);padding:3px 8px;border-radius:5px;font-size:11px;font-weight:700">🔒 ' + esc(r.tipoBloqueo) + (r.bloqueo ? ': ' + esc(r.bloqueo) : '') + '</div>';
   html += '</div>';
@@ -15331,7 +15331,7 @@ function abrirDetalleRep(repId) {
   // Cliente
   if (cli) {
     html += '<div style="background:var(--light);padding:10px 12px;border-radius:8px;margin-bottom:12px">';
-    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">CLIENTE</div>';
+    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">' + T('det.cliente') + '</div>';
     html += '<div style="font-weight:700">' + esc((cli.nombre || '') + ' ' + (cli.apellidos || '')) + '</div>';
     if (cli.tel) html += '<div style="font-size:12px;color:var(--muted)">📞 ' + esc(cli.tel) + '</div>';
     html += '</div>';
@@ -15339,16 +15339,16 @@ function abrirDetalleRep(repId) {
 
   // Datos en grid
   html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px">';
-  if (r.fecha) html += '<div><span style="color:var(--muted);font-size:11px">📅 Recibida</span><br><strong>' + esc(r.fecha) + '</strong></div>';
-  if (r.fechaEntrega) html += '<div><span style="color:var(--muted);font-size:11px">⏱ Entrega prevista</span><br><strong>' + esc(r.fechaEntrega) + '</strong></div>';
-  if (r.fechaEntregaReal) html += '<div><span style="color:var(--muted);font-size:11px">✓ Entregado</span><br><strong>' + esc(r.fechaEntregaReal) + '</strong></div>';
-  if (r.pagoFinal) html += '<div><span style="color:var(--muted);font-size:11px">💳 Pago</span><br><strong>' + esc(r.pagoFinal) + '</strong></div>';
+  if (r.fecha) html += '<div><span style="color:var(--muted);font-size:11px">📅 ' + T('det.recibida') + '</span><br><strong>' + esc(r.fecha) + '</strong></div>';
+  if (r.fechaEntrega) html += '<div><span style="color:var(--muted);font-size:11px">⏱ ' + T('det.entrega_prev') + '</span><br><strong>' + esc(r.fechaEntrega) + '</strong></div>';
+  if (r.fechaEntregaReal) html += '<div><span style="color:var(--muted);font-size:11px">✓ ' + T('det.entregado') + '</span><br><strong>' + esc(r.fechaEntregaReal) + '</strong></div>';
+  if (r.pagoFinal) html += '<div><span style="color:var(--muted);font-size:11px">💳 ' + T('det.pago') + '</span><br><strong>' + esc(r.pagoFinal) + '</strong></div>';
   html += '</div>';
 
   // Componentes
   if (r.componentes && r.componentes.length) {
     html += '<div style="margin-bottom:12px">';
-    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">COMPONENTES</div>';
+    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">' + T('det.componentes') + '</div>';
     html += '<ul style="margin:0;padding-left:18px;font-size:12px">';
     r.componentes.forEach(function(c){
       html += '<li>' + esc(c.descripcion || c.nombre || '') + (c.precio ? ' — ' + cur(c.precio) : '') + '</li>';
@@ -15359,14 +15359,14 @@ function abrirDetalleRep(repId) {
   // Nota
   if (r.nota) {
     html += '<div style="background:rgba(255,193,7,.08);padding:10px 12px;border-radius:8px;margin-bottom:12px;border-left:3px solid #FFC107">';
-    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">📝 NOTA</div>';
+    html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">📝 ' + T('det.nota') + '</div>';
     html += '<div style="font-size:12px">' + esc(r.nota) + '</div>';
     html += '</div>';
   }
 
   // Total
   html += '<div style="background:var(--light);padding:12px;border-radius:10px;display:flex;justify-content:space-between;align-items:center;border:2px solid var(--green)">';
-  html += '<span style="font-weight:700;color:var(--muted);font-size:12px;text-transform:uppercase">TOTAL</span>';
+  html += '<span style="font-weight:700;color:var(--muted);font-size:12px;text-transform:uppercase">' + T('det.total') + '</span>';
   html += '<span style="font-size:22px;font-weight:800;color:var(--green)">' + cur(r.total || 0) + '</span>';
   html += '</div>';
 
@@ -15376,11 +15376,12 @@ function abrirDetalleRep(repId) {
     if (r.firma_fecha) {
       try {
         var d = new Date(r.firma_fecha);
-        fechaFirma = d.toLocaleDateString('es', {day:'2-digit',month:'2-digit',year:'numeric'}) + ' a las ' + d.toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit'});
+        var _lc = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+        fechaFirma = d.toLocaleDateString(_lc, {day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + T('det.a_las') + ' ' + d.toLocaleTimeString(_lc, {hour:'2-digit',minute:'2-digit'});
       } catch(e){}
     }
     html += '<div style="margin-top:14px;background:rgba(168,85,247,.05);border:1px solid rgba(168,85,247,.2);border-radius:10px;padding:12px">';
-    html += '<div style="font-size:10px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">✍️ FIRMA DEL CLIENTE' + (fechaFirma ? ' · ' + fechaFirma : '') + '</div>';
+    html += '<div style="font-size:10px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">✍️ ' + T('det.firma_cliente') + (fechaFirma ? ' · ' + fechaFirma : '') + '</div>';
     html += '<div style="background:white;border:1px solid var(--border);border-radius:6px;padding:6px"><img src="' + esc(r.firma_cliente) + '" alt="Firma" style="max-width:100%;height:auto;display:block;max-height:120px;margin:0 auto"></div>';
     html += '</div>';
   }
@@ -15388,39 +15389,39 @@ function abrirDetalleRep(repId) {
   // Prueba de aceptación del presupuesto (registro legal: fecha + IP + firma)
   if (r.presupuesto_aceptado_at) {
     var _fAcc = '';
-    try { var _da = new Date(r.presupuesto_aceptado_at); _fAcc = _da.toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'numeric'}) + ' a las ' + _da.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}); } catch(e){}
+    try { var _lc2 = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'); var _da = new Date(r.presupuesto_aceptado_at); _fAcc = _da.toLocaleDateString(_lc2,{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + T('det.a_las') + ' ' + _da.toLocaleTimeString(_lc2,{hour:'2-digit',minute:'2-digit'}); } catch(e){}
     html += '<div style="margin-top:10px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.25);border-radius:10px;padding:10px 12px;font-size:12px;color:#166534">' +
-      '<strong>✓ Presupuesto aceptado por el cliente</strong>' + (_fAcc ? ' el ' + _fAcc : '') +
+      '<strong>✓ ' + T('det.pres_aceptado') + '</strong>' + (_fAcc ? ' ' + T('det.el') + ' ' + _fAcc : '') +
       // F407: no mostrar la IP en claro (dato personal). Se conserva como evidencia legal y
       // queda accesible al pasar el ratón sobre "IP registrada".
-      (r.presupuesto_aceptado_ip ? ' · <span title="' + esc(r.presupuesto_aceptado_ip) + '" style="text-decoration:underline dotted;cursor:help">IP registrada</span>' : '') +
-      (r.firma_cliente ? ' · firmado ✍️' : '') + '</div>';
+      (r.presupuesto_aceptado_ip ? ' · <span title="' + esc(r.presupuesto_aceptado_ip) + '" style="text-decoration:underline dotted;cursor:help">' + T('det.ip_registrada') + '</span>' : '') +
+      (r.firma_cliente ? ' · ' + T('det.firmado') + ' ✍️' : '') + '</div>';
   }
 
   // Historial de avisos enviados de esta reparación
-  html += '<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📨 Avisos enviados</div><div id="avisosHistorial"><div style="font-size:11px;color:var(--muted)">Cargando…</div></div></div>';
+  html += '<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📨 ' + T('det.avisos_enviados') + '</div><div id="avisosHistorial"><div style="font-size:11px;color:var(--muted)">' + T('det.cargando') + '</div></div></div>';
 
   document.getElementById('detalleRepBox').innerHTML = html;
   _cargarHistorialAvisos(r.id);
 
   // Botones
-  var btns = '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="closeM(\'mDetalleRep\')">Cerrar</button>';
+  var btns = '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="closeM(\'mDetalleRep\')">' + T('gen.cerrar') + '</button>';
   if (cli && cli.tel) btns += '<button class="btn-sm" style="background:#25D366;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirWhatsAppRep(\'' + r.id + '\')">📲 WhatsApp</button>';
   btns += '<button class="btn-sm" style="background:var(--blue);color:white;flex:1" onclick="closeM(\'mDetalleRep\');copiarLinkRep(\'' + r.id + '\')">📱 QR/Link</button>';
   // F68: acciones de avance del flujo (faltaban en el modal abierto desde Kanban)
   var _repCerradas = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
   if (tienePerm('reps_editar')) {
-    if (r.estado === 'Pendiente') btns += '<button class="btn-sm" style="background:#3B82F6;color:white;flex:1" onclick="closeM(\'mDetalleRep\');cambiarEstado(\'' + r.id + '\',\'En Proceso\')">▶️ En proceso</button>';
-    else if (r.estado === 'En Proceso') btns += '<button class="btn-sm" style="background:#00C896;color:white;flex:1" onclick="closeM(\'mDetalleRep\');cambiarEstado(\'' + r.id + '\',\'Por Entregar\')">📦 Por entregar</button>';
-    if (_repCerradas.indexOf(r.estado) === -1) btns += '<button class="btn-sm" style="background:#16a34a;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirEntregar(\'' + r.id + '\')">✅ Entregar</button>';
+    if (r.estado === 'Pendiente') btns += '<button class="btn-sm" style="background:#3B82F6;color:white;flex:1" onclick="closeM(\'mDetalleRep\');cambiarEstado(\'' + r.id + '\',\'En Proceso\')">▶️ ' + T('det.btn_en_proceso') + '</button>';
+    else if (r.estado === 'En Proceso') btns += '<button class="btn-sm" style="background:#00C896;color:white;flex:1" onclick="closeM(\'mDetalleRep\');cambiarEstado(\'' + r.id + '\',\'Por Entregar\')">📦 ' + T('det.btn_por_entregar') + '</button>';
+    if (_repCerradas.indexOf(r.estado) === -1) btns += '<button class="btn-sm" style="background:#16a34a;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirEntregar(\'' + r.id + '\')">✅ ' + T('det.btn_entregar') + '</button>';
   }
-  if (!r.financiado && !r.esGarantia && r.estado === 'Entregado' && (parseFloat(r.restante) || 0) > 0) btns += '<button class="btn-sm" style="background:var(--green);color:white;flex:1" onclick="closeM(\'mDetalleRep\');cobrarSaldoRep(\'' + r.id + '\')">💵 Cobrar</button>';
-  if (r.financiado && r.estadoFinanciado !== 'completado') btns += '<button class="btn-sm" style="background:#8B5CF6;color:white;flex:1" onclick="closeM(\'mDetalleRep\');verFinanciado(\'' + r.id + '\')">💰 Cuotas</button>';
-  if (r.estado === 'Entregado') btns += '<button class="btn-sm" style="background:#0EA5E9;color:white;flex:1" onclick="closeM(\'mDetalleRep\');factRep(\'' + r.id + '\')">📄 Factura</button>';
+  if (!r.financiado && !r.esGarantia && r.estado === 'Entregado' && (parseFloat(r.restante) || 0) > 0) btns += '<button class="btn-sm" style="background:var(--green);color:white;flex:1" onclick="closeM(\'mDetalleRep\');cobrarSaldoRep(\'' + r.id + '\')">💵 ' + T('det.btn_cobrar') + '</button>';
+  if (r.financiado && r.estadoFinanciado !== 'completado') btns += '<button class="btn-sm" style="background:#8B5CF6;color:white;flex:1" onclick="closeM(\'mDetalleRep\');verFinanciado(\'' + r.id + '\')">💰 ' + T('det.btn_cuotas') + '</button>';
+  if (r.estado === 'Entregado') btns += '<button class="btn-sm" style="background:#0EA5E9;color:white;flex:1" onclick="closeM(\'mDetalleRep\');factRep(\'' + r.id + '\')">📄 ' + T('det.btn_factura') + '</button>';
   // Reabrir en garantía: explícito en la Entregada (antes había que crear una rep nueva a mano)
-  if (r.estado === 'Entregado' && !r.esGarantia && tienePerm('reps_editar')) btns += '<button class="btn-sm" style="background:#2563EB;color:white;flex:1" onclick="closeM(\'mDetalleRep\');reabrirEnGarantia(\'' + r.id + '\')">🛡️ Reabrir en garantía</button>';
-  if (tienePerm('reps_editar')) btns += '<button class="btn-sm" style="background:var(--orange);color:white;flex:1" onclick="closeM(\'mDetalleRep\');navTo(\'pReps\');setTimeout(function(){editarRep(\'' + r.id + '\')},100)">✏️ Editar</button>';
-  if (tienePerm('reps_eliminar')) btns += '<button class="btn-sm" style="background:var(--red);color:white;flex:1" onclick="eliminarReparacion(\'' + r.id + '\')">🗑️ Eliminar</button>';
+  if (r.estado === 'Entregado' && !r.esGarantia && tienePerm('reps_editar')) btns += '<button class="btn-sm" style="background:#2563EB;color:white;flex:1" onclick="closeM(\'mDetalleRep\');reabrirEnGarantia(\'' + r.id + '\')">🛡️ ' + T('det.btn_reabrir_gar') + '</button>';
+  if (tienePerm('reps_editar')) btns += '<button class="btn-sm" style="background:var(--orange);color:white;flex:1" onclick="closeM(\'mDetalleRep\');navTo(\'pReps\');setTimeout(function(){editarRep(\'' + r.id + '\')},100)">✏️ ' + T('gen.editar') + '</button>';
+  if (tienePerm('reps_eliminar')) btns += '<button class="btn-sm" style="background:var(--red);color:white;flex:1" onclick="eliminarReparacion(\'' + r.id + '\')">🗑️ ' + T('gen.eliminar') + '</button>';
   document.getElementById('detalleRepBtns').innerHTML = btns;
 
   openM('mDetalleRep');
@@ -15500,6 +15501,14 @@ var PLANTILLAS_WA_DEFAULT = {
 
 function getPlantillasWA() {
   return AJUSTES.plantillasWA || PLANTILLAS_WA_DEFAULT;
+}
+
+// Nombre de plantilla traducido: solo para las plantillas por defecto (las personalizadas
+// por la tienda se respetan tal cual). Devuelve el nombre i18n o el original.
+function _waPlNombre(key, p) {
+  if (AJUSTES.plantillasWA) return (p && p.nombre) || key; // personalizada → no tocar
+  var t = (typeof T === 'function') ? T('wa.pl_' + key) : '';
+  return (t && t !== 'wa.pl_' + key) ? t : ((p && p.nombre) || key);
 }
 
 function aplicarVariablesWA(texto, datos) {
@@ -15592,7 +15601,7 @@ function abrirWhatsAppRep(repId) {
   var keysRep = ['rep_lista','rep_presupuesto','rep_recogida','rep_recibida','generico'];
   var defaultKey = r.estado === 'Por Entregar' ? 'rep_lista' : (r.estado === 'Pendiente' ? 'rep_recibida' : 'rep_lista');
   sel.innerHTML = keysRep.filter(function(k){ return plantillas[k]; }).map(function(k) {
-    return '<option value="' + k + '"' + (k === defaultKey ? ' selected' : '') + '>' + plantillas[k].nombre + '</option>';
+    return '<option value="' + k + '"' + (k === defaultKey ? ' selected' : '') + '>' + _waPlNombre(k, plantillas[k]) + '</option>';
   }).join('');
   renderPreviewWA();
   openM('mWhatsApp');
@@ -15624,7 +15633,7 @@ function abrirWhatsAppCuota(ventaId, idxCuota) {
   var plantillas = getPlantillasWA();
   var keysCuota = vencida ? ['cuota_vencida','cuota_proxima','generico'] : ['cuota_proxima','cuota_vencida','generico'];
   sel.innerHTML = keysCuota.filter(function(k){ return plantillas[k]; }).map(function(k) {
-    return '<option value="' + k + '">' + plantillas[k].nombre + '</option>';
+    return '<option value="' + k + '">' + _waPlNombre(k, plantillas[k]) + '</option>';
   }).join('');
   renderPreviewWA();
   openM('mWhatsApp');
