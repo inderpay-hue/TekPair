@@ -10043,7 +10043,17 @@ function guardarStock() {
   if (!tienePerm(perm)) { toast(T('gen.sin_permiso'), 'err'); return; }
   var marca = document.getElementById('sMarca').value.trim();
   var modelo = document.getElementById('sModelo').value.trim();
-  if (!marca || !modelo) { toast('Marca y modelo obligatorios', 'err'); return; }
+  // Validación visible: además del toast, resalta en rojo el/los campo(s) que faltan y enfoca el primero.
+  document.querySelectorAll('#mStock .fi.error').forEach(function(el){ el.classList.remove('error'); });
+  if (!marca || !modelo) {
+    var _faltan = [];
+    var _primer = null;
+    if (!marca) { var _m = document.getElementById('sMarca'); if (_m) { _m.classList.add('error'); _primer = _primer || _m; } _faltan.push(T('rep.marca')); }
+    if (!modelo) { var _md = document.getElementById('sModelo'); if (_md) { _md.classList.add('error'); _primer = _primer || _md; } _faltan.push(T('rep.modelo')); }
+    toast(T('stock.faltan') + ': ' + _faltan.join(', '), 'err');
+    if (_primer) { try { _primer.scrollIntoView({ behavior: 'smooth', block: 'center' }); } catch(e){} _primer.focus(); }
+    return;
+  }
   _logStock(SEL.editStockId ? 'editar' : 'crear', (marca + ' ' + modelo).trim(), null, SEL.editStockId || null);
   _aprenderModelo(marca, modelo, document.getElementById('sCat').value);
 
