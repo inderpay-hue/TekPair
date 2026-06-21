@@ -4525,3 +4525,11 @@ it:{'rep.crear_orden':'Crea riparazione','rep.crear_presupuesto':'Crea preventiv
 de:{'rep.crear_orden':'Reparatur erstellen','rep.crear_presupuesto':'Angebot erstellen','rep.sin_garantia':'Keine Garantie','rep.aviso_apertura':'Öffnungshinweis','rep.falta':'Fehlt','rep.entrada_excede':'Die Anzahlung darf den Gesamtbetrag nicht überschreiten'},
 pt:{'rep.crear_orden':'Criar reparação','rep.crear_presupuesto':'Criar orçamento','rep.sin_garantia':'Sem garantia','rep.aviso_apertura':'Aviso de abertura','rep.falta':'Falta','rep.entrada_excede':'O sinal não pode exceder o total'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{'ventas.reembolsado':'Reembolsado','gastos.adjunto':'Adjunto','gastos.adjuntar':'Adjuntar','gastos.quitar_adjunto':'Quitar adjunto','gen.nuevo':'+ Nuevo','gen.ver':'Ver'},
+en:{'ventas.reembolsado':'Refunded','gastos.adjunto':'Attachment','gastos.adjuntar':'Attach','gastos.quitar_adjunto':'Remove attachment','gen.nuevo':'+ New','gen.ver':'View'},
+fr:{'ventas.reembolsado':'Remboursé','gastos.adjunto':'Pièce jointe','gastos.adjuntar':'Joindre','gastos.quitar_adjunto':'Retirer la pièce jointe','gen.nuevo':'+ Nouveau','gen.ver':'Voir'},
+it:{'ventas.reembolsado':'Rimborsato','gastos.adjunto':'Allegato','gastos.adjuntar':'Allega','gastos.quitar_adjunto':'Rimuovi allegato','gen.nuevo':'+ Nuovo','gen.ver':'Vedi'},
+de:{'ventas.reembolsado':'Erstattet','gastos.adjunto':'Anhang','gastos.adjuntar':'Anhängen','gastos.quitar_adjunto':'Anhang entfernen','gen.nuevo':'+ Neu','gen.ver':'Ansehen'},
+pt:{'ventas.reembolsado':'Reembolsado','gastos.adjunto':'Anexo','gastos.adjuntar':'Anexar','gastos.quitar_adjunto':'Remover anexo','gen.nuevo':'+ Novo','gen.ver':'Ver'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
