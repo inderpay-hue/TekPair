@@ -4589,3 +4589,11 @@ it:{'repban.urgente':'urgenti','repban.atrasadas':'in ritardo','repban.listas':'
 de:{'repban.urgente':'dringend','repban.atrasadas':'überfällig','repban.listas':'fertig zum Melden','repban.marcar_lista':'Fertig'},
 pt:{'repban.urgente':'urgentes','repban.atrasadas':'atrasadas','repban.listas':'prontas para avisar','repban.marcar_lista':'Pronta'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{'inicio.chip_cobros':'por confirmar','inicio.chip_debes':'lo que debes'},
+en:{'inicio.chip_cobros':'to confirm','inicio.chip_debes':'you owe'},
+fr:{'inicio.chip_cobros':'à confirmer','inicio.chip_debes':'à payer'},
+it:{'inicio.chip_cobros':'da confermare','inicio.chip_debes':'da pagare'},
+de:{'inicio.chip_cobros':'zu bestätigen','inicio.chip_debes':'offen'},
+pt:{'inicio.chip_cobros':'por confirmar','inicio.chip_debes':'o que deves'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();

@@ -3222,6 +3222,35 @@ function _kpiReps(f) {
   try { if (typeof renderReps === 'function') renderReps(); } catch (e) {}
 }
 
+// Chips de urgencias del inicio: igual que en #reparaciones, colapsados por defecto.
+// Cada widget (atrasadas/cobros/debes/listas) se resume en un chip con su número;
+// al clicar se despliega su tarjeta. Así el inicio queda despejado al entrar.
+var _inicioChipsOpen = {};
+var _inicioBuckets = {};
+var _INICIO_CHIP_BOX = { estancadas: 'inv-estancadas', cobros: 'inv-cobros-pend', debes: 'inv-debes', listas: 'inv-sinavisar' };
+function renderInicioChips() {
+  var bar = document.getElementById('inicioChips');
+  if (!bar) return;
+  var defs = [
+    { k: 'estancadas', emoji: '⚠️', color: '#EA580C', label: T('repban.atrasadas') },
+    { k: 'cobros', emoji: '🔔', color: '#9A6700', label: T('inicio.chip_cobros') },
+    { k: 'debes', emoji: '💸', color: '#DC2626', label: T('inicio.chip_debes') },
+    { k: 'listas', emoji: '🟢', color: '#0F7355', label: T('repban.listas') }
+  ];
+  var chips = defs.filter(function(d) { return (_inicioBuckets[d.k] || 0) > 0; }).map(function(d) {
+    var on = !!_inicioChipsOpen[d.k];
+    return '<button onclick="_inicioChipToggle(\'' + d.k + '\')" style="display:inline-flex;align-items:center;gap:6px;border:1px solid ' + (on ? d.color : 'var(--border)') + ';background:' + (on ? d.color + '18' : 'var(--card,#fff)') + ';color:' + d.color + ';border-radius:999px;padding:5px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">' + d.emoji + ' <span style="font-weight:800">' + _inicioBuckets[d.k] + '</span> ' + d.label + ' <span style="font-size:9px;opacity:.7">' + (on ? '▲' : '▼') + '</span></button>';
+  }).join('');
+  bar.innerHTML = chips;
+  bar.style.cssText = chips ? 'display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px' : 'display:none';
+}
+function _inicioChipToggle(key) {
+  _inicioChipsOpen[key] = !_inicioChipsOpen[key];
+  var b = document.getElementById(_INICIO_CHIP_BOX[key]);
+  if (b) b.style.display = _inicioChipsOpen[key] ? 'block' : 'none';
+  renderInicioChips();
+}
+
 // #8: reparaciones estancadas — activas y con >14 días en el taller. Alerta roja arriba del inicio.
 function renderEstancadas() {
   var box = document.getElementById('inv-estancadas');
@@ -3235,7 +3264,7 @@ function renderEstancadas() {
     r._diasTaller = d;
     return d > 14;
   }).sort(function(a, b) { return b._diasTaller - a._diasTaller; });
-  if (!est.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  if (!est.length) { _inicioBuckets.estancadas = 0; box.style.display = 'none'; box.innerHTML = ''; return; }
   var rows = est.slice(0, 8).map(function(r) {
     var equipo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
     var nom = r.clienteNombre || '';
@@ -3260,7 +3289,8 @@ function renderEstancadas() {
     '<div style="display:flex;flex-direction:column;gap:4px">' + rows + '</div>' +
     (est.length > 8 ? '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;cursor:pointer" onclick="navTo(\'pReps\')">+' + (est.length - 8) + ' ' + T('estan.mas') + ' →</div>' : '') +
     '</div>';
-  box.style.display = 'block';
+  _inicioBuckets.estancadas = est.length;
+  box.style.display = _inicioChipsOpen.estancadas ? 'block' : 'none';
 }
 // M-D2: avisar al cliente de una reparación atrasada (WhatsApp) y refrescar el alerta.
 function avisarStale(repId) {
@@ -3296,7 +3326,7 @@ function pagarGastoPendiente(id) {
 function renderLoQueDebes() {
   var box = document.getElementById('inv-debes');
   if (!box) return;
-  if (!_esAdmin()) { box.style.display = 'none'; return; }
+  if (!_esAdmin()) { _inicioBuckets.debes = 0; box.style.display = 'none'; return; }
   var hoy = new Date(hoyLocal() + 'T23:59:59');
   var items = [];
   (DB.pedidos || []).forEach(function(p) {
@@ -3311,7 +3341,7 @@ function renderLoQueDebes() {
     if (debe <= 0.005) return;
     items.push({ tipo: 'gasto', gid: g.id, nombre: g.proveedor_nombre || g.concepto || g.categoria || T('nav.gastos'), concepto: g.proveedor_nombre ? (g.concepto || '') : (g.categoria || ''), debe: debe, fecha: g.fecha || '' });
   });
-  if (!items.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  if (!items.length) { _inicioBuckets.debes = 0; box.style.display = 'none'; box.innerHTML = ''; return; }
   items.forEach(function(it) { it.dias = it.fecha ? Math.max(0, Math.floor((hoy - new Date(String(it.fecha).slice(0, 10) + 'T00:00:00')) / 86400000)) : 0; });
   items.sort(function(a, b) { return b.dias - a.dias; });
   var total = Math.round(items.reduce(function(a, i) { return a + i.debe; }, 0) * 100) / 100;
@@ -3333,7 +3363,8 @@ function renderLoQueDebes() {
     '<div>' + rows + '</div>' +
     (items.length > 8 ? '<div style="font-size:11.5px;color:var(--muted);margin-top:6px;cursor:pointer" onclick="navTo(\'pPedidos\')">+' + (items.length - 8) + ' →</div>' : '') +
     '</div>';
-  box.style.display = 'block';
+  _inicioBuckets.debes = items.length;
+  box.style.display = _inicioChipsOpen.debes ? 'block' : 'none';
 }
 
 // F564: reparaciones LISTAS (Por Entregar) que aún NO se han avisado al cliente.
@@ -3344,7 +3375,7 @@ function renderListasSinAvisar() {
   var sin = (DB.reps || []).filter(function(r) {
     return ['Por Entregar', 'Por entregar'].indexOf(r.estado) !== -1 && !_estaAvisado(r.id);
   });
-  if (!sin.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  if (!sin.length) { _inicioBuckets.listas = 0; box.style.display = 'none'; box.innerHTML = ''; return; }
   var rows = sin.slice(0, 8).map(function(r) {
     var equipo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
     var nom = r.clienteNombre || '';
@@ -3362,7 +3393,8 @@ function renderListasSinAvisar() {
     '<div>' + rows + '</div>' +
     (sin.length > 8 ? '<div style="font-size:11.5px;color:var(--muted);margin-top:6px;cursor:pointer" onclick="navTo(\'pReps\')">+' + (sin.length - 8) + ' →</div>' : '') +
     '</div>';
-  box.style.display = 'block';
+  _inicioBuckets.listas = sin.length;
+  box.style.display = _inicioChipsOpen.listas ? 'block' : 'none';
 }
 // Avisar al cliente (abre WhatsApp y marca avisado) + refresca el alerta.
 function avisarListo(repId) {
@@ -3376,6 +3408,7 @@ function renderInicioNuevo() {
   try { renderLoQueDebes(); } catch (e) {}
   try { renderListasSinAvisar(); } catch (e) {}
   try { if (window._cobrosPend === undefined) cargarConfirmacionesPend(); else renderConfirmacionesPend(); } catch (e) {}
+  try { renderInicioChips(); } catch (e) {}
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
   var reps = DB.reps || [];
   var enRep = reps.filter(function(r) { return ['Pendiente', 'En Proceso', 'En proceso'].indexOf(r.estado) !== -1; });
@@ -6278,9 +6311,9 @@ function cargarConfirmacionesPend(cb) {
 function renderConfirmacionesPend() {
   var box = document.getElementById('inv-cobros-pend');
   if (!box) return;
-  if (!(U && (U.rol === 'admin' || (U.permisos && (U.permisos.todo || U.permisos.ventas_ver))))) { box.style.display = 'none'; return; }
+  if (!(U && (U.rol === 'admin' || (U.permisos && (U.permisos.todo || U.permisos.ventas_ver))))) { _inicioBuckets.cobros = 0; box.style.display = 'none'; try { renderInicioChips(); } catch (e) {} return; }
   var arr = window._cobrosPend || [];
-  if (!arr.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  if (!arr.length) { _inicioBuckets.cobros = 0; box.style.display = 'none'; box.innerHTML = ''; try { renderInicioChips(); } catch (e) {} return; }
   var rows = arr.map(function(a) {
     var r = (DB.reps || []).find(function(x){ return x.id === a.reparacion_id; });
     var nom = r ? (r.clienteNombre || '') : '';
@@ -6297,7 +6330,9 @@ function renderConfirmacionesPend() {
   box.innerHTML = '<div style="background:rgba(255,193,7,.08);border:1px solid rgba(255,193,7,.35);border-left:4px solid #E6A700;border-radius:12px;padding:14px 16px;margin-bottom:18px">' +
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:16px">🔔</span><strong style="color:#9A6700;font-size:14px">' + arr.length + ' ' + T('cobro.pend_titulo') + '</strong></div>' +
     '<div>' + rows + '</div></div>';
-  box.style.display = 'block';
+  _inicioBuckets.cobros = arr.length;
+  box.style.display = _inicioChipsOpen.cobros ? 'block' : 'none';
+  try { renderInicioChips(); } catch (e) {}
 }
 function confirmarCobro(attemptId) {
   var a = (window._cobrosPend || []).find(function(x){ return x.id === attemptId; });
