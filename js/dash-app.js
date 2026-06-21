@@ -9399,7 +9399,66 @@ function imprimirPresupuesto(repId) {
   w.document.close();
 }
 
+// Quick-win #reparaciones: banda de urgencias arriba de la lista (no toca tabs ni tabla).
+// Agrupa por urgencia: 🔴 urgentes (prioridad Urgente o fecha de entrega vencida/hoy),
+// ⚠️ atrasadas (>14 días en taller), 🟢 listas para avisar (Por Entregar sin avisar).
+function _repBandaTieneTel(r) {
+  var cli = r.clienteId ? (DB.clis || []).find(function(c) { return c.id === r.clienteId; }) : null;
+  return !!((cli && cli.tel) || r.clienteTel);
+}
+function _repBandaRow(r, tipo) {
+  var equipo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
+  var nom = r.clienteNombre || '';
+  var titulo = equipo || nom || ('#' + (r.numero || ''));
+  var dias = r._diasTaller != null ? r._diasTaller : 0;
+  var diasTxt = (tipo !== 'lista') ? '<div style="flex-shrink:0;font-weight:800;font-size:13px;color:' + (dias > 30 ? '#DC2626' : (dias > 14 ? '#EA580C' : 'var(--muted)')) + '">' + dias + ' ' + T('estan.dias') + '</div>' : '';
+  var btnAv = _repBandaTieneTel(r) ? '<button onclick="_repBandaAvisar(\'' + r.id + '\')" style="border:none;background:#25D366;color:#fff;border-radius:7px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">📲 ' + T('estan.avisar') + '</button>' : '';
+  var btnLista = (tipo !== 'lista' && ['Por Entregar', 'Por entregar'].indexOf(r.estado) === -1) ? '<button onclick="_repBandaLista(\'' + r.id + '\')" style="border:none;background:rgba(0,200,150,.12);color:#0F7355;border-radius:7px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">✅ ' + T('repban.marcar_lista') + '</button>' : '';
+  var btnVer = '<button onclick="editarRep(\'' + r.id + '\')" style="border:none;background:var(--card,#fff);color:var(--text);border:1px solid var(--border);border-radius:7px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">👁️ ' + T('estan.ver') + '</button>';
+  return '<div style="padding:7px 8px;border-radius:8px;background:var(--light)">' +
+    '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
+    '<div style="min-width:0"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(titulo) + '</div>' +
+    '<div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(nom) + (r.averia ? ' · ' + esc(r.averia) : '') + '</div></div>' +
+    diasTxt + '</div>' +
+    '<div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">' + btnAv + btnLista + btnVer + '</div></div>';
+}
+function renderRepsUrgenciaBanda() {
+  var box = document.getElementById('repsUrgenciaBanda');
+  if (!box) return;
+  var finDia = new Date(hoyLocal() + 'T23:59:59');
+  var hoyISO = hoyLocal();
+  var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
+  var urgentes = [], atrasadas = [], listas = [];
+  (DB.reps || []).forEach(function(r) {
+    if (['Por Entregar', 'Por entregar'].indexOf(r.estado) !== -1) { if (!_estaAvisado(r.id)) listas.push(r); return; }
+    if (CERR.indexOf(r.estado) !== -1) return;
+    var f = r.fecha || r.fecha_entrada;
+    r._diasTaller = f ? Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000) : 0;
+    var fe = (r.fechaEntrega || '').slice(0, 10);
+    if (r.prioridad === 'Urgente' || (fe && fe <= hoyISO)) urgentes.push(r);
+    else if (r._diasTaller > 14) atrasadas.push(r);
+  });
+  if (!urgentes.length && !atrasadas.length && !listas.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  urgentes.sort(function(a, b) { return (b._diasTaller || 0) - (a._diasTaller || 0); });
+  atrasadas.sort(function(a, b) { return (b._diasTaller || 0) - (a._diasTaller || 0); });
+  function bucket(arr, emoji, titKey, color, tipo) {
+    if (!arr.length) return '';
+    var rows = arr.slice(0, 4).map(function(r) { return _repBandaRow(r, tipo); }).join('');
+    var mas = arr.length > 4 ? '<span style="font-size:11px;color:var(--muted);margin-left:6px">+' + (arr.length - 4) + '</span>' : '';
+    return '<div style="margin-bottom:8px"><div style="display:flex;align-items:center;gap:7px;margin:2px 0 6px"><span style="font-size:14px">' + emoji + '</span><strong style="font-size:12.5px;color:' + color + '">' + arr.length + ' ' + T(titKey) + '</strong>' + mas + '</div><div style="display:flex;flex-direction:column;gap:5px">' + rows + '</div></div>';
+  }
+  box.innerHTML = '<div style="background:var(--card,#fff);border:1px solid var(--border);border-left:4px solid #EA580C;border-radius:12px;padding:12px 14px;margin-bottom:14px">' +
+    bucket(urgentes, '🔴', 'repban.urgente', '#DC2626', 'urgente') +
+    bucket(atrasadas, '⚠️', 'repban.atrasadas', '#EA580C', 'atrasada') +
+    bucket(listas, '🟢', 'repban.listas', '#0F7355', 'lista') +
+    '</div>';
+  box.style.display = 'block';
+}
+function _repBandaAvisar(id) { try { abrirWhatsAppRep(id); } catch (e) {} setTimeout(function() { try { renderRepsUrgenciaBanda(); } catch (e) {} }, 200); }
+function _repBandaLista(id) { try { cambiarEstado(id, 'Por Entregar'); } catch (e) {} setTimeout(function() { try { renderRepsUrgenciaBanda(); } catch (e) {} }, 200); }
+
 function renderReps() {
+  try { renderRepsUrgenciaBanda(); } catch (e) {}
   var list = DB.reps.slice().reverse().filter(function(r) {
     // 'A deber': reparaciones ENTREGADAS o FINANCIADAS con saldo pendiente (el cliente tiene el equipo y debe).
     if (SEL.repFiltro === 'adeber') return !r.esGarantia && (parseFloat(r.restante) || 0) > 0 && (r.estado === 'Entregado' || (r.financiado && r.estadoFinanciado !== 'completado'));
