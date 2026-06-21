@@ -227,17 +227,32 @@ function checkFeature(featureName) {
 }
 
 // ═══ NOVEDADES: banner de mejoras para las tiendas (se muestra 1 vez por versión) ═══
-var NOVEDADES_VERSION = '2026-06-14';
-function renderNovedades() {
-  var el = document.getElementById('novedadesBody'); if (!el) return;
-  var keys = ['nov.f6', 'nov.f7', 'nov.f1', 'nov.f2', 'nov.f3', 'nov.f4', 'nov.f5'];
-  el.innerHTML = keys.map(function(k) { return '<div style="padding:9px 2px;border-bottom:1px solid var(--border);font-size:13px;line-height:1.5">' + T(k) + '</div>'; }).join('');
+var NOVEDADES_VERSION = '2026-06-21';
+// Changelog por fecha (lo más nuevo primero). El banner automático muestra solo el
+// último lanzamiento; en Ajustes › Novedades se ve el historial completo.
+var CHANGELOG = [
+  { fecha: '2026-06-21', items: ['nov.g1', 'nov.g2', 'nov.g3', 'nov.g4', 'nov.g5', 'nov.g6'] },
+  { fecha: '2026-06-14', items: ['nov.f6', 'nov.f7', 'nov.f1', 'nov.f2', 'nov.f3', 'nov.f4', 'nov.f5'] }
+];
+function _novFechaLbl(iso) {
+  try { return new Date(iso + 'T00:00:00').toLocaleDateString((typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'), { year: 'numeric', month: 'long' }); }
+  catch (e) { return iso; }
 }
-function abrirNovedades() { renderNovedades(); openM('mNovedades'); }
+function renderNovedades(soloUltima) {
+  var el = document.getElementById('novedadesBody'); if (!el) return;
+  var releases = soloUltima ? CHANGELOG.slice(0, 1) : CHANGELOG;
+  el.innerHTML = releases.map(function(rel, i) {
+    var head = soloUltima ? '' : '<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:var(--orange);margin:' + (i ? '18px' : '2px') + ' 0 6px">' + _novFechaLbl(rel.fecha) + '</div>';
+    var body = rel.items.map(function(k) { return '<div style="padding:9px 2px;border-bottom:1px solid var(--border);font-size:13px;line-height:1.5">' + T(k) + '</div>'; }).join('');
+    return head + body;
+  }).join('');
+}
+// Desde Ajustes: historial completo. Banner automático: solo lo último.
+function abrirNovedades() { renderNovedades(false); openM('mNovedades'); }
 function cerrarNovedades() { try { localStorage.setItem('tk_novedades', NOVEDADES_VERSION); } catch(e){} closeM('mNovedades'); }
 function mostrarNovedadesSiNuevo() {
   try { if (localStorage.getItem('tk_novedades') === NOVEDADES_VERSION) return; } catch(e) { return; }
-  renderNovedades();
+  renderNovedades(true);
   openM('mNovedades');
 }
 // Renderizar banner de plan (trial, próximo cobro, expirado, etc.)
