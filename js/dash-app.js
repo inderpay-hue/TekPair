@@ -396,19 +396,21 @@ function renderSuscripcionInfo() {
   if (!box) return;
   var planLabel = ({basico:'Básico', pro:'Pro ⭐', premium:'Premium', top:'Premium'})[PLAN_INFO.plan] || PLAN_INFO.plan;
   var planPrecio = ({basico:'9,90', pro:'19,90', premium:'34,90', top:'34,90'})[PLAN_INFO.plan] || '—';
-  var statusLabel = ({trial:'🎁 Periodo de prueba', active:'✓ Activa', past_due:'⚠️ Pago pendiente', cancelled:'❌ Cancelada'})[PLAN_INFO.status] || PLAN_INFO.status;
+  var _tt = function(k, fb){ return (typeof T === 'function' ? T(k) : '') || fb; };
+  var statusLabel = ({trial:'🎁 '+_tt('plan.st_trial','Periodo de prueba'), active:'✓ '+_tt('plan.st_active','Activa'), past_due:'⚠️ '+_tt('plan.st_pastdue','Pago pendiente'), cancelled:'❌ '+_tt('plan.st_cancelled','Cancelada')})[PLAN_INFO.status] || PLAN_INFO.status;
   var statusColor = ({trial:'var(--blue)', active:'var(--green)', past_due:'var(--orange)', cancelled:'var(--red)'})[PLAN_INFO.status] || 'var(--muted)';
   var dias = planDiasRestantes();
+  var _loc = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
 
   var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">';
-  html += '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">Plan actual</div>';
+  html += '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">' + _tt('plan.plan_actual','Plan actual') + '</div>';
   html += '<div style="font-size:20px;font-weight:800">' + planLabel + '</div>';
-  html += '<div style="font-size:13px;color:var(--muted)">' + planPrecio + ' €/mes</div></div>';
-  html += '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">Estado</div>';
+  html += '<div style="font-size:13px;color:var(--muted)">' + planPrecio + ' ' + _tt('plan.mes','€/mes') + '</div></div>';
+  html += '<div><div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:4px">' + _tt('plan.estado','Estado') + '</div>';
   html += '<div style="font-size:14px;font-weight:700;color:' + statusColor + '">' + statusLabel + '</div>';
   if (dias !== null && dias >= 0 && dias <= 3650) {
     // Tope de cordura: >10 años = dato anómalo (cuenta test/vitalicia) → no mostramos el absurdo "26863 días".
-    var label = PLAN_INFO.status === 'trial' ? 'días de prueba restantes' : 'días hasta próximo cobro';
+    var label = PLAN_INFO.status === 'trial' ? _tt('plan.dias_prueba','días de prueba restantes') : _tt('plan.dias_cobro','días hasta próximo cobro');
     html += '<div style="font-size:13px;color:var(--muted)">' + dias + ' ' + label + '</div>';
   }
   html += '</div></div>';
@@ -416,10 +418,16 @@ function renderSuscripcionInfo() {
   if (PLAN_INFO.trial_until || PLAN_INFO.plan_until) {
     var fecha = PLAN_INFO.status === 'trial' ? PLAN_INFO.trial_until : PLAN_INFO.plan_until;
     if (fecha) {
-      html += '<div style="background:var(--light);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted)">';
-      html += (PLAN_INFO.status === 'trial' ? '📅 La prueba termina: ' : '📅 Próximo cobro: ');
-      html += '<strong style="color:var(--text)">' + new Date(fecha).toLocaleDateString('es', {day:'numeric',month:'long',year:'numeric'}) + '</strong>';
-      html += '</div>';
+      var _fd = new Date(fecha);
+      // Centinela de cuenta sin caducidad (test/vitalicia, p.ej. año 2100): no mostrar la fecha absurda.
+      if (_fd.getFullYear() >= 2099) {
+        html += '<div style="background:var(--light);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted)">♾️ <strong style="color:var(--text)">' + _tt('plan.sin_caducidad','Cuenta sin caducidad') + '</strong></div>';
+      } else {
+        html += '<div style="background:var(--light);border-radius:8px;padding:10px 14px;font-size:12px;color:var(--muted)">';
+        html += (PLAN_INFO.status === 'trial' ? '📅 ' + _tt('plan.prueba_termina','La prueba termina:') + ' ' : '📅 ' + _tt('plan.proximo_cobro','Próximo cobro:') + ' ');
+        html += '<strong style="color:var(--text)">' + _fd.toLocaleDateString(_loc, {day:'numeric',month:'long',year:'numeric'}) + '</strong>';
+        html += '</div>';
+      }
     }
   }
 
