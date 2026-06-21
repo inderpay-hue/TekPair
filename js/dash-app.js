@@ -9422,6 +9422,7 @@ function _repBandaRow(r, tipo) {
     diasTxt + '</div>' +
     '<div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">' + btnAv + btnLista + btnVer + '</div></div>';
 }
+var _repBandaAbierto = null;  // null | 'urgente' | 'atrasada' | 'lista' — qué chip está desplegado
 function renderRepsUrgenciaBanda() {
   var box = document.getElementById('repsUrgenciaBanda');
   if (!box) return;
@@ -9438,22 +9439,31 @@ function renderRepsUrgenciaBanda() {
     if (r.prioridad === 'Urgente' || (fe && fe <= hoyISO)) urgentes.push(r);
     else if (r._diasTaller > 14) atrasadas.push(r);
   });
-  if (!urgentes.length && !atrasadas.length && !listas.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  if (!urgentes.length && !atrasadas.length && !listas.length) { box.style.display = 'none'; box.innerHTML = ''; _repBandaAbierto = null; return; }
   urgentes.sort(function(a, b) { return (b._diasTaller || 0) - (a._diasTaller || 0); });
   atrasadas.sort(function(a, b) { return (b._diasTaller || 0) - (a._diasTaller || 0); });
-  function bucket(arr, emoji, titKey, color, tipo) {
+  // Si el bucket abierto se quedó vacío (p.ej. tras avisar al último), cerrarlo.
+  var mapa = { urgente: urgentes, atrasada: atrasadas, lista: listas };
+  if (_repBandaAbierto && (!mapa[_repBandaAbierto] || !mapa[_repBandaAbierto].length)) _repBandaAbierto = null;
+  // Chips compactos con el número; clic = desplegar/plegar ese bucket.
+  function chip(arr, emoji, titKey, color, tipo) {
     if (!arr.length) return '';
-    var rows = arr.slice(0, 4).map(function(r) { return _repBandaRow(r, tipo); }).join('');
-    var mas = arr.length > 4 ? '<span style="font-size:11px;color:var(--muted);margin-left:6px">+' + (arr.length - 4) + '</span>' : '';
-    return '<div style="margin-bottom:8px"><div style="display:flex;align-items:center;gap:7px;margin:2px 0 6px"><span style="font-size:14px">' + emoji + '</span><strong style="font-size:12.5px;color:' + color + '">' + arr.length + ' ' + T(titKey) + '</strong>' + mas + '</div><div style="display:flex;flex-direction:column;gap:5px">' + rows + '</div></div>';
+    var on = _repBandaAbierto === tipo;
+    return '<button onclick="_repBandaToggle(\'' + tipo + '\')" style="display:inline-flex;align-items:center;gap:6px;border:1px solid ' + (on ? color : 'var(--border)') + ';background:' + (on ? color + '18' : 'var(--card,#fff)') + ';color:' + color + ';border-radius:999px;padding:5px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">' + emoji + ' <span style="font-weight:800">' + arr.length + '</span> ' + T(titKey) + ' <span style="font-size:9px;opacity:.7">' + (on ? '▲' : '▼') + '</span></button>';
   }
-  box.innerHTML = '<div style="background:var(--card,#fff);border:1px solid var(--border);border-left:4px solid #EA580C;border-radius:12px;padding:12px 14px;margin-bottom:14px">' +
-    bucket(urgentes, '🔴', 'repban.urgente', '#DC2626', 'urgente') +
-    bucket(atrasadas, '⚠️', 'repban.atrasadas', '#EA580C', 'atrasada') +
-    bucket(listas, '🟢', 'repban.listas', '#0F7355', 'lista') +
-    '</div>';
+  var chips = chip(urgentes, '🔴', 'repban.urgente', '#DC2626', 'urgente') + chip(atrasadas, '⚠️', 'repban.atrasadas', '#EA580C', 'atrasada') + chip(listas, '🟢', 'repban.listas', '#0F7355', 'lista');
+  var arrSel = mapa[_repBandaAbierto];
+  var expandido = '';
+  if (arrSel && arrSel.length) {
+    var rows = arrSel.slice(0, 12).map(function(r) { return _repBandaRow(r, _repBandaAbierto); }).join('');
+    var mas = arrSel.length > 12 ? '<div style="font-size:11.5px;color:var(--muted);margin-top:6px">+' + (arrSel.length - 12) + '</div>' : '';
+    expandido = '<div style="display:flex;flex-direction:column;gap:5px;margin-top:10px">' + rows + mas + '</div>';
+  }
+  box.innerHTML = '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:' + (expandido ? '0' : '14px') + '">' + chips + '</div>' +
+    (expandido ? '<div style="background:var(--card,#fff);border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin:8px 0 14px">' + expandido + '</div>' : '');
   box.style.display = 'block';
 }
+function _repBandaToggle(tipo) { _repBandaAbierto = (_repBandaAbierto === tipo) ? null : tipo; try { renderRepsUrgenciaBanda(); } catch (e) {} }
 function _repBandaAvisar(id) { try { abrirWhatsAppRep(id); } catch (e) {} setTimeout(function() { try { renderRepsUrgenciaBanda(); } catch (e) {} }, 200); }
 function _repBandaLista(id) { try { cambiarEstado(id, 'Por Entregar'); } catch (e) {} setTimeout(function() { try { renderRepsUrgenciaBanda(); } catch (e) {} }, 200); }
 
