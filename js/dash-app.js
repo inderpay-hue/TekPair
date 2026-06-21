@@ -6914,7 +6914,7 @@ function _cliDraftBorrar(){ _DRAFT_CLI.clear(); }
 function abrirRep() {
   SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.rServicios = [];
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_nuevo');
-  var _bg = document.getElementById('btnGuardarRepTxt'); if (_bg) _bg.textContent = 'Crear orden';
+  var _bg = document.getElementById('btnGuardarRepTxt'); if (_bg) _bg.textContent = T('rep.crear_orden');
   ['rBusCli','rMarca','rModelo','rImei','rAveria','rNota','rSrvBus','rBloqVal'].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = '';
   });
@@ -6968,7 +6968,7 @@ function abrirPresupuesto() {
   var t = document.querySelector('#mRep .modal-title');
   if (t) t.innerHTML = '📋 Nuevo Presupuesto';
   // F299: el botón decía "Crear orden" (heredado de reparación) → "Crear presupuesto"
-  var _bgp = document.getElementById('btnGuardarRepTxt'); if (_bgp) _bgp.textContent = 'Crear presupuesto';
+  var _bgp = document.getElementById('btnGuardarRepTxt'); if (_bgp) _bgp.textContent = T('rep.crear_presupuesto');
   var feLabel = document.querySelector('label[for="rFechaEnt"]');
   if (feLabel) feLabel.style.opacity = '0.5';
   // Banner explicativo dentro del modal
@@ -8347,7 +8347,7 @@ function editarRep(id) {
   if (!r) { toast(T('gen.error'), 'err'); return; }
   // Reset y rellenar
   SEL.editRepId = id;
-  var _bge = document.getElementById('btnGuardarRepTxt'); if (_bge) _bge.textContent = 'Guardar cambios';
+  var _bge = document.getElementById('btnGuardarRepTxt'); if (_bge) _bge.textContent = T('gen.guardar_cambios');
   var _te = document.querySelector('#mRep .modal-title'); if (_te) _te.textContent = '✏️ Editar reparación';
   SEL.rCli = DB.clis.find(function(c){ return c.id === r.clienteId; }) || {id:r.clienteId, nombre:r.clienteNombre, apellidos:''};
   SEL.selParts = [];
@@ -8466,8 +8466,8 @@ function renderRepGarantia() {
   
   var label = document.getElementById('rGarSelDias');
   if (label) {
-    if (dias === 0) label.textContent = 'Sin garantía';
-    else label.textContent = dias + ' días';
+    if (dias === 0) label.textContent = T('rep.sin_garantia');
+    else label.textContent = dias + ' ' + T('ajt.dias');
   }
   
   var sel = document.getElementById('rGarSelector');
@@ -8476,11 +8476,11 @@ function renderRepGarantia() {
   var html = '';
   opciones.forEach(function(d){
     var act = (d === dias) ? ' active' : '';
-    html += '<button type="button" class="gar-btn'+act+'" onclick="selectRepGar('+d+')">'+d+' días</button>';
+    html += '<button type="button" class="gar-btn'+act+'" onclick="selectRepGar('+d+')">'+d+' '+T('ajt.dias')+'</button>';
   });
   if (TIENDA.grPermitirSin !== false) {
     var actSin = (dias === 0) ? ' active' : '';
-    html += '<button type="button" class="gar-btn sin-gar'+actSin+'" onclick="selectRepGar(0)">Sin garantía</button>';
+    html += '<button type="button" class="gar-btn sin-gar'+actSin+'" onclick="selectRepGar(0)">'+T('rep.sin_garantia')+'</button>';
   }
   // Solo Pro+ puede ver chips alternativos
   if (!tieneAvanzada && TIENDA.grDiasEnabled && TIENDA.grDiasEnabled.length > 1) {
@@ -8535,9 +8535,9 @@ function selGarTipo(tipo) {
   // Actualizar label días
   var lbl = document.getElementById('rGarSelDias');
   if (lbl) {
-    if (tipo === 'sin') lbl.textContent = 'Sin garantía';
-    else if (tipo === 'apertura') lbl.textContent = 'Aviso apertura';
-    else lbl.textContent = (window._repGarantiaDias || TIENDA.grDiasDefault || 90) + ' días';
+    if (tipo === 'sin') lbl.textContent = T('rep.sin_garantia');
+    else if (tipo === 'apertura') lbl.textContent = T('rep.aviso_apertura');
+    else lbl.textContent = (window._repGarantiaDias || TIENDA.grDiasDefault || 90) + ' ' + T('ajt.dias');
   }
 }
 
@@ -8742,7 +8742,7 @@ function guardarRep() {
     if (!modelo) faltan.push('modelo');
     if (!averia) faltan.push('avería');
     if (_faltaCodigo) faltan.push('código de bloqueo');
-    toast('Falta: ' + faltan.join(', '), 'err');
+    toast(T('rep.falta') + ': ' + faltan.join(', '), 'err');
     return;
   }
 
@@ -8832,7 +8832,7 @@ function guardarRep() {
   var finEntrada = 0, finCuotas = null, finEntradaPago = '';
   if (esFinRep) {
     finEntrada = parseFloat(document.getElementById('rFinEntrada').value) || 0;
-    if (finEntrada > total) { toast('La entrada no puede superar el total', 'err'); return; }
+    if (finEntrada > total) { toast(T('rep.entrada_excede'), 'err'); return; }
     finEntradaPago = document.getElementById('rFinEntradaPago').value || '';
     if (finEntrada > 0 && !finEntradaPago) { toast('Elige cómo se pagó la entrada', 'err'); return; }
     finCuotas = generarCuotasRep(total);
