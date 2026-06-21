@@ -115,6 +115,9 @@ function applyHead(html, lang) {
   }
   // hreflang: inyectar tras canonical
   html = html.replace(/(<link rel="canonical"[^>]*>)/, '$1\n' + buildHreflang(lang).trim());
+  // #B81: que los links de registro mantengan el idioma del funnel (registro.html lee ?lang=)
+  html = html.replace(/href="\/registro\.html\?/g, 'href="/registro.html?lang=' + lang + '&');
+  html = html.replace(/href="\/registro\.html"/g, 'href="/registro.html?lang=' + lang + '"');
   return html;
 }
 
