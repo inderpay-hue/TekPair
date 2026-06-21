@@ -9921,7 +9921,7 @@ function renderStock() {
     }
   }
   var thUbic = mostrarUbic ? '<th>📍</th>' : '';
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="stock.producto">Producto</span></th><th><span data-t="stock.categoria">Cat.</span></th>' + thUbic + '<th><span data-t="stock.unidades">Uds.</span></th><th><span data-t="gen.pvp">PVP</span></th><th></th></tr></thead><tbody>';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('stock.producto') + '</th><th>' + T('stock.categoria') + '</th>' + thUbic + '<th>' + T('stock.unidades') + '</th><th>' + T('gen.pvp') + '</th><th></th></tr></thead><tbody>';
   list.forEach(function(s) {
     html += '<tr>' +
       '<td><strong class="drill-stk" data-sid="' + s.id + '" style="cursor:pointer;color:var(--blue);text-decoration:underline;text-decoration-color:rgba(0,85,255,.25);text-underline-offset:2px">' + escHtml(_eqNombre(s.marca, s.modelo)) + '</strong>' +
@@ -10903,7 +10903,7 @@ function renderClis() {
   });
   var el = document.getElementById('listaClis');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udc65</div>Sin clientes</div>'; return; }
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="cli.nombre">Nombre</span></th><th><span data-t="cli.telefono">Tel</span></th><th><span data-t="gen.visitas">Visitas</span></th><th></th></tr></thead><tbody>';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('cli.nombre') + '</th><th>' + T('cli.telefono') + '</th><th>' + T('gen.visitas') + '</th><th></th></tr></thead><tbody>';
   list.forEach(function(c) {
     var vc = DB.ventas.filter(function(v) { return v.clienteId === c.id; }).length;
     var rc = DB.reps.filter(function(r) { return r.clienteId === c.id; }).length;
@@ -11210,7 +11210,7 @@ function eliminarReparacion(id) {
 function renderProvs() {
   var el = document.getElementById('listaProvs');
   if (!DB.provs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83c\udfed</div>Sin proveedores</div>'; return; }
-  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Nombre</th><th>NIF/CIF</th><th>Tel</th><th><span data-t="cli.email">Email</span></th><th>Ciudad</th><th>Acciones</th></tr></thead><tbody>' +
+  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('cli.nombre') + '</th><th>' + T('fact.nif_cif').replace(' *','') + '</th><th>' + T('cli.telefono') + '</th><th>' + T('cli.email') + '</th><th>' + T('cli.ciudad') + '</th><th>' + T('gastos.acciones') + '</th></tr></thead><tbody>' +
     DB.provs.map(function(p) {
       return '<tr>' +
         '<td><strong>' + esc(p.nombre || '') + '</strong>' + (p.nota ? '<br><span style="font-size:9px;color:var(--blue)">' + esc(p.nota) + '</span>' : '') + '</td>' +
@@ -11574,7 +11574,7 @@ function renderGastosRec() {
     return;
   }
   var ordenada = lista.slice().sort(function(a,b){ return (a.dia_mes || 0) - (b.dia_mes || 0); });
-  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="gastos.concepto">Concepto</span></th><th><span data-t="nav.proveedores">Proveedor</span></th><th><span data-t="gen.dia">Día</span></th><th><span data-t="gastos.importe">Importe</span></th><th><span data-t="gen.iva">IVA</span></th><th>' + T('gastos.estado') + '</th><th><span data-t="gen.ultimo">Último</span></th><th>' + T('gastos.acciones') + '</th></tr></thead><tbody>' +
+  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('gastos.concepto') + '</th><th>' + T('nav.proveedores') + '</th><th>' + T('gen.dia') + '</th><th>' + T('gastos.importe') + '</th><th>' + T('gen.iva') + '</th><th>' + T('gastos.estado') + '</th><th>' + T('gen.ultimo') + '</th><th>' + T('gastos.acciones') + '</th></tr></thead><tbody>' +
     ordenada.map(function(r) {
       var ivaT = (r.iva_tipo != null) ? r.iva_tipo : 21;
       var estado = r.activo
