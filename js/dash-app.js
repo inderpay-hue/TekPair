@@ -2942,6 +2942,36 @@ function cambiarTienda(tiendaId) {
     }).catch(function() { toast(T('gen.error'), 'err'); });
 }
 
+// ═══ MULTI-TIENDA · asignar a un empleado acceso a varias tiendas ═══
+// El dueño marca a qué tiendas (de las suyas) puede entrar cada empleado. La tienda
+// principal del empleado va siempre incluida (checkbox fijo). Las extras se guardan en
+// usuario_tiendas vía el backend (op set-tiendas), que valida que el admin posee esas tiendas.
+var MIS_TIENDAS_ADMIN = [];   // [{id,nombre}] tiendas que el dueño puede otorgar
+var _TIENDAS_MAP = {};        // usuario_id -> [tienda_id extra]
+var _atUid = null;
+function asignarTiendas(uid, nombre) {
+  _atUid = uid;
+  var nom = document.getElementById('atNombre'); if (nom) nom.textContent = nombre || '';
+  var primaria = String(TIENDA_ID || '');
+  var acceso = _TIENDAS_MAP[uid] || [];
+  var lista = document.getElementById('atLista');
+  if (lista) lista.innerHTML = MIS_TIENDAS_ADMIN.map(function(t) {
+    var esPrim = String(t.id) === primaria;
+    var checked = esPrim || acceso.indexOf(String(t.id)) !== -1;
+    return '<label style="display:flex;align-items:center;gap:9px;padding:9px 4px;border-bottom:1px solid var(--border);font-size:13px;cursor:pointer">' +
+      '<input type="checkbox" class="atChk" value="' + esc(t.id) + '"' + (checked ? ' checked' : '') + (esPrim ? ' disabled' : '') + '>' +
+      '🏪 ' + esc(t.nombre || t.id) + (esPrim ? ' <span style="font-size:10px;color:var(--muted)">(' + T('mt.principal') + ')</span>' : '') +
+      '</label>';
+  }).join('');
+  openM('mAsignarTiendas');
+}
+async function guardarAsignarTiendas() {
+  if (!_atUid) return;
+  var ids = Array.prototype.slice.call(document.querySelectorAll('#atLista .atChk:checked')).map(function(c) { return c.value; });
+  var ok = await _adminUsuarios('set-tiendas', { target_id: _atUid, tiendas: ids });
+  if (ok) { toast(T('mt.acceso_guardado'), 'ok'); closeM('mAsignarTiendas'); cargarUsuarios(); }
+}
+
 // ═══ REFERIDOS · "Invita amigos" (Mi Tienda) ═══
 function cargarInvitaAmigos() {
   var box = document.getElementById('refBox');
@@ -15360,6 +15390,14 @@ function setCalidadModelo(encIds, cal) {
 async function cargarUsuarios() {
   var el = document.getElementById('listaUsuarios');
   if (!SB_KEY || !TIENDA_ID) { el.innerHTML = '<div class="empty">Necesitas Supabase configurado</div>'; return; }
+  // Multi-tienda: si el dueño tiene >1 tienda, cargar qué tiendas puede otorgar y el acceso actual.
+  if (_esAdmin()) {
+    try {
+      var mr = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (JWT_TOKEN || '') }, body: JSON.stringify({ action: 'usuarios-admin', op: 'map-tiendas' }) });
+      var mj = await mr.json().catch(function() { return {}; });
+      if (mj && mj.ok) { MIS_TIENDAS_ADMIN = mj.mis_tiendas || []; _TIENDAS_MAP = mj.map || {}; }
+    } catch (e) { /* sin multi-tienda */ }
+  }
   var lista = await sbGet('usuarios', 'tienda_id=eq.' + TIENDA_ID);
   if (!lista || !lista.length) { el.innerHTML = '<div class="empty">Sin usuarios</div>'; return; }
   var container = document.createElement('div');
@@ -15392,6 +15430,17 @@ async function cargarUsuarios() {
     btnC.dataset.uid = u.id; btnC.dataset.unom = u.nombre; btnC.dataset.ucod = u.codigo || '';
     btnC.addEventListener('click', function() { setCodigoUsuario(this.dataset.uid, this.dataset.unom, this.dataset.ucod); });
     tdAcc.appendChild(btnC);
+    // Multi-tienda: a qué tiendas puede entrar este empleado (solo si el dueño tiene >1 tienda, y no a uno mismo)
+    if (!esYo && MIS_TIENDAS_ADMIN.length > 1) {
+      var nExtra = (_TIENDAS_MAP[u.id] || []).filter(function(id) { return String(id) !== String(TIENDA_ID); }).length;
+      var btnTi = document.createElement('button');
+      btnTi.textContent = '🏪' + (nExtra > 0 ? ' ' + (nExtra + 1) : '');
+      btnTi.style = 'background:rgba(255,91,31,.1);border:none;color:var(--orange);padding:4px 7px;border-radius:6px;font-size:10px;cursor:pointer';
+      btnTi.title = T('mt.acceso_titulo');
+      btnTi.dataset.uid = u.id; btnTi.dataset.unom = u.nombre;
+      btnTi.addEventListener('click', function() { asignarTiendas(this.dataset.uid, this.dataset.unom); });
+      tdAcc.appendChild(btnTi);
+    }
     // Desactivar y eliminar solo a OTROS usuarios (no a uno mismo)
     if (!esYo) {
       var btnT = document.createElement('button');
