@@ -2741,6 +2741,7 @@ async function cargarDatosSupabase() {
 function refrescarVistasActivas() {
   // Globales baratos: siempre (badges, urgentes, notificaciones, logo)
   try { if (!DB.pedidos && typeof cargarPedidos === 'function') cargarPedidos(function(){ updatePedidosBadge(); }); else updatePedidosBadge(); } catch(e){}
+  try { actualizarSidebarExtra(); } catch(e){}
   try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch(e){}
   try { if (typeof refreshNotifs === 'function') refreshNotifs(); } catch(e){}
   try { if (typeof renderSidebarLogo === 'function') renderSidebarLogo(); } catch(e){}
@@ -3409,6 +3410,7 @@ function renderInicioNuevo() {
   try { renderListasSinAvisar(); } catch (e) {}
   try { if (window._cobrosPend === undefined) cargarConfirmacionesPend(); else renderConfirmacionesPend(); } catch (e) {}
   try { renderInicioChips(); } catch (e) {}
+  try { actualizarSidebarExtra(); } catch (e) {}
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
   var reps = DB.reps || [];
   var enRep = reps.filter(function(r) { return ['Pendiente', 'En Proceso', 'En proceso'].indexOf(r.estado) !== -1; });
@@ -3736,6 +3738,45 @@ function updatePedidosBadge() {
     if (!b) return;
     if (n > 0) { b.textContent = n; b.style.display = 'inline-flex'; } else { b.style.display = 'none'; }
   });
+}
+// Quick-win sidebar: mini-stats HOY + badges inteligentes (atrasadas, deuda a proveedores).
+function renderSidebarHoy() {
+  var box = document.getElementById('sidebarHoy'); if (!box) return;
+  var reps = DB.reps || [];
+  var pend = reps.filter(function(r) { return ['Pendiente', 'En Proceso', 'En proceso'].indexOf(r.estado) !== -1; }).length;
+  var puedeDinero = (typeof puedeVerCaja === 'function') ? puedeVerCaja() : _esAdmin();
+  var celdas = '';
+  if (puedeDinero) {
+    var cobrado = 0; try { cobrado = _invIncome(hoyLocal(), hoyLocal()); } catch (e) { cobrado = 0; }
+    celdas += '<div class="sb-hoy-cell"><div class="sb-hoy-val">' + cur(cobrado) + '</div><div class="sb-hoy-lbl">' + T('sb.cobrado') + '</div></div>';
+  }
+  celdas += '<div class="sb-hoy-cell"><div class="sb-hoy-val">' + pend + '</div><div class="sb-hoy-lbl">' + T('sb.reps_pend') + '</div></div>';
+  box.innerHTML = '<div class="sb-hoy-label">📊 ' + T('sb.hoy') + '</div><div class="sb-hoy-grid' + (puedeDinero ? '' : ' one') + '">' + celdas + '</div>';
+  box.style.display = 'block';
+}
+function actualizarBadgeReps() {
+  var b = document.getElementById('badgeRepsAtras'); if (!b) return;
+  var finDia = new Date(hoyLocal() + 'T23:59:59');
+  var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
+  var n = (DB.reps || []).filter(function(r) {
+    if (CERR.indexOf(r.estado) !== -1) return false;
+    var f = r.fecha || r.fecha_entrada; if (!f) return false;
+    return Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000) > 14;
+  }).length;
+  if (n > 0) { b.textContent = '⚠ ' + n; b.style.display = 'inline-flex'; } else { b.style.display = 'none'; }
+}
+function actualizarBadgeDeuda() {
+  var b = document.getElementById('badgeDeuda'); if (!b) return;
+  if (!_esAdmin()) { b.style.display = 'none'; return; }
+  var map = (typeof _deudaProveedores === 'function') ? _deudaProveedores() : {};
+  var total = Object.keys(map).reduce(function(a, k) { return a + (map[k] || 0); }, 0);
+  (DB.gastos || []).forEach(function(g) { if ((g.estado || 'Pagado') === 'Pendiente') total += (parseFloat(g.importe) || 0); });
+  if (total > 0.5) { b.textContent = cur(total); b.style.display = 'inline-flex'; } else { b.style.display = 'none'; }
+}
+function actualizarSidebarExtra() {
+  try { renderSidebarHoy(); } catch (e) {}
+  try { actualizarBadgeReps(); } catch (e) {}
+  try { actualizarBadgeDeuda(); } catch (e) {}
 }
 function setPedFiltro(f) { window._pedFiltro = f; renderPedidosPage(); }
 // Badge de estado de pago para una línea de pedido (vacío si está pagado)
