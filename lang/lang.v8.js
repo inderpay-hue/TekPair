@@ -4435,3 +4435,11 @@ de:{'cita.detalle_titulo':'📅 Termindetails','cita.llamar':'Anrufen','cita.not
 pt:{'cita.detalle_titulo':'📅 Detalhe da marcação','cita.llamar':'Ligar','cita.nota_cliente':'Nota do cliente','cita.crear_rep':'Criar reparação','cita.eliminar':'Eliminar marcação','notif.stock_bajo':'Stock baixo','notif.uds_min':'un. (mín {min})'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 (function(){var _a={es:{'backup.generando':'⏳ Generando backup...'},en:{'backup.generando':'⏳ Generating backup...'},fr:{'backup.generando':'⏳ Génération de la sauvegarde...'},it:{'backup.generando':'⏳ Generazione backup...'},de:{'backup.generando':'⏳ Backup wird erstellt...'},pt:{'backup.generando':'⏳ A gerar backup...'}};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{'dash.reps_pendientes':'🔧 Reparaciones pendientes','dash.mas':'más','dash.sin_pendientes':'No hay reparaciones pendientes','dash.orden_guardado':'Orden guardado ✓'},
+en:{'dash.reps_pendientes':'🔧 Pending repairs','dash.mas':'more','dash.sin_pendientes':'No pending repairs','dash.orden_guardado':'Order saved ✓'},
+fr:{'dash.reps_pendientes':'🔧 Réparations en attente','dash.mas':'de plus','dash.sin_pendientes':'Aucune réparation en attente','dash.orden_guardado':'Ordre enregistré ✓'},
+it:{'dash.reps_pendientes':'🔧 Riparazioni in sospeso','dash.mas':'in più','dash.sin_pendientes':'Nessuna riparazione in sospeso','dash.orden_guardado':'Ordine salvato ✓'},
+de:{'dash.reps_pendientes':'🔧 Offene Reparaturen','dash.mas':'mehr','dash.sin_pendientes':'Keine offenen Reparaturen','dash.orden_guardado':'Reihenfolge gespeichert ✓'},
+pt:{'dash.reps_pendientes':'🔧 Reparações pendentes','dash.mas':'mais','dash.sin_pendientes':'Sem reparações pendentes','dash.orden_guardado':'Ordem guardada ✓'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
