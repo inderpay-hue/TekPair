@@ -128,6 +128,36 @@
 <script>
 'use strict';
 
+// ═══ i18n (página pública multi-idioma) ═══
+var SUP_LANGS = ['es','en','fr','it','de','pt'];
+var LANG = (function(){
+  var q = (new URLSearchParams(location.search)).get('lang');
+  if (q && SUP_LANGS.indexOf(q) !== -1) { try{localStorage.setItem('tk_cita_lang',q);}catch(e){} return q; }
+  try { var s = localStorage.getItem('tk_cita_lang'); if (s && SUP_LANGS.indexOf(s)!==-1) return s; } catch(e){}
+  var n = (navigator.language || 'es').slice(0,2).toLowerCase();
+  return SUP_LANGS.indexOf(n) !== -1 ? n : 'es';
+})();
+document.documentElement.lang = LANG;
+var TX = {
+  es:{cargando:"Cargando...",sub:"Reserva tu cita en menos de un minuto",gestionadas:"Reservas gestionadas por",err_falta_slug:"Falta el código de tienda en la URL. Pídele el link correcto al establecimiento.",err_no_encontrada:"Tienda no encontrada. Verifica el link.",err_no_cargar:"No se pudo cargar la información:",algo_mal:"Algo no va bien",p1_titulo:"📋 ¿Qué necesitas?",desde:"desde",a_consultar:"A consultar",otro:"📝 Otro / consultar",otro_desc:"Describe tu problema en el siguiente paso",continuar:"Continuar →",p2_fecha:"📅 Elige fecha",p2_hora:"⏰ Elige hora",atras:"← Atrás",cerrado_dia:"Cerrado este día",sin_horarios:"Sin horarios disponibles",manana:"☀️ Mañana",tarde:"🌅 Tarde",horario:"⏰ Horario",err_horarios:"Error cargando horarios:",p3_datos:"👤 Tus datos",nombre_completo:"Nombre completo *",ph_nombre:"Tu nombre",telefono:"Teléfono *",email_opt:"Email (opcional)",p3_disp:"📱 Tu dispositivo (opcional)",marca:"Marca",modelo:"Modelo",detalles:"Detalles del problema",ph_detalles:"Cuéntanos lo que le pasa",tu_cita:"Tu cita",consulta:"Consulta",a_las:"a las",confirmar:"Confirmar reserva ✓",guardando:"Guardando...",cita_reservada:"¡Cita reservada!",te_esperamos:"Te esperamos en",servicio:"Servicio",fecha:"Fecha",hora:"Hora",direccion:"Dirección",telefono_l:"Teléfono",codigo:"Código",si_no_puedes:"Si no puedes venir, llámanos para cancelar.",wa_confirmar:"💬 Confirmar por WhatsApp",wa_msg:"Hola, he reservado una cita para el {f} a las {h}. Mi nombre es {n}.",reservar_otra:"Reservar otra cita",err_obligatorios:"Nombre y teléfono son obligatorios.",err_no_guardar:"No se pudo guardar:",dow:"L,M,X,J,V,S,D",sv_pantalla:"Cambio de pantalla",sv_bateria:"Cambio de batería",sv_carga:"No carga / problema de carga",sv_carga_short:"Problema de carga",sv_agua:"Líquidos / humedad",sv_diagnostico:"Diagnóstico (no sé qué le pasa)",sv_diagnostico_short:"Diagnóstico",cat_frecuente:"Reparación frecuente",cat_diagnostico:"Diagnóstico",nm_consultar:"Consultar"},
+  en:{cargando:"Loading...",sub:"Book your appointment in under a minute",gestionadas:"Bookings managed by",err_falta_slug:"The shop code is missing from the URL. Ask the shop for the correct link.",err_no_encontrada:"Shop not found. Check the link.",err_no_cargar:"Could not load the information:",algo_mal:"Something went wrong",p1_titulo:"📋 What do you need?",desde:"from",a_consultar:"On request",otro:"📝 Other / enquire",otro_desc:"Describe your issue in the next step",continuar:"Continue →",p2_fecha:"📅 Choose a date",p2_hora:"⏰ Choose a time",atras:"← Back",cerrado_dia:"Closed this day",sin_horarios:"No available times",manana:"☀️ Morning",tarde:"🌅 Afternoon",horario:"⏰ Hours",err_horarios:"Error loading hours:",p3_datos:"👤 Your details",nombre_completo:"Full name *",ph_nombre:"Your name",telefono:"Phone *",email_opt:"Email (optional)",p3_disp:"📱 Your device (optional)",marca:"Brand",modelo:"Model",detalles:"Problem details",ph_detalles:"Tell us what's wrong",tu_cita:"Your appointment",consulta:"Enquiry",a_las:"at",confirmar:"Confirm booking ✓",guardando:"Saving...",cita_reservada:"Appointment booked!",te_esperamos:"We'll see you at",servicio:"Service",fecha:"Date",hora:"Time",direccion:"Address",telefono_l:"Phone",codigo:"Code",si_no_puedes:"If you can't make it, call us to cancel.",wa_confirmar:"💬 Confirm via WhatsApp",wa_msg:"Hi, I've booked an appointment for {f} at {h}. My name is {n}.",reservar_otra:"Book another appointment",err_obligatorios:"Name and phone are required.",err_no_guardar:"Could not save:",dow:"M,T,W,T,F,S,S",sv_pantalla:"Screen replacement",sv_bateria:"Battery replacement",sv_carga:"Not charging / charging issue",sv_carga_short:"Charging issue",sv_agua:"Liquid / water damage",sv_diagnostico:"Diagnosis (not sure what's wrong)",sv_diagnostico_short:"Diagnosis",cat_frecuente:"Common repair",cat_diagnostico:"Diagnosis",nm_consultar:"Enquiry"},
+  fr:{cargando:"Chargement...",sub:"Réservez votre rendez-vous en moins d'une minute",gestionadas:"Réservations gérées par",err_falta_slug:"Le code de la boutique manque dans l'URL. Demandez le bon lien à l'établissement.",err_no_encontrada:"Boutique introuvable. Vérifiez le lien.",err_no_cargar:"Impossible de charger les informations :",algo_mal:"Un problème est survenu",p1_titulo:"📋 De quoi avez-vous besoin ?",desde:"à partir de",a_consultar:"Sur demande",otro:"📝 Autre / demande",otro_desc:"Décrivez votre problème à l'étape suivante",continuar:"Continuer →",p2_fecha:"📅 Choisissez une date",p2_hora:"⏰ Choisissez une heure",atras:"← Retour",cerrado_dia:"Fermé ce jour",sin_horarios:"Aucun horaire disponible",manana:"☀️ Matin",tarde:"🌅 Après-midi",horario:"⏰ Horaires",err_horarios:"Erreur de chargement des horaires :",p3_datos:"👤 Vos coordonnées",nombre_completo:"Nom complet *",ph_nombre:"Votre nom",telefono:"Téléphone *",email_opt:"E-mail (facultatif)",p3_disp:"📱 Votre appareil (facultatif)",marca:"Marque",modelo:"Modèle",detalles:"Détails du problème",ph_detalles:"Dites-nous ce qui ne va pas",tu_cita:"Votre rendez-vous",consulta:"Demande",a_las:"à",confirmar:"Confirmer la réservation ✓",guardando:"Enregistrement...",cita_reservada:"Rendez-vous réservé !",te_esperamos:"Nous vous attendons chez",servicio:"Service",fecha:"Date",hora:"Heure",direccion:"Adresse",telefono_l:"Téléphone",codigo:"Code",si_no_puedes:"Si vous ne pouvez pas venir, appelez-nous pour annuler.",wa_confirmar:"💬 Confirmer via WhatsApp",wa_msg:"Bonjour, j'ai réservé un rendez-vous le {f} à {h}. Je m'appelle {n}.",reservar_otra:"Réserver un autre rendez-vous",err_obligatorios:"Le nom et le téléphone sont obligatoires.",err_no_guardar:"Impossible d'enregistrer :",dow:"L,M,M,J,V,S,D",sv_pantalla:"Remplacement d'écran",sv_bateria:"Remplacement de batterie",sv_carga:"Ne charge pas / problème de charge",sv_carga_short:"Problème de charge",sv_agua:"Liquides / humidité",sv_diagnostico:"Diagnostic (je ne sais pas ce qu'il a)",sv_diagnostico_short:"Diagnostic",cat_frecuente:"Réparation fréquente",cat_diagnostico:"Diagnostic",nm_consultar:"Demande"},
+  it:{cargando:"Caricamento...",sub:"Prenota il tuo appuntamento in meno di un minuto",gestionadas:"Prenotazioni gestite da",err_falta_slug:"Manca il codice del negozio nell'URL. Chiedi il link corretto al negozio.",err_no_encontrada:"Negozio non trovato. Controlla il link.",err_no_cargar:"Impossibile caricare le informazioni:",algo_mal:"Qualcosa è andato storto",p1_titulo:"📋 Di cosa hai bisogno?",desde:"da",a_consultar:"Su richiesta",otro:"📝 Altro / richiesta",otro_desc:"Descrivi il problema nel passaggio successivo",continuar:"Continua →",p2_fecha:"📅 Scegli una data",p2_hora:"⏰ Scegli un orario",atras:"← Indietro",cerrado_dia:"Chiuso questo giorno",sin_horarios:"Nessun orario disponibile",manana:"☀️ Mattina",tarde:"🌅 Pomeriggio",horario:"⏰ Orari",err_horarios:"Errore nel caricamento degli orari:",p3_datos:"👤 I tuoi dati",nombre_completo:"Nome completo *",ph_nombre:"Il tuo nome",telefono:"Telefono *",email_opt:"Email (facoltativo)",p3_disp:"📱 Il tuo dispositivo (facoltativo)",marca:"Marca",modelo:"Modello",detalles:"Dettagli del problema",ph_detalles:"Dicci cosa non va",tu_cita:"Il tuo appuntamento",consulta:"Richiesta",a_las:"alle",confirmar:"Conferma prenotazione ✓",guardando:"Salvataggio...",cita_reservada:"Appuntamento prenotato!",te_esperamos:"Ti aspettiamo da",servicio:"Servizio",fecha:"Data",hora:"Ora",direccion:"Indirizzo",telefono_l:"Telefono",codigo:"Codice",si_no_puedes:"Se non puoi venire, chiamaci per annullare.",wa_confirmar:"💬 Conferma via WhatsApp",wa_msg:"Ciao, ho prenotato un appuntamento per il {f} alle {h}. Mi chiamo {n}.",reservar_otra:"Prenota un altro appuntamento",err_obligatorios:"Nome e telefono sono obbligatori.",err_no_guardar:"Impossibile salvare:",dow:"L,M,M,G,V,S,D",sv_pantalla:"Sostituzione schermo",sv_bateria:"Sostituzione batteria",sv_carga:"Non carica / problema di ricarica",sv_carga_short:"Problema di ricarica",sv_agua:"Liquidi / umidità",sv_diagnostico:"Diagnosi (non so cosa abbia)",sv_diagnostico_short:"Diagnosi",cat_frecuente:"Riparazione frequente",cat_diagnostico:"Diagnosi",nm_consultar:"Richiesta"},
+  de:{cargando:"Lädt...",sub:"Buche deinen Termin in unter einer Minute",gestionadas:"Buchungen verwaltet von",err_falta_slug:"Der Shop-Code fehlt in der URL. Bitte den richtigen Link beim Geschäft erfragen.",err_no_encontrada:"Geschäft nicht gefunden. Überprüfe den Link.",err_no_cargar:"Informationen konnten nicht geladen werden:",algo_mal:"Etwas ist schiefgelaufen",p1_titulo:"📋 Was brauchst du?",desde:"ab",a_consultar:"Auf Anfrage",otro:"📝 Sonstiges / Anfrage",otro_desc:"Beschreibe dein Problem im nächsten Schritt",continuar:"Weiter →",p2_fecha:"📅 Datum wählen",p2_hora:"⏰ Uhrzeit wählen",atras:"← Zurück",cerrado_dia:"An diesem Tag geschlossen",sin_horarios:"Keine Zeiten verfügbar",manana:"☀️ Vormittag",tarde:"🌅 Nachmittag",horario:"⏰ Öffnungszeiten",err_horarios:"Fehler beim Laden der Zeiten:",p3_datos:"👤 Deine Daten",nombre_completo:"Vollständiger Name *",ph_nombre:"Dein Name",telefono:"Telefon *",email_opt:"E-Mail (optional)",p3_disp:"📱 Dein Gerät (optional)",marca:"Marke",modelo:"Modell",detalles:"Details zum Problem",ph_detalles:"Sag uns, was nicht stimmt",tu_cita:"Dein Termin",consulta:"Anfrage",a_las:"um",confirmar:"Buchung bestätigen ✓",guardando:"Speichern...",cita_reservada:"Termin gebucht!",te_esperamos:"Wir erwarten dich bei",servicio:"Service",fecha:"Datum",hora:"Uhrzeit",direccion:"Adresse",telefono_l:"Telefon",codigo:"Code",si_no_puedes:"Wenn du nicht kommen kannst, ruf uns zum Stornieren an.",wa_confirmar:"💬 Per WhatsApp bestätigen",wa_msg:"Hallo, ich habe einen Termin für {f} um {h} gebucht. Mein Name ist {n}.",reservar_otra:"Weiteren Termin buchen",err_obligatorios:"Name und Telefon sind erforderlich.",err_no_guardar:"Konnte nicht gespeichert werden:",dow:"M,D,M,D,F,S,S",sv_pantalla:"Displaytausch",sv_bateria:"Akkutausch",sv_carga:"Lädt nicht / Ladeproblem",sv_carga_short:"Ladeproblem",sv_agua:"Flüssigkeit / Feuchtigkeit",sv_diagnostico:"Diagnose (weiß nicht, was los ist)",sv_diagnostico_short:"Diagnose",cat_frecuente:"Häufige Reparatur",cat_diagnostico:"Diagnose",nm_consultar:"Anfrage"},
+  pt:{cargando:"A carregar...",sub:"Reserva a tua marcação em menos de um minuto",gestionadas:"Marcações geridas por",err_falta_slug:"Falta o código da loja no URL. Pede o link correto ao estabelecimento.",err_no_encontrada:"Loja não encontrada. Verifica o link.",err_no_cargar:"Não foi possível carregar a informação:",algo_mal:"Algo correu mal",p1_titulo:"📋 Do que precisas?",desde:"desde",a_consultar:"Sob consulta",otro:"📝 Outro / consultar",otro_desc:"Descreve o teu problema no passo seguinte",continuar:"Continuar →",p2_fecha:"📅 Escolhe a data",p2_hora:"⏰ Escolhe a hora",atras:"← Voltar",cerrado_dia:"Fechado neste dia",sin_horarios:"Sem horários disponíveis",manana:"☀️ Manhã",tarde:"🌅 Tarde",horario:"⏰ Horário",err_horarios:"Erro ao carregar horários:",p3_datos:"👤 Os teus dados",nombre_completo:"Nome completo *",ph_nombre:"O teu nome",telefono:"Telefone *",email_opt:"Email (opcional)",p3_disp:"📱 O teu dispositivo (opcional)",marca:"Marca",modelo:"Modelo",detalles:"Detalhes do problema",ph_detalles:"Diz-nos o que se passa",tu_cita:"A tua marcação",consulta:"Consulta",a_las:"às",confirmar:"Confirmar marcação ✓",guardando:"A guardar...",cita_reservada:"Marcação reservada!",te_esperamos:"Esperamos por ti em",servicio:"Serviço",fecha:"Data",hora:"Hora",direccion:"Morada",telefono_l:"Telefone",codigo:"Código",si_no_puedes:"Se não puderes vir, liga-nos para cancelar.",wa_confirmar:"💬 Confirmar por WhatsApp",wa_msg:"Olá, reservei uma marcação para {f} às {h}. O meu nome é {n}.",reservar_otra:"Reservar outra marcação",err_obligatorios:"Nome e telefone são obrigatórios.",err_no_guardar:"Não foi possível guardar:",dow:"S,T,Q,Q,S,S,D",sv_pantalla:"Substituição de ecrã",sv_bateria:"Substituição de bateria",sv_carga:"Não carrega / problema de carga",sv_carga_short:"Problema de carga",sv_agua:"Líquidos / humidade",sv_diagnostico:"Diagnóstico (não sei o que tem)",sv_diagnostico_short:"Diagnóstico",cat_frecuente:"Reparação frequente",cat_diagnostico:"Diagnóstico",nm_consultar:"Consulta"}
+};
+function T(k){ var d = TX[LANG] || TX.es; return (d[k] != null ? d[k] : (TX.es[k] != null ? TX.es[k] : k)); }
+function setLang(l){ if (SUP_LANGS.indexOf(l) === -1) return; try{localStorage.setItem('tk_cita_lang',l);}catch(e){} LANG = l; document.documentElement.lang = l; if (typeof renderApp === 'function' && STATE.tienda) renderApp(); }
+function langSelectorHTML(){
+  var flags = {es:'🇪🇸',en:'🇬🇧',fr:'🇫🇷',it:'🇮🇹',de:'🇩🇪',pt:'🇵🇹'};
+  var h = '<div style="display:flex;justify-content:flex-end;gap:4px;margin-bottom:8px">';
+  SUP_LANGS.forEach(function(l){
+    h += '<button onclick="setLang(\'' + l + '\')" title="' + l.toUpperCase() + '" style="border:1.5px solid ' + (l===LANG?'var(--green)':'var(--border)') + ';background:' + (l===LANG?'rgba(194,65,12,.08)':'var(--white)') + ';border-radius:8px;width:30px;height:28px;cursor:pointer;font-size:14px;line-height:1;padding:0">' + flags[l] + '</button>';
+  });
+  return h + '</div>';
+}
+(function(){ var il = document.querySelector('#initLoad div:last-child'); if (il) il.textContent = T('cargando'); try{ document.title = ({es:'Reservar cita',en:'Book appointment',fr:'Prendre rendez-vous',it:'Prenota appuntamento',de:'Termin buchen',pt:'Reservar marcação'})[LANG] || 'Book appointment'; }catch(e){} })();
+
 // ═══ CONFIG ═══
 // Endpoint backend — toda la lógica pasa por aquí, ya no se accede a Supabase directo
 var API_URL = '/api/citas-publicas';
@@ -160,7 +190,7 @@ function pad(n){ return String(n).padStart(2,'0'); }
 function fmtFecha(yyyymmdd) {
   var p = yyyymmdd.split('-');
   var d = new Date(p[0], p[1]-1, p[2]);
-  return d.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+  return d.toLocaleDateString(LANG, {weekday:'long', day:'numeric', month:'long', year:'numeric'});
 }
 
 // Llamada al endpoint backend
@@ -174,7 +204,7 @@ async function apiCall(action, body) {
     body: JSON.stringify(body)
   });
   var data = null;
-  try { data = await r.json(); } catch(e) { data = {ok:false, error:'Respuesta no válida'}; }
+  try { data = await r.json(); } catch(e) { data = {ok:false, error:'Invalid response'}; }
   if (!r.ok || !data.ok) {
     var msg = (data && data.error) || ('Error ' + r.status);
     var err = new Error(msg);
@@ -187,7 +217,7 @@ async function apiCall(action, body) {
 // ═══ INIT ═══
 async function init() {
   if (!SLUG) {
-    showError('Falta el código de tienda en la URL. Pídele el link correcto al establecimiento.');
+    showError(T('err_falta_slug'));
     return;
   }
 
@@ -204,28 +234,29 @@ async function init() {
     renderApp();
   } catch(e) {
     if (e.status === 404) {
-      showError('Tienda no encontrada. Verifica el link.');
+      showError(T('err_no_encontrada'));
     } else {
-      showError('No se pudo cargar la información: ' + e.message);
+      showError(T('err_no_cargar') + ' ' + e.message);
     }
   }
 }
 
 function showError(msg) {
-  $('#app').innerHTML = '<div class="head"><div class="head-logo">⚠️</div><h1>Algo no va bien</h1></div><div class="card"><div class="err">' + esc(msg) + '</div></div>';
+  $('#app').innerHTML = langSelectorHTML() + '<div class="head"><div class="head-logo">⚠️</div><h1>' + T('algo_mal') + '</h1></div><div class="card"><div class="err">' + esc(msg) + '</div></div>';
 }
 
 // ═══ RENDER ═══
 function renderApp() {
   var t = STATE.tienda;
-  var html = '<div class="head">';
+  var html = langSelectorHTML();
+  html += '<div class="head">';
   if (t.logo_url) {
     html += '<div class="head-logo"><img src="' + esc(t.logo_url) + '" alt=""></div>';
   } else {
     html += '<div class="head-logo" style="background:var(--green);width:64px;height:64px;border-radius:16px;display:flex;align-items:center;justify-content:center;margin:0 auto 14px;box-shadow:0 8px 24px rgba(194,65,12,.3)"><svg width="32" height="32" viewBox="0 0 24 24" fill="white"><path d="M13 2L4 14h6l-1 8 11-13h-7z"/></svg></div>';
   }
-  html += '<h1>' + esc(t.nombre || 'Reservar cita') + '</h1>';
-  html += '<div class="sub">Reserva tu cita en menos de un minuto</div>';
+  html += '<h1>' + esc(t.nombre || 'TekPair') + '</h1>';
+  html += '<div class="sub">' + T('sub') + '</div>';
   html += '</div>';
 
   // Stepper
@@ -241,14 +272,14 @@ function renderApp() {
   else if (STATE.paso === 3) html += renderPaso3();
   else if (STATE.paso === 4) html += renderPaso4();
 
-  html += '<div class="ft"><svg width="14" height="14" viewBox="0 0 24 24" fill="var(--green)"><path d="M13 2L4 14h6l-1 8 11-13h-7z"/></svg> Reservas gestionadas por <strong>TekPair</strong></div>';
+  html += '<div class="ft"><svg width="14" height="14" viewBox="0 0 24 24" fill="var(--green)"><path d="M13 2L4 14h6l-1 8 11-13h-7z"/></svg> ' + T('gestionadas') + ' <strong>TekPair</strong></div>';
 
   $('#app').innerHTML = html;
   attachHandlers();
 }
 
 function renderPaso1() {
-  var html = '<div class="card"><div class="card-title">📋 ¿Qué necesitas?</div>';
+  var html = '<div class="card"><div class="card-title">' + T('p1_titulo') + '</div>';
   html += '<div class="srv-list">';
 
   STATE.servicios.forEach(function(s) {
@@ -258,54 +289,54 @@ function renderPaso1() {
     if (s.categoria) html += '<div class="srv-item-cat">' + esc(s.categoria) + '</div>';
     html += '</div>';
     if (s.precio_fijo && s.precio > 0) {
-      html += '<div class="srv-item-price">desde ' + parseFloat(s.precio).toFixed(0) + ' €</div>';
+      html += '<div class="srv-item-price">' + T('desde') + ' ' + parseFloat(s.precio).toFixed(0) + ' €</div>';
     } else {
-      html += '<div class="srv-item-price" style="color:var(--muted);font-size:11px">A consultar</div>';
+      html += '<div class="srv-item-price" style="color:var(--muted);font-size:11px">' + T('a_consultar') + '</div>';
     }
     html += '</div>';
   });
 
   if (!STATE.servicios.length) {
     var genericos = [
-      {id:'__pantalla__', nombre:'Cambio de pantalla', cat:'Reparación frecuente'},
-      {id:'__bateria__', nombre:'Cambio de batería', cat:'Reparación frecuente'},
-      {id:'__carga__', nombre:'No carga / problema de carga', cat:'Diagnóstico'},
-      {id:'__agua__', nombre:'Líquidos / humedad', cat:'Diagnóstico'},
-      {id:'__diagnostico__', nombre:'Diagnóstico (no sé qué le pasa)', cat:'Diagnóstico'}
+      {id:'__pantalla__', nombre:T('sv_pantalla'), cat:T('cat_frecuente')},
+      {id:'__bateria__', nombre:T('sv_bateria'), cat:T('cat_frecuente')},
+      {id:'__carga__', nombre:T('sv_carga'), cat:T('cat_diagnostico')},
+      {id:'__agua__', nombre:T('sv_agua'), cat:T('cat_diagnostico')},
+      {id:'__diagnostico__', nombre:T('sv_diagnostico'), cat:T('cat_diagnostico')}
     ];
     genericos.forEach(function(g) {
       var sel = STATE.servicio && STATE.servicio.id === g.id ? 'selected' : '';
       html += '<div class="srv-item ' + sel + '" data-srv="' + g.id + '">';
       html += '<div><div class="srv-item-name">' + esc(g.nombre) + '</div>';
       html += '<div class="srv-item-cat">' + esc(g.cat) + '</div></div>';
-      html += '<div class="srv-item-price" style="color:var(--muted);font-size:11px">A consultar</div>';
+      html += '<div class="srv-item-price" style="color:var(--muted);font-size:11px">' + T('a_consultar') + '</div>';
       html += '</div>';
     });
   }
 
   html += '<div class="srv-item ' + (STATE.servicio && STATE.servicio.id === '__otro__' ? 'selected' : '') + '" data-srv="__otro__">';
-  html += '<div><div class="srv-item-name">📝 Otro / consultar</div>';
-  html += '<div class="srv-item-cat">Describe tu problema en el siguiente paso</div></div>';
+  html += '<div><div class="srv-item-name">' + T('otro') + '</div>';
+  html += '<div class="srv-item-cat">' + T('otro_desc') + '</div></div>';
   html += '</div>';
 
   html += '</div></div>';
-  html += '<button class="btn btn-primary" id="btnSiguiente1" ' + (!STATE.servicio ? 'disabled' : '') + '>Continuar →</button>';
+  html += '<button class="btn btn-primary" id="btnSiguiente1" ' + (!STATE.servicio ? 'disabled' : '') + '>' + T('continuar') + '</button>';
   return html;
 }
 
 function renderPaso2() {
-  var html = '<div class="card"><div class="card-title">📅 Elige fecha</div>';
+  var html = '<div class="card"><div class="card-title">' + T('p2_fecha') + '</div>';
   html += renderCalendario();
   html += '</div>';
 
   if (STATE.fecha) {
-    html += '<div class="card"><div class="card-title">⏰ Elige hora</div>';
+    html += '<div class="card"><div class="card-title">' + T('p2_hora') + '</div>';
     html += '<div id="slotsBox"><div class="loading-spinner" style="width:24px;height:24px;border-width:2px"></div></div>';
     html += '</div>';
   }
 
-  html += '<button class="btn btn-secondary" id="btnAtras2">← Atrás</button>';
-  html += '<button class="btn btn-primary" id="btnSiguiente2" ' + (!STATE.fecha || !STATE.hora ? 'disabled' : '') + '>Continuar →</button>';
+  html += '<button class="btn btn-secondary" id="btnAtras2">' + T('atras') + '</button>';
+  html += '<button class="btn btn-primary" id="btnSiguiente2" ' + (!STATE.fecha || !STATE.hora ? 'disabled' : '') + '>' + T('continuar') + '</button>';
   return html;
 }
 
@@ -314,7 +345,7 @@ function renderCalendario() {
   hoy.setHours(0,0,0,0);
   var año = STATE.calAño, mes = STATE.calMes;
   var fechaActual = new Date(año, mes, 1);
-  var nombreMes = fechaActual.toLocaleDateString('es', {month:'long', year:'numeric'});
+  var nombreMes = fechaActual.toLocaleDateString(LANG, {month:'long', year:'numeric'});
   var firstDay = (new Date(año, mes, 1).getDay() + 6) % 7;
   var daysInMonth = new Date(año, mes+1, 0).getDate();
   var maxAño = hoy.getFullYear(), maxMes = hoy.getMonth() + 2;
@@ -328,7 +359,7 @@ function renderCalendario() {
   html += '<button class="cal-nav" id="calNext" ' + (puedeAdelante ? '' : 'disabled') + '>›</button>';
   html += '</div>';
   html += '<div class="cal-grid">';
-  ['L','M','X','J','V','S','D'].forEach(function(d){ html += '<div class="cal-dow">' + d + '</div>'; });
+  T('dow').split(',').forEach(function(d){ html += '<div class="cal-dow">' + d + '</div>'; });
   for (var i = 0; i < firstDay; i++) html += '<div class="cal-day empty"></div>';
   for (var d = 1; d <= daysInMonth; d++) {
     var fecha = new Date(año, mes, d);
@@ -389,7 +420,7 @@ async function cargarSlots() {
     var dow = (new Date(p[0], p[1]-1, p[2]).getDay() + 6) % 7;
     var hor = horarios[dow];
     if (!hor || !hor.abierto || !hor.tramos || !hor.tramos.length) {
-      box.innerHTML = '<div class="empty">Cerrado este día</div>';
+      box.innerHTML = '<div class="empty">' + T('cerrado_dia') + '</div>';
       return;
     }
     var cfg = STATE.tienda.citas_config;
@@ -415,7 +446,7 @@ async function cargarSlots() {
     var horaAhora = ahora.getHours()*60 + ahora.getMinutes();
 
     if (!slots.length) {
-      box.innerHTML = '<div class="empty">Sin horarios disponibles</div>';
+      box.innerHTML = '<div class="empty">' + T('sin_horarios') + '</div>';
       return;
     }
 
@@ -424,8 +455,8 @@ async function cargarSlots() {
     slots.forEach(function(s, idx) {
       if (s.tramo !== tramoActual) {
         if (tramoActual !== -1) html += '</div>';
-        var lbl = s.tramo === 0 ? '☀️ Mañana' : '🌅 Tarde';
-        if (hor.tramos.length === 1) lbl = '⏰ Horario';
+        var lbl = s.tramo === 0 ? T('manana') : T('tarde');
+        if (hor.tramos.length === 1) lbl = T('horario');
         html += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:' + (idx === 0 ? '0' : '14px') + ' 0 6px">' + lbl + '</div>';
         html += '<div class="slots-grid">';
         tramoActual = s.tramo;
@@ -445,32 +476,32 @@ async function cargarSlots() {
       });
     });
   } catch(e) {
-    box.innerHTML = '<div class="err">Error cargando horarios: ' + esc(e.message) + '</div>';
+    box.innerHTML = '<div class="err">' + T('err_horarios') + ' ' + esc(e.message) + '</div>';
   }
 }
 
 function renderPaso3() {
-  var html = '<div class="card"><div class="card-title">👤 Tus datos</div>';
-  html += '<div class="fg"><label class="fl">Nombre completo *</label><input class="fi" id="cliNom" placeholder="Tu nombre" value="' + esc(STATE.cliente.nombre) + '"></div>';
-  html += '<div class="fg"><label class="fl">Teléfono *</label><input class="fi" id="cliTel" type="tel" placeholder="600 123 456" value="' + esc(STATE.cliente.tel) + '"></div>';
-  html += '<div class="fg"><label class="fl">Email (opcional)</label><input class="fi" id="cliEmail" type="email" placeholder="tu@email.com" value="' + esc(STATE.cliente.email) + '"></div>';
+  var html = '<div class="card"><div class="card-title">' + T('p3_datos') + '</div>';
+  html += '<div class="fg"><label class="fl">' + T('nombre_completo') + '</label><input class="fi" id="cliNom" placeholder="' + T('ph_nombre') + '" value="' + esc(STATE.cliente.nombre) + '"></div>';
+  html += '<div class="fg"><label class="fl">' + T('telefono') + '</label><input class="fi" id="cliTel" type="tel" placeholder="600 123 456" value="' + esc(STATE.cliente.tel) + '"></div>';
+  html += '<div class="fg"><label class="fl">' + T('email_opt') + '</label><input class="fi" id="cliEmail" type="email" placeholder="tu@email.com" value="' + esc(STATE.cliente.email) + '"></div>';
   html += '</div>';
 
-  html += '<div class="card"><div class="card-title">📱 Tu dispositivo (opcional)</div>';
-  html += '<div class="fg"><label class="fl">Marca</label><input class="fi" id="cliMarca" placeholder="Apple, Samsung..." value="' + esc(STATE.cliente.marca) + '"></div>';
-  html += '<div class="fg"><label class="fl">Modelo</label><input class="fi" id="cliModelo" placeholder="iPhone 14, Galaxy S23..." value="' + esc(STATE.cliente.modelo) + '"></div>';
-  html += '<div class="fg"><label class="fl">Detalles del problema</label><textarea class="fi" id="cliNotas" placeholder="Cuéntanos lo que le pasa">' + esc(STATE.cliente.notas) + '</textarea></div>';
+  html += '<div class="card"><div class="card-title">' + T('p3_disp') + '</div>';
+  html += '<div class="fg"><label class="fl">' + T('marca') + '</label><input class="fi" id="cliMarca" placeholder="Apple, Samsung..." value="' + esc(STATE.cliente.marca) + '"></div>';
+  html += '<div class="fg"><label class="fl">' + T('modelo') + '</label><input class="fi" id="cliModelo" placeholder="iPhone 14, Galaxy S23..." value="' + esc(STATE.cliente.modelo) + '"></div>';
+  html += '<div class="fg"><label class="fl">' + T('detalles') + '</label><textarea class="fi" id="cliNotas" placeholder="' + T('ph_detalles') + '">' + esc(STATE.cliente.notas) + '</textarea></div>';
   html += '</div>';
 
   html += '<div class="card" style="background:rgba(194,65,12,.05);border-color:rgba(194,65,12,.25)">';
-  html += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px">Tu cita</div>';
-  html += '<div style="font-size:14px;font-weight:700;margin-bottom:3px">' + esc(STATE.servicio.nombre || 'Consulta') + '</div>';
-  html += '<div style="font-size:12px;color:var(--muted)">' + fmtFecha(STATE.fecha) + ' a las <strong style="color:var(--text)">' + STATE.hora + '</strong></div>';
+  html += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px">' + T('tu_cita') + '</div>';
+  html += '<div style="font-size:14px;font-weight:700;margin-bottom:3px">' + esc(STATE.servicio.nombre || T('consulta')) + '</div>';
+  html += '<div style="font-size:12px;color:var(--muted)">' + fmtFecha(STATE.fecha) + ' ' + T('a_las') + ' <strong style="color:var(--text)">' + STATE.hora + '</strong></div>';
   html += '</div>';
 
   html += '<div id="errEnvio"></div>';
-  html += '<button class="btn btn-secondary" id="btnAtras3">← Atrás</button>';
-  html += '<button class="btn btn-primary" id="btnConfirmar">Confirmar reserva ✓</button>';
+  html += '<button class="btn btn-secondary" id="btnAtras3">' + T('atras') + '</button>';
+  html += '<button class="btn btn-primary" id="btnConfirmar">' + T('confirmar') + '</button>';
   return html;
 }
 
@@ -478,23 +509,23 @@ function renderPaso4() {
   var c = STATE.citaCreada;
   var html = '<div class="card conf">';
   html += '<div class="conf-icon">✓</div>';
-  html += '<h2>¡Cita reservada!</h2>';
-  html += '<p>Te esperamos en <strong>' + esc(STATE.tienda.nombre) + '</strong></p>';
+  html += '<h2>' + T('cita_reservada') + '</h2>';
+  html += '<p>' + T('te_esperamos') + ' <strong>' + esc(STATE.tienda.nombre) + '</strong></p>';
   html += '<div class="conf-detail">';
-  html += '<div class="conf-detail-row"><span>Servicio</span><span>' + esc(STATE.servicio.nombre) + '</span></div>';
-  html += '<div class="conf-detail-row"><span>Fecha</span><span>' + fmtFecha(STATE.fecha) + '</span></div>';
-  html += '<div class="conf-detail-row"><span>Hora</span><span>' + STATE.hora + '</span></div>';
-  if (STATE.tienda.dir) html += '<div class="conf-detail-row"><span>Dirección</span><span style="font-size:11px;text-align:right">' + esc(STATE.tienda.dir) + '</span></div>';
-  if (STATE.tienda.tel) html += '<div class="conf-detail-row"><span>Teléfono</span><span><a href="tel:' + esc(STATE.tienda.tel) + '" style="color:var(--green);text-decoration:none">' + esc(STATE.tienda.tel) + '</a></span></div>';
-  html += '<div class="conf-detail-row"><span>Código</span><span style="font-family:ui-monospace,monospace;font-size:11px">' + (c && c.id ? c.id.slice(-8).toUpperCase() : '—') + '</span></div>';
+  html += '<div class="conf-detail-row"><span>' + T('servicio') + '</span><span>' + esc(STATE.servicio.nombre) + '</span></div>';
+  html += '<div class="conf-detail-row"><span>' + T('fecha') + '</span><span>' + fmtFecha(STATE.fecha) + '</span></div>';
+  html += '<div class="conf-detail-row"><span>' + T('hora') + '</span><span>' + STATE.hora + '</span></div>';
+  if (STATE.tienda.dir) html += '<div class="conf-detail-row"><span>' + T('direccion') + '</span><span style="font-size:11px;text-align:right">' + esc(STATE.tienda.dir) + '</span></div>';
+  if (STATE.tienda.tel) html += '<div class="conf-detail-row"><span>' + T('telefono_l') + '</span><span><a href="tel:' + esc(STATE.tienda.tel) + '" style="color:var(--green);text-decoration:none">' + esc(STATE.tienda.tel) + '</a></span></div>';
+  html += '<div class="conf-detail-row"><span>' + T('codigo') + '</span><span style="font-family:ui-monospace,monospace;font-size:11px">' + (c && c.id ? c.id.slice(-8).toUpperCase() : '—') + '</span></div>';
   html += '</div>';
-  html += '<p style="font-size:12px;color:var(--muted);margin-bottom:6px">Si no puedes venir, llámanos para cancelar.</p>';
+  html += '<p style="font-size:12px;color:var(--muted);margin-bottom:6px">' + T('si_no_puedes') + '</p>';
   html += '</div>';
   if (STATE.tienda.tel) {
-    var msgWA = encodeURIComponent('Hola, he reservado una cita para el ' + fmtFecha(STATE.fecha) + ' a las ' + STATE.hora + '. Mi nombre es ' + STATE.cliente.nombre + '.');
-    html += '<a href="https://wa.me/34' + STATE.tienda.tel.replace(/\D/g,'') + '?text=' + msgWA + '" target="_blank" style="display:block;width:100%;padding:13px;background:#25D366;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;text-align:center;text-decoration:none;margin-bottom:8px">💬 Confirmar por WhatsApp</a>';
+    var msgWA = encodeURIComponent(T('wa_msg').replace('{f}', fmtFecha(STATE.fecha)).replace('{h}', STATE.hora).replace('{n}', STATE.cliente.nombre));
+    html += '<a href="https://wa.me/34' + STATE.tienda.tel.replace(/\D/g,'') + '?text=' + msgWA + '" target="_blank" style="display:block;width:100%;padding:13px;background:#25D366;color:white;border:none;border-radius:12px;font-size:14px;font-weight:700;text-align:center;text-decoration:none;margin-bottom:8px">' + T('wa_confirmar') + '</a>';
   }
-  html += '<button class="btn btn-secondary" onclick="location.reload()">Reservar otra cita</button>';
+  html += '<button class="btn btn-secondary" onclick="location.reload()">' + T('reservar_otra') + '</button>';
   return html;
 }
 
@@ -505,14 +536,14 @@ function attachHandlers() {
       var sid = this.dataset.srv;
       if (sid && sid.indexOf('__') === 0) {
         var nombres = {
-          '__otro__': 'Consultar',
-          '__pantalla__': 'Cambio de pantalla',
-          '__bateria__': 'Cambio de batería',
-          '__carga__': 'Problema de carga',
-          '__agua__': 'Líquidos / humedad',
-          '__diagnostico__': 'Diagnóstico'
+          '__otro__': T('nm_consultar'),
+          '__pantalla__': T('sv_pantalla'),
+          '__bateria__': T('sv_bateria'),
+          '__carga__': T('sv_carga_short'),
+          '__agua__': T('sv_agua'),
+          '__diagnostico__': T('sv_diagnostico_short')
         };
-        STATE.servicio = {id: sid, nombre: nombres[sid] || 'Consulta', precio: 0};
+        STATE.servicio = {id: sid, nombre: nombres[sid] || T('consulta'), precio: 0};
       } else {
         STATE.servicio = STATE.servicios.find(function(s){ return s.id === sid; });
       }
@@ -556,12 +587,12 @@ async function confirmarCita() {
   STATE.cliente.notas = ($('#cliNotas').value || '').trim();
 
   if (!STATE.cliente.nombre || !STATE.cliente.tel) {
-    $('#errEnvio').innerHTML = '<div class="err">Nombre y teléfono son obligatorios.</div>';
+    $('#errEnvio').innerHTML = '<div class="err">' + T('err_obligatorios') + '</div>';
     return;
   }
 
   var btn = $('#btnConfirmar');
-  if (btn) { btn.disabled = true; btn.textContent = 'Guardando...'; }
+  if (btn) { btn.disabled = true; btn.textContent = T('guardando'); }
 
   var cfg = STATE.tienda.citas_config;
   if (typeof cfg === 'string') {
@@ -586,8 +617,8 @@ async function confirmarCita() {
     STATE.paso = 4;
     renderApp();
   } catch(e) {
-    if (btn) { btn.disabled = false; btn.textContent = 'Confirmar reserva ✓'; }
-    $('#errEnvio').innerHTML = '<div class="err">No se pudo guardar: ' + esc(e.message) + '</div>';
+    if (btn) { btn.disabled = false; btn.textContent = T('confirmar'); }
+    $('#errEnvio').innerHTML = '<div class="err">' + T('err_no_guardar') + ' ' + esc(e.message) + '</div>';
   }
 }
 
