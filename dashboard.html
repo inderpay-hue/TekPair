@@ -603,6 +603,13 @@ button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-vis
 /* ═══ BÚSQUEDA GLOBAL ═══ */
 .sidebar-search-btn{display:flex;align-items:center;gap:8px;margin:8px 16px 12px;padding:8px 10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.10);border-radius:8px;cursor:pointer;color:rgba(255,255,255,.85);transition:background .15s var(--ease)}
 .sidebar-search-btn:hover{background:rgba(255,255,255,.12)}
+.sidebar-hoy{margin:0 16px 12px;padding:10px 12px;background:linear-gradient(135deg,rgba(255,91,31,.14),rgba(255,91,31,.05));border:1px solid rgba(255,91,31,.20);border-radius:10px}
+.sidebar-hoy .sb-hoy-label{font-size:9.5px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:#FDBA74;margin-bottom:7px}
+.sidebar-hoy .sb-hoy-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.sidebar-hoy .sb-hoy-grid.one{grid-template-columns:1fr}
+.sidebar-hoy .sb-hoy-cell{min-width:0}
+.sidebar-hoy .sb-hoy-val{font-size:15px;font-weight:800;color:#fff;line-height:1.1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.sidebar-hoy .sb-hoy-lbl{font-size:10px;color:rgba(255,255,255,.55);margin-top:1px}
 .kbd{display:inline-block;background:white;border:1px solid var(--border);padding:1px 6px;border-radius:4px;font-size:10px;font-family:ui-monospace,'SF Mono',monospace;color:var(--muted)}
 .kbd-dark{display:inline-block;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.15);padding:1px 6px;border-radius:4px;font-size:10px;font-family:ui-monospace,'SF Mono',monospace;color:rgba(255,255,255,.7)}
 .search-global-modal{position:fixed;inset:0;background:rgba(2,11,46,.55);backdrop-filter:blur(6px);z-index:1000;display:none;align-items:flex-start;justify-content:center;padding:80px 16px 16px}
@@ -976,7 +983,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260622zi"></script>
+<script src="/lang/lang.v8.js?v=20260622zj"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -1004,6 +1011,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <span style="flex:1;font-size:12px;color:rgba(255,255,255,.5)">Buscar...</span>
     <span class="kbd-dark">⌘K</span>
   </div>
+  <div id="sidebarHoy" class="sidebar-hoy" style="display:none"></div>
   <div class="sidebar-nav">
     <div class="sidebar-group"><span data-t="nav.grupo_operacion">Operación</span></div>
     <div class="sidebar-ni active" data-p="pInicioNuevo" onclick="navTo('pInicioNuevo');setSidebarActive(this)">
@@ -1016,7 +1024,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span><span data-t="nav.ventas">Ventas</span>
     </div>
     <div class="sidebar-ni" data-p="pReps" onclick="navTo('pReps');setSidebarActive(this)">
-      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span><span data-t="nav.reparaciones">Reparaciones</span>
+      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span><span data-t="nav.reparaciones">Reparaciones</span><span id="badgeRepsAtras" style="display:none;margin-left:auto;background:#DC2626;color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center" title="Reparaciones atrasadas (+14 días)"></span>
     </div>
     <div class="sidebar-ni" data-p="pPresupuestos" onclick="navTo('pPresupuestos');setSidebarActive(this)">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span><span data-t="nav.presupuestos">Presupuestos</span><span id="badgePresup" style="display:none;margin-left:auto;background:var(--green);color:#fff;font-size:10px;font-weight:800;min-width:18px;height:18px;border-radius:9px;padding:0 5px;align-items:center;justify-content:center" title="Presupuestos aceptados pendientes de procesar"></span>
@@ -1039,7 +1047,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></span><span data-t="nav.clientes">Clientes</span>
     </div>
     <div class="sidebar-ni" data-p="pProvs" onclick="navTo('pProvs');setSidebarActive(this)">
-      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg></span><span data-t="nav.proveedores">Proveedores</span>
+      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 20a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V8l-7 5V8l-7 5V4a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2z"/></svg></span><span data-t="nav.proveedores">Proveedores</span><span id="badgeDeuda" style="display:none;margin-left:auto;background:rgba(220,38,38,.18);color:#FCA5A5;font-size:10px;font-weight:800;height:18px;border-radius:9px;padding:0 7px;align-items:center;justify-content:center" title="Lo que debes a proveedores"></span>
     </div>
     <div class="sidebar-ni" data-p="pServicios" onclick="navTo('pServicios');setSidebarActive(this)">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span><span data-t="nav.servicios">Servicios</span>
@@ -4592,7 +4600,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260622zj"></script>
+<script src="/js/dash-app.js?v=20260622zk"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

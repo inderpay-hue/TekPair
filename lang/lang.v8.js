@@ -4597,3 +4597,11 @@ it:{'inicio.chip_cobros':'da confermare','inicio.chip_debes':'da pagare'},
 de:{'inicio.chip_cobros':'zu bestätigen','inicio.chip_debes':'offen'},
 pt:{'inicio.chip_cobros':'por confirmar','inicio.chip_debes':'o que deves'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{'sb.hoy':'Hoy','sb.cobrado':'cobrado','sb.reps_pend':'reps pendientes'},
+en:{'sb.hoy':'Today','sb.cobrado':'collected','sb.reps_pend':'reps pending'},
+fr:{'sb.hoy':'Aujourd\'hui','sb.cobrado':'encaissé','sb.reps_pend':'rép. en cours'},
+it:{'sb.hoy':'Oggi','sb.cobrado':'incassato','sb.reps_pend':'rip. in corso'},
+de:{'sb.hoy':'Heute','sb.cobrado':'kassiert','sb.reps_pend':'Rep. offen'},
+pt:{'sb.hoy':'Hoje','sb.cobrado':'cobrado','sb.reps_pend':'reps pendentes'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
