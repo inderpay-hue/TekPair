@@ -5463,6 +5463,8 @@ function abrirVentaSimple() {
   if (ivaSelV) ivaSelV.value = String((AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21);
   calcV();
   openM('mVenta');
+  _DRAFT_VENTA.banner();
+  _DRAFT_VENTA.start();
 }
 
 function calcV() {
@@ -5604,6 +5606,7 @@ function guardarVenta() {
     });
   }
 
+  _DRAFT_VENTA.clear(); _DRAFT_VENTA.stop();
   closeM('mVenta');
   toast(T('gen.guardado'), 'ok');
   audit('crear', 'venta', venta.id, (venta.clienteNombre || 'Cliente puntual') + ' · ' + cur(venta.total), null);
@@ -6842,6 +6845,71 @@ function _repDraftStartAutosave() {
 function _repDraftStopAutosave() {
   if (_repDraftTimer) { clearInterval(_repDraftTimer); _repDraftTimer = null; }
 }
+
+// ═══ Factory genérico de draft-autosave (reutilizado por Venta y Cliente) ═══
+function _makeDraft(opts) {
+  var KEY = opts.key, timer = null;
+  function _open(){ var m = document.getElementById(opts.modalId); return m && m.classList.contains('open'); }
+  function save(){
+    if (!_open() || (opts.skip && opts.skip())) return;
+    var d = opts.get(); d._ts = Date.now();
+    if (opts.empty(d)) return;
+    try { localStorage.setItem(KEY, JSON.stringify(d)); } catch (e) {}
+  }
+  function read(){
+    try { var d = JSON.parse(localStorage.getItem(KEY) || 'null'); if (!d || opts.empty(d)) return null; if (Date.now() - (d._ts || 0) > 86400000) { clear(); return null; } return d; } catch (e) { return null; }
+  }
+  function clear(){ try { localStorage.removeItem(KEY); } catch (e) {} var b = document.getElementById(opts.bannerId); if (b) b.style.display = 'none'; }
+  function banner(){ var b = document.getElementById(opts.bannerId); if (!b) return; var d = read(); if (!d) { b.style.display = 'none'; return; } var r = b.querySelector('.draft-resumen'); if (r) r.textContent = opts.resumen ? opts.resumen(d) : ''; b.style.display = 'flex'; }
+  function restore(){ var d = read(); if (!d) return; opts.set(d); clear(); toast(T('draft.recuperado'), 'ok'); }
+  function start(){ if (timer) clearInterval(timer); timer = setInterval(save, 2000); }
+  function stop(){ if (timer) { clearInterval(timer); timer = null; } }
+  return { save: save, read: read, clear: clear, banner: banner, restore: restore, start: start, stop: stop };
+}
+
+var _DRAFT_VENTA = _makeDraft({
+  key: 'tk_draft_venta', modalId: 'mVenta', bannerId: 'ventaDraftBanner',
+  empty: function(d){ return !(parseFloat(d.precio) > 0) && !d.cli && !d.busStock; },
+  get: function(){
+    var g = function(id){ var e = document.getElementById(id); return e ? e.value : ''; };
+    return { precio: g('vPrecio'), descuento: g('vDescuento'), pago: g('vPago'), iva: g('vIva'),
+      busStock: g('vBusStock'), stockId: SEL.vStock ? SEL.vStock.id : null, cli: SEL.vCli ? { id: SEL.vCli.id } : null };
+  },
+  set: function(d){
+    var s = function(id, v){ var e = document.getElementById(id); if (e) e.value = v || ''; };
+    if (d.cli && d.cli.id && DB.clis.some(function(x){ return x.id === d.cli.id; })) { try { selCli(d.cli.id, 'v'); } catch (e) {} }
+    if (d.stockId && DB.stock.some(function(x){ return x.id === d.stockId; }) && typeof selStock === 'function') { try { selStock(d.stockId); } catch (e) {} }
+    s('vPrecio', d.precio); s('vDescuento', d.descuento); s('vPago', d.pago); s('vIva', d.iva);
+    if (!d.stockId) s('vBusStock', d.busStock);
+    try { calcV(); } catch (e) {}
+  },
+  resumen: function(d){ return d.busStock ? ' · ' + d.busStock.slice(0, 30) : (parseFloat(d.precio) > 0 ? ' · ' + cur(parseFloat(d.precio)) : ''); }
+});
+
+var _DRAFT_CLI = _makeDraft({
+  key: 'tk_draft_cli', modalId: 'mCli', bannerId: 'cliDraftBanner',
+  skip: function(){ return !!ECID; }, // no autoguardar al EDITAR un cliente existente
+  empty: function(d){ return !d.nom && !d.ape && !d.razon && !d.tel && !d.email && !d.dni; },
+  get: function(){
+    var g = function(id){ var e = document.getElementById(id); return e ? e.value : ''; };
+    var ck = function(id){ var e = document.getElementById(id); return e ? !!e.checked : false; };
+    return { esEmp: ck('cEsEmpresa'), nom: g('cNom'), ape: g('cApe'), razon: g('cRazon'), persona: g('cPersonaCont'),
+      telPref: g('cTelPref'), tel: g('cTel'), email: g('cEmail'), dni: g('cDni'), dir: g('cDir'),
+      cp: g('cCp'), ciudad: g('cCiudad'), prov: g('cProv'), pais: g('cPais'), fnac: g('cFnac') };
+  },
+  set: function(d){
+    var s = function(id, v){ var e = document.getElementById(id); if (e) e.value = v || ''; };
+    var cb = document.getElementById('cEsEmpresa'); if (cb) { cb.checked = !!d.esEmp; if (typeof toggleCliEmpresa === 'function') toggleCliEmpresa(); }
+    s('cNom', d.nom); s('cApe', d.ape); s('cRazon', d.razon); s('cPersonaCont', d.persona);
+    s('cTelPref', d.telPref); s('cTel', d.tel); s('cEmail', d.email); s('cDni', d.dni); s('cDir', d.dir);
+    s('cCp', d.cp); s('cCiudad', d.ciudad); s('cProv', d.prov); s('cPais', d.pais); s('cFnac', d.fnac);
+  },
+  resumen: function(d){ var n = (d.esEmp ? d.razon : ((d.nom || '') + ' ' + (d.ape || '')).trim()) || d.tel || ''; return n ? ' · ' + n.slice(0, 30) : ''; }
+});
+function _ventaDraftRestaurar(){ _DRAFT_VENTA.restore(); }
+function _ventaDraftBorrar(){ _DRAFT_VENTA.clear(); }
+function _cliDraftRestaurar(){ _DRAFT_CLI.restore(); }
+function _cliDraftBorrar(){ _DRAFT_CLI.clear(); }
 
 function abrirRep() {
   SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.rServicios = [];
@@ -10846,6 +10914,8 @@ function limpiarFormCli() {
   // editar un cliente, el botón "+ Nuevo" seguía mostrando "✏️ Editar Cliente".
   var t = document.getElementById('mCliTit'); if (t) t.textContent = '👤 ' + T('cli.nuevo_titulo');
   if (typeof toggleCliEmpresa === 'function') toggleCliEmpresa();
+  // Draft autosave: solo en cliente NUEVO (no al editar, donde ECID ya está fijado)
+  if (!ECID && typeof _DRAFT_CLI !== 'undefined') { _DRAFT_CLI.banner(); _DRAFT_CLI.start(); }
 }
 
 // #10: al teclear un teléfono que YA existe (creando cliente nuevo), avisa y ofrece abrir su ficha
@@ -10923,6 +10993,7 @@ function guardarCli() {
   guardarDatos();
   var idGuardado = ECID;
   ECID = null;
+  _DRAFT_CLI.clear(); _DRAFT_CLI.stop();
   closeM('mCli');
   toast('Cliente guardado', 'ok');
   audit(idGuardado ? 'editar' : 'crear', 'cliente', idGuardado || '', '', null);
