@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260621q"></script>
+<script src="/lang/lang.v8.js?v=20260621r"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4525,7 +4525,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260621q"></script>
+<script src="/js/dash-app.js?v=20260621r"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -4807,9 +4807,27 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- ═══ MODAL DETALLE REPARACIÓN (vista lectura) ═══ -->
 <div class="modal-bg" id="mDetalleRep">
   <div class="modal" style="max-width:600px">
-    <div class="modal-h"><span>🔧 Reparación</span><span class="cls" onclick="closeM('mDetalleRep')">×</span></div>
+    <div class="modal-h"><span data-t="det.rep_titulo">🔧 Reparación</span><span class="cls" onclick="closeM('mDetalleRep')">×</span></div>
     <div id="detalleRepBox"></div>
     <div id="detalleRepBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- ═══ DRILL-DOWN: FICHA DE CLIENTE (#B89) ═══ -->
+<div class="modal-bg" id="mDetalleCli">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-h"><span data-t="dcli.titulo">👤 Ficha de cliente</span><span class="cls" onclick="closeM('mDetalleCli')">×</span></div>
+    <div id="detalleCliBox"></div>
+    <div id="detalleCliBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"></div>
+  </div>
+</div>
+
+<!-- ═══ DRILL-DOWN: FICHA DE PRODUCTO (#B88) ═══ -->
+<div class="modal-bg" id="mDetalleStock">
+  <div class="modal" style="max-width:640px">
+    <div class="modal-h"><span data-t="dstk.titulo">📦 Ficha de producto</span><span class="cls" onclick="closeM('mDetalleStock')">×</span></div>
+    <div id="detalleStockBox"></div>
+    <div id="detalleStockBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"></div>
   </div>
 </div>
 
