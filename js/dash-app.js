@@ -9493,7 +9493,7 @@ function renderUbicacionesAjustes() {
   var list = (TIENDA.ubicaciones || []);
   var el = document.getElementById('listaUbicaciones');
   if (!list.length) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--muted);font-style:italic;padding:8px 0">Aún no has añadido ninguna ubicación.</div>';
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);font-style:italic;padding:8px 0">' + ((typeof T === 'function' ? T('ajt.ubic_vacio') : '') || 'Aún no has añadido ninguna ubicación.') + '</div>';
     return;
   }
   el.innerHTML = list.map(function(u, i) {
@@ -17599,9 +17599,11 @@ function renderHorarios() {
     if (!h.tramos || !h.tramos.length) h.tramos = [{inicio:'09:30', fin:'13:30'}];
     html += '<div style="padding:10px 0;border-bottom:1px solid var(--border)">';
     html += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">';
-    html += '<div style="font-size:13px;font-weight:600;width:90px">' + DIAS_SEMANA[i] + '</div>';
+    var _diaNom = (typeof T === 'function' ? T('ajt.dia' + i) : '') || DIAS_SEMANA[i];
+    var _abierto = (typeof T === 'function' ? T('ajt.abierto') : '') || 'Abierto';
+    html += '<div style="font-size:13px;font-weight:600;width:90px">' + _diaNom + '</div>';
     html += '<label style="display:flex;align-items:center;gap:6px;font-size:12px;cursor:pointer">';
-    html += '<input type="checkbox" data-dia="' + i + '" data-campo="abierto" onchange="actualizarHorario(this)" ' + (h.abierto ? 'checked' : '') + '> Abierto</label>';
+    html += '<input type="checkbox" data-dia="' + i + '" data-campo="abierto" onchange="actualizarHorario(this)" ' + (h.abierto ? 'checked' : '') + '> ' + _abierto + '</label>';
     html += '</div>';
     if (h.abierto) {
       // Tramo 1
@@ -17610,7 +17612,7 @@ function renderHorarios() {
       html += '<span style="color:var(--muted);font-size:12px">a</span>';
       html += '<input class="fi" type="time" value="' + (h.tramos[0].fin || '13:30') + '" data-dia="' + i + '" data-tramo="0" data-campo="fin" onchange="actualizarHorario(this)" style="font-size:12px;padding:5px 8px;width:100px">';
       if (h.tramos.length < 2) {
-        html += '<button type="button" onclick="agregarTramo(' + i + ')" style="background:var(--green);color:white;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">+ tramo tarde</button>';
+        html += '<button type="button" onclick="agregarTramo(' + i + ')" style="background:var(--green);color:white;border:none;padding:4px 10px;border-radius:6px;cursor:pointer;font-size:11px;font-family:inherit">' + ((typeof T === 'function' ? T('ajt.tramo_tarde') : '') || '+ tramo tarde') + '</button>';
       }
       html += '</div>';
       // Tramo 2 (si existe)
