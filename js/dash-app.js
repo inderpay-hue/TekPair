@@ -9670,6 +9670,28 @@ function renderStock() {
   });
 }
 
+// #B90: mover un producto de ubicación desde la ficha (acción rápida).
+function _moverUbicStock(id) {
+  if (!tienePerm('stock_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var s = (DB.stock || []).find(function(x){ return x.id === id; });
+  if (!s) return;
+  var sel = document.getElementById('dstkUbicSel');
+  if (!sel) return;
+  var nueva = sel.value || '';
+  var anterior = s.ubicacion || '';
+  if (nueva === anterior) { toast(T('dstk.misma_ubic'), 'err'); return; }
+  s.ubicacion = nueva;
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) { try { sbPatch('stock', 'id=eq.' + encodeURIComponent(id), { ubicacion: nueva }); } catch(e){} }
+  // Registrar el movimiento (queda en el historial de la ficha)
+  var _de = anterior || T('stock.sin_ubicacion');
+  var _a = nueva || T('stock.sin_ubicacion');
+  _logMov('mover', _eqNombre(s.marca, s.modelo) + ': ' + _de + ' → ' + _a, null, s.id);
+  toast(T('dstk.movido_ok'), 'ok');
+  try { renderStock(); } catch(e){}
+  verDetalleStock(id); // re-render de la ficha con el cambio + el nuevo movimiento
+}
+
 // #B88: ficha de producto (drill-down) — datos, unidades del mismo modelo (IMEIs), ventas y margen.
 function verDetalleStock(id) {
   var s = (DB.stock || []).find(function(x){ return x.id === id; });
@@ -9709,6 +9731,19 @@ function verDetalleStock(id) {
   h += '<div style="background:rgba(0,200,150,.08);border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--green)">' + (margen != null ? cur(margen) : '—') + '</div><div style="font-size:10px;color:var(--muted)">' + T('dstk.margen') + '</div></div>';
   h += '</div>';
 
+  // #B90: mover de ubicación (acción rápida, sin abrir el editor completo)
+  if (tieneFeature('ubicaciones')) {
+    var _ubics = (TIENDA.ubicaciones || []);
+    h += '<div style="display:flex;align-items:center;gap:8px;background:var(--light);border-radius:10px;padding:10px 12px;margin-bottom:14px;flex-wrap:wrap">';
+    h += '<span style="font-size:12px;font-weight:700;color:var(--muted)">📍 ' + T('dstk.ubicacion') + ':</span>';
+    h += '<select id="dstkUbicSel" style="flex:1;min-width:120px;border:1.5px solid var(--border);border-radius:8px;padding:7px 10px;font-family:inherit;font-size:13px;background:white;color:var(--text)">';
+    h += '<option value="">' + T('stock.sin_ubicacion') + '</option>';
+    _ubics.forEach(function(u){ h += '<option value="' + esc(u) + '"' + (s.ubicacion === u ? ' selected' : '') + '>' + esc(u) + '</option>'; });
+    h += '</select>';
+    h += '<button class="btn-sm" onclick="_moverUbicStock(\'' + s.id + '\')" style="background:var(--blue);color:white;flex-shrink:0">' + T('dstk.mover') + '</button>';
+    h += '</div>';
+  }
+
   // Unidades con IMEI (números de serie disponibles)
   if (conImei.length) {
     h += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:0 0 6px">' + T('dstk.imeis') + ' (' + conImei.length + ')</div>';
@@ -9731,7 +9766,25 @@ function verDetalleStock(id) {
     });
     h += '</div>';
   }
-  if (!conImei.length && !ventasModelo.length) h += '<div class="empty" style="padding:16px;font-size:13px">' + T('dstk.sin_historial') + '</div>';
+
+  // #B90: historial de movimientos de este producto (altas, ediciones, recepciones, cambios de ubicación…)
+  var movs = (DB.audit || []).filter(function(a){ return a.entidad === 'stock' && a.entidadId === s.id; });
+  if (movs.length) {
+    h += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:0 0 6px">' + T('dstk.movimientos') + '</div>';
+    h += '<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:6px">';
+    var _icoMov = { crear: '🟢', editar: '🟡', eliminar: '🔴', entrada: '📥', salida: '📤', recibir: '📥', mover: '📍' };
+    movs.slice(0, 15).forEach(function(a){
+      var _lc = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+      var fechaM = ''; try { var dM = new Date(a.ts); fechaM = dM.toLocaleDateString(_lc, {day:'2-digit',month:'2-digit',year:'2-digit'}) + ' ' + dM.toLocaleTimeString(_lc, {hour:'2-digit',minute:'2-digit'}); } catch(e){}
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;font-size:11px;padding:5px 8px;border-bottom:1px solid var(--border)">' +
+        '<span style="color:var(--muted);white-space:nowrap">' + esc(fechaM) + '</span>' +
+        '<span style="flex:1;text-align:right;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (_icoMov[a.accion] || '•') + ' ' + esc(a.detalle || a.accion) + '</span>' +
+        '</div>';
+    });
+    h += '</div>';
+  }
+
+  if (!conImei.length && !ventasModelo.length && !movs.length) h += '<div class="empty" style="padding:16px;font-size:13px">' + T('dstk.sin_historial') + '</div>';
 
   document.getElementById('detalleStockBox').innerHTML = h;
 
