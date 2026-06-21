@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260621a"></script>
+<script src="/lang/lang.v8.js?v=20260621b"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -3481,7 +3481,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="fg"><label class="fl"><span data-t="tpv.forma_pago">Forma de pago</span></label>
     <select class="fi" id="vPago">
-      <option>Efectivo</option><option>Tarjeta</option><option>Bizum</option><option>Transferencia</option><option id="vPagoFinOpt">Financiado</option>
+      <option value="Efectivo" data-t="pago.efectivo">Efectivo</option><option value="Tarjeta" data-t="pago.tarjeta">Tarjeta</option><option value="Bizum" data-t="pago.bizum">Bizum</option><option value="Transferencia" data-t="pago.transferencia">Transferencia</option><option id="vPagoFinOpt" value="Financiado" data-t="pago.financiado">Financiado</option>
     </select>
   </div>
   <!-- Financiado options -->
@@ -3540,7 +3540,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
   <!-- Plantillas rápidas -->
   <div class="rep-quick-templates" id="repPlantillasRapidas">
-    <div class="rep-quick-label">Plantilla rápida:</div>
+    <div class="rep-quick-label" data-t="rep.plantilla_rapida">Plantilla rápida:</div>
     <div class="rep-quick-chips" id="repPlantillasChips"></div>
   </div>
 
@@ -3552,7 +3552,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
         <!-- Sección: Cliente -->
         <div class="rep-section">
-          <div class="rep-section-title"><span>👤</span> Cliente</div>
+          <div class="rep-section-title"><span>👤</span> <span data-t="rep.sec_cliente">Cliente</span></div>
           <div class="fg" style="position:relative;margin-bottom:0">
             <input class="fi" id="rBusCli" placeholder="Buscar..." data-t-ph="rep.buscar_cliente" oninput="busCliCtx('r')" autocomplete="off">
             <div class="autocomplete-res" id="rSelCli"></div>
@@ -3566,7 +3566,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
         <!-- Sección: Dispositivo -->
         <div class="rep-section">
-          <div class="rep-section-title"><span>📱</span> Dispositivo</div>
+          <div class="rep-section-title"><span>📱</span> <span data-t="rep.sec_dispositivo">Dispositivo</span></div>
           <div class="fi-row">
             <div class="fg"><label class="fl"><span data-t="rep.marca">Marca</span></label><input class="fi" id="rMarca" placeholder="Apple, Samsung, Xiaomi..." oninput="actualizarAvisoGarantia()"></div>
             <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo">Modelo</span> <span class="req">*</span></label><input class="fi" id="rModelo" placeholder="iPhone 14, Galaxy S23..." autocomplete="off" required oninput="busModelo();actualizarAvisoGarantia();try{sugerirPiezasRep()}catch(e){}" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
@@ -3604,7 +3604,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div class="rep-section">
           <div class="rep-section-title">
             <span>🛠️</span> <span data-t="rep.sec_servicios">Servicios de reparación</span>
-            <button type="button" class="add-srv-btn" onclick="agregarServicioRep()">+ Agregar nuevo</button>
+            <button type="button" class="add-srv-btn" onclick="agregarServicioRep()" data-t="rep.agregar_nuevo">+ Agregar nuevo</button>
           </div>
           <div class="srv-search-row">
             <div style="position:relative;flex:1">
@@ -3637,27 +3637,27 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
                 <!-- Anticipo directo: meter de golpe lo que el cliente adelanta -->
                 <div style="display:flex;gap:6px;align-items:flex-end;margin-bottom:10px;padding-bottom:10px;border-bottom:1px dashed var(--border)">
                   <div style="flex:1;min-width:80px"><label style="font-size:10px;color:var(--muted);font-weight:600" data-t="rep.anticipo_dir">ANTICIPO €</label><input id="rAntDirImporte" type="number" step="0.01" min="0" inputmode="decimal" class="fi" placeholder="0,00" style="padding:6px 8px" onkeydown="if(event.key==='Enter'){event.preventDefault();anadirAnticipoDirecto();}"></div>
-                  <div style="flex:1;min-width:100px"><label style="font-size:10px;color:var(--muted);font-weight:600" data-t="rep.metodo">MÉTODO</label><select id="rAntDirMetodo" class="fi" style="padding:6px 8px"><option value="Efectivo">Efectivo</option><option value="Tarjeta">Tarjeta</option><option value="Bizum">Bizum</option><option value="Transferencia">Transferencia</option></select></div>
+                  <div style="flex:1;min-width:100px"><label style="font-size:10px;color:var(--muted);font-weight:600" data-t="rep.metodo">MÉTODO</label><select id="rAntDirMetodo" class="fi" style="padding:6px 8px"><option value="Efectivo" data-t="pago.efectivo">Efectivo</option><option value="Tarjeta" data-t="pago.tarjeta">Tarjeta</option><option value="Bizum" data-t="pago.bizum">Bizum</option><option value="Transferencia" data-t="pago.transferencia">Transferencia</option></select></div>
                   <button type="button" class="btn-sm" onclick="anadirAnticipoDirecto()" title="Añadir anticipo" style="background:var(--blue);color:white;font-size:16px;font-weight:700;padding:6px 14px;line-height:1">+</button>
                 </div>
                 <div id="rPagosLista" style="font-size:13px;margin-bottom:8px"></div>
                 <div id="rPagosResumen" style="font-size:12px;color:var(--muted);margin-bottom:8px;padding-top:8px;border-top:1px dashed var(--border)"></div>
-                <button type="button" class="btn-sm" onclick="mostrarFormPago()" style="background:var(--green);color:white;font-size:12px;width:100%">+ Añadir pago</button>
+                <button type="button" class="btn-sm" onclick="mostrarFormPago()" style="background:var(--green);color:white;font-size:12px;width:100%" data-t="rep.anadir_pago">+ Añadir pago</button>
               </div>
               <div id="rPagoForm" style="display:none;background:#fff;border:1px solid var(--blue);border-radius:10px;padding:12px;margin-top:8px">
                 <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end">
-                  <div style="flex:1;min-width:80px"><label style="font-size:10px;color:var(--muted);font-weight:600">IMPORTE €</label><input id="pagoImporte" type="number" step="0.01" min="0.01" class="fi" placeholder="0,00" style="padding:6px 8px"></div>
-                  <div style="flex:1;min-width:100px"><label style="font-size:10px;color:var(--muted);font-weight:600">MÉTODO</label><select id="pagoMetodo" class="fi" style="padding:6px 8px"><option value="Efectivo">Efectivo</option><option value="Tarjeta">Tarjeta</option><option value="Bizum">Bizum</option><option value="Transferencia">Transferencia</option></select></div>
-                  <div style="flex:1;min-width:110px"><label style="font-size:10px;color:var(--muted);font-weight:600">FECHA</label><input id="pagoFecha" type="date" class="fi" style="padding:6px 8px"></div>
+                  <div style="flex:1;min-width:80px"><label style="font-size:10px;color:var(--muted);font-weight:600" data-t="rep.importe">IMPORTE €</label><input id="pagoImporte" type="number" step="0.01" min="0.01" class="fi" placeholder="0,00" style="padding:6px 8px"></div>
+                  <div style="flex:1;min-width:100px"><label style="font-size:10px;color:var(--muted);font-weight:600" data-t="rep.metodo">MÉTODO</label><select id="pagoMetodo" class="fi" style="padding:6px 8px"><option value="Efectivo" data-t="pago.efectivo">Efectivo</option><option value="Tarjeta" data-t="pago.tarjeta">Tarjeta</option><option value="Bizum" data-t="pago.bizum">Bizum</option><option value="Transferencia" data-t="pago.transferencia">Transferencia</option></select></div>
+                  <div style="flex:1;min-width:110px"><label style="font-size:10px;color:var(--muted);font-weight:600" data-t="rep.fecha">FECHA</label><input id="pagoFecha" type="date" class="fi" style="padding:6px 8px"></div>
                 </div>
                 <div style="display:flex;gap:6px;margin-top:8px">
-                  <button type="button" class="btn-sm" onclick="confirmarPago()" style="background:var(--green);color:white;flex:1">Guardar pago</button>
+                  <button type="button" class="btn-sm" onclick="confirmarPago()" style="background:var(--green);color:white;flex:1" data-t="rep.guardar_pago">Guardar pago</button>
                   <button type="button" class="btn-sm" onclick="cancelarFormPago()" style="background:#94A3B8;color:white" data-t="gen.cancelar">Cancelar</button>
                 </div>
               </div>
             </div>
-            <div class="fg"><label class="fl">Prioridad</label>
-              <select class="fi" id="rPrioridad"><option>Normal</option><option>Alta</option><option>Urgente</option></select>
+            <div class="fg"><label class="fl" data-t="rep.prioridad">Prioridad</label>
+              <select class="fi" id="rPrioridad"><option value="Normal" data-t="rep.prio_normal">Normal</option><option value="Alta" data-t="rep.prio_alta">Alta</option><option value="Urgente" data-t="rep.prio_urgente">Urgente</option></select>
             </div>
           </div>
           <!-- FINANCIAR A PLAZOS -->
@@ -3672,7 +3672,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
             <div id="rFinBox" style="display:none;margin-top:10px;padding:12px;background:#FAFAFF;border:1px solid #DDD6FE;border-radius:10px">
               <div class="fi-row">
                 <div class="fg"><label class="fl"><span data-t="fin.entrada">Entrada €</span></label><input class="fi" id="rFinEntrada" type="number" step="0.01" min="0" placeholder="0,00" oninput="calcFinRep()"></div>
-                <div class="fg"><label class="fl"><span data-t="rep.metodo">Método</span></label><select class="fi" id="rFinEntradaPago"><option value="" selected>— Elige método —</option><option>Efectivo</option><option>Tarjeta</option><option>Bizum</option><option>Transferencia</option></select></div>
+                <div class="fg"><label class="fl"><span data-t="rep.metodo">Método</span></label><select class="fi" id="rFinEntradaPago"><option value="" selected data-t="rep.elige_metodo">— Elige método —</option><option value="Efectivo" data-t="pago.efectivo">Efectivo</option><option value="Tarjeta" data-t="pago.tarjeta">Tarjeta</option><option value="Bizum" data-t="pago.bizum">Bizum</option><option value="Transferencia" data-t="pago.transferencia">Transferencia</option></select></div>
               </div>
               <div class="fi-row">
                 <div class="fg"><label class="fl"><span data-t="fin.num_cuotas">Nº de cuotas</span></label><input class="fi" id="rFinNumCuotas" type="number" min="1" max="36" value="3" oninput="calcFinRep()"></div>
@@ -3682,18 +3682,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
             </div>
           </div>
           <div class="fi-row">
-            <div class="fg"><label class="fl">Fecha de entrega</label><input class="fi" id="rFechaEnt" type="date"></div>
+            <div class="fg"><label class="fl" data-t="rep.fecha_entrega">Fecha de entrega</label><input class="fi" id="rFechaEnt" type="date"></div>
             <div id="rIvaRow" class="fg" style="display:none">
               <label class="fl"><span data-t="gen.tipo_iva">Tipo de IVA</span></label>
               <select class="fi" id="rIva" onchange="calcR()">
-                <option value="0">0% — Exento</option>
-                <option value="4">4% — Superreducido</option>
-                <option value="10">10% — Reducido</option>
-                <option value="21">21% — General</option>
+                <option value="0" data-t="iva.exento">0% — Exento</option>
+                <option value="4" data-t="iva.super">4% — Superreducido</option>
+                <option value="10" data-t="iva.reducido">10% — Reducido</option>
+                <option value="21" data-t="iva.general">21% — General</option>
               </select>
             </div>
           </div>
-          <div class="fg" style="margin-bottom:8px"><label class="fl">Nota interna</label><textarea class="fi" id="rNota" rows="2" placeholder="Solo visible para ti y tu equipo..."></textarea></div>
+          <div class="fg" style="margin-bottom:8px"><label class="fl" data-t="rep.nota_interna">Nota interna</label><textarea class="fi" id="rNota" rows="2" data-t-ph="rep.nota_interna_ph" placeholder="Solo visible para ti y tu equipo..."></textarea></div>
           
           <!-- GARANTÍA DE ESTA REPARACIÓN -->
           <div id="rBloqueGarantia" style="margin-bottom:0;padding:12px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">
@@ -3726,7 +3726,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
               <div id="rGarCustomRow" style="display:flex;gap:6px;align-items:center;margin-top:8px">
                 <span style="font-size:11px;color:var(--muted)" data-t="stock.personalizar">o personalizar:</span>
                 <input type="number" class="fi" id="rGarDiasCustom" min="0" max="730" placeholder="" style="max-width:90px;padding:6px 10px;font-size:12px">
-                <span style="font-size:11px;color:var(--muted)">días</span>
+                <span style="font-size:11px;color:var(--muted)" data-t="ajt.dias">días</span>
               </div>
             </div>
             <!-- GAR-3: Visibilidad -->
@@ -3786,7 +3786,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </label>
   </div>
   <div class="fg" id="ePagoBox"><label class="fl"><span data-t="entrega.pago_final">Pago final</span></label>
-    <select class="fi" id="ePago"><option>Efectivo</option><option>Tarjeta</option><option>Bizum</option><option>Transferencia</option></select>
+    <select class="fi" id="ePago"><option value="Efectivo" data-t="pago.efectivo">Efectivo</option><option value="Tarjeta" data-t="pago.tarjeta">Tarjeta</option><option value="Bizum" data-t="pago.bizum">Bizum</option><option value="Transferencia" data-t="pago.transferencia">Transferencia</option></select>
   </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mEntregar')" data-t="gen.cancelar">Cancelar</button>
@@ -3802,7 +3802,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div id="cobrarRepInfo" style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px"></div>
   <div class="fi-row">
     <div class="fg"><label class="fl"><span data-t="rep.importe">Importe €</span></label><input class="fi" id="cobrarRepImporte" type="number" step="0.01" min="0.01" placeholder="0,00"></div>
-    <div class="fg"><label class="fl"><span data-t="rep.metodo">Método</span></label><select class="fi" id="cobrarRepMetodo"><option>Efectivo</option><option>Tarjeta</option><option>Bizum</option><option>Transferencia</option></select></div>
+    <div class="fg"><label class="fl"><span data-t="rep.metodo">Método</span></label><select class="fi" id="cobrarRepMetodo"><option value="Efectivo" data-t="pago.efectivo">Efectivo</option><option value="Tarjeta" data-t="pago.tarjeta">Tarjeta</option><option value="Bizum" data-t="pago.bizum">Bizum</option><option value="Transferencia" data-t="pago.transferencia">Transferencia</option></select></div>
   </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mCobrarRep')" data-t="gen.cancelar">Cancelar</button>
@@ -3835,10 +3835,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
     <div class="fg"><label class="fl"><span data-t="tpv.forma_pago">Forma de pago</span></label>
       <select class="fi" id="pedMetodo">
-        <option value="efectivo">Efectivo</option>
-        <option value="tarjeta">Tarjeta</option>
-        <option value="bizum">Bizum</option>
-        <option value="transferencia" selected>Transferencia</option>
+        <option value="efectivo" data-t="pago.efectivo">Efectivo</option>
+        <option value="tarjeta" data-t="pago.tarjeta">Tarjeta</option>
+        <option value="bizum" data-t="pago.bizum">Bizum</option>
+        <option value="transferencia" selected data-t="pago.transferencia">Transferencia</option>
       </select>
     </div>
     <div class="fg"><label class="fl">💳 <span data-t="pedidos.estado_pago">Estado de pago</span></label>
@@ -4076,12 +4076,12 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <option value="+48">🇵🇱 +48</option><option value="+1">🇺🇸 +1</option>
       </select>
     </div>
-    <div class="fg"><label class="fl">Teléfono</label><input class="fi" id="cTel" type="tel" inputmode="tel" placeholder="6XX XXX XXX" autocomplete="tel" oninput="onCliTelInput()"></div>
+    <div class="fg"><label class="fl"><span data-t="cli.telefono">Teléfono</span></label><input class="fi" id="cTel" type="tel" inputmode="tel" placeholder="6XX XXX XXX" autocomplete="tel" oninput="onCliTelInput()"></div>
   </div>
   <!-- #10: aviso de cliente ya existente con ese teléfono -->
   <div id="cRepetBanner" style="display:none;background:var(--orange-l,#FFF1EB);border:1px solid var(--orange-br,#FFD9C9);border-radius:9px;padding:9px 12px;margin-bottom:10px;font-size:12.5px;color:var(--ink2,#475569)"></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl"><span id="cDniLbl">DNI/NIE</span></label><input class="fi" id="cDni" placeholder="12345678A" autocomplete="off"></div>
+    <div class="fg"><label class="fl"><span id="cDniLbl" data-t="cli.dni_nie">DNI/NIE</span></label><input class="fi" id="cDni" placeholder="12345678A" autocomplete="off"></div>
     <div class="fg"><label class="fl"><span data-t="cli.email">Email</span></label><input class="fi" id="cEmail" type="email" placeholder="email@..." autocomplete="off"></div>
   </div>
   <!-- F230: dirección estructurada (para facturas) -->
@@ -4094,13 +4094,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="fg"><label class="fl" data-t="cli.provincia">Provincia</label><input class="fi" id="cProv" placeholder="Madrid" autocomplete="off"></div>
     <div class="fg"><label class="fl" data-t="cli.pais">País</label>
       <select class="fi" id="cPais">
-        <option>España</option><option>Portugal</option><option>Francia</option><option>Alemania</option>
-        <option>Italia</option><option>Reino Unido</option><option>Andorra</option><option>Marruecos</option>
-        <option>Rumanía</option><option>Polonia</option><option data-t="gen.otro">Otro</option>
+        <option value="España" data-t="pais.es">España</option><option value="Portugal" data-t="pais.pt">Portugal</option><option value="Francia" data-t="pais.fr">Francia</option><option value="Alemania" data-t="pais.de">Alemania</option>
+        <option value="Italia" data-t="pais.it">Italia</option><option value="Reino Unido" data-t="pais.uk">Reino Unido</option><option value="Andorra" data-t="pais.ad">Andorra</option><option value="Marruecos" data-t="pais.ma">Marruecos</option>
+        <option value="Rumanía" data-t="pais.ro">Rumanía</option><option value="Polonia" data-t="pais.pl">Polonia</option><option value="Otro" data-t="gen.otro">Otro</option>
       </select>
     </div>
   </div>
-  <div class="fg" id="cFnacBox"><label class="fl">Fecha de nacimiento <span style="font-size:9px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0">— opcional, para felicitar/promos</span></label><input class="fi" id="cFnac" type="date"></div>
+  <div class="fg" id="cFnacBox"><label class="fl"><span data-t="cli.fnac">Fecha de nacimiento</span> <span style="font-size:9px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0" data-t="cli.fnac_hint">— opcional, para felicitar/promos</span></label><input class="fi" id="cFnac" type="date"></div>
   <!-- #17: consentimiento RGPD para marketing (WhatsApp/email). Prerrequisito legal de las campañas. -->
   <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12.5px;background:var(--light);padding:9px 12px;border-radius:8px;margin-bottom:4px">
     <input type="checkbox" id="cMarketingConsent" style="margin-top:2px">
@@ -4116,19 +4116,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <!-- NUEVO USUARIO (F341: modal en vez de prompt() nativos que colgaban el renderer) -->
 <div class="modal-bg" id="mNuevoUsuario">
 <div class="modal">
-  <div class="modal-title">👥 Nuevo usuario</div>
-  <div class="fg"><label class="fl">Nombre *</label><input class="fi" id="nuNombre" placeholder="Juan García" autocomplete="off"></div>
-  <div class="fg"><label class="fl">Email *</label><input class="fi" id="nuEmail" type="email" placeholder="juan@correo.com" autocomplete="off" inputmode="email"></div>
-  <div class="fg"><label class="fl">Contraseña *</label><input class="fi" id="nuPass" type="password" placeholder="Mínimo 8 caracteres" autocomplete="new-password"></div>
-  <div class="fg"><label class="fl">Rol</label>
+  <div class="modal-title" data-t="usr.nuevo_title">👥 Nuevo usuario</div>
+  <div class="fg"><label class="fl" data-t="usr.nombre">Nombre *</label><input class="fi" id="nuNombre" placeholder="Juan García" autocomplete="off"></div>
+  <div class="fg"><label class="fl" data-t="usr.email">Email *</label><input class="fi" id="nuEmail" type="email" placeholder="juan@correo.com" autocomplete="off" inputmode="email"></div>
+  <div class="fg"><label class="fl" data-t="usr.pass">Contraseña *</label><input class="fi" id="nuPass" type="password" data-t-ph="usr.pass_ph" placeholder="Mínimo 8 caracteres" autocomplete="new-password"></div>
+  <div class="fg"><label class="fl" data-t="usr.rol">Rol</label>
     <select class="fi" id="nuRol">
-      <option value="empleado">Empleado</option>
-      <option value="admin">Administrador</option>
+      <option value="empleado" data-t="usr.empleado">Empleado</option>
+      <option value="admin" data-t="usr.admin">Administrador</option>
     </select>
   </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mNuevoUsuario')" data-t="gen.cancelar">Cancelar</button>
-    <button class="btn-primary" onclick="submitNuevoUsuario()">Crear usuario</button>
+    <button class="btn-primary" onclick="submitNuevoUsuario()" data-t="usr.crear">Crear usuario</button>
   </div>
 </div>
 </div>
@@ -4378,10 +4378,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
     <div class="fg"><label class="fl"><span data-t="tpv.forma_pago">Forma de pago</span></label>
       <select class="fi" id="nMetodo">
-        <option value="efectivo">Efectivo</option>
-        <option value="tarjeta">Tarjeta</option>
-        <option value="bizum">Bizum</option>
-        <option value="transferencia" selected>Transferencia</option>
+        <option value="efectivo" data-t="pago.efectivo">Efectivo</option>
+        <option value="tarjeta" data-t="pago.tarjeta">Tarjeta</option>
+        <option value="bizum" data-t="pago.bizum">Bizum</option>
+        <option value="transferencia" selected data-t="pago.transferencia">Transferencia</option>
       </select>
     </div>
   </div>
@@ -4428,10 +4428,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="fg"><label class="fl"><span data-t="tpv.forma_pago">Forma de pago</span></label>
     <select class="fi" id="grMetodo">
-      <option value="efectivo">Efectivo</option>
-      <option value="tarjeta">Tarjeta</option>
-      <option value="bizum">Bizum</option>
-      <option value="transferencia" selected>Transferencia</option>
+      <option value="efectivo" data-t="pago.efectivo">Efectivo</option>
+      <option value="tarjeta" data-t="pago.tarjeta">Tarjeta</option>
+      <option value="bizum" data-t="pago.bizum">Bizum</option>
+      <option value="transferencia" selected data-t="pago.transferencia">Transferencia</option>
     </select>
   </div>
   <div class="fg" style="position:relative">
@@ -4525,7 +4525,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260621a"></script>
+<script src="/js/dash-app.js?v=20260621b"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
