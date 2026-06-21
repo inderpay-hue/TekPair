@@ -3223,6 +3223,83 @@ function _kpiReps(f) {
   try { if (typeof renderReps === 'function') renderReps(); } catch (e) {}
 }
 
+// 🎯 Próxima acción: calcula la cosa más urgente AHORA y la muestra con 1 botón directo.
+// Reutiliza funciones existentes (avisarListo/_repBandaAvisar/editarRep/abrirPagoProveedor/
+// pagarGastoPendiente/confirmarCobro). "Saltar" la pospone 4h (localStorage).
+function _proxSkipped() { try { return JSON.parse(localStorage.getItem('tk_next_skipped') || '{}'); } catch (e) { return {}; } }
+function _proxIsSkipped(key) { var s = _proxSkipped(); return !!(s[key] && s[key] > Date.now()); }
+function calcularProximaAccion() {
+  var cands = [];
+  var reps = DB.reps || [];
+  var finDia = new Date(hoyLocal() + 'T23:59:59');
+  var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
+  var _equipo = function(r) { return ((r.marca || '') + ' ' + (r.modelo || '')).trim() || (r.clienteNombre || ''); };
+  // 1. Reparación lista para entregar, con teléfono, sin avisar
+  reps.forEach(function(r) {
+    if (['Por Entregar', 'Por entregar'].indexOf(r.estado) === -1) return;
+    if (_estaAvisado(r.id) || !_repBandaTieneTel(r)) return;
+    var key = 'lista_' + r.id; if (_proxIsSkipped(key)) return;
+    cands.push({ key: key, score: 800, icon: '✅', color: 'green',
+      titulo: T('next.lista_t').replace('{c}', r.clienteNombre || '').replace('{d}', _equipo(r)), sub: T('next.lista_s'),
+      cta: { label: '📲 ' + T('estan.avisar'), fn: "avisarListo('" + r.id + "')" }, cta2: { label: '👁️ ' + T('estan.ver'), fn: "editarRep('" + r.id + "')" } });
+  });
+  // 2. Reparación más atrasada (>14 días en taller)
+  var atr = reps.filter(function(r) { if (CERR.indexOf(r.estado) !== -1) return false; var f = r.fecha || r.fecha_entrada; if (!f) return false; r._dtProx = Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000); return r._dtProx > 14; }).sort(function(a, b) { return b._dtProx - a._dtProx; });
+  if (atr.length) {
+    var ra = atr[0], keyA = 'atr_' + ra.id;
+    if (!_proxIsSkipped(keyA)) cands.push({ key: keyA, score: 700 + ra._dtProx * 2, icon: '⚠️', color: 'red',
+      titulo: T('next.atrasada_t').replace('{c}', ra.clienteNombre || '').replace('{d}', _equipo(ra)).replace('{n}', ra._dtProx), sub: T('next.atrasada_s'),
+      cta: _repBandaTieneTel(ra) ? { label: '📲 ' + T('estan.avisar'), fn: "_repBandaAvisar('" + ra.id + "')" } : { label: '👁️ ' + T('estan.ver'), fn: "editarRep('" + ra.id + "')" },
+      cta2: { label: '👁️ ' + T('estan.ver'), fn: "editarRep('" + ra.id + "')" } });
+  }
+  // 3. Deuda a proveedor vencida más antigua (>30 días) — solo admin
+  if (_esAdmin()) {
+    var deudas = [];
+    (DB.pedidos || []).forEach(function(p) { if (!p.estado_pago || p.estado_pago === 'pagado') return; var debe = (parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0); if (debe <= 0.005) return; var f = p.fecha_pedido || p.fecha_estimada || ''; var dias = f ? Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000) : 0; deudas.push({ tipo: 'pedido', prov: (p.proveedor || '').trim() || _SIN_PROV, debe: debe, dias: dias }); });
+    (DB.gastos || []).forEach(function(g) { if ((g.estado || 'Pagado') !== 'Pendiente') return; var debe = parseFloat(g.importe) || 0; if (debe <= 0.005) return; var f = g.fecha || ''; var dias = f ? Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000) : 0; deudas.push({ tipo: 'gasto', gid: g.id, nombre: g.proveedor_nombre || g.concepto || g.categoria || '', debe: debe, dias: dias }); });
+    deudas = deudas.filter(function(d) { return d.dias > 30; }).sort(function(a, b) { return b.dias - a.dias; });
+    if (deudas.length) {
+      var d = deudas[0], nom = d.tipo === 'pedido' ? d.prov : d.nombre, keyD = 'deuda_' + (d.gid || d.prov) + '_' + Math.round(d.debe);
+      if (!_proxIsSkipped(keyD)) cands.push({ key: keyD, score: 600 + d.dias * 3, icon: '💸', color: 'red',
+        titulo: T('next.deuda_t').replace('{p}', nom).replace('{i}', cur(d.debe)).replace('{n}', d.dias), sub: T('next.deuda_s'),
+        cta: { label: '💰 ' + T('debes.pagar'), fn: d.tipo === 'gasto' ? ("pagarGastoPendiente('" + d.gid + "')") : ("abrirPagoProveedor('" + encodeURIComponent(d.prov) + "')") } });
+    }
+  }
+  // 4. Cobro pendiente de confirmar
+  var cob = window._cobrosPend || [];
+  if (cob.length) {
+    var c = cob[0], keyC = 'cobro_' + c.id;
+    if (!_proxIsSkipped(keyC)) { var rr = reps.find(function(x) { return x.id === c.reparacion_id; }); cands.push({ key: keyC, score: 650, icon: '🔔', color: 'orange',
+      titulo: T('next.cobro_t').replace('{c}', rr ? (rr.clienteNombre || '') : '').replace('{i}', cur(c.importe || 0)), sub: T('next.cobro_s'),
+      cta: { label: '✅ ' + T('cobro.confirmar'), fn: "confirmarCobro('" + c.id + "')" } }); }
+  }
+  cands.sort(function(a, b) { return b.score - a.score; });
+  return (cands[0] && cands[0].score > 400) ? cands[0] : null;
+}
+var _PROX_COL = { green: '#16A34A', red: '#DC2626', orange: '#EA580C', blue: '#2563EB' };
+function renderProximaAccion() {
+  var box = document.getElementById('proximaAccion'); if (!box) return;
+  var n; try { n = calcularProximaAccion(); } catch (e) { n = null; }
+  if (!n) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  window._proxActual = n;
+  var col = _PROX_COL[n.color] || '#EA580C';
+  var c2 = n.cta2 ? '<button onclick="' + n.cta2.fn + '" style="border:1px solid var(--border);background:var(--card,#fff);color:var(--text);border-radius:8px;padding:10px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">' + n.cta2.label + '</button>' : '';
+  box.innerHTML = '<div style="background:var(--card,#fff);border:1px solid var(--border);border-left:5px solid ' + col + ';border-radius:12px;padding:16px 18px;margin-bottom:16px">' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);flex:1">🎯 ' + T('next.titulo_widget') + '</span>' +
+    '<button onclick="_proxSkip()" title="' + esc(T('next.saltar')) + '" style="border:none;background:var(--light);color:var(--muted);width:28px;height:28px;border-radius:50%;font-size:13px;cursor:pointer">⏭</button></div>' +
+    '<div style="font-size:15px;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:3px">' + n.icon + ' ' + esc(n.titulo) + '</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:13px;line-height:1.4">' + esc(n.sub) + '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="' + n.cta.fn + '" style="border:none;background:' + col + ';color:#fff;border-radius:8px;padding:10px 18px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">' + n.cta.label + '</button>' + c2 + '</div>' +
+    '</div>';
+  box.style.display = 'block';
+}
+function _proxSkip() {
+  var n = window._proxActual; if (!n || !n.key) return;
+  var s = _proxSkipped(); s[n.key] = Date.now() + 4 * 3600 * 1000;
+  try { localStorage.setItem('tk_next_skipped', JSON.stringify(s)); } catch (e) {}
+  renderProximaAccion();
+}
+
 // Chips de urgencias del inicio: igual que en #reparaciones, colapsados por defecto.
 // Cada widget (atrasadas/cobros/debes/listas) se resume en un chip con su número;
 // al clicar se despliega su tarjeta. Así el inicio queda despejado al entrar.
@@ -3346,6 +3423,7 @@ function renderLoQueDebes() {
   items.forEach(function(it) { it.dias = it.fecha ? Math.max(0, Math.floor((hoy - new Date(String(it.fecha).slice(0, 10) + 'T00:00:00')) / 86400000)) : 0; });
   items.sort(function(a, b) { return b.dias - a.dias; });
   var total = Math.round(items.reduce(function(a, i) { return a + i.debe; }, 0) * 100) / 100;
+  var _vencidoTotal = Math.round(items.filter(function(it) { return it.dias > 30; }).reduce(function(a, it) { return a + it.debe; }, 0) * 100) / 100;
   var rows = items.slice(0, 8).map(function(it) {
     var vencido = it.dias >= 30;
     // M-D3: pagar sin navegar. Pedido → flujo de pago a proveedor (FIFO, ya existente);
@@ -3363,9 +3441,29 @@ function renderLoQueDebes() {
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">💸</span><strong style="color:#B91C1C;font-size:14px">' + T('debes.titulo') + '</strong></div><span style="font-weight:800;color:#DC2626">' + cur(total) + '</span></div>' +
     '<div>' + rows + '</div>' +
     (items.length > 8 ? '<div style="font-size:11.5px;color:var(--muted);margin-top:6px;cursor:pointer" onclick="navTo(\'pPedidos\')">+' + (items.length - 8) + ' →</div>' : '') +
+    (_vencidoTotal > 0.5 ? '<button onclick="pagarVencidos()" style="width:100%;margin-top:10px;border:none;background:#DC2626;color:#fff;border-radius:8px;padding:11px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">⚠️ ' + T('debes.pagar_vencidos').replace('{i}', cur(_vencidoTotal)) + '</button>' : '') +
     '</div>';
   _inicioBuckets.debes = items.length;
   box.style.display = _inicioChipsOpen.debes ? 'block' : 'none';
+}
+// Bulk: pagar de golpe todo lo VENCIDO (>30 días). Pedidos vía registrarPagoProveedor
+// (FIFO, crea gasto+registro de pago); gastos pendientes se marcan Pagado.
+function pagarVencidos() {
+  if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var finDia = new Date(hoyLocal() + 'T23:59:59');
+  var provTotales = {}, gastoIds = [], total = 0;
+  (DB.pedidos || []).forEach(function(p) { if (!p.estado_pago || p.estado_pago === 'pagado') return; var debe = (parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0); if (debe <= 0.005) return; var f = p.fecha_pedido || p.fecha_estimada || ''; var dias = f ? Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000) : 0; if (dias <= 30) return; var prov = (p.proveedor || '').trim() || _SIN_PROV; provTotales[prov] = (provTotales[prov] || 0) + debe; total += debe; });
+  (DB.gastos || []).forEach(function(g) { if ((g.estado || 'Pagado') !== 'Pendiente') return; var debe = parseFloat(g.importe) || 0; if (debe <= 0.005) return; var f = g.fecha || ''; var dias = f ? Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000) : 0; if (dias <= 30) return; gastoIds.push(g.id); total += debe; });
+  total = Math.round(total * 100) / 100;
+  if (total <= 0.005) { toast(T('debes.sin_vencidos'), 'ok'); return; }
+  if (!confirm(T('debes.pagar_vencidos_confirm').replace('{i}', cur(total)))) return;
+  Object.keys(provTotales).forEach(function(prov) { try { registrarPagoProveedor(prov, Math.round(provTotales[prov] * 100) / 100); } catch (e) {} });
+  gastoIds.forEach(function(id) { var g = (DB.gastos || []).find(function(x) { return x.id === id; }); if (g) { g.estado = 'Pagado'; if (SB_KEY && TIENDA_ID) sbPatch('gastos', 'id=eq.' + encodeURIComponent(id), { estado: 'Pagado' }); } });
+  try { guardarDatos(); } catch (e) {}
+  try { renderGastos(); } catch (e) {}
+  try { renderLoQueDebes(); } catch (e) {}
+  try { renderProximaAccion(); } catch (e) {}
+  toast(T('debes.pagado_ok'), 'ok');
 }
 
 // F564: reparaciones LISTAS (Por Entregar) que aún NO se han avisado al cliente.
@@ -3410,6 +3508,7 @@ function renderInicioNuevo() {
   try { renderListasSinAvisar(); } catch (e) {}
   try { if (window._cobrosPend === undefined) cargarConfirmacionesPend(); else renderConfirmacionesPend(); } catch (e) {}
   try { renderInicioChips(); } catch (e) {}
+  try { renderProximaAccion(); } catch (e) {}
   try { actualizarSidebarExtra(); } catch (e) {}
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
   var reps = DB.reps || [];
@@ -6375,6 +6474,7 @@ function renderConfirmacionesPend() {
   _inicioBuckets.cobros = arr.length;
   box.style.display = _inicioChipsOpen.cobros ? 'block' : 'none';
   try { renderInicioChips(); } catch (e) {}
+  try { renderProximaAccion(); } catch (e) {}
 }
 function confirmarCobro(attemptId) {
   var a = (window._cobrosPend || []).find(function(x){ return x.id === attemptId; });
