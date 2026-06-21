@@ -2786,15 +2786,17 @@ function _initRealtime() {
         _rtChannels.push(ch);
         var errs = 0;
         ch.subscribe(function (status) {
-          try { console.log('[Realtime]', tbl, status); } catch (e) {}
           if (_rtDead) return;
-          if (status === 'SUBSCRIBED') { _rtReady = true; errs = 0; return; }
+          if (status === 'SUBSCRIBED') { try { console.log('[Realtime]', tbl, status); } catch (e) {} _rtReady = true; errs = 0; return; }
           if (status === 'CHANNEL_ERROR' || status === 'TIMED_OUT' || status === 'CLOSED') {
             errs++; _rtGlobalErrs++;
+            // Solo logueamos el PRIMER error de cada tabla (evita el spam de 12× por ciclo en consola).
+            if (errs === 1) { try { console.warn('[Realtime]', tbl, status, '— cae a poll 60s si persiste'); } catch (e) {} }
             if (errs >= 3) { try { _rtClient.removeChannel(ch); } catch (e) {} } // deja de reintentar esa tabla
-            // Tormenta global (websocket que parpadea / token muerto): en vez de reconectar
-            // los 12 canales en bucle infinito, apaga Realtime y cae al poll de 60s (#29).
-            if (_rtGlobalErrs >= 40) _rtTeardown();
+            // Tormenta global (websocket que parpadea, token muerto o publicación Realtime no
+            // configurada en SQL): en vez de reconectar los 12 canales en bucle, apaga Realtime
+            // entero y cae al poll de 60s (#29/#B50). 24 = 2 rondas × 12 tablas → corte rápido.
+            if (_rtGlobalErrs >= 24) _rtTeardown();
           }
         });
       });
@@ -6996,11 +6998,11 @@ function abrirFirmaPresupuesto(id) {
   if (resumen) {
     var servicios = (r.servicios || []).map(function(s){ return s.nombre || ''; }).filter(Boolean).join(', ');
     resumen.innerHTML =
-      '<div><strong>Cliente:</strong> ' + esc(r.clienteNombre || '—') + '</div>' +
-      '<div><strong>Dispositivo:</strong> ' + esc(r.marca || '') + ' ' + esc(r.modelo || '') + (r.imei ? ' · IMEI: ' + esc(r.imei) : '') + '</div>' +
-      '<div><strong>Avería:</strong> ' + esc(r.averia || '—') + '</div>' +
-      (servicios ? '<div><strong>Servicios:</strong> ' + esc(servicios) + '</div>' : '') +
-      '<div style="margin-top:8px;font-size:16px;font-weight:700;color:var(--green)"><strong>Total a pagar: ' + cur(r.total || 0) + '</strong></div>';
+      '<div><strong>' + T('firma.r_cliente') + ':</strong> ' + esc(r.clienteNombre || '—') + '</div>' +
+      '<div><strong>' + T('firma.r_dispositivo') + ':</strong> ' + esc(r.marca || '') + ' ' + esc(r.modelo || '') + (r.imei ? ' · IMEI: ' + esc(r.imei) : '') + '</div>' +
+      '<div><strong>' + T('firma.r_averia') + ':</strong> ' + esc(r.averia || '—') + '</div>' +
+      (servicios ? '<div><strong>' + T('firma.r_servicios') + ':</strong> ' + esc(servicios) + '</div>' : '') +
+      '<div style="margin-top:8px;font-size:16px;font-weight:700;color:var(--green)"><strong>' + T('firma.r_total') + ' ' + cur(r.total || 0) + '</strong></div>';
   }
 
   // Reset checkbox + canvas
@@ -9014,8 +9016,7 @@ function renderPresupuestos() {
   });
   el.querySelectorAll('.btn-pres-firma2').forEach(function(btn) {
     btn.addEventListener('click', function() {
-      var r = DB.reps.find(function(x){ return x.id === btn.dataset.rid; });
-      if (r) { SEL.rep = r; openM('mFirma'); setTimeout(firmaCanvasInit, 100); }
+      abrirFirmaPresupuesto(btn.dataset.rid);
     });
   });
   el.querySelectorAll('.btn-pres-enviar2').forEach(function(btn) {
