@@ -339,7 +339,18 @@ const REG_TEXTS = {
 };
 
 function getLang() {
-  return localStorage.getItem('tp_lang') || navigator.language.slice(0,2) || 'es';
+  // #B81: prioridad ?lang= (lo pasa la landing por idioma) → tp_lang_landing (lo guarda la
+  // landing) → tp_lang (legales/dashboard) → navegador. Así el funnel mantiene el idioma.
+  var sup = ['es','en','fr','it','de','pt'];
+  try {
+    var q = (new URLSearchParams(location.search)).get('lang');
+    if (q && sup.indexOf(q) !== -1) { try{localStorage.setItem('tp_lang', q);}catch(e){} return q; }
+  } catch(e) {}
+  var stored = null;
+  try { stored = localStorage.getItem('tp_lang') || localStorage.getItem('tp_lang_landing'); } catch(e) {}
+  if (stored && sup.indexOf(stored) !== -1) return stored;
+  var nav = (navigator.language || 'es').slice(0,2);
+  return sup.indexOf(nav) !== -1 ? nav : 'es';
 }
 
 function applyRegLang(lang) {
