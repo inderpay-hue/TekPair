@@ -1960,6 +1960,7 @@ function registrarPagoProveedor(prov, importe) {
   try { renderGastos(); } catch (e) {}
   try { renderPedidosWidget(); } catch (e) {}
   try { renderDeudaProveedores(); } catch (e) {}
+  try { renderLoQueDebes(); } catch (e) {}
   try { if (typeof audit === 'function') audit('crear', 'pago_proveedor', { proveedor: prov, importe: importe, saldados: saldados }); } catch (e) {}
   var sobra = restante > 0.005 ? (' · ' + (T('pedidos.pago_saldo_favor') || 'Sobran') + ' ' + cur(restante)) : '';
   toast((T('pedidos.pago_ok') || 'Pago registrado') + ': ' + cur(aplicado) + ' · ' + saldados + ' ' + (T('pedidos.saldados') || 'saldados') + sobra, 'ok');
@@ -3239,10 +3240,20 @@ function renderEstancadas() {
     var equipo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
     var nom = r.clienteNombre || '';
     var titulo = equipo || nom || ('#' + (r.numero || ''));
-    return '<div onclick="editarRep(\'' + r.id + '\')" style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;background:#fff" onmouseover="this.style.background=\'#FEF2F2\'" onmouseout="this.style.background=\'#fff\'">' +
+    // M-D2: acciones in-line — avisar al cliente, ver el detalle o cerrar la reparación
+    // sin tener que navegar a Reparaciones y buscar la fila.
+    var cli = r.clienteId ? (DB.clis || []).find(function(c){ return c.id === r.clienteId; }) : null;
+    var sinTel = !(cli && cli.tel) && !r.clienteTel;
+    var btnAv = sinTel ? '' : '<button onclick="avisarStale(\'' + r.id + '\')" style="border:none;background:#25D366;color:#fff;border-radius:7px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">📲 ' + T('estan.avisar') + '</button>';
+    return '<div style="padding:8px 10px;border-radius:8px;background:#fff">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
       '<div style="min-width:0"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(titulo) + '</div>' +
       '<div style="font-size:11.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(nom) + (r.averia ? ' · ' + esc(r.averia) : '') + '</div></div>' +
-      '<div style="flex-shrink:0;font-weight:800;font-size:13px;color:#DC2626">' + r._diasTaller + ' ' + T('estan.dias') + '</div></div>';
+      '<div style="flex-shrink:0;font-weight:800;font-size:13px;color:#DC2626">' + r._diasTaller + ' ' + T('estan.dias') + '</div></div>' +
+      '<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">' + btnAv +
+      '<button onclick="editarRep(\'' + r.id + '\')" style="border:none;background:var(--light);color:var(--text);border-radius:7px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">👁️ ' + T('estan.ver') + '</button>' +
+      '<button onclick="cerrarStale(\'' + r.id + '\')" style="border:none;background:rgba(239,68,68,.1);color:#DC2626;border-radius:7px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer;margin-left:auto">✕ ' + T('estan.cerrar') + '</button>' +
+      '</div></div>';
   }).join('');
   box.innerHTML = '<div style="background:#FEF2F2;border:1px solid #FECACA;border-left:4px solid #DC2626;border-radius:12px;padding:14px 16px;margin-bottom:18px">' +
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px"><span style="font-size:16px">🚨</span><strong style="color:#B91C1C;font-size:14px">' + est.length + ' ' + T('estan.titulo') + '</strong></div>' +
@@ -3250,6 +3261,34 @@ function renderEstancadas() {
     (est.length > 8 ? '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;cursor:pointer" onclick="navTo(\'pReps\')">+' + (est.length - 8) + ' ' + T('estan.mas') + ' →</div>' : '') +
     '</div>';
   box.style.display = 'block';
+}
+// M-D2: avisar al cliente de una reparación atrasada (WhatsApp) y refrescar el alerta.
+function avisarStale(repId) {
+  try { abrirWhatsAppRep(repId); } catch (e) {}
+  setTimeout(function() { try { renderEstancadas(); } catch (e) {} }, 150);
+}
+// M-D2: cerrar una reparación atrasada/abandonada (la marca Rechazada y devuelve piezas al stock).
+function cerrarStale(repId) {
+  var r = (DB.reps || []).find(function(x) { return x.id === repId; }); if (!r) return;
+  var nom = ((r.marca || '') + ' ' + (r.modelo || '')).trim() || r.clienteNombre || ('#' + (r.numero || ''));
+  if (!confirm(T('estan.cerrar_confirm').replace('{e}', nom))) return;
+  try { cambiarEstado(repId, 'Rechazado'); } catch (e) {}
+  setTimeout(function() { try { renderEstancadas(); } catch (e) {} }, 150);
+}
+
+// M-D3: marcar un gasto pendiente como pagado directamente desde "Lo que debes".
+function pagarGastoPendiente(id) {
+  if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var g = (DB.gastos || []).find(function(x) { return x.id === id; }); if (!g) return;
+  var lbl = g.proveedor_nombre || g.concepto || g.categoria || '';
+  if (!confirm(T('debes.pagar_gasto_confirm').replace('{c}', lbl).replace('{i}', cur(parseFloat(g.importe) || 0)))) return;
+  g.estado = 'Pagado';
+  if (SB_KEY && TIENDA_ID) sbPatch('gastos', 'id=eq.' + encodeURIComponent(id), { estado: 'Pagado' });
+  try { guardarDatos(); } catch (e) {}
+  try { renderGastos(); } catch (e) {}
+  try { renderLoQueDebes(); } catch (e) {}
+  try { if (typeof audit === 'function') audit('editar', 'gasto', id, lbl + ' · ' + cur(parseFloat(g.importe) || 0), { estado: 'Pagado' }); } catch (e) {}
+  toast(T('debes.pagado_ok'), 'ok');
 }
 
 // W12: "Lo que debes" — pedidos no pagados + gastos pendientes, ordenado por antigüedad.
@@ -3264,13 +3303,13 @@ function renderLoQueDebes() {
     if (!p.estado_pago || p.estado_pago === 'pagado') return;
     var debe = Math.round(((parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0)) * 100) / 100;
     if (debe <= 0.005) return;
-    items.push({ nombre: (p.proveedor || '').trim() || _SIN_PROV, concepto: p.pieza || p.nota || T('nav.pedidos'), debe: debe, fecha: p.fecha_pedido || p.fecha_estimada || '' });
+    items.push({ tipo: 'pedido', nombre: (p.proveedor || '').trim() || _SIN_PROV, concepto: p.pieza || p.nota || T('nav.pedidos'), debe: debe, fecha: p.fecha_pedido || p.fecha_estimada || '' });
   });
   (DB.gastos || []).forEach(function(g) {
     if ((g.estado || 'Pagado') !== 'Pendiente') return;
     var debe = parseFloat(g.importe) || 0;
     if (debe <= 0.005) return;
-    items.push({ nombre: g.proveedor_nombre || g.concepto || g.categoria || T('nav.gastos'), concepto: g.proveedor_nombre ? (g.concepto || '') : (g.categoria || ''), debe: debe, fecha: g.fecha || '' });
+    items.push({ tipo: 'gasto', gid: g.id, nombre: g.proveedor_nombre || g.concepto || g.categoria || T('nav.gastos'), concepto: g.proveedor_nombre ? (g.concepto || '') : (g.categoria || ''), debe: debe, fecha: g.fecha || '' });
   });
   if (!items.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
   items.forEach(function(it) { it.dias = it.fecha ? Math.max(0, Math.floor((hoy - new Date(String(it.fecha).slice(0, 10) + 'T00:00:00')) / 86400000)) : 0; });
@@ -3278,10 +3317,16 @@ function renderLoQueDebes() {
   var total = Math.round(items.reduce(function(a, i) { return a + i.debe; }, 0) * 100) / 100;
   var rows = items.slice(0, 8).map(function(it) {
     var vencido = it.dias >= 30;
+    // M-D3: pagar sin navegar. Pedido → flujo de pago a proveedor (FIFO, ya existente);
+    // gasto pendiente → marcarlo pagado.
+    var pagarOnclick = it.tipo === 'gasto' ? ('pagarGastoPendiente(\'' + it.gid + '\')') : ('abrirPagoProveedor(\'' + encodeURIComponent(it.nombre) + '\')');
     return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:#fff;margin-bottom:6px">' +
       '<div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(it.nombre) + ' · ' + cur(it.debe) + '</div>' +
       '<div style="font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(it.concepto) + '</div></div>' +
-      '<div style="flex-shrink:0;font-weight:800;font-size:12.5px;color:' + (vencido ? '#DC2626' : 'var(--muted)') + '">' + it.dias + ' ' + T('estan.dias') + '</div></div>';
+      '<div style="flex-shrink:0;display:flex;flex-direction:column;align-items:flex-end;gap:5px">' +
+      '<div style="font-weight:800;font-size:12.5px;color:' + (vencido ? '#DC2626' : 'var(--muted)') + '">' + it.dias + ' ' + T('estan.dias') + '</div>' +
+      '<button onclick="' + pagarOnclick + '" style="border:none;background:var(--green);color:#fff;border-radius:7px;padding:4px 10px;font:inherit;font-size:11px;font-weight:700;cursor:pointer">💰 ' + T('debes.pagar') + '</button>' +
+      '</div></div>';
   }).join('');
   box.innerHTML = '<div style="background:rgba(226,72,60,.06);border:1px solid rgba(226,72,60,.25);border-left:4px solid #DC2626;border-radius:12px;padding:14px 16px;margin-bottom:18px">' +
     '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px"><div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">💸</span><strong style="color:#B91C1C;font-size:14px">' + T('debes.titulo') + '</strong></div><span style="font-weight:800;color:#DC2626">' + cur(total) + '</span></div>' +
@@ -3463,13 +3508,23 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   var pctCap = (pct === null || Math.abs(pct) >= 999) ? null : pct;
   _st('inv-a-perlbl', perLbl);
   _st('inv-a-big', cur(ingPer));
+  // M-D1: tendencia no alarmista. Solo pintamos la SUBIDA (verde, motiva). Las bajadas no se
+  // muestran como catástrofe (un "-92%" en fin de semana asustaba sin motivo): el pulso de abajo
+  // da el contexto en cifras absolutas y, si es finde, lo aclara.
   var trEl = document.getElementById('inv-a-trend');
   if (trEl) {
-    if (pctCap === null) { trEl.className = 'hup'; trEl.textContent = ''; }
-    else { trEl.className = 'hup' + (pctCap < 0 ? ' down' : ''); trEl.textContent = (pctCap < 0 ? '▼ ' : '▲ ') + Math.abs(pctCap) + '% ' + T('inicio.vs_semana'); }
+    if (pctCap !== null && pctCap > 0) { trEl.className = 'hup'; trEl.textContent = '▲ ' + pctCap + '% ' + T('inicio.vs_semana'); }
+    else { trEl.className = 'hup'; trEl.textContent = ''; }
   }
   var plA = document.getElementById('inv-pulse');
-  if (plA) { var pctTxt = (pctCap === null) ? '<b>—</b>' : '<b style="color:var(--inv-' + (pctCap >= 0 ? 'green' : 'red') + ')">' + (pctCap >= 0 ? '+' : '') + pctCap + '%</b>'; plA.innerHTML = T('inicio.vas').replace('{p}', pctTxt) + ' · <b>' + enRep.length + '</b> ' + T('inicio.en_curso') + ' · <b>' + listas.length + '</b> ' + T('inicio.listas_corto'); }
+  if (plA) {
+    var esFinde = (dow >= 5);  // dow 0=Lun … 5=Sáb, 6=Dom
+    var ctx;
+    if (pctCap !== null && pctCap > 0) { ctx = T('md1.subiendo').replace('{p}', '<b style="color:var(--inv-green)">+' + pctCap + '%</b>'); }
+    else { ctx = '<b>' + cur(estaSem) + '</b> ' + T('md1.esta_semana') + (antSem > 0 ? ' · <span style="color:var(--muted)">' + T('md1.semana_ant') + ' ' + cur(antSem) + '</span>' : ''); }
+    if (esFinde) ctx += ' · <span style="color:var(--muted)">' + T('md1.finde') + '</span>';
+    plA.innerHTML = ctx + ' · <b>' + enRep.length + '</b> ' + T('inicio.en_curso') + ' · <b>' + listas.length + '</b> ' + T('inicio.listas_corto');
+  }
 
   // Gráfica adaptada al periodo: semana/hoy → Lun-Dom; mes → por semanas (S1..S5)
   var serie = [], dotIdx = 0, j, dx, iso2;
