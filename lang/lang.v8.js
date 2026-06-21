@@ -4581,3 +4581,11 @@ it:{'arqueo.normal_propinas':'Capita: mance, arrotondamenti o un incasso non reg
 de:{'arqueo.normal_propinas':'Kommt vor: Trinkgeld, Rundungen oder eine nicht erfasste Zahlung. Du kannst trotzdem abschließen.','arqueo.revisa_checklist':'Vor dem Abschluss prüfen: einen Verkauf oder eine Ausgabe vergessen zu erfassen? Hat jemand Bargeld aus der Kasse genommen?'},
 pt:{'arqueo.normal_propinas':'Acontece: gorjetas, arredondamentos ou um pagamento por registar. Podes fechar à mesma.','arqueo.revisa_checklist':'Antes de fechar, verifica: esqueceste de registar uma venda ou despesa? alguém tirou dinheiro da caixa?'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{'repban.urgente':'urgentes','repban.atrasadas':'atrasadas','repban.listas':'listas para avisar','repban.marcar_lista':'Lista'},
+en:{'repban.urgente':'urgent','repban.atrasadas':'overdue','repban.listas':'ready to notify','repban.marcar_lista':'Ready'},
+fr:{'repban.urgente':'urgentes','repban.atrasadas':'en retard','repban.listas':'prêtes à prévenir','repban.marcar_lista':'Prête'},
+it:{'repban.urgente':'urgenti','repban.atrasadas':'in ritardo','repban.listas':'pronte da avvisare','repban.marcar_lista':'Pronta'},
+de:{'repban.urgente':'dringend','repban.atrasadas':'überfällig','repban.listas':'fertig zum Melden','repban.marcar_lista':'Fertig'},
+pt:{'repban.urgente':'urgentes','repban.atrasadas':'atrasadas','repban.listas':'prontas para avisar','repban.marcar_lista':'Pronta'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
