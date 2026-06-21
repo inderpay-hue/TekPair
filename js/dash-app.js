@@ -488,6 +488,34 @@ function _aplicarVistaEscritorio(on) {
   var b = document.getElementById('btnVistaEscritorio');
   if (b) b.style.boxShadow = on ? 'inset 0 0 0 2px var(--blue)' : '';
 }
+
+// #B7: el saludo (mañana/tarde/noche) y la fecha se calculaban una sola vez al cargar.
+// Si la pestaña queda abierta y cambia la franja horaria o el día, quedaban obsoletos
+// ("Good afternoon" a las 23h). Refrescamos al volver a la pestaña y cada 5 minutos.
+function _refrescarSaludo() {
+  try {
+    if (typeof U === 'undefined' || !U) return;
+    var h = new Date().getHours();
+    var primer = (U.nombre || '').split(' ')[0] || '';
+    var saludoSb = h < 6 ? T('dash.buenas_noches') : h < 13 ? T('dash.buenos_dias') : (h < 21 ? T('dash.buenas_tardes') : T('dash.buenas_noches'));
+    var dTiendaEl = document.getElementById('dTienda');
+    if (dTiendaEl) dTiendaEl.textContent = primer ? saludoSb + ', ' + primer : saludoSb;
+    var sa = document.getElementById('inv-saludo');
+    if (sa) {
+      var sal = h < 6 ? T('inicio.saludo_noche') : h < 13 ? T('inicio.saludo_manana') : (h < 21 ? T('inicio.saludo_tarde') : T('inicio.saludo_noche'));
+      sa.textContent = sal + (primer ? ', ' + primer : '') + ' 👋';
+    }
+    var fe = document.getElementById('inv-fecha');
+    if (fe) fe.textContent = new Date().toLocaleDateString((typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es'), { weekday: 'long', day: 'numeric', month: 'long' });
+  } catch (e) {}
+}
+var _refrescoSaludoSet = false;
+function _setupRefrescoSaludo() {
+  if (_refrescoSaludoSet) return;
+  _refrescoSaludoSet = true;
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) _refrescarSaludo(); });
+  setInterval(_refrescarSaludo, 300000);
+}
 function toggleVistaEscritorio() {
   var on = false;
   try { on = localStorage.getItem('tk_vista_escritorio') !== '1'; } catch (e) { on = true; }
@@ -537,13 +565,8 @@ window.addEventListener('DOMContentLoaded', function() {
   if (!TIENDA.nombre) TIENDA.nombre = 'Mi Tienda';
   // VIS-1: header con saludo personalizado en lugar de nombre de tienda
   // El nombre de la tienda ya se muestra en el sidebar; aquí saludo más humano.
-  (function(){
-    var h = new Date().getHours();
-    var saludo = h < 6 ? T('dash.buenas_noches') : h < 13 ? T('dash.buenos_dias') : h < 21 ? T('dash.buenas_tardes') : T('dash.buenas_noches');
-    var primerNombre = (U.nombre || '').split(' ')[0] || '';
-    var dTiendaEl = document.getElementById('dTienda');
-    if (dTiendaEl) dTiendaEl.textContent = primerNombre ? saludo + ', ' + primerNombre : saludo;
-  })();
+  _refrescarSaludo();
+  _setupRefrescoSaludo();
   renderSidebarLogo();
   document.getElementById('dStr').textContent = new Date().toLocaleDateString((typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es'), {weekday:'long',day:'numeric',month:'long'});
 
