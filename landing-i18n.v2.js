@@ -40,7 +40,7 @@ var T = {
     'faq5.q':'¿Hay soporte en español?','faq5.a':'Sí. Nuestro equipo de soporte habla español, inglés, francés y portugués. Disponible por WhatsApp y email.',
     'cta.title':'¿Listo para transformar tu tienda?','cta.sub':'Únete a más de 500 tiendas que ya gestionan su negocio con Tekpair','cta.btn1':'Prueba gratis 15 días','cta.btn2':'Acceder',
     'footer.desc':'Software de gestión para tiendas de venta y reparación móvil. Simple, potente y asequible.',
-    'footer.product':'Producto','footer.contact':'Contacto','footer.rights':'Todos los derechos reservados.','footer.secure':'Pago seguro con Stripe'
+    'footer.product':'Producto','footer.contact':'Contacto','footer.rights':'Todos los derechos reservados.','footer.secure':'Pago seguro con Stripe','footer.chat':'Chat de soporte','footer.aviso':'Aviso legal','footer.privacidad':'Privacidad','footer.terminos':'Términos','footer.cookies':'Cookies'
   },
   en: {
     'a11y.skip':'Skip to content',
@@ -83,7 +83,7 @@ var T = {
     'faq5.q':'Is there support in English?','faq5.a':'Yes. Our support team speaks Spanish, English, French and Portuguese. Available via WhatsApp and email.',
     'cta.title':'Ready to transform your shop?','cta.sub':'Join over 500 shops already managing their business with Tekpair','cta.btn1':'Start free 15 days','cta.btn2':'Log in',
     'footer.desc':'Management software for mobile repair shops. Simple, powerful and affordable.',
-    'footer.product':'Product','footer.contact':'Contact','footer.rights':'All rights reserved.','footer.secure':'Secure payment with Stripe'
+    'footer.product':'Product','footer.contact':'Contact','footer.rights':'All rights reserved.','footer.secure':'Secure payment with Stripe','footer.chat':'Support chat','footer.aviso':'Legal notice','footer.privacidad':'Privacy','footer.terminos':'Terms','footer.cookies':'Cookies'
   },
   fr: {
     'a11y.skip':'Aller au contenu',
@@ -126,7 +126,7 @@ var T = {
     'faq5.q':'Y a-t-il un support en français ?','faq5.a':'Oui. Notre équipe parle espagnol, anglais, français et portugais. Disponible par WhatsApp et email.',
     'cta.title':'Prêt à transformer votre boutique ?','cta.sub':'Rejoignez plus de 500 boutiques qui gèrent déjà leur activité avec Tekpair','cta.btn1':'Essai gratuit 15 jours','cta.btn2':'Se connecter',
     'footer.desc':'Logiciel de gestion pour boutiques de réparation mobile. Simple, puissant et abordable.',
-    'footer.product':'Produit','footer.contact':'Contact','footer.rights':'Tous droits réservés.','footer.secure':'Paiement sécurisé avec Stripe'
+    'footer.product':'Produit','footer.contact':'Contact','footer.rights':'Tous droits réservés.','footer.secure':'Paiement sécurisé avec Stripe','footer.chat':'Chat d\'assistance','footer.aviso':'Mentions légales','footer.privacidad':'Confidentialité','footer.terminos':'Conditions','footer.cookies':'Cookies'
   },
   pt: {
     'a11y.skip':'Saltar para o conteúdo',
@@ -169,7 +169,7 @@ var T = {
     'faq5.q':'Há suporte em português?','faq5.a':'Sim. A nossa equipa fala espanhol, inglês, francês e português. Disponível por WhatsApp e email.',
     'cta.title':'Pronto para transformar a sua loja?','cta.sub':'Junte-se a mais de 500 lojas que já gerem o seu negócio com Tekpair','cta.btn1':'Experimentar 15 dias grátis','cta.btn2':'Aceder',
     'footer.desc':'Software de gestão para lojas de reparação móvel. Simples, potente e acessível.',
-    'footer.product':'Produto','footer.contact':'Contacto','footer.rights':'Todos os direitos reservados.','footer.secure':'Pagamento seguro com Stripe'
+    'footer.product':'Produto','footer.contact':'Contacto','footer.rights':'Todos os direitos reservados.','footer.secure':'Pagamento seguro com Stripe','footer.chat':'Chat de apoio','footer.aviso':'Aviso legal','footer.privacidad':'Privacidade','footer.terminos':'Termos','footer.cookies':'Cookies'
   },
   it: {
     'a11y.skip':'Vai al contenuto',
@@ -212,7 +212,7 @@ var T = {
     'faq5.q':'C\'è supporto in italiano?','faq5.a':'Sì. Il nostro team parla spagnolo, inglese, francese, italiano e tedesco. Disponibile via WhatsApp ed email.',
     'cta.title':'Pronto a trasformare il tuo negozio?','cta.sub':'Unisciti a oltre 500 negozi che gestiscono già la loro attività con Tekpair','cta.btn1':'Prova gratis 15 giorni','cta.btn2':'Accedi',
     'footer.desc':'Software gestionale per negozi di vendita e riparazione smartphone. Semplice, potente e conveniente.',
-    'footer.product':'Prodotto','footer.contact':'Contatto','footer.rights':'Tutti i diritti riservati.','footer.secure':'Pagamento sicuro con Stripe'
+    'footer.product':'Prodotto','footer.contact':'Contatto','footer.rights':'Tutti i diritti riservati.','footer.secure':'Pagamento sicuro con Stripe','footer.chat':'Chat di supporto','footer.aviso':'Note legali','footer.privacidad':'Privacy','footer.terminos':'Termini','footer.cookies':'Cookie'
   },
   de: {
     'a11y.skip':'Zum Inhalt springen',
@@ -255,7 +255,7 @@ var T = {
     'faq5.q':'Gibt es Support auf Deutsch?','faq5.a':'Ja. Unser Team spricht Spanisch, Englisch, Französisch, Italienisch und Deutsch. Verfügbar per WhatsApp und Email.',
     'cta.title':'Bereit, deinen Shop zu transformieren?','cta.sub':'Schließe dich über 500 Shops an, die ihr Geschäft bereits mit Tekpair verwalten','cta.btn1':'15 Tage kostenlos testen','cta.btn2':'Anmelden',
     'footer.desc':'Verwaltungssoftware für Handy-Reparaturshops. Einfach, leistungsstark und erschwinglich.',
-    'footer.product':'Produkt','footer.contact':'Kontakt','footer.rights':'Alle Rechte vorbehalten.','footer.secure':'Sichere Zahlung mit Stripe'
+    'footer.product':'Produkt','footer.contact':'Kontakt','footer.rights':'Alle Rechte vorbehalten.','footer.secure':'Sichere Zahlung mit Stripe','footer.chat':'Support-Chat','footer.aviso':'Impressum','footer.privacidad':'Datenschutz','footer.terminos':'AGB','footer.cookies':'Cookies'
   }
 };
 
