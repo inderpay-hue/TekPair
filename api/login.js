@@ -221,6 +221,18 @@ async function _tiendaAutorizada(SB_URL, SK, usuarioId, primaryTiendaId, targetT
   } catch (e) { return false; }
 }
 
+// Multi-tienda: ids de tienda a las que un usuario tiene acceso = su primaria + enlaces.
+async function _tiendasDelUsuario(SB_URL, SK, usuarioId, homeTiendaId) {
+  const ids = homeTiendaId ? [String(homeTiendaId)] : [];
+  try {
+    const r = await fetch(`${SB_URL}/rest/v1/usuario_tiendas?usuario_id=eq.${encodeURIComponent(usuarioId)}&select=tienda_id`, {
+      headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` }
+    });
+    if (r.ok) { const rows = await r.json(); (Array.isArray(rows) ? rows : []).forEach(function (l) { if (l.tienda_id && ids.indexOf(String(l.tienda_id)) === -1) ids.push(String(l.tienda_id)); }); }
+  } catch (e) { /* tabla puede no existir aún */ }
+  return ids;
+}
+
 export default async function handler(req, res) {
   const SB_URL = process.env.SUPABASE_URL;
   const SK = process.env.SUPABASE_SERVICE_KEY;
@@ -788,6 +800,49 @@ export default async function handler(req, res) {
         });
         if (!ins.ok) { console.error('crear usuario:', ins.status, await ins.text()); return res.status(500).json({ error: 'No se pudo crear el usuario' }); }
         return res.json({ ok: true, id: nuevoId });
+      }
+
+      // Multi-tienda: leer las tiendas que el admin puede otorgar + el acceso actual de cada empleado.
+      if (op === 'map-tiendas') {
+        const adminTiendas = await _tiendasDelUsuario(SB_URL, SK, admin.uid, tiendaId);
+        let tiendasInfo = adminTiendas.map(function (id) { return { id: id, nombre: '' }; });
+        try {
+          const inList = adminTiendas.map(function (id) { return '"' + id + '"'; }).join(',');
+          const tR = await fetch(`${SB_URL}/rest/v1/tiendas?id=in.(${encodeURIComponent(inList)})&select=id,nombre`, { headers: sbH });
+          if (tR.ok) { const rows = await tR.json(); const nm = {}; (Array.isArray(rows) ? rows : []).forEach(function (t) { nm[t.id] = t.nombre || ''; }); tiendasInfo = adminTiendas.map(function (id) { return { id: id, nombre: nm[id] || id }; }); }
+        } catch (e) { /* sin nombres */ }
+        const map = {};
+        try {
+          const uR = await fetch(`${SB_URL}/rest/v1/usuarios?tienda_id=eq.${encodeURIComponent(tiendaId)}&select=id`, { headers: sbH });
+          const us = await uR.json();
+          const empIds = (Array.isArray(us) ? us : []).map(function (u) { return u.id; });
+          if (empIds.length) {
+            const inU = empIds.map(function (id) { return '"' + id + '"'; }).join(',');
+            const lR = await fetch(`${SB_URL}/rest/v1/usuario_tiendas?usuario_id=in.(${encodeURIComponent(inU)})&select=usuario_id,tienda_id`, { headers: sbH });
+            if (lR.ok) { const links = await lR.json(); (Array.isArray(links) ? links : []).forEach(function (l) { if (!map[l.usuario_id]) map[l.usuario_id] = []; map[l.usuario_id].push(String(l.tienda_id)); }); }
+          }
+        } catch (e) { /* tabla puede no existir aún */ }
+        return res.json({ ok: true, mis_tiendas: tiendasInfo, map: map, primaria: tiendaId });
+      }
+
+      // Multi-tienda: asignar a un empleado el conjunto de tiendas extra a las que accede.
+      if (op === 'set-tiendas') {
+        const { target_id, tiendas: reqTiendas } = req.body;
+        if (!target_id) return res.status(400).json({ error: 'Falta target_id' });
+        if (target_id === admin.uid) return res.status(400).json({ error: 'Tu propio acceso a tiendas se gestiona al añadir una tienda nueva' });
+        const tgt = await targetEnTienda(target_id);
+        if (!tgt) return res.status(404).json({ error: 'Usuario no encontrado en tu tienda' });
+        const adminTiendas = await _tiendasDelUsuario(SB_URL, SK, admin.uid, tiendaId);
+        // Solo ids autorizados para el admin; nunca la primaria del empleado (es implícita); sin duplicados.
+        const wanted = Array.isArray(reqTiendas) ? reqTiendas.map(String).filter(function (id, i, a) { return id && adminTiendas.indexOf(id) !== -1 && String(id) !== String(tiendaId) && a.indexOf(id) === i; }) : [];
+        // Sincronizar: borrar los enlaces previos del empleado y reinsertar el set deseado.
+        try { await fetch(`${SB_URL}/rest/v1/usuario_tiendas?usuario_id=eq.${encodeURIComponent(target_id)}`, { method: 'DELETE', headers: { ...sbH, 'Prefer': 'return=minimal' } }); } catch (e) { /* no bloqueante */ }
+        if (wanted.length) {
+          const rows = wanted.map(function (id) { return { usuario_id: target_id, tienda_id: id, rol: tgt.rol || 'empleado' }; });
+          const ins = await fetch(`${SB_URL}/rest/v1/usuario_tiendas`, { method: 'POST', headers: { ...sbH, 'Prefer': 'return=minimal' }, body: JSON.stringify(rows) });
+          if (!ins.ok) { console.error('set-tiendas:', ins.status, await ins.text().catch(() => '')); return res.status(500).json({ error: 'No se pudo guardar el acceso a tiendas' }); }
+        }
+        return res.json({ ok: true, tiendas: wanted });
       }
 
       return res.status(400).json({ error: 'Operación no reconocida' });
