@@ -4257,7 +4257,7 @@ function _renderWidgetSelectorBody(id) {
         html += '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--border)">' +
           '<div style="width:6px;height:6px;border-radius:50%;background:var(--orange);flex-shrink:0"></div>' +
           '<div style="flex:1;min-width:0">' +
-            '<div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.clienteNombre||'Sin cliente') + '</div>' +
+            '<div style="font-size:12px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(_cliLbl(r.clienteNombre)) + '</div>' +
             '<div style="font-size:10px;color:var(--muted)">' + escHtml(r.marca||'') + ' ' + escHtml(r.modelo||'') + '</div>' +
           '</div>' +
           '<div style="font-size:10px;background:rgba(249,115,22,.12);color:var(--orange);padding:2px 7px;border-radius:10px;font-weight:700;flex-shrink:0">' + escHtml(r.estado||'') + '</div>' +
@@ -4277,7 +4277,7 @@ function _renderWidgetSelectorBody(id) {
       cobros.forEach(function(r) {
         html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">' +
           '<div style="min-width:0;flex:1">' +
-            '<div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(r.clienteNombre||'Sin cliente') + '</div>' +
+            '<div style="font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(_cliLbl(r.clienteNombre)) + '</div>' +
             '<div style="font-size:10px;color:var(--muted)">' + escHtml(r.modelo||'') + '</div>' +
           '</div>' +
           '<div style="font-size:12px;font-weight:800;color:var(--orange);flex-shrink:0;margin-left:8px">' + cur(r.restante) + '</div>' +
@@ -5620,6 +5620,12 @@ function setVentaFiltro(el) {
   renderVentas();
 }
 
+// Helpers de visualización i18n para VALORES guardados en español (no se cambia el dato, solo su etiqueta).
+function _pagoLbl(p){ if (!p) return ''; var k = 'pago.' + String(p).toLowerCase(); var t = T(k); return (t && t !== k) ? t : p; }
+function _cliLbl(n){ return (n === 'Sin cliente' || !n) ? T('gen.sin_cliente') : n; }
+var _CAT_KEY = { 'Telefono':'cat_telefono','Tablet':'cat_tablet','Smartwatch':'cat_smartwatch','Pantalla':'cat_pantalla','Tapa':'cat_tapa','Bateria':'cat_bateria','Flex de Carga':'cat_flex','Altavoz':'cat_altavoz','Repuesto':'cat_repuesto','Accesorio':'cat_accesorio','Otro':'cat_otro' };
+function _catLbl(c){ if (!c) return ''; var kk = _CAT_KEY[c]; if (!kk) return c; var t = T('stock.' + kk); return (t && t !== 'stock.' + kk) ? t : c; }
+
 function renderVentas() {
   var q = _norm(document.getElementById('busVentas').value);
   var filtro = SEL.ventaFiltro || 'todas';
@@ -5634,7 +5640,7 @@ function renderVentas() {
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('gen.fecha') + '</th><th>' + T('gen.cliente') + '</th><th>' + T('gen.modelo') + '</th><th>' + T('gen.pago') + '</th><th>' + T('gen.total') + '</th><th></th></tr></thead><tbody>';
   list.forEach(function(v) {
     var badges = '';
-    if (v.reembolsado) badges += '<span class="badge-reem">Reembolsado</span>';
+    if (v.reembolsado) badges += '<span class="badge-reem">' + T('ventas.reembolsado') + '</span>';
     if (v.financiado && !v.reembolsado) badges += '<span class="badge-fin">' + T('fin.badge') + '</span>';
     var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="Reembolsar">\u21a9</button>' : '';
     var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="edit" class="row-btn btn-fin" title="Financiación">\ud83d\udcb0</button>' : '';
@@ -5642,9 +5648,9 @@ function renderVentas() {
     var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="Generar factura">📄</button>' : '';
     html += '<tr style="' + (v.reembolsado ? 'opacity:.55' : '') + '">' +
       '<td>' + fmtFecha(v.fecha) + '</td>' +
-      '<td>' + v.clienteNombre + badges + '</td>' +
-      '<td>' + v.modelo + '</td>' +
-      '<td><span class="badge bb">' + v.pago + '</span></td>' +
+      '<td>' + esc(_cliLbl(v.clienteNombre)) + badges + '</td>' +
+      '<td>' + esc(v.modelo) + '</td>' +
+      '<td><span class="badge bb">' + esc(_pagoLbl(v.pago)) + '</span></td>' +
       '<td style="color:' + (v.reembolsado ? 'var(--red)' : 'var(--green)') + ';font-weight:700">' + (v.reembolsado ? '-' : '') + cur(v.total) + '</td>' +
       '<td style="display:flex;gap:3px">' + btnR + btnF + btnFact + btnImpr + '</td></tr>';
   });
@@ -9823,7 +9829,7 @@ function renderStock() {
       ((s.capacidad || s.color) ? '<br><span style="font-size:9px;color:var(--muted)">' + [s.capacidad, s.color].filter(Boolean).join(' · ') + '</span>' : '') +
       (s.calidad ? ' <span style="font-size:9px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 5px;border-radius:4px">' + esc(s.calidad) + '</span>' : '') +
       (s.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">IMEI: ' + s.imei + '</span>' : '') + '</td>' +
-      '<td><span class="badge bb" style="font-size:9px">' + (s.categoria || '') + '</span></td>' +
+      '<td><span class="badge bb" style="font-size:9px">' + esc(_catLbl(s.categoria)) + '</span></td>' +
       (mostrarUbic ? '<td>' + (s.ubicacion ? '<span class="badge" style="background:rgba(255,91,31,.10);color:var(--purple);font-size:9px">' + esc(s.ubicacion) + '</span>' : '<span style="color:var(--muted);font-size:10px">—</span>') + '</td>' : '') +
       '<td style="font-weight:700;color:' + (s.unidades < 0 ? 'var(--red)' : (s.unidades <= s.stockMin ? 'var(--orange)' : 'var(--text)')) + '">' + s.unidades + (s.unidades < 0 ? ' <button onclick="corregirStockCero(\'' + s.id + '\')" title="Poner a 0" style="background:rgba(239,68,68,.12);border:none;color:var(--red);border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer;font-weight:800">→0</button>' : '') + '</td>' +
       '<td>' + ((parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '<span style="color:var(--red);font-weight:700" title="Sin precio de venta — si se vende no generará ingreso">⚠ ' + cur(0) + '</span>') + '</td>' +
@@ -11996,15 +12002,15 @@ function renderGastos() {
   // Genera las 7 celdas de una fila de gasto (fila suelta o detalle de grupo)
   function _celdasGasto(g, indent) {
     var ivaT = (g.iva_tipo != null) ? g.iva_tipo : 21;
-    var cat = g.categoria || 'Otros';
+    var cat = g.categoria || T('gastos.cat_otros');
     var adjCell;
     if (g.adjunto_url) {
-      adjCell = '<button class="btn-sm" onclick="verAdjuntoGasto(\'' + g.id + '\')" title="' + esc(g.adjunto_nombre || '') + '" style="background:#10B981;color:white;padding:4px 8px;font-size:11px">📎 Ver</button>' +
-        ' <button class="btn-sm" onclick="quitarAdjuntoGasto(\'' + g.id + '\')" title="Quitar adjunto" style="background:transparent;color:var(--red);padding:4px 6px;font-size:11px;border:1px solid var(--red)">✕</button>';
+      adjCell = '<button class="btn-sm" onclick="verAdjuntoGasto(\'' + g.id + '\')" title="' + esc(g.adjunto_nombre || '') + '" style="background:#10B981;color:white;padding:4px 8px;font-size:11px">📎 ' + T('gen.ver') + '</button>' +
+        ' <button class="btn-sm" onclick="quitarAdjuntoGasto(\'' + g.id + '\')" title="' + T('gastos.quitar_adjunto') + '" style="background:transparent;color:var(--red);padding:4px 6px;font-size:11px;border:1px solid var(--red)">✕</button>';
     } else {
-      adjCell = '<button class="btn-sm" onclick="triggerAdjuntoGasto(\'' + g.id + '\')" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">+ Adjuntar</button>';
+      adjCell = '<button class="btn-sm" onclick="triggerAdjuntoGasto(\'' + g.id + '\')" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">+ ' + T('gastos.adjuntar') + '</button>';
     }
-    var editBtn = '<button class="btn-sm" onclick="editarGasto(\'' + g.id + '\')" title="Editar gasto" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">✏️</button> ';
+    var editBtn = '<button class="btn-sm" onclick="editarGasto(\'' + g.id + '\')" title="' + T('gen.editar') + '" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">✏️</button> ';
     return '<td style="' + (indent ? 'padding-left:24px' : '') + '">' + esc(g.concepto || '') + '</td>' +
       '<td><span class="badge bb">' + esc(cat) + '</span></td>' +
       '<td>' + fmtFecha(g.fecha) + '</td>' +
@@ -12015,7 +12021,7 @@ function renderGastos() {
   }
   // F79: gasto pendiente con fecha pasada → badge "⚠️ Nd" (días vencido) además del estado
   function _estadoGastoCell(g) {
-    var badge = '<span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado || 'Pagado') + '</span>';
+    var badge = '<span class="badge ' + (g.estado === 'Pagado' ? 'bg' : 'bo') + '">' + (g.estado === 'Pendiente' ? T('gastos.pendiente') : T('gastos.pagado')) + '</span>';
     var pend = (g.estado && g.estado !== 'Pagado');
     var fd = (g.fecha || '').slice(0, 10);
     if (pend && fd && fd < hoyLocal()) {
@@ -12065,7 +12071,7 @@ function renderGastos() {
     });
   });
 
-  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>Concepto / Proveedor</th><th>Categoría</th><th>Fecha</th><th>IVA</th><th>Importe</th><th>Estado</th><th>Adjunto</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('gastos.concepto') + ' / ' + T('nav.proveedores') + '</th><th>' + T('stock.categoria') + '</th><th>' + T('gen.fecha') + '</th><th>' + T('gen.iva') + '</th><th>' + T('gastos.importe') + '</th><th>' + T('gastos.estado') + '</th><th>' + T('gastos.adjunto') + '</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
 }
 
 // Pliega/despliega las líneas de un grupo de gastos sin re-renderizar
