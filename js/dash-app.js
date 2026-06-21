@@ -11065,30 +11065,30 @@ function renderGastosRec() {
   if (!el) return;
   var lista = DB.gastos_recurrentes || [];
   if (!lista.length) {
-    el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">Aún no tienes plantillas. Crea una con "+ Nueva plantilla" para automatizar gastos fijos como alquiler o suscripciones.</div>';
+    el.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:8px 0">' + T('gastos.sin_plantillas') + '</div>';
     return;
   }
   var ordenada = lista.slice().sort(function(a,b){ return (a.dia_mes || 0) - (b.dia_mes || 0); });
-  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="gastos.concepto">Concepto</span></th><th><span data-t="nav.proveedores">Proveedor</span></th><th><span data-t="gen.dia">Día</span></th><th><span data-t="gastos.importe">Importe</span></th><th><span data-t="gen.iva">IVA</span></th><th>Estado</th><th><span data-t="gen.ultimo">Último</span></th><th>Acciones</th></tr></thead><tbody>' +
+  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="gastos.concepto">Concepto</span></th><th><span data-t="nav.proveedores">Proveedor</span></th><th><span data-t="gen.dia">Día</span></th><th><span data-t="gastos.importe">Importe</span></th><th><span data-t="gen.iva">IVA</span></th><th>' + T('gastos.estado') + '</th><th><span data-t="gen.ultimo">Último</span></th><th>' + T('gastos.acciones') + '</th></tr></thead><tbody>' +
     ordenada.map(function(r) {
       var ivaT = (r.iva_tipo != null) ? r.iva_tipo : 21;
       var estado = r.activo
-        ? '<span class="badge bg">Activa</span>'
-        : '<span class="badge bo">Pausada</span>';
+        ? '<span class="badge bg">' + T('gastos.activa') + '</span>'
+        : '<span class="badge bo">' + T('gastos.pausada') + '</span>';
       var ultimo = r.ultimo_aplicado || '—';
       return '<tr>' +
-        '<td>' + esc(r.concepto || '') + ' <span class="badge bb" style="font-size:10px;margin-left:6px">' + esc(r.categoria || 'Otros') + '</span></td>' +
+        '<td>' + esc(r.concepto || '') + ' <span class="badge bb" style="font-size:10px;margin-left:6px">' + esc(r.categoria || T('gastos.cat_otros')) + '</span></td>' +
         '<td style="font-size:12px;color:var(--muted)">' + esc(r.proveedor_nombre || '—') + '</td>' +
-        '<td>Día ' + (r.dia_mes || 1) + '</td>' +
+        '<td>' + T('gen.dia') + ' ' + (r.dia_mes || 1) + '</td>' +
         '<td style="font-weight:700;color:var(--red)">' + cur(r.importe || 0) + '</td>' +
         '<td>' + ivaT + '%</td>' +
         '<td>' + estado + '</td>' +
         '<td style="font-size:12px;color:var(--muted)">' + ultimo + '</td>' +
         '<td style="white-space:nowrap">' +
-          '<button class="btn-sm" onclick="aplicarManualGastoRec(\'' + r.id + '\')" title="Crear gasto ahora" style="background:#10B981;color:white;padding:4px 8px;font-size:11px">▶ Crear</button> ' +
-          '<button class="btn-sm" onclick="toggleActivoGastoRec(\'' + r.id + '\')" title="' + (r.activo ? 'Pausar' : 'Activar') + '" style="background:#F59E0B;color:white;padding:4px 8px;font-size:11px">' + (r.activo ? '⏸' : '▶') + '</button> ' +
-          '<button class="btn-sm" onclick="editarGastoRec(\'' + r.id + '\')" title="Editar" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">✎</button> ' +
-          '<button class="btn-sm" onclick="eliminarGastoRec(\'' + r.id + '\')" title="Eliminar" style="background:transparent;color:var(--red);padding:4px 6px;font-size:11px;border:1px solid var(--red)">🗑</button>' +
+          '<button class="btn-sm" onclick="aplicarManualGastoRec(\'' + r.id + '\')" title="' + T('gastos.crear_ahora') + '" style="background:#10B981;color:white;padding:4px 8px;font-size:11px">▶ ' + T('gastos.crear') + '</button> ' +
+          '<button class="btn-sm" onclick="toggleActivoGastoRec(\'' + r.id + '\')" title="' + (r.activo ? T('gastos.pausar') : T('gastos.activar')) + '" style="background:#F59E0B;color:white;padding:4px 8px;font-size:11px">' + (r.activo ? '⏸' : '▶') + '</button> ' +
+          '<button class="btn-sm" onclick="editarGastoRec(\'' + r.id + '\')" title="' + T('gen.editar') + '" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">✎</button> ' +
+          '<button class="btn-sm" onclick="eliminarGastoRec(\'' + r.id + '\')" title="' + T('gen.eliminar') + '" style="background:transparent;color:var(--red);padding:4px 6px;font-size:11px;border:1px solid var(--red)">🗑</button>' +
         '</td></tr>';
     }).join('') + '</tbody></table></div>';
 }
@@ -11651,10 +11651,10 @@ function renderGastos() {
     // Cabecera plegable (colapsada por defecto) con total del grupo
     var catSet = {}; grp.items.forEach(function(x) { catSet[x.categoria || 'Otros'] = 1; });
     var cats = Object.keys(catSet);
-    var catLbl = cats.length === 1 ? cats[0] : (cats.length + ' categorías');
-    var provLbl = grp.prov || '(sin proveedor)';
+    var catLbl = cats.length === 1 ? cats[0] : (cats.length + ' ' + T('gastos.categorias'));
+    var provLbl = grp.prov || T('gastos.sin_proveedor');
     rows += '<tr class="gasto-grp" style="cursor:pointer;background:var(--bg2,#F8FAFC)" onclick="toggleGrupoGasto(' + gi + ')">' +
-      '<td style="font-weight:700"><span id="gcar-' + gi + '">▸</span> ' + esc(provLbl) + ' <span style="color:var(--muted,#64748B);font-weight:500">· ' + grp.items.length + ' gastos</span></td>' +
+      '<td style="font-weight:700"><span id="gcar-' + gi + '">▸</span> ' + esc(provLbl) + ' <span style="color:var(--muted,#64748B);font-weight:500">· ' + grp.items.length + ' ' + T('gastos.gastos_n') + '</span></td>' +
       '<td><span class="badge bb">' + esc(catLbl) + '</span></td>' +
       '<td>' + fmtFecha(grp.dia) + '</td>' +
       '<td></td>' +
