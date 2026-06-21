@@ -9642,7 +9642,7 @@ function renderStock() {
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th><span data-t="stock.producto">Producto</span></th><th><span data-t="stock.categoria">Cat.</span></th>' + thUbic + '<th><span data-t="stock.unidades">Uds.</span></th><th><span data-t="gen.pvp">PVP</span></th><th></th></tr></thead><tbody>';
   list.forEach(function(s) {
     html += '<tr>' +
-      '<td><strong>' + escHtml(_eqNombre(s.marca, s.modelo)) + '</strong>' +
+      '<td><strong class="drill-stk" data-sid="' + s.id + '" style="cursor:pointer;color:var(--blue);text-decoration:underline;text-decoration-color:rgba(0,85,255,.25);text-underline-offset:2px">' + escHtml(_eqNombre(s.marca, s.modelo)) + '</strong>' +
       ((s.capacidad || s.color) ? '<br><span style="font-size:9px;color:var(--muted)">' + [s.capacidad, s.color].filter(Boolean).join(' · ') + '</span>' : '') +
       (s.calidad ? ' <span style="font-size:9px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 5px;border-radius:4px">' + esc(s.calidad) + '</span>' : '') +
       (s.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">IMEI: ' + s.imei + '</span>' : '') + '</td>' +
@@ -9665,6 +9665,81 @@ function renderStock() {
   el.querySelectorAll('.btn-del-s').forEach(function(btn) {
     btn.addEventListener('click', function() { eliminarStock(this.dataset.sid); });
   });
+  el.querySelectorAll('.drill-stk').forEach(function(s) {
+    s.addEventListener('click', function() { verDetalleStock(this.dataset.sid); });
+  });
+}
+
+// #B88: ficha de producto (drill-down) — datos, unidades del mismo modelo (IMEIs), ventas y margen.
+function verDetalleStock(id) {
+  var s = (DB.stock || []).find(function(x){ return x.id === id; });
+  if (!s) { toast(T('gen.error'), 'err'); return; }
+  var nombre = _eqNombre(s.marca, s.modelo);
+  // Otras unidades del MISMO modelo (para listar IMEIs / stock total del modelo)
+  var mismas = (DB.stock || []).filter(function(x){
+    return !x.vendido && (x.marca||'') === (s.marca||'') && (x.modelo||'') === (s.modelo||'');
+  });
+  var totalUnidades = mismas.reduce(function(a,x){ return a + (parseInt(x.unidades)||0); }, 0);
+  var conImei = mismas.filter(function(x){ return x.imei; });
+  // Ventas de ese modelo
+  var ventasModelo = (DB.ventas || []).filter(function(v){
+    if ((v.marca||'') === (s.marca||'') && (v.modelo||'') === (s.modelo||'')) return true;
+    return (v.items || []).some(function(it){ return (it.nombre||'').indexOf(s.modelo||'') !== -1 && s.modelo; });
+  });
+  var coste = parseFloat(s.precioC) || 0, pvp = parseFloat(s.precioV) || 0;
+  var margen = (pvp > 0 && coste > 0) ? (pvp - coste) : null;
+
+  var h = '';
+  h += '<div style="background:linear-gradient(135deg,#7C5CFC,var(--blue));color:white;padding:14px;border-radius:10px;margin-bottom:14px">';
+  h += '<div style="font-size:18px;font-weight:800">' + esc(nombre) + '</div>';
+  var meta = [];
+  if (s.capacidad) meta.push(esc(s.capacidad));
+  if (s.color) meta.push(esc(s.color));
+  if (s.calidad) meta.push(esc(s.calidad));
+  if (s.categoria) meta.push(esc(s.categoria));
+  if (meta.length) h += '<div style="font-size:12px;opacity:.9;margin-top:5px">' + meta.join(' · ') + '</div>';
+  if (s.imei) h += '<div style="font-size:11px;font-family:monospace;opacity:.85;margin-top:3px">IMEI: ' + esc(s.imei) + '</div>';
+  if (s.ubicacion) h += '<div style="font-size:11px;opacity:.85;margin-top:3px">📍 ' + esc(s.ubicacion) + '</div>';
+  h += '</div>';
+
+  // KPIs: unidades, PVP, margen
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">';
+  h += '<div style="background:var(--light);border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:' + (totalUnidades <= (s.stockMin||0) ? 'var(--orange)' : 'var(--text)') + '">' + totalUnidades + '</div><div style="font-size:10px;color:var(--muted)">' + T('dstk.unidades') + '</div></div>';
+  h += '<div style="background:var(--light);border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800">' + (pvp > 0 ? cur(pvp) : '—') + '</div><div style="font-size:10px;color:var(--muted)">' + T('gen.pvp') + '</div></div>';
+  h += '<div style="background:rgba(0,200,150,.08);border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--green)">' + (margen != null ? cur(margen) : '—') + '</div><div style="font-size:10px;color:var(--muted)">' + T('dstk.margen') + '</div></div>';
+  h += '</div>';
+
+  // Unidades con IMEI (números de serie disponibles)
+  if (conImei.length) {
+    h += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:0 0 6px">' + T('dstk.imeis') + ' (' + conImei.length + ')</div>';
+    h += '<div style="display:flex;flex-wrap:wrap;gap:5px;margin-bottom:14px">';
+    conImei.slice(0,30).forEach(function(x){
+      h += '<span style="font-family:monospace;font-size:11px;background:var(--light);border-radius:6px;padding:3px 8px">' + esc(x.imei) + (x.calidad ? ' · ' + esc(x.calidad) : '') + '</span>';
+    });
+    h += '</div>';
+  }
+
+  // Ventas recientes de ese modelo
+  if (ventasModelo.length) {
+    h += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:0 0 6px">' + T('dstk.ventas_modelo') + ' (' + ventasModelo.length + ')</div>';
+    h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:6px">';
+    ventasModelo.slice().sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); }).slice(0,10).forEach(function(v){
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--light);border-radius:8px;padding:7px 10px">' +
+        '<div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(v.clienteNombre || T('gen.sin_cliente')) + '</div>' +
+        '<div style="font-size:10px;color:var(--muted)">' + esc(v.fecha||'') + '</div></div>' +
+        '<span style="font-weight:700;font-size:12px;flex-shrink:0">' + cur(v.total||0) + '</span></div>';
+    });
+    h += '</div>';
+  }
+  if (!conImei.length && !ventasModelo.length) h += '<div class="empty" style="padding:16px;font-size:13px">' + T('dstk.sin_historial') + '</div>';
+
+  document.getElementById('detalleStockBox').innerHTML = h;
+
+  var btns = '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="closeM(\'mDetalleStock\')">' + T('gen.cerrar') + '</button>';
+  btns += '<button class="btn-sm" style="background:rgba(124,58,237,.12);color:var(--purple);flex:1" onclick="closeM(\'mDetalleStock\');imprimirEtiquetaStock(\'' + s.id + '\')">🏷️ ' + T('etq.imprimir') + '</button>';
+  if (tienePerm('stock_editar')) btns += '<button class="btn-sm" style="background:var(--orange);color:white;flex:1" onclick="closeM(\'mDetalleStock\');editarStock(\'' + s.id + '\')">✏️ ' + T('gen.editar') + '</button>';
+  document.getElementById('detalleStockBtns').innerHTML = btns;
+  openM('mDetalleStock');
 }
 
 function busModeloStock() {
@@ -10488,7 +10563,7 @@ function renderClis() {
     var vc = DB.ventas.filter(function(v) { return v.clienteId === c.id; }).length;
     var rc = DB.reps.filter(function(r) { return r.clienteId === c.id; }).length;
     html += '<tr>' +
-      '<td><strong>' + c.nombre + ' ' + c.apellidos + '</strong>' + ((vc + rc) >= 3 ? '<br><span class="badge by">\u2b50 Frecuente</span>' : '') + '</td>' +
+      '<td><strong class="drill-cli" data-cid="' + c.id + '" style="cursor:pointer;color:var(--blue);text-decoration:underline;text-decoration-color:rgba(0,85,255,.25);text-underline-offset:2px">' + esc(c.nombre + ' ' + c.apellidos) + '</strong>' + ((vc + rc) >= 3 ? '<br><span class="badge by">\u2b50 ' + T('cli.frecuente') + '</span>' : '') + '</td>' +
       '<td style="font-size:11px">' + (c.tel || '\u2014') + '</td>' +
       '<td><span class="badge bb" title="Ventas">' + vc + 'v</span> <span class="badge bp" title="Reparaciones">' + rc + 'r</span></td>' +
       '<td style="display:flex;gap:3px">' +
@@ -10504,6 +10579,88 @@ function renderClis() {
   el.querySelectorAll('.btn-del-c').forEach(function(btn) {
     btn.addEventListener('click', function() { delCli(this.dataset.cid); });
   });
+  el.querySelectorAll('.drill-cli').forEach(function(s) {
+    s.addEventListener('click', function() { verDetalleCli(this.dataset.cid); });
+  });
+}
+
+// #B89: ficha de cliente (drill-down) — historial de reparaciones, ventas y pendientes.
+function verDetalleCli(id) {
+  var c = (DB.clis || []).find(function(x){ return x.id === id; });
+  if (!c) { toast(T('gen.error'), 'err'); return; }
+  var reps = (DB.reps || []).filter(function(r){ return r.clienteId === id; });
+  var ventas = (DB.ventas || []).filter(function(v){ return v.clienteId === id; });
+  var nom = ((c.nombre || '') + ' ' + (c.apellidos || '')).trim();
+
+  // Totales: gastado (ventas + reps cobradas) y pendiente (restante)
+  var gastado = 0, pendiente = 0;
+  ventas.forEach(function(v){ gastado += (parseFloat(v.total) || 0) - (parseFloat(v.restante) || 0); pendiente += (parseFloat(v.restante) || 0); });
+  reps.forEach(function(r){ var t = parseFloat(r.total) || 0, rest = parseFloat(r.restante) || 0; gastado += (t - rest); pendiente += rest; });
+
+  var h = '';
+  // Cabecera
+  h += '<div style="background:linear-gradient(135deg,var(--blue),var(--purple));color:white;padding:14px;border-radius:10px;margin-bottom:14px">';
+  h += '<div style="font-size:18px;font-weight:800">' + esc(nom || T('gen.cliente')) + (c.esEmpresa ? ' <span style="font-size:10px;background:rgba(255,255,255,.2);padding:2px 7px;border-radius:6px;vertical-align:middle">' + T('cli.empresa') + '</span>' : '') + '</div>';
+  var sub = [];
+  if (c.tel) sub.push('📞 ' + esc((c.telPrefijo ? c.telPrefijo + ' ' : '') + c.tel));
+  if (c.email) sub.push('✉️ ' + esc(c.email));
+  if (c.dni) sub.push('🪪 ' + esc(c.dni));
+  if (sub.length) h += '<div style="font-size:12px;opacity:.9;margin-top:5px">' + sub.join(' · ') + '</div>';
+  var dir = [c.dirFiscal || c.dir, c.cp, c.ciudad, c.provincia].filter(Boolean).join(', ');
+  if (dir) h += '<div style="font-size:11px;opacity:.8;margin-top:3px">📍 ' + esc(dir) + '</div>';
+  h += '</div>';
+
+  // KPIs
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px">';
+  h += '<div style="background:var(--light);border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800">' + reps.length + '</div><div style="font-size:10px;color:var(--muted)">' + T('nav.reparaciones') + '</div></div>';
+  h += '<div style="background:var(--light);border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800">' + ventas.length + '</div><div style="font-size:10px;color:var(--muted)">' + T('nav.ventas') + '</div></div>';
+  h += '<div style="background:rgba(0,200,150,.08);border-radius:10px;padding:10px;text-align:center"><div style="font-size:18px;font-weight:800;color:var(--green)">' + cur(gastado) + '</div><div style="font-size:10px;color:var(--muted)">' + T('dcli.gastado') + '</div></div>';
+  h += '</div>';
+  if (pendiente > 0.005) h += '<div style="background:rgba(249,115,22,.08);border-left:3px solid var(--orange);padding:8px 12px;border-radius:8px;margin-bottom:14px;font-size:12px;color:#9A3412"><strong>' + T('dcli.pendiente') + ':</strong> ' + cur(pendiente) + '</div>';
+
+  // Reparaciones
+  if (reps.length) {
+    h += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:0 0 6px">' + T('nav.reparaciones') + '</div>';
+    h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:14px">';
+    reps.slice().sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); }).slice(0,12).forEach(function(r){
+      h += '<div class="drill-rep" data-rid="' + r.id + '" style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--light);border-radius:8px;padding:7px 10px;cursor:pointer">' +
+        '<div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc((r.marca||'') + ' ' + (r.modelo||'')) + ' · ' + esc((r.averia||'').slice(0,30)) + '</div>' +
+        '<div style="font-size:10px;color:var(--muted)">' + esc(r.fecha||'') + '</div></div>' +
+        '<span class="badge" style="font-size:9px;flex-shrink:0">' + esc(T('estado.' + r.estado) || r.estado) + '</span>' +
+        '<span style="font-weight:700;font-size:12px;flex-shrink:0">' + cur(r.total||0) + '</span></div>';
+    });
+    h += '</div>';
+  }
+  // Ventas
+  if (ventas.length) {
+    h += '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:0 0 6px">' + T('nav.ventas') + '</div>';
+    h += '<div style="display:flex;flex-direction:column;gap:5px;margin-bottom:6px">';
+    ventas.slice().sort(function(a,b){ return (b.fecha||'').localeCompare(a.fecha||''); }).slice(0,12).forEach(function(v){
+      var concepto = (v.items && v.items.length) ? v.items.map(function(i){ return i.nombre; }).join(', ') : (v.modelo || '');
+      h += '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;background:var(--light);border-radius:8px;padding:7px 10px">' +
+        '<div style="min-width:0;flex:1"><div style="font-size:12px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(concepto.slice(0,42)) + '</div>' +
+        '<div style="font-size:10px;color:var(--muted)">' + esc(v.fecha||'') + (v.reembolsado ? ' · ↩ ' + T('factl.abono') : '') + '</div></div>' +
+        '<span style="font-weight:700;font-size:12px;flex-shrink:0;color:' + (v.reembolsado ? 'var(--red)' : 'var(--text)') + '">' + cur(v.total||0) + '</span></div>';
+    });
+    h += '</div>';
+  }
+  if (!reps.length && !ventas.length) h += '<div class="empty" style="padding:20px;font-size:13px">' + T('dcli.sin_historial') + '</div>';
+
+  document.getElementById('detalleCliBox').innerHTML = h;
+
+  var btns = '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="closeM(\'mDetalleCli\')">' + T('gen.cerrar') + '</button>';
+  if (c.tel) {
+    var telWA = (typeof waTel === 'function') ? waTel((c.telPrefijo||'') + c.tel) : (c.tel||'').replace(/\D/g,'');
+    btns += '<button class="btn-sm" style="background:#25D366;color:white;flex:1" onclick="window.open(\'https://wa.me/' + telWA + '\',\'_blank\')">📲 WhatsApp</button>';
+  }
+  if (tienePerm('clis_editar')) btns += '<button class="btn-sm" style="background:var(--orange);color:white;flex:1" onclick="closeM(\'mDetalleCli\');editCli(\'' + c.id + '\')">✏️ ' + T('gen.editar') + '</button>';
+  document.getElementById('detalleCliBtns').innerHTML = btns;
+
+  // Las reparaciones del historial abren su propio detalle
+  document.querySelectorAll('#detalleCliBox .drill-rep').forEach(function(el2){
+    el2.addEventListener('click', function(){ closeM('mDetalleCli'); abrirDetalleRep(this.dataset.rid); });
+  });
+  openM('mDetalleCli');
 }
 
 // F229: alternar entre formulario de particular y de empresa
