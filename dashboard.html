@@ -3454,6 +3454,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal-bg" id="mVenta">
 <div class="modal">
   <div class="modal-title"><span data-t="tpv.nueva_venta">📱 Nueva Venta</span></div>
+  <div id="ventaDraftBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:9px 12px;margin-bottom:10px">
+    <span style="font-size:13px;color:#9A3412;flex:1;min-width:140px">💾 <strong data-t="draft.banner">Tienes un borrador sin terminar</strong><span class="draft-resumen" style="color:#C2410C"></span></span>
+    <button type="button" onclick="_ventaDraftRestaurar()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:6px 13px;font:inherit;font-size:12px;font-weight:700;cursor:pointer" data-t="draft.recuperar">Recuperar</button>
+    <button type="button" onclick="_ventaDraftBorrar()" style="background:transparent;color:#9A3412;border:1px solid #FED7AA;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;font-weight:600;cursor:pointer" data-t="draft.descartar">Descartar</button>
+  </div>
   <!-- Cliente -->
   <div class="fg" style="position:relative">
     <label class="fl"><span data-t="rep.cliente">Cliente</span></label>
@@ -4058,6 +4063,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 <div class="modal-bg" id="mCli">
 <div class="modal">
   <div class="modal-title" id="mCliTit"><span data-t="cli.nuevo_titulo">👤 Nuevo Cliente</span></div>
+  <div id="cliDraftBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:9px 12px;margin-bottom:10px">
+    <span style="font-size:13px;color:#9A3412;flex:1;min-width:140px">💾 <strong data-t="draft.banner">Tienes un borrador sin terminar</strong><span class="draft-resumen" style="color:#C2410C"></span></span>
+    <button type="button" onclick="_cliDraftRestaurar()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:6px 13px;font:inherit;font-size:12px;font-weight:700;cursor:pointer" data-t="draft.recuperar">Recuperar</button>
+    <button type="button" onclick="_cliDraftBorrar()" style="background:transparent;color:#9A3412;border:1px solid #FED7AA;border-radius:8px;padding:6px 11px;font:inherit;font-size:12px;font-weight:600;cursor:pointer" data-t="draft.descartar">Descartar</button>
+  </div>
   <!-- F229: tipo de cliente (particular / empresa) -->
   <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;background:var(--light);padding:8px 12px;border-radius:8px;margin-bottom:12px">
     <input type="checkbox" id="cEsEmpresa" onchange="toggleCliEmpresa()"> <strong data-t="cli.es_empresa">Es empresa (factura con CIF y razón social)</strong>
@@ -4532,7 +4542,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260621u"></script>
+<script src="/js/dash-app.js?v=20260621v"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
