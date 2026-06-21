@@ -9778,8 +9778,93 @@ function poblarFiltroUbicStock() {
 
 function filtrarUbicStock() { renderStock(); }
 
+// ═══ M6: STOCK ÓPTIMO APRENDIDO ═══
+// Calcula MIN/MAX sugeridos por producto desde el histórico (ventas + uso en reparaciones, 90 días).
+function _stockOptimo() {
+  var d90 = Date.now() - 90 * 86400000;
+  function _enRango(f) { var t = new Date(f).getTime(); return !isNaN(t) && t >= d90; }
+  var demanda = {}; // unidades demandadas por stockId en 90 días
+  (DB.ventas || []).forEach(function(v) {
+    if (v.reembolsado || !v.fecha || !_enRango(v.fecha)) return;
+    if (v.items && v.items.length) v.items.forEach(function(it){ if (it.stockId) demanda[it.stockId] = (demanda[it.stockId] || 0) + (parseInt(it.qty, 10) || 1); });
+    if (v.stockId) demanda[v.stockId] = (demanda[v.stockId] || 0) + 1;
+  });
+  (DB.reps || []).forEach(function(r) {
+    if (!r.fecha || !_enRango(r.fecha)) return;
+    (r.componentes || []).forEach(function(c){ if (c && c.id) demanda[c.id] = (demanda[c.id] || 0) + 1; });
+  });
+  var out = [];
+  (DB.stock || []).forEach(function(s) {
+    if (s.vendido || s.imei || s.esServicio) return; // IMEI (únicos) y servicios no aplican
+    var velMes = (demanda[s.id] || 0) / 3;
+    var minAct = parseInt(s.stockMin) || 0;
+    if (velMes <= 0) {
+      // Sin demanda en 90d pero con stock y un MIN>0 → posible stock muerto (capital inmovilizado)
+      if ((s.unidades || 0) > 0 && minAct > 0) out.push({ s: s, velMes: 0, minSug: 0, maxSug: Math.max(1, s.unidades), muerto: true, capital: Math.round((s.unidades || 0) * (parseFloat(s.precioC) || 0)) });
+      return;
+    }
+    var minSug = Math.max(1, Math.ceil(velMes * 0.5));
+    var maxSug = Math.max(minSug + 1, Math.ceil(velMes * 1.5));
+    var delta = Math.abs(minSug - minAct);
+    var riesgo = (s.unidades || 0) <= minSug;
+    if ((delta >= 1 && (minAct === 0 || delta / minAct > 0.3)) || riesgo) {
+      var perdidas = (s.unidades || 0) < velMes ? Math.round((velMes - (s.unidades || 0)) * (parseFloat(s.precioV) || 0)) : 0;
+      out.push({ s: s, velMes: velMes, minSug: minSug, maxSug: maxSug, subir: minSug > minAct, riesgo: riesgo, perdidas: perdidas });
+    }
+  });
+  out.sort(function(a, b){ return (b.perdidas || 0) - (a.perdidas || 0) || (b.velMes || 0) - (a.velMes || 0); });
+  return out;
+}
+
+function _renderStockOptimo() {
+  var box = document.getElementById('stockOptimoBox');
+  if (!box) return;
+  var sug = _stockOptimo();
+  if (!sug.length) { box.innerHTML = ''; return; }
+  var abierto = !!window._stockOptAbierto;
+  var html = '<div class="card" style="padding:0;overflow:hidden;border:1px solid #FED7AA">';
+  html += '<div onclick="window._stockOptAbierto=!window._stockOptAbierto;_renderStockOptimo()" style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:12px 14px;cursor:pointer;background:#FFF7ED">' +
+    '<div style="font-weight:700;font-size:14px;color:#9A3412">💡 ' + T('opt.titulo') + ' <span style="background:var(--orange);color:#fff;border-radius:10px;padding:1px 8px;font-size:11px">' + sug.length + '</span></div>' +
+    '<span style="color:#9A3412">' + (abierto ? '▾' : '▸') + '</span></div>';
+  if (abierto) {
+    html += '<div style="padding:10px 14px;display:flex;flex-direction:column;gap:8px">';
+    sug.slice(0, 25).forEach(function(o) {
+      var s = o.s;
+      var nombre = esc(_eqNombre(s.marca, s.modelo) + (s.color ? ' · ' + s.color : ''));
+      if (o.muerto) {
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--light);border-radius:8px;padding:9px 11px;flex-wrap:wrap">' +
+          '<div style="flex:1;min-width:160px"><div style="font-weight:600;font-size:13px">🟡 ' + nombre + '</div>' +
+          '<div style="font-size:11px;color:var(--muted)">' + T('opt.muerto').replace('{u}', s.unidades) + (o.capital ? ' · ' + T('opt.capital') + ' ' + cur(o.capital) : '') + '</div></div>' +
+          '<button class="btn-sm" onclick="_aplicarStockOptimo(\'' + s.id + '\',0,' + o.maxSug + ')" style="background:#F59E0B;color:#fff">' + T('opt.dejar_pedir') + '</button></div>';
+      } else {
+        html += '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--light);border-radius:8px;padding:9px 11px;flex-wrap:wrap">' +
+          '<div style="flex:1;min-width:160px"><div style="font-weight:600;font-size:13px">' + (o.subir ? '🔴' : '🟢') + ' ' + nombre + '</div>' +
+          '<div style="font-size:11px;color:var(--muted)">' + T('opt.vende').replace('{v}', o.velMes.toFixed(1)) + ' · ' + T('opt.min_actual') + ' ' + (s.stockMin || 0) + ' · ' + T('opt.stock_lbl') + ' ' + (s.unidades || 0) + '</div>' +
+          '<div style="font-size:11px;color:' + (o.subir ? '#DC2626' : 'var(--green)') + ';font-weight:600;margin-top:1px">💡 ' + T('opt.min_sug') + ' ' + o.minSug + ' / max ' + o.maxSug + (o.perdidas ? ' · ' + T('opt.perdidas').replace('{e}', cur(o.perdidas)) : '') + '</div></div>' +
+          '<button class="btn-sm" onclick="_aplicarStockOptimo(\'' + s.id + '\',' + o.minSug + ',' + o.maxSug + ')" style="background:var(--blue);color:#fff">' + T('opt.aplicar') + '</button></div>';
+      }
+    });
+    html += '</div>';
+  }
+  html += '</div>';
+  box.innerHTML = html;
+}
+
+function _aplicarStockOptimo(id, minSug, maxSug) {
+  if (!tienePerm('stock_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var s = (DB.stock || []).find(function(x){ return x.id === id; });
+  if (!s) return;
+  s.stockMin = minSug; s.stockMax = maxSug;
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) { try { sbPatch('stock', 'id=eq.' + encodeURIComponent(id), { stock_min: minSug, stock_max: maxSug }); } catch (e) {} }
+  toast(T('opt.aplicado'), 'ok');
+  _renderStockOptimo();
+  try { renderStock(); } catch (e) {}
+}
+
 function renderStock() {
   poblarFiltroUbicStock();
+  try { _renderStockOptimo(); } catch (e) {}
   var _blog = document.getElementById('btnStockLog'); if (_blog) _blog.style.display = (U && U.rol === 'admin') ? '' : 'none';
   var _bmdl = document.getElementById('btnModelos'); if (_bmdl) _bmdl.style.display = (U && U.rol === 'admin') ? '' : 'none';
   // Aviso + botón para corregir TODOS los stock negativos de golpe
