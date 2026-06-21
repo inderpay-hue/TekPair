@@ -12629,9 +12629,15 @@ function renderDesgloseIVA(ventas, reps) {
   function añade(item) {
     var tipo = item.iva != null ? parseFloat(item.iva) : 21;
     if (!portipos[tipo]) portipos[tipo] = {base:0,iva:0,total:0};
-    portipos[tipo].base += parseFloat(item.base) || 0;
-    portipos[tipo].iva += parseFloat(item.ivaImporte) || 0;
-    portipos[tipo].total += parseFloat(item.total) || 0;
+    var total = parseFloat(item.total) || 0;
+    var ivaImp = parseFloat(item.ivaImporte) || 0;
+    var base = parseFloat(item.base) || 0;
+    // #B64: si la operación no trae base desglosada (ventas/reps antiguas, exentas o financiadas),
+    // derivamos base = total − IVA para que BASE + IVA = TOTAL siempre cuadre en el informe del gestor.
+    if (!base && total) base = total - ivaImp;
+    portipos[tipo].base += base;
+    portipos[tipo].iva += ivaImp;
+    portipos[tipo].total += total;
   }
   ventas.forEach(añade);
   reps.forEach(añade);
@@ -12639,10 +12645,10 @@ function renderDesgloseIVA(ventas, reps) {
   var totalBase = 0, totalIva = 0, totalT = 0;
   var html = '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
     '<thead><tr style="background:var(--light)">' +
-    '<th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Tipo IVA</th>' +
-    '<th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Base imponible</th>' +
-    '<th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">IVA</th>' +
-    '<th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Total</th>' +
+    '<th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">' + T('rep_iva.tipo') + '</th>' +
+    '<th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">' + T('rep_iva.base') + '</th>' +
+    '<th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">' + T('rep_iva.iva') + '</th>' +
+    '<th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">' + T('rep_iva.total') + '</th>' +
     '</tr></thead><tbody>';
   Object.keys(portipos).sort(function(a,b){return parseFloat(a)-parseFloat(b);}).forEach(function(tipo){
     var d = portipos[tipo];
@@ -12675,9 +12681,14 @@ function generarPDFGestor() {
   function añade(it) {
     var tipo = it.iva != null ? parseFloat(it.iva) : 21;
     if (!portipos[tipo]) portipos[tipo] = {base:0,iva:0,total:0};
-    portipos[tipo].base += parseFloat(it.base) || 0;
-    portipos[tipo].iva += parseFloat(it.ivaImporte) || 0;
-    portipos[tipo].total += parseFloat(it.total) || 0;
+    var total = parseFloat(it.total) || 0;
+    var ivaImp = parseFloat(it.ivaImporte) || 0;
+    var base = parseFloat(it.base) || 0;
+    // #B64: derivar base = total − IVA cuando falta, para que BASE + IVA = TOTAL cuadre.
+    if (!base && total) base = total - ivaImp;
+    portipos[tipo].base += base;
+    portipos[tipo].iva += ivaImp;
+    portipos[tipo].total += total;
   }
   ventas.forEach(añade); reps.forEach(añade);
   var totalBase = 0, totalIva = 0, totalT = 0;
@@ -16579,10 +16590,10 @@ function renderAuditoria() {
   var totalFiltradas = entries.length;
   entries = entries.slice(0, 500);
 
-  document.getElementById('audResumen').textContent = totalFiltradas + ' actividad' + (totalFiltradas===1?'':'es') + (totalFiltradas > 500 ? ' (mostrando últimas 500)' : '');
+  document.getElementById('audResumen').textContent = totalFiltradas + ' ' + (totalFiltradas===1?T('aud.actividad'):T('aud.actividades')) + (totalFiltradas > 500 ? ' ' + T('aud.ultimas_500') : '');
 
   if (!entries.length) {
-    tbody.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--muted)">Sin actividad registrada con esos filtros</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="4" style="padding:24px;text-align:center;color:var(--muted)">' + T('aud.sin_actividad') + '</td></tr>';
     return;
   }
 
@@ -16594,11 +16605,12 @@ function renderAuditoria() {
   };
 
   tbody.innerHTML = entries.map(function(a) {
+    var _lc = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
     var d = new Date(a.ts);
-    var fechaStr = d.toLocaleDateString('es') + ' ' + d.toLocaleTimeString('es', {hour:'2-digit', minute:'2-digit'});
+    var fechaStr = d.toLocaleDateString(_lc) + ' ' + d.toLocaleTimeString(_lc, {hour:'2-digit', minute:'2-digit'});
     var ico = iconAccion[a.accion] || '•';
     var icoE = iconEntidad[a.entidad] || '';
-    var accionLabel = ({crear:'Creó', editar:'Editó', eliminar:'Eliminó', cambio_estado:'Cambió estado'})[a.accion] || a.accion;
+    var accionLabel = ({crear:T('aud.creo'), editar:T('aud.edito'), eliminar:T('aud.elimino'), cambio_estado:T('aud.cambio_est')})[a.accion] || a.accion;
     return '<tr>' +
       '<td style="padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-size:11px;color:var(--muted)">' + fechaStr + '</td>' +
       '<td style="padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;font-weight:600">' + esc(a.usuarioNom || '?') + '</td>' +
