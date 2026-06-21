@@ -17127,15 +17127,15 @@ function renderCitas() {
   Object.keys(grupos).sort().forEach(function(fecha) {
     var p = fecha.split('-');
     var d = new Date(p[0], p[1]-1, p[2]);
-    var fechaTxt = d.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long'});
+    var fechaTxt = d.toLocaleDateString((typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'), {weekday:'long', day:'numeric', month:'long'});
     var esHoy = fecha === hoyStr;
-    html += '<div style="font-size:11px;font-weight:700;color:' + (esHoy ? 'var(--green)' : 'var(--muted)') + ';text-transform:uppercase;letter-spacing:.4px;padding:14px 0 8px">' + (esHoy ? '🎯 HOY · ' : '') + fechaTxt + '</div>';
+    html += '<div style="font-size:11px;font-weight:700;color:' + (esHoy ? 'var(--green)' : 'var(--muted)') + ';text-transform:uppercase;letter-spacing:.4px;padding:14px 0 8px">' + (esHoy ? '🎯 ' + T('cita.hoy') + ' · ' : '') + fechaTxt + '</div>';
     grupos[fecha].forEach(function(c) {
       html += '<div class="card" style="padding:12px;cursor:pointer;margin-bottom:6px;border-left:3px solid ' + colorEstado[c.estado || 'pendiente'] + '" onclick="abrirCita(\'' + c.id + '\')">';
       html += '<div style="display:flex;justify-content:space-between;align-items:start;gap:10px">';
       html += '<div style="flex:1;min-width:0">';
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><strong style="font-size:14px;font-family:ui-monospace,monospace">' + esc(c.hora||'') + '</strong>';
-      html += '<span style="font-size:11px;background:rgba(255,91,31,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || 'Consulta') + '</span></div>';
+      html += '<span style="font-size:11px;background:rgba(255,91,31,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || T('cita.consulta')) + '</span></div>';
       html += '<div style="font-weight:700;font-size:13px">' + esc(c.cliente_nombre) + '</div>';
       if (c.marca || c.modelo) html += '<div style="font-size:11px;color:var(--muted)">' + esc((c.marca||'') + ' ' + (c.modelo||'')).trim() + '</div>';
       if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted)">📞 ' + esc(c.cliente_tel) + '</div>';
@@ -17143,7 +17143,7 @@ function renderCitas() {
       var _citaVencida = c.fecha && c.fecha < hoyLocal() && (c.estado === 'pendiente' || c.estado === 'confirmada');
       html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">';
       if (_citaVencida) html += '<div style="font-size:10px;font-weight:800;color:#fff;background:var(--red);padding:2px 7px;border-radius:8px">⚠️ ' + (T('cita.vencida') || 'VENCIDA') + '</div>';
-      html += '<div style="font-size:11px;font-weight:700;color:' + colorEstado[c.estado || 'pendiente'] + ';text-transform:uppercase;letter-spacing:.3px">' + iconEstado[c.estado || 'pendiente'] + ' ' + (c.estado || 'pendiente') + '</div>';
+      html += '<div style="font-size:11px;font-weight:700;color:' + colorEstado[c.estado || 'pendiente'] + ';text-transform:uppercase;letter-spacing:.3px">' + iconEstado[c.estado || 'pendiente'] + ' ' + T('cita.est_' + (c.estado || 'pendiente')) + '</div>';
       html += '</div>';
       html += '</div></div>';
     });
@@ -17162,7 +17162,7 @@ function abrirCita(id) {
   }
   var html = '';
   html += '<div style="background:var(--light);border-radius:10px;padding:14px;margin-bottom:14px">';
-  html += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px">' + esc(c.servicio || 'Consulta') + '</div>';
+  html += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px">' + esc(c.servicio || T('cita.consulta')) + '</div>';
   html += '<div style="font-size:18px;font-weight:800">' + esc(c.cliente_nombre) + '</div>';
   html += '<div style="font-size:13px;color:var(--muted);margin-top:4px">📅 ' + fechaTxt + ' · ⏰ ' + esc(c.hora||'') + '</div>';
   html += '</div>';
@@ -17368,8 +17368,8 @@ function renderCalendario() {
   var titulo = document.getElementById('calMesAno');
   if (!grid || !titulo) return;
 
-  var meses = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  titulo.textContent = meses[CAL_MES] + ' ' + CAL_ANO;
+  var _lc = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+  titulo.textContent = new Date(CAL_ANO, CAL_MES, 1).toLocaleDateString(_lc, {month:'long', year:'numeric'});
 
   // Limpiar grid pero mantener los weekdays
   var weekdays = grid.querySelectorAll('.cal-weekday');
@@ -17471,17 +17471,18 @@ function _renderListaDelDia() {
   var citas = _citasDelDia(CAL_DIA_SEL);
   var p = CAL_DIA_SEL.split('-');
   var d = new Date(parseInt(p[0]), parseInt(p[1])-1, parseInt(p[2]));
-  var fechaTxt = d.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long'});
+  var _lc = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+  var fechaTxt = d.toLocaleDateString(_lc, {weekday:'long', day:'numeric', month:'long'});
 
   var html = '<div class="cal-day-list-title">';
   html += '<span>📋 ' + fechaTxt + '</span>';
-  html += '<span class="badge-count">' + citas.length + ' cita' + (citas.length === 1 ? '' : 's') + '</span>';
+  html += '<span class="badge-count">' + citas.length + ' ' + (citas.length === 1 ? T('cita.cita') : T('cita.citas')) + '</span>';
   html += '</div>';
 
   if (citas.length === 0) {
     html += '<div class="cal-empty-day">';
-    html += 'No hay citas este día.<br/>';
-    html += '<button onclick="abrirNuevaCitaFecha(\'' + CAL_DIA_SEL + '\')">+ Crear cita el ' + d.getDate() + ' de ' + d.toLocaleDateString('es',{month:'long'}) + '</button>';
+    html += T('cita.no_hay_dia') + '<br/>';
+    html += '<button onclick="abrirNuevaCitaFecha(\'' + CAL_DIA_SEL + '\')">+ ' + T('cita.crear_el').replace('{d}', d.getDate()).replace('{m}', d.toLocaleDateString(_lc,{month:'long'})) + '</button>';
     html += '</div>';
   } else {
     var iconEstado = {pendiente:'⏳', confirmada:'✓', atendida:'✓✓', cancelada:'✕'};
@@ -17492,7 +17493,7 @@ function _renderListaDelDia() {
       html += '<div style="display:flex;justify-content:space-between;align-items:start;gap:10px">';
       html += '<div style="flex:1;min-width:0">';
       html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><strong style="font-size:14px;font-family:ui-monospace,monospace">' + esc(c.hora||'') + '</strong>';
-      html += '<span style="font-size:11px;background:rgba(255,91,31,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || 'Consulta') + '</span></div>';
+      html += '<span style="font-size:11px;background:rgba(255,91,31,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || T('cita.consulta')) + '</span></div>';
       html += '<div style="font-weight:700;font-size:13px">' + esc(c.cliente_nombre) + '</div>';
       if (c.marca || c.modelo) html += '<div style="font-size:11px;color:var(--muted)">' + esc((c.marca||'') + ' ' + (c.modelo||'')).trim() + '</div>';
       if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted)">📞 ' + esc(c.cliente_tel) + '</div>';
@@ -17500,7 +17501,7 @@ function _renderListaDelDia() {
       var _citaVencida = c.fecha && c.fecha < hoyLocal() && (c.estado === 'pendiente' || c.estado === 'confirmada');
       html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">';
       if (_citaVencida) html += '<div style="font-size:10px;font-weight:800;color:#fff;background:var(--red);padding:2px 7px;border-radius:8px">⚠️ ' + (T('cita.vencida') || 'VENCIDA') + '</div>';
-      html += '<div style="font-size:11px;font-weight:700;color:' + colorEstado[c.estado || 'pendiente'] + ';text-transform:uppercase;letter-spacing:.3px">' + iconEstado[c.estado || 'pendiente'] + ' ' + (c.estado || 'pendiente') + '</div>';
+      html += '<div style="font-size:11px;font-weight:700;color:' + colorEstado[c.estado || 'pendiente'] + ';text-transform:uppercase;letter-spacing:.3px">' + iconEstado[c.estado || 'pendiente'] + ' ' + T('cita.est_' + (c.estado || 'pendiente')) + '</div>';
       html += '</div>';
       html += '</div></div>';
     });
