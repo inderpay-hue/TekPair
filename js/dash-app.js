@@ -8888,7 +8888,7 @@ function guardarRep() {
   aplicarCambioStockPiezas([], rep.componentes, rep);
 
   if (SB_KEY && TIENDA_ID) {
-    sbPost('reparaciones', {
+    var _repPayload = {
       id:rep.id, tienda_id:TIENDA_ID, fecha:rep.fecha,
       cliente_id:rep.clienteId, cliente_nombre:rep.clienteNombre,
       marca:rep.marca, modelo:rep.modelo, imei:rep.imei,
@@ -8906,9 +8906,11 @@ function guardarRep() {
         ? (function(){ var d = new Date(rep.fechaEntrega); d.setDate(d.getDate() + rep.garantiaDias); return d.toISOString().slice(0,10); })()
         : null,
       financiado: rep.financiado, entrada: rep.entrada, entrada_pago: rep.entradaPago || null,
-      cuotas: rep.cuotas ? JSON.stringify(rep.cuotas) : null, estado_financiado: rep.estadoFinanciado || null,
-      fotos_recepcion: rep.fotosRecepcion || []
-    });
+      cuotas: rep.cuotas ? JSON.stringify(rep.cuotas) : null, estado_financiado: rep.estadoFinanciado || null
+    };
+    // M7: solo enviamos la columna si hay fotos → si el SQL aún no se corrió, crear reparaciones SIN foto nunca falla.
+    if (rep.fotosRecepcion && rep.fotosRecepcion.length) _repPayload.fotos_recepcion = rep.fotosRecepcion;
+    sbPost('reparaciones', _repPayload);
     if (esFinRep) {
       // Financiado: la ENTRADA se registra como pago (tipo anticipo) -> el ingreso del día entra solo.
       if (finEntrada > 0) {
@@ -9612,7 +9614,9 @@ function confirmarEntrega() {
     // No se cobra: el restante se mantiene como pendiente. No se crea pago final.
     guardarDatos();
     if (SB_KEY && TIENDA_ID) {
-      sbPatch('reparaciones', 'id=eq.' + r.id, {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, fotos_entrega:r.fotosEntrega});
+      var _patchD = {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal};
+      if (r.fotosEntrega && r.fotosEntrega.length) _patchD.fotos_entrega = r.fotosEntrega;
+      sbPatch('reparaciones', 'id=eq.' + r.id, _patchD);
     }
   } else {
     r.pagoFinal = document.getElementById('ePago').value;
@@ -9624,7 +9628,8 @@ function confirmarEntrega() {
     }
     guardarDatos();
     if (SB_KEY && TIENDA_ID) {
-      var _patchE = {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0, fotos_entrega:r.fotosEntrega};
+      var _patchE = {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0};
+      if (r.fotosEntrega && r.fotosEntrega.length) _patchE.fotos_entrega = r.fotosEntrega;
       if (r.financiado) { _patchE.cuotas = JSON.stringify(r.cuotas || []); _patchE.estado_financiado = 'completado'; }
       sbPatch('reparaciones', 'id=eq.' + r.id, _patchE);
 
