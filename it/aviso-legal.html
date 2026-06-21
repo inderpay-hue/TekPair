@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="it">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Aviso Legal — Tekpair</title>
-<link rel="canonical" href="https://www.tekpair.tech/aviso-legal.html">
+<link rel="canonical" href="https://www.tekpair.tech/it/aviso-legal.html">
 <link rel="alternate" hreflang="es" href="https://www.tekpair.tech/aviso-legal.html">
 <link rel="alternate" hreflang="en" href="https://www.tekpair.tech/en/aviso-legal.html">
 <link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/fr/aviso-legal.html">
@@ -12,6 +12,7 @@
 <link rel="alternate" hreflang="de" href="https://www.tekpair.tech/de/aviso-legal.html">
 <link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/pt/aviso-legal.html">
 <link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/aviso-legal.html">
+<meta property="og:locale" content="it_IT">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:Arial,sans-serif;color:#0F1729;background:#F7F9FC;padding-bottom:40px}
@@ -80,6 +81,7 @@ function setLegalLang(lang){
   document.title = LEGAL_AVISO[l].title + ' — Tekpair';
 }
 (function(){ var l = (localStorage.getItem('tp_lang') || (navigator.language||'es').slice(0,2)); setLegalLang(LEGAL_AVISO[l]?l:'es'); })();
+try{setLegalLang('it');}catch(e){}
 </script>
 </body>
 </html>

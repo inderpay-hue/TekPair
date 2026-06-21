@@ -16663,7 +16663,7 @@ function fechaArchivo() {
 
 async function exportarTodo() {
   if (!checkFeature('backup')) return;
-  toast('⏳ Generando backup...', 'ok');
+  toast(T('backup.generando'), 'ok');
   try {
     // JSZip se carga bajo demanda (ya no viene en el <head>)
     var JSZipLib = await cargarJSZip();
