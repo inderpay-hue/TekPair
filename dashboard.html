@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260621b"></script>
+<script src="/lang/lang.v8.js?v=20260621c"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2776,35 +2776,35 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="aj-panel" id="ajPanel-prefs">
 
     <div class="card">
-      <div class="card-title">Apariencia</div>
+      <div class="card-title" data-t="ajp.apariencia">Apariencia</div>
       <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
         <button type="button" id="btnTemaClaro" onclick="setTema('light')" style="padding:12px 8px;border:2px solid var(--border);background:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease);color:#0F1729">
           <div style="font-size:22px">☀️</div>
-          <div style="font-size:11px;font-weight:700;color:var(--text)">Claro</div>
+          <div style="font-size:11px;font-weight:700;color:var(--text)" data-t="ajp.tema_claro">Claro</div>
         </button>
         <button type="button" id="btnTemaOscuro" onclick="setTema('dark')" style="padding:12px 8px;border:2px solid var(--border);background:#1A1D24;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
           <div style="font-size:22px">🌙</div>
-          <div style="font-size:11px;font-weight:700">Oscuro</div>
+          <div style="font-size:11px;font-weight:700" data-t="ajp.tema_oscuro">Oscuro</div>
         </button>
         <button type="button" id="btnTemaNegro" onclick="setTema('negro')" style="padding:12px 8px;border:2px solid #222;background:#111;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
           <div style="font-size:22px">🖤</div>
-          <div style="font-size:11px;font-weight:700">Negro</div>
+          <div style="font-size:11px;font-weight:700" data-t="ajp.tema_negro">Negro</div>
         </button>
         <button type="button" id="btnTemaGrafito" onclick="setTema('grafito')" style="padding:12px 8px;border:2px solid #3A3A3C;background:#1C1C1E;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
           <div style="font-size:22px">🪨</div>
-          <div style="font-size:11px;font-weight:700">Grafito</div>
+          <div style="font-size:11px;font-weight:700" data-t="ajp.tema_grafito">Grafito</div>
         </button>
         <button type="button" id="btnTemaNaranja" onclick="setTema('naranja')" style="padding:12px 8px;border:2px solid #FFD9C9;background:#FF5B1F;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
           <div style="font-size:22px">🟠</div>
-          <div style="font-size:11px;font-weight:700">Naranja</div>
+          <div style="font-size:11px;font-weight:700" data-t="ajp.tema_naranja">Naranja</div>
         </button>
         <button type="button" id="btnTemaTerracota" onclick="setTema('terracota')" style="padding:12px 8px;border:2px solid #FFD9C9;background:#C2410C;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
           <div style="font-size:22px">🔥</div>
-          <div style="font-size:11px;font-weight:700">Terracota</div>
+          <div style="font-size:11px;font-weight:700" data-t="ajp.tema_terracota">Terracota</div>
         </button>
         <button type="button" id="btnTemaAmbar" onclick="setTema('ambar')" style="padding:12px 8px;border:2px solid #FED7AA;background:#EA580C;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
           <div style="font-size:22px">🟧</div>
-          <div style="font-size:11px;font-weight:700">Ámbar</div>
+          <div style="font-size:11px;font-weight:700" data-t="ajp.tema_ambar">Ámbar</div>
         </button>
       </div>
     </div>
@@ -2813,44 +2813,44 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div class="card-title"><span data-t="gen.preferencias_generales">Preferencias generales</span></div>
       <div class="fg"><label class="fl"><span data-t="gen.moneda">Moneda</span></label>
         <select class="fi" id="ajMoneda">
-          <option value="EUR">€ Euro</option>
-          <option value="USD">$ Dólar</option>
-          <option value="GBP">£ Libra</option>
+          <option value="EUR" data-t="ajp.moneda_eur">€ Euro</option>
+          <option value="USD" data-t="ajp.moneda_usd">$ Dólar</option>
+          <option value="GBP" data-t="ajp.moneda_gbp">£ Libra</option>
         </select>
       </div>
-      <div class="fg"><label class="fl">Nombre visible del operador</label><input class="fi" id="ajNombre" placeholder="Tu nombre"/></div>
+      <div class="fg"><label class="fl" data-t="ajp.nombre_operador">Nombre visible del operador</label><input class="fi" id="ajNombre" data-t-ph="ajp.nombre_operador_ph" placeholder="Tu nombre"/></div>
     </div>
 
     <div class="card">
-      <div class="card-title">Impuestos (IVA)</div>
+      <div class="card-title" data-t="ajp.impuestos_title">Impuestos (IVA)</div>
       <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:14px">
-        <input type="checkbox" id="ajIvaActivo" onchange="toggleIvaCfg()"> Aplicar IVA en ventas y reparaciones
+        <input type="checkbox" id="ajIvaActivo" onchange="toggleIvaCfg()"> <span data-t="ajp.aplicar_iva">Aplicar IVA en ventas y reparaciones</span>
       </label>
       <div id="ajIvaCfg" style="display:none">
         <div class="fg">
-          <label class="fl">Modo de precios</label>
+          <label class="fl" data-t="ajp.modo_precios">Modo de precios</label>
           <select class="fi" id="ajIvaModo">
-            <option value="incluido">IVA incluido en el precio (B2C)</option>
-            <option value="anadido">IVA añadido al precio (B2B)</option>
+            <option value="incluido" data-t="ajp.modo_incluido">IVA incluido en el precio (B2C)</option>
+            <option value="anadido" data-t="ajp.modo_anadido">IVA añadido al precio (B2B)</option>
           </select>
         </div>
         <div class="fg">
-          <label class="fl">Nombre del impuesto (IVA, TVA, MwSt, VAT...)</label>
+          <label class="fl" data-t="ajp.nombre_impuesto">Nombre del impuesto (IVA, TVA, MwSt, VAT...)</label>
           <input class="fi" id="ajIvaNombre" type="text" placeholder="IVA" maxlength="10" style="max-width:140px"/>
         </div>
         <div class="fg">
-          <label class="fl">Tipo por defecto (%)</label>
+          <label class="fl" data-t="ajp.tipo_default">Tipo por defecto (%)</label>
           <div style="display:flex;align-items:center;gap:8px">
             <input class="fi" id="ajIvaTipoDefault" type="number" min="0" max="100" step="0.1" placeholder="21" style="max-width:100px"/>
             <span style="font-size:13px;color:var(--muted)">%</span>
           </div>
         </div>
         <div class="fg">
-          <label class="fl">Tipos adicionales permitidos (separados por coma)</label>
+          <label class="fl" data-t="ajp.tipos_extra">Tipos adicionales permitidos (separados por coma)</label>
           <input class="fi" id="ajIvaTiposExtra" type="text" placeholder="21, 10, 4, 0" style="max-width:220px"/>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px">Ej: 21, 10, 4, 0 — aparecerán como opciones al crear ventas y reparaciones</div>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="ajp.tipos_extra_hint">Ej: 21, 10, 4, 0 — aparecerán como opciones al crear ventas y reparaciones</div>
         </div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;background:var(--light);padding:10px 12px;border-radius:8px;margin-top:6px">
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;background:var(--light);padding:10px 12px;border-radius:8px;margin-top:6px" data-t-html="ajp.iva_help">
           💡 <strong>Modo "incluido":</strong> el precio que escribes ya incluye el IVA. El cliente ve el precio final.<br>
           💡 <strong>Modo "añadido":</strong> el precio que escribes es la base. El IVA se suma al final.
         </div>
@@ -2858,11 +2858,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
 
     <div class="card">
-      <div class="card-title">Cierre automático diario</div>
-      <div class="fg"><label class="fl">Hora de cierre</label><input class="fi" id="ajCierreHora" type="time" value="21:30"/></div>
-      <div class="fg"><label class="fl">Email para reporte</label><input class="fi" id="ajCierreEmail" type="email" placeholder="tu@email.com"/></div>
+      <div class="card-title" data-t="ajp.cierre_title">Cierre automático diario</div>
+      <div class="fg"><label class="fl" data-t="ajp.cierre_hora">Hora de cierre</label><input class="fi" id="ajCierreHora" type="time" value="21:30"/></div>
+      <div class="fg"><label class="fl" data-t="ajp.cierre_email">Email para reporte</label><input class="fi" id="ajCierreEmail" type="email" placeholder="tu@email.com"/></div>
       <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:12px">
-        <input type="checkbox" id="ajCierreActivo"> Activar cierre automático
+        <input type="checkbox" id="ajCierreActivo"> <span data-t="ajp.cierre_activar">Activar cierre automático</span>
       </label>
     </div>
 
@@ -2909,49 +2909,49 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="aj-panel" id="ajPanel-notif">
 
     <div class="card">
-      <div class="card-title">Notificaciones</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Activa o desactiva cada tipo de aviso de la campana 🔔</div>
+      <div class="card-title" data-t="ajn.title">Notificaciones</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px" data-t="ajn.desc">Activa o desactiva cada tipo de aviso de la campana 🔔</div>
 
       <div style="display:flex;flex-direction:column;gap:2px">
-        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:8px 0 4px">Reparaciones</div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:8px 0 4px" data-t="ajn.grupo_reparaciones">Reparaciones</div>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:8px 0;border-bottom:1px solid var(--light)">
-          <input type="checkbox" id="ajNotifVencida"> ⏰ Reparación vencida
+          <input type="checkbox" id="ajNotifVencida"> <span data-t="ajn.vencida">⏰ Reparación vencida</span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:8px 0;border-bottom:1px solid var(--light)">
-          <input type="checkbox" id="ajNotifUrgente"> ⚡ Entrega urgente (&lt; 2 días)
+          <input type="checkbox" id="ajNotifUrgente"> <span data-t="ajn.urgente">⚡ Entrega urgente (&lt; 2 días)</span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:8px 0;border-bottom:1px solid var(--light)">
-          <input type="checkbox" id="ajNotifRecibida"> 🔧 Reparación recibida hoy
+          <input type="checkbox" id="ajNotifRecibida"> <span data-t="ajn.recibida">🔧 Reparación recibida hoy</span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:8px 0">
-          <input type="checkbox" id="ajNotifAbandono"> 📦 Posible abandono
+          <input type="checkbox" id="ajNotifAbandono"> <span data-t="ajn.abandono">📦 Posible abandono</span>
         </label>
         <div style="padding-left:28px;margin-bottom:8px;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--muted)">
-          Avisar a partir de
+          <span data-t="ajn.avisar_partir">Avisar a partir de</span>
           <input type="number" id="ajDiasAbandono" min="7" max="365" style="width:70px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px;text-align:center">
-          días sin movimiento
+          <span data-t="ajn.dias_sin_mov">días sin movimiento</span>
         </div>
 
-        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:8px 0 4px;border-top:1px solid var(--light)">Stock y pagos</div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:8px 0 4px;border-top:1px solid var(--light)" data-t="ajn.grupo_stock">Stock y pagos</div>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:8px 0;border-bottom:1px solid var(--light)">
-          <input type="checkbox" id="ajNotifStock"> 📦 Stock bajo mínimo
+          <input type="checkbox" id="ajNotifStock"> <span data-t="ajn.stock">📦 Stock bajo mínimo</span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:8px 0;border-bottom:1px solid var(--light)">
-          <input type="checkbox" id="ajNotifCuotaVenc"> 💰 Cuota vencida
+          <input type="checkbox" id="ajNotifCuotaVenc"> <span data-t="ajn.cuota_venc">💰 Cuota vencida</span>
         </label>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:8px 0">
-          <input type="checkbox" id="ajNotifCuotaProx"> 💰 Cuota próxima (3 días)
+          <input type="checkbox" id="ajNotifCuotaProx"> <span data-t="ajn.cuota_prox">💰 Cuota próxima (3 días)</span>
         </label>
 
-        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:8px 0 4px;border-top:1px solid var(--light)">Clientes</div>
+        <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;padding:8px 0 4px;border-top:1px solid var(--light)" data-t="ajn.grupo_clientes">Clientes</div>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;padding:8px 0" onchange="toggleCumpleCfg()">
-          <input type="checkbox" id="ajNotifCumple"> 🎂 Cumpleaños de cliente
+          <input type="checkbox" id="ajNotifCumple"> <span data-t="ajn.cumple">🎂 Cumpleaños de cliente</span>
         </label>
         <div id="ajCumpleCfg" style="display:none;padding-left:28px;margin-top:4px">
           <div class="fg">
-            <label class="fl">Mensaje WhatsApp de felicitación</label>
-            <textarea class="fi" id="ajPlantillaCumple" rows="3" placeholder="Mensaje..."></textarea>
-            <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5">
+            <label class="fl" data-t="ajn.msg_felicitacion">Mensaje WhatsApp de felicitación</label>
+            <textarea class="fi" id="ajPlantillaCumple" rows="3" data-t-ph="ajn.msg_ph" placeholder="Mensaje..."></textarea>
+            <div style="font-size:10px;color:var(--muted);margin-top:6px;line-height:1.5" data-t-html="ajn.variables">
               Variables: <code style="background:var(--bg);padding:1px 4px;border-radius:3px">{nombre}</code> nombre del cliente · <code style="background:var(--bg);padding:1px 4px;border-radius:3px">{tienda}</code> tu tienda
             </div>
           </div>
@@ -2959,7 +2959,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
     </div>
 
-    <button class="btn-primary" onclick="guardarAjustes()">Guardar notificaciones</button>
+    <button class="btn-primary" onclick="guardarAjustes()" data-t="ajn.guardar">Guardar notificaciones</button>
   </div>
 
   <!-- ══ TAB: CUENTA Y SEGURIDAD ══ -->
@@ -4525,7 +4525,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260621b"></script>
+<script src="/js/dash-app.js?v=20260621c"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
