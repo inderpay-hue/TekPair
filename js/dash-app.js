@@ -480,7 +480,8 @@ var permsCurrent = {};
 // ═══ VISTA ESCRITORIO (plegables/tablets): fuerza el ancho de viewport ═══
 function _aplicarVistaEscritorio(on) {
   var m = document.querySelector('meta[name="viewport"]');
-  if (m) m.setAttribute('content', on ? 'width=1100' : 'width=device-width, initial-scale=1.0, maximum-scale=1.0');
+  // Sin maximum-scale: permitir pinch-zoom (WCAG 1.4.4 / #B79).
+  if (m) m.setAttribute('content', on ? 'width=1100' : 'width=device-width, initial-scale=1.0');
   try { on ? localStorage.setItem('tk_vista_escritorio', '1') : localStorage.removeItem('tk_vista_escritorio'); } catch (e) {}
   var d = document.getElementById('vistaEscritorioDesc');
   if (d) d.textContent = on ? '✓ Activada — usando toda la pantalla' : 'Aprovecha toda la pantalla (tablets y plegables)';
@@ -4706,7 +4707,7 @@ function renderDashWidgets() {
     return '<div style="display:flex;flex-direction:column;gap:6px">' + list.slice(0,8).map(function(r){
       var cli = r.clienteNombre || (DB.clis.find(function(c){ return c.id === r.clienteId; }) || {}).nombre || T('gen.sin_cliente');
       var prioBadge = r.prioridad === 'Alta'
-        ? '<span style="background:rgba(239,68,68,.12);color:var(--red);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600">ALTA</span>'
+        ? '<span style="background:rgba(239,68,68,.12);color:var(--red);font-size:9px;padding:2px 6px;border-radius:4px;font-weight:600">' + T('rep.prio_alta').toUpperCase() + '</span>'
         : '';
       var fecha = r.fechaEntrega ? '<span style="font-size:10px;color:var(--muted)">⏱ ' + r.fechaEntrega + '</span>' : '';
       return '<div class="dash-rep-item" data-rid="' + r.id + '" style="background:var(--light);border-left:3px solid ' + color + ';padding:8px 10px;border-radius:6px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:8px">' +
@@ -4716,10 +4717,10 @@ function renderDashWidgets() {
         '</div>' +
         '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">' + prioBadge + fecha + '</div>' +
       '</div>';
-    }).join('') + (list.length > 8 ? '<div style="text-align:center;font-size:11px;color:var(--muted);padding:4px">+' + (list.length - 8) + ' mas</div>' : '') + '</div>';
+    }).join('') + (list.length > 8 ? '<div style="text-align:center;font-size:11px;color:var(--muted);padding:4px">+' + (list.length - 8) + ' ' + T('dash.mas') + '</div>' : '') + '</div>';
   };
 
-  document.getElementById('repsPendientesBox').innerHTML = renderList(pend, 'No hay reparaciones pendientes', '#F97316');
+  document.getElementById('repsPendientesBox').innerHTML = renderList(pend, T('dash.sin_pendientes'), '#F97316');
   document.getElementById('repsEntregarBox').innerHTML = renderList(ent, T('dash.sin_entregas'), '#00C896');
   document.getElementById('repsPendientesCount').textContent = pend.length ? '(' + pend.length + ')' : '';
   document.getElementById('repsEntregarCount').textContent = ent.length ? '(' + ent.length + ')' : '';
@@ -9170,8 +9171,8 @@ function renderReps() {
       }
     }
     var priBadge = r.prioridad && r.prioridad !== 'Normal'
-      ? '<span class="badge ' + (r.prioridad === 'Urgente' ? 'br' : 'bo') + '">' + r.prioridad + '</span>'
-      : '<span style="color:var(--muted);font-size:11px">Normal</span>';
+      ? '<span class="badge ' + (r.prioridad === 'Urgente' ? 'br' : 'bo') + '">' + (T('rep.prio_' + ({Alta:'alta',Urgente:'urgente'}[r.prioridad] || 'normal')) || r.prioridad) + '</span>'
+      : '<span style="color:var(--muted);font-size:11px">' + T('rep.prio_normal') + '</span>';
     var badgeFin = r.financiado ? '<br><span style="display:inline-block;background:rgba(139,92,246,.12);color:#6D28D9;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">💰 ' + (r.estadoFinanciado === 'completado' ? T('fin.completado') : T('fin.badge')) + '</span>' : '';
     html += '<tr>'
       + '<td><strong>' + r.clienteNombre + '</strong>' + badgeGarantia + badgeFin + '</td>'
@@ -15817,7 +15818,7 @@ function toggleModoEdicion() {
     }
     desactivarControlesEdicion();
     guardarOrdenWidgets();
-    toast('Orden guardado ✓', 'ok');
+    toast(T('dash.orden_guardado'), 'ok');
   }
 }
 
