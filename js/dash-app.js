@@ -16846,12 +16846,15 @@ function actualizarUltimoBackupUI() {
   var el = document.getElementById('ajUltimoBackup');
   if (!el) return;
   if (!ult) {
-    el.textContent = 'Nunca has hecho un backup.';
+    el.textContent = (typeof T === 'function' ? T('backup.nunca') : '') || 'Nunca has hecho un backup.';
     el.style.color = 'var(--orange)';
   } else {
     var d = new Date(ult);
     var dias = Math.floor((Date.now() - d.getTime()) / 86400000);
-    el.textContent = 'Último backup: ' + d.toLocaleDateString('es') + ' (hace ' + dias + ' día' + (dias===1?'':'s') + ')';
+    var _loc = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+    var _tpl = (typeof T === 'function' ? T('backup.ultimo') : '') || 'Último backup: {f} (hace {d} {u})';
+    var _u = dias === 1 ? ((typeof T === 'function' ? T('backup.dia') : '') || 'día') : ((typeof T === 'function' ? T('backup.dias') : '') || 'días');
+    el.textContent = _tpl.replace('{f}', d.toLocaleDateString(_loc)).replace('{d}', dias).replace('{u}', _u);
     el.style.color = dias > 30 ? 'var(--orange)' : 'var(--muted)';
   }
 }
@@ -16868,7 +16871,7 @@ function comprobarBackupVencido() {
   // Alerta proactiva SIEMPRE si nunca se ha hecho backup (independiente del toggle)
   if (!ult) {
     if (_backupAvisoThrottle()) {
-      setTimeout(function(){ toast('⚠️ Nunca has hecho un backup. Protege tus datos en Ajustes › Backup', 'err'); }, 5000);
+      setTimeout(function(){ toast((typeof T === 'function' ? T('backup.aviso_toast') : '') || '⚠️ Nunca has hecho un backup. Protege tus datos en Ajustes › Backup', 'err'); }, 5000);
     }
     return;
   }
