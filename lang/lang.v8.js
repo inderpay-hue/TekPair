@@ -4508,3 +4508,11 @@ it:{'dstk.ubicacion':'Posizione','dstk.mover':'Sposta','dstk.movimientos':'Crono
 de:{'dstk.ubicacion':'Standort','dstk.mover':'Verschieben','dstk.movimientos':'Bewegungsverlauf','dstk.misma_ubic':'Das Produkt ist bereits an diesem Standort','dstk.movido_ok':'Produkt verschoben ✓'},
 pt:{'dstk.ubicacion':'Localização','dstk.mover':'Mover','dstk.movimientos':'Histórico de movimentos','dstk.misma_ubic':'O produto já está nessa localização','dstk.movido_ok':'Produto movido ✓'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{'draft.banner':'Tienes un borrador sin terminar','draft.recuperar':'Recuperar','draft.descartar':'Descartar','draft.recuperado':'Borrador recuperado ✓','sync.sin_conexion':'Sin conexión · se guardará al volver','sync.sincronizado':'Sincronizado'},
+en:{'draft.banner':'You have an unfinished draft','draft.recuperar':'Restore','draft.descartar':'Discard','draft.recuperado':'Draft restored ✓','sync.sin_conexion':'Offline · will save when back online','sync.sincronizado':'Synced'},
+fr:{'draft.banner':'Vous avez un brouillon non terminé','draft.recuperar':'Récupérer','draft.descartar':'Ignorer','draft.recuperado':'Brouillon récupéré ✓','sync.sin_conexion':'Hors ligne · sera enregistré au retour','sync.sincronizado':'Synchronisé'},
+it:{'draft.banner':'Hai una bozza non terminata','draft.recuperar':'Recupera','draft.descartar':'Scarta','draft.recuperado':'Bozza recuperata ✓','sync.sin_conexion':'Offline · si salverà al ritorno','sync.sincronizado':'Sincronizzato'},
+de:{'draft.banner':'Du hast einen unfertigen Entwurf','draft.recuperar':'Wiederherstellen','draft.descartar':'Verwerfen','draft.recuperado':'Entwurf wiederhergestellt ✓','sync.sin_conexion':'Offline · wird bei Rückkehr gespeichert','sync.sincronizado':'Synchronisiert'},
+pt:{'draft.banner':'Tens um rascunho por terminar','draft.recuperar':'Recuperar','draft.descartar':'Descartar','draft.recuperado':'Rascunho recuperado ✓','sync.sin_conexion':'Sem ligação · será guardado ao voltar','sync.sincronizado':'Sincronizado'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
