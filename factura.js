@@ -271,20 +271,22 @@
     if (!info || !imp) return;
 
     var _T = (typeof window.T === 'function') ? window.T : function(k){ return k; };
+    // Traduce un método de pago almacenado (Efectivo/Tarjeta/Financiado…) al idioma actual.
+    var _pago = function(p){ if (!p) return ''; var k = 'pago.' + String(p).toLowerCase(); var t = _T(k); return (t && t !== k) ? t : p; };
     var d = FACT.datos;
     if (FACT.origen === 'venta') {
       info.innerHTML =
         '<strong>' + _T('fact.o_venta') + '</strong> · ' + _esc(d.fecha || '') + '<br>' +
         (d.cliente && d.cliente.nombre ? '👤 ' + _esc(d.cliente.nombre + ' ' + (d.cliente.apellidos || '')) + '<br>' : '') +
         '📦 ' + _esc((d.items || []).map(function(i){ return i.nombre + ' x' + i.cantidad; }).join(', ')) +
-        (d.pago ? '<br>💳 ' + _esc(d.pago) : '');
+        (d.pago ? '<br>💳 ' + _esc(_pago(d.pago)) : '');
     } else {
       info.innerHTML =
         '<strong>' + _T('fact.o_reparacion') + '</strong> · ' + _esc(d.fechaEntregaReal || d.fecha || '') + '<br>' +
         (d.cliente && d.cliente.nombre ? '👤 ' + _esc(d.cliente.nombre + ' ' + (d.cliente.apellidos || '')) + '<br>' : '') +
         '📱 ' + _esc((d.marca || '') + ' ' + (d.modelo || '')) + '<br>' +
         '🔧 ' + _esc(d.averia || '') +
-        (d.pagoFinal ? '<br>💳 ' + _esc(d.pagoFinal) : '');
+        (d.pagoFinal ? '<br>💳 ' + _esc(_pago(d.pagoFinal)) : '');
     }
     imp.textContent = _fmtEur(d.total || 0);
   }
