@@ -4426,3 +4426,11 @@ it:{'rep_iva.tipo':'Aliquota IVA','rep_iva.base':'Imponibile','rep_iva.iva':'IVA
 de:{'rep_iva.tipo':'MwSt-Satz','rep_iva.base':'Bemessungsgrundlage','rep_iva.iva':'MwSt.','rep_iva.total':'Gesamt'},
 pt:{'rep_iva.tipo':'Taxa IVA','rep_iva.base':'Base tributável','rep_iva.iva':'IVA','rep_iva.total':'Total'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{'cita.detalle_titulo':'📅 Detalle de cita','cita.llamar':'Llamar','cita.nota_cliente':'Nota del cliente','cita.crear_rep':'Crear reparación','cita.eliminar':'Eliminar cita','notif.stock_bajo':'Stock bajo','notif.uds_min':'uds (mín {min})'},
+en:{'cita.detalle_titulo':'📅 Appointment detail','cita.llamar':'Call','cita.nota_cliente':'Customer note','cita.crear_rep':'Create repair','cita.eliminar':'Delete appointment','notif.stock_bajo':'Low stock','notif.uds_min':'units (min {min})'},
+fr:{'cita.detalle_titulo':'📅 Détail du rendez-vous','cita.llamar':'Appeler','cita.nota_cliente':'Note du client','cita.crear_rep':'Créer une réparation','cita.eliminar':'Supprimer le rendez-vous','notif.stock_bajo':'Stock bas','notif.uds_min':'u. (min {min})'},
+it:{'cita.detalle_titulo':'📅 Dettaglio appuntamento','cita.llamar':'Chiama','cita.nota_cliente':'Nota del cliente','cita.crear_rep':'Crea riparazione','cita.eliminar':'Elimina appuntamento','notif.stock_bajo':'Scorta bassa','notif.uds_min':'pz (min {min})'},
+de:{'cita.detalle_titulo':'📅 Termindetails','cita.llamar':'Anrufen','cita.nota_cliente':'Kundennotiz','cita.crear_rep':'Reparatur erstellen','cita.eliminar':'Termin löschen','notif.stock_bajo':'Wenig Bestand','notif.uds_min':'Stk (min {min})'},
+pt:{'cita.detalle_titulo':'📅 Detalhe da marcação','cita.llamar':'Ligar','cita.nota_cliente':'Nota do cliente','cita.crear_rep':'Criar reparação','cita.eliminar':'Eliminar marcação','notif.stock_bajo':'Stock baixo','notif.uds_min':'un. (mín {min})'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();

@@ -4280,7 +4280,7 @@ function _renderWidgetSelectorBody(id) {
         var uds = s.unidades||0;
         html += '<div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border)">' +
           '<div style="font-size:11px;font-weight:700;flex:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(s.nombre||'') + '</div>' +
-          '<div style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;flex-shrink:0;' + (uds===0?'background:rgba(239,68,68,.12);color:#EF4444':'background:rgba(249,115,22,.12);color:var(--orange)') + '">' + uds + ' ud.</div>' +
+          '<div style="font-size:11px;font-weight:800;padding:2px 8px;border-radius:10px;flex-shrink:0;' + (uds===0?'background:rgba(239,68,68,.12);color:#EF4444':'background:rgba(249,115,22,.12);color:var(--orange)') + '">' + uds + ' ' + T('pedidos.uds') + '</div>' +
         '</div>';
       });
     }
@@ -13787,8 +13787,8 @@ function computeNotificaciones() {
     (DB.stock || []).forEach(function(s) {
       var min = s.stockMin || 0;
       if (s.unidades > 0 && s.unidades <= min) {
-        add({id:'stock_'+s.id, tipo:'stock', icon:'📦', color:'#F97316', titulo:'Stock bajo',
-          detalle:(s.marca?s.marca+' ':'')+s.modelo+' · '+s.unidades+' uds (mín '+min+')',
+        add({id:'stock_'+s.id, tipo:'stock', icon:'📦', color:'#F97316', titulo:T('notif.stock_bajo'),
+          detalle:(s.marca?s.marca+' ':'')+s.modelo+' · '+s.unidades+' '+T('notif.uds_min').replace('{min}', min),
           href:'pStock', prio:1, manual:false});
       }
     });
@@ -17170,7 +17170,7 @@ function abrirCita(id) {
   if (c.fecha) {
     var p = c.fecha.split('-');
     var d = new Date(p[0], p[1]-1, p[2]);
-    fechaTxt = d.toLocaleDateString('es', {weekday:'long', day:'numeric', month:'long', year:'numeric'});
+    fechaTxt = d.toLocaleDateString((typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'), {weekday:'long', day:'numeric', month:'long', year:'numeric'});
   }
   var html = '';
   html += '<div style="background:var(--light);border-radius:10px;padding:14px;margin-bottom:14px">';
@@ -17179,15 +17179,15 @@ function abrirCita(id) {
   html += '<div style="font-size:13px;color:var(--muted);margin-top:4px">📅 ' + fechaTxt + ' · ⏰ ' + esc(c.hora||'') + '</div>';
   html += '</div>';
 
-  html += '<div class="fg"><label class="fl">Estado</label>';
+  html += '<div class="fg"><label class="fl">' + T('plan.estado') + '</label>';
   html += '<select class="fi" id="citaEstado">';
   ['pendiente','confirmada','atendida','cancelada'].forEach(function(e) {
-    html += '<option value="' + e + '" ' + (c.estado === e ? 'selected' : '') + '>' + e.charAt(0).toUpperCase() + e.slice(1) + '</option>';
+    html += '<option value="' + e + '" ' + (c.estado === e ? 'selected' : '') + '>' + T('cita.est_' + e) + '</option>';
   });
   html += '</select></div>';
 
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
-  if (c.cliente_tel) html += '<a href="tel:' + esc(c.cliente_tel) + '" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px">📞 Llamar</a>';
+  if (c.cliente_tel) html += '<a href="tel:' + esc(c.cliente_tel) + '" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px">📞 ' + T('cita.llamar') + '</a>';
   if (c.cliente_tel) {
     var msg = encodeURIComponent(waMsg('cita')(c.cliente_nombre || '', fechaTxt, c.hora||'', TIENDA.nombre||''));
     var tel = waTel(c.cliente_tel);
@@ -17196,13 +17196,13 @@ function abrirCita(id) {
   html += '</div>';
 
   if (c.cliente_email) html += '<div style="font-size:12px;color:var(--muted);margin-bottom:6px">✉️ ' + esc(c.cliente_email) + '</div>';
-  if (c.notas) html += '<div style="background:#FFF8E8;border-left:3px solid var(--orange);padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:10px"><strong>Nota del cliente:</strong><br>' + esc(c.notas) + '</div>';
+  if (c.notas) html += '<div style="background:#FFF8E8;border-left:3px solid var(--orange);padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:10px"><strong>' + T('cita.nota_cliente') + ':</strong><br>' + esc(c.notas) + '</div>';
 
   html += '<div style="display:flex;gap:8px;margin-top:14px;border-top:1px solid var(--border);padding-top:14px">';
-  html += '<button type="button" class="btn-secondary" style="flex:1" onclick="closeM(\'mCita\')">Cerrar</button>';
-  html += '<button type="button" class="btn-primary" style="flex:1;background:var(--green)" onclick="convertirCitaEnRep(\'' + c.id + '\')">→ Crear reparación</button>';
+  html += '<button type="button" class="btn-secondary" style="flex:1" onclick="closeM(\'mCita\')">' + T('gen.cerrar') + '</button>';
+  html += '<button type="button" class="btn-primary" style="flex:1;background:var(--green)" onclick="convertirCitaEnRep(\'' + c.id + '\')">→ ' + T('cita.crear_rep') + '</button>';
   html += '</div>';
-  html += '<button type="button" style="margin-top:8px;width:100%;padding:10px;border:1px solid var(--red);background:transparent;color:var(--red);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit" onclick="eliminarCita(\'' + c.id + '\')">🗑️ Eliminar cita</button>';
+  html += '<button type="button" style="margin-top:8px;width:100%;padding:10px;border:1px solid var(--red);background:transparent;color:var(--red);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit" onclick="eliminarCita(\'' + c.id + '\')">🗑️ ' + T('cita.eliminar') + '</button>';
 
   document.getElementById('citaDetalle').innerHTML = html;
   setTimeout(function(){
