@@ -643,7 +643,7 @@
     const importeTpv = Number($('cierre-importe-tpv')?.value || 0);
 
     let html = '';
-    let okFlag = true, mensajeOK = '✓ Caja cuadrada', mensajeKO = '';
+    let okFlag = true, mensajeOK = T('cajas.caja_cuadrada'), mensajeKO = '';
 
     if (tipo === 'envios') {
       // ENVÍOS: total enviado por compañías
@@ -662,18 +662,18 @@
         okFlag = false;
         mensajeOK = '';
       } else {
-        mensajeOK = '✓ Caja cuadrada';
+        mensajeOK = T('cajas.caja_cuadrada');
       }
-      mensajeKO = faltaTotal < -0.5 ? `❌ Falta: ${eur(faltaTotal)}` : `❌ Sobra: +${eur(faltaTotal)}`;
+      mensajeKO = faltaTotal < -0.5 ? `❌ ${T('cajas.falta')}: ${eur(faltaTotal)}` : `❌ ${T('cajas.sobra')}: +${eur(faltaTotal)}`;
 
       html += `<div class="item"><span class="label">${T('cajas.total_enviado')}</span><span><b>${eur(totalEnviado)}</b></span></div>`;
       html += `<div class="item"><span class="label">${T('cajas.saldo_inicial')}</span><span>${eur(saldoInicial)}</span></div>`;
       html += `<div class="item"><span class="label">${T('cajas.efectivo_caja')}</span><span>${eur(efectivoCaja)}</span></div>`;
-      html += `<div class="item"><span class="label">Importe TPV:</span><span>${eur(importeTpv)}</span></div>`;
+      html += `<div class="item"><span class="label">${T('cajas.importe_tpv')}</span><span>${eur(importeTpv)}</span></div>`;
       if (totalFiados > 0) {
-        html += `<div class="item" style="grid-column:1/-1;background:#fef3c7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#92400e;">📝 Pendiente de cobro:</span><span style="color:#92400e;font-weight:600;">${eur(totalFiados)}</span></div>`;
+        html += `<div class="item" style="grid-column:1/-1;background:#fef3c7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#92400e;">${T('cajas.pend_cobro')}</span><span style="color:#92400e;font-weight:600;">${eur(totalFiados)}</span></div>`;
       }
-      html += `<div class="item" style="grid-column:1/-1;border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:4px;"><span class="label">Total cobrado:</span><span><b>${eur(cobrado)}</b></span></div>`;
+      html += `<div class="item" style="grid-column:1/-1;border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:4px;"><span class="label">${T('cajas.total_cobrado')}</span><span><b>${eur(cobrado)}</b></span></div>`;
 
     } else if (tipo === 'recargas') {
       // RECARGAS: total vendido (suma de la columna)
@@ -689,19 +689,19 @@
       okFlag = Math.abs(faltaTotal) <= 0.5;
       if (faltaTotal > 0.5) {
         okFlag = true;
-        mensajeOK = `✓ Sobra: +${eur(faltaTotal)}`;
+        mensajeOK = `✓ ${T('cajas.sobra')}: +${eur(faltaTotal)}`;
       } else {
-        mensajeOK = '✓ Caja cuadrada';
+        mensajeOK = T('cajas.caja_cuadrada');
       }
-      mensajeKO = `❌ Falta: ${eur(faltaTotal)}`;
+      mensajeKO = `❌ ${T('cajas.falta')}: ${eur(faltaTotal)}`;
 
-      html += `<div class="item" style="grid-column:1/-1;background:#dbeafe;padding:6px 10px;border-radius:6px;"><span class="label" style="color:#C2491A;font-weight:600;">Total vendido:</span><span style="color:#C2491A;font-weight:700;">${eur(totalVendido)}</span></div>`;
+      html += `<div class="item" style="grid-column:1/-1;background:#dbeafe;padding:6px 10px;border-radius:6px;"><span class="label" style="color:#C2491A;font-weight:600;">${T('cajas.total_vendido')}</span><span style="color:#C2491A;font-weight:700;">${eur(totalVendido)}</span></div>`;
       html += `<div class="item"><span class="label">${T('cajas.efectivo_caja')}</span><span>${eur(efectivoCaja)}</span></div>`;
-      html += `<div class="item"><span class="label">Importe TPV:</span><span>${eur(importeTpv)}</span></div>`;
+      html += `<div class="item"><span class="label">${T('cajas.importe_tpv')}</span><span>${eur(importeTpv)}</span></div>`;
       if (totalFiados > 0) {
-        html += `<div class="item" style="grid-column:1/-1;background:#fef3c7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#92400e;">📝 Pendiente de cobro:</span><span style="color:#92400e;font-weight:600;">${eur(totalFiados)}</span></div>`;
+        html += `<div class="item" style="grid-column:1/-1;background:#fef3c7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#92400e;">${T('cajas.pend_cobro')}</span><span style="color:#92400e;font-weight:600;">${eur(totalFiados)}</span></div>`;
       }
-      html += `<div class="item" style="grid-column:1/-1;border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:4px;"><span class="label">Total cobrado:</span><span><b>${eur(cobrado)}</b></span></div>`;
+      html += `<div class="item" style="grid-column:1/-1;border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:4px;"><span class="label">${T('cajas.total_cobrado')}</span><span><b>${eur(cobrado)}</b></span></div>`;
     }
 
     html += `<div class="descuadre-grande ${okFlag ? 'ok' : 'ko'}">
