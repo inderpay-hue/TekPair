@@ -4605,3 +4605,11 @@ it:{'sb.hoy':'Oggi','sb.cobrado':'incassato','sb.reps_pend':'rip. in corso'},
 de:{'sb.hoy':'Heute','sb.cobrado':'kassiert','sb.reps_pend':'Rep. offen'},
 pt:{'sb.hoy':'Hoje','sb.cobrado':'cobrado','sb.reps_pend':'reps pendentes'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{'inicio.saludo_madrugada':'Buena madrugada','dash.buena_madrugada':'Buena madrugada'},
+en:{'inicio.saludo_madrugada':'Up late','dash.buena_madrugada':'Up late'},
+fr:{'inicio.saludo_madrugada':'Tard ce soir','dash.buena_madrugada':'Tard ce soir'},
+it:{'inicio.saludo_madrugada':'A tarda notte','dash.buena_madrugada':'A tarda notte'},
+de:{'inicio.saludo_madrugada':'Spät unterwegs','dash.buena_madrugada':'Spät unterwegs'},
+pt:{'inicio.saludo_madrugada':'Boa madrugada','dash.buena_madrugada':'Boa madrugada'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();

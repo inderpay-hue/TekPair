@@ -512,12 +512,12 @@ function _refrescarSaludo() {
     if (typeof U === 'undefined' || !U) return;
     var h = new Date().getHours();
     var primer = (U.nombre || '').split(' ')[0] || '';
-    var saludoSb = h < 6 ? T('dash.buenas_noches') : h < 13 ? T('dash.buenos_dias') : (h < 21 ? T('dash.buenas_tardes') : T('dash.buenas_noches'));
+    var saludoSb = h < 6 ? T('dash.buena_madrugada') : h < 13 ? T('dash.buenos_dias') : (h < 21 ? T('dash.buenas_tardes') : T('dash.buenas_noches'));
     var dTiendaEl = document.getElementById('dTienda');
     if (dTiendaEl) dTiendaEl.textContent = primer ? saludoSb + ', ' + primer : saludoSb;
     var sa = document.getElementById('inv-saludo');
     if (sa) {
-      var sal = h < 6 ? T('inicio.saludo_noche') : h < 13 ? T('inicio.saludo_manana') : (h < 21 ? T('inicio.saludo_tarde') : T('inicio.saludo_noche'));
+      var sal = h < 6 ? T('inicio.saludo_madrugada') : h < 13 ? T('inicio.saludo_manana') : (h < 21 ? T('inicio.saludo_tarde') : T('inicio.saludo_noche'));
       sa.textContent = sal + (primer ? ', ' + primer : '') + ' 👋';
     }
     var fe = document.getElementById('inv-fecha');
@@ -3425,7 +3425,7 @@ function renderInicioNuevo() {
   var puede = (typeof puedeVerCaja === 'function') ? puedeVerCaja() : (U && U.rol === 'admin');
   var citasHoy = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; }).length;
   var hh = (new Date()).getHours();
-  var sal = hh < 6 ? T('inicio.saludo_noche') : hh < 13 ? T('inicio.saludo_manana') : (hh < 21 ? T('inicio.saludo_tarde') : T('inicio.saludo_noche'));
+  var sal = hh < 6 ? T('inicio.saludo_madrugada') : hh < 13 ? T('inicio.saludo_manana') : (hh < 21 ? T('inicio.saludo_tarde') : T('inicio.saludo_noche'));
   var nom = (U && U.nombre) ? U.nombre.split(' ')[0] : '';
   _st('inv-fecha', new Date().toLocaleDateString((typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es'), { weekday: 'long', day: 'numeric', month: 'long' }));
   _st('inv-saludo', sal + (nom ? ', ' + nom : '') + ' 👋');
@@ -3528,13 +3528,14 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   else { d1 = hoy; d2 = hoy; }
   var perLbl = per === 'semana' ? T('inicio.per_semana') : (per === 'mes' ? T('inicio.per_mes') : T('inicio.per_hoy'));
 
-  // Headline ingresos del periodo + tendencia semanal (7d vs 7d anteriores)
+  // Headline ingresos del periodo + tendencia semanal JUSTA: esta semana (lunes→hoy) vs el
+  // MISMO tramo de la semana pasada (lunes pasado → mismo día). Evita el falso "€11 vs €3538"
+  // de un lunes recién empezado, que comparaba una semana a medias contra otra completa.
   var ingPer = _invIncome(d1, d2);
-  var ws = new Date(hoy + 'T00:00:00'); ws.setDate(ws.getDate() - 6);
-  var wp1 = new Date(hoy + 'T00:00:00'); wp1.setDate(wp1.getDate() - 13);
-  var wp2 = new Date(hoy + 'T00:00:00'); wp2.setDate(wp2.getDate() - 7);
-  var estaSem = _invIncome(_invIso(ws), hoy);
-  var antSem = _invIncome(_invIso(wp1), _invIso(wp2));
+  var _monPrev = new Date(monday); _monPrev.setDate(monday.getDate() - 7);
+  var _samedayPrev = new Date(baseH); _samedayPrev.setDate(baseH.getDate() - 7);
+  var estaSem = _invIncome(_invIso(monday), hoy);
+  var antSem = _invIncome(_invIso(_monPrev), _invIso(_samedayPrev));
   // F71: si la semana anterior fue 0, un % no tiene sentido (daba "+2649%" o "+100%" con base ridícula).
   // pct=null → "nuevo / sin base comparable". Y se topa a ±999% para no mostrar cifras absurdas.
   var pct = antSem > 0 ? Math.round((estaSem - antSem) / antSem * 100) : null;
