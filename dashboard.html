@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260621y"></script>
+<script src="/lang/lang.v8.js?v=20260621z"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -3605,6 +3605,19 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
               <button type="button" class="chk-btn" data-cond="Bloqueado" onclick="toggleChk(this)"><span>🔒</span> <span data-t="rep.cond_bloqueado">Bloqueado</span></button>
             </div>
           </div>
+
+          <!-- M7: foto-prueba del estado al recibir -->
+          <div class="fg" style="margin-top:12px;margin-bottom:0">
+            <label class="fl" data-t="foto.recepcion_titulo">📸 Fotos del estado (al recibir)</label>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px" data-t="foto.recepcion_desc">Prueba del estado del equipo. Te protege si el cliente reclama un daño que ya estaba.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <div id="repFotosRecepThumbs" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+              <label style="display:inline-flex;align-items:center;gap:6px;background:var(--light);border:1.5px dashed var(--border);border-radius:8px;width:60px;height:60px;justify-content:center;cursor:pointer;flex-shrink:0" title="Añadir foto">
+                <span style="font-size:22px">📷</span>
+                <input type="file" accept="image/*" capture="environment" multiple onchange="_repFotoRecepInput(this)" style="display:none">
+              </label>
+            </div>
+          </div>
         </div>
 
       </div>
@@ -3799,6 +3812,18 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   </div>
   <div class="fg" id="ePagoBox"><label class="fl"><span data-t="entrega.pago_final">Pago final</span></label>
     <select class="fi" id="ePago"><option value="Efectivo" data-t="pago.efectivo">Efectivo</option><option value="Tarjeta" data-t="pago.tarjeta">Tarjeta</option><option value="Bizum" data-t="pago.bizum">Bizum</option><option value="Transferencia" data-t="pago.transferencia">Transferencia</option></select>
+  </div>
+  <!-- M7: foto-prueba del estado al entregar -->
+  <div class="fg" style="margin-bottom:14px">
+    <label class="fl" data-t="foto.entrega_titulo">📸 Fotos del estado (al entregar)</label>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px" data-t="foto.entrega_desc">Deja constancia del estado en el que devuelves el equipo, funcionando.</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <div id="repFotosEntThumbs" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <label style="display:inline-flex;align-items:center;gap:6px;background:var(--light);border:1.5px dashed var(--border);border-radius:8px;width:60px;height:60px;justify-content:center;cursor:pointer;flex-shrink:0">
+        <span style="font-size:22px">📷</span>
+        <input type="file" accept="image/*" capture="environment" multiple onchange="_repFotoEntInput(this)" style="display:none">
+      </label>
+    </div>
   </div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mEntregar')" data-t="gen.cancelar">Cancelar</button>
@@ -4542,7 +4567,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260621y"></script>
+<script src="/js/dash-app.js?v=20260621z"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

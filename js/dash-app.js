@@ -2045,7 +2045,7 @@ function navTo(id) {
     renderPresupuestos();
     // Sync ligero: recargar reps desde Supabase para tener estados frescos
     if (SB_KEY && TIENDA_ID) {
-      sbGet('reparaciones', 'tienda_id=eq.' + TIENDA_ID + '&estado=in.(Presupuesto,Rechazado)&select=id,cliente_id,cliente_nombre,marca,modelo,averia,estado,total,base,iva,iva_importe,iva_modo,servicios,componentes,fecha,presupuesto_aceptado_at,presupuesto_token_exp,piezas_devueltas,es_garantia,rep_original_id,mo,comp,anticipo,restante,pago_final,fecha_entrega,fecha_entrega_real,nota,tipo_bloqueo,bloqueo,imei,prioridad,firma_cliente,firma_fecha,presupuesto_aceptado_ip').then(function(rows) {
+      sbGet('reparaciones', 'tienda_id=eq.' + TIENDA_ID + '&estado=in.(Presupuesto,Rechazado)&select=id,cliente_id,cliente_nombre,marca,modelo,averia,estado,total,base,iva,iva_importe,iva_modo,servicios,componentes,fecha,presupuesto_aceptado_at,presupuesto_token_exp,piezas_devueltas,es_garantia,rep_original_id,mo,comp,anticipo,restante,pago_final,fecha_entrega,fecha_entrega_real,nota,tipo_bloqueo,bloqueo,imei,prioridad,firma_cliente,firma_fecha,presupuesto_aceptado_ip,fotos_recepcion,fotos_entrega').then(function(rows) {
         if (!Array.isArray(rows)) return;
         // Actualizar solo los presupuestos en DB.reps
         rows.forEach(function(r) {
@@ -2639,7 +2639,9 @@ function mapRep(r) {
     presupuesto_aceptado_ip: r.presupuesto_aceptado_ip || null,
     firma_cliente: r.firma_cliente || null,
     firma_fecha: r.firma_fecha || null,
-    clienteAvisado: r.cliente_avisado === true
+    clienteAvisado: r.cliente_avisado === true,
+    fotosRecepcion: Array.isArray(r.fotos_recepcion) ? r.fotos_recepcion : [],
+    fotosEntrega: Array.isArray(r.fotos_entrega) ? r.fotos_entrega : []
   };
 }
 
@@ -6918,7 +6920,8 @@ function _cliDraftRestaurar(){ _DRAFT_CLI.restore(); }
 function _cliDraftBorrar(){ _DRAFT_CLI.clear(); }
 
 function abrirRep() {
-  SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.rServicios = [];
+  SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.rServicios = []; SEL.fotosRecepcion = [];
+  var _ft = document.getElementById('repFotosRecepThumbs'); if (_ft) _ft.innerHTML = '';
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_nuevo');
   var _bg = document.getElementById('btnGuardarRepTxt'); if (_bg) _bg.textContent = T('rep.crear_orden');
   ['rBusCli','rMarca','rModelo','rImei','rAveria','rNota','rSrvBus','rBloqVal'].forEach(function(id) {
@@ -8876,7 +8879,8 @@ function guardarRep() {
     esGarantia: false, repOriginalId: '',
     garantiaDias: (typeof window._repGarantiaDias === 'number') ? window._repGarantiaDias : (TIENDA.grDiasDefault || 90),
     garantiaTipo: window._repGarantiaTipo || 'reparacion',
-    garantiaPublica: (typeof window._repGarantiaPublica === 'boolean') ? window._repGarantiaPublica : true
+    garantiaPublica: (typeof window._repGarantiaPublica === 'boolean') ? window._repGarantiaPublica : true,
+    fotosRecepcion: (SEL.fotosRecepcion || []).slice(), fotosEntrega: []
   };
 
   DB.reps.push(rep);
@@ -8902,7 +8906,8 @@ function guardarRep() {
         ? (function(){ var d = new Date(rep.fechaEntrega); d.setDate(d.getDate() + rep.garantiaDias); return d.toISOString().slice(0,10); })()
         : null,
       financiado: rep.financiado, entrada: rep.entrada, entrada_pago: rep.entradaPago || null,
-      cuotas: rep.cuotas ? JSON.stringify(rep.cuotas) : null, estado_financiado: rep.estadoFinanciado || null
+      cuotas: rep.cuotas ? JSON.stringify(rep.cuotas) : null, estado_financiado: rep.estadoFinanciado || null,
+      fotos_recepcion: rep.fotosRecepcion || []
     });
     if (esFinRep) {
       // Financiado: la ENTRADA se registra como pago (tipo anticipo) -> el ingreso del día entra solo.
@@ -9580,6 +9585,9 @@ function abrirEntregar(id) {
   if (box) box.style.display = resta > 0 ? 'block' : 'none';
   var pagoBox = document.getElementById('ePagoBox');
   if (pagoBox) pagoBox.style.display = 'block';
+  // M7: fotos de entrega (parte de SEL para esta entrega; arranca de lo que ya tuviera la rep)
+  SEL.fotosEntrega = (r.fotosEntrega || []).slice();
+  _repRenderFotos('repFotosEntThumbs', SEL.fotosEntrega, '_repFotoEntRemove');
   openM('mEntregar');
 }
 
@@ -9599,11 +9607,12 @@ function confirmarEntrega() {
   var aDeber = !!(chk && chk.checked && resta > 0); // entregar dejando el restante pendiente (fiado)
   r.estado = 'Entregado';
   r.fechaEntregaReal = hoyLocal();
+  r.fotosEntrega = (SEL.fotosEntrega || []).slice(); // M7: foto-prueba del estado al entregar
   if (aDeber) {
     // No se cobra: el restante se mantiene como pendiente. No se crea pago final.
     guardarDatos();
     if (SB_KEY && TIENDA_ID) {
-      sbPatch('reparaciones', 'id=eq.' + r.id, {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal});
+      sbPatch('reparaciones', 'id=eq.' + r.id, {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, fotos_entrega:r.fotosEntrega});
     }
   } else {
     r.pagoFinal = document.getElementById('ePago').value;
@@ -9615,7 +9624,7 @@ function confirmarEntrega() {
     }
     guardarDatos();
     if (SB_KEY && TIENDA_ID) {
-      var _patchE = {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0};
+      var _patchE = {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0, fotos_entrega:r.fotosEntrega};
       if (r.financiado) { _patchE.cuotas = JSON.stringify(r.cuotas || []); _patchE.estado_financiado = 'completado'; }
       sbPatch('reparaciones', 'id=eq.' + r.id, _patchE);
 
@@ -15713,6 +15722,62 @@ function editarClienteDesdeFicha(cliId) {
   setTimeout(function(){ try { editCli(cliId); } catch(e){} }, 100);
 }
 
+// ═══ M7: FOTO-PRUEBA — fotos del estado del equipo al recibir / entregar ═══
+// Suben al bucket privado 'gastos-adjuntos' (ya con RLS por tienda). La reparación guarda solo los paths.
+async function _repSubirFoto(file) {
+  if (!SB_KEY || !TIENDA_ID) { toast(T('foto.sin_conexion'), 'err'); return null; }
+  try {
+    var blob = await comprimirImagen(file, 1280, 0.7);
+    var path = TIENDA_ID + '/reps/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.jpg';
+    var resp = await sbStorageUpload('gastos-adjuntos', path, new Blob([blob], { type: 'image/jpeg' }));
+    if (!resp.ok) { toast(T('foto.error_subir'), 'err'); return null; }
+    return path;
+  } catch (e) { console.error('_repSubirFoto', e); toast(T('foto.error_subir'), 'err'); return null; }
+}
+// Pinta miniaturas (URL firmada 1h) en un contenedor; onRemove = nombre de función global (i) o null (solo ver).
+async function _repRenderFotos(containerId, paths, onRemove) {
+  var c = document.getElementById(containerId);
+  if (!c) return;
+  if (!paths || !paths.length) { c.innerHTML = onRemove ? '<span style="font-size:11px;color:var(--muted)">' + T('foto.ninguna') + '</span>' : ''; return; }
+  var html = '';
+  for (var i = 0; i < paths.length; i++) {
+    var url = await sbStorageSignedUrl('gastos-adjuntos', paths[i], 3600);
+    html += '<div style="position:relative;width:60px;height:60px;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex-shrink:0">' +
+      '<img src="' + (url || '') + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;cursor:pointer" onclick="window.open(\'' + (url || '') + '\',\'_blank\')">' +
+      (onRemove ? '<button type="button" onclick="' + onRemove + '(' + i + ')" style="position:absolute;top:1px;right:1px;background:rgba(220,38,38,.92);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:12px;cursor:pointer;line-height:1;padding:0">×</button>' : '') +
+      '</div>';
+  }
+  c.innerHTML = html;
+}
+// Recepción (modal Nueva Reparación) — SEL.fotosRecepcion
+async function _repFotoRecepInput(input) {
+  var files = input.files; if (!files || !files.length) return;
+  if (!SEL.fotosRecepcion) SEL.fotosRecepcion = [];
+  toast(T('foto.subiendo'), 'ok');
+  for (var i = 0; i < files.length && SEL.fotosRecepcion.length < 6; i++) {
+    var p = await _repSubirFoto(files[i]); if (p) SEL.fotosRecepcion.push(p);
+  }
+  input.value = '';
+  _repRenderFotos('repFotosRecepThumbs', SEL.fotosRecepcion, '_repFotoRecepRemove');
+}
+function _repFotoRecepRemove(i) {
+  if (SEL.fotosRecepcion) { SEL.fotosRecepcion.splice(i, 1); _repRenderFotos('repFotosRecepThumbs', SEL.fotosRecepcion, '_repFotoRecepRemove'); }
+}
+// Entrega (modal Entregar) — SEL.fotosEntrega
+async function _repFotoEntInput(input) {
+  var files = input.files; if (!files || !files.length) return;
+  if (!SEL.fotosEntrega) SEL.fotosEntrega = [];
+  toast(T('foto.subiendo'), 'ok');
+  for (var i = 0; i < files.length && SEL.fotosEntrega.length < 6; i++) {
+    var p = await _repSubirFoto(files[i]); if (p) SEL.fotosEntrega.push(p);
+  }
+  input.value = '';
+  _repRenderFotos('repFotosEntThumbs', SEL.fotosEntrega, '_repFotoEntRemove');
+}
+function _repFotoEntRemove(i) {
+  if (SEL.fotosEntrega) { SEL.fotosEntrega.splice(i, 1); _repRenderFotos('repFotosEntThumbs', SEL.fotosEntrega, '_repFotoEntRemove'); }
+}
+
 // ═══ DETALLE REPARACIÓN (vista lectura) ═══
 function abrirDetalleRep(repId) {
   var r = DB.reps.find(function(x){ return x.id === repId; });
@@ -15818,9 +15883,20 @@ function abrirDetalleRep(repId) {
   }
 
   // Historial de avisos enviados de esta reparación
+  // M7: foto-prueba (recepción / entrega) si las hay
+  var _fotosR = r.fotosRecepcion || [], _fotosE = r.fotosEntrega || [];
+  if (_fotosR.length || _fotosE.length) {
+    html += '<div style="margin-top:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px">';
+    if (_fotosR.length) html += '<div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📸 ' + T('foto.recepcion_corto') + '</div><div id="detFotosRecep" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>';
+    if (_fotosE.length) html += '<div><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📸 ' + T('foto.entrega_corto') + '</div><div id="detFotosEnt" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>';
+    html += '</div>';
+  }
+
   html += '<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📨 ' + T('det.avisos_enviados') + '</div><div id="avisosHistorial"><div style="font-size:11px;color:var(--muted)">' + T('det.cargando') + '</div></div></div>';
 
   document.getElementById('detalleRepBox').innerHTML = html;
+  if (_fotosR.length) _repRenderFotos('detFotosRecep', _fotosR, null);
+  if (_fotosE.length) _repRenderFotos('detFotosEnt', _fotosE, null);
   _cargarHistorialAvisos(r.id);
 
   // Botones
