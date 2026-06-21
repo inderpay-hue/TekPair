@@ -645,6 +645,7 @@
 
     let html = '';
     let okFlag = true, mensajeOK = T('cajas.caja_cuadrada'), mensajeKO = '';
+    let diffMostrar = 0;  // descuadre numérico para graduar la severidad (no alarmista)
 
     if (tipo === 'envios') {
       // ENVÍOS: total enviado por compañías
@@ -665,7 +666,8 @@
       } else {
         mensajeOK = T('cajas.caja_cuadrada');
       }
-      mensajeKO = faltaTotal < -0.5 ? `❌ ${T('cajas.falta')}: ${eur(faltaTotal)}` : `❌ ${T('cajas.sobra')}: +${eur(faltaTotal)}`;
+      diffMostrar = faltaTotal;
+      mensajeKO = faltaTotal < -0.5 ? `${T('cajas.falta')}: ${eur(faltaTotal)}` : `${T('cajas.sobra')}: +${eur(faltaTotal)}`;
 
       html += `<div class="item"><span class="label">${T('cajas.total_enviado')}</span><span><b>${eur(totalEnviado)}</b></span></div>`;
       html += `<div class="item"><span class="label">${T('cajas.saldo_inicial')}</span><span>${eur(saldoInicial)}</span></div>`;
@@ -694,7 +696,8 @@
       } else {
         mensajeOK = T('cajas.caja_cuadrada');
       }
-      mensajeKO = `❌ ${T('cajas.falta')}: ${eur(faltaTotal)}`;
+      diffMostrar = faltaTotal;
+      mensajeKO = `${T('cajas.falta')}: ${eur(faltaTotal)}`;
 
       html += `<div class="item" style="grid-column:1/-1;background:#dbeafe;padding:6px 10px;border-radius:6px;"><span class="label" style="color:#C2491A;font-weight:600;">${T('cajas.total_vendido')}</span><span style="color:#C2491A;font-weight:700;">${eur(totalVendido)}</span></div>`;
       html += `<div class="item"><span class="label">${T('cajas.efectivo_caja')}</span><span>${eur(efectivoCaja)}</span></div>`;
@@ -705,9 +708,19 @@
       html += `<div class="item" style="grid-column:1/-1;border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:4px;"><span class="label">${T('cajas.total_cobrado')}</span><span><b>${eur(cobrado)}</b></span></div>`;
     }
 
-    html += `<div class="descuadre-grande ${okFlag ? 'ok' : 'ko'}">
-      ${okFlag ? mensajeOK : mensajeKO}
-    </div>`;
+    // Cierre menos alarmista: en vez de un "❌ Falta -98€" rojo a secas, graduamos la
+    // severidad (⚠️ pequeña = normal, propinas/redondeos · 🚨 grande = revisa antes de cerrar).
+    if (okFlag) {
+      html += `<div class="descuadre-grande ok">${mensajeOK}</div>`;
+    } else {
+      const absd = Math.abs(Number(diffMostrar) || 0);
+      const grande = absd >= 20;
+      const sub = grande ? T('arqueo.revisa_checklist') : T('arqueo.normal_propinas');
+      html += `<div class="descuadre-grande ko">
+        <div>${grande ? '🚨' : '⚠️'} ${mensajeKO}</div>
+        <div style="font-size:11px;font-weight:500;opacity:.85;margin-top:4px;line-height:1.35">${sub}</div>
+      </div>`;
+    }
     $('cierre-resumen').innerHTML = html;
   }
 
@@ -1269,13 +1282,13 @@
       const estado = info?.estado || 'vacio';
       const esHoy = iso === hoyIso;
       const nombre = esHoy ? T('cita.hoy') : d.toLocaleDateString(_lcC, {weekday:'short'});
-      let etiqueta = T('cajas.sin_cerrar');
+      let etiqueta = esHoy ? T('cajas.sin_cerrar') : '·';
       if (estado === 'cuadrado') etiqueta = '✓ ' + T('cajas.cuadra');
       else if (estado === 'sobra') etiqueta = '+' + Number(info.descuadre || 0).toFixed(2).replace('.', ',');
-      else if (estado === 'falta') etiqueta = Number(info.descuadre || 0).toFixed(2).replace('.', ',');
-      else if (estado === 'pendientes') etiqueta = T('cajas.pendientes');
-      else if (estado === 'borrador') etiqueta = T('cajas.borrador');
-      else if (estado === 'festivo') etiqueta = T('cajas.festivo');
+      else if (estado === 'falta') etiqueta = '⚠ ' + Number(info.descuadre || 0).toFixed(2).replace('.', ',');
+      else if (estado === 'pendientes') etiqueta = '🔵 ' + T('cajas.pendientes');
+      else if (estado === 'borrador') etiqueta = '🔄 ' + T('cajas.borrador');
+      else if (estado === 'festivo') etiqueta = '🏖 ' + T('cajas.festivo');
       const claseEstado = estado === 'vacio' ? '' : 'fd-' + estado;
       return `
         <div class="franja-dia ${claseEstado} ${esHoy ? 'es-hoy' : ''}"
