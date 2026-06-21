@@ -177,11 +177,11 @@
       const esSobra = descuadre > 0.5;
       const esFalta = descuadre < -0.5;
       const labelEstado = {
-        abierto: 'En curso',
-        cerrado: 'Cuadrada ✓',
-        descuadre: esSobra ? '+ Sobra' : '⚠ Falta',
-        pendiente: 'Pendiente',
-        festivo: '🏖 Festivo'
+        abierto: T('cajas.en_curso'),
+        cerrado: T('cajas.cuadrada_ok'),
+        descuadre: esSobra ? '+ ' + T('cajas.sobra') : '⚠ ' + T('cajas.falta'),
+        pendiente: T('cajas.pendiente'),
+        festivo: '🏖 ' + T('cajas.festivo')
       }[estado];
 
       html += `
@@ -195,18 +195,18 @@
           </div>
           <div class="caja-card-resumen">
             <div>
-              <div class="label">Teórico</div>
+              <div class="label">${T('cajas.teorico')}</div>
               <div class="valor">${cierre ? eur(cierre.saldo_teorico) : '—'}</div>
             </div>
             <div>
-              <div class="label">Real</div>
+              <div class="label">${T('cajas.real')}</div>
               <div class="valor">${cierre ? eur(cierre.saldo_real_final) : '—'}</div>
             </div>
             ${cierre ? `
               <div style="grid-column:1/-1;">
-                <div class="label">Descuadre</div>
+                <div class="label">${T('cajas.descuadre')}</div>
                 <div class="valor ${esFalta ? 'valor-descuadre' : (esSobra ? 'valor-sobra' : 'valor-ok')}">
-                  ${tieneDescuadre ? (esSobra ? '+' + eur(descuadre).replace('+', '') : eur(descuadre)) : '✓ Cuadrada'}
+                  ${tieneDescuadre ? (esSobra ? '+' + eur(descuadre).replace('+', '') : eur(descuadre)) : T('cajas.caja_cuadrada')}
                 </div>
               </div>
             ` : ''}
@@ -214,14 +214,14 @@
           <div class="caja-card-acciones">
             ${cierre?.estado === 'festivo' ? `
               <button class="cajas-btn cajas-btn-sec" style="flex:1;background:#f3f4f6;color:#6b7280;cursor:default;" disabled>
-                🏖 Día festivo
+                🏖 ${T('cajas.dia_festivo')}
               </button>
-              <button class="cajas-btn cajas-btn-sec" onclick="Cajas.deshacerFestivo('${caja.id}')" title="Quitar marca de festivo">↺</button>
+              <button class="cajas-btn cajas-btn-sec" onclick="Cajas.deshacerFestivo('${caja.id}')" title="${T('cajas.quitar_festivo')}">↺</button>
             ` : `
               <button class="cajas-btn" onclick="Cajas.abrirCierre('${caja.id}')">
-                ${cierre ? 'Ver / editar' : 'Hacer cierre'}
+                ${cierre ? T('cajas.ver_editar') : T('cajas.hacer_cierre')}
               </button>
-              ${!cierre ? `<button class="cajas-btn cajas-btn-sec" onclick="Cajas.marcarFestivo('${caja.id}')" title="Marcar este día como festivo">🏖</button>` : ''}
+              ${!cierre ? `<button class="cajas-btn cajas-btn-sec" onclick="Cajas.marcarFestivo('${caja.id}')" title="${T('cajas.marcar_festivo')}">🏖</button>` : ''}
             `}
             <button class="cajas-btn cajas-btn-sec" onclick="Cajas.editarCaja('${caja.id}')">⚙️</button>
           </div>
@@ -454,13 +454,14 @@
           if (diffDias > 4) {
             // BUG #5: el aviso va INLINE en la caja. El toast se quitó porque este render se
             // re-ejecuta al cambiar de vista → reaparecía constantemente (incluso en Citas/Gastos).
-            aviso = ` <span style="text-transform:none;font-weight:700;color:#dc2626;font-size:10px;">⚠️ ${diffDias} días sin cerrar — verifica el saldo inicial</span>`;
+            aviso = ` <span style="text-transform:none;font-weight:700;color:#dc2626;font-size:10px;">⚠️ ${T('cajas.dias_sin_cerrar').replace('{n}', diffDias)}</span>`;
           }
-          lbl.innerHTML = `Cambio del ${fechaVisible} <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(${diaSemana} · automático)</span>${aviso}`;
+          const _dowLoc = d.toLocaleDateString((typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'), {weekday:'long'});
+          lbl.innerHTML = `${T('cajas.cambio_del')} ${fechaVisible} <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(${_dowLoc} · ${T('cajas.automatico')})</span>${aviso}`;
         } else if (!fechaAnterior && !data.cierre) {
-          lbl.innerHTML = `Saldo inicial <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(primer día - no hay cierres previos)</span>`;
+          lbl.innerHTML = `${T('cajas.saldo_inicial')} <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(${T('cajas.primer_dia')})</span>`;
         } else {
-          lbl.innerHTML = `Cambio del día anterior € <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(automático)</span>`;
+          lbl.innerHTML = `${T('cajas.cambio_anterior')} <span style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(${T('cajas.automatico')})</span>`;
         }
       }
       $('cierre-saldo-real').value = data.cierre?.saldo_real_final ?? 0;
@@ -546,16 +547,16 @@
 
     if (tipo === 'envios') {
       thead.innerHTML = `<tr>
-        <th>Compañía</th>
-        <th style="text-align:right;">Enviado €</th>
+        <th>${T('cajas.compania')}</th>
+        <th style="text-align:right;">${T('cajas.enviado_h')}</th>
       </tr>`;
     } else if (tipo === 'recargas') {
       thead.innerHTML = `<tr>
-        <th>Compañía</th>
-        <th style="text-align:right;">Total vendido €</th>
+        <th>${T('cajas.compania')}</th>
+        <th style="text-align:right;">${T('cajas.total_vendido_h')}</th>
       </tr>`;
     } else {
-      thead.innerHTML = `<tr><th>Compañía</th><th style="text-align:right;">Importe €</th></tr>`;
+      thead.innerHTML = `<tr><th>${T('cajas.compania')}</th><th style="text-align:right;">${T('cajas.importe_h')}</th></tr>`;
     }
 
     const movsExistentes = {};
@@ -790,7 +791,7 @@
         }
       }
 
-      toast(estado === 'cerrado' ? 'Cierre guardado ✓' : 'Borrador guardado');
+      toast(estado === 'cerrado' ? T('cajas.cierre_guardado') : T('cajas.borrador_guardado'));
       if (r.estado === 'descuadre') {
         toast(`⚠ Descuadre de ${eur(r.descuadre)}. Revisa la caja.`, 'error');
       }
@@ -1055,8 +1056,8 @@
 
     if (filtrados.length === 0) {
       const msg = sub === 'pendientes'
-        ? '✓ No hay cobros pendientes'
-        : 'Aún no hay cobros marcados como pagados';
+        ? T('cajas.sin_cobros_pend')
+        : T('cajas.sin_cobrados');
       lista.innerHTML = `<div class="cobro-vacio">${msg}</div>`;
       return;
     }
@@ -1089,7 +1090,7 @@
           : '';
         acciones = `
           ${waBtn}
-          <button onclick="Cajas.cobrarFiado('${f.id}')" style="background:#10b981;color:#fff;border:0;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">✓ Cobrar</button>
+          <button onclick="Cajas.cobrarFiado('${f.id}')" style="background:#10b981;color:#fff;border:0;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">✓ ${T('cajas.cobrar')}</button>
           <button onclick="Cajas.editarCobro('${f.id}')" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer;">✏</button>
         `;
       } else {
@@ -1260,21 +1261,21 @@
     } catch(e) { console.warn('Franja resumen error:', e); }
 
     const hoyIso = fmtIso(hoy);
-    const nombresDias = ['Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
+    const _lcC = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
 
     grid.innerHTML = dias.map(d => {
       const iso = fmtIso(d);
       const info = resumenDias[iso];
       const estado = info?.estado || 'vacio';
       const esHoy = iso === hoyIso;
-      const nombre = esHoy ? 'Hoy' : nombresDias[d.getDay()];
-      let etiqueta = 'Sin cerrar';
-      if (estado === 'cuadrado') etiqueta = '✓ Cuadra';
+      const nombre = esHoy ? T('cita.hoy') : d.toLocaleDateString(_lcC, {weekday:'short'});
+      let etiqueta = T('cajas.sin_cerrar');
+      if (estado === 'cuadrado') etiqueta = '✓ ' + T('cajas.cuadra');
       else if (estado === 'sobra') etiqueta = '+' + Number(info.descuadre || 0).toFixed(2).replace('.', ',');
       else if (estado === 'falta') etiqueta = Number(info.descuadre || 0).toFixed(2).replace('.', ',');
-      else if (estado === 'pendientes') etiqueta = 'Pendientes';
-      else if (estado === 'borrador') etiqueta = 'Borrador';
-      else if (estado === 'festivo') etiqueta = 'Festivo';
+      else if (estado === 'pendientes') etiqueta = T('cajas.pendientes');
+      else if (estado === 'borrador') etiqueta = T('cajas.borrador');
+      else if (estado === 'festivo') etiqueta = T('cajas.festivo');
       const claseEstado = estado === 'vacio' ? '' : 'fd-' + estado;
       return `
         <div class="franja-dia ${claseEstado} ${esHoy ? 'es-hoy' : ''}"

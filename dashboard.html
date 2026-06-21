@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260621o"></script>
+<script src="/lang/lang.v8.js?v=20260621p"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2057,10 +2057,10 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <!-- ════ TABS CAJAS / COBROS PENDIENTES ════ -->
   <div class="cajas-tabs" style="display:flex;gap:4px;border-bottom:1px solid #e5e7eb;margin-bottom:16px;">
     <button id="tab-cajas-dia" class="cajas-tab-btn cajas-tab-activa" onclick="Cajas.cambiarTab('dia')">
-      📊 Cajas del día
+      <span data-t="cajas.tab_dia">📊 Cajas del día</span>
     </button>
     <button id="tab-cobros" class="cajas-tab-btn" onclick="Cajas.cambiarTab('cobros')">
-      📋 Cobros pendientes <span id="badge-pendientes" style="display:none;background:#dc2626;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:4px;">0</span>
+      <span data-t="cajas.tab_cobros">📋 Cobros pendientes</span> <span id="badge-pendientes" style="display:none;background:#dc2626;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:4px;">0</span>
     </button>
   </div>
 
@@ -2068,16 +2068,16 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <!-- ════ FRANJA 7 DÍAS ════ -->
   <div class="cajas-franja-wrap" id="cajas-franja-wrap">
     <div class="cajas-franja-head">
-      <h3>Últimos 7 días</h3>
-      <small>Click en un día para verlo</small>
+      <h3 data-t="cajas.ultimos_7">Últimos 7 días</h3>
+      <small data-t="cajas.click_dia">Click en un día para verlo</small>
     </div>
     <div class="cajas-franja-grid" id="cajas-franja-grid"></div>
     <div class="cajas-franja-legend">
-      <span><span class="chip chip-cuadrado"></span>Cuadra</span>
-      <span><span class="chip chip-sobra"></span>Sobra</span>
-      <span><span class="chip chip-falta"></span>Falta</span>
-      <span><span class="chip chip-pendientes"></span>Con pendientes</span>
-      <span><span class="chip chip-borrador"></span>Borrador</span>
+      <span><span class="chip chip-cuadrado"></span><span data-t="cajas.cuadra">Cuadra</span></span>
+      <span><span class="chip chip-sobra"></span><span data-t="cajas.sobra">Sobra</span></span>
+      <span><span class="chip chip-falta"></span><span data-t="cajas.falta">Falta</span></span>
+      <span><span class="chip chip-pendientes"></span><span data-t="cajas.con_pendientes">Con pendientes</span></span>
+      <span><span class="chip chip-borrador"></span><span data-t="cajas.borrador">Borrador</span></span>
       <span><span class="chip chip-vacio"></span><span data-t="cajas.sin_cerrar">Sin cerrar</span></span>
     </div>
   </div>
@@ -2372,7 +2372,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         </div>
       </div>
 
-      <h4 style="margin:14px 0 6px;font-size:13px;color:#374151;text-transform:uppercase;letter-spacing:.3px;">Movimientos del día</h4>
+      <h4 style="margin:14px 0 6px;font-size:13px;color:#374151;text-transform:uppercase;letter-spacing:.3px;" data-t="cajas.movimientos_dia">Movimientos del día</h4>
       <div style="overflow-x:auto;">
         <table class="cajas-tabla-mov" id="tabla-movimientos">
           <thead id="tabla-mov-thead"></thead>
@@ -2439,7 +2439,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 
 
 <!-- ════ LÓGICA JS ════ -->
-<script src="/js/dash-cajas.js?v=20260621h"></script>
+<script src="/js/dash-cajas.js?v=20260621p"></script>
 
 <div class="page" id="pGastos">
   <div class="sec-header" style="margin-bottom:10px">
@@ -2966,31 +2966,31 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
   <div class="aj-panel" id="ajPanel-cuenta">
 
     <div class="card" id="cardSuscripcion">
-      <div class="card-title">💳 Mi suscripción</div>
+      <div class="card-title" data-t="acc.mi_suscripcion">💳 Mi suscripción</div>
       <div id="suscripcionInfo"></div>
       <div style="display:flex;gap:8px;margin-top:14px">
-        <button type="button" class="btn-primary" style="flex:1;background:var(--blue)" onclick="abrirStripePortal()">⚙️ Gestionar plan / facturas</button>
-        <button type="button" class="btn-secondary" style="flex:1" onclick="mostrarModalUpgrade('','pro')">📈 Comparar planes</button>
+        <button type="button" class="btn-primary" style="flex:1;background:var(--blue)" onclick="abrirStripePortal()" data-t="acc.gestionar_plan">⚙️ Gestionar plan / facturas</button>
+        <button type="button" class="btn-secondary" style="flex:1" onclick="mostrarModalUpgrade('','pro')" data-t="acc.comparar_planes">📈 Comparar planes</button>
       </div>
-      <div style="font-size:11px;color:var(--muted);margin-top:10px;border-top:1px solid var(--border);padding-top:10px">💡 Desde el portal puedes cambiar de plan, actualizar tarjeta, cancelar suscripción o descargar facturas.</div>
+      <div style="font-size:11px;color:var(--muted);margin-top:10px;border-top:1px solid var(--border);padding-top:10px" data-t="acc.portal_hint">💡 Desde el portal puedes cambiar de plan, actualizar tarjeta, cancelar suscripción o descargar facturas.</div>
     </div>
 
     <div class="card" id="cardAuditoria" style="display:none">
-      <div class="card-title">📜 Historial de actividad</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Registro de las acciones realizadas en la tienda. Útil para saber qué empleado hizo qué y cuándo.</div>
-      <button type="button" class="btn-primary" style="background:var(--blue);width:100%" onclick="abrirAuditoria()">📜 Ver historial completo</button>
+      <div class="card-title" data-t="acc.historial_titulo">📜 Historial de actividad</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="acc.historial_desc">Registro de las acciones realizadas en la tienda. Útil para saber qué empleado hizo qué y cuándo.</div>
+      <button type="button" class="btn-primary" style="background:var(--blue);width:100%" onclick="abrirAuditoria()" data-t="acc.ver_historial">📜 Ver historial completo</button>
     </div>
 
     <div class="card">
-      <div class="card-title">💾 Backup y exportación</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Descarga una copia de seguridad completa de todos tus datos.</div>
+      <div class="card-title" data-t="acc.backup_titulo">💾 Backup y exportación</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px" data-t="acc.backup_desc">Descarga una copia de seguridad completa de todos tus datos.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
-        <button type="button" class="btn-primary" style="background:var(--green);padding:11px 12px;font-size:13px" onclick="exportarTodo()">📦 Exportar todo (ZIP)</button>
-        <button type="button" class="btn-secondary" style="padding:11px 12px;font-size:13px" onclick="document.getElementById('importInput').click()">📥 Importar / Restaurar</button>
+        <button type="button" class="btn-primary" style="background:var(--green);padding:11px 12px;font-size:13px" onclick="exportarTodo()" data-t="acc.exportar_todo">📦 Exportar todo (ZIP)</button>
+        <button type="button" class="btn-secondary" style="padding:11px 12px;font-size:13px" onclick="document.getElementById('importInput').click()" data-t="acc.importar">📥 Importar / Restaurar</button>
       </div>
       <input type="file" id="importInput" accept=".zip,.json" style="display:none" onchange="importarBackup(event)">
       <div style="border-top:1px solid var(--border);padding-top:12px;margin-bottom:12px">
-        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:8px">Exportar a Excel/CSV</div>
+        <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:8px" data-t="acc.exportar_csv">Exportar a Excel/CSV</div>
         <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
           <button type="button" class="btn-secondary" style="font-size:11px;padding:7px 6px" onclick="exportarCSV('clientes')">👥 Clientes</button>
           <button type="button" class="btn-secondary" style="font-size:11px;padding:7px 6px" onclick="exportarCSV('reparaciones')">🔧 Reparaciones</button>
@@ -2999,13 +2999,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
       <div>
         <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:6px">
-          <input type="checkbox" id="ajBackupAuto" onchange="toggleBackupAuto()"> Recordar backup cada
+          <input type="checkbox" id="ajBackupAuto" onchange="toggleBackupAuto()"> <span data-t="acc.recordar_backup">Recordar backup cada</span>
           <select id="ajBackupCadaDias" onchange="guardarBackupAjustes()" style="padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-family:inherit;font-size:12px">
-            <option value="7">7 días</option>
-            <option value="15">15 días</option>
-            <option value="30" selected>30 días</option>
-            <option value="60">60 días</option>
-            <option value="90">90 días</option>
+            <option value="7" data-t="ajt.dias7">7 días</option>
+            <option value="15" data-t="ajt.dias15">15 días</option>
+            <option value="30" selected data-t="ajt.dias30">30 días</option>
+            <option value="60" data-t="ajt.dias60">60 días</option>
+            <option value="90" data-t="ajt.dias90">90 días</option>
           </select>
         </label>
         <div id="ajUltimoBackup" style="font-size:11px;color:var(--muted);padding-left:24px"></div>
@@ -3013,33 +3013,33 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
 
     <div class="card">
-      <div class="card-title">🔒 Seguridad</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Cambia tu contraseña de acceso a TekPair.</div>
-      <div class="fg"><label class="fl">Contraseña actual</label><input class="fi" id="pwActual" type="password" placeholder="Tu contraseña actual" autocomplete="current-password"></div>
-      <div class="fg"><label class="fl">Nueva contraseña</label><input class="fi" id="pwNueva" type="password" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
-      <div class="fg"><label class="fl">Repetir nueva contraseña</label><input class="fi" id="pwNueva2" type="password" placeholder="Repite la nueva contraseña" autocomplete="new-password"></div>
-      <button type="button" class="btn-primary" style="background:var(--blue);width:100%" onclick="cambiarPassword()">Cambiar contraseña</button>
+      <div class="card-title" data-t="acc.seguridad">🔒 Seguridad</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="acc.seguridad_desc">Cambia tu contraseña de acceso a TekPair.</div>
+      <div class="fg"><label class="fl" data-t="acc.pw_actual">Contraseña actual</label><input class="fi" id="pwActual" type="password" data-t-ph="acc.pw_actual_ph" placeholder="Tu contraseña actual" autocomplete="current-password"></div>
+      <div class="fg"><label class="fl" data-t="acc.pw_nueva">Nueva contraseña</label><input class="fi" id="pwNueva" type="password" data-t-ph="acc.pw_min" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+      <div class="fg"><label class="fl" data-t="acc.pw_repetir">Repetir nueva contraseña</label><input class="fi" id="pwNueva2" type="password" data-t-ph="acc.pw_repetir_ph" placeholder="Repite la nueva contraseña" autocomplete="new-password"></div>
+      <button type="button" class="btn-primary" style="background:var(--blue);width:100%" onclick="cambiarPassword()" data-t="acc.cambiar_pw">Cambiar contraseña</button>
     </div>
 
     <div class="card" id="cardInstalar" style="display:none">
-      <div class="card-title">📱 Instalar app</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Instala TekPair como una app nativa en tu dispositivo. Funciona offline y se abre con un toque.</div>
-      <button type="button" class="btn-primary" style="background:var(--green);width:100%" onclick="instalarPWA()">📱 Instalar TekPair</button>
+      <div class="card-title" data-t="acc.instalar">📱 Instalar app</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="acc.instalar_desc">Instala TekPair como una app nativa en tu dispositivo. Funciona offline y se abre con un toque.</div>
+      <button type="button" class="btn-primary" style="background:var(--green);width:100%" onclick="instalarPWA()" data-t="acc.instalar_btn">📱 Instalar TekPair</button>
     </div>
 
     <div class="card" id="cardInstaladaInfo" style="display:none">
-      <div class="card-title">📱 Instalar app</div>
-      <div style="font-size:13px;color:var(--text);margin-bottom:8px">📲 <strong>iOS / iPhone:</strong></div>
+      <div class="card-title" data-t="acc.instalar">📱 Instalar app</div>
+      <div style="font-size:13px;color:var(--text);margin-bottom:8px" data-t-html="acc.ios_titulo">📲 <strong>iOS / iPhone:</strong></div>
       <ol style="font-size:12px;color:var(--muted);margin:0 0 12px 18px;line-height:1.7">
-        <li>Abre TekPair en <strong>Safari</strong></li>
-        <li>Toca el botón <strong>Compartir</strong> ⎘</li>
-        <li>Elige <strong>"Añadir a pantalla de inicio"</strong></li>
+        <li data-t-html="acc.ios_1">Abre TekPair en <strong>Safari</strong></li>
+        <li data-t-html="acc.ios_2">Toca el botón <strong>Compartir</strong> ⎘</li>
+        <li data-t-html="acc.ios_3">Elige <strong>"Añadir a pantalla de inicio"</strong></li>
       </ol>
-      <div style="font-size:13px;color:var(--text);margin-bottom:8px">🤖 <strong>Android:</strong></div>
+      <div style="font-size:13px;color:var(--text);margin-bottom:8px" data-t-html="acc.android_titulo">🤖 <strong>Android:</strong></div>
       <ol style="font-size:12px;color:var(--muted);margin:0 0 12px 18px;line-height:1.7">
-        <li>Abre TekPair en <strong>Chrome</strong></li>
-        <li>Menú ⋮ arriba a la derecha</li>
-        <li>Elige <strong>"Instalar app"</strong> o <strong>"Añadir a pantalla principal"</strong></li>
+        <li data-t-html="acc.android_1">Abre TekPair en <strong>Chrome</strong></li>
+        <li data-t-html="acc.android_2">Menú ⋮ arriba a la derecha</li>
+        <li data-t-html="acc.android_3">Elige <strong>"Instalar app"</strong> o <strong>"Añadir a pantalla principal"</strong></li>
       </ol>
     </div>
 
