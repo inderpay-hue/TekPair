@@ -218,7 +218,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
   .cart-fab,.cart-close-mobile{display:none!important}
 }
 </style>
-<script src="/lang/lang.v8.js?v=20260621m"></script>
+<script src="/lang/lang.v8.js?v=20260621n"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -261,7 +261,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
 
     <!-- Caja del día -->
     <div class="caja-bar">
-      <div class="caja-info"><span data-t="tpv.caja_hoy">Caja hoy</span>: <strong id="cajaTotal">€0.00</strong> efectivo</div>
+      <div class="caja-info"><span data-t="tpv.caja_hoy">Caja hoy</span>: <strong id="cajaTotal">€0.00</strong> <span data-t="pago.efectivo">efectivo</span></div>
       <div style="display:flex;gap:6px">
         <button class="caja-btn" onclick="verHistorial()"><span data-t="tpv.historial">📋 Historial</span></button>
         <button class="caja-btn" onclick="verCaja()"><span data-t="tpv.ver_caja">Ver caja</span></button>
@@ -388,7 +388,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
 
       <!-- Importe libre / teclado: plegable para dar espacio al carrito -->
       <div style="padding:6px 12px 0">
-        <button type="button" id="numpadToggle" onclick="toggleNumpad()" style="width:100%;background:var(--t-surf);border:1px solid var(--t-bd);color:var(--t-ink2);border-radius:10px;padding:8px;font-size:12px;font-weight:700;cursor:pointer">🔢 Importe libre / teclado</button>
+        <button type="button" id="numpadToggle" onclick="toggleNumpad()" style="width:100%;background:var(--t-surf);border:1px solid var(--t-bd);color:var(--t-ink2);border-radius:10px;padding:8px;font-size:12px;font-weight:700;cursor:pointer" data-t="tpv.importe_libre">🔢 Importe libre / teclado</button>
       </div>
       <div id="numpadWrap" style="display:none">
       <!-- Numpad -->
@@ -533,14 +533,14 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
 
 <div class="modal-bg" id="mRapida">
 <div class="modal">
-  <div class="modal-title">⚡ Venta rapida</div>
-  <div class="fg"><label class="fl">Descripcion *</label><input class="fi" id="rvDesc" placeholder="Producto o servicio..."></div>
+  <div class="modal-title" data-t="tpv.vr_titulo">⚡ Venta rapida</div>
+  <div class="fg"><label class="fl" data-t="tpv.vr_desc">Descripcion *</label><input class="fi" id="rvDesc" data-t-ph="tpv.vr_desc_ph" placeholder="Producto o servicio..."></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">Precio (€) *</label><input class="fi" id="rvPrecio" type="number" step="0.01" placeholder="0.00"></div>
+    <div class="fg"><label class="fl" data-t="tpv.vr_precio_lbl">Precio (€) *</label><input class="fi" id="rvPrecio" type="number" step="0.01" placeholder="0.00"></div>
     <div class="fg"><label class="fl"><span data-t="gen.cantidad">Cantidad</span></label><input class="fi" id="rvQty" type="number" value="1" min="1"></div>
   </div>
   <div style="display:flex;gap:10px;margin-top:4px">
-    <button class="btn-secondary" onclick="closeModal('mRapida')">Cancelar</button>
+    <button class="btn-secondary" onclick="closeModal('mRapida')" data-t="gen.cancelar">Cancelar</button>
     <button class="btn-primary" onclick="addVentaRapida()"><span data-t="gen.anadir">Añadir</span></button>
   </div>
 </div>
@@ -973,9 +973,9 @@ function renderProducts() {
   if (currentCat !== 'favoritos') {
     grid.innerHTML += '<div class="prod-card" onclick="openModal(\'mRapida\')" style="border-style:dashed;border-color:rgba(0,85,255,.3);background:rgba(0,85,255,.03)">' +
       '<div class="prod-icon">⚡</div>' +
-      '<div class="prod-name">Venta rapida</div>' +
-      '<div class="prod-price" style="color:var(--blue)">Precio libre</div>' +
-      '<div class="prod-stock">Sin stock</div></div>';
+      '<div class="prod-name">' + T('tpv.vr_nombre') + '</div>' +
+      '<div class="prod-price" style="color:var(--blue)">' + T('tpv.vr_precio') + '</div>' +
+      '<div class="prod-stock">' + T('tpv.vr_stock') + '</div></div>';
   } else {
     // En la pestaña favoritos, botón gestionar al final
     grid.innerHTML += '<div class="prod-card" onclick="abrirGestionFavs()" style="border-style:dashed;border-color:#FBBF24;background:#FFFBEB">' +
@@ -1022,7 +1022,7 @@ function addFavFijoToCart(id) {
     esRapida: true
   });
   renderCart();
-  toast('Añadido', 'ok');
+  toast(T('tpv.anadido'), 'ok');
 }
 
 // ═══ GESTIÓN FAVORITOS ═══
@@ -1363,7 +1363,7 @@ function addToCart(id, esServicio) {
     });
   }
   renderCart();
-  toast('Añadido', 'ok');
+  toast(T('tpv.anadido'), 'ok');
 }
 
 function addVentaRapida() {
@@ -1588,19 +1588,24 @@ function setEntradaPago(el) {
 // ═══ CHECKOUT ═══
 function cobrar() {
   if (!cart.length) return;
-  if (!tienePerm('ventas_crear')) { toast('Sin permiso para crear ventas', 'err'); return; }
+  if (!tienePerm('ventas_crear')) { toast(T('tpv.sin_permiso_venta'), 'err'); return; }
   var totals = _computeTotals();
+  // #B83/#B24: el total es 0 o negativo (p.ej. descuento que iguala el subtotal). Antes se
+  // podía registrar una venta de 0€ sin avisar — ahora pedimos confirmación explícita.
+  if ((totals.total || 0) <= 0 && selectedPago !== 'Financiado') {
+    if (!confirm(T('tpv.confirmar_cero'))) return;
+  }
   // F679/F609: el ticket simplificado solo es válido hasta 400€. Por encima, conviene
   // identificar al cliente para poder emitir factura completa. Aviso no bloqueante.
   if (!selectedCli && (totals.total || 0) > 400) {
-    toast('Venta de ' + totals.total.toFixed(2) + '€ sin cliente: por encima de 400€ conviene asignar uno para la factura', 'err', 4000);
+    toast(T('tpv.aviso_400').replace('{t}', totals.total.toFixed(2)), 'err', 4000);
   }
   var esFinanciado = selectedPago === 'Financiado';
-  if (esFinanciado && !selectedCli) { toast('Selecciona un cliente para financiar', 'err'); return; }
+  if (esFinanciado && !selectedCli) { toast(T('tpv.fin_sin_cliente'), 'err'); return; }
   var fin = esFinanciado ? calcCuotasFinanciado() : null;
   // Si hay entrada en el financiado, obliga a elegir con qué se pagó (sin default).
   if (esFinanciado && fin && fin.entrada > 0 && !selectedEntradaPago) {
-    toast('Elige cómo se pagó la entrada (efectivo, tarjeta o bizum)', 'err'); return;
+    toast(T('tpv.fin_elige_entrada'), 'err'); return;
   }
   var venta = {
     id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
