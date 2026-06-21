@@ -150,35 +150,35 @@
       '<div class="modal-bg" id="mFactura" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">' +
         '<div style="background:white;max-width:560px;width:92%;max-height:90vh;border-radius:14px;overflow:hidden;display:flex;flex-direction:column">' +
           '<div style="padding:16px 20px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between">' +
-            '<div style="font-weight:700;font-size:16px">📄 Generar factura</div>' +
+            '<div style="font-weight:700;font-size:16px" data-t="fact.modal_titulo">📄 Generar factura</div>' +
             '<button type="button" onclick="window.cerrarModalFactura()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#94A3B8">×</button>' +
           '</div>' +
           '<div style="padding:18px 20px;overflow-y:auto;flex:1" id="factModalBody">' +
             '<div style="background:#F8FAFC;border-radius:10px;padding:12px;margin-bottom:14px">' +
-              '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">Origen</div>' +
+              '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px" data-t="fact.origen">Origen</div>' +
               '<div id="factOrigenInfo" style="font-size:13px"></div>' +
               '<div id="factImporte" style="margin-top:8px;font-size:18px;font-weight:800;color:#10B981"></div>' +
             '</div>' +
 
             '<div style="margin-bottom:14px">' +
-              '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">Tipo de factura</div>' +
+              '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px" data-t="fact.tipo_factura_lbl">Tipo de factura</div>' +
               '<div style="display:flex;gap:8px">' +
-                '<button type="button" id="factTipoSimp" onclick="window.setTipoFactura(\'simplificada\')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #10B981;background:#ECFDF5;cursor:pointer;font-weight:600;font-size:13px">🎫 Simplificada</button>' +
-                '<button type="button" id="factTipoComp" onclick="window.setTipoFactura(\'completa\')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #E5E7EB;background:white;cursor:pointer;font-weight:600;font-size:13px;color:#475569">📄 Completa</button>' +
-                '<button type="button" id="factTipoTicket" onclick="window.setTipoFactura(\'ticket\')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #E5E7EB;background:white;cursor:pointer;font-weight:600;font-size:13px;color:#475569">🧾 Ticket</button>' +
+                '<button type="button" id="factTipoSimp" onclick="window.setTipoFactura(\'simplificada\')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #10B981;background:#ECFDF5;cursor:pointer;font-weight:600;font-size:13px" data-t="fact.btn_simp">🎫 Simplificada</button>' +
+                '<button type="button" id="factTipoComp" onclick="window.setTipoFactura(\'completa\')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #E5E7EB;background:white;cursor:pointer;font-weight:600;font-size:13px;color:#475569" data-t="fact.btn_comp">📄 Completa</button>' +
+                '<button type="button" id="factTipoTicket" onclick="window.setTipoFactura(\'ticket\')" style="flex:1;padding:10px;border-radius:8px;border:2px solid #E5E7EB;background:white;cursor:pointer;font-weight:600;font-size:13px;color:#475569" data-t="fact.btn_ticket">🧾 Ticket</button>' +
               '</div>' +
               '<div id="factTipoInfo" style="font-size:11px;color:#64748B;margin-top:6px">Simplificada: válida hasta 400€. Incluye solo NIF del cliente si quieres.</div>' +
             '</div>' +
 
             '<div id="factDatosCli" style="margin-bottom:14px"></div>' +
 
-            '<div style="background:#FEF3C7;border-radius:8px;padding:10px;font-size:11px;color:#92400E;margin-bottom:14px" id="factNumeroPreview">' +
+            '<div style="background:#FEF3C7;border-radius:8px;padding:10px;font-size:11px;color:#92400E;margin-bottom:14px" id="factNumeroPreview" data-t="fact.num_auto">' +
               '⚠️ El número se asigna automáticamente al emitir' +
             '</div>' +
           '</div>' +
           '<div style="padding:14px 20px;border-top:1px solid #E5E7EB;display:flex;gap:10px;background:#F8FAFC">' +
-            '<button type="button" onclick="window.cerrarModalFactura()" style="padding:10px 16px;border-radius:8px;border:1px solid #E5E7EB;background:white;cursor:pointer;font-weight:600">Cancelar</button>' +
-            '<button type="button" id="factEmitirBtn" onclick="window.emitirFactura()" style="flex:1;padding:10px 16px;border-radius:8px;border:none;background:#10B981;color:white;cursor:pointer;font-weight:700">✓ Emitir factura</button>' +
+            '<button type="button" onclick="window.cerrarModalFactura()" style="padding:10px 16px;border-radius:8px;border:1px solid #E5E7EB;background:white;cursor:pointer;font-weight:600" data-t="gen.cancelar">Cancelar</button>' +
+            '<button type="button" id="factEmitirBtn" onclick="window.emitirFactura()" style="flex:1;padding:10px 16px;border-radius:8px;border:none;background:#10B981;color:white;cursor:pointer;font-weight:700" data-t="fact.emitir">✓ Emitir factura</button>' +
             '<button type="button" id="factTicketWaBtn" onclick="window.enviarTicketWhatsApp()" style="display:none;padding:10px 14px;border-radius:8px;border:none;background:#25D366;color:white;cursor:pointer;font-weight:700">📲 WhatsApp</button>' +
           '</div>' +
         '</div>' +
@@ -200,31 +200,32 @@
     // Al elegir uno, se autorrellenan sus datos fiscales y la factura queda vinculada a él.
     var buscador =
       '<div style="position:relative;margin-bottom:10px">' +
-        '<input id="factCliBuscar" oninput="window._factBuscarCli()" autocomplete="off" placeholder="🔍 Buscar y asignar cliente..." style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">' +
-        (cli && cli.id ? '<div style="font-size:11px;color:#10B981;margin-top:4px">✓ Cliente asignado: ' + _esc(((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim()) + '</div>' : '') +
+        '<input id="factCliBuscar" oninput="window._factBuscarCli()" autocomplete="off" placeholder="' + ((typeof window.T === 'function' ? window.T('fact.buscar_cli_ph') : '') || '🔍 Buscar y asignar cliente...') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">' +
+        (cli && cli.id ? '<div style="font-size:11px;color:#10B981;margin-top:4px">✓ ' + ((typeof window.T === 'function' ? window.T('fact.cli_asignado') : '') || 'Cliente asignado:') + ' ' + _esc(((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim()) + '</div>' : '') +
         '<div id="factCliBuscarRes" style="position:absolute;left:0;right:0;top:42px;background:white;border:1px solid #E5E7EB;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.12);z-index:5;max-height:200px;overflow:auto;display:none"></div>' +
       '</div>';
 
+    var _T = (typeof window.T === 'function') ? window.T : function(k){ return k; };
     if (FACT.tipo === 'ticket') {
       // Recibo básico: solo necesita nombre + teléfono (que ya vienen del cliente).
       box.innerHTML = buscador +
-        '<div style="font-size:11.5px;color:#64748B;background:#F8FAFC;border-radius:8px;padding:9px 11px">🧾 Se imprimirá el nombre y teléfono del cliente y la reparación. Sin IVA ni datos fiscales — no es una factura.</div>';
+        '<div style="font-size:11.5px;color:#64748B;background:#F8FAFC;border-radius:8px;padding:9px 11px">' + _T('fact.ticket_hint') + '</div>';
     } else if (FACT.tipo === 'simplificada') {
       // Solo NIF opcional
       box.innerHTML = buscador +
-        '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">Datos cliente (opcional)</div>' +
-        '<input id="factCliNif" placeholder="NIF/DNI (opcional)" value="' + _esc(cli.dni || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">';
+        '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">' + _T('fact.datos_cli_opc') + '</div>' +
+        '<input id="factCliNif" placeholder="' + _T('fact.nif_opc') + '" value="' + _esc(cli.dni || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">';
     } else {
       // Completa: todos los datos
       box.innerHTML = buscador +
-        '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">Datos fiscales cliente (obligatorios)</div>' +
-        '<input id="factCliNomFiscal" placeholder="Nombre fiscal / Razón social *" value="' + _esc(cli.nombreFiscal || ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim()) + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
-        '<input id="factCliNif" placeholder="NIF/CIF *" value="' + _esc(cli.dni || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
-        '<input id="factCliDir" placeholder="Dirección fiscal *" value="' + _esc(cli.dirFiscal || cli.dir || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
+        '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">' + _T('fact.datos_fiscales') + '</div>' +
+        '<input id="factCliNomFiscal" placeholder="' + _T('fact.nombre_fiscal') + '" value="' + _esc(cli.nombreFiscal || ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim()) + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
+        '<input id="factCliNif" placeholder="' + _T('fact.nif_cif') + '" value="' + _esc(cli.dni || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
+        '<input id="factCliDir" placeholder="' + _T('fact.dir_fiscal') + '" value="' + _esc(cli.dirFiscal || cli.dir || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
         '<div style="display:flex;gap:8px">' +
-          '<input id="factCliCp" placeholder="CP" value="' + _esc(cli.cp || '') + '" style="flex:0 0 100px;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">' +
-          '<input id="factCliCiudad" placeholder="Ciudad" value="' + _esc(cli.ciudad || '') + '" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">' +
-          '<input id="factCliProv" placeholder="Provincia" value="' + _esc(cli.provincia || '') + '" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">' +
+          '<input id="factCliCp" placeholder="' + _T('fact.cp') + '" value="' + _esc(cli.cp || '') + '" style="flex:0 0 100px;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">' +
+          '<input id="factCliCiudad" placeholder="' + _T('fact.ciudad') + '" value="' + _esc(cli.ciudad || '') + '" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">' +
+          '<input id="factCliProv" placeholder="' + _T('fact.provincia') + '" value="' + _esc(cli.provincia || '') + '" style="flex:1;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">' +
         '</div>';
     }
   }
@@ -241,7 +242,7 @@
       return ((c.nombre || '') + ' ' + (c.apellidos || '') + ' ' + (c.tel || '') + ' ' + (c.dni || '')).toLowerCase().indexOf(q) !== -1;
     }).slice(0, 6);
     if (!matches.length) {
-      res.innerHTML = '<div style="padding:9px 11px;color:#94A3B8;font-size:13px">Sin resultados</div>';
+      res.innerHTML = '<div style="padding:9px 11px;color:#94A3B8;font-size:13px">' + ((typeof window.T === 'function' ? window.T('fact.sin_resultados') : '') || 'Sin resultados') + '</div>';
     } else {
       res.innerHTML = matches.map(function(c) {
         return '<div onclick="window._factElegirCli(\'' + _esc(c.id) + '\')" style="padding:9px 11px;cursor:pointer;border-bottom:1px solid #F1F5F9;font-size:13px">' +
@@ -269,16 +270,17 @@
     var imp = document.getElementById('factImporte');
     if (!info || !imp) return;
 
+    var _T = (typeof window.T === 'function') ? window.T : function(k){ return k; };
     var d = FACT.datos;
     if (FACT.origen === 'venta') {
       info.innerHTML =
-        '<strong>Venta</strong> · ' + _esc(d.fecha || '') + '<br>' +
+        '<strong>' + _T('fact.o_venta') + '</strong> · ' + _esc(d.fecha || '') + '<br>' +
         (d.cliente && d.cliente.nombre ? '👤 ' + _esc(d.cliente.nombre + ' ' + (d.cliente.apellidos || '')) + '<br>' : '') +
         '📦 ' + _esc((d.items || []).map(function(i){ return i.nombre + ' x' + i.cantidad; }).join(', ')) +
         (d.pago ? '<br>💳 ' + _esc(d.pago) : '');
     } else {
       info.innerHTML =
-        '<strong>Reparación</strong> · ' + _esc(d.fechaEntregaReal || d.fecha || '') + '<br>' +
+        '<strong>' + _T('fact.o_reparacion') + '</strong> · ' + _esc(d.fechaEntregaReal || d.fecha || '') + '<br>' +
         (d.cliente && d.cliente.nombre ? '👤 ' + _esc(d.cliente.nombre + ' ' + (d.cliente.apellidos || '')) + '<br>' : '') +
         '📱 ' + _esc((d.marca || '') + ' ' + (d.modelo || '')) + '<br>' +
         '🔧 ' + _esc(d.averia || '') +
@@ -299,10 +301,11 @@
     setBtn(simp, tipo === 'simplificada');
     setBtn(comp, tipo === 'completa');
     setBtn(tick, tipo === 'ticket');
-    if (info) info.textContent = tipo === 'simplificada' ? 'Simplificada: válida hasta 400€. Incluye solo NIF del cliente si quieres.'
-      : tipo === 'completa' ? 'Completa: con datos fiscales del cliente. Sin límite de importe.'
-      : 'Ticket: recibo básico (nombre, teléfono y reparación). No es una factura ni lleva IVA — para clientes que no la necesitan.';
-    if (emitBtn) emitBtn.textContent = tipo === 'ticket' ? '🖨️ Imprimir ticket' : '✓ Emitir factura';
+    var _T = (typeof window.T === 'function') ? window.T : function(k){ return k; };
+    if (info) info.textContent = tipo === 'simplificada' ? _T('fact.info_simp')
+      : tipo === 'completa' ? _T('fact.info_comp')
+      : _T('fact.info_ticket');
+    if (emitBtn) emitBtn.textContent = tipo === 'ticket' ? _T('fact.imprimir_ticket') : _T('fact.emitir');
     var numPrev = document.getElementById('factNumeroPreview');
     if (numPrev) numPrev.style.display = (tipo === 'ticket') ? 'none' : '';
     var waBtn = document.getElementById('factTicketWaBtn');
@@ -321,6 +324,7 @@
 
     _renderOrigen();
     window.setTipoFactura('simplificada');
+    try { if (typeof applyLang === 'function') applyLang(); } catch(e){}
 
     document.getElementById('mFactura').style.display = 'flex';
   }
