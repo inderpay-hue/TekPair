@@ -976,7 +976,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260621l"></script>
+<script src="/lang/lang.v8.js?v=20260621m"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -6021,25 +6021,28 @@ function renderFacturas() {
     }
     filtrarFacturas();
   }).catch(function(e) {
-    if (cont) cont.innerHTML = '<div class="empty">Error cargando facturas</div>';
+    if (cont) cont.innerHTML = '<div class="empty">' + T('factl.error') + '</div>';
     console.warn('[facturas] error:', e);
   });
 }
 
 function _mesLargo(ym) {
-  var nombres = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   var p = ym.split('-');
   if (p.length < 2) return ym;
-  var idx = parseInt(p[1], 10) - 1;
-  return (nombres[idx] || ym) + ' ' + p[0];
+  var _lc = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+  try {
+    var d = new Date(parseInt(p[0], 10), parseInt(p[1], 10) - 1, 1);
+    return d.toLocaleDateString(_lc, { month: 'long', year: 'numeric' });
+  } catch (e) { return ym; }
 }
 
 function _factClienteNom(f) {
   var c = f.cliente_snapshot || {};
+  var _cli = (typeof T === 'function') ? T('gen.cliente') : 'Cliente';
   if (f.tipo === 'simplificada') {
-    return ((c.nombre || '') + ' ' + (c.apellidos || '')).trim() || 'Cliente';
+    return ((c.nombre || '') + ' ' + (c.apellidos || '')).trim() || _cli;
   }
-  return c.nombre_fiscal || 'Cliente';
+  return c.nombre_fiscal || _cli;
 }
 
 function filtrarFacturas() {
@@ -6062,14 +6065,14 @@ function filtrarFacturas() {
   var resumen = document.getElementById('factResumen');
 
   if (!lista.length) {
-    if (cont) cont.innerHTML = '<div class="empty">Sin facturas</div>';
+    if (cont) cont.innerHTML = '<div class="empty">' + T('factl.sin_facturas') + '</div>';
     if (resumen) resumen.innerHTML = '';
     return;
   }
 
   var totalSuma = lista.reduce(function(a, f) { return a + (parseFloat(f.total) || 0); }, 0);
   if (resumen) {
-    resumen.innerHTML = '<span><strong>' + lista.length + '</strong> factura' + (lista.length !== 1 ? 's' : '') + '</span>' +
+    resumen.innerHTML = '<span><strong>' + lista.length + '</strong> ' + (lista.length !== 1 ? T('factl.facturas') : T('factl.factura')) + '</span>' +
       '<span>' + T('fact.total_facturado') + ': <strong style="color:var(--green)">' + cur(totalSuma) + '</strong></span>';
   }
 
@@ -6082,17 +6085,17 @@ function filtrarFacturas() {
     var fechaTxt = f.fecha_emision || '';
     try {
       var d = new Date(f.fecha_emision);
-      if (!isNaN(d)) fechaTxt = d.toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: 'numeric' });
+      if (!isNaN(d)) fechaTxt = d.toLocaleDateString((typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'), { day: '2-digit', month: '2-digit', year: 'numeric' });
     } catch (e) {}
     var tipoBadge = f.tipo === 'simplificada'
       ? '<span class="badge bo">' + T('fact.tipo_simplificada') + '</span>'
       : '<span class="badge bp">' + T('fact.tipo_completa') + '</span>';
-    var origenTxt = f.origen_tipo === 'reparacion' ? '🔧 Reparación' : (f.origen_tipo === 'venta' ? '🛒 Venta' : '—');
+    var origenTxt = f.origen_tipo === 'reparacion' ? '🔧 ' + T('fact.o_reparacion') : (f.origen_tipo === 'venta' ? '🛒 ' + T('fact.o_venta') : '—');
     var esAbono = !!f.rectifica_a;
     var abonada = _FACTURAS.some(function(x) { return x.rectifica_a === f.id; });
     var numBadge = '';
-    if (esAbono) numBadge = ' <span class="badge" style="background:#fee2e2;color:#dc2626">Abono</span>';
-    else if (abonada) numBadge = ' <span class="badge" style="background:#fef3c7;color:#b45309">Abonada</span>';
+    if (esAbono) numBadge = ' <span class="badge" style="background:#fee2e2;color:#dc2626">' + T('factl.abono') + '</span>';
+    else if (abonada) numBadge = ' <span class="badge" style="background:#fef3c7;color:#b45309">' + T('factl.abonada') + '</span>';
     var colorTotal = (parseFloat(f.total) || 0) < 0 ? '#dc2626' : 'var(--green)';
     html += '<tr>' +
       '<td><strong>' + (f.numero || '—') + '</strong>' + numBadge + '</td>' +
@@ -6104,10 +6107,10 @@ function filtrarFacturas() {
       '<td style="font-size:11px">' + cur(f.iva_importe) + ' <span style="color:var(--muted)">(' + (parseFloat(f.iva_pct) || 0) + '%)</span></td>' +
       '<td style="font-weight:700;color:' + colorTotal + '">' + cur(f.total) + '</td>' +
       '<td style="white-space:nowrap">' +
-        '<button data-fidx="' + idx + '" class="btn-pdf-f" style="background:#10B981;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer" title="Ver / descargar PDF">📄 PDF</button> ' +
-        '<button data-fidx="' + idx + '" class="btn-wa-f" style="background:#25D366;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Enviar por WhatsApp">📱</button> ' +
-        '<button data-fidx="' + idx + '" class="btn-mail-f" style="background:#FF5B1F;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Enviar por Email">📧</button>' +
-        (!esAbono && !abonada ? ' <button data-fidx="' + idx + '" class="btn-abono-f" style="background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="Emitir factura rectificativa (abono)">↩️ Abono</button>' : '') +
+        '<button data-fidx="' + idx + '" class="btn-pdf-f" style="background:#10B981;color:white;border:none;padding:4px 10px;border-radius:5px;font-size:11px;cursor:pointer" title="' + T('factl.tt_pdf') + '">📄 PDF</button> ' +
+        '<button data-fidx="' + idx + '" class="btn-wa-f" style="background:#25D366;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="' + T('factl.tt_wa') + '">📱</button> ' +
+        '<button data-fidx="' + idx + '" class="btn-mail-f" style="background:#FF5B1F;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="' + T('factl.tt_mail') + '">📧</button>' +
+        (!esAbono && !abonada ? ' <button data-fidx="' + idx + '" class="btn-abono-f" style="background:#dc2626;color:white;border:none;padding:4px 8px;border-radius:5px;font-size:11px;cursor:pointer" title="' + T('factl.tt_abono') + '">↩️ ' + T('factl.abono') + '</button>' : '') +
       '</td>' +
       '</tr>';
   });
@@ -6120,7 +6123,7 @@ function filtrarFacturas() {
         if (f && typeof window.generarFacturaPDF === 'function') {
           window.generarFacturaPDF(f);
         } else {
-          toast('Módulo de factura no disponible', 'err');
+          toast(T('factl.modulo_no'), 'err');
         }
       });
     });
@@ -6130,14 +6133,14 @@ function filtrarFacturas() {
         if (f && typeof window.enviarFacturaWhatsApp === 'function') {
           window.enviarFacturaWhatsApp(f);
         } else {
-          toast('Módulo de factura no disponible', 'err');
+          toast(T('factl.modulo_no'), 'err');
         }
       });
     });
     cont.querySelectorAll('.btn-abono-f').forEach(function(btn) {
       btn.addEventListener('click', function() {
         var f = lista[parseInt(this.dataset.fidx, 10)];
-        if (!f || typeof window.emitirAbonoFactura !== 'function') { toast('Módulo de factura no disponible', 'err'); return; }
+        if (!f || typeof window.emitirAbonoFactura !== 'function') { toast(T('factl.modulo_no'), 'err'); return; }
         confirmar(T('fact.abono_confirm2').replace('{num}', f.numero || '').replace('{total}', cur(f.total)), function() {
           window.emitirAbonoFactura(f);
           setTimeout(renderFacturas, 1800);
@@ -6151,7 +6154,7 @@ function filtrarFacturas() {
           window.__ultimaFactura = f;
           window.enviarFacturaEmail(f);
         } else {
-          toast('Módulo de factura no disponible', 'err');
+          toast(T('factl.modulo_no'), 'err');
         }
       });
     });
@@ -6178,7 +6181,7 @@ function _ofrecerAbonoFactura(origenTipo, origenId) {
         if (typeof window.emitirAbonoFactura === 'function') {
           window.emitirAbonoFactura(original);
         } else {
-          toast('Módulo de factura no disponible', 'err');
+          toast(T('factl.modulo_no'), 'err');
         }
       }
     })
