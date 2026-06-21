@@ -2415,12 +2415,23 @@ function _syncIndicatorUpdate() {
   }
   
   if (q.length > 0) {
-    box.innerHTML = '⚠️ ' + q.length + ' ' + T('gen.sin_sincronizar');
+    var offline = !navigator.onLine;
+    box.innerHTML = (offline ? '⚠️ ' + T('sync.sin_conexion') : '🔄 ' + q.length + ' ' + T('gen.sin_sincronizar'));
+    box.style.background = offline ? '#DC2626' : '#F97316';
     box.style.display = 'block';
+  } else if (_syncPrevCount > 0) {
+    // Acababa de drenarse la cola → confirmación verde efímera "Sincronizado ✓"
+    box.innerHTML = '✅ ' + T('sync.sincronizado');
+    box.style.background = '#16A34A';
+    box.style.display = 'block';
+    clearTimeout(_syncOkTimer);
+    _syncOkTimer = setTimeout(function(){ var bb = document.getElementById('syncIndicator'); if (bb) bb.style.display = 'none'; }, 2500);
   } else {
     box.style.display = 'none';
   }
+  _syncPrevCount = q.length;
 }
+var _syncPrevCount = 0, _syncOkTimer = null;
 
 // Funciones RAW (las originales, sin cola)
 // CLI-1: ahora devuelven {ok, status} para que la cola pueda decidir si reintentar.
@@ -6762,6 +6773,76 @@ function cambiarTipoBloq() {
   }
 }
 
+// ═══ DRAFT AUTOSAVE — modal Nueva Reparación (red de seguridad ante cierre/recarga) ═══
+var _REP_DRAFT_KEY = 'tk_draft_rep';
+var _repDraftTimer = null;
+
+function _repDraftCampos() {
+  var g = function(id){ var e = document.getElementById(id); return e ? e.value : ''; };
+  var conds = [];
+  document.querySelectorAll('#mRep .chk-btn.on').forEach(function(b){ if (b.dataset.cond) conds.push(b.dataset.cond); });
+  var cli = SEL.rCli ? { id: SEL.rCli.id, nombre: ((SEL.rCli.nombre || '') + ' ' + (SEL.rCli.apellidos || '')).trim() } : null;
+  return { marca: g('rMarca'), modelo: g('rModelo'), imei: g('rImei'), averia: g('rAveria'), nota: g('rNota'),
+    tipoBloq: g('rTipoBloq'), bloqVal: g('rBloqVal'), prioridad: g('rPrioridad'), fechaEnt: g('rFechaEnt'),
+    iva: g('rIva'), conds: conds, cli: cli, _ts: Date.now() };
+}
+function _repDraftVacio(d) {
+  return !d || (!d.marca && !d.modelo && !d.imei && !d.averia && !d.nota && (!d.conds || !d.conds.length) && !d.cli);
+}
+function _repDraftGuardar() {
+  var m = document.getElementById('mRep');
+  if (!m || !m.classList.contains('open') || SEL.editRepId) return; // solo nuevas reps abiertas
+  var d = _repDraftCampos();
+  if (_repDraftVacio(d)) return; // no persistir borradores vacíos
+  try { localStorage.setItem(_REP_DRAFT_KEY, JSON.stringify(d)); } catch (e) {}
+}
+function _repDraftHay() {
+  try {
+    var d = JSON.parse(localStorage.getItem(_REP_DRAFT_KEY) || 'null');
+    if (_repDraftVacio(d)) return null;
+    if (Date.now() - (d._ts || 0) > 86400000) { _repDraftBorrar(); return null; } // caduca a las 24h
+    return d;
+  } catch (e) { return null; }
+}
+function _repDraftBorrar() {
+  try { localStorage.removeItem(_REP_DRAFT_KEY); } catch (e) {}
+  var b = document.getElementById('repDraftBanner'); if (b) b.style.display = 'none';
+}
+function _repDraftBannerShow() {
+  var b = document.getElementById('repDraftBanner'); if (!b) return;
+  var d = _repDraftHay();
+  if (!d) { b.style.display = 'none'; return; }
+  var resumen = [d.marca, d.modelo].filter(Boolean).join(' ') || d.averia || '';
+  var r = b.querySelector('.draft-resumen'); if (r) r.textContent = resumen ? ' · ' + resumen.slice(0, 40) : '';
+  b.style.display = 'flex';
+}
+function _repDraftRestaurar() {
+  var d = _repDraftHay(); if (!d) return;
+  var s = function(id, v){ var e = document.getElementById(id); if (e) e.value = v || ''; };
+  s('rMarca', d.marca); s('rModelo', d.modelo); s('rImei', d.imei); s('rAveria', d.averia); s('rNota', d.nota);
+  s('rTipoBloq', d.tipoBloq); if (typeof cambiarTipoBloq === 'function') cambiarTipoBloq(); s('rBloqVal', d.bloqVal);
+  s('rPrioridad', d.prioridad); s('rFechaEnt', d.fechaEnt); s('rIva', d.iva);
+  (d.conds || []).forEach(function(c){
+    var sel = '#mRep .chk-btn[data-cond="' + c.replace(/"/g, '\\"') + '"]';
+    var btn = document.querySelector(sel); if (btn) btn.classList.add('on');
+  });
+  if (d.cli && d.cli.id && DB.clis.some(function(x){ return x.id === d.cli.id; })) {
+    try { selCli(d.cli.id, 'r'); } catch (e) {}
+  }
+  try { calcR(); } catch (e) {}
+  try { actualizarAvisoGarantia(); } catch (e) {}
+  _repDraftBorrar();
+  toast(T('draft.recuperado'), 'ok');
+}
+// Arranca/para el autosave (cada 2s) según el modal esté abierto
+function _repDraftStartAutosave() {
+  if (_repDraftTimer) clearInterval(_repDraftTimer);
+  _repDraftTimer = setInterval(_repDraftGuardar, 2000);
+}
+function _repDraftStopAutosave() {
+  if (_repDraftTimer) { clearInterval(_repDraftTimer); _repDraftTimer = null; }
+}
+
 function abrirRep() {
   SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.rServicios = [];
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_nuevo');
@@ -6797,6 +6878,9 @@ function abrirRep() {
   calcR();
   renderPlantillasRep();
   openM('mRep');
+  // Draft autosave: ofrecer recuperar un borrador previo y empezar a autoguardar
+  _repDraftBannerShow();
+  _repDraftStartAutosave();
   // Foco en cliente
   setTimeout(function(){
     var inp = document.getElementById('rBusCli');
@@ -8772,6 +8856,8 @@ function guardarRep() {
   // PRES-6 FIX: capturar flag ANTES de closeM (que ejecuta _limpiarModoPresupuesto)
   var _esPresupuesto = SEL.modoPresupuesto;
 
+  // Reparación creada con éxito → el borrador ya no hace falta
+  _repDraftBorrar(); _repDraftStopAutosave();
   closeM('mRep');
   // PRES-6: mensaje y comportamiento distinto según modo
   if (_esPresupuesto) {
