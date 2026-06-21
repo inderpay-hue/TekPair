@@ -10556,14 +10556,14 @@ function guardarCli() {
   var nomPart = document.getElementById('cNom').value.trim();
   var apePart = document.getElementById('cApe').value.trim();
   var nom = esEmp ? razon.trim() : nomPart;
-  if (!nom) { toast(esEmp ? 'Escribe la razón social' : 'Escribe un nombre', 'err'); document.getElementById(esEmp ? 'cRazon' : 'cNom').focus(); return; }
+  if (!nom) { toast(esEmp ? T('cli.falta_razon') : T('cli.falta_nombre'), 'err'); document.getElementById(esEmp ? 'cRazon' : 'cNom').focus(); return; }
   var _v = function(id){ var el=document.getElementById(id); return el ? el.value.trim() : ''; };
   // F413: validar DNI/NIE español (solo particular; empresa usa CIF, que no validamos aquí).
   // Solo bloquea si TIENE formato de DNI/NIE pero la letra de control no cuadra (típico typo).
   if (!esEmp) {
     var _dniV = _v('cDni');
     if (_dniV && !_dniEspanolValido(_dniV)) {
-      toast('El DNI/NIE no es válido (la letra de control no corresponde). Corrígelo o déjalo vacío.', 'err');
+      toast(T('cli.dni_invalido'), 'err');
       var _dEl = document.getElementById('cDni'); if (_dEl) { _dEl.classList.add('error'); _dEl.focus(); }
       return;
     }
