@@ -15682,7 +15682,7 @@ function _cargarHistorialAvisos(repId) {
   var box = document.getElementById('avisosHistorial');
   if (!box || !SB_KEY || typeof sbGet !== 'function') return;
   sbGet('avisos', 'ref_id=eq.' + encodeURIComponent(repId) + '&order=fecha.desc&limit=40').then(function(rows){
-    if (!Array.isArray(rows) || !rows.length) { box.innerHTML = '<div style="font-size:11px;color:var(--muted)">Sin avisos registrados</div>'; return; }
+    if (!Array.isArray(rows) || !rows.length) { box.innerHTML = '<div style="font-size:11px;color:var(--muted)">' + T('det.sin_avisos') + '</div>'; return; }
     var TIPO = {presupuesto_enviado:'Presupuesto enviado', presupuesto_aceptado:'Aceptado por el cliente', presupuesto_rechazado:'Rechazado por el cliente', factura_enviada:'Factura enviada', aviso_rep:'Aviso al cliente', aviso_cliente:'Aviso al cliente', cita_aviso:'Aviso de cita'};
     var CANAL = {whatsapp:'📱 WhatsApp', email:'📧 Email', sistema:'🔔 Sistema'};
     box.innerHTML = rows.map(function(a){
