@@ -1,0 +1,35 @@
+name: Retención de fotos
+
+on:
+  schedule:
+    - cron: '0 4 1 * *'    # 04:00 UTC el día 1 de cada mes
+  workflow_dispatch:
+    inputs:
+      dry:
+        description: 'Solo informar sin borrar (1 = sí)'
+        required: false
+        default: '0'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: retencion-fotos
+  cancel-in-progress: false
+
+jobs:
+  retencion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Limpiar fotos de reparaciones entregadas antiguas
+        run: node scripts/retencion-fotos.cjs
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          RETENCION_MESES: '14'
+          RETENCION_DRY: ${{ github.event.inputs.dry || '0' }}
