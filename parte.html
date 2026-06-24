@@ -21,6 +21,9 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,san
 .header .logo{font-size:30px;font-weight:800;letter-spacing:-.5px}
 .header .logo span{color:var(--orange)}
 .header .tagline{font-size:12px;opacity:.7;margin-top:4px}
+.langsel{display:flex;gap:5px;justify-content:center;margin-top:12px;flex-wrap:wrap}
+.langsel button{background:rgba(255,255,255,.08);border:none;color:#fff;border-radius:7px;padding:4px 9px;font-size:13px;cursor:pointer;line-height:1}
+.langsel button.on{background:rgba(255,255,255,.28)}
 
 .card{background:var(--card);border-radius:16px;padding:20px;margin-bottom:14px;box-shadow:0 6px 24px rgba(0,0,0,.18)}
 .card h2{margin:0 0 14px;font-size:13px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
@@ -61,6 +64,12 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,san
 .btn-call{background:var(--blue);color:#fff}
 .btn-wa{background:#25D366;color:#fff}
 
+.faq{border-bottom:1px solid var(--border);padding:10px 0}
+.faq:last-child{border-bottom:none}
+.faq summary{cursor:pointer;font-weight:600;font-size:14px;list-style:none}
+.faq summary::-webkit-details-marker{display:none}
+.faq p{margin:8px 0 0;font-size:13px;color:var(--muted);line-height:1.6}
+
 .loader{text-align:center;color:#fff;padding:40px;font-size:14px;opacity:.8}
 .error-box{background:rgba(239,68,68,.1);border:1px solid var(--red);color:var(--red);padding:18px;border-radius:12px;text-align:center;font-size:13px}
 
@@ -80,156 +89,178 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,san
 <div class="wrap">
   <div class="header">
     <div class="logo">⚡ Tek<span>pair</span></div>
-    <div class="tagline">Seguimiento de reparación</div>
+    <div class="tagline" id="tagline">Seguimiento de reparación</div>
+    <div class="langsel" id="langsel"></div>
   </div>
-  <div id="content">
-    <div class="loader">Cargando información…</div>
-  </div>
+  <div id="content"><div class="loader" id="loader">…</div></div>
   <div class="foot">Powered by <a href="https://www.tekpair.tech">tekpair.tech</a></div>
 </div>
 
 <script>
 (function(){
-  var p = new URLSearchParams(location.search);
-  var id = p.get('id'), t = p.get('t');
-  var content = document.getElementById('content');
+  var SUP=["es","en","fr","it","de","pt"];
+  var FLAGS={es:"🇪🇸",en:"🇬🇧",fr:"🇫🇷",it:"🇮🇹",de:"🇩🇪",pt:"🇵🇹"};
+  var TX={
+  es:{title:"Seguimiento de reparación",tagline:"Seguimiento de reparación",loading:"Cargando información…",err_link:"Enlace no válido. Usa el enlace que te envió la tienda.",err_load:"No se pudo cargar la reparación. El enlace puede haber caducado o no ser válido.",err_conn:"Error de conexión. Inténtalo de nuevo en unos minutos.",estado_actual:"Estado actual",step_recibido:"Recibido",step_proceso:"En proceso",step_listo:"Listo",step_entregado:"Entregado",estname_pendiente:"Pendiente",estname_proceso:"En proceso",estname_listo:"Listo para recoger",estname_entregado:"Entregado",estname_garantia:"En garantía",estname_nosolucion:"Sin solución",estname_devuelto:"Devuelto",estname_rechazado:"Rechazado",estdesc_pendiente:"Hemos recibido tu equipo. Lo revisaremos pronto.",estdesc_proceso:"Estamos trabajando en tu reparación.",estdesc_listo:"¡Tu equipo ya está listo! Puedes pasarte a recogerlo.",estdesc_entregado:"Equipo entregado. ¡Gracias por confiar en nosotros!",estdesc_garantia:"Reparación en garantía en proceso.",estdesc_nosolucion:"No hemos podido resolver el problema. Contacta con la tienda.",estdesc_devuelto:"Equipo devuelto al cliente.",estdesc_rechazado:"Reparación cancelada.",card_reparacion:"📱 Tu reparación",lbl_cliente:"Cliente",lbl_equipo:"Equipo",lbl_imei:"IMEI / Nº Serie",lbl_averia:"Avería",lbl_fecha_entrada:"Fecha de entrada",lbl_fecha_estimada:"Fecha estimada",lbl_fecha_entrega:"Fecha de entrega",lbl_total:"Total reparación",lbl_pendiente:"Pendiente de pago",card_tienda:"🏪 Tienda",btn_llamar:"Llamar",card_faq:"❓ Preguntas frecuentes",faq1_q:"¿Por qué tarda tanto mi reparación?",faq1_a:"Cada reparación es distinta. A veces el problema es más complejo de lo que parece o necesitamos pedir piezas específicas. Trabajamos lo más rápido posible sin comprometer la calidad. Si pasan más de 14 días sin novedades, escríbenos por WhatsApp.",faq2_q:"¿Puedo pagar antes de recoger?",faq2_a:"Sí, y lo recomendamos. Avísanos y al venir a recoger será cuestión de segundos. Si prefieres pagar en efectivo o tarjeta al recoger, también vale.",faq3_q:"¿Y si necesito el móvil con urgencia?",faq3_a:"Escríbenos por WhatsApp con la palabra URGENTE y el motivo. Intentaremos priorizar dentro de lo posible y darte un estimado real el mismo día.",faq4_q:"¿Mis datos personales están seguros?",faq4_a:"No accedemos a tus fotos, contactos ni mensajes salvo que sea estrictamente necesario para la reparación. Recomendamos hacer una copia de seguridad antes de entregar el equipo."},
+  en:{title:"Repair tracking",tagline:"Repair tracking",loading:"Loading…",err_link:"Invalid link. Use the link the shop sent you.",err_load:"Could not load the repair. The link may have expired or be invalid.",err_conn:"Connection error. Please try again in a few minutes.",estado_actual:"Current status",step_recibido:"Received",step_proceso:"In progress",step_listo:"Ready",step_entregado:"Delivered",estname_pendiente:"Pending",estname_proceso:"In progress",estname_listo:"Ready for pickup",estname_entregado:"Delivered",estname_garantia:"Under warranty",estname_nosolucion:"No solution",estname_devuelto:"Returned",estname_rechazado:"Rejected",estdesc_pendiente:"We have received your device. We will check it soon.",estdesc_proceso:"We are working on your repair.",estdesc_listo:"Your device is ready! You can come pick it up.",estdesc_entregado:"Device delivered. Thank you for trusting us!",estdesc_garantia:"Warranty repair in progress.",estdesc_nosolucion:"We could not solve the problem. Please contact the shop.",estdesc_devuelto:"Device returned to the customer.",estdesc_rechazado:"Repair cancelled.",card_reparacion:"📱 Your repair",lbl_cliente:"Customer",lbl_equipo:"Device",lbl_imei:"IMEI / Serial no.",lbl_averia:"Issue",lbl_fecha_entrada:"Entry date",lbl_fecha_estimada:"Estimated date",lbl_fecha_entrega:"Delivery date",lbl_total:"Repair total",lbl_pendiente:"Pending payment",card_tienda:"🏪 Shop",btn_llamar:"Call",card_faq:"❓ FAQ",faq1_q:"Why is my repair taking so long?",faq1_a:"Every repair is unique. Sometimes the problem is more complex than it looks or we need to order specific parts. We work as fast as we can without compromising quality. If more than 14 days go by without updates, message us on WhatsApp.",faq2_q:"Can I pay before picking up?",faq2_a:"Yes, and we recommend it. Let us know and pickup will take seconds. If you prefer to pay cash or card at pickup, that's fine too.",faq3_q:"What if I need my phone urgently?",faq3_a:"Message us on WhatsApp with the word URGENT and the reason. We'll try to prioritize if possible and give you a realistic estimate the same day.",faq4_q:"Is my personal data safe?",faq4_a:"We don't access your photos, contacts or messages unless strictly necessary for the repair. We recommend backing up your data before handing in the device."},
+  fr:{title:"Suivi de réparation",tagline:"Suivi de réparation",loading:"Chargement…",err_link:"Lien non valide. Utilisez le lien que la boutique vous a envoyé.",err_load:"Impossible de charger la réparation. Le lien a peut-être expiré ou n'est pas valide.",err_conn:"Erreur de connexion. Réessayez dans quelques minutes.",estado_actual:"Statut actuel",step_recibido:"Reçu",step_proceso:"En cours",step_listo:"Prêt",step_entregado:"Remis",estname_pendiente:"En attente",estname_proceso:"En cours",estname_listo:"Prêt à récupérer",estname_entregado:"Remis",estname_garantia:"Sous garantie",estname_nosolucion:"Sans solution",estname_devuelto:"Rendu",estname_rechazado:"Refusé",estdesc_pendiente:"Nous avons reçu votre appareil. Nous le vérifierons bientôt.",estdesc_proceso:"Nous travaillons sur votre réparation.",estdesc_listo:"Votre appareil est prêt ! Vous pouvez venir le récupérer.",estdesc_entregado:"Appareil remis. Merci de votre confiance !",estdesc_garantia:"Réparation sous garantie en cours.",estdesc_nosolucion:"Nous n'avons pas pu résoudre le problème. Contactez la boutique.",estdesc_devuelto:"Appareil rendu au client.",estdesc_rechazado:"Réparation annulée.",card_reparacion:"📱 Votre réparation",lbl_cliente:"Client",lbl_equipo:"Appareil",lbl_imei:"IMEI / N° de série",lbl_averia:"Panne",lbl_fecha_entrada:"Date de dépôt",lbl_fecha_estimada:"Date estimée",lbl_fecha_entrega:"Date de remise",lbl_total:"Total réparation",lbl_pendiente:"Paiement en attente",card_tienda:"🏪 Boutique",btn_llamar:"Appeler",card_faq:"❓ Questions fréquentes",faq1_q:"Pourquoi ma réparation prend-elle autant de temps ?",faq1_a:"Chaque réparation est unique. Parfois le problème est plus complexe qu'il n'y paraît ou nous devons commander des pièces spécifiques. Nous travaillons le plus vite possible sans compromettre la qualité. Si plus de 14 jours passent sans nouvelles, écrivez-nous sur WhatsApp.",faq2_q:"Puis-je payer avant de récupérer ?",faq2_a:"Oui, et nous le recommandons. Prévenez-nous et la récupération prendra quelques secondes. Si vous préférez payer en espèces ou par carte sur place, c'est aussi possible.",faq3_q:"Et si j'ai besoin de mon téléphone en urgence ?",faq3_a:"Écrivez-nous sur WhatsApp avec le mot URGENT et la raison. Nous essaierons de prioriser si possible et vous donnerons une estimation réaliste le jour même.",faq4_q:"Mes données personnelles sont-elles en sécurité ?",faq4_a:"Nous n'accédons pas à vos photos, contacts ou messages sauf si strictement nécessaire pour la réparation. Nous recommandons de sauvegarder vos données avant de remettre l'appareil."},
+  it:{title:"Stato riparazione",tagline:"Stato riparazione",loading:"Caricamento…",err_link:"Link non valido. Usa il link che ti ha inviato il negozio.",err_load:"Impossibile caricare la riparazione. Il link potrebbe essere scaduto o non valido.",err_conn:"Errore di connessione. Riprova tra qualche minuto.",estado_actual:"Stato attuale",step_recibido:"Ricevuto",step_proceso:"In corso",step_listo:"Pronto",step_entregado:"Consegnato",estname_pendiente:"In attesa",estname_proceso:"In corso",estname_listo:"Pronto per il ritiro",estname_entregado:"Consegnato",estname_garantia:"In garanzia",estname_nosolucion:"Senza soluzione",estname_devuelto:"Restituito",estname_rechazado:"Rifiutato",estdesc_pendiente:"Abbiamo ricevuto il tuo dispositivo. Lo controlleremo presto.",estdesc_proceso:"Stiamo lavorando alla tua riparazione.",estdesc_listo:"Il tuo dispositivo è pronto! Puoi venire a ritirarlo.",estdesc_entregado:"Dispositivo consegnato. Grazie per averci scelto!",estdesc_garantia:"Riparazione in garanzia in corso.",estdesc_nosolucion:"Non siamo riusciti a risolvere il problema. Contatta il negozio.",estdesc_devuelto:"Dispositivo restituito al cliente.",estdesc_rechazado:"Riparazione annullata.",card_reparacion:"📱 La tua riparazione",lbl_cliente:"Cliente",lbl_equipo:"Dispositivo",lbl_imei:"IMEI / N° di serie",lbl_averia:"Guasto",lbl_fecha_entrada:"Data di ingresso",lbl_fecha_estimada:"Data stimata",lbl_fecha_entrega:"Data di consegna",lbl_total:"Totale riparazione",lbl_pendiente:"Pagamento in sospeso",card_tienda:"🏪 Negozio",btn_llamar:"Chiama",card_faq:"❓ Domande frequenti",faq1_q:"Perché la mia riparazione richiede tanto tempo?",faq1_a:"Ogni riparazione è diversa. A volte il problema è più complesso di quanto sembri o dobbiamo ordinare pezzi specifici. Lavoriamo il più velocemente possibile senza compromettere la qualità. Se passano più di 14 giorni senza notizie, scrivici su WhatsApp.",faq2_q:"Posso pagare prima del ritiro?",faq2_a:"Sì, e te lo consigliamo. Avvisaci e il ritiro sarà questione di secondi. Se preferisci pagare in contanti o con carta al ritiro, va bene anche così.",faq3_q:"E se mi serve il telefono con urgenza?",faq3_a:"Scrivici su WhatsApp con la parola URGENTE e il motivo. Cercheremo di dare priorità se possibile e ti daremo una stima realistica in giornata.",faq4_q:"I miei dati personali sono al sicuro?",faq4_a:"Non accediamo alle tue foto, contatti o messaggi se non strettamente necessario per la riparazione. Consigliamo di fare un backup prima di consegnare il dispositivo."},
+  de:{title:"Reparaturverfolgung",tagline:"Reparaturverfolgung",loading:"Wird geladen…",err_link:"Ungültiger Link. Nutze den Link, den dir das Geschäft geschickt hat.",err_load:"Reparatur konnte nicht geladen werden. Der Link ist möglicherweise abgelaufen oder ungültig.",err_conn:"Verbindungsfehler. Bitte versuche es in ein paar Minuten erneut.",estado_actual:"Aktueller Status",step_recibido:"Erhalten",step_proceso:"In Bearbeitung",step_listo:"Fertig",step_entregado:"Übergeben",estname_pendiente:"Ausstehend",estname_proceso:"In Bearbeitung",estname_listo:"Abholbereit",estname_entregado:"Übergeben",estname_garantia:"Unter Garantie",estname_nosolucion:"Keine Lösung",estname_devuelto:"Zurückgegeben",estname_rechazado:"Abgelehnt",estdesc_pendiente:"Wir haben dein Gerät erhalten. Wir prüfen es bald.",estdesc_proceso:"Wir arbeiten an deiner Reparatur.",estdesc_listo:"Dein Gerät ist fertig! Du kannst es abholen.",estdesc_entregado:"Gerät übergeben. Danke für dein Vertrauen!",estdesc_garantia:"Garantiereparatur in Bearbeitung.",estdesc_nosolucion:"Wir konnten das Problem nicht lösen. Bitte kontaktiere das Geschäft.",estdesc_devuelto:"Gerät an den Kunden zurückgegeben.",estdesc_rechazado:"Reparatur storniert.",card_reparacion:"📱 Deine Reparatur",lbl_cliente:"Kunde",lbl_equipo:"Gerät",lbl_imei:"IMEI / Seriennr.",lbl_averia:"Defekt",lbl_fecha_entrada:"Eingangsdatum",lbl_fecha_estimada:"Voraussichtl. Datum",lbl_fecha_entrega:"Übergabedatum",lbl_total:"Reparatur gesamt",lbl_pendiente:"Offene Zahlung",card_tienda:"🏪 Geschäft",btn_llamar:"Anrufen",card_faq:"❓ Häufige Fragen",faq1_q:"Warum dauert meine Reparatur so lange?",faq1_a:"Jede Reparatur ist anders. Manchmal ist das Problem komplexer als es scheint oder wir müssen spezifische Teile bestellen. Wir arbeiten so schnell wie möglich, ohne die Qualität zu beeinträchtigen. Wenn mehr als 14 Tage ohne Updates vergehen, schreib uns auf WhatsApp.",faq2_q:"Kann ich vor der Abholung bezahlen?",faq2_a:"Ja, und wir empfehlen es. Sag uns Bescheid und die Abholung dauert nur Sekunden. Wenn du lieber bar oder mit Karte vor Ort zahlst, ist das auch in Ordnung.",faq3_q:"Was, wenn ich mein Handy dringend brauche?",faq3_a:"Schreib uns auf WhatsApp mit dem Wort DRINGEND und dem Grund. Wir versuchen, wenn möglich zu priorisieren, und geben dir am selben Tag eine realistische Schätzung.",faq4_q:"Sind meine persönlichen Daten sicher?",faq4_a:"Wir greifen nicht auf deine Fotos, Kontakte oder Nachrichten zu, es sei denn, es ist für die Reparatur unbedingt nötig. Wir empfehlen ein Backup, bevor du das Gerät abgibst."},
+  pt:{title:"Acompanhamento da reparação",tagline:"Acompanhamento da reparação",loading:"A carregar…",err_link:"Link inválido. Usa o link que a loja te enviou.",err_load:"Não foi possível carregar a reparação. O link pode ter expirado ou não ser válido.",err_conn:"Erro de ligação. Tenta novamente dentro de alguns minutos.",estado_actual:"Estado atual",step_recibido:"Recebido",step_proceso:"Em curso",step_listo:"Pronto",step_entregado:"Entregue",estname_pendiente:"Pendente",estname_proceso:"Em curso",estname_listo:"Pronto para levantar",estname_entregado:"Entregue",estname_garantia:"Em garantia",estname_nosolucion:"Sem solução",estname_devuelto:"Devolvido",estname_rechazado:"Recusado",estdesc_pendiente:"Recebemos o teu equipamento. Vamos verificá-lo em breve.",estdesc_proceso:"Estamos a trabalhar na tua reparação.",estdesc_listo:"O teu equipamento está pronto! Podes vir levantá-lo.",estdesc_entregado:"Equipamento entregue. Obrigado pela tua confiança!",estdesc_garantia:"Reparação em garantia em curso.",estdesc_nosolucion:"Não conseguimos resolver o problema. Contacta a loja.",estdesc_devuelto:"Equipamento devolvido ao cliente.",estdesc_rechazado:"Reparação cancelada.",card_reparacion:"📱 A tua reparação",lbl_cliente:"Cliente",lbl_equipo:"Equipamento",lbl_imei:"IMEI / N.º de série",lbl_averia:"Avaria",lbl_fecha_entrada:"Data de entrada",lbl_fecha_estimada:"Data estimada",lbl_fecha_entrega:"Data de entrega",lbl_total:"Total reparação",lbl_pendiente:"Pagamento pendente",card_tienda:"🏪 Loja",btn_llamar:"Ligar",card_faq:"❓ Perguntas frequentes",faq1_q:"Porque é que a minha reparação demora tanto?",faq1_a:"Cada reparação é diferente. Por vezes o problema é mais complexo do que parece ou precisamos de encomendar peças específicas. Trabalhamos o mais rápido possível sem comprometer a qualidade. Se passarem mais de 14 dias sem novidades, escreve-nos pelo WhatsApp.",faq2_q:"Posso pagar antes de levantar?",faq2_a:"Sim, e recomendamos. Avisa-nos e o levantamento será questão de segundos. Se preferires pagar em dinheiro ou multibanco no levantamento, também serve.",faq3_q:"E se preciso do telemóvel com urgência?",faq3_a:"Escreve-nos pelo WhatsApp com a palavra URGENTE e o motivo. Vamos tentar dar prioridade se possível e dar-te uma estimativa realista no mesmo dia.",faq4_q:"Os meus dados pessoais estão seguros?",faq4_a:"Não acedemos às tuas fotos, contactos ou mensagens exceto se estritamente necessário para a reparação. Recomendamos fazer uma cópia de segurança antes de entregar o equipamento."}
+  };
 
-  if (!id || !t) {
-    content.innerHTML = '<div class="error-box">Link inválido. Usa el enlace que te envió la tienda.</div>';
-    return;
+  function detectLang(){
+    var q=new URLSearchParams(location.search);
+    var u=(q.get("lang")||"").toLowerCase().slice(0,2);
+    if(SUP.indexOf(u)>=0){try{localStorage.setItem("tk_parte_lang",u);}catch(e){}return u;}
+    try{var s=localStorage.getItem("tk_parte_lang");if(s&&SUP.indexOf(s)>=0)return s;}catch(e){}
+    var n=(navigator.language||"es").toLowerCase().split("-")[0];
+    return SUP.indexOf(n)>=0?n:"es";
+  }
+  var LANG=detectLang();
+  function t(k){return (TX[LANG]&&TX[LANG][k])||TX.es[k]||k;}
+
+  var p=new URLSearchParams(location.search);
+  var id=p.get("id"), tok=p.get("t");
+  var content=document.getElementById("content");
+  var DATA=null; // {rep,tienda} | {error:'err_xxx'}
+
+  window._setParteLang=function(l){
+    if(SUP.indexOf(l)<0)return; LANG=l;
+    try{localStorage.setItem("tk_parte_lang",l);}catch(e){}
+    render();
+  };
+
+  function renderLangSel(){
+    document.getElementById("langsel").innerHTML=SUP.map(function(l){
+      return '<button class="'+(l===LANG?"on":"")+'" onclick="_setParteLang(\''+l+'\')">'+FLAGS[l]+'</button>';
+    }).join("");
   }
 
-  fetch('/api/parte?id=' + encodeURIComponent(id) + '&t=' + encodeURIComponent(t))
+  function render(){
+    document.documentElement.lang=LANG;
+    document.title=t("title")+" · Tekpair";
+    document.getElementById("tagline").textContent=t("tagline");
+    renderLangSel();
+    if(DATA===null){ content.innerHTML='<div class="loader">'+t("loading")+'</div>'; return; }
+    if(DATA.error){ content.innerHTML='<div class="error-box">'+t(DATA.error)+'</div>'; return; }
+    pintar(DATA.rep, DATA.tienda);
+  }
+
+  if(!id||!tok){ DATA={error:"err_link"}; render(); return; }
+  render(); // loader traducido + selector visible enseguida
+  fetch("/api/parte?id="+encodeURIComponent(id)+"&t="+encodeURIComponent(tok))
     .then(function(r){ return r.json().then(function(d){ return {ok:r.ok,d:d}; }); })
     .then(function(res){
-      if (!res.ok || !res.d.ok) {
-        content.innerHTML = '<div class="error-box">No se pudo cargar la reparación.<br><br>El link puede haber caducado o no ser válido.</div>';
-        return;
-      }
-      pintar(res.d.rep, res.d.tienda);
+      if(!res.ok||!res.d.ok){ DATA={error:"err_load"}; } else { DATA={rep:res.d.rep,tienda:res.d.tienda}; }
+      render();
     })
-    .catch(function(){
-      content.innerHTML = '<div class="error-box">Error de conexión. Inténtalo de nuevo en unos minutos.</div>';
-    });
+    .catch(function(){ DATA={error:"err_conn"}; render(); });
 
-  function estadoInfo(estado){
-    var map = {
-      'Pendiente':       {idx:0,icon:'📥',desc:'Hemos recibido tu equipo. Lo revisaremos pronto.',cls:'b-pend'},
-      'En Proceso':      {idx:1,icon:'🔧',desc:'Estamos trabajando en tu reparación.',cls:'b-proc'},
-      'Por Entregar':    {idx:2,icon:'✅',desc:'¡Tu equipo ya está listo! Puedes pasarte a recogerlo.',cls:'b-list'},
-      'Entregado':       {idx:3,icon:'🎉',desc:'Equipo entregado. ¡Gracias por confiar en nosotros!',cls:'b-ent'},
-      'Garantia':        {idx:1,icon:'🛡️',desc:'Reparación en garantía en proceso.',cls:'b-proc'},
-      'Sin Solucion':    {idx:2,icon:'⚠️',desc:'No hemos podido resolver el problema. Contacta con la tienda.',cls:'b-otro'},
-      'Devuelto':        {idx:3,icon:'↩️',desc:'Equipo devuelto al cliente.',cls:'b-otro'},
-      'Rechazado':       {idx:0,icon:'✖️',desc:'Reparación cancelada.',cls:'b-otro'}
-    };
-    return map[estado] || {idx:0,icon:'📦',desc:estado,cls:'b-otro'};
-  }
+  var EST={
+    "Pendiente":{idx:0,icon:"📥",cls:"b-pend",k:"pendiente"},
+    "En Proceso":{idx:1,icon:"🔧",cls:"b-proc",k:"proceso"},
+    "Por Entregar":{idx:2,icon:"✅",cls:"b-list",k:"listo"},
+    "Entregado":{idx:3,icon:"🎉",cls:"b-ent",k:"entregado"},
+    "Garantia":{idx:1,icon:"🛡️",cls:"b-proc",k:"garantia"},
+    "Sin Solucion":{idx:2,icon:"⚠️",cls:"b-otro",k:"nosolucion"},
+    "Devuelto":{idx:3,icon:"↩️",cls:"b-otro",k:"devuelto"},
+    "Rechazado":{idx:0,icon:"✖️",cls:"b-otro",k:"rechazado"}
+  };
 
   function escapeHtml(s){
-    return String(s||'').replace(/[&<>"']/g, function(c){
-      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    return String(s||"").replace(/[&<>"']/g, function(c){
+      return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
     });
   }
 
   function pintar(r, tienda){
-    var info = estadoInfo(r.estado);
-    var pasos = ['Recibido','En proceso','Listo','Entregado'];
-    var pct = (info.idx / (pasos.length - 1)) * 100;
+    var info=EST[r.estado]||{idx:0,icon:"📦",cls:"b-otro",k:null};
+    var estName=info.k?t("estname_"+info.k):r.estado;
+    var estDesc=info.k?t("estdesc_"+info.k):r.estado;
+    var pasos=[t("step_recibido"),t("step_proceso"),t("step_listo"),t("step_entregado")];
+    var pct=(info.idx/(pasos.length-1))*100;
 
-    var stepsHtml = pasos.map(function(p, i){
-      var cls = i < info.idx ? 'done' : i === info.idx ? 'current' : '';
-      return '<div class="step '+cls+'"><div class="dot">'+(i<info.idx?'✓':(i+1))+'</div><div class="lbl">'+p+'</div></div>';
-    }).join('');
+    var stepsHtml=pasos.map(function(ps,i){
+      var cls=i<info.idx?"done":i===info.idx?"current":"";
+      return '<div class="step '+cls+'"><div class="dot">'+(i<info.idx?"✓":(i+1))+'</div><div class="lbl">'+ps+'</div></div>';
+    }).join("");
 
-    var pendiente = (r.restante && r.restante > 0)
-      ? '<div class="row"><span class="k">Pendiente de pago</span><span class="v" style="color:var(--orange)">'+formatCur(r.restante)+'</span></div>'
-      : '';
+    var pendiente=(r.restante&&r.restante>0)
+      ? '<div class="row"><span class="k">'+t("lbl_pendiente")+'</span><span class="v" style="color:var(--orange)">'+formatCur(r.restante)+'</span></div>'
+      : "";
 
-    // F480: no exponer el IMEI completo en la página pública (PII). Mostrar solo los 4 últimos.
-    var _imeiMask = '';
-    if (r.imei) {
-      var _im = String(r.imei).trim();
-      _imeiMask = _im.length > 4 ? ('•••• ' + _im.slice(-4)) : _im;
-    }
-    var imei = r.imei
-      ? '<div class="row"><span class="k">IMEI / Nº Serie</span><span class="v" style="font-family:monospace;font-size:11px">'+escapeHtml(_imeiMask)+'</span></div>'
-      : '';
+    var _imeiMask="";
+    if(r.imei){ var _im=String(r.imei).trim(); _imeiMask=_im.length>4?("•••• "+_im.slice(-4)):_im; }
+    var imei=r.imei
+      ? '<div class="row"><span class="k">'+t("lbl_imei")+'</span><span class="v" style="font-family:monospace;font-size:11px">'+escapeHtml(_imeiMask)+'</span></div>'
+      : "";
 
-    var fechaEnt = r.fecha_entrega
-      ? '<div class="row"><span class="k">Fecha estimada</span><span class="v">'+escapeHtml(r.fecha_entrega)+'</span></div>'
-      : '';
+    var fechaEnt=r.fecha_entrega
+      ? '<div class="row"><span class="k">'+t("lbl_fecha_estimada")+'</span><span class="v">'+escapeHtml(r.fecha_entrega)+'</span></div>'
+      : "";
+    var fechaReal=r.fecha_entrega_real
+      ? '<div class="row"><span class="k">'+t("lbl_fecha_entrega")+'</span><span class="v" style="color:var(--green)">'+escapeHtml(r.fecha_entrega_real)+'</span></div>'
+      : "";
 
-    var fechaReal = r.fecha_entrega_real
-      ? '<div class="row"><span class="k">Fecha entrega</span><span class="v" style="color:var(--green)">'+escapeHtml(r.fecha_entrega_real)+'</span></div>'
-      : '';
-
-    var ubic = [tienda.ciudad, tienda.pais].filter(Boolean).join(', ');
-    var tel = (tienda.telefono || '').replace(/[^0-9+]/g,'');
-    var actionsHtml = '';
-    if (tel) {
-      actionsHtml = '<div class="tienda-actions">' +
-        '<a class="btn-call" href="tel:'+tel+'">📞 Llamar</a>' +
-        '<a class="btn-wa" href="https://wa.me/'+tel.replace(/^\+/,'')+'" target="_blank">💬 WhatsApp</a>' +
+    var ubic=[tienda.ciudad,tienda.pais].filter(Boolean).join(", ");
+    var tel=(tienda.telefono||"").replace(/[^0-9+]/g,"");
+    var actionsHtml="";
+    if(tel){
+      actionsHtml='<div class="tienda-actions">'+
+        '<a class="btn-call" href="tel:'+tel+'">📞 '+t("btn_llamar")+'</a>'+
+        '<a class="btn-wa" href="https://wa.me/'+tel.replace(/^\+/,"")+'" target="_blank">💬 WhatsApp</a>'+
       '</div>';
     }
 
-    // PAR-1: validar que el logo sea una URL https segura.
-    // Sin esto, una tienda podría guardar 'javascript:...' o 'data:text/html,...'.
-    // Aunque los navegadores modernos no ejecutan javascript: en img src,
-    // mejor protegerlo explícitamente para evitar regresiones.
-    var logoUrl = tienda.logo && /^https:\/\//i.test(tienda.logo) ? tienda.logo : '';
-    var logoHtml = logoUrl
-      ? '<img src="'+escapeHtml(logoUrl)+'" alt="">'
-      : '🏪';
+    var logoUrl=tienda.logo&&/^https:\/\//i.test(tienda.logo)?tienda.logo:"";
+    var logoHtml=logoUrl?'<img src="'+escapeHtml(logoUrl)+'" alt="">':"🏪";
 
-    content.innerHTML =
-      '<div class="card estado-card">' +
-        '<div class="estado-icon">'+info.icon+'</div>' +
-        '<div class="estado-label">Estado actual</div>' +
-        '<div class="estado-val">'+escapeHtml(r.estado)+'</div>' +
-        '<div class="estado-desc">'+info.desc+'</div>' +
-        '<div class="steps"><div class="progress" style="width:calc('+pct+'% - 0px)"></div>'+stepsHtml+'</div>' +
-      '</div>' +
+    function faq(q,a){ return '<details class="faq"><summary>'+t(q)+'</summary><p>'+t(a)+'</p></details>'; }
 
-      '<div class="card">' +
-        '<h2>📱 Tu reparación</h2>' +
-        '<div class="row"><span class="k">Cliente</span><span class="v">'+escapeHtml(r.cliente_nombre||'')+'</span></div>' +
-        '<div class="row"><span class="k">Equipo</span><span class="v">'+escapeHtml((r.marca||'')+' '+(r.modelo||''))+'</span></div>' +
-        imei +
-        '<div class="row"><span class="k">Avería</span><span class="v" style="color:var(--red)">'+escapeHtml(r.averia||'')+'</span></div>' +
-        '<div class="row"><span class="k">Fecha entrada</span><span class="v">'+escapeHtml(r.fecha||'')+'</span></div>' +
-        fechaEnt +
-        fechaReal +
-        '<div class="total-row"><span class="lbl">Total reparación</span><span class="val">'+formatCur(r.total||0)+'</span></div>' +
-        pendiente +
-      '</div>' +
+    content.innerHTML=
+      '<div class="card estado-card">'+
+        '<div class="estado-icon">'+info.icon+'</div>'+
+        '<div class="estado-label">'+t("estado_actual")+'</div>'+
+        '<div class="estado-val">'+escapeHtml(estName)+'</div>'+
+        '<div class="estado-desc">'+escapeHtml(estDesc)+'</div>'+
+        '<div class="steps"><div class="progress" style="width:calc('+pct+'% - 0px)"></div>'+stepsHtml+'</div>'+
+      '</div>'+
 
-      '<div class="card">' +
-        '<h2>🏪 Tienda</h2>' +
-        '<div class="tienda">' +
-          '<div class="logo">'+logoHtml+'</div>' +
-          '<div class="info">' +
-            '<div class="nom">'+escapeHtml(tienda.nombre||'')+'</div>' +
-            (ubic ? '<div class="det">'+escapeHtml(ubic)+'</div>' : '') +
-            (tienda.telefono ? '<div class="det">'+escapeHtml(tienda.telefono)+'</div>' : '') +
-          '</div>' +
-        '</div>' +
-        actionsHtml +
-      '</div>' +
+      '<div class="card">'+
+        '<h2>'+t("card_reparacion")+'</h2>'+
+        '<div class="row"><span class="k">'+t("lbl_cliente")+'</span><span class="v">'+escapeHtml(r.cliente_nombre||"")+'</span></div>'+
+        '<div class="row"><span class="k">'+t("lbl_equipo")+'</span><span class="v">'+escapeHtml((r.marca||"")+" "+(r.modelo||""))+'</span></div>'+
+        imei+
+        '<div class="row"><span class="k">'+t("lbl_averia")+'</span><span class="v" style="color:var(--red)">'+escapeHtml(r.averia||"")+'</span></div>'+
+        '<div class="row"><span class="k">'+t("lbl_fecha_entrada")+'</span><span class="v">'+escapeHtml(r.fecha||"")+'</span></div>'+
+        fechaEnt+fechaReal+
+        '<div class="total-row"><span class="lbl">'+t("lbl_total")+'</span><span class="val">'+formatCur(r.total||0)+'</span></div>'+
+        pendiente+
+      '</div>'+
 
-      '<div class="card">' +
-        '<h2>❓ Preguntas frecuentes</h2>' +
-        '<details style="border-bottom:1px solid var(--border,#eee);padding:10px 0"><summary style="cursor:pointer;font-weight:600;font-size:14px">¿Por qué tarda tanto mi reparación?</summary><p style="margin-top:8px;font-size:13px;color:var(--muted);line-height:1.6">Cada reparación es distinta. A veces el problema es más complejo de lo que parece, necesitamos pedir piezas específicas o el equipo requiere pruebas adicionales. Trabajamos lo más rápido posible sin comprometer la calidad. Si pasan más de 14 días sin novedades, escríbenos por WhatsApp.</p></details>' +
-        '<details style="border-bottom:1px solid var(--border,#eee);padding:10px 0"><summary style="cursor:pointer;font-weight:600;font-size:14px">¿Puedo pagar antes de recoger?</summary><p style="margin-top:8px;font-size:13px;color:var(--muted);line-height:1.6">Sí, y lo recomendamos. Avísanos y al venir a recoger será cuestión de segundos. Si prefieres pagar en efectivo o tarjeta al recoger, también vale.</p></details>' +
-        '<details style="border-bottom:1px solid var(--border,#eee);padding:10px 0"><summary style="cursor:pointer;font-weight:600;font-size:14px">¿Y si necesito el móvil con urgencia?</summary><p style="margin-top:8px;font-size:13px;color:var(--muted);line-height:1.6">Escríbenos por WhatsApp con la palabra URGENTE y el motivo. Intentaremos priorizar dentro de lo posible y darte un estimado real el mismo día.</p></details>' +
-        '<details style="padding:10px 0"><summary style="cursor:pointer;font-weight:600;font-size:14px">¿Mis datos personales están seguros?</summary><p style="margin-top:8px;font-size:13px;color:var(--muted);line-height:1.6">No accedemos a tus fotos, contactos ni mensajes salvo que sea estrictamente necesario para la reparación. Recomendamos hacer una copia de seguridad antes de entregar el equipo.</p></details>' +
+      '<div class="card">'+
+        '<h2>'+t("card_tienda")+'</h2>'+
+        '<div class="tienda">'+
+          '<div class="logo">'+logoHtml+'</div>'+
+          '<div class="info">'+
+            '<div class="nom">'+escapeHtml(tienda.nombre||"")+'</div>'+
+            (ubic?'<div class="det">'+escapeHtml(ubic)+'</div>':"")+
+            (tienda.telefono?'<div class="det">'+escapeHtml(tienda.telefono)+'</div>':"")+
+          '</div>'+
+        '</div>'+
+        actionsHtml+
+      '</div>'+
+
+      '<div class="card">'+
+        '<h2>'+t("card_faq")+'</h2>'+
+        faq("faq1_q","faq1_a")+faq("faq2_q","faq2_a")+faq("faq3_q","faq3_a")+faq("faq4_q","faq4_a")+
       '</div>';
   }
 
   function formatCur(n){
-    var v = parseFloat(n) || 0;
-    return '€' + v.toFixed(2).replace('.', ',');
+    var v=parseFloat(n)||0;
+    return "€"+v.toFixed(2).replace(".",",");
   }
 })();
 </script>
