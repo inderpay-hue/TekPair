@@ -29,7 +29,9 @@ jobs:
       - name: Limpiar fotos de reparaciones entregadas antiguas
         run: node scripts/retencion-fotos.cjs
         env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          # La URL del proyecto NO es secreta (está en el frontend). Fija aquí para
+          # evitar errores de un secret mal pegado. Solo la service key es secreta.
+          SUPABASE_URL: https://zcxgyissdqyqsnojxviy.supabase.co
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           RETENCION_MESES: '14'
           RETENCION_DRY: ${{ github.event.inputs.dry || '0' }}
