@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Redditività reale di un'officina di riparazione: margine, costi e punto di pareggio | TekPair</title>
+  <meta name="description" content="Come calcolare il margine reale per riparazione, quale % puntare, trovare il punto di pareggio mensile e gli errori che uccidono la redditività di un'officina." />
+  <meta name="keywords" content="redditivita officina riparazione, margine riparazione telefono, punto di pareggio officina, calcolare margine officina" />
+  <link rel="canonical" href="https://www.tekpair.tech/blog/it/redditivita-margine-officina-riparazione.html" />
+  <link rel="alternate" hreflang="es" href="https://www.tekpair.tech/blog/rentabilidad-margen-taller-reparacion.html" />
+  <link rel="alternate" hreflang="en" href="https://www.tekpair.tech/blog/en/repair-shop-profit-margins.html" />
+  <link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/blog/fr/rentabilite-marge-atelier-reparation.html" />
+  <link rel="alternate" hreflang="it" href="https://www.tekpair.tech/blog/it/redditivita-margine-officina-riparazione.html" />
+  <link rel="alternate" hreflang="de" href="https://www.tekpair.tech/blog/de/rentabilitaet-marge-reparaturwerkstatt.html" />
+  <link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/blog/pt/rentabilidade-margem-oficina-reparacao.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/blog/rentabilidad-margen-taller-reparacion.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Redditività reale di un'officina di riparazione: margine, costi e punto di pareggio" />
+  <meta property="og:description" content="Calcola il margine reale per riparazione, il tuo punto di pareggio mensile ed evita gli errori che erodono la redditività." />
+  <meta property="og:url" content="https://www.tekpair.tech/blog/it/redditivita-margine-officina-riparazione.html" />
+  <meta property="og:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <meta property="og:site_name" content="TekPair" />
+  <meta property="article:published_time" content="2026-06-24" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Redditività reale di un'officina di riparazione: margine, costi e punto di pareggio" />
+  <meta name="twitter:description" content="Calcola il margine reale per riparazione, il tuo punto di pareggio mensile ed evita gli errori che erodono la redditività." />
+  <meta name="twitter:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Redditività reale di un'officina di riparazione: margine, costi e punto di pareggio","description":"Come calcolare il margine reale per riparazione, quale % puntare, trovare il punto di pareggio mensile e gli errori che uccidono la redditività di un'officina.","author":{"@type":"Organization","name":"TekPair","url":"https://www.tekpair.tech"},"publisher":{"@type":"Organization","name":"TekPair","logo":{"@type":"ImageObject","url":"https://www.tekpair.tech/assets/logo.png"}},"datePublished":"2026-06-24","dateModified":"2026-06-24","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tekpair.tech/blog/it/redditivita-margine-officina-riparazione.html"},"image":"https://www.tekpair.tech/assets/og-blog.png"}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --terracota: #C2410C; --terracota-dark: #9A3309; --terracota-light: #FEF0E8; --text: #1C1917; --text-muted: #78716C; --border: #E7E5E4; --bg: #FFFFFF; --bg-alt: #FAFAF9; }
+    body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--bg); line-height: 1.7; font-size: 17px; }
+    nav { border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; background: #fff; }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--terracota); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--terracota); }
+    .article-hero { background: var(--terracota-light); padding: 3.5rem 1.5rem 3rem; text-align: center; }
+    .article-hero .category { display: inline-block; background: var(--terracota); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.25rem 0.75rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .article-hero h1 { font-size: clamp(1.75rem, 4vw, 2.6rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.03em; max-width: 680px; margin: 0 auto 1rem; color: var(--text); }
+    .article-hero .intro { max-width: 600px; margin: 0 auto; color: var(--text-muted); font-size: 1.05rem; }
+    .article-meta { margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 1rem; }
+    .article-wrapper { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+    .toc { background: var(--bg-alt); border: 1px solid var(--border); border-left: 4px solid var(--terracota); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; }
+    .toc p { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--terracota); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .toc a { color: var(--text); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
+    .toc a:hover { color: var(--terracota); text-decoration: underline; }
+    h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 2.5rem 0 1rem; color: var(--text); scroll-margin-top: 16px; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 1.75rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1.1rem; color: #44403C; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    li { color: #44403C; }
+    strong { color: var(--text); font-weight: 600; }
+    .callout { background: var(--terracota-light); border-left: 4px solid var(--terracota); border-radius: 0 8px 8px 0; padding: 1.1rem 1.25rem; margin: 1.75rem 0; }
+    .callout p { margin: 0; color: #7C2D12; font-size: 0.95rem; }
+    .callout strong { color: #7C2D12; }
+    .table-wrap { overflow-x: auto; margin: 1.75rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th { background: var(--terracota); color: #fff; font-weight: 600; text-align: left; padding: 0.7rem 1rem; }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #44403C; }
+    tr:nth-child(even) td { background: var(--bg-alt); }
+    tr:last-child td { border-bottom: none; }
+    .checklist { list-style: none; padding: 0; margin: 1.25rem 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); color: #44403C; font-size: 0.95rem; }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before { content: "\2713"; flex-shrink: 0; width: 20px; height: 20px; background: var(--terracota); color: #fff; border-radius: 50%; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .faq-section { margin-top: 3rem; }
+    .faq-section h2 { margin-top: 0; }
+    details { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; }
+    summary { padding: 1rem 1.25rem; font-weight: 600; font-size: 0.97rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bg-alt); transition: background .2s; }
+    summary:hover { background: var(--terracota-light); }
+    summary::after { content: "+"; font-size: 1.2rem; color: var(--terracota); font-weight: 700; }
+    details[open] summary::after { content: "\2212"; }
+    details[open] summary { background: var(--terracota-light); }
+    .faq-body { padding: 1rem 1.25rem; font-size: 0.95rem; color: #44403C; }
+    .cta-box { background: var(--terracota); color: #fff; border-radius: 12px; padding: 2.5rem 2rem; text-align: center; margin-top: 3.5rem; }
+    .cta-box h2 { color: #fff; font-size: 1.5rem; margin: 0 0 0.75rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); margin-bottom: 1.5rem; font-size: 1rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--terracota); font-weight: 700; font-size: 0.95rem; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; }
+    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+    footer a { color: var(--terracota); text-decoration: none; }
+    @media (max-width: 600px) { .nav-links { display: none; } .article-hero { padding: 2.5rem 1.25rem 2rem; } .article-wrapper { padding: 2rem 1.25rem 3rem; } }
+  </style>
+  <script src="/cookies-consent.js" defer></script>
+</head>
+<body>
+  <nav>
+    <a href="https://www.tekpair.tech" class="nav-logo">TekPair</a>
+    <div class="nav-links">
+      <a href="https://www.tekpair.tech/blog/it/">Blog</a>
+      <a href="https://www.tekpair.tech/#funcionalidades">Funzionalità</a>
+      <a href="https://www.tekpair.tech/#precios">Prezzi</a>
+      <a href="https://www.tekpair.tech/app.html">Accedi</a>
+    </div>
+  </nav>
+  <header class="article-hero">
+    <div class="category">Gestione</div>
+    <h1>Redditività reale di un'officina di riparazione: margine, costi e punto di pareggio</h1>
+    <p class="intro">Fatturare molto non significa guadagnare molto. Questa guida ti insegna a calcolare il margine reale di ogni riparazione, quale percentuale puntare, come trovare il tuo punto di pareggio mensile e quali errori ti stanno mangiando l'utile senza che te ne accorga.</p>
+    <div class="article-meta"><span>&#128197; 24 giugno 2026</span><span>&#9201; 9 min di lettura</span></div>
+  </header>
+  <main class="article-wrapper">
+    <div class="toc" role="navigation" aria-label="In questo articolo">
+      <p>In questo articolo</p>
+      <ol><li><a href="#s1">Cos'è il margine reale (e perché l'«utile» inganna)</a></li><li><a href="#s2">Come calcolare il margine di una riparazione, passo dopo passo</a></li><li><a href="#s3">Quale percentuale di margine puntare</a></li><li><a href="#s4">Il tuo punto di pareggio mensile</a></li><li><a href="#s5">Gli errori che uccidono la redditività</a></li><li><a href="#faq">Domande frequenti</a></li></ol>
+    </div>
+
+    <p>Ci sono officine che non smettono mai di lavorare e, a fine mese, non resta quasi nulla. Altre, con meno volume, vivono bene. La differenza non è quasi mai nelle mani, ma nei numeri: sapere quanto costa davvero ogni riparazione e da quale punto inizi realmente a guadagnare. Questa guida ti dà la calcolatrice completa, con cifre di esempio in euro.</p>
+    <!-- TOC -->
+<nav class="post-toc" aria-label="Indice" style="background:#F7F9FC;border:1px solid #E2E8F0;border-radius:12px;padding:16px 20px;margin:0 0 28px"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;margin-bottom:10px">Contenuti</div><ol style="margin:0;padding-left:18px;font-size:14.5px;line-height:1.9"><li><a href="#s1" style="color:#FF5B1F;text-decoration:none">1. Cos'è il margine reale</a></li><li><a href="#s2" style="color:#FF5B1F;text-decoration:none">2. Come calcolare il margine di una riparazione</a></li><li><a href="#s3" style="color:#FF5B1F;text-decoration:none">3. Quale percentuale di margine puntare</a></li><li><a href="#s4" style="color:#FF5B1F;text-decoration:none">4. Il tuo punto di pareggio mensile</a></li><li><a href="#s5" style="color:#FF5B1F;text-decoration:none">5. Gli errori che uccidono la redditività</a></li></ol></nav>
+
+    <h2 id="s1">1. Cos'è il margine reale (e perché l'«utile» inganna)</h2>
+    <p>Quando addebiti 90 &euro; per cambiare uno schermo che ti è costato 35 &euro;, è facile pensare di aver guadagnato 55 &euro;. Non è vero. Quei 55 &euro; sono il tuo <strong>margine lordo</strong>, ma non hanno ancora pagato l'affitto, la luce, il tuo tempo né quello del tecnico. Il numero che conta davvero è il <strong>margine netto</strong>: ciò che resta <em>dopo</em> aver imputato tutti i costi a quella riparazione.</p>
+    <p>Per calcolarlo bene devi separare tre blocchi di costo:</p>
+    <ul>
+      <li><strong>Costo del pezzo:</strong> quanto paghi al fornitore per il ricambio, spese di spedizione incluse se presenti.</li>
+      <li><strong>Costo della manodopera (tariffa oraria reale):</strong> non lo stipendio desiderato, ma quanto costa un'ora produttiva di officina. Si calcola sulle ore realmente fatturate, non sulle 8 che passi dentro.</li>
+      <li><strong>Costi fissi imputati:</strong> affitto, utenze, software, assicurazioni, commercialista… ripartiti tra le riparazioni del mese.</li>
+    </ul>
+    <div class="callout"><p><strong>Idea chiave:</strong> il margine lordo ti dice se una riparazione ha senso; il margine netto ti dice se la tua officina guadagna. Lavora sempre con il secondo.</p></div>
+
+    <h2 id="s2">2. Come calcolare il margine di una riparazione, passo dopo passo</h2>
+    <p>La cosa più utile è costruire un <strong>costo orario reale di officina</strong> e applicarlo a ogni lavoro. Vediamo un esempio realistico di un'officina di una sola persona.</p>
+    <h3>Passo 1: il tuo costo orario reale</h3>
+    <p>Supponi questi costi fissi mensili e un tecnico che fattura circa 110 ore al mese (sulle ~160 lavorate; il resto va in accoglienza, commissioni, attese e buchi):</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Voce</th><th>Importo / mese</th></tr></thead>
+        <tbody>
+          <tr><td>Affitto del locale</td><td>650 &euro;</td></tr>
+          <tr><td>Utenze (luce, acqua, internet)</td><td>180 &euro;</td></tr>
+          <tr><td>Stipendio lordo + contributi (tu)</td><td>2.200 &euro;</td></tr>
+          <tr><td>Software, assicurazioni e commercialista</td><td>170 &euro;</td></tr>
+          <tr><td><strong>Totale costi fissi</strong></td><td><strong>3.200 &euro;</strong></td></tr>
+          <tr><td>Ore fatturabili / mese</td><td>110 h</td></tr>
+          <tr><td><strong>Costo orario reale</strong></td><td><strong>29,1 &euro;/h</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>In altre parole: ogni ora di officina ti costa circa <strong>29 &euro;</strong> di sola struttura, prima di toccare un solo pezzo. Se addebiti la manodopera sotto questa cifra, perdi denaro anche se il pezzo ha un buon margine.</p>
+    <h3>Passo 2: il margine di una riparazione specifica</h3>
+    <p>Prendiamo una sostituzione schermo che richiede 40 minuti (0,67 h) e che addebiti a 90 &euro;:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Voce</th><th>Importo</th></tr></thead>
+        <tbody>
+          <tr><td>Prezzo addebitato al cliente</td><td>90,00 &euro;</td></tr>
+          <tr><td>Costo del pezzo (schermo)</td><td>-35,00 &euro;</td></tr>
+          <tr><td>Costo manodopera (0,67 h &times; 29,1 &euro;)</td><td>-19,50 &euro;</td></tr>
+          <tr><td><strong>Margine netto della riparazione</strong></td><td><strong>35,50 &euro;</strong></td></tr>
+          <tr><td>Margine netto in %</td><td>39%</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Quella riparazione lascia <strong>35,50 &euro; reali</strong>, non 55 &euro;. La differenza (i 19,50 &euro; di manodopera) è esattamente ciò che «evapora» quando guardi solo pezzo contro prezzo. Ripeti questo calcolo per i tuoi 5 o 6 servizi più frequenti e avrai una mappa chiarissima di cosa conviene spingere.</p>
+
+    <h2 id="s3">3. Quale percentuale di margine puntare</h2>
+    <p>Non esiste un numero magico, ma ci sono riferimenti sani per un'officina di riparazione:</p>
+    <ul>
+      <li><strong>Manodopera:</strong> punta a moltiplicare il tuo costo orario per <strong>2 o 2,5</strong>. Se la tua ora costa 29 &euro;, fatturala tra 55 e 70 &euro;.</li>
+      <li><strong>Pezzi:</strong> un <strong>margine del 50&ndash;100% sul costo</strong> è lo standard (uno schermo da 35 &euro; si vende tra 55 e 70 &euro; come pezzo, senza manodopera).</li>
+      <li><strong>Margine netto dello scontrino completo:</strong> ogni riparazione chiusa dovrebbe lasciarti, in media, un <strong>30&ndash;45% netto</strong>. Sotto il 25% sei tirato; sopra il 50% probabilmente puoi crescere o sei molto specializzato.</li>
+    </ul>
+    <div class="callout"><p><strong>Attenzione agli sconti:</strong> togliere 10 &euro; da una riparazione che lascia 35 &euro; di margine non è «uno sconto dell'11%»: è <strong>regalare quasi un terzo del tuo utile</strong>. Lo sconto si calcola sempre sul margine, non sul prezzo.</p></div>
+
+    <h2 id="s4">4. Il tuo punto di pareggio mensile</h2>
+    <p>Il punto di pareggio è quanto devi fatturare (o quante riparazioni chiudere) per coprire tutti i costi. Oltre quello, tutto il resto è utile.</p>
+    <p>La formula è semplice: <strong>costi fissi &divide; margine netto medio per riparazione = riparazioni necessarie al mese</strong>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Voce</th><th>Valore</th></tr></thead>
+        <tbody>
+          <tr><td>Costi fissi mensili</td><td>3.200 &euro;</td></tr>
+          <tr><td>Margine netto medio per riparazione</td><td>35 &euro;</td></tr>
+          <tr><td><strong>Riparazioni per coprire i costi</strong></td><td><strong>&asymp; 92 / mese</strong></td></tr>
+          <tr><td>Riparazioni per giorno lavorativo (22 giorni)</td><td>&asymp; 4,2 / giorno</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Tradotto: devi chiudere <strong>poco più di 4 riparazioni redditizie al giorno</strong> solo per pareggiare. La 93ª del mese è la prima che ti lascia denaro pulito. Se alzi il margine medio da 35 &euro; a 45 &euro; (prezzo migliore o lavori più redditizi), il tuo pareggio scende a <strong>71 riparazioni</strong>: 21 in meno al mese per lo stesso risultato. Ecco perché alzare il margine pesa più che alzare il volume.</p>
+
+    <h2 id="s5">5. Gli errori che uccidono la redditività</h2>
+    <ul>
+      <li><strong>Non imputare il tuo tempo:</strong> se il tuo stipendio non è dentro i costi, l'officina sembra redditizia quando in realtà ti paga meno di un lavoro dipendente.</li>
+      <li><strong>Addebitare la manodopera «a occhio»:</strong> senza un costo orario calcolato, i lavori lunghi ed economici ti affondano senza che te ne accorga.</li>
+      <li><strong>Stock fermo:</strong> pezzi comprati che non ruotano sono denaro immobilizzato e a volte obsoleto. Capitale che non lavora.</li>
+      <li><strong>Crediti dei clienti non incassati:</strong> riparazioni consegnate «da pagare poi» che si accumulano. È margine reale che non entra in cassa.</li>
+      <li><strong>Non misurare per servizio:</strong> senza sapere quale riparazione lascia di più, spingi quelle sbagliate e trascuri quelle buone.</li>
+    </ul>
+    <p>Tutti questi errori hanno una cosa in comune: sono invisibili se non tieni i numeri. E tenerli a mano, con quaderni o un foglio di calcolo isolato, quasi nessuno regge mese dopo mese.</p>
+
+    <div class="callout"><p><strong>TekPair</strong> ti dà questi numeri senza calcoli a mano: report di fatturato e margine per periodo, registro delle <strong>spese</strong> per conoscere il tuo costo reale e controllo dei <strong>crediti dei clienti</strong> per non lasciare denaro per strada. Sai sempre se sei sopra il tuo punto di pareggio. <a href="https://www.tekpair.tech" style="color:var(--terracota-dark);font-weight:600;">Provalo gratis &rarr;</a></p></div>
+
+    <section class="faq-section" id="faq">
+      <h2>Domande frequenti</h2>
+      <details><summary>Qual è un buon margine per un'officina di riparazione?</summary><div class="faq-body">Come riferimento, punta a un margine netto del 30&ndash;45% per riparazione chiusa, moltiplica il tuo costo orario per 2&ndash;2,5 sulla manodopera e applica un ricarico del 50&ndash;100% sul costo dei pezzi. Sotto il 25% netto sei troppo tirato per assorbire gli imprevisti.</div></details>
+      <details><summary>Come calcolo il mio costo orario reale?</summary><div class="faq-body">Somma tutti i costi fissi mensili (affitto, utenze, il tuo stipendio, software, assicurazioni) e dividili per le ore realmente fatturate al mese, non per quelle passate in officina. Con 3.200 &euro; di costi e 110 ore fatturate, la tua ora costa circa 29 &euro;.</div></details>
+      <details><summary>Cos'è il punto di pareggio e come lo trovo?</summary><div class="faq-body">È il numero di riparazioni (o il fatturato) che copre tutti i costi; oltre, guadagni. Dividi i costi fissi per il margine netto medio per riparazione: 3.200 &euro; &divide; 35 &euro; &asymp; 92 riparazioni al mese. Alzare il margine medio abbassa rapidamente quel numero.</div></details>
+      <details><summary>TekPair mi dà questi numeri automaticamente?</summary><div class="faq-body">Sì. TekPair riunisce fatturato, spese e crediti dei clienti in report per periodo, così vedi il margine reale e se superi il tuo punto di pareggio senza costruire fogli di calcolo a mano.</div></details>
+    </section>
+    <!-- RELATED -->
+<section class="post-related" style="margin:36px 0 8px;padding-top:24px;border-top:1px solid #E2E8F0"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;margin-bottom:14px">Continua a leggere</div><div style="display:grid;gap:10px"><a href="/blog/poner-precio-reparaciones-movil.html" style="display:block;color:#0F1729;text-decoration:none;font-weight:600;font-size:15px;padding:12px 14px;border:1px solid #E2E8F0;border-radius:10px">&rarr; Come stabilire il prezzo delle riparazioni di telefoni</a><a href="/blog/subir-ticket-medio-taller-reparacion.html" style="display:block;color:#0F1729;text-decoration:none;font-weight:600;font-size:15px;padding:12px 14px;border:1px solid #E2E8F0;border-radius:10px">&rarr; Come aumentare lo scontrino medio della tua officina</a><a href="/blog/errores-taller-reparacion-moviles.html" style="display:block;color:#0F1729;text-decoration:none;font-weight:600;font-size:15px;padding:12px 14px;border:1px solid #E2E8F0;border-radius:10px">&rarr; Gli errori che fanno perdere denaro a un'officina</a></div><div style="margin-top:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:13px;color:#64748B;font-weight:600">Condividi:</span><a href="https://wa.me/?text=Redditivit%C3%A0%20reale%20di%20un%27officina%20di%20riparazione%20https%3A%2F%2Fwww.tekpair.tech%2Fblog%2Fit%2Fredditivita-margine-officina-riparazione.html" target="_blank" rel="noopener" style="font-size:13px;color:#fff;background:#25D366;padding:7px 14px;border-radius:8px;text-decoration:none;font-weight:600">WhatsApp</a><a href="https://twitter.com/intent/tweet?text=Redditivit%C3%A0%20reale%20di%20un%27officina%20di%20riparazione&url=https%3A%2F%2Fwww.tekpair.tech%2Fblog%2Fit%2Fredditivita-margine-officina-riparazione.html" target="_blank" rel="noopener" style="font-size:13px;color:#fff;background:#0F1419;padding:7px 14px;border-radius:8px;text-decoration:none;font-weight:600">X</a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fwww.tekpair.tech%2Fblog%2Fit%2Fredditivita-margine-officina-riparazione.html" target="_blank" rel="noopener" style="font-size:13px;color:#fff;background:#0A66C2;padding:7px 14px;border-radius:8px;text-decoration:none;font-weight:600">LinkedIn</a></div></section>
+    <div class="cta-box">
+      <h2>Conosci il margine reale della tua officina</h2>
+      <p>TekPair riunisce fatturato, spese e crediti dei clienti in report chiari. Sappi sempre se guadagni, non solo se lavori.</p>
+      <a href="https://www.tekpair.tech" class="cta-btn">Inizia gratis su TekPair &rarr;</a>
+    </div>
+  </main>
+  <footer>
+    <p>&#169; 2026 <a href="https://www.tekpair.tech">TekPair</a> &middot; Software di gestione per officine di riparazione</p>
+    <p style="margin-top:0.5rem;"><a href="https://www.tekpair.tech/blog/it/">Blog</a> &middot; <a href="https://www.tekpair.tech/privacidad.html">Privacy</a> &middot; <a href="https://www.tekpair.tech/terminos.html">Termini</a></p>
+  </footer>
+</body>
+</html>
