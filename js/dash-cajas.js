@@ -150,7 +150,9 @@
       pintarFranja7();
       actualizarLabelFecha();
     } catch (e) {
-      toast('Error cargando cajas: ' + e.message, 'error');
+      var _m = (e && e.message) || '';
+      if (/token|sesi[oó]n|401|inv[aá]lid/i.test(_m)) toast(T('gen.sesion_caducada'), 'error');
+      else toast(T('cajas.error_cargar') + (_m ? ': ' + _m : ''), 'error');
     }
   }
 

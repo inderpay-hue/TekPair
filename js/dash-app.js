@@ -5227,7 +5227,7 @@ function renderWidgetCajaDia() {
     html += '</div>';
   });
   html += '</div>';
-  if (total === 0) html = '<div class="empty" style="padding:12px;font-size:12px">Sin movimientos en este periodo</div>';
+  if (total === 0) html = '<div class="empty" style="padding:12px;font-size:12px">' + T('gen.sin_movimientos') + '</div>';
   box.innerHTML = html;
 }
 
@@ -5394,7 +5394,7 @@ function renderWidgetTendencia() {
   }
   if (totEl) totEl.textContent = cur(totalPer) + ' total';
   if (max === 0 || !puntos.length) {
-    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">Sin movimientos en este periodo</div>';
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:12px">' + T('gen.sin_movimientos') + '</div>';
     return;
   }
 
@@ -9315,7 +9315,7 @@ function renderKanban() {
     html += '</div>';
     html += '<div class="kanban-cards" data-estado="' + col.key + '" ondragover="kanbanDragOver(event)" ondragleave="kanbanDragLeave(event)" ondrop="kanbanDrop(event)">';
     if (!reps.length) {
-      html += '<div class="kanban-empty">Sin reparaciones</div>';
+      html += '<div class="kanban-empty">' + T('gen.sin_reparaciones') + '</div>';
     } else {
       reps.forEach(function(r) {
         var pri = (r.prioridad || 'Normal').toLowerCase();
@@ -9455,7 +9455,7 @@ function renderPresupuestos() {
   var el = document.getElementById('listaPresupuestos');
   if (!el) return;
   if (!list.length) {
-    el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div>Sin presupuestos' + (busq ? ' para "' + escHtml(busq) + '"' : '') + '</div>';
+    el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div>' + T('gen.sin_presupuestos') + '' + (busq ? ' para "' + escHtml(busq) + '"' : '') + '</div>';
     return;
   }
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr>'
@@ -9695,7 +9695,7 @@ function renderReps() {
     return r.estado === SEL.repFiltro;
   });
   var el = document.getElementById('listaReps');
-  if (!list.length) { el.innerHTML = '<div class="empty">Sin reparaciones</div>'; return; }
+  if (!list.length) { el.innerHTML = '<div class="empty">' + T('gen.sin_reparaciones') + '</div>'; return; }
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr>'
     + '<th>' + T('gen.cliente') + '</th><th>' + T('gen.modelo') + '</th><th>' + T('gen.averia') + '</th><th>' + T('gen.estado') + '</th>'
     + '<th>' + T('gen.prioridad') + '</th><th>' + T('rep.col_fentrega') + '</th><th>' + T('rep.col_fentregado') + '</th><th>' + T('gen.total') + '</th><th></th>'
@@ -10283,7 +10283,7 @@ function renderStock() {
   }
 
   var el = document.getElementById('listaStock');
-  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udce6</div>Sin stock</div>'; return; }
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udce6</div>' + T('gen.sin_stock') + '</div>'; return; }
   var mostrarUbic = tieneFeature('ubicaciones');
   var filtroUbic = '';
   if (mostrarUbic) {
@@ -11278,7 +11278,7 @@ function renderClis() {
     return !q || _norm(c.nombre + ' ' + c.apellidos + ' ' + (c.tel || '') + ' ' + (c.dni || '')).indexOf(q) !== -1;
   });
   var el = document.getElementById('listaClis');
-  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udc65</div>Sin clientes</div>'; return; }
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udc65</div>' + T('gen.sin_clientes') + '</div>'; return; }
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('cli.nombre') + '</th><th>' + T('cli.telefono') + '</th><th>' + T('gen.visitas') + '</th><th></th></tr></thead><tbody>';
   list.forEach(function(c) {
     var vc = DB.ventas.filter(function(v) { return v.clienteId === c.id; }).length;
@@ -11585,7 +11585,7 @@ function eliminarReparacion(id) {
 // ═══ PROVEEDORES ═══
 function renderProvs() {
   var el = document.getElementById('listaProvs');
-  if (!DB.provs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83c\udfed</div>Sin proveedores</div>'; return; }
+  if (!DB.provs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83c\udfed</div>' + T('gen.sin_proveedores') + '</div>'; return; }
   el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('cli.nombre') + '</th><th>' + T('fact.nif_cif').replace(' *','') + '</th><th>' + T('cli.telefono') + '</th><th>' + T('cli.email') + '</th><th>' + T('cli.ciudad') + '</th><th>' + T('gastos.acciones') + '</th></tr></thead><tbody>' +
     DB.provs.map(function(p) {
       return '<tr>' +
