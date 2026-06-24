@@ -15,9 +15,12 @@
  *   RETENCION_MESES       (opcional, default 14)
  *   RETENCION_DRY         (opcional, "1" = solo informar, no borrar nada)
  */
-// Normaliza la URL: admite que venga con barra final o con /rest/v1 pegado.
-const SB_URL = (process.env.SUPABASE_URL || '').trim().replace(/\/+$/, '').replace(/\/rest\/v1$/, '').replace(/\/+$/, '');
-const SK = (process.env.SUPABASE_SERVICE_KEY || '').trim();
+// Normaliza la URL: quita comillas/espacios, añade https:// si falta, y recorta
+// una barra final o un /rest/v1 sobrante. Así funciona la pegues como la pegues.
+let SB_URL = (process.env.SUPABASE_URL || '').trim().replace(/^["']|["']$/g, '').trim();
+SB_URL = SB_URL.replace(/\/+$/, '').replace(/\/rest\/v1$/, '').replace(/\/+$/, '');
+if (SB_URL && !/^https?:\/\//i.test(SB_URL)) SB_URL = 'https://' + SB_URL;
+const SK = (process.env.SUPABASE_SERVICE_KEY || '').trim().replace(/^["']|["']$/g, '').trim();
 const MESES = parseInt(process.env.RETENCION_MESES || '14', 10);
 const DRY = process.env.RETENCION_DRY === '1';
 const BUCKET = 'gastos-adjuntos';
