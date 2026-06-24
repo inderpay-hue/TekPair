@@ -16330,7 +16330,13 @@ function abrirDetalleRep(repId) {
 
   // Datos en grid
   html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:8px;margin-bottom:12px">';
-  if (r.fecha) html += '<div><span style="color:var(--muted);font-size:11px">📅 ' + T('det.recibida') + '</span><br><strong>' + esc(r.fecha) + '</strong></div>';
+  if (r.fecha) {
+    // Días en taller (solo mientras la reparación sigue abierta).
+    var _CERRDET = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
+    var _diasTaller = Math.floor((new Date(hoyLocal() + 'T23:59:59') - new Date(String(r.fecha).slice(0, 10) + 'T00:00:00')) / 86400000);
+    var _diasTxt = (_CERRDET.indexOf(r.estado) === -1 && _diasTaller > 0) ? ' <small style="color:var(--muted);font-weight:600;font-size:11px">(' + _diasTaller + ' ' + T('estan.dias') + ' ' + T('det.en_taller') + ')</small>' : '';
+    html += '<div><span style="color:var(--muted);font-size:11px">📅 ' + T('det.recibida') + '</span><br><strong>' + esc(r.fecha) + '</strong>' + _diasTxt + '</div>';
+  }
   if (r.fechaEntrega) html += '<div><span style="color:var(--muted);font-size:11px">⏱ ' + T('det.entrega_prev') + '</span><br><strong>' + esc(r.fechaEntrega) + '</strong></div>';
   if (r.fechaEntregaReal) html += '<div><span style="color:var(--muted);font-size:11px">✓ ' + T('det.entregado') + '</span><br><strong>' + esc(r.fechaEntregaReal) + '</strong></div>';
   if (r.pagoFinal) html += '<div><span style="color:var(--muted);font-size:11px">💳 ' + T('det.pago') + '</span><br><strong>' + esc(r.pagoFinal) + '</strong></div>';
