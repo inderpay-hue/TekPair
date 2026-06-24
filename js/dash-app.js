@@ -2913,7 +2913,7 @@ function cargarMisTiendas() {
 // crea la tienda y el enlace al completarse el pago.
 function anadirTienda() {
   if (!(U && (U.rol === 'admin' || (U.permisos && U.permisos.todo)))) { toast(T('gen.sin_permiso'), 'err'); return; }
-  pedirTexto(T('mt.anadir_prompt'), { rows: 1, okLabel: T('mt.anadir_ok') }, function(nombre) {
+  pedirTexto(T('mt.anadir_prompt') + '\n\n' + T('mt.anadir_precio'), { rows: 1, okLabel: T('mt.anadir_ok') }, function(nombre) {
     if (nombre === null) return;
     nombre = (nombre || '').trim();
     if (!nombre) { toast(T('mt.anadir_falta'), 'err'); return; }
