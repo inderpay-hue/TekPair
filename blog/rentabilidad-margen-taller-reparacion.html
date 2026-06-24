@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rentabilidad real de un taller de reparación: margen, costes y punto de equilibrio | TekPair</title>
+  <meta name="description" content="Cómo calcular el margen real por reparación, qué % buscar, encontrar tu punto de equilibrio mensual y los errores que matan la rentabilidad de un taller." />
+  <meta name="keywords" content="rentabilidad taller reparacion, margen reparacion movil, punto de equilibrio taller, calcular margen taller" />
+  <link rel="canonical" href="https://www.tekpair.tech/blog/rentabilidad-margen-taller-reparacion.html" />
+  <link rel="alternate" hreflang="es" href="https://www.tekpair.tech/blog/rentabilidad-margen-taller-reparacion.html" />
+  <link rel="alternate" hreflang="en" href="https://www.tekpair.tech/blog/en/repair-shop-profit-margins.html" />
+  <link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/blog/fr/rentabilite-marge-atelier-reparation.html" />
+  <link rel="alternate" hreflang="it" href="https://www.tekpair.tech/blog/it/redditivita-margine-officina-riparazione.html" />
+  <link rel="alternate" hreflang="de" href="https://www.tekpair.tech/blog/de/rentabilitaet-marge-reparaturwerkstatt.html" />
+  <link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/blog/pt/rentabilidade-margem-oficina-reparacao.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/blog/rentabilidad-margen-taller-reparacion.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Rentabilidad real de un taller de reparación: margen, costes y punto de equilibrio" />
+  <meta property="og:description" content="Calcula el margen real por reparación, tu punto de equilibrio mensual y evita los errores que sangran la rentabilidad." />
+  <meta property="og:url" content="https://www.tekpair.tech/blog/rentabilidad-margen-taller-reparacion.html" />
+  <meta property="og:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <meta property="og:site_name" content="TekPair" />
+  <meta property="article:published_time" content="2026-06-24" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Rentabilidad real de un taller de reparación: margen, costes y punto de equilibrio" />
+  <meta name="twitter:description" content="Calcula el margen real por reparación, tu punto de equilibrio mensual y evita los errores que sangran la rentabilidad." />
+  <meta name="twitter:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Rentabilidad real de un taller de reparación: margen, costes y punto de equilibrio","description":"Cómo calcular el margen real por reparación, qué % buscar, encontrar tu punto de equilibrio mensual y los errores que matan la rentabilidad de un taller.","author":{"@type":"Organization","name":"TekPair","url":"https://www.tekpair.tech"},"publisher":{"@type":"Organization","name":"TekPair","logo":{"@type":"ImageObject","url":"https://www.tekpair.tech/assets/logo.png"}},"datePublished":"2026-06-24","dateModified":"2026-06-24","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tekpair.tech/blog/rentabilidad-margen-taller-reparacion.html"},"image":"https://www.tekpair.tech/assets/og-blog.png"}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --terracota: #C2410C; --terracota-dark: #9A3309; --terracota-light: #FEF0E8; --text: #1C1917; --text-muted: #78716C; --border: #E7E5E4; --bg: #FFFFFF; --bg-alt: #FAFAF9; }
+    body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--bg); line-height: 1.7; font-size: 17px; }
+    nav { border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; background: #fff; }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--terracota); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--terracota); }
+    .article-hero { background: var(--terracota-light); padding: 3.5rem 1.5rem 3rem; text-align: center; }
+    .article-hero .category { display: inline-block; background: var(--terracota); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.25rem 0.75rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .article-hero h1 { font-size: clamp(1.75rem, 4vw, 2.6rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.03em; max-width: 680px; margin: 0 auto 1rem; color: var(--text); }
+    .article-hero .intro { max-width: 600px; margin: 0 auto; color: var(--text-muted); font-size: 1.05rem; }
+    .article-meta { margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 1rem; }
+    .article-wrapper { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+    .toc { background: var(--bg-alt); border: 1px solid var(--border); border-left: 4px solid var(--terracota); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; }
+    .toc p { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--terracota); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .toc a { color: var(--text); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
+    .toc a:hover { color: var(--terracota); text-decoration: underline; }
+    h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 2.5rem 0 1rem; color: var(--text); scroll-margin-top: 16px; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 1.75rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1.1rem; color: #44403C; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    li { color: #44403C; }
+    strong { color: var(--text); font-weight: 600; }
+    .callout { background: var(--terracota-light); border-left: 4px solid var(--terracota); border-radius: 0 8px 8px 0; padding: 1.1rem 1.25rem; margin: 1.75rem 0; }
+    .callout p { margin: 0; color: #7C2D12; font-size: 0.95rem; }
+    .callout strong { color: #7C2D12; }
+    .table-wrap { overflow-x: auto; margin: 1.75rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th { background: var(--terracota); color: #fff; font-weight: 600; text-align: left; padding: 0.7rem 1rem; }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #44403C; }
+    tr:nth-child(even) td { background: var(--bg-alt); }
+    tr:last-child td { border-bottom: none; }
+    .checklist { list-style: none; padding: 0; margin: 1.25rem 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); color: #44403C; font-size: 0.95rem; }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before { content: "\2713"; flex-shrink: 0; width: 20px; height: 20px; background: var(--terracota); color: #fff; border-radius: 50%; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .faq-section { margin-top: 3rem; }
+    .faq-section h2 { margin-top: 0; }
+    details { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; }
+    summary { padding: 1rem 1.25rem; font-weight: 600; font-size: 0.97rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bg-alt); transition: background .2s; }
+    summary:hover { background: var(--terracota-light); }
+    summary::after { content: "+"; font-size: 1.2rem; color: var(--terracota); font-weight: 700; }
+    details[open] summary::after { content: "\2212"; }
+    details[open] summary { background: var(--terracota-light); }
+    .faq-body { padding: 1rem 1.25rem; font-size: 0.95rem; color: #44403C; }
+    .cta-box { background: var(--terracota); color: #fff; border-radius: 12px; padding: 2.5rem 2rem; text-align: center; margin-top: 3.5rem; }
+    .cta-box h2 { color: #fff; font-size: 1.5rem; margin: 0 0 0.75rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); margin-bottom: 1.5rem; font-size: 1rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--terracota); font-weight: 700; font-size: 0.95rem; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; }
+    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+    footer a { color: var(--terracota); text-decoration: none; }
+    @media (max-width: 600px) { .nav-links { display: none; } .article-hero { padding: 2.5rem 1.25rem 2rem; } .article-wrapper { padding: 2rem 1.25rem 3rem; } }
+  </style>
+  <script src="/cookies-consent.js" defer></script>
+</head>
+<body>
+  <nav>
+    <a href="https://www.tekpair.tech" class="nav-logo">TekPair</a>
+    <div class="nav-links">
+      <a href="https://www.tekpair.tech/blog/">Blog</a>
+      <a href="https://www.tekpair.tech/#funcionalidades">Funcionalidades</a>
+      <a href="https://www.tekpair.tech/#precios">Precios</a>
+      <a href="https://www.tekpair.tech/app.html">Iniciar sesión</a>
+    </div>
+  </nav>
+  <header class="article-hero">
+    <div class="category">Gestión</div>
+    <h1>Rentabilidad real de un taller de reparación: margen, costes y punto de equilibrio</h1>
+    <p class="intro">Facturar mucho no es ganar mucho. Esta guía te enseña a calcular el margen real de cada reparación, qué porcentaje buscar, cómo hallar tu punto de equilibrio mensual y qué errores te están comiendo el beneficio sin que lo veas.</p>
+    <div class="article-meta"><span>&#128197; 24 de junio de 2026</span><span>&#9201; 9 min de lectura</span></div>
+  </header>
+  <main class="article-wrapper">
+    <div class="toc" role="navigation" aria-label="En este artículo">
+      <p>En este artículo</p>
+      <ol><li><a href="#s1">Qué es el margen real (y por qué el "beneficio" engaña)</a></li><li><a href="#s2">Cómo calcular el margen de una reparación, paso a paso</a></li><li><a href="#s3">Qué porcentaje de margen buscar</a></li><li><a href="#s4">Tu punto de equilibrio mensual</a></li><li><a href="#s5">Errores que matan la rentabilidad</a></li><li><a href="#faq">Preguntas frecuentes</a></li></ol>
+    </div>
+
+    <p>Hay talleres que no paran de trabajar y, a fin de mes, apenas les queda nada. Y otros, con menos volumen, que viven bien. La diferencia casi nunca está en la mano, sino en los números: saber cuánto cuesta de verdad cada reparación y a partir de qué punto empiezas a ganar dinero. Esta guía te da la calculadora completa, con cifras de ejemplo en euros.</p>
+    <!-- TOC -->
+<nav class="post-toc" aria-label="Tabla de contenidos" style="background:#F7F9FC;border:1px solid #E2E8F0;border-radius:12px;padding:16px 20px;margin:0 0 28px"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;margin-bottom:10px">Contenido</div><ol style="margin:0;padding-left:18px;font-size:14.5px;line-height:1.9"><li><a href="#s1" style="color:#FF5B1F;text-decoration:none">1. Qué es el margen real</a></li><li><a href="#s2" style="color:#FF5B1F;text-decoration:none">2. Cómo calcular el margen de una reparación</a></li><li><a href="#s3" style="color:#FF5B1F;text-decoration:none">3. Qué porcentaje de margen buscar</a></li><li><a href="#s4" style="color:#FF5B1F;text-decoration:none">4. Tu punto de equilibrio mensual</a></li><li><a href="#s5" style="color:#FF5B1F;text-decoration:none">5. Errores que matan la rentabilidad</a></li></ol></nav>
+
+    <h2 id="s1">1. Qué es el margen real (y por qué el "beneficio" engaña)</h2>
+    <p>Cuando cobras 90 € por cambiar una pantalla que te costó 35 €, es fácil pensar que has ganado 55 €. No es verdad. Esos 55 € son tu <strong>margen bruto</strong>, pero todavía no han pagado el alquiler, la luz, tu tiempo ni el del técnico. El número que de verdad importa es el <strong>margen neto</strong>: lo que queda <em>después</em> de imputar todos los costes a esa reparación.</p>
+    <p>Para calcularlo bien necesitas separar tres bloques de coste:</p>
+    <ul>
+      <li><strong>Coste de la pieza:</strong> lo que pagas al proveedor por el repuesto, con su IVA soportado e incluyendo portes si los hay.</li>
+      <li><strong>Coste de mano de obra (hora real):</strong> no es tu sueldo deseado, sino lo que cuesta una hora productiva de taller. Se calcula con horas que realmente facturas, no con las 8 que pasas dentro.</li>
+      <li><strong>Gastos fijos imputados:</strong> alquiler, suministros, software, seguros, gestoría… repartidos entre las reparaciones del mes.</li>
+    </ul>
+    <div class="callout"><p><strong>Idea clave:</strong> el margen bruto te dice si la reparación tiene sentido; el margen neto te dice si tu taller gana dinero. Trabaja siempre con el segundo.</p></div>
+
+    <h2 id="s2">2. Cómo calcular el margen de una reparación, paso a paso</h2>
+    <p>Lo más útil es montarte un <strong>coste por hora real de taller</strong> y aplicarlo a cada trabajo. Veamos un ejemplo realista de un taller de una sola persona.</p>
+    <h3>Paso 1: tu coste por hora real</h3>
+    <p>Supón estos gastos fijos mensuales y un técnico que factura unas 110 horas al mes (de las ~160 que trabaja; el resto se va en atención, recados, esperas y huecos):</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Concepto</th><th>Importe / mes</th></tr></thead>
+        <tbody>
+          <tr><td>Alquiler del local</td><td>650 €</td></tr>
+          <tr><td>Suministros (luz, agua, internet)</td><td>180 €</td></tr>
+          <tr><td>Sueldo bruto + cotización (tú)</td><td>2.200 €</td></tr>
+          <tr><td>Software, seguros y gestoría</td><td>170 €</td></tr>
+          <tr><td><strong>Total gastos fijos</strong></td><td><strong>3.200 €</strong></td></tr>
+          <tr><td>Horas facturables / mes</td><td>110 h</td></tr>
+          <tr><td><strong>Coste por hora real</strong></td><td><strong>29,1 €/h</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Es decir: cada hora de taller te cuesta unos <strong>29 €</strong> solo en estructura, antes de tocar una sola pieza. Si cobras la mano de obra por debajo de eso, pierdes dinero aunque la pieza tenga buen margen.</p>
+    <h3>Paso 2: el margen de una reparación concreta</h3>
+    <p>Tomemos un cambio de pantalla que te lleva 40 minutos (0,67 h) y lo cobras a 90 €:</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Concepto</th><th>Importe</th></tr></thead>
+        <tbody>
+          <tr><td>Precio cobrado al cliente</td><td>90,00 €</td></tr>
+          <tr><td>Coste de la pieza (pantalla)</td><td>-35,00 €</td></tr>
+          <tr><td>Coste de mano de obra (0,67 h × 29,1 €)</td><td>-19,50 €</td></tr>
+          <tr><td><strong>Margen neto de la reparación</strong></td><td><strong>35,50 €</strong></td></tr>
+          <tr><td>Margen neto en %</td><td>39 %</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Esa reparación deja <strong>35,50 € reales</strong>, no 55 €. La diferencia (los 19,50 € de mano de obra) es justo lo que se "evapora" cuando solo miras pieza contra precio. Repite este cálculo para tus 5 o 6 servicios más frecuentes y tendrás un mapa clarísimo de qué te conviene empujar.</p>
+
+    <h2 id="s3">3. Qué porcentaje de margen buscar</h2>
+    <p>No hay un número mágico, pero sí referencias sanas para un taller de reparación:</p>
+    <ul>
+      <li><strong>Mano de obra:</strong> apunta a multiplicar tu coste/hora por <strong>2 o 2,5</strong>. Si tu hora cuesta 29 €, factúrala entre 55 y 70 €.</li>
+      <li><strong>Piezas:</strong> un <strong>50–100 % de margen sobre coste</strong> es lo habitual (una pantalla de 35 € se vende entre 55 y 70 € de pieza, sin contar mano de obra).</li>
+      <li><strong>Margen neto del ticket completo:</strong> que cada reparación cerrada te deje, de media, un <strong>30–45 % neto</strong>. Por debajo del 25 % vas justo; por encima del 50 % probablemente puedes crecer o estás muy especializado.</li>
+    </ul>
+    <div class="callout"><p><strong>Ojo con los descuentos:</strong> rebajar 10 € en una reparación que deja 35 € de margen no es "un 11 % de descuento": es <strong>regalar casi un tercio de tu beneficio</strong>. Descontar siempre se calcula sobre el margen, no sobre el precio.</p></div>
+
+    <h2 id="s4">4. Tu punto de equilibrio mensual</h2>
+    <p>El punto de equilibrio es cuánto tienes que facturar (o cuántas reparaciones cerrar) para cubrir todos tus gastos. A partir de ahí, todo lo demás es beneficio.</p>
+    <p>La fórmula es simple: <strong>gastos fijos ÷ margen neto medio por reparación = reparaciones necesarias al mes</strong>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Concepto</th><th>Valor</th></tr></thead>
+        <tbody>
+          <tr><td>Gastos fijos mensuales</td><td>3.200 €</td></tr>
+          <tr><td>Margen neto medio por reparación</td><td>35 €</td></tr>
+          <tr><td><strong>Reparaciones para cubrir gastos</strong></td><td><strong>≈ 92 / mes</strong></td></tr>
+          <tr><td>Reparaciones por día laborable (22 días)</td><td>≈ 4,2 / día</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Traducido: necesitas cerrar <strong>algo más de 4 reparaciones rentables al día</strong> solo para empatar. La número 93 del mes es la primera que te deja dinero limpio. Si subes el margen medio de 35 € a 45 € (mejor precio o trabajos más rentables), tu punto de equilibrio baja a <strong>71 reparaciones</strong>: 21 menos al mes para lo mismo. Por eso subir margen pesa más que subir volumen.</p>
+
+    <h2 id="s5">5. Errores que matan la rentabilidad</h2>
+    <ul>
+      <li><strong>No imputar tu propio tiempo:</strong> si tu sueldo no está dentro de los costes, el taller parece rentable cuando en realidad te paga menos que un trabajo por cuenta ajena.</li>
+      <li><strong>Cobrar la mano de obra "a ojo":</strong> sin un coste/hora calculado, los trabajos largos y baratos te hunden sin que lo notes.</li>
+      <li><strong>Stock parado:</strong> piezas compradas que no rotan son dinero inmovilizado y, a veces, obsoleto. Capital que no trabaja.</li>
+      <li><strong>Deuda de clientes sin cobrar:</strong> reparaciones entregadas "a pagar luego" que se acumulan. Es margen real que no entra en caja.</li>
+      <li><strong>No medir por servicio:</strong> sin saber qué reparación deja más, empujas las equivocadas y rechazas (o no priorizas) las buenas.</li>
+    </ul>
+    <p>Todos estos errores tienen algo en común: son invisibles si no llevas los números. Y llevarlos a mano, con cuadernos o un Excel suelto, casi nadie lo sostiene mes a mes.</p>
+
+    <div class="callout"><p><strong>TekPair</strong> te da estos números sin que tengas que calcularlos a mano: informes de facturación y margen por periodo, registro de <strong>gastos</strong> para conocer tu coste real, y control de <strong>deuda de clientes</strong> para no dejar dinero en la calle. Sabes en todo momento si vas por encima de tu punto de equilibrio. <a href="https://www.tekpair.tech" style="color:var(--terracota-dark);font-weight:600;">Pruébalo gratis →</a></p></div>
+
+    <section class="faq-section" id="faq">
+      <h2>Preguntas frecuentes</h2>
+      <details><summary>¿Cuál es un buen margen para un taller de reparación?</summary><div class="faq-body">Como referencia, busca un margen neto del 30–45 % por reparación cerrada, multiplica tu coste/hora por 2–2,5 en la mano de obra y aplica un 50–100 % sobre el coste de las piezas. Por debajo del 25 % neto vas demasiado justo para imprevistos.</div></details>
+      <details><summary>¿Cómo calculo mi coste por hora real?</summary><div class="faq-body">Suma todos tus gastos fijos mensuales (alquiler, suministros, tu sueldo, software, seguros) y divídelos entre las horas que realmente facturas al mes, no entre las que pasas en el taller. Si tienes 3.200 € de gastos y facturas 110 horas, tu hora cuesta unos 29 €.</div></details>
+      <details><summary>¿Qué es el punto de equilibrio y cómo lo encuentro?</summary><div class="faq-body">Es el número de reparaciones (o la facturación) que cubre todos tus gastos; a partir de ahí ganas dinero. Divide tus gastos fijos entre el margen neto medio por reparación: 3.200 € ÷ 35 € ≈ 92 reparaciones al mes. Subir el margen medio baja ese número rápidamente.</div></details>
+      <details><summary>¿Me da TekPair estos números automáticamente?</summary><div class="faq-body">Sí. TekPair reúne tu facturación, tus gastos y la deuda pendiente de clientes en informes por periodo, así que ves el margen real y si superas tu punto de equilibrio sin montar hojas de cálculo a mano.</div></details>
+    </section>
+    <!-- RELATED -->
+<section class="post-related" style="margin:36px 0 8px;padding-top:24px;border-top:1px solid #E2E8F0"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;margin-bottom:14px">Sigue leyendo</div><div style="display:grid;gap:10px"><a href="/blog/poner-precio-reparaciones-movil.html" style="display:block;color:#0F1729;text-decoration:none;font-weight:600;font-size:15px;padding:12px 14px;border:1px solid #E2E8F0;border-radius:10px">→ Cómo poner precio a las reparaciones de móvil</a><a href="/blog/subir-ticket-medio-taller-reparacion.html" style="display:block;color:#0F1729;text-decoration:none;font-weight:600;font-size:15px;padding:12px 14px;border:1px solid #E2E8F0;border-radius:10px">→ Cómo subir el ticket medio de tu taller de reparación</a><a href="/blog/errores-taller-reparacion-moviles.html" style="display:block;color:#0F1729;text-decoration:none;font-weight:600;font-size:15px;padding:12px 14px;border:1px solid #E2E8F0;border-radius:10px">→ Errores que hacen perder dinero a un taller de reparación</a></div><div style="margin-top:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:13px;color:#64748B;font-weight:600">Compartir:</span><a href="https://wa.me/?text=Rentabilidad%20real%20de%20un%20taller%20de%20reparaci%C3%B3n%20https%3A%2F%2Fwww.tekpair.tech%2Fblog%2Frentabilidad-margen-taller-reparacion.html" target="_blank" rel="noopener" style="font-size:13px;color:#fff;background:#25D366;padding:7px 14px;border-radius:8px;text-decoration:none;font-weight:600">WhatsApp</a><a href="https://twitter.com/intent/tweet?text=Rentabilidad%20real%20de%20un%20taller%20de%20reparaci%C3%B3n&url=https%3A%2F%2Fwww.tekpair.tech%2Fblog%2Frentabilidad-margen-taller-reparacion.html" target="_blank" rel="noopener" style="font-size:13px;color:#fff;background:#0F1419;padding:7px 14px;border-radius:8px;text-decoration:none;font-weight:600">X</a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fwww.tekpair.tech%2Fblog%2Frentabilidad-margen-taller-reparacion.html" target="_blank" rel="noopener" style="font-size:13px;color:#fff;background:#0A66C2;padding:7px 14px;border-radius:8px;text-decoration:none;font-weight:600">LinkedIn</a></div></section>
+    <div class="cta-box">
+      <h2>Conoce el margen real de tu taller</h2>
+      <p>TekPair reúne facturación, gastos y deuda de clientes en informes claros. Sabe en todo momento si ganas dinero, no solo si trabajas.</p>
+      <a href="https://www.tekpair.tech" class="cta-btn">Empieza gratis en TekPair →</a>
+    </div>
+  </main>
+  <footer>
+    <p>&#169; 2026 <a href="https://www.tekpair.tech">TekPair</a> &middot; Software de gestión para talleres de reparación</p>
+    <p style="margin-top:0.5rem;"><a href="https://www.tekpair.tech/blog/">Blog</a> &middot; <a href="https://www.tekpair.tech/privacidad.html">Privacidad</a> &middot; <a href="https://www.tekpair.tech/terminos.html">Términos</a></p>
+  </footer>
+</body>
+</html>

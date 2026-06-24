@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Rentabilité réelle d'un atelier de réparation : marge, coûts et seuil de rentabilité | TekPair</title>
+  <meta name="description" content="Comment calculer la marge réelle par réparation, quel % viser, trouver votre seuil de rentabilité mensuel et les erreurs qui tuent la rentabilité d'un atelier." />
+  <meta name="keywords" content="rentabilite atelier reparation, marge reparation telephone, seuil de rentabilite atelier, calculer marge atelier" />
+  <link rel="canonical" href="https://www.tekpair.tech/blog/fr/rentabilite-marge-atelier-reparation.html" />
+  <link rel="alternate" hreflang="es" href="https://www.tekpair.tech/blog/rentabilidad-margen-taller-reparacion.html" />
+  <link rel="alternate" hreflang="en" href="https://www.tekpair.tech/blog/en/repair-shop-profit-margins.html" />
+  <link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/blog/fr/rentabilite-marge-atelier-reparation.html" />
+  <link rel="alternate" hreflang="it" href="https://www.tekpair.tech/blog/it/redditivita-margine-officina-riparazione.html" />
+  <link rel="alternate" hreflang="de" href="https://www.tekpair.tech/blog/de/rentabilitaet-marge-reparaturwerkstatt.html" />
+  <link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/blog/pt/rentabilidade-margem-oficina-reparacao.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/blog/rentabilidad-margen-taller-reparacion.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Rentabilité réelle d'un atelier de réparation : marge, coûts et seuil de rentabilité" />
+  <meta property="og:description" content="Calculez la marge réelle par réparation, votre seuil de rentabilité mensuel et évitez les erreurs qui rongent la rentabilité." />
+  <meta property="og:url" content="https://www.tekpair.tech/blog/fr/rentabilite-marge-atelier-reparation.html" />
+  <meta property="og:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <meta property="og:site_name" content="TekPair" />
+  <meta property="article:published_time" content="2026-06-24" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Rentabilité réelle d'un atelier de réparation : marge, coûts et seuil de rentabilité" />
+  <meta name="twitter:description" content="Calculez la marge réelle par réparation, votre seuil de rentabilité mensuel et évitez les erreurs qui rongent la rentabilité." />
+  <meta name="twitter:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Rentabilité réelle d'un atelier de réparation : marge, coûts et seuil de rentabilité","description":"Comment calculer la marge réelle par réparation, quel % viser, trouver votre seuil de rentabilité mensuel et les erreurs qui tuent la rentabilité d'un atelier.","author":{"@type":"Organization","name":"TekPair","url":"https://www.tekpair.tech"},"publisher":{"@type":"Organization","name":"TekPair","logo":{"@type":"ImageObject","url":"https://www.tekpair.tech/assets/logo.png"}},"datePublished":"2026-06-24","dateModified":"2026-06-24","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tekpair.tech/blog/fr/rentabilite-marge-atelier-reparation.html"},"image":"https://www.tekpair.tech/assets/og-blog.png"}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --terracota: #C2410C; --terracota-dark: #9A3309; --terracota-light: #FEF0E8; --text: #1C1917; --text-muted: #78716C; --border: #E7E5E4; --bg: #FFFFFF; --bg-alt: #FAFAF9; }
+    body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--bg); line-height: 1.7; font-size: 17px; }
+    nav { border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; background: #fff; }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--terracota); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--terracota); }
+    .article-hero { background: var(--terracota-light); padding: 3.5rem 1.5rem 3rem; text-align: center; }
+    .article-hero .category { display: inline-block; background: var(--terracota); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.25rem 0.75rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .article-hero h1 { font-size: clamp(1.75rem, 4vw, 2.6rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.03em; max-width: 680px; margin: 0 auto 1rem; color: var(--text); }
+    .article-hero .intro { max-width: 600px; margin: 0 auto; color: var(--text-muted); font-size: 1.05rem; }
+    .article-meta { margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 1rem; }
+    .article-wrapper { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+    .toc { background: var(--bg-alt); border: 1px solid var(--border); border-left: 4px solid var(--terracota); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; }
+    .toc p { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--terracota); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .toc a { color: var(--text); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
+    .toc a:hover { color: var(--terracota); text-decoration: underline; }
+    h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 2.5rem 0 1rem; color: var(--text); scroll-margin-top: 16px; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 1.75rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1.1rem; color: #44403C; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    li { color: #44403C; }
+    strong { color: var(--text); font-weight: 600; }
+    .callout { background: var(--terracota-light); border-left: 4px solid var(--terracota); border-radius: 0 8px 8px 0; padding: 1.1rem 1.25rem; margin: 1.75rem 0; }
+    .callout p { margin: 0; color: #7C2D12; font-size: 0.95rem; }
+    .callout strong { color: #7C2D12; }
+    .table-wrap { overflow-x: auto; margin: 1.75rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th { background: var(--terracota); color: #fff; font-weight: 600; text-align: left; padding: 0.7rem 1rem; }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #44403C; }
+    tr:nth-child(even) td { background: var(--bg-alt); }
+    tr:last-child td { border-bottom: none; }
+    .checklist { list-style: none; padding: 0; margin: 1.25rem 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); color: #44403C; font-size: 0.95rem; }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before { content: "\2713"; flex-shrink: 0; width: 20px; height: 20px; background: var(--terracota); color: #fff; border-radius: 50%; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .faq-section { margin-top: 3rem; }
+    .faq-section h2 { margin-top: 0; }
+    details { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; }
+    summary { padding: 1rem 1.25rem; font-weight: 600; font-size: 0.97rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bg-alt); transition: background .2s; }
+    summary:hover { background: var(--terracota-light); }
+    summary::after { content: "+"; font-size: 1.2rem; color: var(--terracota); font-weight: 700; }
+    details[open] summary::after { content: "\2212"; }
+    details[open] summary { background: var(--terracota-light); }
+    .faq-body { padding: 1rem 1.25rem; font-size: 0.95rem; color: #44403C; }
+    .cta-box { background: var(--terracota); color: #fff; border-radius: 12px; padding: 2.5rem 2rem; text-align: center; margin-top: 3.5rem; }
+    .cta-box h2 { color: #fff; font-size: 1.5rem; margin: 0 0 0.75rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); margin-bottom: 1.5rem; font-size: 1rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--terracota); font-weight: 700; font-size: 0.95rem; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; }
+    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+    footer a { color: var(--terracota); text-decoration: none; }
+    @media (max-width: 600px) { .nav-links { display: none; } .article-hero { padding: 2.5rem 1.25rem 2rem; } .article-wrapper { padding: 2rem 1.25rem 3rem; } }
+  </style>
+  <script src="/cookies-consent.js" defer></script>
+</head>
+<body>
+  <nav>
+    <a href="https://www.tekpair.tech" class="nav-logo">TekPair</a>
+    <div class="nav-links">
+      <a href="https://www.tekpair.tech/blog/fr/">Blog</a>
+      <a href="https://www.tekpair.tech/#funcionalidades">Fonctionnalités</a>
+      <a href="https://www.tekpair.tech/#precios">Tarifs</a>
+      <a href="https://www.tekpair.tech/app.html">Se connecter</a>
+    </div>
+  </nav>
+  <header class="article-hero">
+    <div class="category">Gestion</div>
+    <h1>Rentabilité réelle d'un atelier de réparation : marge, coûts et seuil de rentabilité</h1>
+    <p class="intro">Facturer beaucoup n'est pas gagner beaucoup. Ce guide vous apprend à calculer la marge réelle de chaque réparation, quel pourcentage viser, comment trouver votre seuil de rentabilité mensuel et quelles erreurs grignotent votre bénéfice sans que vous le voyiez.</p>
+    <div class="article-meta"><span>&#128197; 24 juin 2026</span><span>&#9201; 9 min de lecture</span></div>
+  </header>
+  <main class="article-wrapper">
+    <div class="toc" role="navigation" aria-label="Dans cet article">
+      <p>Dans cet article</p>
+      <ol><li><a href="#s1">Ce qu'est la marge réelle (et pourquoi le « bénéfice » trompe)</a></li><li><a href="#s2">Comment calculer la marge d'une réparation, étape par étape</a></li><li><a href="#s3">Quel pourcentage de marge viser</a></li><li><a href="#s4">Votre seuil de rentabilité mensuel</a></li><li><a href="#s5">Les erreurs qui tuent la rentabilité</a></li><li><a href="#faq">Questions fréquentes</a></li></ol>
+    </div>
+
+    <p>Certains ateliers ne s'arrêtent jamais et, en fin de mois, il ne reste presque rien. D'autres, avec moins de volume, vivent bien. La différence n'est presque jamais dans les mains, mais dans les chiffres : savoir ce que coûte vraiment chaque réparation et à partir de quel point vous commencez réellement à gagner de l'argent. Ce guide vous donne la calculatrice complète, avec des chiffres d'exemple en euros.</p>
+    <!-- TOC -->
+<nav class="post-toc" aria-label="Table des matières" style="background:#F7F9FC;border:1px solid #E2E8F0;border-radius:12px;padding:16px 20px;margin:0 0 28px"><div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;margin-bottom:10px">Sommaire</div><ol style="margin:0;padding-left:18px;font-size:14.5px;line-height:1.9"><li><a href="#s1" style="color:#FF5B1F;text-decoration:none">1. Ce qu'est la marge réelle</a></li><li><a href="#s2" style="color:#FF5B1F;text-decoration:none">2. Comment calculer la marge d'une réparation</a></li><li><a href="#s3" style="color:#FF5B1F;text-decoration:none">3. Quel pourcentage de marge viser</a></li><li><a href="#s4" style="color:#FF5B1F;text-decoration:none">4. Votre seuil de rentabilité mensuel</a></li><li><a href="#s5" style="color:#FF5B1F;text-decoration:none">5. Les erreurs qui tuent la rentabilité</a></li></ol></nav>
+
+    <h2 id="s1">1. Ce qu'est la marge réelle (et pourquoi le « bénéfice » trompe)</h2>
+    <p>Quand vous facturez 90 &euro; pour changer un écran qui vous a coûté 35 &euro;, il est facile de penser que vous avez gagné 55 &euro;. C'est faux. Ces 55 &euro; sont votre <strong>marge brute</strong>, mais ils n'ont pas encore payé le loyer, l'électricité, votre temps ni celui du technicien. Le chiffre qui compte vraiment est la <strong>marge nette</strong> : ce qui reste <em>après</em> avoir imputé tous les coûts à cette réparation.</p>
+    <p>Pour bien la calculer, il faut séparer trois blocs de coût :</p>
+    <ul>
+      <li><strong>Coût de la pièce :</strong> ce que vous payez au fournisseur pour la pièce détachée, frais de port inclus s'il y en a.</li>
+      <li><strong>Coût de main-d'œuvre (taux horaire réel) :</strong> non pas le salaire souhaité, mais ce que coûte une heure productive d'atelier. Il se calcule sur les heures réellement facturées, pas sur les 8 passées sur place.</li>
+      <li><strong>Frais fixes imputés :</strong> loyer, charges, logiciel, assurances, comptable… répartis entre les réparations du mois.</li>
+    </ul>
+    <div class="callout"><p><strong>Idée clé :</strong> la marge brute vous dit si une réparation a du sens ; la marge nette vous dit si votre atelier gagne de l'argent. Travaillez toujours avec la seconde.</p></div>
+
+    <h2 id="s2">2. Comment calculer la marge d'une réparation, étape par étape</h2>
+    <p>Le plus utile est de construire un <strong>coût horaire réel d'atelier</strong> et de l'appliquer à chaque travail. Prenons un exemple réaliste d'un atelier d'une seule personne.</p>
+    <h3>Étape 1 : votre coût horaire réel</h3>
+    <p>Supposons ces frais fixes mensuels et un technicien qui facture environ 110 heures par mois (sur les ~160 travaillées ; le reste part en accueil, courses, attentes et trous) :</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Poste</th><th>Montant / mois</th></tr></thead>
+        <tbody>
+          <tr><td>Loyer du local</td><td>650 &euro;</td></tr>
+          <tr><td>Charges (électricité, eau, internet)</td><td>180 &euro;</td></tr>
+          <tr><td>Salaire brut + cotisations (vous)</td><td>2 200 &euro;</td></tr>
+          <tr><td>Logiciel, assurances et comptable</td><td>170 &euro;</td></tr>
+          <tr><td><strong>Total frais fixes</strong></td><td><strong>3 200 &euro;</strong></td></tr>
+          <tr><td>Heures facturables / mois</td><td>110 h</td></tr>
+          <tr><td><strong>Coût horaire réel</strong></td><td><strong>29,1 &euro;/h</strong></td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Autrement dit : chaque heure d'atelier vous coûte environ <strong>29 &euro;</strong> rien qu'en structure, avant de toucher une seule pièce. Si vous facturez la main-d'œuvre en dessous, vous perdez de l'argent même si la pièce a une bonne marge.</p>
+    <h3>Étape 2 : la marge d'une réparation précise</h3>
+    <p>Prenons un changement d'écran qui prend 40 minutes (0,67 h) et que vous facturez 90 &euro; :</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Poste</th><th>Montant</th></tr></thead>
+        <tbody>
+          <tr><td>Prix facturé au client</td><td>90,00 &euro;</td></tr>
+          <tr><td>Coût de la pièce (écran)</td><td>-35,00 &euro;</td></tr>
+          <tr><td>Coût de main-d'œuvre (0,67 h &times; 29,1 &euro;)</td><td>-19,50 &euro;</td></tr>
+          <tr><td><strong>Marge nette de la réparation</strong></td><td><strong>35,50 &euro;</strong></td></tr>
+          <tr><td>Marge nette en %</td><td>39 %</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Cette réparation laisse <strong>35,50 &euro; réels</strong>, pas 55 &euro;. La différence (les 19,50 &euro; de main-d'œuvre) est exactement ce qui « s'évapore » quand vous ne regardez que pièce contre prix. Répétez ce calcul pour vos 5 ou 6 services les plus fréquents et vous aurez une carte limpide de ce qu'il vaut la peine de pousser.</p>
+
+    <h2 id="s3">3. Quel pourcentage de marge viser</h2>
+    <p>Il n'y a pas de chiffre magique, mais des repères sains pour un atelier de réparation :</p>
+    <ul>
+      <li><strong>Main-d'œuvre :</strong> visez à multiplier votre coût horaire par <strong>2 ou 2,5</strong>. Si votre heure coûte 29 &euro;, facturez-la entre 55 et 70 &euro;.</li>
+      <li><strong>Pièces :</strong> une <strong>marge de 50 à 100 % sur le coût</strong> est habituelle (un écran à 35 &euro; se vend entre 55 et 70 &euro; en pièce, hors main-d'œuvre).</li>
+      <li><strong>Marge nette du ticket complet :</strong> que chaque réparation close vous laisse, en moyenne, <strong>30 à 45 % net</strong>. En dessous de 25 % c'est juste ; au-dessus de 50 % vous pouvez probablement croître ou vous êtes très spécialisé.</li>
+    </ul>
+    <div class="callout"><p><strong>Attention aux remises :</strong> retirer 10 &euro; sur une réparation qui laisse 35 &euro; de marge n'est pas « une remise de 11 % » : c'est <strong>offrir près d'un tiers de votre bénéfice</strong>. Une remise se calcule toujours sur la marge, pas sur le prix.</p></div>
+
+    <h2 id="s4">4. Votre seuil de rentabilité mensuel</h2>
+    <p>Le seuil de rentabilité, c'est combien vous devez facturer (ou combien de réparations clore) pour couvrir tous vos frais. Au-delà, tout le reste est bénéfice.</p>
+    <p>La formule est simple : <strong>frais fixes &divide; marge nette moyenne par réparation = réparations nécessaires par mois</strong>.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Poste</th><th>Valeur</th></tr></thead>
+        <tbody>
+          <tr><td>Frais fixes mensuels</td><td>3 200 &euro;</td></tr>
+          <tr><td>Marge nette moyenne par réparation</td><td>35 &euro;</td></tr>
+          <tr><td><strong>Réparations pour couvrir les frais</strong></td><td><strong>&asymp; 92 / mois</strong></td></tr>
+          <tr><td>Réparations par jour ouvré (22 jours)</td><td>&asymp; 4,2 / jour</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Traduit : vous devez clore <strong>un peu plus de 4 réparations rentables par jour</strong> rien que pour être à l'équilibre. La 93e du mois est la première qui vous laisse de l'argent net. Si vous montez la marge moyenne de 35 &euro; à 45 &euro; (meilleur prix ou travaux plus rentables), votre seuil tombe à <strong>71 réparations</strong> : 21 de moins par mois pour le même résultat. C'est pourquoi monter la marge pèse plus que monter le volume.</p>
+
+    <h2 id="s5">5. Les erreurs qui tuent la rentabilité</h2>
+    <ul>
+      <li><strong>Ne pas imputer votre propre temps :</strong> si votre salaire n'est pas dans les coûts, l'atelier paraît rentable alors qu'il vous paie moins qu'un emploi salarié.</li>
+      <li><strong>Facturer la main-d'œuvre « à l'œil » :</strong> sans coût horaire calculé, les travaux longs et bon marché vous coulent sans que vous le remarquiez.</li>
+      <li><strong>Stock dormant :</strong> des pièces achetées qui ne tournent pas sont de l'argent immobilisé, parfois obsolète. Du capital qui ne travaille pas.</li>
+      <li><strong>Dettes clients non encaissées :</strong> des réparations livrées « à payer plus tard » qui s'accumulent. C'est de la marge réelle qui n'entre pas en caisse.</li>
+      <li><strong>Ne pas mesurer par service :</strong> sans savoir quelle réparation laisse le plus, vous poussez les mauvaises et négligez les bonnes.</li>
+    </ul>
+    <p>Toutes ces erreurs ont un point commun : elles sont invisibles si vous ne suivez pas les chiffres. Et les suivre à la main, avec des cahiers ou un tableur isolé, presque personne ne tient mois après mois.</p>
+
+    <div class="callout"><p><strong>TekPair</strong> vous donne ces chiffres sans calcul manuel : rapports de facturation et de marge par période, registre des <strong>dépenses</strong> pour connaître votre coût réel, et suivi des <strong>dettes clients</strong> pour ne pas laisser d'argent dehors. Vous savez à tout moment si vous êtes au-dessus de votre seuil de rentabilité. <a href="https://www.tekpair.tech" style="color:var(--terracota-dark);font-weight:600;">Essayez gratuitement &rarr;</a></p></div>
+
+    <section class="faq-section" id="faq">
+      <h2>Questions fréquentes</h2>
+      <details><summary>Quelle est une bonne marge pour un atelier de réparation ?</summary><div class="faq-body">En repère, visez une marge nette de 30 à 45 % par réparation close, multipliez votre coût horaire par 2 à 2,5 sur la main-d'œuvre, et appliquez une marge de 50 à 100 % sur le coût des pièces. En dessous de 25 % net, vous êtes trop juste pour absorber les imprévus.</div></details>
+      <details><summary>Comment calculer mon coût horaire réel ?</summary><div class="faq-body">Additionnez tous vos frais fixes mensuels (loyer, charges, votre salaire, logiciel, assurances) et divisez-les par les heures réellement facturées par mois, pas par celles passées à l'atelier. Avec 3 200 &euro; de frais et 110 heures facturées, votre heure coûte environ 29 &euro;.</div></details>
+      <details><summary>Qu'est-ce que le seuil de rentabilité et comment le trouver ?</summary><div class="faq-body">C'est le nombre de réparations (ou le chiffre d'affaires) qui couvre tous vos frais ; au-delà, vous gagnez de l'argent. Divisez vos frais fixes par la marge nette moyenne par réparation : 3 200 &euro; &divide; 35 &euro; &asymp; 92 réparations par mois. Monter la marge moyenne fait baisser ce nombre rapidement.</div></details>
+      <details><summary>TekPair me donne-t-il ces chiffres automatiquement ?</summary><div class="faq-body">Oui. TekPair réunit votre facturation, vos dépenses et les dettes clients en attente dans des rapports par période, vous voyez donc la marge réelle et si vous dépassez votre seuil de rentabilité sans monter de tableurs à la main.</div></details>
+    </section>
+    <!-- RELATED -->
+<section class="post-related" style="margin:36px 0 8px;padding-top:24px;border-top:1px solid #E2E8F0"><div style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#64748B;margin-bottom:14px">À lire ensuite</div><div style="display:grid;gap:10px"><a href="/blog/poner-precio-reparaciones-movil.html" style="display:block;color:#0F1729;text-decoration:none;font-weight:600;font-size:15px;padding:12px 14px;border:1px solid #E2E8F0;border-radius:10px">&rarr; Comment fixer le prix des réparations de téléphone</a><a href="/blog/subir-ticket-medio-taller-reparacion.html" style="display:block;color:#0F1729;text-decoration:none;font-weight:600;font-size:15px;padding:12px 14px;border:1px solid #E2E8F0;border-radius:10px">&rarr; Comment augmenter le panier moyen de votre atelier</a><a href="/blog/errores-taller-reparacion-moviles.html" style="display:block;color:#0F1729;text-decoration:none;font-weight:600;font-size:15px;padding:12px 14px;border:1px solid #E2E8F0;border-radius:10px">&rarr; Les erreurs qui font perdre de l'argent à un atelier</a></div><div style="margin-top:20px;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span style="font-size:13px;color:#64748B;font-weight:600">Partager :</span><a href="https://wa.me/?text=Rentabilit%C3%A9%20r%C3%A9elle%20d%27un%20atelier%20de%20r%C3%A9paration%20https%3A%2F%2Fwww.tekpair.tech%2Fblog%2Ffr%2Frentabilite-marge-atelier-reparation.html" target="_blank" rel="noopener" style="font-size:13px;color:#fff;background:#25D366;padding:7px 14px;border-radius:8px;text-decoration:none;font-weight:600">WhatsApp</a><a href="https://twitter.com/intent/tweet?text=Rentabilit%C3%A9%20r%C3%A9elle%20d%27un%20atelier%20de%20r%C3%A9paration&url=https%3A%2F%2Fwww.tekpair.tech%2Fblog%2Ffr%2Frentabilite-marge-atelier-reparation.html" target="_blank" rel="noopener" style="font-size:13px;color:#fff;background:#0F1419;padding:7px 14px;border-radius:8px;text-decoration:none;font-weight:600">X</a><a href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fwww.tekpair.tech%2Fblog%2Ffr%2Frentabilite-marge-atelier-reparation.html" target="_blank" rel="noopener" style="font-size:13px;color:#fff;background:#0A66C2;padding:7px 14px;border-radius:8px;text-decoration:none;font-weight:600">LinkedIn</a></div></section>
+    <div class="cta-box">
+      <h2>Connaissez la marge réelle de votre atelier</h2>
+      <p>TekPair réunit facturation, dépenses et dettes clients dans des rapports clairs. Sachez à tout moment si vous gagnez de l'argent, pas seulement si vous travaillez.</p>
+      <a href="https://www.tekpair.tech" class="cta-btn">Commencez gratuitement sur TekPair &rarr;</a>
+    </div>
+  </main>
+  <footer>
+    <p>&#169; 2026 <a href="https://www.tekpair.tech">TekPair</a> &middot; Logiciel de gestion pour ateliers de réparation</p>
+    <p style="margin-top:0.5rem;"><a href="https://www.tekpair.tech/blog/fr/">Blog</a> &middot; <a href="https://www.tekpair.tech/privacidad.html">Confidentialité</a> &middot; <a href="https://www.tekpair.tech/terminos.html">Conditions</a></p>
+  </footer>
+</body>
+</html>
