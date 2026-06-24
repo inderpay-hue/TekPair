@@ -111,6 +111,16 @@ async function _storageEnsure() {
 }
 function _storagePct() { var l = _storageLimite(); return l ? Math.min(100, Math.round((STORAGE_USADO || 0) / l * 100)) : 0; }
 function _fmtMB(b) { return (b / (1024 * 1024)).toFixed(b >= 1024 * 1024 * 100 ? 0 : 1) + ' MB'; }
+// Indicador de uso de almacenamiento de fotos en Ajustes › Cuenta.
+async function renderStorageUso() {
+  var txt = document.getElementById('storageUsoTxt'); if (!txt) return;
+  try { await _storageEnsure(); } catch (e) {}
+  var lim = _storageLimite(), pct = _storagePct();
+  txt.textContent = _fmtMB(STORAGE_USADO || 0) + ' / ' + _fmtMB(lim);
+  var pe = document.getElementById('storageUsoPct'); if (pe) pe.textContent = pct + '%';
+  var bar = document.getElementById('storageUsoBar');
+  if (bar) { bar.style.width = pct + '%'; bar.style.background = pct >= 90 ? 'var(--red)' : (pct >= 70 ? 'var(--orange)' : 'var(--green)'); }
+}
 
 // ¿El usuario tiene acceso a esta feature?
 function tieneFeature(featureName) {
@@ -2075,7 +2085,7 @@ function navTo(id) {
   if (id === 'pPedidos') renderPedidosPage();
   if (id === 'pAyuda') { try { renderGuiaAyuda(); } catch(e){} }
   if (id === 'pGastos') renderGastos();
-  if (id === 'pAjustes') { try { renderUbicacionesAjustes(); } catch(e){} cargarAjustes(); }
+  if (id === 'pAjustes') { try { renderUbicacionesAjustes(); } catch(e){} cargarAjustes(); try { renderStorageUso(); } catch(e){} }
   if (id === 'pReportes') renderReporte();
   if (id === 'pPresupuestos') {
     renderPresupuestos();

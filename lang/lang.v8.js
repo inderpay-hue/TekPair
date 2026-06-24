@@ -4637,3 +4637,11 @@ it:{'foto.cuota_llena':'Spazio foto pieno ({u} di {l}). Passa a un piano superio
 de:{'foto.cuota_llena':'Fotospeicher voll ({u} von {l}). Mach ein Upgrade für mehr Speicher.'},
 pt:{'foto.cuota_llena':'Armazenamento de fotos cheio ({u} de {l}). Faz upgrade para carregar mais.'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{'acc.fotos_titulo':'📸 Almacenamiento de fotos','acc.fotos_desc':'Espacio que ocupan las fotos de tus reparaciones. La limpieza automática libera las de reparaciones entregadas hace más de un año.'},
+en:{'acc.fotos_titulo':'📸 Photo storage','acc.fotos_desc':'Space used by your repair photos. Automatic cleanup frees those from repairs delivered over a year ago.'},
+fr:{'acc.fotos_titulo':'📸 Stockage des photos','acc.fotos_desc':'Espace occupé par les photos de vos réparations. Le nettoyage automatique libère celles des réparations remises il y a plus d\'un an.'},
+it:{'acc.fotos_titulo':'📸 Spazio foto','acc.fotos_desc':'Spazio occupato dalle foto delle tue riparazioni. La pulizia automatica libera quelle delle riparazioni consegnate da oltre un anno.'},
+de:{'acc.fotos_titulo':'📸 Fotospeicher','acc.fotos_desc':'Speicher, den deine Reparaturfotos belegen. Die automatische Bereinigung gibt die von vor über einem Jahr übergebenen Reparaturen frei.'},
+pt:{'acc.fotos_titulo':'📸 Armazenamento de fotos','acc.fotos_desc':'Espaço ocupado pelas fotos das tuas reparações. A limpeza automática liberta as de reparações entregues há mais de um ano.'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
