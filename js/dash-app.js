@@ -92,6 +92,26 @@ var PLAN_LIMITS = {basico: {usuarios: 1}, pro: {usuarios: 3}, top: {usuarios: 99
 // Niveles de plan ordenados
 var PLAN_TIER = {basico: 1, pro: 2, top: 3, premium: 3};
 
+// M7 · Cuota de almacenamiento de fotos por plan (bytes). Trial = límite premium.
+// A ~250 KB/foto comprimida: básico ≈ 800 fotos, pro ≈ 4.000, premium ≈ 20.000.
+var PLAN_STORAGE_BYTES = { basico: 200 * 1024 * 1024, pro: 1024 * 1024 * 1024, top: 5 * 1024 * 1024 * 1024, premium: 5 * 1024 * 1024 * 1024 };
+var STORAGE_USADO = null;       // bytes usados (se carga la 1ª vez que se necesita)
+var _fotoSizes = {};            // path -> bytes (para decrementar al quitar una foto recién subida)
+function _storageLimite() {
+  var plan = (PLAN_INFO.status === 'trial') ? 'premium' : (PLAN_INFO.plan || 'basico');
+  return PLAN_STORAGE_BYTES[plan] || PLAN_STORAGE_BYTES.basico;
+}
+async function _storageEnsure() {
+  if (STORAGE_USADO !== null) return STORAGE_USADO;
+  try {
+    var rows = await sbGet('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID) + '&select=storage_usado_bytes');
+    STORAGE_USADO = (rows && rows[0] && Number(rows[0].storage_usado_bytes)) || 0;
+  } catch (e) { STORAGE_USADO = 0; }
+  return STORAGE_USADO;
+}
+function _storagePct() { var l = _storageLimite(); return l ? Math.min(100, Math.round((STORAGE_USADO || 0) / l * 100)) : 0; }
+function _fmtMB(b) { return (b / (1024 * 1024)).toFixed(b >= 1024 * 1024 * 100 ? 0 : 1) + ' MB'; }
+
 // ¿El usuario tiene acceso a esta feature?
 function tieneFeature(featureName) {
   // Durante trial activo (no expirado), TODAS las features están desbloqueadas
@@ -16183,11 +16203,33 @@ async function _repSubirFoto(file) {
   if (!SB_KEY || !TIENDA_ID) { toast(T('foto.sin_conexion'), 'err'); return null; }
   try {
     var blob = await comprimirImagen(file, 1280, 0.7);
+    // M7 cuota: comprobar que cabe en el límite del plan antes de subir.
+    await _storageEnsure();
+    if ((STORAGE_USADO + blob.size) > _storageLimite()) {
+      toast(T('foto.cuota_llena').replace('{u}', _fmtMB(STORAGE_USADO)).replace('{l}', _fmtMB(_storageLimite())), 'err');
+      try { var sig = (PLAN_INFO.plan === 'pro') ? 'premium' : 'pro'; mostrarModalUpgrade('', sig); } catch (e) {}
+      return null;
+    }
     var path = TIENDA_ID + '/reps/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.jpg';
     var resp = await sbStorageUpload('gastos-adjuntos', path, new Blob([blob], { type: 'image/jpeg' }));
     if (!resp.ok) { toast(T('foto.error_subir'), 'err'); return null; }
+    // Contabilizar el uso (best-effort; el cron de retención recalcula la verdad cada mes).
+    _fotoSizes[path] = blob.size;
+    STORAGE_USADO += blob.size;
+    try { sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { storage_usado_bytes: STORAGE_USADO }); } catch (e) {}
     return path;
   } catch (e) { console.error('_repSubirFoto', e); toast(T('foto.error_subir'), 'err'); return null; }
+}
+// Quitar una foto recién subida: borra el objeto del storage y descuenta el uso (evita huérfanos).
+function _repFotoQuitarStorage(path) {
+  if (!path) return;
+  try { sbStorageDelete('gastos-adjuntos', [path]); } catch (e) {}
+  var sz = _fotoSizes[path] || 0;
+  if (sz && STORAGE_USADO !== null) {
+    STORAGE_USADO = Math.max(0, STORAGE_USADO - sz);
+    delete _fotoSizes[path];
+    try { sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { storage_usado_bytes: STORAGE_USADO }); } catch (e) {}
+  }
 }
 // Pinta miniaturas (URL firmada 1h) en un contenedor; onRemove = nombre de función global (i) o null (solo ver).
 async function _repRenderFotos(containerId, paths, onRemove) {
@@ -16216,7 +16258,7 @@ async function _repFotoRecepInput(input) {
   _repRenderFotos('repFotosRecepThumbs', SEL.fotosRecepcion, '_repFotoRecepRemove');
 }
 function _repFotoRecepRemove(i) {
-  if (SEL.fotosRecepcion) { SEL.fotosRecepcion.splice(i, 1); _repRenderFotos('repFotosRecepThumbs', SEL.fotosRecepcion, '_repFotoRecepRemove'); }
+  if (SEL.fotosRecepcion) { _repFotoQuitarStorage(SEL.fotosRecepcion[i]); SEL.fotosRecepcion.splice(i, 1); _repRenderFotos('repFotosRecepThumbs', SEL.fotosRecepcion, '_repFotoRecepRemove'); }
 }
 // Entrega (modal Entregar) — SEL.fotosEntrega
 async function _repFotoEntInput(input) {
@@ -16230,7 +16272,7 @@ async function _repFotoEntInput(input) {
   _repRenderFotos('repFotosEntThumbs', SEL.fotosEntrega, '_repFotoEntRemove');
 }
 function _repFotoEntRemove(i) {
-  if (SEL.fotosEntrega) { SEL.fotosEntrega.splice(i, 1); _repRenderFotos('repFotosEntThumbs', SEL.fotosEntrega, '_repFotoEntRemove'); }
+  if (SEL.fotosEntrega) { _repFotoQuitarStorage(SEL.fotosEntrega[i]); SEL.fotosEntrega.splice(i, 1); _repRenderFotos('repFotosEntThumbs', SEL.fotosEntrega, '_repFotoEntRemove'); }
 }
 
 // ═══ DETALLE REPARACIÓN (vista lectura) ═══

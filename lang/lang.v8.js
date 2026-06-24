@@ -4629,3 +4629,11 @@ it:{'mt.anadir_precio':'Negozio extra: 24,90 €/mese (aggiunto al tuo abbonamen
 de:{'mt.anadir_precio':'Zusätzlicher Laden: 24,90 €/Monat (zu deinem Abo hinzugefügt).'},
 pt:{'mt.anadir_precio':'Loja extra: 24,90 €/mês (adicionada à tua subscrição).'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{'foto.cuota_llena':'Almacenamiento de fotos lleno ({u} de {l}). Mejora tu plan para subir más.'},
+en:{'foto.cuota_llena':'Photo storage full ({u} of {l}). Upgrade your plan to upload more.'},
+fr:{'foto.cuota_llena':'Stockage photos plein ({u} sur {l}). Améliorez votre offre pour en envoyer plus.'},
+it:{'foto.cuota_llena':'Spazio foto pieno ({u} di {l}). Passa a un piano superiore per caricarne altre.'},
+de:{'foto.cuota_llena':'Fotospeicher voll ({u} von {l}). Mach ein Upgrade für mehr Speicher.'},
+pt:{'foto.cuota_llena':'Armazenamento de fotos cheio ({u} de {l}). Faz upgrade para carregar mais.'},
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
