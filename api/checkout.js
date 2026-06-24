@@ -39,7 +39,8 @@ export default async function handler(req, res) {
     const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
     const SUPABASE_URL = process.env.SUPABASE_URL;
     const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
-    const ADDON_PRICE = process.env.STRIPE_ADDON_PRICE_ID;
+    // Acepta el nombre canónico o el alias _EXTRA_TIENDA (por si la env se nombró así en Vercel).
+    const ADDON_PRICE = process.env.STRIPE_ADDON_PRICE_ID || process.env.STRIPE_ADDON_PRICE_ID_EXTRA_TIENDA;
     const token = req.body.token;
     const tiendaNombre = String(req.body.tienda_nombre || '').trim();
     if (!token || !tiendaNombre) return res.status(400).json({ error: 'Faltan datos' });
