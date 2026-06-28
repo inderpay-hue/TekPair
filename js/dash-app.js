@@ -297,10 +297,11 @@ function checkFeature(featureName) {
 }
 
 // ═══ NOVEDADES: banner de mejoras para las tiendas (se muestra 1 vez por versión) ═══
-var NOVEDADES_VERSION = '2026-06-21';
+var NOVEDADES_VERSION = '2026-06-28';
 // Changelog por fecha (lo más nuevo primero). El banner automático muestra solo el
 // último lanzamiento; en Ajustes › Novedades se ve el historial completo.
 var CHANGELOG = [
+  { fecha: '2026-06-28', items: ['nov.h1', 'nov.h2', 'nov.h3', 'nov.h4', 'nov.h5', 'nov.h6'] },
   { fecha: '2026-06-21', items: ['nov.g1', 'nov.g2', 'nov.g3', 'nov.g4', 'nov.g5', 'nov.g6'] },
   { fecha: '2026-06-14', items: ['nov.f6', 'nov.f7', 'nov.f1', 'nov.f2', 'nov.f3', 'nov.f4', 'nov.f5'] }
 ];
