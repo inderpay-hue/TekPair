@@ -6211,7 +6211,12 @@ function renderVentas() {
   list.forEach(function(v) {
     var badges = '';
     if (v.reembolsado) badges += '<span class="badge-reem">' + T('ventas.reembolsado') + '</span>';
-    if (v.financiado && !v.reembolsado) badges += '<span class="badge-fin">' + T('fin.badge') + '</span>';
+    if (v.financiado && !v.reembolsado) {
+      var _cuoF = v.cuotas || [];
+      var _nPagF = _cuoF.filter(function(c){ return c.pagado; }).length;
+      var _compF = (v.estadoFinanciado === 'completado') || (_cuoF.length > 0 && _nPagF >= _cuoF.length);
+      badges += '<span class="badge-fin" style="background:' + (_compF ? 'rgba(0,200,150,.15)' : 'rgba(234,88,12,.12)') + ';color:' + (_compF ? '#0F7355' : '#C2491A') + '">' + (_compF ? '✅ ' + T('fin.completado') : '⏳ ' + T('finv.pendiente') + (_cuoF.length ? ' ' + _nPagF + '/' + _cuoF.length : '')) + '</span>';
+    }
     var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="Reembolsar">\u21a9</button>' : '';
     var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="edit" class="row-btn btn-fin" title="Financiación">\ud83d\udcb0</button>' : '';
     var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="Reimprimir ticket">\ud83d\udda8</button>';
