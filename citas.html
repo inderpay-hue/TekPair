@@ -133,9 +133,10 @@ var SUP_LANGS = ['es','en','fr','it','de','pt'];
 var LANG = (function(){
   var q = (new URLSearchParams(location.search)).get('lang');
   if (q && SUP_LANGS.indexOf(q) !== -1) { try{localStorage.setItem('tk_cita_lang',q);}catch(e){} return q; }
-  try { var s = localStorage.getItem('tk_cita_lang'); if (s && SUP_LANGS.indexOf(s)!==-1) return s; } catch(e){}
   var n = (navigator.language || 'es').slice(0,2).toLowerCase();
-  return SUP_LANGS.indexOf(n) !== -1 ? n : 'es';
+  if (SUP_LANGS.indexOf(n) !== -1) return n;
+  try { var s = localStorage.getItem('tk_cita_lang'); if (s && SUP_LANGS.indexOf(s)!==-1) return s; } catch(e){}
+  return 'es';
 })();
 document.documentElement.lang = LANG;
 var TX = {
