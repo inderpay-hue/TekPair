@@ -2320,24 +2320,48 @@ function _sbErrorToast(method, table, info) {
   if (typeof toast === 'function') toast('⚠ Sync ' + table + ': ' + String(msg).substring(0, 60), 'err');
 }
 
+// Deduplicación de lecturas: micro-caché (TTL corto) + colapso de GETs idénticos en vuelo.
+// Reduce las peticiones repetidas del burst de carga (tiendas/pedidos ×N). Se invalida en
+// CADA escritura (sbPost/sbPatch/sbDelete) → las acciones del usuario siempre ven datos frescos.
+var _sbReadCache = {};
+var _sbReadInflight = {};
+var _SB_READ_TTL = 1000; // ms
+function _sbReadCacheClear() { _sbReadCache = {}; }
 function sbGet(table, query) {
-  return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*', {
+  var key = 'G|' + table + '|' + query;
+  var c = _sbReadCache[key];
+  if (c && (Date.now() - c.t) < _SB_READ_TTL) return Promise.resolve(c.data);
+  if (_sbReadInflight[key]) return _sbReadInflight[key];
+  var _err = false;
+  var p = fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*', {
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
   }).then(function(r) {
     if (!r.ok) {
+      _err = true;
       return r.json().then(function(err){ _sbErrorToast('GET', table, err); return []; }, function(){ _sbErrorToast('GET', table, {status:r.status}); return []; });
     }
     return r.json();
   }).catch(function(e) {
+    _err = true;
     _sbErrorToast('GET', table, e);
     return [];
+  }).then(function(data) {
+    delete _sbReadInflight[key];
+    if (!_err) _sbReadCache[key] = { t: Date.now(), data: data };
+    return data;
   });
+  _sbReadInflight[key] = p;
+  return p;
 }
 
 // Como sbGet pero PAGINADO. PostgREST devuelve máx. 1000 filas por petición; en tiendas con mucho
 // volumen eso "perdía" datos (clientes/ventas/etc. más allá de 1000 no se cargaban). Trae TODO en lotes.
 // La query NO debe traer su propio 'order' (aquí se ordena por id para paginar de forma estable).
 function sbGetAll(table, query) {
+  var key = 'GA|' + table + '|' + query;
+  var c = _sbReadCache[key];
+  if (c && (Date.now() - c.t) < _SB_READ_TTL) return Promise.resolve(c.data);
+  if (_sbReadInflight[key]) return _sbReadInflight[key];
   var PAGE = 1000, all = [];
   function pag(offset) {
     var url = SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*&order=id.asc&limit=' + PAGE + '&offset=' + offset;
@@ -2350,7 +2374,13 @@ function sbGetAll(table, query) {
         return pag(offset + PAGE);
       }, function() { return all; });
   }
-  return pag(0).catch(function() { return all; });
+  var p = pag(0).catch(function() { return all; }).then(function(rows) {
+    delete _sbReadInflight[key];
+    _sbReadCache[key] = { t: Date.now(), data: rows };
+    return rows;
+  });
+  _sbReadInflight[key] = p;
+  return p;
 }
 
 
@@ -2506,6 +2536,7 @@ function _es409Grave(res) {
 }
 
 function _sbPatchRaw(table, query, data) {
+  _sbReadCacheClear();
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
     method: 'PATCH',
     // return=representation → la respuesta trae las filas actualizadas; así detectamos
@@ -2559,6 +2590,7 @@ setTimeout(function(){ _syncQueueRetry(); _syncIndicatorUpdate(); }, 2000);
 
 
 function sbPost(table, data) {
+  _sbReadCacheClear();
   return _sbPostRaw(table, data).then(function(res) {
     if (res.ok) return true;
     // 409 con código 23505 (PK/único) = el registro YA existe. Con ids de cliente + sync "al menos una vez",
@@ -2597,6 +2629,7 @@ function sbPost(table, data) {
 }
 
 function sbPatch(table, query, data) {
+  _sbReadCacheClear();
   return _sbPatchRaw(table, query, data).then(function(res) {
     if (res.ok) {
       // RLS-silencioso: 200/204 pero 0 filas actualizadas = la fila no es visible/editable
@@ -2634,6 +2667,7 @@ function sbPatch(table, query, data) {
 }
 
 function sbDelete(table, query) {
+  _sbReadCacheClear();
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
     method: 'DELETE',
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
@@ -2794,6 +2828,7 @@ var _syncEnCurso = false;
 var _syncPausado = false; // se activa durante restauración/import para evitar pisado
 async function syncCompleto(silencioso) {
   if (_sesionExpirada) return;
+  _sbReadCacheClear(); // la sincronización completa SIEMPRE trae datos frescos (no servir caché)
   if (_syncEnCurso) return;
   if (_syncPausado) return;
   if (!SB_KEY || !TIENDA_ID) return;
