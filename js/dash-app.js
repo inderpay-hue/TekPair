@@ -11587,8 +11587,17 @@ function eliminarReparacion(id) {
 // ═══ PROVEEDORES ═══
 function renderProvs() {
   var el = document.getElementById('listaProvs');
-  if (!DB.provs.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83c\udfed</div>' + T('gen.sin_proveedores') + '</div>'; return; }
-  el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('cli.nombre') + '</th><th>' + T('fact.nif_cif').replace(' *','') + '</th><th>' + T('cli.telefono') + '</th><th>' + T('cli.email') + '</th><th>' + T('cli.ciudad') + '</th><th>' + T('gastos.acciones') + '</th></tr></thead><tbody>' +
+  // Ad-hoc: proveedores escritos a mano en pedidos con deuda pero sin ficha (por tienda).
+  var _deudaMap = (typeof _deudaProveedores === 'function') ? _deudaProveedores() : {};
+  var _provNoms = {}; (DB.provs || []).forEach(function(p){ if (p && p.nombre) _provNoms[p.nombre.trim().toLowerCase()] = true; });
+  var _adhoc = Object.keys(_deudaMap).filter(function(nom){ return nom && nom !== _SIN_PROV && (_deudaMap[nom] > 0.005) && !_provNoms[nom.trim().toLowerCase()]; }).sort(function(a,b){ return _deudaMap[b] - _deudaMap[a]; });
+  var _adhocHtml = '';
+  if (_adhoc.length) {
+    _adhocHtml = '<div style="background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.25);border-radius:12px;padding:12px 14px;margin-bottom:14px"><div style="font-weight:800;font-size:12.5px;margin-bottom:8px">⚠️ ' + T('prov.deuda_sin_ficha') + '</div>' + _adhoc.map(function(nom){ var _argN = String(nom).replace(/'/g, "\\'").replace(/"/g, '&quot;'); return '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--border)"><div style="min-width:0"><strong>' + esc(nom) + '</strong> &middot; <span style="color:var(--red);font-weight:700">' + cur(_deudaMap[nom]) + '</span></div><button class="btn-sm" style="background:var(--blue);color:white;flex-shrink:0;padding:5px 10px;font-size:11px" onclick="crearProvDesde(\'' + _argN + '\')">+ ' + T('prov.crear_ficha') + '</button></div>'; }).join('') + '</div>';
+  }
+  if (!DB.provs.length && !_adhoc.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83c\udfed</div>' + T('gen.sin_proveedores') + '</div>'; return; }
+  if (!DB.provs.length) { el.innerHTML = _adhocHtml; return; }
+  el.innerHTML = _adhocHtml + '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('cli.nombre') + '</th><th>' + T('fact.nif_cif').replace(' *','') + '</th><th>' + T('cli.telefono') + '</th><th>' + T('cli.email') + '</th><th>' + T('cli.ciudad') + '</th><th>' + T('gastos.acciones') + '</th></tr></thead><tbody>' +
     DB.provs.map(function(p) {
       return '<tr>' +
         '<td><strong>' + esc(p.nombre || '') + '</strong>' + (p.nota ? '<br><span style="font-size:9px;color:var(--blue)">' + esc(p.nota) + '</span>' : '') + '</td>' +
@@ -11681,6 +11690,13 @@ function abrirNuevoProv() {
   });
   openM('mProv');
 }
+
+// Crear ficha de proveedor desde un nombre ad-hoc (deuda en pedidos sin ficha).
+function crearProvDesde(nombre) {
+  try { abrirNuevoProv(); } catch(e) {}
+  var el = document.getElementById('pNom'); if (el) el.value = nombre || '';
+}
+window.crearProvDesde = crearProvDesde;
 
 // Abrir modal en modo edición pre-cargando los campos
 function abrirEditarProv(provId) {
