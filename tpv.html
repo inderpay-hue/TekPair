@@ -218,7 +218,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
   .cart-fab,.cart-close-mobile{display:none!important}
 }
 </style>
-<script src="/lang/lang.v8.js?v=20260625zr"></script>
+<script src="/lang/lang.v8.js?v=20260628b"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -310,6 +310,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
           <span style="font-size:10px;opacity:.7">✏️</span>
         </div>
       </div>
+      <button id="btnVaciarCart" onclick="vaciarCarrito()" title="Vaciar ticket" style="display:none;background:none;border:1px solid var(--t-bd);color:var(--t-mut);border-radius:8px;padding:6px 9px;font-size:12px;font-weight:700;cursor:pointer;flex-shrink:0"><span data-t="tpv.vaciar">Vaciar</span></button>
     </div>
 
     <div class="tpv-right-content">
@@ -1394,8 +1395,10 @@ function changeQty(idx, delta) {
   renderCart();
 }
 
+function vaciarCarrito() { if (!cart.length) return; if (!confirm((typeof T==='function' && T('tpv.vaciar_confirm')) || '¿Vaciar el ticket?')) return; cart = []; try { renderCart(); } catch(e){} }
 function renderCart() {
   var el = document.getElementById('cartItems');
+  var _bv = document.getElementById('btnVaciarCart'); if (_bv) _bv.style.display = cart.length ? 'inline-flex' : 'none';
   if (!cart.length) {
     el.innerHTML = '<div class="cart-empty">📦 Añade productos al ticket</div>';
     document.getElementById('btnCheckout').disabled = true;
