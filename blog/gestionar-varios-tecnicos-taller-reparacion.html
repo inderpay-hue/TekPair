@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cómo gestionar varios técnicos en un taller de reparación | TekPair</title>
+  <meta name="description" content="Repartir reparaciones, controlar la carga de cada técnico, ver quién hace qué, dar cuentas de empleado, medir productividad y comisiones y evitar cuellos de botella." />
+  <meta name="keywords" content="gestionar varios tecnicos taller, asignar reparaciones tecnicos, productividad tecnico reparacion, cuentas empleado taller, comisiones tecnicos taller" />
+  <link rel="canonical" href="https://www.tekpair.tech/blog/gestionar-varios-tecnicos-taller-reparacion.html" />
+  <link rel="alternate" hreflang="es" href="https://www.tekpair.tech/blog/gestionar-varios-tecnicos-taller-reparacion.html" />
+  <link rel="alternate" hreflang="en" href="https://www.tekpair.tech/blog/en/manage-multiple-technicians-repair-shop.html" />
+  <link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/blog/fr/gerer-plusieurs-techniciens-atelier-reparation.html" />
+  <link rel="alternate" hreflang="it" href="https://www.tekpair.tech/blog/it/gestire-piu-tecnici-officina-riparazione.html" />
+  <link rel="alternate" hreflang="de" href="https://www.tekpair.tech/blog/de/mehrere-techniker-reparaturwerkstatt-verwalten.html" />
+  <link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/blog/pt/gerir-varios-tecnicos-oficina-reparacao.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/blog/gestionar-varios-tecnicos-taller-reparacion.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Cómo gestionar varios técnicos en un taller de reparación" />
+  <meta property="og:description" content="Reparte reparaciones, controla la carga por técnico, mide productividad y comisiones y evita cuellos de botella y errores de traspaso." />
+  <meta property="og:url" content="https://www.tekpair.tech/blog/gestionar-varios-tecnicos-taller-reparacion.html" />
+  <meta property="og:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <meta property="og:site_name" content="TekPair" />
+  <meta property="article:published_time" content="2026-06-28" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Cómo gestionar varios técnicos en un taller de reparación" />
+  <meta name="twitter:description" content="Reparte reparaciones, controla la carga por técnico, mide productividad y comisiones y evita cuellos de botella y errores de traspaso." />
+  <meta name="twitter:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Cómo gestionar varios técnicos en un taller de reparación","description":"Repartir reparaciones, controlar la carga de cada técnico, ver quién hace qué, dar cuentas de empleado, medir productividad y comisiones y evitar cuellos de botella.","author":{"@type":"Organization","name":"TekPair","url":"https://www.tekpair.tech"},"publisher":{"@type":"Organization","name":"TekPair","logo":{"@type":"ImageObject","url":"https://www.tekpair.tech/assets/logo.png"}},"datePublished":"2026-06-28","dateModified":"2026-06-28","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tekpair.tech/blog/gestionar-varios-tecnicos-taller-reparacion.html"},"image":"https://www.tekpair.tech/assets/og-blog.png"}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --terracota: #C2410C; --terracota-dark: #9A3309; --terracota-light: #FEF0E8; --text: #1C1917; --text-muted: #78716C; --border: #E7E5E4; --bg: #FFFFFF; --bg-alt: #FAFAF9; }
+    body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--bg); line-height: 1.7; font-size: 17px; }
+    nav { border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; background: #fff; }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--terracota); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--terracota); }
+    .article-hero { background: var(--terracota-light); padding: 3.5rem 1.5rem 3rem; text-align: center; }
+    .article-hero .category { display: inline-block; background: var(--terracota); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.25rem 0.75rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .article-hero h1 { font-size: clamp(1.75rem, 4vw, 2.6rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.03em; max-width: 680px; margin: 0 auto 1rem; color: var(--text); }
+    .article-hero .intro { max-width: 600px; margin: 0 auto; color: var(--text-muted); font-size: 1.05rem; }
+    .article-meta { margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 1rem; }
+    .article-wrapper { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+    .toc { background: var(--bg-alt); border: 1px solid var(--border); border-left: 4px solid var(--terracota); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; }
+    .toc p { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--terracota); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .toc a { color: var(--text); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
+    .toc a:hover { color: var(--terracota); text-decoration: underline; }
+    h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 2.5rem 0 1rem; color: var(--text); scroll-margin-top: 16px; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 1.75rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1.1rem; color: #44403C; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    li { color: #44403C; }
+    strong { color: var(--text); font-weight: 600; }
+    .callout { background: var(--terracota-light); border-left: 4px solid var(--terracota); border-radius: 0 8px 8px 0; padding: 1.1rem 1.25rem; margin: 1.75rem 0; }
+    .callout p { margin: 0; color: #7C2D12; font-size: 0.95rem; }
+    .callout strong { color: #7C2D12; }
+    .table-wrap { overflow-x: auto; margin: 1.75rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th { background: var(--terracota); color: #fff; font-weight: 600; text-align: left; padding: 0.7rem 1rem; }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #44403C; }
+    tr:nth-child(even) td { background: var(--bg-alt); }
+    tr:last-child td { border-bottom: none; }
+    .checklist { list-style: none; padding: 0; margin: 1.25rem 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); color: #44403C; font-size: 0.95rem; }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before { content: "\2713"; flex-shrink: 0; width: 20px; height: 20px; background: var(--terracota); color: #fff; border-radius: 50%; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .faq-section { margin-top: 3rem; }
+    .faq-section h2 { margin-top: 0; }
+    details { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; }
+    summary { padding: 1rem 1.25rem; font-weight: 600; font-size: 0.97rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bg-alt); transition: background .2s; }
+    summary:hover { background: var(--terracota-light); }
+    summary::after { content: "+"; font-size: 1.2rem; color: var(--terracota); font-weight: 700; }
+    details[open] summary::after { content: "\2212"; }
+    details[open] summary { background: var(--terracota-light); }
+    .faq-body { padding: 1rem 1.25rem; font-size: 0.95rem; color: #44403C; }
+    .cta-box { background: var(--terracota); color: #fff; border-radius: 12px; padding: 2.5rem 2rem; text-align: center; margin-top: 3.5rem; }
+    .cta-box h2 { color: #fff; font-size: 1.5rem; margin: 0 0 0.75rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); margin-bottom: 1.5rem; font-size: 1rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--terracota); font-weight: 700; font-size: 0.95rem; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; }
+    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+    footer a { color: var(--terracota); text-decoration: none; }
+    @media (max-width: 600px) { .nav-links { display: none; } .article-hero { padding: 2.5rem 1.25rem 2rem; } .article-wrapper { padding: 2rem 1.25rem 3rem; } }
+  </style>
+  <script src="/cookies-consent.js" defer></script>
+</head>
+<body>
+  <nav>
+    <a href="https://www.tekpair.tech" class="nav-logo">TekPair</a>
+    <div class="nav-links">
+      <a href="https://www.tekpair.tech/blog/">Blog</a>
+      <a href="https://www.tekpair.tech/#funcionalidades">Funcionalidades</a>
+      <a href="https://www.tekpair.tech/#precios">Precios</a>
+      <a href="https://www.tekpair.tech/app.html">Iniciar sesión</a>
+    </div>
+  </nav>
+  <header class="article-hero">
+    <div class="category">Gestión</div>
+    <h1>Cómo gestionar varios técnicos en un taller de reparación</h1>
+    <p class="intro">Pasar de trabajar solo a coordinar un equipo cambia las reglas del juego. Esta guía te enseña a repartir reparaciones, controlar la carga de cada técnico, saber siempre quién hace qué, dar cuentas de empleado, medir productividad y comisiones, y evitar los cuellos de botella y los errores de traspaso que aparecen cuando dejas de hacerlo todo tú.</p>
+    <div class="article-meta"><span>&#128197; 28 de junio de 2026</span><span>&#9201; 9 min de lectura</span></div>
+  </header>
+  <main class="article-wrapper">
+    <div class="toc" role="navigation" aria-label="En este artículo">
+      <p>En este artículo</p>
+      <ol><li><a href="#s1">Qué cambia al pasar de 1 a varios técnicos</a></li><li><a href="#s2">Cómo repartir y asignar las reparaciones</a></li><li><a href="#s3">Controlar la carga de trabajo de cada técnico</a></li><li><a href="#s4">Permisos y cuentas de empleado</a></li><li><a href="#s5">Medir productividad y comisiones</a></li><li><a href="#s6">Evitar cuellos de botella y errores de traspaso</a></li><li><a href="#faq">Preguntas frecuentes</a></li></ol>
+    </div>
+
+    <p>Cuando trabajas solo, toda la información del taller está en tu cabeza: sabes qué móvil está en cada cajón, a quién llamar y qué falta por pedir. En cuanto entra un segundo o un tercer técnico, esa memoria deja de funcionar. Aparecen los "creía que lo hacías tú", las reparaciones que nadie toca y los clientes que llaman por un equipo que ningún técnico recuerda. Gestionar varios técnicos no es trabajar más rápido: es hacer que la información salga de tu cabeza y sea visible para todos. Esta guía te da el sistema, paso a paso.</p>
+
+    <h2 id="s1">1. Qué cambia al pasar de 1 a varios técnicos</h2>
+    <p>El error más común al crecer es seguir trabajando como cuando eras uno solo, pero con más manos. No funciona. Hay tres cosas que cambian de golpe:</p>
+    <ul>
+      <li><strong>La asignación deja de ser obvia.</strong> Antes cada reparación era tuya. Ahora alguien tiene que decidir <em>quién</em> coge cada equipo, y si no lo decides tú, lo decide el azar (o el técnico que prefiere los trabajos fáciles).</li>
+      <li><strong>El estado deja de estar en tu cabeza.</strong> Si tres personas tocan reparaciones, nadie tiene la foto completa salvo que esté escrita en algún sitio compartido y actualizado.</li>
+      <li><strong>El traspaso se vuelve crítico.</strong> Un equipo que pasa de la persona del mostrador al técnico, y del técnico a quien lo entrega, cruza tres manos. Cada salto es una oportunidad de perder información.</li>
+    </ul>
+    <p>La buena noticia: estos tres problemas se resuelven con el mismo principio. Toda reparación tiene que tener, en todo momento, un <strong>responsable visible</strong>, un <strong>estado claro</strong> y un <strong>histórico de lo que se ha hecho</strong>. Sin eso, cada técnico extra que contrates añade caos en lugar de capacidad.</p>
+
+    <h2 id="s2">2. Cómo repartir y asignar las reparaciones</h2>
+    <p>Asignar bien no es repartir a partes iguales. Un buen reparto tiene en cuenta la especialidad, la dificultad y la urgencia. Estos son los criterios que usan los talleres que crecen sin atascarse:</p>
+    <h3>Por especialidad</h3>
+    <p>Si uno es rápido con microsoldadura y otro vuela cambiando pantallas, no los obligues a hacer lo contrario. Asigna por fortaleza siempre que puedas: un trabajo de placa a tu técnico de microsoldadura rinde el doble que si lo coge alguien que solo lo hace de vez en cuando.</p>
+    <h3>Por carga, no por orden de llegada</h3>
+    <p>No asignes "el siguiente al que esté libre" sin mirar. Mira cuántas reparaciones abiertas tiene ya cada uno. El objetivo es que nadie esté ahogado mientras otro espera trabajo.</p>
+    <h3>Por urgencia</h3>
+    <p>Marca prioridad (normal, alta, urgente) en la propia reparación. Un cliente que espera en el local mientras tú reparas su móvil no puede ir a la misma cola que un equipo que se entrega la semana que viene.</p>
+    <div class="callout"><p><strong>Regla práctica:</strong> que cada reparación tenga un técnico asignado <em>antes</em> de salir del mostrador. Una reparación sin dueño es una reparación que se queda parada. Si entra y nadie tiene su nombre puesto, nadie la siente suya.</p></div>
+    <p>El soporte da igual mientras sea compartido y se actualice: una pizarra puede valer para dos personas en un local pequeño, pero a partir de tres técnicos o dos turnos se queda corta enseguida. Aquí es donde un <a href="https://www.tekpair.tech/blog/software-gestion-taller-reparacion-moviles.html" style="color:var(--terracota-dark);font-weight:600;">software de gestión de taller</a> marca la diferencia: la asignación queda registrada, es visible para todos y se puede cambiar en un clic.</p>
+
+    <h2 id="s3">3. Controlar la carga de trabajo de cada técnico</h2>
+    <p>"¿Quién está saturado?" debería ser una pregunta que respondes de un vistazo, no algo que descubres cuando un cliente se queja del retraso. La carga se controla mirando dos cosas: cuántas reparaciones abiertas tiene cada técnico y cuántas lleva pendientes de empezar.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Técnico</th><th>En proceso</th><th>En cola</th><th>Estado</th></tr></thead>
+        <tbody>
+          <tr><td>Ana (pantallas)</td><td>3</td><td>2</td><td>Equilibrada</td></tr>
+          <tr><td>Marcos (microsoldadura)</td><td>5</td><td>4</td><td>Saturado</td></tr>
+          <tr><td>Lucía (general)</td><td>2</td><td>0</td><td>Con hueco</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Con una foto así, la decisión es obvia: lo siguiente que entre y no sea de placa va para Lucía, y conviene pasar a Ana algún trabajo de la cola de Marcos si es compatible. Sin esta visión, el reparto se hace "a sensación" y casi siempre se equivoca: el técnico que más habla parece el más ocupado, y el callado acaba sepultado.</p>
+    <p>Un tablero por estados (recibido, en proceso, esperando pieza, listo, entregado) con el nombre del técnico en cada tarjeta te da exactamente esta lectura. De un vistazo ves quién tiene la columna "en proceso" llena y quién está vacío.</p>
+
+    <h2 id="s4">4. Permisos y cuentas de empleado</h2>
+    <p>Darle a cada técnico su propia cuenta no es solo orden: es seguridad y trazabilidad. Si todos entran con el mismo usuario, nunca sabrás quién hizo qué, quién aplicó ese descuento raro o quién cerró una reparación que no estaba acabada.</p>
+    <p>Lo que deberías poder controlar por empleado:</p>
+    <ul>
+      <li><strong>Acceso individual:</strong> cada técnico con su usuario y contraseña. Si uno se va, le quitas el acceso sin tocar a los demás.</li>
+      <li><strong>Permisos por rol:</strong> un técnico no necesita ver el cuadro de caja, los márgenes ni los datos del resto. Que cada uno vea lo justo para hacer su trabajo.</li>
+      <li><strong>Trazabilidad:</strong> que quede registrado quién recibió el equipo, quién lo reparó, quién aplicó qué precio y quién lo entregó.</li>
+    </ul>
+    <div class="callout"><p><strong>Por qué importa:</strong> el día que una reparación salga mal o falte dinero en caja, la diferencia entre "no tengo ni idea de qué pasó" y "esto lo hizo tal persona tal día" es tener cuentas separadas. No es desconfiar del equipo: es protegerlo a él y a ti.</p></div>
+    <p>Con cuentas individuales también puedes empezar a medir de verdad, porque cada reparación queda asociada a quien la hizo. Y eso abre la puerta a lo siguiente: la productividad y las comisiones.</p>
+
+    <h2 id="s5">5. Medir productividad y comisiones</h2>
+    <p>Si quieres premiar al que más rinde —o simplemente saber a quién formar—, necesitas números, no impresiones. Con cada reparación atribuida a un técnico, puedes mirar métricas reales por persona:</p>
+    <ul>
+      <li><strong>Reparaciones cerradas:</strong> cuántas completa cada uno por semana o mes.</li>
+      <li><strong>Facturación generada:</strong> el importe de los trabajos que ha cerrado.</li>
+      <li><strong>Tiempo medio por reparación:</strong> útil para detectar quién va rápido y quién se atasca (ojo: rápido no siempre es mejor, hay que cruzarlo con repeticiones).</li>
+      <li><strong>Tasa de retornos:</strong> reparaciones que vuelven por garantía. Una tasa alta avisa de prisas o de falta de formación.</li>
+    </ul>
+    <h3>Comisiones que motivan sin romper la caja</h3>
+    <p>Un esquema típico es pagar al técnico un porcentaje de la mano de obra (no del total, que incluye el coste de la pieza) de las reparaciones que cierra. Por ejemplo, un 10–15 % de la mano de obra. Para que funcione sin disgustos, la comisión debería:</p>
+    <ul>
+      <li>Calcularse solo sobre reparaciones <strong>entregadas y cobradas</strong>, no abiertas.</li>
+      <li>Basarse en la mano de obra, para que nadie cobre comisión por el coste de la pieza.</li>
+      <li>Restar (o no contar) las reparaciones que vuelven por garantía, para premiar el trabajo bien hecho, no solo el rápido.</li>
+    </ul>
+    <p>Llevar esto a mano cada mes es un infierno de Excel. Si tu sistema ya atribuye cada reparación a su técnico y guarda la mano de obra y el estado de cobro, el cálculo sale casi solo. Para entender qué parte del ticket es comisionable conviene tener claro tu <a href="https://www.tekpair.tech/blog/rentabilidad-margen-taller-reparacion.html" style="color:var(--terracota-dark);font-weight:600;">margen real por reparación</a>: comisionar sobre el total en vez de sobre la mano de obra puede dejarte sin beneficio.</p>
+
+    <h2 id="s6">6. Evitar cuellos de botella y errores de traspaso</h2>
+    <p>Los dos enemigos de un taller con equipo son el cuello de botella (todo el trabajo atascado en una persona o un paso) y el error de traspaso (información que se pierde al pasar un equipo de mano en mano). Así se atacan:</p>
+    <h3>Cuellos de botella</h3>
+    <ul>
+      <li><strong>El dueño como tapón:</strong> si todo pasa por ti para aprobarlo, tú eres el cuello. Delega decisiones rutinarias (precios estándar, garantías claras) y reserva tu tiempo para lo que de verdad necesita tu criterio.</li>
+      <li><strong>El especialista único:</strong> si solo una persona sabe hacer microsoldadura y se acumulan diez placas, esos trabajos se paran. Forma a un segundo aunque sea a nivel básico, y prioriza su cola.</li>
+      <li><strong>La espera de piezas:</strong> reparaciones paradas esperando repuesto que nadie pidió. Un estado "esperando pieza" visible evita que se queden en el limbo.</li>
+    </ul>
+    <h3>Errores de traspaso</h3>
+    <p>El traspaso es el momento más frágil. Un equipo cambia de manos del mostrador al técnico y del técnico a quien lo entrega, y en cada salto se puede perder el problema declarado, el patrón de desbloqueo o el accesorio que traía. La forma de blindarlo es tener cada reparación con su ficha viva: estado actualizado, notas de lo hecho y todo lo recibido anotado. Ahí ayuda mucho un buen sistema de <a href="https://www.tekpair.tech/blog/organizar-entrada-salida-equipos-taller.html" style="color:var(--terracota-dark);font-weight:600;">entrada y salida de equipos</a>, para que ningún móvil cambie de manos sin dejar rastro.</p>
+    <div class="callout"><p><strong>La regla de oro del traspaso:</strong> nada cambia de manos sin actualizar la ficha. Si Ana termina y deja el equipo para que Lucía lo pruebe, debe quedar escrito qué hizo. El siguiente técnico no debería tener que preguntar; debería poder leerlo.</p></div>
+
+    <div class="callout"><p><strong>TekPair</strong> está pensado para talleres con equipo: cada reparación se asigna a un técnico, ves la carga de cada uno en el tablero, das cuentas de empleado con permisos por rol y mides la productividad y la facturación por persona. El histórico de cada reparación deja claro quién hizo qué, así que los traspasos dejan de perder información. <a href="https://www.tekpair.tech" style="color:var(--terracota-dark);font-weight:600;">Pruébalo gratis →</a></p></div>
+
+    <section class="faq-section" id="faq">
+      <h2>Preguntas frecuentes</h2>
+      <details><summary>¿Cómo decido qué técnico hace cada reparación?</summary><div class="faq-body">Combina tres criterios: especialidad (asigna por la fortaleza de cada uno), carga actual (mira quién tiene menos reparaciones abiertas antes de cargar a nadie más) y urgencia (marca prioridad en la reparación para que las urgentes no esperen en la cola general). Lo importante es que cada equipo tenga un técnico asignado antes de salir del mostrador.</div></details>
+      <details><summary>¿Cada técnico debería tener su propia cuenta?</summary><div class="faq-body">Sí. Las cuentas individuales te dan trazabilidad (sabes quién recibió, reparó, cobró y entregó cada equipo), seguridad (puedes dar permisos por rol y revocar accesos al instante) y la base para medir productividad. Con un usuario compartido nunca sabrás quién hizo qué cuando algo salga mal.</div></details>
+      <details><summary>¿Cómo calculo las comisiones de los técnicos?</summary><div class="faq-body">Lo más sano es pagar un porcentaje (por ejemplo 10–15 %) de la mano de obra de las reparaciones entregadas y cobradas, no del total (que incluye el coste de la pieza). Descuenta o no cuentes las que vuelven por garantía, para premiar el trabajo bien hecho y no solo el rápido.</div></details>
+      <details><summary>¿Me ayuda TekPair a gestionar varios técnicos?</summary><div class="faq-body">Sí. TekPair asigna cada reparación a un técnico, muestra la carga de cada uno en el tablero, permite cuentas de empleado con permisos por rol y mide productividad y facturación por persona. El histórico de cada reparación registra quién hizo qué, lo que reduce los errores de traspaso.</div></details>
+    </section>
+    <div class="cta-box">
+      <h2>Coordina a tu equipo sin perder el control</h2>
+      <p>TekPair asigna reparaciones por técnico, controla la carga de cada uno, da cuentas de empleado y mide su productividad. Crece de 1 a varios técnicos sin caos.</p>
+      <a href="https://www.tekpair.tech" class="cta-btn">Empieza gratis en TekPair →</a>
+    </div>
+  </main>
+  <footer>
+    <p>&#169; 2026 <a href="https://www.tekpair.tech">TekPair</a> &middot; Software de gestión para talleres de reparación</p>
+    <p style="margin-top:0.5rem;"><a href="https://www.tekpair.tech/blog/">Blog</a> &middot; <a href="https://www.tekpair.tech/privacidad.html">Privacidad</a> &middot; <a href="https://www.tekpair.tech/terminos.html">Términos</a></p>
+  </footer>
+</body>
+</html>

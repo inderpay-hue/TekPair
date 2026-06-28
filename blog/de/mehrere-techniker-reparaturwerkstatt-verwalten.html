@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mehrere Techniker in einer Reparaturwerkstatt verwalten | TekPair</title>
+  <meta name="description" content="Reparaturen verteilen und zuweisen, die Auslastung jedes Technikers steuern, sehen wer was macht, Mitarbeiterkonten anlegen, Produktivität und Provisionen messen." />
+  <meta name="keywords" content="mehrere techniker werkstatt verwalten, reparaturen techniker zuweisen, produktivitaet techniker reparatur, mitarbeiterkonten werkstatt, provisionen techniker werkstatt" />
+  <link rel="canonical" href="https://www.tekpair.tech/blog/de/mehrere-techniker-reparaturwerkstatt-verwalten.html" />
+  <link rel="alternate" hreflang="es" href="https://www.tekpair.tech/blog/gestionar-varios-tecnicos-taller-reparacion.html" />
+  <link rel="alternate" hreflang="en" href="https://www.tekpair.tech/blog/en/manage-multiple-technicians-repair-shop.html" />
+  <link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/blog/fr/gerer-plusieurs-techniciens-atelier-reparation.html" />
+  <link rel="alternate" hreflang="it" href="https://www.tekpair.tech/blog/it/gestire-piu-tecnici-officina-riparazione.html" />
+  <link rel="alternate" hreflang="de" href="https://www.tekpair.tech/blog/de/mehrere-techniker-reparaturwerkstatt-verwalten.html" />
+  <link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/blog/pt/gerir-varios-tecnicos-oficina-reparacao.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/blog/gestionar-varios-tecnicos-taller-reparacion.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Mehrere Techniker in einer Reparaturwerkstatt verwalten" />
+  <meta property="og:description" content="Verteile Reparaturen, steuere die Auslastung pro Techniker, miss Produktivität und Provisionen und vermeide Engpässe und Übergabefehler." />
+  <meta property="og:url" content="https://www.tekpair.tech/blog/de/mehrere-techniker-reparaturwerkstatt-verwalten.html" />
+  <meta property="og:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <meta property="og:site_name" content="TekPair" />
+  <meta property="article:published_time" content="2026-06-28" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Mehrere Techniker in einer Reparaturwerkstatt verwalten" />
+  <meta name="twitter:description" content="Verteile Reparaturen, steuere die Auslastung pro Techniker, miss Produktivität und Provisionen und vermeide Engpässe und Übergabefehler." />
+  <meta name="twitter:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Mehrere Techniker in einer Reparaturwerkstatt verwalten","description":"Reparaturen verteilen und zuweisen, die Auslastung jedes Technikers steuern, sehen wer was macht, Mitarbeiterkonten anlegen, Produktivität und Provisionen messen.","author":{"@type":"Organization","name":"TekPair","url":"https://www.tekpair.tech"},"publisher":{"@type":"Organization","name":"TekPair","logo":{"@type":"ImageObject","url":"https://www.tekpair.tech/assets/logo.png"}},"datePublished":"2026-06-28","dateModified":"2026-06-28","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tekpair.tech/blog/de/mehrere-techniker-reparaturwerkstatt-verwalten.html"},"image":"https://www.tekpair.tech/assets/og-blog.png"}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --terracota: #C2410C; --terracota-dark: #9A3309; --terracota-light: #FEF0E8; --text: #1C1917; --text-muted: #78716C; --border: #E7E5E4; --bg: #FFFFFF; --bg-alt: #FAFAF9; }
+    body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--bg); line-height: 1.7; font-size: 17px; }
+    nav { border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; background: #fff; }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--terracota); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--terracota); }
+    .article-hero { background: var(--terracota-light); padding: 3.5rem 1.5rem 3rem; text-align: center; }
+    .article-hero .category { display: inline-block; background: var(--terracota); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.25rem 0.75rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .article-hero h1 { font-size: clamp(1.75rem, 4vw, 2.6rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.03em; max-width: 680px; margin: 0 auto 1rem; color: var(--text); }
+    .article-hero .intro { max-width: 600px; margin: 0 auto; color: var(--text-muted); font-size: 1.05rem; }
+    .article-meta { margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 1rem; }
+    .article-wrapper { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+    .toc { background: var(--bg-alt); border: 1px solid var(--border); border-left: 4px solid var(--terracota); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; }
+    .toc p { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--terracota); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .toc a { color: var(--text); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
+    .toc a:hover { color: var(--terracota); text-decoration: underline; }
+    h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 2.5rem 0 1rem; color: var(--text); scroll-margin-top: 16px; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 1.75rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1.1rem; color: #44403C; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    li { color: #44403C; }
+    strong { color: var(--text); font-weight: 600; }
+    .callout { background: var(--terracota-light); border-left: 4px solid var(--terracota); border-radius: 0 8px 8px 0; padding: 1.1rem 1.25rem; margin: 1.75rem 0; }
+    .callout p { margin: 0; color: #7C2D12; font-size: 0.95rem; }
+    .callout strong { color: #7C2D12; }
+    .table-wrap { overflow-x: auto; margin: 1.75rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th { background: var(--terracota); color: #fff; font-weight: 600; text-align: left; padding: 0.7rem 1rem; }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #44403C; }
+    tr:nth-child(even) td { background: var(--bg-alt); }
+    tr:last-child td { border-bottom: none; }
+    .checklist { list-style: none; padding: 0; margin: 1.25rem 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); color: #44403C; font-size: 0.95rem; }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before { content: "\2713"; flex-shrink: 0; width: 20px; height: 20px; background: var(--terracota); color: #fff; border-radius: 50%; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .faq-section { margin-top: 3rem; }
+    .faq-section h2 { margin-top: 0; }
+    details { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; }
+    summary { padding: 1rem 1.25rem; font-weight: 600; font-size: 0.97rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bg-alt); transition: background .2s; }
+    summary:hover { background: var(--terracota-light); }
+    summary::after { content: "+"; font-size: 1.2rem; color: var(--terracota); font-weight: 700; }
+    details[open] summary::after { content: "\2212"; }
+    details[open] summary { background: var(--terracota-light); }
+    .faq-body { padding: 1rem 1.25rem; font-size: 0.95rem; color: #44403C; }
+    .cta-box { background: var(--terracota); color: #fff; border-radius: 12px; padding: 2.5rem 2rem; text-align: center; margin-top: 3.5rem; }
+    .cta-box h2 { color: #fff; font-size: 1.5rem; margin: 0 0 0.75rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); margin-bottom: 1.5rem; font-size: 1rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--terracota); font-weight: 700; font-size: 0.95rem; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; }
+    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+    footer a { color: var(--terracota); text-decoration: none; }
+    @media (max-width: 600px) { .nav-links { display: none; } .article-hero { padding: 2.5rem 1.25rem 2rem; } .article-wrapper { padding: 2rem 1.25rem 3rem; } }
+  </style>
+  <script src="/cookies-consent.js" defer></script>
+</head>
+<body>
+  <nav>
+    <a href="https://www.tekpair.tech" class="nav-logo">TekPair</a>
+    <div class="nav-links">
+      <a href="https://www.tekpair.tech/blog/de/">Blog</a>
+      <a href="https://www.tekpair.tech/#funcionalidades">Funktionen</a>
+      <a href="https://www.tekpair.tech/#precios">Preise</a>
+      <a href="https://www.tekpair.tech/app.html">Anmelden</a>
+    </div>
+  </nav>
+  <header class="article-hero">
+    <div class="category">Verwaltung</div>
+    <h1>Mehrere Techniker in einer Reparaturwerkstatt verwalten</h1>
+    <p class="intro">Vom Alleinarbeiten zum Koordinieren eines Teams überzugehen ändert die Spielregeln. Dieser Leitfaden zeigt dir, wie du Reparaturen verteilst und zuweist, die Auslastung jedes Technikers steuerst, jederzeit weißt wer was macht, Mitarbeiterkonten anlegst, Produktivität und Provisionen misst und die Engpässe und Übergabefehler vermeidest, die auftauchen, sobald du nicht mehr alles selbst machst.</p>
+    <div class="article-meta"><span>&#128197; 28. Juni 2026</span><span>&#9201; 9 Min. Lesezeit</span></div>
+  </header>
+  <main class="article-wrapper">
+    <div class="toc" role="navigation" aria-label="In diesem Artikel">
+      <p>In diesem Artikel</p>
+      <ol><li><a href="#s1">Was sich beim Wechsel von 1 zu mehreren Technikern ändert</a></li><li><a href="#s2">Reparaturen verteilen und zuweisen</a></li><li><a href="#s3">Die Auslastung jedes Technikers steuern</a></li><li><a href="#s4">Berechtigungen und Mitarbeiterkonten</a></li><li><a href="#s5">Produktivität und Provisionen messen</a></li><li><a href="#s6">Engpässe und Übergabefehler vermeiden</a></li><li><a href="#faq">Häufige Fragen</a></li></ol>
+    </div>
+
+    <p>Wenn du allein arbeitest, steckt die gesamte Werkstatt-Information in deinem Kopf: Du weißt, welches Handy in welcher Schublade liegt, wen du anrufen musst und was noch zu bestellen ist. Sobald ein zweiter oder dritter Techniker dazukommt, funktioniert dieses Gedächtnis nicht mehr. Es entstehen die „Ich dachte, das machst du", die Reparaturen, die niemand anfasst, und die Kunden, die wegen eines Geräts anrufen, an das sich kein Techniker erinnert. Mehrere Techniker zu verwalten bedeutet nicht, schneller zu arbeiten: Es bedeutet, die Information aus deinem Kopf herauszuholen und für alle sichtbar zu machen. Dieser Leitfaden gibt dir das System, Schritt für Schritt.</p>
+
+    <h2 id="s1">1. Was sich beim Wechsel von 1 zu mehreren Technikern ändert</h2>
+    <p>Der häufigste Fehler beim Wachsen ist, weiterzuarbeiten wie damals als Einzelkämpfer, nur mit mehr Händen. Das funktioniert nicht. Drei Dinge ändern sich schlagartig:</p>
+    <ul>
+      <li><strong>Die Zuweisung ist nicht mehr selbstverständlich.</strong> Vorher war jede Reparatur deine. Jetzt muss jemand entscheiden, <em>wer</em> welches Gerät übernimmt, und wenn du nicht entscheidest, entscheidet der Zufall (oder der Techniker, der die leichten Jobs bevorzugt).</li>
+      <li><strong>Der Status steckt nicht mehr in deinem Kopf.</strong> Wenn drei Personen an Reparaturen arbeiten, hat niemand den vollen Überblick, es sei denn, er ist irgendwo geteilt und aktuell festgehalten.</li>
+      <li><strong>Die Übergabe wird kritisch.</strong> Ein Gerät, das von der Person am Tresen zum Techniker und vom Techniker zu dem geht, der es zurückgibt, durchläuft drei Hände. Jeder Wechsel ist eine Gelegenheit, Information zu verlieren.</li>
+    </ul>
+    <p>Die gute Nachricht: Alle drei Probleme lösen sich mit demselben Prinzip. Jede Reparatur muss jederzeit einen <strong>sichtbaren Verantwortlichen</strong>, einen <strong>klaren Status</strong> und eine <strong>Historie des Erledigten</strong> haben. Ohne das fügt jeder zusätzliche Techniker, den du einstellst, Chaos statt Kapazität hinzu.</p>
+
+    <h2 id="s2">2. Reparaturen verteilen und zuweisen</h2>
+    <p>Gut zuweisen heißt nicht gleichmäßig verteilen. Eine gute Verteilung berücksichtigt Spezialisierung, Schwierigkeit und Dringlichkeit. Das sind die Kriterien der Werkstätten, die wachsen, ohne sich festzufahren:</p>
+    <h3>Nach Spezialisierung</h3>
+    <p>Wenn einer schnell beim Mikrolöten ist und ein anderer beim Displaytausch fliegt, zwing sie nicht zum Gegenteil. Weise nach Stärke zu, wann immer du kannst: Ein Platinen-Job, der deinem Mikrolöt-Techniker gegeben wird, bringt doppelt so viel wie bei jemandem, der es nur gelegentlich macht.</p>
+    <h3>Nach Auslastung, nicht nach Eingangsreihenfolge</h3>
+    <p>Weise nicht „den Nächsten dem zu, der frei ist", ohne hinzuschauen. Prüfe, wie viele offene Reparaturen jeder bereits hat. Das Ziel: Niemand ertrinkt, während ein anderer auf Arbeit wartet.</p>
+    <h3>Nach Dringlichkeit</h3>
+    <p>Markiere die Priorität (normal, hoch, dringend) an der Reparatur selbst. Ein Kunde, der im Laden wartet, während du sein Handy reparierst, kann nicht in derselben Warteschlange stehen wie ein Gerät, das nächste Woche fällig ist.</p>
+    <div class="callout"><p><strong>Praxisregel:</strong> Jede Reparatur sollte einen Techniker zugewiesen haben, <em>bevor</em> sie den Tresen verlässt. Eine Reparatur ohne Besitzer ist eine Reparatur, die liegen bleibt. Wenn sie hereinkommt und niemand seinen Namen darauf gesetzt hat, fühlt sich niemand dafür zuständig.</p></div>
+    <p>Das Medium ist egal, solange es geteilt und aktuell ist: Ein Whiteboard kann für zwei Personen in einem kleinen Laden reichen, aber ab drei Technikern oder zwei Schichten reicht es schnell nicht mehr. Hier macht eine <a href="https://www.tekpair.tech/blog/de/werkstattsoftware-reparatur.html" style="color:var(--terracota-dark);font-weight:600;">Werkstattsoftware für Reparaturen</a> den Unterschied: Die Zuweisung wird erfasst, ist für alle sichtbar und mit einem Klick änderbar.</p>
+
+    <h2 id="s3">3. Die Auslastung jedes Technikers steuern</h2>
+    <p>„Wer ist überlastet?" sollte eine Frage sein, die du auf einen Blick beantwortest, nicht etwas, das du erst entdeckst, wenn sich ein Kunde über die Verzögerung beschwert. Die Auslastung steuerst du, indem du zwei Dinge betrachtest: wie viele offene Reparaturen jeder Techniker hat und wie viele noch auf den Start warten.</p>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>Techniker</th><th>In Arbeit</th><th>In Warteschlange</th><th>Status</th></tr></thead>
+        <tbody>
+          <tr><td>Ana (Displays)</td><td>3</td><td>2</td><td>Ausgeglichen</td></tr>
+          <tr><td>Marcos (Mikrolöten)</td><td>5</td><td>4</td><td>Überlastet</td></tr>
+          <tr><td>Lucía (allgemein)</td><td>2</td><td>0</td><td>Hat Kapazität</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p>Mit so einem Bild ist die Entscheidung klar: Der nächste Job, der kein Platinen-Job ist, geht an Lucía, und es lohnt sich, einen Job aus Marcos' Warteschlange an Ana zu geben, wenn er passt. Ohne diese Sicht wird die Verteilung „nach Gefühl" gemacht und liegt fast immer daneben: Der Techniker, der am meisten redet, wirkt am beschäftigtsten, und der Stille wird begraben.</p>
+    <p>Ein Board nach Status (eingegangen, in Arbeit, wartet auf Teil, fertig, ausgeliefert) mit dem Namen des Technikers auf jeder Karte gibt dir genau diese Lesart. Auf einen Blick siehst du, wer die Spalte „in Arbeit" voll hat und wer leer ist.</p>
+
+    <h2 id="s4">4. Berechtigungen und Mitarbeiterkonten</h2>
+    <p>Jedem Techniker ein eigenes Konto zu geben, ist nicht nur Ordnung: Es ist Sicherheit und Nachvollziehbarkeit. Wenn sich alle mit demselben Benutzer anmelden, weißt du nie, wer was getan hat, wer diesen seltsamen Rabatt gewährt oder wer eine nicht fertige Reparatur abgeschlossen hat.</p>
+    <p>Was du pro Mitarbeiter steuern können solltest:</p>
+    <ul>
+      <li><strong>Individueller Zugang:</strong> jeder Techniker mit eigenem Benutzernamen und Passwort. Wenn einer geht, entziehst du ihm den Zugang, ohne die anderen anzutasten.</li>
+      <li><strong>Rollenbasierte Berechtigungen:</strong> Ein Techniker muss weder die Kasse noch die Margen noch die Daten der anderen sehen. Jeder sieht nur, was er für seine Arbeit braucht.</li>
+      <li><strong>Nachvollziehbarkeit:</strong> erfasst, wer das Gerät angenommen, wer es repariert, wer welchen Preis angesetzt und wer es zurückgegeben hat.</li>
+    </ul>
+    <div class="callout"><p><strong>Warum das wichtig ist:</strong> An dem Tag, an dem eine Reparatur schiefgeht oder Geld in der Kasse fehlt, ist der Unterschied zwischen „Ich habe keine Ahnung, was passiert ist" und „Das hat Soundso an dem Tag gemacht" das Vorhandensein getrennter Konten. Es ist kein Misstrauen gegenüber dem Team: Es schützt es und dich.</p></div>
+    <p>Mit individuellen Konten kannst du auch richtig zu messen beginnen, denn jede Reparatur ist mit dem verknüpft, der sie gemacht hat. Und das öffnet die Tür zum nächsten Schritt: Produktivität und Provisionen.</p>
+
+    <h2 id="s5">5. Produktivität und Provisionen messen</h2>
+    <p>Wenn du den Leistungsstärksten belohnen willst — oder einfach wissen, wen du schulen musst — brauchst du Zahlen, keine Eindrücke. Mit jeder Reparatur, die einem Techniker zugeordnet ist, kannst du echte Kennzahlen pro Person betrachten:</p>
+    <ul>
+      <li><strong>Abgeschlossene Reparaturen:</strong> wie viele jeder pro Woche oder Monat fertigstellt.</li>
+      <li><strong>Erwirtschafteter Umsatz:</strong> der Betrag der Jobs, die er abgeschlossen hat.</li>
+      <li><strong>Durchschnittszeit pro Reparatur:</strong> nützlich, um zu erkennen, wer schnell ist und wer hängen bleibt (Vorsicht: schnell ist nicht immer besser, mit den Rückläufern abgleichen).</li>
+      <li><strong>Rückläuferquote:</strong> Reparaturen, die unter Garantie zurückkommen. Eine hohe Quote weist auf Hektik oder fehlende Schulung hin.</li>
+    </ul>
+    <h3>Provisionen, die motivieren, ohne die Kasse zu sprengen</h3>
+    <p>Ein typisches Schema ist, dem Techniker einen Prozentsatz des Arbeitslohns (nicht der Gesamtsumme, die die Teilekosten enthält) für die abgeschlossenen Reparaturen zu zahlen. Zum Beispiel 10–15 % des Arbeitslohns. Damit es reibungslos funktioniert, sollte die Provision:</p>
+    <ul>
+      <li>Nur auf <strong>ausgelieferte und bezahlte</strong> Reparaturen berechnet werden, nicht auf offene.</li>
+      <li>Auf dem Arbeitslohn basieren, damit niemand Provision auf die Teilekosten erhält.</li>
+      <li>Reparaturen, die unter Garantie zurückkommen, abziehen (oder nicht zählen), um gute Arbeit zu belohnen, nicht nur schnelle.</li>
+    </ul>
+    <p>Das jeden Monat von Hand zu machen, ist eine Tabellenkalkulations-Hölle. Wenn dein System bereits jede Reparatur ihrem Techniker zuordnet und Arbeitslohn und Zahlungsstatus speichert, erledigt sich die Berechnung fast von selbst. Um zu verstehen, welcher Teil des Bons provisionsfähig ist, hilft es, deine <a href="https://www.tekpair.tech/blog/de/rentabilitaet-marge-reparaturwerkstatt.html" style="color:var(--terracota-dark);font-weight:600;">echte Marge pro Reparatur</a> klar zu kennen: Provision auf die Gesamtsumme statt auf den Arbeitslohn zu zahlen, kann dich ohne Gewinn dastehen lassen.</p>
+
+    <h2 id="s6">6. Engpässe und Übergabefehler vermeiden</h2>
+    <p>Die zwei Feinde einer Werkstatt mit Team sind der Engpass (die ganze Arbeit hängt an einer Person oder einem Schritt fest) und der Übergabefehler (Information, die verloren geht, wenn ein Gerät von Hand zu Hand wandert). So gehst du sie an:</p>
+    <h3>Engpässe</h3>
+    <ul>
+      <li><strong>Der Inhaber als Korken:</strong> Wenn alles zur Freigabe über dich läuft, bist du der Engpass. Delegiere Routineentscheidungen (Standardpreise, klare Garantien) und behalte deine Zeit für das, was wirklich dein Urteil braucht.</li>
+      <li><strong>Der einzige Spezialist:</strong> Wenn nur eine Person Mikrolöten kann und sich zehn Platinen stapeln, stehen diese Jobs still. Schule einen zweiten, sei es auf Basisniveau, und priorisiere seine Warteschlange.</li>
+      <li><strong>Das Warten auf Teile:</strong> Reparaturen, die auf ein Teil warten, das niemand bestellt hat. Ein sichtbarer Status „wartet auf Teil" verhindert, dass sie in der Schwebe bleiben.</li>
+    </ul>
+    <h3>Übergabefehler</h3>
+    <p>Die Übergabe ist der fragilste Moment. Ein Gerät wechselt vom Tresen zum Techniker und vom Techniker zu dem, der es ausliefert, und bei jedem Wechsel können der gemeldete Fehler, das Entsperrmuster oder das mitgebrachte Zubehör verloren gehen. Der Weg, das abzusichern, ist, jede Reparatur mit ihrer lebendigen Akte zu führen: Status aktuell, Notizen zum Erledigten und alles Angenommene festgehalten. Hier hilft ein gutes System für die <a href="https://www.tekpair.tech/blog/de/geraete-ein-ausgang-werkstatt.html" style="color:var(--terracota-dark);font-weight:600;">Geräte-Ein- und -Ausgang</a> sehr, damit kein Handy ohne Spur die Hände wechselt.</p>
+    <div class="callout"><p><strong>Die goldene Regel der Übergabe:</strong> Nichts wechselt die Hände, ohne dass die Akte aktualisiert wird. Wenn Ana fertig ist und das Gerät für Lucía zum Testen liegen lässt, muss festgehalten werden, was sie getan hat. Der nächste Techniker sollte nicht fragen müssen; er sollte es lesen können.</p></div>
+
+    <div class="callout"><p><strong>TekPair</strong> ist für Werkstätten mit Team gemacht: Jede Reparatur wird einem Techniker zugewiesen, du siehst die Auslastung jedes Einzelnen auf dem Board, legst Mitarbeiterkonten mit rollenbasierten Berechtigungen an und misst Produktivität und Umsatz pro Person. Die Historie jeder Reparatur macht klar, wer was getan hat, sodass Übergaben keine Information mehr verlieren. <a href="https://www.tekpair.tech" style="color:var(--terracota-dark);font-weight:600;">Kostenlos testen &rarr;</a></p></div>
+
+    <section class="faq-section" id="faq">
+      <h2>Häufige Fragen</h2>
+      <details><summary>Wie entscheide ich, welcher Techniker welche Reparatur macht?</summary><div class="faq-body">Kombiniere drei Kriterien: Spezialisierung (weise nach der Stärke jedes Einzelnen zu), aktuelle Auslastung (schau, wer weniger offene Reparaturen hat, bevor du jemanden zusätzlich belastest) und Dringlichkeit (markiere die Priorität an der Reparatur, damit dringende nicht in der allgemeinen Warteschlange warten). Wichtig ist, dass jedes Gerät einen Techniker zugewiesen hat, bevor es den Tresen verlässt.</div></details>
+      <details><summary>Sollte jeder Techniker ein eigenes Konto haben?</summary><div class="faq-body">Ja. Individuelle Konten geben dir Nachvollziehbarkeit (du weißt, wer jedes Gerät angenommen, repariert, kassiert und ausgeliefert hat), Sicherheit (du kannst rollenbasierte Berechtigungen setzen und Zugänge sofort entziehen) und die Grundlage zum Messen der Produktivität. Mit einem geteilten Login weißt du nie, wer was getan hat, wenn etwas schiefgeht.</div></details>
+      <details><summary>Wie berechne ich die Provisionen der Techniker?</summary><div class="faq-body">Am gesündesten ist es, einen Prozentsatz (zum Beispiel 10–15 %) des Arbeitslohns auf ausgelieferte und bezahlte Reparaturen zu zahlen, nicht der Gesamtsumme (die die Teilekosten enthält). Ziehe die ab, die unter Garantie zurückkommen, oder zähle sie nicht, um gute Arbeit zu belohnen und nicht nur schnelle.</div></details>
+      <details><summary>Hilft mir TekPair, mehrere Techniker zu verwalten?</summary><div class="faq-body">Ja. TekPair weist jede Reparatur einem Techniker zu, zeigt die Auslastung jedes Einzelnen auf dem Board, erlaubt Mitarbeiterkonten mit rollenbasierten Berechtigungen und misst Produktivität und Umsatz pro Person. Die Historie jeder Reparatur erfasst, wer was getan hat, was Übergabefehler reduziert.</div></details>
+    </section>
+    <div class="cta-box">
+      <h2>Koordiniere dein Team, ohne die Kontrolle zu verlieren</h2>
+      <p>TekPair weist Reparaturen pro Techniker zu, steuert die Auslastung jedes Einzelnen, legt Mitarbeiterkonten an und misst ihre Produktivität. Wachse von 1 zu mehreren Technikern ohne Chaos.</p>
+      <a href="https://www.tekpair.tech" class="cta-btn">Kostenlos starten mit TekPair &rarr;</a>
+    </div>
+  </main>
+  <footer>
+    <p>&#169; 2026 <a href="https://www.tekpair.tech">TekPair</a> &middot; Verwaltungssoftware für Reparaturwerkstätten</p>
+    <p style="margin-top:0.5rem;"><a href="https://www.tekpair.tech/blog/de/">Blog</a> &middot; <a href="https://www.tekpair.tech/privacidad.html">Datenschutz</a> &middot; <a href="https://www.tekpair.tech/terminos.html">AGB</a></p>
+  </footer>
+</body>
+</html>
