@@ -832,7 +832,9 @@ function renderNotasRecordatorios() {
   var card = document.getElementById('notasCard');
   if (!card) { card = document.createElement('div'); card.id = 'notasCard'; card.className = 'widget-selector-card'; grid.appendChild(card); }
   var recsHtml = recs.length ? recs.map(function(r, i) {
-    var fecha = r.f ? (' <span style="color:var(--muted);font-size:10px">· ' + _pedFecha(r.f) + '</span>') : '';
+    var _rl = _recLabel(r);
+    var _rcol = r.d ? 'var(--muted)' : (_rl.overdue ? 'var(--red)' : (_rl.soon ? 'var(--orange)' : 'var(--muted)'));
+    var fecha = _rl.txt ? (' <span style="font-size:10px;font-weight:700;color:' + _rcol + '">· ' + escHtml(_rl.txt) + '</span>') : '';
     return '<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border)">' +
       '<input type="checkbox" ' + (r.d ? 'checked' : '') + ' onchange="toggleRecordatorio(' + i + ')" style="cursor:pointer">' +
       '<span style="flex:1;font-size:12px;' + (r.d ? 'text-decoration:line-through;color:var(--muted)' : '') + '">' + escHtml(r.t || '') + fecha + '</span>' +
@@ -846,6 +848,7 @@ function renderNotasRecordatorios() {
     '<div style="display:flex;gap:5px;margin-top:8px">' +
       '<input id="recInput" placeholder="' + escHtml(T('notas.nuevo_ph')) + '" onkeydown="if(event.key===\'Enter\')addRecordatorio()" style="flex:1;min-width:0;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-size:12px;font-family:inherit">' +
       '<input id="recFecha" type="date" style="border:1px solid var(--border);border-radius:7px;padding:5px;font-size:11px" title="' + escHtml(T('notas.fecha_opt')) + '">' +
+      '<input id="recHora" type="time" style="border:1px solid var(--border);border-radius:7px;padding:5px;font-size:11px;width:72px" title="' + escHtml(T('notas.hora_opt')) + '">' +
       '<button onclick="addRecordatorio()" style="background:var(--orange);color:#fff;border:none;border-radius:7px;padding:6px 11px;font-size:14px;cursor:pointer">+</button>' +
     '</div></div>';
   var ta = document.getElementById('dashNotas'); if (ta) ta.value = (typeof window._pedNotas === 'string') ? window._pedNotas : '';
@@ -857,12 +860,26 @@ function guardarNotasDash() {
   window._pedNotasTimer = setTimeout(function() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas }); }, 800);
 }
 function _guardarRecordatorios() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { recordatorios: window._recordatorios || [] }); }
+// Etiqueta inteligente de un recordatorio: Hoy/Mañana/Vencido + hora, con color.
+function _recLabel(r) {
+  if (!r || !r.f) return { txt: '', overdue: false, soon: false };
+  var hoy = new Date(); hoy.setHours(0,0,0,0);
+  var rf = _parseDateAny(r.f);
+  if (!rf) return { txt: _pedFecha(r.f) + (r.h ? ' ' + r.h : ''), overdue: false, soon: false };
+  rf.setHours(0,0,0,0);
+  var diff = Math.round((rf - hoy) / 86400000);
+  var hora = r.h ? ' ' + r.h : '';
+  if (diff < 0) return { txt: T('notas.rel_vencido') + ' · ' + _pedFecha(r.f) + hora, overdue: true, soon: false };
+  if (diff === 0) return { txt: T('notas.rel_hoy') + hora, overdue: false, soon: true };
+  if (diff === 1) return { txt: T('notas.rel_manana') + hora, overdue: false, soon: false };
+  return { txt: _pedFecha(r.f) + hora, overdue: false, soon: false };
+}
 function addRecordatorio() {
-  var inp = document.getElementById('recInput'), fe = document.getElementById('recFecha');
+  var inp = document.getElementById('recInput'), fe = document.getElementById('recFecha'), he = document.getElementById('recHora');
   var t = (inp.value || '').trim(); if (!t) return;
   window._recordatorios = window._recordatorios || [];
-  window._recordatorios.unshift({ t: t, f: fe.value || null, d: false });
-  _guardarRecordatorios(); renderNotasRecordatorios();
+  window._recordatorios.unshift({ t: t, f: fe.value || null, h: (he && he.value) || null, d: false });
+  _guardarRecordatorios(); renderNotasRecordatorios(); try { if (typeof refreshNotifs === 'function') refreshNotifs(); } catch(e){}
 }
 function toggleRecordatorio(i) { var r = (window._recordatorios || [])[i]; if (!r) return; r.d = !r.d; _guardarRecordatorios(); renderNotasRecordatorios(); try { renderInvNotas(); } catch(e){} }
 function delRecordatorio(i) { if (!window._recordatorios) return; window._recordatorios.splice(i, 1); _guardarRecordatorios(); renderNotasRecordatorios(); try { renderInvNotas(); } catch(e){} }
@@ -14843,6 +14860,19 @@ function computeNotificaciones() {
     });
   })();
 
+  // Recordatorios con fecha de hoy o vencidos (no hechos) → notificación
+  (window._recordatorios || []).forEach(function(r, i) {
+    if (!r || r.d || !r.f) return;
+    var rf = _parseDateAny(r.f); if (!rf) return;
+    rf.setHours(0,0,0,0);
+    var diff = Math.round((rf - hoyDate) / 86400000);
+    if (diff <= 0) {
+      add({ id: 'rec_' + i + '_' + (r.f || ''), tipo: 'recordatorios', icon: '📌',
+        color: diff < 0 ? '#EF4444' : '#F59E0B',
+        titulo: diff < 0 ? T('notas.notif_vencido') : T('notas.notif_hoy'),
+        detalle: (r.t || '') + (r.h ? ' · ' + r.h : ''), href: 'pInicioNuevo', prio: 0, manual: false });
+    }
+  });
   notifs.sort(function(a,b){ return (a.prio||9) - (b.prio||9); });
   return notifs;
 }
