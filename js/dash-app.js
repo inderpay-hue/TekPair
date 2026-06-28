@@ -64,12 +64,12 @@ var PLAN_FEATURES = {
   basico: ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'gar_rep_basica'],
   pro:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
-           'pedidos','permisos_usuarios','reportes_pdf','backup','auditoria',
+           'gastos','pedidos','permisos_usuarios','reportes_pdf','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica'],
   top:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
-           'pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
+           'gastos','pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
@@ -77,7 +77,7 @@ var PLAN_FEATURES = {
            'gar_notif_auto','gar_reportes_avanzados',
            'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica'],
   premium:['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
-           'pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
+           'gastos','pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
@@ -348,6 +348,7 @@ function aplicarBloqueosPlan() {
   var sidebarLocks = [
     {selector: '[data-p="pCitas"]', feat: 'citas'},
     {selector: '[data-p="pPedidos"]', feat: 'pedidos'},
+    {selector: '[data-p="pGastos"]', feat: 'gastos'},
     {selector: '[data-p="pServicios"]', feat: 'catalogo_servicios'},
     {selector: '[data-p="pCajas"]', feat: 'cajas_multiservicio'}
   ];
@@ -403,6 +404,7 @@ function setupNavToBlocker() {
     var pageFeatureMap = {
       pCitas: 'citas',
       pPedidos: 'pedidos',
+      pGastos: 'gastos',
       pServicios: 'catalogo_servicios',
       pCajas: 'cajas_multiservicio'
     };
