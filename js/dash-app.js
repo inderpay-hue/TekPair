@@ -357,12 +357,7 @@ function aplicarBloqueosPlan() {
     }
   }, 1100);
 
-  // Inicio por plan: si Básico/Pro están viendo el Inicio nuevo (Premium), llevarlos al Clásico
-  if (!tieneFeature('inicio_avanzado')) {
-    var pin = document.getElementById('pInicioNuevo');
-    // F70: respetar navegación por hash explícita (no redirigir por plan si hay #seccion)
-    if (pin && pin.classList.contains('active') && !location.hash) { window._inicioAutoRedirect = true; navTo('pDash'); }
-  }
+  // Inicio por plan: Básico/Pro ahora usan el Inicio moderno recortado (ya NO se redirige al Clásico).
 }
 
 // Override navTo para bloquear páginas
@@ -2182,7 +2177,7 @@ function cerrarCodigoCaja() {
 
 function navTo(id) {
   // Inicio por plan: el Inicio nuevo (avanzado) es de Premium. Básico/Pro van al panel Clásico.
-  if (id === 'pInicioNuevo' && typeof tieneFeature === 'function' && !tieneFeature('inicio_avanzado')) id = 'pDash';
+  // Inicio por plan: Básico/Pro ahora usan el Inicio moderno recortado (ya NO se redirige al Clásico).
   // Cajas: si el admin denegó el permiso a este trabajador, no puede abrirla ni por enlace directo
   if (id === 'pCajas' && U && U.rol !== 'admin' && !(U.permisos && U.permisos.todo)
       && U.permisos && U.permisos.cajas_ver === false) {
@@ -3818,7 +3813,8 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
   function _setAttr(id, a, v) { var e = document.getElementById(id); if (e) e.setAttribute(a, v); }
   // Personalización: mostrar/ocultar tarjetas del Resumen
-  [['inv-card-inggastos', 'rs_inggastos'], ['inv-card-rscomocobras', 'rs_comocobras'], ['inv-card-lodeja', 'rs_lodeja'], ['inv-card-rspedidos', 'rs_pedidos']].forEach(function(p) { var e = document.getElementById(p[0]); if (e) e.style.display = _invWidgetOn(p[1]) ? '' : 'none'; });
+  var _verAnalitInv = (typeof tieneFeature === 'function') ? tieneFeature('analitica') : true;
+  [['inv-card-inggastos', 'rs_inggastos', true], ['inv-card-rscomocobras', 'rs_comocobras', true], ['inv-card-lodeja', 'rs_lodeja', true], ['inv-card-rspedidos', 'rs_pedidos', false]].forEach(function(p) { var e = document.getElementById(p[0]); if (e) e.style.display = ((!p[2] || _verAnalitInv) && _invWidgetOn(p[1])) ? '' : 'none'; });
   var hoy = hoyLocal();
   var per = window._invPer || 'hoy';
   var baseH = new Date(hoy + 'T00:00:00');
