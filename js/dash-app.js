@@ -505,7 +505,7 @@ setInterval(function() { refrescarPlan(); }, 5 * 60 * 1000);
 var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21],nombre:'IVA',tiposExtra:'21, 10, 4, 0'},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
 
 // ═══ DB ═══
-var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[],gastos_recurrentes:[]};
+var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[],gastos_recurrentes:[],encargos:[]};
 var MODELOS_PRE = []; // catalogo predefinido cargado de assets/modelos.json
 
 // ═══ STATE ═══
@@ -883,6 +883,129 @@ function addRecordatorio() {
 }
 function toggleRecordatorio(i) { var r = (window._recordatorios || [])[i]; if (!r) return; r.d = !r.d; _guardarRecordatorios(); renderNotasRecordatorios(); try { renderInvNotas(); } catch(e){} }
 function delRecordatorio(i) { if (!window._recordatorios) return; window._recordatorios.splice(i, 1); _guardarRecordatorios(); renderNotasRecordatorios(); try { renderInvNotas(); } catch(e){} }
+
+// ════════════ ENCARGOS DE CLIENTES (lista de espera) ════════════
+// Lo que el CLIENTE te pide y esperas para él (≠ Pedidos, que es lo que TÚ compras al proveedor).
+var ENC_ESTADOS = ['Pendiente','Pedido','Llego','Avisado','Entregado'];
+var ENC_COLOR = { Pendiente:'#F59E0B', Pedido:'#3B82F6', Llego:'#8B5CF6', Avisado:'#0EA5E9', Entregado:'#16a34a' };
+function _encSync(e, isNew) {
+  if (!SB_KEY || !TIENDA_ID) return;
+  var payload = { id:e.id, tienda_id:TIENDA_ID, producto:e.producto, cliente_id:e.cliente_id||null,
+    cliente_nombre:e.cliente_nombre||null, cliente_tel:e.cliente_tel||null, senal:e.senal||0, pvp:e.pvp||0,
+    estado:e.estado||'Pendiente', proveedor:e.proveedor||null, nota:e.nota||null, fecha:e.fecha||hoyLocal() };
+  if (isNew) sbPost('encargos', payload); else sbPatch('encargos', 'id=eq.' + encodeURIComponent(e.id), payload);
+}
+function _encFillCliDatalist() {
+  var dl = document.getElementById('encCliList'); if (!dl) return;
+  dl.innerHTML = (DB.clis || []).filter(function(c){ return c && c.nombre; }).slice(0,500).map(function(c){
+    return '<option value="' + escHtml(((c.nombre||'') + (c.apellidos ? ' ' + c.apellidos : '')).trim()) + '">'; }).join('');
+}
+function encCliPick() {
+  var nom = (document.getElementById('encCliNom').value || '').trim();
+  var c = (DB.clis || []).find(function(x){ return (((x.nombre||'') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === nom; });
+  var tel = document.getElementById('encCliTel');
+  if (c && c.tel && tel && !tel.value) tel.value = c.tel;
+}
+function abrirNuevoEncargo() {
+  if (SEL) SEL.editEncId = null;
+  ['encProducto','encCliNom','encCliTel','encSenal','encPvp','encProv','encNota'].forEach(function(id){ var el = document.getElementById(id); if (el) el.value = ''; });
+  _encFillCliDatalist();
+  var t = document.getElementById('mEncargoTit'); if (t) t.textContent = '📋 ' + T('enc.nuevo');
+  openM('mEncargo');
+}
+function abrirEditarEncargo(id) {
+  var e = (DB.encargos || []).find(function(x){ return x.id === id; });
+  if (!e) { toast(T('enc.no_encontrado'), 'err'); return; }
+  SEL.editEncId = id;
+  var set = function(i,v){ var el = document.getElementById(i); if (el) el.value = (v == null ? '' : v); };
+  set('encProducto', e.producto); set('encCliNom', e.cliente_nombre); set('encCliTel', e.cliente_tel);
+  set('encSenal', e.senal || ''); set('encPvp', e.pvp || ''); set('encProv', e.proveedor); set('encNota', e.nota);
+  _encFillCliDatalist();
+  var t = document.getElementById('mEncargoTit'); if (t) t.textContent = '✏️ ' + T('enc.editar');
+  openM('mEncargo');
+}
+function guardarEncargo() {
+  var prod = (document.getElementById('encProducto').value || '').trim();
+  if (!prod) { toast(T('enc.falta_producto'), 'err'); return; }
+  var obj = {
+    producto: prod,
+    cliente_nombre: (document.getElementById('encCliNom').value || '').trim() || null,
+    cliente_tel: (document.getElementById('encCliTel').value || '').trim() || null,
+    senal: parseFloat(document.getElementById('encSenal').value) || 0,
+    pvp: parseFloat(document.getElementById('encPvp').value) || 0,
+    proveedor: (document.getElementById('encProv').value || '').trim() || null,
+    nota: (document.getElementById('encNota').value || '').trim() || null
+  };
+  DB.encargos = DB.encargos || [];
+  if (SEL && SEL.editEncId) {
+    var ex = DB.encargos.find(function(x){ return x.id === SEL.editEncId; });
+    if (ex) { Object.assign(ex, obj); _encSync(ex); }
+  } else {
+    obj.id = (typeof _uuidPed === 'function') ? _uuidPed() : ('enc' + Date.now() + Math.random().toString(36).slice(2,7));
+    obj.estado = 'Pendiente'; obj.fecha = hoyLocal(); obj.tienda_id = TIENDA_ID;
+    DB.encargos.unshift(obj); _encSync(obj, true);
+    try { if (typeof audit === 'function') audit('crear', 'encargo', obj.id, obj.producto, null); } catch(e){}
+  }
+  guardarDatos(); closeM('mEncargo'); renderEncargos();
+}
+function cambiarEstadoEncargo(id, estado) {
+  var e = (DB.encargos || []).find(function(x){ return x.id === id; }); if (!e) return;
+  e.estado = estado; _encSync(e); guardarDatos(); renderEncargos();
+}
+function avanzarEncargo(id) {
+  var e = (DB.encargos || []).find(function(x){ return x.id === id; }); if (!e) return;
+  var i = ENC_ESTADOS.indexOf(e.estado);
+  if (i >= 0 && i < ENC_ESTADOS.length - 1) cambiarEstadoEncargo(id, ENC_ESTADOS[i+1]);
+}
+function entregarEncargo(id) { cambiarEstadoEncargo(id, 'Entregado'); }
+function avisarEncargo(id) {
+  var e = (DB.encargos || []).find(function(x){ return x.id === id; }); if (!e) return;
+  if (!e.cliente_tel) { toast(T('tst.cliente_sin_telefono'), 'err'); return; }
+  var msg = T('enc.wa_msg').replace('{p}', e.producto || '').replace('{t}', (TIENDA && TIENDA.nombre) || '');
+  var tel = String(e.cliente_tel).replace(/[^0-9]/g, '');
+  window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg), '_blank');
+  if (ENC_ESTADOS.indexOf(e.estado) < ENC_ESTADOS.indexOf('Avisado')) cambiarEstadoEncargo(id, 'Avisado');
+}
+function eliminarEncargo(id) {
+  if (!confirm(T('enc.eliminar_confirm'))) return;
+  DB.encargos = (DB.encargos || []).filter(function(x){ return x.id !== id; });
+  if (SB_KEY && TIENDA_ID) try { sbDelete('encargos', 'id=eq.' + encodeURIComponent(id)); } catch(e){}
+  guardarDatos(); renderEncargos();
+}
+function _encCard(e) {
+  var col = ENC_COLOR[e.estado] || '#6B7280';
+  var resta = Math.max(0, (parseFloat(e.pvp)||0) - (parseFloat(e.senal)||0));
+  var i = ENC_ESTADOS.indexOf(e.estado);
+  var btns = '';
+  if (e.estado !== 'Entregado') {
+    if (i >= 0 && i < ENC_ESTADOS.length - 1) btns += '<button class="btn-sm" style="background:var(--light);color:var(--text)" onclick="avanzarEncargo(\'' + e.id + '\')">→ ' + T('enc.estado_' + ENC_ESTADOS[i+1].toLowerCase()) + '</button> ';
+    if (e.cliente_tel) btns += '<button class="btn-sm" style="background:#25D366;color:#fff" onclick="avisarEncargo(\'' + e.id + '\')">📲 ' + T('enc.avisar') + '</button> ';
+    btns += '<button class="btn-sm" style="background:#16a34a;color:#fff" onclick="entregarEncargo(\'' + e.id + '\')">✅ ' + T('rep.entregar') + '</button> ';
+  }
+  btns += '<button class="btn-sm" style="background:#F3F4F6;color:#111" onclick="abrirEditarEncargo(\'' + e.id + '\')">✎</button> <button class="btn-sm" style="background:transparent;color:var(--red);border:1px solid var(--red)" onclick="eliminarEncargo(\'' + e.id + '\')">🗑</button>';
+  return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;background:var(--card,#fff)">' +
+    '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap">' +
+      '<div style="min-width:0"><div style="font-weight:800;font-size:14px">' + escHtml(e.producto||'') + '</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin-top:2px">' + (e.cliente_nombre?escHtml(e.cliente_nombre):'') + (e.cliente_tel?' · ' + escHtml(e.cliente_tel):'') + (e.proveedor?' · ' + escHtml(e.proveedor):'') + '</div></div>' +
+      '<span style="background:' + col + '18;color:' + col + ';font-size:11px;font-weight:800;padding:3px 10px;border-radius:999px;white-space:nowrap">' + T('enc.estado_' + (e.estado||'Pendiente').toLowerCase()) + '</span>' +
+    '</div>' +
+    '<div style="display:flex;gap:14px;font-size:12px;margin:8px 0;flex-wrap:wrap">' +
+      (e.senal? '<span>' + T('enc.senal') + ': <b>' + cur(e.senal) + '</b></span>':'') +
+      (e.pvp? '<span>' + T('enc.pvp') + ': <b>' + cur(e.pvp) + '</b></span>':'') +
+      (resta>0.005? '<span style="color:var(--orange)">' + T('enc.resta') + ': <b>' + cur(resta) + '</b></span>':'') +
+    '</div>' +
+    (e.nota? '<div style="font-size:11.5px;color:var(--muted);margin-bottom:6px">📝 ' + escHtml(e.nota) + '</div>':'') +
+    '<div style="display:flex;gap:5px;flex-wrap:wrap">' + btns + '</div></div>';
+}
+function renderEncargos() {
+  var el = document.getElementById('listaEncargos'); if (!el) return;
+  var list = (DB.encargos || []).slice().sort(function(a,b){ return String(b.fecha||'').localeCompare(String(a.fecha||'')); });
+  if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📋</div>' + T('enc.vacio') + '</div>'; return; }
+  var activos = list.filter(function(e){ return e.estado !== 'Entregado'; });
+  var entregados = list.filter(function(e){ return e.estado === 'Entregado'; });
+  el.innerHTML = activos.map(_encCard).join('') +
+    (entregados.length ? '<div class="sec-title" style="margin-top:16px;opacity:.7">✅ ' + T('enc.entregados') + ' (' + entregados.length + ')</div>' + entregados.map(_encCard).join('') : '');
+}
 
 // ════════════ PEDIDOS PENDIENTES (piezas que hacen falta) ════════════
 function _uuidPed() {
@@ -2124,6 +2247,7 @@ function navTo(id) {
   }
   if (id === 'pTienda') { navTo('pAjustes'); var btn=document.querySelector('.aj-tab[data-tab="negocio"]'); if(btn) ajTab(btn); return; }
   if (id === 'pServicios') renderServicios();
+  if (id === 'pEncargos') renderEncargos();
   if (id === 'pCatalogo') { try { renderCatalogo(); } catch(e){} }
   if (id === 'pUsuarios') cargarUsuarios();
   if (id === 'pFacturas') renderFacturas();
@@ -2143,7 +2267,7 @@ function navTo(id) {
 // F211: mapa inverso pageId → hash (canónico) para persistir la vista en la URL.
 var _PAGE_HASH = { pInicioNuevo:'inicio', pDash:'dashboard', pVentas:'ventas', pReps:'reparaciones',
   pPresupuestos:'presupuestos', pStock:'stock', pClis:'clientes', pProvs:'proveedores', pGastos:'gastos',
-  pPedidos:'pedidos', pServicios:'servicios', pCajas:'cajas', pAjustes:'ajustes', pReportes:'reportes',
+  pPedidos:'pedidos', pEncargos:'encargos', pServicios:'servicios', pCajas:'cajas', pAjustes:'ajustes', pReportes:'reportes',
   pComisiones:'comisiones', pFacturas:'facturas', pCatalogo:'catalogo', pUsuarios:'usuarios',
   pAyuda:'ayuda', pCitas:'citas', pMas:'mas' };
 
@@ -2263,6 +2387,7 @@ function cargarDatosLocal() {
       if (parsed.provs) DB.provs = parsed.provs;
       if (parsed.gastos_recurrentes) DB.gastos_recurrentes = parsed.gastos_recurrentes;
       if (parsed.servicios) DB.servicios = parsed.servicios;
+      if (parsed.encargos) DB.encargos = parsed.encargos;
     } catch(e) {}
   }
 }
@@ -2767,7 +2892,7 @@ async function cargarDatosSupabase() {
     localStorage.setItem('tk_db_backup_pre_sync', localStorage.getItem('tk_db') || '{}');
   }
   try {
-    var [ventas, reps, stock, clis, gastos, provs, gastosRec, pagosProv] = await Promise.all([
+    var [ventas, reps, stock, clis, gastos, provs, gastosRec, pagosProv, encargos] = await Promise.all([
       sbGetAll('ventas', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('reparaciones', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('stock', 'tienda_id=eq.' + TIENDA_ID),
@@ -2775,7 +2900,8 @@ async function cargarDatosSupabase() {
       sbGetAll('gastos', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('proveedores', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('gastos_recurrentes', 'tienda_id=eq.' + TIENDA_ID),
-      sbGetAll('pagos_proveedor', 'tienda_id=eq.' + TIENDA_ID).catch(function () { return []; })
+      sbGetAll('pagos_proveedor', 'tienda_id=eq.' + TIENDA_ID).catch(function () { return []; }),
+      sbGetAll('encargos', 'tienda_id=eq.' + TIENDA_ID).catch(function () { return []; })
     ]);
     if (Array.isArray(ventas)) DB.ventas = ventas.map(mapVenta);
     if (Array.isArray(reps)) DB.reps = reps.map(mapRep);
@@ -2785,6 +2911,7 @@ async function cargarDatosSupabase() {
     if (Array.isArray(provs)) DB.provs = provs;
     if (Array.isArray(gastosRec)) DB.gastos_recurrentes = gastosRec;
     if (Array.isArray(pagosProv)) DB.pagosProv = pagosProv;
+    if (Array.isArray(encargos)) DB.encargos = encargos;
     guardarDatos();
     // Aplicar plantillas de gastos recurrentes que toquen
     try { aplicarGastosRecurrentes(); } catch(e) { console.warn('Aplicar recurrentes:', e); }
