@@ -23,15 +23,26 @@ function escHtml(s) {
     return {'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c];
   });
 }
+// Prefijo telefónico del país de la tienda (configurable en Ajustes). España (34) por defecto.
+function _paisPrefijo() {
+  try { if (typeof AJUSTES !== 'undefined' && AJUSTES && AJUSTES.paisPrefijo) return String(AJUSTES.paisPrefijo).replace(/\D/g, '') || '34'; } catch (e) {}
+  return '34';
+}
 // Normaliza un teléfono para enlaces wa.me: solo dígitos + prefijo de país si falta.
-// España (34) por defecto, consistente con factura.js. wa.me exige número internacional sin '+'.
-function waTel(tel) {
-  var t = String(tel == null ? '' : tel).replace(/[^0-9+]/g, '');
-  if (!t) return '';
-  if (t.charAt(0) === '+') t = t.slice(1);
-  t = t.replace(/\D/g, '');
-  if (t.indexOf('00') === 0) t = t.slice(2);   // 0034... → 34...
-  if (t.length === 9) t = '34' + t;            // número español sin prefijo
+// wa.me exige número internacional sin '+'. Acepta un prefijo explícito (p.ej. el del cliente,
+// cliente.telPrefijo '+52'); si no, usa el prefijo del país de la tienda (AJUSTES.paisPrefijo).
+function waTel(tel, prefijo) {
+  var raw = String(tel == null ? '' : tel).replace(/[^0-9+]/g, '');
+  if (!raw) return '';
+  var hadPlus = raw.charAt(0) === '+';
+  var t = raw.replace(/\D/g, '');
+  if (t.indexOf('00') === 0) t = t.slice(2);   // 0034... → 34... (marcado internacional)
+  if (hadPlus || raw.indexOf('00') === 0) return t;  // ya venía internacional (+ o 00): respetar
+  var pref = String(prefijo || _paisPrefijo()).replace(/\D/g, '') || '34';
+  // ¿ya lleva el prefijo del país delante y es lo bastante largo? → asumir internacional
+  if (pref && t.indexOf(pref) === 0 && t.length >= pref.length + 8) return t;
+  // número nacional (sin prefijo): anteponer el del país de la tienda/cliente
+  if (pref && t.length <= 11) return pref + t;
   return t;
 }
 var TIENDA = {
@@ -544,7 +555,7 @@ setInterval(function() { refrescarPlan(); }, 5 * 60 * 1000);
     }
   }, 200);
 })();
-var AJUSTES = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21],nombre:'IVA',tiposExtra:'21, 10, 4, 0'},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
+var AJUSTES = {moneda:'EUR',paisPrefijo:'34',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21],nombre:'IVA',tiposExtra:'21, 10, 4, 0'},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
 
 // ═══ DB ═══
 var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[],gastos_recurrentes:[],encargos:[]};
@@ -660,6 +671,7 @@ window.addEventListener('DOMContentLoaded', function() {
   // Load ajustes
   var aj = JSON.parse(localStorage.getItem('tk_ajustes') || '{}');
   if (aj.moneda) AJUSTES.moneda = aj.moneda;
+  if (aj.paisPrefijo) AJUSTES.paisPrefijo = aj.paisPrefijo;
   if (aj.cierre) AJUSTES.cierre = aj.cierre;
   if (aj.nombre) AJUSTES.nombre = aj.nombre;
   if (aj.iva) AJUSTES.iva = Object.assign({activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21],nombre:'IVA',tiposExtra:'21, 10, 4, 0'}, aj.iva);
@@ -1143,7 +1155,7 @@ function onPedPiezaInput() {
       var col = uds <= (s.stockMin || 0) ? 'var(--orange)' : 'var(--muted)';
       var coste = parseFloat(s.precioC) || 0;
       var prov = _provHabitual(_stockNombre(s));
-      var sub = [(coste > 0 ? ('€' + coste.toFixed(2) + ' ' + T('pedidos.coste')) : ''), (prov ? ('· ' + escHtml(prov)) : '')].filter(Boolean).join(' ');
+      var sub = [(coste > 0 ? (cur(coste) + ' ' + T('pedidos.coste')) : ''), (prov ? ('· ' + escHtml(prov)) : '')].filter(Boolean).join(' ');
       return '<div onmousedown="pedSelStock(\'' + s.id + '\')" style="padding:7px 11px;cursor:pointer;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;font-size:12.5px" onmouseover="this.style.background=\'#faf7f3\'" onmouseout="this.style.background=\'#fff\'">' +
         '<span>' + (imei ? '📱' : '🔧') + '</span>' +
         '<div style="flex:1;min-width:0"><div style="font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(_stockNombre(s)) + '</div>' + (sub ? '<div style="font-size:10.5px;color:var(--muted)">' + sub + '</div>' : '') + '</div>' +
@@ -1218,7 +1230,7 @@ function renderPedidosWidget() {
   } else {
     html += pend.map(function(p) {
       var c = est[p.estado] || est.por_pedir;
-      var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? ('€' + parseFloat(p.importe).toFixed(2)) : ''), (p.fecha_pedido ? (T('pedidos.pedido_el') + ' ' + _pedFecha(p.fecha_pedido)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
+      var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? (cur(p.importe)) : ''), (p.fecha_pedido ? (T('pedidos.pedido_el') + ' ' + _pedFecha(p.fecha_pedido)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
       return '<div style="border:1px solid var(--border);border-radius:9px;padding:9px 10px;margin-bottom:7px">' +
         '<div style="font-weight:700;font-size:13px">' + c.e + ' ' + escHtml(p.pieza) + _pedCatBadge(p.categoria) + (p.cantidad > 1 ? (' <span style="color:var(--muted)">x' + p.cantidad + '</span>') : '') + '</div>' +
         (meta ? '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + meta + '</div>' : '') +
@@ -1510,8 +1522,8 @@ function renderPedItems() {
     var _v = parseFloat(it.precio_venta) || 0;
     return '<div style="display:flex;align-items:center;gap:8px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;margin-bottom:6px;font-size:12.5px">' +
       '<span style="flex:1;font-weight:600">' + (_esImeiCat(it.categoria) ? '📱 ' : '🔧 ') + escHtml(it.pieza) + (it.calidad ? ' <span style="font-size:10px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 6px;border-radius:5px">' + escHtml(it.calidad) + '</span>' : '') + (it.cantidad > 1 ? ' <span style="color:var(--muted)">x' + it.cantidad + '</span>' : '') + '</span>' +
-      (it.importe > 0 ? '<span style="font-weight:700;color:var(--muted)" title="Compra (total)">🛒 €' + parseFloat(it.importe).toFixed(2) + '</span>' : '') +
-      (_v > 0 ? '<span style="font-weight:700;color:var(--green)" title="Venta (ud)">🏷️ €' + _v.toFixed(2) + '</span>' : '') +
+      (it.importe > 0 ? '<span style="font-weight:700;color:var(--muted)" title="Compra (total)">🛒 ' + cur(it.importe) + '</span>' : '') +
+      (_v > 0 ? '<span style="font-weight:700;color:var(--green)" title="Venta (ud)">🏷️ ' + cur(_v) + '</span>' : '') +
       '<button onclick="pedDelItem(' + i + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:15px;line-height:1">×</button></div>';
   }).join('') + '<div style="display:flex;justify-content:space-between;font-size:12px;font-weight:700;padding:4px 2px"><span>' + items.length + ' ' + T('pedidos.lineas') + '</span>' + (tot > 0 ? '<span>' + cur(tot) + '</span>' : '') + '</div>';
 }
@@ -4048,7 +4060,7 @@ function renderInvPedidos() {
   } else {
     html += pend.map(function(p) {
       var c = est[p.estado] || est.por_pedir;
-      var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? ('€' + parseFloat(p.importe).toFixed(2)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
+      var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? (cur(p.importe)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
       return '<div style="border:1px solid var(--inv-line);border-radius:11px;padding:9px 11px;margin-bottom:7px">' +
         '<div style="font-weight:700;font-size:13px;color:var(--inv-ink)">' + c.e + ' ' + escHtml(p.pieza) + (p.cantidad > 1 ? (' <span style="color:var(--inv-ink3)">x' + p.cantidad + '</span>') : '') + '</div>' +
         (meta ? '<div style="font-size:11px;color:var(--inv-ink3);margin-top:2px">' + meta + '</div>' : '') +
@@ -4220,7 +4232,7 @@ function renderPedidosPage() {
   var est = { por_pedir: { e: '🔴', next: T('pedidos.marcar_pedido') }, pedido: { e: '🟡', next: T('pedidos.marcar_recibido') }, recibido: { e: '✅', next: '' } };
   function card(p) {
     var c = est[p.estado] || est.por_pedir;
-    var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? ('€' + parseFloat(p.importe).toFixed(2)) : ''), (p.cantidad > 1 ? ('x' + p.cantidad) : ''), (p.fecha_pedido ? (T('pedidos.pedido_el') + ' ' + _pedFecha(p.fecha_pedido)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
+    var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? (cur(p.importe)) : ''), (p.cantidad > 1 ? ('x' + p.cantidad) : ''), (p.fecha_pedido ? (T('pedidos.pedido_el') + ' ' + _pedFecha(p.fecha_pedido)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
     var acciones = (p.estado !== 'recibido')
       ? '<button style="background:var(--green);color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:11.5px;cursor:pointer;flex:1" onclick="avanzarPedido(\'' + p.id + '\')">' + c.next + '</button>' +
         '<button style="background:var(--light);border:none;border-radius:7px;padding:6px 9px;font-size:11.5px;cursor:pointer" onclick="editarPedido(\'' + p.id + '\')">✏️</button>'
@@ -5954,8 +5966,15 @@ function setMetricTab(el) {
   renderDash();
 }
 
+// S\u00edmbolo por moneda (LatAm + Europa). Las que no est\u00e9n en el mapa caen a su propio c\u00f3digo.
+var CUR_SYM = {
+  EUR:'\u20ac', USD:'$', GBP:'\u00a3',
+  MXN:'$', ARS:'$', COP:'$', CLP:'$', UYU:'$', DOP:'$',
+  PEN:'S/', BRL:'R$', BOB:'Bs', PYG:'\u20b2', GTQ:'Q', CRC:'\u20a1'
+};
+function curSym(m) { m = m || (AJUSTES && AJUSTES.moneda) || 'EUR'; return CUR_SYM[m] || (m + ' '); }
 function cur(n) {
-  return (AJUSTES.moneda === 'EUR' ? '\u20ac' : AJUSTES.moneda === 'USD' ? '$' : '\u00a3') + parseFloat(n).toFixed(2);
+  return curSym(AJUSTES.moneda) + parseFloat(n).toFixed(2);
 }
 
 // Normalización para búsqueda: minúsculas + sin acentos (Martín → martin)
@@ -12959,7 +12978,7 @@ function calcNomina() {
   var impSsEmp = bruto * ssEmp / 100;
   var neto = bruto - impIrpf - impSsTrab;
   var costeEmp = bruto + impSsEmp;
-  var fmt = function(v){ return '€' + v.toFixed(2); };
+  var fmt = function(v){ return cur(v); };
   document.getElementById('nResumenBruto').textContent = fmt(bruto);
   document.getElementById('nResumenIrpf').textContent = '-' + fmt(impIrpf);
   document.getElementById('nResumenSsTrab').textContent = '-' + fmt(impSsTrab);
@@ -14846,6 +14865,7 @@ async function cambiarPassword() {
 
 function cargarAjustes() {
   document.getElementById('ajMoneda').value = AJUSTES.moneda || 'EUR';
+  try { var _pp = document.getElementById('ajPaisPrefijo'); if (_pp) _pp.value = AJUSTES.paisPrefijo || '34'; } catch (e) {}
   try { var _es = document.getElementById('ajEtqSize'); if (_es) { var _ev = ''; try { _ev = localStorage.getItem('tk_etq_size') || ''; } catch (e) {} _es.value = (_ev && _es.querySelector('option[value="' + _ev + '"]')) ? _ev : '62cont'; } } catch (e) {}
   document.getElementById('ajNombre').value = AJUSTES.nombre || (U ? U.nombre : '');
   document.getElementById('ajCierreHora').value = AJUSTES.cierre.hora || '21:30';
@@ -14919,6 +14939,7 @@ function toggleCumpleCfg() {
 function guardarAjustes() {
   if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   AJUSTES.moneda = document.getElementById('ajMoneda').value;
+  var _ppEl = document.getElementById('ajPaisPrefijo'); if (_ppEl) AJUSTES.paisPrefijo = _ppEl.value;
   AJUSTES.nombre = document.getElementById('ajNombre').value;
   AJUSTES.cierre.hora = document.getElementById('ajCierreHora').value;
   AJUSTES.cierre.email = document.getElementById('ajCierreEmail').value;
@@ -15233,7 +15254,7 @@ async function _pullTiendaCompleta() {
 
     // Ajustes
     if (t.ajustes_config && typeof t.ajustes_config === 'object') {
-      var defaults = {moneda:'EUR',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21],nombre:'IVA',tiposExtra:'21, 10, 4, 0'},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
+      var defaults = {moneda:'EUR',paisPrefijo:'34',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21],nombre:'IVA',tiposExtra:'21, 10, 4, 0'},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:'¡Hola {nombre}! Te deseamos un feliz cumpleaños desde {tienda}. 🎂🎉'}};
       AJUSTES = Object.assign(defaults, t.ajustes_config);
       // Asegurar subobjetos completos
       AJUSTES.cierre = Object.assign(defaults.cierre, AJUSTES.cierre || {});
