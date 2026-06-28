@@ -11798,6 +11798,7 @@ function guardarCli() {
     es_empresa:d.esEmpresa,persona_contacto:d.personaContacto||null,nombre_fiscal:d.nombreFiscal||null,
     dir_fiscal:d.dirFiscal||null,cp:d.cp||null,ciudad:d.ciudad||null,provincia:d.provincia||null,
     pais:d.pais||null,tel_prefijo:d.telPrefijo||null,marketing_consent:!!d.marketingConsent}; };
+  if (!ECID && typeof _puedeAnadirCliente === 'function' && !_puedeAnadirCliente()) return;
   if (ECID) {
     var c = DB.clis.find(function(x) { return x.id === ECID; });
     if (c) Object.assign(c, data);
@@ -17672,6 +17673,7 @@ function procesarImport() {
     if (tipo === 'clientes') {
       var added = 0; var dupes = 0;
       var nuevosCli = [];
+      var _capCli = (typeof _limiteClientes === 'function') ? _limiteClientes() : Infinity; var _skipCli = 0;
       rows.forEach(function(row) {
         var nom = '', ape = '', tel = '', email = '', dni = '';
         if (isStdContacts) {
@@ -17695,12 +17697,14 @@ function procesarImport() {
         if (!nom) return;
         var existe = DB.clis.find(function(c) { return c.tel && c.tel === tel && tel.length > 5; });
         if (existe) { dupes++; return; }
+        if ((DB.clis || []).length >= _capCli) { _skipCli++; return; }
         var nuevoCli = {id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + Math.random().toString(36).slice(2), nombre: nom, apellidos: ape, tel: tel, email: email, dni: dni};
         DB.clis.push(nuevoCli);
         nuevosCli.push(nuevoCli);
         added++;
       });
       guardarDatos();
+      if (_skipCli > 0) { try { toast(T('lim.clientes').replace('{n}', _capCli), 'err'); } catch(e){} try { mostrarModalUpgrade('clientes', (PLAN_INFO.plan === 'basico') ? 'pro' : 'premium'); } catch(e){} }
       // Subir a Supabase para que el próximo sync no los pise
       if (SB_KEY && TIENDA_ID && nuevosCli.length) {
         _syncPausado = true;
