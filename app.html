@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TekPair — Iniciar sesión</title>
-<script>(function(){try{var s=JSON.parse(localStorage.getItem('tk_sess')||'null');if(s&&s.token&&!sessionStorage.getItem('tk_app_redir')){sessionStorage.setItem('tk_app_redir','1');location.replace('dashboard.html');}}catch(e){}})();</script>
+<script>(function(){try{var s=JSON.parse(localStorage.getItem('tk_sess')||'null');if(s&&s.token){var exp=0;try{exp=(JSON.parse(atob(s.token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp||0)*1000;}catch(e){}if(exp&&exp<Date.now()){try{localStorage.removeItem('tk_sess');}catch(e){}}else if(!sessionStorage.getItem('tk_app_redir')){sessionStorage.setItem('tk_app_redir','1');location.replace('dashboard.html');}}}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">

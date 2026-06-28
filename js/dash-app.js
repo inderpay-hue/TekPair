@@ -9644,7 +9644,9 @@ function renderRepsUrgenciaBanda() {
     r._diasTaller = f ? Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000) : 0;
     var fe = (r.fechaEntrega || '').slice(0, 10);
     if (r.prioridad === 'Urgente' || (fe && fe <= hoyISO)) urgentes.push(r);
-    else if (r._diasTaller > 14) atrasadas.push(r);
+    // "Atrasada" = activa y >14 días en taller, MISMA definición que Home/badge/próxima-acción
+    // (antes era else-if y restaba las urgentes → la cabecera mostraba menos que el Home).
+    if (r._diasTaller > 14) atrasadas.push(r);
   });
   if (!urgentes.length && !atrasadas.length && !listas.length) { box.style.display = 'none'; box.innerHTML = ''; _repBandaAbierto = null; return; }
   urgentes.sort(function(a, b) { return (b._diasTaller || 0) - (a._diasTaller || 0); });
@@ -13173,8 +13175,18 @@ async function renderReporte() {
 
   // Renderizar gráficas (asíncrono para que el DOM se actualice primero)
   setTimeout(function(){ renderGraficas(ventas, reps, pagos, fechas); }, 50);
-  // Renderizar desglose IVA
-  renderDesgloseIVA(ventas, reps);
+  // Renderizar desglose IVA — los reps deben sumar los PAGOS REALES del rango (igual que la
+  // cabecera tR), no el total contractual, o el desglose no cuadra con el total mostrado.
+  // Prorrateamos base/IVA de cada pago según el tipo de IVA de su reparación.
+  var _repsById = {}; (DB.reps || []).forEach(function(r){ _repsById[r.id] = r; });
+  var _repPagoItems = pagosReps.map(function(p){
+    var r = _repsById[p.reparacion_id] || {};
+    var tipo = (r.iva != null ? parseFloat(r.iva) : 21);
+    var tot = Number(p.importe || 0);
+    var base = tipo ? tot / (1 + tipo / 100) : tot;
+    return { iva: tipo, total: tot, base: base, ivaImporte: tot - base };
+  });
+  renderDesgloseIVA(ventas, _repPagoItems);
 }
 
 // ═══ ENVIAR REPORTE A COBRUM (app de finanzas) ═══
