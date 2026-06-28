@@ -376,8 +376,8 @@ function setupNavToBlocker() {
     try {
       var esAdmin = (typeof U !== 'undefined' && U) ? (U.rol === 'admin' || (U.permisos && U.permisos.todo)) : true;
       if (!esAdmin) {
-        if (pageId === 'pUsuarios' || pageId === 'pComisiones') { if (typeof toast === 'function') toast('Solo el administrador', 'err'); return; }
-        if (pageId === 'pAjustes' && !(typeof tienePerm === 'function' && tienePerm('ajustes_ver'))) { if (typeof toast === 'function') toast('No tienes acceso a Ajustes', 'err'); return; }
+        if (pageId === 'pUsuarios' || pageId === 'pComisiones') { if (typeof toast === 'function') toast(T('perm.solo_admin'), 'err'); return; }
+        if (pageId === 'pAjustes' && !(typeof tienePerm === 'function' && tienePerm('ajustes_ver'))) { if (typeof toast === 'function') toast(T('perm.sin_acceso_ajustes'), 'err'); return; }
       }
     } catch(e) {}
     var pageFeatureMap = {
@@ -398,8 +398,8 @@ function setupNavToBlocker() {
 
 // Abrir Stripe Customer Portal
 async function abrirStripePortal() {
-  if (!PLAN_INFO.token) { toast('Sesión no válida', 'err'); return; }
-  toast('Abriendo portal de gestión...', 'ok');
+  if (!PLAN_INFO.token) { toast(T('gen.sesion_invalida'), 'err'); return; }
+  toast(T('sub.abriendo_portal'), 'ok');
   try {
     var r = await fetch('/api/portal', {
       method: 'POST',
@@ -414,13 +414,13 @@ async function abrirStripePortal() {
         window.location.href = data.url;
       } else {
         console.warn('URL de portal no válida:', data.url);
-        toast('URL de portal no válida', 'err');
+        toast(T('sub.url_invalida'), 'err');
       }
     } else {
       toast(data.error || 'No se pudo abrir el portal', 'err');
     }
   } catch(e) {
-    toast('Error de conexión', 'err');
+    toast(T('gen.error_conexion'), 'err');
   }
 }
 
@@ -1357,7 +1357,7 @@ async function _analizarPedidoBody(body) {
     renderPreviewPegado();
   } catch (e) {
     console.error('_analizarPedidoBody:', e);
-    toast('⚠️ Error al analizar el pedido', 'err');
+    toast(T('imp.error_pedido'), 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '✨ ' + (T('pedidos.pegar_analizar') || 'Analizar con IA'); }
   }
@@ -1475,7 +1475,7 @@ async function _analizarFacturaBody(body) {
     renderPreviewFactura();
   } catch (e) {
     console.error('_analizarFacturaBody:', e);
-    toast('⚠️ Error al analizar la factura', 'err');
+    toast(T('imp.error_factura'), 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '✨ ' + (T('fac_ia.analizar') || 'Analizar con IA'); }
   }
@@ -1826,9 +1826,9 @@ async function _subirPdfPedido(file, grupo) {
     var blobToUpload = new Blob([blob], { type: mime });
     blobToUpload.name = file.name;
     var resp = await sbStorageUpload('gastos-adjuntos', path, blobToUpload);
-    if (!resp.ok) { console.error('Upload PDF pedido falló:', resp.status); toast('Error al subir la factura', 'err'); return null; }
+    if (!resp.ok) { console.error('Upload PDF pedido falló:', resp.status); toast(T('imp.error_subir_factura'), 'err'); return null; }
     return { path: path, nombre: file.name, mime: mime };
-  } catch (e) { console.error('_subirPdfPedido:', e); toast('Error al procesar la factura', 'err'); return null; }
+  } catch (e) { console.error('_subirPdfPedido:', e); toast(T('imp.error_procesar_factura'), 'err'); return null; }
 }
 
 // Crea UN gasto consolidado para todo un pedido (total real pagado + factura adjunta).
@@ -7413,7 +7413,7 @@ async function confirmarEnviarPres() {
 
   } catch(e) {
     console.error('confirmarEnviarPres:', e);
-    toast('Error de conexión', 'err');
+    toast(T('gen.error_conexion'), 'err');
     btn.disabled = false; btn.textContent = '📤 Generar y enviar';
   }
 }
@@ -17522,7 +17522,7 @@ async function enviarAyuda() {
     }
   } catch (e) {
     console.error('Error enviarAyuda:', e);
-    toast('Error de conexión', 'err');
+    toast(T('gen.error_conexion'), 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.textContent = btnOriginal; }
   }

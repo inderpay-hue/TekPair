@@ -983,7 +983,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260628d"></script>
+<script src="/lang/lang.v8.js?v=20260628e"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -5141,7 +5141,7 @@ function abrirNuevoAfiliado() {
         '<div style="background:#FEF3C7;border-radius:8px;padding:10px;font-size:12px;color:#92400E;margin-top:12px;line-height:1.5">' + T('com.cuenta_nota') + '</div>' +
       '</div>' +
       '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
-        '<button onclick="cerrarWizardAfil()" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">Cancelar</button>' +
+        '<button onclick="cerrarWizardAfil()" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">' + T('gen.cancelar') + '</button>' +
         '<button onclick="crearComercialTekpair()" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--blue);color:white;cursor:pointer;font-weight:700;font-size:13px">' + T('com.crear_comercial') + '</button>' +
       '</div>' +
     '</div></div>';
@@ -5226,7 +5226,7 @@ function renderWizardStep1() {
       '</div>' +
       '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
         '<button onclick="cerrarWizardAfil()" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px" data-t="gen.cancelar">Cancelar</button>' +
-        '<button onclick="wizardStep1Submit()" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--blue);color:white;cursor:pointer;font-weight:700;font-size:13px">Crear cuenta &rarr;</button>' +
+        '<button onclick="wizardStep1Submit()" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--blue);color:white;cursor:pointer;font-weight:700;font-size:13px">' + T('afil.crear_cuenta') + ' &rarr;</button>' +
       '</div>' +
     '</div></div>';
   var w = document.createElement('div'); w.innerHTML = html;
@@ -5298,8 +5298,8 @@ function renderWizardStep2() {
         '<div style="background:#FEF3C7;border-radius:8px;padding:12px;font-size:12px;color:#92400E">Sin este paso, el codigo del comercial no funcionara cuando un cliente lo use.</div>' +
       '</div>' +
       '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
-        '<button onclick="abrirWizardStep(1)" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">&larr; Volver</button>' +
-        '<button onclick="abrirWizardStep(3)" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--green);color:white;cursor:pointer;font-weight:700;font-size:13px">Cupon creado, siguiente &rarr;</button>' +
+        '<button onclick="abrirWizardStep(1)" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">&larr; ' + T('gen.volver') + '</button>' +
+        '<button onclick="abrirWizardStep(3)" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--green);color:white;cursor:pointer;font-weight:700;font-size:13px">' + T('afil.cupon_siguiente') + ' &rarr;</button>' +
       '</div>' +
     '</div></div>';
   var w = document.createElement('div'); w.innerHTML = html;
@@ -5327,7 +5327,7 @@ function renderWizardStep3() {
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:12px;font-size:13px;color:#065F46">Al activar, el comercial podra acceder a TekPair y su codigo empezara a generar comisiones cuando un cliente lo use.</div>' +
       '</div>' +
       '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
-        '<button onclick="abrirWizardStep(2)" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">&larr; Volver</button>' +
+        '<button onclick="abrirWizardStep(2)" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">&larr; ' + T('gen.volver') + '</button>' +
         '<button onclick="wizardActivar()" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--green);color:white;cursor:pointer;font-weight:700;font-size:13px">&check; Activar comercial</button>' +
       '</div>' +
     '</div></div>';
@@ -5618,7 +5618,7 @@ function abrirModalPago(opciones) {
       '</div>' +
       '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
         '<button onclick="cerrarModalPago()" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px" data-t="gen.cancelar">Cancelar</button>' +
-        '<button id="btnConfirmarPago" style="flex:1;padding:11px;border-radius:8px;border:none;background:var(--green);color:white;cursor:pointer;font-weight:700;font-size:13px">Confirmar pago</button>' +
+        '<button id="btnConfirmarPago" style="flex:1;padding:11px;border-radius:8px;border:none;background:var(--green);color:white;cursor:pointer;font-weight:700;font-size:13px">' + T('afil.confirmar_pago') + '</button>' +
       '</div>' +
     '</div></div>';
   var w = document.createElement('div');
