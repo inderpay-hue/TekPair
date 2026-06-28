@@ -3706,8 +3706,15 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   // F494: un % por encima de ±999 viene de una base mínima → no es comparable de verdad.
   // Mostrarlo como "—" en vez de un "+999%" que parece preciso pero engaña.
   var pctCap = (pct === null || Math.abs(pct) >= 999) ? null : pct;
-  _st('inv-a-perlbl', perLbl);
-  _st('inv-a-big', cur(ingPer));
+  // "Día vacío": si el periodo es Hoy y hoy no tiene ingresos, el héroe muestra la SEMANA
+  // (y si la semana también está a 0, el MES) en vez de un "€0" muerto. El selector sigue en Hoy.
+  var _heroLbl = perLbl, _heroBig = ingPer;
+  if (per === 'hoy' && ingPer <= 0.005) {
+    if (estaSem > 0.005) { _heroLbl = T('inicio.sem_hoy_vacio'); _heroBig = estaSem; }
+    else { var _ingMesHero = _invIncome(_invIso(mesIni), _invIso(mesFin)); if (_ingMesHero > 0.005) { _heroLbl = T('inicio.mes_sem_vacio'); _heroBig = _ingMesHero; } }
+  }
+  _st('inv-a-perlbl', _heroLbl);
+  _st('inv-a-big', cur(_heroBig));
   // M-D1: tendencia no alarmista. Solo pintamos la SUBIDA (verde, motiva). Las bajadas no se
   // muestran como catástrofe (un "-92%" en fin de semana asustaba sin motivo): el pulso de abajo
   // da el contexto en cifras absolutas y, si es finde, lo aclara.
