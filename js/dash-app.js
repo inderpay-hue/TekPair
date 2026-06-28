@@ -6196,6 +6196,14 @@ function _cliLbl(n){ return (n === 'Sin cliente' || !n) ? T('gen.sin_cliente') :
 var _CAT_KEY = { 'Telefono':'cat_telefono','Tablet':'cat_tablet','Smartwatch':'cat_smartwatch','Pantalla':'cat_pantalla','Tapa':'cat_tapa','Bateria':'cat_bateria','Flex de Carga':'cat_flex','Altavoz':'cat_altavoz','Repuesto':'cat_repuesto','Accesorio':'cat_accesorio','Otro':'cat_otro' };
 function _catLbl(c){ if (!c) return ''; var kk = _CAT_KEY[c]; if (!kk) return c; var t = T('stock.' + kk); return (t && t !== 'stock.' + kk) ? t : c; }
 
+// ¿Es una venta financiada aún PENDIENTE (no completada ni reembolsada)?
+function _esFinPendiente(v) {
+  if (!v || !v.financiado || v.reembolsado) return false;
+  if (v.estadoFinanciado === 'completado') return false;
+  var c = v.cuotas || [];
+  if (c.length > 0 && c.every(function(x){ return x.pagado; })) return false;
+  return true;
+}
 function renderVentas() {
   var q = _norm(document.getElementById('busVentas').value);
   var filtro = SEL.ventaFiltro || 'todas';
@@ -6205,6 +6213,8 @@ function renderVentas() {
     if (filtro === 'financiados') return matchQ && v.financiado;
     return matchQ && !v.reembolsado;
   });
+  // Financiadas pendientes primero (lo accionable arriba); el sort estable conserva la recencia dentro de cada grupo.
+  list.sort(function(a, b) { return (_esFinPendiente(a) ? 0 : 1) - (_esFinPendiente(b) ? 0 : 1); });
   var el = document.getElementById('listaVentas');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📱</div>' + T('gen.sin_registros') + '</div>'; return; }
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('gen.fecha') + '</th><th>' + T('gen.cliente') + '</th><th>' + T('gen.modelo') + '</th><th>' + T('gen.pago') + '</th><th>' + T('gen.total') + '</th><th></th></tr></thead><tbody>';
