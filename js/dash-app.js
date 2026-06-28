@@ -3632,6 +3632,8 @@ function pagarGastoPendiente(id) {
 function renderLoQueDebes() {
   var box = document.getElementById('inv-debes');
   if (!box) return;
+  // "Lo que debes" (deuda a proveedores) es de Pro/Premium; fuera del Básico.
+  if (typeof tieneFeature === 'function' && !tieneFeature('analitica')) { _inicioBuckets.debes = 0; box.style.display = 'none'; return; }
   if (!_esAdmin()) { _inicioBuckets.debes = 0; box.style.display = 'none'; return; }
   var hoy = new Date(hoyLocal() + 'T23:59:59');
   var items = [];
