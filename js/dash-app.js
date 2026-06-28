@@ -64,12 +64,12 @@ var PLAN_FEATURES = {
   basico: ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'gar_rep_basica'],
   pro:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
-           'permisos_usuarios','reportes_pdf','backup','auditoria',
+           'pedidos','permisos_usuarios','reportes_pdf','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica'],
   top:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
-           'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
+           'pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
@@ -77,7 +77,7 @@ var PLAN_FEATURES = {
            'gar_notif_auto','gar_reportes_avanzados',
            'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica'],
   premium:['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
-           'permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
+           'pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
@@ -347,6 +347,7 @@ function aplicarBloqueosPlan() {
   // Items del sidebar a bloquear
   var sidebarLocks = [
     {selector: '[data-p="pCitas"]', feat: 'citas'},
+    {selector: '[data-p="pPedidos"]', feat: 'pedidos'},
     {selector: '[data-p="pServicios"]', feat: 'catalogo_servicios'},
     {selector: '[data-p="pCajas"]', feat: 'cajas_multiservicio'}
   ];
@@ -401,6 +402,7 @@ function setupNavToBlocker() {
     } catch(e) {}
     var pageFeatureMap = {
       pCitas: 'citas',
+      pPedidos: 'pedidos',
       pServicios: 'catalogo_servicios',
       pCajas: 'cajas_multiservicio'
     };
@@ -3132,7 +3134,7 @@ function cargarMisTiendas() {
         sel.innerHTML = j.tiendas.map(function(t) { return '<option value="' + esc(t.id) + '"' + (t.id === activa ? ' selected' : '') + '>🏪 ' + esc(t.nombre || t.id) + '</option>'; }).join('');
         sel.style.display = '';
       } else { sel.style.display = 'none'; }
-      if (addBtn) addBtn.style.display = esAdmin ? 'block' : 'none';
+      if (addBtn) addBtn.style.display = (esAdmin && (typeof tieneFeature === 'function' && tieneFeature('multi_tienda'))) ? 'block' : 'none';
       // El wrap se ve si hay selector (2+ tiendas) o si el admin puede añadir.
       wrap.style.display = (multi || esAdmin) ? 'block' : 'none';
     }).catch(function() {});
@@ -3141,6 +3143,7 @@ function cargarMisTiendas() {
 // crea la tienda y el enlace al completarse el pago.
 function anadirTienda() {
   if (!(U && (U.rol === 'admin' || (U.permisos && U.permisos.todo)))) { toast(T('gen.sin_permiso'), 'err'); return; }
+  if (typeof tieneFeature === 'function' && !tieneFeature('multi_tienda')) { mostrarModalUpgrade('multi_tienda', 'premium'); return; }
   pedirTexto(T('mt.anadir_prompt') + '\n\n' + T('mt.anadir_precio'), { rows: 1, okLabel: T('mt.anadir_ok') }, function(nombre) {
     if (nombre === null) return;
     nombre = (nombre || '').trim();
@@ -3839,8 +3842,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }
   function _setAttr(id, a, v) { var e = document.getElementById(id); if (e) e.setAttribute(a, v); }
   // Personalización: mostrar/ocultar tarjetas del Resumen
-  var _verAnalitInv = (typeof tieneFeature === 'function') ? tieneFeature('analitica') : true;
-  [['inv-card-inggastos', 'rs_inggastos', true], ['inv-card-rscomocobras', 'rs_comocobras', true], ['inv-card-lodeja', 'rs_lodeja', true], ['inv-card-rspedidos', 'rs_pedidos', false]].forEach(function(p) { var e = document.getElementById(p[0]); if (e) e.style.display = ((!p[2] || _verAnalitInv) && _invWidgetOn(p[1])) ? '' : 'none'; });
+  [['inv-card-inggastos', 'rs_inggastos', 'analitica'], ['inv-card-rscomocobras', 'rs_comocobras', 'analitica'], ['inv-card-lodeja', 'rs_lodeja', 'analitica'], ['inv-card-rspedidos', 'rs_pedidos', 'pedidos']].forEach(function(p) { var e = document.getElementById(p[0]); if (e) { var _fok = !p[2] || (typeof tieneFeature === 'function' ? tieneFeature(p[2]) : true); e.style.display = (_fok && _invWidgetOn(p[1])) ? '' : 'none'; } });
   var hoy = hoyLocal();
   var per = window._invPer || 'hoy';
   var baseH = new Date(hoy + 'T00:00:00');
