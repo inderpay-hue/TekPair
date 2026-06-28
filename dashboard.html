@@ -981,9 +981,39 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-tab.active{background:var(--blue);color:white;border-color:var(--blue)}
 .aj-panel{display:none}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
+/* ── Ajustes: rail vertical agrupado + secciones (rediseño) ── */
+.aj-shell{display:grid;grid-template-columns:236px 1fr;gap:18px;align-items:start}
+.aj-rail{background:white;border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow-sm);padding:8px;position:sticky;top:14px}
+.aj-railgroup{padding:8px 8px 4px}
+.aj-railgroup .aj-gl{font-size:10px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted);opacity:.7;font-weight:700;padding:6px 8px 4px}
+.aj-nav{border:0;background:transparent;font:inherit;width:100%;text-align:left;display:flex;align-items:center;gap:10px;font-size:13.5px;color:var(--text);padding:9px 10px;border-radius:10px;cursor:pointer;transition:background .12s var(--ease)}
+.aj-nav .aj-e{width:18px;text-align:center;flex-shrink:0}
+.aj-nav:hover{background:var(--light)}
+.aj-nav.active{background:var(--blue);color:#fff;font-weight:600}
+.aj-nav .aj-lock{margin-left:auto;font-size:10px;opacity:.85}
+.aj-content{display:flex;flex-direction:column;min-width:0}
+.aj-sec{display:none}
+.aj-sec.active{display:block;animation:fadeIn .15s ease}
+.aj-sechead{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+.aj-sechead h2{font-size:19px;font-weight:700;letter-spacing:-.01em}
+.aj-sechead p{font-size:12.5px;color:var(--muted);margin-top:2px}
+.aj-sechead .savebar{display:flex;gap:8px}
+.aj-saverow{display:flex;justify-content:flex-end;margin-top:4px}
+body[data-theme="dark"] .aj-rail{background:var(--white)}
+body[data-theme="dark"] .aj-nav{color:var(--text)}
+@media(max-width:760px){
+  .aj-shell{grid-template-columns:1fr}
+  .aj-rail{position:static;display:flex;gap:6px;overflow-x:auto;-webkit-overflow-scrolling:touch;padding:8px;margin-bottom:14px}
+  .aj-rail::-webkit-scrollbar{display:none}
+  .aj-railgroup{padding:0;display:flex;gap:6px;flex-shrink:0}
+  .aj-railgroup .aj-gl{display:none}
+  .aj-nav{width:auto;white-space:nowrap;border:1.5px solid var(--border);border-radius:20px;padding:7px 12px;font-size:12px;font-weight:600;color:var(--muted)}
+  .aj-nav:hover{background:white}
+  .aj-nav.active{border-color:var(--blue)}
+}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260628q"></script>
+<script src="/lang/lang.v8.js?v=20260628y"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2565,16 +2595,41 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     <div class="sec-title">⚙️ <span data-t="nav.ajustes">Ajustes</span></div>
   </div>
 
-  <!-- Tabs de categoría -->
-  <div class="aj-tabs" id="ajTabs">
-    <button class="aj-tab active" data-tab="negocio"   onclick="ajTab(this)"><span data-t="gen.mi_negocio">🏪 Mi negocio</span></button>
-    <button class="aj-tab"        data-tab="prefs"     onclick="ajTab(this)"><span data-t="gen.preferencias">🎛️ Preferencias</span></button>
-    <button class="aj-tab"        data-tab="notif"     onclick="ajTab(this)"><span data-t="gen.notificaciones">🔔 Notificaciones</span></button>
-    <button class="aj-tab"        data-tab="cuenta"    onclick="ajTab(this)"><span data-t="gen.cuenta">🔒 Cuenta</span></button>
-  </div>
+  <div class="aj-shell">
+  <!-- Rail vertical agrupado de secciones -->
+  <nav class="aj-rail" id="ajRail">
+    <div class="aj-railgroup">
+      <div class="aj-gl">Tu tienda</div>
+      <button class="aj-nav active" data-sec="negocio"   onclick="ajSec('negocio',this)"><span class="aj-e">🏪</span> <span data-t="gen.mi_negocio">Mi negocio</span></button>
+      <button class="aj-nav" data-sec="cobros"   data-feat="financiado" onclick="ajSec('cobros',this)"><span class="aj-e">💳</span> <span data-t="ajt.cobro_titulo">Cobros online</span></button>
+      <button class="aj-nav" data-sec="impuestos" onclick="ajSec('impuestos',this)"><span class="aj-e">🧾</span> <span data-t="ajp.impuestos_title">Impuestos</span></button>
+      <button class="aj-nav" data-sec="citas" data-feat="citas" onclick="ajSec('citas',this)"><span class="aj-e">📅</span> Citas y horarios</button>
+      <button class="aj-nav" data-sec="reparaciones" onclick="ajSec('reparaciones',this)"><span class="aj-e">🔧</span> <span data-t="nav.reparaciones">Reparaciones</span></button>
+    </div>
+    <div class="aj-railgroup">
+      <div class="aj-gl">Personas</div>
+      <button class="aj-nav" data-sec="equipo" data-feat="permisos_usuarios" onclick="ajSec('equipo',this)"><span class="aj-e">👥</span> Equipo y permisos</button>
+      <button class="aj-nav" data-sec="referidos" onclick="ajSec('referidos',this)"><span class="aj-e">🎁</span> Referidos</button>
+    </div>
+    <div class="aj-railgroup">
+      <div class="aj-gl">App</div>
+      <button class="aj-nav" data-sec="apariencia" onclick="ajSec('apariencia',this)"><span class="aj-e">🎨</span> <span data-t="ajp.apariencia">Apariencia</span></button>
+      <button class="aj-nav" data-sec="notif" onclick="ajSec('notif',this)"><span class="aj-e">🔔</span> <span data-t="gen.notificaciones">Notificaciones</span></button>
+    </div>
+    <div class="aj-railgroup">
+      <div class="aj-gl">Cuenta</div>
+      <button class="aj-nav" data-sec="plan" onclick="ajSec('plan',this)"><span class="aj-e">💼</span> Plan y facturas</button>
+      <button class="aj-nav" data-sec="seguridad" onclick="ajSec('seguridad',this)"><span class="aj-e">🔒</span> <span data-t="acc.seguridad">Seguridad</span></button>
+      <button class="aj-nav" data-sec="datos" data-feat="backup" onclick="ajSec('datos',this)"><span class="aj-e">📦</span> Datos y copias</button>
+    </div>
+  </nav>
 
-  <!-- ══ TAB: MI NEGOCIO ══ -->
-  <div class="aj-panel active" id="ajPanel-negocio">
+  <!-- Área de contenido: una sección a la vez -->
+  <div class="aj-content" id="ajContent">
+
+  <!-- ══ SECCIÓN: NEGOCIO ══ -->
+  <div class="aj-sec active" id="ajSec-negocio">
+    <div class="aj-sechead"><div><h2><span data-t="gen.mi_negocio">Mi negocio</span></h2></div></div>
 
     <div class="card">
       <div class="card-title">Logo de la tienda</div>
@@ -2607,6 +2662,13 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       </div>
     </div>
 
+    <div class="aj-saverow"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div>
+  </div><!-- /negocio -->
+
+  <!-- ══ SECCIÓN: COBROS ONLINE ══ -->
+  <div class="aj-sec" id="ajSec-cobros">
+    <div class="aj-sechead"><div><h2>💳 <span data-t="ajt.cobro_titulo">Cobros online</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
+
     <!-- Sprint 1 financiación: datos de cobro online (Modelo C — el dinero va directo a la tienda) -->
     <div class="card">
       <div class="card-title">💳 <span data-t="ajt.cobro_titulo">Datos de cobro online</span></div>
@@ -2620,6 +2682,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div class="fg" style="margin-top:8px"><label class="fl" data-t="ajt.cobro_mensaje">Mensaje para el cliente (opcional)</label><input class="fi" id="cobroMensaje" placeholder="Tras pagar, confírmanos por WhatsApp 📲"/></div>
       <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t-html="ajt.cobro_concepto">El concepto de cada cobro se genera solo: <code>REP-{nº}-CUOTA-{n}</code>, para que reconozcas el ingreso.</div>
     </div>
+  </div><!-- /cobros -->
+
+  <!-- ══ SECCIÓN: REFERIDOS ══ -->
+  <div class="aj-sec" id="ajSec-referidos">
+    <div class="aj-sechead"><div><h2>🎁 <span data-t="ref.titulo">Invita amigos y gana meses gratis</span></h2></div></div>
 
     <!-- Referidos: invita a otras tiendas, ambas ganan 1 mes gratis -->
     <div class="card">
@@ -2627,6 +2694,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="ref.sub">Invita a otros talleres con tu link. Cuando se registren y paguen su primera factura, os lleváis 1 mes gratis los dos. Sin límite.</div>
       <div id="refBox"><div style="font-size:12px;color:var(--muted)">…</div></div>
     </div>
+  </div><!-- /referidos -->
+
+  <!-- ══ SECCIÓN: CITAS Y HORARIOS ══ -->
+  <div class="aj-sec" id="ajSec-citas">
+    <div class="aj-sechead"><div><h2>📅 <span data-t="ajt.citas_title">Citas y horarios</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
 
     <div class="card">
       <div class="card-title" data-t="ajt.citas_title">📅 Citas online — Horarios</div>
@@ -2654,6 +2726,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <button type="button" style="background:var(--orange);color:white;border:none;border-radius:9px;padding:0 14px;white-space:nowrap;flex:0 0 auto;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit" onclick="agregarUbicacion()" data-t="stock.anadir">+ Añadir</button>
       </div>
     </div>
+  </div><!-- /citas -->
+
+  <!-- ══ SECCIÓN: REPARACIONES (garantías + políticas) ══ -->
+  <div class="aj-sec" id="ajSec-reparaciones">
+    <div class="aj-sechead"><div><h2>🔧 <span data-t="nav.reparaciones">Reparaciones</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
 
     <div class="card">
       <div class="card-title" data-t="ajt.gar_title">🛡️ Garantías</div>
@@ -2784,10 +2861,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
 
     <button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button>
-  </div>
+  </div><!-- /reparaciones -->
 
-  <!-- ══ TAB: PREFERENCIAS ══ -->
-  <div class="aj-panel" id="ajPanel-prefs">
+  <!-- ══ SECCIÓN: APARIENCIA ══ -->
+  <div class="aj-sec" id="ajSec-apariencia">
+    <div class="aj-sechead"><div><h2>🎨 <span data-t="ajp.apariencia">Apariencia</span></h2></div></div>
 
     <div class="card">
       <div class="card-title" data-t="ajp.apariencia">Apariencia</div>
@@ -2836,42 +2914,6 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
 
     <div class="card">
-      <div class="card-title" data-t="ajp.impuestos_title">Impuestos (IVA)</div>
-      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:14px">
-        <input type="checkbox" id="ajIvaActivo" onchange="toggleIvaCfg()"> <span data-t="ajp.aplicar_iva">Aplicar IVA en ventas y reparaciones</span>
-      </label>
-      <div id="ajIvaCfg" style="display:none">
-        <div class="fg">
-          <label class="fl" data-t="ajp.modo_precios">Modo de precios</label>
-          <select class="fi" id="ajIvaModo">
-            <option value="incluido" data-t="ajp.modo_incluido">IVA incluido en el precio (B2C)</option>
-            <option value="anadido" data-t="ajp.modo_anadido">IVA añadido al precio (B2B)</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label class="fl" data-t="ajp.nombre_impuesto">Nombre del impuesto (IVA, TVA, MwSt, VAT...)</label>
-          <input class="fi" id="ajIvaNombre" type="text" placeholder="IVA" maxlength="10" style="max-width:140px"/>
-        </div>
-        <div class="fg">
-          <label class="fl" data-t="ajp.tipo_default">Tipo por defecto (%)</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input class="fi" id="ajIvaTipoDefault" type="number" min="0" max="100" step="0.1" placeholder="21" style="max-width:100px"/>
-            <span style="font-size:13px;color:var(--muted)">%</span>
-          </div>
-        </div>
-        <div class="fg">
-          <label class="fl" data-t="ajp.tipos_extra">Tipos adicionales permitidos (separados por coma)</label>
-          <input class="fi" id="ajIvaTiposExtra" type="text" placeholder="21, 10, 4, 0" style="max-width:220px"/>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="ajp.tipos_extra_hint">Ej: 21, 10, 4, 0 — aparecerán como opciones al crear ventas y reparaciones</div>
-        </div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;background:var(--light);padding:10px 12px;border-radius:8px;margin-top:6px" data-t-html="ajp.iva_help">
-          💡 <strong>Modo "incluido":</strong> el precio que escribes ya incluye el IVA. El cliente ve el precio final.<br>
-          💡 <strong>Modo "añadido":</strong> el precio que escribes es la base. El IVA se suma al final.
-        </div>
-      </div>
-    </div>
-
-    <div class="card">
       <div class="card-title" data-t="ajp.cierre_title">Cierre automático diario</div>
       <div class="fg"><label class="fl" data-t="ajp.cierre_hora">Hora de cierre</label><input class="fi" id="ajCierreHora" type="time" value="21:30"/></div>
       <div class="fg"><label class="fl" data-t="ajp.cierre_email">Email para reporte</label><input class="fi" id="ajCierreEmail" type="email" placeholder="tu@email.com"/></div>
@@ -2917,10 +2959,53 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
 
     <button class="btn-primary" onclick="guardarAjustes()"><span data-t="ajustes.guardar_pref">Guardar preferencias</span></button>
-  </div>
+  </div><!-- /apariencia -->
 
-  <!-- ══ TAB: NOTIFICACIONES ══ -->
-  <div class="aj-panel" id="ajPanel-notif">
+  <!-- ══ SECCIÓN: IMPUESTOS ══ -->
+  <div class="aj-sec" id="ajSec-impuestos">
+    <div class="aj-sechead"><div><h2>🧾 <span data-t="ajp.impuestos_title">Impuestos (IVA)</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
+
+    <div class="card">
+      <div class="card-title" data-t="ajp.impuestos_title">Impuestos (IVA)</div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:14px">
+        <input type="checkbox" id="ajIvaActivo" onchange="toggleIvaCfg()"> <span data-t="ajp.aplicar_iva">Aplicar IVA en ventas y reparaciones</span>
+      </label>
+      <div id="ajIvaCfg" style="display:none">
+        <div class="fg">
+          <label class="fl" data-t="ajp.modo_precios">Modo de precios</label>
+          <select class="fi" id="ajIvaModo">
+            <option value="incluido" data-t="ajp.modo_incluido">IVA incluido en el precio (B2C)</option>
+            <option value="anadido" data-t="ajp.modo_anadido">IVA añadido al precio (B2B)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl" data-t="ajp.nombre_impuesto">Nombre del impuesto (IVA, TVA, MwSt, VAT...)</label>
+          <input class="fi" id="ajIvaNombre" type="text" placeholder="IVA" maxlength="10" style="max-width:140px"/>
+        </div>
+        <div class="fg">
+          <label class="fl" data-t="ajp.tipo_default">Tipo por defecto (%)</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="fi" id="ajIvaTipoDefault" type="number" min="0" max="100" step="0.1" placeholder="21" style="max-width:100px"/>
+            <span style="font-size:13px;color:var(--muted)">%</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl" data-t="ajp.tipos_extra">Tipos adicionales permitidos (separados por coma)</label>
+          <input class="fi" id="ajIvaTiposExtra" type="text" placeholder="21, 10, 4, 0" style="max-width:220px"/>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="ajp.tipos_extra_hint">Ej: 21, 10, 4, 0 — aparecerán como opciones al crear ventas y reparaciones</div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;background:var(--light);padding:10px 12px;border-radius:8px;margin-top:6px" data-t-html="ajp.iva_help">
+          💡 <strong>Modo "incluido":</strong> el precio que escribes ya incluye el IVA. El cliente ve el precio final.<br>
+          💡 <strong>Modo "añadido":</strong> el precio que escribes es la base. El IVA se suma al final.
+        </div>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button>
+  </div><!-- /impuestos -->
+
+  <!-- ══ SECCIÓN: NOTIFICACIONES ══ -->
+  <div class="aj-sec" id="ajSec-notif">
+    <div class="aj-sechead"><div><h2>🔔 <span data-t="ajn.title">Notificaciones</span></h2></div></div>
 
     <div class="card">
       <div class="card-title" data-t="ajn.title">Notificaciones</div>
@@ -2974,10 +3059,21 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
     </div>
 
     <button class="btn-primary" onclick="guardarAjustes()" data-t="ajn.guardar">Guardar notificaciones</button>
-  </div>
+  </div><!-- /notif -->
 
-  <!-- ══ TAB: CUENTA Y SEGURIDAD ══ -->
-  <div class="aj-panel" id="ajPanel-cuenta">
+  <!-- ══ SECCIÓN: EQUIPO Y PERMISOS ══ -->
+  <div class="aj-sec" id="ajSec-equipo">
+    <div class="aj-sechead"><div><h2>👥 Equipo y permisos</h2></div></div>
+    <div class="card">
+      <div class="card-title"><span data-t="nav.usuarios">Usuarios</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Gestiona los usuarios de tu tienda y qué puede ver y hacer cada uno (incluido si ven el dinero).</div>
+      <button type="button" class="btn-primary" style="background:var(--blue);width:100%" onclick="navTo('pUsuarios')">👥 <span data-t="nav.usuarios">Usuarios</span></button>
+    </div>
+  </div><!-- /equipo -->
+
+  <!-- ══ SECCIÓN: PLAN Y FACTURAS ══ -->
+  <div class="aj-sec" id="ajSec-plan">
+    <div class="aj-sechead"><div><h2>💼 Plan y facturas</h2></div></div>
 
     <div class="card" id="cardSuscripcion">
       <div class="card-title" data-t="acc.mi_suscripcion">💳 Mi suscripción</div>
@@ -2994,6 +3090,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="acc.novedades_desc">Todo lo que vamos mejorando en TekPair, ordenado por fecha. Échale un vistazo de vez en cuando.</div>
       <button type="button" class="btn-primary" style="background:var(--orange);width:100%" onclick="abrirNovedades()" data-t="acc.novedades_btn">✨ Ver novedades</button>
     </div>
+  </div><!-- /plan -->
+
+  <!-- ══ SECCIÓN: DATOS Y COPIAS ══ -->
+  <div class="aj-sec" id="ajSec-datos">
+    <div class="aj-sechead"><div><h2>📦 Datos y copias</h2></div></div>
 
     <div class="card" id="cardAuditoria" style="display:none">
       <div class="card-title" data-t="acc.historial_titulo">📜 Historial de actividad</div>
@@ -3043,6 +3144,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <div id="ajUltimoBackup" style="font-size:11px;color:var(--muted);padding-left:24px"></div>
       </div>
     </div>
+  </div><!-- /datos -->
+
+  <!-- ══ SECCIÓN: SEGURIDAD ══ -->
+  <div class="aj-sec" id="ajSec-seguridad">
+    <div class="aj-sechead"><div><h2>🔒 <span data-t="acc.seguridad">Seguridad</span></h2></div></div>
 
     <div class="card">
       <div class="card-title" data-t="acc.seguridad">🔒 Seguridad</div>
@@ -3074,9 +3180,11 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
         <li data-t-html="acc.android_3">Elige <strong>"Instalar app"</strong> o <strong>"Añadir a pantalla principal"</strong></li>
       </ol>
     </div>
+  </div><!-- /seguridad -->
 
-  </div><!-- fin pAjustes -->
-</div>
+  </div><!-- /aj-content -->
+  </div><!-- /aj-shell -->
+</div><!-- fin pAjustes -->
 
 <!-- pTienda vacío: mantiene compatibilidad con cualquier navTo('pTienda') existente.
      Redirige automáticamente a pAjustes tab negocio. -->
@@ -4669,7 +4777,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260628c"></script>
+<script src="/js/dash-app.js?v=20260628y"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
