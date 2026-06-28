@@ -3262,7 +3262,7 @@ function calcularProximaAccion() {
   var cands = [];
   var reps = DB.reps || [];
   var finDia = new Date(hoyLocal() + 'T23:59:59');
-  var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
+  var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto', 'Por Entregar', 'Por entregar'];
   var _equipo = function(r) { return ((r.marca || '') + ' ' + (r.modelo || '')).trim() || (r.clienteNombre || ''); };
   // 1. Reparación lista para entregar, con teléfono, sin avisar
   reps.forEach(function(r) {
@@ -3364,7 +3364,7 @@ function renderEstancadas() {
   var box = document.getElementById('inv-estancadas');
   if (!box) return;
   var finDia = new Date(hoyLocal() + 'T23:59:59');
-  var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
+  var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto', 'Por Entregar', 'Por entregar'];
   var est = (DB.reps || []).filter(function(r) {
     if (CERR.indexOf(r.estado) !== -1) return false;
     var f = r.fecha || r.fecha_entrada; if (!f) return false;
@@ -3887,7 +3887,7 @@ function renderSidebarHoy() {
 function actualizarBadgeReps() {
   var b = document.getElementById('badgeRepsAtras'); if (!b) return;
   var finDia = new Date(hoyLocal() + 'T23:59:59');
-  var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
+  var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto', 'Por Entregar', 'Por entregar'];
   var n = (DB.reps || []).filter(function(r) {
     if (CERR.indexOf(r.estado) !== -1) return false;
     var f = r.fecha || r.fecha_entrada; if (!f) return false;
