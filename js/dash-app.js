@@ -16379,6 +16379,15 @@ function abrirDetalleRep(repId) {
   html += '<span style="font-size:22px;font-weight:800;color:var(--green)">' + cur(r.total || 0) + '</span>';
   html += '</div>';
 
+  // Desglose pagado / pendiente (lo que ya muestra la lista) cuando queda saldo.
+  var _restDet = parseFloat(r.restante) || 0;
+  if (_restDet > 0.005) {
+    var _pagDet = Math.max(0, (parseFloat(r.total) || 0) - _restDet);
+    html += '<div style="display:flex;justify-content:space-between;gap:10px;margin-top:6px;font-size:12px">' +
+      '<span style="color:#16a34a;font-weight:700">' + T('det.pagado') + ': ' + cur(_pagDet) + '</span>' +
+      '<span style="color:#DC2626;font-weight:700">' + T('det.pendiente') + ': ' + cur(_restDet) + '</span></div>';
+  }
+
   // FIRM-6: si hay firma del cliente, mostrarla
   if (r.firma_cliente) {
     var fechaFirma = '';
