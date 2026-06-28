@@ -838,14 +838,40 @@ function logout() {
 
 // ═══ NAVIGATION ═══
 
+// Mapa de compatibilidad: nombres de tabs antiguos → sección nueva del rail.
+var AJ_TAB_MAP = { negocio: 'negocio', prefs: 'apariencia', notif: 'notif', cuenta: 'plan' };
+
+// Conmutador del rail de Ajustes (rediseño): muestra una sección a la vez.
+function ajSec(id, btn) {
+  document.querySelectorAll('#ajRail .aj-nav').forEach(function(t){ t.classList.remove('active'); });
+  var navBtn = btn || document.querySelector('#ajRail .aj-nav[data-sec="' + id + '"]');
+  if (navBtn) navBtn.classList.add('active');
+  document.querySelectorAll('#ajContent .aj-sec').forEach(function(p){ p.classList.remove('active'); });
+  var sec = document.getElementById('ajSec-' + id);
+  if (sec) sec.classList.add('active');
+  // Cargas perezosas por sección (mismos handlers que antes vivían en el panel "negocio")
+  if ((id === 'negocio' || id === 'cobros' || id === 'citas' || id === 'reparaciones') && typeof cargarTienda === 'function') cargarTienda();
+}
+
+// Aplica candado/ocultación por plan a los ítems del rail (mismo patrón que el sidebar).
+function ajRailPlanLocks() {
+  if (typeof tieneFeature !== 'function') return;
+  document.querySelectorAll('#ajRail .aj-nav[data-feat]').forEach(function(b){
+    var feat = b.dataset.feat;
+    var ok = tieneFeature(feat);
+    // Quita candado previo
+    var old = b.querySelector('.aj-lock'); if (old) old.remove();
+    if (!ok) {
+      var lk = document.createElement('span'); lk.className = 'aj-lock'; lk.textContent = '🔒';
+      b.appendChild(lk);
+    }
+  });
+}
+
+// Compatibilidad: cualquier llamada antigua a ajTab(btn) sigue funcionando.
 function ajTab(btn) {
-  document.querySelectorAll('.aj-tab').forEach(function(t){ t.classList.remove('active'); });
-  btn.classList.add('active');
-  var tab = btn.dataset.tab;
-  document.querySelectorAll('.aj-panel').forEach(function(p){ p.classList.remove('active'); });
-  var panel = document.getElementById('ajPanel-' + tab);
-  if (panel) panel.classList.add('active');
-  if (tab === 'negocio' && typeof cargarTienda === 'function') cargarTienda();
+  var tab = (btn && btn.dataset && btn.dataset.tab) || 'negocio';
+  ajSec(AJ_TAB_MAP[tab] || tab);
 }
 
 // ════════════ NOTAS Y RECORDATORIOS (tarjeta del inicio, 2ª columna) ════════════
@@ -2266,7 +2292,7 @@ function navTo(id) {
   if (id === 'pPedidos') renderPedidosPage();
   if (id === 'pAyuda') { try { renderGuiaAyuda(); } catch(e){} }
   if (id === 'pGastos') renderGastos();
-  if (id === 'pAjustes') { try { renderUbicacionesAjustes(); } catch(e){} cargarAjustes(); try { renderStorageUso(); } catch(e){} }
+  if (id === 'pAjustes') { try { renderUbicacionesAjustes(); } catch(e){} cargarAjustes(); try { cargarTienda(); } catch(e){} try { renderStorageUso(); } catch(e){} try { ajRailPlanLocks(); } catch(e){} }
   if (id === 'pReportes') renderReporte();
   if (id === 'pPresupuestos') {
     renderPresupuestos();
@@ -2286,7 +2312,7 @@ function navTo(id) {
       }).catch(function(e){ console.error('sync pres:', e); });
     }
   }
-  if (id === 'pTienda') { navTo('pAjustes'); var btn=document.querySelector('.aj-tab[data-tab="negocio"]'); if(btn) ajTab(btn); return; }
+  if (id === 'pTienda') { navTo('pAjustes'); try { ajSec('negocio'); } catch(e){} return; }
   if (id === 'pServicios') renderServicios();
   if (id === 'pEncargos') renderEncargos();
   if (id === 'pCatalogo') { try { renderCatalogo(); } catch(e){} }
