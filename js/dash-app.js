@@ -2266,10 +2266,10 @@ function guardarDatos() {
           localStorage.setItem('tk_db', JSON.stringify(DB));
           if (typeof toast === 'function') toast('⚠ Almacenamiento lleno: se redujo el historial', 'err');
         } catch(e2) {
-          if (typeof toast === 'function') toast('⚠ Almacenamiento lleno - no se pudo guardar', 'err');
+          if (typeof toast === 'function') toast(T('tst.almacenamiento_lleno'), 'err');
         }
       } else {
-        if (typeof toast === 'function') toast('⚠ Almacenamiento lleno - no se pudo guardar', 'err');
+        if (typeof toast === 'function') toast(T('tst.almacenamiento_lleno'), 'err');
       }
     }
   }
@@ -5859,7 +5859,7 @@ function guardarVenta() {
   if (esFinanciado) {
     entrada = parseFloat(document.getElementById('vEntrada').value) || 0;
     if (entrada > 0 && !((document.getElementById('vEntradaPago') || {}).value || '')) {
-      toast('Elige cómo se pagó la entrada', 'err'); return;
+      toast(T('tst.elige_pago_entrada'), 'err'); return;
     }
     var numCuotas = parseInt(document.getElementById('vNumCuotas').value) || 3;
     var diaPago = parseInt(document.getElementById('vDiaPago').value) || 8;
@@ -6368,7 +6368,7 @@ function registrarPagoCuota(vid, cidx) {
       c.formaPago = fp;
       c.fechaPago = hoyLocal();
       c.pagado = c.pagadoImporte >= imp - 0.005;
-      if (v.cuotas.every(function(cc) { return cc.pagado; })) { v.estadoFinanciado = 'completado'; toast('Financiado completado!', 'ok'); }
+      if (v.cuotas.every(function(cc) { return cc.pagado; })) { v.estadoFinanciado = 'completado'; toast(T('tst.financiado_completado'), 'ok'); }
       guardarDatos();
       if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { cuotas: JSON.stringify(v.cuotas) });
       closeM('finModal');
@@ -6438,7 +6438,7 @@ function registrarPagoCuotaRep(rid, cidx) {
       c.pagado = c.pagadoImporte >= imp - 0.005;
       var pagadoCuotas = r.cuotas.reduce(function(a, cc) { return a + _cuotaPagado(cc); }, 0);
       r.restante = Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - pagadoCuotas) * 100) / 100);
-      if (r.cuotas.every(function(cc) { return cc.pagado; })) { r.estadoFinanciado = 'completado'; r.restante = 0; toast('Financiado completado!', 'ok'); }
+      if (r.cuotas.every(function(cc) { return cc.pagado; })) { r.estadoFinanciado = 'completado'; r.restante = 0; toast(T('tst.financiado_completado'), 'ok'); }
       guardarDatos();
       if (SB_KEY && TIENDA_ID) {
         sbPatch('reparaciones', 'id=eq.' + rid, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
@@ -6769,7 +6769,7 @@ function _clienteDuplicado(tel, dni) {
 
 function crearClienteRapido() {
   var nom = document.getElementById('ncNom').value.trim();
-  if (!nom) { toast('Escribe un nombre', 'err'); return; }
+  if (!nom) { toast(T('tst.escribe_nombre'), 'err'); return; }
   var telV = document.getElementById('ncTel').value.trim();
   var dniV = document.getElementById('ncDni').value.trim();
   // F232: avisar de posible duplicado (salvo que el usuario ya haya decidido crear igualmente)
@@ -7351,7 +7351,7 @@ var _presEnviarId = null;
 function abrirModalEnviarPres(id) {
   _presEnviarId = id;
   var r = DB.reps.find(function(x){ return x.id === id; });
-  if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
+  if (!r) { toast(T('tst.presupuesto_no_encontrado'), 'err'); return; }
 
   // Buscar cliente para ver si tiene tel y email
   var cli = r.clienteId ? DB.clis.find(function(c){ return c.id === r.clienteId; }) : null;
@@ -7398,7 +7398,7 @@ async function confirmarEnviarPres() {
   if (!_presEnviarId) return;
   var wa    = document.getElementById('chkPresWA').checked;
   var email = document.getElementById('chkPresEmail').checked;
-  if (!wa && !email) { toast('Selecciona al menos un método', 'err'); return; }
+  if (!wa && !email) { toast(T('tst.selecciona_metodo'), 'err'); return; }
 
   var btn = document.getElementById('btnPresEnviarConf');
   btn.disabled = true;
@@ -7457,7 +7457,7 @@ async function confirmarEnviarPres() {
 function aceptarPresupuesto(id) {
   if (!tienePerm('reps_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x){ return x.id === id; });
-  if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
+  if (!r) { toast(T('tst.presupuesto_no_encontrado'), 'err'); return; }
   if (r.estado !== 'Presupuesto') { toast('Esto no es un presupuesto', 'err'); return; }
   // F46: modal en vez de confirm() nativo (el nativo congelaba la automatización, patrón F30)
   confirmar(T('pres.convertir_confirm').replace('{cli}', r.clienteNombre).replace('{disp}', (r.marca + ' ' + r.modelo).trim()).replace('{total}', cur(r.total)), function () {
@@ -7483,7 +7483,7 @@ function aceptarPresupuesto(id) {
 function rechazarPresupuesto(id) {
   if (!tienePerm('reps_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x){ return x.id === id; });
-  if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
+  if (!r) { toast(T('tst.presupuesto_no_encontrado'), 'err'); return; }
   confirmar('¿Marcar este presupuesto como rechazado?\n\nQuedará en histórico para consulta posterior.', function () {
     r.estado = 'Rechazado';
     guardarDatos();
@@ -7514,7 +7514,7 @@ var _firmaCanvasState = {
 function abrirFirmaPresupuesto(id) {
   if (!tienePerm('reps_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x){ return x.id === id; });
-  if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
+  if (!r) { toast(T('tst.presupuesto_no_encontrado'), 'err'); return; }
   if (r.estado !== 'Presupuesto') { toast('Solo se puede firmar un presupuesto', 'err'); return; }
 
   _firmaCanvasState.repId = id;
@@ -7626,7 +7626,7 @@ function confirmarFirma() {
   var id = _firmaCanvasState.repId;
   if (!id) return;
   var r = DB.reps.find(function(x){ return x.id === id; });
-  if (!r) { toast('Presupuesto no encontrado', 'err'); return; }
+  if (!r) { toast(T('tst.presupuesto_no_encontrado'), 'err'); return; }
 
   var chk = document.getElementById('firmaAceptaTerminos');
   if (!chk || !chk.checked) {
@@ -7965,7 +7965,7 @@ function borrarServicioCatalogo(sid) {
   if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
     sbDelete('servicios', 'id=eq.' + sid);
   }
-  toast('Servicio eliminado', 'ok');
+  toast(T('tst.servicio_eliminado'), 'ok');
   renderExploreSrv();
   if (typeof renderServicios === 'function') renderServicios();
 }
@@ -8002,7 +8002,7 @@ function guardarSrvSimple() {
   var nomNorm = _norm(nom);
   var existente = (DB.servicios || []).find(function(s){ return _norm(s.nombre) === nomNorm; });
   if (existente) {
-    toast('Ya existe un servicio con ese nombre', 'err');
+    toast(T('tst.servicio_duplicado'), 'err');
     return;
   }
   var srv = {
@@ -8024,7 +8024,7 @@ function guardarSrvSimple() {
       precio_fijo:srv.precioFijo, precio:srv.precio
     });
   }
-  toast('Servicio creado', 'ok');
+  toast(T('tst.servicio_creado'), 'ok');
   closeM('mCrearSrvSimple');
   // Si el modal Explorar está abierto, refrescar y marcar el nuevo
   var explorer = document.getElementById('mExplorarSrv');
@@ -9185,7 +9185,7 @@ function guardarRep() {
     finEntrada = parseFloat(document.getElementById('rFinEntrada').value) || 0;
     if (finEntrada > total) { toast(T('rep.entrada_excede'), 'err'); return; }
     finEntradaPago = document.getElementById('rFinEntradaPago').value || '';
-    if (finEntrada > 0 && !finEntradaPago) { toast('Elige cómo se pagó la entrada', 'err'); return; }
+    if (finEntrada > 0 && !finEntradaPago) { toast(T('tst.elige_pago_entrada'), 'err'); return; }
     finCuotas = generarCuotasRep(total);
     anticipo = finEntrada; // en financiado, lo pagado de inicio es la entrada
   }
@@ -9852,7 +9852,7 @@ function renderReps() {
 function reabrirEnGarantia(id) {
   if (!tienePerm('reps_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x) { return x.id === id; });
-  if (!r) { toast('Reparación no encontrada', 'err'); return; }
+  if (!r) { toast(T('tst.reparacion_no_encontrada'), 'err'); return; }
   var msg = '¿Abrir una reparación EN GARANTÍA para ' + (r.clienteNombre || 'el cliente') + '?\n\n' +
     (r.marca || '') + ' ' + (r.modelo || '') + (r.imei ? '\nIMEI: ' + r.imei : '') +
     '\n\nSe crea una reparación nueva vinculada a esta, sin coste, para resolver el problema cubierto por la garantía.';
@@ -10131,7 +10131,7 @@ function agregarUbicacion() {
   if (!checkFeature('ubicaciones')) return;
   var input = document.getElementById('nuevaUbicacion');
   var nombre = (input.value || '').trim();
-  if (!nombre) { toast('Escribe un nombre', 'err'); return; }
+  if (!nombre) { toast(T('tst.escribe_nombre'), 'err'); return; }
   if (nombre.length > 50) { toast('Demasiado largo (máx 50)', 'err'); return; }
   var lista = (TIENDA.ubicaciones || []).slice();
   if (lista.some(function(u) { return u.toLowerCase() === nombre.toLowerCase(); })) {
@@ -10159,7 +10159,7 @@ function guardarUbicaciones(lista) {
   }
   guardarDatos();
   renderUbicacionesAjustes();
-  toast('Ubicaciones guardadas', 'ok');
+  toast(T('tst.ubicaciones_guardadas'), 'ok');
 }
 
 function renderSelectorUbicacion() {
@@ -10813,7 +10813,7 @@ function guardarStock() {
   window._stockGarantiaMeses = null;
   guardarDatos();
   closeM('mStock');
-  toast('Stock guardado', 'ok');
+  toast(T('tst.stock_guardado'), 'ok');
   renderStock();
 }
 
@@ -11147,7 +11147,7 @@ function eliminarStock(id) {
   DB.stock = DB.stock.filter(function(s) { return s.id !== id; });
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbDelete('stock', 'id=eq.' + id);
-  toast('Eliminado', 'ok');
+  toast(T('tst.eliminado'), 'ok');
   renderStock();
 }
 // Gestión del catálogo de modelos (solo admin): corregir/añadir/borrar
@@ -11649,7 +11649,7 @@ function renderProvs() {
 
 function guardarProv() {
   var nom = document.getElementById('pNom').value.trim();
-  if (!nom) { toast('Escribe un nombre', 'err'); return; }
+  if (!nom) { toast(T('tst.escribe_nombre'), 'err'); return; }
   var nif = (document.getElementById('pNif') || {}).value || '';
   var dir = (document.getElementById('pDir') || {}).value || '';
   var cp = (document.getElementById('pCp') || {}).value || '';
@@ -11713,7 +11713,7 @@ function guardarProv() {
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPost('proveedores', p);
   closeM('mProv');
-  toast('Proveedor guardado', 'ok');
+  toast(T('tst.proveedor_guardado'), 'ok');
   renderProvs();
 }
 
@@ -11736,7 +11736,7 @@ window.crearProvDesde = crearProvDesde;
 // Abrir modal en modo edición pre-cargando los campos
 function abrirEditarProv(provId) {
   var p = DB.provs.find(function(x){ return x.id === provId; });
-  if (!p) { toast('Proveedor no encontrado', 'err'); return; }
+  if (!p) { toast(T('tst.proveedor_no_encontrado'), 'err'); return; }
   SEL.editProvId = provId;
   var set = function(id, v){ var el = document.getElementById(id); if (el) el.value = v || ''; };
   set('pNom', p.nombre);
@@ -11829,7 +11829,7 @@ function editarGastoRec(id) {
 function guardarGastoRec() {
   if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var conc = document.getElementById('grConc').value.trim();
-  if (!conc) { toast('Escribe un concepto', 'err'); return; }
+  if (!conc) { toast(T('tst.escribe_concepto'), 'err'); return; }
   var importe = parseFloat(document.getElementById('grImp').value) || 0;
   var categoria = document.getElementById('grCat').value;
   var iva_tipo = parseInt(document.getElementById('grIvaTipo').value, 10) || 21;
@@ -12307,11 +12307,11 @@ function generarReadmeGastos(periodo, lista, etiqueta) {
 async function generarZipGastos(periodo) {
   if (!tienePerm('gastos_ver')) { toast(T('gen.sin_permiso'), 'err'); return; }
   if (!checkFeature('zip_gestoria')) return;
-  if (!SB_KEY || !TIENDA_ID) { toast('Sin conexión Supabase', 'err'); return; }
+  if (!SB_KEY || !TIENDA_ID) { toast(T('tst.sin_conexion_sb'), 'err'); return; }
   toast('Preparando ZIP...', 'ok');
   try {
     var rango = calcPeriodoGasto(periodo);
-    if (!rango) { toast('Periodo inválido', 'err'); return; }
+    if (!rango) { toast(T('tst.periodo_invalido'), 'err'); return; }
     var etiqueta = rango.etiqueta.replace(/_/g, ' ');
 
     // Filtrar gastos del periodo
@@ -12407,7 +12407,7 @@ function generarPDFGastos(periodo) {
     fin = new Date(y, 11, 31, 23, 59, 59);
     etiqueta = 'Año ' + y;
   } else {
-    toast('Periodo inválido', 'err'); return;
+    toast(T('tst.periodo_invalido'), 'err'); return;
   }
 
   // Filtrar gastos. g.fecha viene como 'YYYY-MM-DD' del <input type="date">
@@ -12836,7 +12836,7 @@ function guardarGasto() {
   var _esEdit = !!(typeof SEL === 'object' && SEL && SEL.editGastoId);
   if (!tienePerm(_esEdit ? 'gastos_editar' : 'gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var conc = document.getElementById('gConc').value.trim();
-  if (!conc) { toast('Escribe un concepto', 'err'); return; }
+  if (!conc) { toast(T('tst.escribe_concepto'), 'err'); return; }
   var catEl = document.getElementById('gCat');
   var ivaEl = document.getElementById('gIvaTipo');
   var categoria = catEl ? catEl.value : 'Otros';
@@ -12974,7 +12974,7 @@ function onGAdjChange(ev) {
     return;
   }
   if (f.size > 10 * 1024 * 1024) {
-    toast('Archivo demasiado grande (max 10 MB)', 'err');
+    toast(T('tst.archivo_grande'), 'err');
     ev.target.value = '';
     box.style.display = 'none';
     return;
@@ -12992,7 +12992,7 @@ function limpiarGAdj() {
 
 // Sube el archivo al bucket, actualiza el gasto en BBDD y refresca render
 async function subirAdjuntoGasto(g, file) {
-  if (!SB_KEY || !TIENDA_ID) { toast('Sin conexión Supabase', 'err'); return; }
+  if (!SB_KEY || !TIENDA_ID) { toast(T('tst.sin_conexion_sb'), 'err'); return; }
   try {
     var blob = await comprimirImagen(file, 1600, 0.75);
     var ext = (file.name.split('.').pop() || 'bin').toLowerCase();
@@ -13083,7 +13083,7 @@ function triggerAdjuntoGasto(gastoId) {
   inp.onchange = function(ev) {
     var f = ev.target.files && ev.target.files[0];
     if (!f) return;
-    if (f.size > 10 * 1024 * 1024) { toast('Archivo demasiado grande (max 10 MB)', 'err'); return; }
+    if (f.size > 10 * 1024 * 1024) { toast(T('tst.archivo_grande'), 'err'); return; }
     subirAdjuntoGasto(g, f);
   };
   inp.click();
@@ -14233,7 +14233,7 @@ async function guardarTienda() {
     // sbPatch ya mostró el error; avisamos que quedó solo en local.
     if (!okDB) { toast('⚠️ Guardado solo en este equipo — la nube rechazó el cambio', 'err'); return; }
   }
-  toast('Tienda guardada', 'ok');
+  toast(T('tst.tienda_guardada'), 'ok');
 }
 
 // ═══ LOGO TIENDA ═══
@@ -14459,7 +14459,7 @@ async function cambiarPassword() {
   var actual = (document.getElementById('pwActual').value || '');
   var nueva = (document.getElementById('pwNueva').value || '');
   var nueva2 = (document.getElementById('pwNueva2').value || '');
-  if (!actual || !nueva || !nueva2) { toast('Rellena todos los campos', 'err'); return; }
+  if (!actual || !nueva || !nueva2) { toast(T('tst.rellena_campos'), 'err'); return; }
   if (nueva.length < 6) { toast('La nueva contrase\u00f1a debe tener al menos 6 caracteres', 'err'); return; }
   if (nueva !== nueva2) { toast('Las contrase\u00f1as nuevas no coinciden', 'err'); return; }
   if (nueva === actual) { toast('La nueva contrase\u00f1a no puede ser igual a la actual', 'err'); return; }
@@ -15231,7 +15231,7 @@ function marcarTodasNoLeidas() {
 
 function felicitarCumple(cliId) {
   var c = DB.clis.find(function(x){ return x.id === cliId; });
-  if (!c) { toast('Cliente no encontrado', 'err'); return; }
+  if (!c) { toast(T('tst.cliente_no_encontrado'), 'err'); return; }
   if (!c.tel) { toast('Este cliente no tiene teléfono', 'err'); return; }
   var plantilla = (AJUSTES.notif && AJUSTES.notif.plantillaCumple) || '¡Feliz cumpleaños {nombre}!';
   var nombre = c.nombre || '';
@@ -15482,7 +15482,7 @@ function guardarServicio() {
   // F374: evitar servicios duplicados por nombre (excluyendo el que se edita)
   var _nomNormSrv = _norm(nom);
   if ((DB.servicios || []).some(function(s) { return s.id !== ESID && _norm(s.nombre) === _nomNormSrv; })) {
-    toast('Ya existe un servicio con ese nombre', 'err'); return;
+    toast(T('tst.servicio_duplicado'), 'err'); return;
   }
   var pcEl = document.getElementById('srvPrecioCoste');
   var data = {
@@ -15524,7 +15524,7 @@ function guardarServicio() {
   }
   guardarDatos();
   closeM('mServicio');
-  toast('Servicio guardado', 'ok');
+  toast(T('tst.servicio_guardado'), 'ok');
   renderServicios();
 }
 
@@ -15551,7 +15551,7 @@ function eliminarServicio(id) {
   DB.servicios = (DB.servicios || []).filter(function(s) { return s.id !== id; });
   if (SB_KEY && TIENDA_ID) sbDelete('servicios', 'id=eq.' + encodeURIComponent(id));  // faltaba: borrar también en la nube
   guardarDatos();
-  toast('Eliminado', 'ok');
+  toast(T('tst.eliminado'), 'ok');
   renderServicios();
 }
 
@@ -15919,7 +15919,7 @@ async function crearUsuario(nom, email, pass, rol) {
   }
   // El backend hashea con bcrypt y asigna tienda_id/rol de forma segura.
   var ok = await _adminUsuarios('crear', { nombre: nom, email: email, password: pass, rol: rol });
-  if (ok) { toast('Usuario creado', 'ok'); cargarUsuarios(); }
+  if (ok) { toast(T('tst.usuario_creado'), 'ok'); cargarUsuarios(); }
 }
 
 async function toggleUsuario(id, activo) {
@@ -15930,7 +15930,7 @@ async function toggleUsuario(id, activo) {
 async function eliminarUsuario(id) {
   if (!confirm('Eliminar usuario?')) return;
   var ok = await _adminUsuarios('borrar', { target_id: id });
-  if (ok) { toast('Eliminado', 'ok'); cargarUsuarios(); }
+  if (ok) { toast(T('tst.eliminado'), 'ok'); cargarUsuarios(); }
 }
 
 // ═══ PERMISOS ═══
@@ -16127,7 +16127,7 @@ var _fichaCliId = null;
 
 function abrirFichaCli(cliId) {
   var c = DB.clis.find(function(x){ return x.id === cliId; });
-  if (!c) { toast('Cliente no encontrado', 'err'); return; }
+  if (!c) { toast(T('tst.cliente_no_encontrado'), 'err'); return; }
   _fichaCliId = cliId;
   document.getElementById('fichaCliNombre').textContent = '👤 ' + ((c.nombre || '') + ' ' + (c.apellidos || '')).trim();
 
@@ -16237,7 +16237,7 @@ function abrirFichaCli(cliId) {
 
 function abrirWhatsAppCli(cliId) {
   var cli = DB.clis.find(function(c){ return c.id === cliId; });
-  if (!cli || !cli.tel) { toast('Cliente sin teléfono', 'err'); return; }
+  if (!cli || !cli.tel) { toast(T('tst.cliente_sin_telefono'), 'err'); return; }
   _waContexto = {
     tipo: 'cliente',
     cli: cli,
@@ -16620,7 +16620,7 @@ function abrirWhatsAppFiado(fiadoId) {
     toast('No se encontró el fiado', 'err');
     return;
   }
-  if (!fiado.cliente_telefono) { toast('Cliente sin teléfono', 'err'); return; }
+  if (!fiado.cliente_telefono) { toast(T('tst.cliente_sin_telefono'), 'err'); return; }
 
   // Formato fecha DD/MM/YYYY
   var partes = (fiado.fecha || '').split('-');
@@ -16657,8 +16657,8 @@ function abrirWhatsAppRep(repId) {
       return _norm(((c.nombre||'') + ' ' + (c.apellidos||'')).trim()) === nomNorm;
     });
   }
-  if (!cli) { toast('Cliente no encontrado', 'err'); return; }
-  if (!cli.tel) { toast('Cliente sin teléfono', 'err'); return; }
+  if (!cli) { toast(T('tst.cliente_no_encontrado'), 'err'); return; }
+  if (!cli.tel) { toast(T('tst.cliente_sin_telefono'), 'err'); return; }
   _marcarAvisado(repId); // marca como avisado para el tablero
   _waContexto = {
     tipo: 'rep',
@@ -16691,7 +16691,7 @@ function abrirWhatsAppCuota(ventaId, idxCuota) {
   var v = DB.ventas.find(function(x){ return x.id === ventaId; });
   if (!v) return;
   var cli = DB.clis.find(function(c){ return c.id === v.clienteId; });
-  if (!cli || !cli.tel) { toast('Cliente sin teléfono', 'err'); return; }
+  if (!cli || !cli.tel) { toast(T('tst.cliente_sin_telefono'), 'err'); return; }
   var c = v.cuotas[idxCuota];
   if (!c) return;
   var hoy = new Date(); hoy.setHours(0,0,0,0);
@@ -17354,7 +17354,7 @@ async function subirEntidadesASupabase(table, entidades, mapper) {
 
 function procesarImport() {
   var file = document.getElementById('importFile').files[0];
-  if (!file) { toast('Selecciona un archivo', 'err'); return; }
+  if (!file) { toast(T('tst.selecciona_archivo'), 'err'); return; }
   var tipo = document.getElementById('importTipo').value;
   var reader = new FileReader();
   reader.onload = function(e) {
@@ -17469,7 +17469,7 @@ function procesarImport() {
 function restaurarBackup() {
   if (!tienePerm('herramientas_backup')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var file = document.getElementById('backupFile').files[0];
-  if (!file) { toast('Selecciona un archivo', 'err'); return; }
+  if (!file) { toast(T('tst.selecciona_archivo'), 'err'); return; }
   if (!confirm('⚠️ RESTAURAR BACKUP\n\nEsto SOBREESCRIBIRÁ todos tus datos actuales (clientes, ventas, reparaciones, stock, gastos, proveedores) con los del archivo.\n\nEsta acción NO se puede deshacer.\n\n¿Quieres continuar?')) {
     return;
   }
@@ -17488,7 +17488,7 @@ function restaurarBackup() {
       guardarDatos();
       // Subir todo a Supabase para que el sync remoto no pise
       if (SB_KEY && TIENDA_ID) {
-        toast('Subiendo datos al servidor...', 'ok');
+        toast(T('tst.subiendo_datos'), 'ok');
         try {
           await subirEntidadesASupabase('clientes', DB.clis, function(c) {
             return {id: c.id, nombre: c.nombre||'', apellidos: c.apellidos||'', tel: c.tel||'', email: c.email||'', dni: c.dni||'', dir_fiscal: c.direccion||c.dirFiscal||''};
@@ -17690,7 +17690,7 @@ function renderAuditoria() {
 
 function exportarAuditoria() {
   var entries = DB.audit || [];
-  if (!entries.length) { toast('Sin datos', 'err'); return; }
+  if (!entries.length) { toast(T('tst.sin_datos'), 'err'); return; }
   var hdr = 'Fecha,Usuario,Accion,Entidad,EntidadID,Detalle\n';
   function esc2(s) { if (s == null) return ''; return '"' + String(s).replace(/"/g, '""') + '"'; }
   var csv = hdr + entries.map(function(a){
@@ -17827,7 +17827,7 @@ function generarCSV(tipo) {
 function exportarCSV(tipo) {
   if (!tienePerm('herramientas_backup')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var csv = generarCSV(tipo);
-  if (!csv) { toast('Tipo no válido', 'err'); return; }
+  if (!csv) { toast(T('tst.tipo_invalido'), 'err'); return; }
   // BOM para que Excel lo lea bien con tildes
   var blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
   downloadBlob(blob, 'tekpair-' + tipo + '-' + fechaArchivo() + '.csv');
@@ -17879,7 +17879,7 @@ async function importarBackup(event) {
 
     // Subir a Supabase para que la próxima sincronización no pise los datos restaurados
     if (SB_KEY && TIENDA_ID) {
-      toast('Subiendo datos al servidor...', 'ok');
+      toast(T('tst.subiendo_datos'), 'ok');
       try {
         await subirEntidadesASupabase('clientes', DB.clis, function(c) {
           return {id: c.id, nombre: c.nombre||'', apellidos: c.apellidos||'', tel: c.tel||'', email: c.email||'', dni: c.dni||'', dir_fiscal: c.direccion||c.dirFiscal||''};
@@ -18375,9 +18375,9 @@ function copiarLinkCitas() {
   inp.select(); inp.setSelectionRange(0, 99999);
   try {
     document.execCommand('copy');
-    toast('✓ Link copiado', 'ok');
+    toast(T('tst.link_copiado'), 'ok');
   } catch(e) {
-    if (navigator.clipboard) navigator.clipboard.writeText(inp.value).then(function(){ toast('✓ Link copiado', 'ok'); });
+    if (navigator.clipboard) navigator.clipboard.writeText(inp.value).then(function(){ toast(T('tst.link_copiado'), 'ok'); });
   }
 }
 function abrirLinkEnNueva() {
