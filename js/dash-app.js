@@ -6568,27 +6568,41 @@ function verFinanciado(id) {
   if (!v || !v.cuotas) return;
   var pagado = v.cuotas.reduce(function(a, c) { return a + _cuotaPagado(c); }, 0);
   var pendiente = v.total - pagado - (v.entrada || 0);
-  var html = '<div class="modal-title">\ud83d\udcb0 Financiado</div>' +
-    '<div style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px">' +
-    '<strong>' + v.clienteNombre + '</strong> - ' + v.modelo + '<br>' +
-    '<span style="font-size:11px;color:var(--muted)">Total: ' + cur(v.total) + ' | Entrada: ' + cur(v.entrada || 0) + ' | Pagado: ' + cur(pagado) + ' | Pendiente: ' + cur(pendiente) + '</span></div>' +
-    '<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">CUOTAS:</div>';
-  v.cuotas.forEach(function(cu, i) {
-    // Las cuotas guardan la fecha en ISO (YYYY-MM-DD); comparar como ISO para detectar vencidas
+  var totalCobrado = pagado + (v.entrada || 0);
+  var html = '<div class="modal-title">💰 ' + T('finv.titulo') + '</div>' +
+    '<div style="font-size:13px;margin-bottom:10px"><strong>' + escHtml(v.clienteNombre || '') + '</strong>' + (v.modelo ? ' · ' + escHtml(v.modelo) : '') +
+      '<div style="font-size:11px;color:var(--muted)">' + T('det.total') + ': ' + cur(v.total) + (v.entrada ? ' · ' + T('finv.entrada') + ': ' + cur(v.entrada) : '') + '</div></div>' +
+    '<div style="display:flex;gap:8px;margin-bottom:14px">' +
+      '<div style="flex:1;background:rgba(0,200,150,.10);border:1px solid rgba(0,200,150,.3);border-radius:10px;padding:10px 12px">' +
+        '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#0F7355">✅ ' + T('finv.cobrado') + '</div>' +
+        '<div style="font-size:19px;font-weight:800;color:#0F7355">' + cur(totalCobrado) + '</div></div>' +
+      '<div style="flex:1;background:rgba(234,88,12,.08);border:1px solid rgba(234,88,12,.25);border-radius:10px;padding:10px 12px">' +
+        '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#C2491A">⏳ ' + T('finv.pendiente') + '</div>' +
+        '<div style="font-size:19px;font-weight:800;color:#C2491A">' + cur(pendiente) + '</div></div>' +
+    '</div>';
+  function _finCuotaRow(cu, i) {
     var vencido = !cu.pagado && cu.fecha && String(cu.fecha).slice(0, 10) < hoyLocal();
     var pag = _cuotaPagado(cu);
     var parcial = pag > 0.005 && !cu.pagado;
-    var subPag = cu.pagado ? (' | Pagado: ' + cu.formaPago)
-      : (parcial ? ' \u00b7 ' + T('fin.parcial').replace('{p}', cur(pag)).replace('{q}', cur(Math.round(((parseFloat(cu.importe) || 0) - pag) * 100) / 100)) : '');
-    html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:' +
+    var subPag = cu.pagado ? (' · ' + T('finv.pagado_con') + ' ' + escHtml(cu.formaPago || ''))
+      : (parcial ? ' · ' + T('fin.parcial').replace('{p}', cur(pag)).replace('{q}', cur(Math.round(((parseFloat(cu.importe) || 0) - pag) * 100) / 100)) : (vencido ? ' · ' + T('finv.vencida') : ''));
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:' +
       (cu.pagado ? 'rgba(0,200,150,.08)' : parcial ? 'rgba(230,148,18,.10)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
-      '<div><div style="font-size:13px;font-weight:600">Cuota ' + (i + 1) + ' - ' + cur(cu.importe) + '</div>' +
-      '<div style="font-size:10px;color:var(--muted)">Vence: ' + cu.fecha + subPag + '</div></div>' +
+      '<div><div style="font-size:13px;font-weight:600">' + T('finv.cuota') + ' ' + (i + 1) + ' · ' + cur(cu.importe) + '</div>' +
+      '<div style="font-size:10px;color:' + (vencido ? 'var(--red)' : 'var(--muted)') + '">' + T('finv.vence') + ': ' + escHtml(cu.fecha || '') + subPag + '</div></div>' +
       '<div>' + (cu.pagado
-        ? '<span style="color:var(--green);font-size:11px;font-weight:700">\u2713 Pagado</span>'
-        : '<button data-vid="' + id + '" data-cidx="' + i + '" class="btn-pc btn-primary" style="padding:5px 10px;font-size:11px;width:auto">' + (parcial ? T('fin.completar') : 'Registrar') + '</button>'
+        ? '<span style="color:var(--green);font-size:11px;font-weight:700">✓ ' + T('finv.pagado') + '</span>'
+        : '<button data-vid="' + id + '" data-cidx="' + i + '" class="btn-pc btn-primary" style="padding:5px 10px;font-size:11px;width:auto">' + (parcial ? T('fin.completar') : T('finv.registrar')) + '</button>'
       ) + '</div></div>';
-  });
+  }
+  var _pendR = '', _cobrR = '', _nP = 0, _nC = 0;
+  v.cuotas.forEach(function(cu, i) { if (cu.pagado) { _cobrR += _finCuotaRow(cu, i); _nC++; } else { _pendR += _finCuotaRow(cu, i); _nP++; } });
+  if (_nP) html += '<div style="font-size:11px;font-weight:800;color:#C2491A;text-transform:uppercase;letter-spacing:.4px;margin:4px 0 8px">⏳ ' + T('finv.pendientes') + ' (' + _nP + ')</div>' + _pendR;
+  if (v.entrada || _nC) {
+    html += '<div style="font-size:11px;font-weight:800;color:#0F7355;text-transform:uppercase;letter-spacing:.4px;margin:14px 0 8px">✅ ' + T('finv.cobrado') + (_nC ? ' (' + _nC + ')' : '') + '</div>';
+    if (v.entrada) html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:rgba(0,200,150,.08)"><div style="font-size:13px;font-weight:600">' + T('finv.entrada') + ' · ' + cur(v.entrada) + '</div><span style="color:var(--green);font-size:11px;font-weight:700">✓</span></div>';
+    html += _cobrR;
+  }
   if (v.estadoFinanciado !== 'completado' && tienePerm('ventas_editar')) {
     html += '<button class="btn-secondary" style="margin-top:12px;border-color:var(--orange);color:var(--orange-d,#C2491A)" onclick="editarTotalFinanciado(\'' + id + '\')">✏️ ' + T('fin.editar_total') + '</button>';
   }
