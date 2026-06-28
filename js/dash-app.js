@@ -6824,7 +6824,7 @@ function confirmarCobroRep() {
   // No permitir cobrar más de lo que se debe (evita inflar ingresos por encima del total)
   var _resta = parseFloat(r.restante) || 0;
   if (imp > _resta) imp = _resta;
-  if (imp <= 0) { toast('Esta reparación ya está saldada', 'ok'); closeM('mCobrarRep'); return; }
+  if (imp <= 0) { toast(T('tst.rep_saldada'), 'ok'); closeM('mCobrarRep'); return; }
   var met = document.getElementById('cobrarRepMetodo').value;
   r.restante = Math.max(0, Math.round(((parseFloat(r.restante) || 0) - imp) * 100) / 100);
   guardarDatos();
@@ -7220,7 +7220,7 @@ function patronLimpiar() {
 
 function patronGuardar() {
   if (PATRON.path.length < 2) {
-    toast('Dibuja al menos 2 puntos', 'err');
+    toast(T('tst.dibuja_puntos'), 'err');
     return;
   }
   var json = JSON.stringify({ size: PATRON.size, path: PATRON.path.slice() });
@@ -7677,7 +7677,7 @@ function aceptarPresupuesto(id) {
   if (!tienePerm('reps_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x){ return x.id === id; });
   if (!r) { toast(T('tst.presupuesto_no_encontrado'), 'err'); return; }
-  if (r.estado !== 'Presupuesto') { toast('Esto no es un presupuesto', 'err'); return; }
+  if (r.estado !== 'Presupuesto') { toast(T('tst.no_es_presupuesto'), 'err'); return; }
   // F46: modal en vez de confirm() nativo (el nativo congelaba la automatización, patrón F30)
   confirmar(T('pres.convertir_confirm').replace('{cli}', r.clienteNombre).replace('{disp}', (r.marca + ' ' + r.modelo).trim()).replace('{total}', cur(r.total)), function () {
     r.estado = 'Pendiente';
@@ -7853,7 +7853,7 @@ function confirmarFirma() {
     return;
   }
   if (!_firmaCanvasState.hasDrawn) {
-    toast('El cliente debe firmar antes de confirmar', 'err');
+    toast(T('tst.cliente_debe_firmar'), 'err');
     return;
   }
 
@@ -10351,10 +10351,10 @@ function agregarUbicacion() {
   var input = document.getElementById('nuevaUbicacion');
   var nombre = (input.value || '').trim();
   if (!nombre) { toast(T('tst.escribe_nombre'), 'err'); return; }
-  if (nombre.length > 50) { toast('Demasiado largo (máx 50)', 'err'); return; }
+  if (nombre.length > 50) { toast(T('tst.demasiado_largo_50'), 'err'); return; }
   var lista = (TIENDA.ubicaciones || []).slice();
   if (lista.some(function(u) { return u.toLowerCase() === nombre.toLowerCase(); })) {
-    toast('Esa ubicación ya existe', 'err');
+    toast(T('tst.ubicacion_existe'), 'err');
     return;
   }
   lista.push(nombre);
@@ -11742,7 +11742,7 @@ function guardarCli() {
   ECID = null;
   _DRAFT_CLI.clear(); _DRAFT_CLI.stop();
   closeM('mCli');
-  toast('Cliente guardado', 'ok');
+  toast(T('tst.cliente_guardado'), 'ok');
   audit(idGuardado ? 'editar' : 'crear', 'cliente', idGuardado || '', '', null);
   renderClis();
 }
@@ -13113,7 +13113,7 @@ function guardarGasto() {
       }
       SEL.editGastoId = null;
       closeM('mGasto');
-      toast('Gasto actualizado', 'ok');
+      toast(T('tst.gasto_actualizado'), 'ok');
       renderGastos();
       return;
     }
@@ -13279,7 +13279,7 @@ async function quitarAdjuntoGasto(gastoId) {
     adjunto_nombre: null,
     adjunto_mime: null
   });
-  toast('Adjunto eliminado', 'ok');
+  toast(T('tst.adjunto_eliminado'), 'ok');
   renderGastos();
 }
 
@@ -13527,9 +13527,9 @@ function _metodoLabelT(m) {
 
 async function enviarReporteCobrum() {
   var exp = window._repExport;
-  if (!exp) { toast('Abre un reporte primero', 'err'); return; }
+  if (!exp) { toast(T('tst.abre_reporte'), 'err'); return; }
   var token = localStorage.getItem('cobrum_token') || '';
-  if (!token) { configCobrumToken(); toast('Configura tu token de Cobrum y reintenta el envío', 'err'); return; }
+  if (!token) { configCobrumToken(); toast(T('tst.config_token_cobrum'), 'err'); return; }
 
   // Agrupar por día → forma de pago → { ventas, reps }
   var porDia = {};
@@ -13609,7 +13609,7 @@ async function enviarHoyACobrum() {
   if (!lineas.length) return 'empty';
   try {
     var resp = await fetch(COBRUM_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': token }, body: JSON.stringify({ source: 'tekpair', fecha: hoy, ref: hoy, lineas: lineas }) });
-    if (resp.ok) { toast('Datos del día enviados a Cobrum', 'success'); return 'ok'; }
+    if (resp.ok) { toast(T('tst.dia_enviado_cobrum'), 'success'); return 'ok'; }
     return 'fail';
   } catch (e) { return 'fail'; }
 }
@@ -14158,7 +14158,7 @@ async function cierreDia() {
     '<button class="btn-primary" onclick="verReportePDF()" style="flex:1">Ver PDF</button>' +
     '<button class="btn-secondary" style="flex:1" onclick="emailCierre(' + JSON.stringify(vH).replace(/</g,'&lt;') + ',' + JSON.stringify(rH).replace(/</g,'&lt;') + ',' + tV + ',' + tR + ')">Email</button>' +
     '</div>';
-  toast('Cierre generado', 'ok');
+  toast(T('tst.cierre_generado'), 'ok');
 }
 
 function emailCierre(vH, rH, tV, tR) {
@@ -14669,7 +14669,7 @@ async function quitarLogo() {
   } catch (e) {
     console.error(e);
     status.textContent = '';
-    toast('Error al eliminar', 'err');
+    toast(T('tst.error_eliminar'), 'err');
   }
 }
 
@@ -14842,7 +14842,7 @@ function guardarAjustes() {
   localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {ajustes_config: AJUSTES});
   if (typeof refreshNotifs === 'function') refreshNotifs();
-  toast('Ajustes guardados', 'ok');
+  toast(T('tst.ajustes_guardados'), 'ok');
 }
 
 // ═══ CALCULO IVA (helpers usados por ventas y reparaciones) ═══
@@ -15464,7 +15464,7 @@ function marcarTodasNoLeidas() {
 function felicitarCumple(cliId) {
   var c = DB.clis.find(function(x){ return x.id === cliId; });
   if (!c) { toast(T('tst.cliente_no_encontrado'), 'err'); return; }
-  if (!c.tel) { toast('Este cliente no tiene teléfono', 'err'); return; }
+  if (!c.tel) { toast(T('tst.cliente_sin_telefono'), 'err'); return; }
   var plantilla = (AJUSTES.notif && AJUSTES.notif.plantillaCumple) || '¡Feliz cumpleaños {nombre}!';
   var nombre = c.nombre || '';
   var tienda = (TIENDA && TIENDA.nombre) || 'nuestra tienda';
@@ -15710,7 +15710,7 @@ function guardarServicio() {
   var errSrv2 = _validarNombreServicio(nom);
   if (errSrv2) { toast(errSrv2, 'err'); return; }
   // F288: forzar elección de categoría (el select arranca en "— Selecciona —")
-  if (!document.getElementById('srvCat').value) { toast('Elige una categoría', 'err'); document.getElementById('srvCat').focus(); return; }
+  if (!document.getElementById('srvCat').value) { toast(T('tst.elige_categoria'), 'err'); document.getElementById('srvCat').focus(); return; }
   // F374: evitar servicios duplicados por nombre (excluyendo el que se edita)
   var _nomNormSrv = _norm(nom);
   if ((DB.servicios || []).some(function(s) { return s.id !== ESID && _norm(s.nombre) === _nomNormSrv; })) {
@@ -16107,8 +16107,8 @@ function submitNuevoUsuario() {
   var email = (document.getElementById('nuEmail').value || '').trim();
   var pass = (document.getElementById('nuPass').value || '');
   var rol = (document.getElementById('nuRol') || {}).value || 'empleado';
-  if (!nom) { toast('Escribe el nombre', 'err'); return; }
-  if (!email || email.indexOf('@') < 1) { toast('Email no válido', 'err'); return; }
+  if (!nom) { toast(T('tst.escribe_nombre'), 'err'); return; }
+  if (!email || email.indexOf('@') < 1) { toast(T('tst.email_invalido'), 'err'); return; }
   if (pass.length < 8) { toast('La contraseña debe tener al menos 8 caracteres', 'err'); return; }
   closeM('mNuevoUsuario');
   crearUsuario(nom, email, pass, rol);
@@ -16134,7 +16134,7 @@ async function setCodigoUsuario(uid, nom, actual) {
   var cod = prompt('Código (PIN) de ' + nom + ' para fichar la caja.\n3-12 dígitos. Vacío = quitar el código.', actual || '');
   if (cod === null) return;  // cancelado
   cod = cod.trim();
-  if (cod && !/^[0-9]{3,12}$/.test(cod)) { toast('El código debe ser de 3 a 12 dígitos', 'err'); return; }
+  if (cod && !/^[0-9]{3,12}$/.test(cod)) { toast(T('tst.codigo_3_12'), 'err'); return; }
   var ok = await _adminUsuarios('codigo', { target_id: uid, codigo: cod });
   if (ok) { toast(cod ? 'Código guardado' : 'Código quitado', 'ok'); cargarUsuarios(); }
 }
@@ -17593,7 +17593,7 @@ function procesarImport() {
     var parsed = parseCSV(e.target.result);
     var headers = parsed.headers;
     var rows = parsed.rows;
-    if (!rows.length) { toast('Archivo vacio', 'err'); return; }
+    if (!rows.length) { toast(T('tst.archivo_vacio'), 'err'); return; }
     var isStdContacts = headers.indexOf('FullName') >= 0;
     var isStdProducts = headers.indexOf('Name') >= 0 && headers.indexOf('Quantity') >= 0;
     var badTels = ['0','1','2','6','7','12','15','22','24','28','33','41','44','45','48','54','55','66','111','123','444','777'];
@@ -17761,11 +17761,11 @@ function restaurarBackup() {
       }
       _syncPausado = false;
       renderDash();
-      toast('Backup restaurado correctamente', 'ok');
+      toast(T('tst.backup_restaurado'), 'ok');
       navTo('pDash');
     } catch(err) {
       _syncPausado = false;
-      toast('Error al leer el archivo', 'err');
+      toast(T('tst.error_leer_archivo'), 'err');
     }
   };
   reader.readAsText(file);
@@ -17779,14 +17779,14 @@ function backupManual() {
   a.href = URL.createObjectURL(blob);
   a.download = 'tekpair_backup_' + hoyLocal() + '.json';
   a.click();
-  toast('Backup descargado', 'ok');
+  toast(T('tst.backup_descargado'), 'ok');
 }
 
 // ═══ AYUDA ═══
 async function enviarAyuda() {
   var msg = document.getElementById('ayudaMsg').value.trim();
   var tipo = document.getElementById('ayudaTipo').value;
-  if (!msg) { toast('Escribe un mensaje', 'err'); return; }
+  if (!msg) { toast(T('tst.escribe_mensaje'), 'err'); return; }
 
   var btn = document.querySelector('#pAyuda button.btn-primary');
   var btnOriginal = btn ? btn.textContent : '';
@@ -17932,7 +17932,7 @@ function exportarAuditoria() {
   var d = new Date();
   var fecha = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   downloadBlob(blob, 'tekpair-auditoria-' + fecha + '.csv');
-  toast('✓ Auditoría exportada', 'ok');
+  toast(T('tst.auditoria_exportada'), 'ok');
 }
 
 // Mostrar card de auditoría solo a admin
@@ -18010,7 +18010,7 @@ async function exportarTodo() {
     // Marcar fecha de último backup
     localStorage.setItem('tk_ultimo_backup', new Date().toISOString());
     actualizarUltimoBackupUI();
-    toast('✓ Backup descargado', 'ok');
+    toast(T('tst.backup_descargado'), 'ok');
   } catch(e) {
     console.error('Error backup:', e);
     toast(T('tst.error_backup') + ': ' + e.message, 'err');
@@ -18090,7 +18090,7 @@ async function importarBackup(event) {
       toast('Solo se aceptan .zip o .json', 'err'); return;
     }
 
-    if (!json.datos) { toast('Archivo de backup no válido', 'err'); return; }
+    if (!json.datos) { toast(T('tst.backup_invalido'), 'err'); return; }
 
     // Pausar sync para que no pise lo restaurado
     _syncPausado = true;
@@ -18149,7 +18149,7 @@ async function importarBackup(event) {
     }
 
     _syncPausado = false;
-    toast('✓ Backup restaurado. Recarga la página.', 'ok');
+    toast(T('tst.backup_restaurado_recarga'), 'ok');
     setTimeout(function(){ location.reload(); }, 1500);
   } catch(e) {
     _syncPausado = false;
@@ -18301,7 +18301,7 @@ function instalarPWA() {
   DEFERRED_INSTALL_PROMPT.prompt();
   DEFERRED_INSTALL_PROMPT.userChoice.then(function(choice) {
     if (choice.outcome === 'accepted') {
-      toast('✓ TekPair instalado', 'ok');
+      toast(T('tst.app_instalada'), 'ok');
     }
     DEFERRED_INSTALL_PROMPT = null;
     var card = document.getElementById('cardInstalar');
@@ -18534,7 +18534,7 @@ async function eliminarCita(id) {
   if (SB_KEY && TIENDA_ID) {
     try { await sbDelete('citas', 'id=eq.' + id); } catch(e){}
   }
-  toast('Cita eliminada', 'ok');
+  toast(T('tst.cita_eliminada'), 'ok');
   if (typeof audit === 'function') audit('eliminar', 'cita', id, c ? c.cliente_nombre : id, null);
   closeM('mCita');
   renderCitas();
@@ -18881,7 +18881,7 @@ async function guardarCitaAdmin() {
   
   if (typeof audit === 'function') audit('crear', 'cita', nuevaCita.id, nombre + ' ' + fecha + ' ' + hora, null);
   
-  toast('✓ Cita creada', 'ok');
+  toast(T('tst.cita_creada'), 'ok');
   closeM('mNuevaCitaAdmin');
   
   CAL_DIA_SEL = fecha;
@@ -19012,7 +19012,7 @@ function guardarConfigCitas() {
   TIENDA.citas_config = {duracion_min: dur};
   localStorage.setItem('tk_tienda', JSON.stringify(Object.assign({}, JSON.parse(localStorage.getItem('tk_tienda')||'{}'), {citas_config: TIENDA.citas_config})));
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {citas_config: TIENDA.citas_config});
-  toast('Configuración guardada', 'ok');
+  toast(T('tst.config_guardada'), 'ok');
 }
 
 // Init
