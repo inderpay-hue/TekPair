@@ -5133,6 +5133,7 @@ function applyLang() {
   document.querySelectorAll('[data-t-html]').forEach(function(el) {
     el.innerHTML = T(el.getAttribute('data-t-html'));
   });
+  try { if (typeof _aplicarNombreMovilUI === 'function') _aplicarNombreMovilUI(); } catch(e){}
 }
 
 // ════ Vista Tablero (inicio) en 6 idiomas ════

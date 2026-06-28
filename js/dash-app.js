@@ -4008,7 +4008,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   var pays = document.getElementById('inv-a-pays');
   if (totalP > 0) {
     if (stk) stk.innerHTML = ordenP.map(function(m) { return '<i class="' + (clsMap[m] || 's-tr') + '" style="width:' + (pagos[m] / totalP * 100) + '%"></i>'; }).join('');
-    if (pays) pays.innerHTML = ordenP.map(function(m) { return '<div class="payrow"><span class="pd ' + (clsMap[m] || 's-tr') + '"></span><span class="pn">' + (icoMap[m] || '💳') + ' ' + escHtml(m) + '</span><span class="pv">' + cur(pagos[m]) + '</span><span class="pp">' + Math.round(pagos[m] / totalP * 100) + '%</span></div>'; }).join('');
+    if (pays) pays.innerHTML = ordenP.map(function(m) { return '<div class="payrow"><span class="pd ' + (clsMap[m] || 's-tr') + '"></span><span class="pn">' + (icoMap[m] || '💳') + ' ' + escHtml(_pagoLbl(m)) + '</span><span class="pv">' + cur(pagos[m]) + '</span><span class="pp">' + Math.round(pagos[m] / totalP * 100) + '%</span></div>'; }).join('');
   } else { if (stk) stk.innerHTML = ''; if (pays) pays.innerHTML = '<div class="inv-empty" style="padding:8px 0">' + T('inicio.sin_cobros') + '</div>'; }
 
   // Lo que más deja (periodo, por avería + ventas)
@@ -6182,7 +6182,16 @@ function setVentaFiltro(el) {
 }
 
 // Helpers de visualización i18n para VALORES guardados en español (no se cambia el dato, solo su etiqueta).
-function _pagoLbl(p){ if (!p) return ''; var k = 'pago.' + String(p).toLowerCase(); var t = T(k); return (t && t !== k) ? t : p; }
+// Nombre del método de pago por móvil configurado (Fase 2). El VALOR sigue siendo 'Bizum'
+// (clave canónica, sin migrar datos); solo cambia la ETIQUETA que se muestra.
+function _nombreMovil() {
+  try { var c = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.cobroDatos) || {}; return (c.movil_nombre || '').trim() || 'Bizum'; } catch(e) { return 'Bizum'; }
+}
+function _aplicarNombreMovilUI() {
+  var nm = _nombreMovil();
+  try { Array.prototype.forEach.call(document.querySelectorAll('option'), function(o){ if ((o.value||'').toLowerCase() === 'bizum') o.textContent = nm; }); } catch(e){}
+}
+function _pagoLbl(p){ if (!p) return ''; if (String(p).toLowerCase() === 'bizum') return _nombreMovil(); var k = 'pago.' + String(p).toLowerCase(); var t = T(k); return (t && t !== k) ? t : p; }
 function _cliLbl(n){ return (n === 'Sin cliente' || !n) ? T('gen.sin_cliente') : n; }
 var _CAT_KEY = { 'Telefono':'cat_telefono','Tablet':'cat_tablet','Smartwatch':'cat_smartwatch','Pantalla':'cat_pantalla','Tapa':'cat_tapa','Bateria':'cat_bateria','Flex de Carga':'cat_flex','Altavoz':'cat_altavoz','Repuesto':'cat_repuesto','Accesorio':'cat_accesorio','Otro':'cat_otro' };
 function _catLbl(c){ if (!c) return ''; var kk = _CAT_KEY[c]; if (!kk) return c; var t = T('stock.' + kk); return (t && t !== 'stock.' + kk) ? t : c; }
@@ -13564,6 +13573,7 @@ window.configCobrumToken = configCobrumToken;
 function _metodoLabel(m) {
   m = String(m || '').trim().toLowerCase();
   if (!m) return 'Otros';
+  if (m === 'bizum' && typeof _nombreMovil === 'function') return _nombreMovil();
   var map = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', bizum: 'Bizum', transferencia: 'Transferencia', otros: 'Otros' };
   return map[m] || (m.charAt(0).toUpperCase() + m.slice(1));
 }
@@ -13584,6 +13594,7 @@ function _metodoLabelT(m) {
   var raw = String(m || '').trim();
   var lk = raw.toLowerCase();
   if (!lk) lk = 'otros';
+  if (lk === 'bizum' && typeof _nombreMovil === 'function') return _nombreMovil();
   var key = 'tpv.' + lk;
   var t = (typeof T === 'function') ? T(key) : '';
   if (t && t !== key) return t;
@@ -14296,6 +14307,7 @@ function cargarTienda() {
   var _sv = function(id, v){ var e = document.getElementById(id); if (e) e.value = v || ''; };
   var _sc = function(id, v){ var e = document.getElementById(id); if (e) e.checked = !!v; };
   _sc('cobroBizumOn', cd.bizum_on); _sv('cobroBizum', cd.bizum); _sv('cobroMovilNombre', cd.movil_nombre || _sugerirMetodoMovil());
+  try { _aplicarNombreMovilUI(); } catch(e){}
   _sc('cobroTransferOn', cd.transfer_on); _sv('cobroIban', cd.iban);
   _sc('cobroPaypalOn', cd.paypal_on); _sv('cobroPaypal', cd.paypal);
   _sv('cobroMensaje', cd.mensaje);
