@@ -1333,7 +1333,7 @@ async function analizarPedidoArchivo(input) {
     await _analizarPedidoBody(Object.assign({ action: 'parse-pedido' }, datos));
   } catch (e) {
     console.error('analizarPedidoArchivo:', e);
-    toast('⚠️ ' + (e.message || 'No se pudo leer el archivo'), 'err');
+    toast('⚠️ ' + (e.message || T('tst.no_leer_archivo')), 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '✨ ' + (T('pedidos.pegar_analizar') || 'Analizar con IA'); }
   }
@@ -1350,7 +1350,7 @@ async function _analizarPedidoBody(body) {
       body: JSON.stringify(body)
     });
     var data = await r.json();
-    if (!r.ok || !data.ok) { toast('⚠️ ' + (data.error || 'No se pudo analizar'), 'err'); return; }
+    if (!r.ok || !data.ok) { toast('⚠️ ' + (data.error || T('tst.no_analizar')), 'err'); return; }
     var lineas = data.lineas || [];
     if (!lineas.length) { if (prev) prev.innerHTML = '<div style="padding:14px;text-align:center;color:var(--muted)">' + (T('pedidos.pegar_sin_lineas') || 'No se detectaron productos. Revisa el texto.') + '</div>'; return; }
     window._pegLineas = lineas;
@@ -1453,7 +1453,7 @@ async function analizarFacturaArchivo(input) {
     await _analizarFacturaBody(Object.assign({ action: 'parse-factura' }, datos));
   } catch (e) {
     console.error('analizarFacturaArchivo:', e);
-    toast('⚠️ ' + (e.message || 'No se pudo leer el archivo'), 'err');
+    toast('⚠️ ' + (e.message || T('tst.no_leer_archivo')), 'err');
   } finally {
     if (btn) { btn.disabled = false; btn.innerHTML = '✨ ' + (T('fac_ia.analizar') || 'Analizar con IA'); }
   }
@@ -1470,7 +1470,7 @@ async function _analizarFacturaBody(body) {
       body: JSON.stringify(body)
     });
     var data = await r.json();
-    if (!r.ok || !data.ok) { toast('⚠️ ' + (data.error || 'No se pudo analizar'), 'err'); return; }
+    if (!r.ok || !data.ok) { toast('⚠️ ' + (data.error || T('tst.no_analizar')), 'err'); return; }
     window._facIaDatos = data.factura || {};
     renderPreviewFactura();
   } catch (e) {
@@ -2464,7 +2464,7 @@ async function _syncQueueRetry() {
         console.warn('✗ Sync descartado (no retriable):', op.method, op.table, 'HTTP ' + res.status);
         _syncQueueRemove(op._opId);
         if (typeof toast === 'function') {
-          toast('⚠️ No se pudo sincronizar ' + op.table + ' (HTTP ' + res.status + ')', 'err');
+          toast(T('tst.no_sincronizar').replace('{t}', op.table).replace('{s}', res.status), 'err');
         }
       }
     } catch(e) {
@@ -2599,7 +2599,7 @@ function sbPost(table, data) {
     if (res.status === 409 && !_es409Grave(res)) { console.warn('sbPost ' + table + ' 409 (ya existe) — tratado como guardado.'); return true; }
     if (_es409Grave(res)) {
       console.error('sbPost ' + table + ' 409 GRAVE (' + res.code + ') — no se guardó. Payload:', data);
-      if (typeof toast === 'function') toast('⚠️ No se pudo guardar en ' + table + ' (referencia inválida)', 'err');
+      if (typeof toast === 'function') toast(T('tst.no_guardar_ref').replace('{t}', table), 'err');
       return false;
     }
     // CLI-2: errores 4xx son persistentes — reintentar no ayuda. Avisar al usuario.
@@ -7660,7 +7660,7 @@ function confirmarFirma() {
 
   audit('firmar', 'presupuesto', r.id, r.clienteNombre + ' · firmado', null);
   closeM('mFirma');
-  toast('Firmado por ' + (r.clienteNombre || 'cliente') + ' · convertido a reparación', 'ok');
+  toast(T('tst.firmado_convertido').replace('{n}', (r.clienteNombre || 'cliente')), 'ok');
   renderReps();
   // Saltar a filtro Pendiente para que el usuario vea dónde fue
   var tab = document.querySelector('#repTabs .tab[data-f="Pendiente"]');
@@ -7729,7 +7729,7 @@ function aplicarPlantillaRep(key) {
     });
   }
   calcR();
-  toast('Plantilla "' + (p.label || '') + '" aplicada', 'ok');
+  toast(T('tst.plantilla_aplicada').replace('{n}', (p.label || '')), 'ok');
 }
 
 // ═══ GESTOR DE PLANTILLAS RÁPIDAS ═══
@@ -12375,7 +12375,7 @@ async function generarZipGastos(periodo) {
     try { if (typeof audit === 'function') audit('exportar', 'gastos_zip', {periodo: periodo, etiqueta: etiqueta, n_gastos: lista.length, n_facturas: bajados, fallidos: fallidos}); } catch(e){}
   } catch (e) {
     console.error('generarZipGastos:', e);
-    toast('Error al generar ZIP: ' + (e.message || e), 'err');
+    toast(T('tst.error_zip') + ': ' + (e.message || e), 'err');
   }
 }
 
@@ -12521,7 +12521,7 @@ function generarPDFGastos(periodo) {
   setTimeout(function(){ try { w.focus(); w.print(); } catch(e){} }, 400);
 
   try { if (typeof audit === 'function') audit('exportar', 'gastos', {periodo: periodo, etiqueta: etiqueta, n: detalle.length, total: totalTotal}); } catch(e){}
-  toast('PDF de gastos generado (' + etiqueta + ')', 'ok');
+  toast(T('tst.pdf_gastos').replace('{x}', etiqueta), 'ok');
 }
 
 function renderGastos() {
@@ -13024,7 +13024,7 @@ async function subirAdjuntoGasto(g, file) {
       adjunto_nombre: file.name,
       adjunto_mime: mime
     });
-    toast('Adjunto subido (' + formatBytes(blob.size) + ')', 'ok');
+    toast(T('tst.adjunto_subido').replace('{x}', formatBytes(blob.size)), 'ok');
     try { if (typeof audit === 'function') audit('subir', 'gasto_adjunto', {gasto_id: g.id, nombre: file.name}); } catch(e){}
     renderGastos();
   } catch (e) {
@@ -14417,7 +14417,7 @@ async function subirLogo(ev) {
   } catch (e) {
     console.error(e);
     status.textContent = '';
-    toast('Error: ' + (e.message || 'no se pudo subir'), 'err');
+    toast('Error: ' + (e.message || T('tst.no_subir')), 'err');
   } finally {
     ev.target.value = '';
   }
@@ -15914,7 +15914,7 @@ async function crearUsuario(nom, email, pass, rol) {
   if (actuales >= limite) {
     var planMin = limite < 3 ? 'pro' : 'premium';
     mostrarModalUpgrade('permisos_usuarios', planMin);
-    toast('Has alcanzado el límite de ' + limite + ' usuario' + (limite===1?'':'s') + ' en tu plan', 'err');
+    toast(T('tst.limite_usuarios').replace('{n}', limite), 'err');
     return;
   }
   // El backend hashea con bcrypt y asigna tienda_id/rol de forma segura.
@@ -17162,7 +17162,7 @@ function aplicarRolPreset(rol) {
     (ROLES_PRESET[rol] || []).forEach(function(pid) { permsCurrent[pid] = true; });
   }
   renderPermisosUI();
-  toast('Plantilla "' + rol + '" aplicada — ajusta lo que necesites', 'ok');
+  toast(T('tst.plantilla_rol').replace('{n}', rol), 'ok');
 }
 
 async function editarPermisos(id, nombre) {
@@ -17781,7 +17781,7 @@ async function exportarTodo() {
     toast('✓ Backup descargado', 'ok');
   } catch(e) {
     console.error('Error backup:', e);
-    toast('Error al generar backup: ' + e.message, 'err');
+    toast(T('tst.error_backup') + ': ' + e.message, 'err');
   }
 }
 
@@ -17831,7 +17831,7 @@ function exportarCSV(tipo) {
   // BOM para que Excel lo lea bien con tildes
   var blob = new Blob(['\uFEFF' + csv], {type:'text/csv;charset=utf-8'});
   downloadBlob(blob, 'tekpair-' + tipo + '-' + fechaArchivo() + '.csv');
-  toast('✓ ' + tipo + '.csv descargado', 'ok');
+  toast(T('tst.csv_descargado').replace('{x}', tipo), 'ok');
 }
 
 async function importarBackup(event) {
@@ -17922,7 +17922,7 @@ async function importarBackup(event) {
   } catch(e) {
     _syncPausado = false;
     console.error('Error importar:', e);
-    toast('Error al importar: ' + e.message, 'err');
+    toast(T('tst.error_importar') + ': ' + e.message, 'err');
   }
   event.target.value = '';
 }
@@ -17976,7 +17976,7 @@ function comprobarBackupVencido() {
   if (!AJUSTES.backupAuto) return;
   var elapsed = Math.floor((Date.now() - new Date(ult).getTime()) / 86400000);
   if (elapsed >= dias && _backupAvisoThrottle()) {
-    setTimeout(function(){ toast('💾 Toca hacer backup (último: hace ' + elapsed + ' días)', 'err'); }, 5000);
+    setTimeout(function(){ toast(T('tst.toca_backup').replace('{d}', elapsed), 'err'); }, 5000);
   }
 }
 // Inicializar UI de backup
@@ -18288,7 +18288,7 @@ async function cambiarEstadoCita(id, nuevo) {
   if (SB_KEY && TIENDA_ID) {
     try { await sbPatch('citas', 'id=eq.' + id, {estado: nuevo}); } catch(e){}
   }
-  toast('Estado: ' + nuevo, 'ok');
+  toast(T('tst.estado_prefijo') + ': ' + nuevo, 'ok');
   if (typeof audit === 'function') audit('cambio_estado', 'cita', id, c.cliente_nombre + ' → ' + nuevo, null);
   renderCitas();
   actualizarBadgeCitas();
