@@ -64,12 +64,12 @@ var PLAN_FEATURES = {
   basico: ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'gar_rep_basica'],
   pro:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
-           'gastos','pedidos','permisos_usuarios','reportes_pdf','backup','auditoria',
+           'fotos_rep','gastos','pedidos','permisos_usuarios','reportes_pdf','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica'],
   top:    ['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
-           'gastos','pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
+           'fotos_rep','gastos','pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
@@ -77,7 +77,7 @@ var PLAN_FEATURES = {
            'gar_notif_auto','gar_reportes_avanzados',
            'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica'],
   premium:['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
-           'gastos','pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
+           'fotos_rep','gastos','pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
            'ubicaciones',
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
@@ -87,7 +87,7 @@ var PLAN_FEATURES = {
 };
 
 // Límite de usuarios por plan
-var PLAN_LIMITS = {basico: {usuarios: 1}, pro: {usuarios: 3}, top: {usuarios: 999}, premium: {usuarios: 999}};
+var PLAN_LIMITS = {basico: {usuarios: 1, clientes: 150}, pro: {usuarios: 3, clientes: 500}, top: {usuarios: 999, clientes: 999999}, premium: {usuarios: 999, clientes: 999999}};
 
 // Niveles de plan ordenados
 var PLAN_TIER = {basico: 1, pro: 2, top: 3, premium: 3};
@@ -160,6 +160,20 @@ function tieneFeature(featureName) {
 // ¿El plan del usuario es ≥ al requerido? (basico < pro < top)
 function tienePlan(planRequerido) {
   return (PLAN_TIER[PLAN_INFO.plan] || 1) >= (PLAN_TIER[planRequerido] || 1);
+}
+// Límite de clientes por plan (trial = sin límite, como las features)
+function _limiteClientes() {
+  if (PLAN_INFO.status === 'trial' && PLAN_INFO.trial_until && new Date(PLAN_INFO.trial_until) > new Date()) return Infinity;
+  return ((PLAN_LIMITS[PLAN_INFO.plan] || PLAN_LIMITS.basico).clientes) || Infinity;
+}
+function _puedeAnadirCliente() {
+  var lim = _limiteClientes();
+  if ((DB.clis || []).length >= lim) {
+    try { toast(T('lim.clientes').replace('{n}', lim), 'err'); } catch(e){}
+    mostrarModalUpgrade('clientes', (PLAN_INFO.plan === 'basico') ? 'pro' : 'premium');
+    return false;
+  }
+  return true;
 }
 
 // Días restantes de trial / próximo cobro (floor para que 14.99 = 14, no 15)
@@ -254,6 +268,8 @@ function mostrarModalUpgrade(featureName, planRequerido) {
     plantillas_rep: '📋 Plantillas de reparación',
     permisos_usuarios: '👥 Permisos por usuario',
     multi_tienda: '🏪 Multi-tienda',
+    fotos_rep: '📸 Fotos en reparaciones',
+    clientes: '👥 Más clientes',
     ubicaciones: '📍 Ubicaciones múltiples',
     analitica: '📊 Analítica avanzada',
     financiado: '💰 Financiación a plazos',
@@ -352,6 +368,8 @@ function aplicarBloqueosPlan() {
     {selector: '[data-p="pServicios"]', feat: 'catalogo_servicios'},
     {selector: '[data-p="pCajas"]', feat: 'cajas_multiservicio'}
   ];
+  var _noFotos = (typeof tieneFeature === 'function') && !tieneFeature('fotos_rep');
+  ['repFotoRecepSec','repFotoEntSec'].forEach(function(id){ var e = document.getElementById(id); if (e) e.style.display = _noFotos ? 'none' : ''; });
   sidebarLocks.forEach(function(lock) {
     var el = document.querySelector(lock.selector);
     if (!el) return;
@@ -7012,6 +7030,7 @@ function _clienteDuplicado(tel, dni) {
 }
 
 function crearClienteRapido() {
+  if (!_puedeAnadirCliente()) return;
   var nom = document.getElementById('ncNom').value.trim();
   if (!nom) { toast(T('tst.escribe_nombre'), 'err'); return; }
   var telV = document.getElementById('ncTel').value.trim();
@@ -16578,6 +16597,7 @@ async function _repRenderFotos(containerId, paths, onRemove) {
 }
 // Recepción (modal Nueva Reparación) — SEL.fotosRecepcion
 async function _repFotoRecepInput(input) {
+  if (typeof tieneFeature === 'function' && !tieneFeature('fotos_rep')) { mostrarModalUpgrade('fotos_rep', 'pro'); return; }
   var files = input.files; if (!files || !files.length) return;
   if (!SEL.fotosRecepcion) SEL.fotosRecepcion = [];
   toast(T('foto.subiendo'), 'ok');
@@ -16592,6 +16612,7 @@ function _repFotoRecepRemove(i) {
 }
 // Entrega (modal Entregar) — SEL.fotosEntrega
 async function _repFotoEntInput(input) {
+  if (typeof tieneFeature === 'function' && !tieneFeature('fotos_rep')) { mostrarModalUpgrade('fotos_rep', 'pro'); return; }
   var files = input.files; if (!files || !files.length) return;
   if (!SEL.fotosEntrega) SEL.fotosEntrega = [];
   toast(T('foto.subiendo'), 'ok');
