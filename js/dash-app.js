@@ -14267,6 +14267,15 @@ function checkCierreAuto() {
 }
 
 // ═══ MI TIENDA ═══
+// Sugerencia del método de pago por móvil según moneda (LatAm) o idioma (Europa). Solo sugerencia editable.
+function _sugerirMetodoMovil() {
+  var mon = (typeof AJUSTES !== 'undefined' && AJUSTES && AJUSTES.moneda) || 'EUR';
+  var porMoneda = { COP:'Nequi', MXN:'CoDi', ARS:'Mercado Pago', BRL:'Pix', PEN:'Yape', CLP:'MACH' };
+  if (porMoneda[mon]) return porMoneda[mon];
+  var lng = (typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es');
+  var porIdioma = { es:'Bizum', pt:'MB WAY', it:'BANCOMAT Pay', fr:'Wero', de:'Wero', en:'Bizum' };
+  return porIdioma[lng] || 'Bizum';
+}
 function cargarTienda() {
   try { cargarInvitaAmigos(); } catch (e) {}
   var t = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
@@ -14286,7 +14295,7 @@ function cargarTienda() {
   var cd = t.cobroDatos || {};
   var _sv = function(id, v){ var e = document.getElementById(id); if (e) e.value = v || ''; };
   var _sc = function(id, v){ var e = document.getElementById(id); if (e) e.checked = !!v; };
-  _sc('cobroBizumOn', cd.bizum_on); _sv('cobroBizum', cd.bizum);
+  _sc('cobroBizumOn', cd.bizum_on); _sv('cobroBizum', cd.bizum); _sv('cobroMovilNombre', cd.movil_nombre || _sugerirMetodoMovil());
   _sc('cobroTransferOn', cd.transfer_on); _sv('cobroIban', cd.iban);
   _sc('cobroPaypalOn', cd.paypal_on); _sv('cobroPaypal', cd.paypal);
   _sv('cobroMensaje', cd.mensaje);
@@ -14500,6 +14509,7 @@ async function guardarTienda() {
     cobroDatos: {
       bizum_on: !!(document.getElementById('cobroBizumOn')||{}).checked,
       bizum: ((document.getElementById('cobroBizum')||{}).value || '').trim(),
+      movil_nombre: ((document.getElementById('cobroMovilNombre')||{}).value || '').trim(),
       transfer_on: !!(document.getElementById('cobroTransferOn')||{}).checked,
       iban: ((document.getElementById('cobroIban')||{}).value || '').trim(),
       paypal_on: !!(document.getElementById('cobroPaypalOn')||{}).checked,

@@ -90,7 +90,7 @@
     html += '<div class="elige">'+esc(t.elige)+'</div>';
     var any = false;
     if (c.bizum_on && c.bizum) { any=true;
-      html += '<div class="metodo"><h3>💜 '+esc(t.bizum)+'</h3><div style="font-size:12.5px;color:var(--muted)">'+tr(t.envia,{a:imp})+':</div>'+
+      html += '<div class="metodo"><h3>📲 '+esc(c.movil_nombre || 'Bizum')+'</h3><div style="font-size:12.5px;color:var(--muted)">'+tr(t.envia,{a:imp})+':</div>'+
         '<div class="copyrow"><span>'+esc(c.bizum)+'</span><button data-cp="'+esc(c.bizum)+'">'+esc(t.copiar)+'</button></div>'+
         '<div class="concepto">'+tr(t.concepto,{c:esc(d.concepto)})+'</div></div>';
     }
