@@ -6138,13 +6138,14 @@ function renderVentas() {
     var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="edit" class="row-btn btn-fin" title="Financiación">\ud83d\udcb0</button>' : '';
     var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="Reimprimir ticket">\ud83d\udda8</button>';
     var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="Generar factura">📄</button>' : '';
+    var btnEdit = (!v.reembolsado && (typeof _esAdmin === 'function' && _esAdmin())) ? '<button data-vid="' + v.id + '" class="row-btn btn-edit-v" title="Editar venta">✏️</button>' : '';
     html += '<tr style="' + (v.reembolsado ? 'opacity:.55' : '') + '">' +
       '<td>' + fmtFecha(v.fecha) + '</td>' +
       '<td>' + esc(_cliLbl(v.clienteNombre)) + badges + '</td>' +
       '<td>' + esc(v.modelo) + '</td>' +
       '<td><span class="badge bb">' + esc(_pagoLbl(v.pago)) + '</span></td>' +
       '<td style="color:' + (v.reembolsado ? 'var(--red)' : 'var(--green)') + ';font-weight:700">' + (v.reembolsado ? '-' : '') + cur(v.total) + '</td>' +
-      '<td style="display:flex;gap:3px">' + btnR + btnF + btnFact + btnImpr + '</td></tr>';
+      '<td style="display:flex;gap:3px">' + btnR + btnF + btnFact + btnImpr + btnEdit + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -6160,6 +6161,73 @@ function renderVentas() {
   el.querySelectorAll('.btn-fact-v').forEach(function(btn) {
     btn.addEventListener('click', function() { factVenta(this.dataset.vid); });
   });
+  el.querySelectorAll('.btn-edit-v').forEach(function(btn) {
+    btn.addEventListener('click', function() { abrirEditarVenta(this.dataset.vid); });
+  });
+}
+
+// ═══ EDITAR VENTA (admin): cliente, concepto, pago, importe ═══
+function _evFillCliDatalist() {
+  var dl = document.getElementById('evCliList'); if (!dl) return;
+  dl.innerHTML = (DB.clis || []).filter(function(c){ return c && c.nombre; }).slice(0,500).map(function(c){
+    return '<option value="' + escHtml(((c.nombre||'') + (c.apellidos ? ' ' + c.apellidos : '')).trim()) + '">'; }).join('');
+}
+function abrirEditarVenta(id) {
+  if (typeof _esAdmin === 'function' && !_esAdmin()) { toast(T('perm.solo_admin'), 'err'); return; }
+  var v = (DB.ventas || []).find(function(x){ return x.id === id; });
+  if (!v) { toast(T('tst.venta_no_encontrada'), 'err'); return; }
+  if (v.reembolsado) { toast(T('ev.reembolsada_no'), 'err'); return; }
+  SEL.editVentaId = id;
+  _evFillCliDatalist();
+  document.getElementById('evCliente').value = v.clienteNombre || '';
+  document.getElementById('evModelo').value = v.modelo || '';
+  var sel = document.getElementById('evPago');
+  var metodos = ['efectivo','tarjeta','bizum','transferencia'];
+  if (v.pago && metodos.indexOf(v.pago) === -1) metodos.push(v.pago);
+  sel.innerHTML = metodos.map(function(m){ return '<option value="' + escHtml(m) + '">' + escHtml(_pagoLbl(m)) + '</option>'; }).join('');
+  sel.value = v.pago || 'efectivo';
+  document.getElementById('evDescuento').value = v.descuento || 0;
+  document.getElementById('evTotal').value = v.total || 0;
+  var fin = !!v.financiado;
+  document.getElementById('evTotal').disabled = fin;
+  document.getElementById('evDescuento').disabled = fin;
+  var nota = document.getElementById('evNotaFin'); if (nota) nota.style.display = fin ? 'block' : 'none';
+  openM('mEditarVenta');
+}
+function guardarEdicionVenta() {
+  var v = (DB.ventas || []).find(function(x){ return x.id === SEL.editVentaId; });
+  if (!v) return;
+  var nom = (document.getElementById('evCliente').value || '').trim();
+  v.clienteNombre = nom || T('gen.sin_cliente');
+  var c = (DB.clis || []).find(function(x){ return (((x.nombre||'') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === nom; });
+  v.clienteId = c ? c.id : (nom ? v.clienteId : null);
+  v.modelo = (document.getElementById('evModelo').value || '').trim();
+  v.pago = document.getElementById('evPago').value;
+  if (!v.financiado) {
+    var desc = parseFloat(document.getElementById('evDescuento').value) || 0;
+    var total = parseFloat(document.getElementById('evTotal').value) || 0;
+    var rate = parseFloat(v.iva) || 0;
+    v.descuento = desc;
+    v.total = total;
+    v.base = rate > 0 ? Math.round((total / (1 + rate / 100)) * 100) / 100 : total;
+    v.ivaImporte = Math.round((total - v.base) * 100) / 100;
+    v.precio = Math.round((total + desc) * 100) / 100;
+    if (v.items && v.items[0]) { v.items[0].nombre = v.modelo || v.items[0].nombre; v.items[0].precio = total; }
+  } else if (v.items && v.items[0]) {
+    v.items[0].nombre = v.modelo || v.items[0].nombre;
+  }
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('ventas', 'id=eq.' + encodeURIComponent(v.id), {
+      cliente_id: v.clienteId, cliente_nombre: v.clienteNombre, modelo: v.modelo,
+      pago: v.pago, precio: v.precio, descuento: v.descuento, total: v.total,
+      base: v.base, iva_importe: v.ivaImporte,
+      items: (v.items && v.items.length) ? JSON.stringify(v.items) : null
+    });
+  }
+  try { if (typeof audit === 'function') audit('editar', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total), null); } catch(e){}
+  guardarDatos(); closeM('mEditarVenta'); renderVentas();
+  try { renderInicioNuevo(); } catch(e){}
+  toast(T('gen.guardado'), 'ok');
 }
 
 function imprimirTicketVenta(id) {

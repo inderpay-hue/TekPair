@@ -983,7 +983,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .aj-panel.active{display:block;animation:fadeIn .15s ease}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260628o"></script>
+<script src="/lang/lang.v8.js?v=20260628p"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4330,6 +4330,24 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 </div>
 </div>
 
+<!-- EDITAR VENTA -->
+<div class="modal-bg" id="mEditarVenta">
+<div class="modal">
+  <div class="modal-title" data-t="ev.titulo">✏️ Editar venta</div>
+  <div class="fg"><label class="fl" data-t="gen.cliente">Cliente</label><input class="fi" id="evCliente" list="evCliList" placeholder="Nombre"><datalist id="evCliList"></datalist></div>
+  <div class="fg"><label class="fl" data-t="gen.modelo">Modelo</label><input class="fi" id="evModelo" placeholder="Producto / modelo"></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl" data-t="gen.pago">Pago</label><select class="fi" id="evPago"></select></div>
+    <div class="fg"><label class="fl" data-t="ev.descuento">Descuento</label><input class="fi" id="evDescuento" type="number" step="0.01" value="0"></div>
+    <div class="fg"><label class="fl" data-t="gen.total">Total</label><input class="fi" id="evTotal" type="number" step="0.01" value="0"></div>
+  </div>
+  <div id="evNotaFin" style="display:none;font-size:11.5px;color:var(--orange);margin-bottom:8px" data-t="ev.fin_nota">Venta financiada: el importe se gestiona desde Financiación; aquí solo cliente, concepto y pago.</div>
+  <div class="modal-actions">
+    <button class="btn-secondary" onclick="closeM('mEditarVenta')" data-t="gen.cancelar">Cancelar</button>
+    <button class="btn-primary" onclick="guardarEdicionVenta()"><span data-t="gen.guardar">Guardar</span></button>
+  </div>
+</div>
+</div>
 <!-- ENCARGO -->
 <div class="modal-bg" id="mEncargo">
 <div class="modal">
