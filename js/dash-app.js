@@ -87,7 +87,7 @@ var PLAN_FEATURES = {
 };
 
 // Límite de usuarios por plan
-var PLAN_LIMITS = {basico: {usuarios: 1, clientes: 150}, pro: {usuarios: 3, clientes: 500}, top: {usuarios: 999, clientes: 999999}, premium: {usuarios: 999, clientes: 999999}};
+var PLAN_LIMITS = {basico: {usuarios: 1, clientes: 250}, pro: {usuarios: 3, clientes: 1000}, top: {usuarios: 999, clientes: 999999}, premium: {usuarios: 999, clientes: 999999}};
 
 // Niveles de plan ordenados
 var PLAN_TIER = {basico: 1, pro: 2, top: 3, premium: 3};
