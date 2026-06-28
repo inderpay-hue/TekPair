@@ -3769,16 +3769,15 @@ function renderInicioNuevo() {
   if (!DB.pedidos && typeof cargarPedidos === 'function') { cargarPedidos(function() { renderInicioNuevo(); }); }
 
   // ── Inicio por plan: Tablero y periodos Semana/Mes son de Premium ──
-  var invAvanzado = (typeof tieneFeature === 'function') ? tieneFeature('inicio_avanzado') : true;
+  var invAvanzado = (typeof tieneFeature === 'function') ? tieneFeature('inicio_avanzado') : true; // Tablero: Premium
+  var invPeriodos = (typeof tieneFeature === 'function') ? tieneFeature('analitica') : true;        // Semana/Mes: Pro+
   (function() {
     var tabBtn = document.querySelector('#pInicioNuevo .inv-vbtn[data-v="tablero"]');
     if (tabBtn) tabBtn.style.display = invAvanzado ? '' : 'none';
     var segBtns = document.querySelectorAll('#pInicioNuevo .inv-seg button');
-    for (var i = 1; i < segBtns.length; i++) segBtns[i].style.display = invAvanzado ? '' : 'none'; // ocultar Semana/Mes
-    if (!invAvanzado) {
-      window._invPer = 'hoy';
-      if ((window._invVista || '') === 'tablero') { window._invVista = 'resumen'; try { localStorage.setItem('tk_inicio_vista', 'resumen'); } catch (e) {} }
-    }
+    for (var i = 1; i < segBtns.length; i++) segBtns[i].style.display = invPeriodos ? '' : 'none'; // Semana/Mes: Pro+ (analitica)
+    if (!invPeriodos) window._invPer = 'hoy';
+    if (!invAvanzado && (window._invVista || '') === 'tablero') { window._invVista = 'resumen'; try { localStorage.setItem('tk_inicio_vista', 'resumen'); } catch (e) {} }
   })();
 
   // Vista activa (paginador Resumen / Tablero)
