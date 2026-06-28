@@ -122,8 +122,32 @@ async function renderStorageUso() {
   if (bar) { bar.style.width = pct + '%'; bar.style.background = pct >= 90 ? 'var(--red)' : (pct >= 70 ? 'var(--orange)' : 'var(--green)'); }
 }
 
+// ── PREVIEW DE PLAN (solo el dueño): ver el Inicio/UI de cada plan sin cambiar el real ──
+// Activar:  ?preview=basico | pro | top | premium      Salir:  ?preview=off
+(function(){
+  try {
+    var _pp = new URLSearchParams(location.search).get('preview');
+    if (_pp === 'off') { localStorage.removeItem('tk_preview_plan'); }
+    else if (_pp && ['basico','pro','top','premium'].indexOf(_pp) !== -1) { localStorage.setItem('tk_preview_plan', _pp); }
+    var _sv = localStorage.getItem('tk_preview_plan');
+    if (_sv && ['basico','pro','top','premium'].indexOf(_sv) !== -1) window._previewPlan = _sv;
+  } catch(e){}
+})();
+function _renderPreviewBanner() {
+  var old = document.getElementById('previewBanner'); if (old) old.remove();
+  if (!window._previewPlan) return;
+  var b = document.createElement('div');
+  b.id = 'previewBanner';
+  b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:99999;background:#221D19;color:#fff;border-radius:999px;padding:8px 8px 8px 16px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.35)';
+  b.innerHTML = '\ud83d\udc41\ufe0f Vista previa: plan <b style="text-transform:capitalize">' + window._previewPlan + '</b>' +
+    '<a href="?preview=off" style="background:#EC5C24;color:#fff;text-decoration:none;border-radius:999px;padding:6px 12px;font-weight:700">Salir</a>';
+  document.body.appendChild(b);
+}
+window.addEventListener('DOMContentLoaded', function(){ try { _renderPreviewBanner(); } catch(e){} });
 // ¿El usuario tiene acceso a esta feature?
 function tieneFeature(featureName) {
+  // Vista previa de plan (dueño): fuerza el set de features del plan simulado.
+  if (window._previewPlan) return (PLAN_FEATURES[window._previewPlan] || []).indexOf(featureName) !== -1;
   // Durante trial activo (no expirado), TODAS las features están desbloqueadas
   if (PLAN_INFO.status === 'trial' && PLAN_INFO.trial_until) {
     var trialEnd = new Date(PLAN_INFO.trial_until);
