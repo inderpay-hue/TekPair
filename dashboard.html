@@ -1013,7 +1013,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260628y"></script>
+<script src="/lang/lang.v8.js?v=20260628z4"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2599,28 +2599,28 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   <!-- Rail vertical agrupado de secciones -->
   <nav class="aj-rail" id="ajRail">
     <div class="aj-railgroup">
-      <div class="aj-gl">Tu tienda</div>
-      <button class="aj-nav active" data-sec="negocio"   onclick="ajSec('negocio',this)"><span class="aj-e">🏪</span> Mi negocio</button>
+      <div class="aj-gl" data-t="aj.g_tienda">Tu tienda</div>
+      <button class="aj-nav active" data-sec="negocio"   onclick="ajSec('negocio',this)"><span class="aj-e">🏪</span> <span data-t="aj.r_negocio">Mi negocio</span></button>
       <button class="aj-nav" data-sec="cobros"   data-feat="financiado" onclick="ajSec('cobros',this)"><span class="aj-e">💳</span> <span data-t="ajt.cobro_titulo">Cobros online</span></button>
       <button class="aj-nav" data-sec="impuestos" onclick="ajSec('impuestos',this)"><span class="aj-e">🧾</span> <span data-t="ajp.impuestos_title">Impuestos</span></button>
-      <button class="aj-nav" data-sec="citas" data-feat="citas" onclick="ajSec('citas',this)"><span class="aj-e">📅</span> Citas y horarios</button>
+      <button class="aj-nav" data-sec="citas" data-feat="citas" onclick="ajSec('citas',this)"><span class="aj-e">📅</span> <span data-t="aj.r_citas">Citas y horarios</span></button>
       <button class="aj-nav" data-sec="reparaciones" onclick="ajSec('reparaciones',this)"><span class="aj-e">🔧</span> <span data-t="nav.reparaciones">Reparaciones</span></button>
     </div>
     <div class="aj-railgroup">
-      <div class="aj-gl">Personas</div>
-      <button class="aj-nav" data-sec="equipo" data-feat="permisos_usuarios" onclick="ajSec('equipo',this)"><span class="aj-e">👥</span> Equipo y permisos</button>
-      <button class="aj-nav" data-sec="referidos" onclick="ajSec('referidos',this)"><span class="aj-e">🎁</span> Referidos</button>
+      <div class="aj-gl" data-t="aj.g_personas">Personas</div>
+      <button class="aj-nav" data-sec="equipo" data-feat="permisos_usuarios" onclick="ajSec('equipo',this)"><span class="aj-e">👥</span> <span data-t="aj.r_equipo">Equipo y permisos</span></button>
+      <button class="aj-nav" data-sec="referidos" onclick="ajSec('referidos',this)"><span class="aj-e">🎁</span> <span data-t="aj.r_referidos">Referidos</span></button>
     </div>
     <div class="aj-railgroup">
-      <div class="aj-gl">App</div>
+      <div class="aj-gl" data-t="aj.g_app">App</div>
       <button class="aj-nav" data-sec="apariencia" onclick="ajSec('apariencia',this)"><span class="aj-e">🎨</span> <span data-t="ajp.apariencia">Apariencia</span></button>
-      <button class="aj-nav" data-sec="notif" onclick="ajSec('notif',this)"><span class="aj-e">🔔</span> Notificaciones</button>
+      <button class="aj-nav" data-sec="notif" onclick="ajSec('notif',this)"><span class="aj-e">🔔</span> <span data-t="aj.r_notif">Notificaciones</span></button>
     </div>
     <div class="aj-railgroup">
-      <div class="aj-gl">Cuenta</div>
-      <button class="aj-nav" data-sec="plan" onclick="ajSec('plan',this)"><span class="aj-e">💼</span> Plan y facturas</button>
-      <button class="aj-nav" data-sec="seguridad" onclick="ajSec('seguridad',this)"><span class="aj-e">🔒</span> Seguridad</button>
-      <button class="aj-nav" data-sec="datos" data-feat="backup" onclick="ajSec('datos',this)"><span class="aj-e">📦</span> Datos y copias</button>
+      <div class="aj-gl" data-t="aj.g_cuenta">Cuenta</div>
+      <button class="aj-nav" data-sec="plan" onclick="ajSec('plan',this)"><span class="aj-e">💼</span> <span data-t="aj.r_plan">Plan y facturas</span></button>
+      <button class="aj-nav" data-sec="seguridad" onclick="ajSec('seguridad',this)"><span class="aj-e">🔒</span> <span data-t="aj.r_seguridad">Seguridad</span></button>
+      <button class="aj-nav" data-sec="datos" data-feat="backup" onclick="ajSec('datos',this)"><span class="aj-e">📦</span> <span data-t="aj.r_datos">Datos y copias</span></button>
     </div>
   </nav>
 
@@ -2629,7 +2629,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
   <!-- ══ SECCIÓN: NEGOCIO ══ -->
   <div class="aj-sec active" id="ajSec-negocio">
-    <div class="aj-sechead"><div><h2><span data-t="gen.mi_negocio">Mi negocio</span></h2></div></div>
+    <div class="aj-sechead"><div><h2><span data-t="gen.mi_negocio">Mi negocio</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
 
     <div class="card">
       <div class="card-title">Logo de la tienda</div>
@@ -2662,7 +2662,6 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       </div>
     </div>
 
-    <div class="aj-saverow"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div>
   </div><!-- /negocio -->
 
   <!-- ══ SECCIÓN: COBROS ONLINE ══ -->
@@ -2860,12 +2859,11 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <div class="fg"><label class="fl" data-t="ajt.pol_ven">Política de venta</label><textarea class="fi" id="tPoliticaVentas" rows="2" data-t-ph="ajt.pol_ven_ph" placeholder="Condiciones de devolución y cambio..."></textarea></div>
     </div>
 
-    <button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button>
   </div><!-- /reparaciones -->
 
   <!-- ══ SECCIÓN: APARIENCIA ══ -->
   <div class="aj-sec" id="ajSec-apariencia">
-    <div class="aj-sechead"><div><h2>🎨 <span data-t="ajp.apariencia">Apariencia</span></h2></div></div>
+    <div class="aj-sechead"><div><h2>🎨 <span data-t="ajp.apariencia">Apariencia</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
 
     <div class="card">
       <div class="card-title" data-t="ajp.apariencia">Apariencia</div>
@@ -3000,12 +2998,11 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
         </div>
       </div>
     </div>
-    <button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button>
   </div><!-- /impuestos -->
 
   <!-- ══ SECCIÓN: NOTIFICACIONES ══ -->
   <div class="aj-sec" id="ajSec-notif">
-    <div class="aj-sechead"><div><h2>🔔 <span data-t="ajn.title">Notificaciones</span></h2></div></div>
+    <div class="aj-sechead"><div><h2>🔔 <span data-t="ajn.title">Notificaciones</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
 
     <div class="card">
       <div class="card-title" data-t="ajn.title">Notificaciones</div>
