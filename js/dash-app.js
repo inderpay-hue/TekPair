@@ -337,6 +337,150 @@ function mostrarNovedadesSiNuevo() {
   renderNovedades(true);
   openM('mNovedades');
 }
+
+// ═══════════════ ONBOARDING (primer arranque) ═══════════════
+// Wizard de 3 pasos que fuerza la configuración mínima de la tienda al primer login.
+var _ONB_PAISES = [
+  ['34','🇪🇸 España (+34)'],['52','🇲🇽 México (+52)'],['54','🇦🇷 Argentina (+54)'],
+  ['57','🇨🇴 Colombia (+57)'],['56','🇨🇱 Chile (+56)'],['51','🇵🇪 Perú (+51)'],
+  ['55','🇧🇷 Brasil (+55)'],['598','🇺🇾 Uruguay (+598)'],['593','🇪🇨 Ecuador (+593)'],
+  ['591','🇧🇴 Bolivia (+591)'],['595','🇵🇾 Paraguay (+595)'],['502','🇬🇹 Guatemala (+502)'],
+  ['506','🇨🇷 Costa Rica (+506)'],['507','🇵🇦 Panamá (+507)'],['58','🇻🇪 Venezuela (+58)'],
+  ['1','🇺🇸 EE.UU. / Rep. Dom. (+1)'],['351','🇵🇹 Portugal (+351)'],['33','🇫🇷 Francia (+33)'],
+  ['39','🇮🇹 Italia (+39)'],['49','🇩🇪 Alemania (+49)'],['44','🇬🇧 Reino Unido (+44)']
+];
+var _ONB_MONEDAS = [
+  ['EUR','€ Euro'],['USD','$ Dólar (USD)'],['GBP','£ Libra'],['MXN','$ Peso mexicano (MXN)'],
+  ['ARS','$ Peso argentino (ARS)'],['COP','$ Peso colombiano (COP)'],['CLP','$ Peso chileno (CLP)'],
+  ['PEN','S/ Sol peruano (PEN)'],['BRL','R$ Real brasileño (BRL)'],['UYU','$ Peso uruguayo (UYU)'],
+  ['DOP','$ Peso dominicano (DOP)'],['BOB','Bs Boliviano (BOB)'],['PYG','₲ Guaraní (PYG)'],
+  ['GTQ','Q Quetzal (GTQ)'],['CRC','₡ Colón (CRC)']
+];
+var _ONB_PASO = 1, _onbData = null;
+
+function _onbNeeded() {
+  try { if (localStorage.getItem('tk_onb_done') === '1') return false; } catch (e) { return false; }
+  try { if (typeof tienePerm === 'function' && !tienePerm('tienda_editar')) return false; } catch (e) {}
+  var n = ((TIENDA && TIENDA.nombre) || '').trim();
+  return (!n || n === 'Mi Tienda');
+}
+function _checkOnboarding() {
+  try { if (!_onbNeeded()) return; } catch (e) { return; }
+  try { localStorage.setItem('tk_novedades', NOVEDADES_VERSION); } catch (e) {} // no apilar banner de novedades sobre un usuario nuevo
+  _onbAbrir();
+}
+function _onbAbrir() {
+  if (document.getElementById('_onbBg')) return;
+  _ONB_PASO = 1;
+  var cd = (TIENDA && TIENDA.cobroDatos) || {};
+  var nom = ((TIENDA && TIENDA.nombre) || '');
+  _onbData = {
+    nombre: nom === 'Mi Tienda' ? '' : nom,
+    tel: (TIENDA && TIENDA.tel) || '', dir: (TIENDA && TIENDA.dir) || '', cif: (TIENDA && TIENDA.cif) || '',
+    moneda: (AJUSTES.moneda || 'EUR'), pais: (AJUSTES.paisPrefijo || '34'),
+    movil_on: !!cd.bizum_on, movil_nombre: cd.movil_nombre || _sugerirMetodoMovil(), movil_num: cd.bizum || ''
+  };
+  var bg = document.createElement('div');
+  bg.id = '_onbBg';
+  bg.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.74);backdrop-filter:blur(3px);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var box = document.createElement('div');
+  box.id = '_onbBox';
+  box.style.cssText = 'background:var(--card,#fff);color:var(--text,#0f172a);width:100%;max-width:450px;border-radius:18px;box-shadow:0 24px 70px rgba(0,0,0,.4);overflow:hidden';
+  bg.appendChild(box); document.body.appendChild(bg);
+  _onbRender();
+}
+function _onbOpt(arr, sel) {
+  return arr.map(function (o) { return '<option value="' + o[0] + '"' + (o[0] === sel ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
+}
+function _onbRender() {
+  var box = document.getElementById('_onbBox'); if (!box) return;
+  var d = _onbData, paso = _ONB_PASO, total = 3, i;
+  var dots = '';
+  for (i = 1; i <= total; i++) { dots += '<span style="width:' + (i === paso ? '22px' : '7px') + ';height:7px;border-radius:99px;background:' + (i <= paso ? '#fff' : 'rgba(255,255,255,.4)') + ';transition:all .2s"></span>'; }
+  var fl = 'display:block;font-size:12px;font-weight:600;color:var(--muted,#64748b);margin:0 0 5px';
+  var fi = 'width:100%;padding:11px 12px;border:1px solid var(--border,#e2e8f0);border-radius:10px;font:inherit;font-size:14px;background:var(--light,#f8fafc);color:inherit;box-sizing:border-box;margin-bottom:13px';
+  var body = '';
+  if (paso === 1) {
+    body = '<div style="font-size:18px;font-weight:800;margin-bottom:3px">' + T('onb.p1_title') + '</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);margin-bottom:16px">' + T('onb.p1_sub') + '</div>' +
+      '<label style="' + fl + '">' + T('onb.nombre') + ' *</label><input id="_onbNombre" style="' + fi + '" placeholder="' + escHtml(T('onb.nombre_ph')) + '" value="' + escHtml(d.nombre) + '">' +
+      '<label style="' + fl + '">' + T('cli.telefono') + '</label><input id="_onbTel" style="' + fi + '" placeholder="6XX XXX XXX" value="' + escHtml(d.tel) + '">' +
+      '<label style="' + fl + '">' + T('cli.direccion') + '</label><input id="_onbDir" style="' + fi + '" placeholder="' + escHtml(T('onb.dir_ph')) + '" value="' + escHtml(d.dir) + '">' +
+      '<label style="' + fl + '">' + T('onb.cif') + '</label><input id="_onbCif" style="' + fi + '" placeholder="' + escHtml(T('onb.cif_ph')) + '" value="' + escHtml(d.cif) + '">';
+  } else if (paso === 2) {
+    body = '<div style="font-size:18px;font-weight:800;margin-bottom:3px">' + T('onb.p2_title') + '</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);margin-bottom:16px">' + T('onb.p2_sub') + '</div>' +
+      '<label style="' + fl + '">' + T('gen.pais_prefijo') + '</label><select id="_onbPais" style="' + fi + '">' + _onbOpt(_ONB_PAISES, d.pais) + '</select>' +
+      '<label style="' + fl + '">' + T('gen.moneda') + '</label><select id="_onbMoneda" style="' + fi + '">' + _onbOpt(_ONB_MONEDAS, d.moneda) + '</select>';
+  } else {
+    body = '<div style="font-size:18px;font-weight:800;margin-bottom:3px">' + T('onb.p3_title') + '</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);margin-bottom:16px">' + T('onb.p3_sub') + '</div>' +
+      '<label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:13.5px;font-weight:600;margin-bottom:14px"><input type="checkbox" id="_onbMovOn" ' + (d.movil_on ? 'checked' : '') + ' onchange="_onbToggleMov(this.checked)"> ' + T('onb.movil_on') + '</label>' +
+      '<div id="_onbMovBox" style="display:' + (d.movil_on ? 'block' : 'none') + '">' +
+        '<label style="' + fl + '">' + T('onb.movil_nombre') + '</label><input id="_onbMovNombre" style="' + fi + '" placeholder="Bizum / Nequi / Pix…" value="' + escHtml(d.movil_nombre) + '">' +
+        '<label style="' + fl + '">' + T('onb.movil_num') + '</label><input id="_onbMovNum" style="' + fi + '" placeholder="6XX XXX XXX" value="' + escHtml(d.movil_num) + '">' +
+      '</div>';
+  }
+  var btn = 'padding:11px 16px;border-radius:10px;font:inherit;font-size:13.5px;font-weight:700;cursor:pointer;border:none';
+  var footer = '<div style="display:flex;gap:8px;align-items:center;margin-top:6px">' +
+    (paso > 1 ? '<button onclick="_onbPrev()" style="' + btn + ';background:var(--light,#f1f5f9);color:var(--muted,#64748b)">' + T('onb.atras') + '</button>' : '') +
+    '<div style="flex:1"></div>' +
+    (paso === total
+      ? '<button onclick="_onbFinalizar()" style="' + btn + ';background:#7C5CFC;color:#fff">' + T('onb.finalizar') + '</button>'
+      : '<button onclick="_onbNext()" style="' + btn + ';background:#7C5CFC;color:#fff">' + T('onb.siguiente') + ' →</button>') +
+    '</div>';
+  box.innerHTML =
+    '<div style="background:linear-gradient(135deg,#7C5CFC,#5B3FD6);color:#fff;padding:20px 22px 16px">' +
+      '<div style="font-size:19px;font-weight:800">' + T('onb.title') + '</div>' +
+      '<div style="font-size:12.5px;opacity:.92;margin-top:2px">' + T('onb.sub') + '</div>' +
+      '<div style="display:flex;gap:5px;align-items:center;margin-top:14px">' + dots + '</div>' +
+    '</div>' +
+    '<div style="padding:20px 22px 18px">' + body + footer + '</div>';
+}
+function _onbToggleMov(on) { _onbData.movil_on = on; var b = document.getElementById('_onbMovBox'); if (b) b.style.display = on ? 'block' : 'none'; }
+function _onbCapturar() {
+  var g = function (id) { var e = document.getElementById(id); return e ? e.value : undefined; };
+  if (_ONB_PASO === 1) {
+    if (g('_onbNombre') !== undefined) _onbData.nombre = g('_onbNombre').trim();
+    if (g('_onbTel') !== undefined) _onbData.tel = g('_onbTel').trim();
+    if (g('_onbDir') !== undefined) _onbData.dir = g('_onbDir').trim();
+    if (g('_onbCif') !== undefined) _onbData.cif = g('_onbCif').trim();
+  } else if (_ONB_PASO === 2) {
+    if (g('_onbPais') !== undefined) _onbData.pais = g('_onbPais');
+    if (g('_onbMoneda') !== undefined) _onbData.moneda = g('_onbMoneda');
+  } else {
+    var mo = document.getElementById('_onbMovOn'); if (mo) _onbData.movil_on = mo.checked;
+    if (g('_onbMovNombre') !== undefined) _onbData.movil_nombre = g('_onbMovNombre').trim();
+    if (g('_onbMovNum') !== undefined) _onbData.movil_num = g('_onbMovNum').trim();
+  }
+}
+function _onbNext() {
+  _onbCapturar();
+  if (_ONB_PASO === 1 && !_onbData.nombre) { toast(T('onb.req_nombre'), 'err'); return; }
+  _ONB_PASO++; _onbRender();
+}
+function _onbPrev() { _onbCapturar(); if (_ONB_PASO > 1) _ONB_PASO--; _onbRender(); }
+async function _onbFinalizar() {
+  _onbCapturar();
+  if (!_onbData.nombre) { _ONB_PASO = 1; _onbRender(); toast(T('onb.req_nombre'), 'err'); return; }
+  var d = _onbData;
+  var ls = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
+  ls.nombre = d.nombre; ls.tel = d.tel; ls.dir = d.dir; ls.cif = d.cif;
+  ls.cobroDatos = Object.assign({}, ls.cobroDatos || {}, { bizum_on: d.movil_on, movil_nombre: d.movil_nombre, bizum: d.movil_num });
+  localStorage.setItem('tk_tienda', JSON.stringify(ls));
+  Object.assign(TIENDA, { nombre: d.nombre, tel: d.tel, dir: d.dir, cif: d.cif, cobroDatos: ls.cobroDatos });
+  AJUSTES.moneda = d.moneda; AJUSTES.paisPrefijo = d.pais;
+  try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
+  if (SB_KEY && TIENDA_ID) {
+    try { await sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { nombre: d.nombre, tel: d.tel, dir: d.dir, cif: d.cif, cobro_datos: ls.cobroDatos }); } catch (e) {}
+  }
+  try { localStorage.setItem('tk_onb_done', '1'); } catch (e) {}
+  var sb = document.getElementById('sidebarTienda'); if (sb) sb.textContent = d.nombre;
+  try { _aplicarNombreMovilUI(); } catch (e) {}
+  var bg = document.getElementById('_onbBg'); if (bg) bg.remove();
+  toast(T('onb.ok'), 'ok');
+  try { renderDash(); } catch (e) {}
+}
 // Renderizar banner de plan (trial, próximo cobro, expirado, etc.)
 function renderPlanBanner() {
   var box = document.getElementById('planBanner');
@@ -654,6 +798,9 @@ window.addEventListener('DOMContentLoaded', function() {
   })();
   // VIS-17: sincronizar labels sidebar controles
   setTimeout(function(){ if (typeof actualizarSbControls === 'function') actualizarSbControls(); }, 200);
+  // Onboarding primer arranque (configura lo básico). Corre antes que novedades: si lo lanza,
+  // marca novedades como visto para no apilar dos modales sobre un usuario nuevo.
+  setTimeout(function(){ try { _checkOnboarding(); } catch(e){} }, 1400);
   // Banner de novedades (1 vez por versión)
   setTimeout(function(){ try { mostrarNovedadesSiNuevo(); } catch(e){} }, 1600);
 
