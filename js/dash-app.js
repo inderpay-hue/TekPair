@@ -3981,8 +3981,8 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   var ventasPer = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).length;
   var cobrosArr = (DB.reps || []).filter(function(r) { return (r.restante || 0) > 0 && ['Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'].indexOf(r.estado) === -1; });
   var cobrosTot = cobrosArr.reduce(function(a, r) { return a + (r.restante || 0); }, 0);
-  _st('inv-a-caja', cur(cajaPer)); _st('inv-a-caja-l', T('inicio.caja') + ' ' + sufLbl);
-  _st('inv-a-ventas', ventasPer); _st('inv-a-ventas-l', T('inicio.ventas') + ' ' + sufLbl);
+  _st('inv-a-caja', cur(cajaPer)); _st('inv-a-caja-l', T('inicio.efectivo') + ' ' + sufLbl);
+  _st('inv-a-ventas', ventasPer); _st('inv-a-ventas-l', T('inicio.num_ventas') + ' ' + sufLbl);
   _st('inv-a-cobros', cur(cobrosTot)); _st('inv-a-cobros-l', T('inicio.cobros_pend') + ' · ' + cobrosArr.length);
 
   // Ingresos vs gastos — sigue el MISMO periodo que el resto del Resumen (Hoy/Semana/Mes),
