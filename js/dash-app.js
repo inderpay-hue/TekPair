@@ -11728,7 +11728,7 @@ function abrirNuevoGastoRec() {
   if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   if (!checkFeature('gastos_recurrentes')) return;
   SEL.editGastoRecId = null;
-  document.getElementById('mGastoRecTit').textContent = '🔁 Nueva plantilla de gasto';
+  document.getElementById('mGastoRecTit').textContent = '🔁 ' + T('gastosrec.nueva');
   document.getElementById('grConc').value = '';
   document.getElementById('grImp').value = '0';
   document.getElementById('grCat').value = 'Otros';
@@ -11754,7 +11754,7 @@ function editarGastoRec(id) {
   var r = (DB.gastos_recurrentes || []).find(function(x){ return x.id === id; });
   if (!r) { toast('Plantilla no encontrada', 'err'); return; }
   SEL.editGastoRecId = id;
-  document.getElementById('mGastoRecTit').textContent = '🔁 Editar plantilla';
+  document.getElementById('mGastoRecTit').textContent = '🔁 ' + T('gastosrec.editar');
   document.getElementById('grConc').value = r.concepto || '';
   document.getElementById('grImp').value = r.importe || 0;
   document.getElementById('grCat').value = r.categoria || 'Otros';
@@ -12748,7 +12748,7 @@ function abrirNuevoGasto() {
   set('gCat', 'Otros'); set('gIvaTipo', '21'); set('gEstado', 'Pagado'); set('gMetodo', 'efectivo');
   set('gProvNom', ''); set('gProvNif', ''); set('gNumFact', '');
   try { limpiarGAdj(); } catch (e) {}
-  var t = document.getElementById('gModalTitle'); if (t) t.textContent = '📋 Nuevo Gasto';
+  var t = document.getElementById('gModalTitle'); if (t) t.textContent = '📋 ' + T('gastos.nuevo_titulo');
   openM('mGasto');
 }
 
@@ -12777,7 +12777,7 @@ function editarGasto(id) {
   set('gProvNif', g.proveedor_nif || '');
   set('gNumFact', g.numero_factura || '');
   try { limpiarGAdj(); } catch (e) {}
-  var t = document.getElementById('gModalTitle'); if (t) t.textContent = '✏️ Editar gasto';
+  var t = document.getElementById('gModalTitle'); if (t) t.textContent = '✏️ ' + T('gastos.editar_titulo');
   openM('mGasto');
 }
 
