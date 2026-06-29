@@ -124,6 +124,9 @@
     }
   }
 
+  // Traducción a nivel de módulo (lang.v8.js vía window.T); cae a la clave si no existe.
+  function _Tf(k) { return (typeof window.T === 'function') ? window.T(k) : k; }
+
   function _supabaseHeaders() {
     var token = window.JWT_TOKEN;
     if (!token) {
@@ -211,14 +214,20 @@
       box.innerHTML = buscador +
         '<div style="font-size:11.5px;color:#64748B;background:#F8FAFC;border-radius:8px;padding:9px 11px">' + _T('fact.ticket_hint') + '</div>';
     } else if (FACT.tipo === 'simplificada') {
-      // Solo NIF opcional
-      box.innerHTML = buscador +
+      // Solo NIF opcional. En España, recomendar factura completa para importes altos (>400€).
+      var _totSimp = parseFloat((FACT.datos && FACT.datos.total) || 0);
+      var _esES = (((window.AJUSTES || {}).paisPrefijo) || '34') === '34';
+      var _avisoSimp = (_esES && _totSimp > 400)
+        ? '<div style="font-size:11.5px;color:#92400E;background:#FFFBEB;border:1px solid #FDE68A;border-radius:8px;padding:9px 11px;margin-bottom:8px">⚠️ ' + _T('fact.simp_alto') + '</div>'
+        : '';
+      box.innerHTML = buscador + _avisoSimp +
         '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">' + _T('fact.datos_cli_opc') + '</div>' +
         '<input id="factCliNif" placeholder="' + _T('fact.nif_opc') + '" value="' + _esc(cli.dni || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px">';
     } else {
       // Completa: todos los datos
       box.innerHTML = buscador +
         '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px">' + _T('fact.datos_fiscales') + '</div>' +
+        '<div style="font-size:11px;color:#94A3B8;margin:-2px 0 8px">' + _T('fact.oblig_completa') + '</div>' +
         '<input id="factCliNomFiscal" placeholder="' + _T('fact.nombre_fiscal') + '" value="' + _esc(cli.nombreFiscal || ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim()) + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
         '<input id="factCliNif" placeholder="' + _T('fact.nif_cif') + '" value="' + _esc(cli.dni || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
         '<input id="factCliDir" placeholder="' + _T('fact.dir_fiscal') + '" value="' + _esc(cli.dirFiscal || cli.dir || '') + '" style="width:100%;padding:9px 11px;border-radius:8px;border:1px solid #E5E7EB;font-size:14px;margin-bottom:8px">' +
@@ -618,11 +627,21 @@
     // Ticket básico: recibo solo-imprimir, sin número fiscal ni guardado.
     if (FACT.tipo === 'ticket') { _imprimirTicketRecibo(); return; }
 
-    // Validar
+    // Validar: la factura completa exige nombre fiscal, NIF/CIF y dirección del cliente.
     if (FACT.tipo === 'completa') {
       var snap = _snapshotCliente();
-      if (!snap.nombre_fiscal || !snap.nif || !snap.dir_fiscal) {
-        _toast('Faltan datos fiscales obligatorios (nombre, NIF, dirección)', 'err');
+      var _falta = null, _campo = null;
+      if (!snap.nombre_fiscal) { _falta = _Tf('fact.f_nombre_fiscal'); _campo = 'factCliNomFiscal'; }
+      else if (!snap.nif)       { _falta = _Tf('fact.f_nif'); _campo = 'factCliNif'; }
+      else if (!snap.dir_fiscal){ _falta = _Tf('fact.f_dir'); _campo = 'factCliDir'; }
+      if (_falta) {
+        _toast(_Tf('fact.falta_dato').replace('{c}', _falta), 'err');
+        var _ef = document.getElementById(_campo);
+        if (_ef) {
+          _ef.style.border = '2px solid #EF4444';
+          try { _ef.focus(); _ef.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {}
+          _ef.addEventListener('input', function _clr() { _ef.style.border = '1px solid #E5E7EB'; _ef.removeEventListener('input', _clr); });
+        }
         return;
       }
     }
