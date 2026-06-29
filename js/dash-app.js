@@ -4079,13 +4079,10 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   // F494: un % por encima de ±999 viene de una base mínima → no es comparable de verdad.
   // Mostrarlo como "—" en vez de un "+999%" que parece preciso pero engaña.
   var pctCap = (pct === null || Math.abs(pct) >= 999) ? null : pct;
-  // "Día vacío": si el periodo es Hoy y hoy no tiene ingresos, el héroe muestra la SEMANA
-  // (y si la semana también está a 0, el MES) en vez de un "€0" muerto. El selector sigue en Hoy.
+  // El héroe SIEMPRE refleja el periodo seleccionado (Hoy = hoy, aunque sea €0). Antes, con Hoy a 0,
+  // hacía fallback a semana/mes → mostraba "Cobrado Este mes" estando en Hoy y confundía. El contexto
+  // de semana/mes se conserva abajo en el pulso, sin mentir sobre el periodo del número grande.
   var _heroLbl = perLbl, _heroBig = ingPer;
-  if (per === 'hoy' && ingPer <= 0.005) {
-    if (estaSem > 0.005) { _heroLbl = T('inicio.sem_hoy_vacio'); _heroBig = estaSem; }
-    else { var _ingMesHero = _invIncome(_invIso(mesIni), _invIso(mesFin)); if (_ingMesHero > 0.005) { _heroLbl = T('inicio.mes_sem_vacio'); _heroBig = _ingMesHero; } }
-  }
   _st('inv-a-perlbl', _heroLbl);
   _st('inv-a-big', cur(_heroBig));
   // M-D1: tendencia no alarmista. Solo pintamos la SUBIDA (verde, motiva). Las bajadas no se
@@ -4103,6 +4100,11 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
     if (pctCap !== null && pctCap > 0) { ctx = T('md1.subiendo').replace('{p}', '<b style="color:var(--inv-green)">+' + pctCap + '%</b>'); }
     else { ctx = '<b>' + cur(estaSem) + '</b> ' + T('md1.esta_semana') + (antSem > 0 ? ' · <span style="color:var(--muted)">' + T('md1.semana_ant') + ' ' + cur(antSem) + '</span>' : ''); }
     if (esFinde) ctx += ' · <span style="color:var(--muted)">' + T('md1.finde') + '</span>';
+    // Con Hoy a 0, el número grande muestra €0; añadimos el total del mes aquí para que siga a la vista.
+    if (per === 'hoy' && ingPer <= 0.005) {
+      var _mesPulse = _invIncome(_invIso(mesIni), _invIso(mesFin));
+      if (_mesPulse > 0.005) ctx += ' · <span style="color:var(--muted)">' + T('inicio.per_mes') + ' ' + cur(_mesPulse) + '</span>';
+    }
     plA.innerHTML = ctx + ' · <b>' + enRep.length + '</b> ' + T('inicio.en_curso') + ' · <b>' + listas.length + '</b> ' + T('inicio.listas_corto');
   }
 
