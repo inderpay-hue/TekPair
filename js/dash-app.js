@@ -138,12 +138,14 @@ async function renderStorageUso() {
 (function(){
   try {
     var _pp = new URLSearchParams(location.search).get('preview');
-    if (_pp === 'off') { localStorage.removeItem('tk_preview_plan'); localStorage.removeItem('tk_preview_inicio2'); }
+    if (_pp === 'off') { localStorage.removeItem('tk_preview_plan'); localStorage.removeItem('tk_preview_inicio2'); localStorage.removeItem('tk_preview_inicio2_emp'); }
     else if (_pp && ['basico','pro','top','premium'].indexOf(_pp) !== -1) { localStorage.setItem('tk_preview_plan', _pp); }
-    else if (_pp === 'inicio2') { localStorage.setItem('tk_preview_inicio2', '1'); }
+    else if (_pp === 'inicio2') { localStorage.setItem('tk_preview_inicio2', '1'); localStorage.removeItem('tk_preview_inicio2_emp'); }
+    else if (_pp === 'inicio2-emp') { localStorage.setItem('tk_preview_inicio2', '1'); localStorage.setItem('tk_preview_inicio2_emp', '1'); }
     var _sv = localStorage.getItem('tk_preview_plan');
     if (_sv && ['basico','pro','top','premium'].indexOf(_sv) !== -1) window._previewPlan = _sv;
     if (localStorage.getItem('tk_preview_inicio2') === '1') window._previewInicio2 = true;
+    if (localStorage.getItem('tk_preview_inicio2_emp') === '1') window._previewInicio2Emp = true;
   } catch(e){}
 })();
 function _renderPreviewBanner() {
@@ -152,9 +154,19 @@ function _renderPreviewBanner() {
   var b = document.createElement('div');
   b.id = 'previewBanner';
   b.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:14px;z-index:99999;background:#221D19;color:#fff;border-radius:999px;padding:8px 8px 8px 16px;display:flex;align-items:center;gap:10px;font-size:13px;font-weight:600;box-shadow:0 8px 30px rgba(0,0,0,.35)';
-  var lbl = window._previewInicio2 ? 'Vista previa: <b>Inicio V2</b>' : ('\ud83d\udc41\ufe0f Vista previa: plan <b style="text-transform:capitalize">' + window._previewPlan + '</b>');
-  b.innerHTML = '\ud83d\udc41\ufe0f ' + lbl +
-    '<a href="?preview=off" style="background:#EC5C24;color:#fff;text-decoration:none;border-radius:999px;padding:6px 12px;font-weight:700">Salir</a>';
+  if (window._previewInicio2) {
+    var emp = !!window._previewInicio2Emp;
+    var tabCss = 'text-decoration:none;border-radius:999px;padding:5px 11px;font-weight:700;font-size:12px';
+    b.innerHTML = '\ud83d\udc41\ufe0f Vista previa: <b>Inicio V2</b>' +
+      '<span style="display:inline-flex;gap:4px;background:#3a352f;border-radius:999px;padding:3px">' +
+        '<a href="?preview=inicio2" style="' + tabCss + (!emp ? ';background:#fff;color:#221D19' : ';color:#cfcdc8') + '">Admin</a>' +
+        '<a href="?preview=inicio2-emp" style="' + tabCss + (emp ? ';background:#fff;color:#221D19' : ';color:#cfcdc8') + '">Empleado</a>' +
+      '</span>' +
+      '<a href="?preview=off" style="background:#EC5C24;color:#fff;text-decoration:none;border-radius:999px;padding:6px 12px;font-weight:700">Salir</a>';
+  } else {
+    b.innerHTML = '\ud83d\udc41\ufe0f Vista previa: plan <b style="text-transform:capitalize">' + window._previewPlan + '</b>' +
+      '<a href="?preview=off" style="background:#EC5C24;color:#fff;text-decoration:none;border-radius:999px;padding:6px 12px;font-weight:700">Salir</a>';
+  }
   document.body.appendChild(b);
 }
 window.addEventListener('DOMContentLoaded', function(){ try { _renderPreviewBanner(); } catch(e){} });
@@ -4075,6 +4087,8 @@ function renderInicioV2(reps, enRep, listas, urgentes) {
   else if (per === 'mes') { d1 = _invIso(mesIni); d2 = _invIso(mesFin); }
   else { d1 = hoy; d2 = hoy; }
   var sufLbl = per === 'semana' ? T('inicio.suf_semana') : (per === 'mes' ? T('inicio.suf_mes') : T('inicio.suf_hoy'));
+  var dinero = !window._previewInicio2Emp; // vista empleado oculta importes
+  var citasHoy2 = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; }).length;
 
   // Te deben (cobros pendientes) + antigüedad del más viejo
   var cobrosArr = (DB.reps || []).filter(function(r) { return (r.restante || 0) > 0 && ['Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'].indexOf(r.estado) === -1; });
@@ -4130,31 +4144,58 @@ function renderInicioV2(reps, enRep, listas, urgentes) {
       '</div>';
   }
 
-  // Row 1: dinero que importa
-  var heroRev = (per === 'hoy') ? totalP : totalP;
-  var row1 = '<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px" class="iv2-money">' +
-    moneyCard({ eyebrow: T('iv2.te_deben'), big: cur(cobrosTot), color: 'var(--orange,#e07b4f)',
-      sub: T('iv2.te_deben_sub').replace('{n}', cobrosArr.length).replace('{d}', oldestDays),
-      cta: T('iv2.ver_debe'), ctaJs: "_kpiReps('adeber')" }) +
-    moneyCard({ eyebrow: T('iv2.en_taller'), big: enRep.length, pill: (urgentes.length ? urgentes.length + ' ' + T('iv2.urg') : ''),
-      sub: T('iv2.en_taller_sub').replace('{c}', enRep.length).replace('{l}', listas.length),
-      cta: T('iv2.revisar'), ctaJs: "navTo('pReps')" }) +
-    '</div>';
+  // Row 1: dinero que importa (admin) · carga de taller (empleado, sin importes)
+  var row1;
+  if (dinero) {
+    row1 = '<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px" class="iv2-money">' +
+      moneyCard({ eyebrow: T('iv2.te_deben'), big: cur(cobrosTot), color: 'var(--orange,#e07b4f)',
+        sub: T('iv2.te_deben_sub').replace('{n}', cobrosArr.length).replace('{d}', oldestDays),
+        cta: T('iv2.ver_debe'), ctaJs: "_kpiReps('adeber')" }) +
+      moneyCard({ eyebrow: T('iv2.en_taller'), big: enRep.length, pill: (urgentes.length ? urgentes.length + ' ' + T('iv2.urg') : ''),
+        sub: T('iv2.en_taller_sub').replace('{c}', enRep.length).replace('{l}', listas.length),
+        cta: T('iv2.revisar'), ctaJs: "navTo('pReps')" }) +
+      '</div>';
+  } else {
+    row1 = '<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px" class="iv2-money">' +
+      moneyCard({ eyebrow: T('iv2.en_taller'), big: enRep.length, pill: (urgentes.length ? urgentes.length + ' ' + T('iv2.urg') : ''),
+        sub: T('iv2.en_taller_sub').replace('{c}', enRep.length).replace('{l}', listas.length),
+        cta: T('iv2.revisar'), ctaJs: "navTo('pReps')" }) +
+      moneyCard({ eyebrow: T('iv2.listas_avisar'), big: listas.length, color: 'var(--green,#3a9b6e)',
+        sub: T('iv2.listas_avisar_sub'),
+        cta: T('iv2.ver_listas'), ctaJs: "navTo('pReps')" }) +
+      '</div>';
+  }
 
   // Row 2: tira de KPIs de hoy/periodo
   function kpi(v, l, s) { return '<div style="flex:1;min-width:130px;padding:12px 18px;display:flex;flex-direction:column;gap:2px;border-right:1px solid var(--border,#eee)"><span style="' + bigCss + ';font-size:20px">' + v + '</span><span style="font-size:11.5px;color:var(--muted)">' + l + '</span><span style="font-size:9.5px;color:var(--muted);opacity:.7">' + s + '</span></div>'; }
-  var row2 = '<div style="' + cardCss + ';display:flex;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:4px" class="iv2-today">' +
-    kpi(cur(totalP), T('inicio.cobrado') + ' ' + sufLbl, T('iv2.todos_metodos')) +
-    kpi(cur(efectivo), T('iv2.efectivo_caja'), T('iv2.solo_efectivo')) +
-    kpi(ventasPer, T('inicio.num_ventas') + ' ' + sufLbl, T('iv2.tickets')) +
-    kpi(enRep.length, T('iv2.reps_pend'), T('iv2.en_taller_s')) +
-    '<div style="margin-left:auto;padding:10px 16px;font-size:12px;color:var(--muted);text-align:right">' + T('iv2.ctx').replace('{a}', '<b style="color:var(--text)">' + cur(estaSem) + '</b>').replace('{b}', '<b style="color:var(--text)">' + cur(antSem) + '</b>') + (bdHtml ? '<div style="margin-top:4px;font-size:11px">' + bdHtml + '</div>' : '') + '</div>' +
-    '</div>';
+  var row2;
+  if (dinero) {
+    row2 = '<div style="' + cardCss + ';display:flex;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:4px" class="iv2-today">' +
+      kpi(cur(totalP), T('inicio.cobrado') + ' ' + sufLbl, T('iv2.todos_metodos')) +
+      kpi(cur(efectivo), T('iv2.efectivo_caja'), T('iv2.solo_efectivo')) +
+      kpi(ventasPer, T('inicio.num_ventas') + ' ' + sufLbl, T('iv2.tickets')) +
+      kpi(enRep.length, T('iv2.reps_pend'), T('iv2.en_taller_s')) +
+      '<div style="margin-left:auto;padding:10px 16px;font-size:12px;color:var(--muted);text-align:right">' + T('iv2.ctx').replace('{a}', '<b style="color:var(--text)">' + cur(estaSem) + '</b>').replace('{b}', '<b style="color:var(--text)">' + cur(antSem) + '</b>') + (bdHtml ? '<div style="margin-top:4px;font-size:11px">' + bdHtml + '</div>' : '') + '</div>' +
+      '</div>';
+  } else {
+    // Empleado: conteos operativos, sin importes
+    var _enProcE = reps.filter(function(r) { return ['En Proceso', 'En proceso'].indexOf(r.estado) !== -1; }).length;
+    var _pendE = reps.filter(function(r) { return r.estado === 'Pendiente'; }).length;
+    row2 = '<div style="' + cardCss + ';display:flex;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:4px" class="iv2-today">' +
+      kpi(_enProcE, T('iv2.en_proceso'), T('iv2.en_banco')) +
+      kpi(_pendE, T('iv2.pendientes'), T('iv2.en_cola')) +
+      kpi(listas.length, T('iv2.listas'), T('iv2.por_avisar')) +
+      kpi(citasHoy2, T('iv2.citas_hoy'), T('iv2.agenda')) +
+      kpi(urgentes.length, T('iv2.urgentes'), T('iv2.atencion')) +
+      '</div>';
+  }
 
   // Row 3: top-3 urgente
   var urows = urg3.length ? urg3.map(function(o) {
     var r = o.r; var nom = ((r.marca || '') + ' ' + (r.modelo || '')).trim(); var cliN = r.clienteNombre || '';
-    var sub = (r.estado || '') + (r.restante > 0 ? ' · ' + cur(r.restante) + ' ' + T('iv2.a_deber') : (r.avisado ? '' : ' · ' + T('iv2.sin_avisar')));
+    var sub = dinero
+      ? ((r.estado || '') + (r.restante > 0 ? ' · ' + cur(r.restante) + ' ' + T('iv2.a_deber') : (r.avisado ? '' : ' · ' + T('iv2.sin_avisar'))))
+      : ((r.estado || '') + (r.avisado ? '' : ' · ' + T('iv2.sin_avisar')));
     return '<div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--border,#eee)">' +
       '<div style="font-family:' + serif + ';font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;width:54px;text-align:center;color:var(--red,#cf5a4b)">' + o.dias + '<small style="display:block;font-family:inherit;font-size:9.5px;font-weight:600;color:var(--muted);text-transform:uppercase">' + T('iv2.dias') + '</small></div>' +
       '<div style="flex:1"><div style="font-size:14px;font-weight:600">' + escHtml(nom + (cliN ? ' · ' + cliN : '')) + '</div><div style="font-size:12px;color:var(--muted)">' + escHtml(sub) + '</div></div>' +
@@ -4191,10 +4232,21 @@ function renderInicioV2(reps, enRep, listas, urgentes) {
       var hot = a[4];
       return '<div onclick="' + a[3] + '" style="border:1px solid var(--border,#eee);border-radius:13px;padding:14px;cursor:pointer;' + (hot ? 'background:var(--orange,#e07b4f);color:#fff;border-color:var(--orange,#e07b4f)' : 'background:var(--card,#fff)') + '"><div style="font-size:18px">' + a[0] + '</div><div style="font-size:13.5px;font-weight:600;margin-top:6px">' + a[1] + '</div><div style="font-size:11px;' + (hot ? 'color:#ffe7da' : 'color:var(--muted)') + '">' + a[2] + '</div></div>';
     }).join('') + '</div>';
-  var row4 = '<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px" class="iv2-split">' + chart + acts + '</div>';
+  var row4;
+  if (dinero) {
+    row4 = '<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px" class="iv2-split">' + chart + acts + '</div>';
+  } else {
+    // Empleado: sin gráfico de ingresos; acciones a ancho completo (3 columnas).
+    var actsFull = '<div style="' + cardCss + ';padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px" class="iv2-acts-emp">' +
+      actDefs.map(function(a) {
+        var hot = a[4];
+        return '<div onclick="' + a[3] + '" style="border:1px solid var(--border,#eee);border-radius:13px;padding:14px;cursor:pointer;' + (hot ? 'background:var(--orange,#e07b4f);color:#fff;border-color:var(--orange,#e07b4f)' : 'background:var(--card,#fff)') + '"><div style="font-size:18px">' + a[0] + '</div><div style="font-size:13.5px;font-weight:600;margin-top:6px">' + a[1] + '</div><div style="font-size:11px;' + (hot ? 'color:#ffe7da' : 'color:var(--muted)') + '">' + a[2] + '</div></div>';
+      }).join('') + '</div>';
+    row4 = actsFull;
+  }
 
   box.innerHTML =
-    '<style>@media(max-width:760px){#inicioV2 .iv2-money,#inicioV2 .iv2-split{grid-template-columns:1fr!important}#inicioV2 .iv2-today>div{flex:1 1 45%!important}#inicioV2 .iv2-today>div:last-child{margin-left:0!important;flex-basis:100%!important;text-align:left!important}}</style>' +
+    '<style>@media(max-width:760px){#inicioV2 .iv2-money,#inicioV2 .iv2-split{grid-template-columns:1fr!important}#inicioV2 .iv2-acts-emp{grid-template-columns:1fr 1fr!important}#inicioV2 .iv2-today>div{flex:1 1 45%!important}#inicioV2 .iv2-today>div:last-child{margin-left:0!important;flex-basis:100%!important;text-align:left!important}}</style>' +
     row1 + row2 + row3 + row4;
 }
 
