@@ -4138,11 +4138,22 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
 
   // Minis variables por periodo: caja (ingresos), ventas (nº) + cobros pendientes (vivo)
   var sufLbl = per === 'semana' ? T('inicio.suf_semana') : (per === 'mes' ? T('inicio.suf_mes') : T('inicio.suf_hoy'));
-  var cajaPer = _invIncome(d1, d2);
   var ventasPer = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).length;
   var cobrosArr = (DB.reps || []).filter(function(r) { return (r.restante || 0) > 0 && ['Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'].indexOf(r.estado) === -1; });
   var cobrosTot = cobrosArr.reduce(function(a, r) { return a + (r.restante || 0); }, 0);
-  _st('inv-a-caja', cur(cajaPer)); _st('inv-a-caja-l', T('inicio.efectivo') + ' ' + sufLbl);
+  // Lo cobrado por método (Efectivo/Tarjeta/Móvil/Transferencia) del periodo. Se reusa en "Cómo cobras".
+  var pagos = {};
+  var _vpmCobra = _ventasIngresoPorMetodo(DB.ventas, d1, d2); Object.keys(_vpmCobra).forEach(function(m) { pagos[m] = (pagos[m] || 0) + _vpmCobra[m]; });
+  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0)); } });
+  var totalP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
+  // El mini "Cobrado" muestra el total + desglose por método (nombre del móvil según país, vía _pagoLbl).
+  _st('inv-a-caja', cur(totalP)); _st('inv-a-caja-l', T('inicio.cobrado') + ' ' + sufLbl);
+  var _bdEl = document.getElementById('inv-a-caja-bd');
+  if (_bdEl) {
+    var _icoBd = { 'Efectivo': '💵', 'Tarjeta': '💳', 'Bizum': '📲', 'Transferencia': '🏦' };
+    var _ordBd = Object.keys(pagos).filter(function(m) { return pagos[m] > 0.005; }).sort(function(a, b) { return pagos[b] - pagos[a]; });
+    _bdEl.innerHTML = _ordBd.map(function(m) { return '<span style="white-space:nowrap">' + (_icoBd[m] || '•') + ' ' + escHtml(_pagoLbl(m)) + ' <b>' + cur(pagos[m]) + '</b></span>'; }).join('<span style="opacity:.35"> · </span>');
+  }
   _st('inv-a-ventas', ventasPer); _st('inv-a-ventas-l', T('inicio.num_ventas') + ' ' + sufLbl);
   _st('inv-a-cobros', cur(cobrosTot)); _st('inv-a-cobros-l', T('inicio.cobros_pend') + ' · ' + cobrosArr.length);
 
@@ -4158,11 +4169,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   var mb = document.getElementById('inv-a-margenbar'); if (mb) mb.style.width = Math.max(0, Math.min(100, margen)) + '%';
   _st('inv-a-margen', T('inicio.margen').replace('{m}', margen));
 
-  // Cómo cobras (periodo)
-  var pagos = {};
-  var _vpmCobra = _ventasIngresoPorMetodo(DB.ventas, d1, d2); Object.keys(_vpmCobra).forEach(function(m) { pagos[m] = (pagos[m] || 0) + _vpmCobra[m]; });
-  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0)); } });
-  var totalP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
+  // Cómo cobras (periodo) — reusa `pagos`/`totalP` ya calculados arriba para el desglose del mini.
   var clsMap = { 'Efectivo': 's-cash', 'Tarjeta': 's-card', 'Bizum': 's-biz', 'Transferencia': 's-tr' };
   var icoMap = { 'Efectivo': '💵', 'Tarjeta': '💳', 'Bizum': '📲', 'Transferencia': '🏦' };
   var ordenP = Object.keys(pagos).sort(function(a, b) { return pagos[b] - pagos[a]; });
