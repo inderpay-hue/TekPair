@@ -8936,8 +8936,8 @@ function trackingTicket() {
 
     logoBlock +
     '<div class="c"><div class="h1">' + esc(tienda.nombre || 'Tekpair') + '</div>' +
-    (ubic ? '<div class="h2">' + esc(ubic) + '</div>' : '') +
-    (tienda.telefono ? '<div class="h2">Tel: ' + esc(tienda.telefono) + '</div>' : '') +
+    (tienda.dir ? '<div class="h2">' + esc(tienda.dir) + '</div>' : (ubic ? '<div class="h2">' + esc(ubic) + '</div>' : '')) +
+    ((tienda.tel || tienda.telefono) ? '<div class="h2">Tel: ' + esc(tienda.tel || tienda.telefono) + '</div>' : '') +
     '</div>' +
 
     '<div class="line"></div>' +
@@ -17090,7 +17090,51 @@ var WA_MSGS = {
     cita: function(n,f,h,t){ return 'Olá '+n+', confirmo a sua marcação no dia '+f+' às '+h+' em '+t+'. Até breve!'; }
   }
 };
-function waMsg(tipo) { return (WA_MSGS[TEKPAIR_LANG] || WA_MSGS.es)[tipo]; }
+// Resumen de horario legible para mensajes (agrupa días consecutivos iguales).
+var _DIAS_ABBR = {
+  es:['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'], en:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
+  fr:['Lun','Mar','Mer','Jeu','Ven','Sam','Dim'], it:['Lun','Mar','Mer','Gio','Ven','Sab','Dom'],
+  de:['Mo','Di','Mi','Do','Fr','Sa','So'], pt:['Seg','Ter','Qua','Qui','Sex','Sáb','Dom']
+};
+function _horarioResumen() {
+  var h = (typeof TIENDA !== 'undefined' && TIENDA) ? TIENDA.horarios : null;
+  if (typeof h === 'string') { try { h = JSON.parse(h); } catch (e) { h = null; } }
+  if (!Array.isArray(h) || h.length !== 7) return '';
+  var L = (typeof TEKPAIR_LANG !== 'undefined' ? TEKPAIR_LANG : 'es');
+  var dias = _DIAS_ABBR[L] || _DIAS_ABBR.es;
+  function sig(d) {
+    if (!d || !d.abierto || !Array.isArray(d.tramos) || !d.tramos.length) return '';
+    return d.tramos.filter(function (t) { return t && t.inicio && t.fin; }).map(function (t) { return t.inicio + '-' + t.fin; }).join(', ');
+  }
+  var sigs = h.map(sig), out = [], i = 0;
+  while (i < 7) {
+    if (!sigs[i]) { i++; continue; }
+    var j = i; while (j + 1 < 7 && sigs[j + 1] === sigs[i]) j++;
+    out.push((i === j ? dias[i] : dias[i] + '-' + dias[j]) + ' ' + sigs[i]);
+    i = j + 1;
+  }
+  return out.join(' · ');
+}
+// Pie de contacto para WhatsApp: dirección (+ mapa), horario y teléfono de la tienda.
+function _waPie() {
+  var t = (typeof TIENDA !== 'undefined' && TIENDA) ? TIENDA : {};
+  var lines = [];
+  var dir = (t.dir || '').trim();
+  if (dir) { lines.push('📍 ' + dir); lines.push('https://maps.google.com/?q=' + encodeURIComponent(dir)); }
+  var hor = _horarioResumen();
+  if (hor) lines.push('🕒 ' + hor);
+  var tel = (t.tel || '').trim();
+  if (tel) lines.push('📞 ' + tel);
+  return lines.length ? ('\n\n' + lines.join('\n')) : '';
+}
+function waMsg(tipo) {
+  var fn = (WA_MSGS[TEKPAIR_LANG] || WA_MSGS.es)[tipo];
+  // Añade dirección/horario/teléfono a los mensajes transaccionales (no al saludo casual).
+  if (fn && (tipo === 'lista' || tipo === 'recibida' || tipo === 'cita')) {
+    return function () { return fn.apply(null, arguments) + _waPie(); };
+  }
+  return fn;
+}
 
 // ═══ WHATSAPP PLANTILLAS ═══
 var PLANTILLAS_WA_DEFAULT = {
