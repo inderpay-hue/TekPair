@@ -142,15 +142,20 @@ export default async function handler(req, res) {
     const tempPass = crypto.randomBytes(8).toString('hex');
     const hashV2 = await bcrypt.hash(tempPass, 10);
 
-    // 1. Crear tienda
+    // 1. Crear tienda (citas_slug es NOT NULL — generar único o falla con 23502)
     const tienda_id = 'tienda_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
+    const _slugBase = String(tiendaNombre || nombre || 'tienda')
+      .normalize('NFD').replace(/[^\x00-\x7f]/g, '').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'tienda';
+    const citasSlug = _slugBase + '-' + crypto.randomBytes(3).toString('hex');
     const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas`, {
       method: 'POST', headers: {...sbHeaders, 'Prefer': 'return=minimal'},
       body: JSON.stringify({
         id: tienda_id, nombre: tiendaNombre, plan: plan || 'basico',
         plan_status: 'trial', plan_email: email,
         stripe_customer_id: customerId, stripe_sub_id: subId,
-        trial_until: trialUntil, plan_until: planUntil
+        trial_until: trialUntil, plan_until: planUntil,
+        citas_slug: citasSlug
       })
     });
     if (!tR.ok) throw new Error('crearCuenta tienda: ' + tR.status + ' ' + (await tR.text()).slice(0,200));

@@ -150,6 +150,13 @@ export default async function handler(req, res) {
     // Date.now() solo permite ~1 registro por milisegundo. Si dos personas se registran
     // a la vez, ambas obtienen el mismo ID → PK conflict. Sufijo aleatorio evita esto.
     const tienda_id = 'tienda_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
+    // REG-12: `citas_slug` es NOT NULL en `tiendas` (clave de la URL pública de citas).
+    // Si no se rellena, el INSERT falla con 23502 y el registro ENTERO se rompe. Generamos
+    // uno único (slug del nombre + sufijo aleatorio); el dueño puede cambiarlo en Ajustes.
+    const _slugBase = String(tienda_nombre || nombre || 'tienda')
+      .normalize('NFD').replace(/[^\x00-\x7f]/g, '').toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'tienda';
+    const citasSlug = _slugBase + '-' + crypto.randomBytes(3).toString('hex');
     const tiendaData = {
       id: tienda_id,
       nombre: tienda_nombre || nombre + ' - Tienda',
@@ -159,7 +166,8 @@ export default async function handler(req, res) {
       stripe_customer_id: stripeCustomerId,
       stripe_sub_id: stripeSubId,
       trial_until: trialUntil,
-      plan_until: planUntil
+      plan_until: planUntil,
+      citas_slug: citasSlug
     };
 
     // ═══ REG-2: si tienda no se crea, abortar ═══
