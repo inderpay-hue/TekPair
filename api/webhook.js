@@ -7,6 +7,9 @@
 // el body EXACTO en crudo (getRawBody). Si Vercel parsea el body antes, el stream queda
 // consumido y la firma siempre falla. Este handler nunca usa req.body, solo getRawBody,
 // así que desactivarlo es seguro y obligatorio para que los webhooks funcionen.
+import crypto from 'crypto';
+import bcrypt from 'bcryptjs';
+
 export const config = { api: { bodyParser: false } };
 
 export default async function handler(req, res) {
@@ -108,6 +111,100 @@ export default async function handler(req, res) {
     } catch(e){ console.error('Email error:', e); }
   }
 
+  // ═══ Helper: crear cuenta completa desde un checkout (fallback de onboarding) ═══
+  // W12: si el cliente pagó en Stripe pero /api/register nunca corrió (cerró la pestaña
+  // al volver del Checkout), la tienda no existe y quedaba pagando SIN cuenta en la app.
+  // Este helper la crea server-to-server replicando /api/register: tienda + usuario admin
+  // + email con credenciales. Idempotente: solo se invoca cuando findTienda devolvió null
+  // (no hay tienda ni usuario con ese email). Si falla tras crear la tienda, hace rollback
+  // y lanza para que Stripe reintente el webhook sin dejar registros a medias.
+  async function crearCuentaDesdeCheckout({customerId, subId, email, plan, session}) {
+    const meta = (session && session.metadata) || {};
+    const nombre = meta.nombre || (email ? email.split('@')[0] : 'Cliente');
+    const tiendaNombre = meta.tienda_nombre || (nombre + ' - Tienda');
+    const lang = meta.lang || 'es';
+
+    // Leer trial_end / current_period_end de la suscripción (como register.js)
+    let trialUntil = null, planUntil = null;
+    if (subId && STRIPE_KEY) {
+      try {
+        const subR = await fetch(`https://api.stripe.com/v1/subscriptions/${subId}`, {
+          headers: {'Authorization': `Bearer ${STRIPE_KEY}`}
+        });
+        const sub = await subR.json();
+        if (sub.trial_end) trialUntil = new Date(sub.trial_end * 1000).toISOString();
+        if (sub.current_period_end) planUntil = new Date(sub.current_period_end * 1000).toISOString();
+      } catch(e){ console.warn('No se pudo leer sub para trial:', e.message); }
+    }
+    if (!trialUntil) trialUntil = new Date(Date.now() + 15*86400000).toISOString();
+
+    // Password temporal en bcrypt (igual que register.js)
+    const tempPass = crypto.randomBytes(8).toString('hex');
+    const hashV2 = await bcrypt.hash(tempPass, 10);
+
+    // 1. Crear tienda
+    const tienda_id = 'tienda_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
+    const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas`, {
+      method: 'POST', headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+      body: JSON.stringify({
+        id: tienda_id, nombre: tiendaNombre, plan: plan || 'basico',
+        plan_status: 'trial', plan_email: email,
+        stripe_customer_id: customerId, stripe_sub_id: subId,
+        trial_until: trialUntil, plan_until: planUntil
+      })
+    });
+    if (!tR.ok) throw new Error('crearCuenta tienda: ' + tR.status + ' ' + (await tR.text()).slice(0,200));
+
+    // 2. Crear usuario admin (rollback de la tienda si falla, como register.js REG-6)
+    const usuarioId = 'usr_' + Date.now() + '_' + crypto.randomBytes(4).toString('hex');
+    const uR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
+      method: 'POST', headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+      body: JSON.stringify({
+        id: usuarioId, tienda_id, nombre, email,
+        password_hash_v2: hashV2, rol: 'admin', activo: true, permisos: { todo: true }
+      })
+    });
+    if (!uR.ok) {
+      const tx = await uR.text();
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tienda_id)}`, {
+          method: 'DELETE', headers: {...sbHeaders, 'Prefer': 'return=minimal'}
+        });
+      } catch(e){ console.warn('No se pudo limpiar tienda huérfana:', e); }
+      throw new Error('crearCuenta usuario: ' + uR.status + ' ' + tx.slice(0,200));
+    }
+
+    // 3. Email con credenciales (multiidioma compacto)
+    const W = ({
+      es:{s:'✓ Bienvenido a Tekpair — Tus credenciales',h:'Hola',p:'Tu cuenta está lista con 15 días de prueba gratis.',pass:'Contraseña temporal',av:'⚠️ Cambia tu contraseña tras el primer acceso.',b:'Entrar a Tekpair →'},
+      en:{s:'✓ Welcome to Tekpair — Your credentials',h:'Hi',p:'Your account is ready with a 15-day free trial.',pass:'Temporary password',av:'⚠️ Change your password after first login.',b:'Sign in to Tekpair →'},
+      fr:{s:'✓ Bienvenue sur Tekpair — Vos identifiants',h:'Bonjour',p:'Votre compte est prêt avec 15 jours d\'essai gratuit.',pass:'Mot de passe temporaire',av:'⚠️ Changez votre mot de passe après la première connexion.',b:'Accéder à Tekpair →'},
+      it:{s:'✓ Benvenuto su Tekpair — Le tue credenziali',h:'Ciao',p:'Il tuo account è pronto con 15 giorni di prova gratuita.',pass:'Password temporanea',av:'⚠️ Cambia la password dopo il primo accesso.',b:'Accedi a Tekpair →'},
+      de:{s:'✓ Willkommen bei Tekpair — Ihre Zugangsdaten',h:'Hallo',p:'Ihr Konto ist mit 15 Tagen kostenloser Testphase bereit.',pass:'Temporäres Passwort',av:'⚠️ Ändern Sie Ihr Passwort nach der ersten Anmeldung.',b:'Bei Tekpair anmelden →'},
+      pt:{s:'✓ Bem-vindo ao Tekpair — As suas credenciais',h:'Olá',p:'A sua conta está pronta com 15 dias de prova gratuita.',pass:'Palavra-passe temporária',av:'⚠️ Mude a sua palavra-passe após o primeiro acesso.',b:'Entrar no Tekpair →'}
+    })[lang] || ({s:'✓ Bienvenido a Tekpair — Tus credenciales',h:'Hola',p:'Tu cuenta está lista con 15 días de prueba gratis.',pass:'Contraseña temporal',av:'⚠️ Cambia tu contraseña tras el primer acceso.',b:'Entrar a Tekpair →'});
+    const nombreEsc = String(nombre).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+    await sendEmail(email, W.s, `
+<div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:20px;color:#111">
+  <div style="background:#020B2E;color:white;padding:24px;border-radius:10px 10px 0 0;text-align:center">
+    <h1 style="margin:0;font-size:24px">⚡ Tekpair</h1>
+  </div>
+  <div style="background:white;padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
+    <p>${W.h} <strong>${nombreEsc}</strong>,</p>
+    <p>${W.p}</p>
+    <div style="background:#F8FAFC;border-radius:8px;padding:16px;margin:16px 0;font-family:monospace">
+      <div><strong>Email:</strong> ${email}</div>
+      <div style="margin-top:8px"><strong>${W.pass}:</strong> ${tempPass}</div>
+    </div>
+    <p style="color:#EF4444;font-size:13px">${W.av}</p>
+    <a href="https://www.tekpair.tech/app.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:16px">${W.b}</a>
+  </div>
+</div>`);
+
+    console.log('Cuenta creada desde webhook (fallback onboarding):', tienda_id, 'para', email);
+    return tienda_id;
+  }
+
   try {
     switch(event.type) {
 
@@ -186,7 +283,14 @@ export default async function handler(req, res) {
           await updateTienda(tienda.id, update);
           console.log('Checkout vinculado a tienda', tienda.id);
         } else {
-          console.warn('Checkout sin tienda asociada:', email);
+          // W12: nadie creó la tienda (cliente no completó /api/register). La creamos
+          // aquí para que ningún pago quede sin cuenta. Requiere email para el alta.
+          if (email) {
+            console.warn('Checkout sin tienda asociada, creando cuenta desde webhook:', email);
+            await crearCuentaDesdeCheckout({customerId, subId, email, plan, session});
+          } else {
+            console.warn('Checkout sin tienda ni email, no se puede crear cuenta:', customerId);
+          }
         }
         break;
       }
