@@ -2787,12 +2787,12 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <div id="bloqueVentasPro" class="plan-locked-block" style="display:none">
         <span class="pl-badge">🔒 PRO</span>
         <div class="pl-title" data-t="ajt.gar_ven">📱 Garantía en ventas (stock)</div>
-        <div class="pl-desc" data-t="ajt.gar_ven_desc">Gestiona la garantía de los teléfonos y dispositivos que vendes. Cumple la ley española (RDL 7/2024).</div>
+        <div class="pl-desc" data-t="ajt.gar_ven_desc">Gestiona la garantía de los dispositivos que vendes según la normativa de tu país.</div>
         <div class="pl-features">
           <div data-t="ajt.gar_ven_f1">✓ Tipo de producto: NUEVO / SEGUNDA MANO</div>
           <div data-t="ajt.gar_ven_f2">✓ Garantía en meses (3/6/12/24/36) personalizable</div>
           <div data-t="ajt.gar_ven_f3">✓ Default automático según tipo (36m nuevo, 12m usado)</div>
-          <div data-t="ajt.gar_ven_f4">✓ Aviso ley España automático en stock</div>
+          <div data-t="ajt.gar_ven_f4">✓ Aviso de garantía legal automático según tu país</div>
           <div data-t="ajt.gar_ven_f5">✓ Texto legal en tickets de venta</div>
         </div>
         <button class="pl-btn" onclick="mostrarModalUpgrade('gar_ventas','pro')" data-t="ajt.mejorar_pro">📈 Mejorar a Plan Pro</button>
@@ -2802,7 +2802,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:10px">
           <div style="flex:1">
             <div style="font-size:14px;font-weight:700;color:var(--ink)" data-t="ajt.gar_ven">📱 Garantía en ventas (stock)</div>
-            <div style="font-size:11px;color:var(--muted);margin-top:2px" data-t="ajt.gar_ven_ley">Por ley España: 36 meses NUEVO · mínimo 12 meses USADO (RDL 7/2024)</div>
+            <div id="gvGarLeyLine" style="font-size:11px;color:var(--muted);margin-top:2px">Configura la garantía según la normativa de tu país</div>
           </div>
           <label class="sw-gar">
             <input type="checkbox" id="garVenActiva" checked onchange="toggleGarVen()">
@@ -2825,7 +2825,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
               <select class="fi" id="gvMesesDefaultNuevo">
                 <option value="12" data-t="ajt.meses12">12 meses</option>
                 <option value="24" data-t="ajt.meses24">24 meses</option>
-                <option value="36" selected data-t="ajt.meses36legal">36 meses (legal)</option>
+                <option value="36" selected data-t="ajt.meses36legal">36 meses</option>
               </select>
             </div>
             <div class="fg">
@@ -2833,7 +2833,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
               <select class="fi" id="gvMesesDefaultUsado">
                 <option value="3" data-t="ajt.meses3">3 meses</option>
                 <option value="6" data-t="ajt.meses6">6 meses</option>
-                <option value="12" selected data-t="ajt.meses12legal">12 meses (legal)</option>
+                <option value="12" selected data-t="ajt.meses12legal">12 meses</option>
                 <option value="24" data-t="ajt.meses24">24 meses</option>
               </select>
             </div>
@@ -2841,7 +2841,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
           <div style="display:flex;flex-direction:column;gap:6px;margin-top:10px">
             <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="gvPermitirCustom" checked> <span data-t="ajt.permitir_custom_ven">Permitir meses personalizados</span></label>
             <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="gvMostrarTipo" checked> <span data-t="ajt.pedir_tipo">Pedir tipo NUEVO/USADO al añadir producto</span></label>
-            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="gvAvisoLegal" checked> <span data-t="ajt.aviso_ley">Mostrar aviso ley española en stock</span></label>
+            <label style="display:flex;align-items:center;gap:8px;font-size:12px;cursor:pointer"><input type="checkbox" id="gvAvisoLegal" checked> <span data-t="ajt.aviso_ley">Mostrar aviso de garantía legal según el país</span></label>
           </div>
           <div class="fg" style="margin-top:12px">
             <label class="fl" data-t="ajt.texto_legal_ven">📋 Texto legal de venta (sale en ticket)</label>
