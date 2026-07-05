@@ -138,14 +138,16 @@ async function renderStorageUso() {
 (function(){
   try {
     var _pp = new URLSearchParams(location.search).get('preview');
-    if (_pp === 'off') { localStorage.removeItem('tk_preview_plan'); localStorage.removeItem('tk_preview_inicio2'); localStorage.removeItem('tk_preview_inicio2_emp'); }
+    if (_pp === 'off') { localStorage.removeItem('tk_preview_plan'); localStorage.removeItem('tk_preview_inicio2'); localStorage.removeItem('tk_preview_inicio2_emp'); localStorage.removeItem('tk_preview_inicioclasico'); }
     else if (_pp && ['basico','pro','top','premium'].indexOf(_pp) !== -1) { localStorage.setItem('tk_preview_plan', _pp); }
     else if (_pp === 'inicio2') { localStorage.setItem('tk_preview_inicio2', '1'); localStorage.removeItem('tk_preview_inicio2_emp'); }
     else if (_pp === 'inicio2-emp') { localStorage.setItem('tk_preview_inicio2', '1'); localStorage.setItem('tk_preview_inicio2_emp', '1'); }
+    else if (_pp === 'clasico') { localStorage.setItem('tk_preview_inicioclasico', '1'); }
     var _sv = localStorage.getItem('tk_preview_plan');
     if (_sv && ['basico','pro','top','premium'].indexOf(_sv) !== -1) window._previewPlan = _sv;
     if (localStorage.getItem('tk_preview_inicio2') === '1') window._previewInicio2 = true;
     if (localStorage.getItem('tk_preview_inicio2_emp') === '1') window._previewInicio2Emp = true;
+    if (localStorage.getItem('tk_preview_inicioclasico') === '1') window._previewInicioClasico = true;
   } catch(e){}
 })();
 function _renderPreviewBanner() {
@@ -4034,19 +4036,27 @@ function renderInicioNuevo() {
     return;
   }
 
-  // Vista Resumen: negocio (admin) / operativa (empleado)
+  // Vista Resumen: Inicio V2 es el DEFAULT (admin y empleado). Opt-out al clásico con ?preview=clasico.
   if (tbEl) tbEl.style.display = 'none';
-  if (admEl) admEl.style.display = puede ? '' : 'none';
-  if (empEl) empEl.style.display = puede ? 'none' : '';
-  if (segEl) segEl.style.display = puede ? '' : 'none'; // el periodo solo afecta a la vista negocio
 
-  if (puede) {
-    if (window._previewInicio2) { try { renderInicioV2(reps, enRep, listas, urgentes); return; } catch (e) { console.warn('inicioV2', e); } }
-    else { var _v2 = document.getElementById('inicioV2'); if (_v2) _v2.style.display = 'none'; if (admEl) admEl.style.display = ''; }
-    renderInicioAdmin(reps, enRep, listas, urgentes); return;
+  if (!window._previewInicioClasico) {
+    // dinero solo para quien puede ver caja (admin); el empleado real ve la vista operativa V2.
+    var _dineroV2 = puede && !window._previewInicio2Emp;
+    if (admEl) admEl.style.display = 'none';
+    if (empEl) empEl.style.display = 'none';
+    if (segEl) segEl.style.display = _dineroV2 ? '' : 'none'; // el periodo solo afecta a la vista negocio
+    try { renderInicioV2(reps, enRep, listas, urgentes, _dineroV2); return; } catch (e) { console.warn('inicioV2', e); }
+    // si V2 lanza, cae al clásico de abajo
   }
 
-  // ─── VISTA OPERATIVA (EMPLEADO, sin dinero) ───
+  // ─── CLÁSICO (opt-out ?preview=clasico, o fallback si V2 falló) ───
+  var _v2c = document.getElementById('inicioV2'); if (_v2c) _v2c.style.display = 'none';
+  if (admEl) admEl.style.display = puede ? '' : 'none';
+  if (empEl) empEl.style.display = puede ? 'none' : '';
+  if (segEl) segEl.style.display = puede ? '' : 'none';
+  if (puede) { renderInicioAdmin(reps, enRep, listas, urgentes); return; }
+
+  // ─── VISTA OPERATIVA CLÁSICA (EMPLEADO, sin dinero) ───
   if (pl) { var uw = (urgentes.length === 1 ? T('inicio.urgente_s') : T('inicio.urgente_p')); pl.innerHTML = T('inicio.pulse').replace('{r}', '<b>' + enRep.length + '</b>').replace('{l}', '<b>' + listas.length + '</b>').replace('{u}', '<b>' + urgentes.length + ' ' + uw + '</b>'); }
   // W13: separar "en proceso" (en el banco) de "pendientes" (en cola), antes iban juntos.
   var _enProc = reps.filter(function(r){ return ['En Proceso', 'En proceso'].indexOf(r.estado) !== -1; }).length;
@@ -4075,10 +4085,11 @@ function renderInicioNuevo() {
   renderInvNotas();
 }
 
-// ─── PREVIEW: Inicio V2 (maqueta TekPair_dashboard_mockup, datos reales) ───
-// Activar con ?preview=inicio2 · salir con ?preview=off. Solo admin. No sustituye al actual.
-function renderInicioV2(reps, enRep, listas, urgentes) {
+// ─── Inicio V2 (rediseño por defecto, datos reales) — ADMIN (dinero=true) / EMPLEADO (dinero=false) ───
+// Es el Inicio por defecto. Opt-out al clásico con ?preview=clasico. Empleado real → dinero=false.
+function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
   var host = document.getElementById('inv-admin');
+  var empHost = document.getElementById('inv-emp');
   var box = document.getElementById('inicioV2');
   if (!box) {
     box = document.createElement('div');
@@ -4087,6 +4098,9 @@ function renderInicioV2(reps, enRep, listas, urgentes) {
     if (host && host.parentNode) host.parentNode.insertBefore(box, host); else if (parent) parent.appendChild(box);
   }
   if (host) host.style.display = 'none';
+  if (empHost) empHost.style.display = 'none';
+  box.style.display = '';
+  if (dinero === undefined) dinero = !window._previewInicio2Emp; // compat: sin arg → deriva del flag preview
 
   var per = window._invPer || 'hoy';
   var hoy = hoyLocal();
@@ -4101,8 +4115,8 @@ function renderInicioV2(reps, enRep, listas, urgentes) {
   else if (per === 'mes') { d1 = _invIso(mesIni); d2 = _invIso(mesFin); }
   else { d1 = hoy; d2 = hoy; }
   var sufLbl = per === 'semana' ? T('inicio.suf_semana') : (per === 'mes' ? T('inicio.suf_mes') : T('inicio.suf_hoy'));
-  var dinero = !window._previewInicio2Emp; // vista empleado oculta importes
   var citasHoy2 = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; }).length;
+  var analitica = (typeof tieneFeature === 'function') ? (tieneFeature('analitica') || tieneFeature('inicio_avanzado')) : true;
 
   // Te deben (cobros pendientes) + antigüedad del más viejo
   var cobrosArr = (DB.reps || []).filter(function(r) { return (r.restante || 0) > 0 && ['Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'].indexOf(r.estado) === -1; });
@@ -4118,19 +4132,34 @@ function renderInicioV2(reps, enRep, listas, urgentes) {
   var efectivo = pagos.Efectivo || 0;
   var ventasPer = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).length;
 
-  // Semana actual vs anterior (mismo tramo) → contexto + gráfico
+  // Semana actual vs anterior (mismo tramo) → contexto KPI
   var estaSem = _invIncome(_invIso(monday), hoy);
   var _monPrev = new Date(monday); _monPrev.setDate(monday.getDate() - 7);
   var _samedayPrev = new Date(baseH); _samedayPrev.setDate(baseH.getDate() - 7);
   var antSem = _invIncome(_invIso(_monPrev), _invIso(_samedayPrev));
+  var pctSem = antSem > 0 ? Math.round((estaSem - antSem) / antSem * 100) : null;
+  if (pctSem !== null && Math.abs(pctSem) >= 999) pctSem = null;
+
+  // Gráfico adaptativo: Semana/Hoy → día-vs-día (Lun-Dom, esta vs semana anterior); Mes → S1..S5 (una serie)
   var ndic = (T('inicio.dow') || 'Lun,Mar,Mié,Jue,Vie,Sáb,Dom').split(',');
-  var serie = [];
-  for (var j = 0; j < 7; j++) {
-    var dx = new Date(monday); dx.setDate(monday.getDate() + j); var iso = _invIso(dx);
-    var dp = new Date(_monPrev); dp.setDate(_monPrev.getDate() + j); var isop = _invIso(dp);
-    serie.push({ lbl: ndic[j] || '', cur: _invIncome(iso, iso), prev: _invIncome(isop, isop) });
+  var chSerie = [], chPrev = true;
+  if (per === 'mes') {
+    chPrev = false;
+    var lastDay = mesFin.getDate(), nb = Math.ceil(lastDay / 7);
+    for (var wj = 0; wj < nb; wj++) {
+      var wa = wj * 7 + 1, wb = Math.min(wj * 7 + 7, lastDay);
+      var wba = _invIso(new Date(baseH.getFullYear(), baseH.getMonth(), wa));
+      var wbb = _invIso(new Date(baseH.getFullYear(), baseH.getMonth(), wb));
+      chSerie.push({ lbl: T('inicio.sem') + (wj + 1), cur: _invIncome(wba, wbb), prev: 0 });
+    }
+  } else {
+    for (var dj = 0; dj < 7; dj++) {
+      var dcur = new Date(monday); dcur.setDate(monday.getDate() + dj); var iso = _invIso(dcur);
+      var dprev = new Date(_monPrev); dprev.setDate(_monPrev.getDate() + dj); var isop = _invIso(dprev);
+      chSerie.push({ lbl: ndic[dj] || '', cur: _invIncome(iso, iso), prev: _invIncome(isop, isop) });
+    }
   }
-  var maxV = Math.max.apply(null, serie.map(function(o) { return Math.max(o.cur, o.prev); }).concat([1]));
+  var chMax = Math.max.apply(null, chSerie.map(function(o) { return Math.max(o.cur, o.prev); }).concat([1]));
 
   // Urgentes top-3 (por días en taller, desc)
   var urg3 = urgentes.slice().map(function(r) {
@@ -4139,10 +4168,8 @@ function renderInicioV2(reps, enRep, listas, urgentes) {
   }).sort(function(a, b) { return b.dias - a.dias; }).slice(0, 3);
 
   var _icoBd = { Efectivo: '💵', Tarjeta: '💳', Bizum: '📲', Transferencia: '🏦' };
-  var _ordBd = Object.keys(pagos).filter(function(m) { return pagos[m] > 0.005; }).sort(function(a, b) { return pagos[b] - pagos[a]; });
-  var bdHtml = _ordBd.map(function(m) { return (_icoBd[m] || '•') + ' ' + escHtml(_pagoLbl(m)) + ' <b>' + cur(pagos[m]) + '</b>'; }).join('<span style="opacity:.35"> · </span>');
 
-  // ── HTML (estilos inline, variables de tema para respetar el skin) ──
+  // ── Estilos (variables de tema para respetar el skin) ──
   var serif = "Georgia,'Iowan Old Style','Times New Roman',serif";
   var cardCss = 'background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 6px 18px rgba(0,0,0,.05)';
   var bigCss = 'font-family:' + serif + ';font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.02em;line-height:1';
@@ -4152,117 +4179,287 @@ function renderInicioV2(reps, enRep, listas, urgentes) {
     return '<div style="' + cardCss + ';padding:20px 22px;position:relative;overflow:hidden">' +
       (opts.pill ? '<span style="position:absolute;top:18px;right:18px;font-size:11px;font-weight:700;padding:4px 9px;border-radius:999px;background:var(--orange-soft,#fbeee6);color:var(--orange,#e07b4f)">' + opts.pill + '</span>' : '') +
       '<div style="' + eyebrow + ';margin-bottom:8px">' + opts.eyebrow + '</div>' +
-      '<div style="' + bigCss + ';font-size:38px' + (opts.color ? ';color:' + opts.color : '') + '">' + opts.big + '</div>' +
+      '<div style="' + bigCss + ';font-size:38px' + (opts.color ? ';color:' + opts.color : '') + '">' + opts.big + (opts.unit ? ' <span style="font-size:16px;font-weight:700;color:var(--muted)">' + opts.unit + '</span>' : '') + '</div>' +
       '<div style="font-size:13px;color:var(--muted);margin-top:6px">' + opts.sub + '</div>' +
-      (opts.cta ? '<button onclick="' + opts.ctaJs + '" style="margin-top:14px;font:inherit;font-size:12.5px;font-weight:600;color:var(--orange,#e07b4f);background:var(--orange-soft,#fbeee6);border:0;border-radius:9px;padding:8px 13px;cursor:pointer">' + opts.cta + ' →</button>' : '') +
+      (opts.cta ? '<button onclick="' + opts.ctaJs + '" style="margin-top:14px;font:inherit;font-size:12.5px;font-weight:600;color:' + (opts.ctaColor || 'var(--orange,#e07b4f)') + ';background:' + (opts.ctaBg || 'var(--orange-soft,#fbeee6)') + ';border:0;border-radius:9px;padding:8px 13px;cursor:pointer">' + opts.cta + ' →</button>' : '') +
       '</div>';
   }
+  function kpiCard(v, label, delta, dcolor) {
+    return '<div style="' + cardCss + ';padding:13px 15px">' +
+      '<div style="' + eyebrow + '">' + label + '</div>' +
+      '<div style="' + bigCss + ';font-size:24px;margin-top:4px">' + v + '</div>' +
+      '<div style="font-size:11px;font-weight:700;margin-top:3px;color:' + (dcolor || 'var(--muted)') + '">' + (delta || '') + '</div>' +
+      '</div>';
+  }
+  function actCard(a, hot) {
+    return '<div onclick="' + a[2] + '" style="flex:1 0 auto;min-width:100px;border:1px solid var(--border);border-radius:13px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;' + (hot ? 'background:var(--orange,#e07b4f);color:#fff;border-color:transparent' : 'background:var(--card)') + '"><span style="font-size:20px">' + a[0] + '</span>' + a[1] + '</div>';
+  }
+  function quickbar(items) {
+    return '<div class="iv2-qb" style="display:flex;gap:10px;overflow-x:auto;margin-bottom:16px;padding-bottom:2px">' + items.map(function(a, i) { return actCard(a, i === 0); }).join('') + '</div>';
+  }
 
-  // Row 1: dinero que importa (admin) · carga de taller (empleado, sin importes)
-  var row1;
+  // ── ACCIONES RÁPIDAS (arriba) ──
+  var qbAdmin = quickbar([
+    ['🧾', T('iv2.qa_venta'), 'abrirVenta()'],
+    ['🔧', T('iv2.qa_rep'), 'abrirRep()'],
+    ['👤', T('iv2.qa_cliente'), "navTo('pClis')"],
+    ['📦', T('iv2.qa_pedido'), 'nuevoPedido()'],
+    ['📅', T('iv2.qa_cita'), "navTo('pCitas')"],
+    ['💳', T('iv2.qa_tpv'), "window.location.href='tpv.html'"]
+  ]);
+  var qbEmp = quickbar([
+    ['🔧', T('iv2.qa_rep'), 'abrirRep()'],
+    ['👤', T('iv2.qa_cliente'), "navTo('pClis')"],
+    ['💳', T('iv2.qa_tpv'), "window.location.href='tpv.html'"],
+    ['📅', T('iv2.qa_citas'), "navTo('pCitas')"],
+    ['📦', T('iv2.qa_pedido'), 'nuevoPedido()'],
+    ['📄', T('iv2.qa_presu'), "navTo('pPresupuestos')"]
+  ]);
+
+  // Notas y recordatorios (reutiliza el sistema existente) — presente en ambas vistas
+  var notasCard = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px"><div style="' + eyebrow + ';margin-bottom:8px">📌 ' + T('inicio.notas') + '</div><div id="iv2-notas"></div></div>';
+
+  var html;
   if (dinero) {
-    row1 = '<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px" class="iv2-money">' +
+    // ═══════════ ADMIN ═══════════
+    var hero = '<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px" class="iv2-money">' +
       moneyCard({ eyebrow: T('iv2.te_deben'), big: cur(cobrosTot), color: 'var(--orange,#e07b4f)',
         sub: T('iv2.te_deben_sub').replace('{n}', cobrosArr.length).replace('{d}', oldestDays),
         cta: T('iv2.ver_debe'), ctaJs: "_kpiReps('adeber')" }) +
-      moneyCard({ eyebrow: T('iv2.en_taller'), big: enRep.length, pill: (urgentes.length ? urgentes.length + ' ' + T('iv2.urg') : ''),
+      moneyCard({ eyebrow: T('iv2.en_taller'), big: enRep.length, unit: T('iv2.reparaciones'), pill: (urgentes.length ? urgentes.length + ' ' + T('iv2.urg') : ''),
         sub: T('iv2.en_taller_sub').replace('{c}', enRep.length).replace('{l}', listas.length),
         cta: T('iv2.revisar'), ctaJs: "navTo('pReps')" }) +
       '</div>';
+
+    var sinAvisar = listas.filter(function(r) { return !r.avisado; }).length;
+    var cobradoDelta = (pctSem !== null && pctSem > 0) ? ('▲ +' + pctSem + '% ' + T('iv2.vs_previa')) : '';
+    var kpis = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px" class="iv2-kpis">' +
+      kpiCard(cur(totalP), T('inicio.cobrado') + ' ' + sufLbl, cobradoDelta, cobradoDelta ? 'var(--green,#0E9F6E)' : 'var(--muted)') +
+      kpiCard(cur(efectivo), T('iv2.efectivo_caja'), T('iv2.del_total').replace('{p}', totalP > 0 ? Math.round(efectivo / totalP * 100) : 0)) +
+      kpiCard(ventasPer, T('inicio.num_ventas') + ' ' + sufLbl, T('iv2.tickets')) +
+      kpiCard(enRep.length, T('iv2.reps_pend'), sinAvisar ? T('iv2.sin_avisar_n').replace('{n}', sinAvisar) : T('iv2.en_taller_s'), sinAvisar ? 'var(--red,#E02424)' : 'var(--muted)') +
+      '</div>';
+
+    // Ingresos vs gastos / beneficio / margen (analítica)
+    var ingMes = _invIncome(d1, d2);
+    var gasMes = (DB.gastos || []).filter(function(g) { var f = (g.fecha || '').slice(0, 10); return f >= d1 && f <= d2 && (g.estado || 'Pagado') !== 'Pendiente'; }).reduce(function(a, g) { return a + (parseFloat(g.importe) || 0); }, 0);
+    var ben = ingMes - gasMes;
+    var margen = ingMes > 0 ? Math.round(ben / ingMes * 100) : 0;
+    var pnlCell = function(l, v, c) { return '<div style="background:var(--card2,#f8fafc);border-radius:11px;padding:11px 12px"><div style="' + eyebrow + '">' + l + '</div><div style="' + bigCss + ';font-size:20px;margin-top:2px' + (c ? ';color:' + c : '') + '">' + v + '</div></div>'; };
+    var cardIngGastos = (analitica && _invWidgetOn('rs_inggastos')) ? '<div style="' + cardCss + ';padding:18px 20px">' +
+      '<div style="' + eyebrow + '">📊 ' + T('inicio.ing_gastos_t') + ' ' + sufLbl + '</div>' +
+      '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px">' +
+        pnlCell(T('inicio.ingresos'), cur(ingMes)) +
+        pnlCell(T('inicio.gastos'), cur(gasMes), 'var(--red,#E02424)') +
+        pnlCell(T('inicio.beneficio'), cur(ben), 'var(--green,#0E9F6E)') +
+        pnlCell(T('iv2.margen'), margen + '%') +
+      '</div></div>' : '';
+
+    // Cómo cobras (barra apilada)
+    var clsMap = { Efectivo: 'var(--green,#0E9F6E)', Tarjeta: 'var(--brand,#0055FF)', Bizum: 'var(--violet,#7C3AED)', Transferencia: 'var(--teal,#0E8F9F)' };
+    var ordenP = Object.keys(pagos).filter(function(m) { return pagos[m] > 0.005; }).sort(function(a, b) { return pagos[b] - pagos[a]; });
+    var stackHtml = '', legendHtml = '';
+    if (totalP > 0) {
+      stackHtml = '<div style="display:flex;height:16px;border-radius:8px;overflow:hidden;margin:14px 0 10px">' + ordenP.map(function(m) { return '<i style="display:block;height:100%;width:' + (pagos[m] / totalP * 100) + '%;background:' + (clsMap[m] || 'var(--teal,#0E8F9F)') + '"></i>'; }).join('') + '</div>';
+      legendHtml = '<div style="display:flex;flex-wrap:wrap;gap:12px">' + ordenP.map(function(m) { return '<span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:3px;display:inline-block;background:' + (clsMap[m] || 'var(--teal,#0E8F9F)') + '"></i>' + (_icoBd[m] || '') + ' ' + escHtml(_pagoLbl(m)) + ' · <b style="color:var(--text)">' + cur(pagos[m]) + '</b></span>'; }).join('') + '</div>';
+    } else { legendHtml = '<div style="font-size:12px;color:var(--muted);padding:8px 0">' + T('inicio.sin_cobros') + '</div>'; }
+    var cardComoCobras = _invWidgetOn('rs_comocobras') ? '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">💳 ' + T('inicio.como_cobras') + '</div>' + stackHtml + legendHtml + '</div>' : '';
+
+    // Lo que más deja (analítica)
+    var cat = {};
+    (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var key = (r.averia || '').trim() || T('inicio.reparacion'); cat['🔧 ' + key] = (cat['🔧 ' + key] || 0) + Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0)); } });
+    var ventasTot = _ventasIngresoTotal(DB.ventas, d1, d2);
+    if (ventasTot > 0) cat['🛒 ' + T('inicio.ventas_accesorios')] = ventasTot;
+    var topArr = Object.keys(cat).map(function(key) { return { k: key, v: cat[key] }; }).sort(function(a, b) { return b.v - a.v; }).slice(0, 4);
+    var topMax = topArr.length ? topArr[0].v : 1;
+    var topRows = topArr.length ? topArr.map(function(o) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--border)"><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(o.k) + '</div><div style="height:6px;border-radius:6px;background:var(--orange,#e07b4f);margin-top:5px;width:' + Math.max(6, Math.round(o.v / topMax * 100)) + '%"></div></div><div style="' + bigCss + ';font-size:14px;font-weight:700">' + cur(o.v) + '</div></div>';
+    }).join('') : '<div style="font-size:12px;color:var(--muted);padding:8px 0">' + T('inicio.sin_ingresos') + '</div>';
+    var cardLoDeja = (analitica && _invWidgetOn('rs_lodeja')) ? '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">🏆 ' + T('inicio.lo_que_deja') + '</div><div style="margin-top:8px">' + topRows + '</div></div>' : '';
+
+    // Pedidos por recibir
+    var peds = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido'; });
+    var pedRows = peds.length ? peds.slice(0, 5).map(function(p) {
+      var pedido = p.estado === 'pedido';
+      var pill = '<span style="font-size:11px;font-weight:700;border-radius:20px;padding:3px 9px;background:' + (pedido ? 'var(--orange-soft,#FEF3E2)' : 'var(--card2,#f1f5f9)') + ';color:' + (pedido ? 'var(--orange,#D97706)' : 'var(--muted)') + '">' + (pedido ? T('iv2.en_camino') : T('iv2.preparando')) + '</span>';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--border)"><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(p.pieza || p.proveedor || T('inicio.pedidos')) + '</div><div style="font-size:12px;color:var(--muted)">' + escHtml((p.proveedor || '') + (p.importe ? ' · ' + cur(parseFloat(p.importe) || 0) : '')) + '</div></div>' + pill + '</div>';
+    }).join('') : '<div style="font-size:12px;color:var(--muted);padding:8px 0">' + T('pedidos.vacio') + '</div>';
+    var cardPedidos = _invWidgetOn('rs_pedidos') ? '<div onclick="navTo(\'pPedidos\')" style="' + cardCss + ';padding:18px 20px;cursor:pointer"><div style="' + eyebrow + '">📦 ' + T('inicio.pedidos_recibir') + '</div><div style="margin-top:8px">' + pedRows + '</div></div>' : '';
+
+    // Fila de tarjetas secundarias (2 col, reflow en móvil)
+    var secCards = [cardIngGastos, cardComoCobras, cardLoDeja, cardPedidos].filter(Boolean).join('');
+    var secGrid = secCards ? '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px" class="iv2-sec">' + secCards + '</div>' : '';
+
+    // Más urgente (top-3)
+    var urows = urg3.length ? urg3.map(function(o) {
+      var r = o.r; var nom = ((r.marca || '') + ' ' + (r.modelo || '')).trim(); var cliN = r.clienteNombre || '';
+      var sub = (r.estado || '') + (r.restante > 0 ? ' · ' + cur(r.restante) + ' ' + T('iv2.a_deber') : (r.avisado ? '' : ' · ' + T('iv2.sin_avisar')));
+      return '<div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--border,#eee)">' +
+        '<div style="font-family:' + serif + ';font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;width:54px;text-align:center;color:var(--red,#cf5a4b)">' + o.dias + '<small style="display:block;font-family:inherit;font-size:9.5px;font-weight:600;color:var(--muted);text-transform:uppercase">' + T('iv2.dias') + '</small></div>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + escHtml(nom + (cliN ? ' · ' + cliN : '')) + '</div><div style="font-size:12px;color:var(--muted)">' + escHtml(sub) + '</div></div>' +
+        '<div style="display:flex;gap:8px"><button onclick="abrirWhatsAppRep(\'' + r.id + '\')" style="border:0;border-radius:9px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--orange,#e07b4f);color:#fff">' + T('iv2.avisar') + '</button><button onclick="abrirDetalleRep(\'' + r.id + '\')" style="border:0;border-radius:9px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--card2,#f1f5f9);color:var(--text)">' + T('iv2.ver') + '</button></div>' +
+        '</div>';
+    }).join('') : '<div style="padding:14px 0;color:var(--muted);font-size:13px">' + T('iv2.nada_urgente') + '</div>';
+    var urgCard = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px;border-left:4px solid var(--red,#cf5a4b)"><div style="' + eyebrow + ';color:var(--red,#cf5a4b);margin-bottom:6px">◎ ' + T('iv2.urgente_titulo') + '</div>' + urows + '</div>';
+
+    // Gráfico adaptativo (analítica)
+    var chartCard = '';
+    if (analitica) {
+      var cw = 560, ch = 180, nCols = chSerie.length || 1, slot = (cw - 34) / nCols, bw = chPrev ? Math.min(18, slot / 2.6) : Math.min(30, slot * 0.5);
+      var bars = '';
+      for (var k = 0; k < chSerie.length; k++) {
+        var x0 = 24 + k * slot;
+        var hc = (chSerie[k].cur / chMax) * 120;
+        if (chPrev) {
+          var hp = (chSerie[k].prev / chMax) * 120;
+          bars += '<rect x="' + x0.toFixed(0) + '" y="' + (150 - hp).toFixed(0) + '" width="' + bw.toFixed(0) + '" height="' + hp.toFixed(0) + '" rx="3" fill="var(--border,#d8d2ca)"/>';
+          bars += '<rect x="' + (x0 + bw + 2).toFixed(0) + '" y="' + (150 - hc).toFixed(0) + '" width="' + bw.toFixed(0) + '" height="' + hc.toFixed(0) + '" rx="3" fill="var(--orange,#e07b4f)"/>';
+          bars += '<text x="' + (x0 + bw).toFixed(0) + '" y="168" font-size="11" fill="var(--muted)" text-anchor="middle">' + chSerie[k].lbl + '</text>';
+        } else {
+          bars += '<rect x="' + x0.toFixed(0) + '" y="' + (150 - hc).toFixed(0) + '" width="' + bw.toFixed(0) + '" height="' + hc.toFixed(0) + '" rx="3" fill="var(--orange,#e07b4f)"/>';
+          bars += '<text x="' + (x0 + bw / 2).toFixed(0) + '" y="168" font-size="11" fill="var(--muted)" text-anchor="middle">' + chSerie[k].lbl + '</text>';
+        }
+      }
+      var legend = chPrev ? '<div style="display:flex;gap:14px;font-size:11.5px;color:var(--muted)"><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;background:var(--orange,#e07b4f)"></i>' + T('iv2.esta_semana') + '</span><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;background:var(--border,#cdc7bf)"></i>' + T('iv2.semana_ant') + '</span></div>' : '';
+      chartCard = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px">' +
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><h3 style="font-size:14px;font-weight:600;margin:0">' + T('inicio.ingresos') + ' ' + sufLbl + '</h3>' + legend + '</div>' +
+        '<svg viewBox="0 0 ' + cw + ' ' + ch + '" width="100%" height="180"><line x1="24" y1="150" x2="' + (cw - 12) + '" y2="150" stroke="var(--border,#ece8e3)" stroke-width="1"/>' + bars + '</svg></div>';
+    }
+
+    html = qbAdmin + hero + kpis + secGrid + urgCard + chartCard + notasCard;
   } else {
-    row1 = '<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px" class="iv2-money">' +
-      moneyCard({ eyebrow: T('iv2.en_taller'), big: enRep.length, pill: (urgentes.length ? urgentes.length + ' ' + T('iv2.urg') : ''),
+    // ═══════════ EMPLEADO (operativa, sin dinero) ═══════════
+    var _enProcE = reps.filter(function(r) { return ['En Proceso', 'En proceso'].indexOf(r.estado) !== -1; });
+    var _pendE = reps.filter(function(r) { return r.estado === 'Pendiente'; });
+
+    var kpisE = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px" class="iv2-kpis">' +
+      kpiCard(_enProcE.length, T('iv2.en_proceso'), T('iv2.en_banco')) +
+      kpiCard(_pendE.length, T('iv2.pendientes'), T('iv2.en_cola')) +
+      kpiCard(listas.length, T('iv2.listas'), T('iv2.por_avisar'), listas.length ? 'var(--green,#0E9F6E)' : 'var(--muted)') +
+      kpiCard(citasHoy2, T('iv2.citas_hoy'), T('iv2.agenda')) +
+      '</div>';
+
+    var heroE = '<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px" class="iv2-money">' +
+      moneyCard({ eyebrow: T('iv2.en_taller'), big: enRep.length, unit: T('iv2.equipos'), pill: (urgentes.length ? urgentes.length + ' ' + T('iv2.urg') : ''),
         sub: T('iv2.en_taller_sub').replace('{c}', enRep.length).replace('{l}', listas.length),
         cta: T('iv2.revisar'), ctaJs: "navTo('pReps')" }) +
-      moneyCard({ eyebrow: T('iv2.listas_avisar'), big: listas.length, color: 'var(--green,#3a9b6e)',
+      moneyCard({ eyebrow: T('iv2.listas_entregar'), big: listas.length, unit: T('iv2.por_avisar'), color: 'var(--green,#3a9b6e)', pill: T('iv2.reparadas'),
         sub: T('iv2.listas_avisar_sub'),
-        cta: T('iv2.ver_listas'), ctaJs: "navTo('pReps')" }) +
+        cta: (listas.length ? T('iv2.avisar_n').replace('{n}', listas.length) : T('iv2.ver_listas')), ctaJs: "navTo('pReps')",
+        ctaColor: '#fff', ctaBg: 'var(--green,#0E9F6E)' }) +
       '</div>';
-  }
 
-  // Row 2: tira de KPIs de hoy/periodo
-  function kpi(v, l, s) { return '<div style="flex:1;min-width:130px;padding:12px 18px;display:flex;flex-direction:column;gap:2px;border-right:1px solid var(--border,#eee)"><span style="' + bigCss + ';font-size:20px">' + v + '</span><span style="font-size:11.5px;color:var(--muted)">' + l + '</span><span style="font-size:9.5px;color:var(--muted);opacity:.7">' + s + '</span></div>'; }
-  var row2;
-  if (dinero) {
-    row2 = '<div style="' + cardCss + ';display:flex;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:4px" class="iv2-today">' +
-      kpi(cur(totalP), T('inicio.cobrado') + ' ' + sufLbl, T('iv2.todos_metodos')) +
-      kpi(cur(efectivo), T('iv2.efectivo_caja'), T('iv2.solo_efectivo')) +
-      kpi(ventasPer, T('inicio.num_ventas') + ' ' + sufLbl, T('iv2.tickets')) +
-      kpi(enRep.length, T('iv2.reps_pend'), T('iv2.en_taller_s')) +
-      '<div style="margin-left:auto;padding:10px 16px;font-size:12px;color:var(--muted);text-align:right">' + T('iv2.ctx').replace('{a}', '<b style="color:var(--text)">' + cur(estaSem) + '</b>').replace('{b}', '<b style="color:var(--text)">' + cur(antSem) + '</b>') + (bdHtml ? '<div style="margin-top:4px;font-size:11px">' + bdHtml + '</div>' : '') + '</div>' +
-      '</div>';
-  } else {
-    // Empleado: conteos operativos, sin importes
-    var _enProcE = reps.filter(function(r) { return ['En Proceso', 'En proceso'].indexOf(r.estado) !== -1; }).length;
-    var _pendE = reps.filter(function(r) { return r.estado === 'Pendiente'; }).length;
-    row2 = '<div style="' + cardCss + ';display:flex;align-items:center;flex-wrap:wrap;margin-bottom:14px;padding:4px" class="iv2-today">' +
-      kpi(_enProcE, T('iv2.en_proceso'), T('iv2.en_banco')) +
-      kpi(_pendE, T('iv2.pendientes'), T('iv2.en_cola')) +
-      kpi(listas.length, T('iv2.listas'), T('iv2.por_avisar')) +
-      kpi(citasHoy2, T('iv2.citas_hoy'), T('iv2.agenda')) +
-      kpi(urgentes.length, T('iv2.urgentes'), T('iv2.atencion')) +
-      '</div>';
-  }
+    // Tu cola de trabajo (listas → proceso → pendientes)
+    var queue = [];
+    listas.forEach(function(r) { queue.push({ r: r, type: 'ready' }); });
+    _enProcE.forEach(function(r) { queue.push({ r: r, type: 'proc' }); });
+    _pendE.forEach(function(r) { queue.push({ r: r, type: 'pend' }); });
+    var qMeta = {
+      ready: { ic: '✅', icbg: 'var(--green-soft,#E6F6EF)', st: T('iv2.st_lista'), stc: 'var(--green,#0E9F6E)', stbg: 'var(--green-soft,#E6F6EF)', btn: T('iv2.avisar'), btnc: 'wa' },
+      proc: { ic: '🔧', icbg: 'var(--brand-soft,#E8F0FF)', st: T('iv2.en_proceso'), stc: 'var(--brand,#0055FF)', stbg: 'var(--brand-soft,#E8F0FF)', btn: T('iv2.abrir'), btnc: 'br' },
+      pend: { ic: '⏳', icbg: 'var(--card2,#f1f5f9)', st: T('iv2.st_pendiente'), stc: 'var(--muted)', stbg: 'var(--card2,#f1f5f9)', btn: T('iv2.empezar'), btnc: 'pl' }
+    };
+    var qRows = queue.length ? queue.slice(0, 7).map(function(o) {
+      var r = o.r, m = qMeta[o.type];
+      var nom = ((r.marca || '') + ' ' + (r.modelo || '')).trim() + (r.clienteNombre ? ' · ' + r.clienteNombre : '');
+      var btnJs = o.type === 'ready' ? "avisarListo('" + r.id + "')" : "abrirDetalleRep('" + r.id + "')";
+      var btnBg = m.btnc === 'wa' ? 'var(--green,#0E9F6E);color:#fff;border-color:transparent' : (m.btnc === 'br' ? 'var(--brand,#0055FF);color:#fff;border-color:transparent' : 'var(--card2,#f1f5f9);color:var(--text)');
+      return '<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--border)">' +
+        '<div style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:17px;flex-shrink:0;background:' + m.icbg + '">' + m.ic + '</div>' +
+        '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(nom) + '</div><div style="font-size:12px;color:var(--muted)">' + escHtml(r.averia || '') + '</div></div>' +
+        '<span style="font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:20px;padding:3px 8px;color:' + m.stc + ';background:' + m.stbg + '">' + m.st + '</span>' +
+        '<button onclick="' + btnJs + '" style="border:1px solid var(--border);border-radius:9px;padding:7px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;background:' + btnBg + '">' + m.btn + '</button>' +
+        '</div>';
+    }).join('') : '<div style="padding:14px 0;color:var(--muted);font-size:13px">' + T('iv2.cola_vacia') + '</div>';
+    var colaCard = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px"><div style="' + eyebrow + '">' + T('iv2.cola_trabajo') + '</div><div style="margin-top:8px">' + qRows + '</div></div>';
 
-  // Row 3: top-3 urgente
-  var urows = urg3.length ? urg3.map(function(o) {
-    var r = o.r; var nom = ((r.marca || '') + ' ' + (r.modelo || '')).trim(); var cliN = r.clienteNombre || '';
-    var sub = dinero
-      ? ((r.estado || '') + (r.restante > 0 ? ' · ' + cur(r.restante) + ' ' + T('iv2.a_deber') : (r.avisado ? '' : ' · ' + T('iv2.sin_avisar'))))
-      : ((r.estado || '') + (r.avisado ? '' : ' · ' + T('iv2.sin_avisar')));
-    return '<div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--border,#eee)">' +
-      '<div style="font-family:' + serif + ';font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;width:54px;text-align:center;color:var(--red,#cf5a4b)">' + o.dias + '<small style="display:block;font-family:inherit;font-size:9.5px;font-weight:600;color:var(--muted);text-transform:uppercase">' + T('iv2.dias') + '</small></div>' +
-      '<div style="flex:1"><div style="font-size:14px;font-weight:600">' + escHtml(nom + (cliN ? ' · ' + cliN : '')) + '</div><div style="font-size:12px;color:var(--muted)">' + escHtml(sub) + '</div></div>' +
-      '<div style="display:flex;gap:8px"><button onclick="abrirWhatsAppRep(\'' + r.id + '\')" style="border:0;border-radius:9px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--orange,#e07b4f);color:#fff">' + T('iv2.avisar') + '</button><button onclick="abrirDetalleRep(\'' + r.id + '\')" style="border:0;border-radius:9px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--light,#f1f5f9);color:var(--text)">' + T('iv2.ver') + '</button></div>' +
-      '</div>';
-  }).join('') : '<div style="padding:14px 0;color:var(--muted);font-size:13px">' + T('iv2.nada_urgente') + '</div>';
-  var row3 = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px;border-left:4px solid var(--red,#cf5a4b)">' +
-    '<div style="' + eyebrow + ';color:var(--red,#cf5a4b);margin-bottom:6px">◎ ' + T('iv2.urgente_titulo') + '</div>' + urows + '</div>';
+    // Piezas recibidas hoy
+    var piezasHoy = (DB.pedidos || []).filter(function(p) { return p.estado === 'recibido' && _pedFechaRecibida(p) === hoy; });
+    var pzRows = piezasHoy.length ? piezasHoy.slice(0, 5).map(function(p) {
+      return '<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--border)">' +
+        '<div style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:17px;flex-shrink:0;background:var(--green-soft,#E6F6EF)">📥</div>' +
+        '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">' + escHtml(p.pieza || T('inicio.pedidos')) + '</div><div style="font-size:12px;color:var(--muted)">' + escHtml(T('iv2.para_rep') + (p.proveedor ? ' · ' + p.proveedor : '')) + '</div></div>' +
+        '<button onclick="navTo(\'pPedidos\')" style="border:0;border-radius:9px;padding:7px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;background:var(--brand,#0055FF);color:#fff">' + T('iv2.continuar') + '</button>' +
+        '</div>';
+    }).join('') : '<div style="padding:14px 0;color:var(--muted);font-size:13px">' + T('iv2.piezas_vacia') + '</div>';
+    var piezasCard = '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">📦 ' + T('iv2.piezas_hoy') + '</div><div style="margin-top:8px">' + pzRows + '</div></div>';
 
-  // Row 4: gráfico (semana actual vs anterior) + acciones
-  var cw = 560, ch = 180, bw = 18, gap = (cw - 28) / 7;
-  var bars = '';
-  for (var k = 0; k < 7; k++) {
-    var x0 = 22 + k * gap;
-    var hp = (serie[k].prev / maxV) * 120, hc = (serie[k].cur / maxV) * 120;
-    bars += '<rect x="' + (x0).toFixed(0) + '" y="' + (150 - hp).toFixed(0) + '" width="' + bw + '" height="' + hp.toFixed(0) + '" rx="3" fill="var(--border,#d8d2ca)"/>';
-    bars += '<rect x="' + (x0 + bw + 2).toFixed(0) + '" y="' + (150 - hc).toFixed(0) + '" width="' + bw + '" height="' + hc.toFixed(0) + '" rx="3" fill="var(--orange,#e07b4f)"/>';
-    bars += '<text x="' + (x0 + bw).toFixed(0) + '" y="168" font-size="11" fill="var(--muted)" text-anchor="middle">' + (serie[k].lbl) + '</text>';
-  }
-  var chart = '<div style="' + cardCss + ';padding:18px 20px">' +
-    '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px"><h3 style="font-size:14px;font-weight:600;margin:0">' + T('iv2.ingresos_semana') + '</h3>' +
-    '<div style="display:flex;gap:14px;font-size:11.5px;color:var(--muted)"><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;background:var(--orange,#e07b4f)"></i>' + T('iv2.esta_semana') + '</span><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;background:var(--border,#cdc7bf)"></i>' + T('iv2.semana_ant') + '</span></div></div>' +
-    '<svg viewBox="0 0 ' + cw + ' ' + ch + '" width="100%" height="180"><line x1="22" y1="150" x2="' + (cw - 12) + '" y2="150" stroke="var(--border,#ece8e3)" stroke-width="1"/>' + bars + '</svg></div>';
-  var actDefs = [
-    ['🔧', T('inicio.act_rep'), T('inicio.act_rep_sub'), 'abrirRep()', true],
-    ['🛒', T('inicio.act_tpv'), T('inicio.act_tpv_sub'), "window.location.href='tpv.html'", false],
-    ['💳', T('inicio.act_venta'), T('inicio.act_venta_sub'), 'abrirVenta()', false],
-    ['📄', T('inicio.act_pres'), T('inicio.act_pres_sub'), "navTo('pPresupuestos')", false],
-    ['📦', T('inicio.act_ped'), T('inicio.act_ped_sub'), 'nuevoPedido()', false],
-    ['👤', T('inicio.act_cliente'), T('inicio.act_cliente_sub'), "navTo('pClis')", false]
-  ];
-  var acts = '<div style="' + cardCss + ';padding:14px;display:grid;grid-template-columns:1fr 1fr;gap:10px;align-content:start">' +
-    actDefs.map(function(a) {
-      var hot = a[4];
-      return '<div onclick="' + a[3] + '" style="border:1px solid var(--border,#eee);border-radius:13px;padding:14px;cursor:pointer;' + (hot ? 'background:var(--orange,#e07b4f);color:#fff;border-color:var(--orange,#e07b4f)' : 'background:var(--card,#fff)') + '"><div style="font-size:18px">' + a[0] + '</div><div style="font-size:13.5px;font-weight:600;margin-top:6px">' + a[1] + '</div><div style="font-size:11px;' + (hot ? 'color:#ffe7da' : 'color:var(--muted)') + '">' + a[2] + '</div></div>';
-    }).join('') + '</div>';
-  var row4;
-  if (dinero) {
-    row4 = '<div style="display:grid;grid-template-columns:1.5fr 1fr;gap:14px" class="iv2-split">' + chart + acts + '</div>';
-  } else {
-    // Empleado: sin gráfico de ingresos; acciones a ancho completo (3 columnas).
-    var actsFull = '<div style="' + cardCss + ';padding:14px;display:grid;grid-template-columns:repeat(3,1fr);gap:10px" class="iv2-acts-emp">' +
-      actDefs.map(function(a) {
-        var hot = a[4];
-        return '<div onclick="' + a[3] + '" style="border:1px solid var(--border,#eee);border-radius:13px;padding:14px;cursor:pointer;' + (hot ? 'background:var(--orange,#e07b4f);color:#fff;border-color:var(--orange,#e07b4f)' : 'background:var(--card,#fff)') + '"><div style="font-size:18px">' + a[0] + '</div><div style="font-size:13.5px;font-weight:600;margin-top:6px">' + a[1] + '</div><div style="font-size:11px;' + (hot ? 'color:#ffe7da' : 'color:var(--muted)') + '">' + a[2] + '</div></div>';
-      }).join('') + '</div>';
-    row4 = actsFull;
+    // Citas de hoy
+    var citasArr = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; }).sort(function(a, b) { return (a.hora || '').localeCompare(b.hora || ''); });
+    var ciRows = citasArr.length ? citasArr.slice(0, 6).map(function(c) {
+      var tit = (c.motivo || c.asunto || c.titulo || T('inicio.reparacion')) + (c.clienteNombre || c.cliente_nombre ? ' · ' + (c.clienteNombre || c.cliente_nombre) : '');
+      return '<div style="display:flex;align-items:center;gap:12px;padding:10px 0;border-top:1px solid var(--border)">' +
+        '<span style="font-weight:800;font-size:14px;color:var(--teal,#0E8F9F);min-width:48px">' + escHtml((c.hora || '').slice(0, 5) || '—') + '</span>' +
+        '<div style="flex:1;min-width:0"><div style="font-weight:600;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(tit) + '</div></div>' +
+        '<button onclick="abrirCita(\'' + c.id + '\')" style="border:1px solid var(--border);background:var(--card2,#f1f5f9);border-radius:9px;padding:7px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--text)">' + T('iv2.ver') + '</button>' +
+        '</div>';
+    }).join('') : '<div style="padding:14px 0;color:var(--muted);font-size:13px">' + T('iv2.citas_vacia') + '</div>';
+    var citasCard = '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">📅 ' + T('iv2.citas_hoy') + '</div><div style="margin-top:8px">' + ciRows + '</div></div>';
+
+    var secGridE = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px" class="iv2-sec">' + piezasCard + citasCard + '</div>';
+
+    // Más urgente (sin dinero)
+    var urowsE = urg3.length ? urg3.map(function(o) {
+      var r = o.r; var nom = ((r.marca || '') + ' ' + (r.modelo || '')).trim(); var cliN = r.clienteNombre || '';
+      var sub = (r.averia || r.estado || '') + (r.avisado ? '' : ' · ' + T('iv2.sin_avisar'));
+      return '<div style="display:flex;align-items:center;gap:14px;padding:11px 0;border-top:1px solid var(--border,#eee)">' +
+        '<div style="font-family:' + serif + ';font-variant-numeric:tabular-nums;font-size:22px;font-weight:600;width:54px;text-align:center;color:var(--red,#cf5a4b)">' + o.dias + '<small style="display:block;font-family:inherit;font-size:9.5px;font-weight:600;color:var(--muted);text-transform:uppercase">' + T('iv2.dias') + '</small></div>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:600">' + escHtml(nom + (cliN ? ' · ' + cliN : '')) + '</div><div style="font-size:12px;color:var(--muted)">' + escHtml(sub) + '</div></div>' +
+        '<div style="display:flex;gap:8px"><button onclick="avisarListo(\'' + r.id + '\')" style="border:0;border-radius:9px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--green,#0E9F6E);color:#fff">' + T('iv2.avisar') + '</button><button onclick="abrirDetalleRep(\'' + r.id + '\')" style="border:0;border-radius:9px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--card2,#f1f5f9);color:var(--text)">' + T('iv2.ver') + '</button></div>' +
+        '</div>';
+    }).join('') : '<div style="padding:14px 0;color:var(--muted);font-size:13px">' + T('iv2.nada_urgente') + '</div>';
+    var urgCardE = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px;border-left:4px solid var(--red,#cf5a4b)"><div style="' + eyebrow + ';color:var(--red,#cf5a4b);margin-bottom:6px">◎ ' + T('iv2.urgente_titulo') + '</div>' + urowsE + '</div>';
+
+    html = qbEmp + kpisE + heroE + colaCard + secGridE + urgCardE + notasCard;
   }
 
   box.innerHTML =
-    '<style>@media(max-width:760px){#inicioV2 .iv2-money,#inicioV2 .iv2-split{grid-template-columns:1fr!important}#inicioV2 .iv2-acts-emp{grid-template-columns:1fr 1fr!important}#inicioV2 .iv2-today>div{flex:1 1 45%!important}#inicioV2 .iv2-today>div:last-child{margin-left:0!important;flex-basis:100%!important;text-align:left!important}}</style>' +
-    row1 + row2 + row3 + row4;
+    '<style>@media(max-width:760px){#inicioV2 .iv2-money,#inicioV2 .iv2-sec{grid-template-columns:1fr!important}#inicioV2 .iv2-kpis{grid-template-columns:1fr 1fr!important}#inicioV2 .iv2-qb>div{min-width:86px!important;font-size:11px!important}}</style>' +
+    html;
+  try { _iv2RenderNotas(); } catch (e) {}
 }
+
+// ─── Notas y recordatorios en Inicio V2 (reutiliza el mismo store/persistencia que el clásico) ───
+function _iv2RenderNotas() {
+  var box = document.getElementById('iv2-notas'); if (!box) return;
+  if (!window._notasCargadas) { window._notasCargadas = true; cargarNotasRecordatorios(function() { _iv2RenderNotas(); }); return; }
+  var recs = window._recordatorios || [];
+  var recsHtml = recs.length ? recs.map(function(r, i) {
+    var rl = (typeof _recLabel === 'function') ? _recLabel(r) : { txt: '', overdue: false, soon: false };
+    var col = r.d ? 'var(--muted)' : (rl.overdue ? 'var(--red)' : (rl.soon ? 'var(--orange)' : 'var(--muted)'));
+    var fecha = rl.txt ? (' <span style="font-size:10px;font-weight:700;color:' + col + '">· ' + escHtml(rl.txt) + '</span>') : '';
+    return '<div style="display:flex;align-items:center;gap:7px;padding:5px 0;border-bottom:1px solid var(--border)">' +
+      '<input type="checkbox" ' + (r.d ? 'checked' : '') + ' onchange="_iv2ToggleRec(' + i + ')" style="cursor:pointer">' +
+      '<span style="flex:1;font-size:12px;' + (r.d ? 'text-decoration:line-through;color:var(--muted)' : '') + '">' + escHtml(r.t || '') + fecha + '</span>' +
+      '<button onclick="_iv2DelRec(' + i + ')" style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;line-height:1">×</button></div>';
+  }).join('') : '<div style="font-size:11px;color:var(--muted);padding:5px 0">' + T('notas.sin_recordatorios') + '</div>';
+  box.innerHTML =
+    '<textarea id="iv2NotasTa" placeholder="' + escHtml(T('notas.ph')) + '" oninput="_iv2SaveNotas()" style="width:100%;box-sizing:border-box;min-height:56px;resize:vertical;border:1px solid var(--border);border-radius:8px;padding:8px;font-size:12px;font-family:inherit;background:var(--card);color:var(--text)"></textarea>' +
+    '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin:10px 0 4px">✔️ ' + T('notas.recordatorios') + '</div>' +
+    recsHtml +
+    '<div style="display:flex;gap:5px;margin-top:8px">' +
+      '<input id="iv2RecInput" placeholder="' + escHtml(T('notas.nuevo_ph')) + '" onkeydown="if(event.key===\'Enter\')_iv2AddRec()" style="flex:1;min-width:0;border:1px solid var(--border);border-radius:7px;padding:6px 8px;font-size:12px;font-family:inherit">' +
+      '<input id="iv2RecFecha" type="date" style="border:1px solid var(--border);border-radius:7px;padding:5px;font-size:11px">' +
+      '<button onclick="_iv2AddRec()" style="background:var(--orange);color:#fff;border:none;border-radius:7px;padding:6px 11px;font-size:14px;cursor:pointer">+</button>' +
+    '</div>';
+  var ta = document.getElementById('iv2NotasTa'); if (ta) ta.value = (typeof window._pedNotas === 'string') ? window._pedNotas : '';
+}
+function _iv2SaveNotas() {
+  var ta = document.getElementById('iv2NotasTa'); if (!ta) return;
+  window._pedNotas = ta.value;
+  if (window._pedNotasTimer) clearTimeout(window._pedNotasTimer);
+  window._pedNotasTimer = setTimeout(function() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas }); }, 800);
+}
+function _iv2AddRec() {
+  var inp = document.getElementById('iv2RecInput'), fe = document.getElementById('iv2RecFecha');
+  if (!inp) return;
+  var t = (inp.value || '').trim(); if (!t) return;
+  window._recordatorios = window._recordatorios || [];
+  window._recordatorios.unshift({ t: t, f: (fe && fe.value) || null, d: false });
+  _guardarRecordatorios(); _iv2RenderNotas(); try { if (typeof refreshNotifs === 'function') refreshNotifs(); } catch (e) {}
+}
+function _iv2ToggleRec(i) { var r = (window._recordatorios || [])[i]; if (!r) return; r.d = !r.d; _guardarRecordatorios(); _iv2RenderNotas(); }
+function _iv2DelRec(i) { if (!window._recordatorios) return; window._recordatorios.splice(i, 1); _guardarRecordatorios(); _iv2RenderNotas(); }
 
 // ─── VISTA NEGOCIO (ADMIN, financiero estilo render 3-pro) ───
 function renderInicioAdmin(reps, enRep, listas, urgentes) {
