@@ -14960,6 +14960,12 @@ async function guardarTienda() {
       mensaje: ((document.getElementById('cobroMensaje')||{}).value || '').trim()
     }
   };
+  // Defensa en profundidad: un plan sin 'financiado' NO persiste datos de cobro online.
+  // (La sección está gateada en la UI; esto cubre una manipulación por consola.) Se preserva
+  // la config previa en vez de sobrescribirla con lo leído del DOM.
+  if (typeof tieneFeature === 'function' && !tieneFeature('financiado')) {
+    t.cobroDatos = prev.cobroDatos || (typeof TIENDA !== 'undefined' && TIENDA.cobroDatos) || {};
+  }
   localStorage.setItem('tk_tienda', JSON.stringify(t));
   Object.assign(TIENDA, t);
   // VIS-1: dTienda muestra saludo, no nombre de tienda. Actualizamos sidebar.
