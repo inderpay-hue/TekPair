@@ -7664,8 +7664,9 @@ function actualizarAvisoGarantia() {
   if (!SEL.rCli) { alert.style.display = 'none'; return; }
   var marca = document.getElementById('rMarca').value.trim();
   var modelo = document.getElementById('rModelo').value.trim();
-  if (!marca && !modelo) { alert.style.display = 'none'; return; }
-  var info = checkGarantia(SEL.rCli.id, marca, modelo, null, ((SEL.rCli.nombre || '') + ' ' + (SEL.rCli.apellidos || '')).trim());
+  var imei = (document.getElementById('rImei') || {}).value || '';
+  if (!marca && !modelo && !imei) { alert.style.display = 'none'; return; }
+  var info = checkGarantia(SEL.rCli.id, marca, modelo, null, ((SEL.rCli.nombre || '') + ' ' + (SEL.rCli.apellidos || '')).trim(), imei);
   if (!info) { alert.style.display = 'none'; return; }
   var fechaPrev = info.rep.fechaEntregaReal;
   alert.innerHTML = '<strong style="color:var(--blue)">🛡️ ' + T('rep.en_garantia') + '</strong><br>' +
@@ -10675,7 +10676,7 @@ function renderReps() {
       if (r.estado === 'Presupuesto' || r.estado === 'Rechazado') return false;
       if (r.esGarantia) return true;
       if (r.clienteId || r.clienteNombre) {
-        var _g = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre);
+        var _g = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre, r.imei);
         return !!(_g && _g.rep && _g.rep.id !== r.id);
       }
       return false;
@@ -10719,7 +10720,7 @@ function renderReps() {
     if (r.esGarantia) {
       badgeGarantia = '<br><span class="badge bp">Garantia</span>';
     } else if ((r.clienteId || r.clienteNombre) && r.estado !== 'Entregado' && r.estado !== 'Rechazado') {
-      var info = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre);
+      var info = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre, r.imei);
       if (info && info.rep.id !== r.id) {
         badgeGarantia = '<br><span class="badge-garantia" title="Reparación previa entregada el ' + info.rep.fechaEntregaReal + ' (' + info.dias + ' días)">🛡️ ' + T('rep.en_garantia') + '</span>';
       }
@@ -17354,7 +17355,7 @@ function abrirDetalleRep(repId) {
   var cli = r.clienteId ? DB.clis.find(function(c){ return c.id === r.clienteId; }) : null;
 
   // Check garantía
-  var infoGar = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre);
+  var infoGar = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre, r.imei);
 
   var html = '';
   // Cabecera
@@ -17824,25 +17825,23 @@ function getDiasGarantia() {
 
 // Comprueba si una nueva avería del mismo cliente y modelo está dentro de garantía
 // Devuelve la rep anterior + días transcurridos, o null
-function checkGarantia(cliId, marca, modelo, fechaActual, clienteNombre) {
+function checkGarantia(cliId, marca, modelo, fechaActual, clienteNombre, imei) {
   // Si la tienda desactivó garantía → no detectar
   if (TIENDA.garRepActiva === false) return null;
-  if (!cliId && !clienteNombre) return null;
+  // GAR-IMEI: el IMEI/nº de serie identifica el APARATO físico → es el match más fiable
+  // (no depende de que el nombre del cliente o el modelo estén escritos igual). Solo dígitos.
+  var imeiN = String(imei || '').replace(/\D/g, '');
+  if (imeiN.length < 6) imeiN = ''; // demasiado corto → no fiable
+  if (!imeiN && !cliId && !clienteNombre) return null;
   var diasGlobal = getDiasGarantia();
   if (!diasGlobal || diasGlobal <= 0) return null;
   var fechaRef = fechaActual ? _parseDateAny(fechaActual) : new Date();
   if (!fechaRef) fechaRef = new Date();
   var marcaN = _norm(marca||'');
   var modeloN = _norm(modelo||'');
-  if (!modeloN) return null; // sin modelo no podemos comparar
+  if (!imeiN && !modeloN) return null; // sin IMEI y sin modelo no podemos comparar
   var nombreNorm = _norm(clienteNombre || '');
   var candidatas = DB.reps.filter(function(r) {
-    // Match cliente: por cliId exacto, o por nombre normalizado como fallback
-    var matchCli = (cliId && r.clienteId === cliId);
-    if (!matchCli && nombreNorm && r.clienteNombre) {
-      matchCli = _norm(r.clienteNombre) === nombreNorm;
-    }
-    if (!matchCli) return false;
     if (r.estado !== 'Entregado' || !r.fechaEntregaReal) return false;
     var fe = _parseDateAny(r.fechaEntregaReal);
     if (!fe) return false;
@@ -17851,11 +17850,17 @@ function checkGarantia(cliId, marca, modelo, fechaActual, clienteNombre) {
     if (diasRep <= 0) return false; // rep marcada "sin garantía"
     var diff = (fechaRef - fe) / 86400000;
     if (diff < 0 || diff > diasRep) return false;
+    // 1) Match por IMEI (prioritario): mismo aparato, aunque cliente/modelo difieran.
+    var rImeiN = String(r.imei || '').replace(/\D/g, '');
+    if (imeiN && rImeiN.length >= 6 && rImeiN === imeiN) return true;
+    // 2) Fallback clásico: mismo cliente (por id o nombre) + mismo modelo.
+    if (!modeloN) return false;
+    var matchCli = (cliId && r.clienteId === cliId);
+    if (!matchCli && nombreNorm && r.clienteNombre) matchCli = _norm(r.clienteNombre) === nombreNorm;
+    if (!matchCli) return false;
+    if (_norm(r.modelo||'') !== modeloN) return false;
     var mr = _norm(r.marca||'');
-    var mm = _norm(r.modelo||'');
-    var marcaCoincide = !marcaN || !mr || mr === marcaN;
-    var modeloCoincide = mm === modeloN;
-    return marcaCoincide && modeloCoincide;
+    return (!marcaN || !mr || mr === marcaN);
   }).sort(function(a,b){
     return _parseDateAny(b.fechaEntregaReal) - _parseDateAny(a.fechaEntregaReal);
   });
