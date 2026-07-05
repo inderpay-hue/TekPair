@@ -28,6 +28,26 @@ function _paisPrefijo() {
   try { if (typeof AJUSTES !== 'undefined' && AJUSTES && AJUSTES.paisPrefijo) return String(AJUSTES.paisPrefijo).replace(/\D/g, '') || '34'; } catch (e) {}
   return '34';
 }
+// Marco legal MÍNIMO de garantía en ventas según el país de la tienda (AJUSTES.paisPrefijo).
+// Criterio conservador: solo afirmamos ley donde la conocemos (ES y UE). El resto → 'otro' (aviso neutro).
+// Devuelve { zona:'ES'|'UE'|'otro', nuevoMin, usadoMin } (en meses; 0 = sin mínimo legal afirmado).
+function _garantiaLegalPais() {
+  var p = _paisPrefijo();
+  if (p === '34') return { zona: 'ES', nuevoMin: 36, usadoMin: 12 };            // España — RDL 7/2024
+  if (['351', '33', '39', '49'].indexOf(p) !== -1) return { zona: 'UE', nuevoMin: 24, usadoMin: 24 }; // Portugal/Francia/Italia/Alemania — Directiva UE 2019/771 (2 años)
+  return { zona: 'otro', nuevoMin: 0, usadoMin: 0 };                            // Resto: sin cifra legal afirmada
+}
+// Actualiza el subtítulo legal dinámico del bloque "Garantía en ventas" (Ajustes) según el país.
+function _actualizarGarLeyLine() {
+  var el = document.getElementById('gvGarLeyLine');
+  if (!el) return;
+  var leg = _garantiaLegalPais();
+  var txt;
+  if (leg.zona === 'ES') txt = T('stock.gar_ley_es').replace('{nuevo}', leg.nuevoMin).replace('{usado}', leg.usadoMin);
+  else if (leg.zona === 'UE') txt = T('stock.gar_ley_ue');
+  else txt = T('stock.gar_ley_otro');
+  el.textContent = txt;
+}
 // Normaliza un teléfono para enlaces wa.me: solo dígitos + prefijo de país si falta.
 // wa.me exige número internacional sin '+'. Acepta un prefijo explícito (p.ej. el del cliente,
 // cliente.telPrefijo '+52'); si no, usa el prefijo del país de la tienda (AJUSTES.paisPrefijo).
@@ -11997,28 +12017,38 @@ function actualizarAvisoStock() {
   if (TIENDA.gvAvisoLegal === false) { aviso.style.display = 'none'; return; }
   var tipo = window._stockTipoSel || 'nuevo';
   var m = window._stockGarantiaMeses || 0;
-  var html = '', bg = '', color = '', border = '';
-  if (tipo === 'nuevo') {
-    if (m >= 36) {
-      html = '✅ <strong>Nuevo + '+m+' meses</strong> cumple ley España (RDL 7/2024)';
-      bg = '#D1FAE5'; border = '#00C896'; color = '#065F46';
+  var leg = _garantiaLegalPais();
+  // Paletas: OK (verde, cumple) · WRN (ámbar, no cumple) · INFO (azul, neutro informativo)
+  var OK = { bg: '#D1FAE5', border: '#00C896', color: '#065F46' };
+  var WRN = { bg: '#FEF3C7', border: '#F59E0B', color: '#78350F' };
+  var INFO = { bg: '#EFF6FF', border: '#3B82F6', color: '#1E3A8A' };
+  var html = '', st;
+  if (leg.zona === 'ES') {
+    var minES = (tipo === 'nuevo') ? leg.nuevoMin : leg.usadoMin;
+    if (m >= minES) {
+      html = (tipo === 'nuevo' ? T('stock.av_es_nuevo_ok') : T('stock.av_es_usado_ok')).replace('{m}', m).replace('{min}', minES);
+      st = OK;
     } else {
-      html = '⚠️ <strong>Atención:</strong> productos NUEVOS necesitan mínimo 36 meses por ley española.';
-      bg = '#FEF3C7'; border = '#F59E0B'; color = '#78350F';
+      html = (tipo === 'nuevo' ? T('stock.av_es_nuevo_wrn') : T('stock.av_es_usado_wrn')).replace('{min}', minES);
+      st = WRN;
+    }
+  } else if (leg.zona === 'UE') {
+    if (m >= leg.nuevoMin) {
+      html = T('stock.av_ue_ok').replace('{m}', m);
+      st = OK;
+    } else {
+      html = T('stock.av_ue_wrn');
+      st = WRN;
     }
   } else {
-    if (m >= 12) {
-      html = '✅ <strong>Segunda mano + '+m+' meses</strong> cumple mínimo legal (12 meses)';
-      bg = '#D1FAE5'; border = '#00C896'; color = '#065F46';
-    } else {
-      html = '⚠️ <strong>Atención:</strong> productos USADOS necesitan mínimo 12 meses por ley.';
-      bg = '#FEF3C7'; border = '#F59E0B'; color = '#78350F';
-    }
+    // País sin marco legal afirmado: aviso NEUTRO, sin cifras ni afirmar leyes.
+    html = T('stock.av_neutro');
+    st = INFO;
   }
   aviso.style.display = 'block';
-  aviso.style.background = bg;
-  aviso.style.borderLeft = '3px solid '+border;
-  aviso.style.color = color;
+  aviso.style.background = st.bg;
+  aviso.style.borderLeft = '3px solid ' + st.border;
+  aviso.style.color = st.color;
   aviso.innerHTML = html;
 }
 
@@ -14984,7 +15014,8 @@ function cargarTienda() {
   toggleGarRep();
   toggleGarVen();
   aplicarGatingGarantias();
-  
+  try { _actualizarGarLeyLine(); } catch(e){}
+
   renderLogoPreview(t.logo_url || '');
 }
 
