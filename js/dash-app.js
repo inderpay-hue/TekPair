@@ -7002,7 +7002,7 @@ function verFinanciado(id) {
     if (v.entrada) html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:rgba(0,200,150,.08)"><div style="font-size:13px;font-weight:600">' + T('finv.entrada') + ' · ' + cur(v.entrada) + '</div><span style="color:var(--green);font-size:11px;font-weight:700">✓</span></div>';
     html += _cobrR;
   }
-  if (v.estadoFinanciado !== 'completado' && tienePerm('ventas_editar')) {
+  if (tienePerm('ventas_editar')) {
     html += '<button class="btn-secondary" style="margin-top:12px;border-color:var(--orange);color:var(--orange-d,#C2491A)" onclick="editarTotalFinanciado(\'' + id + '\')">✏️ ' + T('fin.editar_total') + '</button>';
   }
   html += '<button class="btn-secondary" style="margin-top:8px" onclick="closeM(&quot;finModal&quot;)">Cerrar</button>';
@@ -7028,8 +7028,9 @@ function editarTotalFinanciado(vid) {
     if (!isFinite(nuevo) || nuevo <= 0) { toast(T('fin.total_invalido'), 'err'); return; }
     nuevo = Math.round(nuevo * 100) / 100;
     if (nuevo < cobrado) { toast(T('fin.min_cobrado').replace('{c}', cur(cobrado)), 'err'); return; }
-    if (!pendientes.length && nuevo !== cobrado) { toast(T('fin.todas_pagadas'), 'err'); return; }
-    // Redistribuir el pendiente entre las cuotas NO pagadas (las pagadas no se tocan).
+    // #43: redistribuir el pendiente entre las cuotas NO pagadas (las pagadas no se tocan).
+    // Si la financiada ya estaba completada (sin cuotas pendientes) y se SUBE el total, se crea
+    // una nueva cuota pendiente por la diferencia y se reactiva la financiación.
     var nuevoPendiente = Math.round((nuevo - cobrado) * 100) / 100;
     if (pendientes.length) {
       var per = Math.floor((nuevoPendiente / pendientes.length) * 100) / 100;
@@ -7040,6 +7041,9 @@ function editarTotalFinanciado(vid) {
         if (k === pendientes.length) { c.importe = Math.round((nuevoPendiente - acum) * 100) / 100; }
         else { c.importe = per; acum = Math.round((acum + per) * 100) / 100; }
       });
+    } else if (nuevoPendiente > 0) {
+      var _ultFecha = (v.cuotas.length && v.cuotas[v.cuotas.length - 1].fecha) || (new Date().toISOString().slice(0, 10));
+      v.cuotas.push({ num: v.cuotas.length + 1, importe: nuevoPendiente, fecha: _ultFecha, pagado: false, formaPago: '', fechaPago: '' });
     }
     v.total = nuevo;
     // Recalcular base/IVA desde el nuevo total para que la factura cuadre.
@@ -7048,7 +7052,7 @@ function editarTotalFinanciado(vid) {
       v.base = Math.round((nuevo / (1 + rate)) * 100) / 100;
       v.ivaImporte = Math.round((nuevo - v.base) * 100) / 100;
     } else { v.base = nuevo; v.ivaImporte = 0; }
-    if (v.cuotas.every(function(c){ return c.pagado; })) v.estadoFinanciado = 'completado';
+    v.estadoFinanciado = v.cuotas.every(function(c){ return c.pagado; }) ? 'completado' : 'activo';
     guardarDatos();
     if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { total: v.total, base: v.base, iva_importe: v.ivaImporte, cuotas: JSON.stringify(v.cuotas), estado_financiado: v.estadoFinanciado || 'activo' });
     audit('editar', 'venta', vid, '', null);
