@@ -7,26 +7,11 @@
 //   AYU-3: reply_to solo si el email tiene formato válido (evita relay de phishing)
 
 import jwt from 'jsonwebtoken';
+import { rateLimit } from './_lib/ratelimit.js';
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
 
-// AYU-2: rate limit en memoria
-const _rateLimits = new Map();
-function _rateCheck(key, maxAttempts, windowMs) {
-  const now = Date.now();
-  let entry = _rateLimits.get(key);
-  if (!entry || now > entry.resetAt) {
-    entry = { count: 0, resetAt: now + windowMs };
-  }
-  entry.count++;
-  _rateLimits.set(key, entry);
-  if (_rateLimits.size > 1000) {
-    for (const [k, v] of _rateLimits.entries()) {
-      if (now > v.resetAt) _rateLimits.delete(k);
-    }
-  }
-  return entry.count <= maxAttempts;
-}
+// AYU-2: rate limit distribuido vía api/_lib/ratelimit.js (Upstash + fallback en memoria).
 function _getClientIp(req) {
   return (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
     .toString().split(',')[0].trim();
@@ -62,7 +47,8 @@ export default async function handler(req, res) {
   const _accionIA = req.query.action || (req.body && req.body.action);
   if (_accionIA === 'parse-pedido' || _accionIA === 'parse-factura') {
     const uId = payload.sub || payload.user_id || 'unknown';
-    if (!_rateCheck('parseia:user:' + uId, 30, 10 * 60 * 1000)) {
+    const _rlIA = await rateLimit('ayuda:parseia:user:' + uId, 30, 10 * 60);
+    if (!_rlIA.ok) {
       return res.status(429).json({ error: 'Demasiados análisis seguidos. Espera unos minutos.' });
     }
     return _accionIA === 'parse-factura' ? parseFacturaIA(req, res) : parsePedidoIA(req, res);
@@ -73,10 +59,12 @@ export default async function handler(req, res) {
   //   - 10 mensajes / hora por IP (anti spam masivo desde misma IP)
   const ip = _getClientIp(req);
   const userId = payload.sub || payload.user_id || 'unknown';
-  if (!_rateCheck('ayuda:user:' + userId, 3, 10 * 60 * 1000)) {
+  const _rlUser = await rateLimit('ayuda:user:' + userId, 3, 10 * 60);
+  if (!_rlUser.ok) {
     return res.status(429).json({ error: 'Demasiados mensajes. Espera unos minutos.' });
   }
-  if (!_rateCheck('ayuda:ip:' + ip, 10, 60 * 60 * 1000)) {
+  const _rlIp = await rateLimit('ayuda:ip:' + ip, 10, 60 * 60);
+  if (!_rlIp.ok) {
     return res.status(429).json({ error: 'Demasiadas solicitudes. Espera una hora.' });
   }
 

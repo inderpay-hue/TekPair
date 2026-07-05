@@ -10,6 +10,7 @@
 
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { rateLimit } from './_lib/ratelimit.js';
 
 // F195: traducir mensajes de error al idioma del cliente (body.lang o Accept-Language).
 function _apiLang(req) {
@@ -33,22 +34,8 @@ function _loc(msg, req) {
 
 const BCRYPT_ROUNDS = 10;
 
-// REG-11: rate limiting — máx 5 registros por IP cada hora
-// Previene creación masiva de cuentas y abuso del trial gratuito
-const _regLimits = new Map();
-function _checkRegLimit(ip) {
-  const now = Date.now();
-  const WINDOW = 60 * 60 * 1000; // 1 hora
-  const MAX = 5;
-  let e = _regLimits.get(ip);
-  if (!e || now > e.resetAt) e = { count: 0, resetAt: now + WINDOW };
-  e.count++;
-  _regLimits.set(ip, e);
-  if (_regLimits.size > 500) {
-    for (const [k, v] of _regLimits) if (now > v.resetAt) _regLimits.delete(k);
-  }
-  return e.count <= MAX;
-}
+// REG-11: rate limiting — máx 5 registros por IP cada hora (distribuido vía api/_lib/ratelimit.js).
+// Previene creación masiva de cuentas y abuso del trial gratuito.
 function _getIp(req) {
   return ((req.headers['x-forwarded-for'] || '') + '').split(',')[0].trim()
     || (req.socket && req.socket.remoteAddress) || 'unknown';
@@ -59,7 +46,8 @@ export default async function handler(req, res) {
 
   // REG-11: rate limit por IP
   const ip = _getIp(req);
-  if (!_checkRegLimit(ip)) {
+  const _rl = await rateLimit('register:' + ip, 5, 60 * 60);
+  if (!_rl.ok) {
     return res.status(429).json({ error: _loc('Demasiados intentos de registro. Espera un momento.', req) });
   }
 

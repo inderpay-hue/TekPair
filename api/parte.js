@@ -2,37 +2,14 @@
 // Devuelve datos publicos de una reparacion si el token es correcto.
 // Endurecido v2: headers de seguridad, validacion estricta, rate limit suave.
 
-// Rate limit en memoria (resets en cold start, suficiente para frenar scraping bobo).
-// Para mas robustez se podria usar Upstash Redis o similar.
-const rateLimit = new Map();
-const RATE_WINDOW_MS = 60_000; // 1 min
-const RATE_MAX = 60;            // 60 reqs/min/IP
+// Rate limit distribuido vía api/_lib/ratelimit.js (Upstash + fallback en memoria): 60 reqs/min/IP.
+import { rateLimit } from './_lib/ratelimit.js';
 
 function getClientIp(req) {
   const xff = req.headers['x-forwarded-for'];
   if (typeof xff === 'string' && xff.length) return xff.split(',')[0].trim();
   return req.socket && req.socket.remoteAddress ? req.socket.remoteAddress : 'unknown';
 }
-
-function checkRateLimit(ip) {
-  const now = Date.now();
-  const entry = rateLimit.get(ip);
-  if (!entry || now - entry.start > RATE_WINDOW_MS) {
-    rateLimit.set(ip, { start: now, count: 1 });
-    return true;
-  }
-  entry.count++;
-  if (entry.count > RATE_MAX) return false;
-  return true;
-}
-
-// Limpieza periodica para no crecer infinitamente
-setInterval(() => {
-  const now = Date.now();
-  for (const [ip, e] of rateLimit) {
-    if (now - e.start > RATE_WINDOW_MS * 2) rateLimit.delete(ip);
-  }
-}, 60_000).unref?.();
 
 const ID_RE = /^r[0-9a-z_]{8,40}$/i; // acepta r<timestamp>_<random6>
 const TOKEN_RE = /^[a-z0-9]{12,32}$/;
@@ -50,7 +27,8 @@ export default async function handler(req, res) {
 
   // Rate limit (común a todas las acciones)
   const ip = getClientIp(req);
-  if (!checkRateLimit(ip)) {
+  const _rl = await rateLimit(`parte:${ip}`, 60, 60);
+  if (!_rl.ok) {
     res.setHeader('Retry-After', '60');
     return res.status(429).json({ error: 'Demasiadas peticiones, intenta en un minuto' });
   }

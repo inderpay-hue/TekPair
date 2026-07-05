@@ -16,6 +16,7 @@
 
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
+import { rateLimit } from './_lib/ratelimit.js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
@@ -64,17 +65,8 @@ async function verificarJWT(token) {
 }
 
 // ── Rate limit ───────────────────────────────────────────────────────────────
-const rateLimitMap = new Map();
-function checkRateLimit(ip, max = 3, windowMs = 3600000) {
-  const now = Date.now();
-  const key = `ip:${ip}`;
-  let e = rateLimitMap.get(key);
-  if (!e || now > e.resetAt) e = { count: 0, resetAt: now + windowMs };
-  e.count++;
-  rateLimitMap.set(key, e);
-  if (rateLimitMap.size > 1000) for (const [k,v] of rateLimitMap) if (now > v.resetAt) rateLimitMap.delete(k);
-  return e.count <= max;
-}
+// Distribuido vía api/_lib/ratelimit.js. Sub-scope compartido por IP (`cita:ip:${ip}`),
+// como antes: cada acción incrementa el mismo contador y lo compara con su propio límite.
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function san(s, max) { if (s == null) return ''; s = String(s).trim(); return max ? s.slice(0, max) : s; }
@@ -190,7 +182,8 @@ async function getCitasDia(slug, fecha) {
 }
 
 async function crearCita(body, ip) {
-  if (!checkRateLimit(ip)) return { ok:false, error:'Demasiadas reservas desde tu IP. Vuelve a intentarlo en una hora.', status:429 };
+  const _rl = await rateLimit(`cita:ip:${ip}`, 3, 3600);
+  if (!_rl.ok) return { ok:false, error:'Demasiadas reservas desde tu IP. Vuelve a intentarlo en una hora.', status:429 };
   const t = await getTienda(body.slug); if (!t.ok) return t;
   const tienda = t.tienda;
   const nombre  = san(body.cliente_nombre, 100);
@@ -364,7 +357,8 @@ async function presGet(token) {
 
 // PRES-C-3: Cliente acepta el presupuesto (público)
 async function presAceptar(body, ip) {
-  if (!checkRateLimit(ip, 5, 3600000)) return { ok:false, error:'Demasiados intentos. Espera un momento.', status:429 };
+  const _rl = await rateLimit(`cita:ip:${ip}`, 5, 3600);
+  if (!_rl.ok) return { ok:false, error:'Demasiados intentos. Espera un momento.', status:429 };
 
   const token = san(body.token, 200);
   const firma = body.firma || null; // base64 PNG opcional
@@ -459,7 +453,8 @@ async function enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url) {
 }
 
 async function presRechazar(body, ip) {
-  if (!checkRateLimit(ip, 5, 3600000)) return { ok:false, error:'Demasiados intentos. Espera un momento.', status:429 };
+  const _rl = await rateLimit(`cita:ip:${ip}`, 5, 3600);
+  if (!_rl.ok) return { ok:false, error:'Demasiados intentos. Espera un momento.', status:429 };
 
   const token = san(body.token, 200);
   if (!token || token.length < 20) return { ok:false, error:'Token inválido', status:400 };
