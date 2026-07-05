@@ -8,27 +8,18 @@
 //   CHK-7: mensajes de error genéricos al cliente (sin filtrar info Stripe interna)
 //   CHK-8: aceptar tanto 'top' como 'premium' como ID de plan para consistencia
 
-// CHK-RATE: rate limiting — máx 10 peticiones por IP cada hora
-// Previene creación masiva de sesiones Stripe
-const _chkLimits = new Map();
-function _checkChkLimit(ip) {
-  const now = Date.now();
-  const WINDOW = 60 * 60 * 1000;
-  const MAX = 10;
-  let e = _chkLimits.get(ip);
-  if (!e || now > e.resetAt) e = { count: 0, resetAt: now + WINDOW };
-  e.count++;
-  _chkLimits.set(ip, e);
-  if (_chkLimits.size > 500) for (const [k,v] of _chkLimits) if (now > v.resetAt) _chkLimits.delete(k);
-  return e.count <= MAX;
-}
+// CHK-RATE: rate limiting — máx 10 peticiones por IP cada hora (distribuido vía api/_lib/ratelimit.js).
+// Previene creación masiva de sesiones Stripe.
+import { rateLimit } from './_lib/ratelimit.js';
+
 function _getIpChk(req) {
   return ((req.headers['x-forwarded-for'] || '') + '').split(',')[0].trim() || 'unknown';
 }
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
-  if (!_checkChkLimit(_getIpChk(req))) {
+  const _rl = await rateLimit('checkout:' + _getIpChk(req), 10, 60 * 60);
+  if (!_rl.ok) {
     return res.status(429).json({ error: 'Demasiados intentos. Espera un momento.' });
   }
 

@@ -8,6 +8,8 @@
 //   POR-3: return_url dinámico según origen
 //   POR-4: validación robusta de stripe_customer_id (trim de espacios)
 
+import { rateLimit } from './_lib/ratelimit.js';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -31,6 +33,12 @@ export default async function handler(req, res) {
     // POR-2: rechazar sesiones caducadas
     if (sess.expires_at && new Date(sess.expires_at) < new Date()) {
       return res.status(401).json({ error: 'Sesión caducada' });
+    }
+
+    // Rate limit por usuario/tienda de la sesión: 20 peticiones / 60 s (distribuido).
+    const _rl = await rateLimit('portal:' + (sess.tienda_id || sess.usuario_id || 'anon'), 20, 60);
+    if (!_rl.ok) {
+      return res.status(429).json({ error: 'Demasiadas peticiones. Espera un momento.' });
     }
 
     // POR-1: verificar que el usuario sea ADMIN

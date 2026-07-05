@@ -17,6 +17,7 @@
 import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
+import { rateLimit } from './_lib/ratelimit.js';
 
 // F195: traducir mensajes de error al idioma del cliente (body.lang o Accept-Language).
 function _apiLang(req) {
@@ -47,31 +48,7 @@ function _loc(msg, req) {
   return (t && t[l]) || msg;
 }
 
-// L4+L5: rate limiting en memoria.
-// Aguanta spam/fuerza bruta casual. Para multi-instancia Vercel migrar a Upstash.
-// Cada instancia Vercel tiene su propio Map → si Vercel escala el ataque puede
-// rotar instancias, pero en plan Hobby suele ser 1-2 instancias.
-const _rateLimits = new Map();
-
-function _rateCheck(key, maxAttempts, windowMs) {
-  const now = Date.now();
-  let entry = _rateLimits.get(key);
-  if (!entry || now > entry.resetAt) {
-    entry = { count: 0, resetAt: now + windowMs };
-  }
-  entry.count++;
-  _rateLimits.set(key, entry);
-
-  // Limpieza periódica para no llenar memoria
-  if (_rateLimits.size > 1000) {
-    for (const [k, v] of _rateLimits.entries()) {
-      if (now > v.resetAt) _rateLimits.delete(k);
-    }
-  }
-
-  return entry.count <= maxAttempts;
-}
-
+// L4+L5: rate limiting DISTRIBUIDO vía api/_lib/ratelimit.js (Upstash + fallback en memoria).
 function _getClientIp(req) {
   return (req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown')
     .toString().split(',')[0].trim();
@@ -584,11 +561,13 @@ export default async function handler(req, res) {
     // a varios usuarios desde la misma IP).
     const srIp = _getClientIp(req);
     const srEmailLower = srEmail.toLowerCase();
-    if (!_rateCheck('reset:email:' + srEmailLower, 1, 5 * 60 * 1000)) {
+    const _rlResetEmail = await rateLimit('login:reset:email:' + srEmailLower, 1, 5 * 60);
+    if (!_rlResetEmail.ok) {
       // Devolvemos ok igualmente para no revelar nada (igual que cuando el email no existe)
       return res.json({ ok: true });
     }
-    if (!_rateCheck('reset:ip:' + srIp, 5, 60 * 60 * 1000)) {
+    const _rlResetIp = await rateLimit('login:reset:ip:' + srIp, 5, 60 * 60);
+    if (!_rlResetIp.ok) {
       return res.status(429).json({ error: _loc('Demasiadas solicitudes. Espera una hora.', req) });
     }
 
@@ -861,8 +840,9 @@ export default async function handler(req, res) {
   // Doble clave (IP+email) para que un atacante no pueda bloquear a un usuario solo
   // probando su email desde una IP cualquiera.
   const ip = _getClientIp(req);
-  const rateKey = 'login:' + ip + ':' + email.toLowerCase();
-  if (!_rateCheck(rateKey, 10, 15 * 60 * 1000)) {
+  const rateKey = 'login:pwd:' + ip + ':' + email.toLowerCase();
+  const _rlLogin = await rateLimit(rateKey, 10, 15 * 60);
+  if (!_rlLogin.ok) {
     return res.status(429).json({ error: _loc('Demasiados intentos. Espera unos minutos.', req) });
   }
 

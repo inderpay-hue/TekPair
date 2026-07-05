@@ -8,6 +8,7 @@
 //   EM-4: límite del PDF base64 (máx 4MB para no reventar Vercel Hobby body limit)
 
 import jwt from 'jsonwebtoken';
+import { rateLimit } from './_lib/ratelimit.js';
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
 const SUPABASE_URL = process.env.SUPABASE_URL;
@@ -32,19 +33,7 @@ function emailValido(e) {
 
 // AUD-fix: rate limit por tienda para que una cuenta (trial gratis) no use el dominio
 // tekpair.tech como plataforma de spam/phishing con destinatarios y adjuntos arbitrarios.
-// En memoria por instancia (mitigación parcial en serverless; suficiente para cortar abuso masivo).
-const _emailLimits = new Map();
-function _emailRateOk(tid) {
-  const now = Date.now();
-  const WINDOW = 60 * 60 * 1000; // 1 hora
-  const MAX = 40;                // 40 emails/hora/tienda (holgado para facturas legítimas)
-  let e = _emailLimits.get(tid);
-  if (!e || now > e.resetAt) e = { count: 0, resetAt: now + WINDOW };
-  e.count++;
-  _emailLimits.set(tid, e);
-  if (_emailLimits.size > 1000) { for (const [k, v] of _emailLimits) if (now > v.resetAt) _emailLimits.delete(k); }
-  return e.count <= MAX;
-}
+// 40 emails/hora/tienda (holgado para facturas legítimas), distribuido vía api/_lib/ratelimit.js.
 
 // EM-1: verificar JWT + sesión activa en BD
 async function autenticar(req) {
@@ -76,8 +65,11 @@ export default async function handler(req, res) {
   if (!payload) return res.status(401).json({ error: 'No autorizado' });
 
   // AUD-fix: rate limit por tienda (salvo el cron del servidor).
-  if (!cronAuth && payload.tienda_id && !_emailRateOk(payload.tienda_id)) {
-    return res.status(429).json({ error: 'Límite de envíos alcanzado. Inténtalo más tarde.' });
+  if (!cronAuth && payload.tienda_id) {
+    const _rl = await rateLimit('email:' + payload.tienda_id, 40, 60 * 60);
+    if (!_rl.ok) {
+      return res.status(429).json({ error: 'Límite de envíos alcanzado. Inténtalo más tarde.' });
+    }
   }
 
   const KEY = process.env.RESEND_API_KEY;
