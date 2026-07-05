@@ -2429,6 +2429,14 @@ function cerrarCodigoCaja() {
 }
 
 function navTo(id) {
+  // Gating por plan: una página cuya feature NO incluye el plan no se abre por NINGUNA vía
+  // (clic, deep-link #hash, ?page=, programática) → se ofrece mejorar. Va en el propio navTo
+  // (no en un wrapper diferido con setTimeout) para que el arranque/deep-link no lo evada.
+  var _pageFeat = { pCitas:'citas', pPedidos:'pedidos', pGastos:'gastos', pServicios:'catalogo_servicios', pCajas:'cajas_multiservicio', pUsuarios:'permisos_usuarios' };
+  if (_pageFeat[id] && typeof tieneFeature === 'function' && !tieneFeature(_pageFeat[id])) {
+    if (typeof checkFeature === 'function') checkFeature(_pageFeat[id]);
+    return;
+  }
   // Inicio por plan: el Inicio nuevo (avanzado) es de Premium. Básico/Pro van al panel Clásico.
   // Inicio por plan: Básico/Pro ahora usan el Inicio moderno recortado (ya NO se redirige al Clásico).
   // Cajas: si el admin denegó el permiso a este trabajador, no puede abrirla ni por enlace directo
@@ -18266,6 +18274,7 @@ function procesarImport() {
 }
 
 function restaurarBackup() {
+  if (!checkFeature('backup')) return;
   if (!tienePerm('herramientas_backup')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var file = document.getElementById('backupFile').files[0];
   if (!file) { toast(T('tst.selecciona_archivo'), 'err'); return; }
@@ -18339,6 +18348,7 @@ function restaurarBackup() {
 }
 
 function backupManual() {
+  if (!checkFeature('backup')) return;
   if (!tienePerm('herramientas_backup')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var data = JSON.stringify(DB, null, 2);
   var blob = new Blob([data], {type: 'application/json'});
@@ -18634,6 +18644,7 @@ function exportarCSV(tipo) {
 }
 
 async function importarBackup(event) {
+  if (!checkFeature('backup')) return;
   var file = event.target.files[0];
   if (!file) return;
   var nombre = file.name.toLowerCase();
@@ -19575,6 +19586,7 @@ function guardarHorariosLocal() {
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {horarios: TIENDA.horarios});
 }
 function guardarConfigCitas() {
+  if (!checkFeature('citas')) return;
   var dur = parseInt(document.getElementById('citasDuracion').value) || 30;
   TIENDA.citas_config = {duracion_min: dur};
   localStorage.setItem('tk_tienda', JSON.stringify(Object.assign({}, JSON.parse(localStorage.getItem('tk_tienda')||'{}'), {citas_config: TIENDA.citas_config})));
