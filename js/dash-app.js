@@ -4003,21 +4003,20 @@ function renderInicioNuevo() {
   // Cargar pedidos (ambas vistas los usan)
   if (!DB.pedidos && typeof cargarPedidos === 'function') { cargarPedidos(function() { renderInicioNuevo(); }); }
 
-  // ── Inicio por plan: Tablero y periodos Semana/Mes son de Premium ──
-  var invAvanzado = (typeof tieneFeature === 'function') ? tieneFeature('inicio_avanzado') : true; // Tablero: Premium
+  // ── Inicio por plan: los periodos Semana/Mes son de Pro+ (analitica).
+  //    El TABLERO se retiró: el Inicio es único (V2 · Resumen). El código del tablero se
+  //    conserva por si se reactiva, pero se oculta el selector y se fuerza la vista Resumen.
   var invPeriodos = (typeof tieneFeature === 'function') ? tieneFeature('analitica') : true;        // Semana/Mes: Pro+
   (function() {
-    var tabBtn = document.querySelector('#pInicioNuevo .inv-vbtn[data-v="tablero"]');
-    if (tabBtn) tabBtn.style.display = invAvanzado ? '' : 'none';
+    var vistasCont = document.querySelector('#pInicioNuevo .inv-vistas');
+    if (vistasCont) vistasCont.style.display = 'none'; // Tablero retirado → sin selector Resumen/Tablero
     var segBtns = document.querySelectorAll('#pInicioNuevo .inv-seg button');
     for (var i = 1; i < segBtns.length; i++) segBtns[i].style.display = invPeriodos ? '' : 'none'; // Semana/Mes: Pro+ (analitica)
     if (!invPeriodos) window._invPer = 'hoy';
-    if (!invAvanzado && (window._invVista || '') === 'tablero') { window._invVista = 'resumen'; try { localStorage.setItem('tk_inicio_vista', 'resumen'); } catch (e) {} }
   })();
 
-  // Vista activa (paginador Resumen / Tablero)
-  var vista = window._invVista || localStorage.getItem('tk_inicio_vista') || 'resumen';
-  if (!invAvanzado) vista = 'resumen'; // Básico/Pro: forzar Resumen
+  // Vista única: Resumen (Tablero retirado).
+  var vista = 'resumen';
   window._invVista = vista;
   try { Array.prototype.forEach.call(document.querySelectorAll('#pInicioNuevo .inv-vbtn'), function(b){ b.classList.toggle('on', b.getAttribute('data-v') === vista); }); } catch(e){}
   var editBtn = document.getElementById('inv-edit-btn'); if (editBtn) editBtn.style.display = puede ? '' : 'none'; // personalizar: solo admin
