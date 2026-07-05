@@ -125,7 +125,7 @@ async function migrarUsuarioABcrypt(SB_URL, SK, usuarioId, plainPwd) {
     await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(usuarioId)}`, {
       method: 'PATCH',
       headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ password_hash_v2: hashV2 })
+      body: JSON.stringify({ password_hash_v2: hashV2, password_hash: null })
     });
     console.log('Usuario migrado a bcrypt:', usuarioId);
   } catch (e) {

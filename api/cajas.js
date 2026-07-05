@@ -622,7 +622,8 @@ export default async function handler(req, res) {
           `cajas?id=in.(${cajasIds.map(encodeURIComponent).join(',')})&select=id,nombre,icono`
         ) : [];
         const cmpsInfo = cmpIds.length ? await sbGet(
-          `cajas_companias?id=in.(${cmpIds.map(encodeURIComponent).join(',')})&select=id,nombre`
+          // AUD-fix: filtrar por tienda_id para no exponer el nombre de una compañía de otra tienda.
+          `cajas_companias?id=in.(${cmpIds.map(encodeURIComponent).join(',')})&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id,nombre`
         ) : [];
         const mapCaja = Object.fromEntries(cajasInfo.map(c => [c.id, c]));
         const mapCmp = Object.fromEntries(cmpsInfo.map(c => [c.id, c]));
@@ -649,8 +650,9 @@ export default async function handler(req, res) {
           caja_id, compania_id, cierre_id, fecha, importe,
           cliente_nombre, cliente_telefono, nota
         } = req.body || {};
-        if (!caja_id || !fecha || !importe) {
-          return err(res, 400, 'caja_id, fecha e importe obligatorios');
+        const _impCrear = Number(importe);
+        if (!caja_id || !fecha || !importe || !Number.isFinite(_impCrear) || _impCrear <= 0) {
+          return err(res, 400, 'caja_id, fecha e importe (>0) obligatorios');
         }
         // Verificar caja
         const cajas = await sbGet(
@@ -663,7 +665,7 @@ export default async function handler(req, res) {
           compania_id: compania_id || null,
           cierre_id: cierre_id || null,
           fecha,
-          importe: Number(importe),
+          importe: _impCrear,
           cliente_nombre: cliente_nombre || null,
           cliente_telefono: cliente_telefono || null,
           nota: nota || null,
@@ -681,6 +683,8 @@ export default async function handler(req, res) {
         if (importe !== undefined) {
           const puedeEditarImporte = await tienePermisoCaja(payload, 'cobrar');
           if (!puedeEditarImporte) return err(res, 403, 'No tienes permiso para modificar el importe');
+          const _impEd = Number(importe);
+          if (!Number.isFinite(_impEd) || _impEd <= 0) return err(res, 400, 'Importe inválido (>0)');
         }
         const patch = {};
         if (cliente_nombre !== undefined) patch.cliente_nombre = cliente_nombre;

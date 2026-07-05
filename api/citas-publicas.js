@@ -15,6 +15,7 @@
 // =====================================================
 
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY;
@@ -525,7 +526,13 @@ export default async function handler(req, res) {
   let result;
   try {
     switch (body.action) {
-      case 'get-tienda':      result = await getTienda(body.slug); break;
+      case 'get-tienda': {
+        const _gt = await getTienda(body.slug);
+        // AUD-fix: no exponer el email de la tienda (identificador de login) en la acción pública.
+        if (_gt.ok && _gt.tienda) { const pub = { ..._gt.tienda }; delete pub.email; result = { ok: true, tienda: pub }; }
+        else result = _gt;
+        break;
+      }
       case 'get-servicios':   result = await getServicios(body.slug); break;
       case 'get-citas-dia':   result = await getCitasDia(body.slug, body.fecha); break;
       case 'crear-cita':      result = await crearCita(body, ip); break;
