@@ -117,6 +117,12 @@ export default async function handler(req, res) {
       } catch(e) { console.warn('No se pudo recuperar info de Stripe:', e.message); }
     }
 
+    // AUD-fix: exigir una sesión de Checkout REAL y completada. Sin esto, un POST directo sin
+    // session_id (o con uno inválido) crearía una cuenta trial saltándose el checkout/captura de tarjeta.
+    if (!session || session.error || !stripeCustomerId || session.status !== 'complete') {
+      return res.status(400).json({ error: 'Sesión de pago no válida' });
+    }
+
     // Validar que tengamos datos mínimos tras leer Stripe
     if (!email || !nombre) {
       return res.status(400).json({ error: _loc('Faltan datos', req) });

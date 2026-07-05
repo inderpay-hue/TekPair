@@ -124,6 +124,17 @@ export default async function handler(req, res) {
     const tiendaNombre = meta.tienda_nombre || (nombre + ' - Tienda');
     const lang = meta.lang || 'es';
 
+    // AUD-fix: paridad con register.js (REG-4). `usuarios.email` no tiene UNIQUE, así que sin este
+    // chequeo dos entregas concurrentes del webhook podrían crear cuentas/emails duplicados.
+    try {
+      const dupR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=id&limit=1`, {headers: sbHeaders});
+      const dup = await dupR.json();
+      if (Array.isArray(dup) && dup.length) {
+        console.warn('crearCuentaDesdeCheckout: ya existe usuario con ese email, no se crea duplicado:', email);
+        return null;
+      }
+    } catch (e) { console.error('crearCuenta dup-check error:', e); }
+
     // Leer trial_end / current_period_end de la suscripción (como register.js)
     let trialUntil = null, planUntil = null;
     if (subId && STRIPE_KEY) {
@@ -318,6 +329,9 @@ export default async function handler(req, res) {
         else if (status === 'past_due' || status === 'unpaid') planStatus = 'past_due';
         else if (status === 'canceled' || status === 'incomplete_expired') planStatus = 'cancelled';
         else if (status === 'active') planStatus = 'active';
+        // AUD-fix: 'incomplete' (pago inicial no completado, p.ej. add-on con SCA) y 'paused' NO deben
+        // dar acceso pleno; antes caían en el default 'active'. Los tratamos como past_due (sin acceso pleno).
+        else if (status === 'incomplete' || status === 'paused') planStatus = 'past_due';
 
         const tienda = await findTienda({customerId, subId});
         if (tienda) {
@@ -592,9 +606,11 @@ export default async function handler(req, res) {
 // ═══ Helpers ═══
 async function getRawBody(req) {
   return new Promise((resolve, reject) => {
-    let data = '';
-    req.on('data', chunk => { data += chunk; });
-    req.on('end', () => resolve(data));
+    // AUD-fix: acumular como Buffer. Concatenar como string decodifica cada chunk por separado y
+    // corrompe caracteres UTF-8 multibyte partidos en el límite de un chunk → firma válida rechazada.
+    const chunks = [];
+    req.on('data', chunk => { chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)); });
+    req.on('end', () => resolve(Buffer.concat(chunks)));
     req.on('error', reject);
   });
 }
@@ -623,7 +639,9 @@ function verifyStripeSignature(payload, sig, secret) {
     throw new Error('Timestamp outside tolerance window (possible replay attack)');
   }
 
-  const signedPayload = `${timestamp}.${payload}`;
+  // AUD-fix: HMAC sobre los bytes exactos (payload es Buffer tras el fix de getRawBody).
+  const payloadBuf = Buffer.isBuffer(payload) ? payload : Buffer.from(String(payload), 'utf8');
+  const signedPayload = Buffer.concat([Buffer.from(`${timestamp}.`, 'utf8'), payloadBuf]);
   const expectedSig = crypto.createHmac('sha256', secret).update(signedPayload).digest('hex');
   const expectedBuf = Buffer.from(expectedSig, 'hex');
 
@@ -643,5 +661,5 @@ function verifyStripeSignature(payload, sig, secret) {
   }
   if (!valid) throw new Error('Invalid signature');
 
-  return JSON.parse(payload);
+  return JSON.parse(payloadBuf.toString('utf8'));
 }

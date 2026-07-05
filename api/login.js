@@ -930,6 +930,11 @@ export default async function handler(req, res) {
     if (planStatus === 'past_due') {
       if (planUntil && new Date(planUntil) < new Date(Date.now() - 7*86400000)) accessAllowed = false;
     }
+    // AUD-fix: un trial con trial_until vencido no debe conservar acceso (defensa en profundidad
+    // por si el webhook de Stripe no convirtió el estado del plan a active/past_due/cancelled).
+    if (planStatus === 'trial') {
+      if (trialUntil && new Date(trialUntil) < new Date()) accessAllowed = false;
+    }
     if (!accessAllowed) {
       return res.json({ error: 'Tu suscripción ha expirado. Renuévala desde tekpair.tech', plan_expired: true });
     }
