@@ -1018,8 +1018,14 @@ var AJ_TAB_MAP = { negocio: 'negocio', prefs: 'apariencia', notif: 'notif', cuen
 
 // Conmutador del rail de Ajustes (rediseño): muestra una sección a la vez.
 function ajSec(id, btn) {
-  document.querySelectorAll('#ajRail .aj-nav').forEach(function(t){ t.classList.remove('active'); });
   var navBtn = btn || document.querySelector('#ajRail .aj-nav[data-sec="' + id + '"]');
+  // Gating por plan: una sección con data-feat que el plan NO incluye no se abre; se ofrece mejorar.
+  var _feat = navBtn && navBtn.dataset ? navBtn.dataset.feat : '';
+  if (_feat && typeof tieneFeature === 'function' && !tieneFeature(_feat)) {
+    if (typeof checkFeature === 'function') checkFeature(_feat);
+    return;
+  }
+  document.querySelectorAll('#ajRail .aj-nav').forEach(function(t){ t.classList.remove('active'); });
   if (navBtn) navBtn.classList.add('active');
   document.querySelectorAll('#ajContent .aj-sec').forEach(function(p){ p.classList.remove('active'); });
   var sec = document.getElementById('ajSec-' + id);
