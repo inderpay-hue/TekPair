@@ -4026,6 +4026,9 @@ function renderInicioNuevo() {
   var empEl = document.getElementById('inv-emp');
   var tbEl = document.getElementById('inv-tablero');
   var segEl = document.querySelector('#pInicioNuevo .inv-seg');
+  // Barra de acciones compartida del HTML (arriba): visible por defecto; V2 la oculta porque trae la suya.
+  var actsTopEl = document.querySelector('#pInicioNuevo .inv-actions-top');
+  if (actsTopEl) actsTopEl.style.display = '';
 
   if (vista === 'tablero') {
     if (admEl) admEl.style.display = 'none';
@@ -4099,6 +4102,9 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
   }
   if (host) host.style.display = 'none';
   if (empHost) empHost.style.display = 'none';
+  // V2 trae su propia barra de acciones arriba → ocultar la barra compartida del HTML para no duplicar.
+  var _actsTop = document.querySelector('#pInicioNuevo .inv-actions-top');
+  if (_actsTop) _actsTop.style.display = 'none';
   box.style.display = '';
   if (dinero === undefined) dinero = !window._previewInicio2Emp; // compat: sin arg → deriva del flag preview
 
