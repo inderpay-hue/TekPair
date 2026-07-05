@@ -25,6 +25,11 @@ function timingSafeEq(a, b) {
 
 export default async function handler(req, res) {
   // CRON-1: verificar con timing-safe comparison
+  // AUD-fix: fail-closed si CRON_SECRET no está configurado (si no, 'Bearer undefined' pasaría).
+  if (!process.env.CRON_SECRET) {
+    console.error('[cron-trial] CRON_SECRET no configurado — fail-closed');
+    return res.status(500).json({ error: 'Server misconfigured' });
+  }
   const expected = `Bearer ${process.env.CRON_SECRET}`;
   const got = req.headers['authorization'] || '';
   if (!timingSafeEq(expected, got)) {

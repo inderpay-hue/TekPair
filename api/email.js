@@ -30,6 +30,22 @@ function emailValido(e) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 }
 
+// AUD-fix: rate limit por tienda para que una cuenta (trial gratis) no use el dominio
+// tekpair.tech como plataforma de spam/phishing con destinatarios y adjuntos arbitrarios.
+// En memoria por instancia (mitigación parcial en serverless; suficiente para cortar abuso masivo).
+const _emailLimits = new Map();
+function _emailRateOk(tid) {
+  const now = Date.now();
+  const WINDOW = 60 * 60 * 1000; // 1 hora
+  const MAX = 40;                // 40 emails/hora/tienda (holgado para facturas legítimas)
+  let e = _emailLimits.get(tid);
+  if (!e || now > e.resetAt) e = { count: 0, resetAt: now + WINDOW };
+  e.count++;
+  _emailLimits.set(tid, e);
+  if (_emailLimits.size > 1000) { for (const [k, v] of _emailLimits) if (now > v.resetAt) _emailLimits.delete(k); }
+  return e.count <= MAX;
+}
+
 // EM-1: verificar JWT + sesión activa en BD
 async function autenticar(req) {
   const auth = req.headers.authorization || '';
@@ -58,6 +74,11 @@ export default async function handler(req, res) {
   const cronAuth = process.env.CRON_SECRET && (req.headers.authorization || '') === `Bearer ${process.env.CRON_SECRET}`;
   const payload = cronAuth ? { cron: true } : await autenticar(req);
   if (!payload) return res.status(401).json({ error: 'No autorizado' });
+
+  // AUD-fix: rate limit por tienda (salvo el cron del servidor).
+  if (!cronAuth && payload.tienda_id && !_emailRateOk(payload.tienda_id)) {
+    return res.status(429).json({ error: 'Límite de envíos alcanzado. Inténtalo más tarde.' });
+  }
 
   const KEY = process.env.RESEND_API_KEY;
   if (!KEY) return res.status(500).json({ error: 'RESEND_API_KEY no configurada' });

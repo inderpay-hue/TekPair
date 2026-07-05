@@ -435,10 +435,13 @@ export default async function handler(req, res) {
         const cierreExistente = cierresExistentes[0] || null;
 
         if (cierreExistente && cierreExistente.estado === 'cerrado') {
-          if (caja.permiso_editar_cerrada === 'nadie' && !esSuperAdmin(payload)) {
+          // AUD-fix: default restrictivo. Solo 'todos' deja a cualquier empleado editar/reabrir un
+          // cierre cerrado; 'nadie' → solo superadmin; cualquier otro valor (incl. null/'admin') → admin.
+          const permisoCerr = caja.permiso_editar_cerrada || 'admin';
+          if (permisoCerr === 'nadie' && !esSuperAdmin(payload)) {
             return err(res, 403, 'Cierre bloqueado');
           }
-          if (caja.permiso_editar_cerrada === 'admin' && !esAdminTienda(payload)) {
+          if (permisoCerr !== 'todos' && !esAdminTienda(payload)) {
             return err(res, 403, 'Solo admin puede editar cierres cerrados');
           }
         }
