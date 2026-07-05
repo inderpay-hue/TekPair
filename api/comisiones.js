@@ -77,8 +77,9 @@ const ACCIONES_CRITICAS = [
 // valores absurdos como 99999 o -50. Ahora rechaza fuera de rango.
 function normalizarComisionPct(raw, fallback = 20) {
   if (raw === undefined || raw === null || raw === '') return fallback;
-  const n = parseInt(raw, 10);  // COM-11: radix explícito
-  if (isNaN(n) || n < 0 || n > 100) return null;  // null = inválido, el caller debe rechazar
+  // AUD-fix: Number + isInteger rechaza '50abc'/'33.9' (parseInt los truncaba y aceptaba).
+  const n = Number(raw);
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0 || n > 100) return null;  // null = inválido
   return n;
 }
 
@@ -420,24 +421,30 @@ export default async function handler(req, res) {
           const RESEND_KEY = process.env.RESEND_API_KEY;
           if (RESEND_KEY) {
             const subject = 'Bienvenido al programa de afiliados de TekPair';
+            // AUD-fix: escapar campos dinámicos en el HTML del email al afiliado.
+            const _escH = s => String(s == null ? '' : s).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+            const nombreE = _escH(String(nombre).trim().split(' ')[0]);
+            const emailE = _escH(emailNorm);
+            const codigoE = _escH(codigoNorm);
+            const passE = _escH(password_plano);
             const htmlBody = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:-apple-system,Arial,sans-serif;max-width:580px;margin:0 auto;padding:24px;color:#0F172A">
 <div style="background:linear-gradient(135deg,#0055FF,#10B981);color:white;padding:24px;border-radius:14px 14px 0 0">
   <div style="font-size:11px;font-weight:700;letter-spacing:1px;opacity:.9">PROGRAMA DE AFILIADOS</div>
-  <h1 style="margin:8px 0 0;font-size:26px;font-weight:800">Bienvenido al equipo, ${nombre.trim().split(' ')[0]}</h1>
+  <h1 style="margin:8px 0 0;font-size:26px;font-weight:800">Bienvenido al equipo, ${nombreE}</h1>
 </div>
 <div style="background:white;border:1px solid #E2E8F0;border-top:none;padding:24px;border-radius:0 0 14px 14px">
   <p style="font-size:15px;line-height:1.6;color:#475569">Has sido dado de alta como comercial afiliado de <strong>TekPair</strong>. A partir de ahora, cada cliente que captes con tu código te dará una comisión recurrente.</p>
 
   <div style="background:#F8FAFC;border-radius:10px;padding:16px;margin:20px 0">
     <div style="font-size:11px;font-weight:700;color:#64748B;letter-spacing:1px;margin-bottom:10px">TUS CREDENCIALES DE ACCESO</div>
-    <div style="margin-bottom:8px"><strong style="color:#64748B;font-size:13px;display:inline-block;width:90px">Email:</strong> <span style="font-family:monospace;font-size:14px">${emailNorm}</span></div>
-    <div><strong style="color:#64748B;font-size:13px;display:inline-block;width:90px">Contraseña:</strong> <span style="font-family:monospace;font-size:14px;background:#FEF3C7;padding:2px 8px;border-radius:4px">${password_plano}</span></div>
+    <div style="margin-bottom:8px"><strong style="color:#64748B;font-size:13px;display:inline-block;width:90px">Email:</strong> <span style="font-family:monospace;font-size:14px">${emailE}</span></div>
+    <div><strong style="color:#64748B;font-size:13px;display:inline-block;width:90px">Contraseña:</strong> <span style="font-family:monospace;font-size:14px;background:#FEF3C7;padding:2px 8px;border-radius:4px">${passE}</span></div>
     <div style="font-size:12px;color:#94A3B8;margin-top:12px">Te recomendamos cambiar la contraseña al primer inicio de sesión.</div>
   </div>
 
   <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:16px;margin:20px 0">
     <div style="font-size:11px;font-weight:700;color:#10B981;letter-spacing:1px;margin-bottom:10px">TU CÓDIGO DE AFILIADO</div>
-    <div style="font-size:28px;font-weight:800;color:#0F172A;letter-spacing:2px;font-family:monospace">${codigoNorm}</div>
+    <div style="font-size:28px;font-weight:800;color:#0F172A;letter-spacing:2px;font-family:monospace">${codigoE}</div>
     <div style="font-size:13px;color:#475569;margin-top:8px">Cuando un cliente lo use al suscribirse a TekPair, recibe 50% descuento durante 3 meses y tú cobras el <strong>${comisionPct}%</strong> de comisión recurrente sobre cada pago.</div>
   </div>
 

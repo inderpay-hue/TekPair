@@ -192,8 +192,7 @@ export default async function handler(req, res) {
       const tx = await tR.text();
       console.error('Tienda creation error:', tR.status, tx);
       return res.status(500).json({
-        error: 'No se pudo crear la tienda. Contacta soporte.',
-        detail: tx.slice(0, 200)
+        error: 'No se pudo crear la tienda. Contacta soporte.'
       });
     }
 
@@ -237,8 +236,7 @@ export default async function handler(req, res) {
         });
       } catch (e) { console.warn('No se pudo limpiar tienda huérfana:', e); }
       return res.status(500).json({
-        error: 'No se pudo crear el usuario. Contacta soporte.',
-        detail: tx.slice(0, 200)
+        error: 'No se pudo crear el usuario. Contacta soporte.'
       });
     }
 
