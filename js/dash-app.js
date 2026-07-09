@@ -17733,7 +17733,19 @@ var PLANTILLAS_WA_DEFAULT = {
 };
 
 function getPlantillasWA() {
-  return AJUSTES.plantillasWA || PLANTILLAS_WA_DEFAULT;
+  if (AJUSTES.plantillasWA) return AJUSTES.plantillasWA;   // personalizadas de la tienda → tal cual
+  // Por defecto: nombre y TEXTO en el idioma de la tienda (i18n). Fallback al literal español.
+  var out = {};
+  Object.keys(PLANTILLAS_WA_DEFAULT).forEach(function(k) {
+    var d = PLANTILLAS_WA_DEFAULT[k] || {};
+    var nom = (typeof T === 'function') ? T('wa.pl_' + k) : '';
+    var txt = (typeof T === 'function') ? T('wa.txt_' + k) : '';
+    out[k] = {
+      nombre: (nom && nom !== 'wa.pl_' + k) ? nom : d.nombre,
+      texto: (txt && txt !== 'wa.txt_' + k) ? txt : d.texto
+    };
+  });
+  return out;
 }
 
 // Nombre de plantilla traducido: solo para las plantillas por defecto (las personalizadas
@@ -17753,7 +17765,11 @@ function aplicarVariablesWA(texto, datos) {
     .replace(/\{averia\}/g, datos.averia || '')
     .replace(/\{total\}/g, datos.total != null ? cur(datos.total) : '')
     .replace(/\{fecha\}/g, datos.fecha || '')
-    .replace(/\{estado\}/g, datos.estado || '');
+    .replace(/\{estado\}/g, datos.estado || '')
+    .replace(/\{link\}/g, datos.link || '')
+    .replace(/\{direccion\}/g, datos.direccion || (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.dir) || '')
+    .replace(/\{horario\}/g, datos.horario || (typeof _horarioResumen === 'function' ? _horarioResumen() : ''))
+    .replace(/\{telefono\}/g, datos.telefono || (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.tel) || '');
 }
 
 var _waContexto = null;
@@ -17824,7 +17840,8 @@ function abrirWhatsAppRep(repId) {
       modelo: r.modelo || '',
       averia: r.averia || '',
       total: r.total || 0,
-      estado: r.estado || ''
+      estado: r.estado || '',
+      link: (typeof linkParte === 'function') ? linkParte(r) : ''
     }
   };
   document.getElementById('waInfoCli').innerHTML = '<strong>📱 ' + esc(cli.nombre + ' ' + (cli.apellidos||'')) + '</strong> · ' + esc(cli.tel) + '<br><span style="color:var(--muted);font-size:11px">' + esc(r.marca + ' ' + r.modelo) + ' · ' + esc(r.averia||'') + '</span>';
@@ -17878,7 +17895,11 @@ function renderPreviewWA() {
   var plantillas = getPlantillasWA();
   var p = plantillas[key];
   if (!p) return;
-  document.getElementById('waMensaje').value = aplicarVariablesWA(p.texto, _waContexto.datos);
+  var msg = aplicarVariablesWA(p.texto, _waContexto.datos);
+  // Pie de contacto (dirección + mapa/horario/teléfono) en los avisos transaccionales de
+  // reparación por defecto (mismo criterio que WA_MSGS). No se añade a plantillas personalizadas.
+  if (!AJUSTES.plantillasWA && (key === 'rep_lista' || key === 'rep_recibida')) { try { msg += _waPie(); } catch (e) {} }
+  document.getElementById('waMensaje').value = msg;
 }
 
 // Registra un aviso (envío) en la tabla `avisos` — historial de comunicaciones.
