@@ -3845,6 +3845,10 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
           </div>
           <div id="repPiezasSug" style="display:none;flex-wrap:wrap;gap:6px;margin-bottom:8px"></div>
           <div id="partsList"></div>
+          <div style="margin-top:8px">
+            <button type="button" onclick="pedirPiezaRep()" title="Añadir una pieza que falta a Pedidos, vinculada a esta reparación" style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1.5px dashed #D97706;background:rgba(217,119,6,.06);color:#B45309;font-size:12.5px;font-weight:600;cursor:pointer">🛒 <span data-t="rep.pedir_pieza">Pedir pieza al proveedor</span></button>
+            <div id="repPedirList" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
+          </div>
         </div>
 
         <!-- Sección: Cobro y logística -->
