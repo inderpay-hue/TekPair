@@ -266,6 +266,30 @@ function _autoRenovarJWT(sess) {
   } catch (e) {}
 }
 
+// Guard "sin tienda activa": si tras el arranque (y el intento de _autoRenovarJWT) el usuario
+// está logueado pero TIENDA_ID sigue vacío, la app cargaría vacía y muda (todas las cargas hacen
+// `if (!TIENDA_ID) return`). En vez de eso, mostramos un aviso claro y accionable.
+function _guardTiendaActiva() {
+  if (TIENDA_ID) return;                                  // hay tienda → nada que hacer
+  if (typeof U === 'undefined' || !U) return;             // sin sesión (no debería llegar aquí)
+  if (sessionStorage.getItem('tk_jwt_renew_try') && !_jwtClaims(JWT_TOKEN)) return; // renovación en curso
+  if (document.getElementById('_noTiendaBg')) return;     // ya mostrado
+  var bg = document.createElement('div');
+  bg.id = '_noTiendaBg';
+  bg.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.78);display:flex;align-items:center;justify-content:center;padding:20px';
+  bg.innerHTML = '<div style="background:var(--card,#fff);border-radius:16px;max-width:420px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)">' +
+    '<div style="font-size:44px;margin-bottom:8px">🏪</div>' +
+    '<h2 style="font-size:19px;font-weight:800;margin:0 0 8px;color:var(--text,#1e293b)">' + T('ntienda.titulo') + '</h2>' +
+    '<p style="font-size:13.5px;color:var(--muted,#64748b);line-height:1.6;margin:0 0 20px">' + T('ntienda.desc') + '</p>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' +
+    '<button type="button" onclick="location.reload()" style="border:none;background:var(--blue,#2563eb);color:#fff;border-radius:10px;padding:12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">🔄 ' + T('ntienda.reintentar') + '</button>' +
+    '<button type="button" onclick="logout()" style="border:1px solid var(--border,#e2e8f0);background:transparent;color:var(--text,#1e293b);border-radius:10px;padding:12px;font:inherit;font-size:14px;font-weight:600;cursor:pointer">' + T('ntienda.salir') + '</button>' +
+    '</div>' +
+    '<p style="font-size:11.5px;color:var(--muted,#94a3b8);margin:16px 0 0">' + T('ntienda.soporte') + ' <a href="mailto:info@tekpair.tech" style="color:var(--blue,#2563eb);font-weight:600">info@tekpair.tech</a></p>' +
+    '</div>';
+  document.body.appendChild(bg);
+}
+
 // Refrescar plan desde /api/me (llamado al cargar)
 async function refrescarPlan() {
   if (!PLAN_INFO.token) return;
@@ -842,6 +866,9 @@ window.addEventListener('DOMContentLoaded', function() {
   setTimeout(function(){ try { _checkOnboarding(); } catch(e){} }, 1400);
   // Banner de novedades (1 vez por versión)
   setTimeout(function(){ try { mostrarNovedadesSiNuevo(); } catch(e){} }, 1600);
+  // Guard: si tras el arranque (dando margen a _autoRenovarJWT para recuperar/recargar) el
+  // usuario sigue sin tienda activa, avisar en vez de dejar el dashboard vacío y mudo.
+  setTimeout(function(){ try { _guardTiendaActiva(); } catch(e){} }, 3200);
 
   document.getElementById('uName').textContent = U.nombre || '';
   var tiendaLS = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
