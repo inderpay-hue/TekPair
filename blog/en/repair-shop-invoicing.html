@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoicing for your repair shop: invoices, VAT and receipts made simple | TekPair Blog</title>
+  <meta name="description" content="A practical invoicing guide for phone repair shops: when to give a receipt or an invoice, what an invoice must show, VAT on repairs and how to automate it." />
+  <meta name="keywords" content="repair shop invoicing, phone repair invoice, vat on phone repairs, receipt or invoice, simplified invoice repair shop" />
+  <link rel="canonical" href="https://www.tekpair.tech/blog/en/repair-shop-invoicing.html" />
+  <link rel="alternate" hreflang="es" href="https://www.tekpair.tech/blog/facturacion-taller-reparacion-moviles.html" />
+  <link rel="alternate" hreflang="en" href="https://www.tekpair.tech/blog/en/repair-shop-invoicing.html" />
+  <link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/blog/fr/facturation-atelier-reparation.html" />
+  <link rel="alternate" hreflang="it" href="https://www.tekpair.tech/blog/it/fatturazione-officina-riparazione.html" />
+  <link rel="alternate" hreflang="de" href="https://www.tekpair.tech/blog/de/rechnung-reparaturwerkstatt.html" />
+  <link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/blog/pt/faturacao-oficina-reparacao.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/blog/facturacion-taller-reparacion-moviles.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Invoicing for your repair shop: invoices, VAT and receipts made simple" />
+  <meta property="og:description" content="When to give a receipt or an invoice, what it must show, VAT on repairs and how TekPair automates your invoices." />
+  <meta property="og:url" content="https://www.tekpair.tech/blog/en/repair-shop-invoicing.html" />
+  <meta property="og:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <meta property="og:site_name" content="TekPair" />
+  <meta property="article:published_time" content="2026-07-09" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Invoicing for your repair shop: invoices, VAT and receipts made simple" />
+  <meta name="twitter:description" content="When to give a receipt or an invoice, what it must show, VAT on repairs and how TekPair automates your invoices." />
+  <meta name="twitter:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Invoicing for your repair shop: invoices, VAT and receipts made simple","description":"A practical invoicing guide for phone repair shops: when to give a receipt or an invoice, what an invoice must show, VAT on repairs and how to automate it.","author":{"@type":"Organization","name":"TekPair","url":"https://www.tekpair.tech"},"publisher":{"@type":"Organization","name":"TekPair","logo":{"@type":"ImageObject","url":"https://www.tekpair.tech/assets/logo.png"}},"datePublished":"2026-07-09","dateModified":"2026-07-09","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tekpair.tech/blog/en/repair-shop-invoicing.html"},"image":"https://www.tekpair.tech/assets/og-blog.png"}
+  </script>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Do I have to give an invoice to every customer?","acceptedAnswer":{"@type":"Answer","text":"Not always. For a private customer a receipt or simplified invoice is usually enough, but you must issue a full invoice when the customer asks for one or when they are a business that needs it to reclaim tax. Thresholds and rules vary by country, so check your local regulations."}},{"@type":"Question","name":"What VAT do I charge on a phone repair?","acceptedAnswer":{"@type":"Answer","text":"A repair is a service, so it normally carries your country's standard VAT rate. Labour and parts are usually charged at the same rate when invoiced together as a single repair. Always confirm the current rate for your territory."}},{"@type":"Question","name":"How long must I keep invoices?","acceptedAnswer":{"@type":"Answer","text":"Most countries require you to keep issued and received invoices for several years (often between 4 and 10) for tax purposes. Storing them digitally with a backup saves space and trouble if you are ever audited."}},{"@type":"Question","name":"Can I number invoices however I like?","acceptedAnswer":{"@type":"Answer","text":"Numbering must be sequential with no gaps within each series. You can use separate series (for example shop sales and repairs), but each one must follow a continuous order. Software that numbers automatically prevents gaps and duplicates."}}]}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --terracota: #C2410C; --terracota-dark: #9A3309; --terracota-light: #FEF0E8; --text: #1C1917; --text-muted: #78716C; --border: #E7E5E4; --bg: #FFFFFF; --bg-alt: #FAFAF9; }
+    body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--bg); line-height: 1.7; font-size: 17px; }
+    nav { border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; background: #fff; }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--terracota); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--terracota); }
+    .article-hero { background: var(--terracota-light); padding: 3.5rem 1.5rem 3rem; text-align: center; }
+    .article-hero .category { display: inline-block; background: var(--terracota); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.25rem 0.75rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .article-hero h1 { font-size: clamp(1.75rem, 4vw, 2.6rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.03em; max-width: 680px; margin: 0 auto 1rem; color: var(--text); }
+    .article-hero .intro { max-width: 600px; margin: 0 auto; color: var(--text-muted); font-size: 1.05rem; }
+    .article-meta { margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 1rem; }
+    .article-wrapper { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+    .toc { background: var(--bg-alt); border: 1px solid var(--border); border-left: 4px solid var(--terracota); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; }
+    .toc p { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--terracota); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .toc a { color: var(--text); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
+    .toc a:hover { color: var(--terracota); text-decoration: underline; }
+    h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 2.5rem 0 1rem; color: var(--text); scroll-margin-top: 16px; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 1.75rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1.1rem; color: #44403C; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    li { color: #44403C; }
+    strong { color: var(--text); font-weight: 600; }
+    .callout { background: var(--terracota-light); border-left: 4px solid var(--terracota); border-radius: 0 8px 8px 0; padding: 1.1rem 1.25rem; margin: 1.75rem 0; }
+    .callout p { margin: 0; color: #7C2D12; font-size: 0.95rem; }
+    .callout strong { color: #7C2D12; }
+    .table-wrap { overflow-x: auto; margin: 1.75rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th { background: var(--terracota); color: #fff; font-weight: 600; text-align: left; padding: 0.7rem 1rem; }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #44403C; }
+    tr:nth-child(even) td { background: var(--bg-alt); }
+    tr:last-child td { border-bottom: none; }
+    .checklist { list-style: none; padding: 0; margin: 1.25rem 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); color: #44403C; font-size: 0.95rem; }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before { content: "\2713"; flex-shrink: 0; width: 20px; height: 20px; background: var(--terracota); color: #fff; border-radius: 50%; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .faq-section { margin-top: 3rem; }
+    .faq-section h2 { margin-top: 0; }
+    details { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; }
+    summary { padding: 1rem 1.25rem; font-weight: 600; font-size: 0.97rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bg-alt); transition: background .2s; }
+    summary:hover { background: var(--terracota-light); }
+    summary::after { content: "+"; font-size: 1.2rem; color: var(--terracota); font-weight: 700; }
+    details[open] summary::after { content: "\2212"; }
+    details[open] summary { background: var(--terracota-light); }
+    .faq-body { padding: 1rem 1.25rem; font-size: 0.95rem; color: #44403C; }
+    .cta-box { background: var(--terracota); color: #fff; border-radius: 12px; padding: 2.5rem 2rem; text-align: center; margin-top: 3.5rem; }
+    .cta-box h2 { color: #fff; font-size: 1.5rem; margin: 0 0 0.75rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); margin-bottom: 1.5rem; font-size: 1rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--terracota); font-weight: 700; font-size: 0.95rem; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; transition: transform .15s, box-shadow .15s; }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+    footer a { color: var(--terracota); text-decoration: none; }
+    @media (max-width: 600px) { .nav-links { display: none; } .article-hero { padding: 2.5rem 1.25rem 2rem; } .article-wrapper { padding: 2rem 1.25rem 3rem; } }
+  </style>
+  <script src="/cookies-consent.js" defer></script>
+</head>
+<body>
+  <nav>
+    <a href="https://www.tekpair.tech" class="nav-logo">TekPair</a>
+    <div class="nav-links">
+      <a href="https://www.tekpair.tech/blog/">Blog</a>
+      <a href="https://www.tekpair.tech/#funcionalidades">Features</a>
+      <a href="https://www.tekpair.tech/#precios">Pricing</a>
+      <a href="https://www.tekpair.tech/app.html">Log in</a>
+    </div>
+  </nav>
+  <header class="article-hero">
+    <div class="category">Invoicing</div>
+    <h1>Invoicing for your repair shop: invoices, VAT and receipts made simple</h1>
+    <p class="intro">When a receipt is enough, when you need a full invoice, what it must show and how to apply VAT to a repair. A practical guide for the shop owner who wants no headaches with the tax office.</p>
+    <div class="article-meta">
+      <span>&#128197; July 9, 2026</span>
+      <span>&#9201; 9 min read</span>
+    </div>
+  </header>
+  <main class="article-wrapper">
+    <div class="toc" role="navigation" aria-label="In this article">
+      <p>In this article</p>
+      <ol><li><a href="#s1">Receipt or invoice: when to give each</a></li><li><a href="#s2">What an invoice must show</a></li><li><a href="#s3">VAT on repairs</a></li><li><a href="#s4">Simplified vs full invoice</a></li><li><a href="#s5">Numbering and record-keeping</a></li><li><a href="#s6">How TekPair automates it</a></li><li><a href="#faq">Frequently asked questions</a></li></ol>
+    </div>
+
+    <p>You're good at fixing phones. Invoicing, on the other hand, is usually the part nobody taught you. Do I hand over a receipt or an invoice? What VAT goes on a screen replacement? And what if the customer is a business that needs to reclaim the cost? Clearing up the doubts isn't hard once you know the basic rules, and much of the work can be automated.</p>
+    <p>This guide gets straight to what matters at the counter. One warning first: <strong>invoicing and VAT rules differ from country to country</strong>. We use Spain as an example here, but the general principles are similar almost everywhere; always confirm the detail with your local rules or your accountant.</p>
+
+    <h2 id="s1">1. Receipt or invoice: when to give each</h2>
+    <p>The practical difference is simple. The <strong>receipt</strong> (or simplified invoice) is the proof you hand a private customer by default on a small sale. The <strong>full invoice</strong> is a document with all of the customer's tax details, needed when that customer has to justify the expense or reclaim the VAT.</p>
+    <p>As a rule of thumb, you should issue a full invoice when:</p>
+    <ul><li>The customer is a <strong>business or self-employed</strong> and asks for one for their accounts.</li><li>A <strong>private customer specifically requests it</strong>, even for a small repair.</li><li>The amount exceeds the <strong>threshold</strong> your country sets for using a simplified invoice.</li></ul>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Situation</th><th>What to hand over</th></tr></thead>
+      <tbody>
+        <tr><td>Private customer, small repair</td><td>Receipt / simplified invoice</td></tr>
+        <tr><td>Private customer who asks for an invoice</td><td>Full invoice with their details</td></tr>
+        <tr><td>Business or self-employed</td><td>Full invoice (with their tax ID)</td></tr>
+        <tr><td>High amount</td><td>Full invoice, even for a private customer</td></tr>
+      </tbody>
+    </table></div>
+    <div class="callout"><p><strong>Mind the country:</strong> the amount above which a simplified invoice is no longer valid changes by territory, as do the record-keeping obligations. Wherever you are: always keep proof of every payment, even if it's just the receipt.</p></div>
+
+    <h2 id="s2">2. What an invoice must show</h2>
+    <p>A full invoice isn't just any slip of paper: to be valid for tax it needs a set of minimum details. Miss one and it stops working for reclaiming VAT. These are the usual ones:</p>
+    <ul class="checklist"><li>Invoice number and, where applicable, series</li><li>Date of issue (and date of the operation if different)</li><li>Your details: name or business name, address and tax ID</li><li>The customer's details, including their tax ID if they are a business or self-employed</li><li>Description of the repair: labour and parts</li><li>Taxable base, VAT rate applied and tax amount</li><li>Total to pay</li></ul>
+    <p>The <strong>description</strong> is where many shops fall short. "Repair" on its own isn't enough. Spell out the service ("screen replacement, model X" or "battery change") and, where relevant, separate parts from labour. The clearer it is, the fewer questions later.</p>
+
+    <h2 id="s3">3. VAT on repairs</h2>
+    <p>For tax purposes, a phone repair is a <strong>supply of services</strong>. In most countries that means applying the current <strong>standard VAT rate</strong> to the full repair, including both labour and parts when they are invoiced together as a single service.</p>
+    <p>A few points worth being clear about:</p>
+    <ul><li><strong>Parts and labour together:</strong> if you deliver a complete repair, the norm is a single VAT rate for the whole thing, not one rate for the part and another for the work.</li><li><strong>Selling accessories:</strong> if you also sell cases, chargers or phones, that's a sale of goods and follows its own VAT rules, which may or may not match those of the service.</li><li><strong>Price with or without VAT:</strong> decide whether your counter prices already include the tax (usual for private customers) or you add it on top, and be consistent on the receipt.</li></ul>
+    <div class="callout"><p><strong>A general principle, not a dogma:</strong> the exact rate and the special cases (exemptions, reduced regimes, cross-border transactions) depend on your country. If you deal with customers abroad or are unsure about a specific case, ask your accountant before issuing.</p></div>
+
+    <h2 id="s4">4. Simplified vs full invoice</h2>
+    <p>The simplified invoice (the "valid receipt") is faster because it doesn't require all of the customer's details. It's perfect for day-to-day counter work with private customers. The full invoice carries the customer's tax ID and lets them reclaim the VAT.</p>
+    <p>A comfortable flow for the shop is this: <strong>always issue proof</strong> on every payment (the receipt) and, if the customer asks, turn it into a full invoice by adding their tax details. That way you don't slow the queue and nobody leaves without a record.</p>
+    <h3>When you'll be asked for the full one</h3>
+    <p>Businesses repairing a work phone, the self-employed, and private customers who want to justify an expensive repair (for insurance, a third-party warranty, etc.). Having it ready in two clicks stops the customer coming back another day "for the invoice".</p>
+
+    <h2 id="s5">5. Numbering and record-keeping</h2>
+    <p>Two requirements that tend to go unnoticed until an audit turns up:</p>
+    <ul><li><strong>Sequential numbering:</strong> invoices must be numbered in order, with no gaps or duplicates within each series. You can keep separate series (for example, one for shop sales and one for repairs), but each must be continuous.</li><li><strong>Record-keeping:</strong> almost every country requires you to keep issued and received invoices for several years (often between 4 and 10). Storing them digitally, with a backup, is the most convenient and safest option.</li></ul>
+    <p>Doing this by hand, with a paper book or a spreadsheet, is where the classic errors creep in: repeated numbers, gaps in the series or invoices that go astray. It's exactly the kind of task to hand off to software.</p>
+    <div class="callout"><p><strong>Coming soon:</strong> in several countries, electronic invoicing and certified record-keeping systems (such as Verifactu or TicketBAI in Spain) are becoming mandatory. TekPair is working to support these systems <strong>soon</strong>; in the meantime, keep your invoices numbered and stored digitally.</p></div>
+
+    <h2 id="s6">6. How TekPair automates it</h2>
+    <p>The advantage of running the shop with software is that the invoice comes almost straight out of the repair itself. In <strong>TekPair</strong> the flow is direct:</p>
+    <ul><li><strong>From repair to invoice:</strong> with the device details, parts and labour already recorded, the invoice is generated without typing anything again.</li><li><strong>Automatic numbering:</strong> each invoice gets its sequential number, with no gaps or duplicates.</li><li><strong>VAT calculated:</strong> the tax is applied and broken out automatically on the base, at the rate you configure.</li><li><strong>Business details:</strong> if the customer is a business or self-employed, the invoice captures their tax ID so they can reclaim the VAT.</li><li><strong>Everything stored in the cloud:</strong> your invoices are kept and backed up, ready to look up or export whenever you need.</li></ul>
+    <div class="callout"><p><strong>TekPair</strong> turns any repair or sale into an invoice or receipt in a couple of clicks, with VAT broken out and numbering up to date. <a href="https://www.tekpair.tech" style="color:var(--terracota-dark);font-weight:600;">Try it free →</a></p></div>
+
+    <section class="faq-section" id="faq">
+      <h2>Frequently asked questions</h2>
+      <details><summary>Do I have to give an invoice to every customer?</summary><div class="faq-body">Not always. For a private customer a receipt or simplified invoice is usually enough, but you must issue a full invoice when the customer asks for one or when they are a business that needs it to reclaim tax. Thresholds and rules vary by country, so check your local regulations.</div></details><details><summary>What VAT do I charge on a phone repair?</summary><div class="faq-body">A repair is a service, so it normally carries your country's standard VAT rate. Labour and parts are usually charged at the same rate when invoiced together as a single repair. Always confirm the current rate for your territory.</div></details><details><summary>How long must I keep invoices?</summary><div class="faq-body">Most countries require you to keep issued and received invoices for several years (often between 4 and 10) for tax purposes. Storing them digitally with a backup saves space and trouble if you are ever audited.</div></details><details><summary>Can I number invoices however I like?</summary><div class="faq-body">Numbering must be sequential with no gaps within each series. You can use separate series (for example shop sales and repairs), but each one must follow a continuous order. Software that numbers automatically prevents gaps and duplicates.</div></details>
+    </section>
+
+    <div class="cta-box">
+      <h2>Invoice your repairs without the headaches</h2>
+      <p>TekPair generates invoices and receipts from every repair, with VAT broken out and automatic numbering. Start free and see it work.</p>
+      <a href="https://www.tekpair.tech" class="cta-btn">Start free with TekPair →</a>
+    </div>
+  </main>
+  <footer>
+    <p>&#169; 2026 <a href="https://www.tekpair.tech">TekPair</a> &middot; Management software for repair shops</p>
+    <p style="margin-top:0.5rem;">
+      <a href="https://www.tekpair.tech/blog/">Blog</a> &middot;
+      <a href="https://www.tekpair.tech/privacidad.html">Privacy</a> &middot;
+      <a href="https://www.tekpair.tech/terminos.html">Terms</a>
+    </p>
+  </footer>
+</body>
+</html>
