@@ -509,7 +509,9 @@ async function _onbFinalizar() {
   AJUSTES.moneda = d.moneda; AJUSTES.paisPrefijo = d.pais;
   try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
   if (SB_KEY && TIENDA_ID) {
-    try { await sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { nombre: d.nombre, tel: d.tel, dir: d.dir, cif: d.cif, cobro_datos: ls.cobroDatos }); } catch (e) {}
+    // ajustes_config lleva moneda/paisPrefijo → subirlo aquí deja la tienda nueva sincronizada
+    // desde el minuto 1 (antes solo se subía al guardar Ajustes manualmente).
+    try { await sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { nombre: d.nombre, tel: d.tel, dir: d.dir, cif: d.cif, cobro_datos: ls.cobroDatos, ajustes_config: AJUSTES }); } catch (e) {}
   }
   try { localStorage.setItem('tk_onb_done', '1'); } catch (e) {}
   var sb = document.getElementById('sidebarTienda'); if (sb) sb.textContent = d.nombre;
