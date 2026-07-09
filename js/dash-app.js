@@ -3733,7 +3733,7 @@ function calcularProximaAccion() {
       cta: { label: '📲 ' + T('estan.avisar'), fn: "avisarListo('" + r.id + "')" }, cta2: { label: '👁️ ' + T('estan.ver'), fn: "editarRep('" + r.id + "')" } });
   });
   // 2. Reparación más atrasada (>14 días en taller)
-  var atr = reps.filter(function(r) { if (CERR.indexOf(r.estado) !== -1) return false; var f = r.fecha || r.fecha_entrada; if (!f) return false; r._dtProx = Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000); return r._dtProx > 14; }).sort(function(a, b) { return b._dtProx - a._dtProx; });
+  var atr = reps.filter(function(r) { if (CERR.indexOf(r.estado) !== -1) return false; if (repEsperaPieza(r.id)) return false; var f = r.fecha || r.fecha_entrada; if (!f) return false; var dt = Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000); r._dtProx = Math.max(0, dt - _diasEsperandoPieza(r.id)); return r._dtProx > 14; }).sort(function(a, b) { return b._dtProx - a._dtProx; });
   if (atr.length) {
     var ra = atr[0], keyA = 'atr_' + ra.id;
     if (!_proxIsSkipped(keyA)) cands.push({ key: keyA, score: 700 + ra._dtProx * 2, icon: '⚠️', color: 'red',
@@ -3828,7 +3828,9 @@ function renderEstancadas() {
     if (CERR.indexOf(r.estado) !== -1) return false;
     var f = r.fecha || r.fecha_entrada; if (!f) return false;
     var d = Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000);
+    d = Math.max(0, d - _diasEsperandoPieza(r.id));   // pausa el reloj mientras espera pieza del proveedor
     r._diasTaller = d;
+    if (repEsperaPieza(r.id)) return false;            // esperando pieza AHORA → no es "estancada" del taller
     return d > 14;
   }).sort(function(a, b) { return b._diasTaller - a._diasTaller; });
   if (!est.length) { _inicioBuckets.estancadas = 0; box.style.display = 'none'; box.innerHTML = ''; return; }
@@ -9262,6 +9264,23 @@ function _crearPedidosDeRep(repId, repRef) {
 function repEsperaPieza(repId) {
   return (DB.pedidos || []).some(function(p) { return p.rep_id === repId && p.estado !== 'recibido'; });
 }
+// Días que la reparación ha estado/está esperando piezas del proveedor. NO cuentan
+// como tiempo de taller (no es retraso propio): se descuentan del "reloj" de días.
+// Deriva de los pedidos vinculados: desde que se pidió al proveedor (fecha_pedido)
+// hasta que se recibió (fecha_recibido) o, si sigue en camino, hasta hoy.
+function _diasEsperandoPieza(repId) {
+  var finDia = new Date(hoyLocal() + 'T23:59:59');
+  var max = 0;
+  (DB.pedidos || []).forEach(function(p) {
+    if (p.rep_id !== repId) return;
+    var ini = p.fecha_pedido || p.fecha_estimada;   // día en que se encargó al proveedor
+    if (!ini) return;                                 // aún 'por pedir' sin fecha → nada que descontar todavía
+    var fin = p.fecha_recibido ? new Date(String(p.fecha_recibido).slice(0, 10) + 'T23:59:59') : finDia;
+    var d = Math.floor((fin - new Date(String(ini).slice(0, 10) + 'T00:00:00')) / 86400000);
+    if (d > max) max = d;   // esperas solapadas → el periodo es el más largo, no la suma
+  });
+  return max;
+}
 // Al recibir un pedido vinculado a una reparación: avisa que la reparación puede continuar.
 function _avisarRepPiezaLista(p) {
   if (!p || !p.rep_id) return;
@@ -10707,23 +10726,25 @@ function renderRepsUrgenciaBanda() {
   var finDia = new Date(hoyLocal() + 'T23:59:59');
   var hoyISO = hoyLocal();
   var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
-  var urgentes = [], atrasadas = [], listas = [];
+  var urgentes = [], atrasadas = [], listas = [], esperando = [];
   (DB.reps || []).forEach(function(r) {
     if (['Por Entregar', 'Por entregar'].indexOf(r.estado) !== -1) { if (!_estaAvisado(r.id)) listas.push(r); return; }
     if (CERR.indexOf(r.estado) !== -1) return;
     var f = r.fecha || r.fecha_entrada;
-    r._diasTaller = f ? Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000) : 0;
+    var bruto = f ? Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000) : 0;
+    r._diasTaller = Math.max(0, bruto - _diasEsperandoPieza(r.id));   // reloj neto: descuenta la espera de pieza
+    // Esperando pieza del proveedor → grupo propio, NO urgente/atrasada (no es retraso del taller).
+    if (repEsperaPieza(r.id)) { esperando.push(r); return; }
     var fe = (r.fechaEntrega || '').slice(0, 10);
     if (r.prioridad === 'Urgente' || (fe && fe <= hoyISO)) urgentes.push(r);
-    // "Atrasada" = activa y >14 días en taller, MISMA definición que Home/badge/próxima-acción
-    // (antes era else-if y restaba las urgentes → la cabecera mostraba menos que el Home).
+    // "Atrasada" = activa y >14 días netos en taller, MISMA definición que Home/badge/próxima-acción.
     if (r._diasTaller > 14) atrasadas.push(r);
   });
-  if (!urgentes.length && !atrasadas.length && !listas.length) { box.style.display = 'none'; box.innerHTML = ''; _repBandaAbierto = null; return; }
+  if (!urgentes.length && !atrasadas.length && !listas.length && !esperando.length) { box.style.display = 'none'; box.innerHTML = ''; _repBandaAbierto = null; return; }
   urgentes.sort(function(a, b) { return (b._diasTaller || 0) - (a._diasTaller || 0); });
   atrasadas.sort(function(a, b) { return (b._diasTaller || 0) - (a._diasTaller || 0); });
   // Si el bucket abierto se quedó vacío (p.ej. tras avisar al último), cerrarlo.
-  var mapa = { urgente: urgentes, atrasada: atrasadas, lista: listas };
+  var mapa = { urgente: urgentes, atrasada: atrasadas, lista: listas, esperando: esperando };
   if (_repBandaAbierto && (!mapa[_repBandaAbierto] || !mapa[_repBandaAbierto].length)) _repBandaAbierto = null;
   // Chips compactos con el número; clic = desplegar/plegar ese bucket.
   function chip(arr, emoji, titKey, color, tipo) {
@@ -10731,7 +10752,7 @@ function renderRepsUrgenciaBanda() {
     var on = _repBandaAbierto === tipo;
     return '<button onclick="_repBandaToggle(\'' + tipo + '\')" style="display:inline-flex;align-items:center;gap:6px;border:1px solid ' + (on ? color : 'var(--border)') + ';background:' + (on ? color + '18' : 'var(--card,#fff)') + ';color:' + color + ';border-radius:999px;padding:5px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">' + emoji + ' <span style="font-weight:800">' + arr.length + '</span> ' + T(titKey) + ' <span style="font-size:9px;opacity:.7">' + (on ? '▲' : '▼') + '</span></button>';
   }
-  var chips = chip(urgentes, '🔴', 'repban.urgente', '#DC2626', 'urgente') + chip(atrasadas, '⚠️', 'repban.atrasadas', '#EA580C', 'atrasada') + chip(listas, '🟢', 'repban.listas', '#0F7355', 'lista');
+  var chips = chip(urgentes, '🔴', 'repban.urgente', '#DC2626', 'urgente') + chip(atrasadas, '⚠️', 'repban.atrasadas', '#EA580C', 'atrasada') + chip(esperando, '🛒', 'rep.esperando_pieza', '#B45309', 'esperando') + chip(listas, '🟢', 'repban.listas', '#0F7355', 'lista');
   var arrSel = mapa[_repBandaAbierto];
   var expandido = '';
   if (arrSel && arrSel.length) {
@@ -17481,8 +17502,9 @@ function abrirDetalleRep(repId) {
   if (r.fecha) {
     // Días en taller (solo mientras la reparación sigue abierta).
     var _CERRDET = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
-    var _diasTaller = Math.floor((new Date(hoyLocal() + 'T23:59:59') - new Date(String(r.fecha).slice(0, 10) + 'T00:00:00')) / 86400000);
-    var _diasTxt = (_CERRDET.indexOf(r.estado) === -1 && _diasTaller > 0) ? ' <small style="color:var(--muted);font-weight:600;font-size:11px">(' + _diasTaller + ' ' + T('estan.dias') + ' ' + T('det.en_taller') + ')</small>' : '';
+    var _diasTaller = Math.max(0, Math.floor((new Date(hoyLocal() + 'T23:59:59') - new Date(String(r.fecha).slice(0, 10) + 'T00:00:00')) / 86400000) - _diasEsperandoPieza(r.id));   // descuenta la espera de pieza
+    var _espPieza = repEsperaPieza(r.id);
+    var _diasTxt = _espPieza ? ' <small style="color:#B45309;font-weight:700;font-size:11px">(🛒 ' + T('rep.esperando_pieza') + ')</small>' : ((_CERRDET.indexOf(r.estado) === -1 && _diasTaller > 0) ? ' <small style="color:var(--muted);font-weight:600;font-size:11px">(' + _diasTaller + ' ' + T('estan.dias') + ' ' + T('det.en_taller') + ')</small>' : '');
     html += '<div><span style="color:var(--muted);font-size:11px">📅 ' + T('det.recibida') + '</span><br><strong>' + esc(r.fecha) + '</strong>' + _diasTxt + '</div>';
   }
   if (r.fechaEntrega) html += '<div><span style="color:var(--muted);font-size:11px">⏱ ' + T('det.entrega_prev') + '</span><br><strong>' + esc(r.fechaEntrega) + '</strong></div>';
