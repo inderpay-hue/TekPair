@@ -748,7 +748,7 @@ var SEL = {
   vPago:'Efectivo',ePago:'Efectivo',rPri:'Normal',
   repFiltro:'todas',ventaFiltro:'todas',
   metricTab:'hoy',repTab:'hoy',repTipo:'todo',
-  selParts:[],esFinanciado:false,
+  selParts:[],pedirPiezas:[],esFinanciado:false,
   modoPresupuesto:false // PRES-9
 };
 var ECID = null;
@@ -2063,6 +2063,7 @@ function avanzarPedido(id) {
     if (gid) { p.gasto_id = gid; patch.gasto_id = gid; toast(T('pedidos.recibido_gasto'), 'ok'); }
     else { toast(T('pedidos.marcado_recibido'), 'ok'); }
     if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
+    _avisarRepPiezaLista(p);   // si el pedido venía de una reparación, avisa que puede continuar
     // Al recibir: registrar en stock. La categoría del pedido manda; si no
     // la tiene (pedidos antiguos), se usa la del item de stock que coincida.
     var uds = parseInt(p.cantidad, 10) || 1;
@@ -8214,7 +8215,7 @@ function _cliDraftRestaurar(){ _DRAFT_CLI.restore(); }
 function _cliDraftBorrar(){ _DRAFT_CLI.clear(); }
 
 function abrirRep() {
-  SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.rServicios = []; SEL.fotosRecepcion = [];
+  SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.pedirPiezas = []; SEL.rServicios = []; SEL.fotosRecepcion = [];
   var _ft = document.getElementById('repFotosRecepThumbs'); if (_ft) _ft.innerHTML = '';
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_nuevo');
   var _bg = document.getElementById('btnGuardarRepTxt'); if (_bg) _bg.textContent = T('rep.crear_orden');
@@ -9191,6 +9192,85 @@ function renderParts() {
   });
 }
 
+// ═══════════════ PEDIR PIEZA AL PROVEEDOR DESDE LA REPARACIÓN ═══════════════
+// Si al recibir/editar un equipo falta la pieza en stock, se encola aquí y se
+// materializa como Pedido ('por_pedir') vinculado a la reparación al guardarla.
+// Deduce la categoría de la pieza a partir del texto de la avería.
+function _catDeAveria(aver) {
+  var a = (aver || '').toLowerCase();
+  if (a.indexOf('pantalla') !== -1 || a.indexOf('lcd') !== -1 || a.indexOf('display') !== -1 || a.indexOf('tactil') !== -1 || a.indexOf('táctil') !== -1) return 'Pantalla';
+  if (a.indexOf('bater') !== -1) return 'Bateria';
+  if (a.indexOf('tapa') !== -1 || a.indexOf('cristal') !== -1 || a.indexOf('trasera') !== -1) return 'Tapa';
+  if (a.indexOf('carga') !== -1 || a.indexOf('flex') !== -1 || a.indexOf('conector') !== -1) return 'Flex de Carga';
+  return 'Repuesto';
+}
+// Encola una pieza para pedir (aún NO crea el pedido: se crea al guardar la reparación).
+function pedirPiezaRep() {
+  if (typeof checkFeature === 'function' && !checkFeature('pedidos')) return;
+  var mod = (document.getElementById('rModelo') ? document.getElementById('rModelo').value : '').trim();
+  var marca = (document.getElementById('rMarca') ? document.getElementById('rMarca').value : '').trim();
+  var aver = (document.getElementById('rAveria') ? document.getElementById('rAveria').value : '').trim();
+  if (!mod) { toast(T('rep.pedir_falta_modelo'), 'err'); var e = document.getElementById('rModelo'); if (e) e.focus(); return; }
+  var cat = _catDeAveria(aver);
+  SEL.pedirPiezas = SEL.pedirPiezas || [];
+  SEL.pedirPiezas.push({ pieza: (cat + ' ' + marca + ' ' + mod).replace(/\s+/g, ' ').trim(), marca: marca, modelo: mod, categoria: cat, cantidad: 1 });
+  renderPedirPiezasRep();
+  toast(T('rep.pedir_encolada'), 'ok');
+}
+function _quitarPedirPieza(i) {
+  if (!SEL.pedirPiezas) return;
+  SEL.pedirPiezas.splice(i, 1);
+  renderPedirPiezasRep();
+}
+function renderPedirPiezasRep() {
+  var box = document.getElementById('repPedirList'); if (!box) return;
+  var arr = SEL.pedirPiezas || [];
+  if (!arr.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'flex';
+  box.innerHTML = arr.map(function(p, i) {
+    return '<span style="display:inline-flex;align-items:center;gap:6px;padding:5px 10px;border-radius:16px;border:1.5px solid #D97706;background:rgba(217,119,6,.08);color:#B45309;font-size:12px;font-weight:600">🛒 ' + escHtml(p.pieza) +
+      '<button type="button" onclick="_quitarPedirPieza(' + i + ')" title="Quitar" style="background:none;border:none;color:#B45309;cursor:pointer;font-size:14px;line-height:1;padding:0">×</button></span>';
+  }).join('');
+}
+// Materializa las piezas encoladas como Pedidos ('por_pedir') vinculados a la reparación.
+function _crearPedidosDeRep(repId, repRef) {
+  var arr = SEL.pedirPiezas || [];
+  if (!arr.length) return;
+  DB.pedidos = DB.pedidos || [];
+  var n = 0;
+  arr.forEach(function(it) {
+    var nuevo = {
+      id: (typeof _uuidPed === 'function') ? _uuidPed() : ('ped' + Date.now() + Math.random().toString(36).slice(2, 7)),
+      tienda_id: TIENDA_ID, estado: 'por_pedir', creado_por: (typeof U !== 'undefined' && U ? U.nombre : null),
+      pieza: it.pieza, marca: it.marca || null, categoria: it.categoria || null, calidad: null,
+      cantidad: it.cantidad || 1, precio_compra: 0, precio_venta: 0, importe: 0, proveedor: '',
+      fecha_pedido: null, fecha_estimada: null, metodo_pago: null,
+      nota: T('rep.pedir_nota_rep').replace('{ref}', repRef || ''),
+      grupo: null, total_real: null, pdf_url: null, pdf_nombre: null, estado_pago: 'pendiente', pagado_importe: 0,
+      rep_id: repId, rep_ref: repRef || null
+    };
+    DB.pedidos.unshift(nuevo);
+    if (typeof SB_KEY !== 'undefined' && SB_KEY) sbPost('pedidos', nuevo);
+    n++;
+  });
+  SEL.pedirPiezas = [];
+  try { if (typeof renderPedidosWidget === 'function') renderPedidosWidget(); } catch (e) {}
+  try { if (typeof updatePedidosBadge === 'function') updatePedidosBadge(); } catch (e) {}
+  toast(T('rep.pedir_creados').replace('{n}', n), 'ok');
+}
+// ¿La reparación está esperando alguna pieza pedida (pedido vinculado no recibido)?
+function repEsperaPieza(repId) {
+  return (DB.pedidos || []).some(function(p) { return p.rep_id === repId && p.estado !== 'recibido'; });
+}
+// Al recibir un pedido vinculado a una reparación: avisa que la reparación puede continuar.
+function _avisarRepPiezaLista(p) {
+  if (!p || !p.rep_id) return;
+  var r = (DB.reps || []).find(function(x) { return x.id === p.rep_id; });
+  var quien = r ? ((r.clienteNombre || '') + ' · ' + (r.modelo || '')).trim() : (p.rep_ref || '');
+  toast(T('rep.pieza_lista_continuar').replace('{ref}', quien), 'ok');
+  try { if (typeof renderReps === 'function') renderReps(); } catch (e) {}
+}
+
 function busServicioRep() {
   var q = document.getElementById('rSrvBus').value.toLowerCase();
   var res = document.getElementById('rSrvRes');
@@ -9654,6 +9734,7 @@ function editarRep(id) {
   var _te = document.querySelector('#mRep .modal-title'); if (_te) _te.textContent = '✏️ Editar reparación';
   SEL.rCli = DB.clis.find(function(c){ return c.id === r.clienteId; }) || {id:r.clienteId, nombre:r.clienteNombre, apellidos:''};
   SEL.selParts = [];
+  SEL.pedirPiezas = [];   // las piezas ya pedidas viven como Pedidos con rep_id, no se re-encolan
   // Cargar servicios (con migración de legacy mo)
   SEL.rServicios = Array.isArray(r.servicios) ? r.servicios.slice() : [];
   if (!SEL.rServicios.length && r.mo > 0) {
@@ -10105,6 +10186,7 @@ function guardarRep() {
           : null
       });
     }
+    if (SEL.pedirPiezas && SEL.pedirPiezas.length) _crearPedidosDeRep(r.id, ((r.clienteNombre || '') + ' · ' + (r.modelo || '')).trim());
     SEL.editRepId = null;
     closeM('mRep');
     renderReps();
@@ -10227,6 +10309,8 @@ function guardarRep() {
       if ((SEL.repPagos || []).length) window._pagosRepCache = null; // invalidar caché de stats
     }
   }
+
+  if (SEL.pedirPiezas && SEL.pedirPiezas.length) _crearPedidosDeRep(rep.id, ((rep.clienteNombre || '') + ' · ' + (rep.modelo || '')).trim());
 
   // PRES-6 FIX: capturar flag ANTES de closeM (que ejecuta _limpiarModoPresupuesto)
   var _esPresupuesto = SEL.modoPresupuesto;
@@ -10729,8 +10813,9 @@ function renderReps() {
       ? '<span class="badge ' + (r.prioridad === 'Urgente' ? 'br' : 'bo') + '">' + (T('rep.prio_' + ({Alta:'alta',Urgente:'urgente'}[r.prioridad] || 'normal')) || r.prioridad) + '</span>'
       : '<span style="color:var(--muted);font-size:11px">' + T('rep.prio_normal') + '</span>';
     var badgeFin = r.financiado ? '<br><span style="display:inline-block;background:rgba(139,92,246,.12);color:#6D28D9;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">💰 ' + (r.estadoFinanciado === 'completado' ? T('fin.completado') : T('fin.badge')) + '</span>' : '';
+    var chipPieza = repEsperaPieza(r.id) ? '<br><span style="display:inline-block;background:rgba(217,119,6,.12);color:#B45309;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px" title="' + T('rep.esperando_pieza') + '">🛒 ' + T('rep.esperando_pieza') + '</span>' : '';
     html += '<tr>'
-      + '<td><strong>' + r.clienteNombre + '</strong>' + badgeGarantia + badgeFin + '</td>'
+      + '<td><strong>' + r.clienteNombre + '</strong>' + badgeGarantia + badgeFin + chipPieza + '</td>'
       + '<td>' + r.marca + ' ' + r.modelo + (r.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">' + r.imei + '</span>' : '') + '</td>'
       + '<td style="font-size:11px;color:var(--dark)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + r.bloqueo : '')) + '</span>' : '') + '</td>'
       + '<td><select data-rid="' + r.id + '" class="sel-estado" style="border:1px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:6px">'
