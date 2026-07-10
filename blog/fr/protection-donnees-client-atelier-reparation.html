@@ -1,0 +1,193 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Protection des données du client lors des réparations : confidentialité, effacement sécurisé et confiance | TekPair</title>
+  <meta name="description" content="Guide pratique pour les ateliers de réparation de mobiles : comment traiter les données personnelles du client, bonnes pratiques, effacement sécurisé, ce que dit la loi et comment gagner sa confiance." />
+  <meta name="keywords" content="protection donnees atelier reparation, confidentialite reparation mobile, effacement securise telephone, rgpd atelier reparation, confiance client reparation" />
+  <link rel="canonical" href="https://www.tekpair.tech/blog/fr/protection-donnees-client-atelier-reparation.html" />
+  <link rel="alternate" hreflang="es" href="https://www.tekpair.tech/blog/proteccion-datos-cliente-taller-reparacion.html" />
+  <link rel="alternate" hreflang="en" href="https://www.tekpair.tech/blog/en/customer-data-privacy-repair-shop.html" />
+  <link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/blog/fr/protection-donnees-client-atelier-reparation.html" />
+  <link rel="alternate" hreflang="it" href="https://www.tekpair.tech/blog/it/protezione-dati-cliente-officina-riparazione.html" />
+  <link rel="alternate" hreflang="de" href="https://www.tekpair.tech/blog/de/kundendaten-datenschutz-reparaturwerkstatt.html" />
+  <link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/blog/pt/protecao-dados-cliente-oficina-reparacao.html" />
+  <link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/blog/proteccion-datos-cliente-taller-reparacion.html" />
+  <meta property="og:type" content="article" />
+  <meta property="og:title" content="Protection des données du client lors des réparations : confidentialité, effacement sécurisé et confiance" />
+  <meta property="og:description" content="Bonnes pratiques, effacement sécurisé, ce que dit la loi et comment gagner la confiance en traitant les données des appareils que vous recevez." />
+  <meta property="og:url" content="https://www.tekpair.tech/blog/fr/protection-donnees-client-atelier-reparation.html" />
+  <meta property="og:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <meta property="og:site_name" content="TekPair" />
+  <meta property="article:published_time" content="2026-07-11" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="Protection des données du client lors des réparations : confidentialité, effacement sécurisé et confiance" />
+  <meta name="twitter:description" content="Bonnes pratiques, effacement sécurisé, ce que dit la loi et comment gagner la confiance en traitant les données des appareils que vous recevez." />
+  <meta name="twitter:image" content="https://www.tekpair.tech/assets/og-blog.png" />
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"BlogPosting","headline":"Protection des données du client lors des réparations : confidentialité, effacement sécurisé et confiance","description":"Guide pratique pour les ateliers de réparation de mobiles : comment traiter les données personnelles du client, bonnes pratiques, effacement sécurisé, ce que dit la loi et comment gagner sa confiance.","author":{"@type":"Organization","name":"TekPair","url":"https://www.tekpair.tech"},"publisher":{"@type":"Organization","name":"TekPair","logo":{"@type":"ImageObject","url":"https://www.tekpair.tech/assets/logo.png"}},"datePublished":"2026-07-11","dateModified":"2026-07-11","mainEntityOfPage":{"@type":"WebPage","@id":"https://www.tekpair.tech/blog/fr/protection-donnees-client-atelier-reparation.html"},"image":"https://www.tekpair.tech/assets/og-blog.png"}
+  </script>
+  <script type="application/ld+json">
+  {"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"Puis-je demander le code PIN ou le schéma de déverrouillage au client ?","acceptedAnswer":{"@type":"Answer","text":"Uniquement si c'est indispensable pour tester la réparation, et toujours avec l'accord du client. Demandez-le oralement, utilisez-le seulement pour les tests nécessaires et ne le notez jamais sur un document ni sur l'ordre de réparation. Si possible, proposez au client de retirer temporairement le verrouillage ou d'activer un mode maintenance."}},{"@type":"Question","name":"Suis-je obligé d'effacer les données du client après la réparation ?","acceptedAnswer":{"@type":"Answer","text":"Si vous avez dû accéder à l'appareil ou faire une copie pour travailler, vous devez supprimer toute donnée personnelle manipulée dès que vous avez terminé. Ne conservez ni photos, ni messages, ni sauvegardes, ni identifiants. Gardez seulement les informations du service : appareil, panne, IMEI et photos de l'état extérieur."}},{"@type":"Question","name":"Le RGPD s'applique-t-il à mon atelier si je suis hors d'Europe ?","acceptedAnswer":{"@type":"Answer","text":"Le RGPD est la loi européenne et ne s'applique pas partout de la même manière, mais de nombreux pays ont des règles de protection des données aux principes similaires : minimiser les données, ne les utiliser que pour le nécessaire, les protéger et ne pas les conserver plus que de raison. Vérifiez toujours la réglementation en vigueur dans votre pays."}},{"@type":"Question","name":"Comment gagner la confiance du client sur sa vie privée ?","acceptedAnswer":{"@type":"Answer","text":"Expliquez à l'avance ce que vous allez faire de l'appareil, indiquez par écrit sur l'ordre que vous n'accéderez pas à son contenu au-delà de l'indispensable, remettez un reçu avec l'IMEI et l'état de l'appareil, et tenez vos promesses. La transparence et un enregistrement clair sont ce qui rassure le plus."}}]}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root { --terracota: #C2410C; --terracota-dark: #9A3309; --terracota-light: #FEF0E8; --text: #1C1917; --text-muted: #78716C; --border: #E7E5E4; --bg: #FFFFFF; --bg-alt: #FAFAF9; }
+    body { font-family: 'Inter', sans-serif; color: var(--text); background: var(--bg); line-height: 1.7; font-size: 17px; }
+    nav { border-bottom: 1px solid var(--border); padding: 0 1.5rem; height: 56px; display: flex; align-items: center; justify-content: space-between; background: #fff; }
+    .nav-logo { font-weight: 700; font-size: 1.1rem; color: var(--terracota); text-decoration: none; letter-spacing: -0.02em; }
+    .nav-links { display: flex; gap: 1.5rem; }
+    .nav-links a { text-decoration: none; color: var(--text-muted); font-size: 0.9rem; font-weight: 500; }
+    .nav-links a:hover { color: var(--terracota); }
+    .article-hero { background: var(--terracota-light); padding: 3.5rem 1.5rem 3rem; text-align: center; }
+    .article-hero .category { display: inline-block; background: var(--terracota); color: #fff; font-size: 0.75rem; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; padding: 0.25rem 0.75rem; border-radius: 99px; margin-bottom: 1.25rem; }
+    .article-hero h1 { font-size: clamp(1.75rem, 4vw, 2.6rem); font-weight: 700; line-height: 1.2; letter-spacing: -0.03em; max-width: 680px; margin: 0 auto 1rem; color: var(--text); }
+    .article-hero .intro { max-width: 600px; margin: 0 auto; color: var(--text-muted); font-size: 1.05rem; }
+    .article-meta { margin-top: 1.5rem; font-size: 0.85rem; color: var(--text-muted); display: flex; align-items: center; justify-content: center; gap: 1rem; }
+    .article-wrapper { max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem 4rem; }
+    .toc { background: var(--bg-alt); border: 1px solid var(--border); border-left: 4px solid var(--terracota); border-radius: 8px; padding: 1.25rem 1.5rem; margin-bottom: 2.5rem; }
+    .toc p { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--terracota); margin-bottom: 0.75rem; }
+    .toc ol { padding-left: 1.25rem; display: flex; flex-direction: column; gap: 0.4rem; }
+    .toc a { color: var(--text); text-decoration: none; font-size: 0.95rem; font-weight: 500; }
+    .toc a:hover { color: var(--terracota); text-decoration: underline; }
+    h2 { font-size: 1.5rem; font-weight: 700; letter-spacing: -0.02em; margin: 2.5rem 0 1rem; color: var(--text); scroll-margin-top: 16px; }
+    h3 { font-size: 1.15rem; font-weight: 600; margin: 1.75rem 0 0.6rem; color: var(--text); }
+    p { margin-bottom: 1.1rem; color: #44403C; }
+    ul, ol { padding-left: 1.4rem; margin-bottom: 1.25rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    li { color: #44403C; }
+    strong { color: var(--text); font-weight: 600; }
+    .callout { background: var(--terracota-light); border-left: 4px solid var(--terracota); border-radius: 0 8px 8px 0; padding: 1.1rem 1.25rem; margin: 1.75rem 0; }
+    .callout p { margin: 0; color: #7C2D12; font-size: 0.95rem; }
+    .callout strong { color: #7C2D12; }
+    .table-wrap { overflow-x: auto; margin: 1.75rem 0; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+    th { background: var(--terracota); color: #fff; font-weight: 600; text-align: left; padding: 0.7rem 1rem; }
+    td { padding: 0.65rem 1rem; border-bottom: 1px solid var(--border); color: #44403C; }
+    tr:nth-child(even) td { background: var(--bg-alt); }
+    tr:last-child td { border-bottom: none; }
+    .checklist { list-style: none; padding: 0; margin: 1.25rem 0; }
+    .checklist li { display: flex; align-items: flex-start; gap: 0.6rem; padding: 0.45rem 0; border-bottom: 1px solid var(--border); color: #44403C; font-size: 0.95rem; }
+    .checklist li:last-child { border-bottom: none; }
+    .checklist li::before { content: "\2713"; flex-shrink: 0; width: 20px; height: 20px; background: var(--terracota); color: #fff; border-radius: 50%; font-size: 0.7rem; font-weight: 700; display: flex; align-items: center; justify-content: center; margin-top: 2px; }
+    .faq-section { margin-top: 3rem; }
+    .faq-section h2 { margin-top: 0; }
+    details { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 0.75rem; overflow: hidden; }
+    summary { padding: 1rem 1.25rem; font-weight: 600; font-size: 0.97rem; cursor: pointer; list-style: none; display: flex; justify-content: space-between; align-items: center; background: var(--bg-alt); transition: background .2s; }
+    summary:hover { background: var(--terracota-light); }
+    summary::after { content: "+"; font-size: 1.2rem; color: var(--terracota); font-weight: 700; }
+    details[open] summary::after { content: "\2212"; }
+    details[open] summary { background: var(--terracota-light); }
+    .faq-body { padding: 1rem 1.25rem; font-size: 0.95rem; color: #44403C; }
+    .cta-box { background: var(--terracota); color: #fff; border-radius: 12px; padding: 2.5rem 2rem; text-align: center; margin-top: 3.5rem; }
+    .cta-box h2 { color: #fff; font-size: 1.5rem; margin: 0 0 0.75rem; }
+    .cta-box p { color: rgba(255,255,255,0.85); margin-bottom: 1.5rem; font-size: 1rem; }
+    .cta-btn { display: inline-block; background: #fff; color: var(--terracota); font-weight: 700; font-size: 0.95rem; padding: 0.75rem 2rem; border-radius: 8px; text-decoration: none; transition: transform .15s, box-shadow .15s; }
+    .cta-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+    footer { border-top: 1px solid var(--border); padding: 2rem 1.5rem; text-align: center; font-size: 0.85rem; color: var(--text-muted); }
+    footer a { color: var(--terracota); text-decoration: none; }
+    @media (max-width: 600px) { .nav-links { display: none; } .article-hero { padding: 2.5rem 1.25rem 2rem; } .article-wrapper { padding: 2rem 1.25rem 3rem; } }
+  </style>
+  <script src="/cookies-consent.js" defer></script>
+</head>
+<body>
+  <nav>
+    <a href="https://www.tekpair.tech" class="nav-logo">TekPair</a>
+    <div class="nav-links">
+      <a href="https://www.tekpair.tech/blog/">Blog</a>
+      <a href="https://www.tekpair.tech/#funcionalidades">Fonctionnalités</a>
+      <a href="https://www.tekpair.tech/#precios">Tarifs</a>
+      <a href="https://www.tekpair.tech/app.html">Se connecter</a>
+    </div>
+  </nav>
+  <header class="article-hero">
+    <div class="category">Confidentialité</div>
+    <h1>Protection des données du client lors des réparations : confidentialité, effacement sécurisé et confiance</h1>
+    <p class="intro">Chaque mobile qui entre dans votre atelier, c'est toute la vie de quelqu'un : photos, messages, comptes bancaires. Voici comment traiter ces données avec respect, dans le cadre de la loi et sans perdre la confiance du client.</p>
+    <div class="article-meta">
+      <span>&#128197; 11 juillet 2026</span>
+      <span>&#9201; 8 min de lecture</span>
+    </div>
+  </header>
+  <main class="article-wrapper">
+    <div class="toc" role="navigation" aria-label="Dans cet article">
+      <p>Dans cet article</p>
+      <ol><li><a href="#s1">Un mobile n'est pas un objet comme les autres</a></li><li><a href="#s2">Bonnes pratiques au comptoir</a></li><li><a href="#s3">Verrouillages, codes PIN et sauvegardes</a></li><li><a href="#s4">Effacement sécurisé après la réparation</a></li><li><a href="#s5">Ce que dit la loi sur la protection des données</a></li><li><a href="#s6">Comment gagner la confiance (et comment TekPair aide)</a></li><li><a href="#faq">Questions fréquentes</a></li></ol>
+    </div>
+
+    <p>Quand un client vous confie son téléphone pour changer un écran, il vous confie bien plus qu'un appareil. Dans ce mobile se trouvent ses photos de famille, ses conversations, sa messagerie, ses mots de passe et, très souvent, l'accès à sa banque. Réparer le téléphone est votre métier ; protéger ce qu'il contient est votre responsabilité, même si vous ne le regardez jamais.</p>
+    <p>La bonne nouvelle, c'est que bien traiter les données du client n'exige pas d'être juriste ni d'acheter des outils coûteux. Cela repose sur quelques habitudes de bon sens et sur le fait de garder une trace de ce que vous faites. Avant de commencer, un avertissement : <strong>les règles de protection des données varient d'un pays à l'autre</strong>. Nous prenons ici le RGPD européen comme exemple, mais les principes de fond sont proches à bien des endroits ; vérifiez toujours le détail avec la réglementation de votre pays.</p>
+
+    <h2 id="s1">1. Un mobile n'est pas un objet comme les autres</h2>
+    <p>La différence entre réparer un appareil électroménager et réparer un smartphone est énorme. Un lave-linge ne stocke les photos des enfants de personne. Un mobile, si. Et cette concentration d'informations personnelles dans un seul appareil est justement ce qui le rend délicat à manipuler.</p>
+    <p>Pensez à ce qu'un téléphone contient habituellement :</p>
+    <ul><li><strong>Photos et vidéos privées</strong>, certaines très personnelles.</li><li><strong>Messages et e-mails</strong> avec des données de tiers, pas seulement du client.</li><li><strong>Applications bancaires</strong> et de paiement avec la session ouverte.</li><li><strong>Mots de passe enregistrés</strong> et accès aux réseaux sociaux.</li><li><strong>Documents, contacts et localisation</strong> du quotidien.</li></ul>
+    <p>Le principe qui résume tout est simple : <strong>traitez le mobile d'autrui comme vous aimeriez qu'on traite le vôtre</strong>. Ce n'est pas qu'une question de courtoisie ; dans de nombreux pays, c'est aussi une obligation légale dès que vous manipulez les données personnelles d'autres personnes.</p>
+
+    <h2 id="s2">2. Bonnes pratiques au comptoir</h2>
+    <p>L'essentiel de la protection des données tient à de petits gestes quotidiens. Voici ceux qui font la différence :</p>
+    <ul class="checklist"><li>N'ouvrez pas la galerie photos ni les messages sauf si la panne l'exige</li><li>N'accédez qu'au strict nécessaire pour diagnostiquer et tester</li><li>Ne copiez pas le contenu du client sur votre matériel « au cas où »</li><li>Ne commentez ni ne partagez jamais ce que vous voyez sur un appareil</li><li>Rangez les téléphones à l'accueil dans un endroit fermé et contrôlé</li><li>Limitez qui, dans l'équipe, peut manipuler les appareils des clients</li></ul>
+    <p>La règle d'or est la <strong>minimisation</strong> : moins vous accédez au contenu personnel, mieux c'est. Pour changer une batterie ou une vitre, vous n'avez pas besoin d'ouvrir les photos ; pour vérifier le tactile ou l'appareil photo, vous ouvrirez peut-être l'application caméra, mais inutile de fouiller ailleurs. Une fois le test terminé, fermez et n'y revenez plus.</p>
+    <div class="callout"><p><strong>Règle pratique :</strong> si vous seriez gêné de devoir expliquer pourquoi vous avez ouvert un dossier précis du mobile d'un client, c'est que vous n'auriez probablement pas dû l'ouvrir. Dans le doute, n'y entrez pas.</p></div>
+
+    <h2 id="s3">3. Verrouillages, codes PIN et sauvegardes</h2>
+    <p>Le point le plus délicat du processus est le déverrouillage. De nombreuses réparations peuvent être réalisées et testées sans jamais entrer dans le système, mais d'autres (pannes d'écran, de tactile ou de logiciel) exigent de déverrouiller l'appareil pour vérifier que tout fonctionne.</p>
+    <h3>Ne demandez le verrouillage que si c'est indispensable</h3>
+    <p>Ne demandez pas le PIN ou le schéma par routine. Faites-le seulement quand le test l'exige, et expliquez au client à quoi cela sert. Chaque fois que possible, proposez des alternatives : que le client <strong>retire temporairement le verrouillage</strong>, qu'il définisse un code provisoire qu'il changera ensuite, ou qu'il reste présent pendant le test.</p>
+    <h3>Ne notez jamais les identifiants par écrit</h3>
+    <p>Un PIN inscrit sur l'ordre de réparation ou sur un post-it collé à l'appareil est une faille de sécurité classique. Si vous avez besoin du code pour les tests, demandez-le oralement sur le moment et ne le consignez sur aucun papier ni dans la fiche. En rendant le téléphone, rappelez au client qu'il peut changer le code s'il le souhaite.</p>
+    <h3>La sauvegarde, c'est au client de la faire</h3>
+    <p>Avant toute réparation à risque de perte de données, il est correct que <strong>le client fasse sa propre sauvegarde</strong>. Recommandez-le toujours et indiquez-le par écrit sur le reçu. Ainsi la sauvegarde reste entre ses mains et vous n'avez pas à garder des informations sensibles qui ne vous appartiennent pas.</p>
+    <div class="callout"><p><strong>Évitez d'être le gardien :</strong> moins il y a de données du client qui passent par vos mains ou votre matériel, plus votre risque est faible. Si vous n'avez ni ses photos ni ses mots de passe, vous ne pouvez ni les perdre ni les divulguer.</p></div>
+
+    <h2 id="s4">4. Effacement sécurisé après la réparation</h2>
+    <p>Parfois, il faut bien accéder à l'appareil, voire déplacer des données pour terminer le travail : migrer des informations d'une carte endommagée vers une autre, restaurer depuis une sauvegarde, ou tester avec un compte. Dans ces cas, la règle est nette : <strong>ce qui entre, sort</strong>.</p>
+    <p>Dès que vous avez terminé et vérifié que la réparation fonctionne :</p>
+    <ul><li><strong>Supprimez toute copie</strong> du contenu du client faite sur votre matériel, vos mémoires ou le cloud.</li><li><strong>Fermez toutes les sessions</strong> que vous avez ouvertes et effacez les identifiants temporaires.</li><li><strong>Videz les dossiers de transfert</strong> et la corbeille de l'ordinateur de l'atelier.</li><li><strong>Ne conservez ni photos ni messages</strong> « en souvenir » ni comme preuve du travail.</li></ul>
+    <p>La seule information à conserver est celle du <strong>service</strong> : quel appareil est entré, la panne, l'IMEI ou le numéro de série, les pièces utilisées et les photos de l'état extérieur de l'appareil. Ce ne sont pas des données personnelles intimes et cela vous protège en cas de réclamation. Le contenu privé, en revanche, ne doit pas survivre à la réparation.</p>
+
+    <h2 id="s5">5. Ce que dit la loi sur la protection des données</h2>
+    <p>En Europe, le cadre de référence est le <strong>RGPD</strong> (Règlement général sur la protection des données). Lorsqu'un atelier manipule les données personnelles de ses clients, il agit comme responsable du traitement et doit respecter une série de principes. Voici ceux qui vous concernent le plus au comptoir :</p>
+    <div class="table-wrap"><table>
+      <thead><tr><th>Principe</th><th>Ce que cela signifie dans votre atelier</th></tr></thead>
+      <tbody>
+        <tr><td>Minimisation</td><td>N'accéder qu'aux données indispensables à la réparation</td></tr>
+        <tr><td>Limitation de la finalité</td><td>Utiliser les données uniquement pour réparer, rien d'autre</td></tr>
+        <tr><td>Conservation limitée</td><td>Ne pas garder le contenu personnel plus longtemps que nécessaire</td></tr>
+        <tr><td>Sécurité</td><td>Protéger les appareils et les informations par des mesures raisonnables</td></tr>
+        <tr><td>Transparence</td><td>Informer le client de ce que vous faites de son appareil</td></tr>
+      </tbody>
+    </table></div>
+    <p>Au-delà du RGPD, vous gardez sans doute dans votre fiche le nom, le téléphone ou l'e-mail du client pour le prévenir. Ce sont aussi des données personnelles : ne les demandez que si vous en avez besoin, protégez-les et ayez à portée de main une politique de confidentialité simple expliquant à quoi elles servent.</p>
+    <div class="callout"><p><strong>Principe général, pas norme universelle :</strong> le RGPD est européen et ne s'applique pas partout de la même manière. De nombreux pays ont leurs propres lois de protection des données aux idées proches, mais les détails, les délais et les sanctions varient. Consultez la réglementation en vigueur dans votre pays ou un conseiller.</p></div>
+
+    <h2 id="s6">6. Comment gagner la confiance (et comment TekPair aide)</h2>
+    <p>Une confidentialité bien gérée n'est pas qu'une obligation : c'est un argument de vente. Un client qui sent que vous prenez soin de ses données revient et vous recommande. Et la meilleure façon de transmettre cette assurance, c'est la <strong>transparence et la traçabilité</strong> : dire ce que vous allez faire et garder une trace claire de chaque étape.</p>
+    <p>C'est là qu'un bon logiciel de gestion fait la différence. Avec <strong>TekPair</strong>, chaque réparation est documentée de façon à protéger le client comme vous :</p>
+    <ul><li><strong>Enregistrement de l'appareil entré :</strong> marque, modèle et détails de l'appareil sont liés au client et à l'ordre.</li><li><strong>IMEI ou numéro de série :</strong> identifie l'appareil exact, sans ambiguïté ni confusion à la remise.</li><li><strong>Photos de réception :</strong> documentent l'état extérieur de l'appareil à l'entrée, sans conserver aucun de son contenu personnel.</li><li><strong>Notifications au client :</strong> des alertes automatiques sur l'état de la réparation, pour ne pas avoir à fouiller l'appareil pour lui répondre.</li><li><strong>Fiche ordonnée :</strong> un endroit unique pour les données du service, à accès contrôlé, au lieu de papiers épars avec des informations sensibles.</li></ul>
+    <p>Indiquez clairement sur le reçu que vous n'accéderez pas au contenu du mobile au-delà de l'indispensable pour tester la réparation, et tenez cette promesse. Cette combinaison (un message honnête plus un enregistrement ordonné de l'appareil, de l'IMEI et de son état) est ce qui transforme la protection des données en confiance réelle.</p>
+    <div class="callout"><p><strong>TekPair</strong> vous aide à documenter chaque réparation avec l'IMEI, les photos de réception et les notifications automatiques, pour travailler avec ordre et rassurer votre client. <a href="https://www.tekpair.tech" style="color:var(--terracota-dark);font-weight:600;">Essayez-le gratuitement →</a></p></div>
+
+    <section class="faq-section" id="faq">
+      <h2>Questions fréquentes</h2>
+      <details><summary>Puis-je demander le code PIN ou le schéma de déverrouillage au client ?</summary><div class="faq-body">Uniquement si c'est indispensable pour tester la réparation, et toujours avec l'accord du client. Demandez-le oralement, utilisez-le seulement pour les tests nécessaires et ne le notez jamais sur un document ni sur l'ordre de réparation. Si possible, proposez au client de retirer temporairement le verrouillage ou d'activer un mode maintenance.</div></details><details><summary>Suis-je obligé d'effacer les données du client après la réparation ?</summary><div class="faq-body">Si vous avez dû accéder à l'appareil ou faire une copie pour travailler, vous devez supprimer toute donnée personnelle manipulée dès que vous avez terminé. Ne conservez ni photos, ni messages, ni sauvegardes, ni identifiants. Gardez seulement les informations du service : appareil, panne, IMEI et photos de l'état extérieur.</div></details><details><summary>Le RGPD s'applique-t-il à mon atelier si je suis hors d'Europe ?</summary><div class="faq-body">Le RGPD est la loi européenne et ne s'applique pas partout de la même manière, mais de nombreux pays ont des règles de protection des données aux principes similaires : minimiser les données, ne les utiliser que pour le nécessaire, les protéger et ne pas les conserver plus que de raison. Vérifiez toujours la réglementation en vigueur dans votre pays.</div></details><details><summary>Comment gagner la confiance du client sur sa vie privée ?</summary><div class="faq-body">Expliquez à l'avance ce que vous allez faire de l'appareil, indiquez par écrit sur l'ordre que vous n'accéderez pas à son contenu au-delà de l'indispensable, remettez un reçu avec l'IMEI et l'état de l'appareil, et tenez vos promesses. La transparence et un enregistrement clair sont ce qui rassure le plus.</div></details>
+    </section>
+
+    <div class="cta-box">
+      <h2>Documentez chaque réparation avec ordre et confiance</h2>
+      <p>TekPair enregistre l'appareil, l'IMEI et les photos de réception, et informe le client de l'état, pour que vous protégiez ses données sans effort. Commencez gratuitement et voyez-le fonctionner.</p>
+      <a href="https://www.tekpair.tech" class="cta-btn">Commencez gratuitement avec TekPair →</a>
+    </div>
+  </main>
+  <footer>
+    <p>&#169; 2026 <a href="https://www.tekpair.tech">TekPair</a> &middot; Logiciel de gestion pour ateliers de réparation</p>
+    <p style="margin-top:0.5rem;">
+      <a href="https://www.tekpair.tech/blog/">Blog</a> &middot;
+      <a href="https://www.tekpair.tech/privacidad.html">Confidentialité</a> &middot;
+      <a href="https://www.tekpair.tech/terminos.html">Conditions</a>
+    </p>
+  </footer>
+</body>
+</html>
