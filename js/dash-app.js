@@ -9447,6 +9447,47 @@ function abrirTracking(id) {
   });
 }
 
+// ═══ Subir fotos por QR desde el móvil (foto-prueba de recepción) ═══
+// El PC pide al servidor un permiso de subida firmado y caduco (api/parte foto-token),
+// lo mete en un QR; el móvil escanea → subir-fotos.html → sube → PATCH fotos_recepcion →
+// Realtime actualiza DB.reps → repintamos las miniaturas en este modal cada 3s.
+var _SFQR = { repId: null, timer: null, lastN: -1 };
+function abrirSubirFotosQR(repId) {
+  if (typeof checkFeature === 'function' && !checkFeature('fotos_rep')) return;   // Pro+
+  var r = DB.reps.find(function(x){ return x.id === repId; });
+  if (!r) return;
+  asegurarToken(r).then(function(){
+    fetch('/api/parte?action=foto-token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: r.id, t: r.token }) })
+      .then(function(resp){ return resp.json(); })
+      .then(function(j){
+        if (!j || !j.ok || !j.sig) { toast(T('fqr.error'), 'err'); return; }
+        var lang = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+        var url = location.origin + '/subir-fotos.html?id=' + encodeURIComponent(j.id) + '&exp=' + j.exp + '&sig=' + encodeURIComponent(j.sig) + '&lang=' + lang;
+        _SFQR.repId = r.id; _SFQR.lastN = -1;
+        var hd = document.getElementById('sfqrHeader'); if (hd) hd.textContent = (r.marca || '') + ' ' + (r.modelo || '') + ' · ' + (r.clienteNombre || '');
+        var qb = document.getElementById('sfqrQR');
+        if (qb) { qb.innerHTML = ''; try { var qr = qrcode(0, 'M'); qr.addData(url); qr.make(); qb.innerHTML = qr.createImgTag(5, 8); } catch (e) { qb.innerHTML = '<div style="color:var(--red);font-size:12px">QR</div>'; } }
+        var ex = document.getElementById('sfqrExp'); if (ex) ex.textContent = '⏱ ' + T('fqr.caduca').replace('{n}', j.ttl_min || 45);
+        openM('mSubirFotosQR');
+        _sfqrRenderFotos();
+        if (_SFQR.timer) clearInterval(_SFQR.timer);
+        _SFQR.timer = setInterval(_sfqrRenderFotos, 3000);
+      }).catch(function(){ toast(T('fqr.error'), 'err'); });
+  });
+}
+function _sfqrRenderFotos() {
+  var bg = document.getElementById('mSubirFotosQR');
+  if (!bg || !bg.classList.contains('open')) { if (_SFQR.timer) { clearInterval(_SFQR.timer); _SFQR.timer = null; } return; }
+  var r = (DB.reps || []).find(function(x){ return x.id === _SFQR.repId; });
+  var fotos = (r && r.fotosRecepcion) || [];
+  if (fotos.length === _SFQR.lastN) return;   // sin fotos nuevas → no repintar (evita signed-urls de más)
+  _SFQR.lastN = fotos.length;
+  var cEl = document.getElementById('sfqrCount'); if (cEl) cEl.textContent = fotos.length;
+  var box = document.getElementById('sfqrFotos'); if (!box) return;
+  if (!fotos.length) { box.innerHTML = '<div style="font-size:12px;color:var(--muted)">' + T('fqr.esperando') + '</div>'; return; }
+  _repRenderFotos('sfqrFotos', fotos, null);
+}
+
 function trackingCopy() {
   if (!TRACKING.url) return;
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -17624,6 +17665,7 @@ function abrirDetalleRep(repId) {
   var btns = '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="closeM(\'mDetalleRep\')">' + T('gen.cerrar') + '</button>';
   if (cli && cli.tel) btns += '<button class="btn-sm" style="background:#25D366;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirWhatsAppRep(\'' + r.id + '\')">📲 WhatsApp</button>';
   btns += '<button class="btn-sm" style="background:var(--blue);color:white;flex:1" onclick="closeM(\'mDetalleRep\');copiarLinkRep(\'' + r.id + '\')">📱 QR/Link</button>';
+  btns += '<button class="btn-sm" style="background:#C2410C;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirSubirFotosQR(\'' + r.id + '\')">📷 ' + T('fqr.btn') + '</button>';
   // F68: acciones de avance del flujo (faltaban en el modal abierto desde Kanban)
   var _repCerradas = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
   if (tienePerm('reps_editar')) {

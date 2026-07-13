@@ -3646,6 +3646,18 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   <button onclick="closeM('mTracking')" style="width:100%;background:none;border:1px solid var(--border);padding:10px;border-radius:8px;color:var(--muted);cursor:pointer;font-family:inherit"><span data-t="gen.cerrar">Cerrar</span></button>
 </div>
 </div>
+<div class="modal-bg" id="mSubirFotosQR">
+<div class="modal" style="max-width:380px">
+  <div class="modal-title">📷 <span data-t="fqr.titulo">Añadir fotos por móvil</span></div>
+  <div id="sfqrHeader" style="font-size:12px;color:var(--muted);margin-bottom:10px;text-align:center"></div>
+  <div id="sfqrQR" style="display:flex;justify-content:center;padding:14px;background:white;border-radius:10px;margin-bottom:8px;border:1px solid var(--border)"></div>
+  <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:6px" data-t="fqr.instru">Escanéalo con la cámara del móvil y haz las fotos. Aparecerán aquí solas.</div>
+  <div id="sfqrExp" style="font-size:11px;color:var(--orange);text-align:center;margin-bottom:12px"></div>
+  <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📸 <span data-t="fqr.recibidas">Fotos recibidas</span> (<span id="sfqrCount">0</span>)</div>
+  <div id="sfqrFotos" style="display:flex;gap:6px;flex-wrap:wrap;min-height:20px;margin-bottom:14px"></div>
+  <button onclick="closeM('mSubirFotosQR')" style="width:100%;background:none;border:1px solid var(--border);padding:10px;border-radius:8px;color:var(--muted);cursor:pointer;font-family:inherit"><span data-t="gen.cerrar">Cerrar</span></button>
+</div>
+</div>
 <div class="modal-bg" id="mVenta">
 <div class="modal">
   <div class="modal-title"><span data-t="tpv.nueva_venta">📱 Nueva Venta</span></div>

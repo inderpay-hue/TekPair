@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Subir fotos · TekPair</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--terra:#C2410C;--terra-d:#9A3309;--terra-l:#FEF0E8;--text:#1C1917;--muted:#78716C;--border:#E7E5E4;--bg:#FAFAF9;--green:#16A34A;--red:#DC2626}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;padding:20px 16px calc(20px + env(safe-area-inset-bottom))}
+    .wrap{max-width:440px;margin:0 auto}
+    .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:22px 18px;box-shadow:0 4px 20px rgba(0,0,0,.04)}
+    .logo{font-weight:800;color:var(--terra);font-size:1.05rem;letter-spacing:-.02em;text-align:center;margin-bottom:14px}
+    h1{font-size:1.25rem;font-weight:800;letter-spacing:-.02em;margin-bottom:6px;text-align:center}
+    .sub{font-size:.9rem;color:var(--muted);text-align:center;margin-bottom:20px}
+    .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--terra);color:#fff;border:none;border-radius:12px;padding:16px;font:inherit;font-size:1.05rem;font-weight:700;cursor:pointer;-webkit-tap-highlight-color:transparent}
+    .btn:active{background:var(--terra-d)}
+    .btn[disabled]{opacity:.5}
+    input[type=file]{display:none}
+    .list{margin-top:18px;display:flex;flex-direction:column;gap:10px}
+    .item{display:flex;align-items:center;gap:12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;padding:8px 10px}
+    .thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;flex-shrink:0;background:#eee}
+    .st{flex:1;min-width:0;font-size:.85rem}
+    .st b{display:block;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .st small{color:var(--muted)}
+    .badge{flex-shrink:0;font-size:.78rem;font-weight:700;padding:3px 9px;border-radius:20px}
+    .b-up{background:#FEF3C7;color:#92400E}
+    .b-ok{background:rgba(22,163,74,.12);color:var(--green)}
+    .b-err{background:rgba(220,38,38,.1);color:var(--red)}
+    .msg{margin-top:16px;border-radius:10px;padding:12px 14px;font-size:.88rem;text-align:center}
+    .msg-err{background:rgba(220,38,38,.08);color:#991B1B;border:1px solid rgba(220,38,38,.25)}
+    .msg-ok{background:rgba(22,163,74,.08);color:#166534;border:1px solid rgba(22,163,74,.25)}
+    .foot{text-align:center;font-size:.72rem;color:var(--muted);margin-top:18px}
+    .hide{display:none}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="logo">TekPair</div>
+      <h1 id="h1">Fotos de la reparación</h1>
+      <p class="sub" id="sub">Haz las fotos con la cámara. Aparecerán solas en el ordenador de la tienda.</p>
+
+      <label class="btn" id="btnLbl" for="fileInput"><span>📷</span> <span id="btnTxt">Añadir fotos</span></label>
+      <input type="file" id="fileInput" accept="image/*" capture="environment" multiple />
+
+      <div class="list" id="list"></div>
+      <div id="msg" class="msg hide"></div>
+      <div class="foot" id="foot"></div>
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    var I18N = {
+      es:{titulo:'Fotos de la reparación',sub:'Haz las fotos con la cámara. Aparecerán solas en el ordenador de la tienda.',boton:'Añadir fotos',subiendo:'Subiendo…',preparando:'Preparando…',ok:'Subida ✓',err:'Error · toca para reintentar',caducado:'El código ha caducado. Pide en la tienda que vuelva a mostrar el QR.',sin_permiso:'Enlace no válido. Pide en la tienda que muestre el QR de nuevo.',hechas:'{n} foto(s) subida(s). Ya aparecen en el ordenador.',limite:'Se alcanzó el máximo de fotos para esta reparación.',foot:'Enlace seguro y temporal · TekPair'},
+      en:{titulo:'Repair photos',sub:'Take the photos with your camera. They appear on the shop computer automatically.',boton:'Add photos',subiendo:'Uploading…',preparando:'Preparing…',ok:'Uploaded ✓',err:'Error · tap to retry',caducado:'This code has expired. Ask the shop to show the QR again.',sin_permiso:'Invalid link. Ask the shop to show the QR again.',hechas:'{n} photo(s) uploaded. They now show on the computer.',limite:'Maximum number of photos reached for this repair.',foot:'Secure, temporary link · TekPair'},
+      fr:{titulo:'Photos de la réparation',sub:'Prenez les photos avec l’appareil. Elles apparaissent seules sur l’ordinateur.',boton:'Ajouter des photos',subiendo:'Envoi…',preparando:'Préparation…',ok:'Envoyée ✓',err:'Erreur · touchez pour réessayer',caducado:'Ce code a expiré. Demandez au magasin d’afficher à nouveau le QR.',sin_permiso:'Lien invalide. Demandez au magasin d’afficher à nouveau le QR.',hechas:'{n} photo(s) envoyée(s). Elles apparaissent sur l’ordinateur.',limite:'Nombre maximum de photos atteint pour cette réparation.',foot:'Lien sécurisé et temporaire · TekPair'},
+      it:{titulo:'Foto della riparazione',sub:'Scatta le foto con la fotocamera. Compaiono da sole sul computer del negozio.',boton:'Aggiungi foto',subiendo:'Caricamento…',preparando:'Preparazione…',ok:'Caricata ✓',err:'Errore · tocca per riprovare',caducado:'Il codice è scaduto. Chiedi al negozio di mostrare di nuovo il QR.',sin_permiso:'Link non valido. Chiedi al negozio di mostrare di nuovo il QR.',hechas:'{n} foto caricate. Ora compaiono sul computer.',limite:'Raggiunto il numero massimo di foto per questa riparazione.',foot:'Link sicuro e temporaneo · TekPair'},
+      de:{titulo:'Reparaturfotos',sub:'Mach die Fotos mit der Kamera. Sie erscheinen automatisch am Ladencomputer.',boton:'Fotos hinzufügen',subiendo:'Wird hochgeladen…',preparando:'Wird vorbereitet…',ok:'Hochgeladen ✓',err:'Fehler · zum Wiederholen tippen',caducado:'Dieser Code ist abgelaufen. Bitte den Laden, den QR erneut anzuzeigen.',sin_permiso:'Ungültiger Link. Bitte den Laden, den QR erneut anzuzeigen.',hechas:'{n} Foto(s) hochgeladen. Sie erscheinen jetzt am Computer.',limite:'Maximale Fotoanzahl für diese Reparatur erreicht.',foot:'Sicherer, temporärer Link · TekPair'},
+      pt:{titulo:'Fotos da reparação',sub:'Tira as fotos com a câmara. Aparecem sozinhas no computador da loja.',boton:'Adicionar fotos',subiendo:'A enviar…',preparando:'A preparar…',ok:'Enviada ✓',err:'Erro · toca para tentar de novo',caducado:'Este código expirou. Pede na loja para mostrar o QR de novo.',sin_permiso:'Ligação inválida. Pede na loja para mostrar o QR de novo.',hechas:'{n} foto(s) enviada(s). Já aparecem no computador.',limite:'Atingido o máximo de fotos para esta reparação.',foot:'Ligação segura e temporária · TekPair'}
+    };
+    var q = new URLSearchParams(location.search);
+    var ID = q.get('id') || '', EXP = parseInt(q.get('exp') || '0', 10), SIG = q.get('sig') || '';
+    var lang = (q.get('lang') || navigator.language || 'es').slice(0,2).toLowerCase();
+    var T = I18N[lang] || I18N.es;
+    var subidas = 0;
+
+    document.documentElement.lang = lang;
+    document.getElementById('h1').textContent = T.titulo;
+    document.getElementById('sub').textContent = T.sub;
+    document.getElementById('btnTxt').textContent = T.boton;
+    document.getElementById('foot').textContent = T.foot;
+
+    function showMsg(txt, tipo){
+      var m = document.getElementById('msg');
+      m.className = 'msg ' + (tipo === 'ok' ? 'msg-ok' : 'msg-err');
+      m.textContent = txt;
+    }
+    function bloquear(txt){
+      showMsg(txt, 'err');
+      var l = document.getElementById('btnLbl');
+      l.setAttribute('disabled','');
+      l.style.pointerEvents = 'none';
+      document.getElementById('fileInput').disabled = true;
+    }
+
+    // Validación básica del permiso (el servidor es la fuente de verdad)
+    if (!ID || !EXP || !SIG) { bloquear(T.sin_permiso); return; }
+    if (Date.now() > EXP) { bloquear(T.caducado); return; }
+
+    // Comprime la imagen en el móvil (lado máx 1280px, JPEG 0.7) → dataURL
+    function comprimir(file){
+      return new Promise(function(resolve, reject){
+        if (!/^image\//.test(file.type)) return reject(new Error('no-img'));
+        var img = new Image(), url = URL.createObjectURL(file);
+        img.onload = function(){
+          var w = img.naturalWidth, h = img.naturalHeight;
+          var s = Math.min(1, 1280 / Math.max(w, h));
+          var c = document.createElement('canvas');
+          c.width = Math.round(w * s); c.height = Math.round(h * s);
+          c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+          URL.revokeObjectURL(url);
+          try { resolve(c.toDataURL('image/jpeg', 0.7)); } catch(e){ reject(e); }
+        };
+        img.onerror = function(){ URL.revokeObjectURL(url); reject(new Error('bad')); };
+        img.src = url;
+      });
+    }
+
+    function nuevoItem(dataUrl){
+      var el = document.createElement('div');
+      el.className = 'item';
+      el.innerHTML = '<img class="thumb" src="' + dataUrl + '" alt=""><div class="st"><b></b><small></small></div><span class="badge b-up"></span>';
+      el.querySelector('.badge').textContent = T.subiendo;
+      document.getElementById('list').appendChild(el);
+      return el;
+    }
+
+    async function subir(dataUrl, el){
+      var badge = el.querySelector('.badge');
+      badge.className = 'badge b-up'; badge.textContent = T.subiendo;
+      try {
+        var r = await fetch('/api/parte?action=foto-subir', {
+          method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ id: ID, exp: EXP, sig: SIG, foto: dataUrl })
+        });
+        var j = {}; try { j = await r.json(); } catch(e){}
+        if (r.ok && j.ok) {
+          badge.className = 'badge b-ok'; badge.textContent = T.ok;
+          subidas++;
+          showMsg(T.hechas.replace('{n}', subidas), 'ok');
+          return true;
+        }
+        if (r.status === 403) { bloquear(T.caducado); }
+        else if (r.status === 409 && j.error === 'limite') { showMsg(T.limite, 'err'); }
+        badge.className = 'badge b-err'; badge.textContent = T.err;
+        el.style.cursor = 'pointer';
+        el.onclick = function(){ el.onclick = null; subir(dataUrl, el); };
+        return false;
+      } catch(e) {
+        badge.className = 'badge b-err'; badge.textContent = T.err;
+        el.style.cursor = 'pointer';
+        el.onclick = function(){ el.onclick = null; subir(dataUrl, el); };
+        return false;
+      }
+    }
+
+    document.getElementById('fileInput').addEventListener('change', async function(ev){
+      var files = Array.prototype.slice.call(ev.target.files || []);
+      ev.target.value = '';
+      // Secuencial: evita carreras al añadir al array de fotos en el servidor
+      for (var i = 0; i < files.length; i++) {
+        if (Date.now() > EXP) { bloquear(T.caducado); break; }
+        var el;
+        try {
+          var dataUrl = await comprimir(files[i]);
+          el = nuevoItem(dataUrl);
+          await subir(dataUrl, el);
+        } catch(e) { /* archivo no válido, se ignora */ }
+      }
+    });
+  })();
+  </script>
+</body>
+</html>
