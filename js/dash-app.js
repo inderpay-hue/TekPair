@@ -3169,6 +3169,11 @@ function mapRep(r) {
     presupuesto_aceptado_ip: r.presupuesto_aceptado_ip || null,
     firma_cliente: r.firma_cliente || null,
     firma_fecha: r.firma_fecha || null,
+    firmaRecep: r.firma_recep || null,
+    firmaRecepFecha: r.firma_recep_fecha || null,
+    firmaRecepHash: r.firma_recep_hash || null,
+    firmaRecepIp: r.firma_recep_ip || null,
+    firmaRecepUa: r.firma_recep_ua || null,
     clienteAvisado: r.cliente_avisado === true,
     fotosRecepcion: Array.isArray(r.fotos_recepcion) ? r.fotos_recepcion : [],
     fotosEntrega: Array.isArray(r.fotos_entrega) ? r.fotos_entrega : []
@@ -8281,7 +8286,7 @@ function abrirRep() {
   calcR();
   renderPlantillasRep();
   openM('mRep');
-  try { _actualizarBtnFotoQR(); } catch (e) {}
+  try { _actualizarBtnFotoQR(); _actualizarBtnFirmaQR(); } catch (e) {}
   // Draft autosave: ofrecer recuperar un borrador previo y empezar a autoguardar
   _repDraftBannerShow();
   _repDraftStartAutosave();
@@ -9524,6 +9529,65 @@ function _actualizarBtnFotoQR() {
   b.title = editando ? '' : T('fqr.al_guardar');
 }
 
+// ═══ Firma del cliente en RECEPCIÓN por QR (mismo esqueleto que Fotos por QR) ═══
+var _SFR = { repId: null, timer: null, firmada: false };
+function abrirFirmaRecepQR(repId) {
+  if (typeof checkFeature === 'function' && !checkFeature('fotos_rep')) return;   // Pro+ (mismo gate que fotos)
+  var r = DB.reps.find(function(x){ return x.id === repId; });
+  if (!r) return;
+  asegurarToken(r).then(function(){
+    fetch('/api/parte?action=firma-token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: r.id, t: r.token }) })
+      .then(function(resp){ return resp.json(); })
+      .then(function(j){
+        if (!j || !j.ok || !j.sig) { toast(T('firq.error'), 'err'); return; }
+        var lang = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+        var url = location.origin + '/firmar-recepcion.html?id=' + encodeURIComponent(j.id) + '&exp=' + j.exp + '&sig=' + encodeURIComponent(j.sig) + '&lang=' + lang;
+        _SFR.repId = r.id; _SFR.firmada = null;
+        var hd = document.getElementById('sfrHeader'); if (hd) hd.textContent = (r.marca || '') + ' ' + (r.modelo || '') + ' · ' + (r.clienteNombre || '');
+        var qb = document.getElementById('sfrQR');
+        if (qb) { qb.style.display = ''; qb.innerHTML = ''; try { var qr = qrcode(0, 'M'); qr.addData(url); qr.make(); qb.innerHTML = qr.createImgTag(5, 8); } catch (e) { qb.innerHTML = '<div style="color:var(--red);font-size:12px">QR</div>'; } }
+        var ex = document.getElementById('sfrExp'); if (ex) { ex.style.display = ''; ex.textContent = '⏱ ' + T('firq.caduca').replace('{n}', j.ttl_min || 45); }
+        openM('mFirmaRecepQR');
+        _sfrRenderEstado();
+        if (_SFR.timer) clearInterval(_SFR.timer);
+        _SFR.timer = setInterval(_sfrRenderEstado, 3000);
+      }).catch(function(){ toast(T('firq.error'), 'err'); });
+  });
+}
+// Realtime: cuando el cliente firma, DB.reps se actualiza → mostramos "firmada" + la firma.
+function _sfrRenderEstado() {
+  var bg = document.getElementById('mFirmaRecepQR');
+  if (!bg || !bg.classList.contains('open')) { if (_SFR.timer) { clearInterval(_SFR.timer); _SFR.timer = null; } return; }
+  var r = (DB.reps || []).find(function(x){ return x.id === _SFR.repId; });
+  var firmada = !!(r && r.firmaRecep);
+  if (firmada === _SFR.firmada) return;   // sin cambios
+  _SFR.firmada = firmada;
+  var box = document.getElementById('sfrEstado'); if (!box) return;
+  var qb = document.getElementById('sfrQR'), ex = document.getElementById('sfrExp');
+  if (firmada) {
+    if (qb) qb.style.display = 'none';
+    if (ex) ex.style.display = 'none';
+    var f = ''; try { var d = new Date(r.firmaRecepFecha); var lc = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'); f = d.toLocaleDateString(lc, {day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + d.toLocaleTimeString(lc, {hour:'2-digit',minute:'2-digit'}); } catch (e) {}
+    box.innerHTML = '<div style="background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.3);border-radius:10px;padding:12px;color:#166534;font-weight:700;font-size:13px">✅ ' + T('firq.firmada') + (f ? ' · ' + f : '') + '</div><div id="sfrFirmaImg"></div>';
+    try { sbStorageSignedUrl('gastos-adjuntos', r.firmaRecep, 3600).then(function(u){ var _b = document.getElementById('sfrFirmaImg'); if (_b && u) _b.innerHTML = '<div style="background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px;margin-top:8px"><img src="' + u + '" alt="" style="max-width:100%;max-height:110px;display:block;margin:0 auto"></div>'; }); } catch (e) {}
+    try { if (typeof renderReps === 'function') renderReps(); } catch (e) {}
+  } else {
+    box.innerHTML = '<div style="font-size:12px;color:var(--muted)">' + T('firq.esperando') + '</div>';
+  }
+}
+function _firmaQRDesdeForm() {
+  if (typeof tieneFeature === 'function' && !tieneFeature('fotos_rep')) { mostrarModalUpgrade('fotos_rep', 'pro'); return; }
+  if (SEL.editRepId) { abrirFirmaRecepQR(SEL.editRepId); }
+  else { toast(T('fqr.al_guardar'), 'ok'); }
+}
+function _actualizarBtnFirmaQR() {
+  var b = document.getElementById('repBtnFirmaQR'); if (!b) return;
+  var editando = !!SEL.editRepId;
+  b.style.opacity = editando ? '1' : '.5';
+  b.style.cursor = editando ? 'pointer' : 'not-allowed';
+  b.title = editando ? '' : T('fqr.al_guardar');
+}
+
 function trackingCopy() {
   if (!TRACKING.url) return;
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -9942,7 +10006,7 @@ function editarRep(id) {
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_editar');
 
   openM('mRep');
-  try { _actualizarBtnFotoQR(); } catch (e) {}
+  try { _actualizarBtnFotoQR(); _actualizarBtnFirmaQR(); } catch (e) {}
 }
 
 // === HELPERS GARANTÍA REPARACIÓN ===
@@ -17675,6 +17739,17 @@ function abrirDetalleRep(repId) {
     html += '</div>';
   }
 
+  // Firma de RECEPCIÓN del cliente (por QR): imagen (signed url), fecha y hash de integridad
+  if (r.firmaRecep) {
+    var fechaFR = '';
+    try { var dFR = new Date(r.firmaRecepFecha); var lcFR = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'); fechaFR = dFR.toLocaleDateString(lcFR,{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + T('det.a_las') + ' ' + dFR.toLocaleTimeString(lcFR,{hour:'2-digit',minute:'2-digit'}); } catch(e){}
+    html += '<div style="margin-top:14px;background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:12px">';
+    html += '<div style="font-size:10px;font-weight:700;color:#8B5CF6;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">✍️ ' + T('firq.firma_recep') + (fechaFR ? ' · ' + fechaFR : '') + '</div>';
+    html += '<div id="detFirmaRecep" style="background:white;border:1px solid var(--border);border-radius:6px;padding:6px;min-height:40px"></div>';
+    if (r.firmaRecepHash) html += '<div style="font-size:9px;color:var(--muted);margin-top:6px;font-family:monospace;word-break:break-all" title="SHA-256 del contenido firmado (avería + presupuesto + condiciones + fotos)">🔒 ' + esc(String(r.firmaRecepHash).slice(0,40)) + '…</div>';
+    html += '</div>';
+  }
+
   // Prueba de aceptación del presupuesto (registro legal: fecha + IP + firma)
   if (r.presupuesto_aceptado_at) {
     var _fAcc = '';
@@ -17702,6 +17777,7 @@ function abrirDetalleRep(repId) {
   document.getElementById('detalleRepBox').innerHTML = html;
   if (_fotosR.length) _repRenderFotos('detFotosRecep', _fotosR, null);
   if (_fotosE.length) _repRenderFotos('detFotosEnt', _fotosE, null);
+  if (r.firmaRecep) { try { sbStorageSignedUrl('gastos-adjuntos', r.firmaRecep, 3600).then(function(u){ var _bf = document.getElementById('detFirmaRecep'); if (_bf && u) _bf.innerHTML = '<img src="' + u + '" alt="" style="max-width:100%;max-height:120px;display:block;margin:0 auto">'; }); } catch(e){} }
   _cargarHistorialAvisos(r.id);
 
   // Botones
@@ -17709,6 +17785,7 @@ function abrirDetalleRep(repId) {
   if (cli && cli.tel) btns += '<button class="btn-sm" style="background:#25D366;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirWhatsAppRep(\'' + r.id + '\')">📲 WhatsApp</button>';
   btns += '<button class="btn-sm" style="background:var(--blue);color:white;flex:1" onclick="closeM(\'mDetalleRep\');copiarLinkRep(\'' + r.id + '\')">📱 QR/Link</button>';
   btns += '<button class="btn-sm" style="background:#C2410C;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirSubirFotosQR(\'' + r.id + '\')">📷 ' + T('fqr.btn') + '</button>';
+  btns += '<button class="btn-sm" style="background:#8B5CF6;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirFirmaRecepQR(\'' + r.id + '\')">✍️ ' + T('firq.btn') + '</button>';
   // F68: acciones de avance del flujo (faltaban en el modal abierto desde Kanban)
   var _repCerradas = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
   if (tienePerm('reps_editar')) {
