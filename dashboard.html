@@ -3839,6 +3839,14 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
             <button type="button" id="repBtnFotoQR" class="btn-sm" onclick="_fotoQRDesdeForm()" style="margin-top:10px;background:#C2410C;color:white">📷 <span data-t="fqr.btn">Fotos por QR</span></button>
             <button type="button" id="repBtnFirmaQR" class="btn-sm" onclick="_firmaQRDesdeForm()" style="margin-top:10px;margin-left:6px;background:#8B5CF6;color:white">✍️ <span data-t="firq.btn">Firma por QR</span></button>
           </div>
+          <!-- Aceptación en mostrador (Vía 1) — abierta a todos los planes, no gated -->
+          <div class="fg" id="repAceptMostradorSec" style="margin-top:12px;margin-bottom:0">
+            <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:13px;font-weight:500;background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:11px 12px">
+              <input type="checkbox" id="repAceptMostrador" onchange="_aceptMostradorToggle(this)" style="margin-top:2px;flex-shrink:0;width:17px;height:17px">
+              <span data-t="acep.mostrador_lbl">El cliente ha leído y acepta las condiciones (se le ha entregado copia).</span>
+            </label>
+            <div id="repAceptMostradorAviso" style="display:none;font-size:11px;color:#B45309;margin-top:6px"></div>
+          </div>
         </div>
 
       </div>

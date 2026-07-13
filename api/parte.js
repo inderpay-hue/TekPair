@@ -37,6 +37,7 @@ export default async function handler(req, res) {
   // POST: el cliente declara que ha pagado una cuota (Modelo C)
   if (req.method === 'POST') {
     if (action === 'confirmar-pago') return cobroConfirmarPago(req, res, ip);
+    if (action === 'aceptar-condiciones') return aceptarCondiciones(req, res, ip);
     if (action === 'foto-token') return fotoToken(req, res);
     if (action === 'foto-subir') return fotoSubir(req, res);
     if (action === 'firma-token') return firmaToken(req, res);
@@ -68,7 +69,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const url = `${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&token=eq.${encodeURIComponent(t)}&select=id,fecha,cliente_nombre,marca,modelo,imei,averia,estado,prioridad,fecha_entrega,fecha_entrega_real,total,restante,nota,tienda_id`;
+    const url = `${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&token=eq.${encodeURIComponent(t)}&select=id,fecha,cliente_nombre,marca,modelo,imei,averia,estado,prioridad,fecha_entrega,fecha_entrega_real,total,restante,nota,tienda_id,aceptacion_cliente,aceptacion_cliente_fecha`;
     const r = await fetch(url, {
       headers: {
         'apikey': SERVICE_KEY,
@@ -94,7 +95,7 @@ export default async function handler(req, res) {
     let tienda = { nombre: 'Tekpair' };
     if (rep.tienda_id) {
       try {
-        const tUrl = `${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(rep.tienda_id)}&select=nombre,telefono,ciudad,pais,logo_url`;
+        const tUrl = `${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(rep.tienda_id)}&select=nombre,telefono,ciudad,pais,logo_url,ajustes_config`;
         const tR = await fetch(tUrl, {
           headers: {
             'apikey': SERVICE_KEY,
@@ -125,14 +126,18 @@ export default async function handler(req, res) {
         fecha_entrega: rep.fecha_entrega,
         fecha_entrega_real: rep.fecha_entrega_real,
         total: rep.total,
-        restante: rep.restante
+        restante: rep.restante,
+        aceptacion_cliente: rep.aceptacion_cliente === true,
+        aceptacion_cliente_fecha: rep.aceptacion_cliente_fecha || null
       },
       tienda: {
         nombre: tienda.nombre || 'Tekpair',
         telefono: tienda.telefono || '',
         ciudad: tienda.ciudad || '',
         pais: tienda.pais || '',
-        logo: tienda.logo_url || ''
+        logo: tienda.logo_url || '',
+        garantia: String(_ajOf(tienda).garantia || ''),
+        condiciones: String(_ajOf(tienda).politica || '')
       }
     });
   } catch (e) {
@@ -480,4 +485,58 @@ async function firmaGuardar(req, res, ip) {
     if (!paR.ok) { const t3 = await paR.text().catch(() => ''); console.error('[firma-guardar] patch', paR.status, t3.slice(0, 200)); return res.status(500).json({ error: 'No se pudo guardar' }); }
     return res.status(200).json({ ok: true });
   } catch (e) { console.error('[firma-guardar]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
+}
+
+// ═══ ACEPTACIÓN DE CONDICIONES POR EL CLIENTE (botón "Acepto" en el parte público) ═══
+// Usa el propio token del parte (id+t que ya están en la URL): solo-lectura + aceptar.
+function _ajOf(t) {
+  const a = t && t.ajustes_config;
+  if (a && typeof a === 'object') return a;
+  if (typeof a === 'string') { try { return JSON.parse(a); } catch (e) { return {}; } }
+  return {};
+}
+// Hash del texto de condiciones vigente (garantía + política). Mismo canon en cliente y servidor.
+function _condHash(garantia, politica) {
+  return crypto.createHash('sha256').update((garantia || '') + '\n---\n' + (politica || '')).digest('hex');
+}
+// POST ?action=aceptar-condiciones  body {id,t}  → registra la aceptación con evidencia legal
+async function aceptarCondiciones(req, res, ip) {
+  let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  body = body || {};
+  const id = body.id, t = body.t;
+  if (!id || !t || typeof id !== 'string' || typeof t !== 'string' || !ID_RE.test(id) || !TOKEN_RE.test(t)) return res.status(400).json({ error: 'Formato invalido' });
+  const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  if (!SUPABASE_URL || !SERVICE_KEY) return res.status(500).json({ error: 'Servidor no configurado' });
+  try {
+    const rUrl = `${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&token=eq.${encodeURIComponent(t)}&select=id,tienda_id,cliente_id,aceptacion_cliente&limit=1`;
+    const rR = await fetch(rUrl, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
+    if (!rR.ok) return res.status(500).json({ error: 'Error consultando datos' });
+    const rows = await rR.json();
+    if (!Array.isArray(rows) || !rows.length) return res.status(404).json({ error: 'No encontrado' });
+    const rep = rows[0];
+    if (rep.aceptacion_cliente === true) return res.status(200).json({ ok: true, ya: true });   // idempotente
+    // Condiciones vigentes de la tienda → hash (prueba qué versión aceptó)
+    let garantia = '', politica = '';
+    try {
+      const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(rep.tienda_id)}&select=ajustes_config`, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
+      if (tR.ok) { const tRows = await tR.json(); if (Array.isArray(tRows) && tRows.length) { const aj = _ajOf(tRows[0]); garantia = String(aj.garantia || ''); politica = String(aj.politica || ''); } }
+    } catch (e) {}
+    // Teléfono del cliente (evidencia: número al que se envió el link)
+    let tel = null;
+    try {
+      if (rep.cliente_id) { const cR = await fetch(`${SUPABASE_URL}/rest/v1/clientes?id=eq.${encodeURIComponent(rep.cliente_id)}&select=tel&limit=1`, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } }); if (cR.ok) { const cRows = await cR.json(); if (Array.isArray(cRows) && cRows.length && cRows[0].tel) tel = String(cRows[0].tel).slice(0, 30); } }
+    } catch (e) {}
+    const patch = {
+      aceptacion_cliente: true, aceptacion_cliente_fecha: new Date().toISOString(),
+      aceptacion_cliente_hash: _condHash(garantia, politica),
+      aceptacion_cliente_ip: (ip && ip !== 'unknown') ? ip : null,
+      aceptacion_cliente_ua: (req.headers['user-agent'] || '').slice(0, 300) || null,
+      aceptacion_cliente_tel: tel
+    };
+    const paR = await fetch(`${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH', headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify(patch)
+    });
+    if (!paR.ok) { const tt = await paR.text().catch(() => ''); console.error('[aceptar-cond] patch', paR.status, tt.slice(0, 200)); return res.status(500).json({ error: 'No se pudo registrar' }); }
+    return res.status(200).json({ ok: true });
+  } catch (e) { console.error('[aceptar-cond]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
 }

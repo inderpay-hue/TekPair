@@ -3174,6 +3174,16 @@ function mapRep(r) {
     firmaRecepHash: r.firma_recep_hash || null,
     firmaRecepIp: r.firma_recep_ip || null,
     firmaRecepUa: r.firma_recep_ua || null,
+    aceptacionMostrador: r.aceptacion_mostrador === true,
+    aceptacionMostradorPor: r.aceptacion_mostrador_por || null,
+    aceptacionMostradorFecha: r.aceptacion_mostrador_fecha || null,
+    aceptacionMostradorHash: r.aceptacion_mostrador_hash || null,
+    aceptacionCliente: r.aceptacion_cliente === true,
+    aceptacionClienteFecha: r.aceptacion_cliente_fecha || null,
+    aceptacionClienteHash: r.aceptacion_cliente_hash || null,
+    aceptacionClienteIp: r.aceptacion_cliente_ip || null,
+    aceptacionClienteUa: r.aceptacion_cliente_ua || null,
+    aceptacionClienteTel: r.aceptacion_cliente_tel || null,
     clienteAvisado: r.cliente_avisado === true,
     fotosRecepcion: Array.isArray(r.fotos_recepcion) ? r.fotos_recepcion : [],
     fotosEntrega: Array.isArray(r.fotos_entrega) ? r.fotos_entrega : []
@@ -8286,7 +8296,7 @@ function abrirRep() {
   calcR();
   renderPlantillasRep();
   openM('mRep');
-  try { _actualizarBtnFotoQR(); _actualizarBtnFirmaQR(); } catch (e) {}
+  try { _actualizarBtnFotoQR(); _actualizarBtnFirmaQR(); _actualizarAceptMostrador(); } catch (e) {}
   // Draft autosave: ofrecer recuperar un borrador previo y empezar a autoguardar
   _repDraftBannerShow();
   _repDraftStartAutosave();
@@ -9588,6 +9598,36 @@ function _actualizarBtnFirmaQR() {
   b.title = editando ? '' : T('fqr.al_guardar');
 }
 
+// ═══ Aceptación de condiciones EN MOSTRADOR (casilla del formulario) ═══
+// SHA-256 hex en el cliente (para el hash de condiciones). Async (crypto.subtle).
+async function _sha256Hex(str) {
+  try {
+    var buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(String(str || '')));
+    return Array.prototype.map.call(new Uint8Array(buf), function(b){ return ('0' + b.toString(16)).slice(-2); }).join('');
+  } catch (e) { return ''; }
+}
+// Canon de condiciones vigentes (MISMO que el servidor _condHash): garantía \n---\n política.
+function _condVigente() { return (String(TIENDA.garantia || '') + '\n---\n' + String(TIENDA.politica || '')); }
+var _aceptMostradorHash = null;
+// Al marcar la casilla: si no hay condiciones avisa (no protege), y precalcula el hash del texto vigente.
+function _aceptMostradorToggle(chk) {
+  var av = document.getElementById('repAceptMostradorAviso');
+  if (!chk || !chk.checked) { _aceptMostradorHash = null; if (av) av.style.display = 'none'; return; }
+  var cond = ((TIENDA.garantia || '') + (TIENDA.politica || '')).trim();
+  if (!cond) { if (av) { av.textContent = T('acep.sin_condiciones'); av.style.display = 'block'; } }
+  else if (av) { av.style.display = 'none'; }
+  _sha256Hex(_condVigente()).then(function(h){ _aceptMostradorHash = h; });
+}
+// Estado de la casilla al abrir el modal (nueva = desmarcada; edición = según la rep).
+function _actualizarAceptMostrador() {
+  var chk = document.getElementById('repAceptMostrador'); if (!chk) return;
+  var av = document.getElementById('repAceptMostradorAviso'); if (av) av.style.display = 'none';
+  _aceptMostradorHash = null;
+  var r = SEL.editRepId ? (DB.reps || []).find(function(x){ return x.id === SEL.editRepId; }) : null;
+  chk.checked = !!(r && r.aceptacionMostrador);
+  chk.disabled = !!(r && r.aceptacionMostrador);   // ya aceptada → no re-tocar (evidencia histórica)
+}
+
 function trackingCopy() {
   if (!TRACKING.url) return;
   if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -10006,7 +10046,7 @@ function editarRep(id) {
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_editar');
 
   openM('mRep');
-  try { _actualizarBtnFotoQR(); _actualizarBtnFirmaQR(); } catch (e) {}
+  try { _actualizarBtnFotoQR(); _actualizarBtnFirmaQR(); _actualizarAceptMostrador(); } catch (e) {}
 }
 
 // === HELPERS GARANTÍA REPARACIÓN ===
@@ -10376,6 +10416,13 @@ function guardarRep() {
           : null
       });
     }
+    // Aceptación en mostrador (Vía 1): registrar solo si se marca ahora y no estaba ya aceptada.
+    var _acME = document.getElementById('repAceptMostrador');
+    if (_acME && _acME.checked && !r.aceptacionMostrador) {
+      var _acFe = new Date().toISOString(), _acPo = (typeof U !== 'undefined' && U ? U.nombre : null);
+      r.aceptacionMostrador = true; r.aceptacionMostradorPor = _acPo; r.aceptacionMostradorFecha = _acFe; r.aceptacionMostradorHash = _aceptMostradorHash || null;
+      if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + r.id, { aceptacion_mostrador: true, aceptacion_mostrador_por: _acPo, aceptacion_mostrador_fecha: _acFe, aceptacion_mostrador_hash: _aceptMostradorHash || null });
+    }
     if (SEL.pedirPiezas && SEL.pedirPiezas.length) _crearPedidosDeRep(r.id, ((r.clienteNombre || '') + ' · ' + (r.modelo || '')).trim());
     SEL.editRepId = null;
     closeM('mRep');
@@ -10476,6 +10523,13 @@ function guardarRep() {
     };
     // M7: solo enviamos la columna si hay fotos → si el SQL aún no se corrió, crear reparaciones SIN foto nunca falla.
     if (rep.fotosRecepcion && rep.fotosRecepcion.length) _repPayload.fotos_recepcion = rep.fotosRecepcion;
+    // Aceptación en mostrador (Vía 1): usuario + fecha + hash del texto de condiciones vigente.
+    var _acM = document.getElementById('repAceptMostrador');
+    if (_acM && _acM.checked) {
+      var _acFecha = new Date().toISOString(), _acPor = (typeof U !== 'undefined' && U ? U.nombre : null);
+      _repPayload.aceptacion_mostrador = true; _repPayload.aceptacion_mostrador_por = _acPor; _repPayload.aceptacion_mostrador_fecha = _acFecha; _repPayload.aceptacion_mostrador_hash = _aceptMostradorHash || null;
+      rep.aceptacionMostrador = true; rep.aceptacionMostradorPor = _acPor; rep.aceptacionMostradorFecha = _acFecha; rep.aceptacionMostradorHash = _aceptMostradorHash || null;
+    }
     sbPost('reparaciones', _repPayload);
     if (esFinRep) {
       // Financiado: la ENTRADA se registra como pago (tipo anticipo) -> el ingreso del día entra solo.
@@ -11012,8 +11066,9 @@ function renderReps() {
       : '<span style="color:var(--muted);font-size:11px">' + T('rep.prio_normal') + '</span>';
     var badgeFin = r.financiado ? '<br><span style="display:inline-block;background:rgba(139,92,246,.12);color:#6D28D9;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">💰 ' + (r.estadoFinanciado === 'completado' ? T('fin.completado') : T('fin.badge')) + '</span>' : '';
     var chipPieza = repEsperaPieza(r.id) ? '<br><span style="display:inline-block;background:rgba(217,119,6,.12);color:#B45309;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px" title="' + T('rep.esperando_pieza') + '">🛒 ' + T('rep.esperando_pieza') + '</span>' : '';
+    var chipAcep = (!r.aceptacionCliente && !r.aceptacionMostrador && ['Entregado','Rechazado','Devuelto','Sin Solucion','Presupuesto'].indexOf(r.estado) === -1) ? '<br><span style="display:inline-block;background:rgba(148,163,184,.16);color:#64748B;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px" title="' + esc(T('acep.sin_chip_title')) + '">📝 ' + T('acep.sin_chip') + '</span>' : '';
     html += '<tr>'
-      + '<td><strong>' + r.clienteNombre + '</strong>' + badgeGarantia + badgeFin + chipPieza + '</td>'
+      + '<td><strong>' + r.clienteNombre + '</strong>' + badgeGarantia + badgeFin + chipPieza + chipAcep + '</td>'
       + '<td>' + r.marca + ' ' + r.modelo + (r.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">' + r.imei + '</span>' : '') + '</td>'
       + '<td style="font-size:11px;color:var(--dark)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + r.bloqueo : '')) + '</span>' : '') + '</td>'
       + '<td><select data-rid="' + r.id + '" class="sel-estado" style="border:1px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:6px">'
@@ -17749,6 +17804,25 @@ function abrirDetalleRep(repId) {
     if (r.firmaRecepHash) html += '<div style="font-size:9px;color:var(--muted);margin-top:6px;font-family:monospace;word-break:break-all" title="SHA-256 del contenido firmado (avería + presupuesto + condiciones + fotos)">🔒 ' + esc(String(r.firmaRecepHash).slice(0,40)) + '…</div>';
     html += '</div>';
   }
+
+  // Estado de aceptación de condiciones: cliente online / mostrador / pendiente
+  (function(){
+    var _lcA = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+    function _fmtA(iso){ try { var d = new Date(iso); return d.toLocaleDateString(_lcA,{day:'2-digit',month:'2-digit',year:'numeric'}) + ' ' + T('det.a_las') + ' ' + d.toLocaleTimeString(_lcA,{hour:'2-digit',minute:'2-digit'}); } catch(e){ return ''; } }
+    if (r.aceptacionCliente) {
+      html += '<div style="margin-top:12px;background:rgba(139,92,246,.05);border:1px solid rgba(139,92,246,.2);border-radius:10px;padding:10px 12px;font-size:12px;color:#6D28D9">' +
+        '<strong>✅ ' + T('acep.cliente') + '</strong>' + (r.aceptacionClienteFecha ? ' ' + T('det.el') + ' ' + _fmtA(r.aceptacionClienteFecha) : '') +
+        (r.aceptacionClienteIp ? ' · <span title="' + esc(r.aceptacionClienteIp) + '" style="text-decoration:underline dotted;cursor:help">' + T('det.ip_registrada') + '</span>' : '') +
+        (r.aceptacionClienteTel ? ' · 📱 ' + esc(r.aceptacionClienteTel) : '') +
+        (r.aceptacionClienteHash ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted);word-break:break-all">🔒 ' + esc(String(r.aceptacionClienteHash).slice(0,40)) + '…</span>' : '') + '</div>';
+    } else if (r.aceptacionMostrador) {
+      html += '<div style="margin-top:12px;background:rgba(22,163,74,.06);border:1px solid rgba(22,163,74,.25);border-radius:10px;padding:10px 12px;font-size:12px;color:#166534">' +
+        '<strong>📋 ' + T('acep.mostrador') + '</strong>' + (r.aceptacionMostradorPor ? ' · ' + esc(r.aceptacionMostradorPor) : '') + (r.aceptacionMostradorFecha ? ' · ' + _fmtA(r.aceptacionMostradorFecha) : '') +
+        (r.aceptacionMostradorHash ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted);word-break:break-all">🔒 ' + esc(String(r.aceptacionMostradorHash).slice(0,40)) + '…</span>' : '') + '</div>';
+    } else if (['Entregado','Rechazado','Devuelto','Sin Solucion','Presupuesto'].indexOf(r.estado) === -1) {
+      html += '<div style="margin-top:12px;background:rgba(234,88,12,.06);border:1px solid rgba(234,88,12,.2);border-radius:10px;padding:10px 12px;font-size:12px;color:#B45309">⏳ ' + T('acep.pendiente') + '</div>';
+    }
+  })();
 
   // Prueba de aceptación del presupuesto (registro legal: fecha + IP + firma)
   if (r.presupuesto_aceptado_at) {
