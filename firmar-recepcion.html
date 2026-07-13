@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Firma de recepción · TekPair</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--terra:#C2410C;--terra-d:#9A3309;--text:#1C1917;--muted:#78716C;--border:#E7E5E4;--bg:#FAFAF9;--green:#16A34A;--red:#DC2626}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;padding:18px 14px calc(18px + env(safe-area-inset-bottom))}
+    .wrap{max-width:460px;margin:0 auto;display:flex;flex-direction:column;gap:14px}
+    .card{background:#fff;border:1px solid var(--border);border-radius:14px;padding:16px;box-shadow:0 4px 20px rgba(0,0,0,.04)}
+    .logo{font-weight:800;color:var(--terra);font-size:1rem;text-align:center;margin-bottom:2px}
+    h1{font-size:1.15rem;font-weight:800;letter-spacing:-.02em;text-align:center}
+    .sub{font-size:.86rem;color:var(--muted);text-align:center}
+    .lbl{font-size:.68rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px}
+    .val{font-size:.95rem;font-weight:600;margin-bottom:10px;word-break:break-word}
+    .val:last-child{margin-bottom:0}
+    .row{display:flex;gap:14px;flex-wrap:wrap}
+    .row>div{flex:1;min-width:120px}
+    .cond{font-size:.82rem;color:#44403C;white-space:pre-wrap;max-height:180px;overflow:auto;border:1px solid var(--border);border-radius:8px;padding:10px;background:var(--bg)}
+    .total{font-size:1.35rem;font-weight:800;color:var(--terra)}
+    .thumbs{display:flex;gap:8px;flex-wrap:wrap}
+    .thumbs img{width:64px;height:64px;object-fit:cover;border-radius:8px;border:1px solid var(--border)}
+    canvas{width:100%;height:190px;border:2px dashed var(--border);border-radius:10px;background:#fff;touch-action:none;display:block}
+    .canvas-wrap.has-firma canvas{border-color:var(--terra);border-style:solid}
+    .firma-tools{display:flex;justify-content:space-between;align-items:center;margin-top:6px}
+    .link-btn{background:none;border:none;color:var(--terra);font:inherit;font-size:.85rem;font-weight:600;cursor:pointer;padding:4px}
+    .hint{font-size:.78rem;color:var(--muted)}
+    .acepto{display:flex;align-items:flex-start;gap:9px;font-size:.9rem;font-weight:500;cursor:pointer;margin-top:12px}
+    .acepto input{margin-top:3px;flex-shrink:0;width:18px;height:18px}
+    .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--terra);color:#fff;border:none;border-radius:12px;padding:15px;font:inherit;font-size:1.02rem;font-weight:700;cursor:pointer;margin-top:12px;-webkit-tap-highlight-color:transparent}
+    .btn:active{background:var(--terra-d)}
+    .btn[disabled]{opacity:.5}
+    .msg{border-radius:10px;padding:12px 14px;font-size:.88rem;text-align:center}
+    .msg-err{background:rgba(220,38,38,.08);color:#991B1B;border:1px solid rgba(220,38,38,.25)}
+    .msg-ok{background:rgba(22,163,74,.08);color:#166534;border:1px solid rgba(22,163,74,.25)}
+    .foot{text-align:center;font-size:.72rem;color:var(--muted)}
+    .hide{display:none}
+    .firma-img{background:#fff;border:1px solid var(--border);border-radius:8px;padding:6px}
+    .firma-img img{max-width:100%;max-height:150px;display:block;margin:0 auto}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card" style="text-align:center">
+      <div class="logo" id="tiendaNom">TekPair</div>
+      <h1 id="h1">Recepción de tu reparación</h1>
+      <p class="sub" id="sub">Revisa los datos y firma la recepción del equipo.</p>
+    </div>
+
+    <div id="contenido" class="hide">
+      <div class="card">
+        <div class="lbl" id="l_equipo">Equipo</div><div class="val" id="v_equipo"></div>
+        <div id="wImei" class="hide"><div class="lbl" id="l_imei">IMEI</div><div class="val" id="v_imei"></div></div>
+        <div class="lbl" id="l_averia">Avería declarada</div><div class="val" id="v_averia"></div>
+        <div id="wPres" class="hide"><div class="lbl" id="l_pres">Presupuesto estimado</div><div class="val total" id="v_pres"></div></div>
+      </div>
+
+      <div id="wFotos" class="card hide" style="margin-top:14px">
+        <div class="lbl" id="l_fotos">Fotos del estado al recibir</div>
+        <div class="thumbs" id="v_fotos"></div>
+      </div>
+
+      <div id="wCond" class="card hide" style="margin-top:14px">
+        <div class="lbl" id="l_cond">Condiciones y garantía</div>
+        <div class="cond" id="v_cond"></div>
+      </div>
+
+      <!-- Zona de firma (si no está firmada) -->
+      <div id="wFirma" class="card hide" style="margin-top:14px">
+        <div class="lbl" id="l_firma">Firma aquí con el dedo</div>
+        <div class="canvas-wrap" id="canvasWrap"><canvas id="firmaCanvas"></canvas></div>
+        <div class="firma-tools">
+          <span class="hint" id="hintFirma">✍️</span>
+          <button type="button" class="link-btn" id="btnBorrar" onclick="_limpiar()">Borrar</button>
+        </div>
+        <label class="acepto"><input type="checkbox" id="chkAcepto"> <span id="l_acepto">He leído y acepto las condiciones y la avería declarada.</span></label>
+        <button class="btn" id="btnFirmar" onclick="_firmar()">✍️ <span id="btnFirmarTxt">Aceptar y firmar</span></button>
+      </div>
+
+      <!-- Firma ya realizada -->
+      <div id="wYaFirmada" class="card hide" style="margin-top:14px">
+        <div class="msg msg-ok" id="yaFirmadaTxt" style="margin-bottom:12px"></div>
+        <div class="firma-img"><img id="firmaImg" src="" alt=""></div>
+      </div>
+
+      <div id="msgBox" class="msg hide" style="margin-top:14px"></div>
+    </div>
+
+    <div id="loadMsg" class="card"><p class="sub" id="cargando">Cargando…</p></div>
+    <div class="foot" id="foot"></div>
+  </div>
+
+  <script>
+  (function(){
+    var I18N = {
+      es:{titulo:'Recepción de tu reparación',sub:'Revisa los datos y firma la recepción del equipo.',equipo:'Equipo',imei:'IMEI',averia:'Avería declarada',pres:'Presupuesto estimado',fotos:'Fotos del estado al recibir',cond:'Condiciones y garantía',firma:'Firma aquí con el dedo',borrar:'Borrar',acepto:'He leído y acepto las condiciones y la avería declarada.',firmar:'Aceptar y firmar',firmando:'Registrando…',ok:'✅ Firma registrada. ¡Gracias!',ya:'Esta recepción ya está firmada',el:'el',falta_firma:'Firma en el recuadro para continuar.',falta_acepto:'Marca la casilla para aceptar.',caducado:'El código ha caducado. Pide en la tienda que muestre el QR de nuevo.',sin_permiso:'Enlace no válido. Pide en la tienda que muestre el QR de nuevo.',error:'No se pudo registrar. Reintenta.',cargando:'Cargando…',gar_dias:'Garantía de {n} días en la reparación.',foot:'Enlace seguro y temporal · TekPair'},
+      en:{titulo:'Your repair intake',sub:'Review the details and sign for the device intake.',equipo:'Device',imei:'IMEI',averia:'Reported issue',pres:'Estimated quote',fotos:'Condition photos at intake',cond:'Terms & warranty',firma:'Sign here with your finger',borrar:'Clear',acepto:'I have read and accept the terms and the reported issue.',firmar:'Accept and sign',firmando:'Saving…',ok:'✅ Signature saved. Thank you!',ya:'This intake is already signed',el:'on',falta_firma:'Please sign in the box to continue.',falta_acepto:'Tick the box to accept.',caducado:'This code has expired. Ask the shop to show the QR again.',sin_permiso:'Invalid link. Ask the shop to show the QR again.',error:'Could not save. Try again.',cargando:'Loading…',gar_dias:'{n}-day warranty on the repair.',foot:'Secure, temporary link · TekPair'},
+      fr:{titulo:'Réception de votre réparation',sub:'Vérifiez les informations et signez la réception de l’appareil.',equipo:'Appareil',imei:'IMEI',averia:'Panne déclarée',pres:'Devis estimé',fotos:'Photos de l’état à la réception',cond:'Conditions et garantie',firma:'Signez ici avec le doigt',borrar:'Effacer',acepto:'J’ai lu et j’accepte les conditions et la panne déclarée.',firmar:'Accepter et signer',firmando:'Enregistrement…',ok:'✅ Signature enregistrée. Merci !',ya:'Cette réception est déjà signée',el:'le',falta_firma:'Signez dans le cadre pour continuer.',falta_acepto:'Cochez la case pour accepter.',caducado:'Ce code a expiré. Demandez au magasin d’afficher à nouveau le QR.',sin_permiso:'Lien invalide. Demandez au magasin d’afficher à nouveau le QR.',error:'Impossible d’enregistrer. Réessayez.',cargando:'Chargement…',gar_dias:'Garantie de {n} jours sur la réparation.',foot:'Lien sécurisé et temporaire · TekPair'},
+      it:{titulo:'Accettazione della riparazione',sub:'Controlla i dati e firma l’accettazione del dispositivo.',equipo:'Dispositivo',imei:'IMEI',averia:'Guasto dichiarato',pres:'Preventivo stimato',fotos:'Foto dello stato all’accettazione',cond:'Condizioni e garanzia',firma:'Firma qui con il dito',borrar:'Cancella',acepto:'Ho letto e accetto le condizioni e il guasto dichiarato.',firmar:'Accetta e firma',firmando:'Salvataggio…',ok:'✅ Firma registrata. Grazie!',ya:'Questa accettazione è già firmata',el:'il',falta_firma:'Firma nel riquadro per continuare.',falta_acepto:'Spunta la casella per accettare.',caducado:'Il codice è scaduto. Chiedi al negozio di mostrare di nuovo il QR.',sin_permiso:'Link non valido. Chiedi al negozio di mostrare di nuovo il QR.',error:'Impossibile salvare. Riprova.',cargando:'Caricamento…',gar_dias:'Garanzia di {n} giorni sulla riparazione.',foot:'Link sicuro e temporaneo · TekPair'},
+      de:{titulo:'Annahme deiner Reparatur',sub:'Prüfe die Angaben und unterschreibe die Geräteannahme.',equipo:'Gerät',imei:'IMEI',averia:'Gemeldeter Fehler',pres:'Geschätzter Kostenvoranschlag',fotos:'Zustandsfotos bei Annahme',cond:'Bedingungen & Garantie',firma:'Hier mit dem Finger unterschreiben',borrar:'Löschen',acepto:'Ich habe die Bedingungen und den gemeldeten Fehler gelesen und akzeptiere sie.',firmar:'Akzeptieren und unterschreiben',firmando:'Wird gespeichert…',ok:'✅ Unterschrift gespeichert. Danke!',ya:'Diese Annahme ist bereits unterschrieben',el:'am',falta_firma:'Bitte im Feld unterschreiben, um fortzufahren.',falta_acepto:'Kästchen ankreuzen, um zu akzeptieren.',caducado:'Dieser Code ist abgelaufen. Bitte den Laden, den QR erneut anzuzeigen.',sin_permiso:'Ungültiger Link. Bitte den Laden, den QR erneut anzuzeigen.',error:'Speichern fehlgeschlagen. Versuche es erneut.',cargando:'Wird geladen…',gar_dias:'{n} Tage Garantie auf die Reparatur.',foot:'Sicherer, temporärer Link · TekPair'},
+      pt:{titulo:'Receção da tua reparação',sub:'Revê os dados e assina a receção do equipamento.',equipo:'Equipamento',imei:'IMEI',averia:'Avaria declarada',pres:'Orçamento estimado',fotos:'Fotos do estado na receção',cond:'Condições e garantia',firma:'Assina aqui com o dedo',borrar:'Limpar',acepto:'Li e aceito as condições e a avaria declarada.',firmar:'Aceitar e assinar',firmando:'A registar…',ok:'✅ Assinatura registada. Obrigado!',ya:'Esta receção já está assinada',el:'a',falta_firma:'Assina no quadro para continuar.',falta_acepto:'Marca a caixa para aceitar.',caducado:'Este código expirou. Pede na loja para mostrar o QR de novo.',sin_permiso:'Ligação inválida. Pede na loja para mostrar o QR de novo.',error:'Não foi possível registar. Tenta de novo.',cargando:'A carregar…',gar_dias:'Garantia de {n} dias na reparação.',foot:'Ligação segura e temporária · TekPair'}
+    };
+    var q = new URLSearchParams(location.search);
+    var ID = q.get('id') || '', EXP = parseInt(q.get('exp') || '0', 10), SIG = q.get('sig') || '';
+    var lang = (q.get('lang') || navigator.language || 'es').slice(0,2).toLowerCase();
+    var T = I18N[lang] || I18N.es;
+    document.documentElement.lang = lang;
+
+    function $(id){ return document.getElementById(id); }
+    function setTxt(id, t){ var e=$(id); if(e) e.textContent=t; }
+    function fmtFecha(iso){ try{ var d=new Date(iso); return d.toLocaleDateString(lang,{day:'2-digit',month:'2-digit',year:'numeric'})+' '+d.toLocaleTimeString(lang,{hour:'2-digit',minute:'2-digit'}); }catch(e){ return ''; } }
+    function showMsg(txt,tipo){ var m=$('msgBox'); m.className='msg '+(tipo==='ok'?'msg-ok':'msg-err'); m.textContent=txt; m.classList.remove('hide'); }
+
+    // Etiquetas i18n estáticas
+    setTxt('h1',T.titulo); setTxt('sub',T.sub); setTxt('cargando',T.cargando); setTxt('foot',T.foot);
+    setTxt('l_equipo',T.equipo); setTxt('l_imei',T.imei); setTxt('l_averia',T.averia); setTxt('l_pres',T.pres);
+    setTxt('l_fotos',T.fotos); setTxt('l_cond',T.cond); setTxt('l_firma',T.firma); setTxt('btnBorrar',T.borrar);
+    setTxt('l_acepto',T.acepto); setTxt('btnFirmarTxt',T.firmar);
+
+    function fatal(txt){ $('loadMsg').innerHTML=''; showMsg(txt,'err'); $('msgBox').classList.remove('hide'); $('contenido').classList.remove('hide'); }
+    if(!ID||!EXP||!SIG){ fatal(T.sin_permiso); return; }
+    if(Date.now()>EXP){ fatal(T.caducado); return; }
+
+    // ── Cargar datos de la reparación ──
+    fetch('/api/parte?action=firma-datos',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:ID,exp:EXP,sig:SIG})})
+      .then(function(r){ return r.json().then(function(j){ return {status:r.status,j:j}; }); })
+      .then(function(res){
+        var j=res.j||{};
+        if(res.status===403){ fatal(T.caducado); return; }
+        if(!res.status||res.status>=400||!j.ok){ fatal(T.sin_permiso); return; }
+        $('loadMsg').classList.add('hide');
+        $('contenido').classList.remove('hide');
+        if(j.tienda&&j.tienda.nombre) setTxt('tiendaNom',j.tienda.nombre);
+        var rep=j.rep||{};
+        setTxt('v_equipo',((rep.marca||'')+' '+(rep.modelo||'')).trim()||'—');
+        if(rep.imei){ $('wImei').classList.remove('hide'); setTxt('v_imei',rep.imei); }
+        setTxt('v_averia',rep.averia||'—');
+        if(rep.total){ $('wPres').classList.remove('hide'); setTxt('v_pres',(Number(rep.total).toFixed(2))+' €'); }
+        // Fotos
+        if(Array.isArray(j.fotos)&&j.fotos.length){ $('wFotos').classList.remove('hide'); $('v_fotos').innerHTML=j.fotos.map(function(u){ return '<img src="'+u+'" alt="">'; }).join(''); }
+        // Condiciones + garantía
+        var cond=(j.condiciones||'').trim(); var gar=(j.garantia||'').trim();
+        var bloque=[cond,gar].filter(Boolean).join('\n\n');
+        if(!bloque && j.garantia_dias){ bloque=T.gar_dias.replace('{n}',j.garantia_dias); }
+        else if(j.garantia_dias){ bloque+='\n\n'+T.gar_dias.replace('{n}',j.garantia_dias); }
+        if(bloque){ $('wCond').classList.remove('hide'); setTxt('v_cond',bloque); }
+        // ¿Ya firmada?
+        if(j.firmada){
+          $('wYaFirmada').classList.remove('hide');
+          setTxt('yaFirmadaTxt','✅ '+T.ya+(j.firma_fecha?(' '+T.el+' '+fmtFecha(j.firma_fecha)):''));
+          if(j.firma_url) $('firmaImg').src=j.firma_url;
+        } else {
+          $('wFirma').classList.remove('hide');
+          _initCanvas();
+        }
+      })
+      .catch(function(){ fatal(T.error); });
+
+    // ── Canvas de firma ──
+    var _cv,_ctx,_drawing=false,_hasDrawn=false,_lx=0,_ly=0;
+    function _initCanvas(){
+      _cv=$('firmaCanvas');
+      var rect=_cv.getBoundingClientRect(); var dpr=window.devicePixelRatio||1;
+      _cv.width=Math.round(rect.width*dpr); _cv.height=Math.round(rect.height*dpr);
+      _ctx=_cv.getContext('2d'); _ctx.scale(dpr,dpr);
+      _ctx.fillStyle='#fff'; _ctx.fillRect(0,0,rect.width,rect.height);
+      _ctx.strokeStyle='#0E0E10'; _ctx.lineWidth=2.4; _ctx.lineCap='round'; _ctx.lineJoin='round';
+      function xy(e){ var r=_cv.getBoundingClientRect(); var t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left,y:t.clientY-r.top}; }
+      function start(e){ e.preventDefault(); _drawing=true; var p=xy(e); _lx=p.x; _ly=p.y; }
+      function move(e){ if(!_drawing)return; e.preventDefault(); var p=xy(e); _ctx.beginPath(); _ctx.moveTo(_lx,_ly); _ctx.lineTo(p.x,p.y); _ctx.stroke(); _lx=p.x; _ly=p.y; _hasDrawn=true; $('canvasWrap').classList.add('has-firma'); }
+      function end(e){ if(e)e.preventDefault(); _drawing=false; }
+      _cv.addEventListener('mousedown',start); _cv.addEventListener('mousemove',move); _cv.addEventListener('mouseup',end); _cv.addEventListener('mouseleave',end);
+      _cv.addEventListener('touchstart',start,{passive:false}); _cv.addEventListener('touchmove',move,{passive:false}); _cv.addEventListener('touchend',end,{passive:false});
+    }
+    window._limpiar=function(){ if(!_ctx)return; var r=_cv.getBoundingClientRect(); _ctx.clearRect(0,0,_cv.width,_cv.height); _ctx.fillStyle='#fff'; _ctx.fillRect(0,0,r.width,r.height); _hasDrawn=false; $('canvasWrap').classList.remove('has-firma'); };
+
+    window._firmar=function(){
+      if(!_hasDrawn){ showMsg(T.falta_firma,'err'); return; }
+      if(!$('chkAcepto').checked){ showMsg(T.falta_acepto,'err'); return; }
+      if(Date.now()>EXP){ fatal(T.caducado); return; }
+      var btn=$('btnFirmar'); btn.disabled=true; setTxt('btnFirmarTxt',T.firmando);
+      var png=_cv.toDataURL('image/png');
+      fetch('/api/parte?action=firma-guardar',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:ID,exp:EXP,sig:SIG,firma:png})})
+        .then(function(r){ return r.json().then(function(j){ return {status:r.status,j:j}; }); })
+        .then(function(res){
+          if(res.status===200&&res.j&&res.j.ok){ $('wFirma').classList.add('hide'); showMsg(T.ok,'ok'); return; }
+          if(res.status===403){ fatal(T.caducado); return; }
+          if(res.status===409){ showMsg(T.ya,'err'); return; }
+          btn.disabled=false; setTxt('btnFirmarTxt',T.firmar); showMsg(T.error,'err');
+        })
+        .catch(function(){ btn.disabled=false; setTxt('btnFirmarTxt',T.firmar); showMsg(T.error,'err'); });
+    };
+  })();
+  </script>
+</body>
+</html>

@@ -3659,6 +3659,17 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   <button id="sfqrCerrarBtn" onclick="_cerrarFotosQR()" style="width:100%;background:none;border:1px solid var(--border);padding:10px;border-radius:8px;color:var(--muted);cursor:pointer;font-family:inherit"><span id="sfqrCerrarTxt" data-t="gen.cerrar">Cerrar</span></button>
 </div>
 </div>
+<div class="modal-bg sobre" id="mFirmaRecepQR">
+<div class="modal" style="max-width:380px">
+  <div class="modal-title">✍️ <span data-t="firq.titulo">Firma del cliente por móvil</span></div>
+  <div id="sfrHeader" style="font-size:12px;color:var(--muted);margin-bottom:10px;text-align:center"></div>
+  <div id="sfrQR" style="display:flex;justify-content:center;padding:14px;background:white;border-radius:10px;margin-bottom:8px;border:1px solid var(--border)"></div>
+  <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:6px" data-t="firq.instru">El cliente lo escanea con su móvil, revisa los datos y firma. Aparecerá aquí al instante.</div>
+  <div id="sfrExp" style="font-size:11px;color:var(--orange);text-align:center;margin-bottom:12px"></div>
+  <div id="sfrEstado" style="text-align:center"></div>
+  <button id="sfrCerrarBtn" onclick="closeM('mFirmaRecepQR')" style="width:100%;background:none;border:1px solid var(--border);padding:10px;border-radius:8px;color:var(--muted);cursor:pointer;font-family:inherit;margin-top:12px"><span data-t="gen.cerrar">Cerrar</span></button>
+</div>
+</div>
 <div class="modal-bg" id="mVenta">
 <div class="modal">
   <div class="modal-title"><span data-t="tpv.nueva_venta">📱 Nueva Venta</span></div>
@@ -3826,6 +3837,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
               </label>
             </div>
             <button type="button" id="repBtnFotoQR" class="btn-sm" onclick="_fotoQRDesdeForm()" style="margin-top:10px;background:#C2410C;color:white">📷 <span data-t="fqr.btn">Fotos por QR</span></button>
+            <button type="button" id="repBtnFirmaQR" class="btn-sm" onclick="_firmaQRDesdeForm()" style="margin-top:10px;margin-left:6px;background:#8B5CF6;color:white">✍️ <span data-t="firq.btn">Firma por QR</span></button>
           </div>
         </div>
 

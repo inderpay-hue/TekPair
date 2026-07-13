@@ -39,6 +39,9 @@ export default async function handler(req, res) {
     if (action === 'confirmar-pago') return cobroConfirmarPago(req, res, ip);
     if (action === 'foto-token') return fotoToken(req, res);
     if (action === 'foto-subir') return fotoSubir(req, res);
+    if (action === 'firma-token') return firmaToken(req, res);
+    if (action === 'firma-datos') return firmaDatos(req, res);
+    if (action === 'firma-guardar') return firmaGuardar(req, res, ip);
     return res.status(405).json({ error: 'Method not allowed' });
   }
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -330,4 +333,151 @@ async function fotoSubir(req, res) {
     if (!paR.ok) { const t3 = await paR.text().catch(() => ''); console.error('[foto-subir] patch', paR.status, t3.slice(0, 200)); return res.status(500).json({ error: 'No se pudo guardar' }); }
     return res.status(200).json({ ok: true, n: fotos.length });
   } catch (e) { console.error('[foto-subir]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
+}
+
+// ═══ FIRMA DEL CLIENTE EN RECEPCIÓN POR QR (móvil del cliente → reparación) ═══
+// Mismo esqueleto que fotos, pero permiso con PROPÓSITO 'firma:' → un token de fotos NO sirve
+// para firmar (y viceversa). El QR lleva id+exp+sig; el móvil pide datos y firma una sola vez.
+const FIRMA_TTL_MS = 45 * 60 * 1000;        // el QR de firma caduca a los 45 min
+const FIRMA_MAX_BYTES = 1.5 * 1024 * 1024;  // PNG de firma
+
+function _firmaSig(id, exp, secret) {
+  return crypto.createHmac('sha256', secret).update('firma:' + id + ':' + exp).digest('hex');
+}
+function _firmaSigOk(id, exp, sig, secret) {
+  if (!/^[0-9a-f]{64}$/i.test(String(sig || ''))) return false;
+  try { return crypto.timingSafeEqual(Buffer.from(_firmaSig(id, exp, secret), 'hex'), Buffer.from(String(sig).toLowerCase(), 'hex')); } catch (e) { return false; }
+}
+// Hash del contenido firmado (avería + presupuesto + condiciones + garantía + IDs de fotos).
+// Se calcula en el SERVIDOR desde la BD → prueba que la firma corresponde a ese contenido exacto.
+function _firmaHash(rep, condiciones, garantia) {
+  const canon = JSON.stringify({
+    averia: rep.averia || '', total: rep.total || 0,
+    condiciones: condiciones || '', garantia: garantia || '',
+    fotos: Array.isArray(rep.fotos_recepcion) ? rep.fotos_recepcion : []
+  });
+  return crypto.createHash('sha256').update(canon).digest('hex');
+}
+// Firma una URL de Storage privado (bucket gastos-adjuntos) por N segundos.
+async function _signedUrl(SUPABASE_URL, SERVICE_KEY, path, secs) {
+  try {
+    const sR = await fetch(`${SUPABASE_URL}/storage/v1/object/sign/gastos-adjuntos/${path}`, {
+      method: 'POST', headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ expiresIn: secs || 3600 })
+    });
+    if (!sR.ok) return '';
+    const sj = await sR.json();
+    return (sj && sj.signedURL) ? (SUPABASE_URL + '/storage/v1' + sj.signedURL) : '';
+  } catch (e) { return ''; }
+}
+// Lee la rep (campos a mostrar/firmar) + condiciones y garantía de la tienda (de ajustes_config).
+async function _firmaLeerRep(SUPABASE_URL, SERVICE_KEY, id) {
+  const sel = 'id,cliente_nombre,marca,modelo,imei,averia,total,servicios,fotos_recepcion,firma_recep,firma_recep_fecha,tienda_id';
+  const rR = await fetch(`${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&select=${sel}&limit=1`, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
+  if (!rR.ok) return { error: 'db' };
+  const rows = await rR.json();
+  if (!Array.isArray(rows) || !rows.length) return { error: 'notfound' };
+  const rep = rows[0];
+  let tienda = { nombre: 'TekPair', logo: '' }, condiciones = '', garantia = '', garantiaDias = 90;
+  if (rep.tienda_id) {
+    try {
+      const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(rep.tienda_id)}&select=nombre,logo_url,ajustes_config`, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
+      if (tR.ok) { const tRows = await tR.json(); if (Array.isArray(tRows) && tRows.length) {
+        const t = tRows[0];
+        tienda = { nombre: t.nombre || 'TekPair', logo: t.logo_url || '' };
+        const aj = (t.ajustes_config && typeof t.ajustes_config === 'object') ? t.ajustes_config : {};
+        garantia = String(aj.garantia || '');
+        condiciones = String(aj.politica || '');
+        garantiaDias = aj.grDiasDefault || 90;
+      } }
+    } catch (e) { /* tienda opcional */ }
+  }
+  return { rep, tienda, condiciones, garantia, garantiaDias };
+}
+
+// POST ?action=firma-token  body {id,t}  → permiso de firma caduco (el PC conoce el token del parte)
+async function firmaToken(req, res) {
+  let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  body = body || {};
+  const id = body.id, t = body.t;
+  if (!id || !t || typeof id !== 'string' || typeof t !== 'string' || !ID_RE.test(id) || !TOKEN_RE.test(t)) return res.status(400).json({ error: 'Formato invalido' });
+  const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  if (!SUPABASE_URL || !SERVICE_KEY) return res.status(500).json({ error: 'Servidor no configurado' });
+  try {
+    const url = `${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&token=eq.${encodeURIComponent(t)}&select=id&limit=1`;
+    const r = await fetch(url, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
+    if (!r.ok) return res.status(500).json({ error: 'Error consultando datos' });
+    const rows = await r.json();
+    if (!Array.isArray(rows) || !rows.length) return res.status(404).json({ error: 'No encontrado' });
+    const exp = Date.now() + FIRMA_TTL_MS;
+    const sig = _firmaSig(id, exp, SERVICE_KEY);
+    return res.status(200).json({ ok: true, id, exp, sig, ttl_min: Math.round(FIRMA_TTL_MS / 60000) });
+  } catch (e) { console.error('[firma-token]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
+}
+
+// POST ?action=firma-datos  body {id,exp,sig}  → datos que ve el cliente antes de firmar (o la firma ya hecha)
+async function firmaDatos(req, res) {
+  let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  body = body || {};
+  const id = body.id; const exp = parseInt(body.exp, 10); const sig = body.sig;
+  if (!id || typeof id !== 'string' || !ID_RE.test(id) || !Number.isInteger(exp)) return res.status(400).json({ error: 'Formato invalido' });
+  const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  if (!SUPABASE_URL || !SERVICE_KEY) return res.status(500).json({ error: 'Servidor no configurado' });
+  if (Date.now() > exp) return res.status(403).json({ error: 'caducado' });
+  if (!_firmaSigOk(id, exp, sig, SERVICE_KEY)) return res.status(403).json({ error: 'no autorizado' });
+  try {
+    const d = await _firmaLeerRep(SUPABASE_URL, SERVICE_KEY, id);
+    if (d.error === 'db') return res.status(500).json({ error: 'Error consultando datos' });
+    if (d.error) return res.status(404).json({ error: 'No encontrado' });
+    const rep = d.rep;
+    let fotos = [];
+    const paths = Array.isArray(rep.fotos_recepcion) ? rep.fotos_recepcion : [];
+    for (const p of paths.slice(0, 12)) { const u = await _signedUrl(SUPABASE_URL, SERVICE_KEY, p, 3600); if (u) fotos.push(u); }
+    let firmaUrl = '';
+    if (rep.firma_recep) firmaUrl = await _signedUrl(SUPABASE_URL, SERVICE_KEY, rep.firma_recep, 3600);
+    return res.status(200).json({
+      ok: true, firmada: !!rep.firma_recep, firma_url: firmaUrl, firma_fecha: rep.firma_recep_fecha || null,
+      rep: { cliente: rep.cliente_nombre || '', marca: rep.marca || '', modelo: rep.modelo || '', imei: rep.imei || '', averia: rep.averia || '', total: rep.total || 0, servicios: (rep.servicios ? (typeof rep.servicios === 'string' ? JSON.parse(rep.servicios) : rep.servicios) : []) },
+      tienda: d.tienda, condiciones: d.condiciones, garantia: d.garantia, garantia_dias: d.garantiaDias, fotos
+    });
+  } catch (e) { console.error('[firma-datos]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
+}
+
+// POST ?action=firma-guardar  body {id,exp,sig,firma(PNG dataURL)}  → guarda firma + fecha + hash + UA/IP
+async function firmaGuardar(req, res, ip) {
+  let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  body = body || {};
+  const id = body.id; const exp = parseInt(body.exp, 10); const sig = body.sig; const firma = body.firma;
+  if (!id || typeof id !== 'string' || !ID_RE.test(id) || !Number.isInteger(exp)) return res.status(400).json({ error: 'Formato invalido' });
+  const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  if (!SUPABASE_URL || !SERVICE_KEY) return res.status(500).json({ error: 'Servidor no configurado' });
+  if (Date.now() > exp) return res.status(403).json({ error: 'caducado' });
+  if (!_firmaSigOk(id, exp, sig, SERVICE_KEY)) return res.status(403).json({ error: 'no autorizado' });
+  let b64 = String(firma || '');
+  const m = b64.match(/^data:image\/png;base64,(.+)$/i);
+  if (m) b64 = m[1];
+  if (!b64 || b64.length < 100) return res.status(400).json({ error: 'Firma invalida' });
+  let buf; try { buf = Buffer.from(b64, 'base64'); } catch (e) { return res.status(400).json({ error: 'Firma invalida' }); }
+  if (!buf || buf.length < 100) return res.status(400).json({ error: 'Firma invalida' });
+  if (buf.length > FIRMA_MAX_BYTES) return res.status(413).json({ error: 'Firma demasiado grande' });
+  try {
+    const d = await _firmaLeerRep(SUPABASE_URL, SERVICE_KEY, id);
+    if (d.error === 'db') return res.status(500).json({ error: 'Error consultando datos' });
+    if (d.error) return res.status(404).json({ error: 'No encontrado' });
+    if (d.rep.firma_recep) return res.status(409).json({ error: 'ya_firmada' });   // no re-firmar
+    const tiendaId = d.rep.tienda_id;
+    const path = `${tiendaId}/firmas/recep_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.png`;
+    const upR = await fetch(`${SUPABASE_URL}/storage/v1/object/gastos-adjuntos/${path}`, {
+      method: 'POST', headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'image/png', 'x-upsert': 'true' }, body: buf
+    });
+    if (!upR.ok) { const t2 = await upR.text().catch(() => ''); console.error('[firma-guardar] storage', upR.status, t2.slice(0, 200)); return res.status(502).json({ error: 'No se pudo guardar la firma' }); }
+    const hash = _firmaHash(d.rep, d.condiciones, d.garantia);
+    const ua = (req.headers['user-agent'] || '').slice(0, 300) || null;
+    const patch = { firma_recep: path, firma_recep_fecha: new Date().toISOString(), firma_recep_hash: hash, firma_recep_ip: (ip && ip !== 'unknown') ? ip : null, firma_recep_ua: ua };
+    const paR = await fetch(`${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH', headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }, body: JSON.stringify(patch)
+    });
+    if (!paR.ok) { const t3 = await paR.text().catch(() => ''); console.error('[firma-guardar] patch', paR.status, t3.slice(0, 200)); return res.status(500).json({ error: 'No se pudo guardar' }); }
+    return res.status(200).json({ ok: true });
+  } catch (e) { console.error('[firma-guardar]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
 }
