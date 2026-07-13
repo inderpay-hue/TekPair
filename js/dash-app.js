@@ -8281,6 +8281,7 @@ function abrirRep() {
   calcR();
   renderPlantillasRep();
   openM('mRep');
+  try { _actualizarBtnFotoQR(); } catch (e) {}
   // Draft autosave: ofrecer recuperar un borrador previo y empezar a autoguardar
   _repDraftBannerShow();
   _repDraftStartAutosave();
@@ -9452,7 +9453,7 @@ function abrirTracking(id) {
 // lo mete en un QR; el móvil escanea → subir-fotos.html → sube → PATCH fotos_recepcion →
 // Realtime actualiza DB.reps → repintamos las miniaturas en este modal cada 3s.
 var _SFQR = { repId: null, timer: null, lastN: -1 };
-function abrirSubirFotosQR(repId) {
+function abrirSubirFotosQR(repId, creada) {
   if (typeof checkFeature === 'function' && !checkFeature('fotos_rep')) return;   // Pro+
   var r = DB.reps.find(function(x){ return x.id === repId; });
   if (!r) return;
@@ -9468,6 +9469,10 @@ function abrirSubirFotosQR(repId) {
         var qb = document.getElementById('sfqrQR');
         if (qb) { qb.innerHTML = ''; try { var qr = qrcode(0, 'M'); qr.addData(url); qr.make(); qb.innerHTML = qr.createImgTag(5, 8); } catch (e) { qb.innerHTML = '<div style="color:var(--red);font-size:12px">QR</div>'; } }
         var ex = document.getElementById('sfqrExp'); if (ex) ex.textContent = '⏱ ' + T('fqr.caduca').replace('{n}', j.ttl_min || 45);
+        // Paso final tras crear una rep nueva: banner "reparación creada" + botón "Ahora no".
+        var _intro = document.getElementById('sfqrIntro'), _ctxt = document.getElementById('sfqrCerrarTxt');
+        if (creada) { if (_intro) { _intro.style.display = 'block'; _intro.textContent = T('fqr.creada_intro'); } if (_ctxt) _ctxt.textContent = T('fqr.ahora_no'); }
+        else { if (_intro) _intro.style.display = 'none'; if (_ctxt) _ctxt.textContent = T('gen.cerrar'); }
         openM('mSubirFotosQR');
         _sfqrRenderFotos();
         if (_SFQR.timer) clearInterval(_SFQR.timer);
@@ -9486,6 +9491,22 @@ function _sfqrRenderFotos() {
   var box = document.getElementById('sfqrFotos'); if (!box) return;
   if (!fotos.length) { box.innerHTML = '<div style="font-size:12px;color:var(--muted)">' + T('fqr.esperando') + '</div>'; return; }
   _repRenderFotos('sfqrFotos', fotos, null);
+}
+// Botón "📷 Fotos por QR" dentro del formulario de reparación (sección de fotos de recepción).
+// Al EDITAR (ya hay id) abre el QR; al CREAR (aún sin id) informa que estará al guardar;
+// sin plan → upsell. La sección entera ya se oculta en Básico vía aplicarBloqueosPlan.
+function _fotoQRDesdeForm() {
+  if (typeof tieneFeature === 'function' && !tieneFeature('fotos_rep')) { mostrarModalUpgrade('fotos_rep', 'pro'); return; }
+  if (SEL.editRepId) { abrirSubirFotosQR(SEL.editRepId); }
+  else { toast(T('fqr.al_guardar'), 'ok'); }
+}
+// Aspecto del botón según nueva (atenuado, "disponible al guardar") vs edición (activo).
+function _actualizarBtnFotoQR() {
+  var b = document.getElementById('repBtnFotoQR'); if (!b) return;
+  var editando = !!SEL.editRepId;
+  b.style.opacity = editando ? '1' : '.5';
+  b.style.cursor = editando ? 'pointer' : 'not-allowed';
+  b.title = editando ? '' : T('fqr.al_guardar');
 }
 
 function trackingCopy() {
@@ -9906,6 +9927,7 @@ function editarRep(id) {
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_editar');
 
   openM('mRep');
+  try { _actualizarBtnFotoQR(); } catch (e) {}
 }
 
 // === HELPERS GARANTÍA REPARACIÓN ===
@@ -10419,7 +10441,13 @@ function guardarRep() {
   audit('crear', 'reparacion', rep.id, rep.clienteNombre + ' · ' + (rep.modelo||'') + ' · ' + cur(rep.total), null);
   renderDash();
   checkUrgentes();
-  setTimeout(function(){ abrirTracking(rep.id); }, 200);
+  // Paso final: si el plan incluye fotos, ofrecer añadir las de ENTRADA por QR con el ID ya creado
+  // (el momento clave es al recibir el equipo). Si no, el flujo de siempre (QR de seguimiento).
+  if (typeof tieneFeature === 'function' && tieneFeature('fotos_rep')) {
+    setTimeout(function(){ abrirSubirFotosQR(rep.id, true); }, 250);
+  } else {
+    setTimeout(function(){ abrirTracking(rep.id); }, 200);
+  }
   if (typeof ofrecerGuardarModelo === 'function') ofrecerGuardarModelo(rep);
 }
 
