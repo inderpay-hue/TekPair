@@ -217,7 +217,7 @@ async function parsePedidoIA(req, res) {
         { role: 'user', content: [{ type: 'text', text: 'Extrae los productos de este pedido/albarán (puede tener varias páginas):' }].concat(imagenes.map((u) => ({ type: 'image_url', image_url: { url: u } }))) }
       ]
     } : {
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       temperature: 0,
       response_format: { type: 'json_object' },
       messages: [
@@ -292,7 +292,7 @@ async function parseFacturaIA(req, res) {
         { role: 'user', content: [{ type: 'text', text: 'Extrae los datos de esta factura:' }].concat(imagenes.map((u) => ({ type: 'image_url', image_url: { url: u } }))) }
       ]
     } : {
-      model: 'llama-3.3-70b-versatile',
+      model: 'openai/gpt-oss-120b',
       temperature: 0,
       response_format: { type: 'json_object' },
       messages: [
