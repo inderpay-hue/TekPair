@@ -4,6 +4,7 @@
 
 // Rate limit distribuido vía api/_lib/ratelimit.js (Upstash + fallback en memoria): 60 reqs/min/IP.
 import { rateLimit } from './_lib/ratelimit.js';
+import crypto from 'crypto';
 
 function getClientIp(req) {
   const xff = req.headers['x-forwarded-for'];
@@ -36,6 +37,8 @@ export default async function handler(req, res) {
   // POST: el cliente declara que ha pagado una cuota (Modelo C)
   if (req.method === 'POST') {
     if (action === 'confirmar-pago') return cobroConfirmarPago(req, res, ip);
+    if (action === 'foto-token') return fotoToken(req, res);
+    if (action === 'foto-subir') return fotoSubir(req, res);
     return res.status(405).json({ error: 'Method not allowed' });
   }
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
@@ -241,4 +244,90 @@ async function cobroConfirmarPago(req, res, ip) {
     console.error('[cobro] confirmar error', e?.message || e);
     return res.status(500).json({ error: 'Error del servidor' });
   }
+}
+
+// ═══ SUBIR FOTOS POR QR (móvil → reparación) ═══
+// Permiso de subida firmado y CADUCO, sin estado en BD: sig = HMAC(SERVICE_KEY, id:exp).
+// El PC (que conoce id+token de la rep) pide el permiso; el QR lleva id+exp+sig; el móvil sube.
+const FOTO_TTL_MS = 45 * 60 * 1000;       // el QR de subida caduca a los 45 min
+const FOTO_MAX_BYTES = 2 * 1024 * 1024;   // 2 MB por foto (ya comprimida en el móvil)
+const FOTO_MAX_POR_REP = 30;              // tope defensivo de fotos de recepción
+
+function _fotoFirma(id, exp, secret) {
+  return crypto.createHmac('sha256', secret).update(id + ':' + exp).digest('hex');
+}
+function _fotoFirmaOk(id, exp, sig, secret) {
+  if (!/^[0-9a-f]{64}$/i.test(String(sig || ''))) return false;
+  const esperado = _fotoFirma(id, exp, secret);
+  try { return crypto.timingSafeEqual(Buffer.from(esperado, 'hex'), Buffer.from(String(sig).toLowerCase(), 'hex')); } catch (e) { return false; }
+}
+
+// POST ?action=foto-token  body {id,t}  → firma un permiso de subida caduco para esa reparación
+async function fotoToken(req, res) {
+  let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  body = body || {};
+  const id = body.id, t = body.t;
+  if (!id || !t || typeof id !== 'string' || typeof t !== 'string' || !ID_RE.test(id) || !TOKEN_RE.test(t)) return res.status(400).json({ error: 'Formato invalido' });
+  const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  if (!SUPABASE_URL || !SERVICE_KEY) return res.status(500).json({ error: 'Servidor no configurado' });
+  try {
+    // Autoriza solo si id+token coinciden con una reparación real (el PC conoce el token del parte).
+    const url = `${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&token=eq.${encodeURIComponent(t)}&select=id&limit=1`;
+    const r = await fetch(url, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
+    if (!r.ok) return res.status(500).json({ error: 'Error consultando datos' });
+    const rows = await r.json();
+    if (!Array.isArray(rows) || !rows.length) return res.status(404).json({ error: 'No encontrado' });
+    const exp = Date.now() + FOTO_TTL_MS;
+    const sig = _fotoFirma(id, exp, SERVICE_KEY);
+    return res.status(200).json({ ok: true, id, exp, sig, ttl_min: Math.round(FOTO_TTL_MS / 60000) });
+  } catch (e) { console.error('[foto-token]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
+}
+
+// POST ?action=foto-subir  body {id,exp,sig,foto(dataURL)}  → sube al Storage + añade a fotos_recepcion
+async function fotoSubir(req, res) {
+  let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  body = body || {};
+  const id = body.id; const exp = parseInt(body.exp, 10); const sig = body.sig; const foto = body.foto;
+  if (!id || typeof id !== 'string' || !ID_RE.test(id)) return res.status(400).json({ error: 'Formato invalido' });
+  if (!Number.isInteger(exp)) return res.status(400).json({ error: 'Permiso invalido' });
+  const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  if (!SUPABASE_URL || !SERVICE_KEY) return res.status(500).json({ error: 'Servidor no configurado' });
+  if (Date.now() > exp) return res.status(403).json({ error: 'caducado' });
+  if (!_fotoFirmaOk(id, exp, sig, SERVICE_KEY)) return res.status(403).json({ error: 'no autorizado' });
+  // Decodificar la foto (dataURL o base64 puro)
+  let b64 = String(foto || '');
+  const m = b64.match(/^data:image\/[a-z+.-]+;base64,(.+)$/i);
+  if (m) b64 = m[1];
+  if (!b64 || b64.length < 100) return res.status(400).json({ error: 'Foto invalida' });
+  let buf; try { buf = Buffer.from(b64, 'base64'); } catch (e) { return res.status(400).json({ error: 'Foto invalida' }); }
+  if (!buf || buf.length < 100) return res.status(400).json({ error: 'Foto invalida' });
+  if (buf.length > FOTO_MAX_BYTES) return res.status(413).json({ error: 'Foto demasiado grande' });
+  try {
+    // tienda_id + fotos actuales de la reparación
+    const rUrl = `${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&select=tienda_id,fotos_recepcion&limit=1`;
+    const rR = await fetch(rUrl, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
+    if (!rR.ok) return res.status(500).json({ error: 'Error consultando datos' });
+    const rows = await rR.json();
+    if (!Array.isArray(rows) || !rows.length) return res.status(404).json({ error: 'No encontrado' });
+    const tiendaId = rows[0].tienda_id;
+    let fotos = Array.isArray(rows[0].fotos_recepcion) ? rows[0].fotos_recepcion : [];
+    if (fotos.length >= FOTO_MAX_POR_REP) return res.status(409).json({ error: 'limite' });
+    const path = `${tiendaId}/reps/movil_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+    // Subir al bucket privado gastos-adjuntos (mismo que las fotos M7)
+    const upR = await fetch(`${SUPABASE_URL}/storage/v1/object/gastos-adjuntos/${path}`, {
+      method: 'POST',
+      headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' },
+      body: buf
+    });
+    if (!upR.ok) { const t2 = await upR.text().catch(() => ''); console.error('[foto-subir] storage', upR.status, t2.slice(0, 200)); return res.status(502).json({ error: 'No se pudo subir' }); }
+    // Append a fotos_recepcion → el PATCH dispara Realtime → el PC refresca solo
+    fotos = fotos.concat([path]);
+    const paR = await fetch(`${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ fotos_recepcion: fotos })
+    });
+    if (!paR.ok) { const t3 = await paR.text().catch(() => ''); console.error('[foto-subir] patch', paR.status, t3.slice(0, 200)); return res.status(500).json({ error: 'No se pudo guardar' }); }
+    return res.status(200).json({ ok: true, n: fotos.length });
+  } catch (e) { console.error('[foto-subir]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
 }
