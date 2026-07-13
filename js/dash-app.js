@@ -9491,7 +9491,22 @@ function _sfqrRenderFotos() {
   var box = document.getElementById('sfqrFotos'); if (!box) return;
   if (!fotos.length) { box.innerHTML = '<div style="font-size:12px;color:var(--muted)">' + T('fqr.esperando') + '</div>'; return; }
   _repRenderFotos('sfqrFotos', fotos, null);
+  _sfqrSyncForm();   // reflejar las fotos nuevas también en las miniaturas del formulario (si se edita esa rep)
 }
+// Sincroniza las fotos recibidas por QR con el formulario de reparación abierto (modo edición):
+// mergea en SEL.fotosRecepcion (sin perder las que se hayan subido desde el PC en esta sesión) y
+// repinta #repFotosRecepThumbs. La rama de edición no persiste fotos → sin riesgo de sobrescribir DB.
+function _sfqrSyncForm() {
+  if (!SEL.editRepId || SEL.editRepId !== _SFQR.repId) return;
+  var r = (DB.reps || []).find(function(x){ return x.id === _SFQR.repId; });
+  var fotos = (r && r.fotosRecepcion) || [];
+  SEL.fotosRecepcion = SEL.fotosRecepcion || [];
+  var cambiado = false;
+  fotos.forEach(function(p){ if (SEL.fotosRecepcion.indexOf(p) === -1) { SEL.fotosRecepcion.push(p); cambiado = true; } });
+  if (cambiado) { try { _repRenderFotos('repFotosRecepThumbs', SEL.fotosRecepcion, '_repFotoRecepRemove'); } catch (e) {} }
+}
+// Cerrar el modal QR sincronizando antes las fotos con el formulario (cubre "al cerrar").
+function _cerrarFotosQR() { try { _sfqrSyncForm(); } catch (e) {} closeM('mSubirFotosQR'); }
 // Botón "📷 Fotos por QR" dentro del formulario de reparación (sección de fotos de recepción).
 // Al EDITAR (ya hay id) abre el QR; al CREAR (aún sin id) informa que estará al guardar;
 // sin plan → upsell. La sección entera ya se oculta en Básico vía aplicarBloqueosPlan.
