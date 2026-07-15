@@ -12,6 +12,31 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { rateLimit } from './_lib/ratelimit.js';
 
+// Referido cruzado con Cobrum: valida (GET) y acredita al dueño (POST con secreto).
+const COBRUM_REFERIDO = process.env.COBRUM_REFERIDO_URL || 'https://cobrum.tech/api/referido';
+async function _cobrumFetch(url, opts) {
+  const ctrl = new AbortController();
+  const t = setTimeout(() => ctrl.abort(), 4000);
+  try { return await fetch(url, { ...opts, signal: ctrl.signal }); }
+  catch (e) { return null; }
+  finally { clearTimeout(t); }
+}
+async function validarCobrumReferido(codigo) {
+  const r = await _cobrumFetch(COBRUM_REFERIDO + '?codigo=' + encodeURIComponent(codigo));
+  if (!r || !r.ok) return null;
+  return await r.json().catch(() => null);
+}
+async function acreditarCobrumReferido(codigo, refExterno) {
+  const r = await _cobrumFetch(COBRUM_REFERIDO, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Ref-Secret': process.env.REFERIDO_SECRET || '' },
+    body: JSON.stringify({ codigo, producto: 'tekpair', ref_externo: refExterno }),
+  });
+  if (!r || !r.ok) return false;
+  const d = await r.json().catch(() => ({}));
+  return !!d.ok;
+}
+
 // F195: traducir mensajes de error al idioma del cliente (body.lang o Accept-Language).
 function _apiLang(req) {
   try {
@@ -305,12 +330,13 @@ export default async function handler(req, res) {
 
     // ═══ Referidos: si vino con código, registrar la invitación (status pending) ═══
     if (refCode) {
+      let referrerId = null;
       try {
         const refR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?referral_code=eq.${encodeURIComponent(refCode)}&select=id&limit=1`, {
           headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
         });
         const refRows = await refR.json();
-        const referrerId = Array.isArray(refRows) && refRows[0] && refRows[0].id;
+        referrerId = Array.isArray(refRows) && refRows[0] && refRows[0].id;
         // No auto-referidos (misma tienda) ni código inexistente.
         if (referrerId && referrerId !== tienda_id) {
           await fetch(`${SUPABASE_URL}/rest/v1/referrals`, {
@@ -320,6 +346,25 @@ export default async function handler(req, res) {
           });
         }
       } catch (e) { console.error('Referral record error (no bloqueante):', e); }
+
+      // Si el código NO es de TekPair, probarlo como referido cruzado de Cobrum → +30 días de trial.
+      if (!referrerId) {
+        try {
+          const val = await validarCobrumReferido(refCode);
+          if (val && val.valid) {
+            const ok = await acreditarCobrumReferido(refCode, email);
+            if (ok) {
+              const base = (trialUntil && new Date(trialUntil) > new Date()) ? new Date(trialUntil) : new Date();
+              base.setDate(base.getDate() + 30);
+              await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${tienda_id}`, {
+                method: 'PATCH',
+                headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+                body: JSON.stringify({ trial_until: base.toISOString() })
+              });
+            }
+          }
+        } catch (e) { console.error('Cobrum referral error (no bloqueante):', e); }
+      }
     }
 
     return res.json({ ok: true, tienda_id, tempPass, sessionToken, nombre });

@@ -1,7 +1,9 @@
 // TekPair Service Worker
-const CACHE_VERSION = 'tekpair-v20260714b';
+const CACHE_VERSION = 'tekpair-v20260714c';
 const ASSETS = [
   '/offline.html',
+  '/dashboard.html',
+  '/app.html',
   '/manifest.json',
   '/icon-192.svg',
   '/icon-512.svg',
@@ -26,24 +28,50 @@ self.addEventListener('activate', e => {
   self.clients.claim();
 });
 
+// fetch con timeout (AbortController) — evita que un fetch colgado dispare el modo offline en Safari/WebKit.
+function fetchTimeout(req, ms, init) {
+  return new Promise(function(resolve, reject) {
+    var ctrl = new AbortController();
+    var to = setTimeout(function(){ ctrl.abort(); }, ms);
+    fetch(req, Object.assign({}, init || {}, { signal: ctrl.signal }))
+      .then(function(r){ clearTimeout(to); resolve(r); }, function(err){ clearTimeout(to); reject(err); });
+  });
+}
+
 self.addEventListener('fetch', e => {
   if (e.request.method !== 'GET') return;
   const url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
   if (url.hostname.includes('supabase') || url.pathname.includes('/api/')) return;
 
-  if (e.request.headers.get('accept')?.includes('text/html')) {
-    e.respondWith(
-      fetch(e.request)
-        .then(r => {
-          const clone = r.clone();
-          caches.open(CACHE_VERSION).then(c => c.put(e.request, clone));
-          return r;
-        })
-        .catch(() => caches.match(e.request)
-          .then(r => r || caches.match('/offline.html'))
-        )
-    );
+  // Navegaciones / HTML: NETWORK-FIRST robusto y Safari-friendly. Nunca cae a offline
+  // mientras haya una copia cacheada (de cualquier versión). offline.html = último recurso REAL.
+  const esNav = e.request.mode === 'navigate' || (e.request.headers.get('accept') || '').includes('text/html');
+  if (esNav) {
+    e.respondWith((async () => {
+      // 1) Red con timeout
+      try {
+        const res = await fetchTimeout(e.request, 7000);
+        if (res && (res.ok || res.type === 'opaqueredirect')) {
+          try { const c = await caches.open(CACHE_VERSION); c.put(e.request, res.clone()); } catch (_) {}
+          return res;
+        }
+        // Respuesta no-ok (p.ej. 5xx transitorio durante un deploy): preferir caché si la hay.
+        const cachedNok = await caches.match(e.request);
+        return cachedNok || res;
+      } catch (err) {
+        // 2) Reintento único: WebKit a veces aborta el primer fetch justo al activar un SW nuevo.
+        try {
+          const res2 = await fetch(e.request, { cache: 'no-store' });
+          if (res2 && res2.ok) { try { const c = await caches.open(CACHE_VERSION); c.put(e.request, res2.clone()); } catch (_) {} return res2; }
+        } catch (_) {}
+        // 3) Fallback: caché de esta URL (cualquier versión) → dashboard precacheado → offline.
+        const cached = await caches.match(e.request);
+        if (cached) return cached;
+        if (/dashboard/.test(url.pathname)) { const home = await caches.match('/dashboard.html'); if (home) return home; }
+        return (await caches.match('/offline.html')) || Response.error();
+      }
+    })());
     return;
   }
 

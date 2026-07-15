@@ -101,6 +101,13 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   </div>
 </div>
 
+<!-- Toggle ciclo de facturación (mensual / anual). i18n del texto: pendiente. -->
+<div id="cicloWrap" style="display:flex;justify-content:center;margin:0 16px 16px">
+  <div style="display:inline-flex;background:#fff;border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:4px;box-shadow:0 2px 8px rgba(2,11,46,.06)">
+    <button type="button" id="cicloMes" onclick="setCiclo('mensual')" style="border:0;font:inherit;font-weight:700;font-size:13px;padding:9px 18px;border-radius:9px;cursor:pointer;background:var(--orange,#e07b4f);color:#fff">Mensual</button>
+    <button type="button" id="cicloAno" onclick="setCiclo('anual')" style="border:0;font:inherit;font-weight:700;font-size:13px;padding:9px 18px;border-radius:9px;cursor:pointer;background:transparent;color:var(--muted,#64748b)">Anual · <span style="color:var(--green,#10b981)">2 meses gratis</span></button>
+  </div>
+</div>
 <div class="plans" id="plansSection">
   <div class="plan" onclick="selPlan('basico',this)">
     <div class="plan-name" id="planName_basico">Básico</div>
@@ -162,6 +169,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   <div class="fg"><label class="fl" for="rNom">Tu nombre *</label><input class="fi" id="rNom" name="name" autocomplete="name" required placeholder="Juan García"/></div>
   <div class="fg"><label class="fl" for="rEmail">Email *</label><input class="fi" id="rEmail" name="email" type="email" autocomplete="email" required placeholder="juan@mitienda.com"/></div>
   <div class="fg"><label class="fl" for="rTienda">Nombre de tu tienda *</label><input class="fi" id="rTienda" name="organization" autocomplete="organization" required placeholder="Reparaciones García"/></div>
+  <div class="fg"><label class="fl" for="rCodigo">Código de invitación (opcional)</label><input class="fi" id="rCodigo" name="codigo" autocomplete="off" placeholder="Si te han invitado, ponlo aquí" style="text-transform:uppercase"/></div>
   <div class="err" id="rErr"></div>
   <button class="btn-pagar" id="btnPagar" type="submit">Continuar al pago</button>
   </form>
@@ -406,6 +414,22 @@ var PLANES = {
   top:    {nombre: function(){ return (REG_TEXTS[getLang()]||REG_TEXTS.es).plan_premium; }, precio: function(){ var L=REG_TEXTS[getLang()]||REG_TEXTS.es; return L.price_premium+L.per_month; }}
 };
 
+// Ciclo de facturación (mensual/anual). Los precios anuales mostrados son orientativos
+// (10× el mensual = 2 meses gratis); ajústalos aquí si en Stripe pones otras cifras.
+window._ciclo = 'mensual';
+var _PRECIOS_MES = { basico: '€9,90', pro: '€19,90', top: '€34,90' };
+var _PRECIOS_ANUAL = { basico: '€99', pro: '€199', top: '€349' };
+function setCiclo(c) {
+  window._ciclo = (c === 'anual') ? 'anual' : 'mensual';
+  var act = 'background:var(--orange,#e07b4f);color:#fff', ina = 'background:transparent;color:var(--muted,#64748b)';
+  var base = 'border:0;font:inherit;font-weight:700;font-size:13px;padding:9px 18px;border-radius:9px;cursor:pointer;';
+  var mes = document.getElementById('cicloMes'), ano = document.getElementById('cicloAno');
+  if (mes) mes.style.cssText = base + (window._ciclo === 'mensual' ? act : ina);
+  if (ano) ano.style.cssText = base + (window._ciclo === 'anual' ? act : ina);
+  var suf = window._ciclo === 'anual' ? '<span>/año</span>' : '<span>/mes</span>';
+  var pr = window._ciclo === 'anual' ? _PRECIOS_ANUAL : _PRECIOS_MES;
+  ['basico', 'pro', 'top'].forEach(function(k) { var e = document.getElementById('planPrice_' + k); if (e) e.innerHTML = pr[k] + suf; });
+}
 function selPlan(id, el) {
   planSel = id;
   document.getElementById('planNombre').textContent = PLANES[id].nombre();
@@ -446,7 +470,7 @@ async function iniciarPago() {
     var r = await fetch('/api/checkout', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({plan: planSel, nombre: nom, email: email, tienda_nombre: tienda, lang: localStorage.getItem('tp_lang') || 'es', ref: (window._refCode || '')})
+      body: JSON.stringify({plan: planSel, nombre: nom, email: email, tienda_nombre: tienda, ciclo: (window._ciclo || 'mensual'), lang: localStorage.getItem('tp_lang') || 'es', ref: ((document.getElementById('rCodigo') && document.getElementById('rCodigo').value.trim()) || window._refCode || '')})
     });
     var data = await r.json();
     if (data.ok && data.url) {
@@ -478,6 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
     ref = ref.replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
     if (ref) {
       window._refCode = ref;
+      var rc = document.getElementById('rCodigo'); if (rc) rc.value = ref;
       var L = REG_TEXTS[lang] || REG_TEXTS.es;
       var t = document.getElementById('refBannerTxt'); if (t && L.ref_banner) t.textContent = L.ref_banner;
       var b = document.getElementById('refBanner'); if (b) b.style.display = 'block';
