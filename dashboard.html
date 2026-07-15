@@ -3800,7 +3800,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
           <div class="rep-section-title"><span>📱</span> <span data-t="rep.sec_dispositivo">Dispositivo</span></div>
           <div class="fi-row">
             <div class="fg"><label class="fl"><span data-t="rep.marca">Marca</span></label><input class="fi" id="rMarca" placeholder="Apple, Samsung, Xiaomi..." oninput="actualizarAvisoGarantia()"></div>
-            <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo">Modelo</span> <span class="req">*</span></label><input class="fi" id="rModelo" placeholder="iPhone 14, Galaxy S23..." autocomplete="off" required oninput="busModelo();actualizarAvisoGarantia();try{sugerirPiezasRep()}catch(e){}" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
+            <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo">Modelo</span> <span class="req">*</span></label><input class="fi" id="rModelo" placeholder="iPhone 14, Galaxy S23..." autocomplete="off" required oninput="busModelo();actualizarAvisoGarantia();try{sugerirPiezasRep()}catch(e){};try{sugerirPrecioRep()}catch(e){}" onfocus="busModelo()" onblur="setTimeout(function(){var d=document.getElementById('rModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="rModeloSug"></div></div>
           </div>
           <div class="fg"><label class="fl"><span data-t="rep.imei">IMEI / Nº Serie</span></label><input class="fi" id="rImei" placeholder="Opcional — útil para garantías" inputmode="numeric" autocomplete="off" oninput="actualizarAvisoGarantia()"></div>
           <div class="fi-row" style="margin-bottom:0">
@@ -3812,7 +3812,8 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
         <!-- Sección: Avería -->
         <div class="rep-section">
           <div class="rep-section-title"><span>🔧</span> <span data-t="rep.sec_averia">Avería</span></div>
-          <div class="fg"><label class="fl"><span data-t="rep.describe_problema">Describe el problema</span> <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Ej: pantalla rota, no enciende, batería..." required oninput="try{sugerirPiezasRep()}catch(e){}"></div>
+          <div class="fg"><label class="fl"><span data-t="rep.describe_problema">Describe el problema</span> <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Ej: pantalla rota, no enciende, batería..." required oninput="try{sugerirPiezasRep()}catch(e){};try{sugerirPrecioRep()}catch(e){}"></div>
+          <div id="rPrecioSug" style="display:none;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:8px 11px;margin-top:8px;font-size:12px;color:#6D28D9"></div>
           <div class="fg" style="margin-bottom:0">
             <label class="fl" data-t="rep.estado_equipo">Estado del equipo (al recibir)</label>
             <div class="chk-grid">
@@ -5132,7 +5133,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <!-- ═══ MODAL DETALLE REPARACIÓN (vista lectura) ═══ -->
-<div class="modal-bg" id="mDetalleRep">
+<div class="modal-bg sobre" id="mDetalleRep">
   <div class="modal" style="max-width:600px">
     <div class="modal-h"><span data-t="det.rep_titulo">🔧 Reparación</span><span class="cls" onclick="closeM('mDetalleRep')">×</span></div>
     <div id="detalleRepBox"></div>

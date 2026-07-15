@@ -99,8 +99,17 @@ export default async function handler(req, res) {
     top: 'price_1TUEbqKE1FTbu0p7U1y90BZF',
     premium: 'price_1TUEbqKE1FTbu0p7U1y90BZF'
   };
-
-  const priceId = PLANES[plan];
+  // Precios ANUALES (opcionales): se activan cuando configures en Vercel estas env vars con los
+  // price_id anuales creados en Stripe. Mientras estén vacías, el ciclo 'anual' cae a mensual.
+  const PLANES_ANUAL = {
+    basico: process.env.STRIPE_PRICE_BASICO_ANUAL || '',
+    pro: process.env.STRIPE_PRICE_PRO_ANUAL || '',
+    top: process.env.STRIPE_PRICE_PREMIUM_ANUAL || '',
+    premium: process.env.STRIPE_PRICE_PREMIUM_ANUAL || ''
+  };
+  const ciclo = (req.body.ciclo === 'anual') ? 'anual' : 'mensual';
+  // Anual si lo piden Y hay price anual configurado; si no, mensual (fallback seguro).
+  const priceId = (ciclo === 'anual' && PLANES_ANUAL[plan]) ? PLANES_ANUAL[plan] : PLANES[plan];
   if (!priceId) return res.status(400).json({ error: 'Plan inválido' });
 
   try {
@@ -138,6 +147,7 @@ export default async function handler(req, res) {
     // si no, según qué webhook llegue último la tienda queda con plan='top' y no desbloquea Premium).
     const planCanonico = plan === 'top' ? 'premium' : plan;
     params.append('metadata[plan]', planCanonico);
+    params.append('metadata[ciclo]', ciclo);
     params.append('metadata[lang]', req.body.lang || 'es');
     // Referidos: código de invitación (lo lee register.js para registrar la invitación).
     const refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);

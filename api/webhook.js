@@ -27,6 +27,11 @@ export default async function handler(req, res) {
     'price_1TUEbPKE1FTbu0p78X80WKAH': 'pro',
     'price_1TUEbqKE1FTbu0p7U1y90BZF': 'premium'
   };
+  // Precios ANUALES: mismo plan, distinto price_id. Se añaden si están configurados en Vercel
+  // (las mismas env vars que usa api/checkout.js), para que el webhook los mapee al plan correcto.
+  if (process.env.STRIPE_PRICE_BASICO_ANUAL) PRICE_TO_PLAN[process.env.STRIPE_PRICE_BASICO_ANUAL] = 'basico';
+  if (process.env.STRIPE_PRICE_PRO_ANUAL) PRICE_TO_PLAN[process.env.STRIPE_PRICE_PRO_ANUAL] = 'pro';
+  if (process.env.STRIPE_PRICE_PREMIUM_ANUAL) PRICE_TO_PLAN[process.env.STRIPE_PRICE_PREMIUM_ANUAL] = 'premium';
 
   // ═══ Verificación de firma Stripe ═══
   const sig = req.headers['stripe-signature'];
