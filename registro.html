@@ -4,6 +4,29 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="index, follow">
+<meta name="description" content="Prueba TekPair 15 días gratis: software para tiendas y talleres de reparación. Ventas, reparaciones, stock, clientes y citas desde cualquier dispositivo.">
+<link rel="canonical" href="https://www.tekpair.tech/registro.html">
+<link rel="icon" href="/favicon.png">
+<link rel="apple-touch-icon" href="/apple-touch-icon.png">
+<!-- Open Graph / redes -->
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="TekPair">
+<meta property="og:title" content="TekPair — Empieza gratis 15 días">
+<meta property="og:description" content="Software para tiendas y talleres de reparación: ventas, reparaciones, stock, clientes y citas. Prueba 15 días gratis.">
+<meta property="og:url" content="https://www.tekpair.tech/registro.html">
+<meta property="og:image" content="https://www.tekpair.tech/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="TekPair — Empieza gratis 15 días">
+<meta name="twitter:description" content="Software para tiendas y talleres de reparación. Prueba 15 días gratis.">
+<meta name="twitter:image" content="https://www.tekpair.tech/og-image.png">
+<!-- hreflang (variantes por idioma vía ?lang=) -->
+<link rel="alternate" hreflang="es" href="https://www.tekpair.tech/registro.html?lang=es">
+<link rel="alternate" hreflang="en" href="https://www.tekpair.tech/registro.html?lang=en">
+<link rel="alternate" hreflang="fr" href="https://www.tekpair.tech/registro.html?lang=fr">
+<link rel="alternate" hreflang="it" href="https://www.tekpair.tech/registro.html?lang=it">
+<link rel="alternate" hreflang="de" href="https://www.tekpair.tech/registro.html?lang=de">
+<link rel="alternate" hreflang="pt" href="https://www.tekpair.tech/registro.html?lang=pt">
+<link rel="alternate" hreflang="x-default" href="https://www.tekpair.tech/registro.html">
 <style>
 .lang-sel-reg{position:fixed;top:12px;right:12px;z-index:100;background:rgba(255,255,255,.95);border:1px solid #e2e8f0;border-radius:8px;padding:6px 10px;font-size:13px;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 </style>
@@ -101,9 +124,9 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   </div>
 </div>
 
-<!-- Toggle ciclo de facturación (mensual / anual). i18n del texto: pendiente. -->
-<div id="cicloWrap" style="display:flex;justify-content:center;margin:0 16px 16px">
-  <div style="display:inline-flex;background:#fff;border:1px solid var(--border,#e5e7eb);border-radius:12px;padding:4px;box-shadow:0 2px 8px rgba(2,11,46,.06)">
+<!-- Toggle ciclo de facturación (mensual / anual). -->
+<div id="cicloWrap" style="display:flex;justify-content:center;position:relative;z-index:5;margin:20px 16px 48px">
+  <div style="display:inline-flex;background:#fff;border:1px solid var(--line);border-radius:12px;padding:4px;box-shadow:0 6px 20px -6px rgba(2,11,46,.22)">
     <button type="button" id="cicloMes" onclick="setCiclo('mensual')" style="border:0;font:inherit;font-weight:700;font-size:13px;padding:9px 18px;border-radius:9px;cursor:pointer;background:var(--orange,#e07b4f);color:#fff">Mensual</button>
     <button type="button" id="cicloAno" onclick="setCiclo('anual')" style="border:0;font:inherit;font-weight:700;font-size:13px;padding:9px 18px;border-radius:9px;cursor:pointer;background:transparent;color:var(--muted,#64748b)">Anual · <span style="color:var(--green,#10b981)">2 meses gratis</span></button>
   </div>
@@ -166,14 +189,18 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   </div>
   <div class="form-title">Crea tu cuenta</div>
   <form id="regForm" onsubmit="iniciarPago();return false">
-  <div class="fg"><label class="fl" for="rNom">Tu nombre *</label><input class="fi" id="rNom" name="name" autocomplete="name" required placeholder="Juan García"/></div>
+  <div class="fg"><label class="fl" for="rNom">Tu nombre *</label><input class="fi" id="rNom" name="name" autocomplete="name" required minlength="2" placeholder="Juan García"/></div>
   <div class="fg"><label class="fl" for="rEmail">Email *</label><input class="fi" id="rEmail" name="email" type="email" autocomplete="email" required placeholder="juan@mitienda.com"/></div>
-  <div class="fg"><label class="fl" for="rTienda">Nombre de tu tienda *</label><input class="fi" id="rTienda" name="organization" autocomplete="organization" required placeholder="Reparaciones García"/></div>
+  <div class="fg"><label class="fl" for="rTienda">Nombre de tu tienda *</label><input class="fi" id="rTienda" name="organization" autocomplete="organization" required minlength="2" placeholder="Reparaciones García"/></div>
   <div class="fg"><label class="fl" for="rCodigo">Código de invitación (opcional)</label><input class="fi" id="rCodigo" name="codigo" autocomplete="off" placeholder="Si te han invitado, ponlo aquí" style="text-transform:uppercase"/></div>
+  <!-- Honeypot anti-bot: invisible para humanos; si se rellena, se descarta. -->
+  <input type="text" id="hp_website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
   <div class="err" id="rErr"></div>
-  <button class="btn-pagar" id="btnPagar" type="submit">Continuar al pago</button>
+  <button class="btn-pagar" id="btnPagar" type="submit">Empezar prueba gratis</button>
+  <p id="consentTxt" style="text-align:center;font-size:11px;color:var(--faint);margin-top:10px">Al continuar aceptas los <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Términos</a> y la <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Política de privacidad</a>.</p>
   </form>
-  <p id="stripeNote" style="text-align:center;font-size:11px;color:var(--faint);margin-top:12px">Pago seguro con Stripe · No pagas hasta el día 15</p>
+  <p id="stripeNote" style="text-align:center;font-size:11px;color:var(--faint);margin-top:8px">Pago seguro con Stripe · 15 días gratis, no se te cobra hasta terminar la prueba</p>
+  <p id="monedaNote" style="text-align:center;font-size:11px;color:var(--faint);margin-top:4px">Los precios se cobran en EUR (€).</p>
 </div>
 
 <div class="trust">
@@ -202,8 +229,12 @@ const REG_TEXTS = {
     cambiar: 'Cambiar',
     label_nom: 'Tu nombre *', label_email: 'Email *', label_tienda: 'Nombre de tu tienda *',
     placeholder_nom: 'Juan García', placeholder_email: 'juan@mitienda.com', placeholder_tienda: 'Reparaciones García',
-    btn_pagar: 'Continuar al pago', btn_procesando: 'Procesando...',
-    stripe_note: 'Pago seguro con Stripe · No pagas hasta el día 15',
+    btn_pagar: 'Empezar prueba gratis', btn_procesando: 'Procesando...',
+    stripe_note: 'Pago seguro con Stripe · 15 días gratis, no se te cobra hasta terminar la prueba',
+    ciclo_mensual: 'Mensual', ciclo_anual: 'Anual · <span style="color:var(--green)">2 meses gratis</span>',
+    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/año',
+    consent: 'Al continuar aceptas los <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Términos</a> y la <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Política de privacidad</a>.',
+    moneda_note: 'Los precios se cobran en EUR (€).',
     err_campos: 'Por favor rellena todos los campos', err_email: 'Email no válido', err_conn: 'Error de conexión. Intenta de nuevo.',
     trust_pago: 'Pago seguro', trust_permanencia: 'Sin permanencia', trust_device: 'Cualquier dispositivo',
     f_1u: '1 usuario', f_3u: 'Hasta 3 usuarios', f_inf_u: 'Usuarios ilimitados',
@@ -228,8 +259,12 @@ const REG_TEXTS = {
     cambiar: 'Change',
     label_nom: 'Your name *', label_email: 'Email *', label_tienda: 'Shop name *',
     placeholder_nom: 'John Smith', placeholder_email: 'john@myshop.com', placeholder_tienda: 'Smith Repairs',
-    btn_pagar: 'Continue to payment', btn_procesando: 'Processing...',
-    stripe_note: 'Secure payment with Stripe · No charge until day 15',
+    btn_pagar: 'Start free trial', btn_procesando: 'Processing...',
+    stripe_note: 'Secure payment with Stripe · 15-day free trial, no charge until it ends',
+    ciclo_mensual: 'Monthly', ciclo_anual: 'Yearly · <span style="color:var(--green)">2 months free</span>',
+    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/yr',
+    consent: 'By continuing you accept the <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Terms</a> and <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Privacy Policy</a>.',
+    moneda_note: 'Prices are charged in EUR (€).',
     err_campos: 'Please fill in all fields', err_email: 'Invalid email', err_conn: 'Connection error. Please try again.',
     trust_pago: 'Secure payment', trust_permanencia: 'No commitment', trust_device: 'Any device',
     f_1u: '1 user', f_3u: 'Up to 3 users', f_inf_u: 'Unlimited users',
@@ -254,8 +289,12 @@ const REG_TEXTS = {
     cambiar: 'Changer',
     label_nom: 'Votre nom *', label_email: 'Email *', label_tienda: 'Nom de votre boutique *',
     placeholder_nom: 'Jean Dupont', placeholder_email: 'jean@maboutique.com', placeholder_tienda: 'Réparations Dupont',
-    btn_pagar: 'Continuer vers le paiement', btn_procesando: 'Traitement...',
-    stripe_note: 'Paiement sécurisé avec Stripe · Pas de débit avant le 15',
+    btn_pagar: 'Commencer l\'essai gratuit', btn_procesando: 'Traitement...',
+    stripe_note: 'Paiement sécurisé avec Stripe · 15 jours gratuits, aucun prélèvement avant la fin',
+    ciclo_mensual: 'Mensuel', ciclo_anual: 'Annuel · <span style="color:var(--green)">2 mois gratuits</span>',
+    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/an',
+    consent: 'En continuant, vous acceptez les <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Conditions</a> et la <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Politique de confidentialité</a>.',
+    moneda_note: 'Les prix sont facturés en EUR (€).',
     err_campos: 'Veuillez remplir tous les champs', err_email: 'Email invalide', err_conn: 'Erreur de connexion. Réessayez.',
     trust_pago: 'Paiement sécurisé', trust_permanencia: 'Sans engagement', trust_device: 'Tout appareil',
     f_1u: '1 utilisateur', f_3u: "Jusqu'à 3 utilisateurs", f_inf_u: 'Utilisateurs illimités',
@@ -280,8 +319,12 @@ const REG_TEXTS = {
     cambiar: 'Cambia',
     label_nom: 'Il tuo nome *', label_email: 'Email *', label_tienda: 'Nome del negozio *',
     placeholder_nom: 'Mario Rossi', placeholder_email: 'mario@mionegozio.com', placeholder_tienda: 'Riparazioni Rossi',
-    btn_pagar: 'Continua al pagamento', btn_procesando: 'Elaborazione...',
-    stripe_note: 'Pagamento sicuro con Stripe · Nessun addebito fino al giorno 15',
+    btn_pagar: 'Inizia la prova gratuita', btn_procesando: 'Elaborazione...',
+    stripe_note: 'Pagamento sicuro con Stripe · 15 giorni gratis, nessun addebito fino alla fine',
+    ciclo_mensual: 'Mensile', ciclo_anual: 'Annuale · <span style="color:var(--green)">2 mesi gratis</span>',
+    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/anno',
+    consent: 'Continuando accetti i <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Termini</a> e l\'<a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Informativa sulla privacy</a>.',
+    moneda_note: 'I prezzi sono addebitati in EUR (€).',
     err_campos: 'Compila tutti i campi', err_email: 'Email non valida', err_conn: 'Errore di connessione. Riprova.',
     trust_pago: 'Pagamento sicuro', trust_permanencia: 'Senza vincoli', trust_device: 'Qualsiasi dispositivo',
     f_1u: '1 utente', f_3u: 'Fino a 3 utenti', f_inf_u: 'Utenti illimitati',
@@ -306,8 +349,12 @@ const REG_TEXTS = {
     cambiar: 'Ändern',
     label_nom: 'Ihr Name *', label_email: 'E-Mail *', label_tienda: 'Shopname *',
     placeholder_nom: 'Max Müller', placeholder_email: 'max@meinshop.de', placeholder_tienda: 'Reparaturen Müller',
-    btn_pagar: 'Weiter zur Zahlung', btn_procesando: 'Verarbeitung...',
-    stripe_note: 'Sichere Zahlung mit Stripe · Keine Abbuchung bis Tag 15',
+    btn_pagar: 'Kostenlos testen', btn_procesando: 'Verarbeitung...',
+    stripe_note: 'Sichere Zahlung mit Stripe · 15 Tage gratis, keine Abbuchung bis zum Ende',
+    ciclo_mensual: 'Monatlich', ciclo_anual: 'Jährlich · <span style="color:var(--green)">2 Monate gratis</span>',
+    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/Jahr',
+    consent: 'Mit dem Fortfahren akzeptierst du die <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">AGB</a> und den <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Datenschutz</a>.',
+    moneda_note: 'Die Preise werden in EUR (€) berechnet.',
     err_campos: 'Bitte alle Felder ausfüllen', err_email: 'Ungültige E-Mail', err_conn: 'Verbindungsfehler. Bitte erneut versuchen.',
     trust_pago: 'Sichere Zahlung', trust_permanencia: 'Keine Bindung', trust_device: 'Jedes Gerät',
     f_1u: '1 Benutzer', f_3u: 'Bis zu 3 Benutzern', f_inf_u: 'Unbegrenzte Benutzer',
@@ -332,8 +379,12 @@ const REG_TEXTS = {
     cambiar: 'Mudar',
     label_nom: 'O teu nome *', label_email: 'Email *', label_tienda: 'Nome da loja *',
     placeholder_nom: 'João Silva', placeholder_email: 'joao@minhaloja.com', placeholder_tienda: 'Reparações Silva',
-    btn_pagar: 'Continuar para pagamento', btn_procesando: 'A processar...',
-    stripe_note: 'Pagamento seguro com Stripe · Não cobrado até ao dia 15',
+    btn_pagar: 'Começar teste grátis', btn_procesando: 'A processar...',
+    stripe_note: 'Pagamento seguro com Stripe · 15 dias grátis, sem cobrança até terminar',
+    ciclo_mensual: 'Mensal', ciclo_anual: 'Anual · <span style="color:var(--green)">2 meses grátis</span>',
+    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/ano',
+    consent: 'Ao continuar aceitas os <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Termos</a> e a <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Política de privacidade</a>.',
+    moneda_note: 'Os preços são cobrados em EUR (€).',
     err_campos: 'Por favor preenche todos os campos', err_email: 'Email inválido', err_conn: 'Erro de ligação. Tenta de novo.',
     trust_pago: 'Pagamento seguro', trust_permanencia: 'Sem permanência', trust_device: 'Qualquer dispositivo',
     f_1u: '1 utilizador', f_3u: 'Até 3 utilizadores', f_inf_u: 'Utilizadores ilimitados',
@@ -354,15 +405,19 @@ function getLang() {
     var q = (new URLSearchParams(location.search)).get('lang');
     if (q && sup.indexOf(q) !== -1) { try{localStorage.setItem('tp_lang', q);}catch(e){} return q; }
   } catch(e) {}
+  // #B6: el navegador manda ANTES que lo guardado (evita idioma "pegajoso" que ignora el
+  // navegador). Mismo criterio que parte.html/citas.html: URL → navegador → guardado → es.
+  var nav = (navigator.language || 'es').slice(0,2).toLowerCase();
+  if (sup.indexOf(nav) !== -1) return nav;
   var stored = null;
   try { stored = localStorage.getItem('tp_lang') || localStorage.getItem('tp_lang_landing'); } catch(e) {}
   if (stored && sup.indexOf(stored) !== -1) return stored;
-  var nav = (navigator.language || 'es').slice(0,2);
-  return sup.indexOf(nav) !== -1 ? nav : 'es';
+  return 'es';
 }
 
 function applyRegLang(lang) {
   var L = REG_TEXTS[lang] || REG_TEXTS.es;
+  window._lang = lang; // idioma vigente para precios/ciclo/plan seleccionado
   document.title = L.title;
   document.documentElement.lang = lang;
   // Hero
@@ -401,6 +456,13 @@ function applyRegLang(lang) {
   });
   // Popular badge
   var pop = document.getElementById('popularBadge'); if (pop) pop.querySelector('span') && (pop.querySelector('.pop-txt').textContent = L.f_popular);
+  // #B1/#B2/#B7: reaplicar ciclo (mensual/anual), precios por locale, toggle y plan seleccionado.
+  if (typeof setCiclo === 'function') setCiclo(window._ciclo || 'mensual');
+  // #B3: banner de referido en el idioma actual.
+  var rb = document.getElementById('refBannerTxt'); if (rb && L.ref_banner) rb.textContent = L.ref_banner;
+  // #B10/#B11: consentimiento y nota de moneda.
+  var ct = document.getElementById('consentTxt'); if (ct && L.consent) ct.innerHTML = L.consent;
+  var mn = document.getElementById('monedaNote'); if (mn && L.moneda_note) mn.textContent = L.moneda_note;
 }
 
 function setRegLang(lang) {
@@ -414,26 +476,38 @@ var PLANES = {
   top:    {nombre: function(){ return (REG_TEXTS[getLang()]||REG_TEXTS.es).plan_premium; }, precio: function(){ var L=REG_TEXTS[getLang()]||REG_TEXTS.es; return L.price_premium+L.per_month; }}
 };
 
-// Ciclo de facturación (mensual/anual). Los precios anuales mostrados son orientativos
-// (10× el mensual = 2 meses gratis); ajústalos aquí si en Stripe pones otras cifras.
+// Ciclo de facturación (mensual/anual), precios por idioma/locale.
 window._ciclo = 'mensual';
-var _PRECIOS_MES = { basico: '€9,90', pro: '€19,90', top: '€34,90' };
-var _PRECIOS_ANUAL = { basico: '€99', pro: '€199', top: '€349' };
+function _L() { return REG_TEXTS[window._lang] || REG_TEXTS[getLang()] || REG_TEXTS.es; }
+function _precios(ciclo) {
+  var L = _L();
+  if (ciclo === 'anual') return { basico: L.price_basico_anual, pro: L.price_pro_anual, top: L.price_premium_anual, suf: L.per_year };
+  return { basico: L.price_basico, pro: L.price_pro, top: L.price_premium, suf: L.per_month };
+}
 function setCiclo(c) {
   window._ciclo = (c === 'anual') ? 'anual' : 'mensual';
-  var act = 'background:var(--orange,#e07b4f);color:#fff', ina = 'background:transparent;color:var(--muted,#64748b)';
+  var act = 'background:var(--orange);color:#fff', ina = 'background:transparent;color:var(--muted)';
   var base = 'border:0;font:inherit;font-weight:700;font-size:13px;padding:9px 18px;border-radius:9px;cursor:pointer;';
+  var L = _L();
   var mes = document.getElementById('cicloMes'), ano = document.getElementById('cicloAno');
-  if (mes) mes.style.cssText = base + (window._ciclo === 'mensual' ? act : ina);
-  if (ano) ano.style.cssText = base + (window._ciclo === 'anual' ? act : ina);
-  var suf = window._ciclo === 'anual' ? '<span>/año</span>' : '<span>/mes</span>';
-  var pr = window._ciclo === 'anual' ? _PRECIOS_ANUAL : _PRECIOS_MES;
-  ['basico', 'pro', 'top'].forEach(function(k) { var e = document.getElementById('planPrice_' + k); if (e) e.innerHTML = pr[k] + suf; });
+  if (mes) { mes.style.cssText = base + (window._ciclo === 'mensual' ? act : ina); mes.textContent = L.ciclo_mensual; }
+  if (ano) { ano.style.cssText = base + (window._ciclo === 'anual' ? act : ina); ano.innerHTML = L.ciclo_anual; }
+  var pr = _precios(window._ciclo);
+  ['basico', 'pro', 'top'].forEach(function(k) { var e = document.getElementById('planPrice_' + k); if (e) e.innerHTML = pr[k] + '<span>' + pr.suf + '</span>'; });
+  if (planSel) _pintarPlanSel();
+}
+function _pintarPlanSel() {
+  if (!planSel) return;
+  var L = _L();
+  var nombres = { basico: L.plan_basico, pro: L.plan_pro, top: L.plan_premium };
+  var pr = _precios(window._ciclo);
+  var precios = { basico: pr.basico, pro: pr.pro, top: pr.top };
+  var n = document.getElementById('planNombre'); if (n) n.textContent = nombres[planSel] || '';
+  var p = document.getElementById('planPrecio'); if (p) p.textContent = (precios[planSel] || '') + ' ' + pr.suf;
 }
 function selPlan(id, el) {
   planSel = id;
-  document.getElementById('planNombre').textContent = PLANES[id].nombre();
-  document.getElementById('planPrecio').textContent = PLANES[id].precio();
+  _pintarPlanSel();
   document.getElementById('formSection').classList.add('show');
   document.getElementById('formSection').scrollIntoView({behavior:'smooth'});
 }
@@ -445,47 +519,46 @@ function cambiarPlan() {
 }
 
 async function iniciarPago() {
+  var L = _L();
   var nom = document.getElementById('rNom').value.trim();
   var email = document.getElementById('rEmail').value.trim();
   var tienda = document.getElementById('rTienda').value.trim();
   var err = document.getElementById('rErr');
+  // Honeypot: si un bot rellenó el campo oculto, abortamos silenciosamente.
+  var hp = document.getElementById('hp_website');
+  if (hp && hp.value) { return; }
 
-  if (!nom || !email || !tienda) {
-    err.textContent = 'Por favor rellena todos los campos';
-    err.style.display = 'block';
-    return;
+  if (nom.length < 2 || !email || tienda.length < 2) {
+    err.textContent = L.err_campos; err.style.display = 'block'; return;
   }
   if (!email.includes('@')) {
-    err.textContent = 'Email no válido';
-    err.style.display = 'block';
-    return;
+    err.textContent = L.err_email; err.style.display = 'block'; return;
   }
   err.style.display = 'none';
 
   var btn = document.getElementById('btnPagar');
-  btn.textContent = 'Procesando...';
+  btn.textContent = L.btn_procesando;
   btn.disabled = true;
 
   try {
     var r = await fetch('/api/checkout', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({plan: planSel, nombre: nom, email: email, tienda_nombre: tienda, ciclo: (window._ciclo || 'mensual'), lang: localStorage.getItem('tp_lang') || 'es', ref: ((document.getElementById('rCodigo') && document.getElementById('rCodigo').value.trim()) || window._refCode || '')})
+      body: JSON.stringify({plan: planSel, nombre: nom, email: email, tienda_nombre: tienda, ciclo: (window._ciclo || 'mensual'), lang: (window._lang || getLang()), ref: ((document.getElementById('rCodigo') && document.getElementById('rCodigo').value.trim()) || window._refCode || ''), website: (hp ? hp.value : ''), consent_ts: new Date().toISOString(), consent_ver: 'reg-2026-07'})
     });
     var data = await r.json();
     if (data.ok && data.url) {
       window.location.href = data.url;
     } else {
-      err.textContent = data.error || 'Error al procesar. Intenta de nuevo.';
+      err.textContent = data.error || L.err_conn;
       err.style.display = 'block';
-      btn.textContent = 'Continuar al pago';
+      btn.textContent = L.btn_pagar;
       btn.disabled = false;
     }
   } catch(e) {
-    var L2 = REG_TEXTS[getLang()]||REG_TEXTS.es;
-    err.textContent = L2.err_conn;
+    err.textContent = L.err_conn;
     err.style.display = 'block';
-    btn.textContent = L2.btn_pagar;
+    btn.textContent = L.btn_pagar;
     btn.disabled = false;
   }
 }

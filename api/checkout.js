@@ -22,6 +22,11 @@ export default async function handler(req, res) {
   if (!_rl.ok) {
     return res.status(429).json({ error: 'Demasiados intentos. Espera un momento.' });
   }
+  // #B13: honeypot anti-bot. El campo 'website' está oculto en el formulario; si viene
+  // relleno, es un bot → cortamos sin crear sesión de pago.
+  if (req.body && typeof req.body.website === 'string' && req.body.website.trim() !== '') {
+    return res.status(400).json({ error: 'Solicitud no válida.' });
+  }
 
   // ═══ MULTI-TIENDA Fase 2 · ADD-ON: tienda extra para un dueño YA registrado ═══
   // Cobra al MISMO customer Stripe (suscripción add-on). El webhook crea la tienda
@@ -149,6 +154,9 @@ export default async function handler(req, res) {
     params.append('metadata[plan]', planCanonico);
     params.append('metadata[ciclo]', ciclo);
     params.append('metadata[lang]', req.body.lang || 'es');
+    // #B10: registro del consentimiento (timestamp + versión) para RGPD.
+    if (req.body.consent_ts) params.append('metadata[consent_ts]', String(req.body.consent_ts).slice(0, 40));
+    if (req.body.consent_ver) params.append('metadata[consent_ver]', String(req.body.consent_ver).slice(0, 40));
     // Referidos: código de invitación (lo lee register.js para registrar la invitación).
     const refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
     if (refCode) { params.append('metadata[ref]', refCode); params.append('subscription_data[metadata][ref]', refCode); }
