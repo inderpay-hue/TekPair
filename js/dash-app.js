@@ -3205,7 +3205,7 @@ function mapStock(s) {
 }
 
 function mapCli(c) {
-  return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||'', fechaNac:c.fecha_nac||'', nombreFiscal:c.nombre_fiscal||'', dirFiscal:c.dir_fiscal||'', cp:c.cp||'', provincia:c.provincia||'', ciudad:c.ciudad||'', esEmpresa:c.es_empresa||false, personaContacto:c.persona_contacto||'', pais:c.pais||'España', telPrefijo:c.tel_prefijo||'+34', marketingConsent:c.marketing_consent||false};
+  return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||'', fechaNac:c.fecha_nac||'', nombreFiscal:c.nombre_fiscal||'', dirFiscal:c.dir_fiscal||'', cp:c.cp||'', provincia:c.provincia||'', ciudad:c.ciudad||'', esEmpresa:c.es_empresa||false, personaContacto:c.persona_contacto||'', pais:c.pais||'España', telPrefijo:c.tel_prefijo||'+34', grado:c.grado||'', marketingConsent:c.marketing_consent||false};
 }
 
 async function cargarDatosSupabase() {
@@ -7683,14 +7683,16 @@ function selCli(id, ctx) {
     SEL.vCli = c;
     document.getElementById('vBusCli').value = '';
     document.getElementById('vSelCli').classList.remove('open');
-    document.getElementById('vSelCliNom').textContent = (c.nombre + ' ' + c.apellidos).trim() + (c.tel ? ' \u00b7 ' + c.tel : '');
+    document.getElementById('vSelCliNom').innerHTML = esc((c.nombre + ' ' + c.apellidos).trim() + (c.tel ? ' \u00b7 ' + c.tel : '')) + _gradoBadgeHtml(c.grado);
     document.getElementById('vSelCliBox').classList.add('show');
+    _avisarGradoCliente(c);
   } else {
     SEL.rCli = c;
     document.getElementById('rBusCli').value = '';
     document.getElementById('rSelCli').classList.remove('open');
-    document.getElementById('rSelCliNom').textContent = (c.nombre + ' ' + c.apellidos).trim() + (c.tel ? ' \u00b7 ' + c.tel : '');
+    document.getElementById('rSelCliNom').innerHTML = esc((c.nombre + ' ' + c.apellidos).trim() + (c.tel ? ' \u00b7 ' + c.tel : '')) + _gradoBadgeHtml(c.grado);
     document.getElementById('rSelCliBox').classList.add('show');
+    _avisarGradoCliente(c);
     actualizarAvisoGarantia();
   }
 }
@@ -12609,6 +12611,15 @@ function renderStockLog() {
 }
 
 // ═══ CLIENTES ═══
+// Clasificación de cliente (A bueno / B regular / C no atender): badge de color y aviso.
+function _gradoBadgeHtml(g) {
+  if (!g) return '';
+  var st = g === 'A' ? 'background:#DCFCE7;color:#0F7355' : g === 'B' ? 'background:#FEF3C7;color:#B45309' : 'background:#FEE2E2;color:#B91C1C';
+  return ' <span class="badge" style="' + st + ';font-weight:800;font-size:10px;padding:1px 6px;border-radius:6px">' + (g === 'C' ? '⚠️ ' : '') + g + '</span>';
+}
+function _avisarGradoCliente(c) {
+  if (c && c.grado === 'C') { try { toast('⚠️ ' + T('cli.grado_c_aviso'), 'err'); } catch (e) {} }
+}
 function renderClis() {
   var q = _norm(document.getElementById('busClis').value);
   var list = DB.clis.filter(function(c) {
@@ -12621,7 +12632,7 @@ function renderClis() {
     var vc = DB.ventas.filter(function(v) { return v.clienteId === c.id; }).length;
     var rc = DB.reps.filter(function(r) { return r.clienteId === c.id; }).length;
     html += '<tr>' +
-      '<td><strong class="drill-cli" data-cid="' + c.id + '" style="cursor:pointer;color:var(--blue);text-decoration:underline;text-decoration-color:rgba(0,85,255,.25);text-underline-offset:2px">' + esc(c.nombre + ' ' + c.apellidos) + '</strong>' + ((vc + rc) >= 3 ? '<br><span class="badge by">\u2b50 ' + T('cli.frecuente') + '</span>' : '') + '</td>' +
+      '<td><strong class="drill-cli" data-cid="' + c.id + '" style="cursor:pointer;color:var(--blue);text-decoration:underline;text-decoration-color:rgba(0,85,255,.25);text-underline-offset:2px">' + esc(c.nombre + ' ' + c.apellidos) + '</strong>' + _gradoBadgeHtml(c.grado) + ((vc + rc) >= 3 ? '<br><span class="badge by">\u2b50 ' + T('cli.frecuente') + '</span>' : '') + '</td>' +
       '<td style="font-size:11px">' + (c.tel || '\u2014') + '</td>' +
       '<td><span class="badge bb" title="Ventas">' + vc + 'v</span> <span class="badge bp" title="Reparaciones">' + rc + 'r</span></td>' +
       '<td style="display:flex;gap:3px">' +
@@ -12738,6 +12749,7 @@ function limpiarFormCli() {
   var rb = document.getElementById('cRepetBanner'); if (rb) rb.style.display = 'none';
   var pref = document.getElementById('cTelPref'); if (pref) pref.value = '+34';
   var pais = document.getElementById('cPais'); if (pais) pais.value = 'España';
+  var grd = document.getElementById('cGrado'); if (grd) grd.value = '';
   // F423: por defecto el título es "Nuevo Cliente" (editCli lo cambia después). Antes, tras
   // editar un cliente, el botón "+ Nuevo" seguía mostrando "✏️ Editar Cliente".
   var t = document.getElementById('mCliTit'); if (t) t.textContent = '👤 ' + T('cli.nuevo_titulo');
@@ -12803,12 +12815,13 @@ function guardarCli() {
     provincia: _v('cProv'),
     pais: (document.getElementById('cPais') || {}).value || 'España',
     fechaNac: esEmp ? '' : _v('cFnac'),
+    grado: (document.getElementById('cGrado') || {}).value || '',
     marketingConsent: !!(document.getElementById('cMarketingConsent') || {}).checked
   };
   var _row = function(d){ return {nombre:d.nombre,apellidos:d.apellidos,tel:d.tel,email:d.email,dni:d.dni,fecha_nac:d.fechaNac||null,
     es_empresa:d.esEmpresa,persona_contacto:d.personaContacto||null,nombre_fiscal:d.nombreFiscal||null,
     dir_fiscal:d.dirFiscal||null,cp:d.cp||null,ciudad:d.ciudad||null,provincia:d.provincia||null,
-    pais:d.pais||null,tel_prefijo:d.telPrefijo||null,marketing_consent:!!d.marketingConsent}; };
+    pais:d.pais||null,tel_prefijo:d.telPrefijo||null,grado:d.grado||null,marketing_consent:!!d.marketingConsent}; };
   if (!ECID && typeof _puedeAnadirCliente === 'function' && !_puedeAnadirCliente()) return;
   if (ECID) {
     var c = DB.clis.find(function(x) { return x.id === ECID; });
@@ -12855,6 +12868,7 @@ function editCli(id) {
   document.getElementById('cPais').value = c.pais || 'Espa\u00f1a';
   var fnac = document.getElementById('cFnac');
   if (fnac) fnac.value = c.fechaNac || '';
+  var gr = document.getElementById('cGrado'); if (gr) gr.value = c.grado || '';
   var cons = document.getElementById('cMarketingConsent'); if (cons) cons.checked = !!c.marketingConsent;
   var rb = document.getElementById('cRepetBanner'); if (rb) rb.style.display = 'none';
   toggleCliEmpresa();
