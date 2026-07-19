@@ -569,19 +569,30 @@ document.addEventListener('DOMContentLoaded', function() {
   var sel = document.getElementById('regLangSel');
   if (sel) sel.value = lang;
   applyRegLang(lang);
-  // Referidos: si llega ?ref=CODE, guardarlo y mostrar el banner.
+  // Referidos: si llega ?ref=CODE, prerellenar el campo y validar el código ANTES de mostrar
+  // el banner (#B4: no prometer "1 mes gratis" con un código que no existe).
   try {
     var ref = new URLSearchParams(location.search).get('ref') || '';
     ref = ref.replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
     if (ref) {
       window._refCode = ref;
       var rc = document.getElementById('rCodigo'); if (rc) rc.value = ref;
-      var L = REG_TEXTS[lang] || REG_TEXTS.es;
-      var t = document.getElementById('refBannerTxt'); if (t && L.ref_banner) t.textContent = L.ref_banner;
-      var b = document.getElementById('refBanner'); if (b) b.style.display = 'block';
+      _validarRefBanner(ref);
     }
   } catch (e) {}
 });
+// Muestra el banner de referido solo si el código es válido (TekPair o Cobrum).
+function _validarRefBanner(ref) {
+  fetch('/api/citas-publicas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'check-ref', ref: ref }) })
+    .then(function (r) { return r.json(); })
+    .then(function (d) {
+      if (!d || !d.valid) return; // código inválido → sin banner ni promesa
+      var L = _L();
+      var t = document.getElementById('refBannerTxt'); if (t && L.ref_banner) t.textContent = L.ref_banner;
+      var b = document.getElementById('refBanner'); if (b) b.style.display = 'block';
+    })
+    .catch(function () {});
+}
 </script>
 <footer style="text-align:center;font-size:12px;color:#8A94A6;padding:24px 16px 32px">
   <a href="/aviso-legal.html" data-t="footer_aviso" style="color:inherit;margin:0 5px">Aviso legal</a> · <a href="/privacidad.html" data-t="footer_priv" style="color:inherit;margin:0 5px">Privacidad</a> · <a href="/terminos.html" data-t="footer_terminos" style="color:inherit;margin:0 5px">Términos</a> · <a href="/cookies.html" data-t="footer_cookies" style="color:inherit;margin:0 5px">Cookies</a>

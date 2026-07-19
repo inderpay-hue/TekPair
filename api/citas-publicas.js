@@ -506,6 +506,29 @@ async function presRechazar(body, ip) {
 }
 
 // ── Handler principal ────────────────────────────────────────────────────────
+// #B4: valida un código de invitación antes de prometer "1 mes gratis" en el registro.
+// Reconoce el referral_code propio de TekPair y el código cruzado de Cobrum.
+async function checkRef(ref, ip) {
+  const code = String(ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+  if (!code) return { ok: true, valid: false };
+  const _rl = await rateLimit(`checkref:${ip}`, 40, 3600);
+  if (!_rl.ok) return { ok: true, valid: false };
+  // 1) ¿referral_code de una tienda TekPair?
+  try {
+    const rows = await sbGet('tiendas?referral_code=eq.' + encodeURIComponent(code) + '&select=id&limit=1');
+    if (Array.isArray(rows) && rows.length) return { ok: true, valid: true, tipo: 'tekpair' };
+  } catch (e) {}
+  // 2) ¿código cruzado de Cobrum?
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 4000);
+    const r = await fetch((process.env.COBRUM_REFERIDO_URL || 'https://cobrum.tech/api/referido') + '?codigo=' + encodeURIComponent(code), { signal: ctrl.signal });
+    clearTimeout(to);
+    if (r.ok) { const d = await r.json().catch(() => ({})); if (d && d.valid) return { ok: true, valid: true, tipo: 'cobrum' }; }
+  } catch (e) {}
+  return { ok: true, valid: false };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -531,6 +554,7 @@ export default async function handler(req, res) {
       case 'get-servicios':   result = await getServicios(body.slug); break;
       case 'get-citas-dia':   result = await getCitasDia(body.slug, body.fecha); break;
       case 'crear-cita':      result = await crearCita(body, ip); break;
+      case 'check-ref':       result = await checkRef(body.ref, ip); break;
       case 'pres-generar-token': result = await presGenerarToken(body, req.headers['authorization']); break;
       case 'pres-get':        result = await presGet(body.token); break;
       case 'pres-aceptar':    result = await presAceptar(body, ip); break;
