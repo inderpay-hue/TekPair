@@ -182,10 +182,10 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 
 <div class="form-section" id="formSection">
   <div class="plan-sel">
-    <span>Plan seleccionado:</span>
+    <span id="planSelTxt">Plan seleccionado:</span>
     <strong id="planNombre">---</strong>
     <span id="planPrecio" style="color:var(--ink);font-weight:700"></span>
-    <button onclick="cambiarPlan()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline;font-family:var(--sans)">Cambiar</button>
+    <button id="btnCambiar" onclick="cambiarPlan()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline;font-family:var(--sans)">Cambiar</button>
   </div>
   <div class="form-title">Crea tu cuenta</div>
   <form id="regForm" onsubmit="iniciarPago();return false">
