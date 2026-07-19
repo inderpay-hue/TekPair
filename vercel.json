@@ -9,11 +9,26 @@
     {
       "source": "/(.*)",
       "headers": [
-        { "key": "X-Content-Type-Options", "value": "nosniff" },
-        { "key": "X-Frame-Options", "value": "SAMEORIGIN" },
-        { "key": "Referrer-Policy", "value": "strict-origin-when-cross-origin" },
-        { "key": "Permissions-Policy", "value": "geolocation=(), browsing-topics=()" },
-        { "key": "Content-Security-Policy-Report-Only", "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googletagmanager.com https://*.google-analytics.com https://*.tawk.to https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://*.tawk.to; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://*.tawk.to; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.googletagmanager.com https://*.tawk.to https://api.stripe.com https://finanzas-app-six-zeta.vercel.app https://api.qrserver.com; frame-src 'self' https://js.stripe.com https://*.tawk.to https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'" }
+        {
+          "key": "X-Content-Type-Options",
+          "value": "nosniff"
+        },
+        {
+          "key": "X-Frame-Options",
+          "value": "SAMEORIGIN"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        },
+        {
+          "key": "Permissions-Policy",
+          "value": "geolocation=(), browsing-topics=()"
+        },
+        {
+          "key": "Content-Security-Policy-Report-Only",
+          "value": "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://*.googletagmanager.com https://*.google-analytics.com https://*.tawk.to https://js.stripe.com https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://www.google.com https://www.gstatic.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdnjs.cloudflare.com https://*.tawk.to; font-src 'self' data: https://fonts.gstatic.com https://cdnjs.cloudflare.com https://*.tawk.to; img-src 'self' data: blob: https:; connect-src 'self' https://*.supabase.co https://*.google-analytics.com https://*.googletagmanager.com https://*.tawk.to https://api.stripe.com https://finanzas-app-six-zeta.vercel.app https://api.qrserver.com; frame-src 'self' https://js.stripe.com https://*.tawk.to https://www.google.com; object-src 'none'; base-uri 'self'; form-action 'self'"
+        }
       ]
     },
     {
@@ -121,16 +136,110 @@
       "destination": "https://github.com/inderpay-hue/tekpair-desktop/releases/latest/download/TekPair-Setup.exe",
       "permanent": false
     },
-    { "source": "/precios.html", "destination": "/#pricing", "permanent": false },
-    { "source": "/precios", "destination": "/#pricing", "permanent": false },
-    { "source": "/faq.html", "destination": "/#faq", "permanent": false },
-    { "source": "/faq", "destination": "/#faq", "permanent": false },
-    { "source": "/novedades.html", "destination": "/#novedades", "permanent": false },
-    { "source": "/novedades", "destination": "/#novedades", "permanent": false },
-    { "source": "/login.html", "destination": "/app.html", "permanent": false },
-    { "source": "/login", "destination": "/app.html", "permanent": false },
-    { "source": "/entrar.html", "destination": "/app.html", "permanent": false },
-    { "source": "/entrar", "destination": "/app.html", "permanent": false },
-    { "source": "/r/:code", "destination": "/registro.html?ref=:code", "permanent": false }
+    {
+      "source": "/precios.html",
+      "destination": "/#pricing",
+      "permanent": false
+    },
+    {
+      "source": "/precios",
+      "destination": "/#pricing",
+      "permanent": false
+    },
+    {
+      "source": "/faq.html",
+      "destination": "/#faq",
+      "permanent": false
+    },
+    {
+      "source": "/faq",
+      "destination": "/#faq",
+      "permanent": false
+    },
+    {
+      "source": "/novedades.html",
+      "destination": "/#novedades",
+      "permanent": false
+    },
+    {
+      "source": "/novedades",
+      "destination": "/#novedades",
+      "permanent": false
+    },
+    {
+      "source": "/login.html",
+      "destination": "/app.html",
+      "permanent": false
+    },
+    {
+      "source": "/login",
+      "destination": "/app.html",
+      "permanent": false
+    },
+    {
+      "source": "/entrar.html",
+      "destination": "/app.html",
+      "permanent": false
+    },
+    {
+      "source": "/entrar",
+      "destination": "/app.html",
+      "permanent": false
+    },
+    {
+      "source": "/r/:code",
+      "destination": "/registro.html?ref=:code",
+      "permanent": false
+    },
+    {
+      "source": "/blog/conseguir-clientes-taller-reparacion.html",
+      "destination": "/blog/captar-clientes-taller-reparacion.html",
+      "permanent": true
+    },
+    {
+      "source": "/blog/fr/trouver-clients-atelier-reparation.html",
+      "destination": "/blog/fr/attirer-clients-atelier-reparation.html",
+      "permanent": true
+    },
+    {
+      "source": "/blog/it/trovare-clienti-officina-riparazione.html",
+      "destination": "/blog/it/attirare-clienti-officina-riparazione.html",
+      "permanent": true
+    },
+    {
+      "source": "/blog/pt/conseguir-clientes-oficina-reparacao.html",
+      "destination": "/blog/pt/atrair-clientes-oficina-reparacao.html",
+      "permanent": true
+    },
+    {
+      "source": "/blog/poner-precio-reparaciones-movil.html",
+      "destination": "/blog/precios-reparacion-movil-taller.html",
+      "permanent": true
+    },
+    {
+      "source": "/blog/en/price-phone-repairs.html",
+      "destination": "/blog/en/phone-repair-pricing-shop.html",
+      "permanent": true
+    },
+    {
+      "source": "/blog/fr/fixer-prix-reparations.html",
+      "destination": "/blog/fr/prix-reparation-mobile-atelier.html",
+      "permanent": true
+    },
+    {
+      "source": "/blog/it/fissare-prezzi-riparazioni.html",
+      "destination": "/blog/it/prezzi-riparazione-cellulari-officina.html",
+      "permanent": true
+    },
+    {
+      "source": "/blog/de/preise-reparaturen-festlegen.html",
+      "destination": "/blog/de/preise-handy-reparatur-werkstatt.html",
+      "permanent": true
+    },
+    {
+      "source": "/blog/pt/definir-precos-reparacoes.html",
+      "destination": "/blog/pt/precos-reparacao-telemovel-oficina.html",
+      "permanent": true
+    }
   ]
 }
