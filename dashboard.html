@@ -4377,6 +4377,15 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     </div>
   </div>
   <div class="fg" id="cFnacBox"><label class="fl"><span data-t="cli.fnac">Fecha de nacimiento</span> <span style="font-size:9px;color:var(--muted);font-weight:500;text-transform:none;letter-spacing:0" data-t="cli.fnac_hint">— opcional, para felicitar/promos</span></label><input class="fi" id="cFnac" type="date"></div>
+  <!-- Clasificación del cliente (A bueno / B regular / C no atender) -->
+  <div class="fg"><label class="fl" data-t="cli.grado">Clasificación</label>
+    <select class="fi" id="cGrado">
+      <option value="" data-t="cli.grado_sin">Sin clasificar</option>
+      <option value="A" data-t="cli.grado_a">A · Bueno</option>
+      <option value="B" data-t="cli.grado_b">B · Regular</option>
+      <option value="C" data-t="cli.grado_c">C · No atender</option>
+    </select>
+  </div>
   <!-- #17: consentimiento RGPD para marketing (WhatsApp/email). Prerrequisito legal de las campañas. -->
   <label style="display:flex;align-items:flex-start;gap:8px;cursor:pointer;font-size:12.5px;background:var(--light);padding:9px 12px;border-radius:8px;margin-bottom:4px">
     <input type="checkbox" id="cMarketingConsent" style="margin-top:2px">
