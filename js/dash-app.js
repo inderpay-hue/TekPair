@@ -921,11 +921,14 @@ window.addEventListener('DOMContentLoaded', function() {
   }
 
   // Sync continua: cuando vuelves a la pestaña + red de seguridad cada 60s.
-  // Con Realtime conectado (_rtReady) los cambios llegan al instante por websocket,
-  // así que el poll de 60s solo se dispara como fallback si el websocket está caído.
+  // Con Realtime conectado los cambios llegan al instante por websocket, PERO el poll de
+  // 60s se ejecuta SIEMPRE como red de seguridad (no gatear en _rtReady): un canal puede
+  // quedar "SUBSCRIBED" y dejar de entregar eventos (PC dormido, websocket zombi, publicación
+  // SQL incompleta) sin que _rtReady vuelva a false → el otro equipo no se enteraba nunca.
+  // syncCompleto ya evita solaparse (_syncEnCurso), así que correrlo de más es inocuo.
   window.addEventListener('focus', function(){ syncCompleto(true); try { cargarConfirmacionesPend(); } catch(e){} });
   window.addEventListener('visibilitychange', function(){ if (!document.hidden) syncCompleto(true); });
-  setInterval(function(){ if (!document.hidden && !_rtReady) syncCompleto(true); }, 60000);
+  setInterval(function(){ if (!document.hidden) syncCompleto(true); }, 60000);
 
   // Admin check
   if (!U.rol || U.rol !== 'admin') {
@@ -10544,6 +10547,10 @@ function guardarRep() {
       // Insertar pagos en pagos_reparacion (sistema normal)
       (SEL.repPagos || []).forEach(function(p) {
         sbPost('pagos_reparacion', {
+          // id determinista: el pago local ya trae su id (dashboard.html) → si la columna
+          // no tiene default en BD, omitirlo violaba NOT-NULL y el anticipo de una reparación
+          // NUEVA nunca se guardaba (banner rojo). Enviarlo además evita duplicar al reintentar.
+          id: p.id || ('pg_' + rep.id + '_' + (parseFloat(p.importe) || 0)),
           tienda_id: TIENDA_ID,
           reparacion_id: rep.id,
           fecha: p.fecha,
