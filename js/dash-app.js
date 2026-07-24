@@ -17794,9 +17794,13 @@ function abrirDetalleRep(repId) {
   var _restDet = parseFloat(r.restante) || 0;
   if (_restDet > 0.005) {
     var _pagDet = Math.max(0, (parseFloat(r.total) || 0) - _restDet);
-    html += '<div style="display:flex;justify-content:space-between;gap:10px;margin-top:6px;font-size:12px">' +
-      '<span style="color:#16a34a;font-weight:700">' + T('det.pagado') + ': ' + cur(_pagDet) + '</span>' +
-      '<span style="color:#DC2626;font-weight:700">' + T('det.pendiente') + ': ' + cur(_restDet) + '</span></div>';
+    html += '<div style="display:flex;gap:8px;margin-top:8px">' +
+      '<div style="flex:1;background:rgba(22,163,74,.10);border:1px solid rgba(22,163,74,.30);border-radius:10px;padding:8px 6px;text-align:center">' +
+        '<div style="font-size:10px;font-weight:700;color:#16a34a;text-transform:uppercase;letter-spacing:.3px">✅ ' + T('det.pagado') + '</div>' +
+        '<div style="font-size:17px;font-weight:800;color:#16a34a;margin-top:2px">' + cur(_pagDet) + '</div></div>' +
+      '<div style="flex:1;background:rgba(234,88,12,.10);border:1px solid rgba(234,88,12,.30);border-radius:10px;padding:8px 6px;text-align:center">' +
+        '<div style="font-size:10px;font-weight:700;color:#EA580C;text-transform:uppercase;letter-spacing:.3px">⏳ ' + T('det.pendiente') + '</div>' +
+        '<div style="font-size:17px;font-weight:800;color:#EA580C;margin-top:2px">' + cur(_restDet) + '</div></div></div>';
   }
 
   // FIRM-6: si hay firma del cliente, mostrarla
