@@ -7443,7 +7443,7 @@ function registrarPagoCuotaRep(rid, cidx) {
       if (SB_KEY && TIENDA_ID) {
         sbPatch('reparaciones', 'id=eq.' + rid, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
         // Cada pago (parcial o total) = un pago_reparacion propio (id único) → no machaca anteriores.
-        sbPost('pagos_reparacion', { id: 'pg_cuo_' + rid + '_' + cidx + '_' + Date.now(), tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoyLocal(), importe: pago, metodo: fp, tipo: 'cuota' });
+        sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoyLocal(), importe: pago, metodo: fp, tipo: 'cuota' });
         window._pagosRepCache = null;
       }
       closeM('finModal');
@@ -7558,7 +7558,7 @@ function confirmarCobro(attemptId) {
   guardarDatos();
   if (SB_KEY && TIENDA_ID) {
     sbPatch('reparaciones', 'id=eq.' + r.id, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
-    sbPost('pagos_reparacion', { id: 'pg_cuo_' + r.id + '_' + cidx, tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: parseFloat(r.cuotas[cidx].importe) || 0, metodo: fp, tipo: 'cuota' });
+    sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: parseFloat(r.cuotas[cidx].importe) || 0, metodo: fp, tipo: 'cuota' });
     window._pagosRepCache = null;
   }
   _resolverIntento(attemptId, 'confirmado');
@@ -7612,7 +7612,7 @@ function confirmarCobroRep() {
   if (SB_KEY && TIENDA_ID) {
     sbPatch('reparaciones', 'id=eq.' + r.id, { restante: r.restante });
     // El pago se registra en pagos_reparacion -> el ingreso del día entra solo (y va a Cobrum por el volcado).
-    sbPost('pagos_reparacion', { id: 'pg' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: imp, metodo: met, tipo: 'parcial' });
+    sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: imp, metodo: met, tipo: 'parcial' });
     window._pagosRepCache = null;
   }
   closeM('mCobrarRep');
@@ -10540,17 +10540,16 @@ function guardarRep() {
       // Financiado: la ENTRADA se registra como pago (tipo anticipo) -> el ingreso del día entra solo.
       if (finEntrada > 0) {
         // id determinista -> un reenvío no duplica el ingreso de la entrada
-        sbPost('pagos_reparacion', { id: 'pg_ent_' + rep.id, tienda_id: TIENDA_ID, reparacion_id: rep.id, fecha: rep.fecha, importe: finEntrada, metodo: finEntradaPago, tipo: 'anticipo' });
+        sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rep.id, fecha: rep.fecha, importe: finEntrada, metodo: finEntradaPago, tipo: 'anticipo' });
         window._pagosRepCache = null;
       }
     } else {
       // Insertar pagos en pagos_reparacion (sistema normal)
       (SEL.repPagos || []).forEach(function(p) {
         sbPost('pagos_reparacion', {
-          // id determinista: el pago local ya trae su id (dashboard.html) → si la columna
-          // no tiene default en BD, omitirlo violaba NOT-NULL y el anticipo de una reparación
-          // NUEVA nunca se guardaba (banner rojo). Enviarlo además evita duplicar al reintentar.
-          id: p.id || ('pg_' + rep.id + '_' + (parseFloat(p.importe) || 0)),
+          // pagos_reparacion.id es de tipo uuid: el pago local ya trae un uuid válido
+          // (confirmarPago/anadirAnticipoDirecto usan _uuidPed()); si faltara, generamos otro.
+          id: p.id || _uuidPed(),
           tienda_id: TIENDA_ID,
           reparacion_id: rep.id,
           fecha: p.fecha,

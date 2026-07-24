@@ -6210,7 +6210,7 @@ function confirmarPago() {
   SEL.repPagos = SEL.repPagos || [];
   var tipo = SEL.repPagos.length === 0 ? 'anticipo' : 'parcial';
   // Generar id local para que la lista no se sobreescriba en la recarga
-  var pagoId = 'pg' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  var pagoId = _uuidPed(); // uuid válido: la columna pagos_reparacion.id es de tipo uuid
   var nuevoPago = { id: pagoId, fecha: fecha, importe: importe, metodo: metodo, tipo: tipo };
 
   // Empujar localmente PRIMERO para que la UI reaccione
@@ -6243,7 +6243,7 @@ function anadirAnticipoDirecto() {
   var fecha = hoyLocal();
   SEL.repPagos = SEL.repPagos || [];
   var tipo = SEL.repPagos.length === 0 ? 'anticipo' : 'parcial';
-  var pagoId = 'pg' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  var pagoId = _uuidPed(); // uuid válido: la columna pagos_reparacion.id es de tipo uuid
   SEL.repPagos.push({ id: pagoId, fecha: fecha, importe: importe, metodo: metodo, tipo: tipo });
   inp.value = '';
   renderListaPagos();
