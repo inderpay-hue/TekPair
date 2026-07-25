@@ -14144,6 +14144,9 @@ function editarGasto(id) {
   if (!tienePerm('gastos_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var g = (DB.gastos || []).find(function (x) { return x.id === id; });
   if (!g) { toast(T('gen.error'), 'err'); return; }
+  // Una nómina (categoria 'Nomina' con meta) se edita en su propio modal, no en el genérico:
+  // así se conservan bruto/IRPF/SS/neto en vez de descuadrar el desglose de la nómina.
+  if (g.categoria === 'Nomina' && g.meta) { abrirModalNomina(id); return; }
   if (typeof SEL !== 'object' || !SEL) window.SEL = {};
   SEL.editGastoId = id;
   var set = function (eid, val) { var e = document.getElementById(eid); if (e) e.value = val; };
