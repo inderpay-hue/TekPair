@@ -14500,6 +14500,19 @@ function getRepFechasISO() {
   });
 }
 
+// Filtro por rango para los exports (PDF/impresión/email): compara la fecha contra el
+// [min,max] de la lista de días en vez de includes() exacto. Así una venta de TPV con
+// hora en la fecha (p. ej. "2026-06-17T02:14") NO se cae del informe. Mismo criterio que
+// la vista en pantalla; antes se perdían silenciosamente en el PDF.
+function _repEnLista(fechas, f) {
+  if (!fechas || !fechas.length) return false;
+  var d = String(f || '').slice(0, 10);
+  if (!d) return false;
+  var min = fechas[0], max = fechas[0];
+  for (var i = 1; i < fechas.length; i++) { if (fechas[i] < min) min = fechas[i]; if (fechas[i] > max) max = fechas[i]; }
+  return d >= min && d <= max;
+}
+
 // Variables globales para charts (para destruirlos antes de re-renderizar)
 var CHART_INGRESOS = null, CHART_PAGOS = null, CHART_SERVICIOS = null;
 
@@ -14557,7 +14570,7 @@ async function renderReporte() {
     // F56: tarjeta de reembolsos del periodo (solo si hay) — visibles para el contador
     (reembolsos.length ? '<div class="stat-card"><div class="stat-val" style="color:var(--red)">-' + cur(tReemb) + '</div><div class="stat-lbl">' + T('gen.reembolsos') + ' (' + reembolsos.length + ')</div></div>' : '') +
     '</div>' +
-    '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">' + T('gen.total') + ': ' + cur(tV + tR) + '</div>';
+    '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">' + T('gen.total') + ' (' + T('inicio.cobrado') + '): ' + cur(tV + tR) + '</div>';
 
   // Guardar datos del periodo para "Enviar a Cobrum" (ventas + pagos de reparación)
   var _gastosPeriodo = (DB.gastos || []).filter(function(g){ return g && _enRango(g.fecha); });
@@ -14806,7 +14819,7 @@ function renderGraficas(ventas, reps, pagos, fechas) {
           labels: labels,
           datasets: [
             {label:'Ventas', data:dataV, borderColor:'#FF5B1F', backgroundColor:'rgba(255,91,31,.10)', fill:true, tension:.3, pointRadius:2},
-            {label:'Reparaciones', data:dataR, borderColor:'#FF5B1F', backgroundColor:'rgba(255,91,31,.10)', fill:true, tension:.3, pointRadius:2}
+            {label:'Reparaciones', data:dataR, borderColor:'#2563EB', backgroundColor:'rgba(37,99,235,.10)', fill:true, tension:.3, pointRadius:2}
           ]
         },
         options: {
@@ -14959,8 +14972,8 @@ function renderDesgloseIVA(ventas, reps) {
 function generarPDFGestor() {
   if (!checkFeature('reportes_pdf')) return;
   var fechas = getRepFechas();
-  var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && fechas.includes(v.fecha); });
-  var reps = DB.reps.filter(function(r) { return r.estado === 'Entregado' && fechas.includes(r.fechaEntregaReal); });
+  var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && _repEnLista(fechas, v.fecha); });
+  var reps = DB.reps.filter(function(r) { return r.estado === 'Entregado' && _repEnLista(fechas, r.fechaEntregaReal); });
 
   // Calcular totales por tipo de IVA
   var portipos = {0:{base:0,iva:0,total:0},4:{base:0,iva:0,total:0},10:{base:0,iva:0,total:0},21:{base:0,iva:0,total:0}};
@@ -15095,8 +15108,8 @@ function generarPDFGestor() {
 
 function verReportePDF() {
   var fechas = getRepFechas();
-  var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && fechas.includes(v.fecha); });
-  var reps = DB.reps.filter(function(r) { return (r.estado||'').toLowerCase() === 'entregado' && fechas.includes((r.fechaEntregaReal||'').slice(0,10)); });
+  var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && _repEnLista(fechas, v.fecha); });
+  var reps = DB.reps.filter(function(r) { return (r.estado||'').toLowerCase() === 'entregado' && _repEnLista(fechas, r.fechaEntregaReal); });
   var tV = ventas.reduce(function(a, v) { return a + v.total; }, 0);
   var tR = reps.reduce(function(a, r) { return a + r.total; }, 0);
   var html = '<html><head><meta charset="UTF-8"><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th{background:#020B2E;color:white;padding:8px}td{padding:8px;border-bottom:1px solid #eee}.tot{display:flex;justify-content:space-between;padding:10px;font-weight:700;font-size:16px;background:#f5f5f5;margin:10px 0}</style></head><body>' +
@@ -15117,8 +15130,8 @@ function verReportePDF() {
 
 function emailReporte() {
   var fechas = getRepFechas();
-  var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && fechas.includes(v.fecha); });
-  var reps = DB.reps.filter(function(r) { return (r.estado||'').toLowerCase() === 'entregado' && fechas.includes((r.fechaEntregaReal||'').slice(0,10)); });
+  var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && _repEnLista(fechas, v.fecha); });
+  var reps = DB.reps.filter(function(r) { return (r.estado||'').toLowerCase() === 'entregado' && _repEnLista(fechas, r.fechaEntregaReal); });
   var tV = ventas.reduce(function(a, v) { return a + v.total; }, 0);
   var tR = reps.reduce(function(a, r) { return a + r.total; }, 0);
   var email = TIENDA.email || AJUSTES.cierre.email || prompt('Email para enviar el reporte:');
