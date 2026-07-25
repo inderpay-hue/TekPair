@@ -174,7 +174,7 @@
 
     let html = '';
     for (const caja of Estado.cajas) {
-      if (caja.tipo === 'dia') continue; // se pinta en su propio panel (Caja del día)
+      if (caja.nombre === 'Caja del día') continue; // se pinta en su propio panel
       const datos = Estado.cierres[caja.id] || {};
       const cierre = datos.cierre;
       const estado = cierre?.estado || 'pendiente';
@@ -1415,7 +1415,7 @@
   async function pintarCajaDia() {
     const cont = $('caja-dia-panel');
     if (!cont) return;
-    const caja = (Estado.cajas || []).find(c => c.tipo === 'dia');
+    const caja = (Estado.cajas || []).find(c => c.nombre === 'Caja del día');
     if (!caja || typeof window.cajaDiaResumen !== 'function') { cont.innerHTML = ''; return; }
     let r;
     try { r = await window.cajaDiaResumen(Estado.fechaActual); }
@@ -1470,7 +1470,7 @@
   }
 
   async function cerrarCajaDia() {
-    const caja = (Estado.cajas || []).find(c => c.tipo === 'dia');
+    const caja = (Estado.cajas || []).find(c => c.nombre === 'Caja del día');
     if (!caja) return;
     const r = Estado._cajaDiaR || await window.cajaDiaResumen(Estado.fechaActual);
     const inp = $('caja-dia-contado');

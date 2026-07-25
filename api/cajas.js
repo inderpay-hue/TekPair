@@ -246,10 +246,10 @@ export default async function handler(req, res) {
       case 'crear_caja': {
         const { tipo, nombre, icono, color, orden, dias_apertura } = req.body || {};
         if (!tipo || !nombre) return err(res, 400, 'tipo y nombre obligatorios');
-        if (!['envios','recargas','tpv','custom','dia'].includes(tipo)) {
+        if (!['envios','recargas','tpv','custom'].includes(tipo)) {
           return err(res, 400, 'tipo inválido');
         }
-        const iconoDef = icono || (tipo === 'envios' ? '📤' : tipo === 'recargas' ? '📱' : tipo === 'tpv' ? '🛒' : tipo === 'dia' ? '📅' : '💼');
+        const iconoDef = icono || (tipo === 'envios' ? '📤' : tipo === 'recargas' ? '📱' : tipo === 'tpv' ? '🛒' : '💼');
         // CAJ-9: variable renombrada de `payload` a `cajaData` para no sombrear el JWT
         const cajaData = {
           tienda_id,
@@ -276,12 +276,14 @@ export default async function handler(req, res) {
       // El desglose diario (efectivo/tarjeta/bizum + anticipos) se calcula en el front en vivo
       // desde ventas + pagos_reparacion; aquí solo garantizamos que la caja exista para el histórico.
       case 'asegurar_caja_dia': {
+        // La columna cajas.tipo tiene un CHECK que solo admite envios/recargas/tpv/custom, así
+        // que la Caja del día usa tipo 'custom' y se identifica por su nombre reservado.
         const existentes = await sbGet(
-          `cajas?tienda_id=eq.${encodeURIComponent(tienda_id)}&tipo=eq.dia&order=created_at.asc&limit=1`
+          `cajas?tienda_id=eq.${encodeURIComponent(tienda_id)}&nombre=eq.${encodeURIComponent('Caja del día')}&order=created_at.asc&limit=1`
         );
         if (existentes.length) return ok(res, { caja: existentes[0], creada: false });
         const cajaData = {
-          tienda_id, tipo: 'dia', nombre: 'Caja del día',
+          tienda_id, tipo: 'custom', nombre: 'Caja del día',
           icono: '📅', color: '#00C896', orden: -1
         };
         const data = await sbPost('cajas', cajaData);
@@ -466,7 +468,7 @@ export default async function handler(req, res) {
         // Caja del día: el teórico es el EFECTIVO esperado del día (ventas+reparaciones+anticipos
         // cobrados en efectivo), que el front calcula con la lógica canónica y envía. El descuadre
         // queda = efectivo contado − efectivo esperado (tarjeta/bizum no se cuentan a mano).
-        if (caja.tipo === 'dia') {
+        if (caja.nombre === 'Caja del día') {
           saldoTeorico = Math.round(Number(req.body.efectivo_esperado || 0) * 100) / 100;
         }
         const saldoReal = Number(saldo_real_final || 0);
