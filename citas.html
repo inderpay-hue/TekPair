@@ -441,7 +441,8 @@ async function cargarSlots() {
         slots.push({hora: pad(h) + ':' + pad(m), tramo: idx});
       }
     });
-    var ocupados = STATE.citasDelDia.map(function(c){ return c.hora; });
+    // Intervalos ocupados [inicio, fin) en minutos, usando la duración de cada cita (no solo la hora).
+    var ocupados = STATE.citasDelDia.map(function(c){ var p=(c.hora||'').split(':').map(Number); var ini=(p[0]||0)*60+(p[1]||0); return { ini: ini, fin: ini + (parseInt(c.duracion_min,10)||30) }; });
     var ahora = new Date();
     var esHoy = STATE.fecha === ahora.getFullYear() + '-' + pad(ahora.getMonth()+1) + '-' + pad(ahora.getDate());
     var horaAhora = ahora.getHours()*60 + ahora.getMinutes();
@@ -464,7 +465,10 @@ async function cargarSlots() {
       }
       var pp = s.hora.split(':').map(Number);
       var minSlot = pp[0]*60 + pp[1];
-      var taken = ocupados.indexOf(s.hora) !== -1 || (esHoy && minSlot < horaAhora + 30);
+      // Ocupado si el slot [minSlot, minSlot+duracion) se solapa con alguna cita existente.
+      var slotFin = minSlot + duracion;
+      var solapa = ocupados.some(function(o){ return minSlot < o.fin && o.ini < slotFin; });
+      var taken = solapa || (esHoy && minSlot < horaAhora + 30);
       var sel = STATE.hora === s.hora ? 'selected' : '';
       html += '<button class="slot ' + (taken ? 'taken' : '') + ' ' + sel + '" data-h="' + s.hora + '" ' + (taken ? 'disabled' : '') + '>' + s.hora + '</button>';
     });

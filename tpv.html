@@ -1637,7 +1637,9 @@ function cobrar() {
   // Reduce stock
   cart.forEach(function(item) {
     if (!item.esServicio && !item.esRapida) {
-      var s = DB.stock.find(function(x) { return x.id === item.id; });
+      // Precio variable: el item lleva un id sintético (p.id + '_' + timestamp); el stock real
+      // está en idOriginal. Sin esto, el artículo vendido a precio variable NO descontaba stock.
+      var s = DB.stock.find(function(x) { return x.id === (item.idOriginal || item.id); });
       if (s) {
         s.unidades = Math.max(0, s.unidades - item.qty);
         if (s.unidades === 0) s.vendido = true;

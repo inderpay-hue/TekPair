@@ -203,10 +203,16 @@ async function crearCita(body, ip) {
   if (!validHora(hora)) return { ok:false, error:'Hora inválida (HH:MM)', status:400 };
   if (hasURL(nombre)||hasURL(notas)) return { ok:false, error:'No se permiten URLs', status:400 };
   if (BAD_TELS.has(tel.replace(/\D/g,''))) return { ok:false, error:'Teléfono inválido', status:400 };
-  let existente;
-  try { existente = await sbGet(`citas?tienda_id=eq.${encodeURIComponent(tienda.id)}&fecha=eq.${fecha}&hora=eq.${encodeURIComponent(hora)}&estado=neq.cancelada&select=id&limit=1`); }
+  // Solapamiento por DURACIÓN, no solo por hora exacta: la nueva cita [hora, hora+duración)
+  // no puede cruzarse con ninguna existente (antes una cita de 60 min a las 10:00 dejaba
+  // reservar las 10:30 → doble reserva).
+  let ocupadas;
+  try { ocupadas = await sbGet(`citas?tienda_id=eq.${encodeURIComponent(tienda.id)}&fecha=eq.${fecha}&estado=neq.cancelada&select=hora,duracion_min`); }
   catch(e) { return { ok:false, error:'Error al validar disponibilidad', status:500 }; }
-  if (existente?.length) return { ok:false, error:'Esa hora ya está reservada. Elige otra.', status:409 };
+  const _toMin = (h)=>{ const p=String(h||'').split(':'); return (parseInt(p[0],10)||0)*60+(parseInt(p[1],10)||0); };
+  const nIni = _toMin(hora), nFin = nIni + duracion;
+  const solapa = (ocupadas||[]).some(c=>{ const eIni=_toMin(c.hora), eFin=eIni+(parseInt(c.duracion_min,10)||30); return nIni < eFin && eIni < nFin; });
+  if (solapa) return { ok:false, error:'Ese horario se solapa con otra cita. Elige otro.', status:409 };
   const citaId = 'c'+Date.now()+'_'+Math.random().toString(36).slice(2,8);
   const payload = { id:citaId, tienda_id:tienda.id, fecha, hora, servicio:servicio||'Consulta', duracion_min:duracion, cliente_nombre:nombre, cliente_tel:tel, cliente_email:email||null, notas:notas||null, marca:marca||null, modelo:modelo||null, estado:'pendiente' };
   let creada;

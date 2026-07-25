@@ -7205,7 +7205,9 @@ function reembolsarVenta(id) {
   var _rest = 0;
   _items.forEach(function(it) {
     if (it.esServicio || it.esRapida || it.esFijo) return; // servicios/rápidas no tocan stock
-    if (_restaurarStock(it.id, it.qty, it.imei)) _rest++;
+    // Precio variable: el stock real está en idOriginal (el id del item es sintético). Sin esto,
+    // el reembolso caía al fallback por IMEI y sumaba stock que nunca se había restado (fantasma).
+    if (_restaurarStock(it.idOriginal || it.id, it.qty, it.imei)) _rest++;
   });
   // Fallback: venta de un solo artículo sin items, o si ningún item casó con el stock
   if (!_rest && !_restaurarStock(v.stockId, 1, v.imei)) {
@@ -13075,9 +13077,9 @@ function abrirEditarProv(provId) {
 
 // Eliminar proveedor (con confirm)
 function eliminarProv(provId) {
-  if (!tienePerm('proveedores_eliminar') && !tienePerm('clientes_eliminar')) {
-    // Si no hay permiso específico, permitimos al menos a creador. No bloqueamos por defecto.
-  }
+  // Solo admin o quien tenga permiso de borrado (proveedores o clientes). Antes el bloque estaba
+  // vacío (sin return) → cualquier empleado podía eliminar proveedores. tienePerm ya deja pasar admin.
+  if (!tienePerm('proveedores_eliminar') && !tienePerm('clis_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var p = DB.provs.find(function(x){ return x.id === provId; });
   if (!p) return;
   if (!confirm('¿Eliminar proveedor "' + (p.nombre || '') + '"? Los gastos asociados conservarán los datos.')) return;
@@ -20118,7 +20120,14 @@ async function guardarCitaAdmin() {
     toast('Fecha, hora y nombre son obligatorios', 'err');
     return;
   }
-  
+
+  // Aviso de solapamiento por duración (el admin puede forzar). Antes no se validaba nada.
+  var _dur = parseInt(document.getElementById('ncaDuracion').value) || 30;
+  var _toMin = function(h){ var p = String(h||'').split(':'); return (parseInt(p[0],10)||0)*60 + (parseInt(p[1],10)||0); };
+  var _nIni = _toMin(hora), _nFin = _nIni + _dur;
+  var _solapa = (DB.citas||[]).some(function(c){ if (!c || c.fecha !== fecha || c.estado === 'cancelada') return false; var eIni = _toMin(c.hora), eFin = eIni + (parseInt(c.duracion_min,10)||30); return _nIni < eFin && eIni < _nFin; });
+  if (_solapa && !confirm('Ya hay otra cita que se solapa con ese horario. ¿Crear igualmente?')) return;
+
   var nuevaCita = {
     id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
     tienda_id: TIENDA_ID,
