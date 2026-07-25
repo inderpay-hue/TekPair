@@ -2087,34 +2087,37 @@ function avanzarPedido(id) {
     if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch1);
     toast(T('pedidos.marcado_pedido'), 'ok');
   } else if (p.estado === 'pedido') {
-    p.estado = 'recibido';
-    var patch = { estado: 'recibido' };
-    p.fecha_recibido = hoyLocal();   // día de recepción (escritura best-effort, ver abajo)
-    if (SB_KEY && typeof _sbPatchRaw === 'function') { try { _sbPatchRaw('pedidos', 'id=eq.' + encodeURIComponent(p.id), { fecha_recibido: p.fecha_recibido }); } catch (e) {} }
-    var gid = _gastoAlRecibir(p);
-    if (gid) { p.gasto_id = gid; patch.gasto_id = gid; toast(T('pedidos.recibido_gasto'), 'ok'); }
-    else { toast(T('pedidos.marcado_recibido'), 'ok'); }
-    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
-    _avisarRepPiezaLista(p);   // si el pedido venía de una reparación, avisa que puede continuar
-    // Al recibir: registrar en stock. La categoría del pedido manda; si no
-    // la tiene (pedidos antiguos), se usa la del item de stock que coincida.
+    // Al recibir: PRIMERO se pregunta por el stock; solo si el usuario ACEPTA se marca 'recibido'
+    // y se crea el gasto. Antes se hacía ANTES del confirm → si cancelabas, quedaba el gasto
+    // registrado pero sin sumar el stock (descuadre). La categoría del pedido manda; si no la
+    // tiene (pedidos antiguos), se usa la del item de stock que coincida.
     var uds = parseInt(p.cantidad, 10) || 1;
     var existe = _stockMatch(p.pieza);
-    // No fusionar pantallas (u otros) de distinta calidad: si difiere, crear item aparte
-    if (existe && p.calidad && (existe.calidad || '') !== p.calidad) existe = null;
+    if (existe && p.calidad && (existe.calidad || '') !== p.calidad) existe = null;   // no fusionar calidades distintas
     var cat = p.categoria || (existe ? existe.categoria : '');
-    // F207: modal en vez de confirm() nativo (el nativo no se disparaba con la automatización
-    // → quedaba el gasto registrado pero sin sumar el stock).
+    var _finalizarRecepcion = function () {
+      p.estado = 'recibido';
+      var patch = { estado: 'recibido' };
+      p.fecha_recibido = hoyLocal();   // día de recepción (escritura best-effort)
+      if (SB_KEY && typeof _sbPatchRaw === 'function') { try { _sbPatchRaw('pedidos', 'id=eq.' + encodeURIComponent(p.id), { fecha_recibido: p.fecha_recibido }); } catch (e) {} }
+      var gid = _gastoAlRecibir(p);
+      if (gid) { p.gasto_id = gid; patch.gasto_id = gid; toast(T('pedidos.recibido_gasto'), 'ok'); }
+      else { toast(T('pedidos.marcado_recibido'), 'ok'); }
+      if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
+      _avisarRepPiezaLista(p);   // si el pedido venía de una reparación, avisa que puede continuar
+      renderPedidosWidget();
+    };
     if (_esImeiCat(cat)) {
-      // IMEI: no se suma, se registran las unidades con su IMEI (modal de alta multi-IMEI)
+      // IMEI: se registran las unidades con su IMEI (modal de alta multi-IMEI)
       confirmar(T('pedidos.add_stock_imei').replace('{n}', uds).replace('{pieza}', p.pieza || ''), function () {
+        _finalizarRecepcion();
         _abrirAltaImeiDesdePedido(p, uds, existe, cat);
       }, { okLabel: _pedBtnLbl('imei') });
     } else {
       var msg = existe
         ? T('pedidos.add_stock_sumar').replace('{n}', uds).replace('{pieza}', p.pieza || '').replace('{cur}', parseInt(existe.unidades, 10) || 0)
         : T('pedidos.add_stock').replace('{n}', uds).replace('{pieza}', p.pieza || '');
-      confirmar(msg, function () { tpWithBusy(T('pedidos.recibiendo') || 'Recibiendo…', function () { _recibirAStock(p, uds, existe, false, cat); }); }, { okLabel: _pedBtnLbl('stock') });
+      confirmar(msg, function () { tpWithBusy(T('pedidos.recibiendo') || 'Recibiendo…', function () { _recibirAStock(p, uds, existe, false, cat); _finalizarRecepcion(); }); }, { okLabel: _pedBtnLbl('stock') });
     }
   }
   renderPedidosWidget();

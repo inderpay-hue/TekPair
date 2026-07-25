@@ -551,6 +551,40 @@
     });
   }
 
+  // INSERT de factura con reintento idempotente. El nº fiscal lo consume el RPC ANTES del INSERT;
+  // si el INSERT fallaba, el número quedaba gastado (hueco en la numeración). Aquí, ante un fallo
+  // transitorio (red/5xx) se reintenta con el MISMO número (así se rellena en vez de perderlo), y
+  // si sale 409/duplicado (una tentativa previa ya insertó, p.ej. respuesta perdida) se recupera la
+  // factura existente. Devuelve el objeto factura. (Residual: si el proceso muere entre el RPC y el
+  // INSERT el número sí se pierde; eso solo lo evitaría asignar el nº dentro del INSERT en la BD.)
+  function _postFacturaIdempotente(payload, intentos) {
+    intentos = intentos || 0;
+    var _reintenta = function() {
+      return new Promise(function(res) { setTimeout(res, 400 * (intentos + 1)); })
+        .then(function() { return _postFacturaIdempotente(payload, intentos + 1); });
+    };
+    return fetch(window.SUPABASE_URL + '/rest/v1/facturas', {
+      method: 'POST', headers: _supabaseHeaders(), body: JSON.stringify(payload)
+    }).then(function(r) {
+      if (r.ok) return r.json().then(function(a) { return Array.isArray(a) ? a[0] : a; });
+      return r.text().then(function(body) {
+        var code = ''; try { code = (JSON.parse(body) || {}).code || ''; } catch (e) {}
+        if (r.status === 409 || code === '23505') {
+          return fetch(window.SUPABASE_URL + '/rest/v1/facturas?tienda_id=eq.'
+            + encodeURIComponent(payload.tienda_id) + '&serie=eq.' + payload.serie
+            + '&secuencia=eq.' + payload.secuencia + '&limit=1', { headers: _supabaseHeaders() })
+            .then(function(g) { return g.json(); })
+            .then(function(a) { if (a && a[0]) return a[0]; throw new Error('409 sin fila'); });
+        }
+        if (r.status >= 500 && intentos < 2) return _reintenta();
+        throw new Error('INSERT ' + r.status + ': ' + body.slice(0, 200));
+      });
+    }, function(netErr) {
+      if (intentos < 2) return _reintenta();
+      throw netErr;
+    });
+  }
+
   // ────────── Emitir factura (expuesto) ──────────
   // Ticket básico (recibo): solo imprime, NO emite factura ni consume número fiscal.
   function _imprimirTicketRecibo() {
@@ -685,19 +719,7 @@
         estado: 'emitida'
       };
 
-      return fetch(window.SUPABASE_URL + '/rest/v1/facturas', {
-        method: 'POST',
-        headers: _supabaseHeaders(),
-        body: JSON.stringify(payload)
-      }).then(function(r) {
-        if (!r.ok) {
-          return r.json().then(function(err) {
-            throw new Error('INSERT ' + r.status + ': ' + JSON.stringify(err));
-          });
-        }
-        return r.json();
-      }).then(function(facturas) {
-        var f = Array.isArray(facturas) ? facturas[0] : facturas;
+      return _postFacturaIdempotente(payload).then(function(f) {
         _guardarDatosFiscalesCliente();
         window.cerrarModalFactura();
         window.__ultimaFactura = f;
@@ -1250,19 +1272,7 @@
         estado: 'emitida'
       };
 
-      return fetch(window.SUPABASE_URL + '/rest/v1/facturas', {
-        method: 'POST',
-        headers: _supabaseHeaders(),
-        body: JSON.stringify(payload)
-      }).then(function(r) {
-        if (!r.ok) {
-          return r.json().then(function(err) {
-            throw new Error('INSERT abono ' + r.status + ': ' + JSON.stringify(err));
-          });
-        }
-        return r.json();
-      }).then(function(arr) {
-        var ab = Array.isArray(arr) ? arr[0] : arr;
+      return _postFacturaIdempotente(payload).then(function(ab) {
         _toast('✓ Abono ' + ab.numero + ' generado', 'ok');
         // F202: referencia bidireccional — marcar la factura original como rectificada por este abono.
         // Best-effort: si la columna 'rectificada_por' aún no existe, falla en silencio (el badge
