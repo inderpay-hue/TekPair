@@ -629,6 +629,11 @@
 
     // Validar: la factura completa exige nombre fiscal, NIF/CIF y dirección del cliente.
     if (FACT.tipo === 'completa') {
+      // El emisor (tu tienda) también necesita CIF: sin él la factura completa es inválida.
+      if (!(_snapshotEmisor().cif || '').trim()) {
+        _toast(_Tf('fact.falta_dato').replace('{c}', 'CIF de tu tienda (Ajustes › datos fiscales)'), 'err');
+        return;
+      }
       var snap = _snapshotCliente();
       var _falta = null, _campo = null;
       if (!snap.nombre_fiscal) { _falta = _Tf('fact.f_nombre_fiscal'); _campo = 'factCliNomFiscal'; }

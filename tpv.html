@@ -1610,6 +1610,14 @@ function cobrar() {
   if (esFinanciado && fin && fin.entrada > 0 && !selectedEntradaPago) {
     toast(T('tpv.fin_elige_entrada'), 'err'); return;
   }
+  // Efectivo insuficiente: si el cajero anotó el efectivo recibido y es menor que el total, avisar
+  // (antes se cerraba la venta sin aviso y el cambio salía 0).
+  if (selectedPago === 'Efectivo') {
+    var _recib = parseFloat((document.getElementById('efectivoInput') || {}).value) || 0;
+    if (_recib > 0 && _recib + 0.005 < (totals.total || 0)) {
+      if (!confirm('El efectivo recibido (' + _recib.toFixed(2) + ' €) es menor que el total (' + (totals.total || 0).toFixed(2) + ' €). ¿Registrar la venta igualmente?')) return;
+    }
+  }
   var venta = {
     id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     fecha: hoyLocal(),

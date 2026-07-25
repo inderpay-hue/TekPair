@@ -2236,8 +2236,16 @@ function recibirGrupo(encKey) {
 }
 function eliminarPedido(id) {
   if (!tienePerm('stock_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
-  if (!confirm(T('pedidos.confirmar_borrar'))) return;
+  var p = (DB.pedidos || []).find(function(x) { return x.id === id; });
+  // Si ya se recibió, avisar de que su gasto y el stock que sumó NO se revierten solos
+  // (la reversión de stock no es determinista por fusiones/IMEI). El usuario los borra a mano.
+  var recibido = p && (p.estado === 'recibido' || p.gasto_id);
+  var msg = T('pedidos.confirmar_borrar') + (recibido
+    ? '\n\n⚠️ Este pedido ya se recibió: su gasto y el stock que sumó NO se descuentan automáticamente. Bórralos a mano si hace falta.'
+    : '');
+  if (!confirm(msg)) return;
   DB.pedidos = (DB.pedidos || []).filter(function(x) { return x.id !== id; });
+  guardarDatos();
   if (SB_KEY) sbDelete('pedidos', 'id=eq.' + encodeURIComponent(id));
   renderPedidosWidget();
 }
