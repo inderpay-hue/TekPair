@@ -3734,6 +3734,31 @@ function _ventasIngresoPorMetodo(ventas, d1, d2) {
   });
   return por;
 }
+// Desglose de la "Caja del día": junta ventas + pagos de reparación de una fecha, agrupados por
+// forma de pago, con los ANTICIPOS en línea aparte (pagos_reparacion tipo='anticipo'). Reutiliza
+// la lógica canónica de ingresos por método (financiado-aware). efectivoEsperado incluye el
+// efectivo de anticipos (un anticipo en efectivo también está en el cajón) para el cuadre.
+async function cajaDiaResumen(fecha) {
+  fecha = fecha || hoyLocal();
+  var metodos = _ventasIngresoPorMetodo(DB.ventas || [], fecha, fecha);
+  var anticipos = { total: 0, metodos: {} };
+  if (SB_KEY && TIENDA_ID) {
+    var pr = [];
+    try { pr = await sbGet('pagos_reparacion', 'fecha=eq.' + fecha + '&select=metodo,importe,tipo'); } catch (e) { pr = []; }
+    (pr || []).forEach(function(p) {
+      var m = p.metodo || 'Efectivo';
+      var imp = parseFloat(p.importe) || 0;
+      if (p.tipo === 'anticipo') { anticipos.metodos[m] = (anticipos.metodos[m] || 0) + imp; anticipos.total += imp; }
+      else { metodos[m] = (metodos[m] || 0) + imp; }
+    });
+  }
+  var totalMetodos = Object.keys(metodos).reduce(function(a, k){ return a + metodos[k]; }, 0);
+  var totalDia = Math.round((totalMetodos + anticipos.total) * 100) / 100;
+  var _ef = function(o){ var s = 0; Object.keys(o || {}).forEach(function(k){ if (/efectiv/i.test(k)) s += o[k]; }); return s; };
+  var efectivoEsperado = Math.round((_ef(metodos) + _ef(anticipos.metodos)) * 100) / 100;
+  anticipos.total = Math.round(anticipos.total * 100) / 100;
+  return { fecha: fecha, metodos: metodos, anticipos: anticipos, totalDia: totalDia, efectivoEsperado: efectivoEsperado };
+}
 function _ventasIngresoTotal(ventas, d1, d2) {
   var por = _ventasIngresoPorMetodo(ventas, d1, d2), t = 0;
   Object.keys(por).forEach(function(k) { t += por[k]; });

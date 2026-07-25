@@ -132,6 +132,8 @@
 
   async function cargarCajas() {
     try {
+      // Asegura la "Caja del día" por defecto (idempotente en el servidor).
+      try { await api('asegurar_caja_dia', { method: 'POST', body: {} }); } catch (e) { /* no crítico */ }
       const r = await api('listar_cajas');
       Estado.cajas = r.cajas || [];
       Estado.cierres = {};
@@ -146,6 +148,7 @@
         }
       }));
       pintarTarjetas();
+      pintarCajaDia();
       actualizarBadgePendientes();
       pintarFranja7();
       actualizarLabelFecha();
@@ -171,6 +174,7 @@
 
     let html = '';
     for (const caja of Estado.cajas) {
+      if (caja.tipo === 'dia') continue; // se pinta en su propio panel (Caja del día)
       const datos = Estado.cierres[caja.id] || {};
       const cierre = datos.cierre;
       const estado = cierre?.estado || 'pendiente';
@@ -1407,9 +1411,92 @@
 
 
   // API pública
+  // ═══ CAJA DEL DÍA (panel automático: desglose por forma de pago + anticipos aparte) ═══
+  async function pintarCajaDia() {
+    const cont = $('caja-dia-panel');
+    if (!cont) return;
+    const caja = (Estado.cajas || []).find(c => c.tipo === 'dia');
+    if (!caja || typeof window.cajaDiaResumen !== 'function') { cont.innerHTML = ''; return; }
+    let r;
+    try { r = await window.cajaDiaResumen(Estado.fechaActual); }
+    catch (e) { cont.innerHTML = ''; return; }
+    Estado._cajaDiaR = r;
+    const cierre = (Estado.cierres[caja.id] || {}).cierre;
+    const ICON = { Efectivo:'💵', Tarjeta:'💳', Bizum:'📲', Transferencia:'🏦' };
+    let filas = '';
+    Object.keys(r.metodos).sort().forEach(m => {
+      if (Math.abs(r.metodos[m]) < 0.005) return;
+      filas += `<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:14px"><span>${ICON[m]||'•'} ${escapar(m)}</span><span style="font-weight:700">${eur(r.metodos[m])}</span></div>`;
+    });
+    if (!filas) filas = `<div style="padding:5px 0;font-size:13px;color:#9ca3af">Sin cobros hoy todavía</div>`;
+    const anti = r.anticipos.total > 0.005
+      ? `<div style="display:flex;justify-content:space-between;padding:6px 8px;margin-top:4px;background:rgba(234,88,12,.08);border-radius:8px;font-size:14px"><span>💰 Anticipos <span style="font-size:11px;color:#6b7280">(reservas de clientes)</span></span><span style="font-weight:700;color:#EA580C">${eur(r.anticipos.total)}</span></div>`
+      : '';
+    const est = cierre && (cierre.estado === 'cerrado' || cierre.estado === 'descuadre');
+    const badge = est
+      ? `<span class="caja-card-estado caja-estado-${cierre.estado}">${cierre.estado === 'cerrado' ? T('cajas.cuadrada_ok') : (cierre.descuadre > 0 ? '+ ' + T('cajas.sobra') : '⚠ ' + T('cajas.falta'))}</span>`
+      : `<span class="caja-card-estado caja-estado-pendiente">${T('cajas.pendiente')}</span>`;
+    const contadoPrefill = (cierre && cierre.saldo_real_final != null) ? cierre.saldo_real_final : '';
+    cont.innerHTML = `
+      <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:16px;border-left:4px solid #00C896">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+          <div style="font-weight:800;font-size:15px">📅 Caja del día <span style="color:#6b7280;font-weight:500;font-size:12px">· ${formatearFecha(Estado.fechaActual)}</span></div>
+          ${badge}
+        </div>
+        <div>${filas}${anti}</div>
+        <div style="display:flex;justify-content:space-between;border-top:2px solid #e5e7eb;margin-top:6px;padding-top:8px;font-weight:800;font-size:16px"><span>${T('gen.total')}</span><span style="color:#00A87D">${eur(r.totalDia)}</span></div>
+        <div style="margin-top:12px;background:#F8FAFC;border-radius:10px;padding:12px">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span>💵 Efectivo esperado</span><span style="font-weight:700">${eur(r.efectivoEsperado)}</span></div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <label style="font-size:13px;white-space:nowrap">Efectivo contado</label>
+            <input id="caja-dia-contado" type="number" step="0.01" inputmode="decimal" value="${contadoPrefill}" oninput="Cajas.cuadreCajaDia()" style="flex:1;min-width:0;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px">
+          </div>
+          <div id="caja-dia-descuadre" style="margin-top:8px;font-size:13px;font-weight:700;min-height:18px"></div>
+          <button class="cajas-btn cajas-btn-verde" style="margin-top:10px;width:100%" onclick="Cajas.cerrarCajaDia()">${est ? 'Actualizar cierre del día' : 'Cerrar caja del día'}</button>
+        </div>
+      </div>`;
+    if (contadoPrefill !== '') cuadreCajaDia();
+  }
+
+  function cuadreCajaDia() {
+    const r = Estado._cajaDiaR;
+    const el = $('caja-dia-descuadre');
+    const inp = $('caja-dia-contado');
+    if (!r || !el || !inp || inp.value === '') { if (el) el.innerHTML = ''; return; }
+    const d = Math.round(((parseFloat(inp.value) || 0) - r.efectivoEsperado) * 100) / 100;
+    if (Math.abs(d) < 0.005) el.innerHTML = `<span style="color:#16a34a">✓ ${T('cajas.caja_cuadrada')}</span>`;
+    else if (d > 0) el.innerHTML = `<span style="color:#2563eb">+${eur(d).replace('+','')} ${T('cajas.sobra')}</span>`;
+    else el.innerHTML = `<span style="color:#dc2626">${eur(d)} ${T('cajas.falta')}</span>`;
+  }
+
+  async function cerrarCajaDia() {
+    const caja = (Estado.cajas || []).find(c => c.tipo === 'dia');
+    if (!caja) return;
+    const r = Estado._cajaDiaR || await window.cajaDiaResumen(Estado.fechaActual);
+    const inp = $('caja-dia-contado');
+    const contado = parseFloat((inp && inp.value) || 0) || 0;
+    const payload = {
+      caja_id: caja.id, fecha: Estado.fechaActual,
+      saldo_inicial: 0, saldo_real_final: contado, importe_tpv: 0,
+      efectivo_esperado: r.efectivoEsperado,
+      total_fiados: 0, cambio_siguiente: 0, total_cobrado_caja: r.totalDia,
+      notas: null, estado: 'cerrado', movimientos: [],
+      codigo_apertura: (window._cajaSesion && window._cajaSesion.codigo) || '',
+      abierto_por_nombre: (window._cajaSesion && window._cajaSesion.nombre) || ''
+    };
+    try {
+      await api('guardar_cierre', { method: 'POST', body: payload });
+      toast('Caja del día cerrada', 'ok');
+      await cargarCajas();
+    } catch (e) { toast((e && e.message) || 'Error al cerrar', 'error'); }
+  }
+
   window.Cajas = {
     renderCajas,
     cargarCajas,
+    pintarCajaDia,
+    cuadreCajaDia,
+    cerrarCajaDia,
     abrirModalNuevaCaja,
     editarCaja,
     crearCompania,

@@ -246,10 +246,10 @@ export default async function handler(req, res) {
       case 'crear_caja': {
         const { tipo, nombre, icono, color, orden, dias_apertura } = req.body || {};
         if (!tipo || !nombre) return err(res, 400, 'tipo y nombre obligatorios');
-        if (!['envios','recargas','tpv','custom'].includes(tipo)) {
+        if (!['envios','recargas','tpv','custom','dia'].includes(tipo)) {
           return err(res, 400, 'tipo inválido');
         }
-        const iconoDef = icono || (tipo === 'envios' ? '📤' : tipo === 'recargas' ? '📱' : tipo === 'tpv' ? '🛒' : '💼');
+        const iconoDef = icono || (tipo === 'envios' ? '📤' : tipo === 'recargas' ? '📱' : tipo === 'tpv' ? '🛒' : tipo === 'dia' ? '📅' : '💼');
         // CAJ-9: variable renombrada de `payload` a `cajaData` para no sombrear el JWT
         const cajaData = {
           tienda_id,
@@ -270,6 +270,22 @@ export default async function handler(req, res) {
         }
         const data = await sbPost('cajas', cajaData);
         return ok(res, { caja: Array.isArray(data) ? data[0] : data });
+      }
+
+      // Caja del día por defecto: idempotente. La crea una vez por tienda si no existe.
+      // El desglose diario (efectivo/tarjeta/bizum + anticipos) se calcula en el front en vivo
+      // desde ventas + pagos_reparacion; aquí solo garantizamos que la caja exista para el histórico.
+      case 'asegurar_caja_dia': {
+        const existentes = await sbGet(
+          `cajas?tienda_id=eq.${encodeURIComponent(tienda_id)}&tipo=eq.dia&order=created_at.asc&limit=1`
+        );
+        if (existentes.length) return ok(res, { caja: existentes[0], creada: false });
+        const cajaData = {
+          tienda_id, tipo: 'dia', nombre: 'Caja del día',
+          icono: '📅', color: '#00C896', orden: -1
+        };
+        const data = await sbPost('cajas', cajaData);
+        return ok(res, { caja: Array.isArray(data) ? data[0] : data, creada: true });
       }
 
       case 'editar_caja': {
@@ -446,7 +462,13 @@ export default async function handler(req, res) {
           }
         }
 
-        const saldoTeorico = calcularSaldoTeorico(caja.tipo, saldo_inicial, movimientos, total_cobrado_caja);
+        let saldoTeorico = calcularSaldoTeorico(caja.tipo, saldo_inicial, movimientos, total_cobrado_caja);
+        // Caja del día: el teórico es el EFECTIVO esperado del día (ventas+reparaciones+anticipos
+        // cobrados en efectivo), que el front calcula con la lógica canónica y envía. El descuadre
+        // queda = efectivo contado − efectivo esperado (tarjeta/bizum no se cuentan a mano).
+        if (caja.tipo === 'dia') {
+          saldoTeorico = Math.round(Number(req.body.efectivo_esperado || 0) * 100) / 100;
+        }
         const saldoReal = Number(saldo_real_final || 0);
         // v2.3: Los fiados PENDIENTES son deuda (no suman al cobrado).
         // Los COBRADOS ya se ven reflejados porque suman al efectivo/TPV.
