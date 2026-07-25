@@ -13234,6 +13234,20 @@ function eliminarGastoRec(id) {
   renderGastosRec();
 }
 
+// Elimina un gasto suelto (no plantilla). Mismo patrón que eliminarGastoRec:
+// borra local + Supabase por id (la columna gastos.id es texto, verificado en prod).
+function eliminarGasto(id) {
+  if (!tienePerm('gastos_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var g = (DB.gastos || []).find(function (x) { return x && x.id === id; });
+  var det = g ? ('"' + (g.concepto || '') + '"' + ' (' + cur(g.importe || 0) + ')') : '';
+  if (!confirm('¿Eliminar el gasto ' + det + '? Esta acción no se puede deshacer.')) return;
+  DB.gastos = (DB.gastos || []).filter(function (x) { return x.id !== id; });
+  guardarDatos();
+  if (SB_KEY && TIENDA_ID) sbDelete('gastos', 'id=eq.' + encodeURIComponent(id));
+  toast('Gasto eliminado', 'ok');
+  renderGastos();
+}
+
 function toggleActivoGastoRec(id) {
   if (!tienePerm('gastos_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = (DB.gastos_recurrentes || []).find(function(x){ return x.id === id; });
@@ -13860,13 +13874,14 @@ function renderGastos() {
       adjCell = '<button class="btn-sm" onclick="triggerAdjuntoGasto(\'' + g.id + '\')" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">+ ' + T('gastos.adjuntar') + '</button>';
     }
     var editBtn = '<button class="btn-sm" onclick="editarGasto(\'' + g.id + '\')" title="' + T('gen.editar') + '" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">✏️</button> ';
+    var delBtn = '<button class="btn-sm" onclick="eliminarGasto(\'' + g.id + '\')" title="' + T('gen.eliminar') + '" style="background:transparent;color:var(--red);padding:4px 6px;font-size:11px;border:1px solid var(--red)">🗑</button> ';
     return '<td style="' + (indent ? 'padding-left:24px' : '') + '">' + esc(g.concepto || '') + '</td>' +
       '<td><span class="badge bb">' + esc(cat) + '</span></td>' +
       '<td>' + fmtFecha(g.fecha) + '</td>' +
       '<td>' + ivaT + '%</td>' +
       '<td style="font-weight:700;color:var(--red)">' + cur(g.importe || 0) + '</td>' +
       '<td>' + _estadoGastoCell(g) + '</td>' +
-      '<td style="white-space:nowrap">' + editBtn + adjCell + '</td>';
+      '<td style="white-space:nowrap">' + editBtn + delBtn + adjCell + '</td>';
   }
   // F79: gasto pendiente con fecha pasada → badge "⚠️ Nd" (días vencido) además del estado
   function _estadoGastoCell(g) {
