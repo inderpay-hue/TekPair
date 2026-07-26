@@ -8580,7 +8580,8 @@ function aceptarPresupuesto(id) {
     guardarDatos();
     // Sincronizar a Supabase
     if (SB_KEY && TIENDA_ID) {
-      sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Pendiente' });
+      var _okA = sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Pendiente' });
+      if (_okA && _okA.then) _okA.then(function(ok){ if (ok === false) toast('La aceptación no se guardó en la nube; reinténtalo.', 'err', 4000); });
     }
     toast('Presupuesto aceptado · ahora es una reparación pendiente', 'ok');
     if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
@@ -8600,9 +8601,13 @@ function rechazarPresupuesto(id) {
   if (!r) { toast(T('tst.presupuesto_no_encontrado'), 'err'); return; }
   confirmar('¿Marcar este presupuesto como rechazado?\n\nQuedará en histórico para consulta posterior.', function () {
     r.estado = 'Rechazado';
+    // Devolver al stock las piezas que se reservaron al crear el presupuesto: rechazar no pasa por
+    // cambiarEstado, así que la devolución no corría → fuga de stock permanente en cada rechazo.
+    if (Array.isArray(r.componentes) && r.componentes.length) { try { aplicarCambioStockPiezas(r.componentes, [], r); } catch(e){} }
     guardarDatos();
     if (SB_KEY && TIENDA_ID) {
-      sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Rechazado' });
+      var _okR = sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Rechazado' });
+      if (_okR && _okR.then) _okR.then(function(ok){ if (ok === false) toast('El rechazo no se guardó en la nube; puede revertirse al sincronizar.', 'err', 4000); });
     }
     toast(T('pres.rechazado_ok'), 'ok');
     if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
@@ -8610,6 +8615,28 @@ function rechazarPresupuesto(id) {
     }
     renderReps();
   }, { okLabel: 'Rechazar', danger: true });
+}
+
+// Borrado DEFINITIVO de un presupuesto (o rechazado): elimina la fila de reparaciones + sus pagos y
+// devuelve el stock si aún estaba reservado. Antes no existía → los rechazados se acumulaban.
+function eliminarPresupuesto(id) {
+  if (!tienePerm('reps_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var r = DB.reps.find(function(x){ return x.id === id; });
+  if (!r) { toast(T('tst.presupuesto_no_encontrado'), 'err'); return; }
+  if (r.estado !== 'Presupuesto' && r.estado !== 'Rechazado') { toast('Solo se pueden borrar presupuestos o rechazados', 'err'); return; }
+  confirmar('¿Eliminar definitivamente este presupuesto de ' + (r.clienteNombre || '') + '?\n\nSe borra por completo (no se puede deshacer).', function () {
+    // Un 'Presupuesto' aún tiene piezas reservadas; un 'Rechazado' ya las devolvió al rechazar.
+    if (r.estado === 'Presupuesto' && Array.isArray(r.componentes) && r.componentes.length) { try { aplicarCambioStockPiezas(r.componentes, [], r); } catch(e){} }
+    DB.reps = (DB.reps || []).filter(function(x){ return x.id !== id; });
+    guardarDatos();
+    if (SB_KEY && TIENDA_ID) {
+      sbDelete('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(id));
+      sbDelete('reparaciones', 'id=eq.' + encodeURIComponent(id));
+    }
+    toast('Presupuesto eliminado', 'ok');
+    if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) renderPresupuestos();
+    renderReps();
+  }, { okLabel: 'Eliminar', danger: true });
 }
 
 // ═══ FIRMA DIGITAL DEL CLIENTE (FIRM-1 a FIRM-5) ═══
@@ -10952,6 +10979,8 @@ function renderPresupuestos() {
     var btnEditar = '<button data-rid="' + r.id + '" class="row-btn btn-pres-edit2" title="Editar presupuesto">✏️</button>';
     // Rechazar: oculto si ya rechazado o si el cliente ya lo aceptó (sería contradictorio).
     var btnRech   = (esRech || aceptadoCli || !tienePerm('reps_eliminar')) ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-rech2" title="Rechazar">✗</button>';
+    // Borrado definitivo (antes no existía; los rechazados se acumulaban). Solo con permiso.
+    var btnDel    = !tienePerm('reps_eliminar') ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-del2" title="Eliminar definitivamente" style="color:var(--red);border:1px solid var(--red)">🗑</button>';
     var btnImprimir = '<button data-rid="' + r.id + '" class="row-btn btn-pres-imprimir2" title="Imprimir para firmar en papel">🖨️</button>';
     var btnDetalle = '<button data-rid="' + r.id + '" class="row-btn btn-pres-detalle2" title="Ver detalle y avisos enviados">👁️</button>';
 
@@ -10962,7 +10991,7 @@ function renderPresupuestos() {
       + '<td style="font-weight:700;color:#8B5CF6">' + cur(r.total) + '</td>'
       + '<td style="font-size:11px;color:var(--muted)">' + fmtFecha(r.fecha||'') + '</td>'
       + '<td>' + estadoBadge + '</td>'
-      + '<td>' + btnDetalle + btnAcept + btnFirmar + btnEnviar + btnImprimir + btnEditar + btnRech + '</td>'
+      + '<td>' + btnDetalle + btnAcept + btnFirmar + btnEnviar + btnImprimir + btnEditar + btnRech + btnDel + '</td>'
       + '</tr>';
   });
   html += '</tbody></table></div>';
@@ -10991,6 +11020,9 @@ function renderPresupuestos() {
   });
   el.querySelectorAll('.btn-pres-rech2').forEach(function(btn) {
     btn.addEventListener('click', function() { rechazarPresupuesto(this.dataset.rid); });
+  });
+  el.querySelectorAll('.btn-pres-del2').forEach(function(btn) {
+    btn.addEventListener('click', function() { eliminarPresupuesto(this.dataset.rid); });
   });
   el.querySelectorAll('.btn-pres-imprimir2').forEach(function(btn) {
     btn.addEventListener('click', function() { imprimirPresupuesto(this.dataset.rid); });
