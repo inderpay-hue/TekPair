@@ -5299,6 +5299,19 @@ var TRANSLATIONS = {
   Object.keys(_accT).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_accT[l]).forEach(function(k){TRANSLATIONS[l][k]=_accT[l][k];});});
 })();
 
+// ── Imprimir inventario de stock por categoría ──
+(function(){
+  var _invT={
+    es:{'stock.imprimir':'🖨️ Imprimir','stock.inv_titulo':'Inventario de stock','stock.inv_producto':'Producto','stock.inv_unidades':'Unidades','stock.inv_ud':'ud.','stock.inv_total':'TOTAL UNIDADES','stock.inv_categorias':'categorías','stock.inv_productos':'productos','stock.inv_popup':'Permite las ventanas emergentes para imprimir'},
+    en:{'stock.imprimir':'🖨️ Print','stock.inv_titulo':'Stock inventory','stock.inv_producto':'Product','stock.inv_unidades':'Units','stock.inv_ud':'units','stock.inv_total':'TOTAL UNITS','stock.inv_categorias':'categories','stock.inv_productos':'products','stock.inv_popup':'Allow pop-ups to print'},
+    fr:{'stock.imprimir':'🖨️ Imprimer','stock.inv_titulo':'Inventaire du stock','stock.inv_producto':'Produit','stock.inv_unidades':'Unités','stock.inv_ud':'u.','stock.inv_total':'TOTAL UNITÉS','stock.inv_categorias':'catégories','stock.inv_productos':'produits','stock.inv_popup':'Autorise les pop-ups pour imprimer'},
+    it:{'stock.imprimir':'🖨️ Stampa','stock.inv_titulo':'Inventario magazzino','stock.inv_producto':'Prodotto','stock.inv_unidades':'Unità','stock.inv_ud':'pz','stock.inv_total':'UNITÀ TOTALI','stock.inv_categorias':'categorie','stock.inv_productos':'prodotti','stock.inv_popup':'Consenti i pop-up per stampare'},
+    de:{'stock.imprimir':'🖨️ Drucken','stock.inv_titulo':'Bestandsinventar','stock.inv_producto':'Produkt','stock.inv_unidades':'Einheiten','stock.inv_ud':'Stk.','stock.inv_total':'EINHEITEN GESAMT','stock.inv_categorias':'Kategorien','stock.inv_productos':'Produkte','stock.inv_popup':'Pop-ups zum Drucken erlauben'},
+    pt:{'stock.imprimir':'🖨️ Imprimir','stock.inv_titulo':'Inventário de stock','stock.inv_producto':'Produto','stock.inv_unidades':'Unidades','stock.inv_ud':'un.','stock.inv_total':'TOTAL UNIDADES','stock.inv_categorias':'categorias','stock.inv_productos':'produtos','stock.inv_popup':'Permite os pop-ups para imprimir'}
+  };
+  Object.keys(_invT).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_invT[l]).forEach(function(k){TRANSLATIONS[l][k]=_invT[l][k];});});
+})();
+
 // ── i18n títulos de modal + etiquetas dinámicas de bloqueo ──
 (function(){
   var _add4={

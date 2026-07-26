@@ -11844,6 +11844,50 @@ function _aplicarStockOptimo(id, minSug, maxSug) {
   try { renderStock(); } catch (e) {}
 }
 
+// Imprime el inventario COMPLETO agrupado por categoría, con las unidades de cada producto y
+// subtotales por categoría + total general. Hoja lista para recuento físico / reposición.
+function imprimirStock() {
+  var items = (DB.stock || []).filter(function (s) { return (parseInt(s.unidades, 10) || 0) > 0 && !s.vendido; });
+  if (!items.length) { toast(T('gen.sin_stock'), 'err'); return; }
+  var grupos = {};
+  items.forEach(function (s) { var c = s.categoria || 'Otro'; (grupos[c] = grupos[c] || []).push(s); });
+  var cats = Object.keys(grupos).sort(function (a, b) { return _pedCatLabel(a).localeCompare(_pedCatLabel(b)); });
+  var totalUds = 0, totalProd = 0;
+  var cuerpo = cats.map(function (c) {
+    var arr = grupos[c].slice().sort(function (a, b) { return _stockNombre(a).localeCompare(_stockNombre(b)); });
+    var sub = arr.reduce(function (a, s) { return a + (parseInt(s.unidades, 10) || 0); }, 0);
+    totalUds += sub; totalProd += arr.length;
+    var rows = arr.map(function (s) {
+      var nom = _stockNombre(s) || ((s.marca || '') + ' ' + (s.modelo || '')).trim();
+      var extra = s.imei ? ' · IMEI ' + escHtml(s.imei) : '';
+      return '<tr><td>' + escHtml(nom) + extra + '</td><td class="u">' + (parseInt(s.unidades, 10) || 0) + '</td></tr>';
+    }).join('');
+    return '<h2>' + escHtml(_pedCatLabel(c)) + ' · ' + sub + ' ' + escHtml(T('stock.inv_ud')) + '</h2>' +
+      '<table><thead><tr><th>' + escHtml(T('stock.inv_producto')) + '</th><th class="uh">' + escHtml(T('stock.inv_unidades')) + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
+  }).join('');
+  var fecha = '';
+  try { fecha = new Date().toLocaleDateString(); } catch (e) {}
+  var css = 'body{font-family:Arial,Helvetica,sans-serif;padding:24px;color:#111}' +
+    'h1{font-size:20px;margin:0 0 2px}.sub{color:#666;font-size:12px;margin-bottom:8px}' +
+    'h2{font-size:13.5px;background:#020B2E;color:#fff;padding:6px 10px;border-radius:6px;margin:16px 0 0;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    'table{width:100%;border-collapse:collapse;margin-bottom:2px}' +
+    'th{text-align:left;font-size:11px;color:#666;border-bottom:2px solid #ddd;padding:6px 8px}th.uh{text-align:right}' +
+    'td{padding:5px 8px;border-bottom:1px solid #eee;font-size:12.5px}td.u{text-align:right;font-weight:700;white-space:nowrap}' +
+    '.grand{margin-top:18px;background:#f4f6fb;border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;font-size:16px;font-weight:800;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
+    '@media print{h2,.grand{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + escHtml(T('stock.inv_titulo')) + '</title><style>' + css + '</style></head><body>' +
+    '<h1>📦 ' + escHtml(T('stock.inv_titulo')) + ' — ' + escHtml((typeof TIENDA !== 'undefined' && TIENDA.nombre) || '') + '</h1>' +
+    '<div class="sub">' + escHtml(fecha) + ' · ' + cats.length + ' ' + escHtml(T('stock.inv_categorias')) + ' · ' + totalProd + ' ' + escHtml(T('stock.inv_productos')) + '</div>' +
+    cuerpo +
+    '<div class="grand"><span>' + escHtml(T('stock.inv_total')) + '</span><span>' + totalUds + ' ' + escHtml(T('stock.inv_ud')) + '</span></div>' +
+    '</body></html>';
+  var win = window.open('', '_blank');
+  if (!win) { toast(T('stock.inv_popup'), 'err'); return; }
+  win.document.write(html); win.document.close();
+  setTimeout(function () { try { win.print(); } catch (e) {} }, 400);
+  try { audit('exportar', 'stock', '', T('stock.inv_titulo') + ' · ' + totalUds + ' ' + T('stock.inv_ud'), null); } catch (e) {}
+}
+
 function renderStock() {
   poblarFiltroUbicStock();
   try { _renderStockOptimo(); } catch (e) {}

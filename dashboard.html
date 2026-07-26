@@ -1013,7 +1013,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260726n"></script>
+<script src="/lang/lang.v8.js?v=20260726o"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -1539,6 +1539,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <button class="btn-sm" id="btnModelos" style="display:none;background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirModelos()" title="Gestionar catálogo de modelos"><span data-t="stock.modelos_btn">🏷️ Modelos</span></button>
       <button class="btn-sm" id="btnStockLog" style="display:none;background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirStockLog()" title="Historial de cambios de stock"><span data-t="stock.historial">📋 Historial</span></button>
       <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirImportFactura()" title="Importar PDF de factura del proveedor"><span data-t="stock.importar_factura">📤 Importar factura</span></button>
+      <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="imprimirStock()" title="Imprimir inventario por categoría"><span data-t="stock.imprimir">🖨️ Imprimir</span></button>
       <button class="btn-sm" style="background:var(--orange);color:white" onclick="nuevoStock()" data-t="stock.anadir">+ Añadir</button>
     </div>
   </div>
@@ -4892,7 +4893,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260726n"></script>
+<script src="/js/dash-app.js?v=20260726o"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
