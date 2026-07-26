@@ -20691,14 +20691,16 @@ setInterval(function(){ if (DB.citas !== undefined) syncCitas(); }, 60000);
 
 // ═══ MODO OSCURO ═══
 function aplicarTema(tema) {
-  var temas = ['light','dark','negro','grafito','naranja','terracota','ambar'];
+  var temas = ['light','dark','terracota'];
+  // Temas retirados → migrar en caliente (por si llega uno viejo).
+  if (tema && temas.indexOf(tema) === -1) tema = (tema === 'negro' || tema === 'grafito') ? 'dark' : 'terracota';
   if (tema && tema !== 'light') {
     document.body.setAttribute('data-theme', tema);
   } else {
     document.body.removeAttribute('data-theme');
   }
   // Marcar botón activo
-  var ids = { light:'btnTemaClaro', dark:'btnTemaOscuro', negro:'btnTemaNegro', grafito:'btnTemaGrafito', naranja:'btnTemaNaranja', terracota:'btnTemaTerracota', ambar:'btnTemaAmbar' };
+  var ids = { light:'btnTemaClaro', dark:'btnTemaOscuro', terracota:'btnTemaTerracota' };
   temas.forEach(function(t) {
     var btn = document.getElementById(ids[t]);
     if (!btn) return;
@@ -20707,13 +20709,8 @@ function aplicarTema(tema) {
       btn.style.boxShadow = '0 0 0 4px rgba(0,200,150,.2)';
     } else {
       btn.style.boxShadow = 'none';
-      // Restaurar borde original por tema
-      if (t === 'negro') btn.style.borderColor = '#222';
-      else if (t === 'dark') btn.style.borderColor = '#374151';
-      else if (t === 'grafito') btn.style.borderColor = '#3A3A3C';
-      else if (t === 'naranja') btn.style.borderColor = '#FFD9C9';
+      if (t === 'dark') btn.style.borderColor = '#374151';
       else if (t === 'terracota') btn.style.borderColor = '#FFD9C9';
-      else if (t === 'ambar') btn.style.borderColor = '#FED7AA';
       else btn.style.borderColor = 'var(--border)';
     }
   });
@@ -20721,7 +20718,7 @@ function aplicarTema(tema) {
 function setTema(tema) {
   localStorage.setItem('tk_theme', tema);
   aplicarTema(tema);
-  var emojisTema = { light:'☀️', dark:'🌙', negro:'🖤', grafito:'🪨', naranja:'🟠', terracota:'🔥', ambar:'🟧' };
+  var emojisTema = { light:'☀️', dark:'🌙', terracota:'🔥' };
   var _tn = (typeof _temaNombres === 'function') ? _temaNombres() : {};
   toast((emojisTema[tema] || '🎨') + ' ' + (_tn[tema] || tema), 'ok');
   if (typeof actualizarSbControls === 'function') actualizarSbControls();
@@ -20729,6 +20726,11 @@ function setTema(tema) {
 // Aplicar tema al cargar
 (function() {
   var saved = localStorage.getItem('tk_theme');
+  // Migración de temas retirados (negro/grafito → Dark; naranja/ámbar → Terracota).
+  if (saved && ['light','dark','terracota'].indexOf(saved) === -1) {
+    saved = (saved === 'negro' || saved === 'grafito') ? 'dark' : 'terracota';
+    localStorage.setItem('tk_theme', saved);
+  }
   var temaActivo = saved || 'terracota';
   if (temaActivo !== 'light') {
     document.body.setAttribute('data-theme', temaActivo);
