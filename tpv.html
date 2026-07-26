@@ -222,7 +222,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
-<script>try{document.body.setAttribute('data-theme',localStorage.getItem('tk_tpv_theme')||'aurora')}catch(e){document.body.setAttribute('data-theme','aurora')}</script>
+<script>try{var _TM={light:'clean',terracota:'orange',dark:'dark'};var _t=_TM[localStorage.getItem('tk_theme')||'terracota']||localStorage.getItem('tk_tpv_theme')||'aurora';document.body.setAttribute('data-theme',_t)}catch(e){document.body.setAttribute('data-theme','aurora')}</script>
 <div class="tpv-aurora"><span class="a1"></span><span class="a2"></span><span class="a3"></span></div>
 <div class="tpv-theme-sw" id="tpvThemeSw">
   <button data-th="aurora" onclick="setTpvTheme('aurora')" title="Aurora">✨</button>
@@ -241,6 +241,10 @@ function aplicarTpvTema(t){
 // El usuario elige tema → aplica + guarda por tienda (sincroniza entre dispositivos)
 function setTpvTheme(t){
   aplicarTpvTema(t);
+  // Temas enlazados con el dashboard: clean=Claro, orange=Terracota, dark=Dark. Al elegir en el TPV
+  // se actualiza también el tema del dashboard (tk_theme) para que persista y quede sincronizado.
+  var _R={clean:'light',orange:'terracota',dark:'dark'};
+  if(_R[t]){ try{ localStorage.setItem('tk_theme', _R[t]); }catch(e){} }
   if(typeof SB_KEY!=='undefined'&&SB_KEY&&typeof TIENDA_ID!=='undefined'&&TIENDA_ID&&typeof sbPatch==='function'){ try{ sbPatch('tiendas','id=eq.'+encodeURIComponent(TIENDA_ID),{tpv_tema:t}); }catch(e){} }
 }
 document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.getAttribute('data-theme')||'aurora'); document.querySelectorAll('#tpvThemeSw button').forEach(function(b){ b.classList.toggle('on', b.getAttribute('data-th')===t); }); });
@@ -703,7 +707,8 @@ async function pullTiendaTPV() {
     };
     Object.assign(TIENDA, tiendaData);
     localStorage.setItem('tk_tienda', JSON.stringify(tiendaData));
-    if (t.tpv_tema) { try { aplicarTpvTema(t.tpv_tema); } catch(e){} }  // tema por tienda (sincronizado)
+    // Tema enlazado al dashboard (tk_theme) — ya aplicado al cargar; NO se sobrescribe con tpv_tema
+    // de la nube para no romper el enlace. (Mapa: light=clean, terracota=orange, dark=dark.)
 
     if (t.ajustes_config && typeof t.ajustes_config === 'object') {
       AJUSTES = Object.assign({iva:{activo:false,modo:'incluido',tipoDefault:21}}, t.ajustes_config);
