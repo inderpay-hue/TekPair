@@ -14727,17 +14727,24 @@ async function renderReporte() {
       pagosReps = await sbGet('pagos_reparacion', 'fecha=gte.' + minF + '&fecha=lte.' + maxF) || [];
     } catch(e) { console.warn('No pagos:', e); }
   }
+  // Excluir anticipos de presupuestos NO aceptados (coherente con caja/dashboard, helper _idsPresupuesto).
+  var _presIds = _idsPresupuesto();
+  pagosReps = pagosReps.filter(function(p){ return !(p.reparacion_id && _presIds[p.reparacion_id]); });
   // reps con pagos en el rango (para mostrarlos en la tabla)
   var repIdsConPago = {};
   pagosReps.forEach(function(p){ repIdsConPago[p.reparacion_id] = true; });
   var reps = SEL.repTipo !== 'ventas' ? DB.reps.filter(function(r){ return repIdsConPago[r.id]; }) : [];
-  var tV = ventas.reduce(function(a, v) { return a + v.total; }, 0);
-  // tR = suma de pagos reales del rango (no del total contractual)
+  // COBRADO REAL (igual que dashboard/caja): las ventas financiadas cuentan entrada + cuotas
+  // cobradas en su fecha de cobro, NO el total contractual. Se pasa TODA DB.ventas porque una
+  // cuota puede cobrarse dentro del rango aunque la venta se hiciera fuera.
+  var _vPorMet = _ventasIngresoPorMetodo(DB.ventas, _minISO, _maxISO);
+  var tV = Object.keys(_vPorMet).reduce(function(a, k){ return a + _vPorMet[k]; }, 0);
+  // tR = pagos reales de reparación del rango (ya sin anticipos de presupuestos).
   var tR = pagosReps.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
 
   var pagos = {};
-  ventas.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
-  // Agrupar pagos por método (efectivo, tarjeta, etc)
+  Object.keys(_vPorMet).forEach(function(k){ pagos[k] = (pagos[k] || 0) + _vPorMet[k]; });
+  // Agrupar pagos de reparación por método (efectivo, tarjeta, etc)
   pagosReps.forEach(function(p){ if (p.metodo) pagos[p.metodo] = (pagos[p.metodo] || 0) + Number(p.importe||0); });
 
   document.getElementById('reporteResumen').innerHTML =
@@ -14756,7 +14763,7 @@ async function renderReporte() {
   window._repExport = { ventas: ventas, pagosReps: pagosReps, gastos: _gastosPeriodo };
 
   // Renderizar gráficas (asíncrono para que el DOM se actualice primero)
-  setTimeout(function(){ renderGraficas(ventas, reps, pagos, fechas); }, 50);
+  setTimeout(function(){ renderGraficas(ventas, reps, pagos, fechas, pagosReps); }, 50);
   // Renderizar desglose IVA — los reps deben sumar los PAGOS REALES del rango (igual que la
   // cabecera tR), no el total contractual, o el desglose no cuadra con el total mostrado.
   // Prorrateamos base/IVA de cada pago según el tipo de IVA de su reparación.
@@ -14959,10 +14966,11 @@ function _enviarCierreCobrumPendiente() {
 }
 window._enviarCierreCobrumPendiente = _enviarCierreCobrumPendiente;
 
-function renderGraficas(ventas, reps, pagos, fechas) {
+function renderGraficas(ventas, reps, pagos, fechas, pagosReps) {
+  pagosReps = pagosReps || [];
   // Chart.js se carga bajo demanda: si aún no está, lo traemos y reintentamos.
   if (typeof Chart === 'undefined') {
-    cargarChart().then(function(){ renderGraficas(ventas, reps, pagos, fechas); }).catch(function(){});
+    cargarChart().then(function(){ renderGraficas(ventas, reps, pagos, fechas, pagosReps); }).catch(function(){});
     return;
   }
 
@@ -14983,11 +14991,13 @@ function renderGraficas(ventas, reps, pagos, fechas) {
       var p = String(f).split('-');   // f en ISO "YYYY-MM-DD" → etiqueta "DD/MM"
       return p.length === 3 ? (p[2] + '/' + p[1]) : f;
     });
+    // COBRADO REAL por día (coherente con la cabecera): ventas = entrada+cuotas cobradas ese día
+    // (financiado-aware); reparaciones = pagos reales (pagos_reparacion) de ese día.
     var dataV = fechasOrden.map(function(f){
-      return ventas.filter(function(v){ return String(v.fecha || '').slice(0, 10) === f; }).reduce(function(a,v){ return a+v.total; }, 0);
+      var por = _ventasIngresoPorMetodo(DB.ventas, f, f); return Object.keys(por).reduce(function(a,k){ return a+por[k]; }, 0);
     });
     var dataR = fechasOrden.map(function(f){
-      return reps.filter(function(r){ return (r.fechaEntregaReal||'').slice(0,10) === f; }).reduce(function(a,r){ return a+r.total; }, 0);
+      return pagosReps.filter(function(p){ return String(p.fecha || '').slice(0, 10) === f; }).reduce(function(a,p){ return a+Number(p.importe||0); }, 0);
     });
     if (CHART_INGRESOS) CHART_INGRESOS.destroy();
     var ctx = document.getElementById('chartIngresos');
