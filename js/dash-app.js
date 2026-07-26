@@ -7341,10 +7341,9 @@ function verFinanciado(id) {
     if (v.entrada) html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:rgba(0,200,150,.08)"><div style="font-size:13px;font-weight:600">' + T('finv.entrada') + ' · ' + cur(v.entrada) + '</div><span style="color:var(--green);font-size:11px;font-weight:700">✓</span></div>';
     html += _cobrR;
   }
-  if (tienePerm('ventas_editar')) {
-    html += '<button class="btn-secondary" style="margin-top:12px;border-color:var(--orange);color:var(--orange-d,#C2491A)" onclick="editarTotalFinanciado(\'' + id + '\')">✏️ ' + T('fin.editar_total') + '</button>';
-  }
-  html += '<button class="btn-secondary" style="margin-top:8px" onclick="closeM(&quot;finModal&quot;)">Cerrar</button>';
+  // "Editar total" retirado a petición del usuario: cambiar el total de un plan ya acordado
+  // y redistribuir las cuotas confundía. Para corregir un importe mal puesto: reembolsar y rehacer.
+  html += '<button class="btn-secondary" style="margin-top:12px" onclick="closeM(&quot;finModal&quot;)">Cerrar</button>';
   document.getElementById('finModalContent').innerHTML = html;
   openM('finModal');
   document.getElementById('finModalContent').querySelectorAll('.btn-pc').forEach(function(btn) {
