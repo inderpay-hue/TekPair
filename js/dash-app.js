@@ -6794,7 +6794,7 @@ function checkUrgentes() {
   el.innerHTML = urgentes.map(function(r) {
     var fe = new Date(r.fechaEntrega); fe.setHours(0,0,0,0);
     var dias = Math.round((fe - hoy) / 86400000);
-    var label = dias === 0 ? T('kanban.hoy') : dias === 1 ? 'Ma\u00f1ana' : 'En ' + dias + ' d\u00edas';
+    var label = dias === 0 ? T('kanban.hoy') : dias === 1 ? T('gen.manana') : T('gen.en_n_dias').replace('{n}', dias);
     var color = dias === 0 ? 'var(--red)' : 'var(--orange)';
     return '<div class="urgent-card">' +
       '<strong>' + escHtml(r.clienteNombre) + '</strong> \u2014 ' + escHtml(r.marca) + ' ' + escHtml(r.modelo) +
@@ -7040,9 +7040,9 @@ function renderVentas() {
       var _compF = (v.estadoFinanciado === 'completado') || (_cuoF.length > 0 && _nPagF >= _cuoF.length);
       badges += '<span class="badge-fin" style="background:' + (_compF ? 'rgba(0,200,150,.15)' : 'rgba(234,88,12,.12)') + ';color:' + (_compF ? '#0F7355' : '#C2491A') + '">' + (_compF ? '✅ ' + T('fin.completado') : '⏳ ' + T('finv.pendiente') + (_cuoF.length ? ' ' + _nPagF + '/' + _cuoF.length : '')) + '</span>';
     }
-    var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="Reembolsar">\u21a9</button>' : '';
-    var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="edit" class="row-btn btn-fin" title="Financiación">\ud83d\udcb0</button>' : '';
-    var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="Reimprimir ticket">\ud83d\udda8</button>';
+    var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="' + escHtml(T('ventas.t_reembolsar')) + '">\u21a9</button>' : '';
+    var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="edit" class="row-btn btn-fin" title="' + escHtml(T('ventas.t_financiacion')) + '">\ud83d\udcb0</button>' : '';
+    var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="' + escHtml(T('ventas.t_reimprimir')) + '">\ud83d\udda8</button>';
     var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="' + T('rep.title_generar_factura') + '">📄</button>' : '';
     var btnEdit = (!v.reembolsado && (typeof _esAdmin === 'function' && _esAdmin())) ? '<button data-vid="' + v.id + '" class="row-btn btn-edit-v" title="' + T('venta.editar_t') + '">✏️</button>' : '';
     html += '<tr style="' + (v.reembolsado ? 'opacity:.55' : '') + '">' +
@@ -7560,7 +7560,7 @@ function verFinanciadoRep(id) {
     html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:' +
       (cu.pagado ? 'rgba(0,200,150,.08)' : parcial ? 'rgba(230,148,18,.10)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
       '<div><div style="font-size:13px;font-weight:600">' + T('finrep.cuota_row').replace('{n}', (i + 1)).replace('{importe}', cur(cu.importe)) + '</div>' +
-      '<div style="font-size:10px;color:var(--muted)">Vence: ' + (cu.fecha || '-') + subPag + '</div></div>' +
+      '<div style="font-size:10px;color:var(--muted)">' + escHtml(T('fin.vence_lbl')) + ' ' + (cu.fecha || '-') + subPag + '</div></div>' +
       '<div style="display:flex;gap:6px;align-items:center">' + (cu.pagado
         ? '<span style="color:var(--green);font-size:11px;font-weight:700">✓ ' + T('finrep.pagado') + '</span>'
         : '<button data-rid="' + id + '" data-cidx="' + i + '" class="btn-lcr" title="' + T('cobro.enviar_link') + '" style="padding:5px 9px;font-size:12px;width:auto;border:1px solid var(--border);background:#fff;border-radius:7px;cursor:pointer">📤</button>' +
@@ -8079,7 +8079,7 @@ function selServicioVenta(id) {
   document.getElementById('vBusStock').value = '';
   document.getElementById('vStockRes').classList.remove('open');
   document.getElementById('vSelStockNom').textContent = s.nombre;
-  document.getElementById('vSelStockDet').textContent = 'Servicio \u00b7 ' + s.categoria;
+  document.getElementById('vSelStockDet').textContent = T('srv.servicio_cat').replace('{c}', s.categoria);
   document.getElementById('vSelStock').classList.add('show');
   document.getElementById('vPrecio').value = s.precioFijo ? s.precio : '';
   calcV();
@@ -11336,7 +11336,7 @@ function renderReps() {
     } else if ((r.clienteId || r.clienteNombre) && r.estado !== 'Entregado' && r.estado !== 'Rechazado') {
       var info = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre, r.imei);
       if (info && info.rep.id !== r.id) {
-        badgeGarantia = '<br><span class="badge-garantia" title="Reparación previa entregada el ' + info.rep.fechaEntregaReal + ' (' + info.dias + ' días)">🛡️ ' + T('rep.en_garantia') + '</span>';
+        badgeGarantia = '<br><span class="badge-garantia" title="' + escHtml(T('rep.previa_entregada').replace('{f}', info.rep.fechaEntregaReal).replace('{d}', info.dias)) + '">🛡️ ' + T('rep.en_garantia') + '</span>';
       }
     }
     var priBadge = r.prioridad && r.prioridad !== 'Normal'
@@ -11968,7 +11968,7 @@ function renderStock() {
     var alertas = DB.stock.filter(function(s) { return s.unidades > 0 && s.unidades <= s.stockMin; });
     elA.innerHTML = alertas.length ? alertas.map(function(s) {
       return '<div style="background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.2);border-radius:8px;padding:8px 10px;margin-bottom:6px;font-size:12px">' +
-        '\u26a0\ufe0f <strong>' + escHtml(_eqNombre(s.marca, s.modelo)) + '</strong> \u2014 Solo ' + s.unidades + ' ud.</div>';
+        '\u26a0\ufe0f <strong>' + escHtml(_eqNombre(s.marca, s.modelo)) + '</strong> \u2014 ' + T('stock.solo_ud').replace('{n}', s.unidades) + '</div>';
     }).join('') : '';
     elA.style.display = '';
   } else {
@@ -14249,7 +14249,7 @@ function renderGastos() {
     var fd = (g.fecha || '').slice(0, 10);
     if (pend && fd && fd < hoyLocal()) {
       var dias = Math.floor((Date.now() - new Date(fd + 'T12:00:00').getTime()) / 86400000);
-      if (dias > 0) badge += ' <span class="badge" style="background:var(--red);color:#fff" title="Pendiente de pago desde hace ' + dias + ' días">⚠️ ' + dias + 'd</span>';
+      if (dias > 0) badge += ' <span class="badge" style="background:var(--red);color:#fff" title="' + escHtml(T('ventas.pend_pago_dias').replace('{n}', dias)) + '">⚠️ ' + dias + 'd</span>';
     }
     return badge;
   }
@@ -16203,9 +16203,9 @@ async function cambiarPassword() {
   var nueva = (document.getElementById('pwNueva').value || '');
   var nueva2 = (document.getElementById('pwNueva2').value || '');
   if (!actual || !nueva || !nueva2) { toast(T('tst.rellena_campos'), 'err'); return; }
-  if (nueva.length < 6) { toast('La nueva contrase\u00f1a debe tener al menos 6 caracteres', 'err'); return; }
-  if (nueva !== nueva2) { toast('Las contrase\u00f1as nuevas no coinciden', 'err'); return; }
-  if (nueva === actual) { toast('La nueva contrase\u00f1a no puede ser igual a la actual', 'err'); return; }
+  if (nueva.length < 6) { toast(T('pass.min6'), 'err'); return; }
+  if (nueva !== nueva2) { toast(T('pass.no_coinciden'), 'err'); return; }
+  if (nueva === actual) { toast(T('pass.igual_actual'), 'err'); return; }
   if (typeof U === 'undefined' || !U || !U.email) { toast(T('pass.sin_usuario'), 'err'); return; }
   // FIX L1 frontend: el backend ahora exige session_token para cambiar contraseña.
   // Lo leemos de tk_sess que guarda app.html al hacer login.
@@ -16213,7 +16213,7 @@ async function cambiarPassword() {
   try { sessLocal = JSON.parse(localStorage.getItem('tk_sess') || '{}'); } catch(e){}
   var sessionToken = sessLocal.token || '';
   if (!sessionToken) {
-    toast('Sesi\u00f3n no detectada — vuelve a iniciar sesi\u00f3n', 'err');
+    toast(T('pass.sin_sesion'), 'err');
     return;
   }
   try {
@@ -16233,15 +16233,15 @@ async function cambiarPassword() {
     });
     var data = await r.json();
     if (data && data.ok) {
-      toast('Contrase\u00f1a cambiada correctamente', 'ok');
+      toast(T('pass.cambiada'), 'ok');
       document.getElementById('pwActual').value = '';
       document.getElementById('pwNueva').value = '';
       document.getElementById('pwNueva2').value = '';
     } else {
-      toast((data && data.error) || 'No se pudo cambiar la contrase\u00f1a', 'err');
+      toast((data && data.error) || T('pass.no_cambiada'), 'err');
     }
   } catch (e) {
-    toast('Error de conexi\u00f3n', 'err');
+    toast(T('gen.error_conexion'), 'err');
   }
 }
 

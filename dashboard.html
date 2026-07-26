@@ -146,6 +146,40 @@ body[data-theme="dark"] select{background:var(--white) !important;color:var(--te
 body[data-theme="dark"] .badge{opacity:.9}
 body[data-theme="dark"] .tbl-wrap{background:transparent}
 
+/* ═══ TEMA DARK — legibilidad al máximo (dropdowns, superficies y grises no cubiertos) ═══ */
+/* Autocompletados/desplegables (usaban background:white en CSS, no inline → no se cubrían) */
+body[data-theme="dark"] .autocomplete-res,
+body[data-theme="dark"] #pedPiezaSugs,
+body[data-theme="dark"] #sbTemaMenu,
+body[data-theme="dark"] #sbLangMenu{background:var(--white) !important;border-color:var(--border) !important;color:var(--text)}
+body[data-theme="dark"] .cli-item{color:var(--text);border-bottom-color:var(--border) !important}
+body[data-theme="dark"] .cli-item:hover{background:var(--light) !important}
+body[data-theme="dark"] .widget-edit-controls{background:var(--white)}
+/* Superficies claras inline que las heurísticas previas no captaban (con espacios, background-color, rgb, grises) */
+body[data-theme="dark"] [style*="background: #fff" i],
+body[data-theme="dark"] [style*="background: white" i],
+body[data-theme="dark"] [style*="background-color:#fff" i],
+body[data-theme="dark"] [style*="background-color: #fff" i],
+body[data-theme="dark"] [style*="background-color:white" i],
+body[data-theme="dark"] [style*="background:rgb(255" i],
+body[data-theme="dark"] [style*="background:#F1F5F9" i],
+body[data-theme="dark"] [style*="background:#F9FAFB" i],
+body[data-theme="dark"] [style*="background:#FAFBFC" i],
+body[data-theme="dark"] [style*="background:#EEF" i],
+body[data-theme="dark"] [style*="background:#F3F4F6" i],
+body[data-theme="dark"] [style*="background:#F5F5F5" i],
+body[data-theme="dark"] [style*="background:#E5E7EB" i]{background:var(--light) !important}
+/* Texto gris/pizarra oscuro (slate) que queda ilegible sobre fondo oscuro → aclarar */
+body[data-theme="dark"] [style*="color:#334155" i],
+body[data-theme="dark"] [style*="color:#475569" i],
+body[data-theme="dark"] [style*="color:#64748B" i],
+body[data-theme="dark"] [style*="color:#6B7280" i],
+body[data-theme="dark"] [style*="color:#1E293B" i],
+body[data-theme="dark"] [style*="color:#0F172A" i],
+body[data-theme="dark"] [style*="color:#0F1729" i],
+body[data-theme="dark"] [style*="color:#334" i],
+body[data-theme="dark"] [style*="color:#111827" i]{color:var(--text) !important}
+
 /* ═══ TEMA: TERRACOTA ═══ */
 body[data-theme="terracota"]{
   --bg:#FFF7F5;--white:#FFFFFF;--border:#FFD9C9;--text:#1A0A00;
@@ -1013,7 +1047,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260726v"></script>
+<script src="/lang/lang.v8.js?v=20260726x"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4873,7 +4907,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260726w"></script>
+<script src="/js/dash-app.js?v=20260726x"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -6301,7 +6335,7 @@ function resetPagosRep() {
 // ═══ FACTURAS ═══
 (function() {
   var s = document.createElement('script');
-  s.src = 'factura.js?v=20260726v';
+  s.src = 'factura.js?v=20260726x';
   s.defer = true;
   document.body.appendChild(s);
 })();

@@ -727,7 +727,7 @@
       });
     }).catch(function(err) {
       console.error('Error emitiendo factura:', err);
-      _toast('Error: ' + err.message, 'err');
+      _toast(T('gen.error_prefijo') + err.message, 'err');
     }).then(function() {
       if (btn) { btn.disabled = false; btn.textContent = T('fact.emitir_2'); }
     });
@@ -840,7 +840,7 @@
         if (m) m.remove();
       } else {
         var msg = (res.data && (res.data.error || res.data.message)) || T('ayuda.error_enviar');
-        _toast('Error: ' + msg, 'err');
+        _toast(T('gen.error_prefijo') + msg, 'err');
       }
     }).catch(function(err) {
       console.error('[factura.js] Error email:', err);
