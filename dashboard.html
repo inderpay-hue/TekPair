@@ -209,6 +209,10 @@ body[data-theme="dark"] .cal-nav,
 body[data-theme="dark"] .cal-cell{background:var(--light) !important;color:var(--text) !important;border-color:var(--border) !important}
 /* Nav activo de Ajustes: asegurar texto blanco pleno sobre el acento. */
 body[data-theme="dark"] .aj-nav.active{color:#fff !important}
+/* Inicio V2: el contenedor fija color de texto #221D19 (marrón oscuro) por regla → en dark ilegible.
+   Se aclara en el contenedor; los textos con color propio (naranja/verde/rojo inline) se respetan. */
+body[data-theme="dark"] #pInicioNuevo,
+body[data-theme="dark"] #inicioV2{color:var(--text) !important}
 /* Inicio V2 (#pInicioNuevo): tarjetas iv2/inv-* con fondo blanco por CSS o var(--card) → oscurecer. */
 body[data-theme="dark"] #pInicioNuevo .inv-card,
 body[data-theme="dark"] #pInicioNuevo .inv-card2,
