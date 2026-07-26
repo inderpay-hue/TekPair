@@ -6784,14 +6784,16 @@ function guardarVenta() {
   var entrada = 0;
   if (esFinanciado) {
     entrada = parseFloat(document.getElementById('vEntrada').value) || 0;
+    if (entrada > total) { toast(T('rep.entrada_excede'), 'err'); return; }   // igual que reparaciones
     if (entrada > 0 && !((document.getElementById('vEntradaPago') || {}).value || '')) {
       toast(T('tst.elige_pago_entrada'), 'err'); return;
     }
     var numCuotas = parseInt(document.getElementById('vNumCuotas').value) || 3;
+    if (numCuotas < 1) numCuotas = 1;   // guarda: nunca 0/negativo (dejaba la venta financiada sin cuotas)
     var diaPago = parseInt(document.getElementById('vDiaPago').value) || 8;
     // Cuotas redondeadas a 2 decimales; el residuo se mete en la última cuota
     // para que la suma de cuotas + entrada == total exactamente.
-    var pendiente = Math.round((total - entrada) * 100) / 100;
+    var pendiente = Math.max(0, Math.round((total - entrada) * 100) / 100);
     var montoCuota = Math.round((pendiente / numCuotas) * 100) / 100;
     cuotas = [];
     for (var i = 0; i < numCuotas; i++) {
@@ -7390,28 +7392,44 @@ function editarTotalFinanciado(vid) {
 function registrarPagoCuota(vid, cidx) {
   var v = DB.ventas.find(function(x) { return x.id === vid; });
   if (!v || !v.cuotas || !v.cuotas[cidx]) return;
-  var c = v.cuotas[cidx];
-  var imp = parseFloat(c.importe) || 0;
-  var yaPag = _cuotaPagado(c);
-  var queda = Math.round((imp - yaPag) * 100) / 100;
-  if (queda <= 0.005) return;
-  pedirImporte(T('fin.cuanto_paga').replace('{q}', cur(queda)), queda, function(val) {
+  var c0 = v.cuotas[cidx];
+  var quedaCuota = Math.round(((parseFloat(c0.importe) || 0) - _cuotaPagado(c0)) * 100) / 100;
+  // El cliente puede ENTREGAR MÁS que una cuota; el sobrante se aplica a las siguientes (tope = plan).
+  var pendPlan = Math.round(v.cuotas.reduce(function(a, cc) { return a + Math.max(0, (parseFloat(cc.importe) || 0) - _cuotaPagado(cc)); }, 0) * 100) / 100;
+  if (pendPlan <= 0.005) return;
+  var sugerido = quedaCuota > 0.005 ? quedaCuota : pendPlan;
+  pedirImporte('¿Cuánto entrega el cliente?\n(Cuota ' + (cidx + 1) + ': ' + cur(quedaCuota) + ' · pendiente total: ' + cur(pendPlan) + ')', sugerido, function(val) {
     if (val === null) return;
     var pago = Math.round((parseFloat(String(val).replace(',', '.')) || 0) * 100) / 100;
     if (!(pago > 0)) { toast(T('fin.total_invalido'), 'err'); return; }
-    if (pago > queda + 0.005) pago = queda;
+    if (pago > pendPlan + 0.005) pago = pendPlan;
     pedirMetodoPago(function (fp) {
       if (!fp) return;
-      c.pagadoImporte = Math.round((yaPag + pago) * 100) / 100;
-      c.formaPago = fp;
-      c.fechaPago = hoyLocal();
-      c.pagado = c.pagadoImporte >= imp - 0.005;
-      if (v.cuotas.every(function(cc) { return cc.pagado; })) { v.estadoFinanciado = 'completado'; toast(T('tst.financiado_completado'), 'ok'); }
+      var hoy = hoyLocal(), restantePago = pago, cuotasTocadas = 0;
+      var orden = [cidx];
+      v.cuotas.forEach(function(cc, i) { if (i !== cidx && !cc.pagado) orden.push(i); });
+      orden.forEach(function(i) {
+        if (restantePago <= 0.005) return;
+        var cc = v.cuotas[i];
+        var queda = Math.round(((parseFloat(cc.importe) || 0) - _cuotaPagado(cc)) * 100) / 100;
+        if (queda <= 0.005) return;
+        var aplica = Math.min(queda, restantePago);
+        cc.pagadoImporte = Math.round((_cuotaPagado(cc) + aplica) * 100) / 100;
+        cc.formaPago = fp; cc.fechaPago = hoy;
+        cc.pagado = cc.pagadoImporte >= (parseFloat(cc.importe) || 0) - 0.005;
+        restantePago = Math.round((restantePago - aplica) * 100) / 100;
+        cuotasTocadas++;
+      });
+      var completado = v.cuotas.every(function(cc) { return cc.pagado; });
+      v.estadoFinanciado = completado ? 'completado' : 'activo';
       guardarDatos();
-      if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { cuotas: JSON.stringify(v.cuotas) });
+      if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { cuotas: JSON.stringify(v.cuotas), estado_financiado: v.estadoFinanciado || 'activo' });
+      if (completado) toast(T('tst.financiado_completado'), 'ok');
+      else if (cuotasTocadas > 1) toast('Pago de ' + cur(pago) + ' aplicado a ' + cuotasTocadas + ' cuotas', 'ok');
+      else toast('Pago de ' + cur(pago) + ' registrado', 'ok');
       closeM('finModal');
-      verFinanciado(vid);
       renderVentas();
+      _ofrecerWaPagoCuota(v, pago, fp);
     }, 'Cuota ' + (cidx + 1) + ' — ¿cómo se ha pagado?');
   });
 }
@@ -7519,7 +7537,9 @@ function _ofrecerWaPagoCuota(r, pago, metodo) {
     var equipo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
     var tienda = (TIENDA && TIENDA.nombre) || 'TekPair';
     var pagadas = r.cuotas.filter(function(c) { return c.pagado; }).length;
-    var restante = r.restante || 0;
+    // reparaciones traen r.restante; ventas lo derivan de total-entrada-Σpagado.
+    var restante = (r.restante != null) ? r.restante
+      : Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - r.cuotas.reduce(function(a, c) { return a + _cuotaPagado(c); }, 0)) * 100) / 100);
     var msg = '¡Hola ' + nombre + '! 👋\n\n' +
       'Hemos recibido tu pago de ' + cur(pago) + ' (' + metodo + ')' + (equipo ? ' de tu ' + equipo : '') + '.\n' +
       (restante > 0.005

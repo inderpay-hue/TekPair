@@ -1555,7 +1555,7 @@ function calcCuotasFinanciado() {
   var numCuotas = parseInt(document.getElementById('finNumCuotas').value, 10) || 3;
   var diaPago = parseInt(document.getElementById('finDiaPago').value, 10) || 8;
   if (numCuotas < 1) numCuotas = 1;
-  var pendiente = Math.round((totals.total - entrada) * 100) / 100;
+  var pendiente = Math.max(0, Math.round((totals.total - entrada) * 100) / 100);
   var montoCuota = Math.round((pendiente / numCuotas) * 100) / 100;
   var cuotas = [];
   for (var i = 0; i < numCuotas; i++) {
@@ -1606,6 +1606,7 @@ function cobrar() {
   var esFinanciado = selectedPago === 'Financiado';
   if (esFinanciado && !selectedCli) { toast(T('tpv.fin_sin_cliente'), 'err'); return; }
   var fin = esFinanciado ? calcCuotasFinanciado() : null;
+  if (esFinanciado && fin && fin.entrada > (totals.total || 0) + 0.005) { toast('La entrada no puede superar el total', 'err'); return; }
   // Si hay entrada en el financiado, obliga a elegir con qué se pagó (sin default).
   if (esFinanciado && fin && fin.entrada > 0 && !selectedEntradaPago) {
     toast(T('tpv.fin_elige_entrada'), 'err'); return;
