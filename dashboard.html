@@ -1013,7 +1013,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260629i"></script>
+<script src="/lang/lang.v8.js?v=20260726n"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -3484,7 +3484,10 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <div class="page" id="pPedidos">
   <div class="sec-header" style="margin-bottom:12px">
     <div class="sec-title">📦 <span data-t="nav.pedidos">Pedidos</span></div>
-    <button class="btn-sm" style="background:var(--orange);color:#fff" onclick="nuevoPedido()">+ <span data-t="pedidos.nuevo">Nuevo pedido</span></button>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn-sm" style="background:#7C3AED;color:#fff" onclick="abrirAccesorios()">🎧 <span data-t="acc.boton">Accesorios</span></button>
+      <button class="btn-sm" style="background:var(--orange);color:#fff" onclick="nuevoPedido()">+ <span data-t="pedidos.nuevo">Nuevo pedido</span></button>
+    </div>
   </div>
   <div id="deudaProvBox"></div>
   <div id="pedidosPageFiltros" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px"></div>
@@ -4497,6 +4500,32 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 </div>
 
+<!-- ACCESORIOS RÁPIDOS -->
+<div class="modal-bg" id="mAccesorios">
+<div class="modal">
+  <div class="modal-title"><span data-t="acc.titulo">➕ Accesorios rápidos</span></div>
+  <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px" data-t="acc.subtitulo">Elige el tipo, escribe el modelo y añádelo. Irán a «por pedir».</div>
+  <div class="fg"><label class="fl"><span data-t="acc.tipo">Tipo</span></label>
+    <div id="accChips" style="display:flex;gap:7px;flex-wrap:wrap"></div>
+  </div>
+  <div class="fi-row" style="align-items:flex-end">
+    <div class="fg" style="flex:2"><label class="fl"><span data-t="acc.modelo_lbl">Modelo</span></label>
+      <input class="fi" id="accModelo" list="accModelosList" autocomplete="off" placeholder="Modelo (ej. iPhone 15 Pro)" data-t-ph="acc.modelo_ph" onkeydown="if(event.key==='Enter'){event.preventDefault();accAddItem();}">
+      <datalist id="accModelosList"></datalist>
+    </div>
+    <div class="fg" style="flex:1"><label class="fl"><span data-t="acc.cantidad">Cantidad</span></label>
+      <input class="fi" id="accCant" type="number" min="1" value="1">
+    </div>
+    <div class="fg" style="flex:0 0 auto"><label class="fl">&nbsp;</label><button class="btn-primary" type="button" onclick="accAddItem()" style="white-space:nowrap"><span data-t="acc.anadir">➕ Añadir</span></button></div>
+  </div>
+  <div id="accItemsList" style="margin-top:6px;max-height:220px;overflow:auto"></div>
+  <div class="modal-actions">
+    <button class="btn-secondary" onclick="closeM('mAccesorios')" data-t="gen.cancelar">Cancelar</button>
+    <button class="btn-primary" id="accGuardarBtn" onclick="guardarAccesorios()" style="background:var(--orange);display:none"><span data-t="acc.guardar">Guardar en «por pedir»</span></button>
+  </div>
+</div>
+</div>
+
 <!-- PROVEEDOR -->
 <div class="modal-bg" id="mProv">
 <div class="modal">
@@ -4863,7 +4892,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260726m"></script>
+<script src="/js/dash-app.js?v=20260726n"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

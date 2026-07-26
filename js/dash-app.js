@@ -1336,7 +1336,7 @@ function _stockMatch(pieza) {
 function _esImeiCat(cat) { return (typeof STOCK_CATS_IMEI !== 'undefined' ? STOCK_CATS_IMEI : ['Telefono', 'Tablet', 'Smartwatch']).indexOf(cat || '') !== -1; }
 // Etiqueta traducida de la categoría de un pedido/stock (Teléfono, Pantalla, Batería…)
 function _pedCatLabel(cat) {
-  var m = { 'Telefono': 'stock.cat_telefono', 'Tablet': 'stock.cat_tablet', 'Smartwatch': 'stock.cat_smartwatch', 'Pantalla': 'stock.cat_pantalla', 'Tapa': 'stock.cat_tapa', 'Bateria': 'stock.cat_bateria', 'Flex de Carga': 'stock.cat_flex', 'Altavoz': 'stock.cat_altavoz', 'Repuesto': 'stock.cat_repuesto', 'Accesorio': 'stock.cat_accesorio', 'Otro': 'stock.cat_otro' };
+  var m = { 'Telefono': 'stock.cat_telefono', 'Tablet': 'stock.cat_tablet', 'Smartwatch': 'stock.cat_smartwatch', 'Pantalla': 'stock.cat_pantalla', 'Tapa': 'stock.cat_tapa', 'Bateria': 'stock.cat_bateria', 'Flex de Carga': 'stock.cat_flex', 'Altavoz': 'stock.cat_altavoz', 'Repuesto': 'stock.cat_repuesto', 'Accesorio': 'stock.cat_accesorio', 'Otro': 'stock.cat_otro', 'Funda': 'acc.funda', 'Protector': 'acc.protector', 'Cable': 'acc.cable', 'Cargador': 'acc.cargador' };
   var k = m[cat]; return k ? T(k) : (cat || '');
 }
 // Badge HTML de categoría (vacío si no hay categoría)
@@ -1627,6 +1627,103 @@ function _aprenderModelo(marca, modelo, cat) {
   try { guardarDatos(); } catch(e){}
   if (SB_KEY && TIENDA_ID && typeof _sbPostRaw === 'function') _sbPostRaw('modelos_custom', nuevo);
 }
+// ═══ ACCESORIOS RÁPIDOS ═══
+// Alta veloz de accesorios (funda/protector/cable/cargador/otro) que caen directos en el estado
+// 'por_pedir', reutilizando el modelo de pedidos. Autocompletado que recuerda los modelos ya usados.
+var ACC_CATS = [
+  { k: 'Funda',     t: 'acc.funda',     e: '📱' },
+  { k: 'Protector', t: 'acc.protector', e: '🛡️' },
+  { k: 'Cable',     t: 'acc.cable',     e: '🔌' },
+  { k: 'Cargador',  t: 'acc.cargador',  e: '⚡' },
+  { k: 'Accesorio', t: 'acc.otro',      e: '📦' }  // "Otro" reutiliza la categoría existente 'Accesorio'
+];
+function _accModelos() { try { return JSON.parse(localStorage.getItem('tk_acc_modelos') || '{}'); } catch (e) { return {}; } }
+function _accRecordar(cat, modelo) {
+  if (!modelo) return;
+  var all = _accModelos(); var arr = all[cat] || [];
+  if (arr.indexOf(modelo) === -1) { arr.unshift(modelo); all[cat] = arr.slice(0, 40); try { localStorage.setItem('tk_acc_modelos', JSON.stringify(all)); } catch (e) {} }
+}
+function _accCatObj(k) { return ACC_CATS.find(function (x) { return x.k === k; }) || ACC_CATS[0]; }
+function abrirAccesorios() {
+  if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  window._accItems = [];
+  if (!window._accCat) window._accCat = 'Funda';
+  renderAccChips();
+  var mi = document.getElementById('accModelo'); if (mi) mi.value = '';
+  var qi = document.getElementById('accCant'); if (qi) qi.value = '1';
+  _accFillDatalist();
+  renderAccItems();
+  openM('mAccesorios');
+  setTimeout(function () { var e = document.getElementById('accModelo'); if (e) e.focus(); }, 60);
+}
+function renderAccChips() {
+  var wrap = document.getElementById('accChips'); if (!wrap) return;
+  wrap.innerHTML = ACC_CATS.map(function (c) {
+    var on = window._accCat === c.k;
+    return '<button type="button" onclick="accSelCat(\'' + c.k + '\')" style="border:1px solid ' + (on ? 'var(--orange)' : 'var(--border)') + ';background:' + (on ? 'var(--orange)' : '#fff') + ';color:' + (on ? '#fff' : 'var(--text)') + ';border-radius:20px;padding:7px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">' + c.e + ' ' + esc(T(c.t)) + '</button>';
+  }).join('');
+}
+function accSelCat(k) { window._accCat = k; renderAccChips(); _accFillDatalist(); var e = document.getElementById('accModelo'); if (e) e.focus(); }
+function _accFillDatalist() {
+  var dl = document.getElementById('accModelosList'); if (!dl) return;
+  var arr = _accModelos()[window._accCat] || [];
+  dl.innerHTML = arr.map(function (m) { return '<option value="' + esc(m) + '">'; }).join('');
+}
+function accAddItem() {
+  var el = document.getElementById('accModelo');
+  var modelo = (el && el.value || '').trim();
+  if (!modelo) { toast(T('acc.falta_modelo'), 'err'); if (el) el.focus(); return; }
+  var cant = parseInt((document.getElementById('accCant') || {}).value, 10) || 1;
+  if (cant < 1) cant = 1;
+  window._accItems = window._accItems || [];
+  window._accItems.push({ cat: window._accCat, modelo: modelo, cantidad: cant });
+  if (el) el.value = '';
+  var qi = document.getElementById('accCant'); if (qi) qi.value = '1';
+  renderAccItems();
+  if (el) el.focus();
+}
+function accRemove(i) { (window._accItems || []).splice(i, 1); renderAccItems(); }
+function renderAccItems() {
+  var box = document.getElementById('accItemsList'); if (!box) return;
+  var items = window._accItems || [];
+  var saveBtn = document.getElementById('accGuardarBtn'); if (saveBtn) saveBtn.style.display = items.length ? '' : 'none';
+  if (!items.length) { box.innerHTML = '<div style="text-align:center;color:var(--muted);font-size:12.5px;padding:14px">' + esc(T('acc.lista_vacia')) + '</div>'; return; }
+  box.innerHTML = items.map(function (it, i) {
+    var c = _accCatObj(it.cat);
+    return '<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-top:1px solid var(--border)">' +
+      '<span style="flex:1;font-size:13px">' + c.e + ' <b>' + esc(T(c.t)) + '</b> · ' + esc(it.modelo) + (it.cantidad > 1 ? ' <span style="color:var(--muted)">x' + it.cantidad + '</span>' : '') + '</span>' +
+      '<button type="button" onclick="accRemove(' + i + ')" style="background:rgba(239,68,68,.1);color:var(--red);border:none;border-radius:6px;padding:4px 8px;font-size:12px;cursor:pointer">🗑️</button>' +
+    '</div>';
+  }).join('');
+}
+function guardarAccesorios() {
+  var items = window._accItems || [];
+  if (!items.length) { closeM('mAccesorios'); return; }
+  if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  DB.pedidos = DB.pedidos || [];
+  items.forEach(function (it) {
+    _accRecordar(it.cat, it.modelo);
+    var nuevo = {
+      id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir',
+      creado_por: (typeof U !== 'undefined' && U ? U.nombre : null),
+      pieza: it.modelo, marca: null, categoria: it.cat, calidad: null,
+      cantidad: it.cantidad, precio_compra: 0, precio_venta: 0, importe: 0,
+      proveedor: null, fecha_pedido: null, fecha_estimada: null,
+      metodo_pago: null, nota: null, grupo: null, total_real: null,
+      pdf_url: null, pdf_nombre: null, estado_pago: null, pagado_importe: 0
+    };
+    DB.pedidos.push(nuevo);
+    if (SB_KEY && TIENDA_ID) sbPost('pedidos', nuevo);
+  });
+  try { audit('crear', 'pedido', '', items.length + ' ' + T('acc.boton'), null); } catch (e) {}
+  window._accItems = [];
+  closeM('mAccesorios');
+  toast(T('acc.guardado'), 'ok');
+  try { renderPedidosPage(); } catch (e) {}
+  try { updatePedidosBadge(); } catch (e) {}
+  try { renderPedidosWidget(); } catch (e) {}
+}
+
 function nuevoPedido() {
   SEL.editPedidoId = null;
   window._pedItems = [];
