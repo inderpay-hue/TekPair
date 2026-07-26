@@ -7916,15 +7916,19 @@ function crearClienteRapido() {
     nombre: nom,
     apellidos: document.getElementById('ncApe').value.trim(),
     tel: telV,
+    telPrefijo: '+34',
     email: (document.getElementById('ncEmail')||{}).value ? document.getElementById('ncEmail').value.trim() : '',
     dni: dniV,
-    direccion: (document.getElementById('ncDir')||{}).value ? document.getElementById('ncDir').value.trim() : '',
-    fecha_nacimiento: (document.getElementById('ncNac')||{}).value || null
+    esEmpresa: false,
+    pais: 'España',
+    // Forma CANÓNICA (dirFiscal/fechaNac): así editCli lee bien en la misma sesión sin esperar a recargar.
+    dirFiscal: (document.getElementById('ncDir')||{}).value ? document.getElementById('ncDir').value.trim() : '',
+    fechaNac: (document.getElementById('ncNac')||{}).value || ''
   };
   window._cliRapidoForzar = false;
   DB.clis.push(c);
   guardarDatos();
-  if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:c.email,dni:c.dni,dir_fiscal:c.direccion,fecha_nac:c.fecha_nacimiento});
+  if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,tel_prefijo:c.telPrefijo,email:c.email,dni:c.dni,es_empresa:false,pais:c.pais,dir_fiscal:c.dirFiscal,fecha_nac:c.fechaNac||null});
   closeM('mNuevoCli');
   selCli(c.id, window._cliCtx || 'v');
   toast(T('cli.creado'), 'ok');
@@ -12815,7 +12819,7 @@ function renderClis() {
     var rc = DB.reps.filter(function(r) { return r.clienteId === c.id; }).length;
     html += '<tr>' +
       '<td><strong class="drill-cli" data-cid="' + c.id + '" style="cursor:pointer;color:var(--blue);text-decoration:underline;text-decoration-color:rgba(0,85,255,.25);text-underline-offset:2px">' + esc(c.nombre + ' ' + c.apellidos) + '</strong>' + _gradoBadgeHtml(c.grado) + ((vc + rc) >= 3 ? '<br><span class="badge by">\u2b50 ' + T('cli.frecuente') + '</span>' : '') + '</td>' +
-      '<td style="font-size:11px">' + (c.tel || '\u2014') + '</td>' +
+      '<td style="font-size:11px">' + (esc(c.tel) || '\u2014') + '</td>' +
       '<td><span class="badge bb" title="Ventas">' + vc + 'v</span> <span class="badge bp" title="Reparaciones">' + rc + 'r</span></td>' +
       '<td style="display:flex;gap:3px">' +
       '<button data-cid="' + c.id + '" class="btn-edit-c" title="Editar cliente" style="background:var(--light);border:none;padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">\u270f\ufe0f</button>' +
