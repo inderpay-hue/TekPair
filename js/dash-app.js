@@ -6141,19 +6141,14 @@ function renderWidgetCajaDia() {
     if (t) t.textContent = '💰 ' + T('nav.cajas') + ': ' + (per.tab === 'hoy' ? T('dash.hoy') : per.tab === 'semana' ? T('gen.ultimos_7_dias') : T('gen.ultimo_mes'));
   }
   var pagos = {Efectivo:0, Tarjeta:0, Bizum:0, Transferencia:0};
-  DB.ventas.forEach(function(v) {
-    if (v.reembolsado) return;
-    var fv = _parseDateAny(v.fecha);
-    if (!fv || fv < per.inicio || fv > per.fin) return;
-    var monto = v.financiado ? (v.entrada || 0) : v.total;
-    var p = v.pago || 'Efectivo';
-    if (pagos[p] === undefined) pagos[p] = 0;
-    pagos[p] += monto;
-  });
+  var minISO = per.inicio.getFullYear() + '-' + String(per.inicio.getMonth()+1).padStart(2,'0') + '-' + String(per.inicio.getDate()).padStart(2,'0');
+  var maxISO = per.fin.getFullYear() + '-' + String(per.fin.getMonth()+1).padStart(2,'0') + '-' + String(per.fin.getDate()).padStart(2,'0');
+  // COBRADO REAL de ventas (financiado-aware: entrada + cuotas cobradas en su fecha de pago),
+  // igual que dashboard/reportes. Antes sumaba solo la entrada y se saltaba las cuotas cobradas.
+  var _vpmCaja = _ventasIngresoPorMetodo(DB.ventas, minISO, maxISO);
+  Object.keys(_vpmCaja).forEach(function(m){ if (pagos[m] === undefined) pagos[m] = 0; pagos[m] += _vpmCaja[m]; });
   // v2.4: usar pagos reales (anticipos + finales) en lugar de fechaEntregaReal
   if (SB_KEY) {
-    var minISO = per.inicio.getFullYear() + '-' + String(per.inicio.getMonth()+1).padStart(2,'0') + '-' + String(per.inicio.getDate()).padStart(2,'0');
-    var maxISO = per.fin.getFullYear() + '-' + String(per.fin.getMonth()+1).padStart(2,'0') + '-' + String(per.fin.getDate()).padStart(2,'0');
     sbGet('pagos_reparacion', 'fecha=gte.' + minISO + '&fecha=lte.' + maxISO).then(function(pagosReps){
       var _presP = _idsPresupuesto();
       (pagosReps || []).forEach(function(p){
@@ -15303,15 +15298,17 @@ function verReportePDF() {
   var tR = reps.reduce(function(a, r) { return a + r.total; }, 0);
   var html = '<html><head><meta charset="UTF-8"><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th{background:#020B2E;color:white;padding:8px}td{padding:8px;border-bottom:1px solid #eee}.tot{display:flex;justify-content:space-between;padding:10px;font-weight:700;font-size:16px;background:#f5f5f5;margin:10px 0}</style></head><body>' +
     '<h1>Reporte ' + SEL.repTab.toUpperCase() + ' \u2014 ' + TIENDA.nombre + '</h1>' +
+    '<div style="color:#666;font-size:12px;margin:-6px 0 12px">Importes <b>facturados</b> del periodo (ventas completas + reparaciones entregadas). No es el cobrado real \u2014 para lo cobrado consulta Reportes en la app.</div>' +
     '<div class="tot"><span>Ventas (' + ventas.length + ')</span><span>' + cur(tV) + '</span></div>' +
     '<div class="tot"><span>Reparaciones (' + reps.length + ')</span><span>' + cur(tR) + '</span></div>' +
-    '<div class="tot" style="background:#020B2E;color:white"><span>TOTAL</span><span>' + cur(tV + tR) + '</span></div>' +
+    '<div class="tot" style="background:#020B2E;color:white"><span>TOTAL FACTURADO</span><span>' + cur(tV + tR) + '</span></div>' +
     (ventas.length ? '<h2>Ventas</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th></tr></thead><tbody>' +
     ventas.map(function(v) { return '<tr><td>' + v.fecha + '</td><td>' + v.clienteNombre + '</td><td>' + v.modelo + '</td><td>' + v.pago + '</td><td>' + cur(v.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
     (reps.length ? '<h2>Reparaciones</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Equipo</th><th>Total</th></tr></thead><tbody>' +
     reps.map(function(r) { return '<tr><td>' + r.fechaEntregaReal + '</td><td>' + r.clienteNombre + '</td><td>' + r.marca + ' ' + r.modelo + '</td><td>' + cur(r.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
     '</body></html>';
   var win = window.open('', '_blank');
+  if (!win) { toast('Permite popups para generar el PDF', 'err'); return; }
   win.document.write(html);
   win.document.close();
   setTimeout(function() { win.print(); }, 500);
