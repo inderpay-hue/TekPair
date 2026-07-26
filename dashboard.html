@@ -212,6 +212,10 @@ body[data-theme="dark"] .cal-nav,
 body[data-theme="dark"] .cal-cell{background:var(--light) !important;color:var(--text) !important;border-color:var(--border) !important}
 /* Nav activo de Ajustes: asegurar texto blanco pleno sobre el acento. */
 body[data-theme="dark"] .aj-nav.active{color:#fff !important}
+/* --dark se invierte a claro en dark (para el texto de encabezados); sus usos como BACKGROUND
+   (cabeceras de tabla th, etc.) quedaban claros → oscurecer + texto claro. */
+body[data-theme="dark"] th,
+body[data-theme="dark"] [style*="background:var(--dark)" i]{background:var(--light) !important;color:var(--muted) !important}
 /* RED DE SEGURIDAD: cualquier .page hereda texto claro en dark (secciones que fijaban #000/#221D19
    por regla: Servicios, Proveedores, etc.). Los textos con color propio (accentos inline) se respetan. */
 body[data-theme="dark"] .page{color:var(--text)}
