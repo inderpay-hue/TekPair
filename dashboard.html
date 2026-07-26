@@ -216,6 +216,12 @@ body[data-theme="dark"] .aj-nav.active{color:#fff !important}
 body[data-theme="dark"] .cajas-franja-wrap{background:var(--white) !important;border-color:var(--border) !important}
 body[data-theme="dark"] .franja-dia{background:var(--light) !important;color:var(--text) !important;border-color:var(--border) !important}
 body[data-theme="dark"] .caja-card-estado{background:var(--light) !important;color:var(--text) !important}
+body[data-theme="dark"] .caja-card{background:var(--white) !important;border-color:var(--border) !important}
+body[data-theme="dark"] .cajas-btn-sec{background:var(--light) !important;color:var(--text) !important;border-color:var(--border) !important}
+/* Inputs de texto/número sin clase (p. ej. "Efectivo contado") → oscurecer en dark. */
+body[data-theme="dark"] input[type="text"],
+body[data-theme="dark"] input[type="number"],
+body[data-theme="dark"] input:not([type]){background:var(--light);color:var(--text);border-color:var(--border)}
 /* --dark se invierte a claro en dark (para el texto de encabezados); sus usos como BACKGROUND
    (cabeceras de tabla th, etc.) quedaban claros → oscurecer + texto claro. */
 body[data-theme="dark"] th,
