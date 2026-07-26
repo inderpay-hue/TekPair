@@ -7531,8 +7531,8 @@ function registrarPagoCuota(vid, cidx) {
       guardarDatos();
       if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { cuotas: JSON.stringify(v.cuotas) }); // ventas no tiene columna estado_financiado
       if (completado) toast(T('tst.financiado_completado'), 'ok');
-      else if (cuotasTocadas > 1) toast('Pago de ' + cur(pago) + ' aplicado a ' + cuotasTocadas + ' cuotas', 'ok');
-      else toast('Pago de ' + cur(pago) + ' registrado', 'ok');
+      else if (cuotasTocadas > 1) toast(T('fin.pago_multi').replace('{imp}', cur(pago)).replace('{n}', cuotasTocadas), 'ok');
+      else toast(T('fin.pago_registrado').replace('{imp}', cur(pago)), 'ok');
       closeM('finModal');
       renderVentas();
       _ofrecerWaPagoCuota(v, pago, fp);
@@ -7624,8 +7624,8 @@ function registrarPagoCuotaRep(rid, cidx) {
         window._pagosRepCache = null;
       }
       if (completado) toast(T('tst.financiado_completado'), 'ok');
-      else if (cuotasTocadas > 1) toast('Pago de ' + cur(pago) + ' aplicado a ' + cuotasTocadas + ' cuotas', 'ok');
-      else toast('Pago de ' + cur(pago) + ' registrado', 'ok');
+      else if (cuotasTocadas > 1) toast(T('fin.pago_multi').replace('{imp}', cur(pago)).replace('{n}', cuotasTocadas), 'ok');
+      else toast(T('fin.pago_registrado').replace('{imp}', cur(pago)), 'ok');
       closeM('finModal');
       renderReps();
       renderDash();
@@ -7646,21 +7646,21 @@ function _ofrecerWaPagoCuota(r, pago, metodo) {
     // reparaciones traen r.restante; ventas lo derivan de total-entrada-Σpagado.
     var restante = (r.restante != null) ? r.restante
       : Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - r.cuotas.reduce(function(a, c) { return a + _cuotaPagado(c); }, 0)) * 100) / 100);
-    var msg = '¡Hola ' + nombre + '! 👋\n\n' +
-      'Hemos recibido tu pago de ' + cur(pago) + ' (' + metodo + ')' + (equipo ? ' de tu ' + equipo : '') + '.\n' +
+    var msg = T('wapago.saludo').replace('{n}', nombre) + '\n\n' +
+      T('wapago.recibido').replace('{imp}', cur(pago)).replace('{m}', metodo).replace('{eq}', equipo ? T('wapago.de_tu').replace('{equipo}', equipo) : '') + '\n' +
       (restante > 0.005
-        ? '📅 Llevas ' + pagadas + '/' + r.cuotas.length + ' cuotas pagadas. Te quedan ' + cur(restante) + '.\n'
-        : '✅ ¡Has terminado de pagarlo todo! Muchas gracias.\n') +
+        ? T('wapago.restante').replace('{p}', pagadas).replace('{t}', r.cuotas.length).replace('{r}', cur(restante)) + '\n'
+        : T('wapago.completo') + '\n') +
       '\n— ' + tienda;
     var telE164 = cliente ? String((cliente.telPrefijo || '+34') + (cliente.tel || '')).replace(/[^0-9]/g, '') : '';
     var waUrl = 'https://wa.me/' + telE164 + '?text=' + encodeURIComponent(msg);
     var m = _modalOverlay(
-      '<div style="font-weight:800;font-size:15px;margin-bottom:6px">💬 ¿Enviar recibo al cliente?</div>' +
+      '<div style="font-weight:800;font-size:15px;margin-bottom:6px">' + escHtml(T('wapago.titulo')) + '</div>' +
       '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;white-space:pre-line;background:var(--light);border-radius:8px;padding:10px">' + escHtml(msg) + '</div>' +
       (telE164
-        ? '<a href="' + waUrl + '" target="_blank" rel="noopener" id="_waPagoBtn" style="display:block;text-align:center;background:#25D366;color:#fff;text-decoration:none;padding:11px;border-radius:9px;font-weight:700;margin-bottom:8px">📲 Enviar por WhatsApp</a>'
-        : '<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">El cliente no tiene teléfono guardado.</div>') +
-      '<button id="_waPagoNo" style="width:100%;padding:9px;border:1px solid var(--border,#E5E7EB);background:transparent;border-radius:9px;cursor:pointer;font:inherit;font-weight:600">No, gracias</button>'
+        ? '<a href="' + waUrl + '" target="_blank" rel="noopener" id="_waPagoBtn" style="display:block;text-align:center;background:#25D366;color:#fff;text-decoration:none;padding:11px;border-radius:9px;font-weight:700;margin-bottom:8px">' + escHtml(T('wapago.enviar')) + '</a>'
+        : '<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">' + escHtml(T('wapago.sin_tel')) + '</div>') +
+      '<button id="_waPagoNo" style="width:100%;padding:9px;border:1px solid var(--border,#E5E7EB);background:transparent;border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + escHtml(T('wapago.no')) + '</button>'
     );
     var no = m.box.querySelector('#_waPagoNo'); if (no) no.onclick = function() { m.close(); };
     var wa = m.box.querySelector('#_waPagoBtn'); if (wa) wa.addEventListener('click', function() { setTimeout(function() { m.close(); }, 300); });
@@ -8689,7 +8689,7 @@ function aceptarPresupuesto(id) {
     // Sincronizar a Supabase
     if (SB_KEY && TIENDA_ID) {
       var _okA = sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Pendiente' });
-      if (_okA && _okA.then) _okA.then(function(ok){ if (ok === false) toast('La aceptación no se guardó en la nube; reinténtalo.', 'err', 4000); });
+      if (_okA && _okA.then) _okA.then(function(ok){ if (ok === false) toast(T('pres.nube_aceptar_err'), 'err', 4000); });
     }
     toast('Presupuesto aceptado · ahora es una reparación pendiente', 'ok');
     if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
@@ -8715,7 +8715,7 @@ function rechazarPresupuesto(id) {
     guardarDatos();
     if (SB_KEY && TIENDA_ID) {
       var _okR = sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Rechazado' });
-      if (_okR && _okR.then) _okR.then(function(ok){ if (ok === false) toast('El rechazo no se guardó en la nube; puede revertirse al sincronizar.', 'err', 4000); });
+      if (_okR && _okR.then) _okR.then(function(ok){ if (ok === false) toast(T('pres.nube_rechazar_err'), 'err', 4000); });
     }
     toast(T('pres.rechazado_ok'), 'ok');
     if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) {
@@ -8731,8 +8731,8 @@ function eliminarPresupuesto(id) {
   if (!tienePerm('reps_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x){ return x.id === id; });
   if (!r) { toast(T('tst.presupuesto_no_encontrado'), 'err'); return; }
-  if (r.estado !== 'Presupuesto' && r.estado !== 'Rechazado') { toast('Solo se pueden borrar presupuestos o rechazados', 'err'); return; }
-  confirmar('¿Eliminar definitivamente este presupuesto de ' + (r.clienteNombre || '') + '?\n\nSe borra por completo (no se puede deshacer).', function () {
+  if (r.estado !== 'Presupuesto' && r.estado !== 'Rechazado') { toast(T('pres.solo_borrar'), 'err'); return; }
+  confirmar(T('pres.borrar_confirm').replace('{cli}', (r.clienteNombre || '')), function () {
     // Un 'Presupuesto' aún tiene piezas reservadas; un 'Rechazado' ya las devolvió al rechazar.
     if (r.estado === 'Presupuesto' && Array.isArray(r.componentes) && r.componentes.length) { try { aplicarCambioStockPiezas(r.componentes, [], r); } catch(e){} }
     DB.reps = (DB.reps || []).filter(function(x){ return x.id !== id; });
@@ -8741,10 +8741,10 @@ function eliminarPresupuesto(id) {
       sbDelete('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(id));
       sbDelete('reparaciones', 'id=eq.' + encodeURIComponent(id));
     }
-    toast('Presupuesto eliminado', 'ok');
+    toast(T('pres.borrado_ok'), 'ok');
     if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) renderPresupuestos();
     renderReps();
-  }, { okLabel: 'Eliminar', danger: true });
+  }, { okLabel: T('gen.eliminar'), danger: true });
 }
 
 // ═══ FIRMA DIGITAL DEL CLIENTE (FIRM-1 a FIRM-5) ═══
@@ -11088,7 +11088,7 @@ function renderPresupuestos() {
     // Rechazar: oculto si ya rechazado o si el cliente ya lo aceptó (sería contradictorio).
     var btnRech   = (esRech || aceptadoCli || !tienePerm('reps_eliminar')) ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-rech2" title="Rechazar">✗</button>';
     // Borrado definitivo (antes no existía; los rechazados se acumulaban). Solo con permiso.
-    var btnDel    = !tienePerm('reps_eliminar') ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-del2" title="Eliminar definitivamente" style="color:var(--red);border:1px solid var(--red)">🗑</button>';
+    var btnDel    = !tienePerm('reps_eliminar') ? '' : '<button data-rid="' + r.id + '" class="row-btn btn-pres-del2" title="' + escHtml(T('pres.borrar_title')) + '" style="color:var(--red);border:1px solid var(--red)">🗑</button>';
     var btnImprimir = '<button data-rid="' + r.id + '" class="row-btn btn-pres-imprimir2" title="Imprimir para firmar en papel">🖨️</button>';
     var btnDetalle = '<button data-rid="' + r.id + '" class="row-btn btn-pres-detalle2" title="Ver detalle y avisos enviados">👁️</button>';
 
@@ -15453,10 +15453,10 @@ function verReportePDF() {
   var tR = reps.reduce(function(a, r) { return a + r.total; }, 0);
   var html = '<html><head><meta charset="UTF-8"><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th{background:#020B2E;color:white;padding:8px}td{padding:8px;border-bottom:1px solid #eee}.tot{display:flex;justify-content:space-between;padding:10px;font-weight:700;font-size:16px;background:#f5f5f5;margin:10px 0}</style></head><body>' +
     '<h1>Reporte ' + SEL.repTab.toUpperCase() + ' \u2014 ' + TIENDA.nombre + '</h1>' +
-    '<div style="color:#666;font-size:12px;margin:-6px 0 12px">Importes <b>facturados</b> del periodo (ventas completas + reparaciones entregadas). No es el cobrado real \u2014 para lo cobrado consulta Reportes en la app.</div>' +
+    '<div style="color:#666;font-size:12px;margin:-6px 0 12px">' + escHtml(T('rep.pdf_facturado_nota')) + '</div>' +
     '<div class="tot"><span>Ventas (' + ventas.length + ')</span><span>' + cur(tV) + '</span></div>' +
     '<div class="tot"><span>Reparaciones (' + reps.length + ')</span><span>' + cur(tR) + '</span></div>' +
-    '<div class="tot" style="background:#020B2E;color:white"><span>TOTAL FACTURADO</span><span>' + cur(tV + tR) + '</span></div>' +
+    '<div class="tot" style="background:#020B2E;color:white"><span>' + escHtml(T('rep.pdf_total_facturado')) + '</span><span>' + cur(tV + tR) + '</span></div>' +
     (ventas.length ? '<h2>Ventas</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th></tr></thead><tbody>' +
     ventas.map(function(v) { return '<tr><td>' + v.fecha + '</td><td>' + v.clienteNombre + '</td><td>' + v.modelo + '</td><td>' + v.pago + '</td><td>' + cur(v.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
     (reps.length ? '<h2>Reparaciones</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Equipo</th><th>Total</th></tr></thead><tbody>' +
