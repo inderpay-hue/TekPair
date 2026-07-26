@@ -212,6 +212,10 @@ body[data-theme="dark"] .cal-nav,
 body[data-theme="dark"] .cal-cell{background:var(--light) !important;color:var(--text) !important;border-color:var(--border) !important}
 /* Nav activo de Ajustes: asegurar texto blanco pleno sobre el acento. */
 body[data-theme="dark"] .aj-nav.active{color:#fff !important}
+/* Cajas: franja "Últimos 7 días" + celdas de día + badge de estado (fondos claros por CSS). */
+body[data-theme="dark"] .cajas-franja-wrap{background:var(--white) !important;border-color:var(--border) !important}
+body[data-theme="dark"] .franja-dia{background:var(--light) !important;color:var(--text) !important;border-color:var(--border) !important}
+body[data-theme="dark"] .caja-card-estado{background:var(--light) !important;color:var(--text) !important}
 /* --dark se invierte a claro en dark (para el texto de encabezados); sus usos como BACKGROUND
    (cabeceras de tabla th, etc.) quedaban claros → oscurecer + texto claro. */
 body[data-theme="dark"] th,
