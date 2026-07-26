@@ -218,7 +218,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
   .cart-fab,.cart-close-mobile{display:none!important}
 }
 </style>
-<script src="/lang/lang.v8.js?v=20260726u"></script>
+<script src="/lang/lang.v8.js?v=20260726v"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -572,7 +572,7 @@ function _avisarSesionExpirada() {
   if (_sesionExpirada) return;
   _sesionExpirada = true;
   if (typeof toast === 'function') {
-    toast('⚠ Sesión expirada — vuelve a iniciar sesión', 'err');
+    toast(T('tpv.sesion_expirada'), 'err');
   }
   // Dar 3s para que el cajero vea el toast y luego redirigir
   setTimeout(function(){
@@ -784,11 +784,11 @@ function toggleFav(type, id, ev) {
   var idx = favs.findIndex(function(f){ return f.type === type && f.id === id; });
   if (idx >= 0) {
     favs.splice(idx, 1);
-    toast('Eliminado de favoritos');
+    toast(T('tpv.quitado_favoritos'));
   } else {
     // Para stock/servicio, almacenamos solo type+id (info se busca al renderizar)
     favs.push({type: type, id: id});
-    toast('Añadido a favoritos', 'ok');
+    toast(T('tpv.anadido_favoritos'), 'ok');
   }
   saveFavs();
   renderFavBar();
@@ -885,7 +885,7 @@ function pedirPrecioVar(nombre, onOk) {
 }
 function confirmarPrecioVar() {
   var v = parseFloat(String((document.getElementById('precioVarInput')||{}).value || '').replace(',', '.'));
-  if (!v || v <= 0) { toast('Precio inválido', 'err'); return; }
+  if (!v || v <= 0) { toast(T('tpv.precio_invalido'), 'err'); return; }
   closeModal('mPrecioVar');
   var cb = window._precioVarCb; window._precioVarCb = null;
   if (cb) cb(v);
@@ -933,11 +933,11 @@ function renderProducts() {
 
   if (!products.length) {
     if (currentCat === 'favoritos') {
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Sin favoritos. Pulsa la estrella ⭐ en cualquier producto, o usa "Gestionar" abajo.</div>';
-      grid.innerHTML += '<div style="grid-column:1/-1;text-align:center;margin-top:8px"><button class="btn-primary" style="width:auto;padding:10px 16px" onclick="abrirGestionFavs()">⭐ Gestionar favoritos</button></div>';
+      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">' + T('tpv.sin_favoritos') + '</div>';
+      grid.innerHTML += '<div style="grid-column:1/-1;text-align:center;margin-top:8px"><button class="btn-primary" style="width:auto;padding:10px 16px" onclick="abrirGestionFavs()">⭐ ' + T('tpv.gestionar_favoritos') + '</button></div>';
       return;
     }
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">Sin productos en esta categoria</div>';
+    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">' + T('tpv.sin_productos_cat') + '</div>';
     return;
   }
   window._tpvGrupos = [];  // índice de grupos para el onclick (evita inyección por comillas en nombres)
@@ -955,7 +955,7 @@ function renderProducts() {
     }
     var fav = isFav(p._type, p.id);
     var nombre = p.esFijo ? p.modelo : ((p.marca && p.marca !== 'Servicio') ? p.marca + ' ' : '') + p.modelo;
-    var stockTxt = p.esFijo ? 'Precio fijo' : (p.esServicio ? p.calidad : 'Stock: ' + p.unidades);
+    var stockTxt = p.esFijo ? T('tpv.precio_fijo') : (p.esServicio ? p.calidad : T('tpv.stock_n').replace('{n}', p.unidades));
     var click = p.esFijo
       ? "addFavFijoToCart('" + escHtml(p.id) + "')"
       : "addToCart('" + escHtml(p.id) + "'," + (p.esServicio ? 'true' : 'false') + ")";
@@ -981,9 +981,9 @@ function renderProducts() {
     // En la pestaña favoritos, botón gestionar al final
     grid.innerHTML += '<div class="prod-card" onclick="abrirGestionFavs()" style="border-style:dashed;border-color:#FBBF24;background:#FFFBEB">' +
       '<div class="prod-icon">⚙️</div>' +
-      '<div class="prod-name">Gestionar favoritos</div>' +
-      '<div class="prod-price" style="color:#92400E">Editar lista</div>' +
-      '<div class="prod-stock">' + favs.length + ' favorito' + (favs.length !== 1 ? 's' : '') + '</div></div>';
+      '<div class="prod-name">' + T('tpv.gestionar_favoritos') + '</div>' +
+      '<div class="prod-price" style="color:#92400E">' + T('tpv.editar_lista') + '</div>' +
+      '<div class="prod-stock">' + T('tpv.contador_favoritos').replace('{n}', favs.length) + '</div></div>';
   }
 }
 
@@ -1044,7 +1044,7 @@ function renderGestionFavs() {
   }
   var el = document.getElementById('gestionFavsContent');
   if (!resolved.length) {
-    el.innerHTML = '<div style="text-align:center;padding:30px 20px;color:var(--muted);font-size:13px">' + (favs.length === 0 ? 'Aún no tienes favoritos. Marca productos con la ⭐ o pulsa "+ Fijo".' : 'Sin coincidencias') + '</div>';
+    el.innerHTML = '<div style="text-align:center;padding:30px 20px;color:var(--muted);font-size:13px">' + (favs.length === 0 ? T('tpv.aun_no_favoritos') : T('tpv.sin_coincidencias')) + '</div>';
     return;
   }
   var icons = {Telefono:'📱', Tablet:'📟', Smartwatch:'⌚', Accesorio:'🎧', Repuesto:'🔧', servicio:'🛠️', Otro:'📦', fijo:'⭐'};
@@ -1052,12 +1052,12 @@ function renderGestionFavs() {
     resolved.map(function(p) {
       var icon = p.icon || icons[p.categoria] || '📦';
       var nombre = p.esFijo ? p.modelo : ((p.marca && p.marca !== 'Servicio') ? p.marca + ' ' : '') + p.modelo;
-      var tipoLbl = p.esFijo ? 'Precio fijo' : (p.esServicio ? 'Servicio' : 'Producto');
+      var tipoLbl = p.esFijo ? T('tpv.precio_fijo') : (p.esServicio ? T('gen.servicio') : T('gen.producto'));
       return '<div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px">' +
         '<div style="font-size:22px">' + escHtml(icon) + '</div>' +
         '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + escHtml(nombre) + '</div>' +
         '<div style="font-size:11px;color:var(--muted)">' + escHtml(tipoLbl) + ' \u00b7 \u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div></div>' +
-        '<button class="caja-btn" style="border-color:rgba(239,68,68,.3);color:var(--red)" onclick="quitarFav(\'' + escHtml(p._type) + '\',\'' + escHtml(p.id) + '\')">Quitar</button>' +
+        '<button class="caja-btn" style="border-color:rgba(239,68,68,.3);color:var(--red)" onclick="quitarFav(\'' + escHtml(p._type) + '\',\'' + escHtml(p.id) + '\')">' + T('tpv.quitar') + '</button>' +
         '</div>';
     }).join('') +
     '</div>';
@@ -1071,15 +1071,15 @@ function quitarFav(type, id) {
   renderFavBar();
   renderGestionFavs();
   renderProducts();
-  toast('Eliminado de favoritos');
+  toast(T('tpv.quitado_favoritos'));
 }
 
 function guardarFavFijo() {
   var nom = document.getElementById('favFijoNom').value.trim();
   var precio = parseFloat(document.getElementById('favFijoPrecio').value) || 0;
   var icon = document.getElementById('favFijoIcon').value.trim() || '⭐';
-  if (!nom) { toast('El nombre es obligatorio', 'err'); return; }
-  if (precio <= 0) { toast('Precio inválido', 'err'); return; }
+  if (!nom) { toast(T('tpv.nombre_obligatorio'), 'err'); return; }
+  if (precio <= 0) { toast(T('tpv.precio_invalido'), 'err'); return; }
   var id = 'fij_' + Date.now();
   favs.push({type: 'fijo', id: id, nombre: nom, precio: precio, icon: icon});
   saveFavs();
@@ -1090,7 +1090,7 @@ function guardarFavFijo() {
   setTimeout(function(){ openModal('mGestionarFavs'); renderGestionFavs(); }, 150);
   renderFavBar();
   renderProducts();
-  toast('Favorito guardado', 'ok');
+  toast(T('tpv.favorito_guardado'), 'ok');
 }
 
 function setCat(el) {
@@ -1252,9 +1252,9 @@ function buscarProducto() {
   res.innerHTML = products.slice(0, 8).map(function(p) {
     return '<div class="search-item" onclick="addToCart(\'' + escHtml(p.id) + '\',' + (p.esServicio || false) + ');document.getElementById(\'tpvSearch\').value=\'\';document.getElementById(\'searchResults\').classList.remove(\'open\')">' +
       '<div><div class="search-item-name">' + escHtml((p.marca !== 'Servicio' ? p.marca + ' ' : '') + p.modelo) + '</div>' +
-      '<div class="search-item-det">' + escHtml(p.categoria) + (p.imei ? ' · IMEI: ' + escHtml(p.imei) : '') + (p.esServicio ? '' : ' · Stock: ' + p.unidades) + '</div></div>' +
+      '<div class="search-item-det">' + escHtml(p.categoria) + (p.imei ? ' · IMEI: ' + escHtml(p.imei) : '') + (p.esServicio ? '' : ' · ' + T('tpv.stock_n').replace('{n}', p.unidades)) + '</div></div>' +
       '<div style="text-align:right"><div class="search-item-price">\u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div>' +
-      (p.esServicio ? '<div class="search-item-badge">Servicio</div>' : '') + '</div></div>';
+      (p.esServicio ? '<div class="search-item-badge">' + T('gen.servicio') + '</div>' : '') + '</div></div>';
   }).join('');
   res.classList.add('open');
 }
@@ -1306,7 +1306,7 @@ function addStockGroup(gi) {
   var units = getProducts().filter(function(p) {
     return p._type === 'stock' && groupKey(p) === key && p.unidades > 0;
   });
-  if (!units.length) { toast('Sin stock', 'err'); return; }
+  if (!units.length) { toast(T('tpv.sin_stock'), 'err'); return; }
   if (units.length === 1) { addToCart(units[0].id, false); return; }
   var nombre = (units[0].marca ? units[0].marca + ' ' : '') + units[0].modelo;
   document.getElementById('pickUnitTit').textContent = nombre;
@@ -1331,7 +1331,7 @@ function addToCart(id, esServicio) {
   var products = getProducts();
   var p = products.find(function(x) { return x.id === id; });
   if (!p) return;
-  if (!p.esServicio && p.unidades <= 0) { toast('Sin stock', 'err'); return; }
+  if (!p.esServicio && p.unidades <= 0) { toast(T('tpv.sin_stock'), 'err'); return; }
 
   var nombreProd = (p.marca !== 'Servicio' ? p.marca + ' ' : '') + p.modelo;
   var precioBase = parseFloat(p.precioV || 0);
@@ -1346,7 +1346,7 @@ function addToCart(id, esServicio) {
         precioVariable: true, idOriginal: p.id, imei: p.imei || ''
       });
       renderCart();
-      toast('Añadido', 'ok');
+      toast(T('tpv.anadido_2'), 'ok');
     });
     return;
   }
@@ -1354,7 +1354,7 @@ function addToCart(id, esServicio) {
   // PRECIO FIJO: comportamiento normal
   var existing = cart.find(function(c) { return c.id === id; });
   if (existing) {
-    if (!p.esServicio && existing.qty >= p.unidades) { toast('Stock insuficiente', 'err'); return; }
+    if (!p.esServicio && existing.qty >= p.unidades) { toast(T('tpv.stock_insuficiente'), 'err'); return; }
     existing.qty++;
   } else {
     cart.push({
@@ -1371,14 +1371,14 @@ function addVentaRapida() {
   var desc = document.getElementById('rvDesc').value.trim();
   var precio = parseFloat(document.getElementById('rvPrecio').value) || 0;
   var qty = parseInt(document.getElementById('rvQty').value) || 1;
-  if (!desc || precio <= 0) { toast('Rellena descripcion y precio', 'err'); return; }
+  if (!desc || precio <= 0) { toast(T('tpv.rellena_desc_precio'), 'err'); return; }
   cart.push({id: 'rapida_' + Date.now(), nombre: desc, precio: precio, qty: qty, esServicio: true, esRapida: true});
   renderCart();
   closeModal('mRapida');
   document.getElementById('rvDesc').value = '';
   document.getElementById('rvPrecio').value = '';
   document.getElementById('rvQty').value = '1';
-  toast('Añadido', 'ok');
+  toast(T('tpv.anadido_2'), 'ok');
 }
 
 function removeFromCart(idx) {
@@ -1390,7 +1390,7 @@ function changeQty(idx, delta) {
   var item = cart[idx];
   var newQty = item.qty + delta;
   if (newQty <= 0) { removeFromCart(idx); return; }
-  if (!item.esServicio && newQty > item.stockMax) { toast('Stock insuficiente', 'err'); return; }
+  if (!item.esServicio && newQty > item.stockMax) { toast(T('tpv.stock_insuficiente'), 'err'); return; }
   item.qty = newQty;
   renderCart();
 }
@@ -1400,7 +1400,7 @@ function renderCart() {
   var el = document.getElementById('cartItems');
   var _bv = document.getElementById('btnVaciarCart'); if (_bv) _bv.style.display = cart.length ? 'inline-flex' : 'none';
   if (!cart.length) {
-    el.innerHTML = '<div class="cart-empty">📦 Añade productos al ticket</div>';
+    el.innerHTML = '<div class="cart-empty">' + T('tpv.anade_productos') + '</div>';
     document.getElementById('btnCheckout').disabled = true;
     calcTotal();
     return;
@@ -1491,8 +1491,8 @@ function calcTotal() {
   if (ivaOn) {
     document.getElementById('ivaBaseVal').textContent = '\u20ac' + t.base.toFixed(2);
     document.getElementById('ivaImpVal').textContent = '\u20ac' + t.ivaImporte.toFixed(2);
-    document.getElementById('ivaImpLbl').textContent = 'IVA (' + t.ivaTipo + '%)';
-    document.getElementById('totalLbl').textContent = t.ivaModo === 'incluido' ? 'TOTAL (IVA inc.)' : 'TOTAL';
+    document.getElementById('ivaImpLbl').textContent = T('tpv.iva_pct').replace('{p}', t.ivaTipo);
+    document.getElementById('totalLbl').textContent = t.ivaModo === 'incluido' ? 'TOTAL ' + T('tpv.iva_inc') : 'TOTAL';
   } else {
     document.getElementById('totalLbl').textContent = 'TOTAL';
   }
@@ -1575,8 +1575,8 @@ function calcFinanciado() {
   var fin = calcCuotasFinanciado();
   var el = document.getElementById('finPreview');
   if (!el) return;
-  el.textContent = fin.numCuotas + ' × €' + fin.montoCuota.toFixed(2) + '/mes' +
-    (fin.entrada > 0 ? ' · entrada €' + fin.entrada.toFixed(2) : '');
+  el.textContent = fin.numCuotas + ' × €' + fin.montoCuota.toFixed(2) + T('tpv.al_mes') +
+    (fin.entrada > 0 ? ' · ' + T('tpv.entrada') + ' €' + fin.entrada.toFixed(2) : '');
   // El selector de método de pago de la entrada solo tiene sentido si hay entrada
   var epRow = document.getElementById('finEntradaPagoRow');
   if (epRow) epRow.style.display = fin.entrada > 0 ? 'block' : 'none';
@@ -1606,7 +1606,7 @@ function cobrar() {
   var esFinanciado = selectedPago === 'Financiado';
   if (esFinanciado && !selectedCli) { toast(T('tpv.fin_sin_cliente'), 'err'); return; }
   var fin = esFinanciado ? calcCuotasFinanciado() : null;
-  if (esFinanciado && fin && fin.entrada > (totals.total || 0) + 0.005) { toast('La entrada no puede superar el total', 'err'); return; }
+  if (esFinanciado && fin && fin.entrada > (totals.total || 0) + 0.005) { toast(T('tpv.entrada_supera_total'), 'err'); return; }
   // Si hay entrada en el financiado, obliga a elegir con qué se pagó (sin default).
   if (esFinanciado && fin && fin.entrada > 0 && !selectedEntradaPago) {
     toast(T('tpv.fin_elige_entrada'), 'err'); return;
@@ -1616,7 +1616,7 @@ function cobrar() {
   if (selectedPago === 'Efectivo') {
     var _recib = parseFloat((document.getElementById('efectivoInput') || {}).value) || 0;
     if (_recib > 0 && _recib + 0.005 < (totals.total || 0)) {
-      if (!confirm('El efectivo recibido (' + _recib.toFixed(2) + ' €) es menor que el total (' + (totals.total || 0).toFixed(2) + ' €). ¿Registrar la venta igualmente?')) return;
+      if (!confirm(T('tpv.efectivo_menor').replace('{r}', _recib.toFixed(2)).replace('{t}', (totals.total || 0).toFixed(2)))) return;
     }
   }
   var venta = {
@@ -1625,7 +1625,7 @@ function cobrar() {
     clienteId: selectedCli ? selectedCli.id : '',
     clienteNombre: selectedCli ? (selectedCli.nombre + ' ' + (selectedCli.apellidos || '')).trim() : 'Sin cliente',
     marca: cart.length === 1 ? (cart[0].nombre.split(' ')[0] || '') : '',
-    modelo: cart.length === 1 ? cart[0].nombre : cart.length + ' productos',
+    modelo: cart.length === 1 ? cart[0].nombre : T('tpv.n_productos').replace('{n}', cart.length),
     imei: '',
     pago: selectedPago,
     precio: totals.subtotal,
@@ -1698,26 +1698,26 @@ function mostrarTicket(venta, totals) {
     logoBlock +
     (TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:4px">' + escHtml(TIENDA.nombre) + '</div>' : '') +
     (TIENDA.dir ? '<div style="text-align:center;font-size:10px;color:#666">' + escHtml(TIENDA.dir) + '</div>' : '') +
-    (TIENDA.tel ? '<div style="text-align:center;font-size:10px;color:#666">Tel: ' + escHtml(TIENDA.tel) + '</div>' : '') +
+    (TIENDA.tel ? '<div style="text-align:center;font-size:10px;color:#666">' + T('tpv.tk_tel') + escHtml(TIENDA.tel) + '</div>' : '') +
     '<hr class="ticket-sep">' +
-    '<div class="ticket-row"><span>Fecha:</span><span>' + escHtml(venta.fecha) + '</span></div>' +
-    '<div class="ticket-row"><span>Cliente:</span><span>' + escHtml(venta.clienteNombre) + '</span></div>' +
-    '<div class="ticket-row"><span>Pago:</span><span>' + escHtml(venta.pago) + '</span></div>' +
+    '<div class="ticket-row"><span>' + T('pres.doc_fecha') + '</span><span>' + escHtml(venta.fecha) + '</span></div>' +
+    '<div class="ticket-row"><span>' + T('pres.doc_cliente') + '</span><span>' + escHtml(venta.clienteNombre) + '</span></div>' +
+    '<div class="ticket-row"><span>' + T('tpv.tk_pago') + '</span><span>' + escHtml(venta.pago) + '</span></div>' +
     '<hr class="ticket-sep">' +
     venta.items.map(function(item) {
       return '<div class="ticket-row"><span>' + escHtml(item.nombre) + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>';
     }).join('') +
     '<hr class="ticket-sep">' +
     (totals.disc > 0 ? '<div class="ticket-row"><span><span data-t="tpv.subtotal">Subtotal</span></span><span>\u20ac' + totals.subtotal.toFixed(2) + '</span></div>' +
-    '<div class="ticket-row"><span>Descuento</span><span>-\u20ac' + totals.disc.toFixed(2) + '</span></div>' : '') +
+    '<div class="ticket-row"><span>' + T('tpv.descuento_2') + '</span><span>-\u20ac' + totals.disc.toFixed(2) + '</span></div>' : '') +
     (ivaOn && totals.base > 0 ?
-      '<div class="ticket-row"><span>Base imponible</span><span>\u20ac' + totals.base.toFixed(2) + '</span></div>' +
-      '<div class="ticket-row"><span>IVA (' + totals.ivaTipo + '%)</span><span>\u20ac' + totals.ivaImporte.toFixed(2) + '</span></div>'
+      '<div class="ticket-row"><span>' + T('pres.doc_base_imponible') + '</span><span>\u20ac' + totals.base.toFixed(2) + '</span></div>' +
+      '<div class="ticket-row"><span>' + T('tpv.iva_pct').replace('{p}', totals.ivaTipo) + '</span><span>\u20ac' + totals.ivaImporte.toFixed(2) + '</span></div>'
       : ''
     ) +
-    '<div class="ticket-total"><span>TOTAL' + (totals.ivaModo === 'incluido' ? ' (IVA inc.)' : '') + '</span><span>\u20ac' + totals.total.toFixed(2) + '</span></div>' +
+    '<div class="ticket-total"><span>TOTAL' + (totals.ivaModo === 'incluido' ? ' ' + T('tpv.iva_inc') : '') + '</span><span>\u20ac' + totals.total.toFixed(2) + '</span></div>' +
     '<hr class="ticket-sep">' +
-    '<div class="ticket-footer">Gracias por su compra' +
+    '<div class="ticket-footer">' + T('tpv.gracias_compra') + '' +
     (TIENDA.garantiaVentas ? '<br><span style="font-size:9px">' + escHtml(TIENDA.garantiaVentas) + '</span>' : '') +
     (TIENDA.politicaVentas ? '<br><span style="font-size:9px;color:#888">' + escHtml(TIENDA.politicaVentas) + '</span>' : '') +
     '</div>' +
@@ -1738,7 +1738,7 @@ function nuevaVenta() {
   cart = [];
   selectedCli = null;
   document.getElementById('cartClientIcon').textContent = '👤';
-  document.getElementById('cartClientText').textContent = 'Asignar cliente';
+  document.getElementById('cartClientText').textContent = T('tpv.asignar_cliente_2');
   document.getElementById('discVal').value = '';
   document.getElementById('efectivoInput').value = '';
   document.getElementById('numInput').value = '';
@@ -1781,12 +1781,12 @@ function asignarCliente(id) {
   document.getElementById('cartClientIcon').textContent = '👤';
   document.getElementById('cartClientText').textContent = (c.nombre + ' ' + (c.apellidos || '')).trim();
   closeModal('mCli');
-  toast('Cliente asignado', 'ok');
+  toast(T('tpv.cliente_asignado'), 'ok');
 }
 
 function crearClienteRapido() {
   var nom = document.getElementById('ncNom').value.trim();
-  if (!nom) { toast('Escribe un nombre', 'err'); return; }
+  if (!nom) { toast(T('tpv.escribe_nombre'), 'err'); return; }
   var c = {
     id: 'c' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
     nombre: nom,
@@ -1799,7 +1799,7 @@ function crearClienteRapido() {
   localStorage.setItem('tk_db', JSON.stringify(DB));
   if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:'',dni:c.dni});
   asignarCliente(c.id);
-  toast('Cliente creado', 'ok');
+  toast(T('tpv.cliente_creado'), 'ok');
 }
 
 // ═══ CAJA ═══
@@ -1883,7 +1883,7 @@ function renderHistorial() {
       '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(v.modelo || '-') + '</div>' +
       '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + hora + (hora?' \u00b7 ':'') + escHtml(v.clienteNombre || 'Sin cliente') + ' \u00b7 ' + escHtml(v.pago || '-') + '</div></div>' +
       '<div style="text-align:right;flex-shrink:0"><div style="font-weight:700;color:' + color + ';font-size:14px">' + sign + '\u20ac' + (v.total||0).toFixed(2) + '</div>' +
-      (v.reembolsado ? '<div style="font-size:10px;color:var(--red);font-weight:700">REEMBOLSADA</div>' : '') + '</div>' +
+      (v.reembolsado ? '<div style="font-size:10px;color:var(--red);font-weight:700">' + T('tpv.reembolsada') + '</div>' : '') + '</div>' +
       '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px" onclick="reimprimirVenta(\'' + escHtml(v.id) + '\')" title="Reimprimir ticket">\ud83d\udda8</button>' +
       '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px;background:#10B981;color:white" onclick="factVenta(\'' + escHtml(v.id) + '\')" title="Generar factura">\ud83d\udcc4</button>' +
       '</div>';
@@ -1894,7 +1894,7 @@ function renderHistorial() {
 
 function reimprimirVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
-  if (!v) { toast('Venta no encontrada', 'err'); return; }
+  if (!v) { toast(T('tpv.venta_no_encontrada'), 'err'); return; }
   // Reconstruir totales coherentes con la venta guardada
   var totals = {
     subtotal: parseFloat(v.precio) || 0,
@@ -1907,7 +1907,7 @@ function reimprimirVenta(id) {
   };
   // Reusar mostrarTicket pero forzar que la venta tenga los items que tenía
   if (!v.items || !v.items.length) {
-    v.items = [{nombre: v.modelo || 'Venta', precio: totals.subtotal || totals.total, qty: 1}];
+    v.items = [{nombre: v.modelo || T('tpv.venta_item'), precio: totals.subtotal || totals.total, qty: 1}];
   }
   mostrarTicket(v, totals);
 }
@@ -1955,7 +1955,7 @@ setTimeout(_actualizarFabBadge, 300);
 <script>
 function factVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
-  if (!v) { toast('Venta no encontrada', 'err'); return; }
+  if (!v) { toast(T('tpv.venta_no_encontrada'), 'err'); return; }
   var cli = v.clienteId ? DB.clis.find(function(c){ return c.id === v.clienteId; }) : null;
   // Fallback: si el cliente no está en DB.clis pero la venta guardó el nombre, usarlo igualmente
   if (!cli && v.clienteNombre && v.clienteNombre !== 'Sin cliente') {
@@ -1968,12 +1968,12 @@ function factVenta(id) {
     iva: parseFloat(v.iva) || 0,
     pago: v.pago || '',
     items: (v.items && v.items.length) ? v.items.map(function(i){
-      return { nombre: i.nombre || 'Producto', cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0 };
-    }) : [{ nombre: v.modelo || 'Venta', cantidad: 1, precio: parseFloat(v.total) || 0 }],
+      return { nombre: i.nombre || T('gen.producto'), cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0 };
+    }) : [{ nombre: v.modelo || T('tpv.venta_item'), cantidad: 1, precio: parseFloat(v.total) || 0 }],
     cliente: cli
   };
   if (typeof window.abrirModalFactura !== 'function') {
-    toast('Modulo factura cargando, reintenta en un momento', 'err'); return;
+    toast(T('tpv.factura_cargando'), 'err'); return;
   }
   window.abrirModalFactura('venta', datos);
 }

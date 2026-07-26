@@ -36,15 +36,15 @@
       modal.id = 'mSesionExpirada';
       modal.innerHTML =
         '<div class="modal" style="max-width:440px">' +
-          '<div class="modal-h"><span>🔒 Sesión expirada</span></div>' +
+          '<div class="modal-h"><span>' + T('sesion.expirada_titulo') + '</span></div>' +
           '<div style="padding:20px;text-align:center">' +
-            '<p style="margin-bottom:12px;font-size:14px">Tu sesión ha caducado por inactividad.</p>' +
+            '<p style="margin-bottom:12px;font-size:14px">' + T('sesion.caducada_inactividad') + '</p>' +
             '<p style="margin-bottom:20px;font-size:12px;color:#666;line-height:1.5">' +
-              '<strong>Tus datos están a salvo</strong> en este navegador.<br>' +
-              'Al volver a iniciar sesión se sincronizarán automáticamente.' +
+              T('sesion.datos_salvo') +
+              T('sesion.sincroniza_login') +
             '</p>' +
             '<button onclick="window.__tekpairRelogin()" style="background:#0055FF;color:white;padding:10px 24px;border:none;border-radius:8px;font-weight:700;font-size:13px;cursor:pointer;font-family:inherit">' +
-              'Iniciar sesión de nuevo' +
+              T('sesion.reloguear') +
             '</button>' +
           '</div>' +
         '</div>';
@@ -135,7 +135,7 @@
       if (typeof window.__tekpairMostrarSesionExpirada === 'function') {
         window.__tekpairMostrarSesionExpirada();
       }
-      throw new Error('Sesión no iniciada. Vuelve a iniciar sesión.');
+      throw new Error(T('sesion.no_iniciada'));
     }
     return {
       'apikey': window.SB_KEY,
@@ -255,7 +255,7 @@
     } else {
       res.innerHTML = matches.map(function(c) {
         return '<div onclick="window._factElegirCli(\'' + _esc(c.id) + '\')" style="padding:9px 11px;cursor:pointer;border-bottom:1px solid #F1F5F9;font-size:13px">' +
-          '<strong>' + _esc(((c.nombre || '') + ' ' + (c.apellidos || '')).trim() || 'Cliente') + '</strong>' +
+          '<strong>' + _esc(((c.nombre || '') + ' ' + (c.apellidos || '')).trim() || T('tk.cliente')) + '</strong>' +
           (c.tel ? ' &middot; ' + _esc(c.tel) : '') + (c.dni ? ' &middot; ' + _esc(c.dni) : '') + '</div>';
       }).join('');
     }
@@ -270,7 +270,7 @@
     if (res) { res.style.display = 'none'; res.innerHTML = ''; }
     _renderDatosCliente();
     _renderOrigen();
-    if (typeof window.toast === 'function') window.toast('Cliente asignado a la factura', 'ok');
+    if (typeof window.toast === 'function') window.toast(T('fact.cli_asignado_ok'), 'ok');
   };
 
   // ────────── Render origen ──────────
@@ -342,7 +342,7 @@
 
   window.abrirModalFactura = function(origen, datos) {
     if (!window.SUPABASE_URL || !window.SB_KEY || !window.TIENDA_ID) {
-      _toast('Faltan credenciales. Recarga la página.', 'err');
+      _toast(T('fact.faltan_credenciales'), 'err');
       return;
     }
 
@@ -365,8 +365,7 @@
         if (Array.isArray(arr) && arr.length > 0) {
           // Ya existe factura para este origen → mostrar PDF, no emitir
           var existente = arr[0];
-          _toast('Esta ' + (origen === 'reparacion' ? 'reparación' : 'venta') +
-                 ' ya tiene factura (' + existente.numero + ')', 'ok');
+          _toast(T('fact.ya_tiene_factura').replace('{tipo}', (origen === 'reparacion' ? T('fact.o_reparacion') : T('fact.o_venta')).toLowerCase()).replace('{num}', existente.numero), 'ok');
           if (typeof window.generarFacturaPDF === 'function') {
             window.generarFacturaPDF(existente);
           }
@@ -454,7 +453,7 @@
       var servs = d.servicios || [];
       servs.forEach(function(s) {
         lineas.push({
-          desc: s.desc || s.nombre || 'Servicio',
+          desc: s.desc || s.nombre || T('gen.servicio'),
           cantidad: 1,
           precio: parseFloat(s.precio) || 0,
           total: parseFloat(s.precio) || 0
@@ -463,7 +462,7 @@
       var comps = d.componentes || [];
       comps.forEach(function(c) {
         lineas.push({
-          desc: c.nombre || 'Componente',
+          desc: c.nombre || T('fact.linea_componente'),
           cantidad: parseFloat(c.cantidad) || 1,
           precio: parseFloat(c.precio) || 0,
           total: (parseFloat(c.cantidad) || 1) * (parseFloat(c.precio) || 0)
@@ -472,7 +471,7 @@
       // Si no hay servicios ni componentes, una sola línea
       if (lineas.length === 0) {
         lineas.push({
-          desc: 'Reparación ' + (d.marca || '') + ' ' + (d.modelo || ''),
+          desc: T('fact.linea_reparacion').replace('{marca}', d.marca || '').replace('{modelo}', d.modelo || ''),
           cantidad: 1,
           precio: parseFloat(d.total) || 0,
           total: parseFloat(d.total) || 0
@@ -600,32 +599,32 @@
     var metodo = d.pagoFinal || d.pago || '';
     var fecha = '';
     try { fecha = new Date().toLocaleDateString(localStorage.getItem('tp_lang') || 'es', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch (e) { fecha = new Date().toISOString().slice(0, 10); }
-    var nomTienda = emi.nombre || 'Mi Tienda';
+    var nomTienda = emi.nombre || T('gen.mi_tienda_2');
     var telTienda = emi.tel || '';
     var dirTienda = emi.dir || '';
     var fmt = (typeof _fmtEur === 'function') ? _fmtEur : function(v) { return (v || 0).toFixed(2) + ' €'; };
     var row = function(k, v) { return '<div style="display:flex;justify-content:space-between;gap:10px;margin:2px 0"><span style="color:#555">' + k + '</span><span style="font-weight:600;text-align:right">' + _esc(v) + '</span></div>'; };
-    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Ticket</title><style>' +
+    var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + T('ticket.titulo_pagina') + '</title><style>' +
       '@media print{.npb{display:none!important}}' +
       '@page{size:80mm auto;margin:0}html{margin:0}body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:80mm;margin:0;padding:6mm 5mm;color:#000;font-size:11.5px;line-height:1.45}' +
       'h2{font-size:15px;text-align:center;margin:0 0 2px}.muted{color:#555;text-align:center;font-size:10.5px}hr{border:none;border-top:1px dashed #999;margin:8px 0}.tot{font-size:15px;font-weight:800;display:flex;justify-content:space-between;margin-top:4px}.foot{text-align:center;color:#777;font-size:9.5px;margin-top:10px}' +
       '</style></head><body>' +
-      '<div class="npb" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;text-align:center;padding:7px;font-size:11px">Si sale pequeño: Escala 100%, Papel = tu rollo. <button onclick="window.print()" style="margin-left:6px;background:#FF5B1F;color:#fff;border:none;border-radius:5px;padding:4px 12px;font:inherit;font-weight:700;cursor:pointer">🖨️ Imprimir</button></div>' +
+      '<div class="npb" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;text-align:center;padding:7px;font-size:11px">' + T('ticket.print_hint') + '<button onclick="window.print()" style="margin-left:6px;background:#FF5B1F;color:#fff;border:none;border-radius:5px;padding:4px 12px;font:inherit;font-weight:700;cursor:pointer">' + T('ticket.imprimir') + '</button></div>' +
       '<h2>' + _esc(nomTienda) + '</h2>' +
       (dirTienda || telTienda ? '<div class="muted">' + _esc([dirTienda, telTienda].filter(Boolean).join(' · ')) + '</div>' : '') +
-      '<div class="muted" style="margin-top:4px">' + _esc(esRep ? 'RECIBO DE REPARACIÓN' : 'RECIBO') + ' · ' + _esc(fecha) + '</div>' +
+      '<div class="muted" style="margin-top:4px">' + _esc(esRep ? T('ticket.recibo_reparacion') : T('ticket.recibo')) + ' · ' + _esc(fecha) + '</div>' +
       '<hr>' +
-      (nombre ? row('Cliente', nombre) : '') +
-      (tel ? row('Teléfono', tel) : '') +
-      (esRep && equipo ? row('Equipo', equipo) : '') +
-      (esRep && averia ? row('Avería', averia) : '') +
-      (metodo ? row('Pago', metodo) : '') +
+      (nombre ? row(T('tk.cliente'), nombre) : '') +
+      (tel ? row(T('ficha.telefono'), tel) : '') +
+      (esRep && equipo ? row(T('tk.equipo'), equipo) : '') +
+      (esRep && averia ? row(T('plant.lbl_averia'), averia) : '') +
+      (metodo ? row(T('ticket.pago'), metodo) : '') +
       '<hr>' +
-      '<div class="tot"><span>TOTAL</span><span>' + fmt(total) + '</span></div>' +
-      '<div class="foot">Este documento no es una factura.<br>' + _esc(nomTienda) + '</div>' +
+      '<div class="tot"><span>' + T('pres.doc_total') + '</span><span>' + fmt(total) + '</span></div>' +
+      '<div class="foot">' + T('ticket.no_es_factura') + '<br>' + _esc(nomTienda) + '</div>' +
       '</body></html>';
     var w = window.open('', '_blank', 'width=420,height=640');
-    if (!w) { _toast('Permite las ventanas emergentes para imprimir', 'err'); return; }
+    if (!w) { _toast(T('pres.popup_bloqueado'), 'err'); return; }
     w.document.write(html); w.document.close();
     if (typeof window.cerrarModalFactura === 'function') window.cerrarModalFactura();
   }
@@ -635,7 +634,7 @@
     var d = FACT.datos || {};
     var emi = (typeof window.TIENDA !== 'undefined' && window.TIENDA) || {};
     var cli = d.cliente || {};
-    if (((cli.tel || cli.telefono || '') + '').replace(/\D/g, '').length < 6) { _toast('El cliente no tiene teléfono', 'err'); return; }
+    if (((cli.tel || cli.telefono || '') + '').replace(/\D/g, '').length < 6) { _toast(T('ticket.sin_telefono'), 'err'); return; }
     var tel = ((cli.telPrefijo || '+34') + (cli.tel || cli.telefono || '')).replace(/[^0-9]/g, '');
     var nombre = (cli.nombre || '').trim().split(' ')[0] || '';
     var esRep = FACT.origen === 'reparacion';
@@ -643,14 +642,14 @@
     var total = parseFloat(d.total) || 0;
     var metodo = d.pagoFinal || d.pago || '';
     var fmt = (typeof _fmtEur === 'function') ? _fmtEur : function(v) { return (v || 0).toFixed(2) + ' €'; };
-    var nomTienda = emi.nombre || 'Mi Tienda';
-    var L = ['*' + nomTienda + '*', esRep ? 'Recibo de reparación' : 'Recibo', ''];
-    if (nombre) L.push('Hola ' + nombre + ',');
-    if (esRep && equipo) L.push('Equipo: ' + equipo);
-    if (esRep && d.averia) L.push('Avería: ' + d.averia);
-    L.push('Total: ' + fmt(total));
-    if (metodo) L.push('Pago: ' + metodo);
-    L.push('', 'Gracias por confiar en nosotros.');
+    var nomTienda = emi.nombre || T('gen.mi_tienda_2');
+    var L = ['*' + nomTienda + '*', esRep ? T('ticket.wa_recibo_reparacion') : T('ticket.wa_recibo'), ''];
+    if (nombre) L.push(T('ticket.wa_hola').replace('{nombre}', nombre));
+    if (esRep && equipo) L.push(T('ticket.wa_equipo').replace('{equipo}', equipo));
+    if (esRep && d.averia) L.push(T('ticket.wa_averia').replace('{averia}', d.averia));
+    L.push(T('ticket.wa_total').replace('{total}', fmt(total)));
+    if (metodo) L.push(T('ticket.wa_pago').replace('{metodo}', metodo));
+    L.push('', T('ticket.wa_gracias'));
     window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(L.join('\n')), '_blank');
     if (typeof window.cerrarModalFactura === 'function') window.cerrarModalFactura();
   };
@@ -665,7 +664,7 @@
     if (FACT.tipo === 'completa') {
       // El emisor (tu tienda) también necesita CIF: sin él la factura completa es inválida.
       if (!(_snapshotEmisor().cif || '').trim()) {
-        _toast(_Tf('fact.falta_dato').replace('{c}', 'CIF de tu tienda (Ajustes › datos fiscales)'), 'err');
+        _toast(_Tf('fact.falta_dato').replace('{c}', T('fact.falta_cif_tienda')), 'err');
         return;
       }
       var snap = _snapshotCliente();
@@ -685,7 +684,7 @@
       }
     }
 
-    if (btn) { btn.disabled = true; btn.textContent = 'Emitiendo...'; }
+    if (btn) { btn.disabled = true; btn.textContent = T('fact.emitiendo'); }
 
     var d = FACT.datos;
     var total = parseFloat(d.total) || 0;
@@ -724,13 +723,13 @@
         window.cerrarModalFactura();
         window.__ultimaFactura = f;
         try { window.generarFacturaPDF(f); } catch (e) { console.warn('[factura.js] PDF:', e); }
-        try { window.mostrarOpcionesEnvioFactura(f); } catch (e) { _toast('✓ Factura ' + f.numero + ' emitida', 'ok'); }
+        try { window.mostrarOpcionesEnvioFactura(f); } catch (e) { _toast(T('fact.emitida_ok').replace('{num}', f.numero), 'ok'); }
       });
     }).catch(function(err) {
       console.error('Error emitiendo factura:', err);
       _toast('Error: ' + err.message, 'err');
     }).then(function() {
-      if (btn) { btn.disabled = false; btn.textContent = '✓ Emitir factura'; }
+      if (btn) { btn.disabled = false; btn.textContent = T('fact.emitir_2'); }
     });
   };
 
@@ -785,11 +784,11 @@
     var c = _buscarContactoCliente(f);
     var tel = _normalizarTel(c.tel);
     if (!tel) {
-      _toast('Este cliente no tiene teléfono guardado', 'err');
+      _toast(T('fact.sin_tel_guardado'), 'err');
       return;
     }
     var emi = (f && f.emisor_snapshot) || {};
-    var tienda = emi.nombre || emi.razon_social || 'nuestra tienda';
+    var tienda = emi.nombre || emi.razon_social || T('notif.nuestra_tienda');
     var total = (parseFloat(f.total) || 0).toFixed(2).replace('.', ',');
     var msg = FL().waMsg(c.nombre, f.numero, total, tienda);
     var url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(msg);
@@ -800,11 +799,11 @@
   window.enviarFacturaEmail = function(f) {
     var c = _buscarContactoCliente(f);
     if (!c.email) {
-      _toast('Este cliente no tiene email guardado', 'err');
+      _toast(T('fact.sin_email_guardado'), 'err');
       return;
     }
     var btn = document.getElementById('btnEnvEmail');
-    if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+    if (btn) { btn.disabled = true; btn.textContent = T('gen.enviando'); }
 
     window.generarFacturaPDFDoc(f).then(function(doc) {
       // base64 sin el prefijo data:...;base64,
@@ -823,7 +822,7 @@
         body: JSON.stringify({
           tipo: 'factura',
           email: c.email,
-          nombreCliente: c.nombre || 'Cliente',
+          nombreCliente: c.nombre || T('tk.cliente'),
           numero: f.numero || '',
           total: (parseFloat(f.total) || 0).toFixed(2).replace('.', ','),
           tienda: tienda,
@@ -835,19 +834,19 @@
       return r.json().then(function(data) { return { ok: r.ok, data: data }; });
     }).then(function(res) {
       if (res.ok && res.data && res.data.ok) {
-        _toast('Factura enviada a ' + c.email, 'ok');
+        _toast(T('fact.enviada_a').replace('{email}', c.email), 'ok');
         if (window.registrarAviso) window.registrarAviso({ tipo:'factura_enviada', canal:'email', destinatario:c.email, ref_tipo:'factura', ref_id:(f.reparacion_id||f.rep_id||f.id||null), asunto:'Factura ' + (f.numero||'') + ' enviada por email' });
         var m = document.getElementById('mEnvioFactura');
         if (m) m.remove();
       } else {
-        var msg = (res.data && (res.data.error || res.data.message)) || 'Error al enviar';
+        var msg = (res.data && (res.data.error || res.data.message)) || T('ayuda.error_enviar');
         _toast('Error: ' + msg, 'err');
       }
     }).catch(function(err) {
       console.error('[factura.js] Error email:', err);
-      _toast('Error al generar o enviar el PDF', 'err');
+      _toast(T('fact.error_pdf'), 'err');
     }).then(function() {
-      if (btn) { btn.disabled = false; btn.textContent = '📧 Enviar por Email'; }
+      if (btn) { btn.disabled = false; btn.textContent = T('fact.enviar_email'); }
     });
   };
 
@@ -861,16 +860,16 @@
     var html = '' +
       '<div id="mEnvioFactura" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:10000;display:flex;align-items:center;justify-content:center">' +
         '<div style="background:white;max-width:380px;width:90%;border-radius:14px;padding:22px;text-align:center;font-family:inherit">' +
-          '<div style="font-size:18px;font-weight:800;color:#10B981;margin-bottom:6px">✓ Factura ' + _esc(f.numero || '') + ' emitida</div>' +
-          '<div style="font-size:13px;color:#64748B;margin-bottom:18px">¿Quieres enviarla al cliente?</div>' +
+          '<div style="font-size:18px;font-weight:800;color:#10B981;margin-bottom:6px">' + T('fact.emitida_ok').replace('{num}', _esc(f.numero || '')) + '</div>' +
+          '<div style="font-size:13px;color:#64748B;margin-bottom:18px">' + T('fact.enviar_al_cliente') + '</div>' +
           '<div style="display:flex;flex-direction:column;gap:10px">' +
             (tieneTel ?
-              '<button onclick="window.enviarFacturaWhatsApp(window.__ultimaFactura)" style="padding:12px;border:none;border-radius:8px;background:#25D366;color:white;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">📱 Enviar por WhatsApp</button>'
-              : '<button disabled style="padding:12px;border:none;border-radius:8px;background:#E5E7EB;color:#9CA3AF;font-weight:700;font-size:14px;font-family:inherit">📱 Sin teléfono guardado</button>') +
+              '<button onclick="window.enviarFacturaWhatsApp(window.__ultimaFactura)" style="padding:12px;border:none;border-radius:8px;background:#25D366;color:white;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">' + T('fact.enviar_whatsapp') + '</button>'
+              : '<button disabled style="padding:12px;border:none;border-radius:8px;background:#E5E7EB;color:#9CA3AF;font-weight:700;font-size:14px;font-family:inherit">' + T('fact.sin_tel_badge') + '</button>') +
             (tieneEmail ?
-              '<button id="btnEnvEmail" onclick="window.enviarFacturaEmail(window.__ultimaFactura)" style="padding:12px;border:none;border-radius:8px;background:#0055FF;color:white;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">📧 Enviar por Email</button>'
-              : '<button disabled style="padding:12px;border:none;border-radius:8px;background:#E5E7EB;color:#9CA3AF;font-weight:700;font-size:14px;font-family:inherit">📧 Sin email guardado</button>') +
-            '<button onclick="document.getElementById(\'mEnvioFactura\').remove()" style="padding:10px;border:1px solid #E5E7EB;border-radius:8px;background:white;color:#64748B;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit">Cerrar</button>' +
+              '<button id="btnEnvEmail" onclick="window.enviarFacturaEmail(window.__ultimaFactura)" style="padding:12px;border:none;border-radius:8px;background:#0055FF;color:white;font-weight:700;font-size:14px;cursor:pointer;font-family:inherit">' + T('fact.enviar_email') + '</button>'
+              : '<button disabled style="padding:12px;border:none;border-radius:8px;background:#E5E7EB;color:#9CA3AF;font-weight:700;font-size:14px;font-family:inherit">' + T('fact.sin_email_badge') + '</button>') +
+            '<button onclick="document.getElementById(\'mEnvioFactura\').remove()" style="padding:10px;border:1px solid #E5E7EB;border-radius:8px;background:white;color:#64748B;font-weight:600;font-size:13px;cursor:pointer;font-family:inherit">' + T('gen.cerrar_2') + '</button>' +
           '</div>' +
         '</div>' +
       '</div>';
@@ -931,7 +930,7 @@
           doc.setFillColor(16, 185, 129);
           doc.rect(0, 0, W, 96, 'F');
 
-          var emiNombre = emi.razon_social || emi.nombre || (window.TIENDA && window.TIENDA.nombre) || 'Mi Tienda';
+          var emiNombre = emi.razon_social || emi.nombre || (window.TIENDA && window.TIENDA.nombre) || T('gen.mi_tienda_2');
           if (logoB64) {
             try {
               var fmt = logoB64.indexOf('image/png') >= 0 ? 'PNG' : (logoB64.indexOf('image/webp') >= 0 ? 'WEBP' : 'JPEG');
@@ -962,8 +961,8 @@
           doc.setTextColor(26,26,46); doc.setFont('helvetica','bold'); doc.setFontSize(11);
           doc.text(emiNombre, margin, y);
           var cliNombre = esSimplificada
-            ? (((cli.nombre||'') + ' ' + (cli.apellidos||'')).trim() || 'Cliente')
-            : (cli.nombre_fiscal || 'Cliente');
+            ? (((cli.nombre||'') + ' ' + (cli.apellidos||'')).trim() || T('tk.cliente'))
+            : (cli.nombre_fiscal || T('tk.cliente'));
           doc.text(cliNombre, W/2 + 10, y);
           y += 14;
 
@@ -996,7 +995,7 @@
 
           var od = f.origen_detalle || {};
           if (od.marca || od.modelo || od.imei || od.averia) {
-            var aptNom = [od.marca, od.modelo].filter(Boolean).join(' ') || 'Dispositivo';
+            var aptNom = [od.marca, od.modelo].filter(Boolean).join(' ') || T('fact.dispositivo_default');
             doc.setFillColor(255, 247, 237);
             doc.rect(margin, y, W - margin*2, od.averia ? 44 : 30, 'F');
             doc.setFillColor(245, 158, 11);
@@ -1065,7 +1064,7 @@
   }
 
   window.generarFacturaPDF = function(f) {
-    if (!f) { _toast('No hay datos de factura para el PDF', 'err'); return; }
+    if (!f) { _toast(T('fact.sin_datos_pdf'), 'err'); return; }
 
     var emi = f.emisor_snapshot || {};
     var cli = f.cliente_snapshot || {};
@@ -1080,7 +1079,7 @@
     } catch (e) {}
 
     // Datos emisor
-    var emiNombre = emi.razon_social || emi.nombre || 'Mi Tienda';
+    var emiNombre = emi.razon_social || emi.nombre || T('gen.mi_tienda_2');
     var emiLogo = emi.logo || (window.TIENDA && window.TIENDA.logo_url) || '';
     var emiLineas = [];
     if (emi.cif) emiLineas.push('CIF/NIF: ' + emi.cif);
@@ -1094,11 +1093,11 @@
     // Datos cliente
     var cliNombre, cliLineas = [];
     if (esSimplificada) {
-      cliNombre = ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim() || 'Cliente';
+      cliNombre = ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim() || T('tk.cliente');
       if (cli.nif) cliLineas.push('NIF: ' + cli.nif);
       if (cli.tel) cliLineas.push('Tel: ' + cli.tel);
     } else {
-      cliNombre = cli.nombre_fiscal || 'Cliente';
+      cliNombre = cli.nombre_fiscal || T('tk.cliente');
       if (cli.nif) cliLineas.push('NIF/CIF: ' + cli.nif);
       if (cli.tel) cliLineas.push('Tel: ' + cli.tel);
       if (cli.dir_fiscal) cliLineas.push(cli.dir_fiscal);
@@ -1135,7 +1134,7 @@
     if (od.marca || od.modelo || od.imei || od.averia) {
       var aparatoNom = [od.marca, od.modelo].filter(Boolean).join(' ');
       aptHtml = '<div class="aparato"><h3>' + (od.averia ? FL().aparato : FL().dispositivo) + '</h3>' +
-        '<div class="apt-row"><strong>' + _esc(aparatoNom || 'Dispositivo') + '</strong>' +
+        '<div class="apt-row"><strong>' + _esc(aparatoNom || T('fact.dispositivo_default')) + '</strong>' +
         (od.imei ? ' &middot; IMEI: ' + _esc(od.imei) : '') + '</div>' +
         (od.averia ? '<div class="apt-averia">Aver\u00eda: ' + _esc(od.averia) + '</div>' : '') +
         '</div>';
@@ -1143,7 +1142,7 @@
 
     var html =
       '<!DOCTYPE html><html lang="es"><head><meta charset="UTF-8">' +
-      '<title>Factura ' + _esc(f.numero) + '</title>' +
+      '<title>' + T('fact.titulo_pagina').replace('{num}', _esc(f.numero)) + '</title>' +
       '<style>' +
       '* { margin:0; padding:0; box-sizing:border-box; }' +
       'body { font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; color:#1a1a2e; padding:32px 40px; font-size:13px; line-height:1.5; }' +
@@ -1184,18 +1183,18 @@
       '<div class="cab">' +
         '<div class="marca-wrap">' +
           (emiLogo ? '<img class="logo-img" src="' + _esc(emiLogo) + '" alt="">' : '') +
-          '<div class="marca">' + _esc(emiNombre) + '<span class="sub">' + (emi.web ? _esc(emi.web) : 'Factura') + '</span></div>' +
+          '<div class="marca">' + _esc(emiNombre) + '<span class="sub">' + (emi.web ? _esc(emi.web) : T('fact.subtitulo_factura')) + '</span></div>' +
         '</div>' +
         '<div class="doc-meta">' +
           '<div class="tipo">' + tituloDoc + '</div>' +
           '<div class="numero">' + _esc(f.numero) + '</div>' +
           '<div class="fecha">'+FL().fecha+': ' + _esc(fechaTxt) + '</div>' +
-          (esAbono && f.rectifica_numero ? '<div class="rectif">Rectifica a: ' + _esc(f.rectifica_numero) + '</div>' : '') +
+          (esAbono && f.rectifica_numero ? '<div class="rectif">' + T('fact.rectifica_a').replace('{num}', _esc(f.rectifica_numero)) + '</div>' : '') +
         '</div>' +
       '</div>' +
       '<div class="bloques">' +
-        '<div class="bloque"><h3>Emisor</h3><div class="nom">' + _esc(emiNombre) + '</div>' + emiInfoHtml + '</div>' +
-        '<div class="bloque"><h3>' + (esSimplificada ? 'Cliente' : 'Facturar a') + '</h3><div class="nom">' + _esc(cliNombre) + '</div>' + cliInfoHtml + '</div>' +
+        '<div class="bloque"><h3>' + T('fact.emisor_lbl') + '</h3><div class="nom">' + _esc(emiNombre) + '</div>' + emiInfoHtml + '</div>' +
+        '<div class="bloque"><h3>' + (esSimplificada ? T('tk.cliente') : T('fact.facturar_a')) + '</h3><div class="nom">' + _esc(cliNombre) + '</div>' + cliInfoHtml + '</div>' +
       '</div>' +
       aptHtml +
       '<table><thead><tr>' +
@@ -1207,8 +1206,8 @@
         '<div class="fila total"><span>TOTAL</span><span>' + _fmtImporte(f.total) + '</span></div>' +
       '</div></div>' +
       '<div class="pie">' +
-        (f.metodo_pago ? '<div class="pago">Forma de pago: ' + _esc(f.metodo_pago) + '</div>' : '') +
-        '<div>Documento generado por TekPair. Conserve esta factura como justificante.</div>' +
+        (f.metodo_pago ? '<div class="pago">' + T('fact.forma_pago').replace('{metodo}', _esc(f.metodo_pago)) + '</div>' : '') +
+        '<div>' + T('fact.pie_documento') + '</div>' +
       '</div>' +
       '<script>window.onload=function(){setTimeout(function(){window.print();},250);};<\/script>' +
       '</body></html>';
@@ -1222,20 +1221,20 @@
       var _blob = new Blob([html], { type: 'text/html' });
       var _burl = URL.createObjectURL(_blob);
       var w = window.open(_burl, '_blank');
-      if (!w) { _toast('Activa las ventanas emergentes para ver el PDF', 'err'); URL.revokeObjectURL(_burl); return; }
+      if (!w) { _toast(T('fact.activa_popups_pdf'), 'err'); URL.revokeObjectURL(_burl); return; }
       setTimeout(function () { try { URL.revokeObjectURL(_burl); } catch (e) {} }, 60000);
     } catch (e) {
       // Fallback al método clásico si Blob/URL no estuvieran disponibles.
       var w2 = window.open('', '_blank');
-      if (!w2) { _toast('Activa las ventanas emergentes para ver el PDF', 'err'); return; }
+      if (!w2) { _toast(T('fact.activa_popups_pdf'), 'err'); return; }
       w2.document.open(); w2.document.write(html); w2.document.close();
     }
   };
 
   // ────────── Emitir factura rectificativa (abono) ──────────
   window.emitirAbonoFactura = function(orig) {
-    if (!orig || !orig.id) { _toast('Factura original no válida', 'err'); return; }
-    if (orig.rectifica_a) { _toast('Esto ya es un abono, no se puede abonar', 'err'); return; }
+    if (!orig || !orig.id) { _toast(T('fact.original_invalida'), 'err'); return; }
+    if (orig.rectifica_a) { _toast(T('fact.ya_es_abono'), 'err'); return; }
 
     _obtenerSiguienteNumero(2).then(function(numInfo) {
       // Líneas con importes negativos
@@ -1273,7 +1272,7 @@
       };
 
       return _postFacturaIdempotente(payload).then(function(ab) {
-        _toast('✓ Abono ' + ab.numero + ' generado', 'ok');
+        _toast(T('fact.abono_generado').replace('{num}', ab.numero), 'ok');
         // F202: referencia bidireccional — marcar la factura original como rectificada por este abono.
         // Best-effort: si la columna 'rectificada_por' aún no existe, falla en silencio (el badge
         // "Abonada" ya funciona por lookup inverso). SQL: alter table facturas add column rectificada_por text;
@@ -1290,7 +1289,7 @@
       });
     }).catch(function(err) {
       console.error('Error generando abono:', err);
-      _toast('Error generando abono: ' + err.message, 'err');
+      _toast(T('fact.error_abono').replace('{msg}', err.message), 'err');
     });
   };
 })();
