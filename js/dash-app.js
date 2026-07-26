@@ -16417,6 +16417,11 @@ async function _pullTiendaCompleta() {
       plantillasRep: (t.plantillas_rep ? (typeof t.plantillas_rep === 'string' ? JSON.parse(t.plantillas_rep) : t.plantillas_rep) : null),
       logo_url: t.logo_url || '',
       citas_slug: t.citas_slug || '',
+      // BUG B: horarios y citas_config del servidor deben volver al panel (antes se omitían aquí y
+      // al reescribir tk_tienda se perdían → el editor de citas mostraba duración/horario por
+      // defecto y podía guardarlos machacando los reales). El servidor es la fuente de verdad.
+      horarios: (t.horarios != null) ? (typeof t.horarios === 'string' ? JSON.parse(t.horarios) : t.horarios) : (TIENDA.horarios),
+      citas_config: (t.citas_config != null) ? (typeof t.citas_config === 'string' ? JSON.parse(t.citas_config) : t.citas_config) : (TIENDA.citas_config),
       cobroDatos: (t.cobro_datos ? (typeof t.cobro_datos === 'string' ? JSON.parse(t.cobro_datos) : t.cobro_datos) : {})
     };
     Object.assign(TIENDA, tiendaData);
@@ -19746,7 +19751,12 @@ async function syncCitas() {
     var resp = await fetch(url, { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + (JWT_TOKEN || SB_KEY) } });
     if (!resp.ok) { console.warn('Sync citas HTTP', resp.status); return; }
     var rows = await resp.json();
-    DB.citas = Array.isArray(rows) ? rows : [];
+    var _rows = Array.isArray(rows) ? rows : [];
+    // Sync NO destructivo: preserva las citas creadas localmente que AÚN no están en el servidor
+    // (guardado pendiente/en cola). Antes `DB.citas = rows` las borraba antes de que aterrizaran.
+    var _sids = {}; _rows.forEach(function(r){ if (r && r.id) _sids[r.id] = 1; });
+    var _pend = (DB.citas || []).filter(function(c){ return c && c._pend && !_sids[c.id]; });
+    DB.citas = _pend.length ? _rows.concat(_pend) : _rows;
     guardarDatos();
     renderCitas();
     actualizarBadgeCitas();
@@ -19919,7 +19929,9 @@ async function cambiarEstadoCita(id, nuevo) {
   c.estado = nuevo;
   guardarDatos();
   if (SB_KEY && TIENDA_ID) {
-    try { await sbPatch('citas', 'id=eq.' + id, {estado: nuevo}); } catch(e){}
+    var _okE = true;
+    try { _okE = await sbPatch('citas', 'id=eq.' + id, {estado: nuevo}); } catch(e){ _okE = false; }
+    if (_okE === false) { toast('El cambio no se guardó en la nube; puede revertirse al sincronizar. Reinténtalo.', 'err', 4500); return; }
   }
   toast(T('tst.estado_prefijo') + ': ' + nuevo, 'ok');
   if (typeof audit === 'function') audit('cambio_estado', 'cita', id, c.cliente_nombre + ' → ' + nuevo, null);
@@ -19933,7 +19945,9 @@ async function eliminarCita(id) {
   DB.citas = (DB.citas || []).filter(function(x){ return x.id !== id; });
   guardarDatos();
   if (SB_KEY && TIENDA_ID) {
-    try { await sbDelete('citas', 'id=eq.' + id); } catch(e){}
+    var _okD = true;
+    try { _okD = await sbDelete('citas', 'id=eq.' + id); } catch(e){ _okD = false; }
+    if (_okD === false) { toast('No se pudo borrar en la nube; la cita puede reaparecer al sincronizar.', 'err', 4500); }
   }
   toast(T('tst.cita_eliminada'), 'ok');
   if (typeof audit === 'function') audit('eliminar', 'cita', id, c ? c.cliente_nombre : id, null);
@@ -20280,13 +20294,17 @@ async function guardarCitaAdmin() {
   guardarDatos();
   
   if (SB_KEY && TIENDA_ID) {
-    try {
-      await sbPost('citas', nuevaCita);
-    } catch(e) {
-      console.warn('Cita guardada localmente, error sync:', e);
+    var _okCita = false;
+    try { _okCita = await sbPost('citas', nuevaCita); } catch(e) { console.warn('Cita sync:', e); }
+    // Si el guardado en la nube no confirmó, marcar la cita como PENDIENTE (solo en local; el flag
+    // NO se envía) para que syncCitas no la borre antes de que su escritura aterrice/reintente.
+    if (_okCita === false) {
+      nuevaCita._pend = true;
+      guardarDatos();
+      toast('Cita guardada en este equipo; aún no confirmada en la nube (se reintentará).', 'err', 4500);
     }
   }
-  
+
   if (typeof audit === 'function') audit('crear', 'cita', nuevaCita.id, nombre + ' ' + fecha + ' ' + hora, null);
   
   toast(T('tst.cita_creada'), 'ok');

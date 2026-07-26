@@ -426,7 +426,8 @@ async function cargarSlots() {
     }
     var cfg = STATE.tienda.citas_config;
     if (typeof cfg === 'string') cfg = JSON.parse(cfg);
-    var duracion = (cfg && cfg.duracion_min) || 30;
+    // Duración del SERVICIO elegido si la tiene (un servicio de 60 min reserva 60 min); si no, la global.
+    var duracion = (STATE.servicio && parseInt(STATE.servicio.duracion_min, 10)) || (cfg && cfg.duracion_min) || 30;
 
     var slots = [];
     hor.tramos.forEach(function(tr, idx) {
@@ -603,7 +604,7 @@ async function confirmarCita() {
   if (typeof cfg === 'string') {
     try { cfg = JSON.parse(cfg); } catch(e){ cfg = null; }
   }
-  var dur = (cfg && cfg.duracion_min) || 30;
+  var dur = (STATE.servicio && parseInt(STATE.servicio.duracion_min, 10)) || (cfg && cfg.duracion_min) || 30;
 
   try {
     var r = await apiCall('crear-cita', {
