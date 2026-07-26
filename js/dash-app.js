@@ -11873,23 +11873,36 @@ function imprimirStock() {
   var verVal = (typeof _esAdmin === 'function') ? _esAdmin() : (typeof U !== 'undefined' && U && U.rol === 'admin');
   var totalUds = 0, totalProd = 0, totalVal = 0, totalValV = 0;
   var _thVal = verVal ? '<th class="vh">' + escHtml(T('stock.inv_valor')) + '</th><th class="vh">' + escHtml(T('stock.inv_pvp')) + '</th>' : '';
+  var _cols = verVal ? 4 : 2;
   var cuerpo = cats.map(function (c) {
-    var arr = grupos[c].slice().sort(function (a, b) { return _stockNombre(a).localeCompare(_stockNombre(b)); });
+    var arr = grupos[c];
     var sub = arr.reduce(function (a, s) { return a + (parseInt(s.unidades, 10) || 0); }, 0);
     var subVal = arr.reduce(function (a, s) { return a + (parseInt(s.unidades, 10) || 0) * (parseFloat(s.precioC) || 0); }, 0);
     var subValV = arr.reduce(function (a, s) { return a + (parseInt(s.unidades, 10) || 0) * (parseFloat(s.precioV) || 0); }, 0);
     totalUds += sub; totalProd += arr.length; totalVal += subVal; totalValV += subValV;
-    var rows = arr.map(function (s) {
-      var nom = _stockNombre(s) || ((s.marca || '') + ' ' + (s.modelo || '')).trim();
-      var extra = s.imei ? ' · IMEI ' + escHtml(s.imei) : '';
-      var uds = parseInt(s.unidades, 10) || 0;
-      var celdasVal = '';
-      if (verVal) {
-        var val = uds * (parseFloat(s.precioC) || 0);
-        var valV = uds * (parseFloat(s.precioV) || 0);
-        celdasVal = '<td class="v">' + (val > 0 ? cur(val) : '—') + '</td><td class="v">' + (valV > 0 ? cur(valV) : '—') + '</td>';
-      }
-      return '<tr><td>' + escHtml(nom) + extra + '</td><td class="u">' + uds + '</td>' + celdasVal + '</tr>';
+    // Sub-agrupar por MARCA (alfabético) y, dentro de cada marca, ORDENAR por modelo.
+    var porMarca = {};
+    arr.forEach(function (s) { var mk = ((s.marca || '') + '').trim() || '—'; (porMarca[mk] = porMarca[mk] || []).push(s); });
+    var marcas = Object.keys(porMarca).sort(function (a, b) { return a.localeCompare(b); });
+    var rows = marcas.map(function (mk) {
+      var arrM = porMarca[mk].slice().sort(function (a, b) {
+        return ((a.modelo || '').localeCompare(b.modelo || '')) || ((a.capacidad || '').localeCompare(b.capacidad || '')) || ((a.color || '').localeCompare(b.color || ''));
+      });
+      var udsMarca = arrM.reduce(function (a, s) { return a + (parseInt(s.unidades, 10) || 0); }, 0);
+      var head = '<tr class="marca"><td colspan="' + _cols + '">' + escHtml(mk) + ' · ' + udsMarca + ' ' + escHtml(T('stock.inv_ud')) + '</td></tr>';
+      var filas = arrM.map(function (s) {
+        var det = [s.modelo, s.capacidad, s.color].filter(Boolean).join(' ').trim() || _stockNombre(s) || (s.modelo || '');
+        var extra = s.imei ? ' · IMEI ' + escHtml(s.imei) : '';
+        var uds = parseInt(s.unidades, 10) || 0;
+        var celdasVal = '';
+        if (verVal) {
+          var val = uds * (parseFloat(s.precioC) || 0);
+          var valV = uds * (parseFloat(s.precioV) || 0);
+          celdasVal = '<td class="v">' + (val > 0 ? cur(val) : '—') + '</td><td class="v">' + (valV > 0 ? cur(valV) : '—') + '</td>';
+        }
+        return '<tr><td class="mod">' + escHtml(det) + extra + '</td><td class="u">' + uds + '</td>' + celdasVal + '</tr>';
+      }).join('');
+      return head + filas;
     }).join('');
     var subtRow = verVal ? '<tr class="subt"><td>' + escHtml(T('stock.inv_subtotal')) + '</td><td class="u">' + sub + '</td><td class="v">' + cur(subVal) + '</td><td class="v">' + cur(subValV) + '</td></tr>' : '';
     return '<h2>' + escHtml(_pedCatLabel(c)) + ' · ' + sub + ' ' + escHtml(T('stock.inv_ud')) + '</h2>' +
@@ -11904,6 +11917,7 @@ function imprimirStock() {
     'th{text-align:left;font-size:11px;color:#666;border-bottom:2px solid #ddd;padding:6px 8px}th.uh,th.vh{text-align:right}' +
     'td{padding:5px 8px;border-bottom:1px solid #eee;font-size:12.5px}td.u{text-align:right;font-weight:700;white-space:nowrap}td.v{text-align:right;white-space:nowrap;color:#333}' +
     'tr.subt td{border-top:2px solid #ccc;border-bottom:none;font-weight:800;color:#020B2E}' +
+    'tr.marca td{background:#eef1f7;font-weight:800;font-size:12px;color:#020B2E;padding:5px 8px;-webkit-print-color-adjust:exact;print-color-adjust:exact}td.mod{padding-left:18px}' +
     '.grand{margin-top:18px;background:#f4f6fb;border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;font-size:16px;font-weight:800;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
     '@media print{h2,.grand{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + escHtml(T('stock.inv_titulo')) + '</title><style>' + css + '</style></head><body>' +
