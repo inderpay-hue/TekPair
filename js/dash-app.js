@@ -3749,14 +3749,23 @@ function _ventasIngresoPorMetodo(ventas, d1, d2) {
 // forma de pago, con los ANTICIPOS en línea aparte (pagos_reparacion tipo='anticipo'). Reutiliza
 // la lógica canónica de ingresos por método (financiado-aware). efectivoEsperado incluye el
 // efectivo de anticipos (un anticipo en efectivo también está en el cajón) para el cuadre.
+// IDs de reparaciones que aún son presupuesto/rechazado: sus anticipos NO cuentan como ingreso
+// (ni en caja ni en reportes) hasta que el presupuesto se acepte y pase a reparación.
+function _idsPresupuesto() {
+  var s = {};
+  (DB.reps || []).forEach(function(r){ if (r && (r.estado === 'Presupuesto' || r.estado === 'Rechazado')) s[r.id] = true; });
+  return s;
+}
 async function cajaDiaResumen(fecha) {
   fecha = fecha || hoyLocal();
   var metodos = _ventasIngresoPorMetodo(DB.ventas || [], fecha, fecha);
   var anticipos = { total: 0, metodos: {} };
   if (SB_KEY && TIENDA_ID) {
     var pr = [];
-    try { pr = await sbGet('pagos_reparacion', 'fecha=eq.' + fecha + '&select=metodo,importe,tipo'); } catch (e) { pr = []; }
+    try { pr = await sbGet('pagos_reparacion', 'fecha=eq.' + fecha + '&select=metodo,importe,tipo,reparacion_id'); } catch (e) { pr = []; }
+    var _pres = _idsPresupuesto();
     (pr || []).forEach(function(p) {
+      if (p.reparacion_id && _pres[p.reparacion_id]) return; // presupuesto no aceptado → no cuenta
       var m = p.metodo || 'Efectivo';
       var imp = parseFloat(p.importe) || 0;
       if (p.tipo === 'anticipo') { anticipos.metodos[m] = (anticipos.metodos[m] || 0) + imp; anticipos.total += imp; }
@@ -5652,6 +5661,8 @@ function renderWidgetSelector() {
     } else {
       try {
         var pagosRep = await sbGet('pagos_reparacion', 'fecha=gte.' + minF + '&fecha=lte.' + maxF) || [];
+        var _presR = _idsPresupuesto();
+        pagosRep = pagosRep.filter(function(p){ return !(p.reparacion_id && _presR[p.reparacion_id]); }); // anticipos de presupuestos no aceptados no cuentan
         tReps = pagosRep.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
         window._pagosRepCache = { key: cacheKey, data: pagosRep, ts: Date.now() };
         _renderStats(tReps, pagosRep);
@@ -6144,7 +6155,9 @@ function renderWidgetCajaDia() {
     var minISO = per.inicio.getFullYear() + '-' + String(per.inicio.getMonth()+1).padStart(2,'0') + '-' + String(per.inicio.getDate()).padStart(2,'0');
     var maxISO = per.fin.getFullYear() + '-' + String(per.fin.getMonth()+1).padStart(2,'0') + '-' + String(per.fin.getDate()).padStart(2,'0');
     sbGet('pagos_reparacion', 'fecha=gte.' + minISO + '&fecha=lte.' + maxISO).then(function(pagosReps){
+      var _presP = _idsPresupuesto();
       (pagosReps || []).forEach(function(p){
+        if (p.reparacion_id && _presP[p.reparacion_id]) return; // presupuesto no aceptado → no cuenta
         var metodo = p.metodo || 'Efectivo';
         if (pagos[metodo] === undefined) pagos[metodo] = 0;
         pagos[metodo] += Number(p.importe||0);
