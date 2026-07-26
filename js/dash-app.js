@@ -7380,7 +7380,9 @@ function editarTotalFinanciado(vid) {
     } else { v.base = nuevo; v.ivaImporte = 0; }
     v.estadoFinanciado = v.cuotas.every(function(c){ return c.pagado; }) ? 'completado' : 'activo';
     guardarDatos();
-    if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { total: v.total, base: v.base, iva_importe: v.ivaImporte, cuotas: JSON.stringify(v.cuotas), estado_financiado: v.estadoFinanciado || 'activo' });
+    // La tabla ventas NO tiene columna estado_financiado (el "completado" se deriva de las cuotas);
+    // enviarla hacía fallar el PATCH entero (PGRST204) → el cambio de total no se guardaba.
+    if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { total: v.total, base: v.base, iva_importe: v.ivaImporte, cuotas: JSON.stringify(v.cuotas) });
     audit('editar', 'venta', vid, '', null);
     toast(T('fin.editado'), 'ok');
     closeM('finModal');
@@ -7423,7 +7425,7 @@ function registrarPagoCuota(vid, cidx) {
       var completado = v.cuotas.every(function(cc) { return cc.pagado; });
       v.estadoFinanciado = completado ? 'completado' : 'activo';
       guardarDatos();
-      if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { cuotas: JSON.stringify(v.cuotas), estado_financiado: v.estadoFinanciado || 'activo' });
+      if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { cuotas: JSON.stringify(v.cuotas) }); // ventas no tiene columna estado_financiado
       if (completado) toast(T('tst.financiado_completado'), 'ok');
       else if (cuotasTocadas > 1) toast('Pago de ' + cur(pago) + ' aplicado a ' + cuotasTocadas + ' cuotas', 'ok');
       else toast('Pago de ' + cur(pago) + ' registrado', 'ok');
