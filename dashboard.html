@@ -209,6 +209,11 @@ body[data-theme="dark"] .cal-nav,
 body[data-theme="dark"] .cal-cell{background:var(--light) !important;color:var(--text) !important;border-color:var(--border) !important}
 /* Nav activo de Ajustes: asegurar texto blanco pleno sobre el acento. */
 body[data-theme="dark"] .aj-nav.active{color:#fff !important}
+/* RED DE SEGURIDAD: cualquier .page hereda texto claro en dark (secciones que fijaban #000/#221D19
+   por regla: Servicios, Proveedores, etc.). Los textos con color propio (accentos inline) se respetan. */
+body[data-theme="dark"] .page{color:var(--text)}
+body[data-theme="dark"] #pInicioNuevo .inv-h1{color:var(--text) !important}
+body[data-theme="dark"] .cat-tab-btn:not(.active){background:var(--light) !important;color:var(--muted) !important;border-color:var(--border) !important}
 /* Inicio V2: el contenedor fija color de texto #221D19 (marrón oscuro) por regla → en dark ilegible.
    Se aclara en el contenedor; los textos con color propio (naranja/verde/rojo inline) se respetan. */
 body[data-theme="dark"] #pInicioNuevo,
