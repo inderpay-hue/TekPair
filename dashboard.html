@@ -179,6 +179,17 @@ body[data-theme="dark"] [style*="color:#0F172A" i],
 body[data-theme="dark"] [style*="color:#0F1729" i],
 body[data-theme="dark"] [style*="color:#334" i],
 body[data-theme="dark"] [style*="color:#111827" i]{color:var(--text) !important}
+/* Badges: en light son pastel-claro + texto de color oscuro; en dark el texto se aclara y el
+   pastel se queda claro → ilegible. Chip neutro legible (el emoji/etiqueta conserva el sentido). */
+body[data-theme="dark"] .badge,
+body[data-theme="dark"] .badge-fin{background:rgba(255,255,255,.09) !important;color:var(--text) !important;border:1px solid var(--border)}
+/* Colored badges de color pleno (verde/rojo/azul sólidos con texto blanco) sí son legibles: se respetan
+   dejando el texto blanco (los que traen background sólido inline con color:#fff/white). */
+body[data-theme="dark"] .badge[style*="color:#fff" i],
+body[data-theme="dark"] .badge[style*="color:white" i]{color:#fff !important}
+/* Pestañas inactivas: fondo claro + texto aclarado → oscurecer el fondo (la activa mantiene su acento). */
+body[data-theme="dark"] .tab:not(.active),
+body[data-theme="dark"] .stock-tab-btn:not(.active){background:var(--light) !important;color:var(--muted) !important;border-color:var(--border) !important}
 
 /* ═══ TEMA: TERRACOTA ═══ */
 body[data-theme="terracota"]{
