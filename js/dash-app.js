@@ -11918,6 +11918,7 @@ function imprimirStock() {
     'td{padding:5px 8px;border-bottom:1px solid #eee;font-size:12.5px}td.u{text-align:right;font-weight:700;white-space:nowrap}td.v{text-align:right;white-space:nowrap;color:#333}' +
     'tr.subt td{border-top:2px solid #ccc;border-bottom:none;font-weight:800;color:#020B2E}' +
     'tr.marca td{background:#eef1f7;font-weight:800;font-size:12px;color:#020B2E;padding:5px 8px;-webkit-print-color-adjust:exact;print-color-adjust:exact}td.mod{padding-left:18px}' +
+    '.foot{margin-top:22px;text-align:center;color:#999;font-size:10.5px}' +
     '.grand{margin-top:18px;background:#f4f6fb;border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;font-size:16px;font-weight:800;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
     '@media print{h2,.grand{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + escHtml(T('stock.inv_titulo')) + '</title><style>' + css + '</style></head><body>' +
@@ -11925,6 +11926,7 @@ function imprimirStock() {
     '<div class="sub">' + escHtml(fecha) + (_filtroTxt ? ' · <b>' + escHtml(_filtroTxt) + '</b>' : '') + ' · ' + totalProd + ' ' + escHtml(T('stock.inv_productos')) + (cats.length > 1 ? ' · ' + cats.length + ' ' + escHtml(T('stock.inv_categorias')) : '') + '</div>' +
     cuerpo +
     '<div class="grand"><span>' + escHtml(T('stock.inv_total')) + '</span><span>' + totalUds + ' ' + escHtml(T('stock.inv_ud')) + (verVal ? ' · ' + escHtml(T('stock.inv_valor')) + ' ' + cur(totalVal) + ' · ' + escHtml(T('stock.inv_pvp')) + ' ' + cur(totalValV) : '') + '</span></div>' +
+    '<div class="foot">' + escHtml(T('stock.inv_generado')) + ' · tekpair.tech</div>' +
     '</body></html>';
   var win = window.open('', '_blank');
   if (!win) { toast(T('stock.inv_popup'), 'err'); return; }
