@@ -11852,21 +11852,31 @@ function imprimirStock() {
   var grupos = {};
   items.forEach(function (s) { var c = s.categoria || 'Otro'; (grupos[c] = grupos[c] || []).push(s); });
   var cats = Object.keys(grupos).sort(function (a, b) { return _pedCatLabel(a).localeCompare(_pedCatLabel(b)); });
-  var totalUds = 0, totalProd = 0, totalVal = 0;
+  // Los valores (coste + PVP) SOLO los ve el administrador; el resto imprime únicamente unidades.
+  var verVal = (typeof _esAdmin === 'function') ? _esAdmin() : (typeof U !== 'undefined' && U && U.rol === 'admin');
+  var totalUds = 0, totalProd = 0, totalVal = 0, totalValV = 0;
+  var _thVal = verVal ? '<th class="vh">' + escHtml(T('stock.inv_valor')) + '</th><th class="vh">' + escHtml(T('stock.inv_pvp')) + '</th>' : '';
   var cuerpo = cats.map(function (c) {
     var arr = grupos[c].slice().sort(function (a, b) { return _stockNombre(a).localeCompare(_stockNombre(b)); });
     var sub = arr.reduce(function (a, s) { return a + (parseInt(s.unidades, 10) || 0); }, 0);
     var subVal = arr.reduce(function (a, s) { return a + (parseInt(s.unidades, 10) || 0) * (parseFloat(s.precioC) || 0); }, 0);
-    totalUds += sub; totalProd += arr.length; totalVal += subVal;
+    var subValV = arr.reduce(function (a, s) { return a + (parseInt(s.unidades, 10) || 0) * (parseFloat(s.precioV) || 0); }, 0);
+    totalUds += sub; totalProd += arr.length; totalVal += subVal; totalValV += subValV;
     var rows = arr.map(function (s) {
       var nom = _stockNombre(s) || ((s.marca || '') + ' ' + (s.modelo || '')).trim();
       var extra = s.imei ? ' · IMEI ' + escHtml(s.imei) : '';
       var uds = parseInt(s.unidades, 10) || 0;
-      var val = uds * (parseFloat(s.precioC) || 0);
-      return '<tr><td>' + escHtml(nom) + extra + '</td><td class="u">' + uds + '</td><td class="v">' + (val > 0 ? cur(val) : '—') + '</td></tr>';
+      var celdasVal = '';
+      if (verVal) {
+        var val = uds * (parseFloat(s.precioC) || 0);
+        var valV = uds * (parseFloat(s.precioV) || 0);
+        celdasVal = '<td class="v">' + (val > 0 ? cur(val) : '—') + '</td><td class="v">' + (valV > 0 ? cur(valV) : '—') + '</td>';
+      }
+      return '<tr><td>' + escHtml(nom) + extra + '</td><td class="u">' + uds + '</td>' + celdasVal + '</tr>';
     }).join('');
-    return '<h2>' + escHtml(_pedCatLabel(c)) + ' · ' + sub + ' ' + escHtml(T('stock.inv_ud')) + (subVal > 0 ? ' · ' + cur(subVal) : '') + '</h2>' +
-      '<table><thead><tr><th>' + escHtml(T('stock.inv_producto')) + '</th><th class="uh">' + escHtml(T('stock.inv_unidades')) + '</th><th class="vh">' + escHtml(T('stock.inv_valor')) + '</th></tr></thead><tbody>' + rows + '</tbody></table>';
+    var subtRow = verVal ? '<tr class="subt"><td>' + escHtml(T('stock.inv_subtotal')) + '</td><td class="u">' + sub + '</td><td class="v">' + cur(subVal) + '</td><td class="v">' + cur(subValV) + '</td></tr>' : '';
+    return '<h2>' + escHtml(_pedCatLabel(c)) + ' · ' + sub + ' ' + escHtml(T('stock.inv_ud')) + '</h2>' +
+      '<table><thead><tr><th>' + escHtml(T('stock.inv_producto')) + '</th><th class="uh">' + escHtml(T('stock.inv_unidades')) + '</th>' + _thVal + '</tr></thead><tbody>' + rows + subtRow + '</tbody></table>';
   }).join('');
   var fecha = '';
   try { fecha = new Date().toLocaleDateString(); } catch (e) {}
@@ -11876,13 +11886,14 @@ function imprimirStock() {
     'table{width:100%;border-collapse:collapse;margin-bottom:2px}' +
     'th{text-align:left;font-size:11px;color:#666;border-bottom:2px solid #ddd;padding:6px 8px}th.uh,th.vh{text-align:right}' +
     'td{padding:5px 8px;border-bottom:1px solid #eee;font-size:12.5px}td.u{text-align:right;font-weight:700;white-space:nowrap}td.v{text-align:right;white-space:nowrap;color:#333}' +
+    'tr.subt td{border-top:2px solid #ccc;border-bottom:none;font-weight:800;color:#020B2E}' +
     '.grand{margin-top:18px;background:#f4f6fb;border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;font-size:16px;font-weight:800;-webkit-print-color-adjust:exact;print-color-adjust:exact}' +
     '@media print{h2,.grand{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + escHtml(T('stock.inv_titulo')) + '</title><style>' + css + '</style></head><body>' +
     '<h1>📦 ' + escHtml(T('stock.inv_titulo')) + ' — ' + escHtml((typeof TIENDA !== 'undefined' && TIENDA.nombre) || '') + '</h1>' +
     '<div class="sub">' + escHtml(fecha) + ' · ' + cats.length + ' ' + escHtml(T('stock.inv_categorias')) + ' · ' + totalProd + ' ' + escHtml(T('stock.inv_productos')) + '</div>' +
     cuerpo +
-    '<div class="grand"><span>' + escHtml(T('stock.inv_total')) + '</span><span>' + totalUds + ' ' + escHtml(T('stock.inv_ud')) + (totalVal > 0 ? ' · ' + cur(totalVal) : '') + '</span></div>' +
+    '<div class="grand"><span>' + escHtml(T('stock.inv_total')) + '</span><span>' + totalUds + ' ' + escHtml(T('stock.inv_ud')) + (verVal ? ' · ' + escHtml(T('stock.inv_valor')) + ' ' + cur(totalVal) + ' · ' + escHtml(T('stock.inv_pvp')) + ' ' + cur(totalValV) : '') + '</span></div>' +
     '</body></html>';
   var win = window.open('', '_blank');
   if (!win) { toast(T('stock.inv_popup'), 'err'); return; }
