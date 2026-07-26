@@ -7457,39 +7457,88 @@ function verFinanciadoRep(id) {
 function registrarPagoCuotaRep(rid, cidx) {
   var r = DB.reps.find(function(x) { return x.id === rid; });
   if (!r || !r.cuotas || !r.cuotas[cidx]) return;
-  var c = r.cuotas[cidx];
-  var imp = parseFloat(c.importe) || 0;
-  var yaPag = _cuotaPagado(c);
-  var queda = Math.round((imp - yaPag) * 100) / 100;
-  if (queda <= 0.005) return;
-  // Pago PARCIAL: preguntar cuánto paga ahora (por defecto lo que queda).
-  pedirImporte(T('fin.cuanto_paga').replace('{q}', cur(queda)), queda, function(val) {
+  var c0 = r.cuotas[cidx];
+  var quedaCuota = Math.round(((parseFloat(c0.importe) || 0) - _cuotaPagado(c0)) * 100) / 100;
+  // Pendiente de TODO el plan: el cliente puede ENTREGAR MÁS que una cuota (p. ej. la cuota es
+  // 21,78 y paga 25) y el sobrante se aplica a las siguientes cuotas. Tope = pendiente total.
+  var pendPlan = Math.round(r.cuotas.reduce(function(a, cc) { return a + Math.max(0, (parseFloat(cc.importe) || 0) - _cuotaPagado(cc)); }, 0) * 100) / 100;
+  if (pendPlan <= 0.005) return;
+  var sugerido = quedaCuota > 0.005 ? quedaCuota : pendPlan;
+  pedirImporte('¿Cuánto entrega el cliente?\n(Cuota ' + (cidx + 1) + ': ' + cur(quedaCuota) + ' · pendiente total: ' + cur(pendPlan) + ')', sugerido, function(val) {
     if (val === null) return;
     var pago = Math.round((parseFloat(String(val).replace(',', '.')) || 0) * 100) / 100;
     if (!(pago > 0)) { toast(T('fin.total_invalido'), 'err'); return; }
-    if (pago > queda + 0.005) pago = queda; // nunca más de lo que queda
+    if (pago > pendPlan + 0.005) pago = pendPlan; // tope: todo el plan, no más
     pedirMetodoPago(function (fp) {
       if (!fp) return;
-      c.pagadoImporte = Math.round((yaPag + pago) * 100) / 100;
-      c.formaPago = fp;
-      c.fechaPago = hoyLocal();
-      c.pagado = c.pagadoImporte >= imp - 0.005;
+      var hoy = hoyLocal();
+      // Aplicar el importe: primero a la cuota elegida y luego, si sobra, a las siguientes NO pagadas.
+      var restantePago = pago, cuotasTocadas = 0;
+      var orden = [cidx];
+      r.cuotas.forEach(function(cc, i) { if (i !== cidx && !cc.pagado) orden.push(i); });
+      orden.forEach(function(i) {
+        if (restantePago <= 0.005) return;
+        var cc = r.cuotas[i];
+        var queda = Math.round(((parseFloat(cc.importe) || 0) - _cuotaPagado(cc)) * 100) / 100;
+        if (queda <= 0.005) return;
+        var aplica = Math.min(queda, restantePago);
+        cc.pagadoImporte = Math.round((_cuotaPagado(cc) + aplica) * 100) / 100;
+        cc.formaPago = fp; cc.fechaPago = hoy;
+        cc.pagado = cc.pagadoImporte >= (parseFloat(cc.importe) || 0) - 0.005;
+        restantePago = Math.round((restantePago - aplica) * 100) / 100;
+        cuotasTocadas++;
+      });
       var pagadoCuotas = r.cuotas.reduce(function(a, cc) { return a + _cuotaPagado(cc); }, 0);
       r.restante = Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - pagadoCuotas) * 100) / 100);
-      if (r.cuotas.every(function(cc) { return cc.pagado; })) { r.estadoFinanciado = 'completado'; r.restante = 0; toast(T('tst.financiado_completado'), 'ok'); }
+      var completado = r.cuotas.every(function(cc) { return cc.pagado; });
+      if (completado) { r.estadoFinanciado = 'completado'; r.restante = 0; }
       guardarDatos();
       if (SB_KEY && TIENDA_ID) {
         sbPatch('reparaciones', 'id=eq.' + rid, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
-        // Cada pago (parcial o total) = un pago_reparacion propio (id único) → no machaca anteriores.
-        sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoyLocal(), importe: pago, metodo: fp, tipo: 'cuota' });
+        // Cada pago = un pago_reparacion propio (id único) → no machaca anteriores.
+        sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoy, importe: pago, metodo: fp, tipo: 'cuota' });
         window._pagosRepCache = null;
       }
+      if (completado) toast(T('tst.financiado_completado'), 'ok');
+      else if (cuotasTocadas > 1) toast('Pago de ' + cur(pago) + ' aplicado a ' + cuotasTocadas + ' cuotas', 'ok');
+      else toast('Pago de ' + cur(pago) + ' registrado', 'ok');
       closeM('finModal');
-      verFinanciadoRep(rid);
       renderReps();
       renderDash();
+      _ofrecerWaPagoCuota(r, pago, fp); // ofrecer enviar recibo al cliente por WhatsApp
     }, 'Cuota ' + (cidx + 1) + ' — ¿cómo se ha pagado?');
   });
+}
+
+// Ofrece enviar al cliente un recibo del pago de cuota por WhatsApp (con lo que ha pagado, cuántas
+// cuotas lleva y lo que le queda). Reutiliza _modalOverlay + wa.me como el resto de avisos.
+function _ofrecerWaPagoCuota(r, pago, metodo) {
+  try {
+    var cliente = (DB.clis || []).find(function(c) { return c.id === r.clienteId; });
+    var nombre = (r.clienteNombre || '').trim().split(' ')[0] || '';
+    var equipo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
+    var tienda = (TIENDA && TIENDA.nombre) || 'TekPair';
+    var pagadas = r.cuotas.filter(function(c) { return c.pagado; }).length;
+    var restante = r.restante || 0;
+    var msg = '¡Hola ' + nombre + '! 👋\n\n' +
+      'Hemos recibido tu pago de ' + cur(pago) + ' (' + metodo + ')' + (equipo ? ' de tu ' + equipo : '') + '.\n' +
+      (restante > 0.005
+        ? '📅 Llevas ' + pagadas + '/' + r.cuotas.length + ' cuotas pagadas. Te quedan ' + cur(restante) + '.\n'
+        : '✅ ¡Has terminado de pagarlo todo! Muchas gracias.\n') +
+      '\n— ' + tienda;
+    var telE164 = cliente ? String((cliente.telPrefijo || '+34') + (cliente.tel || '')).replace(/[^0-9]/g, '') : '';
+    var waUrl = 'https://wa.me/' + telE164 + '?text=' + encodeURIComponent(msg);
+    var m = _modalOverlay(
+      '<div style="font-weight:800;font-size:15px;margin-bottom:6px">💬 ¿Enviar recibo al cliente?</div>' +
+      '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;white-space:pre-line;background:var(--light);border-radius:8px;padding:10px">' + escHtml(msg) + '</div>' +
+      (telE164
+        ? '<a href="' + waUrl + '" target="_blank" rel="noopener" id="_waPagoBtn" style="display:block;text-align:center;background:#25D366;color:#fff;text-decoration:none;padding:11px;border-radius:9px;font-weight:700;margin-bottom:8px">📲 Enviar por WhatsApp</a>'
+        : '<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">El cliente no tiene teléfono guardado.</div>') +
+      '<button id="_waPagoNo" style="width:100%;padding:9px;border:1px solid var(--border,#E5E7EB);background:transparent;border-radius:9px;cursor:pointer;font:inherit;font-weight:600">No, gracias</button>'
+    );
+    var no = m.box.querySelector('#_waPagoNo'); if (no) no.onclick = function() { m.close(); };
+    var wa = m.box.querySelector('#_waPagoBtn'); if (wa) wa.addEventListener('click', function() { setTimeout(function() { m.close(); }, 300); });
+  } catch (e) { /* el pago ya se guardó; el recibo es opcional */ }
 }
 
 // ═══ FINANCIACIÓN · LINK DE COBRO (Modelo C) ═══
@@ -10428,36 +10477,51 @@ function guardarRep() {
     r.prioridad = document.getElementById('rPrioridad').value;
     r.fechaEntrega = document.getElementById('rFechaEnt').value;
     r.nota = document.getElementById('rNota').value.trim();
-    r.servicios = serviciosE;
-    r.mo = 0; // legacy
-    r.comp = compE; r.anticipo = antiE;
-    r.iva = (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIvaE : 0;
-    r.ivaModo = (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin';
-    r.base = calcE.base;
-    r.ivaImporte = calcE.iva;
-    r.componentes = SEL.selParts.slice();
-    r.total = calcE.total;
-    r.restante = Math.max(0, calcE.total - antiE);
+    // BUG A: si la reparación es FINANCIADA, NO se tocan los campos económicos. Recalcular
+    // total/restante desde los pagos sueltos rompía el plan (entrada + cuotas dejaba de cuadrar con
+    // el total y el restante quedaba incoherente). Editar el importe de una financiada requiere un
+    // flujo de redistribución de cuotas (como en ventas), aún no implementado. Aquí solo se editan
+    // los datos descriptivos; se avisa si intentan cambiar el precio.
+    var _finRep = !!r.financiado;
+    if (_finRep && Math.abs(calcE.total - (r.total || 0)) > 0.005) {
+      toast('No se puede cambiar el importe de una reparación financiada aquí (rompería las cuotas).', 'err', 4500);
+    }
+    if (!_finRep) {
+      r.servicios = serviciosE;
+      r.mo = 0; // legacy
+      r.comp = compE; r.anticipo = antiE;
+      r.iva = (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIvaE : 0;
+      r.ivaModo = (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin';
+      r.base = calcE.base;
+      r.ivaImporte = calcE.iva;
+      r.componentes = SEL.selParts.slice();
+      r.total = calcE.total;
+      r.restante = Math.max(0, calcE.total - antiE);
+    }
     r.garantiaDias = (typeof window._repGarantiaDias === 'number') ? window._repGarantiaDias : (r.garantiaDias || TIENDA.grDiasDefault || 90);
     r.garantiaTipo = window._repGarantiaTipo || r.garantiaTipo || 'reparacion';
     r.garantiaPublica = (typeof window._repGarantiaPublica === 'boolean') ? window._repGarantiaPublica : (r.garantiaPublica !== false);
     guardarDatos();
     if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) {
-      sbPatch('reparaciones', 'id=eq.' + r.id, {
+      var _patchRep = {
         cliente_id:r.clienteId, cliente_nombre:r.clienteNombre,
         marca:r.marca, modelo:r.modelo, imei:r.imei, averia:r.averia,
         prioridad:r.prioridad, fecha_entrega:r.fechaEntrega || null, nota:r.nota,
-        mo:r.mo, comp:r.comp, anticipo:r.anticipo, total:r.total, restante:r.restante,
         tipo_bloqueo: r.tipoBloqueo || null, bloqueo: r.bloqueo || null,
-        iva: r.iva, iva_modo: r.ivaModo, base: r.base, iva_importe: r.ivaImporte,
-        componentes: r.componentes, servicios: r.servicios,
         garantia_dias: r.garantiaDias,
         garantia_tipo: r.garantiaTipo || null,
         garantia_publica: r.garantiaPublica !== false,
         garantia_fecha_fin: (r.fechaEntrega && r.garantiaDias > 0 && r.garantiaTipo !== 'sin' && r.garantiaTipo !== 'apertura')
           ? (function(){ var d = new Date(r.fechaEntrega); d.setDate(d.getDate() + r.garantiaDias); return d.toISOString().slice(0,10); })()
           : null
-      });
+      };
+      if (!_finRep) {
+        _patchRep.mo = r.mo; _patchRep.comp = r.comp; _patchRep.anticipo = r.anticipo;
+        _patchRep.total = r.total; _patchRep.restante = r.restante;
+        _patchRep.iva = r.iva; _patchRep.iva_modo = r.ivaModo; _patchRep.base = r.base; _patchRep.iva_importe = r.ivaImporte;
+        _patchRep.componentes = r.componentes; _patchRep.servicios = r.servicios;
+      }
+      sbPatch('reparaciones', 'id=eq.' + r.id, _patchRep);
     }
     // Aceptación en mostrador (Vía 1): registrar solo si se marca ahora y no estaba ya aceptada.
     var _acME = document.getElementById('repAceptMostrador');
