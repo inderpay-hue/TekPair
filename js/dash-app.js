@@ -11847,8 +11847,25 @@ function _aplicarStockOptimo(id, minSug, maxSug) {
 // Imprime el inventario COMPLETO agrupado por categoría, con las unidades de cada producto y
 // subtotales por categoría + total general. Hoja lista para recuento físico / reposición.
 function imprimirStock() {
-  var items = (DB.stock || []).filter(function (s) { return (parseInt(s.unidades, 10) || 0) > 0 && !s.vendido; });
+  // Respeta el filtro activo de la pantalla: si estás en una categoría (o con marca/búsqueda),
+  // imprime SOLO eso, no todo el stock. Mismo filtrado que renderStock.
+  var _q = (((document.getElementById('busStock') || {}).value) || '').toLowerCase();
+  var _tab = document.querySelector('.stock-tab-btn.active');
+  var _cat = _tab ? _tab.getAttribute('data-cat') : '';
+  var _marcaF = (window._stockFiltroMarca || '').toLowerCase();
+  var items = (DB.stock || []).filter(function (s) {
+    if ((parseInt(s.unidades, 10) || 0) <= 0 || s.vendido) return false;
+    if (_cat === '__low__') { if (s.unidades > s.stockMin) return false; }
+    else if (_cat && (s.categoria || '') !== _cat) return false;
+    if (_marcaF && (s.marca || '').trim().toLowerCase() !== _marcaF) return false;
+    if (_q && ((s.marca || '') + ' ' + (s.modelo || '') + ' ' + (s.imei || '') + ' ' + (s.color || '') + ' ' + (s.categoria || '')).toLowerCase().indexOf(_q) === -1) return false;
+    return true;
+  });
   if (!items.length) { toast(T('gen.sin_stock'), 'err'); return; }
+  // Texto del filtro para la cabecera (categoría · marca · "búsqueda")
+  var _filtroTxt = (_cat && _cat !== '__low__') ? _pedCatLabel(_cat) : '';
+  if (window._stockFiltroMarca) _filtroTxt += (_filtroTxt ? ' · ' : '') + window._stockFiltroMarca;
+  if (_q) _filtroTxt += (_filtroTxt ? ' · ' : '') + '“' + _q + '”';
   var grupos = {};
   items.forEach(function (s) { var c = s.categoria || 'Otro'; (grupos[c] = grupos[c] || []).push(s); });
   var cats = Object.keys(grupos).sort(function (a, b) { return _pedCatLabel(a).localeCompare(_pedCatLabel(b)); });
@@ -11891,7 +11908,7 @@ function imprimirStock() {
     '@media print{h2,.grand{-webkit-print-color-adjust:exact;print-color-adjust:exact}}';
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + escHtml(T('stock.inv_titulo')) + '</title><style>' + css + '</style></head><body>' +
     '<h1>📦 ' + escHtml(T('stock.inv_titulo')) + ' — ' + escHtml((typeof TIENDA !== 'undefined' && TIENDA.nombre) || '') + '</h1>' +
-    '<div class="sub">' + escHtml(fecha) + ' · ' + cats.length + ' ' + escHtml(T('stock.inv_categorias')) + ' · ' + totalProd + ' ' + escHtml(T('stock.inv_productos')) + '</div>' +
+    '<div class="sub">' + escHtml(fecha) + (_filtroTxt ? ' · <b>' + escHtml(_filtroTxt) + '</b>' : '') + ' · ' + totalProd + ' ' + escHtml(T('stock.inv_productos')) + (cats.length > 1 ? ' · ' + cats.length + ' ' + escHtml(T('stock.inv_categorias')) : '') + '</div>' +
     cuerpo +
     '<div class="grand"><span>' + escHtml(T('stock.inv_total')) + '</span><span>' + totalUds + ' ' + escHtml(T('stock.inv_ud')) + (verVal ? ' · ' + escHtml(T('stock.inv_valor')) + ' ' + cur(totalVal) + ' · ' + escHtml(T('stock.inv_pvp')) + ' ' + cur(totalValV) : '') + '</span></div>' +
     '</body></html>';
