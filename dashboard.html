@@ -190,6 +190,15 @@ body[data-theme="dark"] .badge[style*="color:white" i]{color:#fff !important}
 /* Pestañas inactivas: fondo claro + texto aclarado → oscurecer el fondo (la activa mantiene su acento). */
 body[data-theme="dark"] .tab:not(.active),
 body[data-theme="dark"] .stock-tab-btn:not(.active){background:var(--light) !important;color:var(--muted) !important;border-color:var(--border) !important}
+/* Botones sin color explícito heredaban negro sobre fondo oscuro (var(--light)) → texto claro.
+   Los botones de color (verde/azul con color:#fff inline) ganan por especificidad inline. */
+body[data-theme="dark"] button{color:var(--text)}
+/* Reportes: desglose por IVA y resumen heredaban texto negro en dark. */
+body[data-theme="dark"] #ivaDesglose,
+body[data-theme="dark"] #ivaDesglose td,
+body[data-theme="dark"] #ivaDesglose th,
+body[data-theme="dark"] #ivaDesglose strong,
+body[data-theme="dark"] #reporteResumen{color:var(--text)}
 
 /* ═══ TEMA: TERRACOTA ═══ */
 body[data-theme="terracota"]{
