@@ -43,6 +43,7 @@
 body[data-theme="dark"]{
   --bg:#0F1117;
   --white:#1A1D24;
+  --card:#1A1D24;
   --border:#2A2E37;
   --text:#E8ECF1;
   --muted:#8B92A4;
@@ -199,12 +200,30 @@ body[data-theme="dark"] #ivaDesglose td,
 body[data-theme="dark"] #ivaDesglose th,
 body[data-theme="dark"] #ivaDesglose strong,
 body[data-theme="dark"] #reporteResumen{color:var(--text)}
+/* Proveedores: caja de deuda + fichas heredaban texto negro (los colores inline se respetan). */
+body[data-theme="dark"] #deudaProvBox,
+body[data-theme="dark"] #deudaProvBox div{color:var(--text)}
 /* Botón selector de fecha (cal-trigger-btn) y similares con fondo gris claro por CSS. */
 body[data-theme="dark"] .cal-trigger-btn,
 body[data-theme="dark"] .cal-nav,
 body[data-theme="dark"] .cal-cell{background:var(--light) !important;color:var(--text) !important;border-color:var(--border) !important}
 /* Nav activo de Ajustes: asegurar texto blanco pleno sobre el acento. */
 body[data-theme="dark"] .aj-nav.active{color:#fff !important}
+/* Inicio V2 (#pInicioNuevo): tarjetas iv2/inv-* con fondo blanco por CSS o var(--card) → oscurecer. */
+body[data-theme="dark"] #pInicioNuevo .inv-card,
+body[data-theme="dark"] #pInicioNuevo .inv-card2,
+body[data-theme="dark"] #pInicioNuevo .inv-mini,
+body[data-theme="dark"] #pInicioNuevo .inv-tcard,
+body[data-theme="dark"] #pInicioNuevo .inv-chartcard,
+body[data-theme="dark"] #pInicioNuevo .inv-seg,
+body[data-theme="dark"] #pInicioNuevo .inv-act,
+body[data-theme="dark"] #pInicioNuevo .inv-vistas,
+body[data-theme="dark"] #pInicioNuevo [style*="background: rgb(255" i],
+body[data-theme="dark"] #pInicioNuevo [style*="background:rgb(255" i],
+body[data-theme="dark"] #pInicioNuevo [style*="background:var(--card" i]{background:var(--white) !important;border-color:var(--border) !important}
+/* Segmento activo (Hoy/Semana/Mes) mantiene el acento naranja. */
+body[data-theme="dark"] #pInicioNuevo .inv-seg .active,
+body[data-theme="dark"] #pInicioNuevo .inv-seg .on{background:var(--orange,#FF5B1F) !important;color:#fff !important}
 
 /* ═══ TEMA: TERRACOTA ═══ */
 body[data-theme="terracota"]{
