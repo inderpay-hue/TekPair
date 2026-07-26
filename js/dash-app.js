@@ -10573,31 +10573,38 @@ function guardarRep() {
       _repPayload.aceptacion_mostrador = true; _repPayload.aceptacion_mostrador_por = _acPor; _repPayload.aceptacion_mostrador_fecha = _acFecha; _repPayload.aceptacion_mostrador_hash = _aceptMostradorHash || null;
       rep.aceptacionMostrador = true; rep.aceptacionMostradorPor = _acPor; rep.aceptacionMostradorFecha = _acFecha; rep.aceptacionMostradorHash = _aceptMostradorHash || null;
     }
-    sbPost('reparaciones', _repPayload);
-    if (esFinRep) {
-      // Financiado: la ENTRADA se registra como pago (tipo anticipo) -> el ingreso del día entra solo.
-      if (finEntrada > 0) {
-        // id determinista -> un reenvío no duplica el ingreso de la entrada
-        sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rep.id, fecha: rep.fecha, importe: finEntrada, metodo: finEntradaPago, tipo: 'anticipo' });
-        window._pagosRepCache = null;
-      }
-    } else {
-      // Insertar pagos en pagos_reparacion (sistema normal)
-      (SEL.repPagos || []).forEach(function(p) {
-        sbPost('pagos_reparacion', {
-          // pagos_reparacion.id es de tipo uuid: el pago local ya trae un uuid válido
-          // (confirmarPago/anadirAnticipoDirecto usan _uuidPed()); si faltara, generamos otro.
-          id: p.id || _uuidPed(),
-          tienda_id: TIENDA_ID,
-          reparacion_id: rep.id,
-          fecha: p.fecha,
-          importe: parseFloat(p.importe) || 0,
-          metodo: p.metodo || 'Efectivo',
-          tipo: p.tipo || 'anticipo'
+    // Los pagos (anticipo/entrada) referencian la reparación por CLAVE FORÁNEA. Hay que ESPERAR a
+    // que la reparación esté insertada antes de crear los pagos; si se disparan a la vez (como antes),
+    // el pago suele llegar a Postgres antes de que la reparación se confirme → FK 23503 → el anticipo
+    // de una reparación NUEVA no se guardaba (había que reabrir y añadirlo en un 2º paso).
+    var _insertarPagosRep = function() {
+      if (esFinRep) {
+        // Financiado: la ENTRADA se registra como pago (tipo anticipo) -> el ingreso del día entra solo.
+        if (finEntrada > 0) {
+          sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rep.id, fecha: rep.fecha, importe: finEntrada, metodo: finEntradaPago, tipo: 'anticipo' });
+          window._pagosRepCache = null;
+        }
+      } else {
+        // Insertar pagos en pagos_reparacion (sistema normal)
+        (SEL.repPagos || []).forEach(function(p) {
+          sbPost('pagos_reparacion', {
+            // pagos_reparacion.id es de tipo uuid: el pago local ya trae un uuid válido
+            // (confirmarPago/anadirAnticipoDirecto usan _uuidPed()); si faltara, generamos otro.
+            id: p.id || _uuidPed(),
+            tienda_id: TIENDA_ID,
+            reparacion_id: rep.id,
+            fecha: p.fecha,
+            importe: parseFloat(p.importe) || 0,
+            metodo: p.metodo || 'Efectivo',
+            tipo: p.tipo || 'anticipo'
+          });
         });
-      });
-      if ((SEL.repPagos || []).length) window._pagosRepCache = null; // invalidar caché de stats
-    }
+        if ((SEL.repPagos || []).length) window._pagosRepCache = null; // invalidar caché de stats
+      }
+    };
+    var _repProm = sbPost('reparaciones', _repPayload);
+    if (_repProm && typeof _repProm.then === 'function') { _repProm.then(function(okRep) { if (okRep !== false) _insertarPagosRep(); }); }
+    else { _insertarPagosRep(); }
   }
 
   if (SEL.pedirPiezas && SEL.pedirPiezas.length) _crearPedidosDeRep(rep.id, ((rep.clienteNombre || '') + ' · ' + (rep.modelo || '')).trim());
