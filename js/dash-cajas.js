@@ -330,7 +330,7 @@
   }
 
   async function recargarSaldo(cuentaId) {
-    const v = prompt(T('cajas.recargue_prompt'));
+    const v = await _pedirValor({ titulo: '➕ ' + T('cajas.recargue'), ayuda: T('cajas.recargue_prompt') });
     if (v === null) return;
     const imp = Number(String(v).replace(',', '.'));
     if (!isFinite(imp) || imp === 0) { toast(T('cajas.importe_invalido'), 'error'); return; }
@@ -345,7 +345,7 @@
 
   // Envíos: registrar un ingreso en el banco → BAJA el pendiente (recargar_saldo con importe negativo).
   async function ingresoBanco(cuentaId) {
-    const v = prompt(T('cajas.ingrese_banco_prompt'));
+    const v = await _pedirValor({ titulo: '💰 ' + T('cajas.ingrese_banco'), ayuda: T('cajas.ingrese_banco_prompt') });
     if (v === null) return;
     const imp = Number(String(v).replace(',', '.'));
     if (!isFinite(imp) || imp <= 0) { toast(T('cajas.importe_invalido'), 'error'); return; }
@@ -361,7 +361,7 @@
   async function confirmarSaldoCuenta(cuentaId, ventasDia) {
     const _cta = (Estado.cuentas || []).find(c => c.id === cuentaId);
     const _esEnvios = _tipoCuenta(_cta) === 'envios';
-    const v = prompt(_esEnvios ? T('cajas.confirmar_pend_prompt') : T('cajas.confirmar_prompt'));
+    const v = await _pedirValor({ titulo: '✓ ' + T('cajas.confirmar_saldo'), ayuda: _esEnvios ? T('cajas.confirmar_pend_prompt') : T('cajas.confirmar_prompt'), valorInicial: _cta ? _cta.saldo : '' });
     if (v === null) return;
     const real = Number(String(v).replace(',', '.'));
     if (!isFinite(real)) { toast(T('cajas.importe_invalido'), 'error'); return; }
@@ -375,6 +375,38 @@
     } catch (e) {
       toast(e.message, 'error');
     }
+  }
+
+  // Ventana de entrada (sustituye a prompt(), que Safari/PWA a veces bloquea).
+  // Devuelve una Promise con el texto introducido, o null si se cancela.
+  function _pedirValor(opts) {
+    opts = opts || {};
+    return new Promise((resolve) => {
+      let cerrado = false;
+      const ov = document.createElement('div');
+      ov.className = 'cajas-modal-overlay activo';
+      ov.style.zIndex = '100001';
+      const fin = (val) => { if (cerrado) return; cerrado = true; ov.remove(); resolve(val); };
+      ov.onclick = (e) => { if (e.target === ov) fin(null); };
+      ov.innerHTML = `<div class="cajas-modal" style="max-width:420px;">
+        <div class="cajas-modal-header"><h3>${escapar(opts.titulo || '')}</h3><button class="cajas-modal-cerrar" type="button">✕</button></div>
+        <div class="cajas-modal-cuerpo">
+          ${opts.ayuda ? `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.4;">${escapar(opts.ayuda)}</div>` : ''}
+          <input id="_pv-input" type="text" inputmode="decimal" autocomplete="off" value="${opts.valorInicial != null ? escapar(String(opts.valorInicial)) : ''}" style="width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);color:var(--text);box-sizing:border-box;">
+        </div>
+        <div class="cajas-modal-pie">
+          <button class="cajas-btn cajas-btn-sec" id="_pv-cancel" type="button">${T('gen.cancelar')}</button>
+          <button class="cajas-btn cajas-btn-verde" id="_pv-ok" type="button">${T('gen.aceptar')}</button>
+        </div>
+      </div>`;
+      document.body.appendChild(ov);
+      const inp = ov.querySelector('#_pv-input');
+      ov.querySelector('.cajas-modal-cerrar').onclick = () => fin(null);
+      ov.querySelector('#_pv-cancel').onclick = () => fin(null);
+      ov.querySelector('#_pv-ok').onclick = () => fin(inp.value);
+      inp.addEventListener('keydown', (e) => { if (e.key === 'Enter') fin(inp.value); else if (e.key === 'Escape') fin(null); });
+      setTimeout(() => { try { inp.focus(); inp.select(); } catch (e) { /* noop */ } }, 50);
+    });
   }
 
   // Historial de movimientos de una cuenta (seguimiento del dinero): recargas, ingresos, ajustes.
@@ -523,7 +555,11 @@
       `).join('');
     }
 
-    html += `<button class="cajas-btn cajas-btn-sec" style="margin-top:6px;font-size:12px;" onclick="Cajas.crearCuenta()">➕ ${T('cajas.crear_cuenta')}</button>`;
+    html += `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;">
+      <input id="nueva-cuenta-nombre" type="text" autocomplete="off" placeholder="${T('cajas.cuenta_nombre_ph')}" style="flex:1;min-width:130px;font-size:12px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);">
+      <input id="nueva-cuenta-saldo" type="number" step="0.01" placeholder="${T('cajas.saldo_label')} €" style="width:96px;font-size:12px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);">
+      <button class="cajas-btn cajas-btn-verde" style="font-size:12px;padding:7px 12px;" onclick="Cajas.crearCuenta()">➕ ${T('cajas.crear_cuenta')}</button>
+    </div>`;
 
     if (cmps.length > 0 && cuentas.length > 0) {
       html += '<div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;">';
@@ -544,13 +580,12 @@
 
   async function crearCuenta() {
     if (!Estado.cajaEditando) return;
-    const nombre = prompt(T('cajas.cuenta_nombre_prompt'));
-    if (nombre === null) return;
-    const n = nombre.trim();
-    if (!n) return;
-    // Saldo inicial (lo que ya tienes ahora mismo en esa cuenta). Vacío/cancelar = 0.
-    const sv = prompt(T('cajas.cuenta_saldo_prompt'));
-    const saldoIni = (sv === null || String(sv).trim() === '') ? 0 : Number(String(sv).replace(',', '.'));
+    const inN = $('nueva-cuenta-nombre'), inS = $('nueva-cuenta-saldo');
+    const n = ((inN && inN.value) || '').trim();
+    if (!n) { toast(T('cajas.cuenta_nombre_falta'), 'error'); if (inN) { try { inN.focus(); } catch (e) { /* noop */ } } return; }
+    // Saldo inicial (lo que ya tienes ahora mismo en esa cuenta). Vacío = 0.
+    const sv = (inS && inS.value) || '';
+    const saldoIni = String(sv).trim() === '' ? 0 : Number(String(sv).replace(',', '.'));
     if (!isFinite(saldoIni)) { toast(T('cajas.importe_invalido'), 'error'); return; }
     try {
       await api('crear_cuenta', { method: 'POST', body: { caja_id: Estado.cajaEditando.id, nombre: n, saldo: saldoIni } });
@@ -1101,7 +1136,7 @@
               .replace('{cuenta}', cuenta.nombre)
               .replace('{enviado}', eur(montoDia))
               .replace('{pendiente}', eur(pendConEnvio));
-            const v = prompt(msg);
+            const v = await _pedirValor({ titulo: '💰 ' + T('cajas.ingrese_banco') + ' — ' + cuenta.nombre, ayuda: msg, valorInicial: 0 });
             if (v === null) continue;
             const ingresado = String(v).trim() === '' ? 0 : Number(String(v).replace(',', '.'));
             if (!isFinite(ingresado)) { toast(T('cajas.importe_invalido'), 'error'); continue; }
@@ -1118,7 +1153,7 @@
             const msg = T('cajas.cierre_saldo_prompt')
               .replace('{cuenta}', cuenta.nombre)
               .replace('{esperado}', eur(esperado));
-            const v = prompt(msg);
+            const v = await _pedirValor({ titulo: '✓ ' + T('cajas.confirmar_saldo') + ' — ' + cuenta.nombre, ayuda: msg, valorInicial: esperado });
             if (v === null || String(v).trim() === '') continue;
             const real = Number(String(v).replace(',', '.'));
             if (!isFinite(real)) { toast(T('cajas.importe_invalido'), 'error'); continue; }
