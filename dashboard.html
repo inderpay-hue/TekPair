@@ -217,6 +217,24 @@ body[data-theme="dark"] .cajas-franja-wrap{background:var(--white) !important;bo
 body[data-theme="dark"] .franja-dia{background:var(--light) !important;color:var(--text) !important;border-color:var(--border) !important}
 body[data-theme="dark"] .caja-card-estado{background:var(--light) !important;color:var(--text) !important}
 body[data-theme="dark"] .caja-card{background:var(--white) !important;border-color:var(--border) !important}
+/* Dark: textos de las tarjetas de caja (antes #111827 casi negro → invisible sobre tarjeta oscura). */
+body[data-theme="dark"] .caja-card-titulo,
+body[data-theme="dark"] .caja-card-resumen .valor{color:var(--text) !important}
+body[data-theme="dark"] .caja-card-resumen .label,
+body[data-theme="dark"] .cajas-franja-legend,
+body[data-theme="dark"] .caja-card-nueva{color:var(--muted) !important}
+body[data-theme="dark"] .cajas-franja-wrap h3{color:var(--text) !important}
+/* Dark: días con estado en "Últimos 7 días" → fondo oscuro tintado + texto vívido legible (mantiene el color de estado). */
+body[data-theme="dark"] .franja-dia.fd-cuadrado{background:rgba(22,163,74,.18) !important;border-color:#16a34a !important}
+body[data-theme="dark"] .franja-dia.fd-sobra{background:rgba(255,91,31,.18) !important;border-color:#FF5B1F !important}
+body[data-theme="dark"] .franja-dia.fd-falta{background:rgba(220,38,38,.20) !important;border-color:#dc2626 !important}
+body[data-theme="dark"] .franja-dia.fd-pendientes{background:rgba(245,158,11,.18) !important;border-color:#f59e0b !important}
+body[data-theme="dark"] .franja-dia.fd-borrador{background:rgba(234,88,12,.18) !important;border-color:#ea580c !important}
+body[data-theme="dark"] .franja-dia.fd-cuadrado .fd-nombre,body[data-theme="dark"] .franja-dia.fd-cuadrado .fd-num,body[data-theme="dark"] .franja-dia.fd-cuadrado .fd-info{color:#4ade80 !important}
+body[data-theme="dark"] .franja-dia.fd-sobra .fd-nombre,body[data-theme="dark"] .franja-dia.fd-sobra .fd-num,body[data-theme="dark"] .franja-dia.fd-sobra .fd-info{color:#FF8A5B !important}
+body[data-theme="dark"] .franja-dia.fd-falta .fd-nombre,body[data-theme="dark"] .franja-dia.fd-falta .fd-num,body[data-theme="dark"] .franja-dia.fd-falta .fd-info{color:#f87171 !important}
+body[data-theme="dark"] .franja-dia.fd-pendientes .fd-nombre,body[data-theme="dark"] .franja-dia.fd-pendientes .fd-num,body[data-theme="dark"] .franja-dia.fd-pendientes .fd-info{color:#fbbf24 !important}
+body[data-theme="dark"] .franja-dia.fd-borrador .fd-nombre,body[data-theme="dark"] .franja-dia.fd-borrador .fd-num,body[data-theme="dark"] .franja-dia.fd-borrador .fd-info{color:#fb923c !important}
 body[data-theme="dark"] .cajas-btn-sec{background:var(--light) !important;color:var(--text) !important;border-color:var(--border) !important}
 /* Inputs de texto/número sin clase (p. ej. "Efectivo contado") → oscurecer en dark. */
 body[data-theme="dark"] input[type="text"],
