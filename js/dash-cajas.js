@@ -245,6 +245,7 @@
               <button class="cajas-btn" onclick="Cajas.abrirCierre('${caja.id}')">
                 ${cierre ? T('cajas.ver_editar') : T('cajas.hacer_cierre')}
               </button>
+              ${(cierre && (cierre.estado === 'cerrado' || cierre.estado === 'descuadre') && esAdminTienda()) ? `<button class="cajas-btn cajas-btn-sec" onclick="Cajas.reabrirCaja('${cierre.id}')" title="${T('cajas.reabrir_ayuda')}">🔓 ${T('cajas.reabrir')}</button>` : ''}
               ${!cierre ? `<button class="cajas-btn cajas-btn-sec" onclick="Cajas.marcarFestivo('${caja.id}')" title="${T('cajas.marcar_festivo')}">🏖</button>` : ''}
             `}
             <button class="cajas-btn cajas-btn-sec" onclick="Cajas.editarCaja('${caja.id}')">⚙️</button>
@@ -1243,6 +1244,20 @@
     }
   }
 
+  // Reabrir una caja cerrada por error (mismo día). Solo admin; deja rastro de auditoría
+  // en el backend (reabrir_cierre añade "[Reabierto ... por ...]" a las notas del cierre).
+  async function reabrirCaja(cierreId) {
+    if (!esAdminTienda() || !cierreId) return;
+    if (!confirm(T('cajas.reabrir_confirm'))) return;
+    try {
+      await api('reabrir_cierre', { method: 'POST', body: { id: cierreId } });
+      toast(T('cajas.reabierta'));
+      await cargarCajas();
+    } catch (e) {
+      toast('Error: ' + e.message, 'error');
+    }
+  }
+
   async function deshacerFestivo(cajaId) {
     if (!confirm('¿Deshacer la marca de festivo?\n\nPodrás hacer el cierre normal de este día.')) return;
     try {
@@ -1545,6 +1560,7 @@
     irAFechaFranja,
     marcarFestivo,
     deshacerFestivo,
+    reabrirCaja,
     marcarFestivoDesdeModal,
     abrirCalendario,
     cerrarCalendario,
