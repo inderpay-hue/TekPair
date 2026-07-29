@@ -1307,6 +1307,7 @@ function renderEncargos() {
   var entregados = list.filter(function(e){ return e.estado === 'Entregado'; });
   el.innerHTML = activos.map(_encCard).join('') +
     (entregados.length ? '<div class="sec-title" style="margin-top:16px;opacity:.7">✅ ' + T('enc.entregados') + ' (' + entregados.length + ')</div>' + entregados.map(_encCard).join('') : '');
+  try { updateEncargosBadge(); } catch (e) {}
 }
 
 // ════════════ PEDIDOS PENDIENTES (piezas que hacen falta) ════════════
@@ -4929,6 +4930,12 @@ function updatePedidosBadge() {
     if (n > 0) { b.textContent = n; b.style.display = 'inline-flex'; } else { b.style.display = 'none'; }
   });
 }
+// Badge sidebar de Encargos pendientes (todo lo que no esté 'Entregado').
+function updateEncargosBadge() {
+  var b = document.getElementById('badgeEncargos'); if (!b) return;
+  var n = (DB.encargos || []).filter(function(e) { return e.estado !== 'Entregado'; }).length;
+  if (n > 0) { b.textContent = n; b.style.display = 'inline-flex'; } else { b.style.display = 'none'; }
+}
 // Quick-win sidebar: mini-stats HOY + badges inteligentes (atrasadas, deuda a proveedores).
 function renderSidebarHoy() {
   var box = document.getElementById('sidebarHoy'); if (!box) return;
@@ -4967,6 +4974,7 @@ function actualizarSidebarExtra() {
   try { renderSidebarHoy(); } catch (e) {}
   try { actualizarBadgeReps(); } catch (e) {}
   try { actualizarBadgeDeuda(); } catch (e) {}
+  try { updateEncargosBadge(); } catch (e) {}
 }
 function setPedFiltro(f) { window._pedFiltro = f; renderPedidosPage(); }
 // Badge de estado de pago para una línea de pedido (vacío si está pagado)
