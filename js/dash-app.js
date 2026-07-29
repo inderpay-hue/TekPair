@@ -10169,9 +10169,10 @@ function imprimirEtiquetaStock(sid) {
   var estadoLinea = [estado, (bateria != null ? (T('etq.bateria') + ' ' + bateria + '%') : '')].filter(Boolean).join(' · ');
   var precio = (parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '';
   var esOferta = !!s.enOferta && (parseFloat(s.precioAntes) || 0) > 0;
-  var precioInner = esOferta
-    ? '<span class="ofb">' + T('etq.oferta') + '</span> <span class="an">' + esc(cur(s.precioAntes)) + '</span> ' + esc(precio)
-    : esc(precio);
+  // En oferta: el precio ANTERIOR (tachado) va arriba en una línea pequeña, y el precio ACTUAL
+  // grande debajo/al lado → así el nombre del producto no se aprieta.
+  var ofertaLinea = esOferta ? ('<span class="ofb">' + T('etq.oferta') + '</span> <span class="an">' + esc(cur(s.precioAntes)) + '</span>') : '';
+  var precioActual = esc(precio);
   var imeiTxt = s.imei ? esc(s.imei) : '';
   // Layout ADAPTATIVO: vertical en rollo continuo / etiquetas altas; compacto (modelo+precio en
   // fila superior + barcode a lo ancho) en las troqueladas bajitas de Brother (62x29, 90x29, 50x30, 40x30, 38x25).
@@ -10181,13 +10182,14 @@ function imprimirEtiquetaStock(sid) {
   if (esVertical) {
     var bcV = (bcOn && s.imei) ? _etqBarcodeSvg(s.imei, { height: 22, width: 1.05 }) : '';
     var fNmV = 11; if (nombre.length > 22) fNmV = Math.max(8, Math.round(11 * 22 / nombre.length));
-    var fPrV = esOferta ? 14 : 17;
+    var fPrV = esOferta ? 16 : 17;
     bodyStyle = 'display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.4mm';
     css =
       '.nm{font-weight:800;font-size:' + fNmV + 'px;line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;max-width:100%}' +
       '.sp{font-size:8px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
       '.es{font-size:7.5px;color:#555}' +
-      '.pr{font-size:' + fPrV + 'px;font-weight:800;margin:0.3mm 0}.pr.pro{color:#e11d48;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
+      '.ofl{font-size:8px;margin-top:0.4mm}' +
+      '.pr{font-size:' + fPrV + 'px;font-weight:800;margin:0 0 0.2mm;color:#000}.pr.pro{color:#e11d48}' +
       '.bc{width:100%;margin-top:0.6mm}.bc svg{max-width:100%;height:auto;display:block;margin:0 auto}' +
       '.bcn{font-size:6.5px;font-family:monospace;color:#333;letter-spacing:.4px;margin-top:0.2mm}';
     bodyInner =
@@ -10195,17 +10197,19 @@ function imprimirEtiquetaStock(sid) {
       '<div class="nm">' + esc(nombre) + '</div>' +
       (specs ? '<div class="sp">' + esc(specs) + '</div>' : '') +
       (estadoLinea ? '<div class="es">' + esc(estadoLinea) + '</div>' : '') +
-      (precio ? '<div class="pr' + (esOferta ? ' pro' : '') + '">' + precioInner + '</div>' : '') +
+      (ofertaLinea ? '<div class="ofl">' + ofertaLinea + '</div>' : '') +
+      (precio ? '<div class="pr' + (esOferta ? ' pro' : '') + '">' + precioActual + '</div>' : '') +
       (bcV ? '<div class="bc">' + bcV + '</div><div class="bcn">' + imeiTxt + '</div>' : (bcOn && s.imei ? '<div class="bcn">IMEI: ' + imeiTxt + '</div>' : ''));
   } else {
     var bcMm = ph <= 26 ? 5 : 6;
     var bcC = (bcOn && s.imei) ? _etqBarcodeSvg(s.imei, { height: 18, width: 0.9 }) : '';
     var fNmC = pw >= 55 ? 11 : 9; if (nombre.length > 18) fNmC = Math.max(7, Math.round(fNmC * 18 / nombre.length));
-    var fPrC = pw >= 55 ? (esOferta ? 12 : 15) : (esOferta ? 10 : 12);
+    var fPrC = pw >= 55 ? 15 : 12;
     var midTxt = [specs, estadoLinea].filter(Boolean).join('  ·  ');
     bodyStyle = 'display:flex;flex-direction:column;align-items:stretch;justify-content:center;text-align:left;gap:0.3mm';
     css =
       '.hd{overflow:hidden}' +
+      '.ofl{font-size:7.5px;text-align:right;line-height:1.1}' +
       '.row{display:flex;align-items:baseline;justify-content:space-between;gap:2mm}' +
       '.nm{font-weight:800;font-size:' + fNmC + 'px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}' +
       '.pr{font-size:' + fPrC + 'px;font-weight:800;white-space:nowrap;flex-shrink:0}.pr.pro{color:#e11d48}' +
@@ -10214,7 +10218,8 @@ function imprimirEtiquetaStock(sid) {
       '.bcn{font-size:6px;font-family:monospace;color:#333;letter-spacing:.3px;text-align:center;margin-top:0}';
     bodyInner =
       '<div class="hd">' + _etqLogoHtml() + '</div>' +
-      '<div class="row"><div class="nm">' + esc(nombre) + '</div>' + (precio ? '<div class="pr' + (esOferta ? ' pro' : '') + '">' + precioInner + '</div>' : '') + '</div>' +
+      (ofertaLinea ? '<div class="ofl">' + ofertaLinea + '</div>' : '') +
+      '<div class="row"><div class="nm">' + esc(nombre) + '</div>' + (precio ? '<div class="pr' + (esOferta ? ' pro' : '') + '">' + precioActual + '</div>' : '') + '</div>' +
       (midTxt ? '<div class="mid">' + esc(midTxt) + '</div>' : '') +
       (bcC ? '<div class="bc">' + bcC + '</div><div class="bcn">' + imeiTxt + '</div>' : (bcOn && s.imei ? '<div class="mid">IMEI: ' + imeiTxt + '</div>' : ''));
   }
