@@ -18992,6 +18992,7 @@ var PERMS_LISTA = [
   {id:'cajasm_cerrar',label:T('perm.cajasm_cerrar'),grupo:'Cajas Multi-Servicio'},
   {id:'cajasm_cobrar',label:T('perm.cajasm_cobrar'),grupo:'Cajas Multi-Servicio'},
   {id:'cajasm_gestionar',label:T('perm.cajasm_gestionar'),grupo:'Cajas Multi-Servicio'},
+  {id:'cajasm_historico',label:T('perm.cajasm_historico'),grupo:'Cajas Multi-Servicio'},
   {id:'cajasm_editar_cerrada',label:T('perm.cajasm_editar_cerrada'),grupo:'Cajas Multi-Servicio'},
   // Configuración
   {id:'tienda_ver',label:T('perm.tienda_ver'),grupo:'Configuración'},
@@ -19053,6 +19054,11 @@ async function editarPermisos(id, nombre) {
   var lista = await sbGet('usuarios', 'id=eq.' + id);
   var u = lista && lista[0];
   permsCurrent = u && u.permisos ? Object.assign({}, u.permisos) : {};
+  // Clonar el array de cajas permitidas para no mutar el original si se cancela.
+  permsCurrent.cajas_permitidas = Array.isArray(permsCurrent.cajas_permitidas) ? permsCurrent.cajas_permitidas.slice() : [];
+  // Cargar las cajas de la tienda para pintar los checkboxes por caja.
+  try { var cj = await sbGet('cajas', 'tienda_id=eq.' + TIENDA_ID + '&order=orden.asc,created_at.asc'); _cajasPermUI = Array.isArray(cj) ? cj : []; }
+  catch (e) { _cajasPermUI = []; }
   renderPermisosUI();
   openM('mPermisos');
 }
@@ -19069,6 +19075,19 @@ function aplicarPresetNegocio() {
   });
   renderPermisosUI();
   toast(T('dash.diseno_negocio_aplicado'), 'ok');
+}
+
+// Cajas de la tienda cargadas para pintar los checkboxes de "cajas permitidas".
+var _cajasPermUI = [];
+// Alterna la asignación de una caja concreta al empleado (permiso por caja).
+function _toggleCajaPerm(cajaId, el) {
+  if (!Array.isArray(permsCurrent.cajas_permitidas)) permsCurrent.cajas_permitidas = [];
+  var arr = permsCurrent.cajas_permitidas;
+  var i = arr.indexOf(cajaId);
+  if (i === -1) arr.push(cajaId); else arr.splice(i, 1);
+  var on = arr.indexOf(cajaId) !== -1;
+  el.style.background = on ? 'var(--blue)' : 'var(--border)';
+  el.querySelector('div').style.left = on ? '20px' : '2px';
 }
 
 function renderPermisosUI() {
@@ -19171,6 +19190,37 @@ function renderPermisosUI() {
     });
     container.appendChild(div);
   });
+
+  // ── Cajas permitidas (permiso POR CAJA) ─────────────────────────────────
+  // El empleado solo ve y opera las cajas que se marquen aquí. Sin ninguna
+  // marcada, no ve ninguna caja (ni la "Caja del día"). El admin ve todas.
+  var divCajas = document.createElement('div');
+  divCajas.style = 'margin-bottom:14px';
+  divCajas.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">' + T('perm.cajas_asignadas') + '</div>'
+    + '<div style="font-size:11px;color:var(--muted);margin-bottom:8px;line-height:1.4">' + T('perm.cajas_asignadas_ayuda') + '</div>';
+  if (!_cajasPermUI.length) {
+    var vacio = document.createElement('div');
+    vacio.style = 'font-size:12px;color:var(--muted);padding:6px 0';
+    vacio.textContent = T('perm.cajas_ninguna');
+    divCajas.appendChild(vacio);
+  } else {
+    _cajasPermUI.forEach(function(c) {
+      var on = (permsCurrent.cajas_permitidas || []).indexOf(c.id) !== -1;
+      var row = document.createElement('div');
+      row.style = 'display:flex;align-items:center;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--light)';
+      var label = document.createElement('span');
+      label.style = 'font-size:13px';
+      label.textContent = (c.icono ? c.icono + ' ' : '') + (c.nombre || '');
+      var toggle = document.createElement('div');
+      toggle.style = 'width:40px;height:22px;border-radius:22px;cursor:pointer;background:' + (on ? 'var(--blue)' : 'var(--border)') + ';position:relative;flex-shrink:0;transition:background .2s';
+      toggle.innerHTML = '<div style="position:absolute;top:2px;left:' + (on ? '20px' : '2px') + ';width:18px;height:18px;border-radius:50%;background:white;transition:left .2s"></div>';
+      toggle.dataset.cid = c.id;
+      toggle.addEventListener('click', function() { _toggleCajaPerm(this.dataset.cid, this); });
+      row.appendChild(label); row.appendChild(toggle);
+      divCajas.appendChild(row);
+    });
+  }
+  container.appendChild(divCajas);
 }
 
 async function guardarPermisos() {

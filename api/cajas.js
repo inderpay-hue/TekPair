@@ -161,6 +161,40 @@ async function tienePermisoCaja(payload, clave) {
   return permisos[claveCompleta] === true;
 }
 
+// ── Permiso POR CAJA ────────────────────────────────────────────────────────
+// El admin ve/opera todas las cajas. El empleado SOLO las que el admin le haya
+// asignado en permisos.cajas_permitidas (whitelist estricta de ids UUID). Sin
+// asignación = ninguna (ni la "Caja del día"). Se relee de BBDD (el JWT no trae rol).
+async function _usuarioPerm(payload) {
+  if (!payload) return null;
+  const userId = payload.sub || payload.user_id;
+  const email = payload.email;
+  let r = [];
+  if (userId) r = await sbGet(`usuarios?id=eq.${encodeURIComponent(userId)}&select=rol,permisos&limit=1`);
+  else if (email) r = await sbGet(`usuarios?email=eq.${encodeURIComponent(email)}&select=rol,permisos&limit=1`);
+  return r[0] || null;
+}
+// null = acceso a TODAS las cajas (admin / permisos.todo). Array = whitelist de ids.
+async function _cajasPermitidas(payload) {
+  const u = await _usuarioPerm(payload);
+  if (!u) return [];
+  if (u.rol === 'admin' || (u.permisos && u.permisos.todo === true)) return null;
+  const p = u.permisos || {};
+  return Array.isArray(p.cajas_permitidas) ? p.cajas_permitidas.map(String) : [];
+}
+async function puedeAccederCaja(payload, cajaId) {
+  if (!cajaId) return false;
+  const permit = await _cajasPermitidas(payload);
+  if (permit === null) return true;         // admin / todo
+  return permit.includes(String(cajaId));
+}
+// Resuelve la caja de un fiado (para gating de cobrar/anular/editar por id de fiado).
+async function _cajaDeFiado(id) {
+  if (!id) return null;
+  const f = await sbGet(`cajas_fiados?id=eq.${encodeURIComponent(id)}&select=caja_id&limit=1`);
+  return (f[0] && f[0].caja_id) || null;
+}
+
 
 
 // Helper: recalcula descuadre del cierre de un fiado después de cobrarlo/anularlo
@@ -240,10 +274,14 @@ export default async function handler(req, res) {
         const cajas = await sbGet(
           `cajas?tienda_id=eq.${encodeURIComponent(tienda_id)}&order=orden.asc,created_at.asc`
         );
-        return ok(res, { cajas });
+        // Permiso por caja: el empleado solo recibe las cajas que el admin le asignó.
+        const permit = await _cajasPermitidas(payload);
+        const visibles = permit === null ? cajas : cajas.filter(c => permit.includes(String(c.id)));
+        return ok(res, { cajas: visibles });
       }
 
       case 'crear_caja': {
+        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
         const { tipo, nombre, icono, color, orden, dias_apertura } = req.body || {};
         if (!tipo || !nombre) return err(res, 400, 'tipo y nombre obligatorios');
         if (!['envios','recargas','tpv','custom'].includes(tipo)) {
@@ -291,6 +329,7 @@ export default async function handler(req, res) {
       }
 
       case 'editar_caja': {
+        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
         const { id, nombre, icono, color, orden, activa, permiso_editar_cerrada, dias_apertura } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
         const patch = {};
@@ -328,6 +367,7 @@ export default async function handler(req, res) {
       case 'listar_companias': {
         const caja_id = req.query.caja_id;
         if (!caja_id) return err(res, 400, 'caja_id obligatorio');
+        if (!(await puedeAccederCaja(payload, caja_id))) return err(res, 403, 'Sin permiso para esta caja');
         // Verificar caja
         const cajas = await sbGet(
           `cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id`
@@ -344,6 +384,7 @@ export default async function handler(req, res) {
       case 'crear_compania': {
         const { caja_id, nombre, orden } = req.body || {};
         if (!caja_id || !nombre) return err(res, 400, 'caja_id y nombre obligatorios');
+        if (!(await puedeAccederCaja(payload, caja_id))) return err(res, 403, 'Sin permiso para esta caja');
         const cajas = await sbGet(
           `cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id`
         );
@@ -367,6 +408,7 @@ export default async function handler(req, res) {
           `cajas_companias?id=eq.${encodeURIComponent(id)}&select=caja_id`
         );
         if (cmps.length === 0) return err(res, 404, 'Compañía no encontrada');
+        if (!(await puedeAccederCaja(payload, cmps[0].caja_id))) return err(res, 403, 'Sin permiso para esta caja');
         const cajas = await sbGet(
           `cajas?id=eq.${encodeURIComponent(cmps[0].caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id`
         );
@@ -399,6 +441,7 @@ export default async function handler(req, res) {
       case 'obtener_cierre': {
         const { caja_id, fecha } = req.query;
         if (!caja_id || !fecha) return err(res, 400, 'caja_id y fecha obligatorios');
+        if (!(await puedeAccederCaja(payload, caja_id))) return err(res, 403, 'Sin permiso para esta caja');
         const cajas = await sbGet(
           `cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`
         );
@@ -440,6 +483,7 @@ export default async function handler(req, res) {
         } = req.body || {};
         if (!caja_id || !fecha) return err(res, 400, 'caja_id y fecha obligatorios');
         if (!Array.isArray(movimientos)) return err(res, 400, 'movimientos[] obligatorio');
+        if (!(await puedeAccederCaja(payload, caja_id))) return err(res, 403, 'Sin permiso para esta caja');
 
         const cajas = await sbGet(
           `cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`
@@ -604,7 +648,10 @@ export default async function handler(req, res) {
           + `&order=fecha.desc`;
         if (caja_id) path += `&caja_id=eq.${encodeURIComponent(caja_id)}`;
         const cierres = await sbGet(path);
-        return ok(res, { cierres });
+        // Permiso por caja: el empleado solo ve cierres de sus cajas.
+        const permitCi = await _cajasPermitidas(payload);
+        const cierresVis = permitCi === null ? cierres : cierres.filter(c => permitCi.includes(String(c.caja_id)));
+        return ok(res, { cierres: cierresVis });
       }
 
       case 'reabrir_cierre': {
@@ -638,7 +685,10 @@ export default async function handler(req, res) {
         if (caja_id) path += `&caja_id=eq.${encodeURIComponent(caja_id)}`;
         if (desde) path += `&fecha=gte.${encodeURIComponent(desde)}`;
         if (hasta) path += `&fecha=lte.${encodeURIComponent(hasta)}`;
-        const fiados = await sbGet(path);
+        let fiados = await sbGet(path);
+        // Permiso por caja: el empleado solo ve fiados de sus cajas.
+        const permitFi = await _cajasPermitidas(payload);
+        if (permitFi !== null) fiados = fiados.filter(f => permitFi.includes(String(f.caja_id)));
         // Enriquecer con nombre de caja y compañía
         const cajasIds = [...new Set(fiados.map(f => f.caja_id).filter(Boolean))];
         const cmpIds = [...new Set(fiados.map(f => f.compania_id).filter(Boolean))];
@@ -661,10 +711,13 @@ export default async function handler(req, res) {
       }
 
       case 'contar_fiados_pendientes': {
-        const fiados = await sbGet(
+        let fiados = await sbGet(
           `cajas_fiados?tienda_id=eq.${encodeURIComponent(tienda_id)}`
-          + `&estado=eq.pendiente&select=id,importe`
+          + `&estado=eq.pendiente&select=id,importe,caja_id`
         );
+        // Permiso por caja: el empleado solo cuenta pendientes de sus cajas.
+        const permitCf = await _cajasPermitidas(payload);
+        if (permitCf !== null) fiados = fiados.filter(f => permitCf.includes(String(f.caja_id)));
         const total = fiados.reduce((s, f) => s + Number(f.importe || 0), 0);
         return ok(res, { count: fiados.length, total: Math.round(total * 100) / 100 });
       }
@@ -683,6 +736,7 @@ export default async function handler(req, res) {
           `cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id`
         );
         if (cajas.length === 0) return err(res, 403, 'Caja no accesible');
+        if (!(await puedeAccederCaja(payload, caja_id))) return err(res, 403, 'Sin permiso para esta caja');
         const data = await sbPost('cajas_fiados', {
           tienda_id,
           caja_id,
@@ -701,6 +755,7 @@ export default async function handler(req, res) {
       case 'editar_fiado': {
         const { id, cliente_nombre, cliente_telefono, nota, importe } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
+        if (!(await puedeAccederCaja(payload, await _cajaDeFiado(id)))) return err(res, 403, 'Sin permiso para esta caja');
         // CAJ-3: cambiar importe afecta la deuda real del cliente. Si el usuario
         // intenta cambiar el importe, requiere permiso explícito de cobro/edición.
         // Cambios de nombre/teléfono/nota son cosméticos y se permiten sin permiso.
@@ -734,6 +789,7 @@ export default async function handler(req, res) {
         // Validar permiso: admin o permiso explícito
         const puede = await tienePermisoCaja(payload, 'cajasm_cobrar');
         if (!puede) return err(res, 403, 'No tienes permiso para cobrar pendientes');
+        if (!(await puedeAccederCaja(payload, await _cajaDeFiado(id)))) return err(res, 403, 'Sin permiso para esta caja');
 
         const data = await sbPatch(
           `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
@@ -756,6 +812,7 @@ export default async function handler(req, res) {
         // (mismo permiso que cobrar — anular es la operación inversa).
         const puede = await tienePermisoCaja(payload, 'cobrar');
         if (!puede) return err(res, 403, 'No tienes permiso para anular fiados');
+        if (!(await puedeAccederCaja(payload, await _cajaDeFiado(id)))) return err(res, 403, 'Sin permiso para esta caja');
         const data = await sbPatch(
           `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
           { estado: 'anulado' }
@@ -779,9 +836,11 @@ export default async function handler(req, res) {
       case 'resumen_periodo': {
         const { desde, hasta } = req.query;
         if (!desde || !hasta) return err(res, 400, 'desde y hasta obligatorios');
+        // Ver el histórico (calendario de días anteriores) requiere permiso; admin siempre.
+        if (!(await tienePermisoCaja(payload, 'cajasm_historico'))) return err(res, 403, 'Sin permiso para ver días anteriores');
 
         // 1) Cierres del periodo
-        const cierres = await sbGet(
+        let cierres = await sbGet(
           `cajas_cierres?tienda_id=eq.${encodeURIComponent(tienda_id)}`
           + `&fecha=gte.${encodeURIComponent(desde)}`
           + `&fecha=lte.${encodeURIComponent(hasta)}`
@@ -789,13 +848,20 @@ export default async function handler(req, res) {
         );
 
         // 2) Fiados pendientes del periodo (para color amarillo)
-        const fiados = await sbGet(
+        let fiados = await sbGet(
           `cajas_fiados?tienda_id=eq.${encodeURIComponent(tienda_id)}`
           + `&estado=eq.pendiente`
           + `&fecha=gte.${encodeURIComponent(desde)}`
           + `&fecha=lte.${encodeURIComponent(hasta)}`
-          + `&select=fecha,importe`
+          + `&select=fecha,importe,caja_id`
         );
+
+        // Permiso por caja: el empleado solo agrega sus cajas al resumen.
+        const permitRp = await _cajasPermitidas(payload);
+        if (permitRp !== null) {
+          cierres = cierres.filter(c => permitRp.includes(String(c.caja_id)));
+          fiados = fiados.filter(f => permitRp.includes(String(f.caja_id)));
+        }
 
         // 3) Calcular peor estado por día
         // Prioridad: falta > borrador > pendientes > sobra > cuadrado > vacio

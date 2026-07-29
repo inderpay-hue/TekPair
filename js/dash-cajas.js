@@ -32,6 +32,14 @@
     return p.email === 'info@tekpair.tech';
   }
 
+  // ¿Puede ver días anteriores (histórico/calendario)? Admin siempre; empleado con permiso.
+  function puedeHistorico() {
+    return esAdminTienda() || (typeof window.tienePerm === 'function' && window.tienePerm('cajasm_historico'));
+  }
+  function _txtSinHist() {
+    return (typeof window.T === 'function') ? window.T('cajas.sin_permiso_historico') : 'No tienes permiso para ver días anteriores';
+  }
+
   // ── Wrapper API ──────────────────────────────────
   async function api(action, opts = {}) {
     const { method = 'GET', body = null, query = {} } = opts;
@@ -94,8 +102,18 @@
   async function renderCajas() {
     if (!Estado.inicializado) {
       $('cajas-fecha-actual').value = Estado.fechaActual;
+      // Sin permiso de histórico, el empleado no puede retroceder a días anteriores.
+      if (!puedeHistorico()) $('cajas-fecha-actual').min = hoyLocal();
       $('cajas-fecha-actual').addEventListener('change', (e) => {
-        Estado.fechaActual = e.target.value;
+        var nueva = e.target.value;
+        if (nueva && nueva < hoyLocal() && !puedeHistorico()) {
+          if (typeof window.toast === 'function') window.toast(_txtSinHist(), 'err');
+          e.target.value = hoyLocal();
+          Estado.fechaActual = hoyLocal();
+          cargarCajas();
+          return;
+        }
+        Estado.fechaActual = nueva;
         cargarCajas();
       });
       $('caja-tipo').addEventListener('change', (e) => {
@@ -1336,6 +1354,8 @@
   }
 
   function abrirCalendario() {
+    // El calendario es la vista del histórico → requiere permiso (admin siempre).
+    if (!puedeHistorico()) { if (typeof window.toast === 'function') window.toast(_txtSinHist(), 'err'); return; }
     const [y, m] = Estado.fechaActual.split('-').map(Number);
     Estado.calMes = new Date(y, m - 1, 1);
     pintarCalendarioMes();
