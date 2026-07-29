@@ -235,6 +235,30 @@ body[data-theme="dark"] .franja-dia.fd-sobra .fd-nombre,body[data-theme="dark"] 
 body[data-theme="dark"] .franja-dia.fd-falta .fd-nombre,body[data-theme="dark"] .franja-dia.fd-falta .fd-num,body[data-theme="dark"] .franja-dia.fd-falta .fd-info{color:#f87171 !important}
 body[data-theme="dark"] .franja-dia.fd-pendientes .fd-nombre,body[data-theme="dark"] .franja-dia.fd-pendientes .fd-num,body[data-theme="dark"] .franja-dia.fd-pendientes .fd-info{color:#fbbf24 !important}
 body[data-theme="dark"] .franja-dia.fd-borrador .fd-nombre,body[data-theme="dark"] .franja-dia.fd-borrador .fd-num,body[data-theme="dark"] .franja-dia.fd-borrador .fd-info{color:#fb923c !important}
+/* Dark: MODAL de cierre de caja (arqueo) — no tenía overrides → salía blanco con texto oscuro. */
+body[data-theme="dark"] .cajas-modal{background:var(--card) !important;color:var(--text) !important}
+body[data-theme="dark"] .cajas-modal-header,
+body[data-theme="dark"] .cajas-modal-pie{border-color:var(--border) !important}
+body[data-theme="dark"] .cajas-modal-header h3,
+body[data-theme="dark"] .cajas-modal h4,
+body[data-theme="dark"] .cierre-resumen .item .valor,
+body[data-theme="dark"] .cierre-stat{color:var(--text) !important}
+body[data-theme="dark"] .cajas-form-grupo label,
+body[data-theme="dark"] .cierre-resumen .item .label,
+body[data-theme="dark"] .cajas-modal-cerrar{color:var(--muted) !important}
+body[data-theme="dark"] .cajas-form-grupo input,
+body[data-theme="dark"] .cajas-form-grupo select,
+body[data-theme="dark"] .cajas-form-grupo textarea,
+body[data-theme="dark"] .cajas-tabla-mov input[type=number]{background:var(--bg2) !important;color:var(--text) !important;border-color:var(--border) !important}
+body[data-theme="dark"] .cajas-tabla-mov th{background:var(--bg2) !important;color:var(--muted) !important}
+body[data-theme="dark"] .cajas-tabla-mov td,
+body[data-theme="dark"] .cajas-tabla-mov th,
+body[data-theme="dark"] .compania-row,
+body[data-theme="dark"] .cierre-stat{border-color:var(--border) !important}
+body[data-theme="dark"] .cierre-resumen,
+body[data-theme="dark"] .companias-lista{background:var(--bg2) !important}
+body[data-theme="dark"] .cierre-resumen .descuadre-grande.ok{background:rgba(22,163,74,.18) !important;color:#4ade80 !important}
+body[data-theme="dark"] .cierre-resumen .descuadre-grande.ko{background:rgba(220,38,38,.20) !important;color:#f87171 !important}
 body[data-theme="dark"] .cajas-btn-sec{background:var(--light) !important;color:var(--text) !important;border-color:var(--border) !important}
 /* Inputs de texto/número sin clase (p. ej. "Efectivo contado") → oscurecer en dark. */
 body[data-theme="dark"] input[type="text"],
