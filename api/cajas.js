@@ -280,6 +280,96 @@ export default async function handler(req, res) {
         return ok(res, { cajas: visibles });
       }
 
+      // ─── CUENTAS DE SALDO (monedero prepago de recargas) ───────────────
+      case 'listar_cuentas': {
+        const caja_id = req.query.caja_id;
+        let path = `cajas_cuentas?tienda_id=eq.${encodeURIComponent(tienda_id)}&order=created_at.asc`;
+        if (caja_id) path += `&caja_id=eq.${encodeURIComponent(caja_id)}`;
+        let cuentas = await sbGet(path);
+        const permitCta = await _cajasPermitidas(payload);
+        if (permitCta !== null) cuentas = cuentas.filter(c => permitCta.includes(String(c.caja_id)));
+        // Adjuntar las compañías de cada cuenta.
+        const ids = cuentas.map(c => c.id);
+        let comps = [];
+        if (ids.length) comps = await sbGet(`cajas_companias?tienda_id=eq.${encodeURIComponent(tienda_id)}&cuenta_id=in.(${ids.map(encodeURIComponent).join(',')})&select=id,nombre,cuenta_id`);
+        const out = cuentas.map(c => Object.assign({}, c, { companias: comps.filter(k => k.cuenta_id === c.id).map(k => ({ id: k.id, nombre: k.nombre })) }));
+        return ok(res, { cuentas: out });
+      }
+
+      case 'crear_cuenta': {
+        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        const { caja_id, nombre, saldo } = req.body || {};
+        if (!caja_id || !nombre) return err(res, 400, 'caja_id y nombre obligatorios');
+        const cajas = await sbGet(`cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id`);
+        if (!cajas.length) return err(res, 404, 'Caja no encontrada');
+        const data = await sbPost('cajas_cuentas', { tienda_id, caja_id, nombre: String(nombre).slice(0, 80), saldo: Number(saldo) || 0 });
+        return ok(res, { cuenta: Array.isArray(data) ? data[0] : data });
+      }
+
+      case 'editar_cuenta': {
+        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        const { id, nombre } = req.body || {};
+        if (!id || nombre === undefined) return err(res, 400, 'id y nombre obligatorios');
+        const data = await sbPatch(`cajas_cuentas?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`, { nombre: String(nombre).slice(0, 80) });
+        return ok(res, { cuenta: Array.isArray(data) ? data[0] : data });
+      }
+
+      case 'borrar_cuenta': {
+        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        const { id } = req.body || {};
+        if (!id) return err(res, 400, 'id obligatorio');
+        await sbDelete(`cajas_cuentas?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
+        return ok(res, {});
+      }
+
+      case 'asignar_compania_cuenta': {
+        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        const { compania_id, cuenta_id } = req.body || {};
+        if (!compania_id) return err(res, 400, 'compania_id obligatorio');
+        const cmps = await sbGet(`cajas_companias?id=eq.${encodeURIComponent(compania_id)}&select=caja_id`);
+        if (!cmps.length) return err(res, 404, 'Compañía no encontrada');
+        const cajas = await sbGet(`cajas?id=eq.${encodeURIComponent(cmps[0].caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id`);
+        if (!cajas.length) return err(res, 403, 'Sin acceso');
+        if (cuenta_id) {
+          const cta = await sbGet(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=caja_id`);
+          if (!cta.length || String(cta[0].caja_id) !== String(cmps[0].caja_id)) return err(res, 400, 'Cuenta inválida para esta caja');
+        }
+        await sbPatch(`cajas_companias?id=eq.${encodeURIComponent(compania_id)}`, { cuenta_id: cuenta_id || null });
+        return ok(res, {});
+      }
+
+      case 'recargar_saldo': {
+        const { cuenta_id, importe, nota } = req.body || {};
+        const imp = Number(importe);
+        if (!cuenta_id || !Number.isFinite(imp) || imp === 0) return err(res, 400, 'cuenta_id e importe (≠0) obligatorios');
+        const cta = await sbGet(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
+        if (!cta.length) return err(res, 404, 'Cuenta no encontrada');
+        if (!(await puedeAccederCaja(payload, cta[0].caja_id))) return err(res, 403, 'Sin permiso para esta caja');
+        const nuevo = Math.round((Number(cta[0].saldo || 0) + imp) * 100) / 100;
+        const data = await sbPatch(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`, { saldo: nuevo });
+        await sbPost('cajas_saldo_mov', { tienda_id, cuenta_id, tipo: 'recarga', importe: imp, saldo_resultante: nuevo, nota: nota || null, usuario: payload.email || null });
+        return ok(res, { cuenta: Array.isArray(data) ? data[0] : data });
+      }
+
+      case 'confirmar_saldo': {
+        const { cuenta_id, saldo_real, ventas_dia, fecha, nota } = req.body || {};
+        const real = Number(saldo_real);
+        if (!cuenta_id || !Number.isFinite(real)) return err(res, 400, 'cuenta_id y saldo_real obligatorios');
+        const cta = await sbGet(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
+        if (!cta.length) return err(res, 404, 'Cuenta no encontrada');
+        if (!(await puedeAccederCaja(payload, cta[0].caja_id))) return err(res, 403, 'Sin permiso para esta caja');
+        const anterior = Number(cta[0].saldo || 0);
+        const ventas = Number(ventas_dia) || 0;
+        const esperado = Math.round((anterior - ventas) * 100) / 100;
+        const nuevo = Math.round(real * 100) / 100;
+        const ajuste = Math.round((nuevo - esperado) * 100) / 100;
+        await sbPatch(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`, { saldo: nuevo });
+        const mov = { tienda_id, cuenta_id, tipo: 'confirmacion', importe: Math.round((nuevo - anterior) * 100) / 100, saldo_resultante: nuevo, nota: (nota || '') + (ajuste ? ` [ajuste ${ajuste}]` : ''), usuario: payload.email || null };
+        if (fecha) mov.fecha = fecha;
+        await sbPost('cajas_saldo_mov', mov);
+        return ok(res, { cuenta_id, saldo: nuevo, esperado, ajuste });
+      }
+
       case 'crear_caja': {
         if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
         const { tipo, nombre, icono, color, orden, dias_apertura } = req.body || {};

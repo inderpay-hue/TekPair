@@ -68,6 +68,7 @@
     cierreEditando: null,
     inicializado: false,
     fiadosTemp: [],  // array de fiados del día actual (múltiples por compañía permitidos)
+    cuentas: [],  // cuentas de saldo de recargas (monedero prepago)
     tabActiva: 'dia',
     subTabActiva: 'pendientes',
     cobros: []  // cache de fiados para la vista de cobros
@@ -165,7 +166,9 @@
           Estado.cierres[c.id] = { cierre: null, movimientos: [], companias: [] };
         }
       }));
+      try { const rc = await api('listar_cuentas'); Estado.cuentas = rc.cuentas || []; } catch (e) { Estado.cuentas = Estado.cuentas || []; }
       pintarTarjetas();
+      pintarCuentas();
       pintarCajaDia();
       actualizarBadgePendientes();
       pintarFranja7();
@@ -263,6 +266,83 @@
     grid.innerHTML = html;
   }
 
+  // ── PANEL CUENTAS DE SALDO (monedero prepago de recargas) ──
+  function pintarCuentas() {
+    const cont = $('cajas-cuentas-panel');
+    if (!cont) return;
+    // Solo cuentas de cajas visibles (las que existen en Estado.cajas)
+    const idsCajas = new Set((Estado.cajas || []).map(c => c.id));
+    const cuentas = (Estado.cuentas || []).filter(c => idsCajas.has(c.caja_id));
+    if (cuentas.length === 0) { cont.innerHTML = ''; return; }
+
+    let cards = '';
+    for (const c of cuentas) {
+      const comps = (c.companias || []).map(x => escapar(x.nombre)).join(' · ');
+      cards += `
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:14px;padding:16px;border-left:4px solid #6366F1;">
+          <div style="font-weight:800;font-size:15px;color:var(--text);">${escapar(c.nombre)}</div>
+          ${comps ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;">${comps}</div>` : ''}
+          <div style="font-size:26px;font-weight:800;color:var(--text);margin:10px 0 12px;">${eur(c.saldo)}</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="cajas-btn cajas-btn-sec" style="flex:1;" onclick="Cajas.recargarSaldo('${c.id}')">➕ ${T('cajas.recargue')}</button>
+            <button class="cajas-btn" style="flex:1;" onclick="Cajas.confirmarSaldoCuenta('${c.id}')">✓ ${T('cajas.confirmar_saldo')}</button>
+          </div>
+        </div>`;
+    }
+    cont.innerHTML = `
+      <div style="margin-top:8px;">
+        <div style="font-weight:800;font-size:15px;color:var(--text);margin-bottom:10px;">💳 ${T('cajas.saldos_titulo')}</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">${cards}</div>
+      </div>`;
+  }
+
+  // Recargas vendidas HOY de una cuenta: suma los movimientos del cierre del día
+  // de la caja de esa cuenta cuyas compañías pertenecen a la cuenta.
+  function _ventasDiaCuenta(cuenta) {
+    if (!cuenta) return 0;
+    const datos = (Estado.cierres || {})[cuenta.caja_id] || {};
+    const movs = datos.movimientos || [];
+    const idsComp = new Set((cuenta.companias || []).map(x => x.id));
+    let total = 0;
+    for (const m of movs) {
+      if (idsComp.has(m.compania_id)) {
+        total += Number(m.importe_efectivo || 0) + Number(m.importe_tarjeta || 0);
+      }
+    }
+    return Math.round(total * 100) / 100;
+  }
+
+  async function recargarSaldo(cuentaId) {
+    const v = prompt(T('cajas.recargue_prompt'));
+    if (v === null) return;
+    const imp = Number(String(v).replace(',', '.'));
+    if (!isFinite(imp) || imp === 0) { toast(T('cajas.importe_invalido'), 'error'); return; }
+    try {
+      await api('recargar_saldo', { method: 'POST', body: { cuenta_id: cuentaId, importe: imp } });
+      toast(T('cajas.saldo_actualizado'));
+      await cargarCajas();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  async function confirmarSaldoCuenta(cuentaId, ventasDia) {
+    const v = prompt(T('cajas.confirmar_prompt'));
+    if (v === null) return;
+    const real = Number(String(v).replace(',', '.'));
+    if (!isFinite(real)) { toast(T('cajas.importe_invalido'), 'error'); return; }
+    try {
+      await api('confirmar_saldo', {
+        method: 'POST',
+        body: { cuenta_id: cuentaId, saldo_real: real, ventas_dia: ventasDia || 0, fecha: Estado.fechaActual }
+      });
+      toast(T('cajas.saldo_actualizado'));
+      await cargarCajas();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
   // ── Modal Caja ──────────────────────────────────
   function abrirModalNuevaCaja() {
     Estado.cajaEditando = null;
@@ -319,17 +399,103 @@
       });
       const cmps = r.companias || [];
       if (cmps.length === 0) {
-        lista.innerHTML = '<div style="color:#6b7280;font-size:12px;text-align:center;padding:8px;">' + T('gen.no_hay_companias') + '</div>';
-        return;
+        lista.innerHTML = '<div style="color:var(--muted);font-size:12px;text-align:center;padding:8px;">' + T('gen.no_hay_companias') + '</div>';
+      } else {
+        lista.innerHTML = cmps.map(c => `
+          <div class="compania-row" data-id="${c.id}">
+            <input type="text" value="${escapar(c.nombre)}" onchange="Cajas.editarCompania('${c.id}', this.value)">
+            <button class="cajas-btn cajas-btn-rojo" style="padding:5px 9px;font-size:11px;" onclick="Cajas.borrarCompania('${c.id}')">✕</button>
+          </div>
+        `).join('');
       }
-      lista.innerHTML = cmps.map(c => `
-        <div class="compania-row" data-id="${c.id}">
-          <input type="text" value="${escapar(c.nombre)}" onchange="Cajas.editarCompania('${c.id}', this.value)">
-          <button class="cajas-btn cajas-btn-rojo" style="padding:5px 9px;font-size:11px;" onclick="Cajas.borrarCompania('${c.id}')">✕</button>
-        </div>
-      `).join('');
+      if (esAdminTienda()) await renderCuentasAdmin(cmps);
     } catch (e) {
       lista.innerHTML = `<div style="color:#dc2626;font-size:12px;">Error: ${e.message}</div>`;
+    }
+  }
+
+  // Bloque admin de "Cuentas de saldo" dentro del modal de editar caja.
+  async function renderCuentasAdmin(cmps) {
+    const box = $('lista-cuentas-admin');
+    if (!box || !Estado.cajaEditando) return;
+    const cajaId = Estado.cajaEditando.id;
+    // Cuentas de esta caja: usa Estado.cuentas si están, si no las pide.
+    let cuentas = (Estado.cuentas || []).filter(c => c.caja_id === cajaId);
+    if (!Estado.cuentas || Estado.cuentas.length === 0) {
+      try { const rc = await api('listar_cuentas', { query: { caja_id: cajaId } }); cuentas = rc.cuentas || []; } catch (e) { cuentas = []; }
+    }
+    // Mapa compania_id -> cuenta_id (desde las companias[] de cada cuenta)
+    const compACuenta = {};
+    cuentas.forEach(ct => (ct.companias || []).forEach(x => { compACuenta[x.id] = ct.id; }));
+
+    let html = '<div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:8px;">💳 ' + T('cajas.cuentas_titulo') + '</div>';
+
+    if (cuentas.length === 0) {
+      html += '<div style="color:var(--muted);font-size:12px;padding:4px 0 8px;">' + T('gen.no_hay_companias') + '</div>';
+    } else {
+      html += cuentas.map(ct => `
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;">
+          <span style="flex:1;font-size:13px;color:var(--text);">${escapar(ct.nombre)}</span>
+          <span style="font-size:13px;font-weight:700;color:var(--text);">${eur(ct.saldo)}</span>
+          <button class="cajas-btn cajas-btn-rojo" style="padding:5px 9px;font-size:11px;" onclick="Cajas.borrarCuenta('${ct.id}')">🗑</button>
+        </div>
+      `).join('');
+    }
+
+    html += `<button class="cajas-btn cajas-btn-sec" style="margin-top:6px;font-size:12px;" onclick="Cajas.crearCuenta()">➕ ${T('cajas.crear_cuenta')}</button>`;
+
+    if (cmps.length > 0 && cuentas.length > 0) {
+      html += '<div style="margin-top:12px;display:flex;flex-direction:column;gap:6px;">';
+      html += cmps.map(c => {
+        const sel = compACuenta[c.id] || '';
+        const opts = '<option value="">' + T('cajas.sin_cuenta') + '</option>' +
+          cuentas.map(ct => `<option value="${ct.id}" ${ct.id === sel ? 'selected' : ''}>${escapar(ct.nombre)}</option>`).join('');
+        return `<div style="display:flex;align-items:center;gap:8px;">
+          <span style="flex:1;font-size:12px;color:var(--muted);">${escapar(c.nombre)}</span>
+          <select style="font-size:12px;padding:4px 6px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);" onchange="Cajas.asignarCompaniaCuenta('${c.id}', this.value)">${opts}</select>
+        </div>`;
+      }).join('');
+      html += '</div>';
+    }
+
+    box.innerHTML = html;
+  }
+
+  async function crearCuenta() {
+    if (!Estado.cajaEditando) return;
+    const nombre = prompt(T('cajas.cuenta_nombre_prompt'));
+    if (nombre === null) return;
+    const n = nombre.trim();
+    if (!n) return;
+    try {
+      await api('crear_cuenta', { method: 'POST', body: { caja_id: Estado.cajaEditando.id, nombre: n } });
+      const rc = await api('listar_cuentas'); Estado.cuentas = rc.cuentas || [];
+      renderCompanias();
+      pintarCuentas();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  async function borrarCuenta(id) {
+    if (!confirm(T('cajas.borrar_cuenta_confirm'))) return;
+    try {
+      await api('borrar_cuenta', { method: 'POST', body: { id } });
+      const rc = await api('listar_cuentas'); Estado.cuentas = rc.cuentas || [];
+      renderCompanias();
+      pintarCuentas();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
+  async function asignarCompaniaCuenta(companiaId, cuentaId) {
+    try {
+      await api('asignar_compania_cuenta', { method: 'POST', body: { compania_id: companiaId, cuenta_id: cuentaId || null } });
+      const rc = await api('listar_cuentas'); Estado.cuentas = rc.cuentas || [];
+      pintarCuentas();
+    } catch (e) {
+      toast(e.message, 'error');
     }
   }
 
@@ -826,6 +992,30 @@
           }
         } catch(e) {
           toast('Cierre guardado, pero error con fiados: ' + e.message, 'error');
+        }
+      }
+
+      // Cuentas de saldo: al CERRAR, ofrece confirmar el saldo real de cada cuenta de esta caja.
+      if (estado === 'cerrado' && Array.isArray(Estado.cuentas)) {
+        // Refrescar los movimientos recién guardados para calcular las ventas del día.
+        if (Estado.cierres[payload.caja_id]) Estado.cierres[payload.caja_id].movimientos = payload.movimientos;
+        const cuentasCaja = Estado.cuentas.filter(c => c.caja_id === payload.caja_id);
+        for (const cuenta of cuentasCaja) {
+          const ventasDia = _ventasDiaCuenta(cuenta);
+          const esperado = Math.round((Number(cuenta.saldo || 0) - ventasDia) * 100) / 100;
+          const msg = T('cajas.cierre_saldo_prompt')
+            .replace('{cuenta}', cuenta.nombre)
+            .replace('{esperado}', eur(esperado));
+          const v = prompt(msg);
+          if (v === null || String(v).trim() === '') continue;
+          const real = Number(String(v).replace(',', '.'));
+          if (!isFinite(real)) { toast(T('cajas.importe_invalido'), 'error'); continue; }
+          try {
+            await api('confirmar_saldo', {
+              method: 'POST',
+              body: { cuenta_id: cuenta.id, saldo_real: real, ventas_dia: ventasDia, fecha: payload.fecha }
+            });
+          } catch (e) { toast(e.message, 'error'); }
         }
       }
 
@@ -1529,6 +1719,12 @@
   window.Cajas = {
     renderCajas,
     cargarCajas,
+    pintarCuentas,
+    recargarSaldo,
+    confirmarSaldoCuenta,
+    crearCuenta,
+    borrarCuenta,
+    asignarCompaniaCuenta,
     pintarCajaDia,
     cuadreCajaDia,
     cerrarCajaDia,
