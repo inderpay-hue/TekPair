@@ -1167,7 +1167,8 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260729l"></script>
+  <script src="/assets/jsbarcode.min.js?v=20260729"></script>
+<script src="/lang/lang.v8.js?v=20260729o"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4332,6 +4333,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     <div class="fg"><label class="fl">IMEI</label><input class="fi" id="sImei" placeholder="Opcional"></div>
     <div class="fg"><label class="fl"><span data-t="stock.unidades">Unidades</span></label><input class="fi" id="sUds" type="number" value="1" min="1"></div>
   </div>
+  <div class="fg"><label class="fl">🔋 <span data-t="stock.bateria">Batería %</span> <span data-t="stock.bateria_hint" style="color:var(--muted);font-weight:400;font-size:10px">(seminuevos, opcional)</span></label><input class="fi" id="sBat" type="number" min="0" max="100" placeholder="85"></div>
   <button type="button" class="btn-secondary" id="sBtnMasImeis" style="display:none;width:100%;margin:2px 0 8px;border-color:var(--orange);color:var(--orange)" onclick="anadirMasImeis()">➕ <span data-t="stock.mas_imeis">Añadir más IMEIs de este modelo</span></button>
   <!-- ALTA MÚLTIPLE: varios teléfonos del mismo modelo, cada uno con su IMEI y precio -->
   <div class="fg" id="sImeiMultiWrap" style="display:none">
@@ -5029,7 +5031,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260729c"></script>
+<script src="/js/dash-app.js?v=20260729o"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

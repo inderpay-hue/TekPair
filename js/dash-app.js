@@ -3312,7 +3312,8 @@ function mapStock(s) {
     vendido:s.vendido||false, calidad:s.calidad||'',
     tipo: s.tipo || 'nuevo', garantiaMeses: parseInt(s.garantia_meses)||0,
     ubicacion: s.ubicacion || null,
-    enOferta: !!s.en_oferta, precioAntes: parseFloat(s.precio_antes)||0
+    enOferta: !!s.en_oferta, precioAntes: parseFloat(s.precio_antes)||0,
+    bateria: (s.bateria != null && s.bateria !== '') ? parseInt(s.bateria) : null
   };
 }
 
@@ -10121,6 +10122,28 @@ function _etqEstado(tipo) {
   var m = { nuevo: 'etq.estado_nuevo', seminuevo: 'etq.estado_seminuevo', segunda: 'etq.estado_segunda', usado: 'etq.estado_segunda', reacond: 'etq.estado_reacond' };
   var k = m[tipo]; return k ? T(k) : '';
 }
+// Código de barras Code128 (SVG) para la etiqueta. Devuelve el SVG como string embebible.
+// Usa JsBarcode (window.JsBarcode); si no está cargado, devuelve '' y la etiqueta cae al texto.
+function _etqBarcodeSvg(text, opts) {
+  opts = opts || {};
+  var val = String(text || '').replace(/\s+/g, '');
+  if (!val || typeof window.JsBarcode !== 'function') return '';
+  var host = null;
+  try {
+    host = document.createElement('div');
+    host.style.cssText = 'position:absolute;left:-9999px;top:-9999px';
+    document.body.appendChild(host);
+    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    host.appendChild(svg);
+    window.JsBarcode(svg, val, {
+      format: 'CODE128', width: opts.width || 1.3, height: opts.height || 32,
+      displayValue: false, margin: 0, background: '#ffffff', lineColor: '#000000'
+    });
+    var out = svg.outerHTML;
+    return out;
+  } catch (e) { return ''; }
+  finally { if (host && host.parentNode) host.parentNode.removeChild(host); }
+}
 // Etiqueta de VENTA: marca/modelo, capacidad, color, estado, IMEI y precio.
 // Se adapta al tamaño elegido en Ajustes (_etqMedida). QR del IMEI si cabe.
 function imprimirEtiquetaStock(sid) {
@@ -10130,14 +10153,11 @@ function imprimirEtiquetaStock(sid) {
   // Cinta continua: ancho fijo + largo automático (evita el aviso "el rollo no coincide")
   var pageCss = m.cont ? (pw + 'mm auto') : (pw + 'mm ' + ph + 'mm');
   var bodyH = m.cont ? ('min-height:' + ph + 'mm') : ('height:' + ph + 'mm');
-  var showQr = !!s.imei && pw >= 45;  // en etiquetas estrechas, sin QR para dar sitio al texto
-  var qrSvg = '';
-  if (showQr) { try { var qr = qrcode(0, 'M'); qr.addData(s.imei); qr.make(); qrSvg = qr.createImgTag(4, 4); } catch (e) {} }
-  var hasQr = !!qrSvg;
-  var qrMm = Math.max(12, Math.min(ph - 6, Math.round(pw * 0.34)));
   var nombre = ((s.marca || '') + ' ' + (s.modelo || '')).trim();
   var specs = [s.capacidad, s.color].map(function(x) { return (x || '').trim(); }).filter(Boolean).join(' · ');
   var estado = _etqEstado(s.tipo);
+  var bateria = (s.bateria != null && s.bateria !== '' && !isNaN(parseInt(s.bateria))) ? parseInt(s.bateria) : null;
+  var estadoLinea = [estado, (bateria != null ? (T('etq.bateria') + ' ' + bateria + '%') : '')].filter(Boolean).join(' · ');
   var precio = (parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '';
   var esOferta = !!s.enOferta && (parseFloat(s.precioAntes) || 0) > 0;
   var precioHtml = '';
@@ -10146,37 +10166,36 @@ function imprimirEtiquetaStock(sid) {
       ? '<div class="pr pro"><span class="ofb">' + T('etq.oferta') + '</span> <span class="an">' + esc(cur(s.precioAntes)) + '</span> ' + esc(precio) + '</div>'
       : '<div class="pr">' + esc(precio) + '</div>';
   }
+  // Código de barras Code128 del IMEI (sustituye al QR). Sin IMEI/JsBarcode → texto.
+  var bcSvg = s.imei ? _etqBarcodeSvg(s.imei, { height: (ph >= 29 ? 34 : 26), width: 1.3 }) : '';
   var fNm = ph >= 29 ? 11 : (ph >= 27 ? 10 : 9);
-  if (nombre.length > 22) fNm = Math.max(7, Math.round(fNm * 22 / nombre.length));  // nombres largos: reducir fuente para que quepan
-  var fPr = ph >= 29 ? 17 : (ph >= 27 ? 15 : 13);
-  if (esOferta) fPr = Math.max(11, fPr - 3);  // oferta en 1 línea: reducir algo para que quepa
+  if (nombre.length > 22) fNm = Math.max(7, Math.round(fNm * 22 / nombre.length));  // nombres largos: reducir fuente
+  var fPr = ph >= 29 ? 16 : (ph >= 27 ? 14 : 12);
+  if (esOferta) fPr = Math.max(11, fPr - 3);
   var fullHtml =
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + T('etq.doc_title') + '</title><style>' +
     '@page { size: ' + pageCss + '; margin: 0; }' +
     'html{margin:0;padding:0}' +
-    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;' + bodyH + ';margin:0;padding:1.5mm;color:#000;font-size:8px;display:flex;gap:2mm;align-items:center;box-sizing:border-box;overflow:' + (m.cont ? 'visible' : 'hidden') + '}' +
-    '.qr{flex-shrink:0}' +
-    '.qr img{width:' + qrMm + 'mm;height:' + qrMm + 'mm;display:block}' +
-    '.info{flex:1;min-width:0;line-height:1.2;display:flex;flex-direction:column;height:100%;justify-content:center;overflow:hidden}' +
-    '.nm{font-weight:800;font-size:' + fNm + 'px;line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word}' +
-    '.sp{font-size:8px;color:#333;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-    '.es{font-size:7.5px;color:#555;margin-top:1px}' +
-    '.im{font-size:7px;font-family:monospace;color:#444;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-    '.pr{font-size:' + fPr + 'px;font-weight:800;margin-top:2px}' +
-    '.pr.pro{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;' + bodyH + ';margin:0;padding:1.5mm;color:#000;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.4mm;overflow:' + (m.cont ? 'visible' : 'hidden') + '}' +
+    '.nm{font-weight:800;font-size:' + fNm + 'px;line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;max-width:100%}' +
+    '.sp{font-size:8px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
+    '.es{font-size:7.5px;color:#555}' +
+    '.pr{font-size:' + fPr + 'px;font-weight:800;margin:0.3mm 0}' +
+    '.pr.pro{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
     '.ofb{background:#e11d48;color:#fff;font-weight:800;font-size:6px;padding:0 3px;border-radius:2px;vertical-align:middle}' +
     '.an{font-size:9px;color:#999;text-decoration:line-through;font-weight:600}' +
     '.pro{color:#e11d48}' +
+    '.bc{width:100%;margin-top:0.5mm}' +
+    '.bc svg{max-width:100%;height:auto;display:block;margin:0 auto}' +
+    '.bcn{font-size:6.5px;font-family:monospace;color:#333;letter-spacing:.4px;margin-top:0.2mm}' +
     '</style></head><body>' +
-    (hasQr ? '<div class="qr">' + qrSvg + '</div>' : '') +
-    '<div class="info">' +
       _etqLogoHtml() +
       '<div class="nm">' + esc(nombre) + '</div>' +
       (specs ? '<div class="sp">' + esc(specs) + '</div>' : '') +
-      (estado ? '<div class="es">' + esc(estado) + '</div>' : '') +
-      (s.imei ? '<div class="im">IMEI: ' + esc(s.imei) + '</div>' : '') +
+      (estadoLinea ? '<div class="es">' + esc(estadoLinea) + '</div>' : '') +
       precioHtml +
-    '</div>' +
+      (bcSvg ? '<div class="bc">' + bcSvg + '</div><div class="bcn">' + esc(s.imei) + '</div>'
+             : (s.imei ? '<div class="bcn">IMEI: ' + esc(s.imei) + '</div>' : '')) +
     '<style>@media print{.npbar{display:none!important}}</style>' +
     '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:11px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
     '</body></html>';
@@ -12292,6 +12311,8 @@ function guardarStock() {
   // Recoger tipo y garantía (solo si está activa para esta categoría)
   var stockTipo = window._stockTipoSel || 'nuevo';
   var stockGarantiaMeses = parseInt(window._stockGarantiaMeses) || 0;
+  // Batería % (opcional, típicamente seminuevos). Vacío o fuera de 0-100 → null.
+  var stockBateria = (function () { var e = document.getElementById('sBat'); if (!e) return null; var v = parseInt(e.value, 10); return (!isNaN(v) && v >= 0 && v <= 100) ? v : null; })();
   
   if (SEL.editStockId) {
     var s = DB.stock.find(function(x) { return x.id === SEL.editStockId; });
@@ -12310,6 +12331,7 @@ function guardarStock() {
       s.garantiaMeses = stockGarantiaMeses;
       s.ubicacion = tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : s.ubicacion;
       s.enOferta = _enOferta; s.precioAntes = _precioAntes;
+      s.bateria = stockBateria;
       if (SB_KEY && TIENDA_ID) {
         sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
           categoria: s.categoria, marca: s.marca, modelo: s.modelo,
@@ -12318,7 +12340,8 @@ function guardarStock() {
           precio_c: s.precioC, precio_v: s.precioV,
           tipo: s.tipo || 'nuevo', garantia_meses: parseInt(s.garantiaMeses)||0,
           ubicacion: s.ubicacion || null,
-          en_oferta: _enOferta, precio_antes: _precioAntes || null
+          en_oferta: _enOferta, precio_antes: _precioAntes || null,
+          bateria: stockBateria
         });
       }
     }
@@ -12458,7 +12481,7 @@ function guardarStock() {
       tipo: stockTipo,
       garantiaMeses: stockGarantiaMeses,
       ubicacion: tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : null,
-      enOferta: _enOferta, precioAntes: _precioAntes
+      enOferta: _enOferta, precioAntes: _precioAntes, bateria: stockBateria
     };
     DB.stock.push(nuevo);
     if (SB_KEY && TIENDA_ID) sbPost('stock', {
@@ -12470,7 +12493,8 @@ function guardarStock() {
       calidad: nuevo.calidad || null,
       tipo: nuevo.tipo || 'nuevo', garantia_meses: parseInt(nuevo.garantiaMeses)||0,
       ubicacion: nuevo.ubicacion || null,
-      en_oferta: _enOferta, precio_antes: _precioAntes || null
+      en_oferta: _enOferta, precio_antes: _precioAntes || null,
+      bateria: stockBateria
     });
   }
   // Reset selección
@@ -12569,7 +12593,7 @@ function nuevoStock() {
   SEL.editStockId = null;
   var tit = document.getElementById('mStockTit'); if (tit) tit.textContent = T('stock.titulo_add');
   var _bmn = document.getElementById('sBtnMasImeis'); if (_bmn) _bmn.style.display = 'none';
-  var def = { sCat:'Telefono', sMarca:'', sModelo:'', sCap:'', sColor:'', sImei:'', sUds:'1', sPrecioC:'0', sPrecioV:'0', sMin:'2', sMax:'10' };
+  var def = { sCat:'Telefono', sMarca:'', sModelo:'', sCap:'', sColor:'', sImei:'', sBat:'', sUds:'1', sPrecioC:'0', sPrecioV:'0', sMin:'2', sMax:'10' };
   Object.keys(def).forEach(function(id) { var e = document.getElementById(id); if (e) e.value = def[id]; });
   var su = document.getElementById('sUbic'); if (su) su.value = '';
   var _so = document.getElementById('sEnOferta'); if (_so) _so.checked = false;
@@ -12614,6 +12638,7 @@ function editarStock(id) {
   document.getElementById('sCap').value = s.capacidad || '';
   document.getElementById('sColor').value = s.color || '';
   document.getElementById('sImei').value = s.imei || '';
+  var _sbat = document.getElementById('sBat'); if (_sbat) _sbat.value = (s.bateria != null ? s.bateria : '');
   document.getElementById('sUds').value = s.unidades || 1;
   document.getElementById('sPrecioC').value = s.precioC || 0;
   document.getElementById('sPrecioV').value = s.precioV || 0;
