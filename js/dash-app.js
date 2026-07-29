@@ -10108,6 +10108,14 @@ function setEtqSize(v) {
   var m = _etqMedida();
   toast(T('etq.tam_guardado').replace('{m}', m.label), 'ok');
 }
+// Modo del código de barras en la etiqueta de precio: 'imei' (por defecto) o 'off' (sin código).
+function _etqBarcodeModo() {
+  try { return localStorage.getItem('tk_etq_barcode') === 'off' ? 'off' : 'imei'; } catch (e) { return 'imei'; }
+}
+function setEtqBarcode(v) {
+  try { localStorage.setItem('tk_etq_barcode', v === 'off' ? 'off' : 'imei'); } catch (e) {}
+  toast(T('etq.barcode_guardado'), 'ok');
+}
 // Cabecera de etiqueta: logo de la tienda si existe, si no el nombre (compacto).
 // Se usa dentro de la columna de info de las etiquetas de venta y reparación.
 function _etqLogoHtml() {
@@ -10168,9 +10176,10 @@ function imprimirEtiquetaStock(sid) {
   // Layout ADAPTATIVO: vertical en rollo continuo / etiquetas altas; compacto (modelo+precio en
   // fila superior + barcode a lo ancho) en las troqueladas bajitas de Brother (62x29, 90x29, 50x30, 40x30, 38x25).
   var esVertical = m.cont || ph >= 40;
+  var bcOn = _etqBarcodeModo() !== 'off';   // Ajustes: código de barras del IMEI o ninguno
   var css, bodyStyle, bodyInner;
   if (esVertical) {
-    var bcV = s.imei ? _etqBarcodeSvg(s.imei, { height: 34, width: 1.3 }) : '';
+    var bcV = (bcOn && s.imei) ? _etqBarcodeSvg(s.imei, { height: 22, width: 1.05 }) : '';
     var fNmV = 11; if (nombre.length > 22) fNmV = Math.max(8, Math.round(11 * 22 / nombre.length));
     var fPrV = esOferta ? 14 : 17;
     bodyStyle = 'display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.4mm';
@@ -10187,10 +10196,10 @@ function imprimirEtiquetaStock(sid) {
       (specs ? '<div class="sp">' + esc(specs) + '</div>' : '') +
       (estadoLinea ? '<div class="es">' + esc(estadoLinea) + '</div>' : '') +
       (precio ? '<div class="pr' + (esOferta ? ' pro' : '') + '">' + precioInner + '</div>' : '') +
-      (bcV ? '<div class="bc">' + bcV + '</div><div class="bcn">' + imeiTxt + '</div>' : (s.imei ? '<div class="bcn">IMEI: ' + imeiTxt + '</div>' : ''));
+      (bcV ? '<div class="bc">' + bcV + '</div><div class="bcn">' + imeiTxt + '</div>' : (bcOn && s.imei ? '<div class="bcn">IMEI: ' + imeiTxt + '</div>' : ''));
   } else {
-    var bcMm = ph <= 26 ? 6.5 : 8;
-    var bcC = s.imei ? _etqBarcodeSvg(s.imei, { height: 24, width: 1.1 }) : '';
+    var bcMm = ph <= 26 ? 5 : 6;
+    var bcC = (bcOn && s.imei) ? _etqBarcodeSvg(s.imei, { height: 18, width: 0.9 }) : '';
     var fNmC = pw >= 55 ? 11 : 9; if (nombre.length > 18) fNmC = Math.max(7, Math.round(fNmC * 18 / nombre.length));
     var fPrC = pw >= 55 ? (esOferta ? 12 : 15) : (esOferta ? 10 : 12);
     var midTxt = [specs, estadoLinea].filter(Boolean).join('  ·  ');
@@ -10207,7 +10216,7 @@ function imprimirEtiquetaStock(sid) {
       '<div class="hd">' + _etqLogoHtml() + '</div>' +
       '<div class="row"><div class="nm">' + esc(nombre) + '</div>' + (precio ? '<div class="pr' + (esOferta ? ' pro' : '') + '">' + precioInner + '</div>' : '') + '</div>' +
       (midTxt ? '<div class="mid">' + esc(midTxt) + '</div>' : '') +
-      (bcC ? '<div class="bc">' + bcC + '</div><div class="bcn">' + imeiTxt + '</div>' : (s.imei ? '<div class="mid">IMEI: ' + imeiTxt + '</div>' : ''));
+      (bcC ? '<div class="bc">' + bcC + '</div><div class="bcn">' + imeiTxt + '</div>' : (bcOn && s.imei ? '<div class="mid">IMEI: ' + imeiTxt + '</div>' : ''));
   }
   var fullHtml =
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + T('etq.doc_title') + '</title><style>' +
@@ -16305,6 +16314,7 @@ function cargarAjustes() {
   document.getElementById('ajMoneda').value = AJUSTES.moneda || 'EUR';
   try { var _pp = document.getElementById('ajPaisPrefijo'); if (_pp) _pp.value = AJUSTES.paisPrefijo || '34'; } catch (e) {}
   try { var _es = document.getElementById('ajEtqSize'); if (_es) { var _ev = ''; try { _ev = localStorage.getItem('tk_etq_size') || ''; } catch (e) {} _es.value = (_ev && _es.querySelector('option[value="' + _ev + '"]')) ? _ev : '62cont'; } } catch (e) {}
+  try { var _eb = document.getElementById('ajEtqBarcode'); if (_eb) _eb.value = _etqBarcodeModo(); } catch (e) {}
   document.getElementById('ajNombre').value = AJUSTES.nombre || (U ? U.nombre : '');
   document.getElementById('ajCierreHora').value = AJUSTES.cierre.hora || '21:30';
   document.getElementById('ajCierreEmail').value = AJUSTES.cierre.email || '';
