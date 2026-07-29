@@ -278,13 +278,19 @@
     let cards = '';
     for (const c of cuentas) {
       const comps = (c.companias || []).map(x => escapar(x.nombre)).join(' · ');
+      const esEnvios = _tipoCuenta(c) === 'envios';
+      const etiqueta = esEnvios ? T('cajas.pendiente_ingresar') : T('cajas.saldo_label');
+      const btnPrimario = esEnvios
+        ? `<button class="cajas-btn cajas-btn-sec" style="flex:1;" onclick="Cajas.ingresoBanco('${c.id}')">💰 ${T('cajas.ingrese_banco')}</button>`
+        : `<button class="cajas-btn cajas-btn-sec" style="flex:1;" onclick="Cajas.recargarSaldo('${c.id}')">➕ ${T('cajas.recargue')}</button>`;
       cards += `
-        <div style="background:var(--white);border:1px solid var(--border);border-radius:14px;padding:16px;border-left:4px solid #6366F1;">
+        <div style="background:var(--white);border:1px solid var(--border);border-radius:14px;padding:16px;border-left:4px solid ${esEnvios ? '#F59E0B' : '#6366F1'};">
           <div style="font-weight:800;font-size:15px;color:var(--text);">${escapar(c.nombre)}</div>
           ${comps ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;">${comps}</div>` : ''}
-          <div style="font-size:26px;font-weight:800;color:var(--text);margin:10px 0 12px;">${eur(c.saldo)}</div>
+          <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:8px;">${etiqueta}</div>
+          <div style="font-size:26px;font-weight:800;color:var(--text);margin:2px 0 12px;">${eur(c.saldo)}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="cajas-btn cajas-btn-sec" style="flex:1;" onclick="Cajas.recargarSaldo('${c.id}')">➕ ${T('cajas.recargue')}</button>
+            ${btnPrimario}
             <button class="cajas-btn" style="flex:1;" onclick="Cajas.confirmarSaldoCuenta('${c.id}')">✓ ${T('cajas.confirmar_saldo')}</button>
           </div>
         </div>`;
@@ -298,15 +304,23 @@
 
   // Recargas vendidas HOY de una cuenta: suma los movimientos del cierre del día
   // de la caja de esa cuenta cuyas compañías pertenecen a la cuenta.
+  // Tipo de la caja a la que pertenece una cuenta ('envios' | 'recargas' | ...).
+  function _tipoCuenta(cuenta) {
+    const caja = (Estado.cajas || []).find(x => cuenta && x.id === cuenta.caja_id);
+    return caja ? caja.tipo : null;
+  }
+  // Monto del día de una cuenta. Recargas = total vendido (efectivo + TPV, ya combinado en
+  // importe_efectivo). Envíos = importe enviado (lo que se le debe ingresar a la compañía).
   function _ventasDiaCuenta(cuenta) {
     if (!cuenta) return 0;
     const datos = (Estado.cierres || {})[cuenta.caja_id] || {};
     const movs = datos.movimientos || [];
     const idsComp = new Set((cuenta.companias || []).map(x => x.id));
+    const esEnvios = _tipoCuenta(cuenta) === 'envios';
     let total = 0;
     for (const m of movs) {
       if (idsComp.has(m.compania_id)) {
-        total += Number(m.importe_efectivo || 0) + Number(m.importe_tarjeta || 0);
+        total += esEnvios ? Number(m.importe_enviado || 0) : (Number(m.importe_efectivo || 0) + Number(m.importe_tarjeta || 0));
       }
     }
     return Math.round(total * 100) / 100;
@@ -326,8 +340,25 @@
     }
   }
 
+  // Envíos: registrar un ingreso en el banco → BAJA el pendiente (recargar_saldo con importe negativo).
+  async function ingresoBanco(cuentaId) {
+    const v = prompt(T('cajas.ingrese_banco_prompt'));
+    if (v === null) return;
+    const imp = Number(String(v).replace(',', '.'));
+    if (!isFinite(imp) || imp <= 0) { toast(T('cajas.importe_invalido'), 'error'); return; }
+    try {
+      await api('recargar_saldo', { method: 'POST', body: { cuenta_id: cuentaId, importe: -imp, nota: 'Ingreso banco' } });
+      toast(T('cajas.saldo_actualizado'));
+      await cargarCajas();
+    } catch (e) {
+      toast(e.message, 'error');
+    }
+  }
+
   async function confirmarSaldoCuenta(cuentaId, ventasDia) {
-    const v = prompt(T('cajas.confirmar_prompt'));
+    const _cta = (Estado.cuentas || []).find(c => c.id === cuentaId);
+    const _esEnvios = _tipoCuenta(_cta) === 'envios';
+    const v = prompt(_esEnvios ? T('cajas.confirmar_pend_prompt') : T('cajas.confirmar_prompt'));
     if (v === null) return;
     const real = Number(String(v).replace(',', '.'));
     if (!isFinite(real)) { toast(T('cajas.importe_invalido'), 'error'); return; }
@@ -995,27 +1026,50 @@
         }
       }
 
-      // Cuentas de saldo: al CERRAR, ofrece confirmar el saldo real de cada cuenta de esta caja.
+      // Cuentas de saldo: al CERRAR, recargas → confirma saldo real; envíos → pregunta cuánto ingresaste en banco.
       if (estado === 'cerrado' && Array.isArray(Estado.cuentas)) {
-        // Refrescar los movimientos recién guardados para calcular las ventas del día.
+        // Refrescar los movimientos recién guardados para calcular el monto del día.
         if (Estado.cierres[payload.caja_id]) Estado.cierres[payload.caja_id].movimientos = payload.movimientos;
+        const _cajaObj = (Estado.cajas || []).find(x => x.id === payload.caja_id);
+        const _esEnvios = _cajaObj && _cajaObj.tipo === 'envios';
         const cuentasCaja = Estado.cuentas.filter(c => c.caja_id === payload.caja_id);
         for (const cuenta of cuentasCaja) {
-          const ventasDia = _ventasDiaCuenta(cuenta);
-          const esperado = Math.round((Number(cuenta.saldo || 0) - ventasDia) * 100) / 100;
-          const msg = T('cajas.cierre_saldo_prompt')
-            .replace('{cuenta}', cuenta.nombre)
-            .replace('{esperado}', eur(esperado));
-          const v = prompt(msg);
-          if (v === null || String(v).trim() === '') continue;
-          const real = Number(String(v).replace(',', '.'));
-          if (!isFinite(real)) { toast(T('cajas.importe_invalido'), 'error'); continue; }
-          try {
-            await api('confirmar_saldo', {
-              method: 'POST',
-              body: { cuenta_id: cuenta.id, saldo_real: real, ventas_dia: ventasDia, fecha: payload.fecha }
-            });
-          } catch (e) { toast(e.message, 'error'); }
+          const montoDia = _ventasDiaCuenta(cuenta);   // recargas: vendido · envíos: enviado
+          if (_esEnvios) {
+            // Envíos: lo enviado hoy sube el pendiente; preguntamos cuánto se ingresó en banco.
+            const pendConEnvio = Math.round((Number(cuenta.saldo || 0) + montoDia) * 100) / 100;
+            const msg = T('cajas.cierre_ingreso_prompt')
+              .replace('{cuenta}', cuenta.nombre)
+              .replace('{enviado}', eur(montoDia))
+              .replace('{pendiente}', eur(pendConEnvio));
+            const v = prompt(msg);
+            if (v === null) continue;
+            const ingresado = String(v).trim() === '' ? 0 : Number(String(v).replace(',', '.'));
+            if (!isFinite(ingresado)) { toast(T('cajas.importe_invalido'), 'error'); continue; }
+            const nuevoPend = Math.round((pendConEnvio - ingresado) * 100) / 100;
+            try {
+              await api('confirmar_saldo', {
+                method: 'POST',
+                body: { cuenta_id: cuenta.id, saldo_real: nuevoPend, ventas_dia: 0, fecha: payload.fecha, nota: `Envios +${montoDia} / Banco -${ingresado}` }
+              });
+            } catch (e) { toast(e.message, 'error'); }
+          } else {
+            // Recargas: lo vendido hoy baja el saldo; confirmamos el saldo real.
+            const esperado = Math.round((Number(cuenta.saldo || 0) - montoDia) * 100) / 100;
+            const msg = T('cajas.cierre_saldo_prompt')
+              .replace('{cuenta}', cuenta.nombre)
+              .replace('{esperado}', eur(esperado));
+            const v = prompt(msg);
+            if (v === null || String(v).trim() === '') continue;
+            const real = Number(String(v).replace(',', '.'));
+            if (!isFinite(real)) { toast(T('cajas.importe_invalido'), 'error'); continue; }
+            try {
+              await api('confirmar_saldo', {
+                method: 'POST',
+                body: { cuenta_id: cuenta.id, saldo_real: real, ventas_dia: montoDia, fecha: payload.fecha }
+              });
+            } catch (e) { toast(e.message, 'error'); }
+          }
         }
       }
 
@@ -1721,6 +1775,7 @@
     cargarCajas,
     pintarCuentas,
     recargarSaldo,
+    ingresoBanco,
     confirmarSaldoCuenta,
     crearCuenta,
     borrarCuenta,
