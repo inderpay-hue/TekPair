@@ -370,6 +370,16 @@ export default async function handler(req, res) {
         return ok(res, { cuenta_id, saldo: nuevo, esperado, ajuste });
       }
 
+      case 'listar_saldo_mov': {
+        const cuenta_id = req.query.cuenta_id;
+        if (!cuenta_id) return err(res, 400, 'cuenta_id obligatorio');
+        const cta = await sbGet(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id,caja_id,nombre,saldo`);
+        if (!cta.length) return err(res, 404, 'Cuenta no encontrada');
+        if (!(await puedeAccederCaja(payload, cta[0].caja_id))) return err(res, 403, 'Sin permiso para esta caja');
+        const movimientos = await sbGet(`cajas_saldo_mov?cuenta_id=eq.${encodeURIComponent(cuenta_id)}&order=created_at.desc&limit=100`);
+        return ok(res, { cuenta: cta[0], movimientos });
+      }
+
       case 'crear_caja': {
         if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
         const { tipo, nombre, icono, color, orden, dias_apertura } = req.body || {};

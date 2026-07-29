@@ -285,7 +285,10 @@
         : `<button class="cajas-btn cajas-btn-sec" style="flex:1;" onclick="Cajas.recargarSaldo('${c.id}')">➕ ${T('cajas.recargue')}</button>`;
       cards += `
         <div style="background:var(--white);border:1px solid var(--border);border-radius:14px;padding:16px;border-left:4px solid ${esEnvios ? '#F59E0B' : '#6366F1'};">
-          <div style="font-weight:800;font-size:15px;color:var(--text);">${escapar(c.nombre)}</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
+            <div style="font-weight:800;font-size:15px;color:var(--text);">${escapar(c.nombre)}</div>
+            <button class="cajas-btn cajas-btn-sec" style="padding:4px 8px;font-size:13px;" onclick="Cajas.verSeguimiento('${c.id}')" title="${T('cajas.seguimiento')}">📊</button>
+          </div>
           ${comps ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;">${comps}</div>` : ''}
           <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:8px;">${etiqueta}</div>
           <div style="font-size:26px;font-weight:800;color:var(--text);margin:2px 0 12px;">${eur(c.saldo)}</div>
@@ -372,6 +375,53 @@
     } catch (e) {
       toast(e.message, 'error');
     }
+  }
+
+  // Historial de movimientos de una cuenta (seguimiento del dinero): recargas, ingresos, ajustes.
+  async function verSeguimiento(cuentaId) {
+    let data;
+    try { data = await api('listar_saldo_mov', { query: { cuenta_id: cuentaId } }); }
+    catch (e) { toast(e.message, 'error'); return; }
+    const cuenta = data.cuenta || {};
+    const movs = data.movimientos || [];
+    const TIPO = { recarga: T('cajas.mov_recarga'), confirmacion: T('cajas.mov_confirmacion'), ajuste: T('cajas.mov_ajuste') };
+    let filas = movs.map(m => {
+      const imp = Number(m.importe || 0);
+      const signo = imp > 0 ? '+' : '';
+      const col = imp > 0 ? '#16a34a' : (imp < 0 ? '#dc2626' : 'var(--muted)');
+      const f = m.fecha || String(m.created_at || '').slice(0, 10);
+      return `<tr style="border-bottom:1px solid var(--border);">
+        <td style="padding:7px 6px;font-size:12px;color:var(--muted);white-space:nowrap;">${escapar(f ? formatearFecha(f) : '')}</td>
+        <td style="padding:7px 6px;font-size:12px;color:var(--text);">${escapar(TIPO[m.tipo] || m.tipo || '')}${m.nota ? ` <span style="color:var(--muted);">· ${escapar(m.nota)}</span>` : ''}</td>
+        <td style="padding:7px 6px;font-size:13px;font-weight:700;text-align:right;color:${col};white-space:nowrap;">${signo}${eur(imp)}</td>
+        <td style="padding:7px 6px;font-size:13px;font-weight:700;text-align:right;color:var(--text);white-space:nowrap;">${m.saldo_resultante != null ? eur(m.saldo_resultante) : '—'}</td>
+      </tr>`;
+    }).join('');
+    if (!filas) filas = `<tr><td colspan="4" style="padding:14px;text-align:center;color:var(--muted);font-size:13px;">${T('cajas.sin_movimientos')}</td></tr>`;
+    const ov = document.createElement('div');
+    ov.className = 'cajas-modal-overlay activo';
+    ov.style.zIndex = '100000';
+    ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
+    ov.innerHTML = `<div class="cajas-modal" style="max-width:600px;">
+      <div class="cajas-modal-header">
+        <h3>📊 ${T('cajas.seguimiento')} — ${escapar(cuenta.nombre || '')}</h3>
+        <button class="cajas-modal-cerrar" type="button">✕</button>
+      </div>
+      <div class="cajas-modal-cuerpo">
+        <div style="font-size:13px;color:var(--muted);margin-bottom:10px;">${T('cajas.saldo_label')}: <b style="color:var(--text);font-size:17px;">${eur(cuenta.saldo)}</b></div>
+        <div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">
+          <thead><tr style="border-bottom:1px solid var(--border);">
+            <th style="padding:6px;text-align:left;font-size:10px;text-transform:uppercase;color:var(--muted);">${T('gen.fecha')}</th>
+            <th style="padding:6px;text-align:left;font-size:10px;text-transform:uppercase;color:var(--muted);">${T('cajas.mov_tipo')}</th>
+            <th style="padding:6px;text-align:right;font-size:10px;text-transform:uppercase;color:var(--muted);">${T('cajas.mov_cambio')}</th>
+            <th style="padding:6px;text-align:right;font-size:10px;text-transform:uppercase;color:var(--muted);">${T('cajas.saldo_label')}</th>
+          </tr></thead>
+          <tbody>${filas}</tbody>
+        </table></div>
+      </div>
+    </div>`;
+    ov.querySelector('.cajas-modal-cerrar').onclick = () => ov.remove();
+    document.body.appendChild(ov);
   }
 
   // ── Modal Caja ──────────────────────────────────
@@ -1786,6 +1836,7 @@
     recargarSaldo,
     ingresoBanco,
     confirmarSaldoCuenta,
+    verSeguimiento,
     crearCuenta,
     borrarCuenta,
     asignarCompaniaCuenta,
