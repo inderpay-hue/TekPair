@@ -911,7 +911,11 @@
       totalVendido = Math.round(totalVendido * 100) / 100;
       // v2.3: pendientes son deuda, no suman al cobrado
       const cobrado = Math.round((efectivoCaja + importeTpv) * 100) / 100;
-      const balance = Math.round((cobrado - totalVendido) * 100) / 100;
+      // El "cambio del día anterior" (saldo inicial) TAMBIÉN cuenta, igual que en envíos:
+      // teórico = saldo inicial + total vendido. El backend ya lo calculaba así; el preview no,
+      // y por eso salía una "sobra" falsa = el cambio que se dejó.
+      const teorico = Math.round((saldoInicial + totalVendido) * 100) / 100;
+      const balance = Math.round((cobrado - teorico) * 100) / 100;
 
       // v2.3: si hay pendientes, restarlos
       const faltaTotal = Math.round((balance - totalFiados) * 100) / 100;
@@ -926,6 +930,7 @@
       mensajeKO = `${T('cajas.falta')}: ${eur(faltaTotal)}`;
 
       html += `<div class="item" style="grid-column:1/-1;background:#dbeafe;padding:6px 10px;border-radius:6px;"><span class="label" style="color:#C2491A;font-weight:600;">${T('cajas.total_vendido')}</span><span style="color:#C2491A;font-weight:700;">${eur(totalVendido)}</span></div>`;
+      html += `<div class="item"><span class="label">${T('cajas.saldo_inicial')}</span><span>${eur(saldoInicial)}</span></div>`;
       html += `<div class="item"><span class="label">${T('cajas.efectivo_caja')}</span><span>${eur(efectivoCaja)}</span></div>`;
       html += `<div class="item"><span class="label">${T('cajas.importe_tpv')}</span><span>${eur(importeTpv)}</span></div>`;
       if (totalFiados > 0) {
