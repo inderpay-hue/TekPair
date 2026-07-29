@@ -1168,7 +1168,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </style>
   <script src="/assets/qrcode.min.js"></script>
   <script src="/assets/jsbarcode.min.js?v=20260729"></script>
-<script src="/lang/lang.v8.js?v=20260729q"></script>
+<script src="/lang/lang.v8.js?v=20260729s"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4432,6 +4432,17 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   </div>
 </div>
 
+<div class="modal-bg sobre" id="mSeguimiento">
+  <div class="modal">
+    <div class="modal-title">🕘 <span data-t="seg.titulo">Seguimiento</span> <span id="segSubtit" style="font-weight:400;color:var(--muted);font-size:13px"></span></div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="seg.sub">Historial de este artículo: quién hizo qué y cuándo.</div>
+    <div id="segBody" style="max-height:60vh;overflow:auto"><div class="empty">…</div></div>
+    <div style="display:flex;justify-content:flex-end;margin-top:14px">
+      <button class="btn-secondary" onclick="closeM('mSeguimiento')" data-t="gen.cerrar">Cerrar</button>
+    </div>
+  </div>
+</div>
+
 <!-- NOVEDADES (banner de mejoras para las tiendas) -->
 <div class="modal-bg" id="mNovedades">
   <div class="modal" style="max-width:500px">
@@ -5037,7 +5048,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260729r"></script>
+<script src="/js/dash-app.js?v=20260729s"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

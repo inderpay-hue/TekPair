@@ -7054,13 +7054,14 @@ function renderVentas() {
     var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="' + escHtml(T('ventas.t_reimprimir')) + '">\ud83d\udda8</button>';
     var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="' + T('rep.title_generar_factura') + '">📄</button>' : '';
     var btnEdit = (!v.reembolsado && (typeof _esAdmin === 'function' && _esAdmin())) ? '<button data-vid="' + v.id + '" class="row-btn btn-edit-v" title="' + T('venta.editar_t') + '">✏️</button>' : '';
+    var btnSeg = _puedeSeguimiento() ? '<button data-vid="' + v.id + '" class="row-btn btn-seg-v" title="' + escHtml(T('seg.btn')) + '">🕘</button>' : '';
     html += '<tr style="' + (v.reembolsado ? 'opacity:.55' : '') + '">' +
       '<td>' + fmtFecha(v.fecha) + '</td>' +
       '<td>' + esc(_cliLbl(v.clienteNombre)) + badges + '</td>' +
       '<td>' + esc(v.modelo) + '</td>' +
       '<td><span class="badge bb">' + esc(_pagoLbl(v.pago)) + '</span></td>' +
       '<td style="color:' + (v.reembolsado ? 'var(--red)' : 'var(--green)') + ';font-weight:700">' + (v.reembolsado ? '-' : '') + cur(v.total) + '</td>' +
-      '<td style="display:flex;gap:3px">' + btnR + btnF + btnFact + btnImpr + btnEdit + '</td></tr>';
+      '<td style="display:flex;gap:3px">' + btnR + btnF + btnFact + btnImpr + btnSeg + btnEdit + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -7078,6 +7079,13 @@ function renderVentas() {
   });
   el.querySelectorAll('.btn-edit-v').forEach(function(btn) {
     btn.addEventListener('click', function() { abrirEditarVenta(this.dataset.vid); });
+  });
+  el.querySelectorAll('.btn-seg-v').forEach(function(btn) {
+    btn.addEventListener('click', function() {
+      var vid = this.dataset.vid;
+      var v = (DB.ventas || []).find(function(x) { return x.id === vid; });
+      verSeguimiento('venta', vid, v ? ((v.clienteNombre || '') + ' · ' + (v.modelo || '')) : '');
+    });
   });
 }
 
@@ -13045,6 +13053,42 @@ function renderStockLog() {
   } else { pintar(DB.audit || []); }
 }
 
+// ¿Puede ver el seguimiento? (igual que el registro de stock: admin + plan con auditoría)
+function _puedeSeguimiento() {
+  return (typeof tieneFeature === 'function' ? tieneFeature('auditoria') : true) && (typeof _esAdmin === 'function' ? _esAdmin() : true);
+}
+// Línea de tiempo (seguimiento) de UN artículo: filtra el registro audit por entidad + id.
+// Reutiliza AUDIT_ACC / AUDIT_MOD / _auditAccLabel del historial de stock.
+function verSeguimiento(entidad, entidadId, titulo) {
+  if (!_puedeSeguimiento()) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var sub = document.getElementById('segSubtit'); if (sub) sub.textContent = titulo ? ('· ' + titulo) : '';
+  var el = document.getElementById('segBody'); if (el) el.innerHTML = '<div class="empty">…</div>';
+  openM('mSeguimiento');
+  var pintar = function(rows) {
+    if (!el) return;
+    if (!Array.isArray(rows) || !rows.length) { el.innerHTML = '<div class="empty">' + T('seg.vacio') + '</div>'; return; }
+    el.innerHTML = rows.slice(0, 200).map(function(r) {
+      var a = AUDIT_ACC[r.accion] || { e: '•', c: 'var(--muted)' };
+      var usuario = r.usuario_nom || r.usuarioNom || '—';
+      var f = (r.ts || r.fecha) ? new Date(r.ts || r.fecha) : null;
+      var fStr = f ? (f.toLocaleDateString() + ' ' + f.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })) : '';
+      return '<div style="display:flex;align-items:flex-start;gap:10px;padding:9px 4px;border-bottom:1px solid var(--border)">' +
+        '<span style="font-size:16px">' + a.e + '</span>' +
+        '<div style="flex:1;min-width:0">' +
+        '<div style="font-size:13px;font-weight:600"><span style="color:' + a.c + '">' + escHtml(_auditAccLabel(r.accion)) + '</span>' + (r.detalle ? ' · ' + escHtml(r.detalle) : '') + '</div>' +
+        '<div style="font-size:11px;color:var(--muted)">' + escHtml(usuario) + '</div>' +
+        '</div>' +
+        '<span style="font-size:10.5px;color:var(--muted);white-space:nowrap">' + fStr + '</span></div>';
+    }).join('');
+  };
+  var localRows = (DB.audit || []).filter(function(a) { return a.entidad === entidad && String(a.entidadId) === String(entidadId); });
+  if (SB_KEY && TIENDA_ID) {
+    sbGet('audit', 'tienda_id=eq.' + TIENDA_ID + '&entidad=eq.' + encodeURIComponent(entidad) + '&entidad_id=eq.' + encodeURIComponent(entidadId) + '&order=ts.desc&limit=200')
+      .then(function(rows) { pintar(Array.isArray(rows) && rows.length ? rows : localRows); })
+      .catch(function() { pintar(localRows); });
+  } else { pintar(localRows); }
+}
+
 // ═══ CLIENTES ═══
 // Clasificación de cliente (A bueno / B regular / C no atender): badge de color y aviso.
 function _gradoBadgeHtml(g) {
@@ -18374,6 +18418,7 @@ function abrirDetalleRep(repId) {
   if (r.estado === 'Entregado') btns += '<button class="btn-sm" style="background:#0EA5E9;color:white;flex:1" onclick="closeM(\'mDetalleRep\');factRep(\'' + r.id + '\')">📄 ' + T('det.btn_factura') + '</button>';
   // Reabrir en garantía: explícito en la Entregada (antes había que crear una rep nueva a mano)
   if (r.estado === 'Entregado' && !r.esGarantia && tienePerm('reps_editar')) btns += '<button class="btn-sm" style="background:#2563EB;color:white;flex:1" onclick="closeM(\'mDetalleRep\');reabrirEnGarantia(\'' + r.id + '\')">🛡️ ' + T('det.btn_reabrir_gar') + '</button>';
+  if (_puedeSeguimiento()) { var _segTitRep = ((r.clienteNombre || '') + ' · ' + (r.modelo || '')).replace(/['\\]/g, ''); btns += '<button class="btn-sm" style="background:#64748B;color:white;flex:1" onclick="closeM(\'mDetalleRep\');verSeguimiento(\'reparacion\',\'' + r.id + '\',\'' + _segTitRep + '\')">🕘 ' + T('seg.btn') + '</button>'; }
   if (tienePerm('reps_editar')) btns += '<button class="btn-sm" style="background:var(--orange);color:white;flex:1" onclick="closeM(\'mDetalleRep\');navTo(\'pReps\');setTimeout(function(){editarRep(\'' + r.id + '\')},100)">✏️ ' + T('gen.editar') + '</button>';
   if (tienePerm('reps_eliminar')) btns += '<button class="btn-sm" style="background:var(--red);color:white;flex:1" onclick="eliminarReparacion(\'' + r.id + '\')">🗑️ ' + T('gen.eliminar') + '</button>';
   document.getElementById('detalleRepBtns').innerHTML = btns;
