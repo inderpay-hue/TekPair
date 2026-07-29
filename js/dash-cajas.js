@@ -498,8 +498,12 @@
     if (nombre === null) return;
     const n = nombre.trim();
     if (!n) return;
+    // Saldo inicial (lo que ya tienes ahora mismo en esa cuenta). Vacío/cancelar = 0.
+    const sv = prompt(T('cajas.cuenta_saldo_prompt'));
+    const saldoIni = (sv === null || String(sv).trim() === '') ? 0 : Number(String(sv).replace(',', '.'));
+    if (!isFinite(saldoIni)) { toast(T('cajas.importe_invalido'), 'error'); return; }
     try {
-      await api('crear_cuenta', { method: 'POST', body: { caja_id: Estado.cajaEditando.id, nombre: n } });
+      await api('crear_cuenta', { method: 'POST', body: { caja_id: Estado.cajaEditando.id, nombre: n, saldo: saldoIni } });
       const rc = await api('listar_cuentas'); Estado.cuentas = rc.cuentas || [];
       renderCompanias();
       pintarCuentas();
