@@ -10144,8 +10144,9 @@ function _etqBarcodeSvg(text, opts) {
   } catch (e) { return ''; }
   finally { if (host && host.parentNode) host.parentNode.removeChild(host); }
 }
-// Etiqueta de VENTA: marca/modelo, capacidad, color, estado, IMEI y precio.
-// Se adapta al tamaño elegido en Ajustes (_etqMedida). QR del IMEI si cabe.
+// Etiqueta de PRECIO de stock: logo, modelo+memoria, estado (+batería seminuevos), precio y
+// código de barras Code128 del IMEI. Layout adaptativo al tamaño (Ajustes / _etqMedida):
+// vertical en rollo continuo, compacto en las troqueladas bajitas de Brother.
 function imprimirEtiquetaStock(sid) {
   var s = (DB.stock || []).find(function(x) { return x.id === sid; });
   if (!s) return;
@@ -10160,42 +10161,64 @@ function imprimirEtiquetaStock(sid) {
   var estadoLinea = [estado, (bateria != null ? (T('etq.bateria') + ' ' + bateria + '%') : '')].filter(Boolean).join(' · ');
   var precio = (parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '';
   var esOferta = !!s.enOferta && (parseFloat(s.precioAntes) || 0) > 0;
-  var precioHtml = '';
-  if (precio) {
-    precioHtml = esOferta
-      ? '<div class="pr pro"><span class="ofb">' + T('etq.oferta') + '</span> <span class="an">' + esc(cur(s.precioAntes)) + '</span> ' + esc(precio) + '</div>'
-      : '<div class="pr">' + esc(precio) + '</div>';
-  }
-  // Código de barras Code128 del IMEI (sustituye al QR). Sin IMEI/JsBarcode → texto.
-  var bcSvg = s.imei ? _etqBarcodeSvg(s.imei, { height: (ph >= 29 ? 34 : 26), width: 1.3 }) : '';
-  var fNm = ph >= 29 ? 11 : (ph >= 27 ? 10 : 9);
-  if (nombre.length > 22) fNm = Math.max(7, Math.round(fNm * 22 / nombre.length));  // nombres largos: reducir fuente
-  var fPr = ph >= 29 ? 16 : (ph >= 27 ? 14 : 12);
-  if (esOferta) fPr = Math.max(11, fPr - 3);
-  var fullHtml =
-    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + T('etq.doc_title') + '</title><style>' +
-    '@page { size: ' + pageCss + '; margin: 0; }' +
-    'html{margin:0;padding:0}' +
-    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;' + bodyH + ';margin:0;padding:1.5mm;color:#000;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.4mm;overflow:' + (m.cont ? 'visible' : 'hidden') + '}' +
-    '.nm{font-weight:800;font-size:' + fNm + 'px;line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;max-width:100%}' +
-    '.sp{font-size:8px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
-    '.es{font-size:7.5px;color:#555}' +
-    '.pr{font-size:' + fPr + 'px;font-weight:800;margin:0.3mm 0}' +
-    '.pr.pro{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
-    '.ofb{background:#e11d48;color:#fff;font-weight:800;font-size:6px;padding:0 3px;border-radius:2px;vertical-align:middle}' +
-    '.an{font-size:9px;color:#999;text-decoration:line-through;font-weight:600}' +
-    '.pro{color:#e11d48}' +
-    '.bc{width:100%;margin-top:0.5mm}' +
-    '.bc svg{max-width:100%;height:auto;display:block;margin:0 auto}' +
-    '.bcn{font-size:6.5px;font-family:monospace;color:#333;letter-spacing:.4px;margin-top:0.2mm}' +
-    '</style></head><body>' +
+  var precioInner = esOferta
+    ? '<span class="ofb">' + T('etq.oferta') + '</span> <span class="an">' + esc(cur(s.precioAntes)) + '</span> ' + esc(precio)
+    : esc(precio);
+  var imeiTxt = s.imei ? esc(s.imei) : '';
+  // Layout ADAPTATIVO: vertical en rollo continuo / etiquetas altas; compacto (modelo+precio en
+  // fila superior + barcode a lo ancho) en las troqueladas bajitas de Brother (62x29, 90x29, 50x30, 40x30, 38x25).
+  var esVertical = m.cont || ph >= 40;
+  var css, bodyStyle, bodyInner;
+  if (esVertical) {
+    var bcV = s.imei ? _etqBarcodeSvg(s.imei, { height: 34, width: 1.3 }) : '';
+    var fNmV = 11; if (nombre.length > 22) fNmV = Math.max(8, Math.round(11 * 22 / nombre.length));
+    var fPrV = esOferta ? 14 : 17;
+    bodyStyle = 'display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:0.4mm';
+    css =
+      '.nm{font-weight:800;font-size:' + fNmV + 'px;line-height:1.05;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;word-break:break-word;max-width:100%}' +
+      '.sp{font-size:8px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
+      '.es{font-size:7.5px;color:#555}' +
+      '.pr{font-size:' + fPrV + 'px;font-weight:800;margin:0.3mm 0}.pr.pro{color:#e11d48;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%}' +
+      '.bc{width:100%;margin-top:0.6mm}.bc svg{max-width:100%;height:auto;display:block;margin:0 auto}' +
+      '.bcn{font-size:6.5px;font-family:monospace;color:#333;letter-spacing:.4px;margin-top:0.2mm}';
+    bodyInner =
       _etqLogoHtml() +
       '<div class="nm">' + esc(nombre) + '</div>' +
       (specs ? '<div class="sp">' + esc(specs) + '</div>' : '') +
       (estadoLinea ? '<div class="es">' + esc(estadoLinea) + '</div>' : '') +
-      precioHtml +
-      (bcSvg ? '<div class="bc">' + bcSvg + '</div><div class="bcn">' + esc(s.imei) + '</div>'
-             : (s.imei ? '<div class="bcn">IMEI: ' + esc(s.imei) + '</div>' : '')) +
+      (precio ? '<div class="pr' + (esOferta ? ' pro' : '') + '">' + precioInner + '</div>' : '') +
+      (bcV ? '<div class="bc">' + bcV + '</div><div class="bcn">' + imeiTxt + '</div>' : (s.imei ? '<div class="bcn">IMEI: ' + imeiTxt + '</div>' : ''));
+  } else {
+    var bcMm = ph <= 26 ? 6.5 : 8;
+    var bcC = s.imei ? _etqBarcodeSvg(s.imei, { height: 24, width: 1.1 }) : '';
+    var fNmC = pw >= 55 ? 11 : 9; if (nombre.length > 18) fNmC = Math.max(7, Math.round(fNmC * 18 / nombre.length));
+    var fPrC = pw >= 55 ? (esOferta ? 12 : 15) : (esOferta ? 10 : 12);
+    var midTxt = [specs, estadoLinea].filter(Boolean).join('  ·  ');
+    bodyStyle = 'display:flex;flex-direction:column;align-items:stretch;justify-content:center;text-align:left;gap:0.3mm';
+    css =
+      '.hd{overflow:hidden}' +
+      '.row{display:flex;align-items:baseline;justify-content:space-between;gap:2mm}' +
+      '.nm{font-weight:800;font-size:' + fNmC + 'px;line-height:1.05;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}' +
+      '.pr{font-size:' + fPrC + 'px;font-weight:800;white-space:nowrap;flex-shrink:0}.pr.pro{color:#e11d48}' +
+      '.mid{font-size:7px;color:#333;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+      '.bc{width:100%;margin-top:0.4mm}.bc svg{width:100%;height:' + bcMm + 'mm;display:block}' +
+      '.bcn{font-size:6px;font-family:monospace;color:#333;letter-spacing:.3px;text-align:center;margin-top:0}';
+    bodyInner =
+      '<div class="hd">' + _etqLogoHtml() + '</div>' +
+      '<div class="row"><div class="nm">' + esc(nombre) + '</div>' + (precio ? '<div class="pr' + (esOferta ? ' pro' : '') + '">' + precioInner + '</div>' : '') + '</div>' +
+      (midTxt ? '<div class="mid">' + esc(midTxt) + '</div>' : '') +
+      (bcC ? '<div class="bc">' + bcC + '</div><div class="bcn">' + imeiTxt + '</div>' : (s.imei ? '<div class="mid">IMEI: ' + imeiTxt + '</div>' : ''));
+  }
+  var fullHtml =
+    '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + T('etq.doc_title') + '</title><style>' +
+    '@page { size: ' + pageCss + '; margin: 0; }' +
+    'html{margin:0;padding:0}' +
+    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:' + pw + 'mm;' + bodyH + ';margin:0;padding:1.4mm;color:#000;box-sizing:border-box;overflow:' + (m.cont ? 'visible' : 'hidden') + ';' + bodyStyle + '}' +
+    '.ofb{background:#e11d48;color:#fff;font-weight:800;font-size:6px;padding:0 3px;border-radius:2px;vertical-align:middle}' +
+    '.an{font-size:9px;color:#999;text-decoration:line-through;font-weight:600}' +
+    css +
+    '</style></head><body>' +
+      bodyInner +
     '<style>@media print{.npbar{display:none!important}}</style>' +
     '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:11px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
     '</body></html>';
