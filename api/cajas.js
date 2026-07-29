@@ -195,6 +195,15 @@ async function _cajaDeFiado(id) {
   return (f[0] && f[0].caja_id) || null;
 }
 
+// ¿La fecha es claramente anterior a "hoy"? Tolerancia de 36h para cubrir cualquier huso horario
+// (así "hoy" del empleado nunca se bloquea, pero sí los días pasados de verdad).
+function _fechaAnterior(fecha) {
+  try {
+    const lim = new Date(Date.now() - 36 * 3600 * 1000).toISOString().slice(0, 10);
+    return String(fecha || '').slice(0, 10) < lim;
+  } catch (e) { return false; }
+}
+
 
 
 // Helper: recalcula descuadre del cierre de un fiado después de cobrarlo/anularlo
@@ -542,6 +551,8 @@ export default async function handler(req, res) {
         const { caja_id, fecha } = req.query;
         if (!caja_id || !fecha) return err(res, 400, 'caja_id y fecha obligatorios');
         if (!(await puedeAccederCaja(payload, caja_id))) return err(res, 403, 'Sin permiso para esta caja');
+        // Ver el contenido de días anteriores requiere permiso de histórico (admin siempre).
+        if (_fechaAnterior(fecha) && !(await tienePermisoCaja(payload, 'cajasm_historico'))) return err(res, 403, 'Sin permiso para ver días anteriores');
         const cajas = await sbGet(
           `cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`
         );
@@ -742,6 +753,8 @@ export default async function handler(req, res) {
       case 'listar_cierres': {
         const { desde, hasta, caja_id } = req.query;
         if (!desde || !hasta) return err(res, 400, 'desde y hasta obligatorios');
+        // Listado histórico → requiere permiso de histórico (admin siempre).
+        if (!(await tienePermisoCaja(payload, 'cajasm_historico'))) return err(res, 403, 'Sin permiso para ver días anteriores');
         let path = `cajas_cierres?tienda_id=eq.${encodeURIComponent(tienda_id)}`
           + `&fecha=gte.${encodeURIComponent(desde)}`
           + `&fecha=lte.${encodeURIComponent(hasta)}`

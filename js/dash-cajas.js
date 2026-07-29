@@ -1679,6 +1679,8 @@
   }
 
   function irAFechaFranja(iso) {
+    // Sin permiso de histórico, el empleado no puede abrir días anteriores desde la franja.
+    if (iso && iso < hoyLocal() && !puedeHistorico()) { if (typeof window.toast === 'function') window.toast(_txtSinHist(), 'error'); return; }
     Estado.fechaActual = iso;
     const sel = $('cajas-fecha-actual');
     if (sel) sel.value = iso;
@@ -1774,6 +1776,7 @@
   }
 
   function seleccionarDelCalendario(iso) {
+    if (iso && iso < hoyLocal() && !puedeHistorico()) { if (typeof window.toast === 'function') window.toast(_txtSinHist(), 'error'); return; }
     Estado.fechaActual = iso;
     const hidden = $('cajas-fecha-actual');
     if (hidden) hidden.value = iso;
