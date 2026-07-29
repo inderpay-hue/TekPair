@@ -19889,11 +19889,11 @@ if ('serviceWorker' in navigator) {
         if (!worker) return;
         worker.addEventListener('statechange', function() {
           if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-            mostrarAvisoNuevaVersion();
+            _onNuevaVersion();
           }
         });
       }
-      if (reg.waiting && navigator.serviceWorker.controller) mostrarAvisoNuevaVersion();
+      if (reg.waiting && navigator.serviceWorker.controller) _onNuevaVersion();
       _vigilarWorker(reg.installing);
       reg.addEventListener('updatefound', function() { _vigilarWorker(reg.installing); });
 
@@ -19905,12 +19905,53 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+// ── Auto-recarga inteligente de versión nueva ───────────────────────────────
+// El código nuevo solo entra al recargar la página. Para aplicarlo sin que el
+// tendero tenga que hacer nada, recargamos SOLOS en cuanto la app está inactiva
+// (sin modal abierto, sin escribir en un campo) → nunca se pierde una venta ni un
+// formulario a medias. Mientras esté ocupado, esperamos; y mostramos un banner por
+// si quiere forzar la recarga ya. El botón ✕ pospone la auto-recarga 5 minutos.
+var _nuevaVersionPendiente = false;
+var _autoRecargaTimer = null;
+
+// ¿Es seguro recargar ahora mismo? (app inactiva, sin trabajo a medias)
+function _puedeRecargarSeguro() {
+  try {
+    if (document.querySelector('.modal-bg.open, .search-global-modal.show')) return false;
+    var ae = document.activeElement;
+    if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable)) return false;
+  } catch (e) {}
+  return true;
+}
+
+function _recargarPorVersion() {
+  try { localStorage.setItem('tk_ver_dismiss', String(Date.now())); } catch (e) {}
+  location.reload();
+}
+
+function _iniciarAutoRecarga() {
+  if (_autoRecargaTimer) return;
+  _autoRecargaTimer = setInterval(function() {
+    // ✕ = posponer la auto-recarga 5 min (el tendero pidió seguir un rato más).
+    try { if (Date.now() - (parseInt(localStorage.getItem('tk_ver_postpone') || '0', 10) || 0) < 300000) return; } catch (e) {}
+    if (_puedeRecargarSeguro()) {
+      clearInterval(_autoRecargaTimer); _autoRecargaTimer = null;
+      _recargarPorVersion();
+    }
+  }, 12000);
+}
+
+function _onNuevaVersion() {
+  if (_nuevaVersionPendiente) return;
+  _nuevaVersionPendiente = true;
+  mostrarAvisoNuevaVersion();   // banner informativo con opción de recargar ya
+  _iniciarAutoRecarga();        // y se aplica sola en cuanto esté inactiva
+}
+
 // Banner discreto de versión nueva (una sola vez por carga).
 var _avisoVersionMostrado = false;
 function mostrarAvisoNuevaVersion() {
   if (_avisoVersionMostrado || document.getElementById('bannerNuevaVersion')) return;
-  // No re-mostrar si se cerró/recargó hace < 10 min (evita el spam con despliegues seguidos).
-  try { if (Date.now() - (parseInt(localStorage.getItem('tk_ver_dismiss') || '0', 10) || 0) < 600000) return; } catch (e) {}
   _avisoVersionMostrado = true;
   var b = document.createElement('div');
   b.id = 'bannerNuevaVersion';
@@ -19918,15 +19959,16 @@ function mostrarAvisoNuevaVersion() {
     'background:#0F172A;color:#fff;padding:12px 16px;border-radius:12px;box-shadow:0 8px 30px rgba(0,0,0,.35);' +
     'display:flex;align-items:center;gap:14px;font-size:14px;font-family:inherit;max-width:92vw';
   var msg = document.createElement('span');
-  msg.textContent = T('app.version_nueva');
+  msg.textContent = T('app.version_auto');
   var btn = document.createElement('button');
-  btn.textContent = T('app.recargar');
+  btn.textContent = T('app.recargar_ahora');
   btn.style.cssText = 'background:#10B981;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-weight:700;cursor:pointer;font-family:inherit;font-size:14px;white-space:nowrap';
-  btn.onclick = function() { try { localStorage.setItem('tk_ver_dismiss', String(Date.now())); } catch (e) {} location.reload(); };
+  btn.onclick = function() { _recargarPorVersion(); };
   var x = document.createElement('button');
   x.textContent = '✕'; x.title = T('app.mas_tarde');
   x.style.cssText = 'background:transparent;color:#94a3b8;border:none;cursor:pointer;font-size:16px;line-height:1';
-  x.onclick = function() { try { localStorage.setItem('tk_ver_dismiss', String(Date.now())); } catch (e) {} b.remove(); };
+  // ✕ = "más tarde": pospone la auto-recarga 5 min y oculta el banner.
+  x.onclick = function() { try { localStorage.setItem('tk_ver_postpone', String(Date.now())); } catch (e) {} b.remove(); };
   b.appendChild(msg); b.appendChild(btn); b.appendChild(x);
   document.body.appendChild(b);
 }
