@@ -3111,12 +3111,6 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
           <option value="38x25">38 × 25 mm</option>
         </select>
       </div>
-      <div class="fg"><label class="fl"><span data-t="etq.barcode_lbl">Código de barras (etiqueta de precio)</span></label>
-        <select class="fi" id="ajEtqBarcode" onchange="setEtqBarcode(this.value)">
-          <option value="imei" data-t="etq.barcode_imei">Código de barras del IMEI</option>
-          <option value="off" data-t="etq.barcode_off">Sin código de barras</option>
-        </select>
-      </div>
       <p style="font-size:11.5px;color:var(--muted);margin:2px 2px 0"><span data-t="etq.tam_ayuda">Elige el rollo que tienes puesto. Las etiquetas de venta y reparación se ajustan a esta medida. Recuerda poner el mismo tamaño en el driver de la impresora.</span></p>
     </div>
 
@@ -5048,7 +5042,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260729s"></script>
+<script src="/js/dash-app.js?v=20260730a"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
