@@ -84,15 +84,19 @@ function verificarToken(req) {
   }
 }
 
-// CAJ-SEC-1: esSuperAdmin verifica email + rol para evitar escalada de privilegios
-// Un JWT con email info@tekpair.tech pero rol distinto no obtiene acceso super-admin
+// CAJ-SEC-1 / AUD: el rol se relee SIEMPRE de la BBDD (usuarios.rol vía _usuarioPerm), NO del
+// claim del JWT. Antes un admin degradado a empleado conservaba rol='admin' en su token y mantenía
+// poderes de admin en Cajas hasta que caducara (hasta 7 días). Ambos helpers son ASYNC → hay que
+// usar `await` en cada llamada (si se olvida, es ReferenceError con estos nombres nuevos → 500,
+// falla cerrado, nunca deja pasar como admin).
 const SUPER_ADMIN_EMAILS = ['info@tekpair.tech'];
-function esSuperAdmin(payload) {
-  return SUPER_ADMIN_EMAILS.includes(payload?.email) && payload?.rol === 'admin';
+async function esAdminTiendaDB(payload) {
+  if (!payload) return false;
+  const u = await _usuarioPerm(payload);
+  return !!u && u.rol === 'admin';
 }
-
-function esAdminTienda(payload) {
-  return payload?.rol === 'admin' || esSuperAdmin(payload);
+async function esSuperAdminDB(payload) {
+  return !!payload && SUPER_ADMIN_EMAILS.includes(payload.email) && (await esAdminTiendaDB(payload));
 }
 
 function err(res, code, message) {
@@ -310,7 +314,7 @@ export default async function handler(req, res) {
       }
 
       case 'crear_cuenta': {
-        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
         const { caja_id, nombre, saldo } = req.body || {};
         if (!caja_id || !nombre) return err(res, 400, 'caja_id y nombre obligatorios');
         const cajas = await sbGet(`cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id`);
@@ -320,7 +324,7 @@ export default async function handler(req, res) {
       }
 
       case 'editar_cuenta': {
-        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
         const { id, nombre } = req.body || {};
         if (!id || nombre === undefined) return err(res, 400, 'id y nombre obligatorios');
         const data = await sbPatch(`cajas_cuentas?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`, { nombre: String(nombre).slice(0, 80) });
@@ -328,7 +332,7 @@ export default async function handler(req, res) {
       }
 
       case 'borrar_cuenta': {
-        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
         const { id } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
         await sbDelete(`cajas_cuentas?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
@@ -336,7 +340,7 @@ export default async function handler(req, res) {
       }
 
       case 'asignar_compania_cuenta': {
-        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
         const { compania_id, cuenta_id } = req.body || {};
         if (!compania_id) return err(res, 400, 'compania_id obligatorio');
         const cmps = await sbGet(`cajas_companias?id=eq.${encodeURIComponent(compania_id)}&select=caja_id`);
@@ -429,7 +433,7 @@ export default async function handler(req, res) {
       }
 
       case 'crear_caja': {
-        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
         const { tipo, nombre, icono, color, orden, dias_apertura } = req.body || {};
         if (!tipo || !nombre) return err(res, 400, 'tipo y nombre obligatorios');
         if (!['envios','recargas','tpv','custom'].includes(tipo)) {
@@ -477,7 +481,7 @@ export default async function handler(req, res) {
       }
 
       case 'editar_caja': {
-        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
         const { id, nombre, icono, color, orden, activa, permiso_editar_cerrada, dias_apertura } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
         const patch = {};
@@ -503,7 +507,7 @@ export default async function handler(req, res) {
       case 'borrar_caja': {
         const { id } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
-        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
         await sbDelete(
           `cajas?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`
         );
@@ -520,7 +524,7 @@ export default async function handler(req, res) {
         const cajas = await sbGet(
           `cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id`
         );
-        if (cajas.length === 0 && !esSuperAdmin(payload)) {
+        if (cajas.length === 0 && !(await esSuperAdminDB(payload))) {
           return err(res, 403, 'Caja no accesible');
         }
         const companias = await sbGet(
@@ -574,7 +578,7 @@ export default async function handler(req, res) {
       case 'borrar_compania': {
         const { id } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
-        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
         // Verificar pertenencia
         const cmps = await sbGet(`cajas_companias?id=eq.${encodeURIComponent(id)}&select=caja_id`);
         if (cmps.length === 0) return err(res, 404, 'Compañía no encontrada');
@@ -652,10 +656,10 @@ export default async function handler(req, res) {
           // AUD-fix: default restrictivo. Solo 'todos' deja a cualquier empleado editar/reabrir un
           // cierre cerrado; 'nadie' → solo superadmin; cualquier otro valor (incl. null/'admin') → admin.
           const permisoCerr = caja.permiso_editar_cerrada || 'admin';
-          if (permisoCerr === 'nadie' && !esSuperAdmin(payload)) {
+          if (permisoCerr === 'nadie' && !(await esSuperAdminDB(payload))) {
             return err(res, 403, 'Cierre bloqueado');
           }
-          if (permisoCerr !== 'todos' && !esAdminTienda(payload)) {
+          if (permisoCerr !== 'todos' && !(await esAdminTiendaDB(payload))) {
             return err(res, 403, 'Solo admin puede editar cierres cerrados');
           }
         }
@@ -718,7 +722,7 @@ export default async function handler(req, res) {
             );
             if (!us.length) return err(res, 400, 'Código de empleado no válido');
             cierrePayload.abierto_por = us[0].nombre;
-          } else if (nomAp && esAdminTienda(payload)) {
+          } else if (nomAp && (await esAdminTiendaDB(payload))) {
             // Admin operando sin código: se registra por su propio nombre (de confianza)
             cierrePayload.abierto_por = nomAp.slice(0, 100);
           }
@@ -811,7 +815,7 @@ export default async function handler(req, res) {
       case 'reabrir_cierre': {
         const { id } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
-        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
         // CAJ-5: añadir trazabilidad de la reapertura en las notas del cierre.
         // Antes se borraba cerrado_por/cerrado_at sin dejar rastro de quién reabrió.
         const cierresExist = await sbGet(
@@ -979,7 +983,7 @@ export default async function handler(req, res) {
       case 'borrar_fiado': {
         const { id } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
-        if (!esAdminTienda(payload)) return err(res, 403, 'Solo admin');
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
         await sbDelete(
           `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`
         );
