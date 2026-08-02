@@ -392,7 +392,7 @@
         <div class="cajas-modal-header"><h3>${escapar(opts.titulo || '')}</h3><button class="cajas-modal-cerrar" type="button">✕</button></div>
         <div class="cajas-modal-cuerpo">
           ${opts.ayuda ? `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.4;">${escapar(opts.ayuda)}</div>` : ''}
-          <input id="_pv-input" type="text" inputmode="decimal" autocomplete="off" value="${opts.valorInicial != null ? escapar(String(opts.valorInicial)) : ''}" style="width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);color:var(--text);box-sizing:border-box;">
+          <input id="_pv-input" type="text" inputmode="decimal" autocomplete="off" value="${opts.valorInicial != null ? escapar(String(opts.valorInicial)) : ''}" onfocus="this.select();" style="width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);color:var(--text);box-sizing:border-box;">
         </div>
         <div class="cajas-modal-pie">
           <button class="cajas-btn cajas-btn-sec" id="_pv-cancel" type="button">${T('gen.cancelar')}</button>
@@ -879,7 +879,7 @@
       if (tipo === 'envios') {
         html += `<tr data-compania-id="${c.id}">
           <td>${escapar(c.nombre)}</td>
-          <td style="text-align:right;"><input type="number" step="0.01" class="mov-enviado" value="${m.importe_enviado || 0}" onchange="Cajas.recalcular()"></td>
+          <td style="text-align:right;"><input type="number" step="0.01" class="mov-enviado" value="${m.importe_enviado || 0}" onfocus="if(this.value==='0'){this.value='';}else{this.select();}" onchange="Cajas.recalcular()"></td>
         </tr>`;
       } else if (tipo === 'recargas') {
         // Guardamos el total vendido en importe_efectivo (semánticamente ahora es "total vendido")
@@ -887,12 +887,12 @@
         const totalVendido = (m.importe_efectivo || 0) + (m.importe_tarjeta || 0);
         html += `<tr data-compania-id="${c.id}">
           <td>${escapar(c.nombre)}</td>
-          <td style="text-align:right;"><input type="number" step="0.01" class="mov-efectivo" value="${totalVendido}" onchange="Cajas.recalcular()"></td>
+          <td style="text-align:right;"><input type="number" step="0.01" class="mov-efectivo" value="${totalVendido}" onfocus="if(this.value==='0'){this.value='';}else{this.select();}" onchange="Cajas.recalcular()"></td>
         </tr>`;
       } else {
         html += `<tr data-compania-id="${c.id}">
           <td>${escapar(c.nombre)}</td>
-          <td style="text-align:right;"><input type="number" step="0.01" class="mov-cobrado" value="${m.importe_cobrado || 0}" onchange="Cajas.recalcular()"></td>
+          <td style="text-align:right;"><input type="number" step="0.01" class="mov-cobrado" value="${m.importe_cobrado || 0}" onfocus="if(this.value==='0'){this.value='';}else{this.select();}" onchange="Cajas.recalcular()"></td>
         </tr>`;
       }
     }
@@ -1829,7 +1829,7 @@
           <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span>💵 Efectivo esperado</span><span style="font-weight:700">${eur(r.efectivoEsperado)}</span></div>
           <div style="display:flex;gap:8px;align-items:center">
             <label style="font-size:13px;white-space:nowrap">Efectivo contado</label>
-            <input id="caja-dia-contado" type="number" step="0.01" inputmode="decimal" value="${contadoPrefill}" oninput="Cajas.cuadreCajaDia()" style="flex:1;min-width:0;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px">
+            <input id="caja-dia-contado" type="number" step="0.01" inputmode="decimal" value="${contadoPrefill}" onfocus="if(this.value==='0'){this.value='';}else{this.select();}" oninput="Cajas.cuadreCajaDia()" style="flex:1;min-width:0;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px">
           </div>
           <div id="caja-dia-descuadre" style="margin-top:8px;font-size:13px;font-weight:700;min-height:18px"></div>
           <button class="cajas-btn cajas-btn-verde" style="margin-top:10px;width:100%" onclick="Cajas.cerrarCajaDia()">${est ? 'Actualizar cierre del día' : 'Cerrar caja del día'}</button>
