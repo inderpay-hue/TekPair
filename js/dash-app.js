@@ -4408,8 +4408,6 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
     return { r: r, dias: dias };
   }).sort(function(a, b) { return b.dias - a.dias; }).slice(0, 3);
 
-  var _icoBd = { Efectivo: '💵', Tarjeta: '💳', Bizum: '📲', Transferencia: '🏦' };
-
   // ── Estilos (variables de tema para respetar el skin) ──
   // iOS: tipografía del sistema (SF Pro) para números y titulares, tarjetas de esquina generosa y sombra suave.
   var serif = "-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',system-ui,sans-serif";
@@ -4504,7 +4502,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
     var stackHtml = '', legendHtml = '';
     if (totalP > 0) {
       stackHtml = '<div style="display:flex;height:16px;border-radius:8px;overflow:hidden;margin:14px 0 10px">' + ordenP.map(function(m) { return '<i style="display:block;height:100%;width:' + (pagos[m] / totalP * 100) + '%;background:' + (clsMap[m] || 'var(--teal,#0E8F9F)') + '"></i>'; }).join('') + '</div>';
-      legendHtml = '<div style="display:flex;flex-wrap:wrap;gap:12px">' + ordenP.map(function(m) { return '<span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:3px;display:inline-block;background:' + (clsMap[m] || 'var(--teal,#0E8F9F)') + '"></i>' + (_icoBd[m] || '') + ' ' + escHtml(_pagoLbl(m)) + ' · <b style="color:var(--text)">' + cur(pagos[m]) + '</b></span>'; }).join('') + '</div>';
+      legendHtml = '<div style="display:flex;flex-wrap:wrap;gap:12px">' + ordenP.map(function(m) { return '<span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:3px;display:inline-block;background:' + (clsMap[m] || 'var(--teal,#0E8F9F)') + '"></i> ' + escHtml(_pagoLbl(m)) + ' · <b style="color:var(--text)">' + cur(pagos[m]) + '</b></span>'; }).join('') + '</div>';
     } else { legendHtml = '<div style="font-size:12px;color:var(--muted);padding:8px 0">' + T('inicio.sin_cobros') + '</div>'; }
     var cardComoCobras = _invWidgetOn('rs_comocobras') ? '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">' + _iv2ic('card', 13) + ' ' + T('inicio.como_cobras') + '</div>' + stackHtml + legendHtml + '</div>' : '';
 
@@ -4598,9 +4596,9 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
     _enProcE.forEach(function(r) { queue.push({ r: r, type: 'proc' }); });
     _pendE.forEach(function(r) { queue.push({ r: r, type: 'pend' }); });
     var qMeta = {
-      ready: { ic: '✅', icbg: 'var(--green-soft,#E6F6EF)', st: T('iv2.st_lista'), stc: 'var(--green,#0E9F6E)', stbg: 'var(--green-soft,#E6F6EF)', btn: T('iv2.avisar'), btnc: 'wa' },
-      proc: { ic: '🔧', icbg: 'var(--brand-soft,#E8F0FF)', st: T('iv2.en_proceso'), stc: 'var(--brand,#0055FF)', stbg: 'var(--brand-soft,#E8F0FF)', btn: T('iv2.abrir'), btnc: 'br' },
-      pend: { ic: '⏳', icbg: 'var(--card2,#f1f5f9)', st: T('iv2.st_pendiente'), stc: 'var(--muted)', stbg: 'var(--card2,#f1f5f9)', btn: T('iv2.empezar'), btnc: 'pl' }
+      ready: { ic: 'check', icbg: 'var(--green-soft,#E6F6EF)', st: T('iv2.st_lista'), stc: 'var(--green,#0E9F6E)', stbg: 'var(--green-soft,#E6F6EF)', btn: T('iv2.avisar'), btnc: 'wa' },
+      proc: { ic: 'wrench', icbg: 'var(--brand-soft,#E8F0FF)', st: T('iv2.en_proceso'), stc: 'var(--brand,#0055FF)', stbg: 'var(--brand-soft,#E8F0FF)', btn: T('iv2.abrir'), btnc: 'br' },
+      pend: { ic: 'clock', icbg: 'var(--card2,#f1f5f9)', st: T('iv2.st_pendiente'), stc: 'var(--muted)', stbg: 'var(--card2,#f1f5f9)', btn: T('iv2.empezar'), btnc: 'pl' }
     };
     var qRows = queue.length ? queue.slice(0, 7).map(function(o) {
       var r = o.r, m = qMeta[o.type];
@@ -4608,7 +4606,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
       var btnJs = o.type === 'ready' ? "avisarListo('" + r.id + "')" : "abrirDetalleRep('" + r.id + "')";
       var btnBg = m.btnc === 'wa' ? 'var(--green,#0E9F6E);color:#fff;border-color:transparent' : (m.btnc === 'br' ? 'var(--brand,#0055FF);color:#fff;border-color:transparent' : 'var(--card2,#f1f5f9);color:var(--text)');
       return '<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--border)">' +
-        '<div style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:17px;flex-shrink:0;background:' + m.icbg + '">' + m.ic + '</div>' +
+        '<div style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex-shrink:0;background:' + m.icbg + ';color:' + m.stc + '">' + _iv2ic(m.ic, 20) + '</div>' +
         '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + escHtml(nom) + '</div><div style="font-size:12px;color:var(--muted)">' + escHtml(r.averia || '') + '</div></div>' +
         '<span style="font-size:10.5px;font-weight:800;letter-spacing:.04em;text-transform:uppercase;border-radius:20px;padding:3px 8px;color:' + m.stc + ';background:' + m.stbg + '">' + m.st + '</span>' +
         '<button onclick="' + btnJs + '" style="border:1px solid var(--border);border-radius:9px;padding:7px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;background:' + btnBg + '">' + m.btn + '</button>' +
@@ -4620,12 +4618,12 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
     var piezasHoy = (DB.pedidos || []).filter(function(p) { return p.estado === 'recibido' && _pedFechaRecibida(p) === hoy; });
     var pzRows = piezasHoy.length ? piezasHoy.slice(0, 5).map(function(p) {
       return '<div style="display:flex;align-items:center;gap:12px;padding:11px 0;border-top:1px solid var(--border)">' +
-        '<div style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;font-size:17px;flex-shrink:0;background:var(--green-soft,#E6F6EF)">📥</div>' +
+        '<div style="width:38px;height:38px;border-radius:11px;display:grid;place-items:center;flex-shrink:0;background:var(--green-soft,#E6F6EF);color:var(--green,#0E9F6E)">' + _iv2ic('inbox', 20) + '</div>' +
         '<div style="flex:1;min-width:0"><div style="font-weight:700;font-size:14px">' + escHtml(p.pieza || T('inicio.pedidos')) + '</div><div style="font-size:12px;color:var(--muted)">' + escHtml(T('iv2.para_rep') + (p.proveedor ? ' · ' + p.proveedor : '')) + '</div></div>' +
         '<button onclick="navTo(\'pPedidos\')" style="border:0;border-radius:9px;padding:7px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;background:var(--brand,#0055FF);color:#fff">' + T('iv2.continuar') + '</button>' +
         '</div>';
     }).join('') : '<div style="padding:14px 0;color:var(--muted);font-size:13px">' + T('iv2.piezas_vacia') + '</div>';
-    var piezasCard = '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">📦 ' + T('iv2.piezas_hoy') + '</div><div style="margin-top:8px">' + pzRows + '</div></div>';
+    var piezasCard = '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">' + _iv2ic('inbox', 13) + ' ' + T('iv2.piezas_hoy') + '</div><div style="margin-top:8px">' + pzRows + '</div></div>';
 
     // Citas de hoy
     var citasArr = (DB.citas || []).filter(function(c) { return (c.fecha || '').slice(0, 10) === hoy; }).sort(function(a, b) { return (a.hora || '').localeCompare(b.hora || ''); });
@@ -4637,7 +4635,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
         '<button onclick="abrirCita(\'' + c.id + '\')" style="border:1px solid var(--border);background:var(--card2,#f1f5f9);border-radius:9px;padding:7px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;color:var(--text)">' + T('iv2.ver') + '</button>' +
         '</div>';
     }).join('') : '<div style="padding:14px 0;color:var(--muted);font-size:13px">' + T('iv2.citas_vacia') + '</div>';
-    var citasCard = '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">📅 ' + T('iv2.citas_hoy') + '</div><div style="margin-top:8px">' + ciRows + '</div></div>';
+    var citasCard = '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">' + _iv2ic('cal', 13) + ' ' + T('iv2.citas_hoy') + '</div><div style="margin-top:8px">' + ciRows + '</div></div>';
 
     var secGridE = '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:14px" class="iv2-sec">' + piezasCard + citasCard + '</div>';
 
