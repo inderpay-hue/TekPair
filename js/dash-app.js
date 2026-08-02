@@ -4303,6 +4303,28 @@ function renderInicioNuevo() {
 
 // ─── Inicio V2 (rediseño por defecto, datos reales) — ADMIN (dinero=true) / EMPLEADO (dinero=false) ───
 // Es el Inicio por defecto. Opt-out al clásico con ?preview=clasico. Empleado real → dinero=false.
+// Iconos de línea (estilo SF Symbols) para el Inicio V2 iOS — reemplazan a los emojis.
+function _iv2ic(name, sz) {
+  sz = sz || 20;
+  return '<svg viewBox="0 0 24 24" width="' + sz + '" height="' + sz + '" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-.15em;flex:none">' +
+    '<use href="#iv2-' + name + '"/></svg>';
+}
+var _IV2_SPRITE = '<svg width="0" height="0" style="position:absolute" aria-hidden="true">' +
+  '<symbol id="iv2-bag" viewBox="0 0 24 24"><path d="M6 8h12l-1 12H7L6 8z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></symbol>' +
+  '<symbol id="iv2-wrench" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></symbol>' +
+  '<symbol id="iv2-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-6 8-6s8 2 8 6"/></symbol>' +
+  '<symbol id="iv2-box" viewBox="0 0 24 24"><path d="M21 8v8a2 2 0 0 1-1 1.73l-7 4a2 2 0 0 1-2 0l-7-4A2 2 0 0 1 3 16V8a2 2 0 0 1 1-1.73l7-4a2 2 0 0 1 2 0l7 4A2 2 0 0 1 21 8z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></symbol>' +
+  '<symbol id="iv2-cal" viewBox="0 0 24 24"><rect x="3" y="4.5" width="18" height="17" rx="3"/><path d="M3 9.5h18M8 2.5v4M16 2.5v4"/></symbol>' +
+  '<symbol id="iv2-card" viewBox="0 0 24 24"><rect x="2.5" y="5" width="19" height="14" rx="3"/><path d="M2.5 10h19M6 15h4"/></symbol>' +
+  '<symbol id="iv2-doc" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5M8.5 13h7M8.5 17h5"/></symbol>' +
+  '<symbol id="iv2-chart" viewBox="0 0 24 24"><rect x="3.5" y="13" width="3.4" height="7" rx="1.2"/><rect x="10.3" y="8" width="3.4" height="12" rx="1.2"/><rect x="17.1" y="4" width="3.4" height="16" rx="1.2"/></symbol>' +
+  '<symbol id="iv2-trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v4a5 5 0 0 1-10 0zM7 6H4v1a3 3 0 0 0 3 3M17 6h3v1a3 3 0 0 0-3 3"/></symbol>' +
+  '<symbol id="iv2-target" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><circle cx="12" cy="12" r="3.4"/></symbol>' +
+  '<symbol id="iv2-pin" viewBox="0 0 24 24"><path d="M6.5 3h11l-1.5 6 3 4H4l3-4z"/><path d="M12 13v8"/></symbol>' +
+  '<symbol id="iv2-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></symbol>' +
+  '<symbol id="iv2-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></symbol>' +
+  '<symbol id="iv2-inbox" viewBox="0 0 24 24"><path d="M3 13l3-8h12l3 8v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1.5 2.5h5L21 13"/></symbol>' +
+  '</svg>';
 function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
   var host = document.getElementById('inv-admin');
   var empHost = document.getElementById('inv-emp');
@@ -4389,10 +4411,11 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
   var _icoBd = { Efectivo: '💵', Tarjeta: '💳', Bizum: '📲', Transferencia: '🏦' };
 
   // ── Estilos (variables de tema para respetar el skin) ──
-  var serif = "Georgia,'Iowan Old Style','Times New Roman',serif";
-  var cardCss = 'background:var(--card,#fff);border:1px solid var(--border,#e5e7eb);border-radius:16px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 6px 18px rgba(0,0,0,.05)';
-  var bigCss = 'font-family:' + serif + ';font-variant-numeric:tabular-nums;font-weight:600;letter-spacing:-.02em;line-height:1';
-  var eyebrow = 'font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);font-weight:700';
+  // iOS: tipografía del sistema (SF Pro) para números y titulares, tarjetas de esquina generosa y sombra suave.
+  var serif = "-apple-system,BlinkMacSystemFont,'SF Pro Display','Inter',system-ui,sans-serif";
+  var cardCss = 'background:var(--card,#fff);border:.5px solid var(--border,#e5e7eb);border-radius:18px;box-shadow:0 1px 2px rgba(0,0,0,.04),0 10px 26px -16px rgba(0,0,0,.13)';
+  var bigCss = 'font-family:' + serif + ';font-variant-numeric:tabular-nums;font-weight:700;letter-spacing:-.03em;line-height:1';
+  var eyebrow = 'font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700';
 
   function moneyCard(opts) {
     return '<div style="' + cardCss + ';padding:20px 22px;position:relative;overflow:hidden">' +
@@ -4411,7 +4434,8 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
       '</div>';
   }
   function actCard(a, hot) {
-    return '<div onclick="' + a[2] + '" style="flex:1 0 auto;min-width:100px;border:1px solid var(--border);border-radius:13px;padding:12px 10px;display:flex;flex-direction:column;align-items:center;gap:6px;font-size:12px;font-weight:700;cursor:pointer;' + (hot ? 'background:var(--orange,#e07b4f);color:#fff;border-color:transparent' : 'background:var(--card)') + '"><span style="font-size:20px">' + a[0] + '</span>' + a[1] + '</div>';
+    var tile = hot ? 'background:rgba(255,255,255,.22);color:#fff' : 'background:var(--card2,#f1f5f9);color:var(--text)';
+    return '<div onclick="' + a[2] + '" onmousedown="this.style.transform=\'scale(.96)\'" onmouseup="this.style.transform=\'\'" onmouseleave="this.style.transform=\'\'" style="flex:1 0 auto;min-width:100px;border:.5px solid var(--border);border-radius:16px;padding:14px 10px 12px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:12px;font-weight:600;letter-spacing:-.01em;cursor:pointer;transition:transform .12s;' + (hot ? 'background:var(--orange,#e07b4f);color:#fff;border-color:transparent' : 'background:var(--card)') + '"><span style="width:42px;height:42px;border-radius:13px;display:grid;place-items:center;' + tile + '">' + _iv2ic(a[0], 22) + '</span>' + a[1] + '</div>';
   }
   function quickbar(items) {
     return '<div class="iv2-qb" style="display:flex;gap:10px;overflow-x:auto;margin-bottom:16px;padding-bottom:2px">' + items.map(function(a, i) { return actCard(a, i === 0); }).join('') + '</div>';
@@ -4419,24 +4443,24 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
 
   // ── ACCIONES RÁPIDAS (arriba) ──
   var qbAdmin = quickbar([
-    ['🧾', T('iv2.qa_venta'), 'abrirVenta()'],
-    ['🔧', T('iv2.qa_rep'), 'abrirRep()'],
-    ['👤', T('iv2.qa_cliente'), "navTo('pClis')"],
-    ['📦', T('iv2.qa_pedido'), 'nuevoPedido()'],
-    ['📅', T('iv2.qa_cita'), "navTo('pCitas')"],
-    ['💳', T('iv2.qa_tpv'), "window.location.href='tpv.html'"]
+    ['bag', T('iv2.qa_venta'), 'abrirVenta()'],
+    ['wrench', T('iv2.qa_rep'), 'abrirRep()'],
+    ['user', T('iv2.qa_cliente'), "navTo('pClis')"],
+    ['box', T('iv2.qa_pedido'), 'nuevoPedido()'],
+    ['cal', T('iv2.qa_cita'), "navTo('pCitas')"],
+    ['card', T('iv2.qa_tpv'), "window.location.href='tpv.html'"]
   ]);
   var qbEmp = quickbar([
-    ['🔧', T('iv2.qa_rep'), 'abrirRep()'],
-    ['👤', T('iv2.qa_cliente'), "navTo('pClis')"],
-    ['💳', T('iv2.qa_tpv'), "window.location.href='tpv.html'"],
-    ['📅', T('iv2.qa_citas'), "navTo('pCitas')"],
-    ['📦', T('iv2.qa_pedido'), 'nuevoPedido()'],
-    ['📄', T('iv2.qa_presu'), "navTo('pPresupuestos')"]
+    ['wrench', T('iv2.qa_rep'), 'abrirRep()'],
+    ['user', T('iv2.qa_cliente'), "navTo('pClis')"],
+    ['card', T('iv2.qa_tpv'), "window.location.href='tpv.html'"],
+    ['cal', T('iv2.qa_citas'), "navTo('pCitas')"],
+    ['box', T('iv2.qa_pedido'), 'nuevoPedido()'],
+    ['doc', T('iv2.qa_presu'), "navTo('pPresupuestos')"]
   ]);
 
   // Notas y recordatorios (reutiliza el sistema existente) — presente en ambas vistas
-  var notasCard = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px"><div style="' + eyebrow + ';margin-bottom:8px">📌 ' + T('inicio.notas') + '</div><div id="iv2-notas"></div></div>';
+  var notasCard = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px"><div style="' + eyebrow + ';margin-bottom:8px">' + _iv2ic('pin', 13) + ' ' + T('inicio.notas') + '</div><div id="iv2-notas"></div></div>';
 
   var html;
   if (dinero) {
@@ -4466,7 +4490,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
     var margen = ingMes > 0 ? Math.round(ben / ingMes * 100) : 0;
     var pnlCell = function(l, v, c) { return '<div style="background:var(--card2,#f8fafc);border-radius:11px;padding:11px 12px"><div style="' + eyebrow + '">' + l + '</div><div style="' + bigCss + ';font-size:20px;margin-top:2px' + (c ? ';color:' + c : '') + '">' + v + '</div></div>'; };
     var cardIngGastos = (analitica && _invWidgetOn('rs_inggastos')) ? '<div style="' + cardCss + ';padding:18px 20px">' +
-      '<div style="' + eyebrow + '">📊 ' + T('inicio.ing_gastos_t') + ' ' + sufLbl + '</div>' +
+      '<div style="' + eyebrow + '">' + _iv2ic('chart', 13) + ' ' + T('inicio.ing_gastos_t') + ' ' + sufLbl + '</div>' +
       '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-top:12px">' +
         pnlCell(T('inicio.ingresos'), cur(ingMes)) +
         pnlCell(T('inicio.gastos'), cur(gasMes), 'var(--red,#E02424)') +
@@ -4482,7 +4506,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
       stackHtml = '<div style="display:flex;height:16px;border-radius:8px;overflow:hidden;margin:14px 0 10px">' + ordenP.map(function(m) { return '<i style="display:block;height:100%;width:' + (pagos[m] / totalP * 100) + '%;background:' + (clsMap[m] || 'var(--teal,#0E8F9F)') + '"></i>'; }).join('') + '</div>';
       legendHtml = '<div style="display:flex;flex-wrap:wrap;gap:12px">' + ordenP.map(function(m) { return '<span style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px"><i style="width:9px;height:9px;border-radius:3px;display:inline-block;background:' + (clsMap[m] || 'var(--teal,#0E8F9F)') + '"></i>' + (_icoBd[m] || '') + ' ' + escHtml(_pagoLbl(m)) + ' · <b style="color:var(--text)">' + cur(pagos[m]) + '</b></span>'; }).join('') + '</div>';
     } else { legendHtml = '<div style="font-size:12px;color:var(--muted);padding:8px 0">' + T('inicio.sin_cobros') + '</div>'; }
-    var cardComoCobras = _invWidgetOn('rs_comocobras') ? '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">💳 ' + T('inicio.como_cobras') + '</div>' + stackHtml + legendHtml + '</div>' : '';
+    var cardComoCobras = _invWidgetOn('rs_comocobras') ? '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">' + _iv2ic('card', 13) + ' ' + T('inicio.como_cobras') + '</div>' + stackHtml + legendHtml + '</div>' : '';
 
     // Lo que más deja (analítica)
     var cat = {};
@@ -4494,7 +4518,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
     var topRows = topArr.length ? topArr.map(function(o) {
       return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--border)"><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(o.k) + '</div><div style="height:6px;border-radius:6px;background:var(--orange,#e07b4f);margin-top:5px;width:' + Math.max(6, Math.round(o.v / topMax * 100)) + '%"></div></div><div style="' + bigCss + ';font-size:14px;font-weight:700">' + cur(o.v) + '</div></div>';
     }).join('') : '<div style="font-size:12px;color:var(--muted);padding:8px 0">' + T('inicio.sin_ingresos') + '</div>';
-    var cardLoDeja = (analitica && _invWidgetOn('rs_lodeja')) ? '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">🏆 ' + T('inicio.lo_que_deja') + '</div><div style="margin-top:8px">' + topRows + '</div></div>' : '';
+    var cardLoDeja = (analitica && _invWidgetOn('rs_lodeja')) ? '<div style="' + cardCss + ';padding:18px 20px"><div style="' + eyebrow + '">' + _iv2ic('trophy', 13) + ' ' + T('inicio.lo_que_deja') + '</div><div style="margin-top:8px">' + topRows + '</div></div>' : '';
 
     // Pedidos por recibir
     var peds = (DB.pedidos || []).filter(function(p) { return p.estado !== 'recibido'; });
@@ -4503,7 +4527,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
       var pill = '<span style="font-size:11px;font-weight:700;border-radius:20px;padding:3px 9px;background:' + (pedido ? 'var(--orange-soft,#FEF3E2)' : 'var(--card2,#f1f5f9)') + ';color:' + (pedido ? 'var(--orange,#D97706)' : 'var(--muted)') + '">' + (pedido ? T('iv2.en_camino') : T('iv2.preparando')) + '</span>';
       return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 0;border-top:1px solid var(--border)"><div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(p.pieza || p.proveedor || T('inicio.pedidos')) + '</div><div style="font-size:12px;color:var(--muted)">' + escHtml((p.proveedor || '') + (p.importe ? ' · ' + cur(parseFloat(p.importe) || 0) : '')) + '</div></div>' + pill + '</div>';
     }).join('') : '<div style="font-size:12px;color:var(--muted);padding:8px 0">' + T('pedidos.vacio') + '</div>';
-    var cardPedidos = _invWidgetOn('rs_pedidos') ? '<div onclick="navTo(\'pPedidos\')" style="' + cardCss + ';padding:18px 20px;cursor:pointer"><div style="' + eyebrow + '">📦 ' + T('inicio.pedidos_recibir') + '</div><div style="margin-top:8px">' + pedRows + '</div></div>' : '';
+    var cardPedidos = _invWidgetOn('rs_pedidos') ? '<div onclick="navTo(\'pPedidos\')" style="' + cardCss + ';padding:18px 20px;cursor:pointer"><div style="' + eyebrow + '">' + _iv2ic('box', 13) + ' ' + T('inicio.pedidos_recibir') + '</div><div style="margin-top:8px">' + pedRows + '</div></div>' : '';
 
     // Fila de tarjetas secundarias (2 col, reflow en móvil)
     var secCards = [cardIngGastos, cardComoCobras, cardLoDeja, cardPedidos].filter(Boolean).join('');
@@ -4519,7 +4543,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
         '<div style="display:flex;gap:8px"><button onclick="abrirWhatsAppRep(\'' + r.id + '\')" style="border:0;border-radius:9px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--orange,#e07b4f);color:#fff">' + T('iv2.avisar') + '</button><button onclick="abrirDetalleRep(\'' + r.id + '\')" style="border:0;border-radius:9px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--card2,#f1f5f9);color:var(--text)">' + T('iv2.ver') + '</button></div>' +
         '</div>';
     }).join('') : '<div style="padding:14px 0;color:var(--muted);font-size:13px">' + T('iv2.nada_urgente') + '</div>';
-    var urgCard = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px;border-left:4px solid var(--red,#cf5a4b)"><div style="' + eyebrow + ';color:var(--red,#cf5a4b);margin-bottom:6px">◎ ' + T('iv2.urgente_titulo') + '</div>' + urows + '</div>';
+    var urgCard = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px;border-left:4px solid var(--red,#cf5a4b)"><div style="' + eyebrow + ';color:var(--red,#cf5a4b);margin-bottom:6px">' + _iv2ic('target', 13) + ' ' + T('iv2.urgente_titulo') + '</div>' + urows + '</div>';
 
     // Gráfico adaptativo (analítica)
     var chartCard = '';
@@ -4627,12 +4651,13 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
         '<div style="display:flex;gap:8px"><button onclick="avisarListo(\'' + r.id + '\')" style="border:0;border-radius:9px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--green,#0E9F6E);color:#fff">' + T('iv2.avisar') + '</button><button onclick="abrirDetalleRep(\'' + r.id + '\')" style="border:0;border-radius:9px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:600;cursor:pointer;background:var(--card2,#f1f5f9);color:var(--text)">' + T('iv2.ver') + '</button></div>' +
         '</div>';
     }).join('') : '<div style="padding:14px 0;color:var(--muted);font-size:13px">' + T('iv2.nada_urgente') + '</div>';
-    var urgCardE = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px;border-left:4px solid var(--red,#cf5a4b)"><div style="' + eyebrow + ';color:var(--red,#cf5a4b);margin-bottom:6px">◎ ' + T('iv2.urgente_titulo') + '</div>' + urowsE + '</div>';
+    var urgCardE = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px;border-left:4px solid var(--red,#cf5a4b)"><div style="' + eyebrow + ';color:var(--red,#cf5a4b);margin-bottom:6px">' + _iv2ic('target', 13) + ' ' + T('iv2.urgente_titulo') + '</div>' + urowsE + '</div>';
 
     html = qbEmp + kpisE + heroE + colaCard + secGridE + urgCardE + notasCard;
   }
 
   box.innerHTML =
+    _IV2_SPRITE +
     '<style>@media(max-width:760px){#inicioV2 .iv2-money,#inicioV2 .iv2-sec{grid-template-columns:1fr!important}#inicioV2 .iv2-kpis{grid-template-columns:1fr 1fr!important}#inicioV2 .iv2-qb>div{min-width:86px!important;font-size:11px!important}}</style>' +
     html;
   try { _iv2RenderNotas(); } catch (e) {}
