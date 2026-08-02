@@ -772,7 +772,7 @@ var MODELOS_PRE = []; // catalogo predefinido cargado de assets/modelos.json
 var SEL = {
   vStock:null,vCli:null,rCli:null,eRepId:null,editStockId:null,
   vPago:'Efectivo',ePago:'Efectivo',rPri:'Normal',
-  repFiltro:'todas',ventaFiltro:'todas',
+  repFiltro:'todas',ventaFiltro:'todas',repPage:1,ventaPage:1,
   metricTab:'hoy',repTab:'hoy',repTipo:'todo',
   selParts:[],pedirPiezas:[],esFinanciado:false,
   modoPresupuesto:false // PRES-9
@@ -7044,6 +7044,7 @@ function setVentaFiltro(el) {
   document.querySelectorAll('#ventaTabs .tab').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
   SEL.ventaFiltro = el.dataset.f;
+  SEL.ventaPage = 1;
   renderVentas();
 }
 
@@ -7074,8 +7075,12 @@ function renderVentas() {
   try { _ensureIv2Sprite(); } catch (e) {}
   var q = _norm(document.getElementById('busVentas').value);
   var filtro = SEL.ventaFiltro || 'todas';
+  var _telV = _telClientes();
+  var _desdeV = (document.getElementById('venDesde') || {}).value || '';
+  var _hastaV = (document.getElementById('venHasta') || {}).value || '';
   var list = DB.ventas.slice().reverse().filter(function(v) {
-    var matchQ = !q || _norm(v.clienteNombre + ' ' + v.modelo + ' ' + (v.imei || '')).indexOf(q) !== -1;
+    if (!_dateEnRango(v.fecha, _desdeV, _hastaV)) return false;
+    var matchQ = !q || _norm(v.clienteNombre + ' ' + v.modelo + ' ' + (v.imei || '') + ' ' + (_telV[v.clienteId] || '')).indexOf(q) !== -1;
     if (filtro === 'reembolsos') return matchQ && v.reembolsado;
     if (filtro === 'financiados') return matchQ && v.financiado;
     return matchQ && !v.reembolsado;
@@ -7083,7 +7088,11 @@ function renderVentas() {
   // Financiadas pendientes primero (lo accionable arriba); el sort estable conserva la recencia dentro de cada grupo.
   list.sort(function(a, b) { return (_esFinPendiente(a) ? 0 : 1) - (_esFinPendiente(b) ? 0 : 1); });
   var el = document.getElementById('listaVentas');
+  var _pgV = document.getElementById('ventasPager'); if (_pgV) _pgV.innerHTML = '';
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">📱</div>' + T('gen.sin_registros') + '</div>'; return; }
+  var _totalVen = list.length;
+  SEL.ventaPage = Math.min(Math.max(1, SEL.ventaPage || 1), Math.max(1, Math.ceil(_totalVen / _LIST_PAGE_SIZE)));
+  list = list.slice((SEL.ventaPage - 1) * _LIST_PAGE_SIZE, SEL.ventaPage * _LIST_PAGE_SIZE);
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('gen.fecha') + '</th><th>' + T('gen.cliente') + '</th><th>' + T('gen.modelo') + '</th><th>' + T('gen.pago') + '</th><th>' + T('gen.total') + '</th><th></th></tr></thead><tbody>';
   list.forEach(function(v) {
     var badges = '';
@@ -7110,6 +7119,7 @@ function renderVentas() {
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
+  _renderPager('ventasPager', SEL.ventaPage, _totalVen, '_ventasGoPage');
   el.querySelectorAll('.btn-reem').forEach(function(btn) {
     btn.addEventListener('click', function() { reembolsarVenta(this.dataset.vid); });
   });
@@ -11006,6 +11016,7 @@ function setRepFiltro(el) {
   document.querySelectorAll('#repTabs .tab').forEach(function(t) { t.classList.remove('active'); });
   el.classList.add('active');
   SEL.repFiltro = el.dataset.f;
+  SEL.repPage = 1;
   if (SEL.vistaReps === 'kanban') renderKanban(); else renderReps();
 }
 
@@ -11018,8 +11029,10 @@ function cambiarVista(vista) {
   document.getElementById('btnVistaKanban').classList.toggle('active', vista === 'kanban');
   document.getElementById('listaReps').style.display = vista === 'lista' ? '' : 'none';
   document.getElementById('kanbanReps').style.display = vista === 'kanban' ? '' : 'none';
-  // Las pestañas de filtro solo tienen sentido en lista
+  // Las pestañas de filtro, el buscador y el paginador solo tienen sentido en lista
   document.getElementById('repTabs').style.display = vista === 'lista' ? '' : 'none';
+  var _rc = document.getElementById('repCtrls'); if (_rc) _rc.style.display = vista === 'lista' ? '' : 'none';
+  var _rp = document.getElementById('repsPager'); if (_rp) _rp.style.display = vista === 'lista' ? '' : 'none';
   if (vista === 'kanban') renderKanban();
   else renderReps();
 }
@@ -11422,6 +11435,32 @@ function _repBandaToggle(tipo) { _repBandaAbierto = (_repBandaAbierto === tipo) 
 function _repBandaAvisar(id) { try { abrirWhatsAppRep(id); } catch (e) {} setTimeout(function() { try { renderRepsUrgenciaBanda(); } catch (e) {} }, 200); }
 function _repBandaLista(id) { try { cambiarEstado(id, 'Por Entregar'); } catch (e) {} setTimeout(function() { try { renderRepsUrgenciaBanda(); } catch (e) {} }, 200); }
 
+// ── Paginación + búsqueda + rango de fechas para listados (Reparaciones / Ventas) ──
+var _LIST_PAGE_SIZE = 25;
+function _dateEnRango(fecha, desde, hasta) {
+  var f = String(fecha || '').slice(0, 10);
+  if (!f) return !desde && !hasta;
+  if (desde && f < desde) return false;
+  if (hasta && f > hasta) return false;
+  return true;
+}
+function _renderPager(containerId, cur, totalItems, goFnName) {
+  var el = document.getElementById(containerId); if (!el) return;
+  if (totalItems <= _LIST_PAGE_SIZE) { el.innerHTML = ''; return; }
+  var pages = Math.max(1, Math.ceil(totalItems / _LIST_PAGE_SIZE));
+  cur = Math.min(Math.max(1, cur), pages);
+  var d = (cur - 1) * _LIST_PAGE_SIZE + 1, h = Math.min(cur * _LIST_PAGE_SIZE, totalItems);
+  el.innerHTML = '<div class="pager">' +
+    '<button class="pager-btn" ' + (cur <= 1 ? 'disabled' : '') + ' onclick="' + goFnName + '(' + (cur - 1) + ')" aria-label="Anterior">‹</button>' +
+    '<span class="pager-info">' + d + '–' + h + ' / ' + totalItems + '</span>' +
+    '<button class="pager-btn" ' + (cur >= pages ? 'disabled' : '') + ' onclick="' + goFnName + '(' + (cur + 1) + ')" aria-label="Siguiente">›</button>' +
+    '</div>';
+}
+function _repsGoPage(n) { SEL.repPage = n; renderReps(); var p = document.getElementById('pReps'); if (p) p.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+function _ventasGoPage(n) { SEL.ventaPage = n; renderVentas(); var p = document.getElementById('pVentas'); if (p) p.scrollIntoView({ block: 'start', behavior: 'smooth' }); }
+// Mapa clienteId → teléfono (para buscar reparaciones/ventas por teléfono del cliente).
+function _telClientes() { var m = {}; (DB.clis || []).forEach(function(c) { if (c.tel) m[c.id] = String(c.tel); }); return m; }
+
 function renderReps() {
   try { renderRepsUrgenciaBanda(); } catch (e) {}
   try { _ensureIv2Sprite(); } catch (e) {}
@@ -11443,8 +11482,27 @@ function renderReps() {
     }
     return r.estado === SEL.repFiltro;
   });
+  // Búsqueda (modelo · cliente · teléfono · IMEI) + rango de fechas
+  var _q = _norm((document.getElementById('busReps') || {}).value || '');
+  var _desde = (document.getElementById('repDesde') || {}).value || '';
+  var _hasta = (document.getElementById('repHasta') || {}).value || '';
+  if (_q || _desde || _hasta) {
+    var _tel = _telClientes();
+    list = list.filter(function(r) {
+      if (!_dateEnRango(r.fecha, _desde, _hasta)) return false;
+      if (_q) {
+        var hay = _norm((r.marca || '') + ' ' + (r.modelo || '') + ' ' + (r.clienteNombre || '') + ' ' + (r.imei || '') + ' ' + (_tel[r.clienteId] || ''));
+        if (hay.indexOf(_q) === -1) return false;
+      }
+      return true;
+    });
+  }
   var el = document.getElementById('listaReps');
-  if (!list.length) { el.innerHTML = '<div class="empty">' + T('gen.sin_reparaciones') + '</div>'; return; }
+  var _pgEl = document.getElementById('repsPager'); if (_pgEl) _pgEl.innerHTML = '';
+  if (!list.length) { el.innerHTML = '<div class="empty">' + ((_q || _desde || _hasta) ? T('gen.sin_registros') : T('gen.sin_reparaciones')) + '</div>'; return; }
+  var _totalReps = list.length;
+  SEL.repPage = Math.min(Math.max(1, SEL.repPage || 1), Math.max(1, Math.ceil(_totalReps / _LIST_PAGE_SIZE)));
+  list = list.slice((SEL.repPage - 1) * _LIST_PAGE_SIZE, SEL.repPage * _LIST_PAGE_SIZE);
   var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr>'
     + '<th>' + T('gen.cliente') + '</th><th>' + T('gen.modelo') + '</th><th>' + T('gen.averia') + '</th><th>' + T('gen.estado') + '</th>'
     + '<th>' + T('gen.prioridad') + '</th><th>' + T('rep.col_fentrega') + '</th><th>' + T('rep.col_fentregado') + '</th><th>' + T('gen.total') + '</th><th></th>'
@@ -11512,6 +11570,7 @@ function renderReps() {
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
+  _renderPager('repsPager', SEL.repPage, _totalReps, '_repsGoPage');
   el.querySelectorAll('.sel-estado').forEach(function(sel) {
     sel.addEventListener('change', function() { cambiarEstado(this.dataset.rid, this.value); });
   });

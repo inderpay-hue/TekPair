@@ -63,9 +63,13 @@ body[data-theme="dark"] .modal{background:var(--white);color:var(--text)}
 body[data-theme="dark"] input.fi,
 body[data-theme="dark"] select.fi,
 body[data-theme="dark"] textarea.fi,
-body[data-theme="dark"] .search-input{
+body[data-theme="dark"] .search-input,
+body[data-theme="dark"] .date-input,
+body[data-theme="dark"] .date-clear,
+body[data-theme="dark"] .pager-btn{
   background:var(--light);border-color:var(--border);color:var(--text);
 }
+body[data-theme="dark"] .date-input{color-scheme:dark}
 body[data-theme="dark"] input.fi::placeholder,
 body[data-theme="dark"] textarea.fi::placeholder,
 body[data-theme="dark"] .search-input::placeholder{color:var(--muted)}
@@ -336,7 +340,8 @@ body[data-theme="negro"] .sidebar{background:#0A0A0A;border-right:1px solid #222
 body[data-theme="negro"] .card{background:#1A1A1A;border-color:#2A2A2A}
 body[data-theme="negro"] .modal{background:#1A1A1A;color:#F0F0F0}
 body[data-theme="negro"] input.fi,body[data-theme="negro"] select.fi,
-body[data-theme="negro"] textarea.fi,body[data-theme="negro"] .search-input{background:#222;border-color:#333;color:#F0F0F0}
+body[data-theme="negro"] textarea.fi,body[data-theme="negro"] .search-input,body[data-theme="negro"] .date-input,body[data-theme="negro"] .date-clear,body[data-theme="negro"] .pager-btn{background:#222;border-color:#333;color:#F0F0F0}
+body[data-theme="negro"] .date-input{color-scheme:dark}
 body[data-theme="negro"] .tbl th{background:#0A0A0A}
 body[data-theme="negro"] .tbl tr:hover td{background:#1E1E1E}
 body[data-theme="negro"] .tab{background:#1A1A1A;border-color:#2A2A2A;color:#888}
@@ -1004,6 +1009,20 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .search-input{width:100%;padding:10px 14px 10px 36px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;outline:none;background:white}
 .search-input:focus{border-color:var(--blue)}
 .search-icon{position:absolute;left:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-size:14px;pointer-events:none}
+.list-ctrls{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
+.list-ctrls .search-wrap{flex:1 1 220px;min-width:0;margin-bottom:0}
+.date-range{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.date-input{padding:9px 10px;border:1.5px solid var(--border);border-radius:10px;font-family:inherit;font-size:13px;background:white;color:var(--text);outline:none;min-width:0;-webkit-appearance:none;color-scheme:light}
+.date-input:focus{border-color:var(--blue)}
+.date-range .sep{color:var(--muted);font-size:12px}
+.date-clear{padding:9px 12px;border:1.5px solid var(--border);border-radius:10px;background:white;color:var(--muted);font-family:inherit;font-size:12px;cursor:pointer;white-space:nowrap}
+.date-clear:hover{border-color:var(--blue);color:var(--text)}
+.pager{display:flex;align-items:center;justify-content:center;gap:14px;margin:16px 0 4px}
+.pager-btn{width:38px;height:38px;border:1.5px solid var(--border);border-radius:10px;background:white;color:var(--text);font-size:20px;line-height:1;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:transform .08s,border-color .12s}
+.pager-btn:hover:not([disabled]){border-color:var(--blue);color:var(--blue)}
+.pager-btn:active:not([disabled]){transform:scale(.92)}
+.pager-btn[disabled]{opacity:.35;cursor:default}
+.pager-info{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums;min-width:96px;text-align:center}
 .autocomplete-res{position:absolute;left:0;right:0;top:calc(100% + 4px);background:white;border-radius:10px;border:1px solid var(--border);box-shadow:0 8px 24px rgba(0,0,0,.1);z-index:50;display:none;max-height:200px;overflow-y:auto}
 .autocomplete-res.open{display:block}
 .cli-item{padding:10px 14px;cursor:pointer;font-size:13px;border-bottom:1px solid var(--light);transition:background .1s}
@@ -1174,7 +1193,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260729s"></script>
+<script src="/lang/lang.v8.js?v=20260802k"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -1568,9 +1587,17 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     <div class="sec-title" data-t="nav.ventas">Ventas</div>
     <button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirVenta()" data-t="gen.nueva">+ Nueva</button>
   </div>
-  <div class="search-wrap">
-    <span class="search-icon">🔍</span>
-    <input class="search-input" id="busVentas" placeholder="Buscar..." data-t-ph="gen.buscar" oninput="renderVentas()">
+  <div class="list-ctrls">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="busVentas" placeholder="Buscar cliente, modelo, teléfono o IMEI..." data-t-ph="gen.buscar" oninput="SEL.ventaPage=1;renderVentas()">
+    </div>
+    <div class="date-range">
+      <input type="date" class="date-input" id="venDesde" onchange="SEL.ventaPage=1;renderVentas()">
+      <span class="sep">—</span>
+      <input type="date" class="date-input" id="venHasta" onchange="SEL.ventaPage=1;renderVentas()">
+      <button type="button" class="date-clear" onclick="document.getElementById('venDesde').value='';document.getElementById('venHasta').value='';SEL.ventaPage=1;renderVentas()" data-t="gen.limpiar">Limpiar</button>
+    </div>
   </div>
   <div class="tabs" id="ventaTabs">
     <div class="tab active" data-f="todas" onclick="setVentaFiltro(this)"><span data-t="tpv.todos">Todas</span></div>
@@ -1578,6 +1605,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     <div class="tab" data-f="financiados" onclick="setVentaFiltro(this)"><span data-t="gen.financiados">💰 Financiados</span></div>
   </div>
   <div id="listaVentas"></div>
+  <div id="ventasPager"></div>
 </div>
 
 <!-- PAGE: REPARACIONES -->
@@ -1606,7 +1634,20 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     <div class="tab" data-f="Devuelto" data-t="estado.Devuelto" onclick="setRepFiltro(this)">Devuelto</div>
     <div class="tab" data-f="Rechazado" data-t="estado.Rechazado" onclick="setRepFiltro(this)">Rechazado</div>
   </div>
+  <div class="list-ctrls" id="repCtrls">
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input class="search-input" id="busReps" placeholder="Buscar modelo, cliente, teléfono o IMEI..." data-t-ph="gen.buscar" oninput="SEL.repPage=1;renderReps()">
+    </div>
+    <div class="date-range">
+      <input type="date" class="date-input" id="repDesde" onchange="SEL.repPage=1;renderReps()">
+      <span class="sep">—</span>
+      <input type="date" class="date-input" id="repHasta" onchange="SEL.repPage=1;renderReps()">
+      <button type="button" class="date-clear" onclick="document.getElementById('repDesde').value='';document.getElementById('repHasta').value='';SEL.repPage=1;renderReps()" data-t="gen.limpiar">Limpiar</button>
+    </div>
+  </div>
   <div id="listaReps"></div>
+  <div id="repsPager"></div>
   <div id="kanbanReps" style="display:none"></div>
 </div>
 
@@ -5048,7 +5089,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260802j"></script>
+<script src="/js/dash-app.js?v=20260802k"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
