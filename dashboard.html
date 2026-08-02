@@ -1193,7 +1193,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260802k"></script>
+<script src="/lang/lang.v8.js?v=20260802l"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -1640,10 +1640,10 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <input class="search-input" id="busReps" placeholder="Buscar modelo, cliente, teléfono o IMEI..." data-t-ph="gen.buscar" oninput="SEL.repPage=1;renderReps()">
     </div>
     <div class="date-range">
-      <input type="date" class="date-input" id="repDesde" onchange="SEL.repPage=1;renderReps()">
+      <input type="date" class="date-input" id="repBusDesde" onchange="SEL.repPage=1;renderReps()">
       <span class="sep">—</span>
-      <input type="date" class="date-input" id="repHasta" onchange="SEL.repPage=1;renderReps()">
-      <button type="button" class="date-clear" onclick="document.getElementById('repDesde').value='';document.getElementById('repHasta').value='';SEL.repPage=1;renderReps()" data-t="gen.limpiar">Limpiar</button>
+      <input type="date" class="date-input" id="repBusHasta" onchange="SEL.repPage=1;renderReps()">
+      <button type="button" class="date-clear" onclick="document.getElementById('repBusDesde').value='';document.getElementById('repBusHasta').value='';SEL.repPage=1;renderReps()" data-t="gen.limpiar">Limpiar</button>
     </div>
   </div>
   <div id="listaReps"></div>
@@ -5089,7 +5089,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260802k"></script>
+<script src="/js/dash-app.js?v=20260802l"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

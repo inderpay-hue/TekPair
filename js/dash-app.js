@@ -11484,8 +11484,8 @@ function renderReps() {
   });
   // Búsqueda (modelo · cliente · teléfono · IMEI) + rango de fechas
   var _q = _norm((document.getElementById('busReps') || {}).value || '');
-  var _desde = (document.getElementById('repDesde') || {}).value || '';
-  var _hasta = (document.getElementById('repHasta') || {}).value || '';
+  var _desde = (document.getElementById('repBusDesde') || {}).value || '';
+  var _hasta = (document.getElementById('repBusHasta') || {}).value || '';
   if (_q || _desde || _hasta) {
     var _tel = _telClientes();
     list = list.filter(function(r) {
