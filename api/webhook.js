@@ -243,17 +243,30 @@ export default async function handler(req, res) {
           const nombreTienda = (session.metadata?.tienda_nombre || 'Nueva tienda').slice(0, 100);
           if (ownerId) {
             const planNueva = plan || 'pro';
-            const nuevaId = 'tienda_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
             try {
+              // IDEMPOTENCIA: Stripe entrega los webhooks "al menos una vez". Si ya existe una tienda
+              // para esta suscripción, no crear una 2ª (evita tiendas fantasma duplicadas por reintento).
+              if (subId) {
+                const dupR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_sub_id=eq.${encodeURIComponent(subId)}&select=id`, { headers: sbHeaders });
+                const dupJson = await dupR.json().catch(() => []);
+                if (Array.isArray(dupJson) && dupJson.length) {
+                  console.log('Add-on: ya existe tienda para sub', subId, '→ idempotente, no se duplica');
+                  break;
+                }
+              }
+              // El estado NO se fuerza a 'active': si el pago inicial no está confirmado (SCA / incomplete)
+              // no debe dar acceso pleno. Se afina luego con customer.subscription.updated.
+              const addonStatus = session.payment_status === 'paid' ? 'active' : 'past_due';
+              const nuevaId = 'tienda_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
               await fetch(`${SUPABASE_URL}/rest/v1/tiendas`, {
                 method: 'POST', headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
-                body: JSON.stringify({ id: nuevaId, nombre: nombreTienda, plan: planNueva, plan_status: 'active', plan_email: email, stripe_customer_id: customerId, stripe_sub_id: subId })
+                body: JSON.stringify({ id: nuevaId, nombre: nombreTienda, plan: planNueva, plan_status: addonStatus, plan_email: email, stripe_customer_id: customerId, stripe_sub_id: subId })
               });
               await fetch(`${SUPABASE_URL}/rest/v1/usuario_tiendas`, {
                 method: 'POST', headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
                 body: JSON.stringify({ usuario_id: ownerId, tienda_id: nuevaId })
               });
-              console.log('Add-on: tienda creada', nuevaId, 'enlazada a usuario', ownerId);
+              console.log('Add-on: tienda creada', nuevaId, 'enlazada a usuario', ownerId, '(' + addonStatus + ')');
             } catch (e) { console.error('Add-on tienda create error:', e); }
           } else {
             console.warn('Add-on sin owner_usuario_id en metadata, no se crea tienda');

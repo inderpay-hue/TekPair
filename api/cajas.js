@@ -156,8 +156,12 @@ async function tienePermisoCaja(payload, clave) {
   }
   if (!usuario) return false;
   if (usuario.rol === 'admin') return true;
-  const claveCompleta = clave.startsWith('cajasm_') ? clave : 'cajasm_' + clave;
   const permisos = usuario.permisos || {};
+  // Coherencia con el frontend (tienePerm): permisos.todo === true concede todos los permisos
+  // del módulo. Antes el backend lo ignoraba → un usuario con `todo` pasaba el gating del front
+  // (p.ej. abría un día anterior) y luego el backend respondía 403 → pantalla vacía.
+  if (permisos.todo === true) return true;
+  const claveCompleta = clave.startsWith('cajasm_') ? clave : 'cajasm_' + clave;
   return permisos[claveCompleta] === true;
 }
 
@@ -361,21 +365,56 @@ export default async function handler(req, res) {
       }
 
       case 'confirmar_saldo': {
-        const { cuenta_id, saldo_real, ventas_dia, fecha, nota } = req.body || {};
-        const real = Number(saldo_real);
-        if (!cuenta_id || !Number.isFinite(real)) return err(res, 400, 'cuenta_id y saldo_real obligatorios');
+        const { cuenta_id, fecha, nota } = req.body || {};
+        if (!cuenta_id) return err(res, 400, 'cuenta_id obligatorio');
         const cta = await sbGet(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
         if (!cta.length) return err(res, 404, 'Cuenta no encontrada');
         if (!(await puedeAccederCaja(payload, cta[0].caja_id))) return err(res, 403, 'Sin permiso para esta caja');
-        const anterior = Number(cta[0].saldo || 0);
-        const ventas = Number(ventas_dia) || 0;
-        const esperado = Math.round((anterior - ventas) * 100) / 100;
-        const nuevo = Math.round(real * 100) / 100;
+
+        const currentSaldo = Number(cta[0].saldo || 0);
+        // IDEMPOTENCIA por (cuenta, fecha): si ya se confirmó este día, deshacer su efecto (delta)
+        // para re-basear al saldo de AYER. Así re-cerrar la misma caja no vuelve a sumar/restar el
+        // movimiento del día (antes duplicaba el saldo en cada re-cierre). La confirmación previa se
+        // SOBREESCRIBE (no se apila) en el historial.
+        let prevMov = null, baseAyer = currentSaldo;
+        if (fecha) {
+          const prev = await sbGet(`cajas_saldo_mov?cuenta_id=eq.${encodeURIComponent(cuenta_id)}&tipo=eq.confirmacion&fecha=eq.${encodeURIComponent(fecha)}&order=created_at.desc&limit=1&select=id,importe`);
+          prevMov = prev[0] || null;
+          if (prevMov) baseAyer = Math.round((currentSaldo - Number(prevMov.importe || 0)) * 100) / 100;
+        }
+
+        const montoDia = Number(req.body.monto_dia);
+        let nuevo, esperado;
+        if (!Number.isFinite(montoDia)) {
+          // Compatibilidad con cliente antiguo: saldo_real absoluto tal cual (no idempotente).
+          const real = Number(req.body.saldo_real);
+          if (!Number.isFinite(real)) return err(res, 400, 'saldo_real o monto_dia obligatorios');
+          const ventas = Number(req.body.ventas_dia) || 0;
+          nuevo = Math.round(real * 100) / 100;
+          esperado = Math.round((baseAyer - ventas) * 100) / 100;
+        } else if (req.body.tipo === 'envios') {
+          // Envíos: lo enviado hoy sube el pendiente; el ingreso en banco lo baja.
+          const ingreso = Number(req.body.ingreso_banco) || 0;
+          esperado = Math.round((baseAyer + montoDia) * 100) / 100;
+          nuevo = Math.round((baseAyer + montoDia - ingreso) * 100) / 100;
+        } else {
+          // Recargas: lo vendido hoy baja el saldo. Si el cajero recontó un valor real distinto,
+          // llega en saldo_contado; si aceptó el esperado, lo recalculamos aquí (idempotente).
+          esperado = Math.round((baseAyer - montoDia) * 100) / 100;
+          const contado = req.body.saldo_contado;
+          nuevo = (contado === undefined || contado === null || String(contado).trim() === '')
+            ? esperado
+            : Math.round(Number(contado) * 100) / 100;
+        }
+        if (!Number.isFinite(nuevo)) return err(res, 400, 'valor de saldo inválido');
+
         const ajuste = Math.round((nuevo - esperado) * 100) / 100;
+        const delta = Math.round((nuevo - baseAyer) * 100) / 100;
         await sbPatch(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`, { saldo: nuevo });
-        const mov = { tienda_id, cuenta_id, tipo: 'confirmacion', importe: Math.round((nuevo - anterior) * 100) / 100, saldo_resultante: nuevo, nota: (nota || '') + (ajuste ? ` [ajuste ${ajuste}]` : ''), usuario: payload.email || null };
+        const mov = { tienda_id, cuenta_id, tipo: 'confirmacion', importe: delta, saldo_resultante: nuevo, nota: (nota || '') + (ajuste ? ` [ajuste ${ajuste}]` : ''), usuario: payload.email || null };
         if (fecha) mov.fecha = fecha;
-        await sbPost('cajas_saldo_mov', mov);
+        if (prevMov) await sbPatch(`cajas_saldo_mov?id=eq.${encodeURIComponent(prevMov.id)}`, mov);
+        else await sbPost('cajas_saldo_mov', mov);
         return ok(res, { cuenta_id, saldo: nuevo, esperado, ajuste });
       }
 
@@ -493,6 +532,8 @@ export default async function handler(req, res) {
       case 'crear_compania': {
         const { caja_id, nombre, orden } = req.body || {};
         if (!caja_id || !nombre) return err(res, 400, 'caja_id y nombre obligatorios');
+        // Coherente con editar_compania (CAJ-1): crear config de compañías requiere permiso de edición.
+        if (!(await tienePermisoCaja(payload, 'editar'))) return err(res, 403, 'No tienes permiso para crear compañías');
         if (!(await puedeAccederCaja(payload, caja_id))) return err(res, 403, 'Sin permiso para esta caja');
         const cajas = await sbGet(
           `cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id`

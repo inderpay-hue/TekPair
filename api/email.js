@@ -163,10 +163,9 @@ export default async function handler(req, res) {
       else totalTarjeta += parseFloat(v) || 0;
     });
   }
-  const pagosHtml = (totalEfectivo > 0 || totalTarjeta > 0) ? `
-    <div class="pago-row"><span>${esc(L.efectivo||'💵 Efectivo')}</span><strong>€${totalEfectivo.toFixed(2)}</strong></div>
-    <div class="pago-row"><span>${esc(L.tarjeta||'💳 Tarjeta / Bizum / Transferencia')}</span><strong>€${totalTarjeta.toFixed(2)}</strong></div>
-  ` : '';
+  // pagosHtml usa L (traducciones); se calcula MÁS ABAJO, tras declarar `const L`.
+  // Antes se construía aquí, antes de que L existiera → ReferenceError (TDZ) fuera del try → 500,
+  // y el reporte diario nunca se enviaba en días con pagos.
 
   // Ventas (array de objetos)
   const ventasHtml = (Array.isArray(reporte.ventas) && reporte.ventas.length)
@@ -192,6 +191,11 @@ export default async function handler(req, res) {
     pt: { subj: `Relatório diário ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Relatório diário', ventas:'Vendas', ingVentas:'Receitas vendas', reps:'Reparações', ingReps:'Receitas reparações', totalDia:'TOTAL DO DIA', pagos:'💳 Por forma de pagamento', efectivo:'💵 Dinheiro', tarjeta:'💳 Cartão / Transferência', ventasDia:'📱 Vendas do dia', repsDia:'🔧 Reparações entregues', cliente:'Cliente', modelo:'Modelo', pago:'Pagamento', total:'Total', equipo:'Dispositivo', footer:'Este relatório é gerado automaticamente no fecho do dia.' }
   };
   const L = RPT[lang] || RPT.es;
+
+  const pagosHtml = (totalEfectivo > 0 || totalTarjeta > 0) ? `
+    <div class="pago-row"><span>${esc(L.efectivo||'💵 Efectivo')}</span><strong>€${totalEfectivo.toFixed(2)}</strong></div>
+    <div class="pago-row"><span>${esc(L.tarjeta||'💳 Tarjeta / Bizum / Transferencia')}</span><strong>€${totalTarjeta.toFixed(2)}</strong></div>
+  ` : '';
 
   const html = `
 <!DOCTYPE html>

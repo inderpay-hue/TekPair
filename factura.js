@@ -439,7 +439,7 @@
   function _construirLineas() {
     var d = FACT.datos;
     if (FACT.origen === 'venta') {
-      return (d.items || []).map(function(i) {
+      var lineasV = (d.items || []).map(function(i) {
         return {
           desc: (i.nombre || '-') + (i.imei ? '  ·  IMEI: ' + i.imei : ''),
           cantidad: parseFloat(i.cantidad) || 1,
@@ -447,6 +447,13 @@
           total: (parseFloat(i.cantidad) || 1) * (parseFloat(i.precio) || 0)
         };
       });
+      // Descuento como línea negativa: sin esto las líneas sumaban el precio SIN descuento mientras
+      // la base/total ya lo aplicaban → factura descuadrada (líneas ≠ TOTAL).
+      var _descV = parseFloat(d.descuento) || 0;
+      if (_descV > 0) {
+        lineasV.push({ desc: T('gen.descuento_eur'), cantidad: 1, precio: -_descV, total: -_descV });
+      }
+      return lineasV;
     } else {
       // Reparación: líneas = servicios + componentes
       var lineas = [];

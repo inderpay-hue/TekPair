@@ -1031,6 +1031,7 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 #toast.show{transform:translateX(-50%) translateY(0)}
 #toast.ok{background:#00875A}
 #toast.err{background:var(--red)}
+#toast.error{background:var(--red)}
 #toast.warn{background:#D97706;color:#fff}
 
 /* ═══ PARTS LIST ═══ */
@@ -1167,7 +1168,6 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-  <script src="/assets/jsbarcode.min.js?v=20260729"></script>
 <script src="/lang/lang.v8.js?v=20260729s"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
@@ -2638,7 +2638,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 
 <!-- ════ LÓGICA JS ════ -->
-<script src="/js/dash-cajas.js?v=20260729n"></script>
+<script src="/js/dash-cajas.js?v=20260802a"></script>
 
 <div class="page" id="pGastos">
   <div class="sec-header" style="margin-bottom:10px">
@@ -5042,7 +5042,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260730a"></script>
+<script src="/js/dash-app.js?v=20260802a"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -6470,7 +6470,7 @@ function resetPagosRep() {
 // ═══ FACTURAS ═══
 (function() {
   var s = document.createElement('script');
-  s.src = 'factura.js?v=20260726x';
+  s.src = 'factura.js?v=20260802a';
   s.defer = true;
   document.body.appendChild(s);
 })();
@@ -6489,6 +6489,7 @@ function factVenta(id) {
     fecha: v.fecha,
     total: parseFloat(v.total) || 0,
     iva: parseFloat(v.iva) || 0,
+    descuento: parseFloat(v.descuento) || 0,
     pago: v.pago || '',
     items: (v.items && v.items.length) ? v.items.map(function(i) {
       return { nombre: i.nombre || 'Producto', cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0, imei: i.imei || '' };

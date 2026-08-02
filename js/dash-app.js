@@ -6594,8 +6594,9 @@ function renderWidgetStockCritico() {
   });
   var valorTotal = DB.stock.reduce(function(a, s) {
     if (s.vendido) return a;
-    var precio = s.precioC || s.precioV || 0;
-    return a + (s.unidades * precio);
+    // Es "valor a precio COSTE": si no hay coste registrado, no inflar con el PVP → cuenta 0.
+    var precio = parseFloat(s.precioC) || 0;
+    return a + ((parseInt(s.unidades, 10) || 0) * precio);
   }, 0);
   var html = '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px">';
   html += '<div style="background:var(--light);padding:10px;border-radius:8px;border-left:3px solid var(--red)">';
@@ -7105,10 +7106,13 @@ function abrirEditarVenta(id) {
   document.getElementById('evCliente').value = v.clienteNombre || '';
   document.getElementById('evModelo').value = v.modelo || '';
   var sel = document.getElementById('evPago');
-  var metodos = ['efectivo','tarjeta','bizum','transferencia'];
+  // Valores canónicos capitalizados (los mismos que guarda guardarVenta / el select vPago). Antes
+  // eran minúsculas y al reelegir el método quedaba 'efectivo' ≠ 'Efectivo' → desglose duplicado
+  // en el cierre y en Cobrum.
+  var metodos = ['Efectivo','Tarjeta','Bizum','Transferencia'];
   if (v.pago && metodos.indexOf(v.pago) === -1) metodos.push(v.pago);
   sel.innerHTML = metodos.map(function(m){ return '<option value="' + escHtml(m) + '">' + escHtml(_pagoLbl(m)) + '</option>'; }).join('');
-  sel.value = v.pago || 'efectivo';
+  sel.value = v.pago || 'Efectivo';
   document.getElementById('evDescuento').value = v.descuento || 0;
   document.getElementById('evTotal').value = v.total || 0;
   var fin = !!v.financiado;
@@ -7340,7 +7344,11 @@ function reembolsarVenta(id) {
   if (!tienePerm('ventas_reembolso')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var v = DB.ventas.find(function(x) { return x.id === id; });
   if (!v) return;
+  // Guard de reentrada: un doble clic apilaba dos modales de confirmación y al aceptar ambos
+  // se restauraba el stock dos veces (+2 unidades por un solo reembolso). Ya reembolsada → fuera.
+  if (v.reembolsado) { toast(T('ev.reembolsada_no'), 'err'); return; }
   confirmar(T('venta.reembolsar_confirm').replace('{cliente}', v.clienteNombre).replace('{total}', cur(v.total)), function () {
+  if (v.reembolsado) return;   // por si se confirmó otro modal apilado antes que este
   tpWithBusy(T('venta.reembolsando') || 'Reembolsando…', function () {
   if (typeof audit === 'function') audit('reembolso', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total) + ' · ' + ((v.marca || '') + ' ' + (v.modelo || '')).trim(), null);
   v.reembolsado = true;
@@ -10116,14 +10124,6 @@ function setEtqSize(v) {
   var m = _etqMedida();
   toast(T('etq.tam_guardado').replace('{m}', m.label), 'ok');
 }
-// Modo del código de barras en la etiqueta de precio: 'imei' (por defecto) o 'off' (sin código).
-function _etqBarcodeModo() {
-  try { return localStorage.getItem('tk_etq_barcode') === 'off' ? 'off' : 'imei'; } catch (e) { return 'imei'; }
-}
-function setEtqBarcode(v) {
-  try { localStorage.setItem('tk_etq_barcode', v === 'off' ? 'off' : 'imei'); } catch (e) {}
-  toast(T('etq.barcode_guardado'), 'ok');
-}
 // Cabecera de etiqueta: logo de la tienda si existe, si no el nombre (compacto).
 // Se usa dentro de la columna de info de las etiquetas de venta y reparación.
 function _etqLogoHtml() {
@@ -10137,28 +10137,6 @@ function _etqLogoHtml() {
 function _etqEstado(tipo) {
   var m = { nuevo: 'etq.estado_nuevo', seminuevo: 'etq.estado_seminuevo', segunda: 'etq.estado_segunda', usado: 'etq.estado_segunda', reacond: 'etq.estado_reacond' };
   var k = m[tipo]; return k ? T(k) : '';
-}
-// Código de barras Code128 (SVG) para la etiqueta. Devuelve el SVG como string embebible.
-// Usa JsBarcode (window.JsBarcode); si no está cargado, devuelve '' y la etiqueta cae al texto.
-function _etqBarcodeSvg(text, opts) {
-  opts = opts || {};
-  var val = String(text || '').replace(/\s+/g, '');
-  if (!val || typeof window.JsBarcode !== 'function') return '';
-  var host = null;
-  try {
-    host = document.createElement('div');
-    host.style.cssText = 'position:absolute;left:-9999px;top:-9999px';
-    document.body.appendChild(host);
-    var svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-    host.appendChild(svg);
-    window.JsBarcode(svg, val, {
-      format: 'CODE128', width: opts.width || 1.3, height: opts.height || 32,
-      displayValue: false, margin: 0, background: '#ffffff', lineColor: '#000000'
-    });
-    var out = svg.outerHTML;
-    return out;
-  } catch (e) { return ''; }
-  finally { if (host && host.parentNode) host.parentNode.removeChild(host); }
 }
 // Etiqueta de PRECIO de stock: logo, modelo+memoria, estado (+batería seminuevos), precio y
 // código de barras Code128 del IMEI. Layout adaptativo al tamaño (Ajustes / _etqMedida):
@@ -12401,7 +12379,8 @@ function guardarStock() {
           categoria: _multiCat, marca: marca, modelo: modelo,
           capacidad: _capV, color: colorL, imei: imeiL, unidades: 1,
           precioC: _precioCV, precioV: precioFinal, stockMin: _minV, stockMax: _maxV,
-          vendido: false, calidad: _calVal, tipo: stockTipo, garantiaMeses: stockGarantiaMeses, ubicacion: _ubicV
+          vendido: false, calidad: _calVal, tipo: stockTipo, garantiaMeses: stockGarantiaMeses, ubicacion: _ubicV,
+          enOferta: _enOferta, precioAntes: _precioAntes, bateria: stockBateria
         };
         DB.stock.push(item);
         if (SB_KEY && TIENDA_ID) sbPost('stock', {
@@ -12410,7 +12389,8 @@ function guardarStock() {
           unidades:item.unidades, precio_c:item.precioC, precio_v:item.precioV,
           stock_min:item.stockMin, stock_max:item.stockMax, vendido:false,
           calidad:item.calidad || null,
-          tipo:item.tipo || 'nuevo', garantia_meses: parseInt(item.garantiaMeses)||0, ubicacion:item.ubicacion || null
+          tipo:item.tipo || 'nuevo', garantia_meses: parseInt(item.garantiaMeses)||0, ubicacion:item.ubicacion || null,
+          en_oferta: _enOferta, precio_antes: _precioAntes || null, bateria: stockBateria
         });
         _creados++;
       });
@@ -12452,7 +12432,8 @@ function guardarStock() {
           categoria: _multiCat, marca: marca, modelo: modelo,
           capacidad: _cCap, color: color, imei: '', unidades: cantidad,
           precioC: _cPrecioC, precioV: precioFinal, stockMin: _cMin, stockMax: _cMax,
-          vendido: false, calidad: _calVal, tipo: stockTipo, garantiaMeses: stockGarantiaMeses, ubicacion: _cUbic
+          vendido: false, calidad: _calVal, tipo: stockTipo, garantiaMeses: stockGarantiaMeses, ubicacion: _cUbic,
+          enOferta: _enOferta, precioAntes: _precioAntes, bateria: stockBateria
         };
         DB.stock.push(item);
         if (SB_KEY && TIENDA_ID) sbPost('stock', {
@@ -12461,7 +12442,8 @@ function guardarStock() {
           unidades:item.unidades, precio_c:item.precioC, precio_v:item.precioV,
           stock_min:item.stockMin, stock_max:item.stockMax, vendido:false,
           calidad:item.calidad || null,
-          tipo:item.tipo || 'nuevo', garantia_meses: parseInt(item.garantiaMeses)||0, ubicacion:item.ubicacion || null
+          tipo:item.tipo || 'nuevo', garantia_meses: parseInt(item.garantiaMeses)||0, ubicacion:item.ubicacion || null,
+          en_oferta: _enOferta, precio_antes: _precioAntes || null, bateria: stockBateria
         });
         _cCreados++;
       });
@@ -13293,7 +13275,7 @@ function guardarCli() {
   _DRAFT_CLI.clear(); _DRAFT_CLI.stop();
   closeM('mCli');
   toast(T('tst.cliente_guardado'), 'ok');
-  audit(idGuardado ? 'editar' : 'crear', T('rep.falta_cliente'), idGuardado || '', '', null);
+  audit(idGuardado ? 'editar' : 'crear', 'cliente', idGuardado || (typeof nuevo !== 'undefined' && nuevo ? nuevo.id : ''), '', null);
   renderClis();
 }
 
@@ -13526,7 +13508,7 @@ function abrirEditarProv(provId) {
 function eliminarProv(provId) {
   // Solo admin o quien tenga permiso de borrado (proveedores o clientes). Antes el bloque estaba
   // vacío (sin return) → cualquier empleado podía eliminar proveedores. tienePerm ya deja pasar admin.
-  if (!tienePerm('proveedores_eliminar') && !tienePerm('clis_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  if (!tienePerm('provs_eliminar') && !tienePerm('clis_eliminar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var p = DB.provs.find(function(x){ return x.id === provId; });
   if (!p) return;
   if (!confirm(T('prov.confirm_eliminar').replace('{nombre}', (p.nombre || '')))) return;
@@ -13750,7 +13732,9 @@ function crearGastoDesdePlantilla(r, fecha, manual) {
     if (SB_KEY && TIENDA_ID) sbPatch('gastos_recurrentes', 'id=eq.' + encodeURIComponent(r.id), { ultimo_aplicado: yyyymm });
   }
   guardarDatos();
-  try { if (typeof audit === 'function') audit('crear', 'gasto_recurrente', {plantilla_id: r.id, gasto_id: g.id, manual: !!manual}); } catch(e){}
+  // entidad_id es columna de TEXTO: pasar g.id (string), no un objeto (rompía el POST con 400
+  // y la fila de auditoría no subía). El detalle del origen va en `cambios`.
+  try { if (typeof audit === 'function') audit('crear', 'gasto', g.id, (g.concepto || '') + ' · ' + cur(g.importe || 0), {plantilla_id: r.id, manual: !!manual}); } catch(e){}
 }
 
 // Hook al cargar app: recorre plantillas activas y aplica las que toquen
@@ -14625,6 +14609,9 @@ function guardarGasto() {
   if (!tienePerm(_esEdit ? 'gastos_editar' : 'gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var conc = document.getElementById('gConc').value.trim();
   if (!conc) { toast(T('tst.escribe_concepto'), 'err'); return; }
+  // Validar importe: no aceptar 0 ni negativos (descuadraban totales de gastos y deuda a proveedores).
+  var _impGasto = parseFloat(document.getElementById('gImp').value);
+  if (!isFinite(_impGasto) || _impGasto <= 0) { toast(T('cajas.importe_invalido'), 'err'); return; }
   var catEl = document.getElementById('gCat');
   var ivaEl = document.getElementById('gIvaTipo');
   var categoria = catEl ? catEl.value : 'Otros';
@@ -14651,7 +14638,7 @@ function guardarGasto() {
     var existente = DB.gastos.find(function(x){ return x.id === SEL.editGastoId; });
     if (existente) {
       existente.concepto = conc;
-      existente.importe = parseFloat(document.getElementById('gImp').value) || 0;
+      existente.importe = _impGasto;
       existente.fecha = document.getElementById('gFecha').value;
       existente.estado = document.getElementById('gEstado').value;
       existente.categoria = categoria;
@@ -14692,7 +14679,7 @@ function guardarGasto() {
   var g = {
     id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2,8), tienda_id: TIENDA_ID,
     concepto: conc,
-    importe: parseFloat(document.getElementById('gImp').value) || 0,
+    importe: _impGasto,
     fecha: document.getElementById('gFecha').value,
     estado: document.getElementById('gEstado').value,
     categoria: categoria,
@@ -15700,7 +15687,11 @@ async function cierreDia() {
   // Ventas: igual que antes (filtro por fecha local)
   // FIX: comparar contra hoyISO (v.fecha es ISO); 'hoy' localizado no coincidía → 0 ventas
   var vH = DB.ventas.filter(function(v) { return !v.reembolsado && v.fecha === hoyISO; });
-  var tV = vH.reduce(function(a, v) { return a + v.total; }, 0);
+  // Ingreso REAL del día por método (financiado-aware): una venta financiada cuenta solo la
+  // entrada el día 1 + las cuotas cobradas hoy, no el total completo. Alineado con
+  // _ventasIngresoPorMetodo / cajaDiaResumen; antes Σv.total inflaba la caja.
+  var ventasMetodos = _ventasIngresoPorMetodo(DB.ventas, hoyISO, hoyISO);
+  var tV = Object.keys(ventasMetodos).reduce(function(a, k) { return a + ventasMetodos[k]; }, 0);
 
   // Reparaciones: ahora se leen los PAGOS reales de hoy (de pagos_reparacion)
   var pagosHoy = [];
@@ -15714,9 +15705,9 @@ async function cierreDia() {
   }
   var tR = pagosHoy.reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
 
-  // Agrupar por método
+  // Agrupar por método (ventas financiado-aware + pagos de reparación reales de hoy)
   var pagos = {};
-  vH.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
+  Object.keys(ventasMetodos).forEach(function(k) { pagos[k] = (pagos[k] || 0) + ventasMetodos[k]; });
   pagosHoy.forEach(function(p) {
     var m = p.metodo || 'Efectivo';
     pagos[m] = (pagos[m] || 0) + (parseFloat(p.importe) || 0);
@@ -15752,17 +15743,23 @@ async function cierreDia() {
     '<span>' + T('pres.doc_total') + '</span><span style="color:var(--green)">' + cur(tV + tR) + '</span></div>' +
     '<div style="display:flex;gap:8px;margin-top:10px">' +
     '<button class="btn-primary" onclick="verReportePDF()" style="flex:1">' + T('cierre.ver_pdf') + '</button>' +
-    '<button class="btn-secondary" style="flex:1" onclick="emailCierre(' + JSON.stringify(vH).replace(/</g,'&lt;') + ',' + JSON.stringify(rH).replace(/</g,'&lt;') + ',' + tV + ',' + tR + ')">Email</button>' +
+    '<button class="btn-secondary" style="flex:1" onclick="emailCierre(' + JSON.stringify(vH).replace(/</g,'&lt;') + ',' + JSON.stringify(rH).replace(/</g,'&lt;') + ',' + tV + ',' + tR + ',' + JSON.stringify(ventasMetodos).replace(/</g,'&lt;') + ')">Email</button>' +
     '</div>';
   toast(T('tst.cierre_generado'), 'ok');
 }
 
-function emailCierre(vH, rH, tV, tR) {
+function emailCierre(vH, rH, tV, tR, ventasMetodos) {
   var email = TIENDA.email || AJUSTES.cierre.email || prompt('Email:');
   if (!email) return;
   var hoy = new Date().toLocaleDateString('es');
   var pagos = {};
-  vH.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
+  // Preferir el desglose financiado-aware calculado en cierreDia; solo caer al total crudo si
+  // no llega (compatibilidad con llamadas antiguas).
+  if (ventasMetodos && typeof ventasMetodos === 'object') {
+    Object.keys(ventasMetodos).forEach(function(k) { pagos[k] = (pagos[k] || 0) + ventasMetodos[k]; });
+  } else {
+    vH.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
+  }
   fetch('/api/email', {
     method: 'POST',
     headers: {'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN},
@@ -20058,7 +20055,10 @@ var _autoRecargaTimer = null;
 // ¿Es seguro recargar ahora mismo? (app inactiva, sin trabajo a medias)
 function _puedeRecargarSeguro() {
   try {
-    if (document.querySelector('.modal-bg.open, .search-global-modal.show')) return false;
+    // El módulo Cajas usa sus propios modales (arqueo/cierre, saldos, cuentas) con la clase
+    // .cajas-modal-overlay.activo — hay que respetarlos o la auto-recarga podría dispararse
+    // mientras el tendero cuenta el efectivo y perder el recuento a medias.
+    if (document.querySelector('.modal-bg.open, .search-global-modal.show, .cajas-modal-overlay.activo')) return false;
     var ae = document.activeElement;
     if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable)) return false;
   } catch (e) {}
@@ -20410,7 +20410,7 @@ function convertirCitaEnRep(id) {
       });
     }
     guardarDatos();
-    if (typeof audit === 'function') audit('crear', T('rep.falta_cliente'), cli.id, cli.nombre, null);
+    if (typeof audit === 'function') audit('crear', 'cliente', cli.id, cli.nombre, null);
   }
   abrirRep();
   setTimeout(function(){

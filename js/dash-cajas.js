@@ -1131,6 +1131,8 @@
           const montoDia = _ventasDiaCuenta(cuenta);   // recargas: vendido · envíos: enviado
           if (_esEnvios) {
             // Envíos: lo enviado hoy sube el pendiente; preguntamos cuánto se ingresó en banco.
+            // El saldo definitivo lo recalcula el servidor a partir de monto_dia + ingreso (idempotente
+            // en re-cierres); aquí el "pendiente" mostrado es solo informativo.
             const pendConEnvio = Math.round((Number(cuenta.saldo || 0) + montoDia) * 100) / 100;
             const msg = T('cajas.cierre_ingreso_prompt')
               .replace('{cuenta}', cuenta.nombre)
@@ -1139,16 +1141,17 @@
             const v = await _pedirValor({ titulo: '💰 ' + T('cajas.ingrese_banco') + ' — ' + cuenta.nombre, ayuda: msg, valorInicial: 0 });
             if (v === null) continue;
             const ingresado = String(v).trim() === '' ? 0 : Number(String(v).replace(',', '.'));
-            if (!isFinite(ingresado)) { toast(T('cajas.importe_invalido'), 'error'); continue; }
-            const nuevoPend = Math.round((pendConEnvio - ingresado) * 100) / 100;
+            if (!isFinite(ingresado)) { toast(T('cajas.importe_invalido'), 'err'); continue; }
             try {
               await api('confirmar_saldo', {
                 method: 'POST',
-                body: { cuenta_id: cuenta.id, saldo_real: nuevoPend, ventas_dia: 0, fecha: payload.fecha, nota: `Envios +${montoDia} / Banco -${ingresado}` }
+                body: { cuenta_id: cuenta.id, fecha: payload.fecha, tipo: 'envios', monto_dia: montoDia, ingreso_banco: ingresado, nota: `Envios +${montoDia} / Banco -${ingresado}` }
               });
-            } catch (e) { toast(e.message, 'error'); }
+            } catch (e) { toast(e.message, 'err'); }
           } else {
-            // Recargas: lo vendido hoy baja el saldo; confirmamos el saldo real.
+            // Recargas: lo vendido hoy baja el saldo; confirmamos el saldo real contado.
+            // Si el cajero acepta el esperado sin recontar, no mandamos saldo_contado y el servidor
+            // lo recalcula (baseAyer − vendido) de forma idempotente; solo mandamos el valor si lo cambió.
             const esperado = Math.round((Number(cuenta.saldo || 0) - montoDia) * 100) / 100;
             const msg = T('cajas.cierre_saldo_prompt')
               .replace('{cuenta}', cuenta.nombre)
@@ -1156,13 +1159,14 @@
             const v = await _pedirValor({ titulo: '✓ ' + T('cajas.confirmar_saldo') + ' — ' + cuenta.nombre, ayuda: msg, valorInicial: esperado });
             if (v === null || String(v).trim() === '') continue;
             const real = Number(String(v).replace(',', '.'));
-            if (!isFinite(real)) { toast(T('cajas.importe_invalido'), 'error'); continue; }
+            if (!isFinite(real)) { toast(T('cajas.importe_invalido'), 'err'); continue; }
+            const recontado = Math.abs(real - esperado) > 0.005;   // ¿el cajero puso un valor distinto al esperado?
             try {
               await api('confirmar_saldo', {
                 method: 'POST',
-                body: { cuenta_id: cuenta.id, saldo_real: real, ventas_dia: montoDia, fecha: payload.fecha }
+                body: Object.assign({ cuenta_id: cuenta.id, fecha: payload.fecha, tipo: 'recargas', monto_dia: montoDia }, recontado ? { saldo_contado: real } : {})
               });
-            } catch (e) { toast(e.message, 'error'); }
+            } catch (e) { toast(e.message, 'err'); }
           }
         }
       }
