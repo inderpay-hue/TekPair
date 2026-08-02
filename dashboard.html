@@ -848,7 +848,8 @@ body[data-theme="dark"] .notif-item:hover{background:rgba(255,255,255,.05) !impo
 @keyframes slideUp{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
 .modal{background:white;border-radius:20px 20px 0 0;padding:20px;width:100%;max-width:480px;max-height:90vh;overflow-y:auto;box-shadow:var(--shadow-xl)}
 @media(min-width:840px){.modal-bg{align-items:center}.modal{border-radius:18px;max-width:560px;max-height:88vh}}
-.modal-title{font-size:16px;font-weight:800;margin-bottom:16px;color:var(--dark)}
+.modal-title{font-size:16px;font-weight:800;margin-bottom:16px;color:var(--dark);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.modal-title svg{flex:none}
 .modal-actions{display:flex;gap:10px;margin-top:16px}
 .modal-actions .btn-primary{flex:1}
 .modal-actions .btn-secondary{flex:1}
@@ -916,6 +917,10 @@ body[data-theme="dark"] .vista-btn.active{background:var(--border)}
 }
 .modal-h{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;gap:12px;font-size:16px;font-weight:800;color:var(--dark)}
 .modal-h > span:first-child{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+/* Cabecera con icono de línea: el svg no se encoge y el texto conserva el ellipsis */
+.modal-h > .mh-t{display:flex;align-items:center;gap:8px;overflow:visible}
+.modal-h > .mh-t > svg{flex:none}
+.modal-h > .mh-t > span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .cls{background:var(--light);border:none;width:32px;height:32px;border-radius:50%;cursor:pointer;font-size:20px;line-height:1;display:flex;align-items:center;justify-content:center;color:var(--muted);font-family:inherit;flex-shrink:0;transition:background .15s var(--ease)}
 .cls:hover{background:var(--border);color:var(--text)}
 
@@ -1193,7 +1198,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260802l"></script>
+<script src="/lang/lang.v8.js?v=20260802o"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2455,7 +2460,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <div class="cajas-modal-overlay" id="modal-cobrar-pendiente" style="z-index:100000;">
   <div class="cajas-modal" style="max-width:440px;">
     <div class="cajas-modal-header">
-      <h3 data-t="cajas.registrar_cobro">💰 Registrar cobro</h3>
+      <h3 style="display:flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-euro"/></svg><span data-t="cajas.registrar_cobro">Registrar cobro</span></h3>
       <button class="cajas-modal-cerrar" onclick="Cajas.cerrarModalCobrar()">✕</button>
     </div>
     <div class="cajas-modal-cuerpo">
@@ -2506,7 +2511,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <div class="cajas-modal-overlay" id="modal-fiado-anotar" style="z-index:100000;">
   <div class="cajas-modal" style="max-width:440px;">
     <div class="cajas-modal-header">
-      <h3 id="modal-fiado-titulo">📝 Anotar pendiente de cobro</h3>
+      <h3 style="display:flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-doc"/></svg><span id="modal-fiado-titulo">Anotar pendiente de cobro</span></h3>
       <button class="cajas-modal-cerrar" onclick="Cajas.cerrarModalFiado()">✕</button>
     </div>
     <div class="cajas-modal-cuerpo">
@@ -2576,7 +2581,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <div class="cajas-modal-overlay" id="modal-codigo-caja">
   <div class="cajas-modal" style="max-width:360px">
     <div class="cajas-modal-header">
-      <h3>🔢 <span data-t="caja.tu_codigo">Tu código</span></h3>
+      <h3 style="display:flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-lock"/></svg><span data-t="caja.tu_codigo">Tu código</span></h3>
       <button class="cajas-modal-cerrar" onclick="cerrarCodigoCaja()">✕</button>
     </div>
     <div class="cajas-modal-cuerpo">
@@ -2889,7 +2894,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
   <!-- ══ SECCIÓN: REFERIDOS ══ -->
   <div class="aj-sec" id="ajSec-referidos">
-    <div class="aj-sechead"><div><h2>🎁 <span data-t="ref.titulo">Invita amigos y gana meses gratis</span></h2></div></div>
+    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-gift"/></svg><span data-t="ref.titulo">Invita amigos y gana meses gratis</span></h2></div></div>
 
     <!-- Referidos: invita a otras tiendas, ambas ganan 1 mes gratis -->
     <div class="card">
@@ -3067,7 +3072,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
   <!-- ══ SECCIÓN: APARIENCIA ══ -->
   <div class="aj-sec" id="ajSec-apariencia">
-    <div class="aj-sechead"><div><h2>🎨 <span data-t="ajp.apariencia">Apariencia</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
+    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-palette"/></svg><span data-t="ajp.apariencia">Apariencia</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
 
     <div class="card">
       <div class="card-title" data-t="ajp.apariencia">Apariencia</div>
@@ -3296,7 +3301,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
   <!-- ══ SECCIÓN: PLAN Y FACTURAS ══ -->
   <div class="aj-sec" id="ajSec-plan">
-    <div class="aj-sechead"><div><h2>💼 Plan y facturas</h2></div></div>
+    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-card"/></svg>Plan y facturas</h2></div></div>
 
     <div class="card" id="cardSuscripcion">
       <div class="card-title" data-t="acc.mi_suscripcion">💳 Mi suscripción</div>
@@ -3317,7 +3322,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
   <!-- ══ SECCIÓN: DATOS Y COPIAS ══ -->
   <div class="aj-sec" id="ajSec-datos">
-    <div class="aj-sechead"><div><h2>📦 Datos y copias</h2></div></div>
+    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-box"/></svg>Datos y copias</h2></div></div>
 
     <div class="card" id="cardAuditoria" style="display:none">
       <div class="card-title" data-t="acc.historial_titulo">📜 Historial de actividad</div>
@@ -3371,7 +3376,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
   <!-- ══ SECCIÓN: SEGURIDAD ══ -->
   <div class="aj-sec" id="ajSec-seguridad">
-    <div class="aj-sechead"><div><h2>🔒 <span data-t="acc.seguridad">Seguridad</span></h2></div></div>
+    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-shield"/></svg><span data-t="acc.seguridad">Seguridad</span></h2></div></div>
 
     <div class="card">
       <div class="card-title" data-t="acc.seguridad">🔒 Seguridad</div>
@@ -3652,7 +3657,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- PERSONALIZAR INICIO -->
 <div class="modal-bg" id="mEditarInicio">
   <div class="modal">
-    <div class="modal-title">✏️ <span data-t="inicio.editar_titulo">Personalizar inicio</span></div>
+    <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-pencil"/></svg><span data-t="inicio.editar_titulo">Personalizar inicio</span></div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:14px"><span data-t="inicio.editar_sub">Elige tu vista por defecto y qué tarjetas mostrar. Solo afecta a esta tienda.</span></div>
     <div id="editInicioBody"></div>
     <div style="display:flex;gap:8px;justify-content:space-between;margin-top:16px;flex-wrap:wrap">
@@ -3802,7 +3807,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- NUEVA VENTA -->
 <div class="modal-bg sobre" id="mPatron">
 <div class="modal" style="max-width:360px">
-  <div class="modal-title">🔒 <span data-t="lock.patron_titulo">Patrón de bloqueo</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-lock"/></svg><span data-t="lock.patron_titulo">Patrón de bloqueo</span></div>
   <div class="patron-wrap">
     <div class="patron-size-row">
       <button class="patron-size-btn on" data-sz="3" onclick="patronCambiarSize(3)">3 × 3</button>
@@ -3820,7 +3825,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 <div class="modal-bg" id="mTracking">
 <div class="modal" style="max-width:380px">
-  <div class="modal-title">📱 <span data-t="cli.seguimiento_titulo">Seguimiento del cliente</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-phone"/></svg><span data-t="cli.seguimiento_titulo">Seguimiento del cliente</span></div>
   <div id="trackingHeader" style="font-size:12px;color:var(--muted);margin-bottom:10px;text-align:center"></div>
   <div id="trackingQR" style="display:flex;justify-content:center;padding:14px;background:white;border-radius:10px;margin-bottom:10px;border:1px solid var(--border)"></div>
   <div id="trackingLink" style="word-break:break-all;font-size:11px;font-family:monospace;background:var(--light);padding:8px 10px;border-radius:8px;color:var(--muted);text-align:center;margin-bottom:14px"></div>
@@ -3837,7 +3842,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 <div class="modal-bg sobre" id="mSubirFotosQR">
 <div class="modal" style="max-width:380px">
-  <div class="modal-title">📷 <span data-t="fqr.titulo">Añadir fotos por móvil</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-camera"/></svg><span data-t="fqr.titulo">Añadir fotos por móvil</span></div>
   <div id="sfqrIntro" style="display:none;background:rgba(22,163,74,.08);border:1px solid rgba(22,163,74,.3);border-radius:10px;padding:10px 12px;font-size:13px;font-weight:600;color:#166534;text-align:center;margin-bottom:12px"></div>
   <div id="sfqrHeader" style="font-size:12px;color:var(--muted);margin-bottom:10px;text-align:center"></div>
   <div id="sfqrQR" style="display:flex;justify-content:center;padding:14px;background:white;border-radius:10px;margin-bottom:8px;border:1px solid var(--border)"></div>
@@ -3850,7 +3855,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 <div class="modal-bg sobre" id="mFirmaRecepQR">
 <div class="modal" style="max-width:380px">
-  <div class="modal-title">✍️ <span data-t="firq.titulo">Firma del cliente por móvil</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-pencil"/></svg><span data-t="firq.titulo">Firma del cliente por móvil</span></div>
   <div id="sfrHeader" style="font-size:12px;color:var(--muted);margin-bottom:10px;text-align:center"></div>
   <div id="sfrQR" style="display:flex;justify-content:center;padding:14px;background:white;border-radius:10px;margin-bottom:8px;border:1px solid var(--border)"></div>
   <div style="font-size:12px;color:var(--muted);text-align:center;margin-bottom:6px" data-t="firq.instru">El cliente lo escanea con su móvil, revisa los datos y firma. Aparecerá aquí al instante.</div>
@@ -3861,7 +3866,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 <div class="modal-bg" id="mVenta">
 <div class="modal">
-  <div class="modal-title"><span data-t="tpv.nueva_venta">📱 Nueva Venta</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-bag"/></svg><span data-t="tpv.nueva_venta">Nueva venta</span></div>
   <div id="ventaDraftBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:9px 12px;margin-bottom:10px">
     <span style="font-size:13px;color:#9A3412;flex:1;min-width:140px">💾 <strong data-t="draft.banner">Tienes un borrador sin terminar</strong><span class="draft-resumen" style="color:#C2410C"></span></span>
     <button type="button" onclick="_ventaDraftRestaurar()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:6px 13px;font:inherit;font-size:12px;font-weight:700;cursor:pointer" data-t="draft.recuperar">Recuperar</button>
@@ -3947,7 +3952,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <div class="modal-bg" id="mRep">
 <div class="modal modal-rep">
   <div class="modal-rep-header">
-    <div class="modal-title" style="margin:0"><span data-t="rep.nueva_reparacion">🔧 Nueva Reparación</span></div>
+    <div class="modal-title" style="margin:0"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-wrench"/></svg><span data-t="rep.nueva_reparacion">Nueva Reparación</span></div>
     <button class="modal-close-btn" onclick="closeM('mRep')" title="Cerrar (Esc)">×</button>
   </div>
 
@@ -4221,7 +4226,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ENTREGAR REP -->
 <div class="modal-bg" id="mEntregar">
 <div class="modal">
-  <div class="modal-title"><span data-t="modal.entregar">✅ Entregar reparación</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-check"/></svg><span data-t="modal.entregar">Entregar reparación</span></div>
   <div id="entregaInfo" style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px"></div>
   <!-- Entregar a deber: solo se muestra si queda restante por cobrar -->
   <div id="eADeberBox" style="display:none;margin-bottom:14px">
@@ -4258,7 +4263,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- COBRAR SALDO A DEBER -->
 <div class="modal-bg" id="mCobrarRep">
 <div class="modal">
-  <div class="modal-title"><span data-t="rep.registrar_pago">💵 Registrar pago</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-euro"/></svg><span data-t="rep.registrar_pago">Registrar pago</span></div>
   <div id="cobrarRepInfo" style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px"></div>
   <div class="fi-row">
     <div class="fg"><label class="fl"><span data-t="rep.importe">Importe €</span></label><input class="fi" id="cobrarRepImporte" type="number" step="0.01" min="0.01" placeholder="0,00"></div>
@@ -4274,7 +4279,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- STOCK -->
 <div class="modal-bg" id="mPedido">
   <div class="modal">
-    <div class="modal-title" id="mPedidoTit">📦 Nuevo pedido</div>
+    <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-box"/></svg><span id="mPedidoTit">Nuevo pedido</span></div>
     <button id="btnPegarPedido" class="btn-sm" style="width:100%;margin-bottom:10px;background:rgba(124,92,252,.1);border:1px dashed rgba(124,92,252,.4);color:#7C5CFC;font-weight:700;padding:9px" onclick="abrirPegarPedido()">📋 <span data-t="pedidos.pegar_ia">Pegar pedido del proveedor (IA)</span></button>
     <!-- Cabecera compartida del pedido -->
     <div class="fi-row">
@@ -4338,7 +4343,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 <div class="modal-bg" id="mPegarPedido">
   <div class="modal">
-    <div class="modal-title">📋 <span data-t="pedidos.pegar_titulo">Pegar pedido del proveedor</span></div>
+    <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-doc"/></svg><span data-t="pedidos.pegar_titulo">Pegar pedido del proveedor</span></div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:8px" data-t="pedidos.pegar_hint">Pega el email o albarán del proveedor tal cual. La IA detecta los productos, cantidades y el coste. Luego revisas y confirmas.</div>
     <textarea id="pegTexto" class="fi" rows="6" placeholder="Pega aquí el pedido…" style="width:100%;font-family:inherit;font-size:12.5px;resize:vertical"></textarea>
     <div style="text-align:center;font-size:11px;color:var(--muted);margin:6px 0" data-t="pedidos.pegar_o">— o —</div>
@@ -4358,7 +4363,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 <div class="modal-bg" id="mStock">
 <div class="modal">
-  <div class="modal-title" id="mStockTit">📦 Añadir Stock</div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-box"/></svg><span id="mStockTit">Añadir Stock</span></div>
   <div class="fg"><label class="fl"><span data-t="stock.categoria">Categoría</span></label>
     <select class="fi" id="sCat" onchange="try{renderStockMarcas()}catch(e){} try{renderStockGarantia()}catch(e){} try{toggleStockMulti()}catch(e){} try{renderStockCalidad()}catch(e){}">
       <option value="Telefono" data-t="stock.cat_telefono">Teléfono</option><option value="Tablet" data-t="stock.cat_tablet">Tablet</option><option value="Smartwatch" data-t="stock.cat_smartwatch">Smartwatch</option><option value="Pantalla" data-t="stock.cat_pantalla">Pantalla</option><option value="Tapa" data-t="stock.cat_tapa">Tapa</option><option value="Bateria" data-t="stock.cat_bateria">Batería</option><option value="Flex de Carga" data-t="stock.cat_flex">Flex de carga</option><option value="Altavoz" data-t="stock.cat_altavoz">Altavoz</option><option value="Repuesto" data-t="stock.cat_repuesto">Repuesto</option><option value="Accesorio" data-t="stock.cat_accesorio">Accesorio</option><option value="Otro" data-t="stock.cat_otro">Otro</option>
@@ -4446,7 +4451,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- GESTIÓN DEL CATÁLOGO DE MODELOS (admin) -->
 <div class="modal-bg" id="mModelos">
   <div class="modal">
-    <div class="modal-title">🏷️ <span data-t="stock.modelos_titulo">Catálogo de modelos</span></div>
+    <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-tag"/></svg><span data-t="stock.modelos_titulo">Catálogo de modelos</span></div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="stock.modelos_sub">Tus modelos guardados (para sugerencias). Corrige los mal escritos, añade o borra.</div>
     <div class="fi-row" style="align-items:flex-end;margin-bottom:6px">
       <div class="fg" style="flex:1"><label class="fl"><span data-t="rep.marca">Marca</span></label><input class="fi" id="mdlMarca" placeholder="Apple"></div>
@@ -4464,7 +4469,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- HISTORIAL / AUDITORÍA DE STOCK (admin) -->
 <div class="modal-bg" id="mStockLog">
   <div class="modal">
-    <div class="modal-title">📋 <span data-t="stock.log_titulo">Historial de stock</span></div>
+    <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-doc"/></svg><span data-t="stock.log_titulo">Historial de stock</span></div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="stock.log_sub">Quién ha creado, editado o eliminado productos y cuándo.</div>
     <div id="stockLogBody" style="max-height:60vh;overflow:auto"><div class="empty">…</div></div>
     <div style="display:flex;justify-content:flex-end;margin-top:14px">
@@ -4475,7 +4480,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 <div class="modal-bg sobre" id="mSeguimiento">
   <div class="modal">
-    <div class="modal-title">🕘 <span data-t="seg.titulo">Seguimiento</span> <span id="segSubtit" style="font-weight:400;color:var(--muted);font-size:13px"></span></div>
+    <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-clock"/></svg><span data-t="seg.titulo">Seguimiento</span><span id="segSubtit" style="font-weight:400;color:var(--muted);font-size:13px"></span></div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="seg.sub">Historial de este artículo: quién hizo qué y cuándo.</div>
     <div id="segBody" style="max-height:60vh;overflow:auto"><div class="empty">…</div></div>
     <div style="display:flex;justify-content:flex-end;margin-top:14px">
@@ -4487,7 +4492,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- NOVEDADES (banner de mejoras para las tiendas) -->
 <div class="modal-bg" id="mNovedades">
   <div class="modal" style="max-width:500px">
-    <div class="modal-title">✨ <span data-t="nov.titulo">Novedades en TekPair</span></div>
+    <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-sparkle"/></svg><span data-t="nov.titulo">Novedades en TekPair</span></div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:14px" data-t="nov.sub">Esto es lo nuevo que hemos preparado para tu tienda:</div>
     <div id="novedadesBody" style="max-height:58vh;overflow:auto"></div>
     <div style="display:flex;justify-content:flex-end;margin-top:16px">
@@ -4499,7 +4504,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- MOVIMIENTOS: ENTRADAS Y SALIDAS DE STOCK -->
 <div class="modal-bg" id="mMovimientos">
   <div class="modal">
-    <div class="modal-title">🔄 <span data-t="mov.titulo">Entradas y salidas</span></div>
+    <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-refresh"/></svg><span data-t="mov.titulo">Entradas y salidas</span></div>
     <div id="movChips" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
       <button class="cat-tab-btn active" data-p="hoy" onclick="setMovPeriodo('hoy',this)" data-t="mov.hoy">Hoy</button>
       <button class="cat-tab-btn" data-p="semana" onclick="setMovPeriodo('semana',this)" data-t="mov.semana">Semana</button>
@@ -4522,7 +4527,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- CLIENTE -->
 <div class="modal-bg" id="mCli">
 <div class="modal">
-  <div class="modal-title" id="mCliTit"><span data-t="cli.nuevo_titulo">👤 Nuevo Cliente</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-user"/></svg><span id="mCliTit">Nuevo Cliente</span></div>
   <div id="cliDraftBanner" style="display:none;align-items:center;gap:10px;flex-wrap:wrap;background:#FFF7ED;border:1px solid #FED7AA;border-radius:10px;padding:9px 12px;margin-bottom:10px">
     <span style="font-size:13px;color:#9A3412;flex:1;min-width:140px">💾 <strong data-t="draft.banner">Tienes un borrador sin terminar</strong><span class="draft-resumen" style="color:#C2410C"></span></span>
     <button type="button" onclick="_cliDraftRestaurar()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:6px 13px;font:inherit;font-size:12px;font-weight:700;cursor:pointer" data-t="draft.recuperar">Recuperar</button>
@@ -4602,7 +4607,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- NUEVO USUARIO (F341: modal en vez de prompt() nativos que colgaban el renderer) -->
 <div class="modal-bg" id="mNuevoUsuario">
 <div class="modal">
-  <div class="modal-title" data-t="usr.nuevo_title">👥 Nuevo usuario</div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-user"/></svg><span data-t="usr.nuevo_title">Nuevo usuario</span></div>
   <div class="fg"><label class="fl" data-t="usr.nombre">Nombre *</label><input class="fi" id="nuNombre" placeholder="Juan García" autocomplete="off"></div>
   <div class="fg"><label class="fl" data-t="usr.email">Email *</label><input class="fi" id="nuEmail" type="email" placeholder="juan@correo.com" autocomplete="off" inputmode="email"></div>
   <div class="fg"><label class="fl" data-t="usr.pass">Contraseña *</label><input class="fi" id="nuPass" type="password" data-t-ph="usr.pass_ph" placeholder="Mínimo 8 caracteres" autocomplete="new-password"></div>
@@ -4622,7 +4627,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- MULTI-TIENDA: acceso de un empleado a varias tiendas -->
 <div class="modal-bg" id="mAsignarTiendas">
 <div class="modal" style="max-width:420px">
-  <div class="modal-title">🏪 <span data-t="mt.acceso_titulo">Acceso a tiendas</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-store"/></svg><span data-t="mt.acceso_titulo">Acceso a tiendas</span></div>
   <div style="font-size:12px;color:var(--muted);margin-bottom:6px"><span data-t="mt.acceso_desc">Marca las tiendas a las que este empleado puede entrar. Al iniciar sesión elegirá en cuál trabaja.</span> <strong id="atNombre"></strong></div>
   <div id="atLista" style="max-height:48vh;overflow:auto;margin:10px 0"></div>
   <div class="modal-actions">
@@ -4635,7 +4640,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- NUEVA CITA DESDE ADMIN (calendario) -->
 <div class="modal-bg" id="mNuevaCitaAdmin">
 <div class="modal">
-  <div class="modal-title"><span data-t="citas.nueva_titulo">📅 Nueva cita</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-cal"/></svg><span data-t="citas.nueva_titulo">Nueva cita</span></div>
   <div class="fi-row">
     <div class="fg"><label class="fl"><span data-t="gen.fecha">Fecha</span> *</label><input class="fi" id="ncaFecha" type="date"></div>
     <div class="fg"><label class="fl"><span data-t="gen.hora">Hora</span> *</label><input class="fi" id="ncaHora" type="time" value="10:00"></div>
@@ -4680,7 +4685,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- NUEVO CLIENTE RAPIDO -->
 <div class="modal-bg" id="mNuevoCli">
 <div class="modal">
-  <div class="modal-title"><span data-t="cli.nuevo_rapido">➕ Nuevo Cliente Rápido</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-user"/></svg><span data-t="cli.nuevo_rapido">Nuevo Cliente Rápido</span></div>
   <div class="fi-row">
     <div class="fg"><label class="fl"><span data-t="cli.nombre">Nombre</span> *</label><input class="fi" id="ncNom" placeholder="Juan"></div>
     <div class="fg"><label class="fl"><span data-t="cli.apellidos">Apellidos</span></label><input class="fi" id="ncApe" placeholder="García"></div>
@@ -4700,7 +4705,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ACCESORIOS RÁPIDOS -->
 <div class="modal-bg" id="mAccesorios">
 <div class="modal">
-  <div class="modal-title"><span data-t="acc.titulo">➕ Accesorios rápidos</span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-plus"/></svg><span data-t="acc.titulo">Accesorios rápidos</span></div>
   <div style="font-size:12px;color:var(--muted);margin:-6px 0 12px" data-t="acc.subtitulo">Elige el tipo, escribe el modelo y añádelo. Irán a «por pedir».</div>
   <div class="fg"><label class="fl"><span data-t="acc.tipo">Tipo</span></label>
     <div id="accChips" style="display:flex;gap:7px;flex-wrap:wrap"></div>
@@ -4726,7 +4731,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- PROVEEDOR -->
 <div class="modal-bg" id="mProv">
 <div class="modal">
-  <div class="modal-title" data-t="prov.titulo">🏭 Proveedor</div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-store"/></svg><span data-t="prov.titulo">Proveedor</span></div>
   <div class="fi-row">
     <div class="fg"><label class="fl"><span data-t="prov.nombre">Nombre del proveedor</span> *</label><input class="fi" id="pNom" placeholder="Proveedor SL"></div>
     <div class="fg"><label class="fl" data-t="prov.nif">NIF/CIF</label><input class="fi" id="pNif" placeholder="B12345678"></div>
@@ -4753,7 +4758,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- EDITAR VENTA -->
 <div class="modal-bg" id="mEditarVenta">
 <div class="modal">
-  <div class="modal-title" data-t="ev.titulo">✏️ Editar venta</div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-pencil"/></svg><span data-t="ev.titulo">Editar venta</span></div>
   <div class="fg"><label class="fl" data-t="gen.cliente">Cliente</label><input class="fi" id="evCliente" list="evCliList" placeholder="Nombre"><datalist id="evCliList"></datalist></div>
   <div class="fg"><label class="fl" data-t="gen.modelo">Modelo</label><input class="fi" id="evModelo" placeholder="Producto / modelo"></div>
   <div class="fi-row">
@@ -4771,7 +4776,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ENCARGO -->
 <div class="modal-bg" id="mEncargo">
 <div class="modal">
-  <div class="modal-title" id="mEncargoTit">📋 Nuevo encargo</div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-doc"/></svg><span id="mEncargoTit">Nuevo encargo</span></div>
   <div class="fg"><label class="fl"><span data-t="enc.producto">Producto / modelo</span> *</label><input class="fi" id="encProducto" placeholder="iPhone 15 · funda..."></div>
   <div class="fi-row">
     <div class="fg"><label class="fl" data-t="enc.cliente">Cliente</label><input class="fi" id="encCliNom" list="encCliList" onchange="encCliPick()" placeholder="Nombre"><datalist id="encCliList"></datalist></div>
@@ -4792,7 +4797,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- GASTO -->
 <div class="modal-bg" id="mGasto">
 <div class="modal">
-  <div class="modal-title" id="gModalTitle">📋 Nuevo Gasto</div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-doc"/></svg><span id="gModalTitle">Nuevo Gasto</span></div>
   <div class="fg"><label class="fl"><span data-t="gastos.concepto">Concepto</span> *</label><input class="fi" id="gConc" placeholder="Alquiler, luz, stock..."></div>
   <div class="fi-row">
     <div class="fg"><label class="fl" data-t="gastos.importe_total">Importe total (EUR)</label><input class="fi" id="gImp" type="number" step="0.01" value="0"></div>
@@ -4865,7 +4870,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 <div class="modal-bg" id="mFacturaIA">
   <div class="modal">
-    <div class="modal-title">📸 <span data-t="fac_ia.titulo">Factura del proveedor (IA)</span></div>
+    <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-camera"/></svg><span data-t="fac_ia.titulo">Factura del proveedor (IA)</span></div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:8px" data-t="fac_ia.hint">Sube una foto o PDF de la factura (o pégala). La IA saca proveedor, importe, IVA y fecha → creas el gasto con la factura adjunta.</div>
     <label class="btn-sm" style="display:block;text-align:center;border:1px dashed var(--border);padding:10px;border-radius:9px;cursor:pointer;font-weight:600">📎 <span data-t="fac_ia.subir">Subir foto o PDF de la factura</span>
       <input type="file" id="facIaArchivo" accept="application/pdf,image/*" style="display:none" onchange="analizarFacturaArchivo(this)">
@@ -4887,7 +4892,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- NÓMINA -->
 <div class="modal-bg" id="mNomina">
 <div class="modal" style="max-width:520px">
-  <div class="modal-title" id="mNominaTit"></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-euro"/></svg><span id="mNominaTit"></span></div>
   <div class="fi-row">
     <div class="fg"><label class="fl" id="nLblTrabajador">Trabajador *</label><input class="fi" id="nTrabajador" placeholder="Elige o escribe el nombre" list="nTrabajadorList" autocomplete="off" onchange="_nominaAutoUser()" oninput="_nominaAutoUser()"><datalist id="nTrabajadorList"></datalist></div>
     <div class="fg"><label class="fl" id="nLblDni">DNI/NIE</label><input class="fi" id="nDni" placeholder="12345678A"></div>
@@ -4959,7 +4964,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- GASTO RECURRENTE -->
 <div class="modal-bg" id="mGastoRec">
 <div class="modal">
-  <div class="modal-title" id="mGastoRecTit">🔁 Nueva plantilla de gasto</div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-refresh"/></svg><span id="mGastoRecTit">Nueva plantilla de gasto</span></div>
   <div class="fg"><label class="fl"><span data-t="gastos.concepto">Concepto</span> *</label><input class="fi" id="grConc" placeholder="Alquiler local, Hosting, Internet..."></div>
   <div class="fi-row">
     <div class="fg"><label class="fl" data-t="gastos.importe_total">Importe total (EUR)</label><input class="fi" id="grImp" type="number" step="0.01" value="0"></div>
@@ -5020,7 +5025,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- SERVICIO -->
 <div class="modal-bg" id="mServicio">
 <div class="modal">
-  <div class="modal-title" id="mServicioTit" data-t="srv.nuevo_titulo">🛠️ Nuevo Servicio</div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-wrench"/></svg><span id="mServicioTit" data-t="srv.nuevo_titulo">Nuevo Servicio</span></div>
   <div class="fg"><label class="fl"><span data-t="srv.nombre">Nombre del servicio</span> *</label><input class="fi" id="srvNom" placeholder="Ej: Cambio pantalla iPhone 14"></div>
   <div class="fg"><label class="fl">Categoría</label>
     <select class="fi" id="srvCat">
@@ -5069,7 +5074,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- PERMISOS MODAL -->
 <div class="modal-bg" id="mPermisos">
 <div class="modal">
-  <div class="modal-title">🔐 Permisos: <span id="permNombre"></span></div>
+  <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-lock"/></svg>Permisos: <span id="permNombre"></span></div>
   <div id="permisosContainer2"></div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mPermisos')" data-t="gen.cancelar">Cancelar</button>
@@ -5089,7 +5094,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260802n"></script>
+<script src="/js/dash-app.js?v=20260802o"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -5108,7 +5113,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ═══ MODAL HISTORIAL DE ACTIVIDAD ═══ -->
 <div class="modal-bg" id="mAuditoria">
   <div class="modal" style="max-width:920px">
-    <div class="modal-h"><span data-t="aud.titulo">📜 Historial de actividad</span><span class="cls" onclick="closeM('mAuditoria')">×</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-doc"/></svg><span data-t="aud.titulo">Historial de actividad</span></span><span class="cls" onclick="closeM('mAuditoria')">×</span></div>
 
     <!-- Filtros -->
     <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:8px;margin-bottom:12px">
@@ -5161,7 +5166,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ═══ MODAL UPGRADE PLAN ═══ -->
 <div class="modal-bg" id="mUpgrade">
   <div class="modal" style="max-width:680px">
-    <div class="modal-h"><span data-t="upg.titulo">🚀 Mejora tu plan</span><span class="cls" onclick="closeM('mUpgrade')">×</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-sparkle"/></svg><span data-t="upg.titulo">Mejora tu plan</span></span><span class="cls" onclick="closeM('mUpgrade')">×</span></div>
     <div style="text-align:center;margin-bottom:18px">
       <div style="font-size:13px;color:var(--muted);margin-bottom:4px"><span data-t="upg.funcion_pre">La función</span> <strong id="upgFeatName" style="color:var(--text)"></strong> <span data-t="upg.funcion_post">está disponible en el plan</span></div>
       <div style="font-size:18px;font-weight:800;color:var(--blue)" id="upgPlanReq">Pro</div>
@@ -5197,7 +5202,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ═══ MODAL DETALLE CITA ═══ -->
 <div class="modal-bg" id="mCita">
   <div class="modal" style="max-width:520px">
-    <div class="modal-h"><span data-t="cita.detalle_titulo">📅 Detalle de cita</span><span class="cls" onclick="closeM('mCita')">×</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-cal"/></svg><span data-t="cita.detalle_titulo">Detalle de cita</span></span><span class="cls" onclick="closeM('mCita')">×</span></div>
     <div id="citaDetalle"></div>
   </div>
 </div>
@@ -5205,7 +5210,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ═══ MODAL LINK PÚBLICO DE CITAS ═══ -->
 <div class="modal-bg" id="mLinkCitas">
   <div class="modal" style="max-width:480px">
-    <div class="modal-h"><span>🔗 <span data-t="citas.link_publico">Link público de citas</span></span><span class="cls" onclick="closeM('mLinkCitas')">×</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-link"/></svg><span data-t="citas.link_publico">Link público de citas</span></span><span class="cls" onclick="closeM('mLinkCitas')">×</span></div>
     <div style="font-size:13px;color:var(--muted);margin-bottom:14px">Comparte este enlace para que tus clientes reserven cita online sin necesidad de cuenta.</div>
     <div style="background:var(--light);padding:10px 14px;border-radius:10px;display:flex;align-items:center;gap:8px;margin-bottom:14px">
       <input class="fi" id="linkCitasInput" readonly style="border:none;background:transparent;font-family:ui-monospace,monospace;font-size:12px;flex:1;padding:0">
@@ -5296,7 +5301,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ═══ MODAL GESTOR DE PLANTILLAS RÁPIDAS ═══ -->
 <div class="modal-bg" id="mPlantillasRep">
   <div class="modal" style="max-width:640px">
-    <div class="modal-h"><span>⚙️ <span data-t="srv.plantillas_rapidas">Plantillas rápidas</span></span><span class="cls" onclick="closeM('mPlantillasRep')">×</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-cog"/></svg><span data-t="srv.plantillas_rapidas">Plantillas rápidas</span></span><span class="cls" onclick="closeM('mPlantillasRep')">×</span></div>
     <div style="font-size:12px;color:var(--muted);margin-bottom:12px;background:var(--light);padding:10px 12px;border-radius:8px">
       💡 <strong>Avería</strong> = lo que reporta el cliente (ej: <em>"Pantalla rota"</em>). <strong>Servicio</strong> = lo que vas a cobrar (ej: <em>"Instalación de Pantalla"</em>). Si dejas el precio en 0, lo pones manualmente al crear cada reparación.
     </div>
@@ -5313,7 +5318,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ═══ MODAL EXPLORAR SERVICIOS ═══ -->
 <div class="modal-bg" id="mExplorarSrv">
   <div class="modal" style="max-width:520px">
-    <div class="modal-h"><span>🛠️ <span data-t="srv.buscar_titulo">Buscar servicios</span></span><span class="cls" onclick="closeM('mExplorarSrv')">×</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-wrench"/></svg><span data-t="srv.buscar_titulo">Buscar servicios</span></span><span class="cls" onclick="closeM('mExplorarSrv')">×</span></div>
     <input class="fi" id="exploreSrvSearch" placeholder="🔍 Filtrar por nombre..." oninput="renderExploreSrv()" style="margin-bottom:8px">
     <div style="text-align:right;margin-bottom:10px">
       <button type="button" onclick="abrirCrearSrvSimple()" style="background:none;border:none;color:var(--text);font-size:12px;font-weight:700;cursor:pointer;padding:4px 0;font-family:inherit;text-decoration:underline;text-decoration-color:var(--muted);text-underline-offset:3px">+ <span data-t="srv.agregar_nuevo">Agregar nuevo servicio</span></button>
@@ -5329,7 +5334,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ═══ MODAL CREAR SERVICIO SIMPLE ═══ -->
 <div class="modal-bg" id="mCrearSrvSimple">
   <div class="modal" style="max-width:420px">
-    <div class="modal-h"><span>🛠️ <span data-t="srv.nuevo_titulo">Nuevo servicio</span></span><span class="cls" onclick="closeM('mCrearSrvSimple')">×</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-wrench"/></svg><span data-t="srv.nuevo_titulo">Nuevo servicio</span></span><span class="cls" onclick="closeM('mCrearSrvSimple')">×</span></div>
     <div class="fg"><label class="fl">Nombre <span class="req">*</span></label><input class="fi" id="csrvNom" placeholder="Ej: Instalación de Pantalla iPhone 14"></div>
     <div class="fg"><label class="fl"><span data-t="stock.categoria">Categoría</span></label>
       <select class="fi" id="csrvCat">
@@ -5371,7 +5376,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ═══ MODAL DETALLE REPARACIÓN (vista lectura) ═══ -->
 <div class="modal-bg sobre" id="mDetalleRep">
   <div class="modal" style="max-width:600px">
-    <div class="modal-h"><span data-t="det.rep_titulo">🔧 Reparación</span><span class="cls" onclick="closeM('mDetalleRep')">×</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-wrench"/></svg><span data-t="det.rep_titulo">Reparación</span></span><span class="cls" onclick="closeM('mDetalleRep')">×</span></div>
     <div id="detalleRepBox"></div>
     <div id="detalleRepBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"></div>
   </div>
@@ -5380,7 +5385,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ═══ DRILL-DOWN: FICHA DE CLIENTE (#B89) ═══ -->
 <div class="modal-bg" id="mDetalleCli">
   <div class="modal" style="max-width:640px">
-    <div class="modal-h"><span data-t="dcli.titulo">👤 Ficha de cliente</span><span class="cls" onclick="closeM('mDetalleCli')">×</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-user"/></svg><span data-t="dcli.titulo">Ficha de cliente</span></span><span class="cls" onclick="closeM('mDetalleCli')">×</span></div>
     <div id="detalleCliBox"></div>
     <div id="detalleCliBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"></div>
   </div>
@@ -5389,7 +5394,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ═══ DRILL-DOWN: FICHA DE PRODUCTO (#B88) ═══ -->
 <div class="modal-bg" id="mDetalleStock">
   <div class="modal" style="max-width:640px">
-    <div class="modal-h"><span data-t="dstk.titulo">📦 Ficha de producto</span><span class="cls" onclick="closeM('mDetalleStock')">×</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-box"/></svg><span data-t="dstk.titulo">Ficha de producto</span></span><span class="cls" onclick="closeM('mDetalleStock')">×</span></div>
     <div id="detalleStockBox"></div>
     <div id="detalleStockBtns" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:14px"></div>
   </div>
@@ -5399,7 +5404,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <div class="modal-bg" id="mFirma">
   <div class="modal" style="max-width:600px">
     <div class="modal-h">
-      <span data-t="firma.titulo">✍️ Aceptación y firma del cliente</span>
+      <span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-pencil"/></svg><span data-t="firma.titulo">Aceptación y firma del cliente</span></span>
       <span class="cls" onclick="closeM('mFirma')">×</span>
     </div>
     <div id="firmaResumen" style="background:var(--light);padding:12px 14px;border-radius:8px;margin-bottom:14px;font-size:13px;line-height:1.6"></div>
@@ -5427,7 +5432,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <div class="modal-bg" id="mPresEnviar">
   <div class="modal" style="max-width:420px">
     <div class="modal-h">
-      <span>📤 Enviar presupuesto al cliente</span>
+      <span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-link"/></svg><span>Enviar presupuesto al cliente</span></span>
       <span class="cls" onclick="closeM('mPresEnviar')">×</span>
     </div>
     <div id="mPresEnviarInfo" style="background:var(--light);padding:10px 12px;border-radius:8px;margin-bottom:14px;font-size:13px;color:var(--muted)">Cargando...</div>
@@ -5456,7 +5461,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <!-- ═══ MODAL WHATSAPP PLANTILLAS ═══ -->
 <div class="modal-bg" id="mWhatsApp">
   <div class="modal">
-    <div class="modal-h"><span data-t="wa.titulo">📲 Avisar por WhatsApp</span><span class="cls" onclick="closeM('mWhatsApp')">×</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-msg"/></svg><span data-t="wa.titulo">Avisar por WhatsApp</span></span><span class="cls" onclick="closeM('mWhatsApp')">×</span></div>
     <div id="waInfoCli" style="background:var(--light);padding:10px 12px;border-radius:8px;margin-bottom:12px;font-size:12px"></div>
     <div class="fg">
       <label class="fl" data-t="wa.plantilla">Plantilla</label>
@@ -6826,7 +6831,7 @@ window.addEventListener('DOMContentLoaded', function(){
 <!-- MODAL SESION EXPIRADA -->
 <div class="modal-bg" id="mSesionExpirada">
   <div class="modal" style="max-width:440px">
-    <div class="modal-h"><span>🔒 Sesión expirada</span></div>
+    <div class="modal-h"><span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-lock"/></svg><span>Sesión expirada</span></span></div>
     <div style="padding:20px;text-align:center">
       <p style="margin-bottom:12px;font-size:14px">Tu sesión ha caducado por inactividad.</p>
       <p style="margin-bottom:20px;font-size:12px;color:var(--muted);line-height:1.5">

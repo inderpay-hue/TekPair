@@ -832,6 +832,8 @@ function toggleVistaEscritorio() {
 window.addEventListener('DOMContentLoaded', function() {
   U = JSON.parse(localStorage.getItem('tk_user') || 'null');
   if (!U) { window.location.href = 'app.html'; return; }
+  // Los modales viven en el HTML y se abren desde cualquier vista: el sprite tiene que estar ya.
+  try { _ensureIv2Sprite(); } catch (e) {}
 
   var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
   SB_KEY = sess.sb_key || '';
@@ -1212,7 +1214,7 @@ function abrirNuevoEncargo() {
   if (SEL) SEL.editEncId = null;
   ['encProducto','encCliNom','encCliTel','encSenal','encPvp','encProv','encNota'].forEach(function(id){ var el = document.getElementById(id); if (el) el.value = ''; });
   _encFillCliDatalist();
-  var t = document.getElementById('mEncargoTit'); if (t) t.textContent = '📋 ' + T('enc.nuevo');
+  var t = document.getElementById('mEncargoTit'); if (t) t.textContent = T('enc.nuevo');
   openM('mEncargo');
 }
 function abrirEditarEncargo(id) {
@@ -1223,7 +1225,7 @@ function abrirEditarEncargo(id) {
   set('encProducto', e.producto); set('encCliNom', e.cliente_nombre); set('encCliTel', e.cliente_tel);
   set('encSenal', e.senal || ''); set('encPvp', e.pvp || ''); set('encProv', e.proveedor); set('encNota', e.nota);
   _encFillCliDatalist();
-  var t = document.getElementById('mEncargoTit'); if (t) t.textContent = '✏️ ' + T('enc.editar');
+  var t = document.getElementById('mEncargoTit'); if (t) t.textContent = T('enc.editar');
   openM('mEncargo');
 }
 function guardarEncargo() {
@@ -4340,6 +4342,11 @@ var _IV2_SPRITE = '<svg width="0" height="0" style="position:absolute" aria-hidd
   '<symbol id="iv2-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.5 7.5 0 0 0 0-3l1.9-1.5-1.8-3.1-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14.2 2h-3.6l-.4 2.4a7.5 7.5 0 0 0-2.6 1.5l-2.3-.9-1.8 3.1 1.9 1.5a7.5 7.5 0 0 0 0 3l-1.9 1.5 1.8 3.1 2.3-.9a7.5 7.5 0 0 0 2.6 1.5l.4 2.4h3.6l.4-2.4a7.5 7.5 0 0 0 2.6-1.5l2.3.9 1.8-3.1z"/></symbol>' +
   '<symbol id="iv2-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>' +
   '<symbol id="iv2-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>' +
+  '<symbol id="iv2-camera" viewBox="0 0 24 24"><path d="M3 8.5A2.5 2.5 0 0 1 5.5 6h1.9l1.3-2h6.6l1.3 2h1.9A2.5 2.5 0 0 1 21 8.5v9A2.5 2.5 0 0 1 18.5 20h-13A2.5 2.5 0 0 1 3 17.5z"/><circle cx="12" cy="13" r="3.6"/></symbol>' +
+  '<symbol id="iv2-sparkle" viewBox="0 0 24 24"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M18.5 15.5l.8 2.2 2.2.8-2.2.8-.8 2.2-.8-2.2-2.2-.8 2.2-.8z"/></symbol>' +
+  '<symbol id="iv2-refresh" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 0 1-14.6 5.9M3.5 12a8.5 8.5 0 0 1 14.6-5.9"/><path d="M18.1 2.6v3.5h-3.5M5.9 21.4v-3.5h3.5"/></symbol>' +
+  '<symbol id="iv2-gift" viewBox="0 0 24 24"><rect x="3" y="9.5" width="18" height="11.5" rx="2"/><path d="M2.5 9.5h19M12 9.5V21"/><path d="M12 9.5S10.6 3 8 3a2.5 2.5 0 0 0 0 5h4zM12 9.5S13.4 3 16 3a2.5 2.5 0 0 1 0 5h-4z"/></symbol>' +
+  '<symbol id="iv2-palette" viewBox="0 0 24 24"><path d="M12 3a9 9 0 0 0 0 18c1.4 0 2-.9 2-1.8 0-1.4-1.2-1.7-1.2-2.9 0-.8.7-1.4 1.6-1.4H16a5 5 0 0 0 5-5c0-4-4-6.9-9-6.9z"/><circle cx="7.7" cy="11.5" r="1.1"/><circle cx="10.3" cy="7.6" r="1.1"/><circle cx="15.4" cy="8.3" r="1.1"/></symbol>' +
   '</svg>';
 // Inyecta el sprite de iconos UNA sola vez en el body (disponible para Inicio, Reparaciones, etc.).
 function _ensureIv2Sprite() {
@@ -7490,7 +7497,7 @@ function verFinanciado(id) {
   var pagado = v.cuotas.reduce(function(a, c) { return a + _cuotaPagado(c); }, 0);
   var pendiente = v.total - pagado - (v.entrada || 0);
   var totalCobrado = pagado + (v.entrada || 0);
-  var html = '<div class="modal-title">💰 ' + T('finv.titulo') + '</div>' +
+  var html = '<div class="modal-title">' + _iv2ic('euro', 18) + '<span>' + T('finv.titulo') + '</span></div>' +
     '<div style="font-size:13px;margin-bottom:10px"><strong>' + escHtml(v.clienteNombre || '') + '</strong>' + (v.modelo ? ' · ' + escHtml(v.modelo) : '') +
       '<div style="font-size:11px;color:var(--muted)">' + T('det.total') + ': ' + cur(v.total) + (v.entrada ? ' · ' + T('finv.entrada') + ': ' + cur(v.entrada) : '') + '</div></div>' +
     '<div style="display:flex;gap:8px;margin-bottom:14px">' +
@@ -7637,7 +7644,7 @@ function verFinanciadoRep(id) {
   if (!r || !r.cuotas) { toast(T('gen.error'), 'err'); return; }
   var pagado = r.cuotas.reduce(function(a, c) { return a + _cuotaPagado(c); }, 0);
   var pendiente = Math.max(0, Math.round(((r.total || 0) - (r.entrada || 0) - pagado) * 100) / 100);
-  var html = '<div class="modal-title">💰 ' + T('finrep.titulo') + '</div>' +
+  var html = '<div class="modal-title">' + _iv2ic('euro', 18) + '<span>' + T('finrep.titulo') + '</span></div>' +
     '<div style="background:var(--light);border-radius:10px;padding:12px;margin-bottom:14px;font-size:13px">' +
     '<strong>' + esc(r.clienteNombre) + '</strong> — ' + esc(r.marca) + ' ' + esc(r.modelo) + '<br>' +
     '<span style="font-size:11px;color:var(--muted)">' + T('finrep.resumen').replace('{total}', cur(r.total)).replace('{entrada}', cur(r.entrada || 0)).replace('{pagado}', cur(pagado)) + T('rep.queda_deber') + ': ' + cur(pendiente) + '</span></div>' +
@@ -7789,7 +7796,7 @@ function enviarLinkCobro(rid, cidx) {
     window._cobroLinkActual = link;
     var waUrl = 'https://wa.me/' + telE164 + '?text=' + encodeURIComponent(msg);
     var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=' + encodeURIComponent(link);
-    var html = '<div class="modal-title">📤 ' + T('cobro.enviar_titulo') + '</div>' +
+    var html = '<div class="modal-title">' + _iv2ic('link', 18) + '<span>' + T('cobro.enviar_titulo') + '</span></div>' +
       '<div style="font-size:12px;color:var(--muted);margin-bottom:12px">' + T('cobro.enviar_sub') + '</div>' +
       (telE164 ? '<a href="' + waUrl + '" target="_blank" rel="noopener" style="display:block;text-align:center;background:#25D366;color:#fff;margin-bottom:8px;text-decoration:none;padding:12px;border-radius:9px;font-weight:700">📲 WhatsApp</a>' : '<div style="font-size:11.5px;color:var(--muted);margin-bottom:8px">' + T('cobro.sin_tel') + '</div>') +
       '<button class="btn-secondary" style="width:100%;margin-bottom:10px" onclick="_copiarCobroLink()">📋 ' + T('cobro.copiar') + '</button>' +
@@ -13382,7 +13389,7 @@ function limpiarFormCli() {
   var grd = document.getElementById('cGrado'); if (grd) grd.value = '';
   // F423: por defecto el título es "Nuevo Cliente" (editCli lo cambia después). Antes, tras
   // editar un cliente, el botón "+ Nuevo" seguía mostrando "✏️ Editar Cliente".
-  var t = document.getElementById('mCliTit'); if (t) t.textContent = '👤 ' + T('cli.nuevo_titulo');
+  var t = document.getElementById('mCliTit'); if (t) t.textContent = T('cli.nuevo_titulo');
   if (typeof toggleCliEmpresa === 'function') toggleCliEmpresa();
   // Draft autosave: solo en cliente NUEVO (no al editar, donde ECID ya está fijado)
   if (!ECID && typeof _DRAFT_CLI !== 'undefined') { _DRAFT_CLI.banner(); _DRAFT_CLI.start(); }
@@ -13477,7 +13484,7 @@ function editCli(id) {
   if (!c) return;
   ECID = id;
   limpiarFormCli();
-  document.getElementById('mCliTit').textContent = '\u270f\ufe0f ' + T('cli.editar_titulo');
+  document.getElementById('mCliTit').textContent = T('cli.editar_titulo');
   var esEmp = !!c.esEmpresa;
   document.getElementById('cEsEmpresa').checked = esEmp;
   if (esEmp) {
@@ -13724,7 +13731,7 @@ function abrirNuevoGastoRec() {
   if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   if (!checkFeature('gastos_recurrentes')) return;
   SEL.editGastoRecId = null;
-  document.getElementById('mGastoRecTit').textContent = '🔁 ' + T('gastosrec.nueva');
+  document.getElementById('mGastoRecTit').textContent = T('gastosrec.nueva');
   document.getElementById('grConc').value = '';
   document.getElementById('grImp').value = '0';
   document.getElementById('grCat').value = 'Otros';
@@ -13750,7 +13757,7 @@ function editarGastoRec(id) {
   var r = (DB.gastos_recurrentes || []).find(function(x){ return x.id === id; });
   if (!r) { toast(T('gastosrec.no_encontrada'), 'err'); return; }
   SEL.editGastoRecId = id;
-  document.getElementById('mGastoRecTit').textContent = '🔁 ' + T('gastosrec.editar');
+  document.getElementById('mGastoRecTit').textContent = T('gastosrec.editar');
   document.getElementById('grConc').value = r.concepto || '';
   document.getElementById('grImp').value = r.importe || 0;
   document.getElementById('grCat').value = r.categoria || 'Otros';
@@ -14761,7 +14768,7 @@ function abrirNuevoGasto() {
   set('gCat', 'Otros'); set('gIvaTipo', '21'); set('gEstado', 'Pagado'); set('gMetodo', 'efectivo');
   set('gProvNom', ''); set('gProvNif', ''); set('gNumFact', '');
   try { limpiarGAdj(); } catch (e) {}
-  var t = document.getElementById('gModalTitle'); if (t) t.textContent = '📋 ' + T('gastos.nuevo_titulo');
+  var t = document.getElementById('gModalTitle'); if (t) t.textContent = T('gastos.nuevo_titulo');
   openM('mGasto');
 }
 
@@ -14793,7 +14800,7 @@ function editarGasto(id) {
   set('gProvNif', g.proveedor_nif || '');
   set('gNumFact', g.numero_factura || '');
   try { limpiarGAdj(); } catch (e) {}
-  var t = document.getElementById('gModalTitle'); if (t) t.textContent = '✏️ ' + T('gastos.editar_titulo');
+  var t = document.getElementById('gModalTitle'); if (t) t.textContent = T('gastos.editar_titulo');
   openM('mGasto');
 }
 
