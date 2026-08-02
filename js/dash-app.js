@@ -4335,6 +4335,10 @@ var _IV2_SPRITE = '<svg width="0" height="0" style="position:absolute" aria-hidd
   '<symbol id="iv2-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 7.9-7.5 9.5-4.3-1.6-7.5-4.9-7.5-9.5V6z"/></symbol>' +
   '<symbol id="iv2-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>' +
   '<symbol id="iv2-tag" viewBox="0 0 24 24"><path d="M3.5 12 12 3.5a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v5.6a2 2 0 0 1-.6 1.4L12 20.5a2 2 0 0 1-2.8 0l-5.7-5.7a2 2 0 0 1 0-2.8z"/><circle cx="16.4" cy="7.6" r="1.1"/></symbol>' +
+  '<symbol id="iv2-store" viewBox="0 0 24 24"><path d="M4 9.5 5.5 4h13L20 9.5M4 9.5V20h16V9.5M4 9.5a2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0 2.5 2.5 0 0 0 5 0"/><path d="M9.5 20v-4.5h5V20"/></symbol>' +
+  '<symbol id="iv2-phone" viewBox="0 0 24 24"><path d="M6 3h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z"/></symbol>' +
+  '<symbol id="iv2-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.5 7.5 0 0 0 0-3l1.9-1.5-1.8-3.1-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14.2 2h-3.6l-.4 2.4a7.5 7.5 0 0 0-2.6 1.5l-2.3-.9-1.8 3.1 1.9 1.5a7.5 7.5 0 0 0 0 3l-1.9 1.5 1.8 3.1 2.3-.9a7.5 7.5 0 0 0 2.6 1.5l.4 2.4h3.6l.4-2.4a7.5 7.5 0 0 0 2.6-1.5l2.3.9 1.8-3.1z"/></symbol>' +
+  '<symbol id="iv2-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>' +
   '</svg>';
 // Inyecta el sprite de iconos UNA sola vez en el body (disponible para Inicio, Reparaciones, etc.).
 function _ensureIv2Sprite() {
@@ -5030,9 +5034,15 @@ function _pedPagoBadge(p) {
   var col = fin ? '#3B6FF5' : '#E69412';
   return ' <span style="font-size:10px;font-weight:700;color:' + col + ';background:' + col + '1a;padding:1px 6px;border-radius:5px">💳 ' + esc(lbl) + (debe > 0.005 && _esAdmin() ? ' ' + cur(debe) : '') + '</span>';
 }
+// Punto de estado tipo iOS (semáforo limpio) para los pedidos.
+function _pedDot(estado) {
+  var col = estado === 'recibido' ? 'var(--green)' : estado === 'pedido' ? '#F59E0B' : 'var(--red)';
+  return '<span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:' + col + ';vertical-align:middle;margin-right:7px;flex:none"></span>';
+}
 function renderPedidosPage() {
   var box = document.getElementById('pedidosPageBox');
   if (!box) return;
+  try { _ensureIv2Sprite(); } catch (e) {}
   if (!DB.pedidos) { box.innerHTML = '<div class="empty">…</div>'; if (typeof cargarPedidos === 'function') cargarPedidos(function() { renderPedidosPage(); }); return; }
   updatePedidosBadge();
   try { renderDeudaProveedores(); } catch (e) {}
@@ -5078,15 +5088,15 @@ function renderPedidosPage() {
     var c = est[p.estado] || est.por_pedir;
     var meta = [escHtml(p.proveedor || ''), (p.importe > 0 ? (cur(p.importe)) : ''), (p.cantidad > 1 ? ('x' + p.cantidad) : ''), (p.fecha_pedido ? (T('pedidos.pedido_el') + ' ' + _pedFecha(p.fecha_pedido)) : ''), (p.fecha_estimada ? (T('pedidos.llega') + ' ' + _pedFecha(p.fecha_estimada)) : '')].filter(Boolean).join(' · ');
     var acciones = (p.estado !== 'recibido')
-      ? '<button style="background:var(--green);color:#fff;border:none;border-radius:7px;padding:6px 10px;font-size:11.5px;cursor:pointer;flex:1" onclick="avanzarPedido(\'' + p.id + '\')">' + c.next + '</button>' +
-        '<button style="background:var(--light);border:none;border-radius:7px;padding:6px 9px;font-size:11.5px;cursor:pointer" onclick="editarPedido(\'' + p.id + '\')">✏️</button>'
-      : '<span style="flex:1;font-size:11.5px;color:var(--green);font-weight:700">✅ ' + T('pedidos.marcado_recibido') + '</span>';
-    return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff">' +
-      '<div style="font-weight:800;font-size:14px">' + c.e + ' ' + escHtml(p.pieza || '') + _pedCatBadge(p.categoria) + _pedPagoBadge(p) + '</div>' +
+      ? '<button style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:6px 10px;font-size:11.5px;font-weight:700;cursor:pointer;flex:1" onclick="avanzarPedido(\'' + p.id + '\')">' + c.next + '</button>' +
+        '<button class="row-btn" style="background:var(--light);width:34px;height:32px" onclick="editarPedido(\'' + p.id + '\')" title="' + T('gen.editar') + '">' + _iv2ic('pencil', 16) + '</button>'
+      : '<span style="flex:1;font-size:11.5px;color:var(--green);font-weight:700;display:inline-flex;align-items:center;gap:5px">' + _iv2ic('check', 15) + T('pedidos.marcado_recibido') + '</span>';
+    return '<div style="border:1px solid var(--border);border-radius:14px;padding:12px 14px;background:#fff">' +
+      '<div style="font-weight:800;font-size:14px">' + _pedDot(p.estado) + escHtml(p.pieza || '') + _pedCatBadge(p.categoria) + _pedPagoBadge(p) + '</div>' +
       (meta ? '<div style="font-size:11.5px;color:var(--muted);margin-top:3px">' + meta + '</div>' : '') +
       (p.nota ? '<div style="font-size:11.5px;color:var(--muted);margin-top:3px;font-style:italic">“' + escHtml(p.nota) + '”</div>' : '') +
       '<div style="display:flex;gap:5px;margin-top:9px">' + acciones +
-        '<button style="background:rgba(239,68,68,.1);color:var(--red);border:none;border-radius:7px;padding:6px 9px;font-size:11.5px;cursor:pointer" onclick="eliminarPedido(\'' + p.id + '\')">🗑️</button>' +
+        '<button class="row-btn" style="background:rgba(239,68,68,.1);color:var(--red);width:34px;height:32px" onclick="eliminarPedido(\'' + p.id + '\')" title="' + T('gen.eliminar') + '">' + _iv2ic('trash', 16) + '</button>' +
       '</div></div>';
   }
   var gridOpen = '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">';
@@ -5108,18 +5118,19 @@ function renderPedidosPage() {
         var rows = items.map(function(p) {
           var imp = (parseFloat(p.importe) || 0) > 0 ? ' · ' + cur(parseFloat(p.importe)) : '';
           return '<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border)">' +
-            '<span style="flex:1;font-size:13px">✅ <b>' + escHtml(p.pieza || '') + '</b>' + _pedCatBadge(p.categoria) + (p.cantidad > 1 ? ' <span style="color:var(--muted)">x' + p.cantidad + '</span>' : '') + '<span style="color:var(--muted);font-size:11.5px">' + imp + '</span></span>' +
-            '<button style="background:rgba(239,68,68,.1);color:var(--red);border:none;border-radius:6px;padding:4px 7px;font-size:11px;cursor:pointer" onclick="eliminarPedido(\'' + p.id + '\')">🗑️</button>' +
+            '<span style="color:var(--green);flex:none">' + _iv2ic('check', 15) + '</span>' +
+            '<span style="flex:1;font-size:13px"><b>' + escHtml(p.pieza || '') + '</b>' + _pedCatBadge(p.categoria) + (p.cantidad > 1 ? ' <span style="color:var(--muted)">x' + p.cantidad + '</span>' : '') + '<span style="color:var(--muted);font-size:11.5px">' + imp + '</span></span>' +
+            '<button class="row-btn" style="background:rgba(239,68,68,.1);color:var(--red);width:30px;height:28px" onclick="eliminarPedido(\'' + p.id + '\')" title="' + T('gen.eliminar') + '">' + _iv2ic('trash', 15) + '</button>' +
           '</div>';
         }).join('');
         return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff;margin-bottom:10px">' +
-          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:800;font-size:13.5px">🏢 ' + escHtml(pk) +
+          '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:800;font-size:13.5px">' + _iv2ic('store', 16) + escHtml(pk) +
             ' <span style="background:var(--light);border-radius:8px;padding:1px 8px;font-size:11px;color:var(--muted);font-weight:700">' + totUds + ' ' + T('pedidos.uds') + '</span>' +
             (tot > 0 ? '<span style="margin-left:auto;color:var(--muted);font-size:12px">' + cur(tot) + '</span>' : '') + '</div>' +
           rows + '</div>';
       }).join('');
       return '<div style="margin-bottom:18px">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800;font-size:14px;color:var(--orange)">📅 ' + dayLabel +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800;font-size:14px;color:var(--orange)">' + _iv2ic('cal', 16) + dayLabel +
           ' <span style="background:var(--light);color:var(--muted);border-radius:8px;padding:1px 8px;font-size:11px">' + dayItems.length + '</span></div>' +
         provBoxes + '</div>';
     }).join('');
@@ -5137,7 +5148,7 @@ function renderPedidosPage() {
       var btnGrupo = nPorPedir ? '<button onclick="marcarGrupoPedido(\'' + encodeURIComponent(k) + '\')" style="background:var(--green);color:#fff;border:none;border-radius:8px;padding:5px 11px;font:inherit;font-size:11px;font-weight:700;cursor:pointer">🟡 ' + T('pedidos.marcar_grupo') + ' (' + nPorPedir + ')</button>' : '';
       var btnRecibir = nPedido ? '<button onclick="recibirGrupo(\'' + encodeURIComponent(k) + '\')" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:5px 11px;font:inherit;font-size:11px;font-weight:700;cursor:pointer">✅ ' + T('pedidos.recibir_grupo') + ' (' + nPedido + ')</button>' : '';
       return '<div style="margin-bottom:16px">' +
-        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800;font-size:13.5px;flex-wrap:wrap">🏢 ' + escHtml(k) +
+        '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800;font-size:13.5px;flex-wrap:wrap">' + _iv2ic('store', 16) + escHtml(k) +
           ' <span style="background:var(--light);border-radius:8px;padding:1px 8px;font-size:11px;color:var(--muted)">' + items.length + '</span>' +
           '<span style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + (tot > 0 ? '<span style="color:var(--muted);font-size:12px">' + cur(tot) + '</span>' : '') + btnGrupo + btnRecibir + '</span></div>' +
         gridOpen + items.map(card).join('') + '</div></div>';
@@ -20420,6 +20431,7 @@ function renderCitas() {
   var lista = document.getElementById('listaCitas');
   if (!lista) return;
   if (!DB.citas) DB.citas = [];
+  try { _ensureIv2Sprite(); } catch (e) {}
 
   var hoyStr = hoyLocal();
   _actualizarContadoresCitas(); // F328/F339: contador por filtro para localizar la cita del badge
@@ -20458,7 +20470,7 @@ function renderCitas() {
     var d = new Date(p[0], p[1]-1, p[2]);
     var fechaTxt = d.toLocaleDateString((typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'), {weekday:'long', day:'numeric', month:'long'});
     var esHoy = fecha === hoyStr;
-    html += '<div style="font-size:11px;font-weight:700;color:' + (esHoy ? 'var(--green)' : 'var(--muted)') + ';text-transform:uppercase;letter-spacing:.4px;padding:14px 0 8px">' + (esHoy ? '🎯 ' + T('cita.hoy') + ' · ' : '') + fechaTxt + '</div>';
+    html += '<div style="font-size:11px;font-weight:700;color:' + (esHoy ? 'var(--green)' : 'var(--muted)') + ';text-transform:uppercase;letter-spacing:.4px;padding:14px 0 8px">' + (esHoy ? _iv2ic('target', 12) + ' ' + T('cita.hoy') + ' · ' : '') + fechaTxt + '</div>';
     grupos[fecha].forEach(function(c) {
       html += '<div class="card" style="padding:12px;cursor:pointer;margin-bottom:6px;border-left:3px solid ' + colorEstado[c.estado || 'pendiente'] + '" onclick="abrirCita(\'' + c.id + '\')">';
       html += '<div style="display:flex;justify-content:space-between;align-items:start;gap:10px">';
@@ -20467,7 +20479,7 @@ function renderCitas() {
       html += '<span style="font-size:11px;background:rgba(255,91,31,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || T('cita.consulta')) + '</span></div>';
       html += '<div style="font-weight:700;font-size:13px">' + esc(c.cliente_nombre) + '</div>';
       if (c.marca || c.modelo) html += '<div style="font-size:11px;color:var(--muted)">' + esc((c.marca||'') + ' ' + (c.modelo||'')).trim() + '</div>';
-      if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted)">📞 ' + esc(c.cliente_tel) + '</div>';
+      if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px">' + _iv2ic('phone', 12) + esc(c.cliente_tel) + '</div>';
       html += '</div>';
       var _citaVencida = c.fecha && c.fecha < hoyLocal() && (c.estado === 'pendiente' || c.estado === 'confirmada');
       html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">';
@@ -20493,7 +20505,7 @@ function abrirCita(id) {
   html += '<div style="background:var(--light);border-radius:10px;padding:14px;margin-bottom:14px">';
   html += '<div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;margin-bottom:6px">' + esc(c.servicio || T('cita.consulta')) + '</div>';
   html += '<div style="font-size:18px;font-weight:800">' + esc(c.cliente_nombre) + '</div>';
-  html += '<div style="font-size:13px;color:var(--muted);margin-top:4px">📅 ' + fechaTxt + ' · ⏰ ' + esc(c.hora||'') + '</div>';
+  html += '<div style="font-size:13px;color:var(--muted);margin-top:4px;display:flex;align-items:center;gap:5px;flex-wrap:wrap">' + _iv2ic('cal', 14) + fechaTxt + ' · ' + _iv2ic('clock', 14) + esc(c.hora||'') + '</div>';
   html += '</div>';
 
   html += '<div class="fg"><label class="fl">' + T('plan.estado') + '</label>';
@@ -20504,11 +20516,11 @@ function abrirCita(id) {
   html += '</select></div>';
 
   html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">';
-  if (c.cliente_tel) html += '<a href="tel:' + esc(c.cliente_tel) + '" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px">📞 ' + T('cita.llamar') + '</a>';
+  if (c.cliente_tel) html += '<a href="tel:' + esc(c.cliente_tel) + '" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:9px;font-size:12px">' + _iv2ic('phone', 15) + T('cita.llamar') + '</a>';
   if (c.cliente_tel) {
     var msg = encodeURIComponent(waMsg('cita')(c.cliente_nombre || '', fechaTxt, c.hora||'', TIENDA.nombre||''));
     var tel = waTel(c.cliente_tel);
-    html += '<a href="https://wa.me/' + tel + '?text=' + msg + '" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="text-decoration:none;text-align:center;padding:10px;border-radius:8px;font-size:12px;background:#25D366;color:white">💬 WhatsApp</a>';
+    html += '<a href="https://wa.me/' + tel + '?text=' + msg + '" target="_blank" rel="noopener noreferrer" class="btn-secondary" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;border-radius:9px;font-size:12px;background:#25D366;color:white">' + _iv2ic('msg', 15) + 'WhatsApp</a>';
   }
   html += '</div>';
 
@@ -20519,7 +20531,7 @@ function abrirCita(id) {
   html += '<button type="button" class="btn-secondary" style="flex:1" onclick="closeM(\'mCita\')">' + T('gen.cerrar') + '</button>';
   html += '<button type="button" class="btn-primary" style="flex:1;background:var(--green)" onclick="convertirCitaEnRep(\'' + c.id + '\')">→ ' + T('cita.crear_rep') + '</button>';
   html += '</div>';
-  html += '<button type="button" style="margin-top:8px;width:100%;padding:10px;border:1px solid var(--red);background:transparent;color:var(--red);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit" onclick="eliminarCita(\'' + c.id + '\')">🗑️ ' + T('cita.eliminar') + '</button>';
+  html += '<button type="button" style="margin-top:8px;width:100%;display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:10px;border:1px solid var(--red);background:transparent;color:var(--red);border-radius:9px;font-size:12px;cursor:pointer;font-family:inherit" onclick="eliminarCita(\'' + c.id + '\')">' + _iv2ic('trash', 15) + T('cita.eliminar') + '</button>';
 
   document.getElementById('citaDetalle').innerHTML = html;
   setTimeout(function(){
@@ -20829,7 +20841,7 @@ function _renderListaDelDia() {
       html += '<span style="font-size:11px;background:rgba(255,91,31,.08);color:var(--blue);padding:2px 8px;border-radius:10px;font-weight:600">' + esc(c.servicio || T('cita.consulta')) + '</span></div>';
       html += '<div style="font-weight:700;font-size:13px">' + esc(c.cliente_nombre) + '</div>';
       if (c.marca || c.modelo) html += '<div style="font-size:11px;color:var(--muted)">' + esc((c.marca||'') + ' ' + (c.modelo||'')).trim() + '</div>';
-      if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted)">📞 ' + esc(c.cliente_tel) + '</div>';
+      if (c.cliente_tel) html += '<div style="font-size:11px;color:var(--muted);display:flex;align-items:center;gap:4px">' + _iv2ic('phone', 12) + esc(c.cliente_tel) + '</div>';
       html += '</div>';
       var _citaVencida = c.fecha && c.fecha < hoyLocal() && (c.estado === 'pendiente' || c.estado === 'confirmada');
       html += '<div style="display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex-shrink:0">';
