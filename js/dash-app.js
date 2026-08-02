@@ -9008,17 +9008,23 @@ var PLANTILLAS_I18N = {
   }
 };
 
-// Resuelve label/averia/servicio de una plantilla en el idioma de la tienda. Solo las POR DEFECTO;
-// las personalizadas (TIENDA.plantillasRep) se respetan tal cual las escribió el usuario.
+// Resuelve label/averia/servicio de una plantilla en el idioma de la tienda. Traduce POR
+// COINCIDENCIA con el texto ES de una plantilla por defecto → funciona tanto si la tienda usa los
+// defaults como si tiene plantillas personalizadas que copiaron los defaults en español. Los textos
+// realmente propios del usuario (que no coinciden con ningún default) se respetan tal cual. En
+// español (u otro idioma sin tabla) devuelve el texto original.
 function _plantI18n(p, field) {
   if (!p) return '';
-  var usaDefault = !(typeof TIENDA !== 'undefined' && TIENDA && Array.isArray(TIENDA.plantillasRep) && TIENDA.plantillasRep.length);
-  if (usaDefault && p.key) {
-    var lang = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
-    var tbl = PLANTILLAS_I18N[lang];
-    if (tbl && tbl[p.key] && tbl[p.key][field]) return tbl[p.key][field];
+  var v = (p[field] == null ? '' : String(p[field]));
+  var lang = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+  var tbl = PLANTILLAS_I18N[lang];
+  if (!tbl) return v;
+  for (var i = 0; i < PLANTILLAS_REP_DEFAULT.length; i++) {
+    var d = PLANTILLAS_REP_DEFAULT[i];
+    var dv = (d[field] == null ? '' : String(d[field]));
+    if (dv === v && tbl[d.key] && tbl[d.key][field]) return tbl[d.key][field];
   }
-  return p[field] || '';
+  return v;
 }
 
 function getPlantillasRep() {
