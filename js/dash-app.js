@@ -4324,7 +4324,22 @@ var _IV2_SPRITE = '<svg width="0" height="0" style="position:absolute" aria-hidd
   '<symbol id="iv2-check" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M8.5 12.2l2.4 2.4 4.6-4.8"/></symbol>' +
   '<symbol id="iv2-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 1.8"/></symbol>' +
   '<symbol id="iv2-inbox" viewBox="0 0 24 24"><path d="M3 13l3-8h12l3 8v5a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M3 13h5l1.5 2.5h5L21 13"/></symbol>' +
+  '<symbol id="iv2-eye" viewBox="0 0 24 24"><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7-10-7-10-7z"/><circle cx="12" cy="12" r="3"/></symbol>' +
+  '<symbol id="iv2-pencil" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"/></symbol>' +
+  '<symbol id="iv2-trash" viewBox="0 0 24 24"><path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6.5 7l1 12a2 2 0 0 0 2 1.9h5a2 2 0 0 0 2-1.9l1-12"/></symbol>' +
+  '<symbol id="iv2-link" viewBox="0 0 24 24"><path d="M10.5 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 1 0-5.7-5.7l-1.5 1.5"/><path d="M13.5 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 1 0 5.7 5.7l1.5-1.5"/></symbol>' +
+  '<symbol id="iv2-msg" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4A8.4 8.4 0 1 1 21 11.5z"/></symbol>' +
+  '<symbol id="iv2-euro" viewBox="0 0 24 24"><path d="M16 8a5 5 0 1 0 0 8"/><path d="M4.5 10.5H13M4.5 13.5H12"/></symbol>' +
   '</svg>';
+// Inyecta el sprite de iconos UNA sola vez en el body (disponible para Inicio, Reparaciones, etc.).
+function _ensureIv2Sprite() {
+  if (document.getElementById('iv2-bag')) return;
+  var w = document.createElement('div');
+  w.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+  w.setAttribute('aria-hidden', 'true');
+  w.innerHTML = _IV2_SPRITE;
+  document.body.appendChild(w);
+}
 function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
   var host = document.getElementById('inv-admin');
   var empHost = document.getElementById('inv-emp');
@@ -4654,8 +4669,8 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
     html = qbEmp + kpisE + heroE + colaCard + secGridE + urgCardE + notasCard;
   }
 
+  _ensureIv2Sprite();
   box.innerHTML =
-    _IV2_SPRITE +
     '<style>@media(max-width:760px){#inicioV2 .iv2-money,#inicioV2 .iv2-sec{grid-template-columns:1fr!important}#inicioV2 .iv2-kpis{grid-template-columns:1fr 1fr!important}#inicioV2 .iv2-qb>div{min-width:86px!important;font-size:11px!important}}</style>' +
     html;
   try { _iv2RenderNotas(); } catch (e) {}
@@ -11403,6 +11418,7 @@ function _repBandaLista(id) { try { cambiarEstado(id, 'Por Entregar'); } catch (
 
 function renderReps() {
   try { renderRepsUrgenciaBanda(); } catch (e) {}
+  try { _ensureIv2Sprite(); } catch (e) {}
   var list = DB.reps.slice().reverse().filter(function(r) {
     // 'A deber': reparaciones ENTREGADAS o FINANCIADAS con saldo pendiente (el cliente tiene el equipo y debe).
     if (SEL.repFiltro === 'adeber') return !r.esGarantia && (parseFloat(r.restante) || 0) > 0 && (r.estado === 'Entregado' || (r.financiado && r.estadoFinanciado !== 'completado'));
@@ -11436,9 +11452,9 @@ function renderReps() {
     var btnPresRech = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" data-action="del" class="row-btn btn-pres-rech" title="' + T('rep.title_rech_pres') + '">' + T('rep.btn_rechazar') + '</button>' : '';
     // PRES-C: botón Enviar al cliente (link remoto)
     var btnPresEnviar = r.estado === 'Presupuesto' ? '<button data-rid="' + r.id + '" class="row-btn btn-pres-enviar" title="' + T('rep.title_enviar_pres') + '" style="background:#0EA5E9;color:white;border-color:#0EA5E9">' + T('rep.btn_enviar') + '</button>' : '';
-    var btnDetalleR = '<button data-rid="' + r.id + '" data-action="ver" class="row-btn btn-ver-r" title="' + T('pres.detalle_title') + '">👁️</button>';
-    var btnEdit = '<button data-rid="' + r.id + '" data-action="edit" class="row-btn btn-edit-r" title="' + T('gen.editar_2') + '">✏️</button>';
-    var btnLink = '<button data-rid="' + r.id + '" data-action="link" class="row-btn btn-link-r" title="' + T('rep.title_qr_link') + '">📱</button>';
+    var btnDetalleR = '<button data-rid="' + r.id + '" data-action="ver" class="row-btn btn-ver-r" title="' + T('pres.detalle_title') + '">' + _iv2ic('eye', 16) + '</button>';
+    var btnEdit = '<button data-rid="' + r.id + '" data-action="edit" class="row-btn btn-edit-r" title="' + T('gen.editar_2') + '">' + _iv2ic('pencil', 16) + '</button>';
+    var btnLink = '<button data-rid="' + r.id + '" data-action="link" class="row-btn btn-link-r" title="' + T('rep.title_qr_link') + '">' + _iv2ic('link', 16) + '</button>';
     // WhatsApp: buscar cliente por cliId, si no, fallback por nombre coincidente
     var cliRep = r.clienteId ? DB.clis.find(function(c){ return c.id === r.clienteId; }) : null;
     if (!cliRep && r.clienteNombre) {
@@ -11447,12 +11463,12 @@ function renderReps() {
         return _norm(((c.nombre||'') + ' ' + (c.apellidos||'')).trim()) === nomNorm;
       });
     }
-    var btnWA = (cliRep && cliRep.tel) ? '<button data-rid="' + r.id + '" data-action="wa" class="row-btn btn-wa-r" title="' + T('rep.title_avisar_wa') + '">📲</button>' : '';
-    var btnDel = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" data-action="del" class="row-btn btn-del-r" title="' + T('rep.title_eliminar') + '">🗑️</button>' : '';
-    var btnFact = (r.estado === 'Entregado') ? '<button data-rid="' + r.id + '" data-action="fact" class="row-btn btn-fact-r" title="' + T('rep.title_generar_factura') + '">📄</button>' : '';
-    var btnFin = (r.financiado && r.estadoFinanciado !== 'completado') ? '<button data-rid="' + r.id + '" class="row-btn btn-fin-r" title="' + T('rep.title_cuotas') + '" style="background:#8B5CF6;color:white;border-color:#8B5CF6">💰</button>' : '';
+    var btnWA = (cliRep && cliRep.tel) ? '<button data-rid="' + r.id + '" data-action="wa" class="row-btn btn-wa-r" title="' + T('rep.title_avisar_wa') + '">' + _iv2ic('msg', 16) + '</button>' : '';
+    var btnDel = tienePerm('reps_eliminar') ? '<button data-rid="' + r.id + '" data-action="del" class="row-btn btn-del-r" title="' + T('rep.title_eliminar') + '">' + _iv2ic('trash', 16) + '</button>' : '';
+    var btnFact = (r.estado === 'Entregado') ? '<button data-rid="' + r.id + '" data-action="fact" class="row-btn btn-fact-r" title="' + T('rep.title_generar_factura') + '">' + _iv2ic('doc', 16) + '</button>' : '';
+    var btnFin = (r.financiado && r.estadoFinanciado !== 'completado') ? '<button data-rid="' + r.id + '" class="row-btn btn-fin-r" title="' + T('rep.title_cuotas') + '" style="background:#8B5CF6;color:white;border-color:#8B5CF6">' + _iv2ic('euro', 16) + '</button>' : '';
     // Cobrar saldo a deber (entregada con restante, sin financiar)
-    var btnCobrar = (!r.financiado && r.estado === 'Entregado' && (parseFloat(r.restante) || 0) > 0) ? '<button data-rid="' + r.id + '" class="row-btn btn-cobrar-r" title="' + T('rep.title_cobrar_saldo') + '" style="background:var(--green);color:white;border-color:var(--green)">💵</button>' : '';
+    var btnCobrar = (!r.financiado && r.estado === 'Entregado' && (parseFloat(r.restante) || 0) > 0) ? '<button data-rid="' + r.id + '" class="row-btn btn-cobrar-r" title="' + T('rep.title_cobrar_saldo') + '" style="background:var(--green);color:white;border-color:var(--green)">' + _iv2ic('euro', 16) + '</button>' : '';
     // Badge garantía: manual (esGarantia) o auto-detectada (rep similar reciente)
     var badgeGarantia = '';
     if (r.esGarantia) {

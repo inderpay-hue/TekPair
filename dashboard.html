@@ -730,14 +730,20 @@ body[data-theme="dark"] .notif-item:hover{background:rgba(255,255,255,.05) !impo
   background:transparent;
   border:1px solid var(--border);
   color:var(--muted);
-  padding:4px 8px;
-  border-radius:6px;
+  padding:5px 8px;
+  border-radius:8px;
   font-size:11px;
   cursor:pointer;
   margin-left:3px;
-  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease);
+  transition:background .15s var(--ease), color .15s var(--ease), border-color .15s var(--ease), transform .1s;
   line-height:1;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  vertical-align:middle;
 }
+.row-btn svg{width:16px;height:16px;display:block}
+.row-btn:active{transform:scale(.92)}
 .row-btn:hover{background:var(--bg);color:var(--dark);border-color:var(--muted)}
 .row-btn[data-action="confirm"]:hover{background:var(--green);color:white;border-color:var(--green)}
 .row-btn[data-action="edit"]:hover{background:var(--blue);color:white;border-color:var(--blue)}
@@ -5042,7 +5048,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260802g"></script>
+<script src="/js/dash-app.js?v=20260802h"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
