@@ -100,7 +100,10 @@
   }
 
   // ── Init (se llama desde navTo('pCajas') ─────────
+  // Icono de línea iOS (definido en dash-app.js, cargado en runtime). Fallback vacío si no está.
+  function IC(name, sz) { return (typeof window._iv2ic === 'function') ? window._iv2ic(name, sz) : ''; }
   async function renderCajas() {
+    if (typeof window._ensureIv2Sprite === 'function') { try { window._ensureIv2Sprite(); } catch (e) {} }
     if (!Estado.inicializado) {
       $('cajas-fecha-actual').value = Estado.fechaActual;
       // Sin permiso de histórico, el empleado no puede retroceder a días anteriores.
@@ -281,13 +284,13 @@
       const esEnvios = _tipoCuenta(c) === 'envios';
       const etiqueta = esEnvios ? T('cajas.pendiente_ingresar') : T('cajas.saldo_label');
       const btnPrimario = esEnvios
-        ? `<button class="cajas-btn cajas-btn-sec" style="flex:1;" onclick="Cajas.ingresoBanco('${c.id}')">💰 ${T('cajas.ingrese_banco')}</button>`
-        : `<button class="cajas-btn cajas-btn-sec" style="flex:1;" onclick="Cajas.recargarSaldo('${c.id}')">➕ ${T('cajas.recargue')}</button>`;
+        ? `<button class="cajas-btn cajas-btn-sec" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="Cajas.ingresoBanco('${c.id}')">${IC('euro', 15)}${T('cajas.ingrese_banco')}</button>`
+        : `<button class="cajas-btn cajas-btn-sec" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:6px;" onclick="Cajas.recargarSaldo('${c.id}')">${IC('plus', 15)}${T('cajas.recargue')}</button>`;
       cards += `
         <div style="background:var(--white);border:1px solid var(--border);border-radius:14px;padding:16px;border-left:4px solid ${esEnvios ? '#F59E0B' : '#6366F1'};">
           <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;">
             <div style="font-weight:800;font-size:15px;color:var(--text);">${escapar(c.nombre)}</div>
-            <button class="cajas-btn cajas-btn-sec" style="padding:4px 8px;font-size:13px;" onclick="Cajas.verSeguimiento('${c.id}')" title="${T('cajas.seguimiento')}">📊</button>
+            <button class="cajas-btn cajas-btn-sec" style="padding:5px 9px;display:inline-flex;align-items:center;" onclick="Cajas.verSeguimiento('${c.id}')" title="${T('cajas.seguimiento')}">${IC('chart', 16)}</button>
           </div>
           ${comps ? `<div style="font-size:12px;color:var(--muted);margin-top:2px;">${comps}</div>` : ''}
           <div style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;margin-top:8px;">${etiqueta}</div>
@@ -300,7 +303,7 @@
     }
     cont.innerHTML = `
       <div style="margin-top:8px;">
-        <div style="font-weight:800;font-size:15px;color:var(--text);margin-bottom:10px;">💳 ${T('cajas.saldos_titulo')}</div>
+        <div style="font-weight:800;font-size:15px;color:var(--text);margin-bottom:10px;display:flex;align-items:center;gap:7px;">${IC('card', 16)}${T('cajas.saldos_titulo')}</div>
         <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;">${cards}</div>
       </div>`;
   }
@@ -436,7 +439,7 @@
     ov.onclick = (e) => { if (e.target === ov) ov.remove(); };
     ov.innerHTML = `<div class="cajas-modal" style="max-width:600px;">
       <div class="cajas-modal-header">
-        <h3>📊 ${T('cajas.seguimiento')} — ${escapar(cuenta.nombre || '')}</h3>
+        <h3 style="display:flex;align-items:center;gap:8px;">${IC('chart', 18)}${T('cajas.seguimiento')} — ${escapar(cuenta.nombre || '')}</h3>
         <button class="cajas-modal-cerrar" type="button">✕</button>
       </div>
       <div class="cajas-modal-cuerpo">
@@ -541,7 +544,7 @@
     const compACuenta = {};
     cuentas.forEach(ct => (ct.companias || []).forEach(x => { compACuenta[x.id] = ct.id; }));
 
-    let html = '<div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:8px;">💳 ' + T('cajas.cuentas_titulo') + '</div>';
+    let html = '<div style="font-weight:700;font-size:13px;color:var(--text);margin-bottom:8px;display:flex;align-items:center;gap:7px;">' + IC('card', 15) + T('cajas.cuentas_titulo') + '</div>';
 
     if (cuentas.length === 0) {
       html += '<div style="color:var(--muted);font-size:12px;padding:4px 0 8px;">' + T('gen.no_hay_companias') + '</div>';
@@ -550,7 +553,7 @@
         <div style="display:flex;align-items:center;gap:8px;padding:5px 0;">
           <span style="flex:1;font-size:13px;color:var(--text);">${escapar(ct.nombre)}</span>
           <span style="font-size:13px;font-weight:700;color:var(--text);">${eur(ct.saldo)}</span>
-          <button class="cajas-btn cajas-btn-rojo" style="padding:5px 9px;font-size:11px;" onclick="Cajas.borrarCuenta('${ct.id}')">🗑</button>
+          <button class="cajas-btn cajas-btn-rojo" style="padding:5px 9px;display:inline-flex;align-items:center;" onclick="Cajas.borrarCuenta('${ct.id}')">${IC('trash', 15)}</button>
         </div>
       `).join('');
     }
@@ -558,7 +561,7 @@
     html += `<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-top:8px;">
       <input id="nueva-cuenta-nombre" type="text" autocomplete="off" placeholder="${T('cajas.cuenta_nombre_ph')}" style="flex:1;min-width:130px;font-size:12px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);">
       <input id="nueva-cuenta-saldo" type="number" step="0.01" placeholder="${T('cajas.saldo_label')} €" style="width:96px;font-size:12px;padding:7px 9px;border:1px solid var(--border);border-radius:6px;background:var(--white);color:var(--text);">
-      <button class="cajas-btn cajas-btn-verde" style="font-size:12px;padding:7px 12px;" onclick="Cajas.crearCuenta()">➕ ${T('cajas.crear_cuenta')}</button>
+      <button class="cajas-btn cajas-btn-verde" style="font-size:12px;padding:7px 12px;display:inline-flex;align-items:center;gap:6px;" onclick="Cajas.crearCuenta()">${IC('plus', 15)}${T('cajas.crear_cuenta')}</button>
     </div>`;
 
     if (cmps.length > 0 && cuentas.length > 0) {
@@ -1237,7 +1240,7 @@
       const tel = f.cliente_telefono ? ` · 📞 ${escapar(f.cliente_telefono)}` : '';
       const nota = f.nota ? ` · ${escapar(f.nota)}` : '';
       const cobrado = f.estado === 'cobrado';
-      const metodoIcon = f.metodo_pago === 'efectivo' ? '💶' : f.metodo_pago === 'tarjeta' ? '💳' : '';
+      const metodoIcon = f.metodo_pago === 'efectivo' ? IC('euro', 13) : f.metodo_pago === 'tarjeta' ? IC('card', 13) : '';
       const fechaCobroVisible = f.fecha_cobro ? new Date(f.fecha_cobro).toLocaleDateString('es-ES') : '';
       const bgColor = cobrado ? '#f0fdf4' : '#fff';
       const borderColor = cobrado ? '#86efac' : '#fde68a';
@@ -1460,7 +1463,7 @@
       const fechaCobro = cobrado && f.fecha_cobro
         ? new Date(f.fecha_cobro).toLocaleDateString('es-ES')
         : '';
-      const metodoIcon = f.metodo_pago === 'efectivo' ? '💶' : f.metodo_pago === 'tarjeta' ? '💳' : '';
+      const metodoIcon = f.metodo_pago === 'efectivo' ? IC('euro', 13) : f.metodo_pago === 'tarjeta' ? IC('card', 13) : '';
       const metodoTxt = f.metodo_pago === 'efectivo' ? 'efectivo' : f.metodo_pago === 'tarjeta' ? 'tarjeta' : '';
 
       let acciones = '';

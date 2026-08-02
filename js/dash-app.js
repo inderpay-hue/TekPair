@@ -2645,7 +2645,7 @@ function navTo(id) {
   if (id === 'pPedidos') renderPedidosPage();
   if (id === 'pAyuda') { try { renderGuiaAyuda(); } catch(e){} }
   if (id === 'pGastos') renderGastos();
-  if (id === 'pAjustes') { try { renderUbicacionesAjustes(); } catch(e){} cargarAjustes(); try { cargarTienda(); } catch(e){} try { renderStorageUso(); } catch(e){} try { ajRailPlanLocks(); } catch(e){} }
+  if (id === 'pAjustes') { try { _ensureIv2Sprite(); } catch(e){} try { renderUbicacionesAjustes(); } catch(e){} cargarAjustes(); try { cargarTienda(); } catch(e){} try { renderStorageUso(); } catch(e){} try { ajRailPlanLocks(); } catch(e){} }
   if (id === 'pReportes') renderReporte();
   if (id === 'pPresupuestos') {
     renderPresupuestos();
@@ -4339,6 +4339,7 @@ var _IV2_SPRITE = '<svg width="0" height="0" style="position:absolute" aria-hidd
   '<symbol id="iv2-phone" viewBox="0 0 24 24"><path d="M6 3h3l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v3a2 2 0 0 1-2 2A16 16 0 0 1 4 5a2 2 0 0 1 2-2z"/></symbol>' +
   '<symbol id="iv2-cog" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M19.4 13.5a7.5 7.5 0 0 0 0-3l1.9-1.5-1.8-3.1-2.3.9a7.5 7.5 0 0 0-2.6-1.5L14.2 2h-3.6l-.4 2.4a7.5 7.5 0 0 0-2.6 1.5l-2.3-.9-1.8 3.1 1.9 1.5a7.5 7.5 0 0 0 0 3l-1.9 1.5 1.8 3.1 2.3-.9a7.5 7.5 0 0 0 2.6 1.5l.4 2.4h3.6l.4-2.4a7.5 7.5 0 0 0 2.6-1.5l2.3.9 1.8-3.1z"/></symbol>' +
   '<symbol id="iv2-bell" viewBox="0 0 24 24"><path d="M6 9a6 6 0 0 1 12 0c0 5 2 6 2 6H4s2-1 2-6z"/><path d="M10 20a2 2 0 0 0 4 0"/></symbol>' +
+  '<symbol id="iv2-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>' +
   '</svg>';
 // Inyecta el sprite de iconos UNA sola vez en el body (disponible para Inicio, Reparaciones, etc.).
 function _ensureIv2Sprite() {
@@ -15145,6 +15146,7 @@ function _repEnLista(fechas, f) {
 var CHART_INGRESOS = null, CHART_PAGOS = null, CHART_SERVICIOS = null;
 
 async function renderReporte() {
+  try { _ensureIv2Sprite(); } catch (e) {}
   // F261: asegurar datos frescos. El reporte calcula sobre DB.ventas en memoria; si una
   // venta se hizo en el TPV (otra pestaña) o el panel llevaba rato abierto, podía estar
   // desfasado y mostrar 0€. Refrescamos vía syncCompleto (carga TODO paginado, sin asumir
