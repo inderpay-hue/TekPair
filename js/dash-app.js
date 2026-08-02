@@ -8952,6 +8952,75 @@ var PLANTILLAS_REP_DEFAULT = [
   {key:'software',  icon:'⚙️', label:'Software',          averia:'Problema de software / sistema',   servicio:'Reparación software',     precio:0, chk:[]}
 ];
 
+// i18n de las plantillas POR DEFECTO: para que una tienda en otro idioma inserte la avería/servicio
+// en su idioma (antes se guardaban siempre en español fijo → un taller en inglés creaba "Issues"
+// en español). ES no necesita entrada: usa el texto de PLANTILLAS_REP_DEFAULT como fallback.
+var PLANTILLAS_I18N = {
+  en: {
+    pantalla:{label:'Screen',averia:'Cracked screen',servicio:'Screen replacement'},
+    bateria:{label:'Battery',averia:"Battery won't hold charge",servicio:'Battery replacement'},
+    nocarga:{label:'Not charging',averia:'Not charging / charging port',servicio:'Charging port repair'},
+    liquidos:{label:'Liquid damage',averia:'Liquid / moisture damage',servicio:'Moisture cleaning'},
+    altavoz:{label:'Speaker',averia:'No sound / speaker',servicio:'Speaker repair'},
+    camara:{label:'Camera',averia:'Camera not working',servicio:'Camera repair'},
+    boton:{label:'Button',averia:'Power / Volume / Home button',servicio:'Button repair'},
+    software:{label:'Software',averia:'Software / system issue',servicio:'Software repair'}
+  },
+  fr: {
+    pantalla:{label:'Écran',averia:'Écran cassé',servicio:"Remplacement d'écran"},
+    bateria:{label:'Batterie',averia:'Batterie qui ne tient plus',servicio:'Remplacement de batterie'},
+    nocarga:{label:'Ne charge pas',averia:'Ne charge pas / problème de charge',servicio:'Réparation connecteur de charge'},
+    liquidos:{label:'Liquides',averia:'Dégâts des liquides / humidité',servicio:'Nettoyage après humidité'},
+    altavoz:{label:'Haut-parleur',averia:'Pas de son / haut-parleur',servicio:'Réparation haut-parleur'},
+    camara:{label:'Caméra',averia:'Caméra ne fonctionne pas',servicio:'Réparation caméra'},
+    boton:{label:'Bouton',averia:'Bouton Power / Volume / Home',servicio:'Réparation boutons'},
+    software:{label:'Logiciel',averia:'Problème logiciel / système',servicio:'Réparation logicielle'}
+  },
+  it: {
+    pantalla:{label:'Schermo',averia:'Schermo rotto',servicio:'Sostituzione schermo'},
+    bateria:{label:'Batteria',averia:'Batteria che non tiene',servicio:'Sostituzione batteria'},
+    nocarga:{label:'Non carica',averia:'Non carica / problema di ricarica',servicio:'Riparazione connettore di ricarica'},
+    liquidos:{label:'Liquidi',averia:'Danni da liquidi / umidità',servicio:'Pulizia da umidità'},
+    altavoz:{label:'Altoparlante',averia:'Nessun suono / altoparlante',servicio:'Riparazione altoparlante'},
+    camara:{label:'Fotocamera',averia:'Fotocamera non funziona',servicio:'Riparazione fotocamera'},
+    boton:{label:'Tasto',averia:'Tasto Power / Volume / Home',servicio:'Riparazione tasti'},
+    software:{label:'Software',averia:'Problema software / sistema',servicio:'Riparazione software'}
+  },
+  de: {
+    pantalla:{label:'Display',averia:'Display gebrochen',servicio:'Displaytausch'},
+    bateria:{label:'Akku',averia:'Akku hält nicht mehr',servicio:'Akkutausch'},
+    nocarga:{label:'Lädt nicht',averia:'Lädt nicht / Ladeproblem',servicio:'Ladebuchse-Reparatur'},
+    liquidos:{label:'Flüssigkeit',averia:'Flüssigkeits-/Feuchtigkeitsschaden',servicio:'Feuchtigkeitsreinigung'},
+    altavoz:{label:'Lautsprecher',averia:'Kein Ton / Lautsprecher',servicio:'Lautsprecher-Reparatur'},
+    camara:{label:'Kamera',averia:'Kamera funktioniert nicht',servicio:'Kamera-Reparatur'},
+    boton:{label:'Taste',averia:'Power-/Lautstärke-/Home-Taste',servicio:'Tasten-Reparatur'},
+    software:{label:'Software',averia:'Software-/Systemproblem',servicio:'Software-Reparatur'}
+  },
+  pt: {
+    pantalla:{label:'Ecrã',averia:'Ecrã partido',servicio:'Substituição de ecrã'},
+    bateria:{label:'Bateria',averia:'Bateria não aguenta',servicio:'Substituição de bateria'},
+    nocarga:{label:'Não carrega',averia:'Não carrega / problema de carga',servicio:'Reparação do conector de carga'},
+    liquidos:{label:'Líquidos',averia:'Danos por líquidos / humidade',servicio:'Limpeza por humidade'},
+    altavoz:{label:'Altifalante',averia:'Sem som / altifalante',servicio:'Reparação de altifalante'},
+    camara:{label:'Câmara',averia:'Câmara não funciona',servicio:'Reparação de câmara'},
+    boton:{label:'Botão',averia:'Botão Power / Volume / Home',servicio:'Reparação de botões'},
+    software:{label:'Software',averia:'Problema de software / sistema',servicio:'Reparação de software'}
+  }
+};
+
+// Resuelve label/averia/servicio de una plantilla en el idioma de la tienda. Solo las POR DEFECTO;
+// las personalizadas (TIENDA.plantillasRep) se respetan tal cual las escribió el usuario.
+function _plantI18n(p, field) {
+  if (!p) return '';
+  var usaDefault = !(typeof TIENDA !== 'undefined' && TIENDA && Array.isArray(TIENDA.plantillasRep) && TIENDA.plantillasRep.length);
+  if (usaDefault && p.key) {
+    var lang = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+    var tbl = PLANTILLAS_I18N[lang];
+    if (tbl && tbl[p.key] && tbl[p.key][field]) return tbl[p.key][field];
+  }
+  return p[field] || '';
+}
+
 function getPlantillasRep() {
   if (TIENDA && Array.isArray(TIENDA.plantillasRep) && TIENDA.plantillasRep.length) {
     return TIENDA.plantillasRep;
@@ -8964,7 +9033,7 @@ function renderPlantillasRep() {
   if (!box) return;
   var plantillas = getPlantillasRep();
   var html = plantillas.map(function(p, i) {
-    return '<button type="button" class="rep-quick-chip" onclick="aplicarPlantillaRep(\'' + (p.key || i) + '\')">' + (p.icon || '🔧') + ' ' + esc(p.label || '') + '</button>';
+    return '<button type="button" class="rep-quick-chip" onclick="aplicarPlantillaRep(\'' + (p.key || i) + '\')">' + (p.icon || '🔧') + ' ' + esc(_plantI18n(p, 'label')) + '</button>';
   }).join('');
   // Botón configurar al final
   html += '<button type="button" class="rep-quick-cfg" onclick="abrirGestorPlantillas()" title="' + T('plant.config_title') + '">⚙️</button>';
@@ -8979,12 +9048,12 @@ function aplicarPlantillaRep(key) {
     if (!isNaN(idx) && plantillas[idx]) p = plantillas[idx];
   }
   if (!p) return;
-  // Avería = lo que reporta el cliente
-  if (p.averia) document.getElementById('rAveria').value = p.averia;
+  // Avería = lo que reporta el cliente (en el idioma de la tienda para las plantillas por defecto)
+  if (p.averia) document.getElementById('rAveria').value = _plantI18n(p, 'averia');
   // Servicio (separado de avería) = lo que cobramos
   if (p.servicio) {
     agregarServicioRep({
-      nombre: p.servicio,
+      nombre: _plantI18n(p, 'servicio'),
       desc: '',
       coste: 0,
       precio: parseFloat(p.precio) || 0
@@ -9002,7 +9071,7 @@ function aplicarPlantillaRep(key) {
     });
   }
   calcR();
-  toast(T('tst.plantilla_aplicada').replace('{n}', (p.label || '')), 'ok');
+  toast(T('tst.plantilla_aplicada').replace('{n}', _plantI18n(p, 'label')), 'ok');
 }
 
 // ═══ GESTOR DE PLANTILLAS RÁPIDAS ═══
