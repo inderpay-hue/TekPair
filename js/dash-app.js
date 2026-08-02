@@ -4334,6 +4334,7 @@ var _IV2_SPRITE = '<svg width="0" height="0" style="position:absolute" aria-hidd
   '<symbol id="iv2-print" viewBox="0 0 24 24"><path d="M7 8V4h10v4"/><rect x="4" y="8" width="16" height="8.5" rx="2.5"/><path d="M7 14.5h10V20H7z"/></symbol>' +
   '<symbol id="iv2-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 7.9-7.5 9.5-4.3-1.6-7.5-4.9-7.5-9.5V6z"/></symbol>' +
   '<symbol id="iv2-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>' +
+  '<symbol id="iv2-tag" viewBox="0 0 24 24"><path d="M3.5 12 12 3.5a2 2 0 0 1 1.4-.6H19a2 2 0 0 1 2 2v5.6a2 2 0 0 1-.6 1.4L12 20.5a2 2 0 0 1-2.8 0l-5.7-5.7a2 2 0 0 1 0-2.8z"/><circle cx="16.4" cy="7.6" r="1.1"/></symbol>' +
   '</svg>';
 // Inyecta el sprite de iconos UNA sola vez en el body (disponible para Inicio, Reparaciones, etc.).
 function _ensureIv2Sprite() {
@@ -12078,6 +12079,7 @@ function imprimirStock() {
 }
 
 function renderStock() {
+  try { _ensureIv2Sprite(); } catch (e) {}
   poblarFiltroUbicStock();
   try { _renderStockOptimo(); } catch (e) {}
   var _blog = document.getElementById('btnStockLog'); if (_blog) _blog.style.display = (U && U.rol === 'admin') ? '' : 'none';
@@ -12147,9 +12149,9 @@ function renderStock() {
       (mostrarUbic ? '<td>' + (s.ubicacion ? '<span class="badge" style="background:rgba(255,91,31,.10);color:var(--purple);font-size:9px">' + esc(s.ubicacion) + '</span>' : '<span style="color:var(--muted);font-size:10px">—</span>') + '</td>' : '') +
       '<td style="font-weight:700;color:' + (s.unidades < 0 ? 'var(--red)' : (s.unidades <= s.stockMin ? 'var(--orange)' : 'var(--text)')) + '">' + s.unidades + (s.unidades < 0 ? ' <button onclick="corregirStockCero(\'' + s.id + '\')" title="' + T('stock.title_poner_cero') + '" style="background:rgba(239,68,68,.12);border:none;color:var(--red);border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer;font-weight:800">→0</button>' : '') + '</td>' +
       '<td>' + ((parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '<span style="color:var(--red);font-weight:700" title="' + T('stock.title_sin_pvp') + '">⚠ ' + cur(0) + '</span>') + '</td>' +
-      '<td><button data-sid="' + s.id + '" class="btn-etq-s" title="' + T('etq.imprimir') + '" style="background:rgba(124,58,237,.1);border:none;color:var(--purple);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer">\ud83c\udff7\ufe0f</button>' +
-      '<button data-sid="' + s.id + '" class="btn-edit-s" title="' + (T('gen.editar') || 'Editar') + '" aria-label="' + (T('gen.editar') || 'Editar') + '" style="background:var(--light);border:none;padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:3px">\u270f\ufe0f</button>' +
-      '<button data-sid="' + s.id + '" class="btn-del-s" title="' + (T('gen.eliminar') || 'Eliminar') + '" aria-label="' + (T('gen.eliminar') || 'Eliminar') + '" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 8px;border-radius:6px;font-size:11px;cursor:pointer;margin-left:3px">\ud83d\uddd1\ufe0f</button></td></tr>';
+      '<td><button data-sid="' + s.id + '" class="row-btn btn-etq-s" title="' + T('etq.imprimir') + '" style="color:var(--purple)">' + _iv2ic('tag', 16) + '</button>' +
+      '<button data-sid="' + s.id + '" class="row-btn btn-edit-s" title="' + (T('gen.editar') || 'Editar') + '" aria-label="' + (T('gen.editar') || 'Editar') + '">' + _iv2ic('pencil', 16) + '</button>' +
+      '<button data-sid="' + s.id + '" class="row-btn btn-del-s" title="' + (T('gen.eliminar') || 'Eliminar') + '" aria-label="' + (T('gen.eliminar') || 'Eliminar') + '" style="color:var(--red)">' + _iv2ic('trash', 16) + '</button></td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -13177,6 +13179,7 @@ function _avisarGradoCliente(c) {
   if (c && c.grado === 'C') { try { toast('⚠️ ' + T('cli.grado_c_aviso'), 'err'); } catch (e) {} }
 }
 function renderClis() {
+  try { _ensureIv2Sprite(); } catch (e) {}
   var q = _norm(document.getElementById('busClis').value);
   var list = DB.clis.filter(function(c) {
     return !q || _norm(c.nombre + ' ' + c.apellidos + ' ' + (c.tel || '') + ' ' + (c.dni || '')).indexOf(q) !== -1;
@@ -13192,8 +13195,8 @@ function renderClis() {
       '<td style="font-size:11px">' + (esc(c.tel) || '\u2014') + '</td>' +
       '<td><span class="badge bb" title="' + T('nav.ventas_2') + '">' + vc + 'v</span> <span class="badge bp" title="' + T('nav.reparaciones_2') + '">' + rc + 'r</span></td>' +
       '<td style="display:flex;gap:3px">' +
-      '<button data-cid="' + c.id + '" class="btn-edit-c" title="' + T('cli.title_editar') + '" style="background:var(--light);border:none;padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">\u270f\ufe0f</button>' +
-      '<button data-cid="' + c.id + '" class="btn-del-c" title="' + T('cli.title_eliminar') + '" style="background:rgba(239,68,68,.1);border:none;color:var(--red);padding:4px 7px;border-radius:6px;font-size:11px;cursor:pointer">\ud83d\uddd1\ufe0f</button>' +
+      '<button data-cid="' + c.id + '" class="row-btn btn-edit-c" title="' + T('cli.title_editar') + '">' + _iv2ic('pencil', 16) + '</button>' +
+      '<button data-cid="' + c.id + '" class="row-btn btn-del-c" title="' + T('cli.title_eliminar') + '" style="color:var(--red)">' + _iv2ic('trash', 16) + '</button>' +
       '</td></tr>';
   });
   html += '</tbody></table></div>';
