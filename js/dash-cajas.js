@@ -159,7 +159,7 @@
       await Promise.all(Estado.cajas.map(async (c) => {
         try {
           const d = await api('obtener_cierre', {
-            query: { caja_id: c.id, fecha: Estado.fechaActual }
+            query: { caja_id: c.id, fecha: Estado.fechaActual, hoy: (typeof hoyLocal === 'function' ? hoyLocal() : '') }
           });
           Estado.cierres[c.id] = d;
         } catch (e) {
@@ -714,7 +714,7 @@
   async function abrirCierre(cajaId) {
     try {
       const data = await api('obtener_cierre', {
-        query: { caja_id: cajaId, fecha: Estado.fechaActual }
+        query: { caja_id: cajaId, fecha: Estado.fechaActual, hoy: (typeof hoyLocal === 'function' ? hoyLocal() : '') }
       });
       Estado.cierreEditando = data;
 
@@ -1605,7 +1605,7 @@
     try {
       // Buscar el cierre festivo y borrarlo (eso "deshace" el festivo)
       const data = await api('obtener_cierre', {
-        query: { caja_id: cajaId, fecha: Estado.fechaActual }
+        query: { caja_id: cajaId, fecha: Estado.fechaActual, hoy: (typeof hoyLocal === 'function' ? hoyLocal() : '') }
       });
       if (data.cierre?.id && data.cierre.estado === 'festivo') {
         await api('borrar_cierre', {

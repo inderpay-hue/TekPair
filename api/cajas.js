@@ -203,13 +203,61 @@ async function _cajaDeFiado(id) {
   return (f[0] && f[0].caja_id) || null;
 }
 
-// ¿La fecha es claramente anterior a "hoy"? Tolerancia de 36h para cubrir cualquier huso horario
-// (así "hoy" del empleado nunca se bloquea, pero sí los días pasados de verdad).
-function _fechaAnterior(fecha) {
+// ¿La fecha es claramente anterior a "hoy"? Heurística de servidor con 36h de margen (así "hoy"
+// nunca se bloquea en ningún huso horario). Si el cliente informa su fecha local (clientHoy),
+// se aplica también → bloquea "ayer" para el empleado honesto. Se toma el criterio MÁS ESTRICTO:
+// spoofear una clientHoy vieja NO desbloquea nada (la heurística de 36h sigue aplicando).
+function _fechaAnterior(fecha, clientHoy) {
   try {
+    const f = String(fecha || '').slice(0, 10);
     const lim = new Date(Date.now() - 36 * 3600 * 1000).toISOString().slice(0, 10);
-    return String(fecha || '').slice(0, 10) < lim;
+    let anterior = f < lim;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(String(clientHoy || '')) && f < String(clientHoy)) anterior = true;
+    return anterior;
   } catch (e) { return false; }
+}
+
+// Efectivo esperado del día para la "Caja del día", recalculado en el SERVIDOR (no se fía del
+// cliente, que podría deflactarlo para tapar un descuadre de la caja). Mismo cálculo que
+// cajaDiaResumen del frontend: ventas financiado-aware (solo efectivo) + pagos_reparacion en
+// efectivo, excluyendo presupuestos/rechazados no aceptados.
+async function _efectivoEsperadoDia(tienda_id, fecha) {
+  const esEf = (m) => /efectiv/i.test(String(m == null ? 'Efectivo' : m));
+  const F = String(fecha || '').slice(0, 10);
+  let ef = 0;
+  // Ventas del día (no reembolsadas)
+  const ventas = await sbGet(`ventas?tienda_id=eq.${encodeURIComponent(tienda_id)}&reembolsado=eq.false&select=fecha,pago,total,financiado,cuotas,entrada,entrada_pago`);
+  for (const v of (ventas || [])) {
+    if (v.financiado && v.cuotas) {
+      let cuotas = v.cuotas;
+      if (typeof cuotas === 'string') { try { cuotas = JSON.parse(cuotas); } catch (e) { cuotas = []; } }
+      if (String(v.fecha).slice(0, 10) === F && Number(v.entrada || 0) > 0 && esEf(v.entrada_pago)) {
+        ef += Number(v.entrada) || 0;
+      }
+      (cuotas || []).forEach((c) => {
+        if (c && c.fechaPago && String(c.fechaPago).slice(0, 10) === F && esEf(c.formaPago)) {
+          ef += (c.pagadoImporte != null) ? (parseFloat(c.pagadoImporte) || 0) : (c.pagado ? (parseFloat(c.importe) || 0) : 0);
+        }
+      });
+    } else if (String(v.fecha).slice(0, 10) === F && esEf(v.pago)) {
+      ef += Number(v.total) || 0;
+    }
+  }
+  // Pagos de reparación del día en efectivo (anticipo o no), excluyendo presupuestos/rechazados.
+  const pagos = await sbGet(`pagos_reparacion?tienda_id=eq.${encodeURIComponent(tienda_id)}&fecha=eq.${encodeURIComponent(F)}&select=metodo,importe,reparacion_id`);
+  if (pagos && pagos.length) {
+    const repIds = [...new Set(pagos.map((p) => p.reparacion_id).filter(Boolean))];
+    let presup = new Set();
+    if (repIds.length) {
+      const reps = await sbGet(`reparaciones?tienda_id=eq.${encodeURIComponent(tienda_id)}&id=in.(${repIds.map(encodeURIComponent).join(',')})&estado=in.(Presupuesto,Rechazado)&select=id`);
+      presup = new Set((reps || []).map((r) => String(r.id)));
+    }
+    for (const p of pagos) {
+      if (p.reparacion_id && presup.has(String(p.reparacion_id))) continue;
+      if (esEf(p.metodo)) ef += parseFloat(p.importe) || 0;
+    }
+  }
+  return Math.round(ef * 100) / 100;
 }
 
 
@@ -472,6 +520,9 @@ export default async function handler(req, res) {
           `cajas?tienda_id=eq.${encodeURIComponent(tienda_id)}&nombre=eq.${encodeURIComponent('Caja del día')}&order=created_at.asc&limit=1`
         );
         if (existentes.length) return ok(res, { caja: existentes[0], creada: false });
+        // Crear la Caja del día la primera vez la hace un admin (el dueño al arrancar). Un empleado
+        // no la crea ni fuerza su alta. El frontend ignora este retorno y lista las cajas aparte.
+        if (!(await esAdminTiendaDB(payload))) return ok(res, { caja: null, creada: false });
         const cajaData = {
           tienda_id, tipo: 'custom', nombre: 'Caja del día',
           icono: '📅', color: '#00C896', orden: -1
@@ -597,7 +648,8 @@ export default async function handler(req, res) {
         if (!caja_id || !fecha) return err(res, 400, 'caja_id y fecha obligatorios');
         if (!(await puedeAccederCaja(payload, caja_id))) return err(res, 403, 'Sin permiso para esta caja');
         // Ver el contenido de días anteriores requiere permiso de histórico (admin siempre).
-        if (_fechaAnterior(fecha) && !(await tienePermisoCaja(payload, 'cajasm_historico'))) return err(res, 403, 'Sin permiso para ver días anteriores');
+        // req.query.hoy = fecha local del cliente → endurece el gate (bloquea "ayer" al empleado honesto).
+        if (_fechaAnterior(fecha, req.query.hoy) && !(await tienePermisoCaja(payload, 'cajasm_historico'))) return err(res, 403, 'Sin permiso para ver días anteriores');
         const cajas = await sbGet(
           `cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`
         );
@@ -669,7 +721,15 @@ export default async function handler(req, res) {
         // cobrados en efectivo), que el front calcula con la lógica canónica y envía. El descuadre
         // queda = efectivo contado − efectivo esperado (tarjeta/bizum no se cuentan a mano).
         if (caja.nombre === 'Caja del día') {
-          saldoTeorico = Math.round(Number(req.body.efectivo_esperado || 0) * 100) / 100;
+          // No fiarse del efectivo_esperado del cliente (un empleado podría deflactarlo para tapar
+          // un descuadre): recalcularlo en el servidor. Si el recálculo fallara, caer al valor del
+          // cliente para no bloquear el cierre.
+          try {
+            saldoTeorico = await _efectivoEsperadoDia(tienda_id, fecha);
+          } catch (e) {
+            console.error('[cajas] _efectivoEsperadoDia falló, uso valor del cliente:', e.message);
+            saldoTeorico = Math.round(Number(req.body.efectivo_esperado || 0) * 100) / 100;
+          }
         }
         const saldoReal = Number(saldo_real_final || 0);
         // v2.3: Los fiados PENDIENTES son deuda (no suman al cobrado).

@@ -92,6 +92,12 @@ export default async function handler(req, res) {
     if (!/^[A-Za-z0-9+/=]+$/.test(pdfBase64.slice(0, 100))) {
       return res.status(400).json({ error: 'PDF en formato base64 inválido' });
     }
+    // AUD: exigir que el adjunto sea REALMENTE un PDF (magic bytes "%PDF" → base64 empieza por "JVBER").
+    // Evita usar el dominio tekpair.tech para enviar adjuntos arbitrarios (phishing) con una cuenta válida.
+    const _b64pdf = pdfBase64.replace(/^data:[^,]*,/, '').replace(/\s+/g, '');
+    if (!_b64pdf.startsWith('JVBER')) {
+      return res.status(400).json({ error: 'El adjunto no es un PDF válido' });
+    }
 
     // EM-2: escape de TODOS los campos dinámicos
     const tNom = esc(tienda || 'TekPair').slice(0, 100);
