@@ -222,12 +222,17 @@ function _fechaAnterior(fecha, clientHoy) {
 // cajaDiaResumen del frontend: ventas financiado-aware (solo efectivo) + pagos_reparacion en
 // efectivo, excluyendo presupuestos/rechazados no aceptados.
 async function _efectivoEsperadoDia(tienda_id, fecha) {
-  const esEf = (m) => /efectiv/i.test(String(m == null ? 'Efectivo' : m));
+  // esEf: mismo criterio EXACTO que el frontend (`metodo || 'Efectivo'`) → cualquier valor falsy
+  // (null, undefined, '') se trata como efectivo. Si solo tratáramos null, un método '' divergiría.
+  const esEf = (m) => /efectiv/i.test(String(m || 'Efectivo'));
   const F = String(fecha || '').slice(0, 10);
   let ef = 0;
-  // Ventas del día (no reembolsadas)
-  const ventas = await sbGet(`ventas?tienda_id=eq.${encodeURIComponent(tienda_id)}&reembolsado=eq.false&select=fecha,pago,total,financiado,cuotas,entrada,entrada_pago`);
+  // Ventas del día. El filtro de reembolso se hace en JS con la MISMA semántica que el front
+  // (`if (v.reembolsado) return`): excluye solo las reembolsadas de verdad, NO las de reembolsado
+  // NULL. (Con reembolsado=eq.false en PostgREST se perdían las NULL → descuadre falso.)
+  const ventas = await sbGet(`ventas?tienda_id=eq.${encodeURIComponent(tienda_id)}&select=fecha,pago,total,financiado,cuotas,entrada,entrada_pago,reembolsado`);
   for (const v of (ventas || [])) {
+    if (v.reembolsado) continue;
     if (v.financiado && v.cuotas) {
       let cuotas = v.cuotas;
       if (typeof cuotas === 'string') { try { cuotas = JSON.parse(cuotas); } catch (e) { cuotas = []; } }
