@@ -4330,6 +4330,10 @@ var _IV2_SPRITE = '<svg width="0" height="0" style="position:absolute" aria-hidd
   '<symbol id="iv2-link" viewBox="0 0 24 24"><path d="M10.5 13.5a4 4 0 0 0 5.7 0l3-3a4 4 0 1 0-5.7-5.7l-1.5 1.5"/><path d="M13.5 10.5a4 4 0 0 0-5.7 0l-3 3a4 4 0 1 0 5.7 5.7l1.5-1.5"/></symbol>' +
   '<symbol id="iv2-msg" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-9 8.4L3 21l1.1-4A8.4 8.4 0 1 1 21 11.5z"/></symbol>' +
   '<symbol id="iv2-euro" viewBox="0 0 24 24"><path d="M16 8a5 5 0 1 0 0 8"/><path d="M4.5 10.5H13M4.5 13.5H12"/></symbol>' +
+  '<symbol id="iv2-undo" viewBox="0 0 24 24"><path d="M9 6 5 10l4 4"/><path d="M5 10h9a5 5 0 0 1 0 10h-2"/></symbol>' +
+  '<symbol id="iv2-print" viewBox="0 0 24 24"><path d="M7 8V4h10v4"/><rect x="4" y="8" width="16" height="8.5" rx="2.5"/><path d="M7 14.5h10V20H7z"/></symbol>' +
+  '<symbol id="iv2-shield" viewBox="0 0 24 24"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 7.9-7.5 9.5-4.3-1.6-7.5-4.9-7.5-9.5V6z"/></symbol>' +
+  '<symbol id="iv2-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>' +
   '</svg>';
 // Inyecta el sprite de iconos UNA sola vez en el body (disponible para Inicio, Reparaciones, etc.).
 function _ensureIv2Sprite() {
@@ -7066,6 +7070,7 @@ function _esFinPendiente(v) {
   return true;
 }
 function renderVentas() {
+  try { _ensureIv2Sprite(); } catch (e) {}
   var q = _norm(document.getElementById('busVentas').value);
   var filtro = SEL.ventaFiltro || 'todas';
   var list = DB.ventas.slice().reverse().filter(function(v) {
@@ -7088,12 +7093,12 @@ function renderVentas() {
       var _compF = (v.estadoFinanciado === 'completado') || (_cuoF.length > 0 && _nPagF >= _cuoF.length);
       badges += '<span class="badge-fin" style="background:' + (_compF ? 'rgba(0,200,150,.15)' : 'rgba(234,88,12,.12)') + ';color:' + (_compF ? '#0F7355' : '#C2491A') + '">' + (_compF ? '✅ ' + T('fin.completado') : '⏳ ' + T('finv.pendiente') + (_cuoF.length ? ' ' + _nPagF + '/' + _cuoF.length : '')) + '</span>';
     }
-    var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="' + escHtml(T('ventas.t_reembolsar')) + '">\u21a9</button>' : '';
-    var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="edit" class="row-btn btn-fin" title="' + escHtml(T('ventas.t_financiacion')) + '">\ud83d\udcb0</button>' : '';
-    var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="' + escHtml(T('ventas.t_reimprimir')) + '">\ud83d\udda8</button>';
-    var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="' + T('rep.title_generar_factura') + '">📄</button>' : '';
-    var btnEdit = (!v.reembolsado && (typeof _esAdmin === 'function' && _esAdmin())) ? '<button data-vid="' + v.id + '" class="row-btn btn-edit-v" title="' + T('venta.editar_t') + '">✏️</button>' : '';
-    var btnSeg = _puedeSeguimiento() ? '<button data-vid="' + v.id + '" class="row-btn btn-seg-v" title="' + escHtml(T('seg.btn')) + '">🕘</button>' : '';
+    var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="' + escHtml(T('ventas.t_reembolsar')) + '">' + _iv2ic('undo', 16) + '</button>' : '';
+    var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="edit" class="row-btn btn-fin" title="' + escHtml(T('ventas.t_financiacion')) + '">' + _iv2ic('euro', 16) + '</button>' : '';
+    var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="' + escHtml(T('ventas.t_reimprimir')) + '">' + _iv2ic('print', 16) + '</button>';
+    var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="' + T('rep.title_generar_factura') + '">' + _iv2ic('doc', 16) + '</button>' : '';
+    var btnEdit = (!v.reembolsado && (typeof _esAdmin === 'function' && _esAdmin())) ? '<button data-vid="' + v.id + '" class="row-btn btn-edit-v" title="' + T('venta.editar_t') + '">' + _iv2ic('pencil', 16) + '</button>' : '';
+    var btnSeg = _puedeSeguimiento() ? '<button data-vid="' + v.id + '" class="row-btn btn-seg-v" title="' + escHtml(T('seg.btn')) + '">' + _iv2ic('clock', 16) + '</button>' : '';
     html += '<tr style="' + (v.reembolsado ? 'opacity:.55' : '') + '">' +
       '<td>' + fmtFecha(v.fecha) + '</td>' +
       '<td>' + esc(_cliLbl(v.clienteNombre)) + badges + '</td>' +
@@ -11476,15 +11481,15 @@ function renderReps() {
     } else if ((r.clienteId || r.clienteNombre) && r.estado !== 'Entregado' && r.estado !== 'Rechazado') {
       var info = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre, r.imei);
       if (info && info.rep.id !== r.id) {
-        badgeGarantia = '<br><span class="badge-garantia" title="' + escHtml(T('rep.previa_entregada').replace('{f}', info.rep.fechaEntregaReal).replace('{d}', info.dias)) + '">🛡️ ' + T('rep.en_garantia') + '</span>';
+        badgeGarantia = '<br><span class="badge-garantia" title="' + escHtml(T('rep.previa_entregada').replace('{f}', info.rep.fechaEntregaReal).replace('{d}', info.dias)) + '">' + _iv2ic('shield', 11) + ' ' + T('rep.en_garantia') + '</span>';
       }
     }
     var priBadge = r.prioridad && r.prioridad !== 'Normal'
       ? '<span class="badge ' + (r.prioridad === 'Urgente' ? 'br' : 'bo') + '">' + (T('rep.prio_' + ({Alta:'alta',Urgente:'urgente'}[r.prioridad] || 'normal')) || r.prioridad) + '</span>'
       : '<span style="color:var(--muted);font-size:11px">' + T('rep.prio_normal') + '</span>';
-    var badgeFin = r.financiado ? '<br><span style="display:inline-block;background:rgba(139,92,246,.12);color:#6D28D9;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">💰 ' + (r.estadoFinanciado === 'completado' ? T('fin.completado') : T('fin.badge')) + '</span>' : '';
-    var chipPieza = repEsperaPieza(r.id) ? '<br><span style="display:inline-block;background:rgba(217,119,6,.12);color:#B45309;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px" title="' + T('rep.esperando_pieza') + '">🛒 ' + T('rep.esperando_pieza') + '</span>' : '';
-    var chipAcep = (!r.aceptacionCliente && !r.aceptacionMostrador && ['Entregado','Rechazado','Devuelto','Sin Solucion','Presupuesto'].indexOf(r.estado) === -1) ? '<br><span style="display:inline-block;background:rgba(148,163,184,.16);color:#64748B;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px" title="' + esc(T('acep.sin_chip_title')) + '">📝 ' + T('acep.sin_chip') + '</span>' : '';
+    var badgeFin = r.financiado ? '<br><span style="display:inline-block;background:rgba(139,92,246,.12);color:#6D28D9;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">' + _iv2ic('euro', 11) + ' ' + (r.estadoFinanciado === 'completado' ? T('fin.completado') : T('fin.badge')) + '</span>' : '';
+    var chipPieza = repEsperaPieza(r.id) ? '<br><span style="display:inline-block;background:rgba(217,119,6,.12);color:#B45309;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px" title="' + T('rep.esperando_pieza') + '">' + _iv2ic('box', 11) + ' ' + T('rep.esperando_pieza') + '</span>' : '';
+    var chipAcep = (!r.aceptacionCliente && !r.aceptacionMostrador && ['Entregado','Rechazado','Devuelto','Sin Solucion','Presupuesto'].indexOf(r.estado) === -1) ? '<br><span style="display:inline-block;background:rgba(148,163,184,.16);color:#64748B;font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px" title="' + esc(T('acep.sin_chip_title')) + '">' + _iv2ic('pencil', 11) + ' ' + T('acep.sin_chip') + '</span>' : '';
     html += '<tr>'
       + '<td><strong>' + r.clienteNombre + '</strong>' + badgeGarantia + badgeFin + chipPieza + chipAcep + '</td>'
       + '<td>' + r.marca + ' ' + r.modelo + (r.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">' + r.imei + '</span>' : '') + '</td>'
@@ -11499,8 +11504,8 @@ function renderReps() {
       + '<td style="font-weight:700;color:var(--green)">' + (r.esGarantia
           // F274: una reparación EN GARANTÍA no se cobra al cliente → "sin coste", con el
           // total mostrado como coste interno (cuánto te cuesta cubrir la garantía), sin "a deber".
-          ? '<span style="color:#2563EB" title="' + T('rep.title_cubierto_gar') + '">🛡️ ' + (T('rep.garantia_sin_coste') || 'Sin coste') + '</span>' + ((parseFloat(r.total) || 0) > 0 ? '<br><span style="font-size:10px;color:var(--muted)" title="' + T('rep.title_coste_interno') + '">' + cur(r.total) + '</span>' : '')
-          : cur(r.total) + ((parseFloat(r.restante) || 0) > 0 ? '<br><span style="font-size:10px;font-weight:700;color:#EA580C" title="' + T('rep.queda_deber') + '">⏳ ' + cur(r.restante) + '</span>' : '')
+          ? '<span style="color:#2563EB" title="' + T('rep.title_cubierto_gar') + '">' + _iv2ic('shield', 11) + ' ' + (T('rep.garantia_sin_coste') || 'Sin coste') + '</span>' + ((parseFloat(r.total) || 0) > 0 ? '<br><span style="font-size:10px;color:var(--muted)" title="' + T('rep.title_coste_interno') + '">' + cur(r.total) + '</span>' : '')
+          : cur(r.total) + ((parseFloat(r.restante) || 0) > 0 ? '<br><span style="font-size:10px;font-weight:700;color:#EA580C" title="' + T('rep.queda_deber') + '">' + _iv2ic('clock', 11) + ' ' + cur(r.restante) + '</span>' : '')
         ) + '</td>'
       + '<td>' + btnDetalleR + btnFin + btnCobrar + btnE + btnPresAcept + btnPresFirma + btnPresRech + btnPresEnviar + btnEdit + btnLink + btnWA + btnFact + btnDel + '</td></tr>';
   });
