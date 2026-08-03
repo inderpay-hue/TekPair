@@ -3912,17 +3912,16 @@ function _ventasIngresoTotal(ventas, d1, d2) {
   return t;
 }
 
+// Ingreso total del rango: ventas + pagos REALES de reparación (anticipos incluidos).
+// Antes sumaba (total − restante) de las reparaciones entregadas, así que el anticipo de
+// una reparación aún abierta no aparecía aunque el dinero ya estuviera cobrado. Alimenta
+// el mini "HOY" del menú lateral y las gráficas de evolución, que por eso iban cortos.
 function _invIncome(d1, d2) {
-  var t = _ventasIngresoTotal(DB.ventas, d1, d2);
-  // Reparaciones entregadas: contar lo COBRADO (total − restante), no el total, para no inflar
-  // con saldos pendientes. Caja real, coherente con Reports (que usa pagos reales).
-  (DB.reps || []).forEach(function(r) {
-    var f = (r.fechaEntregaReal || '').slice(0, 10);
-    if (f && f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') {
-      t += Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0));
-    }
-  });
-  return t;
+  var pagos = {};
+  var v = _ventasIngresoPorMetodo(DB.ventas, d1, d2);
+  Object.keys(v).forEach(function(k) { pagos[k] = v[k]; });
+  _sumarCobradoReps(pagos, d1, d2);
+  return Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
 }
 // W4: los KPIs del inicio navegan a Reparaciones con el filtro adecuado (antes a Reportes genérico).
 function _kpiReps(f) {
@@ -4388,30 +4387,37 @@ function _ensureIv2Sprite() {
 // Eso dejaba fuera los anticipos de reparaciones aún abiertas (dinero ya cobrado y en el
 // cajón) y, al revés, imputaba al día de la entrega un anticipo cobrado días antes.
 // Caja del día y Reportes ya usaban pagos_reparacion; el Inicio se queda coherente.
-var _INV_PAGOS = { key: '', data: null, cargando: '' };
-function _invPagosRep(d1, d2) {
-  var key = d1 + '_' + d2;
-  if (_INV_PAGOS.key === key && _INV_PAGOS.data) return _INV_PAGOS.data;
-  if (!SB_KEY || !TIENDA_ID || _INV_PAGOS.cargando === key) return null;
-  _INV_PAGOS.cargando = key;
-  sbGet('pagos_reparacion', 'fecha=gte.' + d1 + '&fecha=lte.' + d2 + '&select=importe,metodo,tipo,reparacion_id')
+// Se cachea UN rango amplio (13 meses) y se filtra en memoria: las gráficas piden
+// _invIncome día a día y semana a semana, así que una caché por rango concreto
+// provocaría una petición por cada punto.
+var _INV_PAGOS = { desde: '', data: null, cargando: false };
+function _invPagosRep() {
+  if (_INV_PAGOS.data) return _INV_PAGOS.data;
+  if (!SB_KEY || !TIENDA_ID || _INV_PAGOS.cargando) return null;
+  var desde = new Date(); desde.setMonth(desde.getMonth() - 13);
+  var isoDesde = desde.toISOString().slice(0, 10);
+  _INV_PAGOS.cargando = true;
+  sbGet('pagos_reparacion', 'fecha=gte.' + isoDesde + '&select=fecha,importe,metodo,tipo,reparacion_id')
     .then(function(rows) {
       var pres = _idsPresupuesto();   // anticipos de presupuestos sin aceptar no son ingreso
-      _INV_PAGOS = { key: key, cargando: '', data: (rows || []).filter(function(p) {
+      _INV_PAGOS = { desde: isoDesde, cargando: false, data: (rows || []).filter(function(p) {
         return !(p.reparacion_id && pres[p.reparacion_id]);
       }) };
       try { renderInicioNuevo(); } catch (e) {}   // repintar ya con el dato bueno
+      try { renderSidebarHoy(); } catch (e) {}
     })
-    .catch(function() { _INV_PAGOS.cargando = ''; });
+    .catch(function() { _INV_PAGOS.cargando = false; });
   return null;
 }
 // Invalida la caché al registrar/borrar un pago (igual que _pagosRepCache).
-function _invalidarInvPagos() { _INV_PAGOS = { key: '', data: null, cargando: '' }; }
+function _invalidarInvPagos() { _INV_PAGOS = { desde: '', data: null, cargando: false }; }
 // Suma en `pagos` lo cobrado de reparaciones en el rango, por forma de pago.
 function _sumarCobradoReps(pagos, d1, d2) {
-  var pr = _invPagosRep(d1, d2);
+  var pr = _invPagosRep();
   if (pr) {
     pr.forEach(function(p) {
+      var f = (p.fecha || '').slice(0, 10);
+      if (f < d1 || f > d2) return;
       var m = p.metodo || 'Efectivo';
       pagos[m] = (pagos[m] || 0) + (parseFloat(p.importe) || 0);
     });
