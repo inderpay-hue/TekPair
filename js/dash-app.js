@@ -4363,6 +4363,50 @@ function _ensureIv2Sprite() {
   w.innerHTML = _IV2_SPRITE;
   document.body.appendChild(w);
 }
+// ── Cobrado del Inicio: pagos REALES de reparación, no reps entregadas ──────────────
+// Antes el Inicio sumaba (total − restante) de las reparaciones ENTREGADAS en el periodo.
+// Eso dejaba fuera los anticipos de reparaciones aún abiertas (dinero ya cobrado y en el
+// cajón) y, al revés, imputaba al día de la entrega un anticipo cobrado días antes.
+// Caja del día y Reportes ya usaban pagos_reparacion; el Inicio se queda coherente.
+var _INV_PAGOS = { key: '', data: null, cargando: '' };
+function _invPagosRep(d1, d2) {
+  var key = d1 + '_' + d2;
+  if (_INV_PAGOS.key === key && _INV_PAGOS.data) return _INV_PAGOS.data;
+  if (!SB_KEY || !TIENDA_ID || _INV_PAGOS.cargando === key) return null;
+  _INV_PAGOS.cargando = key;
+  sbGet('pagos_reparacion', 'fecha=gte.' + d1 + '&fecha=lte.' + d2 + '&select=importe,metodo,tipo,reparacion_id')
+    .then(function(rows) {
+      var pres = _idsPresupuesto();   // anticipos de presupuestos sin aceptar no son ingreso
+      _INV_PAGOS = { key: key, cargando: '', data: (rows || []).filter(function(p) {
+        return !(p.reparacion_id && pres[p.reparacion_id]);
+      }) };
+      try { renderInicioNuevo(); } catch (e) {}   // repintar ya con el dato bueno
+    })
+    .catch(function() { _INV_PAGOS.cargando = ''; });
+  return null;
+}
+// Invalida la caché al registrar/borrar un pago (igual que _pagosRepCache).
+function _invalidarInvPagos() { _INV_PAGOS = { key: '', data: null, cargando: '' }; }
+// Suma en `pagos` lo cobrado de reparaciones en el rango, por forma de pago.
+function _sumarCobradoReps(pagos, d1, d2) {
+  var pr = _invPagosRep(d1, d2);
+  if (pr) {
+    pr.forEach(function(p) {
+      var m = p.metodo || 'Efectivo';
+      pagos[m] = (pagos[m] || 0) + (parseFloat(p.importe) || 0);
+    });
+    return;
+  }
+  // Aún cargando: aproximación con las entregadas para no pintar 0 (se corrige al llegar).
+  (DB.reps || []).forEach(function(r) {
+    var f = (r.fechaEntregaReal || '').slice(0, 10);
+    if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') {
+      var m = r.pagoFinal || 'Efectivo';
+      pagos[m] = (pagos[m] || 0) + Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0));
+    }
+  });
+}
+
 function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
   var host = document.getElementById('inv-admin');
   var empHost = document.getElementById('inv-emp');
@@ -4406,7 +4450,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
   // Cobrado por método (periodo)
   var pagos = {};
   var _vpm = _ventasIngresoPorMetodo(DB.ventas, d1, d2); Object.keys(_vpm).forEach(function(m) { pagos[m] = (pagos[m] || 0) + _vpm[m]; });
-  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0)); } });
+  _sumarCobradoReps(pagos, d1, d2);
   var totalP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
   var efectivo = pagos.Efectivo || 0;
   var ventasPer = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).length;
@@ -4843,7 +4887,7 @@ function renderInicioAdmin(reps, enRep, listas, urgentes) {
   // Lo cobrado por método (Efectivo/Tarjeta/Móvil/Transferencia) del periodo. Se reusa en "Cómo cobras".
   var pagos = {};
   var _vpmCobra = _ventasIngresoPorMetodo(DB.ventas, d1, d2); Object.keys(_vpmCobra).forEach(function(m) { pagos[m] = (pagos[m] || 0) + _vpmCobra[m]; });
-  (DB.reps || []).forEach(function(r) { var f = (r.fechaEntregaReal || '').slice(0, 10); if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0)); } });
+  _sumarCobradoReps(pagos, d1, d2);
   var totalP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
   // El mini "Cobrado" muestra el total + desglose por método (nombre del móvil según país, vía _pagoLbl).
   _st('inv-a-caja', cur(totalP)); _st('inv-a-caja-l', T('inicio.cobrado') + ' ' + sufLbl);
@@ -7725,7 +7769,7 @@ function registrarPagoCuotaRep(rid, cidx) {
         sbPatch('reparaciones', 'id=eq.' + rid, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
         // Cada pago = un pago_reparacion propio (id único) → no machaca anteriores.
         sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoy, importe: pago, metodo: fp, tipo: 'cuota' });
-        window._pagosRepCache = null;
+        window._pagosRepCache = null; try { _invalidarInvPagos(); } catch(e){}
       }
       if (completado) toast(T('tst.financiado_completado'), 'ok');
       else if (cuotasTocadas > 1) toast(T('fin.pago_multi').replace('{imp}', cur(pago)).replace('{n}', cuotasTocadas), 'ok');
@@ -7876,7 +7920,7 @@ function confirmarCobro(attemptId) {
   if (SB_KEY && TIENDA_ID) {
     sbPatch('reparaciones', 'id=eq.' + r.id, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
     sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: parseFloat(r.cuotas[cidx].importe) || 0, metodo: fp, tipo: 'cuota' });
-    window._pagosRepCache = null;
+    window._pagosRepCache = null; try { _invalidarInvPagos(); } catch(e){}
   }
   _resolverIntento(attemptId, 'confirmado');
   toast(T('cobro.confirmado'), 'ok');
@@ -7930,7 +7974,7 @@ function confirmarCobroRep() {
     sbPatch('reparaciones', 'id=eq.' + r.id, { restante: r.restante });
     // El pago se registra en pagos_reparacion -> el ingreso del día entra solo (y va a Cobrum por el volcado).
     sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: imp, metodo: met, tipo: 'parcial' });
-    window._pagosRepCache = null;
+    window._pagosRepCache = null; try { _invalidarInvPagos(); } catch(e){}
   }
   closeM('mCobrarRep');
   toast(r.restante > 0 ? (T('rep.queda_deber') + ': ' + cur(r.restante)) : T('rep.saldado'), 'ok');
@@ -10982,7 +11026,7 @@ function guardarRep() {
         // Financiado: la ENTRADA se registra como pago (tipo anticipo) -> el ingreso del día entra solo.
         if (finEntrada > 0) {
           sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rep.id, fecha: rep.fecha, importe: finEntrada, metodo: finEntradaPago, tipo: 'anticipo' });
-          window._pagosRepCache = null;
+          window._pagosRepCache = null; try { _invalidarInvPagos(); } catch(e){}
         }
       } else {
         // Insertar pagos en pagos_reparacion (sistema normal)
@@ -10999,7 +11043,7 @@ function guardarRep() {
             tipo: p.tipo || 'anticipo'
           });
         });
-        if ((SEL.repPagos || []).length) window._pagosRepCache = null; // invalidar caché de stats
+        if ((SEL.repPagos || []).length) window._pagosRepCache = null; try { _invalidarInvPagos(); } catch(e){} // invalidar caché de stats
       }
     };
     var _repProm = sbPost('reparaciones', _repPayload);
@@ -11858,7 +11902,7 @@ function confirmarEntrega() {
             tipo: 'final',
             nota: 'Auto-creado al entregar reparación'
           });
-          window._pagosRepCache = null; // invalidar caché de stats
+          window._pagosRepCache = null; try { _invalidarInvPagos(); } catch(e){} // invalidar caché de stats
         }
       });
     }
