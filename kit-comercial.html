@@ -4,87 +4,318 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>TekPair — Kit del comercial</title>
+<meta name="color-scheme" content="light">
+<title>TekPair — Manual del comercial</title>
 <style>
-  :root{--orange:#FF5B1F;--orange-d:#C2491A;--orange-l:#FFF1EB;--ink:#0E0E10;--muted:#5b554c;--line:#E8E2D9;--soft:#FBFAF8;--green:#16A34A;--blue:#2563eb}
+  :root{--orange:#FF5B1F;--orange-d:#C2491A;--orange-l:#FFF1EB;--ink:#0E0E10;--muted:#5b554c;--line:#E8E2D9;--soft:#FBFAF8;--green:#16A34A;--green-l:#E7F6EC;--blue:#2563eb;--blue-l:#EFF4FF}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#EDE9E3;line-height:1.55;font-size:15px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
-  .page{max-width:780px;background:#fff;margin:14px auto;padding:30px 36px;box-shadow:0 4px 30px rgba(0,0,0,.12)}
-  .logo{font-weight:800;font-size:20px;display:flex;align-items:center;gap:9px}
-  .bolt{width:28px;height:28px;background:var(--orange);border-radius:8px;display:grid;place-items:center;color:#fff;font-size:16px}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;color:var(--ink);background:#EDE9E3;line-height:1.55;font-size:14.5px;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .page{max-width:820px;background:#fff;margin:14px auto;padding:34px 40px;box-shadow:0 4px 30px rgba(0,0,0,.12)}
+  a{color:var(--orange-d)}
+  .logo{font-weight:800;font-size:21px;display:flex;align-items:center;gap:9px}
+  .bolt{width:29px;height:29px;background:var(--orange);border-radius:8px;display:grid;place-items:center;color:#fff;font-size:16px}
   .tag{display:inline-block;background:var(--orange-l);color:var(--orange-d);font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.08em;padding:5px 12px;border-radius:20px;margin-top:14px}
-  h1{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:8px 0 6px}
-  h2{font-size:20px;font-weight:800;margin:30px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--orange-l)}
+  h1{font-size:31px;font-weight:800;letter-spacing:-.02em;margin:8px 0 6px}
+  h2{font-size:20px;font-weight:800;margin:32px 0 12px;padding-bottom:8px;border-bottom:2px solid var(--orange-l)}
   h2 .n{color:var(--orange);font-family:ui-monospace,Menlo,monospace}
-  h3{font-size:15px;font-weight:700;margin:14px 0 4px}
+  h3{font-size:15px;font-weight:800;margin:16px 0 5px}
   p{color:var(--muted);margin-bottom:10px}
-  ul,ol{margin:0 0 12px 20px}li{margin-bottom:5px}
-  .pitch{background:var(--ink);color:#fff;border-radius:14px;padding:20px 24px;margin:8px 0;font-size:17px;line-height:1.5}
+  ul,ol{margin:0 0 12px 20px}li{margin-bottom:5px;color:var(--muted)}
+  li b,li strong{color:var(--ink)}
+  .lead{font-size:15.5px}
+  .pitch{background:var(--ink);color:#fff;border-radius:14px;padding:20px 24px;margin:10px 0;font-size:16.5px;line-height:1.5}
   .pitch b{color:var(--orange)}
+  .pitch.alt{background:#2B2620}
   .box{background:var(--soft);border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin:10px 0}
-  .wa{background:#E7F6EC;border:1px solid #BBE5C9;border-left:4px solid #25D366;border-radius:10px;padding:14px 16px;margin:10px 0;font-size:14px;white-space:pre-wrap;font-family:inherit}
+  .wa{background:var(--green-l);border:1px solid #BBE5C9;border-left:4px solid #25D366;border-radius:10px;padding:14px 16px;margin:10px 0;font-size:13.5px;white-space:pre-wrap}
   .wa .lbl{display:block;font-size:11px;font-weight:700;color:#128C4A;text-transform:uppercase;letter-spacing:.05em;margin-bottom:6px}
-  .obj{border:1px solid var(--line);border-radius:10px;padding:14px 16px;margin:8px 0}
+  .obj{border:1px solid var(--line);border-radius:10px;padding:13px 16px;margin:8px 0}
   .obj .q{font-weight:700;color:var(--ink)}
-  .obj .a{color:var(--muted);font-size:14px;margin-top:4px}
+  .obj .a{color:var(--muted);font-size:13.5px;margin-top:4px}
   .obj .a b{color:var(--green)}
   .code{font-family:ui-monospace,Menlo,monospace;background:var(--orange-l);color:var(--orange-d);padding:2px 8px;border-radius:6px;font-weight:700}
-  .demo li{margin-bottom:8px}.demo b{color:var(--ink)}
-  .hi{background:#FFF8E6;border:1px solid #F5E0A3;border-radius:10px;padding:12px 16px;font-size:14px;margin:10px 0}
-  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-  @media print{body{background:#fff}.page{box-shadow:none;margin:0;max-width:none;padding:14mm}.noprint{display:none}h2{page-break-after:avoid}.wa,.obj,.box{page-break-inside:avoid}}
+  .hi{background:#FFF8E6;border:1px solid #F5E0A3;border-radius:10px;padding:12px 16px;font-size:13.5px;margin:10px 0;color:#6b5a20}
+  .hi b{color:#4a3d10}
+  .step{display:flex;gap:14px;margin:0 0 14px;align-items:flex-start}
+  .step .num{flex:none;width:30px;height:30px;border-radius:9px;background:var(--orange);color:#fff;display:grid;place-items:center;font-weight:800;font-size:14px}
+  .step .txt{flex:1}
+  .step .txt h3{margin:3px 0 3px}
+  table{width:100%;border-collapse:collapse;margin:12px 0;font-size:13px}
+  th,td{border:1px solid var(--line);padding:8px 10px;text-align:left;vertical-align:top}
+  th{background:var(--soft);font-weight:800;font-size:12px;text-transform:uppercase;letter-spacing:.04em}
+  td.pr{font-weight:800;color:var(--ink);white-space:nowrap}
+  .feat{margin:14px 0}
+  .feat .cat{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--orange-d);background:var(--orange-l);display:inline-block;padding:4px 10px;border-radius:6px;margin-bottom:7px}
+  .feat ul{margin-left:18px}
+  .new{background:var(--blue-l);border:1px solid #C7D7FE;border-radius:10px;padding:13px 16px;margin:9px 0}
+  .new .when{font-size:11px;font-weight:800;color:var(--blue);text-transform:uppercase;letter-spacing:.06em;margin-bottom:5px}
+  .new ul{margin:0 0 0 18px}
+  .new li{font-size:13.5px}
+  .chk{list-style:none;margin-left:0}
+  .chk li{padding-left:24px;position:relative;margin-bottom:7px}
+  .chk li::before{content:"☐";position:absolute;left:0;font-size:15px;color:var(--orange)}
+  .foot{margin-top:26px;padding-top:14px;border-top:1px solid var(--line);font-size:12px;color:var(--muted)}
+  @media print{
+    body{background:#fff;font-size:11.4pt}
+    .page{box-shadow:none;margin:0;max-width:none;padding:13mm 14mm}
+    .noprint{display:none}
+    h2{page-break-after:avoid}h3{page-break-after:avoid}
+    .wa,.obj,.box,.new,.step,.pitch,table,.feat{page-break-inside:avoid}
+    .brk{page-break-before:always}
+  }
   .barprint{position:fixed;bottom:16px;right:16px;background:var(--orange);color:#fff;padding:12px 20px;border-radius:30px;font-weight:700;box-shadow:0 6px 20px rgba(255,91,31,.4);cursor:pointer;border:none;font-size:14px}
 </style>
 </head>
 <body>
 <div class="page">
   <div class="logo"><span class="bolt">⚡</span> TekPair</div>
-  <span class="tag">Kit del comercial · uso interno</span>
+  <span class="tag">Manual del comercial · uso interno</span>
   <h1>Cómo vender TekPair</h1>
-  <p>Guía rápida para cerrar más talleres: el pitch, la demo, las plantillas y cómo rebatir objeciones. <b>Acompáñala siempre del <a href="/dossier-ventas.html">dosier en PDF</a></b> (enséñalo en la tablet o envíalo).</p>
+  <p class="lead">Todo lo que necesitas para cerrar talleres: qué es, a quién se lo vendes, el guion paso a paso, el catálogo completo de funciones, las novedades recientes y cómo rebatir objeciones. Guárdalo en el móvil y ábrelo antes de cada visita.</p>
 
-  <h2><span class="n">1.</span> El pitch en 30 segundos</h2>
-  <div class="pitch">«¿Todavía llevas el taller con cuaderno y Excel? Con <b>TekPair</b> gestionas reparaciones por IMEI, ventas, stock y avisas al cliente por WhatsApp cuando su móvil está listo — todo desde el móvil. <b>15 días gratis</b> y con mi código tienes <b>50% durante 3 meses</b>. ¿Te lo enseño en 2 minutos?»</div>
+  <h2><span class="n">1.</span> Qué es TekPair (en una frase)</h2>
+  <div class="pitch">TekPair es el <b>programa de gestión para talleres de reparación de móviles</b>: reparaciones por IMEI, avisos automáticos al cliente por WhatsApp, stock, TPV, caja y facturación — todo desde el móvil o el ordenador, sin instalar nada.</div>
+  <p>Sustituye al cuaderno, al Excel y a las notas sueltas. El taller pasa de "creo que era ese móvil" a saber en 2 segundos de quién es cada equipo, qué se le hizo, qué se cobró y qué falta por cobrar.</p>
 
-  <h2><span class="n">2.</span> A quién vender (cliente ideal)</h2>
-  <ul>
-    <li><b>Talleres de reparación de móviles</b> (1-5 empleados) que aún usan papel/Excel.</li>
-    <li>Tiendas de venta + reparación que quieren control de stock por IMEI.</li>
-    <li>Recién montados (les vendes el orden desde el día 1) o saturados de desorden.</li>
-  </ul>
-  <div class="hi">💡 <b>Dónde encontrarlos:</b> centros comerciales, calles con tiendas de telefonía, grupos de Facebook/Telegram del sector, proveedores de repuestos.</div>
+  <h2><span class="n">2.</span> A quién se lo vendes</h2>
+  <table>
+    <tr><th style="width:30%">Perfil</th><th>Por qué compra</th></tr>
+    <tr><td><b>Taller de reparación</b><br>1-5 empleados</td><td>Pierde tiempo buscando equipos y llamando a clientes. Le vendes <b>orden y avisos automáticos</b>.</td></tr>
+    <tr><td><b>Tienda de venta + reparación</b></td><td>Necesita control de stock por IMEI y color. Le vendes <b>saber qué tiene y qué gana</b>.</td></tr>
+    <tr><td><b>Recién montado</b></td><td>Empieza de cero y quiere hacerlo bien desde el día 1. Venta fácil: <b>no tiene nada que migrar</b>.</td></tr>
+    <tr><td><b>Taller con empleados</b></td><td>El dueño no está siempre y quiere control. Le vendes <b>permisos, quién hizo qué y cierre de caja</b>.</td></tr>
+    <tr><td><b>Locutorio / multiservicio</b></td><td>Además repara: recargas, envíos de dinero, accesorios. Le vendes <b>las cajas de saldos y los ingresos en banco</b>.</td></tr>
+  </table>
+  <div class="hi">💡 <b>Dónde encontrarlos:</b> calles con tiendas de telefonía, centros comerciales, bazares y locutorios, grupos de Facebook/Telegram del sector, y sobre todo <b>los proveedores de repuestos</b> — saben exactamente quién repara en tu zona.</div>
 
-  <h2><span class="n">3.</span> Guion de demo (5 minutos)</h2>
-  <ol class="demo">
-    <li><b>Reparación por IMEI</b> — «Entra un cliente con un iPhone. Lo registras con su IMEI, marca, avería y anticipo en 20 segundos.» <i>Crea una reparación en vivo.</i></li>
-    <li><b>Aviso al cliente</b> — «Cuando está listo, cambias el estado y se le manda un WhatsApp automático. Se acabaron las llamadas de "¿ya está?".»</li>
-    <li><b>Stock por IMEI/color</b> — «Tienes 4 iPhone iguales con IMEIs distintos: 1 sola tarjeta, eliges cuál vendes. Lo mismo con pantallas por color.»</li>
-    <li><b>Caja y reportes</b> — «Al final del día, cierre de caja y ves cuánto has ganado, en tiempo real.»</li>
-    <li><b>Cierre</b> — «Todo esto desde el móvil, sin instalar nada. Pruébalo 15 días gratis con mi código.»</li>
+  <h2><span class="n">3.</span> El pitch de 30 segundos</h2>
+  <div class="pitch">«¿Todavía llevas el taller con cuaderno y Excel? Con <b>TekPair</b> apuntas la reparación con el IMEI en 20 segundos, y cuando el móvil está listo el cliente recibe un <b>WhatsApp automático</b> — se acabaron las llamadas de "¿ya está?". Además llevas el stock, la caja y las facturas desde el móvil. <b>15 días gratis</b>, sin tarjeta. ¿Te lo enseño en 2 minutos?»</div>
+  <div class="hi">🎯 <b>Regla de oro:</b> no enumeres funciones. Pregunta primero <b>«¿qué es lo que más te desordena el día?»</b> y enséñale justo eso. El que escucha una lista de 40 funciones no compra; el que ve resuelto SU problema, sí.</div>
+
+  <h2><span class="n">4.</span> Los 7 pasos de la venta</h2>
+
+  <div class="step"><div class="num">1</div><div class="txt">
+    <h3>Prospección</h3>
+    <p>Haz una lista de 20-30 talleres de tu zona antes de salir. Google Maps: "reparación móviles" + tu ciudad. Apunta nombre, dirección y si tienen web o Instagram (te da tema de conversación).</p>
+  </div></div>
+
+  <div class="step"><div class="num">2</div><div class="txt">
+    <h3>Primer contacto: entra y observa</h3>
+    <p>No sueltes el pitch nada más entrar. Mira <b>cómo apuntan las reparaciones</b>: si ves un cuaderno, post-its o un Excel en la pantalla, ya tienes la venta medio hecha. Empieza por ahí: «¿Y así llevas el control de todo?».</p>
+  </div></div>
+
+  <div class="step"><div class="num">3</div><div class="txt">
+    <h3>Detecta el dolor</h3>
+    <p>Preguntas que abren la conversación:</p>
+    <ul>
+      <li>«¿Cuántos equipos tienes ahora mismo en el taller?»</li>
+      <li>«¿Cómo avisas al cliente cuando está listo?»</li>
+      <li>«¿Sabes cuánto has hecho hoy sin echar cuentas?»</li>
+      <li>«¿Alguna vez has perdido un móvil o no sabías de quién era?»</li>
+      <li>«¿Tienes empleados? ¿Sabes lo que toca cada uno?»</li>
+    </ul>
+    <p>Cállate y escucha. El dolor que te cuente es el que le enseñas en la demo.</p>
+  </div></div>
+
+  <div class="step"><div class="num">4</div><div class="txt">
+    <h3>Demo de 5 minutos (guion abajo)</h3>
+    <p>Con tu móvil o tablet, en vivo. <b>Nunca enseñes capturas</b>: crea una reparación de verdad con sus datos delante de él.</p>
+  </div></div>
+
+  <div class="step"><div class="num">5</div><div class="txt">
+    <h3>Precio y oferta</h3>
+    <p>Di el precio con seguridad y compáralo siempre con <b>una reparación</b>: «9,90 € al mes, menos de lo que cobras por cambiar una pantalla». Después la oferta: 15 días gratis sin tarjeta + tu código de descuento.</p>
+  </div></div>
+
+  <div class="step"><div class="num">6</div><div class="txt">
+    <h3>Cierre: hazle el alta tú, ahí mismo</h3>
+    <p><b>Este es el paso que separa vender de no vender.</b> El que se va "a pensarlo" rara vez vuelve. Saca el móvil, abre tu enlace y créale la cuenta con él delante: son 3 minutos y no paga nada hasta el día 15.</p>
+  </div></div>
+
+  <div class="step"><div class="num">7</div><div class="txt">
+    <h3>Seguimiento (lo que hace que se quede)</h3>
+    <p>A las 48 h escríbele por WhatsApp: «¿Has metido ya alguna reparación? ¿Te ayudo a subir tus clientes?». Ofrécele <b>la migración de sus datos</b> — es lo que más pereza le da y lo que más se agradece. Un cliente que mete sus primeras 10 reparaciones ya no se va.</p>
+  </div></div>
+
+  <h2 class="brk"><span class="n">5.</span> Guion de demo (5 minutos)</h2>
+  <ol>
+    <li><b>Nueva reparación por IMEI</b> — «Entra un cliente con un iPhone. Nombre, teléfono, modelo, IMEI, la avería y el anticipo: 20 segundos.» <i>Créala en vivo con sus datos.</i></li>
+    <li><b>Aviso automático al cliente</b> — «Cuando la marcas como lista, sale un WhatsApp con tu dirección, tu horario y tu teléfono. Se acabaron las llamadas de "¿ya está?".»</li>
+    <li><b>Ticket y etiqueta</b> — «Le imprimes el resguardo y pegas la etiqueta al equipo. Nunca más un móvil sin dueño.»</li>
+    <li><b>Stock por IMEI y color</b> — «Cuatro iPhone iguales con IMEI distintos: una sola ficha, eliges cuál vendes. Igual con pantallas por color.»</li>
+    <li><b>Caja del día</b> — «Al cerrar ves lo que has hecho, desglosado por efectivo, tarjeta y móvil. Sin echar cuentas a mano.»</li>
+    <li><b>Cierre</b> — «Todo esto desde el móvil, sin instalar nada. Y lo pruebas 15 días gratis sin poner tarjeta. ¿Te lo dejo creado?»</li>
   </ol>
-  <div class="hi">🎯 <b>Regla de oro:</b> no enumeres funciones — <b>resuelve SU problema</b>. Pregúntale primero «¿qué es lo que más te desordena el día?» y enséñale justo eso.</div>
+  <div class="hi">⏱️ <b>Si solo tienes 60 segundos:</b> enseña <b>1</b> (alta por IMEI) y <b>2</b> (el WhatsApp automático). Son las dos que más venden.</div>
 
-  <h2><span class="n">4.</span> Plantillas de WhatsApp</h2>
-  <div class="wa"><span class="lbl">Primer contacto</span>Hola 👋 Soy [NOMBRE], de TekPair. Ayudamos a talleres como el tuyo a gestionar reparaciones, stock y avisos al cliente desde el móvil, sin papeleo. ¿Te enseño cómo funciona en 2 min? Tienes 15 días gratis 🙌</div>
-  <div class="wa"><span class="lbl">Seguimiento (si no responde)</span>Hola [NOMBRE] 😊 Te dejo el dosier de TekPair por si te viene bien echarle un ojo: [LINK DOSIER]. Con mi código <b>EARLY50</b> tienes 50% los primeros 3 meses. Cualquier duda, aquí estoy 👇</div>
-  <div class="wa"><span class="lbl">Cierre</span>¡Genial! 🎉 Regístrate aquí con mi enlace: [TU LINK CON CÓDIGO]. Son 15 días gratis, no pagas hasta el día 15 y puedes cancelar cuando quieras. En 3 minutos lo tienes funcionando. ¿Te ayudo con el alta?</div>
+  <h2><span class="n">6.</span> Todo lo que hace TekPair</h2>
+  <p>No lo sueltes de corrido: úsalo para responder cuando te pregunten «¿y hace X?». La respuesta casi siempre es sí.</p>
 
-  <h2><span class="n">5.</span> Objeciones frecuentes</h2>
-  <div class="obj"><div class="q">«Ya tengo mi Excel / cuaderno y me apaño.»</div><div class="a"><b>→</b> «Te apañas, sí, pero el Excel no avisa al cliente por WhatsApp, no te dice cuándo se acaba una pantalla ni te saca una factura legal. ¿Cuánto tiempo pierdes al día buscando cosas? Pruébalo gratis y compara.»</div></div>
-  <div class="obj"><div class="q">«Es muy caro.»</div><div class="a"><b>→</b> «Son 9,90€ al mes — menos de lo que cobras por <b>una</b> reparación. Y con mi código, la mitad los 3 primeros meses. Lo que pierdes en tiempo y errores cuesta mucho más.»</div></div>
-  <div class="obj"><div class="q">«No tengo tiempo para aprender un programa.»</div><div class="a"><b>→</b> «Está listo en 3 minutos y se usa solo: registras una reparación el primer día y ya está. Y tienes soporte por WhatsApp si te atascas.»</div></div>
-  <div class="obj"><div class="q">«¿Y si me quiero ir?»</div><div class="a"><b>→</b> «Sin permanencia. Cancelas cuando quieras y tus datos son tuyos. Por eso hay 15 días gratis: pruébalo sin riesgo.»</div></div>
-  <div class="obj"><div class="q">«Me lo pienso.»</div><div class="a"><b>→</b> «Claro. Para pensarlo mejor, déjame que te lo deje creado y lo tocas estos 15 días gratis. Si no te convence, no pasa nada. ¿Te hago el alta ahora?»</div></div>
+  <div class="feat"><span class="cat">Reparaciones</span>
+  <ul>
+    <li>Alta por <b>IMEI</b>, marca, modelo, color y estado del equipo</li>
+    <li>Estados y prioridad (normal, alta, urgente) + tablero Kanban</li>
+    <li><b>Avisos automáticos por WhatsApp</b>: recibida, lista, cita — con tu dirección, mapa, horario y teléfono</li>
+    <li><b>Fotos de recepción y entrega</b>, también <b>haciéndolas con el móvil escaneando un QR</b></li>
+    <li><b>Firma del cliente</b> en el mostrador o desde su propio móvil por QR, con aceptación de condiciones</li>
+    <li><b>Patrón de desbloqueo</b> guardado con la ficha</li>
+    <li><b>Pedir la pieza al proveedor</b> desde la propia reparación; mientras la esperas no cuenta como atrasada</li>
+    <li>Presupuestos que el cliente acepta o rechaza, anticipos y pagos parciales</li>
+    <li>Garantías automáticas por IMEI, con aviso legal adaptado al país</li>
+    <li>Link de seguimiento para el cliente y línea de tiempo de todo lo ocurrido</li>
+  </ul></div>
 
-  <h2><span class="n">6.</span> Tu cierre y tu comisión</h2>
+  <div class="feat"><span class="cat">Ventas y TPV</span>
+  <ul>
+    <li>TPV táctil para mostrador, con stock descontado al momento</li>
+    <li>Cobro en efectivo, tarjeta y pago por móvil (Bizum y equivalentes de cada país)</li>
+    <li><b>Venta financiada a plazos</b> con cuotas, cobro por link y avisos</li>
+    <li>Facturas legales con IVA (general, reducido y superreducido), numeración sin huecos</li>
+    <li>Tickets 80 mm y etiquetas Brother</li>
+    <li>Clientes particulares y <b>empresa (B2B)</b> con razón social y CIF</li>
+  </ul></div>
+
+  <div class="feat"><span class="cat">Stock</span>
+  <ul>
+    <li>Catálogo agrupado por modelo con marca, color, IMEI y precio</li>
+    <li>Alertas de stock mínimo y <b>stock óptimo sugerido</b> según lo que vendes</li>
+    <li>Entradas y salidas con historial completo</li>
+    <li>Etiquetas de precio con código de barras y sello de <b>OFERTA</b> con el precio anterior tachado</li>
+    <li><b>Inventario impreso</b> por categoría y marca, con valor a coste o a PVP</li>
+    <li>Pedidos a proveedor, incluida <b>alta rápida de accesorios</b> y lectura de la factura del proveedor con IA</li>
+  </ul></div>
+
+  <div class="feat"><span class="cat">Dinero y caja</span>
+  <ul>
+    <li><b>Caja del día automática</b> con desglose por forma de pago y anticipos aparte</li>
+    <li>Arqueo y cierre de caja, con reabrir para el administrador si se cerró por error</li>
+    <li><b>Saldos de recargas</b>: monedero prepago por compañía, para locutorios y multiservicio</li>
+    <li><b>Ingresos en banco</b> de envíos de dinero y Western Union, cuenta por cuenta</li>
+    <li>Pendientes de cobro (fiado) y gastos, con plantillas de gastos recurrentes y nóminas</li>
+    <li>Reportes con gráficas, desglose de IVA y exportación a PDF/CSV</li>
+  </ul></div>
+
+  <div class="feat"><span class="cat">Equipo y control</span>
+  <ul>
+    <li>Usuarios con <b>permisos finos</b>, incluido si ven el dinero</li>
+    <li><b>Permisos por caja</b> concreta y acceso o no a días anteriores</li>
+    <li>Registro de auditoría: quién crea, edita o borra</li>
+    <li>Multi-tienda con selector al entrar</li>
+  </ul></div>
+
+  <div class="feat"><span class="cat">Clientes y agenda</span>
+  <ul>
+    <li>Ficha con historial completo de reparaciones y compras</li>
+    <li><b>Clasificación A/B/C</b> (buen cliente / regular / no atender)</li>
+    <li>Citas con <b>página pública de reserva</b> para que el cliente coja hora solo</li>
+    <li>Cumpleaños y avisos</li>
+  </ul></div>
+
+  <div class="feat"><span class="cat">La app por dentro</span>
+  <ul>
+    <li>Funciona en <b>navegador</b>: móvil, tablet y ordenador. También se instala como app.</li>
+    <li><b>6 idiomas</b> (español, inglés, francés, italiano, alemán y portugués) y monedas de Latinoamérica</li>
+    <li>Sincronización instantánea entre dispositivos: lo que haces en el mostrador aparece al momento en el taller</li>
+    <li>3 temas, incluido <b>modo oscuro</b></li>
+    <li>Copias de seguridad y datos separados por tienda</li>
+  </ul></div>
+
+  <h2 class="brk"><span class="n">7.</span> Novedades recientes</h2>
+  <p>Úsalas para reactivar a un taller que dijo que no hace meses: <b>«Se te quedó grande hace 3 meses, mira lo que hay ahora»</b>. También sirven para justificar el precio: el producto se mueve todas las semanas.</p>
+
+  <div class="new"><div class="when">Agosto 2026</div><ul>
+    <li><b>Buscador</b> en reparaciones y ventas por modelo, cliente, teléfono o IMEI, con filtro de fechas</li>
+    <li>Nuevo aspecto de toda la app, más limpio</li>
+    <li>Plantillas rápidas de avería y servicio en el idioma de la tienda</li>
+  </ul></div>
+
+  <div class="new"><div class="when">Julio 2026</div><ul>
+    <li><b>Saldos de recargas</b> e <b>ingresos en banco</b>: el locutorio ya cuadra su prepago y sus envíos</li>
+    <li><b>Seguimiento del dinero</b>: historial de movimientos de cada cuenta</li>
+    <li><b>Permisos por caja</b> y acceso a días anteriores</li>
+    <li><b>Etiquetas nuevas</b>: código de barras con el IMEI y adaptadas al rollo Brother</li>
+    <li><b>Modo oscuro</b> completo</li>
+    <li><b>Caja del día automática</b> con desglose por forma de pago</li>
+    <li><b>Inventario impreso</b> con valor a coste o PVP</li>
+    <li><b>Fotos y firma del cliente por QR</b> desde el móvil</li>
+    <li><b>Pedir pieza</b> al proveedor desde la reparación</li>
+    <li><b>Clasificación de clientes A/B/C</b></li>
+    <li>Garantías con aviso legal <b>por país</b></li>
+    <li>La app <b>se actualiza sola</b></li>
+  </ul></div>
+
+  <div class="new"><div class="when">Junio 2026</div><ul>
+    <li><b>Guía de inicio</b> en 3 pasos al entrar por primera vez</li>
+    <li>TekPair <b>internacional</b>: prefijo de WhatsApp por país y monedas de Latinoamérica</li>
+    <li><b>Foto-prueba</b> en reparaciones y <b>stock óptimo</b> sugerido</li>
+    <li>Fichas de cliente y producto con historial completo</li>
+    <li>App completa en <b>6 idiomas</b></li>
+    <li>Encargos de clientes, notas con recordatorio y cobro por móvil internacional</li>
+  </ul></div>
+
+  <h2><span class="n">8.</span> Planes y precios</h2>
+  <table>
+    <tr><th>Plan</th><th class="pr">Precio</th><th>Incluye</th></tr>
+    <tr>
+      <td><b>Básico</b><br><span style="font-size:12px;color:var(--muted)">Para empezar</span></td>
+      <td class="pr">9,90 €<br><span style="font-weight:600;font-size:11px;color:var(--muted)">/mes + IVA</span></td>
+      <td>1 usuario · Ventas, TPV y reparaciones · Stock · Hasta 250 clientes · Reportes básicos</td>
+    </tr>
+    <tr style="background:var(--orange-l)">
+      <td><b>Pro</b> ⭐<br><span style="font-size:12px;color:var(--muted)">El que más se vende</span></td>
+      <td class="pr">19,90 €<br><span style="font-weight:600;font-size:11px;color:var(--muted)">/mes + IVA</span></td>
+      <td>3 usuarios · 1.000 clientes · Permisos por usuario · Pedidos, gastos y fotos · Analítica y financiación a plazos · Reportes PDF e informe para el gestor · Importar CSV y copias de seguridad</td>
+    </tr>
+    <tr>
+      <td><b>Premium</b><br><span style="font-size:12px;color:var(--muted)">Equipos y varias tiendas</span></td>
+      <td class="pr">34,90 €<br><span style="font-weight:600;font-size:11px;color:var(--muted)">/mes + IVA</span></td>
+      <td>Usuarios y clientes ilimitados · Todo lo de Pro · Multi-tienda · Citas online · Kanban y catálogo de servicios · Soporte prioritario y onboarding</td>
+    </tr>
+  </table>
+  <div class="hi">💬 <b>Cómo presentarlo:</b> no des tres precios a la vez — abruma. Pregunta cuántos trabajan en el taller: <b>solo él → Básico. Con 1-2 empleados → Pro</b> (el 80% de los cierres). Varias tiendas o quiere citas online → Premium. Todos llevan <b>15 días gratis sin tarjeta</b>.</div>
+
+  <h2><span class="n">9.</span> Objeciones frecuentes</h2>
+  <div class="obj"><div class="q">«Ya tengo mi Excel / cuaderno y me apaño.»</div><div class="a"><b>→</b> «Te apañas, sí. Pero el Excel no avisa al cliente por WhatsApp, no te dice cuándo se te acaba una pantalla ni te saca una factura legal. ¿Cuánto tiempo pierdes al día buscando cosas? Pruébalo gratis 15 días y compara.»</div></div>
+  <div class="obj"><div class="q">«Es muy caro.»</div><div class="a"><b>→</b> «Son 9,90 € al mes: menos de lo que cobras por <b>una</b> reparación. Con arreglar un móvil al mes ya lo has pagado. Lo que te cuesta caro es el tiempo que pierdes y los equipos que se traspapelan.»</div></div>
+  <div class="obj"><div class="q">«No tengo tiempo de aprender un programa.»</div><div class="a"><b>→</b> «Al entrar te hace una guía de 3 pasos y ya está listo. Y si quieres, <b>te subo yo tus clientes y te lo dejo montado</b>. Tú solo empiezas a meter reparaciones.»</div></div>
+  <div class="obj"><div class="q">«¿Y mis datos? ¿Y si cierra la empresa?»</div><div class="a"><b>→</b> «Tus datos son tuyos y te los puedes descargar cuando quieras. Sin permanencia: cancelas el día que te dé la gana.»</div></div>
+  <div class="obj"><div class="q">«Tengo que hablarlo con mi socio.»</div><div class="a"><b>→</b> «Perfecto, y para que se lo enseñes bien, déjame que te lo deje creado ahora. Son 15 días gratis sin tarjeta: se lo enseñas funcionando con vuestros datos, no con un folleto.»</div></div>
+  <div class="obj"><div class="q">«Me lo pienso.»</div><div class="a"><b>→</b> «Claro. Para pensarlo mejor, te lo dejo creado y lo tocas estos 15 días. Si no te convence, no haces nada y se queda ahí. ¿Te hago el alta ahora?»</div></div>
+  <div class="obj"><div class="q">«Ya uso otro programa.»</div><div class="a"><b>→</b> «¿Y te avisa al cliente por WhatsApp solo? ¿Te lleva el IMEI y las garantías? Enséñame cómo lo haces ahí y te digo si te compensa cambiar. Y si cambias, <b>te migro yo los datos</b>.»</div></div>
+  <div class="obj"><div class="q">«Ahora estoy liado, vuelve otro día.»</div><div class="a"><b>→</b> «Sin problema, se ve en 2 minutos. Te dejo el dosier y te escribo por WhatsApp esta tarde, ¿cuál es tu número?» <i>(Nunca te vayas sin el teléfono.)</i></div></div>
+
+  <h2><span class="n">10.</span> Plantillas de WhatsApp</h2>
+  <div class="wa"><span class="lbl">Primer contacto</span>Hola 👋 Soy [NOMBRE], de TekPair. Ayudamos a talleres como el tuyo a llevar las reparaciones, el stock y los avisos al cliente desde el móvil, sin papeleo. ¿Te lo enseño en 2 minutos? Tienes 15 días gratis y no hace falta tarjeta 🙌</div>
+  <div class="wa"><span class="lbl">Después de la visita</span>¡Un placer, [NOMBRE]! Te dejo el enlace para crear tu cuenta: [TU LINK]. Con mi código <b>[TU CÓDIGO]</b> tienes 50% los 3 primeros meses. Son 15 días gratis y no pagas hasta el día 15. Si quieres te subo yo tus clientes 👇</div>
+  <div class="wa"><span class="lbl">Seguimiento (si no responde)</span>Hola [NOMBRE] 😊 Te dejo el dosier de TekPair por si le quieres echar un ojo con calma: [LINK DOSIER]. Cualquier duda me escribes y te lo enseño cuando te venga bien.</div>
+  <div class="wa"><span class="lbl">A las 48 h del alta</span>¿Qué tal con TekPair, [NOMBRE]? ¿Has metido ya alguna reparación? Si quieres te ayudo a subir tus clientes y a dejar la tienda configurada — son 10 minutos 👌</div>
+  <div class="wa"><span class="lbl">Reactivar un "no" de hace meses</span>Hola [NOMBRE] 👋 Te escribo porque desde que lo viste han salido cosas nuevas: buscador por IMEI, fotos y firma del cliente desde el móvil, modo oscuro y caja del día automática. ¿Te lo enseño otra vez? Han cambiado bastantes cosas.</div>
+
+  <h2><span class="n">11.</span> Tu código y tu comisión</h2>
   <div class="box">
     <ul>
-      <li>Comparte <b>tu enlace personal de registro con tu código</b> — así el alta cuenta como tuya y el cliente recibe el descuento.</li>
-      <li>Oferta para cerrar: <span class="code">EARLY50</span> = −50% durante 3 meses + 15 días gratis sin tarjeta.</li>
-      <li>Recursos: <a href="/dossier-ventas.html">dosier PDF</a> · web <b>www.tekpair.tech</b> · soporte <b>info@tekpair.tech</b>.</li>
+      <li>Comparte siempre <b>tu enlace personal con tu código</b>: así el alta cuenta como tuya y el cliente recibe su descuento.</li>
+      <li>El cliente que usa tu código tiene <b>50% de descuento durante 3 meses</b>, además de los 15 días gratis.</li>
+      <li>Tú cobras una <b>comisión recurrente sobre cada pago</b> de ese cliente, según tu acuerdo.</li>
+      <li>En tu <b>panel de comercial</b> (entra en <b>www.tekpair.tech</b> con tus credenciales) ves tus clientes captados, las comisiones generadas y el historial de cobros.</li>
+      <li>Recursos: <a href="/dossier-ventas.html">dosier para el cliente</a> · web <b>www.tekpair.tech</b> · soporte <b>info@tekpair.tech</b></li>
     </ul>
   </div>
-  <p style="font-size:13px;margin-top:10px;color:var(--muted)">Consejo final: <b>haz siempre el alta tú con el cliente delante.</b> El que se va "a pensarlo" rara vez vuelve; el que ya tiene la cuenta creada, la usa y se queda.</p>
+
+  <h2><span class="n">12.</span> Checklist antes de salir a la calle</h2>
+  <ul class="chk">
+    <li>Móvil cargado y con <b>tu cuenta de demo</b> ya abierta (nunca hagas login delante del cliente)</li>
+    <li>Una reparación de ejemplo ya creada, por si falla la cobertura</li>
+    <li>Tu enlace con tu código, copiado y listo para pegar</li>
+    <li>Este dosier y el <b>dosier del cliente</b> descargados en el móvil</li>
+    <li>Lista de 20 talleres de la zona con direcciones</li>
+    <li>Libreta para apuntar el <b>nombre y el teléfono</b> de cada persona con la que hables</li>
+  </ul>
+
+  <div class="foot">
+    <b>TekPair</b> · www.tekpair.tech · info@tekpair.tech<br>
+    Documento de uso interno para la red comercial. No lo compartas con el cliente: para eso está el dosier comercial.
+  </div>
 </div>
 <button class="barprint noprint" onclick="window.print()">🖨️ Guardar como PDF</button>
 </body>
