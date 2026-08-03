@@ -5799,7 +5799,10 @@ function _renderWidgetSelectorBody(id) {
   } else if (id === 'cierre' && puedeVerCaja()) {
     var hoyReps = DB.reps.filter(function(r){ return r.fechaEntregaReal === hoyLocal(); });
     var hoyVentas = DB.ventas.filter(function(v){ return v.fecha === hoyLocal() && !v.reembolsado; });
-    var totalHoy = hoyReps.reduce(function(a,r){ return a+(r.total||0); }, 0) + hoyVentas.reduce(function(a,v){ return a+(v.total||0); }, 0);
+    // El importe usa el cálculo canónico (mismo que Inicio, Caja del día y Reportes):
+    // así los reembolsos restan en su fecha en vez de borrar la venta de su día.
+    var totalHoy = hoyReps.reduce(function(a,r){ return a+(r.total||0); }, 0)
+                 + _ventasIngresoTotal(DB.ventas, hoyLocal(), hoyLocal());
     box.innerHTML = '<div style="padding:14px 16px">' +
       '<div class="fin-ops-row">' +
         '<div class="fin-op-mini"><div class="fin-op-mini-icon" style="background:rgba(0,200,150,.12)">🔧</div>' +
