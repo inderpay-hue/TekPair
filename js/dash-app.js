@@ -3832,10 +3832,30 @@ function _cuotaPagado(c) {
 }
 // Ingreso REAL de ventas por método en [d1,d2]. Financiadas: entrada (día de venta) + cuotas (día de pago);
 // no financiadas: total el día de la venta. Devuelve { metodo: importe }. (Evita contar el total a plazos el día 1.)
+// Ingresos por forma de pago en un rango. Los reembolsos NO borran la venta de su día:
+// el dinero entró ese día de verdad. La devolución resta en SU fecha, que es cuando sale
+// del cajón. Antes (`if (v.reembolsado) return`) un reembolso hecho semanas después
+// cambiaba hacia atrás el total de un día ya cerrado y no descontaba nada el día real.
 function _ventasIngresoPorMetodo(ventas, d1, d2) {
   var por = {};
   (ventas || []).forEach(function(v) {
-    if (v.reembolsado) return;
+    // Resta del reembolso, en la fecha en que se devolvió el dinero.
+    if (v.reembolsado) {
+      var fr = (v.fechaReembolso || v.fecha || '').slice(0, 10);
+      if (fr >= d1 && fr <= d2) {
+        if (v.financiado && v.cuotas) {
+          // Financiada: solo se devuelve lo que se llegó a cobrar (entrada + cuotas pagadas).
+          var me2 = v.entradaPago || 'Efectivo';
+          por[me2] = (por[me2] || 0) - (parseFloat(v.entrada) || 0);
+          (v.cuotas || []).forEach(function(c) {
+            if (c && c.fechaPago) { var mc2 = c.formaPago || 'Efectivo'; por[mc2] = (por[mc2] || 0) - _cuotaPagado(c); }
+          });
+        } else {
+          var mr = v.pago || 'Efectivo';
+          por[mr] = (por[mr] || 0) - (parseFloat(v.total) || 0);
+        }
+      }
+    }
     if (v.financiado && v.cuotas) {
       if (v.fecha >= d1 && v.fecha <= d2 && (v.entrada || 0) > 0) {
         var me = v.entradaPago || 'Efectivo'; por[me] = (por[me] || 0) + (parseFloat(v.entrada) || 0);
