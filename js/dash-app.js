@@ -369,16 +369,22 @@ function checkFeature(featureName) {
 }
 
 // ═══ NOVEDADES: banner de mejoras para las tiendas (se muestra 1 vez por versión) ═══
-var NOVEDADES_VERSION = '2026-06-28';
+var NOVEDADES_VERSION = '2026-08-02';
 // Changelog por fecha (lo más nuevo primero). El banner automático muestra solo el
 // último lanzamiento; en Ajustes › Novedades se ve el historial completo.
 var CHANGELOG = [
+  { fecha: '2026-08-02', items: ['nov.m1', 'nov.m2', 'nov.m3', 'nov.m4', 'nov.m5'] },
+  { fecha: '2026-07-29', items: ['nov.l1', 'nov.l2', 'nov.l3', 'nov.l4', 'nov.l5', 'nov.l6', 'nov.l7'] },
+  { fecha: '2026-07-26', items: ['nov.k1', 'nov.k2', 'nov.k3', 'nov.k4', 'nov.k5', 'nov.k6'] },
+  { fecha: '2026-07-14', items: ['nov.j1', 'nov.j2', 'nov.j3', 'nov.j4', 'nov.j5', 'nov.j6'] },
+  { fecha: '2026-07-05', items: ['nov.i1', 'nov.i2', 'nov.i3', 'nov.i4', 'nov.i5', 'nov.i6'] },
   { fecha: '2026-06-28', items: ['nov.h1', 'nov.h2', 'nov.h3', 'nov.h4', 'nov.h5', 'nov.h6'] },
   { fecha: '2026-06-21', items: ['nov.g1', 'nov.g2', 'nov.g3', 'nov.g4', 'nov.g5', 'nov.g6'] },
   { fecha: '2026-06-14', items: ['nov.f6', 'nov.f7', 'nov.f1', 'nov.f2', 'nov.f3', 'nov.f4', 'nov.f5'] }
 ];
 function _novFechaLbl(iso) {
-  try { return new Date(iso + 'T00:00:00').toLocaleDateString((typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'), { year: 'numeric', month: 'long' }); }
+  // Con día: varios lanzamientos caen en el mismo mes y sin él salían todos con el mismo rótulo.
+  try { return new Date(iso + 'T00:00:00').toLocaleDateString((typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'), { day: 'numeric', month: 'long', year: 'numeric' }); }
   catch (e) { return iso; }
 }
 function renderNovedades(soloUltima) {
