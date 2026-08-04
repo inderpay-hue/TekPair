@@ -6,6 +6,20 @@
 //   CRON-1: timing-safe comparison del CRON_SECRET (vía Node crypto.timingSafeEqual)
 //   CRON-2: marcar la flag de "enviado" ANTES de mandar (evita doble envío si cron reintenta)
 //   CRON-3: try/catch individual por tienda (un fallo no aborta el resto)
+//   CRON-4: seleccionar por trial_until y no por plan_status. Un mes regalado a mano deja
+//           la tienda en 'active' y antes se quedaba sin avisos: el cliente descubría el
+//           cargo en el banco (le pasó a la tienda de Aleem el 4-ago-2026).
+//
+// CÓMO REGALAR UN MES para que el cliente SÍ reciba los avisos: hay que dejar la fecha
+// en trial_until y limpiar las flags de enviado. Desde el SQL editor de Supabase:
+//
+//   update tiendas
+//   set trial_until = (now() + interval '1 month'),
+//       trial_email_3d_sent = false,
+//       trial_email_1d_sent = false
+//   where id = '<id-de-la-tienda>';
+//
+// Sin trial_until no hay forma de saber cuándo acaba lo gratis, y no se avisa.
 
 import crypto from 'crypto';
 
@@ -52,8 +66,13 @@ export default async function handler(req, res) {
   };
 
   try {
-    // 1. Buscar tiendas en trial con email configurado
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?plan_status=eq.trial&plan_email=not.is.null&select=id,nombre,plan,plan_email,trial_until,trial_email_3d_sent,trial_email_1d_sent`, {
+    // 1. Tiendas con fecha de fin de prueba por delante y email configurado.
+    //    La fuente de verdad es trial_until, NO plan_status: un mes regalado a mano deja
+    //    la tienda en plan_status='active', así que con el filtro anterior (=trial) esos
+    //    clientes se quedaban sin avisos y descubrían el cargo en el banco. Con
+    //    trial_until entran igual. Las que ya pagan tienen trial_until en el pasado y
+    //    quedan fuera solas, porque abajo solo se avisa entre 3.5 y 0.5 días antes.
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?trial_until=not.is.null&plan_email=not.is.null&plan_status=in.(trial,active)&select=id,nombre,plan,plan_email,trial_until,trial_email_3d_sent,trial_email_1d_sent`, {
       headers
     });
     if (!r.ok) {
