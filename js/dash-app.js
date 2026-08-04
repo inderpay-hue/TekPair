@@ -3872,6 +3872,31 @@ function _ventasIngresoPorMetodo(ventas, d1, d2) {
   });
   return por;
 }
+// Alta de un gasto pagado con el efectivo del cajón, desde la propia pantalla de Cajas.
+// Es un gasto normal (cuenta en Gastos, reportes e IVA) con metodo_pago='efectivo', que es
+// lo que hace que cajaDiaResumen lo descuente del efectivo esperado.
+async function crearGastoCaja(d) {
+  var g = {
+    id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+    tienda_id: TIENDA_ID,
+    concepto: d.concepto,
+    importe: Math.round((parseFloat(d.importe) || 0) * 100) / 100,
+    fecha: d.fecha || hoyLocal(),
+    estado: 'Pagado',
+    categoria: d.categoria || 'Caja',
+    iva_tipo: 0,
+    proveedor_id: null, proveedor_nombre: null,
+    metodo_pago: 'efectivo'
+  };
+  DB.gastos = DB.gastos || [];
+  DB.gastos.push(g);
+  if (SB_KEY && TIENDA_ID) await sbPost('gastos', g);
+  try { guardarDatos(); } catch (e) {}
+  try { _invalidarInvPagos(); } catch (e) {}
+  return g;
+}
+window.crearGastoCaja = crearGastoCaja;
+
 // Desglose de la "Caja del día": junta ventas + pagos de reparación de una fecha, agrupados por
 // forma de pago, con los ANTICIPOS en línea aparte (pagos_reparacion tipo='anticipo'). Reutiliza
 // la lógica canónica de ingresos por método (financiado-aware). efectivoEsperado incluye el
@@ -3899,12 +3924,27 @@ async function cajaDiaResumen(fecha) {
       else { metodos[m] = (metodos[m] || 0) + imp; }
     });
   }
+  // Gastos pagados EN EFECTIVO ese día: ese dinero sale del cajón, así que el efectivo
+  // esperado tiene que descontarlo o la caja sale corta sin explicación. Se leen del
+  // módulo de Gastos (no hay lista aparte) para que sigan contando en IVA y reportes.
+  var gastos = { total: 0, lista: [] };
+  (DB.gastos || []).forEach(function(g) {
+    if ((g.fecha || '').slice(0, 10) !== fecha) return;
+    var met = String(g.metodo_pago || g.forma_pago || g.metodo || '').toLowerCase();
+    if (!/efectiv/.test(met)) return;
+    var imp = parseFloat(g.importe) || 0;
+    if (!(imp > 0)) return;
+    gastos.total += imp;
+    gastos.lista.push({ id: g.id, concepto: g.concepto || 'Gasto', importe: imp });
+  });
+  gastos.total = Math.round(gastos.total * 100) / 100;
+
   var totalMetodos = Object.keys(metodos).reduce(function(a, k){ return a + metodos[k]; }, 0);
   var totalDia = Math.round((totalMetodos + anticipos.total) * 100) / 100;
   var _ef = function(o){ var s = 0; Object.keys(o || {}).forEach(function(k){ if (/efectiv/i.test(k)) s += o[k]; }); return s; };
-  var efectivoEsperado = Math.round((_ef(metodos) + _ef(anticipos.metodos)) * 100) / 100;
+  var efectivoEsperado = Math.round((_ef(metodos) + _ef(anticipos.metodos) - gastos.total) * 100) / 100;
   anticipos.total = Math.round(anticipos.total * 100) / 100;
-  return { fecha: fecha, metodos: metodos, anticipos: anticipos, totalDia: totalDia, efectivoEsperado: efectivoEsperado };
+  return { fecha: fecha, metodos: metodos, anticipos: anticipos, gastos: gastos, totalDia: totalDia, efectivoEsperado: efectivoEsperado };
 }
 function _ventasIngresoTotal(ventas, d1, d2) {
   var por = _ventasIngresoPorMetodo(ventas, d1, d2), t = 0;

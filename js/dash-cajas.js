@@ -395,7 +395,7 @@
         <div class="cajas-modal-header"><h3>${escapar(opts.titulo || '')}</h3><button class="cajas-modal-cerrar" type="button">✕</button></div>
         <div class="cajas-modal-cuerpo">
           ${opts.ayuda ? `<div style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.4;">${escapar(opts.ayuda)}</div>` : ''}
-          <input id="_pv-input" type="text" inputmode="decimal" autocomplete="off" value="${opts.valorInicial != null ? escapar(String(opts.valorInicial)) : ''}" onfocus="this.select();" style="width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);color:var(--text);box-sizing:border-box;">
+          <input id="_pv-input" type="text" inputmode="${opts.texto ? 'text' : 'decimal'}" autocomplete="off" value="${opts.valorInicial != null ? escapar(String(opts.valorInicial)) : ''}" onfocus="this.select();" style="width:100%;font-size:16px;padding:10px 12px;border:1px solid var(--border);border-radius:8px;background:var(--white);color:var(--text);box-sizing:border-box;">
         </div>
         <div class="cajas-modal-pie">
           <button class="cajas-btn cajas-btn-sec" id="_pv-cancel" type="button">${T('gen.cancelar')}</button>
@@ -1820,7 +1820,13 @@
       const d = await api('obtener_cierre', {
         query: { caja_id: caja.id, fecha: Estado.fechaActual, hoy: (typeof hoyLocal === 'function' ? hoyLocal() : '') }
       });
-      saldoIni = Number(d.cierre?.saldo_inicial ?? d.saldo_sugerido ?? 0) || 0;
+      // El fondo con el que empieza hoy ES el cambio que se dejó ayer, y aquí no hay
+      // campo para tocarlo a mano: manda siempre el sugerido. Antes se leía primero
+      // cierre.saldo_inicial con `??`, que NO salta cuando el valor es 0, así que un
+      // cierre guardado con 0 (todos los anteriores a este cambio) dejaba el fondo a
+      // cero para siempre y el cambio del día anterior no aparecía nunca.
+      saldoIni = Number(d.saldo_sugerido || 0) || 0;
+      if (d.cierre && Number(d.cierre.saldo_inicial) > 0) saldoIni = Number(d.cierre.saldo_inicial);
       Estado._cajaDiaCambioPrev = (cierre && cierre.cambio_siguiente != null) ? cierre.cambio_siguiente : null;
     } catch (e) { saldoIni = 0; }
     Estado._cajaDiaSaldoIni = saldoIni;
@@ -1834,6 +1840,18 @@
     const anti = r.anticipos.total > 0.005
       ? `<div style="display:flex;justify-content:space-between;padding:6px 8px;margin-top:4px;background:rgba(234,88,12,.08);border-radius:8px;font-size:14px"><span>💰 Anticipos <span style="font-size:11px;color:#6b7280">(reservas de clientes)</span></span><span style="font-weight:700;color:#EA580C">${eur(r.anticipos.total)}</span></div>`
       : '';
+    // Gastos pagados de la caja: restan del efectivo esperado y se listan para poder
+    // repasarlos al cuadrar (salen del módulo de Gastos, no son una lista aparte).
+    const g = r.gastos || { total: 0, lista: [] };
+    let gastosHtml = '';
+    if (g.total > 0.005) {
+      const items = g.lista.map(x =>
+        `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--muted,#6b7280)"><span>· ${escapar(x.concepto)}</span><span>−${eur(x.importe)}</span></div>`
+      ).join('');
+      gastosHtml = `<div style="margin-top:4px;padding:6px 8px;background:rgba(220,38,38,.08);border-radius:8px">
+        <div style="display:flex;justify-content:space-between;font-size:14px"><span>🧾 Gastos pagados de la caja</span><span style="font-weight:700;color:#DC2626">−${eur(g.total)}</span></div>
+        ${items}</div>`;
+    }
     const est = cierre && (cierre.estado === 'cerrado' || cierre.estado === 'descuadre');
     const badge = est
       ? `<span class="caja-card-estado caja-estado-${cierre.estado}">${cierre.estado === 'cerrado' ? T('cajas.cuadrada_ok') : (cierre.descuadre > 0 ? '+ ' + T('cajas.sobra') : '⚠ ' + T('cajas.falta'))}</span>`
@@ -1846,7 +1864,7 @@
           <div style="font-weight:800;font-size:15px">📅 Caja del día <span style="color:#6b7280;font-weight:500;font-size:12px">· ${formatearFecha(Estado.fechaActual)}</span></div>
           ${badge}
         </div>
-        <div>${filas}${anti}</div>
+        <div>${filas}${anti}${gastosHtml}</div>
         <div style="display:flex;justify-content:space-between;border-top:2px solid #e5e7eb;margin-top:6px;padding-top:8px;font-weight:800;font-size:16px"><span>${T('gen.total')}</span><span style="color:#00A87D">${eur(r.totalDia)}</span></div>
         <div style="margin-top:12px;background:#F8FAFC;border-radius:10px;padding:12px">
           ${saldoIni > 0.005 ? `<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;color:#6b7280"><span>🔁 ${T('cajas.cambio_anterior').replace(' €','')} <span style="font-size:11px">${T('cajas.automatico')}</span></span><span style="font-weight:700">${eur(saldoIni)}</span></div>` : ''}
@@ -1860,8 +1878,11 @@
             <input id="caja-dia-cambio" type="number" step="0.01" inputmode="decimal" value="${cambioPrefill}" oninput="Cajas.cuadreCajaDia()" style="flex:1;min-width:0;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px">
           </div>
           <div id="caja-dia-descuadre" style="margin-top:8px;font-size:13px;font-weight:700;min-height:18px"></div>
-          <div id="caja-dia-retirar" style="font-size:12px;color:#6b7280;min-height:16px"></div>
-          <button class="cajas-btn cajas-btn-verde" style="margin-top:10px;width:100%" onclick="Cajas.cerrarCajaDia()">${est ? 'Actualizar cierre del día' : 'Cerrar caja del día'}</button>
+          <div id="caja-dia-retirar" style="font-size:12px;color:var(--muted,#6b7280);min-height:16px"></div>
+          <div style="display:flex;gap:8px;margin-top:10px">
+            <button class="cajas-btn cajas-btn-sec" style="flex:0 0 auto" onclick="Cajas.gastoDeCaja()" title="Anotar un pago hecho con el dinero del cajón">🧾 Gasto de caja</button>
+            <button class="cajas-btn cajas-btn-verde" style="flex:1" onclick="Cajas.cerrarCajaDia()">${est ? 'Actualizar cierre del día' : 'Cerrar caja del día'}</button>
+          </div>
         </div>
       </div>`;
     if (contadoPrefill !== '') cuadreCajaDia();
@@ -1888,6 +1909,34 @@
       ret.innerHTML = cambio > 0.005
         ? `Dejas ${eur(cambio)} de cambio · retiras ${eur(Math.round((contado - cambio) * 100) / 100)}`
         : '';
+    }
+  }
+
+  // Pago hecho con el dinero del cajón (mensajero, café, un recambio suelto…). Se guarda
+  // como GASTO normal, no como apunte suelto de la caja: así cuenta en Gastos, reportes e
+  // IVA, y de paso el efectivo esperado del día lo descuenta solo.
+  async function gastoDeCaja() {
+    const concepto = await _pedirValor({
+      titulo: '🧾 Gasto pagado de la caja',
+      ayuda: '¿En qué se ha gastado el dinero del cajón? (ej. mensajero, material, café)',
+      texto: true
+    });
+    if (concepto === null) return;
+    if (!String(concepto).trim()) { toast('Escribe un concepto', 'error'); return; }
+    const impTxt = await _pedirValor({
+      titulo: '🧾 Importe del gasto',
+      ayuda: 'Lo que ha salido del cajón en efectivo.',
+      valorInicial: ''
+    });
+    if (impTxt === null) return;
+    const importe = Math.round((parseFloat(String(impTxt).replace(',', '.')) || 0) * 100) / 100;
+    if (!(importe > 0)) { toast(T('cajas.importe_invalido'), 'error'); return; }
+    try {
+      await window.crearGastoCaja({ concepto: String(concepto).trim(), importe, fecha: Estado.fechaActual });
+      toast('Gasto anotado ✓', 'ok');
+      await renderCajaDia();
+    } catch (e) {
+      toast('No se pudo guardar el gasto: ' + (e.message || e), 'error');
     }
   }
 
@@ -1932,6 +1981,7 @@
     pintarCajaDia,
     cuadreCajaDia,
     cerrarCajaDia,
+    gastoDeCaja,
     abrirModalNuevaCaja,
     editarCaja,
     crearCompania,
