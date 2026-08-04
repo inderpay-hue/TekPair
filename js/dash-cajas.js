@@ -1873,7 +1873,11 @@
     let gastosHtml = '';
     if (g.total > 0.005) {
       const items = g.lista.map(x =>
-        `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--muted,#6b7280)"><span>· ${escapar(x.concepto)}</span><span>−${eur(x.importe)}</span></div>`
+        `<div style="display:flex;align-items:center;gap:8px;font-size:12px;padding:2px 0;color:var(--muted,#6b7280)">
+           <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">· ${escapar(x.concepto)}</span>
+           <span>−${eur(x.importe)}</span>
+           ${(typeof tienePerm!=='function'||tienePerm('cajasm_gasto_borrar'))?`<button type="button" onclick="Cajas.borrarGastoCaja('${x.id}')" title="${T('cajas.gasto_borrar')}" style="background:none;border:0;color:#dc2626;cursor:pointer;font-size:13px;line-height:1;padding:0 2px">✕</button>`:''}
+         </div>`
       ).join('');
       gastosHtml = `<div style="margin-top:4px;padding:6px 8px;background:rgba(220,38,38,.08);border-radius:8px">
         <div style="display:flex;justify-content:space-between;font-size:14px"><span>${T('cajas.gastos_titulo')}</span><span style="font-weight:700;color:#DC2626">−${eur(g.total)}</span></div>
@@ -1967,6 +1971,20 @@
     }
   }
 
+  async function borrarGastoCaja(id) {
+    const r = Estado._cajaDiaR;
+    const g = ((r && r.gastos && r.gastos.lista) || []).find(x => String(x.id) === String(id));
+    if (!g) return;
+    if (!confirm(T('cajas.gasto_borrar_confirm').replace('{c}', g.concepto).replace('{i}', eur(g.importe)))) return;
+    try {
+      await window.eliminarGastoCaja(id);
+      toast(T('cajas.gasto_borrado'), 'ok');
+      await pintarCajaDia();
+    } catch (e) {
+      toast(e.message || String(e), 'error');
+    }
+  }
+
   async function cerrarCajaDia() {
     const caja = (Estado.cajas || []).find(c => c.nombre === 'Caja del día');
     if (!caja) return;
@@ -1997,6 +2015,7 @@
   window.Cajas = {
     renderCajas,
     cargarCajas,
+    cargarCobros,
     pintarCuentas,
     recargarSaldo,
     ingresoBanco,
@@ -2009,6 +2028,7 @@
     cuadreCajaDia,
     cerrarCajaDia,
     gastoDeCaja,
+    borrarGastoCaja,
     abrirModalNuevaCaja,
     editarCaja,
     crearCompania,

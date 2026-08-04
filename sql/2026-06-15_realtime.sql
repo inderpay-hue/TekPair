@@ -9,7 +9,12 @@ declare t text;
 begin
   foreach t in array array[
     'reparaciones','ventas','stock','clientes','gastos','proveedores',
-    'pedidos','gastos_recurrentes','pagos_proveedor','servicios','citas','tiendas'
+    'pedidos','gastos_recurrentes','pagos_proveedor','servicios','citas','tiendas',
+    -- Añadidas 5-ago-2026: sin estas, un anticipo cobrado en el mostrador o un
+    -- pendiente/gasto de caja hecho en otro puesto tardaba hasta 60 s en verse.
+    -- Solo tablas con tienda_id: el canal del cliente filtra por esa columna.
+    'pagos_reparacion','cajas','cajas_cierres','cajas_fiados','cajas_cuentas',
+    'cajas_saldo_mov'
   ]
   loop
     if not exists (

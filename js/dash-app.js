@@ -3463,7 +3463,18 @@ function _rtSyncDebounced() {
   if (_rtTimer) clearTimeout(_rtTimer);
   _rtTimer = setTimeout(function () {
     _rtTimer = null;
-    if (typeof syncCompleto === 'function' && !document.hidden) syncCompleto(true);
+    if (document.hidden) return;
+    if (typeof syncCompleto === 'function') syncCompleto(true);
+    // Cajas es un módulo aparte con sus propios datos: syncCompleto no lo refresca, así
+    // que un cobro o un gasto hecho en otro puesto no se veía hasta cambiar de pantalla.
+    try {
+      var pC = document.getElementById('pCajas');
+      if (pC && pC.style.display !== 'none' && window.Cajas) {
+        if (typeof Cajas.cargarCajas === 'function') Cajas.cargarCajas();
+        if (typeof Cajas.cargarCobros === 'function') Cajas.cargarCobros();
+      }
+    } catch (e) { /* noop */ }
+    try { _invalidarInvPagos(); } catch (e) { /* noop */ }
   }, 600);
 }
 function _initRealtime() {
@@ -3478,8 +3489,16 @@ function _initRealtime() {
         auth: { persistSession: false, autoRefreshToken: false }
       });
       _rtClient.realtime.setAuth(JWT_TOKEN);
+      // pagos_reparacion y las tablas de Cajas faltaban: un anticipo cobrado en el
+      // mostrador o un pendiente cobrado en otro puesto no llegaban al resto de
+      // dispositivos hasta el poll de 60 s.
       var TABLAS = ['reparaciones', 'ventas', 'stock', 'clientes', 'gastos', 'proveedores',
-        'pedidos', 'gastos_recurrentes', 'pagos_proveedor', 'servicios', 'citas', 'tiendas'];
+        'pedidos', 'gastos_recurrentes', 'pagos_proveedor', 'servicios', 'citas', 'tiendas',
+        // Solo tablas con tienda_id: el canal filtra por esa columna. cajas_companias y
+        // cajas_movimientos se aíslan por caja_id, así que no encajan aquí y siguen
+        // llegando por el refresco periódico.
+        'pagos_reparacion', 'cajas', 'cajas_cierres', 'cajas_fiados', 'cajas_cuentas',
+        'cajas_saldo_mov'];
       // UN canal por tabla: así el subscribe sabe QUÉ tabla es (log con nombre) y una tabla
       // que rechace la suscripción no tumba a las demás (antes iban todas en un canal → F20).
       TABLAS.forEach(function (tbl) {
@@ -3875,6 +3894,18 @@ function _ventasIngresoPorMetodo(ventas, d1, d2) {
 // Alta de un gasto pagado con el efectivo del cajón, desde la propia pantalla de Cajas.
 // Es un gasto normal (cuenta en Gastos, reportes e IVA) con metodo_pago='efectivo', que es
 // lo que hace que cajaDiaResumen lo descuente del efectivo esperado.
+// Borra un gasto de caja. Permiso propio de Cajas (cajasm_gasto_borrar).
+async function eliminarGastoCaja(id) {
+  if (typeof tienePerm === 'function' && !tienePerm('cajasm_gasto_borrar')) {
+    throw new Error(T('gen.sin_permiso'));
+  }
+  DB.gastos = (DB.gastos || []).filter(function (x) { return x && x.id !== id; });
+  try { guardarDatos(); } catch (e) {}
+  if (SB_KEY && TIENDA_ID) await sbDelete('gastos', 'id=eq.' + encodeURIComponent(id));
+  try { _invalidarInvPagos(); } catch (e) {}
+}
+window.eliminarGastoCaja = eliminarGastoCaja;
+
 async function crearGastoCaja(d) {
   var g = {
     id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -19394,6 +19425,10 @@ var PERMS_LISTA = [
   {id:'cajasm_gestionar',label:T('perm.cajasm_gestionar'),grupo:'Cajas Multi-Servicio'},
   {id:'cajasm_historico',label:T('perm.cajasm_historico'),grupo:'Cajas Multi-Servicio'},
   {id:'cajasm_editar_cerrada',label:T('perm.cajasm_editar_cerrada'),grupo:'Cajas Multi-Servicio'},
+  // Anotar un gasto del cajón lo puede hacer cualquiera que entre en Cajas (ya ha pasado
+  // el código de caja): es parte de operar. Borrarlo sí exige permiso, porque cambia el
+  // cuadre de un día que quizá ya estaba cerrado.
+  {id:'cajasm_gasto_borrar',label:T('perm.cajasm_gasto_borrar'),grupo:'Cajas Multi-Servicio'},
   // Configuración
   {id:'tienda_ver',label:T('perm.tienda_ver'),grupo:'Configuración'},
   {id:'tienda_editar',label:T('perm.tienda_editar'),grupo:'Configuración'},
