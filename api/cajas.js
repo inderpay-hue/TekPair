@@ -361,7 +361,10 @@ export default async function handler(req, res) {
         // Adjuntar las compañías de cada cuenta.
         const ids = cuentas.map(c => c.id);
         let comps = [];
-        if (ids.length) comps = await sbGet(`cajas_companias?tienda_id=eq.${encodeURIComponent(tienda_id)}&cuenta_id=in.(${ids.map(encodeURIComponent).join(',')})&select=id,nombre,cuenta_id`);
+        // cajas_companias NO tiene tienda_id (se aísla por caja_id/cuenta_id): filtrar por
+        // esa columna devolvía 400 y rompía la respuesta. Las cuentas ya vienen filtradas
+        // por tienda_id y por permisos, así que acotar por cuenta_id basta para aislar.
+        if (ids.length) comps = await sbGet(`cajas_companias?cuenta_id=in.(${ids.map(encodeURIComponent).join(',')})&select=id,nombre,cuenta_id`);
         const out = cuentas.map(c => Object.assign({}, c, { companias: comps.filter(k => k.cuenta_id === c.id).map(k => ({ id: k.id, nombre: k.nombre })) }));
         return ok(res, { cuentas: out });
       }
@@ -920,9 +923,12 @@ export default async function handler(req, res) {
         const cajasInfo = cajasIds.length ? await sbGet(
           `cajas?id=in.(${cajasIds.map(encodeURIComponent).join(',')})&select=id,nombre,icono`
         ) : [];
-        const cmpsInfo = cmpIds.length ? await sbGet(
-          // AUD-fix: filtrar por tienda_id para no exponer el nombre de una compañía de otra tienda.
-          `cajas_companias?id=in.(${cmpIds.map(encodeURIComponent).join(',')})&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id,nombre`
+        // cajas_companias NO tiene tienda_id: el filtro devolvía 400 ("column does not
+        // exist") y tumbaba la pestaña entera de Cobros pendientes con un 500. El
+        // aislamiento se hace por caja_id, que es la relación real, y las cajas ya salen
+        // de fiados filtrados por tienda_id y por permisos.
+        const cmpsInfo = (cmpIds.length && cajasIds.length) ? await sbGet(
+          `cajas_companias?id=in.(${cmpIds.map(encodeURIComponent).join(',')})&caja_id=in.(${cajasIds.map(encodeURIComponent).join(',')})&select=id,nombre`
         ) : [];
         const mapCaja = Object.fromEntries(cajasInfo.map(c => [c.id, c]));
         const mapCmp = Object.fromEntries(cmpsInfo.map(c => [c.id, c]));
