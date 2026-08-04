@@ -1,5 +1,5 @@
 // TekPair Service Worker
-const CACHE_VERSION = 'tekpair-v20260803e';
+const CACHE_VERSION = 'tekpair-v20260804a';
 const ASSETS = [
   '/offline.html',
   '/dashboard.html',
@@ -9,6 +9,8 @@ const ASSETS = [
   '/icon-512.svg',
   '/icon-192.png',
   '/icon-512.png',
+  '/icon-maskable-512.png',
+  '/favicon.png',
   '/apple-touch-icon.png'
 ];
 

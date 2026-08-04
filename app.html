@@ -4,6 +4,18 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>TekPair — Iniciar sesión</title>
+<!-- app.html es el start_url del manifest y la pantalla desde la que se instala la app.
+     Sin manifest ni apple-touch-icon aquí, iOS no encontraba icono al "Añadir a inicio"
+     y Android no ofrecía instalar en condiciones: salía sin el logo de TekPair. -->
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#FF5B1F">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="TekPair">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="/favicon.png">
+<link rel="icon" type="image/svg+xml" href="/icon-192.svg">
 <script>(function(){try{var s=JSON.parse(localStorage.getItem('tk_sess')||'null');if(s&&s.token){var exp=0;try{exp=(JSON.parse(atob(s.token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))).exp||0)*1000;}catch(e){}if(exp&&exp<Date.now()){try{localStorage.removeItem('tk_sess');}catch(e){}}else if(!sessionStorage.getItem('tk_app_redir')){sessionStorage.setItem('tk_app_redir','1');location.replace('dashboard.html');}}}catch(e){}})();</script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
