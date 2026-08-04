@@ -1205,7 +1205,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260803a"></script>
+<script src="/lang/lang.v8.js?v=20260805b"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2232,39 +2232,49 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     padding:10px 16px;font-size:14px;color:#6b7280;cursor:pointer;
     font-weight:500;transition:all .15s;
   }
-  .cajas-tab-btn:hover { color:#374151;background:#f9fafb; }
+  .cajas-tab-btn:hover { color:var(--text);background:var(--light); }
   .cajas-tab-activa {
     color:#FF5B1F !important;border-bottom-color:#FF5B1F !important;font-weight:600;
   }
   .cajas-subtab-btn {
-    background:#f3f4f6;border:1px solid #e5e7eb;color:#6b7280;
+    background:var(--light);border:1px solid var(--border);color:var(--text);
     padding:7px 14px;font-size:13px;border-radius:8px;cursor:pointer;
     font-weight:500;
   }
-  .cajas-subtab-btn:hover { background:#e5e7eb; }
+  .cajas-subtab-btn:hover { background:var(--bg2); }
   .cajas-subtab-activa {
     background:#FF5B1F !important;color:#fff !important;border-color:#FF5B1F !important;
   }
 
+  /* Colores por variables (no fijos): en modo oscuro estas tarjetas salían blancas
+     con texto gris y no se podían leer. */
   .cobro-fila {
     display:flex;align-items:center;gap:12px;padding:12px 14px;
-    background:#fff;border:1px solid #e5e7eb;border-radius:10px;margin-bottom:8px;
+    background:var(--white);border:1px solid var(--border);border-radius:10px;margin-bottom:8px;
   }
-  .cobro-fila.cobrado { background:#f9fafb;opacity:.7; }
+  .cobro-fila.cobrado { background:var(--light);opacity:.75; }
   .cobro-fila .cobro-info { flex:1;min-width:0; }
   .cobro-fila .cobro-cliente {
-    font-size:14px;font-weight:600;color:#111827;
+    font-size:14px;font-weight:600;color:var(--text);
   }
   .cobro-fila.cobrado .cobro-cliente { text-decoration:line-through; }
+  .cobro-fila .cobro-caja { color:var(--muted);font-size:12px;font-weight:400; }
+  .cobro-fila .cobro-fecha { font-size:11px;color:#FF7A47;font-weight:700;margin-bottom:4px; }
   .cobro-fila .cobro-meta {
-    font-size:11px;color:#6b7280;margin-top:2px;
+    font-size:11px;color:var(--muted);margin-top:2px;
   }
   .cobro-fila .cobro-importe {
-    font-weight:700;color:#92400e;font-size:15px;min-width:80px;text-align:right;
+    font-weight:700;color:#C2410C;font-size:15px;min-width:80px;text-align:right;
   }
+  body[data-theme="dark"] .cobro-fila .cobro-importe { color:#FBBF24; }
   .cobro-fila.cobrado .cobro-importe { color:#10b981; }
+  .cobro-btn-sec {
+    background:var(--light);border:1px solid var(--border);color:var(--text);
+    padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer;
+  }
+  .cobro-btn-sec:hover { background:var(--bg2); }
   .cobro-vacio {
-    text-align:center;padding:40px 20px;color:#9ca3af;font-size:14px;
+    text-align:center;padding:40px 20px;color:var(--muted);font-size:14px;
   }
 
   .cajas-mensaje-vacio {
@@ -2537,7 +2547,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <div class="cajas-form-grupo">
         <label>Cliente <span style="text-transform:none;color:#6b7280;font-weight:400;">(opcional)</span></label>
         <div style="position:relative;">
-          <input type="text" id="fiado-busca-cli" placeholder="Buscar por nombre, teléfono o DNI..." data-t-ph="rep.buscar_cliente" autocomplete="off" oninput="busCliCtx('f')" onfocus="busCliCtx('f')">
+          <input type="text" id="fiado-busca-cli" placeholder="Buscar cliente o escribir un nombre…" data-t-ph="cajas.fiado_cliente_ph" autocomplete="off" oninput="busCliCtx('f')" onfocus="busCliCtx('f')">
           <div class="autocomplete-res" id="fSelCli" style="position:absolute;top:100%;left:0;right:0;z-index:100002;"></div>
         </div>
         <div id="fSelCliBox" class="sel-box" style="margin-top:8px;display:none;background:#f0fdf4;border:1px solid #86efac;border-radius:8px;padding:8px 10px;justify-content:space-between;align-items:center;">
@@ -2697,7 +2707,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 
 <!-- ════ LÓGICA JS ════ -->
-<script src="/js/dash-cajas.js?v=20260805a"></script>
+<script src="/js/dash-cajas.js?v=20260805b"></script>
 
 <div class="page" id="pGastos">
   <div class="sec-header" style="margin-bottom:10px">

@@ -1336,10 +1336,16 @@
       toast('El importe debe ser mayor que 0', 'error');
       return;
     }
+    // El campo de cliente es un buscador de clientes YA registrados y el nombre real
+    // viaja en un hidden que solo se rellena al elegir uno de la lista. Quien fía a
+    // alguien que no está de alta no podía ponerle nombre y salía "Sin nombre": si no
+    // se ha seleccionado ningún cliente, se toma como nombre lo que se haya escrito.
+    var _nomSel = $('fiado-cliente').value.trim();
+    var _escrito = ($('fiado-busca-cli') && $('fiado-busca-cli').value || '').trim();
     const datos = {
       compania_id: $('fiado-compania-select').value || null,
       importe,
-      cliente_nombre: $('fiado-cliente').value.trim(),
+      cliente_nombre: _nomSel || _escrito,
       cliente_telefono: $('fiado-telefono').value.trim(),
       nota: $('fiado-nota').value.trim()
     };
@@ -1476,19 +1482,19 @@
         acciones = `
           ${waBtn}
           <button onclick="Cajas.cobrarFiado('${f.id}')" style="background:#10b981;color:#fff;border:0;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">✓ ${T('cajas.cobrar')}</button>
-          <button onclick="Cajas.editarCobro('${f.id}')" style="background:#f3f4f6;border:1px solid #d1d5db;color:#374151;padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer;">✏</button>
+          <button onclick="Cajas.editarCobro('${f.id}')" class="cobro-btn-sec">✏</button>
         `;
       } else {
-        acciones = `<div style="text-align:right;"><div style="color:#10b981;font-size:11px;font-weight:600;">${metodoIcon} Cobrado ${fechaCobro}</div><div style="color:#6b7280;font-size:10px;">en ${metodoTxt}</div></div>`;
+        acciones = `<div style="text-align:right;"><div style="color:#10b981;font-size:11px;font-weight:600;">${metodoIcon} Cobrado ${fechaCobro}</div><div class="cobro-meta">en ${metodoTxt}</div></div>`;
       }
 
       return `
         <div class="cobro-fila ${cobrado ? 'cobrado' : ''}">
           <div class="cobro-info">
-            <div style="font-size:11px;color:#FF5B1F;font-weight:700;margin-bottom:4px;">📅 ${fechaVisible}</div>
+            <div class="cobro-fecha">📅 ${fechaVisible}</div>
             <div class="cobro-cliente">
               ${escapar(cliente)}
-              <span style="color:#6b7280;font-size:12px;font-weight:400;">— ${cajaIco} ${escapar(cajaN)} ${cmp ? '· ' + escapar(cmp) : ''}</span>
+              <span class="cobro-caja">— ${cajaIco} ${escapar(cajaN)} ${cmp ? '· ' + escapar(cmp) : ''}</span>
             </div>
             <div class="cobro-meta">${tel.replace(/^ · /, '')}${nota}</div>
           </div>
