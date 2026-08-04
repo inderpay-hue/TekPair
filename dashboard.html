@@ -619,6 +619,10 @@ body[data-theme="dark"] .notif-item:hover{background:rgba(255,255,255,.05) !impo
 
 /* VIS-FIN: Widget resumen financiero */
 .fin-widget{background:var(--white);border-radius:14px;padding:16px 18px;border:1px solid var(--border);box-shadow:var(--shadow-sm);margin-bottom:10px}
+/* El resumen financiero es una tarjeta ancha (importe grande + desglose + formas de pago)
+   dentro de un grid de 2 columnas: en móvil se quedaba a media pantalla, con el hueco de
+   al lado vacío. En móvil ocupa las dos columnas. */
+@media(max-width:839px){ .fin-widget{grid-column:1/-1} }
 .fin-widget-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
 .fin-widget-title{font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em}
 .fin-total-num{font-size:28px;font-weight:800;color:var(--text);letter-spacing:-.02em;line-height:1}

@@ -223,6 +223,25 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 @media(min-width:769px){
   .cart-fab,.cart-close-mobile{display:none!important}
 }
+/* Cabecera en móvil: era un flex de una sola línea (logo + fecha + usuario + 2 botones)
+   y el selector de temas va position:fixed arriba a la derecha. En un móvil no cabía:
+   el título se partía en dos y los chips de tema tapaban el botón de Reparación.
+   Ahora la info baja a una segunda fila y el logo no invade la esquina del selector. */
+@media(max-width:820px){
+  .tpv-theme-sw{top:8px;right:8px;padding:3px;gap:3px}
+  .tpv-theme-sw button{width:25px;height:25px;font-size:12px}
+  .tpv-topbar{flex-wrap:wrap;gap:8px 10px;padding:10px 12px}
+  .tpv-logo{font-size:15px;white-space:nowrap;min-width:0;max-width:calc(100% - 140px);overflow:hidden;text-overflow:ellipsis}
+  .tpv-logo .z{width:30px;height:30px;font-size:16px}
+  .tpv-topbar-info{width:100%;flex-wrap:wrap;gap:7px;font-size:11px}
+  .tpv-topbar-info .tpv-btn-back{padding:6px 11px;font-size:11.5px}
+}
+@media(max-width:400px){
+  /* Muy estrecho: el rótulo se queda en el rayo + "TPV" para que quepan los botones. */
+  .tpv-logo{font-size:0;gap:0}
+  .tpv-logo::after{content:"TPV";font-size:15px;margin-left:8px}
+  .tpv-logo .z{font-size:16px}
+}
 </style>
 <script src="/lang/lang.v8.js?v=20260729s"></script>
   <script src="/cookies-consent.js" defer></script>
