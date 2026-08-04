@@ -290,9 +290,9 @@ async function recalcularCierreDeFiado(fiadoId, tienda_id) {
     const efectivo = Number(cierre.saldo_real_final || 0);
     const tpv = Number(cierre.importe_tpv || 0);
     const teorico = Number(cierre.saldo_teorico || 0);
-    // v2.3: pendientes restan al cobrado (son deuda)
+    // Mismo criterio que al cerrar: el fiado ya falta en el cajón y el pendiente lo justifica.
     const cobrado = efectivo + tpv;
-    const nuevoDescuadre = Math.round((cobrado - teorico - totalPendientes) * 100) / 100;
+    const nuevoDescuadre = Math.round((cobrado - teorico + totalPendientes) * 100) / 100;
 
     // Determinar estado
     let nuevoEstado = cierre.estado;
@@ -744,8 +744,10 @@ export default async function handler(req, res) {
         const tpvNum = Number(importe_tpv || 0);
         const fiadosNum = Number(total_fiados || 0);
         const cobrado = Math.round((saldoReal + tpvNum) * 100) / 100;
-        // v2.3: pendientes restan al cobrado (son deuda)
-        const descuadre = Math.round((cobrado - saldoTeorico - fiadosNum) * 100) / 100;
+        // El fiado NO entró en el cajón: (cobrado - teorico) ya lo cuenta como falta.
+        // El pendiente anotado lo justifica, así que SUMA. Restarlo duplicaba el
+        // descuadre: fiar 10 € dejaba la caja en -20 €.
+        const descuadre = Math.round((cobrado - saldoTeorico + fiadosNum) * 100) / 100;
         // estados permitidos: abierto, cerrado, descuadre (auto), festivo
         let estadoFinal;
         if (estado === 'festivo') {

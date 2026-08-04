@@ -971,8 +971,10 @@
       const balance = Math.round((cobrado - teorico) * 100) / 100;
 
       // Envíos: debe cuadrar EXACTO (no aceptar sobra como verde)
-      // v2.3: si hay pendientes, sumarlos a la falta
-      const faltaTotal = Math.round((balance - totalFiados) * 100) / 100;
+      // El importe fiado ya NO está en el cajón, así que `balance` ya lo refleja como
+      // falta. El pendiente anotado lo JUSTIFICA: se suma para volver a cuadrar. Antes
+      // se restaba y el descuadre salía DOBLE (fiar 10 € marcaba -20 €).
+      const faltaTotal = Math.round((balance + totalFiados) * 100) / 100;
       okFlag = Math.abs(faltaTotal) <= 0.5;
       if (faltaTotal > 0.5) {
         okFlag = false;
@@ -1005,8 +1007,8 @@
       const teorico = Math.round((saldoInicial + totalVendido) * 100) / 100;
       const balance = Math.round((cobrado - teorico) * 100) / 100;
 
-      // v2.3: si hay pendientes, restarlos
-      const faltaTotal = Math.round((balance - totalFiados) * 100) / 100;
+      // Igual que en envíos: el fiado ya falta en el cajón, el pendiente lo justifica.
+      const faltaTotal = Math.round((balance + totalFiados) * 100) / 100;
       okFlag = Math.abs(faltaTotal) <= 0.5;
       if (faltaTotal > 0.5) {
         okFlag = true;
@@ -1924,4 +1926,34 @@
     seleccionarDelCalendario,
     actualizarLabelFecha
   };
+})();
+
+// ── El 0 de los importes se quita al tocar el campo ─────────────────────────────
+// Los inputs de dinero salen con "0" y hay que borrarlo a mano antes de escribir:
+// molesto cuando cierras caja a diario. Se hace por delegación en todo el módulo de
+// cajas —y no campo a campo con onfocus— porque así lo heredan también los inputs
+// que se pintan por JS (compañías, saldos) y los que se añadan después: los tres del
+// modal de cierre se habían quedado fuera justo por eso.
+(function () {
+  var SEL = '#pCajas, .cajas-modal, [id^="modal-caja"], [id^="modal-cierre"], [id^="modal-fiado"]';
+  var esImporte = function (el) {
+    return el && el.tagName === 'INPUT' &&
+      (el.type === 'number' || el.inputMode === 'decimal') &&
+      typeof el.closest === 'function' && el.closest(SEL);
+  };
+  document.addEventListener('focusin', function (e) {
+    var el = e.target;
+    if (!esImporte(el)) return;
+    if (/^0(?:[.,]0+)?$/.test((el.value || '').trim())) el.value = '';
+    else if (el.select) el.select();   // si ya hay importe, se sustituye escribiendo
+  });
+  document.addEventListener('focusout', function (e) {
+    var el = e.target;
+    if (!esImporte(el)) return;
+    // Si se sale sin escribir, vuelve el 0: los cálculos del cierre cuentan con un número.
+    if ((el.value || '').trim() === '') {
+      el.value = '0';
+      try { el.dispatchEvent(new Event('input', { bubbles: true })); } catch (err) { /* noop */ }
+    }
+  });
 })();
