@@ -188,8 +188,8 @@
     if (Estado.cajas.length === 0) {
       grid.innerHTML = `
         <div class="cajas-mensaje-vacio" style="grid-column:1/-1;">
-          <p style="font-size:16px;margin-bottom:6px;color:#374151;">Aún no tienes cajas configuradas</p>
-          <p style="font-size:13px;">Crea tu primera caja para empezar a cuadrar el día a día</p>
+          <p style="font-size:16px;margin-bottom:6px;color:var(--text,#374151);">${T('cajas.vacio_titulo')}</p>
+          <p style="font-size:13px;">${T('cajas.vacio_sub')}</p>
           <button class="cajas-btn cajas-btn-verde" style="margin-top:12px;" onclick="Cajas.abrirModalNuevaCaja()">+ Crear primera caja</button>
         </div>
       `;
@@ -263,7 +263,7 @@
     html += `
       <div class="caja-card-nueva" onclick="Cajas.abrirModalNuevaCaja()">
         <div class="icono-grande">+</div>
-        <div>Añadir nueva caja</div>
+        <div>${T('cajas.anadir_nueva')}</div>
       </div>
     `;
     grid.innerHTML = html;
@@ -1836,7 +1836,7 @@
       if (Math.abs(r.metodos[m]) < 0.005) return;
       filas += `<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:14px"><span>${ICON[m]||'•'} ${escapar(m)}</span><span style="font-weight:700">${eur(r.metodos[m])}</span></div>`;
     });
-    if (!filas) filas = `<div style="padding:5px 0;font-size:13px;color:#9ca3af">Sin cobros hoy todavía</div>`;
+    if (!filas) filas = `<div style="padding:5px 0;font-size:13px;color:var(--muted,#9ca3af)">${T('cajas.dia_sin_cobros')}</div>`;
     const anti = r.anticipos.total > 0.005
       ? `<div style="display:flex;justify-content:space-between;padding:6px 8px;margin-top:4px;background:rgba(234,88,12,.08);border-radius:8px;font-size:14px"><span>💰 Anticipos <span style="font-size:11px;color:#6b7280">(reservas de clientes)</span></span><span style="font-weight:700;color:#EA580C">${eur(r.anticipos.total)}</span></div>`
       : '';
@@ -1849,7 +1849,7 @@
         `<div style="display:flex;justify-content:space-between;font-size:12px;padding:2px 0;color:var(--muted,#6b7280)"><span>· ${escapar(x.concepto)}</span><span>−${eur(x.importe)}</span></div>`
       ).join('');
       gastosHtml = `<div style="margin-top:4px;padding:6px 8px;background:rgba(220,38,38,.08);border-radius:8px">
-        <div style="display:flex;justify-content:space-between;font-size:14px"><span>🧾 Gastos pagados de la caja</span><span style="font-weight:700;color:#DC2626">−${eur(g.total)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-size:14px"><span>${T('cajas.gastos_titulo')}</span><span style="font-weight:700;color:#DC2626">−${eur(g.total)}</span></div>
         ${items}</div>`;
     }
     const est = cierre && (cierre.estado === 'cerrado' || cierre.estado === 'descuadre');
@@ -1861,16 +1861,16 @@
     cont.innerHTML = `
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:16px;border-left:4px solid #00C896">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
-          <div style="font-weight:800;font-size:15px">📅 Caja del día <span style="color:#6b7280;font-weight:500;font-size:12px">· ${formatearFecha(Estado.fechaActual)}</span></div>
+          <div style="font-weight:800;font-size:15px">📅 ${T('cajas.dia_titulo')} <span style="color:#6b7280;font-weight:500;font-size:12px">· ${formatearFecha(Estado.fechaActual)}</span></div>
           ${badge}
         </div>
         <div>${filas}${anti}${gastosHtml}</div>
         <div style="display:flex;justify-content:space-between;border-top:2px solid #e5e7eb;margin-top:6px;padding-top:8px;font-weight:800;font-size:16px"><span>${T('gen.total')}</span><span style="color:#00A87D">${eur(r.totalDia)}</span></div>
         <div style="margin-top:12px;background:#F8FAFC;border-radius:10px;padding:12px">
           ${saldoIni > 0.005 ? `<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px;color:#6b7280"><span>🔁 ${T('cajas.cambio_anterior').replace(' €','')} <span style="font-size:11px">${T('cajas.automatico')}</span></span><span style="font-weight:700">${eur(saldoIni)}</span></div>` : ''}
-          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span>💵 Efectivo esperado</span><span style="font-weight:700">${eur(r.efectivoEsperado + saldoIni)}</span></div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:8px"><span>💵 ${T('cajas.efectivo_esperado')}</span><span style="font-weight:700">${eur(r.efectivoEsperado + saldoIni)}</span></div>
           <div style="display:flex;gap:8px;align-items:center">
-            <label style="font-size:13px;white-space:nowrap">Efectivo contado</label>
+            <label style="font-size:13px;white-space:nowrap">${T('cajas.efectivo_contado')}</label>
             <input id="caja-dia-contado" type="number" step="0.01" inputmode="decimal" value="${contadoPrefill}" oninput="Cajas.cuadreCajaDia()" style="flex:1;min-width:0;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px">
           </div>
           <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
@@ -1880,8 +1880,8 @@
           <div id="caja-dia-descuadre" style="margin-top:8px;font-size:13px;font-weight:700;min-height:18px"></div>
           <div id="caja-dia-retirar" style="font-size:12px;color:var(--muted,#6b7280);min-height:16px"></div>
           <div style="display:flex;gap:8px;margin-top:10px">
-            <button class="cajas-btn cajas-btn-sec" style="flex:0 0 auto" onclick="Cajas.gastoDeCaja()" title="Anotar un pago hecho con el dinero del cajón">🧾 Gasto de caja</button>
-            <button class="cajas-btn cajas-btn-verde" style="flex:1" onclick="Cajas.cerrarCajaDia()">${est ? 'Actualizar cierre del día' : 'Cerrar caja del día'}</button>
+            <button class="cajas-btn cajas-btn-sec" style="flex:0 0 auto" onclick="Cajas.gastoDeCaja()" title="${T('cajas.gasto_btn_ayuda')}">${T('cajas.gasto_btn')}</button>
+            <button class="cajas-btn cajas-btn-verde" style="flex:1" onclick="Cajas.cerrarCajaDia()">${est ? T('cajas.dia_actualizar') : T('cajas.dia_cerrar')}</button>
           </div>
         </div>
       </div>`;
@@ -1907,7 +1907,7 @@
     const cambio = parseFloat((cInp && cInp.value) || 0) || 0;
     if (ret) {
       ret.innerHTML = cambio > 0.005
-        ? `Dejas ${eur(cambio)} de cambio · retiras ${eur(Math.round((contado - cambio) * 100) / 100)}`
+        ? T('cajas.dia_retiras').replace('{c}', eur(cambio)).replace('{r}', eur(Math.round((contado - cambio) * 100) / 100))
         : '';
     }
   }
@@ -1917,15 +1917,15 @@
   // IVA, y de paso el efectivo esperado del día lo descuenta solo.
   async function gastoDeCaja() {
     const concepto = await _pedirValor({
-      titulo: '🧾 Gasto pagado de la caja',
-      ayuda: '¿En qué se ha gastado el dinero del cajón? (ej. mensajero, material, café)',
+      titulo: T('cajas.gasto_titulo'),
+      ayuda: T('cajas.gasto_concepto_ayuda'),
       texto: true
     });
     if (concepto === null) return;
-    if (!String(concepto).trim()) { toast('Escribe un concepto', 'error'); return; }
+    if (!String(concepto).trim()) { toast(T('cajas.gasto_falta_concepto'), 'error'); return; }
     const impTxt = await _pedirValor({
-      titulo: '🧾 Importe del gasto',
-      ayuda: 'Lo que ha salido del cajón en efectivo.',
+      titulo: T('cajas.gasto_importe_titulo'),
+      ayuda: T('cajas.gasto_importe_ayuda'),
       valorInicial: ''
     });
     if (impTxt === null) return;
@@ -1933,10 +1933,10 @@
     if (!(importe > 0)) { toast(T('cajas.importe_invalido'), 'error'); return; }
     try {
       await window.crearGastoCaja({ concepto: String(concepto).trim(), importe, fecha: Estado.fechaActual });
-      toast('Gasto anotado ✓', 'ok');
-      await renderCajaDia();
+      toast(T('cajas.gasto_ok'), 'ok');
+      await pintarCajaDia();
     } catch (e) {
-      toast('No se pudo guardar el gasto: ' + (e.message || e), 'error');
+      toast(T('cajas.gasto_error') + ': ' + (e.message || e), 'error');
     }
   }
 
