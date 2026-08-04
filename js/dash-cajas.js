@@ -1513,9 +1513,30 @@
     $('cobrar-compania').textContent = `${f.caja_icono || '💼'} ${f.caja_nombre || ''}` +
       (f.compania_nombre ? ` · ${f.compania_nombre}` : '');
     $('cobrar-importe').textContent = eur(f.importe);
+    // Prefijado al total: cobrar entero es lo normal; se edita solo si abona una parte.
+    var _ci = $('cobrar-importe-input');
+    if (_ci) { _ci.value = Number(f.importe || 0); _ci.max = Number(f.importe || 0); }
+    Estado._cobroPendTotal = Number(f.importe || 0);
+    cambioImporteCobro();
     $('metodo-efectivo').checked = false;
     $('metodo-tarjeta').checked = false;
     $('modal-cobrar-pendiente').classList.add('activo');
+  }
+
+  // Avisa de cuánto seguirá debiendo si el importe es menor que el pendiente.
+  function cambioImporteCobro() {
+    const el = $('cobrar-restante'); if (!el) return;
+    const total = Number(Estado._cobroPendTotal || 0);
+    const val = parseFloat(($('cobrar-importe-input') || {}).value || 0) || 0;
+    const resto = Math.round((total - val) * 100) / 100;
+    if (val <= 0) { el.innerHTML = ''; return; }
+    if (val > total + 0.005) {
+      el.innerHTML = `<span style="color:#dc2626">${T('cajas.cobro_mas_pendiente')}</span>`;
+    } else if (resto > 0.005) {
+      el.innerHTML = `<span style="color:#C2410C">${T('cajas.cobro_quedan').replace('{r}', eur(resto))}</span>`;
+    } else {
+      el.innerHTML = `<span style="color:#16a34a">${T('cajas.cobro_completo')}</span>`;
+    }
   }
 
   function cerrarModalCobrar() {
@@ -1529,12 +1550,18 @@
       toast('Selecciona un método de pago', 'error');
       return;
     }
+    const total = Number(Estado._cobroPendTotal || 0);
+    const imp = parseFloat(($('cobrar-importe-input') || {}).value || total) || total;
+    if (!(imp > 0)) { toast(T('cajas.importe_invalido'), 'error'); return; }
+    if (imp > total + 0.005) { toast(T('cajas.cobro_mas_pendiente'), 'error'); return; }
     try {
-      await api('marcar_cobrado', {
+      const r = await api('marcar_cobrado', {
         method: 'POST',
-        body: { id, metodo_pago: metodo }
+        body: { id, metodo_pago: metodo, importe: imp }
       });
-      toast(`Cobro registrado en ${metodo} ✓`);
+      toast(r && r.parcial
+        ? T('cajas.cobro_parcial_ok').replace('{c}', eur(imp)).replace('{r}', eur(r.restante))
+        : `${T('cajas.cobro_registrado')} ${metodo} ✓`);
       cerrarModalCobrar();
       await cargarCobros();
     } catch(e) {
@@ -2004,6 +2031,7 @@
     cobrarFiado,
     cerrarModalCobrar,
     confirmarCobro,
+    cambioImporteCobro,
     editarCobro,
     limpiarClienteFiado,
     pintarFranja7,

@@ -1022,6 +1022,50 @@ export default async function handler(req, res) {
         if (!puede) return err(res, 403, 'No tienes permiso para cobrar pendientes');
         if (!(await puedeAccederCaja(payload, await _cajaDeFiado(id)))) return err(res, 403, 'Sin permiso para esta caja');
 
+        // Cobro PARCIAL: el cliente abona una parte y el resto sigue debiéndose. En vez de
+        // añadir columnas, se parte el pendiente en dos registros: uno cobrado por lo que
+        // ha pagado y el original con lo que queda. Así el histórico y los cuadres de caja
+        // siguen funcionando igual (los pendientes suman siempre lo que falta de verdad).
+        const _orig = (await sbGet(
+          `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&limit=1`
+        ))[0];
+        if (!_orig) return err(res, 404, 'Pendiente no encontrado');
+        if (_orig.estado === 'cobrado') return err(res, 400, 'Ese pendiente ya está cobrado');
+
+        const _totalPend = Math.round(Number(_orig.importe || 0) * 100) / 100;
+        let _abona = req.body.importe != null ? Math.round(Number(req.body.importe) * 100) / 100 : _totalPend;
+        if (!isFinite(_abona) || _abona <= 0) return err(res, 400, 'Importe inválido');
+        if (_abona > _totalPend + 0.005) return err(res, 400, 'No se puede cobrar más de lo pendiente');
+
+        if (_abona < _totalPend - 0.005) {
+          // Parcial: registro nuevo con lo cobrado + el original se queda con el resto.
+          const _pagado = await sbPost('cajas_fiados', {
+            tienda_id,
+            caja_id: _orig.caja_id,
+            compania_id: _orig.compania_id || null,
+            cierre_id: _orig.cierre_id || null,
+            fecha: _orig.fecha,
+            importe: _abona,
+            cliente_nombre: _orig.cliente_nombre || null,
+            cliente_telefono: _orig.cliente_telefono || null,
+            nota: _orig.nota || null,
+            estado: 'cobrado',
+            metodo_pago,
+            fecha_cobro: new Date().toISOString(),
+            cobrado_por: payload.email || null
+          });
+          await sbPatch(
+            `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
+            { importe: Math.round((_totalPend - _abona) * 100) / 100 }
+          );
+          await recalcularCierreDeFiado(id, tienda_id);
+          return ok(res, {
+            fiado: Array.isArray(_pagado) ? _pagado[0] : _pagado,
+            parcial: true,
+            restante: Math.round((_totalPend - _abona) * 100) / 100
+          });
+        }
+
         const data = await sbPatch(
           `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
           {
