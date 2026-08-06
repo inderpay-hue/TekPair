@@ -15393,8 +15393,19 @@ async function renderReporte() {
 // cuenta. Va en la clave de idempotencia del receptor: sin el, dos tiendas que
 // vuelquen el mismo dia se machacan entre si.
 function _cobrumNegocio() {
-  try { return (AJUSTES && AJUSTES.nombre) || (typeof tienda !== 'undefined' && tienda && tienda.nombre) || null; }
-  catch (e) { return null; }
+  try {
+    // TIENDA.nombre es la ficha real de la tienda (viene de la BD); AJUSTES.nombre
+    // es otro ajuste distinto y sirve de respaldo. La version anterior miraba una
+    // variable 'tienda' en minusculas que NO es global -- solo existe dentro de
+    // algunas funciones -- asi que nunca encontraba el nombre.
+    var n = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.nombre) || '';
+    n = String(n).trim();
+    // 'Mi Tienda' es el valor por defecto del objeto, no un nombre de verdad:
+    // si se mandara, todas las tiendas sin configurar se llamarian igual y
+    // volverian a mezclarse entre si.
+    if (!n || n === 'Mi Tienda') n = String((typeof AJUSTES !== 'undefined' && AJUSTES && AJUSTES.nombre) || '').trim();
+    return (n && n !== 'Mi Tienda') ? n : null;
+  } catch (e) { return null; }
 }
 var COBRUM_API = 'https://finanzas-app-six-zeta.vercel.app/api/integraciones';
 
