@@ -266,7 +266,9 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
           const cr = await fetch(COBRUM_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': t.cobrum_token },
-            body: JSON.stringify({ source: 'tekpair', fecha: ayer, ref: ayer, lineas, fiados }),
+            // negocio: permite que varias tiendas vuelquen en la misma cuenta de
+            // Cobrum sin pisarse (entra en la clave de idempotencia del receptor).
+            body: JSON.stringify({ source: 'tekpair', negocio: t.nombre || null, fecha: ayer, ref: ayer, lineas, fiados }),
           });
           if (cr.ok) enviados++; else errores++;
         } catch (e) { errores++; }

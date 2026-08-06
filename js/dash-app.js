@@ -15389,6 +15389,13 @@ async function renderReporte() {
 // ═══ ENVIAR REPORTE A COBRUM (app de finanzas) ═══
 // Envía el periodo mostrado día por día (idempotente por fecha → reenviar no duplica).
 // Ventas y Reparaciones van como dos categorías separadas en Cobrum.
+// Nombre de la tienda para que Cobrum distinga varias tiendas en la misma
+// cuenta. Va en la clave de idempotencia del receptor: sin el, dos tiendas que
+// vuelquen el mismo dia se machacan entre si.
+function _cobrumNegocio() {
+  try { return (AJUSTES && AJUSTES.nombre) || (typeof tienda !== 'undefined' && tienda && tienda.nombre) || null; }
+  catch (e) { return null; }
+}
 var COBRUM_API = 'https://finanzas-app-six-zeta.vercel.app/api/integraciones';
 
 // #10: antes usaba prompt()+confirm() nativos que congelaban el renderer (el "freeze >45s" al
@@ -15501,7 +15508,7 @@ async function enviarReporteCobrum() {
       var resp = await fetch(COBRUM_API, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': token },
-        body: JSON.stringify({ source: 'tekpair', fecha: d, ref: d, lineas: lineas })
+        body: JSON.stringify({ source: 'tekpair', negocio: _cobrumNegocio(), fecha: d, ref: d, lineas: lineas })
       });
       var j = await resp.json().catch(function(){ return {}; });
       if (resp.status === 401) { toast(T('cobrum.token_invalido'), 'err'); localStorage.removeItem('cobrum_token'); return; }
@@ -15537,7 +15544,7 @@ async function enviarHoyACobrum() {
   });
   if (!lineas.length) return 'empty';
   try {
-    var resp = await fetch(COBRUM_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': token }, body: JSON.stringify({ source: 'tekpair', fecha: hoy, ref: hoy, lineas: lineas }) });
+    var resp = await fetch(COBRUM_API, { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Cobrum-Token': token }, body: JSON.stringify({ source: 'tekpair', negocio: _cobrumNegocio(), fecha: hoy, ref: hoy, lineas: lineas }) });
     if (resp.ok) { toast(T('tst.dia_enviado_cobrum'), 'success'); return 'ok'; }
     return 'fail';
   } catch (e) { return 'fail'; }
