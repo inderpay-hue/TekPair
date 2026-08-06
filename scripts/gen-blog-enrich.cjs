@@ -72,7 +72,9 @@ arts.forEach(function (a) {
   let changed = false;
 
   // TOC: antes del primer <h2 id="s...
-  if (html.indexOf('<!-- TOC -->') === -1) {
+  // Ojo: la plantilla del post ya trae su propio índice (<div class="toc">). Si está,
+  // no inyectamos otro: durante meses todos los posts salieron con DOS índices seguidos.
+  if (html.indexOf('<!-- TOC -->') === -1 && !/<div class="toc"/.test(html)) {
     const toc = buildTOC(html);
     if (toc) {
       html = html.replace(/(<h2\s+id="s\d+")/, toc + '$1');
