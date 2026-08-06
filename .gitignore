@@ -11,3 +11,7 @@ node_modules/
 api/*.bak*
 api/*.backup
 .env*
+
+# Material comercial interno: no debe desplegarse ni vivir en un repo publico
+kit-comercial.html
+dossier-ventas.html
