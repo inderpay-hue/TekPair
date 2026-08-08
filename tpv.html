@@ -134,7 +134,6 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .cart-desc-btn:hover{border-color:var(--t-acc);color:var(--t-acc)}
 .cart-desc-btn.on{background:color-mix(in srgb,var(--t-acc) 18%,transparent);border-color:var(--t-acc);color:var(--t-acc)}
 .cart-item-tacha{text-decoration:line-through;opacity:.6;margin-right:5px}
-.cart-item-ahorro{color:#34D399;font-size:11px;margin-top:2px}
 .cart-del:hover{color:var(--red)}
 
 /* DISCOUNT */
@@ -1468,9 +1467,8 @@ function renderCart() {
       '<div class="cart-item-info">' +
       '<div class="cart-item-name">' + escHtml(item.nombre) + '</div>' +
       '<div class="cart-item-price">\u20ac' + item.precio.toFixed(2) + ' x' + item.qty +
-        (d > 0 ? ' \u00b7 <span style="color:#34D399">-' + (item.descTipo === 'pct' ? item.desc + '%' : '\u20ac' + d.toFixed(2)) + '</span>' : '') +
+        (d > 0 ? ' \u00b7 <span style="color:#34D399">-' + (item.descTipo === 'pct' ? item.desc + '% (\u20ac' + d.toFixed(2) + ')' : '\u20ac' + d.toFixed(2)) + '</span>' : '') +
       '</div>' +
-      (d > 0 ? '<div class="cart-item-ahorro">' + T('tpv.desc_ahorro').replace('{d}', '\u20ac' + d.toFixed(2)) + '</div>' : '') +
       '</div>' +
       '<div class="cart-item-qty">' +
       '<button class="qty-btn" data-idx="' + i + '" data-d="-1">-</button>' +
