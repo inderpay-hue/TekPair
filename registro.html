@@ -187,11 +187,11 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
     <span id="planPrecio" style="color:var(--ink);font-weight:700"></span>
     <button id="btnCambiar" onclick="cambiarPlan()" style="background:none;border:none;color:var(--muted);font-size:11px;cursor:pointer;text-decoration:underline;font-family:var(--sans)">Cambiar</button>
   </div>
-  <div class="form-title">Crea tu cuenta</div>
+  <div class="form-title" id="formTitle">Crea tu cuenta</div>
   <form id="regForm" onsubmit="iniciarPago();return false">
-  <div class="fg"><label class="fl" for="rNom">Tu nombre *</label><input class="fi" id="rNom" name="name" autocomplete="name" required minlength="2" placeholder="Juan García"/></div>
-  <div class="fg"><label class="fl" for="rEmail">Email *</label><input class="fi" id="rEmail" name="email" type="email" autocomplete="email" required placeholder="juan@mitienda.com"/></div>
-  <div class="fg"><label class="fl" for="rTienda">Nombre de tu tienda *</label><input class="fi" id="rTienda" name="organization" autocomplete="organization" required minlength="2" placeholder="Reparaciones García"/></div>
+  <div class="fg"><label class="fl" id="labelNom" for="rNom">Tu nombre *</label><input class="fi" id="rNom" name="name" autocomplete="name" required minlength="2" placeholder="Juan García"/></div>
+  <div class="fg"><label class="fl" id="labelEmail" for="rEmail">Email *</label><input class="fi" id="rEmail" name="email" type="email" autocomplete="email" required placeholder="juan@mitienda.com"/></div>
+  <div class="fg"><label class="fl" id="labelTienda" for="rTienda">Nombre de tu tienda *</label><input class="fi" id="rTienda" name="organization" autocomplete="organization" required minlength="2" placeholder="Reparaciones García"/></div>
   <div class="fg"><label class="fl" for="rCodigo">Código de invitación (opcional)</label><input class="fi" id="rCodigo" name="codigo" autocomplete="off" placeholder="Si te han invitado, ponlo aquí" style="text-transform:uppercase"/></div>
   <!-- Honeypot anti-bot: invisible para humanos; si se rellena, se descarta. -->
   <input type="text" id="hp_website" name="website" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">

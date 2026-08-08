@@ -9790,6 +9790,43 @@ function sugerirPiezasRep() {
   }).join('');
 }
 
+// El HTML llamaba a esta funcion (envuelta en try/catch) y el hueco #rPrecioSug
+// llevaba tiempo en el modal, pero la funcion no existia: no fallaba, no hacia
+// nada. Sugiere lo que YA cobraste por la misma averia en el mismo modelo, que
+// es el dato que uno intenta recordar de memoria al dar un precio.
+function sugerirPrecioRep() {
+  var box = document.getElementById('rPrecioSug'); if (!box) return;
+  var ocultar = function() { box.style.display = 'none'; box.innerHTML = ''; };
+  var modEl = document.getElementById('rModelo');
+  var avEl = document.getElementById('rAveria');
+  var mod = (modEl ? modEl.value : '').trim();
+  var aver = (avEl ? avEl.value : '').trim().toLowerCase();
+  if (mod.length < 3 || aver.length < 3) return ocultar();
+
+  // Solo reparaciones ENTREGADAS: un precio de algo a medio hacer todavia puede
+  // cambiar, y sugerirlo seria repetir una cifra que ni siquiera se cobro.
+  var palabras = aver.split(/[^a-zA-ZáéíóúñüÁÉÍÓÚÑÜ0-9]+/).filter(function(p) { return p.length >= 4; });
+  var previas = (DB.reps || []).filter(function(r) {
+    if (r.estado !== 'Entregado' || !(r.total > 0)) return false;
+    if (!_modeloEncaja(mod.toLowerCase(), r.modelo || '')) return false;
+    var a = (r.averia || '').toLowerCase();
+    return palabras.some(function(p) { return a.indexOf(p) !== -1; });
+  });
+  if (!previas.length) return ocultar();
+
+  previas.sort(function(a, b) { return String(b.fecha || '').localeCompare(String(a.fecha || '')); });
+  var totales = previas.map(function(r) { return r.total; });
+  var min = Math.min.apply(null, totales), max = Math.max.apply(null, totales);
+  var ultima = previas[0];
+
+  var txt = previas.length === 1
+    ? T('rep.precio_sug_una').replace('{p}', cur(ultima.total)).replace('{f}', fmtFecha(ultima.fecha))
+    : T('rep.precio_sug_varias').replace('{n}', previas.length)
+      .replace('{min}', cur(min)).replace('{max}', cur(max)).replace('{u}', cur(ultima.total));
+  box.style.display = 'block';
+  box.innerHTML = '💡 ' + escHtml(txt);
+}
+
 function renderParts() {
   document.getElementById('partsList').innerHTML = SEL.selParts.map(function(p, i) {
     return '<div class="part-item">' +

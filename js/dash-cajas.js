@@ -1192,18 +1192,6 @@
   }
 
   // ── Modal anotar fiado ───────────────────────────
-  function abrirModalFiado(companiaId, companiaNombre) {
-    $('fiado-mov-key').value = companiaId;
-    $('fiado-compania-nombre').textContent = companiaNombre;
-    const existente = Estado.fiadosTemp[companiaId];
-    $('fiado-importe').value = existente?.importe || 0;
-    $('fiado-cliente').value = existente?.cliente_nombre || '';
-    $('fiado-telefono').value = existente?.cliente_telefono || '';
-    $('fiado-nota').value = existente?.nota || '';
-    $('btn-quitar-fiado').style.display = existente ? 'inline-block' : 'none';
-    $('modal-fiado-anotar').classList.add('activo');
-  }
-
   function cerrarModalFiado() {
     $('modal-fiado-anotar').classList.remove('activo');
   }
