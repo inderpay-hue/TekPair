@@ -180,7 +180,10 @@ function _cobrumMetodo(m) {
   return map[m] || (m ? m.charAt(0).toUpperCase() + m.slice(1) : 'Otros');
 }
 async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
-  const COBRUM_URL = 'https://finanzas-app-six-zeta.vercel.app/api/integraciones';
+  // Dominio propio. El viejo finanzas-app-six-zeta seguia sirviendo un deploy
+  // congelado (v46) que escribia fiados en Cobrum: por eso volvian a aparecer
+  // aunque el codigo actual ya no los crea.
+  const COBRUM_URL = process.env.COBRUM_URL || 'https://cobrum.tech/api/integraciones';
   let enviados = 0, errores = 0;
   const tr = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?or=(cobrum_sync.eq.true,cierre_email_auto.eq.true)&select=id,nombre,cobrum_token,cobrum_sync,cierre_email_auto,email`, { headers });
   if (!tr.ok) return { enviados, errores: 1 };

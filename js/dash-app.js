@@ -15407,7 +15407,7 @@ function _cobrumNegocio() {
     return (n && n !== 'Mi Tienda') ? n : null;
   } catch (e) { return null; }
 }
-var COBRUM_API = 'https://finanzas-app-six-zeta.vercel.app/api/integraciones';
+var COBRUM_API = 'https://cobrum.tech/api/integraciones';
 
 // #10: antes usaba prompt()+confirm() nativos que congelaban el renderer (el "freeze >45s" al
 // pulsar "Enviar a Cobrum" sin token). Ahora pide el token con un modal (pedirTexto).
