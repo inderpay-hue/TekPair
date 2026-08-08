@@ -130,6 +130,11 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .qty-num{color:var(--t-ink);font-size:14px;font-weight:800;min-width:20px;text-align:center}
 .cart-item-total{color:var(--t-ink);font-size:13.5px;font-weight:800;min-width:60px;text-align:right}
 .cart-del{background:none;border:none;color:var(--t-mut);cursor:pointer;font-size:16px;padding:0 4px}
+.cart-desc-btn{background:var(--t-surf2);border:1px solid var(--t-bd);color:var(--t-mut);cursor:pointer;font-size:11px;font-weight:800;border-radius:8px;padding:3px 7px;line-height:1.4}
+.cart-desc-btn:hover{border-color:var(--t-acc);color:var(--t-acc)}
+.cart-desc-btn.on{background:color-mix(in srgb,var(--t-acc) 18%,transparent);border-color:var(--t-acc);color:var(--t-acc)}
+.cart-item-tacha{text-decoration:line-through;opacity:.6;margin-right:5px}
+.cart-item-ahorro{color:#34D399;font-size:11px;margin-top:2px}
 .cart-del:hover{color:var(--red)}
 
 /* DISCOUNT */
@@ -547,6 +552,26 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
   <div class="modal-actions" style="margin-top:14px">
     <button class="btn-secondary" onclick="closeModal('mPrecioVar')" data-t="gen.cancelar">Cancelar</button>
     <button class="btn-primary" onclick="confirmarPrecioVar()" data-t="gen.aceptar">Aceptar</button>
+  </div>
+</div>
+</div>
+
+<!-- MODAL: Descuento de una linea del ticket -->
+<div class="modal-bg" id="mDescLinea">
+<div class="modal" style="max-width:360px">
+  <div class="modal-title" data-t="tpv.desc_linea_tit">🏷️ Descuento de esta línea</div>
+  <div style="font-size:13px;color:var(--t-mut,#64748b);margin-bottom:10px">"<span id="descLinNombre"></span>" · <span id="descLinBruto"></span></div>
+  <div class="disc-row">
+    <input class="fi" id="descLinInput" type="number" step="0.01" min="0" inputmode="decimal" placeholder="0,00" style="flex:1" onkeydown="if(event.key==='Enter')confirmarDescLinea()" oninput="previewDescLinea()">
+    <select class="disc-type" id="descLinTipo" onchange="previewDescLinea()">
+      <option value="eur">€</option>
+      <option value="pct">%</option>
+    </select>
+  </div>
+  <div id="descLinPreview" style="font-size:12px;color:var(--t-mut,#64748b);margin-top:8px"></div>
+  <div class="modal-actions" style="margin-top:14px">
+    <button class="btn-secondary" onclick="quitarDescLinea()" data-t="tpv.desc_quitar">Quitar descuento</button>
+    <button class="btn-primary" onclick="confirmarDescLinea()" data-t="gen.aceptar">Aceptar</button>
   </div>
 </div>
 </div>
@@ -1436,17 +1461,27 @@ function renderCart() {
     return;
   }
   el.innerHTML = cart.map(function(item, i) {
+    var bruto = item.precio * item.qty;
+    var d = descLineaImporte(item);
+    var neto = bruto - d;
     return '<div class="cart-item">' +
       '<div class="cart-item-info">' +
       '<div class="cart-item-name">' + escHtml(item.nombre) + '</div>' +
-      '<div class="cart-item-price">\u20ac' + item.precio.toFixed(2) + ' x' + item.qty + '</div>' +
+      '<div class="cart-item-price">\u20ac' + item.precio.toFixed(2) + ' x' + item.qty +
+        (d > 0 ? ' \u00b7 <span style="color:#34D399">-' + (item.descTipo === 'pct' ? item.desc + '%' : '\u20ac' + d.toFixed(2)) + '</span>' : '') +
+      '</div>' +
+      (d > 0 ? '<div class="cart-item-ahorro">' + T('tpv.desc_ahorro').replace('{d}', '\u20ac' + d.toFixed(2)) + '</div>' : '') +
       '</div>' +
       '<div class="cart-item-qty">' +
       '<button class="qty-btn" data-idx="' + i + '" data-d="-1">-</button>' +
       '<span class="qty-num">' + item.qty + '</span>' +
       '<button class="qty-btn" data-idx="' + i + '" data-d="1">+</button>' +
       '</div>' +
-      '<div class="cart-item-total">\u20ac' + (item.precio * item.qty).toFixed(2) + '</div>' +
+      '<button class="cart-desc-btn' + (d > 0 ? ' on' : '') + '" data-desc="' + i + '" title="' + T('tpv.desc_linea_tit') + '">%</button>' +
+      '<div class="cart-item-total">' +
+        (d > 0 ? '<span class="cart-item-tacha">\u20ac' + bruto.toFixed(2) + '</span>' : '') +
+        '\u20ac' + neto.toFixed(2) +
+      '</div>' +
       '<button class="cart-del" data-idx="' + i + '">\u00d7</button>' +
       '</div>';
   }).join('');
@@ -1456,16 +1491,83 @@ function renderCart() {
   el.querySelectorAll('.cart-del').forEach(function(btn) {
     btn.addEventListener('click', function() { removeFromCart(parseInt(this.dataset.idx)); });
   });
+  el.querySelectorAll('.cart-desc-btn').forEach(function(btn) {
+    btn.addEventListener('click', function() { abrirDescLinea(parseInt(this.dataset.desc)); });
+  });
   document.getElementById('btnCheckout').disabled = false;
   calcTotal();
 }
 
+// Descuento de UNA linea, en euros. Se capa al importe de la linea: un descuento
+// mayor que lo que vale convertiria esa linea en dinero regalado.
+function descLineaImporte(item) {
+  var bruto = (item.precio || 0) * (item.qty || 0);
+  var v = parseFloat(item.desc) || 0;
+  if (v <= 0) return 0;
+  var d = item.descTipo === 'pct' ? bruto * v / 100 : v;
+  return Math.min(Math.max(0, d), bruto);
+}
+
+function abrirDescLinea(idx) {
+  var item = cart[idx];
+  if (!item) return;
+  window._descLinIdx = idx;
+  document.getElementById('descLinNombre').textContent = item.nombre;
+  document.getElementById('descLinBruto').textContent = '\u20ac' + (item.precio * item.qty).toFixed(2);
+  document.getElementById('descLinInput').value = item.desc || '';
+  document.getElementById('descLinTipo').value = item.descTipo || 'eur';
+  previewDescLinea();
+  openModal('mDescLinea');
+  setTimeout(function() { var i = document.getElementById('descLinInput'); if (i) { i.focus(); i.select(); } }, 100);
+}
+
+function previewDescLinea() {
+  var item = cart[window._descLinIdx];
+  var el = document.getElementById('descLinPreview');
+  if (!item || !el) return;
+  var simulado = {
+    precio: item.precio, qty: item.qty,
+    desc: parseFloat(document.getElementById('descLinInput').value) || 0,
+    descTipo: document.getElementById('descLinTipo').value
+  };
+  var d = descLineaImporte(simulado);
+  var bruto = item.precio * item.qty;
+  el.textContent = d > 0
+    ? T('tpv.desc_queda').replace('{d}', '\u20ac' + d.toFixed(2)).replace('{t}', '\u20ac' + (bruto - d).toFixed(2))
+    : '';
+}
+
+function confirmarDescLinea() {
+  var item = cart[window._descLinIdx];
+  if (!item) { closeModal('mDescLinea'); return; }
+  var v = parseFloat(String(document.getElementById('descLinInput').value || '').replace(',', '.')) || 0;
+  var tipo = document.getElementById('descLinTipo').value;
+  if (tipo === 'pct' && v > 100) v = 100;
+  if (v <= 0) { delete item.desc; delete item.descTipo; }
+  else { item.desc = v; item.descTipo = tipo; }
+  closeModal('mDescLinea');
+  renderCart();
+}
+
+function quitarDescLinea() {
+  var item = cart[window._descLinIdx];
+  if (item) { delete item.desc; delete item.descTipo; }
+  closeModal('mDescLinea');
+  renderCart();
+}
+
 function _computeTotals() {
   var subtotal = cart.reduce(function(a, c) { return a + c.precio * c.qty; }, 0);
+  // Los descuentos por linea se restan ANTES del descuento general: si no, un
+  // porcentaje global se aplicaria sobre precios que ya estan rebajados y los
+  // dos juntos podrian superar el subtotal.
+  var discLineas = cart.reduce(function(a, c) { return a + descLineaImporte(c); }, 0);
+  var neto = Math.max(0, subtotal - discLineas);
   var discVal = parseFloat(document.getElementById('discVal').value) || 0;
   var discType = document.getElementById('discType').value;
-  var disc = discType === 'pct' ? subtotal * discVal / 100 : discVal;
-  disc = Math.min(disc, subtotal);
+  var discGlobal = discType === 'pct' ? neto * discVal / 100 : discVal;
+  discGlobal = Math.min(discGlobal, neto);
+  var disc = discLineas + discGlobal;
   var preIva = Math.max(0, subtotal - disc);
   // IVA segun ajustes
   var ivaCfg = AJUSTES.iva || {};
@@ -1483,7 +1585,7 @@ function _computeTotals() {
       total = preIva + ivaImporte;
     }
   }
-  return {subtotal:subtotal, disc:disc, base:base, ivaTipo:ivaTipo, ivaImporte:ivaImporte, ivaModo:ivaModo, total:total};
+  return {subtotal:subtotal, disc:disc, discLineas:discLineas, discGlobal:discGlobal, base:base, ivaTipo:ivaTipo, ivaImporte:ivaImporte, ivaModo:ivaModo, total:total};
 }
 
 function _renderCambio(total) {
@@ -1735,7 +1837,10 @@ function mostrarTicket(venta, totals) {
     '<div class="ticket-row"><span>' + T('tpv.tk_pago') + '</span><span>' + escHtml(venta.pago) + '</span></div>' +
     '<hr class="ticket-sep">' +
     venta.items.map(function(item) {
-      return '<div class="ticket-row"><span>' + escHtml(item.nombre) + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>';
+      var d = descLineaImporte(item);
+      return '<div class="ticket-row"><span>' + escHtml(item.nombre) + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>' +
+        (d > 0 ? '<div class="ticket-row" style="font-size:10px"><span>&nbsp;&nbsp;' + T('tpv.descuento_2') +
+          (item.descTipo === 'pct' ? ' ' + item.desc + '%' : '') + '</span><span>-\u20ac' + d.toFixed(2) + '</span></div>' : '');
     }).join('') +
     '<hr class="ticket-sep">' +
     (totals.disc > 0 ? '<div class="ticket-row"><span><span data-t="tpv.subtotal">Subtotal</span></span><span>\u20ac' + totals.subtotal.toFixed(2) + '</span></div>' +

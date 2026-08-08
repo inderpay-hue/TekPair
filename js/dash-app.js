@@ -7393,7 +7393,10 @@ function imprimirTicketVenta(id) {
   var items = (v.items && v.items.length) ? v.items : [{nombre: v.modelo || 'Venta', precio: v.precio || v.total, qty: 1}];
   var itemsHtml = items.map(function(it) {
     var sub = (parseFloat(it.precio) || 0) * (parseFloat(it.qty) || 1);
-    return '<div style="display:flex;justify-content:space-between;font-size:11px;margin:2px 0"><span>' + esc(it.nombre) + ' x' + (it.qty || 1) + '</span><span>' + cur(sub) + '</span></div>';
+    var dv = parseFloat(it.desc) || 0;
+    var dl = dv > 0 ? Math.min(it.descTipo === 'pct' ? sub * dv / 100 : dv, sub) : 0;
+    return '<div style="display:flex;justify-content:space-between;font-size:11px;margin:2px 0"><span>' + esc(it.nombre) + ' x' + (it.qty || 1) + '</span><span>' + cur(sub) + '</span></div>' +
+      (dl > 0 ? '<div style="display:flex;justify-content:space-between;font-size:10px;margin:1px 0"><span>&nbsp;&nbsp;' + T('tpv.descuento_2') + (it.descTipo === 'pct' ? ' ' + dv + '%' : '') + '</span><span>-' + cur(dl) + '</span></div>' : '');
   }).join('');
 
   var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket ' + v.id + '</title>' +
