@@ -2893,6 +2893,16 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       </div>
     </div>
 
+    <div class="card" id="cardUbicaciones">
+      <div class="card-title" data-t="ajt.ubic_title">📍 Ubicaciones / Almacenes</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="ajt.ubic_desc">Define tus ubicaciones (tienda, almacenes...). Después podrás asignar cada producto del stock a una ubicación concreta.</div>
+      <div id="listaUbicaciones" style="margin-bottom:12px"></div>
+      <div style="display:flex;gap:8px;align-items:stretch;width:100%">
+        <input type="text" id="nuevaUbicacion" placeholder="Nombre (ej. Almacén 1)" data-t-ph="ajt.ubic_ph" style="flex:1 1 0;min-width:0;width:auto;box-sizing:border-box;border:1.5px solid var(--border);border-radius:9px;padding:11px 13px;font-family:inherit;font-size:14px;outline:none;background:white;color:var(--text)" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarUbicacion();}">
+        <button type="button" style="background:var(--orange);color:white;border:none;border-radius:9px;padding:0 14px;white-space:nowrap;flex:0 0 auto;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit" onclick="agregarUbicacion()" data-t="stock.anadir">+ Añadir</button>
+      </div>
+    </div>
+
   </div><!-- /negocio -->
 
   <!-- ══ SECCIÓN: COBROS ONLINE ══ -->
@@ -2949,15 +2959,6 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <button type="button" class="btn-secondary" style="width:100%;margin-top:10px" onclick="abrirLinkCitas()" data-t="ajt.citas_link">🔗 Ver link público / QR</button>
     </div>
 
-    <div class="card" id="cardUbicaciones">
-      <div class="card-title" data-t="ajt.ubic_title">📍 Ubicaciones / Almacenes</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="ajt.ubic_desc">Define tus ubicaciones (tienda, almacenes...). Después podrás asignar cada producto del stock a una ubicación concreta.</div>
-      <div id="listaUbicaciones" style="margin-bottom:12px"></div>
-      <div style="display:flex;gap:8px;align-items:stretch;width:100%">
-        <input type="text" id="nuevaUbicacion" placeholder="Nombre (ej. Almacén 1)" data-t-ph="ajt.ubic_ph" style="flex:1 1 0;min-width:0;width:auto;box-sizing:border-box;border:1.5px solid var(--border);border-radius:9px;padding:11px 13px;font-family:inherit;font-size:14px;outline:none;background:white;color:var(--text)" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarUbicacion();}">
-        <button type="button" style="background:var(--orange);color:white;border:none;border-radius:9px;padding:0 14px;white-space:nowrap;flex:0 0 auto;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit" onclick="agregarUbicacion()" data-t="stock.anadir">+ Añadir</button>
-      </div>
-    </div>
   </div><!-- /citas -->
 
   <!-- ══ SECCIÓN: REPARACIONES (garantías + políticas) ══ -->
