@@ -302,6 +302,17 @@ export default async function handler(req, res) {
         if (!nuevoUserId) return res.status(500).json({ error: 'Usuario creado sin ID' });
 
         // 2. Crear tienda con plan Premium vitalicio (interno: 'premium')
+        //
+        // `citas_slug` es NOT NULL sin default (es la clave de la URL pública de
+        // citas). Sin él, el INSERT falla con 23502 y el alta del comercial muere en
+        // "No se pudo crear la tienda". Es el mismo fallo que tumbó el registro de
+        // clientes en julio: allí se arregló (REG-12) y aquí se quedó sin arreglar,
+        // porque son dos sitios distintos que crean tiendas.
+        const _slugBase = String(nombre || codigoNorm || 'comercial')
+          .normalize('NFD').replace(/[^\x00-\x7f]/g, '').toLowerCase()
+          .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'comercial';
+        const citasSlugCom = _slugBase + '-' + crypto.randomBytes(3).toString('hex');
+
         const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas`, {
           method: 'POST',
           headers: {...sbHeaders, 'Prefer': 'return=representation'},
@@ -310,7 +321,8 @@ export default async function handler(req, res) {
             nombre: codigoNorm + ' - Comercial',
             plan: 'premium',
             plan_status: 'active',
-            plan_until: '2099-12-31T23:59:59Z'
+            plan_until: '2099-12-31T23:59:59Z',
+            citas_slug: citasSlugCom
           })
         });
         if (!tR.ok) {

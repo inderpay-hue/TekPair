@@ -258,10 +258,23 @@ export default async function handler(req, res) {
               // no debe dar acceso pleno. Se afina luego con customer.subscription.updated.
               const addonStatus = session.payment_status === 'paid' ? 'active' : 'past_due';
               const nuevaId = 'tienda_' + Date.now() + '_' + Math.random().toString(36).slice(2, 10);
-              await fetch(`${SUPABASE_URL}/rest/v1/tiendas`, {
+              // citas_slug es NOT NULL sin default: sin él este INSERT falla con 23502
+              // y, como el error solo se loguea, el cliente habría pagado su tienda
+              // extra sin que llegara a existir. Mismo fallo que REG-12 en el registro.
+              const _slugAddon = String(nombreTienda || 'tienda')
+                .normalize('NFD').replace(/[^\x00-\x7f]/g, '').toLowerCase()
+                .replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'tienda';
+              const citasSlugAddon = _slugAddon + '-' + crypto.randomBytes(3).toString('hex');
+              const addonR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas`, {
                 method: 'POST', headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
-                body: JSON.stringify({ id: nuevaId, nombre: nombreTienda, plan: planNueva, plan_status: addonStatus, plan_email: email, stripe_customer_id: customerId, stripe_sub_id: subId })
+                body: JSON.stringify({ id: nuevaId, nombre: nombreTienda, plan: planNueva, plan_status: addonStatus, plan_email: email, stripe_customer_id: customerId, stripe_sub_id: subId, citas_slug: citasSlugAddon })
               });
+              // Si la tienda no se crea, no tiene sentido enlazarla: se avisa fuerte
+              // porque aquí ya hay un cobro hecho.
+              if (!addonR.ok) {
+                console.error('Add-on: NO se pudo crear la tienda (cobro hecho)', nuevaId, await addonR.text());
+                break;
+              }
               await fetch(`${SUPABASE_URL}/rest/v1/usuario_tiendas`, {
                 method: 'POST', headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
                 body: JSON.stringify({ usuario_id: ownerId, tienda_id: nuevaId })
