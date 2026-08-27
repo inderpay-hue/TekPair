@@ -163,7 +163,13 @@ export default async function handler(req, res) {
       cobrum = await pushCobrumDiario(SUPABASE_URL, headers, ayer);
     } catch (e) { console.error('[cron] cobrum:', e.message); }
 
-    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum });
+    // ── Aviso INTERNO de clientes que se están enfriando (no le llega a nadie más) ──
+    let alertas = { avisos: 0, enviado: false };
+    try {
+      alertas = await avisarInactividad(SUPABASE_URL, headers, RESEND_KEY, now);
+    } catch (e) { console.error('[cron] alertas:', e.message); }
+
+    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas });
 
   } catch(e) {
     console.error('[cron] Error general:', e);
@@ -296,6 +302,189 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
     } catch (e) { console.error('[cron-cobrum] tienda', t.id, e.message); errores++; }
   }
   return { enviados, errores };
+}
+
+// ═══ AVISO INTERNO: CLIENTES QUE SE ENFRÍAN ═══
+//
+// Por qué existe: el 27-ago-2026 a una tienda le entró el primer cobro del Premium
+// llevando tres días sin abrir la aplicación y con 0 reparaciones creadas. Nadie se
+// enteró hasta mirarlo a mano en la base de datos. Un cliente que no entra es el que
+// se da de baja al segundo o tercer recibo, así que conviene saberlo mientras aún se
+// puede llamar.
+//
+// Este correo es para el dueño de TekPair, NO para el cliente. No cambia nada de cara
+// a él: ni cobros, ni plan, ni emails.
+//
+// Avisa solo en días concretos (3, 7, 14 y 30 sin entrar) en vez de todos los días,
+// porque un recordatorio diario del mismo cliente se acaba ignorando. Se manda un
+// único correo con todo lo del día; si no hay nada que contar, no se manda nada.
+//
+// Config opcional (variables de entorno, ninguna obligatoria):
+//   ALERTAS_EMAIL    → a dónde va el aviso (por defecto info@tekpair.tech)
+//   ALERTAS_IGNORAR  → emails a excluir separados por comas, para las tiendas propias
+//                      y las de prueba. Sin esto salen todas.
+const ALERTA_UMBRALES = [3, 7, 14, 30];
+
+// Separada del envío para poder probarla sin tocar la red ni la base de datos.
+export function _evaluarTienda(t, now) {
+  const refMs = t.ultimo_acceso ? new Date(t.ultimo_acceso).getTime()
+    : (t.creada ? new Date(t.creada).getTime() : NaN);
+  if (!Number.isFinite(refMs)) return null;
+
+  const dias = Math.floor((now.getTime() - refMs) / 86400000);
+  const sinUso = (Number(t.reps || 0) + Number(t.ventas || 0)) === 0;
+
+  // Caso 1: el trial va a cobrar dentro de ~3 días y el taller sigue vacío.
+  // Es el aviso que más margen da: aún se puede llamar antes de que le llegue el cargo.
+  if (t.trial_until && sinUso) {
+    const faltan = (new Date(t.trial_until).getTime() - now.getTime()) / 86400000;
+    if (faltan >= 2.5 && faltan <= 3.5) {
+      return { tipo: 'cobro_sin_uso', dias, sinUso, detalle: 'le cobran en 3 días y no ha creado nada' };
+    }
+  }
+
+  // Caso 2: lleva justo 3, 7, 14 o 30 días sin abrir la aplicación.
+  // A partir del mes se recuerda cada 30 días en vez de callar para siempre: un cliente
+  // que paga y lleva medio año sin entrar sigue siendo una baja esperando a ocurrir, y
+  // con la lista fija de umbrales dejaba de aparecer en cuanto se pasaba de 30.
+  if (ALERTA_UMBRALES.includes(dias) || (dias > 30 && dias % 30 === 0)) {
+    return {
+      tipo: 'inactiva', dias, sinUso,
+      detalle: t.ultimo_acceso ? `${dias} días sin entrar` : `${dias} días desde el alta y nunca ha entrado`
+    };
+  }
+  return null;
+}
+
+async function avisarInactividad(SUPABASE_URL, headers, RESEND_KEY, now) {
+  const DESTINO = process.env.ALERTAS_EMAIL || 'info@tekpair.tech';
+  const IGNORAR = String(process.env.ALERTAS_IGNORAR || '')
+    .split(',').map((s) => s.trim().toLowerCase()).filter(Boolean);
+
+  const q = (path, extra) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: { ...headers, ...(extra || {}) } });
+
+  const [tr, ur] = await Promise.all([
+    q('tiendas?select=id,nombre,plan,plan_status,trial_until,email'),
+    q('usuarios?select=tienda_id,email,rol,ultimo_acceso,created_at'),
+  ]);
+  if (!tr.ok || !ur.ok) return { avisos: 0, enviado: false, error: 'consulta' };
+  const tiendas = await tr.json();
+  const usuarios = await ur.json();
+
+  // Último acceso de la tienda = el más reciente de cualquiera de sus usuarios.
+  // Si mira el empleado y el dueño no, la tienda está viva igualmente.
+  const porTienda = {};
+  for (const u of usuarios) {
+    if (!u.tienda_id) continue;
+    const acc = porTienda[u.tienda_id] || (porTienda[u.tienda_id] = { ultimo_acceso: null, creada: null, email: null });
+    if (u.ultimo_acceso && (!acc.ultimo_acceso || u.ultimo_acceso > acc.ultimo_acceso)) acc.ultimo_acceso = u.ultimo_acceso;
+    if (u.created_at && (!acc.creada || u.created_at < acc.creada)) acc.creada = u.created_at;
+    if (!acc.email || u.rol === 'admin') acc.email = u.email;
+  }
+
+  // Cuenta filas sin traérselas: Range 0-0 + count=exact devuelve el total en Content-Range.
+  const contar = async (tabla, tiendaId) => {
+    try {
+      const r = await q(`${tabla}?tienda_id=eq.${encodeURIComponent(tiendaId)}&select=id`, { Prefer: 'count=exact', Range: '0-0' });
+      if (!r.ok) return 0;
+      const cr = r.headers.get('content-range') || '';
+      return parseInt(cr.split('/')[1], 10) || 0;
+    } catch (e) { return 0; }
+  };
+
+  const avisos = [];
+  for (const t of tiendas) {
+    try {
+      const acc = porTienda[t.id] || {};
+      const emailDueno = (acc.email || t.email || '').toLowerCase();
+      if (IGNORAR.includes(emailDueno)) continue;
+
+      // Primero el filtro por fechas (barato) y solo después se cuentan reparaciones y
+      // ventas: así no se lanzan dos consultas por cada tienda que no va a salir.
+      const previo = _evaluarTienda({ ...t, ...acc, reps: 0, ventas: 0 }, now);
+      if (!previo) continue;
+
+      const [reps, ventas] = await Promise.all([contar('reparaciones', t.id), contar('ventas', t.id)]);
+      const ev = _evaluarTienda({ ...t, ...acc, reps, ventas }, now);
+      if (!ev) continue;
+
+      avisos.push({
+        nombre: t.nombre || '(sin nombre)', email: emailDueno || '—',
+        plan: t.plan || '—', estado: t.plan_status || '—',
+        reps, ventas, ...ev
+      });
+    } catch (e) { console.error('[alertas] tienda', t.id, e.message); }
+  }
+
+  if (!avisos.length) return { avisos: 0, enviado: false };
+  // Los cobros inminentes primero: son los únicos con fecha límite.
+  avisos.sort((a, b) => (a.tipo === b.tipo ? b.dias - a.dias : a.tipo === 'cobro_sin_uso' ? -1 : 1));
+
+  const enviado = await enviarAvisoInterno(avisos, DESTINO, RESEND_KEY);
+  return { avisos: avisos.length, enviado };
+}
+
+async function enviarAvisoInterno(avisos, destino, RESEND_KEY) {
+  if (!RESEND_KEY) { console.warn('[alertas] sin RESEND_API_KEY:', JSON.stringify(avisos)); return false; }
+  const urgentes = avisos.filter((a) => a.tipo === 'cobro_sin_uso').length;
+
+  const filas = avisos.map((a) => {
+    const rojo = a.tipo === 'cobro_sin_uso';
+    return `<tr>
+      <td style="padding:10px 12px;border-bottom:1px solid #eee">
+        <strong>${esc(a.nombre)}</strong><br>
+        <span style="color:#64748B;font-size:12px">${esc(a.email)} · ${esc(a.plan)} (${esc(a.estado)})</span>
+      </td>
+      <td style="padding:10px 12px;border-bottom:1px solid #eee;color:${rojo ? '#B91C1C' : '#111'};font-weight:${rojo ? '700' : '400'}">
+        ${rojo ? '⚠️ ' : ''}${esc(a.detalle)}
+      </td>
+      <td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">
+        ${a.reps} rep · ${a.ventas} ventas
+      </td>
+    </tr>`;
+  }).join('');
+
+  try {
+    const r = await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'Tekpair <info@tekpair.tech>',
+        to: [destino],
+        subject: `${urgentes ? '⚠️ ' : ''}${avisos.length} cliente${avisos.length > 1 ? 's' : ''} que conviene mirar hoy`,
+        html: `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:640px;margin:0 auto;padding:20px;color:#111">
+  <h2 style="margin:0 0 4px">Clientes que se están enfriando</h2>
+  <p style="color:#64748B;margin:0 0 18px;font-size:13px">Aviso interno de TekPair. Al cliente no le llega nada.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">
+    <thead><tr style="background:#F8FAFC">
+      <th style="text-align:left;padding:10px 12px">Tienda</th>
+      <th style="text-align:left;padding:10px 12px">Situación</th>
+      <th style="text-align:right;padding:10px 12px">Uso</th>
+    </tr></thead>
+    <tbody>${filas}</tbody>
+  </table>
+  <p style="color:#475569;font-size:13px;margin-top:20px">
+    Una llamada de media hora montándole el taller vale más que cualquier correo automático.
+    Los marcados en rojo tienen un cobro a tres días vista y el taller todavía vacío.
+  </p>
+  <p style="color:#94A3B8;font-size:11px;border-top:1px solid #eee;padding-top:12px;margin-top:18px">
+    Avisa a los 3, 7, 14 y 30 días sin entrar. Para dejar fuera tus propias tiendas,
+    pon sus emails en la variable ALERTAS_IGNORAR (separados por comas).
+  </p>
+</body></html>`
+      })
+    });
+    if (!r.ok) console.error('[alertas] Resend respondió', r.status, await r.text());
+    return r.ok;
+  } catch (e) {
+    console.error('[alertas] envío falló:', e.message);
+    return false;
+  }
+}
+
+function esc(s) {
+  return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
 // ═══ EMAIL FALTAN 3 DÍAS ═══
