@@ -405,9 +405,19 @@ export default async function handler(req, res) {
           return res.status(500).json({ error: 'No se pudo crear el afiliado' });
         }
 
-        // Enviar email de bienvenida si se solicita
+        // El cupón de Stripe se crea aquí, no a mano.
+        //
+        // Antes había que acordarse de crearlo en el panel de Stripe. Si se olvidaba,
+        // el comercial recibía un correo prometiendo un 50% con un código que para
+        // Stripe no existía: el cliente lo escribía, no pasaba nada, y encima la
+        // comisión no se atribuía (se atribuye por el descuento aplicado).
+        const cupon = await crearCuponAfiliado(codigoNorm, body);
+
+        // Enviar email de bienvenida si se solicita.
+        // Si el cupón no se pudo crear NO se manda: ese correo promete un descuento
+        // concreto, y es peor que el comercial lo reparta sabiendo que funciona.
         let emailEnviado = false;
-        if (enviar_email && password_plano) {
+        if (enviar_email && password_plano && cupon.ok) {
           const RESEND_KEY = process.env.RESEND_API_KEY;
           if (RESEND_KEY) {
             const subject = 'Bienvenido al programa de afiliados de TekPair';
@@ -465,7 +475,7 @@ export default async function handler(req, res) {
           }
         }
 
-        return res.json({ ok: true, email_enviado: emailEnviado });
+        return res.json({ ok: true, email_enviado: emailEnviado, cupon });
       }
 
       // ═══ Editar afiliado ═══
@@ -728,5 +738,85 @@ export default async function handler(req, res) {
   } catch (e) {
     console.error('Error comisiones:', e);
     return res.status(500).json({ error: 'Error servidor' });
+  }
+}
+
+// ═══ CUPÓN DE STRIPE PARA UN COMERCIAL ═══
+//
+// Un código de comercial son DOS cosas en Stripe: un cupón (el descuento en sí) y
+// un promotion code (el texto que teclea el cliente). Antes se creaban a mano y era
+// fácil olvidarlo; ahora salen con el alta.
+//
+// Idempotente a propósito: si el cupón o el código ya existen se reutilizan en vez
+// de fallar, para que reintentar un alta no deje medio configurado al comercial.
+//
+// Devuelve { ok, promotion_code?, motivo? } — nunca lanza: que falle Stripe no debe
+// impedir dar de alta al comercial, solo cambia lo que se le cuenta.
+export async function crearCuponAfiliado(codigo, body = {}) {
+  const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
+  if (!STRIPE_KEY) return { ok: false, motivo: 'Stripe no configurado' };
+
+  // Mismos valores que los cupones creados a mano hasta ahora (50% · 3 meses · 200).
+  // Lo que venga fuera de rango cae al valor por defecto en vez de recortarse: un
+  // max_canjes de -5 recortado al mínimo daba un cupón de UN solo uso, que parece
+  // creado y no sirve para nada.
+  const num = (v, def, min, max) => {
+    const n = parseInt(v, 10);
+    return Number.isFinite(n) && n >= min && n <= max ? n : def;
+  };
+  const pct = num(body.descuento_pct, 50, 1, 100);
+  const meses = num(body.descuento_meses, 3, 1, 24);
+  const maxCanjes = num(body.max_canjes, 200, 1, 10000);
+
+  const post = async (ruta, params) => {
+    const r = await fetch(`https://api.stripe.com/v1/${ruta}`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${STRIPE_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: params.toString(),
+    });
+    return { ok: r.ok, json: await r.json() };
+  };
+  const get = async (ruta) => {
+    const r = await fetch(`https://api.stripe.com/v1/${ruta}`, { headers: { 'Authorization': `Bearer ${STRIPE_KEY}` } });
+    return { ok: r.ok, json: await r.json() };
+  };
+
+  try {
+    // 1) Cupón. El id es el propio código, así se reconoce de un vistazo en Stripe.
+    const cp = new URLSearchParams();
+    cp.append('id', codigo);
+    cp.append('name', codigo);
+    cp.append('percent_off', String(pct));
+    cp.append('duration', 'repeating');
+    cp.append('duration_in_months', String(meses));
+    cp.append('max_redemptions', String(maxCanjes));
+    let cupon = await post('coupons', cp);
+    if (!cupon.ok) {
+      // Ya existía (reintento del alta): se reutiliza.
+      const yaExiste = await get(`coupons/${encodeURIComponent(codigo)}`);
+      if (!yaExiste.ok) {
+        console.error('[afiliado] cupón:', cupon.json?.error?.message);
+        return { ok: false, motivo: cupon.json?.error?.message || 'No se pudo crear el cupón' };
+      }
+      cupon = yaExiste;
+    }
+
+    // 2) Promotion code: es lo que el cliente escribe en el registro.
+    const pp = new URLSearchParams();
+    pp.append('coupon', cupon.json.id);
+    pp.append('code', codigo);
+    const promo = await post('promotion_codes', pp);
+    if (promo.ok) return { ok: true, promotion_code: promo.json.code, descuento: `${pct}% · ${meses} meses` };
+
+    // El código ya estaba dado de alta: sirve igual, no es un error.
+    const busca = await get(`promotion_codes?code=${encodeURIComponent(codigo)}&limit=1`);
+    const existente = busca.ok && Array.isArray(busca.json.data) ? busca.json.data[0] : null;
+    if (existente) return { ok: true, promotion_code: existente.code, descuento: `${pct}% · ${meses} meses`, reutilizado: true };
+
+    console.error('[afiliado] promo:', promo.json?.error?.message);
+    return { ok: false, motivo: promo.json?.error?.message || 'No se pudo crear el código' };
+  } catch (e) {
+    console.error('[afiliado] Stripe:', e.message);
+    return { ok: false, motivo: 'Error de conexión con Stripe' };
   }
 }
