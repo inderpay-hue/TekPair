@@ -41,6 +41,56 @@ const _MSG = {
   'Tienda no encontrada': { en:'Shop not found', fr:'Boutique introuvable', it:'Negozio non trovato', de:'Shop nicht gefunden', pt:'Loja não encontrada' },
   'Usuario inactivo': { en:'Inactive user', fr:'Utilisateur inactif', it:'Utente inattivo', de:'Inaktiver Benutzer', pt:'Utilizador inativo' }
 };
+// ── Quién puede entrar según el estado de la suscripción ──────────────────────
+//
+// Días de cortesía tras un pago fallido. Stripe no cobra y reintenta durante unos
+// días: cortar el acceso al primer rechazo dejaría fuera a alguien que va a pagar
+// igualmente (una tarjeta que el banco frena por límite de operaciones se destraba
+// sola en horas). Una semana da margen para los reintentos y para avisar.
+const DIAS_GRACIA_IMPAGO = 7;
+
+// Separada del handler para poder probarla sin red ni base de datos.
+export function evaluarAcceso(t, now) {
+  const st = t.plan_status || 'trial';
+  const fecha = (v) => { const d = v ? new Date(v) : null; return d && !isNaN(d) ? d : null; };
+  const planUntil = fecha(t.plan_until);
+  const trialUntil = fecha(t.trial_until);
+
+  if (st === 'cancelled') {
+    // Canceló: sigue entrando hasta agotar lo que ya pagó.
+    if (planUntil && planUntil < now) {
+      return { permitido: false, motivo: 'cancelada', mensaje: 'Tu suscripción ha expirado. Renuévala desde tekpair.tech' };
+    }
+    return { permitido: true };
+  }
+
+  if (st === 'past_due') {
+    // El cobro ha fallado. La referencia es el día en que le tocaba pagar: el fin del
+    // periodo ya abonado y, si nunca llegó a pagar (falla el primer cobro al acabar la
+    // prueba), el fin del trial. Antes solo se miraba plan_until, que en ese caso está
+    // a NULL, así que un impagado conservaba el acceso indefinidamente.
+    const desde = planUntil || trialUntil;
+    if (desde && (now - desde) > DIAS_GRACIA_IMPAGO * 86400000) {
+      return {
+        permitido: false, motivo: 'impago',
+        mensaje: 'Tu último pago no se ha completado. Actualiza tu método de pago en tekpair.tech para volver a entrar.'
+      };
+    }
+    return { permitido: true };
+  }
+
+  if (st === 'trial') {
+    // Defensa en profundidad: un trial vencido no debe seguir abierto ni aunque el
+    // webhook de Stripe no haya llegado a cambiar el estado.
+    if (trialUntil && trialUntil < now) {
+      return { permitido: false, motivo: 'prueba_terminada', mensaje: 'Tu suscripción ha expirado. Renuévala desde tekpair.tech' };
+    }
+    return { permitido: true };
+  }
+
+  return { permitido: true };
+}
+
 function _loc(msg, req) {
   const l = _apiLang(req);
   if (l === 'es') return msg;
@@ -249,6 +299,15 @@ export default async function handler(req, res) {
       const tiendas = await tR.json();
       if (!tiendas.length) return res.status(404).json({ error: _loc('Tienda no encontrada', req) });
       const t = tiendas[0];
+
+      // 2b. Mismo corte que en el login. Sin esto el bloqueo por impago solo se aplicaba
+      // al volver a entrar con contraseña: quien ya tuviera la sesión abierta seguía
+      // trabajando con normalidad, y el token dura una semana. La app llama a 'me' en
+      // cada arranque, así que aquí es donde el corte se nota de verdad.
+      const accesoMe = evaluarAcceso(t, new Date());
+      if (!accesoMe.permitido) {
+        return res.json({ ok: false, plan_expired: true, motivo: accesoMe.motivo, error: _loc(accesoMe.mensaje, req) });
+      }
 
       // 3. Calcular días restantes de trial / próximo cobro
       let diasRestantes = null;
@@ -903,20 +962,9 @@ export default async function handler(req, res) {
     const trialUntil = tienda.trial_until || null;
 
     // 5. Verificar suscripción activa
-    let accessAllowed = true;
-    if (planStatus === 'cancelled') {
-      if (planUntil && new Date(planUntil) < new Date()) accessAllowed = false;
-    }
-    if (planStatus === 'past_due') {
-      if (planUntil && new Date(planUntil) < new Date(Date.now() - 7*86400000)) accessAllowed = false;
-    }
-    // AUD-fix: un trial con trial_until vencido no debe conservar acceso (defensa en profundidad
-    // por si el webhook de Stripe no convirtió el estado del plan a active/past_due/cancelled).
-    if (planStatus === 'trial') {
-      if (trialUntil && new Date(trialUntil) < new Date()) accessAllowed = false;
-    }
-    if (!accessAllowed) {
-      return res.json({ error: 'Tu suscripción ha expirado. Renuévala desde tekpair.tech', plan_expired: true });
+    const acceso = evaluarAcceso({ plan_status: planStatus, plan_until: planUntil, trial_until: trialUntil }, new Date());
+    if (!acceso.permitido) {
+      return res.json({ error: _loc(acceso.mensaje, req), plan_expired: true, motivo: acceso.motivo });
     }
 
     // 6. Crear sesión en BD (sistema actual, sigue funcionando)

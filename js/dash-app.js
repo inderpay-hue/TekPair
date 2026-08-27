@@ -290,6 +290,30 @@ function _guardTiendaActiva() {
   document.body.appendChild(bg);
 }
 
+// Pantalla de "hasta aquí": la suscripción no da acceso y no se puede seguir trabajando.
+// Se deja salida a la pasarela de pago, porque quien llega aquí normalmente quiere pagar
+// (una tarjeta rechazada por el banco es lo más común) y no encontrar la puerta cerrada.
+function _pantallaSuscripcionCortada(mensaje, motivo) {
+  if (document.getElementById('_planCorteBg')) return;
+  var esImpago = motivo === 'impago';
+  var bg = document.createElement('div');
+  bg.id = '_planCorteBg';
+  bg.style.cssText = 'position:fixed;inset:0;z-index:100001;background:rgba(15,23,42,.88);display:flex;align-items:center;justify-content:center;padding:20px';
+  bg.innerHTML = '<div style="background:var(--card,#fff);border-radius:16px;max-width:430px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)">' +
+    '<div style="font-size:44px;margin-bottom:8px">' + (esImpago ? '💳' : '🔒') + '</div>' +
+    '<h2 style="font-size:19px;font-weight:800;margin:0 0 8px;color:var(--text,#1e293b)">' +
+      (esImpago ? T('plan.corte_impago_tit') : T('plan.corte_tit')) + '</h2>' +
+    '<p style="font-size:13.5px;color:var(--muted,#64748b);line-height:1.6;margin:0 0 20px">' +
+      (mensaje || T('plan.corte_desc')) + '</p>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' +
+    '<button type="button" onclick="abrirStripePortal()" style="border:none;background:var(--blue,#2563eb);color:#fff;border-radius:10px;padding:12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">' + T('plan.corte_actualizar') + '</button>' +
+    '<button type="button" onclick="logout()" style="border:1px solid var(--border,#e2e8f0);background:transparent;color:var(--text,#1e293b);border-radius:10px;padding:12px;font:inherit;font-size:14px;font-weight:600;cursor:pointer">' + T('ntienda.salir') + '</button>' +
+    '</div>' +
+    '<p style="font-size:11.5px;color:var(--muted,#94a3b8);margin:16px 0 0">' + T('ntienda.soporte') + ' <a href="mailto:info@tekpair.tech" style="color:var(--blue,#2563eb);font-weight:600">info@tekpair.tech</a></p>' +
+    '</div>';
+  document.body.appendChild(bg);
+}
+
 // Refrescar plan desde /api/me (llamado al cargar)
 async function refrescarPlan() {
   if (!PLAN_INFO.token) return;
@@ -300,6 +324,10 @@ async function refrescarPlan() {
       body: JSON.stringify({action: 'me', token: PLAN_INFO.token})
     });
     var data = await r.json();
+    // El servidor ha cortado el acceso (impago pasada la semana de cortesía, prueba
+    // agotada o suscripción vencida). Sin esto la app seguía funcionando con normalidad
+    // hasta que caducara el token, una semana más tarde.
+    if (data && data.plan_expired) { _pantallaSuscripcionCortada(data.error, data.motivo); return; }
     if (data.ok) {
       PLAN_INFO.plan = data.plan;
       PLAN_INFO.status = data.plan_status;
