@@ -160,7 +160,23 @@ export default async function handler(req, res) {
     // Referidos: código de invitación (lo lee register.js para registrar la invitación).
     const refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
     if (refCode) { params.append('metadata[ref]', refCode); params.append('subscription_data[metadata][ref]', refCode); }
-    params.append('allow_promotion_codes', 'true');
+
+    // El código escrito en el registro se aplica AQUÍ como descuento de verdad.
+    //
+    // Antes solo viajaba como metadata y se dejaba `allow_promotion_codes`, así que
+    // el cliente tenía que volver a escribirlo en la pantalla de Stripe para que le
+    // hiciera algo. Nadie lo hacía —ya lo había escrito una vez— y el resultado eran
+    // 0 canjes en TODOS los cupones desde mayo: ni un solo cliente recibió el 50%
+    // que promete el kit comercial, y ningún comercial cobró su comisión, porque la
+    // atribución va justo por este código (webhook.js lo lee del descuento aplicado).
+    const promoId = refCode ? await buscarPromo(refCode, STRIPE_KEY) : null;
+    if (promoId) {
+      // Stripe no admite las dos cosas a la vez: o se aplica un descuento concreto o
+      // se ofrece el campo para escribirlo. Con código válido, aplicado y visible.
+      params.append('discounts[0][promotion_code]', promoId);
+    } else {
+      params.append('allow_promotion_codes', 'true');
+    }
     params.append('subscription_data[trial_period_days]', '15');
     // Pasar metadata también a la subscription para que el webhook tenga acceso
     params.append('subscription_data[metadata][plan]', planCanonico);
@@ -188,4 +204,33 @@ export default async function handler(req, res) {
     console.error('Checkout error:', e);
     return res.status(500).json({ error: 'Error del servidor' });
   }
+}
+
+// Busca el código promocional en Stripe. Devuelve el id (promo_...) o null.
+//
+// Los códigos se crean a mano en el panel de Stripe y el afiliado guarda el mismo
+// texto en la base de datos, así que aquí solo hay que resolverlo. Si no existe,
+// está agotado o caducado, `active=true` lo deja fuera y el alta sigue sin
+// descuento: un código mal escrito nunca debe impedir que alguien se suscriba.
+async function buscarPromo(codigo, STRIPE_KEY) {
+  if (!codigo || !STRIPE_KEY) return null;
+  // Se prueba tal cual y en mayúsculas: en Stripe el código distingue mayúsculas y
+  // el cliente lo escribe como le parece.
+  const intentos = [...new Set([codigo, codigo.toUpperCase()])];
+  for (const c of intentos) {
+    try {
+      const r = await fetch(
+        `https://api.stripe.com/v1/promotion_codes?code=${encodeURIComponent(c)}&active=true&limit=1`,
+        { headers: { 'Authorization': `Bearer ${STRIPE_KEY}` } }
+      );
+      if (!r.ok) continue;
+      const j = await r.json();
+      const promo = j && Array.isArray(j.data) ? j.data[0] : null;
+      if (promo && promo.id) return promo.id;
+    } catch (e) {
+      // Sin descuento, pero el alta continúa.
+      console.error('[checkout] buscando promo', c, e.message);
+    }
+  }
+  return null;
 }
