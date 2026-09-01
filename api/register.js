@@ -412,9 +412,9 @@ async function avisarAltaNueva(d) {
   const primerNombre = String(d.nombre || '').trim().split(' ')[0] || '';
 
   const saludo = `Hola ${primerNombre}, te escribimos de TekPair 👋\n\n` +
-    'Acabamos de ver que has creado tu cuenta. Si te viene bien, te ayudamos a dejar el taller montado ' +
-    '(tus servicios, tus precios y las primeras reparaciones) en una llamada de media hora, sin coste.\n\n' +
-    '¿Te va bien esta semana? Y si prefieres ir a tu aire, aquí nos tienes para lo que necesites.\n\n' +
+    'Acabamos de ver que has creado tu cuenta. Si te atascas con algo (montar tus servicios, ' +
+    'los precios o las primeras reparaciones), escríbenos por aquí y te echamos una mano.\n\n' +
+    'Este es nuestro WhatsApp, así que guárdalo y úsalo cuando lo necesites.\n\n' +
     'Un saludo,\nEl equipo de TekPair';
   const enlaceWa = telLimpio ? `https://wa.me/${telLimpio}?text=${encodeURIComponent(saludo)}` : null;
 
