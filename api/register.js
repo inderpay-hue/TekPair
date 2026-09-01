@@ -91,6 +91,10 @@ export default async function handler(req, res) {
     let stripeCustomerId = null;
     let stripeSubId = null;
     let refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+    // Teléfono de contacto de la tienda. Es obligatorio en el formulario, pero aquí
+    // no se exige: si por lo que sea llegara vacío, el alta no debe romperse — el
+    // cliente ya ha pagado a estas alturas.
+    let telefono = String(req.body.tel || '').trim().slice(0, 20) || null;
     let trialUntil = null;
     let planUntil = null;
 
@@ -109,6 +113,7 @@ export default async function handler(req, res) {
           if (!tienda_nombre && session.metadata.tienda_nombre) tienda_nombre = session.metadata.tienda_nombre;
           if (!plan && session.metadata.plan) plan = session.metadata.plan;
           if (session.metadata.ref) refCode = String(session.metadata.ref).replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+          if (session.metadata.tel && !telefono) telefono = String(session.metadata.tel).slice(0, 20);
         }
         // Fallback adicional: customer_email del Checkout si el metadata no lo tenía
         if (!email && session.customer_email) email = session.customer_email;
@@ -186,7 +191,8 @@ export default async function handler(req, res) {
       stripe_sub_id: stripeSubId,
       trial_until: trialUntil,
       plan_until: planUntil,
-      citas_slug: citasSlug
+      citas_slug: citasSlug,
+      telefono: telefono
     };
 
     // ═══ REG-2: si tienda no se crea, abortar ═══

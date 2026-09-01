@@ -154,6 +154,10 @@ export default async function handler(req, res) {
     params.append('metadata[plan]', planCanonico);
     params.append('metadata[ciclo]', ciclo);
     params.append('metadata[lang]', req.body.lang || 'es');
+    // Teléfono de contacto: viaja en metadata porque este endpoint no escribe en
+    // la base de datos; lo guarda register.js al volver de la pasarela.
+    const telReg = normalizarTel(req.body.tel);
+    if (telReg) params.append('metadata[tel]', telReg);
     // #B10: registro del consentimiento (timestamp + versión) para RGPD.
     if (req.body.consent_ts) params.append('metadata[consent_ts]', String(req.body.consent_ts).slice(0, 40));
     if (req.body.consent_ver) params.append('metadata[consent_ver]', String(req.body.consent_ver).slice(0, 40));
@@ -233,4 +237,18 @@ async function buscarPromo(codigo, STRIPE_KEY) {
     }
   }
   return null;
+}
+
+// Deja el teléfono en un formato con el que se pueda escribir por WhatsApp.
+// Se conserva el '+' inicial porque sin prefijo no se sabe de qué país es, y
+// se quitan espacios, guiones y paréntesis, que cada uno escribe a su manera.
+function normalizarTel(raw) {
+  if (!raw) return null;
+  let t = String(raw).trim().replace(/[\s\-().]/g, '');
+  const masMas = t.startsWith('+');
+  t = (masMas ? '+' : '') + t.replace(/[^0-9]/g, '');
+  const digitos = t.replace(/\D/g, '');
+  // Menos de 6 cifras no es un teléfono; más de 15 se sale del estándar E.164.
+  if (digitos.length < 6 || digitos.length > 15) return null;
+  return t.slice(0, 20);
 }

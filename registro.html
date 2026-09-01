@@ -86,7 +86,8 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .btn-pagar{width:100%;padding:14px;border-radius:9px;border:none;background:var(--orange);color:#fff;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--sans);margin-top:6px;transition:transform .15s,box-shadow .15s}
 .btn-pagar:hover{transform:translateY(-1px);box-shadow:0 10px 24px -8px rgba(255,91,31,.5)}
 .btn-pagar:disabled{background:var(--faint);cursor:not-allowed;transform:none;box-shadow:none}
-.err{color:var(--red);font-size:12px;margin-top:8px;display:none}
+.fh{display:block;font-size:11px;color:var(--faint);margin-top:4px;line-height:1.4}
+    .err{color:var(--red);font-size:12px;margin-top:8px;display:none}
 .plan-sel{background:var(--orange-l);border:1.5px solid var(--orange-br);border-radius:9px;padding:11px 14px;margin-bottom:16px;font-size:13px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:6px}
 .plan-sel strong{color:var(--orange-d)}
 .trust{text-align:center;padding:0 16px 40px;color:var(--muted);font-size:12px}
@@ -191,6 +192,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   <form id="regForm" onsubmit="iniciarPago();return false">
   <div class="fg"><label class="fl" id="labelNom" for="rNom">Tu nombre *</label><input class="fi" id="rNom" name="name" autocomplete="name" required minlength="2" placeholder="Juan García"/></div>
   <div class="fg"><label class="fl" id="labelEmail" for="rEmail">Email *</label><input class="fi" id="rEmail" name="email" type="email" autocomplete="email" required placeholder="juan@mitienda.com"/></div>
+  <div class="fg"><label class="fl" id="labelTel" for="rTel">WhatsApp o teléfono *</label><input class="fi" id="rTel" name="tel" type="tel" autocomplete="tel" required placeholder="+34 600 00 00 00"/><span class="fh" id="hintTel">Para avisarte si hay algo con tu cuenta. No lo usamos para publicidad.</span></div>
   <div class="fg"><label class="fl" id="labelTienda" for="rTienda">Nombre de tu tienda *</label><input class="fi" id="rTienda" name="organization" autocomplete="organization" required minlength="2" placeholder="Reparaciones García"/></div>
   <div class="fg"><label class="fl" for="rCodigo">Código de invitación (opcional)</label><input class="fi" id="rCodigo" name="codigo" autocomplete="off" placeholder="Si te han invitado, ponlo aquí" style="text-transform:uppercase"/></div>
   <!-- Honeypot anti-bot: invisible para humanos; si se rellena, se descarta. -->
@@ -227,7 +229,7 @@ const REG_TEXTS = {
     form_title: 'Crea tu cuenta',
     plan_sel: 'Plan seleccionado:',
     cambiar: 'Cambiar',
-    label_nom: 'Tu nombre *', label_email: 'Email *', label_tienda: 'Nombre de tu tienda *',
+    label_nom: 'Tu nombre *', label_email: 'Email *', label_tel: 'WhatsApp o teléfono *', hint_tel: 'Para avisarte si hay algo con tu cuenta. No lo usamos para publicidad.', label_tienda: 'Nombre de tu tienda *',
     placeholder_nom: 'Juan García', placeholder_email: 'juan@mitienda.com', placeholder_tienda: 'Reparaciones García',
     btn_pagar: 'Empezar prueba gratis', btn_procesando: 'Procesando...',
     stripe_note: 'Pago seguro con Stripe · 15 días gratis, no se te cobra hasta terminar la prueba',
@@ -257,7 +259,7 @@ const REG_TEXTS = {
     form_title: 'Create your account',
     plan_sel: 'Selected plan:',
     cambiar: 'Change',
-    label_nom: 'Your name *', label_email: 'Email *', label_tienda: 'Shop name *',
+    label_nom: 'Your name *', label_email: 'Email *', label_tel: 'WhatsApp or phone *', hint_tel: 'So we can reach you about your account. Never used for marketing.', label_tienda: 'Shop name *',
     placeholder_nom: 'John Smith', placeholder_email: 'john@myshop.com', placeholder_tienda: 'Smith Repairs',
     btn_pagar: 'Start free trial', btn_procesando: 'Processing...',
     stripe_note: 'Secure payment with Stripe · 15-day free trial, no charge until it ends',
@@ -287,7 +289,7 @@ const REG_TEXTS = {
     form_title: 'Créez votre compte',
     plan_sel: 'Plan sélectionné :',
     cambiar: 'Changer',
-    label_nom: 'Votre nom *', label_email: 'Email *', label_tienda: 'Nom de votre boutique *',
+    label_nom: 'Votre nom *', label_email: 'Email *', label_tel: 'WhatsApp ou téléphone *', hint_tel: 'Pour vous joindre au sujet de votre compte. Jamais de publicité.', label_tienda: 'Nom de votre boutique *',
     placeholder_nom: 'Jean Dupont', placeholder_email: 'jean@maboutique.com', placeholder_tienda: 'Réparations Dupont',
     btn_pagar: 'Commencer l\'essai gratuit', btn_procesando: 'Traitement...',
     stripe_note: 'Paiement sécurisé avec Stripe · 15 jours gratuits, aucun prélèvement avant la fin',
@@ -317,7 +319,7 @@ const REG_TEXTS = {
     form_title: 'Crea il tuo account',
     plan_sel: 'Piano selezionato:',
     cambiar: 'Cambia',
-    label_nom: 'Il tuo nome *', label_email: 'Email *', label_tienda: 'Nome del negozio *',
+    label_nom: 'Il tuo nome *', label_email: 'Email *', label_tel: 'WhatsApp o telefono *', hint_tel: 'Per contattarti sul tuo account. Mai per pubblicità.', label_tienda: 'Nome del negozio *',
     placeholder_nom: 'Mario Rossi', placeholder_email: 'mario@mionegozio.com', placeholder_tienda: 'Riparazioni Rossi',
     btn_pagar: 'Inizia la prova gratuita', btn_procesando: 'Elaborazione...',
     stripe_note: 'Pagamento sicuro con Stripe · 15 giorni gratis, nessun addebito fino alla fine',
@@ -347,7 +349,7 @@ const REG_TEXTS = {
     form_title: 'Konto erstellen',
     plan_sel: 'Gewählter Plan:',
     cambiar: 'Ändern',
-    label_nom: 'Ihr Name *', label_email: 'E-Mail *', label_tienda: 'Shopname *',
+    label_nom: 'Ihr Name *', label_email: 'E-Mail *', label_tel: 'WhatsApp oder Telefon *', hint_tel: 'Damit wir dich zu deinem Konto erreichen. Nie für Werbung.', label_tienda: 'Shopname *',
     placeholder_nom: 'Max Müller', placeholder_email: 'max@meinshop.de', placeholder_tienda: 'Reparaturen Müller',
     btn_pagar: 'Kostenlos testen', btn_procesando: 'Verarbeitung...',
     stripe_note: 'Sichere Zahlung mit Stripe · 15 Tage gratis, keine Abbuchung bis zum Ende',
@@ -377,7 +379,7 @@ const REG_TEXTS = {
     form_title: 'Cria a tua conta',
     plan_sel: 'Plano selecionado:',
     cambiar: 'Mudar',
-    label_nom: 'O teu nome *', label_email: 'Email *', label_tienda: 'Nome da loja *',
+    label_nom: 'O teu nome *', label_email: 'Email *', label_tel: 'WhatsApp ou telefone *', hint_tel: 'Para te contactarmos sobre a tua conta. Nunca para publicidade.', label_tienda: 'Nome da loja *',
     placeholder_nom: 'João Silva', placeholder_email: 'joao@minhaloja.com', placeholder_tienda: 'Reparações Silva',
     btn_pagar: 'Começar teste grátis', btn_procesando: 'A processar...',
     stripe_note: 'Pagamento seguro com Stripe · 15 dias grátis, sem cobrança até terminar',
@@ -445,6 +447,8 @@ function applyRegLang(lang) {
   var ln = document.getElementById('labelNom'); if (ln) ln.textContent = L.label_nom;
   var le = document.getElementById('labelEmail'); if (le) le.textContent = L.label_email;
   var lt = document.getElementById('labelTienda'); if (lt) lt.textContent = L.label_tienda;
+  var ltel = document.getElementById('labelTel'); if (ltel && L.label_tel) ltel.textContent = L.label_tel;
+  var htel = document.getElementById('hintTel'); if (htel && L.hint_tel) htel.textContent = L.hint_tel;
   var rn = document.getElementById('rNom'); if (rn) rn.placeholder = L.placeholder_nom;
   var re = document.getElementById('rEmail'); if (re) re.placeholder = L.placeholder_email;
   var rt = document.getElementById('rTienda'); if (rt) rt.placeholder = L.placeholder_tienda;
@@ -544,7 +548,7 @@ async function iniciarPago() {
     var r = await fetch('/api/checkout', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({plan: planSel, nombre: nom, email: email, tienda_nombre: tienda, ciclo: (window._ciclo || 'mensual'), lang: (window._lang || getLang()), ref: ((document.getElementById('rCodigo') && document.getElementById('rCodigo').value.trim()) || window._refCode || ''), website: (hp ? hp.value : ''), consent_ts: new Date().toISOString(), consent_ver: 'reg-2026-07'})
+      body: JSON.stringify({plan: planSel, nombre: nom, email: email, tienda_nombre: tienda, ciclo: (window._ciclo || 'mensual'), lang: (window._lang || getLang()), tel: ((document.getElementById('rTel') && document.getElementById('rTel').value.trim()) || ''), ref: ((document.getElementById('rCodigo') && document.getElementById('rCodigo').value.trim()) || window._refCode || ''), website: (hp ? hp.value : ''), consent_ts: new Date().toISOString(), consent_ver: 'reg-2026-07'})
     });
     var data = await r.json();
     if (data.ok && data.url) {
