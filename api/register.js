@@ -373,10 +373,82 @@ export default async function handler(req, res) {
       }
     }
 
+    // ═══ Aviso al dueño: alta nueva, con el WhatsApp listo para escribirle ═══
+    // Va al final y con su propio try/catch: si esto fallara, el cliente ya está
+    // dado de alta y no puede enterarse de nada.
+    try {
+      await avisarAltaNueva({ nombre, email, telefono, tienda_nombre: tiendaData.nombre, plan, trialUntil, refCode, RESEND_KEY });
+    } catch (e) { console.error('[alta] aviso al dueño (no bloqueante):', e.message); }
+
     return res.json({ ok: true, tienda_id, tempPass, sessionToken, nombre });
 
   } catch(e) {
     console.error('Setup error:', e);
     return res.status(500).json({ error: _loc('Error al crear cuenta', req) });
   }
+}
+
+
+// ═══ AVISO DE ALTA NUEVA (para el dueño de TekPair, no para el cliente) ═══
+//
+// Por qué existe: el correo no lo lee casi nadie. De los primeros clientes de
+// pago, uno estuvo 52 días sin entrar y a otro le rebotó el cobro; a ninguno se
+// le pudo escribir por otra vía. Ahora cada alta llega con un enlace de WhatsApp
+// listo: se pulsa y se abre la conversación con el mensaje ya escrito.
+//
+// El mensaje NO se envía solo a propósito. Automatizar WhatsApp sin la API
+// oficial de Meta se salta sus términos y arriesga el baneo del número. Y con
+// pocas altas al día, un mensaje que se envía a mano se responde mucho más que
+// uno que huele a robot: aquí lo que hace falta es que contesten.
+//
+// ALERTAS_EMAIL cambia el destinatario (por defecto info@tekpair.tech).
+async function avisarAltaNueva(d) {
+  if (!d.RESEND_KEY) { console.warn('[alta] sin RESEND_API_KEY, no se avisa'); return; }
+  const destino = process.env.ALERTAS_EMAIL || 'info@tekpair.tech';
+  const esc = (v) => String(v == null ? '' : v).replace(/[<>&"']/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+
+  // wa.me quiere el número sin '+' ni separadores.
+  const telLimpio = String(d.telefono || '').replace(/\D/g, '');
+  const primerNombre = String(d.nombre || '').trim().split(' ')[0] || '';
+
+  const saludo = `Hola ${primerNombre}, soy Inder, de TekPair 👋\n\n` +
+    'Acabo de ver que has creado tu cuenta. Si te viene bien, te ayudo a dejar el taller montado ' +
+    '(tus servicios, tus precios y las primeras reparaciones) en una llamada de media hora, sin coste.\n\n' +
+    '¿Te va bien esta semana? Y si prefieres ir a tu aire, aquí estoy para lo que necesites.';
+  const enlaceWa = telLimpio ? `https://wa.me/${telLimpio}?text=${encodeURIComponent(saludo)}` : null;
+
+  const planLabel = ({ basico: 'Básico', pro: 'Pro', top: 'Premium', premium: 'Premium' })[d.plan] || d.plan || '—';
+  const cobro = d.trialUntil ? new Date(d.trialUntil).toLocaleDateString('es', { day: 'numeric', month: 'long' }) : '—';
+
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:20px;color:#111">
+  <h2 style="margin:0 0 4px">🎉 Alta nueva: ${esc(d.tienda_nombre)}</h2>
+  <p style="color:#64748B;margin:0 0 18px;font-size:13px">Aviso interno. Al cliente no le llega nada de esto.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">
+    <tr><td style="padding:7px 0;color:#64748B;width:110px">Nombre</td><td style="padding:7px 0"><b>${esc(d.nombre)}</b></td></tr>
+    <tr><td style="padding:7px 0;color:#64748B">Email</td><td style="padding:7px 0">${esc(d.email)}</td></tr>
+    <tr><td style="padding:7px 0;color:#64748B">Teléfono</td><td style="padding:7px 0"><b>${esc(d.telefono) || '<span style="color:#B91C1C">no lo dejó</span>'}</b></td></tr>
+    <tr><td style="padding:7px 0;color:#64748B">Plan</td><td style="padding:7px 0">${esc(planLabel)}</td></tr>
+    <tr><td style="padding:7px 0;color:#64748B">Primer cobro</td><td style="padding:7px 0">${esc(cobro)}</td></tr>
+    ${d.refCode ? `<tr><td style="padding:7px 0;color:#64748B">Código</td><td style="padding:7px 0"><b>${esc(d.refCode)}</b> (comercial)</td></tr>` : ''}
+  </table>
+  ${enlaceWa ? `<a href="${enlaceWa}" style="display:block;background:#25D366;color:#fff;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;margin:22px 0 10px">💬 Escribirle por WhatsApp</a>
+  <p style="font-size:12px;color:#64748B;margin:0 0 18px">Se abre con el mensaje ya escrito. Léelo antes de enviarlo y cámbialo a tu manera de hablar.</p>`
+  : '<p style="background:#FEF2F2;border-left:4px solid #B91C1C;padding:12px 14px;font-size:13px;margin:20px 0">Sin teléfono válido: solo se le puede escribir por correo.</p>'}
+  <p style="font-size:13px;color:#475569;border-top:1px solid #eee;padding-top:14px">
+    Los primeros días deciden si este cliente se queda. Media hora ahora vale más que cualquier correo automático dentro de un mes.
+  </p>
+</body></html>`;
+
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${d.RESEND_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      from: 'Tekpair <info@tekpair.tech>',
+      to: [destino],
+      subject: `🎉 Alta nueva: ${d.tienda_nombre}${d.telefono ? ' · ' + d.telefono : ''}`,
+      html,
+    }),
+  });
+  if (!r.ok) console.error('[alta] Resend respondió', r.status, await r.text());
 }
