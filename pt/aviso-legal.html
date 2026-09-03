@@ -47,7 +47,10 @@ a{color:#FF5B1F}
 <div class="container" id="legalBody"></div>
 
 <script>
-var TODO_NIF = '<div class="todo">⚠️ [ADMIN] Completar NIF/CIF y domicilio fiscal del titular (obligatorio por la LSSI).</div>';
+// Recordatorio interno: NO se pinta en la pagina publica. Enseñar al visitante
+// que faltan datos del titular es peor que el propio hueco.
+// PENDIENTE: poner NIF/CIF y domicilio fiscal (obligatorio por la LSSI).
+var TODO_NIF = '';
 function _avisoHtml(L){
   return '<h1>'+L.h1+'</h1><div class="date">'+L.date+'</div>'+
     '<p>'+L.intro+'</p>'+
