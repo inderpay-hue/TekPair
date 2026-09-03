@@ -7307,7 +7307,7 @@ function renderVentas() {
     var btnEdit = (!v.reembolsado && (typeof _esAdmin === 'function' && _esAdmin())) ? '<button data-vid="' + v.id + '" class="row-btn btn-edit-v" title="' + T('venta.editar_t') + '">' + _iv2ic('pencil', 16) + '</button>' : '';
     var btnSeg = _puedeSeguimiento() ? '<button data-vid="' + v.id + '" class="row-btn btn-seg-v" title="' + escHtml(T('seg.btn')) + '">' + _iv2ic('clock', 16) + '</button>' : '';
     var btnVer = '<button data-vid="' + v.id + '" class="row-btn btn-ver-v" title="' + escHtml(T('vent.ver_detalle')) + '">' + _iv2ic('eye', 16) + '</button>';
-    html += '<tr style="' + (v.reembolsado ? 'opacity:.55' : '') + '">' +
+    html += '<tr class="' + (v.reembolsado ? 'fila-reem' : '') + '">' +
       '<td>' + fmtFecha(v.fecha) + '</td>' +
       '<td>' + esc(_cliLbl(v.clienteNombre)) + badges + '</td>' +
       '<td>' + esc(v.modelo) + '</td>' +

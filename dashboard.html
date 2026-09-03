@@ -1081,7 +1081,14 @@ table.tbl{width:100%;border-collapse:collapse;font-size:12px}
 .cierre-stat{display:flex;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--light);font-size:13px}
 
 /* ═══ REEMBOLSO BADGE ═══ */
-.badge-reem{display:inline-block;background:rgba(239,68,68,.1);color:var(--red);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px}
+.badge-reem{display:inline-block;background:rgba(239,68,68,.14);color:var(--red);font-size:10.5px;font-weight:800;padding:2px 7px;border-radius:8px;margin-left:4px;border:1px solid rgba(239,68,68,.35);letter-spacing:.02em;opacity:1;vertical-align:middle}
+body[data-theme="dark"] .badge-reem{background:rgba(239,68,68,.2);color:#FF9B9B;border-color:rgba(239,68,68,.5)}
+/* Fila reembolsada: se marca con fondo rojizo y NO con opacity. Atenuar el
+   <tr> apagaba tambien la etiqueta que avisa del reembolso (2.2:1), y una
+   vez aplicada la opacidad al padre ningun hijo puede recuperarla. */
+.tbl tr.fila-reem{background:rgba(239,68,68,.06)}
+.tbl tr.fila-reem td{color:var(--muted)}
+body[data-theme="dark"] .tbl tr.fila-reem{background:rgba(239,68,68,.1)}
 .badge-fin{display:inline-block;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:1px 6px;border-radius:8px;margin-left:4px}
 
 /* Stock tabs */
@@ -1205,7 +1212,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260903b"></script>
+<script src="/lang/lang.v8.js?v=20260903c"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2714,7 +2721,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 
 <!-- ════ LÓGICA JS ════ -->
-<script src="/js/dash-cajas.js?v=20260903b"></script>
+<script src="/js/dash-cajas.js?v=20260903c"></script>
 
 <div class="page" id="pGastos">
   <div class="sec-header" style="margin-bottom:10px">
@@ -5119,7 +5126,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260903b"></script>
+<script src="/js/dash-app.js?v=20260903c"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
