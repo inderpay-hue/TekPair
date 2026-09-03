@@ -7341,7 +7341,7 @@ function renderVentas() {
       var vid = this.dataset.vid;
       var v = (DB.ventas || []).find(function(x) { return x.id === vid; });
       verSeguimiento('venta', vid, v ? ([
-        T('gen.venta_del') + ' ' + fmtFecha(v.fecha),
+        T('gen.venta_del') + ' ' + _fechaHoraVenta(v),
         (v.clienteNombre || ''), (v.modelo || '')
       ].filter(Boolean).join(' · ')) : '');
     });
@@ -7480,6 +7480,34 @@ function imprimirTicketVenta(id) {
 // Ojo con la cantidad: el TPV la guarda en `qty` y el alta manual del panel en
 // `cantidad`. Conviven las dos, así que aquí se leen ambas (mismo motivo por el
 // que la factura declaraba de menos hasta el arreglo de factura.js).
+// Hora exacta de una venta. `ventas.fecha` guarda solo el dia (hoyLocal()
+// devuelve YYYY-MM-DD), pero el id se genera como 'v' + Date.now() + '_' + azar,
+// asi que lleva dentro el instante en que se cerro. Se recupera de ahi.
+//
+// Solo se devuelve si el dia que sale del id COINCIDE con la fecha guardada: si
+// no cuadran, ese id no es de fiar (venta importada, migrada o con otro formato)
+// y es mejor no enseñar hora que enseñar una inventada. De las 143 ventas
+// actuales, 88 traen la marca de tiempo y en las 88 el dia cuadra.
+function _horaVenta(v) {
+  try {
+    var m = /^v(\d{13})_/.exec(String((v && v.id) || ''));
+    if (!m) return null;
+    var d = new Date(parseInt(m[1], 10));
+    if (isNaN(d.getTime())) return null;
+    var diaDelId = d.getFullYear() + '-' +
+      String(d.getMonth() + 1).padStart(2, '0') + '-' +
+      String(d.getDate()).padStart(2, '0');
+    if (v.fecha && String(v.fecha).slice(0, 10) !== diaDelId) return null;
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch (e) { return null; }
+}
+
+// Fecha de la venta y, si se puede saber, tambien la hora.
+function _fechaHoraVenta(v) {
+  var h = _horaVenta(v);
+  return fmtFecha(v.fecha) + (h ? ' ' + h : '');
+}
+
 function _ventaCant(it) {
   return parseFloat(it.cantidad != null ? it.cantidad : it.qty) || 1;
 }
@@ -7536,7 +7564,7 @@ function verDetalleVenta(vid) {
       (v.reembolsado ? '<span class="badge" style="background:var(--red);color:#fff">' + T('vent.reembolsada') + '</span>' : '') +
     '</div>' +
     '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">' +
-      fmtFecha(v.fecha) + ' · ' + esc(_cliLbl(v.clienteNombre)) + ' · ' + esc(_pagoLbl(v.pago)) +
+      _fechaHoraVenta(v) + ' · ' + esc(_cliLbl(v.clienteNombre)) + ' · ' + esc(_pagoLbl(v.pago)) +
     '</div>' +
     '<div style="overflow-x:auto;margin-bottom:12px">' +
       '<table style="width:100%;border-collapse:collapse;font-size:13.5px">' +
