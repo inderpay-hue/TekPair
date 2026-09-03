@@ -440,11 +440,13 @@
     var d = FACT.datos;
     if (FACT.origen === 'venta') {
       var lineasV = (d.items || []).map(function(i) {
+        var cant = parseFloat(i.cantidad != null ? i.cantidad : i.qty) || 1;
+        var precio = parseFloat(i.precio) || 0;
         return {
           desc: (i.nombre || '-') + (i.imei ? '  ·  IMEI: ' + i.imei : ''),
-          cantidad: parseFloat(i.cantidad) || 1,
-          precio: parseFloat(i.precio) || 0,
-          total: (parseFloat(i.cantidad) || 1) * (parseFloat(i.precio) || 0)
+          cantidad: cant,
+          precio: precio,
+          total: cant * precio
         };
       });
       // Descuento como línea negativa: sin esto las líneas sumaban el precio SIN descuento mientras

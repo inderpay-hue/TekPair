@@ -7306,17 +7306,21 @@ function renderVentas() {
     var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="' + T('rep.title_generar_factura') + '">' + _iv2ic('doc', 16) + '</button>' : '';
     var btnEdit = (!v.reembolsado && (typeof _esAdmin === 'function' && _esAdmin())) ? '<button data-vid="' + v.id + '" class="row-btn btn-edit-v" title="' + T('venta.editar_t') + '">' + _iv2ic('pencil', 16) + '</button>' : '';
     var btnSeg = _puedeSeguimiento() ? '<button data-vid="' + v.id + '" class="row-btn btn-seg-v" title="' + escHtml(T('seg.btn')) + '">' + _iv2ic('clock', 16) + '</button>' : '';
+    var btnVer = '<button data-vid="' + v.id + '" class="row-btn btn-ver-v" title="' + escHtml(T('vent.ver_detalle')) + '">' + _iv2ic('eye', 16) + '</button>';
     html += '<tr style="' + (v.reembolsado ? 'opacity:.55' : '') + '">' +
       '<td>' + fmtFecha(v.fecha) + '</td>' +
       '<td>' + esc(_cliLbl(v.clienteNombre)) + badges + '</td>' +
       '<td>' + esc(v.modelo) + '</td>' +
       '<td><span class="badge bb">' + esc(_pagoLbl(v.pago)) + '</span></td>' +
       '<td style="color:' + (v.reembolsado ? 'var(--red)' : 'var(--green)') + ';font-weight:700">' + (v.reembolsado ? '-' : '') + cur(v.total) + '</td>' +
-      '<td style="display:flex;gap:3px">' + btnR + btnF + btnFact + btnImpr + btnSeg + btnEdit + '</td></tr>';
+      '<td style="display:flex;gap:3px">' + btnVer + btnR + btnF + btnFact + btnImpr + btnSeg + btnEdit + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
   _renderPager('ventasPager', SEL.ventaPage, _totalVen, '_ventasGoPage');
+  el.querySelectorAll('.btn-ver-v').forEach(function(btn) {
+    btn.addEventListener('click', function() { verDetalleVenta(this.dataset.vid); });
+  });
   el.querySelectorAll('.btn-reem').forEach(function(btn) {
     btn.addEventListener('click', function() { reembolsarVenta(this.dataset.vid); });
   });
@@ -7462,6 +7466,101 @@ function imprimirTicketVenta(id) {
 }
 
 // ── Modales in-app que reemplazan confirm()/prompt() nativos (feos y que bloquean el navegador automatizado) ──
+// ═══ DETALLE DE UNA VENTA ═══
+//
+// Por qué existe: el TPV guarda en `modelo` el texto "N productos" cuando se
+// vende más de una cosa, así que en la lista no había forma de saber QUÉ se
+// vendió. El detalle sí se guardaba (campo items), pero solo se veía al
+// reimprimir el ticket — y para decidir si emites factura necesitas mirarlo
+// antes, no después.
+//
+// Ojo con la cantidad: el TPV la guarda en `qty` y el alta manual del panel en
+// `cantidad`. Conviven las dos, así que aquí se leen ambas (mismo motivo por el
+// que la factura declaraba de menos hasta el arreglo de factura.js).
+function _ventaCant(it) {
+  return parseFloat(it.cantidad != null ? it.cantidad : it.qty) || 1;
+}
+
+// Descuento aplicado a UNA línea, en euros. Mismo cálculo que el TPV.
+function _ventaDescLinea(it) {
+  var bruto = (parseFloat(it.precio) || 0) * _ventaCant(it);
+  var v = parseFloat(it.desc) || 0;
+  if (v <= 0) return 0;
+  var d = it.descTipo === 'pct' ? bruto * v / 100 : v;
+  return Math.min(Math.max(0, d), bruto);
+}
+
+function verDetalleVenta(vid) {
+  var v = (DB.ventas || []).find(function(x) { return x.id === vid; });
+  if (!v) { toast(T('vent.no_encontrada'), 'err'); return; }
+
+  // Ventas antiguas (o de la caja rápida) pueden no tener items: se muestra una
+  // línea con lo que haya, en vez de una tabla vacía que parezca un error.
+  var items = (v.items && v.items.length) ? v.items
+    : [{ nombre: v.modelo || T('tb.venta'), precio: v.precio || v.total, qty: 1 }];
+
+  var filas = items.map(function(it) {
+    var cant = _ventaCant(it);
+    var precio = parseFloat(it.precio) || 0;
+    var bruto = cant * precio;
+    var dl = _ventaDescLinea(it);
+    return '<tr>' +
+      '<td style="padding:7px 6px">' + esc(it.nombre || '-') +
+        (it.imei ? '<div style="font-size:11px;color:var(--muted)">IMEI: ' + esc(it.imei) + '</div>' : '') +
+        (dl > 0 ? '<div style="font-size:11px;color:var(--orange)">' + T('tpv.descuento_2') + ': -' + cur(dl) + '</div>' : '') +
+      '</td>' +
+      '<td style="padding:7px 6px;text-align:center">' + cant + '</td>' +
+      '<td style="padding:7px 6px;text-align:right">' + cur(precio) + '</td>' +
+      '<td style="padding:7px 6px;text-align:right;font-weight:600">' + cur(bruto - dl) + '</td>' +
+    '</tr>';
+  }).join('');
+
+  var fila = function(lbl, val, fuerte) {
+    return '<div style="display:flex;justify-content:space-between;padding:3px 0' + (fuerte ? ';font-weight:800;font-size:16px' : '') + '">' +
+      '<span' + (fuerte ? '' : ' style="color:var(--muted)"') + '>' + lbl + '</span><span>' + val + '</span></div>';
+  };
+  var totales = fila(T('stock.inv_subtotal'), cur(v.precio || 0));
+  if (parseFloat(v.descuento) > 0) totales += fila(T('tpv.descuento_2'), '-' + cur(v.descuento));
+  if (v.ivaModo && v.ivaModo !== 'sin') {
+    totales += fila(T('pres.doc_base_imponible'), cur(v.base || 0));
+    totales += fila('IVA ' + (v.iva || 0) + '%', cur(v.ivaImporte || 0));
+  }
+  totales += fila(T('gen.total_2'), cur(v.total || 0), true);
+
+  var m = _modalOverlay(
+    '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px">' +
+      '<h3 style="margin:0;font-size:17px;font-weight:800">' + T('vent.ver_detalle') + '</h3>' +
+      (v.reembolsado ? '<span class="badge" style="background:var(--red);color:#fff">' + T('vent.reembolsada') + '</span>' : '') +
+    '</div>' +
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">' +
+      fmtFecha(v.fecha) + ' · ' + esc(_cliLbl(v.clienteNombre)) + ' · ' + esc(_pagoLbl(v.pago)) +
+    '</div>' +
+    '<div style="overflow-x:auto;margin-bottom:12px">' +
+      '<table style="width:100%;border-collapse:collapse;font-size:13.5px">' +
+        '<thead><tr style="border-bottom:1px solid var(--border,#E2E8F0);font-size:11.5px;color:var(--muted);text-transform:uppercase">' +
+          '<th style="text-align:left;padding:0 6px 6px">' + T('gen.producto') + '</th>' +
+          '<th style="padding:0 6px 6px">' + T('acc.cantidad') + '</th>' +
+          '<th style="text-align:right;padding:0 6px 6px">' + T('pres.doc_precio') + '</th>' +
+          '<th style="text-align:right;padding:0 6px 6px">' + T('gen.total_2') + '</th>' +
+        '</tr></thead><tbody>' + filas + '</tbody>' +
+      '</table>' +
+    '</div>' +
+    '<div style="border-top:1px solid var(--border,#E2E8F0);padding-top:10px;font-size:13.5px">' + totales + '</div>' +
+    '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">' +
+      (!v.reembolsado ? '<button id="_dvFact" class="btn btn-primary" style="flex:1;min-width:130px">' + T('rep.title_generar_factura') + '</button>' : '') +
+      '<button id="_dvTicket" class="btn" style="flex:1;min-width:110px">' + T('ventas.t_reimprimir') + '</button>' +
+      '<button id="_dvCerrar" class="btn" style="flex:0 0 auto">' + T('gen.cerrar') + '</button>' +
+    '</div>'
+  );
+  m.box.style.maxWidth = '520px';
+
+  var bFact = m.box.querySelector('#_dvFact');
+  if (bFact) bFact.addEventListener('click', function() { m.close(); factVenta(vid); });
+  m.box.querySelector('#_dvTicket').addEventListener('click', function() { m.close(); imprimirTicketVenta(vid); });
+  m.box.querySelector('#_dvCerrar').addEventListener('click', m.close);
+  m.bg.addEventListener('click', function(e) { if (e.target === m.bg) m.close(); });
+}
+
 function _modalOverlay(inner) {
   var bg = document.createElement('div');
   bg.style.cssText = 'position:fixed;inset:0;background:rgba(2,11,46,.65);backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);z-index:2147483600;display:flex;align-items:center;justify-content:center;padding:16px;font-family:inherit';
