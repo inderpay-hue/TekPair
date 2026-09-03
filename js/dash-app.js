@@ -7280,7 +7280,7 @@ function renderVentas() {
     var matchQ = !q || _norm(v.clienteNombre + ' ' + v.modelo + ' ' + (v.imei || '') + ' ' + (_telV[v.clienteId] || '')).indexOf(q) !== -1;
     if (filtro === 'reembolsos') return matchQ && v.reembolsado;
     if (filtro === 'financiados') return matchQ && v.financiado;
-    return matchQ && !v.reembolsado;
+    return matchQ;   // 'todas' = todas, reembolsadas incluidas (van marcadas en la fila)
   });
   // Financiadas pendientes primero (lo accionable arriba); el sort estable conserva la recencia dentro de cada grupo.
   list.sort(function(a, b) { return (_esFinPendiente(a) ? 0 : 1) - (_esFinPendiente(b) ? 0 : 1); });
