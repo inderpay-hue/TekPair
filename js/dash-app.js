@@ -7340,7 +7340,10 @@ function renderVentas() {
     btn.addEventListener('click', function() {
       var vid = this.dataset.vid;
       var v = (DB.ventas || []).find(function(x) { return x.id === vid; });
-      verSeguimiento('venta', vid, v ? ((v.clienteNombre || '') + ' · ' + (v.modelo || '')) : '');
+      verSeguimiento('venta', vid, v ? ([
+        T('gen.venta_del') + ' ' + fmtFecha(v.fecha),
+        (v.clienteNombre || ''), (v.modelo || '')
+      ].filter(Boolean).join(' · ')) : '');
     });
   });
 }

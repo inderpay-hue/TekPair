@@ -668,6 +668,27 @@ function _tpvLogSalida(nombre, qty, stockId, cliente) {
   sbPost('audit', entry);
 }
 
+// Registra la venta en el historial (entidad='venta'), para que el seguimiento
+// muestre cuando se hizo y no solo cuando se devolvio.
+function _tpvLogVenta(venta, totals) {
+  if (!SB_KEY || !TIENDA_ID) return;
+  try {
+    var detalle = (venta.modelo || '') +
+      ' \u00b7 ' + (totals && totals.total != null ? totals.total : venta.total).toFixed(2) + ' \u20ac' +
+      (venta.clienteNombre && venta.clienteNombre !== 'Sin cliente' ? ' \u00b7 ' + venta.clienteNombre : '');
+    var entry = {
+      id: 'a' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      tienda_id: TIENDA_ID, ts: new Date().toISOString(),
+      usuario_id: (U && U.id) || '?', usuario_nom: (U && (U.nombre || U.email)) || 'TPV',
+      accion: 'crear', entidad: 'venta', entidad_id: venta.id,
+      detalle: detalle,
+      cambios: { origen: 'tpv', total: venta.total, pago: venta.pago }
+    };
+    try { if (window.DB && DB.audit) { DB.audit.unshift(entry); if (DB.audit.length > 1000) DB.audit = DB.audit.slice(0, 1000); } } catch (e) {}
+    sbPost('audit', entry);
+  } catch (e) { /* que un fallo aqui no impida cerrar la venta */ }
+}
+
 function sbPost(table, data) {
   if (!SB_KEY) return Promise.resolve(false);
   return fetch(SUPABASE_URL + '/rest/v1/' + table, {
@@ -1813,6 +1834,11 @@ function cobrar() {
       items: (venta.items && venta.items.length) ? JSON.stringify(venta.items) : null
     });
   }
+
+  // Rastro de la venta en el historial, con fecha y HORA. `venta.fecha` solo
+  // guarda el dia, asi que sin esto el seguimiento de una venta reembolsada
+  // enseñaba el reembolso y nada con que compararlo.
+  _tpvLogVenta(venta, totals);
 
   // Show ticket
   mostrarTicket(venta, totals);
