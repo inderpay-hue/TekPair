@@ -7547,9 +7547,9 @@ function verDetalleVenta(vid) {
     '</div>' +
     '<div style="border-top:1px solid var(--border,#E2E8F0);padding-top:10px;font-size:13.5px">' + totales + '</div>' +
     '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">' +
-      (!v.reembolsado ? '<button id="_dvFact" class="btn btn-primary" style="flex:1;min-width:130px">' + T('rep.title_generar_factura') + '</button>' : '') +
-      '<button id="_dvTicket" class="btn" style="flex:1;min-width:110px">' + T('ventas.t_reimprimir') + '</button>' +
-      '<button id="_dvCerrar" class="btn" style="flex:0 0 auto">' + T('gen.cerrar') + '</button>' +
+      (!v.reembolsado ? '<button id="_dvFact" style="flex:1;min-width:130px;padding:10px 14px;border:none;background:var(--orange,#F97316);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + T('rep.title_generar_factura') + '</button>' : '') +
+      '<button id="_dvTicket" style="flex:1;min-width:110px;padding:10px 14px;border:1px solid var(--border,#E5E7EB);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + T('ventas.t_reimprimir') + '</button>' +
+      '<button id="_dvCerrar" style="flex:0 0 auto;padding:10px 16px;border:1px solid var(--border,#E5E7EB);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + T('gen.cerrar') + '</button>' +
     '</div>'
   );
   m.box.style.maxWidth = '520px';
