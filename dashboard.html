@@ -1212,7 +1212,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260903f"></script>
+<script src="/lang/lang.v8.js?v=20260905a"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -1753,6 +1753,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   <div class="sec-header" style="margin-bottom:10px">
     <div class="sec-title" data-t="nav.stock">Stock</div>
     <div style="display:flex;gap:6px">
+      <button class="btn-sm" id="btnLinkCatalogo" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirLinkCatalogo()" title="Compartir el catálogo público con tus clientes"><span data-t="cat.btn">🌐 Catálogo público</span></button>
       <button class="btn-sm" id="btnModelos" style="display:none;background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirModelos()" title="Gestionar catálogo de modelos"><span data-t="stock.modelos_btn">🏷️ Modelos</span></button>
       <button class="btn-sm" id="btnStockLog" style="display:none;background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirStockLog()" title="Historial de cambios de stock"><span data-t="stock.historial">📋 Historial</span></button>
       <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirImportFactura()" title="Importar PDF de factura del proveedor"><span data-t="stock.importar_factura">📤 Importar factura</span></button>
@@ -2721,7 +2722,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 
 <!-- ════ LÓGICA JS ════ -->
-<script src="/js/dash-cajas.js?v=20260903f"></script>
+<script src="/js/dash-cajas.js?v=20260905a"></script>
 
 <div class="page" id="pGastos">
   <div class="sec-header" style="margin-bottom:10px">
@@ -2964,6 +2965,18 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
         </div>
       </div>
       <button type="button" class="btn-secondary" style="width:100%;margin-top:10px" onclick="abrirLinkCitas()" data-t="ajt.citas_link">🔗 Ver link público / QR</button>
+    </div>
+
+    <!-- Catálogo público: interruptor general. Apagado por defecto para que
+         ninguna tienda se encuentre su stock publicado sin haberlo pedido. -->
+    <div class="aj-card" style="margin-top:14px">
+      <div class="aj-card-t"><span data-t="cat.titulo">🌐 Catálogo público</span></div>
+      <p class="small" style="color:var(--muted);margin-bottom:10px"><span data-t="cat.ajuste_desc">Comparte con tus clientes los móviles que tienes a la venta. Solo se publican los artículos que marques uno a uno desde Stock.</span></p>
+      <label class="sw-row" style="display:flex;align-items:center;gap:10px;cursor:pointer">
+        <input type="checkbox" id="ajCatalogoActivo" onchange="guardarCatalogoActivo()">
+        <span data-t="cat.activar">Activar el catálogo público</span>
+      </label>
+      <button type="button" class="btn-secondary" style="width:100%;margin-top:10px" onclick="abrirLinkCatalogo()"><span data-t="cat.ver_link">🔗 Ver link público / QR</span></button>
     </div>
 
   </div><!-- /citas -->
@@ -5126,7 +5139,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260903f"></script>
+<script src="/js/dash-app.js?v=20260905a"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Catálogo</title>
+<meta name="description" content="Móviles disponibles en la tienda.">
+<!-- Página pública que la tienda comparte con sus clientes. No debe indexarse:
+     el contenido cambia cada día y una lista de stock desactualizada en Google
+     hace más daño que bien. -->
+<meta name="robots" content="noindex, nofollow">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="theme-color" content="#0B1020">
+<link rel="icon" href="/favicon.png">
+<style>
+  /* La web pública es de tema claro. Sin esto, el móvil fuerza modo oscuro y
+     ensucia los colores (mismo motivo que en la landing y el blog). */
+  :root { color-scheme: light; }
+  *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+       background:#F4F6FB;color:#0F1729;line-height:1.5;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:900px;margin:0 auto;padding:0 16px}
+
+  header{background:#0B1020;color:#fff;padding:26px 0 22px}
+  .cab{display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  .cab img{max-height:52px;max-width:150px;object-fit:contain;background:#fff;border-radius:10px;padding:5px}
+  .cab h1{font-size:22px;font-weight:800;letter-spacing:-.02em}
+  .cab .meta{font-size:13px;color:rgba(255,255,255,.72);margin-top:2px}
+  .cab .meta a{color:inherit}
+
+  .barra{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 4px}
+  .barra input,.barra select{flex:1;min-width:150px;padding:11px 13px;border:1px solid #E2E8F0;
+       border-radius:10px;font:inherit;font-size:15px;background:#fff;color:inherit}
+  .cuenta{font-size:13px;color:#64748B;margin:12px 0 14px}
+
+  .rejilla{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;padding-bottom:28px}
+  .art{background:#fff;border:1px solid #E7EAF0;border-radius:14px;padding:15px;display:flex;flex-direction:column;gap:9px}
+  .art h2{font-size:16px;font-weight:750;letter-spacing:-.01em}
+  .datos{display:flex;flex-wrap:wrap;gap:5px}
+  .dato{font-size:11.5px;background:#F1F5F9;color:#475569;padding:2px 8px;border-radius:99px;white-space:nowrap}
+  .precio{display:flex;align-items:baseline;gap:8px;margin-top:auto;padding-top:4px}
+  .precio b{font-size:21px;font-weight:800;letter-spacing:-.02em}
+  .antes{font-size:13px;color:#94A3B8;text-decoration:line-through}
+  .oferta{font-size:10.5px;font-weight:800;background:#FEF0E8;color:#C2410C;padding:2px 7px;border-radius:99px}
+  .wa{display:block;text-align:center;background:#25D366;color:#fff;text-decoration:none;
+      font-weight:700;font-size:14px;padding:10px;border-radius:10px}
+
+  .aviso{background:#fff;border:1px solid #E7EAF0;border-radius:14px;padding:34px 20px;text-align:center;color:#64748B;margin:20px 0}
+  .aviso .ic{font-size:38px;margin-bottom:8px}
+  footer{text-align:center;padding:22px 16px 34px;font-size:12px;color:#94A3B8}
+  footer a{color:#64748B}
+  @media(max-width:600px){ .rejilla{grid-template-columns:1fr 1fr;gap:9px} .art{padding:12px} .art h2{font-size:14.5px} .precio b{font-size:18px} }
+  @media(max-width:360px){ .rejilla{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap cab" id="cab"></div>
+</header>
+
+<main class="wrap">
+  <div id="filtros" hidden>
+    <div class="barra">
+      <input type="search" id="busca" placeholder="Buscar modelo…" autocomplete="off">
+      <select id="orden">
+        <option value="modelo">Ordenar: modelo</option>
+        <option value="barato">Precio: de menor a mayor</option>
+        <option value="caro">Precio: de mayor a menor</option>
+      </select>
+    </div>
+    <div class="cuenta" id="cuenta"></div>
+  </div>
+  <div id="salida"><div class="aviso"><div class="ic">⏳</div>Cargando…</div></div>
+</main>
+
+<footer>
+  <span id="pie"></span>
+</footer>
+
+<script>
+(function () {
+  'use strict';
+  var API = '/api/citas-publicas';
+  var SLUG = (new URLSearchParams(location.search)).get('slug') || '';
+
+  var TIENDA = null, ARTICULOS = [];
+
+  function esc(v) {
+    return String(v == null ? '' : v).replace(/[<>&"']/g, function (c) {
+      return { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+  function eur(n) {
+    var v = parseFloat(n);
+    if (!isFinite(v)) return '';
+    return v.toFixed(2).replace('.', ',') + ' €';
+  }
+  function aviso(icono, texto) {
+    document.getElementById('salida').innerHTML =
+      '<div class="aviso"><div class="ic">' + icono + '</div>' + esc(texto) + '</div>';
+  }
+  // wa.me quiere el número sin '+' ni separadores.
+  function waTel(t) { return String(t || '').replace(/\D/g, ''); }
+
+  function nombreArticulo(a) {
+    return [a.marca, a.modelo].filter(Boolean).join(' ') || 'Artículo';
+  }
+
+  function pintarCabecera() {
+    var partes = [TIENDA.ciudad, TIENDA.provincia].filter(Boolean).join(', ');
+    var tel = TIENDA.tel ? '<a href="tel:' + esc(TIENDA.tel) + '">' + esc(TIENDA.tel) + '</a>' : '';
+    document.getElementById('cab').innerHTML =
+      (TIENDA.logo_url ? '<img src="' + esc(TIENDA.logo_url) + '" alt="">' : '') +
+      '<div><h1>' + esc(TIENDA.nombre || 'Catálogo') + '</h1>' +
+      '<div class="meta">' + [esc(partes), tel].filter(Boolean).join(' · ') + '</div></div>';
+    document.title = (TIENDA.nombre ? TIENDA.nombre + ' — ' : '') + 'Catálogo';
+  }
+
+  function tarjeta(a) {
+    var datos = [a.capacidad, a.color, a.estado, a.calidad,
+                 a.bateria ? 'Batería ' + a.bateria + '%' : null]
+      .filter(Boolean)
+      .map(function (d) { return '<span class="dato">' + esc(d) + '</span>'; }).join('');
+
+    var oferta = a.en_oferta && parseFloat(a.precio_antes) > parseFloat(a.precio);
+    var precio = '<div class="precio"><b>' + eur(a.precio) + '</b>' +
+      (oferta ? '<span class="antes">' + eur(a.precio_antes) + '</span><span class="oferta">OFERTA</span>' : '') +
+      '</div>';
+
+    var wa = '';
+    if (TIENDA.tel) {
+      var msg = 'Hola, me interesa el ' + nombreArticulo(a) +
+        (a.capacidad ? ' de ' + a.capacidad : '') + ' que tenéis publicado.';
+      wa = '<a class="wa" target="_blank" rel="noopener noreferrer" href="https://wa.me/' +
+        waTel(TIENDA.tel) + '?text=' + encodeURIComponent(msg) + '">Preguntar por WhatsApp</a>';
+    }
+    return '<article class="art"><h2>' + esc(nombreArticulo(a)) + '</h2>' +
+      (datos ? '<div class="datos">' + datos + '</div>' : '') + precio + wa + '</article>';
+  }
+
+  function pintar() {
+    var q = (document.getElementById('busca').value || '').trim().toLowerCase();
+    var orden = document.getElementById('orden').value;
+
+    var lista = ARTICULOS.filter(function (a) {
+      if (!q) return true;
+      return (nombreArticulo(a) + ' ' + (a.capacidad || '') + ' ' + (a.color || '')).toLowerCase().indexOf(q) !== -1;
+    });
+    if (orden === 'barato') lista.sort(function (x, y) { return (+x.precio || 0) - (+y.precio || 0); });
+    else if (orden === 'caro') lista.sort(function (x, y) { return (+y.precio || 0) - (+x.precio || 0); });
+
+    document.getElementById('cuenta').textContent =
+      lista.length === 1 ? '1 artículo disponible' : lista.length + ' artículos disponibles';
+
+    document.getElementById('salida').innerHTML = lista.length
+      ? '<div class="rejilla">' + lista.map(tarjeta).join('') + '</div>'
+      : '<div class="aviso"><div class="ic">🔍</div>No hay nada que coincida con esa búsqueda.</div>';
+  }
+
+  function pie() {
+    var citas = TIENDA && TIENDA.citas_slug
+      ? ' · <a href="/citas.html?slug=' + encodeURIComponent(TIENDA.citas_slug) + '">Pedir cita</a>' : '';
+    document.getElementById('pie').innerHTML =
+      'Catálogo gestionado con <a href="https://www.tekpair.tech" target="_blank" rel="noopener">TekPair</a>' + citas;
+  }
+
+  if (!SLUG) { aviso('🔗', 'Falta el código de la tienda en el enlace.'); return; }
+
+  fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'get-catalogo', slug: SLUG })
+  })
+    .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+    .then(function (res) {
+      if (!res.ok || !res.j || !res.j.ok) {
+        aviso('🚪', 'Este catálogo no está disponible.');
+        return;
+      }
+      TIENDA = res.j.tienda || {};
+      ARTICULOS = res.j.articulos || [];
+      pintarCabecera();
+      pie();
+      if (!ARTICULOS.length) { aviso('📦', 'Ahora mismo no hay artículos publicados.'); return; }
+      document.getElementById('filtros').hidden = false;
+      document.getElementById('busca').addEventListener('input', pintar);
+      document.getElementById('orden').addEventListener('change', pintar);
+      pintar();
+    })
+    .catch(function () { aviso('⚠️', 'No se pudo cargar el catálogo. Inténtalo de nuevo.'); });
+})();
+</script>
+</body>
+</html>

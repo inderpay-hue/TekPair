@@ -3349,6 +3349,7 @@ function mapStock(s) {
     tipo: s.tipo || 'nuevo', garantiaMeses: parseInt(s.garantia_meses)||0,
     ubicacion: s.ubicacion || null,
     enOferta: !!s.en_oferta, precioAntes: parseFloat(s.precio_antes)||0,
+    enCatalogo: !!s.en_catalogo,
     bateria: (s.bateria != null && s.bateria !== '') ? parseInt(s.bateria) : null
   };
 }
@@ -12575,7 +12576,8 @@ function renderStock() {
       (mostrarUbic ? '<td>' + (s.ubicacion ? '<span class="badge" style="background:rgba(255,91,31,.10);color:var(--purple);font-size:9px">' + esc(s.ubicacion) + '</span>' : '<span style="color:var(--muted);font-size:10px">—</span>') + '</td>' : '') +
       '<td style="font-weight:700;color:' + (s.unidades < 0 ? 'var(--red)' : (s.unidades <= s.stockMin ? 'var(--orange)' : 'var(--text)')) + '">' + s.unidades + (s.unidades < 0 ? ' <button onclick="corregirStockCero(\'' + s.id + '\')" title="' + T('stock.title_poner_cero') + '" style="background:rgba(239,68,68,.12);border:none;color:var(--red);border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer;font-weight:800">→0</button>' : '') + '</td>' +
       '<td>' + ((parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '<span style="color:var(--red);font-weight:700" title="' + T('stock.title_sin_pvp') + '">⚠ ' + cur(0) + '</span>') + '</td>' +
-      '<td><button data-sid="' + s.id + '" class="row-btn btn-etq-s" title="' + T('etq.imprimir') + '" style="color:var(--purple)">' + _iv2ic('tag', 16) + '</button>' +
+      '<td><button data-sid="' + s.id + '" class="row-btn btn-cat-s" title="' + T(s.enCatalogo ? 'cat.quitar' : 'cat.publicar') + '" style="color:' + (s.enCatalogo ? 'var(--green)' : 'var(--muted)') + '">' + _iv2ic('eye', 16) + '</button>' +
+      '<button data-sid="' + s.id + '" class="row-btn btn-etq-s" title="' + T('etq.imprimir') + '" style="color:var(--purple)">' + _iv2ic('tag', 16) + '</button>' +
       '<button data-sid="' + s.id + '" class="row-btn btn-edit-s" title="' + (T('gen.editar') || 'Editar') + '" aria-label="' + (T('gen.editar') || 'Editar') + '">' + _iv2ic('pencil', 16) + '</button>' +
       '<button data-sid="' + s.id + '" class="row-btn btn-del-s" title="' + (T('gen.eliminar') || 'Eliminar') + '" aria-label="' + (T('gen.eliminar') || 'Eliminar') + '" style="color:var(--red)">' + _iv2ic('trash', 16) + '</button></td></tr>';
   });
@@ -12586,6 +12588,9 @@ function renderStock() {
   });
   el.querySelectorAll('.btn-edit-s').forEach(function(btn) {
     btn.addEventListener('click', function() { editarStock(this.dataset.sid); });
+  });
+  el.querySelectorAll('.btn-cat-s').forEach(function(btn) {
+    btn.addEventListener('click', function() { toggleCatalogo(this.dataset.sid); });
   });
   el.querySelectorAll('.btn-del-s').forEach(function(btn) {
     btn.addEventListener('click', function() { eliminarStock(this.dataset.sid); });
@@ -16921,6 +16926,11 @@ function cargarAjustes() {
   var ajIvaTiposExtraEl = document.getElementById('ajIvaTiposExtra');
   if (ajIvaTiposExtraEl) ajIvaTiposExtraEl.value = iva.tiposExtra || '21, 10, 4, 0';
   toggleIvaCfg();
+  // Catálogo público. Se lee de TIENDA y no de AJUSTES porque es una propiedad
+  // de la tienda en la nube, no una preferencia local del navegador.
+  var ajCat = document.getElementById('ajCatalogoActivo');
+  if (ajCat) ajCat.checked = !!(TIENDA && TIENDA.catalogo_activo);
+
   // Notificaciones
   var n = (AJUSTES.notif && AJUSTES.notif.activa) || {};
   document.getElementById('ajNotifVencida').checked = n.vencida !== false;
@@ -17311,6 +17321,7 @@ async function _pullTiendaCompleta() {
       plantillasRep: (t.plantillas_rep ? (typeof t.plantillas_rep === 'string' ? JSON.parse(t.plantillas_rep) : t.plantillas_rep) : null),
       logo_url: t.logo_url || '',
       citas_slug: t.citas_slug || '',
+      catalogo_activo: !!t.catalogo_activo,
       // BUG B: horarios y citas_config del servidor deben volver al panel (antes se omitían aquí y
       // al reescribir tk_tienda se perdían → el editor de citas mostraba duración/horario por
       // defecto y podía guardarlos machacando los reales). El servidor es la fuente de verdad.
@@ -21002,6 +21013,82 @@ function convertirCitaEnRep(id) {
 }
 
 // === LINK PÚBLICO + QR ===
+// ═══ CATÁLOGO PÚBLICO ═══
+//
+// Publicar o quitar un artículo del catálogo que ve el cliente. Se marca uno a
+// uno a propósito: publicar todo el stock de golpe sacaría a la calle móviles
+// reservados, en reparación o que la tienda no quiere enseñar, y eso no tiene
+// vuelta atrás una vez que alguien lo ha visto.
+function toggleCatalogo(sid) {
+  var st = (DB.stock || []).find(function (x) { return x.id === sid; });
+  if (!st) return;
+
+  // Un artículo sin precio de venta en el catálogo queda como "0,00 €", que
+  // espanta al cliente y hace quedar mal a la tienda.
+  if (!st.enCatalogo && !(parseFloat(st.precioV) > 0)) {
+    toast(T('cat.sin_precio'), 'err');
+    return;
+  }
+
+  st.enCatalogo = !st.enCatalogo;
+  guardar();
+  renderStock();
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('stock', 'id=eq.' + encodeURIComponent(st.id), { en_catalogo: st.enCatalogo });
+  }
+  audit(st.enCatalogo ? 'crear' : 'borrar', 'stock', st.id,
+    T(st.enCatalogo ? 'cat.publicado' : 'cat.quitado') + ' · ' + ((st.marca || '') + ' ' + (st.modelo || '')).trim(), null);
+  toast(T(st.enCatalogo ? 'cat.publicado' : 'cat.quitado'), 'ok');
+}
+
+// Interruptor general del catálogo. Apagarlo deja el enlace público en 404 sin
+// tener que desmarcar los artículos uno a uno.
+function guardarCatalogoActivo() {
+  var chk = document.getElementById('ajCatalogoActivo');
+  if (!chk) return;
+  var activo = !!chk.checked;
+  if (TIENDA) TIENDA.catalogo_activo = activo;
+  if (SB_KEY && TIENDA_ID) {
+    sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { catalogo_activo: activo });
+  }
+  guardar();
+  toast(T(activo ? 'cat.activado' : 'cat.desactivado'), 'ok');
+}
+
+// Enlace y QR del catálogo, para compartir por WhatsApp o imprimir en el mostrador.
+function abrirLinkCatalogo() {
+  var slug = (TIENDA && TIENDA.citas_slug) || '';
+  if (!slug) { toast(T('cita.sin_codigo'), 'err'); return; }
+
+  var n = (DB.stock || []).filter(function (s) { return s.enCatalogo && s.unidades > 0; }).length;
+  var url = location.protocol + '//' + location.host + '/catalogo.html?slug=' + encodeURIComponent(slug);
+
+  var m = _modalOverlay(
+    '<h3 style="margin:0 0 4px;font-size:17px;font-weight:800">' + T('cat.titulo') + '</h3>' +
+    '<p style="font-size:13px;color:var(--muted);margin:0 0 14px">' + T('cat.compartir_desc') + '</p>' +
+    (n === 0
+      ? '<div style="background:rgba(234,88,12,.10);border-left:3px solid var(--orange);padding:11px 13px;border-radius:0 8px 8px 0;font-size:13px;margin-bottom:14px">' +
+        T('cat.vacio_aviso') + '</div>'
+      : '<div style="font-size:13px;margin-bottom:12px">' + T('cat.n_publicados').replace('{n}', n) + '</div>') +
+    '<input id="_catUrl" readonly value="' + escHtml(url) + '" style="width:100%;padding:10px 12px;border:1px solid var(--border,#E2E8F0);border-radius:9px;font:inherit;font-size:13px;background:var(--bg-2,#F8FAFC);color:var(--text,#0F1729)">' +
+    '<div style="text-align:center;margin:14px 0"><img alt="QR" style="width:180px;height:180px;border-radius:10px" src="https://api.qrserver.com/v1/create-qr-code/?size=300x300&margin=10&data=' + encodeURIComponent(url) + '"></div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap">' +
+    '<button id="_catCopiar" style="flex:1;min-width:120px;padding:10px 14px;border:none;background:var(--blue,#2563eb);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + T('cita.copiar') + '</button>' +
+    '<button id="_catAbrir" style="flex:1;min-width:110px;padding:10px 14px;border:1px solid var(--border,#E2E8F0);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + T('gen.abrir') + '</button>' +
+    '<button id="_catCerrar" style="flex:0 0 auto;padding:10px 16px;border:1px solid var(--border,#E2E8F0);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + T('gen.cerrar') + '</button>' +
+    '</div>'
+  );
+  m.box.style.maxWidth = '420px';
+  m.box.querySelector('#_catCopiar').addEventListener('click', function () {
+    var i = m.box.querySelector('#_catUrl');
+    i.select(); i.setSelectionRange(0, 99999);
+    try { document.execCommand('copy'); toast(T('cita.copiado'), 'ok'); } catch (e) {}
+  });
+  m.box.querySelector('#_catAbrir').addEventListener('click', function () { window.open(url, '_blank', 'noopener'); });
+  m.box.querySelector('#_catCerrar').addEventListener('click', m.close);
+  m.bg.addEventListener('click', function (e) { if (e.target === m.bg) m.close(); });
+}
+
 function abrirLinkCitas() {
   // Usar slug en lugar de tienda_id directo (fix bug #15 - evita exponer UUID interno)
   var slug = TIENDA.citas_slug || '';

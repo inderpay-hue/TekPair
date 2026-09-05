@@ -12,6 +12,9 @@
 //   - 'pres-generar-token' : genera token único para link público (auth JWT)
 //   - 'pres-get'           : devuelve datos del presupuesto por token (público)
 //   - 'pres-aceptar'       : cliente acepta + firma opcional (público)
+//
+// Acción catálogo:
+//   - 'get-catalogo'       : stock marcado en_catalogo de una tienda, por slug
 // =====================================================
 
 import jwt from 'jsonwebtoken';
@@ -162,6 +165,54 @@ async function getTienda(slug) {
   try { rows = await sbGet(q); } catch(e) { console.error('getTienda:', e); return { ok:false, error:'Error al cargar tienda', status:500 }; }
   if (!rows?.length) return { ok:false, error:'Tienda no encontrada', status:404 };
   return { ok:true, tienda:rows[0] };
+}
+
+// Catálogo público de la tienda: solo lo que el taller ha marcado a mano.
+//
+// Se devuelven ÚNICAMENTE campos que el cliente puede ver. Nada de precio de
+// coste, proveedor ni IMEI: el IMEI identifica un aparato concreto y publicarlo
+// permitiría cruzarlo con bases de datos de terminales robados o suplantar la
+// procedencia. El precio que sale es el de venta.
+async function getCatalogo(slug) {
+  const t = await getTienda(slug);
+  if (!t.ok) return t;
+
+  // El interruptor de la tienda manda sobre las marcas de cada artículo: si el
+  // catálogo está apagado, el enlace no existe aunque haya cosas marcadas.
+  //
+  // Se consulta APARTE y no dentro de getTienda: esa función la usan todas las
+  // acciones públicas de citas, y pedirle una columna que aún no exista (SQL sin
+  // correr) devolvería error y tumbaría también la página de citas. Aquí, si la
+  // consulta falla, se toma como apagado y solo deja de responder el catálogo.
+  let activo = false;
+  try {
+    const cfg = await sbGet(`tiendas?id=eq.${encodeURIComponent(t.tienda.id)}&select=catalogo_activo&limit=1`);
+    activo = !!(cfg && cfg[0] && cfg[0].catalogo_activo);
+  } catch (e) {
+    console.warn('getCatalogo: falta la columna catalogo_activo (¿sql/catalogo-publico.sql sin correr?)');
+    return { ok: false, error: 'Catálogo no disponible', status: 404 };
+  }
+  if (!activo) return { ok: false, error: 'Catálogo no disponible', status: 404 };
+
+  let rows;
+  try {
+    rows = await sbGet(
+      `stock?tienda_id=eq.${encodeURIComponent(t.tienda.id)}&en_catalogo=eq.true&unidades=gt.0` +
+      `&select=id,marca,modelo,capacidad,color,estado,calidad,bateria,precio,en_oferta,precio_antes,categoria` +
+      `&order=marca.asc,modelo.asc`
+    );
+  } catch (e) {
+    console.error('getCatalogo:', e);
+    return { ok: false, error: 'Catálogo no disponible', status: 404 };
+  }
+
+  const tienda = {
+    nombre: t.tienda.nombre, logo_url: t.tienda.logo_url,
+    ciudad: t.tienda.ciudad, provincia: t.tienda.provincia,
+    dir: t.tienda.dir, tel: t.tienda.tel,
+    horarios: t.tienda.horarios, citas_slug: t.tienda.citas_slug,
+  };
+  return { ok: true, tienda, articulos: rows || [] };
 }
 
 async function getServicios(slug) {
@@ -565,6 +616,7 @@ export default async function handler(req, res) {
       case 'pres-get':        result = await presGet(body.token); break;
       case 'pres-aceptar':    result = await presAceptar(body, ip); break;
       case 'pres-rechazar':   result = await presRechazar(body, ip); break;
+      case 'get-catalogo':    result = await getCatalogo(body.slug); break;
       default: result = { ok:false, error:'Acción no reconocida', status:400 };
     }
   } catch(e) {
