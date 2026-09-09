@@ -56,25 +56,25 @@ export default async function handler(req, res) {
     //     Útil si en el futuro pre-creas la tienda antes del Checkout y pasas
     //     tienda_id en checkout.session.metadata.tienda_id.
     if (metadataTiendaId) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(metadataTiendaId)}&select=id,plan_email,plan&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(metadataTiendaId)}&select=id,plan_email,plan,plan_until&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
     }
     // 2. Por stripe_sub_id (lo más fiable si ya está vinculado)
     if (subId) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_sub_id=eq.${encodeURIComponent(subId)}&select=id,plan_email,plan&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_sub_id=eq.${encodeURIComponent(subId)}&select=id,plan_email,plan,plan_until&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
     }
     // 3. Por stripe_customer_id
     if (customerId) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_customer_id=eq.${encodeURIComponent(customerId)}&select=id,plan_email,plan&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_customer_id=eq.${encodeURIComponent(customerId)}&select=id,plan_email,plan,plan_until&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
     }
     // 4. Por plan_email (fallback inicial cuando aún no se ha vinculado)
     if (email) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?plan_email=eq.${encodeURIComponent(email)}&select=id,plan_email,plan&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?plan_email=eq.${encodeURIComponent(email)}&select=id,plan_email,plan,plan_until&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
       // Fallback: buscar usuario admin por email y obtener su tienda
@@ -85,6 +85,31 @@ export default async function handler(req, res) {
       }
     }
     return null;
+  }
+
+  // ═══ Helper: fin del periodo facturado de una suscripción ═══
+  // En la API nueva de Stripe `current_period_end` se movió del objeto suscripción
+  // AL ITEM (sub.items.data[0]). Leyendo solo el de arriba se obtiene undefined en
+  // cuentas ya migradas, y eso es lo que vaciaba plan_until: se escribía null encima
+  // de la fecha buena y el impagado se quedaba sin sus días de gracia.
+  // Se miran los dos sitios para funcionar con las dos versiones de la API.
+  function finPeriodo(sub) {
+    const seg = sub?.items?.data?.[0]?.current_period_end || sub?.current_period_end;
+    return seg ? new Date(seg * 1000).toISOString() : null;
+  }
+
+  // Marca/limpia el día del impago. Va en su propio PATCH y se traga el error a
+  // propósito: si la columna todavía no existe (sql/impago-gracia.sql sin correr),
+  // un fallo aquí NO debe impedir que se guarde el plan_status de arriba, que es
+  // lo que de verdad corta o abre el acceso.
+  async function marcarImpago(tiendaId, valor) {
+    try {
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tiendaId)}`, {
+        method: 'PATCH', headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+        body: JSON.stringify({impago_desde: valor})
+      });
+      if (!r.ok) console.warn('marcarImpago: no se pudo escribir impago_desde (¿falta sql/impago-gracia.sql?)', r.status);
+    } catch (e) { console.warn('marcarImpago:', e.message); }
   }
 
   // ═══ Helper: actualizar tienda ═══
@@ -149,7 +174,7 @@ export default async function handler(req, res) {
         });
         const sub = await subR.json();
         if (sub.trial_end) trialUntil = new Date(sub.trial_end * 1000).toISOString();
-        if (sub.current_period_end) planUntil = new Date(sub.current_period_end * 1000).toISOString();
+        planUntil = finPeriodo(sub);
       } catch(e){ console.warn('No se pudo leer sub para trial:', e.message); }
     }
     if (!trialUntil) trialUntil = new Date(Date.now() + 15*86400000).toISOString();
@@ -351,7 +376,7 @@ export default async function handler(req, res) {
         const status = sub.status; // active, trialing, past_due, canceled, etc.
         const priceId = sub.items?.data?.[0]?.price?.id;
         const plan = PRICE_TO_PLAN[priceId] || null;
-        const planUntil = sub.current_period_end ? new Date(sub.current_period_end * 1000).toISOString() : null;
+        const planUntil = finPeriodo(sub);
         const trialUntil = sub.trial_end ? new Date(sub.trial_end * 1000).toISOString() : null;
 
         // Mapear estado de Stripe a nuestro modelo
@@ -368,11 +393,15 @@ export default async function handler(req, res) {
         if (tienda) {
           const update = {
             plan_status: planStatus,
-            plan_until: planUntil,
-            trial_until: trialUntil,
             stripe_sub_id: subId,
             stripe_customer_id: customerId
           };
+          // Las fechas solo se tocan si Stripe manda una: escribir null encima borraba
+          // la fecha buena y dejaba a un cliente que llevaba meses pagando sin los 7
+          // días de gracia al primer recibo devuelto (evaluarAcceso las usa de referencia).
+          if (planUntil) update.plan_until = planUntil;
+          else console.warn('Sub sin fecha de fin de periodo, se conserva plan_until:', subId);
+          if (trialUntil) update.trial_until = trialUntil;
           if (plan) update.plan = plan;
           await updateTienda(tienda.id, update);
           console.log('Sub actualizada:', tienda.id, planStatus, plan);
@@ -394,14 +423,17 @@ export default async function handler(req, res) {
           // Stripe envía este evento cuando termina la gracia, pero por si llega antes
           // (cancelación inmediata) usamos current_period_end si existe.
           // Antes: plan_until = new Date().toISOString() → acceso cortado al instante
-          const finPeriodo = sub.current_period_end
-            ? new Date(sub.current_period_end * 1000).toISOString()
-            : new Date().toISOString();
+          // Si Stripe no manda la fecha, antes se ponía "ahora" y el acceso se cortaba
+          // en seco aunque el mes estuviera pagado. Ahora se conserva la que ya tenía
+          // la tienda mientras siga en el futuro.
+          const yaTenia = tienda.plan_until && new Date(tienda.plan_until) > new Date()
+            ? new Date(tienda.plan_until).toISOString() : null;
+          const hasta = finPeriodo(sub) || yaTenia || new Date().toISOString();
           await updateTienda(tienda.id, {
             plan_status: 'cancelled',
-            plan_until: finPeriodo
+            plan_until: hasta
           });
-          console.log('Sub cancelada:', tienda.id, 'acceso hasta:', finPeriodo);
+          console.log('Sub cancelada:', tienda.id, 'acceso hasta:', hasta);
 
           // Email de cancelación
           if (tienda.plan_email) {
@@ -437,6 +469,7 @@ export default async function handler(req, res) {
           const update = {plan_status: 'active'};
           if (periodEnd) update.plan_until = new Date(periodEnd * 1000).toISOString();
           await updateTienda(tienda.id, update);
+          await marcarImpago(tienda.id, null);
           console.log('Pago OK:', tienda.id);
 
           // ═══ REFERIDOS ENTRE TIENDAS (Fase 2): premio al PRIMER pago real de la invitada ═══
@@ -574,6 +607,10 @@ export default async function handler(req, res) {
         const tienda = await findTienda({customerId, subId, email});
         if (tienda) {
           await updateTienda(tienda.id, {plan_status: 'past_due'});
+          // El día del PRIMER recibo devuelto es la referencia honesta para contar la
+          // gracia. Solo se escribe en el primer intento: Stripe reintenta varias veces
+          // y reescribirlo alargaría el plazo en cada reintento.
+          if (attemptCount <= 1) await marcarImpago(tienda.id, new Date().toISOString());
           console.log('Pago fallido:', tienda.id, 'intento', attemptCount);
         }
 

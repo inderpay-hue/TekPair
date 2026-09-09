@@ -65,11 +65,12 @@ export function evaluarAcceso(t, now) {
   }
 
   if (st === 'past_due') {
-    // El cobro ha fallado. La referencia es el día en que le tocaba pagar: el fin del
-    // periodo ya abonado y, si nunca llegó a pagar (falla el primer cobro al acabar la
-    // prueba), el fin del trial. Antes solo se miraba plan_until, que en ese caso está
-    // a NULL, así que un impagado conservaba el acceso indefinidamente.
-    const desde = planUntil || trialUntil;
+    // El cobro ha fallado. La referencia buena es `impago_desde`: el día exacto en que
+    // Stripe avisó del primer recibo devuelto, que escribe el webhook. Antes se deducía
+    // de plan_until y, cuando esa fecha venía vacía, se caía al fin del trial —que puede
+    // ser de hace meses— y el cliente quedaba cortado el mismo día del fallo, sin gracia.
+    // Se conservan los dos respaldos para las tiendas que fallaron antes de esta columna.
+    const desde = fecha(t.impago_desde) || planUntil || trialUntil;
     if (desde && (now - desde) > DIAS_GRACIA_IMPAGO * 86400000) {
       return {
         permitido: false, motivo: 'impago',

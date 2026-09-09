@@ -117,19 +117,28 @@ export default async function handler(req, res) {
         }
         // Fallback adicional: customer_email del Checkout si el metadata no lo tenía
         if (!email && session.customer_email) email = session.customer_email;
+        // En la API nueva de Stripe el fin de periodo vive en el ITEM, no en la
+        // suscripción; mirando solo arriba se guardaba null y la tienda nacía sin
+        // fecha de próximo cobro. Se leen los dos sitios.
+        const _finPeriodo = (sub) => {
+          const seg = sub?.items?.data?.[0]?.current_period_end || sub?.current_period_end;
+          return seg ? new Date(seg * 1000).toISOString() : null;
+        };
         if (session.subscription) {
+          let subObj = null;
           if (typeof session.subscription === 'string') {
             stripeSubId = session.subscription;
             const subR = await fetch(`https://api.stripe.com/v1/subscriptions/${stripeSubId}`, {
               headers: {'Authorization': `Bearer ${STRIPE_KEY}`}
             });
-            const sub = await subR.json();
-            if (sub.trial_end) trialUntil = new Date(sub.trial_end * 1000).toISOString();
-            if (sub.current_period_end) planUntil = new Date(sub.current_period_end * 1000).toISOString();
+            subObj = await subR.json();
           } else {
             stripeSubId = session.subscription.id;
-            if (session.subscription.trial_end) trialUntil = new Date(session.subscription.trial_end * 1000).toISOString();
-            if (session.subscription.current_period_end) planUntil = new Date(session.subscription.current_period_end * 1000).toISOString();
+            subObj = session.subscription;
+          }
+          if (subObj) {
+            if (subObj.trial_end) trialUntil = new Date(subObj.trial_end * 1000).toISOString();
+            planUntil = _finPeriodo(subObj) || planUntil;
           }
         }
       } catch(e) { console.warn('No se pudo recuperar info de Stripe:', e.message); }
