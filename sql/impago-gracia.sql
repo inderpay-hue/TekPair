@@ -24,6 +24,13 @@ comment on column tiendas.impago_desde is 'Fecha del primer recibo devuelto. Ref
 
 
 -- 2. Las dos tiendas que ya estaban en impago -------------------------------
+-- YA EJECUTADO el 10-sep-2026. Se deja como registro. Volver a correrlo es
+-- inofensivo: los dos guardas (plan_status = 'past_due' y impago_desde is null)
+-- ya no casan con nadie.
+--
+-- Como acabo: aleem pago y volvio a 'active' (plan hasta el 4-oct, impago_desde
+-- limpio). ZONA MOBIL agoto los reintentos de Stripe y quedo 'cancelled' sin
+-- acceso, que es lo correcto: nunca llego a pagar.
 -- NO se rellenan con una regla generica: los dos casos son distintos y una misma
 -- formula acierta en uno y se equivoca en el otro.
 --
