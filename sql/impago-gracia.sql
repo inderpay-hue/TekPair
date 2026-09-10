@@ -40,12 +40,21 @@ comment on column tiendas.impago_desde is 'Fecha del primer recibo devuelto. Ref
 -- Se identifican por stripe_sub_id, que no cambia (el nombre o el email si).
 -- El "and impago_desde is null" hace que repetir el script no reabra el plazo.
 
-update tiendas set impago_desde = '2026-09-04T00:00:00Z'
- where stripe_sub_id = 'sub_1Tk5PeKE1FTbu0p7qC8k2iAz'   -- aleem ullah
+-- Se identifican por el PREFIJO del stripe_sub_id (unico entre las 3 subs que
+-- hay) y no por el id completo: pegado en el editor, el literal largo se partia
+-- a mitad de comilla y daba error de sintaxis. El plan_status = 'past_due' es un
+-- seguro extra para no tocar a nadie mas.
+
+update tiendas
+   set impago_desde = '2026-09-04T00:00:00Z'      -- aleem ullah
+ where plan_status = 'past_due'
+   and stripe_sub_id like 'sub_1Tk5%'
    and impago_desde is null;
 
-update tiendas set impago_desde = '2026-08-27T08:50:00Z'
- where stripe_sub_id = 'sub_1U3Xy0KE1FTbu0p7uSeNe16V'   -- ZONA MOBIL
+update tiendas
+   set impago_desde = '2026-08-27T08:50:00Z'      -- ZONA MOBIL
+ where plan_status = 'past_due'
+   and stripe_sub_id like 'sub_1U3X%'
    and impago_desde is null;
 
 
