@@ -43,7 +43,16 @@
   // ── Wrapper API ──────────────────────────────────
   async function api(action, opts = {}) {
     const { method = 'GET', body = null, query = {} } = opts;
-    const qs = new URLSearchParams({ action, ...query }).toString();
+    // URLSearchParams convierte undefined/null en la CADENA "undefined", que
+    // llegaba al servidor como si fuera un id de verdad, entraba en la consulta
+    // y Postgres devolvia "invalid input syntax for type uuid" -> error 500.
+    // Se descartan aqui: un parametro ausente debe ser eso, ausente.
+    const limpia = {};
+    for (const k in query) {
+      const v = query[k];
+      if (v !== undefined && v !== null && v !== '' && v !== 'undefined' && v !== 'null') limpia[k] = v;
+    }
+    const qs = new URLSearchParams({ action, ...limpia }).toString();
     const url = `/api/cajas?${qs}`;
     const res = await fetch(url, {
       method,
@@ -1376,9 +1385,14 @@
     Estado.tabActiva = tab;
     $('tab-cajas-dia').classList.toggle('cajas-tab-activa', tab === 'dia');
     $('tab-cobros').classList.toggle('cajas-tab-activa', tab === 'cobros');
+    const tCua = $('tab-cuadre');
+    if (tCua) tCua.classList.toggle('cajas-tab-activa', tab === 'cuadre');
     $('vista-cajas-dia').style.display = tab === 'dia' ? 'block' : 'none';
     $('vista-cobros-pendientes').style.display = tab === 'cobros' ? 'block' : 'none';
+    const vCua = $('vista-cuadre');
+    if (vCua) vCua.style.display = tab === 'cuadre' ? 'block' : 'none';
     if (tab === 'cobros') cargarCobros();
+    if (tab === 'cuadre') abrirCuadre();
   }
 
   function cambiarSubTab(sub) {
@@ -2000,6 +2014,267 @@
     } catch (e) { toast((e && e.message) || 'Error al cerrar', 'error'); }
   }
 
+
+  // ═══════════════════════════════════════════════════════════════════════
+  // CUADRE DEL PERIODO (solo admin)
+  // Compara lo que dice el sistema del proveedor con lo que tiene TekPair.
+  // ═══════════════════════════════════════════════════════════════════════
+
+  const Cuadre = { datos: null, cajas: [] };
+
+  function escCu(v) {
+    return String(v == null ? '' : v).replace(/[<>&"']/g, function (c) {
+      return { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c];
+    });
+  }
+
+  // Fecha local en ISO. new Date().toISOString() da UTC y a partir de medianoche
+  // devolveria el dia siguiente para una tienda en Espana.
+  function hoyLocalISO() {
+    const d = new Date();
+    const p = (x) => String(x).padStart(2, '0');
+    return d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+  }
+
+  function rangoCuadre(cual) {
+    const hoy = new Date();
+    const p = (x) => String(x).padStart(2, '0');
+    const iso = (d) => d.getFullYear() + '-' + p(d.getMonth() + 1) + '-' + p(d.getDate());
+    let desde, hasta;
+    if (cual === 'este_mes') {
+      desde = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+      hasta = hoy;
+    } else if (cual === 'mes_pasado') {
+      desde = new Date(hoy.getFullYear(), hoy.getMonth() - 1, 1);
+      hasta = new Date(hoy.getFullYear(), hoy.getMonth(), 0);
+    } else {
+      // Semanas de lunes a domingo, que es como cierra una tienda.
+      const dow = (hoy.getDay() + 6) % 7;
+      const lunes = new Date(hoy); lunes.setDate(hoy.getDate() - dow);
+      if (cual === 'esta_semana') { desde = lunes; hasta = hoy; }
+      else {
+        desde = new Date(lunes); desde.setDate(lunes.getDate() - 7);
+        hasta = new Date(lunes); hasta.setDate(lunes.getDate() - 1);
+      }
+    }
+    $('cuadre-desde').value = iso(desde);
+    $('cuadre-hasta').value = iso(hasta);
+    cargarCuadre();
+  }
+
+  async function abrirCuadre() {
+    if (!esAdminTienda()) return;
+    const sel = $('cuadre-caja');
+    if (sel && !sel.options.length) {
+      try {
+        const r = await api('listar_cajas', { query: {} });
+        Cuadre.cajas = (r.cajas || []).filter(c => c.tipo === 'envios' || c.tipo === 'recargas');
+        if (!Cuadre.cajas.length) {
+          $('cuadre-resultado').innerHTML = '<p style="color:var(--muted);padding:10px 0;">' + T('cajas.cuadre_sin_cajas') + '</p>';
+          return;
+        }
+        sel.innerHTML = Cuadre.cajas.map(c => '<option value="' + escCu(c.id) + '">' + escCu(c.nombre) + '</option>').join('');
+      } catch (e) { toast(e.message, 'error'); return; }
+      if (!$('cuadre-desde').value) rangoCuadre('mes_pasado');
+    }
+    cargarHistorialCuadres();
+  }
+
+  async function cargarCuadre() {
+    const caja_id = $('cuadre-caja').value;
+    const desde = $('cuadre-desde').value;
+    const hasta = $('cuadre-hasta').value;
+    if (!caja_id || !desde || !hasta) return;
+    if (desde > hasta) { toast(T('cajas.rango_invertido'), 'error'); return; }
+    $('cuadre-resultado').innerHTML = '<p style="color:var(--muted);padding:10px 0;">' + T('cajas.calculando') + '</p>';
+    try {
+      const r = await api('cuadre_preview', { query: { caja_id, desde, hasta } });
+      Cuadre.datos = r;
+      // Si ya se cuadro antes ese rango, se recuperan los importes tecleados
+      // para no obligar a escribirlos otra vez.
+      let previo = null;
+      try {
+        const h = await api('listar_cuadres', { query: {} });
+        const enc = (h.cuadres || []).find(c => String(c.caja_id) === String(caja_id) && c.desde === desde && c.hasta === hasta);
+        if (enc) previo = await api('obtener_cuadre', { query: { id: enc.id } });
+      } catch (e) { /* si falla, se pinta en blanco */ }
+      pintarCuadre(previo);
+    } catch (e) {
+      $('cuadre-resultado').innerHTML = '<p class="cuadre-mal" style="padding:10px 0;">' + escCu(e.message) + '</p>';
+    }
+  }
+
+  function pintarCuadre(previo) {
+    const d = Cuadre.datos;
+    if (!d) return;
+    const cuadre = previo && previo.cuadre;
+    const lineasPrev = {};
+    if (previo) for (const l of (previo.lineas || [])) lineasPrev[String(l.compania_id)] = l;
+    const cerrado = cuadre && cuadre.estado === 'cerrado';
+
+    // El aviso de dias en borrador va ARRIBA y siempre: sin el, un descuadre por
+    // dias sin cerrar parece un descuadre de verdad y nadie vuelve a mirarlo.
+    let cabecera = '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);padding:4px 0 10px;">'
+      + '<span>' + T('cajas.dias_cerrados') + ': <b style="color:var(--text)">' + d.dias_cerrados + '</b></span>'
+      + '<span>' + T('cajas.total_tekpair') + ': <b style="color:var(--text)">' + eur(d.total_tekpair) + '</b></span>'
+      + '</div>';
+    if (d.dias_borrador > 0) {
+      cabecera += '<div style="padding:9px 11px;border-radius:8px;background:#FFF7ED;border:1px solid #FDBA74;color:#7C2D12;font-size:13px;margin-bottom:10px;">'
+        + '&#9888;&#65039; ' + T('cajas.dias_en_borrador').replace('{n}', d.dias_borrador) + '</div>';
+    }
+
+    const filas = d.companias.map(function (c) {
+      const prev = lineasPrev[String(c.compania_id)];
+      const val = prev && prev.total_externo != null ? prev.total_externo : '';
+      return '<tr data-comp="' + escCu(c.compania_id) + '">'
+        + '<td>' + escCu(c.nombre) + '</td>'
+        + '<td class="num" data-tek="' + c.total_tekpair + '">' + eur(c.total_tekpair) + '</td>'
+        + '<td class="num"><input type="number" step="0.01" class="cajas-input cuadre-ext" style="width:110px;text-align:right;" value="' + val + '" ' + (cerrado ? 'disabled' : '') + ' oninput="Cajas.recalcularCuadre()"></td>'
+        + '<td class="num cuadre-dif">&mdash;</td></tr>';
+    }).join('');
+
+    const pie = cerrado
+      ? '<span class="cuadre-ok">&#10003; ' + T('cajas.cuadre_cerrado') + '</span>'
+        + '<button class="cajas-btn cajas-btn-sec" onclick="Cajas.borrarCuadre(\'' + escCu(cuadre.id) + '\')">' + T('cajas.rehacer') + '</button>'
+      : '<button class="cajas-btn cajas-btn-sec" onclick="Cajas.guardarCuadre(false)">' + T('cajas.guardar_borrador') + '</button>'
+        + '<button class="cajas-btn cajas-btn-verde" onclick="Cajas.guardarCuadre(true)">' + T('cajas.firmar_cuadre') + '</button>';
+
+    $('cuadre-resultado').innerHTML = cabecera
+      + '<table class="cuadre-tabla"><thead><tr>'
+      + '<th>' + T('cajas.compania') + '</th>'
+      + '<th class="num">' + T('cajas.segun_tekpair') + '</th>'
+      + '<th class="num">' + T('cajas.segun_proveedor') + '</th>'
+      + '<th class="num">' + T('cajas.diferencia') + '</th>'
+      + '</tr></thead><tbody>'
+      + (filas || '<tr><td colspan="4" style="color:var(--muted);">' + T('cajas.sin_movimientos') + '</td></tr>')
+      + '</tbody><tfoot><tr style="font-weight:700;">'
+      + '<td>' + T('cajas.total') + '</td>'
+      + '<td class="num" id="cuadre-tot-tek">' + eur(d.total_tekpair) + '</td>'
+      + '<td class="num" id="cuadre-tot-ext">&mdash;</td>'
+      + '<td class="num" id="cuadre-tot-dif">&mdash;</td>'
+      + '</tr></tfoot></table>'
+      + '<div style="margin-top:10px;"><label style="display:block;font-size:12px;color:var(--muted);margin-bottom:3px;">'
+      + T('cajas.cuadre_nota') + '</label>'
+      + '<textarea id="cuadre-nota" rows="2" class="cajas-input" style="width:100%;resize:vertical;" placeholder="'
+      + T('cajas.cuadre_nota_ph') + '" ' + (cerrado ? 'disabled' : '') + '>' + escCu((cuadre && cuadre.nota) || '') + '</textarea></div>'
+      + '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px;align-items:center;">' + pie + '</div>';
+    recalcularCuadre();
+  }
+
+  function recalcularCuadre() {
+    const filas = document.querySelectorAll('#cuadre-resultado tbody tr[data-comp]');
+    let totExt = 0, hayAlguno = false;
+    filas.forEach(function (tr) {
+      const tek = Number(tr.querySelector('td[data-tek]').dataset.tek || 0);
+      const raw = tr.querySelector('.cuadre-ext').value;
+      const celda = tr.querySelector('.cuadre-dif');
+      if (raw === '' || raw == null) { celda.innerHTML = '&mdash;'; celda.className = 'num cuadre-dif'; return; }
+      hayAlguno = true;
+      const ext = Number(raw) || 0;
+      totExt += ext;
+      const dif = Math.round((ext - tek) * 100) / 100;
+      celda.textContent = (dif > 0 ? '+' : '') + eur(dif);
+      celda.className = 'num cuadre-dif ' + (Math.abs(dif) <= 0.5 ? 'cuadre-ok' : 'cuadre-mal');
+    });
+    const d = Cuadre.datos || { total_tekpair: 0 };
+    const cExt = $('cuadre-tot-ext'), cDif = $('cuadre-tot-dif');
+    if (!cExt || !cDif) return;
+    if (!hayAlguno) { cExt.innerHTML = '&mdash;'; cDif.innerHTML = '&mdash;'; cDif.className = 'num'; return; }
+    const dif = Math.round((totExt - d.total_tekpair) * 100) / 100;
+    cExt.textContent = eur(totExt);
+    cDif.textContent = (dif > 0 ? '+' : '') + eur(dif);
+    cDif.className = 'num ' + (Math.abs(dif) <= 0.5 ? 'cuadre-ok' : 'cuadre-mal');
+  }
+
+  async function guardarCuadre(firmar) {
+    const lineas = [];
+    document.querySelectorAll('#cuadre-resultado tbody tr[data-comp]').forEach(function (tr) {
+      const v = tr.querySelector('.cuadre-ext').value;
+      if (v !== '' && v != null) lineas.push({ compania_id: tr.dataset.comp, total_externo: Number(v) });
+    });
+    if (!lineas.length) { toast(T('cajas.cuadre_sin_datos'), 'error'); return; }
+    try {
+      const r = await api('guardar_cuadre', {
+        method: 'POST',
+        body: {
+          caja_id: $('cuadre-caja').value,
+          desde: $('cuadre-desde').value,
+          hasta: $('cuadre-hasta').value,
+          lineas,
+          nota: ($('cuadre-nota') || {}).value || '',
+          estado: firmar ? 'cerrado' : 'borrador'
+        }
+      });
+      const cuadra = Math.abs(r.diferencia) <= 0.5;
+      toast(cuadra ? T('cajas.cuadre_ok') : T('cajas.cuadre_con_dif'), cuadra ? 'ok' : 'info');
+      await cargarCuadre();
+      await cargarHistorialCuadres();
+      await cargarPendientesCuadre();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function borrarCuadre(id) {
+    if (!confirm(T('cajas.rehacer_confirm'))) return;
+    try {
+      await api('borrar_cuadre', { method: 'POST', body: { id } });
+      await cargarCuadre();
+      await cargarHistorialCuadres();
+      await cargarPendientesCuadre();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function cargarHistorialCuadres() {
+    try {
+      const r = await api('listar_cuadres', { query: {} });
+      const cs = r.cuadres || [];
+      const nombre = (id) => (Cuadre.cajas.find(c => String(c.id) === String(id)) || {}).nombre || '—';
+      if (!cs.length) {
+        $('cuadre-historial').innerHTML = '<p style="color:var(--muted);padding:8px 0;">' + T('cajas.sin_cuadres') + '</p>';
+        return;
+      }
+      $('cuadre-historial').innerHTML = '<table class="cuadre-tabla"><thead><tr>'
+        + '<th>' + T('cajas.periodo') + '</th><th>' + T('cajas.caja') + '</th>'
+        + '<th class="num">' + T('cajas.segun_tekpair') + '</th>'
+        + '<th class="num">' + T('cajas.segun_proveedor') + '</th>'
+        + '<th class="num">' + T('cajas.diferencia') + '</th>'
+        + '<th>' + T('cajas.nota') + '</th></tr></thead><tbody>'
+        + cs.map(function (c) {
+            const dif = Number(c.diferencia || 0);
+            const cls = Math.abs(dif) <= 0.5 ? 'cuadre-ok' : 'cuadre-mal';
+            const borr = c.estado === 'borrador'
+              ? ' <span style="font-size:11px;color:var(--muted);">(' + T('cajas.borrador') + ')</span>' : '';
+            return '<tr><td>' + escCu(c.desde) + ' &rarr; ' + escCu(c.hasta) + borr + '</td>'
+              + '<td>' + escCu(nombre(c.caja_id)) + '</td>'
+              + '<td class="num">' + eur(c.total_tekpair) + '</td>'
+              + '<td class="num">' + (c.total_externo == null ? '&mdash;' : eur(c.total_externo)) + '</td>'
+              + '<td class="num ' + cls + '">' + (dif > 0 ? '+' : '') + eur(dif) + '</td>'
+              + '<td style="font-size:12.5px;color:var(--muted);">' + escCu(c.nota || '') + '</td></tr>';
+          }).join('')
+        + '</tbody></table>';
+    } catch (e) { /* el historial es accesorio: no romper la pantalla */ }
+  }
+
+  // Aviso de meses terminados sin cuadrar. No bloquea nada.
+  async function cargarPendientesCuadre() {
+    if (!esAdminTienda()) return;
+    try {
+      const r = await api('cuadres_pendientes', { query: { hoy: hoyLocalISO() } });
+      const p = r.pendientes || [];
+      const tab = $('tab-cuadre');
+      if (tab) tab.style.display = '';
+      const badge = $('badge-cuadre');
+      if (badge) { badge.textContent = p.length; badge.style.display = p.length ? '' : 'none'; }
+      const aviso = $('cuadre-aviso');
+      if (!aviso) return;
+      if (!p.length) { aviso.style.display = 'none'; return; }
+      const meses = [...new Set(p.map(x => x.etiqueta))].join(', ');
+      const cajas = [...new Set(p.map(x => x.caja))].join(', ');
+      $('cuadre-aviso-txt').textContent = T('cajas.cuadre_pendiente_txt')
+        .replace('{meses}', meses).replace('{cajas}', cajas);
+      aviso.style.display = '';
+    } catch (e) { /* si falla, simplemente no se ensena el aviso */ }
+  }
+
   window.Cajas = {
     renderCajas,
     cargarCajas,
@@ -2036,6 +2311,12 @@
     quitarFiadoByKey,
     cambiarTab,
     cambiarSubTab,
+    rangoCuadre,
+    cargarCuadre,
+    recalcularCuadre,
+    guardarCuadre,
+    borrarCuadre,
+    cargarPendientesCuadre,
     cobrarFiado,
     cerrarModalCobrar,
     confirmarCobro,

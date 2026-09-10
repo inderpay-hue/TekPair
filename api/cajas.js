@@ -138,6 +138,123 @@ function calcularSaldoTeorico(tipoCaja, saldoInicial, movimientos, totalCobradoC
 
 
 
+
+// ═══════════════════════════════════════════════════════════════════════════
+// Helpers del cuadre periódico
+// ═══════════════════════════════════════════════════════════════════════════
+
+function _num(v) {
+  const n = Number(String(v == null ? 0 : v).replace(',', '.'));
+  return isFinite(n) ? Math.round(n * 100) / 100 : 0;
+}
+
+// Fecha de hoy en ISO. Se acepta la del cliente porque el servidor corre en UTC
+// y a partir de las 00:00 UTC daría "mañana" para una tienda en España; se valida
+// el formato para que no entre cualquier cosa en la query.
+function _hoyISO(hoyCliente) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(hoyCliente || '')) ? hoyCliente : new Date().toISOString().slice(0, 10);
+}
+
+// Los N meses COMPLETOS anteriores al de hoy. El mes en curso no se pide: aún
+// no ha terminado y el informe del proveedor tampoco existe.
+function _mesesAtras(hoyStr, n) {
+  const [y, m] = hoyStr.split('-').map(Number);
+  const out = [];
+  for (let i = 1; i <= n; i++) {
+    const d = new Date(Date.UTC(y, m - 1 - i, 1));
+    const yy = d.getUTCFullYear();
+    const mm = d.getUTCMonth() + 1;
+    const ultimo = new Date(Date.UTC(yy, mm, 0)).getUTCDate();
+    const p = (x) => String(x).padStart(2, '0');
+    out.push({ desde: `${yy}-${p(mm)}-01`, hasta: `${yy}-${p(mm)}-${p(ultimo)}`, etiqueta: `${p(mm)}/${yy}` });
+  }
+  return out;
+}
+
+// Suma lo que tiene TekPair en el rango, por compañía y en total.
+// En envíos cuenta importe_enviado (lo que hay que ingresarle a la compañía);
+// en recargas, efectivo + tarjeta, que es lo que ha cobrado la tienda.
+async function _totalesCuadre(tienda_id, caja, desde, hasta) {
+  const cierres = await sbGet(
+    `cajas_cierres?caja_id=eq.${encodeURIComponent(caja.id)}`
+    + `&fecha=gte.${encodeURIComponent(desde)}&fecha=lte.${encodeURIComponent(hasta)}`
+    + `&select=id,fecha,estado&order=fecha.asc`
+  );
+  const reales = cierres.filter(c => c.estado !== 'festivo');
+  const dias_borrador = reales.filter(c => c.estado === 'abierto').length;
+  const dias_cerrados = reales.length - dias_borrador;
+
+  const companias = await sbGet(
+    `cajas_companias?caja_id=eq.${encodeURIComponent(caja.id)}&select=id,nombre&order=orden.asc`
+  );
+  const nombrePorId = {};
+  for (const c of companias) nombrePorId[String(c.id)] = c.nombre;
+
+  let movimientos = [];
+  if (reales.length) {
+    // PostgREST limita el largo de la URL: se trocea en grupos de 50 cierres.
+    const ids = reales.map(c => c.id);
+    for (let i = 0; i < ids.length; i += 50) {
+      const trozo = ids.slice(i, i + 50);
+      const lista = trozo.map(x => `"${x}"`).join(',');
+      const parte = await sbGet(
+        `cajas_movimientos?cierre_id=in.(${encodeURIComponent(lista)})`
+        + `&select=cierre_id,compania_id,importe_enviado,importe_efectivo,importe_tarjeta`
+      );
+      movimientos = movimientos.concat(parte);
+    }
+  }
+
+  const esEnvios = caja.tipo === 'envios';
+  const porComp = {};
+  for (const m of movimientos) {
+    const k = String(m.compania_id || '');
+    if (!k) continue;
+    const imp = esEnvios
+      ? Number(m.importe_enviado || 0)
+      : Number(m.importe_efectivo || 0) + Number(m.importe_tarjeta || 0);
+    porComp[k] = (porComp[k] || 0) + imp;
+  }
+
+  // Salen las compañías activas de la caja MÁS cualquiera con movimiento en el
+  // periodo aunque hoy esté desactivada: si no, su importe estaría en el total
+  // pero en ninguna línea y el desglose no sumaría el total.
+  const claves = new Set([...companias.map(c => String(c.id)), ...Object.keys(porComp)]);
+  const detalle = [...claves].map(k => ({
+    compania_id: k,
+    nombre: nombrePorId[k] || 'Compañía borrada',
+    total_tekpair: Math.round((porComp[k] || 0) * 100) / 100
+  })).sort((a, b) => b.total_tekpair - a.total_tekpair);
+
+  const total_tekpair = Math.round(detalle.reduce((a, c) => a + c.total_tekpair, 0) * 100) / 100;
+  return { companias: detalle, total_tekpair, dias_cerrados, dias_borrador };
+}
+
+
+// El id llega como la CADENA "undefined" cuando el que llama interpola un valor
+// que no existe. Entra en la consulta, Postgres responde "invalid input syntax
+// for type uuid", sbGet lanza y el handler acaba devolviendo un 500 (y una
+// alerta de Vercel que no dice de donde viene).
+//
+// Se filtran SOLO los valores basura evidentes, no "todo lo que no parezca un
+// UUID": no todos los id del modulo estan verificados como uuid y un guardia
+// mas amplio podria tumbar funciones que hoy van bien. El origen real se corta
+// en el cliente, que ya no manda parametros vacios.
+const _BASURA = new Set(['undefined', 'null', 'NaN', '[object Object]']);
+const _PARAMS_ID = ['caja_id', 'cierre_id', 'cuenta_id', 'compania_id', 'fiado_id', 'cuadre_id', 'id'];
+
+// Devuelve el nombre del primer parametro con valor basura, o null.
+function _idMalFormado(req) {
+  for (const fuente of [req.query || {}, req.body || {}]) {
+    for (const clave of _PARAMS_ID) {
+      const v = fuente[clave];
+      if (v === undefined || v === null) continue;
+      if (_BASURA.has(String(v).trim())) return clave;
+    }
+  }
+  return null;
+}
+
 // Helper: comprueba si el usuario tiene un permiso del módulo Cajas Multi-Servicio
 // Los admin tienen TODOS los permisos automáticamente
 // Los empleados los tienen solo si su permisos_usuarios[clave] = true
@@ -335,6 +452,15 @@ export default async function handler(req, res) {
   if (!tienda_id) return err(res, 401, 'JWT sin tienda_id');
 
   const action = (req.query.action || '').toString();
+
+  // Corta aqui cualquier id con formato invalido. Se loguea con el nombre del
+  // parametro y la accion para poder arreglar al que llama; antes esto acababa
+  // en un 500 y en la alerta de Vercel sin decir de donde venia.
+  const _malo = _idMalFormado(req);
+  if (_malo) {
+    console.warn('[api/cajas] parametro con id invalido:', _malo, '=', String((req.query || {})[_malo] ?? (req.body || {})[_malo]).slice(0, 40), '· accion:', action);
+    return err(res, 400, `Parámetro ${_malo} inválido`);
+  }
 
   try {
     switch (action) {
@@ -1187,6 +1313,219 @@ export default async function handler(req, res) {
         }
 
         return ok(res, { dias });
+      }
+
+
+      // ═══════════════════════════════════════════════════════════════════
+      // CUADRE PERIODICO (envíos / recargas)
+      // El admin mete lo que dice el sistema del proveedor para un rango y se
+      // compara con lo que tiene TekPair. Solo admin: es una herramienta de
+      // control sobre el trabajo del empleado, no tiene sentido que la vea él.
+      // ═══════════════════════════════════════════════════════════════════
+
+      // Calcula los totales de TekPair en el rango, SIN guardar nada.
+      // Devuelve también cuántos días entraron y cuántos siguen en borrador:
+      // sin ese dato, un descuadre por días sin cerrar parece un descuadre real
+      // y la herramienta deja de creerse a las dos semanas.
+      case 'cuadre_preview': {
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
+        const { caja_id, desde, hasta } = req.query;
+        if (!caja_id || !desde || !hasta) return err(res, 400, 'caja_id, desde y hasta obligatorios');
+        if (desde > hasta) return err(res, 400, 'El rango de fechas está al revés');
+
+        const cajasQ = await sbGet(`cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
+        if (cajasQ.length === 0) return err(res, 404, 'Caja no encontrada');
+        const caja = cajasQ[0];
+        if (caja.tipo !== 'envios' && caja.tipo !== 'recargas') {
+          return err(res, 400, 'El cuadre periódico es solo para cajas de envíos y recargas');
+        }
+
+        const datos = await _totalesCuadre(tienda_id, caja, desde, hasta);
+        return ok(res, { caja, ...datos });
+      }
+
+      case 'guardar_cuadre': {
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
+        const { caja_id, desde, hasta, total_externo, lineas, nota, estado } = req.body || {};
+        if (!caja_id || !desde || !hasta) return err(res, 400, 'caja_id, desde y hasta obligatorios');
+        if (desde > hasta) return err(res, 400, 'El rango de fechas está al revés');
+
+        const cajasQ = await sbGet(`cajas?id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
+        if (cajasQ.length === 0) return err(res, 404, 'Caja no encontrada');
+        const caja = cajasQ[0];
+        if (caja.tipo !== 'envios' && caja.tipo !== 'recargas') {
+          return err(res, 400, 'El cuadre periódico es solo para cajas de envíos y recargas');
+        }
+
+        // Los totales de TekPair se recalculan AQUÍ, no se aceptan del cliente:
+        // si los mandara el navegador, quien quisiera tapar un descuadre solo
+        // tendría que enviar el número que le conviene.
+        const datos = await _totalesCuadre(tienda_id, caja, desde, hasta);
+
+        const lineasIn = Array.isArray(lineas) ? lineas : [];
+        const externoPorComp = {};
+        for (const l of lineasIn) {
+          if (l && l.compania_id && l.total_externo !== '' && l.total_externo != null) {
+            externoPorComp[String(l.compania_id)] = _num(l.total_externo);
+          }
+        }
+        const hayDesglose = Object.keys(externoPorComp).length > 0;
+
+        // Si hay desglose por compañía, el total externo es su suma: así el
+        // global y el detalle no pueden contradecirse.
+        const totalExterno = hayDesglose
+          ? Math.round(Object.values(externoPorComp).reduce((a, b) => a + b, 0) * 100) / 100
+          : (total_externo === '' || total_externo == null ? null : _num(total_externo));
+
+        if (totalExterno == null) return err(res, 400, 'Falta el total del proveedor');
+
+        const diferencia = Math.round((totalExterno - datos.total_tekpair) * 100) / 100;
+        const cerrando = estado === 'cerrado';
+
+        // Se permite firmar con diferencia —siempre las hay: envíos anulados,
+        // cortes de fecha distintos— pero entonces hay que explicarla. Un número
+        // rojo sin contexto no le sirve a nadie dentro de tres meses.
+        if (cerrando && Math.abs(diferencia) > 0.5 && !String(nota || '').trim()) {
+          return err(res, 400, 'Hay diferencia: explica a qué se debe antes de cerrar el cuadre');
+        }
+
+        const cab = {
+          tienda_id,
+          caja_id,
+          desde,
+          hasta,
+          total_externo: totalExterno,
+          total_tekpair: datos.total_tekpair,
+          diferencia,
+          dias_cerrados: datos.dias_cerrados,
+          dias_borrador: datos.dias_borrador,
+          estado: cerrando ? 'cerrado' : 'borrador',
+          nota: String(nota || '').trim() || null,
+          creado_por: payload?.email || null,
+          cerrado_at: cerrando ? new Date().toISOString() : null
+        };
+
+        // Un cuadre por caja y rango (índice único): si ya existe, se reescribe.
+        let previos;
+        try {
+          previos = await sbGet(
+            `cajas_cuadres?caja_id=eq.${encodeURIComponent(caja_id)}`
+            + `&desde=eq.${encodeURIComponent(desde)}&hasta=eq.${encodeURIComponent(hasta)}&select=id,estado`
+          );
+        } catch (e) {
+          return err(res, 503, 'El cuadre no está instalado todavía: falta correr sql/cajas-cuadres.sql');
+        }
+        let cuadreId;
+        if (previos.length) {
+          if (previos[0].estado === 'cerrado' && !cerrando) {
+            return err(res, 400, 'Ese cuadre ya está cerrado');
+          }
+          cuadreId = previos[0].id;
+          await sbPatch(`cajas_cuadres?id=eq.${encodeURIComponent(cuadreId)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`, cab);
+          await sbDelete(`cajas_cuadre_lineas?cuadre_id=eq.${encodeURIComponent(cuadreId)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
+        } else {
+          const creado = await sbPost('cajas_cuadres', cab);
+          cuadreId = creado[0]?.id;
+        }
+        if (!cuadreId) return err(res, 500, 'No se pudo guardar el cuadre');
+
+        // Se guarda una línea por compañía CON MOVIMIENTO, aunque el admin no
+        // haya escrito nada: la foto del periodo tiene que estar completa para
+        // poder revisarla luego.
+        const filas = datos.companias.map(c => {
+          const ext = Object.prototype.hasOwnProperty.call(externoPorComp, String(c.compania_id))
+            ? externoPorComp[String(c.compania_id)] : null;
+          return {
+            tienda_id,
+            cuadre_id: cuadreId,
+            compania_id: c.compania_id,
+            compania_nombre: c.nombre,
+            total_externo: ext,
+            total_tekpair: c.total_tekpair,
+            diferencia: ext == null ? 0 : Math.round((ext - c.total_tekpair) * 100) / 100
+          };
+        });
+        if (filas.length) await sbPost('cajas_cuadre_lineas', filas);
+
+        return ok(res, { id: cuadreId, diferencia, total_tekpair: datos.total_tekpair, total_externo: totalExterno });
+      }
+
+      case 'listar_cuadres': {
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
+        // Si sql/cajas-cuadres.sql aun no se ha corrido, la tabla no existe.
+        // Se devuelve lista vacia en vez de reventar: el resto de Cajas no tiene
+        // por que caerse por una funcion que todavia no esta instalada.
+        let cuadres = [];
+        try {
+          cuadres = await sbGet(
+            `cajas_cuadres?tienda_id=eq.${encodeURIComponent(tienda_id)}`
+            + `&select=id,caja_id,desde,hasta,total_externo,total_tekpair,diferencia,dias_cerrados,dias_borrador,estado,nota,creado_por,cerrado_at`
+            + `&order=hasta.desc&limit=60`
+          );
+        } catch (e) {
+          console.warn('[api/cajas] listar_cuadres: falta sql/cajas-cuadres.sql?', e.message);
+        }
+        return ok(res, { cuadres });
+      }
+
+      case 'obtener_cuadre': {
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
+        const { id } = req.query;
+        if (!id) return err(res, 400, 'id obligatorio');
+        const cuadres = await sbGet(`cajas_cuadres?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
+        if (cuadres.length === 0) return err(res, 404, 'Cuadre no encontrado');
+        const lineas = await sbGet(
+          `cajas_cuadre_lineas?cuadre_id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`
+        );
+        return ok(res, { cuadre: cuadres[0], lineas });
+      }
+
+      case 'borrar_cuadre': {
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
+        const { id } = req.body || {};
+        if (!id) return err(res, 400, 'id obligatorio');
+        // Las líneas caen solas por el ON DELETE CASCADE.
+        await sbDelete(`cajas_cuadres?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
+        return ok(res, {});
+      }
+
+      // Meses ya terminados de envíos/recargas que siguen sin cuadrar. Alimenta
+      // el aviso de la pantalla de Cajas.
+      case 'cuadres_pendientes': {
+        if (!(await esAdminTiendaDB(payload))) return ok(res, { pendientes: [] });
+        const hoyStr = _hoyISO(req.query.hoy);
+        const cajasQ = await sbGet(
+          `cajas?tienda_id=eq.${encodeURIComponent(tienda_id)}&tipo=in.(envios,recargas)&select=id,nombre,tipo`
+        );
+        if (!cajasQ.length) return ok(res, { pendientes: [] });
+
+        let hechos = [];
+        try {
+          hechos = await sbGet(
+            `cajas_cuadres?tienda_id=eq.${encodeURIComponent(tienda_id)}&estado=eq.cerrado&select=caja_id,desde,hasta`
+          );
+        } catch (e) {
+          // Tabla aun no creada: sin ella no se puede saber que falta por cuadrar,
+          // y avisar de todo seria peor que no avisar.
+          console.warn('[api/cajas] cuadres_pendientes: falta sql/cajas-cuadres.sql?', e.message);
+          return ok(res, { pendientes: [] });
+        }
+        const meses = _mesesAtras(hoyStr, 3);
+        const pendientes = [];
+        for (const caja of cajasQ) {
+          for (const m of meses) {
+            const yaEsta = hechos.some(h => String(h.caja_id) === String(caja.id) && h.desde <= m.desde && h.hasta >= m.hasta);
+            if (yaEsta) continue;
+            // Sin cierres en el mes no hay nada que cuadrar: la caja no se usó.
+            const c = await sbGet(
+              `cajas_cierres?caja_id=eq.${encodeURIComponent(caja.id)}`
+              + `&fecha=gte.${encodeURIComponent(m.desde)}&fecha=lte.${encodeURIComponent(m.hasta)}`
+              + `&estado=neq.festivo&select=id&limit=1`
+            );
+            if (c.length) pendientes.push({ caja_id: caja.id, caja: caja.nombre, tipo: caja.tipo, ...m });
+          }
+        }
+        return ok(res, { pendientes });
       }
 
       default:  

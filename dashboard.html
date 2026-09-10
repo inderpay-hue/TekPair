@@ -2299,6 +2299,21 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   .cajas-btn-sec:hover { background:#d1d5db; }
   .cajas-btn-rojo { background:#dc2626;color:#fff; }
   .cajas-btn-rojo:hover { background:#b91c1c; }
+  /* Campos del cuadre. No existía una clase de input propia de Cajas: se define
+     aquí con variables de tema para que el modo oscuro no la deje ilegible. */
+  .cajas-input {
+    padding:7px 9px;border:1px solid var(--border,#d1d5db);border-radius:7px;
+    font-size:13.5px;background:var(--bg,#fff);color:var(--text,#111827);
+  }
+  .cajas-input:focus { outline:none;border-color:#FF5B1F; }
+  .cuadre-tabla { width:100%;border-collapse:collapse;margin-top:6px;font-size:13.5px; }
+  .cuadre-tabla th, .cuadre-tabla td { padding:7px 9px;border-bottom:1px solid var(--border,#e5e7eb);text-align:left; }
+  .cuadre-tabla th { font-size:11.5px;text-transform:uppercase;letter-spacing:.03em;color:var(--muted,#6b7280); }
+  .cuadre-tabla td.num, .cuadre-tabla th.num { text-align:right;white-space:nowrap; }
+  .cuadre-ok   { color:#16a34a;font-weight:700; }
+  .cuadre-mal  { color:#dc2626;font-weight:700; }
+  body[data-theme="dark"] .cuadre-ok  { color:#4ADE80; }
+  body[data-theme="dark"] .cuadre-mal { color:#FF9B9B; }
   .cajas-btn-verde { background:#16a34a;color:#fff; }
   .cajas-btn-verde:hover { background:#15803d; }
 </style>
@@ -2335,6 +2350,23 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     <button id="tab-cobros" class="cajas-tab-btn" onclick="Cajas.cambiarTab('cobros')">
       <span data-t="cajas.tab_cobros">📋 Cobros pendientes</span> <span id="badge-pendientes" style="display:none;background:#dc2626;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:4px;">0</span>
     </button>
+    <button id="tab-cuadre" class="cajas-tab-btn" style="display:none;" onclick="Cajas.cambiarTab('cuadre')">
+      <span data-t="cajas.tab_cuadre">🔍 Cuadre del periodo</span> <span id="badge-cuadre" style="display:none;background:#dc2626;color:#fff;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;margin-left:4px;">0</span>
+    </button>
+  </div>
+
+  <!-- Aviso de meses cerrados sin cuadrar. No bloquea nada: se queda ahí hasta
+       que se hace. Lo rellena Cajas.cargarPendientesCuadre(). -->
+  <div id="cuadre-aviso" style="display:none;margin-bottom:14px;padding:12px 14px;border-radius:10px;
+       background:#FFF7ED;border:1px solid #FDBA74;color:#7C2D12;">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+      <span style="font-size:18px;">⚠️</span>
+      <div style="flex:1;min-width:200px;">
+        <b id="cuadre-aviso-txt"></b>
+        <div style="font-size:12.5px;opacity:.85;margin-top:2px;" data-t="cajas.cuadre_aviso_sub">Compara el total del proveedor con lo que tiene TekPair para cazar errores.</div>
+      </div>
+      <button class="cajas-btn" onclick="Cajas.cambiarTab('cuadre')" data-t="cajas.cuadrar_ahora">Cuadrar ahora</button>
+    </div>
   </div>
 
   <div id="vista-cajas-dia">
@@ -2360,6 +2392,48 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   </div>
 
   <!-- ════ VISTA COBROS PENDIENTES ════ -->
+  <!-- ════ CUADRE DEL PERIODO (solo admin) ════ -->
+  <div id="vista-cuadre" style="display:none;">
+    <div class="cajas-franja-wrap">
+      <div class="cajas-franja-head">
+        <h3 data-t="cajas.cuadre_titulo">Cuadre contra el sistema del proveedor</h3>
+        <small data-t="cajas.cuadre_sub">Envíos y recargas. Mete lo que dice su informe y compara.</small>
+      </div>
+
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end;padding:12px 0;">
+        <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;">
+          <span data-t="cajas.caja">Caja</span>
+          <select id="cuadre-caja" class="cajas-input" style="min-width:170px;"></select>
+        </label>
+        <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;">
+          <span data-t="cajas.desde">Desde</span>
+          <input type="date" id="cuadre-desde" class="cajas-input">
+        </label>
+        <label style="display:flex;flex-direction:column;gap:3px;font-size:12px;">
+          <span data-t="cajas.hasta">Hasta</span>
+          <input type="date" id="cuadre-hasta" class="cajas-input">
+        </label>
+        <button class="cajas-btn" onclick="Cajas.cargarCuadre()" data-t="cajas.comparar">Comparar</button>
+      </div>
+
+      <div style="display:flex;gap:6px;flex-wrap:wrap;padding-bottom:10px;">
+        <button class="cajas-btn cajas-btn-sec" onclick="Cajas.rangoCuadre('mes_pasado')" data-t="cajas.mes_pasado">Mes pasado</button>
+        <button class="cajas-btn cajas-btn-sec" onclick="Cajas.rangoCuadre('este_mes')" data-t="cajas.este_mes">Este mes</button>
+        <button class="cajas-btn cajas-btn-sec" onclick="Cajas.rangoCuadre('semana_pasada')" data-t="cajas.semana_pasada">Semana pasada</button>
+        <button class="cajas-btn cajas-btn-sec" onclick="Cajas.rangoCuadre('esta_semana')" data-t="cajas.esta_semana">Esta semana</button>
+      </div>
+
+      <div id="cuadre-resultado"></div>
+    </div>
+
+    <div class="cajas-franja-wrap" style="margin-top:16px;">
+      <div class="cajas-franja-head">
+        <h3 data-t="cajas.cuadre_historial">Cuadres anteriores</h3>
+      </div>
+      <div id="cuadre-historial"></div>
+    </div>
+  </div>
+
   <div id="vista-cobros-pendientes" style="display:none;">
     <div style="display:flex;gap:4px;margin-bottom:14px;">
       <button id="subtab-pendientes" class="cajas-subtab-btn cajas-subtab-activa" onclick="Cajas.cambiarSubTab('pendientes')">
@@ -2722,7 +2796,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 
 <!-- ════ LÓGICA JS ════ -->
-<script src="/js/dash-cajas.js?v=20260905a"></script>
+<script src="/js/dash-cajas.js?v=20260910a"></script>
 
 <div class="page" id="pGastos">
   <div class="sec-header" style="margin-bottom:10px">
