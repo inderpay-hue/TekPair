@@ -2,7 +2,7 @@
 -- DIA DEL IMPAGO (para contar bien los 7 dias de gracia)
 -- ===========================================================================
 -- Hasta ahora la gracia se deducia de plan_until, y cuando esa fecha venia vacia
--- se caia al fin del trial —que puede ser de hace meses—, asi que el cliente
+-- se caia al fin del trial --que puede ser de hace meses--, asi que el cliente
 -- quedaba cortado el MISMO dia del recibo devuelto, justo cuando lo que interesa
 -- es que actualice la tarjeta.
 --
@@ -53,9 +53,8 @@ update tiendas set impago_desde = '2026-08-27T08:50:00Z'
 -- Para cada impagado: desde cuando corre la gracia y cuantos dias le quedan.
 -- Negativo = agotada (sigue cortado, correctamente).
 --
--- Lo esperado al correr esto el 9-sep-2026:
---   aleem ullah  ->  2 dias  (dentro)
---   ZONA MOBIL   -> -6 dias  (fuera)
+-- Lo esperado: aleem con dias POSITIVOS (vuelve a entrar, su gracia arranco el
+-- 4-sep) y ZONA MOBIL en NEGATIVO (sigue fuera, la suya vencio el 3-sep).
 
 select nombre,
        plan,
