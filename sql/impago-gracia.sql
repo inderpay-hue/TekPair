@@ -1,14 +1,14 @@
 -- ===========================================================================
 -- DIA DEL IMPAGO (para contar bien los 7 dias de gracia)
 -- ===========================================================================
--- Hasta ahora la gracia del impago se deducia de plan_until, y cuando esa fecha
--- venia vacia se caia al fin del trial —que puede ser de hace meses—, asi que el
--- cliente quedaba cortado el MISMO dia del recibo devuelto, justo cuando lo que
--- interesa es que actualice la tarjeta.
+-- Hasta ahora la gracia se deducia de plan_until, y cuando esa fecha venia vacia
+-- se caia al fin del trial —que puede ser de hace meses—, asi que el cliente
+-- quedaba cortado el MISMO dia del recibo devuelto, justo cuando lo que interesa
+-- es que actualice la tarjeta.
 --
 -- Con esta columna la referencia es el dia exacto en que Stripe aviso del primer
--- recibo devuelto. La escribe el webhook (invoice.payment_failed) y la limpia al
--- cobrar (invoice.payment_succeeded).
+-- recibo devuelto. La escribe el webhook (invoice.payment_failed, solo el primer
+-- intento) y la limpia al cobrar (invoice.payment_succeeded).
 --
 -- Sin acentos a proposito: pegar SQL con caracteres no ASCII en el editor ha dado
 -- problemas de codificacion otras veces.
@@ -23,31 +23,45 @@ alter table tiendas add column if not exists impago_desde timestamptz;
 comment on column tiendas.impago_desde is 'Fecha del primer recibo devuelto. Referencia de los 7 dias de gracia; null = al corriente';
 
 
--- 2. Rellenar lo que ya esta en impago -------------------------------------
--- Las tiendas que fallaron ANTES de existir esta columna no tienen fecha. Sin
--- esto seguirian usando el respaldo viejo (trial_until, de hace meses) y
--- continuarian cortadas. Se les da como referencia su fin de periodo pagado y,
--- si tampoco lo tienen, HOY: empiezan su gracia ahora, que es lo que habria
--- pasado si la columna hubiera existido el dia del fallo.
+-- 2. Las dos tiendas que ya estaban en impago -------------------------------
+-- NO se rellenan con una regla generica: los dos casos son distintos y una misma
+-- formula acierta en uno y se equivoca en el otro.
 --
--- Solo toca filas en past_due que aun no tengan fecha, asi que repetirlo no
--- reabre el plazo a nadie.
+--   aleem ullah  -> pagaba desde julio. Su renovacion del 4-sep fallo y se quedo
+--                   fuera ESE MISMO DIA por culpa del bug. Su plan_until real era
+--                   4-sep-2026 antes de que el webhook lo vaciara.
+--                   Con esta fecha recupera los dias de gracia que le quedan.
+--
+--   ZONA MOBIL   -> nunca llego a pagar: el primer cobro fallo al acabar la
+--                   prueba (27-ago). Su gracia corrio del 27-ago al 3-sep y ya
+--                   esta agotada. Se le pone su fecha real, no una nueva: con
+--                   ella SIGUE cortado, que es lo correcto.
+--
+-- Se identifican por stripe_sub_id, que no cambia (el nombre o el email si).
+-- El "and impago_desde is null" hace que repetir el script no reabra el plazo.
 
-update tiendas
-   set impago_desde = coalesce(plan_until, now())
- where plan_status = 'past_due'
+update tiendas set impago_desde = '2026-09-04T00:00:00Z'
+ where stripe_sub_id = 'sub_1Tk5PeKE1FTbu0p7qC8k2iAz'   -- aleem ullah
+   and impago_desde is null;
+
+update tiendas set impago_desde = '2026-08-27T08:50:00Z'
+ where stripe_sub_id = 'sub_1U3Xy0KE1FTbu0p7uSeNe16V'   -- ZONA MOBIL
    and impago_desde is null;
 
 
 -- 3. Comprobacion ----------------------------------------------------------
--- Para cada impagado: cuando empezo la gracia y cuantos dias le quedan.
--- Negativo = ya agotada (sigue cortado, correctamente).
+-- Para cada impagado: desde cuando corre la gracia y cuantos dias le quedan.
+-- Negativo = agotada (sigue cortado, correctamente).
+--
+-- Lo esperado al correr esto el 9-sep-2026:
+--   aleem ullah  ->  2 dias  (dentro)
+--   ZONA MOBIL   -> -6 dias  (fuera)
 
 select nombre,
        plan,
        plan_until,
        impago_desde,
-       7 - floor(extract(epoch from (now() - impago_desde)) / 86400) as dias_de_gracia_restantes
+       round(7 - extract(epoch from (now() - impago_desde)) / 86400) as dias_de_gracia_restantes
   from tiendas
  where plan_status = 'past_due'
  order by impago_desde desc;
