@@ -293,6 +293,71 @@ function _guardTiendaActiva() {
 // Pantalla de "hasta aquí": la suscripción no da acceso y no se puede seguir trabajando.
 // Se deja salida a la pasarela de pago, porque quien llega aquí normalmente quiere pagar
 // (una tarjeta rechazada por el banco es lo más común) y no encontrar la puerta cerrada.
+
+// ═══════════════════════════════════════════════════════════════════════════
+// AVISO DE TARJETA (cuentas pagadas en mano)
+// El servidor decide si se pide y si es obligatoria: aqui solo se pinta. Si lo
+// decidiera el navegador, bastaria con tocar el JS para saltarselo.
+// ═══════════════════════════════════════════════════════════════════════════
+function _avisoTarjeta(estado) {
+  var previo = document.getElementById('_tarjetaBg');
+  if (previo) previo.remove();
+  if (!estado || !estado.pedir) return;
+
+  var obligatoria = !!estado.obligatoria;
+  var dias = estado.dias == null ? null : Math.max(0, estado.dias);
+  var bg = document.createElement('div');
+  bg.id = '_tarjetaBg';
+  bg.style.cssText = 'position:fixed;inset:0;z-index:100000;background:rgba(15,23,42,.88);display:flex;align-items:center;justify-content:center;padding:20px';
+
+  var titulo = obligatoria ? T('tarj.obligatoria_tit') : T('tarj.recordatorio_tit');
+  var texto = obligatoria ? T('tarj.obligatoria_desc') : T('tarj.recordatorio_desc');
+  var cabecera = dias != null
+    ? '<div style="font-size:13px;font-weight:700;color:' + (obligatoria ? '#dc2626' : 'var(--muted,#64748b)') + ';margin-bottom:6px">'
+      + T('tarj.te_quedan').replace('{n}', dias) + '</div>'
+    : '';
+
+  bg.innerHTML = '<div style="background:var(--card,#fff);border-radius:16px;max-width:430px;width:100%;padding:28px 24px;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.35)">' +
+    '<div style="font-size:44px;margin-bottom:8px">💳</div>' + cabecera +
+    '<h2 style="font-size:19px;font-weight:800;margin:0 0 8px;color:var(--text,#1e293b)">' + titulo + '</h2>' +
+    '<p style="font-size:13.5px;color:var(--muted,#64748b);line-height:1.6;margin:0 0 20px">' + texto + '</p>' +
+    '<div style="display:flex;flex-direction:column;gap:8px">' +
+    '<button type="button" onclick="guardarTarjetaEfectivo(this)" style="border:none;background:var(--blue,#2563eb);color:#fff;border-radius:10px;padding:12px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">' + T('tarj.anadir') + '</button>' +
+    // El boton de omitir SOLO existe fuera del tramo obligatorio. No se pinta
+    // deshabilitado: si no se puede, que no este.
+    (obligatoria ? '' :
+      '<button type="button" onclick="omitirAvisoTarjeta()" style="border:1px solid var(--border,#e2e8f0);background:transparent;color:var(--text,#1e293b);border-radius:10px;padding:12px;font:inherit;font-size:14px;font-weight:600;cursor:pointer">' + T('tarj.ahora_no') + '</button>') +
+    '</div>' +
+    '<p style="font-size:11.5px;color:var(--muted,#94a3b8);margin:16px 0 0">' + T('tarj.no_se_cobra') + '</p>' +
+    '</div>';
+  document.body.appendChild(bg);
+}
+
+async function guardarTarjetaEfectivo(btn) {
+  if (btn) { btn.disabled = true; btn.textContent = T('gen.cargando'); }
+  try {
+    var r = await fetch('/api/portal', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ token: PLAN_INFO.token, accion: 'guardar_tarjeta' })
+    });
+    var d = await r.json();
+    if (d && d.url) { window.location.href = d.url; return; }
+    toast((d && d.error) || T('gen.error'), 'error');
+  } catch (e) { toast(T('gen.error'), 'error'); }
+  if (btn) { btn.disabled = false; btn.textContent = T('tarj.anadir'); }
+}
+
+async function omitirAvisoTarjeta() {
+  var bg = document.getElementById('_tarjetaBg');
+  if (bg) bg.remove();
+  try {
+    await fetch('/api/login', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'omitir-aviso-tarjeta', token: PLAN_INFO.token })
+    });
+  } catch (e) { /* si falla, volvera a salir en la proxima recarga */ }
+}
+
 function _pantallaSuscripcionCortada(mensaje, motivo) {
   if (document.getElementById('_planCorteBg')) return;
   var esImpago = motivo === 'impago';
@@ -343,6 +408,7 @@ async function refrescarPlan() {
       // Re-render banners y bloqueos
       renderPlanBanner();
       aplicarBloqueosPlan();
+      _avisoTarjeta(data.tarjeta);
       // Primer login (sin plan cacheado): si ahora sabemos que es Premium y se le había
       // mandado al Clásico automáticamente, devolverlo al Inicio nuevo (solo si sigue ahí).
       if (typeof tieneFeature === 'function' && tieneFeature('inicio_avanzado') && window._inicioAutoRedirect) {

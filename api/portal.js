@@ -10,6 +10,16 @@
 
 import { rateLimit } from './_lib/ratelimit.js';
 
+// Precio mensual por plan. Mismo mapa que webhook.js, al reves.
+const PRECIO_POR_PLAN = {
+  basico: 'price_1TUEadKE1FTbu0p7OtHUDVnP',
+  pro: 'price_1TUEbPKE1FTbu0p78X80WKAH',
+  premium: 'price_1TUEbqKE1FTbu0p7U1y90BZF'
+};
+
+// Stripe exige que trial_end quede al menos 48 h por delante.
+const MARGEN_TRIAL_MS = 48 * 3600 * 1000;
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -57,23 +67,65 @@ export default async function handler(req, res) {
 
     // 2. Recuperar stripe_customer_id de la tienda
     const tR = await fetch(
-      `${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(sess.tienda_id)}&select=stripe_customer_id`,
+      `${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(sess.tienda_id)}&select=stripe_customer_id,stripe_sub_id,plan,plan_until,plan_email,cobro_manual,nombre`,
       { headers: {'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`} }
     );
     const tiendas = await tR.json();
-    // POR-4: usar trim() por si en BD hay espacios en blanco
-    const stripeCust = ((tiendas[0] && tiendas[0].stripe_customer_id) || '').trim();
-    if (!tiendas.length || !stripeCust) {
-      return res.json({ error: 'No tienes una suscripción de Stripe vinculada. Contacta con soporte.' });
-    }
+    const tienda = tiendas[0] || {};
 
-    // 3. Crear sesión de Customer Portal
     // POR-3: return_url dinámico (origin de la request) con whitelist para evitar open redirect
     const origin = (req.headers.origin || req.headers.referer || '').toString();
     let returnUrl = 'https://www.tekpair.tech/dashboard.html';
     const origenesPermitidos = ['https://www.tekpair.tech', 'https://tekpair.tech'];
     for (const o of origenesPermitidos) {
       if (origin.startsWith(o)) { returnUrl = o + '/dashboard.html'; break; }
+    }
+
+    // ═══ Guardar la tarjeta de una cuenta pagada en mano ═══
+    // No cobra nada ahora: crea la suscripcion con el PRIMER COBRO justo el dia
+    // en que se le acaban los meses ya pagados. Si luego vuelven a pagar en
+    // efectivo, el panel empuja esa fecha y Stripe no llega a cobrar nunca, que
+    // es lo que hace que el cobro en mano siga saliendo sin comision.
+    if (req.body.accion === 'guardar_tarjeta') {
+      if (tienda.stripe_sub_id) return res.json({ error: 'Esta cuenta ya tiene una tarjeta guardada' });
+      const price = PRECIO_POR_PLAN[String(tienda.plan || '').toLowerCase()];
+      if (!price) return res.json({ error: 'Plan no reconocido. Contacta con soporte.' });
+
+      const params = new URLSearchParams();
+      params.append('mode', 'subscription');
+      params.append('payment_method_types[]', 'card');
+      params.append('line_items[0][price]', price);
+      params.append('line_items[0][quantity]', '1');
+      if (tienda.plan_email) params.append('customer_email', tienda.plan_email);
+      params.append('success_url', returnUrl + '?tarjeta=ok');
+      params.append('cancel_url', returnUrl);
+      params.append('subscription_data[metadata][plan]', String(tienda.plan || ''));
+      params.append('subscription_data[metadata][origen]', 'efectivo');
+
+      // El primer cobro se aplaza hasta que se agoten los meses pagados. Si ya
+      // quedan menos de 48 h (o esta vencida), Stripe no admite aplazarlo: se
+      // cobra ya, que ademas es lo correcto porque su periodo se acabo.
+      const fin = tienda.plan_until ? new Date(tienda.plan_until).getTime() : 0;
+      const aplazable = fin && (fin - Date.now()) > MARGEN_TRIAL_MS;
+      if (aplazable) params.append('subscription_data[trial_end]', String(Math.floor(fin / 1000)));
+
+      const r = await fetch('https://api.stripe.com/v1/checkout/sessions', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${STRIPE_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: params.toString()
+      });
+      const ses = await r.json();
+      if (!r.ok) {
+        console.error('guardar_tarjeta Stripe:', ses);
+        return res.json({ error: 'No se pudo abrir la pasarela. Inténtalo de nuevo.' });
+      }
+      return res.json({ ok: true, url: ses.url, primer_cobro: aplazable ? new Date(fin).toISOString() : null });
+    }
+
+    // POR-4: usar trim() por si en BD hay espacios en blanco
+    const stripeCust = (tienda.stripe_customer_id || '').trim();
+    if (!tiendas.length || !stripeCust) {
+      return res.json({ error: 'No tienes una suscripción de Stripe vinculada. Contacta con soporte.' });
     }
 
     const params = new URLSearchParams();

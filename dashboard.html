@@ -3891,6 +3891,57 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   <div id="comContent">
     <div style="text-align:center;padding:40px;color:var(--muted)">Cargando...</div>
   </div>
+
+  <!-- ════ CUENTAS COBRADAS EN MANO (solo superadmin) ════ -->
+  <div id="efectivoBloque" style="display:none;margin-top:26px;">
+    <div class="card" style="padding:16px;">
+      <h3 style="font-size:16px;font-weight:800;margin:0 0 4px;">💶 Cuentas pagadas en efectivo</h3>
+      <p style="font-size:12.5px;color:var(--muted);margin:0 0 14px;">
+        Cobras en mano y creas la cuenta aquí: no pasa por Stripe, así que no hay comisión.
+        La tienda verá los meses que le quedan y se le pedirá la tarjeta como garantía.
+      </p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;">
+        <label style="font-size:12px;">Nombre de la tienda
+          <input type="text" id="ef-nombre" class="input" placeholder="Móviles Pepe" autocomplete="off">
+        </label>
+        <label style="font-size:12px;">Email
+          <input type="email" id="ef-email" class="input" placeholder="pepe@ejemplo.com" autocomplete="off">
+        </label>
+        <label style="font-size:12px;">Plan
+          <select id="ef-plan" class="input">
+            <option value="premium">Premium</option>
+            <option value="pro">Pro</option>
+            <option value="basico">Básico</option>
+          </select>
+        </label>
+        <label style="font-size:12px;">Meses
+          <select id="ef-meses" class="input">
+            <option value="3">3 meses</option>
+            <option value="6">6 meses</option>
+            <option value="9">9 meses</option>
+            <option value="12" selected>12 meses</option>
+          </select>
+        </label>
+        <label style="font-size:12px;">Importe cobrado (opcional)
+          <input type="number" step="0.01" id="ef-importe" class="input" placeholder="€">
+        </label>
+        <label style="font-size:12px;">Nota (opcional)
+          <input type="text" id="ef-nota" class="input" placeholder="Pagado en mano, visita del 10-sep">
+        </label>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">
+        <button class="btn" onclick="crearCuentaEfectivo(this)">Crear cuenta</button>
+        <button class="btn btn-sec" onclick="cargarCuentasEfectivo()">Actualizar lista</button>
+      </div>
+      <div id="ef-resultado" style="margin-top:12px;"></div>
+    </div>
+
+    <div class="card" style="padding:16px;margin-top:14px;">
+      <h3 style="font-size:15px;font-weight:800;margin:0 0 10px;">Cuentas activas · a quién toca visitar</h3>
+      <div id="ef-lista"><div style="color:var(--muted);font-size:13px;">Pulsa «Actualizar lista».</div></div>
+    </div>
+  </div>
 </div>
 
 </div><!-- /content -->
@@ -5213,7 +5264,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260905a"></script>
+<script src="/js/dash-app.js?v=20260910c"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -5646,6 +5697,9 @@ function mostrarSidebarComisiones() {
   newItem.setAttribute('data-p', 'pComisiones');
   newItem.onclick = function() { navTo('pComisiones'); setSidebarActive(this); cargarComisiones(); };
   newItem.innerHTML = '<span class="sidebar-ni-icon">💼</span>' + (COMISIONES_MODO === 'admin' ? T('nav.comisiones') + ' (admin)' : T('nav.mis_comisiones'));
+  // El alta en efectivo es cosa del dueno, no de un comercial.
+  var _efB = document.getElementById('efectivoBloque');
+  if (_efB) _efB.style.display = (COMISIONES_MODO === 'admin') ? '' : 'none';
   refItem.parentNode.insertBefore(newItem, refItem);
 }
 
@@ -5658,6 +5712,113 @@ function pedirCodigoSecreto() {
   }
   return _codigoSecreto;
 }
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CUENTAS PAGADAS EN EFECTIVO (superadmin)
+// ═══════════════════════════════════════════════════════════════════════════
+function _efEsc(v) {
+  return String(v == null ? '' : v).replace(/[<>&"']/g, function (c) {
+    return { '<': '&lt;', '>': '&gt;', '&': '&amp;', '"': '&quot;', "'": '&#39;' }[c];
+  });
+}
+
+async function _efApi(payload) {
+  var sec = pedirCodigoSecreto();
+  if (!sec) throw new Error('Hace falta el código secreto');
+  var r = await fetch('/api/comisiones', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(Object.assign({ codigo_secreto: sec }, payload))
+  });
+  var d = await r.json();
+  if (chequearNeedSecret && chequearNeedSecret(d)) throw new Error('Código secreto incorrecto');
+  if (!r.ok || d.error) throw new Error(d.error || ('HTTP ' + r.status));
+  return d;
+}
+
+async function crearCuentaEfectivo(btn) {
+  var nombre = (document.getElementById('ef-nombre').value || '').trim();
+  var email = (document.getElementById('ef-email').value || '').trim();
+  if (!nombre || !email) { toast('Nombre y email son obligatorios', 'error'); return; }
+  if (btn) btn.disabled = true;
+  try {
+    var d = await _efApi({
+      action: 'crear_cuenta_efectivo',
+      nombre: nombre, email: email,
+      plan: document.getElementById('ef-plan').value,
+      meses: document.getElementById('ef-meses').value,
+      importe: document.getElementById('ef-importe').value,
+      nota: document.getElementById('ef-nota').value
+    });
+    // La contraseña se enseña UNA vez y en claro: es la que hay que darle a la
+    // tienda en el momento, y no se puede volver a consultar (va con bcrypt).
+    document.getElementById('ef-resultado').innerHTML =
+      '<div style="background:#ECFDF5;border:1px solid #6EE7B7;color:#065F46;border-radius:10px;padding:12px;font-size:13px;">'
+      + '<b>Cuenta creada ✓</b><br>Apunta estos datos ahora, la contraseña no se puede volver a ver:<br><br>'
+      + 'Email: <b>' + _efEsc(d.email) + '</b><br>'
+      + 'Contraseña: <b style="font-family:monospace;font-size:15px;">' + _efEsc(d.password) + '</b><br>'
+      + 'Plan ' + _efEsc(d.plan) + ' · ' + _efEsc(d.meses) + ' meses · hasta el <b>'
+      + _efEsc(String(d.hasta).slice(0, 10)) + '</b></div>';
+    ['ef-nombre', 'ef-email', 'ef-importe', 'ef-nota'].forEach(function (id) {
+      var el = document.getElementById(id); if (el) el.value = '';
+    });
+    cargarCuentasEfectivo();
+  } catch (e) {
+    document.getElementById('ef-resultado').innerHTML =
+      '<div style="background:#FEF2F2;border:1px solid #FCA5A5;color:#991B1B;border-radius:10px;padding:12px;font-size:13px;">'
+      + _efEsc(e.message) + '</div>';
+  }
+  if (btn) btn.disabled = false;
+}
+
+async function cargarCuentasEfectivo() {
+  var cont = document.getElementById('ef-lista');
+  if (!cont) return;
+  cont.innerHTML = '<div style="color:var(--muted);font-size:13px;">Cargando…</div>';
+  try {
+    var d = await _efApi({ action: 'listar_cuentas_efectivo' });
+    var cs = d.cuentas || [];
+    if (!cs.length) { cont.innerHTML = '<div style="color:var(--muted);font-size:13px;">Todavía no hay cuentas de efectivo.</div>'; return; }
+    cont.innerHTML = '<table class="tbl" style="width:100%;font-size:13px;"><thead><tr>'
+      + '<th>Tienda</th><th>Plan</th><th>Vence</th><th>Quedan</th><th>Tarjeta</th><th></th>'
+      + '</tr></thead><tbody>' + cs.map(function (c) {
+        var d2 = c.dias_restantes;
+        // Rojo cuando entra en el tramo en que la tarjeta ya es obligatoria:
+        // es justo el aviso de que toca ir a visitarle.
+        var col = d2 == null ? 'var(--muted)' : (d2 < 0 ? '#dc2626' : (d2 <= 60 ? '#C2410C' : 'var(--text)'));
+        return '<tr><td>' + _efEsc(c.nombre) + '<div style="font-size:11px;color:var(--muted)">'
+          + _efEsc(c.plan_email || '') + (c.telefono ? ' · ' + _efEsc(c.telefono) : '') + '</div></td>'
+          + '<td>' + _efEsc(c.plan) + '</td>'
+          + '<td>' + _efEsc(String(c.plan_until || '').slice(0, 10)) + '</td>'
+          + '<td style="color:' + col + ';font-weight:700;">' + (d2 == null ? '—' : d2 + ' d') + '</td>'
+          + '<td>' + (c.tiene_tarjeta ? '✅' : '—') + '</td>'
+          + '<td><button class="btn btn-sec" style="padding:5px 9px;font-size:12px;" onclick="anadirMesesEfectivo(\'' + _efEsc(c.id) + '\',\'' + _efEsc(c.nombre) + '\')">+ Meses</button></td>'
+          + '</tr>';
+      }).join('') + '</tbody></table>';
+  } catch (e) {
+    cont.innerHTML = '<div style="color:#dc2626;font-size:13px;">' + _efEsc(e.message) + '</div>';
+  }
+}
+
+async function anadirMesesEfectivo(tiendaId, nombre) {
+  var meses = prompt('¿Cuántos meses le añades a "' + nombre + '"? (3, 6, 9 o 12)', '12');
+  if (!meses) return;
+  var importe = prompt('Importe cobrado (opcional, déjalo vacío si no lo apuntas):', '');
+  try {
+    var d = await _efApi({
+      action: 'extender_cuenta_efectivo',
+      tienda_id: tiendaId, meses: meses, importe: importe
+    });
+    // Si ya tenía tarjeta, lo importante es que el cobro de Stripe se haya
+    // movido: si no, cobraría igual un mes que acabas de cobrar en mano.
+    var extra = d.tenia_tarjeta
+      ? (d.cobro_empujado ? ' El cobro de la tarjeta se ha movido a esa fecha.'
+                          : ' ⚠️ OJO: no se pudo mover el cobro de la tarjeta, revísalo en Stripe.')
+      : '';
+    toast('Ampliada hasta el ' + String(d.hasta).slice(0, 10) + '.' + extra, d.tenia_tarjeta && !d.cobro_empujado ? 'error' : 'ok');
+    cargarCuentasEfectivo();
+  } catch (e) { toast(e.message, 'error'); }
+}
+
 function olvidarCodigoSecreto() { _codigoSecreto = null; toast('Código secreto olvidado', 'ok'); }
 // Si el backend responde need_secret, limpiamos el código cacheado para poder reintentar.
 function chequearNeedSecret(data) {

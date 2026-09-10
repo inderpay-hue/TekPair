@@ -71,7 +71,26 @@ function verificarSecreto(codigo) {
 const ACCIONES_CRITICAS = [
   'marcar_pagado', 'marcar_codigo_pagado', 'crear_cuenta_comercial',
   'crear_afiliado', 'editar_afiliado', 'eliminar_afiliado', 'dar_de_baja_comercial',
+  // Altas y renovaciones cobradas en mano: dan acceso de pago sin pasar por
+  // Stripe, asi que exigen el codigo secreto igual que lo demas.
+  'crear_cuenta_efectivo', 'extender_cuenta_efectivo', 'listar_cuentas_efectivo',
 ];
+
+// Meses que se pueden vender en mano. Se valida contra esta lista y no se acepta
+// un numero libre: un '120' por un dedazo regalaria diez anos.
+const MESES_EFECTIVO = [3, 6, 9, 12];
+const PLANES_VALIDOS = ['basico', 'pro', 'premium'];
+
+// Suma meses conservando el dia. El 31 de enero + 1 mes es el 28/29 de febrero,
+// no el 3 de marzo: sin esto, las renovaciones se irian desplazando solas.
+function _sumarMeses(fechaISO, meses) {
+  const d = new Date(fechaISO);
+  const dia = d.getUTCDate();
+  const destino = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + meses, 1, 12, 0, 0));
+  const ultimo = new Date(Date.UTC(destino.getUTCFullYear(), destino.getUTCMonth() + 1, 0)).getUTCDate();
+  destino.setUTCDate(Math.min(dia, ultimo));
+  return destino.toISOString();
+}
 
 // COM-9: validar y normalizar comision_pct con rango 0-100.
 // Antes `parseInt(comision_pct) || 20` convertía un válido 0 en 20 (||), y aceptaba
@@ -379,6 +398,198 @@ export default async function handler(req, res) {
           codigo: codigoNorm,
           nombre: nombre.trim(),
           comision_pct: comisionPct
+        });
+      }
+
+
+      // ═══ Alta de cuenta pagada EN MANO (3/6/9/12 meses, sin Stripe) ═══
+      // El dueno visita la tienda, cobra en efectivo y crea la cuenta aqui.
+      // No se toca Stripe: no hay suscripcion ni comision. La tarjeta se le
+      // pedira dentro de la app como garantia.
+      if (action === 'crear_cuenta_efectivo') {
+        const { nombre, email, meses, plan, importe, nota } = body;
+        if (!nombre || !email) return res.status(400).json({ error: 'Nombre y email obligatorios' });
+
+        const mesesNum = parseInt(meses, 10);
+        if (!MESES_EFECTIVO.includes(mesesNum)) {
+          return res.status(400).json({ error: 'Los meses deben ser 3, 6, 9 o 12' });
+        }
+        const planNorm = PLANES_VALIDOS.includes(String(plan || '').toLowerCase())
+          ? String(plan).toLowerCase() : 'premium';
+        const emailNorm = String(email).toLowerCase().trim();
+
+        // Si el email ya tiene cuenta NO se crea otra: se le extienden los meses.
+        // Crear una segunda dejaria al cliente con dos accesos y a ti sin saber
+        // cual es el bueno.
+        const dupR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(emailNorm)}&select=id,tienda_id&limit=1`, { headers: sbHeaders });
+        const dupArr = dupR.ok ? await dupR.json() : [];
+        if (dupArr.length && dupArr[0].tienda_id) {
+          return res.status(409).json({
+            error: 'Ese email ya tiene cuenta. Usa "Añadir meses" sobre ella en vez de crear otra.',
+            tienda_id: dupArr[0].tienda_id
+          });
+        }
+
+        const passwordPlano = generarPasswordAleatorio();
+        const passwordHash = await bcrypt.hash(passwordPlano, BCRYPT_ROUNDS);
+
+        const uR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios`, {
+          method: 'POST',
+          headers: { ...sbHeaders, 'Prefer': 'return=representation' },
+          body: JSON.stringify({
+            nombre: String(nombre).trim(), email: emailNorm,
+            password_hash_v2: passwordHash, rol: 'admin', activo: true
+          })
+        });
+        if (!uR.ok) {
+          console.error('crear_cuenta_efectivo usuarios:', uR.status, await uR.text());
+          return res.status(500).json({ error: 'No se pudo crear el usuario' });
+        }
+        const nuevoUserId = (await uR.json())[0]?.id;
+        if (!nuevoUserId) return res.status(500).json({ error: 'Usuario creado sin ID' });
+
+        // citas_slug es NOT NULL sin default: sin el, el INSERT muere con 23502.
+        // Mismo fallo que tumbo el registro (REG-12) y el alta de comerciales.
+        const _base = String(nombre).normalize('NFD').replace(/[^\x00-\x7f]/g, '')
+          .toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) || 'tienda';
+        const citasSlug = _base + '-' + crypto.randomBytes(3).toString('hex');
+
+        const ahora = new Date().toISOString();
+        const hasta = _sumarMeses(ahora, mesesNum);
+
+        const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas`, {
+          method: 'POST',
+          headers: { ...sbHeaders, 'Prefer': 'return=representation' },
+          body: JSON.stringify({
+            usuario_id: nuevoUserId,
+            nombre: String(nombre).trim(),
+            plan: planNorm,
+            plan_status: 'active',
+            plan_until: hasta,
+            plan_email: emailNorm,
+            cobro_manual: true,
+            citas_slug: citasSlug
+          })
+        });
+        if (!tR.ok) {
+          await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(nuevoUserId)}`, { method: 'DELETE', headers: sbHeaders });
+          console.error('crear_cuenta_efectivo tiendas (usuario revertido):', tR.status, await tR.text());
+          return res.status(500).json({ error: 'No se pudo crear la tienda' });
+        }
+        const nuevaTiendaId = (await tR.json())[0]?.id;
+
+        await fetch(`${SUPABASE_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(nuevoUserId)}`, {
+          method: 'PATCH', headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ tienda_id: nuevaTiendaId })
+        });
+
+        // El apunte del cobro es best-effort: si falla, la cuenta ya esta creada
+        // y el cliente ya ha pagado. Se avisa por consola y se sigue.
+        try {
+          await fetch(`${SUPABASE_URL}/rest/v1/cobros_efectivo`, {
+            method: 'POST', headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+            body: JSON.stringify({
+              tienda_id: nuevaTiendaId, meses: mesesNum,
+              importe: importe != null && importe !== '' ? Number(importe) : null,
+              plan: planNorm, desde: ahora.slice(0, 10), hasta: hasta.slice(0, 10),
+              nota: nota || null, creado_por: 'panel'
+            })
+          });
+        } catch (e) { console.warn('cobros_efectivo (falta sql/cuentas-efectivo.sql?):', e.message); }
+
+        return res.json({
+          ok: true, tienda_id: nuevaTiendaId, email: emailNorm,
+          password: passwordPlano, plan: planNorm, meses: mesesNum, hasta
+        });
+      }
+
+      // ═══ Anadir meses a una cuenta ya existente (te volvieron a pagar) ═══
+      if (action === 'extender_cuenta_efectivo') {
+        const { tienda_id, meses, importe, nota } = body;
+        if (!tienda_id) return res.status(400).json({ error: 'tienda_id obligatorio' });
+        const mesesNum = parseInt(meses, 10);
+        if (!MESES_EFECTIVO.includes(mesesNum)) {
+          return res.status(400).json({ error: 'Los meses deben ser 3, 6, 9 o 12' });
+        }
+
+        const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tienda_id)}&select=id,nombre,plan,plan_until,stripe_sub_id&limit=1`, { headers: sbHeaders });
+        const tArr = tR.ok ? await tR.json() : [];
+        if (!tArr.length) return res.status(404).json({ error: 'Tienda no encontrada' });
+        const t = tArr[0];
+
+        // Se suma sobre lo que le quedaba, no sobre hoy: si le quedaban 20 dias
+        // no se los puede comer la renovacion. Si ya estaba vencida, desde hoy.
+        const ahora = new Date();
+        const base = t.plan_until && new Date(t.plan_until) > ahora ? t.plan_until : ahora.toISOString();
+        const hasta = _sumarMeses(base, mesesNum);
+
+        const upR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tienda_id)}`, {
+          method: 'PATCH', headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+          body: JSON.stringify({
+            plan_until: hasta, plan_status: 'active', cobro_manual: true,
+            impago_desde: null, tarjeta_avisada_at: null
+          })
+        });
+        if (!upR.ok) {
+          console.error('extender_cuenta_efectivo:', upR.status, await upR.text());
+          return res.status(500).json({ error: 'No se pudieron añadir los meses' });
+        }
+
+        // Si ya tenia tarjeta guardada, se EMPUJA el cobro de Stripe hasta la
+        // nueva fecha. Es lo que hace que pagar en mano siga saliendo gratis:
+        // sin esto, Stripe cobraria igual el dia previsto y encima pagaria
+        // comision por un mes ya cobrado en efectivo.
+        let cobroEmpujado = false;
+        if (t.stripe_sub_id && process.env.STRIPE_SECRET_KEY) {
+          try {
+            const r = await fetch(`https://api.stripe.com/v1/subscriptions/${t.stripe_sub_id}`, {
+              method: 'POST',
+              headers: {
+                'Authorization': `Bearer ${process.env.STRIPE_SECRET_KEY}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
+              },
+              body: new URLSearchParams({
+                trial_end: String(Math.floor(new Date(hasta).getTime() / 1000)),
+                proration_behavior: 'none'
+              }).toString()
+            });
+            cobroEmpujado = r.ok;
+            if (!r.ok) console.error('empujar trial_end:', r.status, await r.text());
+          } catch (e) { console.error('empujar trial_end:', e.message); }
+        }
+
+        try {
+          await fetch(`${SUPABASE_URL}/rest/v1/cobros_efectivo`, {
+            method: 'POST', headers: { ...sbHeaders, 'Prefer': 'return=minimal' },
+            body: JSON.stringify({
+              tienda_id, meses: mesesNum,
+              importe: importe != null && importe !== '' ? Number(importe) : null,
+              plan: t.plan, desde: base.slice(0, 10), hasta: hasta.slice(0, 10),
+              nota: nota || null, creado_por: 'panel'
+            })
+          });
+        } catch (e) { console.warn('cobros_efectivo:', e.message); }
+
+        return res.json({ ok: true, tienda_id, hasta, cobro_empujado: cobroEmpujado, tenia_tarjeta: !!t.stripe_sub_id });
+      }
+
+      // ═══ Listado de cuentas en efectivo, para saber a quien toca visitar ═══
+      if (action === 'listar_cuentas_efectivo') {
+        let tiendas = [];
+        try {
+          const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?cobro_manual=eq.true&select=id,nombre,plan,plan_status,plan_until,plan_email,stripe_sub_id,telefono&order=plan_until.asc`, { headers: sbHeaders });
+          tiendas = r.ok ? await r.json() : [];
+        } catch (e) {
+          console.warn('listar_cuentas_efectivo (falta sql/cuentas-efectivo.sql?):', e.message);
+        }
+        const hoy = Date.now();
+        return res.json({
+          ok: true,
+          cuentas: tiendas.map(t => ({
+            ...t,
+            dias_restantes: t.plan_until ? Math.floor((new Date(t.plan_until) - hoy) / 86400000) : null,
+            tiene_tarjeta: !!t.stripe_sub_id
+          }))
         });
       }
 

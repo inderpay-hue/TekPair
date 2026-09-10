@@ -92,6 +92,31 @@ export function evaluarAcceso(t, now) {
   return { permitido: true };
 }
 
+
+// Estado del aviso de tarjeta para una cuenta pagada en mano.
+// Regla acordada: recordatorio omitible una vez al mes y, cuando quedan 2 meses
+// o menos, pantalla obligatoria. Se calcula en el servidor a proposito: si lo
+// decidiera el navegador, bastaria con tocar el JS para saltarselo.
+export const DIAS_TARJETA_OBLIGATORIA = 60;
+
+export function estadoTarjeta(t, now) {
+  const vacio = { pedir: false, obligatoria: false, dias: null };
+  if (!t || !t.cobro_manual) return vacio;          // solo cuentas de efectivo
+  if (t.stripe_sub_id || t.stripe_customer_id) return vacio;  // ya la tiene
+
+  const hasta = t.plan_until ? new Date(t.plan_until) : null;
+  if (!hasta || isNaN(hasta)) return vacio;
+  const dias = Math.floor((hasta - now) / 86400000);
+
+  if (dias <= DIAS_TARJETA_OBLIGATORIA) return { pedir: true, obligatoria: true, dias };
+
+  // Fuera del tramo obligatorio: se recuerda una vez al mes. Si nunca lo ha
+  // visto, se le ensena ya.
+  const visto = t.tarjeta_avisada_at ? new Date(t.tarjeta_avisada_at) : null;
+  const tocaOtraVez = !visto || isNaN(visto) || (now - visto) > 30 * 86400000;
+  return { pedir: tocaOtraVez, obligatoria: false, dias };
+}
+
 function _loc(msg, req) {
   const l = _apiLang(req);
   if (l === 'es') return msg;
@@ -328,6 +353,8 @@ export default async function handler(req, res) {
         trial_until: t.trial_until,
         dias_restantes: diasRestantes,
         tiene_stripe: !!t.stripe_customer_id,
+        cobro_manual: !!t.cobro_manual,
+        tarjeta: estadoTarjeta(t, new Date()),
         tienda_id: t.id,
         tienda_nombre: t.nombre
       });
@@ -338,6 +365,32 @@ export default async function handler(req, res) {
     }
   }
 
+
+  // ───────── Acción: omitir el aviso de la tarjeta ─────────
+  // Solo apunta la fecha. NO decide si se puede omitir: eso lo dice el servidor
+  // en estadoTarjeta(), asi que llamar a esto en el tramo obligatorio no sirve
+  // de nada — el aviso vuelve a salir en cuanto se recarga.
+  if (action === 'omitir-aviso-tarjeta') {
+    try {
+      const token = (req.body && req.body.token) || '';
+      if (!token) return res.status(401).json({ error: 'No token' });
+      const sR = await fetch(`${SB_URL}/rest/v1/sesiones?token=eq.${encodeURIComponent(token)}&select=tienda_id,expires_at&limit=1`, {
+        headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` }
+      });
+      const ses = await sR.json();
+      if (!ses.length) return res.status(401).json({ error: 'Sesión inválida' });
+      if (ses[0].expires_at && new Date(ses[0].expires_at) < new Date()) return res.status(401).json({ error: 'Sesión caducada' });
+      await fetch(`${SB_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(ses[0].tienda_id)}`, {
+        method: 'PATCH',
+        headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ tarjeta_avisada_at: new Date().toISOString() })
+      });
+      return res.json({ ok: true });
+    } catch (e) {
+      console.error('omitir-aviso-tarjeta:', e);
+      return res.status(500).json({ error: 'Error del servidor' });
+    }
+  }
 
   // ───────── Acción: renovar-jwt ─────────
   // Canjea el token de sesión (largo, ya guardado en el cliente) por un JWT fresco con
