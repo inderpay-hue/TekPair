@@ -183,6 +183,9 @@
       pintarCuentas();
       pintarCajaDia();
       actualizarBadgePendientes();
+      // Ensena la pestana del cuadre (solo admin) y el aviso de meses sin cuadrar.
+      // No se espera: si tarda o falla, la pantalla de Cajas ya esta usable.
+      cargarPendientesCuadre();
       pintarFranja7();
       actualizarLabelFecha();
     } catch (e) {
@@ -261,6 +264,11 @@
                 ${cierre ? T('cajas.ver_editar') : T('cajas.hacer_cierre')}
               </button>
               ${(cierre && (cierre.estado === 'cerrado' || cierre.estado === 'descuadre') && esAdminTienda()) ? `<button class="cajas-btn cajas-btn-sec" onclick="Cajas.reabrirCaja('${cierre.id}')" title="${T('cajas.reabrir_ayuda')}">🔓 ${T('cajas.reabrir')}</button>` : ''}
+              ${(cierre && (cierre.estado === 'cerrado' || cierre.estado === 'descuadre') && esAdminTienda())
+                ? (cierre.revisado_por
+                    ? `<button class="cajas-btn cajas-btn-sec" onclick="Cajas.marcarRevisado('${cierre.id}', false)" title="${T('cajas.vb_quitar_ayuda')}" style="color:#16a34a;font-weight:700;">✅ ${T('cajas.vb_hecho')}</button>`
+                    : `<button class="cajas-btn cajas-btn-sec" onclick="Cajas.marcarRevisado('${cierre.id}', true)" title="${T('cajas.vb_poner_ayuda')}">☑️ ${T('cajas.vb_revisar')}</button>`)
+                : ''}
               ${!cierre ? `<button class="cajas-btn cajas-btn-sec" onclick="Cajas.marcarFestivo('${caja.id}')" title="${T('cajas.marcar_festivo')}">🏖</button>` : ''}
             `}
             <button class="cajas-btn cajas-btn-sec" onclick="Cajas.editarCaja('${caja.id}')">⚙️</button>
@@ -1481,13 +1489,24 @@
         const waBtn = f.cliente_telefono
           ? `<button onclick="abrirWhatsAppFiado('${f.id}')" style="background:#25D366;color:#fff;border:0;padding:7px 10px;border-radius:8px;font-size:12px;cursor:pointer;" title="Avisar por WhatsApp">💬</button>`
           : '';
+        // Cobro rapido: el caso normal es que venga, pague TODO y en EFECTIVO.
+        // Un toque y listo, sin abrir el modal. El boton de al lado sigue
+        // llevando al modal para importes parciales o pago con tarjeta.
         acciones = `
           ${waBtn}
-          <button onclick="Cajas.cobrarFiado('${f.id}')" style="background:#10b981;color:#fff;border:0;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">✓ ${T('cajas.cobrar')}</button>
+          <button onclick="Cajas.cobroRapido('${f.id}')" title="${T('cajas.cobro_rapido_ayuda')}" style="background:#10b981;color:#fff;border:0;padding:7px 12px;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap;">⚡ ${T('cajas.cobro_rapido')}</button>
+          <button onclick="Cajas.cobrarFiado('${f.id}')" title="${T('cajas.cobrar_detalle')}" class="cobro-btn-sec">${T('cajas.otro')}</button>
           <button onclick="Cajas.editarCobro('${f.id}')" class="cobro-btn-sec">✏</button>
         `;
       } else {
-        acciones = `<div style="text-align:right;"><div style="color:#10b981;font-size:11px;font-weight:600;">${metodoIcon} Cobrado ${fechaCobro}</div><div class="cobro-meta">en ${metodoTxt}</div></div>`;
+        // Deshacer solo durante 24 h: el cobro rapido es de un toque y un roce en
+        // el movil no puede dejar una deuda por pagada sin marcha atras. Pasado
+        // ese plazo ya esta contabilizado y se corrige a mano.
+        const recien = f.fecha_cobro && (Date.now() - new Date(f.fecha_cobro).getTime()) < 24 * 3600 * 1000;
+        const btnDeshacer = recien
+          ? `<button onclick="Cajas.deshacerCobro('${f.id}')" class="cobro-btn-sec" style="margin-top:4px;" title="${T('cajas.deshacer_ayuda')}">↩ ${T('cajas.deshacer')}</button>`
+          : '';
+        acciones = `<div style="text-align:right;"><div style="color:#10b981;font-size:11px;font-weight:600;">${metodoIcon} Cobrado ${fechaCobro}</div><div class="cobro-meta">en ${metodoTxt}</div>${btnDeshacer}</div>`;
       }
 
       return `
@@ -2015,6 +2034,39 @@
   }
 
 
+
+  // Cobro de un toque: todo el importe, en efectivo. Sin confirmacion, que es
+  // justo la gracia; la red de seguridad es el boton de deshacer de 24 h.
+  async function cobroRapido(id) {
+    const f = Estado.cobros.find(x => x.id === id);
+    if (!f) return;
+    try {
+      await api('marcar_cobrado', {
+        method: 'POST',
+        body: { id, metodo_pago: 'efectivo', importe: Number(f.importe || 0) }
+      });
+      toast(T('cajas.cobro_rapido_ok').replace('{c}', eur(f.importe)), 'ok');
+      await cargarCobros();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  async function deshacerCobro(id) {
+    try {
+      await api('deshacer_cobro', { method: 'POST', body: { id } });
+      toast(T('cajas.deshecho'), 'ok');
+      await cargarCobros();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
+  // Visto bueno del admin sobre el cierre del dia que se esta viendo.
+  async function marcarRevisado(cierreId, revisado) {
+    try {
+      await api('marcar_revisado', { method: 'POST', body: { cierre_id: cierreId, revisado } });
+      toast(revisado === false ? T('cajas.vb_quitado') : T('cajas.vb_puesto'), 'ok');
+      await cargarCajas();
+    } catch (e) { toast(e.message, 'error'); }
+  }
+
   // ═══════════════════════════════════════════════════════════════════════
   // CUADRE DEL PERIODO (solo admin)
   // Compara lo que dice el sistema del proveedor con lo que tiene TekPair.
@@ -2311,6 +2363,9 @@
     quitarFiadoByKey,
     cambiarTab,
     cambiarSubTab,
+    cobroRapido,
+    deshacerCobro,
+    marcarRevisado,
     rangoCuadre,
     cargarCuadre,
     recalcularCuadre,

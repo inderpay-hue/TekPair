@@ -1167,6 +1167,9 @@ export default async function handler(req, res) {
           // Parcial: registro nuevo con lo cobrado + el original se queda con el resto.
           const _pagado = await sbPost('cajas_fiados', {
             tienda_id,
+            // Enlace con el original: sin el, esta fila es indistinguible de un
+            // cobro entero y deshacerla contaria la deuda dos veces.
+            parcial_de: id,
             caja_id: _orig.caja_id,
             compania_id: _orig.compania_id || null,
             cierre_id: _orig.cierre_id || null,
@@ -1245,7 +1248,7 @@ export default async function handler(req, res) {
           `cajas_cierres?tienda_id=eq.${encodeURIComponent(tienda_id)}`
           + `&fecha=gte.${encodeURIComponent(desde)}`
           + `&fecha=lte.${encodeURIComponent(hasta)}`
-          + `&select=fecha,estado,descuadre,caja_id&order=fecha.asc`
+          + `&select=fecha,estado,descuadre,caja_id,revisado_por&order=fecha.asc`
         );
 
         // 2) Fiados pendientes del periodo (para color amarillo)
@@ -1307,14 +1310,85 @@ export default async function handler(req, res) {
             dias[f] = {
               estado: estadoDia,
               descuadre: Number(c.descuadre || 0),
-              fiado: dias[f]?.fiado || 0
+              fiado: dias[f]?.fiado || 0,
+              revisado: dias[f]?.revisado
             };
           }
+          // Un dia solo cuenta como revisado si lo estan TODAS sus cajas: si una
+          // se queda sin mirar, el visto bueno del dia seria mentira.
+          const vb = !!c.revisado_por;
+          dias[f].revisado = dias[f].revisado === undefined ? vb : (dias[f].revisado && vb);
         }
 
         return ok(res, { dias });
       }
 
+
+
+
+      // Visto bueno del admin sobre un cierre: "lo he mirado y esta bien".
+      // Es un sello, no un candado: no bloquea nada ni impide reabrir el dia.
+      case 'marcar_revisado': {
+        if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
+        const { cierre_id, revisado } = req.body || {};
+        if (!cierre_id) return err(res, 400, 'cierre_id obligatorio');
+        const c = await sbGet(`cajas_cierres?id=eq.${encodeURIComponent(cierre_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id,caja_id,estado&limit=1`);
+        if (!c.length) return err(res, 404, 'Cierre no encontrado');
+        // Un dia en borrador todavia puede cambiar: dar el visto bueno ahi seria
+        // firmar algo que no esta terminado.
+        if (c[0].estado === 'abierto') return err(res, 400, 'Ese día aún está en borrador: ciérralo antes de darle el visto bueno');
+
+        const quitar = revisado === false;
+        try {
+          await sbPatch(
+            `cajas_cierres?id=eq.${encodeURIComponent(cierre_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
+            quitar
+              ? { revisado_por: null, revisado_at: null }
+              : { revisado_por: payload?.email || 'admin', revisado_at: new Date().toISOString() }
+          );
+        } catch (e) {
+          return err(res, 503, 'El visto bueno no está instalado todavía: falta correr sql/cajas-cuadres.sql');
+        }
+        return ok(res, { cierre_id, revisado: !quitar });
+      }
+
+      // Deshacer un cobro. Existe porque el cobro rapido es de un solo toque:
+      // sin marcha atras, un roce en el movil da una deuda por pagada.
+      // Solo dentro de las 24 h siguientes; pasado ese plazo se corrige a mano,
+      // que es lo sano para algo que ya esta contabilizado.
+      case 'deshacer_cobro': {
+        const { id } = req.body || {};
+        if (!id) return err(res, 400, 'id obligatorio');
+        const f = await sbGet(`cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&limit=1`);
+        if (!f.length) return err(res, 404, 'Cobro no encontrado');
+        const fi = f[0];
+        if (!(await puedeAccederCaja(payload, fi.caja_id))) return err(res, 403, 'Sin permiso para esta caja');
+        if (fi.estado !== 'cobrado') return err(res, 400, 'Ese apunte no está cobrado');
+
+        const cobradoEn = fi.fecha_cobro ? new Date(fi.fecha_cobro).getTime() : 0;
+        if (!cobradoEn || (Date.now() - cobradoEn) > 24 * 3600 * 1000) {
+          return err(res, 400, 'Solo se puede deshacer durante las 24 horas siguientes al cobro');
+        }
+
+        if (fi.parcial_de) {
+          // Era un abono parcial: se borra la fila y su importe vuelve al
+          // original, que se habia quedado solo con el resto.
+          const padre = await sbGet(`cajas_fiados?id=eq.${encodeURIComponent(fi.parcial_de)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id,importe&limit=1`);
+          if (!padre.length) return err(res, 400, 'No se encuentra el pendiente original de este abono');
+          const suma = Math.round((Number(padre[0].importe || 0) + Number(fi.importe || 0)) * 100) / 100;
+          await sbPatch(`cajas_fiados?id=eq.${encodeURIComponent(padre[0].id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`, { importe: suma });
+          await sbDelete(`cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
+          await recalcularCierreDeFiado(padre[0].id, tienda_id);
+          return ok(res, { devuelto_a: padre[0].id, importe: fi.importe });
+        }
+
+        await sbPatch(
+          `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
+          { estado: 'pendiente', metodo_pago: null, fecha_cobro: null, cobrado_por: null }
+        );
+        await recalcularCierreDeFiado(id, tienda_id);
+        return ok(res, { id });
+      }
 
       // ═══════════════════════════════════════════════════════════════════
       // CUADRE PERIODICO (envíos / recargas)
