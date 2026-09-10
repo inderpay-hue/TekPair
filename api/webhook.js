@@ -56,25 +56,25 @@ export default async function handler(req, res) {
     //     Útil si en el futuro pre-creas la tienda antes del Checkout y pasas
     //     tienda_id en checkout.session.metadata.tienda_id.
     if (metadataTiendaId) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(metadataTiendaId)}&select=id,plan_email,plan,plan_until&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(metadataTiendaId)}&select=id,plan_email,plan,plan_until,plan_status&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
     }
     // 2. Por stripe_sub_id (lo más fiable si ya está vinculado)
     if (subId) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_sub_id=eq.${encodeURIComponent(subId)}&select=id,plan_email,plan,plan_until&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_sub_id=eq.${encodeURIComponent(subId)}&select=id,plan_email,plan,plan_until,plan_status&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
     }
     // 3. Por stripe_customer_id
     if (customerId) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_customer_id=eq.${encodeURIComponent(customerId)}&select=id,plan_email,plan,plan_until&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_customer_id=eq.${encodeURIComponent(customerId)}&select=id,plan_email,plan,plan_until,plan_status&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
     }
     // 4. Por plan_email (fallback inicial cuando aún no se ha vinculado)
     if (email) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?plan_email=eq.${encodeURIComponent(email)}&select=id,plan_email,plan,plan_until&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?plan_email=eq.${encodeURIComponent(email)}&select=id,plan_email,plan,plan_until,plan_status&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
       // Fallback: buscar usuario admin por email y obtener su tienda
@@ -428,7 +428,17 @@ export default async function handler(req, res) {
           // la tienda mientras siga en el futuro.
           const yaTenia = tienda.plan_until && new Date(tienda.plan_until) > new Date()
             ? new Date(tienda.plan_until).toISOString() : null;
-          const hasta = finPeriodo(sub) || yaTenia || new Date().toISOString();
+          // El periodo por delante SOLO se respeta si estaba al corriente. Si la
+          // suscripción muere viniendo de un impago, ese periodo no está pagado:
+          // current_period_end sigue avanzando en Stripe aunque el recibo fallara, así
+          // que extenderlo regalaba semanas a quien nunca llegó a pagar (le paso a
+          // ZONA MOBIL: prueba agotada el 27-ago, cero pagos, y se le dio hasta el
+          // 27-sep). Lo que sí se respeta es un plan_until futuro ya guardado, que solo
+          // existe si en su día se cobró de verdad.
+          const veniaDeImpago = tienda.plan_status === 'past_due' || sub.status === 'unpaid';
+          const hasta = veniaDeImpago
+            ? (yaTenia || new Date().toISOString())
+            : (finPeriodo(sub) || yaTenia || new Date().toISOString());
           await updateTienda(tienda.id, {
             plan_status: 'cancelled',
             plan_until: hasta
