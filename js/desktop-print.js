@@ -25,16 +25,30 @@
     return inv(cmd, args);
   }
 
-  function tkListPrinters() {
+  // Windows trae de serie impresoras que no son impresoras (PDF, XPS, Fax). Si cuentan,
+  // nunca hay "una sola" y la app no puede configurarse sola nunca.
+  var TK_VIRTUALES = /print to pdf|xps document writer|^fax$|onenote|adobe pdf|pdf24|dopdf|cutepdf|imprimir en pdf|pdfcreator/i;
+
+  // Devuelve {lista, error}. El motivo del fallo NO se traga: cuando el IPC nativo
+  // falla (por ejemplo, un permiso que falta en la ACL de la app), el selector decía
+  // "No se detectaron impresoras instaladas en el sistema" — culpando al equipo del
+  // usuario de un fallo nuestro, que es el peor mensaje de error posible.
+  function tkListPrintersRaw() {
     return tkInvoke('list_printers').then(function (arr) {
-      return Array.isArray(arr) ? arr : [];
-    }).catch(function () { return []; });
+      return { lista: Array.isArray(arr) ? arr : [], error: null };
+    }).catch(function (e) {
+      return { lista: [], error: (e && e.message) ? e.message : String(e) };
+    });
+  }
+
+  function tkListPrinters() {
+    return tkListPrintersRaw().then(function (r) { return r.lista; });
   }
 
   var DEFAULT_KEY = 'tk_impresora_etq';
 
   // Selector de impresora minimalista (overlay propio, sin depender de los modales del SPA).
-  function _elegirImpresora(lista) {
+  function _elegirImpresora(lista, error) {
     return new Promise(function (resolve) {
       var bg = document.createElement('div');
       bg.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.6);z-index:2147483600;display:flex;align-items:center;justify-content:center;font-family:-apple-system,Segoe UI,Helvetica,Arial,sans-serif';
@@ -43,7 +57,11 @@
       var h = '<div style="font-weight:800;font-size:16px;margin-bottom:4px">Impresora de etiquetas</div>' +
         '<div style="font-size:12px;color:#64748b;margin-bottom:12px">Elige a qué impresora salen las etiquetas en esta app.</div>';
       if (!lista.length) {
-        h += '<div style="font-size:13px;color:#b91c1c;margin-bottom:12px">No se detectaron impresoras instaladas en el sistema.</div>';
+        h += '<div style="font-size:13px;color:#b91c1c;margin-bottom:12px">' +
+          (error
+            ? 'No se pudieron consultar las impresoras: ' + String(error).replace(/[&<>"]/g, '')
+            : 'No se detectaron impresoras instaladas en el sistema.') +
+          '</div>';
       } else {
         h += '<div id="tkPrinterList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:12px">';
         lista.forEach(function (name, i) {
@@ -72,8 +90,16 @@
     var saved = '';
     try { saved = localStorage.getItem(key) || ''; } catch (e) {}
     if (saved && !force) return Promise.resolve(saved);
-    return tkListPrinters().then(function (lista) {
-      return _elegirImpresora(lista).then(function (sel) {
+    return tkListPrintersRaw().then(function (r) {
+      var fisicas = r.lista.filter(function (n) { return !TK_VIRTUALES.test(String(n)); });
+      var cand = fisicas.length ? fisicas : r.lista;
+      // Con una sola impresora de verdad no hay nada que preguntar: preguntarlo solo
+      // añade un paso que el cajero tiene que resolver en mitad de una venta.
+      if (!force && cand.length === 1) {
+        try { localStorage.setItem(key, cand[0]); } catch (e) {}
+        return cand[0];
+      }
+      return _elegirImpresora(cand, r.error).then(function (sel) {
         if (sel) { try { localStorage.setItem(key, sel); } catch (e) {} }
         return sel;
       });
