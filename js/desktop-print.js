@@ -197,6 +197,126 @@
   }
   window.tkPrintTicket = tkPrintTicket;
 
+  // ─────────────────── Ticket por ESC/POS (texto crudo) ───────────────────
+  // El camino PNG (print_label → mspaint /pt) manda la imagen al tamaño que decide
+  // el driver: en una térmica de 80mm el ticket salía ocupando un tercio del papel.
+  // ESC/POS no tiene ese problema — 48 columnas SON los 80mm, siempre, sin depender
+  // del driver ni del DPI. Por eso los tickets de texto van por aquí y solo los
+  // documentos con logo o QR siguen yendo como imagen.
+  var TK_COLS = 48;
+  var _ESC = 0x1b, _GS = 0x1d, _LF = 0x0a;
+
+  // CP858 (la tabla que traen casi todas las térmicas) para que los acentos y el
+  // euro no salgan como interrogaciones.
+  var _CP858 = { 'á':0xa0,'é':0x82,'í':0xa1,'ó':0xa2,'ú':0xa3,'ü':0x81,'ñ':0xa4,
+    'Á':0xb5,'É':0x90,'Í':0xd6,'Ó':0xe0,'Ú':0xe9,'Ñ':0xa5,'ç':0x87,'Ç':0x80,
+    '¿':0xa8,'¡':0xad,'€':0xd5,'·':0xfa,'º':0xa7,'ª':0xa6 };
+
+  function _tkBytes(s) {
+    var out = [];
+    String(s == null ? '' : s).split('').forEach(function (c) {
+      if (_CP858[c] != null) out.push(_CP858[c]);
+      else if (c.charCodeAt(0) < 128) out.push(c.charCodeAt(0));
+      else out.push(0x3f);
+    });
+    return out;
+  }
+
+  // Línea con texto a la izquierda y a la derecha. Si no caben juntos, se recorta
+  // la izquierda: el importe de la derecha nunca se pierde.
+  function _tkFila(izq, der, cols) {
+    cols = cols || TK_COLS;
+    var L = String(izq == null ? '' : izq), R = String(der == null ? '' : der);
+    if (L.length + R.length + 1 > cols) L = L.slice(0, Math.max(0, cols - R.length - 1));
+    var hueco = cols - L.length - R.length;
+    return L + new Array(Math.max(1, hueco) + 1).join(' ') + R;
+  }
+
+  function _tkCentro(s, cols) {
+    cols = cols || TK_COLS;
+    var t = String(s == null ? '' : s);
+    if (t.length >= cols) return t.slice(0, cols);
+    return new Array(Math.floor((cols - t.length) / 2) + 1).join(' ') + t;
+  }
+
+  /* Construye los bytes de un ticket a partir de una estructura simple:
+     { cabecera: ['NOMBRE','dir','tel'], datos: [[izq,der]...], lineas: [[izq,der]...],
+       sumas: [[izq,der]...], total: [izq,der], pie: ['...'] }
+     Cualquier bloque puede faltar. */
+  function tkTicketESC(doc) {
+    doc = doc || {};
+    var b = [];
+    var put = function (arr) { arr.forEach(function (x) { b.push(x); }); };
+    var txt = function (s) { put(_tkBytes(s)); b.push(_LF); };
+    var hr = function () { txt(new Array(TK_COLS + 1).join('-')); };
+
+    put([_ESC, 0x40]);            // init
+    put([_ESC, 0x74, 19]);        // CP858
+
+    var cab = doc.cabecera || [];
+    if (cab.length) {
+      put([_ESC, 0x61, 1]);                       // centrado
+      put([_ESC, 0x45, 1]); put([_GS, 0x21, 0x01]); // negrita + doble alto
+      txt(cab[0]);
+      put([_GS, 0x21, 0x00]);
+      for (var i = 1; i < cab.length; i++) txt(cab[i]);
+      put([_ESC, 0x45, 0]);
+      put([_ESC, 0x61, 0]);                       // izquierda
+    }
+
+    if ((doc.datos || []).length) {
+      hr();
+      doc.datos.forEach(function (f) { txt(_tkFila(f[0], f[1])); });
+    }
+    if ((doc.lineas || []).length) {
+      hr();
+      doc.lineas.forEach(function (f) { txt(_tkFila(f[0], f[1])); });
+    }
+    if ((doc.sumas || []).length) {
+      hr();
+      doc.sumas.forEach(function (f) { txt(_tkFila(f[0], f[1])); });
+    }
+    if (doc.total) {
+      hr();
+      put([_ESC, 0x45, 1]); put([_GS, 0x21, 0x01]);
+      // En doble ancho caben la mitad de columnas; si no, el importe se saldría.
+      txt(_tkFila(doc.total[0], doc.total[1], Math.floor(TK_COLS / 2)));
+      put([_GS, 0x21, 0x00]); put([_ESC, 0x45, 0]);
+    }
+    if ((doc.pie || []).length) {
+      hr();
+      put([_ESC, 0x61, 1]);
+      doc.pie.forEach(function (l) { txt(l); });
+      put([_ESC, 0x61, 0]);
+    }
+
+    put([_ESC, 0x64, 4]);         // avanzar para que el corte no se coma el pie
+    put([_GS, 0x56, 0x42, 0x00]); // cortar
+    return b;
+  }
+  window.tkTicketESC = tkTicketESC;
+
+  // Imprime un ticket de texto por ESC/POS. Si no estamos en la app, no hay
+  // impresora elegida o el envío falla, llama al fallback (el método del navegador).
+  function tkPrintTicketESC(doc, fallbackFn) {
+    var fall = function () { if (typeof fallbackFn === 'function') fallbackFn(); };
+    if (!tkIsDesktop()) { fall(); return Promise.resolve(false); }
+    return tkGetPrinter(false, 'tk_impresora_ticket').then(function (impresora) {
+      if (!impresora) { fall(); return false; }
+      return tkInvoke('print_raw', { printer: impresora, data: tkTicketESC(doc) })
+        .then(function () {
+          if (typeof toast === 'function') toast('🖨️ Ticket → ' + impresora, 'ok');
+          return true;
+        })
+        .catch(function (err) {
+          if (typeof toast === 'function') toast('Error al imprimir: ' + (err && err.message ? err.message : err), 'err');
+          fall();
+          return false;
+        });
+    }).catch(function () { fall(); return false; });
+  }
+  window.tkPrintTicketESC = tkPrintTicketESC;
+
   // Pulso de apertura del cajón portamonedas (ESC/POS). No imprime nada: son doce
   // bytes que la impresora reenvía al conector RJ11 del cajón. Si no hay cajón
   // conectado, la impresora los ignora y no pasa nada — ni papel, ni error.

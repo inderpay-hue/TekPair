@@ -1849,7 +1849,12 @@ function cobrar() {
   updateCaja();
 }
 
+// Última venta mostrada: el botón Imprimir necesita los datos crudos (no el HTML)
+// para poder mandar el ticket por ESC/POS.
+var _ultimaVenta = null, _ultimosTotals = null;
+
 function mostrarTicket(venta, totals) {
+  _ultimaVenta = venta; _ultimosTotals = totals;
   // FIX TPV-2: escapar todo el contenido del ticket para evitar XSS
   var logoBlock = TIENDA.logo_url
     ? '<div style="text-align:center;margin-bottom:6px"><img src="' + escHtml(TIENDA.logo_url) + '" alt="" style="max-height:50px;max-width:200px;object-fit:contain"></div>'
@@ -1914,13 +1919,67 @@ var _TICKET_CSS = '*{box-sizing:border-box}' +
   '.ticket-footer span{font-size:12px!important;color:#000!important}' +
   '.ticket-logo{text-align:center;font-size:20px;font-weight:900;margin-bottom:4px}';
 
+// Monta el ticket como DATOS (no como HTML) para poder mandarlo por ESC/POS, que
+// es lo único que garantiza que ocupe los 80mm del papel.
+function _ticketDoc() {
+  var v = _ultimaVenta, t = _ultimosTotals;
+  if (!v || !t) return null;
+  var eur = function (n) { return '€' + (parseFloat(n) || 0).toFixed(2); };
+  var cab = [];
+  cab.push(TIENDA.nombre || 'Tekpair');
+  if (TIENDA.dir) cab.push(TIENDA.dir);
+  if (TIENDA.tel) cab.push(T('tpv.tk_tel') + TIENDA.tel);
+
+  var datos = [
+    [T('pres.doc_fecha'), v.fecha],
+    [T('pres.doc_cliente'), v.clienteNombre],
+    [T('tpv.tk_pago'), v.pago]
+  ];
+
+  var lineas = [];
+  (v.items || []).forEach(function (item) {
+    lineas.push([item.nombre + ' x' + item.qty, eur(item.precio * item.qty)]);
+    var d = descLineaImporte(item);
+    if (d > 0) {
+      lineas.push(['  ' + T('tpv.descuento_2') + (item.descTipo === 'pct' ? ' ' + item.desc + '%' : ''), '-' + eur(d)]);
+    }
+  });
+
+  // Mismos criterios que el ticket en pantalla, para que digan lo mismo.
+  var ivaOn = !!(t.ivaTipo && t.ivaModo && t.ivaModo !== 'sin');
+  var sumas = [];
+  if (t.disc > 0) {
+    sumas.push([T('tpv.subtotal'), eur(t.subtotal)]);
+    sumas.push([T('tpv.descuento_2'), '-' + eur(t.disc)]);
+  }
+  if (ivaOn && t.base > 0) {
+    sumas.push([T('pres.doc_base_imponible'), eur(t.base)]);
+    sumas.push([T('tpv.iva_pct').replace('{p}', t.ivaTipo), eur(t.ivaImporte)]);
+  }
+
+  var pie = [T('tpv.gracias_compra')];
+  if (TIENDA.garantiaVentas) pie.push(TIENDA.garantiaVentas);
+  if (TIENDA.politicaVentas) pie.push(TIENDA.politicaVentas);
+
+  return {
+    cabecera: cab,
+    datos: datos,
+    lineas: lineas,
+    sumas: sumas,
+    total: ['TOTAL' + (t.ivaModo === 'incluido' ? ' ' + T('tpv.iva_inc') : ''), eur(t.total)],
+    pie: pie
+  };
+}
+
 function imprimirTicket() {
   var content = document.getElementById('ticketContent').innerHTML;
   var html = '<html><head><meta charset="utf-8"><title>Ticket</title><style>' + _TICKET_CSS + '</style></head><body>' + content + '</body></html>';
-  // Dentro de la app de escritorio sale directo a la impresora, sin diálogo.
-  // Si falla (o estamos en el navegador), se vuelve a la ventana de impresión.
-  if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintTicket === 'function') {
-    tkPrintTicket(html, 80, function () { _ticketPopup(html); });
+  // Dentro de la app de escritorio sale directo a la impresora por ESC/POS, sin
+  // diálogo y ocupando el ancho real del papel. Si algo falla (o estamos en el
+  // navegador), se vuelve a la ventana de impresión de siempre.
+  var doc = (typeof tkPrintTicketESC === 'function') ? _ticketDoc() : null;
+  if (doc && typeof tkIsDesktop === 'function' && tkIsDesktop()) {
+    tkPrintTicketESC(doc, function () { _ticketPopup(html); });
     return;
   }
   _ticketPopup(html);
