@@ -7219,9 +7219,6 @@ function guardarVenta() {
     var montoCuota = Math.round((pendiente / numCuotas) * 100) / 100;
     cuotas = [];
     for (var i = 0; i < numCuotas; i++) {
-      var fechaCuota = new Date();
-      fechaCuota.setMonth(fechaCuota.getMonth() + i + 1);
-      fechaCuota.setDate(diaPago);
       var importeCuota = montoCuota;
       if (i === numCuotas - 1) {
         // Última cuota: ajustar para que la suma cuadre exactamente
@@ -7230,7 +7227,7 @@ function guardarVenta() {
       cuotas.push({
         num: i + 1,
         importe: importeCuota,
-        fecha: fechaCuota.toISOString().slice(0,10),
+        fecha: _fechaCuota(i + 1, diaPago),
         pagado: false,
         formaPago: '',
         fechaPago: ''
@@ -9918,6 +9915,24 @@ function calcFinRep() {
   prev.textContent = n + ' × ' + cur(porCuota) + ' = ' + cur(pendiente);
 }
 
+// Fecha de la cuota que vence dentro de `meses`, en el día de pago elegido.
+//
+// El día se pone a 1 ANTES de mover el mes a propósito: si la venta se hace un 31 y
+// el mes destino no tiene 31 días, setMonth desborda al siguiente (31 de febrero →
+// 3 de marzo) y la cuota acababa en un mes equivocado — salían dos cuotas el mismo
+// día y un mes entero sin cobrar. Pasaba en los días 29, 30 y 31.
+//
+// Y se formatea en local en vez de con toISOString(), que convierte a UTC: una venta
+// hecha de madrugada en España fechaba las cuotas el día anterior al elegido.
+function _fechaCuota(meses, diaPago) {
+  var f = new Date();
+  f.setDate(1);
+  f.setMonth(f.getMonth() + meses);
+  var ultimoDia = new Date(f.getFullYear(), f.getMonth() + 1, 0).getDate();
+  f.setDate(Math.min(Math.max(1, parseInt(diaPago, 10) || 1), ultimoDia));
+  return f.getFullYear() + '-' + String(f.getMonth() + 1).padStart(2, '0') + '-' + String(f.getDate()).padStart(2, '0');
+}
+
 // Genera el array de cuotas a partir de los campos del formulario (mismo modelo que ventas)
 function generarCuotasRep(total) {
   var entrada = parseFloat(document.getElementById('rFinEntrada').value) || 0;
@@ -9928,11 +9943,8 @@ function generarCuotasRep(total) {
   var montoCuota = Math.round((pendiente / n) * 100) / 100;
   var cuotas = [];
   for (var i = 0; i < n; i++) {
-    var fc = new Date();
-    fc.setMonth(fc.getMonth() + i + 1);
-    fc.setDate(diaPago);
     var imp = (i === n - 1) ? Math.round((pendiente - montoCuota * (n - 1)) * 100) / 100 : montoCuota;
-    cuotas.push({ num: i + 1, importe: imp, fecha: fc.toISOString().slice(0, 10), pagado: false, formaPago: '', fechaPago: '' });
+    cuotas.push({ num: i + 1, importe: imp, fecha: _fechaCuota(i + 1, diaPago), pagado: false, formaPago: '', fechaPago: '' });
   }
   return cuotas;
 }
