@@ -196,4 +196,27 @@
     tkPrintHTML(fullHtml, { wmm: wmm || 80, hmm: null, printerKey: 'tk_impresora_ticket', label: 'Ticket', fallback: fallbackFn });
   }
   window.tkPrintTicket = tkPrintTicket;
+
+  // Pulso de apertura del cajón portamonedas (ESC/POS). No imprime nada: son doce
+  // bytes que la impresora reenvía al conector RJ11 del cajón. Si no hay cajón
+  // conectado, la impresora los ignora y no pasa nada — ni papel, ni error.
+  // Se mandan los dos pines porque el cableado varía según el fabricante del cajón.
+  function tkAbrirCajon(key) {
+    if (!tkIsDesktop()) return Promise.resolve(false);
+    var impresora = '';
+    try { impresora = localStorage.getItem(key || 'tk_impresora_ticket') || ''; } catch (e) {}
+    // Sin impresora elegida NO se abre el selector: el cajón no justifica
+    // interrumpir un cobro con una pregunta. Se abrirá a partir del primer ticket.
+    if (!impresora) return Promise.resolve(false);
+    var ESC = 0x1b;
+    var bytes = [
+      ESC, 0x40,                    // init
+      ESC, 0x70, 0x00, 0x32, 0xFA,  // pin 2
+      ESC, 0x70, 0x01, 0x32, 0xFA   // pin 5
+    ];
+    return tkInvoke('print_raw', { printer: impresora, data: bytes })
+      .then(function () { return true; })
+      .catch(function () { return false; });
+  }
+  window.tkAbrirCajon = tkAbrirCajon;
 })();
