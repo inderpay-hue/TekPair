@@ -10527,7 +10527,7 @@ function trackingTicket() {
     '@page { size: 80mm auto; margin: 0; }' +
     '*{box-sizing:border-box}' +
     'html,body{width:80mm}' +
-    'body{font-family:Arial,Helvetica,sans-serif;width:80mm;margin:0;padding:2mm 5mm 12mm;color:#000;font-size:13px;font-weight:700;line-height:1.35;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}' +
+    'body{font-family:Arial,Helvetica,sans-serif;width:80mm;margin:0;padding:2mm 1.5mm 6mm;color:#000;font-size:13px;font-weight:700;line-height:1.35;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}' +
     'body *{color:#000!important}' +
     '.c{text-align:center}' +
     '.logo-img{text-align:center;margin-bottom:4px}' +
@@ -10625,17 +10625,21 @@ function trackingTicket() {
     '<style>@media print{.npbar{display:none!important}}</style>' +
     '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:13px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
     '</body></html>';
-  // Por ESC/POS, como el ticket del TPV: la impresora compone el texto y dibuja el QR
-  // ella misma, asi que ocupa el ancho exacto del papel. El camino PNG pasa por
-  // mspaint, que reescala la imagen y le mete sus propios margenes — ese era el motivo
-  // de que el resguardo saliera con margenes enormes y el de Bipe (que ya va por
-  // ESC/POS) saliera bien en la MISMA impresora.
-  if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintTicketESC === 'function') {
-    var docESC = _resguardoESC(r, url);
-    if (docESC) {
-      tkPrintTicketESC(docESC, function () { _docPopupImprimir(html, 400, 820); });
-      return;
-    }
+  // Se manda el DISEÑO (tipografia, logo, QR) convertido a mapa de bits ESC/POS y
+  // enviado crudo: la impresora lo pinta punto por punto, sin driver y sin reescalar.
+  // Lo que arruinaba el resguardo no era el PNG, era `mspaint /pt` (el camino
+  // print_label), que reescala la imagen y le mete sus propios margenes — por eso
+  // tocar el CSS no cambiaba nada en el papel.
+  // Respaldo en cascada: imagen cruda → texto ESC/POS → diálogo del navegador.
+  if (typeof tkIsDesktop === 'function' && tkIsDesktop()) {
+    var alPopup = function () { _docPopupImprimir(html, 400, 820); };
+    var aTexto = function () {
+      var docESC = typeof tkPrintTicketESC === 'function' ? _resguardoESC(r, url) : null;
+      if (docESC) tkPrintTicketESC(docESC, alPopup); else alPopup();
+    };
+    if (typeof tkPrintImagenESC === 'function') { tkPrintImagenESC(html, 80, aTexto); return; }
+    aTexto();
+    return;
   }
   // Sin app de escritorio: ventana de impresion de siempre.
   _docPopupImprimir(html, 400, 820);

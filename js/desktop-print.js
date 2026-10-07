@@ -391,6 +391,82 @@
   }
   window.tkPrintTicketESC = tkPrintTicketESC;
 
+  // ───────── Documento con diseño, pero a tamaño exacto (imagen ESC/POS) ─────────
+  // El camino PNG tradicional (print_label) acaba en `mspaint /pt`, que reescala la
+  // imagen a su criterio y añade sus propios márgenes: por eso el resguardo salía más
+  // pequeño que el papel y descentrado, y por eso tocar el CSS no cambiaba nada.
+  // Aquí la imagen se convierte a mapa de bits ESC/POS (GS v 0) y se manda cruda:
+  // la impresora la pinta punto por punto, sin driver y sin reescalar. Así se conserva
+  // la tipografía, el logo y el QR del diseño, pero el ancho es exacto.
+  var TK_DOTS = 576;    // puntos del cabezal de una térmica de 80mm (72mm útiles a 203ppp)
+  var TK_UMBRAL = 180;  // por debajo de esta luminancia, el punto se imprime negro
+
+  function _canvasAEscPos(canvas, dots) {
+    dots = dots || TK_DOTS;
+    var anchoBytes = Math.floor(dots / 8);
+    dots = anchoBytes * 8;
+    // Reescalado al ancho del cabezal conservando la proporción. Se hace aquí, con
+    // suavizado, para que el texto llegue nítido al umbral de 1 bit.
+    var alto = Math.max(1, Math.round(canvas.height * dots / Math.max(1, canvas.width)));
+    var c2 = document.createElement('canvas');
+    c2.width = dots; c2.height = alto;
+    var cx = c2.getContext('2d');
+    cx.fillStyle = '#ffffff'; cx.fillRect(0, 0, dots, alto);
+    cx.imageSmoothingEnabled = true;
+    try { cx.imageSmoothingQuality = 'high'; } catch (e) {}
+    cx.drawImage(canvas, 0, 0, dots, alto);
+    var px = cx.getImageData(0, 0, dots, alto).data;
+    var bytes = [0x1b, 0x40];              // init
+    // Se trocea en bandas: un GS v 0 con miles de filas desborda el buffer de muchas
+    // impresoras y el trabajo sale cortado o no sale.
+    var BANDA = 128;
+    for (var y0 = 0; y0 < alto; y0 += BANDA) {
+      var filas = Math.min(BANDA, alto - y0);
+      bytes.push(0x1d, 0x76, 0x30, 0x00,
+        anchoBytes & 0xff, (anchoBytes >> 8) & 0xff,
+        filas & 0xff, (filas >> 8) & 0xff);
+      for (var y = 0; y < filas; y++) {
+        var fila = (y0 + y) * dots;
+        for (var b = 0; b < anchoBytes; b++) {
+          var byte = 0;
+          for (var bit = 0; bit < 8; bit++) {
+            var i = (fila + b * 8 + bit) * 4;
+            // Lo transparente cuenta como papel blanco, no como tinta.
+            var lum = px[i + 3] < 128 ? 255
+              : (px[i] * 0.299 + px[i + 1] * 0.587 + px[i + 2] * 0.114);
+            if (lum < TK_UMBRAL) byte |= (0x80 >> bit);
+          }
+          bytes.push(byte);
+        }
+      }
+    }
+    bytes.push(0x1b, 0x64, 0x03);          // avanza para que el corte no muerda el pie
+    bytes.push(0x1d, 0x56, 0x42, 0x00);    // corte
+    return bytes;
+  }
+
+  // Imprime un documento HTML conservando su diseño, a tamaño exacto del papel.
+  // Cadena de respaldo: si esto falla, el llamante decide (texto ESC/POS o diálogo).
+  function tkPrintImagenESC(fullHtml, wmm, fallbackFn) {
+    var fall = function () { if (typeof fallbackFn === 'function') fallbackFn(); };
+    if (!tkIsDesktop()) { fall(); return Promise.resolve(false); }
+    return tkGetPrinter(false, 'tk_impresora_ticket').then(function (impresora) {
+      if (!impresora) { fall(); return false; }
+      return _htmlACanvas(fullHtml, wmm || 80, null).then(function (canvas) {
+        return tkInvoke('print_raw', { printer: impresora, data: _canvasAEscPos(canvas) })
+          .then(function () {
+            if (typeof toast === 'function') toast('🖨️ Ticket → ' + impresora, 'ok');
+            return true;
+          });
+      }).catch(function (err) {
+        if (typeof console !== 'undefined') console.warn('[tk] imagen ESC/POS falló:', err);
+        fall();
+        return false;
+      });
+    }).catch(function () { fall(); return false; });
+  }
+  window.tkPrintImagenESC = tkPrintImagenESC;
+
   // Pulso de apertura del cajón portamonedas (ESC/POS). No imprime nada: son doce
   // bytes que la impresora reenvía al conector RJ11 del cajón. Si no hay cajón
   // conectado, la impresora los ignora y no pasa nada — ni papel, ni error.
