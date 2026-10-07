@@ -134,6 +134,15 @@
         document.body.appendChild(ifr);
         var doc = ifr.contentWindow.document;
         doc.open(); doc.write(fullHtml); doc.close();
+        // html2canvas rasteriza el documento como PANTALLA: las reglas @media print NO se
+        // aplican. Los avisos pensados para el navegador ("pon Escala 100%...") se ocultan
+        // con @media print y por eso acababan IMPRESOS en el papel. Se quitan a mano antes
+        // de rasterizar, y de paso vale para todos los documentos que salen por esta vía.
+        try {
+          doc.querySelectorAll('.npbar, .npb, [data-screen-only]').forEach(function (el) {
+            el.style.display = 'none';
+          });
+        } catch (e) {}
         // Espera a que el layout y las imágenes (QR/logo) estén listas.
         setTimeout(function () {
           html2canvas(doc.body, { scale: 3, backgroundColor: '#ffffff', logging: false, windowWidth: doc.body.scrollWidth, windowHeight: doc.body.scrollHeight })

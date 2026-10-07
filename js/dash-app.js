@@ -10525,28 +10525,31 @@ function trackingTicket() {
   var html =
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + T('tk.doc_title') + '</title><style>' +
     '@page { size: 80mm auto; margin: 0; }' +
-    'body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:80mm;margin:0;padding:5mm 4mm;color:#000;font-size:10.5px;line-height:1.35}' +
+    '*{box-sizing:border-box}' +
+    'html,body{width:80mm}' +
+    'body{font-family:Arial,Helvetica,sans-serif;width:80mm;margin:0;padding:2mm 4mm 14mm;color:#000;font-size:13px;font-weight:700;line-height:1.35;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}' +
+    'body *{color:#000!important}' +
     '.c{text-align:center}' +
     '.logo-img{text-align:center;margin-bottom:4px}' +
     '.logo-img img{max-width:50mm;max-height:18mm;object-fit:contain}' +
-    '.h1{font-size:15px;font-weight:800;margin:0;letter-spacing:.3px}' +
-    '.h2{font-size:10px;color:#444;margin:1px 0}' +
-    '.line{border-top:1px dashed #000;margin:7px 0}' +
+    '.h1{font-size:19px;font-weight:800;margin:0;letter-spacing:.3px}' +
+    '.h2{font-size:12px;color:#000;margin:1px 0}' +
+    '.line{border-top:2px dashed #000;margin:7px 0}' +
     '.line-solid{border-top:1px solid #000;margin:7px 0}' +
     '.row{display:flex;justify-content:space-between;margin:1.5px 0;gap:6px}' +
-    '.lbl{color:#555;flex-shrink:0}' +
+    '.lbl{color:#000;flex-shrink:0}' +
     '.val{font-weight:600;text-align:right;word-break:break-word}' +
     '.qr{text-align:center;margin:8px 0 4px}' +
     '.qr img{width:55mm;height:55mm}' +
-    '.foot{font-size:8.5px;color:#444;text-align:center;margin-top:6px;line-height:1.3}' +
+    '.foot{font-size:12px;color:#000;text-align:center;margin-top:6px;line-height:1.3}' +
     '.title-rep{font-size:13px;font-weight:800;margin:5px 0 5px;letter-spacing:.5px}' +
-    '.box{border:1px solid #000;padding:5px 6px;border-radius:3px;margin:5px 0;font-size:10px;line-height:1.3}' +
-    '.terms{margin-top:6px;font-size:8px;line-height:1.35;color:#222}' +
-    '.terms .t-title{font-weight:800;font-size:9px;margin:4px 0 2px;text-align:center;letter-spacing:.5px}' +
+    '.box{border:1px solid #000;padding:5px 6px;border-radius:3px;margin:5px 0;font-size:12px;line-height:1.3}' +
+    '.terms{margin-top:6px;font-size:12px;line-height:1.35;color:#222}' +
+    '.terms .t-title{font-weight:800;font-size:12px;margin:4px 0 2px;text-align:center;letter-spacing:.5px}' +
     '.terms .t-row{margin:1.5px 0}' +
     '.terms .t-row strong{font-weight:700}' +
-    '.link-cond{text-align:center;font-size:8.5px;font-weight:700;margin-top:4px;padding:3px;border:1px dashed #000}' +
-    '.aviso{text-align:center;font-size:8px;font-style:italic;margin-top:4px;color:#444}' +
+    '.link-cond{text-align:center;font-size:12px;font-weight:700;margin-top:4px;padding:3px;border:1px dashed #000}' +
+    '.aviso{text-align:center;font-size:12px;font-style:italic;margin-top:4px;color:#000}' +
     '</style></head><body>' +
 
     logoBlock +
@@ -10558,11 +10561,11 @@ function trackingTicket() {
     '<div class="line"></div>' +
     '<div class="title-rep c">' + T('tk.resguardo') + '</div>' +
 
-    '<div class="row"><span class="lbl">' + T('tk.num') + '</span><span class="val" style="font-family:monospace;font-size:9px">' + esc(r.id) + '</span></div>' +
+    '<div class="row"><span class="lbl">' + T('tk.num') + '</span><span class="val" style="font-family:monospace;font-size:12px">' + esc(r.id) + '</span></div>' +
     '<div class="row"><span class="lbl">' + T('pres.doc_fecha_firma') + '</span><span class="val">' + fmtFecha(r.fecha) + '</span></div>' +
     '<div class="row"><span class="lbl">' + T('tk.cliente') + '</span><span class="val">' + esc(r.clienteNombre) + '</span></div>' +
     '<div class="row"><span class="lbl">' + T('tk.equipo') + '</span><span class="val">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</span></div>' +
-    (r.imei ? '<div class="row"><span class="lbl">IMEI/SN</span><span class="val" style="font-family:monospace;font-size:9px">' + esc(r.imei) + '</span></div>' : '') +
+    (r.imei ? '<div class="row"><span class="lbl">IMEI/SN</span><span class="val" style="font-family:monospace;font-size:12px">' + esc(r.imei) + '</span></div>' : '') +
     '<div class="box"><strong>' + T('tk.averia_servicio') + '</strong><br>' + esc(r.averia || '') + '</div>' +
     (r.fechaEntrega ? '<div class="row"><span class="lbl">' + T('tk.fecha_estimada') + '</span><span class="val">' + esc(r.fechaEntrega) + '</span></div>' : '') +
     (r.anticipo ? '<div class="row"><span class="lbl">' + T('tk.anticipo') + '</span><span class="val">' + cur(r.anticipo) + '</span></div>' : '') +
@@ -10578,8 +10581,8 @@ function trackingTicket() {
 
     '<div class="line"></div>' +
 
-    '<div class="qr"><strong style="font-size:10px">' + T('tk.sigue_online') + '</strong>' + qrSvg +
-    '<div style="font-size:8.5px;color:#444;margin-top:2px">' + T('tk.escanea') + '</div></div>' +
+    '<div class="qr"><strong style="font-size:12px">' + T('tk.sigue_online') + '</strong>' + qrSvg +
+    '<div style="font-size:12px;color:#000;margin-top:2px">' + T('tk.escanea') + '</div></div>' +
 
     '<div class="line"></div>' +
 
@@ -10616,11 +10619,11 @@ function trackingTicket() {
 
     '<div class="line"></div>' +
 
-    '<div class="c" style="font-size:9px">' + T('tk.conserve') + '</div>' +
-    '<div class="c" style="font-size:9px;color:#888;margin-top:6px;border-top:1px dashed #ccc;padding-top:4px">' + T('tkt.generado') + '</div>' +
+    '<div class="c" style="font-size:12px">' + T('tk.conserve') + '</div>' +
+    '<div class="c" style="font-size:12px;color:#000;margin-top:6px;border-top:2px dashed #000;padding-top:4px">' + T('tkt.generado') + '</div>' +
 
     '<style>@media print{.npbar{display:none!important}}</style>' +
-    '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:11px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
+    '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:13px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
     '</body></html>';
   if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintTicket === 'function') {
     tkPrintTicket(html, 80, function () { _docPopupImprimir(html, 400, 820); });

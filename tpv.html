@@ -1878,8 +1878,8 @@ function mostrarTicket(venta, totals) {
   var html = '<div class="ticket">' +
     logoBlock +
     (TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:4px">' + escHtml(TIENDA.nombre) + '</div>' : '') +
-    (TIENDA.dir ? '<div style="text-align:center;font-size:10px;color:#666">' + escHtml(TIENDA.dir) + '</div>' : '') +
-    (TIENDA.tel ? '<div style="text-align:center;font-size:10px;color:#666">' + T('tpv.tk_tel') + escHtml(TIENDA.tel) + '</div>' : '') +
+    (TIENDA.dir ? '<div style="text-align:center;font-size:12px;color:#000">' + escHtml(TIENDA.dir) + '</div>' : '') +
+    (TIENDA.tel ? '<div style="text-align:center;font-size:12px;color:#000">' + T('tpv.tk_tel') + escHtml(TIENDA.tel) + '</div>' : '') +
     '<hr class="ticket-sep">' +
     '<div class="ticket-row"><span>' + T('pres.doc_fecha') + '</span><span>' + escHtml(venta.fecha) + '</span></div>' +
     '<div class="ticket-row"><span>' + T('pres.doc_cliente') + '</span><span>' + escHtml(venta.clienteNombre) + '</span></div>' +
@@ -1888,7 +1888,7 @@ function mostrarTicket(venta, totals) {
     venta.items.map(function(item) {
       var d = descLineaImporte(item);
       return '<div class="ticket-row"><span>' + escHtml(item.nombre) + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>' +
-        (d > 0 ? '<div class="ticket-row" style="font-size:10px"><span>&nbsp;&nbsp;' + T('tpv.descuento_2') +
+        (d > 0 ? '<div class="ticket-row" style="font-size:12px"><span>&nbsp;&nbsp;' + T('tpv.descuento_2') +
           (item.descTipo === 'pct' ? ' ' + item.desc + '%' : '') + '</span><span>-\u20ac' + d.toFixed(2) + '</span></div>' : '');
     }).join('') +
     '<hr class="ticket-sep">' +
@@ -1902,8 +1902,8 @@ function mostrarTicket(venta, totals) {
     '<div class="ticket-total"><span>TOTAL' + (totals.ivaModo === 'incluido' ? ' ' + T('tpv.iva_inc') : '') + '</span><span>\u20ac' + totals.total.toFixed(2) + '</span></div>' +
     '<hr class="ticket-sep">' +
     '<div class="ticket-footer">' + T('tpv.gracias_compra') + '' +
-    (TIENDA.garantiaVentas ? '<br><span style="font-size:9px">' + escHtml(TIENDA.garantiaVentas) + '</span>' : '') +
-    (TIENDA.politicaVentas ? '<br><span style="font-size:9px;color:#888">' + escHtml(TIENDA.politicaVentas) + '</span>' : '') +
+    (TIENDA.garantiaVentas ? '<br><span style="font-size:12px">' + escHtml(TIENDA.garantiaVentas) + '</span>' : '') +
+    (TIENDA.politicaVentas ? '<br><span style="font-size:12px;color:#000">' + escHtml(TIENDA.politicaVentas) + '</span>' : '') +
     '</div>' +
     '</div>';
   document.getElementById('ticketContent').innerHTML = html;
