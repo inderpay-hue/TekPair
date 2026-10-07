@@ -7499,7 +7499,7 @@ function imprimirTicketVenta(id) {
   }).join('');
 
   var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket ' + v.id + '</title>' +
-    '<style>@page{size:80mm auto;margin:0}*{box-sizing:border-box}html,body{width:80mm}body{font-family:Arial,Helvetica,"Segoe UI",sans-serif;margin:0;padding:2mm 7mm 14mm;color:#000;font-size:14px;font-weight:800;line-height:1.35;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}body *{color:#000!important}hr{border:none;border-top:2px dashed #000;margin:6px 0}</style>' +
+    '<style>@page{size:80mm auto;margin:0}*{box-sizing:border-box}html,body{width:80mm}body{font-family:Arial,Helvetica,"Segoe UI",sans-serif;margin:0;padding:2mm 3mm 12mm;color:#000;font-size:14px;font-weight:800;line-height:1.35;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}body *{color:#000!important}hr{border:none;border-top:2px dashed #000;margin:6px 0}</style>' +
     '</head><body>' +
     logoBlock + nombreLinea + dirLinea + telLinea +
     '<hr>' +
@@ -10527,7 +10527,7 @@ function trackingTicket() {
     '@page { size: 80mm auto; margin: 0; }' +
     '*{box-sizing:border-box}' +
     'html,body{width:80mm}' +
-    'body{font-family:Arial,Helvetica,sans-serif;width:80mm;margin:0;padding:2mm 7mm 14mm;color:#000;font-size:13px;font-weight:700;line-height:1.35;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}' +
+    'body{font-family:Arial,Helvetica,sans-serif;width:80mm;margin:0;padding:2mm 3mm 12mm;color:#000;font-size:13px;font-weight:700;line-height:1.35;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}' +
     'body *{color:#000!important}' +
     '.c{text-align:center}' +
     '.logo-img{text-align:center;margin-bottom:4px}' +
