@@ -10625,11 +10625,73 @@ function trackingTicket() {
     '<style>@media print{.npbar{display:none!important}}</style>' +
     '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:13px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
     '</body></html>';
-  if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintTicket === 'function') {
-    tkPrintTicket(html, 80, function () { _docPopupImprimir(html, 400, 820); });
-    return;
+  // Por ESC/POS, como el ticket del TPV: la impresora compone el texto y dibuja el QR
+  // ella misma, asi que ocupa el ancho exacto del papel. El camino PNG pasa por
+  // mspaint, que reescala la imagen y le mete sus propios margenes — ese era el motivo
+  // de que el resguardo saliera con margenes enormes y el de Bipe (que ya va por
+  // ESC/POS) saliera bien en la MISMA impresora.
+  if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintTicketESC === 'function') {
+    var docESC = _resguardoESC(r, url);
+    if (docESC) {
+      tkPrintTicketESC(docESC, function () { _docPopupImprimir(html, 400, 820); });
+      return;
+    }
   }
+  // Sin app de escritorio: ventana de impresion de siempre.
   _docPopupImprimir(html, 400, 820);
+}
+
+// El resguardo como DATOS, para poder mandarlo por ESC/POS. Mismo contenido que el
+// documento HTML, pero sin depender de un render que luego alguien reescala.
+function _resguardoESC(r, url) {
+  if (!r) return null;
+  var cab = [];
+  cab.push(TIENDA.nombre || 'TekPair');
+  if (TIENDA.dir) cab.push(TIENDA.dir);
+  if (TIENDA.tel) cab.push(T('tpv.tk_tel') + TIENDA.tel);
+  cab.push(T('tk.resguardo'));
+
+  var datos = [];
+  if (r.id) datos.push(['N\u00ba', String(r.id).slice(-18)]);
+  datos.push([T('pres.doc_fecha'), fmtFecha(r.fecha) || r.fecha || '']);
+  datos.push([T('pres.doc_cliente'), r.clienteNombre || '']);
+  datos.push([T('tk.equipo'), ((r.marca || '') + ' ' + (r.modelo || '')).trim()]);
+  if (r.imei) datos.push(['IMEI/SN', r.imei]);
+  if (r.fechaEntrega) datos.push([T('rep.fecha_entrega'), r.fechaEntrega]);
+
+  var sumas = [];
+  if (r.base != null && r.ivaImporte != null && (parseFloat(r.ivaImporte) || 0) > 0) {
+    sumas.push([T('pres.doc_base_imponible'), cur(r.base || 0)]);
+    sumas.push(['IVA (' + (r.iva || 21) + '%)', cur(r.ivaImporte || 0)]);
+  }
+
+  var bloques = [];
+  if (r.averia) bloques.push({ titulo: T('tk.averia_servicio'), texto: [String(r.averia)] });
+  var cond = [];
+  if (TIENDA.garRepActiva !== false) {
+    var dias = (typeof r.garantiaDias === 'number') ? r.garantiaDias : (TIENDA.grDiasDefault || 90);
+    var tipo = r.garantiaTipo || 'reparacion';
+    if (r.garantiaPublica === false || tipo === 'sin') cond.push(T('tk.sin_gar_placa'));
+    else if (tipo === 'apertura') cond.push(T('tk.aviso_apertura_full'));
+    else if (dias === 0) cond.push(T('tk.sin_gar'));
+    else cond.push(T('tk.garantia_linea')
+      .replace('{tipo}', tipo === 'producto' ? T('tk.tipo_producto') : T('tk.tipo_reparacion'))
+      .replace('{dias}', dias) + '.');
+    if (TIENDA.garantia) cond.push(String(TIENDA.garantia));
+  }
+  var bloquesPie = [];
+  if (cond.length) bloquesPie.push({ titulo: T('tk.cond_garantia'), texto: cond });
+
+  return {
+    cabecera: cab,
+    datos: datos,
+    sumas: sumas,
+    bloquesPie: bloquesPie,
+    total: [T('pres.doc_total') + ' (' + T('tkt.iva_inc') + ')', cur(r.total || 0)],
+    qr: url ? { titulo: T('tk.sigue_online'), url: url,
+                pie: T('tk.escanea'), tam: 7 } : null,
+    pie: [T('tk.conserve')]
+  };
 }
 
 function trackingEtiqueta() {

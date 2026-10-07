@@ -257,6 +257,25 @@
     return new Array(Math.floor((cols - t.length) / 2) + 1).join(' ') + t;
   }
 
+  // QR nativo de la impresora (ESC/POS, GS ( k). Es lo que permite imprimir el
+  // resguardo como TEXTO en vez de como imagen: la impresora dibuja el QR ella misma,
+  // asi que no hay PNG que reescalar ni margenes que invente el driver.
+  // Secuencia estandar: modelo -> tamaño de modulo -> correccion de errores ->
+  // almacenar datos -> imprimir.
+  function _tkQR(texto, tam) {
+    var datos = _tkBytes(texto);
+    var n = datos.length + 3;              // +3 por los bytes 0x31 0x50 0x30
+    var pL = n & 0xff, pH = (n >> 8) & 0xff;
+    var b = [];
+    var put = function (a) { a.forEach(function (x) { b.push(x); }); };
+    put([_GS, 0x28, 0x6b, 0x04, 0x00, 0x31, 0x41, 0x32, 0x00]);           // modelo 2
+    put([_GS, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x43, tam || 6]);             // tamaño del modulo
+    put([_GS, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x45, 0x31]);                 // correccion M
+    put([_GS, 0x28, 0x6b, pL, pH, 0x31, 0x50, 0x30]); put(datos);         // datos
+    put([_GS, 0x28, 0x6b, 0x03, 0x00, 0x31, 0x51, 0x30]);                 // imprimir
+    return b;
+  }
+
   /* Construye los bytes de un ticket a partir de una estructura simple:
      { cabecera: ['NOMBRE','dir','tel'], datos: [[izq,der]...], lineas: [[izq,der]...],
        sumas: [[izq,der]...], total: [izq,der], pie: ['...'] }
@@ -286,6 +305,26 @@
       hr();
       doc.datos.forEach(function (f) { txt(_tkFila(f[0], f[1])); });
     }
+    // Parrafos libres (averia, condiciones...): se parten a lo ancho del papel.
+    var parrafos = function (lista, cols) {
+      (lista || []).forEach(function (p) {
+        if (p === '') { b.push(_LF); return; }
+        var pal = String(p).split(' '), linea = '';
+        pal.forEach(function (w) {
+          if ((linea + ' ' + w).trim().length > (cols || TK_COLS)) { txt(linea); linea = w; }
+          else linea = (linea ? linea + ' ' : '') + w;
+        });
+        if (linea) txt(linea);
+      });
+    };
+    if ((doc.bloques || []).length) {
+      doc.bloques.forEach(function (bl) {
+        hr();
+        if (bl.titulo) { put([_ESC, 0x45, 1]); txt(bl.titulo); put([_ESC, 0x45, 0]); }
+        parrafos(bl.texto);
+      });
+    }
+
     if ((doc.lineas || []).length) {
       hr();
       doc.lineas.forEach(function (f) { txt(_tkFila(f[0], f[1])); });
@@ -301,10 +340,27 @@
       txt(_tkFila(doc.total[0], doc.total[1], Math.floor(TK_COLS / 2)));
       put([_GS, 0x21, 0x00]); put([_ESC, 0x45, 0]);
     }
+    // Bloques de cierre (condiciones) y QR: despues del total.
+    if ((doc.bloquesPie || []).length) {
+      doc.bloquesPie.forEach(function (bl) {
+        hr();
+        if (bl.titulo) { put([_ESC, 0x45, 1]); txt(bl.titulo); put([_ESC, 0x45, 0]); }
+        parrafos(bl.texto);
+      });
+    }
+    if (doc.qr && doc.qr.url) {
+      hr();
+      put([_ESC, 0x61, 1]);
+      if (doc.qr.titulo) txt(doc.qr.titulo);
+      put(_tkQR(doc.qr.url, doc.qr.tam || 6));
+      b.push(_LF);
+      if (doc.qr.pie) txt(doc.qr.pie);
+      put([_ESC, 0x61, 0]);
+    }
     if ((doc.pie || []).length) {
       hr();
       put([_ESC, 0x61, 1]);
-      doc.pie.forEach(function (l) { txt(l); });
+      parrafos(doc.pie);
       put([_ESC, 0x61, 0]);
     }
 
