@@ -16208,12 +16208,76 @@ function verReportePDF() {
   var reps = DB.reps.filter(function(r) { return (r.estado||'').toLowerCase() === 'entregado' && _repEnLista(fechas, r.fechaEntregaReal); });
   var tV = ventas.reduce(function(a, v) { return a + v.total; }, 0);
   var tR = reps.reduce(function(a, r) { return a + r.total; }, 0);
+
+  // Rango del periodo en ISO, para lo que se cobra en fecha distinta a la de la venta.
+  var _fOrd = (fechas || []).slice().sort();
+  var d1 = _fOrd[0] || '', d2 = _fOrd[_fOrd.length - 1] || '';
+
+  // COBROS DE FINANCIACIÓN del periodo: la entrada el día de la venta y cada cuota el
+  // día en que se pagó. Antes no salían en ninguna parte del PDF — una cuota cobrada hoy
+  // de una venta de la semana pasada era invisible, y es dinero que entró hoy.
+  var cobrosFin = [];
+  DB.ventas.forEach(function(v) {
+    if (!v.financiado || !v.cuotas) return;
+    var etq = (v.clienteNombre || '—') + ' · ' + ((v.marca || '') + ' ' + (v.modelo || '')).trim();
+    if ((v.entrada || 0) > 0 && v.fecha >= d1 && v.fecha <= d2) {
+      cobrosFin.push({ fecha: v.fecha, cli: etq, concepto: T('fin.entrada') || 'Entrada',
+                       metodo: v.entradaPago || '—', importe: parseFloat(v.entrada) || 0 });
+    }
+    (v.cuotas || []).forEach(function(c, i) {
+      if (!c || !c.fechaPago) return;
+      var fp = String(c.fechaPago).slice(0, 10);
+      if (fp < d1 || fp > d2) return;
+      var imp = (typeof _cuotaPagado === 'function') ? _cuotaPagado(c) : (c.pagado ? (parseFloat(c.importe) || 0) : 0);
+      if (!imp) return;
+      cobrosFin.push({ fecha: fp, cli: etq, concepto: (T('fin.cuota') || 'Cuota') + ' ' + (c.num || (i + 1)) + '/' + v.cuotas.length,
+                       metodo: c.formaPago || '—', importe: imp });
+    });
+  });
+  cobrosFin.sort(function(a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
+  var tFin = cobrosFin.reduce(function(a, x) { return a + x.importe; }, 0);
+
+  // Reembolsos del periodo: restan en la fecha en que se devolvió el dinero, no en la de venta.
+  var reembolsos = DB.ventas.filter(function(v) {
+    if (!v.reembolsado) return false;
+    var fr = String(v.fechaReembolso || v.fecha || '').slice(0, 10);
+    return fr >= d1 && fr <= d2;
+  });
+  var tReem = reembolsos.reduce(function(a, v) {
+    if (v.financiado && v.cuotas) {
+      var c = (parseFloat(v.entrada) || 0);
+      (v.cuotas || []).forEach(function(q) { if (q && q.fechaPago) c += (typeof _cuotaPagado === 'function') ? _cuotaPagado(q) : 0; });
+      return a + c;
+    }
+    return a + (parseFloat(v.total) || 0);
+  }, 0);
+
+  // COBRADO REAL por forma de pago, con el mismo criterio que la pantalla de Reportes
+  // (misma función), para que el papel y la app no digan cifras distintas.
+  var porMetodo = (typeof _ventasIngresoPorMetodo === 'function') ? _ventasIngresoPorMetodo(DB.ventas, d1, d2) : {};
+  var tCobrado = Object.keys(porMetodo).reduce(function(a, k) { return a + porMetodo[k]; }, 0);
   var html = '<html><head><meta charset="UTF-8"><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th{background:#020B2E;color:white;padding:8px}td{padding:8px;border-bottom:1px solid #eee}.tot{display:flex;justify-content:space-between;padding:10px;font-weight:700;font-size:16px;background:#f5f5f5;margin:10px 0}</style></head><body>' +
     '<h1>Reporte ' + SEL.repTab.toUpperCase() + ' \u2014 ' + TIENDA.nombre + '</h1>' +
     '<div style="color:#666;font-size:12px;margin:-6px 0 12px">' + escHtml(T('rep.pdf_facturado_nota')) + '</div>' +
     '<div class="tot"><span>Ventas (' + ventas.length + ')</span><span>' + cur(tV) + '</span></div>' +
     '<div class="tot"><span>Reparaciones (' + reps.length + ')</span><span>' + cur(tR) + '</span></div>' +
     '<div class="tot" style="background:#020B2E;color:white"><span>' + escHtml(T('rep.pdf_total_facturado')) + '</span><span>' + cur(tV + tR) + '</span></div>' +
+
+    // Vistazo rápido: lo FACTURADO y lo COBRADO no son lo mismo cuando hay
+    // financiación, y hasta ahora el papel solo enseñaba lo primero.
+    '<div style="margin:18px 0 6px;font-weight:700;font-size:15px">' + escHtml(T('rep.pdf_resumen_dia')) + '</div>' +
+    '<div class="tot"><span>' + escHtml(T('rep.pdf_cobros_fin')) + ' (' + cobrosFin.length + ')</span><span>' + cur(tFin) + '</span></div>' +
+    (tReem > 0 ? '<div class="tot"><span>' + escHtml(T('rep.pdf_reembolsos')) + ' (' + reembolsos.length + ')</span><span style="color:#c00">-' + cur(tReem) + '</span></div>' : '') +
+    '<div class="tot" style="background:#0a7d32;color:white"><span>' + escHtml(T('rep.pdf_total_cobrado')) + '</span><span>' + cur(tCobrado) + '</span></div>' +
+    (Object.keys(porMetodo).length ? '<table style="margin-top:8px"><thead><tr><th>' + escHtml(T('rep.pdf_forma_pago')) + '</th><th class="r">' + escHtml(T('pres.doc_total')) + '</th></tr></thead><tbody>' +
+      Object.keys(porMetodo).sort().map(function(m) {
+        return '<tr><td>' + escHtml(m) + '</td><td class="r">' + cur(porMetodo[m]) + '</td></tr>';
+      }).join('') + '</tbody></table>' : '') +
+
+    (cobrosFin.length ? '<h2>' + escHtml(T('rep.pdf_cobros_fin')) + '</h2><table><thead><tr><th>' + escHtml(T('pres.doc_fecha')) + '</th><th>' + escHtml(T('pres.doc_cliente')) + '</th><th>' + escHtml(T('rep.pdf_concepto')) + '</th><th>' + escHtml(T('tpv.tk_pago')) + '</th><th class="r">' + escHtml(T('pres.doc_total')) + '</th></tr></thead><tbody>' +
+      cobrosFin.map(function(c) {
+        return '<tr><td>' + escHtml(c.fecha) + '</td><td>' + escHtml(c.cli) + '</td><td>' + escHtml(c.concepto) + '</td><td>' + escHtml(c.metodo) + '</td><td class="r">' + cur(c.importe) + '</td></tr>';
+      }).join('') + '</tbody></table>' : '') +
     (ventas.length ? '<h2>Ventas</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th></tr></thead><tbody>' +
     ventas.map(function(v) { return '<tr><td>' + v.fecha + '</td><td>' + v.clienteNombre + '</td><td>' + v.modelo + '</td><td>' + v.pago + '</td><td>' + cur(v.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
     (reps.length ? '<h2>Reparaciones</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Equipo</th><th>Total</th></tr></thead><tbody>' +
