@@ -16207,7 +16207,7 @@ function generarPDFGestor() {
 
 function verReportePDF() {
   var fechas = getRepFechas();
-  var ventas = DB.ventas.filter(function(v) { return !v.reembolsado && _repEnLista(fechas, v.fecha); });
+  var ventas = DB.ventas.filter(function(v) { return _repEnLista(fechas, v.fecha); });
   var reps = DB.reps.filter(function(r) { return (r.estado||'').toLowerCase() === 'entregado' && _repEnLista(fechas, r.fechaEntregaReal); });
   var tV = ventas.reduce(function(a, v) { return a + v.total; }, 0);
   var tR = reps.reduce(function(a, r) { return a + r.total; }, 0);
@@ -16257,6 +16257,11 @@ function verReportePDF() {
 
   // COBRADO REAL por forma de pago, con el mismo criterio que la pantalla de Reportes
   // (misma función), para que el papel y la app no digan cifras distintas.
+  // Devuelto sobre lo FACTURADO: el total de la venta anulada. Distinto de tReem,
+  // que es lo que se habia llegado a COBRAR (en una financiada no es lo mismo).
+  var tReemFact = ventas.reduce(function(a, v) { return a + (v.reembolsado ? (parseFloat(v.total) || 0) : 0); }, 0);
+  var nReemFact = ventas.filter(function(v) { return v.reembolsado; }).length;
+
   var porMetodo = (typeof _ventasIngresoPorMetodo === 'function') ? _ventasIngresoPorMetodo(DB.ventas, d1, d2) : {};
   var tCobrado = Object.keys(porMetodo).reduce(function(a, k) { return a + porMetodo[k]; }, 0);
   var html = '<html><head><meta charset="UTF-8"><style>body{font-family:Arial;padding:20px}table{width:100%;border-collapse:collapse}th{background:#020B2E;color:white;padding:8px}td{padding:8px;border-bottom:1px solid #eee}.tot{display:flex;justify-content:space-between;padding:10px;font-weight:700;font-size:16px;background:#f5f5f5;margin:10px 0}</style></head><body>' +
@@ -16264,13 +16269,13 @@ function verReportePDF() {
     '<div style="color:#666;font-size:12px;margin:-6px 0 12px">' + escHtml(T('rep.pdf_facturado_nota')) + '</div>' +
     '<div class="tot"><span>Ventas (' + ventas.length + ')</span><span>' + cur(tV) + '</span></div>' +
     '<div class="tot"><span>Reparaciones (' + reps.length + ')</span><span>' + cur(tR) + '</span></div>' +
-    '<div class="tot" style="background:#020B2E;color:white"><span>' + escHtml(T('rep.pdf_total_facturado')) + '</span><span>' + cur(tV + tR) + '</span></div>' +
+    (nReemFact ? '<div class="tot"><span>' + escHtml(T('rep.pdf_reembolsos')) + ' (' + nReemFact + ')</span><span style="color:#c00">-' + cur(tReemFact) + '</span></div>' : '') +
+    '<div class="tot" style="background:#020B2E;color:white"><span>' + escHtml(T('rep.pdf_total_facturado')) + '</span><span>' + cur(tV + tR - tReemFact) + '</span></div>' +
 
     // Vistazo rápido: lo FACTURADO y lo COBRADO no son lo mismo cuando hay
     // financiación, y hasta ahora el papel solo enseñaba lo primero.
     '<div style="margin:18px 0 6px;font-weight:700;font-size:15px">' + escHtml(T('rep.pdf_resumen_dia')) + '</div>' +
     '<div class="tot"><span>' + escHtml(T('rep.pdf_cobros_fin')) + ' (' + cobrosFin.length + ')</span><span>' + cur(tFin) + '</span></div>' +
-    (tReem > 0 ? '<div class="tot"><span>' + escHtml(T('rep.pdf_reembolsos')) + ' (' + reembolsos.length + ')</span><span style="color:#c00">-' + cur(tReem) + '</span></div>' : '') +
     '<div class="tot" style="background:#0a7d32;color:white"><span>' + escHtml(T('rep.pdf_total_cobrado')) + '</span><span>' + cur(tCobrado) + '</span></div>' +
     (Object.keys(porMetodo).length ? '<table style="margin-top:8px"><thead><tr><th>' + escHtml(T('rep.pdf_forma_pago')) + '</th><th class="r">' + escHtml(T('pres.doc_total')) + '</th></tr></thead><tbody>' +
       Object.keys(porMetodo).sort().map(function(m) {
@@ -16282,7 +16287,7 @@ function verReportePDF() {
         return '<tr><td>' + escHtml(c.fecha) + '</td><td>' + escHtml(c.cli) + '</td><td>' + escHtml(c.concepto) + '</td><td>' + escHtml(c.metodo) + '</td><td class="r">' + cur(c.importe) + '</td></tr>';
       }).join('') + '</tbody></table>' : '') +
     (ventas.length ? '<h2>Ventas</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th></tr></thead><tbody>' +
-    ventas.map(function(v) { return '<tr><td>' + v.fecha + '</td><td>' + v.clienteNombre + '</td><td>' + v.modelo + '</td><td>' + v.pago + '</td><td>' + cur(v.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
+    ventas.map(function(v) { return '<tr' + (v.reembolsado ? ' style="color:#c00"' : '') + '><td>' + v.fecha + '</td><td>' + v.clienteNombre + '</td><td>' + v.modelo + (v.reembolsado ? ' · ' + escHtml(T('vent.reembolsada')) : '') + '</td><td>' + v.pago + '</td><td>' + cur(v.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
     (reps.length ? '<h2>Reparaciones</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Equipo</th><th>Total</th></tr></thead><tbody>' +
     reps.map(function(r) { return '<tr><td>' + r.fechaEntregaReal + '</td><td>' + r.clienteNombre + '</td><td>' + r.marca + ' ' + r.modelo + '</td><td>' + cur(r.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
     '</body></html>';
@@ -19098,7 +19103,7 @@ function abrirDetalleRep(repId) {
   // Botones
   var btns = '<button class="btn-sm" style="background:var(--light);color:var(--text);flex:1" onclick="closeM(\'mDetalleRep\')">' + T('gen.cerrar') + '</button>';
   if (cli && cli.tel) btns += '<button class="btn-sm" style="background:#25D366;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirWhatsAppRep(\'' + r.id + '\')">📲 WhatsApp</button>';
-  btns += '<button class="btn-sm" style="background:var(--blue);color:white;flex:1" onclick="closeM(\'mDetalleRep\');copiarLinkRep(\'' + r.id + '\')">📱 QR/Link</button>';
+  btns += '<button class="btn-sm" style="background:var(--blue);color:white;flex:1" onclick="closeM(\'mDetalleRep\');copiarLinkRep(\'' + r.id + '\')">🖨️ Imprimir / QR</button>';
   btns += '<button class="btn-sm" style="background:#C2410C;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirSubirFotosQR(\'' + r.id + '\')">📷 ' + T('fqr.btn') + '</button>';
   btns += '<button class="btn-sm" style="background:#8B5CF6;color:white;flex:1" onclick="closeM(\'mDetalleRep\');abrirFirmaRecepQR(\'' + r.id + '\')">✍️ ' + T('firq.btn') + '</button>';
   // F68: acciones de avance del flujo (faltaban en el modal abierto desde Kanban)
