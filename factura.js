@@ -612,11 +612,11 @@
     var telTienda = emi.tel || '';
     var dirTienda = emi.dir || '';
     var fmt = (typeof _fmtEur === 'function') ? _fmtEur : function(v) { return (v || 0).toFixed(2) + ' €'; };
-    var row = function(k, v) { return '<div style="display:flex;justify-content:space-between;gap:10px;margin:2px 0"><span style="color:#555">' + k + '</span><span style="font-weight:600;text-align:right">' + _esc(v) + '</span></div>'; };
+    var row = function(k, v) { return '<div style="display:flex;justify-content:space-between;gap:10px;margin:2px 0"><span>' + k + '</span><span style="font-weight:600;text-align:right">' + _esc(v) + '</span></div>'; };
     var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + T('ticket.titulo_pagina') + '</title><style>' +
       '@media print{.npb{display:none!important}}' +
-      '@page{size:80mm auto;margin:0}html{margin:0}body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:80mm;margin:0;padding:6mm 5mm;color:#000;font-size:11.5px;line-height:1.45}' +
-      'h2{font-size:15px;text-align:center;margin:0 0 2px}.muted{color:#555;text-align:center;font-size:10.5px}hr{border:none;border-top:1px dashed #999;margin:8px 0}.tot{font-size:15px;font-weight:800;display:flex;justify-content:space-between;margin-top:4px}.foot{text-align:center;color:#777;font-size:9.5px;margin-top:10px}' +
+      '@page{size:80mm auto;margin:0}html{margin:0}body{font-family:Arial,Helvetica,sans-serif;width:80mm;margin:0;padding:2mm 5mm 14mm;color:#000;font-size:13px;font-weight:700;line-height:1.4;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}body *{color:#000!important}' +
+      'h2{font-size:18px;font-weight:900;text-align:center;margin:0 0 2px}.muted{color:#000;text-align:center;font-size:12px}hr{border:none;border-top:2px dashed #000;margin:8px 0}.tot{font-size:19px;font-weight:800;display:flex;justify-content:space-between;margin-top:4px}.foot{text-align:center;color:#000;font-size:12px;margin-top:10px}' +
       '</style></head><body>' +
       '<div class="npb" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;text-align:center;padding:7px;font-size:11px">' + T('ticket.print_hint') + '<button onclick="window.print()" style="margin-left:6px;background:#FF5B1F;color:#fff;border:none;border-radius:5px;padding:4px 12px;font:inherit;font-weight:700;cursor:pointer">' + T('ticket.imprimir') + '</button></div>' +
       '<h2>' + _esc(nomTienda) + '</h2>' +

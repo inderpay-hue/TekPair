@@ -7484,22 +7484,22 @@ function imprimirTicketVenta(id) {
   if (!v) { toast(T('gen.error'), 'err'); return; }
   var logoBlock = TIENDA.logo_url
     ? '<div style="text-align:center;margin-bottom:6px"><img src="' + esc(TIENDA.logo_url) + '" style="max-height:50px;max-width:200px;object-fit:contain"></div>'
-    : '<div style="text-align:center;font-size:14px;font-weight:800;margin-bottom:4px">\u26a1 ' + esc(TIENDA.nombre || 'Tekpair') + '</div>';
-  var nombreLinea = TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:4px">' + esc(TIENDA.nombre) + '</div>' : '';
-  var dirLinea = TIENDA.dir ? '<div style="text-align:center;font-size:10px;color:#666">' + esc(TIENDA.dir) + '</div>' : '';
-  var telLinea = TIENDA.tel ? '<div style="text-align:center;font-size:10px;color:#666">Tel: ' + esc(TIENDA.tel) + '</div>' : '';
+    : '<div style="text-align:center;font-size:18px;font-weight:900;margin-bottom:4px">\u26a1 ' + esc(TIENDA.nombre || 'Tekpair') + '</div>';
+  var nombreLinea = TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:18px;font-weight:900;margin-bottom:4px">' + esc(TIENDA.nombre) + '</div>' : '';
+  var dirLinea = TIENDA.dir ? '<div style="text-align:center;font-size:12px;color:#000">' + esc(TIENDA.dir) + '</div>' : '';
+  var telLinea = TIENDA.tel ? '<div style="text-align:center;font-size:12px;color:#000">Tel: ' + esc(TIENDA.tel) + '</div>' : '';
   var ivaOn = !!(v.iva && v.ivaModo && v.ivaModo !== 'sin');
   var items = (v.items && v.items.length) ? v.items : [{nombre: v.modelo || 'Venta', precio: v.precio || v.total, qty: 1}];
   var itemsHtml = items.map(function(it) {
     var sub = (parseFloat(it.precio) || 0) * (parseFloat(it.qty) || 1);
     var dv = parseFloat(it.desc) || 0;
     var dl = dv > 0 ? Math.min(it.descTipo === 'pct' ? sub * dv / 100 : dv, sub) : 0;
-    return '<div style="display:flex;justify-content:space-between;font-size:11px;margin:2px 0"><span>' + esc(it.nombre) + ' x' + (it.qty || 1) + '</span><span>' + cur(sub) + '</span></div>' +
-      (dl > 0 ? '<div style="display:flex;justify-content:space-between;font-size:10px;margin:1px 0"><span>&nbsp;&nbsp;' + T('tpv.descuento_2') + (it.descTipo === 'pct' ? ' ' + dv + '%' : '') + '</span><span>-' + cur(dl) + '</span></div>' : '');
+    return '<div style="display:flex;justify-content:space-between;font-size:13px;margin:2px 0"><span>' + esc(it.nombre) + ' x' + (it.qty || 1) + '</span><span>' + cur(sub) + '</span></div>' +
+      (dl > 0 ? '<div style="display:flex;justify-content:space-between;font-size:12px;margin:1px 0"><span>&nbsp;&nbsp;' + T('tpv.descuento_2') + (it.descTipo === 'pct' ? ' ' + dv + '%' : '') + '</span><span>-' + cur(dl) + '</span></div>' : '');
   }).join('');
 
   var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket ' + v.id + '</title>' +
-    '<style>@page{size:80mm auto;margin:0}body{font-family:-apple-system,Helvetica,Arial,sans-serif;width:80mm;margin:0;padding:5mm 4mm;color:#000;font-size:10.5px;line-height:1.35}hr{border:none;border-top:1px dashed #999;margin:6px 0}</style>' +
+    '<style>@page{size:80mm auto;margin:0}*{box-sizing:border-box}html,body{width:80mm}body{font-family:Arial,Helvetica,"Segoe UI",sans-serif;margin:0;padding:2mm 4mm 14mm;color:#000;font-size:14px;font-weight:800;line-height:1.35;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}body *{color:#000!important}hr{border:none;border-top:2px dashed #000;margin:6px 0}</style>' +
     '</head><body>' +
     logoBlock + nombreLinea + dirLinea + telLinea +
     '<hr>' +
@@ -7518,10 +7518,10 @@ function imprimirTicketVenta(id) {
       : '') +
     '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px;border-top:1px solid #000;padding-top:4px"><span>' + T('pres.doc_total') + (v.ivaModo === 'incluido' ? ' ' + T('tkt.iva_inc') : '') + '</span><span>' + cur(v.total || 0) + '</span></div>' +
     '<hr>' +
-    '<div style="text-align:center;font-size:10px;color:#666;margin-top:6px">' + T('tpv.gracias_compra') + '</div>' +
-    (TIENDA.garVenActiva !== false && TIENDA.garantiaVentas ? '<div style="text-align:center;font-size:9px;color:#666;margin-top:6px;line-height:1.4">' + esc(TIENDA.garantiaVentas) + '</div>' : '') +
-    (TIENDA.politicaVentas ? '<div style="text-align:center;font-size:9px;color:#888;margin-top:4px;line-height:1.4">' + esc(TIENDA.politicaVentas) + '</div>' : '') +
-    '<div style="text-align:center;font-size:9px;color:#888;margin-top:8px;border-top:1px dashed #ccc;padding-top:4px">' + T('tkt.generado') + '</div>' +
+    '<div style="text-align:center;font-size:12px;color:#000;margin-top:6px">' + T('tpv.gracias_compra') + '</div>' +
+    (TIENDA.garVenActiva !== false && TIENDA.garantiaVentas ? '<div style="text-align:center;font-size:12px;color:#000;margin-top:6px;line-height:1.4">' + esc(TIENDA.garantiaVentas) + '</div>' : '') +
+    (TIENDA.politicaVentas ? '<div style="text-align:center;font-size:12px;color:#000;margin-top:4px;line-height:1.4">' + esc(TIENDA.politicaVentas) + '</div>' : '') +
+    '<div style="text-align:center;font-size:12px;color:#000;margin-top:8px;border-top:2px dashed #000;padding-top:4px">' + T('tkt.generado') + '</div>' +
     '<script>window.onload=function(){setTimeout(function(){window.print();},200);}<\/script>' +
     '</body></html>';
 
