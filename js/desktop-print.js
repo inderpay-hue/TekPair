@@ -128,9 +128,16 @@
     return _loadHtml2canvas().then(function (html2canvas) {
       return new Promise(function (resolve, reject) {
         var ifr = document.createElement('iframe');
-        var hpx = hmm ? Math.ceil(hmm * 4 + 40) : 4000; // hmm null (tickets) -> iframe alto; se recorta al contenido
+        // El ancho del iframe TIENE que ser el del documento. Antes era wmm*4+40 (360px
+        // para 80mm) mientras el body mide 80mm = 302px: sobraban 58px de blanco SOLO por
+        // la derecha, que se rasterizaban igual. Al escalar el PNG al ancho del papel, el
+        // contenido se iba a la izquierda y el margen lateral desaparecia — por eso subir
+        // el padding del CSS no cambiaba nada en el papel.
+        var PX_MM = 96 / 25.4;                       // px CSS por milimetro
+        var wpx = Math.ceil(wmm * PX_MM);
+        var hpx = hmm ? Math.ceil(hmm * PX_MM) + 8 : 4000; // sin alto fijo (tickets) -> iframe alto, se recorta al contenido
         ifr.style.cssText = 'position:fixed;left:-10000px;top:0;border:0;background:#fff;width:' +
-          Math.ceil(wmm * 4 + 40) + 'px;height:' + hpx + 'px';
+          wpx + 'px;height:' + hpx + 'px';
         document.body.appendChild(ifr);
         var doc = ifr.contentWindow.document;
         doc.open(); doc.write(fullHtml); doc.close();
@@ -145,7 +152,9 @@
         } catch (e) {}
         // Espera a que el layout y las imágenes (QR/logo) estén listas.
         setTimeout(function () {
-          html2canvas(doc.body, { scale: 3, backgroundColor: '#ffffff', logging: false, windowWidth: doc.body.scrollWidth, windowHeight: doc.body.scrollHeight })
+          // windowWidth con el ancho REAL del documento, no scrollWidth (que devolvia
+          // el del iframe y metia el blanco de sobra en la imagen).
+          html2canvas(doc.body, { scale: 3, backgroundColor: '#ffffff', logging: false, width: wpx, windowWidth: wpx, windowHeight: doc.body.scrollHeight })
             .then(function (canvas) { try { document.body.removeChild(ifr); } catch (e) {} resolve(canvas); })
             .catch(function (err) { try { document.body.removeChild(ifr); } catch (e) {} reject(err); });
         }, 350);
