@@ -181,7 +181,23 @@ export default async function handler(req, res) {
     } else {
       params.append('allow_promotion_codes', 'true');
     }
-    params.append('subscription_data[trial_period_days]', '15');
+    // Prueba: 15 dias normalmente, UN MES ENTERO si viene con codigo valido.
+    //
+    // Antes eran 15 fijos para todos y el "1 mes gratis" que prometen los
+    // comerciales no se cumplia por ningun lado: el cupon del mes gratis solo
+    // se dispara para referidos entre TIENDAS y despues del primer pago, asi
+    // que a quien llegaba por un comercial no le llegaba nunca. Un cliente real
+    // (9-oct-2026) entro asi y se quedo con 15 dias.
+    // Un mes entero SOLO para los codigos de comercial, que son los unicos que
+    // no reciben premio por otra via y a los que se les prometia "1 mes gratis"
+    // sin que lo recibieran nunca. Los otros dos ya cobran lo suyo y sumarles
+    // esto seria regalar dos meses:
+    //   - tienda  -> cupon del 100% tras el primer pago (webhook.js)
+    //   - cobrum  -> +30 dias a trial_until (register.js)
+    const TRIAL_NORMAL = 15, TRIAL_REF = 30;
+    const _tipoRef = await tipoRef(refCode, SUPABASE_URL, SERVICE_KEY);
+    const trialDias = _tipoRef === 'afiliado' ? TRIAL_REF : TRIAL_NORMAL;
+    params.append('subscription_data[trial_period_days]', String(trialDias));
     // Pasar metadata también a la subscription para que el webhook tenga acceso
     params.append('subscription_data[metadata][plan]', planCanonico);
     params.append('subscription_data[metadata][email]', email);
@@ -208,6 +224,34 @@ export default async function handler(req, res) {
     console.error('Checkout error:', e);
     return res.status(500).json({ error: 'Error del servidor' });
   }
+}
+
+// De dónde viene el código: 'tienda' (enlace "trae un amigo"), 'afiliado'
+// (comercial dado de alta y activo), 'cobrum' (código cruzado) o null.
+// Se valida contra la base ANTES de regalar nada: si no, basta escribir cuatro
+// letras en el registro para llevarse el mes.
+async function tipoRef(code, SUPABASE_URL, SERVICE_KEY) {
+  if (!code) return null;
+  const h = { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` };
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?referral_code=eq.${encodeURIComponent(code)}&select=id&limit=1`, { headers: h });
+    const rows = await r.json();
+    if (Array.isArray(rows) && rows.length) return 'tienda';
+  } catch (e) {}
+  try {
+    // Tiene que estar ACTIVO: un comercial dado de baja no sigue regalando meses.
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(code)}&activo=eq.true&select=codigo&limit=1`, { headers: h });
+    const rows = await r.json();
+    if (Array.isArray(rows) && rows.length) return 'afiliado';
+  } catch (e) {}
+  try {
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 4000);
+    const r = await fetch((process.env.COBRUM_REFERIDO_URL || 'https://cobrum.tech/api/referido') + '?codigo=' + encodeURIComponent(code), { signal: ctrl.signal });
+    clearTimeout(to);
+    if (r.ok) { const d = await r.json().catch(() => ({})); if (d && d.valid) return 'cobrum'; }
+  } catch (e) {}
+  return null;
 }
 
 // Busca el código promocional en Stripe. Devuelve el id (promo_...) o null.

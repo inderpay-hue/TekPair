@@ -225,8 +225,6 @@ nav{position:fixed;top:0;left:0;right:0;background:rgba(14,14,16,.92);backdrop-f
 .nav-cta{background:var(--orange);color:#fff!important;padding:8px 16px;border-radius:8px;font-weight:600!important}
 .nav-cta:hover{background:var(--orange-d)}
 .lang-sel{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12);color:#fff;padding:6px 10px;border-radius:7px;cursor:pointer;font-size:12px;font-family:var(--font)}
-.promo-bar{background:var(--orange);color:#fff;text-align:center;padding:8px 16px;font-size:12px;font-weight:500;position:fixed;top:0;left:0;right:0;z-index:101}
-.promo-bar code{font-family:var(--mono);background:rgba(255,255,255,.2);padding:1px 6px;border-radius:4px}
 .hide-mobile{display:inline}
 /* F120: menú burger en móvil */
 .nav-burger{display:none;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:4px 8px;line-height:1}
@@ -237,7 +235,7 @@ nav{position:fixed;top:0;left:0;right:0;background:rgba(14,14,16,.92);backdrop-f
 @media(max-width:860px){.nav-burger{display:block}}
 
 /* HERO */
-.hero{padding:150px 0 80px;position:relative}
+.hero{padding:114px 0 80px;position:relative}
 .hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center}
 .hero h1{font-family:var(--display);font-size:52px;line-height:1.02;letter-spacing:-.035em;font-weight:600;margin:22px 0 18px}
 .hero h1 .rotator{display:inline-block;color:var(--orange);transition:opacity .3s,transform .3s;min-width:60px}
@@ -371,7 +369,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 
 
 
-<nav style="top:36px">
+<nav>
   <div class="nav-inner">
     <a href="/" class="nav-logo"><span class="logo-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> TekPair</a>
     <div class="nav-links">
@@ -400,7 +398,6 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
     <a href="/app.html" data-i18n="nav.login">Entrar</a>
   </div>
 </nav>
-<div class="promo-bar" data-i18n="promo.bar">⚡ Oferta limitada — 50% de desconto × 3 meses com o código <code>EARLY50</code> · Restam apenas 10 vagas</div>
 
 <!-- HERO -->
 <main id="main" role="main">
