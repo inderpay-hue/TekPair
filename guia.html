@@ -85,6 +85,23 @@ hr{border:none;border-top:1px solid var(--border);margin:40px 0}
   .layout{flex-direction:column;padding:20px 16px 60px}
   .sidebar{width:100%;position:relative;top:0}
 }
+.pl-grid{display:grid;gap:14px;margin:16px 0}
+@media(min-width:720px){.pl-grid{grid-template-columns:1fr 1fr}}
+.pl{border:1px solid var(--border);border-radius:12px;padding:14px 16px;background:#fff;display:flex;flex-direction:column}
+.pl-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.pl-head h3{margin:0;font-size:15px}
+.pl-tag{font-size:10.5px;font-weight:700;text-transform:uppercase;letter-spacing:.4px;color:#B45309;background:rgba(180,83,9,.1);padding:2px 7px;border-radius:20px}
+.pl-para{font-size:12.5px;color:var(--muted);margin:6px 0 10px}
+.pl-txt{background:#F8FAFC;border:1px solid var(--border);border-radius:8px;padding:10px 12px;margin:0;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11.5px;line-height:1.6;color:var(--text);
+  white-space:pre-wrap;word-break:break-word;flex:1}
+.pl-foot{display:flex;align-items:center;gap:10px;margin-top:10px}
+.pl-btn{font:inherit;font-size:12.5px;font-weight:700;padding:7px 16px;border-radius:8px;border:1px solid #B45309;
+  background:#B45309;color:#fff;cursor:pointer;transition:opacity .15s}
+.pl-btn:hover{opacity:.88}
+.pl-btn:focus-visible{outline:2px solid #B45309;outline-offset:2px}
+.pl-btn.ok{background:#16A34A;border-color:#16A34A}
+.pl-n{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
 </style>
   <script src="/cookies-consent.js" defer></script>
 </head>
@@ -118,6 +135,7 @@ hr{border:none;border-top:1px solid var(--border);margin:40px 0}
     <a href="#facturas">Facturas</a>
     <a href="#reportes">Reportes</a>
     <a href="#ajustes">Ajustes</a>
+    <a href="#pie-ticket">Textos del ticket</a>
 
     <div class="sidebar-title">Ayuda</div>
     <a href="#faq">Preguntas frecuentes</a>
@@ -558,6 +576,80 @@ hr{border:none;border-top:1px solid var(--border);margin:40px 0}
 
     <hr>
 
+    <!-- PLANTILLAS DEL PIE DEL TICKET -->
+    <div class="section section-anchor" id="pie-ticket">
+      <h2><span class="section-num" style="background:#B45309">🧾</span> Textos para el pie del ticket</h2>
+      <p class="section-desc">En <strong>Ajustes → Impresión → Ticket de venta</strong> puedes escribir un texto que se imprime al final de cada ticket. Aquí tienes plantillas listas para tiendas de móviles: pulsa <em>Copiar</em>, pégalo en ese campo y cámbialo a tu gusto.</p>
+
+      <div class="tip tip-warn">
+        <span class="tip-icon">⚖️</span>
+        <div><strong>Léelo antes de pegarlo.</strong> Son ejemplos redactados para una tienda en <strong>España</strong>, no un asesoramiento legal. Revisa que cada frase coincida con lo que de verdad haces en tu tienda: un texto impreso en el ticket es un compromiso frente al cliente. Si vendes en otro país, los plazos de garantía cambian.</div>
+      </div>
+
+      <div class="tip">
+        <span class="tip-icon">💡</span>
+        <div>Dos cosas que conviene saber para elegir: en <strong>tienda física no existe el derecho legal de devolución</strong> (los 14 días son para compras online), así que admitir cambios es decisión tuya — pero si lo anuncias, te obliga. Y la <strong>garantía legal sí es obligatoria</strong>: 3 años en productos nuevos y mínimo 1 año en segunda mano.</div>
+      </div>
+
+      <div class="pl-grid">
+
+        <div class="pl">
+          <div class="pl-head"><h3>Equilibrada</h3><span class="pl-tag">La más usada</span></div>
+          <p class="pl-para">Admite cambios, protege el producto abierto y recuerda la garantía. Buena opción por defecto.</p>
+          <pre class="pl-txt" id="pl1">Cambios y devoluciones en 15 dias presentando este ticket, con el producto sin usar y en su embalaje original. Garantia legal de 3 anos en productos nuevos. Por higiene no se admiten cambios en auriculares ni en productos abiertos.</pre>
+          <div class="pl-foot"><button class="pl-btn" data-copiar="pl1">Copiar</button><span class="pl-n"></span></div>
+        </div>
+
+        <div class="pl">
+          <div class="pl-head"><h3>Cambio o vale, sin devolver efectivo</h3></div>
+          <p class="pl-para">Para quien no quiere sacar dinero de la caja. Deja claro desde el principio qué va a recibir el cliente.</p>
+          <pre class="pl-txt" id="pl2">Cambios en 15 dias con este ticket y el producto sin usar en su embalaje original. No se devuelve el importe en efectivo: se emite un vale por el mismo valor, canjeable en 6 meses. Garantia legal de 3 anos en productos nuevos.</pre>
+          <div class="pl-foot"><button class="pl-btn" data-copiar="pl2">Copiar</button><span class="pl-n"></span></div>
+        </div>
+
+        <div class="pl">
+          <div class="pl-head"><h3>Segunda mano y reacondicionados</h3></div>
+          <p class="pl-para">El plazo mínimo legal en segunda mano es 1 año. Deja por escrito qué no cubre, que es de donde salen las discusiones.</p>
+          <pre class="pl-txt" id="pl3">Terminal de segunda mano con 1 ano de garantia desde hoy. La garantia cubre averias de funcionamiento, no golpes, humedad, bateria por uso ni manipulacion por terceros. Conserve este ticket: es el justificante de la garantia.</pre>
+          <div class="pl-foot"><button class="pl-btn" data-copiar="pl3">Copiar</button><span class="pl-n"></span></div>
+        </div>
+
+        <div class="pl">
+          <div class="pl-head"><h3>Tienda con taller</h3></div>
+          <p class="pl-para">Si vendes y reparas. Incluye el aviso de equipos sin recoger, que ahorra discusiones a los tres meses.</p>
+          <pre class="pl-txt" id="pl4">Reparaciones con 3 meses de garantia sobre la pieza y la mano de obra. No cubre golpes, humedad ni danos ajenos a la reparacion. Los equipos no recogidos en 30 dias pueden generar gastos de custodia. Conserve este ticket.</pre>
+          <div class="pl-foot"><button class="pl-btn" data-copiar="pl4">Copiar</button><span class="pl-n"></span></div>
+        </div>
+
+        <div class="pl">
+          <div class="pl-head"><h3>Estricta</h3></div>
+          <p class="pl-para">Solo lo que obliga la ley. Para accesorios de margen bajo o si el cambio te está costando dinero.</p>
+          <pre class="pl-txt" id="pl5">No se admiten devoluciones de productos abiertos o usados, salvo defecto de fabricacion. Cambios en 7 dias con el ticket y el embalaje intacto. Garantia legal de 3 anos en productos nuevos y 1 ano en segunda mano.</pre>
+          <div class="pl-foot"><button class="pl-btn" data-copiar="pl5">Copiar</button><span class="pl-n"></span></div>
+        </div>
+
+        <div class="pl">
+          <div class="pl-head"><h3>Mínima</h3></div>
+          <p class="pl-para">Si tu política ya va en los textos de garantía de Ajustes y solo quieres el recordatorio.</p>
+          <pre class="pl-txt" id="pl6">Conserve este ticket. Es imprescindible para cambios, devoluciones y para cualquier gestion de garantia.</pre>
+          <div class="pl-foot"><button class="pl-btn" data-copiar="pl6">Copiar</button><span class="pl-n"></span></div>
+        </div>
+
+      </div>
+
+      <div class="tip tip-ok">
+        <span class="tip-icon">🖨️</span>
+        <div><strong>Escribe sin tildes si puedes.</strong> Muchas impresoras térmicas baratas no llevan los acentos en su juego de caracteres y los sacan como símbolos raros. Por eso estas plantillas van sin ellos. Imprime un ticket de prueba antes de darlo por bueno.</div>
+      </div>
+
+      <div class="tip">
+        <span class="tip-icon">📏</span>
+        <div>El campo admite <strong>300 caracteres</strong>. Cuanto más largo el texto, más papel gasta cada ticket: unas tres líneas es un buen equilibrio. Lo que ya tengas en los textos de <em>garantía</em> y <em>política de ventas</em> se imprime aparte, así que no hace falta repetirlo aquí.</div>
+      </div>
+    </div>
+
+    <hr>
+
     <!-- NOTIFICACIONES NAVEGADOR -->
     <div class="section section-anchor" id="notif-navegador">
       <h2><span class="section-num" style="background:#7C3AED">📲</span> Notificaciones del navegador</h2>
@@ -726,5 +818,46 @@ hr{border:none;border-top:1px solid var(--border);margin:40px 0}
   <p style="margin-top:6px">© 2026 TekPair. Software para talleres de reparación de móviles.</p>
 </footer>
 
+<script>
+// Plantillas del pie del ticket: contador de caracteres y copiar al portapapeles.
+(function () {
+  var MAX = 300;
+  document.querySelectorAll('.pl').forEach(function (card) {
+    var pre = card.querySelector('.pl-txt');
+    var n = card.querySelector('.pl-n');
+    if (pre && n) {
+      var len = pre.textContent.trim().length;
+      n.textContent = len + ' / ' + MAX + ' caracteres';
+    }
+  });
+  document.querySelectorAll('[data-copiar]').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var el = document.getElementById(b.dataset.copiar);
+      if (!el) return;
+      var texto = el.textContent.trim();
+      var fin = function () {
+        var antes = b.textContent;
+        b.textContent = 'Copiado';
+        b.classList.add('ok');
+        setTimeout(function () { b.textContent = antes; b.classList.remove('ok'); }, 1600);
+      };
+      // El portapapeles moderno falla en http y en algunos navegadores viejos;
+      // el camino de respaldo funciona en todos.
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(texto).then(fin, function () { respaldo(texto, fin); });
+      } else { respaldo(texto, fin); }
+    });
+  });
+  function respaldo(texto, fin) {
+    var ta = document.createElement('textarea');
+    ta.value = texto;
+    ta.style.cssText = 'position:fixed;left:-9999px;top:0';
+    document.body.appendChild(ta);
+    ta.select();
+    try { document.execCommand('copy'); fin(); } catch (e) {}
+    document.body.removeChild(ta);
+  }
+})();
+</script>
 </body>
 </html>
