@@ -3285,6 +3285,19 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <p style="font-size:11.5px;color:var(--muted);margin:2px 2px 0"><span data-t="etq.tam_ayuda">Elige el rollo que tienes puesto. Las etiquetas de venta y reparación se ajustan a esta medida. Recuerda poner el mismo tamaño en el driver de la impresora.</span></p>
     </div>
 
+    <div class="card">
+      <div class="card-title">🧾 <span data-t="ajt.tk_titulo">Ticket de venta</span></div>
+      <p style="font-size:11.5px;color:var(--muted);margin:0 2px 12px"><span data-t="ajt.tk_ayuda">Lo que sale impreso en el ticket que se lleva el cliente. El nombre del documento y un texto libre al final (devoluciones, aviso legal, promociones).</span></p>
+      <div class="fg">
+        <label class="fl"><span data-t="ajt.tk_doc">Nombre del documento</span></label>
+        <input class="fi" id="ajTicketDoc" maxlength="40" data-t-ph="ajt.tk_doc_ph" placeholder="Ticket de venta">
+      </div>
+      <div class="fg">
+        <label class="fl"><span data-t="ajt.tk_pie">Texto al final del ticket</span></label>
+        <textarea class="fi" id="ajTicketPie" rows="3" maxlength="300" data-t-ph="ajt.tk_pie_ph" placeholder="Ej.: Cambios en 15 días con el ticket. IVA incluido."></textarea>
+      </div>
+    </div>
+
     <!-- Solo visible dentro de la app de escritorio (TekPair Desktop) -->
     <div class="card" id="ajImpresorasCard" style="display:none">
       <div class="card-title">🖨️ Impresoras (app de escritorio)</div>

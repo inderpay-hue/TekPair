@@ -722,6 +722,23 @@ function _tpvLogVenta(venta, totals) {
   } catch (e) { /* que un fallo aqui no impida cerrar la venta */ }
 }
 
+// Igual que sbPost pero devuelve la FILA insertada. Se usa solo con ventas:
+// el numero de ticket lo pone una secuencia de Postgres en el propio INSERT,
+// asi que es la unica forma de que el TPV lo conozca para imprimirlo.
+function sbPostRet(table, data) {
+  if (!SB_KEY) return Promise.resolve(null);
+  return fetch(SUPABASE_URL + '/rest/v1/' + table, {
+    method: 'POST',
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
+    body: JSON.stringify(data)
+  }).then(function(r) {
+    if (!r.ok) {
+      return r.json().then(function(err){ _sbErrorToast('POST', table, Object.assign({status:r.status}, err)); return null; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return null; });
+    }
+    return r.json().then(function(rows){ return (Array.isArray(rows) && rows[0]) || null; }, function(){ return null; });
+  }).catch(function(e) { _sbErrorToast('POST', table, e); return null; });
+}
+
 function sbPost(table, data) {
   if (!SB_KEY) return Promise.resolve(false);
   return fetch(SUPABASE_URL + '/rest/v1/' + table, {
@@ -1904,7 +1921,14 @@ function cobrar() {
     cuotas: fin ? fin.cuotas : null,
     entrada: fin ? fin.entrada : 0,
     entradaPago: (esFinanciado && fin && fin.entrada > 0) ? selectedEntradaPago : null,
-    items: cart.slice()
+    items: cart.slice(),
+    // Lo que entrego el cliente en efectivo, para poder imprimir el cambio.
+    // Solo vive en memoria: la tabla `ventas` no tiene esta columna y mandar un
+    // campo inexistente devuelve 400 y deja la venta solo en local (paso con
+    // stock_id en jul-2026). Al reimprimir desde el panel no saldra el cambio,
+    // que es justo cuando ya no hace falta.
+    entregado: (selectedPago === 'Efectivo'
+      ? (parseFloat((document.getElementById('efectivoInput') || {}).value) || 0) : 0)
   };
 
   // Reduce stock
@@ -1934,7 +1958,7 @@ function cobrar() {
 
   // Save to Supabase
   if (SB_KEY && TIENDA_ID) {
-    sbPost('ventas', {
+    sbPostRet('ventas', {
       id: venta.id, tienda_id: TIENDA_ID, fecha: venta.fecha,
       cliente_id: venta.clienteId, cliente_nombre: venta.clienteNombre,
       marca: venta.marca, modelo: venta.modelo, imei: '',
@@ -1944,6 +1968,18 @@ function cobrar() {
       entrada_pago: venta.entradaPago || null,
       iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte,
       items: (venta.items && venta.items.length) ? JSON.stringify(venta.items) : null
+    }).then(function (fila) {
+      // El numero llega del servidor, no se calcula aqui: dos cajeros cobrando
+      // a la vez no pueden repetirlo. Cuando llega (decimas de segundo) se
+      // repinta el ticket; si la migracion no se ha corrido, no viene y el
+      // ticket se queda sin numero, que es la degradacion correcta.
+      if (!fila || !fila.numero) return;
+      venta.numero = fila.numero;
+      try {
+        var i = DB.ventas.findIndex(function (x) { return x.id === venta.id; });
+        if (i >= 0) { DB.ventas[i].numero = fila.numero; localStorage.setItem('tk_db', JSON.stringify(DB)); }
+      } catch (e) {}
+      if (_ultimaVenta && _ultimaVenta.id === venta.id) mostrarTicket(venta, _ultimosTotals);
     });
   }
 
@@ -1995,8 +2031,10 @@ function mostrarTicket(venta, totals) {
     '<div class="ticket-total"><span>TOTAL' + (totals.ivaModo === 'incluido' ? ' ' + T('tpv.iva_inc') : '') + '</span><span>\u20ac' + totals.total.toFixed(2) + '</span></div>' +
     '<hr class="ticket-sep">' +
     '<div class="ticket-footer">' + T('tpv.gracias_compra') + '' +
+    '<br><span style="font-size:12px">' + T('tkt.conserve') + '</span>' +
     (TIENDA.garantiaVentas ? '<br><span style="font-size:12px">' + escHtml(TIENDA.garantiaVentas) + '</span>' : '') +
     (TIENDA.politicaVentas ? '<br><span style="font-size:12px;color:#000">' + escHtml(TIENDA.politicaVentas) + '</span>' : '') +
+    (AJUSTES.ticketPie ? '<br><span style="font-size:12px;color:#000">' + escHtml(AJUSTES.ticketPie) + '</span>' : '') +
     '</div>' +
     '</div>';
   document.getElementById('ticketContent').innerHTML = html;
@@ -2040,13 +2078,20 @@ function _ticketDoc() {
   var cab = [];
   cab.push(TIENDA.nombre || 'Tekpair');
   if (TIENDA.dir) cab.push(TIENDA.dir);
+  if (TIENDA.cif) cab.push(T('tkt.nif') + ': ' + TIENDA.cif);
   if (TIENDA.tel) cab.push(T('tpv.tk_tel') + TIENDA.tel);
 
-  var datos = [
-    [T('pres.doc_fecha'), v.fecha],
-    [T('pres.doc_cliente'), v.clienteNombre],
-    [T('tpv.tk_pago'), v.pago]
-  ];
+  var _d = new Date();
+  var _hora = ('0' + _d.getHours()).slice(-2) + ':' + ('0' + _d.getMinutes()).slice(-2);
+  var datos = [[T('tkt.documento'), (AJUSTES.ticketDoc || T('tkt.doc_def'))]];
+  if (v.numero) datos.push([T('tkt.numero'), 'T' + String(v.fecha || '').slice(0, 4) + '-' + String(v.numero).padStart(6, '0')]);
+  datos.push([T('pres.doc_fecha'), v.fecha + ' ' + _hora]);
+  datos.push([T('pres.doc_cliente'), v.clienteNombre]);
+  datos.push([T('tpv.tk_pago'), v.pago]);
+  if (v.entregado > 0) {
+    datos.push([T('tkt.entregado'), eur(v.entregado)]);
+    datos.push([T('tkt.cambio'), eur(Math.max(0, v.entregado - (t.total || 0)))]);
+  }
 
   var lineas = [];
   (v.items || []).forEach(function (item) {
@@ -2069,9 +2114,10 @@ function _ticketDoc() {
     sumas.push([T('tpv.iva_pct').replace('{p}', t.ivaTipo), eur(t.ivaImporte)]);
   }
 
-  var pie = [T('tpv.gracias_compra')];
+  var pie = [T('tpv.gracias_compra'), T('tkt.conserve')];
   if (TIENDA.garantiaVentas) pie.push(TIENDA.garantiaVentas);
   if (TIENDA.politicaVentas) pie.push(TIENDA.politicaVentas);
+  if (AJUSTES.ticketPie) pie.push(AJUSTES.ticketPie);
 
   return {
     cabecera: cab,
@@ -2079,6 +2125,7 @@ function _ticketDoc() {
     lineas: lineas,
     sumas: sumas,
     total: ['TOTAL' + (t.ivaModo === 'incluido' ? ' ' + T('tpv.iva_inc') : ''), eur(t.total)],
+    codigo: v.numero ? ('T' + String(v.fecha || '').slice(0, 4) + '-' + String(v.numero).padStart(6, '0')) : '',
     pie: pie
   };
 }

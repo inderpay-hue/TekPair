@@ -262,6 +262,22 @@
   // asi que no hay PNG que reescalar ni margenes que invente el driver.
   // Secuencia estandar: modelo -> tamaño de modulo -> correccion de errores ->
   // almacenar datos -> imprimir.
+  // Code 128 nativo (GS k 73). La impresora lo dibuja ella: nada que rasterizar.
+  // Los datos van precedidos de su longitud y con el selector {B al principio,
+  // que es el juego que admite letras y numeros (un numero de ticket los lleva).
+  function _tkBarras(texto, alto) {
+    var limpio = String(texto || '').replace(/[^\x20-\x7E]/g, '');
+    if (!limpio) return [];
+    var datos = [0x7b, 0x42];                       // {B -> Code128 juego B
+    for (var i = 0; i < limpio.length; i++) datos.push(limpio.charCodeAt(i));
+    var out = [];
+    out.push(_GS, 0x68, Math.max(1, Math.min(255, alto || 60)));  // altura
+    out.push(_GS, 0x77, 2);                                        // ancho de modulo
+    out.push(_GS, 0x48, 0);                                        // sin texto debajo (lo ponemos nosotros)
+    out.push(_GS, 0x6b, 73, datos.length);
+    return out.concat(datos);
+  }
+
   function _tkQR(texto, tam) {
     var datos = _tkBytes(texto);
     var n = datos.length + 3;              // +3 por los bytes 0x31 0x50 0x30
@@ -335,10 +351,25 @@
     }
     if (doc.total) {
       hr();
-      put([_ESC, 0x45, 1]); put([_GS, 0x21, 0x01]);
-      // En doble ancho caben la mitad de columnas; si no, el importe se saldría.
-      txt(_tkFila(doc.total[0], doc.total[1], Math.floor(TK_COLS / 2)));
-      put([_GS, 0x21, 0x00]); put([_ESC, 0x45, 0]);
+      // El TOTAL va en doble ancho, donde solo caben 24 columnas. Con una
+      // etiqueta larga ('TOTAL (IVA inc.)' = 16) mas el importe se pasa y
+      // _tkFila lo recortaba: salia "TOTAL (IVA in 266.82". Si no cabe, la
+      // etiqueta se imprime en ancho normal y el importe debajo, a la derecha
+      // y grande, que es como lo lee cualquiera.
+      var MITAD = Math.floor(TK_COLS / 2);
+      var et = String(doc.total[0] || ''), im = String(doc.total[1] || '');
+      put([_ESC, 0x45, 1]);
+      if (et.length + im.length + 1 > MITAD) {
+        txt(et);                                   // ancho normal, 48 columnas
+        put([_GS, 0x21, 0x01]);
+        txt(_tkFila('', im, MITAD));
+        put([_GS, 0x21, 0x00]);
+      } else {
+        put([_GS, 0x21, 0x01]);
+        txt(_tkFila(et, im, MITAD));
+        put([_GS, 0x21, 0x00]);
+      }
+      put([_ESC, 0x45, 0]);
     }
     // Bloques de cierre (condiciones) y QR: despues del total.
     if ((doc.bloquesPie || []).length) {
@@ -347,6 +378,13 @@
         if (bl.titulo) { put([_ESC, 0x45, 1]); txt(bl.titulo); put([_ESC, 0x45, 0]); }
         parrafos(bl.texto);
       });
+    }
+    if (doc.codigo) {
+      hr();
+      put([_ESC, 0x61, 1]);                        // centrado
+      put(_tkBarras(doc.codigo, 60));
+      txt(doc.codigo);
+      put([_ESC, 0x61, 0]);
     }
     if (doc.qr && doc.qr.url) {
       hr();

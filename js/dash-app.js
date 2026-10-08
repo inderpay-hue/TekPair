@@ -3359,6 +3359,10 @@ function mapVenta(v) {
     pago:v.pago||'Efectivo', precio:parseFloat(v.precio)||0,
     descuento:parseFloat(v.descuento)||0, total:parseFloat(v.total)||0,
     reembolsado:v.reembolsado||false, fechaReembolso:v.fecha_reembolso||'',
+    // Numero de documento del ticket: lo pone la secuencia de Postgres en el
+    // INSERT. Si la migracion sql/ticket-numero.sql aun no se ha corrido queda
+    // 0 y el ticket se imprime sin numero, sin romper nada.
+    numero: parseInt(v.numero, 10) || 0, createdAt: v.created_at || '',
     stockId:v.stock_id||'', financiado:v.financiado||false,
     cuotas:v.cuotas?(typeof v.cuotas==='string'?JSON.parse(v.cuotas):v.cuotas):null, entrada:parseFloat(v.entrada)||0, entradaPago:v.entrada_pago||null,
     // IVA: estaba sin mapear → las facturas salían con IVA 0 al recargar / en otros equipos.
@@ -7488,57 +7492,201 @@ function guardarEdicionVenta() {
   toast(T('gen.guardado'), 'ok');
 }
 
+// ─────────────── Código de barras del ticket (Code 128B) ───────────────
+// Se dibuja con <i> de anchos variables: sin librería y sin red. Un ticket
+// tiene que poder imprimirse con el router apagado.
+var _C128 = ['212222','222122','222221','121223','121322','131222','122213','122312','132212','221213',
+'221312','231212','112232','122132','122231','113222','123122','123221','223211','221132',
+'221231','213212','223112','312131','311222','321122','321221','312212','322112','322211',
+'212123','212321','232121','111323','131123','131321','112313','132113','132311','211313',
+'231113','231311','112133','112331','132131','113123','113321','133121','313121','211331',
+'231131','213113','213311','213131','311123','311321','331121','312113','312311','332111',
+'314111','221411','431111','111224','111422','121124','121421','141122','141221','112214',
+'112412','122114','122411','142112','142211','241211','221114','413111','241112','134111',
+'111242','121142','121241','114212','124112','124211','411212','421112','421211','212141',
+'214121','412121','111143','111341','131141','114113','114311','411113','411311','113141',
+'114131','311141','411131','211412','211214','211232','2331112'];
+
+function _code128Html(txt, altoPx, unidadPx) {
+  var str = String(txt || '').replace(/[^\x20-\x7E]/g, '');
+  if (!str) return '';
+  var codigos = [104], suma = 104;            // Start B
+  for (var i = 0; i < str.length; i++) {
+    var v = str.charCodeAt(i) - 32;
+    if (v < 0 || v > 94) continue;
+    codigos.push(v); suma += v * (i + 1);
+  }
+  codigos.push(suma % 103);                   // dígito de control
+  codigos.push(106);                          // Stop
+  var anchos = '';
+  for (var k = 0; k < codigos.length; k++) anchos += _C128[codigos[k]];
+  var h = altoPx || 36, u = unidadPx || 1.3, out = '';
+  for (var j = 0; j < anchos.length; j++) {
+    var w = (parseInt(anchos[j], 10) || 0) * u;
+    out += '<i style="display:inline-block;width:' + w.toFixed(2) + 'px;height:' + h +
+      'px;background:' + (j % 2 === 0 ? '#000' : 'transparent') + '"></i>';
+  }
+  return '<div style="font-size:0;line-height:0;white-space:nowrap;text-align:center">' + out + '</div>';
+}
+
+// Número de documento legible. Sin migración corrida (numero = 0) no se
+// inventa nada: el ticket sale sin número en vez de con uno falso.
+function _tkNumero(v) {
+  if (!v || !v.numero) return '';
+  var anio = String(v.fecha || '').slice(0, 4) || String(new Date().getFullYear());
+  return 'T' + anio + '-' + String(v.numero).padStart(6, '0');
+}
+
+// Fecha con HORA. La columna `fecha` solo guarda el día; la hora está en
+// created_at, que es lo que distingue dos ventas del mismo cliente el mismo día.
+function _tkFechaHora(v) {
+  var iso = v.createdAt || '';
+  if (iso) {
+    var d = new Date(iso);
+    if (!isNaN(d)) {
+      return ('0' + d.getDate()).slice(-2) + '/' + ('0' + (d.getMonth() + 1)).slice(-2) + '/' +
+        d.getFullYear() + ' ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+    }
+  }
+  return fmtFecha(v.fecha);
+}
+
 function imprimirTicketVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
   if (!v) { toast(T('gen.error'), 'err'); return; }
+
   var logoBlock = TIENDA.logo_url
-    ? '<div style="text-align:center;margin-bottom:6px"><img src="' + esc(TIENDA.logo_url) + '" style="max-height:50px;max-width:200px;object-fit:contain"></div>'
-    : '<div style="text-align:center;font-size:18px;font-weight:900;margin-bottom:4px">\u26a1 ' + esc(TIENDA.nombre || 'Tekpair') + '</div>';
-  var nombreLinea = TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:18px;font-weight:900;margin-bottom:4px">' + esc(TIENDA.nombre) + '</div>' : '';
-  var dirLinea = TIENDA.dir ? '<div style="text-align:center;font-size:12px;color:#000">' + esc(TIENDA.dir) + '</div>' : '';
-  var telLinea = TIENDA.tel ? '<div style="text-align:center;font-size:12px;color:#000">Tel: ' + esc(TIENDA.tel) + '</div>' : '';
-  var ivaOn = !!(v.iva && v.ivaModo && v.ivaModo !== 'sin');
-  var items = (v.items && v.items.length) ? v.items : [{nombre: v.modelo || 'Venta', precio: v.precio || v.total, qty: 1}];
-  var itemsHtml = items.map(function(it) {
-    var sub = (parseFloat(it.precio) || 0) * (parseFloat(it.qty) || 1);
-    var dv = parseFloat(it.desc) || 0;
-    var dl = dv > 0 ? Math.min(it.descTipo === 'pct' ? sub * dv / 100 : dv, sub) : 0;
-    return '<div style="display:flex;justify-content:space-between;font-size:13px;margin:2px 0"><span>' + esc(it.nombre) + ' x' + (it.qty || 1) + '</span><span>' + cur(sub) + '</span></div>' +
-      (dl > 0 ? '<div style="display:flex;justify-content:space-between;font-size:12px;margin:1px 0"><span>&nbsp;&nbsp;' + T('tpv.descuento_2') + (it.descTipo === 'pct' ? ' ' + dv + '%' : '') + '</span><span>-' + cur(dl) + '</span></div>' : '');
+    ? '<div class="c" style="margin-bottom:5px"><img src="' + esc(TIENDA.logo_url) + '" style="max-height:52px;max-width:60mm;object-fit:contain"></div>'
+    : '';
+  var cab = logoBlock +
+    '<div class="c nom">' + esc(TIENDA.nombre || 'TekPair') + '</div>' +
+    (TIENDA.dir ? '<div class="c sm">' + esc(TIENDA.dir) + '</div>' : '') +
+    (TIENDA.cif ? '<div class="c sm">' + T('tkt.nif') + ': ' + esc(TIENDA.cif) + '</div>' : '') +
+    (TIENDA.tel ? '<div class="c sm">Tel: ' + esc(TIENDA.tel) + '</div>' : '') +
+    (TIENDA.email ? '<div class="c sm">' + esc(TIENDA.email) + '</div>' : '');
+
+  // ── Cabecera del documento ──
+  var num = _tkNumero(v);
+  var filas = [[T('tkt.documento'), (AJUSTES.ticketDoc || T('tkt.doc_def'))]];
+  if (num) filas.push([T('tkt.numero'), num]);
+  filas.push([T('pres.doc_fecha'), _tkFechaHora(v)]);
+  filas.push([T('pres.doc_cliente'), v.clienteNombre || T('gen.sin_cliente')]);
+  if (v.atiende) filas.push([T('tkt.atiende'), v.atiende]);
+  var datos = filas.map(function(f) {
+    return '<div class="row"><span>' + esc(f[0]) + '</span><strong>' + esc(f[1]) + '</strong></div>';
   }).join('');
 
-  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket ' + v.id + '</title>' +
-    '<style>@page{size:80mm auto;margin:0}*{box-sizing:border-box}html,body{width:80mm}body{font-family:Arial,Helvetica,"Segoe UI",sans-serif;margin:0;padding:2mm 5mm 12mm;color:#000;font-size:14px;font-weight:800;line-height:1.35;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}body *{color:#000!important}hr{border:none;border-top:2px dashed #000;margin:6px 0}</style>' +
-    '</head><body>' +
-    logoBlock + nombreLinea + dirLinea + telLinea +
-    '<hr>' +
-    '<div style="display:flex;justify-content:space-between"><span>' + T('pres.doc_fecha') + '</span><strong>' + fmtFecha(v.fecha) + '</strong></div>' +
-    '<div style="display:flex;justify-content:space-between"><span>' + T('pres.doc_cliente') + '</span><strong>' + esc(v.clienteNombre || T('gen.sin_cliente')) + '</strong></div>' +
-    '<div style="display:flex;justify-content:space-between"><span>' + T('tpv.tk_pago') + '</span><strong>' + esc(v.pago) + '</strong></div>' +
-    (v.reembolsado ? '<div style="text-align:center;color:#c00;font-weight:800;margin-top:4px;border:1.5px solid #c00;padding:3px">' + T('tpv.reembolsada') + '</div>' : '') +
-    '<hr>' +
-    itemsHtml +
-    '<hr>' +
-    (v.descuento > 0 ? '<div style="display:flex;justify-content:space-between"><span><span data-t="tpv.subtotal">Subtotal</span></span><span>' + cur(v.precio || 0) + '</span></div>' +
-      '<div style="display:flex;justify-content:space-between"><span><span data-t="tpv.descuento">Descuento</span></span><span>-' + cur(v.descuento) + '</span></div>' : '') +
-    (ivaOn ?
-      '<div style="display:flex;justify-content:space-between"><span>' + T('pres.doc_base_imponible') + '</span><span>' + cur(v.base || 0) + '</span></div>' +
-      '<div style="display:flex;justify-content:space-between"><span>IVA (' + v.iva + '%)</span><span>' + cur(v.ivaImporte || 0) + '</span></div>'
-      : '') +
-    '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:800;margin-top:4px;border-top:1px solid #000;padding-top:4px"><span>' + T('pres.doc_total') + (v.ivaModo === 'incluido' ? ' ' + T('tkt.iva_inc') : '') + '</span><span>' + cur(v.total || 0) + '</span></div>' +
-    '<hr>' +
-    '<div style="text-align:center;font-size:12px;color:#000;margin-top:6px">' + T('tpv.gracias_compra') + '</div>' +
-    (TIENDA.garVenActiva !== false && TIENDA.garantiaVentas ? '<div style="text-align:center;font-size:12px;color:#000;margin-top:6px;line-height:1.4">' + esc(TIENDA.garantiaVentas) + '</div>' : '') +
-    (TIENDA.politicaVentas ? '<div style="text-align:center;font-size:12px;color:#000;margin-top:4px;line-height:1.4">' + esc(TIENDA.politicaVentas) + '</div>' : '') +
-    '<div style="text-align:center;font-size:12px;color:#000;margin-top:8px;border-top:2px dashed #000;padding-top:4px">' + T('tkt.generado') + '</div>' +
+  // ── Líneas, con cabecera de tabla y precio unitario ──
+  var items = (v.items && v.items.length) ? v.items
+    : [{nombre: v.modelo || T('tkt.doc_def'), precio: v.precio || v.total, qty: 1}];
+  var lineas = items.map(function(it) {
+    var qty = parseFloat(it.qty) || 1;
+    var pu = parseFloat(it.precio) || 0;
+    var sub = pu * qty;
+    var dv = parseFloat(it.desc) || 0;
+    var dl = dv > 0 ? Math.min(it.descTipo === 'pct' ? sub * dv / 100 : dv, sub) : 0;
+    return '<div class="it">' +
+        '<span class="it-q">' + qty + '</span>' +
+        '<span class="it-d">' + esc(it.nombre) + '</span>' +
+        '<span class="it-u">' + cur(pu) + '</span>' +
+        '<span class="it-t">' + cur(sub) + '</span>' +
+      '</div>' +
+      (it.notas ? '<div class="it-nota">' + esc(it.notas) + '</div>' : '') +
+      (dl > 0 ? '<div class="it"><span class="it-q"></span><span class="it-d">' +
+        T('tkt.descuento') + (it.descTipo === 'pct' ? ' ' + dv + '%' : '') +
+        '</span><span class="it-u"></span><span class="it-t">-' + cur(dl) + '</span></div>' : '');
+  }).join('');
+
+  // ── Sumas y desglose de IVA ──
+  var ivaOn = !!(v.iva && v.ivaModo && v.ivaModo !== 'sin');
+  var sumas = '';
+  if (v.descuento > 0) {
+    sumas += '<div class="row"><span>' + T('tkt.subtotal') + '</span><span>' + cur(v.precio || 0) + '</span></div>' +
+      '<div class="row"><span>' + T('tkt.descuento') + '</span><span>-' + cur(v.descuento) + '</span></div>';
+  }
+  var iva = ivaOn
+    ? '<div class="sep"></div><div class="tit">' + T('tkt.desglose_iva') + '</div>' +
+      '<div class="iv th"><span>IVA</span><span>' + T('pres.doc_base_imponible') + '</span>' +
+        '<span>' + T('tkt.cuota_iva') + '</span></div>' +
+      '<div class="iv"><span>' + v.iva + '%</span><span>' + cur(v.base || 0) + '</span>' +
+        '<span>' + cur(v.ivaImporte || 0) + '</span></div>'
+    : '';
+
+  // ── Pago, y lo entregado/cambio cuando se cobró en efectivo ──
+  var pago = '<div class="row"><span>' + T('tpv.tk_pago') + '</span><strong>' + esc(v.pago || '') + '</strong></div>';
+  if (v.entregado > 0) {
+    pago += '<div class="row"><span>' + T('tkt.entregado') + '</span><span>' + cur(v.entregado) + '</span></div>' +
+      '<div class="row"><span>' + T('tkt.cambio') + '</span><strong>' + cur(Math.max(0, v.entregado - (v.total || 0))) + '</strong></div>';
+  }
+
+  // ── Pie: lo que configura cada tienda en Ajustes ──
+  var pie = '<div class="c sm" style="margin-top:7px">' + T('tkt.conserve') + '</div>';
+  if (TIENDA.garVenActiva !== false && TIENDA.garantiaVentas) pie += '<div class="c sm pie-b">' + esc(TIENDA.garantiaVentas) + '</div>';
+  if (TIENDA.politicaVentas) pie += '<div class="c sm pie-b">' + esc(TIENDA.politicaVentas) + '</div>';
+  if (AJUSTES.ticketPie) pie += '<div class="c sm pie-b">' + esc(AJUSTES.ticketPie) + '</div>';
+
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket ' + esc(num || v.id) + '</title>' +
+    '<style>@page{size:80mm auto;margin:0}*{box-sizing:border-box}html,body{width:80mm}' +
+    'body{font-family:Arial,Helvetica,sans-serif;margin:0;padding:2mm 1.5mm 6mm;color:#000;font-size:12.5px;font-weight:700;line-height:1.3;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}' +
+    'body *{color:#000!important}' +
+    '.c{text-align:center}.sm{font-size:11.5px;line-height:1.3}' +
+    '.nom{font-size:17px;font-weight:900;letter-spacing:.2px;margin-bottom:1px}' +
+    '.sep{border-top:1.5px dashed #000;margin:5px 0}' +
+    '.row{display:flex;justify-content:space-between;gap:8px;margin:1px 0}' +
+    '.tit{font-weight:900;font-size:11.5px;letter-spacing:.3px;margin:2px 0 1px}' +
+    // Rejilla de 4 columnas: la descripción es la única elástica, así los
+    // importes de la derecha quedan siempre alineados aunque el nombre sea largo.
+    '.it{display:grid;grid-template-columns:22px 1fr 52px 56px;gap:3px;margin:1px 0;align-items:baseline}' +
+    '.it-q{text-align:left}.it-d{word-break:break-word}.it-u,.it-t{text-align:right;font-variant-numeric:tabular-nums}' +
+    '.th{font-size:10.5px;font-weight:900;border-bottom:1px solid #000;padding-bottom:1px;margin-bottom:2px}' +
+    '.it-nota{font-size:10.5px;padding-left:25px;font-weight:400}' +
+    '.iv{display:grid;grid-template-columns:42px 1fr 1fr;gap:4px;margin:1px 0}' +
+    '.iv span:not(:first-child){text-align:right;font-variant-numeric:tabular-nums}' +
+    // El TOTAL en una sola línea: antes se partía en dos y quedaba el importe
+    // suelto debajo del texto.
+    '.tot{display:flex;justify-content:space-between;align-items:baseline;gap:6px;' +
+      'font-size:16px;font-weight:900;border-top:2px solid #000;border-bottom:2px solid #000;padding:4px 0;margin:5px 0}' +
+    '.tot span:first-child{font-size:12.5px}' +
+    '.tot span:last-child{white-space:nowrap;font-variant-numeric:tabular-nums}' +
+    '.pie-b{margin-top:4px;line-height:1.35}' +
+    '.rembolso{text-align:center;font-weight:900;border:1.5px solid #000;padding:3px;margin:4px 0}' +
+    '</style></head><body>' +
+    cab +
+    '<div class="sep"></div>' +
+    datos +
+    (v.reembolsado ? '<div class="rembolso">' + T('tpv.reembolsada') + '</div>' : '') +
+    '<div class="sep"></div>' +
+    '<div class="it th"><span class="it-q">' + T('tkt.uds') + '</span><span class="it-d">' + T('tkt.descripcion') +
+      '</span><span class="it-u">' + T('tkt.pvp_ud') + '</span><span class="it-t">' + T('tkt.total_col') + '</span></div>' +
+    lineas +
+    '<div class="sep"></div>' +
+    sumas +
+    iva +
+    '<div class="tot"><span>' + T('pres.doc_total') + (v.ivaModo === 'incluido' ? ' ' + T('tkt.iva_inc') : '') +
+      '</span><span>' + cur(v.total || 0) + '</span></div>' +
+    pago +
+    (num ? '<div class="sep"></div>' + _code128Html(num, 34, 1.3) +
+      '<div class="c" style="font-size:10.5px;letter-spacing:1px;margin-top:2px">' + esc(num) + '</div>' : '') +
+    '<div class="sep"></div>' +
+    pie +
     '<script>window.onload=function(){setTimeout(function(){window.print();},200);}<\/script>' +
     '</body></html>';
 
-  if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintTicket === 'function') {
-    tkPrintTicket(html, 80, function () { _docPopupImprimir(html, 380, 600); });
-    return;
+  // Camino de impresion: el diseño se manda como mapa de bits ESC/POS, que
+  // conserva logo y tipografia y sale al ancho exacto del papel. El antiguo
+  // tkPrintTicket acababa en mspaint, que reescala a su criterio: por eso el
+  // logo salia como una mancha y el ticket mas pequeño que el papel.
+  if (typeof tkIsDesktop === 'function' && tkIsDesktop()) {
+    if (typeof tkPrintImagenESC === 'function') {
+      tkPrintImagenESC(html, 80, function () { _docPopupImprimir(html, 380, 640); });
+      return;
+    }
+    if (typeof tkPrintTicket === 'function') {
+      tkPrintTicket(html, 80, function () { _docPopupImprimir(html, 380, 640); });
+      return;
+    }
   }
-  _docPopupImprimir(html, 380, 600);
+  _docPopupImprimir(html, 380, 640);
 }
 
 // ── Modales in-app que reemplazan confirm()/prompt() nativos (feos y que bloquean el navegador automatizado) ──
@@ -17168,6 +17316,10 @@ function cargarAjustes() {
   document.getElementById('ajNotifCumple').checked = n.cumple !== false;
   document.getElementById('ajPlantillaCumple').value = (AJUSTES.notif && AJUSTES.notif.plantillaCumple) || T('notif.plantilla_cumple_larga');
   document.getElementById('ajDiasAbandono').value = (AJUSTES.notif && AJUSTES.notif.diasAbandono) || 90;
+  var _tkDl = document.getElementById('ajTicketDoc');
+  var _tkPl = document.getElementById('ajTicketPie');
+  if (_tkDl) _tkDl.value = AJUSTES.ticketDoc || '';
+  if (_tkPl) _tkPl.value = AJUSTES.ticketPie || '';
   toggleCumpleCfg();
   try { _renderImpresorasAjustes(); } catch (e) {}
 }
@@ -17254,6 +17406,12 @@ function guardarAjustes() {
   AJUSTES.notif.plantillaCumple = document.getElementById('ajPlantillaCumple').value.trim() || T('notif.plantilla_cumple_def');
   AJUSTES.notif.diasAbandono = parseInt(document.getElementById('ajDiasAbandono').value) || 90;
   if (AJUSTES.notif.diasAbandono < 7) AJUSTES.notif.diasAbandono = 7;
+  // Ticket: nombre del documento y pie libre. Van en ajustes_config (JSON), no
+  // en columnas propias: asi no hay que correr ningun SQL para que funcione.
+  var _tkD = document.getElementById('ajTicketDoc');
+  var _tkP = document.getElementById('ajTicketPie');
+  if (_tkD) AJUSTES.ticketDoc = _tkD.value.trim().slice(0, 40);
+  if (_tkP) AJUSTES.ticketPie = _tkP.value.trim().slice(0, 300);
   localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {ajustes_config: AJUSTES});
   if (typeof refreshNotifs === 'function') refreshNotifs();
