@@ -1524,6 +1524,13 @@ function vlTecla(k) {
   _vlPinta();
 }
 
+// IMEI de la venta. Si solo hay un articulo con IMEI, ese es el de la venta;
+// con varios se deja vacio y cada uno sale en SU linea del ticket.
+function _imeiVenta(items) {
+  var con = (items || []).filter(function (i) { return i && i.imei; });
+  return con.length === 1 ? String(con[0].imei) : '';
+}
+
 function addVentaRapida() {
   var desc = document.getElementById('rvDesc').value.trim();
   var precio = _vlValor();
@@ -1907,7 +1914,7 @@ function cobrar() {
     clienteNombre: selectedCli ? (selectedCli.nombre + ' ' + (selectedCli.apellidos || '')).trim() : 'Sin cliente',
     marca: cart.length === 1 ? (cart[0].nombre.split(' ')[0] || '') : '',
     modelo: cart.length === 1 ? cart[0].nombre : T('tpv.n_productos').replace('{n}', cart.length),
-    imei: '',
+    imei: _imeiVenta(cart),
     pago: selectedPago,
     precio: totals.subtotal,
     descuento: totals.disc,
@@ -1961,7 +1968,7 @@ function cobrar() {
     sbPostRet('ventas', {
       id: venta.id, tienda_id: TIENDA_ID, fecha: venta.fecha,
       cliente_id: venta.clienteId, cliente_nombre: venta.clienteNombre,
-      marca: venta.marca, modelo: venta.modelo, imei: '',
+      marca: venta.marca, modelo: venta.modelo, imei: venta.imei || '',
       pago: venta.pago, precio: venta.precio, descuento: venta.descuento,
       total: venta.total, reembolsado: false, financiado: venta.financiado,
       cuotas: venta.cuotas ? JSON.stringify(venta.cuotas) : null, entrada: venta.entrada || 0,
@@ -2017,6 +2024,7 @@ function mostrarTicket(venta, totals) {
     venta.items.map(function(item) {
       var d = descLineaImporte(item);
       return '<div class="ticket-row"><span>' + escHtml(item.nombre) + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>' +
+        (item.imei ? '<div class="ticket-row" style="font-size:12px"><span>&nbsp;&nbsp;IMEI: ' + escHtml(item.imei) + '</span><span></span></div>' : '') +
         (d > 0 ? '<div class="ticket-row" style="font-size:12px"><span>&nbsp;&nbsp;' + T('tpv.descuento_2') +
           (item.descTipo === 'pct' ? ' ' + item.desc + '%' : '') + '</span><span>-\u20ac' + d.toFixed(2) + '</span></div>' : '');
     }).join('') +
@@ -2096,6 +2104,7 @@ function _ticketDoc() {
   var lineas = [];
   (v.items || []).forEach(function (item) {
     lineas.push([item.nombre + ' x' + item.qty, eur(item.precio * item.qty)]);
+    if (item.imei) lineas.push(['  IMEI: ' + item.imei, '']);
     var d = descLineaImporte(item);
     if (d > 0) {
       lineas.push(['  ' + T('tpv.descuento_2') + (item.descTipo === 'pct' ? ' ' + item.desc + '%' : ''), '-' + eur(d)]);

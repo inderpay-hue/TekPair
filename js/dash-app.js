@@ -7578,7 +7578,8 @@ function imprimirTicketVenta(id) {
 
   // ── Líneas, con cabecera de tabla y precio unitario ──
   var items = (v.items && v.items.length) ? v.items
-    : [{nombre: v.modelo || T('tkt.doc_def'), precio: v.precio || v.total, qty: 1}];
+    : [{nombre: ((v.marca ? v.marca + ' ' : '') + (v.modelo || '')).trim() || T('tkt.doc_def'),
+        precio: v.precio || v.total, qty: 1, imei: v.imei || ''}];
   var lineas = items.map(function(it) {
     var qty = parseFloat(it.qty) || 1;
     var pu = parseFloat(it.precio) || 0;
@@ -7591,6 +7592,7 @@ function imprimirTicketVenta(id) {
         '<span class="it-u">' + cur(pu) + '</span>' +
         '<span class="it-t">' + cur(sub) + '</span>' +
       '</div>' +
+      (it.imei ? '<div class="it-nota">IMEI: ' + esc(it.imei) + '</div>' : '') +
       (it.notas ? '<div class="it-nota">' + esc(it.notas) + '</div>' : '') +
       (dl > 0 ? '<div class="it"><span class="it-q"></span><span class="it-d">' +
         T('tkt.descuento') + (it.descTipo === 'pct' ? ' ' + dv + '%' : '') +
