@@ -407,7 +407,7 @@ export default async function handler(req, res) {
       // No se toca Stripe: no hay suscripcion ni comision. La tarjeta se le
       // pedira dentro de la app como garantia.
       if (action === 'crear_cuenta_efectivo') {
-        const { nombre, email, meses, plan, importe, nota } = body;
+        const { nombre, email, meses, plan, importe, nota, telefono, dir } = body;
         if (!nombre || !email) return res.status(400).json({ error: 'Nombre y email obligatorios' });
 
         const mesesNum = parseInt(meses, 10);
@@ -468,7 +468,10 @@ export default async function handler(req, res) {
             plan_until: hasta,
             plan_email: emailNorm,
             cobro_manual: true,
-            citas_slug: citasSlug
+            citas_slug: citasSlug,
+            // Para saber a quien llamar y donde esta cuando toque ir a cobrar.
+            telefono: String(telefono || '').trim().slice(0, 30) || null,
+            dir: String(dir || '').trim().slice(0, 200) || null
           })
         });
         if (!tR.ok) {

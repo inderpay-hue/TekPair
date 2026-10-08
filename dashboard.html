@@ -3923,6 +3923,12 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
         <label style="font-size:12px;">Email
           <input type="email" id="ef-email" class="input" placeholder="pepe@ejemplo.com" autocomplete="off">
         </label>
+        <label style="font-size:12px;">Teléfono
+          <input type="tel" id="ef-tel" class="input" placeholder="+34 600 123 456" autocomplete="off">
+        </label>
+        <label style="font-size:12px;">Dirección de la tienda
+          <input type="text" id="ef-dir" class="input" placeholder="C/ Mayor 12, 28013 Madrid" autocomplete="off">
+        </label>
         <label style="font-size:12px;">Plan
           <select id="ef-plan" class="input">
             <option value="premium">Premium</option>
@@ -5759,6 +5765,10 @@ async function crearCuentaEfectivo(btn) {
     var d = await _efApi({
       action: 'crear_cuenta_efectivo',
       nombre: nombre, email: email,
+      // Estas cuentas se cobran YENDO a la tienda: sin telefono y direccion,
+      // dentro de tres meses no se sabe ni a quien llamar ni donde ir.
+      telefono: (document.getElementById('ef-tel') || {}).value || '',
+      dir: (document.getElementById('ef-dir') || {}).value || '',
       plan: document.getElementById('ef-plan').value,
       meses: document.getElementById('ef-meses').value,
       importe: document.getElementById('ef-importe').value,
