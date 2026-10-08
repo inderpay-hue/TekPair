@@ -346,7 +346,7 @@ export default async function handler(req, res) {
         // se usa cuando no hay descuento — comprobando antes que exista de
         // verdad, para que nadie se atribuya ventas escribiendo un codigo ajeno.
         if (!codigoReferido) {
-          const refMeta = String(session.metadata?.ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+          const refMeta = String(session.metadata?.ref || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16);
           if (refMeta) {
             try {
               const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(refMeta)}&select=codigo&limit=1`, { headers: sbHeaders });

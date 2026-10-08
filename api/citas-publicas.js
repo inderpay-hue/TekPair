@@ -566,7 +566,7 @@ async function presRechazar(body, ip) {
 // #B4: valida un código de invitación antes de prometer "1 mes gratis" en el registro.
 // Reconoce el referral_code propio de TekPair y el código cruzado de Cobrum.
 async function checkRef(ref, ip) {
-  const code = String(ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+  const code = String(ref || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16);
   if (!code) return { ok: true, valid: false };
   const _rl = await rateLimit(`checkref:${ip}`, 40, 3600);
   if (!_rl.ok) return { ok: true, valid: false };

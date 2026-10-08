@@ -90,7 +90,7 @@ export default async function handler(req, res) {
     // Si email/nombre/etc. no vienen en req.body, se leen del metadata de la session Stripe.
     let stripeCustomerId = null;
     let stripeSubId = null;
-    let refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+    let refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16);
     // Teléfono de contacto de la tienda. Es obligatorio en el formulario, pero aquí
     // no se exige: si por lo que sea llegara vacío, el alta no debe romperse — el
     // cliente ya ha pagado a estas alturas.
@@ -112,7 +112,7 @@ export default async function handler(req, res) {
           if (!nombre && session.metadata.nombre) nombre = session.metadata.nombre;
           if (!tienda_nombre && session.metadata.tienda_nombre) tienda_nombre = session.metadata.tienda_nombre;
           if (!plan && session.metadata.plan) plan = session.metadata.plan;
-          if (session.metadata.ref) refCode = String(session.metadata.ref).replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+          if (session.metadata.ref) refCode = String(session.metadata.ref).replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16);
           if (session.metadata.tel && !telefono) telefono = String(session.metadata.tel).slice(0, 20);
         }
         // Fallback adicional: customer_email del Checkout si el metadata no lo tenía

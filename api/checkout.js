@@ -162,7 +162,10 @@ export default async function handler(req, res) {
     if (req.body.consent_ts) params.append('metadata[consent_ts]', String(req.body.consent_ts).slice(0, 40));
     if (req.body.consent_ver) params.append('metadata[consent_ver]', String(req.body.consent_ver).slice(0, 40));
     // Referidos: código de invitación (lo lee register.js para registrar la invitación).
-    const refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+    // A MAYUSCULAS: todos los codigos se guardan asi y la comparacion de
+    // Postgres distingue mayusculas. Quien escribiera 'demba' en vez de
+    // 'DEMBA' no encontraba al afiliado y el comercial se quedaba sin cobrar.
+    const refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16);
     if (refCode) { params.append('metadata[ref]', refCode); params.append('subscription_data[metadata][ref]', refCode); }
 
     // El código escrito en el registro se aplica AQUÍ como descuento de verdad.
