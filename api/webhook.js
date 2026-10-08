@@ -336,6 +336,29 @@ export default async function handler(req, res) {
           console.error('Error extrayendo promotion_code:', e);
         }
 
+        // RESPALDO: el codigo que el cliente escribio en el registro.
+        //
+        // La atribucion salia SOLO del descuento aplicado en Stripe, asi que un
+        // comercial sin cupon creado en Stripe no cobraba NADA: sin descuento no
+        // hay `discounts[0]`, codigo_referido se quedaba vacio y el pago no se
+        // apuntaba a nadie. Los cupones se crean a mano y es facil olvidarse de
+        // uno. El codigo viaja igualmente en metadata desde checkout.js, asi que
+        // se usa cuando no hay descuento — comprobando antes que exista de
+        // verdad, para que nadie se atribuya ventas escribiendo un codigo ajeno.
+        if (!codigoReferido) {
+          const refMeta = String(session.metadata?.ref || '').replace(/[^A-Za-z0-9]/g, '').slice(0, 16);
+          if (refMeta) {
+            try {
+              const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(refMeta)}&select=codigo&limit=1`, { headers: sbHeaders });
+              const afRows = await afR.json();
+              if (Array.isArray(afRows) && afRows.length) {
+                codigoReferido = afRows[0].codigo;
+                console.log('Codigo referido recuperado de metadata (sin cupon en Stripe):', codigoReferido);
+              }
+            } catch (e) { console.error('Respaldo de atribucion fallido:', e); }
+          }
+        }
+
         const tienda = await findTienda({
           customerId,
           email,
