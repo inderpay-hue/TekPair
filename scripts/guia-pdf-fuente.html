@@ -1,0 +1,301 @@
+<meta charset="utf-8">
+<title>TekPair · Guía rápida</title>
+<style>
+  @page { size: A4; margin: 14mm 13mm 12mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    font-size: 10.2pt; line-height: 1.5; color: #1A1714;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  /* break-BEFORE y no -after: con "after" el ultimo generaba una pagina en
+     blanco, porque :last-child no llegaba a aplicar. */
+  .pag { page-break-before: always; }
+  .pag:first-child { page-break-before: auto; }
+
+  /* ── Portada ── */
+  .port { height: 248mm; display: flex; flex-direction: column; justify-content: center; }
+  .marca { display: flex; align-items: center; gap: 9px; margin-bottom: 30mm; }
+  .logo {
+    width: 30px; height: 30px; border-radius: 8px; background: #E8490D; color: #fff;
+    display: grid; place-items: center; font-size: 17px; font-weight: 700;
+  }
+  .marca b { font-size: 17pt; letter-spacing: -.3px; }
+  h1 {
+    font-size: 34pt; line-height: 1.04; letter-spacing: -1.1px; margin: 0 0 7mm;
+    font-weight: 700;
+  }
+  h1 em { font-style: normal; color: #C73D06; }
+  .port p { font-size: 12pt; color: #5C564A; max-width: 125mm; margin: 0 0 4mm; }
+  .port .pie {
+    margin-top: 30mm; padding-top: 5mm; border-top: 2px solid #1A1714;
+    font-size: 9pt; color: #5C564A; display: flex; justify-content: space-between;
+  }
+
+  /* ── Páginas de contenido ── */
+  .eyebrow {
+    font-size: 8pt; letter-spacing: 1.6px; text-transform: uppercase;
+    color: #8A8375; font-weight: 700; margin-bottom: 2mm;
+  }
+  h2 {
+    font-size: 19pt; letter-spacing: -.5px; margin: 0 0 1.5mm; font-weight: 700;
+  }
+  .sub { color: #5C564A; margin: 0 0 6mm; font-size: 10.5pt; }
+  h3 {
+    font-size: 11pt; margin: 6mm 0 2mm; font-weight: 700;
+    display: flex; align-items: baseline; gap: 6px;
+  }
+  h3 .n {
+    width: 17px; height: 17px; border-radius: 50%; background: #E8490D; color: #fff;
+    font-size: 8.5pt; display: inline-grid; place-items: center; flex-shrink: 0;
+    position: relative; top: 1px;
+  }
+  p { margin: 0 0 2.5mm; }
+  ul { margin: 0 0 3mm; padding-left: 5mm; }
+  li { margin-bottom: 1.4mm; }
+  strong { font-weight: 700; }
+
+  /* ── Bloques ── */
+  .caja {
+    border: 1px solid #DCD6C8; border-radius: 3mm; padding: 4mm 5mm; margin: 0 0 4mm;
+    background: #FBFAF7; break-inside: avoid;
+  }
+  .caja.ej { border-left: 3px solid #E8490D; }
+  .caja .et {
+    font-size: 8pt; letter-spacing: 1.2px; text-transform: uppercase;
+    color: #C73D06; font-weight: 700; margin-bottom: 1.5mm;
+  }
+  .caja p:last-child, .caja ul:last-child { margin-bottom: 0; }
+  .ojo {
+    border: 1px solid #E8C4B4; background: #FDF2EC; border-radius: 3mm;
+    padding: 3.5mm 5mm; margin: 0 0 4mm; font-size: 9.6pt; break-inside: avoid;
+  }
+  .ojo b { color: #A8320A; }
+
+  /* ── Rejilla de funciones ── */
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; margin-bottom: 4mm; }
+  .fx { border: 1px solid #DCD6C8; border-radius: 3mm; padding: 3.5mm 4mm; break-inside: avoid; }
+  .fx h4 { font-size: 10pt; margin: 0 0 1mm; font-weight: 700; }
+  .fx p { font-size: 9.3pt; color: #5C564A; margin: 0; line-height: 1.45; }
+
+  /* ── Tabla ── */
+  table { width: 100%; border-collapse: collapse; font-size: 9.5pt; margin-bottom: 4mm; }
+  th {
+    text-align: left; font-size: 8pt; letter-spacing: .8px; text-transform: uppercase;
+    color: #8A8375; border-bottom: 1.5px solid #1A1714; padding: 0 3mm 1.5mm 0;
+  }
+  td { padding: 2mm 3mm 2mm 0; border-bottom: 1px solid #EDE8DC; vertical-align: top; }
+  td:first-child { font-weight: 700; white-space: nowrap; }
+
+  .pie-pag {
+    position: running(pie); font-size: 8pt; color: #8A8375;
+  }
+  .cierre {
+    border-top: 2px solid #1A1714; margin-top: 7mm; padding-top: 4mm;
+    font-size: 9.3pt; color: #5C564A;
+  }
+</style>
+
+<!-- ══════════ PORTADA ══════════ -->
+<div class="pag port">
+  <div class="marca"><span class="logo">⚡</span><b>TekPair</b></div>
+  <h1>Tu taller,<br>ordenado desde<br><em>el primer día</em>.</h1>
+  <p>Esta guía te lleva de la cuenta recién creada a tener el taller funcionando. Son quince minutos de preparación y un par de ejemplos reales.</p>
+  <p>No hace falta leerla entera: haz la página 2 y empieza a trabajar. El resto está para cuando lo necesites.</p>
+  <div class="pie">
+    <span>Guía rápida para empezar</span>
+    <span>tekpair.tech · info@tekpair.tech</span>
+  </div>
+</div>
+
+<!-- ══════════ 1. PRIMEROS 15 MINUTOS ══════════ -->
+<div class="pag">
+  <div class="eyebrow">Empieza aquí</div>
+  <h2>Los primeros quince minutos</h2>
+  <p class="sub">Tres cosas y ya puedes atender. Lo demás se configura sobre la marcha.</p>
+
+  <h3><span class="n">1</span> Los datos de tu tienda</h3>
+  <p>Entra en <strong>Ajustes → Mi negocio</strong> y rellena nombre, dirección, teléfono y <strong>NIF</strong>. Sube tu logo si lo tienes.</p>
+  <p>No es papeleo: eso es exactamente lo que se imprime en la cabecera de cada ticket y de cada resguardo que le das al cliente. Si lo dejas vacío, tus tickets salen sin identificar.</p>
+
+  <h3><span class="n">2</span> Mete tu stock</h3>
+  <p>En <strong>Stock → Nuevo producto</strong>. Si ya lo tienes en un Excel, usa <strong>Importar CSV</strong> y entra todo de golpe.</p>
+  <p>Para los móviles, rellena el <strong>IMEI</strong>. Es lo que te permitirá distinguir dos terminales del mismo modelo cuando vayas a venderlos, y lo que saldrá impreso en el ticket del cliente.</p>
+
+  <h3><span class="n">3</span> Apunta tu primera reparación</h3>
+  <p>Pulsa <strong>Reparaciones → Nueva</strong>. Pon cliente, equipo, avería y presupuesto. Tardas veinte segundos.</p>
+  <p>Imprime el resguardo y dáselo. Lleva un <strong>código QR</strong>: el cliente lo escanea con su móvil y ve en qué estado está su reparación sin tener que llamarte.</p>
+
+  <div class="ojo">
+    <b>El consejo que más tiempo te ahorra:</b> cuando cambies una reparación a «Lista», TekPair te prepara el WhatsApp al cliente escrito. Un toque y avisado. Son las llamadas de «¿ya está mi móvil?» las que te rompen la mañana.
+  </div>
+
+  <div class="caja">
+    <div class="et">Si vienes de otro programa</div>
+    <p>Puedes importar <strong>clientes, stock y reparaciones</strong> desde un CSV. Si te atascas exportando de tu programa anterior, escríbenos y lo miramos contigo: no hace falta que lo metas a mano.</p>
+  </div>
+</div>
+
+<!-- ══════════ 2. REPARACIONES ══════════ -->
+<div class="pag">
+  <div class="eyebrow">El día a día</div>
+  <h2>Reparaciones</h2>
+  <p class="sub">Desde que entra el móvil por la puerta hasta que el cliente se lo lleva.</p>
+
+  <div class="caja ej">
+    <div class="et">Un caso real</div>
+    <p><strong>Entra un Samsung A54 con la pantalla rota.</strong></p>
+    <ul>
+      <li>Apuntas la reparación con el IMEI y le haces <strong>fotos al recibirlo</strong> — esas fotos son tu defensa si luego aparece un golpe que ya traía.</li>
+      <li>Le imprimes el resguardo con el QR y las condiciones de garantía.</li>
+      <li>Pides la pantalla al proveedor <strong>desde la propia reparación</strong>; queda enlazada al pedido.</li>
+      <li>Cuando llega y la montas, pasas la reparación a «Lista» y sale el WhatsApp solo.</li>
+      <li>Al entregarla, cobras desde la ficha. El importe entra en la caja del día.</li>
+    </ul>
+  </div>
+
+  <h3>Lo que tienes a mano</h3>
+  <div class="duo">
+    <div class="fx"><h4>Estados y Kanban</h4><p>Arrastra las reparaciones entre columnas. De un vistazo sabes qué está parado esperando una pieza.</p></div>
+    <div class="fx"><h4>Fotos de recepción y entrega</h4><p>Deja constancia del estado del equipo antes y después. Evita discusiones.</p></div>
+    <div class="fx"><h4>Presupuestos con firma</h4><p>El cliente lo acepta y firma desde su móvil. Sin papeles ni «yo no dije eso».</p></div>
+    <div class="fx"><h4>Anticipos</h4><p>Cobra una parte al recibir el equipo. El resto queda pendiente y TekPair lo recuerda.</p></div>
+    <div class="fx"><h4>Garantías</h4><p>Cada reparación lleva la suya. Si el cliente vuelve, aparece sola al buscar por IMEI.</p></div>
+    <div class="fx"><h4>Pedir pieza</h4><p>Desde la reparación, al proveedor. Sabes qué estás esperando y para quién.</p></div>
+  </div>
+
+  <div class="ojo">
+    <b>Busca por IMEI.</b> El buscador de arriba encuentra por IMEI, nombre, teléfono o modelo. Cuando alguien vuelve con un equipo de hace seis meses, es la forma más rápida de saber qué le hiciste y si está en garantía.
+  </div>
+</div>
+
+<!-- ══════════ 3. TPV Y VENTAS ══════════ -->
+<div class="pag">
+  <div class="eyebrow">El día a día</div>
+  <h2>TPV y ventas</h2>
+  <p class="sub">Para cobrar rápido con el cliente delante.</p>
+
+  <div class="caja ej">
+    <div class="et">Un caso real</div>
+    <p><strong>Un cliente se lleva un móvil y una funda, y paga en efectivo con 300 €.</strong></p>
+    <ul>
+      <li>Buscas el móvil en la rejilla: cada uno muestra su <strong>IMEI</strong>, así sabes cuál coges si tienes dos iguales.</li>
+      <li>Añades la funda. Si quieres hacerle precio, pones un <strong>descuento en esa línea</strong>.</li>
+      <li>Pulsas Efectivo, escribes los 300 € y TekPair te dice el cambio.</li>
+      <li>Sale el ticket con el desglose del IVA, el IMEI y lo entregado. El cajón se abre solo.</li>
+      <li>El stock baja y la venta entra en la caja del día, sin apuntar nada más.</li>
+    </ul>
+  </div>
+
+  <h3>Cosas que te van a hacer falta</h3>
+  <table>
+    <thead><tr><th>Para esto</th><th>Haz esto</th></tr></thead>
+    <tbody>
+      <tr><td>Cobrar algo que no está en el stock</td><td>La tarjeta <strong>Venta rápida</strong>, la primera de la rejilla. Pones concepto y precio con el teclado grande.</td></tr>
+      <tr><td>Cobrar a plazos</td><td>Elige <strong>Financiado</strong>: entrada ahora y cuotas que TekPair te va recordando.</td></tr>
+      <tr><td>Devolver una venta</td><td>Búscala en Ventas y márcala como reembolsada. El stock vuelve y el reporte lo refleja.</td></tr>
+      <tr><td>Los productos que más vendes</td><td>Márcalos como <strong>favoritos</strong>: aparecen primero y no hay que buscarlos.</td></tr>
+      <tr><td>Que cada empleado cobre con su cuenta</td><td><strong>Usuarios</strong>: cada uno entra con lo suyo y tú ves quién hizo cada venta.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="caja">
+    <div class="et">Un detalle que agradecerás</div>
+    <p>El TPV funciona en el <strong>móvil, la tablet y el ordenador</strong>, y se sincroniza al instante. Puedes cobrar desde la tablet en el mostrador mientras el ordenador está con otra cosa.</p>
+  </div>
+</div>
+
+<!-- ══════════ 4. DINERO ══════════ -->
+<div class="pag">
+  <div class="eyebrow">Saber cómo vas</div>
+  <h2>Caja, gastos y reportes</h2>
+  <p class="sub">Para cerrar el día en dos minutos y saber si el mes fue bueno.</p>
+
+  <h3><span class="n">1</span> La caja del día</h3>
+  <p>Abres con el fondo que dejas en el cajón y cierras al terminar. TekPair te enseña lo que <strong>debería haber</strong> por cada forma de pago y tú escribes lo que hay de verdad.</p>
+  <p>Si no cuadra, te lo dice en el momento, que es cuando todavía te acuerdas de lo que pasó. Al día siguiente ya no hay quien lo encuentre.</p>
+
+  <h3><span class="n">2</span> Los gastos</h3>
+  <p>Apunta lo que pagas a proveedores, el alquiler o la luz. Puedes <strong>hacerle una foto a la factura</strong> y que se rellene sola.</p>
+  <p>Sin gastos apuntados, los ingresos engañan: facturar mucho no es ganar mucho.</p>
+
+  <h3><span class="n">3</span> Los reportes</h3>
+  <p>En <strong>Reportes</strong> eliges el periodo y lo imprimes o lo mandas al gestor. Verás:</p>
+  <ul>
+    <li>Lo <strong>facturado</strong> y lo <strong>cobrado de verdad</strong>, que no son lo mismo si vendes a plazos.</li>
+    <li>El desglose por forma de pago: efectivo, tarjeta, Bizum, transferencia.</li>
+    <li>Qué te deja más margen: las reparaciones o la venta.</li>
+  </ul>
+
+  <div class="ojo">
+    <b>El cierre por correo.</b> Puedes dejar programado que cada noche te llegue el resumen del día al email. Cierras la tienda y lo lees en el móvil de camino a casa, sin volver a encender nada.
+  </div>
+</div>
+
+<!-- ══════════ 5. IMPRESIÓN ══════════ -->
+<div class="pag">
+  <div class="eyebrow">Que salga bien en papel</div>
+  <h2>Tickets e impresión</h2>
+  <p class="sub">Lo que se lleva el cliente dice mucho de la tienda.</p>
+
+  <h3>Qué lleva tu ticket</h3>
+  <p>Se rellena solo con lo que pusiste en Ajustes: nombre, dirección, NIF y logo. Además, cada ticket lleva <strong>número de documento</strong>, fecha y hora, las líneas con precio por unidad, el <strong>IMEI</strong> de cada móvil, el desglose del IVA, lo entregado y el cambio, y un <strong>código de barras</strong> con su número.</p>
+
+  <h3>El texto del final lo escribes tú</h3>
+  <p>En <strong>Ajustes → Impresión</strong> hay un campo para el pie del ticket: condiciones de devolución, garantía, tu Instagram. En la guía de la web tienes <strong>plantillas listas para copiar</strong>, pensadas para tiendas de móviles.</p>
+
+  <div class="caja">
+    <div class="et">Instala la app de escritorio (Windows)</div>
+    <p>Es la misma TekPair, pero puede hablar con la impresora directamente. La diferencia en el día a día:</p>
+    <ul>
+      <li>El ticket <strong>sale solo</strong>, sin el diálogo de Chrome en mitad del cobro.</li>
+      <li>Sale al <strong>ancho exacto del papel</strong>, no encogido a un lado.</li>
+      <li>El <strong>cajón se abre solo</strong> al cobrar en efectivo.</li>
+      <li>Eliges la impresora una vez y se acuerda.</li>
+    </ul>
+    <p>La descarga está en <strong>Ajustes → Impresión</strong>.</p>
+  </div>
+
+  <h3>Si algo sale raro</h3>
+  <table>
+    <thead><tr><th>Lo que ves</th><th>Qué suele ser</th></tr></thead>
+    <tbody>
+      <tr><td>Letra gris</td><td>Cabezal sucio o papel malo. Límpialo con alcohol.</td></tr>
+      <tr><td>Acentos raros</td><td>La impresora no los tiene. Escribe los textos sin tildes.</td></tr>
+      <tr><td>Ticket estrecho</td><td>Imprimiendo desde el navegador: pon Escala 100% y márgenes Ninguno.</td></tr>
+      <tr><td>Etiqueta cortada</td><td>El tamaño del driver no coincide con el de Ajustes.</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ══════════ 6. MÁS ══════════ -->
+<div class="pag">
+  <div class="eyebrow">Cuando ya estés rodado</div>
+  <h2>Lo que te espera después</h2>
+  <p class="sub">No hace falta el primer día. Pero está ahí cuando lo necesites.</p>
+
+  <div class="duo">
+    <div class="fx"><h4>Citas online</h4><p>Comparte un enlace y que te reserven hora sin llamarte. Las ves en tu calendario.</p></div>
+    <div class="fx"><h4>Catálogo público</h4><p>Un enlace o un QR con lo que tienes en stock, para WhatsApp o redes. Se actualiza solo.</p></div>
+    <div class="fx"><h4>Facturas</h4><p>Convierte cualquier venta en factura con los datos fiscales del cliente.</p></div>
+    <div class="fx"><h4>Etiquetas</h4><p>Imprime etiquetas de precio, con código de barras y sello de oferta si rebajas algo.</p></div>
+    <div class="fx"><h4>Empleados y permisos</h4><p>Cada uno ve solo lo suyo. Tú decides quién puede tocar la caja o hacer descuentos.</p></div>
+    <div class="fx"><h4>Avisos automáticos</h4><p>Reparación lista, cita de mañana, cuota que vence, stock bajo mínimo.</p></div>
+    <div class="fx"><h4>Pedidos a proveedor</h4><p>Pega el email del proveedor y la IA te crea el pedido con sus líneas.</p></div>
+    <div class="fx"><h4>Copias de seguridad</h4><p>Tus datos son tuyos: descárgalos cuando quieras, también el día que te vayas.</p></div>
+  </div>
+
+  <h3>Tres costumbres que marcan la diferencia</h3>
+  <ul>
+    <li><strong>Apunta TODO en TekPair, también lo pequeño.</strong> Una reparación de 10 € apuntada en un papel es una reparación que no existe cuando miras el mes.</li>
+    <li><strong>Cierra la caja todos los días.</strong> Cuadrar con un día de retraso es buscar una aguja en un pajar.</li>
+    <li><strong>Pon el IMEI siempre.</strong> Es lo que convierte «creo que fue este» en saberlo con certeza.</li>
+  </ul>
+
+  <div class="cierre">
+    <p style="margin-bottom:2mm"><strong>¿Te has quedado atascado en algo?</strong></p>
+    <p>Escríbenos a <strong>info@tekpair.tech</strong> o desde <strong>Ayuda → Contacto soporte</strong> dentro de la app. Contestamos nosotros, no un robot.</p>
+    <p style="margin-top:3mm">La guía completa, siempre actualizada, está en <strong>tekpair.tech/guia.html</strong></p>
+  </div>
+</div>

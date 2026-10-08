@@ -5840,12 +5840,12 @@ de:{'inicio.v_resumen':'Übersicht','inicio.v_tablero':'Tafel','inicio.act_venta
 pt:{'inicio.v_resumen':'Resumo','inicio.v_tablero':'Quadro','inicio.act_venta':'Nova venda','inicio.act_venta_sub':'Cobrança rápida','inicio.act_cliente':'Cliente','inicio.act_cliente_sub':'Novo / procurar'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 (function(){var _a={
-es:{'guia.titulo':'Guía de uso','guia.intro':'Aprende a sacarle el máximo partido a TekPair en unos minutos.'},
-en:{'guia.titulo':'User guide','guia.intro':'Learn to get the most out of TekPair in a few minutes.'},
-fr:{'guia.titulo':'Guide d’utilisation','guia.intro':'Apprenez à tirer le maximum de TekPair en quelques minutes.'},
-it:{'guia.titulo':'Guida all’uso','guia.intro':'Impara a sfruttare al massimo TekPair in pochi minuti.'},
-de:{'guia.titulo':'Anleitung','guia.intro':'Hol in wenigen Minuten das Beste aus TekPair heraus.'},
-pt:{'guia.titulo':'Guia de uso','guia.intro':'Aprende a tirar o máximo partido do TekPair em poucos minutos.'},
+es:{'guia.pdf_t':'Guía rápida para empezar','guia.pdf_d':'6 páginas en PDF: los primeros quince minutos y un ejemplo de cada cosa. Para imprimir o mandar a tu equipo.','guia.titulo':'Guía de uso','guia.intro':'Aprende a sacarle el máximo partido a TekPair en unos minutos.'},
+en:{'guia.pdf_t':'Quick start guide','guia.pdf_d':'A 6-page PDF: your first fifteen minutes and one example of each thing. To print or send to your team.','guia.titulo':'User guide','guia.intro':'Learn to get the most out of TekPair in a few minutes.'},
+fr:{'guia.pdf_t':'Guide de démarrage rapide','guia.pdf_d':'6 pages en PDF : vos quinze premières minutes et un exemple de chaque chose. À imprimer ou à envoyer à votre équipe.','guia.titulo':'Guide d’utilisation','guia.intro':'Apprenez à tirer le maximum de TekPair en quelques minutes.'},
+it:{'guia.pdf_t':'Guida rapida per iniziare','guia.pdf_d':'6 pagine in PDF: i primi quindici minuti e un esempio di ogni cosa. Da stampare o mandare al tuo team.','guia.titulo':'Guida all’uso','guia.intro':'Impara a sfruttare al massimo TekPair in pochi minuti.'},
+de:{'guia.pdf_t':'Schnellstart-Anleitung','guia.pdf_d':'6 Seiten als PDF: deine ersten fünfzehn Minuten und je ein Beispiel. Zum Ausdrucken oder für dein Team.','guia.titulo':'Anleitung','guia.intro':'Hol in wenigen Minuten das Beste aus TekPair heraus.'},
+pt:{'guia.pdf_t':'Guia rápido para começar','guia.pdf_d':'6 páginas em PDF: os primeiros quinze minutos e um exemplo de cada coisa. Para imprimir ou enviar à tua equipa.','guia.titulo':'Guia de uso','guia.intro':'Aprende a tirar o máximo partido do TekPair em poucos minutos.'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 function setLang(lang) {
   TEKPAIR_LANG = lang;

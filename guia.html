@@ -102,6 +102,12 @@ hr{border:none;border-top:1px solid var(--border);margin:40px 0}
 .pl-btn:focus-visible{outline:2px solid #B45309;outline-offset:2px}
 .pl-btn.ok{background:#16A34A;border-color:#16A34A}
 .pl-n{font-size:11.5px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pdf-cta{display:flex;align-items:center;gap:14px;border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin:0 0 18px;text-decoration:none;color:var(--text);background:#fff;transition:border-color .15s}
+.pdf-cta:hover{border-color:#C2410C}
+.pdf-ico{font-size:24px;flex-shrink:0}
+.pdf-sub{font-size:12.5px;color:var(--muted);line-height:1.45}
+.pdf-flecha{margin-left:auto;font-size:12.5px;font-weight:700;color:#C2410C;white-space:nowrap}
+@media(max-width:620px){.pdf-cta{flex-wrap:wrap}.pdf-flecha{margin-left:34px}}
 </style>
   <script src="/cookies-consent.js" defer></script>
 </head>
@@ -119,7 +125,12 @@ hr{border:none;border-top:1px solid var(--border);margin:40px 0}
 
   <!-- SIDEBAR -->
   <nav class="sidebar">
-    <div class="sidebar-title">Primeros pasos</div>
+    <div class="sidebar-title">Primeros pasos<a href="/guia-rapida-tekpair.pdf" class="pdf-cta" target="_blank" rel="noopener">
+  <span class="pdf-ico">📘</span>
+  <span><strong>Guía rápida en PDF</strong><br><span class="pdf-sub">Seis páginas para empezar: los primeros quince minutos y un ejemplo de cada cosa. Imprímela o mándasela a tu equipo.</span></span>
+  <span class="pdf-flecha">Descargar ↓</span>
+</a>
+</div>
     <a href="#inicio">Configurar tu tienda</a>
     <a href="#stock">Añadir stock</a>
     <a href="#primera-rep">Primera reparación</a>
