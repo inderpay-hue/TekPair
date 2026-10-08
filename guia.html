@@ -135,6 +135,7 @@ hr{border:none;border-top:1px solid var(--border);margin:40px 0}
     <a href="#facturas">Facturas</a>
     <a href="#reportes">Reportes</a>
     <a href="#ajustes">Ajustes</a>
+    <a href="#impresion">Impresión</a>
     <a href="#pie-ticket">Textos del ticket</a>
 
     <div class="sidebar-title">Ayuda</div>
@@ -561,7 +562,8 @@ hr{border:none;border-top:1px solid var(--border);margin:40px 0}
             <tr><td><strong>Facturación</strong></td><td>IVA por defecto, numeración de facturas, textos legales</td></tr>
             <tr><td><strong>Citas</strong></td><td>Horarios por día, duración de cita, enlace público</td></tr>
             <tr><td><strong>Usuarios</strong></td><td>Añadir técnicos, asignar permisos por módulo</td></tr>
-            <tr><td><strong>Temas</strong></td><td>7 temas visuales: Claro, Oscuro, Negro, Terracota, Naranja, Grafito, Ámbar</td></tr>
+            <tr><td><strong>Impresión</strong></td><td>A qué impresora sale cada cosa, tamaño de etiqueta y qué pone el ticket</td></tr>
+            <tr><td><strong>Apariencia</strong></td><td>Tema visual de la app: Claro, Terracota u Oscuro</td></tr>
             <tr><td><strong>Garantía</strong></td><td>Días de garantía por defecto para reparaciones y ventas</td></tr>
           </tbody>
         </table>
@@ -573,6 +575,84 @@ hr{border:none;border-top:1px solid var(--border);margin:40px 0}
 
     <hr>
 
+
+    <hr>
+
+    <!-- IMPRESIÓN -->
+    <div class="section section-anchor" id="impresion">
+      <h2><span class="section-num" style="background:#0F172A">🖨️</span> Impresión</h2>
+      <p class="section-desc">Todo lo de imprimir está junto en <strong>Ajustes → Impresión</strong>: a qué impresora sale cada cosa, el tamaño del rollo de etiquetas y qué pone el ticket que se lleva el cliente.</p>
+
+      <h3>Dos formas de imprimir, y la diferencia se nota</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th></th><th>Desde el navegador</th><th>Con la app de escritorio</th></tr></thead>
+          <tbody>
+            <tr><td><strong>Al imprimir</strong></td><td>Se abre el diálogo de Chrome y hay que confirmar</td><td>Sale directo, sin ventanas</td></tr>
+            <tr><td><strong>Tamaño del papel</strong></td><td>Depende de lo que elijas en el diálogo</td><td>Exacto, lo controla TekPair</td></tr>
+            <tr><td><strong>Cajón portamonedas</strong></td><td>No se puede abrir</td><td>Se abre solo al cobrar en efectivo</td></tr>
+            <tr><td><strong>Elegir impresora</strong></td><td>Cada vez, en el diálogo</td><td>Una vez y se recuerda</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tip">
+        <span class="tip-icon">💡</span>
+        <div>Si imprimes tickets todo el día, instala la <strong>app de escritorio</strong> (Windows). Es la misma TekPair, pero puede hablar con la impresora directamente: ni diálogos, ni papel descuadrado, y el cajón se abre solo. La descarga está en esa misma pantalla de Ajustes.</div>
+      </div>
+
+      <h3>Elegir la impresora</h3>
+      <p>Dentro de la app verás dos líneas: <strong>Etiquetas</strong> y <strong>Tickets / recibos</strong>. Puedes mandarlas a impresoras distintas — lo normal es una etiquetadora para las etiquetas y una térmica de 80&nbsp;mm para los tickets. Pulsa <em>Cambiar</em> para elegir.</p>
+      <div class="tip tip-warn">
+        <span class="tip-icon">⚠️</span>
+        <div>La elección se guarda <strong>en ese ordenador</strong>, no en tu cuenta. Si trabajas con dos equipos, hay que elegirla en cada uno. Y esa sección solo aparece dentro de la app de escritorio: desde el navegador la impresora la decide Chrome.</div>
+      </div>
+
+      <h3>Tamaño de etiqueta</h3>
+      <p>Elige el rollo que tienes puesto (62&nbsp;mm continua, 50×30, 40×30…). Las etiquetas de venta y de reparación se ajustan a esa medida.</p>
+      <div class="tip tip-warn">
+        <span class="tip-icon">⚠️</span>
+        <div><strong>Pon el mismo tamaño en el driver de la impresora.</strong> Si en TekPair eliges 50×30 y el driver sigue en 62&nbsp;mm, la etiqueta sale cortada o descentrada. Es la causa número uno de "las etiquetas salen mal".</div>
+      </div>
+
+      <h3>Qué lleva el ticket de venta</h3>
+      <p>El ticket se rellena solo con lo que tengas en <strong>Ajustes → Mi negocio</strong>, así que conviene tenerlo completo:</p>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>En el ticket</th><th>De dónde sale</th></tr></thead>
+          <tbody>
+            <tr><td>Nombre, dirección, teléfono y <strong>NIF</strong></td><td>Ajustes → Mi negocio</td></tr>
+            <tr><td>Logo</td><td>Ajustes → Mi negocio (si no hay, sale el nombre en grande)</td></tr>
+            <tr><td>Nombre del documento y número</td><td>Automático. El número es correlativo y no se repite</td></tr>
+            <tr><td>Líneas con cantidad, precio por unidad y total</td><td>La venta</td></tr>
+            <tr><td><strong>IMEI</strong> de cada móvil</td><td>La ficha del producto en Stock</td></tr>
+            <tr><td>Desglose de IVA (base y cuota)</td><td>Ajustes → Facturación</td></tr>
+            <tr><td>Entregado y cambio</td><td>Al cobrar en efectivo, si escribes lo que te dan</td></tr>
+            <tr><td>Código de barras del número</td><td>Automático</td></tr>
+            <tr><td>Garantía y política de ventas</td><td>Ajustes → Reparaciones y garantías</td></tr>
+            <tr><td>Texto final libre</td><td>Ajustes → Impresión → Ticket de venta</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="tip tip-ok">
+        <span class="tip-icon">🧾</span>
+        <div>¿No sabes qué poner en el texto final? Tienes <a href="#pie-ticket">plantillas listas para copiar</a> más abajo.</div>
+      </div>
+
+      <h3>Si algo sale mal en el papel</h3>
+      <div class="tbl-wrap">
+        <table>
+          <thead><tr><th>Lo que ves</th><th>Qué suele ser</th></tr></thead>
+          <tbody>
+            <tr><td>Letra gris o borrosa</td><td>Papel térmico de mala calidad o cabezal sucio. Límpialo con alcohol isopropílico</td></tr>
+            <tr><td>Los acentos salen como símbolos raros</td><td>La impresora no los tiene en su juego de caracteres: escribe los textos sin tildes</td></tr>
+            <tr><td>El ticket sale más estrecho que el papel</td><td>Estás imprimiendo desde el navegador: en el diálogo pon <strong>Escala 100%</strong> y márgenes <em>Ninguno</em></td></tr>
+            <tr><td>La etiqueta sale cortada</td><td>El tamaño del driver no coincide con el de Ajustes</td></tr>
+            <tr><td>El cajón no se abre</td><td>Solo se abre desde la app de escritorio, al cobrar en <strong>efectivo</strong> y con la impresora ya elegida. El cajón va conectado a la impresora por el cable RJ11, no al ordenador</td></tr>
+            <tr><td>No imprime nada en la app</td><td>Entra en Ajustes → Impresión y comprueba que hay una impresora elegida</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
 
     <hr>
 
