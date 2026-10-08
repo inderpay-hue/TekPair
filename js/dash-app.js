@@ -2041,7 +2041,10 @@ async function _archivoAIA(file) {
     var pdfjsLib = await _cargarPdfJs();
     var buf = await file.arrayBuffer();
     var pdf = await pdfjsLib.getDocument({ data: buf }).promise;
-    var maxP = Math.min(pdf.numPages, 5);
+    // El texto es barato: se leen mas paginas. Las imagenes no: el modelo de
+    // vision de Groq admite 3 por peticion y con mas rechaza la peticion entera.
+    var maxP = Math.min(pdf.numPages, 8);
+    var MAX_IMG = 3;
     var textoTotal = '';
     for (var p = 1; p <= maxP; p++) {
       var page = await pdf.getPage(p);
@@ -2051,7 +2054,13 @@ async function _archivoAIA(file) {
     if (textoTotal.trim().length > 40) return { texto: textoTotal.slice(0, 20000) };
     // PDF escaneado (sin texto): renderizar páginas a imagen para visión
     var imagenes = [];
-    for (var pg = 1; pg <= maxP; pg++) {
+    var paginasImg = Math.min(pdf.numPages, MAX_IMG);
+    // Si se quedan paginas fuera hay que DECIRLO: antes se ignoraban en silencio
+    // y el usuario creia que la IA habia leido el documento entero.
+    if (pdf.numPages > MAX_IMG && typeof toast === 'function') {
+      toast('Ojo: es un PDF escaneado de ' + pdf.numPages + ' paginas y solo se leen las ' + MAX_IMG + ' primeras', 'err');
+    }
+    for (var pg = 1; pg <= paginasImg; pg++) {
       var pageR = await pdf.getPage(pg);
       var vp = pageR.getViewport({ scale: 1.6 });
       var canvas = document.createElement('canvas');

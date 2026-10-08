@@ -23,6 +23,10 @@ function emailValido(e) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e);
 }
 
+// Las fotos y los PDF escaneados viajan como data URL en el cuerpo: 3 paginas
+// en base64 pasan del limite por defecto y la peticion se cae antes de llegar.
+export const config = { api: { bodyParser: { sizeLimit: '12mb' } } };
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
@@ -184,6 +188,22 @@ export default async function handler(req, res) {
   }
 }
 
+// Traduce un fallo de Groq a algo que el de la tienda pueda entender y accionar.
+// El modelo de vision retirado (llama-4-scout, apagado el 17-jul-2026) devolvia un
+// 404 tecnico que se leia como "no lee los PDF" y tardo tres meses en detectarse.
+function _errGroq(status, cuerpo) {
+  const t = String(cuerpo || '');
+  if (/decommission|model_not_found|does not exist|has been deprecated/i.test(t) || status === 404) {
+    return 'El modelo de IA ya no esta disponible en el proveedor. Hay que actualizarlo en el servidor (api/ayuda.js).';
+  }
+  if (status === 413 || /too large|payload/i.test(t)) {
+    return 'El archivo es demasiado grande. Prueba con menos paginas o con una foto mas ligera.';
+  }
+  if (status === 429) return 'La IA esta saturada ahora mismo. Vuelve a intentarlo en un minuto.';
+  if (status === 401 || status === 403) return 'La clave de la IA no es valida. Revisa GROQ_API_KEY en el servidor.';
+  return 'IA HTTP ' + status + ': ' + t.replace(/\s+/g, ' ').slice(0, 260);
+}
+
 // Extrae líneas de pedido de un texto libre (email/albarán) con Gemini Flash (capa gratuita de Google).
 // Devuelve { ok, lineas: [{pieza, marca, categoria, calidad, cantidad, precio_compra, precio_venta, sku}] }
 async function parsePedidoIA(req, res) {
@@ -191,7 +211,7 @@ async function parsePedidoIA(req, res) {
   if (!GROQ_KEY) return res.status(503).json({ error: 'IA no configurada (falta GROQ_API_KEY en el servidor)' });
   const texto = String((req.body && req.body.texto) || '').trim().slice(0, 20000);
   const imagenes = Array.isArray(req.body && req.body.imagenes)
-    ? req.body.imagenes.filter((u) => typeof u === 'string' && u.startsWith('data:image')).slice(0, 5) : [];
+    ? req.body.imagenes.filter((u) => typeof u === 'string' && u.startsWith('data:image')).slice(0, 3) : [];
   if (!texto && !imagenes.length) return res.status(400).json({ error: 'Texto vacío' });
 
   const sistema = 'Eres un extractor de pedidos de proveedor para una tienda de reparación de móviles. ' +
@@ -210,7 +230,12 @@ async function parsePedidoIA(req, res) {
   try {
     const cuerpo = imagenes.length ? {
       // Visión (foto/PDF escaneado): modelo con visión de Groq
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      // Modelo de VISION de Groq. Ojo: aqui estuvo llama-4-scout, que Groq
+      // apago el 17-jul-2026 — y con el se cayeron en silencio todas las
+      // fotos y los PDF escaneados. Si vuelve a fallar con HTTP 404, es que
+      // han retirado este: console.groq.com/docs/vision tiene el vigente.
+      // Maximo 3 imagenes por peticion y 20MB de cuerpo.
+      model: 'qwen/qwen3.8-27b',
       temperature: 0,
       messages: [
         { role: 'system', content: sistema },
@@ -233,7 +258,7 @@ async function parsePedidoIA(req, res) {
     if (!r.ok) {
       const t = await r.text();
       console.error('[parse-pedido] Groq error', r.status, t);
-      return res.status(502).json({ error: 'IA HTTP ' + r.status + ': ' + String(t).replace(/\s+/g, ' ').slice(0, 260) });
+      return res.status(502).json({ error: _errGroq(r.status, t) });
     }
     const data = await r.json();
     let txt = (((data.choices || [])[0] || {}).message || {}).content || '';
@@ -266,7 +291,7 @@ async function parseFacturaIA(req, res) {
   if (!GROQ_KEY) return res.status(503).json({ error: 'IA no configurada (falta GROQ_API_KEY en el servidor)' });
   const texto = String((req.body && req.body.texto) || '').trim().slice(0, 20000);
   const imagenes = Array.isArray(req.body && req.body.imagenes)
-    ? req.body.imagenes.filter((u) => typeof u === 'string' && u.startsWith('data:image')).slice(0, 5) : [];
+    ? req.body.imagenes.filter((u) => typeof u === 'string' && u.startsWith('data:image')).slice(0, 3) : [];
   if (!texto && !imagenes.length) return res.status(400).json({ error: 'Texto vacío' });
 
   const sistema = 'Eres un extractor de facturas/tickets de proveedor para una tienda. ' +
@@ -285,7 +310,12 @@ async function parseFacturaIA(req, res) {
 
   try {
     const cuerpo = imagenes.length ? {
-      model: 'meta-llama/llama-4-scout-17b-16e-instruct',
+      // Modelo de VISION de Groq. Ojo: aqui estuvo llama-4-scout, que Groq
+      // apago el 17-jul-2026 — y con el se cayeron en silencio todas las
+      // fotos y los PDF escaneados. Si vuelve a fallar con HTTP 404, es que
+      // han retirado este: console.groq.com/docs/vision tiene el vigente.
+      // Maximo 3 imagenes por peticion y 20MB de cuerpo.
+      model: 'qwen/qwen3.8-27b',
       temperature: 0,
       messages: [
         { role: 'system', content: sistema },
@@ -308,7 +338,7 @@ async function parseFacturaIA(req, res) {
     if (!r.ok) {
       const t = await r.text();
       console.error('[parse-factura] Groq error', r.status, t);
-      return res.status(502).json({ error: 'IA HTTP ' + r.status + ': ' + String(t).replace(/\s+/g, ' ').slice(0, 260) });
+      return res.status(502).json({ error: _errGroq(r.status, t) });
     }
     const data = await r.json();
     let txt = (((data.choices || [])[0] || {}).message || {}).content || '';
