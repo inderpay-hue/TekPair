@@ -362,22 +362,13 @@ export default async function handler(req, res) {
         }
       } catch (e) { console.error('Referral record error (no bloqueante):', e); }
 
-      // Si el código NO es de TekPair, probarlo como referido cruzado de Cobrum → +30 días de trial.
+      // Código cruzado de Cobrum: se acredita al que invito, pero YA NO se suman
+      // aqui 30 dias de trial. El mes de prueba lo da checkout.js a cualquier
+      // codigo valido, y hacerlo en los dos sitios daba dos meses.
       if (!referrerId) {
         try {
           const val = await validarCobrumReferido(refCode);
-          if (val && val.valid) {
-            const ok = await acreditarCobrumReferido(refCode, email);
-            if (ok) {
-              const base = (trialUntil && new Date(trialUntil) > new Date()) ? new Date(trialUntil) : new Date();
-              base.setDate(base.getDate() + 30);
-              await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${tienda_id}`, {
-                method: 'PATCH',
-                headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-                body: JSON.stringify({ trial_until: base.toISOString() })
-              });
-            }
-          }
+          if (val && val.valid) await acreditarCobrumReferido(refCode, email);
         } catch (e) { console.error('Cobrum referral error (no bloqueante):', e); }
       }
     }

@@ -528,10 +528,12 @@ export default async function handler(req, res) {
                     const cr = await fetch(`https://api.stripe.com/v1/subscriptions/${sub}`, { method: 'POST', headers: { 'Authorization': `Bearer ${STRIPE_KEY}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: p.toString() });
                     if (!cr.ok) console.error('Cupón referido no aplicado a', sub, cr.status, (await cr.text()).slice(0, 150));
                   };
-                  await aplicarCupon(subId);                 // tienda invitada (esta)
-                  await aplicarCupon(referrer.stripe_sub_id); // tienda que invitó
+                  // Solo a QUIEN INVITA. La invitada ya se llevo su mes como
+                  // prueba de 30 dias al registrarse (checkout.js); darle
+                  // tambien el cupon serian dos meses gratis por una sola alta.
+                  await aplicarCupon(referrer.stripe_sub_id);
                   await fetch(`${SUPABASE_URL}/rest/v1/referrals?id=eq.${ref.id}`, { method: 'PATCH', headers: {...sbHeaders, 'Prefer': 'return=minimal'}, body: JSON.stringify({ status: 'rewarded', qualified_at: nowIso, rewarded_at: nowIso }) });
-                  console.log('Referido premiado:', ref.id, '→ cupón a', ref.referrer_tienda_id, 'y', tienda.id);
+                  console.log('Referido premiado:', ref.id, '→ cupón a quien invitó:', ref.referrer_tienda_id);
                 }
               }
             }

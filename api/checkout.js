@@ -188,15 +188,16 @@ export default async function handler(req, res) {
     // se dispara para referidos entre TIENDAS y despues del primer pago, asi
     // que a quien llegaba por un comercial no le llegaba nunca. Un cliente real
     // (9-oct-2026) entro asi y se quedo con 15 dias.
-    // Un mes entero SOLO para los codigos de comercial, que son los unicos que
-    // no reciben premio por otra via y a los que se les prometia "1 mes gratis"
-    // sin que lo recibieran nunca. Los otros dos ya cobran lo suyo y sumarles
-    // esto seria regalar dos meses:
-    //   - tienda  -> cupon del 100% tras el primer pago (webhook.js)
-    //   - cobrum  -> +30 dias a trial_until (register.js)
+    // Quien llega con un codigo valido tiene UN MES de prueba; el resto, 15 dias.
+    // Da igual de donde venga el codigo (comercial, otra tienda o Cobrum): la
+    // promesa que se le hizo al cliente es la misma en los tres sitios, y tener
+    // tres premios distintos es lo que hacia que a unos no les llegara nada.
+    //
+    // UN mes, no dos: quien recibe este trial ya NO recibe ademas el cupon del
+    // mes gratis (webhook.js) ni los +30 dias de Cobrum (register.js).
     const TRIAL_NORMAL = 15, TRIAL_REF = 30;
     const _tipoRef = await tipoRef(refCode, SUPABASE_URL, SERVICE_KEY);
-    const trialDias = _tipoRef === 'afiliado' ? TRIAL_REF : TRIAL_NORMAL;
+    const trialDias = _tipoRef ? TRIAL_REF : TRIAL_NORMAL;
     params.append('subscription_data[trial_period_days]', String(trialDias));
     // Pasar metadata también a la subscription para que el webhook tenga acceso
     params.append('subscription_data[metadata][plan]', planCanonico);
