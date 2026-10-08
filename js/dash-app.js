@@ -463,10 +463,15 @@ function checkFeature(featureName) {
 }
 
 // ═══ NOVEDADES: banner de mejoras para las tiendas (se muestra 1 vez por versión) ═══
-var NOVEDADES_VERSION = '2026-08-02';
+var NOVEDADES_VERSION = '2026-10-09';
 // Changelog por fecha (lo más nuevo primero). El banner automático muestra solo el
 // último lanzamiento; en Ajustes › Novedades se ve el historial completo.
 var CHANGELOG = [
+  { fecha: '2026-10-09', items: ['nov.n1', 'nov.n2', 'nov.n3', 'nov.n4', 'nov.n5', 'nov.n6'] },
+  { fecha: '2026-10-07', items: ['nov.o1', 'nov.o2', 'nov.o3', 'nov.o4'] },
+  { fecha: '2026-10-04', items: ['nov.p1', 'nov.p2', 'nov.p3', 'nov.p4'] },
+  { fecha: '2026-09-10', items: ['nov.q1', 'nov.q2', 'nov.q3', 'nov.q4'] },
+  { fecha: '2026-08-08', items: ['nov.r1', 'nov.r2', 'nov.r3'] },
   { fecha: '2026-08-02', items: ['nov.m1', 'nov.m2', 'nov.m3', 'nov.m4', 'nov.m5'] },
   { fecha: '2026-07-29', items: ['nov.l1', 'nov.l2', 'nov.l3', 'nov.l4', 'nov.l5', 'nov.l6', 'nov.l7'] },
   { fecha: '2026-07-26', items: ['nov.k1', 'nov.k2', 'nov.k3', 'nov.k4', 'nov.k5', 'nov.k6'] },
