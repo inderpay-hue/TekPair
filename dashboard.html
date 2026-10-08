@@ -3959,8 +3959,8 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     </div>
 
     <div class="card" style="padding:16px;margin-top:14px;">
-      <h3 style="font-size:15px;font-weight:800;margin:0 0 10px;">Cuentas activas · a quién toca visitar</h3>
-      <div id="ef-lista"><div style="color:var(--muted);font-size:13px;">Pulsa «Actualizar lista».</div></div>
+      <h3 style="font-size:15px;font-weight:800;margin:0 0 10px;">Cuentas cobradas en mano · a quién toca visitar</h3>
+      <div id="ef-lista"><div style="color:var(--muted);font-size:13px;">Cargando…</div></div>
     </div>
   </div>
 </div>
@@ -5720,7 +5720,14 @@ function mostrarSidebarComisiones() {
   newItem.innerHTML = '<span class="sidebar-ni-icon">💼</span>' + (COMISIONES_MODO === 'admin' ? T('nav.comisiones') + ' (admin)' : T('nav.mis_comisiones'));
   // El alta en efectivo es cosa del dueno, no de un comercial.
   var _efB = document.getElementById('efectivoBloque');
-  if (_efB) _efB.style.display = (COMISIONES_MODO === 'admin') ? '' : 'none';
+  if (_efB) {
+    _efB.style.display = (COMISIONES_MODO === 'admin') ? '' : 'none';
+    // Cargar la lista sola. Antes habia que pulsar "Actualizar lista" y, hasta
+    // que lo pulsabas, parecia que no habia ninguna cuenta.
+    if (COMISIONES_MODO === 'admin' && typeof cargarCuentasEfectivo === 'function') {
+      try { cargarCuentasEfectivo(); } catch (e) {}
+    }
+  }
   refItem.parentNode.insertBefore(newItem, refItem);
 }
 
@@ -5802,7 +5809,7 @@ async function cargarCuentasEfectivo() {
   try {
     var d = await _efApi({ action: 'listar_cuentas_efectivo' });
     var cs = d.cuentas || [];
-    if (!cs.length) { cont.innerHTML = '<div style="color:var(--muted);font-size:13px;">Todavía no hay cuentas de efectivo.</div>'; return; }
+    if (!cs.length) { cont.innerHTML = '<div style="color:var(--muted);font-size:13px;">Aquí aparecerán las cuentas que cobres en mano con el formulario de arriba. Las que pagan por Stripe no salen en esta lista.</div>'; return; }
     cont.innerHTML = '<table class="tbl" style="width:100%;font-size:13px;"><thead><tr>'
       + '<th>Tienda</th><th>Plan</th><th>Vence</th><th>Quedan</th><th>Tarjeta</th><th></th>'
       + '</tr></thead><tbody>' + cs.map(function (c) {
