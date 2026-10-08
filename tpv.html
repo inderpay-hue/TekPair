@@ -98,7 +98,8 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .prod-icon{font-size:26px;margin-bottom:8px}
 .prod-name{font-size:13px;font-weight:700;line-height:1.3;margin-bottom:4px;flex:1;color:var(--t-ink);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;line-clamp:2;-webkit-box-orient:vertical;word-break:break-word;overflow-wrap:anywhere}
 .prod-price{font-size:16px;font-weight:800;color:var(--t-ink);letter-spacing:-.3px}
-.prod-stock{font-size:10px;color:var(--t-mut);margin-top:2px}
+.prod-stock{font-size:10px;color:var(--t-mut);margin-top:2px;line-height:1.35;word-break:break-word}
+.prod-imei{display:block;font-size:9.5px;letter-spacing:-.1px;white-space:nowrap;font-variant-numeric:tabular-nums}
 .prod-fav{position:absolute;top:8px;right:8px;width:26px;height:26px;border-radius:50%;background:var(--t-surf2);border:1px solid var(--t-bd);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:14px;line-height:1;color:var(--t-mut);transition:all .15s;z-index:2}
 .prod-fav:hover{transform:scale(1.1);border-color:#FBBF24}
 .prod-fav.on{color:#FBBF24;border-color:#FBBF24;background:rgba(251,191,36,.12)}
@@ -185,7 +186,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .pick-unit-row{display:flex;justify-content:space-between;align-items:center;gap:10px;width:100%;padding:13px 14px;background:var(--t-surf2);border:1px solid var(--t-bd);border-radius:10px;cursor:pointer;font-size:13px;text-align:left;transition:border-color .12s,background .12s}
 .pick-unit-row:hover{border-color:var(--t-acc);background:color-mix(in srgb,var(--t-acc) 12%,transparent)}
 .pick-unit-row:active{transform:scale(.99)}
-.pick-unit-row .pu-left{font-weight:600;color:var(--t-ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pick-unit-row .pu-left{font-weight:600;color:var(--t-ink);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;word-break:break-all;line-height:1.3}
 .pick-unit-row .pu-right{font-weight:800;color:var(--t-acc);font-family:monospace;white-space:nowrap}
 .pick-unit-row .pu-cant{color:var(--t-mut);font-weight:600}
 .modal{background:var(--t-modal);color:var(--t-ink);border:1px solid var(--t-bd);border-radius:20px;padding:24px;width:90%;max-width:460px;max-height:90vh;overflow-y:auto;box-shadow:var(--t-sh);--text:var(--t-ink);--dark:var(--t-ink);--muted:var(--t-mut);--bg:var(--t-surf2);--border:var(--t-bd)}
@@ -1081,7 +1082,18 @@ function renderProducts() {
     }
     var fav = isFav(p._type, p.id);
     var nombre = p.esFijo ? p.modelo : ((p.marca && p.marca !== 'Servicio') ? p.marca + ' ' : '') + p.modelo;
-    var stockTxt = p.esFijo ? T('tpv.precio_fijo') : (p.esServicio ? p.calidad : T('tpv.stock_n').replace('{n}', p.unidades));
+    // Pie de la tarjeta. Con IMEI se enseña el IMEI (y el color/capacidad si
+    // los hay): entre dos moviles del mismo modelo es lo unico que distingue
+    // cual es cual. El IMEI va en su PROPIA linea para que no se parta a la
+    // mitad, que es ilegible cuando lo estas cotejando con la caja.
+    var stockHtml;
+    if (p.esFijo) stockHtml = escHtml(T('tpv.precio_fijo'));
+    else if (p.esServicio) stockHtml = escHtml(p.calidad || '');
+    else if (p.imei) {
+      var det = [p.color, p.capacidad].filter(Boolean).join(' ');
+      stockHtml = (det ? escHtml(det) + '<br>' : '') +
+        '<span class="prod-imei">IMEI ' + escHtml(p.imei) + '</span>';
+    } else stockHtml = escHtml(T('tpv.stock_n').replace('{n}', p.unidades));
     var click = p.esFijo
       ? "addFavFijoToCart('" + escHtml(p.id) + "')"
       : "addToCart('" + escHtml(p.id) + "'," + (p.esServicio ? 'true' : 'false') + ")";
@@ -1092,7 +1104,7 @@ function renderProducts() {
       ((parseFloat(p.precioV) || 0) > 0
         ? '<div class="prod-price">\u20ac' + parseFloat(p.precioV).toFixed(2) + '</div>'
         : '<div class="prod-price" style="color:var(--blue);font-size:13px">' + T('tpv.precio_cobrar') + '</div>') +
-      '<div class="prod-stock">' + escHtml(stockTxt) + '</div>' +
+      '<div class="prod-stock">' + stockHtml + '</div>' +
       '</div>';
   }).join('');
 
@@ -1441,7 +1453,7 @@ function addStockGroup(gi) {
     var parts = [];
     if (u.color) parts.push(escHtml(u.color));
     if (u.capacidad) parts.push(escHtml(u.capacidad));
-    if (u.imei) parts.push('…' + escHtml(String(u.imei).slice(-4)));
+    if (u.imei) parts.push('IMEI ' + escHtml(u.imei));
     var left = parts.join(' · ') || escHtml(u.modelo);
     var cant = (parseInt(u.unidades, 10) > 1) ? '<span class="pu-cant">x' + u.unidades + '</span> ' : '';
     return '<button class="pick-unit-row" onclick="pickUnit(\'' + escHtml(u.id) + '\')">' +
