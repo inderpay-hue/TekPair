@@ -577,7 +577,7 @@ export default async function handler(req, res) {
       if (action === 'listar_cuentas_efectivo') {
         let tiendas = [];
         try {
-          const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?cobro_manual=eq.true&select=id,nombre,plan,plan_status,plan_until,plan_email,stripe_sub_id,telefono&order=plan_until.asc`, { headers: sbHeaders });
+          const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?cobro_manual=eq.true&select=id,nombre,plan,plan_status,plan_until,plan_email,stripe_sub_id,telefono,dir&order=plan_until.asc`, { headers: sbHeaders });
           tiendas = r.ok ? await r.json() : [];
         } catch (e) {
           console.warn('listar_cuentas_efectivo (falta sql/cuentas-efectivo.sql?):', e.message);
@@ -827,14 +827,42 @@ export default async function handler(req, res) {
       });
       const allPagos = await allPagosR.json();
 
-      const tiendaIdsConRef = [...new Set(allPagos.map(p => p.tienda_id).filter(Boolean))];
+      // TODAS las tiendas que llevan codigo, hayan pagado o no.
+      //
+      // Antes se partia de `pagos_referidos`, asi que una tienda captada que
+      // seguia en prueba no aparecia POR NINGUN LADO: el comercial la traia, el
+      // dueño no la veia, y no habia forma de saber si el enlace funcionaba
+      // hasta que la tienda pagaba (o se iba antes de pagar, y entonces no se
+      // enteraba nadie). Ahora se listan todas y cada una con su estado.
       let tiendasDetalle = {};
-      if (tiendaIdsConRef.length) {
-        const tIdsStr = tiendaIdsConRef.map(id => '"' + id + '"').join(',');
-        const tDetailR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=in.(${encodeURIComponent(tIdsStr)})&select=id,nombre,plan,plan_status,creado_en,codigo_referido`, { headers: sbHeaders });
+      try {
+        const tAllR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?codigo_referido=not.is.null&select=id,nombre,plan,plan_status,plan_until,trial_until,creado_en,codigo_referido,telefono,dir,plan_email&order=creado_en.desc`, { headers: sbHeaders });
+        const tAllArr = await tAllR.json();
+        for (const t of (Array.isArray(tAllArr) ? tAllArr : [])) tiendasDetalle[t.id] = t;
+      } catch (e) { console.warn('No se pudieron leer las tiendas referidas:', e.message); }
+
+      // Las que tengan pagos pero no hayan salido arriba (p. ej. si les
+      // borraron el codigo despues) se piden igualmente: su comision existe.
+      const faltan = [...new Set(allPagos.map(p => p.tienda_id).filter(Boolean))].filter(id => !tiendasDetalle[id]);
+      if (faltan.length) {
+        const tIdsStr = faltan.map(id => '"' + id + '"').join(',');
+        const tDetailR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=in.(${encodeURIComponent(tIdsStr)})&select=id,nombre,plan,plan_status,plan_until,trial_until,creado_en,codigo_referido,telefono,dir,plan_email`, { headers: sbHeaders });
         const tDetailArr = await tDetailR.json();
         for (const t of (Array.isArray(tDetailArr) ? tDetailArr : [])) tiendasDetalle[t.id] = t;
       }
+
+      // En que anda cada tienda, en una palabra. `plan_status` viene de Stripe
+      // y no distingue "nunca ha pagado" de "pago y se fue", que para saber si
+      // un comercial esta vendiendo es justo lo que importa.
+      const estadoTienda = (t, hasPagos) => {
+        const st = String(t.plan_status || '').toLowerCase();
+        if (st === 'canceled' || st === 'cancelado') return hasPagos ? 'baja' : 'perdida';
+        if (st === 'past_due' || st === 'unpaid') return 'impago';
+        if (hasPagos) return 'activa';
+        const hasta = t.trial_until || t.plan_until;
+        if (hasta && new Date(hasta) > new Date()) return 'prueba';
+        return 'prueba_caducada';
+      };
 
       const porCodigo = {};
       for (const p of allPagos) {
@@ -860,6 +888,15 @@ export default async function handler(req, res) {
       }
 
       const referidosPorCodigo = {};
+      // Primero las tiendas captadas (aunque no hayan pagado), luego las que
+      // tienen pagos — de ahi salen las dos cifras que no son la misma:
+      // cuantas ha traido y cuantas le estan dando comision.
+      for (const t of Object.values(tiendasDetalle)) {
+        const codigo = t.codigo_referido;
+        if (!codigo) continue;
+        if (!referidosPorCodigo[codigo]) referidosPorCodigo[codigo] = new Set();
+        referidosPorCodigo[codigo].add(t.id);
+      }
       for (const p of allPagos) {
         const codigo = p.codigo_referido;
         if (!codigo) continue;
@@ -873,11 +910,17 @@ export default async function handler(req, res) {
         tiendasPorCodigo[codigo] = tiendaIds.map(tid => {
           const det = tiendasDetalle[tid] || {};
           const facturado = allPagos.filter(p => p.tienda_id === tid && p.codigo_referido === codigo).reduce((s, p) => s + parseFloat(p.monto_neto || 0), 0);
+          const pagosTienda = allPagos.filter(p => p.tienda_id === tid && p.codigo_referido === codigo);
           return {
             tienda_id: tid,
             nombre: det.nombre || 'Tienda sin nombre',
             plan: det.plan || '-',
             plan_status: det.plan_status || '-',
+            estado: estadoTienda(det, pagosTienda.length > 0),
+            telefono: det.telefono || '',
+            dir: det.dir || '',
+            email: det.plan_email || '',
+            num_pagos: pagosTienda.length,
             fecha_captacion: det.creado_en || null,
             total_facturado: +facturado.toFixed(2)
           };
@@ -887,12 +930,20 @@ export default async function handler(req, res) {
       const afiliadosConStats = allAfiliados.map(af => {
         const stats = porCodigo[af.codigo] || {total_comisiones:0, comisiones_pagadas:0, comisiones_pendientes:0, num_pagos:0};
         const referidos = referidosPorCodigo[af.codigo] ? referidosPorCodigo[af.codigo].size : 0;
+        const det = tiendasPorCodigo[af.codigo] || [];
+        const cuenta = (e) => det.filter(t => t.estado === e).length;
         return {
           codigo: af.codigo,
           nombre: af.nombre,
           email: af.email,
           comision_pct: af.comision_pct,
           num_referidos: referidos,
+          // Desglose del embudo: traidas, las que pagan, las que aun prueban y
+          // las que se cayeron. "Ha traido 8" y "cobra por 2" no es lo mismo.
+          num_activas: cuenta('activa'),
+          num_prueba: cuenta('prueba'),
+          num_perdidas: cuenta('perdida') + cuenta('prueba_caducada') + cuenta('baja'),
+          num_impago: cuenta('impago'),
           num_pagos: stats.num_pagos,
           total_comisiones: +stats.total_comisiones.toFixed(2),
           comisiones_pagadas: +stats.comisiones_pagadas.toFixed(2),
@@ -911,6 +962,9 @@ export default async function handler(req, res) {
         resumen: {
           num_afiliados: allAfiliados.length,
           num_referidos: totalReferidos,
+          num_activas: afiliadosConStats.reduce((s, a) => s + a.num_activas, 0),
+          num_prueba: afiliadosConStats.reduce((s, a) => s + a.num_prueba, 0),
+          num_perdidas: afiliadosConStats.reduce((s, a) => s + a.num_perdidas, 0),
           total_comisiones: +totalComisiones.toFixed(2),
           comisiones_pagadas: +totalPagadas.toFixed(2),
           comisiones_pendientes: +totalPendientes.toFixed(2)

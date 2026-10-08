@@ -5800,8 +5800,19 @@ async function cargarCuentasEfectivo() {
         // Rojo cuando entra en el tramo en que la tarjeta ya es obligatoria:
         // es justo el aviso de que toca ir a visitarle.
         var col = d2 == null ? 'var(--muted)' : (d2 < 0 ? '#dc2626' : (d2 <= 60 ? '#C2410C' : 'var(--text)'));
+        // Estas cuentas se cobran YENDO a la tienda, asi que el telefono y la
+        // direccion son el dato operativo: el telefono llama y la direccion
+        // abre el mapa. Antes solo salia el email, que es lo que menos sirve
+        // para presentarte en el mostrador.
+        var _tel = c.telefono
+          ? ' · <a href="tel:' + _efEsc(String(c.telefono).replace(/[^+\d]/g, '')) + '" style="color:inherit">' + _efEsc(c.telefono) + '</a>'
+          : '';
+        var _dir = c.dir
+          ? '<div style="font-size:11px;color:var(--muted)">📍 <a href="https://www.google.com/maps/search/?api=1&query='
+            + encodeURIComponent(c.dir) + '" target="_blank" rel="noopener" style="color:inherit">' + _efEsc(c.dir) + '</a></div>'
+          : '';
         return '<tr><td>' + _efEsc(c.nombre) + '<div style="font-size:11px;color:var(--muted)">'
-          + _efEsc(c.plan_email || '') + (c.telefono ? ' · ' + _efEsc(c.telefono) : '') + '</div></td>'
+          + _efEsc(c.plan_email || '') + _tel + '</div>' + _dir + '</td>'
           + '<td>' + _efEsc(c.plan) + '</td>'
           + '<td>' + _efEsc(String(c.plan_until || '').slice(0, 10)) + '</td>'
           + '<td style="color:' + col + ';font-weight:700;">' + (d2 == null ? '—' : d2 + ' d') + '</td>'
@@ -6516,6 +6527,11 @@ function renderComisionesAdmin(data) {
   html += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-top:10px">';
   html += '<div style="background:#F8FAFC;padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--dark)">' + r.num_afiliados + '</div><div style="font-size:11px;color:var(--muted)">' + T('com.afiliados_activos') + '</div></div>';
   html += '<div style="background:#F8FAFC;padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--blue)">' + r.num_referidos + '</div><div style="font-size:11px;color:var(--muted)">' + T('com.clientes_referidos') + '</div></div>';
+  // El embudo: traidas no es lo mismo que pagando. Sin esto no se sabe si un
+  // comercial no vende o si vende y los clientes se caen en la prueba.
+  html += '<div style="background:rgba(0,200,150,.08);padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--green)">' + (r.num_activas || 0) + '</div><div style="font-size:11px;color:var(--muted)">' + T('com.r_activas') + '</div></div>';
+  html += '<div style="background:rgba(59,130,246,.08);padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--blue)">' + (r.num_prueba || 0) + '</div><div style="font-size:11px;color:var(--muted)">' + T('com.r_prueba') + '</div></div>';
+  html += '<div style="background:rgba(100,116,139,.08);padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--muted)">' + (r.num_perdidas || 0) + '</div><div style="font-size:11px;color:var(--muted)">' + T('com.r_perdidas') + '</div></div>';
   html += '<div style="background:#F8FAFC;padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--dark)">' + eurFmt(r.total_comisiones) + '</div><div style="font-size:11px;color:var(--muted)">' + T('com.total_acum') + '</div></div>';
   html += '<div style="background:rgba(0,200,150,.08);padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:var(--green)">' + eurFmt(r.comisiones_pagadas) + '</div><div style="font-size:11px;color:var(--muted)">' + T('com.pagado') + '</div></div>';
   html += '<div style="background:rgba(249,115,22,.08);padding:14px;border-radius:10px"><div style="font-size:22px;font-weight:800;color:#F97316">' + eurFmt(r.comisiones_pendientes) + '</div><div style="font-size:11px;color:var(--muted)">' + T('com.pendiente_pagar') + '</div></div>';
@@ -6571,11 +6587,26 @@ function renderComisionesAdmin(data) {
         html += '<table style="width:100%;border-collapse:collapse;font-size:12px;background:white;border-radius:6px;overflow:hidden">';
         html += '<thead><tr style="background:#F1F5F9"><th style="padding:6px 10px;text-align:left;font-size:10px;color:var(--muted)">' + T('com.t_tienda') + '</th><th style="padding:6px 10px;text-align:center;font-size:10px;color:var(--muted)">' + T('com.t_plan') + '</th><th style="padding:6px 10px;text-align:center;font-size:10px;color:var(--muted)">' + T('com.t_estado') + '</th><th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--muted)">' + T('com.t_captada') + '</th><th style="padding:6px 10px;text-align:right;font-size:10px;color:var(--muted)">' + T('com.t_facturado') + '</th></tr></thead><tbody>';
         a.tiendas_detalle.forEach(function(t) {
-          var estadoColor = t.plan_status === 'active' ? 'var(--green)' : '#F97316';
+          // Estado en una palabra. `plan_status` lo escribe Stripe y no
+          // distingue "nunca pago" de "pago y se fue", que es justo lo que hay
+          // que mirar para saber si el comercial esta vendiendo.
+          var EST = {
+            activa:          { t: T('com.e_activa'),  c: 'var(--green)', b: 'rgba(0,200,150,.12)' },
+            prueba:          { t: T('com.e_prueba'),  c: 'var(--blue)',  b: 'rgba(59,130,246,.12)' },
+            prueba_caducada: { t: T('com.e_caducada'), c: '#64748B',     b: 'rgba(100,116,139,.12)' },
+            impago:          { t: T('com.e_impago'),  c: '#F97316',      b: 'rgba(249,115,22,.12)' },
+            baja:            { t: T('com.e_baja'),    c: '#64748B',      b: 'rgba(100,116,139,.12)' },
+            perdida:         { t: T('com.e_perdida'), c: '#64748B',      b: 'rgba(100,116,139,.12)' }
+          };
+          var e = EST[t.estado] || { t: (t.plan_status || '-'), c: '#64748B', b: 'rgba(100,116,139,.12)' };
+          var contacto = [];
+          if (t.telefono) contacto.push('<a href="tel:' + String(t.telefono).replace(/[^+\d]/g, '') + '" style="color:inherit">' + t.telefono + '</a>');
+          if (t.dir) contacto.push('<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(t.dir) + '" target="_blank" rel="noopener" style="color:inherit">📍 ' + t.dir + '</a>');
           html += '<tr>';
-          html += '<td style="padding:6px 10px;border-bottom:1px solid #F1F5F9"><strong>' + (t.nombre || '-') + '</strong></td>';
+          html += '<td style="padding:6px 10px;border-bottom:1px solid #F1F5F9"><strong>' + (t.nombre || '-') + '</strong>'
+            + (contacto.length ? '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">' + contacto.join(' · ') + '</div>' : '') + '</td>';
           html += '<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #F1F5F9"><span style="background:#EFF6FF;color:var(--blue);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase">' + (t.plan || '-') + '</span></td>';
-          html += '<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #F1F5F9;color:' + estadoColor + ';font-weight:600">' + (t.plan_status || '-') + '</td>';
+          html += '<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #F1F5F9"><span style="background:' + e.b + ';color:' + e.c + ';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">' + e.t + '</span></td>';
           html += '<td style="padding:6px 10px;text-align:right;border-bottom:1px solid #F1F5F9;color:var(--muted)">' + fmtFecha(t.fecha_captacion) + '</td>';
           html += '<td style="padding:6px 10px;text-align:right;border-bottom:1px solid #F1F5F9;font-weight:700">' + eurFmt(t.total_facturado) + '</td>';
           html += '</tr>';
