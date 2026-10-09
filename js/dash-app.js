@@ -1985,20 +1985,57 @@ async function analizarPedidoArchivo(input) {
     if (btn) { btn.disabled = false; btn.innerHTML = '✨ ' + (T('pedidos.pegar_analizar') || 'Analizar con IA'); }
   }
 }
+// Una peticion a la IA con el cuerpo dado. Devuelve las lineas o lanza.
+async function _pedirLineasIA(body) {
+  var r = await fetch('/api/ayuda?action=parse-pedido', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN },
+    body: JSON.stringify(body)
+  });
+  var data = await r.json();
+  if (!r.ok || !data.ok) throw new Error(data.error || T('tst.no_analizar'));
+  return data.lineas || [];
+}
+
 async function _analizarPedidoBody(body) {
   var btn = document.getElementById('pegAnalizarBtn');
   var prev = document.getElementById('pegPreview');
   if (btn) { btn.disabled = true; btn.textContent = '⏳ ' + (T('pedidos.pegar_analizando') || 'Analizando…'); }
   if (prev) prev.innerHTML = '';
   try {
-    var r = await fetch('/api/ayuda?action=parse-pedido', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN },
-      body: JSON.stringify(body)
-    });
-    var data = await r.json();
-    if (!r.ok || !data.ok) { toast('⚠️ ' + (data.error || T('tst.no_analizar')), 'err'); return; }
-    var lineas = data.lineas || [];
+    var lineas;
+    // Un PDF escaneado de varias paginas se manda PAGINA A PAGINA, no de una vez.
+    //
+    // Cada imagen cuesta 2.048 tokens fijos, asi que tres paginas juntas son
+    // ~6.800 en una sola peticion: el 85% del limite de 8.000 tokens POR MINUTO
+    // de la capa gratuita de Groq. Con dos tiendas analizando a la vez, una se
+    // lleva un error de saturacion. Troceado son ~2.300 por peticion, y de
+    // peticiones sobran (21 al dia de 1.000 que dan): se cambia lo escaso por
+    // lo que sobra.
+    if (body.imagenes && body.imagenes.length > 1) {
+      var paginas = body.imagenes;
+      lineas = [];
+      for (var i = 0; i < paginas.length; i++) {
+        if (btn) btn.textContent = '⏳ ' + (T('pedidos.pegar_analizando') || 'Analizando…') + ' (' + (i + 1) + '/' + paginas.length + ')';
+        try {
+          var l = await _pedirLineasIA({ action: body.action, imagenes: [paginas[i]] });
+          lineas = lineas.concat(l);
+        } catch (ePag) {
+          // Una pagina que falla no tira el documento entero: se avisa y sigue.
+          console.warn('Pagina ' + (i + 1) + ' no analizada:', ePag.message);
+          toast('⚠️ La página ' + (i + 1) + ' no se pudo leer', 'err');
+        }
+      }
+      // Dos paginas pueden repetir una linea si el albaran parte una tabla.
+      var vistas = {};
+      lineas = lineas.filter(function (x) {
+        var k = (x.pieza || '').toLowerCase().trim() + '|' + (x.sku || '') + '|' + x.cantidad + '|' + x.precio_compra;
+        if (vistas[k]) return false;
+        vistas[k] = 1; return true;
+      });
+    } else {
+      lineas = await _pedirLineasIA(body);
+    }
     if (!lineas.length) { if (prev) prev.innerHTML = '<div style="padding:14px;text-align:center;color:var(--muted)">' + (T('pedidos.pegar_sin_lineas') || 'No se detectaron productos. Revisa el texto.') + '</div>'; return; }
     window._pegLineas = lineas;
     renderPreviewPegado();
@@ -2049,7 +2086,10 @@ async function _archivoAIA(file) {
     // El texto es barato: se leen mas paginas. Las imagenes no: el modelo de
     // vision de Groq admite 3 por peticion y con mas rechaza la peticion entera.
     var maxP = Math.min(pdf.numPages, 8);
-    var MAX_IMG = 3;
+    // Ahora cada pagina va en SU peticion, asi que ya no la limita el tope de
+    // tokens por minuto sino el de peticiones al dia, del que sobra de largo.
+    // Antes eran 3 y un albaran escaneado de 5 paginas se leia a medias.
+    var MAX_IMG = 6;
     var textoTotal = '';
     for (var p = 1; p <= maxP; p++) {
       var page = await pdf.getPage(p);
