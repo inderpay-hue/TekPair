@@ -297,12 +297,12 @@ export default async function handler(req, res) {
       const planLabel = ({basico:'Básico', pro:'Pro', top:'Premium'})[plan] || 'Básico';
       const lang = (session && session.metadata && session.metadata.lang) || 'es';
       const WELCOME = {
-        es: { guia:'📘 Guía rápida para empezar (PDF)', subj:'✓ Bienvenido a Tekpair — Tus credenciales', hola:'Hola', suscripcion:'Tu suscripción', activa:'ya está activa, con tu periodo de prueba gratis.', credenciales:'Tus credenciales', pass:'Contraseña temporal', aviso:'⚠️ Cambia tu contraseña tras el primer acceso.', btn:'Entrar a Tekpair →', prueba:'Tu prueba gratis termina el', cobro:'Después se cobrará automáticamente. Puedes cancelar en cualquier momento desde Mi cuenta.', cuenta:'Tu cuenta está lista' },
-        en: { guia:'📘 Quick start guide (PDF)', subj:'✓ Welcome to Tekpair — Your credentials', hola:'Hi', suscripcion:'Your subscription', activa:'is now active, with your free trial period.', credenciales:'Your credentials', pass:'Temporary password', aviso:'⚠️ Change your password after first login.', btn:'Sign in to Tekpair →', prueba:'Your free trial ends on', cobro:'After that, you will be charged automatically. You can cancel anytime from My account.', cuenta:'Your account is ready' },
-        fr: { guia:'📘 Guide de démarrage rapide (PDF)', subj:'✓ Bienvenue sur Tekpair — Vos identifiants', hola:'Bonjour', suscripcion:'Votre abonnement', activa:'est actif, avec votre période d\'essai gratuite.', credenciales:'Vos identifiants', pass:'Mot de passe temporaire', aviso:'⚠️ Changez votre mot de passe après la première connexion.', btn:'Accéder à Tekpair →', prueba:'Votre essai gratuit se termine le', cobro:'Ensuite, vous serez facturé automatiquement. Vous pouvez annuler à tout moment.', cuenta:'Votre compte est prêt' },
-        it: { guia:'📘 Guida rapida per iniziare (PDF)', subj:'✓ Benvenuto su Tekpair — Le tue credenziali', hola:'Ciao', suscripcion:'Il tuo abbonamento', activa:'è attivo, con il tuo periodo di prova gratuito.', credenciales:'Le tue credenziali', pass:'Password temporanea', aviso:'⚠️ Cambia la password dopo il primo accesso.', btn:'Accedi a Tekpair →', prueba:'La tua prova gratuita termina il', cobro:'Successivamente verrà addebitato automaticamente. Puoi annullare in qualsiasi momento.', cuenta:'Il tuo account è pronto' },
-        de: { guia:'📘 Schnellstart-Anleitung (PDF)', subj:'✓ Willkommen bei Tekpair — Ihre Zugangsdaten', hola:'Hallo', suscripcion:'Ihr Abonnement', activa:'ist aktiv, mit deiner kostenlosen Testphase.', credenciales:'Ihre Zugangsdaten', pass:'Temporäres Passwort', aviso:'⚠️ Ändern Sie Ihr Passwort nach der ersten Anmeldung.', btn:'Bei Tekpair anmelden →', prueba:'Ihre kostenlose Testphase endet am', cobro:'Danach wird automatisch abgerechnet. Sie können jederzeit kündigen.', cuenta:'Ihr Konto ist bereit' },
-        pt: { guia:'📘 Guia rápido para começar (PDF)', subj:'✓ Bem-vindo ao Tekpair — As suas credenciais', hola:'Olá', suscripcion:'A sua subscrição', activa:'já está ativa, com o teu período de prova gratuito.', credenciales:'As suas credenciais', pass:'Palavra-passe temporária', aviso:'⚠️ Mude a sua palavra-passe após o primeiro acesso.', btn:'Entrar no Tekpair →', prueba:'A sua prova gratuita termina a', cobro:'Depois será cobrado automaticamente. Pode cancelar a qualquer momento em A minha conta.', cuenta:'A sua conta está pronta' }
+        es: { ayuda:'¿Algo no va como esperabas? Escríbenos a', guia:'📘 Guía rápida para empezar (PDF)', subj:'Tu cuenta de TekPair ya está lista', hola:'Hola', suscripcion:'Tu suscripción', activa:'ya está activa, con tu periodo de prueba gratis.', credenciales:'Tus credenciales', pass:'Contraseña temporal', aviso:'Esta contraseña es temporal. Cámbiala en cuanto entres, desde Ajustes → Seguridad.', btn:'Entrar a TekPair →', prueba:'Tu prueba gratis termina el', cobro:'Después se cobrará automáticamente. Puedes cancelar en cualquier momento desde Mi cuenta.', cuenta:'Tu cuenta está lista' },
+        en: { ayuda:'Something not working as expected? Write to us at', guia:'📘 Quick start guide (PDF)', subj:'Your TekPair account is ready', hola:'Hi', suscripcion:'Your subscription', activa:'is now active, with your free trial period.', credenciales:'Your credentials', pass:'Temporary password', aviso:'⚠️ Change your password after first login.', btn:'Sign in to TekPair →', prueba:'Your free trial ends on', cobro:'After that, you will be charged automatically. You can cancel anytime from My account.', cuenta:'Your account is ready' },
+        fr: { ayuda:'Quelque chose ne va pas ? Écrivez-nous à', guia:'📘 Guide de démarrage rapide (PDF)', subj:'Votre compte TekPair est prêt', hola:'Bonjour', suscripcion:'Votre abonnement', activa:'est actif, avec votre période d\'essai gratuite.', credenciales:'Vos identifiants', pass:'Mot de passe temporaire', aviso:'Ce mot de passe est temporaire. Changez-le dès votre connexion, dans Réglages → Sécurité.', btn:'Accéder à TekPair →', prueba:'Votre essai gratuit se termine le', cobro:'Ensuite, vous serez facturé automatiquement. Vous pouvez annuler à tout moment.', cuenta:'Votre compte est prêt' },
+        it: { ayuda:'Qualcosa non va come previsto? Scrivici a', guia:'📘 Guida rapida per iniziare (PDF)', subj:'Il tuo account TekPair è pronto', hola:'Ciao', suscripcion:'Il tuo abbonamento', activa:'è attivo, con il tuo periodo di prova gratuito.', credenciales:'Le tue credenziali', pass:'Password temporanea', aviso:'Questa password è temporanea. Cambiala appena entri, da Impostazioni → Sicurezza.', btn:'Accedi a TekPair →', prueba:'La tua prova gratuita termina il', cobro:'Successivamente verrà addebitato automaticamente. Puoi annullare in qualsiasi momento.', cuenta:'Il tuo account è pronto' },
+        de: { ayuda:'Etwas läuft nicht wie erwartet? Schreib uns an', guia:'📘 Schnellstart-Anleitung (PDF)', subj:'Dein TekPair-Konto ist bereit', hola:'Hallo', suscripcion:'Ihr Abonnement', activa:'ist aktiv, mit deiner kostenlosen Testphase.', credenciales:'Ihre Zugangsdaten', pass:'Temporäres Passwort', aviso:'Dieses Passwort ist vorläufig. Ändere es gleich nach dem Anmelden unter Einstellungen → Sicherheit.', btn:'Bei TekPair anmelden →', prueba:'Ihre kostenlose Testphase endet am', cobro:'Danach wird automatisch abgerechnet. Sie können jederzeit kündigen.', cuenta:'Ihr Konto ist bereit' },
+        pt: { ayuda:'Algo não corre como esperavas? Escreve-nos para', guia:'📘 Guia rápido para começar (PDF)', subj:'A tua conta TekPair já está pronta', hola:'Olá', suscripcion:'A sua subscrição', activa:'já está ativa, com o teu período de prova gratuito.', credenciales:'As suas credenciais', pass:'Palavra-passe temporária', aviso:'⚠️ Mude a sua palavra-passe após o primeiro acesso.', btn:'Entrar no TekPair →', prueba:'A sua prova gratuita termina a', cobro:'Depois será cobrado automaticamente. Pode cancelar a qualquer momento em A minha conta.', cuenta:'A sua conta está pronta' }
       };
       const W = WELCOME[lang] || WELCOME.es;
       const trialDate = new Date(trialUntil).toLocaleDateString(lang === 'en' ? 'en-GB' : lang === 'de' ? 'de-DE' : lang === 'fr' ? 'fr-FR' : lang === 'it' ? 'it-IT' : lang === 'pt' ? 'pt-PT' : 'es-ES');
@@ -317,27 +317,39 @@ export default async function handler(req, res) {
           'Content-Type': 'application/json'
         },
         body: JSON.stringify({
-          from: 'Tekpair <info@tekpair.tech>',
+          from: 'TekPair <info@tekpair.tech>',
           to: [email],
           subject: W.subj,
           html: `
-<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
-<body style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:20px;color:#111">
-  <div style="background:#020B2E;color:white;padding:24px;border-radius:10px 10px 0 0;text-align:center">
-    <h1 style="margin:0;font-size:24px">⚡ Tekpair</h1>
-    <p style="margin:8px 0 0;opacity:.7">${W.cuenta}</p>
-  </div>
-  <div style="background:white;padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
-    <p>${W.hola} <strong>${nombreEsc}</strong>,</p>
-    <p>${W.suscripcion} <strong style="color:#0055FF">plan ${planLabel}</strong> ${W.activa}</p>
-    <div style="background:#F8FAFC;border-radius:8px;padding:16px;margin:16px 0;font-family:monospace">
-      <div><strong>Email:</strong> ${email}</div>
-      <div style="margin-top:8px"><strong>${W.pass}:</strong> ${tempPass}</div>
+<!DOCTYPE html><html><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F4F2ED">
+  <div style="font-family:-apple-system,'Segoe UI',Arial,sans-serif;max-width:520px;margin:0 auto;padding:24px 16px;color:#1A1714">
+    <div style="background:#C73D06;color:#ffffff;padding:26px 24px;border-radius:12px 12px 0 0;text-align:center">
+      <div style="font-size:23px;font-weight:700;letter-spacing:-.3px">&#9889; TekPair</div>
+      <div style="margin:6px 0 0;font-size:14px;opacity:.9">${W.cuenta}</div>
     </div>
-    <p style="color:#EF4444;font-size:13px">${W.aviso}</p>
-    <a href="https://www.tekpair.tech/app.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:16px">${W.btn}</a>
-    <a href="https://www.tekpair.tech/guia-rapida-tekpair.pdf" style="display:block;border:1px solid #CBD5E1;color:#0F172A;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:600;margin-top:10px;font-size:14px">${W.guia}</a>
-    <p style="color:#64748B;font-size:12px;margin-top:16px">${W.prueba} ${trialDate}. ${W.cobro}</p>
+    <div style="background:#ffffff;padding:26px 24px;border:1px solid #E6E1D6;border-top:none;border-radius:0 0 12px 12px">
+      <p style="margin:0 0 10px;font-size:15px">${W.hola} <strong>${nombreEsc}</strong>,</p>
+      <p style="margin:0 0 20px;font-size:15px;line-height:1.5">${W.suscripcion} <strong style="color:#C73D06">plan ${planLabel}</strong> ${W.activa}</p>
+
+      <div style="background:#FBFAF7;border:1px solid #E6E1D6;border-radius:10px;padding:18px 20px;margin:0 0 6px">
+        <div style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:#8A8375;font-weight:700;margin-bottom:10px">${W.credenciales}</div>
+        <div style="font-size:12px;color:#5C564A;margin-bottom:2px">Email</div>
+        <div style="font-family:'SF Mono',Consolas,monospace;font-size:14px;margin-bottom:14px;word-break:break-all">${email}</div>
+        <div style="font-size:12px;color:#5C564A;margin-bottom:2px">${W.pass}</div>
+        <div style="font-family:'SF Mono',Consolas,monospace;font-size:21px;font-weight:700;letter-spacing:1.5px;color:#C73D06;word-break:break-all">${tempPass}</div>
+      </div>
+      <p style="margin:0 0 20px;font-size:12.5px;color:#5C564A;line-height:1.45">${W.aviso}</p>
+
+      <a href="https://www.tekpair.tech/app.html" style="display:block;background:#C73D06;color:#ffffff;text-align:center;padding:15px;border-radius:9px;text-decoration:none;font-weight:700;font-size:15px">${W.btn}</a>
+      <a href="https://www.tekpair.tech/guia-rapida-tekpair.pdf" style="display:block;border:1px solid #DCD6C8;color:#1A1714;text-align:center;padding:13px;border-radius:9px;text-decoration:none;font-weight:600;margin-top:10px;font-size:14px">${W.guia}</a>
+
+      <div style="margin-top:22px;padding-top:16px;border-top:1px solid #EDE8DC">
+        <p style="margin:0 0 4px;font-size:12.5px;color:#5C564A;line-height:1.5">${W.prueba} <strong>${trialDate}</strong>. ${W.cobro}</p>
+        <p style="margin:10px 0 0;font-size:12.5px;color:#5C564A;line-height:1.5">${W.ayuda} <a href="mailto:info@tekpair.tech" style="color:#C73D06;text-decoration:none;font-weight:600">info@tekpair.tech</a>.</p>
+      </div>
+    </div>
+    <div style="text-align:center;font-size:11.5px;color:#8A8375;margin-top:14px">TekPair &middot; tekpair.tech</div>
   </div>
 </body></html>`
         })
@@ -446,7 +458,7 @@ async function avisarAltaNueva(d) {
     method: 'POST',
     headers: { 'Authorization': `Bearer ${d.RESEND_KEY}`, 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      from: 'Tekpair <info@tekpair.tech>',
+      from: 'TekPair <info@tekpair.tech>',
       to: [destino],
       subject: `🎉 Alta nueva: ${d.tienda_nombre}${d.telefono ? ' · ' + d.telefono : ''}`,
       html,
