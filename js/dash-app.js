@@ -2488,7 +2488,9 @@ async function _subirPdfPedido(file, grupo) {
   try {
     var esPdf = file.type === 'application/pdf';
     var blob = esPdf ? file : await comprimirImagen(file, 1600, 0.75);
-    var ext = esPdf ? 'pdf' : 'jpg';
+    // La extension sigue a lo que devolvio el compresor (WebP o JPEG segun el
+    // navegador), no a una suposicion.
+    var ext = esPdf ? 'pdf' : (blob.type === 'image/webp' ? 'webp' : 'jpg');
     var mime = esPdf ? 'application/pdf' : (blob.type || 'image/jpeg');
     var path = TIENDA_ID + '/pedido-' + grupo + '-' + Date.now() + '.' + ext;
     var blobToUpload = new Blob([blob], { type: mime });
@@ -15641,8 +15643,11 @@ async function subirAdjuntoGasto(g, file) {
   try {
     var blob = await comprimirImagen(file, 1600, 0.75);
     var ext = (file.name.split('.').pop() || 'bin').toLowerCase();
-    // Si comprimimos imagen, queda como JPEG
-    if (file.type !== 'application/pdf' && /^image\//.test(file.type)) ext = 'jpg';
+    // La extension sigue a lo que DEVOLVIO el compresor, no a lo que se pidio:
+    // si el navegador no sabe WebP habra salido un JPEG y el fichero mentiria.
+    if (file.type !== 'application/pdf' && /^image\//.test(file.type)) {
+      ext = (blob.type === 'image/webp') ? 'webp' : 'jpg';
+    }
     var path = TIENDA_ID + '/' + g.id + '-' + Date.now() + '.' + ext;
     var mime = (file.type === 'application/pdf') ? 'application/pdf' : (blob.type || 'image/jpeg');
     // Upload (sbStorageUpload usa Content-Type del file; lo pasamos como Blob con type)
@@ -17120,10 +17125,28 @@ function sbStorageSignedUrl(bucket, path, expiresIn) {
 
 // Comprime imagen JPG/PNG en cliente con Canvas. Devuelve Promise<Blob>.
 // PDFs se devuelven tal cual.
+// ¿Sabe este navegador escribir WebP? Se pregunta una sola vez. Si no sabe,
+// toDataURL devuelve un PNG sin avisar, asi que hay que mirar lo que DEVUELVE
+// y no fiarse de que lo acepte.
+var _SOPORTA_WEBP = null;
+function soportaWebP() {
+  if (_SOPORTA_WEBP !== null) return _SOPORTA_WEBP;
+  try {
+    var c = document.createElement('canvas');
+    c.width = c.height = 1;
+    _SOPORTA_WEBP = c.toDataURL('image/webp').indexOf('data:image/webp') === 0;
+  } catch (e) { _SOPORTA_WEBP = false; }
+  return _SOPORTA_WEBP;
+}
+
 function comprimirImagen(file, maxLado, quality, formato) {
   maxLado = maxLado || 1600;
   quality = quality || 0.75;
-  formato = formato || 'image/jpeg';
+  // WebP pesa la MITAD que JPEG con la misma resolucion y calidad (medido con
+  // una foto real: 133 KB -> 62 KB). Importa porque las fotos de reparacion son
+  // lo que mas ocupa del almacenamiento, y aqui no se pierde ni resolucion ni
+  // detalle para probar un golpe. Si el navegador no sabe, se queda en JPEG.
+  formato = formato || (soportaWebP() ? 'image/webp' : 'image/jpeg');
   return new Promise(function(resolve, reject) {
     if (!file) return reject(new Error('Sin archivo'));
     // PDF: no se toca
@@ -19107,8 +19130,12 @@ async function _repSubirFoto(file) {
       try { var sig = (PLAN_INFO.plan === 'pro') ? 'premium' : 'pro'; mostrarModalUpgrade('', sig); } catch (e) {}
       return null;
     }
-    var path = TIENDA_ID + '/reps/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.jpg';
-    var resp = await sbStorageUpload('gastos-adjuntos', path, new Blob([blob], { type: 'image/jpeg' }));
+    // El tipo y la extension salen del blob REAL. Estaban fijos en jpg/jpeg, asi
+    // que con WebP el fichero habria mentido sobre lo que es y no se veria.
+    var _mime = blob.type || 'image/jpeg';
+    var _ext = (_mime === 'image/webp') ? 'webp' : 'jpg';
+    var path = TIENDA_ID + '/reps/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + _ext;
+    var resp = await sbStorageUpload('gastos-adjuntos', path, new Blob([blob], { type: _mime }));
     if (!resp.ok) { toast(T('foto.error_subir'), 'err'); return null; }
     // Contabilizar el uso (best-effort; el cron de retención recalcula la verdad cada mes).
     _fotoSizes[path] = blob.size;
