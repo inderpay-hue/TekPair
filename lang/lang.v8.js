@@ -5587,12 +5587,12 @@ pt:{'rep.en_garantia':'EM GARANTIA','fact.tipo_simplificada':'Simplificada','fac
 
 // i18n claves colgantes detectadas por el validador (se mostraban crudas)
 (function(){var _a={
-es:{'tpv.reparacion':'Reparación','stock.calidad':'Calidad','tpv.transferencia':'Transferencia','cita.vencida':'VENCIDA','pedidos.imeis_descuadre':'Has puesto {a} IMEI(s) pero el pedido es de {b} ud. Se registrarán solo {a} en stock. ¿Continuar?'},
-en:{'tpv.reparacion':'Repair','stock.calidad':'Quality','tpv.transferencia':'Transfer','cita.vencida':'OVERDUE','pedidos.imeis_descuadre':'You entered {a} IMEI(s) but the order is for {b} units. Only {a} will be added to stock. Continue?'},
-fr:{'tpv.reparacion':'Réparation','stock.calidad':'Qualité','tpv.transferencia':'Virement','cita.vencida':'EN RETARD','pedidos.imeis_descuadre':'Vous avez saisi {a} IMEI mais la commande est de {b} unités. Seuls {a} seront ajoutés au stock. Continuer ?'},
-it:{'tpv.reparacion':'Riparazione','stock.calidad':'Qualità','tpv.transferencia':'Bonifico','cita.vencida':'SCADUTA','pedidos.imeis_descuadre':'Hai inserito {a} IMEI ma l\'ordine è di {b} unità. Solo {a} verranno aggiunti allo stock. Continuare?'},
-de:{'tpv.reparacion':'Reparatur','stock.calidad':'Qualität','tpv.transferencia':'Überweisung','cita.vencida':'ÜBERFÄLLIG','pedidos.imeis_descuadre':'Du hast {a} IMEI(s) eingegeben, aber die Bestellung umfasst {b} Einheiten. Nur {a} werden ins Lager gebucht. Fortfahren?'},
-pt:{'tpv.reparacion':'Reparação','stock.calidad':'Qualidade','tpv.transferencia':'Transferência','cita.vencida':'VENCIDA','pedidos.imeis_descuadre':'Inseriste {a} IMEI mas o pedido é de {b} unidades. Só {a} serão adicionados ao stock. Continuar?'},
+es:{'tpv.add_stock':'Stock','tpv.add_pedido':'Pedido','tpv.reparacion':'Reparación','stock.calidad':'Calidad','tpv.transferencia':'Transferencia','cita.vencida':'VENCIDA','pedidos.imeis_descuadre':'Has puesto {a} IMEI(s) pero el pedido es de {b} ud. Se registrarán solo {a} en stock. ¿Continuar?'},
+en:{'tpv.add_stock':'Stock','tpv.add_pedido':'Order','tpv.reparacion':'Repair','stock.calidad':'Quality','tpv.transferencia':'Transfer','cita.vencida':'OVERDUE','pedidos.imeis_descuadre':'You entered {a} IMEI(s) but the order is for {b} units. Only {a} will be added to stock. Continue?'},
+fr:{'tpv.add_stock':'Stock','tpv.add_pedido':'Commande','tpv.reparacion':'Réparation','stock.calidad':'Qualité','tpv.transferencia':'Virement','cita.vencida':'EN RETARD','pedidos.imeis_descuadre':'Vous avez saisi {a} IMEI mais la commande est de {b} unités. Seuls {a} seront ajoutés au stock. Continuer ?'},
+it:{'tpv.add_stock':'Magazzino','tpv.add_pedido':'Ordine','tpv.reparacion':'Riparazione','stock.calidad':'Qualità','tpv.transferencia':'Bonifico','cita.vencida':'SCADUTA','pedidos.imeis_descuadre':'Hai inserito {a} IMEI ma l\'ordine è di {b} unità. Solo {a} verranno aggiunti allo stock. Continuare?'},
+de:{'tpv.add_stock':'Lager','tpv.add_pedido':'Bestellung','tpv.reparacion':'Reparatur','stock.calidad':'Qualität','tpv.transferencia':'Überweisung','cita.vencida':'ÜBERFÄLLIG','pedidos.imeis_descuadre':'Du hast {a} IMEI(s) eingegeben, aber die Bestellung umfasst {b} Einheiten. Nur {a} werden ins Lager gebucht. Fortfahren?'},
+pt:{'tpv.add_stock':'Stock','tpv.add_pedido':'Pedido','tpv.reparacion':'Reparação','stock.calidad':'Qualidade','tpv.transferencia':'Transferência','cita.vencida':'VENCIDA','pedidos.imeis_descuadre':'Inseriste {a} IMEI mas o pedido é de {b} unidades. Só {a} serão adicionados ao stock. Continuar?'},
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
 // i18n secciones del modal Edit Repair (F638)

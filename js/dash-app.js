@@ -1059,6 +1059,10 @@ window.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() { navTo(page); }, 300);
       } else if (action === 'new-rep') {
         setTimeout(function() { navTo('pReps'); abrirRep(); }, 300);
+      } else if (action === 'new-stock') {
+        setTimeout(function() { navTo('pStock'); nuevoStock(); }, 300);
+      } else if (action === 'new-ped') {
+        setTimeout(function() { navTo('pPedidos'); if (typeof tieneFeature !== 'function' || tieneFeature('pedidos')) nuevoPedido(); }, 300);
       } else if (action === 'new-pres') {
         setTimeout(function() { navTo('pPresupuestos'); abrirPresupuesto(); }, 300);
       }
