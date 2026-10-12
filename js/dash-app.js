@@ -870,7 +870,7 @@ setInterval(function() { refrescarPlan(); }, 5 * 60 * 1000);
 var AJUSTES = {moneda:'EUR',paisPrefijo:'34',nombre:'',cierre:{activo:false,hora:'21:30',email:''},iva:{activo:false,modo:'incluido',tipoDefault:21,tiposPermitidos:[0,4,10,21],nombre:'IVA',tiposExtra:'21, 10, 4, 0'},notif:{activa:{vencida:true,urgente:true,abandono:true,stock:true,cuotaVencida:true,cuotaProxima:true,recibidaHoy:true,cumple:true},diasAbandono:90,plantillaCumple:T('notif.plantilla_cumple_larga')}};
 
 // ═══ DB ═══
-var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[],gastos_recurrentes:[],encargos:[]};
+var DB = {ventas:[],reps:[],stock:[],clis:[],gastos:[],provs:[],servicios:[],notas:[],modelosCustom:[],gastos_recurrentes:[],encargos:[],herramientas:[]};
 var MODELOS_PRE = []; // catalogo predefinido cargado de assets/modelos.json
 
 // ═══ STATE ═══
@@ -1081,7 +1081,8 @@ window.addEventListener('DOMContentLoaded', function() {
     ajustes:'pAjustes', tienda:'pTienda',
     // F52: faltaban → #reportes y otros dejaban la pantalla en blanco
     reportes:'pReportes', reports:'pReportes', comisiones:'pComisiones', facturas:'pFacturas',
-    catalogo:'pCatalogo', usuarios:'pUsuarios', ayuda:'pAyuda', citas:'pCitas', mas:'pMas' };
+    catalogo:'pCatalogo', usuarios:'pUsuarios', ayuda:'pAyuda', citas:'pCitas', mas:'pMas',
+    herramientas:'pHerramientas', licencias:'pHerramientas' };
   function _navFromHash() {
     try {
       var h = (location.hash || '').replace(/^#\/?/, '').toLowerCase().trim();
@@ -2801,6 +2802,7 @@ function navTo(id) {
   if (id === 'pStock') renderStock();
   if (id === 'pClis') renderClis();
   if (id === 'pProvs') renderProvs();
+  if (id === 'pHerramientas') renderHerramientasT();
   if (id === 'pCajas') Cajas.renderCajas();
   if (id === 'pInicioNuevo') renderInicioNuevo();
   if (id === 'pDash') renderDash();   // F13: el dashboard Clásico no se re-renderizaba al abrirlo → salía €0/0 ventas
@@ -2851,7 +2853,7 @@ var _PAGE_HASH = { pInicioNuevo:'inicio', pDash:'dashboard', pVentas:'ventas', p
   pPresupuestos:'presupuestos', pStock:'stock', pClis:'clientes', pProvs:'proveedores', pGastos:'gastos',
   pPedidos:'pedidos', pEncargos:'encargos', pServicios:'servicios', pCajas:'cajas', pAjustes:'ajustes', pReportes:'reportes',
   pComisiones:'comisiones', pFacturas:'facturas', pCatalogo:'catalogo', pUsuarios:'usuarios',
-  pAyuda:'ayuda', pCitas:'citas', pMas:'mas' };
+  pAyuda:'ayuda', pCitas:'citas', pMas:'mas', pHerramientas:'herramientas' };
 
 function setNavActive(el) {
   document.querySelectorAll('.ni').forEach(function(n) { n.classList.remove('active'); });
@@ -3515,6 +3517,9 @@ async function cargarDatosSupabase() {
     if (Array.isArray(gastosRec)) DB.gastos_recurrentes = gastosRec;
     if (Array.isArray(pagosProv)) DB.pagosProv = pagosProv;
     if (Array.isArray(encargos)) DB.encargos = encargos;
+    // Herramientas y licencias: aparte y sin bloquear lo demas (si la tabla aun
+    // no existe, sbGetAll devuelve [] y la seccion sale vacia).
+    try { var herrs = await sbGetAll('herramientas_tienda', 'tienda_id=eq.' + TIENDA_ID); if (Array.isArray(herrs)) DB.herramientas = herrs; } catch (e) {}
     guardarDatos();
     // Aplicar plantillas de gastos recurrentes que toquen
     try { aplicarGastosRecurrentes(); } catch(e) { console.warn('Aplicar recurrentes:', e); }
@@ -3564,7 +3569,7 @@ function refrescarVistasActivas() {
     pInicioNuevo: 'renderInicioNuevo', pDash: 'renderDash', pVentas: 'renderVentas',
     pReps: 'renderReps', pStock: 'renderStock', pClis: 'renderClis', pProvs: 'renderProvs',
     pGastos: 'renderGastos', pServicios: 'renderServicios', pPedidos: 'renderPedidosPage',
-    pAjustes: 'cargarAjustes', pTienda: 'cargarTienda'
+    pAjustes: 'cargarAjustes', pTienda: 'cargarTienda', pHerramientas: 'renderHerramientasT'
   };
   try { var fn = MAP[activa]; if (fn && typeof window[fn] === 'function') window[fn](); } catch(e){}
   try { if (activa === 'pGastos' && typeof renderGastosRec === 'function') renderGastosRec(); } catch(e){}
@@ -3657,7 +3662,7 @@ function _initRealtime() {
         // cajas_movimientos se aíslan por caja_id, así que no encajan aquí y siguen
         // llegando por el refresco periódico.
         'pagos_reparacion', 'cajas', 'cajas_cierres', 'cajas_fiados', 'cajas_cuentas',
-        'cajas_saldo_mov'];
+        'cajas_saldo_mov', 'herramientas_tienda'];
       // UN canal por tabla: así el subscribe sabe QUÉ tabla es (log con nombre) y una tabla
       // que rechace la suscripción no tumba a las demás (antes iban todas en un canal → F20).
       TABLAS.forEach(function (tbl) {
@@ -17721,6 +17726,24 @@ function computeNotificaciones() {
         detalle: (r.t || '') + (r.h ? ' · ' + r.h : ''), href: 'pInicioNuevo', prio: 0, manual: false });
     }
   });
+  // Herramientas y licencias: lo que caduca en 30 dias o ya caduco, y las
+  // garantias de maquinaria que se acaban (para reclamar a tiempo).
+  (DB.herramientas || []).forEach(function(h) {
+    if (h.estado === 'baja') return;
+    var d = _herrDiasA(h.tipo === 'licencia' ? h.caduca : h.garantia_hasta);
+    if (d === null) return;
+    if (h.tipo === 'licencia') {
+      if (h.periodicidad === 'unico') return;
+      if (d < 0) add({id:'herr_venc_'+h.id, tipo:'stock', icon:'🔑', color:'#EF4444', titulo:T('herr.notif_vencida'),
+        detalle:h.nombre+' · '+_herrFmt(h.caduca), href:'pHerramientas', prio:0, manual:false});
+      else if (d <= 30) add({id:'herr_cad_'+h.id+'_'+h.caduca, tipo:'stock', icon:'🔑', color:'#F59E0B', titulo:T('herr.notif_caduca'),
+        detalle:h.nombre+' · '+(d === 0 ? T('herr.caduca_hoy') : T('herr.caduca_en').replace('{n}', d)), href:'pHerramientas', prio:1, manual:true});
+    } else if (d >= 0 && d <= 30) {
+      add({id:'herr_gar_'+h.id+'_'+h.garantia_hasta, tipo:'stock', icon:'🛠️', color:'#3B82F6', titulo:T('herr.notif_garantia'),
+        detalle:h.nombre+' · '+_herrFmt(h.garantia_hasta), href:'pHerramientas', prio:2, manual:true});
+    }
+  });
+
   notifs.sort(function(a,b){ return (a.prio||9) - (b.prio||9); });
   return notifs;
 }
@@ -17943,6 +17966,193 @@ computeNotificaciones = function() {
   });
   return notifs;
 };
+
+
+// ═══ HERRAMIENTAS Y LICENCIAS ═══
+// Maquinaria y herramienta de la tienda (compra, garantia, estado) y
+// suscripciones de software / dongles con su caducidad. Tabla
+// herramientas_tienda (sql/herramientas-tienda.sql), en todos los planes.
+var _herrTab = 'equipo';
+var _HERR_CAT_EQ = ['Estación de soldadura', 'Estación de aire caliente', 'Microscopio', 'Separadora de pantallas', 'Laminadora OCA', 'Máquina láser', 'Fuente de alimentación', 'Ultrasonidos', 'Herramienta manual', 'Ordenador', 'Impresora', 'Otro'];
+var _HERR_NOM_LIC = ['UnlockTool', 'Chimera Tool', 'Octoplus', 'Z3X Box', 'EFT Dongle', 'Pandora Box', 'Infinity Box', 'JC / iCopy', 'Antivirus', 'Office / Microsoft 365'];
+function _herrHoy() { var d = new Date(); d.setHours(0, 0, 0, 0); return d; }
+function _herrDiasA(f) {
+  if (!f) return null;
+  var p = String(f).slice(0, 10).split('-'); if (p.length !== 3) return null;
+  var d = new Date(+p[0], +p[1] - 1, +p[2]);
+  return Math.round((d - _herrHoy()) / 86400000);
+}
+function _herrFmt(f) { if (!f) return ''; var p = String(f).slice(0, 10).split('-'); return p.length === 3 ? (p[2] + '/' + p[1] + '/' + p[0]) : f; }
+function _herrEsc(v) { return String(v == null ? '' : v).replace(/[&<>"']/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]; }); }
+
+function herrTab(t) { _herrTab = t; renderHerramientasT(); }
+
+// Estado de caducidad de una licencia: [texto, color]
+function _herrEstadoLic(h) {
+  if (h.periodicidad === 'unico' && !h.caduca) return [T('herr.per_unico'), 'var(--muted)'];
+  var d = _herrDiasA(h.caduca);
+  if (d === null) return [T('herr.sin_fecha'), 'var(--muted)'];
+  if (d < 0) return [T('herr.vencida') + ' · ' + _herrFmt(h.caduca), '#EF4444'];
+  if (d === 0) return [T('herr.caduca_hoy'), '#F59E0B'];
+  if (d <= 30) return [T('herr.caduca_en').replace('{n}', d), '#F59E0B'];
+  return [T('herr.vigente').replace('{f}', _herrFmt(h.caduca)), '#10B981'];
+}
+
+function renderHerramientasT() {
+  var cont = document.getElementById('listaHerr'); if (!cont) return;
+  var todos = DB.herramientas || [];
+  var nEq = todos.filter(function(h) { return h.tipo !== 'licencia'; }).length;
+  var nLic = todos.length - nEq;
+  var e1 = document.getElementById('herrNEquipo'); if (e1) e1.textContent = '(' + nEq + ')';
+  var e2 = document.getElementById('herrNLicencia'); if (e2) e2.textContent = '(' + nLic + ')';
+  ['equipo', 'licencia'].forEach(function(t) {
+    var b = document.getElementById('herrTab' + (t === 'equipo' ? 'Equipo' : 'Licencia'));
+    if (b) { b.style.background = _herrTab === t ? 'var(--blue)' : ''; b.style.color = _herrTab === t ? 'white' : ''; }
+  });
+  var q = ((document.getElementById('herrBuscar') || {}).value || '').trim().toLowerCase();
+  var lista = todos.filter(function(h) { return (_herrTab === 'licencia') === (h.tipo === 'licencia'); })
+    .filter(function(h) { return !q || [h.nombre, h.categoria, h.marca, h.modelo, h.num_serie, h.proveedor, h.cuenta, h.ubicacion].join(' ').toLowerCase().indexOf(q) >= 0; });
+
+  // Licencias: lo que caduca antes, arriba. Equipos: por nombre.
+  if (_herrTab === 'licencia') lista.sort(function(a, b) { return String(a.caduca || '9999').localeCompare(String(b.caduca || '9999')); });
+  else lista.sort(function(a, b) { return String(a.nombre).localeCompare(String(b.nombre)); });
+
+  var res = document.getElementById('herrResumen');
+  if (res) {
+    if (_herrTab === 'licencia') {
+      var anual = todos.filter(function(h) { return h.tipo === 'licencia' && h.estado !== 'baja'; }).reduce(function(s, h) {
+        var c = parseFloat(h.coste_renovacion) || 0;
+        return s + (h.periodicidad === 'mensual' ? c * 12 : (h.periodicidad === 'anual' ? c : 0));
+      }, 0);
+      res.textContent = anual > 0 ? T('herr.coste_anual').replace('{x}', cur(anual)) : '';
+    } else res.textContent = '';
+  }
+
+  if (!lista.length) {
+    cont.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 10px">' + (q ? '—' : T(_herrTab === 'licencia' ? 'herr.vacio_licencias' : 'herr.vacio_equipos')) + '</div>';
+    return;
+  }
+  cont.innerHTML = lista.map(function(h) {
+    var sub = [h.categoria, [h.marca, h.modelo].filter(Boolean).join(' '), h.num_serie ? 'S/N ' + h.num_serie : ''].filter(Boolean).map(_herrEsc).join(' · ');
+    var linea2 = '', boton = '';
+    if (h.tipo === 'licencia') {
+      var est = _herrEstadoLic(h);
+      var coste = parseFloat(h.coste_renovacion) > 0 ? cur(parseFloat(h.coste_renovacion)) + (h.periodicidad === 'mensual' ? T('herr.mes') : (h.periodicidad === 'anual' ? T('herr.anio') : '')) : '';
+      linea2 = '<span style="color:' + est[1] + ';font-weight:700">' + _herrEsc(est[0]) + '</span>'
+        + (coste ? ' · ' + _herrEsc(coste) : '') + (h.renovacion_auto ? ' · <span style="color:var(--blue)">' + T('herr.auto_badge') + '</span>' : '')
+        + (h.cuenta ? ' · ' + _herrEsc(h.cuenta) : '');
+      if (h.periodicidad === 'mensual' || h.periodicidad === 'anual') boton = '<button class="btn-sm" onclick="event.stopPropagation();renovarHerr(\'' + h.id + '\')">↻ ' + T('herr.renovar') + '</button>';
+    } else {
+      var estTxt = { operativa: T('herr.est_operativa'), reparacion: T('herr.est_reparacion'), baja: T('herr.est_baja') }[h.estado] || '';
+      var estCol = { operativa: '#10B981', reparacion: '#F59E0B', baja: '#9CA3AF' }[h.estado] || 'var(--muted)';
+      var g = _herrDiasA(h.garantia_hasta);
+      linea2 = '<span style="color:' + estCol + ';font-weight:700">' + _herrEsc(estTxt) + '</span>'
+        + (h.ubicacion ? ' · ' + _herrEsc(h.ubicacion) : '')
+        + (g !== null ? ' · ' + (g < 0 ? T('herr.garantia_fin') : T('herr.garantia_hasta').replace('{f}', _herrFmt(h.garantia_hasta))) : '')
+        + (parseFloat(h.precio) > 0 ? ' · ' + cur(parseFloat(h.precio)) : '');
+    }
+    return '<div class="card" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:8px;padding:12px" onclick="abrirHerr(\'' + h.id + '\')">'
+      + '<div style="font-size:22px">' + (h.tipo === 'licencia' ? '🔑' : '🛠️') + '</div>'
+      + '<div style="flex:1;min-width:0"><div style="font-weight:700">' + _herrEsc(h.nombre) + '</div>'
+      + (sub ? '<div style="font-size:12px;color:var(--muted)">' + sub + '</div>' : '')
+      + '<div style="font-size:12px;margin-top:2px">' + linea2 + '</div></div>' + boton + '</div>';
+  }).join('');
+}
+
+function herrTipoUI() {
+  var lic = document.getElementById('hTipo').value === 'licencia';
+  document.getElementById('hBloqueLic').style.display = lic ? '' : 'none';
+  document.getElementById('hBloqueEq').style.display = lic ? 'none' : '';
+  document.getElementById('hNombreList').innerHTML = (lic ? _HERR_NOM_LIC : []).map(function(n) { return '<option value="' + _herrEsc(n) + '">'; }).join('');
+  var cats = lic ? ['Dongle / Box', 'Software de diagnóstico', 'Desbloqueo / FRP', 'Gestión / oficina', 'Antivirus', 'Otro'] : _HERR_CAT_EQ;
+  document.getElementById('hCatList').innerHTML = cats.map(function(n) { return '<option value="' + _herrEsc(n) + '">'; }).join('');
+}
+
+function abrirHerr(id) {
+  var h = id ? (DB.herramientas || []).find(function(x) { return x.id === id; }) : null;
+  var set = function(k, v) { var el = document.getElementById(k); if (el) el.value = v == null ? '' : v; };
+  document.getElementById('herrModalTit').textContent = T(h ? 'herr.modal_editar' : 'herr.modal_nuevo');
+  set('hId', h ? h.id : '');
+  set('hTipo', h ? (h.tipo || 'equipo') : _herrTab);
+  set('hNombre', h && h.nombre); set('hCategoria', h && h.categoria); set('hMarca', h && h.marca); set('hModelo', h && h.modelo);
+  set('hSerie', h && h.num_serie); set('hProv', h && h.proveedor); set('hFCompra', h && h.fecha_compra ? String(h.fecha_compra).slice(0, 10) : '');
+  set('hPrecio', h && h.precio); set('hGarantia', h && h.garantia_hasta ? String(h.garantia_hasta).slice(0, 10) : '');
+  set('hCaduca', h && h.caduca ? String(h.caduca).slice(0, 10) : ''); set('hCosteRen', h && h.coste_renovacion);
+  set('hPeriodo', (h && h.periodicidad) || 'anual'); set('hCuenta', h && h.cuenta);
+  set('hEstado', (h && h.estado) || 'operativa'); set('hUbic', h && h.ubicacion); set('hNotas', h && h.notas);
+  document.getElementById('hAuto').checked = !!(h && h.renovacion_auto);
+  document.getElementById('hBorrar').style.display = h ? '' : 'none';
+  document.getElementById('hProvList').innerHTML = (DB.provs || []).map(function(p) { return '<option value="' + _herrEsc(p.nombre || '') + '">'; }).join('');
+  herrTipoUI();
+  openM('mHerr');
+}
+
+async function guardarHerr() {
+  var v = function(k) { var el = document.getElementById(k); return el ? String(el.value || '').trim() : ''; };
+  var num = function(k) { var n = parseFloat(v(k)); return isFinite(n) ? n : null; };
+  if (!v('hNombre')) return toast(T('herr.falta_nombre'), 'err');
+  var lic = v('hTipo') === 'licencia';
+  var id = v('hId');
+  var fila = {
+    tipo: lic ? 'licencia' : 'equipo', nombre: v('hNombre'), categoria: v('hCategoria') || null,
+    marca: v('hMarca') || null, modelo: v('hModelo') || null, num_serie: v('hSerie') || null,
+    proveedor: v('hProv') || null, fecha_compra: v('hFCompra') || null, precio: num('hPrecio'),
+    garantia_hasta: lic ? null : (v('hGarantia') || null),
+    caduca: lic ? (v('hCaduca') || null) : null,
+    coste_renovacion: lic ? num('hCosteRen') : null,
+    periodicidad: lic ? v('hPeriodo') : null,
+    renovacion_auto: lic ? document.getElementById('hAuto').checked : false,
+    cuenta: lic ? (v('hCuenta') || null) : null,
+    estado: lic ? 'operativa' : (v('hEstado') || 'operativa'),
+    ubicacion: lic ? null : (v('hUbic') || null),
+    notas: v('hNotas') || null, updated_at: new Date().toISOString()
+  };
+  var ok;
+  if (id) {
+    ok = await sbPatch('herramientas_tienda', 'id=eq.' + encodeURIComponent(id), fila);
+    if (ok) DB.herramientas = (DB.herramientas || []).map(function(x) { return x.id === id ? Object.assign({}, x, fila) : x; });
+  } else {
+    fila.id = _uuidPed(); fila.tienda_id = TIENDA_ID;
+    ok = await sbPost('herramientas_tienda', fila);
+    if (ok) DB.herramientas = (DB.herramientas || []).concat([fila]);
+  }
+  if (!ok) return;
+  _herrTab = fila.tipo;
+  try { guardarDatos(); } catch (e) {}
+  closeM('mHerr'); renderHerramientasT();
+  try { refreshNotifs(); } catch (e) {}
+  toast(T('herr.guardado'), 'ok');
+}
+
+async function borrarHerr() {
+  var id = (document.getElementById('hId') || {}).value; if (!id) return;
+  var h = (DB.herramientas || []).find(function(x) { return x.id === id; });
+  if (!confirm(T('herr.borrar_confirm').replace('{n}', h ? h.nombre : ''))) return;
+  var ok = await sbDelete('herramientas_tienda', 'id=eq.' + encodeURIComponent(id));
+  if (!ok) return;
+  DB.herramientas = (DB.herramientas || []).filter(function(x) { return x.id !== id; });
+  try { guardarDatos(); } catch (e) {}
+  closeM('mHerr'); renderHerramientasT();
+  try { refreshNotifs(); } catch (e) {}
+  toast(T('herr.eliminado'), 'ok');
+}
+
+// Renovar: alarga la caducidad un mes o un año desde la fecha que tenia (o
+// desde hoy si ya habia caducado hace tiempo), sin abrir el formulario.
+async function renovarHerr(id) {
+  var h = (DB.herramientas || []).find(function(x) { return x.id === id; }); if (!h) return;
+  var base = h.caduca ? new Date(String(h.caduca).slice(0, 10) + 'T00:00:00') : _herrHoy();
+  if (isNaN(base) || base < _herrHoy()) base = _herrHoy();
+  if (h.periodicidad === 'mensual') base.setMonth(base.getMonth() + 1); else base.setFullYear(base.getFullYear() + 1);
+  var nueva = base.getFullYear() + '-' + String(base.getMonth() + 1).padStart(2, '0') + '-' + String(base.getDate()).padStart(2, '0');
+  var ok = await sbPatch('herramientas_tienda', 'id=eq.' + encodeURIComponent(id), { caduca: nueva, updated_at: new Date().toISOString() });
+  if (!ok) return;
+  h.caduca = nueva;
+  try { guardarDatos(); } catch (e) {}
+  renderHerramientasT();
+  try { refreshNotifs(); } catch (e) {}
+  toast(T('herr.renovada').replace('{f}', _herrFmt(nueva)), 'ok');
+}
 
 function refreshNotifs() {
   var list = computeNotificaciones();

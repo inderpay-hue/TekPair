@@ -1212,7 +1212,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20260905a"></script>
+<script src="/lang/lang.v8.js?v=20261012a"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -1907,6 +1907,10 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   <!-- GRUPO HERRAMIENTAS -->
   <div class="pmas-group-label"><span data-t="mas.grupo_herramientas">Herramientas</span></div>
   <div class="pmas-grid">
+    <button class="pmas-btn" onclick="navTo('pHerramientas')">
+      <div class="pmas-icon c-blue"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="herr.titulo">Herramientas y licencias</div><div class="pmas-desc" data-t="herr.desc_mas">Maquinaria, software y dongles con su caducidad</div></div>
+    </button>
     <button class="pmas-btn" onclick="navTo('pImportar')">
       <div class="pmas-icon c-green"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
       <div class="pmas-body"><div class="pmas-title" data-t="gen.importar">Importar</div><div class="pmas-desc" data-t="mas.desc_importar">Importa clientes y stock</div></div>
@@ -1954,6 +1958,24 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     <button class="btn-sm" style="background:var(--blue);color:white" onclick="openM('mProv')">+ <span data-t="gen.nuevo">Nuevo</span></button>
   </div>
   <div id="listaProvs"></div>
+</div>
+
+<!-- HERRAMIENTAS Y LICENCIAS -->
+<div class="page" id="pHerramientas">
+  <div class="sec-header" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
+      <div class="sec-title" data-t="herr.titulo">Herramientas y licencias</div>
+    </div>
+    <button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirHerr()">+ <span data-t="herr.nuevo">Nuevo</span></button>
+  </div>
+  <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+    <button class="btn-sm" id="herrTabEquipo" onclick="herrTab('equipo')">🛠️ <span data-t="herr.tab_equipos">Equipos y maquinaria</span> <span id="herrNEquipo"></span></button>
+    <button class="btn-sm" id="herrTabLicencia" onclick="herrTab('licencia')">🔑 <span data-t="herr.tab_licencias">Licencias y dongles</span> <span id="herrNLicencia"></span></button>
+  </div>
+  <input class="fi" id="herrBuscar" data-t-ph="herr.buscar" placeholder="Buscar…" oninput="renderHerramientasT()" style="margin-bottom:10px">
+  <div id="herrResumen" style="font-size:13px;color:var(--muted);margin-bottom:8px"></div>
+  <div id="listaHerr"></div>
 </div>
 
 <!-- GASTOS -->
@@ -4951,6 +4973,59 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 </div>
 
+<!-- HERRAMIENTA / LICENCIA -->
+<div class="modal-bg" id="mHerr">
+<div class="modal">
+  <div class="modal-title"><span id="herrModalTit" data-t="herr.modal_nuevo">Nueva herramienta o licencia</span></div>
+  <input type="hidden" id="hId">
+  <div class="fg"><label class="fl" data-t="herr.tipo">Tipo</label>
+    <select class="fi" id="hTipo" onchange="herrTipoUI()">
+      <option value="equipo" data-t="herr.tipo_equipo">Equipo / maquinaria</option>
+      <option value="licencia" data-t="herr.tipo_licencia">Licencia, suscripción o dongle</option>
+    </select></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl"><span data-t="herr.nombre">Nombre</span> *</label><input class="fi" id="hNombre" list="hNombreList"><datalist id="hNombreList"></datalist></div>
+    <div class="fg"><label class="fl" data-t="herr.categoria">Categoría</label><input class="fi" id="hCategoria" list="hCatList"><datalist id="hCatList"></datalist></div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl" data-t="herr.marca">Marca</label><input class="fi" id="hMarca"></div>
+    <div class="fg"><label class="fl" data-t="herr.modelo">Modelo</label><input class="fi" id="hModelo"></div>
+    <div class="fg"><label class="fl" data-t="herr.serie">Nº de serie</label><input class="fi" id="hSerie"></div>
+  </div>
+  <!-- Solo licencias -->
+  <div id="hBloqueLic">
+    <div class="fi-row">
+      <div class="fg"><label class="fl" data-t="herr.caduca">Caduca el</label><input class="fi" id="hCaduca" type="date"></div>
+      <div class="fg"><label class="fl" data-t="herr.coste_renov">Coste de renovación</label><input class="fi" id="hCosteRen" type="number" step="0.01"></div>
+      <div class="fg"><label class="fl" data-t="herr.periodicidad">Se renueva</label>
+        <select class="fi" id="hPeriodo"><option value="anual" data-t="herr.per_anual">Cada año</option><option value="mensual" data-t="herr.per_mensual">Cada mes</option><option value="unico" data-t="herr.per_unico">Pago único</option></select></div>
+    </div>
+    <div class="fg"><label class="fl" data-t="herr.cuenta">Cuenta / usuario</label><input class="fi" id="hCuenta" autocomplete="off"></div>
+    <label style="display:flex;align-items:center;gap:8px;margin:4px 0 10px;cursor:pointer"><input type="checkbox" id="hAuto"> <span data-t="herr.auto">Se renueva sola (cargo automático)</span></label>
+  </div>
+  <!-- Solo equipos -->
+  <div id="hBloqueEq">
+    <div class="fi-row">
+      <div class="fg"><label class="fl" data-t="herr.estado">Estado</label>
+        <select class="fi" id="hEstado"><option value="operativa" data-t="herr.est_operativa">Operativa</option><option value="reparacion" data-t="herr.est_reparacion">En reparación</option><option value="baja" data-t="herr.est_baja">De baja</option></select></div>
+      <div class="fg"><label class="fl" data-t="herr.garantia">Garantía hasta</label><input class="fi" id="hGarantia" type="date"></div>
+      <div class="fg"><label class="fl" data-t="herr.ubicacion">Ubicación</label><input class="fi" id="hUbic"></div>
+    </div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl" data-t="herr.proveedor">Proveedor</label><input class="fi" id="hProv" list="hProvList"><datalist id="hProvList"></datalist></div>
+    <div class="fg"><label class="fl" data-t="herr.fecha_compra">Fecha de compra</label><input class="fi" id="hFCompra" type="date"></div>
+    <div class="fg"><label class="fl" data-t="herr.precio">Precio de compra</label><input class="fi" id="hPrecio" type="number" step="0.01"></div>
+  </div>
+  <div class="fg"><label class="fl" data-t="herr.notas">Notas</label><textarea class="fi" id="hNotas" rows="2"></textarea></div>
+  <div class="modal-actions">
+    <button class="btn-secondary" id="hBorrar" onclick="borrarHerr()" style="color:var(--red);display:none" data-t="herr.eliminar">Eliminar</button>
+    <button class="btn-secondary" onclick="closeM('mHerr')" data-t="gen.cancelar">Cancelar</button>
+    <button class="btn-primary" onclick="guardarHerr()"><span data-t="gen.guardar">Guardar</span></button>
+  </div>
+</div>
+</div>
+
 <!-- EDITAR VENTA -->
 <div class="modal-bg" id="mEditarVenta">
 <div class="modal">
@@ -5290,7 +5365,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
-<script src="/js/dash-app.js?v=20260910c"></script>
+<script src="/js/dash-app.js?v=20261012a"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
