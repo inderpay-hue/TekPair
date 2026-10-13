@@ -11080,9 +11080,17 @@ function _etqPopupImprimir(fullHtml) {
 }
 
 // Popup genérico para tickets/recibos (tamaño de ventana configurable).
+//
+// Tickets de 80mm desde el NAVEGADOR: una térmica de 80mm solo imprime los 72mm
+// centrales (576 puntos) y el driver centra la página, así que se pierden 4mm por
+// cada lado. Con el margen de 1,5mm del diseño (pensado para la app de escritorio,
+// que reescala a 72mm exactos) se cortaba el principio de las etiquetas y los
+// céntimos de los importes. Aquí, y solo aquí, el margen lateral sube a 5mm.
+var _TK_MARGEN_NAVEGADOR = '<style>body{padding-left:5mm!important;padding-right:5mm!important}</style>';
 function _docPopupImprimir(html, vw, vh) {
   var w = window.open('', '_blank', 'width=' + (vw || 400) + ',height=' + (vh || 700));
   if (!w) { toast(T('etq.popup_fallback'), 'err'); return; }
+  if (/size:\s*80mm/.test(html)) html = html.replace('</head>', _TK_MARGEN_NAVEGADOR + '</head>');
   w.document.open(); w.document.write(html); w.document.close();
 }
 
