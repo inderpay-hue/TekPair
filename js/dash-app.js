@@ -3466,6 +3466,9 @@ function mapRep(r) {
     tecnicoId: r.tecnico_id || '', tecnicoNombre: r.tecnico_nombre || '',
     inicioRep: r.inicio_reparacion || null, finRep: r.fin_reparacion || null,
     esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||'',
+    // Días de garantía de ESTA reparación. Sin mapearlos, al recargar desde la nube
+    // el ticket ponía los días por defecto de la tienda (90) aunque se eligieran 60.
+    garantiaDias: (r.garantia_dias != null && r.garantia_dias !== '' && !isNaN(parseInt(r.garantia_dias, 10))) ? parseInt(r.garantia_dias, 10) : undefined,
     garantiaTipo:r.garantia_tipo||'reparacion', garantiaPublica:r.garantia_publica!==false,
     garantiaFechaFin:r.garantia_fecha_fin||'',
     piezasDevueltas: r.piezas_devueltas === true,
