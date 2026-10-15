@@ -12702,7 +12702,7 @@ function _testItemsDe(t) {
 }
 function _testAObjeto(estados, extra) {
   var items = TEST_ITEMS.filter(function (k) { return estados[k]; }).map(function (k) { return { k: k, estado: estados[k] }; });
-  if (!items.length && !(extra && (extra.firma || extra.nota))) return null;
+  if (!items.length && !(extra && (extra.firma || extra.nota || extra.conforme))) return null;
   return Object.assign({ items: items, fecha: new Date().toISOString(), por: (typeof U !== 'undefined' && U && (U.nombre || U.email)) || '' }, extra || {});
 }
 // Pinta la lista en `contId`. `estados` se modifica al pulsar. `entrada` (opcional)
@@ -12804,6 +12804,7 @@ function abrirEntregar(id) {
   renderTest('eTest', SEL.testSalida, _testItemsDe(r.testEntrada), _avisoFallosSalida);
   _avisoFallosSalida();
   var _tn = document.getElementById('eTestNota'); if (_tn) _tn.value = (r.testSalida && r.testSalida.nota) || '';
+  var _ec = document.getElementById('eConforme'); if (_ec) _ec.checked = false;
   openM('mEntregar');
   setTimeout(_iniciarFirmaSalida, 60);
 }
@@ -12883,7 +12884,10 @@ function confirmarEntrega() {
   r.fotosEntrega = (SEL.fotosEntrega || []).slice(); // M7: foto-prueba del estado al entregar
   var _tsNota = ((document.getElementById('eTestNota') || {}).value || '').trim();
   var _tsFirma = _firmaSalidaPng();
-  var _ts = _testAObjeto(SEL.testSalida || {}, Object.assign({}, _tsNota ? { nota: _tsNota.slice(0, 300) } : {}, _tsFirma ? { firma: _tsFirma } : {}));
+  // Conformidad sin firma (taller con ordenador): queda quién la marcó y cuándo.
+  var _tsConf = !!((document.getElementById('eConforme') || {}).checked);
+  var _ts = _testAObjeto(SEL.testSalida || {}, Object.assign({}, _tsNota ? { nota: _tsNota.slice(0, 300) } : {}, _tsFirma ? { firma: _tsFirma } : {},
+    _tsConf ? { conforme: true, conformeFecha: new Date().toISOString(), conformePor: (typeof U !== 'undefined' && U && (U.nombre || U.email)) || '' } : {}));
   if (_ts) r.testSalida = _ts;
   // Entregada sin pasar por "Por Entregar": el reloj del técnico para aquí.
   var _finNuevo = (r.inicioRep && !r.finRep) ? new Date().toISOString() : null;
@@ -19928,6 +19932,13 @@ function abrirDetalleRep(repId) {
   if (r.fechaEntrega) html += '<div><span style="color:var(--muted);font-size:11px">⏱ ' + T('det.entrega_prev') + '</span><br><strong>' + esc(r.fechaEntrega) + '</strong></div>';
   if (r.fechaEntregaReal) html += '<div><span style="color:var(--muted);font-size:11px">✓ ' + T('det.entregado') + '</span><br><strong>' + esc(r.fechaEntregaReal) + '</strong></div>';
   if (r.pagoFinal) html += '<div><span style="color:var(--muted);font-size:11px">💳 ' + T('det.pago') + '</span><br><strong>' + esc(_repPagoTxt(r)) + '</strong></div>';
+  // Conformidad del cliente al recoger: firma en pantalla o confirmación en el mostrador.
+  if (r.testSalida && (r.testSalida.firma || r.testSalida.conforme)) {
+    var _cf = r.testSalida.firma ? T('entrega.conf_firma') : T('entrega.conf_mostrador').replace('{p}', r.testSalida.conformePor || '');
+    var _cfF = r.testSalida.conformeFecha || r.testSalida.fecha;
+    try { if (_cfF) _cf += ' · ' + new Date(_cfF).toLocaleString((typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'), { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) {}
+    html += '<div><span style="color:var(--muted);font-size:11px">✅ ' + T('entrega.conf_titulo') + '</span><br><strong>' + esc(_cf) + '</strong></div>';
+  }
   html += '</div>';
 
   // Componentes

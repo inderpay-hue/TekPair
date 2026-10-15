@@ -6751,3 +6751,14 @@ it:{"rtab.estado": "Stato e foto", "rtab.piezas": "Ricambi ed extra", "rtab.cobr
 de:{"rtab.estado": "Zustand & Fotos", "rtab.piezas": "Teile & Extras", "rtab.cobro": "Zahlung", "rtab.org": "Zuständigkeit", "rtab.garantia": "Garantie"},
 pt:{"rtab.estado": "Estado e fotos", "rtab.piezas": "Peças e extras", "rtab.cobro": "Pagamento", "rtab.org": "Organização", "rtab.garantia": "Garantia"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+
+// i18n Conformidad al entregar sin firma (oct-2026)
+(function(){var _a={
+es:{"entrega.conforme": "El cliente recoge el equipo y confirma en el mostrador que funciona correctamente (sin firma).", "entrega.conf_titulo": "Conformidad del cliente", "entrega.conf_firma": "Firmada en pantalla", "entrega.conf_mostrador": "Confirmada en el mostrador ({p})"},
+en:{"entrega.conforme": "The customer collects the device and confirms at the counter that it works correctly (no signature).", "entrega.conf_titulo": "Customer acceptance", "entrega.conf_firma": "Signed on screen", "entrega.conf_mostrador": "Confirmed at the counter ({p})"},
+fr:{"entrega.conforme": "Le client récupère l’appareil et confirme au comptoir qu’il fonctionne correctement (sans signature).", "entrega.conf_titulo": "Accord du client", "entrega.conf_firma": "Signé à l’écran", "entrega.conf_mostrador": "Confirmé au comptoir ({p})"},
+it:{"entrega.conforme": "Il cliente ritira il dispositivo e conferma al banco che funziona correttamente (senza firma).", "entrega.conf_titulo": "Conferma del cliente", "entrega.conf_firma": "Firmata sullo schermo", "entrega.conf_mostrador": "Confermata al banco ({p})"},
+de:{"entrega.conforme": "Der Kunde holt das Gerät ab und bestätigt an der Theke, dass es einwandfrei funktioniert (ohne Unterschrift).", "entrega.conf_titulo": "Bestätigung des Kunden", "entrega.conf_firma": "Auf dem Bildschirm unterschrieben", "entrega.conf_mostrador": "An der Theke bestätigt ({p})"},
+pt:{"entrega.conforme": "O cliente levanta o equipamento e confirma ao balcão que funciona corretamente (sem assinatura).", "entrega.conf_titulo": "Conformidade do cliente", "entrega.conf_firma": "Assinada no ecrã", "entrega.conf_mostrador": "Confirmada ao balcão ({p})"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
