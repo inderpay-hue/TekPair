@@ -6751,3 +6751,14 @@ it:{"tpv.mixto": "🔀 Misto", "tpv.mixto_hint": "Dividi il totale tra più meto
 de:{"tpv.mixto": "🔀 Gemischt", "tpv.mixto_hint": "Teile den Betrag auf mehrere Zahlungsarten auf", "tpv.mixto_resto": "Rest", "tpv.mixto_falta": "Es fehlen {x}", "tpv.mixto_sobra": "{x} zu viel", "tpv.mixto_ok": "Stimmt mit dem Betrag überein", "tpv.mixto_error": "Die Beträge müssen den Gesamtbetrag ergeben ({x})", "ev.mixto_total": "Verkauf mit gemischter Zahlung: Um den Betrag zu ändern, wähle zuerst eine einzige Zahlungsart", "pago.mixto": "Gemischt"},
 pt:{"tpv.mixto": "🔀 Misto", "tpv.mixto_hint": "Divide o total entre várias formas de pagamento", "tpv.mixto_resto": "Resto", "tpv.mixto_falta": "Faltam {x}", "tpv.mixto_sobra": "Sobram {x}", "tpv.mixto_ok": "Bate certo com o total", "tpv.mixto_error": "Os montantes têm de somar o total ({x})", "ev.mixto_total": "Venda com pagamento misto: para mudar o montante, escolhe primeiro uma só forma de pagamento", "pago.mixto": "Misto"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+
+// i18n Pestañas de la ventana de reparación (oct-2026)
+(function(){var _a={
+es:{"rtab.estado": "Estado y fotos", "rtab.piezas": "Piezas y extras", "rtab.cobro": "Cobro", "rtab.org": "Organización", "rtab.garantia": "Garantía"},
+en:{"rtab.estado": "Condition & photos", "rtab.piezas": "Parts & extras", "rtab.cobro": "Payment", "rtab.org": "Assignment", "rtab.garantia": "Warranty"},
+fr:{"rtab.estado": "État et photos", "rtab.piezas": "Pièces et options", "rtab.cobro": "Paiement", "rtab.org": "Organisation", "rtab.garantia": "Garantie"},
+it:{"rtab.estado": "Stato e foto", "rtab.piezas": "Ricambi ed extra", "rtab.cobro": "Pagamento", "rtab.org": "Organizzazione", "rtab.garantia": "Garanzia"},
+de:{"rtab.estado": "Zustand & Fotos", "rtab.piezas": "Teile & Extras", "rtab.cobro": "Zahlung", "rtab.org": "Zuständigkeit", "rtab.garantia": "Garantie"},
+pt:{"rtab.estado": "Estado e fotos", "rtab.piezas": "Peças e extras", "rtab.cobro": "Pagamento", "rtab.org": "Organização", "rtab.garantia": "Garantia"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();

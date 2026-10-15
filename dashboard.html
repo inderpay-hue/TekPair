@@ -1222,7 +1222,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261016x"></script>
+<script src="/lang/lang.v8.js?v=20261016p"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4565,7 +4565,16 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     </label>
   </div>
   <div class="fg" id="ePagoBox"><label class="fl"><span data-t="entrega.pago_final">Pago final</span></label>
-    <select class="fi" id="ePago"><option value="Efectivo" data-t="pago.efectivo">Efectivo</option><option value="Tarjeta" data-t="pago.tarjeta">Tarjeta</option><option value="Bizum" data-t="pago.bizum">Bizum</option><option value="Transferencia" data-t="pago.transferencia">Transferencia</option></select>
+    <select class="fi" id="ePago" onchange="ePagoCambio()"><option value="Efectivo" data-t="pago.efectivo">Efectivo</option><option value="Tarjeta" data-t="pago.tarjeta">Tarjeta</option><option value="Bizum" data-t="pago.bizum">Bizum</option><option value="Transferencia" data-t="pago.transferencia">Transferencia</option><option value="Mixto" data-t="tpv.mixto">🔀 Mixto</option></select>
+    <!-- Pago final mixto: lo que queda por cobrar repartido entre varias formas de pago -->
+    <div id="eMixtoBox" style="display:none;margin-top:8px;padding:10px;border:1px solid var(--border);border-radius:10px;background:var(--light)">
+      <div style="font-size:11.5px;color:var(--muted);margin-bottom:6px" data-t="tpv.mixto_hint">Reparte el total entre varias formas de pago</div>
+      <div class="e-mx-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><span style="width:110px;font-size:13px" data-t="pago.efectivo">Efectivo</span><input class="fi" id="eMxEfectivo" type="number" step="0.01" min="0" placeholder="0.00" oninput="calcEMixto()" style="flex:1;margin:0"><button type="button" class="btn-sm" onclick="eMixtoResto('eMxEfectivo')" data-t="tpv.mixto_resto">Resto</button></div>
+      <div class="e-mx-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><span style="width:110px;font-size:13px" data-t="pago.tarjeta">Tarjeta</span><input class="fi" id="eMxTarjeta" type="number" step="0.01" min="0" placeholder="0.00" oninput="calcEMixto()" style="flex:1;margin:0"><button type="button" class="btn-sm" onclick="eMixtoResto('eMxTarjeta')" data-t="tpv.mixto_resto">Resto</button></div>
+      <div class="e-mx-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><span style="width:110px;font-size:13px" data-t="pago.bizum">Bizum</span><input class="fi" id="eMxBizum" type="number" step="0.01" min="0" placeholder="0.00" oninput="calcEMixto()" style="flex:1;margin:0"><button type="button" class="btn-sm" onclick="eMixtoResto('eMxBizum')" data-t="tpv.mixto_resto">Resto</button></div>
+      <div class="e-mx-row" style="display:flex;gap:6px;align-items:center;margin-bottom:6px"><span style="width:110px;font-size:13px" data-t="pago.transferencia">Transferencia</span><input class="fi" id="eMxTransferencia" type="number" step="0.01" min="0" placeholder="0.00" oninput="calcEMixto()" style="flex:1;margin:0"><button type="button" class="btn-sm" onclick="eMixtoResto('eMxTransferencia')" data-t="tpv.mixto_resto">Resto</button></div>
+      <div id="eMxEstado" style="font-size:13px;font-weight:700"></div>
+    </div>
   </div>
   <!-- Test funcional de SALIDA + firma de conformidad del cliente -->
   <div class="fg" id="eTestSec" style="margin-bottom:14px">
@@ -5580,7 +5589,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261016b"></script>
-<script src="/js/dash-app.js?v=20261016x"></script>
+<script src="/js/dash-app.js?v=20261016p"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
