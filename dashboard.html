@@ -1233,7 +1233,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261017k"></script>
+<script src="/lang/lang.v8.js?v=20261017l"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -7043,7 +7043,8 @@ function _comTiendasPintar(soloLista) {
       var cont = [];
       if (t.email) cont.push(esc(t.email));
       if (t.telefono) cont.push('<a href="tel:' + String(t.telefono).replace(/[^+\d]/g, '') + '" style="color:inherit">' + esc(t.telefono) + '</a>');
-      filas += '<tr><td style="' + td + '"><strong>' + esc(t.nombre) + '</strong>' + (cont.length ? '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">' + cont.join(' · ') + '</div>' : '') + '</td>' +
+      var dirHtml = t.dir ? '<div style="font-size:10.5px;color:var(--muted);margin-top:2px"><a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(t.dir) + '" target="_blank" rel="noopener" style="color:inherit">📍 ' + esc(t.dir) + '</a></div>' : '';
+      filas += '<tr><td style="' + td + '"><strong>' + esc(t.nombre) + '</strong>' + (cont.length ? '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">' + cont.join(' · ') + '</div>' : '') + dirHtml + '</td>' +
         '<td style="' + td + ';text-align:center"><span style="background:' + e.b + ';color:' + e.c + ';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap">' + esc(e.t) + '</span></td>' +
         '<td style="' + td + '">' + (t.codigo_referido ? '<strong>' + esc(t.codigo_referido) + '</strong>' : '<span style="color:var(--muted)">—</span>') + '</td>' +
         '<td style="' + td + ';text-align:right;color:var(--muted);white-space:nowrap">' + (t.alta ? fmtFecha(t.alta) : '—') + '</td>' +
