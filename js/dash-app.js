@@ -23701,3 +23701,68 @@ function _grpTabs(pageId) {
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(iniciar, 0); });
   else setTimeout(iniciar, 0);
 })();
+
+// ═══ «MÁS» DEL MÓVIL CON LOS MISMOS GRUPOS QUE EL MENÚ ═══
+// Mismos botones de siempre (con sus permisos y data-func), reordenados en los
+// grupos del menú de ordenador. Se añaden TPV y Encargos, que no estaban.
+var MAS_GRUPOS = [
+  { t: 'nav.ventas', items: ['tpv', 'pFacturas'] },
+  { t: 'nav.reparaciones', items: ['pPresupuestos', 'pCitas'] },
+  { t: 'nav.stock', items: ['pPedidos', 'pEncargos', 'pUsados', 'pServicios', 'pCatalogo', 'pImportar'] },
+  { t: 'nav.clientes', items: ['pClis', 'pProvs'] },
+  { t: 'nav.g_dinero', items: ['pCajas', 'pGastos', 'pReportes'] },
+  { t: 'nav.ajustes', items: ['pTienda', 'pAjustes', 'pUsuarios', 'pHerramientas', 'backup', 'ayuda', 'inicio_rapido'] }
+];
+function _masClave(b) {
+  var oc = b.getAttribute('onclick') || '';
+  if (oc.indexOf('backupManual') !== -1) return 'backup';
+  if (oc.indexOf('/guia.html') !== -1) return 'ayuda';
+  if (oc.indexOf('inicio-rapido') !== -1) return 'inicio_rapido';
+  if (oc.indexOf('tpv.html') !== -1) return 'tpv';
+  var m = /navTo\('(p\w+)'\)/.exec(oc);
+  return m ? m[1] : '';
+}
+function _masBtnNuevo(clave, onclick, ico, color, tKey, dKey, func) {
+  var b = document.createElement('button');
+  b.className = 'pmas-btn'; b.setAttribute('onclick', onclick);
+  if (func) b.setAttribute('data-func', func);
+  // Mismo icono que su entrada del menú lateral (si está), para que no desentone.
+  var sbIco = document.querySelector(clave === 'tpv' ? '.sidebar-ni[onclick*="tpv.html"] .sidebar-ni-icon svg' : '.sidebar-ni[data-p="' + clave + '"] .sidebar-ni-icon svg');
+  if (sbIco) { var c = sbIco.cloneNode(true); c.setAttribute('width', '26'); c.setAttribute('height', '26'); ico = c.outerHTML; }
+  b.innerHTML = '<div class="pmas-icon ' + color + '" style="font-size:22px">' + ico + '</div>' +
+    '<div class="pmas-body"><div class="pmas-title" data-t="' + tKey + '">' + esc(T(tKey)) + '</div><div class="pmas-desc" data-t="' + dKey + '">' + esc(T(dKey)) + '</div></div>';
+  return b;
+}
+function _masOrdenar() {
+  var pg = document.getElementById('pMas'); if (!pg || pg._ordenado) return;
+  pg._ordenado = true;
+  var btns = {};
+  pg.querySelectorAll('.pmas-btn').forEach(function (b) { var k = _masClave(b); if (k) btns[k] = b; });
+  if (!btns.tpv) btns.tpv = _masBtnNuevo('tpv', "window.location.href='tpv.html'", '🛒', 'c-green', 'nav.tpv', 'mas.desc_tpv');
+  if (!btns.pEncargos) btns.pEncargos = _masBtnNuevo('pEncargos', "navTo('pEncargos')", '📦', 'c-blue', 'nav.encargos', 'mas.desc_encargos', 'encargos');
+  var viejos = Array.prototype.slice.call(pg.querySelectorAll('.pmas-group-label, .pmas-grid'));
+  var ancla = viejos[0]; if (!ancla) return;
+  MAS_GRUPOS.forEach(function (gr) {
+    var lista = gr.items.map(function (k) { return btns[k]; }).filter(Boolean);
+    if (!lista.length) return;
+    var lbl = document.createElement('div'); lbl.className = 'pmas-group-label';
+    lbl.innerHTML = '<span data-t="' + gr.t + '">' + esc(T(gr.t)) + '</span>';
+    var grid = document.createElement('div'); grid.className = 'pmas-grid';
+    lista.forEach(function (b) { grid.appendChild(b); });
+    pg.insertBefore(lbl, ancla); pg.insertBefore(grid, ancla);
+  });
+  // Lo que quede en los grupos viejos (si algo no estaba en la lista) va al final.
+  viejos.forEach(function (el) {
+    if (el.classList.contains('pmas-grid') && el.querySelector('.pmas-btn')) {
+      var g = document.createElement('div'); g.className = 'pmas-grid';
+      Array.prototype.slice.call(el.querySelectorAll('.pmas-btn')).forEach(function (b) { g.appendChild(b); });
+      pg.appendChild(g);
+    }
+    el.remove();
+  });
+}
+(function () {
+  function ir() { try { _masOrdenar(); } catch (e) { console.warn('mas:', e); } }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(ir, 0); });
+  else setTimeout(ir, 0);
+})();
