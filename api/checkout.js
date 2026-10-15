@@ -165,7 +165,14 @@ export default async function handler(req, res) {
     // A MAYUSCULAS: todos los codigos se guardan asi y la comparacion de
     // Postgres distingue mayusculas. Quien escribiera 'demba' en vez de
     // 'DEMBA' no encontraba al afiliado y el comercial se quedaba sin cobrar.
-    const refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16);
+    let refCode = String(req.body.ref || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16);
+    // La invitacion de la tienda de un COMERCIAL cuenta como su codigo de comercial.
+    // Cada comercial tiene su propia tienda ("<CODIGO> - Comercial") y esa tienda,
+    // como cualquier otra, tiene su enlace de "invitar". Si el comercial comparte
+    // ese enlace en vez del suyo, el cliente entraba como invitacion entre tiendas
+    // (un mes gratis para los dos), sin el 50% prometido y sin comision. Paso el
+    // 15-oct-2026 con DEMBA.
+    if (refCode) refCode = (await comercialDeInvitacion(refCode, SUPABASE_URL, SERVICE_KEY)) || refCode;
     if (refCode) { params.append('metadata[ref]', refCode); params.append('subscription_data[metadata][ref]', refCode); }
 
     // El código escrito en el registro se aplica AQUÍ como descuento de verdad.
@@ -264,6 +271,23 @@ async function tipoRef(code, SUPABASE_URL, SERVICE_KEY) {
 // texto en la base de datos, así que aquí solo hay que resolverlo. Si no existe,
 // está agotado o caducado, `active=true` lo deja fuera y el alta sigue sin
 // descuento: un código mal escrito nunca debe impedir que alguien se suscriba.
+// Si `code` es el codigo de invitar de la tienda propia de un comercial activo,
+// devuelve el codigo de ese comercial; si no, null. Solo las tiendas creadas para
+// el comercial (nombre acabado en " - Comercial"): una tienda normal enlazada a un
+// comercial sigue invitando como tienda.
+async function comercialDeInvitacion(code, SUPABASE_URL, SERVICE_KEY) {
+  if (!code || !SUPABASE_URL || !SERVICE_KEY) return null;
+  const h = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` };
+  try {
+    const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?referral_code=eq.${encodeURIComponent(code)}&select=id,nombre&limit=1`, { headers: h });
+    const t = (await tR.json())[0];
+    if (!t || !/ - Comercial$/i.test(String(t.nombre || '').trim())) return null;
+    const aR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?tienda_id=eq.${encodeURIComponent(t.id)}&activo=eq.true&select=codigo&limit=1`, { headers: h });
+    const a = (await aR.json())[0];
+    return a && a.codigo ? String(a.codigo).toUpperCase() : null;
+  } catch (e) { return null; }
+}
+
 async function buscarPromo(codigo, STRIPE_KEY) {
   if (!codigo || !STRIPE_KEY) return null;
   // Se prueba tal cual y en mayúsculas: en Stripe el código distingue mayúsculas y
