@@ -262,13 +262,14 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .vl-t:focus-visible{outline:2px solid var(--t-acc);outline-offset:2px}
 .vl-aux{color:var(--t-ink2);font-size:17px}
 </style>
-<script src="/lang/lang.v8.js?v=20261016i"></script>
+<script src="/lang/lang.v8.js?v=20261016l"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
        Faltaba aquí, así que el TPV era lo único que nunca imprimía sin diálogo. -->
   <script src="/js/desktop-print.js?v=20261004a"></script>
   <script src="/js/usados.js?v=20261016a"></script>
+  <script src="/js/ticket-venta.js?v=20261016a"></script>
 </head>
 <body>
 <script>try{var _TM={light:'clean',terracota:'orange',dark:'dark'};var _t=_TM[localStorage.getItem('tk_theme')||'terracota']||localStorage.getItem('tk_tpv_theme')||'aurora';document.body.setAttribute('data-theme',_t)}catch(e){document.body.setAttribute('data-theme','aurora')}</script>
@@ -2104,50 +2105,12 @@ function _partesTk(v) {
 function mostrarTicket(venta, totals) {
   _ultimaVenta = venta; _ultimosTotals = totals;
   // FIX TPV-2: escapar todo el contenido del ticket para evitar XSS
-  var logoBlock = TIENDA.logo_url
-    ? '<div style="text-align:center;margin-bottom:6px"><img src="' + escHtml(TIENDA.logo_url) + '" alt="" style="max-height:50px;max-width:200px;object-fit:contain"></div>'
-    : '<div class="ticket-logo">\u26a1 ' + escHtml(TIENDA.nombre || 'Tekpair') + '</div>';
-  var ivaOn = !!(totals.ivaTipo && totals.ivaModo && totals.ivaModo !== 'sin');
-  // Usados en régimen de margen: su impuesto NO se desglosa; solo la parte normal.
-  var P = _partesTk(venta);
-  var html = '<div class="ticket">' +
-    logoBlock +
-    (TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:4px">' + escHtml(TIENDA.nombre) + '</div>' : '') +
-    (TIENDA.dir ? '<div style="text-align:center;font-size:12px;color:#000">' + escHtml(TIENDA.dir) + '</div>' : '') +
-    (TIENDA.tel ? '<div style="text-align:center;font-size:12px;color:#000">' + T('tpv.tk_tel') + escHtml(TIENDA.tel) + '</div>' : '') +
-    (TIENDA.cif ? '<div style="text-align:center;font-size:12px;color:#000">' + T('tkt.nif') + ': ' + escHtml(TIENDA.cif) + '</div>' : '') +
-    '<hr class="ticket-sep">' +
-    (_tkNumero(venta) ? '<div class="ticket-row"><span>' + T('tkt.numero') + '</span><span>' + escHtml(_tkNumero(venta)) + '</span></div>' : '') +
-    '<div class="ticket-row"><span>' + T('pres.doc_fecha') + '</span><span>' + escHtml(venta.fecha) + (_horaTk(venta) ? ' ' + _horaTk(venta) : '') + '</span></div>' +
-    '<div class="ticket-row"><span>' + T('pres.doc_cliente') + '</span><span>' + escHtml(venta.clienteNombre) + '</span></div>' +
-    '<div class="ticket-row"><span>' + T('tpv.tk_pago') + '</span><span>' + escHtml(venta.pago) + '</span></div>' +
-    '<hr class="ticket-sep">' +
-    venta.items.map(function(item) {
-      var d = descLineaImporte(item);
-      return '<div class="ticket-row"><span>' + escHtml(item.nombre) + (_esMargen(item) ? ' (*)' : '') + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>' +
-        _tkExtras(item).map(function (x) { return '<div class="ticket-row" style="font-size:12px"><span>&nbsp;&nbsp;' + escHtml(x) + '</span><span></span></div>'; }).join('') +
-        (d > 0 ? '<div class="ticket-row" style="font-size:12px"><span>&nbsp;&nbsp;' + T('tpv.descuento_2') +
-          (item.descTipo === 'pct' ? ' ' + item.desc + '%' : '') + '</span><span>-\u20ac' + d.toFixed(2) + '</span></div>' : '');
-    }).join('') +
-    '<hr class="ticket-sep">' +
-    (totals.disc > 0 ? '<div class="ticket-row"><span><span data-t="tpv.subtotal">Subtotal</span></span><span>\u20ac' + totals.subtotal.toFixed(2) + '</span></div>' +
-    '<div class="ticket-row"><span>' + T('tpv.descuento_2') + '</span><span>-\u20ac' + totals.disc.toFixed(2) + '</span></div>' : '') +
-    (ivaOn && P.normalBase > 0 ?
-      '<div class="ticket-row"><span>' + T('pres.doc_base_imponible') + '</span><span>\u20ac' + P.normalBase.toFixed(2) + '</span></div>' +
-      '<div class="ticket-row"><span>' + T('tpv.iva_pct').replace('{p}', totals.ivaTipo) + '</span><span>\u20ac' + P.normalIva.toFixed(2) + '</span></div>'
-      : ''
-    ) +
-    '<div class="ticket-total"><span>TOTAL' + (totals.ivaModo === 'incluido' && P.normalBase > 0 ? ' ' + T('tpv.iva_inc') : '') + '</span><span>\u20ac' + totals.total.toFixed(2) + '</span></div>' +
-    (P.mencion ? '<div style="font-size:12px;margin:4px 0">(*) ' + escHtml(P.mencion) + '</div>' : '') +
-    '<hr class="ticket-sep">' +
-    '<div class="ticket-footer">' + T('tpv.gracias_compra') + '' +
-    '<br><span style="font-size:12px">' + T('tkt.conserve') + '</span>' +
-    (TIENDA.garantiaVentas ? '<br><span style="font-size:12px">' + escHtml(TIENDA.garantiaVentas) + '</span>' : '') +
-    (TIENDA.politicaVentas ? '<br><span style="font-size:12px;color:#000">' + escHtml(TIENDA.politicaVentas) + '</span>' : '') +
-    (AJUSTES.ticketPie ? '<br><span style="font-size:12px;color:#000">' + escHtml(AJUSTES.ticketPie) + '</span>' : '') +
-    '</div>' +
-    '</div>';
-  document.getElementById('ticketContent').innerHTML = html;
+  // El ticket lo monta js/ticket-venta.js (el mismo que el del panel). Va en un
+  // iframe para que sus estilos de 80 mm no choquen con los del TPV.
+  var html = tkTicketVentaHtml(venta);
+  var cont = document.getElementById('ticketContent');
+  cont.innerHTML = '<iframe id="tkFrame" title="Ticket" style="display:block;width:80mm;max-width:100%;height:62vh;border:0;margin:0 auto;background:#fff"></iframe>';
+  document.getElementById('tkFrame').srcdoc = html;
   openModal('mTicket');
   // Pulso al cajón portamonedas cuando entra efectivo de verdad. En una venta
   // financiada el pago es 'Financiado' y el efectivo está en la ENTRADA, así que
@@ -2226,11 +2189,8 @@ function _ticketDoc() {
     sumas.push([T('tpv.iva_pct').replace('{p}', t.ivaTipo), eur(P.normalIva)]);
   }
 
-  var pie = [T('tpv.gracias_compra'), T('tkt.conserve')];
+  var pie = (typeof tkTicketVentaPie === 'function') ? tkTicketVentaPie(v) : [T('tpv.gracias_compra'), T('tkt.conserve')];
   if (P.mencion) pie.unshift('(*) ' + P.mencion);
-  if (TIENDA.garantiaVentas) pie.push(TIENDA.garantiaVentas);
-  if (TIENDA.politicaVentas) pie.push(TIENDA.politicaVentas);
-  if (AJUSTES.ticketPie) pie.push(AJUSTES.ticketPie);
 
   return {
     cabecera: cab,
@@ -2244,8 +2204,14 @@ function _ticketDoc() {
 }
 
 function imprimirTicket() {
-  var content = document.getElementById('ticketContent').innerHTML;
-  var html = '<html><head><meta charset="utf-8"><title>Ticket</title><style>' + _TICKET_CSS + '</style></head><body>' + content + '</body></html>';
+  if (!_ultimaVenta) return;
+  // Mismo ticket que en pantalla. En el navegador, 5 mm de margen a los lados:
+  // sin él la impresora térmica cortaba los bordes.
+  var html = tkTicketVentaHtml(_ultimaVenta).replace('</head>', '<style>body{padding-left:5mm!important;padding-right:5mm!important}</style></head>');
+  if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintImagenESC === 'function') {
+    tkPrintImagenESC(tkTicketVentaHtml(_ultimaVenta), 80, function () { _ticketPopup(html); });
+    return;
+  }
   // Dentro de la app de escritorio sale directo a la impresora por ESC/POS, sin
   // diálogo y ocupando el ancho real del papel. Si algo falla (o estamos en el
   // navegador), se vuelve a la ventana de impresión de siempre.
