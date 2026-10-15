@@ -3456,6 +3456,8 @@ function mapRep(r) {
     nota:r.nota||'', tipoBloqueo:r.tipo_bloqueo||'', bloqueo:r.bloqueo||'', mo:parseFloat(r.mo)||0, comp:parseFloat(r.comp)||0,
     anticipo:parseFloat(r.anticipo)||0, restante:parseFloat(r.restante)||0,
     total:parseFloat(r.total)||0, pagoFinal:r.pago_final||'',
+    // Pago final mixto (sql/reparaciones-pago-mixto.sql): [{metodo, importe}] o null.
+    pagosFinal: (function(){ try { return r.pagos_final ? (typeof r.pagos_final === 'string' ? JSON.parse(r.pagos_final) : r.pagos_final) : null; } catch(e){ return null; } })(),
     financiado:r.financiado||false, entrada:parseFloat(r.entrada)||0, entradaPago:r.entrada_pago||'',
     cuotas: r.cuotas ? (typeof r.cuotas === 'string' ? JSON.parse(r.cuotas) : r.cuotas) : null,
     estadoFinanciado:r.estado_financiado||'',
@@ -4710,8 +4712,7 @@ function _sumarCobradoReps(pagos, d1, d2) {
   (DB.reps || []).forEach(function(r) {
     var f = (r.fechaEntregaReal || '').slice(0, 10);
     if (f >= d1 && f <= d2 && (r.estado || '').toLowerCase() === 'entregado') {
-      var m = r.pagoFinal || 'Efectivo';
-      pagos[m] = (pagos[m] || 0) + Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0));
+      _repPagosMetodo(r, Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0))).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; });
     }
   });
 }
@@ -5662,7 +5663,7 @@ function renderInicioTablero(puede, reps, enRep, listas, urgentes) {
   if (puede && _invWidgetOn('tb_comocobras')) {
     var pagos = {};
     var _vpmTb = _ventasIngresoPorMetodo(DB.ventas, hoy, hoy); Object.keys(_vpmTb).forEach(function(m) { pagos[m] = (pagos[m] || 0) + _vpmTb[m]; });
-    reps.forEach(function(r) { if ((r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado') { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0)); } });
+    reps.forEach(function(r) { if ((r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado') { _repPagosMetodo(r, Math.max(0, (parseFloat(r.total) || 0) - (parseFloat(r.restante) || 0))).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); } });
     var totP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
     var cls = { 'Efectivo': 's-cash', 'Tarjeta': 's-card', 'Bizum': 's-biz', 'Transferencia': 's-tr' };
     var ico = { 'Efectivo': '💵', 'Tarjeta': '💳', 'Bizum': '📲', 'Transferencia': '🏦' };
@@ -12697,6 +12698,14 @@ function abrirEntregar(id) {
   if (box) box.style.display = resta > 0 ? 'block' : 'none';
   var pagoBox = document.getElementById('ePagoBox');
   if (pagoBox) pagoBox.style.display = 'block';
+  // Pago mixto: solo para reparaciones no financiadas (las cuotas llevan una sola forma de pago).
+  var _ep = document.getElementById('ePago');
+  if (_ep) {
+    if (_ep.value === 'Mixto') _ep.value = 'Efectivo';
+    var _opM = _ep.querySelector('option[value="Mixto"]'); if (_opM) _opM.hidden = !!r.financiado;
+  }
+  _E_MX.forEach(function(m) { var e = document.getElementById(m[1]); if (e) e.value = ''; });
+  ePagoCambio();
   // M7: fotos de entrega (parte de SEL para esta entrega; arranca de lo que ya tuviera la rep)
   SEL.fotosEntrega = (r.fotosEntrega || []).slice();
   _repRenderFotos('repFotosEntThumbs', SEL.fotosEntrega, '_repFotoEntRemove');
@@ -12707,6 +12716,54 @@ function abrirEntregar(id) {
   var _tn = document.getElementById('eTestNota'); if (_tn) _tn.value = (r.testSalida && r.testSalida.nota) || '';
   openM('mEntregar');
   setTimeout(_iniciarFirmaSalida, 60);
+}
+
+// ═══ Pago final mixto al entregar ═══
+// Lo que queda por cobrar repartido entre varias formas de pago. Cada parte se
+// guarda como un pago de la reparación (pagos_reparacion), que es lo que usan
+// la caja y los reportes; el desglose queda además en reparaciones.pagos_final.
+var _E_MX = [['Efectivo', 'eMxEfectivo'], ['Tarjeta', 'eMxTarjeta'], ['Bizum', 'eMxBizum'], ['Transferencia', 'eMxTransferencia']];
+function _r2e(n) { return Math.round((parseFloat(n) || 0) * 100) / 100; }
+function _eMixtoPagos() {
+  return _E_MX.map(function(m) { return { metodo: m[0], importe: _r2e((document.getElementById(m[1]) || {}).value) }; })
+    .filter(function(p) { return p.importe > 0; });
+}
+function _eMixtoResta() {
+  var r = DB.reps.find(function(x) { return x.id === SEL.eRepId; });
+  return r ? _r2e(r.restante) : 0;
+}
+function ePagoCambio() {
+  var box = document.getElementById('eMixtoBox');
+  var mx = (document.getElementById('ePago') || {}).value === 'Mixto';
+  if (box) box.style.display = mx ? 'block' : 'none';
+  if (mx) calcEMixto();
+}
+function calcEMixto() {
+  var el = document.getElementById('eMxEstado'); if (!el) return;
+  var d = _r2e(_eMixtoResta() - _eMixtoPagos().reduce(function(a, p) { return a + p.importe; }, 0));
+  if (d > 0.004) { el.style.color = '#F59E0B'; el.textContent = T('tpv.mixto_falta').replace('{x}', cur(d)); }
+  else if (d < -0.004) { el.style.color = '#EF4444'; el.textContent = T('tpv.mixto_sobra').replace('{x}', cur(-d)); }
+  else { el.style.color = 'var(--green)'; el.textContent = '✓ ' + T('tpv.mixto_ok'); }
+}
+function eMixtoResto(id) {
+  var otros = _E_MX.reduce(function(a, m) { return a + (m[1] === id ? 0 : _r2e((document.getElementById(m[1]) || {}).value)); }, 0);
+  var el = document.getElementById(id); if (el) el.value = Math.max(0, _r2e(_eMixtoResta() - otros)).toFixed(2);
+  calcEMixto();
+}
+// Cómo se reparte `importe` de una reparación por forma de pago (para los
+// resúmenes rápidos del panel). Mixto: en proporción a su desglose.
+function _repPagosMetodo(r, importe) {
+  var p = r && r.pagosFinal;
+  if (Array.isArray(p) && p.length) {
+    var tot = p.reduce(function(a, x) { return a + (parseFloat(x.importe) || 0); }, 0);
+    if (tot > 0) return p.map(function(x) { return { metodo: x.metodo || 'Efectivo', importe: importe * (parseFloat(x.importe) || 0) / tot }; });
+  }
+  return [{ metodo: (r && r.pagoFinal && r.pagoFinal !== 'Mixto') ? r.pagoFinal : 'Efectivo', importe: importe }];
+}
+function _repPagoTxt(r) {
+  var p = r && r.pagosFinal;
+  if (Array.isArray(p) && p.length > 1) return p.map(function(x) { return _pagoLbl(x.metodo) + ' ' + cur(parseFloat(x.importe) || 0); }).join(' + ');
+  return _pagoLbl((r && r.pagoFinal) || '');
 }
 
 // Al marcar "entregar a deber" ocultamos el método de pago (no se cobra ahora)
@@ -12723,6 +12780,14 @@ function confirmarEntrega() {
   var resta = parseFloat(r.restante) || 0;
   var chk = document.getElementById('eADeber');
   var aDeber = !!(chk && chk.checked && resta > 0); // entregar dejando el restante pendiente (fiado)
+  // Pago mixto: tiene que cuadrar con lo que queda por cobrar antes de entregar nada.
+  var _mixto = null;
+  if (!aDeber && (document.getElementById('ePago') || {}).value === 'Mixto') {
+    var _mxp = _eMixtoPagos();
+    var _dif = _r2e(resta - _mxp.reduce(function(a, p) { return a + p.importe; }, 0));
+    if (!_mxp.length || Math.abs(_dif) > 0.009) { toast(T('tpv.mixto_error').replace('{x}', cur(resta)), 'err'); return; }
+    _mixto = _mxp;
+  }
   r.estado = 'Entregado';
   r.fechaEntregaReal = hoyLocal();
   r.fotosEntrega = (SEL.fotosEntrega || []).slice(); // M7: foto-prueba del estado al entregar
@@ -12745,6 +12810,9 @@ function confirmarEntrega() {
     }
   } else {
     r.pagoFinal = document.getElementById('ePago').value;
+    // Mixto con una sola forma rellenada = pago normal con esa forma.
+    if (_mixto && _mixto.length === 1) { r.pagoFinal = _mixto[0].metodo; _mixto = null; }
+    r.pagosFinal = _mixto;
     r.restante = 0;
     // Financiada cobrada al entregar: completar el plan de cuotas para que el modal 💰 no las reofrezca (evita doble cobro)
     if (r.financiado && Array.isArray(r.cuotas)) {
@@ -12754,6 +12822,7 @@ function confirmarEntrega() {
     guardarDatos();
     if (SB_KEY && TIENDA_ID) {
       var _patchE = {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0};
+      if (_mixto) _patchE.pagos_final = _mixto;
       if (r.fotosEntrega && r.fotosEntrega.length) _patchE.fotos_entrega = r.fotosEntrega;
       if (_ts) _patchE.test_salida = _ts;
       if (_finNuevo) _patchE.fin_reparacion = _finNuevo;
@@ -12767,14 +12836,25 @@ function confirmarEntrega() {
         if (importeFinal > 0) {
           var d = new Date();
           var fechaISO = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
-          sbPost('pagos_reparacion', {
-            tienda_id: TIENDA_ID,
-            reparacion_id: r.id,
-            fecha: fechaISO,
-            importe: +importeFinal.toFixed(2),
-            metodo: r.pagoFinal || 'Efectivo',
-            tipo: 'final',
-            nota: 'Auto-creado al entregar reparación'
+          // Mixto: un pago por cada forma de pago, repartiendo lo que de verdad
+          // falta (importeFinal) en proporción a lo que se tecleó; el último se
+          // ajusta para que la suma cuadre al céntimo.
+          var partes = _mixto ? _mixto : [{ metodo: r.pagoFinal || 'Efectivo', importe: importeFinal }];
+          var totPartes = partes.reduce(function(a, p) { return a + p.importe; }, 0) || 1;
+          var acum = 0;
+          partes.forEach(function(p, i) {
+            var imp = (i === partes.length - 1) ? +(importeFinal - acum).toFixed(2) : +(importeFinal * p.importe / totPartes).toFixed(2);
+            acum += imp;
+            if (imp <= 0) return;
+            sbPost('pagos_reparacion', {
+              tienda_id: TIENDA_ID,
+              reparacion_id: r.id,
+              fecha: fechaISO,
+              importe: imp,
+              metodo: p.metodo,
+              tipo: 'final',
+              nota: 'Auto-creado al entregar reparación' + (_mixto ? ' (pago mixto)' : '')
+            });
           });
           window._pagosRepCache = null; try { _invalidarInvPagos(); } catch(e){} // invalidar caché de stats
         }
@@ -12802,7 +12882,7 @@ function confirmarEntrega() {
         T('rep.wa_averia').replace('{a}', r.averia),
         '',
         T('rep.wa_fecha_entrega').replace('{f}', r.fechaEntregaReal),
-        (aDeber ? '' : T('rep.wa_forma_pago').replace('{p}', (r.pagoFinal || '-'))),
+        (aDeber ? '' : T('rep.wa_forma_pago').replace('{p}', (_repPagoTxt(r) || '-'))),
         T('rep.wa_total').replace('{t}', cur(r.total)),
         (aDeber ? T('rep.wa_pendiente').replace('{t}', cur(resta)) : ''),
         '',
@@ -16624,7 +16704,7 @@ function generarPDFGestor() {
   // Pagos
   var pagos = {};
   ventas.forEach(function(v) { _ventaPagos(v).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
-  reps.forEach(function(r) { if (r.pagoFinal) pagos[r.pagoFinal] = (pagos[r.pagoFinal] || 0) + r.total; });
+  reps.forEach(function(r) { if (r.pagoFinal) _repPagosMetodo(r, r.total || 0).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
 
   var labelPeriodo = ({hoy:T('dash.hoy'), semana:T('inicio.per_semana'), mes:T('inicio.per_mes'), trimestre:T('gen.ultimo_trimestre'), total:T('gen.historico_completo'), rango:T('mov.rango')})[SEL.repTab] || SEL.repTab;
   var fechaIni = fechas[fechas.length-1];
@@ -16722,7 +16802,7 @@ function generarPDFGestor() {
   (reps.length ? '<h2>Listado de reparaciones (' + reps.length + ')</h2>' +
   '<table><thead><tr><th>Fecha entrega</th><th>Cliente</th><th>Equipo</th><th>Pago</th><th class="r">Base</th><th class="r">IVA</th><th class="r">Total</th></tr></thead><tbody>' +
   reps.map(function(r){
-    return '<tr><td>' + (r.fechaEntregaReal||'—') + '</td><td>' + esc(r.clienteNombre || '—') + '</td><td>' + esc((r.marca||'') + ' ' + (r.modelo||'')) + '</td><td>' + esc(r.pagoFinal||'') + '</td>' +
+    return '<tr><td>' + (r.fechaEntregaReal||'—') + '</td><td>' + esc(r.clienteNombre || '—') + '</td><td>' + esc((r.marca||'') + ' ' + (r.modelo||'')) + '</td><td>' + esc(_repPagoTxt(r)) + '</td>' +
       '<td class="r">' + cur(r.base||0) + '</td><td class="r">' + cur(r.ivaImporte||0) + '</td><td class="r">' + cur(r.total) + '</td></tr>';
   }).join('') + '</tbody></table>' : '') +
 
@@ -16845,8 +16925,7 @@ function emailReporte() {
   var pagos = {};
   ventas.forEach(function(v) { _ventaPagos(v).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
   reps.forEach(function(r) {
-    var metodo = r.pagoFinal || 'Efectivo';
-    pagos[metodo] = (pagos[metodo] || 0) + (r.total || 0);
+    _repPagosMetodo(r, r.total || 0).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; });
   });
   fetch('/api/email', {
     method: 'POST',
@@ -16881,7 +16960,7 @@ function renderWidgetComoCobras() {
   var pagos = {};
   (function(){ var _vpmW = _ventasIngresoPorMetodo(DB.ventas, hoy, hoy); Object.keys(_vpmW).forEach(function(m){ pagos[m] = (pagos[m] || 0) + _vpmW[m]; }); })();
   DB.reps.filter(function(r) { return (r.fechaEntregaReal || '').slice(0, 10) === hoy && (r.estado || '').toLowerCase() === 'entregado'; })
-    .forEach(function(r) { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); });
+    .forEach(function(r) { _repPagosMetodo(r, r.total || 0).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
   var total = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
   if (total <= 0) { cont.style.display = 'none'; return; }
   cont.style.display = '';
@@ -16915,7 +16994,7 @@ function renderWidgetCierre() {
   var tR = rH.reduce(function(a, r) { return a + (r.total || 0); }, 0);
   var pagos = {};
   vH.forEach(function(v) { _ventaPagos(v).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
-  rH.forEach(function(r) { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); });
+  rH.forEach(function(r) { _repPagosMetodo(r, r.total || 0).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
   var total = tV + tR;
   if (total === 0 && !vH.length && !rH.length) {
     el.innerHTML = '<div class="empty" style="padding:12px">' + T('dash.cierre_sin_movimientos') + '</div>';
@@ -19758,7 +19837,7 @@ function abrirDetalleRep(repId) {
   }
   if (r.fechaEntrega) html += '<div><span style="color:var(--muted);font-size:11px">⏱ ' + T('det.entrega_prev') + '</span><br><strong>' + esc(r.fechaEntrega) + '</strong></div>';
   if (r.fechaEntregaReal) html += '<div><span style="color:var(--muted);font-size:11px">✓ ' + T('det.entregado') + '</span><br><strong>' + esc(r.fechaEntregaReal) + '</strong></div>';
-  if (r.pagoFinal) html += '<div><span style="color:var(--muted);font-size:11px">💳 ' + T('det.pago') + '</span><br><strong>' + esc(r.pagoFinal) + '</strong></div>';
+  if (r.pagoFinal) html += '<div><span style="color:var(--muted);font-size:11px">💳 ' + T('det.pago') + '</span><br><strong>' + esc(_repPagoTxt(r)) + '</strong></div>';
   html += '</div>';
 
   // Componentes
