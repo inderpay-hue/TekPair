@@ -6784,3 +6784,10 @@ it:{"entrega.conforme": "Il cliente ritira il dispositivo e conferma al banco ch
 de:{"entrega.conforme": "Der Kunde holt das Gerät ab und bestätigt an der Theke, dass es einwandfrei funktioniert (ohne Unterschrift).", "entrega.conf_titulo": "Bestätigung des Kunden", "entrega.conf_firma": "Auf dem Bildschirm unterschrieben", "entrega.conf_mostrador": "An der Theke bestätigt ({p})"},
 pt:{"entrega.conforme": "O cliente levanta o equipamento e confirma ao balcão que funciona corretamente (sem assinatura).", "entrega.conf_titulo": "Conformidade do cliente", "entrega.conf_firma": "Assinada no ecrã", "entrega.conf_mostrador": "Confirmada ao balcão ({p})"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+
+// i18n Menú de 7 entradas (oct-2026)
+(function(){var _a={
+es:{"nav.g_dinero": "Dinero"}, en:{"nav.g_dinero": "Money"}, fr:{"nav.g_dinero": "Argent"},
+it:{"nav.g_dinero": "Denaro"}, de:{"nav.g_dinero": "Finanzen"}, pt:{"nav.g_dinero": "Dinheiro"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
