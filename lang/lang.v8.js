@@ -6791,3 +6791,14 @@ pt:{"entrega.conforme": "O cliente levanta o equipamento e confirma ao balcão q
 es:{"nav.g_dinero": "Finanzas"}, en:{"nav.g_dinero": "Finances"}, fr:{"nav.g_dinero": "Finances"},
 it:{"nav.g_dinero": "Finanze"}, de:{"nav.g_dinero": "Finanzen"}, pt:{"nav.g_dinero": "Finanças"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+
+// i18n Más del móvil: TPV y Encargos (oct-2026)
+(function(){var _a={
+es:{"mas.desc_tpv": "Cobrar en el mostrador", "mas.desc_encargos": "Productos que el cliente encarga"},
+en:{"mas.desc_tpv": "Take payments at the counter", "mas.desc_encargos": "Products customers order"},
+fr:{"mas.desc_tpv": "Encaisser au comptoir", "mas.desc_encargos": "Produits commandés par les clients"},
+it:{"mas.desc_tpv": "Incassa al banco", "mas.desc_encargos": "Prodotti ordinati dai clienti"},
+de:{"mas.desc_tpv": "An der Theke kassieren", "mas.desc_encargos": "Von Kunden bestellte Produkte"},
+pt:{"mas.desc_tpv": "Cobrar ao balcão", "mas.desc_encargos": "Produtos que o cliente encomenda"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
