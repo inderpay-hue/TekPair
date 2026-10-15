@@ -597,6 +597,13 @@
   // Ticket básico (recibo): solo imprime, NO emite factura ni consume número fiscal.
   function _imprimirTicketRecibo() {
     var d = FACT.datos || {};
+    // Una venta tiene su propio ticket completo (líneas, IMEI, IVA, número): ese es
+    // el que se imprime. Este recibo sencillo queda para las reparaciones.
+    if (FACT.origen === 'venta' && d.id) {
+      var fn = (typeof window.imprimirTicketVenta === 'function') ? window.imprimirTicketVenta
+        : ((typeof window.reimprimirVenta === 'function') ? window.reimprimirVenta : null);
+      if (fn) { if (typeof window.cerrarModalFactura === 'function') window.cerrarModalFactura(); fn(d.id); return; }
+    }
     var emi = (typeof window.TIENDA !== 'undefined' && window.TIENDA) || {};
     var cli = d.cliente || {};
     var nombre = ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim();

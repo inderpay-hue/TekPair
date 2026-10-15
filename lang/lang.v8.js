@@ -6707,3 +6707,14 @@ it:{"rep.sec_extras": "Extra", "rep.extras_hint": "Ciò che il cliente porta via
 de:{"rep.sec_extras": "Extras", "rep.extras_hint": "Was der Kunde zusammen mit der Reparatur mitnimmt. Wird zum Gesamtbetrag addiert.", "rep.extra_funda": "Hülle", "rep.extra_protector": "Displayschutz", "rep.extra_camara": "Kameraschutz", "rep.extra_cargador": "Ladegerät", "rep.extra_cable": "Kabel", "rep.extra_nombre_ph": "Anderes Extra…", "rep.extra_anadido": "{n} zum Gesamtbetrag hinzugefügt"},
 pt:{"rep.sec_extras": "Extras", "rep.extras_hint": "O que o cliente leva com a reparação. Soma-se ao total.", "rep.extra_funda": "Capa", "rep.extra_protector": "Película de ecrã", "rep.extra_camara": "Película da câmara", "rep.extra_cargador": "Carregador", "rep.extra_cable": "Cabo", "rep.extra_nombre_ph": "Outro extra…", "rep.extra_anadido": "{n} adicionado ao total"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+
+// i18n Ticket de venta: garantía por producto (oct-2026)
+(function(){var _a={
+es:{"tkt.garantia_meses": "Garantía: {n} meses"},
+en:{"tkt.garantia_meses": "Warranty: {n} months"},
+fr:{"tkt.garantia_meses": "Garantie : {n} mois"},
+it:{"tkt.garantia_meses": "Garanzia: {n} mesi"},
+de:{"tkt.garantia_meses": "Garantie: {n} Monate"},
+pt:{"tkt.garantia_meses": "Garantia: {n} meses"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
