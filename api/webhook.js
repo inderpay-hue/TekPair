@@ -587,8 +587,13 @@ export default async function handler(req, res) {
                 // a cliente sin tax_id en zona sin IVA), tax es 0 y baseImponible = montoNeto.
                 // Esto permite que el sistema funcione correctamente para clientes UE y no-UE
                 // y tipos de IVA distintos del 21% (Canarias 7%, etc.).
-                const taxImporte = (invoice.tax || 0) / 100;
-                const baseImponible = +(montoNeto - taxImporte).toFixed(2);
+                // La comisión va SIEMPRE sobre el pago SIN IVA. Si Stripe trae el IVA
+                // desglosado se usa ese; si no (el checkout no le pasa impuestos y los
+                // precios llevan el 21 % dentro), se quita ese 21 %. Sin esto, un 20 %
+                // sobre 9,90 daba 1,98 en vez de 1,64.
+                const taxStripe = (invoice.tax != null ? invoice.tax
+                  : (Array.isArray(invoice.total_taxes) ? invoice.total_taxes.reduce((a, t) => a + (t.amount || 0), 0) : 0)) / 100;
+                const baseImponible = taxStripe > 0 ? +(montoNeto - taxStripe).toFixed(2) : +(montoNeto / 1.21).toFixed(2);
                 comisionMonto = +(baseImponible * comisionPct / 100).toFixed(2);
               }
             }
