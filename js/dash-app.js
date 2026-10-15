@@ -10962,9 +10962,14 @@ function trackingEtiqueta() {
   var bloq = _etqBloqueo(r);
   var patMm = Math.max(10, Math.min(ph - 8, 16));
   var qrMm = Math.max(14, Math.min(ph - 4, Math.round(pw * (bloq.svg ? 0.3 : 0.4))));
+  // Impresora de tickets: QR y patrón algo menores para que el texto quepa entero.
+  if (m.papel) { qrMm = bloq.svg ? 13 : 17; patMm = 13; }
+  // El id completo (r1792…_crl4pv) no cabe: en el ticket va la parte final, como código corto.
+  var idTxt = (m.papel && /_([a-z0-9]{4,})$/i.test(r.id || '')) ? '#' + String(r.id).split('_').pop().toUpperCase() : r.id;
   // Cinta continua (DK-22205): ancho fijo + largo automático (el driver corta a contenido).
   // Si fijamos 62x30 el driver lo toma como etiqueta troquelada y avisa "el rollo no coincide".
-  var pageCss = m.cont ? (pw + 'mm auto') : (pw + 'mm ' + ph + 'mm');
+  var _pg = _etqPagina(m);
+  var pageCss = _pg.page;
   var bodyH = m.cont ? ('min-height:' + ph + 'mm') : ('height:' + ph + 'mm');
   var html =
     '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + T('etq.doc_title') + '</title><style>' +
@@ -10973,18 +10978,19 @@ function trackingEtiqueta() {
     '.qr{flex-shrink:0}' +
     '.qr img{width:' + qrMm + 'mm;height:' + qrMm + 'mm;display:block}' +
     '.info{flex:1;min-width:0;line-height:1.25}' +
-    '.id{font-weight:800;font-size:9px;font-family:monospace}' +
+    '.id{font-weight:800;font-size:9px;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.cli{font-weight:700;font-size:9px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.eq{font-size:8px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.av{font-size:7px;color:#444;margin-top:1px;display:-webkit-box;-webkit-line-clamp:' + (bloq.txt ? 1 : 2) + ';-webkit-box-orient:vertical;overflow:hidden}' +
     '.blq{font-size:9px;font-weight:800;margin-top:1px;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.pat{flex-shrink:0;text-align:center;font-size:6px;font-weight:700;font-family:monospace}' +
     '.pat svg{width:' + patMm + 'mm;height:' + patMm + 'mm;display:block}' +
+    _pg.extra +
     '</style></head><body>' +
     '<div class="qr">' + qrSvg + '</div>' +
     '<div class="info">' +
       _etqLogoHtml() +
-      '<div class="id">' + esc(r.id) + '</div>' +
+      '<div class="id">' + esc(idTxt) + '</div>' +
       '<div class="cli">' + esc(r.clienteNombre || '') + '</div>' +
       '<div class="eq">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</div>' +
       (bloq.txt ? '<div class="blq">' + esc(bloq.txt) + '</div>' : '') +
@@ -10996,7 +11002,7 @@ function trackingEtiqueta() {
     '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:11px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
     '</body></html>';
   if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintLabel === 'function') {
-    tkPrintLabel(html, pw, m.cont ? null : ph, function () { _etqPopupImprimir(html); });
+    tkPrintLabel(html, _pg.ancho, m.cont ? null : ph, function () { _etqPopupImprimir(html); });
     return;
   }
   _etqPopupImprimir(html);
@@ -11034,6 +11040,9 @@ function _etqBloqueo(r) {
 // Tamaños de etiqueta soportados (ancho x alto en mm). El usuario elige en Ajustes.
 var ETQ_SIZES = {
   '62cont': { w: 62, h: 30, cont: true, label: '62mm continua (DK-22205)' },
+  // Impresora de TICKETS (rollo de 80 mm, 72 mm útiles): se maqueta como una
+  // etiqueta de 45 × 25 mm y se amplía ×1,6, con todo en negro (térmica 1 bit).
+  '80tk':   { w: 50, h: 26, cont: true, papel: 80, zoom: 1.44, label: '80 mm — impresora de tickets' },
   '62x29':  { w: 62, h: 29, label: '62 × 29 mm (DK-11209)' },
   '90x29':  { w: 90, h: 29, label: '29 × 90 mm (DK-11201)' },
   '50x30':  { w: 50, h: 30, label: '50 × 30 mm' },
@@ -11052,6 +11061,14 @@ function setEtqSize(v) {
   try { localStorage.setItem('tk_etq_size', v); } catch (e) {}
   var m = _etqMedida();
   toast(T('etq.tam_guardado').replace('{m}', m.label), 'ok');
+}
+// Ajustes de página para el modo «impresora de tickets»: papel de 80 mm, la
+// etiqueta ampliada y centrada, y sin grises (en térmica salen como trama).
+function _etqPagina(m) {
+  if (!m.papel) return { page: m.cont ? (m.w + 'mm auto') : (m.w + 'mm ' + m.h + 'mm'), extra: '', ancho: m.w };
+  var margen = Math.max(0, (m.papel - 8 - m.w * m.zoom) / 2 / m.zoom);
+  return { page: m.papel + 'mm auto', ancho: m.papel,
+    extra: 'body{zoom:' + m.zoom + ';margin-left:' + margen.toFixed(2) + 'mm!important;padding-top:2mm!important;padding-bottom:4mm!important}body *{color:#000!important}' };
 }
 // Cabecera de etiqueta: logo de la tienda si existe, si no el nombre (compacto).
 // Se usa dentro de la columna de info de las etiquetas de venta y reparación.
@@ -11075,7 +11092,8 @@ function imprimirEtiquetaStock(sid) {
   if (!s) return;
   var m = _etqMedida(), pw = m.w, ph = m.h;
   // Cinta continua: ancho fijo + largo automático (evita el aviso "el rollo no coincide")
-  var pageCss = m.cont ? (pw + 'mm auto') : (pw + 'mm ' + ph + 'mm');
+  var _pg = _etqPagina(m);
+  var pageCss = _pg.page;
   var bodyH = m.cont ? ('min-height:' + ph + 'mm') : ('height:' + ph + 'mm');
   var showQr = !!s.imei && pw >= 45;  // en etiquetas estrechas, sin QR para dar sitio al texto
   var qrSvg = '';
@@ -11114,6 +11132,7 @@ function imprimirEtiquetaStock(sid) {
     '.ofb{background:#e11d48;color:#fff;font-weight:800;font-size:6px;padding:0 3px;border-radius:2px;vertical-align:middle}' +
     '.an{font-size:9px;color:#999;text-decoration:line-through;font-weight:600}' +
     '.pro{color:#e11d48}' +
+    _pg.extra +
     '</style></head><body>' +
     (hasQr ? '<div class="qr">' + qrSvg + '</div>' : '') +
     '<div class="info">' +
@@ -11129,7 +11148,7 @@ function imprimirEtiquetaStock(sid) {
     '</body></html>';
   // App de escritorio (Tauri): impresión nativa silenciosa. Si falla/cancela, cae al diálogo.
   if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintLabel === 'function') {
-    tkPrintLabel(fullHtml, pw, ph, function () { _etqPopupImprimir(fullHtml); });
+    tkPrintLabel(fullHtml, _pg.ancho, m.papel ? null : ph, function () { _etqPopupImprimir(fullHtml); });
     return;
   }
   _etqPopupImprimir(fullHtml);

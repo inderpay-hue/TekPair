@@ -6802,3 +6802,14 @@ it:{"mas.desc_tpv": "Incassa al banco", "mas.desc_encargos": "Prodotti ordinati 
 de:{"mas.desc_tpv": "An der Theke kassieren", "mas.desc_encargos": "Von Kunden bestellte Produkte"},
 pt:{"mas.desc_tpv": "Cobrar ao balcão", "mas.desc_encargos": "Produtos que o cliente encomenda"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+
+// i18n Etiqueta en impresora de tickets (oct-2026)
+(function(){var _a={
+es:{"etq.tam_ticket": "80 mm — impresora de tickets (sin Brother)"},
+en:{"etq.tam_ticket": "80 mm — receipt printer (no Brother)"},
+fr:{"etq.tam_ticket": "80 mm — imprimante de tickets (sans Brother)"},
+it:{"etq.tam_ticket": "80 mm — stampante di scontrini (senza Brother)"},
+de:{"etq.tam_ticket": "80 mm — Bondrucker (ohne Brother)"},
+pt:{"etq.tam_ticket": "80 mm — impressora de talões (sem Brother)"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
