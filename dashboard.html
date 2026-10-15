@@ -1222,7 +1222,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261016p"></script>
+<script src="/lang/lang.v8.js?v=20261016s"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4346,12 +4346,14 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
               <button type="button" class="chk-btn" data-cond="Bloqueado" onclick="toggleChk(this)"><span>🔒</span> <span data-t="rep.cond_bloqueado">Bloqueado</span></button>
             </div>
           </div>
+
           <!-- Test funcional de ENTRADA (opcional): lo que funcionaba al recibirlo -->
           <div class="fg" id="rTestEntSec" style="margin-bottom:12px">
             <label class="fl">🧪 <span data-t="test.titulo_entrada">Test de entrada (opcional)</span></label>
             <div style="font-size:11px;color:var(--muted);margin-bottom:8px" data-t="test.hint_entrada">Marca lo que funciona y lo que no al recibirlo. Al entregar se compara con el test de salida.</div>
             <div id="rTestEnt"></div>
           </div>
+
           <!-- M7: foto-prueba del estado al recibir -->
           <div class="fg" id="repFotoRecepSec" style="margin-top:12px;margin-bottom:0">
             <label class="fl" data-t="foto.recepcion_titulo">📸 Fotos del estado (al recibir)</label>
@@ -4368,6 +4370,26 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
           </div>
     </div>
     <div class="rep-tab-pane" data-pane="piezas">
+        <!-- Sección: Extras (funda, protector…): se cobran con la reparación y suman al total -->
+        <div class="rep-section">
+          <div class="rep-section-title"><span>✨</span> <span data-t="rep.sec_extras">Extras</span></div>
+          <div data-t="rep.extras_hint" style="font-size:11.5px;color:var(--muted);margin:-2px 0 8px">Lo que se lleva el cliente con la reparación. Se suma al total.</div>
+          <div id="repExtrasChips" style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+            <button type="button" class="chk-btn" onclick="extraRapidoRep('rep.extra_funda')"><span>📱</span> <span data-t="rep.extra_funda">Funda</span></button>
+            <button type="button" class="chk-btn" onclick="extraRapidoRep('rep.extra_protector')"><span>🛡️</span> <span data-t="rep.extra_protector">Protector de pantalla</span></button>
+            <button type="button" class="chk-btn" onclick="extraRapidoRep('rep.extra_camara')"><span>📷</span> <span data-t="rep.extra_camara">Protector de cámara</span></button>
+            <button type="button" class="chk-btn" onclick="extraRapidoRep('rep.extra_cargador')"><span>🔌</span> <span data-t="rep.extra_cargador">Cargador</span></button>
+            <button type="button" class="chk-btn" onclick="extraRapidoRep('rep.extra_cable')"><span>🔗</span> <span data-t="rep.extra_cable">Cable</span></button>
+          </div>
+          <div style="display:flex;gap:6px">
+            <input class="fi" id="rOpcNombre" data-t-ph="rep.extra_nombre_ph" placeholder="Otro extra…" style="flex:1" autocomplete="off">
+            <input class="fi" id="rOpcPrecio" type="number" step="0.01" min="0" data-t-ph="rep.opc_precio_ph" placeholder="Precio" style="width:96px" onkeydown="if(event.key==='Enter'){event.preventDefault();agregarOpcionalRep();}">
+            <button type="button" class="add-srv-btn" onclick="agregarOpcionalRep()" data-t="rep.opc_add">+ Añadir</button>
+          </div>
+          <!-- Extras antiguos pendientes de aceptar online (solo reparaciones anteriores) -->
+          <div id="repOpcList" style="margin-top:8px"></div>
+        </div>
+
         <!-- Sección: Componentes -->
         <div class="rep-section">
           <div class="rep-section-title"><span>📦</span> <span data-t="rep.sec_componentes">Componentes (stock)</span></div>
@@ -4380,17 +4402,6 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
           <div style="margin-top:8px">
             <button type="button" onclick="pedirPiezaRep()" title="Añadir una pieza que falta a Pedidos, vinculada a esta reparación" style="display:inline-flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;border:1.5px dashed #D97706;background:rgba(217,119,6,.06);color:#B45309;font-size:12.5px;font-weight:600;cursor:pointer">🛒 <span data-t="rep.pedir_pieza">Pedir pieza al proveedor</span></button>
             <div id="repPedirList" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
-          </div>
-        </div>
-        <!-- Sección: Extras opcionales (el cliente los elige al aceptar el presupuesto online) -->
-        <div class="rep-section">
-          <div class="rep-section-title"><span>✨</span> <span data-t="rep.sec_opcionales">Extras opcionales</span></div>
-          <div data-t="rep.opc_hint" style="font-size:11.5px;color:var(--muted);margin:-2px 0 8px">Protector, funda, batería… El cliente los marca o no al aceptar el presupuesto online. No cuentan en el total hasta que los acepta.</div>
-          <div id="repOpcList"></div>
-          <div style="display:flex;gap:6px;margin-top:6px">
-            <input class="fi" id="rOpcNombre" data-t-ph="rep.opc_nombre_ph" placeholder="Ej.: Protector de cristal templado" style="flex:1" autocomplete="off">
-            <input class="fi" id="rOpcPrecio" type="number" step="0.01" min="0" data-t-ph="rep.opc_precio_ph" placeholder="Precio" style="width:96px">
-            <button type="button" class="add-srv-btn" onclick="agregarOpcionalRep()" data-t="rep.opc_add">+ Añadir</button>
           </div>
         </div>
     </div>
@@ -4464,6 +4475,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
           <div class="fg" style="margin-bottom:8px"><label class="fl" data-t="rep.nota_interna">Nota interna</label><textarea class="fi" id="rNota" rows="2" data-t-ph="rep.nota_interna_ph" placeholder="Solo visible para ti y tu equipo..."></textarea></div>
     </div>
     <div class="rep-tab-pane" data-pane="garantia">
+          
           <!-- GARANTÍA DE ESTA REPARACIÓN -->
           <div id="rBloqueGarantia" style="margin-bottom:0;padding:12px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">
             <div class="fl" style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
@@ -5567,7 +5579,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/desktop-print.js?v=20260615b"></script>
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
-<script src="/js/dash-app.js?v=20261016r"></script>
+<script src="/js/dash-app.js?v=20261016s"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

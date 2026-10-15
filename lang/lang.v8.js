@@ -6698,6 +6698,17 @@ pt:{"usados.titulo": "Compras de usados", "usados.desc_mas": "Contratos assinado
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
 
+// i18n Extras de la reparación que suman al total (oct-2026)
+(function(){var _a={
+es:{"rep.sec_extras": "Extras", "rep.extras_hint": "Lo que se lleva el cliente con la reparación. Se suma al total.", "rep.extra_funda": "Funda", "rep.extra_protector": "Protector de pantalla", "rep.extra_camara": "Protector de cámara", "rep.extra_cargador": "Cargador", "rep.extra_cable": "Cable", "rep.extra_nombre_ph": "Otro extra…", "rep.extra_anadido": "{n} añadido al total"},
+en:{"rep.sec_extras": "Extras", "rep.extras_hint": "What the customer takes with the repair. It is added to the total.", "rep.extra_funda": "Case", "rep.extra_protector": "Screen protector", "rep.extra_camara": "Camera protector", "rep.extra_cargador": "Charger", "rep.extra_cable": "Cable", "rep.extra_nombre_ph": "Other extra…", "rep.extra_anadido": "{n} added to the total"},
+fr:{"rep.sec_extras": "Extras", "rep.extras_hint": "Ce que le client emporte avec la réparation. S’ajoute au total.", "rep.extra_funda": "Coque", "rep.extra_protector": "Protection d’écran", "rep.extra_camara": "Protection caméra", "rep.extra_cargador": "Chargeur", "rep.extra_cable": "Câble", "rep.extra_nombre_ph": "Autre option…", "rep.extra_anadido": "{n} ajouté au total"},
+it:{"rep.sec_extras": "Extra", "rep.extras_hint": "Ciò che il cliente porta via con la riparazione. Si somma al totale.", "rep.extra_funda": "Cover", "rep.extra_protector": "Pellicola protettiva", "rep.extra_camara": "Protezione fotocamera", "rep.extra_cargador": "Caricabatterie", "rep.extra_cable": "Cavo", "rep.extra_nombre_ph": "Altro extra…", "rep.extra_anadido": "{n} aggiunto al totale"},
+de:{"rep.sec_extras": "Extras", "rep.extras_hint": "Was der Kunde zusammen mit der Reparatur mitnimmt. Wird zum Gesamtbetrag addiert.", "rep.extra_funda": "Hülle", "rep.extra_protector": "Displayschutz", "rep.extra_camara": "Kameraschutz", "rep.extra_cargador": "Ladegerät", "rep.extra_cable": "Kabel", "rep.extra_nombre_ph": "Anderes Extra…", "rep.extra_anadido": "{n} zum Gesamtbetrag hinzugefügt"},
+pt:{"rep.sec_extras": "Extras", "rep.extras_hint": "O que o cliente leva com a reparação. Soma-se ao total.", "rep.extra_funda": "Capa", "rep.extra_protector": "Película de ecrã", "rep.extra_camara": "Película da câmara", "rep.extra_cargador": "Carregador", "rep.extra_cable": "Cabo", "rep.extra_nombre_ph": "Outro extra…", "rep.extra_anadido": "{n} adicionado ao total"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+
 // i18n Pestañas de la ventana de reparación (oct-2026)
 (function(){var _a={
 es:{"rtab.estado": "Estado y fotos", "rtab.piezas": "Piezas y extras", "rtab.cobro": "Cobro", "rtab.org": "Organización", "rtab.garantia": "Garantía"},
