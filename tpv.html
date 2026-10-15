@@ -262,12 +262,13 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .vl-t:focus-visible{outline:2px solid var(--t-acc);outline-offset:2px}
 .vl-aux{color:var(--t-ink2);font-size:17px}
 </style>
-<script src="/lang/lang.v8.js?v=20261012a"></script>
+<script src="/lang/lang.v8.js?v=20261016d"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
        Faltaba aquí, así que el TPV era lo único que nunca imprimía sin diálogo. -->
   <script src="/js/desktop-print.js?v=20261004a"></script>
+  <script src="/js/usados.js?v=20261016a"></script>
 </head>
 <body>
 <script>try{var _TM={light:'clean',terracota:'orange',dark:'dark'};var _t=_TM[localStorage.getItem('tk_theme')||'terracota']||localStorage.getItem('tk_tpv_theme')||'aurora';document.body.setAttribute('data-theme',_t)}catch(e){document.body.setAttribute('data-theme','aurora')}</script>
@@ -890,7 +891,8 @@ function pullStockTPV() {
         unidades: parseInt(s.unidades, 10) || 0, stockMin: parseInt(s.stock_min, 10) || 2, stockMax: parseInt(s.stock_max, 10) || 10,
         precioC: parseFloat(s.precio_c) || 0, precioV: parseFloat(s.precio_v) || 0,
         vendido: s.vendido || false, calidad: s.calidad || '', tipo: s.tipo || 'nuevo',
-        garantiaMeses: parseInt(s.garantia_meses, 10) || 0, ubicacion: s.ubicacion || null
+        garantiaMeses: parseInt(s.garantia_meses, 10) || 0, ubicacion: s.ubicacion || null,
+        compraId: s.compra_id || ''
       };
     });
     try { localStorage.setItem('tk_db', JSON.stringify(DB)); } catch(e){}
@@ -1473,6 +1475,9 @@ function addToCart(id, esServicio) {
   var p = products.find(function(x) { return x.id === id; });
   if (!p) return;
   if (!p.esServicio && p.unidades <= 0) { toast(T('tpv.sin_stock'), 'err'); return; }
+  if (p.compraId && !_usadoVendible(p)) return;
+  // Comprado a un particular: el TPV necesita lo que se pagó para el impuesto sobre el margen.
+  var _usado = p.compraId ? { compraId: p.compraId, coste: parseFloat(p.precioC) || 0 } : {};
 
   var nombreProd = (p.marca !== 'Servicio' ? p.marca + ' ' : '') + p.modelo;
   var precioBase = parseFloat(p.precioV || 0);
@@ -1484,7 +1489,8 @@ function addToCart(id, esServicio) {
         id: p.id + '_' + Date.now(), nombre: nombreProd,
         precio: precioCustom, qty: 1,
         esServicio: p.esServicio || false, stockMax: p.unidades,
-        precioVariable: true, idOriginal: p.id, imei: p.imei || ''
+        precioVariable: true, idOriginal: p.id, imei: p.imei || '',
+        compraId: _usado.compraId || '', coste: _usado.coste || 0
       });
       renderCart();
       toast(T('tpv.anadido_2'), 'ok');
@@ -1501,11 +1507,27 @@ function addToCart(id, esServicio) {
     cart.push({
       id: p.id, nombre: nombreProd,
       precio: precioBase, qty: 1,
-      esServicio: p.esServicio || false, stockMax: p.unidades, imei: p.imei || ''
+      esServicio: p.esServicio || false, stockMax: p.unidades, imei: p.imei || '',
+      compraId: _usado.compraId || '', coste: _usado.coste || 0
     });
   }
   renderCart();
   toast(T('tpv.anadido'), 'ok');
+}
+
+// Algunos países obligan a tener el teléfono comprado unos días en tienda antes
+// de venderlo (Ajustes → Compra de usados). Si aún no se puede, avisa y no lo añade.
+function _usadoVendible(p) {
+  var cfg = (typeof tkUsadosCfg === 'function') ? tkUsadosCfg() : null;
+  if (!cfg || !(cfg.dias > 0)) return true;
+  var c = (DB.comprasUsados || []).find(function (x) { return x.id === p.compraId; });
+  if (!c || !c.fecha) return true;
+  var desde = new Date(c.fecha); desde.setHours(0, 0, 0, 0);
+  var hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  var faltan = cfg.dias - Math.round((hoy - desde) / 86400000);
+  if (faltan <= 0) return true;
+  toast(T('usados.tpv_espera').replace('{n}', faltan), 'err', 5000);
+  return false;
 }
 
 // ── Teclado de la venta rapida ──
@@ -1724,23 +1746,47 @@ function _computeTotals() {
   discGlobal = Math.min(discGlobal, neto);
   var disc = discLineas + discGlobal;
   var preIva = Math.max(0, subtotal - disc);
-  // IVA segun ajustes
   var ivaCfg = AJUSTES.iva || {};
-  var ivaTipo = 0, ivaImporte = 0, base = preIva, total = preIva, ivaModo = 'sin';
+  // Usados comprados a particulares: con impuestos activados, su parte va por el
+  // régimen del país (solo sobre el margen, o sin impuesto) y el resto como
+  // siempre. Cada línea se lleva su parte del descuento general.
+  var ucfg = (typeof tkUsadosCfg === 'function') ? tkUsadosCfg() : null;
+  var usados = {}, netoU = 0, baseU = 0, cuotaU = 0;
+  if (ucfg && ivaCfg.activo && ucfg.regimen !== 'total') {
+    cart.forEach(function(c, i) {
+      if (!c.compraId) return;
+      var lineaNeta = c.precio * c.qty - descLineaImporte(c);
+      var n = neto > 0 ? lineaNeta - discGlobal * lineaNeta / neto : 0;
+      n = Math.max(0, Math.round(n * 100) / 100);
+      var coste = Math.round((parseFloat(c.coste) || 0) * c.qty * 100) / 100;
+      var u = { compraId: c.compraId, regimen: ucfg.regimen, neto: n, coste: coste, tipo: 0, margen: 0, cuota: 0, base: 0, mencion: '' };
+      if (ucfg.regimen === 'margen') {
+        var m = tkMargenLinea(n, coste, ucfg.tipo);
+        u.tipo = ucfg.tipo; u.margen = m.margen; u.cuota = m.cuota; u.base = m.base; u.mencion = ucfg.mencion || '';
+      }
+      usados[i] = u; netoU += n; baseU += u.base; cuotaU += u.cuota;
+    });
+  }
+  // IVA segun ajustes, sobre la parte normal
+  var preNormal = Math.max(0, preIva - netoU);
+  var ivaTipo = 0, ivaImporte = 0, base = preNormal, total = preNormal, ivaModo = 'sin';
   if (ivaCfg.activo) {
     ivaTipo = parseFloat(ivaCfg.tipoDefault) || 21;
     ivaModo = ivaCfg.modo || 'incluido';
     if (ivaModo === 'incluido') {
-      base = preIva / (1 + ivaTipo/100);
-      ivaImporte = preIva - base;
-      total = preIva;
+      base = preNormal / (1 + ivaTipo/100);
+      ivaImporte = preNormal - base;
+      total = preNormal;
     } else {
-      base = preIva;
-      ivaImporte = preIva * ivaTipo/100;
-      total = preIva + ivaImporte;
+      base = preNormal;
+      ivaImporte = preNormal * ivaTipo/100;
+      total = preNormal + ivaImporte;
     }
   }
-  return {subtotal:subtotal, disc:disc, discLineas:discLineas, discGlobal:discGlobal, base:base, ivaTipo:ivaTipo, ivaImporte:ivaImporte, ivaModo:ivaModo, total:total};
+  // nBase/nIva: lo que se desglosa en el ticket. base/ivaImporte: lo fiscal (con el margen).
+  return {subtotal:subtotal, disc:disc, discLineas:discLineas, discGlobal:discGlobal,
+    base:base + baseU, ivaTipo:ivaTipo, ivaImporte:ivaImporte + cuotaU, ivaModo:ivaModo, total:total + netoU,
+    nBase:base, nIva:ivaImporte, usados:usados};
 }
 
 function _renderCambio(total) {
@@ -1772,12 +1818,12 @@ function calcTotal() {
   // IVA rows
   var ivaOn = !!(AJUSTES.iva && AJUSTES.iva.activo);
   // F42: no mostrar "Base imponible / IVA €0.00" con el carrito vacío (confunde)
-  var ivaShow = ivaOn && (t.base > 0);
+  var ivaShow = ivaOn && (t.nBase > 0);
   document.getElementById('ivaBaseRow').style.display = ivaShow ? 'flex' : 'none';
   document.getElementById('ivaImpRow').style.display = ivaShow ? 'flex' : 'none';
   if (ivaOn) {
-    document.getElementById('ivaBaseVal').textContent = '\u20ac' + t.base.toFixed(2);
-    document.getElementById('ivaImpVal').textContent = '\u20ac' + t.ivaImporte.toFixed(2);
+    document.getElementById('ivaBaseVal').textContent = '\u20ac' + t.nBase.toFixed(2);
+    document.getElementById('ivaImpVal').textContent = '\u20ac' + t.nIva.toFixed(2);
     document.getElementById('ivaImpLbl').textContent = T('tpv.iva_pct').replace('{p}', t.ivaTipo);
     document.getElementById('totalLbl').textContent = t.ivaModo === 'incluido' ? 'TOTAL ' + T('tpv.iva_inc') : 'TOTAL';
   } else {
@@ -1942,7 +1988,7 @@ function cobrar() {
     cuotas: fin ? fin.cuotas : null,
     entrada: fin ? fin.entrada : 0,
     entradaPago: (esFinanciado && fin && fin.entrada > 0) ? selectedEntradaPago : null,
-    items: cart.slice(),
+    items: cart.map(function(c, i) { return totals.usados && totals.usados[i] ? Object.assign({}, c, { usado: totals.usados[i] }) : c; }),
     // Lo que entrego el cliente en efectivo, para poder imprimir el cambio.
     // Solo vive en memoria: la tabla `ventas` no tiene esta columna y mandar un
     // campo inexistente devuelve 400 y deja la venta solo en local (paso con
@@ -1970,6 +2016,12 @@ function cobrar() {
         }
         // F285: dejar constancia de la salida en el log de movimientos
         _tpvLogSalida(item.nombre, item.qty, s.id, venta.clienteNombre);
+        // Comprado a un particular: el registro apunta a quién y cuándo se vendió.
+        if (s.compraId && SB_KEY && TIENDA_ID) {
+          sbPatch('compras_usados', 'id=eq.' + encodeURIComponent(s.compraId), {
+            venta_id: venta.id, venta_fecha: venta.fecha, venta_cliente: venta.clienteNombre || null
+          });
+        }
       }
     }
   });
@@ -2018,6 +2070,13 @@ function cobrar() {
 // para poder mandar el ticket por ESC/POS.
 var _ultimaVenta = null, _ultimosTotals = null;
 
+// Línea de un usado vendido en régimen de margen (lleva la marca (*) y la mención).
+function _esMargen(item) { return !!(item && item.usado && item.usado.regimen === 'margen'); }
+function _partesTk(v) {
+  if (typeof tkPartesVenta === 'function') return tkPartesVenta(v);
+  return { hay: false, mencion: '', normalBase: parseFloat(v.base) || 0, normalIva: parseFloat(v.ivaImporte) || 0 };
+}
+
 function mostrarTicket(venta, totals) {
   _ultimaVenta = venta; _ultimosTotals = totals;
   // FIX TPV-2: escapar todo el contenido del ticket para evitar XSS
@@ -2025,6 +2084,8 @@ function mostrarTicket(venta, totals) {
     ? '<div style="text-align:center;margin-bottom:6px"><img src="' + escHtml(TIENDA.logo_url) + '" alt="" style="max-height:50px;max-width:200px;object-fit:contain"></div>'
     : '<div class="ticket-logo">\u26a1 ' + escHtml(TIENDA.nombre || 'Tekpair') + '</div>';
   var ivaOn = !!(totals.ivaTipo && totals.ivaModo && totals.ivaModo !== 'sin');
+  // Usados en régimen de margen: su impuesto NO se desglosa; solo la parte normal.
+  var P = _partesTk(venta);
   var html = '<div class="ticket">' +
     logoBlock +
     (TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:4px">' + escHtml(TIENDA.nombre) + '</div>' : '') +
@@ -2037,7 +2098,7 @@ function mostrarTicket(venta, totals) {
     '<hr class="ticket-sep">' +
     venta.items.map(function(item) {
       var d = descLineaImporte(item);
-      return '<div class="ticket-row"><span>' + escHtml(item.nombre) + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>' +
+      return '<div class="ticket-row"><span>' + escHtml(item.nombre) + (_esMargen(item) ? ' (*)' : '') + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>' +
         (item.imei ? '<div class="ticket-row" style="font-size:12px"><span>&nbsp;&nbsp;IMEI: ' + escHtml(item.imei) + '</span><span></span></div>' : '') +
         (d > 0 ? '<div class="ticket-row" style="font-size:12px"><span>&nbsp;&nbsp;' + T('tpv.descuento_2') +
           (item.descTipo === 'pct' ? ' ' + item.desc + '%' : '') + '</span><span>-\u20ac' + d.toFixed(2) + '</span></div>' : '');
@@ -2045,12 +2106,13 @@ function mostrarTicket(venta, totals) {
     '<hr class="ticket-sep">' +
     (totals.disc > 0 ? '<div class="ticket-row"><span><span data-t="tpv.subtotal">Subtotal</span></span><span>\u20ac' + totals.subtotal.toFixed(2) + '</span></div>' +
     '<div class="ticket-row"><span>' + T('tpv.descuento_2') + '</span><span>-\u20ac' + totals.disc.toFixed(2) + '</span></div>' : '') +
-    (ivaOn && totals.base > 0 ?
-      '<div class="ticket-row"><span>' + T('pres.doc_base_imponible') + '</span><span>\u20ac' + totals.base.toFixed(2) + '</span></div>' +
-      '<div class="ticket-row"><span>' + T('tpv.iva_pct').replace('{p}', totals.ivaTipo) + '</span><span>\u20ac' + totals.ivaImporte.toFixed(2) + '</span></div>'
+    (ivaOn && P.normalBase > 0 ?
+      '<div class="ticket-row"><span>' + T('pres.doc_base_imponible') + '</span><span>\u20ac' + P.normalBase.toFixed(2) + '</span></div>' +
+      '<div class="ticket-row"><span>' + T('tpv.iva_pct').replace('{p}', totals.ivaTipo) + '</span><span>\u20ac' + P.normalIva.toFixed(2) + '</span></div>'
       : ''
     ) +
-    '<div class="ticket-total"><span>TOTAL' + (totals.ivaModo === 'incluido' ? ' ' + T('tpv.iva_inc') : '') + '</span><span>\u20ac' + totals.total.toFixed(2) + '</span></div>' +
+    '<div class="ticket-total"><span>TOTAL' + (totals.ivaModo === 'incluido' && P.normalBase > 0 ? ' ' + T('tpv.iva_inc') : '') + '</span><span>\u20ac' + totals.total.toFixed(2) + '</span></div>' +
+    (P.mencion ? '<div style="font-size:12px;margin:4px 0">(*) ' + escHtml(P.mencion) + '</div>' : '') +
     '<hr class="ticket-sep">' +
     '<div class="ticket-footer">' + T('tpv.gracias_compra') + '' +
     '<br><span style="font-size:12px">' + T('tkt.conserve') + '</span>' +
@@ -2117,7 +2179,7 @@ function _ticketDoc() {
 
   var lineas = [];
   (v.items || []).forEach(function (item) {
-    lineas.push([item.nombre + ' x' + item.qty, eur(item.precio * item.qty)]);
+    lineas.push([item.nombre + (_esMargen(item) ? ' (*)' : '') + ' x' + item.qty, eur(item.precio * item.qty)]);
     if (item.imei) lineas.push(['  IMEI: ' + item.imei, '']);
     var d = descLineaImporte(item);
     if (d > 0) {
@@ -2132,12 +2194,14 @@ function _ticketDoc() {
     sumas.push([T('tpv.subtotal'), eur(t.subtotal)]);
     sumas.push([T('tpv.descuento_2'), '-' + eur(t.disc)]);
   }
-  if (ivaOn && t.base > 0) {
-    sumas.push([T('pres.doc_base_imponible'), eur(t.base)]);
-    sumas.push([T('tpv.iva_pct').replace('{p}', t.ivaTipo), eur(t.ivaImporte)]);
+  var P = _partesTk(v);
+  if (ivaOn && P.normalBase > 0) {
+    sumas.push([T('pres.doc_base_imponible'), eur(P.normalBase)]);
+    sumas.push([T('tpv.iva_pct').replace('{p}', t.ivaTipo), eur(P.normalIva)]);
   }
 
   var pie = [T('tpv.gracias_compra'), T('tkt.conserve')];
+  if (P.mencion) pie.unshift('(*) ' + P.mencion);
   if (TIENDA.garantiaVentas) pie.push(TIENDA.garantiaVentas);
   if (TIENDA.politicaVentas) pie.push(TIENDA.politicaVentas);
   if (AJUSTES.ticketPie) pie.push(AJUSTES.ticketPie);
@@ -2147,7 +2211,7 @@ function _ticketDoc() {
     datos: datos,
     lineas: lineas,
     sumas: sumas,
-    total: ['TOTAL' + (t.ivaModo === 'incluido' ? ' ' + T('tpv.iva_inc') : ''), eur(t.total)],
+    total: ['TOTAL' + (t.ivaModo === 'incluido' && P.normalBase > 0 ? ' ' + T('tpv.iva_inc') : ''), eur(t.total)],
     codigo: v.numero ? ('T' + String(v.fecha || '').slice(0, 4) + '-' + String(v.numero).padStart(6, '0')) : '',
     pie: pie
   };
@@ -2392,7 +2456,7 @@ setInterval(_actualizarFabBadge, 600);
 setTimeout(_actualizarFabBadge, 300);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="factura.js?v=20260621q" defer></script>
+<script src="factura.js?v=20261016d" defer></script>
 <script>
 function factVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });

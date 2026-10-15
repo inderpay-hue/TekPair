@@ -443,7 +443,7 @@
         var cant = parseFloat(i.cantidad != null ? i.cantidad : i.qty) || 1;
         var precio = parseFloat(i.precio) || 0;
         return {
-          desc: (i.nombre || '-') + (i.imei ? '  ·  IMEI: ' + i.imei : ''),
+          desc: (i.nombre || '-') + (i.imei ? '  ·  IMEI: ' + i.imei : '') + (i.usado && i.usado.regimen === 'margen' ? ' (*)' : ''),
           cantidad: cant,
           precio: precio,
           total: cant * precio
@@ -700,6 +700,14 @@
     var ivaPct = parseFloat(d.iva) || 0;
     var base = ivaPct > 0 ? (total / (1 + ivaPct / 100)) : total;
     var ivaImp = total - base;
+    // Usados comprados a particulares (js/usados.js): su impuesto va dentro del
+    // margen y NO se desglosa. La base y el IVA de la factura son solo de lo demás.
+    var _us = (FACT.origen === 'venta' && typeof window.tkPartesVenta === 'function') ? window.tkPartesVenta(d) : null;
+    if (_us && _us.hay) {
+      var _normal = Math.max(0, total - _us.ventas);
+      base = ivaPct > 0 ? (_normal / (1 + ivaPct / 100)) : _normal;
+      ivaImp = _normal - base;
+    }
 
     _obtenerSiguienteNumero().then(function(numInfo) {
       // INSERT en facturas
@@ -721,9 +729,13 @@
         iva_importe: +ivaImp.toFixed(2),
         total: total,
         metodo_pago: d.pago || d.pagoFinal || '',
-        origen_detalle: (FACT.origen === 'reparacion')
-          ? { marca: d.marca || '', modelo: d.modelo || '', imei: d.imei || '', averia: d.averia || '' }
-          : ((d.imei || d.marca || d.modelo) ? { marca: d.marca || '', modelo: d.modelo || '', imei: d.imei || '', averia: '' } : null),
+        origen_detalle: (function () {
+          var od = (FACT.origen === 'reparacion')
+            ? { marca: d.marca || '', modelo: d.modelo || '', imei: d.imei || '', averia: d.averia || '' }
+            : ((d.imei || d.marca || d.modelo) ? { marca: d.marca || '', modelo: d.modelo || '', imei: d.imei || '', averia: '' } : null);
+          if (_us && _us.hay) { od = od || {}; od.usados = { importe: +(_us.ventas.toFixed(2)), mencion: _us.mencion || '' }; }
+          return od;
+        })(),
         estado: 'emitida'
       };
 
@@ -1045,11 +1057,20 @@
 
           var boxX = W - margin - 220;
           doc.setFontSize(10); doc.setTextColor(26,26,46); doc.setFont('helvetica','normal');
-          doc.text(FL().base, boxX, y);
-          doc.text(_pdfFmt(f.base_imponible), W - margin - 10, y, { align: 'right' });
-          y += 16;
-          doc.text(FL().iva+' (' + (parseFloat(f.iva_pct)||0) + '%)', boxX, y);
-          doc.text(_pdfFmt(f.iva_importe), W - margin - 10, y, { align: 'right' });
+          var _usF = (f.origen_detalle && f.origen_detalle.usados) || null;
+          if (_usF) {
+            // Usados en régimen de margen: importe aparte y sin desglose de impuesto.
+            doc.text('(*) ' + T('usados.fact_linea'), boxX, y);
+            doc.text(_pdfFmt(_usF.importe), W - margin - 10, y, { align: 'right' });
+            y += 16;
+          }
+          if (!_usF || (parseFloat(f.base_imponible) || 0) > 0) {
+            doc.text(FL().base, boxX, y);
+            doc.text(_pdfFmt(f.base_imponible), W - margin - 10, y, { align: 'right' });
+            y += 16;
+            doc.text(FL().iva+' (' + (parseFloat(f.iva_pct)||0) + '%)', boxX, y);
+            doc.text(_pdfFmt(f.iva_importe), W - margin - 10, y, { align: 'right' });
+          }
           y += 10;
           doc.setFillColor(16, 185, 129);
           doc.rect(boxX - 10, y, W - margin - boxX + 10, 26, 'F');
@@ -1059,6 +1080,7 @@
           doc.text(_pdfFmt(f.total), W - margin - 10, y, { align: 'right' });
 
           doc.setFontSize(9); doc.setTextColor(26,26,46); doc.setFont('helvetica','bold');
+          if (_usF && _usF.mencion) { doc.setFont('helvetica','normal'); doc.text('(*) ' + _usF.mencion, margin, H - 86); doc.setFont('helvetica','bold'); }
           if (f.metodo_pago) { doc.text(FL().formaPago+': ' + f.metodo_pago, margin, H - 70); }
           doc.setFont('helvetica','normal'); doc.setFontSize(8); doc.setTextColor(150,150,150);
           doc.text(FL().pie, margin, H - 54);
@@ -1116,6 +1138,7 @@
     }
 
     // Filas de la tabla
+    var _usH = (f.origen_detalle && f.origen_detalle.usados) || null;
     var filasHtml = '';
     lineas.forEach(function(ln) {
       var cant = parseFloat(ln.cantidad) || 1;
@@ -1210,10 +1233,13 @@
         '<th>'+FL().descripcion.charAt(0)+FL().descripcion.slice(1).toLowerCase()+'</th><th class="num">'+FL().cant+'</th><th class="num">'+FL().precio.charAt(0)+FL().precio.slice(1).toLowerCase()+'</th><th class="num">'+FL().importe.charAt(0)+FL().importe.slice(1).toLowerCase()+'</th>' +
       '</tr></thead><tbody>' + filasHtml + '</tbody></table>' +
       '<div class="totales"><div class="totales-box">' +
-        '<div class="fila"><span>'+FL().base+'</span><span>' + _fmtImporte(f.base_imponible) + '</span></div>' +
-        '<div class="fila"><span>'+FL().iva+' (' + (parseFloat(f.iva_pct) || 0) + '%)</span><span>' + _fmtImporte(f.iva_importe) + '</span></div>' +
+        (_usH ? '<div class="fila"><span>(*) ' + T('usados.fact_linea') + '</span><span>' + _fmtImporte(_usH.importe) + '</span></div>' : '') +
+        (!_usH || (parseFloat(f.base_imponible) || 0) > 0 ?
+          '<div class="fila"><span>'+FL().base+'</span><span>' + _fmtImporte(f.base_imponible) + '</span></div>' +
+          '<div class="fila"><span>'+FL().iva+' (' + (parseFloat(f.iva_pct) || 0) + '%)</span><span>' + _fmtImporte(f.iva_importe) + '</span></div>' : '') +
         '<div class="fila total"><span>TOTAL</span><span>' + _fmtImporte(f.total) + '</span></div>' +
       '</div></div>' +
+      (_usH && _usH.mencion ? '<div style="margin-top:8px;font-size:12px">(*) ' + _esc(_usH.mencion) + '</div>' : '') +
       '<div class="pie">' +
         (f.metodo_pago ? '<div class="pago">' + T('fact.forma_pago').replace('{metodo}', _esc(f.metodo_pago)) + '</div>' : '') +
         '<div>' + T('fact.pie_documento') + '</div>' +

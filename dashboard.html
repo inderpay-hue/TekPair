@@ -1212,7 +1212,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261016c"></script>
+<script src="/lang/lang.v8.js?v=20261016d"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -1295,6 +1295,9 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     </div>
     <div class="sidebar-ni" data-p="pHerramientas" onclick="navTo('pHerramientas');setSidebarActive(this)">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></span><span data-t="herr.titulo">Herramientas y licencias</span>
+    </div>
+    <div class="sidebar-ni" data-p="pUsados" onclick="navTo('pUsados');setSidebarActive(this)">
+      <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h3"/></svg></span><span data-t="usados.titulo">Compras de usados</span>
     </div>
     <div class="sidebar-ni" data-p="pReportes" onclick="navTo('pReportes');setSidebarActive(this)">
       <span class="sidebar-ni-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg></span><span data-t="nav.reportes">Reportes</span>
@@ -1761,6 +1764,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <button class="btn-sm" id="btnStockLog" style="display:none;background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirStockLog()" title="Historial de cambios de stock"><span data-t="stock.historial">📋 Historial</span></button>
       <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirImportFactura()" title="Importar PDF de factura del proveedor"><span data-t="stock.importar_factura">📤 Importar factura</span></button>
       <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="imprimirStock()" title="Imprimir inventario por categoría"><span data-t="stock.imprimir">🖨️ Imprimir</span></button>
+      <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirCompraUsado()"><span data-t="usados.btn_comprar">🤝 Comprar a particular</span></button>
       <button class="btn-sm" style="background:var(--orange);color:white" onclick="nuevoStock()" data-t="stock.anadir">+ Añadir</button>
     </div>
   </div>
@@ -1914,6 +1918,10 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <div class="pmas-icon c-blue"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg></div>
       <div class="pmas-body"><div class="pmas-title" data-t="herr.titulo">Herramientas y licencias</div><div class="pmas-desc" data-t="herr.desc_mas">Maquinaria, software y dongles con su caducidad</div></div>
     </button>
+    <button class="pmas-btn" onclick="navTo('pUsados')">
+      <div class="pmas-icon c-green"><svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2"/><path d="M9 7h6M9 11h6M9 15h3"/></svg></div>
+      <div class="pmas-body"><div class="pmas-title" data-t="usados.titulo">Compras de usados</div><div class="pmas-desc" data-t="usados.desc_mas">Contratos firmados y registro de compras a particulares</div></div>
+    </button>
     <button class="pmas-btn" onclick="navTo('pImportar')">
       <div class="pmas-icon c-green"><svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div>
       <div class="pmas-body"><div class="pmas-title" data-t="gen.importar">Importar</div><div class="pmas-desc" data-t="mas.desc_importar">Importa clientes y stock</div></div>
@@ -1979,6 +1987,31 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   <input class="fi" id="herrBuscar" data-t-ph="herr.buscar" placeholder="Buscar…" oninput="renderHerramientasT()" style="margin-bottom:10px">
   <div id="herrResumen" style="font-size:13px;color:var(--muted);margin-bottom:8px"></div>
   <div id="listaHerr"></div>
+</div>
+
+<!-- COMPRAS DE USADOS A PARTICULARES -->
+<div class="page" id="pUsados">
+  <div class="sec-header" style="margin-bottom:10px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
+      <div class="sec-title" data-t="usados.titulo">Compras de usados</div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="exportarUsadosCSV()"><span data-t="usados.exportar">⬇️ Excel</span></button>
+      <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="imprimirRegistroUsados()"><span data-t="usados.imprimir_registro">🖨️ Registro (PDF)</span></button>
+      <button class="btn-sm" style="background:var(--blue);color:white" onclick="abrirCompraUsado()"><span data-t="usados.btn_comprar">🤝 Comprar a particular</span></button>
+    </div>
+  </div>
+  <div id="usadosAvisoReg" style="display:none;font-size:12px;color:var(--muted);background:var(--light);border-radius:8px;padding:8px 10px;margin-bottom:10px" data-t="usados.registro_off">El registro de compras está desactivado para tu país en Ajustes → Impuestos. Los contratos se siguen guardando aquí.</div>
+  <div style="display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap">
+    <button class="btn-sm" data-uf="todas" onclick="usadosFiltro('todas')" data-t="usados.f_todas">Todas</button>
+    <button class="btn-sm" data-uf="stock" onclick="usadosFiltro('stock')" data-t="usados.f_stock">En tienda</button>
+    <button class="btn-sm" data-uf="vendidas" onclick="usadosFiltro('vendidas')" data-t="usados.f_vendidas">Vendidas</button>
+    <button class="btn-sm" data-uf="anuladas" onclick="usadosFiltro('anuladas')" data-t="usados.f_anuladas">Anuladas</button>
+  </div>
+  <input class="fi" id="usadosBuscar" data-t-ph="usados.buscar" placeholder="Buscar por IMEI, documento, nombre o número…" oninput="renderUsados()" style="margin-bottom:10px">
+  <div id="usadosResumen" style="font-size:13px;color:var(--muted);margin-bottom:8px"></div>
+  <div id="listaUsados"></div>
 </div>
 
 <!-- GASTOS -->
@@ -3389,6 +3422,30 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
           💡 <strong>Modo "añadido":</strong> el precio que escribes es la base. El IVA se suma al final.
         </div>
       </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title" data-t="usados.aj_titulo">Compra de usados a particulares</div>
+      <div style="font-size:12px;color:var(--muted);margin:-4px 0 12px;line-height:1.5" data-t="usados.aj_hint">Cada país lo regula a su manera. TekPair rellena estos valores según el país de tu tienda: son un punto de partida, confírmalos con tu asesor.</div>
+      <div class="fg">
+        <label class="fl" data-t="usados.aj_regimen">Impuesto al vender un usado comprado a un particular</label>
+        <select class="fi" id="ajUsRegimen">
+          <option value="margen" data-t="usados.aj_reg_margen">Solo sobre el margen (venta − compra), sin desglosarlo</option>
+          <option value="total" data-t="usados.aj_reg_total">Sobre el precio total, como el resto de productos</option>
+          <option value="sin" data-t="usados.aj_reg_sin">Sin impuesto</option>
+        </select>
+      </div>
+      <div class="fi-row">
+        <div class="fg"><label class="fl" data-t="usados.aj_tipo">Tipo (%) para el margen</label><input class="fi" id="ajUsTipo" type="number" min="0" max="100" step="0.1" style="max-width:110px"></div>
+        <div class="fg"><label class="fl" data-t="usados.aj_anios">Guardar los datos del vendedor (años)</label><input class="fi" id="ajUsAnios" type="number" min="1" max="30" style="max-width:110px"></div>
+        <div class="fg"><label class="fl" data-t="usados.aj_dias">Días en tienda antes de poder venderlo</label><input class="fi" id="ajUsDias" type="number" min="0" max="60" style="max-width:110px"></div>
+      </div>
+      <div class="fg"><label class="fl" data-t="usados.aj_mencion">Mención legal en el ticket y la factura</label><input class="fi" id="ajUsMencion" maxlength="120"></div>
+      <div class="fg"><label class="fl" data-t="usados.aj_docs">Documentos que se aceptan al vendedor (separados por coma)</label><input class="fi" id="ajUsDocs" maxlength="160"></div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin:4px 0 10px">
+        <input type="checkbox" id="ajUsRegistro"> <span data-t="usados.aj_registro">Llevar el registro de compras (libro de policía)</span>
+      </label>
+      <button type="button" class="btn-secondary" style="font-size:13px" onclick="restablecerUsadosPais()"><span data-t="usados.aj_restablecer">↺ Valores de mi país</span></button>
     </div>
   </div><!-- /impuestos -->
 
@@ -5068,6 +5125,96 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 </div>
 
+<!-- COMPRA A PARTICULAR -->
+<div class="modal-bg" id="mCompraUsado">
+<div class="modal">
+  <div class="modal-title"><span data-t="usados.modal_titulo">Comprar un teléfono a un particular</span></div>
+  <div style="font-size:12px;color:var(--muted);margin:-4px 0 10px" data-t="usados.modal_hint">Se guarda el contrato firmado, se anota en el registro y el teléfono entra en el stock con lo que has pagado como coste.</div>
+
+  <div class="fl" style="font-weight:800;margin:6px 0" data-t="usados.sec_telefono">Teléfono</div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl">IMEI *</label><input class="fi" id="cuImei" inputmode="numeric" autocomplete="off"></div>
+    <div class="fg"><label class="fl" data-t="usados.imei2">IMEI 2 (dual SIM)</label><input class="fi" id="cuImei2" inputmode="numeric" autocomplete="off"></div>
+  </div>
+  <div id="cuImeiAviso" style="display:none;font-size:12px;color:#D97706;margin:-4px 0 8px"></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl" data-t="usados.categoria">Tipo</label>
+      <select class="fi" id="cuCat"><option value="Telefono" data-t="stockcat.telefonos">Teléfono</option><option value="Tablet" data-t="stockcat.tablets">Tablet</option><option value="Smartwatch" data-t="stockcat.smartwatch">Smartwatch</option></select></div>
+    <div class="fg"><label class="fl"><span data-t="rep.marca">Marca</span> *</label><input class="fi" id="cuMarca"></div>
+    <div class="fg"><label class="fl"><span data-t="rep.modelo">Modelo</span> *</label><input class="fi" id="cuModelo"></div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl" data-t="usados.capacidad">Capacidad</label><input class="fi" id="cuCapacidad" placeholder="128GB"></div>
+    <div class="fg"><label class="fl" data-t="usados.color">Color</label><input class="fi" id="cuColor"></div>
+    <div class="fg"><label class="fl" data-t="usados.estado">Estado</label>
+      <select class="fi" id="cuEstado">
+        <option value="como_nuevo" data-t="usados.est_como_nuevo">Como nuevo</option>
+        <option value="muy_bueno" data-t="usados.est_muy_bueno">Muy bueno</option>
+        <option value="bueno" selected data-t="usados.est_bueno">Bueno</option>
+        <option value="marcas" data-t="usados.est_marcas">Con marcas de uso</option>
+        <option value="averiado" data-t="usados.est_averiado">Averiado</option>
+      </select></div>
+  </div>
+  <div class="fg"><label class="fl" data-t="usados.notas">Observaciones (golpes, piezas cambiadas, batería…)</label><input class="fi" id="cuNotas"></div>
+
+  <div class="fl" style="font-weight:800;margin:10px 0 6px" data-t="usados.sec_vendedor">Vendedor</div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl"><span data-t="usados.nombre">Nombre y apellidos</span> *</label><input class="fi" id="cuNombre" autocomplete="off"></div>
+    <div class="fg"><label class="fl" data-t="usados.doc_tipo">Documento</label><input class="fi" id="cuDocTipo" list="cuDocList" autocomplete="off"><datalist id="cuDocList"></datalist></div>
+    <div class="fg"><label class="fl"><span data-t="usados.doc_num">Número del documento</span> *</label><input class="fi" id="cuDoc" autocomplete="off"></div>
+  </div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl" data-t="usados.direccion">Dirección</label><input class="fi" id="cuDir" autocomplete="off"></div>
+    <div class="fg"><label class="fl" data-t="usados.telefono">Teléfono</label><input class="fi" id="cuTel" type="tel" autocomplete="off"></div>
+    <div class="fg"><label class="fl" data-t="usados.email">Email</label><input class="fi" id="cuEmail" type="email" autocomplete="off"></div>
+  </div>
+
+  <div class="fl" style="font-weight:800;margin:10px 0 6px" data-t="usados.sec_pago">Pago</div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl"><span data-t="usados.precio">Precio pagado</span> *</label><input class="fi" id="cuPrecio" type="number" step="0.01" min="0"></div>
+    <div class="fg"><label class="fl" data-t="usados.metodo">Forma de pago</label>
+      <select class="fi" id="cuMetodo"><option value="efectivo" data-t="usados.met_efectivo">Efectivo</option><option value="transferencia" data-t="usados.met_transferencia">Transferencia</option><option value="bizum" data-t="usados.met_bizum">Bizum / pago móvil</option><option value="otro" data-t="usados.met_otro">Otro</option></select></div>
+    <div class="fg"><label class="fl" data-t="usados.precio_venta">Precio de venta previsto</label><input class="fi" id="cuPrecioV" type="number" step="0.01" min="0"></div>
+  </div>
+
+  <div class="fl" style="font-weight:800;margin:10px 0 6px" data-t="usados.sec_declara">El vendedor declara</div>
+  <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-bottom:6px;cursor:pointer"><input type="checkbox" id="cuDecl1" style="margin-top:3px"> <span data-t="usados.decl_propietario">Que es el propietario legítimo del teléfono y puede venderlo.</span></label>
+  <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-bottom:6px;cursor:pointer"><input type="checkbox" id="cuDecl2" style="margin-top:3px"> <span data-t="usados.decl_robado">Que no es robado ni está denunciado, bloqueado ni financiado pendiente de pago.</span></label>
+  <label style="display:flex;gap:8px;align-items:flex-start;font-size:13px;margin-bottom:6px;cursor:pointer"><input type="checkbox" id="cuDecl3" style="margin-top:3px"> <span data-t="usados.decl_cuentas">Que ha quitado sus cuentas (iCloud, Google…), códigos y datos personales.</span></label>
+
+  <div class="fl" style="font-weight:800;margin:10px 0 6px" data-t="usados.firma">Firma del vendedor</div>
+  <canvas id="cuFirma" width="560" height="160" style="width:100%;max-width:560px;height:140px;border:1.5px dashed var(--border);border-radius:10px;touch-action:none;background:#fff;display:block"></canvas>
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-top:4px">
+    <span style="font-size:11.5px;color:var(--muted)" data-t="usados.firma_hint">Firma con el dedo: acepta el contrato y lo que declara.</span>
+    <button class="btn-sm" type="button" onclick="borrarFirmaUsado()" data-t="test.borrar_firma">Borrar</button>
+  </div>
+
+  <div class="modal-actions">
+    <button class="btn-secondary" onclick="closeM('mCompraUsado')" data-t="gen.cancelar">Cancelar</button>
+    <button class="btn-primary" id="cuGuardarBtn" onclick="guardarCompraUsado()"><span data-t="usados.guardar">Guardar y firmar contrato</span></button>
+  </div>
+</div>
+</div>
+
+<!-- DETALLE DE UNA COMPRA DE USADO -->
+<div class="modal-bg" id="mUsadoVer">
+<div class="modal">
+  <div class="modal-title"><span id="uvTitulo"></span></div>
+  <div id="uvCuerpo" style="font-size:13px;line-height:1.55"></div>
+  <div id="uvAnularBox" style="display:none;margin-top:10px">
+    <label class="fl" data-t="usados.anular_motivo">Motivo de la anulación</label>
+    <input class="fi" id="uvMotivo" data-t-ph="usados.anular_ph" placeholder="Ej.: error en el IMEI, se rehace el contrato">
+    <div style="font-size:11.5px;color:var(--muted);margin-top:4px" data-t="usados.anular_hint">La anotación no se borra: queda marcada como anulada, con el motivo, la fecha y quién la anuló.</div>
+    <button class="btn-primary" style="background:var(--red);margin-top:8px" onclick="confirmarAnularUsado()" data-t="usados.anular_confirmar">Anular anotación</button>
+  </div>
+  <div class="modal-actions">
+    <button class="btn-secondary" id="uvAnularBtn" style="color:var(--red)" onclick="document.getElementById('uvAnularBox').style.display='block';this.style.display='none'" data-t="usados.anular">Anular</button>
+    <button class="btn-secondary" onclick="closeM('mUsadoVer')" data-t="gen.cerrar">Cerrar</button>
+    <button class="btn-primary" id="uvImprimirBtn" data-t="usados.imprimir_contrato">🖨️ Contrato</button>
+  </div>
+</div>
+</div>
+
 <!-- EDITAR VENTA -->
 <div class="modal-bg" id="mEditarVenta">
 <div class="modal">
@@ -5408,7 +5555,8 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
 <script src="/js/imei-modelo.js?v=20261015b"></script>
-<script src="/js/dash-app.js?v=20261016c"></script>
+<script src="/js/usados.js?v=20261016a"></script>
+<script src="/js/dash-app.js?v=20261016d"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -6994,7 +7142,7 @@ function resetPagosRep() {
 // ═══ FACTURAS ═══
 (function() {
   var s = document.createElement('script');
-  s.src = 'factura.js?v=20260802a';
+  s.src = 'factura.js?v=20261016d';
   s.defer = true;
   document.body.appendChild(s);
 })();

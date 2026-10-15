@@ -1082,7 +1082,7 @@ window.addEventListener('DOMContentLoaded', function() {
     // F52: faltaban → #reportes y otros dejaban la pantalla en blanco
     reportes:'pReportes', reports:'pReportes', comisiones:'pComisiones', facturas:'pFacturas',
     catalogo:'pCatalogo', usuarios:'pUsuarios', ayuda:'pAyuda', citas:'pCitas', mas:'pMas',
-    herramientas:'pHerramientas', licencias:'pHerramientas' };
+    herramientas:'pHerramientas', licencias:'pHerramientas', usados:'pUsados' };
   function _navFromHash() {
     try {
       var h = (location.hash || '').replace(/^#\/?/, '').toLowerCase().trim();
@@ -2803,6 +2803,7 @@ function navTo(id) {
   if (id === 'pClis') renderClis();
   if (id === 'pProvs') renderProvs();
   if (id === 'pHerramientas') renderHerramientasT();
+  if (id === 'pUsados') renderUsados();
   if (id === 'pCajas') Cajas.renderCajas();
   if (id === 'pInicioNuevo') renderInicioNuevo();
   if (id === 'pDash') renderDash();   // F13: el dashboard Clásico no se re-renderizaba al abrirlo → salía €0/0 ventas
@@ -2853,7 +2854,7 @@ var _PAGE_HASH = { pInicioNuevo:'inicio', pDash:'dashboard', pVentas:'ventas', p
   pPresupuestos:'presupuestos', pStock:'stock', pClis:'clientes', pProvs:'proveedores', pGastos:'gastos',
   pPedidos:'pedidos', pEncargos:'encargos', pServicios:'servicios', pCajas:'cajas', pAjustes:'ajustes', pReportes:'reportes',
   pComisiones:'comisiones', pFacturas:'facturas', pCatalogo:'catalogo', pUsuarios:'usuarios',
-  pAyuda:'ayuda', pCitas:'citas', pMas:'mas', pHerramientas:'herramientas' };
+  pAyuda:'ayuda', pCitas:'citas', pMas:'mas', pHerramientas:'herramientas', pUsados:'usados' };
 
 function setNavActive(el) {
   document.querySelectorAll('.ni').forEach(function(n) { n.classList.remove('active'); });
@@ -3504,7 +3505,8 @@ function mapStock(s) {
     ubicacion: s.ubicacion || null,
     enOferta: !!s.en_oferta, precioAntes: parseFloat(s.precio_antes)||0,
     enCatalogo: !!s.en_catalogo,
-    bateria: (s.bateria != null && s.bateria !== '') ? parseInt(s.bateria) : null
+    bateria: (s.bateria != null && s.bateria !== '') ? parseInt(s.bateria) : null,
+    compraId: s.compra_id || ''
   };
 }
 
@@ -3542,6 +3544,12 @@ async function cargarDatosSupabase() {
     // Herramientas y licencias: aparte y sin bloquear lo demas (si la tabla aun
     // no existe, sbGetAll devuelve [] y la seccion sale vacia).
     try { var herrs = await sbGetAll('herramientas_tienda', 'tienda_id=eq.' + TIENDA_ID); if (Array.isArray(herrs)) DB.herramientas = herrs; } catch (e) {}
+    // Compras de usados a particulares (contratos y registro): igual, aparte.
+    // Las firmas se quedan en memoria (_usFirmas), no en localStorage: ocupan mucho.
+    try {
+      var cus = await sbGetAll('compras_usados', 'tienda_id=eq.' + TIENDA_ID);
+      if (Array.isArray(cus)) DB.comprasUsados = cus.map(function(c) { if (c.firma) _usFirmas[c.id] = c.firma; delete c.firma; return c; });
+    } catch (e) {}
     guardarDatos();
     // Aplicar plantillas de gastos recurrentes que toquen
     try { aplicarGastosRecurrentes(); } catch(e) { console.warn('Aplicar recurrentes:', e); }
@@ -3591,7 +3599,7 @@ function refrescarVistasActivas() {
     pInicioNuevo: 'renderInicioNuevo', pDash: 'renderDash', pVentas: 'renderVentas',
     pReps: 'renderReps', pStock: 'renderStock', pClis: 'renderClis', pProvs: 'renderProvs',
     pGastos: 'renderGastos', pServicios: 'renderServicios', pPedidos: 'renderPedidosPage',
-    pAjustes: 'cargarAjustes', pTienda: 'cargarTienda', pHerramientas: 'renderHerramientasT'
+    pAjustes: 'cargarAjustes', pTienda: 'cargarTienda', pHerramientas: 'renderHerramientasT', pUsados: 'renderUsados'
   };
   try { var fn = MAP[activa]; if (fn && typeof window[fn] === 'function') window[fn](); } catch(e){}
   try { if (activa === 'pGastos' && typeof renderGastosRec === 'function') renderGastosRec(); } catch(e){}
@@ -7356,6 +7364,20 @@ function guardarVenta() {
     entradaPago: (esFinanciado && entrada > 0) ? ((document.getElementById('vEntradaPago') || {}).value || 'Efectivo') : null,
     items: [{ nombre: (((SEL.vStock ? ((SEL.vStock.marca || '') + ' ' + (SEL.vStock.modelo || '')) : '').trim()) || T('tpv.venta_item')), qty: 1, precio: precio }]
   };
+  // Usado comprado a un particular: el impuesto va por el régimen del país
+  // (solo sobre el margen, o sin impuesto), igual que en el TPV.
+  var _ucfg = (typeof tkUsadosCfg === 'function') ? tkUsadosCfg() : null;
+  if (SEL.vStock && SEL.vStock.compraId && _ucfg && _ucfg.impuestoActivo && _ucfg.regimen !== 'total') {
+    var _coste = parseFloat(SEL.vStock.precioC) || 0;
+    var _u = { compraId: SEL.vStock.compraId, regimen: _ucfg.regimen, neto: subtotal, coste: _coste, tipo: 0, margen: 0, cuota: 0, base: 0, mencion: '' };
+    if (_ucfg.regimen === 'margen') {
+      var _m = tkMargenLinea(subtotal, _coste, _ucfg.tipo);
+      _u.tipo = _ucfg.tipo; _u.margen = _m.margen; _u.cuota = _m.cuota; _u.base = _m.base; _u.mencion = _ucfg.mencion || '';
+    }
+    venta.items[0].usado = _u;
+    venta.total = subtotal; venta.base = _u.base; venta.ivaImporte = _u.cuota;
+    total = subtotal;
+  }
 
   // Reduce stock
   if (SEL.vStock && !SEL.vStock.esServicio) {
@@ -7364,6 +7386,11 @@ function guardarVenta() {
       s.unidades = Math.max(0, s.unidades - 1);
       if (s.unidades === 0) s.vendido = true;
       _logMov('salida', _stockNombre(s), 1, (venta.clienteNombre || T('inicio.ventas')));
+      if (s.compraId && SB_KEY && TIENDA_ID) {
+        sbPatch('compras_usados', 'id=eq.' + encodeURIComponent(s.compraId), { venta_id: venta.id, venta_fecha: venta.fecha, venta_cliente: venta.clienteNombre || null });
+        var _cu = (DB.comprasUsados || []).find(function(x) { return x.id === s.compraId; });
+        if (_cu) { _cu.venta_id = venta.id; _cu.venta_fecha = venta.fecha; _cu.venta_cliente = venta.clienteNombre || null; }
+      }
       // Sincronizar con Supabase para que no quede inconsistente
       if (SB_KEY && TIENDA_ID) {
         sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
@@ -7672,7 +7699,7 @@ function imprimirTicketVenta(id) {
     var dl = dv > 0 ? Math.min(it.descTipo === 'pct' ? sub * dv / 100 : dv, sub) : 0;
     return '<div class="it">' +
         '<span class="it-q">' + qty + '</span>' +
-        '<span class="it-d">' + esc(it.nombre) + '</span>' +
+        '<span class="it-d">' + esc(it.nombre) + (it.usado && it.usado.regimen === 'margen' ? ' (*)' : '') + '</span>' +
         '<span class="it-u">' + cur(pu) + '</span>' +
         '<span class="it-t">' + cur(sub) + '</span>' +
       '</div>' +
@@ -7684,7 +7711,9 @@ function imprimirTicketVenta(id) {
   }).join('');
 
   // ── Sumas y desglose de IVA ──
-  var ivaOn = !!(v.iva && v.ivaModo && v.ivaModo !== 'sin');
+  // Los usados en régimen de margen no desglosan su impuesto: solo la parte normal.
+  var _P = (typeof tkPartesVenta === 'function') ? tkPartesVenta(v) : { normalBase: v.base || 0, normalIva: v.ivaImporte || 0, mencion: '', hay: false };
+  var ivaOn = !!(v.iva && v.ivaModo && v.ivaModo !== 'sin') && (!_P.hay || _P.normalBase > 0);
   var sumas = '';
   if (v.descuento > 0) {
     sumas += '<div class="row"><span>' + T('tkt.subtotal') + '</span><span>' + cur(v.precio || 0) + '</span></div>' +
@@ -7694,9 +7723,10 @@ function imprimirTicketVenta(id) {
     ? '<div class="sep"></div><div class="tit">' + T('tkt.desglose_iva') + '</div>' +
       '<div class="iv th"><span>IVA</span><span>' + T('pres.doc_base_imponible') + '</span>' +
         '<span>' + T('tkt.cuota_iva') + '</span></div>' +
-      '<div class="iv"><span>' + v.iva + '%</span><span>' + cur(v.base || 0) + '</span>' +
-        '<span>' + cur(v.ivaImporte || 0) + '</span></div>'
+      '<div class="iv"><span>' + v.iva + '%</span><span>' + cur(_P.normalBase || 0) + '</span>' +
+        '<span>' + cur(_P.normalIva || 0) + '</span></div>'
     : '';
+  if (_P.mencion) iva += '<div class="sm" style="margin-top:3px">(*) ' + esc(_P.mencion) + '</div>';
 
   // ── Pago, y lo entregado/cambio cuando se cobró en efectivo ──
   var pago = '<div class="row"><span>' + T('tpv.tk_pago') + '</span><strong>' + esc(v.pago || '') + '</strong></div>';
@@ -7748,7 +7778,7 @@ function imprimirTicketVenta(id) {
     '<div class="sep"></div>' +
     sumas +
     iva +
-    '<div class="tot"><span>' + T('pres.doc_total') + (v.ivaModo === 'incluido' ? ' ' + T('tkt.iva_inc') : '') +
+    '<div class="tot"><span>' + T('pres.doc_total') + (v.ivaModo === 'incluido' && ivaOn ? ' ' + T('tkt.iva_inc') : '') +
       '</span><span>' + cur(v.total || 0) + '</span></div>' +
     pago +
     (num ? '<div class="sep"></div>' + _code128Html(num, 34, 1.3) +
@@ -16616,6 +16646,35 @@ function renderGraficas(ventas, reps, pagos, fechas, pagosReps) {
   }
 }
 
+// Ventas de usados comprados a particulares (régimen de margen o sin impuesto):
+// van aparte del desglose por tipo, que es solo de la parte normal de cada venta.
+function _usadosAcum(ventas) {
+  var a = { n: 0, ventas: 0, coste: 0, margen: 0, base: 0, cuota: 0 };
+  (ventas || []).forEach(function(v) {
+    var P = (typeof tkPartesVenta === 'function') ? tkPartesVenta(v) : null;
+    if (!P || !P.hay) return;
+    a.n += P.n; a.ventas += P.ventas; a.coste += P.coste; a.margen += P.margen; a.base += P.base; a.cuota += P.cuota;
+  });
+  return a;
+}
+// La parte normal de una venta (sin los usados), para sumarla por tipo de IVA.
+function _ventaParteNormal(v) {
+  var P = (typeof tkPartesVenta === 'function') ? tkPartesVenta(v) : null;
+  if (!P || !P.hay) return v;
+  return { iva: v.iva, total: Math.max(0, (parseFloat(v.total) || 0) - P.ventas), ivaImporte: P.normalIva, base: P.normalBase };
+}
+function _usadosResumenHtml(a) {
+  if (!a || !a.n) return '';
+  var td = 'padding:6px 8px;border-bottom:1px solid var(--border);';
+  var f = function(lbl, x, col) { return '<tr><td style="' + td + '">' + lbl + '</td><td style="' + td + 'text-align:right;font-family:ui-monospace,monospace;' + (col || '') + '">' + cur(x) + '</td></tr>'; };
+  return '<div style="margin-top:14px;font-weight:800;font-size:13px">' + T('usados.rep_titulo') + ' (' + a.n + ')</div>' +
+    '<div style="font-size:11.5px;color:var(--muted);margin:2px 0 6px">' + T('usados.rep_nota') + '</div>' +
+    '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
+    f(T('usados.rep_vendido'), a.ventas) + f(T('usados.rep_comprado'), a.coste) + f(T('usados.rep_margen'), a.margen) +
+    f(T('usados.rep_base'), a.base) + f(T('usados.rep_cuota'), a.cuota, 'color:var(--orange);font-weight:800') +
+    '</table>';
+}
+
 function renderDesgloseIVA(ventas, reps) {
   // Sumar por tipo de IVA
   var portipos = {0:{base:0,iva:0,total:0},4:{base:0,iva:0,total:0},10:{base:0,iva:0,total:0},21:{base:0,iva:0,total:0}};
@@ -16632,7 +16691,7 @@ function renderDesgloseIVA(ventas, reps) {
     portipos[tipo].iva += ivaImp;
     portipos[tipo].total += total;
   }
-  ventas.forEach(añade);
+  ventas.forEach(function(v) { añade(_ventaParteNormal(v)); });
   reps.forEach(añade);
 
   var totalBase = 0, totalIva = 0, totalT = 0;
@@ -16659,6 +16718,7 @@ function renderDesgloseIVA(ventas, reps) {
     '<td style="padding:10px;text-align:right;font-family:ui-monospace,monospace;font-weight:800;color:var(--orange)">' + cur(totalIva) + '</td>' +
     '<td style="padding:10px;text-align:right;font-family:ui-monospace,monospace;font-weight:800;color:var(--green)">' + cur(totalT) + '</td></tr>';
   html += '</tbody></table>';
+  html += _usadosResumenHtml(_usadosAcum(ventas));
   document.getElementById('ivaDesglose').innerHTML = html;
 }
 
@@ -16683,9 +16743,10 @@ function generarPDFGestor() {
     portipos[tipo].iva += ivaImp;
     portipos[tipo].total += total;
   }
-  ventas.forEach(añade); reps.forEach(añade);
+  ventas.forEach(function(v) { añade(_ventaParteNormal(v)); }); reps.forEach(añade);
   var totalBase = 0, totalIva = 0, totalT = 0;
   Object.values(portipos).forEach(function(d){ totalBase += d.base; totalIva += d.iva; totalT += d.total; });
+  var _usA = _usadosAcum(ventas);
 
   // Pagos
   var pagos = {};
@@ -16762,6 +16823,13 @@ function generarPDFGestor() {
   }).join('') +
   '<tr class="tot"><td>' + T('pres.doc_total') + '</td><td class="r">' + cur(totalBase) + '</td><td class="r">' + cur(totalIva) + '</td><td class="r">' + cur(totalT) + '</td></tr>' +
   '</tbody></table>' +
+
+  (_usA.n ? '<h2>' + T('usados.rep_titulo') + ' (' + _usA.n + ')</h2><p style="font-size:11px;color:#555">' + T('usados.rep_nota') + '</p>' +
+  '<table><tbody>' +
+  [[T('usados.rep_vendido'), _usA.ventas], [T('usados.rep_comprado'), _usA.coste], [T('usados.rep_margen'), _usA.margen],
+   [T('usados.rep_base'), _usA.base], [T('usados.rep_cuota'), _usA.cuota]].map(function(r) {
+    return '<tr><td>' + esc(r[0]) + '</td><td class="r">' + cur(r[1]) + '</td></tr>';
+  }).join('') + '</tbody></table>' : '') +
 
   (Object.keys(pagos).length ? '<h2>Cobros por forma de pago</h2>' +
   '<table><thead><tr><th>Forma de pago</th><th class="r">Importe</th></tr></thead><tbody>' +
@@ -17689,6 +17757,7 @@ function cargarAjustes() {
   var ajIvaTiposExtraEl = document.getElementById('ajIvaTiposExtra');
   if (ajIvaTiposExtraEl) ajIvaTiposExtraEl.value = iva.tiposExtra || '21, 10, 4, 0';
   toggleIvaCfg();
+  try { cargarUsadosAjustes(); } catch (e) {}
   // Catálogo público. Se lee de TIENDA y no de AJUSTES porque es una propiedad
   // de la tienda en la nube, no una preferencia local del navegador.
   var ajCat = document.getElementById('ajCatalogoActivo');
@@ -17781,6 +17850,7 @@ function guardarAjustes() {
     AJUSTES.iva.tiposExtra = ajExtraEl.value.trim();
   }
   if (!AJUSTES.iva.tiposPermitidos) AJUSTES.iva.tiposPermitidos = [0,4,10,21];
+  try { leerUsadosAjustes(); } catch (e) {}
   // Notificaciones
   AJUSTES.notif = AJUSTES.notif || {};
   AJUSTES.notif.activa = {
@@ -22861,3 +22931,395 @@ function impFacAnadirAlStock() {
   if (typeof renderStock === 'function') renderStock();
 }
 
+
+// ═══ COMPRA DE USADOS A PARTICULARES ═══
+//
+// Comprar un teléfono a un particular deja tres cosas a la vez:
+//   1. el contrato firmado en pantalla, que es también el asiento del registro
+//      de compras de usados (tabla compras_usados, sql/compra-usados.sql);
+//   2. la unidad en stock, con lo pagado como coste y stock.compra_id → así el
+//      TPV cobra el impuesto solo sobre el margen si el país lo permite;
+//   3. el gasto del pago al vendedor, que sale de la caja.
+// Lo que cambia de un país a otro (régimen, tipo, mención, documentos, plazos)
+// vive en AJUSTES.usados y se lee con tkUsadosCfg() (js/usados.js).
+// Las anotaciones no se borran: se anulan con motivo y dejan rastro.
+var _usFiltro = 'todas';
+var _cuFirmaTrazos = false;
+var _usFirmas = {};
+var _usAnonRevisado = false;
+
+function _usCfg() { return (typeof tkUsadosCfg === 'function') ? tkUsadosCfg() : { regimen: 'total', tipo: 0, mencion: '', registro: true, docs: '', anios: 6, dias: 0 }; }
+function _usLang() { return (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'); }
+function _usNum(c) { return (c && c.numero) ? 'C' + String(c.fecha || '').slice(0, 4) + '-' + String(c.numero).padStart(6, '0') : '—'; }
+function _usFecha(f, conHora) {
+  if (!f) return '';
+  var d = new Date(f); if (isNaN(d)) return String(f).slice(0, 10);
+  var s = d.toLocaleDateString(_usLang(), { day: '2-digit', month: '2-digit', year: 'numeric' });
+  return conHora ? s + ' ' + d.toLocaleTimeString(_usLang(), { hour: '2-digit', minute: '2-digit' }) : s;
+}
+function _usDigitos(v) { return String(v || '').replace(/\D/g, ''); }
+function _usEstadoTxt(k) { var t = T('usados.est_' + k); return (t && t !== 'usados.est_' + k) ? t : (k || ''); }
+function _usMetodoTxt(k) { var t = T('usados.met_' + k); return (t && t !== 'usados.met_' + k) ? t : (k || ''); }
+function _usTelefono(c) { return [c.marca, c.modelo, c.capacidad, c.color].filter(Boolean).join(' '); }
+
+// ── Formulario de compra ──
+function abrirCompraUsado() {
+  if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  ['cuImei', 'cuImei2', 'cuMarca', 'cuModelo', 'cuCapacidad', 'cuColor', 'cuNotas', 'cuNombre', 'cuDoc', 'cuDir', 'cuTel', 'cuEmail', 'cuPrecio', 'cuPrecioV']
+    .forEach(function (k) { var el = document.getElementById(k); if (el) { el.value = ''; el.classList.remove('error'); } });
+  document.getElementById('cuCat').value = 'Telefono';
+  document.getElementById('cuEstado').value = 'bueno';
+  document.getElementById('cuMetodo').value = 'efectivo';
+  ['cuDecl1', 'cuDecl2', 'cuDecl3'].forEach(function (k) { document.getElementById(k).checked = false; });
+  var docs = String(_usCfg().docs || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
+  document.getElementById('cuDocList').innerHTML = docs.map(function (d) { return '<option value="' + esc(d) + '">'; }).join('');
+  document.getElementById('cuDocTipo').value = docs[0] || '';
+  var av = document.getElementById('cuImeiAviso'); av.style.display = 'none'; av.textContent = '';
+  var btn = document.getElementById('cuGuardarBtn'); if (btn) btn.disabled = false;
+  openM('mCompraUsado');
+  var imp = document.getElementById('cuImei');
+  if (imp && !imp._tkUsado) { imp._tkUsado = true; imp.addEventListener('input', _cuAvisoImei); }
+  _iniciarFirmaUsado();
+}
+
+// Avisa si ese IMEI ya pasó por la tienda (reparado, comprado o vendido antes).
+function _cuAvisoImei() {
+  var av = document.getElementById('cuImeiAviso'); if (!av) return;
+  var d = _usDigitos(document.getElementById('cuImei').value);
+  if (d.length < 14) { av.style.display = 'none'; return; }
+  var mismo = function (x) { return x && _usDigitos(x).slice(0, 14) === d.slice(0, 14); };
+  var vistos = [];
+  (DB.comprasUsados || []).forEach(function (c) { if (mismo(c.imei) || mismo(c.imei2)) vistos.push(T('usados.visto_compra').replace('{n}', _usNum(c)).replace('{f}', _usFecha(c.fecha))); });
+  (DB.reps || []).forEach(function (r) { if (mismo(r.imei)) vistos.push(T('usados.visto_rep').replace('{f}', _usFecha(r.fecha)).replace('{c}', r.clienteNombre || '')); });
+  (DB.ventas || []).forEach(function (v) { if (mismo(v.imei)) vistos.push(T('usados.visto_venta').replace('{f}', _usFecha(v.fecha)).replace('{c}', v.clienteNombre || '')); });
+  (DB.stock || []).forEach(function (s) { if (mismo(s.imei) && s.unidades > 0) vistos.push(T('usados.visto_stock')); });
+  av.style.display = vistos.length ? 'block' : 'none';
+  av.textContent = vistos.length ? '⚠️ ' + T('usados.imei_visto') + ' ' + vistos.slice(0, 4).join(' · ') : '';
+}
+
+function _iniciarFirmaUsado() {
+  var c = document.getElementById('cuFirma'); if (!c) return;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  _cuFirmaTrazos = false;
+  if (c._tkFirma) return;
+  c._tkFirma = true;
+  var dibujando = false;
+  function pos(e) { var r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * c.width / r.width, y: (e.clientY - r.top) * c.height / r.height }; }
+  c.addEventListener('pointerdown', function (e) { dibujando = true; var p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); c.setPointerCapture(e.pointerId); });
+  c.addEventListener('pointermove', function (e) { if (!dibujando) return; var p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); _cuFirmaTrazos = true; });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { c.addEventListener(ev, function () { dibujando = false; }); });
+}
+function borrarFirmaUsado() { _iniciarFirmaUsado(); }
+function _firmaUsadoJpg() {
+  if (!_cuFirmaTrazos) return null;
+  var c = document.getElementById('cuFirma'); if (!c) return null;
+  var o = document.createElement('canvas'); o.width = 280; o.height = 80;
+  var x = o.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 280, 80); x.drawImage(c, 0, 0, 280, 80);
+  return o.toDataURL('image/jpeg', 0.7);
+}
+
+async function guardarCompraUsado() {
+  if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var v = function (k) { var el = document.getElementById(k); return el ? String(el.value || '').trim() : ''; };
+  document.querySelectorAll('#mCompraUsado .fi.error').forEach(function (el) { el.classList.remove('error'); });
+  var faltan = [];
+  [['cuImei', 'IMEI'], ['cuMarca', T('rep.marca')], ['cuModelo', T('rep.modelo')], ['cuNombre', T('usados.nombre')], ['cuDoc', T('usados.doc_num')]].forEach(function (f) {
+    if (!v(f[0])) { document.getElementById(f[0]).classList.add('error'); faltan.push(f[1]); }
+  });
+  var precio = Math.round((parseFloat(v('cuPrecio')) || 0) * 100) / 100;
+  if (!(precio > 0)) { document.getElementById('cuPrecio').classList.add('error'); faltan.push(T('usados.precio')); }
+  if (faltan.length) { toast(T('stock.faltan') + ': ' + faltan.join(', '), 'err'); return; }
+  var imeiD = _usDigitos(v('cuImei'));
+  if (imeiD.length === 15 && typeof tkImeiValido === 'function' && !tkImeiValido(imeiD)) { document.getElementById('cuImei').classList.add('error'); toast(T('imei.no_valido'), 'err'); return; }
+  if (!document.getElementById('cuDecl1').checked || !document.getElementById('cuDecl2').checked || !document.getElementById('cuDecl3').checked) { toast(T('usados.falta_declara'), 'err'); return; }
+  var firma = _firmaUsadoJpg();
+  if (!firma) { toast(T('usados.falta_firma'), 'err'); return; }
+
+  var btn = document.getElementById('cuGuardarBtn'); if (btn) btn.disabled = true;
+  var stockId = 's' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  var gastoId = 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+  var fila = {
+    id: _uuidPed(), tienda_id: TIENDA_ID, fecha: new Date().toISOString(),
+    vendedor_nombre: v('cuNombre'), vendedor_doc_tipo: v('cuDocTipo') || null, vendedor_doc: v('cuDoc').toUpperCase(),
+    vendedor_dir: v('cuDir') || null, vendedor_tel: v('cuTel') || null, vendedor_email: v('cuEmail') || null,
+    categoria: v('cuCat') || 'Telefono', marca: v('cuMarca'), modelo: v('cuModelo'),
+    imei: v('cuImei'), imei2: v('cuImei2') || null, capacidad: v('cuCapacidad') || null, color: v('cuColor') || null,
+    estado: v('cuEstado') || null, notas: v('cuNotas') || null,
+    precio: precio, moneda: AJUSTES.moneda || 'EUR', metodo_pago: v('cuMetodo') || 'efectivo',
+    firma: firma, declaraciones: { propietario: true, no_robado: true, sin_cuentas: true, version: 1 },
+    idioma: _usLang(), comprado_por: (U && (U.nombre || U.email)) || null,
+    stock_id: stockId, gasto_id: gastoId
+  };
+  var ok = await sbPost('compras_usados', fila);
+  if (!ok) { if (btn) btn.disabled = false; return; }
+  // El número lo pone la base de datos (correlativo por tienda).
+  try {
+    var r = await sbGet('compras_usados', 'id=eq.' + encodeURIComponent(fila.id) + '&select=numero');
+    if (Array.isArray(r) && r[0]) fila.numero = r[0].numero;
+  } catch (e) {}
+  _usFirmas[fila.id] = fila.firma;
+  delete fila.firma;
+  DB.comprasUsados = [fila].concat(DB.comprasUsados || []);
+
+  // El teléfono entra en stock con lo pagado como coste.
+  var nombreTel = (fila.marca + ' ' + fila.modelo).trim();
+  var item = {
+    id: stockId, categoria: fila.categoria, marca: fila.marca, modelo: fila.modelo,
+    capacidad: fila.capacidad || '', color: fila.color || '', imei: fila.imei, unidades: 1,
+    stockMin: 0, stockMax: 1, precioC: precio, precioV: Math.round((parseFloat(v('cuPrecioV')) || 0) * 100) / 100,
+    vendido: false, calidad: '', tipo: 'segunda', garantiaMeses: TIENDA.gvMesesDefaultUsado || 12,
+    ubicacion: null, enOferta: false, precioAntes: 0, enCatalogo: false, bateria: null, compraId: fila.id
+  };
+  DB.stock.push(item);
+  sbPost('stock', {
+    id: item.id, tienda_id: TIENDA_ID, categoria: item.categoria, marca: item.marca, modelo: item.modelo,
+    capacidad: item.capacidad, color: item.color, imei: item.imei, unidades: 1,
+    precio_c: item.precioC, precio_v: item.precioV, stock_min: 0, stock_max: 1, vendido: false,
+    tipo: 'segunda', garantia_meses: item.garantiaMeses, compra_id: fila.id
+  });
+  _logMov('entrada', nombreTel, 1, _usNum(fila));
+
+  // El pago al vendedor sale de caja como gasto.
+  var g = {
+    id: gastoId, tienda_id: TIENDA_ID,
+    concepto: T('usados.gasto_concepto') + ' ' + _usNum(fila) + ' · ' + nombreTel,
+    importe: precio, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Compra de usados',
+    iva_tipo: 0, proveedor_id: null, proveedor_nombre: fila.vendedor_nombre, proveedor_nif: fila.vendedor_doc,
+    numero_factura: _usNum(fila), metodo_pago: fila.metodo_pago
+  };
+  DB.gastos = DB.gastos || []; DB.gastos.push(g);
+  sbPost('gastos', g);
+  try { _invalidarInvPagos(); } catch (e) {}
+
+  guardarDatos();
+  try { audit('crear', 'compra_usado', fila.id, _usNum(fila) + ' · ' + nombreTel + ' · ' + cur(precio), null); } catch (e) {}
+  closeM('mCompraUsado');
+  toast(T('usados.guardada').replace('{n}', _usNum(fila)), 'ok');
+  try { renderStock(); } catch (e) {}
+  try { if (document.getElementById('pUsados').classList.contains('active')) renderUsados(); } catch (e) {}
+  imprimirContratoUsado(fila.id);
+}
+
+// ── Contrato (A4), en el idioma de la tienda ──
+function imprimirContratoUsado(id) {
+  var c = (DB.comprasUsados || []).find(function (x) { return x.id === id; });
+  if (!c) { toast(T('gen.error'), 'err'); return; }
+  var cfg = _usCfg();
+  var anon = !!c.anonimizada;
+  var vacio = anon ? '***' : '';
+  var fila = function (k, val) { return val ? '<tr><th>' + esc(k) + '</th><td>' + esc(val) + '</td></tr>' : ''; };
+  var tienda = [TIENDA.nombre, TIENDA.cif ? T('tkt.nif') + ' ' + TIENDA.cif : '', TIENDA.dir, TIENDA.tel].filter(Boolean).join(' · ');
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(T('usados.ct_titulo') + ' ' + _usNum(c)) + '</title><style>' +
+    '@page{size:A4;margin:16mm}body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:12.5px;line-height:1.5;margin:0}' +
+    'h1{font-size:19px;margin:0 0 2px}.sub{color:#555;margin-bottom:14px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1.5px solid #111;padding-bottom:2px;margin:16px 0 6px}' +
+    'table{width:100%;border-collapse:collapse}th{text-align:left;width:34%;font-weight:600;color:#444;padding:3px 6px 3px 0;vertical-align:top}td{padding:3px 0}' +
+    'ol{margin:4px 0 0 18px;padding:0}.firmas{display:flex;gap:30px;margin-top:22px}.firma{flex:1;border-top:1px solid #111;padding-top:4px;font-size:11.5px}' +
+    '.firma img{height:70px;display:block;margin-bottom:4px}.anulada{border:3px solid #c00;color:#c00;font-weight:900;font-size:18px;text-align:center;padding:6px;margin-bottom:12px}' +
+    '.legal{font-size:10.5px;color:#444;margin-top:14px}</style></head><body>' +
+    (c.anulada ? '<div class="anulada">' + esc(T('usados.anulada')) + (c.anulada_motivo ? ' — ' + esc(c.anulada_motivo) : '') + '</div>' : '') +
+    '<h1>' + esc(T('usados.ct_titulo')) + '</h1>' +
+    '<div class="sub">' + esc(T('usados.ct_numero')) + ' <b>' + esc(_usNum(c)) + '</b> · ' + esc(_usFecha(c.fecha, true)) + '</div>' +
+    '<h2>' + esc(T('usados.ct_comprador')) + '</h2><div>' + esc(tienda) + '</div>' +
+    '<h2>' + esc(T('usados.ct_vendedor')) + '</h2><table>' +
+      fila(T('usados.nombre'), anon ? vacio : c.vendedor_nombre) +
+      fila(c.vendedor_doc_tipo || T('usados.doc_tipo'), anon ? vacio : c.vendedor_doc) +
+      fila(T('usados.direccion'), anon ? '' : c.vendedor_dir) +
+      fila(T('usados.telefono'), anon ? '' : c.vendedor_tel) +
+      fila(T('usados.email'), anon ? '' : c.vendedor_email) +
+    '</table>' +
+    '<h2>' + esc(T('usados.ct_objeto')) + '</h2><table>' +
+      fila(T('usados.categoria'), _catLbl(c.categoria)) +
+      fila(T('rep.marca') + ' / ' + T('rep.modelo'), [c.marca, c.modelo].filter(Boolean).join(' ')) +
+      fila(T('usados.capacidad'), c.capacidad) + fila(T('usados.color'), c.color) +
+      fila('IMEI', c.imei) + fila(T('usados.imei2'), c.imei2) +
+      fila(T('usados.estado'), _usEstadoTxt(c.estado)) + fila(T('usados.notas'), c.notas) +
+    '</table>' +
+    '<h2>' + esc(T('usados.ct_precio')) + '</h2><table>' +
+      fila(T('usados.precio'), cur(parseFloat(c.precio) || 0)) + fila(T('usados.metodo'), _usMetodoTxt(c.metodo_pago)) +
+    '</table>' +
+    '<h2>' + esc(T('usados.ct_clausulas')) + '</h2><ol>' +
+      '<li>' + esc(T('usados.ct_transmite')) + '</li>' +
+      '<li>' + esc(T('usados.decl_propietario')) + '</li>' +
+      '<li>' + esc(T('usados.decl_robado')) + '</li>' +
+      '<li>' + esc(T('usados.decl_cuentas')) + '</li>' +
+      '<li>' + esc(T('usados.ct_responsable')) + '</li>' +
+    '</ol>' +
+    '<div class="legal">' + esc(T('usados.ct_datos').replace('{t}', TIENDA.nombre || '').replace('{n}', cfg.anios)) + '</div>' +
+    '<div class="firmas">' +
+      '<div class="firma">' + (_usFirmas[c.id] && !anon ? '<img src="' + esc(_usFirmas[c.id]) + '" alt="">' : '<div style="height:70px"></div>') + esc(T('usados.ct_firma_vendedor')) + '</div>' +
+      '<div class="firma"><div style="height:70px"></div>' + esc(T('usados.ct_firma_tienda')) + (c.comprado_por ? ': ' + esc(c.comprado_por) : '') + '</div>' +
+    '</div>' +
+    '<script>window.onload=function(){setTimeout(function(){window.print();},250);};<\/script>' +
+    '</body></html>';
+  _docPopupImprimir(html, 820, 1000);
+}
+
+// ── Registro ──
+function usadosFiltro(f) { _usFiltro = f; renderUsados(); }
+
+function _usFiltradas() {
+  var q = ((document.getElementById('usadosBuscar') || {}).value || '').trim().toLowerCase();
+  var qd = _usDigitos(q);
+  return (DB.comprasUsados || []).filter(function (c) {
+    if (_usFiltro === 'anuladas') { if (!c.anulada) return false; }
+    else if (_usFiltro === 'vendidas') { if (c.anulada || !c.venta_id) return false; }
+    else if (_usFiltro === 'stock') { if (c.anulada || c.venta_id) return false; }
+    if (!q) return true;
+    if (qd.length >= 4 && (_usDigitos(c.imei).indexOf(qd) >= 0 || _usDigitos(c.imei2).indexOf(qd) >= 0)) return true;
+    return [_usNum(c), c.vendedor_nombre, c.vendedor_doc, c.marca, c.modelo, c.imei, c.venta_cliente].join(' ').toLowerCase().indexOf(q) >= 0;
+  }).sort(function (a, b) { return (b.numero || 0) - (a.numero || 0) || String(b.fecha).localeCompare(String(a.fecha)); });
+}
+
+// Pasado el plazo de conservación se borran los datos del vendedor; el asiento queda.
+function _usAnonimizarCaducadas() {
+  if (_usAnonRevisado || !SB_KEY || !TIENDA_ID) return;
+  _usAnonRevisado = true;
+  var anios = _usCfg().anios;
+  var limite = new Date(); limite.setFullYear(limite.getFullYear() - anios);
+  (DB.comprasUsados || []).forEach(function (c) {
+    if (c.anonimizada || !c.fecha || new Date(c.fecha) > limite) return;
+    var cambios = { vendedor_nombre: null, vendedor_doc: null, vendedor_dir: null, vendedor_tel: null, vendedor_email: null, firma: null, anonimizada: true };
+    sbPatch('compras_usados', 'id=eq.' + encodeURIComponent(c.id), cambios).then(function (ok) {
+      if (ok) { delete cambios.firma; Object.assign(c, cambios); delete _usFirmas[c.id]; try { guardarDatos(); } catch (e) {} }
+    });
+  });
+}
+
+function renderUsados() {
+  var cont = document.getElementById('listaUsados'); if (!cont) return;
+  _usAnonimizarCaducadas();
+  var cfg = _usCfg();
+  var av = document.getElementById('usadosAvisoReg'); if (av) av.style.display = cfg.registro ? 'none' : 'block';
+  document.querySelectorAll('#pUsados [data-uf]').forEach(function (b) {
+    var on = b.getAttribute('data-uf') === _usFiltro;
+    b.style.background = on ? 'var(--blue)' : ''; b.style.color = on ? 'white' : '';
+  });
+  var lista = _usFiltradas();
+  var res = document.getElementById('usadosResumen');
+  if (res) {
+    var validas = lista.filter(function (c) { return !c.anulada; });
+    var pagado = validas.reduce(function (s, c) { return s + (parseFloat(c.precio) || 0); }, 0);
+    res.textContent = lista.length ? T('usados.resumen').replace('{n}', validas.length).replace('{x}', cur(pagado)) : '';
+  }
+  if (!lista.length) {
+    cont.innerHTML = '<div style="text-align:center;color:var(--muted);padding:30px 10px">' + T((DB.comprasUsados || []).length ? 'usados.sin_resultados' : 'usados.vacio') + '</div>';
+    return;
+  }
+  cont.innerHTML = lista.slice(0, 300).map(function (c) {
+    var est = c.anulada ? ['#EF4444', T('usados.anulada')]
+      : (c.venta_id ? ['#10B981', T('usados.vendida_el').replace('{f}', _usFecha(c.venta_fecha))] : ['#3B82F6', T('usados.en_tienda')]);
+    var vend = c.anonimizada ? T('usados.anonimizada') : [c.vendedor_nombre, [c.vendedor_doc_tipo, c.vendedor_doc].filter(Boolean).join(' ')].filter(Boolean).join(' · ');
+    return '<div class="card" style="display:flex;align-items:center;gap:10px;cursor:pointer;margin-bottom:8px;padding:12px' + (c.anulada ? ';opacity:.6' : '') + '" onclick="verUsado(\'' + c.id + '\')">' +
+      '<div style="flex:1;min-width:0">' +
+        '<div style="font-weight:700">' + esc(_usTelefono(c)) + '</div>' +
+        '<div style="font-size:12px;color:var(--muted)">' + esc(_usNum(c)) + ' · ' + esc(_usFecha(c.fecha)) + ' · IMEI ' + esc(c.imei || '') + '</div>' +
+        '<div style="font-size:12px;margin-top:2px">' + esc(vend) + ' · <span style="color:' + est[0] + ';font-weight:700">' + esc(est[1]) + '</span></div>' +
+      '</div>' +
+      '<div style="font-weight:800;white-space:nowrap">' + cur(parseFloat(c.precio) || 0) + '</div>' +
+    '</div>';
+  }).join('');
+}
+
+function verUsado(id) {
+  var c = (DB.comprasUsados || []).find(function (x) { return x.id === id; }); if (!c) return;
+  SEL.usadoId = id;
+  document.getElementById('uvTitulo').textContent = _usNum(c) + ' · ' + _usTelefono(c);
+  var l = function (k, val) { return val ? '<div><span style="color:var(--muted)">' + esc(k) + ':</span> <b>' + esc(val) + '</b></div>' : ''; };
+  document.getElementById('uvCuerpo').innerHTML =
+    (c.anulada ? '<div style="color:#EF4444;font-weight:800;margin-bottom:6px">' + esc(T('usados.anulada')) + ' · ' + esc(_usFecha(c.anulada_at, true)) + (c.anulada_por ? ' · ' + esc(c.anulada_por) : '') + '<br>' + esc(c.anulada_motivo || '') + '</div>' : '') +
+    l(T('pres.doc_fecha'), _usFecha(c.fecha, true)) +
+    l(T('usados.nombre'), c.anonimizada ? T('usados.anonimizada') : c.vendedor_nombre) +
+    l(c.vendedor_doc_tipo || T('usados.doc_tipo'), c.anonimizada ? '' : c.vendedor_doc) +
+    l(T('usados.telefono'), c.anonimizada ? '' : c.vendedor_tel) +
+    l('IMEI', [c.imei, c.imei2].filter(Boolean).join(' / ')) +
+    l(T('usados.estado'), _usEstadoTxt(c.estado)) + l(T('usados.notas'), c.notas) +
+    l(T('usados.precio'), cur(parseFloat(c.precio) || 0) + ' · ' + _usMetodoTxt(c.metodo_pago)) +
+    l(T('usados.comprado_por'), c.comprado_por) +
+    (c.venta_id ? l(T('usados.vendida'), _usFecha(c.venta_fecha) + (c.venta_cliente ? ' · ' + c.venta_cliente : '')) : '');
+  document.getElementById('uvAnularBox').style.display = 'none';
+  document.getElementById('uvMotivo').value = '';
+  var ab = document.getElementById('uvAnularBtn'); ab.style.display = (c.anulada || !tienePerm('stock_editar')) ? 'none' : '';
+  document.getElementById('uvImprimirBtn').onclick = function () { imprimirContratoUsado(c.id); };
+  openM('mUsadoVer');
+}
+
+async function confirmarAnularUsado() {
+  var c = (DB.comprasUsados || []).find(function (x) { return x.id === SEL.usadoId; }); if (!c) return;
+  var motivo = String(document.getElementById('uvMotivo').value || '').trim();
+  if (motivo.length < 3) { toast(T('usados.anular_falta'), 'err'); return; }
+  var cambios = { anulada: true, anulada_motivo: motivo.slice(0, 300), anulada_at: new Date().toISOString(), anulada_por: (U && (U.nombre || U.email)) || null };
+  var ok = await sbPatch('compras_usados', 'id=eq.' + encodeURIComponent(c.id), cambios);
+  if (!ok) return;
+  Object.assign(c, cambios);
+  try { guardarDatos(); } catch (e) {}
+  try { audit('anular', 'compra_usado', c.id, _usNum(c) + ' · ' + motivo, null); } catch (e) {}
+  closeM('mUsadoVer'); renderUsados();
+  toast(T('usados.anulada_ok'), 'ok');
+}
+
+function _usColumnas(c) {
+  var anon = !!c.anonimizada;
+  return [_usNum(c), _usFecha(c.fecha, true), anon ? '***' : (c.vendedor_nombre || ''), anon ? '' : [c.vendedor_doc_tipo, c.vendedor_doc].filter(Boolean).join(' '),
+    anon ? '' : (c.vendedor_dir || ''), anon ? '' : (c.vendedor_tel || ''), [c.marca, c.modelo].filter(Boolean).join(' '),
+    c.imei || '', c.imei2 || '', (parseFloat(c.precio) || 0).toFixed(2), _usMetodoTxt(c.metodo_pago),
+    c.venta_fecha ? _usFecha(c.venta_fecha) : '', c.venta_cliente || '', c.anulada ? (T('usados.anulada') + ': ' + (c.anulada_motivo || '')) : ''];
+}
+function _usCabeceras() {
+  return [T('usados.ct_numero'), T('pres.doc_fecha'), T('usados.ct_vendedor'), T('usados.doc_tipo'), T('usados.direccion'), T('usados.telefono'),
+    T('rep.marca') + ' / ' + T('rep.modelo'), 'IMEI', T('usados.imei2'), T('usados.precio'), T('usados.metodo'),
+    T('usados.col_venta'), T('usados.col_comprador'), T('usados.col_anulada')];
+}
+
+function exportarUsadosCSV() {
+  var lista = _usFiltradas();
+  if (!lista.length) { toast(T('tst.sin_datos'), 'err'); return; }
+  var q = function (s) { return '"' + String(s == null ? '' : s).replace(/"/g, '""') + '"'; };
+  var csv = _usCabeceras().map(q).join(';') + '\n' + lista.map(function (c) { return _usColumnas(c).map(q).join(';'); }).join('\n');
+  downloadBlob(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }), 'tekpair-compras-usados-' + hoyLocal() + '.csv');
+}
+
+function imprimirRegistroUsados() {
+  var lista = _usFiltradas();
+  if (!lista.length) { toast(T('tst.sin_datos'), 'err'); return; }
+  var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(T('usados.registro_titulo')) + '</title><style>' +
+    '@page{size:A4 landscape;margin:10mm}body{font-family:Arial,Helvetica,sans-serif;font-size:9.5px;color:#111;margin:0}' +
+    'h1{font-size:15px;margin:0 0 2px}.sub{color:#555;margin-bottom:8px;font-size:11px}table{width:100%;border-collapse:collapse}' +
+    'th,td{border:1px solid #999;padding:3px 4px;text-align:left;vertical-align:top}th{background:#eee}</style></head><body>' +
+    '<h1>' + esc(T('usados.registro_titulo')) + '</h1>' +
+    '<div class="sub">' + esc([TIENDA.nombre, TIENDA.cif, TIENDA.dir].filter(Boolean).join(' · ')) + ' · ' + esc(_usFecha(new Date().toISOString(), true)) + '</div>' +
+    '<table><thead><tr>' + _usCabeceras().map(function (h) { return '<th>' + esc(h) + '</th>'; }).join('') + '</tr></thead><tbody>' +
+    lista.slice().reverse().map(function (c) { return '<tr>' + _usColumnas(c).map(function (x) { return '<td>' + esc(x) + '</td>'; }).join('') + '</tr>'; }).join('') +
+    '</tbody></table><script>window.onload=function(){setTimeout(function(){window.print();},250);};<\/script></body></html>';
+  _docPopupImprimir(html, 1100, 800);
+}
+
+// ── Ajustes → Compra de usados ──
+// Solo se guarda lo que la tienda cambia respecto a su país: así, si cambia de
+// país, lo demás sigue al nuevo país.
+var _US_CAMPOS = { regimen: 'ajUsRegimen', tipo: 'ajUsTipo', mencion: 'ajUsMencion', docs: 'ajUsDocs', anios: 'ajUsAnios', dias: 'ajUsDias', registro: 'ajUsRegistro' };
+function _pintarUsadosAj(cfg) {
+  Object.keys(_US_CAMPOS).forEach(function (k) {
+    var el = document.getElementById(_US_CAMPOS[k]); if (!el) return;
+    if (el.type === 'checkbox') el.checked = !!cfg[k]; else el.value = cfg[k] == null ? '' : cfg[k];
+  });
+}
+function cargarUsadosAjustes() { if (document.getElementById('ajUsRegimen')) _pintarUsadosAj(_usCfg()); }
+function restablecerUsadosPais() {
+  var pp = (document.getElementById('ajPaisPrefijo') || {}).value || AJUSTES.paisPrefijo;
+  if (typeof tkUsadosDefaults === 'function') _pintarUsadosAj(tkUsadosDefaults(pp));
+}
+function leerUsadosAjustes() {
+  if (!document.getElementById('ajUsRegimen') || typeof tkUsadosDefaults !== 'function') return;
+  var def = tkUsadosDefaults(AJUSTES.paisPrefijo);
+  var dif = {};
+  Object.keys(_US_CAMPOS).forEach(function (k) {
+    var el = document.getElementById(_US_CAMPOS[k]); if (!el) return;
+    var val = el.type === 'checkbox' ? el.checked : String(el.value || '').trim();
+    if (k === 'tipo') val = parseFloat(val); if (k === 'anios' || k === 'dias') val = parseInt(val, 10);
+    if (typeof val === 'number' && !isFinite(val)) return;
+    if (String(val) !== String(def[k])) dif[k] = val;
+  });
+  AJUSTES.usados = dif;
+}
