@@ -6720,6 +6720,17 @@ pt:{"tkt.garantia_meses": "Garantia: {n} meses"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
 
+// i18n Pie del ticket de venta (oct-2026)
+(function(){var _a={
+es:{"tkt.pie_garantia": "Garantía", "tkt.pie_garantia_def": "Cada producto tiene la garantía indicada en su línea, contada desde la fecha de este ticket. Para cualquier reclamación presente este ticket.", "tkt.pie_cambios": "Cambios y devoluciones"},
+en:{"tkt.pie_garantia": "Warranty", "tkt.pie_garantia_def": "Each product has the warranty shown on its line, counted from the date of this receipt. Please bring this receipt for any claim.", "tkt.pie_cambios": "Exchanges and returns"},
+fr:{"tkt.pie_garantia": "Garantie", "tkt.pie_garantia_def": "Chaque produit bénéficie de la garantie indiquée sur sa ligne, à compter de la date de ce ticket. Présentez ce ticket pour toute réclamation.", "tkt.pie_cambios": "Échanges et retours"},
+it:{"tkt.pie_garantia": "Garanzia", "tkt.pie_garantia_def": "Ogni prodotto ha la garanzia indicata sulla sua riga, a partire dalla data di questo scontrino. Per qualsiasi reclamo presenta questo scontrino.", "tkt.pie_cambios": "Cambi e resi"},
+de:{"tkt.pie_garantia": "Garantie", "tkt.pie_garantia_def": "Jedes Produkt hat die in seiner Zeile angegebene Garantie, ab dem Datum dieses Belegs. Bitte legen Sie bei jeder Reklamation diesen Beleg vor.", "tkt.pie_cambios": "Umtausch und Rückgabe"},
+pt:{"tkt.pie_garantia": "Garantia", "tkt.pie_garantia_def": "Cada produto tem a garantia indicada na sua linha, contada a partir da data deste talão. Para qualquer reclamação apresente este talão.", "tkt.pie_cambios": "Trocas e devoluções"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+
 // i18n Pestañas de la ventana de reparación (oct-2026)
 (function(){var _a={
 es:{"rtab.estado": "Estado y fotos", "rtab.piezas": "Piezas y extras", "rtab.cobro": "Cobro", "rtab.org": "Organización", "rtab.garantia": "Garantía"},
