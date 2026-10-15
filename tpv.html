@@ -2076,9 +2076,13 @@ var _ultimaVenta = null, _ultimosTotals = null;
 var _TK_TIPO_KEY = { seminuevo: 'stock.seminuevo', segunda: 'stock.segunda_mano', reacond: 'stock.reacond' };
 function _tkExtras(item) {
   var out = [];
+  // Ventas antiguas no guardaban estado ni garantía en la línea: se miran en su stock.
+  var st = (item.esServicio || item.esRapida) ? null : (DB.stock || []).find(function (s) { return s.id === (item.idOriginal || item.id); });
+  var tipo = item.tipoProd || (st && st.tipo) || '';
+  var gm = (item.garantiaMeses != null) ? parseInt(item.garantiaMeses, 10) : (st ? parseInt(st.garantiaMeses, 10) : 0);
   if (item.imei) out.push('IMEI: ' + item.imei);
-  if (item.tipoProd && _TK_TIPO_KEY[item.tipoProd]) out.push(String(T(_TK_TIPO_KEY[item.tipoProd])).replace(/^[^\p{L}\p{N}]+/u, '').trim());
-  if (!item.esServicio && parseInt(item.garantiaMeses, 10) > 0) out.push(T('tkt.garantia_meses').replace('{n}', parseInt(item.garantiaMeses, 10)));
+  if (tipo && _TK_TIPO_KEY[tipo]) out.push(String(T(_TK_TIPO_KEY[tipo])).replace(/^[^\p{L}\p{N}]+/u, '').trim());
+  if (!item.esServicio && !item.esRapida && gm > 0) out.push(T('tkt.garantia_meses').replace('{n}', gm));
   return out;
 }
 // Hora de la venta, sacada del id ('v' + Date.now() + ...): la fecha guardada no lleva hora.
