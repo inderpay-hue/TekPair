@@ -1222,7 +1222,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261016q"></script>
+<script src="/lang/lang.v8.js?v=20261016r"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -3478,6 +3478,12 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-bell"/></svg><span data-t="ajn.title">Notificaciones</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
 
     <div class="card">
+      <div class="card-title" data-t="aviso.aj_titulo">Avisos al cliente por email</div>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 8px" data-t="aviso.aj_hint">Al cambiar el estado de una reparación siempre te sale una barra para avisar por WhatsApp o email con un toque. Marca los estados en los que quieras que el email salga solo, sin pulsar nada (si el cliente tiene email).</div>
+      <div id="avisosAutoLista"></div>
+    </div>
+
+    <div class="card">
       <div class="card-title" data-t="ajn.title">Notificaciones</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px" data-t="ajn.desc">Activa o desactiva cada tipo de aviso de la campana 🔔</div>
 
@@ -5603,7 +5609,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261016b"></script>
-<script src="/js/dash-app.js?v=20261016q"></script>
+<script src="/js/dash-app.js?v=20261016r"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

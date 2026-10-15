@@ -143,6 +143,55 @@ export default async function handler(req, res) {
     }
   }
 
+  // ── Rama AVISO DE REPARACIÓN (cambio de estado) ──
+  // El texto lo escribe la tienda (plantillas de Ajustes). El enlace solo puede
+  // ser el seguimiento de TekPair: así el dominio no sirve para mandar enlaces
+  // a cualquier sitio.
+  if (req.body && req.body.tipo === 'aviso_rep') {
+    const { email, nombreCliente, tienda, asunto, mensaje, link } = req.body;
+    if (!email || !mensaje) return res.status(400).json({ error: 'Faltan datos' });
+    if (!emailValido(email)) return res.status(400).json({ error: 'Email destinatario no válido' });
+    let linkSafe = '';
+    if (link) {
+      try {
+        const u = new URL(String(link));
+        if (u.protocol === 'https:' && /(^|\.)tekpair\.tech$|\.vercel\.app$/.test(u.hostname)) linkSafe = u.toString();
+      } catch (e) { linkSafe = ''; }
+    }
+    const tNom = esc(tienda || 'TekPair').slice(0, 100);
+    const cli = esc(nombreCliente || '').slice(0, 100);
+    // El enlace va aparte, como botón: se quita del texto para no repetirlo.
+    let cuerpo = String(mensaje).slice(0, 2000);
+    if (linkSafe) cuerpo = cuerpo.split(String(link)).join('');
+    const cuerpoHtml = esc(cuerpo.trim()).replace(/\n/g, '<br>');
+    const asuntoSafe = String(asunto || tienda || 'TekPair').replace(/[\r\n]+/g, ' ').slice(0, 120);
+    const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#111">
+  <div style="background:#FF5B1F;color:white;padding:20px;border-radius:10px 10px 0 0;text-align:center">
+    <h1 style="margin:0;font-size:21px">${tNom}</h1>
+  </div>
+  <div style="background:white;padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
+    <p style="font-size:14px;color:#333;line-height:1.6;margin:0">${cuerpoHtml}</p>
+    ${linkSafe ? `<p style="text-align:center;margin:22px 0 4px"><a href="${esc(linkSafe)}" style="background:#FF5B1F;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">${esc(req.body.boton || 'Ver mi reparación')}</a></p>` : ''}
+  </div>
+  <div style="text-align:center;padding:16px;color:#aaa;font-size:11px">${cli ? cli + ' · ' : ''}Enviado con TekPair · tekpair.tech</div>
+</body></html>`;
+    try {
+      const ra = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: 'TekPair <noreply@tekpair.tech>', to: [email], subject: asuntoSafe, html })
+      });
+      const da = await ra.json();
+      if (ra.ok) return res.json({ ok: true, id: da.id });
+      console.error('[email] Resend error (aviso_rep):', ra.status, da);
+      return res.json({ error: 'No se pudo enviar el email' });
+    } catch (e) {
+      console.error('[email] Aviso reparación error:', e);
+      return res.status(500).json({ error: 'Error del servidor' });
+    }
+  }
+
   // ── Rama REPORTE DIARIO ──
   const { email, reporte, tienda } = req.body;
   if (!email || !reporte) return res.status(400).json({ error: 'Faltan datos' });
