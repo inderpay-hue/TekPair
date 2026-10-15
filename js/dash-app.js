@@ -7418,7 +7418,9 @@ function guardarVenta() {
     cuotas: cuotas,
     entrada: entrada,
     entradaPago: (esFinanciado && entrada > 0) ? ((document.getElementById('vEntradaPago') || {}).value || 'Efectivo') : null,
-    items: [{ nombre: (((SEL.vStock ? ((SEL.vStock.marca || '') + ' ' + (SEL.vStock.modelo || '')) : '').trim()) || T('tpv.venta_item')), qty: 1, precio: precio }]
+    items: [{ nombre: (((SEL.vStock ? ((SEL.vStock.marca || '') + ' ' + (SEL.vStock.modelo || '')) : '').trim()) || T('tpv.venta_item')), qty: 1, precio: precio,
+      imei: SEL.vStock ? (SEL.vStock.imei || '') : '', idOriginal: (SEL.vStock && !SEL.vStock.esServicio) ? SEL.vStock.id : '',
+      tipoProd: SEL.vStock ? (SEL.vStock.tipo || '') : '', garantiaMeses: SEL.vStock ? (parseInt(SEL.vStock.garantiaMeses, 10) || 0) : 0 }]
   };
   // Usado comprado a un particular: el impuesto va por el régimen del país
   // (solo sobre el margen, o sin impuesto), igual que en el TPV.
@@ -7718,6 +7720,21 @@ function _tkFechaHora(v) {
   return fmtFecha(v.fecha);
 }
 
+// Lo que se imprime debajo de cada línea del ticket: IMEI, estado si no es
+// nuevo y garantía en meses. Se lee de la propia línea (el TPV lo guarda al
+// vender) o, en ventas antiguas, de la ficha de stock de ese producto.
+var _TK_TIPO_KEY = { seminuevo: 'stock.seminuevo', segunda: 'stock.segunda_mano', reacond: 'stock.reacond' };
+function _tkExtrasLinea(it, v, nItems) {
+  var sid = it.idOriginal || it.stockId || it.id || (nItems === 1 ? v.stockId : '');
+  var st = sid ? (DB.stock || []).find(function(s) { return s.id === sid; }) : null;
+  var imei = it.imei || (nItems === 1 ? (v.imei || '') : '') || (st && st.imei) || '';
+  var tipo = it.tipoProd || (st && st.tipo) || '';
+  var gm = (it.garantiaMeses != null) ? parseInt(it.garantiaMeses, 10) : (st ? parseInt(st.garantiaMeses, 10) : 0);
+  var estado = (tipo && _TK_TIPO_KEY[tipo]) ? String(T(_TK_TIPO_KEY[tipo])).replace(/^[^\p{L}\p{N}]+/u, '').trim() : '';
+  var esProducto = !it.esServicio && !it.esRapida && (st || it.imei);
+  return { imei: imei, estado: estado, garantia: (esProducto && gm > 0) ? T('tkt.garantia_meses').replace('{n}', gm) : '' };
+}
+
 function imprimirTicketVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
   if (!v) { toast(T('gen.error'), 'err'); return; }
@@ -7738,6 +7755,9 @@ function imprimirTicketVenta(id) {
   if (num) filas.push([T('tkt.numero'), num]);
   filas.push([T('pres.doc_fecha'), _tkFechaHora(v)]);
   filas.push([T('pres.doc_cliente'), v.clienteNombre || T('gen.sin_cliente')]);
+  var _cliTk = v.clienteId ? (DB.clis || []).find(function(c) { return c.id === v.clienteId; }) : null;
+  if (_cliTk && _cliTk.dni) filas.push([T('tkt.nif'), _cliTk.dni]);
+  if (_cliTk && _cliTk.tel) filas.push([T('ficha.telefono'), _cliTk.tel]);
   if (v.atiende) filas.push([T('tkt.atiende'), v.atiende]);
   var datos = filas.map(function(f) {
     return '<div class="row"><span>' + esc(f[0]) + '</span><strong>' + esc(f[1]) + '</strong></div>';
@@ -7748,6 +7768,7 @@ function imprimirTicketVenta(id) {
     : [{nombre: ((v.marca ? v.marca + ' ' : '') + (v.modelo || '')).trim() || T('tkt.doc_def'),
         precio: v.precio || v.total, qty: 1, imei: v.imei || ''}];
   var lineas = items.map(function(it) {
+    var ex = _tkExtrasLinea(it, v, items.length);
     var qty = parseFloat(it.qty) || 1;
     var pu = parseFloat(it.precio) || 0;
     var sub = pu * qty;
@@ -7759,7 +7780,9 @@ function imprimirTicketVenta(id) {
         '<span class="it-u">' + cur(pu) + '</span>' +
         '<span class="it-t">' + cur(sub) + '</span>' +
       '</div>' +
-      (it.imei ? '<div class="it-nota">IMEI: ' + esc(it.imei) + '</div>' : '') +
+      (ex.imei ? '<div class="it-nota">IMEI: ' + esc(ex.imei) + '</div>' : '') +
+      (ex.estado ? '<div class="it-nota">' + esc(ex.estado) + '</div>' : '') +
+      (ex.garantia ? '<div class="it-nota">' + esc(ex.garantia) + '</div>' : '') +
       (it.notas ? '<div class="it-nota">' + esc(it.notas) + '</div>' : '') +
       (dl > 0 ? '<div class="it"><span class="it-q"></span><span class="it-d">' +
         T('tkt.descuento') + (it.descTipo === 'pct' ? ' ' + dv + '%' : '') +

@@ -6709,6 +6709,17 @@ pt:{"rep.sec_extras": "Extras", "rep.extras_hint": "O que o cliente leva com a r
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
 
+// i18n Ticket de venta: garantía por producto (oct-2026)
+(function(){var _a={
+es:{"tkt.garantia_meses": "Garantía: {n} meses"},
+en:{"tkt.garantia_meses": "Warranty: {n} months"},
+fr:{"tkt.garantia_meses": "Garantie : {n} mois"},
+it:{"tkt.garantia_meses": "Garanzia: {n} mesi"},
+de:{"tkt.garantia_meses": "Garantie: {n} Monate"},
+pt:{"tkt.garantia_meses": "Garantia: {n} meses"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+
 // i18n Pestañas de la ventana de reparación (oct-2026)
 (function(){var _a={
 es:{"rtab.estado": "Estado y fotos", "rtab.piezas": "Piezas y extras", "rtab.cobro": "Cobro", "rtab.org": "Organización", "rtab.garantia": "Garantía"},

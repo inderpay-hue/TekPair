@@ -262,7 +262,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .vl-t:focus-visible{outline:2px solid var(--t-acc);outline-offset:2px}
 .vl-aux{color:var(--t-ink2);font-size:17px}
 </style>
-<script src="/lang/lang.v8.js?v=20261016d"></script>
+<script src="/lang/lang.v8.js?v=20261016i"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -1490,7 +1490,8 @@ function addToCart(id, esServicio) {
         precio: precioCustom, qty: 1,
         esServicio: p.esServicio || false, stockMax: p.unidades,
         precioVariable: true, idOriginal: p.id, imei: p.imei || '',
-        compraId: _usado.compraId || '', coste: _usado.coste || 0
+        compraId: _usado.compraId || '', coste: _usado.coste || 0,
+        tipoProd: p.esServicio ? '' : (p.tipo || ''), garantiaMeses: p.esServicio ? 0 : (parseInt(p.garantiaMeses, 10) || 0)
       });
       renderCart();
       toast(T('tpv.anadido_2'), 'ok');
@@ -1508,7 +1509,8 @@ function addToCart(id, esServicio) {
       id: p.id, nombre: nombreProd,
       precio: precioBase, qty: 1,
       esServicio: p.esServicio || false, stockMax: p.unidades, imei: p.imei || '',
-      compraId: _usado.compraId || '', coste: _usado.coste || 0
+      compraId: _usado.compraId || '', coste: _usado.coste || 0,
+      tipoProd: p.esServicio ? '' : (p.tipo || ''), garantiaMeses: p.esServicio ? 0 : (parseInt(p.garantiaMeses, 10) || 0)
     });
   }
   renderCart();
@@ -2070,6 +2072,28 @@ function cobrar() {
 // para poder mandar el ticket por ESC/POS.
 var _ultimaVenta = null, _ultimosTotals = null;
 
+// Lo que va debajo de cada línea: IMEI, estado si no es nuevo y garantía.
+var _TK_TIPO_KEY = { seminuevo: 'stock.seminuevo', segunda: 'stock.segunda_mano', reacond: 'stock.reacond' };
+function _tkExtras(item) {
+  var out = [];
+  // Ventas antiguas no guardaban estado ni garantía en la línea: se miran en su stock.
+  var st = (item.esServicio || item.esRapida) ? null : (DB.stock || []).find(function (s) { return s.id === (item.idOriginal || item.id); });
+  var tipo = item.tipoProd || (st && st.tipo) || '';
+  var gm = (item.garantiaMeses != null) ? parseInt(item.garantiaMeses, 10) : (st ? parseInt(st.garantiaMeses, 10) : 0);
+  if (item.imei) out.push('IMEI: ' + item.imei);
+  if (tipo && _TK_TIPO_KEY[tipo]) out.push(String(T(_TK_TIPO_KEY[tipo])).replace(/^[^\p{L}\p{N}]+/u, '').trim());
+  if (!item.esServicio && !item.esRapida && gm > 0) out.push(T('tkt.garantia_meses').replace('{n}', gm));
+  return out;
+}
+// Hora de la venta, sacada del id ('v' + Date.now() + ...): la fecha guardada no lleva hora.
+function _horaTk(v) {
+  var m = /^v(\d{13})_/.exec(String((v && v.id) || ''));
+  if (!m) return '';
+  var d = new Date(parseInt(m[1], 10));
+  return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+}
+function _tkNumero(v) { return v && v.numero ? ('T' + String(v.fecha || '').slice(0, 4) + '-' + String(v.numero).padStart(6, '0')) : ''; }
+
 // Línea de un usado vendido en régimen de margen (lleva la marca (*) y la mención).
 function _esMargen(item) { return !!(item && item.usado && item.usado.regimen === 'margen'); }
 function _partesTk(v) {
@@ -2091,15 +2115,17 @@ function mostrarTicket(venta, totals) {
     (TIENDA.logo_url && TIENDA.nombre ? '<div style="text-align:center;font-size:13px;font-weight:700;margin-bottom:4px">' + escHtml(TIENDA.nombre) + '</div>' : '') +
     (TIENDA.dir ? '<div style="text-align:center;font-size:12px;color:#000">' + escHtml(TIENDA.dir) + '</div>' : '') +
     (TIENDA.tel ? '<div style="text-align:center;font-size:12px;color:#000">' + T('tpv.tk_tel') + escHtml(TIENDA.tel) + '</div>' : '') +
+    (TIENDA.cif ? '<div style="text-align:center;font-size:12px;color:#000">' + T('tkt.nif') + ': ' + escHtml(TIENDA.cif) + '</div>' : '') +
     '<hr class="ticket-sep">' +
-    '<div class="ticket-row"><span>' + T('pres.doc_fecha') + '</span><span>' + escHtml(venta.fecha) + '</span></div>' +
+    (_tkNumero(venta) ? '<div class="ticket-row"><span>' + T('tkt.numero') + '</span><span>' + escHtml(_tkNumero(venta)) + '</span></div>' : '') +
+    '<div class="ticket-row"><span>' + T('pres.doc_fecha') + '</span><span>' + escHtml(venta.fecha) + (_horaTk(venta) ? ' ' + _horaTk(venta) : '') + '</span></div>' +
     '<div class="ticket-row"><span>' + T('pres.doc_cliente') + '</span><span>' + escHtml(venta.clienteNombre) + '</span></div>' +
     '<div class="ticket-row"><span>' + T('tpv.tk_pago') + '</span><span>' + escHtml(venta.pago) + '</span></div>' +
     '<hr class="ticket-sep">' +
     venta.items.map(function(item) {
       var d = descLineaImporte(item);
       return '<div class="ticket-row"><span>' + escHtml(item.nombre) + (_esMargen(item) ? ' (*)' : '') + ' x' + item.qty + '</span><span>\u20ac' + (item.precio * item.qty).toFixed(2) + '</span></div>' +
-        (item.imei ? '<div class="ticket-row" style="font-size:12px"><span>&nbsp;&nbsp;IMEI: ' + escHtml(item.imei) + '</span><span></span></div>' : '') +
+        _tkExtras(item).map(function (x) { return '<div class="ticket-row" style="font-size:12px"><span>&nbsp;&nbsp;' + escHtml(x) + '</span><span></span></div>'; }).join('') +
         (d > 0 ? '<div class="ticket-row" style="font-size:12px"><span>&nbsp;&nbsp;' + T('tpv.descuento_2') +
           (item.descTipo === 'pct' ? ' ' + item.desc + '%' : '') + '</span><span>-\u20ac' + d.toFixed(2) + '</span></div>' : '');
     }).join('') +
@@ -2180,7 +2206,7 @@ function _ticketDoc() {
   var lineas = [];
   (v.items || []).forEach(function (item) {
     lineas.push([item.nombre + (_esMargen(item) ? ' (*)' : '') + ' x' + item.qty, eur(item.precio * item.qty)]);
-    if (item.imei) lineas.push(['  IMEI: ' + item.imei, '']);
+    _tkExtras(item).forEach(function (x) { lineas.push(['  ' + x, '']); });
     var d = descLineaImporte(item);
     if (d > 0) {
       lineas.push(['  ' + T('tpv.descuento_2') + (item.descTipo === 'pct' ? ' ' + item.desc + '%' : ''), '-' + eur(d)]);
@@ -2456,7 +2482,7 @@ setInterval(_actualizarFabBadge, 600);
 setTimeout(_actualizarFabBadge, 300);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="factura.js?v=20261016d" defer></script>
+<script src="factura.js?v=20261016i" defer></script>
 <script>
 function factVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
