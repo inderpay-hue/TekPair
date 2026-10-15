@@ -142,6 +142,13 @@ canvas#firmaCanvas.has-firma{border-color:var(--orange);border-style:solid}
       </div>
     </div>
 
+    <!-- Extras opcionales: el cliente marca los que quiere y el total se actualiza -->
+    <div class="card" id="opcCard" style="display:none">
+      <div class="card-title" id="opcTitulo">Extras opcionales</div>
+      <div style="font-size:13px;color:var(--muted);margin:-4px 0 10px" id="opcHint"></div>
+      <div id="opcList"></div>
+    </div>
+
     <div class="card">
       <div class="card-title">Tu decisión</div>
       <div class="expire-banner" id="expireBanner" style="display:none">
@@ -218,7 +225,60 @@ async function cargarPresupuesto() {
   }
 }
 
+// Textos de los extras opcionales en el idioma del navegador del cliente.
+const _OPC_TXT = {
+  es: { tit: 'Extras opcionales', hint: 'Marca los que quieras añadir. El total se actualiza al momento.', add: 'Añadir', tot: 'Total con los extras elegidos' },
+  en: { tit: 'Optional extras', hint: 'Tick the ones you want to add. The total updates instantly.', add: 'Add', tot: 'Total with the chosen extras' },
+  fr: { tit: 'Options supplémentaires', hint: 'Cochez celles que vous souhaitez ajouter. Le total se met à jour aussitôt.', add: 'Ajouter', tot: 'Total avec les options choisies' },
+  it: { tit: 'Extra opzionali', hint: 'Seleziona quelli che vuoi aggiungere. Il totale si aggiorna subito.', add: 'Aggiungi', tot: 'Totale con gli extra scelti' },
+  de: { tit: 'Optionale Extras', hint: 'Markiere die, die du hinzufügen möchtest. Der Gesamtbetrag aktualisiert sich sofort.', add: 'Hinzufügen', tot: 'Gesamt mit den gewählten Extras' },
+  pt: { tit: 'Extras opcionais', hint: 'Marca os que queres adicionar. O total atualiza-se logo.', add: 'Adicionar', tot: 'Total com os extras escolhidos' },
+};
+const _OPC = _OPC_TXT[String(navigator.language || 'es').slice(0, 2).toLowerCase()] || _OPC_TXT.es;
+let _REP = null; const _opcElegidos = new Set();
+// Mismo calculo que el servidor (_sumarAlPresupuesto): respeta como lleva el IVA.
+function _totalConExtras(rep, extra) {
+  const r2 = (n) => Math.round(n * 100) / 100, t = parseFloat(rep.iva) || 0, modo = rep.ivaModo || 'sin';
+  let total = parseFloat(rep.total) || 0, base = parseFloat(rep.base) || 0, iva = parseFloat(rep.ivaImporte) || 0;
+  if (extra > 0) {
+    if (modo === 'incluido' && t > 0) { total = r2(total + extra); base = r2(total / (1 + t / 100)); iva = r2(total - base); }
+    else if (modo === 'anadido' && t > 0) { base = r2(base + extra); iva = r2(base * t / 100); total = r2(base + iva); }
+    else { total = r2(total + extra); base = r2(base + extra); }
+  }
+  return { total, base, iva };
+}
+function _pintarTotal() {
+  const rep = _REP; if (!rep) return;
+  const extra = (rep.opcionales || []).filter((o) => _opcElegidos.has(o.i)).reduce((a, o) => a + (parseFloat(o.precio) || 0), 0);
+  const c = _totalConExtras(rep, Math.round(extra * 100) / 100);
+  document.getElementById('totalAmount').textContent = fmtEuros(c.total);
+  if (rep.iva > 0) {
+    const ivaEl = document.getElementById('ivaNote');
+    ivaEl.textContent = 'Base: ' + fmtEuros(c.base) + ' + IVA ' + rep.iva + '%: ' + fmtEuros(c.iva);
+    ivaEl.style.display = 'block';
+  }
+}
+function _pintarOpcionales(rep) {
+  const ops = rep.opcionales || [];
+  const card = document.getElementById('opcCard');
+  if (!ops.length) { card.style.display = 'none'; return; }
+  card.style.display = 'block';
+  document.getElementById('opcTitulo').textContent = _OPC.tit;
+  document.getElementById('opcHint').textContent = _OPC.hint;
+  document.getElementById('opcList').innerHTML = ops.map((o) =>
+    '<label class="srv-row" style="cursor:pointer;gap:10px"><span style="display:flex;align-items:center;gap:10px;flex:1">' +
+    '<input type="checkbox" data-opc="' + o.i + '" style="width:20px;height:20px;accent-color:var(--orange)">' +
+    '<span class="srv-name">' + esc(o.nombre) + '</span></span><span class="srv-price">+' + fmtEuros(o.precio) + '</span></label>'
+  ).join('');
+  document.querySelectorAll('[data-opc]').forEach((c) => c.addEventListener('change', () => {
+    const i = parseInt(c.dataset.opc, 10);
+    if (c.checked) _opcElegidos.add(i); else _opcElegidos.delete(i);
+    _pintarTotal();
+  }));
+}
+
 function renderPresupuesto(rep, tienda) {
+  _REP = rep;
   document.getElementById('tiendaNombre').textContent = tienda.nombre || 'TekPair';
   const logoEl = document.getElementById('headerLogo');
   if (tienda.logo_url) {
@@ -240,12 +300,8 @@ function renderPresupuesto(rep, tienda) {
     list.innerHTML = '<div class="srv-row"><span class="srv-name">Reparación</span><span class="srv-price">'+fmtEuros(rep.total)+'</span></div>';
   }
 
-  document.getElementById('totalAmount').textContent = fmtEuros(rep.total);
-  if (rep.iva > 0) {
-    const ivaEl = document.getElementById('ivaNote');
-    ivaEl.textContent = 'Base: '+fmtEuros(rep.base)+' + IVA '+rep.iva+'%: '+fmtEuros(rep.iva_importe||rep.ivaImporte);
-    ivaEl.style.display = 'block';
-  }
+  _pintarOpcionales(rep);
+  _pintarTotal();
 
   // Mostrar fecha expiración real
   if (rep.presupuesto_token_exp) {
@@ -330,7 +386,7 @@ async function aceptar() {
     const res = await fetch(API, {
       method: 'POST',
       headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({action:'pres-aceptar', token:TOKEN, firma})
+      body: JSON.stringify({action:'pres-aceptar', token:TOKEN, firma, opcionales: Array.from(_opcElegidos)})
     });
     const data = await res.json();
     if (data.ok || data.yaAceptado) { aceptado = true; show('stateSuccess'); }

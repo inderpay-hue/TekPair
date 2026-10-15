@@ -1212,7 +1212,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261015b"></script>
+<script src="/lang/lang.v8.js?v=20261016a"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4286,6 +4286,18 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
           <div id="repServiciosList" style="margin-top:10px"></div>
         </div>
 
+        <!-- Sección: Extras opcionales (el cliente los elige al aceptar el presupuesto online) -->
+        <div class="rep-section">
+          <div class="rep-section-title"><span>✨</span> <span data-t="rep.sec_opcionales">Extras opcionales</span></div>
+          <div data-t="rep.opc_hint" style="font-size:11.5px;color:var(--muted);margin:-2px 0 8px">Protector, funda, batería… El cliente los marca o no al aceptar el presupuesto online. No cuentan en el total hasta que los acepta.</div>
+          <div id="repOpcList"></div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <input class="fi" id="rOpcNombre" data-t-ph="rep.opc_nombre_ph" placeholder="Ej.: Protector de cristal templado" style="flex:1" autocomplete="off">
+            <input class="fi" id="rOpcPrecio" type="number" step="0.01" min="0" data-t-ph="rep.opc_precio_ph" placeholder="Precio" style="width:96px">
+            <button type="button" class="add-srv-btn" onclick="agregarOpcionalRep()" data-t="rep.opc_add">+ Añadir</button>
+          </div>
+        </div>
+
         <!-- Sección: Componentes -->
         <div class="rep-section">
           <div class="rep-section-title"><span>📦</span> <span data-t="rep.sec_componentes">Componentes (stock)</span></div>
@@ -4432,6 +4444,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
         <span id="rTotalLbl">TOTAL</span>
         <span id="rTotal">€0.00</span>
       </div>
+      <div id="rOpcTot" style="font-size:11px;color:var(--muted);display:none"></div>
       <div id="rAnticipoRow" style="font-size:11px;color:var(--muted);display:none"><span data-t="rep.anticipo_pagado">Anticipo pagado</span>: <span id="rAnticipo" style="font-weight:700;color:var(--green)">€0.00</span></div>
       <div style="font-size:11px;color:var(--muted)"><span data-t="rep.queda_deber">Queda a deber</span>: <span id="rRestante" style="font-weight:700">€0.00</span></div>
     </div>
@@ -5369,7 +5382,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
 <script src="/js/imei-modelo.js?v=20261015b"></script>
-<script src="/js/dash-app.js?v=20261015a"></script>
+<script src="/js/dash-app.js?v=20261016a"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

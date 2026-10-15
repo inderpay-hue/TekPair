@@ -3458,6 +3458,7 @@ function mapRep(r) {
     iva:parseFloat(r.iva)||0, ivaModo:r.iva_modo||'sin', base:parseFloat(r.base)||0, ivaImporte:parseFloat(r.iva_importe)||0,
     componentes: r.componentes ? (typeof r.componentes === 'string' ? JSON.parse(r.componentes) : r.componentes) : [],
     servicios: r.servicios ? (typeof r.servicios === 'string' ? JSON.parse(r.servicios) : r.servicios) : [],
+    opcionales: r.opcionales ? (typeof r.opcionales === 'string' ? JSON.parse(r.opcionales) : r.opcionales) : [],
     esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||'',
     garantiaTipo:r.garantia_tipo||'reparacion', garantiaPublica:r.garantia_publica!==false,
     garantiaFechaFin:r.garantia_fecha_fin||'',
@@ -9194,6 +9195,7 @@ function _cliDraftBorrar(){ _DRAFT_CLI.clear(); }
 
 function abrirRep() {
   SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.pedirPiezas = []; SEL.rServicios = []; SEL.fotosRecepcion = [];
+  SEL.rOpcionales = [];
   var _ft = document.getElementById('repFotosRecepThumbs'); if (_ft) _ft.innerHTML = '';
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_nuevo');
   var _bg = document.getElementById('btnGuardarRepTxt'); if (_bg) _bg.textContent = T('rep.crear_orden');
@@ -9225,6 +9227,7 @@ function abrirRep() {
   var ivaSel = document.getElementById('rIva');
   if (ivaSel) ivaSel.value = String((AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21);
   renderServiciosRep();
+  renderOpcionalesRep();
   calcR();
   renderPlantillasRep();
   openM('mRep');
@@ -9850,6 +9853,7 @@ function agregarServicioRep(servicio) {
   if (!SEL.rServicios) SEL.rServicios = [];
   SEL.rServicios.push(servicio || {nombre:'', desc:'', coste:0, precio:0});
   renderServiciosRep();
+  renderOpcionalesRep();
   calcR();
   // Foco en el último añadido
   setTimeout(function(){
@@ -9866,12 +9870,45 @@ function quitarServicioRep(idx) {
   if (!SEL.rServicios) return;
   SEL.rServicios.splice(idx, 1);
   renderServiciosRep();
+  renderOpcionalesRep();
   calcR();
 }
 
 function updateServicioRep(idx, field, value) {
   if (!SEL.rServicios || !SEL.rServicios[idx]) return;
   SEL.rServicios[idx][field] = value;
+}
+
+// ── Extras opcionales del presupuesto ──
+// Van aparte de los servicios: no cuentan en el total, ni salen en el
+// resguardo ni en la factura, hasta que el cliente los acepta en el
+// presupuesto online (entonces el servidor los pasa a `servicios`).
+function renderOpcionalesRep() {
+  var cont = document.getElementById('repOpcList'); if (!cont) return;
+  var ops = SEL.rOpcionales || [];
+  var ETQ = { aceptado: ['✓ ' + T('rep.opc_aceptado'), '#10B981'], rechazado: ['✗ ' + T('rep.opc_rechazado'), '#9CA3AF'] };
+  cont.innerHTML = ops.map(function (o, i) {
+    var e = ETQ[o.estado];
+    return '<div style="display:flex;align-items:center;gap:8px;padding:6px 8px;border:1px dashed var(--border);border-radius:8px;margin-bottom:6px">' +
+      '<span style="flex:1;font-size:13px">' + esc(o.nombre) + (e ? ' <span style="font-size:11px;font-weight:700;color:' + e[1] + '">' + e[0] + '</span>' : '') + '</span>' +
+      '<span style="font-weight:700;font-size:13px">' + cur(parseFloat(o.precio) || 0) + '</span>' +
+      '<button type="button" onclick="quitarOpcionalRep(' + i + ')" style="background:none;border:none;cursor:pointer;color:var(--muted);font-size:15px" title="' + esc(T('gen.eliminar_2') || '×') + '">×</button></div>';
+  }).join('');
+  calcR();
+}
+function agregarOpcionalRep() {
+  var n = document.getElementById('rOpcNombre'), p = document.getElementById('rOpcPrecio');
+  var nombre = ((n && n.value) || '').trim(), precio = parseFloat((p && p.value) || '');
+  if (!nombre) { toast(T('rep.opc_falta_nombre'), 'err'); if (n) n.focus(); return; }
+  if (!(precio >= 0)) { toast(T('rep.opc_falta_precio'), 'err'); if (p) p.focus(); return; }
+  SEL.rOpcionales = SEL.rOpcionales || [];
+  SEL.rOpcionales.push({ nombre: nombre.slice(0, 120), precio: Math.round(precio * 100) / 100, estado: 'pendiente' });
+  n.value = ''; p.value = '';
+  renderOpcionalesRep();
+}
+function quitarOpcionalRep(i) {
+  (SEL.rOpcionales || []).splice(i, 1);
+  renderOpcionalesRep();
 }
 
 function renderServiciosRep() {
@@ -10113,6 +10150,13 @@ function calcR() {
     if (lbl) lbl.textContent = T('gen.total_2');
   }
   document.getElementById('rTotal').textContent = cur(c.total);
+  var _opcPend = (SEL.rOpcionales || []).filter(function (o) { return o.estado !== 'aceptado' && o.estado !== 'rechazado'; });
+  var _opcEl = document.getElementById('rOpcTot');
+  if (_opcEl) {
+    var _opcSum = _opcPend.reduce(function (a, o) { return a + (parseFloat(o.precio) || 0); }, 0);
+    _opcEl.style.display = _opcPend.length ? 'block' : 'none';
+    _opcEl.textContent = _opcPend.length ? T('rep.opc_extra_total').replace('{n}', _opcPend.length).replace('{x}', cur(_opcSum)) : '';
+  }
   // Anticipo pagado (suma de pagos) + lo que queda a deber (restante sobre el total final con IVA)
   var resta = Math.max(0, c.total - anti);
   var antiRow = document.getElementById('rAnticipoRow');
@@ -11130,6 +11174,7 @@ function editarRep(id) {
   SEL.pedirPiezas = [];   // las piezas ya pedidas viven como Pedidos con rep_id, no se re-encolan
   // Cargar servicios (con migración de legacy mo)
   SEL.rServicios = Array.isArray(r.servicios) ? r.servicios.slice() : [];
+  SEL.rOpcionales = Array.isArray(r.opcionales) ? r.opcionales.map(function (o) { return Object.assign({}, o); }) : [];
   if (!SEL.rServicios.length && r.mo > 0) {
     SEL.rServicios.push({
       nombre: r.averia || T('rep.reparacion_default'),
@@ -11184,6 +11229,7 @@ function editarRep(id) {
 
   // Renderizar servicios
   renderServiciosRep();
+  renderOpcionalesRep();
   renderPlantillasRep();
 
   // Recalcular totales
@@ -11570,6 +11616,7 @@ function guardarRep() {
       r.total = calcE.total;
       r.restante = Math.max(0, calcE.total - antiE);
     }
+    r.opcionales = (SEL.rOpcionales || []).slice();
     r.garantiaDias = (typeof window._repGarantiaDias === 'number') ? window._repGarantiaDias : (r.garantiaDias || TIENDA.grDiasDefault || 90);
     r.garantiaTipo = window._repGarantiaTipo || r.garantiaTipo || 'reparacion';
     r.garantiaPublica = (typeof window._repGarantiaPublica === 'boolean') ? window._repGarantiaPublica : (r.garantiaPublica !== false);
@@ -11593,6 +11640,7 @@ function guardarRep() {
         _patchRep.iva = r.iva; _patchRep.iva_modo = r.ivaModo; _patchRep.base = r.base; _patchRep.iva_importe = r.ivaImporte;
         _patchRep.componentes = r.componentes; _patchRep.servicios = r.servicios;
       }
+      _patchRep.opcionales = r.opcionales || [];
       sbPatch('reparaciones', 'id=eq.' + r.id, _patchRep);
     }
     // Aceptación en mostrador (Vía 1): registrar solo si se marca ahora y no estaba ya aceptada.
@@ -11658,6 +11706,7 @@ function guardarRep() {
     fechaEntregaReal: '',
     nota: document.getElementById('rNota').value.trim(),
     servicios: serviciosN,
+    opcionales: (SEL.rOpcionales || []).slice(),
     mo: 0, comp: comp, anticipo: anticipo,
     iva: (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIvaN : 0,
     ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
@@ -11691,6 +11740,7 @@ function guardarRep() {
       tipo_bloqueo: rep.tipoBloqueo || null, bloqueo: rep.bloqueo || null,
       iva: rep.iva, iva_modo: rep.ivaModo, base: rep.base, iva_importe: rep.ivaImporte,
       componentes: rep.componentes, servicios: rep.servicios,
+      opcionales: rep.opcionales || [],
       garantia_dias: rep.garantiaDias,
       garantia_tipo: rep.garantiaTipo || null,
       garantia_publica: rep.garantiaPublica !== false,

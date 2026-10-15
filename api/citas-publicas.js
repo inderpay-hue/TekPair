@@ -301,7 +301,7 @@ async function presGenerarToken(body, authHeader) {
 
   let reps;
   try {
-    reps = await sbGet(`reparaciones?id=eq.${encodeURIComponent(repId)}&tienda_id=eq.${encodeURIComponent(tiendaId)}&select=id,cliente_id,cliente_nombre,marca,modelo,averia,total,base,iva,iva_importe,iva_modo,servicios,componentes,estado&limit=1`);
+    reps = await sbGet(`reparaciones?id=eq.${encodeURIComponent(repId)}&tienda_id=eq.${encodeURIComponent(tiendaId)}&select=id,cliente_id,cliente_nombre,marca,modelo,averia,total,base,iva,iva_importe,iva_modo,servicios,componentes,opcionales,estado&limit=1`);
   } catch(e) { return { ok:false, error:'Error al cargar reparación', status:500 }; }
 
   if (!reps?.length) return { ok:false, error:'Reparación no encontrada', status:404 };
@@ -366,7 +366,7 @@ async function presGet(token) {
   if (!token || token.length < 20) return { ok:false, error:'Token inválido', status:400 };
   let reps;
   try {
-    reps = await sbGet(`reparaciones?presupuesto_token=eq.${encodeURIComponent(token)}&select=id,cliente_nombre,marca,modelo,averia,total,base,iva,iva_importe,iva_modo,servicios,componentes,estado,presupuesto_token_exp,presupuesto_aceptado_at,tienda_id&limit=1`);
+    reps = await sbGet(`reparaciones?presupuesto_token=eq.${encodeURIComponent(token)}&select=id,cliente_nombre,marca,modelo,averia,total,base,iva,iva_importe,iva_modo,servicios,componentes,opcionales,estado,presupuesto_token_exp,presupuesto_aceptado_at,tienda_id&limit=1`);
   } catch(e) { return { ok:false, error:'Error al cargar presupuesto', status:500 }; }
 
   if (!reps?.length) return { ok:false, error:'Presupuesto no encontrado o enlace caducado', status:404 };
@@ -406,10 +406,37 @@ async function presGet(token) {
       ivaImporte: parseFloat(rep.iva_importe)||0,
       ivaModo: rep.iva_modo||'sin',
       servicios,
-      componentes
+      componentes,
+      // Extras que el cliente puede marcar o no: los pendientes, con su indice real.
+      opcionales: _opcionalesDe(rep).map((o, i) => ({ i, nombre: o.nombre, precio: o.precio, estado: o.estado }))
+        .filter((o) => o.estado !== 'aceptado' && o.estado !== 'rechazado').map(({ i, nombre, precio }) => ({ i, nombre, precio }))
     },
     tienda
   };
+}
+
+// Extras opcionales de una reparacion (columna jsonb `opcionales`).
+function _opcionalesDe(rep) {
+  let o = rep && rep.opcionales;
+  if (typeof o === 'string') { try { o = JSON.parse(o); } catch (e) { o = []; } }
+  return (Array.isArray(o) ? o : []).filter((x) => x && x.nombre).map((x) => ({
+    nombre: String(x.nombre).slice(0, 120), precio: Math.max(0, Math.round((parseFloat(x.precio) || 0) * 100) / 100), estado: x.estado || 'pendiente',
+  }));
+}
+
+// Suma `extra` al presupuesto respetando como lleva el IVA la reparacion (mismo
+// calculo que calcIVA en la app): incluido -> el total sube y la base se saca;
+// anadido -> sube la base y el IVA se calcula encima; sin -> todo igual.
+function _sumarAlPresupuesto(rep, extra) {
+  const r2 = (n) => Math.round(n * 100) / 100;
+  const t = parseFloat(rep.iva) || 0;
+  const modo = rep.iva_modo || 'sin';
+  let total = parseFloat(rep.total) || 0, base = parseFloat(rep.base) || 0, iva = parseFloat(rep.iva_importe) || 0;
+  if (!(extra > 0)) return { total, base, iva_importe: iva };
+  if (modo === 'incluido' && t > 0) { total = r2(total + extra); base = r2(total / (1 + t / 100)); iva = r2(total - base); }
+  else if (modo === 'anadido' && t > 0) { base = r2(base + extra); iva = r2(base * t / 100); total = r2(base + iva); }
+  else { total = r2(total + extra); base = r2(base + extra); iva = 0; }
+  return { total, base, iva_importe: iva };
 }
 
 // PRES-C-3: Cliente acepta el presupuesto (público)
@@ -424,7 +451,7 @@ async function presAceptar(body, ip) {
   // Verificar token válido y no expirado
   let reps;
   try {
-    reps = await sbGet(`reparaciones?presupuesto_token=eq.${encodeURIComponent(token)}&select=id,tienda_id,cliente_nombre,marca,modelo,presupuesto_token_exp,presupuesto_aceptado_at,estado&limit=1`);
+    reps = await sbGet(`reparaciones?presupuesto_token=eq.${encodeURIComponent(token)}&select=id,tienda_id,cliente_nombre,marca,modelo,presupuesto_token_exp,presupuesto_aceptado_at,estado,servicios,opcionales,total,base,iva,iva_importe,iva_modo,anticipo,restante,financiado&limit=1`);
   } catch(e) { return { ok:false, error:'Error al verificar presupuesto', status:500 }; }
 
   if (!reps?.length) return { ok:false, error:'Enlace inválido o caducado', status:404 };
@@ -453,6 +480,31 @@ async function presAceptar(body, ip) {
     patch.firma_fecha   = ahora;
   }
 
+  // Extras opcionales: los marcados pasan a `servicios` y suben el total; el
+  // resto quedan como rechazados (se ven en la ficha, no cuentan). Una
+  // reparacion FINANCIADA no cambia de importe: sus cuotas ya estan calculadas.
+  let resumenExtras = '';
+  const opc = _opcionalesDe(rep);
+  if (opc.length) {
+    const elegidos = new Set((Array.isArray(body.opcionales) ? body.opcionales : []).map((n) => parseInt(n, 10)).filter((n) => Number.isInteger(n)));
+    const sePuede = !rep.financiado;
+    let suma = 0; const nuevos = [];
+    opc.forEach((o, i) => {
+      if (o.estado === 'aceptado' || o.estado === 'rechazado') return;
+      if (sePuede && elegidos.has(i)) { o.estado = 'aceptado'; suma += o.precio; nuevos.push({ nombre: o.nombre, desc: 'Extra aceptado por el cliente', coste: 0, precio: o.precio }); }
+      else o.estado = 'rechazado';
+    });
+    patch.opcionales = opc;
+    if (nuevos.length) {
+      let srv = rep.servicios; if (typeof srv === 'string') { try { srv = JSON.parse(srv); } catch (e) { srv = []; } }
+      patch.servicios = (Array.isArray(srv) ? srv : []).concat(nuevos);
+      const tot = _sumarAlPresupuesto(rep, Math.round(suma * 100) / 100);
+      patch.total = tot.total; patch.base = tot.base; patch.iva_importe = tot.iva_importe;
+      patch.restante = Math.max(0, Math.round((tot.total - (parseFloat(rep.anticipo) || 0)) * 100) / 100);
+      resumenExtras = ` (+${nuevos.length} extra${nuevos.length > 1 ? 's' : ''}: ${fmtEuros(suma)})`;
+    }
+  }
+
   try {
     await sbPatch(`reparaciones?id=eq.${encodeURIComponent(rep.id)}&tienda_id=eq.${encodeURIComponent(rep.tienda_id)}`, patch);
   } catch(e) { return { ok:false, error:'Error al guardar aceptación', status:500 }; }
@@ -464,7 +516,7 @@ async function presAceptar(body, ip) {
       tienda_id: rep.tienda_id,
       tipo: 'presupuesto_aceptado',
       titulo: 'Presupuesto aceptado',
-      detalle: `${rep.cliente_nombre||'Cliente'} aceptó el presupuesto`,
+      detalle: `${rep.cliente_nombre||'Cliente'} aceptó el presupuesto${resumenExtras}`,
       rep_id: rep.id,
       leida: false,
       fecha: ahora
@@ -480,6 +532,7 @@ async function presAceptar(body, ip) {
 async function enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url) {
   if (!RESEND_KEY) return;
   const servicios = typeof rep.servicios === 'string' ? JSON.parse(rep.servicios||'[]') : (rep.servicios||[]);
+  const _opcPend = _opcionalesDe(rep).filter((o) => o.estado !== 'aceptado' && o.estado !== 'rechazado');
   const filas = servicios.map(s =>
     `<tr><td style="padding:8px 14px;color:#374151">${esc(s.nombre||s.desc||'Servicio')}</td><td style="padding:8px 14px;text-align:right;font-weight:600">${fmtEuros(s.precio||s.pvp||0)}</td></tr>`
   ).join('');
@@ -498,6 +551,8 @@ async function enviarEmailPresupuesto(tiendaNombre, cliEmail, rep, url) {
       <tbody>${filas}</tbody>
       <tfoot><tr style="border-top:2px solid #E2E8F0"><td style="padding:12px 14px;font-weight:800;color:#0F1729">TOTAL</td><td style="padding:12px 14px;text-align:right;font-weight:800;color:#C2410C;font-size:18px">${fmtEuros(rep.total)}</td></tr></tfoot>
     </table>
+    ${_opcPend.length ? `<p style="font-size:13px;color:#0F1729;font-weight:700;margin:0 0 6px">Extras opcionales (los eliges tú al aceptar):</p>
+    <table style="width:100%;border-collapse:collapse;font-size:13px;margin-bottom:16px">${_opcPend.map((o) => `<tr><td style="padding:6px 14px;color:#64748B">+ ${esc(o.nombre)}</td><td style="padding:6px 14px;text-align:right;color:#64748B">${fmtEuros(o.precio)}</td></tr>`).join('')}</table>` : ''}
     <div style="text-align:center;margin:24px 0">
       <a href="${url}" style="background:#C2410C;color:white;text-decoration:none;padding:14px 32px;border-radius:10px;font-weight:700;font-size:15px;display:inline-block">Ver y aceptar presupuesto →</a>
     </div>
