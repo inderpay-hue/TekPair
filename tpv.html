@@ -2499,8 +2499,9 @@ function factVenta(id) {
     iva: parseFloat(v.iva) || 0,
     pago: v.pago || '',
     items: (v.items && v.items.length) ? v.items.map(function(i){
-      return { nombre: i.nombre || T('gen.producto'), cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0 };
-    }) : [{ nombre: v.modelo || T('tpv.venta_item'), cantidad: 1, precio: parseFloat(v.total) || 0 }],
+      // imei y usado: sin ellos la factura salía sin IMEI y desglosaba el IVA de los usados.
+      return { nombre: i.nombre || T('gen.producto'), cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0, imei: i.imei || '', usado: i.usado || null };
+    }) : [{ nombre: v.modelo || T('tpv.venta_item'), cantidad: 1, precio: parseFloat(v.total) || 0, imei: v.imei || '' }],
     cliente: cli
   };
   if (typeof window.abrirModalFactura !== 'function') {

@@ -7172,7 +7172,8 @@ function factVenta(id) {
     descuento: parseFloat(v.descuento) || 0,
     pago: v.pago || '',
     items: (v.items && v.items.length) ? v.items.map(function(i) {
-      return { nombre: i.nombre || 'Producto', cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0, imei: i.imei || '' };
+      // usado: sin él la factura desglosaba el IVA de los usados en régimen de margen.
+      return { nombre: i.nombre || 'Producto', cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0, imei: i.imei || '', usado: i.usado || null };
     }) : [{ nombre: v.modelo || 'Venta', cantidad: 1, precio: parseFloat(v.total) || 0, imei: v.imei || '' }],
     marca: v.marca || '', modelo: v.modelo || '', imei: v.imei || '',
     cliente: cli
