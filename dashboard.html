@@ -1233,7 +1233,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261017f"></script>
+<script src="/lang/lang.v8.js?v=20261018a"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -6875,10 +6875,68 @@ function fmtFecha(s) {
   return d.toLocaleDateString('es', {day:'2-digit', month:'short', year:'numeric'});
 }
 
+// Apartado con TODAS las tiendas (solo admin): por defecto las activas, las que
+// pagan. Filtro por estado y buscador por nombre, email, teléfono o comercial.
+var _COM_TIENDAS = [], _comTFiltro = 'activa', _comTBusca = '';
+function _comTiendasFiltro(f) { _comTFiltro = f; _comTiendasPintar(); }
+function _comTiendasBuscar(v) { _comTBusca = v; _comTiendasPintar(true); }
+function _comTiendasPintar(soloLista) {
+  var card = document.getElementById('comTiendasCard'); if (!card) return;
+  var EST = {
+    activa:          { t: T('com.e_activa'),  c: 'var(--green)', b: 'rgba(0,200,150,.12)' },
+    prueba:          { t: T('com.e_prueba'),  c: 'var(--blue)',  b: 'rgba(59,130,246,.12)' },
+    prueba_caducada: { t: T('com.e_caducada'), c: '#64748B',     b: 'rgba(100,116,139,.12)' },
+    impago:          { t: T('com.e_impago'),  c: '#F97316',      b: 'rgba(249,115,22,.12)' },
+    baja:            { t: T('com.e_baja'),    c: '#64748B',      b: 'rgba(100,116,139,.12)' },
+    perdida:         { t: T('com.e_perdida'), c: '#64748B',      b: 'rgba(100,116,139,.12)' }
+  };
+  var todas = _COM_TIENDAS;
+  var cnt = function (e) { return todas.filter(function (t) { return t.estado === e; }).length; };
+  var q = (_comTBusca || '').trim().toLowerCase();
+  var lista = todas.filter(function (t) {
+    if (_comTFiltro !== 'todas' && t.estado !== _comTFiltro) return false;
+    if (!q) return true;
+    return [t.nombre, t.email, t.telefono, t.codigo_referido, t.dir].join(' ').toLowerCase().indexOf(q) !== -1;
+  });
+  var th = function (txt, al) { return '<th style="padding:8px;text-align:' + (al || 'left') + ';border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">' + txt + '</th>'; };
+  var td = 'padding:8px;border-bottom:1px solid var(--border)';
+  var filas = '';
+  if (!lista.length) filas = '<div style="padding:20px;color:var(--muted);text-align:center">' + T('com.tt_ninguna') + '</div>';
+  else {
+    filas = '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12.5px;margin-top:8px"><thead><tr>' +
+      th(T('com.t_tienda')) + th(T('com.tt_estado'), 'center') + th(T('com.tt_comercial')) + th(T('com.tt_alta'), 'right') + th(T('com.tt_hasta'), 'right') + th(T('com.tt_pagado'), 'right') + '</tr></thead><tbody>';
+    lista.forEach(function (t) {
+      var e = EST[t.estado] || { t: (t.plan_status || '-'), c: '#64748B', b: 'rgba(100,116,139,.12)' };
+      var cont = [];
+      if (t.email) cont.push(esc(t.email));
+      if (t.telefono) cont.push('<a href="tel:' + String(t.telefono).replace(/[^+\d]/g, '') + '" style="color:inherit">' + esc(t.telefono) + '</a>');
+      var dirHtml = t.dir ? '<div style="font-size:10.5px;color:var(--muted);margin-top:2px"><a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(t.dir) + '" target="_blank" rel="noopener" style="color:inherit">📍 ' + esc(t.dir) + '</a></div>' : '';
+      filas += '<tr><td style="' + td + '"><strong>' + esc(t.nombre) + '</strong>' + (cont.length ? '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">' + cont.join(' · ') + '</div>' : '') + dirHtml + '</td>' +
+        '<td style="' + td + ';text-align:center"><span style="background:' + e.b + ';color:' + e.c + ';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;white-space:nowrap">' + esc(e.t) + '</span></td>' +
+        '<td style="' + td + '">' + (t.codigo_referido ? '<strong>' + esc(t.codigo_referido) + '</strong>' : '<span style="color:var(--muted)">—</span>') + '</td>' +
+        '<td style="' + td + ';text-align:right;color:var(--muted);white-space:nowrap">' + (t.alta ? fmtFecha(t.alta) : '—') + '</td>' +
+        '<td style="' + td + ';text-align:right;color:var(--muted);white-space:nowrap">' + (t.hasta ? fmtFecha(t.hasta) : '—') + '</td>' +
+        '<td style="' + td + ';text-align:right;font-weight:700;white-space:nowrap">' + eurFmt(t.total_pagado || 0) + (t.num_pagos ? '<div style="font-size:10.5px;color:var(--muted);font-weight:400">' + T('com.tt_n_pagos').replace('{n}', t.num_pagos) + '</div>' : '') + '</td></tr>';
+    });
+    filas += '</tbody></table></div>';
+  }
+  if (soloLista && document.getElementById('comTiendasLista')) { document.getElementById('comTiendasLista').innerHTML = filas; return; }
+  var chip = function (f, txt, n) {
+    var on = _comTFiltro === f;
+    return '<button type="button" onclick="_comTiendasFiltro(\'' + f + '\')" style="border:1px solid ' + (on ? 'var(--blue)' : 'var(--border)') + ';background:' + (on ? 'var(--blue)' : 'transparent') + ';color:' + (on ? '#fff' : 'var(--text)') + ';border-radius:999px;padding:6px 12px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">' + txt + ' <span style="opacity:.75">' + n + '</span></button>';
+  };
+  card.innerHTML = '<div class="card-title">🏪 ' + T('com.tt_titulo') + '</div>' +
+    '<div style="display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:8px">' +
+    chip('activa', T('com.e_activa'), cnt('activa')) + chip('prueba', T('com.e_prueba'), cnt('prueba')) + chip('impago', T('com.e_impago'), cnt('impago')) + chip('todas', T('com.tt_todas'), todas.length) +
+    '<input type="search" value="' + esc(_comTBusca) + '" oninput="_comTiendasBuscar(this.value)" placeholder="' + esc(T('com.tt_buscar')) + '" style="flex:1 1 180px;min-width:0;padding:7px 10px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;background:transparent;color:var(--text)"></div>' +
+    '<div id="comTiendasLista">' + filas + '</div>';
+}
+
 function renderComisionesAdmin(data) {
   var content = document.getElementById('comContent');
   var r = data.resumen;
   var html = '';
+  html += '<div class="card" style="margin-bottom:14px" id="comTiendasCard"></div>';
 
   html += '<div class="card" style="margin-bottom:14px">';
   html += '<div class="card-title">' + T('com.resumen_admin') + '</div>';
@@ -7003,6 +7061,7 @@ function renderComisionesAdmin(data) {
   html += '</div>';
 
   content.innerHTML = html;
+  _COM_TIENDAS = data.tiendas || []; _comTiendasPintar();
 }
 
 function renderComisionesAfiliado(data) {

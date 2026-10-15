@@ -930,6 +930,45 @@ export default async function handler(req, res) {
         });
       }
 
+      // Apartado "Tiendas": TODAS las tiendas (con o sin comercial) y en qué
+      // anda cada una, para ver de un vistazo cuántas están pagando.
+      let tiendasTodas = [];
+      try {
+        const ttR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?select=id,nombre,plan,plan_status,plan_until,trial_until,creado_en,codigo_referido,telefono,dir,plan_email&order=creado_en.desc&limit=5000`, { headers: sbHeaders });
+        const ttArr = await ttR.json();
+        const pagosPorTienda = {};
+        for (const p of allPagos) {
+          if (!p.tienda_id) continue;
+          const x = pagosPorTienda[p.tienda_id] || (pagosPorTienda[p.tienda_id] = { n: 0, total: 0, ultimo: null });
+          x.n++; x.total += parseFloat(p.monto_neto || 0);
+          if (!x.ultimo || p.created_at > x.ultimo) x.ultimo = p.created_at;
+        }
+        tiendasTodas = (Array.isArray(ttArr) ? ttArr : []).map(t => {
+          const pg = pagosPorTienda[t.id] || { n: 0, total: 0, ultimo: null };
+          const st = String(t.plan_status || '').toLowerCase();
+          // Una suscripción "active" en Stripe es una tienda que paga aunque sus
+          // pagos sean de antes de existir pagos_referidos.
+          let estado = estadoTienda(t, pg.n > 0);
+          if (estado !== 'baja' && estado !== 'perdida' && estado !== 'impago' && st === 'active') estado = 'activa';
+          return {
+            tienda_id: t.id,
+            nombre: t.nombre || 'Tienda sin nombre',
+            plan: t.plan || '-',
+            plan_status: t.plan_status || '-',
+            estado,
+            telefono: t.telefono || '',
+            dir: t.dir || '',
+            email: t.plan_email || '',
+            codigo_referido: t.codigo_referido || '',
+            alta: t.creado_en || null,
+            hasta: t.plan_until || t.trial_until || null,
+            num_pagos: pg.n,
+            total_pagado: +pg.total.toFixed(2),
+            ultimo_pago: pg.ultimo
+          };
+        });
+      } catch (e) { console.warn('No se pudieron leer todas las tiendas:', e.message); }
+
       const afiliadosConStats = allAfiliados.map(af => {
         const stats = porCodigo[af.codigo] || {total_comisiones:0, comisiones_pagadas:0, comisiones_pendientes:0, num_pagos:0};
         const referidos = referidosPorCodigo[af.codigo] ? referidosPorCodigo[af.codigo].size : 0;
@@ -973,7 +1012,8 @@ export default async function handler(req, res) {
           comisiones_pendientes: +totalPendientes.toFixed(2)
         },
         afiliados: afiliadosConStats,
-        pagos: allPagos
+        pagos: allPagos,
+        tiendas: tiendasTodas
       });
     }
 
