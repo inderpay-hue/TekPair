@@ -9936,15 +9936,33 @@ function renderOpcionalesRep() {
   }).join('');
   calcR();
 }
+// Extras (funda, protector…): se cobran con la reparación. Entran como una
+// línea más de servicios, así suman al total, al resguardo y a la factura.
 function agregarOpcionalRep() {
   var n = document.getElementById('rOpcNombre'), p = document.getElementById('rOpcPrecio');
   var nombre = ((n && n.value) || '').trim(), precio = parseFloat((p && p.value) || '');
   if (!nombre) { toast(T('rep.opc_falta_nombre'), 'err'); if (n) n.focus(); return; }
   if (!(precio >= 0)) { toast(T('rep.opc_falta_precio'), 'err'); if (p) p.focus(); return; }
-  SEL.rOpcionales = SEL.rOpcionales || [];
-  SEL.rOpcionales.push({ nombre: nombre.slice(0, 120), precio: Math.round(precio * 100) / 100, estado: 'pendiente' });
+  _anadirExtraRep(nombre, precio);
   n.value = ''; p.value = '';
-  renderOpcionalesRep();
+}
+function _anadirExtraRep(nombre, precio, coste) {
+  SEL.rServicios = SEL.rServicios || [];
+  SEL.rServicios.push({ nombre: String(nombre).slice(0, 120), desc: '', coste: coste || 0, precio: Math.round((parseFloat(precio) || 0) * 100) / 100, extra: true });
+  renderServiciosRep();
+  calcR();
+  toast(T('rep.extra_anadido').replace('{n}', nombre), 'ok');
+}
+// Botón rápido: si el extra está en el catálogo de servicios con precio, entra
+// directo; si no, se rellena el nombre y se pide el precio.
+function extraRapidoRep(clave) {
+  var nombre = T(clave);
+  var norm = function (x) { return String(x || '').toLowerCase().trim(); };
+  var srv = (DB.servicios || []).find(function (x) { return norm(x.nombre) === norm(nombre) && parseFloat(x.precio) > 0; });
+  if (srv) { _anadirExtraRep(srv.nombre, srv.precio, srv.precioCoste); return; }
+  var n = document.getElementById('rOpcNombre'), p = document.getElementById('rOpcPrecio');
+  if (n) n.value = nombre;
+  if (p) { p.value = ''; p.focus(); }
 }
 function quitarOpcionalRep(i) {
   (SEL.rOpcionales || []).splice(i, 1);
