@@ -2861,7 +2861,21 @@ function setNavActive(el) {
 }
 
 // ═══ MODALS ═══
+// IMEI → marca y modelo (js/imei-modelo.js). Se engancha la primera vez que se
+// abre cada formulario y, en cada apertura, se borra el aviso de la vez anterior.
+var _IMEI_CAMPOS = {
+  mRep: ['rImei', 'rMarca', 'rModelo', function () { try { actualizarAvisoGarantia(); } catch (e) {} }],
+  mStock: ['sImei', 'sMarca', 'sModelo', function () { try { renderStockMarcas(); } catch (e) {} }]
+};
+function _engancharImeiModal(id) {
+  var c = _IMEI_CAMPOS[id];
+  if (!c || typeof tkEngancharImei !== 'function') return;
+  tkEngancharImei(c[0], c[1], c[2], c[3]);
+  var inp = document.getElementById(c[0]);
+  if (inp && inp._tkImeiRevisar) inp._tkImeiRevisar();
+}
 function openM(id) {
+  try { _engancharImeiModal(id); } catch (e) {}
   if (id === 'mStock') {
     try { renderSelectorUbicacion(); } catch(e){}
     try {
@@ -3317,6 +3331,8 @@ setTimeout(function(){ _syncQueueRetry(); _syncIndicatorUpdate(); }, 2000);
 
 function sbPost(table, data) {
   _sbReadCacheClear();
+  // Aprender marca y modelo por el IMEI de lo que se guarda (js/imei-modelo.js).
+  try { if (typeof tkAprenderDeFila === 'function') tkAprenderDeFila(table, data); } catch (e) {}
   return _sbPostRaw(table, data).then(function(res) {
     if (res.ok) return true;
     // 409 con código 23505 (PK/único) = el registro YA existe. Con ids de cliente + sync "al menos una vez",
@@ -3356,6 +3372,7 @@ function sbPost(table, data) {
 
 function sbPatch(table, query, data) {
   _sbReadCacheClear();
+  try { if (typeof tkAprenderDeFila === 'function') tkAprenderDeFila(table, data); } catch (e) {}
   return _sbPatchRaw(table, query, data).then(function(res) {
     if (res.ok) {
       // RLS-silencioso: 200/204 pero 0 filas actualizadas = la fila no es visible/editable
