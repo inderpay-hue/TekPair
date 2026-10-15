@@ -1222,7 +1222,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261016r"></script>
+<script src="/lang/lang.v8.js?v=20261016y"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4609,6 +4609,11 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     </div>
     <canvas id="eFirma" width="560" height="160" style="width:100%;height:120px;border:1.5px dashed var(--border);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>
     <div style="font-size:10.5px;color:var(--muted);margin-top:4px" data-t="test.firma_hint">El cliente firma con el dedo: confirma que recibe el equipo y el resultado de este test.</div>
+    <!-- Sin pantalla táctil (taller con ordenador): conformidad marcada en el mostrador -->
+    <label style="display:flex;gap:9px;align-items:flex-start;margin-top:10px;font-size:13px;cursor:pointer;background:var(--light);border:1px solid var(--border);border-radius:10px;padding:10px 12px">
+      <input type="checkbox" id="eConforme" style="margin-top:2px;width:17px;height:17px;flex-shrink:0">
+      <span data-t="entrega.conforme">El cliente recoge el equipo y confirma en el mostrador que funciona correctamente (sin firma).</span>
+    </label>
   </div>
   <!-- M7: foto-prueba del estado al entregar -->
   <div class="fg" id="repFotoEntSec" style="margin-bottom:14px">
@@ -5609,7 +5614,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261016b"></script>
-<script src="/js/dash-app.js?v=20261016r"></script>
+<script src="/js/dash-app.js?v=20261016y"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

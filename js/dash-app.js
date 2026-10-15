@@ -10958,7 +10958,10 @@ function trackingEtiqueta() {
   } catch(e) {}
 
   var m = _etqMedida(), pw = m.w, ph = m.h;
-  var qrMm = Math.max(14, Math.min(ph - 4, Math.round(pw * 0.4)));
+  // Código de bloqueo del equipo, para que el técnico lo tenga pegado al móvil.
+  var bloq = _etqBloqueo(r);
+  var patMm = Math.max(10, Math.min(ph - 8, 16));
+  var qrMm = Math.max(14, Math.min(ph - 4, Math.round(pw * (bloq.svg ? 0.3 : 0.4))));
   // Cinta continua (DK-22205): ancho fijo + largo automático (el driver corta a contenido).
   // Si fijamos 62x30 el driver lo toma como etiqueta troquelada y avisa "el rollo no coincide".
   var pageCss = m.cont ? (pw + 'mm auto') : (pw + 'mm ' + ph + 'mm');
@@ -10973,7 +10976,10 @@ function trackingEtiqueta() {
     '.id{font-weight:800;font-size:9px;font-family:monospace}' +
     '.cli{font-weight:700;font-size:9px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
     '.eq{font-size:8px;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
-    '.av{font-size:7px;color:#444;margin-top:1px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}' +
+    '.av{font-size:7px;color:#444;margin-top:1px;display:-webkit-box;-webkit-line-clamp:' + (bloq.txt ? 1 : 2) + ';-webkit-box-orient:vertical;overflow:hidden}' +
+    '.blq{font-size:9px;font-weight:800;margin-top:1px;font-family:monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+    '.pat{flex-shrink:0;text-align:center;font-size:6px;font-weight:700;font-family:monospace}' +
+    '.pat svg{width:' + patMm + 'mm;height:' + patMm + 'mm;display:block}' +
     '</style></head><body>' +
     '<div class="qr">' + qrSvg + '</div>' +
     '<div class="info">' +
@@ -10981,8 +10987,10 @@ function trackingEtiqueta() {
       '<div class="id">' + esc(r.id) + '</div>' +
       '<div class="cli">' + esc(r.clienteNombre || '') + '</div>' +
       '<div class="eq">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</div>' +
+      (bloq.txt ? '<div class="blq">' + esc(bloq.txt) + '</div>' : '') +
       '<div class="av">' + esc(r.averia || '') + '</div>' +
     '</div>' +
+    (bloq.svg ? '<div class="pat">' + bloq.svg + '<div>' + esc(bloq.seq) + '</div></div>' : '') +
     '<div style="position:fixed;bottom:1px;left:0;right:0;text-align:center;font-size:5px;color:#999">tekpair.tech</div>' +
     '<style>@media print{.npbar{display:none!important}}</style>' +
     '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:11px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
@@ -10992,6 +11000,35 @@ function trackingEtiqueta() {
     return;
   }
   _etqPopupImprimir(html);
+}
+
+// Bloqueo del equipo para la etiqueta: PIN / contraseña en texto, y el patrón
+// dibujado en negro (punto de inicio más grande) con su secuencia en números.
+function _etqBloqueo(r) {
+  var tipo = r && r.tipoBloqueo, val = (r && r.bloqueo) || '';
+  if (!tipo) return { txt: '' };
+  if (tipo === 'Patron') {
+    var p = null; try { p = JSON.parse(val); } catch (e) {}
+    if (!p || !Array.isArray(p.path) || p.path.length < 2) return { txt: T('rep.bloq_patron') };
+    var sz = p.size || 3, size = 40, pad = 5, step = (size - 2 * pad) / (sz - 1);
+    var pos = function (idx) { var n = idx - 1; return { x: pad + (n % sz) * step, y: pad + Math.floor(n / sz) * step }; };
+    var svg = '<svg viewBox="0 0 ' + size + ' ' + size + '" xmlns="http://www.w3.org/2000/svg">';
+    for (var i = 0; i < p.path.length - 1; i++) {
+      var a = pos(p.path[i]), b = pos(p.path[i + 1]);
+      svg += '<line x1="' + a.x + '" y1="' + a.y + '" x2="' + b.x + '" y2="' + b.y + '" stroke="#000" stroke-width="2.4" stroke-linecap="round"/>';
+    }
+    for (var j = 1; j <= sz * sz; j++) {
+      var c = pos(j), ini = p.path[0] === j;
+      svg += ini ? '<circle cx="' + c.x + '" cy="' + c.y + '" r="4" fill="#fff" stroke="#000" stroke-width="2"/><circle cx="' + c.x + '" cy="' + c.y + '" r="1.6" fill="#000"/>'
+        : '<circle cx="' + c.x + '" cy="' + c.y + '" r="' + (p.path.indexOf(j) !== -1 ? 2.4 : 1.6) + '" fill="#000"/>';
+    }
+    svg += '</svg>';
+    return { txt: T('rep.bloq_patron'), svg: svg, seq: p.path.join('-') };
+  }
+  if (tipo === 'PIN') return { txt: 'PIN: ' + val };
+  if (tipo === 'Contrasena') return { txt: T('rep.bloq_contrasena') + ': ' + val };
+  if (tipo === 'Huella') return { txt: T('rep.bloq_huella') };
+  return { txt: tipo + (val ? ': ' + val : '') };
 }
 
 // Tamaños de etiqueta soportados (ancho x alto en mm). El usuario elige en Ajustes.
@@ -12662,7 +12699,7 @@ function _testItemsDe(t) {
 }
 function _testAObjeto(estados, extra) {
   var items = TEST_ITEMS.filter(function (k) { return estados[k]; }).map(function (k) { return { k: k, estado: estados[k] }; });
-  if (!items.length && !(extra && (extra.firma || extra.nota))) return null;
+  if (!items.length && !(extra && (extra.firma || extra.nota || extra.conforme))) return null;
   return Object.assign({ items: items, fecha: new Date().toISOString(), por: (typeof U !== 'undefined' && U && (U.nombre || U.email)) || '' }, extra || {});
 }
 // Pinta la lista en `contId`. `estados` se modifica al pulsar. `entrada` (opcional)
@@ -12764,6 +12801,7 @@ function abrirEntregar(id) {
   renderTest('eTest', SEL.testSalida, _testItemsDe(r.testEntrada), _avisoFallosSalida);
   _avisoFallosSalida();
   var _tn = document.getElementById('eTestNota'); if (_tn) _tn.value = (r.testSalida && r.testSalida.nota) || '';
+  var _ec = document.getElementById('eConforme'); if (_ec) _ec.checked = false;
   openM('mEntregar');
   setTimeout(_iniciarFirmaSalida, 60);
 }
@@ -12843,7 +12881,10 @@ function confirmarEntrega() {
   r.fotosEntrega = (SEL.fotosEntrega || []).slice(); // M7: foto-prueba del estado al entregar
   var _tsNota = ((document.getElementById('eTestNota') || {}).value || '').trim();
   var _tsFirma = _firmaSalidaPng();
-  var _ts = _testAObjeto(SEL.testSalida || {}, Object.assign({}, _tsNota ? { nota: _tsNota.slice(0, 300) } : {}, _tsFirma ? { firma: _tsFirma } : {}));
+  // Conformidad sin firma (taller con ordenador): queda quién la marcó y cuándo.
+  var _tsConf = !!((document.getElementById('eConforme') || {}).checked);
+  var _ts = _testAObjeto(SEL.testSalida || {}, Object.assign({}, _tsNota ? { nota: _tsNota.slice(0, 300) } : {}, _tsFirma ? { firma: _tsFirma } : {},
+    _tsConf ? { conforme: true, conformeFecha: new Date().toISOString(), conformePor: (typeof U !== 'undefined' && U && (U.nombre || U.email)) || '' } : {}));
   if (_ts) r.testSalida = _ts;
   // Entregada sin pasar por "Por Entregar": el reloj del técnico para aquí.
   var _finNuevo = (r.inicioRep && !r.finRep) ? new Date().toISOString() : null;
@@ -19889,6 +19930,13 @@ function abrirDetalleRep(repId) {
   if (r.fechaEntrega) html += '<div><span style="color:var(--muted);font-size:11px">⏱ ' + T('det.entrega_prev') + '</span><br><strong>' + esc(r.fechaEntrega) + '</strong></div>';
   if (r.fechaEntregaReal) html += '<div><span style="color:var(--muted);font-size:11px">✓ ' + T('det.entregado') + '</span><br><strong>' + esc(r.fechaEntregaReal) + '</strong></div>';
   if (r.pagoFinal) html += '<div><span style="color:var(--muted);font-size:11px">💳 ' + T('det.pago') + '</span><br><strong>' + esc(_repPagoTxt(r)) + '</strong></div>';
+  // Conformidad del cliente al recoger: firma en pantalla o confirmación en el mostrador.
+  if (r.testSalida && (r.testSalida.firma || r.testSalida.conforme)) {
+    var _cf = r.testSalida.firma ? T('entrega.conf_firma') : T('entrega.conf_mostrador').replace('{p}', r.testSalida.conformePor || '');
+    var _cfF = r.testSalida.conformeFecha || r.testSalida.fecha;
+    try { if (_cfF) _cf += ' · ' + new Date(_cfF).toLocaleString((typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es'), { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); } catch (e) {}
+    html += '<div><span style="color:var(--muted);font-size:11px">✅ ' + T('entrega.conf_titulo') + '</span><br><strong>' + esc(_cf) + '</strong></div>';
+  }
   html += '</div>';
 
   // Componentes
