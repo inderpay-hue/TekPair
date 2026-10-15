@@ -2866,7 +2866,8 @@ function setNavActive(el) {
 // abre cada formulario y, en cada apertura, se borra el aviso de la vez anterior.
 var _IMEI_CAMPOS = {
   mRep: ['rImei', 'rMarca', 'rModelo', function () { try { actualizarAvisoGarantia(); } catch (e) {} }],
-  mStock: ['sImei', 'sMarca', 'sModelo', function () { try { renderStockMarcas(); } catch (e) {} }]
+  mStock: ['sImei', 'sMarca', 'sModelo', function () { try { renderStockMarcas(); } catch (e) {} }],
+  mCompraUsado: ['cuImei', 'cuMarca', 'cuModelo', null]
 };
 function _engancharImeiModal(id) {
   var c = _IMEI_CAMPOS[id];
@@ -23141,9 +23142,10 @@ function imprimirContratoUsado(id) {
     '</table>' +
     '<h2>' + esc(T('usados.ct_clausulas')) + '</h2><ol>' +
       '<li>' + esc(T('usados.ct_transmite')) + '</li>' +
-      '<li>' + esc(T('usados.decl_propietario')) + '</li>' +
-      '<li>' + esc(T('usados.decl_robado')) + '</li>' +
-      '<li>' + esc(T('usados.decl_cuentas')) + '</li>' +
+      '<li>' + esc(T('usados.sec_declara')) + ':<ul style="margin:2px 0 0 16px;padding:0">' +
+        '<li>' + esc(T('usados.decl_propietario')) + '</li>' +
+        '<li>' + esc(T('usados.decl_robado')) + '</li>' +
+        '<li>' + esc(T('usados.decl_cuentas')) + '</li></ul></li>' +
       '<li>' + esc(T('usados.ct_responsable')) + '</li>' +
     '</ol>' +
     '<div class="legal">' + esc(T('usados.ct_datos').replace('{t}', TIENDA.nombre || '').replace('{n}', cfg.anios)) + '</div>' +
@@ -23226,7 +23228,7 @@ function verUsado(id) {
   var c = (DB.comprasUsados || []).find(function (x) { return x.id === id; }); if (!c) return;
   SEL.usadoId = id;
   document.getElementById('uvTitulo').textContent = _usNum(c) + ' · ' + _usTelefono(c);
-  var l = function (k, val) { return val ? '<div><span style="color:var(--muted)">' + esc(k) + ':</span> <b>' + esc(val) + '</b></div>' : ''; };
+  var l = function (k, val) { return val ? '<div><span style="color:var(--muted)">' + esc(String(k).replace(/:\s*$/, '')) + ':</span> <b>' + esc(val) + '</b></div>' : ''; };
   document.getElementById('uvCuerpo').innerHTML =
     (c.anulada ? '<div style="color:#EF4444;font-weight:800;margin-bottom:6px">' + esc(T('usados.anulada')) + ' · ' + esc(_usFecha(c.anulada_at, true)) + (c.anulada_por ? ' · ' + esc(c.anulada_por) : '') + '<br>' + esc(c.anulada_motivo || '') + '</div>' : '') +
     l(T('pres.doc_fecha'), _usFecha(c.fecha, true)) +
@@ -23269,7 +23271,7 @@ function _usColumnas(c) {
 function _usCabeceras() {
   return [T('usados.ct_numero'), T('pres.doc_fecha'), T('usados.ct_vendedor'), T('usados.doc_tipo'), T('usados.direccion'), T('usados.telefono'),
     T('rep.marca') + ' / ' + T('rep.modelo'), 'IMEI', T('usados.imei2'), T('usados.precio'), T('usados.metodo'),
-    T('usados.col_venta'), T('usados.col_comprador'), T('usados.col_anulada')];
+    T('usados.col_venta'), T('usados.col_comprador'), T('usados.col_anulada')].map(function (h) { return String(h).replace(/:\s*$/, ''); });
 }
 
 function exportarUsadosCSV() {
