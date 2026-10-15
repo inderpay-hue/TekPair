@@ -263,7 +263,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .vl-t:focus-visible{outline:2px solid var(--t-acc);outline-offset:2px}
 .vl-aux{color:var(--t-ink2);font-size:17px}
 </style>
-<script src="/lang/lang.v8.js?v=20261016p"></script>
+<script src="/lang/lang.v8.js?v=20261016q"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -404,7 +404,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
           <button class="pay-btn active" data-p="Efectivo" onclick="setPago(this)"><span data-t="tpv.efectivo">💵 Efectivo</span></button>
           <button class="pay-btn" data-p="Tarjeta" onclick="setPago(this)"><span data-t="tpv.tarjeta">💳 Tarjeta</span></button>
           <button class="pay-btn" data-p="Bizum" onclick="setPago(this)"><span data-t="tpv.bizum">📱 Bizum</span></button>
-          <button class="pay-btn" data-p="Financiado" onclick="setPago(this)"><span data-t="tpv.financiado">📅 Financiado</span></button>
+          <button class="pay-btn" data-func="financiacion" data-p="Financiado" onclick="setPago(this)"><span data-t="tpv.financiado">📅 Financiado</span></button>
           <button class="pay-btn" data-p="Mixto" onclick="setPago(this)" style="grid-column:1/-1"><span data-t="tpv.mixto">🔀 Mixto</span></button>
         </div>
 
@@ -661,6 +661,7 @@ var AJUSTES = JSON.parse(localStorage.getItem('tk_ajustes') || '{}');
 if (!AJUSTES.iva) AJUSTES.iva = {activo:false,modo:'incluido',tipoDefault:21};
 // FIX TPV-3: merge defensivo de AJUSTES.iva por si está parcialmente inicializado
 AJUSTES.iva = Object.assign({activo:false,modo:'incluido',tipoDefault:21}, AJUSTES.iva);
+try { _aplicarFuncTPV(); } catch (e) {}
 var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
 var SB_KEY = sess.sb_key || '';
 var JWT_TOKEN = sess.jwt_token || '';
@@ -850,6 +851,7 @@ async function pullTiendaTPV() {
     if (t.ajustes_config && typeof t.ajustes_config === 'object') {
       AJUSTES = Object.assign({iva:{activo:false,modo:'incluido',tipoDefault:21}}, t.ajustes_config);
       AJUSTES.iva = AJUSTES.iva || {activo:false,modo:'incluido',tipoDefault:21};
+      try { _aplicarFuncTPV(); } catch (e) {}
       localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
     }
   } catch(e) { console.error('Pull tienda TPV error:', e); }
@@ -1881,6 +1883,19 @@ function numpad(val) {
 }
 
 // ═══ PAYMENT ═══
+// Funciones apagadas en Ajustes → Funciones (p. ej. financiación): se ocultan
+// aquí igual que en el panel (elementos con data-func).
+function _aplicarFuncTPV() {
+  var off = (AJUSTES && AJUSTES.funciones) || {};
+  var st = document.getElementById('funcCss');
+  if (!st) { st = document.createElement('style'); st.id = 'funcCss'; document.head.appendChild(st); }
+  st.textContent = Object.keys(off).filter(function (k) { return off[k] === false; })
+    .map(function (k) { return '[data-func~="' + k + '"]{display:none!important}'; }).join('\n');
+  if (off.financiacion === false && selectedPago === 'Financiado') {
+    var ef = document.querySelector('.pay-btn[data-p="Efectivo"]'); if (ef) setPago(ef);
+  }
+}
+
 // ═══ PAGO MIXTO ═══
 // Un total de 150 pagado 100 con tarjeta y 50 en efectivo: la venta se guarda con
 // pago 'Mixto' y el desglose en `pagos` (columna jsonb, sql/ventas-pago-mixto.sql).
