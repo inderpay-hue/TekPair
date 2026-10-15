@@ -10962,10 +10962,7 @@ function trackingEtiqueta() {
   var bloq = _etqBloqueo(r);
   var patMm = Math.max(10, Math.min(ph - 8, 16));
   var qrMm = Math.max(14, Math.min(ph - 4, Math.round(pw * (bloq.svg ? 0.3 : 0.4))));
-  // Impresora de tickets: QR y patrón algo menores para que el texto quepa entero.
-  if (m.papel) { qrMm = bloq.svg ? 13 : 17; patMm = 13; }
-  // El id completo (r1792…_crl4pv) no cabe: en el ticket va la parte final, como código corto.
-  var idTxt = (m.papel && /_([a-z0-9]{4,})$/i.test(r.id || '')) ? '#' + String(r.id).split('_').pop().toUpperCase() : r.id;
+  var idTxt = r.id;
   // Cinta continua (DK-22205): ancho fijo + largo automático (el driver corta a contenido).
   // Si fijamos 62x30 el driver lo toma como etiqueta troquelada y avisa "el rollo no coincide".
   var _pg = _etqPagina(m);
@@ -11001,6 +10998,7 @@ function trackingEtiqueta() {
     '<style>@media print{.npbar{display:none!important}}</style>' +
     '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:11px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
     '</body></html>';
+  if (m.papel) { _etqImprimirTicket(_etqRepTicketHtml(r, qrSvg, bloq), m); return; }
   if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintLabel === 'function') {
     tkPrintLabel(html, _pg.ancho, m.cont ? null : ph, function () { _etqPopupImprimir(html); });
     return;
@@ -11042,7 +11040,7 @@ var ETQ_SIZES = {
   '62cont': { w: 62, h: 30, cont: true, label: '62mm continua (DK-22205)' },
   // Impresora de TICKETS (rollo de 80 mm, 72 mm útiles): se maqueta como una
   // etiqueta de 45 × 25 mm y se amplía ×1,6, con todo en negro (térmica 1 bit).
-  '80tk':   { w: 50, h: 26, cont: true, papel: 80, zoom: 1.44, label: '80 mm — impresora de tickets' },
+  '80tk':   { w: 72, h: 30, cont: true, papel: 80, label: '80 mm — impresora de tickets' },
   '62x29':  { w: 62, h: 29, label: '62 × 29 mm (DK-11209)' },
   '90x29':  { w: 90, h: 29, label: '29 × 90 mm (DK-11201)' },
   '50x30':  { w: 50, h: 30, label: '50 × 30 mm' },
@@ -11064,11 +11062,60 @@ function setEtqSize(v) {
 }
 // Ajustes de página para el modo «impresora de tickets»: papel de 80 mm, la
 // etiqueta ampliada y centrada, y sin grises (en térmica salen como trama).
+// Modo «impresora de tickets»: en la app de escritorio la etiqueta sale por el
+// MISMO camino que los tickets (imagen ESC/POS a 80 mm), que en esas impresoras
+// sale nítido; el driver de etiquetas la giraba y la encogía. En el navegador,
+// la ventana de impresión normal. Devuelve true si se ha encargado.
+function _etqImprimirTicket(html, m) {
+  if (!m.papel) return false;
+  var limpio = html.replace(/<div class="npbar"[\s\S]*?<\/div>/, '');
+  if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintImagenESC === 'function') {
+    tkPrintImagenESC(limpio, 80, function () { _etqPopupImprimir(html); });
+    return true;
+  }
+  _etqPopupImprimir(html);
+  return true;
+}
 function _etqPagina(m) {
-  if (!m.papel) return { page: m.cont ? (m.w + 'mm auto') : (m.w + 'mm ' + m.h + 'mm'), extra: '', ancho: m.w };
-  var margen = Math.max(0, (m.papel - 8 - m.w * m.zoom) / 2 / m.zoom);
-  return { page: m.papel + 'mm auto', ancho: m.papel,
-    extra: 'body{zoom:' + m.zoom + ';margin-left:' + margen.toFixed(2) + 'mm!important;padding-top:2mm!important;padding-bottom:4mm!important}body *{color:#000!important}' };
+  return { page: m.cont ? (m.w + 'mm auto') : (m.w + 'mm ' + m.h + 'mm'), extra: '', ancho: m.w };
+}
+// Etiquetas en IMPRESORA DE TICKETS: documento propio de 80 mm con medidas
+// reales (sin zoom, que html2canvas no entiende), letra grande y todo en negro.
+var _ETQ_TK_CSS = '@page{size:80mm auto;margin:0}*{box-sizing:border-box}html,body{width:80mm;margin:0}' +
+  'body{font-family:Arial,Helvetica,sans-serif;padding:3mm 4mm 6mm;color:#000;font-weight:700;-webkit-font-smoothing:none;print-color-adjust:exact;-webkit-print-color-adjust:exact}' +
+  'body *{color:#000!important}.fila{display:flex;gap:3mm;align-items:center}.qr{flex-shrink:0}.qr img{display:block}' +
+  '.info{flex:1;min-width:0;line-height:1.25}.cut{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}' +
+  '.npbar{position:fixed;top:0;left:0;right:0;background:#0f1729;padding:8px;text-align:center;font-size:11px}' +
+  '.npbar,.npbar *{color:#fff!important}@media print{.npbar{display:none!important}}';
+function _etqTkDoc(cuerpo) {
+  return '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(T('etq.doc_title')) + '</title><style>' + _ETQ_TK_CSS + '</style></head><body>' + cuerpo +
+    '<div class="npbar">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div></body></html>';
+}
+function _etqTkQr(qrImg, mm) { return qrImg ? '<div class="qr">' + qrImg.replace('<img ', '<img style="width:' + mm + 'mm;height:' + mm + 'mm" ') + '</div>' : ''; }
+function _etqRepTicketHtml(r, qrImg, bloq) {
+  var corto = /_([a-z0-9]{4,})$/i.test(r.id || '') ? '#' + String(r.id).split('_').pop().toUpperCase() : (r.id || '');
+  var nom = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.nombre) || '';
+  var info = '<div class="info">' +
+      (nom ? '<div class="cut" style="font-size:12px">' + esc(nom) + '</div>' : '') +
+      '<div class="cut" style="font-size:17px;font-weight:900;font-family:monospace">' + esc(corto) + '</div>' +
+      '<div style="font-size:15px;font-weight:900;line-height:1.15">' + esc(r.clienteNombre || '') + '</div>' +
+      '<div style="font-size:14px;line-height:1.15">' + esc(((r.marca || '') + ' ' + (r.modelo || '')).trim()) + '</div>' +
+      (bloq.txt && !bloq.svg ? '<div class="cut" style="font-size:18px;font-weight:900;font-family:monospace;margin-top:1mm">' + esc(bloq.txt) + '</div>' : '') +
+      (r.averia ? '<div style="font-size:13px;margin-top:1mm">' + esc(r.averia) + '</div>' : '') +
+    '</div>';
+  var pat = bloq.svg ? '<div style="text-align:center;flex-shrink:0">' + bloq.svg.replace('<svg ', '<svg style="width:20mm;height:20mm;display:block" ') +
+    '<div style="font-size:12px;font-family:monospace;font-weight:900;margin-top:1mm">' + esc(bloq.seq) + '</div></div>' : '';
+  return _etqTkDoc('<div class="fila">' + _etqTkQr(qrImg, bloq.svg ? 20 : 24) + info + pat + '</div>');
+}
+function _etqStockTicketHtml(s, qrImg, nombre, specs, estado, precio, esOferta) {
+  var info = '<div class="info">' +
+      '<div style="font-size:18px;font-weight:900;line-height:1.1">' + esc(nombre) + '</div>' +
+      (specs ? '<div class="cut" style="font-size:13px;margin-top:1mm">' + esc(specs) + '</div>' : '') +
+      (estado ? '<div class="cut" style="font-size:13px">' + esc(estado) + '</div>' : '') +
+      (s.imei ? '<div class="cut" style="font-size:12px;font-family:monospace">IMEI: ' + esc(s.imei) + '</div>' : '') +
+      (precio ? '<div style="font-size:26px;font-weight:900;margin-top:1mm">' + (esOferta ? '<span style="font-size:13px;text-decoration:line-through">' + esc(cur(s.precioAntes)) + '</span> ' : '') + esc(precio) + '</div>' : '') +
+    '</div>';
+  return _etqTkDoc('<div class="fila">' + _etqTkQr(qrImg, 22) + info + '</div>');
 }
 // Cabecera de etiqueta: logo de la tienda si existe, si no el nombre (compacto).
 // Se usa dentro de la columna de info de las etiquetas de venta y reparación.
@@ -11095,7 +11142,7 @@ function imprimirEtiquetaStock(sid) {
   var _pg = _etqPagina(m);
   var pageCss = _pg.page;
   var bodyH = m.cont ? ('min-height:' + ph + 'mm') : ('height:' + ph + 'mm');
-  var showQr = !!s.imei && pw >= 45;  // en etiquetas estrechas, sin QR para dar sitio al texto
+  var showQr = !!s.imei && (pw >= 45 || !!m.papel);  // en etiquetas estrechas, sin QR para dar sitio al texto
   var qrSvg = '';
   if (showQr) { try { var qr = qrcode(0, 'M'); qr.addData(s.imei); qr.make(); qrSvg = qr.createImgTag(4, 4); } catch (e) {} }
   var hasQr = !!qrSvg;
@@ -11147,6 +11194,7 @@ function imprimirEtiquetaStock(sid) {
     '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:11px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
     '</body></html>';
   // App de escritorio (Tauri): impresión nativa silenciosa. Si falla/cancela, cae al diálogo.
+  if (m.papel) { _etqImprimirTicket(_etqStockTicketHtml(s, qrSvg, nombre, specs, estado, precio, esOferta), m); return; }
   if (typeof tkIsDesktop === 'function' && tkIsDesktop() && typeof tkPrintLabel === 'function') {
     tkPrintLabel(fullHtml, _pg.ancho, m.papel ? null : ph, function () { _etqPopupImprimir(fullHtml); });
     return;
