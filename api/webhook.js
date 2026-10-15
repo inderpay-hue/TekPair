@@ -594,7 +594,25 @@ export default async function handler(req, res) {
                 const taxStripe = (invoice.tax != null ? invoice.tax
                   : (Array.isArray(invoice.total_taxes) ? invoice.total_taxes.reduce((a, t) => a + (t.amount || 0), 0) : 0)) / 100;
                 const baseImponible = taxStripe > 0 ? +(montoNeto - taxStripe).toFixed(2) : +(montoNeto / 1.21).toFixed(2);
-                comisionMonto = +(baseImponible * comisionPct / 100).toFixed(2);
+                // Y tambien se descuenta lo que cobra Stripe por ese pago (la "fee" del
+                // balance transaction). Si no se puede leer, se calcula sin descontarla.
+                let feeStripe = 0;
+                try {
+                  let chId = typeof invoice.charge === 'string' ? invoice.charge : (invoice.charge?.id || null);
+                  const piId = typeof invoice.payment_intent === 'string' ? invoice.payment_intent : (invoice.payment_intent?.id || null);
+                  if (!chId && piId) {
+                    const piR = await fetch(`https://api.stripe.com/v1/payment_intents/${piId}`, { headers: { 'Authorization': `Bearer ${STRIPE_KEY}` } });
+                    const pi = await piR.json();
+                    chId = typeof pi.latest_charge === 'string' ? pi.latest_charge : (pi.latest_charge?.id || null);
+                  }
+                  if (chId) {
+                    const chR = await fetch(`https://api.stripe.com/v1/charges/${chId}?expand[]=balance_transaction`, { headers: { 'Authorization': `Bearer ${STRIPE_KEY}` } });
+                    const ch = await chR.json();
+                    feeStripe = (ch.balance_transaction?.fee || 0) / 100;
+                  }
+                } catch (e) { console.warn('No se pudo leer la comisión de Stripe:', e.message); }
+                const baseComision = Math.max(0, +(baseImponible - feeStripe).toFixed(2));
+                comisionMonto = +(baseComision * comisionPct / 100).toFixed(2);
               }
             }
 
