@@ -155,7 +155,7 @@
 
     // ── Pago, y lo entregado/cambio cuando se cobró en efectivo ──
     var pagoTxt = (typeof _pagoTxt === 'function') ? _pagoTxt(v) : (v.pago || '');
-    var pago = '<div class="row"><span>' + txt('tpv.tk_pago') + '</span><strong>' + esc(pagoTxt) + '</strong></div>';
+    var pago = '<div class="row"><span>' + esc(String(txt('tpv.tk_pago')).replace(/:\s*$/, '')) + '</span><strong>' + esc(pagoTxt) + '</strong></div>';
     if (v.entregado > 0) {
       pago += '<div class="row"><span>' + txt('tkt.entregado') + '</span><span>' + money(v.entregado) + '</span></div>' +
         '<div class="row"><span>' + txt('tkt.cambio') + '</span><strong>' + money(Math.max(0, v.entregado - (v.total || 0))) + '</strong></div>';
