@@ -6731,17 +6731,6 @@ pt:{"tkt.pie_garantia": "Garantia", "tkt.pie_garantia_def": "Cada produto tem a 
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
 
 
-// i18n Pestañas de la ventana de reparación (oct-2026)
-(function(){var _a={
-es:{"rtab.estado": "Estado y fotos", "rtab.piezas": "Piezas y extras", "rtab.cobro": "Cobro", "rtab.org": "Organización", "rtab.garantia": "Garantía"},
-en:{"rtab.estado": "Condition & photos", "rtab.piezas": "Parts & extras", "rtab.cobro": "Payment", "rtab.org": "Assignment", "rtab.garantia": "Warranty"},
-fr:{"rtab.estado": "État et photos", "rtab.piezas": "Pièces et options", "rtab.cobro": "Paiement", "rtab.org": "Organisation", "rtab.garantia": "Garantie"},
-it:{"rtab.estado": "Stato e foto", "rtab.piezas": "Ricambi ed extra", "rtab.cobro": "Pagamento", "rtab.org": "Organizzazione", "rtab.garantia": "Garanzia"},
-de:{"rtab.estado": "Zustand & Fotos", "rtab.piezas": "Teile & Extras", "rtab.cobro": "Zahlung", "rtab.org": "Zuständigkeit", "rtab.garantia": "Garantie"},
-pt:{"rtab.estado": "Estado e fotos", "rtab.piezas": "Peças e extras", "rtab.cobro": "Pagamento", "rtab.org": "Organização", "rtab.garantia": "Garantia"}
-};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
-
-
 // i18n Pago mixto (oct-2026)
 (function(){var _a={
 es:{"tpv.mixto": "🔀 Mixto", "tpv.mixto_hint": "Reparte el total entre varias formas de pago", "tpv.mixto_resto": "Resto", "tpv.mixto_falta": "Faltan {x}", "tpv.mixto_sobra": "Sobran {x}", "tpv.mixto_ok": "Cuadra con el total", "tpv.mixto_error": "Los importes tienen que sumar el total ({x})", "ev.mixto_total": "Venta con pago mixto: para cambiar el importe, elige primero una sola forma de pago", "pago.mixto": "Mixto"},
