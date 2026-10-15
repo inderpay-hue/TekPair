@@ -347,7 +347,7 @@ async function _efectivoEsperadoDia(tienda_id, fecha) {
   // Ventas del día. El filtro de reembolso se hace en JS con la MISMA semántica que el front
   // (`if (v.reembolsado) return`): excluye solo las reembolsadas de verdad, NO las de reembolsado
   // NULL. (Con reembolsado=eq.false en PostgREST se perdían las NULL → descuadre falso.)
-  const ventas = await sbGet(`ventas?tienda_id=eq.${encodeURIComponent(tienda_id)}&select=fecha,pago,total,financiado,cuotas,entrada,entrada_pago,reembolsado`);
+  const ventas = await sbGet(`ventas?tienda_id=eq.${encodeURIComponent(tienda_id)}&select=fecha,pago,pagos,total,financiado,cuotas,entrada,entrada_pago,reembolsado`);
   for (const v of (ventas || [])) {
     if (v.reembolsado) continue;
     if (v.financiado && v.cuotas) {
@@ -361,8 +361,12 @@ async function _efectivoEsperadoDia(tienda_id, fecha) {
           ef += (c.pagadoImporte != null) ? (parseFloat(c.pagadoImporte) || 0) : (c.pagado ? (parseFloat(c.importe) || 0) : 0);
         }
       });
-    } else if (String(v.fecha).slice(0, 10) === F && esEf(v.pago)) {
-      ef += Number(v.total) || 0;
+    } else if (String(v.fecha).slice(0, 10) === F) {
+      // Pago mixto: solo cuenta la parte en efectivo del desglose.
+      let pg = v.pagos;
+      if (typeof pg === 'string') { try { pg = JSON.parse(pg); } catch (e) { pg = null; } }
+      if (Array.isArray(pg) && pg.length) pg.forEach((p) => { if (esEf(p && p.metodo)) ef += Number(p.importe) || 0; });
+      else if (esEf(v.pago)) ef += Number(v.total) || 0;
     }
   }
   // Pagos de reparación del día en efectivo (anticipo o no), excluyendo presupuestos/rechazados.

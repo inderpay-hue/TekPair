@@ -288,7 +288,7 @@
         '<strong>' + _T('fact.o_venta') + '</strong> · ' + _esc(d.fecha || '') + '<br>' +
         (d.cliente && d.cliente.nombre ? '👤 ' + _esc(d.cliente.nombre + ' ' + (d.cliente.apellidos || '')) + '<br>' : '') +
         '📦 ' + _esc((d.items || []).map(function(i){ return i.nombre + ' x' + i.cantidad; }).join(', ')) +
-        (d.pago ? '<br>💳 ' + _esc(_pago(d.pago)) : '');
+        (d.pago ? '<br>💳 ' + _esc((d.pagos && d.pagos.length > 1 && typeof window._pagoTxt === 'function') ? window._pagoTxt(d) : _pago(d.pago)) : '');
     } else {
       info.innerHTML =
         '<strong>' + _T('fact.o_reparacion') + '</strong> · ' + _esc(d.fechaEntregaReal || d.fecha || '') + '<br>' +
@@ -735,7 +735,8 @@
         iva_pct: ivaPct,
         iva_importe: +ivaImp.toFixed(2),
         total: total,
-        metodo_pago: d.pago || d.pagoFinal || '',
+        // Pago mixto: "Tarjeta 100 + Efectivo 50" en la factura.
+        metodo_pago: (d.pagos && d.pagos.length > 1 && typeof window._pagoTxt === 'function') ? window._pagoTxt(d) : (d.pago || d.pagoFinal || ''),
         origen_detalle: (function () {
           var od = (FACT.origen === 'reparacion')
             ? { marca: d.marca || '', modelo: d.modelo || '', imei: d.imei || '', averia: d.averia || '' }

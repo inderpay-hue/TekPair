@@ -3429,6 +3429,8 @@ function mapVenta(v) {
     id:v.id, fecha:v.fecha, clienteId:v.cliente_id, clienteNombre:v.cliente_nombre,
     marca:v.marca||'', modelo:v.modelo||'', imei:v.imei||'',
     pago:v.pago||'Efectivo', precio:parseFloat(v.precio)||0,
+    // Pago mixto (sql/ventas-pago-mixto.sql): desglose [{metodo, importe}]; null en ventas normales.
+    pagos: (function(){ try { return v.pagos ? (typeof v.pagos === 'string' ? JSON.parse(v.pagos) : v.pagos) : null; } catch(e){ return null; } })(),
     descuento:parseFloat(v.descuento)||0, total:parseFloat(v.total)||0,
     reembolsado:v.reembolsado||false, fechaReembolso:v.fecha_reembolso||'',
     // Numero de documento del ticket: lo pone la secuencia de Postgres en el
@@ -4053,6 +4055,19 @@ function _cuotaPagado(c) {
 // el dinero entró ese día de verdad. La devolución resta en SU fecha, que es cuando sale
 // del cajón. Antes (`if (v.reembolsado) return`) un reembolso hecho semanas después
 // cambiaba hacia atrás el total de un día ya cerrado y no descontaba nada el día real.
+// Desglose de una venta por forma de pago: una línea si es normal, varias si es mixta.
+function _ventaPagos(v) {
+  var p = v && v.pagos;
+  if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = null; } }
+  if (Array.isArray(p) && p.length) return p.map(function(x) { return { metodo: x.metodo || 'Efectivo', importe: parseFloat(x.importe) || 0 }; });
+  return [{ metodo: (v && v.pago) || 'Efectivo', importe: parseFloat(v && v.total) || 0 }];
+}
+// Texto de la forma de pago: "Tarjeta 100,00 € + Efectivo 50,00 €" en un pago mixto.
+function _pagoTxt(v) {
+  var p = _ventaPagos(v);
+  return p.length > 1 ? p.map(function(x) { return _pagoLbl(x.metodo) + ' ' + cur(x.importe); }).join(' + ') : _pagoLbl((v && v.pago) || '');
+}
+
 function _ventasIngresoPorMetodo(ventas, d1, d2) {
   var por = {};
   (ventas || []).forEach(function(v) {
@@ -4068,8 +4083,7 @@ function _ventasIngresoPorMetodo(ventas, d1, d2) {
             if (c && c.fechaPago) { var mc2 = c.formaPago || 'Efectivo'; por[mc2] = (por[mc2] || 0) - _cuotaPagado(c); }
           });
         } else {
-          var mr = v.pago || 'Efectivo';
-          por[mr] = (por[mr] || 0) - (parseFloat(v.total) || 0);
+          _ventaPagos(v).forEach(function(p) { por[p.metodo] = (por[p.metodo] || 0) - p.importe; });
         }
       }
     }
@@ -4084,7 +4098,7 @@ function _ventasIngresoPorMetodo(ventas, d1, d2) {
         }
       });
     } else if (v.fecha >= d1 && v.fecha <= d2) {
-      var m = v.pago || 'Efectivo'; por[m] = (por[m] || 0) + (parseFloat(v.total) || 0);
+      _ventaPagos(v).forEach(function(p) { por[p.metodo] = (por[p.metodo] || 0) + p.importe; });
     }
   });
   return por;
@@ -7505,7 +7519,7 @@ function renderVentas() {
       '<td>' + fmtFecha(v.fecha) + '</td>' +
       '<td>' + esc(_cliLbl(v.clienteNombre)) + badges + '</td>' +
       '<td>' + esc(v.modelo) + '</td>' +
-      '<td><span class="badge bb">' + esc(_pagoLbl(v.pago)) + '</span></td>' +
+      '<td><span class="badge bb">' + esc(_pagoTxt(v)) + '</span></td>' +
       '<td style="color:' + (v.reembolsado ? 'var(--red)' : 'var(--green)') + ';font-weight:700">' + (v.reembolsado ? '-' : '') + cur(v.total) + '</td>' +
       '<td style="display:flex;gap:3px">' + btnVer + btnR + btnF + btnFact + btnImpr + btnSeg + btnEdit + '</td></tr>';
   });
@@ -7581,7 +7595,16 @@ function guardarEdicionVenta() {
   var c = (DB.clis || []).find(function(x){ return (((x.nombre||'') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === nom; });
   v.clienteId = c ? c.id : (nom ? v.clienteId : null);
   v.modelo = (document.getElementById('evModelo').value || '').trim();
-  v.pago = document.getElementById('evPago').value;
+  var _pagoNuevo = document.getElementById('evPago').value;
+  var _eraMixta = !!(v.pagos && v.pagos.length);
+  // Pago mixto: el reparto entre formas de pago no se edita aquí. Si se cambia el
+  // importe, hay que elegir una sola forma de pago para que la caja cuadre.
+  if (_eraMixta && _pagoNuevo === 'Mixto' && !v.financiado &&
+      Math.abs((parseFloat(document.getElementById('evTotal').value) || 0) - (parseFloat(v.total) || 0)) > 0.009) {
+    toast(T('ev.mixto_total'), 'err'); return;
+  }
+  v.pago = _pagoNuevo;
+  if (_eraMixta && _pagoNuevo !== 'Mixto') v.pagos = null;
   if (!v.financiado) {
     var desc = parseFloat(document.getElementById('evDescuento').value) || 0;
     var total = parseFloat(document.getElementById('evTotal').value) || 0;
@@ -7596,12 +7619,12 @@ function guardarEdicionVenta() {
     v.items[0].nombre = v.modelo || v.items[0].nombre;
   }
   if (SB_KEY && TIENDA_ID) {
-    sbPatch('ventas', 'id=eq.' + encodeURIComponent(v.id), {
+    sbPatch('ventas', 'id=eq.' + encodeURIComponent(v.id), Object.assign({
       cliente_id: v.clienteId, cliente_nombre: v.clienteNombre, modelo: v.modelo,
       pago: v.pago, precio: v.precio, descuento: v.descuento, total: v.total,
       base: v.base, iva_importe: v.ivaImporte,
       items: (v.items && v.items.length) ? JSON.stringify(v.items) : null
-    });
+    }, _eraMixta && !v.pagos ? { pagos: null } : {}));
   }
   try { if (typeof audit === 'function') audit('editar', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total), null); } catch(e){}
   guardarDatos(); closeM('mEditarVenta'); renderVentas();
@@ -7731,7 +7754,7 @@ function verDetalleVenta(vid) {
       (v.reembolsado ? '<span class="badge" style="background:var(--red);color:#fff">' + T('vent.reembolsada') + '</span>' : '') +
     '</div>' +
     '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">' +
-      _fechaHoraVenta(v) + ' · ' + esc(_cliLbl(v.clienteNombre)) + ' · ' + esc(_pagoLbl(v.pago)) +
+      _fechaHoraVenta(v) + ' · ' + esc(_cliLbl(v.clienteNombre)) + ' · ' + esc(_pagoTxt(v)) +
     '</div>' +
     '<div style="overflow-x:auto;margin-bottom:12px">' +
       '<table style="width:100%;border-collapse:collapse;font-size:13.5px">' +
@@ -16251,7 +16274,7 @@ async function enviarReporteCobrum() {
       if (v.fecha && (parseFloat(v.entrada) || 0) > 0) bucket(v.fecha, v.entradaPago || 'Efectivo').ventas += parseFloat(v.entrada) || 0;
       (v.cuotas || []).forEach(function(c){ if (c && c.fechaPago) bucket(String(c.fechaPago).slice(0, 10), c.formaPago || 'Efectivo').ventas += _cuotaPagado(c); });
     } else if (v.fecha) {
-      bucket(v.fecha, v.pago).ventas += Number(v.total || 0);
+      _ventaPagos(v).forEach(function(p){ bucket(v.fecha, p.metodo).ventas += p.importe; });
     }
   });
   (exp.pagosReps || []).forEach(function(p){ var f = (p.fecha || '').slice(0, 10); if (f) bucket(f, p.metodo).reps += Number(p.importe || 0); });
@@ -16600,7 +16623,7 @@ function generarPDFGestor() {
 
   // Pagos
   var pagos = {};
-  ventas.forEach(function(v) { pagos[v.pago||'Sin especificar'] = (pagos[v.pago||'Sin especificar'] || 0) + v.total; });
+  ventas.forEach(function(v) { _ventaPagos(v).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
   reps.forEach(function(r) { if (r.pagoFinal) pagos[r.pagoFinal] = (pagos[r.pagoFinal] || 0) + r.total; });
 
   var labelPeriodo = ({hoy:T('dash.hoy'), semana:T('inicio.per_semana'), mes:T('inicio.per_mes'), trimestre:T('gen.ultimo_trimestre'), total:T('gen.historico_completo'), rango:T('mov.rango')})[SEL.repTab] || SEL.repTab;
@@ -16692,7 +16715,7 @@ function generarPDFGestor() {
   ventas.map(function(v){
     var concepto = (v.items && v.items.length) ? v.items.map(function(it){ return it.nombre + (it.cantidad>1?' x'+it.cantidad:''); }).join(', ') : (v.modelo || '');
     if (concepto.length > 60) concepto = concepto.slice(0,58)+'…';
-    return '<tr><td>' + v.fecha + '</td><td>' + esc(v.clienteNombre || '—') + '</td><td>' + esc(concepto) + '</td><td>' + esc(v.pago||'') + '</td>' +
+    return '<tr><td>' + v.fecha + '</td><td>' + esc(v.clienteNombre || '—') + '</td><td>' + esc(concepto) + '</td><td>' + esc(_pagoTxt(v)) + '</td>' +
       '<td class="r">' + cur(v.base||0) + '</td><td class="r">' + cur(v.ivaImporte||0) + '</td><td class="r">' + cur(v.total) + '</td></tr>';
   }).join('') + '</tbody></table>' : '') +
 
@@ -16820,7 +16843,7 @@ function emailReporte() {
   var email = TIENDA.email || AJUSTES.cierre.email || prompt(T('rep.email_prompt'));
   if (!email) return;
   var pagos = {};
-  ventas.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
+  ventas.forEach(function(v) { _ventaPagos(v).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
   reps.forEach(function(r) {
     var metodo = r.pagoFinal || 'Efectivo';
     pagos[metodo] = (pagos[metodo] || 0) + (r.total || 0);
@@ -16835,7 +16858,7 @@ function emailReporte() {
         numVentas: ventas.length, totalVentas: tV.toFixed(2),
         numReps: reps.length, totalReps: tR.toFixed(2),
         total: (tV + tR).toFixed(2), pagos: pagos,
-        ventas: ventas.map(function(v) { return {clienteNombre:v.clienteNombre,modelo:v.modelo,pago:v.pago,total:v.total.toFixed(2)}; }),
+        ventas: ventas.map(function(v) { return {clienteNombre:v.clienteNombre,modelo:v.modelo,pago:_pagoTxt(v),total:v.total.toFixed(2)}; }),
         reps: reps.map(function(r) { return {clienteNombre:r.clienteNombre,marca:r.marca,modelo:r.modelo,total:r.total.toFixed(2)}; })
       }
     })
@@ -16891,7 +16914,7 @@ function renderWidgetCierre() {
   var rH = DB.reps.filter(function(r) { return (r.fechaEntregaReal||'').slice(0,10) === hoy && (r.estado||'').toLowerCase() === 'entregado'; });
   var tR = rH.reduce(function(a, r) { return a + (r.total || 0); }, 0);
   var pagos = {};
-  vH.forEach(function(v) { pagos[v.pago || 'Efectivo'] = (pagos[v.pago || 'Efectivo'] || 0) + v.total; });
+  vH.forEach(function(v) { _ventaPagos(v).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
   rH.forEach(function(r) { var m = r.pagoFinal || 'Efectivo'; pagos[m] = (pagos[m] || 0) + (r.total || 0); });
   var total = tV + tR;
   if (total === 0 && !vH.length && !rH.length) {
@@ -16993,7 +17016,7 @@ function emailCierre(vH, rH, tV, tR, ventasMetodos) {
   if (ventasMetodos && typeof ventasMetodos === 'object') {
     Object.keys(ventasMetodos).forEach(function(k) { pagos[k] = (pagos[k] || 0) + ventasMetodos[k]; });
   } else {
-    vH.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
+    vH.forEach(function(v) { _ventaPagos(v).forEach(function(p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
   }
   fetch('/api/email', {
     method: 'POST',
