@@ -23567,3 +23567,137 @@ function setAvisoAuto(estado, on) {
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES });
   toast(T('gen.guardado'), 'ok');
 }
+
+// ═══ MENÚ DE 7 ENTRADAS ═══
+//
+// El menú lateral tenía ~20 entradas sueltas. Ahora son 7 grupos que se
+// despliegan (el del apartado en el que estás, abierto) y, dentro de cada
+// pantalla, unas pestañas para saltar entre las de su grupo. Se REUTILIZAN las
+// entradas de siempre (mismos data-p, contadores, permisos y data-func): solo
+// se mueven de sitio, así que nada de lo que las oculta o les pone números cambia.
+var SB_GRUPOS = [
+  { g: 'inicio', t: 'nav.inicio', items: ['pInicioNuevo'] },
+  { g: 'ventas', t: 'nav.ventas', items: ['tpv', 'pVentas', 'pFacturas'] },
+  { g: 'reparaciones', t: 'nav.reparaciones', items: ['pReps', 'pPresupuestos', 'pCitas'] },
+  { g: 'stock', t: 'nav.stock', items: ['pStock', 'pPedidos', 'pEncargos', 'pUsados', 'pServicios', 'pCatalogo'] },
+  { g: 'clientes', t: 'nav.clientes', items: ['pClis', 'pProvs'] },
+  { g: 'dinero', t: 'nav.g_dinero', items: ['pCajas', 'pGastos', 'pReportes'] },
+  { g: 'ajustes', t: 'nav.ajustes', items: ['pAjustes', 'pUsuarios', 'pHerramientas', 'pComisiones', 'pAyuda'] }
+];
+var _sbItems = {};   // clave → nodo de la entrada de siempre
+
+function _sbClave(el) {
+  var oc = el.getAttribute('onclick') || '';
+  if (oc.indexOf('tpv.html') !== -1) return 'tpv';
+  if (el.dataset.p) return el.dataset.p;
+  var m = /navTo\('(p\w+)'\)/.exec(oc);
+  return m ? m[1] : '';
+}
+// ¿Se puede ver? (permisos ponen style.display=none; Funciones lo hace por CSS con data-func)
+function _sbVisible(el) {
+  if (!el || el.style.display === 'none') return false;
+  var f = el.getAttribute('data-func');
+  return !(f && typeof funcActiva === 'function' && f.split(/\s+/).some(function (k) { return !funcActiva(k); }));
+}
+function _sbGrupoDe(p) {
+  var alias = { pDash: 'pInicioNuevo', pTienda: 'pAjustes', pImportar: 'pStock' };
+  p = alias[p] || p;
+  return SB_GRUPOS.find(function (g) { return g.items.indexOf(p) !== -1; }) || null;
+}
+
+function _sbConstruir() {
+  var nav = document.querySelector('.sidebar-nav');
+  if (!nav || nav._agrupado) return;
+  nav._agrupado = true;
+  nav.querySelectorAll('.sidebar-ni').forEach(function (el) { var k = _sbClave(el); if (k) _sbItems[k] = el; });
+  nav.querySelectorAll('.sidebar-group').forEach(function (h) { h.style.display = 'none'; });
+  SB_GRUPOS.forEach(function (gr) {
+    var hijos = gr.items.map(function (k) { return _sbItems[k]; }).filter(Boolean);
+    if (!hijos.length) return;
+    if (gr.items.length === 1) { nav.appendChild(hijos[0]); return; }   // Inicio: entrada directa
+    var cont = document.createElement('div'); cont.className = 'sb-grp'; cont.dataset.g = gr.g;
+    var h = document.createElement('div'); h.className = 'sidebar-ni sb-grp-h';
+    var ico = hijos[0].querySelector('.sidebar-ni-icon');
+    h.innerHTML = (ico ? ico.outerHTML : '') + '<span data-t="' + gr.t + '">' + esc(T(gr.t)) + '</span><span class="sb-dot"></span><span class="sb-chev">▾</span>';
+    h.onclick = function () { sbGrupo(gr.g); };
+    var sub = document.createElement('div'); sub.className = 'sb-sub';
+    hijos.forEach(function (el) { sub.appendChild(el); });
+    cont.appendChild(h); cont.appendChild(sub);
+    nav.appendChild(cont);
+  });
+  // Comisiones se añade más tarde por código (solo admin): se recoge al aparecer.
+  try {
+    new MutationObserver(function () {
+      var c = nav.querySelector(':scope > .sidebar-ni[data-p="pComisiones"]');
+      var sub = nav.querySelector('.sb-grp[data-g="ajustes"] .sb-sub');
+      if (c && sub) { _sbItems.pComisiones = c; sub.insertBefore(c, _sbItems.pAyuda && _sbItems.pAyuda.parentNode === sub ? _sbItems.pAyuda : null); }
+    }).observe(nav, { childList: true });
+  } catch (e) {}
+  var act = document.querySelector('.page.active');
+  _sbAbrirDe(act ? act.id : 'pInicioNuevo');
+  setInterval(_sbPuntos, 4000);
+}
+
+// Pulsar un grupo: si está cerrado se abre y lleva a su primera pantalla visible
+// (salvo que ya estés en una de ellas); si está abierto, se cierra.
+function sbGrupo(g) {
+  var cont = document.querySelector('.sb-grp[data-g="' + g + '"]'); if (!cont) return;
+  if (cont.classList.contains('open')) { cont.classList.remove('open'); return; }
+  document.querySelectorAll('.sb-grp.open').forEach(function (c) { c.classList.remove('open'); });
+  cont.classList.add('open');
+  var act = (document.querySelector('.page.active') || {}).id;
+  var gr = SB_GRUPOS.find(function (x) { return x.g === g; });
+  if (gr && gr.items.indexOf(act) === -1) {
+    var primero = gr.items.find(function (k) { return k !== 'tpv' && _sbVisible(_sbItems[k]); });
+    if (primero) { navTo(primero); var el = _sbItems[primero]; if (el) setSidebarActive(el); }
+  }
+}
+function _sbAbrirDe(pageId) {
+  var gr = _sbGrupoDe(pageId); if (!gr) return;
+  document.querySelectorAll('.sb-grp').forEach(function (c) { c.classList.toggle('open', c.dataset.g === gr.g); });
+}
+// Punto en el grupo cerrado si alguna de sus entradas tiene un contador a la vista.
+function _sbPuntos() {
+  document.querySelectorAll('.sb-grp').forEach(function (c) {
+    var hay = Array.prototype.some.call(c.querySelectorAll('.sb-sub [id^="badge"], .sb-sub .sidebar-citas-badge'), function (b) { return b.style.display !== 'none' && (b.textContent || '').trim(); });
+    var d = c.querySelector('.sb-dot'); if (d) d.style.display = (hay && !c.classList.contains('open')) ? 'inline-block' : 'none';
+  });
+}
+
+// Pestañas arriba de la pantalla con las demás del grupo (solo las visibles).
+function _grpTabs(pageId) {
+  var page = document.getElementById(pageId); if (!page) return;
+  var vieja = page.querySelector(':scope > .grp-tabs'); if (vieja) vieja.remove();
+  var gr = _sbGrupoDe(pageId); if (!gr || gr.items.length < 2) return;
+  var vis = gr.items.filter(function (k) { return _sbVisible(_sbItems[k]); });
+  if (vis.length < 2) return;
+  var bar = document.createElement('div'); bar.className = 'grp-tabs';
+  bar.innerHTML = vis.map(function (k) {
+    var lbl = _sbItems[k].querySelector('[data-t]');
+    var txt = lbl ? lbl.textContent.trim() : k;
+    return '<button type="button" class="grp-tab' + (k === pageId ? ' on' : '') + '" data-k="' + k + '">' + esc(txt) + '</button>';
+  }).join('');
+  bar.querySelectorAll('[data-k]').forEach(function (b) {
+    b.onclick = function () {
+      var k = b.getAttribute('data-k');
+      if (k === 'tpv') { window.location.href = 'tpv.html'; return; }
+      navTo(k); if (_sbItems[k]) setSidebarActive(_sbItems[k]);
+    };
+  });
+  page.insertBefore(bar, page.firstChild);
+}
+
+(function () {
+  function iniciar() {
+    try { _sbConstruir(); } catch (e) { console.warn('menu 7:', e); }
+    // Tras cada navegación: grupo abierto y pestañas de la pantalla.
+    if (window.navTo && !window.navTo._grp) {
+      var orig = window.navTo;
+      var w = function (id) { var r = orig.apply(this, arguments); try { _sbAbrirDe(id); _grpTabs(id); } catch (e) {} return r; };
+      w._grp = true; window.navTo = w;
+    }
+    try { var act = document.querySelector('.page.active'); if (act) _grpTabs(act.id); } catch (e) {}
+  }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', function () { setTimeout(iniciar, 0); });
+  else setTimeout(iniciar, 0);
+})();

@@ -951,6 +951,17 @@ body[data-theme="dark"] .vista-btn.active{background:var(--border)}
 .rep-grid{display:grid;grid-template-columns:1fr;gap:14px}
 @media(min-width:840px){.rep-grid{grid-template-columns:1fr 1fr;gap:20px}}
 .rep-col{display:flex;flex-direction:column;gap:14px}
+/* Menú de 7 entradas: grupos desplegables y pestañas dentro de cada pantalla */
+.sb-grp-h .sb-chev{margin-left:auto;font-size:10px;opacity:.6;transition:transform .15s}
+.sb-grp.open > .sb-grp-h .sb-chev{transform:rotate(180deg)}
+.sb-sub{display:none;padding-left:10px;margin:0 0 4px}
+.sb-grp.open > .sb-sub{display:block}
+.sb-sub .sidebar-ni{padding-top:7px;padding-bottom:7px;font-size:13px}
+.sb-sub .sidebar-ni .sidebar-ni-icon{opacity:.75;transform:scale(.88)}
+.sb-dot{display:none;width:7px;height:7px;border-radius:50%;background:#F97316;margin-left:6px}
+.grp-tabs{display:flex;gap:6px;overflow-x:auto;margin:0 0 12px;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.grp-tab{flex:0 0 auto;border:1px solid var(--border);background:var(--white,#fff);color:var(--text);border-radius:999px;padding:7px 13px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.grp-tab.on{background:var(--blue);color:#fff;border-color:var(--blue)}
 /* Pestañas plegadas de la ficha de reparación (lo que no hace falta para dar de alta) */
 .rep-tabs{display:flex;gap:6px;overflow-x:auto;margin:16px 0 10px;padding-bottom:2px;-webkit-overflow-scrolling:touch}
 .rep-tab{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--white,#fff);color:var(--text);border-radius:999px;padding:8px 13px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
@@ -1222,7 +1233,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261016z"></script>
+<script src="/lang/lang.v8.js?v=20261017c"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -5614,7 +5625,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261016b"></script>
-<script src="/js/dash-app.js?v=20261016z"></script>
+<script src="/js/dash-app.js?v=20261017c"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
