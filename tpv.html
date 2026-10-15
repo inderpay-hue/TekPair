@@ -154,6 +154,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .cart-payment{padding:12px 16px;border-top:1px solid var(--t-bd);flex-shrink:0}
 .payment-title{color:var(--t-mut);font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:9px}
 .payment-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.mx-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}.mx-row>span{width:92px;flex:0 0 92px;font-size:12px;font-weight:700;color:var(--t-ink2)}.mx-row .disc-input{flex:1;margin:0;min-width:0}.mx-resto{padding:7px 9px;border-radius:9px;border:1px solid var(--t-bd);background:var(--t-surf);color:var(--t-ink2);font:inherit;font-size:11px;font-weight:700;cursor:pointer}
 .pay-btn{padding:11px;border-radius:13px;border:1px solid var(--t-bd);background:var(--t-surf);color:var(--t-ink2);font-size:12px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
 .ent-pay-btn{flex:1;padding:8px 6px;border-radius:9px;border:1px solid var(--t-bd);background:var(--t-surf);color:var(--t-ink2);font-size:11px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s}
 .ent-pay-btn.active{background:var(--t-acc2);border-color:var(--t-acc2);color:var(--t-bg)}
@@ -262,7 +263,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .vl-t:focus-visible{outline:2px solid var(--t-acc);outline-offset:2px}
 .vl-aux{color:var(--t-ink2);font-size:17px}
 </style>
-<script src="/lang/lang.v8.js?v=20261016i"></script>
+<script src="/lang/lang.v8.js?v=20261016u"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -403,6 +404,16 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
           <button class="pay-btn" data-p="Tarjeta" onclick="setPago(this)"><span data-t="tpv.tarjeta">💳 Tarjeta</span></button>
           <button class="pay-btn" data-p="Bizum" onclick="setPago(this)"><span data-t="tpv.bizum">📱 Bizum</span></button>
           <button class="pay-btn" data-p="Financiado" onclick="setPago(this)"><span data-t="tpv.financiado">📅 Financiado</span></button>
+          <button class="pay-btn" data-p="Mixto" onclick="setPago(this)" style="grid-column:1/-1"><span data-t="tpv.mixto">🔀 Mixto</span></button>
+        </div>
+
+        <!-- Pago mixto: el total repartido entre varias formas de pago -->
+        <div id="mixtoPanel" style="display:none">
+          <div style="font-size:11px;color:var(--t-mut);margin-bottom:6px" data-t="tpv.mixto_hint">Reparte el total entre varias formas de pago</div>
+          <div class="mx-row"><span data-t="tpv.efectivo">💵 Efectivo</span><input class="disc-input" id="mxEfectivo" type="number" step="0.01" min="0" placeholder="0.00" oninput="calcMixto()"><button type="button" class="mx-resto" onclick="mixtoResto('mxEfectivo')" data-t="tpv.mixto_resto">Resto</button></div>
+          <div class="mx-row"><span data-t="tpv.tarjeta">💳 Tarjeta</span><input class="disc-input" id="mxTarjeta" type="number" step="0.01" min="0" placeholder="0.00" oninput="calcMixto()"><button type="button" class="mx-resto" onclick="mixtoResto('mxTarjeta')" data-t="tpv.mixto_resto">Resto</button></div>
+          <div class="mx-row"><span data-t="tpv.bizum">📱 Bizum</span><input class="disc-input" id="mxBizum" type="number" step="0.01" min="0" placeholder="0.00" oninput="calcMixto()"><button type="button" class="mx-resto" onclick="mixtoResto('mxBizum')" data-t="tpv.mixto_resto">Resto</button></div>
+          <div id="mxEstado" style="font-size:13px;font-weight:700;margin-top:2px"></div>
         </div>
 
         <!-- Efectivo recibido -->
@@ -975,6 +986,7 @@ function syncVentasDesdeSupabase() {
         clienteNombre: r.cliente_nombre || 'Sin cliente',
         marca: r.marca || '', modelo: r.modelo || '', imei: r.imei || '',
         pago: r.pago || 'Efectivo',
+        pagos: (function () { try { return r.pagos ? (typeof r.pagos === 'string' ? JSON.parse(r.pagos) : r.pagos) : null; } catch (e) { return null; } })(),
         precio: parseFloat(r.precio) || 0,
         descuento: parseFloat(r.descuento) || 0,
         total: parseFloat(r.total) || 0,
@@ -1832,6 +1844,7 @@ function calcTotal() {
     document.getElementById('totalLbl').textContent = 'TOTAL';
   }
   _renderCambio(t.total);
+  if (selectedPago === 'Mixto') { try { calcMixto(); } catch (e) {} }
   return t;
 }
 
@@ -1867,12 +1880,50 @@ function numpad(val) {
 }
 
 // ═══ PAYMENT ═══
+// ═══ PAGO MIXTO ═══
+// Un total de 150 pagado 100 con tarjeta y 50 en efectivo: la venta se guarda con
+// pago 'Mixto' y el desglose en `pagos` (columna jsonb, sql/ventas-pago-mixto.sql).
+var _MX = [['Efectivo', 'mxEfectivo'], ['Tarjeta', 'mxTarjeta'], ['Bizum', 'mxBizum']];
+function _r2(n) { return Math.round((parseFloat(n) || 0) * 100) / 100; }
+function _mixtoPagos() {
+  return _MX.map(function (m) { return { metodo: m[0], importe: _r2(document.getElementById(m[1]).value) }; })
+    .filter(function (p) { return p.importe > 0; });
+}
+function _mixtoSuma(excepto) {
+  return _r2(_MX.reduce(function (a, m) { return a + (m[1] === excepto ? 0 : _r2(document.getElementById(m[1]).value)); }, 0));
+}
+function calcMixto() {
+  var el = document.getElementById('mxEstado'); if (!el) return;
+  var d = _r2(_computeTotals().total - _mixtoSuma());
+  if (d > 0.004) { el.style.color = '#F59E0B'; el.textContent = T('tpv.mixto_falta').replace('{x}', '\u20ac' + d.toFixed(2)); }
+  else if (d < -0.004) { el.style.color = '#EF4444'; el.textContent = T('tpv.mixto_sobra').replace('{x}', '\u20ac' + (-d).toFixed(2)); }
+  else { el.style.color = 'var(--green)'; el.textContent = '\u2713 ' + T('tpv.mixto_ok'); }
+}
+// "Resto": pone en esa forma de pago lo que falta para llegar al total.
+function mixtoResto(id) {
+  document.getElementById(id).value = Math.max(0, _r2(_computeTotals().total - _mixtoSuma(id))).toFixed(2);
+  calcMixto();
+}
+// Desglose de una venta por forma de pago (una sola línea si no es mixta).
+function _ventaPagos(v) {
+  var p = v && v.pagos;
+  if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = null; } }
+  if (Array.isArray(p) && p.length) return p.map(function (x) { return { metodo: x.metodo || 'Efectivo', importe: parseFloat(x.importe) || 0 }; });
+  return [{ metodo: (v && v.pago) || 'Efectivo', importe: parseFloat(v && v.total) || 0 }];
+}
+function _pagoTxt(v) {
+  var p = _ventaPagos(v);
+  return p.length > 1 ? p.map(function (x) { return x.metodo + ' \u20ac' + x.importe.toFixed(2); }).join(' + ') : ((v && v.pago) || '');
+}
+
 function setPago(el) {
   document.querySelectorAll('.pay-btn').forEach(function(b) { b.classList.remove('active'); });
   el.classList.add('active');
   selectedPago = el.dataset.p;
   document.getElementById('efectivoPanel').style.display = selectedPago === 'Efectivo' ? 'block' : 'none';
   document.getElementById('financiadoPanel').style.display = selectedPago === 'Financiado' ? 'block' : 'none';
+  document.getElementById('mixtoPanel').style.display = selectedPago === 'Mixto' ? 'block' : 'none';
+  if (selectedPago === 'Mixto') { _MX.forEach(function (m) { document.getElementById(m[1]).value = ''; }); calcMixto(); }
   if (selectedPago === 'Financiado') {
     // Forzar elegir método de la entrada cada vez (sin "Efectivo" por defecto)
     selectedEntradaPago = '';
@@ -1954,6 +2005,15 @@ function cobrar() {
     toast(T('tpv.aviso_400').replace('{t}', totals.total.toFixed(2)), 'err', 4000);
   }
   var esFinanciado = selectedPago === 'Financiado';
+  // Pago mixto: los importes tienen que sumar justo el total. Con una sola forma
+  // de pago rellenada, la venta se guarda como pago normal con esa forma.
+  var _pagoFinal = selectedPago, _pagos = null;
+  if (selectedPago === 'Mixto') {
+    var _mx = _mixtoPagos();
+    var _dif = _r2((totals.total || 0) - _mx.reduce(function (a, p) { return a + p.importe; }, 0));
+    if (!_mx.length || Math.abs(_dif) > 0.009) { toast(T('tpv.mixto_error').replace('{x}', '\u20ac' + (totals.total || 0).toFixed(2)), 'err'); return; }
+    if (_mx.length === 1) _pagoFinal = _mx[0].metodo; else _pagos = _mx;
+  }
   if (esFinanciado && !selectedCli) { toast(T('tpv.fin_sin_cliente'), 'err'); return; }
   var fin = esFinanciado ? calcCuotasFinanciado() : null;
   if (esFinanciado && fin && fin.entrada > (totals.total || 0) + 0.005) { toast(T('tpv.entrada_supera_total'), 'err'); return; }
@@ -1977,7 +2037,8 @@ function cobrar() {
     marca: cart.length === 1 ? (cart[0].nombre.split(' ')[0] || '') : '',
     modelo: cart.length === 1 ? cart[0].nombre : T('tpv.n_productos').replace('{n}', cart.length),
     imei: _imeiVenta(cart),
-    pago: selectedPago,
+    pago: _pagos ? 'Mixto' : _pagoFinal,
+    pagos: _pagos,
     precio: totals.subtotal,
     descuento: totals.disc,
     iva: totals.ivaTipo || 0,
@@ -2033,7 +2094,7 @@ function cobrar() {
 
   // Save to Supabase
   if (SB_KEY && TIENDA_ID) {
-    sbPostRet('ventas', {
+    sbPostRet('ventas', Object.assign({
       id: venta.id, tienda_id: TIENDA_ID, fecha: venta.fecha,
       cliente_id: venta.clienteId, cliente_nombre: venta.clienteNombre,
       marca: venta.marca, modelo: venta.modelo, imei: venta.imei || '',
@@ -2043,7 +2104,7 @@ function cobrar() {
       entrada_pago: venta.entradaPago || null,
       iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte,
       items: (venta.items && venta.items.length) ? JSON.stringify(venta.items) : null
-    }).then(function (fila) {
+    }, venta.pagos ? { pagos: venta.pagos } : {})).then(function (fila) {
       // El numero llega del servidor, no se calcula aqui: dos cajeros cobrando
       // a la vez no pueden repetirlo. Cuando llega (decimas de segundo) se
       // repinta el ticket; si la migracion no se ha corrido, no viene y el
@@ -2120,7 +2181,7 @@ function mostrarTicket(venta, totals) {
     (_tkNumero(venta) ? '<div class="ticket-row"><span>' + T('tkt.numero') + '</span><span>' + escHtml(_tkNumero(venta)) + '</span></div>' : '') +
     '<div class="ticket-row"><span>' + T('pres.doc_fecha') + '</span><span>' + escHtml(venta.fecha) + (_horaTk(venta) ? ' ' + _horaTk(venta) : '') + '</span></div>' +
     '<div class="ticket-row"><span>' + T('pres.doc_cliente') + '</span><span>' + escHtml(venta.clienteNombre) + '</span></div>' +
-    '<div class="ticket-row"><span>' + T('tpv.tk_pago') + '</span><span>' + escHtml(venta.pago) + '</span></div>' +
+    '<div class="ticket-row"><span>' + T('tpv.tk_pago') + '</span><span>' + escHtml(_pagoTxt(venta)) + '</span></div>' +
     '<hr class="ticket-sep">' +
     venta.items.map(function(item) {
       var d = descLineaImporte(item);
@@ -2155,6 +2216,7 @@ function mostrarTicket(venta, totals) {
   // billete en la mano. Solo dentro de la app y con impresora ya elegida: no
   // imprime nada, no pregunta, y sin cajón conectado simplemente no pasa nada.
   var _entraEfectivo = (venta.pago === 'Efectivo') ||
+    _ventaPagos(venta).some(function (p) { return p.metodo === 'Efectivo' && p.importe > 0; }) ||
     (venta.financiado && venta.entradaPago === 'Efectivo' && (venta.entrada || 0) > 0);
   if (_entraEfectivo && typeof tkAbrirCajon === 'function') {
     try { tkAbrirCajon(); } catch (e) {}
@@ -2197,7 +2259,7 @@ function _ticketDoc() {
   if (v.numero) datos.push([T('tkt.numero'), 'T' + String(v.fecha || '').slice(0, 4) + '-' + String(v.numero).padStart(6, '0')]);
   datos.push([T('pres.doc_fecha'), v.fecha + ' ' + _hora]);
   datos.push([T('pres.doc_cliente'), v.clienteNombre]);
-  datos.push([T('tpv.tk_pago'), v.pago]);
+  datos.push([T('tpv.tk_pago'), _pagoTxt(v)]);
   if (v.entregado > 0) {
     datos.push([T('tkt.entregado'), eur(v.entregado)]);
     datos.push([T('tkt.cambio'), eur(Math.max(0, v.entregado - (t.total || 0)))]);
@@ -2279,6 +2341,8 @@ function nuevaVenta() {
   document.querySelectorAll('.pay-btn').forEach(function(b){ b.classList.toggle('active', b.dataset.p === 'Efectivo'); });
   document.getElementById('efectivoPanel').style.display = 'block';
   document.getElementById('financiadoPanel').style.display = 'none';
+  document.getElementById('mixtoPanel').style.display = 'none';
+  _MX.forEach(function (m) { var e = document.getElementById(m[1]); if (e) e.value = ''; });
   document.getElementById('finEntrada').value = '0';
   document.getElementById('finNumCuotas').value = '3';
   document.getElementById('finDiaPago').value = '8';
@@ -2336,8 +2400,9 @@ function crearClienteRapido() {
 // ═══ CAJA ═══
 function updateCaja() {
   var hoy = hoyLocal();
-  var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy && !v.reembolsado && v.pago === 'Efectivo'; });
-  var total = ventasHoy.reduce(function(a, v) { return a + v.total; }, 0);
+  var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy && !v.reembolsado; });
+  // Solo el efectivo (de un pago mixto, solo su parte en efectivo).
+  var total = ventasHoy.reduce(function(a, v) { return a + _ventaPagos(v).reduce(function (s, p) { return s + (p.metodo === 'Efectivo' ? p.importe : 0); }, 0); }, 0);
   document.getElementById('cajaTotal').textContent = '\u20ac' + total.toFixed(2);
 }
 
@@ -2345,7 +2410,7 @@ function verCaja() {
   var hoy = hoyLocal();
   var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy && !v.reembolsado; });
   var pagos = {};
-  ventasHoy.forEach(function(v) { pagos[v.pago] = (pagos[v.pago] || 0) + v.total; });
+  ventasHoy.forEach(function(v) { _ventaPagos(v).forEach(function (p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
   var total = ventasHoy.reduce(function(a, v) { return a + v.total; }, 0);
   // F245: reembolsos del d\u00eda (los que se devolvieron hoy) \u2192 bruto/reembolso/neto
   var reembHoy = DB.ventas.filter(function(v) { return v.reembolsado && (v.fechaReembolso || v.fecha) === hoy; });
@@ -2482,7 +2547,7 @@ setInterval(_actualizarFabBadge, 600);
 setTimeout(_actualizarFabBadge, 300);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="factura.js?v=20261016i" defer></script>
+<script src="factura.js?v=20261016u" defer></script>
 <script>
 function factVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
@@ -2497,10 +2562,11 @@ function factVenta(id) {
     fecha: v.fecha,
     total: parseFloat(v.total) || 0,
     iva: parseFloat(v.iva) || 0,
-    pago: v.pago || '',
+    pago: v.pago || '', pagos: v.pagos || null,
     items: (v.items && v.items.length) ? v.items.map(function(i){
-      return { nombre: i.nombre || T('gen.producto'), cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0 };
-    }) : [{ nombre: v.modelo || T('tpv.venta_item'), cantidad: 1, precio: parseFloat(v.total) || 0 }],
+      // imei y usado: sin ellos la factura salía sin IMEI y desglosaba el IVA de los usados.
+      return { nombre: i.nombre || T('gen.producto'), cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0, imei: i.imei || '', usado: i.usado || null };
+    }) : [{ nombre: v.modelo || T('tpv.venta_item'), cantidad: 1, precio: parseFloat(v.total) || 0, imei: v.imei || '' }],
     cliente: cli
   };
   if (typeof window.abrirModalFactura !== 'function') {

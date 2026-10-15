@@ -24,6 +24,16 @@
 import crypto from 'crypto';
 
 // CRON-1: timing-safe equal — evita ataques que deducen el secret carácter a carácter
+
+// Desglose de una venta por forma de pago: el pago mixto trae `pagos`
+// ([{metodo, importe}], sql/ventas-pago-mixto.sql); el resto, todo con `pago`.
+function _desglosePago(v) {
+  let pg = v && v.pagos;
+  if (typeof pg === 'string') { try { pg = JSON.parse(pg); } catch (e) { pg = null; } }
+  if (Array.isArray(pg) && pg.length) return pg.map((p) => ({ metodo: (p && p.metodo) || 'Efectivo', importe: Number(p && p.importe) || 0 }));
+  return [{ metodo: (v && v.pago) || 'Efectivo', importe: Number(v && v.total) || 0 }];
+}
+
 function timingSafeEq(a, b) {
   if (typeof a !== 'string' || typeof b !== 'string') return false;
   // Forzar misma longitud usando un buffer temporal para evitar leak de longitud
@@ -198,7 +208,7 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
     try {
       const q = (path) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers }).then((r) => r.ok ? r.json() : []);
       const [ventas, pagos, gastos, finVentas] = await Promise.all([
-        q(`ventas?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=total,pago,reembolsado,financiado,entrada,entrada_pago`),
+        q(`ventas?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=total,pago,pagos,reembolsado,financiado,entrada,entrada_pago`),
         q(`pagos_reparacion?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=importe,metodo`),
         q(`gastos?tienda_id=eq.${t.id}&fecha=eq.${ayer}&select=importe,metodo_pago`),
         // Todas las ventas financiadas vivas (cualquier fecha) → para cuotas pagadas ayer + saldo pendiente
@@ -211,7 +221,7 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
         if (v.reembolsado) return;
         // Venta financiada: el día de la venta solo entra la ENTRADA (por su forma de pago). El resto son cuotas.
         if (v.financiado) bk(v.entrada_pago).v += Number(v.entrada || 0);
-        else bk(v.pago).v += Number(v.total || 0);
+        else _desglosePago(v).forEach((p) => { bk(p.metodo).v += p.importe; });
       });
       // Cuotas de financiadas pagadas AYER → ingreso el día que se cobran, por su forma de pago
       (finVentas || []).forEach((v) => {
@@ -289,7 +299,7 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
           const totV = noReemb.reduce((s, v) => s + Number(v.total || 0), 0);
           const totR = (pagos || []).reduce((s, p) => s + Number(p.importe || 0), 0);
           const pagosObj = {};
-          noReemb.forEach((v) => { const k = v.pago || 'Efectivo'; pagosObj[k] = (pagosObj[k] || 0) + Number(v.total || 0); });
+          noReemb.forEach((v) => { _desglosePago(v).forEach((p) => { pagosObj[p.metodo] = (pagosObj[p.metodo] || 0) + p.importe; }); });
           (pagos || []).forEach((p) => { const k = p.metodo || 'Efectivo'; pagosObj[k] = (pagosObj[k] || 0) + Number(p.importe || 0); });
           const reporte = { fecha: ayer, numVentas: noReemb.length, totalVentas: totV.toFixed(2), numReps: (pagos || []).length, totalReps: totR.toFixed(2), total: (totV + totR).toFixed(2), pagos: pagosObj, ventas: [], reps: [] };
           await fetch('https://www.tekpair.tech/api/email', {
