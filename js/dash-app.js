@@ -3461,6 +3461,8 @@ function mapRep(r) {
     opcionales: r.opcionales ? (typeof r.opcionales === 'string' ? JSON.parse(r.opcionales) : r.opcionales) : [],
     testEntrada: r.test_entrada ? (typeof r.test_entrada === 'string' ? JSON.parse(r.test_entrada) : r.test_entrada) : null,
     testSalida: r.test_salida ? (typeof r.test_salida === 'string' ? JSON.parse(r.test_salida) : r.test_salida) : null,
+    tecnicoId: r.tecnico_id || '', tecnicoNombre: r.tecnico_nombre || '',
+    inicioRep: r.inicio_reparacion || null, finRep: r.fin_reparacion || null,
     esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||'',
     garantiaTipo:r.garantia_tipo||'reparacion', garantiaPublica:r.garantia_publica!==false,
     garantiaFechaFin:r.garantia_fecha_fin||'',
@@ -9199,7 +9201,7 @@ function abrirRep() {
   SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.pedirPiezas = []; SEL.rServicios = []; SEL.fotosRecepcion = [];
   SEL.rOpcionales = [];
   SEL.testEntrada = {}; SEL._testEntradaAntes = null;
-  setTimeout(function () { renderTest('rTestEnt', SEL.testEntrada); }, 0);
+  setTimeout(function () { renderTest('rTestEnt', SEL.testEntrada); _pintarSelTecnico('', ''); }, 0);
   var _ft = document.getElementById('repFotosRecepThumbs'); if (_ft) _ft.innerHTML = '';
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_nuevo');
   var _bg = document.getElementById('btnGuardarRepTxt'); if (_bg) _bg.textContent = T('rep.crear_orden');
@@ -11180,7 +11182,7 @@ function editarRep(id) {
   SEL.rServicios = Array.isArray(r.servicios) ? r.servicios.slice() : [];
   SEL.rOpcionales = Array.isArray(r.opcionales) ? r.opcionales.map(function (o) { return Object.assign({}, o); }) : [];
   SEL.testEntrada = _testItemsDe(r.testEntrada); SEL._testEntradaAntes = r.testEntrada || null;
-  setTimeout(function () { renderTest('rTestEnt', SEL.testEntrada); }, 0);
+  setTimeout(function () { renderTest('rTestEnt', SEL.testEntrada); _pintarSelTecnico(r.tecnicoId, r.tecnicoNombre); }, 0);
   if (!SEL.rServicios.length && r.mo > 0) {
     SEL.rServicios.push({
       nombre: r.averia || T('rep.reparacion_default'),
@@ -11623,6 +11625,7 @@ function guardarRep() {
       r.restante = Math.max(0, calcE.total - antiE);
     }
     r.opcionales = (SEL.rOpcionales || []).slice();
+    var _tecE = _tecnicoElegido(); r.tecnicoId = _tecE.id; r.tecnicoNombre = _tecE.nombre;
     // El test de entrada se conserva tal cual si no se ha tocado (fecha y autor originales).
     var _teNuevo = _testAObjeto(SEL.testEntrada || {});
     var _teAntes = SEL._testEntradaAntes;
@@ -11652,6 +11655,7 @@ function guardarRep() {
       }
       _patchRep.opcionales = r.opcionales || [];
       _patchRep.test_entrada = r.testEntrada || null;
+      _patchRep.tecnico_id = r.tecnicoId || null; _patchRep.tecnico_nombre = r.tecnicoNombre || null;
       sbPatch('reparaciones', 'id=eq.' + r.id, _patchRep);
     }
     // Aceptación en mostrador (Vía 1): registrar solo si se marca ahora y no estaba ya aceptada.
@@ -11719,6 +11723,7 @@ function guardarRep() {
     servicios: serviciosN,
     opcionales: (SEL.rOpcionales || []).slice(),
     testEntrada: _testAObjeto(SEL.testEntrada || {}),
+    tecnicoId: _tecnicoElegido().id, tecnicoNombre: _tecnicoElegido().nombre,
     mo: 0, comp: comp, anticipo: anticipo,
     iva: (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIvaN : 0,
     ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
@@ -11754,6 +11759,7 @@ function guardarRep() {
       componentes: rep.componentes, servicios: rep.servicios,
       opcionales: rep.opcionales || [],
       test_entrada: rep.testEntrada || null,
+      tecnico_id: rep.tecnicoId || null, tecnico_nombre: rep.tecnicoNombre || null,
       garantia_dias: rep.garantiaDias,
       garantia_tipo: rep.garantiaTipo || null,
       garantia_publica: rep.garantiaPublica !== false,
@@ -12485,6 +12491,103 @@ function reabrirEnGarantia(id) {
   }, { okLabel: T('rep.garantia_ok_label') });
 }
 
+
+// ═══ RENDIMIENTO POR TÉCNICO ═══
+// Quién repara y cuánto tarda (sql/rendimiento-tecnico.sql). Se asigna solo a
+// quien pasa la reparación a "En Proceso" (se puede cambiar en la ficha); el
+// reloj arranca ahí y para en "Por Entregar" o al entregarla.
+var _TECNICOS = null;
+function _cargarTecnicos() {
+  if (_TECNICOS) return Promise.resolve(_TECNICOS);
+  if (!SB_KEY || !TIENDA_ID) return Promise.resolve([]);
+  return sbGet('usuarios', 'tienda_id=eq.' + TIENDA_ID + '&select=id,nombre,activo')
+    .then(function (rows) { _TECNICOS = (rows || []).filter(function (u) { return u && u.nombre && u.activo !== false; }); return _TECNICOS; })
+    .catch(function () { return []; });
+}
+function _pintarSelTecnico(idSel, nombreSel) {
+  var sel = document.getElementById('rTecnico'); if (!sel) return;
+  var pinta = function (lista) {
+    var ops = '<option value="">' + esc(T('tec.sin_asignar')) + '</option>' + lista.map(function (u) {
+      return '<option value="' + escapeAttr(String(u.id)) + '">' + esc(u.nombre) + '</option>';
+    }).join('');
+    // Un técnico que ya no está de alta sigue saliendo en las reparaciones que hizo.
+    if (idSel && !lista.some(function (u) { return String(u.id) === String(idSel); })) {
+      ops += '<option value="' + escapeAttr(String(idSel)) + '">' + esc(nombreSel || '?') + '</option>';
+    }
+    sel.innerHTML = ops;
+    sel.value = idSel ? String(idSel) : '';
+  };
+  pinta(_TECNICOS || (U ? [{ id: U.id, nombre: U.nombre }] : []));
+  _cargarTecnicos().then(function (l) { if (l.length) pinta(l); });
+}
+function _tecnicoElegido() {
+  var sel = document.getElementById('rTecnico');
+  var id = sel ? sel.value : '';
+  if (!id) return { id: '', nombre: '' };
+  var opt = sel.options[sel.selectedIndex];
+  return { id: id, nombre: opt ? opt.textContent : '' };
+}
+function _fmtDuracion(ms) {
+  if (!(ms > 0)) return '—';
+  var min = Math.round(ms / 60000);
+  if (min < 60) return min + ' ' + T('tec.min');
+  var h = min / 60;
+  if (h < 24) return (Math.round(h * 10) / 10).toString().replace('.', ',') + ' ' + T('tec.h');
+  return (Math.round(h / 24 * 10) / 10).toString().replace('.', ',') + ' ' + T('tec.dias');
+}
+function _fechaLocalISO(ts) {
+  var d = new Date(ts); if (isNaN(d)) return '';
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+// Tarjetas del informe: una por técnico con las reparaciones TERMINADAS en el periodo.
+function renderRendimientoTecnicos(minISO, maxISO) {
+  var cont = document.getElementById('reporteTecnicos'); if (!cont) return;
+  if (SEL.repTipo === 'ventas') { cont.innerHTML = ''; return; }
+  var reps = DB.reps || [];
+  var hechas = reps.filter(function (r) {
+    if (!r.finRep || !r.inicioRep) return false;
+    var d = _fechaLocalISO(r.finRep); return d >= minISO && d <= maxISO;
+  });
+  var enCurso = {};
+  reps.forEach(function (r) { if (r.estado === 'En Proceso') { var k = r.tecnicoNombre || T('tec.sin_asignar'); enCurso[k] = (enCurso[k] || 0) + 1; } });
+  var por = {};
+  hechas.forEach(function (r) {
+    var k = r.tecnicoNombre || T('tec.sin_asignar');
+    var g = por[k] || (por[k] = { n: 0, ms: 0, fact: 0, tipos: {} });
+    var dur = new Date(r.finRep) - new Date(r.inicioRep);
+    g.n++; if (dur > 0) g.ms += dur; g.fact += parseFloat(r.total) || 0;
+    var tipo = (r.servicios && r.servicios[0] && r.servicios[0].nombre) || r.averia || T('tec.otros');
+    tipo = String(tipo).trim().slice(0, 40);
+    var t = g.tipos[tipo] || (g.tipos[tipo] = { n: 0, ms: 0 }); t.n++; if (dur > 0) t.ms += dur;
+  });
+  var nombres = Object.keys(por).sort(function (a, b) { return por[b].n - por[a].n; });
+  Object.keys(enCurso).forEach(function (k) { if (nombres.indexOf(k) < 0) nombres.push(k); });
+  var html = '<div class="card" style="padding:14px"><div style="font-weight:800;font-size:15px;margin-bottom:2px">👨‍🔧 ' + esc(T('tec.titulo')) + '</div>' +
+    '<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">' + esc(T('tec.nota_tiempo')) + '</div>';
+  if (!nombres.length) {
+    cont.innerHTML = html + '<div style="font-size:13px;color:var(--muted);padding:6px 0">' + esc(T('tec.vacio')) + '</div></div>';
+    return;
+  }
+  html += nombres.map(function (k) {
+    var g = por[k] || { n: 0, ms: 0, fact: 0, tipos: {} };
+    var tipos = Object.keys(g.tipos).sort(function (a, b) { return g.tipos[b].n - g.tipos[a].n; }).slice(0, 3);
+    var dato = function (lbl, val) { return '<div style="flex:1;min-width:90px"><div style="font-size:10.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px">' + esc(lbl) + '</div><div style="font-weight:800;font-size:15px">' + val + '</div></div>'; };
+    return '<div style="border-top:1px solid var(--border);padding:10px 0">' +
+      '<div style="font-weight:800;margin-bottom:6px">' + esc(k) + (enCurso[k] ? ' <span style="font-size:11px;font-weight:700;color:var(--orange)">· ' + esc(T('tec.en_curso').replace('{n}', enCurso[k])) + '</span>' : '') + '</div>' +
+      '<div style="display:flex;gap:10px;flex-wrap:wrap">' +
+        dato(T('tec.terminadas'), g.n) +
+        dato(T('tec.tiempo_medio'), g.n ? _fmtDuracion(g.ms / g.n) : '—') +
+        dato(T('tec.facturado'), cur(g.fact)) +
+        dato(T('tec.ticket_medio'), g.n ? cur(g.fact / g.n) : '—') +
+      '</div>' +
+      (tipos.length ? '<div style="font-size:12px;color:var(--muted);margin-top:6px">' + esc(T('tec.tipos')) + ' ' + tipos.map(function (t) {
+        return esc(t) + ' (' + g.tipos[t].n + ', ' + _fmtDuracion(g.tipos[t].ms / g.tipos[t].n) + ')';
+      }).join(' · ') + '</div>' : '') +
+    '</div>';
+  }).join('') + '</div>';
+  cont.innerHTML = html;
+}
+
 function cambiarEstado(id, estado) {
   if (!tienePerm('reps_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x) { return x.id === id; });
@@ -12505,6 +12608,17 @@ function cambiarEstado(id, estado) {
 
   // Construir patch unificado (atómico): estado + piezas_devueltas en una sola llamada
   var patchUnificado = { estado: estado };
+  // Rendimiento por técnico: el reloj arranca la primera vez que entra en "En
+  // Proceso" (y se asigna a quien la pasa, si no tenía técnico) y para en "Por
+  // Entregar". Si vuelve a "En Proceso" después (otra vuelta), se reabre el fin.
+  var _ahoraIso = new Date().toISOString();
+  if (estado === 'En Proceso') {
+    if (!r.inicioRep) { r.inicioRep = _ahoraIso; patchUnificado.inicio_reparacion = _ahoraIso; }
+    if (r.finRep) { r.finRep = null; patchUnificado.fin_reparacion = null; }
+    if (!r.tecnicoId && U && U.id) { r.tecnicoId = String(U.id); r.tecnicoNombre = U.nombre || ''; patchUnificado.tecnico_id = r.tecnicoId; patchUnificado.tecnico_nombre = r.tecnicoNombre; }
+  } else if (estado === 'Por Entregar' && r.inicioRep && !r.finRep) {
+    r.finRep = _ahoraIso; patchUnificado.fin_reparacion = _ahoraIso;
+  }
 
   if (entrandoCancelacion && Array.isArray(r.componentes) && r.componentes.length && !r.piezasDevueltas) {
     aplicarCambioStockPiezas(r.componentes, [], r);
@@ -12713,6 +12827,9 @@ function confirmarEntrega() {
   var _tsFirma = _firmaSalidaPng();
   var _ts = _testAObjeto(SEL.testSalida || {}, Object.assign({}, _tsNota ? { nota: _tsNota.slice(0, 300) } : {}, _tsFirma ? { firma: _tsFirma } : {}));
   if (_ts) r.testSalida = _ts;
+  // Entregada sin pasar por "Por Entregar": el reloj del técnico para aquí.
+  var _finNuevo = (r.inicioRep && !r.finRep) ? new Date().toISOString() : null;
+  if (_finNuevo) r.finRep = _finNuevo;
   if (aDeber) {
     // No se cobra: el restante se mantiene como pendiente. No se crea pago final.
     guardarDatos();
@@ -12720,6 +12837,7 @@ function confirmarEntrega() {
       var _patchD = {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal};
       if (r.fotosEntrega && r.fotosEntrega.length) _patchD.fotos_entrega = r.fotosEntrega;
       if (_ts) _patchD.test_salida = _ts;
+      if (_finNuevo) _patchD.fin_reparacion = _finNuevo;
       sbPatch('reparaciones', 'id=eq.' + r.id, _patchD);
     }
   } else {
@@ -12735,6 +12853,7 @@ function confirmarEntrega() {
       var _patchE = {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0};
       if (r.fotosEntrega && r.fotosEntrega.length) _patchE.fotos_entrega = r.fotosEntrega;
       if (_ts) _patchE.test_salida = _ts;
+      if (_finNuevo) _patchE.fin_reparacion = _finNuevo;
       if (r.financiado) { _patchE.cuotas = JSON.stringify(r.cuotas || []); _patchE.estado_financiado = 'completado'; }
       sbPatch('reparaciones', 'id=eq.' + r.id, _patchE);
 
@@ -16082,6 +16201,7 @@ async function renderReporte() {
   var _minISO = fechasISO.length ? fechasISO[fechasISO.length - 1] : '0000-01-01';
   var _maxISO = fechasISO.length ? fechasISO[0] : '9999-12-31';
   function _enRango(f) { var d = String(f || '').slice(0, 10); return d >= _minISO && d <= _maxISO; }
+  try { renderRendimientoTecnicos(_minISO, _maxISO); } catch (e) { console.warn('rendimiento tecnicos:', e); }
   var ventas = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function(v) { return !v.reembolsado && _enRango(v.fecha); }) : [];
   // F56: reembolsos del periodo (no entran en ingresos, pero el contador debe verlos)
   var reembolsos = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function(v) { return v.reembolsado && _enRango(v.fechaReembolso || v.fecha); }) : [];
