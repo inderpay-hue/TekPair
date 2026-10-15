@@ -1212,7 +1212,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261016a"></script>
+<script src="/lang/lang.v8.js?v=20261016b"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4241,6 +4241,13 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
             </div>
           </div>
 
+          <!-- Test funcional de ENTRADA (opcional): lo que funcionaba al recibirlo -->
+          <div class="fg" id="rTestEntSec" style="margin-bottom:12px">
+            <label class="fl">🧪 <span data-t="test.titulo_entrada">Test de entrada (opcional)</span></label>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px" data-t="test.hint_entrada">Marca lo que funciona y lo que no al recibirlo. Al entregar se compara con el test de salida.</div>
+            <div id="rTestEnt"></div>
+          </div>
+
           <!-- M7: foto-prueba del estado al recibir -->
           <div class="fg" id="repFotoRecepSec" style="margin-top:12px;margin-bottom:0">
             <label class="fl" data-t="foto.recepcion_titulo">📸 Fotos del estado (al recibir)</label>
@@ -4474,6 +4481,20 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   </div>
   <div class="fg" id="ePagoBox"><label class="fl"><span data-t="entrega.pago_final">Pago final</span></label>
     <select class="fi" id="ePago"><option value="Efectivo" data-t="pago.efectivo">Efectivo</option><option value="Tarjeta" data-t="pago.tarjeta">Tarjeta</option><option value="Bizum" data-t="pago.bizum">Bizum</option><option value="Transferencia" data-t="pago.transferencia">Transferencia</option></select>
+  </div>
+  <!-- Test funcional de SALIDA + firma de conformidad del cliente -->
+  <div class="fg" id="eTestSec" style="margin-bottom:14px">
+    <label class="fl">🧪 <span data-t="test.titulo_salida">Test de salida</span></label>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:8px" data-t="test.hint_salida">Pruébalo delante del cliente. Si firma, queda constancia de que se lo lleva funcionando.</div>
+    <div id="eTest"></div>
+    <div id="eTestAviso" style="display:none;font-size:12px;font-weight:700;color:#B45309;margin:6px 0"></div>
+    <input class="fi" id="eTestNota" data-t-ph="test.nota_ph" placeholder="Observaciones (opcional)" style="margin-top:6px" autocomplete="off">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin:10px 0 4px">
+      <span style="font-size:12px;font-weight:700">✍️ <span data-t="test.firma">Firma del cliente</span></span>
+      <button type="button" onclick="borrarFirmaSalida()" style="background:none;border:none;color:var(--muted);cursor:pointer;font:inherit;font-size:12px" data-t="test.borrar_firma">Borrar</button>
+    </div>
+    <canvas id="eFirma" width="560" height="160" style="width:100%;height:120px;border:1.5px dashed var(--border);border-radius:10px;background:#fff;touch-action:none;display:block"></canvas>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:4px" data-t="test.firma_hint">El cliente firma con el dedo: confirma que recibe el equipo y el resultado de este test.</div>
   </div>
   <!-- M7: foto-prueba del estado al entregar -->
   <div class="fg" id="repFotoEntSec" style="margin-bottom:14px">
@@ -5382,7 +5403,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 <script src="/js/desktop-print.js?v=20260615b"></script>
 <script src="/js/imei-modelo.js?v=20261015b"></script>
-<script src="/js/dash-app.js?v=20261016a"></script>
+<script src="/js/dash-app.js?v=20261016b"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

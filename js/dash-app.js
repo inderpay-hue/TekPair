@@ -3459,6 +3459,8 @@ function mapRep(r) {
     componentes: r.componentes ? (typeof r.componentes === 'string' ? JSON.parse(r.componentes) : r.componentes) : [],
     servicios: r.servicios ? (typeof r.servicios === 'string' ? JSON.parse(r.servicios) : r.servicios) : [],
     opcionales: r.opcionales ? (typeof r.opcionales === 'string' ? JSON.parse(r.opcionales) : r.opcionales) : [],
+    testEntrada: r.test_entrada ? (typeof r.test_entrada === 'string' ? JSON.parse(r.test_entrada) : r.test_entrada) : null,
+    testSalida: r.test_salida ? (typeof r.test_salida === 'string' ? JSON.parse(r.test_salida) : r.test_salida) : null,
     esGarantia:r.es_garantia||false, repOriginalId:r.rep_original_id||'',
     garantiaTipo:r.garantia_tipo||'reparacion', garantiaPublica:r.garantia_publica!==false,
     garantiaFechaFin:r.garantia_fecha_fin||'',
@@ -9196,6 +9198,8 @@ function _cliDraftBorrar(){ _DRAFT_CLI.clear(); }
 function abrirRep() {
   SEL.editRepId = null; SEL.rCli = null; SEL.selParts = []; SEL.pedirPiezas = []; SEL.rServicios = []; SEL.fotosRecepcion = [];
   SEL.rOpcionales = [];
+  SEL.testEntrada = {}; SEL._testEntradaAntes = null;
+  setTimeout(function () { renderTest('rTestEnt', SEL.testEntrada); }, 0);
   var _ft = document.getElementById('repFotosRecepThumbs'); if (_ft) _ft.innerHTML = '';
   var t = document.querySelector('#mRep .modal-title'); if (t) t.textContent = T('rep.titulo_nuevo');
   var _bg = document.getElementById('btnGuardarRepTxt'); if (_bg) _bg.textContent = T('rep.crear_orden');
@@ -11175,6 +11179,8 @@ function editarRep(id) {
   // Cargar servicios (con migración de legacy mo)
   SEL.rServicios = Array.isArray(r.servicios) ? r.servicios.slice() : [];
   SEL.rOpcionales = Array.isArray(r.opcionales) ? r.opcionales.map(function (o) { return Object.assign({}, o); }) : [];
+  SEL.testEntrada = _testItemsDe(r.testEntrada); SEL._testEntradaAntes = r.testEntrada || null;
+  setTimeout(function () { renderTest('rTestEnt', SEL.testEntrada); }, 0);
   if (!SEL.rServicios.length && r.mo > 0) {
     SEL.rServicios.push({
       nombre: r.averia || T('rep.reparacion_default'),
@@ -11617,6 +11623,10 @@ function guardarRep() {
       r.restante = Math.max(0, calcE.total - antiE);
     }
     r.opcionales = (SEL.rOpcionales || []).slice();
+    // El test de entrada se conserva tal cual si no se ha tocado (fecha y autor originales).
+    var _teNuevo = _testAObjeto(SEL.testEntrada || {});
+    var _teAntes = SEL._testEntradaAntes;
+    r.testEntrada = (_teAntes && _teNuevo && JSON.stringify(_testItemsDe(_teAntes)) === JSON.stringify(_testItemsDe(_teNuevo))) ? _teAntes : _teNuevo;
     r.garantiaDias = (typeof window._repGarantiaDias === 'number') ? window._repGarantiaDias : (r.garantiaDias || TIENDA.grDiasDefault || 90);
     r.garantiaTipo = window._repGarantiaTipo || r.garantiaTipo || 'reparacion';
     r.garantiaPublica = (typeof window._repGarantiaPublica === 'boolean') ? window._repGarantiaPublica : (r.garantiaPublica !== false);
@@ -11641,6 +11651,7 @@ function guardarRep() {
         _patchRep.componentes = r.componentes; _patchRep.servicios = r.servicios;
       }
       _patchRep.opcionales = r.opcionales || [];
+      _patchRep.test_entrada = r.testEntrada || null;
       sbPatch('reparaciones', 'id=eq.' + r.id, _patchRep);
     }
     // Aceptación en mostrador (Vía 1): registrar solo si se marca ahora y no estaba ya aceptada.
@@ -11707,6 +11718,7 @@ function guardarRep() {
     nota: document.getElementById('rNota').value.trim(),
     servicios: serviciosN,
     opcionales: (SEL.rOpcionales || []).slice(),
+    testEntrada: _testAObjeto(SEL.testEntrada || {}),
     mo: 0, comp: comp, anticipo: anticipo,
     iva: (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIvaN : 0,
     ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
@@ -11741,6 +11753,7 @@ function guardarRep() {
       iva: rep.iva, iva_modo: rep.ivaModo, base: rep.base, iva_importe: rep.ivaImporte,
       componentes: rep.componentes, servicios: rep.servicios,
       opcionales: rep.opcionales || [],
+      test_entrada: rep.testEntrada || null,
       garantia_dias: rep.garantiaDias,
       garantia_tipo: rep.garantiaTipo || null,
       garantia_publica: rep.garantiaPublica !== false,
@@ -12566,6 +12579,91 @@ function _ofrecerAvisoNoReparable(r) {
   m.bg.addEventListener('click', function(e) { if (e.target === m.bg) m.close(); });
 }
 
+
+// ═══ TEST DE ENTRADA Y DE SALIDA ═══
+// Lista de comprobacion funcional del telefono. La de entrada (opcional) se
+// guarda con la reparacion; la de salida se hace al entregar, delante del
+// cliente, y el cliente firma: es la prueba ante un "me lo disteis roto".
+// Columnas reparaciones.test_entrada / test_salida (sql/test-entrada-salida.sql).
+var TEST_ITEMS = ['pantalla', 'faceid', 'cam_tras', 'cam_del', 'carga', 'bateria', 'altavoz', 'auricular', 'micro', 'llamadas', 'wifi', 'botones'];
+var TEST_EST = { ok: ['✓', '#10B981'], falla: ['✗', '#EF4444'], na: ['—', '#9CA3AF'] };
+function _testItemsDe(t) {
+  var m = {};
+  ((t && t.items) || []).forEach(function (x) { if (x && x.k && TEST_EST[x.estado]) m[x.k] = x.estado; });
+  return m;
+}
+function _testAObjeto(estados, extra) {
+  var items = TEST_ITEMS.filter(function (k) { return estados[k]; }).map(function (k) { return { k: k, estado: estados[k] }; });
+  if (!items.length && !(extra && (extra.firma || extra.nota))) return null;
+  return Object.assign({ items: items, fecha: new Date().toISOString(), por: (typeof U !== 'undefined' && U && (U.nombre || U.email)) || '' }, extra || {});
+}
+// Pinta la lista en `contId`. `estados` se modifica al pulsar. `entrada` (opcional)
+// enseña al lado como estaba al recibirlo, para comparar.
+function renderTest(contId, estados, entrada, alCambiar) {
+  var cont = document.getElementById(contId); if (!cont) return;
+  cont.innerHTML = TEST_ITEMS.map(function (k) {
+    var ent = entrada && entrada[k];
+    var antes = ent ? '<span title="' + esc(T('test.entrada_era')) + '" style="font-size:11px;font-weight:700;color:' + TEST_EST[ent][1] + ';margin-right:4px">' + esc(T('test.entrada_corto')) + ' ' + TEST_EST[ent][0] + '</span>' : '';
+    return '<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px solid var(--border)">' +
+      '<span style="flex:1;font-size:13px">' + esc(T('test.item.' + k)) + '</span>' + antes +
+      ['ok', 'falla', 'na'].map(function (e) {
+        var on = estados[k] === e;
+        return '<button type="button" data-test-k="' + k + '" data-test-e="' + e + '" title="' + esc(T('test.' + e)) + '" style="width:34px;height:30px;border-radius:8px;cursor:pointer;font-weight:800;font-size:14px;border:1.5px solid ' +
+          (on ? TEST_EST[e][1] : 'var(--border)') + ';background:' + (on ? TEST_EST[e][1] : 'transparent') + ';color:' + (on ? '#fff' : TEST_EST[e][1]) + '">' + TEST_EST[e][0] + '</button>';
+      }).join('') + '</div>';
+  }).join('') +
+  '<div style="display:flex;gap:6px;margin-top:8px"><button type="button" data-test-todo="ok" class="btn-sm" style="font-size:11.5px">✓ ' + esc(T('test.todo_ok')) + '</button>' +
+  '<button type="button" data-test-todo="" class="btn-sm" style="font-size:11.5px;background:transparent">' + esc(T('test.limpiar')) + '</button></div>';
+  cont.querySelectorAll('[data-test-k]').forEach(function (b) {
+    b.onclick = function () {
+      var k = b.getAttribute('data-test-k'), e = b.getAttribute('data-test-e');
+      if (estados[k] === e) delete estados[k]; else estados[k] = e;
+      renderTest(contId, estados, entrada, alCambiar);
+      if (alCambiar) alCambiar();
+    };
+  });
+  cont.querySelectorAll('[data-test-todo]').forEach(function (b) {
+    b.onclick = function () {
+      var v = b.getAttribute('data-test-todo');
+      TEST_ITEMS.forEach(function (k) { if (v) { if (!estados[k]) estados[k] = v; } else delete estados[k]; });
+      renderTest(contId, estados, entrada, alCambiar);
+      if (alCambiar) alCambiar();
+    };
+  });
+}
+
+// Firma en la entrega (canvas con el dedo o el raton).
+var _firmaSalidaTrazos = false;
+function _iniciarFirmaSalida() {
+  var c = document.getElementById('eFirma'); if (!c) return;
+  var ctx = c.getContext('2d');
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, c.width, c.height);
+  ctx.strokeStyle = '#111'; ctx.lineWidth = 2.4; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  _firmaSalidaTrazos = false;
+  if (c._tkFirma) return;
+  c._tkFirma = true;
+  var dibujando = false;
+  function pos(e) { var r = c.getBoundingClientRect(); return { x: (e.clientX - r.left) * c.width / r.width, y: (e.clientY - r.top) * c.height / r.height }; }
+  c.addEventListener('pointerdown', function (e) { dibujando = true; var p = pos(e); ctx.beginPath(); ctx.moveTo(p.x, p.y); c.setPointerCapture(e.pointerId); });
+  c.addEventListener('pointermove', function (e) { if (!dibujando) return; var p = pos(e); ctx.lineTo(p.x, p.y); ctx.stroke(); _firmaSalidaTrazos = true; });
+  ['pointerup', 'pointercancel', 'pointerleave'].forEach(function (ev) { c.addEventListener(ev, function () { dibujando = false; }); });
+}
+function borrarFirmaSalida() { _iniciarFirmaSalida(); }
+function _firmaSalidaPng() {
+  if (!_firmaSalidaTrazos) return null;
+  var c = document.getElementById('eFirma'); if (!c) return null;
+  // Se reduce y se pasa a JPEG claro: una firma no necesita mas y ocupa diez veces menos.
+  var o = document.createElement('canvas'); o.width = 280; o.height = 80;
+  var x = o.getContext('2d'); x.fillStyle = '#fff'; x.fillRect(0, 0, 280, 80); x.drawImage(c, 0, 0, 280, 80);
+  return o.toDataURL('image/jpeg', 0.7);
+}
+function _avisoFallosSalida() {
+  var el = document.getElementById('eTestAviso'); if (!el) return;
+  var n = TEST_ITEMS.filter(function (k) { return SEL.testSalida && SEL.testSalida[k] === 'falla'; }).length;
+  el.style.display = n ? 'block' : 'none';
+  el.textContent = n ? '⚠️ ' + T('test.falla_aviso').replace('{n}', n) : '';
+}
+
 function abrirEntregar(id) {
   SEL.eRepId = id;
   var r = DB.reps.find(function(x) { return x.id === id; });
@@ -12585,7 +12683,13 @@ function abrirEntregar(id) {
   // M7: fotos de entrega (parte de SEL para esta entrega; arranca de lo que ya tuviera la rep)
   SEL.fotosEntrega = (r.fotosEntrega || []).slice();
   _repRenderFotos('repFotosEntThumbs', SEL.fotosEntrega, '_repFotoEntRemove');
+  // Test de salida: arranca vacio y enseña al lado como entro, si se hizo test de entrada.
+  SEL.testSalida = _testItemsDe(r.testSalida);
+  renderTest('eTest', SEL.testSalida, _testItemsDe(r.testEntrada), _avisoFallosSalida);
+  _avisoFallosSalida();
+  var _tn = document.getElementById('eTestNota'); if (_tn) _tn.value = (r.testSalida && r.testSalida.nota) || '';
   openM('mEntregar');
+  setTimeout(_iniciarFirmaSalida, 60);
 }
 
 // Al marcar "entregar a deber" ocultamos el método de pago (no se cobra ahora)
@@ -12605,12 +12709,17 @@ function confirmarEntrega() {
   r.estado = 'Entregado';
   r.fechaEntregaReal = hoyLocal();
   r.fotosEntrega = (SEL.fotosEntrega || []).slice(); // M7: foto-prueba del estado al entregar
+  var _tsNota = ((document.getElementById('eTestNota') || {}).value || '').trim();
+  var _tsFirma = _firmaSalidaPng();
+  var _ts = _testAObjeto(SEL.testSalida || {}, Object.assign({}, _tsNota ? { nota: _tsNota.slice(0, 300) } : {}, _tsFirma ? { firma: _tsFirma } : {}));
+  if (_ts) r.testSalida = _ts;
   if (aDeber) {
     // No se cobra: el restante se mantiene como pendiente. No se crea pago final.
     guardarDatos();
     if (SB_KEY && TIENDA_ID) {
       var _patchD = {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal};
       if (r.fotosEntrega && r.fotosEntrega.length) _patchD.fotos_entrega = r.fotosEntrega;
+      if (_ts) _patchD.test_salida = _ts;
       sbPatch('reparaciones', 'id=eq.' + r.id, _patchD);
     }
   } else {
@@ -12625,6 +12734,7 @@ function confirmarEntrega() {
     if (SB_KEY && TIENDA_ID) {
       var _patchE = {estado:'Entregado', fecha_entrega_real:r.fechaEntregaReal, pago_final:r.pagoFinal, restante:0};
       if (r.fotosEntrega && r.fotosEntrega.length) _patchE.fotos_entrega = r.fotosEntrega;
+      if (_ts) _patchE.test_salida = _ts;
       if (r.financiado) { _patchE.cuotas = JSON.stringify(r.cuotas || []); _patchE.estado_financiado = 'completado'; }
       sbPatch('reparaciones', 'id=eq.' + r.id, _patchE);
 
