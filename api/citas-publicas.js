@@ -570,10 +570,24 @@ async function checkRef(ref, ip) {
   if (!code) return { ok: true, valid: false };
   const _rl = await rateLimit(`checkref:${ip}`, 40, 3600);
   if (!_rl.ok) return { ok: true, valid: false };
-  // 1) ¿referral_code de una tienda TekPair?
+  // 1) ¿referral_code de una tienda TekPair? Si es la tienda propia de un
+  //    comercial ("<CODIGO> - Comercial"), cuenta como codigo de comercial: es lo
+  //    mismo que hace checkout.js al cobrar (comercialDeInvitacion).
   try {
-    const rows = await sbGet('tiendas?referral_code=eq.' + encodeURIComponent(code) + '&select=id&limit=1');
-    if (Array.isArray(rows) && rows.length) return { ok: true, valid: true, tipo: 'tekpair' };
+    const rows = await sbGet('tiendas?referral_code=eq.' + encodeURIComponent(code) + '&select=id,nombre&limit=1');
+    if (Array.isArray(rows) && rows.length) {
+      if (/ - Comercial$/i.test(String(rows[0].nombre || '').trim())) {
+        const af = await sbGet('afiliados?tienda_id=eq.' + encodeURIComponent(rows[0].id) + '&activo=eq.true&select=codigo&limit=1');
+        if (Array.isArray(af) && af.length) return { ok: true, valid: true, tipo: 'comercial' };
+      }
+      return { ok: true, valid: true, tipo: 'tekpair' };
+    }
+  } catch (e) {}
+  // 1b) ¿codigo de un comercial (afiliado activo)? Antes no se miraba y quien
+  //     llegaba con el enlace de un comercial no veia ningun aviso.
+  try {
+    const af = await sbGet('afiliados?codigo=eq.' + encodeURIComponent(code) + '&activo=eq.true&select=codigo&limit=1');
+    if (Array.isArray(af) && af.length) return { ok: true, valid: true, tipo: 'comercial' };
   } catch (e) {}
   // 2) ¿código cruzado de Cobrum?
   try {

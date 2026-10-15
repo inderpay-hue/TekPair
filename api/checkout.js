@@ -205,9 +205,17 @@ export default async function handler(req, res) {
     //
     // UN mes, no dos: quien recibe este trial ya NO recibe ademas el cupon del
     // mes gratis (webhook.js) ni los +30 dias de Cobrum (register.js).
+    //
+    // EXCEPCION (15-oct-2026, decision del dueño): el cliente de un COMERCIAL
+    // tiene la prueba normal de 15 dias, porque su premio es el 50% durante 3
+    // meses (el cupon aplicado arriba). Antes se llevaba las dos cosas. Si el
+    // comercial aun no tiene su cupon creado en Stripe (promoId vacio), se le
+    // deja el mes: si no, el cliente se quedaria sin nada de lo prometido.
+    // Las invitaciones entre tiendas y las de Cobrum siguen con el mes.
     const TRIAL_NORMAL = 15, TRIAL_REF = 30;
     const _tipoRef = await tipoRef(refCode, SUPABASE_URL, SERVICE_KEY);
-    const trialDias = _tipoRef ? TRIAL_REF : TRIAL_NORMAL;
+    const trialDias = !_tipoRef ? TRIAL_NORMAL
+      : (_tipoRef === 'afiliado' && promoId ? TRIAL_NORMAL : TRIAL_REF);
     params.append('subscription_data[trial_period_days]', String(trialDias));
     // Pasar metadata también a la subscription para que el webhook tenga acceso
     params.append('subscription_data[metadata][plan]', planCanonico);
