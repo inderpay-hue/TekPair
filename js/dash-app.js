@@ -1001,6 +1001,10 @@ window.addEventListener('DOMContentLoaded', function() {
     AJUSTES.notif.plantillaCumple = aj.notif.plantillaCumple || AJUSTES.notif.plantillaCumple;
     if (aj.notif.diasAbandono != null) AJUSTES.notif.diasAbandono = parseInt(aj.notif.diasAbandono) || 90;
   }
+  if (aj.funciones) AJUSTES.funciones = aj.funciones;
+  if (aj.avisosAuto) AJUSTES.avisosAuto = aj.avisosAuto;
+  if (aj.usados) AJUSTES.usados = aj.usados;
+  try { aplicarFunciones(); } catch (e) {}
 
   // Load local data
   cargarDatosLocal();
@@ -1198,6 +1202,8 @@ function ajSec(id, btn) {
   if (sec) sec.classList.add('active');
   // Cargas perezosas por sección (mismos handlers que antes vivían en el panel "negocio")
   if ((id === 'negocio' || id === 'cobros' || id === 'citas' || id === 'reparaciones') && typeof cargarTienda === 'function') cargarTienda();
+  if (id === 'funciones') { try { renderFunciones(); } catch (e) {} }
+  if (id === 'notif') { try { renderAvisosAuto(); } catch (e) {} }
 }
 
 // Aplica candado/ocultación por plan a los ítems del rail (mismo patrón que el sidebar).
@@ -7321,7 +7327,7 @@ function abrirVentaSimple() {
   // Financiado es Pro/Premium: ocultar la opción del selector si el plan no la tiene
   var _vPago = document.getElementById('vPago');
   var _vFinOpt = document.getElementById('vPagoFinOpt');
-  if (_vFinOpt) _vFinOpt.hidden = (typeof tieneFeature === 'function' && !tieneFeature('financiado'));
+  if (_vFinOpt) _vFinOpt.hidden = (typeof tieneFeature === 'function' && !tieneFeature('financiado')) || !funcActiva('financiacion');
   if (_vPago && _vFinOpt && _vFinOpt.hidden && _vPago.value === 'Financiado') _vPago.value = 'Efectivo';
   // Reset IVA selector to default
   var ivaSelV = document.getElementById('vIva');
@@ -11826,6 +11832,8 @@ function guardarRep() {
   audit('crear', 'reparacion', rep.id, rep.clienteNombre + ' · ' + (rep.modelo||'') + ' · ' + cur(rep.total), null);
   renderDash();
   checkUrgentes();
+  // Aviso «hemos recibido tu equipo» (barra con WhatsApp / email, o email automático).
+  setTimeout(function(){ try { ofrecerAvisoEstado(rep.id, rep.estado || 'Pendiente'); } catch (e) {} }, 400);
   // Paso final: si el plan incluye fotos, ofrecer añadir las de ENTRADA por QR con el ID ya creado
   // (el momento clave es al recibir el equipo). Si no, el flujo de siempre (QR de seguimiento).
   if (typeof tieneFeature === 'function' && tieneFeature('fotos_rep')) {
@@ -12637,20 +12645,9 @@ function cambiarEstado(id, estado) {
   checkUrgentes();
   renderReps();
 
-  // whatsapp_flow_v2: avisar cliente cuando pasa a Por Entregar
-  if (estado === 'Por Entregar') {
-    var cli = DB.clis.find(function(c){ return c.id === r.clienteId; });
-    var tel = (cli && cli.tel) ? waTel(cli.tel) : '';
-    if (tel && confirm(T('rep.confirm_avisar_wa'))) {
-      asegurarToken(r).then(function(){
-        var url = linkParte(r);
-        var msg = waMsg('lista')(r.clienteNombre, r.marca, r.modelo, url);
-        window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
-        _marcarAvisado(r.id);
-        try { registrarAviso({ tipo: 'rep_lista', ref_id: r.id, canal: 'whatsapp', destinatario: tel, asunto: 'Reparación lista' }); } catch(e){}
-      });
-    }
-  }
+  // Aviso al cliente del nuevo estado: barra con WhatsApp / email (y email
+  // automático si la tienda lo tiene activado para ese estado).
+  if (estado !== estadoAnterior) { try { ofrecerAvisoEstado(r.id, estado); } catch (e) {} }
 }
 
 // "No reparable": al marcar Devuelto/Rechazado/Sin Solución, ofrecer avisar al cliente
@@ -18215,6 +18212,7 @@ async function _pullTiendaCompleta() {
       AJUSTES.notif = AJUSTES.notif || defaults.notif;
       AJUSTES.notif.activa = Object.assign(defaults.notif.activa, (AJUSTES.notif||{}).activa || {});
       localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
+      try { aplicarFunciones(); } catch (e) {}
     }
 
     // Datos de tienda (nombre, logo, políticas)
@@ -20190,6 +20188,7 @@ var PLANTILLAS_WA_DEFAULT = {
   rep_lista: {nombre:'Reparación lista', texto:'¡Hola {nombre}! 📱\n\nTu {modelo} ya está reparado y listo para recoger.\n\nTotal: {total}\n\nTe esperamos en {tienda}. ¡Saludos!'},
   rep_presupuesto: {nombre:'Presupuesto reparación', texto:'Hola {nombre}, te paso el presupuesto de la reparación de tu {modelo}:\n\n📋 {averia}\n💰 Total: {total}\n\n¿Lo confirmamos? Saludos desde {tienda}.'},
   rep_recogida: {nombre:'Recordatorio recogida', texto:'Hola {nombre}, te recuerdo que tu {modelo} sigue en {tienda} listo para recoger desde hace días. Cuando puedas pásate, ¡gracias!'},
+  rep_proceso: {nombre:'Reparación en proceso', texto:'Hola {nombre}, ya estamos reparando tu {modelo} en {tienda}. Te avisamos en cuanto esté listo.'},
   rep_recibida: {nombre:'Reparación recibida', texto:'Hola {nombre}, hemos recibido tu {modelo} en {tienda}. Te avisaremos cuando tengamos novedades sobre la reparación. ¡Gracias por confiar en nosotros!'},
   pieza_recibida: {nombre:'Pieza recibida', texto:'¡Hola {nombre}! 👋\n\nBuenas noticias: ya nos ha llegado la pieza para reparar tu {modelo}. Nos ponemos con la reparación y te avisamos en cuanto esté lista para recoger.\n\nGracias por tu paciencia. Saludos desde {tienda}.'},
   pieza_traer: {nombre:'Pieza lista, traer equipo', texto:'¡Hola {nombre}! 👋\n\nBuenas noticias: ya nos ha llegado la pieza para tu {modelo}. Cuando quieras, pásate por {tienda} con el equipo y te la instalamos en el momento. Suele ser rápido.\n\n¡Te esperamos! Saludos desde {tienda}.'},
@@ -23376,4 +23375,195 @@ function leerUsadosAjustes() {
     if (String(val) !== String(def[k])) dif[k] = val;
   });
   AJUSTES.usados = dif;
+}
+
+// ═══ FUNCIONES DE MI TIENDA ═══
+//
+// Cada tienda apaga lo que no usa (Ajustes → Funciones) y desaparece del menú,
+// de «Más», de Ajustes y de los botones. No se borra nada: es solo ocultar.
+// Se guarda en AJUSTES.funciones ({citas:false, ...}); lo que no aparece ahí
+// está encendido, así que a quien no lo toca no le cambia nada.
+// En el HTML, cada elemento de una función lleva data-func="clave".
+var FUNCIONES = [
+  { k: 'citas', ico: '📅' }, { k: 'presupuestos', ico: '📝' }, { k: 'encargos', ico: '📦' },
+  { k: 'pedidos', ico: '🚚' }, { k: 'cajas', ico: '💶' }, { k: 'financiacion', ico: '💰' },
+  { k: 'usados', ico: '🤝' }, { k: 'herramientas', ico: '🛠️' }, { k: 'catalogo', ico: '🌐' }
+];
+// Lo que se apaga con cada atajo.
+var FUNC_PRESET = { todo: [], taller: ['usados', 'financiacion', 'catalogo', 'encargos'], tienda: ['citas', 'presupuestos', 'herramientas'] };
+
+function funcActiva(k) { return !(AJUSTES && AJUSTES.funciones && AJUSTES.funciones[k] === false); }
+
+function aplicarFunciones() {
+  var st = document.getElementById('funcCss');
+  if (!st) { st = document.createElement('style'); st.id = 'funcCss'; document.head.appendChild(st); }
+  st.textContent = FUNCIONES.filter(function (f) { return !funcActiva(f.k); })
+    .map(function (f) { return '[data-func~="' + f.k + '"]{display:none!important}'; }).join('\n');
+  // Un <option> oculto con CSS sigue saliendo en Safari: se marca también hidden.
+  var op = document.getElementById('vPagoFinOpt');
+  if (op && !funcActiva('financiacion')) op.hidden = true;
+}
+
+function renderFunciones() {
+  var cont = document.getElementById('funcLista'); if (!cont) return;
+  var puede = tienePerm('ajustes_editar');
+  cont.innerHTML = FUNCIONES.map(function (f) {
+    var on = funcActiva(f.k);
+    return '<label style="display:flex;align-items:flex-start;gap:12px;padding:11px 4px;border-top:1px solid var(--border);cursor:' + (puede ? 'pointer' : 'default') + '">' +
+      '<input type="checkbox" ' + (on ? 'checked ' : '') + (puede ? '' : 'disabled ') + 'onchange="setFuncion(\'' + f.k + '\', this.checked)" style="width:18px;height:18px;margin-top:2px;flex-shrink:0">' +
+      '<span style="font-size:20px;line-height:1">' + f.ico + '</span>' +
+      '<span style="flex:1;min-width:0"><span style="display:block;font-weight:700;font-size:14px' + (on ? '' : ';opacity:.55') + '">' + esc(T('func.n_' + f.k)) + '</span>' +
+      '<span style="display:block;font-size:12px;color:var(--muted);margin-top:1px">' + esc(T('func.d_' + f.k)) + '</span></span></label>';
+  }).join('');
+}
+
+function _guardarFunciones() {
+  try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES });
+  aplicarFunciones();
+  renderFunciones();
+}
+
+function setFuncion(k, on) {
+  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); renderFunciones(); return; }
+  AJUSTES.funciones = AJUSTES.funciones || {};
+  if (on) delete AJUSTES.funciones[k]; else AJUSTES.funciones[k] = false;
+  _guardarFunciones();
+  toast(T(on ? 'func.encendida' : 'func.apagada').replace('{n}', T('func.n_' + k)), 'ok');
+}
+
+function presetFunciones(p) {
+  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var off = FUNC_PRESET[p] || [];
+  AJUSTES.funciones = {};
+  off.forEach(function (k) { AJUSTES.funciones[k] = false; });
+  _guardarFunciones();
+  toast(T('gen.guardado'), 'ok');
+}
+
+// ═══ AVISO AL CLIENTE AL CAMBIAR EL ESTADO ═══
+//
+// Al pasar una reparación a un estado con plantilla sale una barra abajo:
+// «¿Avisar a Juan? [WhatsApp] [Email]». No bloquea nada y se va sola. Si la
+// tienda activa el email automático para ese estado (Ajustes → Notificaciones),
+// se manda solo y la barra lo dice. Cada aviso queda en el historial (avisos).
+var AVISO_ESTADO_PL = { 'Pendiente': 'rep_recibida', 'En Proceso': 'rep_proceso', 'Presupuesto': 'rep_presupuesto', 'Por Entregar': 'rep_lista' };
+var _avisoBarTimer = null;
+
+function _avisoCliRep(r) {
+  var cli = r.clienteId ? (DB.clis || []).find(function(c) { return c.id === r.clienteId; }) : null;
+  if (!cli && r.clienteNombre) {
+    var n = _norm(r.clienteNombre);
+    cli = (DB.clis || []).find(function(c) { return _norm(((c.nombre || '') + ' ' + (c.apellidos || '')).trim()) === n; });
+  }
+  return cli || null;
+}
+
+// Texto del aviso con las variables puestas y el enlace de seguimiento.
+function _avisoTexto(r, cli, key, link) {
+  var pl = getPlantillasWA();
+  var p = pl[key] || { texto: (T('wa.txt_' + key) !== 'wa.txt_' + key) ? T('wa.txt_' + key) : ((PLANTILLAS_WA_DEFAULT[key] || {}).texto || '') };
+  var txt = aplicarVariablesWA(p.texto, { nombre: (cli && cli.nombre) || (r.clienteNombre || '').split(' ')[0], tienda: TIENDA.nombre || '',
+    marca: r.marca || '', modelo: ((r.marca || '') + ' ' + (r.modelo || '')).trim(), averia: r.averia || '', total: r.total || 0,
+    estado: T('estado.' + r.estado) || r.estado, link: link || '' });
+  if (link && txt.indexOf(link) === -1) txt += '\n\n🔗 ' + T('aviso.seguir') + ' ' + link;
+  return txt;
+}
+
+function ofrecerAvisoEstado(repId, estado) {
+  var key = AVISO_ESTADO_PL[estado];
+  if (!key) return;
+  var r = (DB.reps || []).find(function(x) { return x.id === repId; });
+  if (!r) return;
+  var cli = _avisoCliRep(r);
+  var tel = (cli && cli.tel) ? waTel(cli.tel, cli.telPrefijo) : '';
+  var mail = (cli && cli.email) || '';
+  if (!tel && !mail) return;
+  var auto = !!(AJUSTES.avisosAuto && AJUSTES.avisosAuto[estado]) && !!mail;
+  if (auto) _avisoEnviarEmail(r, cli, key, true);
+  _avisoBarra(r, cli, key, tel, mail, auto);
+}
+
+function _avisoBarra(r, cli, key, tel, mail, autoEnviado) {
+  var bar = document.getElementById('avisoEstadoBar');
+  if (!bar) {
+    bar = document.createElement('div'); bar.id = 'avisoEstadoBar';
+    bar.style.cssText = 'position:fixed;left:50%;transform:translateX(-50%);bottom:calc(18px + env(safe-area-inset-bottom, 0px));z-index:9500;' +
+      'background:var(--white,#fff);color:var(--text,#111);border:1px solid var(--border,#E5E7EB);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.18);' +
+      'padding:10px 12px;display:flex;align-items:center;gap:8px;flex-wrap:wrap;max-width:min(560px,calc(100vw - 24px));font-size:13px';
+    document.body.appendChild(bar);
+  }
+  var nombre = (cli && ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim()) || r.clienteNombre || '';
+  var btn = 'border:none;border-radius:9px;padding:8px 12px;font:inherit;font-weight:700;cursor:pointer;color:#fff';
+  bar.innerHTML = '<span style="flex:1;min-width:160px">📣 ' + esc(autoEnviado ? T('aviso.auto_enviado').replace('{n}', nombre) : T('aviso.pregunta').replace('{n}', nombre)) +
+      '<br><span style="color:var(--muted);font-size:12px">' + esc(_waPlNombre(key, getPlantillasWA()[key] || {})) + '</span></span>' +
+    (tel ? '<button type="button" data-a="wa" style="' + btn + ';background:#25D366">💬 WhatsApp</button>' : '') +
+    (mail && !autoEnviado ? '<button type="button" data-a="mail" style="' + btn + ';background:#3B82F6">✉️ Email</button>' : '') +
+    '<button type="button" data-a="x" aria-label="×" style="border:none;background:none;font-size:18px;cursor:pointer;color:var(--muted);padding:4px 6px">×</button>';
+  bar.style.display = 'flex';
+  var cerrar = function() { bar.style.display = 'none'; clearTimeout(_avisoBarTimer); };
+  bar.querySelectorAll('[data-a]').forEach(function(b) {
+    b.onclick = function() {
+      var a = b.getAttribute('data-a');
+      if (a === 'wa') {
+        // La ventana se abre YA (si se abre tras el await, el navegador la bloquea).
+        var w = window.open('', '_blank');
+        asegurarToken(r).then(function() {
+          var txt = _avisoTexto(r, cli, key, linkParte(r));
+          var url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(txt);
+          if (w) w.location.href = url; else window.open(url, '_blank');
+          _marcarAvisado(r.id);
+          registrarAviso({ tipo: key, ref_id: r.id, canal: 'whatsapp', destinatario: tel, asunto: _waPlNombre(key, getPlantillasWA()[key] || {}) });
+        }).catch(function() { if (w) w.close(); });
+      } else if (a === 'mail') {
+        _avisoEnviarEmail(r, cli, key, false);
+      }
+      cerrar();
+    };
+  });
+  clearTimeout(_avisoBarTimer);
+  _avisoBarTimer = setTimeout(cerrar, 20000);
+}
+
+function _avisoEnviarEmail(r, cli, key, auto) {
+  if (!cli || !cli.email) return;
+  asegurarToken(r).then(function() {
+    var link = linkParte(r);
+    return fetch('/api/email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (window.JWT_TOKEN || (typeof JWT_TOKEN !== 'undefined' ? JWT_TOKEN : '') || '') },
+      body: JSON.stringify({
+        tipo: 'aviso_rep', email: cli.email, nombreCliente: ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim(),
+        tienda: TIENDA.nombre || 'TekPair', asunto: T('aviso.asunto').replace('{e}', T('estado.' + r.estado) || r.estado).replace('{t}', TIENDA.nombre || 'TekPair'),
+        mensaje: _avisoTexto(r, cli, key, link), link: link, boton: T('aviso.boton')
+      })
+    }).then(function(res) { return res.json(); });
+  }).then(function(d) {
+    if (d && d.ok) {
+      _marcarAvisado(r.id);
+      registrarAviso({ tipo: key, ref_id: r.id, canal: 'email', destinatario: cli.email, asunto: _waPlNombre(key, getPlantillasWA()[key] || {}) });
+      if (!auto) toast(T('aviso.email_ok').replace('{e}', cli.email), 'ok');
+    } else {
+      toast(T('aviso.email_error'), 'err');
+    }
+  }).catch(function() { toast(T('aviso.email_error'), 'err'); });
+}
+
+// Ajustes → Notificaciones: email automático por estado.
+function renderAvisosAuto() {
+  var cont = document.getElementById('avisosAutoLista'); if (!cont) return;
+  var cfg = AJUSTES.avisosAuto || {};
+  cont.innerHTML = Object.keys(AVISO_ESTADO_PL).map(function(e) {
+    return '<label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin:6px 0">' +
+      '<input type="checkbox" data-est="' + esc(e) + '"' + (cfg[e] ? ' checked' : '') + ' onchange="setAvisoAuto(this.getAttribute(\'data-est\'), this.checked)"> ' +
+      esc(T('estado.' + e) !== 'estado.' + e ? T('estado.' + e) : e) + ' — <span style="color:var(--muted)">' + esc(_waPlNombre(AVISO_ESTADO_PL[e], getPlantillasWA()[AVISO_ESTADO_PL[e]] || {})) + '</span></label>';
+  }).join('');
+}
+function setAvisoAuto(estado, on) {
+  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); renderAvisosAuto(); return; }
+  AJUSTES.avisosAuto = AJUSTES.avisosAuto || {};
+  if (on) AJUSTES.avisosAuto[estado] = true; else delete AJUSTES.avisosAuto[estado];
+  try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES });
+  toast(T('gen.guardado'), 'ok');
 }
