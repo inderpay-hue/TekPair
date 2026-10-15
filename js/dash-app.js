@@ -2816,7 +2816,7 @@ function navTo(id) {
     renderPresupuestos();
     // Sync ligero: recargar reps desde Supabase para tener estados frescos
     if (SB_KEY && TIENDA_ID) {
-      sbGet('reparaciones', 'tienda_id=eq.' + TIENDA_ID + '&estado=in.(Presupuesto,Rechazado)&select=id,cliente_id,cliente_nombre,marca,modelo,averia,estado,total,base,iva,iva_importe,iva_modo,servicios,componentes,fecha,presupuesto_aceptado_at,presupuesto_token_exp,piezas_devueltas,es_garantia,rep_original_id,mo,comp,anticipo,restante,pago_final,fecha_entrega,fecha_entrega_real,nota,tipo_bloqueo,bloqueo,imei,prioridad,firma_cliente,firma_fecha,presupuesto_aceptado_ip,fotos_recepcion,fotos_entrega').then(function(rows) {
+      sbGet('reparaciones', 'tienda_id=eq.' + TIENDA_ID + '&estado=in.(Presupuesto,Rechazado)&select=id,cliente_id,cliente_nombre,marca,modelo,averia,estado,total,base,iva,iva_importe,iva_modo,servicios,componentes,fecha,presupuesto_aceptado_at,presupuesto_token_exp,piezas_devueltas,es_garantia,rep_original_id,mo,comp,anticipo,restante,pago_final,fecha_entrega,fecha_entrega_real,nota,tipo_bloqueo,bloqueo,imei,prioridad,firma_cliente,firma_fecha,presupuesto_aceptado_ip,fotos_recepcion,fotos_entrega,garantia_dias,garantia_tipo,garantia_publica,garantia_fecha_fin').then(function(rows) {
         if (!Array.isArray(rows)) return;
         // Actualizar solo los presupuestos en DB.reps
         rows.forEach(function(r) {
@@ -11391,6 +11391,8 @@ function renderRepGarantia() {
   var sel = document.getElementById('rGarSelector');
   // Plan básico solo ve el default + "Sin garantía"; Pro+ ve todos los chips configurados
   var opciones = tieneAvanzada ? (TIENDA.grDiasEnabled || [90]) : [TIENDA.grDiasDefault || 90];
+  // 30 y 60 días salen siempre, en todos los planes: son los más pedidos.
+  opciones = opciones.concat([30, 60]).filter(function(d, i, a){ return a.indexOf(d) === i; }).sort(function(a, b){ return a - b; });
   var html = '';
   opciones.forEach(function(d){
     var act = (d === dias) ? ' active' : '';
