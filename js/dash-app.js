@@ -2886,8 +2886,60 @@ function openM(id) {
       toggleStockMulti();
     } catch(e){}
   }
+  if (id === 'mRep') { try { _repTabsReset(); } catch (e) {} }
   var el = document.getElementById(id);
   if (el) el.classList.add('open');
+}
+
+// ═══ Pestañas plegadas de la ventana de reparación ═══
+// Para dar de alta basta con lo de arriba (cliente, equipo, avería, servicios y
+// aceptación). Lo demás va en pestañas cerradas, cada una con un resumen de lo
+// que lleva, y se abre solo lo que haga falta. Los campos son los mismos de
+// siempre (mismos id): guardarRep, el borrador y el resto no cambian.
+var _repTabAbierta = '';
+function repTab(t) { _repTabAbierta = (_repTabAbierta === t) ? '' : t; _pintarRepTabs(); }
+function _pintarRepTabs() {
+  document.querySelectorAll('#mRep .rep-tab').forEach(function (b) { b.classList.toggle('on', b.getAttribute('data-tab') === _repTabAbierta); });
+  document.querySelectorAll('#mRep .rep-tab-pane').forEach(function (p) { p.classList.toggle('on', p.getAttribute('data-pane') === _repTabAbierta); });
+  _repTabsBadges();
+}
+function _repTabsReset() {
+  _repTabAbierta = '';
+  _pintarRepTabs();
+  // editarRep rellena los campos después de abrir: el resumen se recalcula luego.
+  setTimeout(_repTabsBadges, 60);
+  var m = document.getElementById('mRep');
+  if (m && !m._tkTabs) {
+    m._tkTabs = true;
+    ['click', 'change', 'input'].forEach(function (ev) { m.addEventListener(ev, function () { setTimeout(_repTabsBadges, 0); }); });
+  }
+}
+function _repTabsBadges() {
+  var set = function (k, txt) { var el = document.getElementById('rtb_' + k); if (el) el.textContent = txt || ''; };
+  var n = function (sel) { return document.querySelectorAll(sel).length; };
+  var est = n('#mRep .chk-btn.on') + n('#repFotosRecepThumbs > *');
+  set('estado', est ? String(est) : '');
+  set('piezas', (n('#partsList > *') + n('#repOpcList > *')) || '');
+  var cobro = '';
+  var fin = document.getElementById('rFinanciar');
+  var antRow = document.getElementById('rAnticipoRow');
+  if (fin && fin.checked) cobro = T('fin.financiar').replace(/^\W+\s*/, '');
+  else if (antRow && antRow.style.display !== 'none') cobro = (document.getElementById('rAnticipo') || {}).textContent || '';
+  set('cobro', cobro);
+  var org = [];
+  var tec = document.getElementById('rTecnico');
+  if (tec && tec.value && tec.selectedIndex >= 0) org.push(tec.options[tec.selectedIndex].text);
+  var pr = document.getElementById('rPrioridad');
+  if (pr && pr.value && pr.value !== 'Normal' && pr.selectedIndex >= 0) org.push(pr.options[pr.selectedIndex].text);
+  set('org', org.join(' · '));
+  set('garantia', ((document.getElementById('rGarSelDias') || {}).textContent || '').trim());
+}
+// Si al guardar falta algo dentro de una pestaña cerrada, se abre esa pestaña.
+function _repAbrirPaneConError() {
+  var err = document.querySelector('#mRep .rep-tab-pane:not(.on) .fi.error');
+  if (!err) return;
+  var pane = err.closest('.rep-tab-pane');
+  if (pane) { _repTabAbierta = pane.getAttribute('data-pane'); _pintarRepTabs(); try { err.scrollIntoView({ block: 'center', behavior: 'smooth' }); } catch (e) {} }
 }
 
 // Categorías que usan IMEI (1 unidad por IMEI) vs. variantes de color (repuestos/accesorios)
@@ -11563,6 +11615,7 @@ function aplicarCambioStockPiezas(antes, despues, refRep) {
 }
 
 function guardarRep() {
+  setTimeout(function () { try { _repAbrirPaneConError(); } catch (e) {} }, 0);
   if (!tienePerm('reps_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var modelo = document.getElementById('rModelo').value.trim();
   var marca = document.getElementById('rMarca').value.trim();

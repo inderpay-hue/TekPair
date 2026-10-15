@@ -951,6 +951,16 @@ body[data-theme="dark"] .vista-btn.active{background:var(--border)}
 .rep-grid{display:grid;grid-template-columns:1fr;gap:14px}
 @media(min-width:840px){.rep-grid{grid-template-columns:1fr 1fr;gap:20px}}
 .rep-col{display:flex;flex-direction:column;gap:14px}
+/* Pestañas plegadas de la ficha de reparación (lo que no hace falta para dar de alta) */
+.rep-tabs{display:flex;gap:6px;overflow-x:auto;margin:16px 0 10px;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+.rep-tab{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;border:1px solid var(--border);background:var(--white,#fff);color:var(--text);border-radius:999px;padding:8px 13px;font:inherit;font-size:13px;font-weight:600;cursor:pointer}
+.rep-tab.on{background:var(--blue);border-color:var(--blue);color:#fff}
+.rep-tab-badge:empty{display:none}
+.rep-tab-badge{font-size:11px;font-weight:700;background:rgba(0,0,0,.08);border-radius:999px;padding:1px 7px}
+.rep-tab.on .rep-tab-badge{background:rgba(255,255,255,.25)}
+.rep-tab-pane{display:none}
+.rep-tab-pane.on{display:block}
+.rep-tab-pane[data-pane="piezas"].on{display:flex;flex-direction:column;gap:14px}
 .rep-section{background:#FAFBFC;border:1px solid var(--border);border-radius:12px;padding:14px}
 .rep-section-title{font-size:11px;font-weight:800;color:var(--text);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px;display:flex;align-items:center;gap:6px}
 .rep-section-title span{font-size:14px}
@@ -1212,7 +1222,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261016d"></script>
+<script src="/lang/lang.v8.js?v=20261016p"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4251,10 +4261,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
   <div class="modal-rep-body">
     <div class="rep-grid">
-
-      <!-- COLUMNA IZQUIERDA -->
       <div class="rep-col">
-
         <!-- Sección: Cliente -->
         <div class="rep-section">
           <div class="rep-section-title"><span>👤</span> <span data-t="rep.sec_cliente">Cliente</span></div>
@@ -4282,59 +4289,13 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
             <div class="fg" style="flex:1;margin-bottom:0"><label class="fl" id="rBloqLbl" data-t="rep.codigo">Código</label><input class="fi" id="rBloqVal" placeholder="No aplica" disabled></div>
           </div>
         </div>
-
-        <!-- Sección: Avería -->
+      </div>
+      <div class="rep-col">
         <div class="rep-section">
           <div class="rep-section-title"><span>🔧</span> <span data-t="rep.sec_averia">Avería</span></div>
           <div class="fg"><label class="fl"><span data-t="rep.describe_problema">Describe el problema</span> <span class="req">*</span></label><input class="fi" id="rAveria" placeholder="Ej: pantalla rota, no enciende, batería..." required oninput="try{sugerirPiezasRep()}catch(e){};try{sugerirPrecioRep()}catch(e){}"></div>
           <div id="rPrecioSug" style="display:none;background:rgba(139,92,246,.06);border:1px solid rgba(139,92,246,.2);border-radius:8px;padding:8px 11px;margin-top:8px;font-size:12px;color:#6D28D9"></div>
-          <div class="fg" style="margin-bottom:0">
-            <label class="fl" data-t="rep.estado_equipo">Estado del equipo (al recibir)</label>
-            <div class="chk-grid">
-              <button type="button" class="chk-btn" data-cond="Sin cargador" onclick="toggleChk(this)"><span>🔌</span> <span data-t="rep.cond_sin_cargador">Sin cargador</span></button>
-              <button type="button" class="chk-btn" data-cond="Pantalla rota" onclick="toggleChk(this)"><span>💥</span> <span data-t="rep.pantalla_rota">Pantalla rota</span></button>
-              <button type="button" class="chk-btn" data-cond="Golpes" onclick="toggleChk(this)"><span>🔨</span> <span data-t="rep.cond_golpes">Golpes</span></button>
-              <button type="button" class="chk-btn" data-cond="Sin funda" onclick="toggleChk(this)"><span>📦</span> <span data-t="rep.cond_sin_funda">Sin funda</span></button>
-              <button type="button" class="chk-btn" data-cond="Humedad" onclick="toggleChk(this)"><span>💧</span> <span data-t="rep.cond_humedad">Humedad</span></button>
-              <button type="button" class="chk-btn" data-cond="Bloqueado" onclick="toggleChk(this)"><span>🔒</span> <span data-t="rep.cond_bloqueado">Bloqueado</span></button>
-            </div>
-          </div>
-
-          <!-- Test funcional de ENTRADA (opcional): lo que funcionaba al recibirlo -->
-          <div class="fg" id="rTestEntSec" style="margin-bottom:12px">
-            <label class="fl">🧪 <span data-t="test.titulo_entrada">Test de entrada (opcional)</span></label>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:8px" data-t="test.hint_entrada">Marca lo que funciona y lo que no al recibirlo. Al entregar se compara con el test de salida.</div>
-            <div id="rTestEnt"></div>
-          </div>
-
-          <!-- M7: foto-prueba del estado al recibir -->
-          <div class="fg" id="repFotoRecepSec" style="margin-top:12px;margin-bottom:0">
-            <label class="fl" data-t="foto.recepcion_titulo">📸 Fotos del estado (al recibir)</label>
-            <div style="font-size:11px;color:var(--muted);margin-bottom:8px" data-t="foto.recepcion_desc">Prueba del estado del equipo. Te protege si el cliente reclama un daño que ya estaba.</div>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-              <div id="repFotosRecepThumbs" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-              <label style="display:inline-flex;align-items:center;gap:6px;background:var(--light);border:1.5px dashed var(--border);border-radius:8px;width:60px;height:60px;justify-content:center;cursor:pointer;flex-shrink:0" title="Añadir foto">
-                <span style="font-size:22px">📷</span>
-                <input type="file" accept="image/*" capture="environment" multiple onchange="_repFotoRecepInput(this)" style="display:none">
-              </label>
-            </div>
-            <button type="button" id="repBtnFotoQR" class="btn-sm" onclick="_fotoQRDesdeForm()" style="margin-top:10px;background:#C2410C;color:white">📷 <span data-t="fqr.btn">Fotos por QR</span></button>
-            <button type="button" id="repBtnFirmaQR" class="btn-sm" onclick="_firmaQRDesdeForm()" style="margin-top:10px;margin-left:6px;background:#8B5CF6;color:white">✍️ <span data-t="firq.btn">Firma por QR</span></button>
-          </div>
-          <!-- Aceptación en mostrador (Vía 1) — abierta a todos los planes, no gated -->
-          <div class="fg" id="repAceptMostradorSec" style="margin-top:12px;margin-bottom:0">
-            <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:13px;font-weight:500;background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:11px 12px">
-              <input type="checkbox" id="repAceptMostrador" onchange="_aceptMostradorToggle(this)" style="margin-top:2px;flex-shrink:0;width:17px;height:17px">
-              <span data-t="acep.mostrador_lbl">El cliente ha leído y acepta las condiciones (se le ha entregado copia).</span>
-            </label>
-            <div id="repAceptMostradorAviso" style="display:none;font-size:11px;color:#B45309;margin-top:6px"></div>
-          </div>
         </div>
-
-      </div>
-
-      <!-- COLUMNA DERECHA -->
-      <div class="rep-col">
 
         <!-- Sección: Servicios de reparación (NUEVA) -->
         <div class="rep-section">
@@ -4352,18 +4313,61 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
           <div id="repServiciosList" style="margin-top:10px"></div>
         </div>
 
-        <!-- Sección: Extras opcionales (el cliente los elige al aceptar el presupuesto online) -->
         <div class="rep-section">
-          <div class="rep-section-title"><span>✨</span> <span data-t="rep.sec_opcionales">Extras opcionales</span></div>
-          <div data-t="rep.opc_hint" style="font-size:11.5px;color:var(--muted);margin:-2px 0 8px">Protector, funda, batería… El cliente los marca o no al aceptar el presupuesto online. No cuentan en el total hasta que los acepta.</div>
-          <div id="repOpcList"></div>
-          <div style="display:flex;gap:6px;margin-top:6px">
-            <input class="fi" id="rOpcNombre" data-t-ph="rep.opc_nombre_ph" placeholder="Ej.: Protector de cristal templado" style="flex:1" autocomplete="off">
-            <input class="fi" id="rOpcPrecio" type="number" step="0.01" min="0" data-t-ph="rep.opc_precio_ph" placeholder="Precio" style="width:96px">
-            <button type="button" class="add-srv-btn" onclick="agregarOpcionalRep()" data-t="rep.opc_add">+ Añadir</button>
+          <!-- Aceptación en mostrador (Vía 1) — abierta a todos los planes, no gated -->
+          <div class="fg" id="repAceptMostradorSec" style="margin-top:12px;margin-bottom:0">
+            <label style="display:flex;align-items:flex-start;gap:9px;cursor:pointer;font-size:13px;font-weight:500;background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:11px 12px">
+              <input type="checkbox" id="repAceptMostrador" onchange="_aceptMostradorToggle(this)" style="margin-top:2px;flex-shrink:0;width:17px;height:17px">
+              <span data-t="acep.mostrador_lbl">El cliente ha leído y acepta las condiciones (se le ha entregado copia).</span>
+            </label>
+            <div id="repAceptMostradorAviso" style="display:none;font-size:11px;color:#B45309;margin-top:6px"></div>
           </div>
         </div>
+      </div>
+    </div>
 
+    <!-- El resto, en pestañas plegadas: se abre solo lo que haga falta -->
+    <div class="rep-tabs" id="repTabs">
+      <button type="button" class="rep-tab" data-tab="estado" onclick="repTab('estado')">📋 <span data-t="rtab.estado">Estado y fotos</span><span class="rep-tab-badge" id="rtb_estado"></span></button>
+      <button type="button" class="rep-tab" data-tab="piezas" onclick="repTab('piezas')">🧩 <span data-t="rtab.piezas">Piezas y extras</span><span class="rep-tab-badge" id="rtb_piezas"></span></button>
+      <button type="button" class="rep-tab" data-tab="cobro" onclick="repTab('cobro')">💰 <span data-t="rtab.cobro">Cobro</span><span class="rep-tab-badge" id="rtb_cobro"></span></button>
+      <button type="button" class="rep-tab" data-tab="org" onclick="repTab('org')">👨‍🔧 <span data-t="rtab.org">Organización</span><span class="rep-tab-badge" id="rtb_org"></span></button>
+      <button type="button" class="rep-tab" data-tab="garantia" onclick="repTab('garantia')">🛡️ <span data-t="rtab.garantia">Garantía</span><span class="rep-tab-badge" id="rtb_garantia"></span></button>
+    </div>
+    <div class="rep-tab-pane rep-section" data-pane="estado">
+          <div class="fg" style="margin-bottom:0">
+            <label class="fl" data-t="rep.estado_equipo">Estado del equipo (al recibir)</label>
+            <div class="chk-grid">
+              <button type="button" class="chk-btn" data-cond="Sin cargador" onclick="toggleChk(this)"><span>🔌</span> <span data-t="rep.cond_sin_cargador">Sin cargador</span></button>
+              <button type="button" class="chk-btn" data-cond="Pantalla rota" onclick="toggleChk(this)"><span>💥</span> <span data-t="rep.pantalla_rota">Pantalla rota</span></button>
+              <button type="button" class="chk-btn" data-cond="Golpes" onclick="toggleChk(this)"><span>🔨</span> <span data-t="rep.cond_golpes">Golpes</span></button>
+              <button type="button" class="chk-btn" data-cond="Sin funda" onclick="toggleChk(this)"><span>📦</span> <span data-t="rep.cond_sin_funda">Sin funda</span></button>
+              <button type="button" class="chk-btn" data-cond="Humedad" onclick="toggleChk(this)"><span>💧</span> <span data-t="rep.cond_humedad">Humedad</span></button>
+              <button type="button" class="chk-btn" data-cond="Bloqueado" onclick="toggleChk(this)"><span>🔒</span> <span data-t="rep.cond_bloqueado">Bloqueado</span></button>
+            </div>
+          </div>
+          <!-- Test funcional de ENTRADA (opcional): lo que funcionaba al recibirlo -->
+          <div class="fg" id="rTestEntSec" style="margin-bottom:12px">
+            <label class="fl">🧪 <span data-t="test.titulo_entrada">Test de entrada (opcional)</span></label>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px" data-t="test.hint_entrada">Marca lo que funciona y lo que no al recibirlo. Al entregar se compara con el test de salida.</div>
+            <div id="rTestEnt"></div>
+          </div>
+          <!-- M7: foto-prueba del estado al recibir -->
+          <div class="fg" id="repFotoRecepSec" style="margin-top:12px;margin-bottom:0">
+            <label class="fl" data-t="foto.recepcion_titulo">📸 Fotos del estado (al recibir)</label>
+            <div style="font-size:11px;color:var(--muted);margin-bottom:8px" data-t="foto.recepcion_desc">Prueba del estado del equipo. Te protege si el cliente reclama un daño que ya estaba.</div>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+              <div id="repFotosRecepThumbs" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+              <label style="display:inline-flex;align-items:center;gap:6px;background:var(--light);border:1.5px dashed var(--border);border-radius:8px;width:60px;height:60px;justify-content:center;cursor:pointer;flex-shrink:0" title="Añadir foto">
+                <span style="font-size:22px">📷</span>
+                <input type="file" accept="image/*" capture="environment" multiple onchange="_repFotoRecepInput(this)" style="display:none">
+              </label>
+            </div>
+            <button type="button" id="repBtnFotoQR" class="btn-sm" onclick="_fotoQRDesdeForm()" style="margin-top:10px;background:#C2410C;color:white">📷 <span data-t="fqr.btn">Fotos por QR</span></button>
+            <button type="button" id="repBtnFirmaQR" class="btn-sm" onclick="_firmaQRDesdeForm()" style="margin-top:10px;margin-left:6px;background:#8B5CF6;color:white">✍️ <span data-t="firq.btn">Firma por QR</span></button>
+          </div>
+    </div>
+    <div class="rep-tab-pane" data-pane="piezas">
         <!-- Sección: Componentes -->
         <div class="rep-section">
           <div class="rep-section-title"><span>📦</span> <span data-t="rep.sec_componentes">Componentes (stock)</span></div>
@@ -4378,11 +4382,19 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
             <div id="repPedirList" style="display:none;flex-wrap:wrap;gap:6px;margin-top:8px"></div>
           </div>
         </div>
-
-        <!-- Sección: Cobro y logística -->
+        <!-- Sección: Extras opcionales (el cliente los elige al aceptar el presupuesto online) -->
         <div class="rep-section">
-          <div class="rep-section-title"><span>💰</span> <span data-t="rep.sec_cobro">Cobro y logística</span></div>
-          <div class="fi-row">
+          <div class="rep-section-title"><span>✨</span> <span data-t="rep.sec_opcionales">Extras opcionales</span></div>
+          <div data-t="rep.opc_hint" style="font-size:11.5px;color:var(--muted);margin:-2px 0 8px">Protector, funda, batería… El cliente los marca o no al aceptar el presupuesto online. No cuentan en el total hasta que los acepta.</div>
+          <div id="repOpcList"></div>
+          <div style="display:flex;gap:6px;margin-top:6px">
+            <input class="fi" id="rOpcNombre" data-t-ph="rep.opc_nombre_ph" placeholder="Ej.: Protector de cristal templado" style="flex:1" autocomplete="off">
+            <input class="fi" id="rOpcPrecio" type="number" step="0.01" min="0" data-t-ph="rep.opc_precio_ph" placeholder="Precio" style="width:96px">
+            <button type="button" class="add-srv-btn" onclick="agregarOpcionalRep()" data-t="rep.opc_add">+ Añadir</button>
+          </div>
+        </div>
+    </div>
+    <div class="rep-tab-pane rep-section" data-pane="cobro">
             <div class="fg" style="flex:1">
               <label class="fl">💳 <span data-t="rep.lbl_pagos">Pagos</span></label>
               <div id="rPagosBox" style="background:#F8FAFC;border:1px solid var(--border);border-radius:10px;padding:10px">
@@ -4408,13 +4420,6 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
                 </div>
               </div>
             </div>
-            <div class="fg"><label class="fl" data-t="rep.prioridad">Prioridad</label>
-              <select class="fi" id="rPrioridad"><option value="Normal" data-t="rep.prio_normal">Normal</option><option value="Alta" data-t="rep.prio_alta">Alta</option><option value="Urgente" data-t="rep.prio_urgente">Urgente</option></select>
-            </div>
-            <div class="fg"><label class="fl">👨‍🔧 <span data-t="tec.tecnico">Técnico</span></label>
-              <select class="fi" id="rTecnico"><option value="" data-t="tec.sin_asignar">— Sin asignar —</option></select>
-            </div>
-          </div>
           <!-- FINANCIAR A PLAZOS -->
           <div class="fg" id="rFinanciarWrap" style="margin-bottom:8px">
             <label style="display:flex;align-items:center;gap:10px;cursor:pointer;padding:10px 12px;background:#F5F3FF;border:1px solid #DDD6FE;border-radius:10px">
@@ -4436,8 +4441,6 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
               <div id="rFinPreview" style="font-size:12px;color:#6D28D9;font-weight:600;margin-top:4px"></div>
             </div>
           </div>
-          <div class="fi-row">
-            <div class="fg"><label class="fl" data-t="rep.fecha_entrega">Fecha de entrega</label><input class="fi" id="rFechaEnt" type="date"></div>
             <div id="rIvaRow" class="fg" style="display:none">
               <label class="fl"><span data-t="gen.tipo_iva">Tipo de IVA</span></label>
               <select class="fi" id="rIva" onchange="calcR()">
@@ -4447,9 +4450,20 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
                 <option value="21" data-t="iva.general">21% — General</option>
               </select>
             </div>
-          </div>
+    </div>
+    <div class="rep-tab-pane rep-section" data-pane="org">
+      <div class="fi-row">
+            <div class="fg"><label class="fl" data-t="rep.prioridad">Prioridad</label>
+              <select class="fi" id="rPrioridad"><option value="Normal" data-t="rep.prio_normal">Normal</option><option value="Alta" data-t="rep.prio_alta">Alta</option><option value="Urgente" data-t="rep.prio_urgente">Urgente</option></select>
+            </div>
+            <div class="fg"><label class="fl">👨‍🔧 <span data-t="tec.tecnico">Técnico</span></label>
+              <select class="fi" id="rTecnico"><option value="" data-t="tec.sin_asignar">— Sin asignar —</option></select>
+            </div>
+      </div>
+            <div class="fg"><label class="fl" data-t="rep.fecha_entrega">Fecha de entrega</label><input class="fi" id="rFechaEnt" type="date"></div>
           <div class="fg" style="margin-bottom:8px"><label class="fl" data-t="rep.nota_interna">Nota interna</label><textarea class="fi" id="rNota" rows="2" data-t-ph="rep.nota_interna_ph" placeholder="Solo visible para ti y tu equipo..."></textarea></div>
-          
+    </div>
+    <div class="rep-tab-pane" data-pane="garantia">
           <!-- GARANTÍA DE ESTA REPARACIÓN -->
           <div id="rBloqueGarantia" style="margin-bottom:0;padding:12px;background:var(--bg2);border-radius:10px;border:1px solid var(--border)">
             <div class="fl" style="margin-bottom:10px;display:flex;align-items:center;justify-content:space-between">
@@ -4496,9 +4510,6 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
               <span id="rGarVisLabel" style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:#EAF3DE;color:#27500A">Pública</span>
             </div>
           </div>
-        </div>
-
-      </div>
     </div>
   </div>
 
@@ -5556,7 +5567,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/desktop-print.js?v=20260615b"></script>
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
-<script src="/js/dash-app.js?v=20261016e"></script>
+<script src="/js/dash-app.js?v=20261016p"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
