@@ -377,7 +377,7 @@ async function _signedUrl(SUPABASE_URL, SERVICE_KEY, path, secs) {
 }
 // Lee la rep (campos a mostrar/firmar) + condiciones y garantía de la tienda (de ajustes_config).
 async function _firmaLeerRep(SUPABASE_URL, SERVICE_KEY, id) {
-  const sel = 'id,cliente_nombre,marca,modelo,imei,averia,total,servicios,fotos_recepcion,firma_recep,firma_recep_fecha,tienda_id';
+  const sel = 'id,cliente_nombre,marca,modelo,imei,averia,total,servicios,fotos_recepcion,firma_recep,firma_recep_fecha,tienda_id,garantia_dias,garantia_tipo,garantia_publica';
   const rR = await fetch(`${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&select=${sel}&limit=1`, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
   if (!rR.ok) return { error: 'db' };
   const rows = await rR.json();
@@ -397,6 +397,9 @@ async function _firmaLeerRep(SUPABASE_URL, SERVICE_KEY, id) {
       } }
     } catch (e) { /* tienda opcional */ }
   }
+  // Manda lo elegido en ESTA reparación; el valor de la tienda es solo el respaldo.
+  if (rep.garantia_dias != null && !isNaN(parseInt(rep.garantia_dias, 10))) garantiaDias = parseInt(rep.garantia_dias, 10);
+  if (rep.garantia_tipo === 'sin' || rep.garantia_tipo === 'apertura' || rep.garantia_publica === false) garantiaDias = 0;
   return { rep, tienda, condiciones, garantia, garantiaDias };
 }
 
