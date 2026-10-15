@@ -6641,3 +6641,14 @@ it:{"imei.detectado": "Rilevato dall'IMEI: {m}", "imei.no_valido": "Questo IMEI 
 de:{"imei.detectado": "Anhand der IMEI erkannt: {m}", "imei.no_valido": "Diese IMEI ist ungültig: prüfe die Ziffern", "imei.es_de": "Laut IMEI ist es ein {m}.", "imei.usar": "Übernehmen"},
 pt:{"imei.detectado": "Detetado pelo IMEI: {m}", "imei.no_valido": "Este IMEI não é válido: verifica os dígitos", "imei.es_de": "Pelo IMEI parece um {m}.", "imei.usar": "Usar"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+
+
+// i18n IMEI no reconocido (oct-2026)
+(function(){var _a={
+es:{"imei.no_reconocido": "Modelo no reconocido todavía: escríbelo y TekPair lo aprenderá"},
+en:{"imei.no_reconocido": "Model not recognised yet: type it and TekPair will learn it"},
+fr:{"imei.no_reconocido": "Modèle pas encore reconnu : saisissez-le et TekPair l'apprendra"},
+it:{"imei.no_reconocido": "Modello non ancora riconosciuto: scrivilo e TekPair lo imparerà"},
+de:{"imei.no_reconocido": "Modell noch nicht erkannt: gib es ein, dann lernt TekPair es"},
+pt:{"imei.no_reconocido": "Modelo ainda não reconhecido: escreve-o e o TekPair vai aprendê-lo"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();

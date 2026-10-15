@@ -103,7 +103,8 @@
   function tkAprenderImei(imei, marca, modelo) {
     var d = _digitos(imei);
     marca = String(marca || '').trim(); modelo = String(modelo || '').trim();
-    if (!tkImeiValido(d) || marca.length < 2 || !modelo) return;
+    // 15 cifras con su cifra de control correcta, o 16 (IMEISV: el TAC es el mismo).
+    if (!(tkImeiValido(d) || d.length === 16) || marca.length < 2 || !modelo) return;
     var tac = d.slice(0, 8);
     // Se vota aunque ya lo supiéramos igual: es lo que hace subir la confianza.
     _cacheTac[tac] = { marca: marca, modelo: modelo, fuente: 'tiendas' };
@@ -138,11 +139,17 @@
       var d = _digitos(inp.value);
       if (d === ultimo) return;
       ultimo = d;
-      if (d.length !== 15 || String(inp.value).replace(/[\s-]/g, '').length !== 15) { pintar(''); return; }
-      if (!tkImeiValido(d)) { pintar('⚠️ ' + T('imei.no_valido'), '#D97706'); return; }
+      // 15 cifras = IMEI; 16 = IMEISV (lo que enseñan algunos Samsung): el TAC
+      // son las mismas 8 primeras. Con letras es un nº de serie: no se busca.
+      var limpio = String(inp.value).replace(/[\s\-\/.]/g, '');
+      if ((d.length !== 15 && d.length !== 16) || limpio.length !== d.length) { pintar(''); return; }
+      // IMEI de 15 mal tecleado: solo el aviso. Sus 8 primeras cifras pueden ser
+      // de OTRO telefono, y rellenar con eso seria peor que no rellenar.
+      if (d.length === 15 && !tkImeiValido(d)) { pintar('⚠️ ' + T('imei.no_valido'), '#D97706'); return; }
       tkModeloPorImei(d).then(function (r) {
         if (_digitos(inp.value) !== d) return;            // ya han cambiado el IMEI
-        if (!r) { pintar(''); return; }
+        // Sin respuesta tambien se dice: si no, parece que la funcion no existe.
+        if (!r) { pintar('📱 ' + T('imei.no_reconocido'), 'var(--muted)'); return; }
         var ma = document.getElementById(idMarca), mo = document.getElementById(idModelo);
         if (!ma || !mo) return;
         var nombre = r.marca + ' ' + r.modelo;
