@@ -204,6 +204,39 @@ function _errGroq(status, cuerpo) {
   return 'IA HTTP ' + status + ': ' + t.replace(/\s+/g, ' ').slice(0, 260);
 }
 
+// Llamada a Groq con un reintento para el fallo de JSON.
+//
+// openai/gpt-oss-120b es un modelo que RAZONA antes de contestar, y ese
+// razonamiento gasta del mismo presupuesto que la respuesta. Con un pedido
+// largo se lo comia entero, la respuesta salia VACIA y, con
+// response_format json_object, Groq la rechazaba con 400 json_validate_failed
+// ("failed_generation":""). Paso el 15-oct-2026: tres intentos seguidos de
+// pegar un pedido, los tres fallidos. Por eso: razonamiento bajo, margen de
+// tokens de sobra y, si aun asi falla la validacion, se repite SIN el modo
+// JSON y el JSON se saca del texto (el llamador ya lo hace con indexOf).
+async function _groq(GROQ_KEY, cuerpo) {
+  const llamar = (b) => fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
+    body: JSON.stringify(b)
+  });
+  const b = Object.assign({}, cuerpo);
+  if (b.model === 'openai/gpt-oss-120b') {
+    if (!b.reasoning_effort) b.reasoning_effort = 'low';
+    if (!b.max_completion_tokens) b.max_completion_tokens = 8192;
+  }
+  let r = await llamar(b);
+  if (r.status === 400 && b.response_format) {
+    const t = await r.clone().text();
+    if (/json_validate_failed/i.test(t)) {
+      console.warn('[groq] json_validate_failed: se repite sin response_format');
+      const b2 = Object.assign({}, b); delete b2.response_format;
+      r = await llamar(b2);
+    }
+  }
+  return r;
+}
+
 // Extrae líneas de pedido de un texto libre (email/albarán) con Gemini Flash (capa gratuita de Google).
 // Devuelve { ok, lineas: [{pieza, marca, categoria, calidad, cantidad, precio_compra, precio_venta, sku}] }
 async function parsePedidoIA(req, res) {
@@ -250,11 +283,7 @@ async function parsePedidoIA(req, res) {
         { role: 'user', content: 'PEDIDO:\n' + texto }
       ]
     };
-    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
-      body: JSON.stringify(cuerpo)
-    });
+    const r = await _groq(GROQ_KEY, cuerpo);
     if (!r.ok) {
       const t = await r.text();
       console.error('[parse-pedido] Groq error', r.status, t);
@@ -330,11 +359,7 @@ async function parseFacturaIA(req, res) {
         { role: 'user', content: 'FACTURA:\n' + texto }
       ]
     };
-    const r = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + GROQ_KEY },
-      body: JSON.stringify(cuerpo)
-    });
+    const r = await _groq(GROQ_KEY, cuerpo);
     if (!r.ok) {
       const t = await r.text();
       console.error('[parse-factura] Groq error', r.status, t);
