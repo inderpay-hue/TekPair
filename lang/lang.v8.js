@@ -6788,6 +6788,6 @@ pt:{"entrega.conforme": "O cliente levanta o equipamento e confirma ao balcão q
 
 // i18n Menú de 7 entradas (oct-2026)
 (function(){var _a={
-es:{"nav.g_dinero": "Dinero"}, en:{"nav.g_dinero": "Money"}, fr:{"nav.g_dinero": "Argent"},
-it:{"nav.g_dinero": "Denaro"}, de:{"nav.g_dinero": "Finanzen"}, pt:{"nav.g_dinero": "Dinheiro"}
+es:{"nav.g_dinero": "Finanzas"}, en:{"nav.g_dinero": "Finances"}, fr:{"nav.g_dinero": "Finances"},
+it:{"nav.g_dinero": "Finanze"}, de:{"nav.g_dinero": "Finanzen"}, pt:{"nav.g_dinero": "Finanças"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
