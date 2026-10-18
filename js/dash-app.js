@@ -1308,6 +1308,14 @@ function delRecordatorio(i) { if (!window._recordatorios) return; window._record
 // Lo que el CLIENTE te pide y esperas para él (≠ Pedidos, que es lo que TÚ compras al proveedor).
 var ENC_ESTADOS = ['Pendiente','Pedido','Llego','Avisado','Entregado'];
 var ENC_COLOR = { Pendiente:'#F59E0B', Pedido:'#3B82F6', Llego:'#8B5CF6', Avisado:'#0EA5E9', Entregado:'#16a34a' };
+// Lee los encargos de la nube. null si falla (sbGetAll devuelve [] también en
+// los errores, y eso vaciaba la lista local).
+function _sbGetEncargos() {
+  var url = SUPABASE_URL + '/rest/v1/encargos?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&select=*&order=fecha.desc&limit=2000';
+  return fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY) } })
+    .then(function (r) { return r.ok ? r.json() : null; }, function () { return null; })
+    .then(function (rows) { return Array.isArray(rows) ? rows : null; }, function () { return null; });
+}
 function _encSync(e, isNew) {
   if (!SB_KEY || !TIENDA_ID) return;
   var payload = { id:e.id, tienda_id:TIENDA_ID, producto:e.producto, cliente_id:e.cliente_id||null,
@@ -3596,7 +3604,7 @@ async function cargarDatosSupabase() {
       sbGetAll('proveedores', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('gastos_recurrentes', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('pagos_proveedor', 'tienda_id=eq.' + TIENDA_ID).catch(function () { return []; }),
-      sbGetAll('encargos', 'tienda_id=eq.' + TIENDA_ID).catch(function () { return []; })
+      _sbGetEncargos()
     ]);
     if (Array.isArray(ventas)) DB.ventas = ventas.map(mapVenta);
     if (Array.isArray(reps)) DB.reps = reps.map(mapRep);
@@ -3606,7 +3614,18 @@ async function cargarDatosSupabase() {
     if (Array.isArray(provs)) DB.provs = provs;
     if (Array.isArray(gastosRec)) DB.gastos_recurrentes = gastosRec;
     if (Array.isArray(pagosProv)) DB.pagosProv = pagosProv;
-    if (Array.isArray(encargos)) DB.encargos = encargos;
+    // Encargos: si la nube no responde (null) se queda la copia de este navegador
+    // (antes se vaciaba y "desaparecían"). Los que solo están aquí porque no
+    // llegaron a subirse, se suben ahora.
+    if (Array.isArray(encargos)) {
+      var enNube = {};
+      encargos.forEach(function (e) { enNube[e.id] = 1; });
+      var soloLocal = (DB.encargos || []).filter(function (e) {
+        return e && e.id && !enNube[e.id] && /^[0-9a-f-]{36}$/i.test(String(e.id));
+      });
+      soloLocal.forEach(function (e) { e.tienda_id = TIENDA_ID; _encSync(e, true); });
+      DB.encargos = encargos.concat(soloLocal);
+    }
     // Herramientas y licencias: aparte y sin bloquear lo demas (si la tabla aun
     // no existe, sbGetAll devuelve [] y la seccion sale vacia).
     try { var herrs = await sbGetAll('herramientas_tienda', 'tienda_id=eq.' + TIENDA_ID); if (Array.isArray(herrs)) DB.herramientas = herrs; } catch (e) {}
