@@ -1435,7 +1435,8 @@ function tpvEscaneo() {
     return;
   }
   // Solo números largos = un código que no está en el stock: avisar.
-  if (/^[0-9]{8,14}$/.test(q)) toast(T('tpv.ean_no_encontrado').replace('{c}', q), 'err');
+  // (y se vacía el buscador: si no, el siguiente escaneo se pegaría detrás)
+  if (/^[0-9]{8,14}$/.test(q)) { toast(T('tpv.ean_no_encontrado').replace('{c}', q), 'err'); inp.value = ''; document.getElementById('searchResults').classList.remove('open'); }
 }
 
 // Close search on outside click
