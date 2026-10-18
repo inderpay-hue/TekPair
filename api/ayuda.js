@@ -49,6 +49,7 @@ export default async function handler(req, res) {
 
   // ── ACCIONES IA (Groq): extraer líneas de pedido / datos de factura de texto/foto/PDF ──
   const _accionIA = req.query.action || (req.body && req.body.action);
+  if (_accionIA === 'sync-error') return syncError(req, res, payload);
   if (_accionIA === 'parse-pedido' || _accionIA === 'parse-factura') {
     const uId = payload.sub || payload.user_id || 'unknown';
     const _rlIA = await rateLimit('ayuda:parseia:user:' + uId, 30, 10 * 60);
@@ -387,4 +388,65 @@ async function parseFacturaIA(req, res) {
     console.error('[parse-factura] error', e);
     return res.status(500).json({ error: 'Error procesando la factura' });
   }
+}
+
+// ── Fallos de guardado en la nube (desde el panel) ──
+// El panel manda aquí cada rechazo de Supabase (insert/update/delete/lectura).
+// Queda en errores_sync y se avisa por email al admin: como mucho 1 email por
+// hora por tienda + tabla + tipo de fallo, para no llenar el buzón.
+async function syncError(req, res, payload) {
+  const tid = String(payload.tienda_id).slice(0, 100);
+  const b = req.body || {};
+  const corto = (v, n) => String(v == null ? '' : v).slice(0, n);
+  const fila = {
+    tienda_id: tid,
+    metodo: corto(b.metodo, 10), tabla: corto(b.tabla, 60).replace(/[^a-z0-9_]/gi, ''),
+    status: parseInt(b.status, 10) || 0, codigo: corto(b.codigo, 30), mensaje: corto(b.mensaje, 300),
+    pantalla: corto(b.pantalla, 60), usuario: corto(b.usuario || payload.email, 120),
+    user_agent: corto(req.headers['user-agent'], 200),
+  };
+  if (!fila.tabla) return res.status(400).json({ error: 'Falta la tabla' });
+  // Que un panel roto no pueda inundar: 60 avisos por hora por tienda.
+  const rlTienda = await rateLimit('syncerr:tienda:' + tid, 60, 3600);
+  if (!rlTienda.ok) return res.json({ ok: true, ignorado: true });
+
+  const SUPABASE_URL = process.env.SUPABASE_URL;
+  const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  const RESEND_KEY = process.env.RESEND_API_KEY;
+  const h = { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' };
+  let tiendaNombre = tid;
+  try {
+    const t = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tid)}&select=nombre`, { headers: h });
+    const j = t.ok ? await t.json() : [];
+    if (j && j[0] && j[0].nombre) tiendaNombre = j[0].nombre;
+  } catch (e) { /* sin nombre */ }
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/errores_sync`, {
+      method: 'POST', headers: { ...h, 'Prefer': 'return=minimal' },
+      body: JSON.stringify({ ...fila, tienda_nombre: tiendaNombre }),
+    });
+    if (!r.ok) console.error('[sync-error] no se guardó:', r.status, await r.text());
+  } catch (e) { console.error('[sync-error] BD:', e.message); }
+
+  const rlEmail = await rateLimit(`syncerr:email:${tid}:${fila.tabla}:${fila.metodo}:${fila.status}`, 1, 3600);
+  if (rlEmail.ok && RESEND_KEY) {
+    const esc = (x) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const html = `<div style="font-family:Arial,sans-serif;max-width:600px">
+      <h2 style="color:#b91c1c">⚠️ Un dato no se ha guardado en la nube</h2>
+      <p><b>Tienda:</b> ${esc(tiendaNombre)} <span style="color:#64748b">(${esc(tid)})</span><br>
+      <b>Usuario:</b> ${esc(fila.usuario || '—')}<br>
+      <b>Qué:</b> ${esc(fila.metodo)} en <code>${esc(fila.tabla)}</code> · HTTP ${fila.status}${fila.codigo ? ' · código ' + esc(fila.codigo) : ''}<br>
+      <b>Pantalla:</b> ${esc(fila.pantalla || '—')}</p>
+      <pre style="background:#f1f5f9;padding:10px;border-radius:6px;white-space:pre-wrap">${esc(fila.mensaje || '(sin mensaje)')}</pre>
+      <p style="color:#64748b;font-size:12px">Como mucho llega un email por hora por tienda, tabla y tipo de fallo. Todos quedan en la tabla <code>errores_sync</code> de Supabase.</p></div>`;
+    try {
+      const r = await fetch('https://api.resend.com/emails', {
+        method: 'POST', headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: 'Tekpair Avisos <info@tekpair.tech>', to: ['info@tekpair.tech'],
+          subject: `⚠️ No se guardó ${fila.tabla} · ${tiendaNombre}`, html }),
+      });
+      if (!r.ok) console.error('[sync-error] email:', r.status, await r.text());
+    } catch (e) { console.error('[sync-error] email:', e.message); }
+  }
+  return res.json({ ok: true });
 }

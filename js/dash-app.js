@@ -1553,7 +1553,7 @@ function cargarPedidos(cb) {
     .catch(function() {})
     .then(function() { return sbGetAll('pedidos', 'tienda_id=eq.' + TIENDA_ID); })
     .then(function(rows) {
-      DB.pedidos = Array.isArray(rows) ? rows : [];
+      DB.pedidos = Array.isArray(rows) ? rows : (DB.pedidos || []);
       if (cb) cb(); else renderPedidosWidget();
     })
     .catch(function() { DB.pedidos = DB.pedidos || []; if (cb) cb(); });
@@ -3114,6 +3114,29 @@ function audit(accion, entidad, entidadId, detalle, cambios) {
 
 // ═══ SUPABASE ═══
 var _sbErrLast = {};
+// ── Avisar a TekPair cuando la nube rechaza algo ──
+// El cajero solo veía un aviso rojo unos segundos y nadie más se enteraba (los
+// encargos fallaron así de junio a octubre de 2026). Cada fallo va a
+// /api/ayuda?action=sync-error: queda registrado y llega un email al admin.
+// Como mucho uno cada 15 min por operación y tabla desde este navegador.
+// No se avisa de cortes de red (status 0) ni de sesión caducada (401).
+function _codigoDe(body) { try { return String((JSON.parse(body) || {}).code || ''); } catch (e) { return ''; } }
+function _mensajeDe(body) { try { var j = JSON.parse(body) || {}; return String(j.message || j.error || j.hint || '').slice(0, 300); } catch (e) { return String(body || '').slice(0, 300); } }
+function _reportarFalloNube(metodo, tabla, status, codigo, mensaje) {
+  try {
+    if (!JWT_TOKEN || !TIENDA_ID || !status || status === 401) return;
+    var k = 'tk_fallo_nube_' + metodo + '_' + tabla, ahora = Date.now();
+    var ult = parseInt(localStorage.getItem(k) || '0', 10);
+    if (ahora - ult < 15 * 60000) return;
+    localStorage.setItem(k, String(ahora));
+    fetch('/api/ayuda?action=sync-error', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN },
+      body: JSON.stringify({ metodo: metodo, tabla: tabla, status: status, codigo: codigo || '', mensaje: mensaje || '',
+        pantalla: (location.hash || '').slice(0, 60), usuario: (U && (U.nombre || U.email)) || '' })
+    }).catch(function () {});
+  } catch (e) { /* nunca romper el guardado por el aviso */ }
+}
 function _sbErrorToast(method, table, info) {
   console.error('[Supabase ' + method + ' ' + table + ']', info);
   if (typeof navigator !== 'undefined' && navigator.onLine === false) return; // offline, no spam
@@ -3170,20 +3193,34 @@ function sbGetAll(table, query) {
   var c = _sbReadCache[key];
   if (c && (Date.now() - c.t) < _SB_READ_TTL) return Promise.resolve(c.data);
   if (_sbReadInflight[key]) return _sbReadInflight[key];
-  var PAGE = 1000, all = [];
+  // Si la nube falla devuelve null (no []): "no hay nada" y "no se pudo leer" son
+  // cosas distintas. Con [] la pantalla se vaciaba y, al guardar, se perdía lo
+  // que había en este navegador (así desaparecieron los encargos, oct-2026).
+  // Todas las llamadas comprueban Array.isArray(), así que con null se quedan
+  // con lo que tenían.
+  var PAGE = 1000, all = [], fallo = null;
   function pag(offset) {
     var url = SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*&order=id.asc&limit=' + PAGE + '&offset=' + offset;
     return fetch(url, { headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)} })
-      .then(function(r) { return r.ok ? r.json() : []; }, function() { return []; })
+      .then(function(r) {
+        if (r.ok) return r.json();
+        return r.text().then(function(t) { fallo = { status: r.status, body: t }; return null; }, function() { fallo = { status: r.status }; return null; });
+      }, function() { fallo = { status: 0 }; return null; })
       .then(function(rows) {
+        if (fallo) return null;
         if (!Array.isArray(rows) || !rows.length) return all;
         all = all.concat(rows);
         if (rows.length < PAGE) return all; // última página
         return pag(offset + PAGE);
-      }, function() { return all; });
+      }, function() { fallo = fallo || { status: 0 }; return null; });
   }
-  var p = pag(0).catch(function() { return all; }).then(function(rows) {
+  var p = pag(0).catch(function() { fallo = fallo || { status: 0 }; return null; }).then(function(rows) {
     delete _sbReadInflight[key];
+    if (fallo) {
+      console.error('[sbGetAll ' + table + '] no se pudo leer:', fallo);
+      _reportarFalloNube('GET', table, fallo.status, _codigoDe(fallo.body), _mensajeDe(fallo.body));
+      return null;
+    }
     _sbReadCache[key] = { t: Date.now(), data: rows };
     return rows;
   });
@@ -3247,6 +3284,7 @@ async function _syncQueueRetry() {
     
     if (op.attempts > SYNC_MAX_RETRIES) {
       console.warn('Sync descartado tras', SYNC_MAX_RETRIES, 'intentos:', op);
+      _reportarFalloNube(op.method, op.table, 599, 'reintentos', 'Descartado tras ' + SYNC_MAX_RETRIES + ' intentos');
       _syncQueueRemove(op._opId);
       if (typeof toast === 'function') {
         toast(T('sync.descartado').replace('{t}', op.table), 'err');
@@ -3270,6 +3308,7 @@ async function _syncQueueRetry() {
       } else if (!_esRetriable(res.status)) {
         // Error persistente (4xx no-retriable): descartar la op en lugar de loop infinito
         console.warn('✗ Sync descartado (no retriable):', op.method, op.table, 'HTTP ' + res.status);
+        _reportarFalloNube(op.method, op.table, res.status, res.code, res.msg);
         _syncQueueRemove(op._opId);
         if (typeof toast === 'function') {
           toast(T('tst.no_sincronizar').replace('{t}', op.table).replace('{s}', res.status), 'err');
@@ -3334,7 +3373,7 @@ function _sbPostRaw(table, data) {
     // En 409 leemos el código Postgres: 23505=ya existe (idempotente), 23503=FK rota, etc.
     return r.text().then(function(body) {
       var code = ''; try { code = (JSON.parse(body) || {}).code || ''; } catch (e) {}
-      return {ok: false, status: r.status, code: code};
+      return {ok: false, status: r.status, code: code, msg: _mensajeDe(body)};
     }).catch(function() { return {ok: false, status: r.status, code: ''}; });
   }).catch(function() { return {ok: false, status: 0}; });  // status 0 = error de red
 }
@@ -3352,7 +3391,7 @@ function _sbPatchRaw(table, query, data) {
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=representation'},
     body: JSON.stringify(data)
   }).then(function(r) {
-    if (!r.ok) return {ok: false, status: r.status, rows: 0};
+    if (!r.ok) return r.text().then(function(t) { return {ok: false, status: r.status, rows: 0, code: _codigoDe(t), msg: _mensajeDe(t)}; }, function() { return {ok: false, status: r.status, rows: 0}; });
     return r.json().then(function(body) {
       return {ok: true, status: r.status, rows: Array.isArray(body) ? body.length : 1};
     }, function() { return {ok: true, status: r.status, rows: 1}; });
@@ -3409,12 +3448,14 @@ function sbPost(table, data) {
     if (res.status === 409 && !_es409Grave(res)) { console.warn('sbPost ' + table + ' 409 (ya existe) — tratado como guardado.'); return true; }
     if (_es409Grave(res)) {
       console.error('sbPost ' + table + ' 409 GRAVE (' + res.code + ') — no se guardó. Payload:', data);
+      _reportarFalloNube('POST', table, res.status, res.code, res.msg);
       if (typeof toast === 'function') toast(T('tst.no_guardar_ref').replace('{t}', table), 'err');
       return false;
     }
     // CLI-2: errores 4xx son persistentes — reintentar no ayuda. Avisar al usuario.
     if (!_esRetriable(res.status)) {
       console.error('sbPost ' + table + ' falló con status ' + res.status + ' (no retriable). Payload:', data);
+      _reportarFalloNube('POST', table, res.status, res.code, res.msg);
       if (typeof toast === 'function') {
         var msg = T('sync.error_sincronizar').replace('{t}', table).replace('{s}', res.status);
         if (res.status === 401) msg = T('sync.sesion_expirada');
@@ -3447,6 +3488,7 @@ function sbPatch(table, query, data) {
       // para este usuario (policy RLS de UPDATE bloqueando) o el id no existe. NO es un guardado real.
       if (res.rows === 0) {
         console.error('sbPatch ' + table + ' devolvió 0 filas (RLS bloquea UPDATE o id inexistente). Query: ' + query + ' Payload:', data);
+        _reportarFalloNube('PATCH', table, 200, 'sin_filas', 'El UPDATE no cambió ninguna fila (RLS o id inexistente)');
         if (typeof toast === 'function') toast(T('sync.nube_rechazo'), 'err');
         return false;
       }
@@ -3455,6 +3497,7 @@ function sbPatch(table, query, data) {
     // CLI-2: igual que sbPost
     if (!_esRetriable(res.status)) {
       console.error('sbPatch ' + table + ' falló con status ' + res.status + ' (no retriable). Query: ' + query + ' Payload:', data);
+      _reportarFalloNube('PATCH', table, res.status, res.code, res.msg);
       if (typeof toast === 'function') {
         var msg = T('sync.error_actualizar').replace('{t}', table).replace('{s}', res.status);
         if (res.status === 401) msg = T('sync.sesion_expirada');
@@ -3484,6 +3527,7 @@ function sbDelete(table, query) {
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
   }).then(function(r) {
     if (!r.ok) {
+      _reportarFalloNube('DELETE', table, r.status, '', '');
       return r.json().then(function(err){ _sbErrorToast('DELETE', table, err); return false; }, function(){ _sbErrorToast('DELETE', table, {status:r.status}); return false; });
     }
     return true;
@@ -3603,7 +3647,7 @@ async function cargarDatosSupabase() {
       sbGetAll('gastos', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('proveedores', 'tienda_id=eq.' + TIENDA_ID),
       sbGetAll('gastos_recurrentes', 'tienda_id=eq.' + TIENDA_ID),
-      sbGetAll('pagos_proveedor', 'tienda_id=eq.' + TIENDA_ID).catch(function () { return []; }),
+      sbGetAll('pagos_proveedor', 'tienda_id=eq.' + TIENDA_ID).catch(function () { return null; }),
       _sbGetEncargos()
     ]);
     if (Array.isArray(ventas)) DB.ventas = ventas.map(mapVenta);
