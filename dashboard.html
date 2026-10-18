@@ -6113,8 +6113,10 @@ function _efEsc(v) {
 async function _efApi(payload, sinCodigo) {
   var sec = sinCodigo ? null : pedirCodigoSecreto();
   if (!sinCodigo && !sec) throw new Error('Hace falta el código secreto');
+  // Con la sesión: sin ella el servidor respondía "No autorizado" a todo (alta,
+  // renovación y lista de cuentas en efectivo).
   var r = await fetch('/api/comisiones', {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN },
     body: JSON.stringify(Object.assign(sec ? { codigo_secreto: sec } : {}, payload))
   });
   var d = await r.json();
