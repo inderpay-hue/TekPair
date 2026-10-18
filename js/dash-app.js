@@ -9032,6 +9032,8 @@ function actualizarAvisoGarantia() {
   var fechaPrev = info.rep.fechaEntregaReal;
   alert.innerHTML = '<strong style="color:var(--blue)">🛡️ ' + T('rep.en_garantia') + '</strong><br>' +
     '<span style="font-size:11px;color:var(--muted)">' + T('rep.garantia_previa').replace('{fecha}', fechaPrev).replace('{dias}', info.dias).replace('{restantes}', info.restantes).replace('{averia}', esc(info.rep.averia || '')) + '</span>';
+  var _nf = (info.rep.fotosRecepcion || []).length + (info.rep.fotosEntrega || []).length;
+  if (_nf) alert.innerHTML += '<div style="margin-top:6px"><button type="button" class="btn-sm" style="background:var(--light);color:var(--text)" onclick="verFotosRep(\'' + info.rep.id + '\')">📷 ' + T('foto.ver_anteriores').replace('{n}', _nf) + '</button></div>';
   alert.style.display = 'block';
 }
 
@@ -20365,16 +20367,94 @@ async function _repRenderFotos(containerId, paths, onRemove) {
   var c = document.getElementById(containerId);
   if (!c) return;
   if (!paths || !paths.length) { c.innerHTML = onRemove ? '<span style="font-size:11px;color:var(--muted)">' + T('foto.ninguna') + '</span>' : ''; return; }
-  var html = '';
+  var html = '', urls = [];
   for (var i = 0; i < paths.length; i++) {
     var url = await sbStorageSignedUrl('gastos-adjuntos', paths[i], 3600);
+    urls.push(url || '');
     html += '<div style="position:relative;width:60px;height:60px;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex-shrink:0">' +
-      '<img src="' + (url || '') + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;cursor:pointer" onclick="window.open(\'' + (url || '') + '\',\'_blank\')">' +
+      '<img src="' + (url || '') + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in" onclick="_fotoVisor(\'' + containerId + '\',' + i + ')">' +
       (onRemove ? '<button type="button" onclick="' + onRemove + '(' + i + ')" style="position:absolute;top:1px;right:1px;background:rgba(220,38,38,.92);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:12px;cursor:pointer;line-height:1;padding:0">×</button>' : '') +
       '</div>';
   }
   c.innerHTML = html;
+  window._fotoSets = window._fotoSets || {};
+  window._fotoSets[containerId] = urls;
 }
+
+// ── Visor de fotos ──
+// Antes la miniatura abría la foto en otra pestaña: en la app de escritorio no se
+// abría nada y en el móvil sacaba de TekPair. Ahora se ve aquí, en grande: flechas
+// (o deslizar) para pasar, tocar para ampliar, Esc para cerrar y botón de descargar.
+function _fotoVisor(setId, idx) {
+  var urls = ((window._fotoSets || {})[setId] || []).filter(Boolean);
+  if (!urls.length) return;
+  var i = Math.max(0, Math.min(idx || 0, urls.length - 1)), zoom = false;
+  var bg = document.createElement('div');
+  bg.style.cssText = 'position:fixed;inset:0;z-index:2147483646;background:rgba(0,0,0,.92);display:flex;align-items:center;justify-content:center;touch-action:pan-y pinch-zoom';
+  var btn = 'position:absolute;background:rgba(255,255,255,.14);color:#fff;border:none;border-radius:999px;cursor:pointer;font:inherit;font-weight:700;';
+  bg.innerHTML = '<div id="fvCaja" style="max-width:100vw;max-height:100vh;overflow:auto;display:flex;align-items:center;justify-content:center;width:100%;height:100%">' +
+      '<img id="fvImg" alt="" style="max-width:96vw;max-height:88vh;object-fit:contain;cursor:zoom-in;user-select:none;-webkit-user-drag:none"></div>' +
+    '<button id="fvCerrar" style="' + btn + 'top:14px;right:14px;width:42px;height:42px;font-size:22px" aria-label="Cerrar">×</button>' +
+    '<button id="fvBajar" style="' + btn + 'top:14px;right:66px;height:42px;padding:0 16px;font-size:13px">⬇ ' + T('foto.descargar') + '</button>' +
+    '<div id="fvCont" style="position:absolute;top:22px;left:18px;color:#fff;font-size:13px;font-weight:700;opacity:.85"></div>' +
+    (urls.length > 1 ? '<button id="fvAnt" style="' + btn + 'left:12px;top:50%;transform:translateY(-50%);width:46px;height:46px;font-size:24px" aria-label="‹">‹</button>' +
+      '<button id="fvSig" style="' + btn + 'right:12px;top:50%;transform:translateY(-50%);width:46px;height:46px;font-size:24px" aria-label="›">›</button>' : '');
+  document.body.appendChild(bg);
+  var img = bg.querySelector('#fvImg');
+  function pintar() {
+    zoom = false;
+    img.style.maxWidth = '96vw'; img.style.maxHeight = '88vh'; img.style.cursor = 'zoom-in';
+    img.src = urls[i];
+    bg.querySelector('#fvCont').textContent = (i + 1) + ' / ' + urls.length;
+  }
+  // La foto está en otro dominio (Storage): un <a download> la abriría en vez de
+  // bajarla. Se descarga como blob; si no se puede, se abre aparte.
+  bg.querySelector('#fvBajar').onclick = function(e) {
+    e.stopPropagation();
+    var u = urls[i];
+    fetch(u).then(function(r) { if (!r.ok) throw new Error(r.status); return r.blob(); }).then(function(b) {
+      var a = document.createElement('a'); a.href = URL.createObjectURL(b);
+      a.download = 'tekpair-foto-' + (i + 1) + '.' + ((b.type || '').indexOf('png') !== -1 ? 'png' : 'jpg');
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function() { URL.revokeObjectURL(a.href); }, 3000);
+    }).catch(function() { window.open(u, '_blank'); });
+  };
+  function mover(d) { if (urls.length < 2) return; i = (i + d + urls.length) % urls.length; pintar(); }
+  function cerrar() { document.removeEventListener('keydown', tecla, true); try { document.body.removeChild(bg); } catch (e) {} }
+  function tecla(e) {
+    if (e.key === 'Escape') { e.stopPropagation(); cerrar(); }
+    else if (e.key === 'ArrowLeft') mover(-1);
+    else if (e.key === 'ArrowRight') mover(1);
+  }
+  img.onclick = function(e) {
+    e.stopPropagation();
+    zoom = !zoom;
+    img.style.maxWidth = zoom ? 'none' : '96vw'; img.style.maxHeight = zoom ? 'none' : '88vh';
+    img.style.cursor = zoom ? 'zoom-out' : 'zoom-in';
+  };
+  bg.querySelector('#fvCerrar').onclick = cerrar;
+  if (urls.length > 1) { bg.querySelector('#fvAnt').onclick = function(e) { e.stopPropagation(); mover(-1); }; bg.querySelector('#fvSig').onclick = function(e) { e.stopPropagation(); mover(1); }; }
+  bg.querySelector('#fvCaja').onclick = function(e) { if (e.target.id === 'fvCaja' && !zoom) cerrar(); };
+  var x0 = null;
+  bg.addEventListener('touchstart', function(e) { if (!zoom && e.touches.length === 1) x0 = e.touches[0].clientX; }, { passive: true });
+  bg.addEventListener('touchend', function(e) { if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; x0 = null; if (Math.abs(dx) > 50) mover(dx < 0 ? 1 : -1); }, { passive: true });
+  document.addEventListener('keydown', tecla, true);
+  pintar();
+}
+window._fotoVisor = _fotoVisor;
+
+// Fotos de una reparación anterior (para una garantía): se ven en el visor directamente.
+async function verFotosRep(repId) {
+  var r = (DB.reps || []).find(function(x) { return x.id === repId; });
+  var paths = r ? (r.fotosRecepcion || []).concat(r.fotosEntrega || []) : [];
+  if (!paths.length) { toast(T('foto.sin_fotos_rep'), 'info'); return; }
+  var urls = [];
+  for (var k = 0; k < paths.length; k++) { urls.push(await sbStorageSignedUrl('gastos-adjuntos', paths[k], 3600)); }
+  window._fotoSets = window._fotoSets || {};
+  window._fotoSets['rep_' + repId] = urls;
+  _fotoVisor('rep_' + repId, 0);
+}
+window.verFotosRep = verFotosRep;
 // Recepción (modal Nueva Reparación) — SEL.fotosRecepcion
 async function _repFotoRecepInput(input) {
   if (typeof tieneFeature === 'function' && !tieneFeature('fotos_rep')) { mostrarModalUpgrade('fotos_rep', 'pro'); return; }
@@ -20579,7 +20659,12 @@ function abrirDetalleRep(repId) {
 
   html += '<div style="margin-top:14px"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">📨 ' + T('det.avisos_enviados') + '</div><div id="avisosHistorial"><div style="font-size:11px;color:var(--muted)">' + T('det.cargando') + '</div></div></div>';
 
+  // Reparación de garantía: las fotos de la reparación original, para comparar.
+  var _orig = r.repOriginalId ? (DB.reps || []).find(function(x) { return x.id === r.repOriginalId; }) : null;
+  var _fotosO = _orig ? (_orig.fotosRecepcion || []).concat(_orig.fotosEntrega || []) : [];
+  if (_fotosO.length) html += '<div style="margin-top:12px"><div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px">🛡️ ' + T('foto.de_original').replace('{f}', esc(_orig.fechaEntregaReal || _orig.fecha || '')) + '</div><div id="detFotosOrig" style="display:flex;gap:6px;flex-wrap:wrap"></div></div>';
   document.getElementById('detalleRepBox').innerHTML = html;
+  if (_fotosO.length) _repRenderFotos('detFotosOrig', _fotosO, null);
   if (_fotosR.length) _repRenderFotos('detFotosRecep', _fotosR, null);
   if (_fotosE.length) _repRenderFotos('detFotosEnt', _fotosE, null);
   if (r.firmaRecep) { try { sbStorageSignedUrl('gastos-adjuntos', r.firmaRecep, 3600).then(function(u){ var _bf = document.getElementById('detFirmaRecep'); if (_bf && u) _bf.innerHTML = '<img src="' + u + '" alt="" style="max-width:100%;max-height:120px;display:block;margin:0 auto">'; }); } catch(e){} }
