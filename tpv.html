@@ -263,7 +263,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .vl-t:focus-visible{outline:2px solid var(--t-acc);outline-offset:2px}
 .vl-aux{color:var(--t-ink2);font-size:17px}
 </style>
-<script src="/lang/lang.v8.js?v=20261018a"></script>
+<script src="/lang/lang.v8.js?v=20261018g"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -329,7 +329,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
     <div class="tpv-search">
       <div class="search-wrap">
         <span class="search-ico">🔍</span>
-        <input class="tpv-search-input" id="tpvSearch" placeholder="Buscar..." data-t-ph="tpv.buscar" oninput="buscarProducto()" autocomplete="off">
+        <input class="tpv-search-input" id="tpvSearch" placeholder="Buscar..." data-t-ph="tpv.buscar" oninput="buscarProducto()" onkeydown="if(event.key==='Enter'){event.preventDefault();tpvEscaneo();}" autocomplete="off">
         <div class="search-results" id="searchResults"></div>
       </div>
     </div>
@@ -906,7 +906,7 @@ function pullStockTPV() {
         precioC: parseFloat(s.precio_c) || 0, precioV: parseFloat(s.precio_v) || 0,
         vendido: s.vendido || false, calidad: s.calidad || '', tipo: s.tipo || 'nuevo',
         garantiaMeses: parseInt(s.garantia_meses, 10) || 0, ubicacion: s.ubicacion || null,
-        compraId: s.compra_id || ''
+        compraId: s.compra_id || '', codigoBarras: s.codigo_barras || ''
       };
     });
     try { localStorage.setItem('tk_db', JSON.stringify(DB)); } catch(e){}
@@ -1404,7 +1404,7 @@ function buscarProducto() {
   var res = document.getElementById('searchResults');
   if (!q) { res.classList.remove('open'); return; }
   var products = getProducts().filter(function(p) {
-    return (p.marca + ' ' + p.modelo + ' ' + (p.imei || '')).toLowerCase().includes(q);
+    return (p.marca + ' ' + p.modelo + ' ' + (p.imei || '') + ' ' + (p.codigoBarras || '')).toLowerCase().includes(q);
   });
   if (!products.length) { res.classList.remove('open'); return; }
   res.innerHTML = products.slice(0, 8).map(function(p) {
@@ -1415,6 +1415,27 @@ function buscarProducto() {
       (p.esServicio ? '<div class="search-item-badge">' + T('gen.servicio') + '</div>' : '') + '</div></div>';
   }).join('');
   res.classList.add('open');
+}
+
+// Lector de código de barras (o Enter en el buscador): código de barras o IMEI
+// exacto → al ticket directamente. Si no es exacto, se queda la búsqueda normal.
+function tpvEscaneo() {
+  var inp = document.getElementById('tpvSearch');
+  var q = String(inp.value || '').trim();
+  if (!q) return;
+  var ql = q.toLowerCase();
+  var p = getProducts().find(function(x) {
+    return x._type === 'stock' && (parseInt(x.unidades, 10) || 0) > 0 &&
+      ((x.codigoBarras && x.codigoBarras.toLowerCase() === ql) || (x.imei && x.imei.toLowerCase() === ql));
+  });
+  if (p) {
+    addToCart(p.id, false);
+    inp.value = '';
+    document.getElementById('searchResults').classList.remove('open');
+    return;
+  }
+  // Solo números largos = un código que no está en el stock: avisar.
+  if (/^[0-9]{8,14}$/.test(q)) toast(T('tpv.ean_no_encontrado').replace('{c}', q), 'err');
 }
 
 // Close search on outside click

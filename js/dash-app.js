@@ -3167,7 +3167,32 @@ function _repAbrirPaneConError() {
 var STOCK_CATS_IMEI = ['Telefono','Tablet','Smartwatch'];
 var STOCK_CATS_COLOR = ['Pantalla','Tapa','Flex de Carga','Bateria','Altavoz','Repuesto','Accesorio'];
 // Mostrar el textarea de alta múltiple adecuado según categoría (solo en modo alta)
+// El formulario de stock según la categoría: IMEI, batería y capacidad solo en
+// equipos (móvil, tablet, reloj); los repuestos llevan "modelo compatible", color
+// y calidad; los accesorios, "medida/capacidad" (20W, 1 m, 64GB). Al editar algo
+// que ya tiene IMEI o batería, el campo se queda a la vista para no esconder datos.
+var STOCK_CATS_REPUESTO = ['Pantalla','Tapa','Bateria','Flex de Carga','Altavoz','Repuesto'];
+function _stockCamposPorCategoria() {
+  var cat = (document.getElementById('sCat') || {}).value || 'Telefono';
+  var equipo = STOCK_CATS_IMEI.indexOf(cat) !== -1, repuesto = STOCK_CATS_REPUESTO.indexOf(cat) !== -1;
+  var editando = !!(SEL && SEL.editStockId);
+  var val = function(id) { var el = document.getElementById(id); return el ? String(el.value || '').trim() : ''; };
+  var ver = function(id, si) { var el = document.getElementById(id); if (el) el.style.display = si ? '' : 'none'; };
+  ver('sImeiFg', equipo || (editando && val('sImei')));
+  ver('sBatFg', equipo || (editando && val('sBat')));
+  ver('sCapFg', !repuesto || (editando && val('sCap')));
+  if (!editando) {
+    if (!equipo) { var i = document.getElementById('sImei'); if (i) i.value = ''; var b = document.getElementById('sBat'); if (b) b.value = ''; }
+    if (repuesto) { var c = document.getElementById('sCap'); if (c) c.value = ''; }
+  }
+  if (!equipo) ver('sBtnMasImeis', false);
+  var ml = document.getElementById('sModeloLbl'); if (ml) ml.textContent = repuesto ? T('stock.modelo_compatible') : T('rep.modelo');
+  var mo = document.getElementById('sModelo'); if (mo) mo.placeholder = repuesto ? T('stock.modelo_compatible_ph') : (cat === 'Accesorio' || cat === 'Otro' ? T('stock.modelo_accesorio_ph') : 'iPhone 14...');
+  var cl = document.getElementById('sCapLbl'); if (cl) cl.textContent = equipo ? T('gen.capacidad') : T('stock.medida');
+  var cp = document.getElementById('sCap'); if (cp) cp.placeholder = equipo ? '128GB...' : T('stock.medida_ph');
+}
 function toggleStockMulti() {
+  try { _stockCamposPorCategoria(); } catch (e) {}
   var cat = document.getElementById('sCat').value;
   var alta = !SEL.editStockId;
   var wI = document.getElementById('sImeiMultiWrap');
@@ -3831,7 +3856,8 @@ function mapStock(s) {
     enOferta: !!s.en_oferta, precioAntes: parseFloat(s.precio_antes)||0,
     enCatalogo: !!s.en_catalogo,
     bateria: (s.bateria != null && s.bateria !== '') ? parseInt(s.bateria) : null,
-    compraId: s.compra_id || ''
+    compraId: s.compra_id || '',
+    codigoBarras: s.codigo_barras || ''
   };
 }
 
@@ -9097,6 +9123,9 @@ function crearClienteRapido() {
 // ═══ BUSQUEDA STOCK VENTA ═══
 function busStockVenta() {
   var q = document.getElementById('vBusStock').value.toLowerCase();
+  // Lector de código de barras: código exacto → ese producto directamente.
+  var _porEan = q && (DB.stock || []).find(function(s) { return s.codigoBarras && s.codigoBarras.toLowerCase() === q.trim() && !s.vendido && (parseInt(s.unidades, 10) || 0) > 0; });
+  if (_porEan && typeof selStockVenta === 'function') { try { selStockVenta(_porEan.id); return; } catch (e) {} }
   var res = document.getElementById('vStockRes');
   if (!q) { res.classList.remove('open'); return; }
   var matches = DB.stock.filter(function(s) {
@@ -14084,6 +14113,13 @@ function guardarStock() {
     });
   }
 
+  // Código de barras (para el TPV): solo dígitos/letras, sin espacios. Si ya lo
+  // tiene otro producto, se avisa (el TPV cogería el primero que encuentre).
+  var stockEan = String((document.getElementById('sEan') || {}).value || '').replace(/\s+/g, '').slice(0, 40);
+  if (stockEan) {
+    var _dupEan = (DB.stock || []).find(function(x) { return x.codigoBarras === stockEan && x.id !== SEL.editStockId && (parseInt(x.unidades, 10) || 0) > 0; });
+    if (_dupEan) _stockWarns.push(T('stock.ean_repetido').replace('{p}', ((_dupEan.marca || '') + ' ' + (_dupEan.modelo || '')).trim()));
+  }
   // Recoger tipo y garantía (solo si está activa para esta categoría)
   var stockTipo = window._stockTipoSel || 'nuevo';
   var stockGarantiaMeses = parseInt(window._stockGarantiaMeses) || 0;
@@ -14108,8 +14144,10 @@ function guardarStock() {
       s.ubicacion = tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : s.ubicacion;
       s.enOferta = _enOferta; s.precioAntes = _precioAntes;
       s.bateria = stockBateria;
+      var _eanAntes = s.codigoBarras || '';
+      s.codigoBarras = stockEan;
       if (SB_KEY && TIENDA_ID) {
-        sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
+        sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), Object.assign({
           categoria: s.categoria, marca: s.marca, modelo: s.modelo,
           capacidad: s.capacidad, color: s.color, imei: s.imei,
           unidades: s.unidades, stock_min: s.stockMin, stock_max: s.stockMax,
@@ -14118,7 +14156,7 @@ function guardarStock() {
           ubicacion: s.ubicacion || null,
           en_oferta: _enOferta, precio_antes: _precioAntes || null,
           bateria: stockBateria
-        });
+        }, (stockEan || _eanAntes) ? { codigo_barras: stockEan || null } : {}));
       }
     }
     SEL.editStockId = null;
@@ -14261,10 +14299,10 @@ function guardarStock() {
       tipo: stockTipo,
       garantiaMeses: stockGarantiaMeses,
       ubicacion: tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : null,
-      enOferta: _enOferta, precioAntes: _precioAntes, bateria: stockBateria
+      enOferta: _enOferta, precioAntes: _precioAntes, bateria: stockBateria, codigoBarras: stockEan
     };
     DB.stock.push(nuevo);
-    if (SB_KEY && TIENDA_ID) sbPost('stock', {
+    if (SB_KEY && TIENDA_ID) sbPost('stock', Object.assign({
       id:nuevo.id, tienda_id:TIENDA_ID, categoria:nuevo.categoria,
       marca:nuevo.marca, modelo:nuevo.modelo, capacidad:nuevo.capacidad,
       color:nuevo.color, imei:nuevo.imei, unidades:nuevo.unidades,
@@ -14275,7 +14313,7 @@ function guardarStock() {
       ubicacion: nuevo.ubicacion || null,
       en_oferta: _enOferta, precio_antes: _precioAntes || null,
       bateria: stockBateria
-    });
+    }, stockEan ? { codigo_barras: stockEan } : {}));
   }
   // Reset selección
   window._stockTipoSel = null;
@@ -14373,7 +14411,7 @@ function nuevoStock() {
   SEL.editStockId = null;
   var tit = document.getElementById('mStockTit'); if (tit) tit.textContent = T('stock.titulo_add');
   var _bmn = document.getElementById('sBtnMasImeis'); if (_bmn) _bmn.style.display = 'none';
-  var def = { sCat:'Telefono', sMarca:'', sModelo:'', sCap:'', sColor:'', sImei:'', sBat:'', sUds:'1', sPrecioC:'0', sPrecioV:'0', sMin:'2', sMax:'10' };
+  var def = { sCat:'Telefono', sMarca:'', sModelo:'', sCap:'', sColor:'', sImei:'', sBat:'', sEan:'', sUds:'1', sPrecioC:'0', sPrecioV:'0', sMin:'2', sMax:'10' };
   Object.keys(def).forEach(function(id) { var e = document.getElementById(id); if (e) e.value = def[id]; });
   var su = document.getElementById('sUbic'); if (su) su.value = '';
   var _so = document.getElementById('sEnOferta'); if (_so) _so.checked = false;
@@ -14382,6 +14420,7 @@ function nuevoStock() {
   window._stockTipoSel = 'nuevo';
   window._stockGarantiaMeses = null;
   renderStockCalidad('');
+  try { _stockCamposPorCategoria(); } catch (e) {}
   openM('mStock');
   setTimeout(function() { try { renderStockGarantia(); } catch (e) {} try { renderStockMarcas(); } catch (e) {} }, 50);
 }
@@ -14419,6 +14458,7 @@ function editarStock(id) {
   document.getElementById('sColor').value = s.color || '';
   document.getElementById('sImei').value = s.imei || '';
   var _sbat = document.getElementById('sBat'); if (_sbat) _sbat.value = (s.bateria != null ? s.bateria : '');
+  var _sean = document.getElementById('sEan'); if (_sean) _sean.value = s.codigoBarras || '';
   document.getElementById('sUds').value = s.unidades || 1;
   document.getElementById('sPrecioC').value = s.precioC || 0;
   document.getElementById('sPrecioV').value = s.precioV || 0;
@@ -14436,6 +14476,7 @@ function editarStock(id) {
   window._stockTipoSel = (s.tipo === 'usado' ? 'segunda' : (s.tipo || 'nuevo'));  // compat: 'usado' antiguo → 'segunda'
   window._stockGarantiaMeses = s.garantiaMeses || null;
   renderStockCalidad(s.calidad || '');
+  try { _stockCamposPorCategoria(); } catch (e) {}
   openM('mStock');
   setTimeout(function(){ renderStockGarantia(); try { renderStockMarcas(); } catch(e){} }, 50);
 }

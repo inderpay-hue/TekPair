@@ -1233,7 +1233,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261018e"></script>
+<script src="/lang/lang.v8.js?v=20261018g"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -4757,21 +4757,23 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   </div>
   <div class="fi-row">
     <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.marca">Marca</span> *</label><input class="fi" id="sMarca" placeholder="Apple, Samsung..." oninput="try{renderStockMarcas()}catch(e){}"></div>
-    <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo">Modelo</span> *</label><input class="fi" id="sModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModeloStock()" onfocus="busModeloStock()" onblur="setTimeout(function(){var d=document.getElementById('sModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="sModeloSug"></div></div>
+    <div class="fg" style="position:relative"><label class="fl"><span data-t="rep.modelo" id="sModeloLbl">Modelo</span> *</label><input class="fi" id="sModelo" placeholder="iPhone 14..." autocomplete="off" oninput="busModeloStock()" onfocus="busModeloStock()" onblur="setTimeout(function(){var d=document.getElementById('sModeloSug');if(d)d.classList.remove('open');},200)"><div class="autocomplete-res" id="sModeloSug"></div></div>
   </div>
   <div id="sMarcasSug" style="display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 10px"></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl"><span data-t="gen.capacidad">Capacidad</span></label><input class="fi" id="sCap" placeholder="128GB..."></div>
+    <div class="fg" id="sCapFg"><label class="fl"><span data-t="gen.capacidad" id="sCapLbl">Capacidad</span></label><input class="fi" id="sCap" placeholder="128GB..."></div>
     <div class="fg"><label class="fl"><span data-t="gen.color">Color</span></label><input class="fi" id="sColor" placeholder="Negro..."></div>
   </div>
   <div class="fg" id="sCalidadWrap"><label class="fl">🔎 <span data-t="stock.calidad">Calidad</span> <span id="sCalidadHint" style="color:var(--muted);font-weight:400;font-size:10px"></span></label>
     <select class="fi" id="sCalidad"></select>
   </div>
+  <div class="fg" id="sEanFg"><label class="fl">▥ <span data-t="stock.codigo_barras">Código de barras</span> <span data-t="stock.codigo_barras_hint" style="color:var(--muted);font-weight:400;font-size:10px">(escanéalo: en el TPV basta con pasar el lector)</span></label>
+    <input class="fi" id="sEan" inputmode="numeric" autocomplete="off" placeholder="8412345678905" onkeydown="if(event.key==='Enter'){event.preventDefault();}"></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl">IMEI</label><input class="fi" id="sImei" placeholder="Opcional"></div>
+    <div class="fg" id="sImeiFg"><label class="fl">IMEI</label><input class="fi" id="sImei" placeholder="Opcional"></div>
     <div class="fg"><label class="fl"><span data-t="stock.unidades">Unidades</span></label><input class="fi" id="sUds" type="number" value="1" min="1"></div>
   </div>
-  <div class="fg"><label class="fl">🔋 <span data-t="stock.bateria">Batería %</span> <span data-t="stock.bateria_hint" style="color:var(--muted);font-weight:400;font-size:10px">(seminuevos, opcional)</span></label><input class="fi" id="sBat" type="number" min="0" max="100" placeholder="85"></div>
+  <div class="fg" id="sBatFg"><label class="fl">🔋 <span data-t="stock.bateria">Batería %</span> <span data-t="stock.bateria_hint" style="color:var(--muted);font-weight:400;font-size:10px">(seminuevos, opcional)</span></label><input class="fi" id="sBat" type="number" min="0" max="100" placeholder="85"></div>
   <button type="button" class="btn-secondary" id="sBtnMasImeis" style="display:none;width:100%;margin:2px 0 8px;border-color:var(--orange);color:var(--orange)" onclick="anadirMasImeis()">➕ <span data-t="stock.mas_imeis">Añadir más IMEIs de este modelo</span></button>
   <!-- ALTA MÚLTIPLE: varios teléfonos del mismo modelo, cada uno con su IMEI y precio -->
   <div class="fg" id="sImeiMultiWrap" style="display:none">
