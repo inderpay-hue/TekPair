@@ -54,6 +54,18 @@
 
   // Enlaces de fuera (WhatsApp, webs): si la app no puede abrirlos, se ofrece copiarlos.
   function tkEnlaceExterno(url, abrir) {
+    // App 0.2.0 o más nueva: el enlace se abre en el navegador / WhatsApp del sistema.
+    var abs = String(url || '');
+    try { abs = new URL(abs, location.href).href; } catch (e) {}
+    if (/^(https?:|mailto:|tel:|whatsapp:)/i.test(abs)) {
+      var dummy = { closed: false, close: function () {}, focus: function () {}, document: { open: function () {}, write: function () {}, close: function () {} } };
+      tkInvoke('abrir_externo', { url: abs }).catch(function () { _tkEnlaceViejo(abs, abrir); });
+      return dummy;
+    }
+    return _tkEnlaceViejo(abs, abrir);
+  }
+  // App antigua (sin abrir_externo): intentar la ventana y, si no, ofrecer copiar el enlace.
+  function _tkEnlaceViejo(url, abrir) {
     var w = null; try { w = abrir(url, '_blank'); } catch (e) {}
     if (w) return w;
     var bg = document.createElement('div');
