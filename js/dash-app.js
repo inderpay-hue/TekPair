@@ -11012,30 +11012,38 @@ function abrirSubirFotosQR(repId, creada) {
   if (typeof checkFeature === 'function' && !checkFeature('fotos_rep')) return;   // Pro+
   var r = DB.reps.find(function(x){ return x.id === repId; });
   if (!r) return;
+  // La ventana se abre YA con "Generando código…": firmar el enlace en el servidor
+  // tarda unos segundos (arranque de la función) y antes no se veía nada mientras.
+  _SFQR.repId = r.id; _SFQR.lastN = -1; _SFQR.creada = !!creada;
+  var hd = document.getElementById('sfqrHeader'); if (hd) hd.textContent = (r.marca || '') + ' ' + (r.modelo || '') + ' · ' + (r.clienteNombre || '');
+  var _intro = document.getElementById('sfqrIntro');
+  if (creada) { if (_intro) { _intro.style.display = 'block'; _intro.textContent = T('fqr.creada_intro'); } }
+  else { if (_intro) _intro.style.display = 'none'; }
+  var qb = document.getElementById('sfqrQR');
+  if (qb) qb.innerHTML = '<div style="height:200px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;color:var(--muted);font-size:13px">' +
+    '<div style="width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--orange,#EA580C);border-radius:50%;animation:spin 0.8s linear infinite"></div>' + escHtml(T('fqr.generando')) + '</div>';
+  var ex = document.getElementById('sfqrExp'); if (ex) ex.textContent = '';
+  _sfqrPintarBoton(((r.fotosRecepcion || []).length));
+  openM('mSubirFotosQR');
+  _sfqrRenderFotos();
+  if (_SFQR.timer) clearInterval(_SFQR.timer);
+  _SFQR.timer = setInterval(_sfqrRenderFotos, 3000);
+  var fallo = function() {
+    if (_SFQR.repId !== r.id) return;
+    if (qb) qb.innerHTML = '<div style="height:120px;display:flex;align-items:center;justify-content:center;text-align:center;color:var(--red);font-size:13px;padding:0 10px">' + escHtml(T('fqr.error')) + '</div>';
+  };
   asegurarToken(r).then(function(){
     fetch('/api/parte?action=foto-token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: r.id, t: r.token }) })
       .then(function(resp){ return resp.json(); })
       .then(function(j){
-        if (!j || !j.ok || !j.sig) { toast(T('fqr.error'), 'err'); _sfqrAvisoPendiente(); return; }
+        if (!j || !j.ok || !j.sig) { fallo(); return; }
+        if (_SFQR.repId !== r.id || !document.getElementById('mSubirFotosQR').classList.contains('open')) return;   // ya la cerraron
         var lang = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
         var url = location.origin + '/subir-fotos.html?id=' + encodeURIComponent(j.id) + '&exp=' + j.exp + '&sig=' + encodeURIComponent(j.sig) + '&lang=' + lang;
-        _SFQR.repId = r.id; _SFQR.lastN = -1;
-        var hd = document.getElementById('sfqrHeader'); if (hd) hd.textContent = (r.marca || '') + ' ' + (r.modelo || '') + ' · ' + (r.clienteNombre || '');
-        var qb = document.getElementById('sfqrQR');
         if (qb) { qb.innerHTML = ''; try { var qr = qrcode(0, 'M'); qr.addData(url); qr.make(); qb.innerHTML = qr.createImgTag(5, 8); } catch (e) { qb.innerHTML = '<div style="color:var(--red);font-size:12px">QR</div>'; } }
-        var ex = document.getElementById('sfqrExp'); if (ex) ex.textContent = '⏱ ' + T('fqr.caduca').replace('{n}', j.ttl_min || 45);
-        // Paso final tras crear una rep nueva: banner "reparación creada" + botón "Ahora no".
-        var _intro = document.getElementById('sfqrIntro'), _ctxt = document.getElementById('sfqrCerrarTxt');
-        _SFQR.creada = !!creada;
-        if (creada) { if (_intro) { _intro.style.display = 'block'; _intro.textContent = T('fqr.creada_intro'); } }
-        else { if (_intro) _intro.style.display = 'none'; }
-        _sfqrPintarBoton(((r.fotosRecepcion || []).length));
-        openM('mSubirFotosQR');
-        _sfqrRenderFotos();
-        if (_SFQR.timer) clearInterval(_SFQR.timer);
-        _SFQR.timer = setInterval(_sfqrRenderFotos, 3000);
-      }).catch(function(){ toast(T('fqr.error'), 'err'); _sfqrAvisoPendiente(); });
-  });
+        if (ex) ex.textContent = '⏱ ' + T('fqr.caduca').replace('{n}', j.ttl_min || 45);
+      }).catch(fallo);
+  }).catch(fallo);
 }
 // Aviso al cliente que esperaba a que terminara el paso de las fotos.
 function _sfqrAvisoPendiente() {

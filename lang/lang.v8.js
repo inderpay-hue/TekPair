@@ -6899,3 +6899,11 @@ it:{"fqr.saltar": "Salta le foto", "fqr.listo": "Fatto · {n} foto"},
 de:{"fqr.saltar": "Fotos überspringen", "fqr.listo": "Fertig · {n} Foto(s)"},
 pt:{"fqr.saltar": "Saltar as fotos", "fqr.listo": "Pronto · {n} foto(s)"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{"fqr.generando": "Generando el código…"},
+en:{"fqr.generando": "Generating the code…"},
+fr:{"fqr.generando": "Création du code…"},
+it:{"fqr.generando": "Generazione del codice…"},
+de:{"fqr.generando": "Code wird erstellt…"},
+pt:{"fqr.generando": "A gerar o código…"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
