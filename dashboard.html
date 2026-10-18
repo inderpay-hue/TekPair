@@ -1234,7 +1234,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261019h"></script>
+<script src="/lang/lang.v8.js?v=20261019i"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -3508,6 +3508,17 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     </div>
 
     <div class="card">
+      <div class="card-title">⭐ <span data-t="val.aj_titulo">Valoraciones y reseñas</span></div>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px" data-t="val.aj_hint">Al entregar, el cliente recibe un enlace para puntuarte del 1 al 5. Si la nota es baja (1–3) te llega un email al momento para arreglarlo. Después se le invita a dejar una reseña en Google.</div>
+      <label style="font-size:12px;font-weight:700;display:block;margin:6px 0 4px" data-t="val.aj_url">Enlace de reseñas de Google</label>
+      <input class="fi" id="resenaUrl" type="url" placeholder="https://g.page/r/…/review" onchange="setResenaCfg()" style="width:100%">
+      <div style="font-size:11.5px;color:var(--muted);margin:4px 0 8px" data-t="val.aj_url_hint">En tu Perfil de Empresa de Google: «Pedir reseñas» → copiar enlace.</div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="resenaAlEntregar" onchange="setResenaCfg()" checked> <span data-t="val.aj_entregar">Pedir la valoración al entregar</span></label>
+      <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="resenaAuto" onchange="setResenaCfg()" style="margin-top:3px"> <span><span data-t="val.aj_auto">Mandar la encuesta por email al día siguiente</span><br><span style="color:var(--muted);font-size:12px" data-t="val.aj_auto_hint">Solo a quien no haya puntuado aún y tenga email. Una sola vez.</span></span></label>
+      <div id="resenaResumen" style="margin-top:10px"></div>
+    </div>
+
+    <div class="card">
       <div class="card-title" data-t="ajn.title">Notificaciones</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px" data-t="ajn.desc">Activa o desactiva cada tipo de aviso de la campana 🔔</div>
 
@@ -5654,7 +5665,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261016b"></script>
-<script src="/js/dash-app.js?v=20261017g"></script>
+<script src="/js/dash-app.js?v=20261019i"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

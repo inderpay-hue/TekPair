@@ -1004,6 +1004,7 @@ window.addEventListener('DOMContentLoaded', function() {
   if (aj.funciones) AJUSTES.funciones = aj.funciones;
   if (aj.avisosAuto) AJUSTES.avisosAuto = aj.avisosAuto;
   if (aj.recogida) AJUSTES.recogida = aj.recogida;
+  if (aj.resena) AJUSTES.resena = aj.resena;
   if (aj.usados) AJUSTES.usados = aj.usados;
   try { aplicarFunciones(); } catch (e) {}
 
@@ -3842,7 +3843,8 @@ function mapRep(r) {
     aceptacionClienteTel: r.aceptacion_cliente_tel || null,
     clienteAvisado: r.cliente_avisado === true,
     fotosRecepcion: Array.isArray(r.fotos_recepcion) ? r.fotos_recepcion : [],
-    fotosEntrega: Array.isArray(r.fotos_entrega) ? r.fotos_entrega : []
+    fotosEntrega: Array.isArray(r.fotos_entrega) ? r.fotos_entrega : [],
+    valoracion: (r.valoracion != null) ? parseInt(r.valoracion, 10) : null, valoracionComentario: r.valoracion_comentario || '', valoracionAt: r.valoracion_at || ''
   };
 }
 
@@ -10983,6 +10985,25 @@ function linkParte(r) {
   return location.origin + '/parte.html?id=' + encodeURIComponent(r.id) + '&t=' + encodeURIComponent(r.token);
 }
 
+// Encuesta tras entregar (valorar.html): misma llave que el parte de seguimiento.
+function linkValorar(r) {
+  var lang = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
+  return location.origin + '/valorar.html?id=' + encodeURIComponent(r.id) + '&t=' + encodeURIComponent(r.token) + '&lang=' + lang;
+}
+function _resenaCfg() { var c = AJUSTES.resena || {}; return { url: c.url || '', alEntregar: c.alEntregar !== false, auto: !!c.auto }; }
+// Barra para pedir la valoración (WhatsApp / email) tras entregar.
+function ofrecerValoracion(repId) {
+  if (!_resenaCfg().alEntregar) return;
+  var r = (DB.reps || []).find(function(x) { return x.id === repId; });
+  if (!r || r.valoracion != null) return;
+  var cli = _avisoCliRep(r);
+  var tel = (cli && cli.tel) ? waTel(cli.tel, cli.telPrefijo) : '';
+  var mail = (cli && cli.email) || '';
+  if (!tel && !mail) return;
+  asegurarToken(r).then(function() { _avisoBarra(r, cli, 'rep_valoracion', tel, mail, false); });
+}
+window.ofrecerValoracion = ofrecerValoracion;
+
 function copiarLinkRep(id) {
   abrirTracking(id);
 }
@@ -13542,12 +13563,19 @@ function confirmarEntrega() {
         (aDeber ? T('rep.wa_pendiente').replace('{t}', cur(resta)) : ''),
         '',
         T('rep.wa_comprobante_online').replace('{u}', url),
+        (_resenaCfg().alEntregar ? '' : null),
+        (_resenaCfg().alEntregar ? '⭐ ' + T('val.wa_linea').replace('{u}', linkValorar(r)) : null),
         '',
         T('rep.wa_gracias')
-      ].filter(function(l){ return l !== ''; });
+      ].filter(function(l){ return l !== '' && l !== null; });
       var msg = lineas.join('\n');
       window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(msg));
+      // Así el cron no le manda además la encuesta por email al día siguiente.
+      if (_resenaCfg().alEntregar && r.valoracion == null) registrarAviso({ tipo: 'rep_valoracion', ref_id: r.id, canal: 'whatsapp', destinatario: tel, asunto: T('wa.pl_rep_valoracion') });
     });
+  } else {
+    // Sin comprobante por WhatsApp: barra para pedir la valoración (WhatsApp o email).
+    setTimeout(function() { ofrecerValoracion(r.id); }, 800);
   }
 }
 
@@ -20604,6 +20632,13 @@ function abrirDetalleRep(repId) {
     html += '<div><span style="color:var(--muted);font-size:11px">✅ ' + T('entrega.conf_titulo') + '</span><br><strong>' + esc(_cf) + '</strong></div>';
   }
   html += '</div>';
+  if (r.valoracion != null) {
+    var _vb = r.valoracion <= 3;
+    html += '<div style="background:' + (_vb ? 'rgba(239,68,68,.07)' : 'rgba(245,158,11,.08)') + ';padding:10px 12px;border-radius:8px;margin-bottom:12px;font-size:13px">' +
+      '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:4px">⭐ ' + esc(T('val.det_titulo')) + '</div>' +
+      '<span style="color:#F59E0B;font-weight:800">' + '★'.repeat(r.valoracion) + '<span style="opacity:.25">' + '★'.repeat(5 - r.valoracion) + '</span></span> <b>' + r.valoracion + '/5</b>' +
+      (r.valoracionComentario ? '<div style="margin-top:4px">«' + esc(r.valoracionComentario) + '»</div>' : '') + '</div>';
+  }
 
   // Componentes
   if (r.componentes && r.componentes.length) {
@@ -20861,6 +20896,7 @@ var PLANTILLAS_WA_DEFAULT = {
   rep_recogida: {nombre:'Recordatorio recogida', texto:'Hola {nombre}, te recuerdo que tu {modelo} sigue en {tienda} listo para recoger desde hace días. Cuando puedas pásate, ¡gracias!'},
   rep_proceso: {nombre:'Reparación en proceso', texto:'Hola {nombre}, ya estamos reparando tu {modelo} en {tienda}. Te avisamos en cuanto esté listo.'},
   rep_recibida: {nombre:'Reparación recibida', texto:'Hola {nombre}, hemos recibido tu {modelo} en {tienda}. Te avisaremos cuando tengamos novedades sobre la reparación. ¡Gracias por confiar en nosotros!'},
+  rep_valoracion: {nombre:'Valoración tras entregar', texto:'Hola {nombre}, gracias por confiar en {tienda} para tu {modelo}. ¿Qué tal ha ido? Puntúanos en 10 segundos: {link}'},
   pieza_recibida: {nombre:'Pieza recibida', texto:'¡Hola {nombre}! 👋\n\nBuenas noticias: ya nos ha llegado la pieza para reparar tu {modelo}. Nos ponemos con la reparación y te avisamos en cuanto esté lista para recoger.\n\nGracias por tu paciencia. Saludos desde {tienda}.'},
   pieza_traer: {nombre:'Pieza lista, traer equipo', texto:'¡Hola {nombre}! 👋\n\nBuenas noticias: ya nos ha llegado la pieza para tu {modelo}. Cuando quieras, pásate por {tienda} con el equipo y te la instalamos en el momento. Suele ser rápido.\n\n¡Te esperamos! Saludos desde {tienda}.'},
   cuota_proxima: {nombre:'Cuota próxima', texto:'Hola {nombre}, te recuerdo que tu cuota de {total} vence el {fecha}. Saludos desde {tienda}.'},
@@ -24138,7 +24174,7 @@ function _avisoTexto(r, cli, key, link) {
   var txt = aplicarVariablesWA(p.texto, { nombre: (cli && cli.nombre) || (r.clienteNombre || '').split(' ')[0], tienda: TIENDA.nombre || '',
     marca: r.marca || '', modelo: ((r.marca || '') + ' ' + (r.modelo || '')).trim(), averia: r.averia || '', total: r.total || 0,
     estado: T('estado.' + r.estado) || r.estado, link: link || '' });
-  if (link && txt.indexOf(link) === -1) txt += '\n\n🔗 ' + T('aviso.seguir') + ' ' + link;
+  if (link && txt.indexOf(link) === -1) txt += '\n\n' + (key === 'rep_valoracion' ? '⭐ ' + T('val.puntua') : '🔗 ' + T('aviso.seguir')) + ' ' + link;
   return txt;
 }
 
@@ -24181,7 +24217,7 @@ function _avisoBarra(r, cli, key, tel, mail, autoEnviado) {
         // La ventana se abre YA (si se abre tras el await, el navegador la bloquea).
         var w = window.open('', '_blank');
         asegurarToken(r).then(function() {
-          var txt = _avisoTexto(r, cli, key, linkParte(r));
+          var txt = _avisoTexto(r, cli, key, key === 'rep_valoracion' ? linkValorar(r) : linkParte(r));
           var url = 'https://wa.me/' + tel + '?text=' + encodeURIComponent(txt);
           if (w) w.location.href = url; else window.open(url, '_blank');
           _marcarAvisado(r.id);
@@ -24200,14 +24236,15 @@ function _avisoBarra(r, cli, key, tel, mail, autoEnviado) {
 function _avisoEnviarEmail(r, cli, key, auto) {
   if (!cli || !cli.email) return;
   asegurarToken(r).then(function() {
-    var link = linkParte(r);
+    var esVal = key === 'rep_valoracion';
+    var link = esVal ? linkValorar(r) : linkParte(r);
     return fetch('/api/email', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (window.JWT_TOKEN || (typeof JWT_TOKEN !== 'undefined' ? JWT_TOKEN : '') || '') },
       body: JSON.stringify({
         tipo: 'aviso_rep', email: cli.email, nombreCliente: ((cli.nombre || '') + ' ' + (cli.apellidos || '')).trim(),
-        tienda: TIENDA.nombre || 'TekPair', asunto: T('aviso.asunto').replace('{e}', T('estado.' + r.estado) || r.estado).replace('{t}', TIENDA.nombre || 'TekPair'),
-        mensaje: _avisoTexto(r, cli, key, link), link: link, boton: T('aviso.boton')
+        tienda: TIENDA.nombre || 'TekPair', asunto: esVal ? T('val.asunto').replace('{t}', TIENDA.nombre || 'TekPair') : T('aviso.asunto').replace('{e}', T('estado.' + r.estado) || r.estado).replace('{t}', TIENDA.nombre || 'TekPair'),
+        mensaje: _avisoTexto(r, cli, key, link), link: link, boton: esVal ? T('val.boton') : T('aviso.boton')
       })
     }).then(function(res) { return res.json(); });
   }).then(function(d) {
@@ -24300,9 +24337,50 @@ function setRecogidaCfg() {
 }
 window.setRecogidaCfg = setRecogidaCfg;
 
+// Ajustes → Valoraciones y reseñas
+function renderResenaAj() {
+  var c = _resenaCfg();
+  var u = document.getElementById('resenaUrl'), e = document.getElementById('resenaAlEntregar'), a = document.getElementById('resenaAuto');
+  if (u && document.activeElement !== u) u.value = c.url;
+  if (e) e.checked = c.alEntregar;
+  if (a) a.checked = c.auto;
+  var box = document.getElementById('resenaResumen'); if (!box) return;
+  var vals = (DB.reps || []).filter(function(r) { return r.valoracion != null; })
+    .sort(function(x, y) { return String(y.valoracionAt).localeCompare(String(x.valoracionAt)); });
+  if (!vals.length) { box.innerHTML = '<div style="font-size:12px;color:var(--muted);font-style:italic">' + esc(T('val.aj_sin')) + '</div>'; return; }
+  var media = vals.reduce(function(s, r) { return s + r.valoracion; }, 0) / vals.length;
+  var bajas = vals.filter(function(r) { return r.valoracion <= 3; }).length;
+  box.innerHTML = '<div style="display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;font-size:13px;margin-bottom:8px">' +
+      '<span style="font-size:22px;font-weight:800;color:#F59E0B">★ ' + media.toFixed(1).replace('.', ',') + '</span>' +
+      '<span>' + esc(T('val.aj_n').replace('{n}', vals.length)) + '</span>' +
+      (bajas ? '<span style="color:var(--red)">' + esc(T('val.aj_bajas').replace('{n}', bajas)) + '</span>' : '') + '</div>' +
+    vals.slice(0, 8).map(function(r) {
+      return '<div onclick="abrirDetalleRep(\'' + esc(r.id) + '\')" style="cursor:pointer;padding:7px 10px;background:var(--bg2);border-radius:8px;margin-bottom:4px;font-size:12.5px' + (r.valoracion <= 3 ? ';border-left:3px solid var(--red)' : '') + '">' +
+        '<span style="color:#F59E0B;font-weight:700">' + '★'.repeat(r.valoracion) + '<span style="opacity:.25">' + '★'.repeat(5 - r.valoracion) + '</span></span> ' +
+        '<b>' + esc(r.clienteNombre || '') + '</b> · ' + esc(((r.marca || '') + ' ' + (r.modelo || '')).trim()) +
+        (r.valoracionComentario ? '<div style="color:var(--muted);margin-top:2px">«' + esc(r.valoracionComentario) + '»</div>' : '') + '</div>';
+    }).join('');
+}
+function setResenaCfg() {
+  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); renderResenaAj(); return; }
+  var url = ((document.getElementById('resenaUrl') || {}).value || '').trim();
+  if (url && !/^https:\/\//i.test(url)) { toast(T('val.aj_url_mal'), 'err'); return; }
+  AJUSTES.resena = {
+    url: url,
+    alEntregar: !!(document.getElementById('resenaAlEntregar') || {}).checked,
+    auto: !!(document.getElementById('resenaAuto') || {}).checked
+  };
+  try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES });
+  renderResenaAj();
+  toast(T('gen.guardado'), 'ok');
+}
+window.setResenaCfg = setResenaCfg;
+
 // Ajustes → Notificaciones: email automático por estado.
 function renderAvisosAuto() {
   try { renderRecogidaAj(); } catch (e) {}
+  try { renderResenaAj(); } catch (e) {}
   var cont = document.getElementById('avisosAutoLista'); if (!cont) return;
   var cfg = AJUSTES.avisosAuto || {};
   cont.innerHTML = Object.keys(AVISO_ESTADO_PL).map(function(e) {

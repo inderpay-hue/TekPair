@@ -43,12 +43,15 @@ export default async function handler(req, res) {
     if (action === 'firma-token') return firmaToken(req, res);
     if (action === 'firma-datos') return firmaDatos(req, res);
     if (action === 'firma-guardar') return firmaGuardar(req, res, ip);
+    if (action === 'valorar') return valorarGuardar(req, res);
     return res.status(405).json({ error: 'Method not allowed' });
   }
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
 
   // GET ?action=cobro: datos públicos de una cuota para la página /cobrar
   if (action === 'cobro') return cobroDatosCuota(req, res);
+  // GET ?action=valorar-info: datos para la página /valorar (encuesta tras entregar)
+  if (action === 'valorar-info') return valorarInfo(req, res);
 
   const { id, t } = req.query;
   if (!id || !t) return res.status(400).json({ error: 'Faltan parametros' });
@@ -542,4 +545,85 @@ async function aceptarCondiciones(req, res, ip) {
     if (!paR.ok) { const tt = await paR.text().catch(() => ''); console.error('[aceptar-cond] patch', paR.status, tt.slice(0, 200)); return res.status(500).json({ error: 'No se pudo registrar' }); }
     return res.status(200).json({ ok: true });
   } catch (e) { console.error('[aceptar-cond]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
+}
+
+// ═══ VALORACIÓN DEL CLIENTE TRAS ENTREGAR ═══
+// /valorar.html?id=<rep>&t=<token>: el cliente puntúa del 1 al 5 y deja un comentario.
+// A TODOS se les ofrece después el enlace de reseña de Google de la tienda (Google
+// prohíbe pedir reseña solo a los contentos). Si la nota es 1–3, email al momento a
+// la tienda para que pueda llamar al cliente. Una valoración por reparación.
+async function _repConToken(id, t, campos) {
+  const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&token=eq.${encodeURIComponent(t)}&select=${campos}&limit=1`,
+    { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } });
+  if (!r.ok) throw new Error('consulta ' + r.status);
+  const rows = await r.json();
+  return Array.isArray(rows) && rows.length ? rows[0] : null;
+}
+async function _tiendaDe(id, campos) {
+  const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(id)}&select=${campos}&limit=1`,
+    { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } });
+  const rows = r.ok ? await r.json() : [];
+  return Array.isArray(rows) && rows.length ? rows[0] : null;
+}
+function _googleUrl(aj) {
+  const u = String((aj.resena && aj.resena.url) || '').trim();
+  try { const x = new URL(u); return x.protocol === 'https:' ? x.toString() : ''; } catch (e) { return ''; }
+}
+async function valorarInfo(req, res) {
+  const { id, t } = req.query;
+  if (typeof id !== 'string' || typeof t !== 'string' || !ID_RE.test(id) || !TOKEN_RE.test(t)) return res.status(400).json({ error: 'Formato invalido' });
+  try {
+    const rep = await _repConToken(id, t, 'id,tienda_id,marca,modelo,estado,valoracion');
+    if (!rep) return res.status(404).json({ error: 'No encontrado' });
+    const tienda = await _tiendaDe(rep.tienda_id, 'nombre,ajustes_config');
+    const aj = _ajOf(tienda);
+    return res.status(200).json({ ok: true, tienda: (tienda && tienda.nombre) || 'TekPair', equipo: ((rep.marca || '') + ' ' + (rep.modelo || '')).trim(),
+      ya: rep.valoracion != null, nota: rep.valoracion, google: _googleUrl(aj) });
+  } catch (e) { console.error('[valorar-info]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
+}
+async function valorarGuardar(req, res) {
+  let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  body = body || {};
+  const id = body.id, t = body.t, nota = parseInt(body.nota, 10);
+  const comentario = String(body.comentario || '').trim().slice(0, 1000);
+  if (typeof id !== 'string' || typeof t !== 'string' || !ID_RE.test(id) || !TOKEN_RE.test(t)) return res.status(400).json({ error: 'Formato invalido' });
+  if (!(nota >= 1 && nota <= 5)) return res.status(400).json({ error: 'Nota invalida' });
+  const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  try {
+    const rep = await _repConToken(id, t, 'id,tienda_id,cliente_nombre,cliente_id,marca,modelo,valoracion');
+    if (!rep) return res.status(404).json({ error: 'No encontrado' });
+    const tienda = await _tiendaDe(rep.tienda_id, 'nombre,plan_email,ajustes_config');
+    const google = _googleUrl(_ajOf(tienda));
+    if (rep.valoracion != null) return res.status(200).json({ ok: true, ya: true, google });
+    const pa = await fetch(`${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&valoracion=is.null`, {
+      method: 'PATCH', headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      body: JSON.stringify({ valoracion: nota, valoracion_comentario: comentario || null, valoracion_at: new Date().toISOString() })
+    });
+    if (!pa.ok) { const tt = await pa.text().catch(() => ''); console.error('[valorar] patch', pa.status, tt.slice(0, 200)); return res.status(500).json({ error: 'No se pudo guardar' }); }
+    // Nota baja: aviso inmediato a la tienda para que llame al cliente.
+    if (nota <= 3 && process.env.RESEND_API_KEY && tienda && tienda.plan_email) {
+      let tel = '';
+      try {
+        if (rep.cliente_id) {
+          const cR = await fetch(`${SUPABASE_URL}/rest/v1/clientes?id=eq.${encodeURIComponent(rep.cliente_id)}&select=tel&limit=1`, { headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}` } });
+          const cRows = cR.ok ? await cR.json() : []; tel = (cRows[0] && cRows[0].tel) || '';
+        }
+      } catch (e) {}
+      const e = (x) => String(x || '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+      const equipo = ((rep.marca || '') + ' ' + (rep.modelo || '')).trim();
+      const html = `<div style="font-family:Arial,sans-serif;max-width:560px">
+        <h2 style="color:#B45309">⚠️ Un cliente ha puntuado ${nota} de 5</h2>
+        <p><b>${e(rep.cliente_nombre)}</b>${tel ? ' · ' + e(tel) : ''}<br>${e(equipo)}</p>
+        ${comentario ? `<blockquote style="border-left:3px solid #ddd;margin:10px 0;padding:6px 12px;color:#333">${e(comentario).replace(/\n/g, '<br>')}</blockquote>` : '<p style="color:#666">(sin comentario)</p>'}
+        <p>Llámale hoy: arreglarlo a tiempo suele evitar una mala reseña.</p>
+        <p style="color:#888;font-size:12px">${e(tienda.nombre)} · TekPair</p></div>`;
+      try {
+        await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${process.env.RESEND_API_KEY}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: 'TekPair <noreply@tekpair.tech>', to: [tienda.plan_email], subject: `⚠️ ${nota}/5 de ${rep.cliente_nombre || 'un cliente'} · ${equipo}`, html }) });
+      } catch (er) { console.error('[valorar] email', er?.message || er); }
+    }
+    return res.status(200).json({ ok: true, google });
+  } catch (e) { console.error('[valorar]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
 }

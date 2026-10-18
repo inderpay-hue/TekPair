@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Valora tu reparación · TekPair</title>
+  <style>
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    :root{--terra:#C2410C;--terra-d:#9A3309;--text:#1C1917;--muted:#78716C;--border:#E7E5E4;--bg:#FAFAF9;--green:#16A34A;--amber:#F59E0B}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;background:var(--bg);color:var(--text);line-height:1.5;min-height:100vh;padding:24px 16px}
+    .wrap{max-width:440px;margin:0 auto}
+    .card{background:#fff;border:1px solid var(--border);border-radius:16px;padding:24px 20px;box-shadow:0 4px 20px rgba(0,0,0,.04)}
+    .tienda{font-weight:800;color:var(--terra);font-size:1.1rem;text-align:center;margin-bottom:4px}
+    .equipo{font-size:.85rem;color:var(--muted);text-align:center;margin-bottom:18px}
+    h1{font-size:1.2rem;font-weight:800;text-align:center;margin-bottom:16px}
+    .estrellas{display:flex;justify-content:center;gap:6px;margin-bottom:8px}
+    .estrellas button{background:none;border:none;font-size:2.4rem;line-height:1;cursor:pointer;filter:grayscale(1);opacity:.35;transition:transform .1s}
+    .estrellas button.on{filter:none;opacity:1}
+    .estrellas button:active{transform:scale(.9)}
+    .etiq{text-align:center;font-size:.9rem;color:var(--muted);min-height:1.4em;margin-bottom:14px}
+    textarea{width:100%;border:1px solid var(--border);border-radius:12px;padding:12px;font:inherit;font-size:.95rem;min-height:90px;resize:vertical;margin-bottom:14px}
+    .btn{display:flex;align-items:center;justify-content:center;gap:8px;width:100%;background:var(--terra);color:#fff;border:none;border-radius:12px;padding:15px;font:inherit;font-weight:700;font-size:1rem;cursor:pointer;text-decoration:none}
+    .btn[disabled]{opacity:.45}
+    .btn-g{background:#fff;color:#1a73e8;border:2px solid #1a73e8;margin-top:12px}
+    .msg{border-radius:12px;padding:14px;text-align:center;font-size:.95rem;margin-bottom:6px}
+    .ok{background:rgba(22,163,74,.08);color:#166534}
+    .err{background:rgba(220,38,38,.08);color:#991B1B}
+    .hide{display:none}
+    .foot{text-align:center;font-size:.72rem;color:var(--muted);margin-top:18px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="tienda" id="tienda">…</div>
+      <div class="equipo" id="equipo"></div>
+
+      <div id="form" class="hide">
+        <h1 id="h1"></h1>
+        <div class="estrellas" id="estrellas"></div>
+        <div class="etiq" id="etiq"></div>
+        <textarea id="comentario"></textarea>
+        <button class="btn" id="enviar" disabled></button>
+      </div>
+
+      <div id="gracias" class="hide">
+        <div class="msg ok" id="graciasTxt"></div>
+        <a class="btn btn-g hide" id="google" target="_blank" rel="noopener"></a>
+      </div>
+
+      <div id="error" class="msg err hide"></div>
+      <div class="foot">TekPair</div>
+    </div>
+  </div>
+  <script>
+  (function () {
+    var I18N = {
+      es: { titulo: '¿Qué tal ha ido tu reparación?', etiq: ['', 'Muy mal', 'Mal', 'Normal', 'Bien', '¡Muy bien!'], ph: 'Cuéntanos qué tal (opcional)', ph_mal: '¿Qué ha fallado? Nos ayuda a arreglarlo', enviar: 'Enviar valoración', enviando: 'Enviando…',
+        gracias: '¡Gracias por tu valoración!', gracias_mal: 'Gracias por contárnoslo. Lo sentimos: la tienda lo ha recibido y se pondrá en contacto contigo.', ya: 'Ya nos dejaste tu valoración. ¡Gracias!', google: '⭐ Déjanos tu reseña en Google', error: 'No se ha podido cargar. Revisa el enlace.', error_env: 'No se pudo enviar. Inténtalo de nuevo.' },
+      en: { titulo: 'How did your repair go?', etiq: ['', 'Very bad', 'Bad', 'Okay', 'Good', 'Great!'], ph: 'Tell us how it went (optional)', ph_mal: 'What went wrong? It helps us fix it', enviar: 'Send rating', enviando: 'Sending…',
+        gracias: 'Thank you for your rating!', gracias_mal: 'Thanks for telling us. We are sorry: the shop has received it and will get in touch with you.', ya: 'You have already rated us. Thank you!', google: '⭐ Leave us a Google review', error: 'Could not load. Please check the link.', error_env: 'Could not send. Please try again.' },
+      fr: { titulo: 'Comment s’est passée votre réparation ?', etiq: ['', 'Très mal', 'Mal', 'Correct', 'Bien', 'Très bien !'], ph: 'Dites-nous comment ça s’est passé (facultatif)', ph_mal: 'Qu’est-ce qui n’a pas été ? Cela nous aide à corriger', enviar: 'Envoyer l’avis', enviando: 'Envoi…',
+        gracias: 'Merci pour votre avis !', gracias_mal: 'Merci de nous l’avoir dit. Nous sommes désolés : le magasin l’a reçu et vous contactera.', ya: 'Vous nous avez déjà noté. Merci !', google: '⭐ Laissez-nous un avis Google', error: 'Chargement impossible. Vérifiez le lien.', error_env: 'Envoi impossible. Réessayez.' },
+      it: { titulo: 'Com’è andata la riparazione?', etiq: ['', 'Molto male', 'Male', 'Normale', 'Bene', 'Benissimo!'], ph: 'Raccontaci com’è andata (facoltativo)', ph_mal: 'Cosa non è andato? Ci aiuta a rimediare', enviar: 'Invia valutazione', enviando: 'Invio…',
+        gracias: 'Grazie per la tua valutazione!', gracias_mal: 'Grazie per avercelo detto. Ci dispiace: il negozio l’ha ricevuto e ti contatterà.', ya: 'Ci hai già valutato. Grazie!', google: '⭐ Lasciaci una recensione su Google', error: 'Impossibile caricare. Controlla il link.', error_env: 'Invio non riuscito. Riprova.' },
+      de: { titulo: 'Wie lief deine Reparatur?', etiq: ['', 'Sehr schlecht', 'Schlecht', 'Okay', 'Gut', 'Sehr gut!'], ph: 'Erzähl uns, wie es war (optional)', ph_mal: 'Was lief schief? Das hilft uns, es zu beheben', enviar: 'Bewertung senden', enviando: 'Wird gesendet…',
+        gracias: 'Danke für deine Bewertung!', gracias_mal: 'Danke, dass du es uns sagst. Das tut uns leid: Der Laden hat es erhalten und meldet sich bei dir.', ya: 'Du hast uns schon bewertet. Danke!', google: '⭐ Hinterlass uns eine Google-Bewertung', error: 'Konnte nicht geladen werden. Prüfe den Link.', error_env: 'Senden fehlgeschlagen. Versuch es nochmal.' },
+      pt: { titulo: 'Como correu a sua reparação?', etiq: ['', 'Muito mal', 'Mal', 'Normal', 'Bem', 'Muito bem!'], ph: 'Conte-nos como correu (opcional)', ph_mal: 'O que correu mal? Ajuda-nos a resolver', enviar: 'Enviar avaliação', enviando: 'A enviar…',
+        gracias: 'Obrigado pela sua avaliação!', gracias_mal: 'Obrigado por nos contar. Lamentamos: a loja recebeu-o e vai entrar em contacto consigo.', ya: 'Já nos avaliou. Obrigado!', google: '⭐ Deixe-nos uma avaliação no Google', error: 'Não foi possível carregar. Verifique o link.', error_env: 'Não foi possível enviar. Tente de novo.' }
+    };
+    var q = new URLSearchParams(location.search);
+    var lang = (q.get('lang') || (navigator.language || 'es')).slice(0, 2).toLowerCase();
+    var L = I18N[lang] || I18N.es;
+    document.documentElement.lang = I18N[lang] ? lang : 'es';
+    var id = q.get('id') || '', t = q.get('t') || '';
+    var $ = function (x) { return document.getElementById(x); };
+    var nota = 0, google = '';
+
+    function mostrarGracias(txt) {
+      $('form').classList.add('hide');
+      $('graciasTxt').textContent = txt;
+      $('gracias').classList.remove('hide');
+      if (google) { var g = $('google'); g.href = google; g.textContent = L.google; g.classList.remove('hide'); }
+    }
+    function error(txt) { var e = $('error'); e.textContent = txt; e.classList.remove('hide'); }
+    function pintar() {
+      var cont = $('estrellas'); cont.innerHTML = '';
+      for (var i = 1; i <= 5; i++) {
+        var b = document.createElement('button');
+        b.type = 'button'; b.textContent = '★'; b.style.color = '#F59E0B'; b.setAttribute('aria-label', i + '/5');
+        if (i <= nota) b.className = 'on';
+        (function (n) { b.onclick = function () { nota = n; pintar(); }; })(i);
+        cont.appendChild(b);
+      }
+      $('etiq').textContent = L.etiq[nota] || '';
+      $('comentario').placeholder = nota && nota <= 3 ? L.ph_mal : L.ph;
+      $('enviar').disabled = !nota;
+    }
+
+    $('h1').textContent = L.titulo;
+    $('enviar').textContent = L.enviar;
+    pintar();
+
+    fetch('/api/parte?action=valorar-info&id=' + encodeURIComponent(id) + '&t=' + encodeURIComponent(t))
+      .then(function (r) { return r.json(); })
+      .then(function (d) {
+        if (!d || !d.ok) { error(L.error); return; }
+        $('tienda').textContent = d.tienda || 'TekPair';
+        $('equipo').textContent = d.equipo || '';
+        document.title = (d.tienda || 'TekPair') + ' · ' + L.titulo;
+        google = d.google || '';
+        if (d.ya) { mostrarGracias(L.ya); return; }
+        $('form').classList.remove('hide');
+      }).catch(function () { error(L.error); });
+
+    $('enviar').onclick = function () {
+      if (!nota) return;
+      var b = $('enviar'); b.disabled = true; b.textContent = L.enviando;
+      fetch('/api/parte?action=valorar', { method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: id, t: t, nota: nota, comentario: $('comentario').value }) })
+        .then(function (r) { return r.json(); })
+        .then(function (d) {
+          if (!d || !d.ok) throw new Error('x');
+          if (d.google) google = d.google;
+          mostrarGracias(d.ya ? L.ya : (nota <= 3 ? L.gracias_mal : L.gracias));
+        }).catch(function () { b.disabled = false; b.textContent = L.enviar; error(L.error_env); });
+    };
+  })();
+  </script>
+</body>
+</html>

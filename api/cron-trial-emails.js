@@ -185,7 +185,13 @@ export default async function handler(req, res) {
       recogida = await recordatoriosRecogida(SUPABASE_URL, headers, RESEND_KEY, now);
     } catch (e) { console.error('[cron] recogida:', e.message); }
 
-    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida });
+    // ── Encuesta de satisfacción por email el día después de entregar ──
+    let encuestas = { enviados: 0, errores: 0 };
+    try {
+      encuestas = await encuestasValoracion(SUPABASE_URL, headers, RESEND_KEY, now);
+    } catch (e) { console.error('[cron] encuestas:', e.message); }
+
+    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida, encuestas });
 
   } catch(e) {
     console.error('[cron] Error general:', e);
@@ -680,6 +686,73 @@ async function recordatoriosRecogida(SUPABASE_URL, headers, RESEND_KEY, now) {
         } catch (e) { out.errores++; }
       }
     } catch (e) { console.error('[cron] recogida tienda', t.id, e.message); out.errores++; }
+  }
+  return out;
+}
+
+// ═══ ENCUESTA DE SATISFACCIÓN (día siguiente a entregar) ═══
+// Tiendas con ajustes_config.resena.auto: reparaciones entregadas ayer (o hasta 3 días, por si
+// el cron no corrió) sin valoración y sin aviso rep_valoracion previo (WhatsApp al entregar o
+// este mismo email) → un email con el enlace a valorar.html. Una sola vez por reparación.
+const VALOR_DEF = 'Hola {nombre}, gracias por confiar en {tienda} para tu {modelo}. ¿Qué tal ha ido? Puntúanos en 10 segundos: {link}';
+async function encuestasValoracion(SUPABASE_URL, headers, RESEND_KEY, now) {
+  const out = { enviados: 0, errores: 0, tiendas: 0 };
+  if (!RESEND_KEY) return out;
+  const q = async (path) => { const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers }); return r.ok ? r.json() : []; };
+  const dia = (n) => new Date(now.getTime() - n * 86400000).toISOString().slice(0, 10);
+  const desde = dia(3), hasta = dia(1); // de hace 3 días a ayer, ambos incluidos
+  const tiendas = await q(`tiendas?ajustes_config->resena->>auto=eq.true&select=id,nombre,ajustes_config`);
+  for (const t of tiendas) {
+    try {
+      const reps = await q(`reparaciones?tienda_id=eq.${encodeURIComponent(t.id)}&estado=eq.Entregado&valoracion=is.null&fecha_entrega_real=gte.${desde}&fecha_entrega_real=lte.${hasta}&token=not.is.null&select=id,cliente_id,cliente_nombre,marca,modelo,token&limit=200`);
+      if (!reps.length) continue;
+      out.tiendas++;
+      const ya = new Set();
+      for (let i = 0; i < reps.length; i += 80) {
+        const ids = reps.slice(i, i + 80).map(r => encodeURIComponent(r.id)).join(',');
+        (await q(`avisos?tienda_id=eq.${encodeURIComponent(t.id)}&ref_id=in.(${ids})&tipo=eq.rep_valoracion&select=ref_id,estado`))
+          .forEach(a => { if (a.estado !== 'error') ya.add(a.ref_id); });
+      }
+      const pl = t.ajustes_config.plantillasWA && t.ajustes_config.plantillasWA.rep_valoracion && t.ajustes_config.plantillasWA.rep_valoracion.texto;
+      let enviadosTienda = 0;
+      for (const r of reps) {
+        if (enviadosTienda >= 40) break;
+        if (ya.has(r.id) || !r.cliente_id) continue;
+        const cl = (await q(`clientes?id=eq.${encodeURIComponent(r.cliente_id)}&tienda_id=eq.${encodeURIComponent(t.id)}&select=nombre,apellidos,email`))[0];
+        const email = cl && String(cl.email || '').trim();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue;
+        const nombre = (cl.nombre || r.cliente_nombre || '').trim();
+        const modelo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
+        const link = `https://www.tekpair.tech/valorar.html?id=${encodeURIComponent(r.id)}&t=${encodeURIComponent(r.token)}&lang=es`;
+        const texto = String(pl || VALOR_DEF).replace(/\{nombre\}/g, nombre).replace(/\{modelo\}/g, modelo).replace(/\{tienda\}/g, t.nombre || 'TekPair')
+          .replace(/\{link\}/g, '').replace(/\{[a-z_]+\}/g, '').trim();
+        const avId = 'av_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        const asunto = `¿Qué tal ha ido tu reparación? · ${t.nombre || 'TekPair'}`;
+        const ins = await fetch(`${SUPABASE_URL}/rest/v1/avisos`, { method: 'POST', headers: { ...headers, Prefer: 'return=minimal' },
+          body: JSON.stringify({ id: avId, tienda_id: t.id, tipo: 'rep_valoracion', canal: 'email', destinatario: email, ref_tipo: 'reparacion', ref_id: r.id, asunto, estado: 'enviado', fecha: now.toISOString() }) });
+        if (!ins.ok) { out.errores++; continue; }
+        const estrellas = [1, 2, 3, 4, 5].map(n => `<a href="${esc(link)}" style="text-decoration:none;font-size:30px;color:#F59E0B">★</a>`).join(' ');
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#111">
+  <div style="background:#FF5B1F;color:white;padding:20px;border-radius:10px 10px 0 0;text-align:center"><h1 style="margin:0;font-size:21px">${esc(t.nombre || 'TekPair')}</h1></div>
+  <div style="background:white;padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
+    <p style="font-size:14px;color:#333;line-height:1.6;margin:0">${esc(texto).replace(/\n/g, '<br>')}</p>
+    <p style="text-align:center;margin:20px 0 6px">${estrellas}</p>
+    <p style="text-align:center;margin:10px 0 4px"><a href="${esc(link)}" style="background:#FF5B1F;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">⭐ Puntuar</a></p>
+  </div>
+  <div style="text-align:center;padding:16px;color:#aaa;font-size:11px">Enviado con TekPair · tekpair.tech</div>
+</body></html>`;
+        try {
+          const ra = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: `${String(t.nombre || 'TekPair').replace(/[<>"\r\n]/g, '').slice(0, 60)} <noreply@tekpair.tech>`, to: [email], subject: asunto, html }) });
+          if (ra.ok) { out.enviados++; enviadosTienda++; }
+          else {
+            out.errores++;
+            await fetch(`${SUPABASE_URL}/rest/v1/avisos?id=eq.${avId}`, { method: 'PATCH', headers: { ...headers, Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'error' }) });
+          }
+        } catch (e) { out.errores++; }
+      }
+    } catch (e) { console.error('[cron] encuestas tienda', t.id, e.message); out.errores++; }
   }
   return out;
 }
