@@ -3205,6 +3205,7 @@ function closeM(id) {
   if (el) el.classList.remove('open');
   // PRES-8: si cierras el modal de reparación, asegúrate de limpiar modo presupuesto
   if (id === 'mRep' && typeof _limpiarModoPresupuesto === 'function') _limpiarModoPresupuesto();
+  if (id === 'mSubirFotosQR' && typeof _sfqrAvisoPendiente === 'function') _sfqrAvisoPendiente();
   // Cancelar la edición de un gasto: que no quede "pegado" en modo edición.
   if (id === 'mGasto' && typeof SEL === 'object' && SEL) SEL.editGastoId = null;
 }
@@ -11015,7 +11016,7 @@ function abrirSubirFotosQR(repId, creada) {
     fetch('/api/parte?action=foto-token', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: r.id, t: r.token }) })
       .then(function(resp){ return resp.json(); })
       .then(function(j){
-        if (!j || !j.ok || !j.sig) { toast(T('fqr.error'), 'err'); return; }
+        if (!j || !j.ok || !j.sig) { toast(T('fqr.error'), 'err'); _sfqrAvisoPendiente(); return; }
         var lang = (typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es');
         var url = location.origin + '/subir-fotos.html?id=' + encodeURIComponent(j.id) + '&exp=' + j.exp + '&sig=' + encodeURIComponent(j.sig) + '&lang=' + lang;
         _SFQR.repId = r.id; _SFQR.lastN = -1;
@@ -11025,14 +11026,33 @@ function abrirSubirFotosQR(repId, creada) {
         var ex = document.getElementById('sfqrExp'); if (ex) ex.textContent = '⏱ ' + T('fqr.caduca').replace('{n}', j.ttl_min || 45);
         // Paso final tras crear una rep nueva: banner "reparación creada" + botón "Ahora no".
         var _intro = document.getElementById('sfqrIntro'), _ctxt = document.getElementById('sfqrCerrarTxt');
-        if (creada) { if (_intro) { _intro.style.display = 'block'; _intro.textContent = T('fqr.creada_intro'); } if (_ctxt) _ctxt.textContent = T('fqr.ahora_no'); }
-        else { if (_intro) _intro.style.display = 'none'; if (_ctxt) _ctxt.textContent = T('gen.cerrar'); }
+        _SFQR.creada = !!creada;
+        if (creada) { if (_intro) { _intro.style.display = 'block'; _intro.textContent = T('fqr.creada_intro'); } }
+        else { if (_intro) _intro.style.display = 'none'; }
+        _sfqrPintarBoton(((r.fotosRecepcion || []).length));
         openM('mSubirFotosQR');
         _sfqrRenderFotos();
         if (_SFQR.timer) clearInterval(_SFQR.timer);
         _SFQR.timer = setInterval(_sfqrRenderFotos, 3000);
-      }).catch(function(){ toast(T('fqr.error'), 'err'); });
+      }).catch(function(){ toast(T('fqr.error'), 'err'); _sfqrAvisoPendiente(); });
   });
+}
+// Aviso al cliente que esperaba a que terminara el paso de las fotos.
+function _sfqrAvisoPendiente() {
+  var p = _SFQR.avisoPendiente; _SFQR.avisoPendiente = null;
+  if (p) setTimeout(function(){ try { ofrecerAvisoEstado(p.id, p.estado); } catch (e) {} }, 300);
+}
+// Botón de la ventana: sin fotos "Saltar las fotos" / "Cerrar"; con fotos "✓ Listo · N fotos".
+function _sfqrPintarBoton(n) {
+  var b = document.getElementById('sfqrCerrarBtn'), t = document.getElementById('sfqrCerrarTxt');
+  if (!b || !t) return;
+  if (n > 0) {
+    t.textContent = '✓ ' + T('fqr.listo').replace('{n}', n);
+    b.style.cssText = 'width:100%;background:var(--green,#16a34a);border:none;padding:11px;border-radius:8px;color:#fff;font-weight:700;cursor:pointer;font-family:inherit';
+  } else {
+    t.textContent = _SFQR.creada ? T('fqr.saltar') : T('gen.cerrar');
+    b.style.cssText = 'width:100%;background:none;border:1px solid var(--border);padding:10px;border-radius:8px;color:var(--muted);cursor:pointer;font-family:inherit';
+  }
 }
 function _sfqrRenderFotos() {
   var bg = document.getElementById('mSubirFotosQR');
@@ -11041,6 +11061,7 @@ function _sfqrRenderFotos() {
   var fotos = (r && r.fotosRecepcion) || [];
   if (fotos.length === _SFQR.lastN) return;   // sin fotos nuevas → no repintar (evita signed-urls de más)
   _SFQR.lastN = fotos.length;
+  _sfqrPintarBoton(fotos.length);
   var cEl = document.getElementById('sfqrCount'); if (cEl) cEl.textContent = fotos.length;
   var box = document.getElementById('sfqrFotos'); if (!box) return;
   if (!fotos.length) { box.innerHTML = '<div style="font-size:12px;color:var(--muted)">' + T('fqr.esperando') + '</div>'; return; }
@@ -12342,13 +12363,15 @@ function guardarRep() {
   audit('crear', 'reparacion', rep.id, rep.clienteNombre + ' · ' + (rep.modelo||'') + ' · ' + cur(rep.total), null);
   renderDash();
   checkUrgentes();
-  // Aviso «hemos recibido tu equipo» (barra con WhatsApp / email, o email automático).
-  setTimeout(function(){ try { ofrecerAvisoEstado(rep.id, rep.estado || 'Pendiente'); } catch (e) {} }, 400);
   // Paso final: si el plan incluye fotos, ofrecer añadir las de ENTRADA por QR con el ID ya creado
   // (el momento clave es al recibir el equipo). Si no, el flujo de siempre (QR de seguimiento).
+  // El aviso «hemos recibido tu equipo» (barra WhatsApp / email) va DESPUÉS de las fotos:
+  // antes salía a la vez, encima de la ventana del QR.
   if (typeof tieneFeature === 'function' && tieneFeature('fotos_rep')) {
+    _SFQR.avisoPendiente = { id: rep.id, estado: rep.estado || 'Pendiente' };
     setTimeout(function(){ abrirSubirFotosQR(rep.id, true); }, 250);
   } else {
+    setTimeout(function(){ try { ofrecerAvisoEstado(rep.id, rep.estado || 'Pendiente'); } catch (e) {} }, 400);
     setTimeout(function(){ abrirTracking(rep.id); }, 200);
   }
   if (typeof ofrecerGuardarModelo === 'function') ofrecerGuardarModelo(rep);

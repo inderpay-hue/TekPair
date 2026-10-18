@@ -6891,3 +6891,11 @@ it:{"foto.descargar": "Scarica", "foto.sin_fotos_rep": "Quella riparazione non h
 de:{"foto.descargar": "Herunterladen", "foto.sin_fotos_rep": "Diese Reparatur hat keine Fotos", "foto.ver_anteriores": "Die {n} Fotos der vorherigen Reparatur ansehen", "foto.de_original": "Fotos der ursprünglichen Reparatur ({f})"},
 pt:{"foto.descargar": "Descarregar", "foto.sin_fotos_rep": "Essa reparação não tem fotos", "foto.ver_anteriores": "Ver as {n} fotos da reparação anterior", "foto.de_original": "Fotos da reparação original ({f})"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{"fqr.saltar": "Saltar las fotos", "fqr.listo": "Listo · {n} foto(s)"},
+en:{"fqr.saltar": "Skip the photos", "fqr.listo": "Done · {n} photo(s)"},
+fr:{"fqr.saltar": "Passer les photos", "fqr.listo": "Terminé · {n} photo(s)"},
+it:{"fqr.saltar": "Salta le foto", "fqr.listo": "Fatto · {n} foto"},
+de:{"fqr.saltar": "Fotos überspringen", "fqr.listo": "Fertig · {n} Foto(s)"},
+pt:{"fqr.saltar": "Saltar as fotos", "fqr.listo": "Pronto · {n} foto(s)"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
