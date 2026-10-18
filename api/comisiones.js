@@ -73,7 +73,9 @@ const ACCIONES_CRITICAS = [
   'crear_afiliado', 'editar_afiliado', 'eliminar_afiliado', 'dar_de_baja_comercial',
   // Altas y renovaciones cobradas en mano: dan acceso de pago sin pasar por
   // Stripe, asi que exigen el codigo secreto igual que lo demas.
-  'crear_cuenta_efectivo', 'extender_cuenta_efectivo', 'listar_cuentas_efectivo',
+  'crear_cuenta_efectivo', 'extender_cuenta_efectivo',
+  // 'listar_cuentas_efectivo' NO: es solo ver la lista (sigue siendo solo para el
+  // admin). Pedía el código en cada carga del panel de Comerciales (oct-2026).
 ];
 
 // Meses que se pueden vender en mano. Se valida contra esta lista y no se acepta

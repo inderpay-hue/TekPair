@@ -6109,12 +6109,13 @@ function _efEsc(v) {
   });
 }
 
-async function _efApi(payload) {
-  var sec = pedirCodigoSecreto();
-  if (!sec) throw new Error('Hace falta el código secreto');
+// sinCodigo: solo para leer (la lista de cuentas), que no pide el código secreto.
+async function _efApi(payload, sinCodigo) {
+  var sec = sinCodigo ? null : pedirCodigoSecreto();
+  if (!sinCodigo && !sec) throw new Error('Hace falta el código secreto');
   var r = await fetch('/api/comisiones', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(Object.assign({ codigo_secreto: sec }, payload))
+    body: JSON.stringify(Object.assign(sec ? { codigo_secreto: sec } : {}, payload))
   });
   var d = await r.json();
   if (chequearNeedSecret && chequearNeedSecret(d)) throw new Error('Código secreto incorrecto');
@@ -6166,7 +6167,7 @@ async function cargarCuentasEfectivo() {
   if (!cont) return;
   cont.innerHTML = '<div style="color:var(--muted);font-size:13px;">Cargando…</div>';
   try {
-    var d = await _efApi({ action: 'listar_cuentas_efectivo' });
+    var d = await _efApi({ action: 'listar_cuentas_efectivo' }, true);
     var cs = d.cuentas || [];
     if (!cs.length) { cont.innerHTML = '<div style="color:var(--muted);font-size:13px;">Aquí aparecerán las cuentas que cobres en mano con el formulario de arriba. Las que pagan por Stripe no salen en esta lista.</div>'; return; }
     cont.innerHTML = '<table class="tbl" style="width:100%;font-size:13px;"><thead><tr>'
