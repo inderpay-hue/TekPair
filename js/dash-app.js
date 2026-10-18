@@ -18469,9 +18469,21 @@ function computeNotificaciones() {
   function add(n) { notifs.push(n); }
 
   // 1. Reparaciones
+  // Cerradas (entregada, rechazada, devuelta, sin solución): ya no avisan.
+  // Esperando pieza del proveedor: no es retraso del taller → ni "vencida" ni
+  // "urgente" ni "abandono"; si ya pasó la fecha prometida, un aviso propio para
+  // decirle al cliente que falta la pieza. Los días cuentan sin la espera.
+  var _CERR_NOTIF = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion'];
   (DB.reps || []).forEach(function(r) {
-    if (r.estado !== 'Entregado') {
-      if (r.fechaEntrega) {
+    if (_CERR_NOTIF.indexOf(r.estado) === -1) {
+      var _espPz = repEsperaPieza(r.id);
+      if (_espPz && r.fechaEntrega && nf.vencida !== false) {
+        var feP = _parseDateAny(r.fechaEntrega);
+        var diffP = feP ? Math.ceil((feP - hoyDate) / 86400000) : 0;
+        if (feP && diffP < 0) add({id:'esp_'+r.id, tipo:'reparaciones', icon:'🛒', color:'#B45309', titulo:T('notif.rep_esperando_pieza'),
+          detalle:r.clienteNombre+' · '+(r.modelo||'')+' · '+T('notif.entrega_prevista_hace').replace('{n}', Math.abs(diffP)), href:'pReps', prio:1, manual:false});
+      }
+      if (r.fechaEntrega && !_espPz) {
         var fe = _parseDateAny(r.fechaEntrega);
         if (fe) {
           var diff = Math.ceil((fe - hoyDate) / 86400000);
@@ -18484,10 +18496,10 @@ function computeNotificaciones() {
           }
         }
       }
-      if (nf.abandono !== false) {
+      if (nf.abandono !== false && !_espPz) {
         var fc = _parseDateAny(r.fecha);
         if (fc) {
-          var dias = Math.floor((nowMs - fc.getTime()) / 86400000);
+          var dias = Math.max(0, Math.floor((nowMs - fc.getTime()) / 86400000) - _diasEsperandoPieza(r.id));
           if (dias > diasAbandono) {
             add({id:'abandon_'+r.id, tipo:'reparaciones', icon:'📦', color:'#6B7280', titulo:T('notif.posible_abandono'),
               detalle:r.clienteNombre+' · '+dias+'d ' + T('notif.sin_entregar'), href:'pReps', prio:1, manual:true});
