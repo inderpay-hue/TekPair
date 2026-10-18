@@ -7678,11 +7678,24 @@ function renderVentas() {
   });
 }
 
-// ═══ EDITAR VENTA (admin): cliente, concepto, pago, importe ═══
+// ═══ EDITAR VENTA (admin): cliente, fecha, productos, IMEI, pago e importe ═══
+// Límites a propósito:
+//  · Con factura emitida (y sin abonar) solo se cambia la forma de pago: cliente,
+//    fecha e importes ya están en un documento fiscal; para eso, abono + venta nueva.
+//  · Financiada: el importe se lleva desde Financiación.
+//  · No mueve el stock: cambiar una cantidad aquí corrige el ticket, no el almacén.
+//  · Si la caja de ese día ya se cerró, avisa: el cierre guardado no cambia.
+var _EV_METODOS = ['Efectivo', 'Tarjeta', 'Bizum', 'Transferencia'];
 function _evFillCliDatalist() {
   var dl = document.getElementById('evCliList'); if (!dl) return;
   dl.innerHTML = (DB.clis || []).filter(function(c){ return c && c.nombre; }).slice(0,500).map(function(c){
     return '<option value="' + escHtml(((c.nombre||'') + (c.apellidos ? ' ' + c.apellidos : '')).trim()) + '">'; }).join('');
+}
+function _evNum(id) { var el = document.getElementById(id); return el ? (parseFloat(String(el.value).replace(',', '.')) || 0) : 0; }
+function _evLineaNeto(it) {
+  var qty = parseFloat(it.qty != null ? it.qty : it.cantidad) || 1, pu = parseFloat(it.precio) || 0, sub = qty * pu;
+  var dv = parseFloat(it.desc) || 0;
+  return sub - (dv > 0 ? Math.min(it.descTipo === 'pct' ? sub * dv / 100 : dv, sub) : 0);
 }
 function abrirEditarVenta(id) {
   if (typeof _esAdmin === 'function' && !_esAdmin()) { toast(T('perm.solo_admin'), 'err'); return; }
@@ -7690,69 +7703,198 @@ function abrirEditarVenta(id) {
   if (!v) { toast(T('tst.venta_no_encontrada'), 'err'); return; }
   if (v.reembolsado) { toast(T('ev.reembolsada_no'), 'err'); return; }
   SEL.editVentaId = id;
+  SEL.evFactura = null; SEL.evCajaCerrada = false;
+  SEL.evLineas = (v.items && v.items.length) ? JSON.parse(JSON.stringify(v.items)) : null;
+  SEL.evPagos = (v.pagos && v.pagos.length) ? JSON.parse(JSON.stringify(v.pagos)) : null;
   _evFillCliDatalist();
-  document.getElementById('evCliente').value = v.clienteNombre || '';
+  document.getElementById('evCliente').value = v.clienteNombre && v.clienteNombre !== 'Sin cliente' ? v.clienteNombre : '';
+  document.getElementById('evFecha').value = String(v.fecha || '').slice(0, 10);
   document.getElementById('evModelo').value = v.modelo || '';
+  document.getElementById('evImei').value = v.imei || '';
   var sel = document.getElementById('evPago');
-  // Valores canónicos capitalizados (los mismos que guarda guardarVenta / el select vPago). Antes
-  // eran minúsculas y al reelegir el método quedaba 'efectivo' ≠ 'Efectivo' → desglose duplicado
-  // en el cierre y en Cobrum.
-  var metodos = ['Efectivo','Tarjeta','Bizum','Transferencia'];
-  if (v.pago && metodos.indexOf(v.pago) === -1) metodos.push(v.pago);
-  sel.innerHTML = metodos.map(function(m){ return '<option value="' + escHtml(m) + '">' + escHtml(_pagoLbl(m)) + '</option>'; }).join('');
-  sel.value = v.pago || 'Efectivo';
+  var metodos = _EV_METODOS.slice();
+  if (v.pago && metodos.indexOf(v.pago) === -1 && v.pago !== 'Mixto') metodos.push(v.pago);
+  metodos.push('Mixto');
+  sel.innerHTML = metodos.map(function(m){ return '<option value="' + escHtml(m) + '">' + escHtml(m === 'Mixto' ? T('ev.pago_mixto') : _pagoLbl(m)) + '</option>'; }).join('');
+  sel.value = SEL.evPagos ? 'Mixto' : (v.pago || 'Efectivo');
   document.getElementById('evDescuento').value = v.descuento || 0;
   document.getElementById('evTotal').value = v.total || 0;
-  var fin = !!v.financiado;
-  document.getElementById('evTotal').disabled = fin;
-  document.getElementById('evDescuento').disabled = fin;
-  var nota = document.getElementById('evNotaFin'); if (nota) nota.style.display = fin ? 'block' : 'none';
+  var nota = document.getElementById('evNotaFin'); if (nota) nota.style.display = v.financiado ? 'block' : 'none';
+  _evPintarLineas(); _evPintarMixto(); _evAplicarBloqueos();
   openM('mEditarVenta');
+  _evComprobar(v);
 }
-function guardarEdicionVenta() {
+// Factura emitida y caja del día cerrada: se miran en la nube al abrir.
+function _evComprobar(v) {
+  if (!SB_KEY || !TIENDA_ID) return;
+  var vid = v.id;
+  fetch(SUPABASE_URL + '/rest/v1/facturas?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) +
+    '&origen_tipo=eq.venta&origen_id=eq.' + encodeURIComponent(vid) + '&select=id,numero,estado,rectifica_a', {
+    headers: { apikey: SB_KEY, Authorization: 'Bearer ' + (JWT_TOKEN || SB_KEY) }
+  }).then(function(r) { return r.ok ? r.json() : []; }).then(function(arr) {
+    if (SEL.editVentaId !== vid || !Array.isArray(arr)) return;
+    var orig = arr.find(function(x) { return !x.rectifica_a && x.estado === 'emitida'; });
+    if (orig && !arr.some(function(x) { return x.rectifica_a === orig.id; })) { SEL.evFactura = orig.numero || '—'; _evAplicarBloqueos(); }
+  }).catch(function() {});
+  var f = String(v.fecha || '').slice(0, 10);
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(f)) return;
+  fetch(SUPABASE_URL + '/rest/v1/cajas_cierres?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=eq.' + f +
+    '&estado=in.(cerrado,descuadre)&select=id', { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + (JWT_TOKEN || SB_KEY) } })
+    .then(function(r) { return r.ok ? r.json() : []; }).then(function(arr) {
+      if (SEL.editVentaId === vid && Array.isArray(arr) && arr.length) { SEL.evCajaCerrada = true; _evAplicarBloqueos(); }
+    }).catch(function() {});
+}
+function _evAplicarBloqueos() {
+  var v = (DB.ventas || []).find(function(x){ return x.id === SEL.editVentaId; }); if (!v) return;
+  var fact = !!SEL.evFactura, fin = !!v.financiado;
+  ['evCliente', 'evFecha', 'evModelo', 'evImei'].forEach(function(id) { var el = document.getElementById(id); if (el) el.disabled = fact; });
+  document.getElementById('evDescuento').disabled = fact || fin;
+  document.getElementById('evTotal').disabled = fact || fin || !!(SEL.evLineas && SEL.evLineas.length);
+  document.querySelectorAll('#evLineas input').forEach(function(el) { el.disabled = fact || fin; });
+  var av = [];
+  if (fact) av.push('<div style="background:rgba(239,68,68,.1);color:#B91C1C;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12.5px">🧾 ' + escHtml(T('ev.con_factura').replace('{n}', SEL.evFactura)) + '</div>');
+  if (SEL.evCajaCerrada) av.push('<div style="background:rgba(245,158,11,.12);color:#B45309;border-radius:8px;padding:8px 10px;margin-bottom:8px;font-size:12.5px">🔒 ' + escHtml(T('ev.caja_cerrada')) + '</div>');
+  document.getElementById('evAvisos').innerHTML = av.join('');
+}
+function _evPintarLineas() {
+  var box = document.getElementById('evLineas'), solo = document.getElementById('evSinLineas');
+  var ls = SEL.evLineas;
+  if (!ls || !ls.length) { box.innerHTML = ''; solo.style.display = ''; return; }
+  solo.style.display = 'none';
+  var inp = 'class="fi" style="padding:6px 8px;font-size:13px"';
+  box.innerHTML = '<div style="font-size:12px;font-weight:700;margin:4px 0 6px">' + escHtml(T('ev.productos')) + '</div>' +
+    ls.map(function(it, i) {
+      var qty = it.qty != null ? it.qty : (it.cantidad != null ? it.cantidad : 1);
+      var d = parseFloat(it.desc) || 0;
+      return '<div style="display:grid;grid-template-columns:1fr 64px 92px;gap:6px;margin-bottom:4px">' +
+        '<input ' + inp + ' value="' + escHtml(it.nombre || '') + '" oninput="_evSetLinea(' + i + ',\'nombre\',this.value)" placeholder="' + escHtml(T('gen.modelo')) + '">' +
+        '<input ' + inp + ' type="number" min="0" step="1" value="' + escHtml(String(qty)) + '" oninput="_evSetLinea(' + i + ',\'qty\',this.value)" title="' + escHtml(T('ev.cantidad')) + '">' +
+        '<input ' + inp + ' type="number" step="0.01" value="' + escHtml(String(parseFloat(it.precio) || 0)) + '" oninput="_evSetLinea(' + i + ',\'precio\',this.value)" title="' + escHtml(T('ev.precio_ud')) + '">' +
+        '</div>' +
+        '<div style="display:grid;grid-template-columns:1fr auto;gap:6px;margin:0 0 8px;font-size:11.5px;color:var(--text-2,#64748B);align-items:center">' +
+        '<input ' + inp + ' value="' + escHtml(it.imei || '') + '" oninput="_evSetLinea(' + i + ',\'imei\',this.value)" placeholder="IMEI">' +
+        '<span id="evSub' + i + '" style="white-space:nowrap">' + (d > 0 ? escHtml(T('ev.con_dto')) + ' · ' : '') + cur(_evLineaNeto(it)) + '</span></div>';
+    }).join('');
+}
+function _evSetLinea(i, campo, val) {
+  var it = SEL.evLineas && SEL.evLineas[i]; if (!it) return;
+  if (campo === 'qty') { var q = Math.max(0, parseFloat(String(val).replace(',', '.')) || 0); if (it.qty != null || it.cantidad == null) it.qty = q; else it.cantidad = q; }
+  else if (campo === 'precio') it.precio = parseFloat(String(val).replace(',', '.')) || 0;
+  else it[campo] = val;
+  var s = document.getElementById('evSub' + i); if (s) s.textContent = ((parseFloat(it.desc) || 0) > 0 ? T('ev.con_dto') + ' · ' : '') + cur(_evLineaNeto(it));
+  _evRecalcular();
+}
+function _evRecalcular() {
+  if (!(SEL.evLineas && SEL.evLineas.length)) return;
+  var suma = SEL.evLineas.reduce(function(s, it) { return s + _evLineaNeto(it); }, 0);
+  document.getElementById('evTotal').value = Math.max(0, Math.round((suma - _evNum('evDescuento')) * 100) / 100).toFixed(2);
+  _evPintarMixto(true);
+}
+function _evCambioPago() {
+  var mix = document.getElementById('evPago').value === 'Mixto';
+  if (mix && !(SEL.evPagos && SEL.evPagos.length)) SEL.evPagos = [{ metodo: 'Efectivo', importe: _evNum('evTotal') }, { metodo: 'Tarjeta', importe: 0 }];
+  if (!mix) SEL.evPagos = null;
+  _evPintarMixto();
+}
+function _evPintarMixto(soloTotal) {
+  var box = document.getElementById('evMixto');
+  var mix = document.getElementById('evPago').value === 'Mixto' && SEL.evPagos;
+  if (!mix) { box.innerHTML = ''; return; }
+  var suma = SEL.evPagos.reduce(function(s, p) { return s + (parseFloat(p.importe) || 0); }, 0), tot = _evNum('evTotal');
+  var ok = Math.abs(suma - tot) < 0.01;
+  var resumen = '<div id="evMixRes" style="font-size:12px;margin-top:2px;color:' + (ok ? 'var(--green,#16a34a)' : '#B91C1C') + '">' +
+    escHtml(T('ev.mixto_suma').replace('{s}', cur(suma)).replace('{t}', cur(tot))) + '</div>';
+  if (soloTotal && document.getElementById('evMixRes')) { document.getElementById('evMixRes').outerHTML = resumen; return; }
+  box.innerHTML = '<div style="font-size:12px;font-weight:700;margin:2px 0 6px">' + escHtml(T('ev.reparto')) + '</div>' +
+    SEL.evPagos.map(function(p, i) {
+      return '<div style="display:grid;grid-template-columns:1fr 110px 32px;gap:6px;margin-bottom:5px">' +
+        '<select class="fi" style="padding:6px 8px;font-size:13px" onchange="SEL.evPagos[' + i + '].metodo=this.value">' +
+        _EV_METODOS.map(function(m) { return '<option value="' + m + '"' + (p.metodo === m ? ' selected' : '') + '>' + escHtml(_pagoLbl(m)) + '</option>'; }).join('') + '</select>' +
+        '<input class="fi" style="padding:6px 8px;font-size:13px" type="number" step="0.01" value="' + (parseFloat(p.importe) || 0) + '" oninput="SEL.evPagos[' + i + '].importe=parseFloat(this.value)||0;_evPintarMixto(true)">' +
+        '<button class="btn-secondary" style="padding:4px" onclick="SEL.evPagos.splice(' + i + ',1);_evPintarMixto()"' + (SEL.evPagos.length <= 2 ? ' disabled' : '') + '>×</button></div>';
+    }).join('') +
+    '<button class="btn-secondary" style="padding:5px 10px;font-size:12px" onclick="SEL.evPagos.push({metodo:\'Efectivo\',importe:0});_evPintarMixto()">+ ' + escHtml(T('ev.otra_forma')) + '</button>' + resumen;
+}
+async function guardarEdicionVenta() {
   var v = (DB.ventas || []).find(function(x){ return x.id === SEL.editVentaId; });
   if (!v) return;
-  var nom = (document.getElementById('evCliente').value || '').trim();
-  v.clienteNombre = nom || T('gen.sin_cliente');
-  var c = (DB.clis || []).find(function(x){ return (((x.nombre||'') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === nom; });
-  v.clienteId = c ? c.id : (nom ? v.clienteId : null);
-  v.modelo = (document.getElementById('evModelo').value || '').trim();
-  var _pagoNuevo = document.getElementById('evPago').value;
-  var _eraMixta = !!(v.pagos && v.pagos.length);
-  // Pago mixto: el reparto entre formas de pago no se edita aquí. Si se cambia el
-  // importe, hay que elegir una sola forma de pago para que la caja cuadre.
-  if (_eraMixta && _pagoNuevo === 'Mixto' && !v.financiado &&
-      Math.abs((parseFloat(document.getElementById('evTotal').value) || 0) - (parseFloat(v.total) || 0)) > 0.009) {
-    toast(T('ev.mixto_total'), 'err'); return;
+  var antes = JSON.parse(JSON.stringify(v));
+  var fact = !!SEL.evFactura;
+  var pagoNuevo = document.getElementById('evPago').value;
+  var mix = pagoNuevo === 'Mixto';
+  var total = v.financiado ? v.total : Math.round(_evNum('evTotal') * 100) / 100;
+  if (fact) total = v.total;
+  if (total < 0) { toast(T('ev.total_negativo'), 'err'); return; }
+  if (mix) {
+    var suma = (SEL.evPagos || []).reduce(function(s, p) { return s + (parseFloat(p.importe) || 0); }, 0);
+    if (Math.abs(suma - total) > 0.009) { toast(T('ev.mixto_no_cuadra').replace('{s}', cur(suma)).replace('{t}', cur(total)), 'err'); return; }
   }
-  v.pago = _pagoNuevo;
-  if (_eraMixta && _pagoNuevo !== 'Mixto') v.pagos = null;
-  if (!v.financiado) {
-    var desc = parseFloat(document.getElementById('evDescuento').value) || 0;
-    var total = parseFloat(document.getElementById('evTotal').value) || 0;
-    var rate = parseFloat(v.iva) || 0;
-    v.descuento = desc;
-    v.total = total;
-    v.base = rate > 0 ? Math.round((total / (1 + rate / 100)) * 100) / 100 : total;
-    v.ivaImporte = Math.round((total - v.base) * 100) / 100;
-    v.precio = Math.round((total + desc) * 100) / 100;
-    if (v.items && v.items[0]) { v.items[0].nombre = v.modelo || v.items[0].nombre; v.items[0].precio = total; }
-  } else if (v.items && v.items[0]) {
-    v.items[0].nombre = v.modelo || v.items[0].nombre;
+  var fecha = document.getElementById('evFecha').value;
+  if (!fact && !/^\d{4}-\d{2}-\d{2}$/.test(fecha)) { toast(T('ev.fecha_mal'), 'err'); return; }
+
+  // Lo nuevo
+  var n = {};
+  if (!fact) {
+    var nom = (document.getElementById('evCliente').value || '').trim();
+    var c = (DB.clis || []).find(function(x){ return (((x.nombre||'') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === nom; });
+    n.clienteNombre = nom || T('gen.sin_cliente');
+    n.clienteId = c ? c.id : (nom && nom === v.clienteNombre ? v.clienteId : null);
+    n.fecha = fecha;
+    if (SEL.evLineas && SEL.evLineas.length) {
+      n.items = SEL.evLineas.filter(function(it) { return (parseFloat(it.qty != null ? it.qty : it.cantidad) || 0) > 0; });
+      if (!n.items.length) { toast(T('ev.sin_lineas'), 'err'); return; }
+      if (n.items.length === 1) { n.modelo = n.items[0].nombre || v.modelo; n.imei = n.items[0].imei || ''; }
+      else n.modelo = v.modelo;
+    } else {
+      n.modelo = (document.getElementById('evModelo').value || '').trim();
+      n.imei = (document.getElementById('evImei').value || '').trim();
+    }
+    if (!v.financiado) {
+      var desc = Math.round(_evNum('evDescuento') * 100) / 100, rate = parseFloat(v.iva) || 0;
+      n.descuento = desc; n.total = total;
+      n.base = rate > 0 ? Math.round((total / (1 + rate / 100)) * 100) / 100 : total;
+      n.ivaImporte = Math.round((total - n.base) * 100) / 100;
+      n.precio = Math.round((total + desc) * 100) / 100;
+    }
   }
+  n.pago = mix ? 'Mixto' : pagoNuevo;
+  n.pagos = mix ? SEL.evPagos.filter(function(p) { return (parseFloat(p.importe) || 0) > 0; }).map(function(p) { return { metodo: p.metodo, importe: Math.round((parseFloat(p.importe) || 0) * 100) / 100 }; }) : null;
+
+  // Qué cambia (para el registro de actividad)
+  var cambios = {};
+  var cmp = function(k, a, b) { if (JSON.stringify(a == null ? '' : a) !== JSON.stringify(b == null ? '' : b)) cambios[k] = { antes: a == null ? '' : a, despues: b == null ? '' : b }; };
+  ['clienteNombre', 'fecha', 'modelo', 'imei', 'pago', 'descuento', 'total'].forEach(function(k) { if (k in n) cmp(k, antes[k], n[k]); });
+  cmp('pagos', antes.pagos || null, n.pagos);
+  if ('items' in n) cmp('lineas', (antes.items || []).map(function(it) { return (it.qty != null ? it.qty : it.cantidad || 1) + '× ' + it.nombre + ' ' + it.precio; }).join(' | '),
+    n.items.map(function(it) { return (it.qty != null ? it.qty : it.cantidad || 1) + '× ' + it.nombre + ' ' + it.precio; }).join(' | '));
+  if (!Object.keys(cambios).length) { closeM('mEditarVenta'); return; }
+
+  // Caja de ese día ya cerrada: el cierre guardado no se recalcula.
+  if (SEL.evCajaCerrada && (cambios.total || cambios.pago || cambios.pagos || cambios.fecha || cambios.descuento)) {
+    var seguir = await confirmar(T('ev.caja_cerrada_confirm'), null, { okLabel: T('gen.guardar') });
+    if (!seguir) return;
+  }
+
+  Object.assign(v, n);
+  var fila = {
+    cliente_id: v.clienteId || null, cliente_nombre: v.clienteNombre, fecha: v.fecha, modelo: v.modelo, imei: v.imei || '',
+    pago: v.pago, pagos: v.pagos, precio: v.precio, descuento: v.descuento, total: v.total,
+    base: v.base, iva_importe: v.ivaImporte,
+    items: (v.items && v.items.length) ? JSON.stringify(v.items) : null
+  };
   if (SB_KEY && TIENDA_ID) {
-    sbPatch('ventas', 'id=eq.' + encodeURIComponent(v.id), Object.assign({
-      cliente_id: v.clienteId, cliente_nombre: v.clienteNombre, modelo: v.modelo,
-      pago: v.pago, precio: v.precio, descuento: v.descuento, total: v.total,
-      base: v.base, iva_importe: v.ivaImporte,
-      items: (v.items && v.items.length) ? JSON.stringify(v.items) : null
-    }, _eraMixta && !v.pagos ? { pagos: null } : {}));
+    var ok = await sbPatch('ventas', 'id=eq.' + encodeURIComponent(v.id), fila);
+    if (!ok) { Object.keys(v).forEach(function(k) { delete v[k]; }); Object.assign(v, antes); return; }   // el aviso ya lo da sbPatch
   }
-  try { if (typeof audit === 'function') audit('editar', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total), null); } catch(e){}
+  try { if (typeof audit === 'function') audit('editar', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total), cambios); } catch(e){}
   guardarDatos(); closeM('mEditarVenta'); renderVentas();
   try { renderInicioNuevo(); } catch(e){}
   toast(T('gen.guardado'), 'ok');
 }
+window._evSetLinea = _evSetLinea;
+window._evRecalcular = _evRecalcular;
+window._evCambioPago = _evCambioPago;
+window._evPintarMixto = _evPintarMixto;
 
 // ─────────────── Código de barras del ticket (Code 128B) ───────────────
 // Se dibuja con <i> de anchos variables: sin librería y sin red. Un ticket

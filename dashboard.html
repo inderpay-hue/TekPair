@@ -1233,7 +1233,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261018a"></script>
+<script src="/lang/lang.v8.js?v=20261018b"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -5286,16 +5286,28 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 <!-- EDITAR VENTA -->
 <div class="modal-bg" id="mEditarVenta">
-<div class="modal">
+<div class="modal" style="max-width:620px">
   <div class="modal-title"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-pencil"/></svg><span data-t="ev.titulo">Editar venta</span></div>
-  <div class="fg"><label class="fl" data-t="gen.cliente">Cliente</label><input class="fi" id="evCliente" list="evCliList" placeholder="Nombre"><datalist id="evCliList"></datalist></div>
-  <div class="fg"><label class="fl" data-t="gen.modelo">Modelo</label><input class="fi" id="evModelo" placeholder="Producto / modelo"></div>
+  <div id="evAvisos"></div>
   <div class="fi-row">
-    <div class="fg"><label class="fl" data-t="gen.pago">Pago</label><select class="fi" id="evPago"></select></div>
-    <div class="fg"><label class="fl" data-t="ev.descuento">Descuento</label><input class="fi" id="evDescuento" type="number" step="0.01" value="0"></div>
-    <div class="fg"><label class="fl" data-t="gen.total">Total</label><input class="fi" id="evTotal" type="number" step="0.01" value="0"></div>
+    <div class="fg"><label class="fl" data-t="gen.cliente">Cliente</label><input class="fi" id="evCliente" list="evCliList" placeholder="Nombre"><datalist id="evCliList"></datalist></div>
+    <div class="fg" style="max-width:170px"><label class="fl" data-t="gen.fecha">Fecha</label><input class="fi" id="evFecha" type="date"></div>
   </div>
+  <div id="evSinLineas">
+    <div class="fi-row">
+      <div class="fg"><label class="fl" data-t="gen.modelo">Modelo</label><input class="fi" id="evModelo" placeholder="Producto / modelo"></div>
+      <div class="fg" style="max-width:200px"><label class="fl">IMEI</label><input class="fi" id="evImei" placeholder="IMEI"></div>
+    </div>
+  </div>
+  <div id="evLineas"></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl" data-t="gen.pago">Pago</label><select class="fi" id="evPago" onchange="_evCambioPago()"></select></div>
+    <div class="fg"><label class="fl" data-t="ev.descuento">Descuento</label><input class="fi" id="evDescuento" type="number" step="0.01" value="0" oninput="_evRecalcular()"></div>
+    <div class="fg"><label class="fl" data-t="gen.total">Total</label><input class="fi" id="evTotal" type="number" step="0.01" value="0" oninput="_evPintarMixto(true)"></div>
+  </div>
+  <div id="evMixto"></div>
   <div id="evNotaFin" style="display:none;font-size:11.5px;color:var(--orange);margin-bottom:8px" data-t="ev.fin_nota">Venta financiada: el importe se gestiona desde Financiación; aquí solo cliente, concepto y pago.</div>
+  <div style="font-size:11px;color:var(--text-2,#64748B);margin:6px 0 4px" data-t="ev.nota_stock">Cambiar productos o cantidades aquí corrige la venta y el ticket, no el stock.</div>
   <div class="modal-actions">
     <button class="btn-secondary" onclick="closeM('mEditarVenta')" data-t="gen.cancelar">Cancelar</button>
     <button class="btn-primary" onclick="guardarEdicionVenta()"><span data-t="gen.guardar">Guardar</span></button>
