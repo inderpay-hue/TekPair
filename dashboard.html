@@ -1234,7 +1234,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261019e"></script>
+<script src="/lang/lang.v8.js?v=20261019h"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -3495,6 +3495,16 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <div class="card-title" data-t="aviso.aj_titulo">Avisos al cliente por email</div>
       <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 8px" data-t="aviso.aj_hint">Al cambiar el estado de una reparación siempre te sale una barra para avisar por WhatsApp o email con un toque. Marca los estados en los que quieras que el email salga solo, sin pulsar nada (si el cliente tiene email).</div>
       <div id="avisosAutoLista"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📦 <span data-t="recog.aj_titulo">Recordatorio de recogida</span></div>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px" data-t="recog.aj_hint">Reparaciones listas que el cliente no viene a buscar: salen en Reparaciones («Sin recoger») y en el Inicio para recordárselo con un toque.</div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="recogOn" onchange="setRecogidaCfg()" checked> <span data-t="recog.aj_on">Avisarme de las reparaciones sin recoger</span></label>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0;flex-wrap:wrap"><span data-t="recog.aj_dias">Recordar a los</span>
+        <select class="fi" id="recogDias" onchange="setRecogidaCfg()" style="width:auto;padding:6px 10px"><option value="3">3</option><option value="5">5</option><option value="7" selected>7</option><option value="10">10</option><option value="15">15</option><option value="30">30</option></select>
+        <span data-t="recog.aj_dias2">días de avisar que está lista</span></div>
+      <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="recogAuto" onchange="setRecogidaCfg()" style="margin-top:3px"> <span><span data-t="recog.aj_auto">Mandar el recordatorio por email automáticamente</span><br><span style="color:var(--muted);font-size:12px" data-t="recog.aj_auto_hint">Cada mañana, a los clientes con email. Como mucho 3 veces por reparación. Usa tu plantilla «Recordatorio recogida».</span></span></label>
     </div>
 
     <div class="card">

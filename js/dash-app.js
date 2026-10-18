@@ -1003,6 +1003,7 @@ window.addEventListener('DOMContentLoaded', function() {
   }
   if (aj.funciones) AJUSTES.funciones = aj.funciones;
   if (aj.avisosAuto) AJUSTES.avisosAuto = aj.avisosAuto;
+  if (aj.recogida) AJUSTES.recogida = aj.recogida;
   if (aj.usados) AJUSTES.usados = aj.usados;
   try { aplicarFunciones(); } catch (e) {}
 
@@ -4591,6 +4592,14 @@ function calcularProximaAccion() {
       titulo: T('next.lista_t').replace('{c}', r.clienteNombre || '').replace('{d}', _equipo(r)), sub: T('next.lista_s'),
       cta: { label: '📲 ' + T('estan.avisar'), fn: "avisarListo('" + r.id + "')" }, cta2: { label: '👁️ ' + T('estan.ver'), fn: "editarRep('" + r.id + "')" } });
   });
+  // 1b. Reparación lista que lleva días sin recoger → recordarle al cliente
+  var _sr = _repsSinRecoger();
+  if (_sr.length) {
+    var rr0 = _sr[0], keyR = 'recog_' + rr0.id + '_' + (((window._recogidaInfo || {})[rr0.id] || {}).ult || '');
+    if (!_proxIsSkipped(keyR)) cands.push({ key: keyR, score: 720 + rr0._diasSinRecoger, icon: '📦', color: 'orange',
+      titulo: T('recog.prox_t').replace('{c}', rr0.clienteNombre || '').replace('{d}', _equipo(rr0)).replace('{n}', rr0._diasSinRecoger), sub: T('recog.prox_s'),
+      cta: { label: '🔔 ' + T('recog.recordar'), fn: "recordarRecogida('" + rr0.id + "')" }, cta2: { label: '👁️ ' + T('estan.ver'), fn: "editarRep('" + rr0.id + "')" } });
+  }
   // 2. Reparación más atrasada (>14 días en taller)
   var atr = reps.filter(function(r) { if (CERR.indexOf(r.estado) !== -1) return false; if (repEsperaPieza(r.id)) return false; var f = r.fecha || r.fecha_entrada; if (!f) return false; var dt = Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000); r._dtProx = Math.max(0, dt - _diasEsperandoPieza(r.id)); return r._dtProx > 14; }).sort(function(a, b) { return b._dtProx - a._dtProx; });
   if (atr.length) {
@@ -12748,7 +12757,18 @@ function _repBandaRow(r, tipo) {
   var equipo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
   var nom = r.clienteNombre || '';
   var titulo = equipo || nom || ('#' + (r.numero || ''));
-  var dias = r._diasTaller != null ? r._diasTaller : 0;
+  var dias = tipo === 'recoger' ? (r._diasSinRecoger || 0) : (r._diasTaller != null ? r._diasTaller : 0);
+  if (tipo === 'recoger') {
+    var _inf = (window._recogidaInfo || {})[r.id] || {};
+    return '<div style="padding:7px 8px;border-radius:8px;background:var(--light)">' +
+      '<div style="display:flex;justify-content:space-between;align-items:center;gap:10px">' +
+      '<div style="min-width:0"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(((r.marca || '') + ' ' + (r.modelo || '')).trim() || ('#' + (r.numero || ''))) + '</div>' +
+      '<div style="font-size:11.5px;color:var(--muted)">' + esc(r.clienteNombre || '') + (_inf.n ? ' · ' + esc(T('recog.ya_n').replace('{n}', _inf.n)) : '') + '</div></div>' +
+      '<div style="flex-shrink:0;font-weight:800;font-size:13px;color:' + (dias > 30 ? '#DC2626' : '#7C3AED') + '">' + esc(T('recog.dias_lista').replace('{n}', dias)) + '</div></div>' +
+      '<div style="display:flex;gap:6px;margin-top:7px;flex-wrap:wrap">' +
+      '<button onclick="recordarRecogida(\'' + r.id + '\')" style="border:none;background:#7C3AED;color:#fff;border-radius:7px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">🔔 ' + esc(T('recog.recordar')) + '</button>' +
+      '<button onclick="editarRep(\'' + r.id + '\')" style="border:1px solid var(--border);background:var(--card,#fff);color:var(--text);border-radius:7px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">' + esc(T('estan.ver')) + '</button></div></div>';
+  }
   var diasTxt = (tipo !== 'lista') ? '<div style="flex-shrink:0;font-weight:800;font-size:13px;color:' + (dias > 30 ? '#DC2626' : (dias > 14 ? '#EA580C' : 'var(--muted)')) + '">' + dias + ' ' + T('estan.dias') + '</div>' : '';
   var btnAv = _repBandaTieneTel(r) ? '<button onclick="_repBandaAvisar(\'' + r.id + '\')" style="border:none;background:#25D366;color:#fff;border-radius:7px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">📲 ' + T('estan.avisar') + '</button>' : '';
   var btnLista = (tipo !== 'lista' && ['Por Entregar', 'Por entregar'].indexOf(r.estado) === -1) ? '<button onclick="_repBandaLista(\'' + r.id + '\')" style="border:none;background:rgba(0,200,150,.12);color:#0F7355;border-radius:7px;padding:5px 10px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">✅ ' + T('repban.marcar_lista') + '</button>' : '';
@@ -12768,8 +12788,10 @@ function renderRepsUrgenciaBanda() {
   var hoyISO = hoyLocal();
   var CERR = ['Entregado', 'Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'];
   var urgentes = [], atrasadas = [], listas = [], esperando = [];
+  var recoger = _repsSinRecoger();
+  var _enRecoger = {}; recoger.forEach(function(r) { _enRecoger[r.id] = 1; });
   (DB.reps || []).forEach(function(r) {
-    if (['Por Entregar', 'Por entregar'].indexOf(r.estado) !== -1) { if (!_estaAvisado(r.id)) listas.push(r); return; }
+    if (['Por Entregar', 'Por entregar'].indexOf(r.estado) !== -1) { if (!_estaAvisado(r.id) && !_enRecoger[r.id]) listas.push(r); return; }
     if (CERR.indexOf(r.estado) !== -1) return;
     var f = r.fecha || r.fecha_entrada;
     var bruto = f ? Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000) : 0;
@@ -12781,11 +12803,11 @@ function renderRepsUrgenciaBanda() {
     // "Atrasada" = activa y >14 días netos en taller, MISMA definición que Home/badge/próxima-acción.
     if (r._diasTaller > 14) atrasadas.push(r);
   });
-  if (!urgentes.length && !atrasadas.length && !listas.length && !esperando.length) { box.style.display = 'none'; box.innerHTML = ''; _repBandaAbierto = null; return; }
+  if (!urgentes.length && !atrasadas.length && !listas.length && !esperando.length && !recoger.length) { box.style.display = 'none'; box.innerHTML = ''; _repBandaAbierto = null; return; }
   urgentes.sort(function(a, b) { return (b._diasTaller || 0) - (a._diasTaller || 0); });
   atrasadas.sort(function(a, b) { return (b._diasTaller || 0) - (a._diasTaller || 0); });
   // Si el bucket abierto se quedó vacío (p.ej. tras avisar al último), cerrarlo.
-  var mapa = { urgente: urgentes, atrasada: atrasadas, lista: listas, esperando: esperando };
+  var mapa = { urgente: urgentes, atrasada: atrasadas, lista: listas, esperando: esperando, recoger: recoger };
   if (_repBandaAbierto && (!mapa[_repBandaAbierto] || !mapa[_repBandaAbierto].length)) _repBandaAbierto = null;
   // Chips compactos con el número; clic = desplegar/plegar ese bucket.
   function chip(arr, emoji, titKey, color, tipo) {
@@ -12793,7 +12815,7 @@ function renderRepsUrgenciaBanda() {
     var on = _repBandaAbierto === tipo;
     return '<button onclick="_repBandaToggle(\'' + tipo + '\')" style="display:inline-flex;align-items:center;gap:6px;border:1px solid ' + (on ? color : 'var(--border)') + ';background:' + (on ? color + '18' : 'var(--card,#fff)') + ';color:' + color + ';border-radius:999px;padding:5px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">' + emoji + ' <span style="font-weight:800">' + arr.length + '</span> ' + T(titKey) + ' <span style="font-size:9px;opacity:.7">' + (on ? '▲' : '▼') + '</span></button>';
   }
-  var chips = chip(urgentes, '🔴', 'repban.urgente', '#DC2626', 'urgente') + chip(atrasadas, '⚠️', 'repban.atrasadas', '#EA580C', 'atrasada') + chip(esperando, '🛒', 'rep.esperando_pieza', '#B45309', 'esperando') + chip(listas, '🟢', 'repban.listas', '#0F7355', 'lista');
+  var chips = chip(urgentes, '🔴', 'repban.urgente', '#DC2626', 'urgente') + chip(atrasadas, '⚠️', 'repban.atrasadas', '#EA580C', 'atrasada') + chip(esperando, '🛒', 'rep.esperando_pieza', '#B45309', 'esperando') + chip(recoger, '📦', 'recog.chip', '#7C3AED', 'recoger') + chip(listas, '🟢', 'repban.listas', '#0F7355', 'lista');
   var arrSel = mapa[_repBandaAbierto];
   var expandido = '';
   if (arrSel && arrSel.length) {
@@ -21020,6 +21042,7 @@ function renderPreviewWA() {
 // Registra un aviso (envío) en la tabla `avisos` — historial de comunicaciones.
 // Frontend → REST con anon+JWT (la policy avisos_insert_tienda lo permite). No bloqueante.
 function registrarAviso(d) {
+  try { if (d && d.ref_id && (d.tipo === 'rep_lista' || d.tipo === 'rep_recogida')) _recogidaAnotar(d.ref_id, d.tipo); } catch (e) {}
   if (!SB_KEY || !TIENDA_ID || typeof _sbPostRaw !== 'function') return;
   try {
     _sbPostRaw('avisos', {
@@ -24198,8 +24221,88 @@ function _avisoEnviarEmail(r, cli, key, auto) {
   }).catch(function() { toast(T('aviso.email_error'), 'err'); });
 }
 
+// ═══ RECORDATORIO DE RECOGIDA ═══
+// Reparación "Por entregar" a la que ya se avisó (aviso rep_lista o recordatorio) y
+// lleva AJUSTES.recogida.dias sin recoger → sale en Reparaciones ("Sin recoger") y en
+// "lo más urgente" del Inicio con el botón Recordar (plantilla rep_recogida). Si
+// AJUSTES.recogida.auto, el cron del servidor manda el email solo (máx. 3 por reparación).
+// Las fechas salen de la tabla avisos (lo que de verdad se envió), no de suposiciones.
+function _recogidaCfg() { var c = AJUSTES.recogida || {}; return { dias: parseInt(c.dias, 10) || 7, auto: !!c.auto, off: c.off === true }; }
+var _recogidaCargadoAt = 0;
+function _recogidaCargar(forzar) {
+  if (!SB_KEY || !TIENDA_ID) return;
+  if (!forzar && Date.now() - _recogidaCargadoAt < 5 * 60000) return;
+  _recogidaCargadoAt = Date.now();
+  var ids = (DB.reps || []).filter(function(r) { return ['Por Entregar', 'Por entregar'].indexOf(r.estado) !== -1; }).map(function(r) { return r.id; });
+  if (!ids.length) { window._recogidaInfo = {}; return; }
+  var info = {}, lotes = [];
+  for (var i = 0; i < ids.length; i += 80) lotes.push(ids.slice(i, i + 80));
+  Promise.all(lotes.map(function(l) {
+    return sbGet('avisos', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&ref_id=in.(' + l.map(encodeURIComponent).join(',') + ')&tipo=in.(rep_lista,rep_recogida)&select=ref_id,tipo,fecha,estado&order=fecha.desc');
+  })).then(function(res) {
+    res.forEach(function(rows) { (rows || []).forEach(function(a) {
+      if (a.estado === 'error') return;
+      var x = info[a.ref_id] || (info[a.ref_id] = { ult: '', n: 0 });
+      if (!x.ult || String(a.fecha) > x.ult) x.ult = String(a.fecha);
+      if (a.tipo === 'rep_recogida') x.n++;
+    }); });
+    window._recogidaInfo = info;
+    try { renderRepsUrgenciaBanda(); } catch (e) {}
+  }).catch(function() {});
+}
+function _recogidaAnotar(repId, tipo) {
+  window._recogidaInfo = window._recogidaInfo || {};
+  var x = window._recogidaInfo[repId] || (window._recogidaInfo[repId] = { ult: '', n: 0 });
+  x.ult = new Date().toISOString();
+  if (tipo === 'rep_recogida') x.n++;
+}
+function _repsSinRecoger() {
+  var cfg = _recogidaCfg(); if (cfg.off) return [];
+  try { _recogidaCargar(false); } catch (e) {}
+  var info = window._recogidaInfo || {}, ahora = Date.now();
+  return (DB.reps || []).filter(function(r) {
+    if (['Por Entregar', 'Por entregar'].indexOf(r.estado) === -1) return false;
+    var x = info[r.id]; if (!x || !x.ult) return false;
+    r._diasSinRecoger = Math.floor((ahora - new Date(x.ult).getTime()) / 86400000);
+    return r._diasSinRecoger >= cfg.dias;
+  }).sort(function(a, b) { return b._diasSinRecoger - a._diasSinRecoger; });
+}
+function recordarRecogida(repId) {
+  var r = (DB.reps || []).find(function(x) { return x.id === repId; }); if (!r) return;
+  var cli = _avisoCliRep(r);
+  var tel = (cli && cli.tel) ? waTel(cli.tel, cli.telPrefijo) : '';
+  var mail = (cli && cli.email) || '';
+  if (!tel && !mail) { toast(T('recog.sin_contacto'), 'err'); return; }
+  _avisoBarra(r, cli, 'rep_recogida', tel, mail, false);
+}
+window.recordarRecogida = recordarRecogida;
+// Ajustes → Notificaciones
+function renderRecogidaAj() {
+  var c = _recogidaCfg();
+  var sel = document.getElementById('recogDias'), chk = document.getElementById('recogAuto'), on = document.getElementById('recogOn');
+  if (on) on.checked = !c.off;
+  if (sel) { sel.value = String(c.dias); sel.disabled = c.off; }
+  if (chk) { chk.checked = c.auto; chk.disabled = c.off; }
+}
+function setRecogidaCfg() {
+  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); renderRecogidaAj(); return; }
+  var on = document.getElementById('recogOn');
+  AJUSTES.recogida = {
+    dias: parseInt((document.getElementById('recogDias') || {}).value, 10) || 7,
+    auto: !!(document.getElementById('recogAuto') || {}).checked,
+    off: on ? !on.checked : false
+  };
+  try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES });
+  renderRecogidaAj();
+  try { renderRepsUrgenciaBanda(); } catch (e) {}
+  toast(T('gen.guardado'), 'ok');
+}
+window.setRecogidaCfg = setRecogidaCfg;
+
 // Ajustes → Notificaciones: email automático por estado.
 function renderAvisosAuto() {
+  try { renderRecogidaAj(); } catch (e) {}
   var cont = document.getElementById('avisosAutoLista'); if (!cont) return;
   var cfg = AJUSTES.avisosAuto || {};
   cont.innerHTML = Object.keys(AVISO_ESTADO_PL).map(function(e) {

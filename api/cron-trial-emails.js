@@ -179,7 +179,13 @@ export default async function handler(req, res) {
       alertas = await avisarInactividad(SUPABASE_URL, headers, RESEND_KEY, now);
     } catch (e) { console.error('[cron] alertas:', e.message); }
 
-    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas });
+    // ── Recordatorio de recogida por email (tiendas que lo activan en Notificaciones) ──
+    let recogida = { enviados: 0, errores: 0 };
+    try {
+      recogida = await recordatoriosRecogida(SUPABASE_URL, headers, RESEND_KEY, now);
+    } catch (e) { console.error('[cron] recogida:', e.message); }
+
+    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida });
 
   } catch(e) {
     console.error('[cron] Error general:', e);
@@ -596,4 +602,84 @@ async function sendEmail1Day(tienda, RESEND_KEY) {
     console.error('[cron] sendEmail1Day falló para', tienda.id, ':', e.message);
     return false;
   }
+}
+
+// ═══ RECORDATORIO DE RECOGIDA (email automático) ═══
+// Tiendas con ajustes_config.recogida.auto: a las reparaciones "Por entregar" cuyo
+// último aviso (rep_lista o rep_recogida, de la tabla avisos) tiene más de
+// recogida.dias días, se les manda un email de recordatorio al cliente, con la
+// plantilla rep_recogida de la tienda. Máximo 3 recordatorios por reparación y 40
+// emails por tienda y día. Sin aviso previo no se recuerda nada (el cliente aún no
+// sabe que está lista: eso lo resuelve el aviso de "lista", no este).
+const RECOG_DEF = 'Hola {nombre}, te recuerdo que tu {modelo} sigue en {tienda} listo para recoger desde hace días. Cuando puedas pásate, ¡gracias!';
+async function recordatoriosRecogida(SUPABASE_URL, headers, RESEND_KEY, now) {
+  const out = { enviados: 0, errores: 0, tiendas: 0 };
+  if (!RESEND_KEY) return out;
+  const q = async (path) => { const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers }); return r.ok ? r.json() : []; };
+  const tiendas = await q(`tiendas?ajustes_config->recogida->>auto=eq.true&select=id,nombre,ajustes_config`);
+  for (const t of tiendas) {
+    try {
+      const cfg = (t.ajustes_config && t.ajustes_config.recogida) || {};
+      if (cfg.off === true) continue;
+      const dias = Math.max(1, parseInt(cfg.dias, 10) || 7);
+      const reps = await q(`reparaciones?tienda_id=eq.${encodeURIComponent(t.id)}&estado=in.(%22Por%20Entregar%22,%22Por%20entregar%22)&select=id,cliente_id,cliente_nombre,marca,modelo,token`);
+      if (!reps.length) continue;
+      out.tiendas++;
+      const avisos = [];
+      for (let i = 0; i < reps.length; i += 80) {
+        const ids = reps.slice(i, i + 80).map(r => encodeURIComponent(r.id)).join(',');
+        avisos.push(...await q(`avisos?tienda_id=eq.${encodeURIComponent(t.id)}&ref_id=in.(${ids})&tipo=in.(rep_lista,rep_recogida)&select=ref_id,tipo,fecha,estado`));
+      }
+      const info = {};
+      for (const a of avisos) {
+        if (a.estado === 'error') continue;
+        const x = info[a.ref_id] || (info[a.ref_id] = { ult: 0, n: 0 });
+        const f = new Date(a.fecha).getTime();
+        if (f > x.ult) x.ult = f;
+        if (a.tipo === 'rep_recogida') x.n++;
+      }
+      const plantilla = (t.ajustes_config.plantillasWA && t.ajustes_config.plantillasWA.rep_recogida && t.ajustes_config.plantillasWA.rep_recogida.texto) || RECOG_DEF;
+      let enviadosTienda = 0;
+      for (const r of reps) {
+        if (enviadosTienda >= 40) break;
+        const x = info[r.id];
+        if (!x || !x.ult || x.n >= 3) continue;
+        if ((now.getTime() - x.ult) / 86400000 < dias) continue;
+        if (!r.cliente_id) continue;
+        const cl = (await q(`clientes?id=eq.${encodeURIComponent(r.cliente_id)}&tienda_id=eq.${encodeURIComponent(t.id)}&select=nombre,apellidos,email`))[0];
+        const email = cl && String(cl.email || '').trim();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue;
+        const nombre = (cl.nombre || r.cliente_nombre || '').trim();
+        const modelo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
+        const texto = String(plantilla).replace(/\{nombre\}/g, nombre).replace(/\{modelo\}/g, modelo).replace(/\{tienda\}/g, t.nombre || 'TekPair')
+          .replace(/\{dias\}/g, String(Math.floor((now.getTime() - x.ult) / 86400000))).replace(/\{[a-z_]+\}/g, '');
+        const link = r.token ? `https://www.tekpair.tech/parte.html?id=${encodeURIComponent(r.id)}&t=${encodeURIComponent(r.token)}` : '';
+        // Se apunta ANTES de enviar: si el cron se repite, no manda dos veces.
+        const avId = 'av_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        const asunto = `${t.nombre || 'TekPair'}: tu ${modelo || 'equipo'} está listo para recoger`;
+        const ins = await fetch(`${SUPABASE_URL}/rest/v1/avisos`, { method: 'POST', headers: { ...headers, Prefer: 'return=minimal' },
+          body: JSON.stringify({ id: avId, tienda_id: t.id, tipo: 'rep_recogida', canal: 'email', destinatario: email, ref_tipo: 'reparacion', ref_id: r.id, asunto, estado: 'enviado', fecha: now.toISOString() }) });
+        if (!ins.ok) { out.errores++; continue; }
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#111">
+  <div style="background:#FF5B1F;color:white;padding:20px;border-radius:10px 10px 0 0;text-align:center"><h1 style="margin:0;font-size:21px">${esc(t.nombre || 'TekPair')}</h1></div>
+  <div style="background:white;padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
+    <p style="font-size:14px;color:#333;line-height:1.6;margin:0">${esc(texto).replace(/\n/g, '<br>')}</p>
+    ${link ? `<p style="text-align:center;margin:22px 0 4px"><a href="${esc(link)}" style="background:#FF5B1F;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">Ver mi reparación</a></p>` : ''}
+  </div>
+  <div style="text-align:center;padding:16px;color:#aaa;font-size:11px">Enviado con TekPair · tekpair.tech</div>
+</body></html>`;
+        try {
+          const ra = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: `${String(t.nombre || 'TekPair').replace(/[<>"\r\n]/g, '').slice(0, 60)} <noreply@tekpair.tech>`, to: [email], subject: asunto, html }) });
+          if (ra.ok) { out.enviados++; enviadosTienda++; }
+          else {
+            out.errores++;
+            await fetch(`${SUPABASE_URL}/rest/v1/avisos?id=eq.${avId}`, { method: 'PATCH', headers: { ...headers, Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'error' }) });
+          }
+        } catch (e) { out.errores++; }
+      }
+    } catch (e) { console.error('[cron] recogida tienda', t.id, e.message); out.errores++; }
+  }
+  return out;
 }
