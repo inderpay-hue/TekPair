@@ -18,6 +18,93 @@
   }
   window.tkIsDesktop = tkIsDesktop;
 
+  // ── Documentos (factura, presupuesto, recibos, informes) dentro de la app ──
+  // En el navegador se abren en una ventana emergente; la app de escritorio no abre
+  // ventanas emergentes y TekPair decía "activa las ventanas emergentes" (parecía
+  // que la app pedía permisos). Dentro de la app, window.open('') / window.open(blob:)
+  // se convierten en una vista a pantalla completa con Imprimir (o Guardar como PDF
+  // desde el diálogo de impresión) y Cerrar. El código que escribe el documento no
+  // cambia: recibe un objeto que se comporta como la ventana (document.write,
+  // print, focus, close, location.href).
+  function _txt(k, def) { try { var v = window.T ? window.T(k) : ''; return (v && v !== k) ? v : def; } catch (e) { return def; } }
+  function tkVerDocumento(html) {
+    var prev = document.getElementById('tkDocVisor'); if (prev) prev.remove();
+    var bg = document.createElement('div');
+    bg.id = 'tkDocVisor';
+    bg.style.cssText = 'position:fixed;inset:0;z-index:2147483640;background:rgba(15,23,42,.75);display:flex;flex-direction:column;padding:12px;gap:10px';
+    var bar = document.createElement('div');
+    bar.style.cssText = 'display:flex;gap:8px;justify-content:flex-end;align-items:center';
+    var btn = 'border:none;border-radius:10px;padding:10px 16px;font:inherit;font-weight:700;cursor:pointer;font-size:14px';
+    bar.innerHTML = '<span style="flex:1;color:#fff;font-size:13px;opacity:.85">' + _txt('doc.visor_ayuda', 'Para guardarlo en PDF: Imprimir → «Guardar como PDF»') + '</span>' +
+      '<button type="button" data-a="print" style="' + btn + ';background:#16a34a;color:#fff">🖨 ' + _txt('doc.imprimir', 'Imprimir / PDF') + '</button>' +
+      '<button type="button" data-a="close" style="' + btn + ';background:#fff;color:#111">✕ ' + _txt('doc.cerrar', 'Cerrar') + '</button>';
+    var ifr = document.createElement('iframe');
+    ifr.style.cssText = 'flex:1;width:100%;border:none;border-radius:10px;background:#fff';
+    ifr.srcdoc = html;
+    bg.appendChild(bar); bg.appendChild(ifr);
+    document.body.appendChild(bg);
+    var cerrar = function () { document.removeEventListener('keydown', tecla, true); try { bg.remove(); } catch (e) {} };
+    var tecla = function (e) { if (e.key === 'Escape') { e.stopPropagation(); cerrar(); } };
+    document.addEventListener('keydown', tecla, true);
+    bar.querySelector('[data-a=print]').onclick = function () { try { ifr.contentWindow.focus(); ifr.contentWindow.print(); } catch (e) {} };
+    bar.querySelector('[data-a=close]').onclick = cerrar;
+    return { iframe: ifr, cerrar: cerrar };
+  }
+  window.tkVerDocumento = tkVerDocumento;
+
+  // Enlaces de fuera (WhatsApp, webs): si la app no puede abrirlos, se ofrece copiarlos.
+  function tkEnlaceExterno(url, abrir) {
+    var w = null; try { w = abrir(url, '_blank'); } catch (e) {}
+    if (w) return w;
+    var bg = document.createElement('div');
+    bg.style.cssText = 'position:fixed;inset:0;z-index:2147483641;background:rgba(15,23,42,.6);display:flex;align-items:center;justify-content:center;padding:16px';
+    bg.innerHTML = '<div style="background:#fff;color:#111;border-radius:14px;padding:18px;max-width:420px;width:100%;font-size:14px">' +
+      '<div style="font-weight:800;margin-bottom:8px">' + _txt('doc.enlace_titulo', 'Abre este enlace en el navegador') + '</div>' +
+      '<input readonly style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;font-size:12px" value="' + String(url).replace(/"/g, '&quot;') + '">' +
+      '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px">' +
+      '<button type="button" data-a="copy" style="border:none;background:#16a34a;color:#fff;border-radius:9px;padding:9px 14px;font-weight:700;cursor:pointer">' + _txt('doc.copiar', 'Copiar enlace') + '</button>' +
+      '<button type="button" data-a="x" style="border:1px solid #ddd;background:#fff;border-radius:9px;padding:9px 14px;cursor:pointer">' + _txt('doc.cerrar', 'Cerrar') + '</button></div></div>';
+    document.body.appendChild(bg);
+    bg.querySelector('[data-a=copy]').onclick = function () { try { navigator.clipboard.writeText(url); } catch (e) {} bg.remove(); };
+    bg.querySelector('[data-a=x]').onclick = function () { bg.remove(); };
+    return null;
+  }
+
+  if (tkIsDesktop()) {
+    var _openNativo = window.open.bind(window);
+    window.open = function (url, target, feats) {
+      var u = url == null ? '' : String(url);
+      // Ventana en blanco donde el código escribe el documento.
+      if (u === '' || u === 'about:blank') {
+        var buf = [], visor = null, mostrado = false;
+        var mostrar = function () { if (!mostrado) { mostrado = true; visor = tkVerDocumento(buf.join('')); } };
+        var falsa = {
+          closed: false,
+          document: {
+            open: function () { buf = []; },
+            write: function (h) { buf.push(String(h)); },
+            writeln: function (h) { buf.push(String(h) + '\n'); },
+            close: function () { mostrar(); }
+          },
+          focus: function () {},
+          print: function () { mostrar(); try { visor.iframe.contentWindow.print(); } catch (e) {} },
+          close: function () { falsa.closed = true; if (visor) visor.cerrar(); }
+        };
+        // Patrón "abrir ya y redirigir después" (WhatsApp): w.location.href = 'https://wa.me/…'
+        var loc = {};
+        Object.defineProperty(loc, 'href', { set: function (v) { tkEnlaceExterno(v, _openNativo); }, get: function () { return 'about:blank'; } });
+        falsa.location = loc;
+        return falsa;
+      }
+      // Documento hecho como blob: (facturas): se lee y se enseña dentro.
+      if (u.indexOf('blob:') === 0) {
+        fetch(u).then(function (r) { return r.text(); }).then(tkVerDocumento).catch(function () {});
+        return { closed: false, document: { open: function () {}, write: function () {}, close: function () {} }, focus: function () {}, print: function () {}, close: function () {} };
+      }
+      return tkEnlaceExterno(u, function (x, t) { return _openNativo(x, t || target, feats); });
+    };
+  }
+
   function tkInvoke(cmd, args) {
     var t = window.__TAURI__;
     var inv = t && ((t.core && t.core.invoke) || t.invoke);

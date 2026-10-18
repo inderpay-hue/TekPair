@@ -6907,3 +6907,11 @@ it:{"fqr.generando": "Generazione del codice…"},
 de:{"fqr.generando": "Code wird erstellt…"},
 pt:{"fqr.generando": "A gerar o código…"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{"doc.visor_ayuda": "Para guardarlo en PDF: Imprimir → «Guardar como PDF»", "doc.imprimir": "Imprimir / PDF", "doc.cerrar": "Cerrar", "doc.enlace_titulo": "Abre este enlace en el navegador", "doc.copiar": "Copiar enlace"},
+en:{"doc.visor_ayuda": "To save it as PDF: Print → \"Save as PDF\"", "doc.imprimir": "Print / PDF", "doc.cerrar": "Close", "doc.enlace_titulo": "Open this link in your browser", "doc.copiar": "Copy link"},
+fr:{"doc.visor_ayuda": "Pour l'enregistrer en PDF : Imprimer → « Enregistrer au format PDF »", "doc.imprimir": "Imprimer / PDF", "doc.cerrar": "Fermer", "doc.enlace_titulo": "Ouvrez ce lien dans le navigateur", "doc.copiar": "Copier le lien"},
+it:{"doc.visor_ayuda": "Per salvarlo in PDF: Stampa → «Salva come PDF»", "doc.imprimir": "Stampa / PDF", "doc.cerrar": "Chiudi", "doc.enlace_titulo": "Apri questo link nel browser", "doc.copiar": "Copia link"},
+de:{"doc.visor_ayuda": "Als PDF speichern: Drucken → „Als PDF speichern“", "doc.imprimir": "Drucken / PDF", "doc.cerrar": "Schließen", "doc.enlace_titulo": "Öffne diesen Link im Browser", "doc.copiar": "Link kopieren"},
+pt:{"doc.visor_ayuda": "Para guardar em PDF: Imprimir → «Guardar como PDF»", "doc.imprimir": "Imprimir / PDF", "doc.cerrar": "Fechar", "doc.enlace_titulo": "Abra este link no navegador", "doc.copiar": "Copiar link"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
