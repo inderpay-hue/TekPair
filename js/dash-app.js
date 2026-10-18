@@ -1321,6 +1321,9 @@ function _encSync(e, isNew) {
   var payload = { id:e.id, tienda_id:TIENDA_ID, producto:e.producto, cliente_id:e.cliente_id||null,
     cliente_nombre:e.cliente_nombre||null, cliente_tel:e.cliente_tel||null, senal:e.senal||0, pvp:e.pvp||0,
     estado:e.estado||'Pendiente', proveedor:e.proveedor||null, nota:e.nota||null, fecha:e.fecha||hoyLocal() };
+  // Enlaces de la fase 2 (sql/encargos-fase-c.sql): solo si los hay.
+  if (e.pedido_id) payload.pedido_id = e.pedido_id;
+  if (e.venta_id) payload.venta_id = e.venta_id;
   if (isNew) sbPost('encargos', payload); else sbPatch('encargos', 'id=eq.' + encodeURIComponent(e.id), payload);
 }
 function _encFillCliDatalist() {
@@ -1400,6 +1403,141 @@ function eliminarEncargo(id) {
   if (SB_KEY && TIENDA_ID) try { sbDelete('encargos', 'id=eq.' + encodeURIComponent(id)); } catch(e){}
   guardarDatos(); renderEncargos();
 }
+// ── Encargos, fase 2: pedir al proveedor y entregar cobrando ──
+// Pedir: crea la línea en Pedidos ("por pedir") con el producto y una nota del
+// cliente; el encargo guarda pedido_id. Cuando ese pedido se recibe, el encargo
+// pasa solo a "Llegó" y avisa para llamar al cliente (_encAlRecibirPedido).
+// Entregar: registra la venta por el PVP. La señal ya cobrada va como parte del
+// pago ("Señal"), así la caja del día solo espera lo que se cobra ahora.
+function encPedir(id) {
+  var e = (DB.encargos || []).find(function(x){ return x.id === id; }); if (!e) return;
+  if (typeof tienePerm === 'function' && !tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  if (e.pedido_id && (DB.pedidos || []).some(function(p){ return p.id === e.pedido_id; })) { toast(T('enc.ya_pedido'), 'info'); return; }
+  var quien = [e.cliente_nombre, e.cliente_tel].filter(Boolean).join(' · ');
+  var nuevo = {
+    id: _uuidPed(), tienda_id: TIENDA_ID, estado: 'por_pedir',
+    creado_por: (typeof U !== 'undefined' && U ? U.nombre : null),
+    pieza: e.producto, marca: null, categoria: null, calidad: null,
+    cantidad: 1, precio_compra: 0, precio_venta: parseFloat(e.pvp) || 0, importe: 0,
+    proveedor: e.proveedor || _provHabitual(e.producto) || null, fecha_pedido: null, fecha_estimada: null,
+    metodo_pago: null, nota: T('enc.nota_pedido').replace('{c}', quien || '—'), grupo: null, total_real: null,
+    pdf_url: null, pdf_nombre: null, estado_pago: null, pagado_importe: 0
+  };
+  DB.pedidos = DB.pedidos || [];
+  DB.pedidos.push(nuevo);
+  if (SB_KEY && TIENDA_ID) sbPost('pedidos', nuevo);
+  e.pedido_id = nuevo.id;
+  if (ENC_ESTADOS.indexOf(e.estado) < ENC_ESTADOS.indexOf('Pedido')) e.estado = 'Pedido';
+  _encSync(e); guardarDatos(); renderEncargos();
+  try { audit('crear', 'pedido', nuevo.id, e.producto + ' (' + T('nav.encargos') + ')', null); } catch (er) {}
+  try { updatePedidosBadge(); } catch (er) {}
+  toast(T('enc.pedido_creado'), 'ok');
+}
+// Llamado al recibir un pedido (avanzarPedido): si era de un encargo, este pasa a "Llegó".
+function _encAlRecibirPedido(p) {
+  if (!p) return;
+  var e = (DB.encargos || []).find(function(x){ return x.pedido_id === p.id; });
+  if (!e || e.estado === 'Entregado') return;
+  if (ENC_ESTADOS.indexOf(e.estado) < ENC_ESTADOS.indexOf('Llego')) { e.estado = 'Llego'; _encSync(e); guardarDatos(); }
+  toast(T('enc.llego_aviso').replace('{p}', e.producto || '').replace('{c}', e.cliente_nombre || '—'), 'ok');
+  try { renderEncargos(); } catch (er) {}
+}
+function abrirEntregaEncargo(id) {
+  var e = (DB.encargos || []).find(function(x){ return x.id === id; }); if (!e) return;
+  var st = _stockMatch(e.producto);
+  var pvp = parseFloat(e.pvp) || 0, senal = parseFloat(e.senal) || 0;
+  var inp = 'style="width:100%;padding:8px 10px;border:1px solid var(--border,#E5E7EB);border-radius:8px;font:inherit;background:var(--white,#fff);color:inherit"';
+  var m = _modalOverlay(
+    '<div style="font-size:16px;font-weight:800;margin-bottom:4px">✅ ' + escHtml(T('enc.entregar_titulo')) + '</div>' +
+    '<div style="font-size:13px;color:var(--muted);margin-bottom:12px">' + escHtml(e.producto || '') + (e.cliente_nombre ? ' · ' + escHtml(e.cliente_nombre) : '') + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
+      '<label style="font-size:12px">' + escHtml(T('enc.pvp')) + '<input id="eeP" type="number" step="0.01" value="' + pvp + '" ' + inp + '></label>' +
+      '<label style="font-size:12px">' + escHtml(T('enc.senal_cobrada')) + '<input id="eeS" type="number" step="0.01" value="' + senal + '" ' + inp + '></label>' +
+    '</div>' +
+    '<label style="font-size:12px;display:block;margin-bottom:8px">' + escHtml(T('enc.cobra_ahora_con')) +
+      '<select id="eeM" ' + inp + '>' + ['Efectivo','Tarjeta','Bizum','Transferencia'].map(function(x){ return '<option value="' + x + '">' + escHtml(_pagoLbl(x)) + '</option>'; }).join('') + '</select></label>' +
+    '<div id="eeR" style="font-size:15px;font-weight:800;margin:6px 0 10px"></div>' +
+    (st ? '<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-bottom:6px"><input type="checkbox" id="eeStock" checked> ' + escHtml(T('enc.descontar_stock').replace('{s}', _stockNombre(st))) + '</label>' : '') +
+    '<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-bottom:6px"><input type="checkbox" id="eeVenta" checked> ' + escHtml(T('enc.registrar_venta')) + '</label>' +
+    '<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-bottom:14px"><input type="checkbox" id="eeTicket"> ' + escHtml(T('enc.imprimir_ticket')) + '</label>' +
+    '<div style="display:flex;gap:10px;justify-content:flex-end">' +
+      '<button id="eeNo" style="padding:9px 16px;border:1px solid var(--border,#E5E7EB);background:transparent;color:inherit;border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + escHtml(T('gen.cancelar')) + '</button>' +
+      '<button id="eeSi" style="padding:9px 16px;border:none;background:#16a34a;color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + escHtml(T('rep.entregar')) + '</button></div>'
+  );
+  var num = function(id) { return parseFloat(String(m.box.querySelector(id).value).replace(',', '.')) || 0; };
+  var pintar = function() {
+    var r = Math.max(0, Math.round((num('#eeP') - num('#eeS')) * 100) / 100);
+    m.box.querySelector('#eeR').textContent = T('enc.a_cobrar').replace('{x}', cur(r));
+  };
+  m.box.querySelector('#eeP').oninput = pintar; m.box.querySelector('#eeS').oninput = pintar; pintar();
+  m.box.querySelector('#eeNo').onclick = function() { m.close(); };
+  m.bg.addEventListener('click', function(ev) { if (ev.target === m.bg) m.close(); });
+  m.box.querySelector('#eeSi').onclick = function() {
+    var p = Math.round(num('#eeP') * 100) / 100, s = Math.round(num('#eeS') * 100) / 100;
+    if (s > p + 0.005) { toast(T('enc.senal_mayor'), 'err'); return; }
+    var conVenta = m.box.querySelector('#eeVenta').checked;
+    if (conVenta && p <= 0) { toast(T('venta.precio_requerido'), 'err'); return; }
+    if (conVenta && typeof tienePerm === 'function' && !tienePerm('ventas_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+    var usarStock = !!(st && m.box.querySelector('#eeStock') && m.box.querySelector('#eeStock').checked);
+    var ticket = m.box.querySelector('#eeTicket').checked;
+    var metodo = m.box.querySelector('#eeM').value;
+    m.close();
+    var venta = conVenta ? _encCrearVenta(e, p, s, metodo, usarStock ? st : null) : null;
+    e.estado = 'Entregado'; e.pvp = p; e.senal = s;
+    if (venta) e.venta_id = venta.id;
+    _encSync(e); guardarDatos(); renderEncargos();
+    try { audit('editar', 'encargo', e.id, e.producto + ' → ' + T('enc.estado_entregado'), venta ? { venta: { antes: '', despues: venta.id } } : null); } catch (er) {}
+    toast(venta ? T('enc.entregado_venta').replace('{x}', cur(venta.total)) : T('enc.entregado_ok'), 'ok');
+    try { renderDash(); } catch (er) {}
+    if (venta && ticket) setTimeout(function() { imprimirTicketVenta(venta.id); }, 300);
+  };
+}
+function _encCrearVenta(e, pvp, senal, metodo, st) {
+  var c = (DB.clis || []).find(function(x){ return (e.cliente_id && x.id === e.cliente_id) ||
+    (e.cliente_nombre && (((x.nombre||'') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === e.cliente_nombre); });
+  var tipoIva = (AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21;
+  var iv = calcIVA(pvp, tipoIva);
+  var resto = Math.max(0, Math.round((iv.total - senal) * 100) / 100);
+  var pagos = senal > 0.005 ? [{ metodo: metodo, importe: resto }, { metodo: 'Señal', importe: Math.round(senal * 100) / 100 }].filter(function(x){ return x.importe > 0.005; }) : null;
+  if (pagos && pagos.length < 2) pagos = null;
+  var venta = {
+    id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
+    fecha: hoyLocal(),
+    clienteId: c ? c.id : (e.cliente_id || ''),
+    clienteNombre: c ? ((c.nombre || '') + ' ' + (c.apellidos || '')).trim() : (e.cliente_nombre || T('gen.sin_cliente')),
+    marca: st ? (st.marca || '') : '', modelo: st ? (st.modelo || e.producto) : (e.producto || ''), imei: st ? (st.imei || '') : '',
+    pago: pagos ? 'Mixto' : (senal > 0.005 && resto <= 0.005 ? 'Señal' : metodo), pagos: pagos,
+    precio: pvp, descuento: 0,
+    iva: (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIva : 0,
+    ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
+    base: iv.base, ivaImporte: iv.iva, total: iv.total,
+    reembolsado: false, stockId: st ? st.id : '', financiado: false, cuotas: null, entrada: 0, entradaPago: null,
+    items: [{ nombre: e.producto || T('tpv.venta_item'), qty: 1, precio: pvp, imei: st ? (st.imei || '') : '', idOriginal: st ? st.id : '',
+      tipoProd: st ? (st.tipo || '') : '', garantiaMeses: st ? (parseInt(st.garantiaMeses, 10) || 0) : 0 }]
+  };
+  if (st) {
+    st.unidades = Math.max(0, (parseInt(st.unidades, 10) || 1) - 1);
+    if (st.unidades === 0) st.vendido = true;
+    try { _logMov('salida', _stockNombre(st), 1, venta.clienteNombre || T('inicio.ventas')); } catch (er) {}
+    if (SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(st.id), { unidades: st.unidades, vendido: st.vendido });
+  }
+  DB.ventas.push(venta);
+  if (SB_KEY && TIENDA_ID) {
+    sbPost('ventas', Object.assign({
+      id: venta.id, tienda_id: TIENDA_ID, fecha: venta.fecha,
+      cliente_id: venta.clienteId || null, cliente_nombre: venta.clienteNombre,
+      marca: venta.marca, modelo: venta.modelo, imei: venta.imei,
+      pago: venta.pago, precio: venta.precio, descuento: 0, total: venta.total,
+      reembolsado: false, financiado: false, cuotas: null, entrada: 0, entrada_pago: null,
+      iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte,
+      items: JSON.stringify(venta.items)
+    }, pagos ? { pagos: pagos } : {}));
+  }
+  try { audit('crear', 'venta', venta.id, venta.clienteNombre + ' · ' + cur(venta.total) + ' (' + T('nav.encargos') + ')', null); } catch (er) {}
+  return venta;
+}
+window.encPedir = encPedir;
+window.abrirEntregaEncargo = abrirEntregaEncargo;
 function _encCard(e) {
   var col = ENC_COLOR[e.estado] || '#6B7280';
   var resta = Math.max(0, (parseFloat(e.pvp)||0) - (parseFloat(e.senal)||0));
@@ -1408,7 +1546,9 @@ function _encCard(e) {
   if (e.estado !== 'Entregado') {
     if (i >= 0 && i < ENC_ESTADOS.length - 1) btns += '<button class="btn-sm" style="background:var(--light);color:var(--text)" onclick="avanzarEncargo(\'' + e.id + '\')">→ ' + T('enc.estado_' + ENC_ESTADOS[i+1].toLowerCase()) + '</button> ';
     if (e.cliente_tel) btns += '<button class="btn-sm" style="background:#25D366;color:#fff" onclick="avisarEncargo(\'' + e.id + '\')">📲 ' + T('enc.avisar') + '</button> ';
-    btns += '<button class="btn-sm" style="background:#16a34a;color:#fff" onclick="entregarEncargo(\'' + e.id + '\')">✅ ' + T('rep.entregar') + '</button> ';
+    var _pedido = e.pedido_id && (DB.pedidos || []).find(function(p){ return p.id === e.pedido_id; });
+    if (!_pedido && ENC_ESTADOS.indexOf(e.estado) < ENC_ESTADOS.indexOf('Llego')) btns += '<button class="btn-sm" style="background:#3B82F6;color:#fff" onclick="encPedir(\'' + e.id + '\')">🛒 ' + T('enc.pedir') + '</button> ';
+    btns += '<button class="btn-sm" style="background:#16a34a;color:#fff" onclick="abrirEntregaEncargo(\'' + e.id + '\')">✅ ' + T('enc.entregar_cobrar') + '</button> ';
   }
   btns += '<button class="btn-sm" style="background:#F3F4F6;color:#111" onclick="abrirEditarEncargo(\'' + e.id + '\')">✎</button> <button class="btn-sm" style="background:transparent;color:var(--red);border:1px solid var(--red)" onclick="eliminarEncargo(\'' + e.id + '\')">🗑</button>';
   return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:8px;background:var(--card,#fff)">' +
@@ -1421,6 +1561,9 @@ function _encCard(e) {
       (e.senal? '<span>' + T('enc.senal') + ': <b>' + cur(e.senal) + '</b></span>':'') +
       (e.pvp? '<span>' + T('enc.pvp') + ': <b>' + cur(e.pvp) + '</b></span>':'') +
       (resta>0.005? '<span style="color:var(--orange)">' + T('enc.resta') + ': <b>' + cur(resta) + '</b></span>':'') +
+      (function(){ var pd = e.pedido_id && (DB.pedidos || []).find(function(p){ return p.id === e.pedido_id; });
+        return pd ? '<span style="color:#3B82F6">🛒 ' + T('enc.en_pedidos') + ': <b>' + escHtml(T({ por_pedir: 'enc.ped_por_pedir', pedido: 'enc.ped_pedido', recibido: 'enc.ped_recibido' }[pd.estado] || 'enc.ped_por_pedir')) + '</b></span>' : ''; })() +
+      (e.venta_id ? '<span style="color:#16a34a">🧾 ' + T('enc.con_venta') + '</span>' : '') +
     '</div>' +
     (e.nota? '<div style="font-size:11.5px;color:var(--muted);margin-bottom:6px">📝 ' + escHtml(e.nota) + '</div>':'') +
     '<div style="display:flex;gap:5px;flex-wrap:wrap">' + btns + '</div></div>';
@@ -2378,6 +2521,7 @@ function avanzarPedido(id) {
       else { toast(T('pedidos.marcado_recibido'), 'ok'); }
       if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), patch);
       _avisarRepPiezaLista(p);   // si el pedido venía de una reparación, avisa que puede continuar
+      try { _encAlRecibirPedido(p); } catch (e) {}   // si venía de un encargo, pasa a "Llegó"
       renderPedidosWidget();
     };
     if (_esImeiCat(cat)) {
