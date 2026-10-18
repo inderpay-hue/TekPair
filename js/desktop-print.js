@@ -52,6 +52,26 @@
   }
   window.tkVerDocumento = tkVerDocumento;
 
+  // Ajustes → App de escritorio: qué versión de la app se está usando. Las 0.1.x no
+  // se actualizan solas: se avisa de instalar la nueva una vez (luego ya es automático).
+  function tkPintarVersionApp() {
+    var box = document.getElementById('ajDeskVersion');
+    if (!box || !tkIsDesktop()) return;
+    var t = window.__TAURI__ || {};
+    var get = (t.app && t.app.getVersion) ? t.app.getVersion() : tkInvoke('plugin:app|version');
+    Promise.resolve(get).then(function (v) {
+      v = String(v || '');
+      var vieja = /^0\.1\./.test(v);
+      box.style.display = '';
+      box.style.background = vieja ? 'rgba(245,158,11,.12)' : 'rgba(22,163,74,.08)';
+      box.style.color = vieja ? '#B45309' : '#166534';
+      box.textContent = vieja ? _txt('desk.vieja', 'Tienes la versión {v}: descarga la nueva e instálala encima una vez. Desde ahí se actualizará sola.').replace('{v}', v)
+                              : _txt('desk.al_dia', 'Estás usando la app de escritorio, versión {v}. Se actualiza sola.').replace('{v}', v);
+    }).catch(function () {});
+  }
+  window.tkPintarVersionApp = tkPintarVersionApp;
+  if (document.readyState !== 'loading') setTimeout(tkPintarVersionApp, 1500); else document.addEventListener('DOMContentLoaded', function () { setTimeout(tkPintarVersionApp, 1500); });
+
   // Enlaces de fuera (WhatsApp, webs): si la app no puede abrirlos, se ofrece copiarlos.
   function tkEnlaceExterno(url, abrir) {
     // App 0.2.0 o más nueva: el enlace se abre en el navegador / WhatsApp del sistema.

@@ -1188,6 +1188,7 @@ var AJ_TAB_MAP = { negocio: 'negocio', prefs: 'apariencia', notif: 'notif', cuen
 
 // Conmutador del rail de Ajustes (rediseño): muestra una sección a la vez.
 function ajSec(id, btn) {
+  try { if (id === 'impresion' && typeof window.tkPintarVersionApp === 'function') setTimeout(window.tkPintarVersionApp, 50); } catch (e) {}
   var navBtn = btn || document.querySelector('#ajRail .aj-nav[data-sec="' + id + '"]');
   // Gating por plan: una sección con data-feat que el plan NO incluye no se abre; se ofrece mejorar.
   var _feat = navBtn && navBtn.dataset ? navBtn.dataset.feat : '';
