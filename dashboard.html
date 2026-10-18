@@ -1233,7 +1233,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 }
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261018c"></script>
+<script src="/lang/lang.v8.js?v=20261018d"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -5325,8 +5325,10 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   </div>
   <div class="fi-row">
     <div class="fg"><label class="fl" data-t="enc.senal">Señal / anticipo</label><input class="fi" id="encSenal" type="number" step="0.01" placeholder="0"></div>
+    <div class="fg"><label class="fl" data-t="enc.senal_pago">Señal cobrada con</label><select class="fi" id="encSenalPago"></select></div>
     <div class="fg"><label class="fl" data-t="enc.pvp">PVP</label><input class="fi" id="encPvp" type="number" step="0.01" placeholder="0"></div>
   </div>
+  <div id="encSenalInfo" style="font-size:11.5px;color:var(--muted);margin:-4px 0 8px"></div>
   <div class="fg"><label class="fl" data-t="enc.proveedor">Proveedor (opcional)</label><input class="fi" id="encProv" placeholder="A quién se lo pides"></div>
   <div class="fg"><label class="fl" data-t="enc.nota">Nota</label><textarea class="fi" id="encNota" rows="2" placeholder="..."></textarea></div>
   <div class="modal-actions">

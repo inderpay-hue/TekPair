@@ -1324,6 +1324,8 @@ function _encSync(e, isNew) {
   // Enlaces de la fase 2 (sql/encargos-fase-c.sql): solo si los hay.
   if (e.pedido_id) payload.pedido_id = e.pedido_id;
   if (e.venta_id) payload.venta_id = e.venta_id;
+  if (e.senal_registrada) payload.senal_registrada = e.senal_registrada;
+  if (e.senal_venta_id) payload.senal_venta_id = e.senal_venta_id;
   if (isNew) sbPost('encargos', payload); else sbPatch('encargos', 'id=eq.' + encodeURIComponent(e.id), payload);
 }
 function _encFillCliDatalist() {
@@ -1340,6 +1342,7 @@ function encCliPick() {
 function abrirNuevoEncargo() {
   if (SEL) SEL.editEncId = null;
   ['encProducto','encCliNom','encCliTel','encSenal','encPvp','encProv','encNota'].forEach(function(id){ var el = document.getElementById(id); if (el) el.value = ''; });
+  _encPintarSenalPago(null);
   _encFillCliDatalist();
   var t = document.getElementById('mEncargoTit'); if (t) t.textContent = T('enc.nuevo');
   openM('mEncargo');
@@ -1351,6 +1354,7 @@ function abrirEditarEncargo(id) {
   var set = function(i,v){ var el = document.getElementById(i); if (el) el.value = (v == null ? '' : v); };
   set('encProducto', e.producto); set('encCliNom', e.cliente_nombre); set('encCliTel', e.cliente_tel);
   set('encSenal', e.senal || ''); set('encPvp', e.pvp || ''); set('encProv', e.proveedor); set('encNota', e.nota);
+  _encPintarSenalPago(e);
   _encFillCliDatalist();
   var t = document.getElementById('mEncargoTit'); if (t) t.textContent = T('enc.editar');
   openM('mEncargo');
@@ -1368,16 +1372,31 @@ function guardarEncargo() {
     nota: (document.getElementById('encNota').value || '').trim() || null
   };
   DB.encargos = DB.encargos || [];
-  if (SEL && SEL.editEncId) {
-    var ex = DB.encargos.find(function(x){ return x.id === SEL.editEncId; });
-    if (ex) { Object.assign(ex, obj); _encSync(ex); }
-  } else {
+  var metSenal = (document.getElementById('encSenalPago') || {}).value || 'Efectivo';
+  var ex = (SEL && SEL.editEncId) ? DB.encargos.find(function(x){ return x.id === SEL.editEncId; }) : null;
+  var reg = ex ? (parseFloat(ex.senal_registrada) || 0) : 0;
+  // La señal ya cobrada no se puede bajar aquí: está en la caja como venta.
+  if (ex && reg > 0.005 && obj.senal < reg - 0.005) { toast(T('enc.senal_no_bajar').replace('{x}', cur(reg)), 'err'); return; }
+  var aCobrar = Math.round((obj.senal - reg) * 100) / 100;
+  if (aCobrar > 0.005 && typeof tienePerm === 'function' && !tienePerm('ventas_crear')) { toast(T('enc.senal_sin_permiso'), 'err'); return; }
+  var destino;
+  if (ex) { Object.assign(ex, obj); destino = ex; }
+  else {
     obj.id = (typeof _uuidPed === 'function') ? _uuidPed() : ('enc' + Date.now() + Math.random().toString(36).slice(2,7));
     obj.estado = 'Pendiente'; obj.fecha = hoyLocal(); obj.tienda_id = TIENDA_ID;
-    DB.encargos.unshift(obj); _encSync(obj, true);
+    DB.encargos.unshift(obj); destino = obj;
+  }
+  if (aCobrar > 0.005) {
+    var vs = _encVentaSenal(destino, aCobrar, metSenal);
+    if (vs) { destino.senal_registrada = Math.round((reg + aCobrar) * 100) / 100; destino.senal_venta_id = vs.id; }
+  }
+  if (ex) _encSync(ex);
+  else {
+    _encSync(obj, true);
     try { if (typeof audit === 'function') audit('crear', 'encargo', obj.id, obj.producto, null); } catch(e){}
   }
   guardarDatos(); closeM('mEncargo'); renderEncargos();
+  if (aCobrar > 0.005) { toast(T('enc.senal_en_caja').replace('{x}', cur(aCobrar)).replace('{m}', _pagoLbl(metSenal)), 'ok'); try { renderDash(); } catch (e) {} }
 }
 function cambiarEstadoEncargo(id, estado) {
   var e = (DB.encargos || []).find(function(x){ return x.id === id; }); if (!e) return;
@@ -1398,7 +1417,9 @@ function avisarEncargo(id) {
   if (ENC_ESTADOS.indexOf(e.estado) < ENC_ESTADOS.indexOf('Avisado')) cambiarEstadoEncargo(id, 'Avisado');
 }
 function eliminarEncargo(id) {
-  if (!confirm(T('enc.eliminar_confirm'))) return;
+  var _e = (DB.encargos || []).find(function(x){ return x.id === id; });
+  var _msg = T('enc.eliminar_confirm') + ((_e && parseFloat(_e.senal_registrada) > 0) ? '\n\n' + T('enc.eliminar_senal').replace('{x}', cur(_e.senal_registrada)) : '');
+  if (!confirm(_msg)) return;
   DB.encargos = (DB.encargos || []).filter(function(x){ return x.id !== id; });
   if (SB_KEY && TIENDA_ID) try { sbDelete('encargos', 'id=eq.' + encodeURIComponent(id)); } catch(e){}
   guardarDatos(); renderEncargos();
@@ -1433,6 +1454,40 @@ function encPedir(id) {
   try { updatePedidosBadge(); } catch (er) {}
   toast(T('enc.pedido_creado'), 'ok');
 }
+// ── Señal del encargo en la caja ──
+// La señal se registra como una venta el día que se cobra (así entra en la caja de
+// ese día, en el cierre y en los informes, y su IVA va en su fecha, como un anticipo).
+// Al entregar, la venta final es solo por lo que falta.
+function _encPintarSenalPago(e) {
+  var sel = document.getElementById('encSenalPago'); if (!sel) return;
+  sel.innerHTML = ['Efectivo','Tarjeta','Bizum','Transferencia'].map(function(x){ return '<option value="' + x + '">' + escHtml(_pagoLbl(x)) + '</option>'; }).join('');
+  var info = document.getElementById('encSenalInfo');
+  var reg = e ? (parseFloat(e.senal_registrada) || 0) : 0;
+  if (info) info.textContent = reg > 0.005 ? T('enc.senal_ya_caja').replace('{x}', cur(reg)) : T('enc.senal_ayuda');
+}
+function _encVentaSenal(e, importe, metodo) {
+  var c = (DB.clis || []).find(function(x){ return e.cliente_nombre && (((x.nombre||'') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === e.cliente_nombre; });
+  var tipoIva = (AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21;
+  var iv = calcIVA(importe, tipoIva);
+  var nombre = T('enc.senal_concepto').replace('{p}', e.producto || '');
+  var venta = {
+    id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2,8), fecha: hoyLocal(),
+    clienteId: c ? c.id : '', clienteNombre: c ? ((c.nombre || '') + ' ' + (c.apellidos || '')).trim() : (e.cliente_nombre || T('gen.sin_cliente')),
+    marca: '', modelo: nombre, imei: '', pago: metodo, pagos: null, precio: importe, descuento: 0,
+    iva: (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIva : 0, ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
+    base: iv.base, ivaImporte: iv.iva, total: iv.total, reembolsado: false, stockId: '', financiado: false, cuotas: null, entrada: 0, entradaPago: null,
+    items: [{ nombre: nombre, qty: 1, precio: importe, imei: '', idOriginal: '', tipoProd: '', garantiaMeses: 0 }]
+  };
+  DB.ventas.push(venta);
+  if (SB_KEY && TIENDA_ID) {
+    sbPost('ventas', { id: venta.id, tienda_id: TIENDA_ID, fecha: venta.fecha, cliente_id: venta.clienteId || null, cliente_nombre: venta.clienteNombre,
+      marca: '', modelo: venta.modelo, imei: '', pago: venta.pago, precio: venta.precio, descuento: 0, total: venta.total,
+      reembolsado: false, financiado: false, cuotas: null, entrada: 0, entrada_pago: null,
+      iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte, items: JSON.stringify(venta.items) });
+  }
+  try { audit('crear', 'venta', venta.id, venta.clienteNombre + ' · ' + cur(venta.total) + ' (' + T('enc.senal') + ')', null); } catch (er) {}
+  return venta;
+}
 // Llamado al recibir un pedido (avanzarPedido): si era de un encargo, este pasa a "Llegó".
 function _encAlRecibirPedido(p) {
   if (!p) return;
@@ -1445,18 +1500,19 @@ function _encAlRecibirPedido(p) {
 function abrirEntregaEncargo(id) {
   var e = (DB.encargos || []).find(function(x){ return x.id === id; }); if (!e) return;
   var st = _stockMatch(e.producto);
-  var pvp = parseFloat(e.pvp) || 0, senal = parseFloat(e.senal) || 0;
+  var pvp = parseFloat(e.pvp) || 0, senal = parseFloat(e.senal) || 0, reg = parseFloat(e.senal_registrada) || 0;
   var inp = 'style="width:100%;padding:8px 10px;border:1px solid var(--border,#E5E7EB);border-radius:8px;font:inherit;background:var(--white,#fff);color:inherit"';
   var m = _modalOverlay(
     '<div style="font-size:16px;font-weight:800;margin-bottom:4px">✅ ' + escHtml(T('enc.entregar_titulo')) + '</div>' +
     '<div style="font-size:13px;color:var(--muted);margin-bottom:12px">' + escHtml(e.producto || '') + (e.cliente_nombre ? ' · ' + escHtml(e.cliente_nombre) : '') + '</div>' +
     '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">' +
       '<label style="font-size:12px">' + escHtml(T('enc.pvp')) + '<input id="eeP" type="number" step="0.01" value="' + pvp + '" ' + inp + '></label>' +
-      '<label style="font-size:12px">' + escHtml(T('enc.senal_cobrada')) + '<input id="eeS" type="number" step="0.01" value="' + senal + '" ' + inp + '></label>' +
+      '<label style="font-size:12px">' + escHtml(T('enc.senal_cobrada')) + '<input id="eeS" type="number" step="0.01" value="' + senal + '" ' + inp + (reg > 0.005 ? ' disabled title="' + escHtml(T('enc.senal_ya_caja').replace('{x}', cur(reg))) + '"' : '') + '></label>' +
     '</div>' +
     '<label style="font-size:12px;display:block;margin-bottom:8px">' + escHtml(T('enc.cobra_ahora_con')) +
       '<select id="eeM" ' + inp + '>' + ['Efectivo','Tarjeta','Bizum','Transferencia'].map(function(x){ return '<option value="' + x + '">' + escHtml(_pagoLbl(x)) + '</option>'; }).join('') + '</select></label>' +
-    '<div id="eeR" style="font-size:15px;font-weight:800;margin:6px 0 10px"></div>' +
+    '<div id="eeR" style="font-size:15px;font-weight:800;margin:6px 0 2px"></div>' +
+    (reg > 0.005 ? '<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">' + escHtml(T('enc.senal_ya_caja').replace('{x}', cur(reg))) + '</div>' : '<div style="height:8px"></div>') +
     (st ? '<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-bottom:6px"><input type="checkbox" id="eeStock" checked> ' + escHtml(T('enc.descontar_stock').replace('{s}', _stockNombre(st))) + '</label>' : '') +
     '<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-bottom:6px"><input type="checkbox" id="eeVenta" checked> ' + escHtml(T('enc.registrar_venta')) + '</label>' +
     '<label style="display:flex;gap:8px;align-items:center;font-size:12.5px;margin-bottom:14px"><input type="checkbox" id="eeTicket"> ' + escHtml(T('enc.imprimir_ticket')) + '</label>' +
@@ -1466,7 +1522,7 @@ function abrirEntregaEncargo(id) {
   );
   var num = function(id) { return parseFloat(String(m.box.querySelector(id).value).replace(',', '.')) || 0; };
   var pintar = function() {
-    var r = Math.max(0, Math.round((num('#eeP') - num('#eeS')) * 100) / 100);
+    var r = Math.max(0, Math.round((num('#eeP') - num('#eeS')) * 100) / 100);   // eeS = señal total (cobrada antes)
     m.box.querySelector('#eeR').textContent = T('enc.a_cobrar').replace('{x}', cur(r));
   };
   m.box.querySelector('#eeP').oninput = pintar; m.box.querySelector('#eeS').oninput = pintar; pintar();
@@ -1477,12 +1533,13 @@ function abrirEntregaEncargo(id) {
     if (s > p + 0.005) { toast(T('enc.senal_mayor'), 'err'); return; }
     var conVenta = m.box.querySelector('#eeVenta').checked;
     if (conVenta && p <= 0) { toast(T('venta.precio_requerido'), 'err'); return; }
+    if (conVenta && p - reg < 0.005) conVenta = false;   // todo pagado con la señal: no hay nada más que cobrar
     if (conVenta && typeof tienePerm === 'function' && !tienePerm('ventas_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
     var usarStock = !!(st && m.box.querySelector('#eeStock') && m.box.querySelector('#eeStock').checked);
     var ticket = m.box.querySelector('#eeTicket').checked;
     var metodo = m.box.querySelector('#eeM').value;
     m.close();
-    var venta = conVenta ? _encCrearVenta(e, p, s, metodo, usarStock ? st : null) : null;
+    var venta = conVenta ? _encCrearVenta(e, p, s, metodo, usarStock ? st : null, reg) : null;
     e.estado = 'Entregado'; e.pvp = p; e.senal = s;
     if (venta) e.venta_id = venta.id;
     _encSync(e); guardarDatos(); renderEncargos();
@@ -1492,13 +1549,18 @@ function abrirEntregaEncargo(id) {
     if (venta && ticket) setTimeout(function() { imprimirTicketVenta(venta.id); }, 300);
   };
 }
-function _encCrearVenta(e, pvp, senal, metodo, st) {
+// reg = señal que ya entró en caja como venta de señal: esta venta es solo por el resto.
+function _encCrearVenta(e, pvp, senal, metodo, st, reg) {
+  reg = Math.min(parseFloat(reg) || 0, senal);
+  var importeVenta = Math.round((pvp - reg) * 100) / 100;
+  var senalSinCaja = Math.round((senal - reg) * 100) / 100;
   var c = (DB.clis || []).find(function(x){ return (e.cliente_id && x.id === e.cliente_id) ||
     (e.cliente_nombre && (((x.nombre||'') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === e.cliente_nombre); });
   var tipoIva = (AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21;
-  var iv = calcIVA(pvp, tipoIva);
-  var resto = Math.max(0, Math.round((iv.total - senal) * 100) / 100);
-  var pagos = senal > 0.005 ? [{ metodo: metodo, importe: resto }, { metodo: 'Señal', importe: Math.round(senal * 100) / 100 }].filter(function(x){ return x.importe > 0.005; }) : null;
+  var iv = calcIVA(importeVenta, tipoIva);
+  // Señal de encargos antiguos (de antes de registrarla en caja): va como parte del pago.
+  var resto = Math.max(0, Math.round((iv.total - senalSinCaja) * 100) / 100);
+  var pagos = senalSinCaja > 0.005 ? [{ metodo: metodo, importe: resto }, { metodo: 'Señal', importe: senalSinCaja }].filter(function(x){ return x.importe > 0.005; }) : null;
   if (pagos && pagos.length < 2) pagos = null;
   var venta = {
     id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2,8),
@@ -1506,14 +1568,15 @@ function _encCrearVenta(e, pvp, senal, metodo, st) {
     clienteId: c ? c.id : (e.cliente_id || ''),
     clienteNombre: c ? ((c.nombre || '') + ' ' + (c.apellidos || '')).trim() : (e.cliente_nombre || T('gen.sin_cliente')),
     marca: st ? (st.marca || '') : '', modelo: st ? (st.modelo || e.producto) : (e.producto || ''), imei: st ? (st.imei || '') : '',
-    pago: pagos ? 'Mixto' : (senal > 0.005 && resto <= 0.005 ? 'Señal' : metodo), pagos: pagos,
-    precio: pvp, descuento: 0,
+    pago: pagos ? 'Mixto' : (senalSinCaja > 0.005 && resto <= 0.005 ? 'Señal' : metodo), pagos: pagos,
+    precio: importeVenta, descuento: 0,
     iva: (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIva : 0,
     ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
     base: iv.base, ivaImporte: iv.iva, total: iv.total,
     reembolsado: false, stockId: st ? st.id : '', financiado: false, cuotas: null, entrada: 0, entradaPago: null,
-    items: [{ nombre: e.producto || T('tpv.venta_item'), qty: 1, precio: pvp, imei: st ? (st.imei || '') : '', idOriginal: st ? st.id : '',
-      tipoProd: st ? (st.tipo || '') : '', garantiaMeses: st ? (parseInt(st.garantiaMeses, 10) || 0) : 0 }]
+    items: [{ nombre: e.producto || T('tpv.venta_item'), qty: 1, precio: importeVenta, imei: st ? (st.imei || '') : '', idOriginal: st ? st.id : '',
+      tipoProd: st ? (st.tipo || '') : '', garantiaMeses: st ? (parseInt(st.garantiaMeses, 10) || 0) : 0,
+      notas: reg > 0.005 ? T('enc.ticket_senal').replace('{p}', cur(pvp)).replace('{s}', cur(reg)) : '' }]
   };
   if (st) {
     st.unidades = Math.max(0, (parseInt(st.unidades, 10) || 1) - 1);
