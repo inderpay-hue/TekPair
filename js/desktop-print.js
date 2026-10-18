@@ -70,6 +70,47 @@
     return null;
   }
 
+  // ── Descargas dentro de la app: diálogo «Guardar como…» de Windows ──
+  // Todas las descargas de TekPair (Excel/CSV, copia de seguridad, PDF, fotos) son
+  // un <a download> con un blob:/data:. Dentro de la app eso, como mucho, deja el
+  // archivo en Descargas sin avisar. Aquí se pide dónde guardarlo y se confirma.
+  // Si el sistema no tiene ese diálogo, o falla, se deja la descarga de siempre.
+  function _toastDoc(msg, tipo) { try { if (typeof window.toast === 'function') window.toast(msg, tipo); } catch (e) {} }
+  function _esDescarga(el) {
+    return el && el.tagName === 'A' && el.hasAttribute('download') && /^(blob:|data:)/.test(el.href || '');
+  }
+  function _guardarComo(el, seguirNativo) {
+    var nombre = el.getAttribute('download') || 'tekpair';
+    fetch(el.href).then(function (r) { return r.blob(); }).then(function (blob) {
+      return window.showSaveFilePicker({ suggestedName: nombre }).then(function (h) {
+        return h.createWritable().then(function (w) {
+          return w.write(blob).then(function () { return w.close(); });
+        }).then(function () { _toastDoc(_txt('doc.guardado', 'Guardado: {n}').replace('{n}', h.name), 'ok'); });
+      });
+    }).catch(function (e) {
+      if (e && e.name === 'AbortError') return;   // el usuario canceló el diálogo
+      seguirNativo();
+    });
+  }
+  if (tkIsDesktop() && typeof window.showSaveFilePicker === 'function') {
+    var _clickNativo = HTMLAnchorElement.prototype.click;
+    HTMLAnchorElement.prototype.click = function () {
+      if (!_esDescarga(this)) return _clickNativo.apply(this, arguments);
+      var a = this;
+      _guardarComo(a, function () { _clickNativo.call(a); });
+    };
+    // Librerías (p. ej. jsPDF) que disparan el clic con dispatchEvent.
+    var _dispatchNativo = HTMLAnchorElement.prototype.dispatchEvent;
+    HTMLAnchorElement.prototype.dispatchEvent = function (ev) {
+      if (ev && ev.type === 'click' && _esDescarga(this)) {
+        var a = this;
+        _guardarComo(a, function () { _clickNativo.call(a); });
+        return true;
+      }
+      return _dispatchNativo.apply(this, arguments);
+    };
+  }
+
   if (tkIsDesktop()) {
     var _openNativo = window.open.bind(window);
     window.open = function (url, target, feats) {

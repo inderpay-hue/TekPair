@@ -6915,3 +6915,11 @@ it:{"doc.visor_ayuda": "Per salvarlo in PDF: Stampa → «Salva come PDF»", "do
 de:{"doc.visor_ayuda": "Als PDF speichern: Drucken → „Als PDF speichern“", "doc.imprimir": "Drucken / PDF", "doc.cerrar": "Schließen", "doc.enlace_titulo": "Öffne diesen Link im Browser", "doc.copiar": "Link kopieren"},
 pt:{"doc.visor_ayuda": "Para guardar em PDF: Imprimir → «Guardar como PDF»", "doc.imprimir": "Imprimir / PDF", "doc.cerrar": "Fechar", "doc.enlace_titulo": "Abra este link no navegador", "doc.copiar": "Copiar link"}
 };Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
+(function(){var _a={
+es:{"doc.guardado": "Guardado: {n}"},
+en:{"doc.guardado": "Saved: {n}"},
+fr:{"doc.guardado": "Enregistré : {n}"},
+it:{"doc.guardado": "Salvato: {n}"},
+de:{"doc.guardado": "Gespeichert: {n}"},
+pt:{"doc.guardado": "Guardado: {n}"}
+};Object.keys(_a).forEach(function(l){if(!TRANSLATIONS[l])TRANSLATIONS[l]={};Object.keys(_a[l]).forEach(function(k){TRANSLATIONS[l][k]=_a[l][k];});});})();
