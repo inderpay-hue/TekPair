@@ -186,6 +186,12 @@ export default async function handler(req, res) {
       recogida = await recordatoriosRecogida(SUPABASE_URL, headers, RESEND_KEY, now);
     } catch (e) { console.error('[cron] recogida:', e.message); }
 
+    // ── Recordatorio de deudas por email (Te deben → automático) ──
+    let deudas = { enviados: 0, errores: 0 };
+    try {
+      deudas = await recordatoriosDeuda(SUPABASE_URL, headers, RESEND_KEY, now);
+    } catch (e) { console.error('[cron] deudas:', e.message); }
+
     // ── Resumen diario para el dueño (Ajustes → Notificaciones) ──
     let resumen = { enviados: 0, errores: 0 };
     try {
@@ -198,7 +204,7 @@ export default async function handler(req, res) {
       encuestas = await encuestasValoracion(SUPABASE_URL, headers, RESEND_KEY, now);
     } catch (e) { console.error('[cron] encuestas:', e.message); }
 
-    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida, encuestas, resumen });
+    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida, encuestas, resumen, deudas });
 
   } catch(e) {
     console.error('[cron] Error general:', e);
@@ -790,6 +796,94 @@ async function resumenesDiarios(SUPABASE_URL, headers, RESEND_KEY, now) {
         await fetch(`${SUPABASE_URL}/rest/v1/avisos?id=eq.${encodeURIComponent(`resumen_${t.id}_${ayer}`)}`, { method: 'PATCH', headers: { ...headers, Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'error' }) });
       }
     } catch (e) { console.error('[cron] resumen tienda', t.id, e.message); out.errores++; }
+  }
+  return out;
+}
+
+// ═══ RECORDATORIO DE DEUDAS ═══
+// Tiendas con ajustes_config.deudas.auto: reparaciones entregadas sin pagar del todo y cuotas
+// vencidas de ventas a plazos, a clientes con email. Cada `dias` días desde la deuda o el
+// último recordatorio (también los manuales del panel), como mucho 3 veces. Se apunta el
+// aviso ANTES de enviar para no duplicar si el cron se repite.
+const DEUDA_DEF = 'Hola {nombre}, te escribimos desde {tienda}. Tienes pendiente {total} ({estado}) desde el {fecha}. Puedes pasar a pagarlo cuando te venga bien. ¡Gracias!';
+async function recordatoriosDeuda(SUPABASE_URL, headers, RESEND_KEY, now) {
+  const out = { enviados: 0, errores: 0, tiendas: 0 };
+  if (!RESEND_KEY) return out;
+  const q = async (path) => { const r = await fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers }); return r.ok ? r.json() : []; };
+  const hoy = fechaMadrid(now);
+  const diasDesde = (f) => Math.floor((new Date(hoy + 'T12:00:00Z') - new Date(String(f).slice(0, 10) + 'T12:00:00Z')) / 86400000);
+  const eur = (x) => (Math.round(x * 100) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+  const fmt = (f) => { const [y, m, d] = String(f).slice(0, 10).split('-'); return `${d}/${m}/${y}`; };
+  const tiendas = await q(`tiendas?ajustes_config->deudas->>auto=eq.true&select=id,nombre,ajustes_config`);
+  for (const t of tiendas) {
+    try {
+      const T = encodeURIComponent(t.id);
+      const dias = Math.max(3, parseInt(t.ajustes_config.deudas.dias, 10) || 7);
+      const [reps, ventas] = await Promise.all([
+        q(`reparaciones?tienda_id=eq.${T}&estado=eq.Entregado&restante=gt.0&select=id,cliente_id,cliente_nombre,marca,modelo,restante,fecha,fecha_entrega_real&limit=500`),
+        q(`ventas?tienda_id=eq.${T}&financiado=eq.true&select=id,cliente_id,cliente_nombre,marca,modelo,cuotas,reembolsado&limit=1000`)
+      ]);
+      const items = [];
+      reps.forEach((r) => items.push({ ref: 'rep:' + r.id, tipo: 'rep', cliente_id: r.cliente_id, nombre: r.cliente_nombre, importe: Number(r.restante) || 0, desde: r.fecha_entrega_real || r.fecha, concepto: `reparación ${((r.marca || '') + ' ' + (r.modelo || '')).trim()}` }));
+      ventas.forEach((v) => {
+        if (v.reembolsado) return;
+        let cuotas = v.cuotas; if (typeof cuotas === 'string') { try { cuotas = JSON.parse(cuotas); } catch (e) { cuotas = []; } }
+        let imp = 0, desde = '';
+        (cuotas || []).forEach((c) => {
+          if (!c || c.pagado || !c.fecha || String(c.fecha).slice(0, 10) >= hoy) return;
+          imp += (Number(c.importe) || 0) - (c.pagadoImporte != null ? Number(c.pagadoImporte) || 0 : 0);
+          if (!desde || c.fecha < desde) desde = c.fecha;
+        });
+        if (imp > 0.005) items.push({ ref: 'venta:' + v.id, tipo: 'venta', cliente_id: v.cliente_id, nombre: v.cliente_nombre, importe: imp, desde, concepto: `cuotas vencidas ${((v.marca || '') + ' ' + (v.modelo || '')).trim()}` });
+      });
+      const listos = items.filter((x) => x.cliente_id && x.desde && diasDesde(x.desde) >= dias);
+      if (!listos.length) continue;
+      out.tiendas++;
+      const avisos = {};
+      for (let i = 0; i < listos.length; i += 80) {
+        const refs = listos.slice(i, i + 80).map((x) => encodeURIComponent(x.ref)).join(',');
+        (await q(`avisos?tienda_id=eq.${T}&tipo=eq.deuda_recordatorio&ref_id=in.(${refs})&select=ref_id,fecha,estado`)).forEach((a) => {
+          if (a.estado === 'error') return;
+          const x = avisos[a.ref_id] || (avisos[a.ref_id] = { ult: '', n: 0 });
+          x.n++; if (String(a.fecha) > x.ult) x.ult = String(a.fecha);
+        });
+      }
+      const pl = t.ajustes_config.plantillasWA && t.ajustes_config.plantillasWA.deuda_recordatorio && t.ajustes_config.plantillasWA.deuda_recordatorio.texto;
+      let enviadosTienda = 0;
+      for (const x of listos) {
+        if (enviadosTienda >= 40) break;
+        const av = avisos[x.ref];
+        if (av && (av.n >= 3 || diasDesde(av.ult) < dias)) continue;
+        const cl = (await q(`clientes?id=eq.${encodeURIComponent(x.cliente_id)}&tienda_id=eq.${T}&select=nombre,email`))[0];
+        const email = cl && String(cl.email || '').trim();
+        if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue;
+        const nombre = ((cl.nombre || x.nombre || '').trim().split(' ')[0]);
+        const texto = String(pl || DEUDA_DEF).replace(/\{nombre\}/g, nombre).replace(/\{tienda\}/g, t.nombre || 'la tienda')
+          .replace(/\{total\}/g, eur(x.importe)).replace(/\{estado\}/g, x.concepto).replace(/\{fecha\}/g, fmt(x.desde)).replace(/\{[a-z_]+\}/g, '');
+        const avId = 'av_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
+        const asunto = `Pago pendiente en ${t.nombre || 'TekPair'}`;
+        const ins = await fetch(`${SUPABASE_URL}/rest/v1/avisos`, { method: 'POST', headers: { ...headers, Prefer: 'return=minimal' },
+          body: JSON.stringify({ id: avId, tienda_id: t.id, tipo: 'deuda_recordatorio', canal: 'email', destinatario: email, ref_tipo: x.tipo, ref_id: x.ref, asunto, estado: 'enviado', fecha: now.toISOString() }) });
+        if (!ins.ok) { out.errores++; continue; }
+        const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#111">
+  <div style="background:#FF5B1F;color:white;padding:20px;border-radius:10px 10px 0 0;text-align:center"><h1 style="margin:0;font-size:21px">${esc(t.nombre || 'TekPair')}</h1></div>
+  <div style="background:white;padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
+    <p style="font-size:14px;color:#333;line-height:1.6;margin:0">${esc(texto).replace(/\n/g, '<br>')}</p>
+  </div>
+  <div style="text-align:center;padding:16px;color:#aaa;font-size:11px">Enviado con TekPair · tekpair.tech</div>
+</body></html>`;
+        try {
+          const ra = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: `"${String(t.nombre || 'TekPair').replace(/[<>"\\\r\n]/g, '').slice(0, 60)}" <noreply@tekpair.tech>`, to: [email], subject: asunto, html }) });
+          if (ra.ok) { out.enviados++; enviadosTienda++; }
+          else {
+            out.errores++;
+            await fetch(`${SUPABASE_URL}/rest/v1/avisos?id=eq.${avId}`, { method: 'PATCH', headers: { ...headers, Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'error' }) });
+          }
+        } catch (e) { out.errores++; }
+      }
+    } catch (e) { console.error('[cron] deudas tienda', t.id, e.message); out.errores++; }
   }
   return out;
 }

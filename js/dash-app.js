@@ -4635,6 +4635,16 @@ function calcularProximaAccion() {
       titulo: T('recog.prox_t').replace('{c}', rr0.clienteNombre || '').replace('{d}', _equipo(rr0)).replace('{n}', rr0._diasSinRecoger), sub: T('recog.prox_s'),
       cta: { label: '🔔 ' + T('recog.recordar'), fn: "recordarRecogida('" + rr0.id + "')" }, cta2: { label: '👁️ ' + T('estan.ver'), fn: "editarRep('" + rr0.id + "')" } });
   }
+  // 1c. Lo que te deben desde hace más de una semana → recordárselo
+  try {
+    var _deu = _deudasLista().filter(function(d) { return d.dias >= 7; });
+    if (_deu.length) {
+      var _deuTot = _deu.reduce(function(s, d) { return s + d.importe; }, 0), keyD = 'deuda_' + _deu.length + '_' + Math.round(_deuTot);
+      if (!_proxIsSkipped(keyD)) cands.push({ key: keyD, score: 640 + Math.min(_deu[0].dias, 60), icon: '💸', color: 'red',
+        titulo: T('deu.prox_t').replace('{t}', cur(_deuTot)).replace('{n}', _deu.length), sub: T('deu.prox_s'),
+        cta: { label: '💸 ' + T('deu.ver'), fn: 'abrirTeDeben()' }, cta2: null });
+    }
+  } catch (e) {}
   // 2. Reparación más atrasada (>14 días en taller)
   var atr = reps.filter(function(r) { if (CERR.indexOf(r.estado) !== -1) return false; if (repEsperaPieza(r.id)) return false; var f = r.fecha || r.fecha_entrada; if (!f) return false; var dt = Math.floor((finDia - new Date(String(f).slice(0, 10) + 'T00:00:00')) / 86400000); r._dtProx = Math.max(0, dt - _diasEsperandoPieza(r.id)); return r._dtProx > 14; }).sort(function(a, b) { return b._dtProx - a._dtProx; });
   if (atr.length) {
@@ -20944,6 +20954,7 @@ var PLANTILLAS_WA_DEFAULT = {
   rep_recogida: {nombre:'Recordatorio recogida', texto:'Hola {nombre}, te recuerdo que tu {modelo} sigue en {tienda} listo para recoger desde hace días. Cuando puedas pásate, ¡gracias!'},
   rep_proceso: {nombre:'Reparación en proceso', texto:'Hola {nombre}, ya estamos reparando tu {modelo} en {tienda}. Te avisamos en cuanto esté listo.'},
   rep_recibida: {nombre:'Reparación recibida', texto:'Hola {nombre}, hemos recibido tu {modelo} en {tienda}. Te avisaremos cuando tengamos novedades sobre la reparación. ¡Gracias por confiar en nosotros!'},
+  deuda_recordatorio: {nombre:'Recordatorio de deuda', texto:'Hola {nombre}, te escribimos desde {tienda}. Tienes pendiente {total} ({estado}) desde el {fecha}. Puedes pasar a pagarlo cuando te venga bien. ¡Gracias!'},
   rep_valoracion: {nombre:'Valoración tras entregar', texto:'Hola {nombre}, gracias por confiar en {tienda} para tu {modelo}. ¿Qué tal ha ido? Puntúanos en 10 segundos: {link}'},
   pieza_recibida: {nombre:'Pieza recibida', texto:'¡Hola {nombre}! 👋\n\nBuenas noticias: ya nos ha llegado la pieza para reparar tu {modelo}. Nos ponemos con la reparación y te avisamos en cuanto esté lista para recoger.\n\nGracias por tu paciencia. Saludos desde {tienda}.'},
   pieza_traer: {nombre:'Pieza lista, traer equipo', texto:'¡Hola {nombre}! 👋\n\nBuenas noticias: ya nos ha llegado la pieza para tu {modelo}. Cuando quieras, pásate por {tienda} con el equipo y te la instalamos en el momento. Suele ser rápido.\n\n¡Te esperamos! Saludos desde {tienda}.'},
@@ -24897,3 +24908,135 @@ function tarUsarEnRep() {
 window.tarCelda = tarCelda; window.tarNuevoModelo = tarNuevoModelo; window.tarNuevaAveria = tarNuevaAveria;
 window.tarQuitarAveria = tarQuitarAveria; window.tarQuitarModelo = tarQuitarModelo; window.tarDesdeHistorial = tarDesdeHistorial;
 window.tarPegar = tarPegar; window.tarUsarEnRep = tarUsarEnRep; window.renderTarifa = renderTarifa;
+
+// ═══ TE DEBEN: lo que los clientes deben, en una sola lista ═══
+// Junta reparaciones entregadas sin pagar del todo, cuotas vencidas de ventas a plazos y
+// cobros pendientes de las cajas. Cada uno con su botón de recordar (WhatsApp/email) y el
+// historial de recordatorios (avisos tipo 'deuda_recordatorio'). Si la tienda lo activa,
+// el servidor manda el recordatorio por email solo (cron-trial-emails → recordatoriosDeuda).
+window._deudasFiados = null;   // cobros pendientes de cajas (vienen de /api/cajas)
+window._deudasAvisos = {};     // ref → { ult, n }
+function _deudaCfg() { var c = AJUSTES.deudas || {}; return { auto: !!c.auto, dias: parseInt(c.dias, 10) || 7 }; }
+function _diasDesde(f) { if (!f) return 0; return Math.max(0, Math.floor((new Date(hoyLocal() + 'T12:00:00') - new Date(String(f).slice(0, 10) + 'T12:00:00')) / 86400000)); }
+function _deudasLista() {
+  var out = [], hoy = hoyLocal();
+  var cliDe = function(id, nombre) {
+    var c = id ? (DB.clis || []).find(function(x) { return x.id === id; }) : null;
+    if (!c && nombre) { var n = _norm(nombre); c = (DB.clis || []).find(function(x) { return _norm(((x.nombre || '') + ' ' + (x.apellidos || '')).trim()) === n; }); }
+    return c || null;
+  };
+  (DB.reps || []).forEach(function(r) {
+    if (r.estado !== 'Entregado' || !(parseFloat(r.restante) > 0.005)) return;
+    var c = cliDe(r.clienteId, r.clienteNombre);
+    out.push({ ref: 'rep:' + r.id, tipo: 'rep', id: r.id, nombre: r.clienteNombre || (c ? c.nombre : ''), cli: c,
+      concepto: T('deu.c_rep').replace('{e}', ((r.marca || '') + ' ' + (r.modelo || '')).trim()), importe: parseFloat(r.restante), desde: r.fechaEntregaReal || r.fecha });
+  });
+  (DB.ventas || []).forEach(function(v) {
+    if (!v.financiado || v.reembolsado || !Array.isArray(v.cuotas)) return;
+    var imp = 0, desde = '';
+    v.cuotas.forEach(function(c) {
+      if (!c || c.pagado || !c.fecha || String(c.fecha).slice(0, 10) >= hoy) return;
+      imp += (parseFloat(c.importe) || 0) - (c.pagadoImporte != null ? (parseFloat(c.pagadoImporte) || 0) : 0);
+      if (!desde || c.fecha < desde) desde = c.fecha;
+    });
+    if (!(imp > 0.005)) return;
+    var cl = cliDe(v.clienteId, v.clienteNombre);
+    out.push({ ref: 'venta:' + v.id, tipo: 'venta', id: v.id, nombre: v.clienteNombre || (cl ? cl.nombre : ''), cli: cl,
+      concepto: T('deu.c_cuotas').replace('{e}', ((v.marca || '') + ' ' + (v.modelo || '')).trim()), importe: Math.round(imp * 100) / 100, desde: desde });
+  });
+  (window._deudasFiados || []).forEach(function(f) {
+    out.push({ ref: 'fiado:' + f.id, tipo: 'fiado', id: f.id, nombre: f.cliente_nombre || '', cli: f.cliente_telefono ? { tel: f.cliente_telefono, nombre: f.cliente_nombre || '' } : null,
+      concepto: T('deu.c_fiado').replace('{c}', f.caja_nombre || ''), importe: parseFloat(f.importe) || 0, desde: f.fecha });
+  });
+  out.forEach(function(d) { d.dias = _diasDesde(d.desde); d.av = window._deudasAvisos[d.ref] || null; });
+  return out.sort(function(a, b) { return b.dias - a.dias || b.importe - a.importe; });
+}
+function _deudasTotal() { return _deudasLista().reduce(function(s, d) { return s + d.importe; }, 0); }
+function _deudasCargar() {
+  var tareas = [];
+  if (SB_KEY && TIENDA_ID && JWT_TOKEN) {
+    tareas.push(fetch('/api/cajas?action=listar_fiados&estado=pendiente', { headers: { 'Authorization': 'Bearer ' + JWT_TOKEN } })
+      .then(function(r) { return r.ok ? r.json() : null; }).then(function(d) { if (d && Array.isArray(d.fiados)) window._deudasFiados = d.fiados; }).catch(function() {}));
+    tareas.push(sbGetAll('avisos', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&tipo=eq.deuda_recordatorio').then(function(rows) {
+      if (!Array.isArray(rows)) return;
+      var m = {};
+      rows.forEach(function(a) { if (a.estado === 'error' || !a.ref_id) return; var x = m[a.ref_id] || (m[a.ref_id] = { ult: '', n: 0 }); x.n++; if (String(a.fecha) > x.ult) x.ult = String(a.fecha); });
+      window._deudasAvisos = m;
+    }));
+  }
+  return Promise.all(tareas);
+}
+
+function abrirTeDeben() {
+  if (!document.getElementById('mTeDeben')) {
+    var d = document.createElement('div');
+    d.className = 'modal-bg'; d.id = 'mTeDeben';
+    d.innerHTML = '<div class="modal" style="max-width:720px;width:100%"><div class="modal-title">💸 <span>' + esc(T('deu.titulo')) + '</span></div><div id="deuBody"></div>' +
+      '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn btn-secondary" onclick="closeM(\'mTeDeben\')">' + esc(T('gen.cerrar')) + '</button></div></div>';
+    document.body.appendChild(d);
+  }
+  renderTeDeben();
+  openM('mTeDeben');
+  _deudasCargar().then(renderTeDeben);
+}
+window.abrirTeDeben = abrirTeDeben;
+
+function renderTeDeben() {
+  var box = document.getElementById('deuBody'); if (!box) return;
+  var lista = _deudasLista(), total = lista.reduce(function(s, d) { return s + d.importe; }, 0), cfg = _deudaCfg();
+  var h = '<div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:6px"><span style="font-size:28px;font-weight:800;color:var(--red)">' + cur(total) + '</span>' +
+    '<span style="color:var(--muted);font-size:13px">' + esc(T('deu.n').replace('{n}', lista.length)) + '</span></div>';
+  h += '<label style="display:flex;align-items:flex-start;gap:8px;font-size:12.5px;margin:6px 0 12px;cursor:pointer"><input type="checkbox" id="deuAuto" ' + (cfg.auto ? 'checked ' : '') + 'onchange="setDeudaCfg()" style="margin-top:2px"> <span>' +
+    esc(T('deu.auto')) + ' <select id="deuDias" onchange="setDeudaCfg()" class="fi" style="width:auto;padding:2px 6px;font-size:12px;display:inline-block">' +
+    [3, 7, 15, 30].map(function(n) { return '<option value="' + n + '"' + (cfg.dias === n ? ' selected' : '') + '>' + n + '</option>'; }).join('') + '</select> ' + esc(T('deu.auto2')) +
+    '<br><span style="color:var(--muted)">' + esc(T('deu.auto_hint')) + '</span></span></label>';
+  if (!lista.length) { box.innerHTML = h + '<div style="text-align:center;padding:24px;color:var(--muted)">🎉 ' + esc(T('deu.vacio')) + '</div>'; return; }
+  h += '<div style="max-height:55vh;overflow-y:auto">';
+  lista.forEach(function(d, i) {
+    var tel = d.cli && d.cli.tel ? waTel(d.cli.tel, d.cli.telPrefijo) : '';
+    var mail = d.cli && d.cli.email ? d.cli.email : '';
+    var av = d.av ? T('deu.recordado').replace('{d}', _diasDesde(d.av.ult)).replace('{n}', d.av.n) : T('deu.nunca');
+    h += '<div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 12px;border:1px solid var(--border);border-radius:10px;margin-bottom:6px' + (d.dias > 30 ? ';border-left:4px solid var(--red)' : '') + '">' +
+      '<div style="flex:1;min-width:180px"><div style="font-weight:700">' + esc(d.nombre || T('gen.sin_nombre_2')) + ' <span style="color:var(--red)">' + cur(d.importe) + '</span></div>' +
+      '<div style="font-size:12px;color:var(--muted)">' + esc(d.concepto) + ' · ' + esc(T('deu.hace').replace('{n}', d.dias)) + ' · ' + esc(av) + '</div></div>' +
+      (tel ? '<button type="button" class="btn-sm" style="background:#25D366;color:#fff" onclick="deudaRecordar(' + i + ',\'wa\')">💬 WhatsApp</button>' : '') +
+      (mail ? '<button type="button" class="btn-sm" style="background:#3B82F6;color:#fff" onclick="deudaRecordar(' + i + ',\'mail\')">✉️ Email</button>' : '') +
+      (!tel && !mail ? '<span style="font-size:11.5px;color:var(--muted)">' + esc(T('deu.sin_contacto')) + '</span>' : '') +
+      (d.tipo === 'rep' ? '<button type="button" class="btn-sm" onclick="closeM(\'mTeDeben\');editarRep(\'' + esc(d.id) + '\')">👁️</button>' : '') + '</div>';
+  });
+  box.innerHTML = h + '</div>';
+  box._lista = lista;
+}
+function _deudaTexto(d) {
+  var pl = getPlantillasWA();
+  var txt = (pl.deuda_recordatorio && pl.deuda_recordatorio.texto) || T('wa.txt_deuda_recordatorio');
+  return aplicarVariablesWA(txt, { nombre: (d.nombre || '').split(' ')[0], total: d.importe, fecha: d.desde ? fmtFecha(d.desde) : '', estado: d.concepto });
+}
+function deudaRecordar(i, canal) {
+  var box = document.getElementById('deuBody'); var d = box && box._lista && box._lista[i]; if (!d) return;
+  var txt = _deudaTexto(d);
+  var anota = function(dest) {
+    registrarAviso({ tipo: 'deuda_recordatorio', ref_id: d.ref, ref_tipo: d.tipo, canal: canal === 'wa' ? 'whatsapp' : 'email', destinatario: dest, asunto: T('wa.pl_deuda_recordatorio') });
+    var x = window._deudasAvisos[d.ref] || (window._deudasAvisos[d.ref] = { ult: '', n: 0 }); x.n++; x.ult = new Date().toISOString();
+    renderTeDeben();
+  };
+  if (canal === 'wa') {
+    var tel = waTel(d.cli.tel, d.cli.telPrefijo);
+    window.open('https://wa.me/' + tel + '?text=' + encodeURIComponent(txt), '_blank');
+    anota(tel);
+  } else {
+    fetch('/api/email', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN },
+      body: JSON.stringify({ tipo: 'aviso_rep', email: d.cli.email, nombreCliente: d.nombre, tienda: TIENDA.nombre || 'TekPair', asunto: T('deu.asunto').replace('{t}', TIENDA.nombre || 'TekPair'), mensaje: txt }) })
+      .then(function(r) { return r.json(); })
+      .then(function(r) { if (r && r.ok) { anota(d.cli.email); toast(T('aviso.email_ok').replace('{e}', d.cli.email), 'ok'); } else toast(T('aviso.email_error'), 'err'); })
+      .catch(function() { toast(T('aviso.email_error'), 'err'); });
+  }
+}
+function setDeudaCfg() {
+  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); renderTeDeben(); return; }
+  AJUSTES.deudas = { auto: !!(document.getElementById('deuAuto') || {}).checked, dias: parseInt((document.getElementById('deuDias') || {}).value, 10) || 7 };
+  try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES });
+  toast(T('gen.guardado'), 'ok');
+}
+window.deudaRecordar = deudaRecordar; window.setDeudaCfg = setDeudaCfg; window.renderTeDeben = renderTeDeben;
