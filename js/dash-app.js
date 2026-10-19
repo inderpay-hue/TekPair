@@ -10974,11 +10974,15 @@ function sugerirPrecioRep() {
   if (mod.length < 3 || aver.length < 3) return ocultar();
 
   // Primero la tarifa de la tienda (precio fijo): se ofrece con un botón para añadirla.
-  var tf = (typeof tarifaPara === 'function') ? tarifaPara(mod, aver) : null;
-  if (tf) {
+  var tfs = (typeof tarifaPara === 'function') ? tarifaPara(mod, aver) : [];
+  if (tfs.length) {
+    window._tarSugs = tfs;
     box.style.display = 'block';
-    box.innerHTML = '💶 ' + escHtml(T('tar.sug').replace('{a}', tf.averia).replace('{m}', tf.modelo).replace('{p}', cur(tf.precio))) +
-      ' <button type="button" class="btn-sm" onclick="tarUsarEnRep()" style="margin-left:6px;padding:3px 10px">' + escHtml(T('tar.usar')) + '</button>';
+    box.innerHTML = '💶 <b>' + escHtml(tfs[0].averia + ' ' + _tarNombre(tfs[0])) + '</b>: ' + tfs.map(function(f, i) {
+      var marc = f._marcada || tfs.length === 1;
+      return '<button type="button" class="btn-sm" onclick="tarUsarEnRep(' + i + ')" style="margin:3px 4px 0 0;padding:4px 10px;' + (marc ? 'background:var(--orange);color:#fff;border-color:var(--orange)' : '') + '">' +
+        escHtml((f.calidad ? f.calidad + ' ' : '') + cur(f.precio)) + '</button>';
+    }).join('') + '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + escHtml(T(tfs.length > 1 ? 'tar.elige' : 'tar.pulsa')) + '</div>';
     return;
   }
 
@@ -24891,10 +24895,11 @@ function _masOrdenar() {
   else setTimeout(ir, 0);
 })();
 
-// ═══ TARIFA DE REPARACIONES (modelo × avería) ═══
-// Tabla de precios fijos: filas = modelos, columnas = averías habituales. Al crear una
-// reparación, si el modelo y el problema encajan con una casilla, se ofrece el precio con
-// un clic. Se guarda en la tabla `tarifas` (una fila por modelo+avería).
+// ═══ TARIFA DE REPARACIONES (modelo × avería × calidad) ═══
+// Tabla de precios fijos: filas = modelos, columnas = averías habituales. Una avería puede
+// tener varias calidades (pantalla Original / OLED / Incell, batería Original / Compatible),
+// cada una con su precio. Al crear una reparación, si el modelo y el problema encajan, se
+// ofrecen todas las calidades con un clic. Tabla `tarifas` (una fila por modelo+avería+calidad).
 var _tarModelosNuevos = [];
 var _tarFiltro = '';
 function _tarNorm(s) { return String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim(); }
@@ -24912,28 +24917,53 @@ var _TAR_SINON = [
   ['tapa', 'trasera', 'back', 'cover', 'cache', 'scocca', 'ruckseite', 'traseira'],
   ['altavoz', 'micro', 'auricular', 'speaker', 'microfono', 'haut-parleur', 'altoparlante', 'lautsprecher', 'altifalante']
 ];
+function _tarGrupo(col) {
+  var c = _tarNorm(col);
+  for (var i = 0; i < _TAR_SINON.length; i++) if (_TAR_SINON[i].some(function(w) { return c.indexOf(w) !== -1; })) return i;
+  return -1;
+}
+// Calidades de una columna: las que haya puesto la tienda, o por defecto pantalla y batería.
+function _tarCalidades(col) {
+  var cfg = AJUSTES.tarifaCalidades || {};
+  if (Array.isArray(cfg[_tarNorm(col)])) return cfg[_tarNorm(col)];
+  var g = _tarGrupo(col);
+  if (g === 0) return ['Original', 'OLED', 'Incell'];
+  if (g === 1) return ['Original', T('tar.compatible')];
+  return [];
+}
 function _tarEncajaAveria(col, textoAveria) {
   var t = _tarNorm(textoAveria), c = _tarNorm(col);
   if (!t || !c) return false;
   var palabrasCol = c.split(/[^a-z0-9]+/).filter(function(w) { return w.length >= 4; });
   if (palabrasCol.some(function(w) { return t.indexOf(w) !== -1; })) return true;
-  return _TAR_SINON.some(function(grupo) {
-    var esCol = grupo.some(function(w) { return c.indexOf(w) !== -1; });
-    return esCol && grupo.some(function(w) { return t.indexOf(w) !== -1; });
-  });
+  var g = _tarGrupo(col);
+  return g !== -1 && _TAR_SINON[g].some(function(w) { return t.indexOf(w) !== -1; });
 }
-function _tarFila(modelo, averia) {
-  var m = _tarNorm(modelo), a = _tarNorm(averia);
-  return (DB.tarifas || []).find(function(x) { return _tarNorm(x.modelo) === m && _tarNorm(x.averia) === a; }) || null;
+// ¿El texto nombra una calidad concreta? ("pantalla oled" → OLED). Gana la más larga ("soft oled" antes que "oled").
+function _tarCalidadEnTexto(cals, texto) {
+  var t = ' ' + _tarNorm(texto) + ' ', mejor = '';
+  (cals || []).forEach(function(c) { var n = _tarNorm(c); if (n && t.indexOf(n) !== -1 && n.length > _tarNorm(mejor).length) mejor = c; });
+  return mejor;
 }
-// Precio de tarifa para el formulario de reparación (o null).
+function _tarFila(modelo, averia, calidad) {
+  var m = _tarNorm(modelo), a = _tarNorm(averia), q = _tarNorm(calidad);
+  return (DB.tarifas || []).find(function(x) { return _tarNorm(x.modelo) === m && _tarNorm(x.averia) === a && _tarNorm(x.calidad) === q; }) || null;
+}
+// Precios de tarifa para el formulario de reparación: todas las calidades de la avería
+// que encaja (o [] si no hay). Si el texto nombra una calidad, esa va marcada.
 function tarifaPara(modelo, textoAveria) {
-  if (!modelo || !textoAveria || !(DB.tarifas || []).length) return null;
+  if (!modelo || !textoAveria || !(DB.tarifas || []).length) return [];
   var cand = (DB.tarifas || []).filter(function(x) { return _modeloEncaja(modelo.toLowerCase(), x.modelo || '') && _tarEncajaAveria(x.averia, textoAveria); });
-  if (!cand.length) return null;
-  // El modelo más parecido (mismo texto) primero.
-  cand.sort(function(a, b) { return (_tarNorm(b.modelo) === _tarNorm(modelo)) - (_tarNorm(a.modelo) === _tarNorm(modelo)); });
-  return cand[0];
+  if (!cand.length) return [];
+  // El modelo más parecido (mismo texto) y una sola avería (la primera que encaja).
+  var exacto = cand.filter(function(x) { return _tarNorm(x.modelo) === _tarNorm(modelo); });
+  if (exacto.length) cand = exacto;
+  var av = _tarNorm(cand[0].averia), mod = _tarNorm(cand[0].modelo);
+  cand = cand.filter(function(x) { return _tarNorm(x.averia) === av && _tarNorm(x.modelo) === mod; });
+  var cals = _tarCalidades(cand[0].averia);
+  cand.sort(function(a, b) { return cals.indexOf(a.calidad || '') - cals.indexOf(b.calidad || ''); });
+  var elegida = _tarCalidadEnTexto(cand.map(function(x) { return x.calidad || ''; }), textoAveria);
+  return cand.map(function(x) { return Object.assign({}, x, { _marcada: !!elegida && _tarNorm(x.calidad) === _tarNorm(elegida) }); });
 }
 window.tarifaPara = tarifaPara;
 
@@ -24955,7 +24985,7 @@ function abrirTarifa() {
   if (!document.getElementById('mTarifa')) {
     var d = document.createElement('div');
     d.className = 'modal-bg'; d.id = 'mTarifa';
-    d.innerHTML = '<div class="modal" style="max-width:min(1100px,96vw);width:100%"><div class="modal-title">💶 <span>' + esc(T('tar.titulo')) + '</span></div><div id="tarBody"></div>' +
+    d.innerHTML = '<div class="modal" style="max-width:min(1200px,96vw);width:100%"><div class="modal-title">💶 <span>' + esc(T('tar.titulo')) + '</span></div><div id="tarBody"></div>' +
       '<div style="display:flex;justify-content:flex-end;margin-top:12px"><button class="btn btn-secondary" onclick="closeM(\'mTarifa\')">' + esc(T('gen.cerrar')) + '</button></div></div>';
     document.body.appendChild(d);
   }
@@ -24968,7 +24998,7 @@ function renderTarifa() {
   var box = document.getElementById('tarBody'); if (!box) return;
   var cols = _tarCols(), puede = tienePerm('ajustes_editar');
   var mods = _tarModelos().filter(function(m) { return !_tarFiltro || _tarNorm(m.marca + ' ' + m.modelo).indexOf(_tarNorm(_tarFiltro)) !== -1; });
-  var h = '<div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px">' + esc(T('tar.hint')) + '</div>';
+  var h = '<div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px">' + esc(T('tar.hint')) + ' ' + esc(T('tar.hint_cal')) + '</div>';
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">' +
     '<input class="fi" id="tarBus" placeholder="' + esc(T('tar.buscar')) + '" value="' + esc(_tarFiltro) + '" oninput="_tarFiltro=this.value;renderTarifa();var e=document.getElementById(\'tarBus\');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}" style="flex:1;min-width:160px">' +
     (puede ? '<button type="button" class="btn-sm" onclick="tarNuevoModelo()">+ ' + esc(T('tar.modelo')) + '</button>' +
@@ -24979,18 +25009,27 @@ function renderTarifa() {
     h += '<div style="text-align:center;padding:26px 10px;color:var(--muted);font-size:13px">' + esc(T(_tarFiltro ? 'tar.sin_res' : 'tar.vacio')) + '</div>';
     box.innerHTML = h; return;
   }
+  var colsCal = cols.map(function(c) { return _tarCalidades(c); });
+  var th = 'padding:7px 6px;white-space:nowrap;font-weight:700;border-left:1px solid var(--border)';
   h += '<div style="overflow-x:auto;max-height:60vh;overflow-y:auto;border:1px solid var(--border);border-radius:10px"><table style="border-collapse:collapse;width:100%;font-size:13px">' +
-    '<thead><tr style="position:sticky;top:0;background:var(--bg2,#f8f8f8);z-index:1"><th style="text-align:left;padding:8px 10px;min-width:150px">' + esc(T('tar.modelo')) + '</th>' +
+    '<thead style="position:sticky;top:0;background:var(--bg2,#f8f8f8);z-index:1"><tr><th rowspan="2" style="text-align:left;padding:8px 10px;min-width:150px">' + esc(T('tar.modelo')) + '</th>' +
     cols.map(function(c, i) {
-      return '<th style="padding:8px 6px;white-space:nowrap;font-weight:700">' + esc(c) + (puede ? ' <button type="button" title="' + esc(T('tar.quitar_col')) + '" onclick="tarQuitarAveria(' + i + ')" style="border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px">×</button>' : '') + '</th>';
-    }).join('') + '<th></th></tr></thead><tbody>';
+      var n = Math.max(1, colsCal[i].length);
+      return '<th colspan="' + n + '"' + (colsCal[i].length ? '' : ' rowspan="2"') + ' style="' + th + '">' + esc(c) +
+        (puede ? ' <button type="button" title="' + esc(T('tar.calidades')) + '" onclick="tarCalidadesCol(' + i + ')" style="border:none;background:none;cursor:pointer;font-size:11px">⚙️</button>' +
+          '<button type="button" title="' + esc(T('tar.quitar_col')) + '" onclick="tarQuitarAveria(' + i + ')" style="border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px">×</button>' : '') + '</th>';
+    }).join('') + '<th rowspan="2"></th></tr><tr>' +
+    cols.map(function(c, i) { return colsCal[i].map(function(q) { return '<th style="padding:3px 6px;font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap;border-left:1px solid var(--border)">' + esc(q) + '</th>'; }).join(''); }).join('') +
+    '</tr></thead><tbody>';
   mods.forEach(function(m, mi) {
     h += '<tr style="border-top:1px solid var(--border)"><td style="padding:6px 10px;font-weight:600">' + esc(_tarNombre(m)) + '</td>';
-    cols.forEach(function(c) {
-      var f = _tarFila(m.modelo, c);
-      h += '<td style="padding:4px"><input type="number" step="0.01" min="0" inputmode="decimal" ' + (puede ? '' : 'disabled ') +
-        'data-mi="' + mi + '" data-col="' + esc(c) + '" value="' + (f ? f.precio : '') + '" placeholder="—" onchange="tarCelda(this)" ' +
-        'style="width:84px;padding:6px;border:1px solid var(--border);border-radius:7px;text-align:right;font:inherit"></td>';
+    cols.forEach(function(c, i) {
+      (colsCal[i].length ? colsCal[i] : ['']).forEach(function(q) {
+        var f = _tarFila(m.modelo, c, q);
+        h += '<td style="padding:4px;border-left:1px solid var(--border)"><input type="number" step="0.01" min="0" inputmode="decimal" ' + (puede ? '' : 'disabled ') +
+          'data-mi="' + mi + '" data-col="' + esc(c) + '" data-cal="' + esc(q) + '" value="' + (f ? f.precio : '') + '" placeholder="—" onchange="tarCelda(this)" ' +
+          'style="width:74px;padding:6px;border:1px solid var(--border);border-radius:7px;text-align:right;font:inherit"></td>';
+      });
     });
     h += '<td style="padding:4px 8px">' + (puede ? '<button type="button" onclick="tarQuitarModelo(' + mi + ')" title="' + esc(T('tar.quitar_mod')) + '" style="border:none;background:none;color:var(--muted);cursor:pointer">🗑️</button>' : '') + '</td></tr>';
   });
@@ -24999,8 +25038,8 @@ function renderTarifa() {
   box._mods = mods;
 }
 
-function _tarGuardar(marca, modelo, averia, precio) {
-  var f = _tarFila(modelo, averia);
+function _tarGuardar(marca, modelo, averia, precio, calidad) {
+  var f = _tarFila(modelo, averia, calidad);
   if (!(precio > 0)) {
     if (f) {
       DB.tarifas = DB.tarifas.filter(function(x) { return x !== f; });
@@ -25015,6 +25054,7 @@ function _tarGuardar(marca, modelo, averia, precio) {
     if (SB_KEY && TIENDA_ID) sbPatch('tarifas', 'id=eq.' + encodeURIComponent(f.id), { precio: precio, updated_at: f.updated_at });
   } else {
     f = { id: 'tf_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID, marca: marca || null, modelo: modelo, averia: averia, precio: precio };
+    if (calidad) f.calidad = calidad;   // solo si hay: así funciona aunque falte la columna
     DB.tarifas = DB.tarifas || []; DB.tarifas.push(f);
     if (SB_KEY && TIENDA_ID) sbPost('tarifas', f);
   }
@@ -25022,15 +25062,14 @@ function _tarGuardar(marca, modelo, averia, precio) {
 function tarCelda(inp) {
   var box = document.getElementById('tarBody'); var m = box && box._mods && box._mods[+inp.dataset.mi]; if (!m) return;
   var v = parseFloat(String(inp.value).replace(',', '.'));
-  _tarGuardar(m.marca, m.modelo, inp.dataset.col, v);
+  _tarGuardar(m.marca, m.modelo, inp.dataset.col, v, inp.dataset.cal || '');
   guardarDatos();
 }
 function tarNuevoModelo() {
   var mod = prompt(T('tar.prompt_modelo')); if (!mod || !mod.trim()) return;
   mod = mod.trim();
-  var marca = '';
-  try { var c = (typeof CATALOGO_MODELOS !== 'undefined') ? CATALOGO_MODELOS : null; if (c) Object.keys(c).some(function(k) { if ((c[k] || []).some(function(x) { return _tarNorm(x) === _tarNorm(mod); })) { marca = k; return true; } }); } catch (e) {}
-  if (!marca) { var p = mod.split(' ')[0].toLowerCase(); marca = /^iphone|^ipad/.test(p) ? 'Apple' : (/^galaxy/.test(p) ? 'Samsung' : (/^redmi|^poco/.test(p) ? 'Xiaomi' : '')); }
+  var p = mod.split(' ')[0].toLowerCase();
+  var marca = /^iphone|^ipad/.test(p) ? 'Apple' : (/^galaxy/.test(p) ? 'Samsung' : (/^redmi|^poco/.test(p) ? 'Xiaomi' : ''));
   if (_tarModelos().some(function(x) { return _tarNorm(x.modelo) === _tarNorm(mod); })) { _tarFiltro = mod; renderTarifa(); return; }
   _tarModelosNuevos.push({ marca: marca, modelo: mod });
   _tarFiltro = ''; renderTarifa();
@@ -25041,18 +25080,39 @@ function tarNuevaAveria() {
   if (cols.some(function(c) { return _tarNorm(c) === _tarNorm(a); })) return;
   cols.push(a.trim()); _tarGuardarCols(cols);
 }
+// Editar las calidades de una columna ("Original, OLED, Incell"; vacío = un solo precio).
+function tarCalidadesCol(i) {
+  var c = _tarCols()[i]; if (c == null) return;
+  var actual = _tarCalidades(c);
+  var r = prompt(T('tar.prompt_cal').replace('{a}', c), actual.join(', '));
+  if (r === null) return;
+  var nuevas = r.split(',').map(function(x) { return x.trim(); }).filter(Boolean)
+    .filter(function(x, k, arr) { return arr.map(_tarNorm).indexOf(_tarNorm(x)) === k; });
+  // Precios de calidades que se quitan: se avisa antes de borrarlos.
+  var quitadas = (DB.tarifas || []).filter(function(x) {
+    if (_tarNorm(x.averia) !== _tarNorm(c)) return false;
+    var q = _tarNorm(x.calidad);
+    return nuevas.length ? nuevas.map(_tarNorm).indexOf(q) === -1 : !!q;
+  });
+  if (quitadas.length && !confirm(T('tar.confirm_cal').replace('{n}', quitadas.length))) return;
+  quitadas.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, 0, x.calidad || ''); });
+  AJUSTES.tarifaCalidades = Object.assign({}, AJUSTES.tarifaCalidades || {});
+  AJUSTES.tarifaCalidades[_tarNorm(c)] = nuevas;
+  guardarDatos();
+  _tarGuardarCols(_tarCols().slice());
+}
 function tarQuitarAveria(i) {
   var cols = _tarCols().slice(); var c = cols[i]; if (c == null) return;
-  var n = (DB.tarifas || []).filter(function(x) { return _tarNorm(x.averia) === _tarNorm(c); }).length;
-  if (n && !confirm(T('tar.confirm_col').replace('{a}', c).replace('{n}', n))) return;
-  (DB.tarifas || []).filter(function(x) { return _tarNorm(x.averia) === _tarNorm(c); }).forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, 0); });
+  var filas = (DB.tarifas || []).filter(function(x) { return _tarNorm(x.averia) === _tarNorm(c); });
+  if (filas.length && !confirm(T('tar.confirm_col').replace('{a}', c).replace('{n}', filas.length))) return;
+  filas.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, 0, x.calidad || ''); });
   cols.splice(i, 1); _tarGuardarCols(cols);
 }
 function tarQuitarModelo(mi) {
   var box = document.getElementById('tarBody'); var m = box && box._mods && box._mods[mi]; if (!m) return;
   var filas = (DB.tarifas || []).filter(function(x) { return _tarNorm(x.modelo) === _tarNorm(m.modelo); });
   if (filas.length && !confirm(T('tar.confirm_mod').replace('{m}', m.modelo))) return;
-  filas.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, 0); });
+  filas.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, 0, x.calidad || ''); });
   _tarModelosNuevos = _tarModelosNuevos.filter(function(x) { return _tarNorm(x.modelo) !== _tarNorm(m.modelo); });
   guardarDatos(); renderTarifa();
 }
@@ -25063,53 +25123,71 @@ function _tarGuardarCols(cols) {
   renderTarifa();
 }
 // Rellena las casillas vacías con el último precio cobrado (reparaciones entregadas cuya
-// avería encaja con UNA sola columna, para no mezclar "pantalla + batería").
+// avería encaja con UNA sola columna, para no mezclar "pantalla + batería"). En columnas con
+// calidades, solo si la reparación dice cuál (en la avería o en los servicios).
 function tarDesdeHistorial() {
-  var cols = _tarCols(), prop = {};
-  (DB.reps || []).filter(function(r) { return r.estado === 'Entregado' && r.total > 0 && r.modelo; })
+  var cols = _tarCols(), prop = {}, sinCal = 0;
+  (DB.reps || []).filter(function(r) { return ['Entregado', 'Por Entregar', 'Por entregar'].indexOf(r.estado) !== -1 && r.total > 0 && r.modelo; })
     .sort(function(a, b) { return String(b.fechaEntregaReal || b.fecha || '').localeCompare(String(a.fechaEntregaReal || a.fecha || '')); })
     .forEach(function(r) {
       var enc = cols.filter(function(c) { return _tarEncajaAveria(c, r.averia); });
       if (enc.length !== 1) return;
-      var k = _tarNorm(r.modelo) + '|' + _tarNorm(enc[0]);
-      if (prop[k] || _tarFila(r.modelo, enc[0])) return;
-      prop[k] = { marca: r.marca || '', modelo: r.modelo.trim(), averia: enc[0], precio: r.total };
+      var cals = _tarCalidades(enc[0]), cal = '';
+      if (cals.length) {
+        var texto = (r.averia || '') + ' ' + (Array.isArray(r.servicios) ? r.servicios.map(function(s) { return (s && s.nombre) || ''; }).join(' ') : '');
+        cal = _tarCalidadEnTexto(cals, texto);
+        if (!cal) { sinCal++; return; }
+      }
+      var k = _tarNorm(r.modelo) + '|' + _tarNorm(enc[0]) + '|' + _tarNorm(cal);
+      if (prop[k] || _tarFila(r.modelo, enc[0], cal)) return;
+      prop[k] = { marca: r.marca || '', modelo: r.modelo.trim(), averia: enc[0], calidad: cal, precio: r.total };
     });
   var lista = Object.keys(prop).map(function(k) { return prop[k]; });
-  if (!lista.length) { toast(T('tar.hist_nada'), 'ok'); return; }
-  if (!confirm(T('tar.hist_confirm').replace('{n}', lista.length))) return;
-  lista.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, x.precio); });
+  if (!lista.length) { toast(T('tar.hist_nada') + (sinCal ? ' ' + T('tar.hist_sin_cal').replace('{n}', sinCal) : ''), 'ok', 6000); return; }
+  if (!confirm(T('tar.hist_confirm').replace('{n}', lista.length) + (sinCal ? '\n\n' + T('tar.hist_sin_cal').replace('{n}', sinCal) : ''))) return;
+  lista.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, x.precio, x.calidad); });
   guardarDatos(); renderTarifa();
   toast(T('tar.hist_ok').replace('{n}', lista.length), 'ok');
 }
-// Pegar desde Excel/hoja: "modelo; avería; precio" o "marca; modelo; avería; precio" por línea
-// (vale tabulador, punto y coma o barra vertical).
+// Pegar desde Excel/hoja, una línea por precio, separada por tabulador, ; o |:
+//   modelo; avería; precio          marca; modelo; avería; precio
+//   modelo; avería; calidad; precio marca; modelo; avería; calidad; precio
 function tarPegar() {
   var txt = prompt(T('tar.pegar_ayuda')); if (!txt) return;
   var cols = _tarCols().slice(), n = 0;
+  var esCalidad = function(x, aver) {
+    var todas = _tarCalidades(aver).concat(CALIDADES_PANTALLA.map(function(c) { return c.v; }), ['Original', T('tar.compatible'), 'Compatible']);
+    return todas.some(function(c) { return _tarNorm(c) === _tarNorm(x); });
+  };
   txt.split(/\r?\n/).forEach(function(l) {
     var p = l.split(/\t|;|\|/).map(function(x) { return x.trim(); }).filter(Boolean);
     if (p.length < 3) return;
-    var precio = parseFloat(String(p[p.length - 1]).replace(/[€\s]/g, '').replace(',', '.'));
+    var precio = parseFloat(String(p.pop()).replace(/[€\s]/g, '').replace(',', '.'));
     if (!(precio > 0)) return;
-    var marca = p.length >= 4 ? p[0] : '', modelo = p.length >= 4 ? p[1] : p[0], aver = p[p.length - 2];
+    var cal = '';
+    if (p.length >= 3 && esCalidad(p[p.length - 1], p[p.length - 2])) cal = p.pop();
+    var aver = p.pop(), modelo = p.pop(), marca = p.pop() || '';
     var col = cols.find(function(c) { return _tarNorm(c) === _tarNorm(aver); }) || cols.find(function(c) { return _tarEncajaAveria(c, aver); });
     if (!col) { col = aver; cols.push(aver); }
-    _tarGuardar(marca, modelo, col, precio); n++;
+    if (cal) {
+      var cals = _tarCalidades(col);
+      var existente = cals.find(function(c) { return _tarNorm(c) === _tarNorm(cal); });
+      if (existente) cal = existente;
+      else { AJUSTES.tarifaCalidades = Object.assign({}, AJUSTES.tarifaCalidades || {}); AJUSTES.tarifaCalidades[_tarNorm(col)] = cals.concat([cal]); }
+    }
+    _tarGuardar(marca, modelo, col, precio, cal); n++;
   });
-  if (cols.length !== _tarCols().length) _tarGuardarCols(cols);
+  _tarGuardarCols(cols);
   guardarDatos(); renderTarifa();
   toast(T('tar.pegar_ok').replace('{n}', n), n ? 'ok' : 'err');
 }
-// Formulario de reparación: añadir el precio de tarifa como servicio con un clic.
-function tarUsarEnRep() {
-  var mod = ((document.getElementById('rModelo') || {}).value || '').trim();
-  var av = ((document.getElementById('rAveria') || {}).value || '').trim();
-  var f = tarifaPara(mod, av); if (!f) return;
-  agregarServicioRep({ nombre: f.averia + ' ' + _tarNombre(f), desc: '', coste: parseFloat(f.coste) || 0, precio: parseFloat(f.precio) || 0 });
+// Formulario de reparación: añadir el precio elegido como servicio con un clic.
+function tarUsarEnRep(i) {
+  var f = (window._tarSugs || [])[i || 0]; if (!f) return;
+  agregarServicioRep({ nombre: f.averia + (f.calidad ? ' ' + f.calidad : '') + ' ' + _tarNombre(f), desc: '', coste: parseFloat(f.coste) || 0, precio: parseFloat(f.precio) || 0 });
   toast(T('tar.anadido').replace('{p}', cur(f.precio)), 'ok');
 }
-window.tarCelda = tarCelda; window.tarNuevoModelo = tarNuevoModelo; window.tarNuevaAveria = tarNuevaAveria;
+window.tarCelda = tarCelda; window.tarNuevoModelo = tarNuevoModelo; window.tarNuevaAveria = tarNuevaAveria; window.tarCalidadesCol = tarCalidadesCol;
 window.tarQuitarAveria = tarQuitarAveria; window.tarQuitarModelo = tarQuitarModelo; window.tarDesdeHistorial = tarDesdeHistorial;
 window.tarPegar = tarPegar; window.tarUsarEnRep = tarUsarEnRep; window.renderTarifa = renderTarifa;
 // Desde el formulario de reparación: abre la tarifa con ese modelo listo para ponerle precio.
