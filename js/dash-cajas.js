@@ -966,9 +966,16 @@
     let totalFiados = 0;
     if (Estado.cierreEditando?.caja?.gestion_fiados && Array.isArray(Estado.fiadosTemp)) {
       for (const f of Estado.fiadosTemp) {
+        if (f.estado === 'anulado') continue;
         totalFiados += Number(f.importe || 0);
       }
     }
+
+    // Cobrado hoy de pendientes de otros días: ese dinero está en el cajón (igual que el servidor).
+    const cobrosDia = Number(Estado.cierreEditando.cobros_dia || 0);
+    const htmlCobrosDia = cobrosDia > 0
+      ? `<div class="item" style="grid-column:1/-1;background:#dcfce7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#166534;">${T('cajas.cobros_dia')}</span><span style="color:#166534;font-weight:600;">+${eur(cobrosDia)}</span></div>`
+      : '';
 
     // Datos comunes
     const efectivoCaja = Number($('cierre-saldo-real').value || 0);
@@ -982,7 +989,7 @@
       // ENVÍOS: total enviado por compañías
       let totalEnviado = 0;
       for (const m of movs) totalEnviado += m.importe_enviado || 0;
-      const teorico = Math.round((saldoInicial + totalEnviado) * 100) / 100;
+      const teorico = Math.round((saldoInicial + totalEnviado + cobrosDia) * 100) / 100;
       // v2.3: pendientes son deuda, no suman al cobrado
       const cobrado = Math.round((efectivoCaja + importeTpv) * 100) / 100;
       const balance = Math.round((cobrado - teorico) * 100) / 100;
@@ -1007,8 +1014,9 @@
       html += `<div class="item"><span class="label">${T('cajas.efectivo_caja')}</span><span>${eur(efectivoCaja)}</span></div>`;
       html += `<div class="item"><span class="label">${T('cajas.importe_tpv')}</span><span>${eur(importeTpv)}</span></div>`;
       if (totalFiados > 0) {
-        html += `<div class="item" style="grid-column:1/-1;background:#fef3c7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#92400e;">${T('cajas.pend_cobro')}</span><span style="color:#92400e;font-weight:600;">${eur(totalFiados)}</span></div>`;
+        html += `<div class="item" style="grid-column:1/-1;background:#fef3c7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#92400e;">${T('cajas.fiado_dia')}</span><span style="color:#92400e;font-weight:600;">${eur(totalFiados)}</span></div>`;
       }
+      html += htmlCobrosDia;
       html += `<div class="item" style="grid-column:1/-1;border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:4px;"><span class="label">${T('cajas.total_cobrado')}</span><span><b>${eur(cobrado)}</b></span></div>`;
 
     } else if (tipo === 'recargas') {
@@ -1021,7 +1029,7 @@
       // El "cambio del día anterior" (saldo inicial) TAMBIÉN cuenta, igual que en envíos:
       // teórico = saldo inicial + total vendido. El backend ya lo calculaba así; el preview no,
       // y por eso salía una "sobra" falsa = el cambio que se dejó.
-      const teorico = Math.round((saldoInicial + totalVendido) * 100) / 100;
+      const teorico = Math.round((saldoInicial + totalVendido + cobrosDia) * 100) / 100;
       const balance = Math.round((cobrado - teorico) * 100) / 100;
 
       // Igual que en envíos: el fiado ya falta en el cajón, el pendiente lo justifica.
@@ -1041,8 +1049,9 @@
       html += `<div class="item"><span class="label">${T('cajas.efectivo_caja')}</span><span>${eur(efectivoCaja)}</span></div>`;
       html += `<div class="item"><span class="label">${T('cajas.importe_tpv')}</span><span>${eur(importeTpv)}</span></div>`;
       if (totalFiados > 0) {
-        html += `<div class="item" style="grid-column:1/-1;background:#fef3c7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#92400e;">${T('cajas.pend_cobro')}</span><span style="color:#92400e;font-weight:600;">${eur(totalFiados)}</span></div>`;
+        html += `<div class="item" style="grid-column:1/-1;background:#fef3c7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#92400e;">${T('cajas.fiado_dia')}</span><span style="color:#92400e;font-weight:600;">${eur(totalFiados)}</span></div>`;
       }
+      html += htmlCobrosDia;
       html += `<div class="item" style="grid-column:1/-1;border-top:1px dashed #cbd5e1;padding-top:6px;margin-top:4px;"><span class="label">${T('cajas.total_cobrado')}</span><span><b>${eur(cobrado)}</b></span></div>`;
     }
 
@@ -1073,7 +1082,7 @@
       saldo_real_final: Number($('cierre-saldo-real').value || 0),
       importe_tpv: Number($('cierre-importe-tpv')?.value || 0),
       total_fiados: Array.isArray(Estado.fiadosTemp)
-        ? Estado.fiadosTemp.filter(f => f.estado !== 'cobrado').reduce((s, f) => s + Number(f.importe || 0), 0)
+        ? Estado.fiadosTemp.filter(f => f.estado !== 'anulado').reduce((s, f) => s + Number(f.importe || 0), 0)
         : 0,
       cambio_siguiente: Number($('cierre-cambio-siguiente').value || 0),
       total_cobrado_caja: Number($('cierre-total-cobrado')?.value || 0),

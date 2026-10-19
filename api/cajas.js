@@ -388,43 +388,55 @@ async function _efectivoEsperadoDia(tienda_id, fecha) {
 
 
 
-// Helper: recalcula descuadre del cierre de un fiado después de cobrarlo/anularlo
-// CAJ-4: ahora devuelve true/false para que el caller sepa si tuvo éxito.
-// Si falla, loguea con error (no warn) para que aparezca en monitorización.
-async function recalcularCierreDeFiado(fiadoId, tienda_id) {
+// ── Pendientes (fiados) y cuadre ──────────────────────────────────────────
+// Un pendiente JUSTIFICA la falta del día en que se fió para siempre: ese dinero nunca
+// entró en el cajón de ese día, se cobre luego o no. Antes solo contaban los pendientes
+// sin cobrar y, al cobrarlos, el día original pasaba a "falta" por ese importe.
+// El dinero cobrado entra en el cajón el día del cobro: suma al teórico de ESE día.
+function _fechaMadrid(iso) {
+  return new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid' }).format(new Date(iso));
+}
+async function _justificadoDia(caja_id, fecha) {
+  const rows = await sbGet(`cajas_fiados?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=eq.${encodeURIComponent(fecha)}&estado=in.(pendiente,cobrado)&select=importe`);
+  return Math.round(rows.reduce((s, f) => s + Number(f.importe || 0), 0) * 100) / 100;
+}
+async function _cobrosDelDia(caja_id, fecha) {
+  const d0 = new Date(fecha + 'T00:00:00Z').getTime();
+  if (!isFinite(d0)) return 0;
+  const desde = new Date(d0 - 86400000).toISOString(), hasta = new Date(d0 + 2 * 86400000).toISOString();
+  const rows = await sbGet(`cajas_fiados?caja_id=eq.${encodeURIComponent(caja_id)}&estado=eq.cobrado`
+    + `&fecha_cobro=gte.${encodeURIComponent(desde)}&fecha_cobro=lt.${encodeURIComponent(hasta)}&select=importe,fecha_cobro`);
+  const tot = rows.filter(f => f.fecha_cobro && _fechaMadrid(f.fecha_cobro) === fecha).reduce((s, f) => s + Number(f.importe || 0), 0);
+  return Math.round(tot * 100) / 100;
+}
+const _cajaConPendientes = (caja) => caja && (caja.tipo === 'envios' || caja.tipo === 'recargas');
+
+// Recalcula el descuadre (y el teórico, en envíos/recargas) de un cierre ya guardado.
+async function _recalcularCierre(caja_id, fecha, tienda_id) {
+  const cierre = (await sbGet(`cajas_cierres?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=eq.${encodeURIComponent(fecha)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`))[0];
+  if (!cierre) return;
+  const caja = (await sbGet(`cajas?id=eq.${encodeURIComponent(caja_id)}&select=tipo,nombre`))[0];
+  let teorico = Number(cierre.saldo_teorico || 0);
+  if (_cajaConPendientes(caja)) {
+    const movs = await sbGet(`cajas_movimientos?cierre_id=eq.${encodeURIComponent(cierre.id)}&select=importe_enviado,importe_efectivo`);
+    teorico = Math.round((calcularSaldoTeorico(caja.tipo, cierre.saldo_inicial, movs) + await _cobrosDelDia(caja_id, fecha)) * 100) / 100;
+  }
+  const cobrado = Number(cierre.saldo_real_final || 0) + Number(cierre.importe_tpv || 0);
+  const descuadre = Math.round((cobrado - teorico + await _justificadoDia(caja_id, fecha)) * 100) / 100;
+  let estado = cierre.estado;
+  if (estado !== 'abierto' && estado !== 'festivo') estado = Math.abs(descuadre) <= 0.5 ? 'cerrado' : 'descuadre';
+  await sbPatch(`cajas_cierres?id=eq.${encodeURIComponent(cierre.id)}`, { saldo_teorico: teorico, descuadre, estado });
+}
+
+// Tras cobrar/anular/deshacer un pendiente: recalcula el día en que se fió y, si se da,
+// el día del cobro (fechaCobro, 'YYYY-MM-DD'). Devuelve true/false (CAJ-4).
+async function recalcularCierreDeFiado(fiadoId, tienda_id, fechaCobro) {
   try {
-    // Obtener el fiado para saber caja_id y fecha
     const fiados = await sbGet(`cajas_fiados?id=eq.${encodeURIComponent(fiadoId)}&select=caja_id,fecha`);
     if (!fiados[0]) return false;
     const { caja_id, fecha } = fiados[0];
-
-    // Buscar el cierre de ese día/caja
-    const cierres = await sbGet(`cajas_cierres?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=eq.${encodeURIComponent(fecha)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
-    if (!cierres[0]) return true; // no hay cierre que recalcular, OK
-    const cierre = cierres[0];
-
-    // Sumar fiados pendientes (NO cobrados) de ese día
-    const pendientes = await sbGet(`cajas_fiados?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=eq.${encodeURIComponent(fecha)}&estado=eq.pendiente&select=importe`);
-    const totalPendientes = pendientes.reduce((s, f) => s + Number(f.importe || 0), 0);
-
-    // Recalcular descuadre
-    const efectivo = Number(cierre.saldo_real_final || 0);
-    const tpv = Number(cierre.importe_tpv || 0);
-    const teorico = Number(cierre.saldo_teorico || 0);
-    // Mismo criterio que al cerrar: el fiado ya falta en el cajón y el pendiente lo justifica.
-    const cobrado = efectivo + tpv;
-    const nuevoDescuadre = Math.round((cobrado - teorico + totalPendientes) * 100) / 100;
-
-    // Determinar estado
-    let nuevoEstado = cierre.estado;
-    if (cierre.estado !== "abierto" && cierre.estado !== "festivo") {
-      nuevoEstado = Math.abs(nuevoDescuadre) <= 0.5 ? "cerrado" : "descuadre";
-    }
-
-    await sbPatch(`cajas_cierres?id=eq.${encodeURIComponent(cierre.id)}`, {
-      descuadre: nuevoDescuadre,
-      estado: nuevoEstado
-    });
+    await _recalcularCierre(caja_id, fecha, tienda_id);
+    if (fechaCobro && fechaCobro !== fecha) await _recalcularCierre(caja_id, fechaCobro, tienda_id);
     return true;
   } catch(e) {
     // CAJ-4: log error (no warn) para que aparezca como incidente
@@ -819,7 +831,9 @@ export default async function handler(req, res) {
         const saldo_sugerido = previos[0]?.cambio_siguiente || 0;
         const saldo_sugerido_fecha = previos[0]?.fecha || null;
 
-        return ok(res, { caja, cierre, movimientos, companias, saldo_sugerido, saldo_sugerido_fecha });
+        let cobros_dia = 0;
+        if (_cajaConPendientes(caja)) { try { cobros_dia = await _cobrosDelDia(caja_id, fecha); } catch (e) { cobros_dia = 0; } }
+        return ok(res, { caja, cierre, movimientos, companias, saldo_sugerido, saldo_sugerido_fecha, cobros_dia });
       }
 
       case 'guardar_cierre': {
@@ -855,6 +869,8 @@ export default async function handler(req, res) {
         }
 
         let saldoTeorico = calcularSaldoTeorico(caja.tipo, saldo_inicial, movimientos, total_cobrado_caja);
+        // Lo cobrado hoy de pendientes de otros días está en el cajón: se espera.
+        if (_cajaConPendientes(caja)) saldoTeorico = Math.round((saldoTeorico + await _cobrosDelDia(caja_id, fecha)) * 100) / 100;
         // Caja del día: el teórico es el EFECTIVO esperado del día (ventas+reparaciones+anticipos
         // cobrados en efectivo), que el front calcula con la lógica canónica y envía. El descuadre
         // queda = efectivo contado − efectivo esperado (tarjeta/bizum no se cuentan a mano).
@@ -873,7 +889,7 @@ export default async function handler(req, res) {
         // v2.3: Los fiados PENDIENTES son deuda (no suman al cobrado).
         // Los COBRADOS ya se ven reflejados porque suman al efectivo/TPV.
         // Formula: cobrado = efectivo + TPV; descuadre = cobrado - teorico
-        // El total_fiados que llega es solo de PENDIENTES (frontend filtra cobrados)
+        // total_fiados = pendientes del día, cobrados después o no (sin los anulados)
         const tpvNum = Number(importe_tpv || 0);
         const fiadosNum = Number(total_fiados || 0);
         const cobrado = Math.round((saldoReal + tpvNum) * 100) / 100;
@@ -1191,7 +1207,7 @@ export default async function handler(req, res) {
             `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
             { importe: Math.round((_totalPend - _abona) * 100) / 100 }
           );
-          await recalcularCierreDeFiado(id, tienda_id);
+          await recalcularCierreDeFiado(id, tienda_id, _fechaMadrid(new Date().toISOString()));
           return ok(res, {
             fiado: Array.isArray(_pagado) ? _pagado[0] : _pagado,
             parcial: true,
@@ -1208,8 +1224,8 @@ export default async function handler(req, res) {
             cobrado_por: payload.email || null
           }
         );
-        // Recalcular cierre del día original automáticamente
-        await recalcularCierreDeFiado(id, tienda_id);
+        // Recalcular el cierre del día original y el del día del cobro
+        await recalcularCierreDeFiado(id, tienda_id, _fechaMadrid(new Date().toISOString()));
         return ok(res, { fiado: Array.isArray(data) ? data[0] : data });
       }
 
@@ -1382,7 +1398,7 @@ export default async function handler(req, res) {
           const suma = Math.round((Number(padre[0].importe || 0) + Number(fi.importe || 0)) * 100) / 100;
           await sbPatch(`cajas_fiados?id=eq.${encodeURIComponent(padre[0].id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`, { importe: suma });
           await sbDelete(`cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
-          await recalcularCierreDeFiado(padre[0].id, tienda_id);
+          await recalcularCierreDeFiado(padre[0].id, tienda_id, _fechaMadrid(fi.fecha_cobro));
           return ok(res, { devuelto_a: padre[0].id, importe: fi.importe });
         }
 
@@ -1390,7 +1406,7 @@ export default async function handler(req, res) {
           `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
           { estado: 'pendiente', metodo_pago: null, fecha_cobro: null, cobrado_por: null }
         );
-        await recalcularCierreDeFiado(id, tienda_id);
+        await recalcularCierreDeFiado(id, tienda_id, _fechaMadrid(fi.fecha_cobro));
         return ok(res, { id });
       }
 
