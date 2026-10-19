@@ -845,6 +845,7 @@
               cliente_telefono: f.cliente_telefono || '',
               nota: f.nota || '',
               estado: f.estado || 'pendiente',
+              importeOrig: Number(f.importe || 0),
               metodo_pago: f.metodo_pago || null,
               fecha_cobro: f.fecha_cobro || null
             });
@@ -1114,17 +1115,24 @@
           // Eliminar los que ya no están en fiadosTemp
           for (const idSrv of idsServidor) {
             if (!idsActuales.has(idSrv)) {
-              await api('borrar_fiado', { method: 'POST', body: { id: idSrv } });
+              // Borrar es solo de admin: si falla, seguir con el resto (antes se cortaba todo).
+              try { await api('borrar_fiado', { method: 'POST', body: { id: idSrv } }); }
+              catch (eB) { toast(eB.message, 'error'); }
             }
           }
           // Crear/editar
           for (const fiado of Estado.fiadosTemp) {
             if (fiado.id) {
+              // Los ya cobrados/anulados no se tocan desde el cierre; y el importe solo se
+              // manda si cambió (requiere permiso de cobro: si no, un empleado sin ese permiso
+              // cortaba aquí el bucle y los pendientes nuevos no llegaban a crearse).
+              if (fiado.estado && fiado.estado !== 'pendiente') continue;
+              const _cambiaImp = Math.abs(Number(fiado.importe || 0) - Number(fiado.importeOrig || 0)) > 0.004;
               await api('editar_fiado', {
                 method: 'POST',
                 body: {
                   id: fiado.id,
-                  importe: fiado.importe,
+                  importe: _cambiaImp ? fiado.importe : undefined,
                   cliente_nombre: fiado.cliente_nombre,
                   cliente_telefono: fiado.cliente_telefono,
                   nota: fiado.nota

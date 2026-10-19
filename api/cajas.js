@@ -338,50 +338,80 @@ function _fechaAnterior(fecha, clientHoy) {
 // cliente, que podría deflactarlo para tapar un descuadre de la caja). Mismo cálculo que
 // cajaDiaResumen del frontend: ventas financiado-aware (solo efectivo) + pagos_reparacion en
 // efectivo, excluyendo presupuestos/rechazados no aceptados.
+// Lee todas las filas (PostgREST corta en 1000 por petición).
+async function sbGetTodo(path) {
+  const out = [];
+  for (let off = 0; off < 200000; off += 1000) {
+    const rows = await sbGet(`${path}&order=id.asc&limit=1000&offset=${off}`);
+    out.push(...(rows || []));
+    if (!rows || rows.length < 1000) break;
+  }
+  return out;
+}
+
 async function _efectivoEsperadoDia(tienda_id, fecha) {
-  // esEf: mismo criterio EXACTO que el frontend (`metodo || 'Efectivo'`) → cualquier valor falsy
-  // (null, undefined, '') se trata como efectivo. Si solo tratáramos null, un método '' divergiría.
+  // Copia EXACTA de cajaDiaResumen + _ventasIngresoPorMetodo del panel (dash-app.js): si
+  // divergen, el panel dice "cuadra" y el servidor guarda un descuadre (o al revés).
   const esEf = (m) => /efectiv/i.test(String(m || 'Efectivo'));
+  const num = (x) => parseFloat(x) || 0;
+  const cuotaPagado = (c) => !c ? 0 : (c.pagadoImporte != null ? num(c.pagadoImporte) : (c.pagado ? num(c.importe) : 0));
+  const parse = (x) => { if (typeof x === 'string') { try { return JSON.parse(x); } catch (e) { return null; } } return x; };
+  const ventaPagos = (v) => {
+    const p = parse(v.pagos);
+    if (Array.isArray(p) && p.length) return p.map((x) => ({ metodo: x.metodo || 'Efectivo', importe: num(x.importe) }));
+    return [{ metodo: v.pago || 'Efectivo', importe: num(v.total) }];
+  };
   const F = String(fecha || '').slice(0, 10);
+  const d10 = (x) => String(x || '').slice(0, 10);
   let ef = 0;
-  // Ventas del día. El filtro de reembolso se hace en JS con la MISMA semántica que el front
-  // (`if (v.reembolsado) return`): excluye solo las reembolsadas de verdad, NO las de reembolsado
-  // NULL. (Con reembolsado=eq.false en PostgREST se perdían las NULL → descuadre falso.)
-  const ventas = await sbGet(`ventas?tienda_id=eq.${encodeURIComponent(tienda_id)}&select=fecha,pago,pagos,total,financiado,cuotas,entrada,entrada_pago,reembolsado`);
-  for (const v of (ventas || [])) {
-    if (v.reembolsado) continue;
-    if (v.financiado && v.cuotas) {
-      let cuotas = v.cuotas;
-      if (typeof cuotas === 'string') { try { cuotas = JSON.parse(cuotas); } catch (e) { cuotas = []; } }
-      if (String(v.fecha).slice(0, 10) === F && Number(v.entrada || 0) > 0 && esEf(v.entrada_pago)) {
-        ef += Number(v.entrada) || 0;
+  // Solo las ventas que pueden tocar este día: de ese día, financiadas (cuotas de cualquier
+  // día) o reembolsadas ese día. Paginado: antes una tienda con >1000 ventas perdía las de hoy.
+  const ventas = await sbGetTodo(`ventas?tienda_id=eq.${encodeURIComponent(tienda_id)}`
+    + `&or=(fecha.eq.${F},financiado.eq.true,fecha_reembolso.eq.${F})`
+    + `&select=id,fecha,pago,pagos,total,financiado,cuotas,entrada,entrada_pago,reembolsado,fecha_reembolso`);
+  for (const v of ventas) {
+    const cuotas = parse(v.cuotas);
+    const fin = v.financiado && cuotas;
+    // La devolución resta el día en que sale el dinero del cajón (la venta sigue en su día).
+    if (v.reembolsado && d10(v.fecha_reembolso || v.fecha) === F) {
+      if (fin) {
+        if (esEf(v.entrada_pago)) ef -= num(v.entrada);
+        (cuotas || []).forEach((c) => { if (c && c.fechaPago && esEf(c.formaPago)) ef -= cuotaPagado(c); });
+      } else {
+        ventaPagos(v).forEach((p) => { if (esEf(p.metodo)) ef -= p.importe; });
       }
+    }
+    if (fin) {
+      if (d10(v.fecha) === F && num(v.entrada) > 0 && esEf(v.entrada_pago)) ef += num(v.entrada);
       (cuotas || []).forEach((c) => {
-        if (c && c.fechaPago && String(c.fechaPago).slice(0, 10) === F && esEf(c.formaPago)) {
-          ef += (c.pagadoImporte != null) ? (parseFloat(c.pagadoImporte) || 0) : (c.pagado ? (parseFloat(c.importe) || 0) : 0);
-        }
+        if (c && c.fechaPago && d10(c.fechaPago) === F && esEf(c.formaPago)) ef += cuotaPagado(c);
       });
-    } else if (String(v.fecha).slice(0, 10) === F) {
-      // Pago mixto: solo cuenta la parte en efectivo del desglose.
-      let pg = v.pagos;
-      if (typeof pg === 'string') { try { pg = JSON.parse(pg); } catch (e) { pg = null; } }
-      if (Array.isArray(pg) && pg.length) pg.forEach((p) => { if (esEf(p && p.metodo)) ef += Number(p.importe) || 0; });
-      else if (esEf(v.pago)) ef += Number(v.total) || 0;
+    } else if (d10(v.fecha) === F) {
+      ventaPagos(v).forEach((p) => { if (esEf(p.metodo)) ef += p.importe; });
     }
   }
   // Pagos de reparación del día en efectivo (anticipo o no), excluyendo presupuestos/rechazados.
-  const pagos = await sbGet(`pagos_reparacion?tienda_id=eq.${encodeURIComponent(tienda_id)}&fecha=eq.${encodeURIComponent(F)}&select=metodo,importe,reparacion_id`);
-  if (pagos && pagos.length) {
+  const pagos = await sbGetTodo(`pagos_reparacion?tienda_id=eq.${encodeURIComponent(tienda_id)}&fecha=eq.${encodeURIComponent(F)}&select=id,metodo,importe,reparacion_id`);
+  if (pagos.length) {
     const repIds = [...new Set(pagos.map((p) => p.reparacion_id).filter(Boolean))];
-    let presup = new Set();
-    if (repIds.length) {
-      const reps = await sbGet(`reparaciones?tienda_id=eq.${encodeURIComponent(tienda_id)}&id=in.(${repIds.map(encodeURIComponent).join(',')})&estado=in.(Presupuesto,Rechazado)&select=id`);
-      presup = new Set((reps || []).map((r) => String(r.id)));
+    const presup = new Set();
+    for (let k = 0; k < repIds.length; k += 80) {
+      const reps = await sbGet(`reparaciones?tienda_id=eq.${encodeURIComponent(tienda_id)}&id=in.(${repIds.slice(k, k + 80).map(encodeURIComponent).join(',')})&estado=in.(Presupuesto,Rechazado)&select=id`);
+      (reps || []).forEach((r) => presup.add(String(r.id)));
     }
     for (const p of pagos) {
       if (p.reparacion_id && presup.has(String(p.reparacion_id))) continue;
-      if (esEf(p.metodo)) ef += parseFloat(p.importe) || 0;
+      if (esEf(p.metodo)) ef += num(p.importe);
     }
+  }
+  // Gastos pagados en efectivo ese día: salen del cajón.
+  const gastos = await sbGetTodo(`gastos?tienda_id=eq.${encodeURIComponent(tienda_id)}&fecha=eq.${encodeURIComponent(F)}&select=*`);
+  for (const g of gastos) {
+    if (d10(g.fecha) !== F) continue;
+    const met = String(g.metodo_pago || g.forma_pago || g.metodo || '').toLowerCase();
+    if (!/efectiv/.test(met)) continue;
+    const imp = num(g.importe);
+    if (imp > 0) ef -= imp;
   }
   return Math.round(ef * 100) / 100;
 }
@@ -860,6 +890,11 @@ export default async function handler(req, res) {
         );
         const cierreExistente = cierresExistentes[0] || null;
 
+        // Días anteriores: hace falta el mismo permiso de histórico que para verlos.
+        if (_fechaAnterior(fecha, req.body.hoy) && !(await tienePermisoCaja(payload, 'cajasm_historico'))) {
+          return err(res, 403, 'Sin permiso para modificar días anteriores');
+        }
+        // (Un cierre con descuadre se puede volver a contar el mismo día; días anteriores, arriba.)
         if (cierreExistente && cierreExistente.estado === 'cerrado') {
           // AUD-fix: default restrictivo. Solo 'todos' deja a cualquier empleado editar/reabrir un
           // cierre cerrado; 'nadie' → solo superadmin; cualquier otro valor (incl. null/'admin') → admin.
@@ -883,7 +918,8 @@ export default async function handler(req, res) {
           // un descuadre): recalcularlo en el servidor. Si el recálculo fallara, caer al valor del
           // cliente para no bloquear el cierre.
           try {
-            saldoTeorico = await _efectivoEsperadoDia(tienda_id, fecha);
+            // + el fondo con que empezó el día (el panel lo suma igual).
+            saldoTeorico = Math.round((await _efectivoEsperadoDia(tienda_id, fecha) + Number(saldo_inicial || 0)) * 100) / 100;
           } catch (e) {
             console.error('[cajas] _efectivoEsperadoDia falló, uso valor del cliente:', e.message);
             saldoTeorico = Math.round(Number(req.body.efectivo_esperado || 0) * 100) / 100;
@@ -1130,6 +1166,8 @@ export default async function handler(req, res) {
           nota: nota || null,
           estado: 'pendiente'
         });
+        // Un pendiente añadido a un día ya guardado lo justifica: recalcular ese cierre.
+        try { await _recalcularCierre(caja_id, fecha, tienda_id); } catch (e) { console.error('[cajas] recalcular tras crear_fiado:', e.message); }
         return ok(res, { fiado: Array.isArray(data) ? data[0] : data });
       }
 
@@ -1254,9 +1292,11 @@ export default async function handler(req, res) {
         const { id } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
         if (!(await esAdminTiendaDB(payload))) return err(res, 403, 'Solo admin');
+        const _fb = (await sbGet(`cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=caja_id,fecha`))[0];
         await sbDelete(
           `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`
         );
+        if (_fb) { try { await _recalcularCierre(_fb.caja_id, _fb.fecha, tienda_id); } catch (e) { console.error('[cajas] recalcular tras borrar_fiado:', e.message); } }
         return ok(res, {});
       }
 

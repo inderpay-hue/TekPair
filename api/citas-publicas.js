@@ -246,7 +246,8 @@ async function crearCita(body, ip) {
   const marca   = san(body.marca, 50);
   const modelo  = san(body.modelo, 100);
   const notas   = san(body.notas, 500);
-  const duracion= parseInt(body.duracion_min)||30;
+  // Entre 5 min y 4 h: un valor enorme bloqueaba el día entero y uno negativo saltaba el control de solapes.
+  const duracion= Math.min(240, Math.max(5, parseInt(body.duracion_min, 10) || 30));
   if (!nombre || nombre.length < 2) return { ok:false, error:'Nombre obligatorio (mínimo 2 caracteres)', status:400 };
   if (!validTel(tel)) return { ok:false, error:'Teléfono inválido', status:400 };
   if (!validEmail(email)) return { ok:false, error:'Email inválido', status:400 };

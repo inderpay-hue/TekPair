@@ -750,10 +750,11 @@ function sbPostRet(table, data) {
     body: JSON.stringify(data)
   }).then(function(r) {
     if (!r.ok) {
+      if (_tpvReintentable(r.status)) _tpvEncolar('POST', table, data);
       return r.json().then(function(err){ _sbErrorToast('POST', table, Object.assign({status:r.status}, err)); return null; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return null; });
     }
     return r.json().then(function(rows){ return (Array.isArray(rows) && rows[0]) || null; }, function(){ return null; });
-  }).catch(function(e) { _sbErrorToast('POST', table, e); return null; });
+  }).catch(function(e) { _tpvEncolar('POST', table, data); _sbErrorToast('POST', table, e); return null; });
 }
 
 function sbPost(table, data) {
@@ -764,22 +765,92 @@ function sbPost(table, data) {
     body: JSON.stringify(data)
   }).then(function(r) {
     if (!r.ok) {
+      if (_tpvReintentable(r.status)) _tpvEncolar('POST', table, data);
       return r.json().then(function(err){ _sbErrorToast('POST', table, Object.assign({status:r.status}, err)); return false; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return false; });
     }
     return true;
-  }).catch(function(e) { _sbErrorToast('POST', table, e); return false; });
+  }).catch(function(e) { _tpvEncolar('POST', table, data); _sbErrorToast('POST', table, e); return false; });
 }
 
+// Si la nube falla devuelve null (no []): "no hay nada" y "no se pudo leer" son cosas
+// distintas; con [] el TPV vaciaba el stock y lo guardaba así.
 function sbGet(table, query) {
-  if (!SB_KEY) return Promise.resolve([]);
+  if (!SB_KEY) return Promise.resolve(null);
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*', {
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
   }).then(function(r) {
     if (!r.ok) {
-      return r.json().then(function(err){ _sbErrorToast('GET', table, Object.assign({status:r.status}, err)); return []; }, function(){ _sbErrorToast('GET', table, {status:r.status}); return []; });
+      return r.json().then(function(err){ _sbErrorToast('GET', table, Object.assign({status:r.status}, err)); return null; }, function(){ _sbErrorToast('GET', table, {status:r.status}); return null; });
     }
     return r.json();
-  }).catch(function(e) { _sbErrorToast('GET', table, e); return []; });
+  }).catch(function(e) { _sbErrorToast('GET', table, e); return null; });
+}
+// Paginado (PostgREST da 1000 filas por petición). null si alguna página falla.
+function sbGetTodo(table, query) {
+  var all = [];
+  function pag(off) {
+    return sbGet(table, query + '&order=id.asc&limit=1000&offset=' + off).then(function(rows) {
+      if (!Array.isArray(rows)) return null;
+      all = all.concat(rows);
+      return rows.length < 1000 ? all : pag(off + 1000);
+    });
+  }
+  return pag(0);
+}
+
+// ═══ COLA DE REINTENTOS (la misma del panel: tk_sync_queue_v1) ═══
+// Si una venta, bajada de stock o cliente no llega a la nube por la conexión, se apunta
+// aquí y se reintenta (desde el TPV y desde el panel). Antes solo salía un aviso y, al
+// abrir el panel, la venta desaparecía porque la nube no la tenía.
+function _tpvReintentable(st) { return !st || st >= 500 || st === 408 || st === 429; }
+function _tpvColaGet() { try { return JSON.parse(localStorage.getItem('tk_sync_queue_v1') || '[]'); } catch (e) { return []; } }
+function _tpvColaSet(q) { try { localStorage.setItem('tk_sync_queue_v1', JSON.stringify(q)); } catch (e) {} }
+function _tpvEncolar(method, table, data, query) {
+  var q = _tpvColaGet();
+  var dataId = (data && data.id) || null;
+  var i = (method === 'POST' && !dataId) ? -1 : q.findIndex(function(x) { return x.method === method && x.table === table && x.dataId === dataId && x.query === query; });
+  var op = { _opId: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), method: method, table: table, data: data, dataId: dataId, query: query, attempts: 0, ts: Date.now(), origen: 'tpv' };
+  if (i >= 0) { if (method === 'PATCH') op.data = Object.assign({}, q[i].data, data); q[i] = op; } else q.push(op);
+  _tpvColaSet(q);
+}
+var _tpvReintentando = false;
+function _tpvReintentar() {
+  if (_tpvReintentando || !SB_KEY || !navigator.onLine) return;
+  var ops = _tpvColaGet().filter(function(x) { return x && x.origen === 'tpv'; });
+  if (!ops.length) return;
+  _tpvReintentando = true;
+  var hdr = {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=minimal'};
+  var quitar = function(id) { _tpvColaSet(_tpvColaGet().filter(function(x) { return x._opId !== id; })); };
+  ops.reduce(function(pr, op) {
+    return pr.then(function() {
+      var url = SUPABASE_URL + '/rest/v1/' + op.table + (op.method === 'PATCH' ? '?' + op.query : '');
+      return fetch(url, { method: op.method, headers: hdr, body: JSON.stringify(op.data) }).then(function(r) {
+        if (r.ok || r.status === 409) quitar(op._opId);          // 409 = ya estaba subida
+        else if (!_tpvReintentable(r.status)) { quitar(op._opId); _sbErrorToast(op.method, op.table, {status: r.status}); }
+      }, function() {});
+    });
+  }, Promise.resolve()).then(function() { _tpvReintentando = false; }, function() { _tpvReintentando = false; });
+}
+setInterval(_tpvReintentar, 30000);
+window.addEventListener('online', function() { setTimeout(_tpvReintentar, 1500); });
+
+// Guarda en tk_db SIN pisar lo que otra pestaña (el panel) haya guardado mientras tanto:
+// se parte de lo que hay ahora en tk_db y solo se ponen el stock, y las ventas y clientes
+// juntados por id. Antes se escribía el DB entero leído al abrir el TPV.
+function _tpvGuardar() {
+  var cur = {};
+  try { cur = JSON.parse(localStorage.getItem('tk_db') || '{}') || {}; } catch (e) { cur = {}; }
+  var junta = function(a, b) {
+    var m = {}, out = [];
+    (a || []).forEach(function(x) { if (x && x.id != null) { m[x.id] = out.length; out.push(x); } });
+    (b || []).forEach(function(x) { if (!x || x.id == null) return; if (m[x.id] != null) out[m[x.id]] = Object.assign({}, out[m[x.id]], x); else { m[x.id] = out.length; out.push(x); } });
+    return out;
+  };
+  cur.stock = DB.stock || [];
+  cur.ventas = junta(cur.ventas, DB.ventas);
+  cur.clis = junta(cur.clis, DB.clis);
+  DB.ventas = cur.ventas; DB.clis = cur.clis;
+  try { localStorage.setItem('tk_db', JSON.stringify(cur)); } catch (e) {}
 }
 
 // FIX TPV-8: sbPatch faltaba completamente - se llamaba pero no estaba definida
@@ -791,10 +862,11 @@ function sbPatch(table, query, data) {
     body: JSON.stringify(data)
   }).then(function(r) {
     if (!r.ok) {
+      if (_tpvReintentable(r.status)) _tpvEncolar('PATCH', table, data, query);
       return r.json().then(function(err){ _sbErrorToast('PATCH', table, Object.assign({status:r.status}, err)); return false; }, function(){ _sbErrorToast('PATCH', table, {status:r.status}); return false; });
     }
     return true;
-  }).catch(function(e) { _sbErrorToast('PATCH', table, e); return false; });
+  }).catch(function(e) { _tpvEncolar('PATCH', table, data, query); _sbErrorToast('PATCH', table, e); return false; });
 }
 
 // FIX TPV-3 (helper de fecha local)
@@ -896,9 +968,15 @@ async function pullFavsTPV() {
 // desactualizado si el stock cambiaba en el panel, otro dispositivo, reparación o pedido).
 function pullStockTPV() {
   if (!SB_KEY || !TIENDA_ID) return Promise.resolve();
-  return sbGet('stock', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID)).then(function(rows) {
+  return sbGetTodo('stock', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID)).then(function(rows) {
     if (!Array.isArray(rows)) return;
+    // Lo que se ha vendido aquí y aún está en la cola (sin conexión) manda sobre la nube.
+    var pend = {};
+    _tpvColaGet().forEach(function(op) { if (op.table === 'stock' && op.method === 'PATCH') { var m = /id=eq\.([^&]+)/.exec(op.query || ''); if (m) pend[decodeURIComponent(m[1])] = 1; } });
+    var antes = {};
+    (DB.stock || []).forEach(function(x) { antes[x.id] = x; });
     DB.stock = rows.map(function(s) {
+      if (pend[s.id] && antes[s.id]) return antes[s.id];
       return {
         id: s.id, categoria: s.categoria || 'Telefono', marca: s.marca || '', modelo: s.modelo || '',
         capacidad: s.capacidad || '', color: s.color || '', imei: s.imei || '',
@@ -909,7 +987,7 @@ function pullStockTPV() {
         compraId: s.compra_id || '', codigoBarras: s.codigo_barras || ''
       };
     });
-    try { localStorage.setItem('tk_db', JSON.stringify(DB)); } catch(e){}
+    _tpvGuardar();
     renderProducts();
     try { if (typeof buscarProducto === 'function' && document.getElementById('tpvSearch') && document.getElementById('tpvSearch').value) buscarProducto(); } catch(e){}
   }).catch(function(){});
@@ -977,7 +1055,7 @@ function syncVentasDesdeSupabase() {
   var hoy = hoyLocal();
   // FIX TPV-10: traer también las de ayer por si el TPV está abierto pasada la medianoche
   var ayer = new Date(); ayer.setDate(ayer.getDate() - 1);
-  var ayerStr = ayer.toISOString().slice(0,10);
+  var ayerStr = ayer.getFullYear() + '-' + String(ayer.getMonth() + 1).padStart(2, '0') + '-' + String(ayer.getDate()).padStart(2, '0');
   // fecha=in.(hoy,ayer) con valores entre comillas escapadas para REST de Supabase
   return sbGet('ventas', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=in.(' + encodeURIComponent('"' + hoy + '","' + ayerStr + '"') + ')').then(function(rows) {
     if (!Array.isArray(rows) || !rows.length) return;
@@ -999,7 +1077,7 @@ function syncVentasDesdeSupabase() {
         ivaModo: r.iva_modo || 'sin',
         base: parseFloat(r.base) || 0,
         ivaImporte: parseFloat(r.iva_importe) || 0,
-        items: existing ? existing.items : []
+        items: existing ? existing.items : (function () { try { return r.items ? (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) : []; } catch (e) { return []; } })()
       };
       if (existing) {
         Object.assign(existing, mapped);
@@ -1007,7 +1085,7 @@ function syncVentasDesdeSupabase() {
         DB.ventas.push(mapped);
       }
     });
-    localStorage.setItem('tk_db', JSON.stringify(DB));
+    _tpvGuardar();
     if (typeof updateCaja === 'function') updateCaja();
   });
 }
@@ -2128,7 +2206,7 @@ function cobrar() {
   });
 
   DB.ventas.push(venta);
-  localStorage.setItem('tk_db', JSON.stringify(DB));
+  _tpvGuardar();
 
   // Save to Supabase
   if (SB_KEY && TIENDA_ID) {
@@ -2151,7 +2229,7 @@ function cobrar() {
       venta.numero = fila.numero;
       try {
         var i = DB.ventas.findIndex(function (x) { return x.id === venta.id; });
-        if (i >= 0) { DB.ventas[i].numero = fila.numero; localStorage.setItem('tk_db', JSON.stringify(DB)); }
+        if (i >= 0) { DB.ventas[i].numero = fila.numero; _tpvGuardar(); }
       } catch (e) {}
       if (_ultimaVenta && _ultimaVenta.id === venta.id) mostrarTicket(venta, _ultimosTotals);
     });
@@ -2394,7 +2472,7 @@ function crearClienteRapido() {
     email: ''
   };
   DB.clis.push(c);
-  localStorage.setItem('tk_db', JSON.stringify(DB));
+  _tpvGuardar();
   if (SB_KEY && TIENDA_ID) sbPost('clientes', {id:c.id,tienda_id:TIENDA_ID,nombre:c.nombre,apellidos:c.apellidos,tel:c.tel,email:'',dni:c.dni});
   asignarCliente(c.id);
   toast(T('tpv.cliente_creado'), 'ok');

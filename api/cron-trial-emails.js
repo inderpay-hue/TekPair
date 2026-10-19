@@ -677,7 +677,7 @@ async function recordatoriosRecogida(SUPABASE_URL, headers, RESEND_KEY, now) {
 </body></html>`;
         try {
           const ra = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from: `${String(t.nombre || 'TekPair').replace(/[<>"\r\n]/g, '').slice(0, 60)} <noreply@tekpair.tech>`, to: [email], subject: asunto, html }) });
+            body: JSON.stringify({ from: `"${String(t.nombre || 'TekPair').replace(/[<>"\\\r\n]/g, '').slice(0, 60)}" <noreply@tekpair.tech>`, to: [email], subject: asunto, html }) });
           if (ra.ok) { out.enviados++; enviadosTienda++; }
           else {
             out.errores++;
@@ -744,7 +744,7 @@ async function encuestasValoracion(SUPABASE_URL, headers, RESEND_KEY, now) {
 </body></html>`;
         try {
           const ra = await fetch('https://api.resend.com/emails', { method: 'POST', headers: { Authorization: `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from: `${String(t.nombre || 'TekPair').replace(/[<>"\r\n]/g, '').slice(0, 60)} <noreply@tekpair.tech>`, to: [email], subject: asunto, html }) });
+            body: JSON.stringify({ from: `"${String(t.nombre || 'TekPair').replace(/[<>"\\\r\n]/g, '').slice(0, 60)}" <noreply@tekpair.tech>`, to: [email], subject: asunto, html }) });
           if (ra.ok) { out.enviados++; enviadosTienda++; }
           else {
             out.errores++;

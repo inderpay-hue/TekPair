@@ -945,7 +945,11 @@ export default async function handler(req, res) {
   }
 
   // ───────── Login normal ─────────
-  const { email, password } = req.body;
+  const { password } = req.body || {};
+  // El móvil pone mayúscula al empezar y el autocompletado deja espacios: sin normalizar,
+  // "Juan@tienda.com " no entraba aunque la contraseña fuera buena.
+  const emailEscrito = typeof req.body?.email === 'string' ? req.body.email.trim() : '';
+  const email = emailEscrito.toLowerCase();
   if (!email || !password) return res.status(400).json({ error: _loc('Faltan datos', req) });
 
   // L4: rate limit anti fuerza bruta.
@@ -971,7 +975,7 @@ export default async function handler(req, res) {
 
   try {
     // 1. Buscar usuario activo por email
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&activo=eq.true&select=*`, {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?or=(email.eq.${encodeURIComponent('"' + email + '"')},email.eq.${encodeURIComponent('"' + emailEscrito + '"')})&activo=eq.true&select=*`, {
       headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
     });
     const usuarios = await r.json();

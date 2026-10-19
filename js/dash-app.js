@@ -3485,12 +3485,17 @@ function _syncQueueSet(q) {
 function _syncQueueAdd(operation) {
   var q = _syncQueueGet();
   // Evitar duplicados por ID
-  var dupIdx = q.findIndex(function(x) {
-    return x.method === operation.method && x.table === operation.table && 
+  // Un alta sin id no es "la misma" que otra alta sin id (p. ej. dos pagos de un pago mixto).
+  var dupIdx = (operation.method === 'POST' && !operation.dataId) ? -1 : q.findIndex(function(x) {
+    return x.method === operation.method && x.table === operation.table &&
            x.dataId === operation.dataId && x.query === operation.query;
   });
   if (dupIdx >= 0) {
-    // Reemplazar con el más reciente (más completo)
+    // Dos cambios a la misma ficha: se FUSIONAN (antes el segundo sustituía al primero y
+    // se perdían los campos que solo llevaba el primero).
+    if (operation.method === 'PATCH' && q[dupIdx].data && operation.data) {
+      operation.data = Object.assign({}, q[dupIdx].data, operation.data);
+    }
     q[dupIdx] = operation;
   } else {
     q.push(operation);
@@ -3870,6 +3875,27 @@ function mapCli(c) {
   return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||'', fechaNac:c.fecha_nac||'', nombreFiscal:c.nombre_fiscal||'', dirFiscal:c.dir_fiscal||'', cp:c.cp||'', provincia:c.provincia||'', ciudad:c.ciudad||'', esEmpresa:c.es_empresa||false, personaContacto:c.persona_contacto||'', pais:c.pais||'España', telPrefijo:c.tel_prefijo||'+34', grado:c.grado||'', marketingConsent:c.marketing_consent||false};
 }
 
+// Ids de `tabla` con altas o cambios esperando en la cola de reintentos.
+function _idsEnCola(tabla) {
+  var ids = {};
+  _syncQueueGet().forEach(function(op) {
+    if (!op || op.table !== tabla) return;
+    if (op.method === 'POST' && op.data && op.data.id) ids[op.data.id] = 1;
+    else if (op.method === 'PATCH' && op.query) { var m = /(?:^|&)id=eq\.([^&]+)/.exec(op.query); if (m) ids[decodeURIComponent(m[1])] = 1; }
+  });
+  return ids;
+}
+function _conPendientes(tabla, nube, local) {
+  var pend = _idsEnCola(tabla);
+  if (!Object.keys(pend).length || !Array.isArray(local)) return nube;
+  var loc = {};
+  local.forEach(function(x) { if (x && x.id != null && pend[x.id]) loc[x.id] = x; });
+  var vistos = {};
+  var out = nube.map(function(x) { vistos[x.id] = 1; return loc[x.id] || x; });
+  Object.keys(loc).forEach(function(id) { if (!vistos[id]) out.push(loc[id]); });
+  return out;
+}
+
 async function cargarDatosSupabase() {
   if (!SB_KEY || !TIENDA_ID) return;
   // Backup pre-sync una sola vez (por si algo va mal, restaurable manualmente)
@@ -3888,11 +3914,14 @@ async function cargarDatosSupabase() {
       sbGetAll('pagos_proveedor', 'tienda_id=eq.' + TIENDA_ID).catch(function () { return null; }),
       _sbGetEncargos()
     ]);
-    if (Array.isArray(ventas)) DB.ventas = ventas.map(mapVenta);
-    if (Array.isArray(reps)) DB.reps = reps.map(mapRep);
-    if (Array.isArray(stock)) DB.stock = stock.map(mapStock);
-    if (Array.isArray(clis)) DB.clis = clis.map(mapCli);
-    if (Array.isArray(gastos)) DB.gastos = gastos;
+    // Lo que aún está en la cola de reintentos (sin conexión, error 5xx) solo existe en este
+    // navegador: si se sustituyera por la copia de la nube, desaparecería de la pantalla y de
+    // la caja (y al guardar, de tk_db) hasta subir. Se conserva la versión local.
+    if (Array.isArray(ventas)) DB.ventas = _conPendientes('ventas', ventas.map(mapVenta), DB.ventas);
+    if (Array.isArray(reps)) DB.reps = _conPendientes('reparaciones', reps.map(mapRep), DB.reps);
+    if (Array.isArray(stock)) DB.stock = _conPendientes('stock', stock.map(mapStock), DB.stock);
+    if (Array.isArray(clis)) DB.clis = _conPendientes('clientes', clis.map(mapCli), DB.clis);
+    if (Array.isArray(gastos)) DB.gastos = _conPendientes('gastos', gastos, DB.gastos);
     if (Array.isArray(provs)) DB.provs = provs;
     if (Array.isArray(gastosRec)) DB.gastos_recurrentes = gastosRec;
     if (Array.isArray(pagosProv)) DB.pagosProv = pagosProv;
@@ -13506,8 +13535,12 @@ function confirmarEntrega() {
       sbPatch('reparaciones', 'id=eq.' + r.id, _patchE);
 
       // Auto-crear pago tipo='final' en pagos_reparacion con la diferencia
-      sbGet('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(r.id) + '&select=importe').then(function(pagosExistentes) {
-        var sumaPagosExistentes = (pagosExistentes || []).reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0);
+      // sbGetAll devuelve null si la nube no responde (sbGet devolvía [] y se cobraba el
+      // total entero otra vez, anticipo incluido). Sin respuesta: se usa el anticipo local.
+      sbGetAll('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(r.id)).then(function(pagosExistentes) {
+        var sumaPagosExistentes = Array.isArray(pagosExistentes)
+          ? pagosExistentes.reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0)
+          : (parseFloat(r.anticipo) || 0);
         var importeFinal = (parseFloat(r.total) || 0) - sumaPagosExistentes;
         if (importeFinal > 0) {
           var d = new Date();
@@ -13523,6 +13556,8 @@ function confirmarEntrega() {
             acum += imp;
             if (imp <= 0) return;
             sbPost('pagos_reparacion', {
+              // Con id fijo, un reintento de la cola no puede duplicar el cobro.
+              id: (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : undefined,
               tienda_id: TIENDA_ID,
               reparacion_id: r.id,
               fecha: fechaISO,

@@ -155,7 +155,7 @@ export default async function handler(req, res) {
     if (link) {
       try {
         const u = new URL(String(link));
-        if (u.protocol === 'https:' && /(^|\.)tekpair\.tech$|\.vercel\.app$/.test(u.hostname)) linkSafe = u.toString();
+        if (u.protocol === 'https:' && /(^|\.)tekpair\.tech$|^tek-pair[a-z0-9-]*\.vercel\.app$/.test(u.hostname)) linkSafe = u.toString();
       } catch (e) { linkSafe = ''; }
     }
     const tNom = esc(tienda || 'TekPair').slice(0, 100);

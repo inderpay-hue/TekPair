@@ -151,6 +151,7 @@ export default async function handler(req, res) {
     }
 
     // Validar que tengamos datos mínimos tras leer Stripe
+    email = typeof email === 'string' ? email.trim().toLowerCase() : email;
     if (!email || !nombre) {
       return res.status(400).json({ error: _loc('Faltan datos', req) });
     }
