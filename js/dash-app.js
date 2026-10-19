@@ -1005,6 +1005,7 @@ window.addEventListener('DOMContentLoaded', function() {
   if (aj.avisosAuto) AJUSTES.avisosAuto = aj.avisosAuto;
   if (aj.recogida) AJUSTES.recogida = aj.recogida;
   if (aj.resena) AJUSTES.resena = aj.resena;
+  if (aj.resumen) AJUSTES.resumen = aj.resumen;
   if (aj.usados) AJUSTES.usados = aj.usados;
   try { aplicarFunciones(); } catch (e) {}
 
@@ -24412,10 +24413,42 @@ function setResenaCfg() {
 }
 window.setResenaCfg = setResenaCfg;
 
+// Ajustes → Resumen diario por email (lo envía el servidor cada mañana: api/_lib/resumen.js)
+function _resumenEmailDef() { return (AJUSTES.resumen && AJUSTES.resumen.email) || TIENDA.plan_email || TIENDA.email || (U && U.email) || ''; }
+function renderResumenAj() {
+  var on = document.getElementById('resumenOn'), em = document.getElementById('resumenEmail');
+  if (on) on.checked = !!(AJUSTES.resumen && AJUSTES.resumen.on);
+  if (em && document.activeElement !== em) em.value = _resumenEmailDef();
+}
+function setResumenCfg() {
+  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); renderResumenAj(); return; }
+  var em = ((document.getElementById('resumenEmail') || {}).value || '').trim();
+  if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast(T('res.email_mal'), 'err'); return; }
+  AJUSTES.resumen = { on: !!(document.getElementById('resumenOn') || {}).checked, email: em };
+  try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
+  if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES });
+  renderResumenAj();
+  toast(T('gen.guardado'), 'ok');
+}
+function resumenPrueba() {
+  var b = document.getElementById('resumenPruebaBtn'); if (b) b.disabled = true;
+  var em = ((document.getElementById('resumenEmail') || {}).value || '').trim();
+  fetch('/api/ayuda?action=resumen-prueba', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN }, body: JSON.stringify({ email: em }) })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d && d.ok && d.vacio) toast(T('res.vacio'), 'ok');
+      else if (d && d.ok) toast(T('res.enviado').replace('{e}', d.email), 'ok');
+      else toast((d && d.error) || T('res.error'), 'err');
+    }).catch(function() { toast(T('res.error'), 'err'); })
+    .then(function() { if (b) b.disabled = false; });
+}
+window.setResumenCfg = setResumenCfg; window.resumenPrueba = resumenPrueba;
+
 // Ajustes → Notificaciones: email automático por estado.
 function renderAvisosAuto() {
   try { renderRecogidaAj(); } catch (e) {}
   try { renderResenaAj(); } catch (e) {}
+  try { renderResumenAj(); } catch (e) {}
   var cont = document.getElementById('avisosAutoLista'); if (!cont) return;
   var cfg = AJUSTES.avisosAuto || {};
   cont.innerHTML = Object.keys(AVISO_ESTADO_PL).map(function(e) {

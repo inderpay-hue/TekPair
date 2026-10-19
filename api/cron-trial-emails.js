@@ -22,6 +22,7 @@
 // Sin trial_until no hay forma de saber cuándo acaba lo gratis, y no se avisa.
 
 import crypto from 'crypto';
+import { construirResumen, enviarResumen, destinoResumen, fechaMadrid } from './_lib/resumen.js';
 
 // CRON-1: timing-safe equal — evita ataques que deducen el secret carácter a carácter
 
@@ -185,13 +186,19 @@ export default async function handler(req, res) {
       recogida = await recordatoriosRecogida(SUPABASE_URL, headers, RESEND_KEY, now);
     } catch (e) { console.error('[cron] recogida:', e.message); }
 
+    // ── Resumen diario para el dueño (Ajustes → Notificaciones) ──
+    let resumen = { enviados: 0, errores: 0 };
+    try {
+      resumen = await resumenesDiarios(SUPABASE_URL, headers, RESEND_KEY, now);
+    } catch (e) { console.error('[cron] resumen:', e.message); }
+
     // ── Encuesta de satisfacción por email el día después de entregar ──
     let encuestas = { enviados: 0, errores: 0 };
     try {
       encuestas = await encuestasValoracion(SUPABASE_URL, headers, RESEND_KEY, now);
     } catch (e) { console.error('[cron] encuestas:', e.message); }
 
-    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida, encuestas });
+    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida, encuestas, resumen });
 
   } catch(e) {
     console.error('[cron] Error general:', e);
@@ -753,6 +760,35 @@ async function encuestasValoracion(SUPABASE_URL, headers, RESEND_KEY, now) {
         } catch (e) { out.errores++; }
       }
     } catch (e) { console.error('[cron] encuestas tienda', t.id, e.message); out.errores++; }
+  }
+  return out;
+}
+
+// ═══ RESUMEN DIARIO PARA EL DUEÑO ═══
+// Una vez al día (lo de ayer). Se apunta en avisos con id fijo por tienda y fecha ANTES de
+// enviar: si el cron se repite, el segundo insert choca (409) y no se manda dos veces.
+async function resumenesDiarios(SUPABASE_URL, headers, RESEND_KEY, now) {
+  const out = { enviados: 0, errores: 0, sinDatos: 0 };
+  if (!RESEND_KEY) return out;
+  const ayer = fechaMadrid(new Date(now.getTime() - 86400000));
+  const hoy = fechaMadrid(now);
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?ajustes_config->resumen->>on=eq.true&select=id,nombre,email,plan_email,ajustes_config`, { headers });
+  const tiendas = r.ok ? await r.json() : [];
+  for (const t of tiendas) {
+    try {
+      const para = destinoResumen(t);
+      if (!para) continue;
+      const res = await construirResumen(SUPABASE_URL, headers, t, ayer, hoy);
+      if (!res) { out.sinDatos++; continue; }
+      const ins = await fetch(`${SUPABASE_URL}/rest/v1/avisos`, { method: 'POST', headers: { ...headers, Prefer: 'return=minimal' },
+        body: JSON.stringify({ id: `resumen_${t.id}_${ayer}`, tienda_id: t.id, tipo: 'resumen_diario', canal: 'email', destinatario: para, ref_tipo: 'tienda', ref_id: t.id, asunto: res.asunto.slice(0, 200), estado: 'enviado', fecha: now.toISOString() }) });
+      if (!ins.ok) continue; // ya enviado hoy (409) o error: no duplicar
+      if (await enviarResumen(RESEND_KEY, para, res)) out.enviados++;
+      else {
+        out.errores++;
+        await fetch(`${SUPABASE_URL}/rest/v1/avisos?id=eq.${encodeURIComponent(`resumen_${t.id}_${ayer}`)}`, { method: 'PATCH', headers: { ...headers, Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'error' }) });
+      }
+    } catch (e) { console.error('[cron] resumen tienda', t.id, e.message); out.errores++; }
   }
   return out;
 }

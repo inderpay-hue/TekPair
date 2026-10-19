@@ -1234,7 +1234,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261019j"></script>
+<script src="/lang/lang.v8.js?v=20261019l"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -3508,6 +3508,15 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     </div>
 
     <div class="card">
+      <div class="card-title">📊 <span data-t="res.aj_titulo">Resumen diario por email</span></div>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px" data-t="res.aj_hint">Cada mañana, en un email: lo que entró ayer, si las cajas cuadran, las reparaciones paradas, lo que te deben y las citas de hoy. Para ver la tienda en 30 segundos aunque no estés.</div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="resumenOn" onchange="setResumenCfg()"> <span data-t="res.aj_on">Enviarme el resumen cada mañana</span></label>
+      <label style="font-size:12px;font-weight:700;display:block;margin:8px 0 4px" data-t="res.aj_email">Email donde recibirlo</label>
+      <input class="fi" id="resumenEmail" type="email" onchange="setResumenCfg()" style="width:100%">
+      <button type="button" class="btn btn-secondary" id="resumenPruebaBtn" onclick="resumenPrueba()" style="margin-top:10px" data-t="res.aj_prueba">✉️ Enviarme uno de prueba ahora</button>
+    </div>
+
+    <div class="card">
       <div class="card-title">⭐ <span data-t="val.aj_titulo">Valoraciones y reseñas</span></div>
       <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px" data-t="val.aj_hint">Al entregar, el cliente recibe un enlace para puntuarte del 1 al 5. Si la nota es baja (1–3) te llega un email al momento para arreglarlo. Después se le invita a dejar una reseña en Google.</div>
       <label style="font-size:12px;font-weight:700;display:block;margin:6px 0 4px" data-t="val.aj_url">Enlace de reseñas de Google</label>
@@ -5665,7 +5674,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261016b"></script>
-<script src="/js/dash-app.js?v=20261019k"></script>
+<script src="/js/dash-app.js?v=20261019l"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

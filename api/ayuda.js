@@ -8,6 +8,7 @@
 
 import jwt from 'jsonwebtoken';
 import { rateLimit } from './_lib/ratelimit.js';
+import { construirResumen, enviarResumen, destinoResumen, fechaMadrid } from './_lib/resumen.js';
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
 
@@ -50,6 +51,7 @@ export default async function handler(req, res) {
   // ── ACCIONES IA (Groq): extraer líneas de pedido / datos de factura de texto/foto/PDF ──
   const _accionIA = req.query.action || (req.body && req.body.action);
   if (_accionIA === 'sync-error') return syncError(req, res, payload);
+  if (_accionIA === 'resumen-prueba') return resumenPrueba(req, res, payload);
   if (_accionIA === 'parse-pedido' || _accionIA === 'parse-factura') {
     const uId = payload.sub || payload.user_id || 'unknown';
     const _rlIA = await rateLimit('ayuda:parseia:user:' + uId, 30, 10 * 60);
@@ -449,4 +451,30 @@ async function syncError(req, res, payload) {
     } catch (e) { console.error('[sync-error] email:', e.message); }
   }
   return res.json({ ok: true });
+}
+
+// Ajustes → Notificaciones → Resumen diario → "Enviarme uno de prueba": el de ayer, ya.
+async function resumenPrueba(req, res, payload) {
+  const _rl = await rateLimit('resumen-prueba:' + payload.tienda_id, 5, 60 * 60);
+  if (!_rl.ok) return res.status(429).json({ error: 'Demasiadas pruebas. Espera un rato.' });
+  const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY, RESEND_KEY = process.env.RESEND_API_KEY;
+  if (!SUPABASE_URL || !SERVICE_KEY || !RESEND_KEY) return res.status(500).json({ error: 'Servidor no configurado' });
+  const headers = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' };
+  try {
+    const tr = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(payload.tienda_id)}&select=id,nombre,email,plan_email,ajustes_config`, { headers });
+    const t = tr.ok ? (await tr.json())[0] : null;
+    if (!t) return res.status(404).json({ error: 'Tienda no encontrada' });
+    // El email puede venir del formulario (aún sin guardar): se valida igual.
+    const pedido = String((req.body && req.body.email) || '').trim();
+    const para = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pedido) ? pedido : destinoResumen(t);
+    if (!para) return res.status(400).json({ error: 'Falta el email' });
+    const now = new Date();
+    const r = await construirResumen(SUPABASE_URL, headers, t, fechaMadrid(new Date(now.getTime() - 86400000)), fechaMadrid(now));
+    if (!r) return res.json({ ok: true, vacio: true });
+    const ok = await enviarResumen(RESEND_KEY, para, r);
+    return ok ? res.json({ ok: true, email: para }) : res.status(502).json({ error: 'No se pudo enviar el email' });
+  } catch (e) {
+    console.error('[ayuda] resumen-prueba:', e.message);
+    return res.status(500).json({ error: 'Error preparando el resumen' });
+  }
 }
