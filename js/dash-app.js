@@ -10986,7 +10986,7 @@ function sugerirPiezasRep() {
 // llevaba tiempo en el modal, pero la funcion no existia: no fallaba, no hacia
 // nada. Sugiere lo que YA cobraste por la misma averia en el mismo modelo, que
 // es el dato que uno intenta recordar de memoria al dar un precio.
-function sugerirPrecioRep() {
+function sugerirPrecioRep(itemsDados) {
   var box = document.getElementById('rPrecioSug'); if (!box) return;
   var ocultar = function() { box.style.display = 'none'; box.innerHTML = ''; window._precioItems = []; };
   var mod = ((document.getElementById('rModelo') || {}).value || '').trim();
@@ -10996,7 +10996,7 @@ function sugerirPrecioRep() {
 
   // Un móvil puede traer varias averías ("batería dañada, tapa rota y pantalla rota"):
   // una línea de precio por cada una y un botón para añadirlas todas.
-  var items = _preciosAveria(mod, marca, aver);
+  var items = Array.isArray(itemsDados) ? itemsDados : _preciosAveria(mod, marca, aver);
   window._precioItems = items;
   if (!items.length) {
     // Ni tarifa ni historial: ofrecer ponerle precio en la tarifa para la próxima vez.
@@ -11016,7 +11016,9 @@ function sugerirPrecioRep() {
     var icono = it.tipo === 'tarifa' ? '💶' : '📊';
     linea += icono + ' <b>' + escHtml(it.nombre) + '</b>: ' + it.opciones.map(function(o, q) {
       var marc = q === it.elegida;
-      return '<button type="button" class="btn-sm" onclick="precioUsar(' + k + ',' + q + ')" style="' + btn + (marc ? ';background:var(--orange);color:#fff;border-color:var(--orange)' : '') + '">' +
+      // Con varias averías, pulsar ELIGE (y suma al total); con una sola, añade directamente.
+      var acc = items.length > 1 ? 'precioElegir(' + k + ',' + q + ')' : 'precioUsar(' + k + ',' + q + ')';
+      return '<button type="button" class="btn-sm" onclick="' + acc + '" style="' + btn + (marc ? ';background:var(--orange);color:#fff;border-color:var(--orange)' : '') + '">' +
         escHtml((o.cal ? o.cal + ' ' : '') + (it.tipo === 'est' ? '~' : '') + cur(o.precio)) + '</button>';
     }).join('');
     if (it.tipo === 'est' && it.est) {
@@ -11031,12 +11033,16 @@ function sugerirPrecioRep() {
   var conPrecio = items.filter(function(it) { return it.elegida != null; });
   if (items.length > 1 && conPrecio.length) {
     var total = conPrecio.reduce(function(a, it) { return a + it.opciones[it.elegida].precio; }, 0);
-    var falta = items.length - conPrecio.length;
+    var sinPrecio = items.filter(function(it) { return !it.opciones.length; }).length;
+    var sinElegir = items.filter(function(it) { return it.opciones.length && it.elegida == null; }).map(function(it) { return it.nombre; });
     h += '<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><button type="button" class="btn-sm" onclick="precioUsarTodo()" style="padding:5px 12px;background:var(--green);color:#fff;border-color:var(--green);font-weight:700">' +
       escHtml(T('pre.todo').replace('{n}', conPrecio.length).replace('{p}', cur(total))) + '</button>' +
-      (falta ? '<span style="font-size:11px;color:var(--muted)">' + escHtml(T('pre.falta').replace('{n}', falta)) + '</span>' : '') + '</div>';
+      (sinElegir.length ? '<span style="font-size:11px;color:var(--orange);font-weight:700">' + escHtml(T('pre.elige_en').replace('{l}', sinElegir.join(', '))) + '</span>' : '') +
+      (sinPrecio ? '<span style="font-size:11px;color:var(--muted)">' + escHtml(T('pre.falta').replace('{n}', sinPrecio)) + '</span>' : '') + '</div>';
+  } else if (items.length > 1) {
+    h += '<div style="font-size:11px;color:var(--orange);font-weight:700;margin-top:4px">' + escHtml(T('pre.elige_en').replace('{l}', items.filter(function(it) { return it.opciones.length; }).map(function(it) { return it.nombre; }).join(', '))) + '</div>';
   }
-  if (items.some(function(it) { return it.opciones.length > 1 && it.elegida == null; })) h += '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + escHtml(T('tar.elige')) + '</div>';
+  if (items.length === 1 && items[0].opciones.length > 1) h += '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + escHtml(T('tar.elige')) + '</div>';
   box.style.display = 'block';
   box.innerHTML = h;
 }
@@ -11091,6 +11097,13 @@ function precioUsar(k, q) {
   agregarServicioRep({ nombre: o.servicio, desc: '', coste: o.coste || 0, precio: o.precio });
   toast(T('tar.anadido').replace('{p}', cur(o.precio)), 'ok');
 }
+function precioElegir(k, q) {
+  var it = (window._precioItems || [])[k]; if (!it || !it.opciones[q]) return;
+  it.elegida = it.elegida === q ? null : q;
+  // Repintar sin recalcular (si no, se perdería lo elegido).
+  sugerirPrecioRep(window._precioItems);
+}
+window.precioElegir = precioElegir;
 function precioUsarTodo() {
   var n = 0, tot = 0;
   (window._precioItems || []).forEach(function(it) {
