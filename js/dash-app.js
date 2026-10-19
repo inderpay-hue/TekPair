@@ -10988,35 +10988,17 @@ function sugerirPiezasRep() {
 // es el dato que uno intenta recordar de memoria al dar un precio.
 function sugerirPrecioRep() {
   var box = document.getElementById('rPrecioSug'); if (!box) return;
-  var ocultar = function() { box.style.display = 'none'; box.innerHTML = ''; };
-  var modEl = document.getElementById('rModelo');
-  var avEl = document.getElementById('rAveria');
-  var mod = (modEl ? modEl.value : '').trim();
-  var aver = (avEl ? avEl.value : '').trim().toLowerCase();
+  var ocultar = function() { box.style.display = 'none'; box.innerHTML = ''; window._precioItems = []; };
+  var mod = ((document.getElementById('rModelo') || {}).value || '').trim();
+  var aver = ((document.getElementById('rAveria') || {}).value || '').trim();
+  var marca = ((document.getElementById('rMarca') || {}).value || '').trim();
   if (mod.length < 3 || aver.length < 3) return ocultar();
 
-  // Primero la tarifa de la tienda (precio fijo): se ofrece con un botón para añadirla.
-  var tfs = (typeof tarifaPara === 'function') ? tarifaPara(mod, aver) : [];
-  // Orden: tarifa del modelo → lo cobrado en ESE modelo → tarifa "Cualquier modelo" → estimación por serie/marca.
-  var _est0 = null;
-  if (tfs.length && tfs[0]._generico) {
-    _est0 = _estimarPrecio(mod, ((document.getElementById('rMarca') || {}).value || '').trim(), aver);
-    if (_est0 && _est0.nivel === 'exacto') tfs = [];
-  }
-  if (tfs.length) {
-    window._tarSugs = tfs;
-    box.style.display = 'block';
-    box.innerHTML = '💶 <b>' + escHtml(tfs[0].averia + ' ' + _tarNombre(tfs[0])) + '</b>: ' + tfs.map(function(f, i) {
-      var marc = f._marcada || tfs.length === 1;
-      return '<button type="button" class="btn-sm" onclick="tarUsarEnRep(' + i + ')" style="margin:3px 4px 0 0;padding:4px 10px;' + (marc ? 'background:var(--orange);color:#fff;border-color:var(--orange)' : '') + '">' +
-        escHtml((f.calidad ? f.calidad + ' ' : '') + cur(f.precio)) + '</button>';
-    }).join('') + '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + escHtml(T(tfs.length > 1 ? 'tar.elige' : 'tar.pulsa')) + '</div>';
-    return;
-  }
-
-  // Sin tarifa: estimación con el historial de ESTA tienda (_estimarPrecio).
-  var est = _est0 || _estimarPrecio(mod, ((document.getElementById('rMarca') || {}).value || '').trim(), aver);
-  if (!est) {
+  // Un móvil puede traer varias averías ("batería dañada, tapa rota y pantalla rota"):
+  // una línea de precio por cada una y un botón para añadirlas todas.
+  var items = _preciosAveria(mod, marca, aver);
+  window._precioItems = items;
+  if (!items.length) {
     // Ni tarifa ni historial: ofrecer ponerle precio en la tarifa para la próxima vez.
     if (!tienePerm('ajustes_editar')) return ocultar();
     box.style.display = 'block';
@@ -11024,28 +11006,114 @@ function sugerirPrecioRep() {
       ' <button type="button" class="btn-sm" onclick="tarDesdeRep()" style="margin-left:6px;padding:3px 10px">' + escHtml(T('tar.poner')) + '</button>';
     return;
   }
-  window._estActual = est;
-  var det = T('est.rango').replace('{min}', cur(est.min)).replace('{max}', cur(est.max)).replace('{u}', cur(est.ult));
-  var cab = est.nivel === 'exacto'
-    ? T('est.exacto').replace('{n}', est.n).replace('{g}', est.grupo.toLowerCase()).replace('{m}', mod)
-    : est.nivel === 'parecidos'
-      ? T('est.parecidos').replace('{m}', mod).replace('{n}', est.n).replace('{l}', est.modelos.slice(0, 3).join(', '))
-      : T('est.marca').replace('{g}', est.grupo.toLowerCase()).replace('{b}', est.marca).replace('{n}', est.n);
-  var h = '📊 <b>' + escHtml(T('est.titulo').replace('{p}', cur(est.med))) + '</b> · ' + escHtml(cab) + (est.n > 1 ? ' (' + escHtml(det) + ')' : '');
-  var btn = 'margin:4px 4px 0 0;padding:4px 10px';
-  h += '<div>';
-  if (est.cals.length) {
-    h += '<span style="font-size:11.5px;color:var(--muted)">' + escHtml(T('est.por_cal')) + '</span> ' + est.cals.map(function(c, k) {
-      return '<button type="button" class="btn-sm" onclick="estUsar(' + k + ')" style="' + btn + '">' + escHtml(c.cal + ' ~' + cur(c.med) + ' (' + c.n + ')') + '</button>';
+  var btn = 'margin:3px 4px 0 0;padding:4px 10px';
+  var h = items.map(function(it, k) {
+    var linea = '<div style="padding:5px 0' + (k ? ';border-top:1px dashed rgba(139,92,246,.25)' : '') + '">';
+    if (!it.opciones.length) {
+      return linea + '❔ <b>' + escHtml(it.nombre) + '</b>: <span style="color:var(--muted)">' + escHtml(T('pre.sin_dato')) + '</span>' +
+        (tienePerm('ajustes_editar') ? ' <button type="button" class="btn-sm" onclick="tarDesdeRep()" style="' + btn + '">' + escHtml(T('tar.poner')) + '</button>' : '') + '</div>';
+    }
+    var icono = it.tipo === 'tarifa' ? '💶' : '📊';
+    linea += icono + ' <b>' + escHtml(it.nombre) + '</b>: ' + it.opciones.map(function(o, q) {
+      var marc = q === it.elegida;
+      return '<button type="button" class="btn-sm" onclick="precioUsar(' + k + ',' + q + ')" style="' + btn + (marc ? ';background:var(--orange);color:#fff;border-color:var(--orange)' : '') + '">' +
+        escHtml((o.cal ? o.cal + ' ' : '') + (it.tipo === 'est' ? '~' : '') + cur(o.precio)) + '</button>';
     }).join('');
+    if (it.tipo === 'est' && it.est) {
+      var e = it.est;
+      var info = e.nivel === 'exacto' ? T('pre.info_exacto').replace('{n}', e.n) : (e.nivel === 'parecidos' ? T('pre.info_serie').replace('{n}', e.n) : T('pre.info_marca').replace('{n}', e.n).replace('{b}', e.marca));
+      if (e.n > 1) info += ' · ' + T('est.rango').replace('{min}', cur(e.min)).replace('{max}', cur(e.max)).replace('{u}', cur(e.ult));
+      linea += '<div style="font-size:11px;color:var(--muted)">' + escHtml(info) + '</div>';
+      if (e.col && tienePerm('ajustes_editar')) linea += '<button type="button" class="btn-sm" onclick="precioGuardar(' + k + ')" style="' + btn + ';font-size:11px">💶 ' + escHtml(T('est.guardar')) + '</button>';
+    }
+    return linea + '</div>';
+  }).join('');
+  var conPrecio = items.filter(function(it) { return it.elegida != null; });
+  if (items.length > 1 && conPrecio.length) {
+    var total = conPrecio.reduce(function(a, it) { return a + it.opciones[it.elegida].precio; }, 0);
+    var falta = items.length - conPrecio.length;
+    h += '<div style="margin-top:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap"><button type="button" class="btn-sm" onclick="precioUsarTodo()" style="padding:5px 12px;background:var(--green);color:#fff;border-color:var(--green);font-weight:700">' +
+      escHtml(T('pre.todo').replace('{n}', conPrecio.length).replace('{p}', cur(total))) + '</button>' +
+      (falta ? '<span style="font-size:11px;color:var(--muted)">' + escHtml(T('pre.falta').replace('{n}', falta)) + '</span>' : '') + '</div>';
   }
-  h += '<button type="button" class="btn-sm" onclick="estUsar(-1)" style="' + btn + ';background:var(--orange);color:#fff;border-color:var(--orange)">' + escHtml(T('est.usar').replace('{p}', cur(est.med))) + '</button>';
-  if (est.col && tienePerm('ajustes_editar')) h += '<button type="button" class="btn-sm" onclick="estGuardarTarifa()" style="' + btn + '">💶 ' + escHtml(T('est.guardar')) + '</button>';
-  h += '</div>';
-  if (est.nivel !== 'exacto') h += '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + escHtml(T('est.orientativa')) + '</div>';
+  if (items.some(function(it) { return it.opciones.length > 1 && it.elegida == null; })) h += '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + escHtml(T('tar.elige')) + '</div>';
   box.style.display = 'block';
   box.innerHTML = h;
 }
+
+// Separa la avería en sus partes ("pantalla rota, batería y tapa") y da el precio de cada una:
+// tarifa del modelo → lo cobrado en ESE modelo → tarifa "Cualquier modelo" → estimación por serie/marca.
+function _preciosAveria(mod, marca, aver) {
+  var trozos = String(aver).split(/[,;+\/\n.]| y | e | and | et | und | i /i).map(function(x) { return x.trim(); }).filter(Boolean);
+  var items = [], usados = {};
+  var cols = _tarCols();
+  var añadir = function(g, col, texto) {
+    var clave = col ? 'c:' + _tarNorm(col) : 'g:' + g;
+    if (usados[clave]) return; usados[clave] = 1;
+    var tfs = col ? tarifaPara(mod, texto, col) : [];
+    var est = g >= 0 ? _estimarPrecio(mod, marca, texto, g) : null;
+    var nombre = col || _estNombreGrupo(g);
+    if (tfs.length && tfs[0]._generico && est && est.nivel === 'exacto') tfs = [];
+    if (tfs.length) {
+      var el = null;
+      tfs.forEach(function(f, q) { if (f._marcada) el = q; });
+      if (el == null && tfs.length === 1) el = 0;
+      items.push({ nombre: nombre, tipo: 'tarifa', elegida: el, opciones: tfs.map(function(f) {
+        return { cal: f.calidad || '', precio: parseFloat(f.precio) || 0, servicio: f.averia + (f.calidad ? ' ' + f.calidad : '') + ' ' + _tarNombre(f), coste: parseFloat(f.coste) || 0 };
+      }) });
+    } else if (est) {
+      var ops = [{ cal: '', precio: est.med, servicio: nombre + ' ' + mod }];
+      est.cals.forEach(function(c) { ops.push({ cal: c.cal, precio: c.med, servicio: nombre + ' ' + c.cal + ' ' + mod }); });
+      var calTxt = _tarCalidadEnTexto(est.cals.map(function(c) { return c.cal; }), texto);
+      var elE = 0; if (calTxt) ops.forEach(function(o, q) { if (o.cal && _tarNorm(o.cal) === _tarNorm(calTxt)) elE = q; });
+      items.push({ nombre: nombre, tipo: 'est', est: est, elegida: elE, opciones: ops });
+    } else {
+      items.push({ nombre: nombre, tipo: 'nada', elegida: null, opciones: [] });
+    }
+  };
+  // Tipos conocidos (pantalla, batería, carga, cámara, tapa, altavoz, software, líquidos, placa, botones)
+  _estGrupos(aver).forEach(function(g) {
+    var lista = _estListas()[g];
+    var texto = trozos.filter(function(t) { var n = _tarNorm(t); return lista.some(function(w) { return n.indexOf(w) !== -1; }); }).join(' ') || aver;
+    var col = cols.find(function(c) { return _tarGrupo(c) === g; }) || null;
+    añadir(g, col, texto);
+  });
+  // Averías propias de la tarifa que no son de ningún tipo conocido ("Face ID", "Placa"…)
+  cols.forEach(function(c) {
+    if (_tarGrupo(c) !== -1) return;
+    if (_tarEncajaAveria(c, aver)) añadir(-1, c, aver);
+  });
+  // Si no hay nada con precio, no se enseñan líneas vacías (sale el aviso de la tarifa).
+  return items.some(function(it) { return it.opciones.length; }) ? items : [];
+}
+function precioUsar(k, q) {
+  var it = (window._precioItems || [])[k]; var o = it && it.opciones[q]; if (!o) return;
+  agregarServicioRep({ nombre: o.servicio, desc: '', coste: o.coste || 0, precio: o.precio });
+  toast(T('tar.anadido').replace('{p}', cur(o.precio)), 'ok');
+}
+function precioUsarTodo() {
+  var n = 0, tot = 0;
+  (window._precioItems || []).forEach(function(it) {
+    if (it.elegida == null) return;
+    var o = it.opciones[it.elegida];
+    if (!SEL.rServicios) SEL.rServicios = [];
+    SEL.rServicios.push({ nombre: o.servicio, desc: '', coste: o.coste || 0, precio: o.precio });
+    n++; tot += o.precio;
+  });
+  if (!n) return;
+  renderServiciosRep(); try { renderOpcionalesRep(); } catch (e) {} calcR();
+  toast(T('pre.todo_ok').replace('{n}', n).replace('{p}', cur(tot)), 'ok');
+}
+// Guardar la estimación en la tarifa (si la avería tiene calidades, se abre la tarifa para elegir).
+function precioGuardar(k) {
+  var it = (window._precioItems || [])[k]; var e = it && it.est; if (!e || !e.col) return;
+  if (_tarCalidades(e.col).length) { tarDesdeRep(); return; }
+  _tarGuardar(e.marcaRep, e.modelo, e.col, e.med, '');
+  guardarDatos();
+  toast(T('est.guardado').replace('{p}', cur(e.med)), 'ok');
+  try { sugerirPrecioRep(); } catch (x) {}
+}
+window.precioUsar = precioUsar; window.precioUsarTodo = precioUsarTodo; window.precioGuardar = precioGuardar;
 
 // ═══ ESTIMACIÓN DE PRECIO CON EL HISTORIAL DE LA TIENDA ═══
 // Detecta el TIPO de reparación (pantalla, batería, carga…) en lo que se escribe y en las
@@ -11077,10 +11145,10 @@ function _mediana(arr) {
   var a = arr.slice().sort(function(x, y) { return x - y; }), n = a.length;
   return n ? (n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2) : 0;
 }
-function _estimarPrecio(mod, marca, aver) {
-  var gs = _estGrupos(aver);
-  if (gs.length !== 1) return null;            // nada claro o varias cosas a la vez
-  var g = gs[0], lista = _estListas()[g];
+function _estimarPrecio(mod, marca, aver, gForzado) {
+  var g = gForzado;
+  if (g == null) { var gs = _estGrupos(aver); if (gs.length !== 1) return null; g = gs[0]; }
+  var lista = _estListas()[g];
   var CALS = g === 0 ? ['Original', 'Soft OLED', 'Hard OLED', 'OLED', 'Incell', 'TFT', 'Compatible'] : (g === 1 ? ['Original', 'Compatible'] : []);
   var muestras = [];
   (DB.reps || []).forEach(function(r) {
@@ -11126,22 +11194,7 @@ function _estimarPrecio(mod, marca, aver) {
     cals: Object.keys(porCal).map(function(c) { return { cal: c, n: porCal[c].length, med: Math.round(_mediana(porCal[c])) }; })
   };
 }
-function estUsar(k) {
-  var e = window._estActual; if (!e) return;
-  var c = k >= 0 ? e.cals[k] : null, precio = c ? c.med : e.med;
-  agregarServicioRep({ nombre: e.grupo + (c ? ' ' + c.cal : '') + ' ' + e.modelo, desc: '', coste: 0, precio: precio });
-  toast(T('tar.anadido').replace('{p}', cur(precio)), 'ok');
-}
-// Guardar la estimación en la tarifa (si la avería tiene calidades, se abre la tarifa para elegir).
-function estGuardarTarifa() {
-  var e = window._estActual; if (!e || !e.col) return;
-  if (_tarCalidades(e.col).length) { tarDesdeRep(); return; }
-  _tarGuardar(e.marcaRep, e.modelo, e.col, e.med, '');
-  guardarDatos();
-  toast(T('est.guardado').replace('{p}', cur(e.med)), 'ok');
-  try { sugerirPrecioRep(); } catch (x) {}
-}
-window.estUsar = estUsar; window.estGuardarTarifa = estGuardarTarifa;
+
 
 function renderParts() {
   document.getElementById('partsList').innerHTML = SEL.selParts.map(function(p, i) {
@@ -25082,11 +25135,13 @@ function _tarFila(modelo, averia, calidad) {
 }
 // Precios de tarifa para el formulario de reparación: todas las calidades de la avería
 // que encaja (o [] si no hay). Si el texto nombra una calidad, esa va marcada.
-function tarifaPara(modelo, textoAveria) {
+function tarifaPara(modelo, textoAveria, col) {
   if (!modelo || !textoAveria || !(DB.tarifas || []).length) return [];
-  var cand = (DB.tarifas || []).filter(function(x) { return x.modelo !== '*' && _modeloEncaja(modelo.toLowerCase(), x.modelo || '') && _tarEncajaAveria(x.averia, textoAveria); });
+  // col: solo esa avería de la tarifa (cuando la reparación trae varias).
+  var encaja = function(x) { return col ? _tarNorm(x.averia) === _tarNorm(col) : _tarEncajaAveria(x.averia, textoAveria); };
+  var cand = (DB.tarifas || []).filter(function(x) { return x.modelo !== '*' && _modeloEncaja(modelo.toLowerCase(), x.modelo || '') && encaja(x); });
   var generico = false;
-  if (!cand.length) { cand = (DB.tarifas || []).filter(function(x) { return x.modelo === '*' && _tarEncajaAveria(x.averia, textoAveria); }); generico = true; }
+  if (!cand.length) { cand = (DB.tarifas || []).filter(function(x) { return x.modelo === '*' && encaja(x); }); generico = true; }
   if (!cand.length) return [];
   // El modelo más parecido (mismo texto) y una sola avería (la primera que encaja).
   var exacto = cand.filter(function(x) { return _tarNorm(x.modelo) === _tarNorm(modelo); });
