@@ -24937,6 +24937,11 @@ function tarifaPara(modelo, textoAveria) {
 }
 window.tarifaPara = tarifaPara;
 
+// "Apple iPhone 13", pero "Nokia 3310" y no "Nokia Nokia 3310" si el modelo ya lleva la marca.
+function _tarNombre(x) {
+  var mo = String(x.modelo || '').trim(), ma = String(x.marca || '').trim();
+  return (!ma || _tarNorm(mo).indexOf(_tarNorm(ma)) === 0) ? mo : ma + ' ' + mo;
+}
 function _tarModelos() {
   var vistos = {}, out = [];
   (DB.tarifas || []).concat(_tarModelosNuevos).forEach(function(x) {
@@ -24980,7 +24985,7 @@ function renderTarifa() {
       return '<th style="padding:8px 6px;white-space:nowrap;font-weight:700">' + esc(c) + (puede ? ' <button type="button" title="' + esc(T('tar.quitar_col')) + '" onclick="tarQuitarAveria(' + i + ')" style="border:none;background:none;color:var(--muted);cursor:pointer;font-size:12px">×</button>' : '') + '</th>';
     }).join('') + '<th></th></tr></thead><tbody>';
   mods.forEach(function(m, mi) {
-    h += '<tr style="border-top:1px solid var(--border)"><td style="padding:6px 10px;font-weight:600">' + esc(((m.marca || '') + ' ' + m.modelo).trim()) + '</td>';
+    h += '<tr style="border-top:1px solid var(--border)"><td style="padding:6px 10px;font-weight:600">' + esc(_tarNombre(m)) + '</td>';
     cols.forEach(function(c) {
       var f = _tarFila(m.modelo, c);
       h += '<td style="padding:4px"><input type="number" step="0.01" min="0" inputmode="decimal" ' + (puede ? '' : 'disabled ') +
@@ -25101,7 +25106,7 @@ function tarUsarEnRep() {
   var mod = ((document.getElementById('rModelo') || {}).value || '').trim();
   var av = ((document.getElementById('rAveria') || {}).value || '').trim();
   var f = tarifaPara(mod, av); if (!f) return;
-  agregarServicioRep({ nombre: f.averia + ' ' + ((f.marca ? f.marca + ' ' : '') + f.modelo).trim(), desc: '', coste: parseFloat(f.coste) || 0, precio: parseFloat(f.precio) || 0 });
+  agregarServicioRep({ nombre: f.averia + ' ' + _tarNombre(f), desc: '', coste: parseFloat(f.coste) || 0, precio: parseFloat(f.precio) || 0 });
   toast(T('tar.anadido').replace('{p}', cur(f.precio)), 'ok');
 }
 window.tarCelda = tarCelda; window.tarNuevoModelo = tarNuevoModelo; window.tarNuevaAveria = tarNuevaAveria;
