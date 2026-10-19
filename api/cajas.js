@@ -421,7 +421,7 @@ async function _recalcularCierre(caja_id, fecha, tienda_id) {
   if (!cierre) return;
   const caja = (await sbGet(`cajas?id=eq.${encodeURIComponent(caja_id)}&select=tipo,nombre`))[0];
   let teorico = Number(cierre.saldo_teorico || 0);
-  if (_cajaConPendientes(caja)) {
+  if (_cajaConPendientes(caja) && fecha >= COBROS_EN_TEORICO_DESDE) {
     const movs = await sbGet(`cajas_movimientos?cierre_id=eq.${encodeURIComponent(cierre.id)}&select=importe_enviado,importe_efectivo`);
     teorico = Math.round((calcularSaldoTeorico(caja.tipo, cierre.saldo_inicial, movs) + await _cobrosDelDia(caja_id, fecha)) * 100) / 100;
   }
