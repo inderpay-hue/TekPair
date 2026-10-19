@@ -10986,17 +10986,9 @@ function sugerirPrecioRep() {
     return;
   }
 
-  // Solo reparaciones ENTREGADAS: un precio de algo a medio hacer todavia puede
-  // cambiar, y sugerirlo seria repetir una cifra que ni siquiera se cobro.
-  // Sin acentos: "bateria" tiene que encontrar "batería".
-  var palabras = _tarNorm(aver).split(/[^a-z0-9]+/).filter(function(p) { return p.length >= 4; });
-  var previas = (DB.reps || []).filter(function(r) {
-    if (['Entregado', 'Por Entregar', 'Por entregar'].indexOf(r.estado) === -1 || !(r.total > 0)) return false;
-    if (!_modeloEncaja(mod.toLowerCase(), r.modelo || '')) return false;
-    var a = _tarNorm(r.averia);
-    return palabras.some(function(p) { return a.indexOf(p) !== -1; });
-  });
-  if (!previas.length) {
+  // Sin tarifa: estimación con el historial de ESTA tienda (_estimarPrecio).
+  var est = _estimarPrecio(mod, ((document.getElementById('rMarca') || {}).value || '').trim(), aver);
+  if (!est) {
     // Ni tarifa ni historial: ofrecer ponerle precio en la tarifa para la próxima vez.
     if (!tienePerm('ajustes_editar')) return ocultar();
     box.style.display = 'block';
@@ -11004,19 +10996,124 @@ function sugerirPrecioRep() {
       ' <button type="button" class="btn-sm" onclick="tarDesdeRep()" style="margin-left:6px;padding:3px 10px">' + escHtml(T('tar.poner')) + '</button>';
     return;
   }
-
-  previas.sort(function(a, b) { return String(b.fecha || '').localeCompare(String(a.fecha || '')); });
-  var totales = previas.map(function(r) { return r.total; });
-  var min = Math.min.apply(null, totales), max = Math.max.apply(null, totales);
-  var ultima = previas[0];
-
-  var txt = previas.length === 1
-    ? T('rep.precio_sug_una').replace('{p}', cur(ultima.total)).replace('{f}', fmtFecha(ultima.fecha))
-    : T('rep.precio_sug_varias').replace('{n}', previas.length)
-      .replace('{min}', cur(min)).replace('{max}', cur(max)).replace('{u}', cur(ultima.total));
+  window._estActual = est;
+  var det = T('est.rango').replace('{min}', cur(est.min)).replace('{max}', cur(est.max)).replace('{u}', cur(est.ult));
+  var cab = est.nivel === 'exacto'
+    ? T('est.exacto').replace('{n}', est.n).replace('{g}', est.grupo.toLowerCase()).replace('{m}', mod)
+    : est.nivel === 'parecidos'
+      ? T('est.parecidos').replace('{m}', mod).replace('{n}', est.n).replace('{l}', est.modelos.slice(0, 3).join(', '))
+      : T('est.marca').replace('{g}', est.grupo.toLowerCase()).replace('{b}', est.marca).replace('{n}', est.n);
+  var h = '📊 <b>' + escHtml(T('est.titulo').replace('{p}', cur(est.med))) + '</b> · ' + escHtml(cab) + (est.n > 1 ? ' (' + escHtml(det) + ')' : '');
+  var btn = 'margin:4px 4px 0 0;padding:4px 10px';
+  h += '<div>';
+  if (est.cals.length) {
+    h += '<span style="font-size:11.5px;color:var(--muted)">' + escHtml(T('est.por_cal')) + '</span> ' + est.cals.map(function(c, k) {
+      return '<button type="button" class="btn-sm" onclick="estUsar(' + k + ')" style="' + btn + '">' + escHtml(c.cal + ' ~' + cur(c.med) + ' (' + c.n + ')') + '</button>';
+    }).join('');
+  }
+  h += '<button type="button" class="btn-sm" onclick="estUsar(-1)" style="' + btn + ';background:var(--orange);color:#fff;border-color:var(--orange)">' + escHtml(T('est.usar').replace('{p}', cur(est.med))) + '</button>';
+  if (est.col && tienePerm('ajustes_editar')) h += '<button type="button" class="btn-sm" onclick="estGuardarTarifa()" style="' + btn + '">💶 ' + escHtml(T('est.guardar')) + '</button>';
+  h += '</div>';
+  if (est.nivel !== 'exacto') h += '<div style="font-size:11px;color:var(--muted);margin-top:3px">' + escHtml(T('est.orientativa')) + '</div>';
   box.style.display = 'block';
-  box.innerHTML = '💡 ' + escHtml(txt);
+  box.innerHTML = h;
 }
+
+// ═══ ESTIMACIÓN DE PRECIO CON EL HISTORIAL DE LA TIENDA ═══
+// Detecta el TIPO de reparación (pantalla, batería, carga…) en lo que se escribe y en las
+// reparaciones anteriores (avería + servicios), usa el precio del SERVICIO concreto cuando lo
+// hay (no el total de una reparación con varias cosas) y busca en este orden: mismo modelo,
+// modelos de la misma serie (13 / 13 Pro / 13 mini) y, como último recurso, la marca.
+var _EST_EXTRA = [
+  ['software', 'sistema', 'actualiz', 'formate', 'reset', 'windows', 'icloud', 'firmware'],
+  ['liquido', 'humedad', 'agua', 'mojado', 'liquid', 'water'],
+  ['placa', 'reinicia', 'renicia', 'motherboard', 'board'],
+  ['boton', 'power', 'volumen', 'home', 'button']
+];
+function _estListas() { return _TAR_SINON.map(function(g, i) { return i === 2 ? g.concat(['pin']) : g; }).concat(_EST_EXTRA); }
+function _estGrupos(texto) {
+  var t = _tarNorm(texto); if (!t) return [];
+  var out = [];
+  _estListas().forEach(function(g, i) { if (g.some(function(w) { return t.indexOf(w) !== -1; })) out.push(i); });
+  // "pantalla oled" no es además "software"; si hay pantalla, la placa/botón no cuentan aparte.
+  return out;
+}
+function _estNombreGrupo(g) {
+  return [T('tar.c_pantalla'), T('tar.c_bateria'), T('tar.c_conector'), T('tar.c_camara'), T('tar.c_tapa'), T('tar.c_altavoz'),
+    T('est.g_soft'), T('est.g_liq'), T('est.g_placa'), T('est.g_boton')][g] || '';
+}
+function _modeloBase(m) {
+  return _normModelo(m).split(' ').filter(function(t) { return t && _MODEL_VARIANTS.indexOf(t) === -1; }).join(' ');
+}
+function _mediana(arr) {
+  var a = arr.slice().sort(function(x, y) { return x - y; }), n = a.length;
+  return n ? (n % 2 ? a[(n - 1) / 2] : (a[n / 2 - 1] + a[n / 2]) / 2) : 0;
+}
+function _estimarPrecio(mod, marca, aver) {
+  var gs = _estGrupos(aver);
+  if (gs.length !== 1) return null;            // nada claro o varias cosas a la vez
+  var g = gs[0], lista = _estListas()[g];
+  var CALS = g === 0 ? ['Original', 'Soft OLED', 'Hard OLED', 'OLED', 'Incell', 'TFT', 'Compatible'] : (g === 1 ? ['Original', 'Compatible'] : []);
+  var muestras = [];
+  (DB.reps || []).forEach(function(r) {
+    if (['Entregado', 'Por Entregar', 'Por entregar'].indexOf(r.estado) === -1 || !(r.total > 0) || !r.modelo) return;
+    var servs = (Array.isArray(r.servicios) ? r.servicios : []).filter(function(x) { return x && (parseFloat(x.precio) || 0) > 0; });
+    var deEse = servs.filter(function(x) { return lista.some(function(w) { return _tarNorm(x.nombre).indexOf(w) !== -1; }); });
+    var precio = 0, texto = (r.averia || '') + ' ' + servs.map(function(x) { return x.nombre || ''; }).join(' ');
+    if (deEse.length === 1) precio = parseFloat(deEse[0].precio);
+    else if (!deEse.length) {
+      var ga = _estGrupos(r.averia);
+      if (ga.length === 1 && ga[0] === g && servs.length <= 1) precio = parseFloat(r.total);
+    }
+    if (!(precio > 0)) return;
+    muestras.push({ modelo: String(r.modelo).trim(), marca: String(r.marca || '').trim(), precio: precio, fecha: String(r.fechaEntregaReal || r.fecha || ''), cal: _tarCalidadEnTexto(CALS, texto) });
+  });
+  if (!muestras.length) return null;
+  var ml = mod.toLowerCase(), nivel = 'exacto';
+  var sel = muestras.filter(function(m) { return _modeloEncaja(ml, m.modelo); });
+  if (!sel.length) {
+    var base = _modeloBase(mod);
+    if (base && /\d/.test(base)) { sel = muestras.filter(function(m) { return _modeloBase(m.modelo) === base; }); nivel = 'parecidos'; }
+  }
+  if (!sel.length) {
+    var mb = _tarNorm(marca) || _tarNorm(mod.split(' ')[0]);
+    if (/^iphone|^ipad/.test(mb)) mb = 'apple';
+    sel = muestras.filter(function(m) { return _tarNorm(m.marca) === mb || _tarNorm(m.modelo).indexOf(mb) === 0; });
+    nivel = 'marca';
+    if (sel.length < 3) return null;           // con 1-2 casos de otra gama no es una estimación seria
+  }
+  if (!sel.length) return null;
+  sel.sort(function(a, b) { return b.fecha.localeCompare(a.fecha); });
+  sel = sel.slice(0, 30);                       // lo reciente manda (los precios cambian)
+  var precios = sel.map(function(m) { return m.precio; });
+  var porCal = {};
+  sel.forEach(function(m) { if (m.cal) (porCal[m.cal] = porCal[m.cal] || []).push(m.precio); });
+  var cols = _tarCols(), col = cols.find(function(c) { return _tarGrupo(c) === g; }) || null;
+  var vistos = {}, modelos = [];
+  sel.forEach(function(m) { var k = _tarNorm(m.modelo); if (!vistos[k]) { vistos[k] = 1; modelos.push(m.modelo); } });
+  return {
+    nivel: nivel, grupo: _estNombreGrupo(g), n: sel.length, med: Math.round(_mediana(precios)),
+    min: Math.min.apply(null, precios), max: Math.max.apply(null, precios), ult: sel[0].precio,
+    marca: marca || mod.split(' ')[0], modelos: modelos, col: col, modelo: mod, marcaRep: marca,
+    cals: Object.keys(porCal).map(function(c) { return { cal: c, n: porCal[c].length, med: Math.round(_mediana(porCal[c])) }; })
+  };
+}
+function estUsar(k) {
+  var e = window._estActual; if (!e) return;
+  var c = k >= 0 ? e.cals[k] : null, precio = c ? c.med : e.med;
+  agregarServicioRep({ nombre: e.grupo + (c ? ' ' + c.cal : '') + ' ' + e.modelo, desc: '', coste: 0, precio: precio });
+  toast(T('tar.anadido').replace('{p}', cur(precio)), 'ok');
+}
+// Guardar la estimación en la tarifa (si la avería tiene calidades, se abre la tarifa para elegir).
+function estGuardarTarifa() {
+  var e = window._estActual; if (!e || !e.col) return;
+  if (_tarCalidades(e.col).length) { tarDesdeRep(); return; }
+  _tarGuardar(e.marcaRep, e.modelo, e.col, e.med, '');
+  guardarDatos();
+  toast(T('est.guardado').replace('{p}', cur(e.med)), 'ok');
+  try { sugerirPrecioRep(); } catch (x) {}
+}
+window.estUsar = estUsar; window.estGuardarTarifa = estGuardarTarifa;
 
 function renderParts() {
   document.getElementById('partsList').innerHTML = SEL.selParts.map(function(p, i) {
