@@ -27,3 +27,7 @@ grant execute on function public.ajustar_stock(text, integer, integer) to authen
 
 -- Comprobación: debe salir 1
 select count(*) as funcion_creada from pg_proc where proname = 'ajustar_stock';
+
+-- Emails de usuario en minúsculas y sin espacios (el login ya los compara así).
+update public.usuarios set email = lower(trim(email)) where email is not null and email <> lower(trim(email));
+select count(*) as emails_pendientes from public.usuarios where email is not null and email <> lower(trim(email));
