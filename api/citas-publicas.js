@@ -218,7 +218,7 @@ async function getCatalogo(slug) {
 async function getServicios(slug) {
   const t = await getTienda(slug); if (!t.ok) return t;
   let rows;
-  try { rows = await sbGet(`servicios?tienda_id=eq.${encodeURIComponent(t.tienda.id)}&publico=eq.true&select=id,nombre,categoria,precio,precio_fijo,tipo,duracion_min&order=nombre.asc`); }
+  try { rows = await sbGet(`servicios?tienda_id=eq.${encodeURIComponent(t.tienda.id)}&publico=eq.true&select=id,nombre,categoria,precio,precio_fijo,tipo&order=nombre.asc`); }
   catch(e) { return { ok:false, error:'Error al cargar servicios', status:500 }; }
   return { ok:true, servicios:(rows||[]).filter(s=>s.tipo!=='venta') };
 }

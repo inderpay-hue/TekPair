@@ -156,7 +156,7 @@ function parseCuotas(raw) {
 }
 
 async function fetchRepCobro(SUPABASE_URL, SERVICE_KEY, id, t) {
-  const url = `${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&token=eq.${encodeURIComponent(t)}&select=id,numero,cliente_nombre,marca,modelo,cuotas,total,entrada,tienda_id`;
+  const url = `${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&token=eq.${encodeURIComponent(t)}&select=id,cliente_nombre,marca,modelo,cuotas,total,entrada,tienda_id`;
   const r = await fetch(url, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
   if (!r.ok) return { error: 'db' };
   const rows = await r.json();
