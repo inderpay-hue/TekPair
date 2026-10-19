@@ -196,3 +196,9 @@ export function destinoResumen(t) {
   const e = String(cfg.email || t.plan_email || t.email || '').trim();
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e) ? e : '';
 }
+
+// Solo Premium (o prueba gratis en curso, que lo desbloquea todo como en el panel).
+export function esPremium(t) {
+  if (t.plan === 'top' || t.plan === 'premium') return true;
+  return t.plan_status === 'trial' && t.trial_until && new Date(t.trial_until) > new Date();
+}

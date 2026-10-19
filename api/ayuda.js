@@ -8,7 +8,7 @@
 
 import jwt from 'jsonwebtoken';
 import { rateLimit } from './_lib/ratelimit.js';
-import { construirResumen, enviarResumen, destinoResumen, fechaMadrid } from './_lib/resumen.js';
+import { construirResumen, enviarResumen, destinoResumen, fechaMadrid, esPremium } from './_lib/resumen.js';
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
 
@@ -461,9 +461,10 @@ async function resumenPrueba(req, res, payload) {
   if (!SUPABASE_URL || !SERVICE_KEY || !RESEND_KEY) return res.status(500).json({ error: 'Servidor no configurado' });
   const headers = { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json' };
   try {
-    const tr = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(payload.tienda_id)}&select=id,nombre,email,plan_email,ajustes_config`, { headers });
+    const tr = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(payload.tienda_id)}&select=id,nombre,email,plan_email,ajustes_config,plan,plan_status,trial_until`, { headers });
     const t = tr.ok ? (await tr.json())[0] : null;
     if (!t) return res.status(404).json({ error: 'Tienda no encontrada' });
+    if (!esPremium(t)) return res.status(403).json({ error: 'El resumen diario es del plan Premium' });
     // El email puede venir del formulario (aún sin guardar): se valida igual.
     const pedido = String((req.body && req.body.email) || '').trim();
     const para = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pedido) ? pedido : destinoResumen(t);

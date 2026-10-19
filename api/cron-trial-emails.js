@@ -22,7 +22,7 @@
 // Sin trial_until no hay forma de saber cuándo acaba lo gratis, y no se avisa.
 
 import crypto from 'crypto';
-import { construirResumen, enviarResumen, destinoResumen, fechaMadrid } from './_lib/resumen.js';
+import { construirResumen, enviarResumen, destinoResumen, fechaMadrid, esPremium } from './_lib/resumen.js';
 
 // CRON-1: timing-safe equal — evita ataques que deducen el secret carácter a carácter
 
@@ -772,10 +772,11 @@ async function resumenesDiarios(SUPABASE_URL, headers, RESEND_KEY, now) {
   if (!RESEND_KEY) return out;
   const ayer = fechaMadrid(new Date(now.getTime() - 86400000));
   const hoy = fechaMadrid(now);
-  const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?ajustes_config->resumen->>on=eq.true&select=id,nombre,email,plan_email,ajustes_config`, { headers });
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?ajustes_config->resumen->>on=eq.true&select=id,nombre,email,plan_email,ajustes_config,plan,plan_status,trial_until`, { headers });
   const tiendas = r.ok ? await r.json() : [];
   for (const t of tiendas) {
     try {
+      if (!esPremium(t)) continue; // función Premium
       const para = destinoResumen(t);
       if (!para) continue;
       const res = await construirResumen(SUPABASE_URL, headers, t, ayer, hoy);

@@ -106,7 +106,7 @@ var PLAN_FEATURES = {
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
-           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica'],
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica','resumen_diario'],
   premium:['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'fotos_rep','gastos','pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
@@ -114,7 +114,7 @@ var PLAN_FEATURES = {
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
-           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica']
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica','resumen_diario']
 };
 
 // Límite de usuarios por plan
@@ -440,7 +440,8 @@ function mostrarModalUpgrade(featureName, planRequerido) {
     analitica: T('upg.analitica'),
     financiado: T('upg.financiado'),
     inicio_avanzado: T('upg.inicio_avanzado'),
-    ia: T('upg.ia')
+    ia: T('upg.ia'),
+    resumen_diario: T('res.aj_titulo')
   })[featureName] || featureName;
   var planLabel = ({basico:'Básico', pro:'Pro', premium:'Premium', top:'Premium'})[planRequerido] || planRequerido;
   document.getElementById('upgFeatName').textContent = feat;
@@ -24417,11 +24418,14 @@ window.setResenaCfg = setResenaCfg;
 function _resumenEmailDef() { return (AJUSTES.resumen && AJUSTES.resumen.email) || TIENDA.plan_email || TIENDA.email || (U && U.email) || ''; }
 function renderResumenAj() {
   var on = document.getElementById('resumenOn'), em = document.getElementById('resumenEmail');
-  if (on) on.checked = !!(AJUSTES.resumen && AJUSTES.resumen.on);
+  var ok = tieneFeature('resumen_diario');
+  var badge = document.getElementById('resumenPremium'); if (badge) badge.style.display = ok ? 'none' : '';
+  if (on) on.checked = ok && !!(AJUSTES.resumen && AJUSTES.resumen.on);
   if (em && document.activeElement !== em) em.value = _resumenEmailDef();
 }
 function setResumenCfg() {
   if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); renderResumenAj(); return; }
+  if (!checkFeature('resumen_diario')) { renderResumenAj(); return; }
   var em = ((document.getElementById('resumenEmail') || {}).value || '').trim();
   if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast(T('res.email_mal'), 'err'); return; }
   AJUSTES.resumen = { on: !!(document.getElementById('resumenOn') || {}).checked, email: em };
@@ -24431,6 +24435,7 @@ function setResumenCfg() {
   toast(T('gen.guardado'), 'ok');
 }
 function resumenPrueba() {
+  if (!checkFeature('resumen_diario')) return;
   var b = document.getElementById('resumenPruebaBtn'); if (b) b.disabled = true;
   var em = ((document.getElementById('resumenEmail') || {}).value || '').trim();
   fetch('/api/ayuda?action=resumen-prueba', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN }, body: JSON.stringify({ email: em }) })
