@@ -10583,10 +10583,32 @@ function renderServiciosRep() {
           '<input class="fi" type="number" step="0.01" value="' + (s.precio || 0) + '" oninput="updateServicioRep(' + i + ',\'precio\',parseFloat(this.value)||0);calcR()">' +
         '</div>' +
       '</div>' +
+      _srvCalidadChips(s, i) +
       '<textarea class="fi" rows="2" placeholder="' + T('srv.ph_desc') + '" oninput="updateServicioRep(' + i + ',\'desc\',this.value)" style="margin-top:8px">' + esc(s.desc || '') + '</textarea>' +
     '</div>';
   }).join('');
 }
+// Pantalla o batería sin calidad en el nombre: un clic para apuntarla ("Instalación de
+// pantalla" → "Instalación de pantalla OLED"). Así el historial aprende a separar precios.
+function _srvCalidadesPara(nombre) {
+  var g = _estGrupos(nombre).filter(function(x) { return x === 0 || x === 1; });
+  if (g.length !== 1) return [];
+  var col = _tarCols().find(function(c) { return _tarGrupo(c) === g[0]; });
+  var cals = col ? _tarCalidades(col) : [];
+  return cals.length ? cals : (g[0] === 0 ? ['Original', 'OLED', 'Incell'] : ['Original', T('tar.compatible')]);
+}
+function _srvCalidadChips(s, i) {
+  var cals = _srvCalidadesPara(s.nombre || '');
+  if (!cals.length || _tarCalidadEnTexto(cals.concat(['Original', 'OLED', 'Incell', 'Soft OLED', 'Hard OLED', 'TFT', 'Compatible']), s.nombre)) return '';
+  return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:12px"><span style="color:var(--muted)">' + escHtml(T('srv.calidad')) + '</span>' +
+    cals.map(function(c) { return '<button type="button" class="btn-sm" style="padding:3px 10px" onclick="srvPonerCalidad(' + i + ',\'' + escHtml(String(c).replace(/'/g, '')) + '\')">' + escHtml(c) + '</button>'; }).join('') + '</div>';
+}
+function srvPonerCalidad(i, cal) {
+  var sv = (SEL.rServicios || [])[i]; if (!sv) return;
+  sv.nombre = String(sv.nombre || '').trim() + ' ' + cal;
+  renderServiciosRep();
+}
+window.srvPonerCalidad = srvPonerCalidad;
 
 function explorarServicios() {
   var inp = document.getElementById('exploreSrvSearch');
@@ -10975,6 +10997,12 @@ function sugerirPrecioRep() {
 
   // Primero la tarifa de la tienda (precio fijo): se ofrece con un botón para añadirla.
   var tfs = (typeof tarifaPara === 'function') ? tarifaPara(mod, aver) : [];
+  // Orden: tarifa del modelo → lo cobrado en ESE modelo → tarifa "Cualquier modelo" → estimación por serie/marca.
+  var _est0 = null;
+  if (tfs.length && tfs[0]._generico) {
+    _est0 = _estimarPrecio(mod, ((document.getElementById('rMarca') || {}).value || '').trim(), aver);
+    if (_est0 && _est0.nivel === 'exacto') tfs = [];
+  }
   if (tfs.length) {
     window._tarSugs = tfs;
     box.style.display = 'block';
@@ -10987,7 +11015,7 @@ function sugerirPrecioRep() {
   }
 
   // Sin tarifa: estimación con el historial de ESTA tienda (_estimarPrecio).
-  var est = _estimarPrecio(mod, ((document.getElementById('rMarca') || {}).value || '').trim(), aver);
+  var est = _est0 || _estimarPrecio(mod, ((document.getElementById('rMarca') || {}).value || '').trim(), aver);
   if (!est) {
     // Ni tarifa ni historial: ofrecer ponerle precio en la tarifa para la próxima vez.
     if (!tienePerm('ajustes_editar')) return ocultar();
@@ -12451,6 +12479,12 @@ function guardarRep() {
   var modelo = document.getElementById('rModelo').value.trim();
   var marca = document.getElementById('rMarca').value.trim();
   var averia = document.getElementById('rAveria').value.trim();
+  // Sin avería escrita pero con servicios: la avería es lo que se va a hacer (así no quedan
+  // reparaciones sin describir y el historial sirve para estimar precios).
+  if (!averia && Array.isArray(SEL.rServicios)) {
+    var _desdeSrv = SEL.rServicios.map(function(x) { return (x && x.nombre || '').trim(); }).filter(Boolean).join(' + ');
+    if (_desdeSrv) { averia = _desdeSrv.slice(0, 200); document.getElementById('rAveria').value = averia; }
+  }
   // Limpiar errores previos
   document.querySelectorAll('#mRep .fi.error').forEach(function(el){ el.classList.remove('error'); });
 
@@ -25050,7 +25084,9 @@ function _tarFila(modelo, averia, calidad) {
 // que encaja (o [] si no hay). Si el texto nombra una calidad, esa va marcada.
 function tarifaPara(modelo, textoAveria) {
   if (!modelo || !textoAveria || !(DB.tarifas || []).length) return [];
-  var cand = (DB.tarifas || []).filter(function(x) { return _modeloEncaja(modelo.toLowerCase(), x.modelo || '') && _tarEncajaAveria(x.averia, textoAveria); });
+  var cand = (DB.tarifas || []).filter(function(x) { return x.modelo !== '*' && _modeloEncaja(modelo.toLowerCase(), x.modelo || '') && _tarEncajaAveria(x.averia, textoAveria); });
+  var generico = false;
+  if (!cand.length) { cand = (DB.tarifas || []).filter(function(x) { return x.modelo === '*' && _tarEncajaAveria(x.averia, textoAveria); }); generico = true; }
   if (!cand.length) return [];
   // El modelo más parecido (mismo texto) y una sola avería (la primera que encaja).
   var exacto = cand.filter(function(x) { return _tarNorm(x.modelo) === _tarNorm(modelo); });
@@ -25060,22 +25096,26 @@ function tarifaPara(modelo, textoAveria) {
   var cals = _tarCalidades(cand[0].averia);
   cand.sort(function(a, b) { return cals.indexOf(a.calidad || '') - cals.indexOf(b.calidad || ''); });
   var elegida = _tarCalidadEnTexto(cand.map(function(x) { return x.calidad || ''; }), textoAveria);
-  return cand.map(function(x) { return Object.assign({}, x, { _marcada: !!elegida && _tarNorm(x.calidad) === _tarNorm(elegida) }); });
+  // Con la fila genérica, el nombre del servicio lleva el modelo de la reparación.
+  return cand.map(function(x) { return Object.assign({}, x, generico ? { modelo: modelo, marca: '', _generico: true } : {}, { _marcada: !!elegida && _tarNorm(x.calidad) === _tarNorm(elegida) }); });
 }
 window.tarifaPara = tarifaPara;
 
 // "Apple iPhone 13", pero "Nokia 3310" y no "Nokia Nokia 3310" si el modelo ya lleva la marca.
 function _tarNombre(x) {
+  if (x.modelo === '*') return T('tar.cualquiera');
   var mo = String(x.modelo || '').trim(), ma = String(x.marca || '').trim();
   return (!ma || _tarNorm(mo).indexOf(_tarNorm(ma)) === 0) ? mo : ma + ' ' + mo;
 }
 function _tarModelos() {
-  var vistos = {}, out = [];
+  // La fila "Cualquier modelo" va siempre la primera: precio por defecto de esa avería.
+  var vistos = { '*': 1 }, out = [{ marca: '', modelo: '*' }];
   (DB.tarifas || []).concat(_tarModelosNuevos).forEach(function(x) {
     var k = _tarNorm(x.modelo); if (!k || vistos[k]) return;
     vistos[k] = 1; out.push({ marca: x.marca || '', modelo: x.modelo });
   });
-  return out.sort(function(a, b) { return (a.marca + ' ' + a.modelo).localeCompare(b.marca + ' ' + b.modelo, undefined, { numeric: true }); });
+  var resto = out.slice(1).sort(function(a, b) { return (a.marca + ' ' + a.modelo).localeCompare(b.marca + ' ' + b.modelo, undefined, { numeric: true }); });
+  return [out[0]].concat(resto);
 }
 
 function abrirTarifa() {
@@ -25094,18 +25134,14 @@ window.abrirTarifa = abrirTarifa;
 function renderTarifa() {
   var box = document.getElementById('tarBody'); if (!box) return;
   var cols = _tarCols(), puede = tienePerm('ajustes_editar');
-  var mods = _tarModelos().filter(function(m) { return !_tarFiltro || _tarNorm(m.marca + ' ' + m.modelo).indexOf(_tarNorm(_tarFiltro)) !== -1; });
-  var h = '<div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px">' + esc(T('tar.hint')) + ' ' + esc(T('tar.hint_cal')) + '</div>';
+  var mods = _tarModelos().filter(function(m) { return m.modelo === '*' || !_tarFiltro || _tarNorm(m.marca + ' ' + m.modelo).indexOf(_tarNorm(_tarFiltro)) !== -1; });
+  var h = '<div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px">' + esc(T('tar.hint')) + ' ' + esc(T('tar.hint_cal')) + ' ' + esc(T('tar.hint_cualq')) + '</div>';
   h += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">' +
     '<input class="fi" id="tarBus" placeholder="' + esc(T('tar.buscar')) + '" value="' + esc(_tarFiltro) + '" oninput="_tarFiltro=this.value;renderTarifa();var e=document.getElementById(\'tarBus\');if(e){e.focus();e.setSelectionRange(e.value.length,e.value.length);}" style="flex:1;min-width:160px">' +
     (puede ? '<button type="button" class="btn-sm" onclick="tarNuevoModelo()">+ ' + esc(T('tar.modelo')) + '</button>' +
       '<button type="button" class="btn-sm" onclick="tarNuevaAveria()">+ ' + esc(T('tar.averia')) + '</button>' +
       '<button type="button" class="btn-sm" onclick="tarDesdeHistorial()">🪄 ' + esc(T('tar.historial')) + '</button>' +
       '<button type="button" class="btn-sm" onclick="tarPegar()">📋 ' + esc(T('tar.pegar')) + '</button>' : '') + '</div>';
-  if (!mods.length) {
-    h += '<div style="text-align:center;padding:26px 10px;color:var(--muted);font-size:13px">' + esc(T(_tarFiltro ? 'tar.sin_res' : 'tar.vacio')) + '</div>';
-    box.innerHTML = h; return;
-  }
   var colsCal = cols.map(function(c) { return _tarCalidades(c); });
   var th = 'padding:7px 6px;white-space:nowrap;font-weight:700;border-left:1px solid var(--border)';
   h += '<div style="overflow-x:auto;max-height:60vh;overflow-y:auto;border:1px solid var(--border);border-radius:10px"><table style="border-collapse:collapse;width:100%;font-size:13px">' +
@@ -25119,7 +25155,8 @@ function renderTarifa() {
     cols.map(function(c, i) { return colsCal[i].map(function(q) { return '<th style="padding:3px 6px;font-size:11px;font-weight:600;color:var(--muted);white-space:nowrap;border-left:1px solid var(--border)">' + esc(q) + '</th>'; }).join(''); }).join('') +
     '</tr></thead><tbody>';
   mods.forEach(function(m, mi) {
-    h += '<tr style="border-top:1px solid var(--border)"><td style="padding:6px 10px;font-weight:600">' + esc(_tarNombre(m)) + '</td>';
+    var _esCualq = m.modelo === '*';
+    h += '<tr style="border-top:1px solid var(--border)' + (_esCualq ? ';background:rgba(255,91,31,.05)' : '') + '"><td style="padding:6px 10px;font-weight:' + (_esCualq ? '800' : '600') + '">' + esc(_tarNombre(m)) + (_esCualq ? '<div style="font-size:10.5px;font-weight:500;color:var(--muted)">' + esc(T('tar.cualq_sub')) + '</div>' : '') + '</td>';
     cols.forEach(function(c, i) {
       (colsCal[i].length ? colsCal[i] : ['']).forEach(function(q) {
         var f = _tarFila(m.modelo, c, q);
@@ -25128,7 +25165,7 @@ function renderTarifa() {
           'style="width:74px;padding:6px;border:1px solid var(--border);border-radius:7px;text-align:right;font:inherit"></td>';
       });
     });
-    h += '<td style="padding:4px 8px">' + (puede ? '<button type="button" onclick="tarQuitarModelo(' + mi + ')" title="' + esc(T('tar.quitar_mod')) + '" style="border:none;background:none;color:var(--muted);cursor:pointer">🗑️</button>' : '') + '</td></tr>';
+    h += '<td style="padding:4px 8px">' + (puede && !_esCualq ? '<button type="button" onclick="tarQuitarModelo(' + mi + ')" title="' + esc(T('tar.quitar_mod')) + '" style="border:none;background:none;color:var(--muted);cursor:pointer">🗑️</button>' : '') + '</td></tr>';
   });
   h += '</tbody></table></div>';
   box.innerHTML = h;
@@ -25264,6 +25301,7 @@ function tarPegar() {
     var cal = '';
     if (p.length >= 3 && esCalidad(p[p.length - 1], p[p.length - 2])) cal = p.pop();
     var aver = p.pop(), modelo = p.pop(), marca = p.pop() || '';
+    if (/^(\*|cualquier(a)?( modelo)?|todos|any( model)?|tout|qualsiasi|alle|qualquer)$/i.test(_tarNorm(modelo))) { modelo = '*'; marca = ''; }
     var col = cols.find(function(c) { return _tarNorm(c) === _tarNorm(aver); }) || cols.find(function(c) { return _tarEncajaAveria(c, aver); });
     if (!col) { col = aver; cols.push(aver); }
     if (cal) {
