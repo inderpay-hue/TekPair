@@ -6846,6 +6846,8 @@ function seleccionarModelo(cat, marca, modelo) {
   var sug = document.getElementById('rModeloSug');
   if (sug) { sug.classList.remove('open'); sug.innerHTML = ''; }
   try { sugerirPiezasRep(); } catch(e){}
+  // Al elegir el modelo de la lista también se busca el precio (antes solo al teclear).
+  try { sugerirPrecioRep(); } catch(e){}
   // Foco al siguiente campo
   var imei = document.getElementById('rImei'); if (imei) imei.focus();
 }
@@ -10375,7 +10377,7 @@ function aplicarPlantillaRep(key) {
   }
   if (!p) return;
   // Avería = lo que reporta el cliente (en el idioma de la tienda para las plantillas por defecto)
-  if (p.averia) document.getElementById('rAveria').value = _plantI18n(p, 'averia');
+  if (p.averia) { document.getElementById('rAveria').value = _plantI18n(p, 'averia'); try { sugerirPrecioRep(); } catch(e){} }
   // Servicio (separado de avería) = lo que cobramos
   if (p.servicio) {
     agregarServicioRep({
@@ -10982,14 +10984,22 @@ function sugerirPrecioRep() {
 
   // Solo reparaciones ENTREGADAS: un precio de algo a medio hacer todavia puede
   // cambiar, y sugerirlo seria repetir una cifra que ni siquiera se cobro.
-  var palabras = aver.split(/[^a-zA-ZáéíóúñüÁÉÍÓÚÑÜ0-9]+/).filter(function(p) { return p.length >= 4; });
+  // Sin acentos: "bateria" tiene que encontrar "batería".
+  var palabras = _tarNorm(aver).split(/[^a-z0-9]+/).filter(function(p) { return p.length >= 4; });
   var previas = (DB.reps || []).filter(function(r) {
-    if (r.estado !== 'Entregado' || !(r.total > 0)) return false;
+    if (['Entregado', 'Por Entregar', 'Por entregar'].indexOf(r.estado) === -1 || !(r.total > 0)) return false;
     if (!_modeloEncaja(mod.toLowerCase(), r.modelo || '')) return false;
-    var a = (r.averia || '').toLowerCase();
+    var a = _tarNorm(r.averia);
     return palabras.some(function(p) { return a.indexOf(p) !== -1; });
   });
-  if (!previas.length) return ocultar();
+  if (!previas.length) {
+    // Ni tarifa ni historial: ofrecer ponerle precio en la tarifa para la próxima vez.
+    if (!tienePerm('ajustes_editar')) return ocultar();
+    box.style.display = 'block';
+    box.innerHTML = '💶 ' + escHtml(T('tar.sin_precio').replace('{m}', mod)) +
+      ' <button type="button" class="btn-sm" onclick="tarDesdeRep()" style="margin-left:6px;padding:3px 10px">' + escHtml(T('tar.poner')) + '</button>';
+    return;
+  }
 
   previas.sort(function(a, b) { return String(b.fecha || '').localeCompare(String(a.fecha || '')); });
   var totales = previas.map(function(r) { return r.total; });
@@ -25097,6 +25107,21 @@ function tarUsarEnRep() {
 window.tarCelda = tarCelda; window.tarNuevoModelo = tarNuevoModelo; window.tarNuevaAveria = tarNuevaAveria;
 window.tarQuitarAveria = tarQuitarAveria; window.tarQuitarModelo = tarQuitarModelo; window.tarDesdeHistorial = tarDesdeHistorial;
 window.tarPegar = tarPegar; window.tarUsarEnRep = tarUsarEnRep; window.renderTarifa = renderTarifa;
+// Desde el formulario de reparación: abre la tarifa con ese modelo listo para ponerle precio.
+function tarDesdeRep() {
+  var mod = ((document.getElementById('rModelo') || {}).value || '').trim();
+  var marca = ((document.getElementById('rMarca') || {}).value || '').trim();
+  if (mod && !_tarModelos().some(function(x) { return _tarNorm(x.modelo) === _tarNorm(mod); })) _tarModelosNuevos.push({ marca: marca, modelo: mod });
+  _tarFiltro = mod;
+  abrirTarifa();
+  // Al cerrar la tarifa, se vuelve a mirar el precio en el formulario.
+  var mt = document.getElementById('mTarifa');
+  if (mt && !mt._vigila) {
+    mt._vigila = true;
+    new MutationObserver(function() { if (!mt.classList.contains('open')) { try { sugerirPrecioRep(); } catch (e) {} } }).observe(mt, { attributes: true, attributeFilter: ['class'] });
+  }
+}
+window.tarDesdeRep = tarDesdeRep;
 
 // ═══ TE DEBEN: lo que los clientes deben, en una sola lista ═══
 // Junta reparaciones entregadas sin pagar del todo, cuotas vencidas de ventas a plazos y
