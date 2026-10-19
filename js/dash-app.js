@@ -10377,9 +10377,15 @@ function aplicarPlantillaRep(key) {
   }
   if (!p) return;
   // Avería = lo que reporta el cliente (en el idioma de la tienda para las plantillas por defecto)
-  if (p.averia) { document.getElementById('rAveria').value = _plantI18n(p, 'averia'); try { sugerirPrecioRep(); } catch(e){} }
-  // Servicio (separado de avería) = lo que cobramos
-  if (p.servicio) {
+  // Varias plantillas seguidas (pantalla + batería + carga): las averías se SUMAN.
+  if (p.averia) {
+    var _avEl = document.getElementById('rAveria'), _avNueva = _plantI18n(p, 'averia'), _avAct = (_avEl.value || '').trim();
+    if (!_avAct) _avEl.value = _avNueva;
+    else if (_tarNorm(_avAct).indexOf(_tarNorm(_avNueva)) === -1) _avEl.value = _avAct + ' + ' + _avNueva;
+  }
+  // Servicio (separado de avería) = lo que cobramos (sin repetirlo si se pulsa dos veces)
+  var _yaSrv = p.servicio && (SEL.rServicios || []).some(function(x) { return _tarNorm(x && x.nombre).indexOf(_tarNorm(_plantI18n(p, 'servicio'))) === 0; });
+  if (p.servicio && !_yaSrv) {
     agregarServicioRep({
       nombre: _plantI18n(p, 'servicio'),
       desc: '',
@@ -10399,6 +10405,7 @@ function aplicarPlantillaRep(key) {
     });
   }
   calcR();
+  try { sugerirPrecioRep(); } catch(e){}
   toast(T('tst.plantilla_aplicada').replace('{n}', _plantI18n(p, 'label')), 'ok');
 }
 
@@ -11064,7 +11071,7 @@ function _preciosAveria(mod, marca, aver) {
       var el = null;
       tfs.forEach(function(f, q) { if (f._marcada) el = q; });
       if (el == null && tfs.length === 1) el = 0;
-      items.push({ nombre: nombre, tipo: 'tarifa', elegida: el, opciones: tfs.map(function(f) {
+      items.push({ g: g, col: col, nombre: nombre, tipo: 'tarifa', elegida: el, opciones: tfs.map(function(f) {
         return { cal: f.calidad || '', precio: parseFloat(f.precio) || 0, servicio: f.averia + (f.calidad ? ' ' + f.calidad : '') + ' ' + _tarNombre(f), coste: parseFloat(f.coste) || 0 };
       }) });
     } else if (est) {
@@ -11072,9 +11079,9 @@ function _preciosAveria(mod, marca, aver) {
       est.cals.forEach(function(c) { ops.push({ cal: c.cal, precio: c.med, servicio: nombre + ' ' + c.cal + ' ' + mod }); });
       var calTxt = _tarCalidadEnTexto(est.cals.map(function(c) { return c.cal; }), texto);
       var elE = 0; if (calTxt) ops.forEach(function(o, q) { if (o.cal && _tarNorm(o.cal) === _tarNorm(calTxt)) elE = q; });
-      items.push({ nombre: nombre, tipo: 'est', est: est, elegida: elE, opciones: ops });
+      items.push({ g: g, col: col, nombre: nombre, tipo: 'est', est: est, elegida: elE, opciones: ops });
     } else {
-      items.push({ nombre: nombre, tipo: 'nada', elegida: null, opciones: [] });
+      items.push({ g: g, col: col, nombre: nombre, tipo: 'nada', elegida: null, opciones: [] });
     }
   };
   // Tipos conocidos (pantalla, batería, carga, cámara, tapa, altavoz, software, líquidos, placa, botones)
@@ -11092,9 +11099,25 @@ function _preciosAveria(mod, marca, aver) {
   // Si no hay nada con precio, no se enseñan líneas vacías (sale el aviso de la tarifa).
   return items.some(function(it) { return it.opciones.length; }) ? items : [];
 }
+// Si ya hay un servicio de ese tipo SIN precio (el que mete la plantilla rápida a 0 €), se le pone
+// el precio (y la calidad) en vez de añadir otro repetido. Devuelve true si lo encontró.
+function _precioEnServicioExistente(it, o) {
+  var lista = SEL.rServicios || [];
+  var idx = lista.findIndex(function(x) {
+    if (!x || (parseFloat(x.precio) || 0) > 0) return false;
+    return it.g >= 0 ? _estGrupos(x.nombre).indexOf(it.g) !== -1 : _tarEncajaAveria(it.col || it.nombre, x.nombre);
+  });
+  if (idx === -1) return false;
+  var sv = lista[idx];
+  sv.precio = o.precio;
+  if (o.coste) sv.coste = o.coste;
+  if (o.cal && _tarNorm(sv.nombre).indexOf(_tarNorm(o.cal)) === -1) sv.nombre = String(sv.nombre || '').trim() + ' ' + o.cal;
+  return true;
+}
 function precioUsar(k, q) {
   var it = (window._precioItems || [])[k]; var o = it && it.opciones[q]; if (!o) return;
-  agregarServicioRep({ nombre: o.servicio, desc: '', coste: o.coste || 0, precio: o.precio });
+  if (_precioEnServicioExistente(it, o)) { renderServiciosRep(); try { renderOpcionalesRep(); } catch (e) {} calcR(); }
+  else agregarServicioRep({ nombre: o.servicio, desc: '', coste: o.coste || 0, precio: o.precio });
   toast(T('tar.anadido').replace('{p}', cur(o.precio)), 'ok');
 }
 function precioElegir(k, q) {
@@ -11110,7 +11133,7 @@ function precioUsarTodo() {
     if (it.elegida == null) return;
     var o = it.opciones[it.elegida];
     if (!SEL.rServicios) SEL.rServicios = [];
-    SEL.rServicios.push({ nombre: o.servicio, desc: '', coste: o.coste || 0, precio: o.precio });
+    if (!_precioEnServicioExistente(it, o)) SEL.rServicios.push({ nombre: o.servicio, desc: '', coste: o.coste || 0, precio: o.precio });
     n++; tot += o.precio;
   });
   if (!n) return;
