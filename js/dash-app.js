@@ -11087,7 +11087,7 @@ function _preciosAveria(mod, marca, aver) {
   // Tipos conocidos (pantalla, batería, carga, cámara, tapa, altavoz, software, líquidos, placa, botones)
   _estGrupos(aver).forEach(function(g) {
     var lista = _estListas()[g];
-    var texto = trozos.filter(function(t) { var n = _tarNorm(t); return lista.some(function(w) { return n.indexOf(w) !== -1; }); }).join(' ') || aver;
+    var texto = trozos.filter(function(t) { var n = _tarNorm(t); return lista.some(function(w) { return _palabraEn(n, w); }); }).join(' ') || aver;
     var col = cols.find(function(c) { return _tarGrupo(c) === g; }) || null;
     añadir(g, col, texto);
   });
@@ -11166,7 +11166,7 @@ function _estListas() { return _TAR_SINON.map(function(g, i) { return i === 2 ? 
 function _estGrupos(texto) {
   var t = _tarNorm(texto); if (!t) return [];
   var out = [];
-  _estListas().forEach(function(g, i) { if (g.some(function(w) { return t.indexOf(w) !== -1; })) out.push(i); });
+  _estListas().forEach(function(g, i) { if (g.some(function(w) { return _palabraEn(t, w); })) out.push(i); });
   // "pantalla oled" no es además "software"; si hay pantalla, la placa/botón no cuentan aparte.
   return out;
 }
@@ -11190,7 +11190,7 @@ function _estimarPrecio(mod, marca, aver, gForzado) {
   (DB.reps || []).forEach(function(r) {
     if (['Entregado', 'Por Entregar', 'Por entregar'].indexOf(r.estado) === -1 || !(r.total > 0) || !r.modelo) return;
     var servs = (Array.isArray(r.servicios) ? r.servicios : []).filter(function(x) { return x && (parseFloat(x.precio) || 0) > 0; });
-    var deEse = servs.filter(function(x) { return lista.some(function(w) { return _tarNorm(x.nombre).indexOf(w) !== -1; }); });
+    var deEse = servs.filter(function(x) { return lista.some(function(w) { return _palabraEn(_tarNorm(x.nombre), w); }); });
     var precio = 0, texto = (r.averia || '') + ' ' + servs.map(function(x) { return x.nombre || ''; }).join(' ');
     if (deEse.length === 1) precio = parseFloat(deEse[0].precio);
     else if (!deEse.length) {
@@ -25134,9 +25134,16 @@ var _TAR_SINON = [
   ['bateria', 'battery', 'batterie', 'batteria', 'akku'],
   ['conector', 'carga', 'puerto', 'charging', 'port', 'charge', 'ricarica', 'ladebuchse', 'carregamento'],
   ['camara', 'camera', 'kamera', 'fotocamera', 'objetivo'],
-  ['tapa', 'trasera', 'back', 'cover', 'cache', 'scocca', 'ruckseite', 'traseira'],
+  ['tapa', 'cover', 'cache', 'scocca', 'ruckseite', 'backcover', 'carcasa'],   // sin "trasera": "cámara trasera" no es tapa
   ['altavoz', 'micro', 'auricular', 'speaker', 'microfono', 'haut-parleur', 'altoparlante', 'lautsprecher', 'altifalante']
 ];
+// ¿Aparece la palabra clave en el texto? Las cortas (≤5 letras) tienen que ser palabra entera:
+// "agua" no puede casar con "aguanta", ni "carga" con "sin cargador". Las largas valen como raíz
+// ("bateria" → "baterias").
+function _palabraEn(textoNorm, w) {
+  if (w.length > 5) return textoNorm.indexOf(w) !== -1;
+  return (' ' + textoNorm.replace(/[^a-z0-9]+/g, ' ') + ' ').indexOf(' ' + w + ' ') !== -1;
+}
 function _tarGrupo(col) {
   var c = _tarNorm(col);
   for (var i = 0; i < _TAR_SINON.length; i++) if (_TAR_SINON[i].some(function(w) { return c.indexOf(w) !== -1; })) return i;
@@ -25157,7 +25164,7 @@ function _tarEncajaAveria(col, textoAveria) {
   var palabrasCol = c.split(/[^a-z0-9]+/).filter(function(w) { return w.length >= 4; });
   if (palabrasCol.some(function(w) { return t.indexOf(w) !== -1; })) return true;
   var g = _tarGrupo(col);
-  return g !== -1 && _TAR_SINON[g].some(function(w) { return t.indexOf(w) !== -1; });
+  return g !== -1 && _TAR_SINON[g].some(function(w) { return _palabraEn(t, w); });
 }
 // ¿El texto nombra una calidad concreta? ("pantalla oled" → OLED). Gana la más larga ("soft oled" antes que "oled").
 function _tarCalidadEnTexto(cals, texto) {
