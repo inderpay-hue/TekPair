@@ -7,6 +7,7 @@
 // =====================================================
 
 import jwt from 'jsonwebtoken';
+import { rateLimit } from './_lib/ratelimit.js';
 
 const SB_URL = process.env.SUPABASE_URL;
 const SK = process.env.SUPABASE_SERVICE_KEY;
@@ -152,7 +153,8 @@ function _num(v) {
 // y a partir de las 00:00 UTC daría "mañana" para una tienda en España; se valida
 // el formato para que no entre cualquier cosa en la query.
 function _hoyISO(hoyCliente) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(String(hoyCliente || '')) ? hoyCliente : new Date().toISOString().slice(0, 10);
+  // Sin fecha del cliente: la de España (no la UTC, que de 00:00 a 02:00 da el día anterior).
+  return /^\d{4}-\d{2}-\d{2}$/.test(String(hoyCliente || '')) ? hoyCliente : _fechaMadrid(new Date().toISOString());
 }
 
 // Los N meses COMPLETOS anteriores al de hoy. El mes en curso no se pide: aún
@@ -349,12 +351,21 @@ async function sbGetTodo(path) {
   return out;
 }
 
+const cuotaAbonos = (c) => {
+  // Cada pago de una cuota con su fecha y forma de pago (igual que _cuotaAbonos del panel).
+  if (!c) return [];
+  const pagado = c.pagadoImporte != null ? (parseFloat(c.pagadoImporte) || 0) : (c.pagado ? (parseFloat(c.importe) || 0) : 0);
+  const out = []; let sum = 0;
+  (Array.isArray(c.abonos) ? c.abonos : []).forEach((a) => { const i = parseFloat(a && a.importe) || 0; if (i) { out.push({ fecha: String(a.fecha || '').slice(0, 10), importe: i, metodo: a.metodo || 'Efectivo' }); sum += i; } });
+  const resto = Math.round((pagado - sum) * 100) / 100;
+  if (resto > 0.005 && c.fechaPago) out.push({ fecha: String(c.fechaPago).slice(0, 10), importe: resto, metodo: c.formaPago || 'Efectivo' });
+  return out;
+};
 async function _efectivoEsperadoDia(tienda_id, fecha) {
   // Copia EXACTA de cajaDiaResumen + _ventasIngresoPorMetodo del panel (dash-app.js): si
   // divergen, el panel dice "cuadra" y el servidor guarda un descuadre (o al revés).
   const esEf = (m) => /efectiv/i.test(String(m || 'Efectivo'));
   const num = (x) => parseFloat(x) || 0;
-  const cuotaPagado = (c) => !c ? 0 : (c.pagadoImporte != null ? num(c.pagadoImporte) : (c.pagado ? num(c.importe) : 0));
   const parse = (x) => { if (typeof x === 'string') { try { return JSON.parse(x); } catch (e) { return null; } } return x; };
   const ventaPagos = (v) => {
     const p = parse(v.pagos);
@@ -376,7 +387,7 @@ async function _efectivoEsperadoDia(tienda_id, fecha) {
     if (v.reembolsado && d10(v.fecha_reembolso || v.fecha) === F) {
       if (fin) {
         if (esEf(v.entrada_pago)) ef -= num(v.entrada);
-        (cuotas || []).forEach((c) => { if (c && c.fechaPago && esEf(c.formaPago)) ef -= cuotaPagado(c); });
+        (cuotas || []).forEach((c) => { cuotaAbonos(c).forEach((a) => { if (esEf(a.metodo)) ef -= a.importe; }); });
       } else {
         ventaPagos(v).forEach((p) => { if (esEf(p.metodo)) ef -= p.importe; });
       }
@@ -384,26 +395,16 @@ async function _efectivoEsperadoDia(tienda_id, fecha) {
     if (fin) {
       if (d10(v.fecha) === F && num(v.entrada) > 0 && esEf(v.entrada_pago)) ef += num(v.entrada);
       (cuotas || []).forEach((c) => {
-        if (c && c.fechaPago && d10(c.fechaPago) === F && esEf(c.formaPago)) ef += cuotaPagado(c);
+        cuotaAbonos(c).forEach((a) => { if (a.fecha === F && esEf(a.metodo)) ef += a.importe; });
       });
     } else if (d10(v.fecha) === F) {
       ventaPagos(v).forEach((p) => { if (esEf(p.metodo)) ef += p.importe; });
     }
   }
-  // Pagos de reparación del día en efectivo (anticipo o no), excluyendo presupuestos/rechazados.
-  const pagos = await sbGetTodo(`pagos_reparacion?tienda_id=eq.${encodeURIComponent(tienda_id)}&fecha=eq.${encodeURIComponent(F)}&select=id,metodo,importe,reparacion_id`);
-  if (pagos.length) {
-    const repIds = [...new Set(pagos.map((p) => p.reparacion_id).filter(Boolean))];
-    const presup = new Set();
-    for (let k = 0; k < repIds.length; k += 80) {
-      const reps = await sbGet(`reparaciones?tienda_id=eq.${encodeURIComponent(tienda_id)}&id=in.(${repIds.slice(k, k + 80).map(encodeURIComponent).join(',')})&estado=in.(Presupuesto,Rechazado)&select=id`);
-      (reps || []).forEach((r) => presup.add(String(r.id)));
-    }
-    for (const p of pagos) {
-      if (p.reparacion_id && presup.has(String(p.reparacion_id))) continue;
-      if (esEf(p.metodo)) ef += num(p.importe);
-    }
-  }
+  // Pagos de reparación del día en efectivo: todo lo que entró (o salió, si es negativo) ese día,
+  // también anticipos de presupuestos aún sin aceptar (igual que cajaDiaResumen del panel).
+  const pagos = await sbGetTodo(`pagos_reparacion?tienda_id=eq.${encodeURIComponent(tienda_id)}&fecha=eq.${encodeURIComponent(F)}&select=id,metodo,importe`);
+  for (const p of pagos) if (esEf(p.metodo)) ef += num(p.importe);
   // Gastos pagados en efectivo ese día: salen del cajón.
   const gastos = await sbGetTodo(`gastos?tienda_id=eq.${encodeURIComponent(tienda_id)}&fecha=eq.${encodeURIComponent(F)}&select=*`);
   for (const g of gastos) {
@@ -594,8 +595,19 @@ export default async function handler(req, res) {
         const cta = await sbGet(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);
         if (!cta.length) return err(res, 404, 'Cuenta no encontrada');
         if (!(await puedeAccederCaja(payload, cta[0].caja_id))) return err(res, 403, 'Sin permiso para esta caja');
-        const nuevo = Math.round((Number(cta[0].saldo || 0) + imp) * 100) / 100;
-        const data = await sbPatch(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`, { saldo: nuevo });
+        // Doble clic: la misma recarga dos veces en 5 s se sumaba dos veces.
+        const _rlRec = await rateLimit(`recarga:${cuenta_id}:${imp}`, 1, 5);
+        if (!_rlRec.ok) return err(res, 409, 'Esa recarga ya se ha apuntado');
+        // Suma condicionada al saldo leído: si otro equipo lo cambió entre medias, se relee.
+        let nuevo = 0, data = [];
+        for (let intento = 0; intento < 3; intento++) {
+          const actual = intento === 0 ? cta[0] : (await sbGet(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`))[0];
+          nuevo = Math.round((Number(actual.saldo || 0) + imp) * 100) / 100;
+          const filtroSaldo = actual.saldo == null ? 'saldo=is.null' : `saldo=eq.${encodeURIComponent(actual.saldo)}`;
+          data = await sbPatch(`cajas_cuentas?id=eq.${encodeURIComponent(cuenta_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&${filtroSaldo}`, { saldo: nuevo });
+          if (Array.isArray(data) && data.length) break;
+          if (intento === 2) return err(res, 409, 'El saldo cambió a la vez desde otro equipo. Inténtalo de nuevo.');
+        }
         await sbPost('cajas_saldo_mov', { tienda_id, cuenta_id, tipo: 'recarga', importe: imp, saldo_resultante: nuevo, nota: nota || null, usuario: payload.email || null });
         return ok(res, { cuenta: Array.isArray(data) ? data[0] : data });
       }
@@ -1179,6 +1191,9 @@ export default async function handler(req, res) {
         // intenta cambiar el importe, requiere permiso explícito de cobro/edición.
         // Cambios de nombre/teléfono/nota son cosméticos y se permiten sin permiso.
         if (importe !== undefined) {
+          const _fe = (await sbGet(`cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=estado,importe`))[0];
+          // Ya cobrado: cambiar su importe descuadraría el día del cobro. Primero se deshace el cobro.
+          if (_fe && _fe.estado !== 'pendiente' && Math.abs(Number(_fe.importe) - Number(importe)) > 0.004) return err(res, 400, 'Ese pendiente ya está cobrado: deshaz el cobro antes de cambiar el importe');
           const puedeEditarImporte = await tienePermisoCaja(payload, 'cobrar');
           if (!puedeEditarImporte) return err(res, 403, 'No tienes permiso para modificar el importe');
           const _impEd = Number(importe);
@@ -1219,6 +1234,9 @@ export default async function handler(req, res) {
         ))[0];
         if (!_orig) return err(res, 404, 'Pendiente no encontrado');
         if (_orig.estado === 'cobrado') return err(res, 400, 'Ese pendiente ya está cobrado');
+        // Doble clic: dos peticiones casi a la vez creaban dos cobros parciales.
+        const _rlCob = await rateLimit('cobro-fiado:' + id, 1, 5);
+        if (!_rlCob.ok) return err(res, 409, 'Ese cobro ya se está registrando');
 
         const _totalPend = Math.round(Number(_orig.importe || 0) * 100) / 100;
         let _abona = req.body.importe != null ? Math.round(Number(req.body.importe) * 100) / 100 : _totalPend;
@@ -1245,8 +1263,9 @@ export default async function handler(req, res) {
             fecha_cobro: new Date().toISOString(),
             cobrado_por: payload.email || null
           });
+          // (el original solo baja si sigue pendiente y con el importe leído)
           await sbPatch(
-            `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
+            `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&estado=eq.pendiente&importe=eq.${_totalPend}`,
             { importe: Math.round((_totalPend - _abona) * 100) / 100 }
           );
           await recalcularCierreDeFiado(id, tienda_id, _fechaMadrid(new Date().toISOString()));
@@ -1258,7 +1277,7 @@ export default async function handler(req, res) {
         }
 
         const data = await sbPatch(
-          `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
+          `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&estado=eq.pendiente`,
           {
             estado: 'cobrado',
             metodo_pago,
@@ -1279,10 +1298,13 @@ export default async function handler(req, res) {
         const puede = await tienePermisoCaja(payload, 'cobrar');
         if (!puede) return err(res, 403, 'No tienes permiso para anular fiados');
         if (!(await puedeAccederCaja(payload, await _cajaDeFiado(id)))) return err(res, 403, 'Sin permiso para esta caja');
+        // Solo se anula lo que sigue pendiente: anular algo ya cobrado dejaba el dinero contado
+        // en el día del cobro sin deuda que lo explique.
         const data = await sbPatch(
-          `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
+          `cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&estado=eq.pendiente`,
           { estado: 'anulado' }
         );
+        if (!Array.isArray(data) || !data.length) return err(res, 400, 'Solo se pueden anular pendientes sin cobrar (si ya se cobró, deshaz el cobro primero)');
         // CAJ-4: si recalcular falla, ya queda log; pero el cambio principal ya está hecho
         await recalcularCierreDeFiado(id, tienda_id);
         return ok(res, { fiado: Array.isArray(data) ? data[0] : data });

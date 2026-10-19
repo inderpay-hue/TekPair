@@ -293,7 +293,7 @@ async function presGenerarToken(body, authHeader) {
   if (!payload) return { ok:false, error:'No autorizado', status:401 };
 
   const repId  = san(body.rep_id, 100);
-  const enviar = body.enviar || []; // ['wa','email']
+  const enviar = Array.isArray(body.enviar) ? body.enviar : (typeof body.enviar === 'string' ? [body.enviar] : []); // ['wa','email']
   if (!repId) return { ok:false, error:'rep_id requerido', status:400 };
 
   // Verificar que la reparación pertenece a la tienda del JWT
@@ -390,8 +390,10 @@ async function presGet(token) {
     if (ts?.length) tienda = ts[0];
   } catch(e) {}
 
-  const servicios = typeof rep.servicios === 'string' ? JSON.parse(rep.servicios||'[]') : (rep.servicios||[]);
-  const componentes = typeof rep.componentes === 'string' ? JSON.parse(rep.componentes||'[]') : (rep.componentes||[]);
+  // Un JSON roto en una reparación no debe tumbar la página del presupuesto (500).
+  const _js = (x) => { if (typeof x !== 'string') return x || []; try { return JSON.parse(x || '[]'); } catch (e) { return []; } };
+  const servicios = _js(rep.servicios);
+  const componentes = _js(rep.componentes);
 
   return {
     ok: true,

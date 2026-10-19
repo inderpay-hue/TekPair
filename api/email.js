@@ -193,7 +193,7 @@ export default async function handler(req, res) {
   }
 
   // ── Rama REPORTE DIARIO ──
-  const { email, reporte, tienda } = req.body;
+  const { email, reporte, tienda } = req.body || {};
   if (!email || !reporte) return res.status(400).json({ error: 'Faltan datos' });
 
   // EM-3: validar destinatario

@@ -331,14 +331,29 @@ async function fotoSubir(req, res) {
       body: buf
     });
     if (!upR.ok) { const t2 = await upR.text().catch(() => ''); console.error('[foto-subir] storage', upR.status, t2.slice(0, 200)); return res.status(502).json({ error: 'No se pudo subir' }); }
-    // Append a fotos_recepcion → el PATCH dispara Realtime → el PC refresca solo
-    fotos = fotos.concat([path]);
-    const paR = await fetch(`${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}`, {
-      method: 'PATCH',
-      headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
-      body: JSON.stringify({ fotos_recepcion: fotos })
-    });
-    if (!paR.ok) { const t3 = await paR.text().catch(() => ''); console.error('[foto-subir] patch', paR.status, t3.slice(0, 200)); return res.status(500).json({ error: 'No se pudo guardar' }); }
+    // Append a fotos_recepcion → el PATCH dispara Realtime → el PC refresca solo.
+    // Dos fotos subidas a la vez desde el móvil leían la misma lista y la segunda pisaba a la
+    // primera: ahora se relee justo antes de escribir y se comprueba que la foto quedó.
+    const hdrs = { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` };
+    for (let intento = 0; intento < 4; intento++) {
+      if (intento > 0) {
+        await new Promise((r) => setTimeout(r, 150 + Math.random() * 250));
+        const rr = await fetch(rUrl, { headers: hdrs });
+        const rw = rr.ok ? await rr.json() : [];
+        fotos = Array.isArray(rw[0] && rw[0].fotos_recepcion) ? rw[0].fotos_recepcion : [];
+      }
+      if (fotos.indexOf(path) === -1) fotos = fotos.concat([path]);
+      const paR = await fetch(`${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}`, {
+        method: 'PATCH',
+        headers: { ...hdrs, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+        body: JSON.stringify({ fotos_recepcion: fotos })
+      });
+      if (!paR.ok) { const t3 = await paR.text().catch(() => ''); console.error('[foto-subir] patch', paR.status, t3.slice(0, 200)); return res.status(500).json({ error: 'No se pudo guardar' }); }
+      const ver = await fetch(rUrl, { headers: hdrs });
+      const vr = ver.ok ? await ver.json() : [];
+      const ahora = Array.isArray(vr[0] && vr[0].fotos_recepcion) ? vr[0].fotos_recepcion : [];
+      if (ahora.indexOf(path) !== -1) { fotos = ahora; break; }
+    }
     return res.status(200).json({ ok: true, n: fotos.length });
   } catch (e) { console.error('[foto-subir]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
 }
@@ -448,7 +463,7 @@ async function firmaDatos(req, res) {
     if (rep.firma_recep) firmaUrl = await _signedUrl(SUPABASE_URL, SERVICE_KEY, rep.firma_recep, 3600);
     return res.status(200).json({
       ok: true, firmada: !!rep.firma_recep, firma_url: firmaUrl, firma_fecha: rep.firma_recep_fecha || null,
-      rep: { cliente: rep.cliente_nombre || '', marca: rep.marca || '', modelo: rep.modelo || '', imei: rep.imei || '', averia: rep.averia || '', total: rep.total || 0, servicios: (rep.servicios ? (typeof rep.servicios === 'string' ? JSON.parse(rep.servicios) : rep.servicios) : []) },
+      rep: { cliente: rep.cliente_nombre || '', marca: rep.marca || '', modelo: rep.modelo || '', imei: rep.imei || '', averia: rep.averia || '', total: rep.total || 0, servicios: (function () { try { return rep.servicios ? (typeof rep.servicios === 'string' ? JSON.parse(rep.servicios) : rep.servicios) : []; } catch (e) { return []; } })() },
       tienda: d.tienda, condiciones: d.condiciones, garantia: d.garantia, garantia_dias: d.garantiaDias, fotos
     });
   } catch (e) { console.error('[firma-datos]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
@@ -598,10 +613,12 @@ async function valorarGuardar(req, res) {
     const google = _googleUrl(_ajOf(tienda));
     if (rep.valoracion != null) return res.status(200).json({ ok: true, ya: true, google });
     const pa = await fetch(`${SUPABASE_URL}/rest/v1/reparaciones?id=eq.${encodeURIComponent(id)}&valoracion=is.null`, {
-      method: 'PATCH', headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=minimal' },
+      method: 'PATCH', headers: { apikey: SERVICE_KEY, Authorization: `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', Prefer: 'return=representation' },
       body: JSON.stringify({ valoracion: nota, valoracion_comentario: comentario || null, valoracion_at: new Date().toISOString() })
     });
     if (!pa.ok) { const tt = await pa.text().catch(() => ''); console.error('[valorar] patch', pa.status, tt.slice(0, 200)); return res.status(500).json({ error: 'No se pudo guardar' }); }
+    // Doble envío: la segunda petición ya no cambia ninguna fila → no se manda otro email a la tienda.
+    if (!((await pa.json().catch(() => [])) || []).length) return res.status(200).json({ ok: true, ya: true, google });
     // Nota baja: aviso inmediato a la tienda para que llame al cliente.
     if (nota <= 3 && process.env.RESEND_API_KEY && tienda && tienda.plan_email) {
       let tel = '';

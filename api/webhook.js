@@ -56,32 +56,39 @@ export default async function handler(req, res) {
     //     Útil si en el futuro pre-creas la tienda antes del Checkout y pasas
     //     tienda_id en checkout.session.metadata.tienda_id.
     if (metadataTiendaId) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(metadataTiendaId)}&select=id,plan_email,plan,plan_until,plan_status&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(metadataTiendaId)}&select=id,plan_email,plan,plan_until,plan_status,stripe_sub_id&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
     }
     // 2. Por stripe_sub_id (lo más fiable si ya está vinculado)
     if (subId) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_sub_id=eq.${encodeURIComponent(subId)}&select=id,plan_email,plan,plan_until,plan_status&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_sub_id=eq.${encodeURIComponent(subId)}&select=id,plan_email,plan,plan_until,plan_status,stripe_sub_id&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
       if (arr.length) return arr[0];
     }
+    // Una tienda extra (add-on) va al MISMO cliente de Stripe que la principal con otra
+    // suscripción. Buscando por cliente/email se encontraba la principal y se le escribían el
+    // estado y la fecha de la otra suscripción (y al cancelar la extra, se cancelaba la
+    // principal). Por eso, con subId, solo vale una tienda sin suscripción o con esa misma.
+    const libre = (t) => !subId || !t.stripe_sub_id || t.stripe_sub_id === subId;
     // 3. Por stripe_customer_id
     if (customerId) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_customer_id=eq.${encodeURIComponent(customerId)}&select=id,plan_email,plan,plan_until,plan_status&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?stripe_customer_id=eq.${encodeURIComponent(customerId)}&select=id,plan_email,plan,plan_until,plan_status,stripe_sub_id&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
-      if (arr.length) return arr[0];
+      if (arr.length && libre(arr[0])) return arr[0];
     }
     // 4. Por plan_email (fallback inicial cuando aún no se ha vinculado)
     if (email) {
-      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?plan_email=eq.${encodeURIComponent(email)}&select=id,plan_email,plan,plan_until,plan_status&limit=1`, {headers: sbHeaders});
+      const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?plan_email=eq.${encodeURIComponent(email)}&select=id,plan_email,plan,plan_until,plan_status,stripe_sub_id&limit=1`, {headers: sbHeaders});
       const arr = await r.json();
-      if (arr.length) return arr[0];
+      if (arr.length && libre(arr[0])) return arr[0];
       // Fallback: buscar usuario admin por email y obtener su tienda
       const ru = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=tienda_id,plan&limit=1`, {headers: sbHeaders});
       const arrU = await ru.json();
       if (arrU.length && arrU[0].tienda_id) {
-        return {id: arrU[0].tienda_id, plan_email: email, plan: arrU[0].plan};
+        const rt = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(arrU[0].tienda_id)}&select=stripe_sub_id&limit=1`, {headers: sbHeaders});
+        const tt = (await rt.json().catch(() => []))[0] || {};
+        if (libre(tt)) return {id: arrU[0].tienda_id, plan_email: email, plan: arrU[0].plan};
       }
     }
     return null;

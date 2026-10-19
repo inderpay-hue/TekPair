@@ -1236,7 +1236,11 @@ function ajTab(btn) {
 function cargarNotasRecordatorios(cb) {
   if (!SB_KEY || !TIENDA_ID) { window._recordatorios = window._recordatorios || []; if (cb) cb(); return; }
   sbGet('tiendas', 'id=eq.' + TIENDA_ID + '&select=pedidos_notas,recordatorios,inicio_config').then(function(r) {
-    var t = (r && r[0]) || {};
+    // Si la lectura falla (sbGet da []), NO se ponen en blanco: al escribir encima se
+    // habrían guardado vacías y borrado las de la nube.
+    if (!(r && r[0])) { window._recordatorios = window._recordatorios || []; if (cb) cb(); else renderNotasRecordatorios(); return; }
+    var t = r[0];
+    window._notasOk = true;
     window._pedNotas = t.pedidos_notas || '';
     window._recordatorios = Array.isArray(t.recordatorios) ? t.recordatorios : [];
     // Config del inicio personalizado (sincronizada por tienda)
@@ -1282,9 +1286,41 @@ function guardarNotasDash() {
   var ta = document.getElementById('dashNotas'); if (!ta) return;
   window._pedNotas = ta.value;
   if (window._pedNotasTimer) clearTimeout(window._pedNotasTimer);
-  window._pedNotasTimer = setTimeout(function() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas }); }, 800);
+  window._pedNotasTimer = setTimeout(function() { _guardarPedNotas(); }, 800);
 }
-function _guardarRecordatorios() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { recordatorios: window._recordatorios || [] }); }
+// Notas y recordatorios se guardan enteros en la tienda: si no se pudieron leer de la nube,
+// guardar ahora borraría los que hay allí. Se relee primero y se junta.
+function _leerNotasNube() {
+  return fetch(SUPABASE_URL + '/rest/v1/tiendas?id=eq.' + encodeURIComponent(TIENDA_ID) + '&select=pedidos_notas,recordatorios', { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + (JWT_TOKEN || SB_KEY) } })
+    .then(function(r) { return r.ok ? r.json() : null; }).then(function(rows) { return (rows && rows[0]) || null; }, function() { return null; });
+}
+function _guardarPedNotas() {
+  if (!SB_KEY || !TIENDA_ID) return;
+  if (window._notasOk) { sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas }); return; }
+  _leerNotasNube().then(function(t) {
+    if (!t) { toast(T('notas.no_cargadas'), 'err'); return; }
+    window._notasOk = true;
+    var nube = String(t.pedidos_notas || ''), mio = String(window._pedNotas || '');
+    // Lo escrito sin haber podido leer se AÑADE a lo que había, no lo sustituye.
+    window._pedNotas = (nube && mio.indexOf(nube) === -1) ? (nube + (mio ? '\n' + mio : '')) : mio;
+    sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas });
+    ['dashNotas', 'pedidosNotas', 'iv2NotasTa', 'invNotasTa', 'invTbNotasTa'].forEach(function(id) { var e = document.getElementById(id); if (e && document.activeElement !== e) e.value = window._pedNotas; });
+  });
+}
+function _guardarRecordatorios() {
+  if (!SB_KEY || !TIENDA_ID) return;
+  if (window._notasOk) { sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { recordatorios: window._recordatorios || [] }); return; }
+  _leerNotasNube().then(function(t) {
+    if (!t) { toast(T('notas.no_cargadas'), 'err'); return; }
+    window._notasOk = true;
+    var mios = window._recordatorios || [], clave = function(x) { return (x && x.t) + '|' + (x && x.f); };
+    var vistos = {}; mios.forEach(function(x) { vistos[clave(x)] = 1; });
+    (Array.isArray(t.recordatorios) ? t.recordatorios : []).forEach(function(x) { if (!vistos[clave(x)]) mios.push(x); });
+    window._recordatorios = mios;
+    sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { recordatorios: mios });
+    try { renderNotasRecordatorios(); } catch (e) {} try { renderInvNotas(); } catch (e) {}
+  });
+}
 // Etiqueta inteligente de un recordatorio: Hoy/Mañana/Vencido + hora, con color.
 function _recLabel(r) {
   if (!r || !r.f) return { txt: '', overdue: false, soon: false };
@@ -1316,10 +1352,12 @@ var ENC_COLOR = { Pendiente:'#F59E0B', Pedido:'#3B82F6', Llego:'#8B5CF6', Avisad
 // Lee los encargos de la nube. null si falla (sbGetAll devuelve [] también en
 // los errores, y eso vaciaba la lista local).
 function _sbGetEncargos() {
-  var url = SUPABASE_URL + '/rest/v1/encargos?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&select=*&order=fecha.desc&limit=2000';
-  return fetch(url, { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY) } })
-    .then(function (r) { return r.ok ? r.json() : null; }, function () { return null; })
-    .then(function (rows) { return Array.isArray(rows) ? rows : null; }, function () { return null; });
+  // Paginado (la nube da 1000 filas por petición; con limit=2000 los antiguos se quedaban
+  // fuera y se volvían a subir en cada sincronización). sbGetAll da null si falla.
+  return sbGetAll('encargos', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID)).then(function (rows) {
+    if (!Array.isArray(rows)) return null;
+    return rows.slice().sort(function (a, b) { return String(b.fecha || '').localeCompare(String(a.fecha || '')); });
+  }, function () { return null; });
 }
 function _encSync(e, isNew) {
   if (!SB_KEY || !TIENDA_ID) return;
@@ -1587,7 +1625,7 @@ function _encCrearVenta(e, pvp, senal, metodo, st, reg) {
     st.unidades = Math.max(0, (parseInt(st.unidades, 10) || 1) - 1);
     if (st.unidades === 0) st.vendido = true;
     try { _logMov('salida', _stockNombre(st), 1, venta.clienteNombre || T('inicio.ventas')); } catch (er) {}
-    if (SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(st.id), { unidades: st.unidades, vendido: st.vendido });
+    _stockDelta(st, -1, 0);
   }
   DB.ventas.push(venta);
   if (SB_KEY && TIENDA_ID) {
@@ -1760,7 +1798,7 @@ function cargarPedidos(cb) {
   if (!SB_KEY || !TIENDA_ID) { DB.pedidos = DB.pedidos || []; if (cb) cb(); return; }
   // Notas (columna nueva): tolerante si aún no existe
   sbGet('tiendas', 'id=eq.' + TIENDA_ID + '&select=pedidos_notas')
-    .then(function(r) { window._pedNotas = (r && r[0] && r[0].pedidos_notas) || ''; })
+    .then(function(r) { if (r && r[0]) { window._pedNotas = r[0].pedidos_notas || ''; window._notasOk = true; } })
     .catch(function() {})
     .then(function() { return sbGetAll('pedidos', 'tienda_id=eq.' + TIENDA_ID); })
     .then(function(rows) {
@@ -1809,7 +1847,7 @@ function guardarNotasPedidos() {
   window._pedNotas = ta.value;
   if (window._pedNotasTimer) clearTimeout(window._pedNotasTimer);
   window._pedNotasTimer = setTimeout(function() {
-    if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas });
+    _guardarPedNotas();
   }, 800);
 }
 // Modo NUEVO: pedido con varias líneas (un proveedor, varios productos)
@@ -2646,7 +2684,7 @@ function _recibirAStock(p, uds, existe, silent, cat) {
   DB.stock = DB.stock || [];
   if (existe) {
     existe.unidades = (parseInt(existe.unidades, 10) || 0) + uds;
-    if (SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(existe.id), { unidades: existe.unidades });
+    _stockDelta(existe, uds, null);
     _logMov('entrada', _stockNombre(existe), uds, p.proveedor || T('pedidos.pieza'));
     try { guardarDatos(); } catch(e){}
     try { if (typeof renderStock === 'function') renderStock(); } catch(e){}
@@ -3042,9 +3080,11 @@ function navTo(id) {
     renderPresupuestos();
     // Sync ligero: recargar reps desde Supabase para tener estados frescos
     if (SB_KEY && TIENDA_ID) {
-      sbGet('reparaciones', 'tienda_id=eq.' + TIENDA_ID + '&estado=in.(Presupuesto,Rechazado)&select=id,cliente_id,cliente_nombre,marca,modelo,averia,estado,total,base,iva,iva_importe,iva_modo,servicios,componentes,fecha,presupuesto_aceptado_at,presupuesto_token_exp,piezas_devueltas,es_garantia,rep_original_id,mo,comp,anticipo,restante,pago_final,fecha_entrega,fecha_entrega_real,nota,tipo_bloqueo,bloqueo,imei,prioridad,firma_cliente,firma_fecha,presupuesto_aceptado_ip,fotos_recepcion,fotos_entrega,garantia_dias,garantia_tipo,garantia_publica,garantia_fecha_fin').then(function(rows) {
+      sbGet('reparaciones', 'tienda_id=eq.' + TIENDA_ID + '&estado=in.(Presupuesto,Rechazado)').then(function(rows) {
         if (!Array.isArray(rows)) return;
-        // Actualizar solo los presupuestos en DB.reps
+        // Actualizar solo los presupuestos en DB.reps. Con TODAS las columnas: antes se pedía
+        // una lista parcial y la ficha quedaba sin token, opcionales, técnico, cuotas…, que al
+        // editarla se guardaban vacíos en la nube.
         rows.forEach(function(r) {
           var mapped = mapRep(r);
           var idx = DB.reps.findIndex(function(x){ return x.id === r.id; });
@@ -3877,12 +3917,34 @@ function mapCli(c) {
   return {id:c.id, nombre:c.nombre||'', apellidos:c.apellidos||'', tel:c.tel||'', email:c.email||'', dni:c.dni||'', fechaNac:c.fecha_nac||'', nombreFiscal:c.nombre_fiscal||'', dirFiscal:c.dir_fiscal||'', cp:c.cp||'', provincia:c.provincia||'', ciudad:c.ciudad||'', esEmpresa:c.es_empresa||false, personaContacto:c.persona_contacto||'', pais:c.pais||'España', telPrefijo:c.tel_prefijo||'+34', grado:c.grado||'', marketingConsent:c.marketing_consent||false};
 }
 
+// Suma/resta unidades EN la nube (función ajustar_stock, sql/stock-ajustar.sql): dos equipos
+// vendiendo lo mismo a la vez ya no se pisan (antes cada uno escribía la cantidad final que
+// calculaba). La copia local ya está ajustada; con la respuesta se pone la cifra real de la
+// nube. Sin la función (aún no creada) se usa el método antiguo; sin conexión, a la cola.
+function _stockDelta(st, delta, minimo) {
+  if (!SB_KEY || !TIENDA_ID || !st || !delta) return;
+  var datos = { p_id: st.id, p_delta: delta, p_min: (minimo == null ? null : minimo) };
+  var encolar = function() { _syncQueueAdd({ _opId: 'op_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), method: 'POST', table: 'rpc/ajustar_stock', data: datos, dataId: null, attempts: 0, ts: Date.now() }); };
+  fetch(SUPABASE_URL + '/rest/v1/rpc/ajustar_stock', { method: 'POST', headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json' }, body: JSON.stringify(datos) })
+    .then(function(r) {
+      if (r.ok) return r.json().then(function(rows) {
+        var x = Array.isArray(rows) ? rows[0] : rows;
+        if (x && x.unidades != null) { st.unidades = parseInt(x.unidades, 10) || 0; st.vendido = !!x.vendido; try { guardarDatos(); } catch (e) {} }
+      });
+      if (r.status === 404) return sbPatch('stock', 'id=eq.' + encodeURIComponent(st.id), { unidades: st.unidades, vendido: !!st.vendido });
+      if (_esRetriable(r.status)) { encolar(); return; }
+      return r.text().then(function(t) { _reportarFalloNube('POST', 'rpc/ajustar_stock', r.status, _codigoDe(t), _mensajeDe(t)); });
+    }, encolar);
+}
+window._stockDelta = _stockDelta;
+
 // Ids de `tabla` con altas o cambios esperando en la cola de reintentos.
 function _idsEnCola(tabla) {
   var ids = {};
   _syncQueueGet().forEach(function(op) {
-    if (!op || op.table !== tabla) return;
+    if (!op || (op.table !== tabla && !(tabla === 'stock' && op.table === 'rpc/ajustar_stock'))) return;
     if (op.method === 'POST' && op.data && op.data.id) ids[op.data.id] = 1;
+    else if (tabla === 'stock' && op.table === 'rpc/ajustar_stock' && op.data && op.data.p_id) ids[op.data.p_id] = 1;
     else if (op.method === 'PATCH' && op.query) { var m = /(?:^|&)id=eq\.([^&]+)/.exec(op.query); if (m) ids[decodeURIComponent(m[1])] = 1; }
   });
   return ids;
@@ -4443,6 +4505,29 @@ function _cuotaPagado(c) {
   if (c.pagadoImporte != null) return parseFloat(c.pagadoImporte) || 0;
   return c.pagado ? (parseFloat(c.importe) || 0) : 0;
 }
+// Cada pago de una cuota con SU fecha y forma de pago. Antes solo se guardaba la del último:
+// 40 € en efectivo el lunes + 60 € con tarjeta el jueves contaban 100 € con tarjeta el jueves
+// (y el lunes la caja daba sobra). Cuotas antiguas sin `abonos`: todo en fechaPago/formaPago.
+function _cuotaAbonos(c) {
+  if (!c) return [];
+  var out = [], sum = 0;
+  (Array.isArray(c.abonos) ? c.abonos : []).forEach(function(a) {
+    var i = parseFloat(a && a.importe) || 0; if (!i) return;
+    out.push({ fecha: String(a.fecha || '').slice(0, 10), importe: i, metodo: a.metodo || 'Efectivo' }); sum += i;
+  });
+  var resto = Math.round((_cuotaPagado(c) - sum) * 100) / 100;
+  if (resto > 0.005 && c.fechaPago) out.push({ fecha: String(c.fechaPago).slice(0, 10), importe: resto, metodo: c.formaPago || 'Efectivo' });
+  return out;
+}
+// Apunta un pago en la cuota (llamar ANTES de tocar pagadoImporte/fechaPago/formaPago).
+function _cuotaAbonar(cc, importe, metodo, fecha) {
+  if (!cc || !(importe > 0)) return;
+  if (!Array.isArray(cc.abonos)) cc.abonos = [];
+  var previo = _cuotaPagado(cc);
+  // Lo cobrado antes de existir `abonos` se congela en su fecha para que no se mueva al nuevo pago.
+  if (!cc.abonos.length && previo > 0.005 && cc.fechaPago) cc.abonos.push({ fecha: cc.fechaPago, importe: previo, metodo: cc.formaPago || 'Efectivo' });
+  cc.abonos.push({ fecha: fecha, importe: Math.round(importe * 100) / 100, metodo: metodo });
+}
 // Ingreso REAL de ventas por método en [d1,d2]. Financiadas: entrada (día de venta) + cuotas (día de pago);
 // no financiadas: total el día de la venta. Devuelve { metodo: importe }. (Evita contar el total a plazos el día 1.)
 // Ingresos por forma de pago en un rango. Los reembolsos NO borran la venta de su día:
@@ -4474,7 +4559,7 @@ function _ventasIngresoPorMetodo(ventas, d1, d2) {
           var me2 = v.entradaPago || 'Efectivo';
           por[me2] = (por[me2] || 0) - (parseFloat(v.entrada) || 0);
           (v.cuotas || []).forEach(function(c) {
-            if (c && c.fechaPago) { var mc2 = c.formaPago || 'Efectivo'; por[mc2] = (por[mc2] || 0) - _cuotaPagado(c); }
+            _cuotaAbonos(c).forEach(function(a) { por[a.metodo] = (por[a.metodo] || 0) - a.importe; });
           });
         } else {
           _ventaPagos(v).forEach(function(p) { por[p.metodo] = (por[p.metodo] || 0) - p.importe; });
@@ -4486,10 +4571,10 @@ function _ventasIngresoPorMetodo(ventas, d1, d2) {
         var me = v.entradaPago || 'Efectivo'; por[me] = (por[me] || 0) + (parseFloat(v.entrada) || 0);
       }
       (v.cuotas || []).forEach(function(c) {
-        // Pago parcial: cuenta lo cobrado (pagadoImporte) en su fecha de pago, aunque la cuota no esté cerrada.
-        if (c && c.fechaPago && c.fechaPago >= d1 && c.fechaPago <= d2) {
-          var mc = c.formaPago || 'Efectivo'; por[mc] = (por[mc] || 0) + _cuotaPagado(c);
-        }
+        // Cada pago (también los parciales) cuenta el día en que se cobró y con su forma de pago.
+        _cuotaAbonos(c).forEach(function(a) {
+          if (a.fecha >= d1 && a.fecha <= d2) por[a.metodo] = (por[a.metodo] || 0) + a.importe;
+        });
       });
     } else if (v.fecha >= d1 && v.fecha <= d2) {
       _ventaPagos(v).forEach(function(p) { por[p.metodo] = (por[p.metodo] || 0) + p.importe; });
@@ -4552,9 +4637,11 @@ async function cajaDiaResumen(fecha) {
   if (SB_KEY && TIENDA_ID) {
     var pr = [];
     try { pr = await sbGet('pagos_reparacion', 'fecha=eq.' + fecha + '&select=metodo,importe,tipo,reparacion_id'); } catch (e) { pr = []; }
-    var _pres = _idsPresupuesto();
+    // En la CAJA cuenta todo el dinero que entró ese día, también el anticipo de un presupuesto
+    // aún sin aceptar: está en el cajón. (Antes se excluía y, al aceptarse, volvía a contar en
+    // su día ya cerrado.) Si el presupuesto se rechaza y se devuelve, la devolución es un pago
+    // negativo del día en que sale el dinero (_ofrecerDevolverAnticipo).
     (pr || []).forEach(function(p) {
-      if (p.reparacion_id && _pres[p.reparacion_id]) return; // presupuesto no aceptado → no cuenta
       var m = p.metodo || 'Efectivo';
       var imp = parseFloat(p.importe) || 0;
       if (p.tipo === 'anticipo') { anticipos.metodos[m] = (anticipos.metodos[m] || 0) + imp; anticipos.total += imp; }
@@ -5090,7 +5177,7 @@ function _invPagosRep() {
   if (_INV_PAGOS.data) return _INV_PAGOS.data;
   if (!SB_KEY || !TIENDA_ID || _INV_PAGOS.cargando) return null;
   var desde = new Date(); desde.setMonth(desde.getMonth() - 13);
-  var isoDesde = desde.toISOString().slice(0, 10);
+  var isoDesde = _invIso(desde);
   _INV_PAGOS.cargando = true;
   sbGet('pagos_reparacion', 'fecha=gte.' + isoDesde + '&select=fecha,importe,metodo,tipo,reparacion_id')
     .then(function(rows) {
@@ -5492,7 +5579,7 @@ function _iv2SaveNotas() {
   var ta = document.getElementById('iv2NotasTa'); if (!ta) return;
   window._pedNotas = ta.value;
   if (window._pedNotasTimer) clearTimeout(window._pedNotasTimer);
-  window._pedNotasTimer = setTimeout(function() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas }); }, 800);
+  window._pedNotasTimer = setTimeout(function() { _guardarPedNotas(); }, 800);
 }
 function _iv2AddRec() {
   var inp = document.getElementById('iv2RecInput'), fe = document.getElementById('iv2RecFecha');
@@ -5721,7 +5808,7 @@ function guardarInvNotas() {
   var ta = document.getElementById('invNotasTa'); if (!ta) return;
   window._pedNotas = ta.value;
   if (window._pedNotasTimer) clearTimeout(window._pedNotasTimer);
-  window._pedNotasTimer = setTimeout(function() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas }); }, 800);
+  window._pedNotasTimer = setTimeout(function() { _guardarPedNotas(); }, 800);
 }
 function addRecInv() {
   var inp = document.getElementById('invRecInput'), fe = document.getElementById('invRecFecha');
@@ -5736,7 +5823,7 @@ function guardarTbNotas() {
   var ta = document.getElementById('invTbNotasTa'); if (!ta) return;
   window._pedNotas = ta.value;
   if (window._pedNotasTimer) clearTimeout(window._pedNotasTimer);
-  window._pedNotasTimer = setTimeout(function() { if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { pedidos_notas: window._pedNotas }); }, 800);
+  window._pedNotasTimer = setTimeout(function() { _guardarPedNotas(); }, 800);
 }
 function addRecTb() {
   var inp = document.getElementById('invTbRecInput'), fe = document.getElementById('invTbRecFecha');
@@ -6300,11 +6387,11 @@ async function renderDash() {
   var mes = [];
   for (var i = 0; i < 7; i++) {
     var d = new Date(); d.setDate(d.getDate() - i);
-    semana.push(d.toISOString().slice(0,10));
+    semana.push(_invIso(d));
   }
   for (var j = 0; j < 30; j++) {
     var d2 = new Date(); d2.setDate(d2.getDate() - j);
-    mes.push(d2.toISOString().slice(0,10));
+    mes.push(_invIso(d2));
   }
 
   var filterDates = tab === 'hoy' ? [hoy] : tab === 'semana' ? semana : mes;
@@ -7281,7 +7368,7 @@ function renderWidgetTendencia() {
     var dias = per.tab === 'semana' ? 7 : 30;
     for (var i = dias - 1; i >= 0; i--) {
       var d = new Date(); d.setDate(d.getDate() - i);
-      var fecha = d.toISOString().slice(0,10);
+      var fecha = _invIso(d);
       var totalD = 0;
       DB.ventas.forEach(function(v) {
         if (v.reembolsado || v.fecha !== fecha) return;
@@ -7824,10 +7911,7 @@ function guardarVenta() {
       }
       // Sincronizar con Supabase para que no quede inconsistente
       if (SB_KEY && TIENDA_ID) {
-        sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
-          unidades: s.unidades,
-          vendido: s.vendido
-        });
+        _stockDelta(s, -1, 0);
       }
     }
   }
@@ -8158,6 +8242,14 @@ async function guardarEdicionVenta() {
     n.items.map(function(it) { return (it.qty != null ? it.qty : it.cantidad || 1) + '× ' + it.nombre + ' ' + it.precio; }).join(' | '));
   if (!Object.keys(cambios).length) { closeM('mEditarVenta'); return; }
 
+  // Moverla a un día cuya caja ya está cerrada también cambia ese día (antes no se avisaba).
+  if (cambios.fecha && !SEL.evCajaCerrada && SB_KEY && TIENDA_ID) {
+    try {
+      var _cd = await fetch(SUPABASE_URL + '/rest/v1/cajas_cierres?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=eq.' + encodeURIComponent(n.fecha) +
+        '&estado=in.(cerrado,descuadre)&select=id', { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + (JWT_TOKEN || SB_KEY) } }).then(function(r) { return r.ok ? r.json() : []; });
+      if (Array.isArray(_cd) && _cd.length) SEL.evCajaCerrada = true;
+    } catch (e) {}
+  }
   // Caja de ese día ya cerrada: el cierre guardado no se recalcula.
   if (SEL.evCajaCerrada && (cambios.total || cambios.pago || cambios.pagos || cambios.fecha || cambios.descuento)) {
     var seguir = await confirmar(T('ev.caja_cerrada_confirm'), null, { okLabel: T('gen.guardar') });
@@ -8172,8 +8264,36 @@ async function guardarEdicionVenta() {
     items: (v.items && v.items.length) ? JSON.stringify(v.items) : null
   };
   if (SB_KEY && TIENDA_ID) {
-    var ok = await sbPatch('ventas', 'id=eq.' + encodeURIComponent(v.id), fila);
-    if (!ok) { Object.keys(v).forEach(function(k) { delete v[k]; }); Object.assign(v, antes); return; }   // el aviso ya lo da sbPatch
+    var _q = 'id=eq.' + encodeURIComponent(v.id);
+    var ok = await sbPatch('ventas', _q, fila);
+    // Sin conexión el cambio queda en la cola y se aplicará: no se deshace en pantalla
+    // (antes se deshacía aquí pero la cola lo subía igual → pantalla y nube distintas).
+    var enCola = !ok && _syncQueueGet().some(function(op) { return op.method === 'PATCH' && op.table === 'ventas' && op.query === _q; });
+    if (!ok && !enCola) { Object.keys(v).forEach(function(k) { delete v[k]; }); Object.assign(v, antes); return; }   // el aviso ya lo da sbPatch
+  }
+  // Líneas cambiadas: lo que se quita (o baja de cantidad) vuelve al stock y lo que se añade
+  // sale. Antes editar las líneas no tocaba el stock.
+  if ('items' in n) {
+    var _uds = function(items) {
+      var m = {};
+      (items || []).forEach(function(it) {
+        if (!it || it.esServicio || it.esRapida) return;
+        var sid = it.idOriginal || it.id; if (!sid) return;
+        if (!(DB.stock || []).some(function(x) { return x.id === sid; })) return;
+        m[sid] = (m[sid] || 0) + (parseFloat(it.qty != null ? it.qty : it.cantidad) || 0);
+      });
+      return m;
+    };
+    var _a = _uds(antes.items), _d = _uds(v.items);
+    Object.keys(Object.assign({}, _a, _d)).forEach(function(sid) {
+      var delta = Math.round((_a[sid] || 0) - (_d[sid] || 0));   // >0 vuelve al stock
+      if (!delta) return;
+      var st = DB.stock.find(function(x) { return x.id === sid; }); if (!st) return;
+      st.unidades = Math.max(delta > 0 ? -Infinity : 0, (parseInt(st.unidades, 10) || 0) + delta);
+      if (st.unidades > 0) st.vendido = false; else if (delta < 0 && st.unidades === 0) st.vendido = true;
+      try { _logMov(delta > 0 ? 'entrada' : 'salida', _stockNombre(st), Math.abs(delta), T('ev.titulo') || 'Venta editada'); } catch (e) {}
+      _stockDelta(st, delta, delta > 0 ? null : 0);
+    });
   }
   try { if (typeof audit === 'function') audit('editar', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total), cambios); } catch(e){}
   guardarDatos(); closeM('mEditarVenta'); renderVentas();
@@ -8480,6 +8600,14 @@ function reembolsarVenta(id) {
   if (typeof audit === 'function') audit('reembolso', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total) + ' · ' + ((v.marca || '') + ' ' + (v.modelo || '')).trim(), null);
   v.reembolsado = true;
   v.fechaReembolso = hoyLocal();
+  // Primero se guarda el reembolso en la nube y SOLO si queda guardado (o en la cola sin
+  // conexión) se devuelve el stock. Antes el stock volvía antes de saber si el reembolso se
+  // había guardado: si fallaba, la venta reaparecía sin reembolsar y se podía reembolsar otra
+  // vez (+2 de stock).
+  var _qR = 'id=eq.' + encodeURIComponent(id);
+  return Promise.resolve((SB_KEY && TIENDA_ID) ? sbPatch('ventas', _qR, { reembolsado: true, fecha_reembolso: v.fechaReembolso }) : true).then(function (_okR) {
+  var _enColaR = !_okR && _syncQueueGet().some(function (op) { return op.method === 'PATCH' && op.table === 'ventas' && op.query === _qR; });
+  if (SB_KEY && TIENDA_ID && !_okR && !_enColaR) { v.reembolsado = false; v.fechaReembolso = ''; guardarDatos(); renderVentas(); return; }
   // Devolver el artículo al stock. Por stockId; si no (ventas antiguas sin stock_id guardado),
   // buscar por IMEI (los móviles tienen IMEI único).
   // F48: devolver artículo(s) al stock. Las ventas del TPV son multi-producto (v.items con el id
@@ -8491,9 +8619,7 @@ function reembolsarVenta(id) {
     if (!st) return false;
     st.unidades = (st.unidades || 0) + (parseInt(qty, 10) || 1);
     if (st.unidades > 0 && st.vendido) st.vendido = false;
-    if (SB_KEY && TIENDA_ID) {
-      sbPatch('stock', 'id=eq.' + encodeURIComponent(st.id), { unidades: st.unidades, vendido: st.vendido });
-    }
+    _stockDelta(st, parseInt(qty, 10) || 1, null);
     return true;
   }
   var _items = Array.isArray(v.items) ? v.items : [];
@@ -8509,7 +8635,6 @@ function reembolsarVenta(id) {
     toast(T('venta.reembolsada_stock_manual'), 'err', 5000);
   }
   guardarDatos();
-  if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + id, {reembolsado: true, fecha_reembolso: v.fechaReembolso});
   toast(T('venta.reembolsada'), 'ok');
   renderVentas();
   renderDash();
@@ -8517,6 +8642,7 @@ function reembolsarVenta(id) {
   // que antes quedaban con cifras viejas porque solo se re-renderizaba renderDash (clásico).
   try { if (typeof renderInicioNuevo === 'function') renderInicioNuevo(); } catch (e) {}
   try { if (typeof checkUrgentes === 'function') checkUrgentes(); } catch (e) {}
+  });
   }).then(function () {
     // F50/F51: si la venta tenía factura emitida, ofrecer emitir la rectificativa (abono).
     // Fuera del spinner: abre su propio modal de confirmación.
@@ -8624,7 +8750,7 @@ function editarTotalFinanciado(vid) {
         else { c.importe = per; acum = Math.round((acum + per) * 100) / 100; }
       });
     } else if (nuevoPendiente > 0) {
-      var _ultFecha = (v.cuotas.length && v.cuotas[v.cuotas.length - 1].fecha) || (new Date().toISOString().slice(0, 10));
+      var _ultFecha = (v.cuotas.length && v.cuotas[v.cuotas.length - 1].fecha) || (hoyLocal());
       v.cuotas.push({ num: v.cuotas.length + 1, importe: nuevoPendiente, fecha: _ultFecha, pagado: false, formaPago: '', fechaPago: '' });
     }
     v.total = nuevo;
@@ -8672,6 +8798,7 @@ function registrarPagoCuota(vid, cidx) {
         var queda = Math.round(((parseFloat(cc.importe) || 0) - _cuotaPagado(cc)) * 100) / 100;
         if (queda <= 0.005) return;
         var aplica = Math.min(queda, restantePago);
+        _cuotaAbonar(cc, aplica, fp, hoy);
         cc.pagadoImporte = Math.round((_cuotaPagado(cc) + aplica) * 100) / 100;
         cc.formaPago = fp; cc.fechaPago = hoy;
         cc.pagado = cc.pagadoImporte >= (parseFloat(cc.importe) || 0) - 0.005;
@@ -8758,6 +8885,7 @@ function registrarPagoCuotaRep(rid, cidx) {
         var queda = Math.round(((parseFloat(cc.importe) || 0) - _cuotaPagado(cc)) * 100) / 100;
         if (queda <= 0.005) return;
         var aplica = Math.min(queda, restantePago);
+        _cuotaAbonar(cc, aplica, fp, hoy);
         cc.pagadoImporte = Math.round((_cuotaPagado(cc) + aplica) * 100) / 100;
         cc.formaPago = fp; cc.fechaPago = hoy;
         cc.pagado = cc.pagadoImporte >= (parseFloat(cc.importe) || 0) - 0.005;
@@ -8914,6 +9042,8 @@ function confirmarCobro(attemptId) {
   var cidx = a.cuota_idx | 0;
   if (r.cuotas[cidx].pagado) { _resolverIntento(attemptId, 'confirmado'); toast(T('cobro.ya_pagada'), 'ok'); return; }
   var fp = _COBRO_METODO_LBL[a.metodo_declarado] || 'Otro';
+  _cuotaAbonar(r.cuotas[cidx], (parseFloat(r.cuotas[cidx].importe) || 0) - _cuotaPagado(r.cuotas[cidx]), fp, hoyLocal());
+  r.cuotas[cidx].pagadoImporte = parseFloat(r.cuotas[cidx].importe) || 0;
   r.cuotas[cidx].pagado = true;
   r.cuotas[cidx].formaPago = fp;
   r.cuotas[cidx].fechaPago = hoyLocal();
@@ -9882,7 +10012,37 @@ function rechazarPresupuesto(id) {
       renderPresupuestos();
     }
     renderReps();
+    _ofrecerDevolverAnticipo(r);
   }, { okLabel: T('gen.rechazar'), danger: true });
+}
+
+// Si la reparación tiene cobros, al borrarla desaparecen de la caja de esos días (la base de
+// datos borra sus pagos en cascada). Devuelve el texto de aviso para el mensaje de confirmación.
+function _avisoCobrosAlBorrar(repId) {
+  if (!SB_KEY || !TIENDA_ID) return Promise.resolve('');
+  return sbGetAll('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(repId)).then(function(pagos) {
+    if (!Array.isArray(pagos) || !pagos.length) return '';
+    var tot = Math.round(pagos.reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0) * 100) / 100;
+    var dias = pagos.map(function(p) { return String(p.fecha || '').slice(0, 10); }).filter(Boolean).sort();
+    return tot > 0.005 ? '\n\n⚠️ ' + T('rep.borrar_cobros').replace('{x}', cur(tot)).replace('{d}', fmtFecha(dias[0])) : '';
+  }, function() { return ''; });
+}
+
+// Presupuesto que no sigue adelante con anticipo cobrado: si se devuelve, se apunta como pago
+// NEGATIVO hoy (sale del cajón hoy). El anticipo sigue contando el día en que entró.
+function _ofrecerDevolverAnticipo(r) {
+  if (!SB_KEY || !TIENDA_ID || !r) return Promise.resolve();
+  return sbGetAll('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(r.id)).then(function(pagos) {
+    if (!Array.isArray(pagos)) return;
+    var neto = Math.round(pagos.reduce(function(a, p) { return a + (parseFloat(p.importe) || 0); }, 0) * 100) / 100;
+    if (neto <= 0.005) return;
+    var met = (pagos.find(function(p) { return (parseFloat(p.importe) || 0) > 0; }) || {}).metodo || 'Efectivo';
+    return confirmar(T('pres.devolver_ant').replace('{x}', cur(neto)).replace('{m}', met), null, { okLabel: T('pres.devolver_si'), cancelLabel: T('pres.devolver_no') }).then(function(si) {
+      if (!si) return;
+      return sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: -neto, metodo: met, tipo: 'devolucion', nota: 'Anticipo devuelto' })
+        .then(function(ok) { if (ok !== false) { window._pagosRepCache = null; try { _invalidarInvPagos(); } catch (e) {} toast(T('pres.devuelto_ok').replace('{x}', cur(neto)), 'ok'); } });
+    });
+  });
 }
 
 // Borrado DEFINITIVO de un presupuesto (o rechazado): elimina la fila de reparaciones + sus pagos y
@@ -9892,19 +10052,20 @@ function eliminarPresupuesto(id) {
   var r = DB.reps.find(function(x){ return x.id === id; });
   if (!r) { toast(T('tst.presupuesto_no_encontrado'), 'err'); return; }
   if (r.estado !== 'Presupuesto' && r.estado !== 'Rechazado') { toast(T('pres.solo_borrar'), 'err'); return; }
-  confirmar(T('pres.borrar_confirm').replace('{cli}', (r.clienteNombre || '')), function () {
+  _avisoCobrosAlBorrar(r.id).then(function(extra) {
+  confirmar(T('pres.borrar_confirm').replace('{cli}', (r.clienteNombre || '')) + extra, function () {
     // Un 'Presupuesto' aún tiene piezas reservadas; un 'Rechazado' ya las devolvió al rechazar.
     if (r.estado === 'Presupuesto' && Array.isArray(r.componentes) && r.componentes.length) { try { aplicarCambioStockPiezas(r.componentes, [], r); } catch(e){} }
     DB.reps = (DB.reps || []).filter(function(x){ return x.id !== id; });
     guardarDatos();
-    if (SB_KEY && TIENDA_ID) {
-      sbDelete('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(id));
-      sbDelete('reparaciones', 'id=eq.' + encodeURIComponent(id));
-    }
+    // Borrar la reparación borra también sus pagos en la base de datos (ON DELETE CASCADE):
+    // el aviso de arriba ya lo dice si había dinero cobrado.
+    if (SB_KEY && TIENDA_ID) sbDelete('reparaciones', 'id=eq.' + encodeURIComponent(id));
     toast(T('pres.borrado_ok'), 'ok');
     if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) renderPresupuestos();
     renderReps();
   }, { okLabel: T('gen.eliminar'), danger: true });
+  });
 }
 
 // ═══ FIRMA DIGITAL DEL CLIENTE (FIRM-1 a FIRM-5) ═══
@@ -12133,9 +12294,7 @@ function aplicarCambioStockPiezas(antes, despues, refRep) {
 
     s.unidades = (s.unidades || 0) - delta;
 
-    if (typeof SB_KEY !== 'undefined' && SB_KEY && typeof TIENDA_ID !== 'undefined' && TIENDA_ID) {
-      sbPatch('stock', 'id=eq.' + s.id, { unidades: s.unidades });
-    }
+    _stockDelta(s, -delta, null);
     // Movimiento: delta>0 = pieza usada en reparación (salida); delta<0 = devuelta (entrada)
     if (delta > 0) _logMov('salida', _stockNombre(s), delta, _refTxt || T('inicio.reparacion'));
     else if (delta < 0) _logMov('entrada', _stockNombre(s), -delta, _refTxt || T('inicio.reparacion'));
@@ -12266,7 +12425,7 @@ function guardarRep() {
         garantia_tipo: r.garantiaTipo || null,
         garantia_publica: r.garantiaPublica !== false,
         garantia_fecha_fin: (r.fechaEntrega && r.garantiaDias > 0 && r.garantiaTipo !== 'sin' && r.garantiaTipo !== 'apertura')
-          ? (function(){ var d = new Date(r.fechaEntrega); d.setDate(d.getDate() + r.garantiaDias); return d.toISOString().slice(0,10); })()
+          ? (function(){ var d = new Date(r.fechaEntrega); d.setDate(d.getDate() + r.garantiaDias); return _invIso(d); })()
           : null
       };
       if (!_finRep) {
@@ -12386,7 +12545,7 @@ function guardarRep() {
       garantia_tipo: rep.garantiaTipo || null,
       garantia_publica: rep.garantiaPublica !== false,
       garantia_fecha_fin: (rep.fechaEntrega && rep.garantiaDias > 0 && rep.garantiaTipo !== 'sin' && rep.garantiaTipo !== 'apertura')
-        ? (function(){ var d = new Date(rep.fechaEntrega); d.setDate(d.getDate() + rep.garantiaDias); return d.toISOString().slice(0,10); })()
+        ? (function(){ var d = new Date(rep.fechaEntrega); d.setDate(d.getDate() + rep.garantiaDias); return _invIso(d); })()
         : null,
       financiado: rep.financiado, entrada: rep.entrada, entrada_pago: rep.entradaPago || null,
       cuotas: rep.cuotas ? JSON.stringify(rep.cuotas) : null, estado_financiado: rep.estadoFinanciado || null
@@ -13544,7 +13703,7 @@ function confirmarEntrega() {
     r.restante = 0;
     // Financiada cobrada al entregar: completar el plan de cuotas para que el modal 💰 no las reofrezca (evita doble cobro)
     if (r.financiado && Array.isArray(r.cuotas)) {
-      r.cuotas.forEach(function(c) { if (c && !c.pagado) { c.pagado = true; c.formaPago = r.pagoFinal; c.fechaPago = hoyLocal(); } });
+      r.cuotas.forEach(function(c) { if (c && !c.pagado) { _cuotaAbonar(c, (parseFloat(c.importe) || 0) - _cuotaPagado(c), r.pagoFinal, hoyLocal()); c.pagadoImporte = parseFloat(c.importe) || 0; c.pagado = true; c.formaPago = r.pagoFinal; c.fechaPago = hoyLocal(); } });
       r.estadoFinanciado = 'completado';
     }
     guardarDatos();
@@ -14276,7 +14435,13 @@ function guardarStock() {
       s.capacidad = document.getElementById('sCap').value;
       s.color = document.getElementById('sColor').value;
       s.imei = document.getElementById('sImei').value;
-      s.unidades = parseInt(document.getElementById('sUds').value) || 1;
+      // Unidades: solo si se cambiaron en el formulario, y como SUMA/RESTA de la diferencia.
+      // Antes se mandaba la cifra que había al abrir: una venta hecha mientras tanto (en el TPV o
+      // en otro equipo) quedaba deshecha. Y `|| 1` convertía un 0 en 1 (stock fantasma).
+      var _udsForm = parseInt(document.getElementById('sUds').value, 10);
+      if (isNaN(_udsForm) || _udsForm < 0) _udsForm = 0;
+      var _udsDelta = (SEL._sUdsOrig != null && !isNaN(SEL._sUdsOrig)) ? _udsForm - SEL._sUdsOrig : 0;
+      if (_udsDelta) { s.unidades = (parseInt(s.unidades, 10) || 0) + _udsDelta; if (s.unidades > 0) s.vendido = false; }
       s.precioC = parseFloat(document.getElementById('sPrecioC').value) || 0;
       s.precioV = parseFloat(document.getElementById('sPrecioV').value) || 0;
       s.stockMin = parseInt(document.getElementById('sMin').value) || 2;
@@ -14292,16 +14457,17 @@ function guardarStock() {
         sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), Object.assign({
           categoria: s.categoria, marca: s.marca, modelo: s.modelo,
           capacidad: s.capacidad, color: s.color, imei: s.imei,
-          unidades: s.unidades, stock_min: s.stockMin, stock_max: s.stockMax,
+          stock_min: s.stockMin, stock_max: s.stockMax,
           precio_c: s.precioC, precio_v: s.precioV,
           tipo: s.tipo || 'nuevo', garantia_meses: parseInt(s.garantiaMeses)||0,
           ubicacion: s.ubicacion || null,
           en_oferta: _enOferta, precio_antes: _precioAntes || null,
           bateria: stockBateria
         }, (stockEan || _eanAntes) ? { codigo_barras: stockEan || null } : {}));
+        if (_udsDelta) _stockDelta(s, _udsDelta, 0);
       }
     }
-    SEL.editStockId = null;
+    SEL.editStockId = null; SEL._sUdsOrig = null;
   } else {
     // ALTA MÚLTIPLE: si el textarea de IMEIs tiene líneas, crear 1 unidad por línea
     var _multiEl = document.getElementById('sImeiMulti');
@@ -14573,7 +14739,7 @@ function anadirMasImeis() {
   SEL.editStockId = null;
   document.getElementById('mStockTit').textContent = T('stock.titulo_add');
   document.getElementById('sImei').value = '';
-  document.getElementById('sUds').value = '1';
+  document.getElementById('sUds').value = '1'; SEL._sUdsOrig = null;
   var _bm = document.getElementById('sBtnMasImeis'); if (_bm) _bm.style.display = 'none';
   toggleStockMulti();   // alta=true → muestra el cuadro "Varios IMEIs a la vez"
   toast(T('stock.mas_imeis_hint'), 'ok');
@@ -14601,7 +14767,9 @@ function editarStock(id) {
   document.getElementById('sImei').value = s.imei || '';
   var _sbat = document.getElementById('sBat'); if (_sbat) _sbat.value = (s.bateria != null ? s.bateria : '');
   var _sean = document.getElementById('sEan'); if (_sean) _sean.value = s.codigoBarras || '';
-  document.getElementById('sUds').value = s.unidades || 1;
+  // (un artículo con 0 unidades se muestra como 0, no como 1)
+  document.getElementById('sUds').value = (s.unidades != null && s.unidades !== '') ? s.unidades : 1;
+  SEL._sUdsOrig = parseInt(document.getElementById('sUds').value, 10);
   document.getElementById('sPrecioC').value = s.precioC || 0;
   document.getElementById('sPrecioV').value = s.precioV || 0;
   document.getElementById('sMin').value = s.stockMin || 2;
@@ -15308,8 +15476,8 @@ function eliminarReparacion(id) {
   } else if (hayPiezas && r.piezasDevueltas) {
     msg += T('rep.eliminar_piezas_ya_devueltas');
   }
-  msg += T('gen.accion_irreversible');
-  if (!confirm(msg)) return;
+  _avisoCobrosAlBorrar(r.id).then(function(extra) {
+  if (!confirm(msg + extra + T('gen.accion_irreversible'))) return;
 
   // Re-sumar piezas al stock SOLO si no estaban ya devueltas
   if (!r.piezasDevueltas && Array.isArray(r.componentes) && r.componentes.length) {
@@ -15330,9 +15498,9 @@ function eliminarReparacion(id) {
   closeM('mDetalleRep');
   renderReps();
   renderDash();
+  });
 }
 
-// ═══ PROVEEDORES ═══
 function renderProvs() {
   var el = document.getElementById('listaProvs');
   // Ad-hoc: proveedores escritos a mano en pedidos con deuda pero sin ficha (por tienda).
@@ -17105,7 +17273,7 @@ async function enviarReporteCobrum() {
     if (v.financiado && v.cuotas) {
       // Financiada: entrada el día de la venta + cada cuota el día que se paga (NO el total el día 1)
       if (v.fecha && (parseFloat(v.entrada) || 0) > 0) bucket(v.fecha, v.entradaPago || 'Efectivo').ventas += parseFloat(v.entrada) || 0;
-      (v.cuotas || []).forEach(function(c){ if (c && c.fechaPago) bucket(String(c.fechaPago).slice(0, 10), c.formaPago || 'Efectivo').ventas += _cuotaPagado(c); });
+      (v.cuotas || []).forEach(function(c){ _cuotaAbonos(c).forEach(function(a){ bucket(a.fecha, a.metodo).ventas += a.importe; }); });
     } else if (v.fecha) {
       _ventaPagos(v).forEach(function(p){ bucket(v.fecha, p.metodo).ventas += p.importe; });
     }
@@ -17180,8 +17348,8 @@ window.enviarHoyACobrum = enviarHoyACobrum;
 // Envío del cierre a Cobrum con AVISO + REINTENTOS. Es idempotente por fecha
 // (ref=hoy → Cobrum no duplica), así que reintentar es seguro. Marca tk_cobrum_enviado
 // (fecha UTC, igual que tk_ult_cierre) para no reenviar de más.
-function _cobrumEnviadoHoy() { return localStorage.getItem('tk_cobrum_enviado') === new Date().toISOString().slice(0, 10); }
-function _marcarCobrumEnviado() { try { localStorage.setItem('tk_cobrum_enviado', new Date().toISOString().slice(0, 10)); } catch (e) {} }
+function _cobrumEnviadoHoy() { return localStorage.getItem('tk_cobrum_enviado') === hoyLocal(); }
+function _marcarCobrumEnviado() { try { localStorage.setItem('tk_cobrum_enviado', hoyLocal()); } catch (e) {} }
 function _enviarCierreCobrumConReintento(intento) {
   intento = intento || 0;
   if (!localStorage.getItem('cobrum_token')) return;   // no configurado
@@ -17200,7 +17368,7 @@ function _enviarCierreCobrumConReintento(intento) {
 }
 // Al arrancar: si hoy ya se hizo el cierre pero Cobrum no lo recibió, reintenta.
 function _enviarCierreCobrumPendiente() {
-  if (localStorage.getItem('tk_ult_cierre') === new Date().toISOString().slice(0, 10) &&
+  if (localStorage.getItem('tk_ult_cierre') === hoyLocal() &&
       localStorage.getItem('cobrum_token') && !_cobrumEnviadoHoy()) {
     _enviarCierreCobrumConReintento(0);
   }
@@ -17597,13 +17765,11 @@ function verReportePDF() {
                        metodo: v.entradaPago || '—', importe: parseFloat(v.entrada) || 0 });
     }
     (v.cuotas || []).forEach(function(c, i) {
-      if (!c || !c.fechaPago) return;
-      var fp = String(c.fechaPago).slice(0, 10);
-      if (fp < d1 || fp > d2) return;
-      var imp = (typeof _cuotaPagado === 'function') ? _cuotaPagado(c) : (c.pagado ? (parseFloat(c.importe) || 0) : 0);
-      if (!imp) return;
-      cobrosFin.push({ fecha: fp, cli: etq, concepto: (T('fin.cuota') || 'Cuota') + ' ' + (c.num || (i + 1)) + '/' + v.cuotas.length,
-                       metodo: c.formaPago || '—', importe: imp });
+      _cuotaAbonos(c).forEach(function(a) {
+        if (a.fecha < d1 || a.fecha > d2) return;
+        cobrosFin.push({ fecha: a.fecha, cli: etq, concepto: (T('fin.cuota') || 'Cuota') + ' ' + (c.num || (i + 1)) + '/' + v.cuotas.length,
+                         metodo: a.metodo || '—', importe: a.importe });
+      });
     });
   });
   cobrosFin.sort(function(a, b) { return a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0; });
@@ -17868,7 +18034,7 @@ function checkCierreAuto() {
   var [h, m] = AJUSTES.cierre.hora.split(':').map(Number);
   if (ahora.getHours() === h && ahora.getMinutes() === m) {
     var ult = localStorage.getItem('tk_ult_cierre');
-    var hoy = ahora.toISOString().slice(0,10);
+    var hoy = _invIso(ahora);
     if (ult !== hoy) {
       localStorage.setItem('tk_ult_cierre', hoy);
       try { localStorage.removeItem('tk_cobrum_enviado'); } catch (e) {} // nuevo cierre → permite reenviar

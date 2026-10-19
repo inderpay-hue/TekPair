@@ -10,6 +10,9 @@ import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
 import { rateLimit } from './_lib/ratelimit.js';
 
+// Fecha (AAAA-MM-DD) en España: la UTC da el día anterior entre las 00:00 y las 02:00.
+const _diaMadrid = (iso) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Madrid', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date(iso));
+
 const ADMIN_EMAILS = ['info@tekpair.tech'];
 const BCRYPT_ROUNDS = 10;
 
@@ -188,9 +191,9 @@ export default async function handler(req, res) {
         const justificante = await _generarJustificanteNumero(SUPABASE_URL, sbHeaders);
         const fechaPago = body.fecha_pago || new Date().toISOString();
 
-        const upR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?id=in.(${idsStr})`, {
+        const upR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?id=in.(${idsStr})&estado_comision=eq.disponible`, {
           method: 'PATCH',
-          headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+          headers: {...sbHeaders, 'Prefer': 'return=representation'},
           body: JSON.stringify({
             comision_pagada: true,
             estado_comision: 'pagada',
@@ -203,6 +206,8 @@ export default async function handler(req, res) {
           console.error('Error PATCH pagos_referidos (marcar_pagado):', upR.status, txt);
           return res.status(500).json({ error: 'No se pudieron marcar las comisiones como pagadas' });
         }
+        // Doble clic: la 2ª petición ya no encuentra ninguna "disponible" y no reescribe nada.
+        if (!(await upR.json().catch(() => [])).length) return res.status(409).json({ error: 'Esas comisiones ya estaban pagadas' });
         return res.json({ ok: true, marcados: ids.length, justificante_numero: justificante, fecha_pago: fechaPago });
       }
 
@@ -222,9 +227,9 @@ export default async function handler(req, res) {
         const ids = listArr.map(p => p.id);
         const idsStr = ids.join(',');
 
-        const upR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?id=in.(${idsStr})`, {
+        const upR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?id=in.(${idsStr})&estado_comision=eq.disponible`, {
           method: 'PATCH',
-          headers: {...sbHeaders, 'Prefer': 'return=minimal'},
+          headers: {...sbHeaders, 'Prefer': 'return=representation'},
           body: JSON.stringify({
             comision_pagada: true,
             estado_comision: 'pagada',
@@ -237,6 +242,7 @@ export default async function handler(req, res) {
           console.error('Error PATCH pagos_referidos (marcar_codigo_pagado):', upR.status, txt);
           return res.status(500).json({ error: 'No se pudieron marcar las comisiones como pagadas' });
         }
+        if (!(await upR.json().catch(() => [])).length) return res.status(409).json({ error: 'Esas comisiones ya estaban pagadas' });
         return res.json({ ok: true, codigo: body.codigo, marcados: ids.length, justificante_numero: justificante, fecha_pago: fechaPago });
       }
 
@@ -496,7 +502,7 @@ export default async function handler(req, res) {
             body: JSON.stringify({
               tienda_id: nuevaTiendaId, meses: mesesNum,
               importe: importe != null && importe !== '' ? Number(importe) : null,
-              plan: planNorm, desde: ahora.slice(0, 10), hasta: hasta.slice(0, 10),
+              plan: planNorm, desde: _diaMadrid(ahora), hasta: _diaMadrid(hasta),
               nota: nota || null, creado_por: 'panel'
             })
           });
@@ -516,6 +522,12 @@ export default async function handler(req, res) {
         if (!MESES_EFECTIVO.includes(mesesNum)) {
           return res.status(400).json({ error: 'Los meses deben ser 3, 6, 9 o 12' });
         }
+        if (importe != null && importe !== '' && !(Number.isFinite(Number(importe)) && Number(importe) >= 0)) {
+          return res.status(400).json({ error: 'Importe inválido' });
+        }
+        // Doble clic: la misma ampliación dos veces en pocos segundos sumaba los meses dos veces.
+        const _rlExt = await rateLimit('extender:' + tienda_id, 1, 20);
+        if (!_rlExt.ok) return res.status(409).json({ error: 'Ya se acaban de añadir meses a esta cuenta. Recarga para verlo.' });
 
         const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tienda_id)}&select=id,nombre,plan,plan_until,stripe_sub_id&limit=1`, { headers: sbHeaders });
         const tArr = tR.ok ? await tR.json() : [];
@@ -569,7 +581,7 @@ export default async function handler(req, res) {
             body: JSON.stringify({
               tienda_id, meses: mesesNum,
               importe: importe != null && importe !== '' ? Number(importe) : null,
-              plan: t.plan, desde: base.slice(0, 10), hasta: hasta.slice(0, 10),
+              plan: t.plan, desde: _diaMadrid(base), hasta: _diaMadrid(hasta),
               nota: nota || null, creado_por: 'panel'
             })
           });

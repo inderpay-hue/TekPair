@@ -39,6 +39,17 @@ function crearLector(SUPABASE_URL, headers) {
   return { get, todo };
 }
 
+const cuotaAbonos = (c) => {
+  // Cada pago de una cuota con su fecha y forma de pago (igual que _cuotaAbonos del panel).
+  if (!c) return [];
+  const pagado = c.pagadoImporte != null ? (parseFloat(c.pagadoImporte) || 0) : (c.pagado ? (parseFloat(c.importe) || 0) : 0);
+  const out = []; let sum = 0;
+  (Array.isArray(c.abonos) ? c.abonos : []).forEach((a) => { const i = parseFloat(a && a.importe) || 0; if (i) { out.push({ fecha: String(a.fecha || '').slice(0, 10), importe: i, metodo: a.metodo || 'Efectivo' }); sum += i; } });
+  const resto = Math.round((pagado - sum) * 100) / 100;
+  if (resto > 0.005 && c.fechaPago) out.push({ fecha: String(c.fechaPago).slice(0, 10), importe: resto, metodo: c.formaPago || 'Efectivo' });
+  return out;
+};
+
 // Lo que entró de verdad un día (misma regla que la caja del panel): ventas de ese día
 // (las financiadas solo la entrada), cuotas cobradas ese día, pagos de reparación de ese
 // día (sin presupuestos sin aceptar) y menos las devoluciones hechas ese día.
@@ -53,11 +64,11 @@ function ingresoDia(F, ventas, pagos, presup) {
     const cuotas = parse(v.cuotas);
     const fin = v.financiado && Array.isArray(cuotas);
     if (v.reembolsado && d10(v.fecha_reembolso || v.fecha) === F) {
-      ventasT -= fin ? num(v.entrada) + cuotas.filter((c) => c && c.fechaPago).reduce((s, c) => s + (c.pagadoImporte != null ? num(c.pagadoImporte) : (c.pagado ? num(c.importe) : 0)), 0) : pagosVenta(v);
+      ventasT -= fin ? num(v.entrada) + cuotas.reduce((s, c) => s + cuotaAbonos(c).reduce((t, a) => t + a.importe, 0), 0) : pagosVenta(v);
     }
     if (fin) {
       if (d10(v.fecha) === F) { ventasT += num(v.entrada); nVentas++; }
-      cuotas.forEach((c) => { if (c && d10(c.fechaPago) === F) ventasT += (c.pagadoImporte != null ? num(c.pagadoImporte) : (c.pagado ? num(c.importe) : 0)); });
+      cuotas.forEach((c) => { cuotaAbonos(c).forEach((a) => { if (a.fecha === F) ventasT += a.importe; }); });
     } else if (d10(v.fecha) === F) { ventasT += pagosVenta(v); nVentas++; }
   }
   for (const p of pagos) {

@@ -220,6 +220,16 @@ function _cobrumMetodo(m) {
   const map = { efectivo: 'Efectivo', tarjeta: 'Tarjeta', bizum: 'Bizum', transferencia: 'Transferencia' };
   return map[m] || (m ? m.charAt(0).toUpperCase() + m.slice(1) : 'Otros');
 }
+const cuotaAbonos = (c) => {
+  // Cada pago de una cuota con su fecha y forma de pago (igual que _cuotaAbonos del panel).
+  if (!c) return [];
+  const pagado = c.pagadoImporte != null ? (parseFloat(c.pagadoImporte) || 0) : (c.pagado ? (parseFloat(c.importe) || 0) : 0);
+  const out = []; let sum = 0;
+  (Array.isArray(c.abonos) ? c.abonos : []).forEach((a) => { const i = parseFloat(a && a.importe) || 0; if (i) { out.push({ fecha: String(a.fecha || '').slice(0, 10), importe: i, metodo: a.metodo || 'Efectivo' }); sum += i; } });
+  const resto = Math.round((pagado - sum) * 100) / 100;
+  if (resto > 0.005 && c.fechaPago) out.push({ fecha: String(c.fechaPago).slice(0, 10), importe: resto, metodo: c.formaPago || 'Efectivo' });
+  return out;
+};
 async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
   // Dominio propio. El viejo finanzas-app-six-zeta seguia sirviendo un deploy
   // congelado (v46) que escribia fiados en Cobrum: por eso volvian a aparecer
@@ -251,7 +261,7 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
       // Cuotas de financiadas pagadas AYER → ingreso el día que se cobran, por su forma de pago
       (finVentas || []).forEach((v) => {
         parseCuotas(v.cuotas).forEach((c) => {
-          if (c && c.pagado && c.fechaPago === ayer) bk(c.formaPago).v += Number(c.importe || 0);
+          cuotaAbonos(c).forEach((a) => { if (a.fecha === ayer) bk(a.metodo).v += a.importe; });
         });
       });
       (pagos || []).forEach((p) => { bk(p.metodo).r += Number(p.importe || 0); });
@@ -293,7 +303,7 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
         // (el ingreso ya entra por la entrada el día de la venta + cada cuota el día que se paga).
         (finVentas || []).forEach((v) => {
           const cuotas = parseCuotas(v.cuotas);
-          const pagadoCuotas = cuotas.filter((c) => c && c.pagado).reduce((s, c) => s + Number(c.importe || 0), 0);
+          const pagadoCuotas = cuotas.reduce((s, c) => s + cuotaAbonos(c).reduce((t, a) => t + a.importe, 0), 0);
           const pendiente = Math.round((Number(v.total || 0) - Number(v.entrada || 0) - pagadoCuotas) * 100) / 100;
           if (pendiente > 0.005) {
             fiados.push({ ref: 'venta:' + v.id, cliente_nombre: v.cliente_nombre || null, concepto: 'Venta a plazos', monto: pendiente, estado: 'pendiente', sin_ingreso: true });
@@ -320,6 +330,11 @@ async function pushCobrumDiario(SUPABASE_URL, headers, ayer) {
       // 2) Email diario del cierre (servidor → funciona con el PC apagado)
       if (t.cierre_email_auto && t.email) {
         try {
+          // Apuntado ANTES de enviar con id fijo por tienda y día: si el cron se repite, el
+          // segundo apunte choca y no sale un segundo email.
+          const _apR = await fetch(`${SUPABASE_URL}/rest/v1/avisos`, { method: 'POST', headers: { ...headers, Prefer: 'return=minimal' },
+            body: JSON.stringify({ id: `cierre_${t.id}_${ayer}`, tienda_id: t.id, tipo: 'cierre_diario', canal: 'email', destinatario: t.email, ref_tipo: 'tienda', ref_id: t.id, asunto: 'Cierre ' + ayer, estado: 'enviado', fecha: new Date().toISOString() }) });
+          if (!_apR.ok) throw new Error('ya enviado o sin apuntar (' + _apR.status + ')');
           const noReemb = (ventas || []).filter((v) => !v.reembolsado);
           const totV = noReemb.reduce((s, v) => s + Number(v.total || 0), 0);
           const totR = (pagos || []).reduce((s, p) => s + Number(p.importe || 0), 0);

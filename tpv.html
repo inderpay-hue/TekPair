@@ -263,7 +263,7 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .vl-t:focus-visible{outline:2px solid var(--t-acc);outline-offset:2px}
 .vl-aux{color:var(--t-ink2);font-size:17px}
 </style>
-<script src="/lang/lang.v8.js?v=20261019o"></script>
+<script src="/lang/lang.v8.js?v=20261019p"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -813,6 +813,18 @@ function _tpvEncolar(method, table, data, query) {
   if (i >= 0) { if (method === 'PATCH') op.data = Object.assign({}, q[i].data, data); q[i] = op; } else q.push(op);
   _tpvColaSet(q);
 }
+// Resta en la nube con la función ajustar_stock (dos cajas vendiendo lo mismo no se pisan).
+// Sin la función todavía creada, el método antiguo; sin conexión, a la cola.
+function _tpvStockDelta(st, delta) {
+  var datos = { p_id: st.id, p_delta: delta, p_min: 0 };
+  fetch(SUPABASE_URL + '/rest/v1/rpc/ajustar_stock', { method: 'POST', headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json'}, body: JSON.stringify(datos) })
+    .then(function(r) {
+      if (r.ok) return r.json().then(function(rows) { var x = Array.isArray(rows) ? rows[0] : rows; if (x && x.unidades != null) { st.unidades = parseInt(x.unidades, 10) || 0; st.vendido = !!x.vendido; _tpvGuardar(); } });
+      if (r.status === 404) return sbPatch('stock', 'id=eq.' + encodeURIComponent(st.id), { unidades: st.unidades, vendido: !!st.vendido });
+      if (_tpvReintentable(r.status)) _tpvEncolar('POST', 'rpc/ajustar_stock', datos);
+      else _sbErrorToast('POST', 'stock', { status: r.status });
+    }, function() { _tpvEncolar('POST', 'rpc/ajustar_stock', datos); });
+}
 var _tpvReintentando = false;
 function _tpvReintentar() {
   if (_tpvReintentando || !SB_KEY || !navigator.onLine) return;
@@ -972,7 +984,10 @@ function pullStockTPV() {
     if (!Array.isArray(rows)) return;
     // Lo que se ha vendido aquí y aún está en la cola (sin conexión) manda sobre la nube.
     var pend = {};
-    _tpvColaGet().forEach(function(op) { if (op.table === 'stock' && op.method === 'PATCH') { var m = /id=eq\.([^&]+)/.exec(op.query || ''); if (m) pend[decodeURIComponent(m[1])] = 1; } });
+    _tpvColaGet().forEach(function(op) {
+      if (op.table === 'stock' && op.method === 'PATCH') { var m = /id=eq\.([^&]+)/.exec(op.query || ''); if (m) pend[decodeURIComponent(m[1])] = 1; }
+      if (op.table === 'rpc/ajustar_stock' && op.data && op.data.p_id) pend[op.data.p_id] = 1;
+    });
     var antes = {};
     (DB.stock || []).forEach(function(x) { antes[x.id] = x; });
     DB.stock = rows.map(function(s) {
@@ -2187,12 +2202,7 @@ function cobrar() {
         s.unidades = Math.max(0, s.unidades - item.qty);
         if (s.unidades === 0) s.vendido = true;
         // FIX TPV-1: sincronizar con Supabase para que no quede inconsistente
-        if (SB_KEY && TIENDA_ID) {
-          sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), {
-            unidades: s.unidades,
-            vendido: s.vendido
-          });
-        }
+        if (SB_KEY && TIENDA_ID) _tpvStockDelta(s, -item.qty);
         // F285: dejar constancia de la salida en el log de movimientos
         _tpvLogSalida(item.nombre, item.qty, s.id, venta.clienteNombre);
         // Comprado a un particular: el registro apunta a quién y cuándo se vendió.
