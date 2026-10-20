@@ -972,8 +972,8 @@
       }
     }
 
-    // Cobrado hoy de pendientes de otros días: ese dinero está en el cajón (igual que el servidor).
-    const cobrosDia = Number(Estado.cierreEditando.cobros_dia || 0);
+    // Lo cobrado de pendientes ya no cuenta en el teórico del día del cobro (ver api/cajas.js)
+    const cobrosDia = 0;
     const htmlCobrosDia = cobrosDia > 0
       ? `<div class="item" style="grid-column:1/-1;background:#dcfce7;padding:6px 10px;border-radius:6px;margin-top:4px;"><span class="label" style="color:#166534;">${T('cajas.cobros_dia')}</span><span style="color:#166534;font-weight:600;">+${eur(cobrosDia)}</span></div>`
       : '';
