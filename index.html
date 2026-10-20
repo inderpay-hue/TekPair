@@ -93,13 +93,6 @@
           }
         }
       ],
-      "aggregateRating": {
-        "@type": "AggregateRating",
-        "ratingValue": "4.9",
-        "ratingCount": "127",
-        "bestRating": "5",
-        "worstRating": "1"
-      },
       "featureList": [
         "Gestión de ventas y TPV",
         "Órdenes de reparación con seguimiento",
@@ -229,8 +222,9 @@ nav{position:fixed;top:0;left:0;right:0;background:rgba(14,14,16,.92);backdrop-f
 /* HERO */
 .hero{padding:114px 0 80px;position:relative}
 .hero-grid{display:grid;grid-template-columns:1.05fr 1fr;gap:48px;align-items:center}
-.hero h1{font-family:var(--display);font-size:52px;line-height:1.02;letter-spacing:-.035em;font-weight:600;margin:22px 0 18px}
-.hero h1 .rotator{display:inline-block;color:var(--orange);transition:opacity .3s,transform .3s;min-width:60px}
+.hero h1{font-family:var(--display);font-size:46px;line-height:1.05;letter-spacing:-.035em;font-weight:600;margin:22px 0 12px}
+.hero .slogan{font-family:var(--display);font-size:28px;line-height:1.15;letter-spacing:-.02em;font-weight:600;margin:0 0 18px}
+.hero .slogan .rotator{display:inline-block;color:var(--orange);transition:opacity .3s,transform .3s;min-width:60px}
 .hero p.sub{font-size:17px;line-height:1.6;color:var(--muted);margin-bottom:28px;max-width:420px}
 .hero-btns{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
 .btn-primary{background:var(--orange);color:#fff;padding:14px 26px;border-radius:11px;font-weight:600;font-size:15px;display:inline-flex;align-items:center;gap:8px;transition:transform .15s,box-shadow .15s}
@@ -317,7 +311,7 @@ nav{position:fixed;top:0;left:0;right:0;background:rgba(14,14,16,.92);backdrop-f
 .sticky-cta{display:none}
 @media(max-width:860px){
 .hero-grid,.wrap [style*="repeat(3,1fr)"],.wrap [style*="repeat(4,1fr)"]{grid-template-columns:1fr!important}
-.hero h1{font-size:38px}
+.hero h1{font-size:34px}.hero .slogan{font-size:22px}
 .hide-mobile{display:none}
 footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 .sticky-cta{display:flex;position:fixed;bottom:0;left:0;right:0;z-index:90;background:rgba(14,14,16,.97);backdrop-filter:blur(10px);padding:12px 16px;gap:10px;border-top:1px solid rgba(255,255,255,.12)}
@@ -352,7 +346,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 .live-dot,.eyebrow .dot{animation:none}
 }
 </style>
-<script src="/landing-i18n.v2.js?v=nov20261004a"></script>
+<script src="/landing-i18n.v2.js?v=20261021a"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -398,7 +392,8 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
     <div class="hero-grid">
       <div class="hero-left">
         <div class="eyebrow" data-i18n="hero.eyebrow"><span class="dot"></span> Hecho para talleres de reparación</div>
-        <h1><span data-i18n="hero.adios">Adiós</span> <span class="rotator" id="heroRotator">Excel.</span> <br><span data-i18n="hero.hola">Hola TekPair.</span></h1>
+        <h1 data-i18n="hero.h1">Software para tiendas de reparación de móviles</h1>
+        <p class="slogan"><span data-i18n="hero.adios">Adiós</span> <span class="rotator" id="heroRotator">Excel.</span> <br><span data-i18n="hero.hola">Hola TekPair.</span></p>
         <p class="sub" data-i18n="hero.subtitle">El software más sencillo para tiendas de reparación de móviles. Reparaciones por IMEI, TPV, stock, clientes y citas — todo desde tu móvil, tablet u ordenador.</p>
         <div class="hero-btns">
           <a href="/registro.html" class="btn-primary" data-i18n="hero.cta1">Prueba 15 días <span>→</span></a>
@@ -440,10 +435,10 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 <section style="background:var(--ink);padding:32px 0">
   <div class="wrap">
     <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:24px;text-align:center">
-      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:#fff;letter-spacing:-.02em">500+</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.shops">Tiendas activas</div></div>
-      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:#fff;letter-spacing:-.02em">28K</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.repairs">Reparaciones gestionadas</div></div>
-      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:var(--orange);letter-spacing:-.02em">99%</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.uptime">Disponibilidad</div></div>
-      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:#fff;letter-spacing:-.02em">4,9</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.rating">Valoración media</div></div>
+      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:var(--orange);letter-spacing:-.02em" data-i18n="stats.trial_v">15 días</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.trial">de prueba gratis</div></div>
+      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:#fff;letter-spacing:-.02em" data-i18n="stats.setup_v">3 min</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.setup">para empezar a usarlo</div></div>
+      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:#fff;letter-spacing:-.02em" data-i18n="stats.eu_v">UE</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.eu">datos en servidores europeos</div></div>
+      <div><div class="stat-item-val mono" style="font-size:30px;font-weight:500;color:#fff;letter-spacing:-.02em" data-i18n="stats.nocommit_v">0 €</div><div style="font-size:12px;color:rgba(255,255,255,.5);margin-top:4px" data-i18n="stats.nocommit">sin permanencia ni costes ocultos</div></div>
     </div>
   </div>
 </section>
@@ -560,7 +555,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
   <div class="wrap" style="text-align:center">
     <div class="eyebrow" data-i18n="pricing.tag">Precios</div>
     <h2 style="font-family:var(--display);font-size:36px;font-weight:600;letter-spacing:-.03em;margin:14px 0 10px" data-i18n="pricing.title">Planes simples y transparentes</h2>
-    <p style="font-size:16px;color:var(--muted);margin:0 auto" data-i18n="pricing.sub">Sin costes ocultos. Cancela cuando quieras. IVA no incluido.</p>
+    <p style="font-size:16px;color:var(--muted);margin:0 auto" data-i18n="pricing.sub">Sin costes ocultos. Cancela cuando quieras. IVA incluido.</p>
   </div>
   <div class="wrap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px;margin-top:44px;align-items:start">
     <div class="price-card reveal">
@@ -611,28 +606,13 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
   </div>
 </section>
 
-<!-- TESTIMONIALS -->
-<section class="testimonios" style="padding:88px 0;background:var(--paper-2)">
+<!-- TESTIMONIOS REALES: pendiente de permiso de clientes -->
+<section class="testimonios" style="display:none;padding:88px 0;background:var(--paper-2)">
   <div class="wrap" style="text-align:center">
     <div class="eyebrow" data-i18n="test.tag">Testimonios</div>
     <h2 style="font-family:var(--display);font-size:36px;font-weight:600;letter-spacing:-.03em;margin:14px 0 44px" data-i18n="test.title">Lo que dicen nuestros clientes</h2>
   </div>
   <div class="wrap" style="display:grid;grid-template-columns:repeat(3,1fr);gap:18px">
-    <div class="test-card reveal">
-      <div class="test-stars">★★★★★</div>
-      <p class="test-text" data-i18n="test1.text">"Desde que uso Tekpair tengo todo controlado. Las reparaciones, el stock, las ventas... todo en un sitio. Ahorro 2 horas al día."</p>
-      <div class="test-author"><div class="test-av">RT</div><div class="test-role" data-i18n="test1.role">Reparaciones Torres, Madrid</div></div>
-    </div>
-    <div class="test-card reveal">
-      <div class="test-stars">★★★★★</div>
-      <p class="test-text" data-i18n="test2.text">"El sistema de permisos para empleados es perfecto. Cada uno ve solo lo que necesita. Muy profesional."</p>
-      <div class="test-author"><div class="test-av">PS</div><div class="test-role" data-i18n="test2.role">PhoneShop, Barcelona</div></div>
-    </div>
-    <div class="test-card reveal">
-      <div class="test-stars">★★★★★</div>
-      <p class="test-text" data-i18n="test3.text">"El reporte diario por email es increíble. Al cerrar la tienda ya tengo el resumen en el móvil. Imprescindible."</p>
-      <div class="test-author"><div class="test-av">MF</div><div class="test-role" data-i18n="test3.role">Mobile Fix, Valencia</div></div>
-    </div>
   </div>
 </section>
 
@@ -669,7 +649,7 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 <section class="cta grid-bg" style="padding:88px 0;background:var(--ink);text-align:center;position:relative">
   <div class="wrap">
     <h2 style="font-family:var(--display);font-size:40px;font-weight:600;letter-spacing:-.03em;color:#fff;margin-bottom:14px" data-i18n="cta.title">¿Listo para transformar tu tienda?</h2>
-    <p style="font-size:17px;color:rgba(255,255,255,.6);margin-bottom:32px" data-i18n="cta.sub">Únete a más de 500 tiendas que ya gestionan su negocio con Tekpair</p>
+    <p style="font-size:17px;color:rgba(255,255,255,.6);margin-bottom:32px" data-i18n="cta.sub">Pruébalo 15 días en tu tienda. Sin permanencia.</p>
     <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
       <a href="/registro.html" class="btn-primary" data-i18n="cta.btn1">Prueba gratis 15 días</a>
       <a href="/app.html" style="color:#fff;padding:14px 22px;border-radius:11px;font-weight:600;font-size:15px;border:1px solid rgba(255,255,255,.2)" data-i18n="cta.btn2">Acceder</a>
