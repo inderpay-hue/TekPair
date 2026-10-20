@@ -1234,7 +1234,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261019x"></script>
+<script src="/lang/lang.v8.js?v=20261020b"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -5237,7 +5237,8 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   <div class="modal-title"><span data-t="usados.modal_titulo">Comprar un teléfono a un particular</span></div>
   <div style="font-size:12px;color:var(--muted);margin:-4px 0 10px" data-t="usados.modal_hint">Se guarda el contrato firmado, se anota en el registro y el teléfono entra en el stock con lo que has pagado como coste.</div>
 
-  <div class="fl" style="font-weight:800;margin:6px 0" data-t="usados.sec_telefono">Teléfono</div>
+  <div id="cuTelLista" style="display:none;margin-bottom:10px"></div>
+  <div class="fl" style="font-weight:800;margin:6px 0" id="cuTelTitulo" data-t="usados.sec_telefono">Teléfono</div>
   <div class="fi-row">
     <div class="fg"><label class="fl">IMEI *</label><input class="fi" id="cuImei" inputmode="numeric" autocomplete="off"></div>
     <div class="fg"><label class="fl" data-t="usados.imei2">IMEI 2 (dual SIM)</label><input class="fi" id="cuImei2" inputmode="numeric" autocomplete="off"></div>
@@ -5262,6 +5263,17 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       </select></div>
   </div>
   <div class="fg"><label class="fl" data-t="usados.notas">Observaciones (golpes, piezas cambiadas, batería…)</label><input class="fi" id="cuNotas"></div>
+  <div class="fi-row">
+    <div class="fg"><label class="fl"><span data-t="usados.precio">Precio pagado</span> *</label><input class="fi" id="cuPrecio" type="number" step="0.01" min="0"></div>
+    <div class="fg"><label class="fl" data-t="usados.precio_venta">Precio de venta previsto</label><input class="fi" id="cuPrecioV" type="number" step="0.01" min="0"></div>
+  </div>
+  <div class="fl" data-t="usados.fotos_tel">Fotos del teléfono</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+    <label class="btn-sm" style="cursor:pointer;background:white;border:1px solid var(--border);color:var(--text)"><span data-t="usados.subir_fotos">📷 Subir fotos</span><input type="file" id="cuTelFile" accept="image/*" multiple style="display:none" onchange="cuSubirArchivos(this,'tel')"></label>
+    <button type="button" class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="cuAbrirQR('tel')" data-t="usados.con_movil">📱 Con el móvil</button>
+  </div>
+  <div id="cuTelFotos" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+  <button type="button" class="btn-sm" style="width:100%;background:var(--blue);color:white;padding:9px;margin:2px 0 6px" onclick="cuAnadirOtro()" data-t="usados.anadir_otro">➕ Añadir otro teléfono de este vendedor</button>
 
   <div class="fl" style="font-weight:800;margin:10px 0 6px" data-t="usados.sec_vendedor">Vendedor</div>
   <div class="fi-row">
@@ -5274,13 +5286,18 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     <div class="fg"><label class="fl" data-t="usados.telefono">Teléfono</label><input class="fi" id="cuTel" type="tel" autocomplete="off"></div>
     <div class="fg"><label class="fl" data-t="usados.email">Email</label><input class="fi" id="cuEmail" type="email" autocomplete="off"></div>
   </div>
+  <div class="fl" data-t="usados.doc_fotos">Foto o escaneo del documento</div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:6px">
+    <label class="btn-sm" style="cursor:pointer;background:white;border:1px solid var(--border);color:var(--text)"><span data-t="usados.subir_archivo">📎 Subir foto o escaneo</span><input type="file" id="cuDocFile" accept="image/*,application/pdf" multiple style="display:none" onchange="cuSubirArchivos(this,'dni')"></label>
+    <button type="button" class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="cuAbrirQR('dni')" data-t="usados.con_movil">📱 Con el móvil</button>
+  </div>
+  <div id="cuDocFotos" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
 
   <div class="fl" style="font-weight:800;margin:10px 0 6px" data-t="usados.sec_pago">Pago</div>
   <div class="fi-row">
-    <div class="fg"><label class="fl"><span data-t="usados.precio">Precio pagado</span> *</label><input class="fi" id="cuPrecio" type="number" step="0.01" min="0"></div>
     <div class="fg"><label class="fl" data-t="usados.metodo">Forma de pago</label>
       <select class="fi" id="cuMetodo"><option value="efectivo" data-t="usados.met_efectivo">Efectivo</option><option value="transferencia" data-t="usados.met_transferencia">Transferencia</option><option value="bizum" data-t="usados.met_bizum">Bizum / pago móvil</option><option value="otro" data-t="usados.met_otro">Otro</option></select></div>
-    <div class="fg"><label class="fl" data-t="usados.precio_venta">Precio de venta previsto</label><input class="fi" id="cuPrecioV" type="number" step="0.01" min="0"></div>
+    <div class="fg"><label class="fl" data-t="usados.total">Total a pagar</label><div id="cuTotal" style="font-weight:800;font-size:17px;padding:8px 0">—</div></div>
   </div>
 
   <div class="fl" style="font-weight:800;margin:10px 0 6px" data-t="usados.sec_declara">El vendedor declara</div>
@@ -5296,9 +5313,21 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   </div>
 
   <div class="modal-actions">
-    <button class="btn-secondary" onclick="closeM('mCompraUsado')" data-t="gen.cancelar">Cancelar</button>
+    <button class="btn-secondary" onclick="cancelarCompraUsado()" data-t="gen.cancelar">Cancelar</button>
     <button class="btn-primary" id="cuGuardarBtn" onclick="guardarCompraUsado()"><span data-t="usados.guardar">Guardar y firmar contrato</span></button>
   </div>
+</div>
+</div>
+
+<!-- FOTOS DE UNA COMPRA DE USADO CON EL MÓVIL (QR) -->
+<div class="modal-bg" id="mUsadoQR">
+<div class="modal" style="max-width:380px;text-align:center">
+  <div class="modal-title" style="justify-content:center"><span id="uqTitulo"></span></div>
+  <div style="font-size:12.5px;color:var(--muted);margin-bottom:10px" data-t="usados.qr_hint">Escanea el código con la cámara del móvil y haz las fotos. Aparecen aquí solas.</div>
+  <div id="uqQR" style="display:flex;justify-content:center;min-height:200px;align-items:center"></div>
+  <div id="uqExp" style="font-size:11.5px;color:var(--muted);margin:6px 0"></div>
+  <div id="uqFotos" style="display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin:8px 0"></div>
+  <button class="btn-primary" style="width:100%" onclick="cuCerrarQR()" data-t="usados.listo">Listo</button>
 </div>
 </div>
 
@@ -5307,6 +5336,12 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <div class="modal">
   <div class="modal-title"><span id="uvTitulo"></span></div>
   <div id="uvCuerpo" style="font-size:13px;line-height:1.55"></div>
+  <div id="uvFotosBox" style="display:none;margin-top:8px">
+    <div id="uvDocLbl" class="fl" data-t="usados.doc_fotos">Foto o escaneo del documento</div>
+    <div id="uvDocFotos" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px"></div>
+    <div id="uvTelLbl" class="fl" data-t="usados.fotos_tel">Fotos del teléfono</div>
+    <div id="uvTelFotos" style="display:flex;gap:6px;flex-wrap:wrap"></div>
+  </div>
   <div id="uvAnularBox" style="display:none;margin-top:10px">
     <label class="fl" data-t="usados.anular_motivo">Motivo de la anulación</label>
     <input class="fi" id="uvMotivo" data-t-ph="usados.anular_ph" placeholder="Ej.: error en el IMEI, se rehace el contrato">
@@ -5677,7 +5712,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261016b"></script>
-<script src="/js/dash-app.js?v=20261019z"></script>
+<script src="/js/dash-app.js?v=20261020b"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

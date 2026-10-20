@@ -5,6 +5,7 @@
 // Rate limit distribuido vía api/_lib/ratelimit.js (Upstash + fallback en memoria): 60 reqs/min/IP.
 import { rateLimit } from './_lib/ratelimit.js';
 import crypto from 'crypto';
+import jwt from 'jsonwebtoken';
 
 function getClientIp(req) {
   const xff = req.headers['x-forwarded-for'];
@@ -40,6 +41,8 @@ export default async function handler(req, res) {
     if (action === 'aceptar-condiciones') return aceptarCondiciones(req, res, ip);
     if (action === 'foto-token') return fotoToken(req, res);
     if (action === 'foto-subir') return fotoSubir(req, res);
+    if (action === 'usado-token') return usadoToken(req, res);
+    if (action === 'usado-subir') return usadoSubir(req, res);
     if (action === 'firma-token') return firmaToken(req, res);
     if (action === 'firma-datos') return firmaDatos(req, res);
     if (action === 'firma-guardar') return firmaGuardar(req, res, ip);
@@ -292,6 +295,74 @@ async function fotoToken(req, res) {
     const sig = _fotoFirma(id, exp, SERVICE_KEY);
     return res.status(200).json({ ok: true, id, exp, sig, ttl_min: Math.round(FOTO_TTL_MS / 60000) });
   } catch (e) { console.error('[foto-token]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
+}
+
+// ═══ COMPRA DE USADOS: fotos del documento del vendedor y del teléfono por QR ═══
+// La compra aún no existe cuando se hacen las fotos (se guarda al firmar), así que el permiso
+// no va atado a una fila sino a una carpeta de esta tienda: <tienda>/usados/<s>/.
+// El PC lo pide con su sesión (JWT); el móvil sube con el permiso firmado y caduco; el PC
+// lista la carpeta y se queda con lo nuevo. sig = HMAC(SERVICE_KEY, usado:tienda:s:exp).
+const USADO_S_RE = /^[0-9a-f]{16}$/;
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const USADO_MAX_FICHEROS = 40;            // por compra (varios teléfonos + documento)
+function _usadoFirma(t, s, exp, secret) {
+  return crypto.createHmac('sha256', secret).update('usado:' + t + ':' + s + ':' + exp).digest('hex');
+}
+function _usadoFirmaOk(t, s, exp, sig, secret) {
+  if (!/^[0-9a-f]{64}$/i.test(String(sig || ''))) return false;
+  const esperado = _usadoFirma(t, s, exp, secret);
+  try { return crypto.timingSafeEqual(Buffer.from(esperado, 'hex'), Buffer.from(String(sig).toLowerCase(), 'hex')); } catch (e) { return false; }
+}
+
+// POST ?action=usado-token  (Authorization: Bearer <JWT de la tienda>)  body {s?}
+async function usadoToken(req, res) {
+  const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY, JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
+  if (!SERVICE_KEY || !JWT_SECRET) return res.status(500).json({ error: 'Servidor no configurado' });
+  const auth = String(req.headers.authorization || '');
+  let payload = null;
+  try { payload = jwt.verify(auth.startsWith('Bearer ') ? auth.slice(7) : '', JWT_SECRET, { algorithms: ['HS256'] }); } catch (e) { payload = null; }
+  const t = payload && payload.tienda_id;
+  if (!t || !UUID_RE.test(String(t))) return res.status(401).json({ error: 'no autorizado' });
+  let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  body = body || {};
+  // Se puede pedir otra vez para la misma compra (QR caducado): misma carpeta.
+  const s = USADO_S_RE.test(String(body.s || '')) ? String(body.s) : crypto.randomBytes(8).toString('hex');
+  const exp = Date.now() + FOTO_TTL_MS;
+  return res.status(200).json({ ok: true, t, s, exp, sig: _usadoFirma(t, s, exp, SERVICE_KEY), ttl_min: Math.round(FOTO_TTL_MS / 60000) });
+}
+
+// POST ?action=usado-subir  body {t,s,exp,sig,k:'dni'|'tel',foto(dataURL)}
+async function usadoSubir(req, res) {
+  let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
+  body = body || {};
+  const t = String(body.t || ''), s = String(body.s || ''), exp = parseInt(body.exp, 10), k = body.k === 'dni' ? 'dni' : 'tel';
+  if (!UUID_RE.test(t) || !USADO_S_RE.test(s) || !Number.isInteger(exp)) return res.status(400).json({ error: 'Formato invalido' });
+  const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
+  if (!SUPABASE_URL || !SERVICE_KEY) return res.status(500).json({ error: 'Servidor no configurado' });
+  if (Date.now() > exp) return res.status(403).json({ error: 'caducado' });
+  if (!_usadoFirmaOk(t, s, exp, body.sig, SERVICE_KEY)) return res.status(403).json({ error: 'no autorizado' });
+  let b64 = String(body.foto || '');
+  const m = b64.match(/^data:image\/[a-z+.-]+;base64,(.+)$/i);
+  if (m) b64 = m[1];
+  let buf; try { buf = Buffer.from(b64, 'base64'); } catch (e) { buf = null; }
+  if (!buf || buf.length < 100) return res.status(400).json({ error: 'Foto invalida' });
+  if (buf.length > FOTO_MAX_BYTES) return res.status(413).json({ error: 'Foto demasiado grande' });
+  const hdrs = { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` };
+  const carpeta = `${t}/usados/${s}/`;
+  try {
+    const lr = await fetch(`${SUPABASE_URL}/storage/v1/object/list/gastos-adjuntos`, {
+      method: 'POST', headers: { ...hdrs, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prefix: carpeta.slice(0, -1), limit: 100, offset: 0 })
+    });
+    const lista = lr.ok ? await lr.json() : [];
+    if (Array.isArray(lista) && lista.filter((o) => /^(dni|tel)_/.test(o.name || '')).length >= USADO_MAX_FICHEROS) return res.status(409).json({ error: 'limite' });
+    const path = `${carpeta}${k}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}.jpg`;
+    const upR = await fetch(`${SUPABASE_URL}/storage/v1/object/gastos-adjuntos/${path}`, {
+      method: 'POST', headers: { ...hdrs, 'Content-Type': 'image/jpeg', 'x-upsert': 'true' }, body: buf
+    });
+    if (!upR.ok) { const t2 = await upR.text().catch(() => ''); console.error('[usado-subir] storage', upR.status, t2.slice(0, 200)); return res.status(502).json({ error: 'No se pudo subir' }); }
+    return res.status(200).json({ ok: true });
+  } catch (e) { console.error('[usado-subir]', e?.message || e); return res.status(500).json({ error: 'Error del servidor' }); }
 }
 
 // POST ?action=foto-subir  body {id,exp,sig,foto(dataURL)}  → sube al Storage + añade a fotos_recepcion

@@ -24205,23 +24205,248 @@ function _usMetodoTxt(k) { var t = T('usados.met_' + k); return (t && t !== 'usa
 function _usTelefono(c) { return [c.marca, c.modelo, c.capacidad, c.color].filter(Boolean).join(' '); }
 
 // ── Formulario de compra ──
+// Se pueden comprar varios teléfonos al mismo vendedor: cada uno se anota en el registro y
+// entra en stock por separado (lote_id los une), pero firman un solo contrato y el pago a caja
+// sale en un solo gasto. El documento del vendedor (foto o escaneo) y las fotos de cada
+// teléfono se suben desde el PC o con el móvil por QR (api/parte usado-token / usado-subir).
+var _CU = { tels: [], fotos: [], doc: [], s: null, qrK: null, timer: null, vistos: {} };
+var _CU_TEL = ['cuImei', 'cuImei2', 'cuCat', 'cuMarca', 'cuModelo', 'cuCapacidad', 'cuColor', 'cuEstado', 'cuNotas', 'cuPrecio', 'cuPrecioV'];
+
 function abrirCompraUsado() {
   if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
-  ['cuImei', 'cuImei2', 'cuMarca', 'cuModelo', 'cuCapacidad', 'cuColor', 'cuNotas', 'cuNombre', 'cuDoc', 'cuDir', 'cuTel', 'cuEmail', 'cuPrecio', 'cuPrecioV']
+  _CU = { tels: [], fotos: [], doc: [], s: null, qrK: null, timer: null, vistos: {} };
+  ['cuNombre', 'cuDoc', 'cuDir', 'cuTel', 'cuEmail']
     .forEach(function (k) { var el = document.getElementById(k); if (el) { el.value = ''; el.classList.remove('error'); } });
-  document.getElementById('cuCat').value = 'Telefono';
-  document.getElementById('cuEstado').value = 'bueno';
+  _cuPonerTel(null);
   document.getElementById('cuMetodo').value = 'efectivo';
   ['cuDecl1', 'cuDecl2', 'cuDecl3'].forEach(function (k) { document.getElementById(k).checked = false; });
   var docs = String(_usCfg().docs || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
   document.getElementById('cuDocList').innerHTML = docs.map(function (d) { return '<option value="' + esc(d) + '">'; }).join('');
   document.getElementById('cuDocTipo').value = docs[0] || '';
-  var av = document.getElementById('cuImeiAviso'); av.style.display = 'none'; av.textContent = '';
   var btn = document.getElementById('cuGuardarBtn'); if (btn) btn.disabled = false;
+  _cuPintarLista();
+  _cuPintarFotos('cuDocFotos', _CU.doc, 'dni');
   openM('mCompraUsado');
   var imp = document.getElementById('cuImei');
   if (imp && !imp._tkUsado) { imp._tkUsado = true; imp.addEventListener('input', _cuAvisoImei); }
+  var pr = document.getElementById('cuPrecio');
+  if (pr && !pr._tkUsado) { pr._tkUsado = true; pr.addEventListener('input', _cuPintarTotal); }
   _iniciarFirmaUsado();
+}
+
+function _cuLeerTel() {
+  var t = {};
+  _CU_TEL.forEach(function (k) { var el = document.getElementById(k); t[k] = el ? String(el.value || '').trim() : ''; });
+  t.fotos = _CU.fotos.slice();
+  return t;
+}
+function _cuPonerTel(t) {
+  _CU_TEL.forEach(function (k) { var el = document.getElementById(k); if (!el) return; el.value = t ? (t[k] || '') : ''; el.classList.remove('error'); });
+  if (!t) { document.getElementById('cuCat').value = 'Telefono'; document.getElementById('cuEstado').value = 'bueno'; }
+  _CU.fotos = t ? (t.fotos || []).slice() : [];
+  _cuPintarFotos('cuTelFotos', _CU.fotos, 'tel');
+  _cuAvisoImei();
+  _cuPintarTotal();
+}
+function _cuTelVacio(t) { return !t.cuImei && !t.cuImei2 && !t.cuMarca && !t.cuModelo && !t.cuPrecio && !t.fotos.length; }
+// Valida el teléfono que está en los campos; marca en rojo lo que falta y devuelve sus nombres.
+function _cuValidarTel(t) {
+  var faltan = [];
+  [['cuImei', 'IMEI'], ['cuMarca', T('rep.marca')], ['cuModelo', T('rep.modelo')]].forEach(function (f) {
+    if (!t[f[0]]) { document.getElementById(f[0]).classList.add('error'); faltan.push(f[1]); }
+  });
+  if (!((parseFloat(t.cuPrecio) || 0) > 0)) { document.getElementById('cuPrecio').classList.add('error'); faltan.push(T('usados.precio')); }
+  if (faltan.length) { toast(T('stock.faltan') + ': ' + faltan.join(', '), 'err'); return false; }
+  var d = _usDigitos(t.cuImei);
+  if (d.length === 15 && typeof tkImeiValido === 'function' && !tkImeiValido(d)) { document.getElementById('cuImei').classList.add('error'); toast(T('imei.no_valido'), 'err'); return false; }
+  var repe = _CU.tels.some(function (x) { return _usDigitos(x.cuImei).slice(0, 14) === d.slice(0, 14); });
+  if (repe) { document.getElementById('cuImei').classList.add('error'); toast(T('usados.imei_repetido'), 'err'); return false; }
+  return true;
+}
+function cuAnadirOtro() {
+  document.querySelectorAll('#mCompraUsado .fi.error').forEach(function (el) { el.classList.remove('error'); });
+  var t = _cuLeerTel();
+  if (!_cuValidarTel(t)) return;
+  _CU.tels.push(t);
+  _cuPonerTel(null);
+  _cuPintarLista();
+  toast(T('usados.tel_anadido'), 'ok');
+  try { document.getElementById('cuTelTitulo').scrollIntoView({ block: 'start', behavior: 'smooth' }); document.getElementById('cuImei').focus(); } catch (e) {}
+}
+function cuEditarTel(i) {
+  var t = _CU.tels.splice(i, 1)[0]; if (!t) return;
+  document.querySelectorAll('#mCompraUsado .fi.error').forEach(function (el) { el.classList.remove('error'); });
+  var cur = _cuLeerTel();
+  if (!_cuTelVacio(cur)) {
+    if (!_cuValidarTel(cur)) { _CU.tels.splice(i, 0, t); return; }
+    _CU.tels.push(cur);
+  }
+  _cuPonerTel(t);
+  _cuPintarLista();
+}
+function cuQuitarTel(i) {
+  var t = _CU.tels.splice(i, 1)[0]; if (!t) return;
+  (t.fotos || []).forEach(_repFotoQuitarStorage);
+  _cuPintarLista();
+}
+function _cuPintarLista() {
+  var box = document.getElementById('cuTelLista'); if (!box) return;
+  var n = _CU.tels.length;
+  var tit = document.getElementById('cuTelTitulo');
+  if (tit) tit.textContent = T('usados.sec_telefono') + (n ? ' ' + (n + 1) : '');
+  if (!n) { box.style.display = 'none'; box.innerHTML = ''; _cuPintarTotal(); return; }
+  box.style.display = 'block';
+  box.innerHTML = '<div class="fl" style="font-weight:800;margin:0 0 6px">' + esc(T('usados.tels_lista').replace('{n}', n)) + '</div>' +
+    _CU.tels.map(function (t, i) {
+      return '<div style="display:flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:10px;padding:8px 10px;margin-bottom:6px">' +
+        '<div style="flex:1;min-width:0"><div style="font-weight:700">' + (i + 1) + '. ' + esc([t.cuMarca, t.cuModelo, t.cuCapacidad, t.cuColor].filter(Boolean).join(' ')) + '</div>' +
+        '<div style="font-size:12px;color:var(--muted)">IMEI ' + esc(t.cuImei) + (t.fotos.length ? ' · 📷 ' + t.fotos.length : '') + '</div></div>' +
+        '<div style="font-weight:800;white-space:nowrap">' + cur(parseFloat(t.cuPrecio) || 0) + '</div>' +
+        '<button type="button" class="btn-sm" onclick="cuEditarTel(' + i + ')" title="' + esc(T('gen.editar')) + '">✏️</button>' +
+        '<button type="button" class="btn-sm" style="color:var(--red)" onclick="cuQuitarTel(' + i + ')" title="' + esc(T('usados.quitar')) + '">✕</button>' +
+      '</div>';
+    }).join('');
+  _cuPintarTotal();
+}
+function _cuPintarTotal() {
+  var el = document.getElementById('cuTotal'); if (!el) return;
+  var s = _CU.tels.reduce(function (a, t) { return a + (parseFloat(t.cuPrecio) || 0); }, 0) + (parseFloat((document.getElementById('cuPrecio') || {}).value) || 0);
+  el.textContent = s > 0 ? cur(Math.round(s * 100) / 100) : '—';
+}
+
+// ── Fotos: documento del vendedor ('dni') y del teléfono que se está rellenando ('tel') ──
+async function _usSubirArchivo(file) {
+  if (!SB_KEY || !TIENDA_ID) { toast(T('foto.sin_conexion'), 'err'); return null; }
+  try {
+    var esPdf = file.type === 'application/pdf';
+    if (!esPdf && !/^image\//.test(file.type || '')) return null;
+    if (esPdf && file.size > 5 * 1024 * 1024) { toast(T('usados.archivo_grande'), 'err'); return null; }
+    var blob = esPdf ? file : await comprimirImagen(file, 1600, 0.8);
+    await _storageEnsure();
+    if ((STORAGE_USADO + blob.size) > _storageLimite()) {
+      toast(T('foto.cuota_llena').replace('{u}', _fmtMB(STORAGE_USADO)).replace('{l}', _fmtMB(_storageLimite())), 'err');
+      return null;
+    }
+    var mime = esPdf ? 'application/pdf' : (blob.type || 'image/jpeg');
+    var ext = esPdf ? 'pdf' : (mime === 'image/webp' ? 'webp' : 'jpg');
+    var path = TIENDA_ID + '/usados/' + Date.now() + '_' + Math.random().toString(36).slice(2, 7) + '.' + ext;
+    var resp = await sbStorageUpload('gastos-adjuntos', path, new Blob([blob], { type: mime }));
+    if (!resp.ok) { toast(T('foto.error_subir'), 'err'); return null; }
+    _fotoSizes[path] = blob.size;
+    STORAGE_USADO += blob.size;
+    try { sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { storage_usado_bytes: STORAGE_USADO }); } catch (e) {}
+    return path;
+  } catch (e) { console.error('_usSubirArchivo', e); toast(T('foto.error_subir'), 'err'); return null; }
+}
+async function cuSubirArchivos(inp, k) {
+  var files = Array.prototype.slice.call(inp.files || []);
+  inp.value = '';
+  var lista = (k === 'dni') ? _CU.doc : _CU.fotos, cont = (k === 'dni') ? 'cuDocFotos' : 'cuTelFotos';
+  if (files.length) toast(T('usados.subiendo'), 'ok');
+  for (var i = 0; i < files.length; i++) {
+    var p = await _usSubirArchivo(files[i]);
+    if (p) { lista.push(p); _cuPintarFotos(cont, lista, k); }
+  }
+}
+function cuQuitarFoto(k, i) {
+  var lista = (k === 'dni') ? _CU.doc : _CU.fotos;
+  var p = lista.splice(i, 1)[0];
+  if (p) _repFotoQuitarStorage(p);
+  _cuPintarFotos(k === 'dni' ? 'cuDocFotos' : 'cuTelFotos', lista, k);
+}
+// Miniaturas (imágenes con visor; los PDF escaneados, como icono que se abre aparte).
+// k = 'dni' | 'tel' para poder quitarlas; null = solo ver.
+async function _cuPintarFotos(contId, paths, k) {
+  var c = document.getElementById(contId); if (!c) return;
+  paths = (paths || []).slice();
+  if (!paths.length) { c.innerHTML = ''; return; }
+  var html = '', urls = [], nImg = 0;
+  for (var i = 0; i < paths.length; i++) {
+    var url = await sbStorageSignedUrl('gastos-adjuntos', paths[i], 3600);
+    var esPdf = /\.pdf$/i.test(paths[i]);
+    var quitar = k ? '<button type="button" onclick="cuQuitarFoto(\'' + k + '\',' + i + ')" style="position:absolute;top:1px;right:1px;background:rgba(220,38,38,.92);color:#fff;border:none;border-radius:50%;width:18px;height:18px;font-size:12px;cursor:pointer;line-height:1;padding:0">×</button>' : '';
+    if (esPdf) {
+      html += '<div style="position:relative;width:60px;height:60px;border-radius:8px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;cursor:pointer;flex-shrink:0" onclick="window.open(\'' + esc(url || '') + '\',\'_blank\')">📄 PDF' + quitar + '</div>';
+    } else {
+      urls.push(url || '');
+      html += '<div style="position:relative;width:60px;height:60px;border-radius:8px;overflow:hidden;border:1px solid var(--border);flex-shrink:0">' +
+        '<img src="' + esc(url || '') + '" loading="lazy" style="width:100%;height:100%;object-fit:cover;cursor:zoom-in" onclick="_fotoVisor(\'' + contId + '\',' + nImg + ')">' + quitar + '</div>';
+      nImg++;
+    }
+  }
+  c.innerHTML = html;
+  window._fotoSets = window._fotoSets || {};
+  window._fotoSets[contId] = urls;
+}
+
+// Con el móvil: QR con permiso firmado y caduco; lo que llega se reparte por el nombre
+// (dni_… al documento, tel_… al teléfono que se está rellenando).
+function cuAbrirQR(k) {
+  _CU.qrK = k;
+  document.getElementById('uqTitulo').textContent = T(k === 'dni' ? 'usados.qr_titulo_dni' : 'usados.qr_titulo_tel');
+  var qb = document.getElementById('uqQR');
+  qb.innerHTML = '<div style="width:34px;height:34px;border:3px solid var(--border);border-top-color:var(--orange,#EA580C);border-radius:50%;animation:spin 0.8s linear infinite"></div>';
+  document.getElementById('uqExp').textContent = '';
+  document.getElementById('uqFotos').innerHTML = '';
+  _CU.qrN = 0;
+  openM('mUsadoQR');
+  fetch('/api/parte?action=usado-token', {
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (JWT_TOKEN || '') },
+    body: JSON.stringify({ s: _CU.s || '' })
+  }).then(function (r) { return r.json(); }).then(function (j) {
+    if (!j || !j.ok || !j.sig) throw new Error('token');
+    _CU.s = j.s;
+    var url = location.origin + '/subir-usado.html?t=' + encodeURIComponent(j.t) + '&s=' + j.s + '&exp=' + j.exp + '&sig=' + j.sig + '&k=' + k + '&lang=' + _usLang();
+    try { var qr = qrcode(0, 'M'); qr.addData(url); qr.make(); qb.innerHTML = qr.createImgTag(5, 8); } catch (e) { qb.innerHTML = 'QR'; }
+    document.getElementById('uqExp').textContent = '⏱ ' + T('fqr.caduca').replace('{n}', j.ttl_min || 45);
+    if (_CU.timer) clearInterval(_CU.timer);
+    _CU.timer = setInterval(_cuQRMirar, 3000);
+  }).catch(function () {
+    qb.innerHTML = '<div style="color:var(--red);font-size:13px">' + esc(T('fqr.error')) + '</div>';
+  });
+}
+async function _cuQRMirar(final) {
+  var abierto = document.getElementById('mUsadoQR').classList.contains('open');
+  if (!abierto && !final) { if (_CU.timer) { clearInterval(_CU.timer); _CU.timer = null; } return; }
+  if (!_CU.s || _CU.mirando) return;
+  _CU.mirando = true;
+  try {
+    var pref = TIENDA_ID + '/usados/' + _CU.s;
+    var lista = await sbStorageList('gastos-adjuntos', pref);
+    var nuevasDni = 0, nuevasTel = 0;
+    (Array.isArray(lista) ? lista : []).sort(function (a, b) { return String(a.name).localeCompare(String(b.name)); }).forEach(function (o) {
+      var m = /^(dni|tel)_/.exec(o.name || ''); if (!m) return;
+      var path = pref + '/' + o.name;
+      if (_CU.vistos[path]) return;
+      _CU.vistos[path] = 1;
+      var sz = (o.metadata && Number(o.metadata.size)) || 0;
+      if (sz) { _fotoSizes[path] = sz; if (STORAGE_USADO !== null) STORAGE_USADO += sz; }
+      if (m[1] === 'dni') { _CU.doc.push(path); nuevasDni++; } else { _CU.fotos.push(path); nuevasTel++; }
+    });
+    if (nuevasDni || nuevasTel) {
+      if (STORAGE_USADO !== null) { try { sbPatch('tiendas', 'id=eq.' + encodeURIComponent(TIENDA_ID), { storage_usado_bytes: STORAGE_USADO }); } catch (e) {} }
+      if (nuevasDni) _cuPintarFotos('cuDocFotos', _CU.doc, 'dni');
+      if (nuevasTel) _cuPintarFotos('cuTelFotos', _CU.fotos, 'tel');
+      _CU.qrN = (_CU.qrN || 0) + nuevasDni + nuevasTel;
+      var uf = document.getElementById('uqFotos');
+      if (uf) uf.innerHTML = '<div style="color:var(--green,#16a34a);font-weight:700">✓ ' + esc(T('usados.qr_recibidas').replace('{n}', _CU.qrN)) + '</div>';
+    }
+  } catch (e) {} finally { _CU.mirando = false; }
+}
+function cuCerrarQR() {
+  closeM('mUsadoQR');
+  if (_CU.timer) { clearInterval(_CU.timer); _CU.timer = null; }
+  _cuQRMirar(true);
+}
+// Cancelar: las fotos ya subidas de esta compra no sirven para nada → se borran.
+async function cancelarCompraUsado() {
+  if (_CU.timer) { clearInterval(_CU.timer); _CU.timer = null; }
+  if (_CU.s) { try { await _cuQRMirar(true); } catch (e) {} }
+  var todas = _CU.doc.concat(_CU.fotos);
+  _CU.tels.forEach(function (t) { todas = todas.concat(t.fotos || []); });
+  todas.forEach(_repFotoQuitarStorage);
+  _CU = { tels: [], fotos: [], doc: [], s: null, qrK: null, timer: null, vistos: {} };
+  closeM('mCompraUsado');
 }
 
 // Avisa si ese IMEI ya pasó por la tienda (reparado, comprado o vendido antes).
@@ -24266,93 +24491,137 @@ async function guardarCompraUsado() {
   if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var v = function (k) { var el = document.getElementById(k); return el ? String(el.value || '').trim() : ''; };
   document.querySelectorAll('#mCompraUsado .fi.error').forEach(function (el) { el.classList.remove('error'); });
+  if (_CU.s) { try { await _cuQRMirar(true); } catch (e) {} }
+  // Teléfonos: los ya añadidos y el que está en los campos (si hay algo escrito o es el único).
+  var tels = _CU.tels.slice();
+  var cur0 = _cuLeerTel();
+  if (!_cuTelVacio(cur0) || !tels.length) { if (!_cuValidarTel(cur0)) return; tels.push(cur0); }
   var faltan = [];
-  [['cuImei', 'IMEI'], ['cuMarca', T('rep.marca')], ['cuModelo', T('rep.modelo')], ['cuNombre', T('usados.nombre')], ['cuDoc', T('usados.doc_num')]].forEach(function (f) {
+  [['cuNombre', T('usados.nombre')], ['cuDoc', T('usados.doc_num')]].forEach(function (f) {
     if (!v(f[0])) { document.getElementById(f[0]).classList.add('error'); faltan.push(f[1]); }
   });
-  var precio = Math.round((parseFloat(v('cuPrecio')) || 0) * 100) / 100;
-  if (!(precio > 0)) { document.getElementById('cuPrecio').classList.add('error'); faltan.push(T('usados.precio')); }
   if (faltan.length) { toast(T('stock.faltan') + ': ' + faltan.join(', '), 'err'); return; }
-  var imeiD = _usDigitos(v('cuImei'));
-  if (imeiD.length === 15 && typeof tkImeiValido === 'function' && !tkImeiValido(imeiD)) { document.getElementById('cuImei').classList.add('error'); toast(T('imei.no_valido'), 'err'); return; }
   if (!document.getElementById('cuDecl1').checked || !document.getElementById('cuDecl2').checked || !document.getElementById('cuDecl3').checked) { toast(T('usados.falta_declara'), 'err'); return; }
   var firma = _firmaUsadoJpg();
   if (!firma) { toast(T('usados.falta_firma'), 'err'); return; }
 
   var btn = document.getElementById('cuGuardarBtn'); if (btn) btn.disabled = true;
-  var stockId = 's' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
   var gastoId = 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
-  var fila = {
-    id: _uuidPed(), tienda_id: TIENDA_ID, fecha: new Date().toISOString(),
-    vendedor_nombre: v('cuNombre'), vendedor_doc_tipo: v('cuDocTipo') || null, vendedor_doc: v('cuDoc').toUpperCase(),
-    vendedor_dir: v('cuDir') || null, vendedor_tel: v('cuTel') || null, vendedor_email: v('cuEmail') || null,
-    categoria: v('cuCat') || 'Telefono', marca: v('cuMarca'), modelo: v('cuModelo'),
-    imei: v('cuImei'), imei2: v('cuImei2') || null, capacidad: v('cuCapacidad') || null, color: v('cuColor') || null,
-    estado: v('cuEstado') || null, notas: v('cuNotas') || null,
-    precio: precio, moneda: AJUSTES.moneda || 'EUR', metodo_pago: v('cuMetodo') || 'efectivo',
-    firma: firma, declaraciones: { propietario: true, no_robado: true, sin_cuentas: true, version: 1 },
-    idioma: _usLang(), comprado_por: (U && (U.nombre || U.email)) || null,
-    stock_id: stockId, gasto_id: gastoId
-  };
-  var ok = await sbPost('compras_usados', fila);
+  var lote = tels.length > 1 ? _uuidPed() : null;
+  var ahora = new Date().toISOString();
+  var precioDe = function (t) { return Math.round((parseFloat(t.cuPrecio) || 0) * 100) / 100; };
+  var filas = tels.map(function (t, i) {
+    var fila = {
+      id: _uuidPed(), tienda_id: TIENDA_ID, fecha: ahora,
+      vendedor_nombre: v('cuNombre'), vendedor_doc_tipo: v('cuDocTipo') || null, vendedor_doc: v('cuDoc').toUpperCase(),
+      vendedor_dir: v('cuDir') || null, vendedor_tel: v('cuTel') || null, vendedor_email: v('cuEmail') || null,
+      categoria: t.cuCat || 'Telefono', marca: t.cuMarca, modelo: t.cuModelo,
+      imei: t.cuImei, imei2: t.cuImei2 || null, capacidad: t.cuCapacidad || null, color: t.cuColor || null,
+      estado: t.cuEstado || null, notas: t.cuNotas || null,
+      precio: precioDe(t), moneda: AJUSTES.moneda || 'EUR', metodo_pago: v('cuMetodo') || 'efectivo',
+      firma: firma, declaraciones: { propietario: true, no_robado: true, sin_cuentas: true, version: 1 },
+      idioma: _usLang(), comprado_por: (U && (U.nombre || U.email)) || null,
+      stock_id: 's' + Date.now() + '_' + i + '_' + Math.random().toString(36).slice(2, 8), gasto_id: gastoId
+    };
+    // Columnas nuevas (sql/compra-usados-lote-fotos.sql): solo si hacen falta.
+    if (lote) fila.lote_id = lote;
+    if (_CU.doc.length) fila.doc_fotos = _CU.doc.slice();
+    if (t.fotos && t.fotos.length) fila.fotos = t.fotos.slice();
+    fila._precioV = Math.round((parseFloat(t.cuPrecioV) || 0) * 100) / 100;
+    return fila;
+  });
+  var precioV = {};
+  filas.forEach(function (f) { precioV[f.id] = f._precioV; delete f._precioV; });
+  var ok = await sbPost('compras_usados', filas.length === 1 ? filas[0] : filas);
   if (!ok) { if (btn) btn.disabled = false; return; }
   // El número lo pone la base de datos (correlativo por tienda).
   try {
-    var r = await sbGet('compras_usados', 'id=eq.' + encodeURIComponent(fila.id) + '&select=numero');
-    if (Array.isArray(r) && r[0]) fila.numero = r[0].numero;
+    var r = await sbGet('compras_usados', 'id=in.(' + filas.map(function (f) { return f.id; }).join(',') + ')&select=id,numero');
+    (Array.isArray(r) ? r : []).forEach(function (x) { var f = filas.find(function (y) { return y.id === x.id; }); if (f) f.numero = x.numero; });
   } catch (e) {}
-  _usFirmas[fila.id] = fila.firma;
-  delete fila.firma;
-  DB.comprasUsados = [fila].concat(DB.comprasUsados || []);
+  filas.sort(function (a, b) { return (a.numero || 0) - (b.numero || 0); });
+  filas.forEach(function (fila) { _usFirmas[fila.id] = fila.firma; delete fila.firma; });
+  DB.comprasUsados = filas.slice().reverse().concat(DB.comprasUsados || []);
 
-  // El teléfono entra en stock con lo pagado como coste.
-  var nombreTel = (fila.marca + ' ' + fila.modelo).trim();
-  var item = {
-    id: stockId, categoria: fila.categoria, marca: fila.marca, modelo: fila.modelo,
-    capacidad: fila.capacidad || '', color: fila.color || '', imei: fila.imei, unidades: 1,
-    stockMin: 0, stockMax: 1, precioC: precio, precioV: Math.round((parseFloat(v('cuPrecioV')) || 0) * 100) / 100,
-    vendido: false, calidad: '', tipo: 'segunda', garantiaMeses: TIENDA.gvMesesDefaultUsado || 12,
-    ubicacion: null, enOferta: false, precioAntes: 0, enCatalogo: false, bateria: null, compraId: fila.id
-  };
-  DB.stock.push(item);
-  sbPost('stock', {
-    id: item.id, tienda_id: TIENDA_ID, categoria: item.categoria, marca: item.marca, modelo: item.modelo,
-    capacidad: item.capacidad, color: item.color, imei: item.imei, unidades: 1,
-    precio_c: item.precioC, precio_v: item.precioV, stock_min: 0, stock_max: 1, vendido: false,
-    tipo: 'segunda', garantia_meses: item.garantiaMeses, compra_id: fila.id
+  // Cada teléfono entra en stock con lo pagado por él como coste.
+  var total = 0, nombres = [];
+  filas.forEach(function (fila) {
+    var nombreTel = (fila.marca + ' ' + fila.modelo).trim();
+    total += fila.precio; nombres.push(nombreTel);
+    var item = {
+      id: fila.stock_id, categoria: fila.categoria, marca: fila.marca, modelo: fila.modelo,
+      capacidad: fila.capacidad || '', color: fila.color || '', imei: fila.imei, unidades: 1,
+      stockMin: 0, stockMax: 1, precioC: fila.precio, precioV: precioV[fila.id] || 0,
+      vendido: false, calidad: '', tipo: 'segunda', garantiaMeses: TIENDA.gvMesesDefaultUsado || 12,
+      ubicacion: null, enOferta: false, precioAntes: 0, enCatalogo: false, bateria: null, compraId: fila.id
+    };
+    DB.stock.push(item);
+    sbPost('stock', {
+      id: item.id, tienda_id: TIENDA_ID, categoria: item.categoria, marca: item.marca, modelo: item.modelo,
+      capacidad: item.capacidad, color: item.color, imei: item.imei, unidades: 1,
+      precio_c: item.precioC, precio_v: item.precioV, stock_min: 0, stock_max: 1, vendido: false,
+      tipo: 'segunda', garantia_meses: item.garantiaMeses, compra_id: fila.id
+    });
+    _logMov('entrada', nombreTel, 1, _usNum(fila));
   });
-  _logMov('entrada', nombreTel, 1, _usNum(fila));
+  total = Math.round(total * 100) / 100;
+  var nums = filas.length > 1 ? _usNum(filas[0]) + '…' + _usNum(filas[filas.length - 1]) : _usNum(filas[0]);
 
-  // El pago al vendedor sale de caja como gasto.
+  // El pago al vendedor sale de caja como un solo gasto.
   var g = {
     id: gastoId, tienda_id: TIENDA_ID,
-    concepto: T('usados.gasto_concepto') + ' ' + _usNum(fila) + ' · ' + nombreTel,
-    importe: precio, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Compra de usados',
-    iva_tipo: 0, proveedor_id: null, proveedor_nombre: fila.vendedor_nombre, proveedor_nif: fila.vendedor_doc,
-    numero_factura: _usNum(fila), metodo_pago: fila.metodo_pago
+    concepto: (T('usados.gasto_concepto') + ' ' + nums + ' · ' + nombres.join(', ')).slice(0, 250),
+    importe: total, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Compra de usados',
+    iva_tipo: 0, proveedor_id: null, proveedor_nombre: filas[0].vendedor_nombre, proveedor_nif: filas[0].vendedor_doc,
+    numero_factura: nums, metodo_pago: filas[0].metodo_pago
   };
   DB.gastos = DB.gastos || []; DB.gastos.push(g);
   sbPost('gastos', g);
   try { _invalidarInvPagos(); } catch (e) {}
 
   guardarDatos();
-  try { audit('crear', 'compra_usado', fila.id, _usNum(fila) + ' · ' + nombreTel + ' · ' + cur(precio), null); } catch (e) {}
+  try { audit('crear', 'compra_usado', filas[0].id, nums + ' · ' + nombres.join(', ') + ' · ' + cur(total), null); } catch (e) {}
+  _CU = { tels: [], fotos: [], doc: [], s: null, qrK: null, timer: null, vistos: {} };
   closeM('mCompraUsado');
-  toast(T('usados.guardada').replace('{n}', _usNum(fila)), 'ok');
+  toast(T('usados.guardada').replace('{n}', nums), 'ok');
   try { renderStock(); } catch (e) {}
   try { if (document.getElementById('pUsados').classList.contains('active')) renderUsados(); } catch (e) {}
-  imprimirContratoUsado(fila.id);
+  imprimirContratoUsado(filas[0].id);
 }
 
 // ── Contrato (A4), en el idioma de la tienda ──
-function imprimirContratoUsado(id) {
+// Varios teléfonos al mismo vendedor (mismo lote_id) = un solo contrato con todos.
+function _usLote(c) {
+  if (!c || !c.lote_id) return c ? [c] : [];
+  return (DB.comprasUsados || []).filter(function (x) { return x.lote_id === c.lote_id; })
+    .sort(function (a, b) { return (a.numero || 0) - (b.numero || 0); });
+}
+async function imprimirContratoUsado(id) {
   var c = (DB.comprasUsados || []).find(function (x) { return x.id === id; });
   if (!c) { toast(T('gen.error'), 'err'); return; }
+  var lote = _usLote(c);
+  c = lote[0] || c;
   var cfg = _usCfg();
   var anon = !!c.anonimizada;
   var vacio = anon ? '***' : '';
   var fila = function (k, val) { return val ? '<tr><th>' + esc(k) + '</th><td>' + esc(val) + '</td></tr>' : ''; };
   var tienda = [TIENDA.nombre, TIENDA.cif ? T('tkt.nif') + ' ' + TIENDA.cif : '', TIENDA.dir, TIENDA.tel].filter(Boolean).join(' · ');
+  // Copia del documento del vendedor (fotos o escaneo), en hoja aparte.
+  var docHtml = '';
+  var docs = (!anon && Array.isArray(c.doc_fotos)) ? c.doc_fotos : [];
+  // La ventana se abre antes de pedir los enlaces de las fotos: si no, el navegador la bloquea.
+  var win = docs.length ? window.open('', '_blank', 'width=820,height=1000') : null;
+  if (win) { try { win.document.write('<p style="font-family:Arial;padding:20px">…</p>'); } catch (e) {} }
+  if (docs.length) {
+    var imgs = '', pdfs = 0;
+    for (var di = 0; di < docs.length; di++) {
+      if (/\.pdf$/i.test(docs[di])) { pdfs++; continue; }
+      var du = await sbStorageSignedUrl('gastos-adjuntos', docs[di], 600);
+      if (du) imgs += '<img src="' + esc(du) + '" alt="" style="display:block;max-width:100%;max-height:120mm;margin:0 auto 8mm;border:1px solid #ccc">';
+    }
+    if (imgs || pdfs) docHtml = '<div style="page-break-before:always"><h2>' + esc(T('usados.ct_doc_copia')) + '</h2>' + imgs +
+      (pdfs ? '<div class="legal">' + esc(T('usados.ct_doc_pdf')) + '</div>' : '') + '</div>';
+  }
   var html = '<!DOCTYPE html><html><head><meta charset="utf-8"><title>' + esc(T('usados.ct_titulo') + ' ' + _usNum(c)) + '</title><style>' +
     '@page{size:A4;margin:16mm}body{font-family:Arial,Helvetica,sans-serif;color:#111;font-size:12.5px;line-height:1.5;margin:0}' +
     'h1{font-size:19px;margin:0 0 2px}.sub{color:#555;margin-bottom:14px}h2{font-size:13px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1.5px solid #111;padding-bottom:2px;margin:16px 0 6px}' +
@@ -24362,7 +24631,7 @@ function imprimirContratoUsado(id) {
     '.legal{font-size:10.5px;color:#444;margin-top:14px}</style></head><body>' +
     (c.anulada ? '<div class="anulada">' + esc(T('usados.anulada')) + (c.anulada_motivo ? ' — ' + esc(c.anulada_motivo) : '') + '</div>' : '') +
     '<h1>' + esc(T('usados.ct_titulo')) + '</h1>' +
-    '<div class="sub">' + esc(T('usados.ct_numero')) + ' <b>' + esc(_usNum(c)) + '</b> · ' + esc(_usFecha(c.fecha, true)) + '</div>' +
+    '<div class="sub">' + esc(T('usados.ct_numero')) + ' <b>' + esc(lote.map(_usNum).join(', ')) + '</b> · ' + esc(_usFecha(c.fecha, true)) + '</div>' +
     '<h2>' + esc(T('usados.ct_comprador')) + '</h2><div>' + esc(tienda) + '</div>' +
     '<h2>' + esc(T('usados.ct_vendedor')) + '</h2><table>' +
       fila(T('usados.nombre'), anon ? vacio : c.vendedor_nombre) +
@@ -24371,15 +24640,21 @@ function imprimirContratoUsado(id) {
       fila(T('usados.telefono'), anon ? '' : c.vendedor_tel) +
       fila(T('usados.email'), anon ? '' : c.vendedor_email) +
     '</table>' +
-    '<h2>' + esc(T('usados.ct_objeto')) + '</h2><table>' +
-      fila(T('usados.categoria'), _catLbl(c.categoria)) +
-      fila(T('rep.marca') + ' / ' + T('rep.modelo'), [c.marca, c.modelo].filter(Boolean).join(' ')) +
-      fila(T('usados.capacidad'), c.capacidad) + fila(T('usados.color'), c.color) +
-      fila('IMEI', c.imei) + fila(T('usados.imei2'), c.imei2) +
-      fila(T('usados.estado'), _usEstadoTxt(c.estado)) + fila(T('usados.notas'), c.notas) +
-    '</table>' +
+    '<h2>' + esc(T('usados.ct_objeto')) + '</h2>' +
+    lote.map(function (x, i) {
+      return (lote.length > 1 ? '<div style="font-weight:700;margin:8px 0 2px">' + (i + 1) + '. ' + esc(_usNum(x)) + '</div>' : '') + '<table>' +
+        fila(T('usados.categoria'), _catLbl(x.categoria)) +
+        fila(T('rep.marca') + ' / ' + T('rep.modelo'), [x.marca, x.modelo].filter(Boolean).join(' ')) +
+        fila(T('usados.capacidad'), x.capacidad) + fila(T('usados.color'), x.color) +
+        fila('IMEI', x.imei) + fila(T('usados.imei2'), x.imei2) +
+        fila(T('usados.estado'), _usEstadoTxt(x.estado)) + fila(T('usados.notas'), x.notas) +
+        (lote.length > 1 ? fila(T('usados.precio'), cur(parseFloat(x.precio) || 0)) : '') +
+        (x.anulada ? fila(T('usados.anulada'), x.anulada_motivo || '') : '') +
+      '</table>';
+    }).join('') +
     '<h2>' + esc(T('usados.ct_precio')) + '</h2><table>' +
-      fila(T('usados.precio'), cur(parseFloat(c.precio) || 0)) + fila(T('usados.metodo'), _usMetodoTxt(c.metodo_pago)) +
+      fila(lote.length > 1 ? T('usados.total') : T('usados.precio'), cur(lote.reduce(function (a, x) { return a + (x.anulada && lote.length > 1 ? 0 : (parseFloat(x.precio) || 0)); }, 0))) +
+      fila(T('usados.metodo'), _usMetodoTxt(c.metodo_pago)) +
     '</table>' +
     '<h2>' + esc(T('usados.ct_clausulas')) + '</h2><ol>' +
       '<li>' + esc(T('usados.ct_transmite')) + '</li>' +
@@ -24394,9 +24669,11 @@ function imprimirContratoUsado(id) {
       '<div class="firma">' + (_usFirmas[c.id] && !anon ? '<img src="' + esc(_usFirmas[c.id]) + '" alt="">' : '<div style="height:70px"></div>') + esc(T('usados.ct_firma_vendedor')) + '</div>' +
       '<div class="firma"><div style="height:70px"></div>' + esc(T('usados.ct_firma_tienda')) + (c.comprado_por ? ': ' + esc(c.comprado_por) : '') + '</div>' +
     '</div>' +
+    docHtml +
     '<script>window.onload=function(){setTimeout(function(){window.print();},250);};<\/script>' +
     '</body></html>';
-  _docPopupImprimir(html, 820, 1000);
+  if (win) { win.document.open(); win.document.write(html); win.document.close(); }
+  else _docPopupImprimir(html, 820, 1000);
 }
 
 // ── Registro ──
@@ -24424,6 +24701,14 @@ function _usAnonimizarCaducadas() {
   (DB.comprasUsados || []).forEach(function (c) {
     if (c.anonimizada || !c.fecha || new Date(c.fecha) > limite) return;
     var cambios = { vendedor_nombre: null, vendedor_doc: null, vendedor_dir: null, vendedor_tel: null, vendedor_email: null, firma: null, anonimizada: true };
+    // La copia del documento también se borra (del almacenamiento y de la fila).
+    if (Array.isArray(c.doc_fotos) && c.doc_fotos.length) {
+      var aBorrar = c.doc_fotos.filter(function (p) {   // un lote comparte la copia: no borrarla si otra compra aún vigente la usa
+        return !(DB.comprasUsados || []).some(function (o) { return o.id !== c.id && !o.anonimizada && new Date(o.fecha) > limite && Array.isArray(o.doc_fotos) && o.doc_fotos.indexOf(p) !== -1; });
+      });
+      if (aBorrar.length) { try { sbStorageDelete('gastos-adjuntos', aBorrar); } catch (e) {} }
+      cambios.doc_fotos = null;
+    }
     sbPatch('compras_usados', 'id=eq.' + encodeURIComponent(c.id), cambios).then(function (ok) {
       if (ok) { delete cambios.firma; Object.assign(c, cambios); delete _usFirmas[c.id]; try { guardarDatos(); } catch (e) {} }
     });
@@ -24480,7 +24765,14 @@ function verUsado(id) {
     l(T('usados.estado'), _usEstadoTxt(c.estado)) + l(T('usados.notas'), c.notas) +
     l(T('usados.precio'), cur(parseFloat(c.precio) || 0) + ' · ' + _usMetodoTxt(c.metodo_pago)) +
     l(T('usados.comprado_por'), c.comprado_por) +
-    (c.venta_id ? l(T('usados.vendida'), _usFecha(c.venta_fecha) + (c.venta_cliente ? ' · ' + c.venta_cliente : '')) : '');
+    (c.venta_id ? l(T('usados.vendida'), _usFecha(c.venta_fecha) + (c.venta_cliente ? ' · ' + c.venta_cliente : '')) : '') +
+    (c.lote_id ? l(T('usados.mismo_contrato'), _usLote(c).filter(function (x) { return x.id !== c.id; }).map(function (x) { return _usNum(x) + ' ' + _usTelefono(x); }).join(' · ')) : '');
+  var docF = (!c.anonimizada && Array.isArray(c.doc_fotos)) ? c.doc_fotos : [], telF = Array.isArray(c.fotos) ? c.fotos : [];
+  document.getElementById('uvFotosBox').style.display = (docF.length || telF.length) ? 'block' : 'none';
+  document.getElementById('uvDocLbl').style.display = docF.length ? '' : 'none';
+  document.getElementById('uvTelLbl').style.display = telF.length ? '' : 'none';
+  _cuPintarFotos('uvDocFotos', docF, null);
+  _cuPintarFotos('uvTelFotos', telF, null);
   document.getElementById('uvAnularBox').style.display = 'none';
   document.getElementById('uvMotivo').value = '';
   var ab = document.getElementById('uvAnularBtn'); ab.style.display = (c.anulada || !tienePerm('stock_editar')) ? 'none' : '';
