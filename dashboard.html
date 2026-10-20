@@ -1234,7 +1234,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261020b"></script>
+<script src="/lang/lang.v8.js?v=20261020c"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -5278,7 +5278,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   <div class="fl" style="font-weight:800;margin:10px 0 6px" data-t="usados.sec_vendedor">Vendedor</div>
   <div class="fi-row">
     <div class="fg"><label class="fl"><span data-t="usados.nombre">Nombre y apellidos</span> *</label><input class="fi" id="cuNombre" autocomplete="off"></div>
-    <div class="fg"><label class="fl" data-t="usados.doc_tipo">Documento</label><input class="fi" id="cuDocTipo" list="cuDocList" autocomplete="off"><datalist id="cuDocList"></datalist></div>
+    <div class="fg"><label class="fl" data-t="usados.doc_tipo">Documento</label><select class="fi" id="cuDocTipoSel" onchange="cuDocTipoCambio()"></select><input class="fi" id="cuDocTipo" autocomplete="off" style="display:none;margin-top:6px" data-t-ph="usados.doc_otro_ph" placeholder="¿Qué documento?"></div>
     <div class="fg"><label class="fl"><span data-t="usados.doc_num">Número del documento</span> *</label><input class="fi" id="cuDoc" autocomplete="off"></div>
   </div>
   <div class="fi-row">
@@ -5712,7 +5712,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261016b"></script>
-<script src="/js/dash-app.js?v=20261020b"></script>
+<script src="/js/dash-app.js?v=20261020c"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

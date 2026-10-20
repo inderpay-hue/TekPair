@@ -24221,8 +24221,11 @@ function abrirCompraUsado() {
   document.getElementById('cuMetodo').value = 'efectivo';
   ['cuDecl1', 'cuDecl2', 'cuDecl3'].forEach(function (k) { document.getElementById(k).checked = false; });
   var docs = String(_usCfg().docs || '').split(',').map(function (x) { return x.trim(); }).filter(Boolean);
-  document.getElementById('cuDocList').innerHTML = docs.map(function (d) { return '<option value="' + esc(d) + '">'; }).join('');
-  document.getElementById('cuDocTipo').value = docs[0] || '';
+  // Los documentos que se aceptan salen del país de la tienda (js/usados.js); «Otro» para el resto.
+  document.getElementById('cuDocTipoSel').innerHTML = docs.map(function (d) { return '<option value="' + esc(d) + '">' + esc(d) + '</option>'; }).join('') +
+    '<option value="__otro">' + esc(T('usados.doc_otro')) + '</option>';
+  document.getElementById('cuDocTipoSel').value = docs[0] || '__otro';
+  cuDocTipoCambio();
   var btn = document.getElementById('cuGuardarBtn'); if (btn) btn.disabled = false;
   _cuPintarLista();
   _cuPintarFotos('cuDocFotos', _CU.doc, 'dni');
@@ -24234,6 +24237,13 @@ function abrirCompraUsado() {
   _iniciarFirmaUsado();
 }
 
+function cuDocTipoCambio() {
+  var sel = document.getElementById('cuDocTipoSel'), inp = document.getElementById('cuDocTipo');
+  var otro = sel.value === '__otro';
+  inp.style.display = otro ? '' : 'none';
+  inp.value = otro ? '' : sel.value;
+  if (otro) try { inp.focus(); } catch (e) {}
+}
 function _cuLeerTel() {
   var t = {};
   _CU_TEL.forEach(function (k) { var el = document.getElementById(k); t[k] = el ? String(el.value || '').trim() : ''; });
