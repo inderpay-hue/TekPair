@@ -431,9 +431,11 @@ async function _justificadoDia(caja_id, fecha) {
   const rows = await sbGet(`cajas_fiados?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=eq.${encodeURIComponent(fecha)}&estado=in.(pendiente,cobrado)&select=importe`);
   return Math.round(rows.reduce((s, f) => s + Number(f.importe || 0), 0) * 100) / 100;
 }
-// Desde cuándo lo cobrado entra en el teórico del día del cobro. Los cierres anteriores se
-// hicieron sin contarlo (y a veces se cobró con la caja ya cerrada): no se reescriben.
-const COBROS_EN_TEORICO_DESDE = '2026-10-19';
+// Lo cobrado de un pendiente NO se suma al teórico del día del cobro (desactivado el
+// 20-oct-2026): las tiendas marcan cobros antiguos de golpe (Tecno Movils, 26.334 € el 19-oct)
+// y ese dinero no estaba en el cajón ese día, así que la caja salía con una falta enorme.
+// El pendiente sigue justificando el día en que se fió (_justificadoDia).
+const COBROS_EN_TEORICO_DESDE = '9999-12-31';
 async function _cobrosDelDia(caja_id, fecha) {
   if (!fecha || fecha < COBROS_EN_TEORICO_DESDE) return 0;
   const d0 = new Date(fecha + 'T00:00:00Z').getTime();
