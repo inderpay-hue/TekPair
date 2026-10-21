@@ -28,6 +28,69 @@ function _paisPrefijo() {
   try { if (typeof AJUSTES !== 'undefined' && AJUSTES && AJUSTES.paisPrefijo) return String(AJUSTES.paisPrefijo).replace(/\D/g, '') || '34'; } catch (e) {}
   return '34';
 }
+// Impuesto de cada país al dar de alta la tienda: [nombre, tipo general, tipos permitidos].
+// Solo es el punto de partida; la tienda lo puede cambiar en Ajustes › Impuestos.
+// EE.UU. (+1) y Brasil no tienen un tipo único nacional → empiezan en 0 para que lo ponga la tienda.
+var IVA_PAIS = {
+  '34': ['IVA', 21, [21, 10, 4, 0]], '52': ['IVA', 16, [16, 8, 0]], '54': ['IVA', 21, [21, 10.5, 27, 0]],
+  '57': ['IVA', 19, [19, 5, 0]], '56': ['IVA', 19, [19, 0]], '51': ['IGV', 18, [18, 0]],
+  '55': ['ICMS', 0, [0]], '598': ['IVA', 22, [22, 10, 0]], '593': ['IVA', 15, [15, 5, 0]],
+  '591': ['IVA', 13, [13, 0]], '595': ['IVA', 10, [10, 5, 0]], '502': ['IVA', 12, [12, 0]],
+  '506': ['IVA', 13, [13, 4, 2, 1, 0]], '507': ['ITBMS', 7, [7, 10, 15, 0]], '58': ['IVA', 16, [16, 8, 0]],
+  '1': ['Tax', 0, [0]], '351': ['IVA', 23, [23, 13, 6, 0]], '33': ['TVA', 20, [20, 10, 5.5, 2.1, 0]],
+  '39': ['IVA', 22, [22, 10, 5, 4, 0]], '49': ['MwSt', 19, [19, 7, 0]], '44': ['VAT', 20, [20, 5, 0]]
+};
+// Configuración de impuesto inicial para un país, o null si no lo tenemos en la tabla.
+function ivaPorPais(pref) {
+  var d = IVA_PAIS[String(pref || '').replace(/\D/g, '')];
+  if (!d) return null;
+  return { nombre: d[0], tipoDefault: d[1], tiposPermitidos: d[2].slice(), tiposExtra: d[2].join(', ') };
+}
+// true si el impuesto sigue tal cual viene de fábrica para el país indicado (la tienda no lo ha tocado).
+function ivaSinTocar(iva, pref) {
+  var d = ivaPorPais(pref || '34');
+  if (!iva || !d) return false;
+  return Number(iva.tipoDefault) === d.tipoDefault && (iva.nombre || 'IVA') === d.nombre &&
+    String(iva.tiposExtra || d.tiposExtra).replace(/\s/g, '') === d.tiposExtra.replace(/\s/g, '');
+}
+// Tienda de fuera de España que nunca tocó el impuesto: arrastra los tipos españoles de fábrica → poner los de su país.
+// Si ya cobra impuesto (activo) no se cambia nada sin que lo decida la tienda.
+function ivaAjustarAlPais() {
+  if (typeof AJUSTES === 'undefined' || !AJUSTES || (AJUSTES.iva && AJUSTES.iva.activo)) return false;
+  var pref = _paisPrefijo(), d = ivaPorPais(pref);
+  if (!d || pref === '34' || !ivaSinTocar(AJUSTES.iva, '34')) return false;
+  AJUSTES.iva = Object.assign({}, AJUSTES.iva || {}, d);
+  return true;
+}
+// Tipos que se ofrecen en los desplegables de impuesto (ventas, reparaciones, gastos).
+function ivaTiposLista(extra) {
+  var iva = (typeof AJUSTES !== 'undefined' && AJUSTES && AJUSTES.iva) || {};
+  var l = (iva.tiposPermitidos && iva.tiposPermitidos.length) ? iva.tiposPermitidos.slice() : [0, 4, 10, 21];
+  [iva.tipoDefault, extra].forEach(function (v) { v = parseFloat(v); if (!isNaN(v)) l.push(v); });
+  l = l.map(Number).filter(function (v, i, a) { return !isNaN(v) && a.indexOf(v) === i; });
+  return l.sort(function (a, b) { return a - b; });
+}
+function ivaTipoDefault() {
+  var t = (typeof AJUSTES !== 'undefined' && AJUSTES && AJUSTES.iva) ? parseFloat(AJUSTES.iva.tipoDefault) : NaN;
+  return isNaN(t) ? 21 : t;
+}
+// Rehace las opciones de un desplegable de impuesto con los tipos de la tienda y elige v.
+// Con los tipos españoles de siempre deja las opciones del HTML (llevan «General», «Reducido»…).
+// enteros: los gastos guardan el tipo como número entero → no ofrecer 5,5 % ni 2,1 %.
+function ivaSetSel(id, v, enteros) {
+  var sel = document.getElementById(id); if (!sel) return;
+  v = (v == null || v === '' || isNaN(parseFloat(v))) ? ivaTipoDefault() : parseFloat(v);
+  if (enteros) v = Math.round(v);
+  var tipos = ivaTiposLista(v);
+  if (enteros) tipos = tipos.filter(function (t) { return t === Math.round(t); });
+  var vals = function () { return Array.prototype.map.call(sel.options, function (o) { return parseFloat(o.value); }).join('|'); };
+  if (sel._ivaOrig == null) { sel._ivaOrig = sel.innerHTML; sel._ivaOrigVals = vals(); }
+  if (tipos.join('|') !== vals()) {
+    sel.innerHTML = tipos.join('|') === sel._ivaOrigVals ? sel._ivaOrig
+      : tipos.map(function (t) { return '<option value="' + t + '">' + t.toLocaleString(typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es') + '%</option>'; }).join('');
+  }
+  sel.value = String(v);
+}
 // Marco legal MÍNIMO de garantía en ventas según el país de la tienda (AJUSTES.paisPrefijo).
 // Criterio conservador: solo afirmamos ley donde la conocemos (ES y UE). El resto → 'otro' (aviso neutro).
 // Devuelve { zona:'ES'|'UE'|'otro', nuevoMin, usadoMin } (en meses; 0 = sin mínimo legal afirmado).
@@ -637,6 +700,7 @@ async function _onbFinalizar() {
   localStorage.setItem('tk_tienda', JSON.stringify(ls));
   Object.assign(TIENDA, { nombre: d.nombre, tel: d.tel, dir: d.dir, cif: d.cif, cobroDatos: ls.cobroDatos });
   AJUSTES.moneda = d.moneda; AJUSTES.paisPrefijo = d.pais;
+  ivaAjustarAlPais();
   try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
   if (SB_KEY && TIENDA_ID) {
     // ajustes_config lleva moneda/paisPrefijo → subirlo aquí deja la tienda nueva sincronizada
@@ -1008,6 +1072,7 @@ window.addEventListener('DOMContentLoaded', function() {
   if (aj.resena) AJUSTES.resena = aj.resena;
   if (aj.resumen) AJUSTES.resumen = aj.resumen;
   if (aj.usados) AJUSTES.usados = aj.usados;
+  ivaAjustarAlPais();
   try { aplicarFunciones(); } catch (e) {}
 
   // Load local data
@@ -2451,13 +2516,13 @@ function renderPreviewFactura() {
   var f = window._facIaDatos || {};
   var prev = document.getElementById('facIaPreview');
   if (!prev) return;
-  var ivas = [0, 4, 10, 21];
+  var ivas = ivaTiposLista(f.iva_tipo).filter(function (v) { return v === Math.round(v); });
   prev.innerHTML = '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:7px">' +
     _facField(T('fac_ia.concepto') || T('pres.concepto_default'), '<input class="fi" id="facF_concepto" value="' + esc(f.concepto || '') + '">') +
     _facField(T('fac_ia.proveedor') || 'Proveedor', '<input class="fi" id="facF_prov" value="' + esc(f.proveedor || '') + '">') +
     '<div style="display:flex;gap:7px">' +
       _facField(T('fac_ia.importe') || 'Importe (€)', '<input class="fi" id="facF_importe" type="number" step="0.01" value="' + (parseFloat(f.importe) || 0) + '">') +
-      _facField('IVA', '<select class="fi" id="facF_iva">' + ivas.map(function (v) { return '<option value="' + v + '"' + (v === parseInt(f.iva_tipo, 10) ? ' selected' : '') + '>' + v + '%</option>'; }).join('') + '</select>') +
+      _facField('IVA', '<select class="fi" id="facF_iva">' + ivas.map(function (v) { return '<option value="' + v + '"' + (v === Math.round(f.iva_tipo != null ? parseFloat(f.iva_tipo) : ivaTipoDefault()) ? ' selected' : '') + '>' + v + '%</option>'; }).join('') + '</select>') +
     '</div>' +
     '<div style="display:flex;gap:7px">' +
       _facField(T('fac_ia.fecha') || 'Fecha', '<input class="fi" id="facF_fecha" type="date" value="' + esc(f.fecha || hoyLocal()) + '">') +
@@ -2479,7 +2544,7 @@ async function crearGastoFactura() {
     concepto: concepto, importe: Math.round(importe * 100) / 100,
     fecha: (document.getElementById('facF_fecha') || {}).value || hoyLocal(),
     estado: 'Pagado', categoria: 'Stock/Compras',
-    iva_tipo: parseInt((document.getElementById('facF_iva') || {}).value, 10) || 21,
+    iva_tipo: (function () { var v = parseInt((document.getElementById('facF_iva') || {}).value, 10); return isNaN(v) ? Math.round(ivaTipoDefault()) : v; })(),
     proveedor_id: null, proveedor_nombre: prov,
     proveedor_nif: (window._facIaDatos && window._facIaDatos.proveedor_nif) || null,
     numero_factura: ((document.getElementById('facF_num') || {}).value || '').trim() || null,
@@ -7795,7 +7860,7 @@ function abrirVentaSimple() {
   if (_vPago && _vFinOpt && _vFinOpt.hidden && _vPago.value === 'Financiado') _vPago.value = 'Efectivo';
   // Reset IVA selector to default
   var ivaSelV = document.getElementById('vIva');
-  if (ivaSelV) ivaSelV.value = String((AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21);
+  if (ivaSelV) ivaSetSel('vIva', ivaTipoDefault());
   calcV();
   openM('mVenta');
   _DRAFT_VENTA.banner();
@@ -9727,7 +9792,7 @@ function _repDraftRestaurar() {
   var s = function(id, v){ var e = document.getElementById(id); if (e) e.value = v || ''; };
   s('rMarca', d.marca); s('rModelo', d.modelo); s('rImei', d.imei); s('rAveria', d.averia); s('rNota', d.nota);
   s('rTipoBloq', d.tipoBloq); if (typeof cambiarTipoBloq === 'function') cambiarTipoBloq(); s('rBloqVal', d.bloqVal);
-  s('rPrioridad', d.prioridad); s('rFechaEnt', d.fechaEnt); s('rIva', d.iva);
+  s('rPrioridad', d.prioridad); s('rFechaEnt', d.fechaEnt); ivaSetSel('rIva', d.iva);
   (d.conds || []).forEach(function(c){
     var sel = '#mRep .chk-btn[data-cond="' + c.replace(/"/g, '\\"') + '"]';
     var btn = document.querySelector(sel); if (btn) btn.classList.add('on');
@@ -9782,7 +9847,7 @@ var _DRAFT_VENTA = _makeDraft({
     var s = function(id, v){ var e = document.getElementById(id); if (e) e.value = v || ''; };
     if (d.cli && d.cli.id && DB.clis.some(function(x){ return x.id === d.cli.id; })) { try { selCli(d.cli.id, 'v'); } catch (e) {} }
     if (d.stockId && DB.stock.some(function(x){ return x.id === d.stockId; }) && typeof selStock === 'function') { try { selStock(d.stockId); } catch (e) {} }
-    s('vPrecio', d.precio); s('vDescuento', d.descuento); s('vPago', d.pago); s('vIva', d.iva);
+    s('vPrecio', d.precio); s('vDescuento', d.descuento); s('vPago', d.pago); ivaSetSel('vIva', d.iva);
     if (!d.stockId) s('vBusStock', d.busStock);
     try { calcV(); } catch (e) {}
   },
@@ -9848,7 +9913,7 @@ function abrirRep() {
   document.querySelectorAll('#mRep .fg.error').forEach(function(el){ el.classList.remove('error'); });
   // Reset IVA al default
   var ivaSel = document.getElementById('rIva');
-  if (ivaSel) ivaSel.value = String((AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21);
+  if (ivaSel) ivaSetSel('rIva', ivaTipoDefault());
   renderServiciosRep();
   renderOpcionalesRep();
   calcR();
@@ -12266,8 +12331,7 @@ function editarRep(id) {
   // IVA
   var ivaSel2 = document.getElementById('rIva');
   if (ivaSel2) {
-    var tipoR = (r.iva != null) ? r.iva : ((AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21);
-    ivaSel2.value = String(tipoR);
+    ivaSetSel('rIva', r.iva);
   }
 
   // Cliente
@@ -15944,7 +16008,7 @@ function abrirNuevoGastoRec() {
   document.getElementById('grConc').value = '';
   document.getElementById('grImp').value = '0';
   document.getElementById('grCat').value = 'Otros';
-  document.getElementById('grIvaTipo').value = '21';
+  ivaSetSel('grIvaTipo', ivaTipoDefault(), true);
   document.getElementById('grProvNom').value = '';
   document.getElementById('grProvNif').value = '';
   document.getElementById('grActivo').checked = true;
@@ -15970,7 +16034,7 @@ function editarGastoRec(id) {
   document.getElementById('grConc').value = r.concepto || '';
   document.getElementById('grImp').value = r.importe || 0;
   document.getElementById('grCat').value = r.categoria || 'Otros';
-  document.getElementById('grIvaTipo').value = String(r.iva_tipo != null ? r.iva_tipo : 21);
+  ivaSetSel('grIvaTipo', r.iva_tipo, true);
   document.getElementById('grProvNom').value = r.proveedor_nombre || '';
   document.getElementById('grProvNif').value = r.proveedor_nif || '';
   var _grm = document.getElementById('grMetodo'); if (_grm) _grm.value = r.metodo_pago || 'transferencia';
@@ -15993,7 +16057,7 @@ function guardarGastoRec() {
   if (!conc) { toast(T('tst.escribe_concepto'), 'err'); return; }
   var importe = parseFloat(document.getElementById('grImp').value) || 0;
   var categoria = document.getElementById('grCat').value;
-  var iva_tipo = parseInt(document.getElementById('grIvaTipo').value, 10) || 21;
+  var iva_tipo = parseInt(document.getElementById('grIvaTipo').value, 10); if (isNaN(iva_tipo)) iva_tipo = Math.round(ivaTipoDefault());
   var dia_mes = parseInt(document.getElementById('grDia').value, 10) || 1;
   var activo = document.getElementById('grActivo').checked;
   var proveedor_nombre = document.getElementById('grProvNom').value.trim();
@@ -16361,11 +16425,12 @@ function generarHtmlInforme(periodo) {
   lista.sort(function(a,b){ return (a.fecha||'').localeCompare(b.fecha||''); });
   var totalBase=0, totalIva=0, totalTotal=0;
   var porCategoria = {};
-  var porTipoIva = {0:{base:0,iva:0,total:0,n:0},4:{base:0,iva:0,total:0,n:0},10:{base:0,iva:0,total:0,n:0},21:{base:0,iva:0,total:0,n:0}};
+  var porTipoIva = {}; ivaTiposLista().forEach(function (t) { if (t === Math.round(t)) porTipoIva[t] = {base:0,iva:0,total:0,n:0}; });
   var detalle = lista.map(function(g){
     var imp = parseFloat(g.importe) || 0;
-    var ivaT = (g.iva_tipo != null) ? parseInt(g.iva_tipo,10) : 21;
-    if ([0,4,10,21].indexOf(ivaT) < 0) ivaT = 21;
+    var ivaT = (g.iva_tipo != null) ? parseInt(g.iva_tipo,10) : Math.round(ivaTipoDefault());
+    if (isNaN(ivaT)) ivaT = Math.round(ivaTipoDefault());
+    if (!porTipoIva[ivaT]) porTipoIva[ivaT] = {base:0,iva:0,total:0,n:0};
     var base = ivaT === 0 ? imp : imp / (1 + ivaT/100);
     var ivaE = imp - base;
     var cat = g.categoria || 'Otros';
@@ -16387,7 +16452,7 @@ function generarHtmlInforme(periodo) {
     var c = porCategoria[k];
     return '<tr><td>'+esc(k)+'</td><td class="r">'+c.n+'</td><td class="r">'+cur(c.base)+'</td><td class="r">'+cur(c.iva)+'</td><td class="r b">'+cur(c.total)+'</td></tr>';
   }).join('') || '<tr><td colspan="5" style="text-align:center;color:#999">-</td></tr>';
-  var filasIva = [21,10,4,0].map(function(t){
+  var filasIva = Object.keys(porTipoIva).map(Number).sort(function(a,b){ return b - a; }).map(function(t){
     var v = porTipoIva[t];
     return '<tr><td>'+t+'%</td><td class="r">'+v.n+'</td><td class="r">'+cur(v.base)+'</td><td class="r">'+cur(v.iva)+'</td><td class="r b">'+cur(v.total)+'</td></tr>';
   }).join('');
@@ -16600,12 +16665,13 @@ function generarPDFGastos(periodo) {
   // Cálculos: importe = TOTAL con IVA. Base = total / (1 + iva/100). IVA€ = total - base.
   var totalBase = 0, totalIva = 0, totalTotal = 0;
   var porCategoria = {};        // { categoria: {base, iva, total, n} }
-  var porTipoIva = {0:{base:0,iva:0,total:0,n:0},4:{base:0,iva:0,total:0,n:0},10:{base:0,iva:0,total:0,n:0},21:{base:0,iva:0,total:0,n:0}};
+  var porTipoIva = {}; ivaTiposLista().forEach(function (t) { if (t === Math.round(t)) porTipoIva[t] = {base:0,iva:0,total:0,n:0}; });
 
   var detalle = lista.map(function(g) {
     var imp = parseFloat(g.importe) || 0;
-    var ivaT = (g.iva_tipo != null) ? parseInt(g.iva_tipo,10) : 21;
-    if ([0,4,10,21].indexOf(ivaT) < 0) ivaT = 21;
+    var ivaT = (g.iva_tipo != null) ? parseInt(g.iva_tipo,10) : Math.round(ivaTipoDefault());
+    if (isNaN(ivaT)) ivaT = Math.round(ivaTipoDefault());
+    if (!porTipoIva[ivaT]) porTipoIva[ivaT] = {base:0,iva:0,total:0,n:0};
     var base = ivaT === 0 ? imp : imp / (1 + ivaT/100);
     var ivaE = imp - base;
     var cat = g.categoria || 'Otros';
@@ -16640,7 +16706,7 @@ function generarPDFGastos(periodo) {
     return '<tr><td>' + esc(k) + '</td><td class="r">' + c.n + '</td><td class="r">' + cur(c.base) + '</td><td class="r">' + cur(c.iva) + '</td><td class="r b">' + cur(c.total) + '</td></tr>';
   }).join('') || '<tr><td colspan="5" style="text-align:center;color:#999">-</td></tr>';
 
-  var filasIva = [21,10,4,0].map(function(t){
+  var filasIva = Object.keys(porTipoIva).map(Number).sort(function(a,b){ return b - a; }).map(function(t){
     var v = porTipoIva[t];
     return '<tr><td>' + t + '%</td><td class="r">' + v.n + '</td><td class="r">' + cur(v.base) + '</td><td class="r">' + cur(v.iva) + '</td><td class="r b">' + cur(v.total) + '</td></tr>';
   }).join('');
@@ -16974,7 +17040,7 @@ function abrirNuevoGasto() {
   if (typeof SEL === 'object' && SEL) SEL.editGastoId = null;
   var set = function (id, val) { var e = document.getElementById(id); if (e) e.value = val; };
   set('gConc', ''); set('gImp', '0'); set('gFecha', hoyLocal());
-  set('gCat', 'Otros'); set('gIvaTipo', '21'); set('gEstado', 'Pagado'); set('gMetodo', 'efectivo');
+  set('gCat', 'Otros'); ivaSetSel('gIvaTipo', ivaTipoDefault(), true); set('gEstado', 'Pagado'); set('gMetodo', 'efectivo');
   set('gProvNom', ''); set('gProvNif', ''); set('gNumFact', '');
   try { limpiarGAdj(); } catch (e) {}
   var t = document.getElementById('gModalTitle'); if (t) t.textContent = T('gastos.nuevo_titulo');
@@ -17002,7 +17068,7 @@ function editarGasto(id) {
   set('gImp', g.importe != null ? g.importe : 0);
   set('gFecha', (g.fecha || '').slice(0, 10));
   set('gCat', g.categoria || 'Otros');
-  set('gIvaTipo', String(g.iva_tipo != null ? g.iva_tipo : 21));
+  ivaSetSel('gIvaTipo', g.iva_tipo, true);
   set('gEstado', g.estado || 'Pagado');
   set('gMetodo', g.metodo_pago || 'efectivo');
   set('gProvNom', g.proveedor_nombre || '');
@@ -18886,6 +18952,21 @@ async function cambiarPassword() {
   }
 }
 
+// Al cambiar el país en Ajustes: si el impuesto del formulario sigue siendo el de fábrica del país
+// anterior, poner el del país nuevo. Si la tienda ya lo había cambiado, no se toca.
+function ajIvaCambioPais() {
+  var sel = document.getElementById('ajPaisPrefijo'); if (!sel) return;
+  var prev = sel.dataset.ivaPrev || '34', d = ivaPorPais(sel.value);
+  sel.dataset.ivaPrev = sel.value;
+  var tEl = document.getElementById('ajIvaTipoDefault'), nEl = document.getElementById('ajIvaNombre'), xEl = document.getElementById('ajIvaTiposExtra');
+  if (!d || !tEl) return;
+  var form = { tipoDefault: parseFloat(tEl.value), nombre: nEl ? nEl.value.trim() : 'IVA', tiposExtra: xEl ? xEl.value : '' };
+  if (!ivaSinTocar(form, prev)) return;
+  tEl.value = String(d.tipoDefault);
+  if (nEl) nEl.value = d.nombre;
+  if (xEl) xEl.value = d.tiposExtra;
+}
+
 function cargarAjustes() {
   document.getElementById('ajMoneda').value = AJUSTES.moneda || 'EUR';
   try { var _pp = document.getElementById('ajPaisPrefijo'); if (_pp) _pp.value = AJUSTES.paisPrefijo || '34'; } catch (e) {}
@@ -18902,12 +18983,17 @@ function cargarAjustes() {
   var ajIvaNombreEl = document.getElementById('ajIvaNombre');
   if (ajIvaNombreEl) ajIvaNombreEl.value = iva.nombre || 'IVA';
   var ajIvaTiposExtraEl = document.getElementById('ajIvaTiposExtra');
-  if (ajIvaTiposExtraEl) ajIvaTiposExtraEl.value = iva.tiposExtra || '21, 10, 4, 0';
+  if (ajIvaTiposExtraEl) ajIvaTiposExtraEl.value = iva.tiposExtra || (ivaPorPais(_paisPrefijo()) || {}).tiposExtra || '21, 10, 4, 0';
   var ajIvaNombreEl = document.getElementById('ajIvaNombre');
   if (ajIvaNombreEl) ajIvaNombreEl.value = iva.nombre || 'IVA';
   var ajIvaTiposExtraEl = document.getElementById('ajIvaTiposExtra');
-  if (ajIvaTiposExtraEl) ajIvaTiposExtraEl.value = iva.tiposExtra || '21, 10, 4, 0';
+  if (ajIvaTiposExtraEl) ajIvaTiposExtraEl.value = iva.tiposExtra || (ivaPorPais(_paisPrefijo()) || {}).tiposExtra || '21, 10, 4, 0';
   toggleIvaCfg();
+  var _ppIva = document.getElementById('ajPaisPrefijo');
+  if (_ppIva) {
+    _ppIva.dataset.ivaPrev = _ppIva.value;
+    if (!_ppIva.dataset.ivaHook) { _ppIva.dataset.ivaHook = '1'; _ppIva.addEventListener('change', ajIvaCambioPais); }
+  }
   try { cargarUsadosAjustes(); } catch (e) {}
   // Catálogo público. Se lee de TIENDA y no de AJUSTES porque es una propiedad
   // de la tienda en la nube, no una preferencia local del navegador.
@@ -18983,7 +19069,8 @@ function guardarAjustes() {
   AJUSTES.iva = AJUSTES.iva || {};
   AJUSTES.iva.activo = document.getElementById('ajIvaActivo').checked;
   AJUSTES.iva.modo = document.getElementById('ajIvaModo').value;
-  AJUSTES.iva.tipoDefault = parseFloat(document.getElementById('ajIvaTipoDefault').value) || 21;
+  var _tdef = parseFloat(document.getElementById('ajIvaTipoDefault').value);
+  AJUSTES.iva.tipoDefault = isNaN(_tdef) ? 21 : _tdef;
   var ajNomEl = document.getElementById('ajIvaNombre');
   if (ajNomEl) AJUSTES.iva.nombre = ajNomEl.value.trim() || 'IVA';
   var ajExtraEl = document.getElementById('ajIvaTiposExtra');
@@ -19331,6 +19418,7 @@ async function _pullTiendaCompleta() {
       AJUSTES.iva = Object.assign(defaults.iva, AJUSTES.iva || {});
       AJUSTES.notif = AJUSTES.notif || defaults.notif;
       AJUSTES.notif.activa = Object.assign(defaults.notif.activa, (AJUSTES.notif||{}).activa || {});
+      ivaAjustarAlPais();
       localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
       try { aplicarFunciones(); } catch (e) {}
     }
