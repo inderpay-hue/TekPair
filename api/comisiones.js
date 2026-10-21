@@ -5,6 +5,7 @@
 //   - Afiliados normales ven SOLO sus propias comisiones
 //   - Cualquier otro usuario: 403 Forbidden
 
+import { nivelComercial, primerosPagos } from './_lib/nivel-comercial.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -1017,11 +1018,13 @@ export default async function handler(req, res) {
         const referidos = referidosPorCodigo[af.codigo] ? referidosPorCodigo[af.codigo].size : 0;
         const det = tiendasPorCodigo[af.codigo] || [];
         const cuenta = (e) => det.filter(t => t.estado === e).length;
+        const nivel = _nivelAfiliado(af, allPagos);
         return {
           codigo: af.codigo,
           nombre: af.nombre,
           email: af.email,
           comision_pct: af.comision_pct,
+          nivel,
           num_referidos: referidos,
           // Desglose del embudo: traidas, las que pagan, las que aun prueban y
           // las que se cayeron. "Ha traido 8" y "cobra por 2" no es lo mismo.
@@ -1083,10 +1086,14 @@ export default async function handler(req, res) {
       tiendasReferidas = await tR.json();
     }
 
+    const condiciones = _nivelAfiliado(miAfiliado, pagos);
     return res.json({
       modo: 'afiliado',
       mi_codigo: codigo,
-      mi_comision_pct: miAfiliado.comision_pct,
+      // El % de HOY según sus condiciones (el base es el del primer año).
+      mi_comision_pct: condiciones.pct,
+      mi_comision_base: miAfiliado.comision_pct,
+      condiciones,
       resumen: {
         num_referidos: referidos.size,
         num_pagos: pagos.length,
@@ -1102,6 +1109,15 @@ export default async function handler(req, res) {
     console.error('Error comisiones:', e);
     return res.status(500).json({ error: 'Error servidor' });
   }
+}
+
+// Condiciones del comercial hoy (api/_lib/nivel-comercial.js) a partir de sus pagos.
+function _nivelAfiliado(af, pagos) {
+  const mios = (pagos || []).filter(p => String(p.codigo_referido || '').toUpperCase() === String(af.codigo || '').toUpperCase());
+  return nivelComercial({
+    alta: af.created_at, base: af.comision_pct || 0,
+    altas: primerosPagos(mios.map(p => ({ tienda: p.tienda_id, fecha: p.created_at, importe: p.monto_neto })))
+  });
 }
 
 // ═══ CUPÓN DE STRIPE PARA UN COMERCIAL ═══

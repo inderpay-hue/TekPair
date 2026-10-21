@@ -21,6 +21,7 @@
 //
 // Sin trial_until no hay forma de saber cuándo acaba lo gratis, y no se avisa.
 
+import { nivelComercial, primerosPagos } from './_lib/nivel-comercial.js';
 import crypto from 'crypto';
 import { construirResumen, enviarResumen, destinoResumen, fechaMadrid, esPremium } from './_lib/resumen.js';
 
@@ -204,12 +205,51 @@ export default async function handler(req, res) {
       encuestas = await encuestasValoracion(SUPABASE_URL, headers, RESEND_KEY, now);
     } catch (e) { console.error('[cron] encuestas:', e.message); }
 
-    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida, encuestas, resumen, deudas });
+    // ── Comerciales: baja automática según sus condiciones (api/_lib/nivel-comercial.js) ──
+    let comerciales = { revisados: 0, bajas: 0 };
+    try {
+      comerciales = await bajasComerciales(SUPABASE_URL, headers, RESEND_KEY, now);
+    } catch (e) { console.error('[cron] comerciales:', e.message); }
+
+    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida, encuestas, resumen, deudas, comerciales });
 
   } catch(e) {
     console.error('[cron] Error general:', e);
     return res.status(500).json({ error: 'Error del servidor' });
   }
+}
+
+// ═══ COMERCIALES: BAJA AUTOMÁTICA ═══
+// Un comercial que lleva un año en el 5 % sin hacer 3 altas en ningún trimestre queda de
+// baja: se desactiva su código (deja de cobrar comisión y de dar el mes de prueba) y se
+// avisa a info@tekpair.tech. Su cuenta de tienda no se toca: eso lo decide el dueño.
+async function bajasComerciales(SUPABASE_URL, headers, RESEND_KEY, now) {
+  const out = { revisados: 0, bajas: 0 };
+  const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?activo=eq.true&select=codigo,nombre,email,comision_pct,created_at`, { headers });
+  const afs = afR.ok ? await afR.json() : [];
+  for (const af of Array.isArray(afs) ? afs : []) {
+    out.revisados++;
+    const pR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(af.codigo)}&monto_neto=gt.0&select=tienda_id,created_at,monto_neto&limit=10000`, { headers });
+    const pagos = pR.ok ? await pR.json() : [];
+    const nivel = nivelComercial({ alta: af.created_at, base: af.comision_pct, hoy: now,
+      altas: primerosPagos((Array.isArray(pagos) ? pagos : []).map(x => ({ tienda: x.tienda_id, fecha: x.created_at, importe: x.monto_neto }))) });
+    if (nivel.estado !== 'baja') continue;
+    const up = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(af.codigo)}&activo=eq.true`, {
+      method: 'PATCH', headers: { ...headers, 'Content-Type': 'application/json', 'Prefer': 'return=representation' }, body: JSON.stringify({ activo: false })
+    });
+    const hechos = up.ok ? await up.json().catch(() => []) : [];
+    if (!Array.isArray(hechos) || !hechos.length) continue;   // ya estaba de baja (otra ejecución)
+    out.bajas++;
+    if (RESEND_KEY) {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST', headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from: 'TekPair <info@tekpair.tech>', to: ['info@tekpair.tech'],
+          subject: `Comercial de baja: ${af.nombre || af.codigo} (${af.codigo})`,
+          html: `<p>El comercial <b>${esc(af.nombre || '')}</b> (código <b>${esc(af.codigo)}</b>, ${esc(af.email || '')}) ha pasado un año en el 5 % sin llegar a 3 altas en ningún trimestre.</p><p>Se ha desactivado su código: ya no cobra comisión ni da el mes de prueba. Su cuenta de tienda sigue activa; si quieres cerrarla, usa «Dar de baja» en Comisiones.</p>` })
+      }).catch(() => {});
+    }
+  }
+  return out;
 }
 
 // ═══ ENVÍO DIARIO A COBRUM (servidor) ═══

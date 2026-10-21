@@ -26004,3 +26004,65 @@ function enviarPedidoProveedor(encKey) {
   });
 }
 window.enviarPedidoProveedor = enviarPedidoProveedor;
+
+// ═══ COMERCIALES: CONDICIONES (21-oct-2026) ═══
+// El servidor calcula el nivel de cada comercial (api/_lib/nivel-comercial.js) y lo manda
+// en /api/comisiones: `condiciones` al comercial y `nivel` en cada afiliado al admin.
+// Las pantallas de Comisiones viven en dashboard.html; aquí se añaden los recuadros
+// envolviendo sus funciones de pintado, sin tocar ese fichero.
+(function () {
+  function fecha(iso) {
+    if (!iso) return '—';
+    try { return new Date(iso).toLocaleDateString(typeof TEKPAIR_LANG === 'string' ? TEKPAIR_LANG : 'es', { day: '2-digit', month: '2-digit', year: 'numeric' }); } catch (e) { return String(iso).slice(0, 10); }
+  }
+  function t(k, v) { var s = T(k); Object.keys(v || {}).forEach(function (x) { s = s.split('{' + x + '}').join(v[x]); }); return s; }
+  function pintarCondiciones(data) {
+    var c = data && data.condiciones; var cont = document.getElementById('comContent');
+    if (!c || !cont) return;
+    var ahora;
+    if (c.estado === 'baja') ahora = '<div style="color:var(--red,#DC2626);font-weight:800">' + esc(t('comer.baja', { f: fecha(c.baja_desde) })) + '</div>';
+    else if (c.primer_ano) ahora = '<div>' + t('comer.primer_ano', { f: '<b>' + fecha(c.fin_primer_ano) + '</b>', p: '<b>' + c.pct + ' %</b>', n: '<b>' + c.tramo.altas + '</b>' }) + '</div>';
+    else ahora = '<div>' + t('comer.ahora', { p: '<b style="font-size:18px">' + c.pct + ' %</b>', d: fecha(c.tramo.desde), h: fecha(c.tramo.hasta), n: '<b>' + c.tramo.altas + '</b>', m: c.altas_minimas }) + '</div>';
+    var html = '<div class="card" id="comCondiciones" style="margin-bottom:14px">' +
+      '<div class="card-title">' + esc(T('comer.titulo')) + '</div>' +
+      '<div style="font-size:13px;color:var(--muted);margin:4px 0 10px">' + esc(t('comer.desde', { f: fecha(c.alta) })) + '</div>' +
+      '<div style="font-size:14px;line-height:1.6;margin-bottom:10px">' + ahora + '</div>' +
+      '<ul style="font-size:12.5px;color:var(--muted);line-height:1.6;margin:0;padding-left:18px">' +
+        '<li>' + esc(t('comer.r1', { p: c.base })) + '</li>' +
+        '<li>' + esc(t('comer.r2', { m: c.altas_minimas })) + '</li>' +
+        '<li>' + esc(T('comer.r3')) + '</li>' +
+        '<li>' + esc(T('comer.r4')) + '</li>' +
+      '</ul></div>';
+    var viejo = document.getElementById('comCondiciones'); if (viejo) viejo.remove();
+    var primera = cont.querySelector('.card');
+    if (primera) primera.insertAdjacentHTML('afterend', html); else cont.insertAdjacentHTML('afterbegin', html);
+  }
+  function pintarNiveles(data) {
+    var cont = document.getElementById('comContent'); var afs = (data && data.afiliados) || [];
+    if (!cont || !afs.some(function (a) { return a.nivel; })) return;
+    var filas = afs.map(function (a) {
+      var n = a.nivel || {}; var tramo = n.primer_ano ? t('comer.tramo_primer', { f: fecha(n.fin_primer_ano) }) : fecha((n.tramo || {}).desde) + ' – ' + fecha((n.tramo || {}).hasta);
+      var pct = n.estado === 'baja' ? '<span style="color:var(--red,#DC2626);font-weight:800">' + esc(T('comer.de_baja')) + '</span>' : '<b>' + n.pct + ' %</b>';
+      return '<tr><td style="padding:8px;border-bottom:1px solid #F1F5F9"><b>' + esc(a.nombre || a.codigo) + '</b><br><span style="font-size:11px;color:var(--muted)">' + esc(a.codigo) + '</span></td>' +
+        '<td style="padding:8px;border-bottom:1px solid #F1F5F9">' + fecha(n.alta) + '</td>' +
+        '<td style="padding:8px;border-bottom:1px solid #F1F5F9;text-align:center">' + pct + '</td>' +
+        '<td style="padding:8px;border-bottom:1px solid #F1F5F9;font-size:12px">' + esc(tramo) + '</td>' +
+        '<td style="padding:8px;border-bottom:1px solid #F1F5F9;text-align:center">' + ((n.tramo || {}).altas || 0) + (n.primer_ano ? '' : ' / ' + (n.altas_minimas || 3)) + '</td></tr>';
+    }).join('');
+    var html = '<div class="card" id="comNiveles" style="margin-bottom:14px"><div class="card-title">' + esc(T('comer.niveles')) + '</div>' +
+      '<div style="font-size:12px;color:var(--muted);margin:4px 0 8px">' + esc(T('comer.niveles_hint')) + '</div>' +
+      '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr>' +
+      ['comer.col_comercial', 'comer.col_alta', 'comer.col_ahora', 'comer.col_tramo', 'comer.col_altas'].map(function (k) { return '<th style="text-align:left;padding:8px;font-size:11px;color:var(--muted);text-transform:uppercase">' + esc(T(k)) + '</th>'; }).join('') +
+      '</tr></thead><tbody>' + filas + '</tbody></table></div></div>';
+    var viejo = document.getElementById('comNiveles'); if (viejo) viejo.remove();
+    var tiendas = document.getElementById('comTiendasCard');
+    if (tiendas) tiendas.insertAdjacentHTML('afterend', html); else cont.insertAdjacentHTML('afterbegin', html);
+  }
+  function envolver(nombre, extra) {
+    var f = window[nombre]; if (typeof f !== 'function' || f._tkCond) return;
+    var g = function () { var r = f.apply(this, arguments); try { extra(arguments[0]); } catch (e) { console.warn('[comerciales]', e); } return r; };
+    g._tkCond = true; window[nombre] = g;
+  }
+  function instalar() { envolver('renderComisionesAfiliado', pintarCondiciones); envolver('renderComisionesAdmin', pintarNiveles); }
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', instalar); else instalar();
+})();

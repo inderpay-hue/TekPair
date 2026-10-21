@@ -7,6 +7,7 @@
 // el body EXACTO en crudo (getRawBody). Si Vercel parsea el body antes, el stream queda
 // consumido y la firma siempre falla. Este handler nunca usa req.body, solo getRawBody,
 // así que desactivarlo es seguro y obligatorio para que los webhooks funcionen.
+import { nivelComercial, primerosPagos } from './_lib/nivel-comercial.js';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
@@ -585,10 +586,20 @@ export default async function handler(req, res) {
             let comisionPct = 0;
             let comisionMonto = 0;
             if (codigoReferido) {
-              const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigoReferido)}&select=comision_pct,activo&limit=1`, {headers: sbHeaders});
+              const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(codigoReferido)}&select=comision_pct,activo,created_at&limit=1`, {headers: sbHeaders});
               const afArr = await afR.json();
               if (afArr[0]?.activo) {
+                // Porcentaje del comercial HOY según sus condiciones (api/_lib/nivel-comercial.js):
+                // 20 % el primer año y después según sus altas de cada trimestre.
                 comisionPct = afArr[0].comision_pct || 0;
+                try {
+                  const phR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(codigoReferido)}&monto_neto=gt.0&select=tienda_id,created_at,monto_neto&limit=10000`, {headers: sbHeaders});
+                  const ph = phR.ok ? await phR.json() : [];
+                  comisionPct = nivelComercial({
+                    alta: afArr[0].created_at, base: afArr[0].comision_pct || 0,
+                    altas: primerosPagos((Array.isArray(ph) ? ph : []).map(x => ({ tienda: x.tienda_id, fecha: x.created_at, importe: x.monto_neto })))
+                  }).pct;
+                } catch (e) { console.error('[comision] nivel del comercial, se usa el base:', e.message); }
                 // W8: leer IVA real de Stripe en lugar de asumir 21% hardcoded.
                 // invoice.tax es el importe de IVA en céntimos. Si no existe (suscripción
                 // a cliente sin tax_id en zona sin IVA), tax es 0 y baseImponible = montoNeto.
