@@ -172,6 +172,35 @@ export default async function handler(req, res) {
         return res.status(403).json({ error: 'Código secreto incorrecto o no configurado', need_secret: true });
       }
 
+      // ═══ Correo a una tienda (avisos manuales desde la administración) ═══
+      // Sale como «TekPair <info@tekpair.tech>», con copia oculta a info@tekpair.tech para
+      // que quede constancia y las respuestas lleguen allí. Solo a direcciones que ya son
+      // de una tienda de TekPair: no sirve para escribir a cualquiera.
+      if (action === 'email_tienda') {
+        const to = String(body.to || '').trim().toLowerCase();
+        const asunto = String(body.asunto || '').trim().slice(0, 200);
+        const html = String(body.html || '');
+        const text = String(body.text || '').slice(0, 20000);
+        if (!/^[^\s@,;]+@[^\s@,;]+\.[^\s@,;]+$/.test(to) || !asunto || !html || html.length > 50000) {
+          return res.status(400).json({ error: 'Datos incompletos' });
+        }
+        const RESEND = process.env.RESEND_API_KEY;
+        if (!RESEND) return res.status(500).json({ error: 'Email no configurado' });
+        const q = encodeURIComponent(to);
+        const tR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?or=(email.eq.${q},plan_email.eq.${q})&select=id,nombre&limit=1`, { headers: sbHeaders });
+        const tArr = tR.ok ? await tR.json() : [];
+        if (!Array.isArray(tArr) || !tArr.length) return res.status(404).json({ error: 'Ese email no es de ninguna tienda' });
+        const r = await fetch('https://api.resend.com/emails', {
+          method: 'POST',
+          headers: { 'Authorization': 'Bearer ' + RESEND, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ from: 'TekPair <info@tekpair.tech>', to: [to], bcc: ['info@tekpair.tech'], reply_to: 'info@tekpair.tech', subject: asunto, html, ...(text ? { text } : {}) })
+        });
+        const d = await r.json().catch(() => ({}));
+        if (!r.ok) { console.error('[email_tienda]', r.status, JSON.stringify(d).slice(0, 200)); return res.status(502).json({ error: 'No se pudo enviar' }); }
+        console.log('[email_tienda] enviado a', tArr[0].nombre, d.id);
+        return res.json({ ok: true, id: d.id, tienda: tArr[0].nombre });
+      }
+
       if (action === 'marcar_pagado' && Array.isArray(body.ids) && body.ids.length) {
         const ids = body.ids.filter(n => Number.isInteger(n));
         if (!ids.length) return res.status(400).json({ error: 'IDs invalidos' });
