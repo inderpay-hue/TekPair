@@ -8563,6 +8563,27 @@ function pedirTexto(msg, opts, onOk) {
   m.bg.addEventListener('click', function (e) { if (e.target === m.bg) fin(null); });
 }
 window.pedirTexto = pedirTexto;
+// Modal de una línea de texto (en lugar de prompt(), que bloquea y no se ve igual en
+// la app de escritorio). onOk recibe el texto, o null si se cancela.
+function pedirLinea(msg, defaultVal, onOk, opts) {
+  opts = opts || {};
+  var m = _modalOverlay(
+    '<div style="font-size:14.5px;line-height:1.5;white-space:pre-line;margin-bottom:12px">' + escHtml(String(msg)) + '</div>' +
+    '<input id="_plInput" type="text" value="' + escHtml(String(defaultVal == null ? '' : defaultVal)) + '" placeholder="' + escHtml(opts.placeholder || '') + '" style="width:100%;padding:11px;border:1px solid var(--border,#E5E7EB);border-radius:9px;font:inherit;font-size:16px;margin-bottom:16px;color:inherit;background:var(--light,#fff)">' +
+    '<div style="display:flex;gap:10px;justify-content:flex-end">' +
+      '<button id="_plNo" style="padding:9px 16px;border:1px solid var(--border,#E5E7EB);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + T('gen.cancelar_2') + '</button>' +
+      '<button id="_plYes" style="padding:9px 16px;border:none;background:var(--green,#10B981);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + (opts.okLabel || T('gen.aceptar_2')) + '</button>' +
+    '</div>'
+  );
+  var inp = m.box.querySelector('#_plInput');
+  setTimeout(function () { try { inp.focus(); inp.select(); } catch (e) {} }, 50);
+  function fin(val) { m.close(); if (typeof onOk === 'function') onOk(val); }
+  m.box.querySelector('#_plYes').onclick = function () { fin(inp.value); };
+  m.box.querySelector('#_plNo').onclick = function () { fin(null); };
+  inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') fin(inp.value); });
+  m.bg.addEventListener('click', function (e) { if (e.target === m.bg) fin(null); });
+}
+window.pedirLinea = pedirLinea;
 function _pedBtnLbl(k){var L=(typeof TEKPAIR_LANG!=="undefined"?TEKPAIR_LANG:"es");var M={imei:{es:"Registrar IMEIs",en:"Register IMEIs",fr:"Enregistrer les IMEI",it:"Registra IMEI",de:"IMEIs erfassen",pt:"Registar IMEIs"},stock:{es:"Sumar al stock",en:"Add to stock",fr:"Ajouter au stock",it:"Aggiungi al magazzino",de:"Zum Lager hinzufügen",pt:"Adicionar ao stock"},recibir:{es:"Recibir",en:"Receive",fr:"Recevoir",it:"Ricevi",de:"Empfangen",pt:"Receber"}};return (M[k]&&M[k][L])||(M[k]&&M[k].es)||"";}
 
 // Marca un pedido como recibido (estado + fecha + gasto + sync). No toca el stock.
@@ -25600,8 +25621,9 @@ function tarCelda(inp) {
   guardarDatos();
 }
 function tarNuevoModelo() {
-  var mod = prompt(T('tar.prompt_modelo')); if (!mod || !mod.trim()) return;
-  mod = mod.trim();
+  pedirLinea(T('tar.prompt_modelo'), '', function (mod) { if (mod && mod.trim()) _tarNuevoModelo(mod.trim()); }, { placeholder: 'iPhone 13' });
+}
+function _tarNuevoModelo(mod) {
   var p = mod.split(' ')[0].toLowerCase();
   var marca = /^iphone|^ipad/.test(p) ? 'Apple' : (/^galaxy/.test(p) ? 'Samsung' : (/^redmi|^poco/.test(p) ? 'Xiaomi' : ''));
   if (_tarModelos().some(function(x) { return _tarNorm(x.modelo) === _tarNorm(mod); })) { _tarFiltro = mod; renderTarifa(); return; }
@@ -25609,7 +25631,9 @@ function tarNuevoModelo() {
   _tarFiltro = ''; renderTarifa();
 }
 function tarNuevaAveria() {
-  var a = prompt(T('tar.prompt_averia')); if (!a || !a.trim()) return;
+  pedirLinea(T('tar.prompt_averia'), '', function (a) { if (a && a.trim()) _tarNuevaAveria(a.trim()); });
+}
+function _tarNuevaAveria(a) {
   var cols = _tarCols().slice();
   if (cols.some(function(c) { return _tarNorm(c) === _tarNorm(a); })) return;
   cols.push(a.trim()); _tarGuardarCols(cols);
@@ -25618,8 +25642,9 @@ function tarNuevaAveria() {
 function tarCalidadesCol(i) {
   var c = _tarCols()[i]; if (c == null) return;
   var actual = _tarCalidades(c);
-  var r = prompt(T('tar.prompt_cal').replace('{a}', c), actual.join(', '));
-  if (r === null) return;
+  pedirLinea(T('tar.prompt_cal').replace('{a}', c), actual.join(', '), function (r) { if (r !== null) _tarCalidadesCol(c, r); }, { placeholder: 'Original, OLED, Incell' });
+}
+function _tarCalidadesCol(c, r) {
   var nuevas = r.split(',').map(function(x) { return x.trim(); }).filter(Boolean)
     .filter(function(x, k, arr) { return arr.map(_tarNorm).indexOf(_tarNorm(x)) === k; });
   // Precios de calidades que se quitan: se avisa antes de borrarlos.
@@ -25628,27 +25653,34 @@ function tarCalidadesCol(i) {
     var q = _tarNorm(x.calidad);
     return nuevas.length ? nuevas.map(_tarNorm).indexOf(q) === -1 : !!q;
   });
-  if (quitadas.length && !confirm(T('tar.confirm_cal').replace('{n}', quitadas.length))) return;
-  quitadas.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, 0, x.calidad || ''); });
-  AJUSTES.tarifaCalidades = Object.assign({}, AJUSTES.tarifaCalidades || {});
-  AJUSTES.tarifaCalidades[_tarNorm(c)] = nuevas;
-  guardarDatos();
-  _tarGuardarCols(_tarCols().slice());
+  var aplicar = function () {
+    quitadas.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, 0, x.calidad || ''); });
+    AJUSTES.tarifaCalidades = Object.assign({}, AJUSTES.tarifaCalidades || {});
+    AJUSTES.tarifaCalidades[_tarNorm(c)] = nuevas;
+    guardarDatos();
+    _tarGuardarCols(_tarCols().slice());
+  };
+  if (quitadas.length) confirmar(T('tar.confirm_cal').replace('{n}', quitadas.length), aplicar);
+  else aplicar();
 }
 function tarQuitarAveria(i) {
   var cols = _tarCols().slice(); var c = cols[i]; if (c == null) return;
   var filas = (DB.tarifas || []).filter(function(x) { return _tarNorm(x.averia) === _tarNorm(c); });
-  if (filas.length && !confirm(T('tar.confirm_col').replace('{a}', c).replace('{n}', filas.length))) return;
-  filas.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, 0, x.calidad || ''); });
-  cols.splice(i, 1); _tarGuardarCols(cols);
+  var hacer = function () {
+    filas.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, 0, x.calidad || ''); });
+    cols.splice(i, 1); _tarGuardarCols(cols);
+  };
+  if (filas.length) confirmar(T('tar.confirm_col').replace('{a}', c).replace('{n}', filas.length), hacer); else hacer();
 }
 function tarQuitarModelo(mi) {
   var box = document.getElementById('tarBody'); var m = box && box._mods && box._mods[mi]; if (!m) return;
   var filas = (DB.tarifas || []).filter(function(x) { return _tarNorm(x.modelo) === _tarNorm(m.modelo); });
-  if (filas.length && !confirm(T('tar.confirm_mod').replace('{m}', m.modelo))) return;
-  filas.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, 0, x.calidad || ''); });
-  _tarModelosNuevos = _tarModelosNuevos.filter(function(x) { return _tarNorm(x.modelo) !== _tarNorm(m.modelo); });
-  guardarDatos(); renderTarifa();
+  var hacer = function () {
+    filas.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, 0, x.calidad || ''); });
+    _tarModelosNuevos = _tarModelosNuevos.filter(function(x) { return _tarNorm(x.modelo) !== _tarNorm(m.modelo); });
+    guardarDatos(); renderTarifa();
+  };
+  if (filas.length) confirmar(T('tar.confirm_mod').replace('{m}', m.modelo), hacer); else hacer();
 }
 function _tarGuardarCols(cols) {
   AJUSTES.tarifaCols = cols;
@@ -25678,16 +25710,19 @@ function tarDesdeHistorial() {
     });
   var lista = Object.keys(prop).map(function(k) { return prop[k]; });
   if (!lista.length) { toast(T('tar.hist_nada') + (sinCal ? ' ' + T('tar.hist_sin_cal').replace('{n}', sinCal) : ''), 'ok', 6000); return; }
-  if (!confirm(T('tar.hist_confirm').replace('{n}', lista.length) + (sinCal ? '\n\n' + T('tar.hist_sin_cal').replace('{n}', sinCal) : ''))) return;
-  lista.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, x.precio, x.calidad); });
-  guardarDatos(); renderTarifa();
-  toast(T('tar.hist_ok').replace('{n}', lista.length), 'ok');
+  confirmar(T('tar.hist_confirm').replace('{n}', lista.length) + (sinCal ? '\n\n' + T('tar.hist_sin_cal').replace('{n}', sinCal) : ''), function () {
+    lista.forEach(function(x) { _tarGuardar(x.marca, x.modelo, x.averia, x.precio, x.calidad); });
+    guardarDatos(); renderTarifa();
+    toast(T('tar.hist_ok').replace('{n}', lista.length), 'ok');
+  });
 }
 // Pegar desde Excel/hoja, una línea por precio, separada por tabulador, ; o |:
 //   modelo; avería; precio          marca; modelo; avería; precio
 //   modelo; avería; calidad; precio marca; modelo; avería; calidad; precio
 function tarPegar() {
-  var txt = prompt(T('tar.pegar_ayuda')); if (!txt) return;
+  pedirTexto(T('tar.pegar_ayuda'), { rows: 6, placeholder: 'iPhone 13; Pantalla; OLED; 129\niPhone 13; Batería; 59' }, function (txt) { if (txt) _tarPegar(txt); });
+}
+function _tarPegar(txt) {
   var cols = _tarCols().slice(), n = 0;
   var esCalidad = function(x, aver) {
     var todas = _tarCalidades(aver).concat(CALIDADES_PANTALLA.map(function(c) { return c.v; }), ['Original', T('tar.compatible'), 'Compatible']);
