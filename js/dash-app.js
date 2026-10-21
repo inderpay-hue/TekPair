@@ -10594,7 +10594,7 @@ function renderServiciosRep() {
   var box = document.getElementById('repServiciosList');
   if (!box) return;
   if (!SEL.rServicios || !SEL.rServicios.length) {
-    box.innerHTML = '<div class="empty" style="padding:12px;font-size:11px;color:var(--muted)">Añade servicios desde el buscador, "Explorar" o "+ Agregar nuevo"</div>';
+    box.innerHTML = '<div class="empty" style="padding:12px;font-size:11px;color:var(--muted)">' + T('rep.servicios_vacio') + '</div>';
     return;
   }
   box.innerHTML = SEL.rServicios.map(function(s, i) {
@@ -13458,7 +13458,7 @@ function renderReps() {
     html += '<tr>'
       + '<td><strong>' + r.clienteNombre + '</strong>' + badgeGarantia + badgeFin + chipPieza + chipAcep + '</td>'
       + '<td>' + r.marca + ' ' + r.modelo + (r.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">' + r.imei + '</span>' : '') + '</td>'
-      + '<td style="font-size:11px;color:var(--dark)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + r.tipoBloqueo + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + r.bloqueo : '')) + '</span>' : '') + '</td>'
+      + '<td style="font-size:11px;color:var(--dark)">' + r.averia + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + ({Patron: T('rep.bloq_patron'), Contrasena: T('rep.bloq_contrasena'), Huella: T('rep.bloq_huella')}[r.tipoBloqueo] || r.tipoBloqueo) + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + r.bloqueo : '')) + '</span>' : '') + '</td>'
       + '<td><select data-rid="' + r.id + '" class="sel-estado" style="border:1px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:6px">'
         + ['Pendiente','En Proceso','Por Entregar','Entregado','Garantia','Sin Solucion','Devuelto','Rechazado'].map(function(s) {
           return '<option value="'+s+'"' + (s === r.estado ? ' selected' : '') + '>' + _estadoLabel(s) + '</option>';
@@ -15471,14 +15471,14 @@ function renderClis() {
   });
   var el = document.getElementById('listaClis');
   if (!list.length) { el.innerHTML = '<div class="empty"><div class="empty-icon">\ud83d\udc65</div>' + T('gen.sin_clientes') + '</div>'; return; }
-  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('cli.nombre') + '</th><th>' + T('cli.telefono') + '</th><th>' + T('gen.visitas') + '</th><th></th></tr></thead><tbody>';
+  var html = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('gen.nombre_2') + '</th><th>' + T('cli.telefono') + '</th><th>' + T('gen.visitas') + '</th><th></th></tr></thead><tbody>';
   list.forEach(function(c) {
     var vc = DB.ventas.filter(function(v) { return v.clienteId === c.id; }).length;
     var rc = DB.reps.filter(function(r) { return r.clienteId === c.id; }).length;
     html += '<tr>' +
       '<td><strong class="drill-cli" data-cid="' + c.id + '" style="cursor:pointer;color:var(--blue);text-decoration:underline;text-decoration-color:rgba(0,85,255,.25);text-underline-offset:2px">' + esc(c.nombre + ' ' + c.apellidos) + '</strong>' + _gradoBadgeHtml(c.grado) + ((vc + rc) >= 3 ? '<br><span class="badge by">\u2b50 ' + T('cli.frecuente') + '</span>' : '') + '</td>' +
       '<td style="font-size:11px">' + (esc(c.tel) || '\u2014') + '</td>' +
-      '<td><span class="badge bb" title="' + T('nav.ventas_2') + '">' + vc + 'v</span> <span class="badge bp" title="' + T('nav.reparaciones_2') + '">' + rc + 'r</span></td>' +
+      '<td><span class="badge bb" title="' + T('nav.ventas_2') + '">' + vc + T('cli.vis_v') + '</span> <span class="badge bp" title="' + T('nav.reparaciones_2') + '">' + rc + T('cli.vis_r') + '</span></td>' +
       '<td style="display:flex;gap:3px">' +
       '<button data-cid="' + c.id + '" class="row-btn btn-edit-c" title="' + T('cli.title_editar') + '">' + _iv2ic('pencil', 16) + '</button>' +
       '<button data-cid="' + c.id + '" class="row-btn btn-del-c" title="' + T('cli.title_eliminar') + '" style="color:var(--red)">' + _iv2ic('trash', 16) + '</button>' +
@@ -20436,13 +20436,13 @@ async function cargarUsuarios() {
   container.className = 'tbl-wrap';
   var table = document.createElement('table');
   table.className = 'tbl';
-  table.innerHTML = '<thead><tr><th>' + T('gen.nombre_2') + '</th><th><span data-t="gen.rol">Rol</span></th><th>' + T('gen.estado_2') + '</th><th></th></tr></thead>';
+  table.innerHTML = '<thead><tr><th>' + T('gen.nombre_2') + '</th><th>' + T('gen.rol') + '</th><th>' + T('gen.estado_2') + '</th><th></th></tr></thead>';
   var tbody = document.createElement('tbody');
   lista.forEach(function(u) {
     var esYo = U && u.email === U.email;
     var tr = document.createElement('tr');
     tr.innerHTML = '<td><strong>' + escHtml(u.nombre) + '</strong>' + (esYo ? ' <span class="badge bb">' + T('usu.tu') + '</span>' : '') + '<br><span style="font-size:10px;color:var(--muted)">' + escHtml(u.email) + '</span></td>' +
-      '<td><span class="badge ' + (u.rol === 'admin' ? 'br' : 'bb') + '">' + u.rol + '</span></td>' +
+      '<td><span class="badge ' + (u.rol === 'admin' ? 'br' : 'bb') + '">' + (u.rol === 'admin' ? 'admin' : (u.rol === 'empleado' ? T('usr.empleado') : escHtml(u.rol || ''))) + '</span></td>' +
       '<td><span class="badge ' + (u.activo ? 'bg' : 'bo') + '">' + (u.activo ? T('usu.activo') : T('usu.inactivo')) + '</span></td>';
     var tdAcc = document.createElement('td');
     tdAcc.style = 'display:flex;gap:3px;flex-wrap:wrap';
@@ -22131,7 +22131,7 @@ function renderPermisosUI() {
   Object.keys(grupos).forEach(function(grupo) {
     var div = document.createElement('div');
     div.style = 'margin-bottom:14px';
-    div.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">' + grupo + '</div>';
+    div.innerHTML = '<div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;margin-bottom:8px;letter-spacing:.5px">' + (T('perm.g_' + grupo) !== 'perm.g_' + grupo ? T('perm.g_' + grupo) : grupo) + '</div>';
     grupos[grupo].forEach(function(p) {
       // Para defaultOn, considerar "activo" si no está explícitamente false
       var activo = p.defaultOn ? (permsCurrent[p.id] !== false) : (permsCurrent[p.id] === true);
