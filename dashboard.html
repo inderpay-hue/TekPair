@@ -1235,7 +1235,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261020c"></script>
+<script src="/lang/lang.v8.js?v=20261021a"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -3455,7 +3455,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
         </div>
         <div class="fg">
           <label class="fl" data-t="ajp.tipos_extra">Tipos adicionales permitidos (separados por coma)</label>
-          <input class="fi" id="ajIvaTiposExtra" type="text" placeholder="21, 10, 4, 0" style="max-width:220px"/>
+          <input class="fi" id="ajIvaTiposExtra" type="text" placeholder="21, 10, 4, 0" data-t-ph="ajp.tipos_extra_ph" style="max-width:220px"/>
           <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="ajp.tipos_extra_hint">Ej: 21, 10, 4, 0 — aparecerán como opciones al crear ventas y reparaciones</div>
         </div>
         <div style="font-size:11px;color:var(--muted);line-height:1.5;background:var(--light);padding:10px 12px;border-radius:8px;margin-top:6px" data-t-html="ajp.iva_help">
@@ -4071,7 +4071,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     <div class="sec-title" id="comTitle">💼 <span data-t="nav.comisiones">Comisiones</span></div>
   </div>
   <div id="comContent">
-    <div style="text-align:center;padding:40px;color:var(--muted)">Cargando...</div>
+    <div style="text-align:center;padding:40px;color:var(--muted)" data-t="gen.cargando">Cargando...</div>
   </div>
 
   <!-- ════ CUENTAS COBRADAS EN MANO (solo superadmin) ════ -->
@@ -6051,12 +6051,12 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <div class="modal-bg" id="mPresEnviar">
   <div class="modal" style="max-width:420px">
     <div class="modal-h">
-      <span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-link"/></svg><span>Enviar presupuesto al cliente</span></span>
+      <span class="mh-t"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-link"/></svg><span data-t="pres.enviar_titulo">Enviar presupuesto al cliente</span></span>
       <span class="cls" onclick="closeM('mPresEnviar')">×</span>
     </div>
-    <div id="mPresEnviarInfo" style="background:var(--light);padding:10px 12px;border-radius:8px;margin-bottom:14px;font-size:13px;color:var(--muted)">Cargando...</div>
+    <div id="mPresEnviarInfo" style="background:var(--light);padding:10px 12px;border-radius:8px;margin-bottom:14px;font-size:13px;color:var(--muted)" data-t="gen.cargando">Cargando...</div>
     <div class="fg">
-      <label class="fl">Enviar por</label>
+      <label class="fl" data-t="pres.enviar_por">Enviar por</label>
       <div style="display:flex;gap:8px">
         <label style="flex:1;display:flex;align-items:center;gap:8px;background:white;border:1.5px solid var(--border);border-radius:9px;padding:10px 12px;cursor:pointer;font-size:13px;transition:border-color .15s" id="lblWA">
           <input type="checkbox" id="chkPresWA" checked onchange="presEnviarToggle()"> 📲 WhatsApp
@@ -6067,7 +6067,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       </div>
     </div>
     <div id="presEnviarWarn" style="display:none;background:rgba(249,115,22,.08);border:1px solid rgba(249,115,22,.3);border-radius:8px;padding:10px 12px;font-size:12px;color:#92400E;margin-bottom:10px"></div>
-    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5">
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px;line-height:1.5" data-t-html="pres.enlace_48h">
       Se generará un enlace único válido <strong>48 horas</strong>. El cliente podrá revisar el presupuesto y aceptarlo desde su móvil sin necesidad de instalar nada.
     </div>
     <div style="display:flex;gap:8px;justify-content:flex-end">
@@ -6322,7 +6322,7 @@ async function darDeBajaComercial(email, codigo, nombre) {
 async function cargarComisiones() {
   var content = document.getElementById('comContent');
   if (!content) return;
-  content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">Cargando...</div>';
+  content.innerHTML = '<div style="text-align:center;padding:40px;color:var(--muted)">' + T('gen.cargando') + '</div>';
 
   try {
     var r = await fetch('/api/comisiones', {
