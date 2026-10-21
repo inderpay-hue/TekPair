@@ -15581,8 +15581,10 @@ function toggleCliEmpresa() {
   var esEmp = !!(document.getElementById('cEsEmpresa') || {}).checked;
   var bp = document.getElementById('cBoxParticular'); if (bp) bp.style.display = esEmp ? 'none' : '';
   var be = document.getElementById('cBoxEmpresa'); if (be) be.style.display = esEmp ? '' : 'none';
-  var lbl = document.getElementById('cDniLbl'); if (lbl) lbl.textContent = esEmp ? 'CIF' : 'DNI/NIE';
-  var dni = document.getElementById('cDni'); if (dni) dni.placeholder = esEmp ? 'B12345678' : '12345678A';
+  // El nombre del documento depende del país: en español DNI/NIE y CIF; en el resto, el texto traducido.
+  var es = (typeof TEKPAIR_LANG !== 'string' || TEKPAIR_LANG === 'es');
+  var lbl = document.getElementById('cDniLbl'); if (lbl) lbl.textContent = esEmp ? (es ? 'CIF' : T('cli.dni_nie')) : T('cli.dni_nie');
+  var dni = document.getElementById('cDni'); if (dni) dni.placeholder = es ? (esEmp ? 'B12345678' : '12345678A') : T('onb.cif_ph');
   var fb = document.getElementById('cFnacBox'); if (fb) fb.style.display = esEmp ? 'none' : ''; // cumpleaños no aplica a empresa
 }
 
@@ -22022,7 +22024,7 @@ function aplicarRolPreset(rol) {
     (ROLES_PRESET[rol] || []).forEach(function(pid) { permsCurrent[pid] = true; });
   }
   renderPermisosUI();
-  toast(T('tst.plantilla_rol').replace('{n}', rol), 'ok');
+  toast(T('tst.plantilla_rol').replace('{n}', T('perm.rol_' + rol).replace(/^[^\p{L}]+/u, '')), 'ok');
 }
 
 async function editarPermisos(id, nombre) {
