@@ -623,6 +623,20 @@ async function presRechazar(body, ip) {
 // ── Handler principal ────────────────────────────────────────────────────────
 // #B4: valida un código de invitación antes de prometer "1 mes gratis" en el registro.
 // Reconoce el referral_code propio de TekPair y el código cruzado de Cobrum.
+// ¿El código de este comercial tiene descuento activo en Stripe? Si no lo tiene
+// (p. ej. DEMBA desde el 21-oct-2026), su cliente recibe UN MES de prueba en lugar
+// del descuento (checkout.js) y el aviso del registro tiene que decir eso.
+async function _comercialConDescuento(codigo) {
+  const KEY = process.env.STRIPE_SECRET_KEY;
+  if (!KEY || !codigo) return false;
+  try {
+    const r = await fetch('https://api.stripe.com/v1/promotion_codes?code=' + encodeURIComponent(codigo) + '&active=true&limit=1', { headers: { 'Authorization': 'Bearer ' + KEY } });
+    if (!r.ok) return false;
+    const j = await r.json();
+    return !!(j && Array.isArray(j.data) && j.data.length);
+  } catch (e) { return false; }
+}
+
 async function checkRef(ref, ip) {
   const code = String(ref || '').replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16);
   if (!code) return { ok: true, valid: false };
@@ -636,7 +650,7 @@ async function checkRef(ref, ip) {
     if (Array.isArray(rows) && rows.length) {
       if (/ - Comercial$/i.test(String(rows[0].nombre || '').trim())) {
         const af = await sbGet('afiliados?tienda_id=eq.' + encodeURIComponent(rows[0].id) + '&activo=eq.true&select=codigo&limit=1');
-        if (Array.isArray(af) && af.length) return { ok: true, valid: true, tipo: 'comercial' };
+        if (Array.isArray(af) && af.length) return { ok: true, valid: true, tipo: 'comercial', descuento: await _comercialConDescuento(af[0].codigo) };
       }
       return { ok: true, valid: true, tipo: 'tekpair' };
     }
@@ -645,7 +659,7 @@ async function checkRef(ref, ip) {
   //     llegaba con el enlace de un comercial no veia ningun aviso.
   try {
     const af = await sbGet('afiliados?codigo=eq.' + encodeURIComponent(code) + '&activo=eq.true&select=codigo&limit=1');
-    if (Array.isArray(af) && af.length) return { ok: true, valid: true, tipo: 'comercial' };
+    if (Array.isArray(af) && af.length) return { ok: true, valid: true, tipo: 'comercial', descuento: await _comercialConDescuento(af[0].codigo) };
   } catch (e) {}
   // 2) ¿código cruzado de Cobrum?
   try {
