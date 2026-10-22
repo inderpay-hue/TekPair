@@ -6408,7 +6408,6 @@ async function crearComercialTekpair() {
     var msg = '✅ Comercial ' + codigo + ' creado.\n\nEmail: ' + email + '\nContraseña: ' + d1.password + '\n\n';
     if (enviarEmail) msg += (d2 && d2.email_enviado) ? 'Email enviado al comercial.' : 'Aviso: el email no se envió, pásale las credenciales a mano.';
     else msg += 'Pásale las credenciales al comercial.';
-    msg += '\n\n⚠️ Recuerda crear el cupón en Stripe con el código ' + codigo + ' (Porcentaje · Repeating 3 meses) para que su descuento funcione.';
     alert(msg);
     cargarComisiones();
   } catch (e) { alert('Error de conexión: ' + e.message); }
@@ -6427,13 +6426,13 @@ function cerrarWizardAfil() {
 }
 
 function _wizardHeader(stepNum) {
-  var pasos = ['Datos comercial', 'Cupón Stripe', 'Activar'];
+  var pasos = ['Datos comercial', 'Activar'];
   var html = '<div style="background:linear-gradient(135deg,#FF5B1F,#FF7A45);color:white;padding:18px 22px">';
-  html += '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.9">NUEVO COMERCIAL · PASO ' + stepNum + ' DE 3</div>';
+  html += '<div style="font-size:11px;font-weight:700;letter-spacing:.5px;opacity:.9">NUEVO COMERCIAL · PASO ' + stepNum + ' DE 2</div>';
   html += '<div style="font-size:18px;font-weight:800;margin-top:4px">' + pasos[stepNum-1] + '</div>';
   // Progress
   html += '<div style="display:flex;gap:6px;margin-top:14px">';
-  for (var i=1; i<=3; i++) {
+  for (var i=1; i<=2; i++) {
     var bg = i < stepNum ? 'rgba(255,255,255,.9)' : (i === stepNum ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.3)');
     html += '<div style="flex:1;height:4px;background:' + bg + ';border-radius:2px"></div>';
   }
@@ -6498,7 +6497,7 @@ async function wizardStep1Submit() {
     d.user_id = data.user_id;
     d.tienda_id = data.tienda_id;
     d.password = data.password;
-    abrirWizardStep(2);
+    abrirWizardStep(3);
   } catch (e) { alert('Error de conexion: ' + e.message); }
 }
 
@@ -6543,7 +6542,7 @@ function renderWizardStep3() {
   var d = window._wizardAfilData;
   var html = '<div id="mWizAfil" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">' +
     '<div style="background:white;max-width:500px;width:100%;border-radius:14px;overflow:hidden">' +
-      _wizardHeader(3) +
+      _wizardHeader(2) +
       '<div style="padding:20px 22px">' +
         '<div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:12px">Resumen del comercial:</div>' +
         '<div style="background:#F8FAFC;border-radius:10px;padding:14px;margin-bottom:16px;font-size:13px;color:#475569;line-height:1.7">' +

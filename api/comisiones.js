@@ -681,7 +681,9 @@ export default async function handler(req, res) {
         // el comercial recibía un correo prometiendo un 50% con un código que para
         // Stripe no existía: el cliente lo escribía, no pasaba nada, y encima la
         // comisión no se atribuía (se atribuye por el descuento aplicado).
-        const cupon = await crearCuponAfiliado(codigoNorm, body);
+        // Desde el 22-oct-2026 el código del comercial ya no da descuento (da un mes de
+        // prueba, ver checkout.js), así que no se crea cupón en Stripe.
+        const cupon = { ok: true, descuento: 'Mes de prueba (15 + 15 días)' };
 
         // Enviar email de bienvenida si se solicita.
         // Si el cupón no se pudo crear NO se manda: ese correo promete un descuento
@@ -715,7 +717,7 @@ export default async function handler(req, res) {
   <div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:16px;margin:20px 0">
     <div style="font-size:11px;font-weight:700;color:#10B981;letter-spacing:1px;margin-bottom:10px">TU CÓDIGO DE AFILIADO</div>
     <div style="font-size:28px;font-weight:800;color:#0F172A;letter-spacing:2px;font-family:monospace">${codigoE}</div>
-    <div style="font-size:13px;color:#475569;margin-top:8px">Cuando un cliente lo use al suscribirse a TekPair, recibe 50% descuento durante 3 meses y tú cobras el <strong>${comisionPct}%</strong> de comisión recurrente sobre cada pago.</div>
+    <div style="font-size:13px;color:#475569;margin-top:8px">Cuando un cliente lo use al darse de alta en TekPair, tiene <strong>un mes de prueba gratis</strong> (los 15 días de siempre + 15 más por tu código) y tú cobras el <strong>${comisionPct}%</strong> de comisión recurrente sobre cada pago.</div>
   </div>
 
   <p style="font-size:14px;line-height:1.6;color:#475569">Accede a tu panel en <a href="https://www.tekpair.tech/app.html" style="color:#0055FF;text-decoration:none;font-weight:700">tekpair.tech</a> para consultar tus comisiones, clientes captados e historial de cobros.</p>

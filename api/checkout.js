@@ -183,8 +183,15 @@ export default async function handler(req, res) {
     // 0 canjes en TODOS los cupones desde mayo: ni un solo cliente recibió el 50%
     // que promete el kit comercial, y ningún comercial cobró su comisión, porque la
     // atribución va justo por este código (webhook.js lo lee del descuento aplicado).
-    const promoId = refCode ? await buscarPromo(refCode, STRIPE_KEY) : null;
-    if (promoId) {
+    const _tipoRef = await tipoRef(refCode, SUPABASE_URL, SERVICE_KEY);
+    // Desde el 22-oct-2026 el código de un COMERCIAL ya no da descuento: da un mes de
+    // prueba (15 días de todos + 15 por el comercial). Por eso no se le aplica ningún
+    // cupón ni se deja escribir uno en Stripe; la comisión se atribuye igual por la
+    // metadata `ref` (respaldo de webhook.js).
+    const promoId = (refCode && _tipoRef !== 'afiliado') ? await buscarPromo(refCode, STRIPE_KEY) : null;
+    if (_tipoRef === 'afiliado') {
+      // sin descuento ni campo de código
+    } else if (promoId) {
       // Stripe no admite las dos cosas a la vez: o se aplica un descuento concreto o
       // se ofrece el campo para escribirlo. Con código válido, aplicado y visible.
       params.append('discounts[0][promotion_code]', promoId);
@@ -212,10 +219,11 @@ export default async function handler(req, res) {
     // comercial aun no tiene su cupon creado en Stripe (promoId vacio), se le
     // deja el mes: si no, el cliente se quedaria sin nada de lo prometido.
     // Las invitaciones entre tiendas y las de Cobrum siguen con el mes.
+    //
+    // 22-oct-2026 (decision del dueño): TODOS los codigos dan el mes, tambien los de
+    // comercial, que ya no llevan el 50%. Codigo valido = 30 dias; sin codigo = 15.
     const TRIAL_NORMAL = 15, TRIAL_REF = 30;
-    const _tipoRef = await tipoRef(refCode, SUPABASE_URL, SERVICE_KEY);
-    const trialDias = !_tipoRef ? TRIAL_NORMAL
-      : (_tipoRef === 'afiliado' && promoId ? TRIAL_NORMAL : TRIAL_REF);
+    const trialDias = _tipoRef ? TRIAL_REF : TRIAL_NORMAL;
     params.append('subscription_data[trial_period_days]', String(trialDias));
     // Pasar metadata también a la subscription para que el webhook tenga acceso
     params.append('subscription_data[metadata][plan]', planCanonico);
