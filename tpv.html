@@ -263,14 +263,14 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .vl-t:focus-visible{outline:2px solid var(--t-acc);outline-offset:2px}
 .vl-aux{color:var(--t-ink2);font-size:17px}
 </style>
-<script src="/lang/lang.v8.js?v=20261019x"></script>
+<script src="/lang/lang.v8.js?v=20261023d"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
        Faltaba aquí, así que el TPV era lo único que nunca imprimía sin diálogo. -->
   <script src="/js/desktop-print.js?v=20261019e"></script>
   <script src="/js/usados.js?v=20261016a"></script>
-  <script src="/js/ticket-venta.js?v=20261016b"></script>
+  <script src="/js/ticket-venta.js?v=20261023a"></script>
 </head>
 <body>
 <script>try{var _TM={light:'clean',terracota:'orange',dark:'dark'};var _t=_TM[localStorage.getItem('tk_theme')||'terracota']||localStorage.getItem('tk_tpv_theme')||'aurora';document.body.setAttribute('data-theme',_t)}catch(e){document.body.setAttribute('data-theme','aurora')}</script>
@@ -322,6 +322,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
       <div style="display:flex;gap:6px">
         <button class="caja-btn" onclick="verHistorial()"><span data-t="tpv.historial">📋 Historial</span></button>
         <button class="caja-btn" onclick="verCaja()"><span data-t="tpv.ver_caja">Ver caja</span></button>
+        <button class="caja-btn" id="btnAbrirCajon" style="display:none" onclick="tpvAbrirCajon()"><span data-t="tpv.abrir_cajon">🔓 Abrir cajón</span></button>
       </div>
     </div>
 
@@ -2306,10 +2307,29 @@ function mostrarTicket(venta, totals) {
   var _entraEfectivo = (venta.pago === 'Efectivo') ||
     _ventaPagos(venta).some(function (p) { return p.metodo === 'Efectivo' && p.importe > 0; }) ||
     (venta.financiado && venta.entradaPago === 'Efectivo' && (venta.entrada || 0) > 0);
-  if (_entraEfectivo && typeof tkAbrirCajon === 'function') {
+  // Una sola vez por venta: mostrarTicket se vuelve a llamar cuando llega el número
+  // del ticket desde el servidor y el cajón se abría dos veces.
+  if (_entraEfectivo && typeof tkAbrirCajon === 'function' && _cajonVentaId !== venta.id) {
+    _cajonVentaId = venta.id;
     try { tkAbrirCajon(); } catch (e) {}
   }
 }
+var _cajonVentaId = null;
+
+// Botón «Abrir cajón» (solo en la app de escritorio): abre el cajón sin imprimir ni
+// cobrar nada, p. ej. para dar cambio. Si aún no hay impresora de tickets elegida se
+// pregunta aquí (aquí sí, porque lo ha pedido el cajero), y queda guardada también
+// para que se abra solo en los cobros en efectivo.
+function tpvAbrirCajon() {
+  if (typeof tkIsDesktop !== 'function' || !tkIsDesktop() || typeof tkAbrirCajon !== 'function') return;
+  var elegir = (typeof tkGetPrinter === 'function') ? tkGetPrinter(false, 'tk_impresora_ticket') : Promise.resolve('');
+  Promise.resolve(elegir).then(function () { return tkAbrirCajon(); }).then(function (ok) {
+    if (typeof toast === 'function') toast(T(ok ? 'tpv.cajon_abierto' : 'tpv.cajon_error'), ok ? 'ok' : 'err');
+  }).catch(function () { if (typeof toast === 'function') toast(T('tpv.cajon_error'), 'err'); });
+}
+document.addEventListener('DOMContentLoaded', function () {
+  try { if (typeof tkIsDesktop === 'function' && tkIsDesktop()) document.getElementById('btnAbrirCajon').style.display = ''; } catch (e) {}
+});
 
 // La impresora térmica trabaja a 1 bit: Courier New a 12px y los grises (#999,
 // #ccc) salían como una trama de puntos que no se lee. Por eso el ticket va en

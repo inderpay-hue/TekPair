@@ -1248,7 +1248,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261023a"></script>
+<script src="/lang/lang.v8.js?v=20261023e"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -3479,6 +3479,15 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
         <label class="fl"><span data-t="ajt.tk_pie">Texto al final del ticket</span></label>
         <textarea class="fi" id="ajTicketPie" rows="3" maxlength="300" data-t-ph="ajt.tk_pie_ph" placeholder="Ej.: Cambios en 15 días con el ticket. IVA incluido."></textarea>
       </div>
+      <div class="fg">
+        <label class="fl"><span data-t="ajt.tk_redes">Redes sociales en el ticket</span></label>
+        <div style="font-size:11.5px;color:var(--muted);margin:-2px 0 8px" data-t="ajt.tk_redes_hint">Tu usuario o el enlace. Solo salen las que rellenes.</div>
+        <div style="display:flex;flex-direction:column;gap:7px">
+          <input class="fi" id="ajRedInstagram" maxlength="80" placeholder="Instagram — @tutienda">
+          <input class="fi" id="ajRedFacebook" maxlength="80" placeholder="Facebook — Tu Tienda">
+          <input class="fi" id="ajRedTiktok" maxlength="80" placeholder="TikTok — @tutienda">
+        </div>
+      </div>
     </div>
 
 <div class="card">
@@ -5704,8 +5713,8 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/desktop-print.js?v=20261019e"></script>
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
-<script src="/js/ticket-venta.js?v=20261016b"></script>
-<script src="/js/dash-app.js?v=20261023c"></script>
+<script src="/js/ticket-venta.js?v=20261023a"></script>
+<script src="/js/dash-app.js?v=20261023e"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
