@@ -1218,13 +1218,22 @@ function renderProducts() {
   var grid = document.getElementById('productsGrid');
   var icons = {Telefono:'📱', Tablet:'📟', Smartwatch:'⌚', Accesorio:'🎧', Repuesto:'🔧', servicio:'🛠️', Otro:'📦', fijo:'⭐'};
 
+  // Venta rápida: SIEMPRE la primera, en todas las pestañas y aunque la tienda no tenga
+  // nada en stock. Antes, sin productos (tienda nueva o categoría vacía) se enseñaba el
+  // mensaje de vacío y no había forma de cobrar nada desde el TPV.
+  var vrCard = '<div class="prod-card" onclick="abrirVentaRapida()" style="border-style:dashed;border-color:rgba(0,85,255,.45);background:rgba(0,85,255,.05)">' +
+      '<div class="prod-icon">\u26a1</div>' +
+      '<div class="prod-name">' + T('tpv.vr_nombre') + '</div>' +
+      '<div class="prod-price" style="color:var(--t-acc)">' + T('tpv.vr_precio') + '</div>' +
+      '<div class="prod-stock">' + T('tpv.vr_stock') + '</div></div>';
+
   if (!products.length) {
     if (currentCat === 'favoritos') {
-      grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">' + T('tpv.sin_favoritos') + '</div>';
+      grid.innerHTML = vrCard + '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">' + T('tpv.sin_favoritos') + '</div>';
       grid.innerHTML += '<div style="grid-column:1/-1;text-align:center;margin-top:8px"><button class="btn-primary" style="width:auto;padding:10px 16px" onclick="abrirGestionFavs()">⭐ ' + T('tpv.gestionar_favoritos') + '</button></div>';
       return;
     }
-    grid.innerHTML = '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">' + T('tpv.sin_productos_cat') + '</div>';
+    grid.innerHTML = vrCard + '<div style="grid-column:1/-1;text-align:center;padding:40px;color:var(--muted)">' + T('tpv.sin_productos_cat') + '</div>';
     return;
   }
   window._tpvGrupos = [];  // índice de grupos para el onclick (evita inyección por comillas en nombres)
@@ -1270,13 +1279,8 @@ function renderProducts() {
 
   // La venta rapida va la PRIMERA, no la ultima: es de lo mas usado del dia y
   // antes habia que bajar hasta el final de la rejilla para encontrarla.
-  if (currentCat !== 'favoritos') {
-    grid.innerHTML = '<div class="prod-card" onclick="abrirVentaRapida()" style="border-style:dashed;border-color:rgba(0,85,255,.45);background:rgba(0,85,255,.05)">' +
-      '<div class="prod-icon">\u26a1</div>' +
-      '<div class="prod-name">' + T('tpv.vr_nombre') + '</div>' +
-      '<div class="prod-price" style="color:var(--t-acc)">' + T('tpv.vr_precio') + '</div>' +
-      '<div class="prod-stock">' + T('tpv.vr_stock') + '</div></div>' + grid.innerHTML;
-  } else {
+  grid.innerHTML = vrCard + grid.innerHTML;
+  if (currentCat === 'favoritos') {
     // En la pestaña favoritos, botón gestionar al final
     grid.innerHTML += '<div class="prod-card" onclick="abrirGestionFavs()" style="border-style:dashed;border-color:#FBBF24;background:#FFFBEB">' +
       '<div class="prod-icon">⚙️</div>' +
