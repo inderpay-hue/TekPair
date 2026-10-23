@@ -18425,6 +18425,9 @@ function cargarTienda() {
   document.getElementById('tEmail').value = t.email || '';
   document.getElementById('tCif').value = t.cif || '';
   document.getElementById('tWeb').value = t.web || '';
+  // Redes sociales (Datos de la tienda): van en ajustes_config.redes, sin columnas nuevas.
+  var _rd = (typeof AJUSTES !== 'undefined' && AJUSTES && AJUSTES.redes) || {};
+  [['ajRedInstagram', 'instagram'], ['ajRedFacebook', 'facebook'], ['ajRedTiktok', 'tiktok']].forEach(function (x) { var el = document.getElementById(x[0]); if (el) el.value = _rd[x[1]] || ''; });
   document.getElementById('tGarantia').value = t.garantia || '';
   document.getElementById('tPolitica').value = t.politica || '';
   var gv = document.getElementById('tGarantiaVentas');
@@ -18667,16 +18670,25 @@ async function guardarTienda() {
   }
   localStorage.setItem('tk_tienda', JSON.stringify(t));
   Object.assign(TIENDA, t);
+  // Redes sociales: salen al pie del ticket y del resguardo. Se guardan en ajustes_config.
+  var _redesCambio = false;
+  if (document.getElementById('ajRedInstagram') && typeof AJUSTES !== 'undefined' && AJUSTES) {
+    var _rn = {};
+    [['ajRedInstagram', 'instagram'], ['ajRedFacebook', 'facebook'], ['ajRedTiktok', 'tiktok']].forEach(function (x) { var v = (document.getElementById(x[0]).value || '').trim().slice(0, 80); if (v) _rn[x[1]] = v; });
+    _redesCambio = JSON.stringify(_rn) !== JSON.stringify(AJUSTES.redes || {});
+    AJUSTES.redes = _rn;
+    try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
+  }
   // VIS-1: dTienda muestra saludo, no nombre de tienda. Actualizamos sidebar.
   var sbTiendaEl = document.getElementById('sidebarTienda');
   if (sbTiendaEl) sbTiendaEl.textContent = t.nombre || T('gen.mi_tienda_2');
   if (SB_KEY && TIENDA_ID) {
-    var okDB = await sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {
+    var okDB = await sbPatch('tiendas', 'id=eq.' + TIENDA_ID, Object.assign({
       nombre: t.nombre, dir: t.dir, tel: t.tel, email: t.email, cif: t.cif, web: t.web,
       garantia: t.garantia, politica: t.politica, garantia_dias: grDef,
       garantia_ventas: t.garantiaVentas, politica_ventas: t.politicaVentas,
       cobro_datos: t.cobroDatos
-    });
+    }, _redesCambio ? { ajustes_config: AJUSTES } : {}));
     // Si la DB rechazó (p.ej. columna faltante), no mentimos con "guardada":
     // sbPatch ya mostró el error; avisamos que quedó solo en local.
     if (!okDB) { toast(T('tienda.solo_local'), 'err'); return; }
@@ -19032,8 +19044,6 @@ function cargarAjustes() {
   var _tkPl = document.getElementById('ajTicketPie');
   if (_tkDl) _tkDl.value = AJUSTES.ticketDoc || '';
   if (_tkPl) _tkPl.value = AJUSTES.ticketPie || '';
-  var _rd = AJUSTES.redes || {};
-  [['ajRedInstagram', 'instagram'], ['ajRedFacebook', 'facebook'], ['ajRedTiktok', 'tiktok']].forEach(function (x) { var el = document.getElementById(x[0]); if (el) el.value = _rd[x[1]] || ''; });
   toggleCumpleCfg();
   try { _renderImpresorasAjustes(); } catch (e) {}
 }
@@ -19128,11 +19138,6 @@ function guardarAjustes() {
   var _tkP = document.getElementById('ajTicketPie');
   if (_tkD) AJUSTES.ticketDoc = _tkD.value.trim().slice(0, 40);
   if (_tkP) AJUSTES.ticketPie = _tkP.value.trim().slice(0, 300);
-  // Redes sociales que salen al pie del ticket (también en ajustes_config).
-  if (document.getElementById('ajRedInstagram')) {
-    AJUSTES.redes = {};
-    [['ajRedInstagram', 'instagram'], ['ajRedFacebook', 'facebook'], ['ajRedTiktok', 'tiktok']].forEach(function (x) { var v = (document.getElementById(x[0]).value || '').trim().slice(0, 80); if (v) AJUSTES.redes[x[1]] = v; });
-  }
   localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {ajustes_config: AJUSTES});
   if (typeof refreshNotifs === 'function') refreshNotifs();
