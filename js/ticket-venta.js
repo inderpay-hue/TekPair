@@ -241,6 +241,7 @@
   }
 
   window.tkTicketVentaHtml = tkTicketVentaHtml;
+  window.tkRedesTicket = function () { return redesTk((typeof AJUSTES !== 'undefined' && AJUSTES) || {}); };
   window.tkTicketVentaPie = tkTicketVentaPie;
   window.tkTicketExtrasLinea = extrasLinea;
 })();
