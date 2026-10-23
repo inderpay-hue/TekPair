@@ -262,6 +262,54 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .vl-t:active{transform:scale(.96);background:var(--t-surf2)}
 .vl-t:focus-visible{outline:2px solid var(--t-acc);outline-offset:2px}
 .vl-aux{color:var(--t-ink2);font-size:17px}
+
+/* ===== TPV v2 (oct-2026): el orden y la claridad del TPV de Bipe, con la marca de TekPair =====
+   Solo visual. Tema naranja (el de casi todas las tiendas): fondo oscuro liso, sin
+   degradados ni cristal, naranja como color principal. La forma de tarjetas, ticket y
+   botón Cobrar vale para todos los temas (cada uno pone sus colores con --t-*). */
+body[data-theme="orange"]{--t-bg:#111317;--t-surf:#191C22;--t-surf2:#1E222A;--t-bd:#2A2F38;--t-bdhi:#3A404C;--t-ink:#ECEFF4;--t-ink2:#A9B1BE;--t-mut:#6E7785;--t-acc:#FF7A2E;--t-acc2:#FFB020;--t-blur:none;--t-sh:none;--t-cob:#FF7A2E;--t-cobink:#1C0E03;--t-modal:#191C22}
+body[data-theme="orange"] .tpv-aurora{display:none}
+body[data-theme="orange"] .tpv-right{background:#15181D}
+/* cabecera y barra de caja más sobrias */
+.tpv-topbar{border-bottom:1px solid var(--t-bd);padding:10px 16px}
+.caja-bar{background:transparent}
+.tpv-search{padding-top:12px}
+.tpv-search-input{border-radius:10px;box-shadow:none}
+/* categorías: botones rectangulares; la activa en el color de la tienda */
+.cat-pill{border-radius:10px;padding:9px 15px}
+.cat-pill.active{background:var(--t-acc);color:var(--t-cobink);border-color:var(--t-acc)}
+.brand-pill{border-radius:10px}
+/* tarjetas: nombre arriba, precio grande abajo, sin elevarse al pasar el ratón */
+.tpv-products{gap:10px;grid-template-columns:repeat(auto-fill,minmax(158px,1fr))}
+.prod-card{border-radius:12px;padding:12px 13px 11px;min-height:118px;box-shadow:none;transition:border-color .12s,background .12s}
+.prod-card:hover{transform:none;box-shadow:none;border-color:var(--t-acc);background:var(--t-surf2)}
+.prod-card:active{transform:scale(.98)}
+.prod-icon{font-size:15px;margin-bottom:6px;line-height:1;opacity:.9}
+.prod-name{font-size:13.5px;flex:0 0 auto;margin-bottom:8px;padding-right:22px}
+.prod-price{margin-top:auto;font-size:20px;font-weight:800;color:var(--t-acc);font-variant-numeric:tabular-nums;letter-spacing:-.4px}
+.prod-price[style*="--blue"]{color:var(--t-acc2)!important;font-size:13px!important;letter-spacing:0}
+.prod-stock{font-size:10.5px}
+.prod-fav{top:9px;right:9px;width:24px;height:24px;font-size:13px}
+.prod-card[onclick^="abrirVentaRapida"]{border-color:var(--t-acc)!important;background:color-mix(in srgb,var(--t-acc) 8%,transparent)!important}
+/* ticket: líneas limpias, total grande en el color de la tienda */
+.cart-header{padding:14px 16px 12px}
+.cart-items{padding:6px 14px}
+.cart-item{background:transparent;border:none;border-bottom:1px solid var(--t-bd);border-radius:0;margin:0;padding:11px 2px}
+.qty-btn{border-radius:7px}
+.disc-input,.disc-type{border-radius:9px}
+.total-row.main{font-size:30px;padding:6px 0 2px}
+.total-row.main span:last-child{color:var(--t-acc);font-variant-numeric:tabular-nums}
+.pay-btn{border-radius:10px;padding:12px}
+.pay-btn.active{background:color-mix(in srgb,var(--t-acc) 18%,transparent);border-color:var(--t-acc);box-shadow:none}
+/* Botones de arriba (Reparación, Stock, Pedido): sobrios, con el icono para distinguirlos;
+   antes eran tres colores fuertes distintos que competían con el botón Cobrar */
+.tpv-topbar-info .tpv-btn-back[style]{background:var(--t-surf)!important;border-color:var(--t-bd)!important;color:var(--t-ink)!important;font-weight:700}
+.tpv-topbar-info .tpv-btn-back:hover{border-color:var(--t-acc)!important}
+/* Cobrar: el botón más visible de la pantalla */
+.btn-checkout{border-radius:12px;padding:18px;font-size:19px;letter-spacing:.4px;box-shadow:none;transition:filter .12s,transform .06s}
+.btn-checkout:hover{transform:none;filter:brightness(1.08)}
+.btn-checkout:active{transform:scale(.99)}
+@media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
 <script src="/lang/lang.v8.js?v=20261023i"></script>
   <script src="/cookies-consent.js" defer></script>
