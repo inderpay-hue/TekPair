@@ -669,22 +669,36 @@
   // bytes que la impresora reenvía al conector RJ11 del cajón. Si no hay cajón
   // conectado, la impresora los ignora y no pasa nada — ni papel, ni error.
   // Se mandan los dos pines porque el cableado varía según el fabricante del cajón.
-  function tkAbrirCajon(key) {
-    if (!tkIsDesktop()) return Promise.resolve(false);
+  // opts.detalle: devuelve {ok, motivo} en vez de true/false (para el botón del TPV).
+  function tkAbrirCajon(key, opts) {
+    opts = opts || {};
+    var res = function (ok, motivo) { return opts.detalle ? { ok: ok, motivo: motivo || '' } : ok; };
+    if (!tkIsDesktop()) return Promise.resolve(res(false, 'no_app'));
+    key = key || 'tk_impresora_ticket';
     var impresora = '';
-    try { impresora = localStorage.getItem(key || 'tk_impresora_ticket') || ''; } catch (e) {}
-    // Sin impresora elegida NO se abre el selector: el cajón no justifica
-    // interrumpir un cobro con una pregunta. Se abrirá a partir del primer ticket.
-    if (!impresora) return Promise.resolve(false);
+    try { impresora = localStorage.getItem(key) || ''; } catch (e) {}
+    // Sin impresora guardada: si en el ordenador hay UNA sola impresora de verdad se
+    // usa esa sin preguntar (tkGetPrinter la guarda). Antes no se abría nunca hasta
+    // imprimir el primer ticket, y quien no imprime tickets se quedaba sin cajón.
+    // Con varias impresoras solo se pregunta si lo pide el cajero (botón Abrir cajón).
+    var elegir = impresora ? Promise.resolve(impresora)
+      : tkListPrintersRaw().then(function (r) {
+          var fis = r.lista.filter(function (n) { return !TK_VIRTUALES.test(String(n)); });
+          if (fis.length === 1) { try { localStorage.setItem(key, fis[0]); } catch (e) {} return fis[0]; }
+          return opts.preguntar ? tkGetPrinter(true, key) : '';
+        });
     var ESC = 0x1b;
     var bytes = [
       ESC, 0x40,                    // init
       ESC, 0x70, 0x00, 0x32, 0xFA,  // pin 2
       ESC, 0x70, 0x01, 0x32, 0xFA   // pin 5
     ];
-    return tkInvoke('print_raw', { printer: impresora, data: bytes })
-      .then(function () { return true; })
-      .catch(function () { return false; });
+    return Promise.resolve(elegir).then(function (imp) {
+      if (!imp) return res(false, 'sin_impresora');
+      return tkInvoke('print_raw', { printer: imp, data: bytes })
+        .then(function () { return res(true, imp); })
+        .catch(function (e) { return res(false, String((e && e.message) || e || 'error')); });
+    }).catch(function (e) { return res(false, String((e && e.message) || e || 'error')); });
   }
   window.tkAbrirCajon = tkAbrirCajon;
 })();

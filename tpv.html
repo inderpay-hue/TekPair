@@ -263,12 +263,12 @@ body[data-theme="clean"] .tpv-aurora,body[data-theme="dark"] .tpv-aurora{display
 .vl-t:focus-visible{outline:2px solid var(--t-acc);outline-offset:2px}
 .vl-aux{color:var(--t-ink2);font-size:17px}
 </style>
-<script src="/lang/lang.v8.js?v=20261023f"></script>
+<script src="/lang/lang.v8.js?v=20261023g"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
        Faltaba aquí, así que el TPV era lo único que nunca imprimía sin diálogo. -->
-  <script src="/js/desktop-print.js?v=20261019e"></script>
+  <script src="/js/desktop-print.js?v=20261023a"></script>
   <script src="/js/usados.js?v=20261016a"></script>
   <script src="/js/ticket-venta.js?v=20261023b"></script>
 </head>
@@ -2320,15 +2320,19 @@ var _cajonVentaId = null;
 // cobrar nada, p. ej. para dar cambio. Si aún no hay impresora de tickets elegida se
 // pregunta aquí (aquí sí, porque lo ha pedido el cajero), y queda guardada también
 // para que se abra solo en los cobros en efectivo.
+// El botón se ve siempre: si falla, el aviso dice POR QUÉ (sin app, sin impresora o
+// el error de Windows), que es lo que hace falta para arreglarlo a distancia.
 function tpvAbrirCajon() {
-  if (typeof tkIsDesktop !== 'function' || !tkIsDesktop() || typeof tkAbrirCajon !== 'function') return;
-  var elegir = (typeof tkGetPrinter === 'function') ? tkGetPrinter(false, 'tk_impresora_ticket') : Promise.resolve('');
-  Promise.resolve(elegir).then(function () { return tkAbrirCajon(); }).then(function (ok) {
-    if (typeof toast === 'function') toast(T(ok ? 'tpv.cajon_abierto' : 'tpv.cajon_error'), ok ? 'ok' : 'err');
-  }).catch(function () { if (typeof toast === 'function') toast(T('tpv.cajon_error'), 'err'); });
+  if (typeof tkAbrirCajon !== 'function') { toast(T('tpv.cajon_no_app'), 'err'); return; }
+  tkAbrirCajon('tk_impresora_ticket', { detalle: true, preguntar: true }).then(function (r) {
+    if (r.ok) { toast(T('tpv.cajon_abierto') + ' (' + r.motivo + ')', 'ok'); return; }
+    if (r.motivo === 'no_app') { toast(T('tpv.cajon_no_app'), 'err'); return; }
+    if (r.motivo === 'sin_impresora') { toast(T('tpv.cajon_sin_imp'), 'err'); return; }
+    toast(T('tpv.cajon_error') + ' — ' + r.motivo, 'err');
+  });
 }
 document.addEventListener('DOMContentLoaded', function () {
-  try { if (typeof tkIsDesktop === 'function' && tkIsDesktop()) document.getElementById('btnAbrirCajon').style.display = ''; } catch (e) {}
+  try { document.getElementById('btnAbrirCajon').style.display = ''; } catch (e) {}
 });
 
 // La impresora térmica trabaja a 1 bit: Courier New a 12px y los grises (#999,
