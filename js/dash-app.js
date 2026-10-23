@@ -19137,6 +19137,7 @@ function cargarAjustes() {
   var _tkPl = document.getElementById('ajTicketPie');
   if (_tkDl) _tkDl.value = AJUSTES.ticketDoc || '';
   if (_tkPl) _tkPl.value = AJUSTES.ticketPie || '';
+  var _cjm = document.getElementById('ajCajonModo'); if (_cjm) _cjm.value = AJUSTES.cajonModo || 'efectivo';
   toggleCumpleCfg();
   try { _renderImpresorasAjustes(); } catch (e) {}
 }
@@ -19231,6 +19232,7 @@ function guardarAjustes() {
   var _tkP = document.getElementById('ajTicketPie');
   if (_tkD) AJUSTES.ticketDoc = _tkD.value.trim().slice(0, 40);
   if (_tkP) AJUSTES.ticketPie = _tkP.value.trim().slice(0, 300);
+  var _cjm = document.getElementById('ajCajonModo'); if (_cjm) AJUSTES.cajonModo = _cjm.value || 'efectivo';
   localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, {ajustes_config: AJUSTES});
   if (typeof refreshNotifs === 'function') refreshNotifs();
