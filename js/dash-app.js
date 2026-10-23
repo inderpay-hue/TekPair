@@ -1330,12 +1330,15 @@ function ajBuscar(q) {
   if (!n) { box.innerHTML = ''; box.classList.remove('open'); _ajIdx = null; return; }
   if (!_ajIdx) _ajIdx = _ajIndice();
   var palabras = n.split(/\s+/);
-  var res = _ajIdx.filter(function (r) { return palabras.every(function (w) { return r.txt.indexOf(w) !== -1; }); }).slice(0, 8);
+  // Cada palabra tiene que ser el PRINCIPIO de una palabra del ajuste: «iva» encuentra
+  // «IVA» pero no «activar».
+  var _empieza = function (txt, w) { return (' ' + txt.replace(/[^a-z0-9@]+/g, ' ')).indexOf(' ' + w.replace(/[^a-z0-9@]+/g, '')) !== -1; };
+  var res = _ajIdx.filter(function (r) { return palabras.every(function (w) { return _empieza(r.txt, w); }); }).slice(0, 8);
   _ajSel = 0;
   if (!res.length) { box.innerHTML = '<div class="aj-br-vacio">' + esc(T('aj.buscar_vacio')) + '</div>'; box.classList.add('open'); return; }
   window._ajRes = res;
   box.innerHTML = res.map(function (r, i) {
-    var hit = r.extra.filter(function (x) { return palabras.some(function (w) { return _ajNorm(x).indexOf(w) !== -1; }); })[0];
+    var hit = r.extra.filter(function (x) { return palabras.some(function (w) { return _empieza(_ajNorm(x), w); }); })[0];
     return '<button type="button" class="aj-br-item' + (i === 0 ? ' sel' : '') + '" onmousedown="event.preventDefault();ajBuscarIr(' + i + ')">' +
       '<span class="aj-br-t">' + esc(r.titulo) + '</span><span class="aj-br-s">' + esc(r.sec) + (hit && hit !== r.titulo ? ' · ' + esc(hit) : '') + '</span></button>';
   }).join('');
