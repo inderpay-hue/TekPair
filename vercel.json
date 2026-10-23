@@ -187,11 +187,6 @@
       "permanent": false
     },
     {
-      "source": "/r/:code",
-      "destination": "/registro.html?ref=:code",
-      "permanent": false
-    },
-    {
       "source": "/blog/conseguir-clientes-taller-reparacion.html",
       "destination": "/blog/captar-clientes-taller-reparacion.html",
       "permanent": true
@@ -240,6 +235,12 @@
       "source": "/blog/pt/definir-precos-reparacoes.html",
       "destination": "/blog/pt/precos-reparacao-telemovel-oficina.html",
       "permanent": true
+    }
+  ],
+  "rewrites": [
+    {
+      "source": "/r/:code",
+      "destination": "/api/r?code=:code"
     }
   ]
 }

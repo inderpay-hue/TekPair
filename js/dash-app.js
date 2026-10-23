@@ -4132,6 +4132,12 @@ function refrescarVistasActivas() {
     pGastos: 'renderGastos', pServicios: 'renderServicios', pPedidos: 'renderPedidosPage',
     pAjustes: 'cargarAjustes', pTienda: 'cargarTienda', pHerramientas: 'renderHerramientasT', pUsados: 'renderUsados'
   };
+  // Ajustes y Tienda son formularios: repintarlos desde la sync (cada 60 s, al volver a
+  // la ventana o por tiempo real) pisaba lo que se estaba escribiendo sin guardar, p. ej.
+  // el texto del ticket. Ya se cargan al entrar en la página.
+  if (activa === 'pAjustes' || activa === 'pTienda') return;
+  // En cualquier otra página, tampoco mientras se escribe en uno de sus campos.
+  try { var pgA = document.getElementById(activa), aeA = document.activeElement; if (pgA && aeA && pgA.contains(aeA) && /^(INPUT|TEXTAREA|SELECT)$/.test(aeA.tagName)) return; } catch(e){}
   try { var fn = MAP[activa]; if (fn && typeof window[fn] === 'function') window[fn](); } catch(e){}
   try { if (activa === 'pGastos' && typeof renderGastosRec === 'function') renderGastosRec(); } catch(e){}
 }
@@ -4421,6 +4427,8 @@ function _copiarRefLink() {
     var esAuth = urlStr.indexOf('supabase.co') !== -1 ||
       (urlStr.indexOf('/api/') !== -1 && urlStr.indexOf('cobrum') === -1 &&
        urlStr.indexOf('finanzas-app') === -1 && urlStr.indexOf('/api/login') === -1);
+    // X-TK-No401Modal: la llamada gestiona su propio error (un 401 suyo no es sesión caducada).
+    try { var hh = options && options.headers; if (hh && (hh['X-TK-No401Modal'] || (typeof hh.get === 'function' && hh.get('X-TK-No401Modal')))) esAuth = false; } catch (e) {}
     var promesa = origFetch.apply(this, arguments);
     if (!esAuth) return promesa;
     return promesa.then(function(response) {
@@ -23052,6 +23060,8 @@ function _puedeRecargarSeguro() {
     // .cajas-modal-overlay.activo — hay que respetarlos o la auto-recarga podría dispararse
     // mientras el tendero cuenta el efectivo y perder el recuento a medias.
     if (document.querySelector('.modal-bg.open, .search-global-modal.show, .cajas-modal-overlay.activo')) return false;
+    // En Ajustes/Tienda puede haber cambios escritos sin guardar aunque ya no haya foco.
+    if (document.querySelector('#pAjustes.page.active, #pTienda.page.active')) return false;
     var ae = document.activeElement;
     if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' || ae.tagName === 'SELECT' || ae.isContentEditable)) return false;
   } catch (e) {}
@@ -24518,7 +24528,7 @@ function cuAbrirQR(k) {
   _CU.qrN = 0;
   openM('mUsadoQR');
   fetch('/api/parte?action=usado-token', {
-    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (JWT_TOKEN || '') },
+    method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (JWT_TOKEN || ''), 'X-TK-No401Modal': '1' },
     body: JSON.stringify({ s: _CU.s || '' })
   }).then(function (r) { return r.json(); }).then(function (j) {
     if (!j || !j.ok || !j.sig) throw new Error('token');

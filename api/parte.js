@@ -303,7 +303,9 @@ async function fotoToken(req, res) {
 // El PC lo pide con su sesión (JWT); el móvil sube con el permiso firmado y caduco; el PC
 // lista la carpeta y se queda con lo nuevo. sig = HMAC(SERVICE_KEY, usado:tienda:s:exp).
 const USADO_S_RE = /^[0-9a-f]{16}$/;
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+// Id de tienda: texto 'tienda_<ts>_<hex>' (casi todas) o uuid (las antiguas). Antes solo
+// se aceptaba uuid: el QR de fotos de usados daba 401 y el panel cerraba la sesión.
+const TIENDA_RE = /^[A-Za-z0-9_-]{1,64}$/;
 const USADO_MAX_FICHEROS = 40;            // por compra (varios teléfonos + documento)
 function _usadoFirma(t, s, exp, secret) {
   return crypto.createHmac('sha256', secret).update('usado:' + t + ':' + s + ':' + exp).digest('hex');
@@ -322,7 +324,7 @@ async function usadoToken(req, res) {
   let payload = null;
   try { payload = jwt.verify(auth.startsWith('Bearer ') ? auth.slice(7) : '', JWT_SECRET, { algorithms: ['HS256'] }); } catch (e) { payload = null; }
   const t = payload && payload.tienda_id;
-  if (!t || !UUID_RE.test(String(t))) return res.status(401).json({ error: 'no autorizado' });
+  if (!t || !TIENDA_RE.test(String(t))) return res.status(401).json({ error: 'no autorizado' });
   let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
   body = body || {};
   // Se puede pedir otra vez para la misma compra (QR caducado): misma carpeta.
@@ -336,7 +338,7 @@ async function usadoSubir(req, res) {
   let body = req.body; if (typeof body === 'string') { try { body = JSON.parse(body); } catch (e) { body = {}; } }
   body = body || {};
   const t = String(body.t || ''), s = String(body.s || ''), exp = parseInt(body.exp, 10), k = body.k === 'dni' ? 'dni' : 'tel';
-  if (!UUID_RE.test(t) || !USADO_S_RE.test(s) || !Number.isInteger(exp)) return res.status(400).json({ error: 'Formato invalido' });
+  if (!TIENDA_RE.test(t) || !USADO_S_RE.test(s) || !Number.isInteger(exp)) return res.status(400).json({ error: 'Formato invalido' });
   const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
   if (!SUPABASE_URL || !SERVICE_KEY) return res.status(500).json({ error: 'Servidor no configurado' });
   if (Date.now() > exp) return res.status(403).json({ error: 'caducado' });
