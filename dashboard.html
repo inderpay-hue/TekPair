@@ -6416,7 +6416,6 @@ async function crearComercialTekpair() {
 function abrirWizardStep(step) {
   cerrarWizardAfil();
   if (step === 1) renderWizardStep1();
-  else if (step === 2) renderWizardStep2();
   else if (step === 3) renderWizardStep3();
 }
 
@@ -6501,43 +6500,6 @@ async function wizardStep1Submit() {
   } catch (e) { alert('Error de conexion: ' + e.message); }
 }
 
-function renderWizardStep2() {
-  var d = window._wizardAfilData;
-  var html = '<div id="mWizAfil" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">' +
-    '<div style="background:white;max-width:540px;width:100%;border-radius:14px;overflow:hidden;max-height:90vh;overflow-y:auto">' +
-      _wizardHeader(2) +
-      '<div style="padding:20px 22px">' +
-        '<div style="background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.3);border-radius:10px;padding:14px;margin-bottom:18px">' +
-          '<div style="font-size:11px;font-weight:700;color:#10B981;letter-spacing:1px;margin-bottom:8px">CUENTA CREADA</div>' +
-          '<div style="font-size:13px;color:#475569;margin-bottom:4px"><strong>Email:</strong> ' + d.email + '</div>' +
-          '<div style="font-size:13px;color:#475569"><strong>Contraseña:</strong> <span style="font-family:monospace;background:#FEF3C7;padding:2px 8px;border-radius:4px">' + d.password + '</span></div>' +
-        '</div>' +
-        '<div style="font-size:14px;font-weight:700;color:#0F172A;margin-bottom:10px">Ahora crea el cupon en Stripe:</div>' +
-        '<ol style="font-size:13px;color:#475569;line-height:1.7;padding-left:20px;margin:0 0 16px">' +
-          '<li>Abre <a href="https://dashboard.stripe.com/coupons" target="_blank" rel="noopener noreferrer" style="color:#FF5B1F;font-weight:700">dashboard.stripe.com/coupons</a></li>' +
-          '<li>Pulsa <strong>"+ Nuevo cupón"</strong></li>' +
-          '<li>Configura:' +
-            '<div style="background:#F8FAFC;border-radius:6px;padding:10px;margin:8px 0;font-family:monospace;font-size:12px">' +
-              'Codigo del cupon: <strong style="color:#FF5B1F">' + d.codigo + '</strong><br>' +
-              'Tipo: <strong>Porcentaje</strong><br>' +
-              'Descuento: <strong>50%</strong><br>' +
-              'Duracion: <strong>Repeating · 3 meses</strong><br>' +
-              'Canjes maximos: <strong>200</strong>' +
-            '</div>' +
-          '</li>' +
-          '<li>Guarda el cupón en Stripe</li>' +
-        '</ol>' +
-        '<div style="background:#FEF3C7;border-radius:8px;padding:12px;font-size:12px;color:#92400E">Sin este paso, el codigo del comercial no funcionara cuando un cliente lo use.</div>' +
-      '</div>' +
-      '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
-        '<button onclick="abrirWizardStep(1)" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">&larr; ' + T('gen.volver') + '</button>' +
-        '<button onclick="abrirWizardStep(3)" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--green);color:white;cursor:pointer;font-weight:700;font-size:13px">' + T('afil.cupon_siguiente') + ' &rarr;</button>' +
-      '</div>' +
-    '</div></div>';
-  var w = document.createElement('div'); w.innerHTML = html;
-  while (w.firstChild) document.body.appendChild(w.firstChild);
-}
-
 function renderWizardStep3() {
   var d = window._wizardAfilData;
   var html = '<div id="mWizAfil" style="position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:99999;display:flex;align-items:center;justify-content:center;padding:16px">' +
@@ -6559,7 +6521,6 @@ function renderWizardStep3() {
         '<div style="background:rgba(16,185,129,0.06);border:1px solid rgba(16,185,129,0.25);border-radius:10px;padding:12px;font-size:13px;color:#065F46">Al activar, el comercial podra acceder a TekPair y su codigo empezara a generar comisiones cuando un cliente lo use.</div>' +
       '</div>' +
       '<div style="padding:14px 22px 20px;display:flex;gap:10px">' +
-        '<button onclick="abrirWizardStep(2)" style="flex:1;padding:11px;border-radius:8px;border:1px solid #CBD5E1;background:white;cursor:pointer;font-weight:600;font-size:13px">&larr; ' + T('gen.volver') + '</button>' +
         '<button onclick="wizardActivar()" style="flex:2;padding:11px;border-radius:8px;border:none;background:var(--green);color:white;cursor:pointer;font-weight:700;font-size:13px">&check; Activar comercial</button>' +
       '</div>' +
     '</div></div>';
