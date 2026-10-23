@@ -188,7 +188,9 @@ export default async function handler(req, res) {
     // prueba (15 días de todos + 15 por el comercial). Por eso no se le aplica ningún
     // cupón ni se deja escribir uno en Stripe; la comisión se atribuye igual por la
     // metadata `ref` (respaldo de webhook.js).
-    const promoId = (refCode && _tipoRef !== 'afiliado') ? await buscarPromo(refCode, STRIPE_KEY) : null;
+    // Tampoco a un comercial DADO DE BAJA (tipoRef da null porque no está activo): si
+    // conserva su cupón antiguo en Stripe, su cliente se llevaba el 50 %.
+    const promoId = (refCode && _tipoRef !== 'afiliado' && !(await esCodigoComercial(refCode, SUPABASE_URL, SERVICE_KEY))) ? await buscarPromo(refCode, STRIPE_KEY) : null;
     if (_tipoRef === 'afiliado') {
       // sin descuento ni campo de código
     } else if (promoId) {
@@ -257,6 +259,15 @@ export default async function handler(req, res) {
 // (comercial dado de alta y activo), 'cobrum' (código cruzado) o null.
 // Se valida contra la base ANTES de regalar nada: si no, basta escribir cuatro
 // letras en el registro para llevarse el mes.
+// ¿Es el código de un comercial, esté activo o no?
+async function esCodigoComercial(code, SUPABASE_URL, SERVICE_KEY) {
+  try {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(code)}&select=codigo&limit=1`, { headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` } });
+    const rows = await r.json();
+    return Array.isArray(rows) && rows.length > 0;
+  } catch (e) { return false; }
+}
+
 async function tipoRef(code, SUPABASE_URL, SERVICE_KEY) {
   if (!code) return null;
   const h = { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` };

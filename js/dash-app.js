@@ -2517,12 +2517,16 @@ function renderPreviewFactura() {
   var prev = document.getElementById('facIaPreview');
   if (!prev) return;
   var ivas = ivaTiposLista(f.iva_tipo).filter(function (v) { return v === Math.round(v); });
+  // Los gastos guardan el IVA entero: con un tipo como 5,5 % se marca el más cercano
+  // (antes no quedaba ninguno marcado y se cogía el 0 % sin avisar).
+  var ivaQuiero = f.iva_tipo != null && !isNaN(parseFloat(f.iva_tipo)) ? parseFloat(f.iva_tipo) : ivaTipoDefault();
+  var ivaSel = ivas.reduce(function (m, v) { return Math.abs(v - ivaQuiero) < Math.abs(m - ivaQuiero) ? v : m; }, ivas[0]);
   prev.innerHTML = '<div style="border:1px solid var(--border);border-radius:10px;padding:10px;display:flex;flex-direction:column;gap:7px">' +
     _facField(T('fac_ia.concepto') || T('pres.concepto_default'), '<input class="fi" id="facF_concepto" value="' + esc(f.concepto || '') + '">') +
     _facField(T('fac_ia.proveedor') || 'Proveedor', '<input class="fi" id="facF_prov" value="' + esc(f.proveedor || '') + '">') +
     '<div style="display:flex;gap:7px">' +
       _facField(T('fac_ia.importe') || 'Importe (€)', '<input class="fi" id="facF_importe" type="number" step="0.01" value="' + (parseFloat(f.importe) || 0) + '">') +
-      _facField('IVA', '<select class="fi" id="facF_iva">' + ivas.map(function (v) { return '<option value="' + v + '"' + (v === Math.round(f.iva_tipo != null ? parseFloat(f.iva_tipo) : ivaTipoDefault()) ? ' selected' : '') + '>' + v + '%</option>'; }).join('') + '</select>') +
+      _facField('IVA', '<select class="fi" id="facF_iva">' + ivas.map(function (v) { return '<option value="' + v + '"' + (v === ivaSel ? ' selected' : '') + '>' + v + '%</option>'; }).join('') + '</select>') +
     '</div>' +
     '<div style="display:flex;gap:7px">' +
       _facField(T('fac_ia.fecha') || 'Fecha', '<input class="fi" id="facF_fecha" type="date" value="' + esc(f.fecha || hoyLocal()) + '">') +
@@ -19418,7 +19422,9 @@ async function _pullTiendaCompleta() {
       AJUSTES.iva = Object.assign(defaults.iva, AJUSTES.iva || {});
       AJUSTES.notif = AJUSTES.notif || defaults.notif;
       AJUSTES.notif.activa = Object.assign(defaults.notif.activa, (AJUSTES.notif||{}).activa || {});
-      ivaAjustarAlPais();
+      // Si se han puesto los tipos del país, guardarlos también en la nube: si no, el
+      // servidor (resúmenes, facturas, otros dispositivos) seguía con el 21 % español.
+      if (ivaAjustarAlPais() && SB_KEY && TIENDA_ID) Promise.resolve(sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES })).catch(function () {});
       localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES));
       try { aplicarFunciones(); } catch (e) {}
     }

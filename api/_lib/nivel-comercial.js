@@ -33,7 +33,11 @@ function sumarMeses(fecha, meses) {
  * @param {Date} [p.hoy]
  */
 export function nivelComercial({ alta, base = 20, altas = [], hoy = new Date() }) {
-  const inicio = new Date(alta);
+  // Sin fecha de alta válida se trata como si empezara hoy (primer año, sin mínimo).
+  // Antes: null → 1970 (y el cron lo daba de BAJA) y undefined → RangeError al
+  // llamar a toISOString, que tumbaba el panel de comisiones entero.
+  const inicio = new Date(alta || hoy);
+  if (isNaN(inicio)) return nivelComercial({ alta: hoy, base, altas, hoy });
   const ahora = new Date(hoy);
   const b = Math.max(0, Number(base) || 0);
   const niveles = [b, Math.min(b, 10), Math.min(b, 5)];

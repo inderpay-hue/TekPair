@@ -22,6 +22,7 @@
 // Sin trial_until no hay forma de saber cuándo acaba lo gratis, y no se avisa.
 
 import { nivelComercial, primerosPagos } from './_lib/nivel-comercial.js';
+import { sbTodo } from './_lib/sb-todo.js';
 import crypto from 'crypto';
 import { construirResumen, enviarResumen, destinoResumen, fechaMadrid, esPremium } from './_lib/resumen.js';
 
@@ -229,8 +230,10 @@ async function bajasComerciales(SUPABASE_URL, headers, RESEND_KEY, now) {
   const afs = afR.ok ? await afR.json() : [];
   for (const af of Array.isArray(afs) ? afs : []) {
     out.revisados++;
-    const pR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(af.codigo)}&monto_neto=gt.0&select=tienda_id,created_at,monto_neto&limit=10000`, { headers });
-    const pagos = pR.ok ? await pR.json() : [];
+    // Si no se pueden leer sus pagos NO se decide nada: con la lista vacía saldría de baja.
+    let pagos;
+    try { pagos = await sbTodo(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(af.codigo)}&monto_neto=gt.0&select=tienda_id,created_at,monto_neto&order=created_at.asc`, headers); }
+    catch (e) { continue; }
     const nivel = nivelComercial({ alta: af.created_at, base: af.comision_pct, hoy: now,
       altas: primerosPagos((Array.isArray(pagos) ? pagos : []).map(x => ({ tienda: x.tienda_id, fecha: x.created_at, importe: x.monto_neto }))) });
     if (nivel.estado !== 'baja') continue;

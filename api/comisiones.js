@@ -6,6 +6,7 @@
 //   - Cualquier otro usuario: 403 Forbidden
 
 import { nivelComercial, primerosPagos } from './_lib/nivel-comercial.js';
+import { sbTodo } from './_lib/sb-todo.js';
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import crypto from 'crypto';
@@ -871,10 +872,7 @@ export default async function handler(req, res) {
       });
       const allAfiliados = await allAfR.json();
 
-      const allPagosR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?order=created_at.desc&select=*`, {
-        headers: sbHeaders
-      });
-      const allPagos = await allPagosR.json();
+      const allPagos = await sbTodo(`${SUPABASE_URL}/rest/v1/pagos_referidos?order=created_at.desc&select=*`, sbHeaders);
 
       // TODAS las tiendas que llevan codigo, hayan pagado o no.
       //
@@ -980,8 +978,7 @@ export default async function handler(req, res) {
       // anda cada una, para ver de un vistazo cuántas están pagando.
       let tiendasTodas = [];
       try {
-        const ttR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?select=id,nombre,plan,plan_status,plan_until,trial_until,creado_en,codigo_referido,telefono,dir,plan_email&order=creado_en.desc&limit=5000`, { headers: sbHeaders });
-        const ttArr = await ttR.json();
+        const ttArr = await sbTodo(`${SUPABASE_URL}/rest/v1/tiendas?select=id,nombre,plan,plan_status,plan_until,trial_until,creado_en,codigo_referido,telefono,dir,plan_email&order=creado_en.desc`, sbHeaders);
         const pagosPorTienda = {};
         for (const p of allPagos) {
           if (!p.tienda_id) continue;
@@ -1068,10 +1065,7 @@ export default async function handler(req, res) {
     // ═══ 4. AFILIADO normal: ver solo sus comisiones ═══
     const codigo = miAfiliado.codigo;
 
-    const pagosR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(codigo)}&order=created_at.desc&select=*`, {
-      headers: sbHeaders
-    });
-    const pagos = await pagosR.json();
+    const pagos = await sbTodo(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(codigo)}&order=created_at.desc&select=*`, sbHeaders);
 
     const totalComisiones = pagos.reduce((s, p) => s + parseFloat(p.comision_monto || 0), 0);
     const comisionesPagadas = pagos.filter(p => p.comision_pagada).reduce((s, p) => s + parseFloat(p.comision_monto || 0), 0);

@@ -8,6 +8,7 @@
 // consumido y la firma siempre falla. Este handler nunca usa req.body, solo getRawBody,
 // así que desactivarlo es seguro y obligatorio para que los webhooks funcionen.
 import { nivelComercial, primerosPagos } from './_lib/nivel-comercial.js';
+import { sbTodo } from './_lib/sb-todo.js';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
@@ -593,8 +594,7 @@ export default async function handler(req, res) {
                 // 20 % el primer año y después según sus altas de cada trimestre.
                 comisionPct = afArr[0].comision_pct || 0;
                 try {
-                  const phR = await fetch(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(codigoReferido)}&monto_neto=gt.0&select=tienda_id,created_at,monto_neto&limit=10000`, {headers: sbHeaders});
-                  const ph = phR.ok ? await phR.json() : [];
+                  const ph = await sbTodo(`${SUPABASE_URL}/rest/v1/pagos_referidos?codigo_referido=eq.${encodeURIComponent(codigoReferido)}&monto_neto=gt.0&select=tienda_id,created_at,monto_neto&order=created_at.asc`, sbHeaders);
                   comisionPct = nivelComercial({
                     alta: afArr[0].created_at, base: afArr[0].comision_pct || 0,
                     altas: primerosPagos((Array.isArray(ph) ? ph : []).map(x => ({ tienda: x.tienda_id, fecha: x.created_at, importe: x.monto_neto })))
