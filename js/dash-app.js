@@ -1256,7 +1256,12 @@ function logout() {
 var AJ_TAB_MAP = { negocio: 'negocio', prefs: 'apariencia', notif: 'notif', cuenta: 'plan' };
 
 // Conmutador del rail de Ajustes (rediseño): muestra una sección a la vez.
+// Apartados antiguos → dónde están ahora (enlaces y llamadas que aún usen el nombre viejo).
+var AJ_SEC_ALIAS = { cobros: 'impuestos', referidos: 'plan', apariencia: 'notif', datos: 'seguridad', tienda: 'negocio' };
 function ajSec(id, btn) {
+  if (AJ_SEC_ALIAS[id]) { id = AJ_SEC_ALIAS[id]; btn = null; }
+  // Usuarios es solo para el administrador (igual que la antigua página Usuarios)
+  if (id === 'equipo' && typeof U !== 'undefined' && U && !(U.rol === 'admin' || (U.permisos && U.permisos.todo))) { toast(T('perm.solo_admin'), 'err'); return; }
   try { if (id === 'impresion' && typeof window.tkPintarVersionApp === 'function') setTimeout(window.tkPintarVersionApp, 50); } catch (e) {}
   var navBtn = btn || document.querySelector('#ajRail .aj-nav[data-sec="' + id + '"]');
   // Gating por plan: una sección con data-feat que el plan NO incluye no se abre; se ofrece mejorar.
@@ -1271,9 +1276,91 @@ function ajSec(id, btn) {
   var sec = document.getElementById('ajSec-' + id);
   if (sec) sec.classList.add('active');
   // Cargas perezosas por sección (mismos handlers que antes vivían en el panel "negocio")
-  if ((id === 'negocio' || id === 'cobros' || id === 'citas' || id === 'reparaciones') && typeof cargarTienda === 'function') cargarTienda();
+  if ((id === 'negocio' || id === 'impuestos' || id === 'citas' || id === 'reparaciones') && typeof cargarTienda === 'function') cargarTienda();
   if (id === 'funciones') { try { renderFunciones(); } catch (e) {} }
-  if (id === 'notif') { try { renderAvisosAuto(); } catch (e) {} }
+  if (id === 'avisos' || id === 'notif') { try { renderAvisosAuto(); } catch (e) {} }
+  if (id === 'equipo') { try { cargarUsuarios(); } catch (e) {} }
+  if (id === 'plan') { try { cargarInvitaAmigos(); } catch (e) {} }
+  // Tarjetas que dependen del plan dentro de un apartado mixto
+  try {
+    var tf = function (f) { return typeof tieneFeature !== 'function' || tieneFeature(f); };
+    var cc = document.getElementById('ajCardCobros'); if (cc) cc.style.display = tf('financiado') ? '' : 'none';
+    var cb = document.getElementById('ajCardBackup'); if (cb) cb.style.display = tf('backup') ? '' : 'none';
+  } catch (e) {}
+}
+
+// Guardar en los apartados que mezclan datos de la tienda (guardarTienda) y
+// preferencias (guardarAjustes): se guardan las dos cosas con un solo aviso.
+async function guardarAjSeccion() {
+  var avisos = [], t0 = window.toast;
+  window.toast = function (m, tipo) { if (tipo === 'ok') avisos.push(m); else t0.apply(this, arguments); };
+  try {
+    if (typeof cargarTienda === 'function' && !window._ajTiendaCargada) cargarTienda();
+    await guardarTienda();
+    guardarAjustes();
+  } finally { window.toast = t0; }
+  if (avisos.length) toast(T('tst.ajustes_guardados'), 'ok');
+}
+
+// ── Buscador de Ajustes ──
+// Índice hecho con el texto ya traducido de cada tarjeta: título + etiquetas de sus campos.
+var _ajIdx = null, _ajSel = 0;
+function _ajNorm(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+function _ajIndice() {
+  var out = [];
+  document.querySelectorAll('#ajContent .aj-sec').forEach(function (sec) {
+    var sid = sec.id.replace('ajSec-', '');
+    var nav = document.querySelector('#ajRail .aj-nav[data-sec="' + sid + '"]');
+    if (!nav || nav.style.display === 'none') return;
+    var secTxt = (nav.textContent || '').trim();
+    sec.querySelectorAll('.card').forEach(function (card) {
+      var tEl = card.querySelector('.card-title');
+      var titulo = tEl ? tEl.textContent.replace(/\s+/g, ' ').trim() : '';
+      var extra = [];
+      card.querySelectorAll('label, .fl, h3, h4, button').forEach(function (l) { var x = l.textContent.replace(/\s+/g, ' ').trim(); if (x && x.length < 90) extra.push(x); });
+      if (!titulo && !extra.length) return;
+      out.push({ sid: sid, sec: secTxt, card: card, titulo: titulo || extra[0], txt: _ajNorm(secTxt + ' ' + titulo + ' ' + extra.join(' ')), extra: extra });
+    });
+  });
+  return out;
+}
+function ajBuscar(q) {
+  var box = document.getElementById('ajBuscarRes'); if (!box) return;
+  var n = _ajNorm(q).trim();
+  if (!n) { box.innerHTML = ''; box.classList.remove('open'); _ajIdx = null; return; }
+  if (!_ajIdx) _ajIdx = _ajIndice();
+  var palabras = n.split(/\s+/);
+  var res = _ajIdx.filter(function (r) { return palabras.every(function (w) { return r.txt.indexOf(w) !== -1; }); }).slice(0, 8);
+  _ajSel = 0;
+  if (!res.length) { box.innerHTML = '<div class="aj-br-vacio">' + esc(T('aj.buscar_vacio')) + '</div>'; box.classList.add('open'); return; }
+  window._ajRes = res;
+  box.innerHTML = res.map(function (r, i) {
+    var hit = r.extra.filter(function (x) { return palabras.some(function (w) { return _ajNorm(x).indexOf(w) !== -1; }); })[0];
+    return '<button type="button" class="aj-br-item' + (i === 0 ? ' sel' : '') + '" onmousedown="event.preventDefault();ajBuscarIr(' + i + ')">' +
+      '<span class="aj-br-t">' + esc(r.titulo) + '</span><span class="aj-br-s">' + esc(r.sec) + (hit && hit !== r.titulo ? ' · ' + esc(hit) : '') + '</span></button>';
+  }).join('');
+  box.classList.add('open');
+}
+function ajBuscarTecla(e) {
+  var items = document.querySelectorAll('#ajBuscarRes .aj-br-item');
+  if (e.key === 'Escape') { e.target.value = ''; ajBuscar(''); return; }
+  if (!items.length) return;
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    e.preventDefault();
+    _ajSel = (_ajSel + (e.key === 'ArrowDown' ? 1 : -1) + items.length) % items.length;
+    items.forEach(function (it, i) { it.classList.toggle('sel', i === _ajSel); });
+  } else if (e.key === 'Enter') { e.preventDefault(); ajBuscarIr(_ajSel); }
+}
+function ajBuscarIr(i) {
+  var r = (window._ajRes || [])[i]; if (!r) return;
+  var inp = document.getElementById('ajBuscar'); if (inp) { inp.value = ''; inp.blur(); }
+  ajBuscar('');
+  ajSec(r.sid);
+  setTimeout(function () {
+    try { r.card.scrollIntoView({ behavior: 'smooth', block: 'start' }); } catch (e) { r.card.scrollIntoView(); }
+    r.card.classList.add('aj-destacar');
+    setTimeout(function () { r.card.classList.remove('aj-destacar'); }, 1800);
+  }, 60);
 }
 
 // Aplica candado/ocultación por plan a los ítems del rail (mismo patrón que el sidebar).
@@ -3166,10 +3253,10 @@ function navTo(id) {
     }
   }
   if (id === 'pTienda') { navTo('pAjustes'); try { ajSec('negocio'); } catch(e){} return; }
+  if (id === 'pUsuarios') { navTo('pAjustes'); try { ajSec('equipo'); } catch(e){} return; }
   if (id === 'pServicios') renderServicios();
   if (id === 'pEncargos') renderEncargos();
   if (id === 'pCatalogo') { try { renderCatalogo(); } catch(e){} }
-  if (id === 'pUsuarios') cargarUsuarios();
   if (id === 'pFacturas') renderFacturas();
   // COM-NAV-FIX: comisiones también se carga aquí (antes solo se cargaba al
   // hacer click en el sidebar, fallaba si navTo se llamaba directamente).
@@ -18413,6 +18500,7 @@ function _sugerirMetodoMovil() {
   return porIdioma[lng] || 'Bizum';
 }
 function cargarTienda() {
+  window._ajTiendaCargada = true;
   try { cargarInvitaAmigos(); } catch (e) {}
   var t = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
   document.getElementById('tNom').value = t.nombre || '';

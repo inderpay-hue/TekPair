@@ -1232,10 +1232,23 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   .aj-nav:hover{background:white}
   .aj-nav.active{border-color:var(--blue)}
 }
+/* Buscador de Ajustes */
+.aj-top{display:flex;align-items:center;gap:12px;margin-bottom:16px;flex-wrap:wrap}
+.aj-buscar{position:relative;margin-left:auto;width:320px;max-width:100%}
+.aj-buscar input{width:100%;padding:9px 12px 9px 34px;background:var(--white,#fff) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E") no-repeat 11px center;border-radius:10px}
+.aj-buscar-res{display:none;position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--white,#fff);border:1px solid var(--border);border-radius:12px;box-shadow:0 12px 32px rgba(0,0,0,.14);padding:6px;z-index:50;max-height:360px;overflow-y:auto}
+.aj-buscar-res.open{display:block}
+.aj-br-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;width:100%;border:0;background:transparent;font:inherit;text-align:left;padding:8px 10px;border-radius:8px;cursor:pointer;color:var(--text)}
+.aj-br-item:hover,.aj-br-item.sel{background:var(--light)}
+.aj-br-t{font-size:13.5px;font-weight:600}
+.aj-br-s{font-size:11.5px;color:var(--muted)}
+.aj-br-vacio{padding:10px;font-size:13px;color:var(--muted)}
+.card.aj-destacar{box-shadow:0 0 0 3px var(--orange,#FF5B1F);transition:box-shadow .3s}
+@media(max-width:760px){.aj-buscar{width:100%;margin-left:0}}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261021a"></script>
+<script src="/lang/lang.v8.js?v=20261023a"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2989,38 +3002,40 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <div class="page" id="pAjustes">
 
   <!-- Cabecera -->
-  <div style="display:flex;align-items:center;gap:8px;margin-bottom:16px">
+  <div class="aj-top">
     <div class="sec-title" style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-cog"/></svg><span data-t="nav.ajustes">Ajustes</span></div>
+    <div class="aj-buscar"><input type="search" id="ajBuscar" class="fi" autocomplete="off" data-t-ph="aj.buscar_ph" placeholder="Buscar en ajustes…" oninput="ajBuscar(this.value)" onkeydown="ajBuscarTecla(event)"><div id="ajBuscarRes" class="aj-buscar-res"></div></div>
   </div>
 
   <div class="aj-shell">
   <!-- Rail vertical agrupado de secciones -->
   <nav class="aj-rail" id="ajRail">
     <div class="aj-railgroup">
-      <div class="aj-gl" data-t="aj.g_tienda">Tu tienda</div>
-      <button class="aj-nav active" data-sec="negocio"   onclick="ajSec('negocio',this)"><span class="aj-e">🏪</span> <span data-t="aj.r_negocio">Mi negocio</span></button>
-      <button class="aj-nav" data-sec="cobros"   data-feat="financiado" onclick="ajSec('cobros',this)"><span class="aj-e">💳</span> <span data-t="ajt.cobro_titulo">Cobros online</span></button>
+      <div class="aj-gl" data-t="aj.g_negocio">Negocio</div>
+      <button class="aj-nav active" data-sec="negocio" onclick="ajSec('negocio',this)"><span class="aj-e">🏪</span> <span data-t="aj.r_negocio">Mi negocio</span></button>
+      <button class="aj-nav" data-sec="citas" data-func="citas" data-feat="citas" onclick="ajSec('citas',this)"><span class="aj-e">📅</span> <span data-t="aj.r_citas">Citas y horarios</span></button>
+      <button class="aj-nav" data-sec="impuestos" onclick="ajSec('impuestos',this)"><span class="aj-e">🧾</span> <span data-t="aj.r_impuestos_cobros">Impuestos y cobros</span></button>
+    </div>
+    <div class="aj-railgroup">
+      <div class="aj-gl" data-t="aj.g_ventas">Ventas y taller</div>
+      <button class="aj-nav" data-sec="reparaciones" onclick="ajSec('reparaciones',this)"><span class="aj-e">🛡️</span> <span data-t="aj.r_legal">Garantías y textos legales</span></button>
+      <button class="aj-nav" data-sec="usados" data-func="usados" onclick="ajSec('usados',this)"><span class="aj-e">♻️</span> <span data-t="aj.r_usados">Compra de usados</span></button>
       <button class="aj-nav" data-sec="funciones" onclick="ajSec('funciones',this)"><span class="aj-e">🧩</span> <span data-t="func.titulo">Funciones</span></button>
-      <button class="aj-nav" data-sec="impuestos" onclick="ajSec('impuestos',this)"><span class="aj-e">🧾</span> <span data-t="ajp.impuestos_title">Impuestos</span></button>
-      <button data-func="citas" class="aj-nav" data-sec="citas" data-feat="citas" onclick="ajSec('citas',this)"><span class="aj-e">📅</span> <span data-t="aj.r_citas">Citas y horarios</span></button>
-      <button class="aj-nav" data-sec="reparaciones" onclick="ajSec('reparaciones',this)"><span class="aj-e">🔧</span> <span data-t="nav.reparaciones">Reparaciones</span></button>
     </div>
     <div class="aj-railgroup">
       <div class="aj-gl" data-t="aj.g_personas">Personas</div>
       <button class="aj-nav" data-sec="equipo" data-feat="permisos_usuarios" onclick="ajSec('equipo',this)"><span class="aj-e">👥</span> <span data-t="aj.r_equipo">Equipo y permisos</span></button>
-      <button class="aj-nav" data-sec="referidos" onclick="ajSec('referidos',this)"><span class="aj-e">🎁</span> <span data-t="aj.r_referidos">Referidos</span></button>
+      <button class="aj-nav" data-sec="avisos" onclick="ajSec('avisos',this)"><span class="aj-e">💬</span> <span data-t="aj.r_avisos">Avisos a clientes</span></button>
     </div>
     <div class="aj-railgroup">
-      <div class="aj-gl" data-t="aj.g_app">App</div>
-      <button class="aj-nav" data-sec="apariencia" onclick="ajSec('apariencia',this)"><span class="aj-e">🎨</span> <span data-t="ajp.apariencia">Apariencia</span></button>
-      <button class="aj-nav" data-sec="notif" onclick="ajSec('notif',this)"><span class="aj-e">🔔</span> <span data-t="aj.r_notif">Notificaciones</span></button>
-      <button class="aj-nav" data-sec="impresion" onclick="ajSec('impresion',this)"><span class="aj-e">🖨️</span> <span data-t="aj.r_impresion">Impresión</span></button>
+      <div class="aj-gl" data-t="aj.g_sistema">Sistema</div>
+      <button class="aj-nav" data-sec="impresion" onclick="ajSec('impresion',this)"><span class="aj-e">🖨️</span> <span data-t="aj.r_impresion_disp">Impresión y dispositivos</span></button>
+      <button class="aj-nav" data-sec="notif" onclick="ajSec('notif',this)"><span class="aj-e">🔔</span> <span data-t="aj.r_tudia">Tu día y alertas</span></button>
     </div>
     <div class="aj-railgroup">
       <div class="aj-gl" data-t="aj.g_cuenta">Cuenta</div>
-      <button class="aj-nav" data-sec="plan" onclick="ajSec('plan',this)"><span class="aj-e">💼</span> <span data-t="aj.r_plan">Plan y facturas</span></button>
-      <button class="aj-nav" data-sec="seguridad" onclick="ajSec('seguridad',this)"><span class="aj-e">🔒</span> <span data-t="aj.r_seguridad">Seguridad</span></button>
-      <button class="aj-nav" data-sec="datos" data-feat="backup" onclick="ajSec('datos',this)"><span class="aj-e">📦</span> <span data-t="aj.r_datos">Datos y copias</span></button>
+      <button class="aj-nav" data-sec="plan" onclick="ajSec('plan',this)"><span class="aj-e">💼</span> <span data-t="aj.r_plan_ref">Plan, facturas y referidos</span></button>
+      <button class="aj-nav" data-sec="seguridad" onclick="ajSec('seguridad',this)"><span class="aj-e">🔒</span> <span data-t="aj.r_seguridad_datos">Seguridad y datos</span></button>
     </div>
   </nav>
 
@@ -3029,7 +3044,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
   <!-- ══ SECCIÓN: NEGOCIO ══ -->
   <div class="aj-sec active" id="ajSec-negocio">
-    <div class="aj-sechead"><div><h2><span data-t="gen.mi_negocio">Mi negocio</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
+    <div class="aj-sechead"><div><h2>🏪 <span data-t="aj.r_negocio">Mi negocio</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjSeccion()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
 
     <div class="card">
       <div class="card-title">Logo de la tienda</div>
@@ -3062,6 +3077,56 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       </div>
     </div>
 
+    <div class="card">
+      <div class="card-title"><span data-t="gen.preferencias_generales">Preferencias generales</span></div>
+      <div class="fg"><label class="fl"><span data-t="gen.moneda">Moneda</span></label>
+        <select class="fi" id="ajMoneda">
+          <option value="EUR" data-t="ajp.moneda_eur">€ Euro</option>
+          <option value="USD" data-t="ajp.moneda_usd">$ Dólar (USD)</option>
+          <option value="GBP" data-t="ajp.moneda_gbp">£ Libra</option>
+          <option value="MXN">$ Peso mexicano (MXN)</option>
+          <option value="ARS">$ Peso argentino (ARS)</option>
+          <option value="COP">$ Peso colombiano (COP)</option>
+          <option value="CLP">$ Peso chileno (CLP)</option>
+          <option value="PEN">S/ Sol peruano (PEN)</option>
+          <option value="BRL">R$ Real brasileño (BRL)</option>
+          <option value="UYU">$ Peso uruguayo (UYU)</option>
+          <option value="DOP">$ Peso dominicano (DOP)</option>
+          <option value="BOB">Bs Boliviano (BOB)</option>
+          <option value="PYG">₲ Guaraní (PYG)</option>
+          <option value="GTQ">Q Quetzal (GTQ)</option>
+          <option value="CRC">₡ Colón (CRC)</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl"><span data-t="gen.pais_prefijo">País (prefijo WhatsApp)</span></label>
+        <select class="fi" id="ajPaisPrefijo">
+          <option value="34">🇪🇸 España (+34)</option>
+          <option value="52">🇲🇽 México (+52)</option>
+          <option value="54">🇦🇷 Argentina (+54)</option>
+          <option value="57">🇨🇴 Colombia (+57)</option>
+          <option value="56">🇨🇱 Chile (+56)</option>
+          <option value="51">🇵🇪 Perú (+51)</option>
+          <option value="55">🇧🇷 Brasil (+55)</option>
+          <option value="598">🇺🇾 Uruguay (+598)</option>
+          <option value="593">🇪🇨 Ecuador (+593)</option>
+          <option value="591">🇧🇴 Bolivia (+591)</option>
+          <option value="595">🇵🇾 Paraguay (+595)</option>
+          <option value="502">🇬🇹 Guatemala (+502)</option>
+          <option value="506">🇨🇷 Costa Rica (+506)</option>
+          <option value="507">🇵🇦 Panamá (+507)</option>
+          <option value="58">🇻🇪 Venezuela (+58)</option>
+          <option value="1">🇺🇸 EE.UU. / Rep. Dom. (+1)</option>
+          <option value="351">🇵🇹 Portugal (+351)</option>
+          <option value="33">🇫🇷 Francia (+33)</option>
+          <option value="39">🇮🇹 Italia (+39)</option>
+          <option value="49">🇩🇪 Alemania (+49)</option>
+          <option value="44">🇬🇧 Reino Unido (+44)</option>
+        </select>
+      </div>
+      <div class="fg"><label class="fl" data-t="ajp.nombre_operador">Nombre visible del operador</label><input class="fi" id="ajNombre" data-t-ph="ajp.nombre_operador_ph" placeholder="Tu nombre"/></div>
+      <button type="button" class="btn-secondary" onclick="_onbAbrir()" style="margin-top:4px;font-size:13px"><span data-t="onb.reabrir">🚀 Repetir guía de inicio</span></button>
+    </div>
+
     <div class="card" id="cardUbicaciones">
       <div class="card-title" data-t="ajt.ubic_title">📍 Ubicaciones / Almacenes</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="ajt.ubic_desc">Define tus ubicaciones (tienda, almacenes...). Después podrás asignar cada producto del stock a una ubicación concreta.</div>
@@ -3071,45 +3136,11 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
         <button type="button" style="background:var(--orange);color:white;border:none;border-radius:9px;padding:0 14px;white-space:nowrap;flex:0 0 auto;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit" onclick="agregarUbicacion()" data-t="stock.anadir">+ Añadir</button>
       </div>
     </div>
-
   </div><!-- /negocio -->
 
-  <!-- ══ SECCIÓN: COBROS ONLINE ══ -->
-  <div class="aj-sec" id="ajSec-cobros">
-    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-card"/></svg><span data-t="ajt.cobro_titulo">Cobros online</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
-
-    <!-- Sprint 1 financiación: datos de cobro online (Modelo C — el dinero va directo a la tienda) -->
-    <div class="card">
-      <div class="card-title" style="display:flex;align-items:center;gap:7px"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-card"/></svg><span data-t="ajt.cobro_titulo">Datos de cobro online</span></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:14px" data-t-html="ajt.cobro_desc">Métodos que el cliente verá al pagar una cuota desde su móvil con el link de cobro. El dinero va <strong>directo a tu cuenta</strong>, TekPair no lo toca ni cobra comisión.</div>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:6px"><input type="checkbox" id="cobroBizumOn"> 📲 <span data-t="ajt.cobro_movil">Pago por móvil</span></label>
-      <div style="font-size:11px;color:var(--muted);margin:0 0 7px;line-height:1.5">🌍 Bizum (ES) · MB WAY (PT) · BANCOMAT Pay (IT) · Wero (FR/DE) · BLIK (PL) · TWINT (CH) · Swish (SE) · Pix (BR) · Nequi (CO) · Yape (PE) · CoDi (MX) · Mercado Pago (AR) · MACH (CL)…</div>
-      <div class="fg"><input class="fi" id="cobroMovilNombre" placeholder="Bizum, Nequi, Pix, MB WAY, BLIK…"/></div>
-      <div class="fg"><input class="fi" id="cobroBizum" placeholder="Número o alias" inputmode="tel"/></div>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin:10px 0 6px"><input type="checkbox" id="cobroTransferOn"> 🏦 <span data-t="ajt.transferencia">Transferencia</span></label>
-      <div class="fg"><input class="fi" id="cobroIban" placeholder="IBAN (ES12 3456 7890 …)"/></div>
-      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin:10px 0 6px"><input type="checkbox" id="cobroPaypalOn"> 💳 PayPal</label>
-      <div class="fg"><input class="fi" id="cobroPaypal" placeholder="paypal.me/tutienda"/></div>
-      <div class="fg" style="margin-top:8px"><label class="fl" data-t="ajt.cobro_mensaje">Mensaje para el cliente (opcional)</label><input class="fi" id="cobroMensaje" placeholder="Tras pagar, confírmanos por WhatsApp 📲"/></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t-html="ajt.cobro_concepto">El concepto de cada cobro se genera solo: <code>REP-{nº}-CUOTA-{n}</code>, para que reconozcas el ingreso.</div>
-    </div>
-  </div><!-- /cobros -->
-
-  <!-- ══ SECCIÓN: REFERIDOS ══ -->
-  <div class="aj-sec" id="ajSec-referidos">
-    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-gift"/></svg><span data-t="ref.titulo">Invita amigos y gana meses gratis</span></h2></div></div>
-
-    <!-- Referidos: invita a otras tiendas, ambas ganan 1 mes gratis -->
-    <div class="card">
-      <div class="card-title">🎁 <span data-t="ref.titulo">Invita amigos y gana meses gratis</span></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="ref.sub">Invita a otros talleres con tu link. Cuando se registren y paguen su primera factura, os lleváis 1 mes gratis los dos. Sin límite.</div>
-      <div id="refBox"><div style="font-size:12px;color:var(--muted)">…</div></div>
-    </div>
-  </div><!-- /referidos -->
-
-  <!-- ══ SECCIÓN: CITAS Y HORARIOS ══ -->
+  <!-- ══ SECCIÓN: CITAS ══ -->
   <div class="aj-sec" id="ajSec-citas">
-    <div class="aj-sechead"><div><h2><span data-t="ajt.citas_title">Citas y horarios</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
+    <div class="aj-sechead"><div><h2>📅 <span data-t="aj.r_citas">Citas y horarios</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
 
     <div class="card">
       <div class="card-title" data-t="ajt.citas_title">📅 Citas online — Horarios</div>
@@ -3139,12 +3170,67 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       </label>
       <button type="button" class="btn-secondary" style="width:100%;margin-top:10px" onclick="abrirLinkCatalogo()"><span data-t="cat.ver_link">🔗 Ver link público / QR</span></button>
     </div>
-
   </div><!-- /citas -->
 
-  <!-- ══ SECCIÓN: REPARACIONES (garantías + políticas) ══ -->
+  <!-- ══ SECCIÓN: IMPUESTOS ══ -->
+  <div class="aj-sec" id="ajSec-impuestos">
+    <div class="aj-sechead"><div><h2>🧾 <span data-t="aj.r_impuestos_cobros">Impuestos y cobros</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjSeccion()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
+
+    <div class="card">
+      <div class="card-title" data-t="ajp.impuestos_title">Impuestos (IVA)</div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:14px">
+        <input type="checkbox" id="ajIvaActivo" onchange="toggleIvaCfg()"> <span data-t="ajp.aplicar_iva">Aplicar IVA en ventas y reparaciones</span>
+      </label>
+      <div id="ajIvaCfg" style="display:none">
+        <div class="fg">
+          <label class="fl" data-t="ajp.modo_precios">Modo de precios</label>
+          <select class="fi" id="ajIvaModo">
+            <option value="incluido" data-t="ajp.modo_incluido">IVA incluido en el precio (B2C)</option>
+            <option value="anadido" data-t="ajp.modo_anadido">IVA añadido al precio (B2B)</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label class="fl" data-t="ajp.nombre_impuesto">Nombre del impuesto (IVA, TVA, MwSt, VAT...)</label>
+          <input class="fi" id="ajIvaNombre" type="text" placeholder="IVA" maxlength="10" style="max-width:140px"/>
+        </div>
+        <div class="fg">
+          <label class="fl" data-t="ajp.tipo_default">Tipo por defecto (%)</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="fi" id="ajIvaTipoDefault" type="number" min="0" max="100" step="0.1" placeholder="21" style="max-width:100px"/>
+            <span style="font-size:13px;color:var(--muted)">%</span>
+          </div>
+        </div>
+        <div class="fg">
+          <label class="fl" data-t="ajp.tipos_extra">Tipos adicionales permitidos (separados por coma)</label>
+          <input class="fi" id="ajIvaTiposExtra" type="text" placeholder="21, 10, 4, 0" data-t-ph="ajp.tipos_extra_ph" style="max-width:220px"/>
+          <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="ajp.tipos_extra_hint">Ej: 21, 10, 4, 0 — aparecerán como opciones al crear ventas y reparaciones</div>
+        </div>
+        <div style="font-size:11px;color:var(--muted);line-height:1.5;background:var(--light);padding:10px 12px;border-radius:8px;margin-top:6px" data-t-html="ajp.iva_help">
+          💡 <strong>Modo "incluido":</strong> el precio que escribes ya incluye el IVA. El cliente ve el precio final.<br>
+          💡 <strong>Modo "añadido":</strong> el precio que escribes es la base. El IVA se suma al final.
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="ajCardCobros">
+      <div class="card-title" style="display:flex;align-items:center;gap:7px"><svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-card"/></svg><span data-t="ajt.cobro_titulo">Datos de cobro online</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:14px" data-t-html="ajt.cobro_desc">Métodos que el cliente verá al pagar una cuota desde su móvil con el link de cobro. El dinero va <strong>directo a tu cuenta</strong>, TekPair no lo toca ni cobra comisión.</div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin-bottom:6px"><input type="checkbox" id="cobroBizumOn"> 📲 <span data-t="ajt.cobro_movil">Pago por móvil</span></label>
+      <div style="font-size:11px;color:var(--muted);margin:0 0 7px;line-height:1.5">🌍 Bizum (ES) · MB WAY (PT) · BANCOMAT Pay (IT) · Wero (FR/DE) · BLIK (PL) · TWINT (CH) · Swish (SE) · Pix (BR) · Nequi (CO) · Yape (PE) · CoDi (MX) · Mercado Pago (AR) · MACH (CL)…</div>
+      <div class="fg"><input class="fi" id="cobroMovilNombre" placeholder="Bizum, Nequi, Pix, MB WAY, BLIK…"/></div>
+      <div class="fg"><input class="fi" id="cobroBizum" placeholder="Número o alias" inputmode="tel"/></div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin:10px 0 6px"><input type="checkbox" id="cobroTransferOn"> 🏦 <span data-t="ajt.transferencia">Transferencia</span></label>
+      <div class="fg"><input class="fi" id="cobroIban" placeholder="IBAN (ES12 3456 7890 …)"/></div>
+      <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;font-weight:600;margin:10px 0 6px"><input type="checkbox" id="cobroPaypalOn"> 💳 PayPal</label>
+      <div class="fg"><input class="fi" id="cobroPaypal" placeholder="paypal.me/tutienda"/></div>
+      <div class="fg" style="margin-top:8px"><label class="fl" data-t="ajt.cobro_mensaje">Mensaje para el cliente (opcional)</label><input class="fi" id="cobroMensaje" placeholder="Tras pagar, confírmanos por WhatsApp 📲"/></div>
+      <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t-html="ajt.cobro_concepto">El concepto de cada cobro se genera solo: <code>REP-{nº}-CUOTA-{n}</code>, para que reconozcas el ingreso.</div>
+    </div>
+  </div><!-- /impuestos -->
+
+  <!-- ══ SECCIÓN: REPARACIONES ══ -->
   <div class="aj-sec" id="ajSec-reparaciones">
-    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-wrench"/></svg><span data-t="nav.reparaciones">Reparaciones</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
+    <div class="aj-sechead"><div><h2>🛡️ <span data-t="aj.r_legal">Garantías y textos legales</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarTienda()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
 
     <div class="card">
       <div class="card-title" data-t="ajt.gar_title">🛡️ Garantías</div>
@@ -3273,12 +3359,102 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <div class="fg"><label class="fl" data-t="ajt.pol_rep">Política de reparación</label><textarea class="fi" id="tPolitica" rows="2" data-t-ph="ajt.pol_rep_ph" placeholder="Condiciones específicas de reparación..."></textarea></div>
       <div class="fg"><label class="fl" data-t="ajt.pol_ven">Política de venta</label><textarea class="fi" id="tPoliticaVentas" rows="2" data-t-ph="ajt.pol_ven_ph" placeholder="Condiciones de devolución y cambio..."></textarea></div>
     </div>
-
   </div><!-- /reparaciones -->
 
-  <!-- ══ SECCIÓN: IMPRESIÓN ══ -->
+  <!-- ══ SECCIÓN: USADOS ══ -->
+  <div class="aj-sec" id="ajSec-usados">
+    <div class="aj-sechead"><div><h2>♻️ <span data-t="aj.r_usados">Compra de usados</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
+
+    <div data-func="usados" class="card">
+      <div class="card-title" data-t="usados.aj_titulo">Compra de usados a particulares</div>
+      <div style="font-size:12px;color:var(--muted);margin:-4px 0 12px;line-height:1.5" data-t="usados.aj_hint">Cada país lo regula a su manera. TekPair rellena estos valores según el país de tu tienda: son un punto de partida, confírmalos con tu asesor.</div>
+      <div class="fg">
+        <label class="fl" data-t="usados.aj_regimen">Impuesto al vender un usado comprado a un particular</label>
+        <select class="fi" id="ajUsRegimen">
+          <option value="margen" data-t="usados.aj_reg_margen">Solo sobre el margen (venta − compra), sin desglosarlo</option>
+          <option value="total" data-t="usados.aj_reg_total">Sobre el precio total, como el resto de productos</option>
+          <option value="sin" data-t="usados.aj_reg_sin">Sin impuesto</option>
+        </select>
+      </div>
+      <div class="fi-row">
+        <div class="fg"><label class="fl" data-t="usados.aj_tipo">Tipo (%) para el margen</label><input class="fi" id="ajUsTipo" type="number" min="0" max="100" step="0.1" style="max-width:110px"></div>
+        <div class="fg"><label class="fl" data-t="usados.aj_anios">Guardar los datos del vendedor (años)</label><input class="fi" id="ajUsAnios" type="number" min="1" max="30" style="max-width:110px"></div>
+        <div class="fg"><label class="fl" data-t="usados.aj_dias">Días en tienda antes de poder venderlo</label><input class="fi" id="ajUsDias" type="number" min="0" max="60" style="max-width:110px"></div>
+      </div>
+      <div class="fg"><label class="fl" data-t="usados.aj_mencion">Mención legal en el ticket y la factura</label><input class="fi" id="ajUsMencion" maxlength="120"></div>
+      <div class="fg"><label class="fl" data-t="usados.aj_docs">Documentos que se aceptan al vendedor (separados por coma)</label><input class="fi" id="ajUsDocs" maxlength="160"></div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin:4px 0 10px">
+        <input type="checkbox" id="ajUsRegistro"> <span data-t="usados.aj_registro">Llevar el registro de compras (libro de policía)</span>
+      </label>
+      <button type="button" class="btn-secondary" style="font-size:13px" onclick="restablecerUsadosPais()"><span data-t="usados.aj_restablecer">↺ Valores de mi país</span></button>
+    </div>
+  </div><!-- /usados -->
+
+  <!-- ══ SECCIÓN: FUNCIONES ══ -->
+  <div class="aj-sec" id="ajSec-funciones">
+    <div class="aj-sechead"><div><h2>🧩 <span data-t="func.titulo_largo">Funciones de mi tienda</span></h2></div></div>
+
+    <div class="card">
+      <div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px" data-t="func.hint">Apaga lo que tu tienda no usa y desaparecerá del menú y de las pantallas. No se borra nada: si lo vuelves a encender, todo sigue donde estaba.</div>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
+        <button type="button" class="btn-sm" onclick="presetFunciones('todo')" data-t="func.preset_todo">✅ Todo</button>
+        <button type="button" class="btn-sm" onclick="presetFunciones('taller')" data-t="func.preset_taller">🔧 Taller (reparaciones)</button>
+        <button type="button" class="btn-sm" onclick="presetFunciones('tienda')" data-t="func.preset_tienda">🛒 Tienda (ventas)</button>
+      </div>
+      <div id="funcLista"></div>
+    </div>
+  </div><!-- /funciones -->
+
+  <!-- ══ SECCIÓN: EQUIPO ══ -->
+  <div class="aj-sec" id="ajSec-equipo">
+    <div class="aj-sechead"><div><h2>👥 <span data-t="aj.r_equipo">Equipo y permisos</span></h2></div></div>
+
+    <div class="card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px">
+        <div class="card-title" style="margin:0"><span data-t="nav.usuarios">Usuarios</span></div>
+        <button class="btn-sm" style="background:var(--dark);color:white" onclick="openNuevoUsuario()">+ <span data-t="gen.nuevo">Nuevo</span></button>
+      </div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="aj.equipo_hint">Gestiona los usuarios de tu tienda y qué puede ver y hacer cada uno (incluido si ven el dinero).</div>
+      <div id="listaUsuarios"><div class="empty" data-t="gen.cargando">Cargando...</div></div>
+    </div>
+  </div><!-- /equipo -->
+
+  <!-- ══ SECCIÓN: AVISOS ══ -->
+  <div class="aj-sec" id="ajSec-avisos">
+    <div class="aj-sechead"><div><h2>💬 <span data-t="aj.r_avisos">Avisos a clientes</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
+
+    <div class="card">
+      <div class="card-title" data-t="aviso.aj_titulo">Avisos al cliente por email</div>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 8px" data-t="aviso.aj_hint">Al cambiar el estado de una reparación siempre te sale una barra para avisar por WhatsApp o email con un toque. Marca los estados en los que quieras que el email salga solo, sin pulsar nada (si el cliente tiene email).</div>
+      <div id="avisosAutoLista"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">📦 <span data-t="recog.aj_titulo">Recordatorio de recogida</span></div>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px" data-t="recog.aj_hint">Reparaciones listas que el cliente no viene a buscar: salen en Reparaciones («Sin recoger») y en el Inicio para recordárselo con un toque.</div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="recogOn" onchange="setRecogidaCfg()" checked> <span data-t="recog.aj_on">Avisarme de las reparaciones sin recoger</span></label>
+      <div style="display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0;flex-wrap:wrap"><span data-t="recog.aj_dias">Recordar a los</span>
+        <select class="fi" id="recogDias" onchange="setRecogidaCfg()" style="width:auto;padding:6px 10px"><option value="3">3</option><option value="5">5</option><option value="7" selected>7</option><option value="10">10</option><option value="15">15</option><option value="30">30</option></select>
+        <span data-t="recog.aj_dias2">días de avisar que está lista</span></div>
+      <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="recogAuto" onchange="setRecogidaCfg()" style="margin-top:3px"> <span><span data-t="recog.aj_auto">Mandar el recordatorio por email automáticamente</span><br><span style="color:var(--muted);font-size:12px" data-t="recog.aj_auto_hint">Cada mañana, a los clientes con email. Como mucho 3 veces por reparación. Usa tu plantilla «Recordatorio recogida».</span></span></label>
+    </div>
+
+    <div class="card">
+      <div class="card-title">⭐ <span data-t="val.aj_titulo">Valoraciones y reseñas</span></div>
+      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px" data-t="val.aj_hint">Al entregar, el cliente recibe un enlace para puntuarte del 1 al 5. Si la nota es baja (1–3) te llega un email al momento para arreglarlo. Después se le invita a dejar una reseña en Google.</div>
+      <label style="font-size:12px;font-weight:700;display:block;margin:6px 0 4px" data-t="val.aj_url">Enlace de reseñas de Google</label>
+      <input class="fi" id="resenaUrl" type="url" placeholder="https://g.page/r/…/review" onchange="setResenaCfg()" style="width:100%">
+      <div style="font-size:11.5px;color:var(--muted);margin:4px 0 8px" data-t="val.aj_url_hint">En tu Perfil de Empresa de Google: «Pedir reseñas» → copiar enlace.</div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="resenaAlEntregar" onchange="setResenaCfg()" checked> <span data-t="val.aj_entregar">Pedir la valoración al entregar</span></label>
+      <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="resenaAuto" onchange="setResenaCfg()" style="margin-top:3px"> <span><span data-t="val.aj_auto">Mandar la encuesta por email al día siguiente</span><br><span style="color:var(--muted);font-size:12px" data-t="val.aj_auto_hint">Solo a quien no haya puntuado aún y tenga email. Una sola vez.</span></span></label>
+      <div id="resenaResumen" style="margin-top:10px"></div>
+    </div>
+  </div><!-- /avisos -->
+
+  <!-- ══ SECCIÓN: IMPRESION ══ -->
   <div class="aj-sec" id="ajSec-impresion">
-    <div class="aj-sechead"><div><h2>🖨️ <span data-t="aj.r_impresion">Impresión</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
+    <div class="aj-sechead"><div><h2>🖨️ <span data-t="aj.r_impresion_disp">Impresión y dispositivos</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
+
 <div class="card" id="ajImpresorasCard" style="display:none">
       <div class="card-title">🖨️ Impresoras (app de escritorio)</div>
       <p style="font-size:11.5px;color:var(--muted);margin:0 2px 10px">Elige a qué impresora salen las etiquetas y los tickets/recibos sin diálogo. Solo afecta a esta app instalada en este equipo.</p>
@@ -3327,188 +3503,33 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <div id="ajDeskVersion" style="display:none;font-size:12.5px;margin:0 2px 12px;padding:9px 11px;border-radius:9px"></div>
       <a href="/descargar" rel="noopener" class="btn-primary" style="display:inline-block;text-decoration:none">📥 <span data-t="gen.descargar_windows">Descargar para Windows</span></a>
     </div>
+
+    <div class="card" id="cardInstalar" style="display:none">
+      <div class="card-title" data-t="acc.instalar">📱 Instalar app</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="acc.instalar_desc">Instala TekPair como una app nativa en tu dispositivo. Funciona offline y se abre con un toque.</div>
+      <button type="button" class="btn-primary" style="background:var(--green);width:100%" onclick="instalarPWA()" data-t="acc.instalar_btn">📱 Instalar TekPair</button>
+    </div>
+
+    <div class="card" id="cardInstaladaInfo" style="display:none">
+      <div class="card-title" data-t="acc.instalar">📱 Instalar app</div>
+      <div style="font-size:13px;color:var(--text);margin-bottom:8px" data-t-html="acc.ios_titulo">📲 <strong>iOS / iPhone:</strong></div>
+      <ol style="font-size:12px;color:var(--muted);margin:0 0 12px 18px;line-height:1.7">
+        <li data-t-html="acc.ios_1">Abre TekPair en <strong>Safari</strong></li>
+        <li data-t-html="acc.ios_2">Toca el botón <strong>Compartir</strong> ⎘</li>
+        <li data-t-html="acc.ios_3">Elige <strong>"Añadir a pantalla de inicio"</strong></li>
+      </ol>
+      <div style="font-size:13px;color:var(--text);margin-bottom:8px" data-t-html="acc.android_titulo">🤖 <strong>Android:</strong></div>
+      <ol style="font-size:12px;color:var(--muted);margin:0 0 12px 18px;line-height:1.7">
+        <li data-t-html="acc.android_1">Abre TekPair en <strong>Chrome</strong></li>
+        <li data-t-html="acc.android_2">Menú ⋮ arriba a la derecha</li>
+        <li data-t-html="acc.android_3">Elige <strong>"Instalar app"</strong> o <strong>"Añadir a pantalla principal"</strong></li>
+      </ol>
+    </div>
   </div><!-- /impresion -->
 
-  <!-- ══ SECCIÓN: APARIENCIA ══ -->
-  <div class="aj-sec" id="ajSec-apariencia">
-    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-palette"/></svg><span data-t="ajp.apariencia">Apariencia</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
-
-    <div class="card">
-      <div class="card-title" data-t="ajp.apariencia">Apariencia</div>
-      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
-        <button type="button" id="btnTemaClaro" onclick="setTema('light')" style="padding:12px 8px;border:2px solid var(--border);background:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease);color:#0F1729">
-          <div style="font-size:22px">☀️</div>
-          <div style="font-size:11px;font-weight:700;color:var(--text)" data-t="ajp.tema_claro">Claro</div>
-        </button>
-        <button type="button" id="btnTemaTerracota" onclick="setTema('terracota')" style="padding:12px 8px;border:2px solid #FFD9C9;background:#C2410C;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
-          <div style="font-size:22px">🔥</div>
-          <div style="font-size:11px;font-weight:700" data-t="ajp.tema_terracota">Terracota</div>
-        </button>
-        <button type="button" id="btnTemaOscuro" onclick="setTema('dark')" style="padding:12px 8px;border:2px solid var(--border);background:#1A1D24;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
-          <div style="font-size:22px">🌙</div>
-          <div style="font-size:11px;font-weight:700" data-t="ajp.tema_oscuro">Oscuro</div>
-        </button>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="card-title"><span data-t="gen.preferencias_generales">Preferencias generales</span></div>
-      <div class="fg"><label class="fl"><span data-t="gen.moneda">Moneda</span></label>
-        <select class="fi" id="ajMoneda">
-          <option value="EUR" data-t="ajp.moneda_eur">€ Euro</option>
-          <option value="USD" data-t="ajp.moneda_usd">$ Dólar (USD)</option>
-          <option value="GBP" data-t="ajp.moneda_gbp">£ Libra</option>
-          <option value="MXN">$ Peso mexicano (MXN)</option>
-          <option value="ARS">$ Peso argentino (ARS)</option>
-          <option value="COP">$ Peso colombiano (COP)</option>
-          <option value="CLP">$ Peso chileno (CLP)</option>
-          <option value="PEN">S/ Sol peruano (PEN)</option>
-          <option value="BRL">R$ Real brasileño (BRL)</option>
-          <option value="UYU">$ Peso uruguayo (UYU)</option>
-          <option value="DOP">$ Peso dominicano (DOP)</option>
-          <option value="BOB">Bs Boliviano (BOB)</option>
-          <option value="PYG">₲ Guaraní (PYG)</option>
-          <option value="GTQ">Q Quetzal (GTQ)</option>
-          <option value="CRC">₡ Colón (CRC)</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl"><span data-t="gen.pais_prefijo">País (prefijo WhatsApp)</span></label>
-        <select class="fi" id="ajPaisPrefijo">
-          <option value="34">🇪🇸 España (+34)</option>
-          <option value="52">🇲🇽 México (+52)</option>
-          <option value="54">🇦🇷 Argentina (+54)</option>
-          <option value="57">🇨🇴 Colombia (+57)</option>
-          <option value="56">🇨🇱 Chile (+56)</option>
-          <option value="51">🇵🇪 Perú (+51)</option>
-          <option value="55">🇧🇷 Brasil (+55)</option>
-          <option value="598">🇺🇾 Uruguay (+598)</option>
-          <option value="593">🇪🇨 Ecuador (+593)</option>
-          <option value="591">🇧🇴 Bolivia (+591)</option>
-          <option value="595">🇵🇾 Paraguay (+595)</option>
-          <option value="502">🇬🇹 Guatemala (+502)</option>
-          <option value="506">🇨🇷 Costa Rica (+506)</option>
-          <option value="507">🇵🇦 Panamá (+507)</option>
-          <option value="58">🇻🇪 Venezuela (+58)</option>
-          <option value="1">🇺🇸 EE.UU. / Rep. Dom. (+1)</option>
-          <option value="351">🇵🇹 Portugal (+351)</option>
-          <option value="33">🇫🇷 Francia (+33)</option>
-          <option value="39">🇮🇹 Italia (+39)</option>
-          <option value="49">🇩🇪 Alemania (+49)</option>
-          <option value="44">🇬🇧 Reino Unido (+44)</option>
-        </select>
-      </div>
-      <div class="fg"><label class="fl" data-t="ajp.nombre_operador">Nombre visible del operador</label><input class="fi" id="ajNombre" data-t-ph="ajp.nombre_operador_ph" placeholder="Tu nombre"/></div>
-      <button type="button" class="btn-secondary" onclick="_onbAbrir()" style="margin-top:4px;font-size:13px"><span data-t="onb.reabrir">🚀 Repetir guía de inicio</span></button>
-    </div>
-
-    <div class="card">
-      <div class="card-title" data-t="ajp.cierre_title">Cierre automático diario</div>
-      <div class="fg"><label class="fl" data-t="ajp.cierre_hora">Hora de cierre</label><input class="fi" id="ajCierreHora" type="time" value="21:30"/></div>
-      <div class="fg"><label class="fl" data-t="ajp.cierre_email">Email para reporte</label><input class="fi" id="ajCierreEmail" type="email" placeholder="tu@email.com"/></div>
-      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:12px">
-        <input type="checkbox" id="ajCierreActivo"> <span data-t="ajp.cierre_activar">Activar cierre automático</span>
-      </label>
-    </div>
-    <button class="btn-primary" onclick="guardarAjustes()"><span data-t="ajustes.guardar_pref">Guardar preferencias</span></button>
-  </div><!-- /apariencia -->
-
-  <!-- ══ SECCIÓN: IMPUESTOS ══ -->
-  <div class="aj-sec" id="ajSec-funciones">
-    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px">🧩 <span data-t="func.titulo_largo">Funciones de mi tienda</span></h2></div></div>
-    <div class="card">
-      <div style="font-size:13px;color:var(--muted);line-height:1.5;margin-bottom:12px" data-t="func.hint">Apaga lo que tu tienda no usa y desaparecerá del menú y de las pantallas. No se borra nada: si lo vuelves a encender, todo sigue donde estaba.</div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px">
-        <button type="button" class="btn-sm" onclick="presetFunciones('todo')" data-t="func.preset_todo">✅ Todo</button>
-        <button type="button" class="btn-sm" onclick="presetFunciones('taller')" data-t="func.preset_taller">🔧 Taller (reparaciones)</button>
-        <button type="button" class="btn-sm" onclick="presetFunciones('tienda')" data-t="func.preset_tienda">🛒 Tienda (ventas)</button>
-      </div>
-      <div id="funcLista"></div>
-    </div>
-  </div>
-
-  <div class="aj-sec" id="ajSec-impuestos">
-    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-doc"/></svg><span data-t="ajp.impuestos_title">Impuestos (IVA)</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
-
-    <div class="card">
-      <div class="card-title" data-t="ajp.impuestos_title">Impuestos (IVA)</div>
-      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:14px">
-        <input type="checkbox" id="ajIvaActivo" onchange="toggleIvaCfg()"> <span data-t="ajp.aplicar_iva">Aplicar IVA en ventas y reparaciones</span>
-      </label>
-      <div id="ajIvaCfg" style="display:none">
-        <div class="fg">
-          <label class="fl" data-t="ajp.modo_precios">Modo de precios</label>
-          <select class="fi" id="ajIvaModo">
-            <option value="incluido" data-t="ajp.modo_incluido">IVA incluido en el precio (B2C)</option>
-            <option value="anadido" data-t="ajp.modo_anadido">IVA añadido al precio (B2B)</option>
-          </select>
-        </div>
-        <div class="fg">
-          <label class="fl" data-t="ajp.nombre_impuesto">Nombre del impuesto (IVA, TVA, MwSt, VAT...)</label>
-          <input class="fi" id="ajIvaNombre" type="text" placeholder="IVA" maxlength="10" style="max-width:140px"/>
-        </div>
-        <div class="fg">
-          <label class="fl" data-t="ajp.tipo_default">Tipo por defecto (%)</label>
-          <div style="display:flex;align-items:center;gap:8px">
-            <input class="fi" id="ajIvaTipoDefault" type="number" min="0" max="100" step="0.1" placeholder="21" style="max-width:100px"/>
-            <span style="font-size:13px;color:var(--muted)">%</span>
-          </div>
-        </div>
-        <div class="fg">
-          <label class="fl" data-t="ajp.tipos_extra">Tipos adicionales permitidos (separados por coma)</label>
-          <input class="fi" id="ajIvaTiposExtra" type="text" placeholder="21, 10, 4, 0" data-t-ph="ajp.tipos_extra_ph" style="max-width:220px"/>
-          <div style="font-size:11px;color:var(--muted);margin-top:4px" data-t="ajp.tipos_extra_hint">Ej: 21, 10, 4, 0 — aparecerán como opciones al crear ventas y reparaciones</div>
-        </div>
-        <div style="font-size:11px;color:var(--muted);line-height:1.5;background:var(--light);padding:10px 12px;border-radius:8px;margin-top:6px" data-t-html="ajp.iva_help">
-          💡 <strong>Modo "incluido":</strong> el precio que escribes ya incluye el IVA. El cliente ve el precio final.<br>
-          💡 <strong>Modo "añadido":</strong> el precio que escribes es la base. El IVA se suma al final.
-        </div>
-      </div>
-    </div>
-
-    <div data-func="usados" class="card">
-      <div class="card-title" data-t="usados.aj_titulo">Compra de usados a particulares</div>
-      <div style="font-size:12px;color:var(--muted);margin:-4px 0 12px;line-height:1.5" data-t="usados.aj_hint">Cada país lo regula a su manera. TekPair rellena estos valores según el país de tu tienda: son un punto de partida, confírmalos con tu asesor.</div>
-      <div class="fg">
-        <label class="fl" data-t="usados.aj_regimen">Impuesto al vender un usado comprado a un particular</label>
-        <select class="fi" id="ajUsRegimen">
-          <option value="margen" data-t="usados.aj_reg_margen">Solo sobre el margen (venta − compra), sin desglosarlo</option>
-          <option value="total" data-t="usados.aj_reg_total">Sobre el precio total, como el resto de productos</option>
-          <option value="sin" data-t="usados.aj_reg_sin">Sin impuesto</option>
-        </select>
-      </div>
-      <div class="fi-row">
-        <div class="fg"><label class="fl" data-t="usados.aj_tipo">Tipo (%) para el margen</label><input class="fi" id="ajUsTipo" type="number" min="0" max="100" step="0.1" style="max-width:110px"></div>
-        <div class="fg"><label class="fl" data-t="usados.aj_anios">Guardar los datos del vendedor (años)</label><input class="fi" id="ajUsAnios" type="number" min="1" max="30" style="max-width:110px"></div>
-        <div class="fg"><label class="fl" data-t="usados.aj_dias">Días en tienda antes de poder venderlo</label><input class="fi" id="ajUsDias" type="number" min="0" max="60" style="max-width:110px"></div>
-      </div>
-      <div class="fg"><label class="fl" data-t="usados.aj_mencion">Mención legal en el ticket y la factura</label><input class="fi" id="ajUsMencion" maxlength="120"></div>
-      <div class="fg"><label class="fl" data-t="usados.aj_docs">Documentos que se aceptan al vendedor (separados por coma)</label><input class="fi" id="ajUsDocs" maxlength="160"></div>
-      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin:4px 0 10px">
-        <input type="checkbox" id="ajUsRegistro"> <span data-t="usados.aj_registro">Llevar el registro de compras (libro de policía)</span>
-      </label>
-      <button type="button" class="btn-secondary" style="font-size:13px" onclick="restablecerUsadosPais()"><span data-t="usados.aj_restablecer">↺ Valores de mi país</span></button>
-    </div>
-  </div><!-- /impuestos -->
-
-  <!-- ══ SECCIÓN: NOTIFICACIONES ══ -->
+  <!-- ══ SECCIÓN: NOTIF ══ -->
   <div class="aj-sec" id="ajSec-notif">
-    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-bell"/></svg><span data-t="ajn.title">Notificaciones</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
-
-    <div class="card">
-      <div class="card-title" data-t="aviso.aj_titulo">Avisos al cliente por email</div>
-      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 8px" data-t="aviso.aj_hint">Al cambiar el estado de una reparación siempre te sale una barra para avisar por WhatsApp o email con un toque. Marca los estados en los que quieras que el email salga solo, sin pulsar nada (si el cliente tiene email).</div>
-      <div id="avisosAutoLista"></div>
-    </div>
-
-    <div class="card">
-      <div class="card-title">📦 <span data-t="recog.aj_titulo">Recordatorio de recogida</span></div>
-      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px" data-t="recog.aj_hint">Reparaciones listas que el cliente no viene a buscar: salen en Reparaciones («Sin recoger») y en el Inicio para recordárselo con un toque.</div>
-      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="recogOn" onchange="setRecogidaCfg()" checked> <span data-t="recog.aj_on">Avisarme de las reparaciones sin recoger</span></label>
-      <div style="display:flex;align-items:center;gap:8px;font-size:13px;margin:8px 0;flex-wrap:wrap"><span data-t="recog.aj_dias">Recordar a los</span>
-        <select class="fi" id="recogDias" onchange="setRecogidaCfg()" style="width:auto;padding:6px 10px"><option value="3">3</option><option value="5">5</option><option value="7" selected>7</option><option value="10">10</option><option value="15">15</option><option value="30">30</option></select>
-        <span data-t="recog.aj_dias2">días de avisar que está lista</span></div>
-      <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="recogAuto" onchange="setRecogidaCfg()" style="margin-top:3px"> <span><span data-t="recog.aj_auto">Mandar el recordatorio por email automáticamente</span><br><span style="color:var(--muted);font-size:12px" data-t="recog.aj_auto_hint">Cada mañana, a los clientes con email. Como mucho 3 veces por reparación. Usa tu plantilla «Recordatorio recogida».</span></span></label>
-    </div>
+    <div class="aj-sechead"><div><h2>🔔 <span data-t="aj.r_tudia">Tu día y alertas</span></h2></div><div class="savebar"><button class="btn-primary" onclick="guardarAjustes()"><span data-t="gen.guardar_cambios">Guardar cambios</span></button></div></div>
 
     <div class="card">
       <div class="card-title">📊 <span data-t="res.aj_titulo">Resumen diario por email</span> <span id="resumenPremium" style="display:none;background:linear-gradient(135deg,#F59E0B,#D97706);color:#fff;font-size:10px;font-weight:800;padding:2px 8px;border-radius:999px;margin-left:6px">PREMIUM</span></div>
@@ -3517,17 +3538,6 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <label style="font-size:12px;font-weight:700;display:block;margin:8px 0 4px" data-t="res.aj_email">Email donde recibirlo</label>
       <input class="fi" id="resumenEmail" type="email" onchange="setResumenCfg()" style="width:100%">
       <button type="button" class="btn btn-secondary" id="resumenPruebaBtn" onclick="resumenPrueba()" style="margin-top:10px" data-t="res.aj_prueba">✉️ Enviarme uno de prueba ahora</button>
-    </div>
-
-    <div class="card">
-      <div class="card-title">⭐ <span data-t="val.aj_titulo">Valoraciones y reseñas</span></div>
-      <div style="font-size:12.5px;color:var(--muted);line-height:1.5;margin:-4px 0 10px" data-t="val.aj_hint">Al entregar, el cliente recibe un enlace para puntuarte del 1 al 5. Si la nota es baja (1–3) te llega un email al momento para arreglarlo. Después se le invita a dejar una reseña en Google.</div>
-      <label style="font-size:12px;font-weight:700;display:block;margin:6px 0 4px" data-t="val.aj_url">Enlace de reseñas de Google</label>
-      <input class="fi" id="resenaUrl" type="url" placeholder="https://g.page/r/…/review" onchange="setResenaCfg()" style="width:100%">
-      <div style="font-size:11.5px;color:var(--muted);margin:4px 0 8px" data-t="val.aj_url_hint">En tu Perfil de Empresa de Google: «Pedir reseñas» → copiar enlace.</div>
-      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="resenaAlEntregar" onchange="setResenaCfg()" checked> <span data-t="val.aj_entregar">Pedir la valoración al entregar</span></label>
-      <label style="display:flex;align-items:flex-start;gap:10px;font-size:13px;cursor:pointer;margin:6px 0"><input type="checkbox" id="resenaAuto" onchange="setResenaCfg()" style="margin-top:3px"> <span><span data-t="val.aj_auto">Mandar la encuesta por email al día siguiente</span><br><span style="color:var(--muted);font-size:12px" data-t="val.aj_auto_hint">Solo a quien no haya puntuado aún y tenga email. Una sola vez.</span></span></label>
-      <div id="resenaResumen" style="margin-top:10px"></div>
     </div>
 
     <div class="card">
@@ -3582,21 +3592,38 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     </div>
 
     <button class="btn-primary" onclick="guardarAjustes()" data-t="ajn.guardar">Guardar notificaciones</button>
+
+    <div class="card">
+      <div class="card-title" data-t="ajp.cierre_title">Cierre automático diario</div>
+      <div class="fg"><label class="fl" data-t="ajp.cierre_hora">Hora de cierre</label><input class="fi" id="ajCierreHora" type="time" value="21:30"/></div>
+      <div class="fg"><label class="fl" data-t="ajp.cierre_email">Email para reporte</label><input class="fi" id="ajCierreEmail" type="email" placeholder="tu@email.com"/></div>
+      <label style="display:flex;align-items:center;gap:10px;font-size:13px;cursor:pointer;margin-bottom:12px">
+        <input type="checkbox" id="ajCierreActivo"> <span data-t="ajp.cierre_activar">Activar cierre automático</span>
+      </label>
+    </div>
+
+    <div class="card">
+      <div class="card-title" data-t="ajp.apariencia">Apariencia</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px">
+        <button type="button" id="btnTemaClaro" onclick="setTema('light')" style="padding:12px 8px;border:2px solid var(--border);background:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease);color:#0F1729">
+          <div style="font-size:22px">☀️</div>
+          <div style="font-size:11px;font-weight:700;color:var(--text)" data-t="ajp.tema_claro">Claro</div>
+        </button>
+        <button type="button" id="btnTemaTerracota" onclick="setTema('terracota')" style="padding:12px 8px;border:2px solid #FFD9C9;background:#C2410C;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
+          <div style="font-size:22px">🔥</div>
+          <div style="font-size:11px;font-weight:700" data-t="ajp.tema_terracota">Terracota</div>
+        </button>
+        <button type="button" id="btnTemaOscuro" onclick="setTema('dark')" style="padding:12px 8px;border:2px solid var(--border);background:#1A1D24;color:white;border-radius:10px;cursor:pointer;font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:6px;transition:all .15s var(--ease)">
+          <div style="font-size:22px">🌙</div>
+          <div style="font-size:11px;font-weight:700" data-t="ajp.tema_oscuro">Oscuro</div>
+        </button>
+      </div>
+    </div>
   </div><!-- /notif -->
 
-  <!-- ══ SECCIÓN: EQUIPO Y PERMISOS ══ -->
-  <div class="aj-sec" id="ajSec-equipo">
-    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-user"/></svg>Equipo y permisos</h2></div></div>
-    <div class="card">
-      <div class="card-title"><span data-t="nav.usuarios">Usuarios</span></div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Gestiona los usuarios de tu tienda y qué puede ver y hacer cada uno (incluido si ven el dinero).</div>
-      <button type="button" class="btn-primary" style="background:var(--blue);width:100%" onclick="navTo('pUsuarios')">👥 <span data-t="nav.usuarios">Usuarios</span></button>
-    </div>
-  </div><!-- /equipo -->
-
-  <!-- ══ SECCIÓN: PLAN Y FACTURAS ══ -->
+  <!-- ══ SECCIÓN: PLAN ══ -->
   <div class="aj-sec" id="ajSec-plan">
-    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-card"/></svg>Plan y facturas</h2></div></div>
+    <div class="aj-sechead"><div><h2>💼 <span data-t="aj.r_plan_ref">Plan, facturas y referidos</span></h2></div></div>
 
     <div class="card" id="cardSuscripcion">
       <div class="card-title" data-t="acc.mi_suscripcion">💳 Mi suscripción</div>
@@ -3609,15 +3636,24 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     </div>
 
     <div class="card">
-      <div class="card-title" data-t="acc.novedades_titulo">✨ Novedades y actualizaciones</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="acc.novedades_desc">Todo lo que vamos mejorando en TekPair, ordenado por fecha. Échale un vistazo de vez en cuando.</div>
-      <button type="button" class="btn-primary" style="background:var(--orange);width:100%" onclick="abrirNovedades()" data-t="acc.novedades_btn">✨ Ver novedades</button>
+      <div class="card-title">🎁 <span data-t="ref.titulo">Invita amigos y gana meses gratis</span></div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="ref.sub">Invita a otros talleres con tu link. Cuando se registren y paguen su primera factura, os lleváis 1 mes gratis los dos. Sin límite.</div>
+      <div id="refBox"><div style="font-size:12px;color:var(--muted)">…</div></div>
     </div>
   </div><!-- /plan -->
 
-  <!-- ══ SECCIÓN: DATOS Y COPIAS ══ -->
-  <div class="aj-sec" id="ajSec-datos">
-    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-box"/></svg>Datos y copias</h2></div></div>
+  <!-- ══ SECCIÓN: SEGURIDAD ══ -->
+  <div class="aj-sec" id="ajSec-seguridad">
+    <div class="aj-sechead"><div><h2>🔒 <span data-t="aj.r_seguridad_datos">Seguridad y datos</span></h2></div></div>
+
+    <div class="card">
+      <div class="card-title" data-t="acc.seguridad">🔒 Seguridad</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="acc.seguridad_desc">Cambia tu contraseña de acceso a TekPair.</div>
+      <div class="fg"><label class="fl" data-t="acc.pw_actual">Contraseña actual</label><input class="fi" id="pwActual" type="password" data-t-ph="acc.pw_actual_ph" placeholder="Tu contraseña actual" autocomplete="current-password"></div>
+      <div class="fg"><label class="fl" data-t="acc.pw_nueva">Nueva contraseña</label><input class="fi" id="pwNueva" type="password" data-t-ph="acc.pw_min" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
+      <div class="fg"><label class="fl" data-t="acc.pw_repetir">Repetir nueva contraseña</label><input class="fi" id="pwNueva2" type="password" data-t-ph="acc.pw_repetir_ph" placeholder="Repite la nueva contraseña" autocomplete="new-password"></div>
+      <button type="button" class="btn-primary" style="background:var(--blue);width:100%" onclick="cambiarPassword()" data-t="acc.cambiar_pw">Cambiar contraseña</button>
+    </div>
 
     <div class="card" id="cardAuditoria" style="display:none">
       <div class="card-title" data-t="acc.historial_titulo">📜 Historial de actividad</div>
@@ -3637,7 +3673,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       </div>
     </div>
 
-    <div class="card">
+    <div class="card" id="ajCardBackup">
       <div class="card-title" data-t="acc.backup_titulo">💾 Backup y exportación</div>
       <div style="font-size:12px;color:var(--muted);margin-bottom:14px" data-t="acc.backup_desc">Descarga una copia de seguridad completa de todos tus datos.</div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px">
@@ -3666,42 +3702,6 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
         </label>
         <div id="ajUltimoBackup" style="font-size:11px;color:var(--muted);padding-left:24px"></div>
       </div>
-    </div>
-  </div><!-- /datos -->
-
-  <!-- ══ SECCIÓN: SEGURIDAD ══ -->
-  <div class="aj-sec" id="ajSec-seguridad">
-    <div class="aj-sechead"><div><h2 style="display:inline-flex;align-items:center;gap:8px"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><use href="#iv2-shield"/></svg><span data-t="acc.seguridad">Seguridad</span></h2></div></div>
-
-    <div class="card">
-      <div class="card-title" data-t="acc.seguridad">🔒 Seguridad</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="acc.seguridad_desc">Cambia tu contraseña de acceso a TekPair.</div>
-      <div class="fg"><label class="fl" data-t="acc.pw_actual">Contraseña actual</label><input class="fi" id="pwActual" type="password" data-t-ph="acc.pw_actual_ph" placeholder="Tu contraseña actual" autocomplete="current-password"></div>
-      <div class="fg"><label class="fl" data-t="acc.pw_nueva">Nueva contraseña</label><input class="fi" id="pwNueva" type="password" data-t-ph="acc.pw_min" placeholder="Mínimo 6 caracteres" autocomplete="new-password"></div>
-      <div class="fg"><label class="fl" data-t="acc.pw_repetir">Repetir nueva contraseña</label><input class="fi" id="pwNueva2" type="password" data-t-ph="acc.pw_repetir_ph" placeholder="Repite la nueva contraseña" autocomplete="new-password"></div>
-      <button type="button" class="btn-primary" style="background:var(--blue);width:100%" onclick="cambiarPassword()" data-t="acc.cambiar_pw">Cambiar contraseña</button>
-    </div>
-
-    <div class="card" id="cardInstalar" style="display:none">
-      <div class="card-title" data-t="acc.instalar">📱 Instalar app</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:12px" data-t="acc.instalar_desc">Instala TekPair como una app nativa en tu dispositivo. Funciona offline y se abre con un toque.</div>
-      <button type="button" class="btn-primary" style="background:var(--green);width:100%" onclick="instalarPWA()" data-t="acc.instalar_btn">📱 Instalar TekPair</button>
-    </div>
-
-    <div class="card" id="cardInstaladaInfo" style="display:none">
-      <div class="card-title" data-t="acc.instalar">📱 Instalar app</div>
-      <div style="font-size:13px;color:var(--text);margin-bottom:8px" data-t-html="acc.ios_titulo">📲 <strong>iOS / iPhone:</strong></div>
-      <ol style="font-size:12px;color:var(--muted);margin:0 0 12px 18px;line-height:1.7">
-        <li data-t-html="acc.ios_1">Abre TekPair en <strong>Safari</strong></li>
-        <li data-t-html="acc.ios_2">Toca el botón <strong>Compartir</strong> ⎘</li>
-        <li data-t-html="acc.ios_3">Elige <strong>"Añadir a pantalla de inicio"</strong></li>
-      </ol>
-      <div style="font-size:13px;color:var(--text);margin-bottom:8px" data-t-html="acc.android_titulo">🤖 <strong>Android:</strong></div>
-      <ol style="font-size:12px;color:var(--muted);margin:0 0 12px 18px;line-height:1.7">
-        <li data-t-html="acc.android_1">Abre TekPair en <strong>Chrome</strong></li>
-        <li data-t-html="acc.android_2">Menú ⋮ arriba a la derecha</li>
-        <li data-t-html="acc.android_3">Elige <strong>"Instalar app"</strong> o <strong>"Añadir a pantalla principal"</strong></li>
-      </ol>
     </div>
   </div><!-- /seguridad -->
 
@@ -3986,16 +3986,8 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 </div>
 
 <!-- USUARIOS -->
-<div class="page" id="pUsuarios">
-  <div class="sec-header" style="margin-bottom:10px">
-    <div style="display:flex;align-items:center;gap:8px">
-      <button onclick="navTo('pMas')" style="background:none;border:none;font-size:18px;cursor:pointer">←</button>
-      <div class="sec-title" data-t="nav.usuarios">Usuarios</div>
-    </div>
-    <button class="btn-sm" style="background:var(--dark);color:white" onclick="openNuevoUsuario()">+ <span data-t="gen.nuevo">Nuevo</span></button>
-  </div>
-  <div id="listaUsuarios"><div class="empty" data-t="gen.cargando">Cargando...</div></div>
-</div>
+<!-- pUsuarios: la lista de usuarios vive en Ajustes → Equipo y permisos (navTo la redirige). -->
+<div class="page" id="pUsuarios"></div>
 
 <!-- IMPORTAR -->
 <div class="page" id="pImportar">
@@ -5713,7 +5705,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261016b"></script>
-<script src="/js/dash-app.js?v=20261023b"></script>
+<script src="/js/dash-app.js?v=20261023c"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
