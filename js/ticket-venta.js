@@ -172,7 +172,7 @@
     pie += '<div class="blq"><div class="tit">' + txt('tkt.pie_cambios') + '</div><div class="sm">' +
       esc(TI.politicaVentas || txt('tkt.conserve')) + '</div></div>';
     if (AJ.ticketPie) pie += '<div class="blq sm c">' + esc(AJ.ticketPie) + '</div>';
-    var contacto = [TI.web, TI.email, TI.tel ? 'Tel: ' + TI.tel : ''].filter(Boolean);
+    var contacto = [TI.web, TI.email, TI.tel ? 'Tel: ' + TI.tel : ''].filter(Boolean).concat(redesTk(AJ));
     if (contacto.length) pie += '<div class="sep"></div><div class="c sm">' + contacto.map(esc).join('<br>') + '</div>';
 
     return '<!DOCTYPE html><html><head><meta charset="utf-8"><title>Ticket ' + esc(num || v.id || '') + '</title>' +
@@ -223,8 +223,21 @@
     if (TI.garVenActiva !== false && (TI.garantiaVentas || algunaGarantia)) pie.push(txt('tkt.pie_garantia') + ': ' + (TI.garantiaVentas || txt('tkt.pie_garantia_def')));
     pie.push(txt('tkt.pie_cambios') + ': ' + (TI.politicaVentas || txt('tkt.conserve')));
     if (AJ.ticketPie) pie.push(AJ.ticketPie);
-    [TI.web, TI.email].filter(Boolean).forEach(function (x) { pie.push(x); });
+    [TI.web, TI.email].filter(Boolean).concat(redesTk(AJ)).forEach(function (x) { pie.push(x); });
     return pie;
+  }
+
+  // Redes sociales de la tienda (Ajustes → Impresión): «Instagram: @usuario».
+  // Si se pegó el enlace entero, se queda solo el usuario: ocupa menos papel.
+  function redesTk(AJ) {
+    var r = (AJ && AJ.redes) || {}, out = [];
+    [['instagram', 'Instagram', /instagram\.com\/([^/?#]+)/i, true], ['tiktok', 'TikTok', /tiktok\.com\/@?([^/?#]+)/i, true], ['facebook', 'Facebook', /facebook\.com\/([^/?#]+)/i, false]].forEach(function (d) {
+      var v = String(r[d[0]] || '').trim(); if (!v) return;
+      var m = d[2].exec(v); if (m) v = decodeURIComponent(m[1]);
+      if (d[3] && v.charAt(0) !== '@' && !/\s/.test(v)) v = '@' + v;
+      out.push(d[1] + ': ' + v);
+    });
+    return out;
   }
 
   window.tkTicketVentaHtml = tkTicketVentaHtml;
