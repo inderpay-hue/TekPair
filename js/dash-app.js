@@ -11933,7 +11933,11 @@ function trackingTicket() {
     '<div class="line"></div>' +
 
     '<div class="c" style="font-size:12px">' + T('tk.conserve') + '</div>' +
-    '<div class="c" style="font-size:12px;color:#000;margin-top:6px;border-top:2px dashed #000;padding-top:4px">' + T('tkt.generado') + '</div>' +
+    // Redes sociales de la tienda (Ajustes → Impresión), igual que en el ticket de venta.
+    (function () { var rd = (typeof tkRedesTicket === 'function') ? tkRedesTicket() : []; return rd.length ? '<div class="c" style="font-size:12px;margin-top:6px">' + rd.map(esc).join('<br>') + '</div>' : ''; })() +
+    // «Generado por TekPair»: se quita en las tiendas con ajustes_config.sinMarcaTekpair
+    // (lo activa el administrador de TekPair a petición de la tienda).
+    ((AJUSTES && AJUSTES.sinMarcaTekpair) ? '' : '<div class="c" style="font-size:12px;color:#000;margin-top:6px;border-top:2px dashed #000;padding-top:4px">' + T('tkt.generado') + '</div>') +
 
     '<style>@media print{.npbar{display:none!important}}</style>' +
     '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:13px;line-height:1.35;z-index:99;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div>' +
@@ -12007,7 +12011,7 @@ function _resguardoESC(r, url) {
     total: [T('pres.doc_total') + ' (' + T('tkt.iva_inc') + ')', cur(r.total || 0)],
     qr: url ? { titulo: T('tk.sigue_online'), url: url,
                 pie: T('tk.escanea'), tam: 7 } : null,
-    pie: [T('tk.conserve')]
+    pie: [T('tk.conserve')].concat(typeof tkRedesTicket === 'function' ? tkRedesTicket() : [])
   };
 }
 
