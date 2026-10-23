@@ -358,14 +358,19 @@ export default async function handler(req, res) {
     }
 
     // ═══ Referidos: si vino con código, registrar la invitación (status pending) ═══
+    // De dónde viene el código, para el aviso de alta (antes ponía «comercial» siempre,
+    // también con la invitación de una tienda, y el 23-oct-2026 una alta por el enlace
+    // de la tienda demo pareció de un comercial y se quedó sin comercial asignado).
+    let refOrigen = '';
     if (refCode) {
       let referrerId = null;
       try {
-        const refR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?referral_code=eq.${encodeURIComponent(refCode)}&select=id&limit=1`, {
+        const refR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?referral_code=eq.${encodeURIComponent(refCode)}&select=id,nombre&limit=1`, {
           headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
         });
         const refRows = await refR.json();
         referrerId = Array.isArray(refRows) && refRows[0] && refRows[0].id;
+        if (referrerId) refOrigen = 'invitación de la tienda «' + (refRows[0].nombre || referrerId) + '»';
         // No auto-referidos (misma tienda) ni código inexistente.
         if (referrerId && referrerId !== tienda_id) {
           await fetch(`${SUPABASE_URL}/rest/v1/referrals`, {
@@ -381,17 +386,25 @@ export default async function handler(req, res) {
       // codigo valido, y hacerlo en los dos sitios daba dos meses.
       if (!referrerId) {
         try {
+          const afR = await fetch(`${SUPABASE_URL}/rest/v1/afiliados?codigo=eq.${encodeURIComponent(refCode)}&select=nombre,activo&limit=1`, {
+            headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
+          });
+          const af = await afR.json();
+          if (Array.isArray(af) && af.length) refOrigen = 'comercial' + (af[0].nombre ? ' ' + af[0].nombre : '') + (af[0].activo === false ? ' (DE BAJA)' : '');
+        } catch (e) {}
+        try {
           const val = await validarCobrumReferido(refCode);
-          if (val && val.valid) await acreditarCobrumReferido(refCode, email);
+          if (val && val.valid) { await acreditarCobrumReferido(refCode, email); if (!refOrigen) refOrigen = 'Cobrum'; }
         } catch (e) { console.error('Cobrum referral error (no bloqueante):', e); }
       }
+      if (!refOrigen) refOrigen = 'código no reconocido';
     }
 
     // ═══ Aviso al dueño: alta nueva, con el WhatsApp listo para escribirle ═══
     // Va al final y con su propio try/catch: si esto fallara, el cliente ya está
     // dado de alta y no puede enterarse de nada.
     try {
-      await avisarAltaNueva({ nombre, email, telefono, tienda_nombre: tiendaData.nombre, plan, trialUntil, refCode, RESEND_KEY });
+      await avisarAltaNueva({ nombre, email, telefono, tienda_nombre: tiendaData.nombre, plan, trialUntil, refCode, refOrigen, RESEND_KEY });
     } catch (e) { console.error('[alta] aviso al dueño (no bloqueante):', e.message); }
 
     return res.json({ ok: true, tienda_id, tempPass, sessionToken, nombre });
@@ -445,7 +458,7 @@ async function avisarAltaNueva(d) {
     <tr><td style="padding:7px 0;color:#64748B">Teléfono</td><td style="padding:7px 0"><b>${esc(d.telefono) || '<span style="color:#B91C1C">no lo dejó</span>'}</b></td></tr>
     <tr><td style="padding:7px 0;color:#64748B">Plan</td><td style="padding:7px 0">${esc(planLabel)}</td></tr>
     <tr><td style="padding:7px 0;color:#64748B">Primer cobro</td><td style="padding:7px 0">${esc(cobro)}</td></tr>
-    ${d.refCode ? `<tr><td style="padding:7px 0;color:#64748B">Código</td><td style="padding:7px 0"><b>${esc(d.refCode)}</b> (comercial)</td></tr>` : ''}
+    ${d.refCode ? `<tr><td style="padding:7px 0;color:#64748B">Código</td><td style="padding:7px 0"><b>${esc(d.refCode)}</b> (${esc(d.refOrigen || 'comercial')})</td></tr>` : ''}
   </table>
   ${enlaceWa ? `<a href="${enlaceWa}" style="display:block;background:#25D366;color:#fff;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;margin:22px 0 10px">💬 Escribirle por WhatsApp</a>
   <p style="font-size:12px;color:#64748B;margin:0 0 18px">Se abre con el mensaje ya escrito. Léelo antes de enviarlo y cámbialo a tu manera de hablar.</p>`
