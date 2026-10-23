@@ -1318,8 +1318,10 @@ function _ajIndice() {
       var titulo = tEl ? tEl.textContent.replace(/\s+/g, ' ').trim() : '';
       var extra = [];
       card.querySelectorAll('label, .fl, h3, h4, button').forEach(function (l) { var x = l.textContent.replace(/\s+/g, ' ').trim(); if (x && x.length < 90) extra.push(x); });
+      // También el texto de ayuda de los campos («Instagram — @tutienda») y el resto de la tarjeta.
+      card.querySelectorAll('input[placeholder], textarea[placeholder]').forEach(function (i) { var x = (i.getAttribute('placeholder') || '').trim(); if (x && x.length < 90) extra.push(x); });
       if (!titulo && !extra.length) return;
-      out.push({ sid: sid, sec: secTxt, card: card, titulo: titulo || extra[0], txt: _ajNorm(secTxt + ' ' + titulo + ' ' + extra.join(' ')), extra: extra });
+      out.push({ sid: sid, sec: secTxt, card: card, titulo: titulo || extra[0], txt: _ajNorm(secTxt + ' ' + titulo + ' ' + extra.join(' ') + ' ' + card.textContent), extra: extra });
     });
   });
   return out;
