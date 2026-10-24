@@ -17638,6 +17638,10 @@ function _costeLineaVenta(it) {
   if (c <= 0) {   // ventas antiguas: el TPV solo guardaba el coste de los usados
     var sid = it.idOriginal || it.id;
     var st = sid && (DB.stock || []).find(function(x) { return x.id === sid; });
+    if (!st && it.nombre) {   // sin id (ventas de una sola línea antiguas): por el nombre
+      var n = String(it.nombre).trim().toLowerCase();
+      st = (DB.stock || []).find(function(x) { var m = String(x.modelo || '').trim().toLowerCase(); return m && (m === n || (String(x.marca || '').trim().toLowerCase() + ' ' + m) === n); });
+    }
     if (st) c = parseFloat(st.precioC) || 0;
     else { var sv = sid && (DB.servicios || []).find(function(x) { return x.id === sid; }); if (sv) c = parseFloat(sv.precioCoste) || 0; }
   }
@@ -17666,7 +17670,7 @@ function _renderGananciaRep(ventas, pagosReps, enRango, d1, d2) {
     cobV = _ventasIngresoTotal(DB.ventas, d1, d2);
     ventas.forEach(function(v) {
       var items = v.items; if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = null; } }
-      if (!Array.isArray(items) || !items.length) { sinCoste++; return; }
+      if (!Array.isArray(items) || !items.length) items = [{ nombre: v.modelo, qty: 1, idOriginal: v.stockId || '' }];
       items.forEach(function(it) { if (it.esRapida) { sinCoste++; return; } var l = _costeLineaVenta(it); costeV += l.coste; if (l.falta) sinCoste++; });
     });
   }
