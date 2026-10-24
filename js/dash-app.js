@@ -1774,7 +1774,7 @@ function _encCrearVenta(e, pvp, senal, metodo, st, reg) {
     ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
     base: iv.base, ivaImporte: iv.iva, total: iv.total,
     reembolsado: false, stockId: st ? st.id : '', financiado: false, cuotas: null, entrada: 0, entradaPago: null,
-    items: [{ nombre: e.producto || T('tpv.venta_item'), qty: 1, precio: importeVenta, imei: st ? (st.imei || '') : '', idOriginal: st ? st.id : '',
+    items: [{ nombre: e.producto || T('tpv.venta_item'), qty: 1, precio: importeVenta, imei: st ? (st.imei || '') : '', idOriginal: st ? st.id : '', coste: st ? (parseFloat(st.precioC) || 0) : 0,
       tipoProd: st ? (st.tipo || '') : '', garantiaMeses: st ? (parseInt(st.garantiaMeses, 10) || 0) : 0,
       notas: reg > 0.005 ? T('enc.ticket_senal').replace('{p}', cur(pvp)).replace('{s}', cur(reg)) : '' }]
   };
@@ -8073,7 +8073,7 @@ function guardarVenta() {
     entrada: entrada,
     entradaPago: (esFinanciado && entrada > 0) ? ((document.getElementById('vEntradaPago') || {}).value || 'Efectivo') : null,
     items: [{ nombre: (((SEL.vStock ? ((SEL.vStock.marca || '') + ' ' + (SEL.vStock.modelo || '')) : '').trim()) || T('tpv.venta_item')), qty: 1, precio: precio,
-      imei: SEL.vStock ? (SEL.vStock.imei || '') : '', idOriginal: (SEL.vStock && !SEL.vStock.esServicio) ? SEL.vStock.id : '',
+      imei: SEL.vStock ? (SEL.vStock.imei || '') : '', idOriginal: (SEL.vStock && !SEL.vStock.esServicio) ? SEL.vStock.id : '', coste: SEL.vStock ? (parseFloat(SEL.vStock.esServicio ? SEL.vStock.precioCoste : SEL.vStock.precioC) || 0) : 0,
       tipoProd: SEL.vStock ? (SEL.vStock.tipo || '') : '', garantiaMeses: SEL.vStock ? (parseInt(SEL.vStock.garantiaMeses, 10) || 0) : 0 }]
   };
   // Usado comprado a un particular: el impuesto va por el régimen del país
@@ -17603,6 +17603,8 @@ async function renderReporte() {
     '</div>' +
     '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">' + T('gen.total') + ' (' + T('inicio.cobrado') + '): ' + cur(tV + tR) + '</div>';
 
+  try { _renderGananciaRep(ventas, pagosReps, _enRango, _minISO, _maxISO); } catch (e) { console.warn('ganancia:', e); }
+
   // Guardar datos del periodo para "Enviar a Cobrum" (ventas + pagos de reparación)
   var _gastosPeriodo = (DB.gastos || []).filter(function(g){ return g && _enRango(g.fecha); });
   window._repExport = { ventas: ventas, pagosReps: pagosReps, gastos: _gastosPeriodo };
@@ -17621,6 +17623,85 @@ async function renderReporte() {
     return { iva: tipo, total: tot, base: base, ivaImporte: tot - base };
   });
   renderDesgloseIVA(ventas, _repPagoItems);
+}
+
+// ═══ GANANCIA DEL PERIODO (Reportes) ═══
+// Cobrado − lo que cuesta lo que se ha cobrado: el coste de cada reparación (campo «coste»
+// de sus servicios + precio de coste de las piezas del stock) y el de cada producto vendido.
+// El coste de una reparación se reparte según lo cobrado en el periodo (igual que el IVA):
+// si se cobra la mitad hoy y la mitad mañana, cada día lleva la mitad del coste.
+// Los gastos y pedidos recibidos van aparte: ese material se gasta otros días y restarlo
+// también contaría dos veces la misma pantalla.
+function _costeLineaVenta(it) {
+  var qty = parseFloat(it.qty != null ? it.qty : it.cantidad) || 1;
+  var c = parseFloat(it.coste) || 0;
+  if (c <= 0) {   // ventas antiguas: el TPV solo guardaba el coste de los usados
+    var sid = it.idOriginal || it.id;
+    var st = sid && (DB.stock || []).find(function(x) { return x.id === sid; });
+    if (st) c = parseFloat(st.precioC) || 0;
+    else { var sv = sid && (DB.servicios || []).find(function(x) { return x.id === sid; }); if (sv) c = parseFloat(sv.precioCoste) || 0; }
+  }
+  return { coste: c * qty, falta: c <= 0 };
+}
+function _costeRep(r) {
+  var c = 0, falta = 0, lineas = 0;
+  var srv = r.servicios; if (typeof srv === 'string') { try { srv = JSON.parse(srv); } catch (e) { srv = []; } }
+  (Array.isArray(srv) ? srv : []).forEach(function(s) { lineas++; var x = parseFloat(s.coste) || 0; if (x > 0) c += x; else falta++; });
+  var comp = r.componentes; if (typeof comp === 'string') { try { comp = JSON.parse(comp); } catch (e) { comp = []; } }
+  (Array.isArray(comp) ? comp : []).forEach(function(p) {
+    lineas++;
+    var st = (DB.stock || []).find(function(x) { return x.id === p.id; });
+    var x = st ? (parseFloat(st.precioC) || 0) : 0;
+    if (x > 0) c += x; else falta++;
+  });
+  if (!lineas) falta = 1;
+  return { coste: c, falta: falta };
+}
+function _renderGananciaRep(ventas, pagosReps, enRango, d1, d2) {
+  var box = document.getElementById('reporteGanancia');
+  if (!box) return;
+  var tipo = SEL.repTipo;
+  var cobV = 0, cobR = 0, costeV = 0, costeR = 0, sinCoste = 0;
+  if (tipo !== 'reparaciones') {
+    cobV = _ventasIngresoTotal(DB.ventas, d1, d2);
+    ventas.forEach(function(v) {
+      var items = v.items; if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = null; } }
+      if (!Array.isArray(items) || !items.length) { sinCoste++; return; }
+      items.forEach(function(it) { if (it.esRapida) { sinCoste++; return; } var l = _costeLineaVenta(it); costeV += l.coste; if (l.falta) sinCoste++; });
+    });
+  }
+  if (tipo !== 'ventas') {
+    var porRep = {};
+    pagosReps.forEach(function(p) { cobR += Number(p.importe || 0); if (p.reparacion_id) porRep[p.reparacion_id] = (porRep[p.reparacion_id] || 0) + Number(p.importe || 0); });
+    Object.keys(porRep).forEach(function(id) {
+      var r = (DB.reps || []).find(function(x) { return x.id === id; });
+      if (!r) { sinCoste++; return; }
+      var tot = parseFloat(r.total) || 0;
+      var k = tot > 0 ? Math.min(1, porRep[id] / tot) : 1;
+      var c = _costeRep(r);
+      costeR += c.coste * k;
+      if (c.falta) sinCoste++;
+    });
+  }
+  var cobrado = cobV + cobR, coste = costeV + costeR, gan = cobrado - coste;
+  var margen = cobrado > 0 ? Math.round(gan / cobrado * 100) : 0;
+  var gastos = (DB.gastos || []).filter(function(g) { return g && enRango(g.fecha) && (g.estado || 'Pagado') !== 'Pendiente'; })
+    .reduce(function(a, g) { return a + (parseFloat(g.importe) || 0); }, 0);
+  var fila = function(l, v, css) { return '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13.5px' + (css || '') + '"><span>' + l + '</span><b style="font-variant-numeric:tabular-nums">' + v + '</b></div>'; };
+  box.innerHTML = '<div class="card" style="margin-top:14px;padding:16px 18px">' +
+    '<div style="font-size:15px;font-weight:800;margin-bottom:6px">' + T('gan.titulo') + '</div>' +
+    fila(T('gan.cobrado'), cur(cobrado)) +
+    (tipo !== 'ventas' ? fila(T('gan.coste_reps'), '−' + cur(costeR), ';color:var(--red,#E02424)') : '') +
+    (tipo !== 'reparaciones' ? fila(T('gan.coste_prod'), '−' + cur(costeV), ';color:var(--red,#E02424)') : '') +
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0 4px"><span style="font-size:16px;font-weight:800">' + T('gan.ganancia') + '</span>' +
+      '<span style="text-align:right"><b style="font-size:24px;color:' + (gan >= 0 ? 'var(--green,#0E9F6E)' : 'var(--red,#E02424)') + ';font-variant-numeric:tabular-nums">' + cur(gan) + '</b>' +
+      '<div style="font-size:12px;color:var(--muted)">' + T('gan.margen').replace('{m}', margen) + '</div></span></div>' +
+    (sinCoste ? '<div style="margin-top:8px;padding:9px 11px;border-radius:9px;background:rgba(245,158,11,.1);color:var(--text);font-size:12.5px">' + T('gan.sin_coste').replace('{n}', sinCoste) + '</div>' : '') +
+    (tipo !== 'ventas' && tipo !== 'reparaciones' ? '<div style="margin-top:12px;padding-top:4px">' +
+      fila(T('gan.gastos'), '−' + cur(gastos), ';color:var(--muted)') +
+      fila(T('gan.caja'), cur(cobrado - gastos), ';color:var(--muted);border-bottom:none') + '</div>' : '') +
+    '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.45">' + T('gan.nota') + '</div>' +
+  '</div>';
 }
 
 // ═══ ENVIAR REPORTE A COBRUM (app de finanzas) ═══

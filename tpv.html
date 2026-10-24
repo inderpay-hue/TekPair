@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261023i"></script>
+<script src="/lang/lang.v8.js?v=20261024g"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -1184,7 +1184,7 @@ function getProducts() {
     return Object.assign({}, s, {_type:'stock'});
   });
   var servicios = (DB.servicios || []).filter(function(s) { return s.tipo === 'venta' || s.tipo === 'ambos'; })
-    .map(function(s) { return {id: s.id, categoria: 'servicio', marca: 'Servicio', modelo: s.nombre, precioV: s.precioFijo ? s.precio : 0, unidades: 99, esServicio: true, calidad: s.categoria, _type:'servicio'}; });
+    .map(function(s) { return {id: s.id, categoria: 'servicio', marca: 'Servicio', modelo: s.nombre, precioV: s.precioFijo ? s.precio : 0, precioC: parseFloat(s.precioCoste != null ? s.precioCoste : s.precio_coste) || 0, unidades: 99, esServicio: true, calidad: s.categoria, _type:'servicio'}; });
   return stock.concat(servicios);
 }
 
@@ -1660,6 +1660,8 @@ function addToCart(id, esServicio) {
   if (p.compraId && !_usadoVendible(p)) return;
   // Comprado a un particular: el TPV necesita lo que se pagó para el impuesto sobre el margen.
   var _usado = p.compraId ? { compraId: p.compraId, coste: parseFloat(p.precioC) || 0 } : {};
+  // Coste de cada línea (lo que le cuesta a la tienda): Reportes lo resta para la ganancia.
+  var _costeU = parseFloat(p.precioC) || 0;
 
   var nombreProd = (p.marca !== 'Servicio' ? p.marca + ' ' : '') + p.modelo;
   var precioBase = parseFloat(p.precioV || 0);
@@ -1672,7 +1674,7 @@ function addToCart(id, esServicio) {
         precio: precioCustom, qty: 1,
         esServicio: p.esServicio || false, stockMax: p.unidades,
         precioVariable: true, idOriginal: p.id, imei: p.imei || '',
-        compraId: _usado.compraId || '', coste: _usado.coste || 0,
+        compraId: _usado.compraId || '', coste: _costeU,
         tipoProd: p.esServicio ? '' : (p.tipo || ''), garantiaMeses: p.esServicio ? 0 : (parseInt(p.garantiaMeses, 10) || 0)
       });
       renderCart();
@@ -1691,7 +1693,7 @@ function addToCart(id, esServicio) {
       id: p.id, nombre: nombreProd,
       precio: precioBase, qty: 1,
       esServicio: p.esServicio || false, stockMax: p.unidades, imei: p.imei || '',
-      compraId: _usado.compraId || '', coste: _usado.coste || 0,
+      compraId: _usado.compraId || '', coste: _costeU,
       tipoProd: p.esServicio ? '' : (p.tipo || ''), garantiaMeses: p.esServicio ? 0 : (parseInt(p.garantiaMeses, 10) || 0)
     });
   }
