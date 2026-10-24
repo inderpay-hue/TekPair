@@ -17701,6 +17701,8 @@ function _renderGananciaRep(pagosReps, enRango, d1, d2) {
     (tipo !== 'ventas' ? ' · ' + T('gan.coste_reps') + ' −' + cur(costeR) : '') +
     (tipo !== 'reparaciones' ? ' · ' + T('gan.coste_prod') + ' −' + cur(costeV) : '');
   box.innerHTML = '<div title="' + escHtml(det) + '" style="text-align:center;margin-top:6px;font-size:15px;color:var(--muted)">' +
+    T('gan.coste') + ' <b style="font-size:18px;color:var(--red,#E02424);font-variant-numeric:tabular-nums">' + cur(coste) + '</b>' +
+    '<span style="opacity:.4;margin:0 10px">·</span>' +
     T('gan.aprox') + ' <b style="font-size:18px;color:' + (gan >= 0 ? 'var(--green,#0E9F6E)' : 'var(--red,#E02424)') + ';font-variant-numeric:tabular-nums">' + cur(gan) + ' (' + margen + '%)</b>' +
     (sinCoste ? '<div style="font-size:11.5px;margin-top:3px">' + T('gan.sin_coste_c').replace('{n}', sinCoste) + '</div>' : '') +
   '</div>';
