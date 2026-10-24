@@ -17696,22 +17696,13 @@ function _renderGananciaRep(pagosReps, enRango, d1, d2) {
   }
   var cobrado = cobV + cobR, coste = costeV + costeR, gan = cobrado - coste;
   var margen = cobrado > 0 ? Math.round(gan / cobrado * 100) : 0;
-  var gastos = (DB.gastos || []).filter(function(g) { return g && enRango(g.fecha) && (g.estado || 'Pagado') !== 'Pendiente'; })
-    .reduce(function(a, g) { return a + (parseFloat(g.importe) || 0); }, 0);
-  var fila = function(l, v, css) { return '<div style="display:flex;justify-content:space-between;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:13.5px' + (css || '') + '"><span>' + l + '</span><b style="font-variant-numeric:tabular-nums">' + v + '</b></div>'; };
-  box.innerHTML = '<div class="card" style="margin-top:14px;padding:16px 18px">' +
-    '<div style="font-size:15px;font-weight:800;margin-bottom:6px">' + T('gan.titulo') + '</div>' +
-    fila(T('gan.cobrado'), cur(cobrado)) +
-    (tipo !== 'ventas' ? fila(T('gan.coste_reps'), '−' + cur(costeR), ';color:var(--red,#E02424)') : '') +
-    (tipo !== 'reparaciones' ? fila(T('gan.coste_prod'), '−' + cur(costeV), ';color:var(--red,#E02424)') : '') +
-    '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:10px 0 4px"><span style="font-size:16px;font-weight:800">' + T('gan.ganancia') + '</span>' +
-      '<span style="text-align:right"><b style="font-size:24px;color:' + (gan >= 0 ? 'var(--green,#0E9F6E)' : 'var(--red,#E02424)') + ';font-variant-numeric:tabular-nums">' + cur(gan) + '</b>' +
-      '<div style="font-size:12px;color:var(--muted)">' + T('gan.margen').replace('{m}', margen) + '</div></span></div>' +
-    (sinCoste ? '<div style="margin-top:8px;padding:9px 11px;border-radius:9px;background:rgba(245,158,11,.1);color:var(--text);font-size:12.5px">' + T('gan.sin_coste').replace('{n}', sinCoste) + '</div>' : '') +
-    (tipo !== 'ventas' && tipo !== 'reparaciones' ? '<div style="margin-top:12px;padding-top:4px">' +
-      fila(T('gan.gastos'), '−' + cur(gastos), ';color:var(--muted)') +
-      fila(T('gan.caja'), cur(cobrado - gastos), ';color:var(--muted);border-bottom:none') + '</div>' : '') +
-    '<div style="font-size:11.5px;color:var(--muted);margin-top:8px;line-height:1.45">' + T('gan.nota') + '</div>' +
+  // Una sola línea bajo el total: beneficio aproximado y su %. El detalle va en el «title».
+  var det = T('gan.cobrado') + ' ' + cur(cobrado) +
+    (tipo !== 'ventas' ? ' · ' + T('gan.coste_reps') + ' −' + cur(costeR) : '') +
+    (tipo !== 'reparaciones' ? ' · ' + T('gan.coste_prod') + ' −' + cur(costeV) : '');
+  box.innerHTML = '<div title="' + escHtml(det) + '" style="text-align:center;margin-top:6px;font-size:15px;color:var(--muted)">' +
+    T('gan.aprox') + ' <b style="font-size:18px;color:' + (gan >= 0 ? 'var(--green,#0E9F6E)' : 'var(--red,#E02424)') + ';font-variant-numeric:tabular-nums">' + cur(gan) + ' (' + margen + '%)</b>' +
+    (sinCoste ? '<div style="font-size:11.5px;margin-top:3px">' + T('gan.sin_coste_c').replace('{n}', sinCoste) + '</div>' : '') +
   '</div>';
 }
 
