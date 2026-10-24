@@ -17603,7 +17603,7 @@ async function renderReporte() {
     '</div>' +
     '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">' + T('gen.total') + ' (' + T('inicio.cobrado') + '): ' + cur(tV + tR) + '</div>';
 
-  try { _renderGananciaRep(ventas, pagosReps, _enRango, _minISO, _maxISO); } catch (e) { console.warn('ganancia:', e); }
+  try { _renderGananciaRep(pagosReps, _enRango, _minISO, _maxISO); } catch (e) { console.warn('ganancia:', e); }
 
   // Guardar datos del periodo para "Enviar a Cobrum" (ventas + pagos de reparación)
   var _gastosPeriodo = (DB.gastos || []).filter(function(g){ return g && _enRango(g.fecha); });
@@ -17661,17 +17661,24 @@ function _costeRep(r) {
   if (!lineas) falta = 1;
   return { coste: c, falta: falta };
 }
-function _renderGananciaRep(ventas, pagosReps, enRango, d1, d2) {
+function _renderGananciaRep(pagosReps, enRango, d1, d2) {
   var box = document.getElementById('reporteGanancia');
   if (!box) return;
   var tipo = SEL.repTipo;
   var cobV = 0, cobR = 0, costeV = 0, costeR = 0, sinCoste = 0;
   if (tipo !== 'reparaciones') {
-    cobV = _ventasIngresoTotal(DB.ventas, d1, d2);
-    ventas.forEach(function(v) {
+    // Igual que las reparaciones: cada venta lleva la parte del coste que corresponde a lo
+    // cobrado en el periodo (una financiada solo la de la entrada y las cuotas cobradas).
+    (DB.ventas || []).forEach(function(v) {
+      if (v.reembolsado) return;
+      var cob = _ventasIngresoTotal([v], d1, d2);
+      if (cob <= 0.005) return;
+      cobV += cob;
+      var tot = parseFloat(v.total) || 0;
+      var k = tot > 0 ? Math.min(1, cob / tot) : 1;
       var items = v.items; if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = null; } }
       if (!Array.isArray(items) || !items.length) items = [{ nombre: v.modelo, qty: 1, idOriginal: v.stockId || '' }];
-      items.forEach(function(it) { if (it.esRapida) { sinCoste++; return; } var l = _costeLineaVenta(it); costeV += l.coste; if (l.falta) sinCoste++; });
+      items.forEach(function(it) { if (it.esRapida) { sinCoste++; return; } var l = _costeLineaVenta(it); costeV += l.coste * k; if (l.falta) sinCoste++; });
     });
   }
   if (tipo !== 'ventas') {
