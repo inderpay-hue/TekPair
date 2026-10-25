@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261025q"></script>
+<script src="/lang/lang.v8.js?v=20261025s"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -798,8 +798,12 @@ function sbPostRet(table, data) {
     body: JSON.stringify(data)
   }).then(function(r) {
     if (!r.ok) {
-      if (_tpvReintentable(r.status)) _tpvEncolar('POST', table, data);
-      return r.json().then(function(err){ _sbErrorToast('POST', table, Object.assign({status:r.status}, err)); return null; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return null; });
+      // Reintentable (red, 5xx): a la cola. Si no, la nube la ha rechazado y no se guardará nunca:
+      // se devuelve { _rechazada } para que el TPV deshaga la venta en vez de darla por cobrada.
+      var _rech = !_tpvReintentable(r.status);
+      if (!_rech) _tpvEncolar('POST', table, data);
+      var _res = _rech ? { _rechazada: true, status: r.status } : null;
+      return r.json().then(function(err){ _sbErrorToast('POST', table, Object.assign({status:r.status}, err)); return _res; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return _res; });
     }
     return r.json().then(function(rows){ return (Array.isArray(rows) && rows[0]) || null; }, function(){ return null; });
   }).catch(function(e) { _tpvEncolar('POST', table, data); _sbErrorToast('POST', table, e); return null; });
@@ -898,7 +902,14 @@ function _tpvReintentar() {
       var url = SUPABASE_URL + '/rest/v1/' + op.table + (op.method === 'PATCH' ? '?' + op.query : '');
       return fetch(url, { method: op.method, headers: hdr, body: JSON.stringify(op.data) }).then(function(r) {
         if (r.ok || r.status === 409) quitar(op._opId);          // 409 = ya estaba subida
-        else if (!_tpvReintentable(r.status)) { quitar(op._opId); _sbErrorToast(op.method, op.table, {status: r.status}); }
+        else if (!_tpvReintentable(r.status)) {
+          quitar(op._opId); _sbErrorToast(op.method, op.table, {status: r.status});
+          // Una venta hecha sin conexión que la nube rechaza: se deshace igual que al cobrar.
+          if (op.method === 'POST' && op.table === 'ventas' && op.data && op.data.id) {
+            var _vl = (DB.ventas || []).find(function (v) { return v.id === op.data.id; });
+            if (_vl) _tpvVentaRechazada(_vl, _vl.items || [], r.status, true);
+          }
+        }
       }, function() {});
     });
   }, Promise.resolve()).then(_acabar, _acabar);
@@ -2313,6 +2324,7 @@ function cobrar() {
 
   // Save to Supabase
   if (SB_KEY && TIENDA_ID) {
+    var _cartCopia = cart.map(function (c) { return Object.assign({}, c); });
     sbPostRet('ventas', Object.assign({
       id: venta.id, tienda_id: TIENDA_ID, fecha: venta.fecha,
       cliente_id: venta.clienteId, cliente_nombre: venta.clienteNombre,
@@ -2328,6 +2340,7 @@ function cobrar() {
       // a la vez no pueden repetirlo. Cuando llega (decimas de segundo) se
       // repinta el ticket; si la migracion no se ha corrido, no viene y el
       // ticket se queda sin numero, que es la degradacion correcta.
+      if (fila && fila._rechazada) { _tpvVentaRechazada(venta, _cartCopia, fila.status); return; }
       if (!fila || !fila.numero) return;
       venta.numero = fila.numero;
       try {
@@ -2353,6 +2366,35 @@ function cobrar() {
     cart = []; try { renderCart(); } catch (e) {}
     setTimeout(function () { _tpvCobrando = false; }, 1500);
   }
+}
+
+// La nube rechazó la venta (no es un fallo de red: no se guardará reintentando). Antes el TPV
+// la daba por cobrada: salía en la caja de este equipo, el stock se descontaba y al sincronizar
+// la venta desaparecía. Ahora se deshace: vuelve el stock, se quita de la caja y el carrito
+// vuelve a la pantalla para cobrarla otra vez (o avisar al administrador).
+function _tpvVentaRechazada(venta, cartCopia, status, desdeCola) {
+  try {
+    DB.ventas = DB.ventas.filter(function (v) { return v.id !== venta.id; });
+    // _tpvGuardar junta con lo que hay en tk_db: hay que quitarla también de ahí.
+    try { var _db = JSON.parse(localStorage.getItem('tk_db') || '{}') || {}; if (Array.isArray(_db.ventas)) { _db.ventas = _db.ventas.filter(function (v) { return v && v.id !== venta.id; }); localStorage.setItem('tk_db', JSON.stringify(_db)); } } catch (e) {}
+    (cartCopia || []).forEach(function (item) {
+      if (item.esServicio || item.esRapida) return;
+      var st = (DB.stock || []).find(function (x) { return x.id === (item.idOriginal || item.id); });
+      if (!st) return;
+      st.unidades = (st.unidades || 0) + (item.qty || 1);
+      if (st.unidades > 0) st.vendido = false;
+      _tpvStockDelta(st, item.qty || 1);
+      if (st.compraId) sbPatch('compras_usados', 'id=eq.' + encodeURIComponent(st.compraId) + '&venta_id=eq.' + encodeURIComponent(venta.id), { venta_id: null, venta_fecha: null, venta_cliente: null });
+    });
+    _tpvGuardar();
+    if (!desdeCola) {
+      if (!cart.length && cartCopia && cartCopia.length) { cart = cartCopia; renderCart(); }
+      try { closeModal('mTicket'); } catch (e) {}
+    }
+    updateCaja();
+    if (typeof renderProducts === 'function') { try { renderProducts(); } catch (e) {} }
+  } catch (e) { console.error('venta rechazada:', e); }
+  alert(T(desdeCola ? 'tpv.venta_rechazada_cola' : 'tpv.venta_rechazada').replace('{total}', '\u20ac' + (parseFloat(venta.total) || 0).toFixed(2)).replace('{cliente}', venta.clienteNombre || '').replace('{fecha}', venta.fecha || '').replace('{s}', String(status || '')));
 }
 
 // Última venta mostrada: el botón Imprimir necesita los datos crudos (no el HTML)

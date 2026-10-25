@@ -9645,28 +9645,66 @@ function cobrarSaldoRep(id) {
   openM('mCobrarRep');
 }
 
+// Dos personas podían cobrar a la vez el saldo de la misma reparación: cada una restaba de su
+// copia y la última escritura pisaba a la otra (dos cobros de 50 € dejaban «debe 50» con 100 €
+// cobrados). Ahora se lee el saldo de la nube y se escribe solo si no ha cambiado; si cambió,
+// se vuelve a leer y lo cobrado se ajusta a lo que queda de verdad.
+var _cobrandoRep = false;
+function _repRestanteNube(id) {
+  return fetch(SUPABASE_URL + '/rest/v1/reparaciones?id=eq.' + encodeURIComponent(id) + '&select=restante', {
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
+  }).then(function (res) { return res.ok ? res.json() : null; })
+    .then(function (rows) { return Array.isArray(rows) && rows.length && rows[0].restante != null ? (parseFloat(rows[0].restante) || 0) : null; })
+    .catch(function () { return null; });
+}
 function confirmarCobroRep() {
+  if (_cobrandoRep) return;
   var r = DB.reps.find(function(x) { return x.id === SEL.cobrarRepId; });
   if (!r) return;
-  var imp = parseFloat(document.getElementById('cobrarRepImporte').value) || 0;
+  var imp = Math.round((parseFloat(document.getElementById('cobrarRepImporte').value) || 0) * 100) / 100;
   if (imp <= 0) { toast(T('rep.importe_invalido'), 'err'); return; }
-  // No permitir cobrar más de lo que se debe (evita inflar ingresos por encima del total)
-  var _resta = parseFloat(r.restante) || 0;
-  if (imp > _resta) imp = _resta;
-  if (imp <= 0) { toast(T('tst.rep_saldada'), 'ok'); closeM('mCobrarRep'); return; }
   var met = document.getElementById('cobrarRepMetodo').value;
-  r.restante = Math.max(0, Math.round(((parseFloat(r.restante) || 0) - imp) * 100) / 100);
-  guardarDatos();
-  if (SB_KEY && TIENDA_ID) {
-    sbPatch('reparaciones', 'id=eq.' + r.id, { restante: r.restante });
-    // El pago se registra en pagos_reparacion -> el ingreso del día entra solo (y va a Cobrum por el volcado).
-    sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: imp, metodo: met, tipo: 'parcial' });
-    window._pagosRepCache = null; try { _invalidarInvPagos(); } catch(e){}
+  function terminar(aplica) {
+    guardarDatos();
+    if (aplica > 0 && SB_KEY && TIENDA_ID) {
+      // El pago se registra en pagos_reparacion -> el ingreso del día entra solo (y va a Cobrum por el volcado).
+      sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: r.id, fecha: hoyLocal(), importe: aplica, metodo: met, tipo: 'parcial' });
+      window._pagosRepCache = null; try { _invalidarInvPagos(); } catch(e){}
+    }
+    closeM('mCobrarRep');
+    if (aplica <= 0) toast(T('tst.rep_saldada'), 'ok');
+    else if (aplica < imp - 0.005) toast(T('rep.cobro_ajustado').replace('{x}', cur(aplica)), 'err');
+    else toast(r.restante > 0 ? (T('rep.queda_deber') + ': ' + cur(r.restante)) : T('rep.saldado'), 'ok');
+    renderReps();
+    renderDash();
   }
-  closeM('mCobrarRep');
-  toast(r.restante > 0 ? (T('rep.queda_deber') + ': ' + cur(r.restante)) : T('rep.saldado'), 'ok');
-  renderReps();
-  renderDash();
+  // Sin nube (o sin conexión): como antes, se resta de lo que hay en este equipo y va a la cola.
+  function local() {
+    var _resta = parseFloat(r.restante) || 0;
+    var aplica = Math.min(imp, _resta);
+    if (aplica > 0) {
+      r.restante = Math.max(0, Math.round((_resta - aplica) * 100) / 100);
+      if (SB_KEY && TIENDA_ID) sbPatch('reparaciones', 'id=eq.' + r.id, { restante: r.restante });
+    }
+    terminar(aplica);
+  }
+  if (!(SB_KEY && TIENDA_ID)) { local(); return; }
+  _cobrandoRep = true;
+  function intento(n) {
+    return _repRestanteNube(r.id).then(function (nube) {
+      if (nube === null) { local(); return; }
+      var aplica = Math.min(imp, nube);
+      if (aplica <= 0.005) { r.restante = 0; terminar(0); return; }
+      var nuevo = Math.max(0, Math.round((nube - aplica) * 100) / 100);
+      return _sbPatchRaw('reparaciones', 'id=eq.' + encodeURIComponent(r.id) + '&restante=eq.' + nube, { restante: nuevo }).then(function (res) {
+        if (res.ok && res.rows > 0) { r.restante = nuevo; terminar(aplica); return; }
+        if (res.ok && n < 3) return intento(n + 1);          // otro cobro se adelantó: volver a leer
+        if (!res.ok && _esRetriable(res.status)) { local(); return; }
+        toast(T('sync.nube_rechazo'), 'err');
+      });
+    });
+  }
+  Promise.resolve(intento(0)).catch(function (e) { toast(e.message || T('gen.error'), 'err'); }).then(function () { _cobrandoRep = false; });
 }
 
 // ═══ BUSQUEDA CLIENTES ═══
@@ -12751,6 +12789,7 @@ function editarRep(id) {
   // Cargar servicios (con migración de legacy mo)
   SEL.rServicios = Array.isArray(r.servicios) ? r.servicios.slice() : [];
   SEL.rOpcionales = Array.isArray(r.opcionales) ? r.opcionales.map(function (o) { return Object.assign({}, o); }) : [];
+  SEL._repFirmaAntes = _repFirmaCliente(r);
   SEL.testEntrada = _testItemsDe(r.testEntrada); SEL._testEntradaAntes = r.testEntrada || null;
   setTimeout(function () { renderTest('rTestEnt', SEL.testEntrada); _pintarSelTecnico(r.tecnicoId, r.tecnicoNombre); }, 0);
   if (!SEL.rServicios.length && r.mo > 0) {
@@ -13100,7 +13139,36 @@ function aplicarCambioStockPiezas(antes, despues, refRep) {
   }
 }
 
+// Lo que el cliente puede cambiar desde el enlace del presupuesto: estado de los extras, servicios y total.
+function _repFirmaCliente(r) {
+  return JSON.stringify((Array.isArray(r && r.opcionales) ? r.opcionales : []).map(function (o) { return (o && o.estado) || ''; })) +
+    '|' + (Math.round((parseFloat(r && r.total) || 0) * 100)) + '|' + ((Array.isArray(r && r.servicios) ? r.servicios : []).length);
+}
+// Con la ficha abierta, el cliente podía aceptar extras desde el enlace: al guardar, la ficha
+// escribía sus extras, servicios y total antiguos y se perdía lo aceptado. Antes de guardar una
+// edición se mira la nube; si el cliente respondió mientras tanto, se recarga la ficha.
+var _guardandoRep = false;
 function guardarRep() {
+  if (!SEL.editRepId || !SEL._repFirmaAntes || !(typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID)) return _guardarRepAhora();
+  if (_guardandoRep) return;
+  var id = SEL.editRepId;
+  _guardandoRep = true;
+  fetch(SUPABASE_URL + '/rest/v1/reparaciones?id=eq.' + encodeURIComponent(id) + '&select=*', {
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
+  }).then(function (res) { return res.ok ? res.json() : null; }).catch(function () { return null; }).then(function (rows) {
+    _guardandoRep = false;
+    if (SEL.editRepId !== id) return;
+    var nube = Array.isArray(rows) && rows.length ? mapRep(rows[0]) : null;
+    // Sin conexión o sin respuesta: se guarda como siempre.
+    if (!nube || _repFirmaCliente(nube) === SEL._repFirmaAntes) return _guardarRepAhora();
+    var r = DB.reps.find(function (x) { return x.id === id; });
+    if (r) { Object.assign(r, nube); guardarDatos(); }
+    toast(T('rep.cliente_cambio_editando'), 'err', 6000);
+    editarRep(id);
+    try { renderReps(); } catch (e) {}
+  });
+}
+function _guardarRepAhora() {
   setTimeout(function () { try { _repAbrirPaneConError(); } catch (e) {} }, 0);
   if (!tienePerm('reps_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var modelo = document.getElementById('rModelo').value.trim();
@@ -13249,7 +13317,9 @@ function guardarRep() {
     renderDash();
     toast(T('rep.actualizada'), 'ok');
     audit('editar', 'reparacion', r.id, r.clienteNombre + ' · ' + (r.modelo||''), null);
-    aplicarCambioStockPiezas(componentesAntes, r.componentes, r);
+    // Cancelada/rechazada: sus piezas ya volvieron al stock. Cambiar la lista no mueve stock
+    // (antes quitar una pieza la devolvía otra vez); al reactivarla se descuenta la lista nueva.
+    if (!r.piezasDevueltas) aplicarCambioStockPiezas(componentesAntes, r.componentes, r);
     return;
   }
 
@@ -14224,11 +14294,13 @@ function cambiarEstado(id, estado) {
     r.piezasDevueltas = true;
     patchUnificado.piezas_devueltas = true;
     toast(T('stock.piezas_devueltas'), 'ok');
-  } else if (saliendoCancelacion && Array.isArray(r.componentes) && r.componentes.length && r.piezasDevueltas) {
-    aplicarCambioStockPiezas([], r.componentes, r);
+  } else if (saliendoCancelacion && r.piezasDevueltas) {
+    // Si mientras estaba cancelada se quitaron todas las piezas, no hay nada que descontar, pero
+    // la marca se quita igual: si no, las piezas añadidas después no moverían stock.
+    if (Array.isArray(r.componentes) && r.componentes.length) aplicarCambioStockPiezas([], r.componentes, r);
     r.piezasDevueltas = false;
     patchUnificado.piezas_devueltas = false;
-    toast(T('stock.piezas_redescontadas'), 'ok');
+    if (Array.isArray(r.componentes) && r.componentes.length) toast(T('stock.piezas_redescontadas'), 'ok');
   }
 
   guardarDatos();
