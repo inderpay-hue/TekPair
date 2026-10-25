@@ -11663,7 +11663,7 @@ function renderServiciosRep() {
           '<input class="fi" type="number" step="0.01" value="' + (s.precio || 0) + '" oninput="updateServicioRep(' + i + ',\'precio\',parseFloat(this.value)||0);calcR()">' +
         '</div>' +
       '</div>' +
-      _srvCalidadChips(s, i) + '<div id="srvPz' + i + '">' + _srvPiezaHtml(s, i) + '</div>' +
+      '<div id="srvCal' + i + '">' + _srvCalidadChips(s, i) + '</div><div id="srvPz' + i + '">' + _srvPiezaHtml(s, i) + '</div>' +
       '<textarea class="fi" rows="2" placeholder="' + T('srv.ph_desc') + '" oninput="updateServicioRep(' + i + ',\'desc\',this.value)" style="margin-top:8px">' + esc(s.desc || '') + '</textarea>' +
     '</div>';
   }).join('');
@@ -11732,7 +11732,10 @@ function srvUsarPieza(i, id) {
 window.srvUsarPieza = srvUsarPieza;
 // Solo el hueco «Usar pieza» de cada tarjeta (repintar todas las tarjetas se comía el foco y el clic)
 function _srvPiezasRefrescar() {
-  (SEL.rServicios || []).forEach(function (s, i) { var el = document.getElementById('srvPz' + i); if (el) el.innerHTML = _srvPiezaHtml(s, i); });
+  (SEL.rServicios || []).forEach(function (s, i) {
+    var el = document.getElementById('srvPz' + i); if (el) el.innerHTML = _srvPiezaHtml(s, i);
+    var ec = document.getElementById('srvCal' + i); if (ec) ec.innerHTML = _srvCalidadChips(s, i);
+  });
 }
 window._srvPiezasRefrescar = _srvPiezasRefrescar;
 function srvPonerCalidad(i, cal) {
