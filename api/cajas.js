@@ -1008,12 +1008,12 @@ export default async function handler(req, res) {
           if (codAp) {
             // Mismo límite de intentos que validar_codigo: si no, aquí se podían probar códigos
             const rlAp = await rateLimit('cajas:codigo:' + tienda_id + ':' + (payload.sub || ''), 10, 5 * 60);
-            if (!rlAp.ok) return err(res, 429, 'Demasiados intentos. Espera unos minutos.');
-            const us = await sbGet(
-              `usuarios?tienda_id=eq.${encodeURIComponent(tienda_id)}&codigo=eq.${encodeURIComponent(codAp)}&select=nombre&limit=1`
+            // Con demasiados intentos se guarda el cierre igual, solo sin fichar quién la abrió
+            const us = !rlAp.ok ? [] : await sbGet(
+              `usuarios?tienda_id=eq.${encodeURIComponent(tienda_id)}&codigo=eq.${encodeURIComponent(codAp)}&activo=not.is.false&select=nombre&limit=1`
             );
-            if (!us.length) return err(res, 400, 'Código de empleado no válido');
-            cierrePayload.abierto_por = us[0].nombre;
+            if (!us.length && rlAp.ok) return err(res, 400, 'Código de empleado no válido');
+            if (us.length) cierrePayload.abierto_por = us[0].nombre;
           } else if (nomAp && (await esAdminTiendaDB(payload))) {
             // Admin operando sin código: se registra por su propio nombre (de confianza)
             cierrePayload.abierto_por = nomAp.slice(0, 100);

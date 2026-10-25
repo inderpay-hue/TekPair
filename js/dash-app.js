@@ -3855,7 +3855,8 @@ async function _syncQueueRetryRun() {
       if (_ia >= 0) { _qa[_ia].attempts = op.attempts; _syncQueueSet(_qa); }
     };
     
-    if (op.attempts > SYNC_MAX_RETRIES) {
+    // Solo para PATCH (los únicos que cuentan intentos); un contador antiguo en otras ops no descarta nada
+    if (op.method === 'PATCH' && op.attempts > SYNC_MAX_RETRIES) {
       console.warn('Sync descartado tras', SYNC_MAX_RETRIES, 'intentos:', op);
       _reportarFalloNube(op.method, op.table, 599, 'reintentos', 'Descartado tras ' + SYNC_MAX_RETRIES + ' intentos');
       _syncQueueRemove(op._opId);
