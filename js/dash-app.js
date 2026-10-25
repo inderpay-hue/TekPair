@@ -18848,22 +18848,24 @@ function _renderCobradoEmpleados(pagosReps, enRango) {
       if (v.financiado) {
         if (enRango(v.fecha) && (parseFloat(v.entrada) || 0) > 0) suma(v.cobradoPor, v.entradaPago || 'Efectivo', parseFloat(v.entrada) || 0);
         (Array.isArray(v.cuotas) ? v.cuotas : []).forEach(function (c) {
-          var ab = Array.isArray(c && c.abonos) ? c.abonos : [];
-          _cuotaAbonos(c).forEach(function (a, i) { if (enRango(a.fecha)) suma((ab[i] && ab[i].por) || a.por || '', a.metodo, a.importe); });
+          _cuotaAbonos(c).forEach(function (a) { if (enRango(a.fecha)) suma(a.por || '', a.metodo, a.importe); });
         });
       } else if (enRango(v.fecha)) {
         _ventaPagos(v).forEach(function (p) { suma(v.cobradoPor, p.metodo, p.importe); });
       }
       if (v.reembolsado && enRango(v.fechaReembolso || v.fecha)) {
-        var dev = v.financiado ? (parseFloat(v.entrada) || 0) + (Array.isArray(v.cuotas) ? v.cuotas : []).reduce(function (a, c) { return a + _cuotaPagado(c); }, 0) : (parseFloat(v.total) || 0);
-        if (dev) suma(DEV, v.pago || 'Efectivo', -dev);
+        // Lo devuelto sale por la misma forma de pago por la que entró
+        if (v.financiado) {
+          if ((parseFloat(v.entrada) || 0) > 0) suma(DEV, v.entradaPago || 'Efectivo', -(parseFloat(v.entrada) || 0));
+          (Array.isArray(v.cuotas) ? v.cuotas : []).forEach(function (c) { _cuotaAbonos(c).forEach(function (a) { suma(DEV, a.metodo, -a.importe); }); });
+        } else _ventaPagos(v).forEach(function (p) { suma(DEV, p.metodo, -p.importe); });
       }
     });
   }
   if (SEL.repTipo !== 'ventas') {
     (pagosReps || []).forEach(function (p) {
       var q = p.cobrado_por || '';
-      if (!q && p.nota) { var mm = String(p.nota).match(/:\s*(.+)$/); if (mm && /cobrad/i.test(p.nota)) q = mm[1]; }
+      if (!q && p.nota) { var mm = String(p.nota).match(/:\s*(.+)$/); if (mm && /cobrad|collected|encaiss|incassat|kassiert/i.test(p.nota)) q = mm[1].trim(); }
       suma(q, p.metodo, Number(p.importe || 0));
     });
   }
@@ -18895,15 +18897,19 @@ function _renderCobradoEmpleados(pagosReps, enRango) {
 // nada, se ESTIMA con la última compra de esa pieza para ese modelo en los pedidos de la tienda
 // (o su precio de coste en el stock). Solo datos de esta tienda.
 var _MARG_TIPOS = [
-  ['pantalla', /pantalla|display|lcd|screen/, ['pantalla', 'display', 'lcd', 'oled', 'incell', 'screen'], ['pantalla']],
-  ['bateria', /bater/, ['bateria', 'battery'], ['bateria']],
-  ['tapa', /tapa/, ['tapa', 'back cover'], ['tapa']],
-  ['carga', /carga|pin |conector/, ['conector de carga', 'flex de carga', 'puerto de carga', 'placa de carga', 'pin de carga', 'charging'], ['flex de carga']],
-  ['camara', /camara/, ['camara', 'camera'], []],
-  ['altavoz', /altavoz|speaker/, ['altavoz', 'speaker'], []]
+  ['pantalla', /\b(pantalla|display|lcd|screen|ecran|schermo|ecra|tela)\b/, ['pantalla', 'display', 'lcd', 'oled', 'incell', 'screen', 'ecran', 'schermo'], ['pantalla']],
+  ['bateria', /\b(bater|batt|akku)/, ['bateria', 'battery', 'batterie', 'batteria', 'akku'], ['bateria']],
+  ['tapa', /\b(tapa|back cover|coque|cover posteriore|ruckseite|tampa)\b/, ['tapa', 'back cover', 'coque', 'ruckseite', 'tampa'], ['tapa']],
+  ['carga', /\b(pin de carga|conector de carga|puerto de carga|flex de carga|placa de carga|charging|ladebuchse|recharge|ricarica)\b/, ['conector de carga', 'flex de carga', 'puerto de carga', 'placa de carga', 'pin de carga', 'charging', 'ladebuchse'], ['flex de carga']],
+  ['camara', /\b(camara|camera|kamera|fotocamera)\b/, ['camara', 'camera', 'kamera', 'fotocamera'], []],
+  ['altavoz', /\b(altavoz|speaker|haut parleur|altoparlante|lautsprecher|altifalante)\b/, ['altavoz', 'speaker', 'haut parleur', 'altoparlante', 'lautsprecher'], []]
 ];
-function _margN(x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
-function _margTipo(nombre) { var n = _margN(nombre) + ' '; for (var i = 0; i < _MARG_TIPOS.length; i++) if (_MARG_TIPOS[i][1].test(n)) return _MARG_TIPOS[i]; return null; }
+// Accesorios y servicios que nombran la pieza pero no lo son («protector de pantalla», «lente de cámara»…)
+var _MARG_NO = /\b(protector|templado|hidrogel|funda|lente|descarga|cable|cargador|limpieza|software|soporte)\b/;
+function _margN(x) { return String(x || '').toLowerCase().replace(/\+/g, ' plus ').normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
+function _margTipo(nombre) { var n = _margN(nombre); if (_MARG_NO.test(n)) return null; for (var i = 0; i < _MARG_TIPOS.length; i++) if (_MARG_TIPOS[i][1].test(n)) return _MARG_TIPOS[i]; return null; }
+// ¿Este texto de pedido/stock es la pieza de ese tipo? (no un protector, funda…)
+function _margEsPieza(texto, tipo) { return !_MARG_NO.test(texto) && tipo[2].some(function (w) { return (' ' + texto + ' ').indexOf(' ' + w) >= 0; }); }
 var _MARG_VARIANTES = { pro: 1, max: 1, plus: 1, mini: 1, ultra: 1, lite: 1, fe: 1, neo: 1 };
 // ¿Habla este texto de ese modelo? («iphone 13» no vale para «iphone 13 pro max»)
 function _margEsModelo(texto, modelo) {
@@ -18916,7 +18922,15 @@ function _margEsModelo(texto, modelo) {
   }
   return false;
 }
-function _margModelo(r) { return _margN(r.modelo).replace(/^(apple|samsung|xiaomi|huawei|motorola|oppo|realme)\s+/, ''); }
+var _MARG_MARCAS = /^(apple|samsung|xiaomi|redmi|huawei|honor|motorola|oppo|realme|vivo|zte|nokia|google|oneplus|lg|sony|tcl|alcatel|wiko|poco)$/;
+// Modelo para buscar su pieza: sin la marca delante. Si queda solo la marca, o algo corto o solo
+// números («13»), se le pone la marca de la reparación para no casar con otro fabricante.
+function _margModelo(r) {
+  var m = _margN(r.modelo).replace(/^(apple|samsung|xiaomi|huawei|motorola|oppo|realme)\s+/, '');
+  if (!m || _MARG_MARCAS.test(m)) return '';
+  if (m.length <= 3 || /^\d+$/.test(m)) { var ma = _margN(r.marca); if (!ma) return ''; m = ma + ' ' + m; }
+  return m;
+}
 function _renderMargenReps(enRango) {
   var box = document.getElementById('reporteMargen');
   if (!box) return;
@@ -18929,29 +18943,34 @@ function _renderMargenReps(enRango) {
   var cacheEst = {};
   var estimar = function (tipo, modelo) {
     var k = tipo[0] + '|' + modelo; if (cacheEst[k] !== undefined) return cacheEst[k];
-    var kw = tipo[2], v = null;
-    var c = compras.find(function (p) { return kw.some(function (w) { return (' ' + p.n + ' ').indexOf(' ' + w) >= 0; }) && _margEsModelo(p.n, modelo); });
+    var v = null;
+    var c = compras.find(function (p) { return _margEsPieza(p.n, tipo) && _margEsModelo(p.n, modelo); });
     if (c) v = c.u;
-    else { var st = stockPz.find(function (x) { return kw.some(function (w) { return (' ' + x.n + ' ').indexOf(' ' + w) >= 0; }) && _margEsModelo(x.n, modelo); }); if (st) v = st.u; }
+    else { var st = stockPz.find(function (x) { return _margEsPieza(x.n, tipo) && _margEsModelo(x.n, modelo); }); if (st) v = st.u; }
     cacheEst[k] = v; return v;
   };
   var agg = {}, modelos = {}, nTot = 0, nReal = 0, nEst = 0;
+  var stockId = {}; (DB.stock || []).forEach(function (x) { stockId[x.id] = x; });
   (DB.reps || []).forEach(function (r) {
     if (r.estado !== 'Entregado' || !enRango(r.fechaEntregaReal || r.fecha)) return;
     var srv = Array.isArray(r.servicios) ? r.servicios : [];
     var modelo = _margModelo(r);
     srv.forEach(function (s) {
       var tipo = _margTipo(s.nombre); if (!tipo) return;
-      var precio = parseFloat(s.precio) || (srv.length === 1 ? (parseFloat(r.total) || 0) : 0);
+      // Piezas del stock de ese tipo puestas en la reparación: lo que se cobra por ellas también es
+      // parte del precio (el total = servicios + componentes) y su coste es el real.
+      var compP = 0, compC = 0, compFalta = false, hayComp = false;
+      (Array.isArray(r.componentes) ? r.componentes : []).forEach(function (p) {
+        var st = p && stockId[p.id]; if (!st || _margTipo((st.categoria || '') + ' ' + (st.modelo || '')) !== tipo) return;
+        hayComp = true; compP += parseFloat(p.precio) || 0;
+        var pc = parseFloat(st.precioC) || 0; if (pc > 0) compC += pc; else compFalta = true;
+      });
+      var precio = (parseFloat(s.precio) || (srv.length === 1 && !hayComp ? (parseFloat(r.total) || 0) : 0)) + compP;
       if (!(precio > 0)) return;
       nTot++;
       var coste = null, est = false;
-      if ((parseFloat(s.coste) || 0) > 0) coste = parseFloat(s.coste);
-      if (coste == null && Array.isArray(r.componentes) && r.componentes.length) {
-        var cc = 0;
-        r.componentes.forEach(function (p) { var st = (DB.stock || []).find(function (x) { return x.id === p.id; }); if (st && _margTipo((st.categoria || '') + ' ' + (st.modelo || '')) === tipo) cc += parseFloat(st.precioC) || 0; });
-        if (cc > 0) coste = cc;
-      }
+      if ((parseFloat(s.coste) || 0) > 0) coste = parseFloat(s.coste) + (hayComp && !compFalta ? compC : 0);
+      else if (hayComp && !compFalta) coste = compC;
       if (coste == null) { var pr = compras.find(function (p) { return p.rep === r.id && _margTipo(p.n) === tipo; }); if (pr) coste = pr.u; }
       if (coste == null && modelo) { var e = estimar(tipo, modelo); if (e != null) { coste = e; est = true; } }
       var g = agg[tipo[0]] || (agg[tipo[0]] = { n: 0, nc: 0, precio: 0, precioC: 0, coste: 0 });

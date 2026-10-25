@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261026b"></script>
+<script src="/lang/lang.v8.js?v=20261026c"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -791,17 +791,21 @@ function _tpvLogVenta(venta, totals) {
 // el numero de ticket lo pone una secuencia de Postgres en el propio INSERT,
 // asi que es la unica forma de que el TPV lo conozca para imprimirlo.
 // Quién cobra (columna cobrado_por de ventas, ver sql/cobrado-por.sql): solo si la columna existe.
-var _colCobradoPor;
-(function _probarColCobrado() {
+var _colCobradoPor, _colCobradoProbando = false;
+function _probarColCobrado() {
   try {
-    if (!SB_KEY) return;
+    if (!SB_KEY || _colCobradoPor !== undefined || _colCobradoProbando) return;
+    _colCobradoProbando = true;
     fetch(SUPABASE_URL + '/rest/v1/ventas?select=cobrado_por&limit=1', { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY) } })
-      .then(function (r) { if (r.ok) _colCobradoPor = true; else if (r.status === 400) _colCobradoPor = false; }).catch(function () {});
+      .then(function (r) { if (r.ok) _colCobradoPor = true; else if (r.status === 400) _colCobradoPor = false; }).catch(function () {})
+      .then(function () { _colCobradoProbando = false; });
   } catch (e) {}
-})();
+}
+_probarColCobrado();
 function _sellarCobro(table, data) {
   if (table !== 'ventas' || !data || Array.isArray(data)) return;
-  if (_colCobradoPor !== true) { delete data.cobrado_por; return; }
+  // Si la primera comprobación falló (sin red, 401…), se vuelve a intentar para la siguiente venta
+  if (_colCobradoPor !== true) { _probarColCobrado(); delete data.cobrado_por; return; }
   if (!data.cobrado_por && U && (U.nombre || U.email)) data.cobrado_por = U.nombre || U.email;
 }
 function sbPostRet(table, data) {
