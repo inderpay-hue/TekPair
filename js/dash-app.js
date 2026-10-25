@@ -15358,14 +15358,19 @@ function _bannerRevisionHtml() {
     '<button onclick="abrirRevisionStock()" style="background:#7C5CFC;color:#fff;border:none;border-radius:8px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">' + escHtml(T('rev.revisar')) + '</button></div>';
 }
 function _bannerRevision(id) { var b = document.getElementById(id); if (b) b.innerHTML = _bannerRevisionHtml(); }
-function _revTokens(t) { return _sinTildesTP(t).split(/[^a-z0-9]+/).filter(function (x) { return x && (x.length > 1 || /\d/.test(x)); }); }
+function _revTokens(t) { return _sinTildesTP(t).split(/[^a-z0-9]+/).filter(Boolean); }
 function _sinTildesTP(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
-// Fichas de stock parecidas a la pieza del pedido (misma categoría y marca, y
-// los números/palabras del modelo dentro del nombre). Nunca otra calidad.
+// Palabras que cambian el modelo: un iPhone 11 no es un 11 Pro, ni un Redmi 12 un Redmi Note 12
+var _REV_VAR = { pro: 1, max: 1, plus: 1, mini: 1, lite: 1, ultra: 1, fe: 1, edge: 1, neo: 1, se: 1, prime: 1, note: 1 };
+var _REV_COLOR = { negro: 1, negra: 1, blanco: 1, blanca: 1, azul: 1, rojo: 1, roja: 1, verde: 1, dorado: 1, dorada: 1, oro: 1, plata: 1, plateado: 1, plateada: 1, gris: 1, morado: 1, morada: 1, lila: 1, rosa: 1, amarillo: 1, naranja: 1, grafito: 1, titanio: 1, black: 1, white: 1, blue: 1, red: 1, green: 1, gold: 1, silver: 1, purple: 1, pink: 1 };
+// Fichas de stock parecidas a la pieza del pedido: misma categoría y marca,
+// todos los números y variantes del modelo de la ficha dentro del nombre de la
+// pieza (y al revés si la pieza es de un solo modelo). Nunca otra calidad.
 function _revSugerencias(p) {
   var pt = _revTokens(p.pieza + ' ' + (p.marca || '')), set = {};
   pt.forEach(function (x) { set[x] = 1; });
-  var marcaP = _sinTildesTP(p.marca);
+  var marcaP = _sinTildesTP(p.marca), unModelo = String(p.pieza || '').indexOf('/') < 0;
+  var varPieza = pt.filter(function (x) { return _REV_VAR[x]; });
   return (DB.stock || []).filter(function (s) {
     if (s.vendido || s.imei) return false;
     if (p.categoria && s.categoria && s.categoria !== p.categoria) return false;
@@ -15376,10 +15381,16 @@ function _revSugerencias(p) {
     if (!mt.length) return null;
     var marcaOk = !ms || set[ms] || (marcaP && (marcaP === ms || marcaP.indexOf(ms) >= 0 || ms.indexOf(marcaP) >= 0)) || (ms === 'iphone' && set.iphone);
     if (!marcaOk) return null;
+    var claves = mt.filter(function (x) { return /\d/.test(x) || _REV_VAR[x] || x.length === 1; });
+    if (!claves.some(function (x) { return /\d/.test(x); })) return null;
+    if (!claves.every(function (x) { return set[x]; })) return null;
+    if (unModelo && !varPieza.every(function (x) { return mt.indexOf(x) >= 0; })) return null;
+    // la ficha dice un color y la pieza otro (tapa azul ≠ tapa dorada)
+    var colF = mt.concat(_revTokens(s.color)).filter(function (x) { return _REV_COLOR[x]; });
+    if (colF.length && pt.some(function (x) { return _REV_COLOR[x]; }) && !colF.some(function (x) { return set[x]; })) return null;
     var hit = mt.filter(function (x) { return set[x]; }).length;
-    var conNum = mt.some(function (x) { return /\d/.test(x) && set[x]; });
-    var sc = hit / mt.length + (p.calidad && s.calidad === p.calidad ? 0.2 : 0);
-    return (conNum && hit / mt.length >= 0.6) ? { s: s, sc: sc } : null;
+    if (hit / mt.length < 0.6) return null;
+    return { s: s, sc: hit / mt.length + (p.calidad && s.calidad === p.calidad ? 0.2 : 0) };
   }).filter(Boolean).sort(function (a, b) { return b.sc - a.sc; }).slice(0, 3).map(function (x) { return x.s; });
 }
 function abrirRevisionStock() {
@@ -15439,12 +15450,14 @@ function guardarRevisionStock() {
       if (q > 0) {
         var existe = v.indexOf('s:') === 0 ? (DB.stock || []).find(function (s) { return s.id === v.slice(2); }) : null;
         var pq = Object.assign({}, p, { importe: Math.round((parseFloat(p.precio_compra) || 0) * q * 100) / 100 });
+        var tenia = existe ? (parseInt(existe.unidades, 10) || 0) : 0;
         _recibirAStock(pq, q, existe || null, true, p.categoria);
         // ficha existente sin coste o sin calidad: se completa con la del pedido
         if (existe) {
           var patch = {};
           if (!(parseFloat(existe.precioC) > 0) && parseFloat(p.precio_compra) > 0) { existe.precioC = parseFloat(p.precio_compra); patch.precio_c = existe.precioC; }
-          if (!existe.calidad && p.calidad) { existe.calidad = p.calidad; patch.calidad = p.calidad; }
+          // la calidad solo si la ficha estaba vacía: sus unidades anteriores podrían ser de otra
+          if (!existe.calidad && p.calidad && tenia <= 0) { existe.calidad = p.calidad; patch.calidad = p.calidad; }
           if (Object.keys(patch).length && SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(existe.id), patch);
         }
         uds += q;
