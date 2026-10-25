@@ -242,6 +242,46 @@ async function _groq(GROQ_KEY, cuerpo) {
 
 // Extrae líneas de pedido de un texto libre (email/albarán) con Gemini Flash (capa gratuita de Google).
 // Devuelve { ok, lineas: [{pieza, marca, categoria, calidad, cantidad, precio_compra, precio_venta, sku}] }
+// La IA no siempre usa los nombres exactos de TekPair (devolvia "Otros",
+// "TFT Incell"...). Estas dos funciones dejan categoria y calidad en los
+// valores de los desplegables de Pedidos/Stock; el nombre de la pieza manda
+// cuando dice claramente lo que es.
+var _PED_CATS = ['Telefono', 'Tablet', 'Smartwatch', 'Pantalla', 'Tapa', 'Bateria', 'Flex de Carga', 'Altavoz', 'Repuesto', 'Accesorio', 'Funda', 'Otro'];
+function _sinTildes(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+function _pedCategoria(cat, pieza) {
+  var n = _sinTildes(pieza);
+  if (/^\s*(original\s+)?pantalla\b/.test(n)) return 'Pantalla';
+  if (/\btapa trasera\b|\bback ?cover\b/.test(n)) return 'Tapa';
+  if (/\bbateria\b/.test(n)) return 'Bateria';
+  if (/\b(flex|conector|puerto|placa) de carga\b/.test(n)) return 'Flex de Carga';
+  if (/\b(altavoz|auricular interno|buzzer)\b/.test(n)) return 'Altavoz';
+  if (/\bbandeja\b/.test(n)) return 'Repuesto';
+  if (/\b(pantalla|display|lcd\+tactil)\b/.test(n) && !/protector|cristal templado|hidrogel|funda/.test(n)) return 'Pantalla';
+  var c = _sinTildes(cat).trim();
+  if (c === 'otros' || c === 'otro' || !c) return 'Otro';
+  if (c === 'flex' || c === 'flex de carga') return 'Flex de Carga';
+  var hit = _PED_CATS.find(function (x) { return _sinTildes(x) === c; });
+  return hit || 'Otro';
+}
+function _pedCalidad(cal, pieza, cat) {
+  if (cat !== 'Pantalla') return '';
+  var n = _sinTildes(pieza);
+  if (/\boriginal\b|\bservice pack\b/.test(n)) return 'Original';
+  if (/soft oled|oled soft/.test(n)) return 'Soft OLED';
+  if (/hard oled|oled hard/.test(n)) return 'Hard OLED';
+  if (/\bincell\b|\bin-cell\b/.test(n)) return 'Incell';
+  if (/\b(oled|amoled)\b/.test(n)) return 'OLED';
+  if (/\btft\b/.test(n)) return 'TFT';
+  var c = _sinTildes(cal);
+  if (/original/.test(c)) return 'Original';
+  if (/soft/.test(c)) return 'Soft OLED';
+  if (/hard/.test(c)) return 'Hard OLED';
+  if (/incell/.test(c)) return 'Incell';
+  if (/oled/.test(c)) return 'OLED';
+  if (/tft|lcd/.test(c)) return 'TFT';
+  return '';
+}
+
 async function parsePedidoIA(req, res) {
   const GROQ_KEY = process.env.GROQ_API_KEY;
   if (!GROQ_KEY) return res.status(503).json({ error: 'IA no configurada (falta GROQ_API_KEY en el servidor)' });
@@ -256,8 +296,11 @@ async function parsePedidoIA(req, res) {
     'Reglas: ' +
     '- "pieza": nombre del producto limpio y legible (sin el "x N" ni el SKU). ' +
     '- "marca": Apple, Samsung, Xiaomi, etc. si se deduce; si no, "". ' +
-    '- "categoria": una de Pantalla, Bateria, Telefono, Funda, Accesorio, Repuesto, Otros (la que mejor encaje). ' +
-    '- "calidad": SOLO para pantallas, una de Original, OLED, "TFT Incell"; si no aplica o no está claro, "". ' +
+    '- "categoria": una de Telefono, Tablet, Smartwatch, Pantalla, Tapa, Bateria, "Flex de Carga", Altavoz, Repuesto, Accesorio, Funda, Otro. ' +
+    'Tapa trasera = Tapa. Piezas sueltas del móvil (bandeja SIM, cámara, lente, botones, flex que no sea de carga) = Repuesto. ' +
+    'Accesorio = cargadores, cables, protectores de pantalla y similares. ' +
+    '- "calidad": SOLO para pantallas, una de Original, OLED, "Soft OLED", "Hard OLED", Incell, TFT; si no aplica o no está claro, "". ' +
+    'Si el nombre dice "Original" es Original; "OLED Soft" es "Soft OLED"; "OLED Hard" es "Hard OLED"; INCELL es Incell. "LCD+Táctil" solo indica que es la pantalla completa, no la calidad. ' +
     '- "cantidad": entero del "x N" (por defecto 1). ' +
     '- "precio_compra": el COSTE unitario en número (punto decimal, sin símbolo de moneda). El proveedor da el COSTE, nunca el precio de venta. ' +
     '- "sku": el código/SKU si aparece, si no "". ' +
@@ -302,8 +345,8 @@ async function parsePedidoIA(req, res) {
     const lineas = Array.isArray(parsed.lineas) ? parsed.lineas.slice(0, 200).map((l) => ({
       pieza: String(l.pieza || '').slice(0, 200),
       marca: String(l.marca || '').slice(0, 60),
-      categoria: String(l.categoria || 'Otros').slice(0, 40),
-      calidad: String(l.calidad || '').slice(0, 40),
+      categoria: _pedCategoria(l.categoria, l.pieza),
+      calidad: _pedCalidad(l.calidad, l.pieza, _pedCategoria(l.categoria, l.pieza)),
       cantidad: Math.max(1, parseInt(l.cantidad, 10) || 1),
       precio_compra: Math.max(0, parseFloat(l.precio_compra) || 0),
       precio_venta: 0,

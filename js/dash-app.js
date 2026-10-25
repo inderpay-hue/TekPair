@@ -2686,7 +2686,7 @@ function confirmarPedidoPegado() {
     var cant = parseInt(l.cantidad, 10) || 1;
     var compra = parseFloat(l.precio_compra) || 0;
     window._pedItems.push({
-      marca: l.marca || '', pieza: l.pieza || '', categoria: l.categoria || 'Otros', calidad: l.calidad || '',
+      marca: l.marca || '', pieza: l.pieza || '', categoria: l.categoria || 'Otro', calidad: l.calidad || '',
       cantidad: cant, precio_compra: compra, precio_venta: parseFloat(l.precio_venta) || 0,
       importe: Math.round(compra * cant * 100) / 100
     });
