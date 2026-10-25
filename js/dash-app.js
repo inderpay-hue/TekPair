@@ -10580,15 +10580,17 @@ function eliminarPresupuesto(id) {
     // Las piezas reservadas vuelven al stock si aún no se devolvieron. Se mira la marca
     // piezasDevueltas y no el estado: un presupuesto rechazado por el cliente desde el
     // enlace público pasa a 'Rechazado' sin devolverlas.
+    Promise.resolve((SB_KEY && TIENDA_ID) ? sbDelete('reparaciones', 'id=eq.' + encodeURIComponent(id)) : true).then(function (okDel) {
+    if (!okDel) { toast(T('rep.borrar_sin_conexion'), 'err'); return; }
     if (!r.piezasDevueltas && Array.isArray(r.componentes) && r.componentes.length) { try { aplicarCambioStockPiezas(r.componentes, [], r); } catch(e){} }
     DB.reps = (DB.reps || []).filter(function(x){ return x.id !== id; });
     guardarDatos();
     // Borrar la reparación borra también sus pagos en la base de datos (ON DELETE CASCADE):
     // el aviso de arriba ya lo dice si había dinero cobrado.
-    if (SB_KEY && TIENDA_ID) sbDelete('reparaciones', 'id=eq.' + encodeURIComponent(id));
     toast(T('pres.borrado_ok'), 'ok');
     if (document.getElementById('pPresupuestos') && document.getElementById('pPresupuestos').classList.contains('active')) renderPresupuestos();
     renderReps();
+    });
   }, { okLabel: T('gen.eliminar'), danger: true });
   });
 }
@@ -13352,7 +13354,12 @@ function guardarRep() {
       }
     };
     var _repProm = sbPost('reparaciones', _repPayload);
-    if (_repProm && typeof _repProm.then === 'function') { _repProm.then(function(okRep) { if (okRep !== false) _insertarPagosRep(); }); }
+    if (_repProm && typeof _repProm.then === 'function') { _repProm.then(function(okRep) {
+      // Sin conexión, sbPost devuelve false pero deja la reparación en la cola: entonces los
+      // pagos también van a la cola, detrás de ella (antes los anticipos no se subían nunca).
+      var enCola = okRep === false && _syncQueueGet().some(function (op) { return op.method === 'POST' && op.table === 'reparaciones' && op.dataId === rep.id; });
+      if (okRep !== false || enCola) _insertarPagosRep();
+    }); }
     else { _insertarPagosRep(); }
   }
 
@@ -16592,6 +16599,11 @@ function eliminarReparacion(id) {
   _avisoCobrosAlBorrar(r.id).then(function(extra) {
   if (!confirm(msg + extra + T('gen.accion_irreversible'))) return;
 
+  // Primero se borra en la nube: si falla (sin conexión), no se toca nada aquí. Antes se
+  // devolvía el stock y se quitaba en local; la reparación reaparecía y el stock volvía dos veces.
+  Promise.resolve((SB_KEY && TIENDA_ID) ? sbDelete('reparaciones', 'id=eq.' + encodeURIComponent(id)) : true).then(function (okDel) {
+  if (!okDel) { toast(T('rep.borrar_sin_conexion'), 'err'); return; }
+
   // Re-sumar piezas al stock SOLO si no estaban ya devueltas
   if (!r.piezasDevueltas && Array.isArray(r.componentes) && r.componentes.length) {
     aplicarCambioStockPiezas(r.componentes, [], r);
@@ -16601,9 +16613,6 @@ function eliminarReparacion(id) {
   DB.reps = DB.reps.filter(function(x){ return x.id !== id; });
   guardarDatos();
 
-  // Borrar de Supabase
-  if (SB_KEY && TIENDA_ID) sbDelete('reparaciones', 'id=eq.' + id);
-
   toast(T('rep.eliminada'), 'ok');
   audit('eliminar', 'reparacion', id, r.clienteNombre + ' · ' + (r.marca||'') + ' ' + (r.modelo||''), null);
 
@@ -16611,6 +16620,7 @@ function eliminarReparacion(id) {
   closeM('mDetalleRep');
   renderReps();
   renderDash();
+  });
   });
 }
 

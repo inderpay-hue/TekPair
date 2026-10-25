@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261025k"></script>
+<script src="/lang/lang.v8.js?v=20261025l"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -1982,9 +1982,12 @@ function _computeTotals() {
     }
   }
   // nBase/nIva: lo que se desglosa en el ticket. base/ivaImporte: lo fiscal (con el margen).
-  return {subtotal:subtotal, disc:disc, discLineas:discLineas, discGlobal:discGlobal,
-    base:base + baseU, ivaTipo:ivaTipo, ivaImporte:ivaImporte + cuotaU, ivaModo:ivaModo, total:total + netoU,
-    nBase:base, nIva:ivaImporte, usados:usados};
+  // Redondeo a céntimos: se guardaban importes como 29.997 o 12.0879 y los informes descuadraban
+  var _c = function (x) { return Math.round((x || 0) * 100) / 100; };
+  var _tot = _c(total + netoU), _iva = _c(ivaImporte + cuotaU);
+  return {subtotal:_c(subtotal), disc:_c(disc), discLineas:_c(discLineas), discGlobal:_c(discGlobal),
+    base:_c(_tot - _iva), ivaTipo:ivaTipo, ivaImporte:_iva, ivaModo:ivaModo, total:_tot,
+    nBase:_c(base), nIva:_c(ivaImporte), usados:usados};
 }
 
 function _renderCambio(total) {
