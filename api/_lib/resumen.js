@@ -54,7 +54,7 @@ const cuotaAbonos = (c) => {
 // (las financiadas solo la entrada), cuotas cobradas ese día, pagos de reparación de ese
 // día (sin presupuestos sin aceptar) y menos las devoluciones hechas ese día.
 function ingresoDia(F, ventas, pagos, presup) {
-  let ventasT = 0, repsT = 0, nVentas = 0;
+  let ventasT = 0, repsT = 0, nVentas = 0, nDev = 0;
   const pagosVenta = (v) => {
     const p = parse(v.pagos);
     if (Array.isArray(p) && p.length) return p.reduce((s, x) => s + num(x.importe), 0);
@@ -64,6 +64,7 @@ function ingresoDia(F, ventas, pagos, presup) {
     const cuotas = parse(v.cuotas);
     const fin = v.financiado && Array.isArray(cuotas);
     if (v.reembolsado && d10(v.fecha_reembolso || v.fecha) === F) {
+      nDev++;
       ventasT -= fin ? num(v.entrada) + cuotas.reduce((s, c) => s + cuotaAbonos(c).reduce((t, a) => t + a.importe, 0), 0) : pagosVenta(v);
     }
     if (fin) {
@@ -76,7 +77,7 @@ function ingresoDia(F, ventas, pagos, presup) {
     if (p.reparacion_id && presup.has(String(p.reparacion_id))) continue;
     repsT += num(p.importe);
   }
-  return { ventas: r2(ventasT), reps: r2(repsT), total: r2(ventasT + repsT), nVentas };
+  return { ventas: r2(ventasT), reps: r2(repsT), total: r2(ventasT + repsT), nVentas, nDev };
 }
 
 // Devuelve { asunto, html, datos } o null si la tienda no tuvo nada que contar.
@@ -117,7 +118,7 @@ export async function construirResumen(SUPABASE_URL, headers, tienda, ayer, hoy)
   const usadas = new Set((cierres || []).map((c) => c.caja_id));
   // Solo si ayer se abrió: sin ventas, cobros ni cajas tocadas ese día, la tienda no abrió
   // (domingo, festivo) y avisar de "cajas sin cerrar" era una falsa alarma.
-  const abrioAyer = Math.abs(ing.total) > 0.005 || ayerC.length > 0 || recibidas > 0 || entregadas > 0;
+  const abrioAyer = Math.abs(ing.total) > 0.005 || ing.nVentas > 0 || ing.nDev > 0 || ayerC.length > 0 || recibidas > 0 || entregadas > 0;
   const sinCerrar = !abrioAyer ? [] : [...usadas].filter((id) => !ayerC.some((c) => c.caja_id === id && c.estado !== 'abierto')).map((id) => nomCaja[id] || 'Caja');
 
   // Te deben

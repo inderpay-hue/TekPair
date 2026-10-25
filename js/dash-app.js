@@ -3902,7 +3902,9 @@ async function _syncQueueRetryRun() {
         console.warn('✗ Sync descartado (no retriable):', op.method, op.table, 'HTTP ' + res.status);
         _reportarFalloNube(op.method, op.table, res.status, res.code, res.msg);
         _syncQueueRemove(op._opId);
-        if (typeof toast === 'function') {
+        if (op.method === 'POST' && op.table === 'ventas' && op.origen === 'tpv' && op.data && op.data.id) {
+          try { _deshacerVentaTpvRechazada(op.data, res.status); } catch (eV) { console.error('deshacer venta TPV:', eV); }
+        } else if (typeof toast === 'function') {
           toast(T('tst.no_sincronizar').replace('{t}', op.table).replace('{s}', res.status), 'err');
         }
       }
@@ -3911,6 +3913,36 @@ async function _syncQueueRetryRun() {
     }
   }
   } finally { _syncRetrying = false; }
+}
+
+// Una venta hecha sin conexión en el TPV que la nube rechaza al subirla desde el panel: se
+// deshace igual que en el TPV (vuelve el stock que se descontó, compras_usados deja de apuntarla,
+// sale de las ventas) y se avisa con una ventana que no se va sola.
+function _deshacerVentaTpvRechazada(data, status) {
+  var items = data.items;
+  if (typeof items === 'string') { try { items = JSON.parse(items); } catch (e) { items = []; } }
+  (Array.isArray(items) ? items : []).forEach(function (it) {
+    if (!it || it.esServicio || it.esRapida) return;
+    var sid = it.idOriginal || it.id;
+    var n = it._desc != null ? (parseInt(it._desc, 10) || 0) : (it.qty || 1);
+    if (!n) return;
+    var st = (DB.stock || []).find(function (x) { return x.id === sid; }) || { id: sid };
+    if (st.unidades != null) { st.unidades = (st.unidades || 0) + n; if (st.unidades > 0) st.vendido = false; }
+    _stockDelta(st, n, null);
+    if (st.compraId) sbPatch('compras_usados', 'id=eq.' + encodeURIComponent(st.compraId) + '&venta_id=eq.' + encodeURIComponent(data.id), { venta_id: null, venta_fecha: null, venta_cliente: null });
+  });
+  DB.ventas = (DB.ventas || []).filter(function (v) { return v.id !== data.id; });
+  try { guardarDatos(); renderVentas(); renderDash(); } catch (e) {}
+  _avisoFijo(T('tpv.venta_rechazada_cola').replace('{total}', cur(parseFloat(data.total) || 0)).replace('{cliente}', data.cliente_nombre || '').replace('{fecha}', data.fecha || '').replace('{s}', String(status || '')));
+}
+// Aviso que se queda hasta pulsar Aceptar (los toast duran 2,5 s). Varios seguidos se juntan.
+function _avisoFijo(msg) {
+  var prev = document.getElementById('_avisoFijoTxt');
+  if (prev) { prev.textContent += '\n\n' + msg; return; }
+  var m = _modalOverlay('<div id="_avisoFijoTxt" style="font-size:14px;line-height:1.5;white-space:pre-line;margin-bottom:14px"></div>' +
+    '<div style="text-align:right"><button id="_avisoFijoOk" style="padding:9px 18px;border:none;background:var(--green,#10B981);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + T('gen.aceptar_2') + '</button></div>');
+  m.box.querySelector('#_avisoFijoTxt').textContent = msg;
+  m.box.querySelector('#_avisoFijoOk').onclick = function () { m.close(); };
 }
 
 // Indicador visual en topbar
@@ -9712,6 +9744,7 @@ function cobrarSaldoRep(id) {
     '<strong>' + esc(r.clienteNombre) + '</strong> — ' + esc(r.marca) + ' ' + esc(r.modelo) +
     '<br><br>' + T('rep.queda_deber') + ': <strong style="color:#F97316">' + cur(resta) + '</strong>';
   document.getElementById('cobrarRepImporte').value = resta.toFixed(2);
+  SEL.cobrarRepResta = resta;
   document.getElementById('cobrarRepMetodo').value = 'Efectivo';
   openM('mCobrarRep');
 }
@@ -9744,7 +9777,7 @@ function confirmarCobroRep() {
     }
     closeM('mCobrarRep');
     if (aplica <= 0) toast(T('tst.rep_saldada'), 'ok');
-    else if (aplica < imp - 0.005) toast(T('rep.cobro_ajustado').replace('{x}', cur(aplica)), 'err');
+    else if (aplica < imp - 0.005 && SEL._cobroOtro) _avisoFijo(T('rep.cobro_ajustado').replace('{x}', cur(aplica)));
     else toast(r.restante > 0 ? (T('rep.queda_deber') + ': ' + cur(r.restante)) : T('rep.saldado'), 'ok');
     renderReps();
     renderDash();
@@ -9761,16 +9794,26 @@ function confirmarCobroRep() {
   }
   if (!(SB_KEY && TIENDA_ID)) { local(); return; }
   _cobrandoRep = true;
+  SEL._cobroOtro = false;
   function intento(n) {
     return _repRestanteNube(r.id).then(function (nube) {
       if (nube === null) { local(); return; }
+      // ¿Alguien cobró mientras tanto? (y no simplemente se escribió más de lo que se debía)
+      SEL._cobroOtro = SEL.cobrarRepResta != null && nube < SEL.cobrarRepResta - 0.005;
       var aplica = Math.min(imp, nube);
       if (aplica <= 0.005) { r.restante = 0; terminar(0); return; }
       var nuevo = Math.max(0, Math.round((nube - aplica) * 100) / 100);
       return _sbPatchRaw('reparaciones', 'id=eq.' + encodeURIComponent(r.id) + '&restante=eq.' + nube, { restante: nuevo }).then(function (res) {
         if (res.ok && res.rows > 0) { r.restante = nuevo; terminar(aplica); return; }
         if (res.ok && n < 3) return intento(n + 1);          // otro cobro se adelantó: volver a leer
-        if (!res.ok && _esRetriable(res.status)) { local(); return; }
+        if (!res.ok && _esRetriable(res.status)) {
+          // Sin respuesta: puede que el cambio sí se aplicara. Se mira antes de ir a la cola.
+          return _repRestanteNube(r.id).then(function (otra) {
+            if (otra !== null && Math.abs(otra - nuevo) < 0.005) { r.restante = nuevo; terminar(aplica); return; }
+            if (otra !== null && n < 3) return intento(n + 1);
+            local();
+          });
+        }
         toast(T('sync.nube_rechazo'), 'err');
       });
     });
@@ -12861,6 +12904,7 @@ function editarRep(id) {
   SEL.rServicios = Array.isArray(r.servicios) ? r.servicios.slice() : [];
   SEL.rOpcionales = Array.isArray(r.opcionales) ? r.opcionales.map(function (o) { return Object.assign({}, o); }) : [];
   SEL._repFirmaAntes = _repFirmaCliente(r);
+  SEL._repRestAntes = parseFloat(r.restante) || 0;
   SEL.testEntrada = _testItemsDe(r.testEntrada); SEL._testEntradaAntes = r.testEntrada || null;
   setTimeout(function () { renderTest('rTestEnt', SEL.testEntrada); _pintarSelTecnico(r.tecnicoId, r.tecnicoNombre); }, 0);
   if (!SEL.rServicios.length && r.mo > 0) {
@@ -13223,19 +13267,41 @@ function guardarRep() {
   if (!SEL.editRepId || !SEL._repFirmaAntes || !(typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID)) return _guardarRepAhora();
   if (_guardandoRep) return;
   var id = SEL.editRepId;
+  // Con un cambio suyo aún en la cola, la nube tiene la versión vieja: la comparación daría
+  // un falso «ha cambiado» y se perdería lo editado.
+  if (_idsEnCola('reparaciones')[id]) return _guardarRepAhora();
   _guardandoRep = true;
+  var ctl = (typeof AbortController === 'function') ? new AbortController() : null;
+  var _to = setTimeout(function () { if (ctl) ctl.abort(); }, 4000);   // red colgada: se guarda como siempre
   fetch(SUPABASE_URL + '/rest/v1/reparaciones?id=eq.' + encodeURIComponent(id) + '&select=*', {
-    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
+    headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}, signal: ctl ? ctl.signal : undefined
   }).then(function (res) { return res.ok ? res.json() : null; }).catch(function () { return null; }).then(function (rows) {
+    clearTimeout(_to);
     _guardandoRep = false;
     if (SEL.editRepId !== id) return;
     var nube = Array.isArray(rows) && rows.length ? mapRep(rows[0]) : null;
     // Sin conexión o sin respuesta: se guarda como siempre.
-    if (!nube || _repFirmaCliente(nube) === SEL._repFirmaAntes) return _guardarRepAhora();
+    if (!nube) return _guardarRepAhora();
+    if (_repFirmaCliente(nube) === SEL._repFirmaAntes) {
+      // Se cobró algo mientras la ficha estaba abierta: el restante se calcula con los pagos de
+      // ahora, no con los de cuando se abrió (si no, la nube volvía a «debe» un saldo ya cobrado).
+      var rAhora = DB.reps.find(function (x) { return x.id === id; }) || {};
+      if (SEL._repRestAntes != null && Math.abs((parseFloat(nube.restante) || 0) - SEL._repRestAntes) > 0.005 && !rAhora.financiado) {
+        return sbGetAll('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(id)).then(function (pg) {
+          if (Array.isArray(pg) && SEL.editRepId === id) {
+            pg.sort(function (a, b) { return String(a.fecha || '').localeCompare(String(b.fecha || '')); });
+            SEL.repPagos = pg.map(function (p) { return { id: p.id, fecha: p.fecha, importe: parseFloat(p.importe) || 0, metodo: p.metodo || 'Efectivo', tipo: p.tipo || 'parcial' }; });
+            SEL.repPagosOk = true;
+          }
+          return _guardarRepAhora();
+        }, function () { return _guardarRepAhora(); });
+      }
+      return _guardarRepAhora();
+    }
     var r = DB.reps.find(function (x) { return x.id === id; });
     if (r) { Object.assign(r, nube); guardarDatos(); }
-    toast(T('rep.cliente_cambio_editando'), 'err', 6000);
     editarRep(id);
+    _avisoFijo(T('rep.cliente_cambio_editando'));
     try { renderReps(); } catch (e) {}
   });
 }
@@ -13338,7 +13404,7 @@ function _guardarRepAhora() {
       r.ivaImporte = calcE.iva;
       r.componentes = SEL.selParts.slice();
       r.total = calcE.total;
-      r.restante = Math.max(0, calcE.total - antiE);
+      r.restante = Math.max(0, Math.round((calcE.total - antiE) * 100) / 100);
     }
     r.opcionales = (SEL.rOpcionales || []).slice();
     var _tecE = _tecnicoElegido(); r.tecnicoId = _tecE.id; r.tecnicoNombre = _tecE.nombre;
@@ -18971,14 +19037,19 @@ function renderGraficas(ventas, reps, pagos, fechas, pagosReps) {
 // devueltas: ventas devueltas en el periodo que se hicieron en otro; su margen se resta aquí
 // (igual que el IVA normal), porque la cuota ya se declaró en el periodo de la venta.
 function _usadosAcum(ventas, devueltas) {
-  var a = { n: 0, ventas: 0, coste: 0, margen: 0, base: 0, cuota: 0 };
+  var a = { n: 0, nV: 0, nD: 0, ventas: 0, coste: 0, margen: 0, base: 0, cuota: 0 };
   var suma = function(v, sg) {
     var P = (typeof tkPartesVenta === 'function') ? tkPartesVenta(v) : null;
     if (!P || !P.hay) return;
+    if (sg > 0) a.nV += P.n; else a.nD += P.n;
     a.n += sg * P.n; a.ventas += sg * P.ventas; a.coste += sg * P.coste; a.margen += sg * P.margen; a.base += sg * P.base; a.cuota += sg * P.cuota;
   };
   (ventas || []).forEach(function(v) { suma(v, 1); });
   (devueltas || []).forEach(function(v) { suma(v, -1); });
+  ['ventas', 'coste', 'margen', 'base', 'cuota'].forEach(function (k) { a[k] = Math.round(a[k] * 100) / 100; });
+  a.hay = !!(a.nV || a.nD);
+  // Título: «(3)» o, con devoluciones de otro periodo, «(3 / −1)»
+  a.etq = a.nV + (a.nD ? ' / −' + a.nD : '');
   return a;
 }
 // La parte normal de una venta (sin los usados), para sumarla por tipo de IVA.
@@ -18988,10 +19059,10 @@ function _ventaParteNormal(v) {
   return { iva: v.iva, total: Math.max(0, (parseFloat(v.total) || 0) - P.ventas), ivaImporte: P.normalIva, base: P.normalBase };
 }
 function _usadosResumenHtml(a) {
-  if (!a || !a.n) return '';
+  if (!a || !a.hay) return '';
   var td = 'padding:6px 8px;border-bottom:1px solid var(--border);';
   var f = function(lbl, x, col) { return '<tr><td style="' + td + '">' + lbl + '</td><td style="' + td + 'text-align:right;font-family:ui-monospace,monospace;' + (col || '') + '">' + cur(x) + '</td></tr>'; };
-  return '<div style="margin-top:14px;font-weight:800;font-size:13px">' + T('usados.rep_titulo') + ' (' + a.n + ')</div>' +
+  return '<div style="margin-top:14px;font-weight:800;font-size:13px">' + T('usados.rep_titulo') + ' (' + a.etq + ')</div>' +
     '<div style="font-size:11.5px;color:var(--muted);margin:2px 0 6px">' + T('usados.rep_nota') + '</div>' +
     '<table style="width:100%;border-collapse:collapse;font-size:12px">' +
     f(T('usados.rep_vendido'), a.ventas) + f(T('usados.rep_comprado'), a.coste) + f(T('usados.rep_margen'), a.margen) +
@@ -19140,7 +19211,7 @@ function generarPDFGestor() {
 
   '<h2>Desglose por tipo de IVA</h2>' +
   '<table><thead><tr><th>Tipo IVA</th><th class="r">' + T('pres.doc_base_imponible') + '</th><th class="r">Cuota IVA</th><th class="r">Total</th></tr></thead><tbody>' +
-  Object.keys(portipos).sort(function(a,b){return parseFloat(a)-parseFloat(b);}).filter(function(t){return Math.abs(portipos[t].total) > 0.004;}).map(function(tipo){
+  Object.keys(portipos).sort(function(a,b){return parseFloat(a)-parseFloat(b);}).filter(function(t){return Math.abs(portipos[t].total) >= 0.005 || Math.abs(portipos[t].iva) >= 0.005;}).map(function(tipo){
     var d = portipos[tipo];
     return '<tr><td><strong>' + tipo + '%</strong></td>' +
       '<td class="r">' + cur(d.base) + '</td>' +
@@ -19150,7 +19221,7 @@ function generarPDFGestor() {
   '<tr class="tot"><td>' + T('pres.doc_total') + '</td><td class="r">' + cur(totalBase) + '</td><td class="r">' + cur(totalIva) + '</td><td class="r">' + cur(totalT) + '</td></tr>' +
   '</tbody></table>' +
 
-  (_usA.n ? '<h2>' + T('usados.rep_titulo') + ' (' + _usA.n + ')</h2><p style="font-size:11px;color:#555">' + T('usados.rep_nota') + '</p>' +
+  (_usA.hay ? '<h2>' + T('usados.rep_titulo') + ' (' + _usA.etq + ')</h2><p style="font-size:11px;color:#555">' + T('usados.rep_nota') + '</p>' +
   '<table><tbody>' +
   [[T('usados.rep_vendido'), _usA.ventas], [T('usados.rep_comprado'), _usA.coste], [T('usados.rep_margen'), _usA.margen],
    [T('usados.rep_base'), _usA.base], [T('usados.rep_cuota'), _usA.cuota]].map(function(r) {

@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261025u"></script>
+<script src="/lang/lang.v8.js?v=20261025v"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -800,10 +800,18 @@ function sbPostRet(table, data) {
     if (!r.ok) {
       // Reintentable (red, 5xx): a la cola. Si no, la nube la ha rechazado y no se guardará nunca:
       // se devuelve { _rechazada } para que el TPV deshaga la venta en vez de darla por cobrada.
-      var _rech = !_tpvReintentable(r.status);
-      if (!_rech) _tpvEncolar('POST', table, data);
-      var _res = _rech ? { _rechazada: true, status: r.status } : null;
-      return r.json().then(function(err){ _sbErrorToast('POST', table, Object.assign({status:r.status}, err)); return _res; }, function(){ _sbErrorToast('POST', table, {status:r.status}); return _res; });
+      // 401 (sesión caducada): no es un rechazo de la venta; va a la cola y sube al volver a entrar.
+      return r.json().catch(function () { return {}; }).then(function (err) {
+        err = err || {};
+        // 409 de id repetido (23505): la venta YA está guardada. 409 de clave ajena (23503, p. ej.
+        // el cliente nuevo aún está en la cola): se reintenta más tarde.
+        if (r.status === 409 && err.code === '23505') return null;
+        var _rech = !_tpvReintentable(r.status) && r.status !== 401 && !(r.status === 409 && err.code === '23503');
+        if (!_rech) _tpvEncolar('POST', table, data);
+        if (r.status !== 401) _sbErrorToast('POST', table, Object.assign({status:r.status}, err));
+        else _avisarSesionExpirada();
+        return _rech ? { _rechazada: true, status: r.status } : null;
+      });
     }
     return r.json().then(function(rows){ return (Array.isArray(rows) && rows[0]) || null; }, function(){ return null; });
   }).catch(function(e) { _tpvEncolar('POST', table, data); _sbErrorToast('POST', table, e); return null; });
@@ -901,7 +909,22 @@ function _tpvReintentar() {
     return pr.then(function() {
       var url = SUPABASE_URL + '/rest/v1/' + op.table + (op.method === 'PATCH' ? '?' + op.query : '');
       return fetch(url, { method: op.method, headers: hdr, body: JSON.stringify(op.data) }).then(function(r) {
-        if (r.ok || r.status === 409) quitar(op._opId);          // 409 = ya estaba subida
+        if (r.status === 409) return r.json().catch(function () { return {}; }).then(function (err) {
+          // 23505 = ya estaba subida. Otro 409 (clave ajena, check): rechazo de verdad.
+          if ((err && err.code) === '23505' || !(err && err.code)) { quitar(op._opId); return; }
+          if ((err && err.code) === '23503' && !(op.intentosFk >= 5)) {
+            var _q = _tpvColaGet(); var _i = _q.findIndex(function (x) { return x._opId === op._opId; });
+            if (_i >= 0) { _q[_i].intentosFk = (op.intentosFk || 0) + 1; _tpvColaSet(_q); }
+            return;
+          }
+          quitar(op._opId); _sbErrorToast(op.method, op.table, {status: 409});
+          if (op.method === 'POST' && op.table === 'ventas' && op.data && op.data.id) {
+            var _vl9 = (DB.ventas || []).find(function (v) { return v.id === op.data.id; });
+            if (_vl9) _tpvVentaRechazada(_vl9, _vl9.items || [], 409, true);
+          }
+        });
+        if (r.ok) quitar(op._opId);
+        else if (r.status === 401) { /* sesión caducada: se queda en la cola */ }
         else if (!_tpvReintentable(r.status)) {
           quitar(op._opId); _sbErrorToast(op.method, op.table, {status: r.status});
           // Una venta hecha sin conexión que la nube rechaza: se deshace igual que al cobrar.
@@ -2297,13 +2320,18 @@ function cobrar() {
   };
 
   // Reduce stock
-  cart.forEach(function(item) {
+  cart.forEach(function(item, idx) {
     if (!item.esServicio && !item.esRapida) {
       // Precio variable: el item lleva un id sintético (p.id + '_' + timestamp); el stock real
       // está en idOriginal. Sin esto, el artículo vendido a precio variable NO descontaba stock.
       var s = DB.stock.find(function(x) { return x.id === (item.idOriginal || item.id); });
       if (s) {
+        var _antesU = s.unidades || 0;
         s.unidades = Math.max(0, s.unidades - item.qty);
+        // Lo que de verdad se descontó (si no había unidades, nada): es lo que se devuelve si la
+        // nube rechaza la venta. Devolver la cantidad entera creaba unidades que no existen.
+        item._desc = _antesU - s.unidades;
+        if (venta.items && venta.items[idx]) venta.items[idx]._desc = item._desc;
         if (s.unidades === 0) s.vendido = true;
         // FIX TPV-1: sincronizar con Supabase para que no quede inconsistente
         if (SB_KEY && TIENDA_ID) _tpvStockDelta(s, -item.qty);
@@ -2381,20 +2409,37 @@ function _tpvVentaRechazada(venta, cartCopia, status, desdeCola) {
       if (item.esServicio || item.esRapida) return;
       var st = (DB.stock || []).find(function (x) { return x.id === (item.idOriginal || item.id); });
       if (!st) return;
-      st.unidades = (st.unidades || 0) + (item.qty || 1);
+      var _n = item._desc != null ? (parseInt(item._desc, 10) || 0) : (item.qty || 1);
+      if (!_n) return;
+      st.unidades = (st.unidades || 0) + _n;
       if (st.unidades > 0) st.vendido = false;
-      _tpvStockDelta(st, item.qty || 1);
+      _tpvStockDelta(st, _n);
       if (st.compraId) sbPatch('compras_usados', 'id=eq.' + encodeURIComponent(st.compraId) + '&venta_id=eq.' + encodeURIComponent(venta.id), { venta_id: null, venta_fecha: null, venta_cliente: null });
     });
     _tpvGuardar();
     if (!desdeCola) {
-      if (!cart.length && cartCopia && cartCopia.length) { cart = cartCopia; renderCart(); }
-      try { closeModal('mTicket'); } catch (e) {}
+      if (!cart.length && cartCopia && cartCopia.length) { cart = cartCopia.map(function (c) { var x = Object.assign({}, c); delete x._desc; return x; }); renderCart(); }
+      // Solo se cierra el ticket si es el de esta venta (puede estar ya el de la siguiente).
+      if (_ultimaVenta && _ultimaVenta.id === venta.id) { try { closeModal('mTicket'); } catch (e) {} }
     }
     updateCaja();
     if (typeof renderProducts === 'function') { try { renderProducts(); } catch (e) {} }
   } catch (e) { console.error('venta rechazada:', e); }
-  alert(T(desdeCola ? 'tpv.venta_rechazada_cola' : 'tpv.venta_rechazada').replace('{total}', '\u20ac' + (parseFloat(venta.total) || 0).toFixed(2)).replace('{cliente}', venta.clienteNombre || '').replace('{fecha}', venta.fecha || '').replace('{s}', String(status || '')));
+  _tpvAvisoFijo(T(desdeCola ? 'tpv.venta_rechazada_cola' : 'tpv.venta_rechazada').replace('{total}', '\u20ac' + (parseFloat(venta.total) || 0).toFixed(2)).replace('{cliente}', venta.clienteNombre || '').replace('{fecha}', venta.fecha || '').replace('{s}', String(status || '')));
+}
+
+// Aviso que se queda hasta pulsar Aceptar, sin bloquear la página como alert(). Varios se juntan.
+function _tpvAvisoFijo(msg) {
+  var txt = document.getElementById('_tpvAvisoTxt');
+  if (txt) { txt.textContent += '\n\n' + msg; return; }
+  var bg = document.createElement('div');
+  bg.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px';
+  bg.innerHTML = '<div style="background:var(--card,#fff);color:inherit;max-width:460px;width:100%;border-radius:14px;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3)">' +
+    '<div id="_tpvAvisoTxt" style="font-size:14px;line-height:1.5;white-space:pre-line;margin-bottom:14px"></div>' +
+    '<div style="text-align:right"><button type="button" style="padding:10px 20px;border:none;background:#10B981;color:#fff;border-radius:9px;font:inherit;font-weight:700;cursor:pointer">OK</button></div></div>';
+  document.body.appendChild(bg);
+  bg.querySelector('#_tpvAvisoTxt').textContent = msg;
+  bg.querySelector('button').onclick = function () { bg.remove(); };
 }
 
 // Última venta mostrada: el botón Imprimir necesita los datos crudos (no el HTML)
