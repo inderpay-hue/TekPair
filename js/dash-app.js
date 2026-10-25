@@ -27387,10 +27387,6 @@ window.deudaRecordar = deudaRecordar; window.setDeudaCfg = setDeudaCfg; window.r
 
 // ═══ PEDIDOS: reponer stock, enviar al proveedor, retrasos y precio anterior ═══
 function _pedNorm(s) { return String(s || '').trim().toLowerCase(); }
-function _pedAbiertoPara(nombre) {
-  var n = _pedNorm(nombre);
-  return (DB.pedidos || []).some(function(p) { return p.estado !== 'recibido' && _pedNorm(p.pieza) === n; });
-}
 function _pedPrecioUnit(p) {
   var pc = parseFloat(p.precio_compra) || 0;
   if (pc > 0) return pc;
@@ -27481,7 +27477,8 @@ function _reponerSugerencias(soloContar) {
     if (!noLlega && !agotado) return;
     // Pedido abierto: con la misma calidad o, si el pedido no la lleva, con el mismo nombre
     var pn = _pedNorm(g.nombre);
-    if (abiertoCla[g.k] || (abiertoNom[pn] && abiertoCla[pn + '|'])) return;
+    // (y si la fila no tiene calidad, cualquier pedido abierto con ese nombre)
+    if (abiertoCla[g.k] || abiertoCla[pn + '|'] || (!_pedNorm(g.filas[0].calidad) && abiertoNom[pn])) return;
     out.push({ g: g, sem: sem });
   });
   if (soloContar) return out.length;
@@ -27545,7 +27542,8 @@ function abrirReponer() {
       por[pv] = (por[pv] || 0) + x.precio * c; tot += x.precio * c;
     });
     var el = m.box.querySelector('#_rpnTot'); if (!el) return;
-    el.textContent = tot > 0 ? T('rpn.total').replace('{x}', cur(tot)) + (sinPrecio ? ' · ' + T('rpn.sin_precio').replace('{n}', sinPrecio) : '') + (Object.keys(por).length > 1 ? ' (' + Object.keys(por).map(function(k) { return k + ': ' + cur(por[k]); }).join(' · ') + ')' : '') : '';
+    el.textContent = (tot > 0 ? T('rpn.total').replace('{x}', cur(tot)) + (Object.keys(por).length > 1 ? ' (' + Object.keys(por).map(function(k) { return k + ': ' + cur(por[k]); }).join(' · ') + ')' : '') : '') +
+      (sinPrecio ? (tot > 0 ? ' · ' : '') + T('rpn.sin_precio').replace('{n}', sinPrecio) : '');
   };
   m.box.addEventListener('input', _rpnTotal); m.box.addEventListener('change', _rpnTotal); _rpnTotal();
   m.box.querySelector('#_rpnNo').onclick = function() { m.close(); };
