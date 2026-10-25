@@ -20258,7 +20258,7 @@ function _pushNotifRead() {
 async function _pullNotifRead() {
   if (!SB_KEY || !U || !U.id) return;
   try {
-    var rows = await sbGet('usuarios', 'id=eq.' + U.id);
+    var rows = await sbGet('usuarios', 'id=eq.' + U.id + '&select=notif_read');
     if (!Array.isArray(rows) || !rows.length) return;
     var remoteIds = rows[0].notif_read || [];
     if (!Array.isArray(remoteIds)) return;
@@ -21405,7 +21405,8 @@ async function cargarUsuarios() {
       if (mj && mj.ok) { MIS_TIENDAS_ADMIN = mj.mis_tiendas || []; _TIENDAS_MAP = mj.map || {}; }
     } catch (e) { /* sin multi-tienda */ }
   }
-  var lista = await sbGet('usuarios', 'tienda_id=eq.' + TIENDA_ID);
+  // Columnas concretas: nunca contraseñas ni tokens de recuperación
+  var lista = await sbGet('usuarios', 'tienda_id=eq.' + TIENDA_ID + '&select=id,nombre,email,rol,activo,permisos,permisos_caja,codigo,ultimo_acceso,created_at');
   if (!lista || !lista.length) { el.innerHTML = '<div class="empty">' + T('usu.sin_usuarios') + '</div>'; return; }
   var container = document.createElement('div');
   container.className = 'tbl-wrap';
@@ -23031,7 +23032,7 @@ function aplicarRolPreset(rol) {
 async function editarPermisos(id, nombre) {
   editPermId = id;
   document.getElementById('permNombre').textContent = nombre;
-  var lista = await sbGet('usuarios', 'id=eq.' + id);
+  var lista = await sbGet('usuarios', 'id=eq.' + id + '&select=id,nombre,rol,permisos,permisos_caja');
   var u = lista && lista[0];
   permsCurrent = u && u.permisos ? Object.assign({}, u.permisos) : {};
   // Clonar el array de cajas permitidas para no mutar el original si se cancela.
