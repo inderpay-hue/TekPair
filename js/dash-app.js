@@ -169,7 +169,7 @@ var PLAN_FEATURES = {
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
-           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica','resumen_diario','objetivo_mes'],
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica','resumen_diario','objetivo_mes','analisis_avanzado'],
   premium:['ventas','reps','stock','clientes','reportes_basicos','tpv','dark_mode',
            'fotos_rep','gastos','pedidos','permisos_usuarios','reportes_pdf','citas','kanban','backup','auditoria',
            'importar_pdf','catalogo_servicios','plantillas_rep',
@@ -177,7 +177,7 @@ var PLAN_FEATURES = {
            'multi_tienda','soporte_24_7','api_access','onboarding_personal','inicio_avanzado','ia',
            'gar_rep_basica','gar_rep_avanzada','gar_ventas','gar_tipo_producto','gar_aviso_ley',
            'gar_notif_auto','gar_reportes_avanzados',
-           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica','resumen_diario','objetivo_mes']
+           'informe_gestor_pdf','zip_gestoria','gastos_recurrentes','cajas_multiservicio','financiado','analitica','resumen_diario','objetivo_mes','analisis_avanzado']
 };
 
 // Límite de usuarios por plan
@@ -504,7 +504,9 @@ function mostrarModalUpgrade(featureName, planRequerido) {
     financiado: T('upg.financiado'),
     inicio_avanzado: T('upg.inicio_avanzado'),
     ia: T('upg.ia'),
-    resumen_diario: T('res.aj_titulo')
+    resumen_diario: T('res.aj_titulo'),
+    analisis_avanzado: T('upg.analisis_avanzado'),
+    objetivo_mes: T('obj.titulo_corto')
   })[featureName] || featureName;
   var planLabel = ({basico:'Básico', pro:'Pro', premium:'Premium', top:'Premium'})[planRequerido] || planRequerido;
   document.getElementById('upgFeatName').textContent = feat;
@@ -12133,6 +12135,7 @@ function sugerirPiezasRep() {
 // historial deja menos que eso, se avisa.
 function _margenMinRep() { var v = parseFloat(AJUSTES && AJUSTES.margenMinRep); return isFinite(v) && v >= 0 ? v : 30; }
 function _repLineaCoste(it, mod, marca) {
+  if (!tieneFeature('analisis_avanzado')) return '';   // precio mínimo según la pieza: Premium
   var tipo = _margTipo(it.nombre); if (!tipo) return '';
   var modelo = _margModelo({ marca: marca, modelo: mod }); if (!modelo) return '';
   var est = _margEstimador(), e = est(tipo, modelo); if (!e) return '';
@@ -19423,6 +19426,11 @@ function _renderGananciaRep(pagosReps, enRango, d1, d2) {
   '</div>';
 }
 
+// Tarjeta bloqueada de Reportes para los planes sin análisis avanzado (Premium)
+function _repBloqueado(box, titulo) {
+  box.innerHTML = '<div class="card" style="padding:12px 14px;margin-top:14px;display:flex;align-items:center;gap:10px;cursor:pointer" onclick="checkFeature(\'analisis_avanzado\')">' +
+    '<span style="font-size:15px">🔒</span><span style="flex:1;font-weight:700;font-size:14px">' + esc(titulo) + '</span><span style="font-size:11.5px;font-weight:800;color:#7C3AED">Premium</span></div>';
+}
 // ═══ COBRADO POR EMPLEADO (Reportes) ═══
 // Lo que entró en el periodo, por quien lo cobró y forma de pago: ventas (la financiada, su
 // entrada), cada pago de cuota (abono.por) y cada pago de reparación. Lo que se guardó antes de
@@ -19430,6 +19438,7 @@ function _renderGananciaRep(pagosReps, enRango, d1, d2) {
 function _renderCobradoEmpleados(pagosReps, enRango) {
   var box = document.getElementById('reporteEmpleados');
   if (!box) return;
+  if (!tieneFeature('analisis_avanzado')) { _repBloqueado(box, '👤 ' + T('emp.titulo')); return; }
   try { _probarColCobrado(); } catch (e) {}
   var SIN = T('emp.sin_asignar'), DEV = T('emp.devoluciones');
   var por = {}, mets = {};
@@ -19560,6 +19569,7 @@ function _renderMargenReps(enRango) {
   var box = document.getElementById('reporteMargen');
   if (!box) return;
   if (SEL.repTipo === 'ventas') { box.innerHTML = ''; return; }
+  if (!tieneFeature('analisis_avanzado')) { _repBloqueado(box, '📈 ' + T('marg.titulo')); return; }
   var compras = (DB.pedidos || []).filter(function (p) { return p.estado === 'recibido' && _pedPrecioUnit(p) > 0; })
     .map(function (p) { return { n: _margN(p.pieza), u: _pedPrecioUnit(p), f: String(p.fecha_recibido || p.fecha_pedido || ''), rep: p.reparacion_id || p.rep_id || '' }; })
     .sort(function (a, b) { return b.f.localeCompare(a.f); });
@@ -19661,6 +19671,7 @@ function _renderGarantiasRep(enRango) {
   var box = document.getElementById('reporteGarantias');
   if (!box) return;
   if (SEL.repTipo === 'ventas') { box.innerHTML = ''; return; }
+  if (!tieneFeature('analisis_avanzado')) { _repBloqueado(box, '🛡️ ' + T('gar.titulo')); return; }
   var stockId = {}; (DB.stock || []).forEach(function (x) { stockId[x.id] = x; });
   var provFicha = {}, pedRep = {};
   (DB.pedidos || []).forEach(function (p) {
@@ -28440,17 +28451,19 @@ function abrirReponer() {
   var sug = _reponerSugerencias();
   if (!sug.length) { toast(T('rpn.nada'), 'ok'); return; }
   window._rpnSug = sug;
+  // ritmo de consumo, días que quedan, proveedor más barato y total estimado: Premium
+  var _rpnPremium = tieneFeature('analisis_avanzado');
   var provs = (DB.provs || []).map(function(p) { return '<option value="' + escHtml(p.nombre || '') + '">'; }).join('');
   var filas = sug.map(function(x, i) {
     return '<tr style="border-top:1px solid var(--border)">' +
       '<td style="padding:6px"><input type="checkbox" class="rpnChk" data-i="' + i + '" checked></td>' +
       '<td style="padding:6px;font-weight:600">' + escHtml(x.nombre) + (x.s.calidad ? ' <span style="font-size:10.5px;font-weight:700;color:var(--muted)">' + escHtml(x.s.calidad) + '</span>' : '') +
         '<div style="font-size:11px;color:var(--muted)">' + escHtml(T('rpn.quedan').replace('{u}', x.uds).replace('{m}', x.s.stockMin || 0)) +
-        (x.sem > 0 ? ' · ' + escHtml(_rpnRitmoTxt(x)) : '') + '</div></td>' +
+        (x.sem > 0 && _rpnPremium ? ' · ' + escHtml(_rpnRitmoTxt(x)) : '') + '</div></td>' +
       '<td style="padding:6px"><input type="number" min="1" class="rpnCant fi" data-i="' + i + '" value="' + x.cant + '" style="width:64px;padding:5px"></td>' +
       '<td style="padding:6px"><input class="rpnProv fi" data-i="' + i + '" list="rpnProvList" value="' + escHtml(x.prov) + '" placeholder="' + escHtml(T('pedidos.sin_proveedor')) + '" style="width:140px;padding:5px"></td>' +
       '<td style="padding:6px;text-align:right;color:var(--muted);font-size:12px">' + (x.precio > 0 ? cur(x.precio) : '—') + (x.h && x.h.prov ? '<div style="font-size:10.5px">' + escHtml(x.h.prov) + '</div>' : '') +
-        (x.h && x.h.barato ? '<div style="font-size:10.5px;color:var(--green,#16A34A);font-weight:700">⬇ ' + escHtml(T('rpn.mas_barato').replace('{p}', x.h.barato.prov).replace('{x}', cur(x.h.barato.precio))) + '</div>' : '') + '</td></tr>';
+        (_rpnPremium && x.h && x.h.barato ? '<div style="font-size:10.5px;color:var(--green,#16A34A);font-weight:700">⬇ ' + escHtml(T('rpn.mas_barato').replace('{p}', x.h.barato.prov).replace('{x}', cur(x.h.barato.precio))) + '</div>' : '') + '</td></tr>';
   }).join('');
   var m = _modalOverlay(
     '<div style="font-size:16px;font-weight:800;margin-bottom:4px">🛒 ' + escHtml(T('rpn.titulo')) + '</div>' +
@@ -28478,7 +28491,7 @@ function abrirReponer() {
     el.textContent = (tot > 0 ? T('rpn.total').replace('{x}', cur(tot)) + (Object.keys(por).length > 1 ? ' (' + Object.keys(por).map(function(k) { return k + ': ' + cur(por[k]); }).join(' · ') + ')' : '') : '') +
       (sinPrecio ? (tot > 0 ? ' · ' : '') + T('rpn.sin_precio').replace('{n}', sinPrecio) : '');
   };
-  m.box.addEventListener('input', _rpnTotal); m.box.addEventListener('change', _rpnTotal); _rpnTotal();
+  if (_rpnPremium) { m.box.addEventListener('input', _rpnTotal); m.box.addEventListener('change', _rpnTotal); _rpnTotal(); }
   m.box.querySelector('#_rpnNo').onclick = function() { m.close(); };
   m.box.querySelector('#_rpnSi').onclick = function() {
     if (!tienePerm('stock_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
