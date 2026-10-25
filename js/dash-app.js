@@ -4969,7 +4969,7 @@ function renderEditarInicio() {
     });
   });
   // Objetivo del mes (Premium): se enciende y apaga aquí, para toda la tienda
-  if (admin && tieneFeature('objetivo_mes')) {
+  if (tienePerm('ajustes_editar') && tieneFeature('objetivo_mes')) {
     var om = _objMesCfg();
     html += '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 4px">🎯 ' + escHtml(T('obj.titulo_corto')) + ' <span style="font-weight:700;color:#7C3AED;text-transform:none">· Premium</span></div>' +
       '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex:1;font-size:13px;font-weight:600">' + escHtml(om.on ? T('obj.activo').replace('{x}', cur(om.importe)) : T('obj.inactivo')) + '</span>' +
@@ -4987,6 +4987,7 @@ function _objMesGuardar(o) {
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES });
 }
 function objMesToggle() {
+  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   if (!tieneFeature('objetivo_mes')) { checkFeature('objetivo_mes'); return; }
   var o = _objMesCfg();
   if (!o.on && !(o.importe > 0)) { objMesEditar(true); return; }
@@ -4995,6 +4996,7 @@ function objMesToggle() {
   try { renderObjetivoMes(); } catch (e) {}
 }
 function objMesEditar(activar) {
+  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   if (!tieneFeature('objetivo_mes')) { checkFeature('objetivo_mes'); return; }
   var o = _objMesCfg();
   pedirImporte(T('obj.pregunta_importe'), o.importe || '', function (v) {
@@ -5028,7 +5030,7 @@ function renderObjetivoMes() {
   var mes = new Date(+hoy.slice(0, 4), +hoy.slice(5, 7) - 1, 1).toLocaleDateString((typeof TEKPAIR_LANG !== 'undefined' && TEKPAIR_LANG) || 'es', { month: 'long' });
   var html = '<div class="card" style="padding:14px 16px;margin-bottom:14px">' +
     '<div style="display:flex;align-items:center;gap:8px"><span style="font-size:16px">🎯</span><strong style="flex:1;font-size:14px">' + esc(T('obj.titulo').replace('{m}', mes).replace('{x}', cur(o.importe))) + '</strong>' +
-    '<button onclick="objMesEditar()" title="' + escHtml(T('obj.cambiar')) + '" style="border:none;background:none;cursor:pointer;font-size:14px;color:var(--muted)">⚙️</button></div>' +
+    (tienePerm('ajustes_editar') ? '<button onclick="objMesEditar()" title="' + escHtml(T('obj.cambiar')) + '" style="border:none;background:none;cursor:pointer;font-size:14px;color:var(--muted)">⚙️</button>' : '') + '</div>' +
     barra(cobrado, o.importe, '#7C3AED') +
     '<div style="font-size:12.5px;color:var(--muted)">' + esc(falta > 0 ? T('obj.lleva').replace('{c}', cur(cobrado)).replace('{p}', pctI).replace('{f}', cur(falta)).replace('{d}', quedan).replace('{x}', cur(falta / quedan)) : T('obj.conseguido').replace('{c}', cur(cobrado))) + '</div>';
   if (o.reps > 0) {
@@ -5810,8 +5812,8 @@ function renderPresSinRespuesta() {
       '<div style="min-width:0;flex:1"><div style="font-weight:700;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(r.clienteNombre || '') + ' · ' + esc(((r.marca || '') + ' ' + (r.modelo || '')).trim()) + '</div>' +
       '<div style="font-size:11px;color:#6D28D9">' + esc(T('presseg.fila').replace('{p}', cur(parseFloat(r.total) || 0)).replace('{d}', r._presDias)) + '</div></div>' +
       ((cli && cli.tel) ? '<button onclick="presRecordar(\'' + id + '\')" style="' + b + ';background:#25D366;color:#fff">💬 ' + esc(T('presseg.recordar')) + '</button>' : '<span style="font-size:11px;color:var(--muted)">' + esc(T('tb.sin_tel')) + '</span>') +
-      '<button onclick="aceptarPresupuesto(\'' + id + '\');setTimeout(renderInicioNuevo,300)" style="' + b + ';background:var(--light);color:var(--green)">✓ ' + esc(T('presseg.acepto')) + '</button>' +
-      '<button onclick="rechazarPresupuesto(\'' + id + '\');setTimeout(renderInicioNuevo,300)" style="' + b + ';background:var(--light);color:var(--red)">✕ ' + esc(T('presseg.no')) + '</button></div>';
+      '<button onclick="aceptarPresupuesto(\'' + id + '\')" style="' + b + ';background:var(--light);color:var(--green)">✓ ' + esc(T('presseg.acepto')) + '</button>' +
+      '<button onclick="rechazarPresupuesto(\'' + id + '\')" style="' + b + ';background:var(--light);color:var(--red)">✕ ' + esc(T('presseg.no')) + '</button></div>';
   }).join('');
   box.innerHTML = '<div style="background:#F5F3FF;border:1px solid #DDD6FE;border-left:4px solid #7C3AED;border-radius:12px;padding:14px 16px;margin-bottom:18px">' +
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:16px">📝</span><strong style="color:#5B21B6;font-size:14px">' + esc(T('presseg.titulo').replace('{n}', lista.length).replace('{p}', cur(total))) + '</strong></div>' +
@@ -5827,9 +5829,12 @@ async function presRecordar(id) {
   // La ventana se abre YA: si se abre después de esperar el enlace, el navegador la bloquea
   var w = window.open('', '_blank'), url = '';
   try {
-    var res = await fetch('/api/citas-publicas', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN }, body: JSON.stringify({ action: 'pres-generar-token', rep_id: id, enviar: [] }) });
+    var ctl = (typeof AbortController === 'function') ? new AbortController() : null, _to = setTimeout(function () { if (ctl) ctl.abort(); }, 8000);
+    var res = await fetch('/api/citas-publicas', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN }, body: JSON.stringify({ action: 'pres-generar-token', rep_id: id, enviar: [] }), signal: ctl ? ctl.signal : undefined });
+    clearTimeout(_to);
     var d = await res.json(); if (d && d.ok) url = d.url || '';
   } catch (e) {}
+  if (!url) toast(T('presseg.sin_link'), 'err');
   var nombre = ((cli && cli.nombre) || (r.clienteNombre || '').split(' ')[0] || '').trim();
   var msg = T('presseg.msg').replace('{nombre}', nombre).replace('{equipo}', ((r.marca || '') + ' ' + (r.modelo || '')).trim()).replace('{p}', cur(parseFloat(r.total) || 0)).replace('{tienda}', (TIENDA && TIENDA.nombre) || '') +
     (url ? '\n\n' + T('presseg.msg_link').replace('{link}', url) : '');
@@ -11081,6 +11086,7 @@ function aceptarPresupuesto(id) {
       renderPresupuestos();
     }
     renderReps();
+    try { renderInicioNuevo(); } catch (e) {}
     // Cambiar al filtro Pendiente para que el usuario vea dónde fue
     var tab = document.querySelector('#repTabs .tab[data-f="Pendiente"]');
     if (tab) setRepFiltro(tab);
@@ -11092,6 +11098,8 @@ function rechazarPresupuesto(id) {
   if (!tienePerm('reps_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var r = DB.reps.find(function(x){ return x.id === id; });
   if (!r) { toast(T('tst.presupuesto_no_encontrado'), 'err'); return; }
+  // solo un presupuesto (desde Inicio se podía pulsar «No» en uno ya aceptado)
+  if (r.estado !== 'Presupuesto') { toast(T('tst.no_es_presupuesto'), 'err'); return; }
   confirmar(T('pres.rechazar_confirm'), function () {
     r.estado = 'Rechazado';
     // Devolver al stock las piezas que se reservaron al crear el presupuesto: rechazar no pasa por
@@ -11109,6 +11117,7 @@ function rechazarPresupuesto(id) {
       renderPresupuestos();
     }
     renderReps();
+    try { renderInicioNuevo(); } catch (e) {}
     _ofrecerDevolverAnticipo(r);
   }, { okLabel: T('gen.rechazar'), danger: true });
 }
@@ -12047,7 +12056,8 @@ function busComp() {
   if (!q) { res.classList.remove('open'); return; }
   // Código escaneado (etiqueta de pieza o EAN): se añade la pieza directamente
   var _cod = q.trim();
-  var _porCod = _cod.length >= 6 && (DB.stock || []).find(function (s) { return s.codigoBarras && s.codigoBarras.toLowerCase() === _cod && (parseInt(s.unidades, 10) || 0) > 0; });
+  var _esCod = /^tp\d{8}$/.test(_cod) || /^\d{8,14}$/.test(_cod);
+  var _porCod = _esCod && (DB.stock || []).find(function (s) { return s.codigoBarras && s.codigoBarras.toLowerCase() === _cod && !s.vendido && !_esImeiCat(s.categoria) && (parseInt(s.unidades, 10) || 0) > 0; });
   if (_porCod) { addPart(_porCod.id); return; }
   var matches = DB.stock.filter(function(s) {
     var esComp = s.categoria !== 'Telefono' && s.categoria !== 'Tablet' && s.categoria !== 'Smartwatch';
@@ -13398,11 +13408,13 @@ window.arqueoContar = arqueoContar;
 // Las piezas no traen código de barras: se les da uno interno («TP» + 8 cifras), se guarda en
 // stock.codigo_barras y va en la etiqueta como QR. Escaneándolo en la venta o en las piezas de una
 // reparación, se encuentra la pieza al momento.
-function _asignarCodigoPieza(s) {
+function _asignarCodigoPieza(s, enLote) {
   if (!s || s.codigoBarras) return s && s.codigoBarras;
   var usados = {}; (DB.stock || []).forEach(function (x) { if (x.codigoBarras) usados[x.codigoBarras] = 1; });
   var c; do { c = 'TP' + String(Math.floor(10000000 + Math.random() * 89999999)); } while (usados[c]);
   s.codigoBarras = c;
+  // en lote: se guarda al final una sola vez y se suben de una en una (no 200 escrituras a la vez)
+  if (enLote) return c;
   if (SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), { codigo_barras: c });
   try { guardarDatos(); } catch (e) {}
   return c;
@@ -13425,30 +13437,40 @@ function etiquetasPiezasSinCodigo() {
     m.close();
     if (!lista.length) { toast(T('etqp.ninguna'), 'ok'); return; }
     if (lista.length > 200) lista = lista.slice(0, 200);
-    lista.forEach(function (s) { _asignarCodigoPieza(s); });
-    _etqPiezasImprimir(lista, porUd);
+    // la ventana se abre YA (si tarda, el navegador la bloquea)
+    var w = window.open('', '_blank', 'width=500,height=360');
+    if (!w) { toast(T('etq.popup') || T('etq.popup_fallback'), 'err'); return; }
+    var nuevos = lista.filter(function (s) { return !s.codigoBarras; });
+    nuevos.forEach(function (s) { _asignarCodigoPieza(s, true); });
+    if (nuevos.length) {
+      try { guardarDatos(); } catch (e) {}
+      if (SB_KEY && TIENDA_ID) (async function () { for (var i = 0; i < nuevos.length; i++) { try { await sbPatch('stock', 'id=eq.' + encodeURIComponent(nuevos[i].id), { codigo_barras: nuevos[i].codigoBarras }); } catch (e) {} } })();
+    }
+    _etqPiezasImprimir(lista, porUd, w);
   };
 }
 // Varias etiquetas en un documento (una por página del tamaño de etiqueta elegido)
-function _etqPiezasImprimir(lista, porUd) {
-  var md = _etqMedida(), pw = md.w, ph = md.cont ? Math.max(25, Math.round(md.w * 0.45)) : md.h;
+function _etqPiezasImprimir(lista, porUd, w) {
+  var md = _etqMedida(), pg = _etqPagina(md), pw = md.w, ph = md.h || Math.max(25, Math.round(md.w * 0.45));
   var etqs = [];
   lista.forEach(function (s) { var n = porUd ? Math.min(50, Math.max(1, parseInt(s.unidades, 10) || 1)) : 1; for (var i = 0; i < n; i++) etqs.push(s); });
+  var qrDe = {};   // un QR por pieza aunque se impriman varias unidades
   var qrMm = Math.max(12, Math.min(ph - 4, Math.round(pw * 0.34)));
   var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + esc(T('etq.doc_title')) + '</title><style>' +
-    '@page{size:' + pw + 'mm ' + ph + 'mm;margin:0}html,body{margin:0;padding:0}*{box-sizing:border-box}' +
+    '@page{size:' + pg.page + ';margin:0}html,body{margin:0;padding:0}*{box-sizing:border-box}' +
     '.e{width:' + pw + 'mm;height:' + ph + 'mm;padding:1.5mm;display:flex;gap:2mm;align-items:center;overflow:hidden;page-break-after:always;font-family:-apple-system,Helvetica,Arial,sans-serif;color:#000}' +
     '.e img{width:' + qrMm + 'mm;height:' + qrMm + 'mm;display:block;flex-shrink:0}.i{flex:1;min-width:0;line-height:1.15}' +
     '.n{font-weight:800;font-size:10px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.c{font-size:8px;margin-top:1px}.k{font-size:8px;font-family:monospace;margin-top:1px}.p{font-size:13px;font-weight:800;margin-top:2px}' +
     '@media print{.npbar{display:none!important}}</style></head><body>' +
     etqs.map(function (s) {
-      var img = ''; try { var q = qrcode(0, 'M'); q.addData(s.codigoBarras); q.make(); img = q.createImgTag(4, 4); } catch (e) {}
+      var img = qrDe[s.id];
+      if (img === undefined) { img = ''; try { var q = qrcode(0, 'M'); q.addData(s.codigoBarras); q.make(); img = q.createImgTag(4, 4); } catch (e) {} qrDe[s.id] = img; }
       return '<div class="e">' + img + '<div class="i"><div class="n">' + esc(_eqNombre(s.marca, s.modelo)) + '</div>' +
         '<div class="c">' + esc([_pedCatLabel(s.categoria), s.calidad, s.color].filter(Boolean).join(' · ')) + '</div>' +
         '<div class="k">' + esc(s.codigoBarras) + '</div>' + ((parseFloat(s.precioV) || 0) > 0 ? '<div class="p">' + esc(cur(s.precioV)) + '</div>' : '') + '</div></div>';
     }).join('') +
     '<div class="npbar" style="position:fixed;top:0;left:0;right:0;background:#0f1729;color:#fff;padding:8px 10px;font-size:11px;text-align:center;font-family:-apple-system,Helvetica,Arial,sans-serif">' + esc(T('etqp.n_etiquetas').replace('{n}', etqs.length)) + ' · ' + esc(T('etq.print_hint')) + '<br><button onclick="window.print()" style="margin-top:6px;background:#FF5B1F;color:#fff;border:none;border-radius:6px;padding:6px 16px;font:inherit;font-weight:700;cursor:pointer">🖨️ ' + esc(T('etq.print_btn')) + '</button></div></body></html>';
-  _etqPopupImprimir(html);
+  if (w) { w.document.write(html); w.document.close(); } else _etqPopupImprimir(html);
 }
 window.etiquetasPiezasSinCodigo = etiquetasPiezasSinCodigo;
 
@@ -19347,7 +19369,7 @@ async function renderReporte() {
   try { _renderGananciaRep(pagosReps, _enRango, _minISO, _maxISO); } catch (e) { console.warn('ganancia:', e); }
   try { _renderCobradoEmpleados(pagosReps, _enRango); } catch (e) { console.warn('cobrado empleados:', e); }
   try { _renderMargenReps(_enRango); } catch (e) { console.warn('margen reps:', e); }
-  try { _renderGarantiasRep(_enRango); } catch (e) { console.warn('garantias:', e); }
+  try { _renderGarantiasRep(_enRango, _minISO); } catch (e) { console.warn('garantias:', e); }
 
   // Guardar datos del periodo para "Enviar a Cobrum" (ventas + pagos de reparación)
   var _gastosPeriodo = (DB.gastos || []).filter(function(g){ return g && _enRango(g.fecha); });
@@ -19709,11 +19731,14 @@ function _garPiezasRep(r, stockId, provFicha, pedRep) {
       if (!prov && provFicha[x.id]) prov = provFicha[x.id];
     });
     (pedRep[r.id] || []).forEach(function (p) { if (_margTipo(p.pieza) === tipo) { if (!prov && p.proveedor) prov = p.proveedor; if (!cal && p.calidad) cal = p.calidad; } });
+    // una reparación cuenta una vez por tipo de pieza («Pantalla Incell» + «Mano de obra pantalla» = 1)
+    var ya = out.find(function (o) { return o.tipo === tipo[0]; });
+    if (ya) { if (!ya.cal && cal) ya.cal = cal; if (!ya.prov && prov) ya.prov = prov; return; }
     out.push({ tipo: tipo[0], cal: cal, prov: prov });
   });
   return out;
 }
-function _renderGarantiasRep(enRango) {
+function _renderGarantiasRep(enRango, desdeISO) {
   var box = document.getElementById('reporteGarantias');
   if (!box) return;
   if (SEL.repTipo === 'ventas') { box.innerHTML = ''; return; }
@@ -19729,6 +19754,8 @@ function _renderGarantiasRep(enRango) {
   var vueltas = {};   // id original → [{ r: vuelta, tipos: {} }]
   (DB.reps || []).forEach(function (r) {
     if (r.estado === 'Presupuesto' || r.estado === 'Rechazado') return;
+    // una vuelta de algo entregado en el periodo solo puede ser de después de su inicio
+    if (desdeISO && String(r.fecha || '').slice(0, 10) < desdeISO) return;
     var manual = r.esGarantia || r.estado === 'Garantia';
     var orig = r.repOriginalId ? repsId[r.repOriginalId] : null;
     if (!orig && (manual || r.clienteId || r.clienteNombre)) { try { var g = checkGarantia(r.clienteId, r.marca, r.modelo, r.fecha, r.clienteNombre, r.imei); if (g && g.rep && g.rep.id !== r.id) orig = g.rep; } catch (e) {} }
