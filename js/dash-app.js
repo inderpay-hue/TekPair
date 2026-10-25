@@ -3929,6 +3929,9 @@ function _es409Grave(res) {
 
 function _sbPatchRaw(table, query, data) {
   _sbReadCacheClear();
+  // usuarios: el navegador no puede leer todas las columnas (hashes, tokens), así que la
+  // respuesta del PATCH se limita al id; basta para saber cuántas filas se actualizaron.
+  if (table === 'usuarios' && !/(^|&)select=/.test(query)) query += '&select=id';
   return fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query, {
     method: 'PATCH',
     // return=representation → la respuesta trae las filas actualizadas; así detectamos
