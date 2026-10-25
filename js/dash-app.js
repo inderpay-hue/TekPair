@@ -4862,13 +4862,71 @@ function _cuotaAbonos(c) {
   return out;
 }
 // Apunta un pago en la cuota (llamar ANTES de tocar pagadoImporte/fechaPago/formaPago).
-function _cuotaAbonar(cc, importe, metodo, fecha) {
+function _cuotaAbonar(cc, importe, metodo, fecha, por) {
   if (!cc || !(importe > 0)) return;
   if (!Array.isArray(cc.abonos)) cc.abonos = [];
   var previo = _cuotaPagado(cc);
   // Lo cobrado antes de existir `abonos` se congela en su fecha para que no se mueva al nuevo pago.
   if (!cc.abonos.length && previo > 0.005 && cc.fechaPago) cc.abonos.push({ fecha: cc.fechaPago, importe: previo, metodo: cc.formaPago || 'Efectivo' });
-  cc.abonos.push({ fecha: fecha, importe: Math.round(importe * 100) / 100, metodo: metodo });
+  var ab = { fecha: fecha, importe: Math.round(importe * 100) / 100, metodo: metodo };
+  if (por) ab.por = por;
+  cc.abonos.push(ab);
+}
+// Pagos ya hechos de una cuota, para enseñarlos debajo: «25-10 · 5,00 € · Efectivo · Ana».
+function _cuotaAbonosHtml(c) {
+  var ab = Array.isArray(c && c.abonos) ? c.abonos : [];
+  if (!ab.length) return '';
+  return ab.map(function (a) {
+    var f = String(a.fecha || '').slice(0, 10).split('-').reverse().join('/');
+    return '<div style="font-size:10px;color:var(--muted)">💶 ' + escHtml(f) + ' · ' + cur(parseFloat(a.importe) || 0) + ' · ' + escHtml(a.metodo || '') + (a.por ? ' · ' + escHtml(a.por) : '') + '</div>';
+  }).join('');
+}
+// Ventana para cobrar un financiado: importe (puede ser solo una parte), fecha, forma de pago y
+// quién cobra. cb({ importe, fecha, metodo, por }) o nada si se cancela.
+// La fecha solo la puede cambiar el admin: un pago con fecha de otro día mueve una caja ya cerrada.
+function _pedirPagoFin(o, cb) {
+  var hoy = hoyLocal(), admin = _esAdmin();
+  var yo = (U && (U.nombre || U.email)) || '';
+  var usu = (DB.usuarios || []).filter(function (u) { return u && u.activo !== false && (u.nombre || u.email); });
+  var nombres = usu.map(function (u) { return u.nombre || u.email; });
+  if (yo && nombres.indexOf(yo) < 0) nombres.unshift(yo);
+  var METODOS = [['Efectivo', '💵'], ['Tarjeta', '💳'], ['Bizum', '📲'], ['Transferencia', '🏦']];
+  var est = 'width:100%;padding:10px;border:1px solid var(--border,#E5E7EB);border-radius:9px;font:inherit;font-size:15px;color:inherit;background:var(--light,#fff);margin-bottom:12px';
+  var lbl = function (t) { return '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin-bottom:5px">' + escHtml(t) + '</div>'; };
+  var m = _modalOverlay(
+    '<div style="font-size:15px;font-weight:800;margin-bottom:6px">' + escHtml(o.titulo || T('finp.registrar_pago')) + '</div>' +
+    (o.ayuda ? '<div style="font-size:12.5px;color:var(--muted);line-height:1.5;white-space:pre-line;margin-bottom:12px">' + escHtml(o.ayuda) + '</div>' : '') +
+    lbl(T('finp.importe')) + '<input id="_pfImp" type="number" step="0.01" min="0" inputmode="decimal" value="' + escHtml(String(o.sugerido == null ? '' : o.sugerido)) + '" style="' + est + '">' +
+    lbl(T('finp.fecha')) + '<input id="_pfFecha" type="date" value="' + hoy + '" max="' + hoy + '"' + (admin ? '' : ' disabled title="' + escHtml(T('finp.fecha_solo_admin')) + '"') + ' style="' + est + '">' +
+    lbl(T('finp.metodo')) + '<div id="_pfMet" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">' +
+      METODOS.map(function (mt, i) { return '<button type="button" data-m="' + mt[0] + '" style="padding:9px;border-radius:9px;cursor:pointer;font:inherit;font-size:13px;font-weight:600;border:2px solid ' + (i ? 'var(--border,#E5E7EB)' : 'var(--green,#10B981)') + ';background:var(--light,#F8FAFC);color:inherit">' + mt[1] + ' ' + mt[0] + '</button>'; }).join('') +
+    '</div>' +
+    lbl(T('finp.cobrado_por')) + '<select id="_pfPor" style="' + est + '">' + nombres.map(function (n) { return '<option' + (n === yo ? ' selected' : '') + '>' + escHtml(n) + '</option>'; }).join('') + '</select>' +
+    '<div style="display:flex;gap:10px;justify-content:flex-end">' +
+      '<button id="_pfNo" style="padding:9px 16px;border:1px solid var(--border,#E5E7EB);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + T('gen.cancelar_2') + '</button>' +
+      '<button id="_pfOk" style="padding:9px 16px;border:none;background:var(--green,#10B981);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + escHtml(T('finp.registrar_pago')) + '</button>' +
+    '</div>'
+  );
+  var metodo = 'Efectivo';
+  m.box.querySelectorAll('#_pfMet [data-m]').forEach(function (b) {
+    b.onclick = function () {
+      metodo = b.getAttribute('data-m');
+      m.box.querySelectorAll('#_pfMet [data-m]').forEach(function (x) { x.style.borderColor = x === b ? 'var(--green,#10B981)' : 'var(--border,#E5E7EB)'; });
+    };
+  });
+  var inp = m.box.querySelector('#_pfImp');
+  try { inp.focus(); inp.select(); } catch (e) {}
+  m.box.querySelector('#_pfNo').onclick = function () { m.close(); };
+  m.bg.addEventListener('click', function (e) { if (e.target === m.bg) m.close(); });
+  m.box.querySelector('#_pfOk').onclick = function () {
+    var imp = Math.round((parseFloat(String(inp.value).replace(',', '.')) || 0) * 100) / 100;
+    if (!(imp > 0)) { toast(T('fin.total_invalido'), 'err'); return; }
+    var fecha = admin ? (m.box.querySelector('#_pfFecha').value || hoy) : hoy;
+    if (fecha > hoy) { toast(T('finp.fecha_futura'), 'err'); return; }
+    var por = m.box.querySelector('#_pfPor').value || yo;
+    m.close();
+    cb({ importe: imp, fecha: fecha, metodo: metodo, por: por });
+  };
 }
 // Ingreso REAL de ventas por método en [d1,d2]. Financiadas: entrada (día de venta) + cuotas (día de pago);
 // no financiadas: total el día de la venta. Devuelve { metodo: importe }. (Evita contar el total a plazos el día 1.)
@@ -9242,7 +9300,7 @@ function verFinanciado(id) {
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:' +
       (cu.pagado ? 'rgba(0,200,150,.08)' : parcial ? 'rgba(230,148,18,.10)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
       '<div><div style="font-size:13px;font-weight:600">' + T('finv.cuota') + ' ' + (i + 1) + ' · ' + cur(cu.importe) + '</div>' +
-      '<div style="font-size:10px;color:' + (vencido ? 'var(--red)' : 'var(--muted)') + '">' + T('finv.vence') + ': ' + escHtml(cu.fecha || '') + subPag + '</div></div>' +
+      '<div style="font-size:10px;color:' + (vencido ? 'var(--red)' : 'var(--muted)') + '">' + T('finv.vence') + ': ' + escHtml(cu.fecha || '') + subPag + '</div>' + _cuotaAbonosHtml(cu) + '</div>' +
       '<div>' + (cu.pagado
         ? '<span style="color:var(--green);font-size:11px;font-weight:700">✓ ' + T('finv.pagado') + '</span>'
         : '<button data-vid="' + id + '" data-cidx="' + i + '" class="btn-pc btn-primary" style="padding:5px 10px;font-size:11px;width:auto">' + (parcial ? T('fin.completar') : T('finv.registrar')) + '</button>'
@@ -9250,6 +9308,9 @@ function verFinanciado(id) {
   }
   var _pendR = '', _cobrR = '', _nP = 0, _nC = 0;
   v.cuotas.forEach(function(cu, i) { if (cu.pagado) { _cobrR += _finCuotaRow(cu, i); _nC++; } else { _pendR += _finCuotaRow(cu, i); _nP++; } });
+  // Un pago de cualquier importe: va a la primera cuota pendiente y lo que sobre, a las siguientes.
+  var _primP = v.cuotas.findIndex(function (cu) { return !cu.pagado; });
+  if (_primP >= 0) html += '<button class="btn-pc btn-primary" data-vid="' + id + '" data-cidx="' + _primP + '" style="width:100%;margin:0 0 12px;padding:11px">💶 ' + escHtml(T('finp.registrar_pago')) + '</button>';
   if (_nP) html += '<div style="font-size:11px;font-weight:800;color:#C2491A;text-transform:uppercase;letter-spacing:.4px;margin:4px 0 8px">⏳ ' + T('finv.pendientes') + ' (' + _nP + ')</div>' + _pendR;
   if (v.entrada || _nC) {
     html += '<div style="font-size:11px;font-weight:800;color:#0F7355;text-transform:uppercase;letter-spacing:.4px;margin:14px 0 8px">✅ ' + T('finv.cobrado') + (_nC ? ' (' + _nC + ')' : '') + '</div>';
@@ -9327,14 +9388,11 @@ function registrarPagoCuota(vid, cidx) {
   var pendPlan = Math.round(v.cuotas.reduce(function(a, cc) { return a + Math.max(0, (parseFloat(cc.importe) || 0) - _cuotaPagado(cc)); }, 0) * 100) / 100;
   if (pendPlan <= 0.005) return;
   var sugerido = quedaCuota > 0.005 ? quedaCuota : pendPlan;
-  pedirImporte(T('fin.cuanto_entrega').replace('{n}', (cidx + 1)).replace('{cuota}', cur(quedaCuota)).replace('{total}', cur(pendPlan)), sugerido, function(val) {
-    if (val === null) return;
-    var pago = Math.round((parseFloat(String(val).replace(',', '.')) || 0) * 100) / 100;
-    if (!(pago > 0)) { toast(T('fin.total_invalido'), 'err'); return; }
+  _pedirPagoFin({ titulo: T('finv.cuota') + ' ' + (cidx + 1), ayuda: T('fin.cuanto_entrega').replace('{n}', (cidx + 1)).replace('{cuota}', cur(quedaCuota)).replace('{total}', cur(pendPlan)), sugerido: sugerido }, function(pf) {
+    var pago = pf.importe;
     if (pago > pendPlan + 0.005) pago = pendPlan;
-    pedirMetodoPago(function (fp) {
-      if (!fp) return;
-      var hoy = hoyLocal(), restantePago = pago, cuotasTocadas = 0;
+    (function (fp) {
+      var hoy = pf.fecha, restantePago = pago, cuotasTocadas = 0;
       var orden = [cidx];
       v.cuotas.forEach(function(cc, i) { if (i !== cidx && !cc.pagado) orden.push(i); });
       orden.forEach(function(i) {
@@ -9343,7 +9401,7 @@ function registrarPagoCuota(vid, cidx) {
         var queda = Math.round(((parseFloat(cc.importe) || 0) - _cuotaPagado(cc)) * 100) / 100;
         if (queda <= 0.005) return;
         var aplica = Math.min(queda, restantePago);
-        _cuotaAbonar(cc, aplica, fp, hoy);
+        _cuotaAbonar(cc, aplica, fp, hoy, pf.por);
         cc.pagadoImporte = Math.round((_cuotaPagado(cc) + aplica) * 100) / 100;
         cc.formaPago = fp; cc.fechaPago = hoy;
         cc.pagado = cc.pagadoImporte >= (parseFloat(cc.importe) || 0) - 0.005;
@@ -9368,7 +9426,7 @@ function registrarPagoCuota(vid, cidx) {
       closeM('finModal');
       renderVentas();
       _ofrecerWaPagoCuota(v, pago, fp);
-    }, T('fin.cuota_como_pagado').replace('{n}', (cidx + 1)));
+    })(pf.metodo);
   });
 }
 
@@ -9383,6 +9441,8 @@ function verFinanciadoRep(id) {
     '<strong>' + esc(r.clienteNombre) + '</strong> — ' + esc(r.marca) + ' ' + esc(r.modelo) + '<br>' +
     '<span style="font-size:11px;color:var(--muted)">' + T('finrep.resumen').replace('{total}', cur(r.total)).replace('{entrada}', cur(r.entrada || 0)).replace('{pagado}', cur(pagado)) + T('rep.queda_deber') + ': ' + cur(pendiente) + '</span></div>' +
     '<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">' + T('finrep.cuotas_h') + '</div>';
+  var _primP = r.cuotas.findIndex(function (cu) { return !cu.pagado; });
+  if (_primP >= 0) html += '<button class="btn-pcr btn-primary" data-rid="' + id + '" data-cidx="' + _primP + '" style="width:100%;margin:0 0 12px;padding:11px">💶 ' + escHtml(T('finp.registrar_pago')) + '</button>';
   r.cuotas.forEach(function(cu, i) {
     var vencido = !cu.pagado && cu.fecha && cu.fecha < hoyLocal();
     var pag = _cuotaPagado(cu);
@@ -9392,7 +9452,7 @@ function verFinanciadoRep(id) {
     html += '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:' +
       (cu.pagado ? 'rgba(0,200,150,.08)' : parcial ? 'rgba(230,148,18,.10)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
       '<div><div style="font-size:13px;font-weight:600">' + T('finrep.cuota_row').replace('{n}', (i + 1)).replace('{importe}', cur(cu.importe)) + '</div>' +
-      '<div style="font-size:10px;color:var(--muted)">' + escHtml(T('fin.vence_lbl')) + ' ' + (cu.fecha || '-') + subPag + '</div></div>' +
+      '<div style="font-size:10px;color:var(--muted)">' + escHtml(T('fin.vence_lbl')) + ' ' + (cu.fecha || '-') + subPag + '</div>' + _cuotaAbonosHtml(cu) + '</div>' +
       '<div style="display:flex;gap:6px;align-items:center">' + (cu.pagado
         ? '<span style="color:var(--green);font-size:11px;font-weight:700">✓ ' + T('finrep.pagado') + '</span>'
         : '<button data-rid="' + id + '" data-cidx="' + i + '" class="btn-lcr" title="' + T('cobro.enviar_link') + '" style="padding:5px 9px;font-size:12px;width:auto;border:1px solid var(--border);background:#fff;border-radius:7px;cursor:pointer">📤</button>' +
@@ -9420,14 +9480,11 @@ function registrarPagoCuotaRep(rid, cidx) {
   var pendPlan = Math.round(r.cuotas.reduce(function(a, cc) { return a + Math.max(0, (parseFloat(cc.importe) || 0) - _cuotaPagado(cc)); }, 0) * 100) / 100;
   if (pendPlan <= 0.005) return;
   var sugerido = quedaCuota > 0.005 ? quedaCuota : pendPlan;
-  pedirImporte(T('fin.cuanto_entrega').replace('{n}', (cidx + 1)).replace('{cuota}', cur(quedaCuota)).replace('{total}', cur(pendPlan)), sugerido, function(val) {
-    if (val === null) return;
-    var pago = Math.round((parseFloat(String(val).replace(',', '.')) || 0) * 100) / 100;
-    if (!(pago > 0)) { toast(T('fin.total_invalido'), 'err'); return; }
+  _pedirPagoFin({ titulo: T('finv.cuota') + ' ' + (cidx + 1), ayuda: T('fin.cuanto_entrega').replace('{n}', (cidx + 1)).replace('{cuota}', cur(quedaCuota)).replace('{total}', cur(pendPlan)), sugerido: sugerido }, function(pf) {
+    var pago = pf.importe;
     if (pago > pendPlan + 0.005) pago = pendPlan; // tope: todo el plan, no más
-    pedirMetodoPago(function (fp) {
-      if (!fp) return;
-      var hoy = hoyLocal();
+    (function (fp) {
+      var hoy = pf.fecha;
       // Aplicar el importe: primero a la cuota elegida y luego, si sobra, a las siguientes NO pagadas.
       var restantePago = pago, cuotasTocadas = 0;
       var orden = [cidx];
@@ -9438,7 +9495,7 @@ function registrarPagoCuotaRep(rid, cidx) {
         var queda = Math.round(((parseFloat(cc.importe) || 0) - _cuotaPagado(cc)) * 100) / 100;
         if (queda <= 0.005) return;
         var aplica = Math.min(queda, restantePago);
-        _cuotaAbonar(cc, aplica, fp, hoy);
+        _cuotaAbonar(cc, aplica, fp, hoy, pf.por);
         cc.pagadoImporte = Math.round((_cuotaPagado(cc) + aplica) * 100) / 100;
         cc.formaPago = fp; cc.fechaPago = hoy;
         cc.pagado = cc.pagadoImporte >= (parseFloat(cc.importe) || 0) - 0.005;
@@ -9453,7 +9510,7 @@ function registrarPagoCuotaRep(rid, cidx) {
       if (SB_KEY && TIENDA_ID) {
         sbPatch('reparaciones', 'id=eq.' + rid, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
         // Cada pago = un pago_reparacion propio (id único) → no machaca anteriores.
-        sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoy, importe: pago, metodo: fp, tipo: 'cuota' });
+        sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoy, importe: pago, metodo: fp, tipo: 'cuota', nota: pf.por ? T('finp.cobrado_por') + ': ' + pf.por : null });
         window._pagosRepCache = null; try { _invalidarInvPagos(); } catch(e){}
       }
       if (completado) toast(T('tst.financiado_completado'), 'ok');
@@ -9463,7 +9520,7 @@ function registrarPagoCuotaRep(rid, cidx) {
       renderReps();
       renderDash();
       _ofrecerWaPagoCuota(r, pago, fp); // ofrecer enviar recibo al cliente por WhatsApp
-    }, T('fin.cuota_como_pagado').replace('{n}', (cidx + 1)));
+    })(pf.metodo);
   });
 }
 
