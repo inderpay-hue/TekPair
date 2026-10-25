@@ -317,6 +317,14 @@ export default async function handler(req, res) {
       if (sess.expires_at && new Date(sess.expires_at) < new Date()) {
         return res.status(401).json({ error: 'Sesión caducada' });
       }
+      // 1b. Usuario desactivado o borrado: fuera, aunque su sesión no haya caducado
+      const uMe = await fetch(`${SB_URL}/rest/v1/usuarios?id=eq.${encodeURIComponent(sess.usuario_id)}&select=activo&limit=1`, {
+        headers: {'apikey': SK, 'Authorization': `Bearer ${SK}`}
+      });
+      const uMeRows = await uMe.json();
+      if (!Array.isArray(uMeRows) || !uMeRows.length || uMeRows[0].activo === false) {
+        return res.status(401).json({ error: _loc('Usuario inactivo', req) });
+      }
 
       // 2. Cargar tienda completa con plan
       const tR = await fetch(`${SB_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(sess.tienda_id)}&select=*`, {
@@ -424,6 +432,15 @@ export default async function handler(req, res) {
       if (sess.tienda_id && String(sess.tienda_id) !== String(u.tienda_id)) {
         if (await _tiendaAutorizada(SB_URL, SK, u.id, u.tienda_id, sess.tienda_id)) activeTienda = sess.tienda_id;
       }
+      // 3b. Mismo corte por impago que 'me' y el login: sin esto una tienda bloqueada podía
+      // seguir renovando el JWT y usar la base de datos directamente.
+      try {
+        const tRj = await fetch(`${SB_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(activeTienda)}&select=*`, { headers: { 'apikey': SK, 'Authorization': `Bearer ${SK}` } });
+        const tRows = await tRj.json();
+        if (Array.isArray(tRows) && tRows[0] && !evaluarAcceso(tRows[0], new Date()).permitido) {
+          return res.status(403).json({ ok: false, plan_expired: true, error: _loc('Acceso bloqueado', req) });
+        }
+      } catch (e) { /* si no se puede comprobar, se sigue como antes */ }
       // 4. Acuñar JWT fresco (mismos claims que el login)
       const SESSION_DAYS = 7;
       const nowSec = Math.floor(Date.now() / 1000);
@@ -814,6 +831,10 @@ export default async function handler(req, res) {
       const arr = await r.json();
       return arr[0] || null;
     }
+    async function _cerrarSesionesUsuario(id) {
+      try { await fetch(`${SB_URL}/rest/v1/sesiones?usuario_id=eq.${encodeURIComponent(id)}`, { method: 'DELETE', headers: { ...sbH, 'Prefer': 'return=minimal' } }); }
+      catch (e) { console.warn('No se pudieron cerrar las sesiones de', id, e); }
+    }
 
     try {
       if (op === 'permisos') {
@@ -838,6 +859,8 @@ export default async function handler(req, res) {
           body: JSON.stringify({ activo: !!activo })
         });
         if (!up.ok) return res.status(500).json({ error: 'No se pudo actualizar' });
+        // Desactivado: se cierran sus sesiones para que no siga entrando hasta que caduquen (7 días)
+        if (!activo) await _cerrarSesionesUsuario(target_id);
         return res.json({ ok: true });
       }
 
@@ -850,6 +873,7 @@ export default async function handler(req, res) {
           method: 'DELETE', headers: { ...sbH, 'Prefer': 'return=minimal' }
         });
         if (!del.ok) return res.status(500).json({ error: 'No se pudo eliminar' });
+        await _cerrarSesionesUsuario(target_id);
         return res.json({ ok: true });
       }
 

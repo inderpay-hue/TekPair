@@ -1248,7 +1248,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261025i"></script>
+<script src="/lang/lang.v8.js?v=20261025j"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -5738,7 +5738,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261023b"></script>
-<script src="/js/dash-app.js?v=20261025i"></script>
+<script src="/js/dash-app.js?v=20261025j"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -7091,13 +7091,13 @@ function renderComisionesAdmin(data) {
           };
           var e = EST[t.estado] || { t: (t.plan_status || '-'), c: '#64748B', b: 'rgba(100,116,139,.12)' };
           var contacto = [];
-          if (t.telefono) contacto.push('<a href="tel:' + String(t.telefono).replace(/[^+\d]/g, '') + '" style="color:inherit">' + t.telefono + '</a>');
-          if (t.dir) contacto.push('<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(t.dir) + '" target="_blank" rel="noopener" style="color:inherit">📍 ' + t.dir + '</a>');
+          if (t.telefono) contacto.push('<a href="tel:' + String(t.telefono).replace(/[^+\d]/g, '') + '" style="color:inherit">' + esc(t.telefono) + '</a>');
+          if (t.dir) contacto.push('<a href="https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(t.dir) + '" target="_blank" rel="noopener" style="color:inherit">📍 ' + esc(t.dir) + '</a>');
           html += '<tr>';
-          html += '<td style="padding:6px 10px;border-bottom:1px solid #F1F5F9"><strong>' + (t.nombre || '-') + '</strong>'
+          html += '<td style="padding:6px 10px;border-bottom:1px solid #F1F5F9"><strong>' + esc(t.nombre || '-') + '</strong>'
             + (contacto.length ? '<div style="font-size:10.5px;color:var(--muted);margin-top:2px">' + contacto.join(' · ') + '</div>' : '') + '</td>';
-          html += '<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #F1F5F9"><span style="background:#EFF6FF;color:var(--blue);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase">' + (t.plan || '-') + '</span></td>';
-          html += '<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #F1F5F9"><span style="background:' + e.b + ';color:' + e.c + ';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">' + e.t + '</span></td>';
+          html += '<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #F1F5F9"><span style="background:#EFF6FF;color:var(--blue);padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;text-transform:uppercase">' + esc(t.plan || '-') + '</span></td>';
+          html += '<td style="padding:6px 10px;text-align:center;border-bottom:1px solid #F1F5F9"><span style="background:' + e.b + ';color:' + e.c + ';padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700">' + esc(e.t) + '</span></td>';
           html += '<td style="padding:6px 10px;text-align:right;border-bottom:1px solid #F1F5F9;color:var(--muted)">' + fmtFecha(t.fecha_captacion) + '</td>';
           html += '<td style="padding:6px 10px;text-align:right;border-bottom:1px solid #F1F5F9;font-weight:700">' + eurFmt(t.total_facturado) + '</td>';
           html += '</tr>';
@@ -7167,7 +7167,7 @@ function renderComisionesAfiliado(data) {
   } else {
     html += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px"><thead><tr style="background:#F8FAFC"><th style="padding:10px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Tienda</th><th style="padding:10px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Plan</th><th style="padding:10px;text-align:center;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Estado</th><th style="padding:10px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;color:var(--muted)">Captada</th></tr></thead><tbody>';
     data.tiendas_referidas.forEach(function(t) {
-      html += '<tr><td style="padding:10px;border-bottom:1px solid #F1F5F9"><strong>' + (t.nombre || 'Sin nombre') + '</strong></td><td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9">' + (t.plan || '-') + '</td><td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9">' + (t.plan_status === 'active' ? '<span style="color:var(--green)">Activa</span>' : (t.plan_status || '-')) + '</td><td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9">' + fmtFecha(t.created_at) + '</td></tr>';
+      html += '<tr><td style="padding:10px;border-bottom:1px solid #F1F5F9"><strong>' + esc(t.nombre || 'Sin nombre') + '</strong></td><td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9">' + esc(t.plan || '-') + '</td><td style="padding:10px;text-align:center;border-bottom:1px solid #F1F5F9">' + (t.plan_status === 'active' ? '<span style="color:var(--green)">Activa</span>' : esc(t.plan_status || '-')) + '</td><td style="padding:10px;text-align:right;border-bottom:1px solid #F1F5F9">' + fmtFecha(t.created_at) + '</td></tr>';
     });
     html += '</tbody></table></div>';
   }
@@ -7285,7 +7285,20 @@ function confirmarPago() {
     // hasta que caducara el TTL.
     window._pagosRepCache = null;
     try { _invalidarInvPagos(); } catch (e) {}
+    _syncRestanteRep();
   }
+}
+
+// El pago se guarda en la nube al momento; el anticipo y el restante de la reparación también
+// (antes solo al pulsar Guardar: si se cerraba sin guardar, al entregar se volvía a cobrar).
+function _syncRestanteRep() {
+  if (!SEL.editRepId || SEL.repPagosOk !== true || !SB_KEY) return;
+  var r = (DB.reps || []).find(function (x) { return x.id === SEL.editRepId; }); if (!r) return;
+  var pag = Math.round((SEL.repPagos || []).reduce(function (a, p) { return a + (parseFloat(p.importe) || 0); }, 0) * 100) / 100;
+  r.anticipo = pag;
+  r.restante = Math.max(0, Math.round(((parseFloat(r.total) || 0) - pag) * 100) / 100);
+  sbPatch('reparaciones', 'id=eq.' + encodeURIComponent(r.id), { anticipo: r.anticipo, restante: r.restante });
+  try { guardarDatos(); } catch (e) {}
 }
 
 // Atajo: añadir directamente lo que el cliente adelanta (anticipo) sin abrir el form de pago
@@ -7306,6 +7319,7 @@ function anadirAnticipoDirecto() {
     sbPost('pagos_reparacion', { id: pagoId, tienda_id: TIENDA_ID, reparacion_id: SEL.editRepId, fecha: fecha, importe: importe, metodo: metodo, tipo: tipo });
     window._pagosRepCache = null;
     try { _invalidarInvPagos(); } catch (e) {}
+    _syncRestanteRep();
   }
 }
 
@@ -7315,21 +7329,33 @@ function eliminarPagoUI(index) {
   if (!pago) return;
   if (!confirm('¿Eliminar este pago de ' + (parseFloat(pago.importe)||0).toFixed(2) + ' €?')) return;
 
-  // Si tiene id, eliminar de BD
-  if (pago.id && SB_KEY) {
-    sbDelete('pagos_reparacion', 'id=eq.' + pago.id);
-  }
-  pagos.splice(index, 1);
-  renderListaPagos();
-  toast('Pago eliminado', 'ok');
+  var quitar = function () {
+    pagos.splice(index, 1);
+    renderListaPagos();
+    window._pagosRepCache = null; try { _invalidarInvPagos(); } catch (e) {}
+    _syncRestanteRep();
+    toast('Pago eliminado', 'ok');
+  };
+  // Si está en la nube, solo se quita aquí cuando se ha borrado de verdad allí
+  if (pago.id && SB_KEY && SEL.editRepId) {
+    sbDelete('pagos_reparacion', 'id=eq.' + encodeURIComponent(pago.id)).then(function (ok) {
+      if (ok) quitar(); else toast(T('rep.pago_no_borrado'), 'err');
+    });
+  } else quitar();
 }
 
 function cargarPagosRep(repId) {
   SEL.repPagos = [];
+  SEL.repPagosOk = SB_KEY ? null : true;   // null = cargando; false = no se pudo leer
   renderListaPagos();
   if (!SB_KEY) return;
-  sbGet('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(repId) + '&order=fecha.asc').then(function(arr) {
-    SEL.repPagos = (arr || []).map(function(p) {
+  // sbGetAll devuelve null si falla (sbGet devolvía [] y, al guardar, el anticipo pasaba a 0)
+  sbGetAll('pagos_reparacion', 'reparacion_id=eq.' + encodeURIComponent(repId)).then(function(arr) {
+    if (SEL.editRepId !== repId) return;
+    if (!Array.isArray(arr)) { SEL.repPagosOk = false; toast(T('rep.pagos_no_cargados'), 'err'); return; }
+    SEL.repPagosOk = true;
+    arr.sort(function (a, b) { return String(a.fecha || '').localeCompare(String(b.fecha || '')); });
+    SEL.repPagos = arr.map(function(p) {
       return { id: p.id, fecha: p.fecha, importe: parseFloat(p.importe)||0, metodo: p.metodo || 'Efectivo', tipo: p.tipo || 'parcial' };
     });
     renderListaPagos();
@@ -7338,6 +7364,7 @@ function cargarPagosRep(repId) {
 
 function resetPagosRep() {
   SEL.repPagos = [];
+  SEL.repPagosOk = true;
   cancelarFormPago();
   renderListaPagos();
 }

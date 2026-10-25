@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261025i"></script>
+<script src="/lang/lang.v8.js?v=20261025j"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -1957,7 +1957,9 @@ function _computeTotals() {
   var preNormal = Math.max(0, preIva - netoU);
   var ivaTipo = 0, ivaImporte = 0, base = preNormal, total = preNormal, ivaModo = 'sin';
   if (ivaCfg.activo) {
-    ivaTipo = parseFloat(ivaCfg.tipoDefault) || 21;
+    // 0 es un tipo válido (EE. UU., Brasil…): con "|| 21" se cobraba un 21 % de más
+    var _ivt = parseFloat(ivaCfg.tipoDefault);
+    ivaTipo = isNaN(_ivt) ? 21 : _ivt;
     ivaModo = ivaCfg.modo || 'incluido';
     if (ivaModo === 'incluido') {
       base = preNormal / (1 + ivaTipo/100);
@@ -2175,7 +2177,14 @@ function setEntradaPago(el) {
 }
 
 // ═══ CHECKOUT ═══
+var _tpvCobrando = false;
 function cobrar() {
+  // Doble cobro: el botón se quedaba con el foco bajo el ticket y un Enter (o el lector de
+  // códigos) repetía la venta entera. Mientras se cobra o hay un ticket abierto, no se cobra.
+  if (_tpvCobrando) return;
+  var _mt = document.getElementById('mTicket');
+  if (_mt && (_mt.classList.contains('open') || getComputedStyle(_mt).display !== 'none')) return;
+  try { if (document.activeElement) document.activeElement.blur(); } catch (e) {}
   if (!cart.length) return;
   if (!tienePerm('ventas_crear')) { toast(T('tpv.sin_permiso_venta'), 'err'); return; }
   var totals = _computeTotals();
@@ -2305,8 +2314,12 @@ function cobrar() {
   _tpvLogVenta(venta, totals);
 
   // Show ticket
+  _tpvCobrando = true;
   mostrarTicket(venta, totals);
   updateCaja();
+  // El carrito ya está cobrado: se vacía para que no se pueda volver a cobrar
+  cart = []; try { renderCart(); } catch (e) {}
+  setTimeout(function () { _tpvCobrando = false; }, 1500);
 }
 
 // Última venta mostrada: el botón Imprimir necesita los datos crudos (no el HTML)
