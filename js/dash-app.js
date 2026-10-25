@@ -15406,12 +15406,14 @@ function _pvpSugerido(s) {
   if (!s || (parseFloat(s.precioV) || 0) > 0) return null;
   // 1) ventas de este mismo producto
   var nombre = _eqNombre(s.marca, s.modelo).toLowerCase(), ult = null;
+  // Por nombre solo si ninguna otra ficha se llama igual (otra calidad o capacidad tendría otro precio)
+  var nombreUnico = (DB.stock || []).filter(function (x) { return x.id !== s.id && _eqNombre(x.marca, x.modelo).toLowerCase() === nombre; }).length === 0;
   (DB.ventas || []).forEach(function (v) {
     if (v.reembolsado) return;
     var its = v.items; if (typeof its === 'string') { try { its = JSON.parse(its); } catch (e) { its = null; } }
     (Array.isArray(its) ? its : []).forEach(function (it) {
       var p = parseFloat(it.precio) || 0; if (p <= 0) return;
-      if (it.idOriginal === s.id || it.id === s.id || String(it.nombre || '').trim().toLowerCase() === nombre) {
+      if (it.idOriginal === s.id || it.id === s.id || (nombreUnico && String(it.nombre || '').trim().toLowerCase() === nombre)) {
         if (!ult || String(v.fecha || '') > ult.f) ult = { f: String(v.fecha || ''), p: p };
       }
     });
@@ -15477,14 +15479,30 @@ var _REV_COLOR = { negro: 1, negra: 1, blanco: 1, blanca: 1, azul: 1, rojo: 1, r
 // Fichas de stock parecidas a la pieza del pedido: misma categoría y marca,
 // todos los números y variantes del modelo de la ficha dentro del nombre de la
 // pieza (y al revés si la pieza es de un solo modelo). Nunca otra calidad.
+// Categoría por el nombre cuando el pedido no la trae (si no, una batería podía ir a una ficha de pantalla)
+function _revCategoria(p) {
+  if (p.categoria) return p.categoria;
+  var n = _sinTildesTP(p.pieza);
+  if (/\btapa\b/.test(n)) return 'Tapa';
+  if (/\bbateria\b/.test(n)) return 'Bateria';
+  if (/\b(flex|conector|puerto|placa) de carga\b/.test(n)) return 'Flex de Carga';
+  if (/\baltavoz\b/.test(n)) return 'Altavoz';
+  if (/\b(protector|cristal templado|funda|cargador|cable|auricular)/.test(n)) return 'Accesorio';
+  if (/\b(pantalla|display|lcd)\b/.test(n)) return 'Pantalla';
+  return '';
+}
 function _revSugerencias(p) {
   var pt = _revTokens(p.pieza + ' ' + (p.marca || '')), set = {};
   pt.forEach(function (x) { set[x] = 1; });
-  var marcaP = _sinTildesTP(p.marca), unModelo = String(p.pieza || '').indexOf('/') < 0;
-  var varPieza = pt.filter(function (x) { return _REV_VAR[x]; });
+  if (set.iphone || set.ipad) set.apple = 1;
+  var marcaP = _sinTildesTP(p.marca);
+  // Pieza para varios modelos ("iPhone 12 Pro / 12 Pro Max"): cada segmento se mira por separado
+  var segs = String(p.pieza || '').split('/').map(function (x) { var t = _revTokens(x); return { set: t.reduce(function (o, y) { o[y] = 1; return o; }, {}), vars: t.filter(function (y) { return _REV_VAR[y]; }), nums: t.filter(function (y) { return /\d/.test(y); }) }; });
+  var catP = _revCategoria(p);
+  if (!catP) return [];
   return (DB.stock || []).filter(function (s) {
     if (s.vendido || s.imei) return false;
-    if (p.categoria && s.categoria && s.categoria !== p.categoria) return false;
+    if (s.categoria && s.categoria !== catP) return false;
     if (p.calidad && s.calidad && s.calidad !== p.calidad) return false;
     return true;
   }).map(function (s) {
@@ -15495,14 +15513,22 @@ function _revSugerencias(p) {
     var claves = mt.filter(function (x) { return /\d/.test(x) || _REV_VAR[x] || x.length === 1; });
     if (!claves.some(function (x) { return /\d/.test(x); })) return null;
     if (!claves.every(function (x) { return set[x]; })) return null;
-    if (unModelo && !varPieza.every(function (x) { return mt.indexOf(x) >= 0; })) return null;
+    // algún segmento de la pieza tiene los números de la ficha y exactamente sus variantes (Pro, Max…)
+    var segOk = segs.some(function (sg, i) {
+      var nums = mt.filter(function (x) { return /\d/.test(x); });
+      var conNums = nums.every(function (x) { return sg.set[x] || (i > 0 && set[x] && !sg.nums.length); });
+      if (!conNums) return false;
+      var varsF = mt.filter(function (x) { return _REV_VAR[x]; });
+      return varsF.every(function (x) { return sg.set[x]; }) && sg.vars.every(function (x) { return varsF.indexOf(x) >= 0; });
+    });
+    if (!segOk) return null;
     // la ficha dice un color y la pieza otro (tapa azul ≠ tapa dorada)
     var colF = mt.concat(_revTokens(s.color)).filter(function (x) { return _REV_COLOR[x]; });
     if (colF.length && pt.some(function (x) { return _REV_COLOR[x]; }) && !colF.some(function (x) { return set[x]; })) return null;
     var hit = mt.filter(function (x) { return set[x]; }).length;
     if (hit / mt.length < 0.6) return null;
-    return { s: s, sc: hit / mt.length + (p.calidad && s.calidad === p.calidad ? 0.2 : 0) };
-  }).filter(Boolean).sort(function (a, b) { return b.sc - a.sc; }).slice(0, 3).map(function (x) { return x.s; });
+    return { s: s, sc: hit / mt.length + (p.calidad && s.calidad === p.calidad ? 0.2 : 0), exacta: hit === mt.length };
+  }).filter(Boolean).sort(function (a, b) { return b.sc - a.sc; }).slice(0, 3).map(function (x) { x.s._revExacta = x.exacta; return x.s; });
 }
 function abrirRevisionStock() {
   if (!tienePerm('stock_revisar')) { toast(T('gen.sin_permiso'), 'err'); return; }
@@ -15529,7 +15555,7 @@ function abrirRevisionStock() {
             '<span style="flex:1;min-width:180px;font-size:12px">' + escHtml(p.pieza || '') + (p.calidad ? ' <span style="font-size:9.5px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 5px;border-radius:4px">' + escHtml(p.calidad) + '</span>' : '') +
               ' <span style="color:var(--muted)">· ' + cur(parseFloat(p.precio_compra) || 0) + '</span></span>' +
             '<input type="number" min="0" max="' + (parseInt(p.cantidad, 10) || 1) + '" value="' + (parseInt(p.cantidad, 10) || 1) + '" title="' + escHtml(T('rev.uds')) + '" data-rq="' + p.id + '" style="width:52px;font-size:12px;padding:4px;border:1px solid var(--border);border-radius:6px">' +
-            '<select data-rs="' + p.id + '" data-sug="' + (sug[0] ? 's:' + sug[0].id : 'nueva') + '" style="max-width:230px;font-size:11.5px;padding:4px;border:1px solid var(--border);border-radius:6px">' + opts + '</select></div>';
+            '<select data-rs="' + p.id + '" data-sug="' + (sug[0] && sug[0]._revExacta ? 's:' + sug[0].id : 'nueva') + '" style="max-width:230px;font-size:11.5px;padding:4px;border:1px solid var(--border);border-radius:6px">' + opts + '</select></div>';
         }).join('') + '</div>';
     }).join('') + '</div>' +
     '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="_revNo" style="padding:9px 16px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:9px;font:inherit;font-weight:600;cursor:pointer">' + escHtml(T('gen.cancelar_2')) + '</button>' +
@@ -15548,21 +15574,31 @@ function revGrupo(k, modo) {
     sel.value = modo === 'usada' ? 'usada' : sel.getAttribute('data-sug');
   });
 }
-function guardarRevisionStock() {
+async function guardarRevisionStock() {
   if (!tienePerm('stock_revisar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var m = window._revModal; if (!m) return;
-  var nT = 0, nU = 0, uds = 0;
-  _revPendientes().forEach(function (p) {
-    var sel = m.box.querySelector('select[data-rs="' + p.id + '"]'); if (!sel || !sel.value) return;
-    var v = sel.value, estado;
-    if (v === 'usada') { estado = 'usada'; nU++; }
+  var btn = m.box.querySelector('#_revOk'); if (btn) { if (btn.disabled) return; btn.disabled = true; }
+  var nT = 0, nU = 0, uds = 0, fallos = 0;
+  var lineas = _revPendientes();
+  for (var li = 0; li < lineas.length; li++) {
+    var p = lineas[li];
+    var sel = m.box.querySelector('select[data-rs="' + p.id + '"]'); if (!sel || !sel.value) continue;
+    var v = sel.value, estado = v === 'usada' ? 'usada' : 'en_stock';
+    // Primero queda guardado que esta línea está revisada; si no se guarda, no se toca el stock
+    // (si no, al recargar seguiría pendiente y se podría sumar dos veces).
+    if (SB_KEY) {
+      var okP = await sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), { revision_stock: estado });
+      if (!okP) { fallos++; continue; }
+    }
+    p.revision_stock = estado;
+    if (v === 'usada') { nU++; }
     else {
       var q = Math.max(0, Math.min(parseInt(p.cantidad, 10) || 1, parseInt((m.box.querySelector('input[data-rq="' + p.id + '"]') || {}).value, 10) || 0));
       if (q > 0) {
         var existe = v.indexOf('s:') === 0 ? (DB.stock || []).find(function (s) { return s.id === v.slice(2); }) : null;
         var pq = Object.assign({}, p, { importe: Math.round((parseFloat(p.precio_compra) || 0) * q * 100) / 100 });
         var tenia = existe ? (parseInt(existe.unidades, 10) || 0) : 0;
-        _recibirAStock(pq, q, existe || null, true, p.categoria);
+        _recibirAStock(pq, q, existe || null, true, _revCategoria(p) || p.categoria);
         // ficha existente sin coste o sin calidad: se completa con la del pedido
         if (existe) {
           var patch = {};
@@ -15573,12 +15609,11 @@ function guardarRevisionStock() {
         }
         uds += q;
       }
-      estado = 'en_stock'; nT++;
+      nT++;
     }
-    p.revision_stock = estado;
-    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), { revision_stock: estado });
-  });
+  }
   m.close(); window._revModal = null;
+  if (fallos) toast(T('rev.fallos').replace('{n}', fallos), 'err');
   try { guardarDatos(); } catch (e) {}
   toast(T('rev.hecho').replace('{t}', nT).replace('{u}', nU).replace('{n}', uds), 'ok');
   try { renderStock(); } catch (e) {}
@@ -27085,15 +27120,19 @@ function renderGestiones() {
 // ── Venta en caja por cada cobro
 function _gesVenta(g, importe, metodo) {
   var tipoIva = (AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21;
-  var iv = calcIVA(importe, tipoIva);
+  // El precio de la cita es lo que paga el cliente: IVA siempre incluido (en modo "añadido"
+  // calcIVA sumaría el 21 % encima y la caja tendría más de lo cobrado).
+  var ivaOn = !!(AJUSTES.iva && AJUSTES.iva.activo);
+  var baseI = ivaOn ? Math.round(importe / (1 + tipoIva / 100) * 100) / 100 : importe;
+  var iv = { base: baseI, iva: Math.round((importe - baseI) * 100) / 100, total: importe };
   var nombre = T('ges.concepto').replace('{t}', g.tipo_nombre || '');
   var venta = {
     id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), fecha: hoyLocal(),
     clienteId: g.cliente_id || '', clienteNombre: g.cliente_nombre || T('gen.sin_cliente'),
     marca: '', modelo: nombre, imei: '', pago: metodo, pagos: null, precio: importe, descuento: 0,
-    iva: (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIva : 0, ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
+    iva: ivaOn ? tipoIva : 0, ivaModo: ivaOn ? 'incluido' : 'sin',
     base: iv.base, ivaImporte: iv.iva, total: iv.total, reembolsado: false, stockId: '', financiado: false, cuotas: null, entrada: 0, entradaPago: null,
-    items: [{ nombre: nombre, qty: 1, precio: importe, imei: '', idOriginal: '', tipoProd: 'servicio', garantiaMeses: 0 }]
+    items: [{ nombre: nombre, qty: 1, precio: importe, imei: '', idOriginal: '', tipoProd: 'servicio', garantiaMeses: 0, esServicio: true }]
   };
   DB.ventas.push(venta);
   if (SB_KEY && TIENDA_ID) {
@@ -27157,7 +27196,10 @@ function abrirGestion(id) {
     if (sinPrecio) setTimeout(function () { try { q('#gesPrecio').focus(); } catch (e) {} }, 30);
   };
   q('#gesTipo').onchange = onTipo;
-  if (g && !g.tipo_id && g.tipo_nombre) { q('#gesTipo').value = '__otro'; q('#gesTipoOtro').style.display = ''; }
+  // Sin tipo o con un tipo que ya se borró: se edita como "Otro" con su nombre
+  if (g && g.tipo_nombre && (!g.tipo_id || !tipos.some(function (t) { return t.id === g.tipo_id; }))) {
+    q('#gesTipo').value = '__otro'; q('#gesTipoOtro').style.display = ''; q('#gesTipoOtro').value = g.tipo_nombre;
+  }
   if (q('#gesCobroModo')) q('#gesCobroModo').onchange = function () { q('#gesSenal').style.display = this.value === 'senal' ? '' : 'none'; };
   q('#gesCli').onchange = function () {
     var nom = this.value.trim(), c = (DB.clis || []).find(function (x) { return (((x.nombre || '') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === nom; });
@@ -27175,7 +27217,7 @@ function abrirGestion(id) {
     var c = (DB.clis || []).find(function (x) { return (((x.nombre || '') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === cli; });
     var obj = g || { id: (typeof _uuidPed === 'function' ? _uuidPed() : 'g' + Date.now()), tienda_id: TIENDA_ID, estado: 'buscando', fecha: hoyLocal(), cobrado: 0, pagos: [], creado_por: U ? U.nombre : null };
     if (g && precio < (parseFloat(g.cobrado) || 0) - 0.004) { toast(T('ges.precio_menor').replace('{x}', cur(parseFloat(g.cobrado) || 0)), 'err'); return; }
-    Object.assign(obj, { tipo_id: tipo ? tipo.id : null, tipo_nombre: tnom, precio: Math.round(precio * 100) / 100, cliente_id: c ? c.id : (obj.cliente_id || null), cliente_nombre: cli,
+    Object.assign(obj, { tipo_id: tipo ? tipo.id : null, tipo_nombre: tnom, precio: Math.round(precio * 100) / 100, cliente_id: c ? c.id : (obj.cliente_nombre === cli ? (obj.cliente_id || null) : null), cliente_nombre: cli,
       cliente_tel: q('#gesTel').value.trim(), cliente_doc: q('#gesDoc').value.trim(), oficina: q('#gesOfi').value.trim(), preferencias: q('#gesPref').value.trim(), nota: q('#gesNota').value.trim() });
     var cobrado = 0;
     if (!g && q('#gesCobroModo')) {
@@ -27261,16 +27303,25 @@ function gesCancelar(id) {
   if (!tienePerm('gestiones_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var g = (DB.gestiones || []).find(function (x) { return x.id === id; }); if (!g) return;
   var cob = parseFloat(g.cobrado) || 0;
-  var fin = function (devolver) {
+  var fin = async function (devolver) {
     if (devolver) {
-      _gesPagos(g).forEach(function (p) {
-        var v = (DB.ventas || []).find(function (x) { return x.id === p.venta_id; });
-        if (v && !v.reembolsado) {
-          v.reembolsado = true; v.fechaReembolso = hoyLocal();
-          if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + encodeURIComponent(v.id), { reembolsado: true, fecha_reembolso: v.fechaReembolso });
+      // Igual que reembolsarVenta: la devolución solo cuenta si queda guardada en la nube
+      // (o en la cola sin conexión); si no, se deshace y la cita no se cancela.
+      var ps = _gesPagos(g), devuelto = 0;
+      for (var i = 0; i < ps.length; i++) {
+        var v = (DB.ventas || []).find(function (x) { return x.id === ps[i].venta_id; });
+        if (!v || v.reembolsado) continue;
+        v.reembolsado = true; v.fechaReembolso = hoyLocal();
+        var q = 'id=eq.' + encodeURIComponent(v.id), ok = true;
+        if (SB_KEY && TIENDA_ID) {
+          ok = await sbPatch('ventas', q, { reembolsado: true, fecha_reembolso: v.fechaReembolso });
+          if (!ok) ok = _syncQueueGet().some(function (op) { return op.method === 'PATCH' && op.table === 'ventas' && op.query === q; });
         }
-      });
-      g.cobrado = 0;
+        if (!ok) { v.reembolsado = false; v.fechaReembolso = ''; toast(T('ges.dev_error'), 'err'); try { guardarDatos(); } catch (e) {} return; }
+        devuelto += parseFloat(v.total) || 0;
+        try { audit('reembolso', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total) + ' · ' + (v.modelo || ''), null); } catch (e) {}
+      }
+      g.cobrado = Math.max(0, Math.round(((parseFloat(g.cobrado) || 0) - devuelto) * 100) / 100);
     }
     g.estado = 'cancelada';
     _gesSync(g); try { guardarDatos(); } catch (e) {}
