@@ -248,6 +248,16 @@ async function _groq(GROQ_KEY, cuerpo) {
 // cuando dice claramente lo que es.
 var _PED_CATS = ['Telefono', 'Tablet', 'Smartwatch', 'Pantalla', 'Tapa', 'Bateria', 'Flex de Carga', 'Altavoz', 'Repuesto', 'Accesorio', 'Funda', 'Otro'];
 function _sinTildes(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+// Marca sacada del nombre cuando se ve clara: la IA a veces la deja vacia o
+// duda entre Huawei y Honor en la misma pieza.
+var _PED_MARCAS = [[/\b(iphone|ipad|apple ?watch|airpods|apple)\b/, 'Apple'], [/\b(samsung|galaxy)\b/, 'Samsung'], [/\bhonor\b/, 'Honor'],
+  [/\bhuawei\b/, 'Huawei'], [/\b(xiaomi|redmi|poco|mi \d)/, 'Xiaomi'], [/\b(pixel|google)\b/, 'Google'], [/\boppo\b/, 'OPPO'], [/\brealme\b/, 'Realme'],
+  [/\b(motorola|moto [a-z]\d)/, 'Motorola'], [/\boneplus\b/, 'OnePlus'], [/\bnokia\b/, 'Nokia'], [/\bsony|xperia\b/, 'Sony'], [/\btcl\b/, 'TCL'], [/\bvivo\b/, 'Vivo']];
+function _pedMarca(marca, pieza) {
+  var n = _sinTildes(pieza);
+  for (var i = 0; i < _PED_MARCAS.length; i++) if (_PED_MARCAS[i][0].test(n)) return _PED_MARCAS[i][1];
+  return String(marca || '').slice(0, 60);
+}
 function _pedCategoria(cat, pieza) {
   var n = _sinTildes(pieza);
   if (/^\s*(original\s+)?pantalla\b/.test(n)) return 'Pantalla';
@@ -294,7 +304,7 @@ async function parsePedidoIA(req, res) {
     'Recibes el texto pegado de un email o albarán (desordenado, multilínea) y devuelves SOLO un JSON válido. ' +
     'Formato exacto: {"lineas":[{"pieza":"","marca":"","categoria":"","calidad":"","cantidad":1,"precio_compra":0,"sku":""}]}. ' +
     'Reglas: ' +
-    '- "pieza": nombre del producto limpio y legible (sin el "x N" ni el SKU). ' +
+    '- "pieza": el nombre del producto COMPLETO tal cual lo escribe el proveedor (con calidad, Original, color, "con marco"...); solo quita el SKU y el "x N". ' +
     '- "marca": Apple, Samsung, Xiaomi, etc. si se deduce; si no, "". ' +
     '- "categoria": una de Telefono, Tablet, Smartwatch, Pantalla, Tapa, Bateria, "Flex de Carga", Altavoz, Repuesto, Accesorio, Funda, Otro. ' +
     'Tapa trasera = Tapa. Piezas sueltas del móvil (bandeja SIM, cámara, lente, botones, flex que no sea de carga) = Repuesto. ' +
@@ -344,7 +354,7 @@ async function parsePedidoIA(req, res) {
     try { parsed = JSON.parse(txt); } catch (e) { return res.status(502).json({ error: 'La IA devolvió una respuesta no válida' }); }
     const lineas = Array.isArray(parsed.lineas) ? parsed.lineas.slice(0, 200).map((l) => ({
       pieza: String(l.pieza || '').slice(0, 200),
-      marca: String(l.marca || '').slice(0, 60),
+      marca: _pedMarca(l.marca, l.pieza),
       categoria: _pedCategoria(l.categoria, l.pieza),
       calidad: _pedCalidad(l.calidad, l.pieza, _pedCategoria(l.categoria, l.pieza)),
       cantidad: Math.max(1, parseInt(l.cantidad, 10) || 1),
