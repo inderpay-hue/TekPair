@@ -3846,10 +3846,14 @@ async function _syncQueueRetryRun() {
     var op = q[i];
     // Una operación de otra tienda (sesión cambiada) fallaría por RLS con el JWT actual
     if (op.tienda && typeof TIENDA_ID !== 'undefined' && TIENDA_ID && op.tienda !== TIENDA_ID) continue;
-    op.attempts = (op.attempts || 0) + 1;
-    // Guardar el contador: antes no se persistía y el tope de reintentos nunca llegaba
-    var _qa = _syncQueueGet(); var _ia = _qa.findIndex(function (x) { return x._opId === op._opId; });
-    if (_ia >= 0) { _qa[_ia].attempts = op.attempts; _syncQueueSet(_qa); }
+    // El contador solo sube con respuestas del servidor que no se arreglan reintentando (0 filas).
+    // Sin red, portal cautivo o Supabase caído (status 0/5xx/408/429) NO cuenta: si no, en
+    // ~2,5 minutos sin internet se descartaban ventas y reparaciones.
+    var _subirIntento = function () {
+      op.attempts = (op.attempts || 0) + 1;
+      var _qa = _syncQueueGet(); var _ia = _qa.findIndex(function (x) { return x._opId === op._opId; });
+      if (_ia >= 0) { _qa[_ia].attempts = op.attempts; _syncQueueSet(_qa); }
+    };
     
     if (op.attempts > SYNC_MAX_RETRIES) {
       console.warn('Sync descartado tras', SYNC_MAX_RETRIES, 'intentos:', op);
@@ -3872,9 +3876,16 @@ async function _syncQueueRetryRun() {
       }
 
       if (op.method === 'PATCH' && res.ok && res.rows === 0) {
-        // 0 filas: el cambio NO se aplicó (la fila aún no existe o RLS). Se reintenta; antes
-        // se daba por bueno y el cambio se perdía en silencio.
-        console.warn('Sync PATCH sin filas, se reintentará:', op.table, op.query);
+        // 0 filas: el cambio NO se aplicó (la fila aún no existe o RLS). Se reintenta unas veces;
+        // antes se daba por bueno y el cambio se perdía en silencio.
+        _subirIntento();
+        if (op.attempts >= SYNC_MAX_RETRIES) {
+          // Con filtros además del id (p. ej. "solo si sigue pendiente") es normal que ya no
+          // aplique: se descarta sin alarmar. Si solo filtra por id, se avisa.
+          var _soloId = /^id=eq\.[^&]+$/.test(String(op.query || ''));
+          _syncQueueRemove(op._opId);
+          if (_soloId) { _reportarFalloNube('PATCH', op.table, 200, 'sin_filas', 'Descartado: 0 filas tras ' + op.attempts + ' intentos'); if (typeof toast === 'function') toast(T('sync.descartado').replace('{t}', op.table), 'err'); }
+        }
       } else if (res.ok || (res.status === 409 && !_es409Grave(res))) {
         // 409 duplicado (ya existe) → reenvío idempotente, quitar sin alarmar. (FK/check 409 cae al else.)
         _syncQueueRemove(op._opId);
@@ -8649,7 +8660,9 @@ function _evSetLinea(i, campo, val) {
   else if (campo === 'precio') it.precio = parseFloat(String(val).replace(',', '.')) || 0;
   else it[campo] = val;
   var s = document.getElementById('evSub' + i); if (s) s.textContent = ((parseFloat(it.desc) || 0) > 0 ? T('ev.con_dto') + ' · ' : '') + cur(_evLineaNeto(it));
-  _evRecalcular();
+  // Cambiar el IMEI o el nombre no cambia el importe: no se recalcula el total (si no, el pago
+  // mixto se validaba contra un total recalculado distinto del real)
+  if (campo === 'qty' || campo === 'precio' || campo === 'desc') _evRecalcular();
 }
 function _evRecalcular() {
   if (!(SEL.evLineas && SEL.evLineas.length)) return;
@@ -10533,10 +10546,12 @@ function rechazarPresupuesto(id) {
     r.estado = 'Rechazado';
     // Devolver al stock las piezas que se reservaron al crear el presupuesto: rechazar no pasa por
     // cambiarEstado, así que la devolución no corría → fuga de stock permanente en cada rechazo.
-    if (Array.isArray(r.componentes) && r.componentes.length) { try { aplicarCambioStockPiezas(r.componentes, [], r); } catch(e){} }
+    var _devuelve = !r.piezasDevueltas && Array.isArray(r.componentes) && r.componentes.length;
+    if (_devuelve) { try { aplicarCambioStockPiezas(r.componentes, [], r); } catch(e){} r.piezasDevueltas = true; }
     guardarDatos();
     if (SB_KEY && TIENDA_ID) {
-      var _okR = sbPatch('reparaciones', 'id=eq.' + r.id, { estado: 'Rechazado' });
+      // Se apunta que las piezas ya volvieron: al borrarlo después no se devuelven otra vez
+      var _okR = sbPatch('reparaciones', 'id=eq.' + r.id, _devuelve ? { estado: 'Rechazado', piezas_devueltas: true } : { estado: 'Rechazado' });
       if (_okR && _okR.then) _okR.then(function(ok){ if (ok === false) toast(T('pres.nube_rechazar_err'), 'err', 4000); });
     }
     toast(T('pres.rechazado_ok'), 'ok');
@@ -10586,12 +10601,11 @@ function eliminarPresupuesto(id) {
   if (r.estado !== 'Presupuesto' && r.estado !== 'Rechazado') { toast(T('pres.solo_borrar'), 'err'); return; }
   _avisoCobrosAlBorrar(r.id).then(function(extra) {
   confirmar(T('pres.borrar_confirm').replace('{cli}', (r.clienteNombre || '')) + extra, function () {
-    // Las piezas reservadas vuelven al stock si aún no se devolvieron. Se mira la marca
-    // piezasDevueltas y no el estado: un presupuesto rechazado por el cliente desde el
-    // enlace público pasa a 'Rechazado' sin devolverlas.
+    // Un 'Presupuesto' aún tiene piezas reservadas: vuelven al stock (si no volvieron ya).
+    // Un 'Rechazado' desde el panel ya las devolvió al rechazar (y ahora lo apunta).
     Promise.resolve((SB_KEY && TIENDA_ID) ? sbDelete('reparaciones', 'id=eq.' + encodeURIComponent(id)) : true).then(function (okDel) {
     if (!okDel) { toast(T('rep.borrar_sin_conexion'), 'err'); return; }
-    if (!r.piezasDevueltas && Array.isArray(r.componentes) && r.componentes.length) { try { aplicarCambioStockPiezas(r.componentes, [], r); } catch(e){} }
+    if (r.estado === 'Presupuesto' && !r.piezasDevueltas && Array.isArray(r.componentes) && r.componentes.length) { try { aplicarCambioStockPiezas(r.componentes, [], r); } catch(e){} }
     DB.reps = (DB.reps || []).filter(function(x){ return x.id !== id; });
     guardarDatos();
     // Borrar la reparación borra también sus pagos en la base de datos (ON DELETE CASCADE):
