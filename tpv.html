@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261025l"></script>
+<script src="/lang/lang.v8.js?v=20261025m"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -885,7 +885,9 @@ function _tpvReintentar() {
     });
   }
   var _acabar = function () { _tpvReintentando = false; if (_tpvReintentar._fin) { var f = _tpvReintentar._fin; _tpvReintentar._fin = null; f(); } };
-  if (_tpvReintentando || !SB_KEY || !navigator.onLine) { if (_tpvReintentar._fin) _acabar(); return; }
+  // Otra pasada en marcha: no se toca nada (resolver aquí soltaba el candado con fetch vivos)
+  if (_tpvReintentando) return;
+  if (!SB_KEY || !navigator.onLine) { if (_tpvReintentar._fin) _acabar(); return; }
   var ops = _tpvColaGet().filter(function(x) { return x && x.origen === 'tpv'; });
   if (!ops.length) { if (_tpvReintentar._fin) _acabar(); return; }
   _tpvReintentando = true;
@@ -1986,7 +1988,8 @@ function _computeTotals() {
   var _c = function (x) { return Math.round((x || 0) * 100) / 100; };
   var _tot = _c(total + netoU), _iva = _c(ivaImporte + cuotaU);
   return {subtotal:_c(subtotal), disc:_c(disc), discLineas:_c(discLineas), discGlobal:_c(discGlobal),
-    base:_c(_tot - _iva), ivaTipo:ivaTipo, ivaImporte:_iva, ivaModo:ivaModo, total:_tot,
+    // base = base normal + base del margen de usados (no total − IVA: el coste del usado no es base)
+    base:_c(base + baseU), ivaTipo:ivaTipo, ivaImporte:_iva, ivaModo:ivaModo, total:_tot,
     nBase:_c(base), nIva:_c(ivaImporte), usados:usados};
 }
 

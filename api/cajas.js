@@ -1006,6 +1006,9 @@ export default async function handler(req, res) {
         const nomAp = (req.body.abierto_por_nombre || '').toString().trim();
         if (!yaAbierta) {
           if (codAp) {
+            // Mismo límite de intentos que validar_codigo: si no, aquí se podían probar códigos
+            const rlAp = await rateLimit('cajas:codigo:' + tienda_id + ':' + (payload.sub || ''), 10, 5 * 60);
+            if (!rlAp.ok) return err(res, 429, 'Demasiados intentos. Espera unos minutos.');
             const us = await sbGet(
               `usuarios?tienda_id=eq.${encodeURIComponent(tienda_id)}&codigo=eq.${encodeURIComponent(codAp)}&select=nombre&limit=1`
             );
