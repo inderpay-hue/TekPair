@@ -1248,7 +1248,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261025b"></script>
+<script src="/lang/lang.v8.js?v=20261025c"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -1824,6 +1824,8 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     <button class="stock-tab-btn" data-cat="__low__" data-t="stockcat.stock_bajo">⚠️ Stock bajo</button>
   </div>
   <div id="stockMarcasFiltro" style="display:none;flex-wrap:wrap;gap:6px;margin:0 0 10px"></div>
+  <div id="stockCalFiltro" style="display:none;flex-wrap:wrap;gap:6px;margin:0 0 10px"></div>
+  <div id="stockResumen" style="font-size:12px;color:var(--muted);font-weight:700;margin:0 0 8px"></div>
   <div id="stockNegBanner"></div>
   <div id="alertasStock"></div>
   <div id="filtroUbicWrap" style="display:none;margin-bottom:10px">
@@ -1864,6 +1866,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
     <button class="cat-tab-btn" data-cat="Accesorio" onclick="setCatFiltro('Accesorio',this)" data-t="stock.cat_accesorio">Accesorio</button>
   </div>
   <div id="catMarcasFiltro" style="display:none;flex-wrap:wrap;gap:6px;margin:0 0 10px"></div>
+  <div id="catCalFiltro" style="display:none;flex-wrap:wrap;gap:6px;margin:0 0 10px"></div>
   <div id="catalogoContainer"><div class="empty">…</div></div>
 </div>
 
@@ -5725,7 +5728,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261023b"></script>
-<script src="/js/dash-app.js?v=20261025b"></script>
+<script src="/js/dash-app.js?v=20261025c"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">

@@ -14557,9 +14557,14 @@ function renderStock() {
   renderStockFiltroMarcas(catBase);
   var list = catBase.filter(function(s) {
     if (marcaF && (s.marca || '').trim().toLowerCase() !== marcaF) return false;
-    if (q && !(s.marca + ' ' + s.modelo + ' ' + (s.imei || '') + ' ' + (s.color || '') + ' ' + (s.categoria || '')).toLowerCase().includes(q)) return false;
+    if (q && !(s.marca + ' ' + s.modelo + ' ' + (s.imei || '') + ' ' + (s.color || '') + ' ' + (s.categoria || '') + ' ' + (s.calidad || '')).toLowerCase().includes(q)) return false;
     return true;
   });
+  // Calidad: chips con unidades de cada una (Original, Incell, OLED...) y filtro
+  _renderCalChips('stockCalFiltro', list, window._stockFiltroCal || '', 'setStockFiltroCal');
+  if (window._stockFiltroCal) list = list.filter(function (s) { return _calKey(s.calidad) === window._stockFiltroCal; });
+  var _res = document.getElementById('stockResumen');
+  if (_res) _res.textContent = list.length ? T('stock.resumen').replace('{p}', list.length).replace('{u}', list.reduce(function (a, s) { return a + (parseInt(s.unidades, 10) || 0); }, 0)) : '';
   // Alertas solo en stock bajo
   var elA = document.getElementById('alertasStock');
   if (cat === '__low__') {
@@ -15183,6 +15188,46 @@ function renderStockFiltroMarcas(catBase) {
 function setStockFiltroMarca(m) {
   window._stockFiltroMarca = (window._stockFiltroMarca === m) ? '' : m;  // toggle
   renderStock();
+}
+function setStockFiltroCal(c) {
+  window._stockFiltroCal = (window._stockFiltroCal === c) ? '' : c;  // toggle
+  renderStock();
+}
+// ═══ CALIDADES en Stock y Catálogo ═══
+// "Pantallas: 114" no dice cuántas son Original, Incell u OLED. Chips con las
+// unidades de cada calidad (y "Sin calidad") que además filtran la lista.
+var _CAL_SIN = '__sin__';
+function _calKey(c) { return String(c || '').trim() || _CAL_SIN; }
+function _renderCalChips(boxId, items, sel, fn) {
+  var box = document.getElementById(boxId); if (!box) return;
+  var counts = {};
+  (items || []).forEach(function (s) {
+    var k = _calKey(s.calidad);
+    counts[k] = (counts[k] || 0) + (parseInt(s.unidades, 10) || 0);
+  });
+  var keys = Object.keys(counts);
+  // Solo si hay alguna calidad apuntada y más de un valor (o hay uno elegido)
+  if (!sel && (keys.length < 2 || (keys.length === 1 && keys[0] === _CAL_SIN))) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  var orden = (CALIDADES_PANTALLA || []).map(function (c) { return c.v; });
+  keys.sort(function (a, b) {
+    if (a === _CAL_SIN) return 1; if (b === _CAL_SIN) return -1;
+    var ia = orden.indexOf(a), ib = orden.indexOf(b);
+    if (ia < 0 && ib < 0) return counts[b] - counts[a];
+    return (ia < 0 ? 99 : ia) - (ib < 0 ? 99 : ib);
+  });
+  var total = keys.reduce(function (a, k) { return a + counts[k]; }, 0);
+  var chip = function (val, on, inner) {
+    return '<button type="button" onclick="' + fn + '(\'' + val.replace(/'/g, "\\'") + '\')" style="display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:18px;border:1.5px solid ' + (on ? '#7C5CFC' : 'var(--border)') + ';background:' + (on ? 'rgba(124,92,252,.10)' : '#fff') + ';color:var(--text);font:inherit;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">' + inner + '</button>';
+  };
+  var html = chip('', !sel, '🔎 ' + escHtml(T('stock.todas_calidades')) + '<span style="color:var(--muted);font-weight:700">' + total + '</span>');
+  html += keys.map(function (k) {
+    var cal = (CALIDADES_PANTALLA || []).find(function (c) { return c.v === k; });
+    var lbl = k === _CAL_SIN ? T('stock.sin_calidad') : k;
+    var dot = '<span style="width:8px;height:8px;border-radius:50%;background:' + (cal ? cal.col : 'var(--muted)') + ';display:inline-block"></span>';
+    return chip(k, sel === k, dot + '<span>' + escHtml(lbl) + '</span><span style="color:var(--muted);font-weight:700">' + counts[k] + '</span>');
+  }).join('');
+  box.style.display = 'flex';
+  box.innerHTML = html;
 }
 function nuevoStock() {
   SEL.editStockId = null;
@@ -20560,6 +20605,7 @@ function eliminarServicio(id) {
 // ═══ CATÁLOGO (stock por modelo) — integrado, sincronizado con Supabase ═══
 var _catFiltro = '';
 var _catFiltroMarca = '';
+var _catFiltroCal = '';
 // Swatch de color para el desglose por color (nombres comunes ES/EN)
 var CAT_COLOR_HEX = { negro:'#222', black:'#222', blanco:'#eee', white:'#eee', azul:'#2563eb', blue:'#2563eb', rojo:'#dc2626', red:'#dc2626', verde:'#16a34a', green:'#16a34a', dorado:'#d4af37', gold:'#d4af37', plata:'#c0c0c0', silver:'#c0c0c0', gris:'#6b7280', gray:'#6b7280', grey:'#6b7280', rosa:'#ec4899', pink:'#ec4899', morado:'#7c3aed', purple:'#7c3aed', violeta:'#7c3aed', amarillo:'#eab308', yellow:'#eab308', naranja:'#f97316', orange:'#f97316', titanio:'#8a8d8f', grafito:'#383838' };
 function _catColorHex(c) { var k = (c || '').toLowerCase().replace(/[^a-z]/g, ''); for (var key in CAT_COLOR_HEX) { if (k.indexOf(key) !== -1) return CAT_COLOR_HEX[key]; } return '#cbd5e1'; }
@@ -20591,11 +20637,16 @@ function _catNombre(cat) {
 function setCatFiltro(f, btn) {
   _catFiltro = f;
   _catFiltroMarca = '';  // al cambiar de categoría, limpiar filtro de marca
+  _catFiltroCal = '';
   try { Array.prototype.forEach.call(document.querySelectorAll('#catTabs .cat-tab-btn'), function(b) { b.classList.toggle('active', b === btn); }); } catch(e){}
   renderCatalogo();
 }
 function setCatFiltroMarca(m) {
   _catFiltroMarca = (_catFiltroMarca === m) ? '' : m;  // toggle
+  renderCatalogo();
+}
+function setCatFiltroCal(c) {
+  _catFiltroCal = (_catFiltroCal === c) ? '' : c;  // toggle
   renderCatalogo();
 }
 // Chips de marca del catálogo (marcas presentes en la categoría activa)
@@ -20660,6 +20711,7 @@ function renderCatalogo() {
   // aparecen modelos agotados que confundían (ej: "Repuestos" a 0 unidades).
   var catBase = (DB.stock || []).filter(function(s) { return !s.vendido && (parseInt(s.unidades, 10) || 0) > 0 && (!filtro || (s.categoria || 'Otro') === filtro); });
   renderCatFiltroMarcas(catBase);
+  _renderCalChips('catCalFiltro', catBase.filter(function (s) { return !marcaF || (s.marca || '').toLowerCase() === marcaF; }), _catFiltroCal, 'setCatFiltroCal');
   // Mapa stockId → color (incluye vendidos) para contar ventas por color
   var stockColor = {};
   (DB.stock || []).forEach(function(s) { stockColor[s.id] = (s.color || '').trim(); });
@@ -20667,9 +20719,11 @@ function renderCatalogo() {
   catBase.forEach(function(s) {
     var marca = s.marca || '—', modelo = s.modelo || '—';
     if (marcaF && marca.toLowerCase() !== marcaF) return;
-    if (q && (marca + ' ' + modelo + ' ' + (s.imei || '') + ' ' + (s.color || '')).toLowerCase().indexOf(q) === -1) return;
+    if (_catFiltroCal && _calKey(s.calidad) !== _catFiltroCal) return;
+    if (q && (marca + ' ' + modelo + ' ' + (s.imei || '') + ' ' + (s.color || '') + ' ' + (s.calidad || '')).toLowerCase().indexOf(q) === -1) return;
     var cat = s.categoria || 'Otro';
-    var key = cat + '::' + marca.toLowerCase() + '::' + modelo.toLowerCase();
+    // La calidad separa: un iPhone 11 Original y uno Incell no son el mismo producto
+    var key = cat + '::' + marca.toLowerCase() + '::' + modelo.toLowerCase() + '::' + _calKey(s.calidad).toLowerCase();
     if (!grupos[key]) grupos[key] = { cat: cat, marca: _tcMarca(marca), modelo: _tcModelo(modelo), unidades: 0, conImei: 0, pvp: 0, calidad: '', ids: [], colores: {} };
     var g = grupos[key];
     g.unidades += parseInt(s.unidades, 10) || 0;
@@ -22874,6 +22928,7 @@ document.addEventListener('click', function(e){
   document.querySelectorAll('.stock-tab-btn').forEach(function(x){ x.classList.remove('active'); });
   b.classList.add('active');
   window._stockFiltroMarca = '';   // al cambiar de categoría, limpiar filtro de marca
+  window._stockFiltroCal = '';
   if (typeof renderStock === 'function') renderStock();
 });
 
