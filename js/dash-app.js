@@ -5160,12 +5160,42 @@ function renderProximaAccion() {
   var c2 = n.cta2 ? '<button onclick="' + n.cta2.fn + '" style="border:1px solid var(--border);background:var(--card,#fff);color:var(--text);border-radius:8px;padding:10px 14px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">' + n.cta2.label + '</button>' : '';
   box.innerHTML = '<div style="background:var(--card,#fff);border:1px solid var(--border);border-left:5px solid ' + col + ';border-radius:12px;padding:16px 18px;margin-bottom:16px">' +
     '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><span style="font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:var(--muted);flex:1">🎯 ' + T('next.titulo_widget') + '</span>' +
-    '<button onclick="_proxSkip()" title="' + esc(T('next.saltar')) + '" style="border:none;background:var(--light);color:var(--muted);width:28px;height:28px;border-radius:50%;font-size:13px;cursor:pointer">⏭</button></div>' +
+    '<button onclick="_proxMenu()" title="' + esc(T('next.posponer')) + '" style="border:1px solid var(--border);background:var(--light);color:var(--text);border-radius:8px;padding:4px 9px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">⏰ ' + esc(T('next.posponer')) + ' ▾</button>' +
+    '<button onclick="_proxHecho()" title="' + esc(T('next.hecho_t')) + '" style="border:1px solid rgba(16,185,129,.4);background:rgba(16,185,129,.1);color:var(--green,#0E9F6E);border-radius:8px;padding:4px 9px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">✓ ' + esc(T('next.hecho')) + '</button></div>' +
+    '<div id="proxMenu" style="display:none;gap:6px;flex-wrap:wrap;margin:-2px 0 10px">' +
+      [['1h', 'next.p_1h'], ['4h', 'next.p_4h'], ['manana', 'next.p_manana'], ['semana', 'next.p_semana']].map(function (o) {
+        return '<button onclick="_proxPosponer(\'' + o[0] + '\')" style="border:1px solid var(--border);background:var(--card,#fff);color:var(--text);border-radius:999px;padding:4px 11px;font:inherit;font-size:12px;font-weight:600;cursor:pointer">' + esc(T(o[1])) + '</button>';
+      }).join('') + '</div>' +
     '<div style="font-size:15px;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:3px">' + n.icon + ' ' + esc(n.titulo) + '</div>' +
     '<div style="font-size:12.5px;color:var(--muted);margin-bottom:13px;line-height:1.4">' + esc(n.sub) + '</div>' +
     '<div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="' + n.cta.fn + '" style="border:none;background:' + col + ';color:#fff;border-radius:8px;padding:10px 18px;font:inherit;font-size:13px;font-weight:700;cursor:pointer">' + n.cta.label + '</button>' + c2 + '</div>' +
     '</div>';
   box.style.display = 'block';
+}
+// Posponer "lo más urgente" un rato o darlo por hecho. Va por clave (incluye el caso
+// concreto), así que si la situación cambia vuelve a salir con otra clave.
+function _proxMenu() { var m = document.getElementById('proxMenu'); if (m) m.style.display = m.style.display === 'flex' ? 'none' : 'flex'; }
+function _proxHasta(key, ms) {
+  if (!key) return;
+  var s = _proxSkipped(), ahora = Date.now();
+  Object.keys(s).forEach(function (k) { if (s[k] <= ahora) delete s[k]; });   // limpiar los vencidos
+  s[key] = ms;
+  try { localStorage.setItem('tk_next_skipped', JSON.stringify(s)); } catch (e) {}
+  renderProximaAccion();
+}
+function _proxPosponer(cuanto) {
+  var n = window._proxActual; if (!n) return;
+  var h = 3600 * 1000, t = Date.now() + 4 * h;
+  if (cuanto === '1h') t = Date.now() + h;
+  else if (cuanto === 'semana') t = Date.now() + 7 * 24 * h;
+  else if (cuanto === 'manana') { var d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); t = d.getTime(); }
+  _proxHasta(n.key, t);
+  toast(T('next.pospuesto'), 'ok');
+}
+function _proxHecho() {
+  var n = window._proxActual; if (!n) return;
+  _proxHasta(n.key, Date.now() + 365 * 24 * 3600 * 1000);
+  toast(T('next.hecho_ok'), 'ok');
 }
 function _proxSkip() {
   var n = window._proxActual; if (!n || !n.key) return;
