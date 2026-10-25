@@ -576,7 +576,7 @@ async function presRechazar(body, ip) {
 
   let reps;
   try {
-    reps = await sbGet(`reparaciones?presupuesto_token=eq.${encodeURIComponent(token)}&select=id,tienda_id,cliente_nombre,marca,modelo,presupuesto_token_exp,presupuesto_aceptado_at,estado&limit=1`);
+    reps = await sbGet(`reparaciones?presupuesto_token=eq.${encodeURIComponent(token)}&select=id,tienda_id,cliente_nombre,marca,modelo,presupuesto_token_exp,presupuesto_aceptado_at,estado,componentes,piezas_devueltas&limit=1`);
   } catch(e) { return { ok:false, error:'Error al verificar presupuesto', status:500 }; }
 
   if (!reps?.length) return { ok:false, error:'Enlace inválido o caducado', status:404 };
@@ -592,12 +592,28 @@ async function presRechazar(body, ip) {
     return { ok:true, yaRechazado:true };
   }
 
+  // Las piezas reservadas al crear el presupuesto vuelven al stock (antes se quedaban fuera
+  // para siempre: el panel solo las devuelve cuando el rechazo se hace desde allí).
+  const _comps = (() => { try { return Array.isArray(rep.componentes) ? rep.componentes : JSON.parse(rep.componentes || '[]'); } catch (e) { return []; } })();
+  const _devolver = !rep.piezas_devueltas && Array.isArray(_comps) && _comps.length > 0;
   try {
-    await sbPatch(`reparaciones?id=eq.${encodeURIComponent(rep.id)}&tienda_id=eq.${encodeURIComponent(rep.tienda_id)}`, {
+    await sbPatch(`reparaciones?id=eq.${encodeURIComponent(rep.id)}&tienda_id=eq.${encodeURIComponent(rep.tienda_id)}&estado=neq.Rechazado`, Object.assign({
       estado: 'Rechazado',
       presupuesto_token: null,
-    });
+    }, _devolver ? { piezas_devueltas: true } : {}));
   } catch(e) { return { ok:false, error:'Error al guardar rechazo', status:500 }; }
+  if (_devolver) {
+    const porId = {};
+    _comps.forEach((c) => { if (c && c.id) porId[c.id] = (porId[c.id] || 0) + 1; });
+    for (const id of Object.keys(porId)) {
+      try {
+        const st = await sbGet(`stock?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(rep.tienda_id)}&select=unidades&limit=1`);
+        if (!st.length) continue;
+        const u = (parseInt(st[0].unidades, 10) || 0) + porId[id];
+        await sbPatch(`stock?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(rep.tienda_id)}`, u > 0 ? { unidades: u, vendido: false } : { unidades: u });
+      } catch (e) { console.warn('[presRechazar] no se pudo devolver al stock', id, e.message); }
+    }
+  }
 
   // Notificación al taller
   try {
