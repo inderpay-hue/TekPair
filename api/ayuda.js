@@ -292,6 +292,30 @@ function _pedCalidad(cal, pieza, cat) {
   return '';
 }
 
+// Precio por linea o por unidad. Hay proveedores (GSMMAX/GSMWOOX) que ponen
+// "5x AURICULARES 25.00 €" = 25 € la linea (5 € cada uno), y la IA no siempre
+// lo nota. El Total del pedido lo decide: si se acerca mas a la suma de los
+// precios que a la suma de precio x cantidad, eran totales de linea.
+function _numEur(t) {
+  var s = String(t || '').replace(/[^\d.,-]/g, '');
+  if (s.indexOf(',') >= 0 && s.indexOf('.') >= 0) s = s.replace(/\./g, '').replace(',', '.');
+  else if (s.indexOf(',') >= 0) s = s.replace(',', '.');
+  return parseFloat(s) || 0;
+}
+function _pedPrecioUnitario(lineas, texto) {
+  if (!lineas.length || !lineas.some(function (l) { return l.cantidad > 1; })) return;
+  var m, total = 0, re = /(?:^|\s)total(?![\s\-]*(?:l[ií]nea|parcial))\s*[:=]?\s*(?:€|eur)?\s*([\d][\d.,]*)/gi;
+  while ((m = re.exec(String(texto || '')))) total = _numEur(m[1]) || total;   // el ultimo "Total" es el del pedido
+  if (!(total > 0)) return;
+  var porUd = 0, porLinea = 0;
+  lineas.forEach(function (l) { porUd += l.precio_compra * l.cantidad; porLinea += l.precio_compra; });
+  var dUd = Math.abs(porUd - total), dLinea = Math.abs(porLinea - total);
+  // margen para descuentos/envio que la IA no cuenta como linea
+  if (dLinea < dUd && dLinea <= Math.max(0.05, total * 0.15)) {
+    lineas.forEach(function (l) { if (l.cantidad > 1) l.precio_compra = Math.round(l.precio_compra / l.cantidad * 10000) / 10000; });
+  }
+}
+
 async function parsePedidoIA(req, res) {
   const GROQ_KEY = process.env.GROQ_API_KEY;
   if (!GROQ_KEY) return res.status(503).json({ error: 'IA no configurada (falta GROQ_API_KEY en el servidor)' });
@@ -313,6 +337,7 @@ async function parsePedidoIA(req, res) {
     'Si el nombre dice "Original" es Original; "OLED Soft" es "Soft OLED"; "OLED Hard" es "Hard OLED"; INCELL es Incell. "LCD+Táctil" solo indica que es la pantalla completa, no la calidad. ' +
     '- "cantidad": entero del "x N" (por defecto 1). ' +
     '- "precio_compra": el COSTE unitario en número (punto decimal, sin símbolo de moneda). El proveedor da el COSTE, nunca el precio de venta. ' +
+    'Ojo: algunos proveedores (p. ej. GSMMAX/GSMWOOX, "10x CABLE ... 4.50 €") ponen el TOTAL de la línea y no el unitario; si las líneas suman el Total del pedido, divide cada importe entre su cantidad. ' +
     '- "sku": el código/SKU si aparece, si no "". ' +
     'Ignora líneas de Subtotal, Envío, Método de pago, TOTAL y cabeceras de tabla. No inventes productos.';
 
@@ -362,6 +387,7 @@ async function parsePedidoIA(req, res) {
       precio_venta: 0,
       sku: String(l.sku || '').slice(0, 60)
     })) : [];
+    _pedPrecioUnitario(lineas, texto);
     return res.json({ ok: true, lineas });
   } catch (e) {
     console.error('[parse-pedido] error', e);
