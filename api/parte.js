@@ -198,7 +198,8 @@ async function cobroDatosCuota(req, res) {
     const cobro = (tienda.cobro_datos && typeof tienda.cobro_datos === 'object') ? tienda.cobro_datos : {};
     return res.status(200).json({
       ok: true,
-      cuota: { num: idx + 1, total: cuotas.length, importe: cu.importe, vence: cu.fecha || '', pagado: !!cu.pagado },
+      // Lo que falta de esa cuota (si ya se pagó una parte, no se pide entera)
+      cuota: { num: idx + 1, total: cuotas.length, importe: Math.max(0, Math.round(((parseFloat(cu.importe) || 0) - (cu.pagadoImporte != null ? (parseFloat(cu.pagadoImporte) || 0) : (cu.pagado ? (parseFloat(cu.importe) || 0) : 0))) * 100) / 100), vence: cu.fecha || '', pagado: !!cu.pagado },
       equipo: `${rep.marca || ''} ${rep.modelo || ''}`.trim(),
       cliente: rep.cliente_nombre || '',
       concepto: `REP-${rep.numero || id}-CUOTA-${idx + 1}`,

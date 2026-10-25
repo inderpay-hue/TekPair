@@ -5625,7 +5625,7 @@ function _cuotasParaReclamar() {
       dias: Math.max(1, Math.round((new Date(hoy) - new Date(f0)) / 86400000)) });
   }
   (DB.ventas || []).forEach(function (v) { if (!v.reembolsado) mira(v, 'venta'); });
-  (DB.reps || []).forEach(function (r) { if (['Rechazado', 'Devuelto', 'Sin Solucion'].indexOf(r.estado) === -1) mira(r, 'rep'); });
+  (DB.reps || []).forEach(function (r) { if (['Presupuesto', 'Rechazado', 'Devuelto', 'Sin Solucion'].indexOf(r.estado) === -1) mira(r, 'rep'); });
   return out.sort(function (a, b) { return b.dias - a.dias; });
 }
 function _cliDeFin(x) {
@@ -5646,6 +5646,7 @@ function renderCuotasReclamar() {
   var lista = _cuotasParaReclamar().filter(function (x) { return !_reclamadoReciente(x.obj.id); });
   if (!lista.length) { _inicioBuckets.reclamar = 0; box.style.display = 'none'; box.innerHTML = ''; return; }
   var total = lista.reduce(function (a, x) { return a + x.debe; }, 0);
+  var nCuotas = lista.reduce(function (a, x) { return a + x.n; }, 0);
   var rows = lista.slice(0, 10).map(function (x) {
     var o = x.obj, cli = _cliDeFin(x);
     var equipo = x.tipo === 'rep' ? ((o.marca || '') + ' ' + (o.modelo || '')).trim() : (o.modelo || '');
@@ -5659,7 +5660,7 @@ function renderCuotasReclamar() {
       '<div style="font-size:11px;color:#B45309;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">' + esc(sub) + '</div></div>' + bCobrar + bWa + '</div>';
   }).join('');
   box.innerHTML = '<div style="background:#FFFBEB;border:1px solid #FDE68A;border-left:4px solid #B45309;border-radius:12px;padding:14px 16px;margin-bottom:18px">' +
-    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:16px">💰</span><strong style="color:#92400E;font-size:14px">' + esc(T('reclamar.titulo').replace('{n}', lista.length).replace('{imp}', cur(total))) + '</strong></div>' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px"><span style="font-size:16px">💰</span><strong style="color:#92400E;font-size:14px">' + esc(T('reclamar.titulo').replace('{n}', nCuotas).replace('{imp}', cur(total))) + '</strong></div>' +
     '<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">' + esc(T('reclamar.ayuda').replace('{d}', _RECLAMAR_DIAS)) + '</div>' +
     '<div>' + rows + '</div>' +
     (lista.length > 10 ? '<div style="font-size:11.5px;color:var(--muted);margin-top:6px">+' + (lista.length - 10) + '</div>' : '') +
@@ -5681,7 +5682,8 @@ function reclamarCuotas(tipo, id) {
   // La ventana se abre YA: si se abre después de esperar el enlace, el navegador la bloquea.
   var w = window.open('', '_blank');
   var cd = (TIENDA && TIENDA.cobroDatos) || {};
-  var conLink = tipo === 'rep' && (cd.bizum_on || cd.transfer_on || cd.paypal_on);
+  // El enlace cobra UNA cuota: con varias vencidas, el mensaje pide el total y el enlace engañaría.
+  var conLink = tipo === 'rep' && x.n === 1 && (cd.bizum_on || cd.transfer_on || cd.paypal_on);
   var pLink = conLink ? asegurarToken(o).then(function (token) {
     var base = (location.origin && location.origin.indexOf('http') === 0) ? location.origin : 'https://www.tekpair.tech';
     return base + '/cobrar.html?id=' + encodeURIComponent(o.id) + '&t=' + encodeURIComponent(token) + '&n=' + x.idx;
@@ -23042,7 +23044,7 @@ function _cargarHistorialAvisos(repId) {
   if (!box || !SB_KEY || typeof sbGet !== 'function') return;
   sbGet('avisos', 'ref_id=eq.' + encodeURIComponent(repId) + '&order=fecha.desc&limit=40').then(function(rows){
     if (!Array.isArray(rows) || !rows.length) { box.innerHTML = '<div style="font-size:11px;color:var(--muted)">' + T('det.sin_avisos') + '</div>'; return; }
-    var TIPO = {presupuesto_enviado:T('avisos.tipo_presupuesto_enviado'), presupuesto_aceptado:T('avisos.tipo_aceptado'), presupuesto_rechazado:T('avisos.tipo_rechazado'), factura_enviada:T('avisos.tipo_factura'), aviso_rep:T('avisos.tipo_aviso'), aviso_cliente:T('avisos.tipo_aviso'), cita_aviso:T('avisos.tipo_cita')};
+    var TIPO = {presupuesto_enviado:T('avisos.tipo_presupuesto_enviado'), presupuesto_aceptado:T('avisos.tipo_aceptado'), presupuesto_rechazado:T('avisos.tipo_rechazado'), factura_enviada:T('avisos.tipo_factura'), aviso_rep:T('avisos.tipo_aviso'), aviso_cliente:T('avisos.tipo_aviso'), cita_aviso:T('avisos.tipo_cita'), cuota_reclamada:T('avisos.tipo_cuota_reclamada')};
     var CANAL = {whatsapp:'📱 WhatsApp', email:'📧 Email', sistema:'🔔 ' + T('avisos.canal_sistema')};
     box.innerHTML = rows.map(function(a){
       var f = ''; try { var d = new Date(a.fecha); f = d.toLocaleDateString('es',{day:'2-digit',month:'2-digit',year:'2-digit'}) + ' ' + d.toLocaleTimeString('es',{hour:'2-digit',minute:'2-digit'}); } catch(e){}
@@ -26451,7 +26453,7 @@ function _avisoTexto(r, cli, key, link) {
   var pl = getPlantillasWA();
   var p = pl[key] || { texto: (T('wa.txt_' + key) !== 'wa.txt_' + key) ? T('wa.txt_' + key) : ((PLANTILLAS_WA_DEFAULT[key] || {}).texto || '') };
   var txt = aplicarVariablesWA(p.texto, { nombre: (cli && cli.nombre) || (r.clienteNombre || '').split(' ')[0], tienda: TIENDA.nombre || '',
-    marca: r.marca || '', modelo: ((r.marca || '') + ' ' + (r.modelo || '')).trim(), averia: r.averia || '', total: r.total || 0,
+    marca: r.marca || '', modelo: ((r.marca || '') + ' ' + (r.modelo || '')).trim(), averia: r.averia || '', total: r.total || 0, pendiente: _repPendiente(r),
     estado: T('estado.' + r.estado) || r.estado, link: link || '' });
   if ((key === 'rep_lista' || key === 'rep_recogida') && (p.texto || '').indexOf('{pendiente}') === -1) txt += _repLineaPago(r);
   if (link && txt.indexOf(link) === -1) txt += '\n\n' + (key === 'rep_valoracion' ? '⭐ ' + T('val.puntua') : '🔗 ' + T('aviso.seguir')) + ' ' + link;

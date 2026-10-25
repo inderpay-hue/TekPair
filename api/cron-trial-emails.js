@@ -699,7 +699,7 @@ async function recordatoriosRecogida(SUPABASE_URL, headers, RESEND_KEY, now) {
       const cfg = (t.ajustes_config && t.ajustes_config.recogida) || {};
       if (cfg.off === true) continue;
       const dias = Math.max(1, parseInt(cfg.dias, 10) || 7);
-      const reps = await q(`reparaciones?tienda_id=eq.${encodeURIComponent(t.id)}&estado=in.(%22Por%20Entregar%22,%22Por%20entregar%22)&select=id,cliente_id,cliente_nombre,marca,modelo,token`);
+      const reps = await q(`reparaciones?tienda_id=eq.${encodeURIComponent(t.id)}&estado=in.(%22Por%20Entregar%22,%22Por%20entregar%22)&select=id,cliente_id,cliente_nombre,marca,modelo,token,total,restante,financiado`);
       if (!reps.length) continue;
       out.tiendas++;
       const avisos = [];
@@ -728,8 +728,16 @@ async function recordatoriosRecogida(SUPABASE_URL, headers, RESEND_KEY, now) {
         if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) continue;
         const nombre = (cl.nombre || r.cliente_nombre || '').trim();
         const modelo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
-        const texto = String(plantilla).replace(/\{nombre\}/g, nombre).replace(/\{modelo\}/g, modelo).replace(/\{tienda\}/g, t.nombre || 'TekPair')
-          .replace(/\{dias\}/g, String(Math.floor((now.getTime() - x.ult) / 86400000))).replace(/\{[a-z_]+\}/g, '');
+        // Lo que queda por pagar (no en financiadas: eso va en cuotas)
+        const queda = Math.max(0, Math.round((parseFloat(r.restante) || 0) * 100) / 100);
+        const eur = (n) => n.toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' €';
+        const conPago = !r.financiado && (parseFloat(r.total) || 0) > 0;
+        const lineaPago = conPago ? (queda > 0.005 ? `Quedan ${eur(queda)} por pagar.` : 'Ya está todo pagado.') : '';
+        let texto = String(plantilla).replace(/\{nombre\}/g, nombre).replace(/\{modelo\}/g, modelo).replace(/\{tienda\}/g, t.nombre || 'TekPair')
+          .replace(/\{dias\}/g, String(Math.floor((now.getTime() - x.ult) / 86400000)))
+          .replace(/\{pendiente\}/g, conPago ? eur(queda) : '');
+        if (lineaPago && String(plantilla).indexOf('{pendiente}') === -1) texto += '\n\n' + lineaPago;
+        texto = texto.replace(/\{[a-z_]+\}/g, '');
         const link = r.token ? `https://www.tekpair.tech/parte.html?id=${encodeURIComponent(r.id)}&t=${encodeURIComponent(r.token)}` : '';
         // Se apunta ANTES de enviar: si el cron se repite, no manda dos veces.
         const avId = 'av_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7);
