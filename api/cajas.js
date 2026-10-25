@@ -199,7 +199,8 @@ async function _totalesCuadre(tienda_id, caja, desde, hasta) {
     for (let i = 0; i < ids.length; i += 50) {
       const trozo = ids.slice(i, i + 50);
       const lista = trozo.map(x => `"${x}"`).join(',');
-      const parte = await sbGet(
+      // Paginado: 50 cierres con más de 20 compañías pasan de las 1000 filas que da una lectura
+      const parte = await sbGetTodo(
         `cajas_movimientos?cierre_id=in.(${encodeURIComponent(lista)})`
         + `&select=cierre_id,compania_id,importe_enviado,importe_efectivo,importe_tarjeta`
       );

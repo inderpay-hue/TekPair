@@ -1684,7 +1684,12 @@ function addToCart(id, esServicio) {
 
   // PRECIO VARIABLE: si precio es 0, pedirlo con un MODAL (antes prompt() nativo que congelaba — #11).
   if (precioBase === 0) {
+    // Cada línea de precio variable es una línea aparte: hay que contar las que ya están en el
+    // carrito del mismo producto, o un móvil de 1 unidad se podía vender dos veces.
+    var _yaEnCarrito = function () { return cart.filter(function (c) { return c.idOriginal === p.id || c.id === p.id; }).reduce(function (a, c) { return a + (c.qty || 1); }, 0); };
+    if (!p.esServicio && _yaEnCarrito() >= p.unidades) { toast(T('tpv.stock_insuficiente'), 'err'); return; }
     pedirPrecioVar(nombreProd, function(precioCustom) {
+      if (!p.esServicio && _yaEnCarrito() >= p.unidades) { toast(T('tpv.stock_insuficiente'), 'err'); return; }
       cart.push({
         id: p.id + '_' + Date.now(), nombre: nombreProd,
         precio: precioCustom, qty: 1,
