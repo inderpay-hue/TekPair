@@ -6179,7 +6179,7 @@ function renderPedidosPage() {
         '<button onclick="abrirReponer()" style="background:var(--orange);color:#fff;border:none;border-radius:8px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">' + escHtml(T('rpn.revisar')) + '</button></div>';
       if (tarde.length) ban += '<div style="background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.25);border-radius:12px;padding:10px 14px;margin-bottom:8px;font-size:13px">⏰ <b>' +
         escHtml(T('rpn.tarde').replace('{n}', tarde.length)) + '</b> <span style="color:var(--muted)">' + tarde.slice(0, 3).map(function(p) { return escHtml((p.pieza || '') + (p.proveedor ? ' (' + p.proveedor + ')' : '')); }).join(', ') + (tarde.length > 3 ? '…' : '') + '</span></div>';
-      rb.innerHTML = ban;
+      rb.innerHTML = _bannerRevisionHtml() + ban;
     }
   } catch (e) {}
   var filt = window._pedFiltro || 'pendientes';
@@ -14636,11 +14636,18 @@ function renderStock() {
   _renderCalChips('stockCalFiltro', (cat && cat !== '__low__') ? list : [], window._stockFiltroCal || '', 'setStockFiltroCal');
   if (window._stockFiltroCal) list = list.filter(function (s) { return _calKey(s.calidad) === window._stockFiltroCal; });
   // Con una calidad elegida (p. ej. "Sin calidad"): casillas para poner calidad a varias de golpe
-  var _masiva = !!window._stockFiltroCal && tienePerm('stock_editar');
+  var _masiva = !!window._stockFiltroCal && tienePerm('stock_calidad');
   window._stkSelCal = _masiva ? (window._stkSelCal || {}) : {};
   _renderCalMasiva(_masiva ? list : null);
   var _res = document.getElementById('stockResumen');
-  if (_res) _res.textContent = list.length ? T('stock.resumen').replace('{p}', list.length).replace('{u}', list.reduce(function (a, s) { return a + (parseInt(s.unidades, 10) || 0); }, 0)) : '';
+  if (_res) {
+    _res.textContent = list.length ? T('stock.resumen').replace('{p}', list.length).replace('{u}', list.reduce(function (a, s) { return a + (parseInt(s.unidades, 10) || 0); }, 0)) : '';
+    // Precio sugerido para todos los de la lista que no tienen PVP
+    var _sug = tienePerm('stock_pvp') ? list.filter(function (s) { return _pvpSugerido(s); }) : [];
+    if (_sug.length) _res.innerHTML = escHtml(_res.textContent) + ' · <button type="button" onclick="aceptarPvpSugeridos()" style="background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.35);border-radius:7px;padding:2px 9px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">💡 ' + escHtml(T('pvp.poner_n').replace('{n}', _sug.length)) + '</button>';
+    window._pvpListaVisible = _sug.map(function (s) { return s.id; });
+  }
+  try { _bannerRevision('stockRevisionBox'); } catch (e) {}
   // Alertas solo en stock bajo
   var elA = document.getElementById('alertasStock');
   if (cat === '__low__') {
@@ -14677,12 +14684,12 @@ function renderStock() {
       ((s.capacidad || s.color) ? '<br><span style="font-size:9px;color:var(--muted)">' + [s.capacidad, s.color].filter(Boolean).join(' · ') + '</span>' : '') +
       (s.calidad ? ' <span style="font-size:9px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 5px;border-radius:4px">' + esc(s.calidad) + '</span>' : '') +
       // Pantalla sin calidad: se elige aquí mismo, sin abrir la ficha
-      ((s.categoria === 'Pantalla' && !s.calidad && tienePerm('stock_editar')) ? ' <select onchange="setCalidadStock(\'' + s.id + '\', this.value)" style="font-size:10px;padding:1px 4px;border:1px dashed #7C5CFC;border-radius:5px;background:transparent;color:#7C5CFC;cursor:pointer"><option value="">+ ' + escHtml(T('catalogo.calidad') || 'Calidad') + '</option>' + CALIDADES_PANTALLA.map(function (c) { return '<option value="' + esc(c.v) + '">' + esc(c.v) + '</option>'; }).join('') + '</select>' : '') +
+      ((s.categoria === 'Pantalla' && !s.calidad && tienePerm('stock_calidad')) ? ' <select onchange="setCalidadStock(\'' + s.id + '\', this.value)" style="font-size:10px;padding:1px 4px;border:1px dashed #7C5CFC;border-radius:5px;background:transparent;color:#7C5CFC;cursor:pointer"><option value="">+ ' + escHtml(T('catalogo.calidad') || 'Calidad') + '</option>' + CALIDADES_PANTALLA.map(function (c) { return '<option value="' + esc(c.v) + '">' + esc(c.v) + '</option>'; }).join('') + '</select>' : '') +
       (s.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">IMEI: ' + s.imei + '</span>' : '') + '</td>' +
       '<td><span class="badge bb" style="font-size:9px">' + esc(_catLbl(s.categoria)) + '</span></td>' +
       (mostrarUbic ? '<td>' + (s.ubicacion ? '<span class="badge" style="background:rgba(255,91,31,.10);color:var(--purple);font-size:9px">' + esc(s.ubicacion) + '</span>' : '<span style="color:var(--muted);font-size:10px">—</span>') + '</td>' : '') +
       '<td style="font-weight:700;color:' + (s.unidades < 0 ? 'var(--red)' : (s.unidades <= s.stockMin ? 'var(--orange)' : 'var(--text)')) + '">' + s.unidades + (s.unidades < 0 ? ' <button onclick="corregirStockCero(\'' + s.id + '\')" title="' + T('stock.title_poner_cero') + '" style="background:rgba(239,68,68,.12);border:none;color:var(--red);border-radius:5px;padding:1px 6px;font-size:10px;cursor:pointer;font-weight:800">→0</button>' : '') + '</td>' +
-      '<td>' + ((parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '<span style="color:var(--red);font-weight:700" title="' + T('stock.title_sin_pvp') + '">⚠ ' + cur(0) + '</span>') + '</td>' +
+      '<td>' + ((parseFloat(s.precioV) || 0) > 0 ? cur(s.precioV) : '<span style="color:var(--red);font-weight:700" title="' + T('stock.title_sin_pvp') + '">⚠ ' + cur(0) + '</span>' + _pvpSugBtn(s)) + '</td>' +
       '<td><button data-sid="' + s.id + '" class="row-btn btn-cat-s" title="' + T(s.enCatalogo ? 'cat.quitar' : 'cat.publicar') + '" style="color:' + (s.enCatalogo ? 'var(--green)' : 'var(--muted)') + '">' + _iv2ic('eye', 16) + '</button>' +
       '<button data-sid="' + s.id + '" class="row-btn btn-etq-s" title="' + T('etq.imprimir') + '" style="color:var(--purple)">' + _iv2ic('tag', 16) + '</button>' +
       '<button data-sid="' + s.id + '" class="row-btn btn-edit-s" title="' + (T('gen.editar') || 'Editar') + '" aria-label="' + (T('gen.editar') || 'Editar') + '">' + _iv2ic('pencil', 16) + '</button>' +
@@ -15267,6 +15274,193 @@ function setStockFiltroMarca(m) {
   window._stockFiltroMarca = (window._stockFiltroMarca === m) ? '' : m;  // toggle
   renderStock();
 }
+// ═══ PRECIO DE VENTA SUGERIDO ═══
+// Solo con datos de ESTA tienda: (1) lo que ya se cobró por ese producto en
+// ventas; si no, (2) el coste por el margen habitual de la tienda en esa
+// categoría/calidad (mediana de PVP/coste de su propio stock).
+function _pvpRatios() {
+  if (window._pvpRatiosCache && window._pvpRatiosCache.t > Date.now() - 5000) return window._pvpRatiosCache.r;
+  var r = {};
+  (DB.stock || []).forEach(function (s) {
+    var v = parseFloat(s.precioV) || 0, c = parseFloat(s.precioC) || 0;
+    if (v <= 0 || c <= 0 || v / c > 8) return;
+    [(s.categoria || '') + '|' + (s.calidad || ''), (s.categoria || '') + '|*', '*'].forEach(function (k) { (r[k] = r[k] || []).push(v / c); });
+  });
+  Object.keys(r).forEach(function (k) { var a = r[k].sort(function (x, y) { return x - y; }); r[k] = { m: a[Math.floor(a.length / 2)], n: a.length }; });
+  window._pvpRatiosCache = { t: Date.now(), r: r };
+  return r;
+}
+function _pvpRedondeo(x) { return x >= 10 ? Math.ceil(x) : Math.ceil(x * 2) / 2; }
+function _pvpSugerido(s) {
+  if (!s || (parseFloat(s.precioV) || 0) > 0) return null;
+  // 1) ventas de este mismo producto
+  var nombre = _eqNombre(s.marca, s.modelo).toLowerCase(), ult = null;
+  (DB.ventas || []).forEach(function (v) {
+    if (v.reembolsado) return;
+    var its = v.items; if (typeof its === 'string') { try { its = JSON.parse(its); } catch (e) { its = null; } }
+    (Array.isArray(its) ? its : []).forEach(function (it) {
+      var p = parseFloat(it.precio) || 0; if (p <= 0) return;
+      if (it.idOriginal === s.id || it.id === s.id || String(it.nombre || '').trim().toLowerCase() === nombre) {
+        if (!ult || String(v.fecha || '') > ult.f) ult = { f: String(v.fecha || ''), p: p };
+      }
+    });
+  });
+  if (ult) return { v: Math.round(ult.p * 100) / 100, base: T('pvp.base_venta').replace('{p}', cur(ult.p)) };
+  // 2) coste × margen habitual
+  var c = parseFloat(s.precioC) || 0; if (c <= 0) return null;
+  var r = _pvpRatios(), k1 = (s.categoria || '') + '|' + (s.calidad || ''), k2 = (s.categoria || '') + '|*';
+  var x = (r[k1] && r[k1].n >= 3) ? r[k1] : (r[k2] && r[k2].n >= 3) ? r[k2] : (r['*'] && r['*'].n >= 5) ? r['*'] : null;
+  if (!x) return null;
+  return { v: _pvpRedondeo(c * x.m), base: T('pvp.base_margen').replace('{c}', cur(c)).replace('{x}', x.m.toFixed(2)).replace('{n}', x.n) };
+}
+function _pvpSugBtn(s) {
+  if (!tienePerm('stock_pvp')) return '';
+  var g = _pvpSugerido(s); if (!g) return '';
+  return '<br><button type="button" onclick="aceptarPvpSugerido(\'' + s.id + '\')" title="' + escHtml(g.base) + '" style="margin-top:3px;background:rgba(16,185,129,.12);color:var(--green);border:1px solid rgba(16,185,129,.35);border-radius:7px;padding:1px 7px;font:inherit;font-size:11px;font-weight:700;cursor:pointer">💡 ' + cur(g.v) + '</button>';
+}
+function _pvpAplicar(s, v) {
+  s.precioV = v;
+  if (SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(s.id), { precio_v: v });
+}
+function aceptarPvpSugerido(id) {
+  if (!tienePerm('stock_pvp')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var s = (DB.stock || []).find(function (x) { return x.id === id; }); var g = _pvpSugerido(s); if (!g) return;
+  _pvpAplicar(s, g.v); guardarDatos(); window._pvpRatiosCache = null;
+  toast(_eqNombre(s.marca, s.modelo) + ' · ' + cur(g.v), 'ok');
+  renderStock();
+}
+function aceptarPvpSugeridos() {
+  if (!tienePerm('stock_pvp')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var items = (DB.stock || []).filter(function (s) { return (window._pvpListaVisible || []).indexOf(s.id) >= 0; })
+    .map(function (s) { return { s: s, g: _pvpSugerido(s) }; }).filter(function (x) { return x.g; });
+  if (!items.length) return;
+  var ej = items.slice(0, 5).map(function (x) { return '· ' + _eqNombre(x.s.marca, x.s.modelo) + ' → ' + cur(x.g.v); }).join('\n');
+  confirmar(T('pvp.confirmar').replace('{n}', items.length) + '\n\n' + ej + (items.length > 5 ? '\n…' : ''), function () {
+    items.forEach(function (x) { _pvpAplicar(x.s, x.g.v); });
+    guardarDatos(); window._pvpRatiosCache = null;
+    toast(T('pvp.puestos').replace('{n}', items.length), 'ok');
+    renderStock();
+  });
+}
+
+// ═══ REVISAR PIEZAS RECIBIDAS SIN STOCK ═══
+// Pedidos subidos como ya recibidos (p. ej. importados de meses pasados) llevan
+// revision_stock='pendiente': nadie ha dicho aún si esas piezas siguen en la
+// tienda. Aquí se decide línea a línea: "en tienda" (se suman al stock, a una
+// ficha parecida o a una nueva) o "ya usada/vendida" (no se toca el stock).
+function _revPendientes() { return (DB.pedidos || []).filter(function (p) { return p.revision_stock === 'pendiente'; }); }
+function _bannerRevisionHtml() {
+  if (!tienePerm('stock_revisar')) return '';
+  var ps = _revPendientes(); if (!ps.length) return '';
+  var uds = ps.reduce(function (a, p) { return a + (parseInt(p.cantidad, 10) || 1); }, 0);
+  return '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(124,92,252,.07);border:1px solid rgba(124,92,252,.3);border-radius:12px;padding:10px 14px;margin-bottom:8px">' +
+    '<span style="flex:1;min-width:200px;font-size:13px">📦 <b>' + escHtml(T('rev.banner').replace('{n}', uds)) + '</b></span>' +
+    '<button onclick="abrirRevisionStock()" style="background:#7C5CFC;color:#fff;border:none;border-radius:8px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">' + escHtml(T('rev.revisar')) + '</button></div>';
+}
+function _bannerRevision(id) { var b = document.getElementById(id); if (b) b.innerHTML = _bannerRevisionHtml(); }
+function _revTokens(t) { return _sinTildesTP(t).split(/[^a-z0-9]+/).filter(function (x) { return x && (x.length > 1 || /\d/.test(x)); }); }
+function _sinTildesTP(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
+// Fichas de stock parecidas a la pieza del pedido (misma categoría y marca, y
+// los números/palabras del modelo dentro del nombre). Nunca otra calidad.
+function _revSugerencias(p) {
+  var pt = _revTokens(p.pieza + ' ' + (p.marca || '')), set = {};
+  pt.forEach(function (x) { set[x] = 1; });
+  var marcaP = _sinTildesTP(p.marca);
+  return (DB.stock || []).filter(function (s) {
+    if (s.vendido || s.imei) return false;
+    if (p.categoria && s.categoria && s.categoria !== p.categoria) return false;
+    if (p.calidad && s.calidad && s.calidad !== p.calidad) return false;
+    return true;
+  }).map(function (s) {
+    var mt = _revTokens(s.modelo), ms = _sinTildesTP(s.marca);
+    if (!mt.length) return null;
+    var marcaOk = !ms || set[ms] || (marcaP && (marcaP === ms || marcaP.indexOf(ms) >= 0 || ms.indexOf(marcaP) >= 0)) || (ms === 'iphone' && set.iphone);
+    if (!marcaOk) return null;
+    var hit = mt.filter(function (x) { return set[x]; }).length;
+    var conNum = mt.some(function (x) { return /\d/.test(x) && set[x]; });
+    var sc = hit / mt.length + (p.calidad && s.calidad === p.calidad ? 0.2 : 0);
+    return (conNum && hit / mt.length >= 0.6) ? { s: s, sc: sc } : null;
+  }).filter(Boolean).sort(function (a, b) { return b.sc - a.sc; }).slice(0, 3).map(function (x) { return x.s; });
+}
+function abrirRevisionStock() {
+  if (!tienePerm('stock_revisar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var ps = _revPendientes(); if (!ps.length) return;
+  window._revDec = {};
+  var grupos = {}, orden = [];
+  ps.forEach(function (p) { var k = p.grupo || p.id; if (!grupos[k]) { grupos[k] = []; orden.push(k); } grupos[k].push(p); });
+  orden.sort(function (a, b) { return String(grupos[b][0].fecha_pedido || '').localeCompare(String(grupos[a][0].fecha_pedido || '')); });
+  var html = '<div style="font-size:15px;font-weight:800;margin-bottom:4px">📦 ' + escHtml(T('rev.titulo')) + '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px;line-height:1.45">' + escHtml(T('rev.ayuda')) + '</div>' +
+    '<div style="max-height:62vh;overflow:auto;padding-right:4px">' +
+    orden.map(function (k) {
+      var g = grupos[k], p0 = g[0];
+      return '<div style="border:1px solid var(--border);border-radius:11px;padding:9px 10px;margin-bottom:9px">' +
+        '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:6px"><b style="font-size:12.5px">' + escHtml(p0.proveedor || '—') + '</b><span style="font-size:11.5px;color:var(--muted)">' + (p0.fecha_pedido ? fmtFecha(p0.fecha_pedido) : '') + ' · ' + g.length + ' ' + escHtml(T('pedidos.lineas') || 'líneas') + '</span>' +
+          '<span style="margin-left:auto;display:flex;gap:5px"><button type="button" onclick="revGrupo(\'' + k + '\',\'usada\')" style="' + _revBtnCss('#64748B') + '">' + escHtml(T('rev.todo_usado')) + '</button>' +
+          '<button type="button" onclick="revGrupo(\'' + k + '\',\'tienda\')" style="' + _revBtnCss('#10B981') + '">' + escHtml(T('rev.todo_tienda')) + '</button></span></div>' +
+        g.map(function (p) {
+          var sug = _revSugerencias(p);
+          var opts = '<option value="">' + escHtml(T('rev.elegir')) + '</option>' +
+            sug.map(function (s) { return '<option value="s:' + s.id + '">✅ ' + escHtml(T('rev.sumar_a').replace('{f}', _eqNombre(s.marca, s.modelo) + (s.calidad ? ' · ' + s.calidad : '')).replace('{n}', parseInt(s.unidades, 10) || 0)) + '</option>'; }).join('') +
+            '<option value="nueva">✅ ' + escHtml(T('rev.nueva')) + '</option><option value="usada">🗑 ' + escHtml(T('rev.usada')) + '</option>';
+          return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;padding:5px 0;border-top:1px solid var(--light)">' +
+            '<span style="flex:1;min-width:180px;font-size:12px">' + escHtml(p.pieza || '') + (p.calidad ? ' <span style="font-size:9.5px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 5px;border-radius:4px">' + escHtml(p.calidad) + '</span>' : '') +
+              ' <span style="color:var(--muted)">· ' + cur(parseFloat(p.precio_compra) || 0) + '</span></span>' +
+            '<input type="number" min="0" max="' + (parseInt(p.cantidad, 10) || 1) + '" value="' + (parseInt(p.cantidad, 10) || 1) + '" title="' + escHtml(T('rev.uds')) + '" data-rq="' + p.id + '" style="width:52px;font-size:12px;padding:4px;border:1px solid var(--border);border-radius:6px">' +
+            '<select data-rs="' + p.id + '" data-sug="' + (sug[0] ? 's:' + sug[0].id : 'nueva') + '" style="max-width:230px;font-size:11.5px;padding:4px;border:1px solid var(--border);border-radius:6px">' + opts + '</select></div>';
+        }).join('') + '</div>';
+    }).join('') + '</div>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="_revNo" style="padding:9px 16px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:9px;font:inherit;font-weight:600;cursor:pointer">' + escHtml(T('gen.cancelar_2')) + '</button>' +
+    '<button type="button" id="_revOk" style="padding:9px 16px;border:none;background:#7C5CFC;color:#fff;border-radius:9px;font:inherit;font-weight:700;cursor:pointer">' + escHtml(T('rev.guardar')) + '</button></div>';
+  var m = _modalOverlay(html);
+  m.box.style.maxWidth = '760px';
+  window._revModal = m;
+  m.box.querySelector('#_revNo').onclick = m.close;
+  m.box.querySelector('#_revOk').onclick = guardarRevisionStock;
+}
+function _revBtnCss(c) { return 'background:transparent;border:1px solid ' + c + ';color:' + c + ';border-radius:7px;padding:3px 8px;font:inherit;font-size:11px;font-weight:700;cursor:pointer'; }
+function revGrupo(k, modo) {
+  var ps = _revPendientes().filter(function (p) { return (p.grupo || p.id) === k; });
+  ps.forEach(function (p) {
+    var sel = document.querySelector('select[data-rs="' + p.id + '"]'); if (!sel) return;
+    sel.value = modo === 'usada' ? 'usada' : sel.getAttribute('data-sug');
+  });
+}
+function guardarRevisionStock() {
+  if (!tienePerm('stock_revisar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var m = window._revModal; if (!m) return;
+  var nT = 0, nU = 0, uds = 0;
+  _revPendientes().forEach(function (p) {
+    var sel = m.box.querySelector('select[data-rs="' + p.id + '"]'); if (!sel || !sel.value) return;
+    var v = sel.value, estado;
+    if (v === 'usada') { estado = 'usada'; nU++; }
+    else {
+      var q = Math.max(0, Math.min(parseInt(p.cantidad, 10) || 1, parseInt((m.box.querySelector('input[data-rq="' + p.id + '"]') || {}).value, 10) || 0));
+      if (q > 0) {
+        var existe = v.indexOf('s:') === 0 ? (DB.stock || []).find(function (s) { return s.id === v.slice(2); }) : null;
+        var pq = Object.assign({}, p, { importe: Math.round((parseFloat(p.precio_compra) || 0) * q * 100) / 100 });
+        _recibirAStock(pq, q, existe || null, true, p.categoria);
+        // ficha existente sin coste o sin calidad: se completa con la del pedido
+        if (existe) {
+          var patch = {};
+          if (!(parseFloat(existe.precioC) > 0) && parseFloat(p.precio_compra) > 0) { existe.precioC = parseFloat(p.precio_compra); patch.precio_c = existe.precioC; }
+          if (!existe.calidad && p.calidad) { existe.calidad = p.calidad; patch.calidad = p.calidad; }
+          if (Object.keys(patch).length && SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(existe.id), patch);
+        }
+        uds += q;
+      }
+      estado = 'en_stock'; nT++;
+    }
+    p.revision_stock = estado;
+    if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), { revision_stock: estado });
+  });
+  m.close(); window._revModal = null;
+  try { guardarDatos(); } catch (e) {}
+  toast(T('rev.hecho').replace('{t}', nT).replace('{u}', nU).replace('{n}', uds), 'ok');
+  try { renderStock(); } catch (e) {}
+  try { renderPedidosWidget(); } catch (e) {}
+}
+
 function _renderCalMasiva(list) {
   var box = document.getElementById('stockCalMasiva'); if (!box) return;
   if (!list) { box.style.display = 'none'; box.innerHTML = ''; return; }
@@ -15283,7 +15477,7 @@ function selTodasCal(on) {
   renderStock();
 }
 function aplicarCalMasiva() {
-  if (!tienePerm('stock_editar')) return;
+  if (!tienePerm('stock_calidad')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var cal = (document.getElementById('stkCalMasivaSel') || {}).value; if (!cal) return;
   var ids = Object.keys(window._stkSelCal || {});
   var items = (DB.stock || []).filter(function (s) { return ids.indexOf(s.id) >= 0; });
@@ -15298,7 +15492,8 @@ function aplicarCalMasiva() {
   renderStock();
 }
 function setCalidadStock(id, cal) {
-  if (!cal || !tienePerm('stock_editar')) return;
+  if (!cal) return;
+  if (!tienePerm('stock_calidad')) { toast(T('gen.sin_permiso'), 'err'); return; }
   var s = (DB.stock || []).find(function (x) { return x.id === id; });
   if (!s) return;
   s.calidad = cal;
@@ -22472,6 +22667,9 @@ var PERMS_LISTA = [
   {id:'stock_editar',label:T('perm.stock_editar'),grupo:'Stock'},
   {id:'stock_eliminar',label:T('perm.stock_eliminar'),grupo:'Stock'},
   {id:'stock_ajustar',label:T('perm.stock_ajustar'),grupo:'Stock'},
+  {id:'stock_calidad',label:T('perm.stock_calidad'),grupo:'Stock'},
+  {id:'stock_revisar',label:T('perm.stock_revisar'),grupo:'Stock'},
+  {id:'stock_pvp',label:T('perm.stock_pvp'),grupo:'Stock'},
   // Clientes
   {id:'clis_ver',label:T('perm.clis_ver'),grupo:'Clientes'},
   {id:'clis_crear',label:T('perm.clis_crear'),grupo:'Clientes'},
@@ -22542,6 +22740,27 @@ var PERMS_LISTA = [
   {id:'widget_tiempomedio',label:T('perm.widget_tiempomedio'),grupo:'Dashboard',defaultOn:true},
   {id:'widget_clisinactivos',label:T('perm.widget_clisinactivos'),grupo:'Dashboard',defaultOn:true}
 ];
+
+// Explicación de cada permiso (con un ejemplo): al pasar el cursor por encima
+// y, en el móvil, tocando la ⓘ. Así el dueño sabe qué activa cada interruptor.
+function _permAyuda(el, id) {
+  var k = 'permh.' + id, h = T(k);
+  if (!h || h === k) return;
+  el.title = h;
+  var i = document.createElement('span');
+  i.textContent = ' ⓘ';
+  i.style.cssText = 'color:var(--muted);cursor:help;font-size:12px';
+  i.title = h;
+  i.addEventListener('click', function (e) {
+    e.stopPropagation();
+    var m = _modalOverlay('<div style="font-size:13.5px;font-weight:800;margin-bottom:8px">' + escHtml(el.firstChild ? el.firstChild.textContent : '') + '</div>' +
+      '<div style="font-size:13.5px;line-height:1.5;white-space:pre-line;margin-bottom:14px">' + escHtml(h) + '</div>' +
+      '<div style="text-align:right"><button style="padding:8px 16px;border:none;background:var(--blue);color:#fff;border-radius:9px;font:inherit;font-weight:700;cursor:pointer">OK</button></div>');
+    m.box.querySelector('button').onclick = m.close;
+    m.bg.addEventListener('click', function (ev) { if (ev.target === m.bg) m.close(); });
+  });
+  el.appendChild(i);
+}
 
 // Roles preset — listas de permisos por rol
 var ROLES_PRESET = {
@@ -22642,6 +22861,7 @@ function renderPermisosUI() {
         var label = document.createElement('span');
         label.style = 'font-size:13px';
         label.textContent = p.label;
+        _permAyuda(label, p.id);
         var toggle = document.createElement('div');
         toggle.style = 'width:40px;height:22px;border-radius:22px;cursor:pointer;background:' + (activo ? 'var(--blue)' : 'var(--border)') + ';position:relative;flex-shrink:0;transition:background .2s';
         toggle.innerHTML = '<div style="position:absolute;top:2px;left:' + (activo ? '20px' : '2px') + ';width:18px;height:18px;border-radius:50%;background:white;transition:left .2s"></div>';
@@ -22678,6 +22898,7 @@ function renderPermisosUI() {
       var label = document.createElement('span');
       label.style = 'font-size:13px';
       label.textContent = p.label;
+      _permAyuda(label, p.id);
       var toggle = document.createElement('div');
       toggle.style = 'width:40px;height:22px;border-radius:22px;cursor:pointer;background:' + (activo ? 'var(--blue)' : 'var(--border)') + ';position:relative;flex-shrink:0;transition:background .2s';
       toggle.innerHTML = '<div style="position:absolute;top:2px;left:' + (activo ? '20px' : '2px') + ';width:18px;height:18px;border-radius:50%;background:white;transition:left .2s"></div>';
