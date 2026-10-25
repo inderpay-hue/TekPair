@@ -2668,7 +2668,12 @@ function renderPreviewPegado() {
       return '<div style="border:1px solid var(--border);border-radius:9px;padding:8px;margin-bottom:6px">' +
         '<input class="fi" style="font-size:12.5px;margin-bottom:5px" value="' + esc(l.pieza || '') + '" oninput="window._pegLineas[' + i + '].pieza=this.value">' +
         '<div style="display:flex;gap:5px;flex-wrap:wrap">' +
-          '<select class="fi" style="flex:1.4;min-width:120px;font-size:11.5px;padding:5px" onchange="window._pegLineas[' + i + '].categoria=this.value">' + catOpts + '</select>' +
+          '<select class="fi" style="flex:1.4;min-width:120px;font-size:11.5px;padding:5px" onchange="window._pegLineas[' + i + '].categoria=this.value;if(this.value!==\'Pantalla\')window._pegLineas[' + i + '].calidad=\'\';renderPreviewPegado()">' + catOpts + '</select>' +
+          // Calidad solo en pantallas: la IA la propone y aqui se puede corregir antes de añadir
+          (l.categoria === 'Pantalla' ? '<select class="fi" style="flex:1;min-width:96px;font-size:11.5px;padding:5px" title="' + esc(T('catalogo.calidad') || 'Calidad') + '" onchange="window._pegLineas[' + i + '].calidad=this.value">' +
+            '<option value="">— ' + esc(T('catalogo.calidad') || 'Calidad') + ' —</option>' +
+            CALIDADES_PANTALLA.map(function (c) { return '<option value="' + esc(c.v) + '"' + (c.v === l.calidad ? ' selected' : '') + '>' + esc(c.v) + '</option>'; }).join('') +
+          '</select>' : '') +
           '<input class="fi" type="number" min="1" style="width:54px;font-size:11.5px;padding:5px" title="' + esc(T('ped.tt_cantidad')) + '" value="' + (parseInt(l.cantidad, 10) || 1) + '" oninput="window._pegLineas[' + i + '].cantidad=parseInt(this.value,10)||1">' +
           '<input class="fi" type="number" step="0.01" style="width:76px;font-size:11.5px;padding:5px" title="' + esc(T('ped.tt_compra_eur')) + '" placeholder="' + esc(T('ped.ph_compra')) + '" value="' + (parseFloat(l.precio_compra) || 0) + '" oninput="window._pegLineas[' + i + '].precio_compra=parseFloat(this.value)||0">' +
           '<input class="fi" type="number" step="0.01" style="width:76px;font-size:11.5px;padding:5px" title="' + esc(T('ped.tt_venta_eur')) + '" placeholder="' + esc(T('ped.ph_venta')) + '" value="' + ((parseFloat(l.precio_venta) || 0) || '') + '" oninput="window._pegLineas[' + i + '].precio_venta=parseFloat(this.value)||0">' +
