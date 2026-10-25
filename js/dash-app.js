@@ -4622,6 +4622,27 @@ function _copiarRefLink() {
 // ═══ DASHBOARD ═══
 // ════ INICIO NUEVO (diseño render con datos reales) ════
 // Periodo seleccionado en el segmentado (admin: Hoy/Semana/Mes)
+// Qué días cuenta cada botón (Hoy / Semana / Mes): al pasar el cursor y en una línea debajo
+function _invPeriodoRangos() {
+  var h = new Date(hoyLocal() + 'T12:00:00');
+  var lun = new Date(h); lun.setDate(h.getDate() - ((h.getDay() + 6) % 7));
+  var dom = new Date(lun); dom.setDate(lun.getDate() + 6);
+  var ini = new Date(h.getFullYear(), h.getMonth(), 1, 12), fin = new Date(h.getFullYear(), h.getMonth() + 1, 0, 12);
+  var iso = function (d) { return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); };
+  var txt = function (a, b) { return T('inicio.rango').replace('{a}', fmtFecha(iso(a))).replace('{b}', fmtFecha(iso(b))); };
+  return { hoy: fmtFecha(hoyLocal()), semana: txt(lun, dom), mes: txt(ini, fin) };
+}
+function _invPeriodoTitulos() {
+  var r = _invPeriodoRangos(), per = window._invPer || 'hoy';
+  document.querySelectorAll('.inv-seg button').forEach(function (b) {
+    var m = String(b.getAttribute('onclick') || '').match(/setInvPeriodo\('(\w+)'/);
+    if (m && r[m[1]]) b.title = r[m[1]];
+  });
+  var seg = document.querySelector('.inv-seg'); if (!seg) return;
+  var lbl = document.getElementById('inv-per-rango');
+  if (!lbl) { lbl = document.createElement('div'); lbl.id = 'inv-per-rango'; lbl.style.cssText = 'font-size:11px;color:var(--muted);text-align:right;margin-top:3px'; seg.parentNode.parentNode.appendChild(lbl); }
+  lbl.textContent = per === 'hoy' ? '' : r[per];
+}
 function setInvPeriodo(per, btn) {
   window._invPer = per;
   if (btn && btn.parentNode) { Array.prototype.forEach.call(btn.parentNode.children, function(b) { b.classList.remove('on'); }); btn.classList.add('on'); }
@@ -5360,6 +5381,7 @@ function avisarListo(repId) {
 
 function renderInicioNuevo() {
   if (!document.getElementById('pInicioNuevo')) return;
+  try { _invPeriodoTitulos(); } catch (e) {}
   try { renderEstancadas(); } catch (e) {}
   try { renderLoQueDebes(); } catch (e) {}
   try { renderListasSinAvisar(); } catch (e) {}
@@ -5815,7 +5837,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
           bars += '<text x="' + (x0 + bw / 2).toFixed(0) + '" y="168" font-size="11" fill="var(--muted)" text-anchor="middle">' + chSerie[k].lbl + '</text>';
         }
         // Zona invisible de toda la columna: tocar un día abre lo cobrado ese día
-        if (chSerie[k].d1) bars += '<rect x="' + (x0 - 4).toFixed(0) + '" y="10" width="' + (slot - 2).toFixed(0) + '" height="165" fill="transparent" style="cursor:pointer" onclick="_inicioRango(\'' + chSerie[k].d1 + '\',\'' + chSerie[k].d2 + '\')"><title>' + escHtml(T('idet.tocar')) + '</title></rect>';
+        if (chSerie[k].d1 && tieneFeature('inicio_avanzado')) bars += '<rect x="' + (x0 - 4).toFixed(0) + '" y="10" width="' + (slot - 2).toFixed(0) + '" height="165" fill="transparent" style="cursor:pointer" onclick="_inicioRango(\'' + chSerie[k].d1 + '\',\'' + chSerie[k].d2 + '\')"><title>' + escHtml(T('idet.tocar')) + '</title></rect>';
       }
       var legend = chPrev ? '<div style="display:flex;gap:14px;font-size:11.5px;color:var(--muted)"><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;background:var(--orange,#e07b4f)"></i>' + T('iv2.esta_semana') + '</span><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;background:var(--border,#cdc7bf)"></i>' + T('iv2.semana_ant') + '</span></div>' : '';
       chartCard = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px">' +
@@ -15515,8 +15537,10 @@ function _revSugerencias(p) {
     if (!claves.every(function (x) { return set[x]; })) return null;
     // algún segmento de la pieza tiene los números de la ficha y exactamente sus variantes (Pro, Max…)
     var segOk = segs.some(function (sg, i) {
+      // "negro/blanco", "OLED/Incell": un trozo sin números ni variantes no es otro modelo
+      if (i > 0 && !sg.nums.length && !sg.vars.length) return false;
       var nums = mt.filter(function (x) { return /\d/.test(x); });
-      var conNums = nums.every(function (x) { return sg.set[x] || (i > 0 && set[x] && !sg.nums.length); });
+      var conNums = nums.every(function (x) { return sg.set[x] || (i > 0 && set[x] && !sg.nums.length && sg.vars.length > 0); });
       if (!conNums) return false;
       var varsF = mt.filter(function (x) { return _REV_VAR[x]; });
       return varsF.every(function (x) { return sg.set[x]; }) && sg.vars.every(function (x) { return varsF.indexOf(x) >= 0; });
@@ -15586,10 +15610,16 @@ async function guardarRevisionStock() {
     var v = sel.value, estado = v === 'usada' ? 'usada' : 'en_stock';
     // Primero queda guardado que esta línea está revisada; si no se guarda, no se toca el stock
     // (si no, al recargar seguiría pendiente y se podría sumar dos veces).
+    if (p.revision_stock !== 'pendiente') continue;   // ya revisada (otra pasada u otro dispositivo)
     if (SB_KEY) {
-      var okP = await sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), { revision_stock: estado });
+      // Solo si en la nube sigue pendiente: si otro dispositivo ya la revisó, devuelve 0 filas (false)
+      var qP = 'id=eq.' + encodeURIComponent(p.id) + '&revision_stock=eq.pendiente';
+      var okP = await sbPatch('pedidos', qP, { revision_stock: estado });
+      // Sin conexión queda en la cola y se guardará al volver: cuenta como guardada
+      if (!okP) okP = _syncQueueGet().some(function (op) { return op.method === 'PATCH' && op.table === 'pedidos' && op.query === qP; });
       if (!okP) { fallos++; continue; }
     }
+    if (p.revision_stock !== 'pendiente') continue;
     p.revision_stock = estado;
     if (v === 'usada') { nU++; }
     else {
@@ -15613,9 +15643,10 @@ async function guardarRevisionStock() {
     }
   }
   m.close(); window._revModal = null;
-  if (fallos) toast(T('rev.fallos').replace('{n}', fallos), 'err');
   try { guardarDatos(); } catch (e) {}
-  toast(T('rev.hecho').replace('{t}', nT).replace('{u}', nU).replace('{n}', uds), 'ok');
+  var _hecho = T('rev.hecho').replace('{t}', nT).replace('{u}', nU).replace('{n}', uds);
+  // Un solo aviso: dos seguidos se pisan (toast usa un único elemento)
+  if (fallos) toast(_hecho + ' · ' + T('rev.fallos').replace('{n}', fallos), 'err'); else toast(_hecho, 'ok');
   try { renderStock(); } catch (e) {}
   try { renderPedidosWidget(); } catch (e) {}
 }
@@ -27309,21 +27340,25 @@ function gesCancelar(id) {
     if (devolver) {
       // Igual que reembolsarVenta: la devolución solo cuenta si queda guardada en la nube
       // (o en la cola sin conexión); si no, se deshace y la cita no se cancela.
-      var ps = _gesPagos(g), devuelto = 0;
+      var ps = _gesPagos(g), devuelto = 0, fallo = false;
       for (var i = 0; i < ps.length; i++) {
         var v = (DB.ventas || []).find(function (x) { return x.id === ps[i].venta_id; });
-        if (!v || v.reembolsado) continue;
+        if (!v) continue;
+        if (v.reembolsado) { devuelto += parseFloat(ps[i].importe) || 0; continue; }   // ya devuelto en un intento anterior
         v.reembolsado = true; v.fechaReembolso = hoyLocal();
         var q = 'id=eq.' + encodeURIComponent(v.id), ok = true;
         if (SB_KEY && TIENDA_ID) {
           ok = await sbPatch('ventas', q, { reembolsado: true, fecha_reembolso: v.fechaReembolso });
           if (!ok) ok = _syncQueueGet().some(function (op) { return op.method === 'PATCH' && op.table === 'ventas' && op.query === q; });
         }
-        if (!ok) { v.reembolsado = false; v.fechaReembolso = ''; toast(T('ges.dev_error'), 'err'); try { guardarDatos(); } catch (e) {} return; }
-        devuelto += parseFloat(v.total) || 0;
+        if (!ok) { v.reembolsado = false; v.fechaReembolso = ''; fallo = true; break; }
+        devuelto += parseFloat(ps[i].importe) || 0;
         try { audit('reembolso', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total) + ' · ' + (v.modelo || ''), null); } catch (e) {}
       }
-      g.cobrado = Math.max(0, Math.round(((parseFloat(g.cobrado) || 0) - devuelto) * 100) / 100);
+      // Lo cobrado = pagos cuya venta no está devuelta (cuadra aunque se reintente a medias)
+      g.cobrado = Math.max(0, Math.round(ps.reduce(function (a, pg) { var vv = (DB.ventas || []).find(function (x) { return x.id === pg.venta_id; }); return a + (vv && vv.reembolsado ? 0 : (parseFloat(pg.importe) || 0)); }, 0) * 100) / 100);
+      cob = devuelto;
+      if (fallo) { _gesSync(g); try { guardarDatos(); } catch (e) {} renderGestiones(); toast(T('ges.dev_error'), 'err'); return; }
     }
     g.estado = 'cancelada';
     _gesSync(g); try { guardarDatos(); } catch (e) {}
