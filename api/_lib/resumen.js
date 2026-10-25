@@ -250,10 +250,12 @@ export async function construirInformeMes(SUPABASE_URL, headers, tienda, d1, d2,
   const enM = (f) => { f = d10(f); return f >= d1 && f <= d2; }, enP = (f) => { f = d10(f); return f >= p1 && f <= p2; };
   const entregadas = reps.filter((r) => r.estado === 'Entregado' && enM(r.fecha_entrega_real));
   const entregadasPrev = reps.filter((r) => r.estado === 'Entregado' && enP(r.fecha_entrega_real)).length;
-  const recibidas = reps.filter((r) => enM(r.fecha) && r.estado !== 'Presupuesto').length;
+  const recibidas = reps.filter((r) => enM(r.fecha) && r.estado !== 'Presupuesto' && r.estado !== 'Rechazado').length;
   const garantias = reps.filter((r) => enM(r.fecha) && (r.es_garantia || r.estado === 'Garantia')).length;
-  const gastosM = r2(gastos.filter((g) => enM(g.fecha)).reduce((s, g) => s + num(g.importe), 0));
-  const gastosP = r2(gastos.filter((g) => enP(g.fecha)).reduce((s, g) => s + num(g.importe), 0));
+  // los gastos pendientes de pagar no cuentan (igual que en el panel)
+  const pagado = (g) => (g.estado || 'Pagado') !== 'Pendiente';
+  const gastosM = r2(gastos.filter((g) => pagado(g) && enM(g.fecha)).reduce((s, g) => s + num(g.importe), 0));
+  const gastosP = r2(gastos.filter((g) => pagado(g) && enP(g.fecha)).reduce((s, g) => s + num(g.importe), 0));
   // Lo que más se repara (por servicio) y lo que más se vende (por producto)
   const srv = {};
   entregadas.forEach((r) => { (parse(r.servicios) || []).forEach((x) => { const n = String((x && x.nombre) || '').trim(); if (!n) return; const k = n.toLowerCase(); const g = srv[k] || (srv[k] = { n, c: 0, imp: 0 }); g.c++; g.imp += num(x.precio); }); });
@@ -261,8 +263,13 @@ export async function construirInformeMes(SUPABASE_URL, headers, tienda, d1, d2,
   ventas.forEach((v) => { if (v.reembolsado || !enM(v.fecha)) return; const it = parse(v.items); (Array.isArray(it) && it.length ? it : [{ nombre: v.modelo, qty: 1 }]).forEach((x) => { const n = String((x && x.nombre) || '').trim(); if (!n) return; const k = n.toLowerCase(); const g = prod[k] || (prod[k] = { n, c: 0 }); g.c += parseInt(x.qty || x.cantidad, 10) || 1; }); });
   const topSrv = Object.values(srv).sort((a, b) => b.c - a.c).slice(0, 5);
   const topProd = Object.values(prod).sort((a, b) => b.c - a.c).slice(0, 5);
-  const deReps = r2(reps.filter((r) => r.estado === 'Entregado' && !r.financiado && num(r.restante) > 0).reduce((s, r) => s + num(r.restante), 0));
+  // mismo criterio que el resumen diario: reparaciones entregadas sin pagar, cobros de cajas y cuotas vencidas
+  const deReps = r2(reps.filter((r) => r.estado === 'Entregado' && num(r.restante) > 0).reduce((s, r) => s + num(r.restante), 0));
   const deFiados = r2((fiados || []).reduce((s, f) => s + num(f.importe), 0));
+  const finMes = menosDias(d2, -1);
+  let deCuotas = 0;
+  ventas.forEach((v) => { if (!v.financiado || v.reembolsado) return; (parse(v.cuotas) || []).forEach((c) => { if (!c || c.pagado || !c.fecha || d10(c.fecha) >= finMes) return; deCuotas += num(c.importe) - (c.pagadoImporte != null ? num(c.pagadoImporte) : 0); }); });
+  deCuotas = r2(deCuotas);
   if (!ing.total && !entregadas.length && !recibidas && !gastosM) return null;
 
   const mesTxt = new Date(d1 + 'T12:00:00Z').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
@@ -276,7 +283,7 @@ export async function construirInformeMes(SUPABASE_URL, headers, tienda, d1, d2,
   html += bloque('🔧 Reparaciones', `<table style="width:100%;font-size:14px;border-collapse:collapse">${fila('Recibidas', recibidas)}${fila('Entregadas', entregadas.length + comp(entregadas.length, entregadasPrev, (x) => x))}${fila('Volvieron en garantía', garantias)}</table>`, '#2563EB');
   if (topSrv.length) html += bloque('🏆 Lo que más reparaste', topSrv.map((x) => `<div style="font-size:14px;margin:3px 0"><b>${x.c}×</b> ${esc(x.n)} <span style="color:#888">· ${eur(x.imp)}</span></div>`).join(''), '#7C3AED');
   if (topProd.length) html += bloque('🛍️ Lo que más vendiste', topProd.map((x) => `<div style="font-size:14px;margin:3px 0"><b>${x.c}×</b> ${esc(x.n)}</div>`).join(''), '#D97706');
-  if (deReps + deFiados > 0) html += bloque('💸 Te deben ahora', `<div style="font-size:22px;font-weight:800;color:#DC2626">${eur(deReps + deFiados)}</div><table style="width:100%;font-size:14px;border-collapse:collapse;margin-top:6px">${deReps ? fila('Reparaciones entregadas sin pagar', eur(deReps)) : ''}${deFiados ? fila('Cobros pendientes de cajas', eur(deFiados)) : ''}</table>`, '#DC2626');
+  if (deReps + deFiados + deCuotas > 0) html += bloque('💸 Te deben', `<div style="font-size:22px;font-weight:800;color:#DC2626">${eur(deReps + deFiados + deCuotas)}</div><table style="width:100%;font-size:14px;border-collapse:collapse;margin-top:6px">${deReps ? fila('Reparaciones entregadas sin pagar', eur(deReps)) : ''}${deFiados ? fila('Cobros pendientes de cajas', eur(deFiados)) : ''}${deCuotas ? fila('Cuotas vencidas', eur(deCuotas)) : ''}</table>`, '#DC2626');
   const doc = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:16px;color:#111;background:#fafafa">
   <div style="background:#111827;color:#fff;padding:18px 20px;border-radius:12px">

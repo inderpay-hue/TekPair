@@ -878,7 +878,8 @@ async function resumenesDiarios(SUPABASE_URL, headers, RESEND_KEY, now) {
 async function informesMensuales(SUPABASE_URL, headers, RESEND_KEY, now) {
   const out = { enviados: 0, errores: 0, sinDatos: 0 };
   const hoy = fechaMadrid(now);
-  if (!RESEND_KEY || hoy.slice(8, 10) !== '01') return out;
+  // días 1 a 3: si un día falla (Supabase, tiempo, Resend), lo reintenta el siguiente; el id fijo evita duplicados
+  if (!RESEND_KEY || +hoy.slice(8, 10) > 3) return out;
   const mi = mesesInforme(hoy);
   const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?ajustes_config->resumen->>mensual=eq.true&select=id,nombre,email,plan_email,ajustes_config,plan,plan_status,trial_until`, { headers });
   const tiendas = r.ok ? await r.json() : [];
@@ -887,12 +888,24 @@ async function informesMensuales(SUPABASE_URL, headers, RESEND_KEY, now) {
       if (!esPremium(t)) continue;
       const para = destinoResumen(t);
       if (!para) continue;
+      const avId = `informe_${t.id}_${mi.clave}`;
+      // ya enviado este mes → nada (antes de leer datos, que es lo que pesa)
+      const ya = await fetch(`${SUPABASE_URL}/rest/v1/avisos?id=eq.${encodeURIComponent(avId)}&select=estado`, { headers });
+      const yaRows = ya.ok ? await ya.json() : [];
+      if (yaRows.length && yaRows[0].estado !== 'error') continue;
       const res = await construirInformeMes(SUPABASE_URL, headers, t, mi.d1, mi.d2, mi.p1, mi.p2);
       if (!res) { out.sinDatos++; continue; }
-      const avId = `informe_${t.id}_${mi.clave}`;
-      const ins = await fetch(`${SUPABASE_URL}/rest/v1/avisos`, { method: 'POST', headers: { ...headers, Prefer: 'return=minimal' },
-        body: JSON.stringify({ id: avId, tienda_id: t.id, tipo: 'informe_mes', canal: 'email', destinatario: para, ref_tipo: 'tienda', ref_id: t.id, asunto: res.asunto.slice(0, 200), estado: 'enviado', fecha: now.toISOString() }) });
-      if (!ins.ok) continue;
+      let reservado = false;
+      if (yaRows.length) {
+        // el intento anterior falló: se reintenta solo si sigue en error (si otro cron lo cogió, no)
+        const up = await fetch(`${SUPABASE_URL}/rest/v1/avisos?id=eq.${encodeURIComponent(avId)}&estado=eq.error`, { method: 'PATCH', headers: { ...headers, Prefer: 'return=representation' }, body: JSON.stringify({ estado: 'enviado', fecha: now.toISOString() }) });
+        reservado = up.ok && ((await up.json().catch(() => [])) || []).length > 0;
+      } else {
+        const ins = await fetch(`${SUPABASE_URL}/rest/v1/avisos`, { method: 'POST', headers: { ...headers, Prefer: 'return=minimal' },
+          body: JSON.stringify({ id: avId, tienda_id: t.id, tipo: 'informe_mes', canal: 'email', destinatario: para, ref_tipo: 'tienda', ref_id: t.id, asunto: res.asunto.slice(0, 200), estado: 'enviado', fecha: now.toISOString() }) });
+        reservado = ins.ok;
+      }
+      if (!reservado) continue;
       if (await enviarResumen(RESEND_KEY, para, res)) out.enviados++;
       else {
         out.errores++;

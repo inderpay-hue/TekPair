@@ -13362,9 +13362,17 @@ function imprimirEtiquetaStock(sid) {
 // En el cierre, en vez de escribir el total del cajón, se pone cuántos hay de cada billete y
 // moneda; se suma solo, va al «Efectivo en caja» y el desglose queda en las notas del cierre.
 var _ARQ_VALORES = [500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01];
+// título del botón «Contar» en el idioma de la tienda
+setTimeout(function () { try { document.querySelectorAll('[onclick="arqueoContar()"]').forEach(function (b) { b.title = T('arq.title'); }); } catch (e) {} }, 0);
 function arqueoContar() {
+  // Se rellena con el desglose de ESTE cierre (la línea 🧮 de sus notas); nada de otro cierre o caja
   var prev = {};
-  try { prev = JSON.parse(sessionStorage.getItem('tk_arqueo') || '{}') || {}; } catch (e) {}
+  var notasEl = document.getElementById('cierre-notas');
+  var lineaPrev = String((notasEl && notasEl.value) || '').split('\n').filter(function (l) { return l.indexOf('🧮 ') === 0; })[0] || '';
+  lineaPrev.replace(/^🧮 /, '').split(' = ')[0].split(' · ').forEach(function (p) {
+    var mm = p.trim().match(/^([\d.]+)\s*(€|c)×(\d+)$/); if (!mm) return;
+    var v = mm[2] === 'c' ? (+mm[1]) / 100 : +mm[1]; prev[v] = +mm[3];
+  });
   var fmtV = function (v) { return v >= 1 ? v + ' €' : Math.round(v * 100) + ' c'; };
   var celda = function (v) {
     return '<label style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px"><span style="width:52px;text-align:right;font-weight:700">' + fmtV(v) + '</span><span style="color:var(--muted)">×</span>' +
@@ -13389,7 +13397,6 @@ function arqueoContar() {
   m.box.querySelector('#_arqNo').onclick = function () { m.close(); };
   m.box.querySelector('#_arqOk').onclick = function () {
     var r = leer();
-    try { sessionStorage.setItem('tk_arqueo', JSON.stringify(r.cuenta)); } catch (e) {}
     var inp = document.getElementById('cierre-saldo-real');
     if (inp) { inp.value = r.tot.toFixed(2); try { if (window.Cajas && Cajas.recalcular) Cajas.recalcular(); } catch (e) {} }
     // desglose en las notas (sustituye el de un arqueo anterior)
@@ -27686,12 +27693,13 @@ function setResumenCfg() {
 function resumenPrueba(tipo) {
   if (!checkFeature('resumen_diario')) return;
   var b = document.getElementById(tipo === 'mes' ? 'informePruebaBtn' : 'resumenPruebaBtn'); if (b) b.disabled = true;
+  var esMes = tipo === 'mes';
   var em = ((document.getElementById('resumenEmail') || {}).value || '').trim();
   fetch('/api/ayuda?action=resumen-prueba', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN }, body: JSON.stringify({ email: em, tipo: tipo === 'mes' ? 'mes' : '' }) })
     .then(function(r) { return r.json(); })
     .then(function(d) {
-      if (d && d.ok && d.vacio) toast(T('res.vacio'), 'ok');
-      else if (d && d.ok) toast(T('res.enviado').replace('{e}', d.email), 'ok');
+      if (d && d.ok && d.vacio) toast(T(esMes ? 'inf.vacio' : 'res.vacio'), 'ok');
+      else if (d && d.ok) toast(T(esMes ? 'inf.enviado' : 'res.enviado').replace('{e}', d.email), 'ok');
       else toast((d && d.error) || T('res.error'), 'err');
     }).catch(function() { toast(T('res.error'), 'err'); })
     .then(function() { if (b) b.disabled = false; });
