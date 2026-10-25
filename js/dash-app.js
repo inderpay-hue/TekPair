@@ -18372,13 +18372,20 @@ async function renderReporte() {
   // IVA: cada venta va en el periodo en que se hizo, y su devolución resta en el periodo en
   // que se devolvió. Antes una venta del 1er trimestre devuelta en el 2º desaparecía del 1º,
   // que ya estaba declarado.
-  var _ventasIVA = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function (v) { return _enRango(v.fecha) && !(v.reembolsado && _enRango(v.fechaReembolso || v.fecha)); }) : [];
-  var _reembItems = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function (v) { return v.reembolsado && _enRango(v.fechaReembolso || v.fecha) && !_enRango(v.fecha); }).map(function (v) {
+  var _iv = SEL.repTipo !== 'reparaciones' ? _ivaVentasPeriodo(_enRango) : { ventas: [], reemb: [] };
+  renderDesgloseIVA(_iv.ventas, _repPagoItems.concat(_iv.reemb));
+}
+
+// IVA de ventas de un periodo (pantalla y PDF del gestor): las ventas hechas en el periodo que no
+// se devolvieron en él, y como líneas negativas las devoluciones del periodo de ventas de otro.
+function _ivaVentasPeriodo(enRango) {
+  var ventas = DB.ventas.filter(function (v) { return enRango(v.fecha) && !(v.reembolsado && enRango(v.fechaReembolso || v.fecha)); });
+  var reemb = DB.ventas.filter(function (v) { return v.reembolsado && enRango(v.fechaReembolso || v.fecha) && !enRango(v.fecha); }).map(function (v) {
     var it = _ventaParteNormal(v) || {};
     var tot = parseFloat(it.total) || 0, ivaI = parseFloat(it.ivaImporte) || 0, base = parseFloat(it.base) || (tot - ivaI);
     return { iva: it.iva, total: -tot, base: -base, ivaImporte: -ivaI };
-  }) : [];
-  renderDesgloseIVA(_ventasIVA, _repPagoItems.concat(_reembItems));
+  });
+  return { ventas: ventas, reemb: reemb };
 }
 
 // ═══ GANANCIA DEL PERIODO (Reportes) ═══
@@ -18912,10 +18919,12 @@ function generarPDFGestor() {
     portipos[tipo].iva += ivaImp;
     portipos[tipo].total += total;
   }
-  ventas.forEach(function(v) { añade(_ventaParteNormal(v)); }); reps.forEach(añade);
+  // IVA con la misma regla que la pantalla: la devolución resta en el periodo en que se hizo.
+  var _iv = _ivaVentasPeriodo(function (f) { return _repEnLista(fechas, f); });
+  _iv.ventas.forEach(function(v) { añade(_ventaParteNormal(v)); }); _iv.reemb.forEach(añade); reps.forEach(añade);
   var totalBase = 0, totalIva = 0, totalT = 0;
   Object.values(portipos).forEach(function(d){ totalBase += d.base; totalIva += d.iva; totalT += d.total; });
-  var _usA = _usadosAcum(ventas);
+  var _usA = _usadosAcum(_iv.ventas);
 
   // Pagos
   var pagos = {};
@@ -18983,7 +18992,7 @@ function generarPDFGestor() {
 
   '<h2>Desglose por tipo de IVA</h2>' +
   '<table><thead><tr><th>Tipo IVA</th><th class="r">' + T('pres.doc_base_imponible') + '</th><th class="r">Cuota IVA</th><th class="r">Total</th></tr></thead><tbody>' +
-  Object.keys(portipos).sort(function(a,b){return parseFloat(a)-parseFloat(b);}).filter(function(t){return portipos[t].total > 0;}).map(function(tipo){
+  Object.keys(portipos).sort(function(a,b){return parseFloat(a)-parseFloat(b);}).filter(function(t){return Math.abs(portipos[t].total) > 0.004;}).map(function(tipo){
     var d = portipos[tipo];
     return '<tr><td><strong>' + tipo + '%</strong></td>' +
       '<td class="r">' + cur(d.base) + '</td>' +

@@ -202,7 +202,8 @@ async function _totalesCuadre(tienda_id, caja, desde, hasta) {
       // Paginado: 50 cierres con más de 20 compañías pasan de las 1000 filas que da una lectura
       const parte = await sbGetTodo(
         `cajas_movimientos?cierre_id=in.(${encodeURIComponent(lista)})`
-        + `&select=cierre_id,compania_id,importe_enviado,importe_efectivo,importe_tarjeta`
+        + `&select=cierre_id,compania_id,importe_enviado,importe_efectivo,importe_tarjeta`,
+        'cierre_id.asc,compania_id.asc'   // no consta que cajas_movimientos tenga columna id
       );
       movimientos = movimientos.concat(parte);
     }
@@ -342,10 +343,10 @@ function _fechaAnterior(fecha, clientHoy) {
 // cajaDiaResumen del frontend: ventas financiado-aware (solo efectivo) + pagos_reparacion en
 // efectivo, excluyendo presupuestos/rechazados no aceptados.
 // Lee todas las filas (PostgREST corta en 1000 por petición).
-async function sbGetTodo(path) {
+async function sbGetTodo(path, orden = 'id.asc') {
   const out = [];
   for (let off = 0; off < 200000; off += 1000) {
-    const rows = await sbGet(`${path}&order=id.asc&limit=1000&offset=${off}`);
+    const rows = await sbGet(`${path}&order=${orden}&limit=1000&offset=${off}`);
     out.push(...(rows || []));
     if (!rows || rows.length < 1000) break;
   }
@@ -947,7 +948,10 @@ export default async function handler(req, res) {
         try {
           const prev = await sbGet(`cajas_cierres?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=lt.${encodeURIComponent(fecha)}&estado=neq.festivo&order=fecha.desc&limit=1&select=cambio_siguiente`);
           const sug = prev.length ? Number(prev[0].cambio_siguiente || 0) : null;
-          if (sug !== null && Number(saldo_inicial || 0) < sug - 0.005 && !(await esAdminTiendaDB(payload))) saldo_inicial = sug;
+          // Si se vuelve a guardar un cierre con el mismo fondo que ya tenía (p. ej. uno que el admin
+          // corrigió), se respeta: el campo es de solo lectura para el empleado.
+          const _mismoGuardado = cierreExistente && Math.abs(Number(cierreExistente.saldo_inicial || 0) - Number(saldo_inicial || 0)) < 0.005;
+          if (sug !== null && !_mismoGuardado && Number(saldo_inicial || 0) < sug - 0.005 && !(await esAdminTiendaDB(payload))) saldo_inicial = sug;
         } catch (e) { /* si no se puede comprobar, se usa el del formulario */ }
         let saldoTeorico = calcularSaldoTeorico(caja.tipo, saldo_inicial, movimientos, total_cobrado_caja);
         // Lo cobrado hoy de pendientes de otros días está en el cajón: se espera.

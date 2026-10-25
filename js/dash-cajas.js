@@ -1210,6 +1210,14 @@
         }
       }
 
+      // Los pendientes nuevos se crean después de guardar el cierre y el servidor lo recalcula:
+      // el estado/descuadre bueno es el de ahora, no el que devolvió guardar_cierre.
+      if (Estado.cierreEditando?.caja?.gestion_fiados && Array.isArray(Estado.fiadosTemp) && Estado.fiadosTemp.length) {
+        try {
+          const _rc = await api('obtener_cierre', { query: { caja_id: payload.caja_id, fecha: payload.fecha, hoy: (typeof hoyLocal === 'function' ? hoyLocal() : '') } });
+          if (_rc && _rc.cierre) { r.estado = _rc.cierre.estado; r.descuadre = _rc.cierre.descuadre; }
+        } catch (_) { /* se queda el resultado de guardar_cierre */ }
+      }
       toast(estado === 'cerrado' ? T('cajas.cierre_guardado') : T('cajas.borrador_guardado'));
       if (r.estado === 'descuadre') {
         toast(`⚠ Descuadre de ${eur(r.descuadre)}. Revisa la caja.`, 'error');

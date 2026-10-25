@@ -36,11 +36,11 @@ async function _generarJustificanteNumero(SUPABASE_URL, sbHeaders) {
     const year = new Date().getFullYear();
     // Se mira el MAYOR número, no el último por orden de texto: "JUST-2026-999" va después
     // de "JUST-2026-1000" como texto y el 1000 se repetía.
-    const cntR = await fetch(
-      `${SUPABASE_URL}/rest/v1/pagos_referidos?justificante_numero=like.JUST-${year}-*&select=justificante_numero&limit=100000`,
-      { headers: sbHeaders }
+    // Paginado: Supabase corta en 1000 filas aunque se pida más.
+    const cntArr = await sbTodo(
+      `${SUPABASE_URL}/rest/v1/pagos_referidos?justificante_numero=like.JUST-${year}-*&select=id,justificante_numero&order=id.asc`,
+      sbHeaders
     );
-    const cntArr = await cntR.json();
     let nextNum = 1;
     (Array.isArray(cntArr) ? cntArr : []).forEach((row) => {
       const m = String(row.justificante_numero || '').match(/JUST-\d{4}-(\d+)/);

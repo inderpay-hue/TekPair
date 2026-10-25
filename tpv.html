@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261025p"></script>
+<script src="/lang/lang.v8.js?v=20261025q"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -1831,6 +1831,11 @@ function changeQty(idx, delta) {
   var newQty = item.qty + delta;
   if (newQty <= 0) { removeFromCart(idx); return; }
   if (!item.esServicio && newQty > item.stockMax) { toast(T('tpv.stock_insuficiente'), 'err'); return; }
+  // Precio variable: puede haber varias líneas del mismo artículo; el tope es la suma de todas.
+  if (!item.esServicio && delta > 0 && item.idOriginal) {
+    var _total = cart.reduce(function (a, c) { return a + ((c.idOriginal || c.id) === item.idOriginal ? (c.qty || 1) : 0); }, 0);
+    if (_total + delta > item.stockMax) { toast(T('tpv.stock_insuficiente'), 'err'); return; }
+  }
   item.qty = newQty;
   renderCart();
 }
@@ -2607,9 +2612,14 @@ function crearClienteRapido() {
 // ═══ CAJA ═══
 function updateCaja() {
   var hoy = hoyLocal();
-  var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy && !v.reembolsado; });
-  // Solo el efectivo (de un pago mixto, solo su parte en efectivo; de una financiada, su entrada).
-  var total = ventasHoy.reduce(function(a, v) { return a + _cajaPagosVenta(v).reduce(function (s, p) { return s + (p.metodo === 'Efectivo' ? p.importe : 0); }, 0); }, 0);
+  // Solo el efectivo (de un pago mixto, solo su parte en efectivo; de una financiada, su entrada):
+  // lo vendido hoy menos lo devuelto hoy (también de ventas de otros días).
+  var _ef = function (v) { return _cajaPagosVenta(v).reduce(function (s, p) { return s + (p.metodo === 'Efectivo' ? p.importe : 0); }, 0); };
+  var total = DB.ventas.reduce(function(a, v) {
+    if (v.fecha === hoy) a += _ef(v);
+    if (v.reembolsado && (v.fechaReembolso || v.fecha) === hoy) a -= _ef(v);
+    return a;
+  }, 0);
   document.getElementById('cajaTotal').textContent = '\u20ac' + total.toFixed(2);
 }
 
@@ -2629,6 +2639,9 @@ function verCaja() {
   // F245: reembolsos del d\u00eda (los que se devolvieron hoy) \u2192 bruto/reembolso/neto
   var reembHoy = DB.ventas.filter(function(v) { return v.reembolsado && (v.fechaReembolso || v.fecha) === hoy; });
   var totReemb = reembHoy.reduce(function(a, v) { return a + _cajaPagosVenta(v).reduce(function (s, p) { return s + p.importe; }, 0); }, 0);
+  // Por forma de pago, neto: lo que hay en el cajón/datáfono de cada método.
+  reembHoy.forEach(function(v) { _cajaPagosVenta(v).forEach(function (p) { pagos[p.metodo] = (pagos[p.metodo] || 0) - p.importe; }); });
+  Object.keys(pagos).forEach(function (k) { if (Math.abs(pagos[k]) < 0.005) delete pagos[k]; });
   // F243: concordancia singular/plural
   var lblN = ventasHoy.length + ' ' + (ventasHoy.length === 1 ? T('tpv.venta') : T('tpv.ventas'));
 
