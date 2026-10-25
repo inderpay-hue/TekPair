@@ -9168,8 +9168,9 @@ function reembolsarVenta(id) {
   });
   }).then(function () {
     // F50/F51: si la venta tenía factura emitida, ofrecer emitir la rectificativa (abono).
-    // Fuera del spinner: abre su propio modal de confirmación.
-    _ofrecerAbonoPorVenta(id);
+    // Fuera del spinner: abre su propio modal de confirmación. Solo si la devolución quedó
+    // hecha: si falló y se deshizo, no tiene sentido abonar la factura.
+    if (v.reembolsado) _ofrecerAbonoPorVenta(id);
   });
   }, { okLabel: T('venta.reembolsar_t'), danger: true });
 }
@@ -9331,7 +9332,15 @@ function registrarPagoCuota(vid, cidx) {
       var completado = v.cuotas.every(function(cc) { return cc.pagado; });
       v.estadoFinanciado = completado ? 'completado' : 'activo';
       guardarDatos();
-      if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + vid, { cuotas: JSON.stringify(v.cuotas) }); // ventas no tiene columna estado_financiado
+      if (SB_KEY && TIENDA_ID) {
+        // Comprobar que se guardó (o quedó en la cola sin conexión). Antes la pantalla la daba por
+        // pagada aunque la nube la rechazara, y al recargar la cuota volvía a estar pendiente.
+        var _qC = 'id=eq.' + vid;
+        Promise.resolve(sbPatch('ventas', _qC, { cuotas: JSON.stringify(v.cuotas) })).then(function (okC) {
+          var enCola = !okC && _syncQueueGet().some(function (op) { return op.method === 'PATCH' && op.table === 'ventas' && op.query === _qC; });
+          if (!okC && !enCola) { toast(T('fin.pago_no_guardado'), 'err');}
+        });
+      }
       if (completado) toast(T('tst.financiado_completado'), 'ok');
       else if (cuotasTocadas > 1) toast(T('fin.pago_multi').replace('{imp}', cur(pago)).replace('{n}', cuotasTocadas), 'ok');
       else toast(T('fin.pago_registrado').replace('{imp}', cur(pago)), 'ok');
