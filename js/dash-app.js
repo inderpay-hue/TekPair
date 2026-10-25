@@ -18338,7 +18338,16 @@ async function renderReporte() {
     var base = tipo ? tot / (1 + tipo / 100) : tot;
     return { iva: tipo, total: tot, base: base, ivaImporte: tot - base };
   });
-  renderDesgloseIVA(ventas, _repPagoItems);
+  // IVA: cada venta va en el periodo en que se hizo, y su devolución resta en el periodo en
+  // que se devolvió. Antes una venta del 1er trimestre devuelta en el 2º desaparecía del 1º,
+  // que ya estaba declarado.
+  var _ventasIVA = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function (v) { return _enRango(v.fecha) && !(v.reembolsado && _enRango(v.fechaReembolso || v.fecha)); }) : [];
+  var _reembItems = SEL.repTipo !== 'reparaciones' ? DB.ventas.filter(function (v) { return v.reembolsado && _enRango(v.fechaReembolso || v.fecha) && !_enRango(v.fecha); }).map(function (v) {
+    var it = _ventaParteNormal(v) || {};
+    var tot = parseFloat(it.total) || 0, ivaI = parseFloat(it.ivaImporte) || 0, base = parseFloat(it.base) || (tot - ivaI);
+    return { iva: it.iva, total: -tot, base: -base, ivaImporte: -ivaI };
+  }) : [];
+  renderDesgloseIVA(_ventasIVA, _repPagoItems.concat(_reembItems));
 }
 
 // ═══ GANANCIA DEL PERIODO (Reportes) ═══

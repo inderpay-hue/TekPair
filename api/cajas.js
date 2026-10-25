@@ -905,9 +905,10 @@ export default async function handler(req, res) {
 
       case 'guardar_cierre': {
         const {
-          caja_id, fecha, saldo_inicial, saldo_real_final, cambio_siguiente,
+          caja_id, fecha, saldo_real_final, cambio_siguiente,
           notas, estado, movimientos, total_cobrado_caja, importe_tpv, total_fiados
         } = req.body || {};
+        let saldo_inicial = (req.body || {}).saldo_inicial;
         if (!caja_id || !fecha) return err(res, 400, 'caja_id y fecha obligatorios');
         if (!Array.isArray(movimientos)) return err(res, 400, 'movimientos[] obligatorio');
         if (!(await puedeAccederCaja(payload, caja_id))) return err(res, 403, 'Sin permiso para esta caja');
@@ -940,6 +941,13 @@ export default async function handler(req, res) {
           }
         }
 
+        // Fondo inicial: un empleado podía bajarlo para tapar una falta. Si hay un cierre anterior,
+        // no puede ser menor que el cambio que se dejó ese día (el admin sí puede corregirlo).
+        try {
+          const prev = await sbGet(`cajas_cierres?caja_id=eq.${encodeURIComponent(caja_id)}&fecha=lt.${encodeURIComponent(fecha)}&estado=neq.festivo&order=fecha.desc&limit=1&select=cambio_siguiente`);
+          const sug = prev.length ? Number(prev[0].cambio_siguiente || 0) : null;
+          if (sug !== null && Number(saldo_inicial || 0) < sug - 0.005 && !(await esAdminTiendaDB(payload))) saldo_inicial = sug;
+        } catch (e) { /* si no se puede comprobar, se usa el del formulario */ }
         let saldoTeorico = calcularSaldoTeorico(caja.tipo, saldo_inicial, movimientos, total_cobrado_caja);
         // Lo cobrado hoy de pendientes de otros días está en el cajón: se espera.
         if (_cajaConPendientes(caja)) saldoTeorico = Math.round((saldoTeorico + await _cobrosDelDia(caja_id, fecha)) * 100) / 100;
@@ -964,7 +972,10 @@ export default async function handler(req, res) {
         // Formula: cobrado = efectivo + TPV; descuadre = cobrado - teorico
         // total_fiados = pendientes del día, cobrados después o no (sin los anulados)
         const tpvNum = Number(importe_tpv || 0);
-        const fiadosNum = Number(total_fiados || 0);
+        // Los pendientes del día se cuentan aquí (antes se fiaba del número del cliente, y
+        // subirlo tapaba una falta). Si no se pudiera leer, se usa el del formulario.
+        let fiadosNum = Number(total_fiados || 0);
+        try { fiadosNum = await _justificadoDia(caja_id, fecha); } catch (e) { /* valor del cliente */ }
         const cobrado = Math.round((saldoReal + tpvNum) * 100) / 100;
         // El fiado NO entró en el cajón: (cobrado - teorico) ya lo cuenta como falta.
         // El pendiente anotado lo justifica, así que SUMA. Restarlo duplicaba el

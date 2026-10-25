@@ -1130,7 +1130,8 @@ function syncVentasDesdeSupabase() {
   var ayer = new Date(); ayer.setDate(ayer.getDate() - 1);
   var ayerStr = ayer.getFullYear() + '-' + String(ayer.getMonth() + 1).padStart(2, '0') + '-' + String(ayer.getDate()).padStart(2, '0');
   // fecha=in.(hoy,ayer) con valores entre comillas escapadas para REST de Supabase
-  return sbGet('ventas', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=in.(' + encodeURIComponent('"' + hoy + '","' + ayerStr + '"') + ')').then(function(rows) {
+  // También las devueltas hoy aunque se vendieran otro día: la caja de hoy las resta
+  return sbGet('ventas', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&or=(' + encodeURIComponent('fecha.in.("' + hoy + '","' + ayerStr + '"),fecha_reembolso.eq.' + hoy) + ')').then(function(rows) {
     if (!Array.isArray(rows) || !rows.length) return;
     rows.forEach(function(r) {
       var existing = DB.ventas.find(function(v){ return v.id === r.id; });
@@ -1145,7 +1146,10 @@ function syncVentasDesdeSupabase() {
         descuento: parseFloat(r.descuento) || 0,
         total: parseFloat(r.total) || 0,
         reembolsado: !!r.reembolsado,
+        fechaReembolso: r.fecha_reembolso || '',
         financiado: !!r.financiado,
+        entrada: parseFloat(r.entrada) || 0,
+        entradaPago: r.entrada_pago || null,
         iva: parseFloat(r.iva) || 0,
         ivaModo: r.iva_modo || 'sin',
         base: parseFloat(r.base) || 0,
@@ -2596,20 +2600,27 @@ function crearClienteRapido() {
 function updateCaja() {
   var hoy = hoyLocal();
   var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy && !v.reembolsado; });
-  // Solo el efectivo (de un pago mixto, solo su parte en efectivo).
-  var total = ventasHoy.reduce(function(a, v) { return a + _ventaPagos(v).reduce(function (s, p) { return s + (p.metodo === 'Efectivo' ? p.importe : 0); }, 0); }, 0);
+  // Solo el efectivo (de un pago mixto, solo su parte en efectivo; de una financiada, su entrada).
+  var total = ventasHoy.reduce(function(a, v) { return a + _cajaPagosVenta(v).reduce(function (s, p) { return s + (p.metodo === 'Efectivo' ? p.importe : 0); }, 0); }, 0);
   document.getElementById('cajaTotal').textContent = '\u20ac' + total.toFixed(2);
 }
 
+// Lo que entró en caja por una venta: la financiada solo su entrada (las cuotas llegan otros días)
+function _cajaPagosVenta(v) {
+  if (v.financiado) return (parseFloat(v.entrada) || 0) > 0 ? [{ metodo: v.entradaPago || 'Efectivo', importe: parseFloat(v.entrada) || 0 }] : [];
+  return _ventaPagos(v);
+}
 function verCaja() {
   var hoy = hoyLocal();
-  var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy && !v.reembolsado; });
+  // Brutas = todo lo vendido hoy, también lo devuelto hoy (si no, una devolución del mismo día
+  // restaba de unas ventas que no se habían contado y la caja salía en negativo).
+  var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy; });
   var pagos = {};
-  ventasHoy.forEach(function(v) { _ventaPagos(v).forEach(function (p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
-  var total = ventasHoy.reduce(function(a, v) { return a + v.total; }, 0);
+  ventasHoy.forEach(function(v) { _cajaPagosVenta(v).forEach(function (p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
+  var total = ventasHoy.reduce(function(a, v) { return a + _cajaPagosVenta(v).reduce(function (s, p) { return s + p.importe; }, 0); }, 0);
   // F245: reembolsos del d\u00eda (los que se devolvieron hoy) \u2192 bruto/reembolso/neto
   var reembHoy = DB.ventas.filter(function(v) { return v.reembolsado && (v.fechaReembolso || v.fecha) === hoy; });
-  var totReemb = reembHoy.reduce(function(a, v) { return a + (v.total || 0); }, 0);
+  var totReemb = reembHoy.reduce(function(a, v) { return a + _cajaPagosVenta(v).reduce(function (s, p) { return s + p.importe; }, 0); }, 0);
   // F243: concordancia singular/plural
   var lblN = ventasHoy.length + ' ' + (ventasHoy.length === 1 ? T('tpv.venta') : T('tpv.ventas'));
 
