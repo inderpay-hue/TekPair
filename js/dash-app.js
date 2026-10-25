@@ -4955,7 +4955,8 @@ function _inicioDetalle(tipo) {
   };
   var titulo = function (t) { return '<div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:14px 0 4px">' + escHtml(t) + '</div>'; };
   var vacio = '<div style="padding:10px 0;color:var(--muted);font-size:13px">' + escHtml(T('idet.ninguno')) + '</div>';
-  var hora = function (x) { var t = String(x || ''); var m = t.match(/T(\d\d:\d\d)/); return m ? m[1] : ''; };
+  var variosDias = ctx.d1 !== ctx.d2;
+  var hora = function (x, f) { var t = String(x || ''); var m = t.match(/T(\d\d:\d\d)/); return [variosDias && f ? fmtFecha(f) : '', m ? m[1] : ''].filter(Boolean).join(' '); };
   var ventas = (DB.ventas || []).filter(function (v) { return !v.reembolsado && v.fecha >= ctx.d1 && v.fecha <= ctx.d2; })
     .sort(function (a, b) { return String(b.createdAt || b.fecha).localeCompare(String(a.createdAt || a.fecha)); });
   var ventaTxt = function (v) {
@@ -4975,7 +4976,7 @@ function _inicioDetalle(tipo) {
         '<div style="height:6px;border-radius:4px;background:var(--light,#f1f5f9);margin-top:4px"><div style="height:6px;border-radius:4px;width:' + Math.max(0, Math.min(100, pct)) + '%;background:' + (m === 'Efectivo' ? 'var(--green,#0E9F6E)' : 'var(--blue,#2563EB)') + '"></div></div></div>';
     }).join('') : vacio;
     html += titulo(T('idet.ventas') + ' (' + ventas.length + ')');
-    html += ventas.length ? ventas.slice(0, 40).map(function (v) { return fila(ventaTxt(v), cur(v.total), [hora(v.createdAt), escHtml(metodosV(v))].filter(Boolean).join(' · ')); }).join('') : vacio;
+    html += ventas.length ? ventas.slice(0, 40).map(function (v) { return fila(ventaTxt(v), cur(v.total), [hora(v.createdAt, v.fecha), escHtml(metodosV(v))].filter(Boolean).join(' · ')); }).join('') : vacio;
     var pr = (typeof _invPagosRep === 'function' ? (_invPagosRep() || []) : []).filter(function (p) { var f = (p.fecha || '').slice(0, 10); return f >= ctx.d1 && f <= ctx.d2; });
     html += titulo(T('idet.reparaciones') + ' (' + pr.length + ')');
     html += pr.length ? pr.slice(0, 40).map(function (p) {
@@ -4984,7 +4985,7 @@ function _inicioDetalle(tipo) {
     }).join('') : vacio;
   } else if (tipo === 'ventas') {
     head = T('inicio.num_ventas') + ' ' + ctx.suf + ': ' + ventas.length;
-    html += ventas.length ? ventas.slice(0, 80).map(function (v) { return fila(ventaTxt(v) + (v.clienteNombre ? ' <span style="color:var(--muted)">· ' + escHtml(v.clienteNombre) + '</span>' : ''), cur(v.total), [hora(v.createdAt), escHtml(metodosV(v))].filter(Boolean).join(' · ')); }).join('') : vacio;
+    html += ventas.length ? ventas.slice(0, 80).map(function (v) { return fila(ventaTxt(v) + (v.clienteNombre ? ' <span style="color:var(--muted)">· ' + escHtml(v.clienteNombre) + '</span>' : ''), cur(v.total), [hora(v.createdAt, v.fecha), escHtml(metodosV(v))].filter(Boolean).join(' · ')); }).join('') : vacio;
   } else if (tipo === 'reps') {
     var hoyD = new Date(hoyLocal() + 'T12:00:00');
     var reps = (DB.reps || []).filter(function (r) { return ['Pendiente', 'En Proceso', 'En proceso'].indexOf(r.estado) !== -1; })
@@ -4994,7 +4995,7 @@ function _inicioDetalle(tipo) {
     html += reps.length ? reps.map(function (o) {
       var r = o.r;
       return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--light,#f1f5f9);font-size:13px"><span style="flex:1;min-width:0"><b>' + escHtml(_eqNombre(r.marca, r.modelo) || '—') + '</b>' + (r.averia ? ' <span style="color:var(--muted)">· ' + escHtml(String(r.averia).slice(0, 40)) + '</span>' : '') +
-        '<div style="font-size:11.5px;color:var(--muted)">' + escHtml(r.clienteNombre || '') + ' · ' + escHtml(r.estado || '') + ' · <span style="color:' + (o.d > 7 ? 'var(--red,#E02424)' : 'var(--muted)') + '">' + escHtml(T('idet.dias').replace('{n}', o.d)) + '</span></div></span>' +
+        '<div style="font-size:11.5px;color:var(--muted)">' + escHtml(r.clienteNombre || '') + ' · ' + escHtml(r.estado || '') + ' · <span style="color:' + (o.d > 7 ? 'var(--red,#E02424)' : 'var(--muted)') + '">' + escHtml(T(o.d === 1 ? 'idet.dia1' : 'idet.dias').replace('{n}', o.d)) + '</span></div></span>' +
         '<button type="button" onclick="_inicioDetCerrar();editarRep(\'' + r.id + '\')" style="border:1px solid var(--border);background:transparent;border-radius:8px;padding:5px 10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer">' + escHtml(T('estan.ver') || 'Ver') + '</button></div>';
     }).join('') : vacio;
   }
