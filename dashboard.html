@@ -1248,7 +1248,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261026e"></script>
+<script src="/lang/lang.v8.js?v=20261026f"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -1809,6 +1809,8 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
       <button class="btn-sm" id="btnStockLog" style="display:none;background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirStockLog()" title="Historial de cambios de stock"><span data-t="stock.historial">📋 Historial</span></button>
       <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirImportFactura()" title="Importar PDF de factura del proveedor"><span data-t="stock.importar_factura">📤 Importar factura</span></button>
       <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="imprimirStock()" title="Imprimir inventario por categoría"><span data-t="stock.imprimir">🖨️ Imprimir</span></button>
+      <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="etiquetasPiezasSinCodigo()"><span data-t="etqp.btn">🏷️ Etiquetas de piezas</span></button>
+      <button class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirStockParado()"><span data-t="parado.btn">💤 Stock parado</span></button>
       <button data-func="usados" class="btn-sm" style="background:white;border:1px solid var(--border);color:var(--text)" onclick="abrirCompraUsado()"><span data-t="usados.btn_comprar">🤝 Comprar a particular</span></button>
       <button class="btn-sm" style="background:var(--orange);color:white" onclick="nuevoStock()" data-t="stock.anadir">+ Añadir</button>
     </div>
@@ -2981,6 +2983,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   <!-- Cobrado por empleado y margen por tipo de reparación -->
   <div id="reporteEmpleados"></div>
   <div id="reporteMargen"></div>
+  <div id="reporteGarantias"></div>
   <!-- Rendimiento por técnico (solo con reparaciones) -->
   <div id="reporteTecnicos" style="margin-top:14px"></div>
 
@@ -3886,6 +3889,8 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   </div>
 
   <!-- Chips de urgencias del inicio (atrasadas/cobros/debes/listas): colapsados, clic para desplegar -->
+  <!-- Objetivo del mes (Premium, se activa en Editar inicio) -->
+  <div id="inv-objetivo" style="display:none"></div>
   <div id="inicioChips" style="display:none"></div>
 
   <!-- 🎯 Próxima acción: la cosa más urgente ahora con 1 botón directo -->
@@ -3896,6 +3901,9 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
   <!-- Financiación Parte C: pagos que el cliente declara y el dueño confirma/rechaza -->
   <div id="inv-cobros-pend" style="display:none"></div>
+
+  <!-- Presupuestos enviados sin respuesta -->
+  <div id="inv-presupuestos" style="display:none"></div>
 
   <!-- Cuotas vencidas de financiados para reclamar por WhatsApp -->
   <div id="inv-reclamar" style="display:none"></div>
@@ -5746,7 +5754,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261023b"></script>
-<script src="/js/dash-app.js?v=20261026e"></script>
+<script src="/js/dash-app.js?v=20261026f"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
