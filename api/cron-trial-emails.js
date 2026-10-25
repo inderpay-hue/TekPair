@@ -218,12 +218,104 @@ export default async function handler(req, res) {
       comerciales = await bajasComerciales(SUPABASE_URL, headers, RESEND_KEY, now);
     } catch (e) { console.error('[cron] comerciales:', e.message); }
 
-    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida, encuestas, resumen, informe, deudas, comerciales });
+    // ── Aviso INTERNO: registros que se quedaron en la tarjeta (Stripe sin terminar) ──
+    let sinTerminar = { avisados: 0 };
+    try {
+      sinTerminar = await registrosSinTerminar(SUPABASE_URL, headers, RESEND_KEY, now);
+    } catch (e) { console.error('[cron] registros sin terminar:', e.message); }
+
+    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida, encuestas, resumen, informe, deudas, comerciales, sinTerminar });
 
   } catch(e) {
     console.error('[cron] Error general:', e);
     return res.status(500).json({ error: 'Error del servidor' });
   }
+}
+
+// ═══ REGISTROS SIN TERMINAR (aviso interno) ═══
+// En TekPair la cuenta solo se crea cuando Stripe confirma la tarjeta, así que quien
+// abre el pago y se va no deja nada en la base de datos. Sus datos (nombre, email,
+// teléfono, tienda) van en la metadata de la sesión de Checkout: se le pregunta a
+// Stripe por las sesiones que NO se completaron y se manda un resumen a info@ con un
+// WhatsApp listo para rescatarlos. Ventana [ahora-25 h, ahora-1 h]: el cron es diario,
+// así que cada sesión sale una sola vez, y la hora de margen deja terminar a quien
+// está pagando justo ahora. Se quitan los emails que ya tienen cuenta o que
+// completaron otra sesión.
+async function registrosSinTerminar(SUPABASE_URL, headers, RESEND_KEY, now) {
+  const out = { avisados: 0 };
+  const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
+  if (!STRIPE_KEY || !RESEND_KEY) return out;
+  const desde = Math.floor(now.getTime() / 1000) - 25 * 3600;
+  const hasta = Math.floor(now.getTime() / 1000) - 3600;
+  const sesiones = [];
+  let after = null;
+  for (let pag = 0; pag < 10; pag++) {
+    const qs = new URLSearchParams({ limit: '100', 'created[gte]': String(desde), 'created[lte]': String(hasta) });
+    if (after) qs.set('starting_after', after);
+    const r = await fetch('https://api.stripe.com/v1/checkout/sessions?' + qs.toString(), { headers: { Authorization: `Bearer ${STRIPE_KEY}` } });
+    if (!r.ok) throw new Error('Stripe ' + r.status);
+    const j = await r.json();
+    sesiones.push(...(j.data || []));
+    if (!j.has_more || !j.data || !j.data.length) break;
+    after = j.data[j.data.length - 1].id;
+  }
+  const completados = new Set(sesiones.filter(x => x.status === 'complete').map(x => String(x.metadata?.email || x.customer_details?.email || '').toLowerCase()).filter(Boolean));
+  const porEmail = {};
+  for (const x of sesiones) {
+    const m = x.metadata || {};
+    if (x.status === 'complete' || m.tipo === 'addon') continue;
+    const email = String(m.email || '').toLowerCase().trim();
+    if (!email || completados.has(email)) continue;
+    if (!porEmail[email] || x.created > porEmail[email].created) porEmail[email] = { created: x.created, nombre: m.nombre || '', email, tel: m.tel || '', tienda: m.tienda_nombre || '', plan: m.plan || '' };
+  }
+  let lista = Object.values(porEmail);
+  if (!lista.length) return out;
+  // Quien ya tiene cuenta (se registró por otro lado o ya es cliente) no sale.
+  const emails = lista.map(x => x.email);
+  const inList = emails.map(e => '"' + e.replace(/"/g, '') + '"').join(',');
+  const uR = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=in.(${encodeURIComponent(inList)})&select=email`, { headers });
+  const yaCuenta = new Set((uR.ok ? await uR.json() : []).map(u => String(u.email || '').toLowerCase()));
+  lista = lista.filter(x => !yaCuenta.has(x.email) && !/@tekpair\.tech$/.test(x.email));
+  if (!lista.length) return out;
+
+  const esc = (v) => String(v == null ? '' : v).replace(/[<>&"']/g, (c) => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
+  const planLabel = (p) => ({ basico: 'Básico', pro: 'Pro', top: 'Premium', premium: 'Premium' })[p] || p || '';
+  const filas = lista.map(d => {
+    const primer = String(d.nombre || '').trim().split(' ')[0] || '';
+    const texto = `Hola ${primer}, te escribimos de TekPair 👋\n\n` +
+      'Hemos visto que empezaste a crear tu cuenta y no llegaste a terminarla. ' +
+      'Si fue por la tarjeta: la prueba es gratis, no se cobra nada hasta que acaba y se puede cancelar cuando quieras. ' +
+      'Si prefieres, te ayudamos a dejarlo todo montado por aquí.\n\n' +
+      'Un saludo,\nEl equipo de TekPair';
+    const tel = String(d.tel || '').replace(/\D/g, '');
+    const wa = tel ? `https://wa.me/${tel}?text=${encodeURIComponent(texto)}` : null;
+    return `<tr>
+      <td style="padding:10px 0;border-bottom:1px solid #E5E7EB;vertical-align:top">
+        <b>${esc(d.tienda || '—')}</b>${d.plan ? ` <span style="color:#64748B;font-size:12px">(${esc(planLabel(d.plan))})</span>` : ''}<br>
+        <span style="color:#64748B;font-size:13px">${esc(d.nombre)} · ${esc(d.email)}${d.tel ? ' · ' + esc(d.tel) : ''}</span>
+      </td>
+      <td style="padding:10px 0 10px 10px;border-bottom:1px solid #E5E7EB;text-align:right;vertical-align:top;white-space:nowrap">
+        ${wa ? `<a href="${wa}" style="display:inline-block;background:#25D366;color:#fff;padding:9px 14px;border-radius:8px;text-decoration:none;font-weight:700;font-size:13px">💬 WhatsApp</a>` : '<span style="color:#B91C1C;font-size:12px">sin teléfono</span>'}
+      </td>
+    </tr>`;
+  }).join('');
+  const n = lista.length;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;color:#111">
+  <h2 style="margin:0 0 4px">⏳ ${n} ${n === 1 ? 'registro' : 'registros'} sin terminar en TekPair</h2>
+  <p style="color:#64748B;margin:0 0 16px;font-size:13px">Abrieron el pago en las últimas 24 horas y no pusieron la tarjeta, así que no tienen cuenta. Aviso interno: al cliente no le llega nada.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">${filas}</table>
+  <p style="font-size:12px;color:#64748B;margin:16px 0 0">Cada botón abre WhatsApp con un mensaje ya escrito. Léelo antes de enviarlo.</p>
+</body></html>`;
+  const r = await fetch('https://api.resend.com/emails', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ from: 'TekPair <info@tekpair.tech>', to: [process.env.ALERTAS_EMAIL || 'info@tekpair.tech'],
+      subject: `⏳ ${n} ${n === 1 ? 'registro' : 'registros'} sin terminar en TekPair (sin tarjeta)`, html }),
+  });
+  if (!r.ok) throw new Error('Resend ' + r.status);
+  out.avisados = n;
+  return out;
 }
 
 // ═══ COMERCIALES: BAJA AUTOMÁTICA ═══
