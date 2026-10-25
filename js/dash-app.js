@@ -4068,8 +4068,27 @@ setInterval(_syncQueueRetry, SYNC_RETRY_INTERVAL_MS);
 setTimeout(function(){ _syncQueueRetry(); _syncIndicatorUpdate(); }, 2000);
 
 
+// ── Quién cobra ──
+// Cada venta y cada pago de reparación guardan quién lo cobró (columna cobrado_por, ver
+// sql/cobrado-por.sql). Es quien abrió la caja con su código o, si no, el usuario que ha entrado.
+// La columna solo se manda si existe (se comprueba una vez): sin el SQL aplicado no se rompe nada.
+function _quienCobra() { return (window._cajaSesion && window._cajaSesion.codigo && window._cajaSesion.nombre) || (typeof U !== 'undefined' && U && (U.nombre || U.email)) || null; }
+function _probarColCobrado() {
+  if (window._colCobradoPor !== undefined || window._colCobradoProbando || !SB_KEY || !TIENDA_ID) return;
+  window._colCobradoProbando = true;
+  fetch(SUPABASE_URL + '/rest/v1/pagos_reparacion?select=cobrado_por&limit=1', { headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY) } })
+    .then(function (r) { if (r.ok) window._colCobradoPor = true; else if (r.status === 400) window._colCobradoPor = false; })
+    .catch(function () {}).then(function () { window._colCobradoProbando = false; });
+}
+function _sellarCobro(table, data) {
+  if ((table !== 'ventas' && table !== 'pagos_reparacion') || !data || Array.isArray(data)) return;
+  if (window._colCobradoPor === undefined) { _probarColCobrado(); delete data.cobrado_por; return; }
+  if (!window._colCobradoPor) { delete data.cobrado_por; return; }
+  if (!data.cobrado_por) { var q = _quienCobra(); if (q) data.cobrado_por = q; }
+}
 function sbPost(table, data) {
   _sbReadCacheClear();
+  try { _sellarCobro(table, data); } catch (e) {}
   // Aprender marca y modelo por el IMEI de lo que se guarda (js/imei-modelo.js).
   try { if (typeof tkAprenderDeFila === 'function') tkAprenderDeFila(table, data); } catch (e) {}
   return _sbPostRaw(table, data).then(function(res) {
@@ -4168,7 +4187,7 @@ function sbDelete(table, query) {
 
 function mapVenta(v) {
   return {
-    id:v.id, fecha:v.fecha, clienteId:v.cliente_id, clienteNombre:v.cliente_nombre,
+    id:v.id, fecha:v.fecha, clienteId:v.cliente_id, clienteNombre:v.cliente_nombre, cobradoPor: v.cobrado_por || '',
     marca:v.marca||'', modelo:v.modelo||'', imei:v.imei||'',
     pago:v.pago||'Efectivo', precio:parseFloat(v.precio)||0,
     // Pago mixto (sql/ventas-pago-mixto.sql): desglose [{metodo, importe}]; null en ventas normales.
@@ -5708,6 +5727,7 @@ function renderInicioNuevo() {
   try { renderLoQueDebes(); } catch (e) {}
   try { renderListasSinAvisar(); } catch (e) {}
   try { renderCuotasReclamar(); } catch (e) {}
+  try { _probarColCobrado(); } catch (e) {}
   try { if (window._cobrosPend === undefined) cargarConfirmacionesPend(); else renderConfirmacionesPend(); } catch (e) {}
   try { renderInicioChips(); } catch (e) {}
   try { renderProximaAccion(); } catch (e) {}
@@ -9679,7 +9699,7 @@ function registrarPagoCuotaRep(rid, cidx) {
       if (SB_KEY && TIENDA_ID) {
         sbPatch('reparaciones', 'id=eq.' + rid, { cuotas: JSON.stringify(r.cuotas), restante: r.restante, estado_financiado: r.estadoFinanciado || 'activo' });
         // Cada pago = un pago_reparacion propio (id único) → no machaca anteriores.
-        sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoy, importe: pago, metodo: fp, tipo: 'cuota', nota: pf.por ? T('finp.cobrado_por') + ': ' + pf.por : null });
+        sbPost('pagos_reparacion', { id: _uuidPed(), tienda_id: TIENDA_ID, reparacion_id: rid, fecha: hoy, importe: pago, metodo: fp, tipo: 'cuota', nota: pf.por ? T('finp.cobrado_por') + ': ' + pf.por : null, cobrado_por: pf.por || undefined });
         window._pagosRepCache = null; try { _invalidarInvPagos(); } catch(e){}
       }
       if (completado) toast(T('tst.financiado_completado'), 'ok');
@@ -18684,6 +18704,8 @@ async function renderReporte() {
     '<div style="text-align:center;padding:14px;font-size:22px;font-weight:800;color:var(--green);background:rgba(0,200,150,.05);border-radius:12px;margin-top:8px">' + T('gen.total') + ' (' + T('inicio.cobrado') + '): ' + cur(tV + tR) + '</div>';
 
   try { _renderGananciaRep(pagosReps, _enRango, _minISO, _maxISO); } catch (e) { console.warn('ganancia:', e); }
+  try { _renderCobradoEmpleados(pagosReps, _enRango); } catch (e) { console.warn('cobrado empleados:', e); }
+  try { _renderMargenReps(_enRango); } catch (e) { console.warn('margen reps:', e); }
 
   // Guardar datos del periodo para "Enviar a Cobrum" (ventas + pagos de reparación)
   var _gastosPeriodo = (DB.gastos || []).filter(function(g){ return g && _enRango(g.fecha); });
@@ -18803,6 +18825,172 @@ function _renderGananciaRep(pagosReps, enRango, d1, d2) {
     T('gan.aprox') + ' <b style="font-size:18px;color:' + (gan >= 0 ? 'var(--green,#0E9F6E)' : 'var(--red,#E02424)') + ';font-variant-numeric:tabular-nums">' + cur(gan) + ' (' + margen + '%)</b>' +
     (sinCoste ? '<div style="font-size:11.5px;margin-top:3px">' + T('gan.sin_coste_c').replace('{n}', sinCoste) + '</div>' : '') +
   '</div>';
+}
+
+// ═══ COBRADO POR EMPLEADO (Reportes) ═══
+// Lo que entró en el periodo, por quien lo cobró y forma de pago: ventas (la financiada, su
+// entrada), cada pago de cuota (abono.por) y cada pago de reparación. Lo que se guardó antes de
+// apuntar quién cobra sale como «Sin asignar». Las devoluciones van en su propia fila.
+function _renderCobradoEmpleados(pagosReps, enRango) {
+  var box = document.getElementById('reporteEmpleados');
+  if (!box) return;
+  try { _probarColCobrado(); } catch (e) {}
+  var SIN = T('emp.sin_asignar'), DEV = T('emp.devoluciones');
+  var por = {}, mets = {};
+  var suma = function (quien, metodo, imp) {
+    if (!imp) return;
+    var k = (quien || '').trim() || SIN, m = metodo || 'Efectivo';
+    var g = por[k] || (por[k] = { total: 0, m: {} });
+    g.m[m] = (g.m[m] || 0) + imp; g.total += imp; mets[m] = 1;
+  };
+  if (SEL.repTipo !== 'reparaciones') {
+    (DB.ventas || []).forEach(function (v) {
+      if (v.financiado) {
+        if (enRango(v.fecha) && (parseFloat(v.entrada) || 0) > 0) suma(v.cobradoPor, v.entradaPago || 'Efectivo', parseFloat(v.entrada) || 0);
+        (Array.isArray(v.cuotas) ? v.cuotas : []).forEach(function (c) {
+          var ab = Array.isArray(c && c.abonos) ? c.abonos : [];
+          _cuotaAbonos(c).forEach(function (a, i) { if (enRango(a.fecha)) suma((ab[i] && ab[i].por) || a.por || '', a.metodo, a.importe); });
+        });
+      } else if (enRango(v.fecha)) {
+        _ventaPagos(v).forEach(function (p) { suma(v.cobradoPor, p.metodo, p.importe); });
+      }
+      if (v.reembolsado && enRango(v.fechaReembolso || v.fecha)) {
+        var dev = v.financiado ? (parseFloat(v.entrada) || 0) + (Array.isArray(v.cuotas) ? v.cuotas : []).reduce(function (a, c) { return a + _cuotaPagado(c); }, 0) : (parseFloat(v.total) || 0);
+        if (dev) suma(DEV, v.pago || 'Efectivo', -dev);
+      }
+    });
+  }
+  if (SEL.repTipo !== 'ventas') {
+    (pagosReps || []).forEach(function (p) {
+      var q = p.cobrado_por || '';
+      if (!q && p.nota) { var mm = String(p.nota).match(/:\s*(.+)$/); if (mm && /cobrad/i.test(p.nota)) q = mm[1]; }
+      suma(q, p.metodo, Number(p.importe || 0));
+    });
+  }
+  var nombres = Object.keys(por).sort(function (a, b) { if (a === DEV) return 1; if (b === DEV) return -1; if (a === SIN) return 1; if (b === SIN) return -1; return por[b].total - por[a].total; });
+  if (!nombres.length) { box.innerHTML = ''; return; }
+  var orden = ['Efectivo', 'Tarjeta', 'Bizum', 'Transferencia'];
+  var cols = orden.filter(function (m) { return mets[m]; }).concat(Object.keys(mets).filter(function (m) { return orden.indexOf(m) < 0; }));
+  var th = 'padding:7px 8px;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border-bottom:1px solid var(--border)';
+  var td = 'padding:7px 8px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums';
+  var html = '<div class="card" style="padding:14px;margin-top:14px"><div style="font-weight:800;font-size:15px;margin-bottom:2px">👤 ' + esc(T('emp.titulo')) + '</div>' +
+    '<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">' + esc(T('emp.nota')) + '</div>' +
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="' + th + ';text-align:left"></th>' +
+    cols.map(function (m) { return '<th style="' + th + ';text-align:right">' + esc(m) + '</th>'; }).join('') + '<th style="' + th + ';text-align:right">' + esc(T('gen.total')) + '</th></tr></thead><tbody>' +
+    nombres.map(function (k) {
+      var g = por[k], gris = (k === SIN || k === DEV);
+      return '<tr><td style="padding:7px 8px;border-bottom:1px solid var(--border);font-weight:700' + (gris ? ';color:var(--muted)' : '') + '">' + esc(k) + '</td>' +
+        cols.map(function (m) { return '<td style="' + td + '">' + (g.m[m] ? cur(g.m[m]) : '—') + '</td>'; }).join('') +
+        '<td style="' + td + ';font-weight:800">' + cur(g.total) + '</td></tr>';
+    }).join('') + '</tbody></table></div>' +
+    (window._colCobradoPor === false ? '<div style="font-size:11.5px;color:var(--orange);margin-top:8px">' + esc(T('emp.falta_sql')) + '</div>' : '') +
+    '</div>';
+  box.innerHTML = html;
+}
+
+// ═══ MARGEN POR REPARACIÓN (Reportes) ═══
+// Cuánto se gana de verdad con cada tipo de reparación (pantalla, batería…) en las entregadas del
+// periodo: precio de la línea − coste de la pieza. El coste sale, por orden: del coste apuntado en
+// el servicio, de la pieza del stock enlazada, de un pedido hecho para esa reparación y, si no hay
+// nada, se ESTIMA con la última compra de esa pieza para ese modelo en los pedidos de la tienda
+// (o su precio de coste en el stock). Solo datos de esta tienda.
+var _MARG_TIPOS = [
+  ['pantalla', /pantalla|display|lcd|screen/, ['pantalla', 'display', 'lcd', 'oled', 'incell', 'screen'], ['pantalla']],
+  ['bateria', /bater/, ['bateria', 'battery'], ['bateria']],
+  ['tapa', /tapa/, ['tapa', 'back cover'], ['tapa']],
+  ['carga', /carga|pin |conector/, ['conector de carga', 'flex de carga', 'puerto de carga', 'placa de carga', 'pin de carga', 'charging'], ['flex de carga']],
+  ['camara', /camara/, ['camara', 'camera'], []],
+  ['altavoz', /altavoz|speaker/, ['altavoz', 'speaker'], []]
+];
+function _margN(x) { return String(x || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, ' ').trim(); }
+function _margTipo(nombre) { var n = _margN(nombre) + ' '; for (var i = 0; i < _MARG_TIPOS.length; i++) if (_MARG_TIPOS[i][1].test(n)) return _MARG_TIPOS[i]; return null; }
+var _MARG_VARIANTES = { pro: 1, max: 1, plus: 1, mini: 1, ultra: 1, lite: 1, fe: 1, neo: 1 };
+// ¿Habla este texto de ese modelo? («iphone 13» no vale para «iphone 13 pro max»)
+function _margEsModelo(texto, modelo) {
+  var t = ' ' + texto + ' ', m = ' ' + modelo + ' ', i = t.indexOf(m);
+  var palabrasM = {}; modelo.split(' ').forEach(function (w) { palabrasM[w] = 1; });
+  while (i >= 0) {
+    var sig = t.slice(i + m.length).split(' ')[0];
+    if (!(_MARG_VARIANTES[sig] && !palabrasM[sig])) return true;
+    i = t.indexOf(m, i + 1);
+  }
+  return false;
+}
+function _margModelo(r) { return _margN(r.modelo).replace(/^(apple|samsung|xiaomi|huawei|motorola|oppo|realme)\s+/, ''); }
+function _renderMargenReps(enRango) {
+  var box = document.getElementById('reporteMargen');
+  if (!box) return;
+  if (SEL.repTipo === 'ventas') { box.innerHTML = ''; return; }
+  var compras = (DB.pedidos || []).filter(function (p) { return p.estado === 'recibido' && _pedPrecioUnit(p) > 0; })
+    .map(function (p) { return { n: _margN(p.pieza), u: _pedPrecioUnit(p), f: String(p.fecha_recibido || p.fecha_pedido || ''), rep: p.reparacion_id || p.rep_id || '' }; })
+    .sort(function (a, b) { return b.f.localeCompare(a.f); });
+  var stockPz = (DB.stock || []).filter(function (x) { return (parseFloat(x.precioC) || 0) > 0 && !_esImeiCat(x.categoria); })
+    .map(function (x) { return { n: _margN((x.categoria || '') + ' ' + (x.marca || '') + ' ' + (x.modelo || '')), u: parseFloat(x.precioC) || 0, cat: _margN(x.categoria) }; });
+  var cacheEst = {};
+  var estimar = function (tipo, modelo) {
+    var k = tipo[0] + '|' + modelo; if (cacheEst[k] !== undefined) return cacheEst[k];
+    var kw = tipo[2], v = null;
+    var c = compras.find(function (p) { return kw.some(function (w) { return (' ' + p.n + ' ').indexOf(' ' + w) >= 0; }) && _margEsModelo(p.n, modelo); });
+    if (c) v = c.u;
+    else { var st = stockPz.find(function (x) { return kw.some(function (w) { return (' ' + x.n + ' ').indexOf(' ' + w) >= 0; }) && _margEsModelo(x.n, modelo); }); if (st) v = st.u; }
+    cacheEst[k] = v; return v;
+  };
+  var agg = {}, modelos = {}, nTot = 0, nReal = 0, nEst = 0;
+  (DB.reps || []).forEach(function (r) {
+    if (r.estado !== 'Entregado' || !enRango(r.fechaEntregaReal || r.fecha)) return;
+    var srv = Array.isArray(r.servicios) ? r.servicios : [];
+    var modelo = _margModelo(r);
+    srv.forEach(function (s) {
+      var tipo = _margTipo(s.nombre); if (!tipo) return;
+      var precio = parseFloat(s.precio) || (srv.length === 1 ? (parseFloat(r.total) || 0) : 0);
+      if (!(precio > 0)) return;
+      nTot++;
+      var coste = null, est = false;
+      if ((parseFloat(s.coste) || 0) > 0) coste = parseFloat(s.coste);
+      if (coste == null && Array.isArray(r.componentes) && r.componentes.length) {
+        var cc = 0;
+        r.componentes.forEach(function (p) { var st = (DB.stock || []).find(function (x) { return x.id === p.id; }); if (st && _margTipo((st.categoria || '') + ' ' + (st.modelo || '')) === tipo) cc += parseFloat(st.precioC) || 0; });
+        if (cc > 0) coste = cc;
+      }
+      if (coste == null) { var pr = compras.find(function (p) { return p.rep === r.id && _margTipo(p.n) === tipo; }); if (pr) coste = pr.u; }
+      if (coste == null && modelo) { var e = estimar(tipo, modelo); if (e != null) { coste = e; est = true; } }
+      var g = agg[tipo[0]] || (agg[tipo[0]] = { n: 0, nc: 0, precio: 0, precioC: 0, coste: 0 });
+      g.n++; g.precio += precio;
+      if (coste == null) return;
+      if (est) nEst++; else nReal++;
+      g.nc++; g.precioC += precio; g.coste += coste;
+      if (modelo) {
+        var km = tipo[0] + '|' + modelo;
+        var mm = modelos[km] || (modelos[km] = { tipo: tipo[0], nombre: ((r.marca || '') + ' ' + (r.modelo || '')).trim(), n: 0, precio: 0, coste: 0, est: false });
+        mm.n++; mm.precio += precio; mm.coste += coste; if (est) mm.est = true;
+      }
+    });
+  });
+  var tipos = _MARG_TIPOS.map(function (t) { return t[0]; }).filter(function (k) { return agg[k]; });
+  if (!tipos.length) { box.innerHTML = ''; return; }
+  var th = 'padding:7px 8px;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border-bottom:1px solid var(--border);text-align:right';
+  var td = 'padding:7px 8px;border-bottom:1px solid var(--border);text-align:right;font-variant-numeric:tabular-nums';
+  var color = function (pct) { return pct < 30 ? 'var(--red,#E02424)' : pct < 50 ? 'var(--orange,#D97706)' : 'var(--green,#0E9F6E)'; };
+  var filas = tipos.map(function (k) {
+    var g = agg[k], pm = g.precio / g.n;
+    if (!g.nc) return '<tr><td style="padding:7px 8px;border-bottom:1px solid var(--border);font-weight:700">' + esc(T('marg.' + k)) + '</td><td style="' + td + '">' + g.n + '</td><td style="' + td + '">' + cur(pm) + '</td><td style="' + td + '" colspan="3">' + esc(T('marg.sin_coste')) + '</td></tr>';
+    var pc = g.precioC / g.nc, cm = g.coste / g.nc, gm = pc - cm, pct = pc > 0 ? Math.round(gm / pc * 100) : 0;
+    return '<tr><td style="padding:7px 8px;border-bottom:1px solid var(--border);font-weight:700">' + esc(T('marg.' + k)) + '</td><td style="' + td + '">' + g.n + '</td><td style="' + td + '">' + cur(pm) + '</td><td style="' + td + '">' + cur(cm) + '</td>' +
+      '<td style="' + td + ';font-weight:800;color:' + color(pct) + '">' + cur(gm) + '</td><td style="' + td + ';color:' + color(pct) + '">' + pct + '%</td></tr>';
+  }).join('');
+  // Donde menos se gana (por modelo), para revisar precios
+  var bajos = Object.keys(modelos).map(function (k) { var m = modelos[k]; m.gan = (m.precio - m.coste) / m.n; m.pct = m.precio > 0 ? Math.round((m.precio - m.coste) / m.precio * 100) : 0; return m; })
+    .filter(function (m) { return m.pct < 50; }).sort(function (a, b) { return a.pct - b.pct; }).slice(0, 6);
+  var html = '<div class="card" style="padding:14px;margin-top:14px"><div style="font-weight:800;font-size:15px;margin-bottom:2px">📈 ' + esc(T('marg.titulo')) + '</div>' +
+    '<div style="font-size:11.5px;color:var(--muted);margin-bottom:10px">' + esc(T('marg.nota').replace('{r}', nReal).replace('{e}', nEst).replace('{n}', nTot)) + '</div>' +
+    '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:13px"><thead><tr><th style="' + th + ';text-align:left"></th><th style="' + th + '">' + esc(T('marg.n')) + '</th><th style="' + th + '">' + esc(T('marg.precio')) + '</th><th style="' + th + '">' + esc(T('marg.coste')) + '</th><th style="' + th + '">' + esc(T('marg.ganas')) + '</th><th style="' + th + '">%</th></tr></thead><tbody>' + filas + '</tbody></table></div>';
+  if (bajos.length) {
+    html += '<div style="font-weight:700;font-size:13px;margin:12px 0 6px">' + esc(T('marg.bajos')) + '</div>' + bajos.map(function (m) {
+      return '<div style="display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--border);font-size:12.5px"><span>' + esc(T('marg.' + m.tipo)) + ' · ' + esc(m.nombre) + (m.n > 1 ? ' (×' + m.n + ')' : '') + (m.est ? ' <span style="color:var(--muted);font-size:11px">' + esc(T('marg.estimado')) + '</span>' : '') + '</span>' +
+        '<span style="white-space:nowrap;font-variant-numeric:tabular-nums">' + esc(T('marg.linea').replace('{p}', cur(m.precio / m.n)).replace('{c}', cur(m.coste / m.n))) + ' <b style="color:' + color(m.pct) + '">' + cur(m.gan) + ' (' + m.pct + '%)</b></span></div>';
+    }).join('');
+  }
+  box.innerHTML = html + '</div>';
 }
 
 // ═══ ENVIAR REPORTE A COBRUM (app de finanzas) ═══
