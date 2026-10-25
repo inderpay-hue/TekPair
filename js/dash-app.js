@@ -3238,17 +3238,19 @@ function registrarPagoProveedor(prov, importe) {
 
 // ── Puerta de código de Cajas: identifica al empleado al entrar ──
 async function pedirCodigoCaja() {
-  var users = [];
-  try { users = await sbGet('usuarios', 'tienda_id=eq.' + TIENDA_ID + '&select=nombre,codigo,rol,activo'); } catch (e) {}
-  var conCodigo = (users || []).filter(function(u) { return u.activo !== false && u.codigo; });
-  if (conCodigo.length === 0) {
+  // Solo se pregunta al servidor SI hay códigos; los códigos ya no llegan al navegador
+  var hay = false;
+  try {
+    var rh = await fetch('/api/cajas?action=codigos_caja', { headers: { 'Authorization': 'Bearer ' + JWT_TOKEN } });
+    var jh = await rh.json(); hay = !!(jh && jh.hay);
+  } catch (e) { hay = false; }
+  if (!hay) {
     // Nadie tiene código configurado → sin puerta (entra como el usuario logueado)
     window._cajaSesion = { codigo: '', nombre: (U ? U.nombre : '') };
     window._cajaGateOk = true;
     navTo('pCajas');
     return;
   }
-  window._cajaUsersCache = conCodigo;
   var inp = document.getElementById('codigo-caja-input'); if (inp) inp.value = '';
   var err = document.getElementById('codigo-caja-error'); if (err) err.style.display = 'none';
   var adminBtn = document.getElementById('codigo-caja-admin');
@@ -3256,12 +3258,17 @@ async function pedirCodigoCaja() {
   document.getElementById('modal-codigo-caja').classList.add('activo');
   setTimeout(function() { if (inp) inp.focus(); }, 80);
 }
-function validarCodigoCaja() {
+async function validarCodigoCaja() {
   var cod = (document.getElementById('codigo-caja-input').value || '').trim();
-  var match = (window._cajaUsersCache || []).find(function(u) { return String(u.codigo) === cod; });
+  var err = document.getElementById('codigo-caja-error');
+  var match = null, msg = T('caja.codigo_no_valido');
+  try {
+    var r = await fetch('/api/cajas?action=validar_codigo', { method: 'POST', headers: { 'Authorization': 'Bearer ' + JWT_TOKEN, 'Content-Type': 'application/json' }, body: JSON.stringify({ codigo: cod }) });
+    var j = await r.json().catch(function () { return {}; });
+    if (r.ok && j.ok) match = { nombre: j.nombre }; else if (r.status === 429 && j.error) msg = j.error;
+  } catch (e) {}
   if (!match) {
-    var err = document.getElementById('codigo-caja-error');
-    if (err) { err.textContent = T('caja.codigo_no_valido'); err.style.display = 'block'; }
+    if (err) { err.textContent = msg; err.style.display = 'block'; }
     return;
   }
   window._cajaSesion = { codigo: cod, nombre: match.nombre };
@@ -21410,7 +21417,16 @@ async function cargarUsuarios() {
     } catch (e) { /* sin multi-tienda */ }
   }
   // Columnas concretas: nunca contraseñas ni tokens de recuperación
-  var lista = await sbGet('usuarios', 'tienda_id=eq.' + TIENDA_ID + '&select=id,nombre,email,rol,activo,permisos,permisos_caja,codigo,ultimo_acceso,created_at');
+  var lista = await sbGet('usuarios', 'tienda_id=eq.' + TIENDA_ID + '&select=id,nombre,email,rol,activo,permisos,permisos_caja,ultimo_acceso,created_at');
+  // Los códigos de caja los da el servidor y solo al administrador
+  if (Array.isArray(lista) && lista.length && U && U.rol === 'admin') {
+    try {
+      var rc = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + (JWT_TOKEN || '') }, body: JSON.stringify({ action: 'usuarios-admin', op: 'listar-codigos' }) });
+      var jc = await rc.json();
+      var mc = {}; ((jc && jc.codigos) || []).forEach(function (x) { mc[x.id] = x.codigo; });
+      lista = lista.map(function (u) { return Object.assign({}, u, { codigo: mc[u.id] || null }); });
+    } catch (e) {}
+  }
   if (!lista || !lista.length) { el.innerHTML = '<div class="empty">' + T('usu.sin_usuarios') + '</div>'; return; }
   var container = document.createElement('div');
   container.className = 'tbl-wrap';

@@ -877,6 +877,14 @@ export default async function handler(req, res) {
         return res.json({ ok: true });
       }
 
+      // Códigos de caja de la tienda: solo para el administrador (el navegador de un
+      // empleado ya no puede leer la columna codigo).
+      if (op === 'listar-codigos') {
+        const r = await fetch(`${SB_URL}/rest/v1/usuarios?tienda_id=eq.${encodeURIComponent(tiendaId)}&select=id,codigo`, { headers: sbH });
+        const arr = await r.json();
+        return res.json({ ok: true, codigos: Array.isArray(arr) ? arr : [] });
+      }
+
       if (op === 'codigo') {
         const { target_id, codigo } = req.body;
         if (!target_id) return res.status(400).json({ error: 'Falta target_id' });

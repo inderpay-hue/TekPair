@@ -108,10 +108,12 @@ export default async function handler(req, res) {
         stripeCustomerId = session.customer || null;
         // CHK-2 fix: leer datos del metadata si no vinieron en body
         if (session.metadata) {
-          if (!email && session.metadata.email) email = session.metadata.email;
+          // El email y el plan PAGADOS mandan sobre lo que venga en la petición: si no, con
+          // un mismo pago se podían dar de alta tiendas con otros emails o con un plan mayor.
+          if (session.metadata.email) email = session.metadata.email;
           if (!nombre && session.metadata.nombre) nombre = session.metadata.nombre;
           if (!tienda_nombre && session.metadata.tienda_nombre) tienda_nombre = session.metadata.tienda_nombre;
-          if (!plan && session.metadata.plan) plan = session.metadata.plan;
+          if (session.metadata.plan) plan = session.metadata.plan;
           if (session.metadata.ref) refCode = String(session.metadata.ref).replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16);
           if (session.metadata.tel && !telefono) telefono = String(session.metadata.tel).slice(0, 20);
         }
@@ -149,6 +151,15 @@ export default async function handler(req, res) {
     if (!session || session.error || !stripeCustomerId || session.status !== 'complete') {
       return res.status(400).json({ error: 'Sesión de pago no válida' });
     }
+    // Una sesión de pago = una tienda. Reutilizar el session_id creaba tiendas de prueba
+    // ilimitadas que compartían la misma suscripción (y el webhook podía tocar la que no era).
+    try {
+      const dR = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?or=(stripe_customer_id.eq.${encodeURIComponent(stripeCustomerId)}${stripeSubId ? ',stripe_sub_id.eq.' + encodeURIComponent(stripeSubId) : ''})&select=id&limit=1`, {
+        headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}` }
+      });
+      const dup = await dR.json();
+      if (Array.isArray(dup) && dup.length) return res.status(409).json({ error: _loc('Esta suscripción ya tiene una tienda. Entra con tu email y contraseña.', req) });
+    } catch (e) { console.warn('No se pudo comprobar si la sesión ya se usó:', e.message); }
 
     // Validar que tengamos datos mínimos tras leer Stripe
     email = typeof email === 'string' ? email.trim().toLowerCase() : email;

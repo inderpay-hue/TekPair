@@ -518,6 +518,24 @@ export default async function handler(req, res) {
   try {
     switch (action) {
 
+      // ─── CÓDIGO DE EMPLEADO (puerta de Cajas) ───
+      // Antes el navegador descargaba los códigos de todos los empleados y comparaba allí:
+      // cualquiera los veía en la pestaña Red. Ahora solo se pregunta si hay códigos y se
+      // valida uno concreto aquí, con límite de intentos.
+      case 'codigos_caja': {
+        const us = await sbGet(`usuarios?tienda_id=eq.${encodeURIComponent(tienda_id)}&codigo=not.is.null&activo=not.is.false&select=id&limit=1`);
+        return res.json({ ok: true, hay: us.length > 0 });
+      }
+      case 'validar_codigo': {
+        const rl = await rateLimit('cajas:codigo:' + tienda_id + ':' + (payload.sub || ''), 10, 5 * 60);
+        if (!rl.ok) return err(res, 429, 'Demasiados intentos. Espera unos minutos.');
+        const cod = ((req.body || {}).codigo || '').toString().trim();
+        if (!cod) return err(res, 400, 'Falta el código');
+        const us = await sbGet(`usuarios?tienda_id=eq.${encodeURIComponent(tienda_id)}&codigo=eq.${encodeURIComponent(cod)}&activo=not.is.false&select=nombre,rol&limit=1`);
+        if (!us.length) return res.json({ ok: false });
+        return res.json({ ok: true, nombre: us[0].nombre, rol: us[0].rol || 'empleado' });
+      }
+
       // ─── CAJAS ───────────────────────────────
       case 'listar_cajas': {
         const cajas = await sbGet(

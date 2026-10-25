@@ -562,6 +562,9 @@ async function syncError(req, res, payload) {
 
 // Ajustes → Notificaciones → Resumen diario → "Enviarme uno de prueba": el de ayer, ya.
 async function resumenPrueba(req, res, payload) {
+  // Es el resumen de facturación de la tienda: solo el administrador puede pedirlo
+  // (antes cualquier empleado podía mandarlo a un email cualquiera).
+  if (payload.rol !== 'admin') return res.status(403).json({ error: 'Solo el administrador puede enviar el resumen' });
   const _rl = await rateLimit('resumen-prueba:' + payload.tienda_id, 5, 60 * 60);
   if (!_rl.ok) return res.status(429).json({ error: 'Demasiadas pruebas. Espera un rato.' });
   const SUPABASE_URL = process.env.SUPABASE_URL, SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY, RESEND_KEY = process.env.RESEND_API_KEY;
