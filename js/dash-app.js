@@ -14747,7 +14747,7 @@ function renderStock() {
   _renderCalChips('stockCalFiltro', (cat && cat !== '__low__') ? list : [], window._stockFiltroCal || '', 'setStockFiltroCal');
   if (window._stockFiltroCal) list = list.filter(function (s) { return _calKey(s.calidad) === window._stockFiltroCal; });
   // Con una calidad elegida (p. ej. "Sin calidad"): casillas para poner calidad a varias de golpe
-  var _masiva = !!window._stockFiltroCal && tienePerm('stock_calidad');
+  var _masiva = !!window._stockFiltroCal && _permCalidad();
   window._stkSelCal = _masiva ? (window._stkSelCal || {}) : {};
   _renderCalMasiva(_masiva ? list : null);
   var _res = document.getElementById('stockResumen');
@@ -14795,7 +14795,7 @@ function renderStock() {
       ((s.capacidad || s.color) ? '<br><span style="font-size:9px;color:var(--muted)">' + [s.capacidad, s.color].filter(Boolean).join(' · ') + '</span>' : '') +
       (s.calidad ? ' <span style="font-size:9px;font-weight:700;color:#7C5CFC;background:rgba(124,92,252,.1);padding:1px 5px;border-radius:4px">' + esc(s.calidad) + '</span>' : '') +
       // Pantalla sin calidad: se elige aquí mismo, sin abrir la ficha
-      ((s.categoria === 'Pantalla' && !s.calidad && tienePerm('stock_calidad')) ? ' <select onchange="setCalidadStock(\'' + s.id + '\', this.value)" style="font-size:10px;padding:1px 4px;border:1px dashed #7C5CFC;border-radius:5px;background:transparent;color:#7C5CFC;cursor:pointer"><option value="">+ ' + escHtml(T('catalogo.calidad') || 'Calidad') + '</option>' + CALIDADES_PANTALLA.map(function (c) { return '<option value="' + esc(c.v) + '">' + esc(c.v) + '</option>'; }).join('') + '</select>' : '') +
+      ((s.categoria === 'Pantalla' && !s.calidad && _permCalidad()) ? ' <select onchange="setCalidadStock(\'' + s.id + '\', this.value)" style="font-size:10px;padding:1px 4px;border:1px dashed #7C5CFC;border-radius:5px;background:transparent;color:#7C5CFC;cursor:pointer"><option value="">+ ' + escHtml(T('catalogo.calidad') || 'Calidad') + '</option>' + CALIDADES_PANTALLA.map(function (c) { return '<option value="' + esc(c.v) + '">' + esc(c.v) + '</option>'; }).join('') + '</select>' : '') +
       (s.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">IMEI: ' + s.imei + '</span>' : '') + '</td>' +
       '<td><span class="badge bb" style="font-size:9px">' + esc(_catLbl(s.categoria)) + '</span></td>' +
       (mostrarUbic ? '<td>' + (s.ubicacion ? '<span class="badge" style="background:rgba(255,91,31,.10);color:var(--purple);font-size:9px">' + esc(s.ubicacion) + '</span>' : '<span style="color:var(--muted);font-size:10px">—</span>') + '</td>' : '') +
@@ -15636,7 +15636,7 @@ function selTodasCal(on) {
   renderStock();
 }
 function aplicarCalMasiva() {
-  if (!tienePerm('stock_calidad')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  if (!_permCalidad()) { toast(T('gen.sin_permiso'), 'err'); return; }
   var cal = (document.getElementById('stkCalMasivaSel') || {}).value; if (!cal) return;
   var ids = Object.keys(window._stkSelCal || {});
   var items = (DB.stock || []).filter(function (s) { return ids.indexOf(s.id) >= 0; });
@@ -15650,9 +15650,11 @@ function aplicarCalMasiva() {
   toast(T('stock.cal_puestas').replace('{n}', items.length).replace('{c}', cal), 'ok');
   renderStock();
 }
+// Cambiar la calidad: su propio permiso, y también quien puede editar el stock
+function _permCalidad() { return tienePerm('stock_calidad') || tienePerm('stock_editar'); }
 function setCalidadStock(id, cal) {
   if (!cal) return;
-  if (!tienePerm('stock_calidad')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  if (!_permCalidad()) { toast(T('gen.sin_permiso'), 'err'); return; }
   var s = (DB.stock || []).find(function (x) { return x.id === id; });
   if (!s) return;
   s.calidad = cal;
