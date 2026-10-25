@@ -4944,6 +4944,69 @@ function _invIncome(d1, d2) {
   return Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
 }
 // W4: los KPIs del inicio navegan a Reparaciones con el filtro adecuado (antes a Reportes genérico).
+// ═══ DETALLE DE LAS TARJETAS DE INICIO (Premium) ═══
+// Tocar "Cobrado", "Efectivo", "Nº de ventas" o "Reparaciones pendientes" abre el
+// detalle encima de Inicio, sin cambiar de pantalla.
+function _inicioDetalle(tipo) {
+  if (typeof checkFeature === 'function' && !checkFeature('inicio_avanzado')) return;
+  var ctx = window._inicioCtx || { d1: hoyLocal(), d2: hoyLocal(), suf: '', pagos: {}, total: 0 };
+  var fila = function (izq, der, sub) {
+    return '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--light,#f1f5f9);font-size:13px"><span style="min-width:0">' + izq + (sub ? '<div style="font-size:11.5px;color:var(--muted)">' + sub + '</div>' : '') + '</span><b style="white-space:nowrap;font-variant-numeric:tabular-nums">' + der + '</b></div>';
+  };
+  var titulo = function (t) { return '<div style="font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:700;margin:14px 0 4px">' + escHtml(t) + '</div>'; };
+  var vacio = '<div style="padding:10px 0;color:var(--muted);font-size:13px">' + escHtml(T('idet.ninguno')) + '</div>';
+  var hora = function (x) { var t = String(x || ''); var m = t.match(/T(\d\d:\d\d)/); return m ? m[1] : ''; };
+  var ventas = (DB.ventas || []).filter(function (v) { return !v.reembolsado && v.fecha >= ctx.d1 && v.fecha <= ctx.d2; })
+    .sort(function (a, b) { return String(b.createdAt || b.fecha).localeCompare(String(a.createdAt || a.fecha)); });
+  var ventaTxt = function (v) {
+    var its = v.items; if (typeof its === 'string') { try { its = JSON.parse(its); } catch (e) { its = null; } }
+    var n = Array.isArray(its) && its.length ? its.map(function (i) { return (i.qty > 1 ? i.qty + '× ' : '') + (i.nombre || ''); }).join(', ') : _eqNombre(v.marca, v.modelo);
+    return escHtml(n || ('#' + (v.numero || '')));
+  };
+  var metodosV = function (v) { try { return _ventaPagos(v).map(function (p) { return p.metodo; }).filter(function (m, i, a) { return a.indexOf(m) === i; }).join(' + '); } catch (e) { return v.pago || ''; } };
+  var html = '', head = '';
+  if (tipo === 'cobrado') {
+    head = T('inicio.cobrado') + ' ' + ctx.suf + ': ' + cur(ctx.total);
+    var ms = Object.keys(ctx.pagos).filter(function (m) { return Math.abs(ctx.pagos[m]) > 0.004; }).sort(function (a, b) { return ctx.pagos[b] - ctx.pagos[a]; });
+    html += titulo(T('idet.por_metodo'));
+    html += ms.length ? ms.map(function (m) {
+      var pct = ctx.total > 0 ? Math.round(ctx.pagos[m] / ctx.total * 100) : 0;
+      return '<div style="padding:7px 0"><div style="display:flex;justify-content:space-between;font-size:13.5px"><span>' + escHtml(m) + '</span><b>' + cur(ctx.pagos[m]) + ' <span style="color:var(--muted);font-weight:600">' + pct + '%</span></b></div>' +
+        '<div style="height:6px;border-radius:4px;background:var(--light,#f1f5f9);margin-top:4px"><div style="height:6px;border-radius:4px;width:' + Math.max(0, Math.min(100, pct)) + '%;background:' + (m === 'Efectivo' ? 'var(--green,#0E9F6E)' : 'var(--blue,#2563EB)') + '"></div></div></div>';
+    }).join('') : vacio;
+    html += titulo(T('idet.ventas') + ' (' + ventas.length + ')');
+    html += ventas.length ? ventas.slice(0, 40).map(function (v) { return fila(ventaTxt(v), cur(v.total), [hora(v.createdAt), escHtml(metodosV(v))].filter(Boolean).join(' · ')); }).join('') : vacio;
+    var pr = (typeof _invPagosRep === 'function' ? (_invPagosRep() || []) : []).filter(function (p) { var f = (p.fecha || '').slice(0, 10); return f >= ctx.d1 && f <= ctx.d2; });
+    html += titulo(T('idet.reparaciones') + ' (' + pr.length + ')');
+    html += pr.length ? pr.slice(0, 40).map(function (p) {
+      var r = (DB.reps || []).find(function (x) { return x.id === p.reparacion_id; }) || {};
+      return fila(escHtml(_eqNombre(r.marca, r.modelo) || T('idet.reparacion')) + (r.clienteNombre ? ' <span style="color:var(--muted)">· ' + escHtml(r.clienteNombre) + '</span>' : ''), cur(parseFloat(p.importe) || 0), escHtml(p.metodo || ''));
+    }).join('') : vacio;
+  } else if (tipo === 'ventas') {
+    head = T('inicio.num_ventas') + ' ' + ctx.suf + ': ' + ventas.length;
+    html += ventas.length ? ventas.slice(0, 80).map(function (v) { return fila(ventaTxt(v) + (v.clienteNombre ? ' <span style="color:var(--muted)">· ' + escHtml(v.clienteNombre) + '</span>' : ''), cur(v.total), [hora(v.createdAt), escHtml(metodosV(v))].filter(Boolean).join(' · ')); }).join('') : vacio;
+  } else if (tipo === 'reps') {
+    var hoyD = new Date(hoyLocal() + 'T12:00:00');
+    var reps = (DB.reps || []).filter(function (r) { return ['Pendiente', 'En Proceso', 'En proceso'].indexOf(r.estado) !== -1; })
+      .map(function (r) { var f = (r.fecha || '').slice(0, 10); return { r: r, d: f ? Math.max(0, Math.floor((hoyD - new Date(f + 'T12:00:00')) / 86400000)) : 0 }; })
+      .sort(function (a, b) { return b.d - a.d; });
+    head = T('idet.reps_titulo') + ': ' + reps.length;
+    html += reps.length ? reps.map(function (o) {
+      var r = o.r;
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--light,#f1f5f9);font-size:13px"><span style="flex:1;min-width:0"><b>' + escHtml(_eqNombre(r.marca, r.modelo) || '—') + '</b>' + (r.averia ? ' <span style="color:var(--muted)">· ' + escHtml(String(r.averia).slice(0, 40)) + '</span>' : '') +
+        '<div style="font-size:11.5px;color:var(--muted)">' + escHtml(r.clienteNombre || '') + ' · ' + escHtml(r.estado || '') + ' · <span style="color:' + (o.d > 7 ? 'var(--red,#E02424)' : 'var(--muted)') + '">' + escHtml(T('idet.dias').replace('{n}', o.d)) + '</span></div></span>' +
+        '<button type="button" onclick="_inicioDetCerrar();editarRep(\'' + r.id + '\')" style="border:1px solid var(--border);background:transparent;border-radius:8px;padding:5px 10px;font:inherit;font-size:12px;font-weight:600;cursor:pointer">' + escHtml(T('estan.ver') || 'Ver') + '</button></div>';
+    }).join('') : vacio;
+  }
+  var m = _modalOverlay('<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><div style="font-size:16px;font-weight:800;flex:1">' + escHtml(head) + '</div><button type="button" id="_idetX" style="border:none;background:transparent;font-size:20px;cursor:pointer;color:var(--muted)">✕</button></div>' +
+    '<div style="max-height:65vh;overflow:auto;padding-right:4px">' + html + '</div>');
+  m.box.style.maxWidth = '560px';
+  window._inicioDetModal = m;
+  m.box.querySelector('#_idetX').onclick = m.close;
+  m.bg.addEventListener('click', function (e) { if (e.target === m.bg) m.close(); });
+}
+function _inicioDetCerrar() { try { window._inicioDetModal && window._inicioDetModal.close(); } catch (e) {} }
+
 function _kpiReps(f) {
   try { SEL.repFiltro = f || 'todas'; } catch (e) {}
   try { navTo('pReps'); } catch (e) {}
@@ -5517,6 +5580,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
   var totalP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
   var efectivo = pagos.Efectivo || 0;
   var ventasPer = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).length;
+  window._inicioCtx = { d1: d1, d2: d2, suf: sufLbl, pagos: pagos, total: totalP };
 
   // Semana actual vs anterior (mismo tramo) → contexto KPI
   var estaSem = _invIncome(_invIso(monday), hoy);
@@ -5569,8 +5633,8 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
       (opts.cta ? '<button onclick="' + opts.ctaJs + '" style="margin-top:14px;font:inherit;font-size:12.5px;font-weight:600;color:' + (opts.ctaColor || 'var(--orange,#e07b4f)') + ';background:' + (opts.ctaBg || 'var(--orange-soft,#fbeee6)') + ';border:0;border-radius:9px;padding:8px 13px;cursor:pointer">' + opts.cta + ' →</button>' : '') +
       '</div>';
   }
-  function kpiCard(v, label, delta, dcolor) {
-    return '<div style="' + cardCss + ';padding:13px 15px">' +
+  function kpiCard(v, label, delta, dcolor, onclk) {
+    return '<div style="' + cardCss + ';padding:13px 15px' + (onclk ? ';cursor:pointer' : '') + '"' + (onclk ? ' onclick="' + onclk + '" title="' + escHtml(T('idet.tocar')) + '"' : '') + '>' +
       '<div style="' + eyebrow + '">' + label + '</div>' +
       '<div style="' + bigCss + ';font-size:24px;margin-top:4px">' + v + '</div>' +
       '<div style="font-size:11px;font-weight:700;margin-top:3px;color:' + (dcolor || 'var(--muted)') + '">' + (delta || '') + '</div>' +
@@ -5620,10 +5684,10 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
     var sinAvisar = listas.filter(function(r) { return !r.avisado; }).length;
     var cobradoDelta = (pctSem !== null && pctSem > 0) ? ('▲ +' + pctSem + '% ' + T('iv2.vs_previa')) : '';
     var kpis = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:14px" class="iv2-kpis">' +
-      kpiCard(cur(totalP), T('inicio.cobrado') + ' ' + sufLbl, cobradoDelta, cobradoDelta ? 'var(--green,#0E9F6E)' : 'var(--muted)') +
-      kpiCard(cur(efectivo), T('iv2.efectivo_caja'), T('iv2.del_total').replace('{p}', totalP > 0 ? Math.round(efectivo / totalP * 100) : 0)) +
-      kpiCard(ventasPer, T('inicio.num_ventas') + ' ' + sufLbl, T('iv2.tickets')) +
-      kpiCard(enRep.length, T('iv2.reps_pend'), sinAvisar ? T('iv2.sin_avisar_n').replace('{n}', sinAvisar) : T('iv2.en_taller_s'), sinAvisar ? 'var(--red,#E02424)' : 'var(--muted)') +
+      kpiCard(cur(totalP), T('inicio.cobrado') + ' ' + sufLbl, cobradoDelta, cobradoDelta ? 'var(--green,#0E9F6E)' : 'var(--muted)', "_inicioDetalle('cobrado')") +
+      kpiCard(cur(efectivo), T('iv2.efectivo_caja'), T('iv2.del_total').replace('{p}', totalP > 0 ? Math.round(efectivo / totalP * 100) : 0), null, "_inicioDetalle('cobrado')") +
+      kpiCard(ventasPer, T('inicio.num_ventas') + ' ' + sufLbl, T('iv2.tickets'), null, "_inicioDetalle('ventas')") +
+      kpiCard(enRep.length, T('iv2.reps_pend'), sinAvisar ? T('iv2.sin_avisar_n').replace('{n}', sinAvisar) : T('iv2.en_taller_s'), sinAvisar ? 'var(--red,#E02424)' : 'var(--muted)', "_inicioDetalle('reps')") +
       '</div>';
 
     // Ingresos vs gastos / beneficio / margen (analítica)
