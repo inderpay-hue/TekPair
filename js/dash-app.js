@@ -14631,7 +14631,9 @@ function renderStock() {
     return true;
   });
   // Calidad: chips con unidades de cada una (Original, Incell, OLED...) y filtro
-  _renderCalChips('stockCalFiltro', list, window._stockFiltroCal || '', 'setStockFiltroCal');
+  // Solo dentro de una categoría: en "Todos" mezclaría pantallas, estado de móviles y accesorios
+  if (!cat || cat === '__low__') window._stockFiltroCal = '';
+  _renderCalChips('stockCalFiltro', (cat && cat !== '__low__') ? list : [], window._stockFiltroCal || '', 'setStockFiltroCal');
   if (window._stockFiltroCal) list = list.filter(function (s) { return _calKey(s.calidad) === window._stockFiltroCal; });
   // Con una calidad elegida (p. ej. "Sin calidad"): casillas para poner calidad a varias de golpe
   var _masiva = !!window._stockFiltroCal && tienePerm('stock_editar');
@@ -20828,7 +20830,8 @@ function renderCatalogo() {
   // aparecen modelos agotados que confundían (ej: "Repuestos" a 0 unidades).
   var catBase = (DB.stock || []).filter(function(s) { return !s.vendido && (parseInt(s.unidades, 10) || 0) > 0 && (!filtro || (s.categoria || 'Otro') === filtro); });
   renderCatFiltroMarcas(catBase);
-  _renderCalChips('catCalFiltro', catBase.filter(function (s) { return !marcaF || (s.marca || '').toLowerCase() === marcaF; }), _catFiltroCal, 'setCatFiltroCal');
+  if (!filtro) _catFiltroCal = '';
+  _renderCalChips('catCalFiltro', filtro ? catBase.filter(function (s) { return !marcaF || (s.marca || '').toLowerCase() === marcaF; }) : [], _catFiltroCal, 'setCatFiltroCal');
   // Mapa stockId → color (incluye vendidos) para contar ventas por color
   var stockColor = {};
   (DB.stock || []).forEach(function(s) { stockColor[s.id] = (s.color || '').trim(); });
