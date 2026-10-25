@@ -22748,6 +22748,10 @@ var PERMS_LISTA = [
   {id:'stock_calidad',label:T('perm.stock_calidad'),grupo:'Stock'},
   {id:'stock_revisar',label:T('perm.stock_revisar'),grupo:'Stock'},
   {id:'stock_pvp',label:T('perm.stock_pvp'),grupo:'Stock'},
+  // Citas para clientes (gestiones)
+  {id:'gestiones_ver',label:T('perm.gestiones_ver'),grupo:'Citas'},
+  {id:'gestiones_editar',label:T('perm.gestiones_editar'),grupo:'Citas'},
+  {id:'gestiones_tipos',label:T('perm.gestiones_tipos'),grupo:'Citas'},
   // Clientes
   {id:'clis_ver',label:T('perm.clis_ver'),grupo:'Clientes'},
   {id:'clis_crear',label:T('perm.clis_crear'),grupo:'Clientes'},
@@ -26941,3 +26945,349 @@ window.enviarPedidoProveedor = enviarPedidoProveedor;
   function instalar() { envolver('renderComisionesAfiliado', pintarCondiciones); envolver('renderComisionesAdmin', pintarNiveles); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', instalar); else instalar();
 })();
+
+// ════════════ CITAS PARA CLIENTES (gestiones) ════════════
+// Citas que la tienda consigue PARA el cliente (extranjería, DNI, pasaporte…).
+// Estado: buscando → conseguida → entregada (o cancelada). El pago va aparte:
+// unos pagan antes y otros al recoger la cita. Cada cobro entra en la caja como
+// una venta, y gestiones.pagos guarda {fecha, importe, metodo, venta_id}.
+// Los tipos (gestion_tipos) los crea cada tienda con precio o sin él: sin precio,
+// se pregunta al crear la cita. Tablas: sql/gestiones-citas.sql.
+var GES_ESTADOS = ['buscando', 'conseguida', 'entregada', 'cancelada'];
+var GES_COLOR = { buscando: '#F59E0B', conseguida: '#7C5CFC', entregada: '#16a34a', cancelada: '#94A3B8' };
+var _gesFiltro = 'buscando';
+function setModoCitas(m) {
+  document.querySelectorAll('#citasModoToggle button').forEach(function (b) { b.classList.toggle('active', b.dataset.m === m); });
+  var g = document.getElementById('gestionesWrap'), t = document.getElementById('citasTiendaWrap');
+  if (g) g.style.display = m === 'gestiones' ? '' : 'none';
+  if (t) t.style.display = m === 'gestiones' ? 'none' : '';
+  if (m === 'gestiones') cargarGestiones();
+}
+function cargarGestiones() {
+  var box = document.getElementById('gestionesWrap');
+  if (!tienePerm('gestiones_ver')) { if (box) box.innerHTML = '<div class="empty">' + escHtml(T('gen.sin_permiso')) + '</div>'; return; }
+  if (!SB_KEY || !TIENDA_ID) { DB.gestiones = DB.gestiones || []; DB.gesTipos = DB.gesTipos || []; renderGestiones(); return; }
+  if (box && !DB.gestiones) box.innerHTML = '<div class="empty">…</div>';
+  Promise.all([
+    sbGetAll('gestiones', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID)),
+    sbGetAll('gestion_tipos', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID))
+  ]).then(function (r) {
+    if (Array.isArray(r[0])) DB.gestiones = r[0];
+    if (Array.isArray(r[1])) DB.gesTipos = r[1];
+    renderGestiones();
+  }, function () { DB.gestiones = DB.gestiones || []; DB.gesTipos = DB.gesTipos || []; renderGestiones(); });
+}
+function _gesPendiente(g) { return Math.max(0, Math.round(((parseFloat(g.precio) || 0) - (parseFloat(g.cobrado) || 0)) * 100) / 100); }
+function _gesPagos(g) { var p = g.pagos; if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = []; } } return Array.isArray(p) ? p : []; }
+function _gesSync(g, nuevo) {
+  if (!SB_KEY || !TIENDA_ID) return;
+  var c = {};
+  ['id', 'tienda_id', 'tipo_id', 'tipo_nombre', 'precio', 'cobrado', 'cliente_id', 'cliente_nombre', 'cliente_tel', 'cliente_doc', 'oficina', 'preferencias', 'estado',
+    'cita_fecha', 'cita_hora', 'cita_lugar', 'justificante', 'nota', 'fecha', 'fecha_conseguida', 'fecha_entregada', 'creado_por'].forEach(function (k) { if (g[k] !== undefined) c[k] = g[k] === '' ? null : g[k]; });
+  c.pagos = _gesPagos(g);
+  if (nuevo) sbPost('gestiones', c); else sbPatch('gestiones', 'id=eq.' + encodeURIComponent(g.id), c);
+}
+function renderGestiones() {
+  var box = document.getElementById('gestionesWrap'); if (!box) return;
+  var lista = DB.gestiones || [];
+  var cnt = {}; GES_ESTADOS.forEach(function (e) { cnt[e] = lista.filter(function (g) { return g.estado === e; }).length; });
+  var deben = lista.filter(function (g) { return g.estado !== 'cancelada'; }).reduce(function (a, g) { return a + _gesPendiente(g); }, 0);
+  var tab = function (k, lbl, n) { return '<div class="tab' + (_gesFiltro === k ? ' active' : '') + '" onclick="_gesFiltro=\'' + k + '\';renderGestiones()">' + escHtml(lbl) + (n != null ? ' <b>' + n + '</b>' : '') + '</div>'; };
+  var vis = lista.filter(function (g) { return _gesFiltro === 'todas' || g.estado === _gesFiltro; })
+    .sort(function (a, b) { return _gesFiltro === 'conseguida' ? String(a.cita_fecha || '').localeCompare(String(b.cita_fecha || '')) : String(a.fecha || '').localeCompare(String(b.fecha || '')); });
+  var hoyD = new Date(hoyLocal() + 'T12:00:00');
+  var card = function (g) {
+    var pend = _gesPendiente(g), cob = parseFloat(g.cobrado) || 0;
+    var dias = g.fecha ? Math.max(0, Math.floor((hoyD - new Date(String(g.fecha).slice(0, 10) + 'T12:00:00')) / 86400000)) : 0;
+    var pago = pend <= 0.004 ? '<span style="background:rgba(22,163,74,.12);color:#16a34a;border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700">' + escHtml(T('ges.pagada')) + '</span>'
+      : '<span style="background:rgba(239,68,68,.1);color:var(--red);border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700">' + escHtml(T('ges.debe').replace('{x}', cur(pend))) + (cob > 0 ? ' · ' + escHtml(T('ges.cobrado_x').replace('{x}', cur(cob))) : '') + '</span>';
+    var est = '<span style="background:' + GES_COLOR[g.estado] + '22;color:' + GES_COLOR[g.estado] + ';border-radius:6px;padding:1px 7px;font-size:11px;font-weight:700">' + escHtml(T('ges.est_' + g.estado)) + '</span>';
+    var cita = g.estado === 'conseguida' || g.estado === 'entregada'
+      ? '<div style="margin-top:6px;padding:6px 9px;border-radius:8px;background:rgba(124,92,252,.07);font-size:12.5px">📅 <b>' + (g.cita_fecha ? fmtFecha(g.cita_fecha) : '—') + (g.cita_hora ? ' · ' + escHtml(g.cita_hora) : '') + '</b>' + (g.cita_lugar ? ' · ' + escHtml(g.cita_lugar) : '') + (g.justificante ? '<div style="color:var(--muted);font-size:11.5px">' + escHtml(T('ges.justificante')) + ': ' + escHtml(g.justificante) + '</div>' : '') + '</div>' : '';
+    var btn = function (lbl, fn, bg, col) { return '<button type="button" onclick="' + fn + '" style="background:' + bg + ';color:' + (col || '#fff') + ';border:none;border-radius:8px;padding:6px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">' + lbl + '</button>'; };
+    var acc = '';
+    if (tienePerm('gestiones_editar')) {
+      if (g.estado === 'buscando') acc += btn('✅ ' + escHtml(T('ges.conseguida_btn')), "gesConseguida('" + g.id + "')", '#7C5CFC');
+      if (g.estado === 'conseguida') acc += btn('📲 ' + escHtml(T('ges.entregar_btn')), "gesEntregar('" + g.id + "')", '#16a34a');
+    }
+    if (pend > 0.004 && g.estado !== 'cancelada' && tienePerm('ventas_crear')) acc += btn('💶 ' + escHtml(T('ges.cobrar_btn')), "gesCobrar('" + g.id + "')", 'var(--orange)');
+    if (tienePerm('gestiones_editar')) {
+      acc += btn('✏️', "abrirGestion('" + g.id + "')", 'var(--light)', 'var(--text)');
+      if (g.estado === 'buscando' || g.estado === 'conseguida') acc += btn('✕', "gesCancelar('" + g.id + "')", 'rgba(239,68,68,.1)', 'var(--red)');
+    }
+    return '<div style="border:1px solid var(--border);border-radius:13px;padding:11px 13px;background:#fff">' +
+      '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap"><b style="font-size:14px">' + escHtml(g.tipo_nombre || '—') + '</b>' + est + pago +
+        '<span style="margin-left:auto;font-weight:800">' + cur(parseFloat(g.precio) || 0) + '</span></div>' +
+      '<div style="font-size:12.5px;margin-top:4px">👤 ' + escHtml(g.cliente_nombre || '—') + (g.cliente_tel ? ' · ' + escHtml(g.cliente_tel) : '') + (g.cliente_doc ? ' · ' + escHtml(g.cliente_doc) : '') + '</div>' +
+      ((g.oficina || g.preferencias) ? '<div style="font-size:12px;color:var(--muted);margin-top:2px">' + [g.oficina, g.preferencias].filter(Boolean).map(escHtml).join(' · ') + '</div>' : '') +
+      (g.estado === 'buscando' ? '<div style="font-size:11.5px;margin-top:3px;color:' + (dias > 7 ? 'var(--red)' : 'var(--muted)') + '">⏳ ' + escHtml(T('ges.buscando_dias').replace('{n}', dias)) + '</div>' : '') +
+      cita + (g.nota ? '<div style="font-size:11.5px;color:var(--muted);font-style:italic;margin-top:4px">“' + escHtml(g.nota) + '”</div>' : '') +
+      (acc ? '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">' + acc + '</div>' : '') + '</div>';
+  };
+  box.innerHTML =
+    '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center;margin-bottom:10px">' +
+      (tienePerm('gestiones_editar') ? '<button class="btn-sm" style="background:var(--orange);color:#fff" onclick="abrirGestion()">+ ' + escHtml(T('ges.nueva')) + '</button>' : '') +
+      (tienePerm('gestiones_tipos') ? '<button class="btn-sm" style="background:#fff;border:1px solid var(--border);color:var(--text)" onclick="abrirGesTipos()">⚙️ ' + escHtml(T('ges.tipos')) + '</button>' : '') +
+      (deben > 0.004 ? '<span style="margin-left:auto;font-size:12.5px;font-weight:700;color:var(--red)">' + escHtml(T('ges.te_deben').replace('{x}', cur(deben))) + '</span>' : '') +
+    '</div>' +
+    '<div class="tabs" style="margin-bottom:10px">' + tab('buscando', T('ges.est_buscando'), cnt.buscando) + tab('conseguida', T('ges.est_conseguida'), cnt.conseguida) + tab('entregada', T('ges.est_entregada'), cnt.entregada) + tab('cancelada', T('ges.est_cancelada'), cnt.cancelada) + tab('todas', T('tpv.todos')) + '</div>' +
+    (vis.length ? '<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px">' + vis.map(card).join('') + '</div>'
+      : '<div class="empty" style="padding:26px">🗂️ ' + escHtml(T('ges.vacio')) + ((DB.gesTipos || []).length ? '' : '<br><span style="font-size:12px;color:var(--muted)">' + escHtml(T('ges.vacio_tipos')) + '</span>') + '</div>');
+}
+// ── Venta en caja por cada cobro
+function _gesVenta(g, importe, metodo) {
+  var tipoIva = (AJUSTES.iva && AJUSTES.iva.tipoDefault != null) ? AJUSTES.iva.tipoDefault : 21;
+  var iv = calcIVA(importe, tipoIva);
+  var nombre = T('ges.concepto').replace('{t}', g.tipo_nombre || '');
+  var venta = {
+    id: 'v' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), fecha: hoyLocal(),
+    clienteId: g.cliente_id || '', clienteNombre: g.cliente_nombre || T('gen.sin_cliente'),
+    marca: '', modelo: nombre, imei: '', pago: metodo, pagos: null, precio: importe, descuento: 0,
+    iva: (AJUSTES.iva && AJUSTES.iva.activo) ? tipoIva : 0, ivaModo: (AJUSTES.iva && AJUSTES.iva.activo) ? (AJUSTES.iva.modo || 'incluido') : 'sin',
+    base: iv.base, ivaImporte: iv.iva, total: iv.total, reembolsado: false, stockId: '', financiado: false, cuotas: null, entrada: 0, entradaPago: null,
+    items: [{ nombre: nombre, qty: 1, precio: importe, imei: '', idOriginal: '', tipoProd: 'servicio', garantiaMeses: 0 }]
+  };
+  DB.ventas.push(venta);
+  if (SB_KEY && TIENDA_ID) {
+    sbPost('ventas', { id: venta.id, tienda_id: TIENDA_ID, fecha: venta.fecha, cliente_id: venta.clienteId || null, cliente_nombre: venta.clienteNombre,
+      marca: '', modelo: venta.modelo, imei: '', pago: venta.pago, precio: venta.precio, descuento: 0, total: venta.total,
+      reembolsado: false, financiado: false, cuotas: null, entrada: 0, entrada_pago: null,
+      iva: venta.iva, iva_modo: venta.ivaModo, base: venta.base, iva_importe: venta.ivaImporte, items: JSON.stringify(venta.items) });
+  }
+  try { audit('crear', 'venta', venta.id, venta.clienteNombre + ' · ' + cur(venta.total) + ' (' + nombre + ')', null); } catch (e) {}
+  return venta;
+}
+function _gesRegistrarCobro(g, importe, metodo) {
+  importe = Math.round((parseFloat(importe) || 0) * 100) / 100;
+  if (importe <= 0) return false;
+  var v = _gesVenta(g, importe, metodo);
+  var p = _gesPagos(g); p.push({ fecha: hoyLocal(), importe: importe, metodo: metodo, venta_id: v.id });
+  g.pagos = p; g.cobrado = Math.round(((parseFloat(g.cobrado) || 0) + importe) * 100) / 100;
+  return true;
+}
+var _GES_METODOS = ['Efectivo', 'Tarjeta', 'Bizum', 'Transferencia'];
+function _gesMetodoSel(id) { return '<select id="' + id + '" class="fi" style="width:auto">' + _GES_METODOS.map(function (m) { return '<option value="' + m + '">' + escHtml(_pagoLbl(m)) + '</option>'; }).join('') + '</select>'; }
+// ── Nueva / editar
+function abrirGestion(id) {
+  if (!tienePerm('gestiones_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var g = id ? (DB.gestiones || []).find(function (x) { return x.id === id; }) : null;
+  var tipos = (DB.gesTipos || []).filter(function (t) { return t.activo !== false; }).sort(function (a, b) { return (a.orden || 0) - (b.orden || 0) || String(a.nombre).localeCompare(String(b.nombre)); });
+  var v = function (k) { return g && g[k] != null ? escHtml(String(g[k])) : ''; };
+  var lbl = function (t) { return '<label class="fl" style="display:block;margin:8px 0 3px">' + escHtml(t) + '</label>'; };
+  var tipoOpts = '<option value="">' + escHtml(T('ges.elige_tipo')) + '</option>' + tipos.map(function (t) {
+    return '<option value="' + escHtml(t.id) + '" data-p="' + (t.precio != null ? t.precio : '') + '"' + (g && g.tipo_id === t.id ? ' selected' : '') + '>' + escHtml(t.nombre) + (t.precio != null ? ' · ' + cur(t.precio) : '') + '</option>';
+  }).join('') + '<option value="__otro">' + escHtml(T('ges.otro_tipo')) + '</option>';
+  var cliList = (DB.clis || []).filter(function (c) { return c && c.nombre; }).slice(0, 500).map(function (c) { return '<option value="' + escHtml(((c.nombre || '') + (c.apellidos ? ' ' + c.apellidos : '')).trim()) + '">'; }).join('');
+  var m = _modalOverlay(
+    '<div style="font-size:16px;font-weight:800;margin-bottom:4px">🗂️ ' + escHtml(g ? T('ges.editar') : T('ges.nueva')) + '</div>' +
+    '<div style="max-height:68vh;overflow:auto;padding-right:4px">' +
+    lbl(T('ges.tipo')) + '<select id="gesTipo" class="fi">' + tipoOpts + '</select>' +
+    '<input id="gesTipoOtro" class="fi" style="display:none;margin-top:6px" placeholder="' + escHtml(T('ges.otro_ph')) + '" value="' + (g && !g.tipo_id ? v('tipo_nombre') : '') + '">' +
+    lbl(T('ges.precio')) + '<input id="gesPrecio" class="fi" type="number" step="0.01" min="0" value="' + (g ? (parseFloat(g.precio) || 0) : '') + '">' +
+    '<div id="gesPrecioHint" style="font-size:11.5px;color:var(--orange);margin-top:3px;display:none">' + escHtml(T('ges.precio_preguntar')) + '</div>' +
+    lbl(T('ges.cliente')) + '<input id="gesCli" class="fi" list="gesCliList" value="' + v('cliente_nombre') + '"><datalist id="gesCliList">' + cliList + '</datalist>' +
+    '<div style="display:flex;gap:8px"><div style="flex:1">' + lbl(T('ges.tel')) + '<input id="gesTel" class="fi" value="' + v('cliente_tel') + '"></div>' +
+      '<div style="flex:1">' + lbl(T('ges.doc')) + '<input id="gesDoc" class="fi" placeholder="NIE / ' + escHtml(T('ges.pasaporte')) + '" value="' + v('cliente_doc') + '"></div></div>' +
+    lbl(T('ges.oficina')) + '<input id="gesOfi" class="fi" value="' + v('oficina') + '">' +
+    lbl(T('ges.preferencias')) + '<input id="gesPref" class="fi" placeholder="' + escHtml(T('ges.pref_ph')) + '" value="' + v('preferencias') + '">' +
+    lbl(T('ges.nota')) + '<input id="gesNota" class="fi" value="' + v('nota') + '">' +
+    (!g && tienePerm('ventas_crear') ? lbl(T('ges.cobrar_ahora')) +
+      '<div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center"><select id="gesCobroModo" class="fi" style="width:auto"><option value="no">' + escHtml(T('ges.cobro_no')) + '</option><option value="todo">' + escHtml(T('ges.cobro_todo')) + '</option><option value="senal">' + escHtml(T('ges.cobro_senal')) + '</option></select>' +
+      '<input id="gesSenal" class="fi" type="number" step="0.01" min="0" placeholder="€" style="width:90px;display:none">' + _gesMetodoSel('gesMetodo') + '</div>' : '') +
+    '</div><div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px"><button type="button" id="_gesNo" style="padding:9px 16px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:9px;font:inherit;font-weight:600;cursor:pointer">' + escHtml(T('gen.cancelar_2')) + '</button>' +
+    '<button type="button" id="_gesOk" style="padding:9px 16px;border:none;background:var(--orange);color:#fff;border-radius:9px;font:inherit;font-weight:700;cursor:pointer">' + escHtml(T('gen.guardar')) + '</button></div>');
+  m.box.style.maxWidth = '480px';
+  var q = function (s) { return m.box.querySelector(s); };
+  var onTipo = function () {
+    var o = q('#gesTipo').selectedOptions[0], val = q('#gesTipo').value;
+    q('#gesTipoOtro').style.display = val === '__otro' ? '' : 'none';
+    var p = o ? o.getAttribute('data-p') : '';
+    var sinPrecio = val && (val === '__otro' || p === '' || p == null);
+    if (!g && p) q('#gesPrecio').value = p;
+    if (!g && sinPrecio) q('#gesPrecio').value = '';
+    q('#gesPrecioHint').style.display = sinPrecio ? '' : 'none';
+    if (sinPrecio) setTimeout(function () { try { q('#gesPrecio').focus(); } catch (e) {} }, 30);
+  };
+  q('#gesTipo').onchange = onTipo;
+  if (g && !g.tipo_id && g.tipo_nombre) { q('#gesTipo').value = '__otro'; q('#gesTipoOtro').style.display = ''; }
+  if (q('#gesCobroModo')) q('#gesCobroModo').onchange = function () { q('#gesSenal').style.display = this.value === 'senal' ? '' : 'none'; };
+  q('#gesCli').onchange = function () {
+    var nom = this.value.trim(), c = (DB.clis || []).find(function (x) { return (((x.nombre || '') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === nom; });
+    if (c && c.tel && !q('#gesTel').value) q('#gesTel').value = c.tel;
+  };
+  q('#_gesNo').onclick = m.close;
+  q('#_gesOk').onclick = function () {
+    var tid = q('#gesTipo').value, tipo = (DB.gesTipos || []).find(function (t) { return t.id === tid; });
+    var tnom = tid === '__otro' ? q('#gesTipoOtro').value.trim() : (tipo ? tipo.nombre : '');
+    if (!tnom) { toast(T('ges.falta_tipo'), 'err'); return; }
+    var precio = parseFloat(q('#gesPrecio').value);
+    if (!(precio >= 0) || q('#gesPrecio').value === '') { toast(T('ges.falta_precio'), 'err'); try { q('#gesPrecio').focus(); } catch (e) {} return; }
+    var cli = q('#gesCli').value.trim();
+    if (!cli) { toast(T('ges.falta_cliente'), 'err'); return; }
+    var c = (DB.clis || []).find(function (x) { return (((x.nombre || '') + (x.apellidos ? ' ' + x.apellidos : '')).trim()) === cli; });
+    var obj = g || { id: (typeof _uuidPed === 'function' ? _uuidPed() : 'g' + Date.now()), tienda_id: TIENDA_ID, estado: 'buscando', fecha: hoyLocal(), cobrado: 0, pagos: [], creado_por: U ? U.nombre : null };
+    if (g && precio < (parseFloat(g.cobrado) || 0) - 0.004) { toast(T('ges.precio_menor').replace('{x}', cur(parseFloat(g.cobrado) || 0)), 'err'); return; }
+    Object.assign(obj, { tipo_id: tipo ? tipo.id : null, tipo_nombre: tnom, precio: Math.round(precio * 100) / 100, cliente_id: c ? c.id : (obj.cliente_id || null), cliente_nombre: cli,
+      cliente_tel: q('#gesTel').value.trim(), cliente_doc: q('#gesDoc').value.trim(), oficina: q('#gesOfi').value.trim(), preferencias: q('#gesPref').value.trim(), nota: q('#gesNota').value.trim() });
+    var cobrado = 0;
+    if (!g && q('#gesCobroModo')) {
+      var modo = q('#gesCobroModo').value, met = q('#gesMetodo').value;
+      var imp = modo === 'todo' ? obj.precio : (modo === 'senal' ? Math.min(obj.precio, parseFloat(q('#gesSenal').value) || 0) : 0);
+      if (modo === 'senal' && !(imp > 0)) { toast(T('ges.falta_senal'), 'err'); return; }
+      if (imp > 0 && _gesRegistrarCobro(obj, imp, met)) cobrado = imp;
+    }
+    if (!g) { DB.gestiones = DB.gestiones || []; DB.gestiones.unshift(obj); }
+    _gesSync(obj, !g);
+    try { guardarDatos(); } catch (e) {}
+    m.close();
+    _gesFiltro = obj.estado;
+    renderGestiones();
+    toast(cobrado > 0 ? T('ges.guardada_cobro').replace('{x}', cur(cobrado)) : T('ges.guardada'), 'ok');
+    if (cobrado > 0) { try { renderDash(); } catch (e) {} }
+  };
+  if (!g) onTipo();
+}
+// ── Cobrar lo pendiente
+function gesCobrar(id) {
+  if (!tienePerm('ventas_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var g = (DB.gestiones || []).find(function (x) { return x.id === id; }); if (!g) return;
+  var pend = _gesPendiente(g);
+  var m = _modalOverlay('<div style="font-size:15px;font-weight:800;margin-bottom:8px">💶 ' + escHtml(T('ges.cobrar_t').replace('{t}', g.tipo_nombre || '').replace('{c}', g.cliente_nombre || '')) + '</div>' +
+    '<div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><input id="gesCobImp" class="fi" type="number" step="0.01" min="0" value="' + pend + '" style="width:110px">' + _gesMetodoSel('gesCobMet') + '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-top:6px">' + escHtml(T('ges.pendiente_x').replace('{x}', cur(pend))) + '</div>' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button type="button" id="_gcNo" style="padding:9px 16px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:9px;font:inherit;font-weight:600;cursor:pointer">' + escHtml(T('gen.cancelar_2')) + '</button>' +
+    '<button type="button" id="_gcOk" style="padding:9px 16px;border:none;background:var(--orange);color:#fff;border-radius:9px;font:inherit;font-weight:700;cursor:pointer">' + escHtml(T('ges.cobrar_btn')) + '</button></div>');
+  m.box.querySelector('#_gcNo').onclick = m.close;
+  m.box.querySelector('#_gcOk').onclick = function () {
+    var imp = Math.min(pend, parseFloat(m.box.querySelector('#gesCobImp').value) || 0);
+    if (!(imp > 0)) { toast(T('ges.falta_senal'), 'err'); return; }
+    _gesRegistrarCobro(g, imp, m.box.querySelector('#gesCobMet').value);
+    _gesSync(g); try { guardarDatos(); } catch (e) {}
+    m.close(); renderGestiones(); try { renderDash(); } catch (e) {}
+    toast(T('ges.cobrado_ok').replace('{x}', cur(imp)), 'ok');
+  };
+}
+// ── Cita conseguida: fecha, hora, lugar, justificante
+function gesConseguida(id) {
+  if (!tienePerm('gestiones_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var g = (DB.gestiones || []).find(function (x) { return x.id === id; }); if (!g) return;
+  var lbl = function (t) { return '<label class="fl" style="display:block;margin:8px 0 3px">' + escHtml(t) + '</label>'; };
+  var m = _modalOverlay('<div style="font-size:15px;font-weight:800;margin-bottom:4px">✅ ' + escHtml(T('ges.conseguida_t')) + '</div>' +
+    '<div style="font-size:12.5px;color:var(--muted)">' + escHtml((g.tipo_nombre || '') + ' · ' + (g.cliente_nombre || '')) + '</div>' +
+    '<div style="display:flex;gap:8px"><div style="flex:1">' + lbl(T('gen.fecha') || 'Fecha') + '<input id="gcF" class="fi" type="date" value="' + escHtml(g.cita_fecha || '') + '"></div>' +
+    '<div style="flex:1">' + lbl(T('ges.hora')) + '<input id="gcH" class="fi" type="time" value="' + escHtml(g.cita_hora || '') + '"></div></div>' +
+    lbl(T('ges.lugar')) + '<input id="gcL" class="fi" value="' + escHtml(g.cita_lugar || g.oficina || '') + '">' +
+    lbl(T('ges.justificante')) + '<input id="gcJ" class="fi" value="' + escHtml(g.justificante || '') + '">' +
+    '<div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px"><button type="button" id="_gcNo" style="padding:9px 16px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:9px;font:inherit;font-weight:600;cursor:pointer">' + escHtml(T('gen.cancelar_2')) + '</button>' +
+    '<button type="button" id="_gcOk" style="padding:9px 16px;border:none;background:#7C5CFC;color:#fff;border-radius:9px;font:inherit;font-weight:700;cursor:pointer">' + escHtml(T('gen.guardar')) + '</button></div>');
+  m.box.querySelector('#_gcNo').onclick = m.close;
+  m.box.querySelector('#_gcOk').onclick = function () {
+    var f = m.box.querySelector('#gcF').value;
+    if (!f) { toast(T('ges.falta_fecha'), 'err'); return; }
+    Object.assign(g, { cita_fecha: f, cita_hora: m.box.querySelector('#gcH').value, cita_lugar: m.box.querySelector('#gcL').value.trim(), justificante: m.box.querySelector('#gcJ').value.trim(), estado: 'conseguida', fecha_conseguida: hoyLocal() });
+    _gesSync(g); try { guardarDatos(); } catch (e) {}
+    m.close(); _gesFiltro = 'conseguida'; renderGestiones();
+    toast(T('ges.conseguida_ok'), 'ok');
+  };
+}
+// ── Entregar: WhatsApp con los datos de la cita (y lo que falta por pagar)
+function gesEntregar(id) {
+  if (!tienePerm('gestiones_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var g = (DB.gestiones || []).find(function (x) { return x.id === id; }); if (!g) return;
+  var pend = _gesPendiente(g);
+  var msg = T('ges.wa_msg').replace('{n}', (g.cliente_nombre || '').split(' ')[0]).replace('{t}', g.tipo_nombre || '')
+    .replace('{f}', g.cita_fecha ? fmtFecha(g.cita_fecha) : '').replace('{h}', g.cita_hora || '').replace('{l}', g.cita_lugar || '')
+    + (g.justificante ? '\n' + T('ges.justificante') + ': ' + g.justificante : '')
+    + (pend > 0.004 ? '\n' + T('ges.wa_pend').replace('{x}', cur(pend)) : '')
+    + '\n' + ((TIENDA && TIENDA.nombre) || '');
+  confirmar(T('ges.entregar_conf') + '\n\n' + msg, function () {
+    g.estado = 'entregada'; g.fecha_entregada = hoyLocal();
+    _gesSync(g); try { guardarDatos(); } catch (e) {}
+    var tel = String(g.cliente_tel || '').replace(/[^\d+]/g, '');
+    if (tel) { try { window.open('https://wa.me/' + tel.replace(/^\+/, '').replace(/^(?=[67]\d{8}$)/, '34') + '?text=' + encodeURIComponent(msg), '_blank'); } catch (e) {} }
+    renderGestiones();
+    toast(T('ges.entregada_ok'), 'ok');
+  }, { okLabel: '📲 ' + T('ges.entregar_btn') });
+}
+// ── Cancelar (si había cobrado, se ofrece devolver: reembolsa las ventas de esos cobros)
+function gesCancelar(id) {
+  if (!tienePerm('gestiones_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var g = (DB.gestiones || []).find(function (x) { return x.id === id; }); if (!g) return;
+  var cob = parseFloat(g.cobrado) || 0;
+  var fin = function (devolver) {
+    if (devolver) {
+      _gesPagos(g).forEach(function (p) {
+        var v = (DB.ventas || []).find(function (x) { return x.id === p.venta_id; });
+        if (v && !v.reembolsado) {
+          v.reembolsado = true; v.fechaReembolso = hoyLocal();
+          if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + encodeURIComponent(v.id), { reembolsado: true, fecha_reembolso: v.fechaReembolso });
+        }
+      });
+      g.cobrado = 0;
+    }
+    g.estado = 'cancelada';
+    _gesSync(g); try { guardarDatos(); } catch (e) {}
+    renderGestiones(); try { renderDash(); } catch (e) {}
+    toast(T(devolver ? 'ges.cancelada_dev' : 'ges.cancelada').replace('{x}', cur(cob)), 'ok');
+  };
+  if (cob > 0.004 && tienePerm('ventas_reembolso')) {
+    confirmar(T('ges.cancelar_dev_q').replace('{x}', cur(cob)), function () { fin(true); }, { okLabel: T('ges.devolver'), cancelLabel: T('ges.no_devolver') })
+      .then(function (ok) { if (!ok) confirmar(T('ges.cancelar_q'), function () { fin(false); }, { danger: true }); });
+  } else {
+    confirmar(T('ges.cancelar_q'), function () { fin(false); }, { danger: true });
+  }
+}
+// ── Tipos de cita (con precio o sin él)
+function abrirGesTipos() {
+  if (!tienePerm('gestiones_tipos')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var pintar = function () {
+    var tipos = (DB.gesTipos || []).slice().sort(function (a, b) { return String(a.nombre).localeCompare(String(b.nombre)); });
+    return (tipos.length ? tipos.map(function (t) {
+      return '<div style="display:flex;gap:6px;align-items:center;padding:6px 0;border-bottom:1px solid var(--light)">' +
+        '<input class="fi" data-tn="' + escHtml(t.id) + '" value="' + escHtml(t.nombre) + '" style="flex:1">' +
+        '<input class="fi" data-tp="' + escHtml(t.id) + '" type="number" step="0.01" min="0" placeholder="' + escHtml(T('ges.sin_precio')) + '" value="' + (t.precio != null ? t.precio : '') + '" style="width:100px">' +
+        '<button type="button" data-td="' + escHtml(t.id) + '" style="border:none;background:rgba(239,68,68,.1);color:var(--red);border-radius:7px;padding:6px 9px;cursor:pointer">🗑</button></div>';
+    }).join('') : '<div style="color:var(--muted);font-size:13px;padding:8px 0">' + escHtml(T('ges.tipos_vacio')) + '</div>') +
+      '<div style="display:flex;gap:6px;align-items:center;padding-top:10px"><input id="gtNuevo" class="fi" placeholder="' + escHtml(T('ges.tipo_ph')) + '" style="flex:1"><input id="gtPrecio" class="fi" type="number" step="0.01" min="0" placeholder="' + escHtml(T('ges.sin_precio')) + '" style="width:100px">' +
+      '<button type="button" id="gtAdd" style="border:none;background:var(--orange);color:#fff;border-radius:8px;padding:7px 12px;font:inherit;font-weight:700;cursor:pointer">+</button></div>';
+  };
+  var m = _modalOverlay('<div style="font-size:16px;font-weight:800;margin-bottom:4px">⚙️ ' + escHtml(T('ges.tipos')) + '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:8px;line-height:1.45">' + escHtml(T('ges.tipos_ayuda')) + '</div>' +
+    '<div id="gtLista" style="max-height:55vh;overflow:auto">' + pintar() + '</div>' +
+    '<div style="text-align:right;margin-top:12px"><button type="button" id="gtOk" style="padding:9px 16px;border:none;background:var(--blue);color:#fff;border-radius:9px;font:inherit;font-weight:700;cursor:pointer">' + escHtml(T('gen.guardar')) + '</button></div>');
+  m.box.style.maxWidth = '480px';
+  var lista = m.box.querySelector('#gtLista');
+  var enlazar = function () {
+    lista.querySelectorAll('[data-td]').forEach(function (b) {
+      b.onclick = function () {
+        var id = b.getAttribute('data-td');
+        DB.gesTipos = (DB.gesTipos || []).filter(function (t) { return t.id !== id; });
+        if (SB_KEY && TIENDA_ID) sbDelete('gestion_tipos', 'id=eq.' + encodeURIComponent(id));
+        lista.innerHTML = pintar(); enlazar();
+      };
+    });
+    var add = lista.querySelector('#gtAdd');
+    if (add) add.onclick = function () {
+      var n = lista.querySelector('#gtNuevo').value.trim(); if (!n) return;
+      var pv = lista.querySelector('#gtPrecio').value;
+      var t = { id: 'gt' + Date.now() + '_' + Math.random().toString(36).slice(2, 6), tienda_id: TIENDA_ID, nombre: n, precio: pv === '' ? null : Math.max(0, Math.round(parseFloat(pv) * 100) / 100), activo: true, orden: (DB.gesTipos || []).length };
+      DB.gesTipos = DB.gesTipos || []; DB.gesTipos.push(t);
+      if (SB_KEY && TIENDA_ID) sbPost('gestion_tipos', t);
+      lista.innerHTML = pintar(); enlazar();
+    };
+  };
+  enlazar();
+  m.box.querySelector('#gtOk').onclick = function () {
+    (DB.gesTipos || []).forEach(function (t) {
+      var n = lista.querySelector('[data-tn="' + t.id + '"]'), p = lista.querySelector('[data-tp="' + t.id + '"]');
+      if (!n || !p) return;
+      var nn = n.value.trim() || t.nombre, pp = p.value === '' ? null : Math.max(0, Math.round(parseFloat(p.value) * 100) / 100);
+      if (nn !== t.nombre || pp !== (t.precio == null ? null : parseFloat(t.precio))) {
+        t.nombre = nn; t.precio = pp;
+        if (SB_KEY && TIENDA_ID) sbPatch('gestion_tipos', 'id=eq.' + encodeURIComponent(t.id), { nombre: nn, precio: pp });
+      }
+    });
+    m.close(); renderGestiones();
+    toast(T('ges.tipos_ok'), 'ok');
+  };
+}
