@@ -4855,7 +4855,7 @@ function _cuotaAbonos(c) {
   var out = [], sum = 0;
   (Array.isArray(c.abonos) ? c.abonos : []).forEach(function(a) {
     var i = parseFloat(a && a.importe) || 0; if (!i) return;
-    out.push({ fecha: String(a.fecha || '').slice(0, 10), importe: i, metodo: a.metodo || 'Efectivo' }); sum += i;
+    out.push({ fecha: String(a.fecha || '').slice(0, 10), importe: i, metodo: a.metodo || 'Efectivo', por: a.por || '' }); sum += i;
   });
   var resto = Math.round((_cuotaPagado(c) - sum) * 100) / 100;
   if (resto > 0.005 && c.fechaPago) out.push({ fecha: String(c.fechaPago).slice(0, 10), importe: resto, metodo: c.formaPago || 'Efectivo' });
@@ -4874,7 +4874,7 @@ function _cuotaAbonar(cc, importe, metodo, fecha, por) {
 }
 // Pagos ya hechos de una cuota, para enseñarlos debajo: «25-10 · 5,00 € · Efectivo · Ana».
 function _cuotaAbonosHtml(c) {
-  var ab = Array.isArray(c && c.abonos) ? c.abonos : [];
+  var ab = _cuotaAbonos(c).slice().sort(function (a, b) { return String(a.fecha).localeCompare(String(b.fecha)); });
   if (!ab.length) return '';
   return ab.map(function (a) {
     var f = String(a.fecha || '').slice(0, 10).split('-').reverse().join('/');
@@ -4885,10 +4885,14 @@ function _cuotaAbonosHtml(c) {
 // quién cobra. cb({ importe, fecha, metodo, por }) o nada si se cancela.
 // La fecha solo la puede cambiar el admin: un pago con fecha de otro día mueve una caja ya cerrada.
 function _pedirPagoFin(o, cb) {
+  // Los usuarios de la tienda (los mismos que en «Técnico»); sin conexión, solo quien está.
+  _cargarTecnicos().then(function (l) { _pedirPagoFinPinta(o, cb, l || []); }, function () { _pedirPagoFinPinta(o, cb, []); });
+}
+function _pedirPagoFinPinta(o, cb, usu) {
   var hoy = hoyLocal(), admin = _esAdmin();
-  var yo = (U && (U.nombre || U.email)) || '';
-  var usu = (DB.usuarios || []).filter(function (u) { return u && u.activo !== false && (u.nombre || u.email); });
-  var nombres = usu.map(function (u) { return u.nombre || u.email; });
+  // Por defecto, quien abrió la caja con su código (en la cuenta compartida no es el dueño).
+  var yo = (window._cajaSesion && window._cajaSesion.nombre) || (U && (U.nombre || U.email)) || '';
+  var nombres = usu.map(function (u) { return u.nombre; }).filter(Boolean);
   if (yo && nombres.indexOf(yo) < 0) nombres.unshift(yo);
   var METODOS = [['Efectivo', '💵'], ['Tarjeta', '💳'], ['Bizum', '📲'], ['Transferencia', '🏦']];
   var est = 'width:100%;padding:10px;border:1px solid var(--border,#E5E7EB);border-radius:9px;font:inherit;font-size:15px;color:inherit;background:var(--light,#fff);margin-bottom:12px';
@@ -4897,7 +4901,7 @@ function _pedirPagoFin(o, cb) {
     '<div style="font-size:15px;font-weight:800;margin-bottom:6px">' + escHtml(o.titulo || T('finp.registrar_pago')) + '</div>' +
     (o.ayuda ? '<div style="font-size:12.5px;color:var(--muted);line-height:1.5;white-space:pre-line;margin-bottom:12px">' + escHtml(o.ayuda) + '</div>' : '') +
     lbl(T('finp.importe')) + '<input id="_pfImp" type="number" step="0.01" min="0" inputmode="decimal" value="' + escHtml(String(o.sugerido == null ? '' : o.sugerido)) + '" style="' + est + '">' +
-    lbl(T('finp.fecha')) + '<input id="_pfFecha" type="date" value="' + hoy + '" max="' + hoy + '"' + (admin ? '' : ' disabled title="' + escHtml(T('finp.fecha_solo_admin')) + '"') + ' style="' + est + '">' +
+    lbl(T('finp.fecha')) + '<input id="_pfFecha" type="date" value="' + hoy + '" max="' + hoy + '"' + (o.min ? ' min="' + escHtml(String(o.min).slice(0, 10)) + '"' : '') + (admin ? '' : ' disabled title="' + escHtml(T('finp.fecha_solo_admin')) + '"') + ' style="' + est + '">' +
     lbl(T('finp.metodo')) + '<div id="_pfMet" style="display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-bottom:12px">' +
       METODOS.map(function (mt, i) { return '<button type="button" data-m="' + mt[0] + '" style="padding:9px;border-radius:9px;cursor:pointer;font:inherit;font-size:13px;font-weight:600;border:2px solid ' + (i ? 'var(--border,#E5E7EB)' : 'var(--green,#10B981)') + ';background:var(--light,#F8FAFC);color:inherit">' + mt[1] + ' ' + mt[0] + '</button>'; }).join('') +
     '</div>' +
@@ -4923,9 +4927,19 @@ function _pedirPagoFin(o, cb) {
     if (!(imp > 0)) { toast(T('fin.total_invalido'), 'err'); return; }
     var fecha = admin ? (m.box.querySelector('#_pfFecha').value || hoy) : hoy;
     if (fecha > hoy) { toast(T('finp.fecha_futura'), 'err'); return; }
+    if (o.min && fecha < String(o.min).slice(0, 10)) { toast(T('finp.fecha_antes'), 'err'); return; }
     var por = m.box.querySelector('#_pfPor').value || yo;
+    var res = { importe: imp, fecha: fecha, metodo: metodo, por: por };
     m.close();
-    cb({ importe: imp, fecha: fecha, metodo: metodo, por: por });
+    if (fecha === hoy || !(SB_KEY && TIENDA_ID)) { cb(res); return; }
+    // Otro día con la caja ya cerrada: el cierre guardado no se recalcula (igual que al editar una venta).
+    fetch(SUPABASE_URL + '/rest/v1/cajas_cierres?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=eq.' + encodeURIComponent(fecha) +
+      '&estado=in.(cerrado,descuadre)&select=id', { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + (JWT_TOKEN || SB_KEY) } })
+      .then(function (r) { return r.ok ? r.json() : []; }, function () { return []; })
+      .then(function (cd) {
+        if (!(Array.isArray(cd) && cd.length)) { cb(res); return; }
+        return confirmar(T('ev.caja_cerrada_confirm'), null, { okLabel: T('gen.guardar') }).then(function (ok) { if (ok) cb(res); });
+      });
   };
 }
 // Ingreso REAL de ventas por método en [d1,d2]. Financiadas: entrada (día de venta) + cuotas (día de pago);
@@ -9388,7 +9402,7 @@ function registrarPagoCuota(vid, cidx) {
   var pendPlan = Math.round(v.cuotas.reduce(function(a, cc) { return a + Math.max(0, (parseFloat(cc.importe) || 0) - _cuotaPagado(cc)); }, 0) * 100) / 100;
   if (pendPlan <= 0.005) return;
   var sugerido = quedaCuota > 0.005 ? quedaCuota : pendPlan;
-  _pedirPagoFin({ titulo: T('finv.cuota') + ' ' + (cidx + 1), ayuda: T('fin.cuanto_entrega').replace('{n}', (cidx + 1)).replace('{cuota}', cur(quedaCuota)).replace('{total}', cur(pendPlan)), sugerido: sugerido }, function(pf) {
+  _pedirPagoFin({ titulo: T('finv.cuota') + ' ' + (cidx + 1), ayuda: T('fin.cuanto_entrega').replace('{n}', (cidx + 1)).replace('{cuota}', cur(quedaCuota)).replace('{total}', cur(pendPlan)), sugerido: sugerido, min: v.fecha }, function(pf) {
     var pago = pf.importe;
     if (pago > pendPlan + 0.005) pago = pendPlan;
     (function (fp) {
@@ -9403,7 +9417,7 @@ function registrarPagoCuota(vid, cidx) {
         var aplica = Math.min(queda, restantePago);
         _cuotaAbonar(cc, aplica, fp, hoy, pf.por);
         cc.pagadoImporte = Math.round((_cuotaPagado(cc) + aplica) * 100) / 100;
-        cc.formaPago = fp; cc.fechaPago = hoy;
+        cc.formaPago = fp; cc.fechaPago = (cc.fechaPago && cc.fechaPago > hoy) ? cc.fechaPago : hoy;
         cc.pagado = cc.pagadoImporte >= (parseFloat(cc.importe) || 0) - 0.005;
         restantePago = Math.round((restantePago - aplica) * 100) / 100;
         cuotasTocadas++;
@@ -9480,7 +9494,7 @@ function registrarPagoCuotaRep(rid, cidx) {
   var pendPlan = Math.round(r.cuotas.reduce(function(a, cc) { return a + Math.max(0, (parseFloat(cc.importe) || 0) - _cuotaPagado(cc)); }, 0) * 100) / 100;
   if (pendPlan <= 0.005) return;
   var sugerido = quedaCuota > 0.005 ? quedaCuota : pendPlan;
-  _pedirPagoFin({ titulo: T('finv.cuota') + ' ' + (cidx + 1), ayuda: T('fin.cuanto_entrega').replace('{n}', (cidx + 1)).replace('{cuota}', cur(quedaCuota)).replace('{total}', cur(pendPlan)), sugerido: sugerido }, function(pf) {
+  _pedirPagoFin({ titulo: T('finv.cuota') + ' ' + (cidx + 1), ayuda: T('fin.cuanto_entrega').replace('{n}', (cidx + 1)).replace('{cuota}', cur(quedaCuota)).replace('{total}', cur(pendPlan)), sugerido: sugerido, min: r.fecha }, function(pf) {
     var pago = pf.importe;
     if (pago > pendPlan + 0.005) pago = pendPlan; // tope: todo el plan, no más
     (function (fp) {
@@ -9497,7 +9511,7 @@ function registrarPagoCuotaRep(rid, cidx) {
         var aplica = Math.min(queda, restantePago);
         _cuotaAbonar(cc, aplica, fp, hoy, pf.por);
         cc.pagadoImporte = Math.round((_cuotaPagado(cc) + aplica) * 100) / 100;
-        cc.formaPago = fp; cc.fechaPago = hoy;
+        cc.formaPago = fp; cc.fechaPago = (cc.fechaPago && cc.fechaPago > hoy) ? cc.fechaPago : hoy;
         cc.pagado = cc.pagadoImporte >= (parseFloat(cc.importe) || 0) - 0.005;
         restantePago = Math.round((restantePago - aplica) * 100) / 100;
         cuotasTocadas++;
