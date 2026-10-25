@@ -1248,7 +1248,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261025j"></script>
+<script src="/lang/lang.v8.js?v=20261025k"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -5738,7 +5738,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261023b"></script>
-<script src="/js/dash-app.js?v=20261025j"></script>
+<script src="/js/dash-app.js?v=20261025k"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -7294,6 +7294,7 @@ function confirmarPago() {
 function _syncRestanteRep() {
   if (!SEL.editRepId || SEL.repPagosOk !== true || !SB_KEY) return;
   var r = (DB.reps || []).find(function (x) { return x.id === SEL.editRepId; }); if (!r) return;
+  if (r.financiado) return;   // financiada: el restante lo llevan las cuotas (igual que guardarRep)
   var pag = Math.round((SEL.repPagos || []).reduce(function (a, p) { return a + (parseFloat(p.importe) || 0); }, 0) * 100) / 100;
   r.anticipo = pag;
   r.restante = Math.max(0, Math.round(((parseFloat(r.total) || 0) - pag) * 100) / 100);
@@ -7330,7 +7331,7 @@ function eliminarPagoUI(index) {
   if (!confirm('¿Eliminar este pago de ' + (parseFloat(pago.importe)||0).toFixed(2) + ' €?')) return;
 
   var quitar = function () {
-    pagos.splice(index, 1);
+    var i = pagos.indexOf(pago); if (i >= 0) pagos.splice(i, 1);   // por objeto: el índice puede haber cambiado
     renderListaPagos();
     window._pagosRepCache = null; try { _invalidarInvPagos(); } catch (e) {}
     _syncRestanteRep();

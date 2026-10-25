@@ -3703,7 +3703,8 @@ function sbGet(table, query) {
   if (c && (Date.now() - c.t) < _SB_READ_TTL) return Promise.resolve(c.data);
   if (_sbReadInflight[key]) return _sbReadInflight[key];
   var _err = false;
-  var p = fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query + '&select=*', {
+  // Si la consulta ya trae select=, no se añade otro (columnas concretas, p. ej. en usuarios)
+  var p = fetch(SUPABASE_URL + '/rest/v1/' + table + '?' + query + (/(^|&)select=/.test(query) ? '' : '&select=*'), {
     headers: {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY)}
   }).then(function(r) {
     if (!r.ok) {
@@ -13899,7 +13900,7 @@ function renderReps() {
     html += '<tr>'
       + '<td><strong>' + escHtml(r.clienteNombre || '') + '</strong>' + badgeGarantia + badgeFin + chipPieza + chipAcep + '</td>'
       + '<td>' + escHtml((r.marca || '') + ' ' + (r.modelo || '')) + (r.imei ? '<br><span style="font-size:9px;font-family:monospace;color:var(--muted)">' + escHtml(r.imei) + '</span>' : '') + '</td>'
-      + '<td style="font-size:11px;color:var(--dark)">' + escHtml(r.averia || '') + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + ({Patron: T('rep.bloq_patron'), Contrasena: T('rep.bloq_contrasena'), Huella: T('rep.bloq_huella')}[r.tipoBloqueo] || r.tipoBloqueo) + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + escHtml(r.bloqueo) : '')) + '</span>' : '') + '</td>'
+      + '<td style="font-size:11px;color:var(--dark)">' + escHtml(r.averia || '') + (r.tipoBloqueo ? '<br><span style="display:inline-flex;align-items:center;gap:4px;background:rgba(255,91,31,.1);color:var(--purple);font-size:9px;font-weight:700;padding:2px 6px;border-radius:4px;margin-top:2px">\ud83d\udd12 ' + ({Patron: T('rep.bloq_patron'), Contrasena: T('rep.bloq_contrasena'), Huella: T('rep.bloq_huella')}[r.tipoBloqueo] || escHtml(r.tipoBloqueo)) + (r.tipoBloqueo === 'Patron' ? patronMiniSvg(r.bloqueo) : (r.bloqueo ? ': ' + escHtml(r.bloqueo) : '')) + '</span>' : '') + '</td>'
       + '<td><select data-rid="' + r.id + '" class="sel-estado" style="border:1px solid var(--border);background:white;font-size:11px;cursor:pointer;font-family:inherit;padding:3px 6px;border-radius:6px">'
         + ['Pendiente','En Proceso','Por Entregar','Entregado','Garantia','Sin Solucion','Devuelto','Rechazado'].map(function(s) {
           return '<option value="'+s+'"' + (s === r.estado ? ' selected' : '') + '>' + _estadoLabel(s) + '</option>';
@@ -19023,7 +19024,7 @@ function verReportePDF() {
         return '<tr><td>' + escHtml(c.fecha) + '</td><td>' + escHtml(c.cli) + '</td><td>' + escHtml(c.concepto) + '</td><td>' + escHtml(c.metodo) + '</td><td class="r">' + cur(c.importe) + '</td></tr>';
       }).join('') + '</tbody></table>' : '') +
     (ventas.length ? '<h2>Ventas</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th></tr></thead><tbody>' +
-    ventas.map(function(v) { return '<tr' + (v.reembolsado ? ' style="color:#c00"' : '') + '><td>' + escHtml(v.fecha) + '</td><td>' + escHtml(v.clienteNombre || '') + '</td><td>' + escHtml(v.modelo || '') + (v.reembolsado ? ' · ' + escHtml(T('vent.reembolsada')) : '') + '</td><td>' + v.pago + '</td><td>' + cur(v.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
+    ventas.map(function(v) { return '<tr' + (v.reembolsado ? ' style="color:#c00"' : '') + '><td>' + escHtml(v.fecha) + '</td><td>' + escHtml(v.clienteNombre || '') + '</td><td>' + escHtml(v.modelo || '') + (v.reembolsado ? ' · ' + escHtml(T('vent.reembolsada')) : '') + '</td><td>' + escHtml(v.pago || '') + '</td><td>' + cur(v.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
     (reps.length ? '<h2>Reparaciones</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Equipo</th><th>Total</th></tr></thead><tbody>' +
     reps.map(function(r) { return '<tr><td>' + escHtml(r.fechaEntregaReal || '') + '</td><td>' + escHtml(r.clienteNombre || '') + '</td><td>' + escHtml((r.marca || '') + ' ' + (r.modelo || '')) + '</td><td>' + cur(r.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
     '</body></html>';
