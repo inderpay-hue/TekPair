@@ -302,10 +302,37 @@ function _numEur(t) {
   else if (s.indexOf(',') >= 0) s = s.replace(',', '.');
   return parseFloat(s) || 0;
 }
-function _pedPrecioUnitario(lineas, texto) {
-  if (!lineas.length || !lineas.some(function (l) { return l.cantidad > 1; })) return;
+function _pedTotalTexto(texto) {
   var m, total = 0, re = /(?:^|\s)total(?![\s\-]*(?:l[ií]nea|parcial))\s*[:=]?\s*(?:€|eur)?\s*([\d][\d.,]*)/gi;
   while ((m = re.exec(String(texto || '')))) total = _numEur(m[1]) || total;   // el ultimo "Total" es el del pedido
+  return total;
+}
+// Datos del pedido entero (proveedor, nº, fecha, total). La IA los propone y el
+// texto manda donde es inequivoco (nº tras "#"/"pedido", fecha dd/mm/aaaa, Total).
+var _MESES = { ene: 1, jan: 1, feb: 2, mar: 3, abr: 4, apr: 4, may: 5, jun: 6, jul: 7, ago: 8, aug: 8, sep: 9, set: 9, oct: 10, nov: 11, dic: 12, dec: 12 };
+function _pedMeta(ia, texto) {
+  ia = ia || {};
+  var t = String(texto || '');
+  var out = {
+    proveedor: String(ia.proveedor || '').trim().slice(0, 80),
+    numero: String(ia.numero || '').replace(/^#/, '').trim().slice(0, 40),
+    fecha: /^\d{4}-\d{2}-\d{2}$/.test(String(ia.fecha || '')) ? ia.fecha : '',
+    total: Math.max(0, parseFloat(ia.total) || 0)
+  };
+  var mn = t.match(/pedido\s*(?:n[uú]m(?:ero)?|n[º°o]\.?)?\s*[:#]?\s*#?\s*(\d{4,})/i) || t.match(/#\s?(\d{5,})/);
+  if (mn) out.numero = mn[1];
+  var mf = t.match(/\b(\d{1,2})[\/.-](\d{1,2})[\/.-](\d{4})\b/) || null;
+  var mf2 = t.match(/\b(\d{1,2})-([A-Za-z]{3})[a-z]*-(\d{4})\b/);
+  var pad = function (n) { return ('0' + n).slice(-2); };
+  if (mf && +mf[2] >= 1 && +mf[2] <= 12) out.fecha = mf[3] + '-' + pad(mf[2]) + '-' + pad(mf[1]);
+  else if (mf2 && _MESES[mf2[2].toLowerCase()]) out.fecha = mf2[3] + '-' + pad(_MESES[mf2[2].toLowerCase()]) + '-' + pad(mf2[1]);
+  var tot = _pedTotalTexto(t);
+  if (tot > 0) out.total = tot;
+  return out;
+}
+function _pedPrecioUnitario(lineas, texto) {
+  if (!lineas.length || !lineas.some(function (l) { return l.cantidad > 1; })) return;
+  var total = _pedTotalTexto(texto);
   if (!(total > 0)) return;
   var porUd = 0, porLinea = 0;
   lineas.forEach(function (l) { porUd += l.precio_compra * l.cantidad; porLinea += l.precio_compra; });
@@ -326,7 +353,8 @@ async function parsePedidoIA(req, res) {
 
   const sistema = 'Eres un extractor de pedidos de proveedor para una tienda de reparación de móviles. ' +
     'Recibes el texto pegado de un email o albarán (desordenado, multilínea) y devuelves SOLO un JSON válido. ' +
-    'Formato exacto: {"lineas":[{"pieza":"","marca":"","categoria":"","calidad":"","cantidad":1,"precio_compra":0,"sku":""}]}. ' +
+    'Formato exacto: {"pedido":{"proveedor":"","numero":"","fecha":"","total":0},"lineas":[{"pieza":"","marca":"","categoria":"","calidad":"","cantidad":1,"precio_compra":0,"sku":""}]}. ' +
+    '- "pedido": datos del pedido entero si aparecen (si no, vacío o 0): "proveedor" = la empresa que vende (no la tienda que compra ni la agencia de transporte); "numero" = nº de pedido/albarán sin "#"; "fecha" = fecha del pedido en AAAA-MM-DD; "total" = TOTAL pagado del pedido. ' +
     'Reglas: ' +
     '- "pieza": el nombre del producto COMPLETO tal cual lo escribe el proveedor (con calidad, Original, color, "con marco"...); solo quita el SKU y el "x N". ' +
     '- "marca": Apple, Samsung, Xiaomi, etc. si se deduce; si no, "". ' +
@@ -388,7 +416,7 @@ async function parsePedidoIA(req, res) {
       sku: String(l.sku || '').slice(0, 60)
     })) : [];
     _pedPrecioUnitario(lineas, texto);
-    return res.json({ ok: true, lineas });
+    return res.json({ ok: true, lineas, pedido: _pedMeta(parsed.pedido, texto) });
   } catch (e) {
     console.error('[parse-pedido] error', e);
     return res.status(500).json({ error: 'Error procesando el pedido' });
