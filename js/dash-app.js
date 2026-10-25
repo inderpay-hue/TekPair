@@ -3795,6 +3795,7 @@ function _syncQueueSet(q) {
 
 function _syncQueueAdd(operation) {
   var q = _syncQueueGet();
+  if (!operation.tienda && typeof TIENDA_ID !== 'undefined') operation.tienda = TIENDA_ID;   // cola por tienda
   // Evitar duplicados por ID
   // Un alta sin id no es "la misma" que otra alta sin id (p. ej. dos pagos de un pago mixto).
   var dupIdx = (operation.method === 'POST' && !operation.dataId) ? -1 : q.findIndex(function(x) {
@@ -3822,17 +3823,33 @@ function _syncQueueRemove(opId) {
 }
 
 // Reintenta TODOS los pendientes (corre cada 30s y al volver online)
+var _syncRetrying = false;
 async function _syncQueueRetry() {
   if (!SB_KEY) return;
   if (!navigator.onLine) return; // Sin internet, no reintentar
-  
+  if (_syncRetrying) return;
+  // Con varias pestañas (panel + TPV) cada una reintentaba a la vez la misma cola:
+  // ajustar_stock no es idempotente y el stock se ajustaba dos veces. Un candado común.
+  if (navigator.locks && navigator.locks.request) {
+    return navigator.locks.request('tk_sync_queue', { ifAvailable: true }, function (lock) { return lock ? _syncQueueRetryRun() : null; });
+  }
+  return _syncQueueRetryRun();
+}
+async function _syncQueueRetryRun() {
+  if (_syncRetrying) return;
+  _syncRetrying = true;
+  try {
   var q = _syncQueueGet();
   if (!q.length) return;
-  
-  
+
   for (var i = 0; i < q.length; i++) {
     var op = q[i];
+    // Una operación de otra tienda (sesión cambiada) fallaría por RLS con el JWT actual
+    if (op.tienda && typeof TIENDA_ID !== 'undefined' && TIENDA_ID && op.tienda !== TIENDA_ID) continue;
     op.attempts = (op.attempts || 0) + 1;
+    // Guardar el contador: antes no se persistía y el tope de reintentos nunca llegaba
+    var _qa = _syncQueueGet(); var _ia = _qa.findIndex(function (x) { return x._opId === op._opId; });
+    if (_ia >= 0) { _qa[_ia].attempts = op.attempts; _syncQueueSet(_qa); }
     
     if (op.attempts > SYNC_MAX_RETRIES) {
       console.warn('Sync descartado tras', SYNC_MAX_RETRIES, 'intentos:', op);
@@ -3854,7 +3871,11 @@ async function _syncQueueRetry() {
         res = await _sbDeleteRaw(op.table, op.query);
       }
 
-      if (res.ok || (res.status === 409 && !_es409Grave(res))) {
+      if (op.method === 'PATCH' && res.ok && res.rows === 0) {
+        // 0 filas: el cambio NO se aplicó (la fila aún no existe o RLS). Se reintenta; antes
+        // se daba por bueno y el cambio se perdía en silencio.
+        console.warn('Sync PATCH sin filas, se reintentará:', op.table, op.query);
+      } else if (res.ok || (res.status === 409 && !_es409Grave(res))) {
         // 409 duplicado (ya existe) → reenvío idempotente, quitar sin alarmar. (FK/check 409 cae al else.)
         _syncQueueRemove(op._opId);
       } else if (!_esRetriable(res.status)) {
@@ -3870,6 +3891,7 @@ async function _syncQueueRetry() {
       console.warn('Reintento falló:', op.method, op.table, e);
     }
   }
+  } finally { _syncRetrying = false; }
 }
 
 // Indicador visual en topbar
@@ -4955,6 +4977,7 @@ async function cajaDiaResumen(fecha) {
   var gastos = { total: 0, lista: [] };
   (DB.gastos || []).forEach(function(g) {
     if ((g.fecha || '').slice(0, 10) !== fecha) return;
+    if ((g.estado || 'Pagado') === 'Pendiente') return;   // aún no ha salido del cajón
     var met = String(g.metodo_pago || g.forma_pago || g.metodo || '').toLowerCase();
     if (!/efectiv/.test(met)) return;
     var imp = parseFloat(g.importe) || 0;
@@ -8693,7 +8716,15 @@ async function guardarEdicionVenta() {
       n.modelo = (document.getElementById('evModelo').value || '').trim();
       n.imei = (document.getElementById('evImei').value || '').trim();
     }
-    if (!v.financiado) {
+    // Si no cambian cantidades, precios, descuentos de línea ni el descuento general, el
+    // importe se deja tal cual. Recalcularlo restaba otra vez el descuento de línea y, con
+    // IVA añadido, perdía el IVA: tocar solo el IMEI cambiaba el total de la venta.
+    var _clave = function (arr) { if (typeof arr === 'string') { try { arr = JSON.parse(arr); } catch (e) { arr = []; } } return (Array.isArray(arr) ? arr : []).map(function (it) { return [parseFloat(it.qty != null ? it.qty : it.cantidad) || 0, parseFloat(it.precio) || 0, parseFloat(it.desc) || 0].join('|'); }).join(';'); };
+    var _descIgual = Math.abs((Math.round(_evNum('evDescuento') * 100) / 100) - (parseFloat(v.descuento) || 0)) < 0.005;
+    var _mismoImporte = _descIgual && (SEL.evLineas && SEL.evLineas.length
+      ? _clave(n.items) === _clave(antes.items)
+      : Math.abs(total - (parseFloat(v.total) || 0)) < 0.005);
+    if (!v.financiado && !_mismoImporte) {
       var desc = Math.round(_evNum('evDescuento') * 100) / 100, rate = parseFloat(v.iva) || 0;
       n.descuento = desc; n.total = total;
       n.base = rate > 0 ? Math.round((total / (1 + rate / 100)) * 100) / 100 : total;
@@ -10546,8 +10577,10 @@ function eliminarPresupuesto(id) {
   if (r.estado !== 'Presupuesto' && r.estado !== 'Rechazado') { toast(T('pres.solo_borrar'), 'err'); return; }
   _avisoCobrosAlBorrar(r.id).then(function(extra) {
   confirmar(T('pres.borrar_confirm').replace('{cli}', (r.clienteNombre || '')) + extra, function () {
-    // Un 'Presupuesto' aún tiene piezas reservadas; un 'Rechazado' ya las devolvió al rechazar.
-    if (r.estado === 'Presupuesto' && Array.isArray(r.componentes) && r.componentes.length) { try { aplicarCambioStockPiezas(r.componentes, [], r); } catch(e){} }
+    // Las piezas reservadas vuelven al stock si aún no se devolvieron. Se mira la marca
+    // piezasDevueltas y no el estado: un presupuesto rechazado por el cliente desde el
+    // enlace público pasa a 'Rechazado' sin devolverlas.
+    if (!r.piezasDevueltas && Array.isArray(r.componentes) && r.componentes.length) { try { aplicarCambioStockPiezas(r.componentes, [], r); } catch(e){} }
     DB.reps = (DB.reps || []).filter(function(x){ return x.id !== id; });
     guardarDatos();
     // Borrar la reparación borra también sus pagos en la base de datos (ON DELETE CASCADE):

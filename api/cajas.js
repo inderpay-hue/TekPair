@@ -409,6 +409,7 @@ async function _efectivoEsperadoDia(tienda_id, fecha) {
   const gastos = await sbGetTodo(`gastos?tienda_id=eq.${encodeURIComponent(tienda_id)}&fecha=eq.${encodeURIComponent(F)}&select=*`);
   for (const g of gastos) {
     if (d10(g.fecha) !== F) continue;
+    if ((g.estado || 'Pagado') === 'Pendiente') continue;   // aún no ha salido del cajón
     const met = String(g.metodo_pago || g.forma_pago || g.metodo || '').toLowerCase();
     if (!/efectiv/.test(met)) continue;
     const imp = num(g.importe);
@@ -1465,6 +1466,8 @@ export default async function handler(req, res) {
       case 'deshacer_cobro': {
         const { id } = req.body || {};
         if (!id) return err(res, 400, 'id obligatorio');
+        // Deshacer un cobro es tan delicado como cobrar: mismo permiso
+        if (!(await tienePermisoCaja(payload, 'cajasm_cobrar'))) return err(res, 403, 'No tienes permiso para deshacer cobros');
         const f = await sbGet(`cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&limit=1`);
         if (!f.length) return err(res, 404, 'Cobro no encontrado');
         const fi = f[0];
@@ -1479,8 +1482,16 @@ export default async function handler(req, res) {
         if (fi.parcial_de) {
           // Era un abono parcial: se borra la fila y su importe vuelve al
           // original, que se habia quedado solo con el resto.
-          const padre = await sbGet(`cajas_fiados?id=eq.${encodeURIComponent(fi.parcial_de)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id,importe&limit=1`);
+          const padre = await sbGet(`cajas_fiados?id=eq.${encodeURIComponent(fi.parcial_de)}&tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id,importe,estado&limit=1`);
           if (!padre.length) return err(res, 400, 'No se encuentra el pendiente original de este abono');
+          // Si el resto ya se cobró (o se anuló), sumarle el abono lo daría por cobrado y
+          // esa deuda desaparecería: el abono vuelve como pendiente por su cuenta.
+          if (padre[0].estado !== 'pendiente') {
+            await sbPatch(`cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`,
+              { estado: 'pendiente', metodo_pago: null, fecha_cobro: null, cobrado_por: null });
+            await recalcularCierreDeFiado(id, tienda_id, _fechaMadrid(fi.fecha_cobro));
+            return ok(res, { id });
+          }
           const suma = Math.round((Number(padre[0].importe || 0) + Number(fi.importe || 0)) * 100) / 100;
           await sbPatch(`cajas_fiados?id=eq.${encodeURIComponent(padre[0].id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`, { importe: suma });
           await sbDelete(`cajas_fiados?id=eq.${encodeURIComponent(id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`);

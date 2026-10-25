@@ -875,9 +875,19 @@ function _tpvStockDelta(st, delta) {
 }
 var _tpvReintentando = false;
 function _tpvReintentar() {
-  if (_tpvReintentando || !SB_KEY || !navigator.onLine) return;
+  // Mismo candado que el panel: si el panel está reintentando la cola en otra pestaña, el TPV
+  // espera (ajustar_stock no es idempotente: dos pestañas a la vez descontaban dos veces).
+  if (navigator.locks && navigator.locks.request && !_tpvReintentar._dentro) {
+    return navigator.locks.request('tk_sync_queue', { ifAvailable: true }, function (lock) {
+      if (!lock) return null;
+      _tpvReintentar._dentro = true;
+      return new Promise(function (fin) { _tpvReintentar._fin = fin; _tpvReintentar(); }).then(function () { _tpvReintentar._dentro = false; });
+    });
+  }
+  var _acabar = function () { _tpvReintentando = false; if (_tpvReintentar._fin) { var f = _tpvReintentar._fin; _tpvReintentar._fin = null; f(); } };
+  if (_tpvReintentando || !SB_KEY || !navigator.onLine) { if (_tpvReintentar._fin) _acabar(); return; }
   var ops = _tpvColaGet().filter(function(x) { return x && x.origen === 'tpv'; });
-  if (!ops.length) return;
+  if (!ops.length) { if (_tpvReintentar._fin) _acabar(); return; }
   _tpvReintentando = true;
   var hdr = {'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Content-Type': 'application/json', 'Prefer': 'return=minimal'};
   var quitar = function(id) { _tpvColaSet(_tpvColaGet().filter(function(x) { return x._opId !== id; })); };
@@ -889,7 +899,7 @@ function _tpvReintentar() {
         else if (!_tpvReintentable(r.status)) { quitar(op._opId); _sbErrorToast(op.method, op.table, {status: r.status}); }
       }, function() {});
     });
-  }, Promise.resolve()).then(function() { _tpvReintentando = false; }, function() { _tpvReintentando = false; });
+  }, Promise.resolve()).then(_acabar, _acabar);
 }
 setInterval(_tpvReintentar, 30000);
 window.addEventListener('online', function() { setTimeout(_tpvReintentar, 1500); });
