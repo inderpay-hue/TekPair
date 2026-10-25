@@ -4947,9 +4947,28 @@ function _invIncome(d1, d2) {
 // ═══ DETALLE DE LAS TARJETAS DE INICIO (Premium) ═══
 // Tocar "Cobrado", "Efectivo", "Nº de ventas" o "Reparaciones pendientes" abre el
 // detalle encima de Inicio, sin cambiar de pantalla.
-function _inicioDetalle(tipo) {
+// Un día o semana del gráfico: lo cobrado en ese rango
+function _inicioRango(d1, d2) {
+  var pagos = {};
+  var vpm = _ventasIngresoPorMetodo(DB.ventas, d1, d2); Object.keys(vpm).forEach(function (m) { pagos[m] = (pagos[m] || 0) + vpm[m]; });
+  _sumarCobradoReps(pagos, d1, d2);
+  var tot = Object.keys(pagos).reduce(function (a, k) { return a + pagos[k]; }, 0);
+  _inicioDetalle('cobrado', { d1: d1, d2: d2, suf: d1 === d2 ? fmtFecha(d1) : fmtFecha(d1) + ' – ' + fmtFecha(d2), pagos: pagos, total: tot, titulo: true });
+}
+function _repTelCli(r) {
+  var c = r.clienteId ? (DB.clis || []).find(function (x) { return x.id === r.clienteId; }) : null;
+  return (c && c.tel) || r.clienteTel || '';
+}
+function _inicioReclamar(id) {
+  var r = (DB.reps || []).find(function (x) { return x.id === id; }); if (!r) return;
+  var tel = _repTelCli(r); if (!tel) { toast(T('tst.cliente_sin_telefono'), 'err'); return; }
+  var msg = T('idet.wa_debe').replace('{n}', String(r.clienteNombre || '').split(' ')[0]).replace('{t}', (TIENDA && TIENDA.nombre) || '')
+    .replace('{x}', cur(parseFloat(r.restante) || 0)).replace('{e}', _eqNombre(r.marca, r.modelo));
+  window.open('https://wa.me/' + waTel(tel) + '?text=' + encodeURIComponent(msg), '_blank');
+}
+function _inicioDetalle(tipo, ctxOver) {
   if (typeof checkFeature === 'function' && !checkFeature('inicio_avanzado')) return;
-  var ctx = window._inicioCtx || { d1: hoyLocal(), d2: hoyLocal(), suf: '', pagos: {}, total: 0 };
+  var ctx = ctxOver || window._inicioCtx || { d1: hoyLocal(), d2: hoyLocal(), suf: '', pagos: {}, total: 0 };
   var fila = function (izq, der, sub) {
     return '<div style="display:flex;justify-content:space-between;gap:10px;padding:8px 0;border-bottom:1px solid var(--light,#f1f5f9);font-size:13px"><span style="min-width:0">' + izq + (sub ? '<div style="font-size:11.5px;color:var(--muted)">' + sub + '</div>' : '') + '</span><b style="white-space:nowrap;font-variant-numeric:tabular-nums">' + der + '</b></div>';
   };
@@ -4967,7 +4986,7 @@ function _inicioDetalle(tipo) {
   var metodosV = function (v) { try { return _ventaPagos(v).map(function (p) { return p.metodo; }).filter(function (m, i, a) { return a.indexOf(m) === i; }).join(' + '); } catch (e) { return v.pago || ''; } };
   var html = '', head = '';
   if (tipo === 'cobrado') {
-    head = T('inicio.cobrado') + ' ' + ctx.suf + ': ' + cur(ctx.total);
+    head = (ctx.titulo ? T('idet.cobrado_el').replace('{f}', ctx.suf) : T('inicio.cobrado') + ' ' + ctx.suf) + ': ' + cur(ctx.total);
     var ms = Object.keys(ctx.pagos).filter(function (m) { return Math.abs(ctx.pagos[m]) > 0.004; }).sort(function (a, b) { return ctx.pagos[b] - ctx.pagos[a]; });
     html += titulo(T('idet.por_metodo'));
     html += ms.length ? ms.map(function (m) {
@@ -4986,6 +5005,31 @@ function _inicioDetalle(tipo) {
   } else if (tipo === 'ventas') {
     head = T('inicio.num_ventas') + ' ' + ctx.suf + ': ' + ventas.length;
     html += ventas.length ? ventas.slice(0, 80).map(function (v) { return fila(ventaTxt(v) + (v.clienteNombre ? ' <span style="color:var(--muted)">· ' + escHtml(v.clienteNombre) + '</span>' : ''), cur(v.total), [hora(v.createdAt, v.fecha), escHtml(metodosV(v))].filter(Boolean).join(' · ')); }).join('') : vacio;
+  } else if (tipo === 'adeber') {
+    var hoyA = new Date(hoyLocal() + 'T12:00:00');
+    var deben = (DB.reps || []).filter(function (r) { return (parseFloat(r.restante) || 0) > 0 && ['Rechazado', 'Devuelto', 'Sin Solucion', 'Presupuesto'].indexOf(r.estado) === -1; })
+      .map(function (r) { var f = (r.fecha || '').slice(0, 10); return { r: r, d: f ? Math.max(0, Math.floor((hoyA - new Date(f + 'T12:00:00')) / 86400000)) : 0 }; })
+      .sort(function (a, b) { return b.d - a.d; });
+    head = T('idet.debe_titulo').replace('{x}', cur(deben.reduce(function (a, o) { return a + (parseFloat(o.r.restante) || 0); }, 0)));
+    html += deben.length ? deben.map(function (o) {
+      var r = o.r, tel = _repTelCli(r);
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--light,#f1f5f9);font-size:13px"><span style="flex:1;min-width:0"><b>' + escHtml(r.clienteNombre || '—') + '</b> <span style="color:var(--muted)">· ' + escHtml(_eqNombre(r.marca, r.modelo)) + '</span>' +
+        '<div style="font-size:11.5px;color:' + (o.d > 30 ? 'var(--red,#E02424)' : 'var(--muted)') + '">' + escHtml(r.estado || '') + ' · ' + escHtml(T(o.d === 1 ? 'idet.hace_dia1' : 'idet.hace_dias').replace('{n}', o.d)) + '</div></span>' +
+        '<b style="white-space:nowrap;color:var(--red,#E02424)">' + cur(parseFloat(r.restante) || 0) + '</b>' +
+        (tel ? '<button type="button" onclick="_inicioReclamar(\'' + r.id + '\')" style="border:none;background:#25D366;color:#fff;border-radius:8px;padding:5px 9px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">📲 ' + escHtml(T('idet.reclamar')) + '</button>' : '') +
+        '<button type="button" onclick="_inicioDetCerrar();editarRep(\'' + r.id + '\')" style="border:1px solid var(--border);background:transparent;border-radius:8px;padding:5px 9px;font:inherit;font-size:12px;font-weight:600;cursor:pointer">' + escHtml(T('estan.ver') || 'Ver') + '</button></div>';
+    }).join('') : vacio;
+  } else if (tipo === 'listas') {
+    var lst = (DB.reps || []).filter(function (r) { return ['Por Entregar', 'Por entregar'].indexOf(r.estado) !== -1; })
+      .sort(function (a, b) { return (_estaAvisado(a.id) ? 1 : 0) - (_estaAvisado(b.id) ? 1 : 0); });
+    head = T('idet.listas_titulo').replace('{n}', lst.filter(function (r) { return !_estaAvisado(r.id); }).length);
+    html += lst.length ? lst.map(function (r) {
+      var av = _estaAvisado(r.id);
+      return '<div style="display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid var(--light,#f1f5f9);font-size:13px"><span style="flex:1;min-width:0"><b>' + escHtml(_eqNombre(r.marca, r.modelo) || '—') + '</b>' +
+        '<div style="font-size:11.5px;color:var(--muted)">' + escHtml(r.clienteNombre || '') + '</div></span>' +
+        (av ? '<span style="color:var(--green,#0E9F6E);font-weight:700;font-size:12px">✓ ' + escHtml(T('idet.avisado')) + '</span>'
+          : '<button type="button" onclick="_inicioDetCerrar();avisarListo(\'' + r.id + '\')" style="border:none;background:#25D366;color:#fff;border-radius:8px;padding:5px 10px;font:inherit;font-size:12px;font-weight:700;cursor:pointer">📲 ' + escHtml(T('estan.avisar') || 'Avisar') + '</button>') + '</div>';
+    }).join('') : vacio;
   } else if (tipo === 'reps') {
     var hoyD = new Date(hoyLocal() + 'T12:00:00');
     var reps = (DB.reps || []).filter(function (r) { return ['Pendiente', 'En Proceso', 'En proceso'].indexOf(r.estado) !== -1; })
@@ -5601,13 +5645,13 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
       var wa = wj * 7 + 1, wb = Math.min(wj * 7 + 7, lastDay);
       var wba = _invIso(new Date(baseH.getFullYear(), baseH.getMonth(), wa));
       var wbb = _invIso(new Date(baseH.getFullYear(), baseH.getMonth(), wb));
-      chSerie.push({ lbl: T('inicio.sem') + (wj + 1), cur: _invIncome(wba, wbb), prev: 0 });
+      chSerie.push({ lbl: T('inicio.sem') + (wj + 1), cur: _invIncome(wba, wbb), prev: 0, d1: wba, d2: wbb });
     }
   } else {
     for (var dj = 0; dj < 7; dj++) {
       var dcur = new Date(monday); dcur.setDate(monday.getDate() + dj); var iso = _invIso(dcur);
       var dprev = new Date(_monPrev); dprev.setDate(_monPrev.getDate() + dj); var isop = _invIso(dprev);
-      chSerie.push({ lbl: ndic[dj] || '', cur: _invIncome(iso, iso), prev: _invIncome(isop, isop) });
+      chSerie.push({ lbl: ndic[dj] || '', cur: _invIncome(iso, iso), prev: _invIncome(isop, isop), d1: iso, d2: iso });
     }
   }
   var chMax = Math.max.apply(null, chSerie.map(function(o) { return Math.max(o.cur, o.prev); }).concat([1]));
@@ -5676,7 +5720,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
     var hero = '<div style="display:grid;grid-template-columns:1.15fr 1fr;gap:14px;margin-bottom:14px" class="iv2-money">' +
       moneyCard({ eyebrow: T('iv2.te_deben'), big: cur(cobrosTot), color: 'var(--orange,#e07b4f)',
         sub: T('iv2.te_deben_sub').replace('{n}', cobrosArr.length).replace('{d}', oldestDays),
-        cta: T('iv2.ver_debe'), ctaJs: "_kpiReps('adeber')" }) +
+        cta: T('iv2.ver_debe'), ctaJs: (analitica && tieneFeature('inicio_avanzado')) ? "_inicioDetalle('adeber')" : "_kpiReps('adeber')" }) +
       moneyCard({ eyebrow: T('iv2.en_taller'), big: enRep.length, unit: T('iv2.reparaciones'), pill: (urgentes.length ? urgentes.length + ' ' + T('iv2.urg') : ''),
         sub: T('iv2.en_taller_sub').replace('{c}', enRep.length).replace('{l}', listas.length),
         cta: T('iv2.revisar'), ctaJs: "navTo('pReps')" }) +
@@ -5770,6 +5814,8 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
           bars += '<rect x="' + x0.toFixed(0) + '" y="' + (150 - hc).toFixed(0) + '" width="' + bw.toFixed(0) + '" height="' + hc.toFixed(0) + '" rx="3" fill="var(--orange,#e07b4f)"/>';
           bars += '<text x="' + (x0 + bw / 2).toFixed(0) + '" y="168" font-size="11" fill="var(--muted)" text-anchor="middle">' + chSerie[k].lbl + '</text>';
         }
+        // Zona invisible de toda la columna: tocar un día abre lo cobrado ese día
+        if (chSerie[k].d1) bars += '<rect x="' + (x0 - 4).toFixed(0) + '" y="10" width="' + (slot - 2).toFixed(0) + '" height="165" fill="transparent" style="cursor:pointer" onclick="_inicioRango(\'' + chSerie[k].d1 + '\',\'' + chSerie[k].d2 + '\')"><title>' + escHtml(T('idet.tocar')) + '</title></rect>';
       }
       var legend = chPrev ? '<div style="display:flex;gap:14px;font-size:11.5px;color:var(--muted)"><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;background:var(--orange,#e07b4f)"></i>' + T('iv2.esta_semana') + '</span><span><i style="display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;background:var(--border,#cdc7bf)"></i>' + T('iv2.semana_ant') + '</span></div>' : '';
       chartCard = '<div style="' + cardCss + ';padding:18px 20px;margin-bottom:14px">' +
@@ -5796,7 +5842,7 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
         cta: T('iv2.revisar'), ctaJs: "navTo('pReps')" }) +
       moneyCard({ eyebrow: T('iv2.listas_entregar'), big: listas.length, unit: T('iv2.por_avisar'), color: 'var(--green,#3a9b6e)', pill: T('iv2.reparadas'),
         sub: T('iv2.listas_avisar_sub'),
-        cta: (listas.length ? T('iv2.avisar_n').replace('{n}', listas.length) : T('iv2.ver_listas')), ctaJs: "navTo('pReps')",
+        cta: (listas.length ? T('iv2.avisar_n').replace('{n}', listas.length) : T('iv2.ver_listas')), ctaJs: (listas.length && tieneFeature('inicio_avanzado')) ? "_inicioDetalle('listas')" : "navTo('pReps')",
         ctaColor: '#fff', ctaBg: 'var(--green,#0E9F6E)' }) +
       '</div>';
 
@@ -27205,8 +27251,7 @@ function gesEntregar(id) {
   confirmar(T('ges.entregar_conf') + '\n\n' + msg, function () {
     g.estado = 'entregada'; g.fecha_entregada = hoyLocal();
     _gesSync(g); try { guardarDatos(); } catch (e) {}
-    var tel = String(g.cliente_tel || '').replace(/[^\d+]/g, '');
-    if (tel) { try { window.open('https://wa.me/' + tel.replace(/^\+/, '').replace(/^(?=[67]\d{8}$)/, '34') + '?text=' + encodeURIComponent(msg), '_blank'); } catch (e) {} }
+    if (g.cliente_tel) { try { window.open('https://wa.me/' + waTel(g.cliente_tel) + '?text=' + encodeURIComponent(msg), '_blank'); } catch (e) {} }
     renderGestiones();
     toast(T('ges.entregada_ok'), 'ok');
   }, { okLabel: '📲 ' + T('ges.entregar_btn') });
