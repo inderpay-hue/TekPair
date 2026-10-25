@@ -2741,6 +2741,8 @@ async function guardarPedido() {
   var items = window._pedItems || [];
   if (!items.length) { toast(T('pedidos.falta_pieza'), 'err'); return; }
   var prov = (document.getElementById('pedProv').value || '').trim() || null;
+  // Sin proveedor el pedido no cuadra luego en Gastos ni en la deuda con proveedores
+  if (!prov) { toast(T('pedidos.falta_proveedor'), 'err'); try { document.getElementById('pedProv').focus(); } catch (e) {} return; }
   var fest = document.getElementById('pedFecha').value || null;
   var nota = (document.getElementById('pedNota').value || '').trim() || null;
   var metPed = (document.getElementById('pedMetodo') || {}).value || 'transferencia';
@@ -2977,11 +2979,11 @@ async function _subirPdfPedido(file, grupo) {
 }
 
 // Crea UN gasto consolidado para todo un pedido (total real pagado + factura adjunta).
-function _crearGastoPedidoGrupo(p) {
+function _crearGastoPedidoGrupo(p, importe) {
   var g = {
     id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID,
     concepto: (T('pedidos.concepto_gasto_pedido') || 'Pedido') + (p.proveedor ? ' — ' + p.proveedor : ''),
-    importe: parseFloat(p.total_real) || 0, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Stock/Compras',
+    importe: importe || parseFloat(p.total_real) || 0, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Stock/Compras',
     iva_tipo: 21, proveedor_id: null, proveedor_nombre: p.proveedor || null, proveedor_nif: null, numero_factura: null,
     metodo_pago: p.metodo_pago || 'transferencia',
     adjunto_url: p.pdf_url || null, adjunto_nombre: p.pdf_nombre || null
@@ -3010,10 +3012,20 @@ function _gastoAlRecibir(p) {
   // Pendiente/financiado: aún no se ha pagado → no se crea gasto al recibir.
   // El gasto se crea al "Registrar pago a proveedor" (que es cuando sale el dinero).
   if (p.estado_pago && p.estado_pago !== 'pagado') return null;
-  // Pedido con total real pagado → UN solo gasto para todo el grupo (con la factura)
-  if (p.grupo && (parseFloat(p.total_real) || 0) > 0) {
-    var hermano = (DB.pedidos || []).find(function (x) { return x.grupo === p.grupo && x.gasto_id; });
-    var gid = hermano ? hermano.gasto_id : _crearGastoPedidoGrupo(p);
+  // Pedido de varias lineas (o con total real pagado) → UN solo gasto para todo
+  // el grupo. Antes, sin total real, salia un gasto por pieza: 17 gastos sueltos.
+  var _hermanos = p.grupo ? (DB.pedidos || []).filter(function (x) { return x.grupo === p.grupo; }) : [];
+  if (p.grupo && ((parseFloat(p.total_real) || 0) > 0 || _hermanos.length > 1)) {
+    var hermano = _hermanos.find(function (x) { return x.gasto_id; });
+    var _impGrupo = (parseFloat(p.total_real) || 0) > 0 ? parseFloat(p.total_real)
+      : Math.round(_hermanos.reduce(function (a, x) { return a + (parseFloat(x.importe) || 0); }, 0) * 100) / 100;
+    if (!hermano && _impGrupo <= 0) return null;
+    // Grupo recibido a medias con la version anterior (un gasto por linea): no mezclar
+    if (hermano && !((parseFloat(p.total_real) || 0) > 0)) {
+      var _gh = (DB.gastos || []).find(function (g) { return g.id === hermano.gasto_id; });
+      if (!_gh || Math.abs((parseFloat(_gh.importe) || 0) - _impGrupo) > 0.01) return (parseFloat(p.importe) || 0) > 0 ? _crearGastoDesdePedido(p) : null;
+    }
+    var gid = hermano ? hermano.gasto_id : _crearGastoPedidoGrupo(p, _impGrupo);
     _marcarGrupoGasto(p.grupo, gid);
     return gid;
   }
@@ -6187,6 +6199,7 @@ function renderPedidosPage() {
         return '<div style="border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff;margin-bottom:10px">' +
           '<div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-weight:800;font-size:13.5px">' + _iv2ic('store', 16) + escHtml(pk) +
             ' <span style="background:var(--light);border-radius:8px;padding:1px 8px;font-size:11px;color:var(--muted);font-weight:700">' + totUds + ' ' + T('pedidos.uds') + '</span>' +
+            _btnCambiarProv(items.map(function (x) { return x.id; }), []) +
             (tot > 0 ? '<span style="margin-left:auto;color:var(--muted);font-size:12px">' + cur(tot) + '</span>' : '') + '</div>' +
           rows + '</div>';
       }).join('');
@@ -6212,6 +6225,7 @@ function renderPedidosPage() {
       return '<div style="margin-bottom:16px">' +
         '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-weight:800;font-size:13.5px;flex-wrap:wrap">' + _iv2ic('store', 16) + escHtml(k) +
           ' <span style="background:var(--light);border-radius:8px;padding:1px 8px;font-size:11px;color:var(--muted)">' + items.length + '</span>' +
+          _btnCambiarProv(items.map(function (x) { return x.id; }), []) +
           '<span style="margin-left:auto;display:flex;align-items:center;gap:8px;flex-wrap:wrap">' + (tot > 0 ? '<span style="color:var(--muted);font-size:12px">' + cur(tot) + '</span>' : '') + btnEnviar + btnGrupo + btnRecibir + '</span></div>' +
         gridOpen + items.map(card).join('') + '</div></div>';
     }).join('');
@@ -16945,7 +16959,8 @@ function renderGastos() {
     var catLbl = cats.length === 1 ? cats[0] : (cats.length + ' ' + T('gastos.categorias'));
     var provLbl = grp.prov || T('gastos.sin_proveedor');
     rows += '<tr class="gasto-grp" style="cursor:pointer;background:var(--bg2,#F8FAFC)" onclick="toggleGrupoGasto(' + gi + ')">' +
-      '<td style="font-weight:700"><span id="gcar-' + gi + '">▸</span> ' + esc(provLbl) + ' <span style="color:var(--muted,#64748B);font-weight:500">· ' + grp.items.length + ' ' + T('gastos.gastos_n') + '</span></td>' +
+      '<td style="font-weight:700"><span id="gcar-' + gi + '">▸</span> ' + esc(provLbl) + ' <span style="color:var(--muted,#64748B);font-weight:500">· ' + grp.items.length + ' ' + T('gastos.gastos_n') + '</span>' +
+        _btnCambiarProv([], grp.items.map(function (x) { return x.id; })) + '</td>' +
       '<td><span class="badge bb">' + esc(catLbl) + '</span></td>' +
       '<td>' + fmtFecha(grp.dia) + '</td>' +
       '<td></td>' +
@@ -16957,6 +16972,50 @@ function renderGastos() {
   });
 
   el.innerHTML = '<div class="tbl-wrap"><table class="tbl"><thead><tr><th>' + T('gastos.concepto') + ' / ' + T('nav.proveedores') + '</th><th>' + T('stock.categoria') + '</th><th>' + T('gen.fecha') + '</th><th>' + T('gen.iva') + '</th><th>' + T('gastos.importe') + '</th><th>' + T('gastos.estado') + '</th><th>' + T('gastos.adjunto') + '</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+// ═══ CAMBIAR PROVEEDOR de un grupo de pedidos y/o gastos de una vez ═══
+// Un pedido pegado de N piezas son N lineas (y antes N gastos): corregir el
+// proveedor una a una no era viable, y las recibidas ni se podian editar.
+// Pedidos y gastos van enlazados por gasto_id: se actualizan los dos lados.
+var _provSel = [];
+function _btnCambiarProv(pedIds, gastoIds) {
+  if (!tienePerm('gastos_editar') && !tienePerm('stock_crear')) return '';
+  var i = _provSel.push({ ped: pedIds, gas: gastoIds }) - 1;
+  return ' <button onclick="event.stopPropagation();cambiarProveedorSel(' + i + ')" title="' + escHtml(T('pedidos.cambiar_proveedor')) + '" style="background:var(--light);border:1px solid var(--border);border-radius:7px;padding:2px 8px;font:inherit;font-size:11px;font-weight:600;cursor:pointer;color:var(--text)">✏️ ' + escHtml(T('pedidos.cambiar_proveedor')) + '</button>';
+}
+function cambiarProveedorSel(i) {
+  var sel = _provSel[i]; if (!sel) return;
+  var peds = (DB.pedidos || []).filter(function (p) { return sel.ped.indexOf(p.id) >= 0; });
+  var gastos = (DB.gastos || []).filter(function (g) { return sel.gas.indexOf(g.id) >= 0; });
+  // Completa los dos lados del enlace: gastos de esos pedidos y pedidos de esos gastos
+  var gids = {}; peds.forEach(function (p) { if (p.gasto_id) gids[p.gasto_id] = 1; }); gastos.forEach(function (g) { gids[g.id] = 1; });
+  gastos = (DB.gastos || []).filter(function (g) { return gids[g.id]; });
+  peds = (DB.pedidos || []).filter(function (p) { return sel.ped.indexOf(p.id) >= 0 || (p.gasto_id && gids[p.gasto_id]); });
+  var actual = (peds[0] && peds[0].proveedor) || (gastos[0] && gastos[0].proveedor_nombre) || '';
+  var nombres = (DB.provs || []).map(function (x) { return x.nombre; }).filter(Boolean);
+  pedirLinea(T('pedidos.cambiar_proveedor') + (nombres.length ? '\n' + nombres.slice(0, 8).join(' · ') : ''), actual, function (val) {
+    if (val == null) return;
+    var nuevo = String(val).trim(); if (!nuevo) return;
+    var pm = (DB.provs || []).find(function (x) { return (x.nombre || '').toLowerCase() === nuevo.toLowerCase(); });
+    if (pm) nuevo = pm.nombre;
+    peds.forEach(function (p) {
+      p.proveedor = nuevo;
+      if (SB_KEY) sbPatch('pedidos', 'id=eq.' + encodeURIComponent(p.id), { proveedor: nuevo });
+    });
+    gastos.forEach(function (g) {
+      var viejo = (g.proveedor_nombre || '').trim();
+      g.proveedor_nombre = nuevo; g.proveedor_id = pm ? pm.id : null;
+      // El concepto lleva el proveedor ("Pedido — X" / "Pieza: ... (X)"): se cambia también
+      if (viejo && g.concepto && g.concepto.indexOf(viejo) >= 0) g.concepto = g.concepto.split(viejo).join(nuevo);
+      else if (/^(Pedido|Pieza)/.test(g.concepto || '') && (g.concepto || '').indexOf(nuevo) < 0) g.concepto = (g.concepto || '') + ' (' + nuevo + ')';
+      if (SB_KEY && TIENDA_ID) sbPatch('gastos', 'id=eq.' + encodeURIComponent(g.id), { proveedor_nombre: nuevo, proveedor_id: g.proveedor_id, concepto: g.concepto });
+    });
+    try { guardarDatos(); } catch (e) {}
+    try { renderPedidosWidget(); } catch (e) {}
+    try { if (typeof renderGastos === 'function') renderGastos(); } catch (e) {}
+    toast(T('pedidos.proveedor_actualizado').replace('{n}', peds.length + gastos.length), 'ok');
+  }, { placeholder: 'CELLB2B…' });
 }
 
 // Pliega/despliega las líneas de un grupo de gastos sin re-renderizar
