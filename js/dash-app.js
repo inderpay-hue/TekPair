@@ -3897,6 +3897,10 @@ async function _syncQueueRetryRun() {
       } else if (res.ok || (res.status === 409 && !_es409Grave(res))) {
         // 409 duplicado (ya existe) → reenvío idempotente, quitar sin alarmar. (FK/check 409 cae al else.)
         _syncQueueRemove(op._opId);
+      } else if (op.origen === 'tpv' && (res.status === 401 || (res.status === 409 && res.code === '23503'))) {
+        // Del TPV: sesión caducada o el cliente nuevo aún no ha subido. El TPV la reintenta; aquí
+        // no se descarta (si no, se deshacía una venta ya cobrada).
+        continue;
       } else if (!_esRetriable(res.status)) {
         // Error persistente (4xx no-retriable): descartar la op en lugar de loop infinito
         console.warn('✗ Sync descartado (no retriable):', op.method, op.table, 'HTTP ' + res.status);
@@ -13293,8 +13297,9 @@ function guardarRep() {
             SEL.repPagos = pg.map(function (p) { return { id: p.id, fecha: p.fecha, importe: parseFloat(p.importe) || 0, metodo: p.metodo || 'Efectivo', tipo: p.tipo || 'parcial' }; });
             SEL.repPagosOk = true;
           }
+          if (SEL.editRepId !== id) return;
           return _guardarRepAhora();
-        }, function () { return _guardarRepAhora(); });
+        }, function () { if (SEL.editRepId === id) return _guardarRepAhora(); });
       }
       return _guardarRepAhora();
     }
