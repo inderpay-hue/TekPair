@@ -26961,6 +26961,8 @@ function setModoCitas(m) {
   var g = document.getElementById('gestionesWrap'), t = document.getElementById('citasTiendaWrap');
   if (g) g.style.display = m === 'gestiones' ? '' : 'none';
   if (t) t.style.display = m === 'gestiones' ? 'none' : '';
+  // Los botones de arriba (nueva cita, link público) son de las citas de la tienda
+  var hb = document.querySelector('#pCitas .sec-header > div:last-child'); if (hb) hb.style.display = m === 'gestiones' ? 'none' : '';
   if (m === 'gestiones') cargarGestiones();
 }
 function cargarGestiones() {
@@ -27020,7 +27022,7 @@ function renderGestiones() {
         '<span style="margin-left:auto;font-weight:800">' + cur(parseFloat(g.precio) || 0) + '</span></div>' +
       '<div style="font-size:12.5px;margin-top:4px">👤 ' + escHtml(g.cliente_nombre || '—') + (g.cliente_tel ? ' · ' + escHtml(g.cliente_tel) : '') + (g.cliente_doc ? ' · ' + escHtml(g.cliente_doc) : '') + '</div>' +
       ((g.oficina || g.preferencias) ? '<div style="font-size:12px;color:var(--muted);margin-top:2px">' + [g.oficina, g.preferencias].filter(Boolean).map(escHtml).join(' · ') + '</div>' : '') +
-      (g.estado === 'buscando' ? '<div style="font-size:11.5px;margin-top:3px;color:' + (dias > 7 ? 'var(--red)' : 'var(--muted)') + '">⏳ ' + escHtml(T('ges.buscando_dias').replace('{n}', dias)) + '</div>' : '') +
+      (g.estado === 'buscando' ? '<div style="font-size:11.5px;margin-top:3px;color:' + (dias > 7 ? 'var(--red)' : 'var(--muted)') + '">⏳ ' + escHtml(T(dias === 1 ? 'ges.buscando_dia1' : 'ges.buscando_dias').replace('{n}', dias)) + '</div>' : '') +
       cita + (g.nota ? '<div style="font-size:11.5px;color:var(--muted);font-style:italic;margin-top:4px">“' + escHtml(g.nota) + '”</div>' : '') +
       (acc ? '<div style="display:flex;gap:5px;flex-wrap:wrap;margin-top:8px">' + acc + '</div>' : '') + '</div>';
   };
