@@ -6628,7 +6628,7 @@ function renderPedidosPage() {
   try {
     var rb = document.getElementById('pedReponerBox');
     if (rb) {
-      var nRep = _reponerSugerencias().length;
+      var nRep = _reponerSugerencias(true);
       var tarde = (DB.pedidos || []).filter(function(p) { return _pedRetraso(p) > 0; });
       var ban = '';
       if (nRep) ban += '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(255,91,31,.07);border:1px solid rgba(255,91,31,.3);border-radius:12px;padding:10px 14px;margin-bottom:8px">' +
@@ -27414,59 +27414,86 @@ function _pedRetraso(p) {
   var d = Math.floor((new Date(hoyLocal() + 'T12:00:00') - new Date(String(p.fecha_estimada).slice(0, 10) + 'T12:00:00')) / 86400000);
   return d > 0 ? d : 0;
 }
-// Movimiento de cada producto en los últimos `dias`, con los datos de esta tienda:
+// Movimiento de cada producto, con los datos de esta tienda, en las últimas 8 semanas (para el
+// ritmo) y en 3 meses (para saber si se mueve), en una sola pasada:
 //  - por id de stock: piezas puestas en reparaciones (no las devueltas) y unidades vendidas
 //    (no las devueltas);
-//  - por nombre: lo recibido de proveedores. En muchas tiendas las piezas no se enlazan a la
-//    reparación, pero lo que se compra una y otra vez es lo que se gasta.
-var _CONSUMO_DIAS = 56;
-function _consumoStock(dias) {
-  var d0 = _invIso(new Date(Date.now() - dias * 86400000)), id = {}, nom = {};
-  var suma = function(k, n) { if (k) id[k] = (id[k] || 0) + n; };
+//  - por producto (nombre + calidad): lo recibido de proveedores. En muchas tiendas las piezas no
+//    se enlazan a la reparación, pero lo que se compra una y otra vez es lo que se gasta. Las piezas
+//    pedidas para una reparación o un encargo concreto no cuentan: no son de reponer.
+var _CONSUMO_DIAS = 56, _CONSUMO_MOV = 90;
+function _rpnClave(nombre, calidad) { return _pedNorm(nombre) + '|' + _pedNorm(calidad); }
+function _consumoStock() {
+  var d8 = _invIso(new Date(Date.now() - _CONSUMO_DIAS * 86400000)), d90 = _invIso(new Date(Date.now() - _CONSUMO_MOV * 86400000));
+  var o = { id: {}, id90: {}, nom: {}, nom90: {} };
+  var suma = function(k, n, f) { if (!k || f < d90) return; o.id90[k] = (o.id90[k] || 0) + n; if (f >= d8) o.id[k] = (o.id[k] || 0) + n; };
   (DB.reps || []).forEach(function(r) {
     if (r.piezasDevueltas || !Array.isArray(r.componentes) || !r.componentes.length) return;
-    if (String(r.fecha || '').slice(0, 10) < d0) return;
-    r.componentes.forEach(function(c) { if (c && c.id) suma(c.id, 1); });
+    var f = String(r.fecha || '').slice(0, 10);
+    r.componentes.forEach(function(c) { if (c && c.id) suma(c.id, 1, f); });
   });
   (DB.ventas || []).forEach(function(v) {
-    if (v.reembolsado || String(v.fecha || '').slice(0, 10) < d0) return;
+    if (v.reembolsado) return;
+    var f = String(v.fecha || '').slice(0, 10);
     if (Array.isArray(v.items) && v.items.length) {
-      v.items.forEach(function(it) { if (it && !it.esServicio && !it.esRapida) suma(it.idOriginal || it.stockId || it.id, parseInt(it.qty || it.cantidad, 10) || 1); });
-    } else if (v.stockId) suma(v.stockId, 1);
+      v.items.forEach(function(it) { if (it && !it.esServicio && !it.esRapida) suma(it.idOriginal || it.stockId || it.id, parseInt(it.qty || it.cantidad, 10) || 1, f); });
+    } else if (v.stockId) suma(v.stockId, 1, f);
   });
+  var deEncargo = {}; (DB.encargos || []).forEach(function(e) { if (e && e.pedido_id) deEncargo[e.pedido_id] = 1; });
   (DB.pedidos || []).forEach(function(p) {
-    if (p.estado !== 'recibido') return;
+    if (p.estado !== 'recibido' || p.reparacion_id || p.rep_id || deEncargo[p.id]) return;
     var f = String(p.fecha_recibido || p.fecha_pedido || '').slice(0, 10);
-    if (!f || f < d0) return;
-    var k = _pedNorm(p.pieza); if (k) nom[k] = (nom[k] || 0) + (parseInt(p.cantidad, 10) || 1);
+    if (!f || f < d90) return;
+    var k = _rpnClave(p.pieza, p.calidad), n = parseInt(p.cantidad, 10) || 1;
+    o.nom90[k] = (o.nom90[k] || 0) + n; if (f >= d8) o.nom[k] = (o.nom[k] || 0) + n;
   });
-  return { id: id, nom: nom };
+  return o;
 }
-// Qué reponer. Solo productos que se han movido en los últimos 3 meses (lo que no se vende ni
-// se compra no se propone aunque esté a 0: antes salían cientos de móviles ya vendidos por
-// el mínimo de 2 que llevan todos). Se propone si al ritmo de las últimas 8 semanas no llega
-// a una semana, o si se ha quedado a 0 por debajo de su mínimo. La cantidad cubre 2 semanas.
-// Sin ningún pedido abierto de ese producto.
-function _reponerSugerencias() {
-  var c = _consumoStock(_CONSUMO_DIAS), c90 = _consumoStock(90), semanas = _CONSUMO_DIAS / 7;
-  var ritmo = function(s) { var n = _pedNorm(_stockNombre(s)); return Math.max(c.id[s.id] || 0, c.nom[n] || 0) / semanas; };
-  return (DB.stock || []).filter(function(s) {
-    if ((s.tipo || '') === 'usado' || s.imei) return false;   // un móvil con IMEI no se "repone"
-    var n = _pedNorm(_stockNombre(s));
-    if (!((c90.id[s.id] || 0) + (c90.nom[n] || 0))) return false;
-    var min = parseInt(s.stockMin, 10) || 0, uds = parseInt(s.unidades, 10) || 0, sem = ritmo(s);
-    var noLlega = sem > 0 && uds < Math.ceil(sem);
-    var agotado = uds === 0 && uds <= min;
-    if (!noLlega && !agotado) return false;
-    return !_pedAbiertoPara(_stockNombre(s));
-  }).map(function(s) {
-    var nombre = _stockNombre(s), uds = parseInt(s.unidades, 10) || 0, min = parseInt(s.stockMin, 10) || 0;
-    var sem = Math.round(ritmo(s) * 10) / 10;
+// Qué reponer, por producto (nombre + calidad, sumando todas sus filas: al recibir un pedido de
+// algo agotado se crea una fila nueva y la vieja se queda a 0). Solo lo que se ha movido en 3
+// meses (al menos 2 veces): lo que no se vende ni se compra no se propone aunque esté a 0 (antes
+// salían cientos de móviles ya vendidos por el mínimo de 2 que llevan todos). Se propone si al
+// ritmo de las últimas 8 semanas no llega a una semana, o si está agotado. La cantidad
+// cubre 2 semanas. Sin pedido abierto de ese producto. Los móviles, tablets y relojes no se reponen.
+function _reponerSugerencias(soloContar) {
+  var c = _consumoStock(), semanas = _CONSUMO_DIAS / 7;
+  // Pedidos abiertos, una vez (antes se recorrían todos por cada producto)
+  var abiertoNom = {}, abiertoCla = {};
+  (DB.pedidos || []).forEach(function(p) { if (p.estado === 'recibido') return; abiertoNom[_pedNorm(p.pieza)] = 1; abiertoCla[_rpnClave(p.pieza, p.calidad)] = 1; });
+  var grupos = {}, orden = [];
+  (DB.stock || []).forEach(function(s) {
+    if ((s.tipo || '') === 'usado' || s.imei || _esImeiCat(s.categoria)) return;
+    var nombre = _stockNombre(s), k = _rpnClave(nombre, s.calidad);
+    var g = grupos[k];
+    if (!g) { g = grupos[k] = { k: k, nombre: nombre, filas: [], uds: 0, mov: 0, mov90: 0 }; orden.push(g); }
+    g.filas.push(s);
+    g.uds += Math.max(0, parseInt(s.unidades, 10) || 0);
+    g.mov += c.id[s.id] || 0; g.mov90 += c.id90[s.id] || 0;
+  });
+  var out = [];
+  orden.forEach(function(g) {
+    var compras = c.nom[g.k] || 0, compras90 = c.nom90[g.k] || 0;
+    var mov90 = g.mov90 + compras90;
+    if (mov90 < 2) return;   // una venta o compra suelta no marca un ritmo
+    var sem = Math.max(g.mov, compras) / semanas;
+    var noLlega = sem > 0 && g.uds < Math.ceil(sem);
+    var agotado = g.uds === 0;
+    if (!noLlega && !agotado) return;
+    // Pedido abierto: con la misma calidad o, si el pedido no la lleva, con el mismo nombre
+    var pn = _pedNorm(g.nombre);
+    if (abiertoCla[g.k] || (abiertoNom[pn] && abiertoCla[pn + '|'])) return;
+    out.push({ g: g, sem: sem });
+  });
+  if (soloContar) return out.length;
+  return out.map(function(o) {
+    var g = o.g;
+    // Fila de referencia: la que sigue a la venta (no la vendida) y, si no, la última
+    var s = g.filas.filter(function(x) { return !x.vendido; }).pop() || g.filas[g.filas.length - 1];
+    var sem = Math.round(o.sem * 10) / 10, min = parseInt(s.stockMin, 10) || 0;
     var objetivo = sem > 0 ? Math.max(Math.ceil(sem * 2), 1) : Math.max(min, 1);
-    var h = _pedHistorialPrecio(nombre);
-    var dias = sem > 0 ? Math.floor(uds / (sem / 7)) : null;
-    return { s: s, nombre: nombre, uds: uds, sem: sem, dias: dias, cant: Math.max(1, objetivo - uds), h: h,
-      prov: _provHabitual(nombre) || (h && h.prov) || '', precio: (h && h.precio) || parseFloat(s.precioC) || 0 };
+    var h = _pedHistorialPrecio(g.nombre);
+    return { s: s, nombre: g.nombre, uds: g.uds, sem: sem, dias: sem > 0 ? Math.floor(g.uds / (sem / 7)) : null, cant: Math.max(1, objetivo - g.uds), h: h,
+      prov: _provHabitual(g.nombre) || (h && h.prov) || '', precio: (h && h.precio) || parseFloat(s.precioC) || 0 };
   }).sort(function(a, b) {
     // Primero lo que más se gasta
     return b.sem - a.sem || a.uds - b.uds;
@@ -27508,16 +27535,17 @@ function abrirReponer() {
   m.box.style.maxWidth = '720px';
   // Total estimado de lo marcado, por proveedor (se actualiza al cambiar cantidades o proveedor)
   var _rpnTotal = function() {
-    var por = {}, tot = 0;
+    var por = {}, tot = 0, sinPrecio = 0;
     m.box.querySelectorAll('.rpnChk').forEach(function(ch) {
       if (!ch.checked) return;
-      var i = +ch.dataset.i, x = window._rpnSug[i]; if (!x || !(x.precio > 0)) return;
+      var i = +ch.dataset.i, x = window._rpnSug[i]; if (!x) return;
+      if (!(x.precio > 0)) { sinPrecio++; return; }
       var c = parseInt(m.box.querySelector('.rpnCant[data-i="' + i + '"]').value, 10) || 0;
       var pv = (m.box.querySelector('.rpnProv[data-i="' + i + '"]').value || '').trim() || T('pedidos.sin_proveedor');
       por[pv] = (por[pv] || 0) + x.precio * c; tot += x.precio * c;
     });
     var el = m.box.querySelector('#_rpnTot'); if (!el) return;
-    el.textContent = tot > 0 ? T('rpn.total').replace('{x}', cur(tot)) + (Object.keys(por).length > 1 ? ' (' + Object.keys(por).map(function(k) { return k + ': ' + cur(por[k]); }).join(' · ') + ')' : '') : '';
+    el.textContent = tot > 0 ? T('rpn.total').replace('{x}', cur(tot)) + (sinPrecio ? ' · ' + T('rpn.sin_precio').replace('{n}', sinPrecio) : '') + (Object.keys(por).length > 1 ? ' (' + Object.keys(por).map(function(k) { return k + ': ' + cur(por[k]); }).join(' · ') + ')' : '') : '';
   };
   m.box.addEventListener('input', _rpnTotal); m.box.addEventListener('change', _rpnTotal); _rpnTotal();
   m.box.querySelector('#_rpnNo').onclick = function() { m.close(); };
