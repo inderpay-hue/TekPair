@@ -115,7 +115,10 @@ export async function construirResumen(SUPABASE_URL, headers, tienda, ayer, hoy)
   const ayerC = (cierres || []).filter((c) => c.fecha === ayer);
   const descuadres = ayerC.filter((c) => c.estado !== 'festivo' && c.estado !== 'abierto' && Math.abs(num(c.descuadre)) > 0.5);
   const usadas = new Set((cierres || []).map((c) => c.caja_id));
-  const sinCerrar = [...usadas].filter((id) => !ayerC.some((c) => c.caja_id === id && c.estado !== 'abierto')).map((id) => nomCaja[id] || 'Caja');
+  // Solo si ayer se abrió: sin ventas, cobros ni cajas tocadas ese día, la tienda no abrió
+  // (domingo, festivo) y avisar de "cajas sin cerrar" era una falsa alarma.
+  const abrioAyer = ing.total > 0.005 || ayerC.length > 0 || recibidas > 0 || entregadas > 0;
+  const sinCerrar = !abrioAyer ? [] : [...usadas].filter((id) => !ayerC.some((c) => c.caja_id === id && c.estado !== 'abierto')).map((id) => nomCaja[id] || 'Caja');
 
   // Te deben
   const deFiados = r2((fiados || []).reduce((s, f) => s + num(f.importe), 0));

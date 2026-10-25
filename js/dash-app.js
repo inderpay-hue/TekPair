@@ -1749,6 +1749,13 @@ function abrirEntregaEncargo(id) {
     var metodo = m.box.querySelector('#eeM').value;
     m.close();
     var venta = conVenta ? _encCrearVenta(e, p, s, metodo, usarStock ? st : null, reg) : null;
+    // Pagado entero con la señal: no hay venta nueva, pero la pieza sale igual del stock
+    if (!venta && usarStock && st) {
+      st.unidades = Math.max(0, (parseInt(st.unidades, 10) || 1) - 1);
+      if (st.unidades === 0) st.vendido = true;
+      try { _logMov('salida', _stockNombre(st), 1, e.cliente_nombre || T('inicio.ventas')); } catch (er) {}
+      _stockDelta(st, -1, 0);
+    }
     e.estado = 'Entregado'; e.pvp = p; e.senal = s;
     if (venta) e.venta_id = venta.id;
     _encSync(e); guardarDatos(); renderEncargos();

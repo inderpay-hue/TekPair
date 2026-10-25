@@ -508,9 +508,12 @@ export default async function handler(req, res) {
 
         const tienda = await findTienda({customerId, subId, email});
         if (tienda) {
-          const update = {plan_status: 'active'};
-          if (periodEnd) update.plan_until = new Date(periodEnd * 1000).toISOString();
-          await updateTienda(tienda.id, update);
+          // La factura de 0 € del alta (empieza la prueba) no es un pago: no pasa la tienda de
+          // 'trial' a 'active' (según el orden de llegada de los eventos, la prueba se perdía).
+          const esPrueba0 = (Number(invoice.amount_paid || 0) === 0) && tienda.plan_status === 'trial';
+          const update = esPrueba0 ? {} : {plan_status: 'active'};
+          if (periodEnd && !esPrueba0) update.plan_until = new Date(periodEnd * 1000).toISOString();
+          if (Object.keys(update).length) await updateTienda(tienda.id, update);
           await marcarImpago(tienda.id, null);
           console.log('Pago OK:', tienda.id);
 

@@ -34,16 +34,18 @@ async function _generarJustificanteNumero(SUPABASE_URL, sbHeaders) {
   try {
     await prev;
     const year = new Date().getFullYear();
+    // Se mira el MAYOR número, no el último por orden de texto: "JUST-2026-999" va después
+    // de "JUST-2026-1000" como texto y el 1000 se repetía.
     const cntR = await fetch(
-      `${SUPABASE_URL}/rest/v1/pagos_referidos?justificante_numero=like.JUST-${year}-*&select=justificante_numero&order=justificante_numero.desc&limit=1`,
+      `${SUPABASE_URL}/rest/v1/pagos_referidos?justificante_numero=like.JUST-${year}-*&select=justificante_numero&limit=100000`,
       { headers: sbHeaders }
     );
     const cntArr = await cntR.json();
     let nextNum = 1;
-    if (cntArr[0] && cntArr[0].justificante_numero) {
-      const m = cntArr[0].justificante_numero.match(/JUST-\d{4}-(\d+)/);
-      if (m) nextNum = parseInt(m[1], 10) + 1;
-    }
+    (Array.isArray(cntArr) ? cntArr : []).forEach((row) => {
+      const m = String(row.justificante_numero || '').match(/JUST-\d{4}-(\d+)/);
+      if (m) nextNum = Math.max(nextNum, parseInt(m[1], 10) + 1);
+    });
     return 'JUST-' + year + '-' + String(nextNum).padStart(3, '0');
   } finally {
     release();
