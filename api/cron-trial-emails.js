@@ -24,7 +24,7 @@
 import { nivelComercial, primerosPagos } from './_lib/nivel-comercial.js';
 import { sbTodo } from './_lib/sb-todo.js';
 import crypto from 'crypto';
-import { construirResumen, enviarResumen, destinoResumen, fechaMadrid, esPremium } from './_lib/resumen.js';
+import { construirResumen, enviarResumen, destinoResumen, fechaMadrid, esPremium, construirInformeMes, mesesInforme } from './_lib/resumen.js';
 
 // CRON-1: timing-safe equal — evita ataques que deducen el secret carácter a carácter
 
@@ -200,6 +200,12 @@ export default async function handler(req, res) {
       resumen = await resumenesDiarios(SUPABASE_URL, headers, RESEND_KEY, now);
     } catch (e) { console.error('[cron] resumen:', e.message); }
 
+    // ── Informe del mes (día 1, Premium) ──
+    let informe = { enviados: 0, errores: 0 };
+    try {
+      informe = await informesMensuales(SUPABASE_URL, headers, RESEND_KEY, now);
+    } catch (e) { console.error('[cron] informe mes:', e.message); }
+
     // ── Encuesta de satisfacción por email el día después de entregar ──
     let encuestas = { enviados: 0, errores: 0 };
     try {
@@ -212,7 +218,7 @@ export default async function handler(req, res) {
       comerciales = await bajasComerciales(SUPABASE_URL, headers, RESEND_KEY, now);
     } catch (e) { console.error('[cron] comerciales:', e.message); }
 
-    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida, encuestas, resumen, deudas, comerciales });
+    return res.json({ ok: true, processed: tiendas.length, emails_sent: emailsSent, errores: errores, cobrum, alertas, recogida, encuestas, resumen, informe, deudas, comerciales });
 
   } catch(e) {
     console.error('[cron] Error general:', e);
@@ -862,6 +868,37 @@ async function resumenesDiarios(SUPABASE_URL, headers, RESEND_KEY, now) {
         await fetch(`${SUPABASE_URL}/rest/v1/avisos?id=eq.${encodeURIComponent(`resumen_${t.id}_${ayer}`)}`, { method: 'PATCH', headers: { ...headers, Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'error' }) });
       }
     } catch (e) { console.error('[cron] resumen tienda', t.id, e.message); out.errores++; }
+  }
+  return out;
+}
+
+// ═══ INFORME DEL MES PARA EL DUEÑO ═══
+// Solo el día 1 (hora de Madrid), del mes anterior. Id fijo por tienda y mes en avisos antes de
+// enviar: si el cron se repite ese día, el segundo insert choca y no se manda dos veces.
+async function informesMensuales(SUPABASE_URL, headers, RESEND_KEY, now) {
+  const out = { enviados: 0, errores: 0, sinDatos: 0 };
+  const hoy = fechaMadrid(now);
+  if (!RESEND_KEY || hoy.slice(8, 10) !== '01') return out;
+  const mi = mesesInforme(hoy);
+  const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?ajustes_config->resumen->>mensual=eq.true&select=id,nombre,email,plan_email,ajustes_config,plan,plan_status,trial_until`, { headers });
+  const tiendas = r.ok ? await r.json() : [];
+  for (const t of tiendas) {
+    try {
+      if (!esPremium(t)) continue;
+      const para = destinoResumen(t);
+      if (!para) continue;
+      const res = await construirInformeMes(SUPABASE_URL, headers, t, mi.d1, mi.d2, mi.p1, mi.p2);
+      if (!res) { out.sinDatos++; continue; }
+      const avId = `informe_${t.id}_${mi.clave}`;
+      const ins = await fetch(`${SUPABASE_URL}/rest/v1/avisos`, { method: 'POST', headers: { ...headers, Prefer: 'return=minimal' },
+        body: JSON.stringify({ id: avId, tienda_id: t.id, tipo: 'informe_mes', canal: 'email', destinatario: para, ref_tipo: 'tienda', ref_id: t.id, asunto: res.asunto.slice(0, 200), estado: 'enviado', fecha: now.toISOString() }) });
+      if (!ins.ok) continue;
+      if (await enviarResumen(RESEND_KEY, para, res)) out.enviados++;
+      else {
+        out.errores++;
+        await fetch(`${SUPABASE_URL}/rest/v1/avisos?id=eq.${encodeURIComponent(avId)}`, { method: 'PATCH', headers: { ...headers, Prefer: 'return=minimal' }, body: JSON.stringify({ estado: 'error' }) });
+      }
+    } catch (e) { console.error('[cron] informe tienda', t.id, e.message); out.errores++; }
   }
   return out;
 }

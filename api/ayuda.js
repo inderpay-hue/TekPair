@@ -8,7 +8,7 @@
 
 import jwt from 'jsonwebtoken';
 import { rateLimit } from './_lib/ratelimit.js';
-import { construirResumen, enviarResumen, destinoResumen, fechaMadrid, esPremium } from './_lib/resumen.js';
+import { construirResumen, enviarResumen, destinoResumen, fechaMadrid, esPremium, construirInformeMes, mesesInforme } from './_lib/resumen.js';
 
 const JWT_SECRET = process.env.SUPABASE_JWT_SECRET;
 
@@ -580,7 +580,10 @@ async function resumenPrueba(req, res, payload) {
     const para = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(pedido) ? pedido : destinoResumen(t);
     if (!para) return res.status(400).json({ error: 'Falta el email' });
     const now = new Date();
-    const r = await construirResumen(SUPABASE_URL, headers, t, fechaMadrid(new Date(now.getTime() - 86400000)), fechaMadrid(now));
+    let r;
+    // tipo 'mes': el informe del mes pasado (el que llega el día 1)
+    if (req.body && req.body.tipo === 'mes') { const mi = mesesInforme(fechaMadrid(now)); r = await construirInformeMes(SUPABASE_URL, headers, t, mi.d1, mi.d2, mi.p1, mi.p2); }
+    else r = await construirResumen(SUPABASE_URL, headers, t, fechaMadrid(new Date(now.getTime() - 86400000)), fechaMadrid(now));
     if (!r) return res.json({ ok: true, vacio: true });
     const ok = await enviarResumen(RESEND_KEY, para, r);
     return ok ? res.json({ ok: true, email: para }) : res.status(502).json({ error: 'No se pudo enviar el email' });

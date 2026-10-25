@@ -217,3 +217,84 @@ export function esPremium(t) {
   if (t.plan === 'top' || t.plan === 'premium') return true;
   return t.plan_status === 'trial' && t.trial_until && new Date(t.trial_until) > new Date();
 }
+
+// ═══ INFORME DEL MES (Premium) ═══
+// El día 1, lo del mes anterior: cobrado y comparación con el mes de antes, ventas y reparaciones,
+// gastos y resultado, lo que más se repara y vende, garantías y lo que te deben.
+// d1..d2 = mes del informe; p1..p2 = mes anterior para comparar.
+function ingresoRango(d1, d2, ventas, pagos, presup) {
+  const en = (f) => { f = d10(f); return f >= d1 && f <= d2; };
+  let ventasT = 0, repsT = 0, nVentas = 0;
+  const pagosVenta = (v) => { const p = parse(v.pagos); return Array.isArray(p) && p.length ? p.reduce((s, x) => s + num(x.importe), 0) : num(v.total); };
+  for (const v of ventas) {
+    const cuotas = parse(v.cuotas), fin = v.financiado && Array.isArray(cuotas);
+    if (v.reembolsado && en(v.fecha_reembolso || v.fecha)) ventasT -= fin ? num(v.entrada) + cuotas.reduce((s, c) => s + cuotaAbonos(c).reduce((t, a) => t + a.importe, 0), 0) : pagosVenta(v);
+    if (fin) { if (en(v.fecha)) { ventasT += num(v.entrada); nVentas++; } cuotas.forEach((c) => cuotaAbonos(c).forEach((a) => { if (en(a.fecha)) ventasT += a.importe; })); }
+    else if (en(v.fecha)) { ventasT += pagosVenta(v); nVentas++; }
+  }
+  for (const p of pagos) { if (!en(p.fecha)) continue; if (p.reparacion_id && presup.has(String(p.reparacion_id))) continue; repsT += num(p.importe); }
+  return { ventas: r2(ventasT), reps: r2(repsT), total: r2(ventasT + repsT), nVentas };
+}
+export async function construirInformeMes(SUPABASE_URL, headers, tienda, d1, d2, p1, p2) {
+  const { todo } = crearLector(SUPABASE_URL, headers);
+  const T = encodeURIComponent(tienda.id);
+  const [ventas, pagos, reps, gastos, fiados] = await Promise.all([
+    todo(`ventas?tienda_id=eq.${T}&or=(${encodeURIComponent(`and(fecha.gte.${p1},fecha.lte.${d2}),financiado.eq.true,and(fecha_reembolso.gte.${p1},fecha_reembolso.lte.${d2})`)})&select=id,fecha,total,pagos,financiado,cuotas,entrada,reembolsado,fecha_reembolso,items,modelo`),
+    todo(`pagos_reparacion?tienda_id=eq.${T}&fecha=gte.${p1}&fecha=lte.${d2}&select=id,fecha,importe,reparacion_id`),
+    todo(`reparaciones?tienda_id=eq.${T}&or=(${encodeURIComponent(`and(fecha.gte.${p1},fecha.lte.${d2}),and(fecha_entrega_real.gte.${p1},fecha_entrega_real.lte.${d2}),estado.in.(Presupuesto,Rechazado),restante.gt.0`)})&select=id,estado,fecha,fecha_entrega_real,servicios,total,restante,es_garantia,financiado`),
+    todo(`gastos?tienda_id=eq.${T}&fecha=gte.${p1}&fecha=lte.${d2}&select=id,fecha,importe,estado`).catch(() => []),
+    todo(`cajas_fiados?tienda_id=eq.${T}&estado=eq.pendiente&select=id,importe`).catch(() => [])
+  ]);
+  const presup = new Set(reps.filter((r) => r.estado === 'Presupuesto' || r.estado === 'Rechazado').map((r) => String(r.id)));
+  const ing = ingresoRango(d1, d2, ventas, pagos, presup), prev = ingresoRango(p1, p2, ventas, pagos, presup);
+  const enM = (f) => { f = d10(f); return f >= d1 && f <= d2; }, enP = (f) => { f = d10(f); return f >= p1 && f <= p2; };
+  const entregadas = reps.filter((r) => r.estado === 'Entregado' && enM(r.fecha_entrega_real));
+  const entregadasPrev = reps.filter((r) => r.estado === 'Entregado' && enP(r.fecha_entrega_real)).length;
+  const recibidas = reps.filter((r) => enM(r.fecha) && r.estado !== 'Presupuesto').length;
+  const garantias = reps.filter((r) => enM(r.fecha) && (r.es_garantia || r.estado === 'Garantia')).length;
+  const gastosM = r2(gastos.filter((g) => enM(g.fecha)).reduce((s, g) => s + num(g.importe), 0));
+  const gastosP = r2(gastos.filter((g) => enP(g.fecha)).reduce((s, g) => s + num(g.importe), 0));
+  // Lo que más se repara (por servicio) y lo que más se vende (por producto)
+  const srv = {};
+  entregadas.forEach((r) => { (parse(r.servicios) || []).forEach((x) => { const n = String((x && x.nombre) || '').trim(); if (!n) return; const k = n.toLowerCase(); const g = srv[k] || (srv[k] = { n, c: 0, imp: 0 }); g.c++; g.imp += num(x.precio); }); });
+  const prod = {};
+  ventas.forEach((v) => { if (v.reembolsado || !enM(v.fecha)) return; const it = parse(v.items); (Array.isArray(it) && it.length ? it : [{ nombre: v.modelo, qty: 1 }]).forEach((x) => { const n = String((x && x.nombre) || '').trim(); if (!n) return; const k = n.toLowerCase(); const g = prod[k] || (prod[k] = { n, c: 0 }); g.c += parseInt(x.qty || x.cantidad, 10) || 1; }); });
+  const topSrv = Object.values(srv).sort((a, b) => b.c - a.c).slice(0, 5);
+  const topProd = Object.values(prod).sort((a, b) => b.c - a.c).slice(0, 5);
+  const deReps = r2(reps.filter((r) => r.estado === 'Entregado' && !r.financiado && num(r.restante) > 0).reduce((s, r) => s + num(r.restante), 0));
+  const deFiados = r2((fiados || []).reduce((s, f) => s + num(f.importe), 0));
+  if (!ing.total && !entregadas.length && !recibidas && !gastosM) return null;
+
+  const mesTxt = new Date(d1 + 'T12:00:00Z').toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+  const comp = (a, b, fmt) => { if (!(b > 0)) return ''; const d = a - b, pct = Math.round(d / b * 100); return ` <span style="color:${d >= 0 ? '#16A34A' : '#DC2626'};font-weight:700;font-size:13px">${d >= 0 ? '▲' : '▼'} ${Math.abs(pct)}%</span> <span style="color:#888;font-size:12px">(antes ${fmt(b)})</span>`; };
+  const bloque = (titulo, cuerpo, color) => `<div style="border:1px solid #eee;border-left:4px solid ${color || '#FF5B1F'};border-radius:10px;padding:14px 16px;margin:12px 0"><div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:#666;margin-bottom:6px">${titulo}</div>${cuerpo}</div>`;
+  const fila = (a, b) => `<tr><td style="padding:3px 0;color:#444">${a}</td><td style="padding:3px 0;text-align:right;font-weight:700">${b}</td></tr>`;
+  const res = r2(ing.total - gastosM), resP = r2(prev.total - gastosP);
+  let html = '';
+  html += bloque('💰 Cobrado en el mes', `<div style="font-size:28px;font-weight:800">${eur(ing.total)}${comp(ing.total, prev.total, eur)}</div>
+    <table style="width:100%;font-size:14px;border-collapse:collapse;margin-top:6px">${fila('Ventas (' + ing.nVentas + ')', eur(ing.ventas))}${fila('Reparaciones', eur(ing.reps))}${fila('Gastos', '−' + eur(gastosM))}${fila('<b>Cobrado − gastos</b>', `<span style="color:${res >= 0 ? '#16A34A' : '#DC2626'}">${eur(res)}</span>${comp(res, resP, eur)}`)}</table>`, '#16A34A');
+  html += bloque('🔧 Reparaciones', `<table style="width:100%;font-size:14px;border-collapse:collapse">${fila('Recibidas', recibidas)}${fila('Entregadas', entregadas.length + comp(entregadas.length, entregadasPrev, (x) => x))}${fila('Volvieron en garantía', garantias)}</table>`, '#2563EB');
+  if (topSrv.length) html += bloque('🏆 Lo que más reparaste', topSrv.map((x) => `<div style="font-size:14px;margin:3px 0"><b>${x.c}×</b> ${esc(x.n)} <span style="color:#888">· ${eur(x.imp)}</span></div>`).join(''), '#7C3AED');
+  if (topProd.length) html += bloque('🛍️ Lo que más vendiste', topProd.map((x) => `<div style="font-size:14px;margin:3px 0"><b>${x.c}×</b> ${esc(x.n)}</div>`).join(''), '#D97706');
+  if (deReps + deFiados > 0) html += bloque('💸 Te deben ahora', `<div style="font-size:22px;font-weight:800;color:#DC2626">${eur(deReps + deFiados)}</div><table style="width:100%;font-size:14px;border-collapse:collapse;margin-top:6px">${deReps ? fila('Reparaciones entregadas sin pagar', eur(deReps)) : ''}${deFiados ? fila('Cobros pendientes de cajas', eur(deFiados)) : ''}</table>`, '#DC2626');
+  const doc = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:16px;color:#111;background:#fafafa">
+  <div style="background:#111827;color:#fff;padding:18px 20px;border-radius:12px">
+    <div style="font-size:13px;opacity:.85">Informe de ${esc(mesTxt)}</div>
+    <div style="font-size:21px;font-weight:800;margin-top:2px">${esc(tienda.nombre || 'Tu tienda')}</div>
+  </div>
+  ${html}
+  <p style="text-align:center;margin:20px 0"><a href="https://www.tekpair.tech/dashboard.html#reportes" style="background:#FF5B1F;color:#fff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;display:inline-block">Ver los informes en TekPair</a></p>
+  <div style="text-align:center;color:#aaa;font-size:11px">Lo recibes porque lo activaste en Ajustes → Tu día y alertas → Informe del mes.</div>
+</body></html>`;
+  const asunto = `${tienda.nombre || 'TekPair'}: ${mesTxt} · cobrado ${eur(ing.total)}${prev.total > 0 ? ' (' + (ing.total >= prev.total ? '▲' : '▼') + Math.abs(Math.round((ing.total - prev.total) / prev.total * 100)) + '%)' : ''}`;
+  return { asunto, html: doc };
+}
+// Mes anterior a la fecha `hoy` (AAAA-MM-DD) y el de antes: { d1, d2, p1, p2, clave }
+export function mesesInforme(hoy) {
+  const y = +hoy.slice(0, 4), m = +hoy.slice(5, 7);
+  const ini = (yy, mm) => `${yy}-${String(mm).padStart(2, '0')}-01`;
+  const fin = (yy, mm) => new Date(Date.UTC(yy, mm, 0)).toISOString().slice(0, 10);
+  const ym = m === 1 ? [y - 1, 12] : [y, m - 1], yp = ym[1] === 1 ? [ym[0] - 1, 12] : [ym[0], ym[1] - 1];
+  return { d1: ini(ym[0], ym[1]), d2: fin(ym[0], ym[1]), p1: ini(yp[0], yp[1]), p2: fin(yp[0], yp[1]), clave: ini(ym[0], ym[1]).slice(0, 7) };
+}

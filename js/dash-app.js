@@ -13348,6 +13348,52 @@ function imprimirEtiquetaStock(sid) {
   _etqPopupImprimir(fullHtml);
 }
 
+// ═══ ARQUEO DE CAJA: CONTAR BILLETES Y MONEDAS ═══
+// En el cierre, en vez de escribir el total del cajón, se pone cuántos hay de cada billete y
+// moneda; se suma solo, va al «Efectivo en caja» y el desglose queda en las notas del cierre.
+var _ARQ_VALORES = [500, 200, 100, 50, 20, 10, 5, 2, 1, 0.5, 0.2, 0.1, 0.05, 0.02, 0.01];
+function arqueoContar() {
+  var prev = {};
+  try { prev = JSON.parse(sessionStorage.getItem('tk_arqueo') || '{}') || {}; } catch (e) {}
+  var fmtV = function (v) { return v >= 1 ? v + ' €' : Math.round(v * 100) + ' c'; };
+  var celda = function (v) {
+    return '<label style="display:flex;align-items:center;gap:6px;padding:4px 0;font-size:13px"><span style="width:52px;text-align:right;font-weight:700">' + fmtV(v) + '</span><span style="color:var(--muted)">×</span>' +
+      '<input type="number" min="0" step="1" inputmode="numeric" data-arq="' + v + '" value="' + (prev[v] || '') + '" style="width:70px;padding:6px;border:1px solid var(--border);border-radius:7px;font:inherit;color:inherit;background:var(--light,#fff)"></label>';
+  };
+  var m = _modalOverlay('<div style="font-size:15px;font-weight:800;margin-bottom:4px">🧮 ' + escHtml(T('arq.titulo')) + '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">' + escHtml(T('arq.ayuda')) + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:0 14px"><div><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:2px">' + escHtml(T('arq.billetes')) + '</div>' + _ARQ_VALORES.filter(function (v) { return v >= 5; }).map(celda).join('') + '</div>' +
+    '<div><div style="font-size:11px;font-weight:800;color:var(--muted);text-transform:uppercase;margin-bottom:2px">' + escHtml(T('arq.monedas')) + '</div>' + _ARQ_VALORES.filter(function (v) { return v < 5; }).map(celda).join('') + '</div></div>' +
+    '<div id="_arqTot" style="font-size:20px;font-weight:800;text-align:right;margin:10px 0"></div>' +
+    '<div style="display:flex;gap:10px;justify-content:flex-end"><button type="button" id="_arqNo" style="padding:9px 16px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:9px;font:inherit;font-weight:600;cursor:pointer">' + T('gen.cancelar_2') + '</button>' +
+    '<button type="button" id="_arqOk" style="padding:9px 16px;border:none;background:var(--green,#10B981);color:#fff;border-radius:9px;font:inherit;font-weight:700;cursor:pointer">' + escHtml(T('arq.usar')) + '</button></div>');
+  m.box.style.maxWidth = '440px';
+  var leer = function () {
+    var cuenta = {}, tot = 0;
+    m.box.querySelectorAll('[data-arq]').forEach(function (inp) { var n = Math.max(0, parseInt(inp.value, 10) || 0), v = parseFloat(inp.getAttribute('data-arq')); if (n) { cuenta[v] = n; tot += n * Math.round(v * 100); } });
+    return { cuenta: cuenta, tot: tot / 100 };
+  };
+  var pinta = function () { m.box.querySelector('#_arqTot').textContent = T('arq.total').replace('{x}', cur(leer().tot)); };
+  m.box.addEventListener('input', pinta); pinta();
+  setTimeout(function () { var f = m.box.querySelector('[data-arq]'); if (f) f.focus(); }, 60);
+  m.box.querySelector('#_arqNo').onclick = function () { m.close(); };
+  m.box.querySelector('#_arqOk').onclick = function () {
+    var r = leer();
+    try { sessionStorage.setItem('tk_arqueo', JSON.stringify(r.cuenta)); } catch (e) {}
+    var inp = document.getElementById('cierre-saldo-real');
+    if (inp) { inp.value = r.tot.toFixed(2); try { if (window.Cajas && Cajas.recalcular) Cajas.recalcular(); } catch (e) {} }
+    // desglose en las notas (sustituye el de un arqueo anterior)
+    var notas = document.getElementById('cierre-notas');
+    if (notas) {
+      var linea = '🧮 ' + _ARQ_VALORES.filter(function (v) { return r.cuenta[v]; }).map(function (v) { return fmtV(v) + '×' + r.cuenta[v]; }).join(' · ') + ' = ' + cur(r.tot);
+      var resto = String(notas.value || '').split('\n').filter(function (l) { return l.indexOf('🧮 ') !== 0; }).join('\n').trim();
+      notas.value = r.tot > 0 ? (resto ? resto + '\n' : '') + linea : resto;
+    }
+    m.close();
+  };
+}
+window.arqueoContar = arqueoContar;
+
 // ═══ ETIQUETAS DE PIEZAS (código interno) ═══
 // Las piezas no traen código de barras: se les da uno interno («TP» + 8 cifras), se guarda en
 // stock.codigo_barras y va en la etiqueta como QR. Escaneándolo en la venta o en las piezas de una
@@ -27596,6 +27642,7 @@ function renderResumenAj() {
   var ok = tieneFeature('resumen_diario');
   var badge = document.getElementById('resumenPremium'); if (badge) badge.style.display = ok ? 'none' : '';
   if (on) on.checked = ok && !!(AJUSTES.resumen && AJUSTES.resumen.on);
+  var mens = document.getElementById('resumenMensual'); if (mens) mens.checked = ok && !!(AJUSTES.resumen && AJUSTES.resumen.mensual);
   if (em && document.activeElement !== em) em.value = _resumenEmailDef();
 }
 function setResumenCfg() {
@@ -27603,17 +27650,17 @@ function setResumenCfg() {
   if (!checkFeature('resumen_diario')) { renderResumenAj(); return; }
   var em = ((document.getElementById('resumenEmail') || {}).value || '').trim();
   if (em && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) { toast(T('res.email_mal'), 'err'); return; }
-  AJUSTES.resumen = { on: !!(document.getElementById('resumenOn') || {}).checked, email: em };
+  AJUSTES.resumen = { on: !!(document.getElementById('resumenOn') || {}).checked, mensual: !!(document.getElementById('resumenMensual') || {}).checked, email: em };
   try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES });
   renderResumenAj();
   toast(T('gen.guardado'), 'ok');
 }
-function resumenPrueba() {
+function resumenPrueba(tipo) {
   if (!checkFeature('resumen_diario')) return;
-  var b = document.getElementById('resumenPruebaBtn'); if (b) b.disabled = true;
+  var b = document.getElementById(tipo === 'mes' ? 'informePruebaBtn' : 'resumenPruebaBtn'); if (b) b.disabled = true;
   var em = ((document.getElementById('resumenEmail') || {}).value || '').trim();
-  fetch('/api/ayuda?action=resumen-prueba', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN }, body: JSON.stringify({ email: em }) })
+  fetch('/api/ayuda?action=resumen-prueba', { method: 'POST', headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + JWT_TOKEN }, body: JSON.stringify({ email: em, tipo: tipo === 'mes' ? 'mes' : '' }) })
     .then(function(r) { return r.json(); })
     .then(function(d) {
       if (d && d.ok && d.vacio) toast(T('res.vacio'), 'ok');
