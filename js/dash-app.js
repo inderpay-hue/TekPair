@@ -2953,14 +2953,18 @@ function _pedNombreCorto(p) {
   var marca = (p.marca || '').trim();
   // Solo se acorta el nombre de las piezas de reparación; accesorios, cables… se quedan como vienen
   var cat = _revCategoria(p);
-  if (!cat || cat === 'Accesorio' || _esImeiCat(cat)) return { marca: marca, modelo: _pedModeloDe(p) };
+  if (!cat || cat === 'Accesorio' || _esImeiCat(cat)) return { marca: marca, modelo: _pedModeloDe(p), color: '', calidad: p.calidad || '' };
   var toks = raw.replace(/[\/,()\[\]]+/g, ' ').split(/\s+/).filter(Boolean);
   if (!marca) {
     var low = _sinTildesTP(raw);
     for (var i = 0; i < _PED_MARCAS.length; i++) if (new RegExp('\\b' + _PED_MARCAS[i][0] + '\\b').test(low)) { marca = _PED_MARCAS[i][1]; break; }
   }
   var mLow = _sinTildesTP(marca);
-  var out = [];
+  var out = [], color = '';
+  toks.forEach(function (t) { var tl = _sinTildesTP(t).replace(/[^a-z]/g, ''); if (!color && _REV_COLOR[tl]) color = t.charAt(0).toUpperCase() + t.slice(1).toLowerCase(); });
+  // calidad del texto si el pedido no la trae (si no, una OLED y una Incell acababan en la misma ficha)
+  var low2 = ' ' + _sinTildesTP(raw).replace(/[^a-z0-9]+/g, ' ') + ' ', calidad = p.calidad || '';
+  if (!calidad) { var CALS = [['soft oled', 'Soft OLED'], ['hard oled', 'Hard OLED'], ['service pack', 'Service Pack'], ['incell', 'Incell'], ['oled', 'OLED'], ['tft', 'TFT'], ['original', 'Original']]; for (var ci = 0; ci < CALS.length; ci++) if (low2.indexOf(' ' + CALS[ci][0] + ' ') >= 0) { calidad = CALS[ci][1]; break; } }
   for (var j = 0; j < toks.length && out.length < 5; j++) {
     var t = toks[j], tl = _sinTildesTP(t).replace(/[^a-z0-9+]/g, '');
     if (!tl || _PED_RUIDO[tl] || _REV_COLOR[tl] || tl === mLow || (mLow === 'samsung' && tl === 'galaxy')) continue;
@@ -2971,12 +2975,12 @@ function _pedNombreCorto(p) {
   }
   var modelo = out.join(' ').replace(/\bIPHONE\b/g, 'iPhone').replace(/\bIPAD\b/g, 'iPad').replace(/\bPRO\b/g, 'Pro').replace(/\bMAX\b/g, 'Max');
   if (!modelo) modelo = _pedModeloDe(p);
-  return { marca: marca, modelo: modelo };
+  return { marca: marca, modelo: modelo, color: color, calidad: calidad };
 }
 // Copia del pedido con marca y nombre corto (para crear la ficha de stock)
 function _pedConNombreCorto(p, nc) {
   nc = nc || _pedNombreCorto(p);
-  return Object.assign({}, p, { marca: nc.marca || p.marca || '', pieza: ((nc.marca ? nc.marca + ' ' : '') + nc.modelo).trim() });
+  return Object.assign({}, p, { marca: nc.marca || p.marca || '', pieza: ((nc.marca ? nc.marca + ' ' : '') + nc.modelo).trim(), color: nc.color || '', calidad: p.calidad || nc.calidad || '' });
 }
 // Ficha para un pedido: la que coincide exacta por nombre o la parecida si es segura
 function _fichaParaPedido(p) {
@@ -3002,7 +3006,7 @@ function _recibirElegirFicha(p, uds, cat, onOk) {
   }).join('');
   var m = _modalOverlay(
     '<div style="font-size:15px;font-weight:800;margin-bottom:4px">📦 ' + escHtml(T('rcb.titulo').replace('{n}', uds)) + '</div>' +
-    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">' + escHtml(p.pieza || '') + (p.calidad ? ' · ' + escHtml(p.calidad) : '') + '</div>' + opts +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">' + escHtml(p.pieza || '') + ((p.calidad || nc.calidad) ? ' · ' + escHtml(p.calidad || nc.calidad) : '') + (nc.color ? ' · ' + escHtml(nc.color) : '') + '</div>' + opts +
     '<label style="display:block;padding:8px;border:1px solid var(--border);border-radius:9px;margin-bottom:6px;cursor:pointer"><span style="display:flex;gap:8px;align-items:center"><input type="radio" name="_rfOpt" value="nueva"' + (f.segura ? '' : ' checked') + '><span style="font-size:13px">' + escHtml(T('rcb.nueva')) + '</span></span>' +
       '<span style="display:flex;gap:6px;margin-top:6px"><input id="_rfMarca" value="' + escHtml(nc.marca) + '" placeholder="' + escHtml(T('rep.marca')) + '" style="width:34%;padding:7px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;color:inherit;background:var(--light,#fff)">' +
       '<input id="_rfModelo" value="' + escHtml(nc.modelo) + '" style="flex:1;padding:7px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;color:inherit;background:var(--light,#fff)"></span></label>' +
@@ -3019,7 +3023,7 @@ function _recibirElegirFicha(p, uds, cat, onOk) {
     } else {
       var mod = (m.box.querySelector('#_rfModelo').value || '').trim();
       if (!mod) { toast(T('rcb.falta_nombre'), 'err'); return; }
-      m.close(); onOk({ pedido: _pedConNombreCorto(p, { marca: (m.box.querySelector('#_rfMarca').value || '').trim(), modelo: mod }) });
+      m.close(); onOk({ pedido: _pedConNombreCorto(p, { marca: (m.box.querySelector('#_rfMarca').value || '').trim(), modelo: mod, color: nc.color, calidad: nc.calidad }) });
     }
   };
 }
@@ -3039,7 +3043,7 @@ function _recibirAStock(p, uds, existe, silent, cat) {
   var ventaUnit = parseFloat(p.precio_venta) || 0;  // PVP del pedido → precio venta del stock
   var item = {
     id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-    categoria: cat || p.categoria || 'Repuesto', marca: p.marca || '', modelo: _pedModeloDe(p), capacidad: '', color: '', imei: '',
+    categoria: cat || p.categoria || 'Repuesto', marca: p.marca || '', modelo: _pedModeloDe(p), capacidad: '', color: p.color || '', imei: '',
     unidades: uds, precioC: costeUnit, precioV: ventaUnit, stockMin: 2, stockMax: 10,
     vendido: false, calidad: p.calidad || '', tipo: 'nuevo', garantiaMeses: 0, ubicacion: null
   };
@@ -11505,7 +11509,7 @@ function renderServiciosRep() {
       '<button type="button" class="srv-card-x" onclick="quitarServicioRep(' + i + ')" title="' + T('srv.quitar_title') + '">×</button>' +
       '<div class="srv-card-grid">' +
         '<div class="fg" style="margin:0"><label class="fl">' + T('srv.lbl_nombre') + '</label>' +
-          '<input class="fi" value="' + esc(s.nombre || '') + '" placeholder="' + T('plant.ph_instalacion') + '" oninput="updateServicioRep(' + i + ',\'nombre\',this.value)" onchange="renderServiciosRep()">' +
+          '<input class="fi" value="' + esc(s.nombre || '') + '" placeholder="' + T('plant.ph_instalacion') + '" oninput="updateServicioRep(' + i + ',\'nombre\',this.value)" onchange="_srvPiezasRefrescar()">' +
         '</div>' +
         '<div class="fg" style="margin:0"><label class="fl" title="' + T('srv.solo_interno') + '">' + T('srv.lbl_costo') + '</label>' +
           '<input class="fi" type="number" step="0.01" value="' + (s.coste || 0) + '" oninput="updateServicioRep(' + i + ',\'coste\',parseFloat(this.value)||0)">' +
@@ -11514,7 +11518,7 @@ function renderServiciosRep() {
           '<input class="fi" type="number" step="0.01" value="' + (s.precio || 0) + '" oninput="updateServicioRep(' + i + ',\'precio\',parseFloat(this.value)||0);calcR()">' +
         '</div>' +
       '</div>' +
-      _srvCalidadChips(s, i) + _srvPiezaHtml(s, i) +
+      _srvCalidadChips(s, i) + '<div id="srvPz' + i + '">' + _srvPiezaHtml(s, i) + '</div>' +
       '<textarea class="fi" rows="2" placeholder="' + T('srv.ph_desc') + '" oninput="updateServicioRep(' + i + ',\'desc\',this.value)" style="margin-top:8px">' + esc(s.desc || '') + '</textarea>' +
     '</div>';
   }).join('');
@@ -11576,11 +11580,16 @@ function srvUsarPieza(i, id) {
   SEL.selParts = SEL.selParts || [];
   if (SEL.selParts.some(function (p) { return p.id === id; })) return;
   SEL.selParts.push({ id: x.id, nombre: _eqNombre(x.marca, x.modelo) + (x.calidad ? ' · ' + x.calidad : '') + (x.color ? ' (' + x.color + ')' : ''), precio: 0, incluida: true });
-  renderParts(); renderServiciosRep(); calcR();
+  renderParts(); calcR();
   try { sugerirPiezasRep(); } catch (e) {}
   toast(T('srvp.anadida'), 'ok');
 }
 window.srvUsarPieza = srvUsarPieza;
+// Solo el hueco «Usar pieza» de cada tarjeta (repintar todas las tarjetas se comía el foco y el clic)
+function _srvPiezasRefrescar() {
+  (SEL.rServicios || []).forEach(function (s, i) { var el = document.getElementById('srvPz' + i); if (el) el.innerHTML = _srvPiezaHtml(s, i); });
+}
+window._srvPiezasRefrescar = _srvPiezasRefrescar;
 function srvPonerCalidad(i, cal) {
   var sv = (SEL.rServicios || [])[i]; if (!sv) return;
   sv.nombre = String(sv.nombre || '').trim() + ' ' + cal;
@@ -11933,7 +11942,7 @@ function _modeloEncaja(deviceMod, partMod) {
 // Si la avería menciona pantalla/tapa/batería, esas se resaltan y van primero.
 function sugerirPiezasRep() {
   // las tarjetas de servicio enseñan su pieza: se repintan al cambiar el modelo o las piezas
-  try { if (document.getElementById('repServiciosList') && SEL.rServicios && SEL.rServicios.some(function (x) { return _margTipo(x && x.nombre); })) renderServiciosRep(); } catch (e) {}
+  try { _srvPiezasRefrescar(); } catch (e) {}
   var box = document.getElementById('repPiezasSug'); if (!box) return;
   var modEl = document.getElementById('rModelo'); var mod = (modEl ? modEl.value : '').trim().toLowerCase();
   if (!mod || mod.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
@@ -11974,13 +11983,15 @@ function _margenMinRep() { var v = parseFloat(AJUSTES && AJUSTES.margenMinRep); 
 function _repLineaCoste(it, mod, marca) {
   var tipo = _margTipo(it.nombre); if (!tipo) return '';
   var modelo = _margModelo({ marca: marca, modelo: mod }); if (!modelo) return '';
-  var e = _margEstimador()(tipo, modelo); if (!e) return '';
+  var est = _margEstimador(), e = est(tipo, modelo); if (!e) return '';
   var min = Math.ceil(e.u + _margenMinRep());
-  var bajos = (it.opciones || []).filter(function (o) { return o.precio < min - 0.005; });
+  // cada opción se compara con la pieza de SU calidad (si se sabe)
+  var bajos = (it.opciones || []).map(function (o) { var eo = o.cal ? est(tipo, modelo, o.cal) : e; return { precio: o.precio, u: (eo || e).u }; })
+    .filter(function (o) { return o.precio < o.u + _margenMinRep() - 0.005; });
   var txt = T('tarm.pieza').replace('{c}', cur(e.u)) + (e.prov ? ' (' + e.prov + (e.cal ? ' · ' + e.cal : '') + ')' : (e.cal ? ' (' + e.cal + ')' : '')) +
     ' · ' + T('tarm.minimo').replace('{p}', cur(min));
   return '<div style="font-size:11px;color:' + (bajos.length ? 'var(--red,#E02424);font-weight:700' : 'var(--muted)') + '">🔧 ' + escHtml(txt) +
-    (bajos.length ? ' · ⚠ ' + escHtml(T('tarm.bajo').replace('{p}', cur(bajos[0].precio)).replace('{g}', cur(bajos[0].precio - e.u))) : '') +
+    (bajos.length ? ' · ⚠ ' + escHtml(T('tarm.bajo').replace('{p}', cur(bajos[0].precio)).replace('{g}', cur(bajos[0].precio - bajos[0].u))) : '') +
     (tienePerm('ajustes_editar') ? ' <a href="#" onclick="tarmCambiarMargen();return false" style="color:inherit;text-decoration:underline;font-weight:400">' + escHtml(T('tarm.cambiar').replace('{m}', cur(_margenMinRep()))) + '</a>' : '') + '</div>';
 }
 function tarmCambiarMargen() {
@@ -12250,7 +12261,7 @@ function renderParts() {
     btn.addEventListener('click', function() {
       SEL.selParts.splice(parseInt(this.dataset.idx), 1);
       renderParts(); calcR();
-      try { renderServiciosRep(); } catch (e) {}
+      try { _srvPiezasRefrescar(); } catch (e) {}
     });
   });
   document.querySelectorAll('.part-precio').forEach(function(inp) {
@@ -16156,7 +16167,7 @@ function _bannerRevision(id) { var b = document.getElementById(id); if (b) b.inn
 function _revTokens(t) { return _sinTildesTP(t).split(/[^a-z0-9]+/).filter(Boolean); }
 function _sinTildesTP(t) { return String(t || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, ''); }
 // Palabras que cambian el modelo: un iPhone 11 no es un 11 Pro, ni un Redmi 12 un Redmi Note 12
-var _REV_VAR = { pro: 1, max: 1, plus: 1, mini: 1, lite: 1, ultra: 1, fe: 1, edge: 1, neo: 1, se: 1, prime: 1, note: 1 };
+var _REV_VAR = { pro: 1, max: 1, plus: 1, mini: 1, lite: 1, ultra: 1, fe: 1, edge: 1, neo: 1, se: 1, prime: 1, note: 1, power: 1, play: 1, stylus: 1, fusion: 1 };
 var _REV_COLOR = { negro: 1, negra: 1, blanco: 1, blanca: 1, azul: 1, rojo: 1, roja: 1, verde: 1, dorado: 1, dorada: 1, oro: 1, plata: 1, plateado: 1, plateada: 1, gris: 1, morado: 1, morada: 1, lila: 1, rosa: 1, amarillo: 1, naranja: 1, grafito: 1, titanio: 1, black: 1, white: 1, blue: 1, red: 1, green: 1, gold: 1, silver: 1, purple: 1, pink: 1 };
 // Fichas de stock parecidas a la pieza del pedido: misma categoría y marca,
 // todos los números y variantes del modelo de la ficha dentro del nombre de la
@@ -16890,7 +16901,7 @@ function _cliUso(id) {
   _CLI_TABLAS.forEach(function (t) { (DB[t[1]] || []).forEach(function (o) { if (o && (o.clienteId === id || o.cliente_id === id)) n++; }); });
   return n;
 }
-function _clientesRepetidos() {
+function _clientesRepetidos(conUso) {
   var clis = (DB.clis || []).filter(function (c) { return c && c.id; });
   var padre = {}; clis.forEach(function (c) { padre[c.id] = c.id; });
   var raiz = function (x) { while (padre[x] !== x) { padre[x] = padre[padre[x]]; x = padre[x]; } return x; };
@@ -16912,18 +16923,22 @@ function _clientesRepetidos() {
   var grupos = {};
   clis.forEach(function (c) { var r = raiz(c.id); (grupos[r] = grupos[r] || []).push(c); });
   return Object.keys(grupos).map(function (k) { return grupos[k]; }).filter(function (g) { return g.length > 1; })
-    .map(function (g) { return g.map(function (c) { return { c: c, uso: _cliUso(c.id) }; }).sort(function (a, b) { return b.uso - a.uso; }); });
+    .map(function (g) { return g.map(function (c) { return { c: c, uso: conUso ? _cliUso(c.id) : 0 }; }).sort(function (a, b) { return b.uso - a.uso; }); });
 }
 function _renderCliDup() {
   var box = document.getElementById('cliDupBox'); if (!box) return;
   if (!tienePerm('clis_eliminar') || !tienePerm('clis_editar')) { box.innerHTML = ''; return; }
-  var g = _clientesRepetidos();
+  // el número del banner se calcula una vez por lista de clientes (renderClis va en cada tecla)
+  var ck = (DB.clis || []).length + '|' + ((DB.clis || [])[0] || {}).id;
+  if (window._cliDupCache && window._cliDupCache.k === ck) var g = window._cliDupCache.g;
+  else { g = _clientesRepetidos(false); window._cliDupCache = { k: ck, g: g }; }
   box.innerHTML = g.length ? '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.3);border-radius:12px;padding:10px 14px;margin:8px 0">' +
     '<span style="flex:1;min-width:200px;font-size:13px">👥 <b>' + escHtml(T('clidup.banner').replace('{n}', g.length)) + '</b></span>' +
     '<button onclick="abrirCliDup()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">' + escHtml(T('clidup.revisar')) + '</button></div>' : '';
 }
 function abrirCliDup() {
-  var gs = _clientesRepetidos(); if (!gs.length) { toast(T('clidup.ninguno'), 'ok'); return; }
+  window._cliDupCache = null;
+  var gs = _clientesRepetidos(true); if (!gs.length) { toast(T('clidup.ninguno'), 'ok'); return; }
   window._cliDupGrupos = gs;
   var html = '<div style="font-size:15px;font-weight:800;margin-bottom:4px">👥 ' + escHtml(T('clidup.titulo')) + '</div>' +
     '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">' + escHtml(T('clidup.ayuda')) + '</div><div style="max-height:62vh;overflow:auto">' +
@@ -16956,35 +16971,51 @@ async function unirCliGrupo(gi) {
   var ok = await confirmar(T('clidup.confirmar').replace('{n}', otros.length).replace('{p}', nomP), null, { okLabel: T('clidup.unir') });
   if (!ok) return;
   if (SB_KEY && TIENDA_ID && !navigator.onLine) { toast(T('rep.borrar_sin_conexion'), 'err'); return; }
-  var caja = m.box.querySelector('[data-g="' + gi + '"]'); if (caja) caja.style.opacity = '.5';
+  var caja = m.box.querySelector('[data-g="' + gi + '"]'); if (caja) { if (caja.dataset.uniendo) return; caja.dataset.uniendo = '1'; caja.style.opacity = '.5'; }
   var fallo = false;
   // 1) Datos que le falten al que se queda
-  var patchP = {};
-  otros.forEach(function (d) { _CLI_CAMPOS.forEach(function (f) { if (!P[f[0]] && d[f[0]]) { P[f[0]] = d[f[0]]; patchP[f[1]] = d[f[0]]; } }); });
+  var patchP = {}, localP = {};
+  otros.forEach(function (d) { _CLI_CAMPOS.forEach(function (f) {
+    if (!P[f[0]] && !localP[f[0]] && d[f[0]]) {
+      localP[f[0]] = d[f[0]]; patchP[f[1]] = d[f[0]];
+      // el teléfono va con su prefijo y país (si no, uno extranjero se quedaba con +34)
+      if (f[0] === 'tel') { if (d.telPrefijo) { localP.telPrefijo = d.telPrefijo; patchP.tel_prefijo = d.telPrefijo; } if (d.pais) { localP.pais = d.pais; patchP.pais = d.pais; } }
+    }
+  }); });
   if (Object.keys(patchP).length && SB_KEY && TIENDA_ID) { var rp = await _sbPatchRaw('clientes', 'id=eq.' + encodeURIComponent(P.id), patchP); if (!rp.ok) fallo = true; }
+  if (!fallo) Object.assign(P, localP);
   // 2) Todo lo del repetido pasa al que se queda (en la nube primero; si falla, no se borra nada)
   for (var i = 0; i < otros.length && !fallo; i++) {
     var d = otros[i];
     for (var t = 0; t < _CLI_TABLAS.length; t++) {
       var tb = _CLI_TABLAS[t];
       if (SB_KEY && TIENDA_ID) {
-        var r = await _sbPatchRaw(tb[0], 'cliente_id=eq.' + encodeURIComponent(d.id) + '&tienda_id=eq.' + encodeURIComponent(TIENDA_ID), { cliente_id: P.id, cliente_nombre: nomP });
+        // Solo el enlace al cliente: el nombre que se imprimió en tickets y facturas no se cambia
+        var r = await _sbPatchRaw(tb[0], 'cliente_id=eq.' + encodeURIComponent(d.id) + '&tienda_id=eq.' + encodeURIComponent(TIENDA_ID), { cliente_id: P.id });
         if (!r.ok && !(r.status === 404 || r.code === '42P01' || r.code === 'PGRST205')) { fallo = true; break; }
       }
       (DB[tb[1]] || []).forEach(function (o) {
         if (!o) return;
-        if (o.clienteId === d.id) { o.clienteId = P.id; o.clienteNombre = nomP; }
-        if (o.cliente_id === d.id) { o.cliente_id = P.id; o.cliente_nombre = nomP; }
+        if (o.clienteId === d.id) o.clienteId = P.id;
+        if (o.cliente_id === d.id) o.cliente_id = P.id;
       });
     }
     if (fallo) break;
     // 3) Se borra el repetido
-    if (SB_KEY && TIENDA_ID) { var okD = await sbDelete('clientes', 'id=eq.' + encodeURIComponent(d.id)); if (!okD) { fallo = true; break; } }
+    if (SB_KEY && TIENDA_ID) {
+      // Se comprueba que de verdad se borró una fila (un bloqueo de permisos devuelve 204 sin borrar)
+      var okD = false;
+      try {
+        var rd = await fetch(SUPABASE_URL + '/rest/v1/clientes?id=eq.' + encodeURIComponent(d.id), { method: 'DELETE', headers: { 'apikey': SB_KEY, 'Authorization': 'Bearer ' + (JWT_TOKEN || SB_KEY), 'Prefer': 'return=representation' } });
+        if (rd.ok) { var bd = await rd.json().catch(function () { return []; }); okD = Array.isArray(bd) && bd.length > 0; }
+      } catch (e) {}
+      if (!okD) { fallo = true; break; }
+    }
     DB.clis = DB.clis.filter(function (c) { return c.id !== d.id; });
     audit('unir', 'cliente', P.id, nomP + ' ← ' + ((d.nombre || '') + ' ' + (d.apellidos || '')).trim(), null);
   }
   guardarDatos();
-  if (fallo) { toast(T('clidup.fallo'), 'err'); if (caja) caja.style.opacity = ''; return; }
+  if (fallo) { toast(T('clidup.fallo'), 'err'); if (caja) { caja.style.opacity = ''; delete caja.dataset.uniendo; } return; }
   toast(T('clidup.hecho').replace('{p}', nomP), 'ok');
   if (caja) caja.remove();
   try { renderClis(); } catch (e) {}
@@ -19073,8 +19104,11 @@ function _costeLineaVenta(it) {
 function _costeRep(r) {
   var c = 0, falta = 0, lineas = 0;
   var srv = r.servicios; if (typeof srv === 'string') { try { srv = JSON.parse(srv); } catch (e) { srv = []; } }
-  (Array.isArray(srv) ? srv : []).forEach(function(s) { lineas++; var x = parseFloat(s.coste) || 0; if (x > 0) c += x; else falta++; });
   var comp = r.componentes; if (typeof comp === 'string') { try { comp = JSON.parse(comp); } catch (e) { comp = []; } }
+  // tipos de pieza que ya van como componente: el servicio de ese tipo no suma su coste (sería la misma pieza)
+  var tiposComp = {};
+  (Array.isArray(comp) ? comp : []).forEach(function (p) { var st = (DB.stock || []).find(function (x) { return x.id === p.id; }); var t = st && _margTipo((st.categoria || '') + ' ' + (st.modelo || '')); if (t) tiposComp[t[0]] = 1; });
+  (Array.isArray(srv) ? srv : []).forEach(function(s) { var t = _margTipo(s.nombre); if (t && tiposComp[t[0]]) return; lineas++; var x = parseFloat(s.coste) || 0; if (x > 0) c += x; else falta++; });
   (Array.isArray(comp) ? comp : []).forEach(function(p) {
     lineas++;
     var st = (DB.stock || []).find(function(x) { return x.id === p.id; });
@@ -19240,7 +19274,10 @@ function _margModelo(r) {
 // no cambien pedidos ni stock.
 var _margEstCache = { k: '', f: null };
 function _margEstimador() {
-  var clave = (DB.pedidos || []).length + '|' + (DB.stock || []).length;
+  var nRec = 0, sumC = 0;
+  (DB.pedidos || []).forEach(function (p) { if (p.estado === 'recibido') nRec++; });
+  (DB.stock || []).forEach(function (x) { sumC += parseFloat(x.precioC) || 0; });
+  var clave = (DB.pedidos || []).length + '|' + nRec + '|' + (DB.stock || []).length + '|' + Math.round(sumC * 100);
   if (_margEstCache.k === clave && _margEstCache.f) return _margEstCache.f;
   var compras = (DB.pedidos || []).filter(function (p) { return p.estado === 'recibido' && _pedPrecioUnit(p) > 0; })
     .map(function (p) { return { n: _margN(p.pieza), u: _pedPrecioUnit(p), f: String(p.fecha_recibido || p.fecha_pedido || ''), prov: p.proveedor || '', cal: p.calidad || '' }; })
@@ -19248,11 +19285,14 @@ function _margEstimador() {
   var stockPz = (DB.stock || []).filter(function (x) { return (parseFloat(x.precioC) || 0) > 0 && !_esImeiCat(x.categoria); })
     .map(function (x) { return { n: _margN((x.categoria || '') + ' ' + (x.marca || '') + ' ' + (x.modelo || '')), u: parseFloat(x.precioC) || 0, cal: x.calidad || '' }; });
   var cache = {};
-  var f = function (tipo, modelo) {
-    var k = tipo[0] + '|' + modelo; if (cache[k] !== undefined) return cache[k];
-    var c = compras.find(function (p) { return _margEsPieza(p.n, tipo) && _margEsModelo(p.n, modelo); });
+  // cal: si se pide una calidad, primero la compra de esa calidad (Incell ≠ Original)
+  var f = function (tipo, modelo, cal) {
+    var cn = _margN(cal || ''), k = tipo[0] + '|' + modelo + '|' + cn; if (cache[k] !== undefined) return cache[k];
+    var esCal = function (x) { return !cn || _margN(x.cal) === cn || (' ' + x.n + ' ').indexOf(' ' + cn + ' ') >= 0; };
+    var c = compras.find(function (p) { return esCal(p) && _margEsPieza(p.n, tipo) && _margEsModelo(p.n, modelo); });
     var v = c ? { u: c.u, prov: c.prov, f: c.f, cal: c.cal } : null;
-    if (!v) { var st = stockPz.find(function (x) { return _margEsPieza(x.n, tipo) && _margEsModelo(x.n, modelo); }); if (st) v = { u: st.u, prov: '', f: '', cal: st.cal }; }
+    if (!v) { var st = stockPz.find(function (x) { return esCal(x) && _margEsPieza(x.n, tipo) && _margEsModelo(x.n, modelo); }); if (st) v = { u: st.u, prov: '', f: '', cal: st.cal }; }
+    if (!v && cn) v = f(tipo, modelo, '');
     cache[k] = v; return v;
   };
   _margEstCache = { k: clave, f: f };
@@ -19287,8 +19327,9 @@ function _renderMargenReps(enRango) {
       if (!(precio > 0)) return;
       nTot++;
       var coste = null, est = false;
-      if ((parseFloat(s.coste) || 0) > 0) coste = parseFloat(s.coste) + (hayComp && !compFalta ? compC : 0);
-      else if (hayComp && !compFalta) coste = compC;
+      // con la pieza puesta, su coste es el real (el «coste» del servicio suele ser esa misma pieza)
+      if (hayComp && !compFalta) coste = compC;
+      else if ((parseFloat(s.coste) || 0) > 0) coste = parseFloat(s.coste);
       if (coste == null) { var pr = compras.find(function (p) { return p.rep === r.id && _margTipo(p.n) === tipo; }); if (pr) coste = pr.u; }
       if (coste == null && modelo) { var e = estimar(tipo, modelo); if (e != null) { coste = e; est = true; } }
       var g = agg[tipo[0]] || (agg[tipo[0]] = { n: 0, nc: 0, precio: 0, precioC: 0, coste: 0 });
@@ -27947,14 +27988,14 @@ function _rpnClave(nombre, calidad) { return _pedNorm(nombre) + '|' + _pedNorm(c
 // Ficha segura de una línea de pedido (cacheada mientras no cambie el stock)
 var _pedFichaCache = { k: '', m: {} };
 function _pedFichaId(p) {
-  var clave = (DB.stock || []).length + '|' + (DB.stock || []).reduce(function (a, x) { return a + (x.vendido ? 1 : 0); }, 0);
+  var clave = (DB.stock || []).length + '|' + (DB.pedidos || []).length;
   if (_pedFichaCache.k !== clave) _pedFichaCache = { k: clave, m: {} };
   if (_pedFichaCache.m[p.id] === undefined) { var f = _fichaParaPedido(p); _pedFichaCache.m[p.id] = f.existe ? f.existe.id : ''; }
   return _pedFichaCache.m[p.id];
 }
 function _consumoStock() {
   var d8 = _invIso(new Date(Date.now() - _CONSUMO_DIAS * 86400000)), d90 = _invIso(new Date(Date.now() - _CONSUMO_MOV * 86400000));
-  var o = { id: {}, id90: {}, nom: {}, nom90: {} };
+  var o = { id: {}, id90: {}, nom: {}, nom90: {}, pid: {}, pid90: {} };
   var suma = function(k, n, f) { if (!k || f < d90) return; o.id90[k] = (o.id90[k] || 0) + n; if (f >= d8) o.id[k] = (o.id[k] || 0) + n; };
   (DB.reps || []).forEach(function(r) {
     if (r.piezasDevueltas || !Array.isArray(r.componentes) || !r.componentes.length) return;
@@ -27976,7 +28017,7 @@ function _consumoStock() {
     var n = parseInt(p.cantidad, 10) || 1;
     // Si la línea del pedido se puede unir con seguridad a una ficha, cuenta para esa ficha
     var fid = _pedFichaId(p);
-    if (fid) { suma(fid, n, f); return; }
+    if (fid) { o.pid90[fid] = (o.pid90[fid] || 0) + n; if (f >= d8) o.pid[fid] = (o.pid[fid] || 0) + n; return; }
     var k = _rpnClave(p.pieza, p.calidad);
     o.nom90[k] = (o.nom90[k] || 0) + n; if (f >= d8) o.nom[k] = (o.nom[k] || 0) + n;
   });
@@ -27998,14 +28039,16 @@ function _reponerSugerencias(soloContar) {
     if ((s.tipo || '') === 'usado' || s.imei || _esImeiCat(s.categoria)) return;
     var nombre = _stockNombre(s), k = _rpnClave(nombre, s.calidad);
     var g = grupos[k];
-    if (!g) { g = grupos[k] = { k: k, nombre: nombre, filas: [], uds: 0, mov: 0, mov90: 0 }; orden.push(g); }
+    if (!g) { g = grupos[k] = { k: k, nombre: nombre, filas: [], uds: 0, mov: 0, mov90: 0, comp: 0, comp90: 0 }; orden.push(g); }
     g.filas.push(s);
     g.uds += Math.max(0, parseInt(s.unidades, 10) || 0);
     g.mov += c.id[s.id] || 0; g.mov90 += c.id90[s.id] || 0;
+    g.comp += c.pid[s.id] || 0; g.comp90 += c.pid90[s.id] || 0;
   });
   var out = [];
   orden.forEach(function(g) {
-    var compras = c.nom[g.k] || 0, compras90 = c.nom90[g.k] || 0;
+    // compras: las unidas a sus fichas + las que solo casan por nombre; el ritmo es lo mayor entre gastar y comprar
+    var compras = g.comp + (c.nom[g.k] || 0), compras90 = g.comp90 + (c.nom90[g.k] || 0);
     var mov90 = g.mov90 + compras90;
     if (mov90 < 2) return;   // una venta o compra suelta no marca un ritmo
     var sem = Math.max(g.mov, compras) / semanas;
