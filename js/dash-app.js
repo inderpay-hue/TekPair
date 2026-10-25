@@ -2890,10 +2890,19 @@ function avanzarPedido(id) {
         _abrirAltaImeiDesdePedido(p, uds, existe, cat);
       }, { okLabel: _pedBtnLbl('imei') });
     } else {
-      var msg = existe
-        ? T('pedidos.add_stock_sumar').replace('{n}', uds).replace('{pieza}', p.pieza || '').replace('{cur}', parseInt(existe.unidades, 10) || 0)
-        : T('pedidos.add_stock').replace('{n}', uds).replace('{pieza}', p.pieza || '');
-      confirmar(msg, function () { tpWithBusy(T('pedidos.recibiendo') || 'Recibiendo…', function () { _recibirAStock(p, uds, existe, false, cat); _finalizarRecepcion(); }); }, { okLabel: _pedBtnLbl('stock') });
+      if (existe) {
+        var msg = T('pedidos.add_stock_sumar').replace('{n}', uds).replace('{pieza}', p.pieza || '').replace('{cur}', parseInt(existe.unidades, 10) || 0);
+        confirmar(msg, function () { tpWithBusy(T('pedidos.recibiendo') || 'Recibiendo…', function () { _recibirAStock(p, uds, existe, false, cat); _finalizarRecepcion(); }); }, { okLabel: _pedBtnLbl('stock') });
+      } else {
+        // Sin ficha con el mismo nombre: sumar a una parecida o crear una con nombre corto
+        _recibirElegirFicha(p, uds, cat, function (r) {
+          tpWithBusy(T('pedidos.recibiendo') || 'Recibiendo…', function () {
+            if (r.existe) { var ten = parseInt(r.existe.unidades, 10) || 0; _recibirAStock(p, uds, r.existe, false, cat); _fichaCompletarDePedido(r.existe, p, ten); }
+            else _recibirAStock(r.pedido, uds, null, false, cat || _revCategoria(p));
+            _finalizarRecepcion();
+          });
+        });
+      }
     }
   }
   renderPedidosWidget();
@@ -2931,6 +2940,88 @@ function _abrirAltaImeiDesdePedido(p, uds, existe, cat) {
     if (ta) ta.focus();
   }, 120);
   toast(T('pedidos.imei_hint').replace('{n}', uds), 'ok');
+}
+// ── Enlazar la línea del pedido con su ficha de stock ──
+// Los nombres de los proveedores son largos («Original Nueva Pantalla Samsung Galaxy A05S A057F
+// Negra Sin Marco Completa») y no coincidían con la ficha («SAMSUNG A05S»): cada recepción creaba
+// una ficha nueva y las cuentas de consumo y margen no casaban. Ahora se busca una ficha parecida
+// (la misma búsqueda que «Revisar piezas recibidas») y, si no hay, se crea con un nombre corto.
+var _PED_MARCAS = [['iphone', 'Apple'], ['ipad', 'Apple'], ['apple', 'Apple'], ['samsung', 'Samsung'], ['galaxy', 'Samsung'], ['xiaomi', 'Xiaomi'], ['redmi', 'Xiaomi'], ['poco', 'Xiaomi'], ['huawei', 'Huawei'], ['honor', 'Honor'], ['oppo', 'Oppo'], ['realme', 'Realme'], ['motorola', 'Motorola'], ['moto', 'Motorola'], ['vivo', 'Vivo'], ['zte', 'ZTE'], ['nokia', 'Nokia'], ['google', 'Google'], ['pixel', 'Google'], ['oneplus', 'OnePlus'], ['tcl', 'TCL'], ['alcatel', 'Alcatel'], ['wiko', 'Wiko'], ['lg', 'LG'], ['sony', 'Sony']];
+var _PED_RUIDO = { original: 1, originales: 1, nueva: 1, nuevo: 1, new: 1, pantalla: 1, display: 1, lcd: 1, completa: 1, completo: 1, sin: 1, con: 1, marco: 1, frame: 1, para: 1, de: 1, del: 1, la: 1, el: 1, y: 1, for: 1, compatible: 1, bateria: 1, battery: 1, tapa: 1, trasera: 1, cristal: 1, flex: 1, conector: 1, puerto: 1, placa: 1, carga: 1, altavoz: 1, auricular: 1, camara: 1, incell: 1, oled: 1, amoled: 1, hard: 1, soft: 1, service: 1, pack: 1, calidad: 1, alta: 1, premium: 1, tft: 1, ic: 1, chip: 1, ejecutar: 1, diagnostico: 1, mah: 1, refurbished: 1, refurbish: 1, reparada: 1, reparado: 1, lc: 1, tactil: 1 };
+function _pedNombreCorto(p) {
+  var raw = String(p.pieza || '');
+  var marca = (p.marca || '').trim();
+  // Solo se acorta el nombre de las piezas de reparación; accesorios, cables… se quedan como vienen
+  var cat = _revCategoria(p);
+  if (!cat || cat === 'Accesorio' || _esImeiCat(cat)) return { marca: marca, modelo: _pedModeloDe(p) };
+  var toks = raw.replace(/[\/,()\[\]]+/g, ' ').split(/\s+/).filter(Boolean);
+  if (!marca) {
+    var low = _sinTildesTP(raw);
+    for (var i = 0; i < _PED_MARCAS.length; i++) if (new RegExp('\\b' + _PED_MARCAS[i][0] + '\\b').test(low)) { marca = _PED_MARCAS[i][1]; break; }
+  }
+  var mLow = _sinTildesTP(marca);
+  var out = [];
+  for (var j = 0; j < toks.length && out.length < 5; j++) {
+    var t = toks[j], tl = _sinTildesTP(t).replace(/[^a-z0-9+]/g, '');
+    if (!tl || _PED_RUIDO[tl] || _REV_COLOR[tl] || tl === mLow || (mLow === 'samsung' && tl === 'galaxy')) continue;
+    if (/^\d+mah$/.test(tl)) continue;
+    // a partir del primer número, lo que siga sin números ni variante (Pro, Max…) ya no es el modelo
+    if (out.some(function (x) { return /\d/.test(x); }) && !/\d/.test(tl) && !_REV_VAR[tl] && tl !== 'iphone' && tl !== 'ipad') break;
+    out.push(tl === 'iphone' ? 'iPhone' : tl === 'ipad' ? 'iPad' : (t.length <= 3 || /\d/.test(t) ? t.toUpperCase() : t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()));
+  }
+  var modelo = out.join(' ').replace(/\bIPHONE\b/g, 'iPhone').replace(/\bIPAD\b/g, 'iPad').replace(/\bPRO\b/g, 'Pro').replace(/\bMAX\b/g, 'Max');
+  if (!modelo) modelo = _pedModeloDe(p);
+  return { marca: marca, modelo: modelo };
+}
+// Copia del pedido con marca y nombre corto (para crear la ficha de stock)
+function _pedConNombreCorto(p, nc) {
+  nc = nc || _pedNombreCorto(p);
+  return Object.assign({}, p, { marca: nc.marca || p.marca || '', pieza: ((nc.marca ? nc.marca + ' ' : '') + nc.modelo).trim() });
+}
+// Ficha para un pedido: la que coincide exacta por nombre o la parecida si es segura
+function _fichaParaPedido(p) {
+  var existe = _stockMatch(p.pieza);
+  if (existe && p.calidad && (existe.calidad || '') !== p.calidad) existe = null;
+  if (existe) return { existe: existe, sugs: [existe], segura: true };
+  var sugs = _revSugerencias(p);
+  return { existe: sugs[0] && sugs[0]._revExacta ? sugs[0] : null, sugs: sugs, segura: !!(sugs[0] && sugs[0]._revExacta) };
+}
+// Completa coste y calidad de una ficha existente con los del pedido (si estaban vacíos)
+function _fichaCompletarDePedido(existe, p, teniaUds) {
+  var patch = {}, pu = _pedPrecioUnit(p);
+  if (!(parseFloat(existe.precioC) > 0) && pu > 0) { existe.precioC = pu; patch.precio_c = pu; }
+  if (!existe.calidad && p.calidad && teniaUds <= 0) { existe.calidad = p.calidad; patch.calidad = p.calidad; }
+  if (Object.keys(patch).length && SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(existe.id), patch);
+}
+// Ventana al recibir: sumar a una ficha parecida o crear una con nombre corto (editable)
+function _recibirElegirFicha(p, uds, cat, onOk) {
+  var f = _fichaParaPedido(p), nc = _pedNombreCorto(p);
+  var opts = f.sugs.map(function (s, i) {
+    return '<label style="display:flex;gap:8px;align-items:center;padding:8px;border:1px solid var(--border);border-radius:9px;margin-bottom:6px;cursor:pointer"><input type="radio" name="_rfOpt" value="s:' + escHtml(s.id) + '"' + (i === 0 && f.segura ? ' checked' : '') + '>' +
+      '<span style="font-size:13px">' + escHtml(T('rcb.sumar_a').replace('{f}', _eqNombre(s.marca, s.modelo) + (s.calidad ? ' · ' + s.calidad : '')).replace('{n}', parseInt(s.unidades, 10) || 0)) + '</span></label>';
+  }).join('');
+  var m = _modalOverlay(
+    '<div style="font-size:15px;font-weight:800;margin-bottom:4px">📦 ' + escHtml(T('rcb.titulo').replace('{n}', uds)) + '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">' + escHtml(p.pieza || '') + (p.calidad ? ' · ' + escHtml(p.calidad) : '') + '</div>' + opts +
+    '<label style="display:block;padding:8px;border:1px solid var(--border);border-radius:9px;margin-bottom:6px;cursor:pointer"><span style="display:flex;gap:8px;align-items:center"><input type="radio" name="_rfOpt" value="nueva"' + (f.segura ? '' : ' checked') + '><span style="font-size:13px">' + escHtml(T('rcb.nueva')) + '</span></span>' +
+      '<span style="display:flex;gap:6px;margin-top:6px"><input id="_rfMarca" value="' + escHtml(nc.marca) + '" placeholder="' + escHtml(T('rep.marca')) + '" style="width:34%;padding:7px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;color:inherit;background:var(--light,#fff)">' +
+      '<input id="_rfModelo" value="' + escHtml(nc.modelo) + '" style="flex:1;padding:7px;border:1px solid var(--border);border-radius:8px;font:inherit;font-size:13px;color:inherit;background:var(--light,#fff)"></span></label>' +
+    '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:12px"><button type="button" id="_rfNo" style="padding:9px 16px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:9px;font:inherit;font-weight:600;cursor:pointer">' + T('gen.cancelar_2') + '</button>' +
+    '<button type="button" id="_rfOk" style="padding:9px 16px;border:none;background:var(--green,#10B981);color:#fff;border-radius:9px;font:inherit;font-weight:700;cursor:pointer">' + escHtml(_pedBtnLbl('stock')) + '</button></div>');
+  m.box.querySelectorAll('#_rfMarca,#_rfModelo').forEach(function (inp) { inp.addEventListener('focus', function () { var r = m.box.querySelector('input[value="nueva"]'); if (r) r.checked = true; }); });
+  m.box.querySelector('#_rfNo').onclick = function () { m.close(); };
+  m.box.querySelector('#_rfOk').onclick = function () {
+    var sel = m.box.querySelector('input[name="_rfOpt"]:checked'); if (!sel) return;
+    var v = sel.value;
+    if (v.indexOf('s:') === 0) {
+      var ex = (DB.stock || []).find(function (x) { return x.id === v.slice(2); }); if (!ex) return;
+      m.close(); onOk({ existe: ex });
+    } else {
+      var mod = (m.box.querySelector('#_rfModelo').value || '').trim();
+      if (!mod) { toast(T('rcb.falta_nombre'), 'err'); return; }
+      m.close(); onOk({ pedido: _pedConNombreCorto(p, { marca: (m.box.querySelector('#_rfMarca').value || '').trim(), modelo: mod }) });
+    }
+  };
 }
 // Recibe un pedido al stock: suma a un item existente o crea uno nuevo (repuesto)
 function _recibirAStock(p, uds, existe, silent, cat) {
@@ -9371,7 +9462,12 @@ function _procesarRecibirLista(lista, idx, ctr, onDone) {
         }
       });
   } else {
-    _recibirAStock(p, uds, existe, true, cat);
+    // Sin ficha con el mismo nombre: la parecida si es segura; si no, una nueva con nombre corto
+    if (!existe) {
+      var fp = _fichaParaPedido(p);
+      if (fp.existe) { var ten2 = parseInt(fp.existe.unidades, 10) || 0; _recibirAStock(p, uds, fp.existe, true, cat || fp.existe.categoria); _fichaCompletarDePedido(fp.existe, p, ten2); }
+      else _recibirAStock(_pedConNombreCorto(p), uds, null, true, cat || _revCategoria(p));
+    } else _recibirAStock(p, uds, existe, true, cat);
     _finalizarRecibido(p);
     ctr.recibidos++;
     next();
@@ -11409,7 +11505,7 @@ function renderServiciosRep() {
       '<button type="button" class="srv-card-x" onclick="quitarServicioRep(' + i + ')" title="' + T('srv.quitar_title') + '">×</button>' +
       '<div class="srv-card-grid">' +
         '<div class="fg" style="margin:0"><label class="fl">' + T('srv.lbl_nombre') + '</label>' +
-          '<input class="fi" value="' + esc(s.nombre || '') + '" placeholder="' + T('plant.ph_instalacion') + '" oninput="updateServicioRep(' + i + ',\'nombre\',this.value)">' +
+          '<input class="fi" value="' + esc(s.nombre || '') + '" placeholder="' + T('plant.ph_instalacion') + '" oninput="updateServicioRep(' + i + ',\'nombre\',this.value)" onchange="renderServiciosRep()">' +
         '</div>' +
         '<div class="fg" style="margin:0"><label class="fl" title="' + T('srv.solo_interno') + '">' + T('srv.lbl_costo') + '</label>' +
           '<input class="fi" type="number" step="0.01" value="' + (s.coste || 0) + '" oninput="updateServicioRep(' + i + ',\'coste\',parseFloat(this.value)||0)">' +
@@ -11418,7 +11514,7 @@ function renderServiciosRep() {
           '<input class="fi" type="number" step="0.01" value="' + (s.precio || 0) + '" oninput="updateServicioRep(' + i + ',\'precio\',parseFloat(this.value)||0);calcR()">' +
         '</div>' +
       '</div>' +
-      _srvCalidadChips(s, i) +
+      _srvCalidadChips(s, i) + _srvPiezaHtml(s, i) +
       '<textarea class="fi" rows="2" placeholder="' + T('srv.ph_desc') + '" oninput="updateServicioRep(' + i + ',\'desc\',this.value)" style="margin-top:8px">' + esc(s.desc || '') + '</textarea>' +
     '</div>';
   }).join('');
@@ -11438,6 +11534,53 @@ function _srvCalidadChips(s, i) {
   return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:12px"><span style="color:var(--muted)">' + escHtml(T('srv.calidad')) + '</span>' +
     cals.map(function(c) { return '<button type="button" class="btn-sm" style="padding:3px 10px" onclick="srvPonerCalidad(' + i + ',\'' + escHtml(String(c).replace(/'/g, '')) + '\')">' + escHtml(c) + '</button>'; }).join('') + '</div>';
 }
+// ── Pieza del stock para un servicio ──
+// En «Instalación de pantalla» de un Samsung A14 se propone la pantalla del A14 que hay en stock
+// (misma calidad si el servicio la dice). Se añade INCLUIDA en el servicio, a 0 €: se descuenta
+// del stock y queda su coste para el margen, sin subir el precio (el servicio ya la cobra).
+function _repModeloForm() {
+  return { marca: ((document.getElementById('rMarca') || {}).value || '').trim(), modelo: ((document.getElementById('rModelo') || {}).value || '').trim() };
+}
+function _piezasParaServicio(s) {
+  var tipo = _margTipo(s && s.nombre); if (!tipo) return [];
+  var f = _repModeloForm(); if (!f.modelo) return [];
+  var modelo = _margModelo({ marca: f.marca, modelo: f.modelo }); if (!modelo) return [];
+  var sNom = _margN(s.nombre), usadas = {};
+  (SEL.selParts || []).forEach(function (p) { usadas[p.id] = 1; });
+  return (DB.stock || []).filter(function (x) {
+    if (x.vendido || usadas[x.id] || (parseInt(x.unidades, 10) || 0) <= 0 || _esImeiCat(x.categoria)) return false;
+    if (_margTipo((x.categoria || '') + ' ' + (x.modelo || '')) !== tipo) return false;
+    var n = _margN((x.marca || '') + ' ' + (x.modelo || ''));
+    return _margEsModelo(n, modelo) || _modeloEncaja(f.modelo, x.modelo);
+  }).map(function (x) {
+    // misma calidad que dice el servicio, primero
+    var cal = _margN(x.calidad), igual = cal && (' ' + sNom + ' ').indexOf(' ' + cal + ' ') >= 0;
+    return { x: x, sc: (igual ? 2 : 0) + (x.calidad ? 0 : -0.5) };
+  }).sort(function (a, b) { return b.sc - a.sc; }).slice(0, 3).map(function (o) { return o.x; });
+}
+// ¿Este servicio ya tiene su pieza puesta? (una de su tipo entre las piezas de la reparación)
+function _srvTienePieza(s) {
+  var tipo = _margTipo(s && s.nombre); if (!tipo) return true;
+  return (SEL.selParts || []).some(function (p) { var x = (DB.stock || []).find(function (y) { return y.id === p.id; }); return x && _margTipo((x.categoria || '') + ' ' + (x.modelo || '')) === tipo; });
+}
+function _srvPiezaHtml(s, i) {
+  if (_srvTienePieza(s)) return '';
+  var ps = _piezasParaServicio(s); if (!ps.length) return '';
+  return '<div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-top:8px;font-size:12px"><span style="color:var(--muted)">🔧 ' + escHtml(T('srvp.usar')) + '</span>' +
+    ps.map(function (x) {
+      return '<button type="button" class="btn-sm" style="padding:3px 10px" onclick="srvUsarPieza(' + i + ',\'' + _jsAttr(x.id) + '\')">' + escHtml(_eqNombre(x.marca, x.modelo) + (x.calidad ? ' · ' + x.calidad : '')) + ' <span style="color:var(--muted)">· ' + escHtml(T('srvp.quedan').replace('{n}', parseInt(x.unidades, 10) || 0)) + '</span></button>';
+    }).join('') + '</div>';
+}
+function srvUsarPieza(i, id) {
+  var x = (DB.stock || []).find(function (y) { return y.id === id; }); if (!x) return;
+  SEL.selParts = SEL.selParts || [];
+  if (SEL.selParts.some(function (p) { return p.id === id; })) return;
+  SEL.selParts.push({ id: x.id, nombre: _eqNombre(x.marca, x.modelo) + (x.calidad ? ' · ' + x.calidad : '') + (x.color ? ' (' + x.color + ')' : ''), precio: 0, incluida: true });
+  renderParts(); renderServiciosRep(); calcR();
+  try { sugerirPiezasRep(); } catch (e) {}
+  toast(T('srvp.anadida'), 'ok');
+}
+window.srvUsarPieza = srvUsarPieza;
 function srvPonerCalidad(i, cal) {
   var sv = (SEL.rServicios || [])[i]; if (!sv) return;
   sv.nombre = String(sv.nombre || '').trim() + ' ' + cal;
@@ -11789,6 +11932,8 @@ function _modeloEncaja(deviceMod, partMod) {
 // Sugiere piezas del stock que encajan con el modelo de la reparación (1 clic para añadir).
 // Si la avería menciona pantalla/tapa/batería, esas se resaltan y van primero.
 function sugerirPiezasRep() {
+  // las tarjetas de servicio enseñan su pieza: se repintan al cambiar el modelo o las piezas
+  try { if (document.getElementById('repServiciosList') && SEL.rServicios && SEL.rServicios.some(function (x) { return _margTipo(x && x.nombre); })) renderServiciosRep(); } catch (e) {}
   var box = document.getElementById('repPiezasSug'); if (!box) return;
   var modEl = document.getElementById('rModelo'); var mod = (modEl ? modEl.value : '').trim().toLowerCase();
   if (!mod || mod.length < 2) { box.style.display = 'none'; box.innerHTML = ''; return; }
@@ -11821,6 +11966,37 @@ function sugerirPiezasRep() {
 // llevaba tiempo en el modal, pero la funcion no existia: no fallaba, no hacia
 // nada. Sugiere lo que YA cobraste por la misma averia en el mismo modelo, que
 // es el dato que uno intenta recordar de memoria al dar un precio.
+// ── Precio mínimo según lo que cuesta la pieza ──
+// Debajo del precio sugerido: «🔧 Pieza ≈ 25 € (CellB2B) · cobra al menos 55 €», con el margen
+// mínimo que elige la tienda (AJUSTES.margenMinRep, 30 € si no). Si un precio de la tarifa o del
+// historial deja menos que eso, se avisa.
+function _margenMinRep() { var v = parseFloat(AJUSTES && AJUSTES.margenMinRep); return isFinite(v) && v >= 0 ? v : 30; }
+function _repLineaCoste(it, mod, marca) {
+  var tipo = _margTipo(it.nombre); if (!tipo) return '';
+  var modelo = _margModelo({ marca: marca, modelo: mod }); if (!modelo) return '';
+  var e = _margEstimador()(tipo, modelo); if (!e) return '';
+  var min = Math.ceil(e.u + _margenMinRep());
+  var bajos = (it.opciones || []).filter(function (o) { return o.precio < min - 0.005; });
+  var txt = T('tarm.pieza').replace('{c}', cur(e.u)) + (e.prov ? ' (' + e.prov + (e.cal ? ' · ' + e.cal : '') + ')' : (e.cal ? ' (' + e.cal + ')' : '')) +
+    ' · ' + T('tarm.minimo').replace('{p}', cur(min));
+  return '<div style="font-size:11px;color:' + (bajos.length ? 'var(--red,#E02424);font-weight:700' : 'var(--muted)') + '">🔧 ' + escHtml(txt) +
+    (bajos.length ? ' · ⚠ ' + escHtml(T('tarm.bajo').replace('{p}', cur(bajos[0].precio)).replace('{g}', cur(bajos[0].precio - e.u))) : '') +
+    (tienePerm('ajustes_editar') ? ' <a href="#" onclick="tarmCambiarMargen();return false" style="color:inherit;text-decoration:underline;font-weight:400">' + escHtml(T('tarm.cambiar').replace('{m}', cur(_margenMinRep()))) + '</a>' : '') + '</div>';
+}
+function tarmCambiarMargen() {
+  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  pedirImporte(T('tarm.pregunta'), _margenMinRep(), function (v) {
+    if (v === null) return;
+    var n = parseFloat(String(v).replace(',', '.'));
+    if (!isFinite(n) || n < 0) { toast(T('fin.total_invalido'), 'err'); return; }
+    AJUSTES.margenMinRep = Math.round(n * 100) / 100;
+    try { localStorage.setItem('tk_ajustes', JSON.stringify(AJUSTES)); } catch (e) {}
+    if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES });
+    try { sugerirPrecioRep(); } catch (e) {}
+    toast(T('gen.guardado'), 'ok');
+  });
+}
+window.tarmCambiarMargen = tarmCambiarMargen;
 function sugerirPrecioRep(itemsDados) {
   var box = document.getElementById('rPrecioSug'); if (!box) return;
   var ocultar = function() { box.style.display = 'none'; box.innerHTML = ''; window._precioItems = []; };
@@ -11856,6 +12032,7 @@ function sugerirPrecioRep(itemsDados) {
       return '<button type="button" class="btn-sm" onclick="' + acc + '" style="' + btn + (marc ? ';background:var(--orange);color:#fff;border-color:var(--orange)' : '') + '">' +
         escHtml((o.cal ? o.cal + ' ' : '') + (it.tipo === 'est' ? '~' : '') + cur(o.precio)) + '</button>';
     }).join('');
+    linea += _repLineaCoste(it, mod, marca);
     if (it.tipo === 'est' && it.est) {
       var e = it.est;
       var info = e.nivel === 'exacto' ? T('pre.info_exacto').replace('{n}', e.n) : (e.nivel === 'parecidos' ? T('pre.info_serie').replace('{n}', e.n) : T('pre.info_marca').replace('{n}', e.n).replace('{b}', e.marca));
@@ -12063,7 +12240,7 @@ function _estimarPrecio(mod, marca, aver, gForzado) {
 function renderParts() {
   document.getElementById('partsList').innerHTML = SEL.selParts.map(function(p, i) {
     return '<div class="part-item">' +
-      '<span>' + escHtml(p.nombre) + '</span>' +
+      '<span>' + escHtml(p.nombre) + (p.incluida && !(p.precio > 0) ? ' <span style="font-size:10.5px;color:var(--muted)">· ' + escHtml(T('srvp.incluida')) + '</span>' : '') + '</span>' +
       '<div style="display:flex;align-items:center;gap:8px">' +
       '<input type="number" step="0.01" min="0" data-idx="' + i + '" class="part-precio" value="' + (p.precio || 0) + '" style="width:74px;padding:4px 6px;border:1px solid var(--border);border-radius:5px;font-size:12px;text-align:right;color:var(--green);font-weight:700">' +
       '<button data-idx="' + i + '" class="part-del" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px">\u00d7</button>' +
@@ -12073,6 +12250,7 @@ function renderParts() {
     btn.addEventListener('click', function() {
       SEL.selParts.splice(parseInt(this.dataset.idx), 1);
       renderParts(); calcR();
+      try { renderServiciosRep(); } catch (e) {}
     });
   });
   document.querySelectorAll('.part-precio').forEach(function(inp) {
@@ -16110,7 +16288,7 @@ async function guardarRevisionStock() {
         var existe = v.indexOf('s:') === 0 ? (DB.stock || []).find(function (s) { return s.id === v.slice(2); }) : null;
         var pq = Object.assign({}, p, { importe: Math.round((parseFloat(p.precio_compra) || 0) * q * 100) / 100 });
         var tenia = existe ? (parseInt(existe.unidades, 10) || 0) : 0;
-        _recibirAStock(pq, q, existe || null, true, _revCategoria(p) || p.categoria);
+        _recibirAStock(existe ? pq : _pedConNombreCorto(pq), q, existe || null, true, _revCategoria(p) || p.categoria);
         // ficha existente sin coste o sin calidad: se completa con la del pedido
         if (existe) {
           var patch = {};
@@ -16687,7 +16865,133 @@ function _gradoBadgeHtml(g) {
 function _avisarGradoCliente(c) {
   if (c && c.grado === 'C') { try { toast('⚠️ ' + T('cli.grado_c_aviso'), 'err'); } catch (e) {} }
 }
+// ═══ UNIR CLIENTES REPETIDOS ═══
+// Mismo teléfono (últimos 9 dígitos) o mismo nombre completo cuando uno no tiene teléfono. Al
+// unir, todo lo del repetido (reparaciones, ventas, encargos, citas para clientes) pasa al que
+// se queda, los datos que le falten se completan y el repetido se borra.
+var _CLI_CAMPOS = [['apellidos', 'apellidos'], ['tel', 'tel'], ['email', 'email'], ['dni', 'dni'], ['fechaNac', 'fecha_nac'], ['nombreFiscal', 'nombre_fiscal'], ['dirFiscal', 'dir_fiscal'], ['cp', 'cp'], ['provincia', 'provincia'], ['ciudad', 'ciudad'], ['personaContacto', 'persona_contacto']];
+var _CLI_TABLAS = [['reparaciones', 'reps'], ['ventas', 'ventas'], ['encargos', 'encargos'], ['gestiones', 'gestiones']];
+// Teléfono para comparar: sin los de relleno («000000», «123456789», todos el mismo número)
+function _cliTel(c) {
+  var d = String((c && c.tel) || '').replace(/\D/g, ''); if (d.length < 6) return '';
+  d = d.slice(-9);
+  if (/^(\d)\1+$/.test(d) || '0123456789'.indexOf(d) >= 0 || '9876543210'.indexOf(d) >= 0) return '';
+  return d;
+}
+// ¿Se parecen los nombres? (comparten una palabra de 3+ letras o una empieza como la otra)
+function _cliNomParecido(a, b) {
+  var wa = _margN(((a.nombre || '') + ' ' + (a.apellidos || ''))).split(' ').filter(function (w) { return w.length >= 3; });
+  var wb = _margN(((b.nombre || '') + ' ' + (b.apellidos || ''))).split(' ').filter(function (w) { return w.length >= 3; });
+  return wa.some(function (x) { return wb.some(function (y) { return x === y || (x.length >= 4 && y.length >= 4 && (x.indexOf(y.slice(0, 4)) === 0 || y.indexOf(x.slice(0, 4)) === 0)); }); });
+}
+function _cliNom(c) { var n = _margN(((c.nombre || '') + ' ' + (c.apellidos || '')).trim()); return n.split(' ').length >= 2 ? n : ''; }
+function _cliUso(id) {
+  var n = 0;
+  _CLI_TABLAS.forEach(function (t) { (DB[t[1]] || []).forEach(function (o) { if (o && (o.clienteId === id || o.cliente_id === id)) n++; }); });
+  return n;
+}
+function _clientesRepetidos() {
+  var clis = (DB.clis || []).filter(function (c) { return c && c.id; });
+  var padre = {}; clis.forEach(function (c) { padre[c.id] = c.id; });
+  var raiz = function (x) { while (padre[x] !== x) { padre[x] = padre[padre[x]]; x = padre[x]; } return x; };
+  var une = function (a, b) { a = raiz(a); b = raiz(b); if (a !== b) padre[b] = a; };
+  var porTel = {}, porNom = {}, nTel = {};
+  clis.forEach(function (c) { var t = _cliTel(c); if (t) nTel[t] = (nTel[t] || 0) + 1; });
+  clis.forEach(function (c) {
+    // un teléfono que llevan más de 3 clientes es de relleno o de una tienda: no sirve para unir
+    var t = _cliTel(c); if (t && nTel[t] <= 3) { if (porTel[t]) une(porTel[t], c.id); else porTel[t] = c.id; }
+    var n = _cliNom(c); if (n) (porNom[n] = porNom[n] || []).push(c);
+  });
+  // mismo nombre: solo si no tienen teléfonos distintos (dos «Mohamed Diallo» con teléfonos distintos son dos personas)
+  Object.keys(porNom).forEach(function (n) {
+    var g = porNom[n]; if (g.length < 2) return;
+    var tels = {}; g.forEach(function (c) { var t = _cliTel(c); if (t) tels[t] = 1; });
+    if (Object.keys(tels).length > 1) return;
+    for (var i = 1; i < g.length; i++) une(g[0].id, g[i].id);
+  });
+  var grupos = {};
+  clis.forEach(function (c) { var r = raiz(c.id); (grupos[r] = grupos[r] || []).push(c); });
+  return Object.keys(grupos).map(function (k) { return grupos[k]; }).filter(function (g) { return g.length > 1; })
+    .map(function (g) { return g.map(function (c) { return { c: c, uso: _cliUso(c.id) }; }).sort(function (a, b) { return b.uso - a.uso; }); });
+}
+function _renderCliDup() {
+  var box = document.getElementById('cliDupBox'); if (!box) return;
+  if (!tienePerm('clis_eliminar') || !tienePerm('clis_editar')) { box.innerHTML = ''; return; }
+  var g = _clientesRepetidos();
+  box.innerHTML = g.length ? '<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:rgba(59,130,246,.07);border:1px solid rgba(59,130,246,.3);border-radius:12px;padding:10px 14px;margin:8px 0">' +
+    '<span style="flex:1;min-width:200px;font-size:13px">👥 <b>' + escHtml(T('clidup.banner').replace('{n}', g.length)) + '</b></span>' +
+    '<button onclick="abrirCliDup()" style="background:var(--blue);color:#fff;border:none;border-radius:8px;padding:7px 12px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">' + escHtml(T('clidup.revisar')) + '</button></div>' : '';
+}
+function abrirCliDup() {
+  var gs = _clientesRepetidos(); if (!gs.length) { toast(T('clidup.ninguno'), 'ok'); return; }
+  window._cliDupGrupos = gs;
+  var html = '<div style="font-size:15px;font-weight:800;margin-bottom:4px">👥 ' + escHtml(T('clidup.titulo')) + '</div>' +
+    '<div style="font-size:12px;color:var(--muted);margin-bottom:10px">' + escHtml(T('clidup.ayuda')) + '</div><div style="max-height:62vh;overflow:auto">' +
+    gs.map(function (g, gi) {
+      return '<div data-g="' + gi + '" style="border:1px solid var(--border);border-radius:11px;padding:8px 10px;margin-bottom:8px">' + g.map(function (x, i) {
+        var c = x.c;
+        var parecido = i === 0 || _cliNomParecido(g[0].c, c);
+        return '<label style="display:flex;gap:8px;align-items:center;padding:4px 0;cursor:pointer">' +
+          '<input type="checkbox" data-cdu="' + gi + '" value="' + escHtml(c.id) + '" title="' + escHtml(T('clidup.incluir')) + '"' + (parecido ? ' checked' : '') + '>' +
+          '<input type="radio" name="_cd' + gi + '" value="' + escHtml(c.id) + '" title="' + escHtml(T('clidup.queda')) + '"' + (i === 0 ? ' checked' : '') + '>' +
+          '<span style="flex:1;font-size:13px"><b>' + escHtml(((c.nombre || '') + ' ' + (c.apellidos || '')).trim() || '—') + '</b> <span style="color:var(--muted)">' + escHtml(c.tel || '') + (c.email ? ' · ' + escHtml(c.email) : '') + '</span></span>' +
+          '<span style="font-size:11.5px;color:var(--muted);white-space:nowrap">' + escHtml(T('clidup.uso').replace('{n}', x.uso)) + '</span></label>';
+      }).join('') +
+      '<div style="text-align:right;margin-top:4px"><button type="button" class="btn-sm" onclick="unirCliGrupo(' + gi + ')" style="background:var(--blue);color:#fff;border-color:var(--blue)">' + escHtml(T('clidup.unir')) + '</button></div></div>';
+    }).join('') + '</div>' +
+    '<div style="text-align:right;margin-top:10px"><button type="button" id="_cdNo" style="padding:9px 16px;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:9px;font:inherit;font-weight:600;cursor:pointer">' + escHtml(T('gen.cerrar')) + '</button></div>';
+  var m = _modalOverlay(html); m.box.style.maxWidth = '620px';
+  window._cliDupModal = m;
+  m.box.querySelector('#_cdNo').onclick = function () { m.close(); renderClis(); };
+}
+async function unirCliGrupo(gi) {
+  if (!tienePerm('clis_eliminar') || !tienePerm('clis_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var m = window._cliDupModal, g = (window._cliDupGrupos || [])[gi]; if (!m || !g) return;
+  var sel = m.box.querySelector('input[name="_cd' + gi + '"]:checked'); if (!sel) return;
+  var P = (DB.clis || []).find(function (c) { return c.id === sel.value; }); if (!P) return;
+  var marcados = {}; m.box.querySelectorAll('input[data-cdu="' + gi + '"]:checked').forEach(function (ch) { marcados[ch.value] = 1; });
+  var otros = g.map(function (x) { return x.c; }).filter(function (c) { return c.id !== P.id && marcados[c.id]; });
+  if (!otros.length) { toast(T('clidup.marca_alguno'), 'err'); return; }
+  var nomP = ((P.nombre || '') + ' ' + (P.apellidos || '')).trim();
+  var ok = await confirmar(T('clidup.confirmar').replace('{n}', otros.length).replace('{p}', nomP), null, { okLabel: T('clidup.unir') });
+  if (!ok) return;
+  if (SB_KEY && TIENDA_ID && !navigator.onLine) { toast(T('rep.borrar_sin_conexion'), 'err'); return; }
+  var caja = m.box.querySelector('[data-g="' + gi + '"]'); if (caja) caja.style.opacity = '.5';
+  var fallo = false;
+  // 1) Datos que le falten al que se queda
+  var patchP = {};
+  otros.forEach(function (d) { _CLI_CAMPOS.forEach(function (f) { if (!P[f[0]] && d[f[0]]) { P[f[0]] = d[f[0]]; patchP[f[1]] = d[f[0]]; } }); });
+  if (Object.keys(patchP).length && SB_KEY && TIENDA_ID) { var rp = await _sbPatchRaw('clientes', 'id=eq.' + encodeURIComponent(P.id), patchP); if (!rp.ok) fallo = true; }
+  // 2) Todo lo del repetido pasa al que se queda (en la nube primero; si falla, no se borra nada)
+  for (var i = 0; i < otros.length && !fallo; i++) {
+    var d = otros[i];
+    for (var t = 0; t < _CLI_TABLAS.length; t++) {
+      var tb = _CLI_TABLAS[t];
+      if (SB_KEY && TIENDA_ID) {
+        var r = await _sbPatchRaw(tb[0], 'cliente_id=eq.' + encodeURIComponent(d.id) + '&tienda_id=eq.' + encodeURIComponent(TIENDA_ID), { cliente_id: P.id, cliente_nombre: nomP });
+        if (!r.ok && !(r.status === 404 || r.code === '42P01' || r.code === 'PGRST205')) { fallo = true; break; }
+      }
+      (DB[tb[1]] || []).forEach(function (o) {
+        if (!o) return;
+        if (o.clienteId === d.id) { o.clienteId = P.id; o.clienteNombre = nomP; }
+        if (o.cliente_id === d.id) { o.cliente_id = P.id; o.cliente_nombre = nomP; }
+      });
+    }
+    if (fallo) break;
+    // 3) Se borra el repetido
+    if (SB_KEY && TIENDA_ID) { var okD = await sbDelete('clientes', 'id=eq.' + encodeURIComponent(d.id)); if (!okD) { fallo = true; break; } }
+    DB.clis = DB.clis.filter(function (c) { return c.id !== d.id; });
+    audit('unir', 'cliente', P.id, nomP + ' ← ' + ((d.nombre || '') + ' ' + (d.apellidos || '')).trim(), null);
+  }
+  guardarDatos();
+  if (fallo) { toast(T('clidup.fallo'), 'err'); if (caja) caja.style.opacity = ''; return; }
+  toast(T('clidup.hecho').replace('{p}', nomP), 'ok');
+  if (caja) caja.remove();
+  try { renderClis(); } catch (e) {}
+}
+window.abrirCliDup = abrirCliDup; window.unirCliGrupo = unirCliGrupo;
 function renderClis() {
+  try { _renderCliDup(); } catch (e) {}
   try { _ensureIv2Sprite(); } catch (e) {}
   var q = _norm(document.getElementById('busClis').value);
   var list = DB.clis.filter(function(c) {
@@ -18931,6 +19235,29 @@ function _margModelo(r) {
   if (m.length <= 3 || /^\d+$/.test(m)) { var ma = _margN(r.marca); if (!ma) return ''; m = ma + ' ' + m; }
   return m;
 }
+// Coste de la pieza de un tipo para un modelo, con los datos de la tienda: la última compra
+// recibida de esa pieza (pedidos) o, si no hay, su precio de coste en el stock. Se cachea mientras
+// no cambien pedidos ni stock.
+var _margEstCache = { k: '', f: null };
+function _margEstimador() {
+  var clave = (DB.pedidos || []).length + '|' + (DB.stock || []).length;
+  if (_margEstCache.k === clave && _margEstCache.f) return _margEstCache.f;
+  var compras = (DB.pedidos || []).filter(function (p) { return p.estado === 'recibido' && _pedPrecioUnit(p) > 0; })
+    .map(function (p) { return { n: _margN(p.pieza), u: _pedPrecioUnit(p), f: String(p.fecha_recibido || p.fecha_pedido || ''), prov: p.proveedor || '', cal: p.calidad || '' }; })
+    .sort(function (a, b) { return b.f.localeCompare(a.f); });
+  var stockPz = (DB.stock || []).filter(function (x) { return (parseFloat(x.precioC) || 0) > 0 && !_esImeiCat(x.categoria); })
+    .map(function (x) { return { n: _margN((x.categoria || '') + ' ' + (x.marca || '') + ' ' + (x.modelo || '')), u: parseFloat(x.precioC) || 0, cal: x.calidad || '' }; });
+  var cache = {};
+  var f = function (tipo, modelo) {
+    var k = tipo[0] + '|' + modelo; if (cache[k] !== undefined) return cache[k];
+    var c = compras.find(function (p) { return _margEsPieza(p.n, tipo) && _margEsModelo(p.n, modelo); });
+    var v = c ? { u: c.u, prov: c.prov, f: c.f, cal: c.cal } : null;
+    if (!v) { var st = stockPz.find(function (x) { return _margEsPieza(x.n, tipo) && _margEsModelo(x.n, modelo); }); if (st) v = { u: st.u, prov: '', f: '', cal: st.cal }; }
+    cache[k] = v; return v;
+  };
+  _margEstCache = { k: clave, f: f };
+  return f;
+}
 function _renderMargenReps(enRango) {
   var box = document.getElementById('reporteMargen');
   if (!box) return;
@@ -18938,17 +19265,8 @@ function _renderMargenReps(enRango) {
   var compras = (DB.pedidos || []).filter(function (p) { return p.estado === 'recibido' && _pedPrecioUnit(p) > 0; })
     .map(function (p) { return { n: _margN(p.pieza), u: _pedPrecioUnit(p), f: String(p.fecha_recibido || p.fecha_pedido || ''), rep: p.reparacion_id || p.rep_id || '' }; })
     .sort(function (a, b) { return b.f.localeCompare(a.f); });
-  var stockPz = (DB.stock || []).filter(function (x) { return (parseFloat(x.precioC) || 0) > 0 && !_esImeiCat(x.categoria); })
-    .map(function (x) { return { n: _margN((x.categoria || '') + ' ' + (x.marca || '') + ' ' + (x.modelo || '')), u: parseFloat(x.precioC) || 0, cat: _margN(x.categoria) }; });
-  var cacheEst = {};
-  var estimar = function (tipo, modelo) {
-    var k = tipo[0] + '|' + modelo; if (cacheEst[k] !== undefined) return cacheEst[k];
-    var v = null;
-    var c = compras.find(function (p) { return _margEsPieza(p.n, tipo) && _margEsModelo(p.n, modelo); });
-    if (c) v = c.u;
-    else { var st = stockPz.find(function (x) { return _margEsPieza(x.n, tipo) && _margEsModelo(x.n, modelo); }); if (st) v = st.u; }
-    cacheEst[k] = v; return v;
-  };
+  var _est = _margEstimador();
+  var estimar = function (tipo, modelo) { var e = _est(tipo, modelo); return e ? e.u : null; };
   var agg = {}, modelos = {}, nTot = 0, nReal = 0, nEst = 0;
   var stockId = {}; (DB.stock || []).forEach(function (x) { stockId[x.id] = x; });
   (DB.reps || []).forEach(function (r) {
@@ -27626,6 +27944,14 @@ function _pedRetraso(p) {
 //    pedidas para una reparación o un encargo concreto no cuentan: no son de reponer.
 var _CONSUMO_DIAS = 56, _CONSUMO_MOV = 90;
 function _rpnClave(nombre, calidad) { return _pedNorm(nombre) + '|' + _pedNorm(calidad); }
+// Ficha segura de una línea de pedido (cacheada mientras no cambie el stock)
+var _pedFichaCache = { k: '', m: {} };
+function _pedFichaId(p) {
+  var clave = (DB.stock || []).length + '|' + (DB.stock || []).reduce(function (a, x) { return a + (x.vendido ? 1 : 0); }, 0);
+  if (_pedFichaCache.k !== clave) _pedFichaCache = { k: clave, m: {} };
+  if (_pedFichaCache.m[p.id] === undefined) { var f = _fichaParaPedido(p); _pedFichaCache.m[p.id] = f.existe ? f.existe.id : ''; }
+  return _pedFichaCache.m[p.id];
+}
 function _consumoStock() {
   var d8 = _invIso(new Date(Date.now() - _CONSUMO_DIAS * 86400000)), d90 = _invIso(new Date(Date.now() - _CONSUMO_MOV * 86400000));
   var o = { id: {}, id90: {}, nom: {}, nom90: {} };
@@ -27647,7 +27973,11 @@ function _consumoStock() {
     if (p.estado !== 'recibido' || p.reparacion_id || p.rep_id || deEncargo[p.id]) return;
     var f = String(p.fecha_recibido || p.fecha_pedido || '').slice(0, 10);
     if (!f || f < d90) return;
-    var k = _rpnClave(p.pieza, p.calidad), n = parseInt(p.cantidad, 10) || 1;
+    var n = parseInt(p.cantidad, 10) || 1;
+    // Si la línea del pedido se puede unir con seguridad a una ficha, cuenta para esa ficha
+    var fid = _pedFichaId(p);
+    if (fid) { suma(fid, n, f); return; }
+    var k = _rpnClave(p.pieza, p.calidad);
     o.nom90[k] = (o.nom90[k] || 0) + n; if (f >= d8) o.nom[k] = (o.nom[k] || 0) + n;
   });
   return o;
