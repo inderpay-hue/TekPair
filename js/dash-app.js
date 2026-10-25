@@ -18515,8 +18515,8 @@ async function renderReporte() {
   // IVA: cada venta va en el periodo en que se hizo, y su devolución resta en el periodo en
   // que se devolvió. Antes una venta del 1er trimestre devuelta en el 2º desaparecía del 1º,
   // que ya estaba declarado.
-  var _iv = SEL.repTipo !== 'reparaciones' ? _ivaVentasPeriodo(_enRango) : { ventas: [], reemb: [] };
-  renderDesgloseIVA(_iv.ventas, _repPagoItems.concat(_iv.reemb));
+  var _iv = SEL.repTipo !== 'reparaciones' ? _ivaVentasPeriodo(_enRango) : { ventas: [], reemb: [], devueltas: [] };
+  renderDesgloseIVA(_iv.ventas, _repPagoItems.concat(_iv.reemb), _iv.devueltas);
 }
 
 // IVA de ventas de un periodo (pantalla y PDF del gestor): las ventas hechas en el periodo que no
@@ -18528,7 +18528,8 @@ function _ivaVentasPeriodo(enRango) {
     var tot = parseFloat(it.total) || 0, ivaI = parseFloat(it.ivaImporte) || 0, base = parseFloat(it.base) || (tot - ivaI);
     return { iva: it.iva, total: -tot, base: -base, ivaImporte: -ivaI };
   });
-  return { ventas: ventas, reemb: reemb };
+  var devueltas = DB.ventas.filter(function (v) { return v.reembolsado && enRango(v.fechaReembolso || v.fecha) && !enRango(v.fecha); });
+  return { ventas: ventas, reemb: reemb, devueltas: devueltas };
 }
 
 // ═══ GANANCIA DEL PERIODO (Reportes) ═══
@@ -18967,13 +18968,17 @@ function renderGraficas(ventas, reps, pagos, fechas, pagosReps) {
 
 // Ventas de usados comprados a particulares (régimen de margen o sin impuesto):
 // van aparte del desglose por tipo, que es solo de la parte normal de cada venta.
-function _usadosAcum(ventas) {
+// devueltas: ventas devueltas en el periodo que se hicieron en otro; su margen se resta aquí
+// (igual que el IVA normal), porque la cuota ya se declaró en el periodo de la venta.
+function _usadosAcum(ventas, devueltas) {
   var a = { n: 0, ventas: 0, coste: 0, margen: 0, base: 0, cuota: 0 };
-  (ventas || []).forEach(function(v) {
+  var suma = function(v, sg) {
     var P = (typeof tkPartesVenta === 'function') ? tkPartesVenta(v) : null;
     if (!P || !P.hay) return;
-    a.n += P.n; a.ventas += P.ventas; a.coste += P.coste; a.margen += P.margen; a.base += P.base; a.cuota += P.cuota;
-  });
+    a.n += sg * P.n; a.ventas += sg * P.ventas; a.coste += sg * P.coste; a.margen += sg * P.margen; a.base += sg * P.base; a.cuota += sg * P.cuota;
+  };
+  (ventas || []).forEach(function(v) { suma(v, 1); });
+  (devueltas || []).forEach(function(v) { suma(v, -1); });
   return a;
 }
 // La parte normal de una venta (sin los usados), para sumarla por tipo de IVA.
@@ -18994,7 +18999,7 @@ function _usadosResumenHtml(a) {
     '</table>';
 }
 
-function renderDesgloseIVA(ventas, reps) {
+function renderDesgloseIVA(ventas, reps, devueltas) {
   // Sumar por tipo de IVA
   var portipos = {0:{base:0,iva:0,total:0},4:{base:0,iva:0,total:0},10:{base:0,iva:0,total:0},21:{base:0,iva:0,total:0}};
   function añade(item) {
@@ -19023,7 +19028,7 @@ function renderDesgloseIVA(ventas, reps) {
     '</tr></thead><tbody>';
   Object.keys(portipos).sort(function(a,b){return parseFloat(a)-parseFloat(b);}).forEach(function(tipo){
     var d = portipos[tipo];
-    if (d.total === 0) return;
+    if (Math.abs(d.total) < 0.005 && Math.abs(d.iva) < 0.005) return;
     totalBase += d.base; totalIva += d.iva; totalT += d.total;
     html += '<tr>' +
       '<td style="padding:8px;border-bottom:1px solid var(--border)"><strong>' + tipo + '%</strong></td>' +
@@ -19037,7 +19042,7 @@ function renderDesgloseIVA(ventas, reps) {
     '<td style="padding:10px;text-align:right;font-family:ui-monospace,monospace;font-weight:800;color:var(--orange)">' + cur(totalIva) + '</td>' +
     '<td style="padding:10px;text-align:right;font-family:ui-monospace,monospace;font-weight:800;color:var(--green)">' + cur(totalT) + '</td></tr>';
   html += '</tbody></table>';
-  html += _usadosResumenHtml(_usadosAcum(ventas));
+  html += _usadosResumenHtml(_usadosAcum(ventas, devueltas));
   document.getElementById('ivaDesglose').innerHTML = html;
 }
 
@@ -19067,7 +19072,7 @@ function generarPDFGestor() {
   _iv.ventas.forEach(function(v) { añade(_ventaParteNormal(v)); }); _iv.reemb.forEach(añade); reps.forEach(añade);
   var totalBase = 0, totalIva = 0, totalT = 0;
   Object.values(portipos).forEach(function(d){ totalBase += d.base; totalIva += d.iva; totalT += d.total; });
-  var _usA = _usadosAcum(_iv.ventas);
+  var _usA = _usadosAcum(_iv.ventas, _iv.devueltas);
 
   // Pagos
   var pagos = {};

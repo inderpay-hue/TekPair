@@ -88,9 +88,10 @@ export default async function handler(req, res) {
       const ru = await fetch(`${SUPABASE_URL}/rest/v1/usuarios?email=eq.${encodeURIComponent(email)}&select=tienda_id,plan&limit=1`, {headers: sbHeaders});
       const arrU = await ru.json();
       if (arrU.length && arrU[0].tienda_id) {
-        const rt = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(arrU[0].tienda_id)}&select=stripe_sub_id&limit=1`, {headers: sbHeaders});
+        const rt = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(arrU[0].tienda_id)}&select=stripe_sub_id,plan_status&limit=1`, {headers: sbHeaders});
         const tt = (await rt.json().catch(() => []))[0] || {};
-        if (libre(tt)) return {id: arrU[0].tienda_id, plan_email: email, plan: arrU[0].plan};
+        // plan_status hace falta para no pasar a 'active' una prueba con la factura de 0 €
+        if (libre(tt)) return {id: arrU[0].tienda_id, plan_email: email, plan: arrU[0].plan, plan_status: tt.plan_status};
       }
     }
     return null;
