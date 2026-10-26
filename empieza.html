@@ -212,6 +212,11 @@ header{position:sticky;top:0;z-index:50;background:rgba(14,14,16,.94);backdrop-f
 .final h2{font-size:32px;margin-bottom:12px}
 .final p{color:rgba(255,255,255,.7);font-size:17px;margin-bottom:26px}
 .final .trust{justify-content:center}
+.dl{display:flex;align-items:center;gap:14px;flex-wrap:wrap;justify-content:space-between;padding:0 0 22px;margin-bottom:22px;border-bottom:1px solid rgba(255,255,255,.08)}
+.dl-t{color:#fff;font-weight:700;font-size:14.5px}
+.dl-s{font-size:12.5px;color:rgba(255,255,255,.5);margin-top:2px}
+.dl a{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;border:1px solid rgba(255,255,255,.18);border-radius:10px;color:#fff;text-decoration:none;font-weight:600;font-size:13.5px}
+.dl a:hover{border-color:#FF5B1F;color:#FF5B1F}
 
 /* Footer */
 footer{background:var(--ink);color:rgba(255,255,255,.55);font-size:13.5px;padding:32px 0 96px;border-top:1px solid rgba(255,255,255,.08)}
@@ -559,6 +564,11 @@ footer{background:var(--ink);color:rgba(255,255,255,.55);font-size:13.5px;paddin
 </main>
 
 <footer>
+  <!-- Descargas: app de Windows (instalador de la última versión publicada en GitHub) -->
+  <div class="wrap dl" id="descargas">
+    <div><div class="dl-t" data-i="dl.title">App de TekPair para Windows</div><div class="dl-s" data-i="dl.sub">Imprime tickets y etiquetas sin diálogos y abre el cajón. Para clientes de TekPair.</div></div>
+    <a href="https://github.com/inderpay-hue/tekpair-desktop/releases/latest/download/TekPair-Setup.exe" rel="nofollow" download><svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.5 4.5v7H3zm0 13 7.5 1v-7H3zm8.5 1.1L21 21v-8.5h-9.5zm0-15.2V11.5H21V3z"/></svg><span data-i="dl.btn">Descargar para Windows</span></a>
+  </div>
   <div class="wrap ft">
     <div>
       <a href="/" class="logo" style="margin-bottom:6px"><span class="bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> TekPair</a>
@@ -570,6 +580,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.55);font-size:13.5px;paddin
       <a href="/privacidad.html" data-legal="privacidad" data-i="ft.priv">Privacidad</a>
       <a href="/terminos.html" data-legal="terminos" data-i="ft.term">Términos</a>
       <a href="/cookies.html" data-legal="cookies" data-i="ft.cookies">Cookies</a>
+      <a href="#descargas" data-i="ft.dl">Descargas</a>
       <a href="mailto:info@tekpair.tech">info@tekpair.tech</a>
     </nav>
   </div>
@@ -584,6 +595,7 @@ footer{background:var(--ink);color:rgba(255,255,255,.55);font-size:13.5px;paddin
 'use strict';
 var D = {
   es: {
+    'dl.title':'App de TekPair para Windows','dl.sub':'Imprime tickets y etiquetas sin diálogos y abre el cajón. Para clientes de TekPair.','dl.btn':'Descargar para Windows','ft.dl':'Descargas',
     'meta.title':'TekPair — Controla tu tienda de reparación de móviles. Prueba 15 días gratis',
     'meta.desc':'Reparaciones con seguimiento por QR y WhatsApp, presupuestos online, TPV y caja, stock y cobros pendientes. Software para tiendas de reparación y venta de móviles. Prueba 15 días gratis.',
     'og.title':'TekPair — Controla tu tienda de reparación de móviles',
@@ -639,6 +651,7 @@ var D = {
     'price':{basico:'€9,90',pro:'€19,90',top:'€34,90'}
   },
   en: {
+    'dl.title':'TekPair app for Windows','dl.sub':'Print receipts and labels without dialogs and open the cash drawer. For TekPair customers.','dl.btn':'Download for Windows','ft.dl':'Downloads',
     'meta.title':'TekPair — Take control of your phone repair shop. Try it free for 15 days',
     'meta.desc':'Repairs with QR and WhatsApp tracking, online quotes, POS and cash register, stock and pending payments. Software for phone repair and sales shops. Free 15-day trial.',
     'og.title':'TekPair — Take control of your phone repair shop',
@@ -694,6 +707,7 @@ var D = {
     'price':{basico:'€9.90',pro:'€19.90',top:'€34.90'}
   },
   fr: {
+    'dl.title':'Application TekPair pour Windows','dl.sub':'Imprimez tickets et étiquettes sans boîte de dialogue et ouvrez le tiroir-caisse. Pour les clients TekPair.','dl.btn':'Télécharger pour Windows','ft.dl':'Téléchargements',
     'meta.title':'TekPair — Maîtrisez votre boutique de réparation de mobiles. Essai gratuit 15 jours',
     'meta.desc':'Réparations avec suivi par QR et WhatsApp, devis en ligne, caisse, stock et paiements en attente. Logiciel pour boutiques de réparation et vente de mobiles. Essai gratuit 15 jours.',
     'og.title':'TekPair — Maîtrisez votre boutique de réparation de mobiles',
@@ -749,6 +763,7 @@ var D = {
     'price':{basico:'9,90€',pro:'19,90€',top:'34,90€'}
   },
   it: {
+    'dl.title':'App TekPair per Windows','dl.sub':'Stampa scontrini ed etichette senza finestre di dialogo e apri il cassetto. Per i clienti TekPair.','dl.btn':'Scarica per Windows','ft.dl':'Download',
     'meta.title':'TekPair — Tieni sotto controllo il tuo negozio di riparazione cellulari. Prova gratis 15 giorni',
     'meta.desc':'Riparazioni con monitoraggio via QR e WhatsApp, preventivi online, cassa, magazzino e pagamenti in sospeso. Software per negozi di riparazione e vendita di cellulari. Prova gratis 15 giorni.',
     'og.title':'TekPair — Tieni sotto controllo il tuo negozio di riparazione cellulari',
@@ -804,6 +819,7 @@ var D = {
     'price':{basico:'€9,90',pro:'€19,90',top:'€34,90'}
   },
   de: {
+    'dl.title':'TekPair-App für Windows','dl.sub':'Belege und Etiketten ohne Dialog drucken und die Kassenlade öffnen. Für TekPair-Kunden.','dl.btn':'Für Windows herunterladen','ft.dl':'Downloads',
     'meta.title':'TekPair — Behalte deinen Handy-Reparaturshop im Griff. 15 Tage kostenlos testen',
     'meta.desc':'Reparaturen mit QR- und WhatsApp-Tracking, Online-Kostenvoranschläge, Kasse, Lager und offene Zahlungen. Software für Handy-Reparatur- und Verkaufsshops. 15 Tage kostenlos testen.',
     'og.title':'TekPair — Behalte deinen Handy-Reparaturshop im Griff',
@@ -859,6 +875,7 @@ var D = {
     'price':{basico:'9,90€',pro:'19,90€',top:'34,90€'}
   },
   pt: {
+    'dl.title':'App TekPair para Windows','dl.sub':'Imprime talões e etiquetas sem diálogos e abre a gaveta. Para clientes TekPair.','dl.btn':'Transferir para Windows','ft.dl':'Transferências',
     'meta.title':'TekPair — Controla a tua loja de reparação de telemóveis. Experimenta 15 dias grátis',
     'meta.desc':'Reparações com acompanhamento por QR e WhatsApp, orçamentos online, TPV e caixa, stock e pagamentos pendentes. Software para lojas de reparação e venda de telemóveis. 15 dias grátis.',
     'og.title':'TekPair — Controla a tua loja de reparação de telemóveis',
