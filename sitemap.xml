@@ -2553,4 +2553,11 @@
     <priority>0.8</priority>
   </url>
 
+  <!-- Landing de campaña (anuncios, TikTok, comerciales). Una URL, 6 idiomas con selector. -->
+  <url>
+    <loc>https://www.tekpair.tech/empieza.html</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+  </url>
 </urlset>

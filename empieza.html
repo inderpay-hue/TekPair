@@ -1,0 +1,1017 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="color-scheme" content="light">
+<title>TekPair — Controla tu tienda de reparación de móviles. Prueba 15 días gratis</title>
+<meta name="description" content="Reparaciones con seguimiento por QR y WhatsApp, presupuestos online, TPV y caja, stock y cobros pendientes. Software para tiendas de reparación y venta de móviles. Prueba 15 días gratis.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="https://www.tekpair.tech/empieza.html">
+
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://www.tekpair.tech/empieza.html">
+<meta property="og:title" content="TekPair — Controla tu tienda de reparación de móviles">
+<meta property="og:description" content="Reparaciones con QR y WhatsApp, presupuestos online, TPV, stock y cobros pendientes. Prueba 15 días gratis, sin permanencia.">
+<meta property="og:image" content="https://www.tekpair.tech/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="es_ES">
+<meta property="og:locale:alternate" content="en_GB">
+<meta property="og:locale:alternate" content="fr_FR">
+<meta property="og:locale:alternate" content="it_IT">
+<meta property="og:locale:alternate" content="de_DE">
+<meta property="og:locale:alternate" content="pt_PT">
+<meta property="og:site_name" content="TekPair">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="TekPair — Controla tu tienda de reparación de móviles">
+<meta name="twitter:description" content="Reparaciones con QR y WhatsApp, presupuestos online, TPV, stock y cobros pendientes. Prueba 15 días gratis.">
+<meta name="twitter:image" content="https://www.tekpair.tech/og-image.png">
+<meta name="theme-color" content="#0E0E10">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+<noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&display=swap"></noscript>
+<link rel="prefetch" href="/registro.html">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{color-scheme:light;
+  --orange:#FF5B1F;--orange-d:#C2491A;--orange-l:#FFF1EB;--orange-br:#FFD9C9;
+  --ink:#0E0E10;--ink-2:#17171B;--ink-soft:#3D3A34;--muted:#6B655B;--faint:#9A9388;
+  --paper:#FBFAF8;--paper-2:#F2EEE7;--line:#EAE5DD;--card:#FFFFFF;
+  --green:#16A34A;--green-l:#E7F6EC;--green-d:#16803C;--wa:#25D366;--blue:#1D4ED8;
+  --font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--display:'Space Grotesk',system-ui,-apple-system,sans-serif;
+}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:var(--font);color:var(--ink);background:var(--paper);overflow-x:hidden;line-height:1.5;-webkit-font-smoothing:antialiased}
+img{max-width:100%;display:block}
+a{color:inherit;text-decoration:none}
+.wrap{max-width:1120px;margin:0 auto;padding:0 16px}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.03em;line-height:1.08;font-weight:700}
+.sec{padding:64px 0}
+.sec-h{text-align:center;max-width:640px;margin:0 auto 36px}
+.tag{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--orange-d);background:var(--orange-l);border:1px solid var(--orange-br);padding:5px 12px;border-radius:99px;margin-bottom:14px}
+.sec-h h2{font-size:30px}
+.sec-h p{color:var(--muted);font-size:16px;margin-top:10px}
+
+/* Botones */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:600;border-radius:12px;transition:transform .15s,box-shadow .15s,background .15s;text-align:center}
+.btn-main{background:var(--orange);color:#fff;padding:16px 26px;font-size:17px;box-shadow:0 10px 26px -10px rgba(255,91,31,.7)}
+.btn-main:hover{background:var(--orange-d);transform:translateY(-2px)}
+.btn-main .arr{transition:transform .15s}
+.btn-main:hover .arr{transform:translateX(3px)}
+.btn-ghost{padding:15px 22px;font-size:15px;border:1px solid rgba(255,255,255,.25);color:#fff}
+.btn-ghost:hover{background:rgba(255,255,255,.08)}
+
+/* Cabecera */
+header{position:sticky;top:0;z-index:50;background:rgba(14,14,16,.94);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid rgba(255,255,255,.08)}
+.hd{display:flex;align-items:center;justify-content:space-between;gap:10px;height:58px}
+.logo{display:flex;align-items:center;gap:8px;color:#fff;font-family:var(--display);font-weight:600;font-size:18px;letter-spacing:-.02em}
+.bolt{display:inline-flex;width:24px;height:24px;background:var(--orange);border-radius:7px;align-items:center;justify-content:center}
+.bolt svg{width:14px;height:14px;fill:#fff}
+.hd-r{display:flex;align-items:center;gap:8px}
+.lang{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;padding:7px 8px;border-radius:8px;font:500 13px var(--font);cursor:pointer}
+.lang option{color:#000}
+.hd-login{color:rgba(255,255,255,.75);font-size:14px;font-weight:500;padding:8px 6px}
+.hd-login:hover{color:#fff}
+.hd-cta{background:var(--orange);color:#fff;font-size:14px;font-weight:600;padding:9px 14px;border-radius:9px;white-space:nowrap}
+.hd-cta:hover{background:var(--orange-d)}
+@media(max-width:520px){.hd-login{display:none}.hd-cta{padding:8px 11px;font-size:13px}}
+
+/* Hero */
+.hero{background:var(--ink);color:#fff;position:relative;overflow:hidden;padding:40px 0 56px}
+.hero:before{content:"";position:absolute;inset:0;background:radial-gradient(520px circle at 15% 10%,rgba(255,91,31,.28),transparent 60%),radial-gradient(460px circle at 95% 85%,rgba(29,78,216,.25),transparent 60%);pointer-events:none}
+.hero:after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:36px 36px;pointer-events:none;-webkit-mask-image:linear-gradient(#000,transparent 85%);mask-image:linear-gradient(#000,transparent 85%)}
+.hero .wrap{position:relative;z-index:1}
+.hero-grid{display:grid;grid-template-columns:1fr;gap:40px;align-items:center}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:13px;color:rgba(255,255,255,.8);background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.14);padding:6px 12px;border-radius:99px}
+.eyebrow i{width:7px;height:7px;border-radius:50%;background:#22C55E;box-shadow:0 0 0 4px rgba(34,197,94,.2)}
+.hero h1{font-size:38px;margin:18px 0 16px}
+.hero h1 em{font-style:normal;color:var(--orange);display:block}
+.hero .sub{font-size:17px;color:rgba(255,255,255,.72);max-width:520px;margin-bottom:26px}
+.hero-btns{display:flex;flex-direction:column;gap:10px;align-items:stretch}
+.trust{display:flex;flex-wrap:wrap;gap:8px 16px;margin-top:18px;font-size:13px;color:rgba(255,255,255,.65)}
+.trust span{display:inline-flex;align-items:center;gap:6px}
+.trust span:before{content:"✓";color:#22C55E;font-weight:700}
+
+/* Maqueta de móvil */
+.phone-zone{position:relative;display:flex;justify-content:center;padding:0 0 92px;width:fit-content;max-width:100%;margin:0 auto}
+.phone{width:270px;background:#0b0b0d;border-radius:38px;padding:10px;box-shadow:0 40px 80px -30px rgba(0,0,0,.8),0 0 0 1px rgba(255,255,255,.12) inset;position:relative}
+.screen{background:#F6F4F0;border-radius:30px;overflow:hidden;color:var(--ink);min-height:440px;position:relative}
+.notch{position:absolute;top:8px;left:50%;transform:translateX(-50%);width:84px;height:22px;background:#0b0b0d;border-radius:20px;z-index:2}
+.scr-top{background:var(--ink);color:#fff;padding:40px 16px 16px}
+.scr-shop{font-size:11px;color:rgba(255,255,255,.6);display:flex;align-items:center;gap:6px}
+.scr-shop .bolt{width:16px;height:16px;border-radius:5px}
+.scr-shop .bolt svg{width:9px;height:9px}
+.scr-t{font-family:var(--display);font-size:19px;font-weight:600;margin-top:8px}
+.scr-d{font-size:12px;color:rgba(255,255,255,.65);margin-top:2px}
+.scr-body{padding:14px}
+.steps{background:#fff;border:1px solid var(--line);border-radius:14px;padding:12px 14px}
+.stp{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px;color:var(--faint);position:relative}
+.stp b{width:20px;height:20px;border-radius:50%;border:2px solid var(--line);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:11px;background:#fff}
+.stp.ok{color:var(--ink-soft)}
+.stp.ok b{background:var(--green);border-color:var(--green);color:#fff}
+.stp.now{color:var(--ink);font-weight:600}
+.stp.now b{border-color:var(--orange);background:var(--orange);color:#fff;animation:pulse 1.8s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(255,91,31,.5)}70%{box-shadow:0 0 0 9px rgba(255,91,31,0)}100%{box-shadow:0 0 0 0 rgba(255,91,31,0)}}
+.scr-pay{margin-top:10px;display:flex;justify-content:space-between;align-items:center;background:var(--orange-l);border:1px solid var(--orange-br);border-radius:12px;padding:10px 12px;font-size:12px;color:var(--orange-d)}
+.scr-pay strong{font-size:16px;font-family:var(--display)}
+.scr-qr{margin-top:10px;display:flex;gap:10px;align-items:center;font-size:11px;color:var(--muted)}
+.qr{width:46px;height:46px;flex-shrink:0;fill:var(--ink);border-radius:4px;border:1px solid var(--line)}
+.wa{position:absolute;right:-4px;bottom:0;width:232px;background:#fff;border-radius:16px 16px 4px 16px;padding:11px 12px;box-shadow:0 20px 40px -14px rgba(0,0,0,.55);font-size:12.5px;color:var(--ink-soft);border-left:4px solid var(--wa);animation:floaty 4s ease-in-out infinite}
+.wa-h{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:600;color:var(--green-d);margin-bottom:4px}
+.wa-h svg{width:14px;height:14px;fill:var(--wa)}
+.wa small{display:block;text-align:right;color:var(--faint);font-size:10px;margin-top:3px}
+@keyframes floaty{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}html{scroll-behavior:auto}}
+
+/* Cifras */
+.stats{background:var(--ink-2);color:#fff;padding:22px 0;border-top:1px solid rgba(255,255,255,.06)}
+.stats-g{display:grid;grid-template-columns:repeat(2,1fr);gap:18px 10px;text-align:center}
+.stat-v{font-family:var(--display);font-size:26px;font-weight:700;color:var(--orange);letter-spacing:-.02em}
+.stat-l{font-size:12.5px;color:rgba(255,255,255,.6);margin-top:2px}
+
+/* Dolores */
+.pains{display:grid;grid-template-columns:1fr;gap:14px}
+.pain{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px}
+.pain-q{display:flex;gap:10px;align-items:flex-start;font-weight:600;font-size:16px;color:var(--ink)}
+.pain-q .pi{flex-shrink:0;width:26px;height:26px;border-radius:8px;background:#FDECEC;color:#DC2626;display:flex;align-items:center;justify-content:center;font-size:14px}
+.pain-a{display:flex;gap:10px;align-items:flex-start;margin-top:12px;padding-top:12px;border-top:1px dashed var(--line);font-size:14.5px;color:var(--ink-soft)}
+.pain-a .pi{flex-shrink:0;width:26px;height:26px;border-radius:8px;background:var(--green-l);color:var(--green-d);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700}
+
+/* Ventajas */
+.feats{display:grid;grid-template-columns:1fr;gap:14px}
+.feat{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:22px 20px;transition:transform .2s,box-shadow .2s,border-color .2s}
+.feat:hover{transform:translateY(-3px);box-shadow:0 16px 36px -18px rgba(255,91,31,.35);border-color:var(--orange-br)}
+.ic{width:44px;height:44px;border-radius:12px;background:var(--orange-l);color:var(--orange);display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+.ic svg{width:22px;height:22px;stroke:currentColor;stroke-width:2;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.feat h3{font-size:18px;margin-bottom:6px;letter-spacing:-.02em}
+.feat p{font-size:14.5px;color:var(--muted)}
+.pill{display:inline-block;font-size:11px;font-weight:600;color:var(--blue);background:#EEF2FF;border-radius:6px;padding:2px 7px;margin-top:8px}
+
+/* Capturas */
+.shots{background:var(--paper-2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.shot-g{display:grid;grid-template-columns:1fr;gap:20px}
+.shot{background:var(--card);border:1px solid var(--line);border-radius:16px;overflow:hidden;box-shadow:0 24px 50px -30px rgba(14,14,16,.45)}
+.shot-bar{display:flex;gap:6px;padding:10px 12px;background:#F3F1EE;border-bottom:1px solid var(--line)}
+.shot-bar i{width:9px;height:9px;border-radius:50%;background:#E2DDD5}
+.shot img{width:100%;height:auto;aspect-ratio:1200/654;object-fit:cover;object-position:top left}
+.shot figcaption{padding:12px 14px;font-size:14px;color:var(--ink-soft);font-weight:500}
+.shot-note{text-align:center;font-size:13px;color:var(--faint);margin-top:18px}
+
+/* Pasos */
+.how{display:grid;grid-template-columns:1fr;gap:14px;counter-reset:s}
+.how-i{display:flex;gap:14px;align-items:flex-start;background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px}
+.how-n{flex-shrink:0;width:40px;height:40px;border-radius:12px;background:var(--ink);color:var(--orange);font-family:var(--display);font-weight:700;display:flex;align-items:center;justify-content:center;font-size:17px}
+.how-i h3{font-size:17px;margin-bottom:3px;letter-spacing:-.02em}
+.how-i p{font-size:14.5px;color:var(--muted)}
+
+/* Precios */
+.toggle{display:flex;justify-content:center;margin:-12px 0 28px}
+.toggle-in{display:inline-flex;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:4px;box-shadow:0 6px 18px -10px rgba(14,14,16,.3)}
+.toggle button{border:0;background:transparent;font:600 14px var(--font);color:var(--muted);padding:9px 16px;border-radius:9px;cursor:pointer}
+.toggle button.on{background:var(--orange);color:#fff}
+.toggle button .save{color:var(--green);font-weight:600}
+.toggle button.on .save{color:#fff}
+.prices{display:grid;grid-template-columns:1fr;gap:16px;align-items:start}
+.plan{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:26px 22px;position:relative}
+.plan.pop{border:2px solid var(--orange);box-shadow:0 20px 44px -20px rgba(255,91,31,.45)}
+.badge{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:var(--orange);color:#fff;font-size:11px;font-weight:700;letter-spacing:.04em;padding:4px 12px;border-radius:99px;white-space:nowrap}
+.plan h3{font-size:21px}
+.plan-d{font-size:14px;color:var(--muted);margin:2px 0 14px}
+.amt{font-family:var(--display);font-size:38px;font-weight:700;letter-spacing:-.03em}
+.amt span{font:400 14px var(--font);color:var(--faint);letter-spacing:0}
+.plan ul{list-style:none;margin:16px 0 20px}
+.plan li{display:flex;gap:9px;padding:7px 0;font-size:14.5px;color:var(--ink-soft);border-bottom:1px solid var(--paper-2)}
+.plan li:before{content:"✓";color:var(--orange);font-weight:700;flex-shrink:0}
+.plan .btn{width:100%;padding:14px;font-size:15px}
+.btn-sec{background:var(--paper-2);color:var(--ink)}
+.btn-sec:hover{background:var(--line)}
+.plan .btn-main{box-shadow:none}
+.plan-t{text-align:center;font-size:12.5px;color:var(--faint);margin-top:10px}
+.vat{text-align:center;font-size:13px;color:var(--faint);margin-top:18px}
+
+/* FAQ */
+.faq{max-width:760px;margin:0 auto}
+.faq details{background:var(--card);border:1px solid var(--line);border-radius:14px;margin-bottom:10px;overflow:hidden}
+.faq summary{list-style:none;cursor:pointer;padding:17px 18px;font-weight:600;font-size:15.5px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary:after{content:"+";color:var(--orange);font-size:24px;font-weight:400;line-height:1;transition:transform .2s;flex-shrink:0}
+.faq details[open] summary:after{transform:rotate(45deg)}
+.faq details p{padding:0 18px 17px;color:var(--muted);font-size:14.5px}
+
+/* CTA final */
+.final{background:var(--ink);color:#fff;text-align:center;position:relative;overflow:hidden}
+.final:before{content:"";position:absolute;inset:0;background:radial-gradient(500px circle at 50% 0%,rgba(255,91,31,.3),transparent 65%);pointer-events:none}
+.final .wrap{position:relative}
+.final h2{font-size:32px;margin-bottom:12px}
+.final p{color:rgba(255,255,255,.7);font-size:17px;margin-bottom:26px}
+.final .trust{justify-content:center}
+
+/* Footer */
+footer{background:var(--ink);color:rgba(255,255,255,.55);font-size:13.5px;padding:32px 0 96px;border-top:1px solid rgba(255,255,255,.08)}
+.ft{display:flex;flex-direction:column;gap:16px}
+.ft-links{display:flex;flex-wrap:wrap;gap:8px 18px}
+.ft-links a:hover{color:#fff}
+
+/* CTA fijo en móvil */
+.sticky{position:fixed;left:0;right:0;bottom:0;z-index:60;padding:10px 16px calc(10px + env(safe-area-inset-bottom));background:rgba(14,14,16,.96);border-top:1px solid rgba(255,255,255,.12);transform:translateY(110%);transition:transform .25s}
+.sticky.show{transform:translateY(0)}
+.sticky .btn{width:100%;padding:14px;font-size:16px}
+
+/* Animación de entrada */
+.rv{opacity:0;transform:translateY(18px);transition:opacity .6s ease,transform .6s ease}
+.rv.in{opacity:1;transform:none}
+.no-js .rv{opacity:1;transform:none}
+
+@media(min-width:640px){
+  .hero-btns{flex-direction:row;align-items:center}
+  .stats-g{grid-template-columns:repeat(4,1fr)}
+  .feats{grid-template-columns:repeat(2,1fr)}
+  .shot-g{grid-template-columns:repeat(2,1fr)}
+}
+@media(min-width:900px){
+  .wrap{padding:0 24px}
+  .sec{padding:88px 0}
+  .sec-h h2{font-size:38px}
+  .hero{padding:72px 0 88px}
+  .hero-grid{grid-template-columns:1.1fr .9fr;gap:56px}
+  .hero h1{font-size:56px}
+  .wa{right:-70px}
+  .hero .sub{font-size:19px}
+  .pains{grid-template-columns:repeat(3,1fr)}
+  .feats{grid-template-columns:repeat(4,1fr)}
+  .how{grid-template-columns:repeat(3,1fr)}
+  .prices{grid-template-columns:repeat(3,1fr)}
+  .final h2{font-size:44px}
+  .ft{flex-direction:row;justify-content:space-between;align-items:center}
+  footer{padding-bottom:32px}
+  .sticky{display:none}
+}
+@media(max-width:360px){.hero h1{font-size:33px}.wa{width:205px;right:-2px}.phone{width:250px}}
+</style>
+<script>
+/* Idioma: ?lang= → elección guardada (tp_lang) → idioma del navegador → es.
+   Mismo patrón que registro.html / aviso-legal.html. Se calcula antes de pintar. */
+(function(){
+  var SUP = ['es','en','fr','it','de','pt'], l = null;
+  try { var q = new URLSearchParams(location.search).get('lang'); if (q && SUP.indexOf(q) !== -1) l = q; } catch(e) {}
+  if (!l) { try { var s = localStorage.getItem('tp_lang') || localStorage.getItem('tp_lang_landing'); if (s && SUP.indexOf(s) !== -1) l = s; } catch(e) {} }
+  if (!l) { var n = (navigator.language || 'es').slice(0,2).toLowerCase(); l = SUP.indexOf(n) !== -1 ? n : 'es'; }
+  window.__PAGE_LANG = l;
+  document.documentElement.lang = l;
+  document.documentElement.className = 'no-js';
+})();
+</script>
+<script src="/cookies-consent.js" defer></script>
+</head>
+<body>
+
+<header>
+  <div class="wrap hd">
+    <a href="/" class="logo" aria-label="TekPair"><span class="bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> TekPair</a>
+    <div class="hd-r">
+      <select class="lang" id="langSel" aria-label="Idioma / Language">
+        <option value="es">ES</option>
+        <option value="en">EN</option>
+        <option value="fr">FR</option>
+        <option value="it">IT</option>
+        <option value="de">DE</option>
+        <option value="pt">PT</option>
+      </select>
+      <a href="/app.html" class="hd-login" data-i="nav.login">Entrar</a>
+      <a href="/registro.html" class="hd-cta" data-reg data-i="nav.cta">Prueba gratis</a>
+    </div>
+  </div>
+</header>
+
+<main id="main">
+<!-- HERO -->
+<section class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow"><i></i><span data-i="hero.eyebrow">Para tiendas de reparación y venta de móviles</span></div>
+      <h1><span data-i="hero.h1a">Menos papeleo, más reparaciones.</span> <em data-i="hero.h1b">Y cobra lo que te deben.</em></h1>
+      <p class="sub" data-i="hero.sub">TekPair ordena tu tienda: cada reparación con su estado, el cliente avisado por WhatsApp, la caja cuadrada y los pagos pendientes a la vista. Desde el móvil, la tablet o el ordenador.</p>
+      <div class="hero-btns">
+        <a href="/registro.html" class="btn btn-main" data-reg id="heroCta"><span data-i="cta.main">Prueba 15 días gratis</span> <span class="arr">→</span></a>
+        <a href="#precios" class="btn btn-ghost" data-i="hero.cta2">Ver precios</a>
+      </div>
+      <div class="trust">
+        <span data-i="trust.1">15 días gratis</span>
+        <span data-i="trust.2">Listo en 3 minutos</span>
+        <span data-i="trust.3">Cancela cuando quieras</span>
+      </div>
+    </div>
+
+    <div class="phone-zone" aria-hidden="true">
+      <div class="phone">
+        <div class="screen">
+          <div class="notch"></div>
+          <div class="scr-top">
+            <div class="scr-shop"><span class="bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> <span data-i="ph.shop">Seguimiento de tu reparación</span></div>
+            <div class="scr-t">iPhone 14 · <span data-i="ph.fault">Pantalla</span></div>
+            <div class="scr-d"><span data-i="ph.order">Orden</span> #1042</div>
+          </div>
+          <div class="scr-body">
+            <div class="steps">
+              <div class="stp ok"><b>✓</b><span data-i="ph.s1">Recibido</span></div>
+              <div class="stp ok"><b>✓</b><span data-i="ph.s2">En reparación</span></div>
+              <div class="stp now"><b>✓</b><span data-i="ph.s3">Listo para recoger</span></div>
+              <div class="stp"><b></b><span data-i="ph.s4">Entregado</span></div>
+            </div>
+            <div class="scr-pay"><span data-i="ph.pay">Pendiente de pago</span><strong>89,00 €</strong></div>
+            <div class="scr-qr"><svg class="qr" viewBox="-1 -1 23 23" aria-hidden="true"><rect x="-1" y="-1" width="23" height="23" fill="#fff"/><path d="M0 0h7v7h-7z M1 1v5h5v-5z" fill-rule="evenodd"/><rect x="2" y="2" width="3" height="3"/><path d="M14 0h7v7h-7z M15 1v5h5v-5z" fill-rule="evenodd"/><rect x="16" y="2" width="3" height="3"/><path d="M0 14h7v7h-7z M1 15v5h5v-5z" fill-rule="evenodd"/><rect x="2" y="16" width="3" height="3"/><path d="M0 8h1v1h-1zM0 9h1v1h-1zM0 11h1v1h-1zM1 8h1v1h-1zM1 9h1v1h-1zM1 11h1v1h-1zM1 12h1v1h-1zM2 8h1v1h-1zM2 9h1v1h-1zM2 10h1v1h-1zM2 12h1v1h-1zM3 8h1v1h-1zM3 12h1v1h-1zM4 9h1v1h-1zM4 11h1v1h-1zM4 12h1v1h-1zM5 8h1v1h-1zM5 9h1v1h-1zM5 11h1v1h-1zM6 9h1v1h-1zM6 11h1v1h-1zM6 12h1v1h-1zM7 8h1v1h-1zM7 10h1v1h-1zM7 11h1v1h-1zM8 0h1v1h-1zM8 1h1v1h-1zM8 4h1v1h-1zM8 9h1v1h-1zM8 11h1v1h-1zM8 12h1v1h-1zM8 14h1v1h-1zM8 16h1v1h-1zM9 0h1v1h-1zM9 4h1v1h-1zM9 7h1v1h-1zM9 9h1v1h-1zM9 14h1v1h-1zM9 15h1v1h-1zM9 17h1v1h-1zM9 18h1v1h-1zM9 19h1v1h-1zM9 20h1v1h-1zM10 0h1v1h-1zM10 2h1v1h-1zM10 3h1v1h-1zM10 4h1v1h-1zM10 6h1v1h-1zM10 7h1v1h-1zM10 12h1v1h-1zM10 13h1v1h-1zM10 14h1v1h-1zM10 17h1v1h-1zM10 18h1v1h-1zM10 19h1v1h-1zM10 20h1v1h-1zM11 2h1v1h-1zM11 3h1v1h-1zM11 4h1v1h-1zM11 5h1v1h-1zM11 12h1v1h-1zM11 17h1v1h-1zM11 18h1v1h-1zM11 19h1v1h-1zM12 0h1v1h-1zM12 1h1v1h-1zM12 2h1v1h-1zM12 3h1v1h-1zM12 4h1v1h-1zM12 5h1v1h-1zM12 6h1v1h-1zM12 7h1v1h-1zM12 8h1v1h-1zM12 9h1v1h-1zM12 10h1v1h-1zM12 13h1v1h-1zM12 14h1v1h-1zM12 15h1v1h-1zM12 16h1v1h-1zM12 17h1v1h-1zM12 20h1v1h-1zM13 9h1v1h-1zM13 10h1v1h-1zM13 11h1v1h-1zM13 12h1v1h-1zM13 14h1v1h-1zM13 15h1v1h-1zM13 18h1v1h-1zM13 20h1v1h-1zM14 12h1v1h-1zM14 13h1v1h-1zM14 14h1v1h-1zM14 18h1v1h-1zM14 19h1v1h-1zM15 13h1v1h-1zM15 15h1v1h-1zM15 16h1v1h-1zM15 17h1v1h-1zM15 18h1v1h-1zM15 19h1v1h-1zM16 9h1v1h-1zM16 13h1v1h-1zM16 14h1v1h-1zM16 15h1v1h-1zM16 16h1v1h-1zM16 17h1v1h-1zM17 8h1v1h-1zM17 11h1v1h-1zM17 16h1v1h-1zM17 17h1v1h-1zM17 19h1v1h-1zM18 9h1v1h-1zM18 10h1v1h-1zM18 13h1v1h-1zM18 14h1v1h-1zM18 15h1v1h-1zM18 18h1v1h-1zM19 9h1v1h-1zM19 11h1v1h-1zM19 12h1v1h-1zM19 17h1v1h-1zM19 20h1v1h-1zM20 8h1v1h-1zM20 9h1v1h-1zM20 10h1v1h-1zM20 12h1v1h-1zM20 13h1v1h-1zM20 14h1v1h-1zM20 16h1v1h-1zM20 17h1v1h-1zM20 20h1v1h-1z"/></svg><span data-i="ph.qr">El cliente escanea el QR del resguardo y ve el estado al momento.</span></div>
+          </div>
+        </div>
+      </div>
+      <div class="wa">
+        <div class="wa-h"><svg viewBox="0 0 24 24"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm5.3 14.2c-.2.6-1.3 1.2-1.8 1.2-.5.1-1 .2-3.3-.7-2.8-1.1-4.5-4-4.7-4.2-.1-.2-1.1-1.5-1.1-2.9 0-1.4.7-2 1-2.3.2-.3.5-.3.7-.3h.5c.2 0 .4 0 .6.5l.8 2c.1.2.1.4 0 .5l-.4.6-.4.4c-.1.2-.3.3-.1.6.2.3.8 1.3 1.7 2.1 1.1 1 2.1 1.3 2.4 1.5.3.1.5.1.6-.1l.9-1c.2-.3.4-.2.6-.1l1.9.9c.3.1.5.2.5.3.1.2.1.7-.1 1.3z"/></svg> WhatsApp</div>
+        <span data-i="ph.wa">Hola Carlos, tu iPhone 14 ya está listo. Puedes pasar a recogerlo cuando quieras.</span>
+        <small>10:42 ✓✓</small>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CIFRAS (datos reales de la portada) -->
+<section class="stats">
+  <div class="wrap stats-g">
+    <div><div class="stat-v" data-i="st.1v">15 días</div><div class="stat-l" data-i="st.1">de prueba gratis</div></div>
+    <div><div class="stat-v" data-i="st.2v">3 min</div><div class="stat-l" data-i="st.2">para empezar a usarlo</div></div>
+    <div><div class="stat-v">0 €</div><div class="stat-l" data-i="st.3">sin permanencia ni costes ocultos</div></div>
+    <div><div class="stat-v" data-i="st.4v">UE</div><div class="stat-l" data-i="st.4">datos en servidores europeos</div></div>
+  </div>
+</section>
+
+<!-- ¿TE SUENA? -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <span class="tag" data-i="pain.tag">¿Te suena?</span>
+      <h2 data-i="pain.title">Lo que hoy te roba horas en la tienda</h2>
+    </div>
+    <div class="pains">
+      <div class="pain rv">
+        <div class="pain-q"><span class="pi">✕</span><span data-i="pain1.q">Libretas, papelitos y no saber qué móvil es de quién.</span></div>
+        <div class="pain-a"><span class="pi">✓</span><span data-i="pain1.a">Cada reparación con su orden, IMEI, patrón, fotos de recepción y estado. Lo encuentras en segundos.</span></div>
+      </div>
+      <div class="pain rv">
+        <div class="pain-q"><span class="pi">✕</span><span data-i="pain2.q">Clientes llamando todo el día: «¿Está ya mi móvil?»</span></div>
+        <div class="pain-a"><span class="pi">✓</span><span data-i="pain2.a">El cliente ve el estado con el QR de su resguardo y tú le avisas por WhatsApp en un clic, con el mensaje ya escrito.</span></div>
+      </div>
+      <div class="pain rv">
+        <div class="pain-q"><span class="pi">✕</span><span data-i="pain3.q">Cuotas, señales y deudas que se olvidan.</span></div>
+        <div class="pain-a"><span class="pi">✓</span><span data-i="pain3.a">Cobros pendientes en el panel, pagos a plazos y un link para que el cliente pague su cuota desde el móvil.</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- VENTAJAS -->
+<section class="sec" id="ventajas" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <span class="tag" data-i="feat.tag">Todo en una app</span>
+      <h2 data-i="feat.title">Lo que TekPair hace por tu tienda</h2>
+      <p data-i="feat.sub">Pensado para el mostrador de una tienda de reparación de móviles, no para una oficina.</p>
+    </div>
+    <div class="feats">
+      <div class="feat rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.8-3.8a6 6 0 0 1-7.9 7.9l-6.9 6.9a2.1 2.1 0 0 1-3-3l6.9-6.9a6 6 0 0 1 7.9-7.9z"/></svg></div>
+        <h3 data-i="f1.t">Reparaciones bajo control</h3>
+        <p data-i="f1.d">Checklist de recepción, IMEI, patrón, fotos desde el móvil y estados: pendiente, en proceso, por entregar, entregado o garantía.</p>
+      </div>
+      <div class="feat rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-12.2 7.5L3 21l2-5.6A8.4 8.4 0 1 1 21 11.5z"/></svg></div>
+        <h3 data-i="f2.t">Seguimiento por QR y WhatsApp</h3>
+        <p data-i="f2.d">El resguardo lleva un QR para que el cliente consulte su reparación. Avísale por WhatsApp en un clic cuando esté lista.</p>
+      </div>
+      <div class="feat rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 15l2 2 4-4"/></svg></div>
+        <h3 data-i="f3.t">Presupuestos online</h3>
+        <p data-i="f3.d">Envía el presupuesto por enlace y el cliente lo acepta desde su móvil. Sin llamadas de ida y vuelta.</p>
+      </div>
+      <div class="feat rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/></svg></div>
+        <h3 data-i="f4.t">TPV y caja</h3>
+        <p data-i="f4.d">Cobra en segundos en efectivo, tarjeta o Bizum. Ticket con IMEI, desglose de IVA y código de barras. Caja del día por forma de pago.</p>
+      </div>
+      <div class="feat rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M15 9.5c-.5-1-1.6-1.5-3-1.5-1.7 0-3 .9-3 2s1.3 1.7 3 2 3 .9 3 2-1.3 2-3 2c-1.4 0-2.5-.5-3-1.5M12 6v2M12 16v2"/></svg></div>
+        <h3 data-i="f5.t">Cobra lo que te deben</h3>
+        <p data-i="f5.d">Pagos a plazos, cobros pendientes a la vista y un link para pagar la cuota por Bizum, transferencia o PayPal, directo a tu cuenta y sin comisiones.</p>
+      </div>
+      <div class="feat rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.7l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.7l7 4a2 2 0 0 0 2 0l7-4a2 2 0 0 0 1-1.7z"/><path d="M3.3 7 12 12l8.7-5M12 22V12"/></svg></div>
+        <h3 data-i="f6.t">Stock y pedidos con IA</h3>
+        <p data-i="f6.d">Alertas de stock mínimo. Pega el email del proveedor y el pedido se crea solo; haz una foto a la factura y se convierte en gasto.</p>
+        <span class="pill" data-i="f6.pill">IA: plan Premium</span>
+      </div>
+      <div class="feat rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M3 3v18h18"/><path d="M7 15l4-4 3 3 5-6"/></svg></div>
+        <h3 data-i="f7.t">Informes y cierre diario</h3>
+        <p data-i="f7.d">Reportes en PDF con desglose por forma de pago, cierre del día automático por email e informe para tu gestor.</p>
+      </div>
+      <div class="feat rv">
+        <div class="ic"><svg viewBox="0 0 24 24"><path d="M6 9V2h12v7"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg></div>
+        <h3 data-i="f8.t">App de Windows e impresión</h3>
+        <p data-i="f8.d">El ticket sale directo al ancho exacto del papel y el cajón se abre solo al cobrar en efectivo. Sin ventanas que confirmar.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CAPTURAS REALES -->
+<section class="sec shots">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <span class="tag" data-i="shots.tag">Por dentro</span>
+      <h2 data-i="shots.title">Así se ve tu tienda en TekPair</h2>
+    </div>
+    <div class="shot-g">
+      <figure class="shot rv">
+        <div class="shot-bar"><i></i><i></i><i></i></div>
+        <img src="/img/empieza/panel.jpg" width="1200" height="654" loading="lazy" decoding="async" alt="" data-i-alt="shots.c1">
+        <figcaption data-i="shots.c1">Panel de inicio: ventas, reparaciones y caja del día</figcaption>
+      </figure>
+      <figure class="shot rv">
+        <div class="shot-bar"><i></i><i></i><i></i></div>
+        <img src="/img/empieza/reparaciones.jpg" width="1200" height="654" loading="lazy" decoding="async" alt="" data-i-alt="shots.c2">
+        <figcaption data-i="shots.c2">Reparaciones con estado, prioridad y fecha de entrega</figcaption>
+      </figure>
+    </div>
+    <p class="shot-note" data-i="shots.note">Capturas reales de la app, con datos de ejemplo. TekPair está disponible en 6 idiomas.</p>
+  </div>
+</section>
+
+<!-- CÓMO EMPEZAR -->
+<section class="sec">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <span class="tag" data-i="how.tag">Cómo empezar</span>
+      <h2 data-i="how.title">En marcha hoy mismo</h2>
+    </div>
+    <div class="how">
+      <div class="how-i rv"><div class="how-n">1</div><div><h3 data-i="how1.t">Crea tu cuenta</h3><p data-i="how1.d">Elige tu plan y pon los datos de tu tienda. Listo en 3 minutos.</p></div></div>
+      <div class="how-i rv"><div class="how-n">2</div><div><h3 data-i="how2.t">Trae tus datos</h3><p data-i="how2.d">Importa clientes, stock y reparaciones desde CSV, o empieza de cero.</p></div></div>
+      <div class="how-i rv"><div class="how-n">3</div><div><h3 data-i="how3.t">Recibe la primera reparación</h3><p data-i="how3.d">Desde el móvil, la tablet o el ordenador del mostrador. Sin instalar nada.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- PRECIOS (mismos planes y precios que index.html y registro.html) -->
+<section class="sec" id="precios" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-h rv">
+      <span class="tag" data-i="pr.tag">Precios</span>
+      <h2 data-i="pr.title">Un precio claro, sin sorpresas</h2>
+      <p data-i="pr.sub">Sin costes ocultos. Cancela cuando quieras. IVA incluido.</p>
+    </div>
+    <div class="toggle">
+      <div class="toggle-in" role="group">
+        <button type="button" id="cMes" class="on" data-i="pr.m">Mensual</button>
+        <button type="button" id="cAno"><span data-i="pr.y">Anual</span> · <span class="save" data-i="pr.save">2 meses gratis</span></button>
+      </div>
+    </div>
+    <div class="prices">
+      <div class="plan rv">
+        <h3 data-i="p1.n">Básico</h3>
+        <div class="plan-d" data-i="p1.d">Para empezar</div>
+        <div class="amt"><b class="pv" data-p="basico">€9,90</b><span class="per" data-i="per.month">/mes</span></div>
+        <ul>
+          <li data-i="p1.f1">1 usuario</li>
+          <li data-i="p1.f2">Ventas, TPV y reparaciones</li>
+          <li data-i="p1.f3">Gestión de stock</li>
+          <li data-i="p1.f4">Hasta 250 clientes</li>
+          <li data-i="p1.f5">Reportes básicos</li>
+        </ul>
+        <a href="/registro.html?plan=basico" class="btn btn-sec" data-reg="basico" data-i="plan.cta">Empezar prueba gratis</a>
+        <div class="plan-t" data-i="trust.1">15 días gratis</div>
+      </div>
+      <div class="plan pop rv">
+        <div class="badge" data-i="popular">MÁS POPULAR</div>
+        <h3 data-i="p2.n">Pro</h3>
+        <div class="plan-d" data-i="p2.d">Para negocios en crecimiento</div>
+        <div class="amt"><b class="pv" data-p="pro">€19,90</b><span class="per" data-i="per.month">/mes</span></div>
+        <ul>
+          <li data-i="p2.f1">3 usuarios · 1.000 clientes</li>
+          <li data-i="p2.f2">Permisos por usuario</li>
+          <li data-i="p2.f3">Pedidos, gastos y fotos</li>
+          <li data-i="p2.f4">Analítica + financiación a plazos</li>
+          <li data-i="p2.f5">Reportes PDF + informe gestor</li>
+          <li data-i="p2.f6">Importar CSV y copias de seguridad</li>
+        </ul>
+        <a href="/registro.html?plan=pro" class="btn btn-main" data-reg="pro" data-i="plan.cta">Empezar prueba gratis</a>
+        <div class="plan-t" data-i="trust.1">15 días gratis</div>
+      </div>
+      <div class="plan rv">
+        <h3 data-i="p3.n">Premium</h3>
+        <div class="plan-d" data-i="p3.d">Para equipos grandes</div>
+        <div class="amt"><b class="pv" data-p="top">€34,90</b><span class="per" data-i="per.month">/mes</span></div>
+        <ul>
+          <li data-i="p3.f1">Usuarios y clientes ilimitados</li>
+          <li data-i="p3.f2">Todo lo del plan Pro</li>
+          <li data-i="p3.f3">Multi-tienda</li>
+          <li data-i="p3.f4">Citas online</li>
+          <li data-i="p3.f5">Kanban y catálogo de servicios</li>
+          <li data-i="p3.f6">Soporte prioritario + onboarding</li>
+        </ul>
+        <a href="/registro.html?plan=top" class="btn btn-sec" data-reg="top" data-i="plan.cta">Empezar prueba gratis</a>
+        <div class="plan-t" data-i="trust.1">15 días gratis</div>
+      </div>
+    </div>
+    <p class="vat" data-i="pr.vat">Precios con IVA incluido. Sin permanencia.</p>
+  </div>
+</section>
+
+<!-- FAQ -->
+<section class="sec" style="padding-top:0">
+  <div class="wrap">
+    <div class="sec-h rv"><h2 data-i="faq.title">Preguntas frecuentes</h2></div>
+    <div class="faq">
+      <details><summary data-i="q1">¿Necesito instalar algo?</summary><p data-i="a1">No. TekPair funciona en el navegador, en móvil, tablet u ordenador. Si quieres imprimir tickets sin diálogos, tienes además la app de Windows.</p></details>
+      <details><summary data-i="q2">¿Puedo cancelar cuando quiera?</summary><p data-i="a2">Sí, sin permanencia ni penalizaciones. Cancelas tu suscripción desde tu panel de cuenta.</p></details>
+      <details><summary data-i="q3">¿Puedo traer mis datos de otro programa?</summary><p data-i="a3">Sí. Puedes importar clientes, stock y reparaciones desde archivos CSV.</p></details>
+      <details><summary data-i="q4">¿Mis datos están seguros?</summary><p data-i="a4">Sí. Se guardan cifrados en la nube, en servidores de la UE y con copias de seguridad automáticas.</p></details>
+      <details><summary data-i="q5">¿Pueden usarlo mis empleados?</summary><p data-i="a5">Sí. Desde el plan Pro creas cuentas para tu equipo con permisos por usuario; en Premium, usuarios ilimitados.</p></details>
+    </div>
+  </div>
+</section>
+
+<!-- CTA FINAL -->
+<section class="sec final">
+  <div class="wrap">
+    <h2 data-i="fin.title">Tu tienda, en orden desde hoy</h2>
+    <p data-i="fin.sub">Pruébalo 15 días en tu tienda. Sin permanencia.</p>
+    <a href="/registro.html" class="btn btn-main" data-reg><span data-i="cta.main">Prueba 15 días gratis</span> <span class="arr">→</span></a>
+    <div class="trust">
+      <span data-i="trust.2">Listo en 3 minutos</span>
+      <span data-i="trust.3">Cancela cuando quieras</span>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer>
+  <div class="wrap ft">
+    <div>
+      <a href="/" class="logo" style="margin-bottom:6px"><span class="bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> TekPair</a>
+      <div>© 2026 TekPair. <span data-i="ft.rights">Todos los derechos reservados.</span></div>
+    </div>
+    <nav class="ft-links" aria-label="Legal">
+      <a href="/" data-i="ft.home">Inicio</a>
+      <a href="/aviso-legal.html" data-legal="aviso-legal" data-i="ft.aviso">Aviso legal</a>
+      <a href="/privacidad.html" data-legal="privacidad" data-i="ft.priv">Privacidad</a>
+      <a href="/terminos.html" data-legal="terminos" data-i="ft.term">Términos</a>
+      <a href="/cookies.html" data-legal="cookies" data-i="ft.cookies">Cookies</a>
+      <a href="mailto:info@tekpair.tech">info@tekpair.tech</a>
+    </nav>
+  </div>
+</footer>
+
+<div class="sticky" id="sticky">
+  <a href="/registro.html" class="btn btn-main" data-reg><span data-i="cta.main">Prueba 15 días gratis</span> <span class="arr">→</span></a>
+</div>
+
+<script>
+(function(){
+'use strict';
+var D = {
+  es: {
+    'meta.title':'TekPair — Controla tu tienda de reparación de móviles. Prueba 15 días gratis',
+    'meta.desc':'Reparaciones con seguimiento por QR y WhatsApp, presupuestos online, TPV y caja, stock y cobros pendientes. Software para tiendas de reparación y venta de móviles. Prueba 15 días gratis.',
+    'og.title':'TekPair — Controla tu tienda de reparación de móviles',
+    'og.desc':'Reparaciones con QR y WhatsApp, presupuestos online, TPV, stock y cobros pendientes. Prueba 15 días gratis, sin permanencia.',
+    'nav.login':'Entrar','nav.cta':'Prueba gratis',
+    'hero.eyebrow':'Para tiendas de reparación y venta de móviles',
+    'hero.h1a':'Menos papeleo, más reparaciones.','hero.h1b':'Y cobra lo que te deben.',
+    'hero.sub':'TekPair ordena tu tienda: cada reparación con su estado, el cliente avisado por WhatsApp, la caja cuadrada y los pagos pendientes a la vista. Desde el móvil, la tablet o el ordenador.',
+    'cta.main':'Prueba 15 días gratis','hero.cta2':'Ver precios',
+    'trust.1':'15 días gratis','trust.2':'Listo en 3 minutos','trust.3':'Cancela cuando quieras',
+    'ph.shop':'Seguimiento de tu reparación','ph.fault':'Pantalla','ph.order':'Orden',
+    'ph.s1':'Recibido','ph.s2':'En reparación','ph.s3':'Listo para recoger','ph.s4':'Entregado',
+    'ph.pay':'Pendiente de pago','ph.qr':'El cliente escanea el QR del resguardo y ve el estado al momento.',
+    'ph.wa':'Hola Carlos, tu iPhone 14 ya está listo. Puedes pasar a recogerlo cuando quieras.',
+    'st.1v':'15 días','st.1':'de prueba gratis','st.2v':'3 min','st.2':'para empezar a usarlo','st.3':'sin permanencia ni costes ocultos','st.4v':'UE','st.4':'datos en servidores europeos',
+    'pain.tag':'¿Te suena?','pain.title':'Lo que hoy te roba horas en la tienda',
+    'pain1.q':'Libretas, papelitos y no saber qué móvil es de quién.',
+    'pain1.a':'Cada reparación con su orden, IMEI, patrón, fotos de recepción y estado. La encuentras en segundos.',
+    'pain2.q':'Clientes llamando todo el día: «¿Está ya mi móvil?»',
+    'pain2.a':'El cliente ve el estado con el QR de su resguardo y tú le avisas por WhatsApp en un clic, con el mensaje ya escrito.',
+    'pain3.q':'Cuotas, señales y deudas que se olvidan.',
+    'pain3.a':'Cobros pendientes en el panel, pagos a plazos y un link para que el cliente pague su cuota desde el móvil.',
+    'feat.tag':'Todo en una app','feat.title':'Lo que TekPair hace por tu tienda','feat.sub':'Pensado para el mostrador de una tienda de reparación de móviles, no para una oficina.',
+    'f1.t':'Reparaciones bajo control','f1.d':'Checklist de recepción, IMEI, patrón, fotos desde el móvil y estados: pendiente, en proceso, por entregar, entregado o garantía.',
+    'f2.t':'Seguimiento por QR y WhatsApp','f2.d':'El resguardo lleva un QR para que el cliente consulte su reparación. Avísale por WhatsApp en un clic cuando esté lista.',
+    'f3.t':'Presupuestos online','f3.d':'Envía el presupuesto por enlace y el cliente lo acepta desde su móvil. Sin llamadas de ida y vuelta.',
+    'f4.t':'TPV y caja','f4.d':'Cobra en segundos en efectivo, tarjeta o Bizum. Ticket con IMEI, desglose de IVA y código de barras. Caja del día por forma de pago.',
+    'f5.t':'Cobra lo que te deben','f5.d':'Pagos a plazos, cobros pendientes a la vista y un link para pagar la cuota por Bizum, transferencia o PayPal, directo a tu cuenta y sin comisiones.',
+    'f6.t':'Stock y pedidos con IA','f6.d':'Alertas de stock mínimo. Pega el email del proveedor y el pedido se crea solo; haz una foto a la factura y se convierte en gasto.','f6.pill':'IA: plan Premium',
+    'f7.t':'Informes y cierre diario','f7.d':'Reportes en PDF con desglose por forma de pago, cierre del día automático por email e informe para tu gestor.',
+    'f8.t':'App de Windows e impresión','f8.d':'El ticket sale directo al ancho exacto del papel y el cajón se abre solo al cobrar en efectivo. Sin ventanas que confirmar.',
+    'shots.tag':'Por dentro','shots.title':'Así se ve tu tienda en TekPair',
+    'shots.c1':'Panel de inicio: ventas, reparaciones y caja del día','shots.c2':'Reparaciones con estado, prioridad y fecha de entrega',
+    'shots.note':'Capturas reales de la app, con datos de ejemplo. TekPair está disponible en 6 idiomas.',
+    'how.tag':'Cómo empezar','how.title':'En marcha hoy mismo',
+    'how1.t':'Crea tu cuenta','how1.d':'Elige tu plan y pon los datos de tu tienda. Listo en 3 minutos.',
+    'how2.t':'Trae tus datos','how2.d':'Importa clientes, stock y reparaciones desde CSV, o empieza de cero.',
+    'how3.t':'Recibe la primera reparación','how3.d':'Desde el móvil, la tablet o el ordenador del mostrador. Sin instalar nada.',
+    'pr.tag':'Precios','pr.title':'Un precio claro, sin sorpresas','pr.sub':'Sin costes ocultos. Cancela cuando quieras. IVA incluido.',
+    'pr.m':'Mensual','pr.y':'Anual','pr.save':'2 meses gratis','per.month':'/mes','per.year':'/año','pr.vat':'Precios con IVA incluido. Sin permanencia.',
+    'popular':'MÁS POPULAR','plan.cta':'Empezar prueba gratis',
+    'p1.n':'Básico','p1.d':'Para empezar','p1.f1':'1 usuario','p1.f2':'Ventas, TPV y reparaciones','p1.f3':'Gestión de stock','p1.f4':'Hasta 250 clientes','p1.f5':'Reportes básicos',
+    'p2.n':'Pro','p2.d':'Para negocios en crecimiento','p2.f1':'3 usuarios · 1.000 clientes','p2.f2':'Permisos por usuario','p2.f3':'Pedidos, gastos y fotos','p2.f4':'Analítica + financiación a plazos','p2.f5':'Reportes PDF + informe gestor','p2.f6':'Importar CSV y copias de seguridad',
+    'p3.n':'Premium','p3.d':'Para equipos grandes','p3.f1':'Usuarios y clientes ilimitados','p3.f2':'Todo lo del plan Pro','p3.f3':'Multi-tienda','p3.f4':'Citas online','p3.f5':'Kanban y catálogo de servicios','p3.f6':'Soporte prioritario + onboarding',
+    'faq.title':'Preguntas frecuentes',
+    'q1':'¿Necesito instalar algo?','a1':'No. TekPair funciona en el navegador, en móvil, tablet u ordenador. Si quieres imprimir tickets sin diálogos, tienes además la app de Windows.',
+    'q2':'¿Puedo cancelar cuando quiera?','a2':'Sí, sin permanencia ni penalizaciones. Cancelas tu suscripción desde tu panel de cuenta.',
+    'q3':'¿Puedo traer mis datos de otro programa?','a3':'Sí. Puedes importar clientes, stock y reparaciones desde archivos CSV.',
+    'q4':'¿Mis datos están seguros?','a4':'Sí. Se guardan cifrados en la nube, en servidores de la UE y con copias de seguridad automáticas.',
+    'q5':'¿Pueden usarlo mis empleados?','a5':'Sí. Desde el plan Pro creas cuentas para tu equipo con permisos por usuario; en Premium, usuarios ilimitados.',
+    'fin.title':'Tu tienda, en orden desde hoy','fin.sub':'Pruébalo 15 días en tu tienda. Sin permanencia.',
+    'ft.rights':'Todos los derechos reservados.','ft.home':'Inicio','ft.aviso':'Aviso legal','ft.priv':'Privacidad','ft.term':'Términos','ft.cookies':'Cookies',
+    'price':{basico:'€9,90',pro:'€19,90',top:'€34,90'}
+  },
+  en: {
+    'meta.title':'TekPair — Take control of your phone repair shop. Try it free for 15 days',
+    'meta.desc':'Repairs with QR and WhatsApp tracking, online quotes, POS and cash register, stock and pending payments. Software for phone repair and sales shops. Free 15-day trial.',
+    'og.title':'TekPair — Take control of your phone repair shop',
+    'og.desc':'Repairs with QR and WhatsApp, online quotes, POS, stock and pending payments. Free 15-day trial, no lock-in.',
+    'nav.login':'Login','nav.cta':'Free trial',
+    'hero.eyebrow':'For phone repair and sales shops',
+    'hero.h1a':'Less paperwork, more repairs.','hero.h1b':'And get paid what you’re owed.',
+    'hero.sub':'TekPair puts your shop in order: every repair with its status, customers notified on WhatsApp, the till balanced and pending payments in plain sight. From your phone, tablet or computer.',
+    'cta.main':'Try 15 days free','hero.cta2':'See pricing',
+    'trust.1':'15 days free','trust.2':'Ready in 3 minutes','trust.3':'Cancel anytime',
+    'ph.shop':'Your repair status','ph.fault':'Screen','ph.order':'Order',
+    'ph.s1':'Received','ph.s2':'Being repaired','ph.s3':'Ready for pickup','ph.s4':'Delivered',
+    'ph.pay':'Payment pending','ph.qr':'The customer scans the QR on their receipt and sees the status instantly.',
+    'ph.wa':'Hi Carlos, your iPhone 14 is ready. Come and pick it up whenever suits you.',
+    'st.1v':'15 days','st.1':'free trial','st.2v':'3 min','st.2':'to get started','st.3':'no lock-in, no hidden fees','st.4v':'EU','st.4':'data on European servers',
+    'pain.tag':'Sound familiar?','pain.title':'What eats up hours in your shop today',
+    'pain1.q':'Notebooks, scraps of paper and not knowing whose phone is whose.',
+    'pain1.a':'Every repair with its order, IMEI, unlock pattern, intake photos and status. Find it in seconds.',
+    'pain2.q':'Customers calling all day: “Is my phone ready yet?”',
+    'pain2.a':'Customers check the status with the QR on their receipt, and you notify them on WhatsApp in one click with the message already written.',
+    'pain3.q':'Instalments, deposits and debts that get forgotten.',
+    'pain3.a':'Pending payments on your dashboard, instalment plans and a link so customers can pay their instalment from their phone.',
+    'feat.tag':'All in one app','feat.title':'What TekPair does for your shop','feat.sub':'Built for the counter of a phone repair shop, not for an office.',
+    'f1.t':'Repairs under control','f1.d':'Intake checklist, IMEI, unlock pattern, photos from your phone and statuses: pending, in progress, ready, delivered or warranty.',
+    'f2.t':'QR and WhatsApp tracking','f2.d':'The receipt carries a QR so customers can check their repair. Notify them on WhatsApp in one click when it’s ready.',
+    'f3.t':'Online quotes','f3.d':'Send the quote by link and the customer accepts it from their phone. No back-and-forth calls.',
+    'f4.t':'POS and cash register','f4.d':'Take payments in seconds by cash, card or Bizum. Receipts with IMEI, VAT breakdown and barcode. Daily till by payment method.',
+    'f5.t':'Get paid what you’re owed','f5.d':'Instalment plans, pending payments in sight and a link to pay instalments by Bizum, bank transfer or PayPal, straight to your account with no fees.',
+    'f6.t':'Stock and AI-powered orders','f6.d':'Low-stock alerts. Paste the supplier email and the order is created for you; snap a photo of an invoice and it becomes an expense.','f6.pill':'AI: Premium plan',
+    'f7.t':'Reports and daily close','f7.d':'PDF reports broken down by payment method, automatic end-of-day summary by email and an export for your accountant.',
+    'f8.t':'Windows app and printing','f8.d':'Receipts print straight at the exact paper width and the cash drawer opens by itself on cash payments. No dialogs to confirm.',
+    'shots.tag':'Inside','shots.title':'This is your shop in TekPair',
+    'shots.c1':'Home dashboard: sales, repairs and today’s till','shots.c2':'Repairs with status, priority and due date',
+    'shots.note':'Real screenshots of the app with sample data (shown in Spanish). TekPair is available in 6 languages.',
+    'how.tag':'Getting started','how.title':'Up and running today',
+    'how1.t':'Create your account','how1.d':'Choose your plan and enter your shop details. Ready in 3 minutes.',
+    'how2.t':'Bring your data','how2.d':'Import customers, stock and repairs from CSV, or start from scratch.',
+    'how3.t':'Log your first repair','how3.d':'From your phone, tablet or the counter computer. Nothing to install.',
+    'pr.tag':'Pricing','pr.title':'Clear pricing, no surprises','pr.sub':'No hidden costs. Cancel anytime. VAT included.',
+    'pr.m':'Monthly','pr.y':'Yearly','pr.save':'2 months free','per.month':'/month','per.year':'/yr','pr.vat':'Prices include VAT. No lock-in.',
+    'popular':'MOST POPULAR','plan.cta':'Start free trial',
+    'p1.n':'Basic','p1.d':'To get started','p1.f1':'1 user','p1.f2':'Sales, POS and repairs','p1.f3':'Stock management','p1.f4':'Up to 250 customers','p1.f5':'Basic reports',
+    'p2.n':'Pro','p2.d':'For growing businesses','p2.f1':'3 users · 1,000 customers','p2.f2':'Permissions per user','p2.f3':'Orders, expenses and photos','p2.f4':'Analytics + installment financing','p2.f5':'PDF reports + accountant export','p2.f6':'CSV import and backups',
+    'p3.n':'Premium','p3.d':'For large teams','p3.f1':'Unlimited users and customers','p3.f2':'Everything in Pro','p3.f3':'Multi-store','p3.f4':'Online appointments','p3.f5':'Kanban and service catalogue','p3.f6':'Priority support + onboarding',
+    'faq.title':'Frequently asked questions',
+    'q1':'Do I need to install anything?','a1':'No. TekPair runs in the browser on phone, tablet or computer. If you want to print receipts without dialogs, there’s also the Windows app.',
+    'q2':'Can I cancel anytime?','a2':'Yes, no lock-in and no penalties. You cancel your subscription from your account panel.',
+    'q3':'Can I bring my data from another program?','a3':'Yes. You can import customers, stock and repairs from CSV files.',
+    'q4':'Is my data secure?','a4':'Yes. It’s stored encrypted in the cloud, on EU servers, with automatic backups.',
+    'q5':'Can my staff use it?','a5':'Yes. From the Pro plan you create accounts for your team with per-user permissions; Premium has unlimited users.',
+    'fin.title':'Your shop, in order from today','fin.sub':'Try it in your shop for 15 days. No lock-in.',
+    'ft.rights':'All rights reserved.','ft.home':'Home','ft.aviso':'Legal notice','ft.priv':'Privacy','ft.term':'Terms','ft.cookies':'Cookies',
+    'price':{basico:'€9.90',pro:'€19.90',top:'€34.90'}
+  },
+  fr: {
+    'meta.title':'TekPair — Maîtrisez votre boutique de réparation de mobiles. Essai gratuit 15 jours',
+    'meta.desc':'Réparations avec suivi par QR et WhatsApp, devis en ligne, caisse, stock et paiements en attente. Logiciel pour boutiques de réparation et vente de mobiles. Essai gratuit 15 jours.',
+    'og.title':'TekPair — Maîtrisez votre boutique de réparation de mobiles',
+    'og.desc':'Réparations avec QR et WhatsApp, devis en ligne, caisse, stock et paiements en attente. Essai gratuit 15 jours, sans engagement.',
+    'nav.login':'Connexion','nav.cta':'Essai gratuit',
+    'hero.eyebrow':'Pour les boutiques de réparation et vente de mobiles',
+    'hero.h1a':'Moins de paperasse, plus de réparations.','hero.h1b':'Et encaissez ce qu’on vous doit.',
+    'hero.sub':'TekPair met de l’ordre dans votre boutique : chaque réparation avec son statut, le client prévenu par WhatsApp, la caisse juste et les paiements en attente bien visibles. Depuis votre mobile, tablette ou ordinateur.',
+    'cta.main':'Essai gratuit 15 jours','hero.cta2':'Voir les tarifs',
+    'trust.1':'15 jours gratuits','trust.2':'Prêt en 3 minutes','trust.3':'Annulez quand vous voulez',
+    'ph.shop':'Suivi de votre réparation','ph.fault':'Écran','ph.order':'Ordre',
+    'ph.s1':'Reçu','ph.s2':'En réparation','ph.s3':'Prêt à récupérer','ph.s4':'Remis',
+    'ph.pay':'Paiement en attente','ph.qr':'Le client scanne le QR de son reçu et voit le statut en direct.',
+    'ph.wa':'Bonjour Carlos, votre iPhone 14 est prêt. Passez le récupérer quand vous voulez.',
+    'st.1v':'15 jours','st.1':'d’essai gratuit','st.2v':'3 min','st.2':'pour démarrer','st.3':'sans engagement ni frais cachés','st.4v':'UE','st.4':'données sur des serveurs européens',
+    'pain.tag':'Ça vous parle ?','pain.title':'Ce qui vous fait perdre des heures aujourd’hui',
+    'pain1.q':'Carnets, bouts de papier et ne plus savoir quel mobile est à qui.',
+    'pain1.a':'Chaque réparation avec son ordre, IMEI, schéma de déverrouillage, photos de réception et statut. Retrouvée en quelques secondes.',
+    'pain2.q':'Des clients qui appellent toute la journée : « Mon téléphone est prêt ? »',
+    'pain2.a':'Le client voit le statut grâce au QR de son reçu et vous le prévenez par WhatsApp en un clic, message déjà rédigé.',
+    'pain3.q':'Échéances, acomptes et dettes qu’on oublie.',
+    'pain3.a':'Paiements en attente sur le tableau de bord, paiement en plusieurs fois et un lien pour que le client règle son échéance depuis son mobile.',
+    'feat.tag':'Tout en une app','feat.title':'Ce que TekPair fait pour votre boutique','feat.sub':'Pensé pour le comptoir d’une boutique de réparation de mobiles, pas pour un bureau.',
+    'f1.t':'Réparations sous contrôle','f1.d':'Checklist de réception, IMEI, schéma, photos depuis le mobile et statuts : en attente, en cours, à remettre, remis ou garantie.',
+    'f2.t':'Suivi par QR et WhatsApp','f2.d':'Le reçu porte un QR pour que le client consulte sa réparation. Prévenez-le par WhatsApp en un clic quand elle est prête.',
+    'f3.t':'Devis en ligne','f3.d':'Envoyez le devis par lien et le client l’accepte depuis son mobile. Sans allers-retours au téléphone.',
+    'f4.t':'Caisse','f4.d':'Encaissez en quelques secondes en espèces, carte ou Bizum. Ticket avec IMEI, détail de TVA et code-barres. Caisse du jour par moyen de paiement.',
+    'f5.t':'Encaissez ce qu’on vous doit','f5.d':'Paiement en plusieurs fois, impayés bien visibles et un lien pour régler l’échéance par Bizum, virement ou PayPal, directement sur votre compte, sans commission.',
+    'f6.t':'Stock et commandes avec IA','f6.d':'Alertes de stock minimum. Collez l’email du fournisseur et la commande se crée seule ; photographiez la facture et elle devient une dépense.','f6.pill':'IA : plan Premium',
+    'f7.t':'Rapports et clôture du jour','f7.d':'Rapports PDF par moyen de paiement, clôture du jour automatique par email et export pour votre comptable.',
+    'f8.t':'App Windows et impression','f8.d':'Le ticket sort à la largeur exacte du papier et le tiroir s’ouvre seul en paiement espèces. Aucune fenêtre à valider.',
+    'shots.tag':'À l’intérieur','shots.title':'Votre boutique dans TekPair',
+    'shots.c1':'Tableau de bord : ventes, réparations et caisse du jour','shots.c2':'Réparations avec statut, priorité et date de remise',
+    'shots.note':'Captures réelles de l’app avec des données d’exemple (affichées en espagnol). TekPair est disponible en 6 langues.',
+    'how.tag':'Pour commencer','how.title':'Opérationnel dès aujourd’hui',
+    'how1.t':'Créez votre compte','how1.d':'Choisissez votre plan et saisissez les infos de votre boutique. Prêt en 3 minutes.',
+    'how2.t':'Importez vos données','how2.d':'Importez clients, stock et réparations depuis un CSV, ou partez de zéro.',
+    'how3.t':'Enregistrez votre première réparation','how3.d':'Depuis le mobile, la tablette ou l’ordinateur du comptoir. Rien à installer.',
+    'pr.tag':'Tarifs','pr.title':'Un prix clair, sans surprise','pr.sub':'Sans frais cachés. Annulez quand vous voulez. TVA incluse.',
+    'pr.m':'Mensuel','pr.y':'Annuel','pr.save':'2 mois gratuits','per.month':'/mois','per.year':'/an','pr.vat':'Prix TVA incluse. Sans engagement.',
+    'popular':'PLUS POPULAIRE','plan.cta':'Commencer l’essai gratuit',
+    'p1.n':'Basique','p1.d':'Pour commencer','p1.f1':'1 utilisateur','p1.f2':'Ventes, caisse et réparations','p1.f3':'Gestion du stock','p1.f4':'Jusqu’à 250 clients','p1.f5':'Rapports de base',
+    'p2.n':'Pro','p2.d':'Pour les entreprises en croissance','p2.f1':'3 utilisateurs · 1 000 clients','p2.f2':'Permissions par utilisateur','p2.f3':'Commandes, dépenses et photos','p2.f4':'Analytique + paiement en plusieurs fois','p2.f5':'Rapports PDF + export comptable','p2.f6':'Import CSV et sauvegardes',
+    'p3.n':'Premium','p3.d':'Pour les grandes équipes','p3.f1':'Utilisateurs et clients illimités','p3.f2':'Tout du plan Pro','p3.f3':'Multi-boutique','p3.f4':'Rendez-vous en ligne','p3.f5':'Kanban et catalogue de services','p3.f6':'Support prioritaire + onboarding',
+    'faq.title':'Questions fréquentes',
+    'q1':'Dois-je installer quelque chose ?','a1':'Non. TekPair fonctionne dans le navigateur, sur mobile, tablette ou ordinateur. Pour imprimer les tickets sans fenêtre, il existe aussi l’app Windows.',
+    'q2':'Puis-je annuler quand je veux ?','a2':'Oui, sans engagement ni pénalité. Vous annulez votre abonnement depuis votre espace client.',
+    'q3':'Puis-je reprendre mes données d’un autre logiciel ?','a3':'Oui. Vous pouvez importer clients, stock et réparations depuis des fichiers CSV.',
+    'q4':'Mes données sont-elles sécurisées ?','a4':'Oui. Elles sont chiffrées dans le cloud, sur des serveurs de l’UE, avec des sauvegardes automatiques.',
+    'q5':'Mes employés peuvent-ils l’utiliser ?','a5':'Oui. Dès le plan Pro, vous créez des comptes pour votre équipe avec des permissions par utilisateur ; en Premium, utilisateurs illimités.',
+    'fin.title':'Votre boutique en ordre dès aujourd’hui','fin.sub':'Essayez-le 15 jours dans votre boutique. Sans engagement.',
+    'ft.rights':'Tous droits réservés.','ft.home':'Accueil','ft.aviso':'Mentions légales','ft.priv':'Confidentialité','ft.term':'Conditions','ft.cookies':'Cookies',
+    'price':{basico:'9,90€',pro:'19,90€',top:'34,90€'}
+  },
+  it: {
+    'meta.title':'TekPair — Tieni sotto controllo il tuo negozio di riparazione cellulari. Prova gratis 15 giorni',
+    'meta.desc':'Riparazioni con monitoraggio via QR e WhatsApp, preventivi online, cassa, magazzino e pagamenti in sospeso. Software per negozi di riparazione e vendita di cellulari. Prova gratis 15 giorni.',
+    'og.title':'TekPair — Tieni sotto controllo il tuo negozio di riparazione cellulari',
+    'og.desc':'Riparazioni con QR e WhatsApp, preventivi online, cassa, magazzino e pagamenti in sospeso. Prova gratis 15 giorni, senza vincoli.',
+    'nav.login':'Accedi','nav.cta':'Prova gratis',
+    'hero.eyebrow':'Per negozi di riparazione e vendita di cellulari',
+    'hero.h1a':'Meno scartoffie, più riparazioni.','hero.h1b':'E incassa ciò che ti devono.',
+    'hero.sub':'TekPair mette ordine nel tuo negozio: ogni riparazione con il suo stato, il cliente avvisato su WhatsApp, la cassa in quadratura e i pagamenti in sospeso sempre in vista. Da telefono, tablet o computer.',
+    'cta.main':'Prova gratis 15 giorni','hero.cta2':'Vedi i prezzi',
+    'trust.1':'15 giorni gratis','trust.2':'Pronto in 3 minuti','trust.3':'Disdici quando vuoi',
+    'ph.shop':'Stato della tua riparazione','ph.fault':'Schermo','ph.order':'Ordine',
+    'ph.s1':'Ricevuto','ph.s2':'In riparazione','ph.s3':'Pronto per il ritiro','ph.s4':'Consegnato',
+    'ph.pay':'Da pagare','ph.qr':'Il cliente scansiona il QR della ricevuta e vede subito lo stato.',
+    'ph.wa':'Ciao Carlos, il tuo iPhone 14 è pronto. Passa a ritirarlo quando vuoi.',
+    'st.1v':'15 giorni','st.1':'di prova gratuita','st.2v':'3 min','st.2':'per iniziare','st.3':'senza vincoli né costi nascosti','st.4v':'UE','st.4':'dati su server europei',
+    'pain.tag':'Ti suona familiare?','pain.title':'Cosa ti ruba ore in negozio oggi',
+    'pain1.q':'Quaderni, foglietti e non sapere di chi è ogni telefono.',
+    'pain1.a':'Ogni riparazione con ordine, IMEI, sequenza di sblocco, foto di accettazione e stato. La trovi in pochi secondi.',
+    'pain2.q':'Clienti che chiamano tutto il giorno: «Il mio telefono è pronto?»',
+    'pain2.a':'Il cliente vede lo stato con il QR della ricevuta e tu lo avvisi su WhatsApp con un clic, messaggio già scritto.',
+    'pain3.q':'Rate, acconti e debiti che si dimenticano.',
+    'pain3.a':'Pagamenti in sospeso nel pannello, pagamenti a rate e un link perché il cliente paghi la rata dal telefono.',
+    'feat.tag':'Tutto in un’app','feat.title':'Cosa fa TekPair per il tuo negozio','feat.sub':'Pensato per il bancone di un negozio di riparazione cellulari, non per un ufficio.',
+    'f1.t':'Riparazioni sotto controllo','f1.d':'Checklist di accettazione, IMEI, sequenza, foto dal telefono e stati: in attesa, in corso, da consegnare, consegnato o garanzia.',
+    'f2.t':'Monitoraggio via QR e WhatsApp','f2.d':'La ricevuta ha un QR con cui il cliente consulta la riparazione. Avvisalo su WhatsApp con un clic quando è pronta.',
+    'f3.t':'Preventivi online','f3.d':'Invia il preventivo tramite link e il cliente lo accetta dal telefono. Niente telefonate avanti e indietro.',
+    'f4.t':'Cassa','f4.d':'Incassa in pochi secondi in contanti, carta o Bizum. Scontrino con IMEI, dettaglio IVA e codice a barre. Cassa del giorno per metodo di pagamento.',
+    'f5.t':'Incassa ciò che ti devono','f5.d':'Pagamenti a rate, sospesi sempre in vista e un link per pagare la rata con Bizum, bonifico o PayPal, direttamente sul tuo conto e senza commissioni.',
+    'f6.t':'Magazzino e ordini con IA','f6.d':'Avvisi di scorta minima. Incolla l’email del fornitore e l’ordine si crea da solo; fotografa la fattura e diventa una spesa.','f6.pill':'IA: piano Premium',
+    'f7.t':'Report e chiusura giornaliera','f7.d':'Report PDF per metodo di pagamento, chiusura del giorno automatica via email ed export per il commercialista.',
+    'f8.t':'App Windows e stampa','f8.d':'Lo scontrino esce alla larghezza esatta della carta e il cassetto si apre da solo quando incassi in contanti. Niente finestre da confermare.',
+    'shots.tag':'Dentro l’app','shots.title':'Ecco il tuo negozio in TekPair',
+    'shots.c1':'Pannello iniziale: vendite, riparazioni e cassa del giorno','shots.c2':'Riparazioni con stato, priorità e data di consegna',
+    'shots.note':'Schermate reali dell’app con dati di esempio (in spagnolo). TekPair è disponibile in 6 lingue.',
+    'how.tag':'Come iniziare','how.title':'Operativo già oggi',
+    'how1.t':'Crea il tuo account','how1.d':'Scegli il piano e inserisci i dati del negozio. Pronto in 3 minuti.',
+    'how2.t':'Porta i tuoi dati','how2.d':'Importa clienti, magazzino e riparazioni da CSV, oppure parti da zero.',
+    'how3.t':'Registra la prima riparazione','how3.d':'Da telefono, tablet o dal computer del bancone. Senza installare nulla.',
+    'pr.tag':'Prezzi','pr.title':'Un prezzo chiaro, senza sorprese','pr.sub':'Nessun costo nascosto. Disdici quando vuoi. IVA inclusa.',
+    'pr.m':'Mensile','pr.y':'Annuale','pr.save':'2 mesi gratis','per.month':'/mese','per.year':'/anno','pr.vat':'Prezzi IVA inclusa. Senza vincoli.',
+    'popular':'PIÙ POPOLARE','plan.cta':'Inizia la prova gratuita',
+    'p1.n':'Base','p1.d':'Per iniziare','p1.f1':'1 utente','p1.f2':'Vendite, cassa e riparazioni','p1.f3':'Gestione stock','p1.f4':'Fino a 250 clienti','p1.f5':'Report di base',
+    'p2.n':'Pro','p2.d':'Per attività in crescita','p2.f1':'3 utenti · 1.000 clienti','p2.f2':'Permessi per utente','p2.f3':'Ordini, spese e foto','p2.f4':'Analisi + finanziamento a rate','p2.f5':'Report PDF + export contabilità','p2.f6':'Import CSV e backup',
+    'p3.n':'Premium','p3.d':'Per grandi team','p3.f1':'Utenti e clienti illimitati','p3.f2':'Tutto del piano Pro','p3.f3':'Multi-negozio','p3.f4':'Appuntamenti online','p3.f5':'Kanban e catalogo servizi','p3.f6':'Supporto prioritario + onboarding',
+    'faq.title':'Domande frequenti',
+    'q1':'Devo installare qualcosa?','a1':'No. TekPair funziona nel browser, su telefono, tablet o computer. Per stampare scontrini senza finestre c’è anche l’app per Windows.',
+    'q2':'Posso disdire quando voglio?','a2':'Sì, senza vincoli né penali. Disdici l’abbonamento dal pannello del tuo account.',
+    'q3':'Posso portare i dati da un altro programma?','a3':'Sì. Puoi importare clienti, magazzino e riparazioni da file CSV.',
+    'q4':'I miei dati sono al sicuro?','a4':'Sì. Sono cifrati nel cloud, su server UE e con backup automatici.',
+    'q5':'Possono usarlo i miei dipendenti?','a5':'Sì. Dal piano Pro crei account per il tuo team con permessi per utente; con Premium, utenti illimitati.',
+    'fin.title':'Il tuo negozio in ordine da oggi','fin.sub':'Provalo 15 giorni nel tuo negozio. Senza vincoli.',
+    'ft.rights':'Tutti i diritti riservati.','ft.home':'Home','ft.aviso':'Note legali','ft.priv':'Privacy','ft.term':'Termini','ft.cookies':'Cookie',
+    'price':{basico:'€9,90',pro:'€19,90',top:'€34,90'}
+  },
+  de: {
+    'meta.title':'TekPair — Behalte deinen Handy-Reparaturshop im Griff. 15 Tage kostenlos testen',
+    'meta.desc':'Reparaturen mit QR- und WhatsApp-Tracking, Online-Kostenvoranschläge, Kasse, Lager und offene Zahlungen. Software für Handy-Reparatur- und Verkaufsshops. 15 Tage kostenlos testen.',
+    'og.title':'TekPair — Behalte deinen Handy-Reparaturshop im Griff',
+    'og.desc':'Reparaturen mit QR und WhatsApp, Online-Kostenvoranschläge, Kasse, Lager und offene Zahlungen. 15 Tage kostenlos, ohne Mindestlaufzeit.',
+    'nav.login':'Anmelden','nav.cta':'Gratis testen',
+    'hero.eyebrow':'Für Handy-Reparatur- und Verkaufsshops',
+    'hero.h1a':'Weniger Papierkram, mehr Reparaturen.','hero.h1b':'Und hol dir dein Geld.',
+    'hero.sub':'TekPair bringt Ordnung in deinen Shop: jede Reparatur mit Status, Kunden per WhatsApp benachrichtigt, die Kasse stimmt und offene Zahlungen immer im Blick. Vom Handy, Tablet oder Computer.',
+    'cta.main':'15 Tage kostenlos testen','hero.cta2':'Preise ansehen',
+    'trust.1':'15 Tage gratis','trust.2':'In 3 Minuten startklar','trust.3':'Jederzeit kündbar',
+    'ph.shop':'Status deiner Reparatur','ph.fault':'Display','ph.order':'Auftrag',
+    'ph.s1':'Angenommen','ph.s2':'In Reparatur','ph.s3':'Abholbereit','ph.s4':'Übergeben',
+    'ph.pay':'Zahlung offen','ph.qr':'Der Kunde scannt den QR-Code auf seinem Beleg und sieht sofort den Status.',
+    'ph.wa':'Hallo Carlos, dein iPhone 14 ist fertig. Du kannst es jederzeit abholen.',
+    'st.1v':'15 Tage','st.1':'kostenlos testen','st.2v':'3 Min.','st.2':'bis zum Start','st.3':'keine Mindestlaufzeit, keine versteckten Kosten','st.4v':'EU','st.4':'Daten auf europäischen Servern',
+    'pain.tag':'Kommt dir das bekannt vor?','pain.title':'Was dich heute im Shop Stunden kostet',
+    'pain1.q':'Notizbücher, Zettel und keine Ahnung, welches Handy wem gehört.',
+    'pain1.a':'Jede Reparatur mit Auftrag, IMEI, Entsperrmuster, Annahmefotos und Status. In Sekunden gefunden.',
+    'pain2.q':'Kunden rufen den ganzen Tag an: „Ist mein Handy schon fertig?“',
+    'pain2.a':'Der Kunde sieht den Status über den QR-Code auf seinem Beleg, und du benachrichtigst ihn mit einem Klick per WhatsApp – die Nachricht ist schon geschrieben.',
+    'pain3.q':'Raten, Anzahlungen und Schulden, die vergessen werden.',
+    'pain3.a':'Offene Zahlungen im Dashboard, Ratenzahlung und ein Link, mit dem der Kunde seine Rate am Handy bezahlt.',
+    'feat.tag':'Alles in einer App','feat.title':'Was TekPair für deinen Shop tut','feat.sub':'Gemacht für die Theke eines Handy-Reparaturshops, nicht fürs Büro.',
+    'f1.t':'Reparaturen im Griff','f1.d':'Annahme-Checkliste, IMEI, Entsperrmuster, Fotos vom Handy und Status: offen, in Arbeit, abholbereit, übergeben oder Garantie.',
+    'f2.t':'Tracking per QR und WhatsApp','f2.d':'Der Beleg trägt einen QR-Code, mit dem der Kunde seine Reparatur abruft. Benachrichtige ihn mit einem Klick per WhatsApp, wenn sie fertig ist.',
+    'f3.t':'Online-Kostenvoranschläge','f3.d':'Schick den Kostenvoranschlag per Link, der Kunde nimmt ihn am Handy an. Kein Hin und Her am Telefon.',
+    'f4.t':'Kasse','f4.d':'Kassiere in Sekunden bar, per Karte oder Bizum. Beleg mit IMEI, MwSt.-Aufschlüsselung und Barcode. Tageskasse nach Zahlungsart.',
+    'f5.t':'Hol dir dein Geld','f5.d':'Ratenzahlung, offene Posten im Blick und ein Link, um die Rate per Bizum, Überweisung oder PayPal zu zahlen – direkt auf dein Konto, ohne Gebühren.',
+    'f6.t':'Lager und Bestellungen mit KI','f6.d':'Mindestbestand-Warnungen. Füge die Lieferanten-E-Mail ein und die Bestellung entsteht von selbst; fotografiere die Rechnung und sie wird zur Ausgabe.','f6.pill':'KI: Premium-Plan',
+    'f7.t':'Berichte und Tagesabschluss','f7.d':'PDF-Berichte nach Zahlungsart, automatischer Tagesabschluss per E-Mail und Export für deinen Steuerberater.',
+    'f8.t':'Windows-App und Druck','f8.d':'Der Beleg druckt direkt in exakter Papierbreite und die Kassenlade öffnet bei Barzahlung von selbst. Keine Fenster zum Bestätigen.',
+    'shots.tag':'Ein Blick hinein','shots.title':'So sieht dein Shop in TekPair aus',
+    'shots.c1':'Startseite: Verkäufe, Reparaturen und Tageskasse','shots.c2':'Reparaturen mit Status, Priorität und Abholdatum',
+    'shots.note':'Echte Screenshots der App mit Beispieldaten (auf Spanisch). TekPair gibt es in 6 Sprachen.',
+    'how.tag':'So startest du','how.title':'Noch heute startklar',
+    'how1.t':'Konto erstellen','how1.d':'Plan wählen und Shopdaten eingeben. In 3 Minuten startklar.',
+    'how2.t':'Daten mitbringen','how2.d':'Kunden, Lager und Reparaturen per CSV importieren – oder bei null anfangen.',
+    'how3.t':'Erste Reparatur annehmen','how3.d':'Vom Handy, Tablet oder Thekencomputer. Ohne Installation.',
+    'pr.tag':'Preise','pr.title':'Klare Preise, keine Überraschungen','pr.sub':'Keine versteckten Kosten. Jederzeit kündbar. Inkl. MwSt.',
+    'pr.m':'Monatlich','pr.y':'Jährlich','pr.save':'2 Monate gratis','per.month':'/Monat','per.year':'/Jahr','pr.vat':'Preise inkl. MwSt. Keine Mindestlaufzeit.',
+    'popular':'AM BELIEBTESTEN','plan.cta':'Kostenlos testen',
+    'p1.n':'Basic','p1.d':'Für den Einstieg','p1.f1':'1 Benutzer','p1.f2':'Verkäufe, Kasse und Reparaturen','p1.f3':'Lagerverwaltung','p1.f4':'Bis zu 250 Kunden','p1.f5':'Grundlegende Berichte',
+    'p2.n':'Pro','p2.d':'Für wachsende Unternehmen','p2.f1':'3 Benutzer · 1.000 Kunden','p2.f2':'Berechtigungen pro Benutzer','p2.f3':'Bestellungen, Ausgaben und Fotos','p2.f4':'Analysen + Ratenzahlung','p2.f5':'PDF-Berichte + Buchhaltungsexport','p2.f6':'CSV-Import und Backups',
+    'p3.n':'Premium','p3.d':'Für große Teams','p3.f1':'Unbegrenzte Benutzer und Kunden','p3.f2':'Alles aus dem Pro-Plan','p3.f3':'Multi-Filiale','p3.f4':'Online-Termine','p3.f5':'Kanban und Servicekatalog','p3.f6':'Priorisierter Support + Onboarding',
+    'faq.title':'Häufige Fragen',
+    'q1':'Muss ich etwas installieren?','a1':'Nein. TekPair läuft im Browser auf Handy, Tablet oder Computer. Wer Belege ohne Dialoge drucken will, hat zusätzlich die Windows-App.',
+    'q2':'Kann ich jederzeit kündigen?','a2':'Ja, ohne Mindestlaufzeit und ohne Strafen. Du kündigst dein Abo im Konto-Panel.',
+    'q3':'Kann ich Daten aus einem anderen Programm übernehmen?','a3':'Ja. Du kannst Kunden, Lager und Reparaturen aus CSV-Dateien importieren.',
+    'q4':'Sind meine Daten sicher?','a4':'Ja. Sie werden verschlüsselt in der Cloud auf EU-Servern gespeichert, mit automatischen Backups.',
+    'q5':'Können meine Mitarbeiter es nutzen?','a5':'Ja. Ab dem Pro-Plan legst du Konten für dein Team mit Berechtigungen pro Benutzer an; mit Premium unbegrenzt viele Benutzer.',
+    'fin.title':'Ab heute Ordnung in deinem Shop','fin.sub':'Teste es 15 Tage in deinem Shop. Ohne Mindestlaufzeit.',
+    'ft.rights':'Alle Rechte vorbehalten.','ft.home':'Startseite','ft.aviso':'Impressum','ft.priv':'Datenschutz','ft.term':'AGB','ft.cookies':'Cookies',
+    'price':{basico:'9,90€',pro:'19,90€',top:'34,90€'}
+  },
+  pt: {
+    'meta.title':'TekPair — Controla a tua loja de reparação de telemóveis. Experimenta 15 dias grátis',
+    'meta.desc':'Reparações com acompanhamento por QR e WhatsApp, orçamentos online, TPV e caixa, stock e pagamentos pendentes. Software para lojas de reparação e venda de telemóveis. 15 dias grátis.',
+    'og.title':'TekPair — Controla a tua loja de reparação de telemóveis',
+    'og.desc':'Reparações com QR e WhatsApp, orçamentos online, TPV, stock e pagamentos pendentes. 15 dias grátis, sem fidelização.',
+    'nav.login':'Entrar','nav.cta':'Experimentar',
+    'hero.eyebrow':'Para lojas de reparação e venda de telemóveis',
+    'hero.h1a':'Menos papelada, mais reparações.','hero.h1b':'E recebe o que te devem.',
+    'hero.sub':'O TekPair põe a tua loja em ordem: cada reparação com o seu estado, o cliente avisado por WhatsApp, a caixa certa e os pagamentos pendentes sempre à vista. No telemóvel, tablet ou computador.',
+    'cta.main':'Experimenta 15 dias grátis','hero.cta2':'Ver preços',
+    'trust.1':'15 dias grátis','trust.2':'Pronto em 3 minutos','trust.3':'Cancela quando quiseres',
+    'ph.shop':'Estado da tua reparação','ph.fault':'Ecrã','ph.order':'Ordem',
+    'ph.s1':'Recebido','ph.s2':'Em reparação','ph.s3':'Pronto a levantar','ph.s4':'Entregue',
+    'ph.pay':'Pagamento pendente','ph.qr':'O cliente lê o QR do talão e vê o estado no momento.',
+    'ph.wa':'Olá Carlos, o teu iPhone 14 já está pronto. Podes vir buscá-lo quando quiseres.',
+    'st.1v':'15 dias','st.1':'de experiência grátis','st.2v':'3 min','st.2':'para começar','st.3':'sem fidelização nem custos ocultos','st.4v':'UE','st.4':'dados em servidores europeus',
+    'pain.tag':'Soa-te familiar?','pain.title':'O que hoje te rouba horas na loja',
+    'pain1.q':'Cadernos, papelinhos e não saber de quem é cada telemóvel.',
+    'pain1.a':'Cada reparação com ordem, IMEI, padrão de desbloqueio, fotos de receção e estado. Encontras em segundos.',
+    'pain2.q':'Clientes a ligar o dia todo: «O meu telemóvel já está?»',
+    'pain2.a':'O cliente vê o estado com o QR do talão e tu avisas por WhatsApp num clique, com a mensagem já escrita.',
+    'pain3.q':'Prestações, sinais e dívidas que ficam esquecidos.',
+    'pain3.a':'Pagamentos pendentes no painel, pagamentos a prestações e um link para o cliente pagar a prestação pelo telemóvel.',
+    'feat.tag':'Tudo numa app','feat.title':'O que o TekPair faz pela tua loja','feat.sub':'Pensado para o balcão de uma loja de reparação de telemóveis, não para um escritório.',
+    'f1.t':'Reparações sob controlo','f1.d':'Checklist de receção, IMEI, padrão, fotos pelo telemóvel e estados: pendente, em curso, por entregar, entregue ou garantia.',
+    'f2.t':'Acompanhamento por QR e WhatsApp','f2.d':'O talão leva um QR para o cliente consultar a reparação. Avisa-o por WhatsApp num clique quando estiver pronta.',
+    'f3.t':'Orçamentos online','f3.d':'Envia o orçamento por link e o cliente aceita-o no telemóvel. Sem chamadas para trás e para a frente.',
+    'f4.t':'TPV e caixa','f4.d':'Recebe em segundos em dinheiro, cartão ou Bizum. Talão com IMEI, discriminação do IVA e código de barras. Caixa do dia por forma de pagamento.',
+    'f5.t':'Recebe o que te devem','f5.d':'Pagamentos a prestações, pendentes à vista e um link para pagar a prestação por Bizum, transferência ou PayPal, direto para a tua conta e sem comissões.',
+    'f6.t':'Stock e encomendas com IA','f6.d':'Alertas de stock mínimo. Cola o email do fornecedor e a encomenda cria-se sozinha; tira uma foto à fatura e passa a despesa.','f6.pill':'IA: plano Premium',
+    'f7.t':'Relatórios e fecho diário','f7.d':'Relatórios PDF por forma de pagamento, fecho do dia automático por email e exportação para o contabilista.',
+    'f8.t':'App de Windows e impressão','f8.d':'O talão sai direto à largura exata do papel e a gaveta abre sozinha ao receber em dinheiro. Sem janelas para confirmar.',
+    'shots.tag':'Por dentro','shots.title':'Assim fica a tua loja no TekPair',
+    'shots.c1':'Painel inicial: vendas, reparações e caixa do dia','shots.c2':'Reparações com estado, prioridade e data de entrega',
+    'shots.note':'Capturas reais da app com dados de exemplo (em espanhol). O TekPair está disponível em 6 idiomas.',
+    'how.tag':'Como começar','how.title':'A funcionar hoje mesmo',
+    'how1.t':'Cria a tua conta','how1.d':'Escolhe o plano e põe os dados da loja. Pronto em 3 minutos.',
+    'how2.t':'Traz os teus dados','how2.d':'Importa clientes, stock e reparações a partir de CSV, ou começa do zero.',
+    'how3.t':'Regista a primeira reparação','how3.d':'No telemóvel, tablet ou computador do balcão. Sem instalar nada.',
+    'pr.tag':'Preços','pr.title':'Um preço claro, sem surpresas','pr.sub':'Sem custos ocultos. Cancela quando quiseres. IVA incluído.',
+    'pr.m':'Mensal','pr.y':'Anual','pr.save':'2 meses grátis','per.month':'/mês','per.year':'/ano','pr.vat':'Preços com IVA incluído. Sem fidelização.',
+    'popular':'MAIS POPULAR','plan.cta':'Começar experiência grátis',
+    'p1.n':'Básico','p1.d':'Para começar','p1.f1':'1 utilizador','p1.f2':'Vendas, TPV e reparações','p1.f3':'Gestão de stock','p1.f4':'Até 250 clientes','p1.f5':'Relatórios básicos',
+    'p2.n':'Pro','p2.d':'Para negócios em crescimento','p2.f1':'3 utilizadores · 1.000 clientes','p2.f2':'Permissões por utilizador','p2.f3':'Encomendas, despesas e fotos','p2.f4':'Análises + financiamento a prestações','p2.f5':'Relatórios PDF + exportação contabilidade','p2.f6':'Importar CSV e cópias de segurança',
+    'p3.n':'Premium','p3.d':'Para grandes equipas','p3.f1':'Utilizadores e clientes ilimitados','p3.f2':'Tudo do plano Pro','p3.f3':'Multi-loja','p3.f4':'Marcações online','p3.f5':'Kanban e catálogo de serviços','p3.f6':'Suporte prioritário + onboarding',
+    'faq.title':'Perguntas frequentes',
+    'q1':'Preciso de instalar alguma coisa?','a1':'Não. O TekPair funciona no navegador, no telemóvel, tablet ou computador. Para imprimir talões sem janelas, tens também a app de Windows.',
+    'q2':'Posso cancelar quando quiser?','a2':'Sim, sem fidelização nem penalizações. Cancelas a subscrição no painel da tua conta.',
+    'q3':'Posso trazer os dados de outro programa?','a3':'Sim. Podes importar clientes, stock e reparações a partir de ficheiros CSV.',
+    'q4':'Os meus dados estão seguros?','a4':'Sim. São guardados cifrados na nuvem, em servidores da UE e com cópias de segurança automáticas.',
+    'q5':'Os meus funcionários podem usá-lo?','a5':'Sim. A partir do plano Pro crias contas para a equipa com permissões por utilizador; no Premium, utilizadores ilimitados.',
+    'fin.title':'A tua loja em ordem a partir de hoje','fin.sub':'Experimenta 15 dias na tua loja. Sem fidelização.',
+    'ft.rights':'Todos os direitos reservados.','ft.home':'Início','ft.aviso':'Aviso legal','ft.priv':'Privacidade','ft.term':'Termos','ft.cookies':'Cookies',
+    'price':{basico:'€9,90',pro:'€19,90',top:'€34,90'}
+  }
+};
+/* Anual: mismos importes que registro.html (€99 / €199 / €349 al año, 2 meses gratis). */
+var ANUAL = { basico:'€99', pro:'€199', top:'€349' };
+var OG_LOCALE = { es:'es_ES', en:'en_GB', fr:'fr_FR', it:'it_IT', de:'de_DE', pt:'pt_PT' };
+var lang = window.__PAGE_LANG || 'es';
+var ciclo = 'mensual';
+
+function meta(sel, val){ var m = document.querySelector(sel); if (m) m.setAttribute('content', val); }
+
+/* Enlaces al registro: conservan TODOS los parámetros de la URL (ref, utm_*, gclid, fbclid, ttclid…)
+   y añaden lang y, si aplica, plan. */
+function regHref(plan){
+  var p;
+  try { p = new URLSearchParams(location.search); } catch(e) { p = null; }
+  if (!p) return '/registro.html' + (plan ? '?plan=' + plan : '');
+  p.delete('plan'); p.delete('lang');
+  if (plan) p.set('plan', plan);
+  p.set('lang', lang);
+  return '/registro.html?' + p.toString();
+}
+
+function pintarPrecios(){
+  var L = D[lang] || D.es;
+  document.querySelectorAll('.pv').forEach(function(el){
+    var k = el.getAttribute('data-p');
+    el.textContent = ciclo === 'anual' ? ANUAL[k] : L.price[k];
+  });
+  document.querySelectorAll('.per').forEach(function(el){
+    el.textContent = ciclo === 'anual' ? L['per.year'] : L['per.month'];
+  });
+  document.getElementById('cMes').className = ciclo === 'mensual' ? 'on' : '';
+  document.getElementById('cAno').className = ciclo === 'anual' ? 'on' : '';
+}
+
+function setLang(l){
+  if (!D[l]) l = 'es';
+  lang = l;
+  var L = D[l], E = D.es;
+  try { localStorage.setItem('tp_lang', l); } catch(e) {}
+  document.documentElement.lang = l;
+  document.querySelectorAll('[data-i]').forEach(function(el){
+    var k = el.getAttribute('data-i');
+    el.textContent = L[k] != null ? L[k] : E[k];
+  });
+  document.querySelectorAll('[data-i-alt]').forEach(function(el){
+    var k = el.getAttribute('data-i-alt');
+    el.setAttribute('alt', L[k] != null ? L[k] : E[k]);
+  });
+  document.title = L['meta.title'];
+  meta('meta[name="description"]', L['meta.desc']);
+  meta('meta[property="og:title"]', L['og.title']);
+  meta('meta[property="og:description"]', L['og.desc']);
+  meta('meta[name="twitter:title"]', L['og.title']);
+  meta('meta[name="twitter:description"]', L['og.desc']);
+  meta('meta[property="og:locale"]', OG_LOCALE[l]);
+  document.querySelectorAll('[data-reg]').forEach(function(a){
+    a.setAttribute('href', regHref(a.getAttribute('data-reg') || ''));
+  });
+  document.querySelectorAll('[data-legal]').forEach(function(a){
+    var f = a.getAttribute('data-legal') + '.html';
+    a.setAttribute('href', l === 'es' ? '/' + f : '/' + l + '/' + f);
+  });
+  var sel = document.getElementById('langSel'); if (sel) sel.value = l;
+  pintarPrecios();
+}
+
+document.getElementById('langSel').addEventListener('change', function(){ setLang(this.value); });
+document.getElementById('cMes').addEventListener('click', function(){ ciclo = 'mensual'; pintarPrecios(); });
+document.getElementById('cAno').addEventListener('click', function(){ ciclo = 'anual'; pintarPrecios(); });
+
+setLang(lang);
+document.documentElement.className = '';
+
+/* Animación de entrada al hacer scroll */
+var rv = document.querySelectorAll('.rv');
+if ('IntersectionObserver' in window) {
+  var io = new IntersectionObserver(function(en){
+    en.forEach(function(e){ if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); } });
+  }, { threshold: .12, rootMargin: '0px 0px -40px 0px' });
+  rv.forEach(function(el){ io.observe(el); });
+} else { rv.forEach(function(el){ el.classList.add('in'); }); }
+
+/* CTA fijo en móvil: aparece al pasar el botón del hero y se oculta en el CTA final */
+var sticky = document.getElementById('sticky'), heroCta = document.getElementById('heroCta'), fin = document.querySelector('.final');
+if ('IntersectionObserver' in window && sticky && heroCta) {
+  var heroVis = true, finVis = false;
+  var upd = function(){ sticky.classList.toggle('show', !heroVis && !finVis); };
+  new IntersectionObserver(function(en){ heroVis = en[0].isIntersecting || en[0].boundingClientRect.top > 0; upd(); }).observe(heroCta);
+  if (fin) new IntersectionObserver(function(en){ finVis = en[0].isIntersecting; upd(); }).observe(fin);
+}
+
+/* Analítica (solo si el usuario aceptó cookies y GA está cargado): clic en CTA de registro */
+document.addEventListener('click', function(ev){
+  var a = ev.target.closest && ev.target.closest('[data-reg]');
+  if (a && typeof window.gtag === 'function') {
+    window.gtag('event', 'cta_registro', { page: 'empieza', plan: a.getAttribute('data-reg') || '', lang: lang });
+  }
+});
+})();
+</script>
+</body>
+</html>

@@ -239,6 +239,10 @@
   ],
   "rewrites": [
     {
+      "source": "/empieza",
+      "destination": "/empieza.html"
+    },
+    {
       "source": "/r/:code",
       "destination": "/api/r?code=:code"
     }
