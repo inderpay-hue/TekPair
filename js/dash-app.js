@@ -13010,7 +13010,8 @@ function trackingTicket() {
         T('tk.excluido') +
         T('tk.reclamacion') +
       '</div>' +
-      '<div class="link-cond">' + T('tk.cond_completas').replace('{url}', esc(origin.replace(/^https?:\/\//, ''))) + '</div>' +
+      // El enlace a las condiciones va a la web de TekPair: fuera en las tiendas sin marca.
+      ((AJUSTES && AJUSTES.sinMarcaTekpair) ? '' : '<div class="link-cond">' + T('tk.cond_completas').replace('{url}', esc(origin.replace(/^https?:\/\//, ''))) + '</div>') +
       '<div class="aviso">' + T('tk.aviso_acepta') + '</div>'
     ) : '') +
 
