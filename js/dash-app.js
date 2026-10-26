@@ -12899,9 +12899,24 @@ function trackingWA() {
   }
 }
 
+// Importes del resguardo/presupuesto: la ficha de DB.reps más reciente (TRACKING.rep puede ser
+// una copia vieja si la lista se recargó desde la nube) y, si el total está a 0 pero los
+// servicios o piezas tienen precio, el total sale de ellos (antes se imprimía «TOTAL 0,00»
+// en reparaciones guardadas con 690 €).
+function _repParaImprimir(r) {
+  if (!r) return r;
+  var fresca = (DB.reps || []).find(function (x) { return x.id === r.id; }) || r;
+  if ((parseFloat(fresca.total) || 0) > 0 || fresca.financiado) return fresca;
+  var srv = (Array.isArray(fresca.servicios) ? fresca.servicios : []).reduce(function (a, s) { return a + (parseFloat(s && s.precio) || 0); }, 0);
+  var pz = (Array.isArray(fresca.componentes) ? fresca.componentes : []).reduce(function (a, p) { return a + (parseFloat(p && p.precio) || 0); }, 0);
+  if (!(srv + pz > 0)) return fresca;
+  var c = calcIVA(srv + pz, fresca.iva || null);
+  return Object.assign({}, fresca, { total: c.total, base: c.base, ivaImporte: c.iva });
+}
+
 function trackingTicket() {
   // ticket_legal_v1: ticket 80mm con logo, garantias resumidas y link a condiciones
-  var r = TRACKING.rep, url = TRACKING.url;
+  var r = _repParaImprimir(TRACKING.rep), url = TRACKING.url;
   if (!r) return;
   var tienda = (typeof TIENDA !== 'undefined' && TIENDA) ? TIENDA : { nombre: 'Tekpair' };
   var qrSvg = '';
@@ -14601,7 +14616,7 @@ function actualizarBadgePresupuestos() {
 
 // Imprime el presupuesto en A4 con línea de firma para que el cliente lo firme en papel.
 function imprimirPresupuesto(repId) {
-  var r = DB.reps.find(function(x){ return x.id === repId; });
+  var r = _repParaImprimir(DB.reps.find(function(x){ return x.id === repId; }));
   if (!r) return;
   var tienda = (typeof TIENDA !== 'undefined' && TIENDA) ? TIENDA : { nombre: 'TekPair' };
   var servicios = Array.isArray(r.servicios) ? r.servicios : [];
