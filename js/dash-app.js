@@ -4968,8 +4968,8 @@ function renderEditarInicio() {
         '</div>';
     });
   });
-  // Objetivo del mes (Premium): se enciende y apaga aquí, para toda la tienda
-  if (tienePerm('ajustes_editar') && tieneFeature('objetivo_mes')) {
+  // Objetivo del mes (Premium, solo el administrador): se enciende y apaga aquí
+  if (_esAdmin() && tieneFeature('objetivo_mes')) {
     var om = _objMesCfg();
     html += '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;margin:12px 0 4px">🎯 ' + escHtml(T('obj.titulo_corto')) + ' <span style="font-weight:700;color:#7C3AED;text-transform:none">· Premium</span></div>' +
       '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border)"><span style="flex:1;font-size:13px;font-weight:600">' + escHtml(om.on ? T('obj.activo').replace('{x}', cur(om.importe)) : T('obj.inactivo')) + '</span>' +
@@ -4987,7 +4987,7 @@ function _objMesGuardar(o) {
   if (SB_KEY && TIENDA_ID) sbPatch('tiendas', 'id=eq.' + TIENDA_ID, { ajustes_config: AJUSTES });
 }
 function objMesToggle() {
-  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  if (!_esAdmin()) { toast(T('gen.sin_permiso'), 'err'); return; }
   if (!tieneFeature('objetivo_mes')) { checkFeature('objetivo_mes'); return; }
   var o = _objMesCfg();
   if (!o.on && !(o.importe > 0)) { objMesEditar(true); return; }
@@ -4996,7 +4996,7 @@ function objMesToggle() {
   try { renderObjetivoMes(); } catch (e) {}
 }
 function objMesEditar(activar) {
-  if (!tienePerm('ajustes_editar')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  if (!_esAdmin()) { toast(T('gen.sin_permiso'), 'err'); return; }
   if (!tieneFeature('objetivo_mes')) { checkFeature('objetivo_mes'); return; }
   var o = _objMesCfg();
   pedirImporte(T('obj.pregunta_importe'), o.importe || '', function (v) {
@@ -5015,7 +5015,8 @@ function objMesEditar(activar) {
 function renderObjetivoMes() {
   var box = document.getElementById('inv-objetivo'); if (!box) return;
   var o = _objMesCfg();
-  if (!tieneFeature('objetivo_mes') || !o.on || !(o.importe > 0) || !(typeof puedeVerCaja !== 'function' || puedeVerCaja())) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  // Solo lo ve el administrador: los empleados no ven la meta ni lo cobrado del mes.
+  if (!tieneFeature('objetivo_mes') || !o.on || !(o.importe > 0) || !_esAdmin()) { box.style.display = 'none'; box.innerHTML = ''; return; }
   var hoy = hoyLocal(), d1 = hoy.slice(0, 8) + '01';
   var fin = new Date(+hoy.slice(0, 4), +hoy.slice(5, 7), 0), d2 = _invIso(fin);
   var pagos = {}; try { _sumarCobradoReps(pagos, d1, d2); } catch (e) {}
