@@ -439,7 +439,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
       <!-- Totals -->
       <div class="cart-totals">
         <div class="total-row"><span><span data-t="tpv.subtotal">Subtotal</span></span><span id="subtotal">€0.00</span></div>
-        <div class="total-row"><span data-t="tpv.descuento">Descuento</span><span id="discTotal" style="color:#FF8080">-€0.00</span></div>
+        <div class="total-row"><span data-t="tpv.descuento">Descuento</span><span id="discTotal" style="color:#FF8080">€0.00</span></div>
         <div class="total-row" id="ivaBaseRow" style="display:none"><span><span data-t="gen.base_imponible">Base imponible</span></span><span id="ivaBaseVal">€0.00</span></div>
         <div class="total-row" id="ivaImpRow" style="display:none"><span id="ivaImpLbl">IVA</span><span id="ivaImpVal">€0.00</span></div>
         <div class="total-row main"><span id="totalLbl">TOTAL</span><span id="grandTotal">€0.00</span></div>
@@ -2081,7 +2081,7 @@ function limitarDescuento() {
 function calcTotal() {
   var t = _computeTotals();
   document.getElementById('subtotal').textContent = '\u20ac' + t.subtotal.toFixed(2);
-  document.getElementById('discTotal').textContent = '-\u20ac' + t.disc.toFixed(2);
+  document.getElementById('discTotal').textContent = (t.disc > 0 ? '-' : '') + '\u20ac' + t.disc.toFixed(2);   // sin descuento: «€0.00», no «-€0.00»
   document.getElementById('grandTotal').textContent = '\u20ac' + t.total.toFixed(2);
   document.getElementById('btnCheckout').textContent = T('tpv.cobrar') + ' \u20ac' + t.total.toFixed(2);
   // #12/#13: no permitir cobrar 0\u20ac (descuento que anula el total, o cantidad llevada a 0).

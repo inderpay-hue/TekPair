@@ -20627,7 +20627,7 @@ async function cierreDia() {
   var pagosHoy = [];
   if (SB_KEY) {
     try {
-      pagosHoy = await sbGet('pagos_reparacion', 'fecha=eq.' + hoyISO + '&order=created_at.desc') || [];
+      pagosHoy = await sbGet('pagos_reparacion', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=eq.' + hoyISO + '&order=created_at.desc') || [];
     } catch (e) {
       console.error('Error cargando pagos del día:', e);
       pagosHoy = [];
