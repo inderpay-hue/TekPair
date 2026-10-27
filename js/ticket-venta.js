@@ -29,6 +29,14 @@
     return sym + n.toFixed(2);
   }
   function txt(k) { return (typeof T === 'function') ? T(k) : k; }
+  // Con el signo delante: «-€9.00». Las devoluciones (js/devolucion.js) van en negativo.
+  function moneyS(n) { n = parseFloat(n) || 0; return (n < 0 ? '-' : '') + money(Math.abs(n)); }
+  // Línea de una devolución parcial: lleva dev = { v: venta original, n: su número, f: su fecha }.
+  function devDe(v) {
+    var its = (v && v.items) || [];
+    for (var i = 0; i < its.length; i++) if (its[i] && its[i].dev && its[i].dev.v) return its[i].dev;
+    return null;
+  }
 
   function code128Html(texto, altoPx, unidadPx) {
     var str = String(texto || '').replace(/[^\x20-\x7E]/g, '');
@@ -88,6 +96,13 @@
     return { imei: imei, estado: estado, garantia: (esProducto && gm > 0) ? txt('tkt.garantia_meses').replace('{n}', gm) : '', conGarantia: !!(esProducto && gm > 0) };
   }
 
+  // Parte de la venta pagada con el saldo de un cambio (devolución previa): no se entrega en efectivo.
+  function pagadoConCambio(v) {
+    var p = v && v.pagos;
+    if (typeof p === 'string') { try { p = JSON.parse(p); } catch (e) { p = null; } }
+    return Array.isArray(p) ? p.reduce(function (a, x) { return a + (x && x.metodo === 'Cambio' ? (parseFloat(x.importe) || 0) : 0); }, 0) : 0;
+  }
+
   // opts.imprimir: añade el script que abre el diálogo de impresión al cargar.
   function tkTicketVentaHtml(v, opts) {
     opts = opts || {};
@@ -103,8 +118,10 @@
 
     // ── Cabecera del documento ──
     var num = numero(v);
-    var filas = [[txt('tkt.documento'), (AJ.ticketDoc || txt('tkt.doc_def'))]];
+    var dev = devDe(v);
+    var filas = [[txt('tkt.documento'), dev ? txt('dev.tk_documento') : (AJ.ticketDoc || txt('tkt.doc_def'))]];
     if (num) filas.push([txt('tkt.numero'), num]);
+    if (dev) filas.push([txt('dev.tk_de'), dev.n ? numero({ numero: dev.n, fecha: dev.f }) : String(dev.f || '')]);
     filas.push([txt('pres.doc_fecha'), fechaHora(v)]);
     var sinCli = !v.clienteNombre || v.clienteNombre === 'Sin cliente';
     filas.push([txt('pres.doc_cliente'), sinCli ? txt('gen.sin_cliente') : v.clienteNombre]);
@@ -128,7 +145,7 @@
       var dl = dv > 0 ? Math.min(it.descTipo === 'pct' ? sub * dv / 100 : dv, sub) : 0;
       return '<div class="it"><span class="it-q">' + qty + '</span>' +
           '<span class="it-d">' + esc(it.nombre) + (it.usado && it.usado.regimen === 'margen' ? ' (*)' : '') + '</span>' +
-          '<span class="it-u">' + money(pu) + '</span><span class="it-t">' + money(sub) + '</span></div>' +
+          '<span class="it-u">' + money(pu) + '</span><span class="it-t">' + moneyS(sub) + '</span></div>' +
         (ex.imei ? '<div class="it-nota">IMEI: ' + esc(ex.imei) + '</div>' : '') +
         (ex.estado ? '<div class="it-nota">' + esc(ex.estado) + '</div>' : '') +
         (ex.garantia ? '<div class="it-nota">' + esc(ex.garantia) + '</div>' : '') +
@@ -140,7 +157,9 @@
     // ── Sumas y desglose de IVA ──
     // Los usados en régimen de margen no desglosan su impuesto: solo la parte normal.
     var P = (typeof tkPartesVenta === 'function') ? tkPartesVenta(v) : { normalBase: v.base || 0, normalIva: v.ivaImporte || 0, mencion: '', hay: false };
-    var ivaOn = !!(v.iva && v.ivaModo && v.ivaModo !== 'sin') && (!P.hay || P.normalBase > 0);
+    // Devolución: su base y cuota ya vienen en negativo y en proporción; se enseñan tal cual.
+    if (dev) P = { normalBase: v.base || 0, normalIva: v.ivaImporte || 0, mencion: '', hay: false };
+    var ivaOn = !!(v.iva && v.ivaModo && v.ivaModo !== 'sin') && (dev ? true : (!P.hay || P.normalBase > 0));
     var sumas = '';
     if (v.descuento > 0) {
       sumas += '<div class="row"><span>' + txt('tkt.subtotal') + '</span><span>' + money(v.precio || 0) + '</span></div>' +
@@ -149,7 +168,7 @@
     var iva = ivaOn
       ? '<div class="sep"></div><div class="tit">' + txt('tkt.desglose_iva') + '</div>' +
         '<div class="iv th"><span>IVA</span><span>' + txt('pres.doc_base_imponible') + '</span><span>' + txt('tkt.cuota_iva') + '</span></div>' +
-        '<div class="iv"><span>' + v.iva + '%</span><span>' + money(P.normalBase || 0) + '</span><span>' + money(P.normalIva || 0) + '</span></div>'
+        '<div class="iv"><span>' + v.iva + '%</span><span>' + moneyS(P.normalBase || 0) + '</span><span>' + moneyS(P.normalIva || 0) + '</span></div>'
       : '';
     if (P.mencion) iva += '<div class="sm" style="margin-top:3px">(*) ' + esc(P.mencion) + '</div>';
 
@@ -158,14 +177,14 @@
     var pago = '<div class="row"><span>' + esc(String(txt('tpv.tk_pago')).replace(/:\s*$/, '')) + '</span><strong>' + esc(pagoTxt) + '</strong></div>';
     if (v.entregado > 0) {
       pago += '<div class="row"><span>' + txt('tkt.entregado') + '</span><span>' + money(v.entregado) + '</span></div>' +
-        '<div class="row"><span>' + txt('tkt.cambio') + '</span><strong>' + money(Math.max(0, v.entregado - (v.total || 0))) + '</strong></div>';
+        '<div class="row"><span>' + txt('tkt.cambio') + '</span><strong>' + money(Math.max(0, v.entregado - ((v.total || 0) - pagadoConCambio(v)))) + '</strong></div>';
     }
 
     // ── Pie ──
     // Garantía y cambios: el texto de la tienda (Ajustes) si lo tiene; si no, un
     // texto neutro que no promete plazos que la tienda no haya puesto.
-    var pie = '<div class="c gracias">' + txt('tpv.gracias_compra') + '</div>';
-    if (TI.garVenActiva !== false && (TI.garantiaVentas || algunaGarantia)) {
+    var pie = dev ? '' : '<div class="c gracias">' + txt('tpv.gracias_compra') + '</div>';
+    if (!dev && TI.garVenActiva !== false && (TI.garantiaVentas || algunaGarantia)) {
       pie += '<div class="blq"><div class="tit">' + txt('tkt.pie_garantia') + '</div><div class="sm">' +
         esc(TI.garantiaVentas || txt('tkt.pie_garantia_def')) + '</div></div>';
     }
@@ -200,12 +219,13 @@
       '</style></head><body>' +
       cab + '<div class="sep"></div>' + datos +
       (v.reembolsado ? '<div class="rembolso">' + txt('tpv.reembolsada') + '</div>' : '') +
+      (dev ? '<div class="rembolso">' + txt('dev.tk_titulo') + '</div>' : '') +
       '<div class="sep"></div>' +
       '<div class="it th"><span class="it-q">' + txt('tkt.uds') + '</span><span class="it-d">' + txt('tkt.descripcion') +
         '</span><span class="it-u">' + txt('tkt.pvp_ud') + '</span><span class="it-t">' + txt('tkt.total_col') + '</span></div>' +
       lineas + '<div class="sep"></div>' + sumas + iva +
       '<div class="tot"><span>' + txt('pres.doc_total') + (v.ivaModo === 'incluido' && ivaOn ? ' ' + txt('tkt.iva_inc') : '') +
-        '</span><span>' + money(v.total || 0) + '</span></div>' +
+        '</span><span>' + moneyS(v.total || 0) + '</span></div>' +
       pago +
       (num ? '<div class="sep"></div>' + code128Html(num, 34, 1.3) + '<div class="c" style="font-size:10.5px;letter-spacing:1px;margin-top:2px">' + esc(num) + '</div>' : '') +
       '<div class="sep"></div>' + pie +

@@ -25,7 +25,7 @@ const LANG_FILE = path.join(ROOT, 'lang', 'lang.v8.js');
 // Ficheros donde se referencian claves de i18n (data-t / T()).
 const SOURCE_FILES = [
   'dashboard.html', 'tpv.html', 'parte.html', 'app.html', 'registro.html',
-  'js/dash-app.js', 'js/dash-cajas.js', 'factura.js',
+  'js/dash-app.js', 'js/dash-cajas.js', 'factura.js', 'js/devolucion.js', 'js/ticket-venta.js',
 ];
 
 // Claves que se construyen dinámicamente (prefijo + variable) y no se pueden verificar literalmente.

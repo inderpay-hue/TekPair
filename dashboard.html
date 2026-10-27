@@ -1248,7 +1248,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261026l"></script>
+<script src="/lang/lang.v8.js?v=20261027d"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -5759,8 +5759,9 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/desktop-print.js?v=20261023a"></script>
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
-<script src="/js/ticket-venta.js?v=20261023b"></script>
-<script src="/js/dash-app.js?v=20261027a"></script>
+<script src="/js/ticket-venta.js?v=20261027d"></script>
+<script src="/js/dash-app.js?v=20261027d"></script>
+<script src="/js/devolucion.js?v=20261027d"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -7396,7 +7397,7 @@ function resetPagosRep() {
 // ═══ FACTURAS ═══
 (function() {
   var s = document.createElement('script');
-  s.src = 'factura.js?v=20261016n';
+  s.src = 'factura.js?v=20261027d';
   s.defer = true;
   document.body.appendChild(s);
 })();
@@ -7405,6 +7406,8 @@ function resetPagosRep() {
 function factVenta(id) {
   var v = DB.ventas.find(function(x) { return x.id === id; });
   if (!v) { toast(T('gen.error'), 'err'); return; }
+  // Una devolución no se factura: su documento es el abono de la factura de la venta.
+  if (typeof window.tkEsDevolucion === 'function' && window.tkEsDevolucion(v)) { toast(T('dev.no_facturar'), 'err'); return; }
   var cli = v.clienteId ? DB.clis.find(function(c) { return c.id === v.clienteId; }) : null;
   // Fallback: si el cliente no está en DB.clis pero la venta guardó el nombre, usarlo igualmente
   if (!cli && v.clienteNombre && v.clienteNombre !== 'Sin cliente' && v.clienteNombre !== T('gen.sin_cliente')) {
@@ -7556,8 +7559,13 @@ function filtrarFacturas() {
     var origenTxt = f.origen_tipo === 'reparacion' ? '🔧 ' + T('fact.o_reparacion') : (f.origen_tipo === 'venta' ? '🛒 ' + T('fact.o_venta') : '—');
     var esAbono = !!f.rectifica_a;
     var abonada = _FACTURAS.some(function(x) { return x.rectifica_a === f.id; });
+    // Abonos parciales (devolución de solo algunas líneas): «Abonada en parte» y sin botón de
+    // abono entero, que abonaría otra vez lo ya abonado.
+    var _abonado = _FACTURAS.filter(function(x) { return x.rectifica_a === f.id; }).reduce(function(a, x) { return a + Math.abs(parseFloat(x.total) || 0); }, 0);
+    var abonadaParcial = abonada && _abonado < Math.abs(parseFloat(f.total) || 0) - 0.005;
     var numBadge = '';
     if (esAbono) numBadge = ' <span class="badge" style="background:#fee2e2;color:#dc2626">' + T('factl.abono') + '</span>';
+    else if (abonadaParcial) numBadge = ' <span class="badge" style="background:#fef3c7;color:#b45309">' + T('factl.abonada_parcial') + '</span>';
     else if (abonada) numBadge = ' <span class="badge" style="background:#fef3c7;color:#b45309">' + T('factl.abonada') + '</span>';
     var colorTotal = (parseFloat(f.total) || 0) < 0 ? '#dc2626' : 'var(--green)';
     html += '<tr>' +

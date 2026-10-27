@@ -1275,13 +1275,16 @@
   };
 
   // ────────── Emitir factura rectificativa (abono) ──────────
-  window.emitirAbonoFactura = function(orig) {
+  // parcial (opcional, devolución de solo algunas líneas — js/devolucion.js):
+  //   { lineas: [{desc, cantidad, precio, total}] ya en negativo, total, base, iva (negativos),
+  //     devolucion: id de la fila de devolución }. Sin él, abono de la factura entera (como siempre).
+  window.emitirAbonoFactura = function(orig, parcial) {
     if (!orig || !orig.id) { _toast(T('fact.original_invalida'), 'err'); return; }
     if (orig.rectifica_a) { _toast(T('fact.ya_es_abono'), 'err'); return; }
 
     _obtenerSiguienteNumero(2).then(function(numInfo) {
       // Líneas con importes negativos
-      var lineasNeg = (orig.lineas || []).map(function(l) {
+      var lineasNeg = parcial ? parcial.lineas : (orig.lineas || []).map(function(l) {
         return {
           desc: l.desc || l.nombre || '-',
           cantidad: parseFloat(l.cantidad) || 1,
@@ -1302,12 +1305,12 @@
         cliente_id: orig.cliente_id || null,
         cliente_snapshot: orig.cliente_snapshot || {},
         emisor_snapshot: orig.emisor_snapshot || {},
-        origen_detalle: orig.origen_detalle || null,
+        origen_detalle: parcial ? Object.assign({}, orig.origen_detalle || {}, { devolucion: parcial.devolucion || null }) : (orig.origen_detalle || null),
         lineas: lineasNeg,
-        base_imponible: -(parseFloat(orig.base_imponible) || 0),
+        base_imponible: parcial ? parcial.base : -(parseFloat(orig.base_imponible) || 0),
         iva_pct: parseFloat(orig.iva_pct) || 0,
-        iva_importe: -(parseFloat(orig.iva_importe) || 0),
-        total: -(parseFloat(orig.total) || 0),
+        iva_importe: parcial ? parcial.iva : -(parseFloat(orig.iva_importe) || 0),
+        total: parcial ? parcial.total : -(parseFloat(orig.total) || 0),
         metodo_pago: orig.metodo_pago || '',
         rectifica_a: orig.id,
         rectifica_numero: orig.numero || '',
@@ -1319,7 +1322,8 @@
         // F202: referencia bidireccional — marcar la factura original como rectificada por este abono.
         // Best-effort: si la columna 'rectificada_por' aún no existe, falla en silencio (el badge
         // "Abonada" ya funciona por lookup inverso). SQL: alter table facturas add column rectificada_por text;
-        try {
+        // Un abono parcial no la deja rectificada del todo: no se marca.
+        if (!parcial) try {
           fetch(window.SUPABASE_URL + '/rest/v1/facturas?id=eq.' + encodeURIComponent(orig.id), {
             method: 'PATCH',
             headers: _supabaseHeaders(),

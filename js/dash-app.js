@@ -9000,6 +9000,9 @@ function _esFinPendiente(v) {
   if (c.length > 0 && c.every(function(x){ return x.pagado; })) return false;
   return true;
 }
+// Devoluciones parciales (js/devolucion.js). Si el script no ha cargado, nada es devolución.
+function _esDevV(v) { return typeof window.tkEsDevolucion === 'function' && window.tkEsDevolucion(v); }
+function _tieneDevV(v) { return typeof window.tkTieneDevoluciones === 'function' && window.tkTieneDevoluciones(v); }
 function renderVentas() {
   try { _ensureIv2Sprite(); } catch (e) {}
   var q = _norm(document.getElementById('busVentas').value);
@@ -9010,7 +9013,8 @@ function renderVentas() {
   var list = DB.ventas.slice().reverse().filter(function(v) {
     if (!_dateEnRango(v.fecha, _desdeV, _hastaV)) return false;
     var matchQ = !q || _norm(v.clienteNombre + ' ' + v.modelo + ' ' + (v.imei || '') + ' ' + (_telV[v.clienteId] || '')).indexOf(q) !== -1;
-    if (filtro === 'reembolsos') return matchQ && v.reembolsado;
+    // Devoluciones parciales (js/devolucion.js): la fila de la devolución y la venta con algo devuelto.
+    if (filtro === 'reembolsos') return matchQ && (v.reembolsado || _esDevV(v) || _tieneDevV(v));
     if (filtro === 'financiados') return matchQ && v.financiado;
     return matchQ;   // 'todas' = todas, reembolsadas incluidas (van marcadas en la fila)
   });
@@ -9026,17 +9030,20 @@ function renderVentas() {
   list.forEach(function(v) {
     var badges = '';
     if (v.reembolsado) badges += '<span class="badge-reem">' + T('ventas.reembolsado') + '</span>';
+    var _esDev = _esDevV(v), _conDev = !_esDev && _tieneDevV(v);
+    if (_esDev) badges += '<span class="badge-reem">↩️ ' + T('dev.badge_devolucion') + '</span>';
+    else if (_conDev) badges += '<span class="badge-reem" style="background:rgba(245,158,11,.15);color:#B45309">' + T(window.tkDevueltaEntera(v) ? 'dev.badge_entera' : 'dev.badge_parcial') + '</span>';
     if (v.financiado && !v.reembolsado) {
       var _cuoF = v.cuotas || [];
       var _nPagF = _cuoF.filter(function(c){ return c.pagado; }).length;
       var _compF = (v.estadoFinanciado === 'completado') || (_cuoF.length > 0 && _nPagF >= _cuoF.length);
       badges += '<span class="badge-fin" style="background:' + (_compF ? 'rgba(0,200,150,.15)' : 'rgba(234,88,12,.12)') + ';color:' + (_compF ? '#0F7355' : '#C2491A') + '">' + (_compF ? '✅ ' + T('fin.completado') : '⏳ ' + T('finv.pendiente') + (_cuoF.length ? ' ' + _nPagF + '/' + _cuoF.length : '')) + '</span>';
     }
-    var btnR = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="' + escHtml(T('ventas.t_reembolsar')) + '">' + _iv2ic('undo', 16) + '</button>' : '';
+    var btnR = (!v.reembolsado && !_esDev && !(_conDev && window.tkDevueltaEntera(v))) ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="' + escHtml(T('dev.titulo')) + '">' + _iv2ic('undo', 16) + '</button>' : '';
     var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="edit" class="row-btn btn-fin" title="' + escHtml(T('ventas.t_financiacion')) + '">' + _iv2ic('euro', 16) + '</button>' : '';
     var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="' + escHtml(T('ventas.t_reimprimir')) + '">' + _iv2ic('print', 16) + '</button>';
-    var btnFact = !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="' + T('rep.title_generar_factura') + '">' + _iv2ic('doc', 16) + '</button>' : '';
-    var btnEdit = (!v.reembolsado && (typeof _esAdmin === 'function' && _esAdmin())) ? '<button data-vid="' + v.id + '" class="row-btn btn-edit-v" title="' + T('venta.editar_t') + '">' + _iv2ic('pencil', 16) + '</button>' : '';
+    var btnFact = (!v.reembolsado && !_esDev) ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="' + T('rep.title_generar_factura') + '">' + _iv2ic('doc', 16) + '</button>' : '';
+    var btnEdit = (!v.reembolsado && !_esDev && !_conDev && (typeof _esAdmin === 'function' && _esAdmin())) ? '<button data-vid="' + v.id + '" class="row-btn btn-edit-v" title="' + T('venta.editar_t') + '">' + _iv2ic('pencil', 16) + '</button>' : '';
     var btnSeg = _puedeSeguimiento() ? '<button data-vid="' + v.id + '" class="row-btn btn-seg-v" title="' + escHtml(T('seg.btn')) + '">' + _iv2ic('clock', 16) + '</button>' : '';
     var btnVer = '<button data-vid="' + v.id + '" class="row-btn btn-ver-v" title="' + escHtml(T('vent.ver_detalle')) + '">' + _iv2ic('eye', 16) + '</button>';
     html += '<tr class="' + (v.reembolsado ? 'fila-reem' : '') + '">' +
@@ -9044,7 +9051,7 @@ function renderVentas() {
       '<td>' + esc(_cliLbl(v.clienteNombre)) + badges + '</td>' +
       '<td>' + esc(v.modelo) + '</td>' +
       '<td><span class="badge bb">' + esc(_pagoTxt(v)) + '</span></td>' +
-      '<td style="color:' + (v.reembolsado ? 'var(--red)' : 'var(--green)') + ';font-weight:700">' + (v.reembolsado ? '-' : '') + cur(v.total) + '</td>' +
+      '<td style="color:' + (v.reembolsado || _esDev ? 'var(--red)' : 'var(--green)') + ';font-weight:700">' + (v.reembolsado || (parseFloat(v.total) || 0) < 0 ? '-' : '') + cur(Math.abs(parseFloat(v.total) || 0)) + '</td>' +
       '<td style="display:flex;gap:3px">' + btnVer + btnR + btnF + btnFact + btnImpr + btnSeg + btnEdit + '</td></tr>';
   });
   html += '</tbody></table></div>';
@@ -9054,7 +9061,9 @@ function renderVentas() {
     btn.addEventListener('click', function() { verDetalleVenta(this.dataset.vid); });
   });
   el.querySelectorAll('.btn-reem').forEach(function(btn) {
-    btn.addEventListener('click', function() { reembolsarVenta(this.dataset.vid); });
+    // Devolver / cambiar: elegir líneas y unidades (js/devolucion.js). Sin líneas o financiada,
+    // abrirDevolucion pasa a la devolución entera de siempre (reembolsarVenta).
+    btn.addEventListener('click', function() { if (typeof window.abrirDevolucion === 'function') window.abrirDevolucion(this.dataset.vid); else reembolsarVenta(this.dataset.vid); });
   });
   el.querySelectorAll('.btn-fin').forEach(function(btn) {
     btn.addEventListener('click', function() { verFinanciado(this.dataset.vid); });
@@ -9104,6 +9113,8 @@ function abrirEditarVenta(id) {
   var v = (DB.ventas || []).find(function(x){ return x.id === id; });
   if (!v) { toast(T('tst.venta_no_encontrada'), 'err'); return; }
   if (v.reembolsado) { toast(T('ev.reembolsada_no'), 'err'); return; }
+  // Con devoluciones parciales las líneas llevan lo devuelto: editarlas descuadraría ticket y devoluciones.
+  if (_esDevV(v) || _tieneDevV(v)) { toast(T('dev.no_editar'), 'err'); return; }
   SEL.editVentaId = id;
   SEL.evFactura = null; SEL.evCajaCerrada = false;
   SEL.evLineas = (v.items && v.items.length) ? JSON.parse(JSON.stringify(v.items)) : null;
@@ -9432,39 +9443,57 @@ function verDetalleVenta(vid) {
   var items = (v.items && v.items.length) ? v.items
     : [{ nombre: v.modelo || T('tb.venta'), precio: v.precio || v.total, qty: 1 }];
 
+  // Importes con signo delante («-€9.00», no «€-9.00»): las devoluciones van en negativo.
+  var _curS = function(n) { n = parseFloat(n) || 0; return (n < 0 ? '-' : '') + cur(Math.abs(n)); };
+  var _esDev = _esDevV(v), _devO = _esDev && typeof window.tkDevDe === 'function' ? window.tkDevDe(v) : null;
   var filas = items.map(function(it) {
     var cant = _ventaCant(it);
     var precio = parseFloat(it.precio) || 0;
     var bruto = cant * precio;
     var dl = _ventaDescLinea(it);
+    var dv = parseInt(it.devuelto, 10) || 0;
     return '<tr>' +
       '<td style="padding:7px 6px">' + esc(it.nombre || '-') +
         (it.imei ? '<div style="font-size:11px;color:var(--muted)">IMEI: ' + esc(it.imei) + '</div>' : '') +
         (dl > 0 ? '<div style="font-size:11px;color:var(--orange)">' + T('tpv.descuento_2') + ': -' + cur(dl) + '</div>' : '') +
+        (dv > 0 ? '<div style="font-size:11px;color:var(--red);font-weight:700">↩️ ' + esc(T('dev.ya_devueltas').replace('{n}', dv)) + '</div>' : '') +
       '</td>' +
       '<td style="padding:7px 6px;text-align:center">' + cant + '</td>' +
       '<td style="padding:7px 6px;text-align:right">' + cur(precio) + '</td>' +
-      '<td style="padding:7px 6px;text-align:right;font-weight:600">' + cur(bruto - dl) + '</td>' +
+      '<td style="padding:7px 6px;text-align:right;font-weight:600">' + _curS(bruto - dl) + '</td>' +
     '</tr>';
   }).join('');
+  // Historial de devoluciones parciales de esta venta (qué, cuándo, cuánto y cómo).
+  var _hist = (!_esDev && typeof window.tkHistorialDevoluciones === 'function') ? window.tkHistorialDevoluciones(v) : [];
+  var histHtml = _hist.length ? '<div style="margin-top:12px;padding-top:10px;border-top:1px dashed var(--border,#E2E8F0)">' +
+    '<div style="font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);margin-bottom:6px">' + esc(T('dev.historial')) + '</div>' +
+    _hist.map(function(h) {
+      return '<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:12.5px"><span><strong>' + esc(fmtFecha(h.f)) + '</strong> · ' + esc(h.lineas.join(', ')) +
+        ' <span style="color:var(--muted)">(' + esc(h.m === 'Cambio' ? T('dev.metodo_cambio') : _pagoLbl(h.m)) + ')</span></span><strong style="color:var(--red);white-space:nowrap">-' + cur(h.imp) + '</strong></div>';
+    }).join('') + '</div>' : '';
+  var _puedeDev = !v.reembolsado && !_esDev && !(window.tkDevueltaEntera && window.tkDevueltaEntera(v)) && tienePerm('ventas_reembolso');
+  var _cambioDisp = (_esDev && typeof window.tkCambioDisponible === 'function') ? window.tkCambioDisponible(v) : 0;
 
   var fila = function(lbl, val, fuerte) {
     return '<div style="display:flex;justify-content:space-between;padding:3px 0' + (fuerte ? ';font-weight:800;font-size:16px' : '') + '">' +
       '<span' + (fuerte ? '' : ' style="color:var(--muted)"') + '>' + lbl + '</span><span>' + val + '</span></div>';
   };
-  var totales = fila(T('stock.inv_subtotal'), cur(v.precio || 0));
+  var totales = fila(T('stock.inv_subtotal'), _curS(v.precio || 0));
   if (parseFloat(v.descuento) > 0) totales += fila(T('tpv.descuento_2'), '-' + cur(v.descuento));
   if (v.ivaModo && v.ivaModo !== 'sin') {
-    totales += fila(T('pres.doc_base_imponible'), cur(v.base || 0));
-    totales += fila('IVA ' + (v.iva || 0) + '%', cur(v.ivaImporte || 0));
+    totales += fila(T('pres.doc_base_imponible'), _curS(v.base || 0));
+    totales += fila('IVA ' + (v.iva || 0) + '%', _curS(v.ivaImporte || 0));
   }
-  totales += fila(T('gen.total_2'), cur(v.total || 0), true);
+  totales += fila(T('gen.total_2'), _curS(v.total || 0), true);
 
   var m = _modalOverlay(
     '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:4px">' +
       '<h3 style="margin:0;font-size:17px;font-weight:800">' + T('vent.ver_detalle') + '</h3>' +
       (v.reembolsado ? '<span class="badge" style="background:var(--red);color:#fff">' + T('vent.reembolsada') + '</span>' : '') +
+      (_esDev ? '<span class="badge" style="background:var(--red);color:#fff">↩️ ' + T('dev.badge_devolucion') + '</span>' : '') +
+      (!_esDev && _hist.length ? '<span class="badge" style="background:rgba(245,158,11,.15);color:#B45309">' + T(window.tkDevueltaEntera(v) ? 'dev.badge_entera' : 'dev.badge_parcial') + '</span>' : '') +
     '</div>' +
+    (_devO ? '<div style="font-size:12.5px;margin-bottom:4px">' + esc(T('dev.de_ticket').replace('{n}', _devO.n ? ('T' + String(_devO.f || '').slice(0, 4) + '-' + String(_devO.n).padStart(6, '0')) : fmtFecha(_devO.f))) + '</div>' : '') +
     '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px">' +
       _fechaHoraVenta(v) + ' · ' + esc(_cliLbl(v.clienteNombre)) + ' · ' + esc(_pagoTxt(v)) +
     '</div>' +
@@ -9479,14 +9508,22 @@ function verDetalleVenta(vid) {
       '</table>' +
     '</div>' +
     '<div style="border-top:1px solid var(--border,#E2E8F0);padding-top:10px;font-size:13.5px">' + totales + '</div>' +
+    histHtml +
+    (_cambioDisp > 0 ? '<div style="margin-top:12px;font-size:12.5px;padding:8px 10px;border-radius:8px;background:rgba(59,130,246,.10)">' + esc(T('dev.cambio_pendiente').replace('{x}', cur(_cambioDisp))) + '</div>' : '') +
     '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">' +
-      (!v.reembolsado ? '<button id="_dvFact" style="flex:1;min-width:130px;padding:10px 14px;border:none;background:var(--orange,#F97316);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + T('rep.title_generar_factura') + '</button>' : '') +
+      (_puedeDev ? '<button id="_dvDev" style="flex:1;min-width:130px;padding:10px 14px;border:none;background:#EF4444;color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">↩️ ' + T('dev.titulo') + '</button>' : '') +
+      (_cambioDisp > 0 ? '<button id="_dvCambio" style="flex:1;min-width:130px;padding:10px 14px;border:none;background:var(--green,#10B981);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">🔁 ' + T('dev.ir_tpv') + '</button>' : '') +
+      (!v.reembolsado && !_esDev ? '<button id="_dvFact" style="flex:1;min-width:130px;padding:10px 14px;border:none;background:var(--orange,#F97316);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + T('rep.title_generar_factura') + '</button>' : '') +
       '<button id="_dvTicket" style="flex:1;min-width:110px;padding:10px 14px;border:1px solid var(--border,#E5E7EB);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + T('ventas.t_reimprimir') + '</button>' +
       '<button id="_dvCerrar" style="flex:0 0 auto;padding:10px 16px;border:1px solid var(--border,#E5E7EB);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + T('gen.cerrar') + '</button>' +
     '</div>'
   );
   m.box.style.maxWidth = '520px';
 
+  var bDev = m.box.querySelector('#_dvDev');
+  if (bDev) bDev.addEventListener('click', function() { m.close(); window.abrirDevolucion(vid); });
+  var bCam = m.box.querySelector('#_dvCambio');
+  if (bCam) bCam.addEventListener('click', function() { m.close(); window.retomarCambio(vid); });
   var bFact = m.box.querySelector('#_dvFact');
   if (bFact) bFact.addEventListener('click', function() { m.close(); factVenta(vid); });
   m.box.querySelector('#_dvTicket').addEventListener('click', function() { m.close(); imprimirTicketVenta(vid); });
@@ -9659,6 +9696,10 @@ function reembolsarVenta(id) {
   // Guard de reentrada: un doble clic apilaba dos modales de confirmación y al aceptar ambos
   // se restauraba el stock dos veces (+2 unidades por un solo reembolso). Ya reembolsada → fuera.
   if (v.reembolsado) { toast(T('ev.reembolsada_no'), 'err'); return; }
+  // Una devolución no se reembolsa; y si ya hay devoluciones parciales, el reembolso entero
+  // restaría otra vez lo ya devuelto: se sigue por «Devolver / cambiar» con lo que queda.
+  if (_esDevV(v)) { toast(T('dev.es_devolucion'), 'err'); return; }
+  if (_tieneDevV(v)) { if (typeof window.abrirDevolucion === 'function') window.abrirDevolucion(id); return; }
   confirmar(T('venta.reembolsar_confirm').replace('{cliente}', v.clienteNombre).replace('{total}', cur(v.total)), function () {
   if (v.reembolsado) return;   // por si se confirmó otro modal apilado antes que este
   tpWithBusy(T('venta.reembolsando') || 'Reembolsando…', function () {

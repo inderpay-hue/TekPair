@@ -311,14 +311,14 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261026l"></script>
+<script src="/lang/lang.v8.js?v=20261027d"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
        Faltaba aquí, así que el TPV era lo único que nunca imprimía sin diálogo. -->
   <script src="/js/desktop-print.js?v=20261023a"></script>
   <script src="/js/usados.js?v=20261016a"></script>
-  <script src="/js/ticket-venta.js?v=20261023b"></script>
+  <script src="/js/ticket-venta.js?v=20261027d"></script>
 </head>
 <body>
 <script>try{var _TM={light:'clean',terracota:'orange',dark:'dark'};var _t=_TM[localStorage.getItem('tk_theme')||'terracota']||localStorage.getItem('tk_tpv_theme')||'aurora';document.body.setAttribute('data-theme',_t)}catch(e){document.body.setAttribute('data-theme','aurora')}</script>
@@ -1160,6 +1160,7 @@ window.addEventListener('DOMContentLoaded', function() {
   renderBrandBar();
   ['.tpv-cats', '#brandBar'].forEach(function(s) { var e = document.querySelector(s); enableWheelH(e); attachScrollArrows(e); });
   updateCaja();
+  try { _cambioInit(); } catch (e) { console.error('cambio:', e); }
   // Sync con Supabase (ventas + favoritos + tienda + ajustes)
   syncTPV();
   // Sync continua: cuando vuelves a la pestaña + cada 60s
@@ -2083,7 +2084,10 @@ function calcTotal() {
   document.getElementById('subtotal').textContent = '\u20ac' + t.subtotal.toFixed(2);
   document.getElementById('discTotal').textContent = (t.disc > 0 ? '-' : '') + '\u20ac' + t.disc.toFixed(2);   // sin descuento: «€0.00», no «-€0.00»
   document.getElementById('grandTotal').textContent = '\u20ac' + t.total.toFixed(2);
-  document.getElementById('btnCheckout').textContent = T('tpv.cobrar') + ' \u20ac' + t.total.toFixed(2);
+  // Cambio pendiente (devolución hecha en el panel): el saldo a favor se descuenta de lo que se cobra.
+  var _aCob = _cambioACobrar(t.total);
+  document.getElementById('btnCheckout').textContent = T('tpv.cobrar') + ' \u20ac' + _aCob.toFixed(2);
+  _cambioBanner(t.total);
   // #12/#13: no permitir cobrar 0\u20ac (descuento que anula el total, o cantidad llevada a 0).
   document.getElementById('btnCheckout').disabled = !(t.total > 0.001);
   // IVA rows
@@ -2100,14 +2104,14 @@ function calcTotal() {
   } else {
     document.getElementById('totalLbl').textContent = 'TOTAL';
   }
-  _renderCambio(t.total);
+  _renderCambio(_aCob);
   if (selectedPago === 'Mixto') { try { calcMixto(); } catch (e) {} }
   return t;
 }
 
 function calcCambio() {
   var t = _computeTotals();
-  _renderCambio(t.total);
+  _renderCambio(_cambioACobrar(t.total));
 }
 
 // ═══ NUMPAD ═══
@@ -2164,14 +2168,14 @@ function _mixtoSuma(excepto) {
 }
 function calcMixto() {
   var el = document.getElementById('mxEstado'); if (!el) return;
-  var d = _r2(_computeTotals().total - _mixtoSuma());
+  var d = _r2(_cambioACobrar(_computeTotals().total) - _mixtoSuma());
   if (d > 0.004) { el.style.color = '#F59E0B'; el.textContent = T('tpv.mixto_falta').replace('{x}', '\u20ac' + d.toFixed(2)); }
   else if (d < -0.004) { el.style.color = '#EF4444'; el.textContent = T('tpv.mixto_sobra').replace('{x}', '\u20ac' + (-d).toFixed(2)); }
   else { el.style.color = 'var(--green)'; el.textContent = '\u2713 ' + T('tpv.mixto_ok'); }
 }
 // "Resto": pone en esa forma de pago lo que falta para llegar al total.
 function mixtoResto(id) {
-  document.getElementById(id).value = Math.max(0, _r2(_computeTotals().total - _mixtoSuma(id))).toFixed(2);
+  document.getElementById(id).value = Math.max(0, _r2(_cambioACobrar(_computeTotals().total) - _mixtoSuma(id))).toFixed(2);
   calcMixto();
 }
 // Desglose de una venta por forma de pago (una sola línea si no es mixta).
@@ -2271,9 +2275,24 @@ function cobrar() {
   if (!cart.length) return;
   if (!tienePerm('ventas_crear')) { toast(T('tpv.sin_permiso_venta'), 'err'); return; }
   var totals = _computeTotals();
+  // Cambio: el saldo de la devolución paga primero; lo que falte, con la forma de pago elegida.
+  // Si la venta nueva vale menos que el saldo, lo que sobra se devuelve al cliente (se pregunta cómo).
+  var _cp = _cambioPend();
+  var _saldo = _cp ? Math.min(_r2(_cp.imp), _r2(totals.total)) : 0;
+  var _aCobrar = _r2((totals.total || 0) - _saldo);
+  var _sobra = _cp ? _r2(_cp.imp - _saldo) : 0;
+  if (_cp && selectedPago === 'Financiado') { toast(T('dev.tpv_no_financiado'), 'err'); return; }
+  if (_cp && _sobra > 0.004 && !_cambioSobraMet) {
+    _cambioElegirMetodo(T('dev.tpv_sobra').replace('{x}', '\u20ac' + _sobra.toFixed(2)), function (m) {
+      if (!m) return;
+      _cambioSobraMet = m;
+      cobrar();
+    });
+    return;
+  }
   // #B83/#B24: el total es 0 o negativo (p.ej. descuento que iguala el subtotal). Antes se
   // podía registrar una venta de 0€ sin avisar — ahora pedimos confirmación explícita.
-  if ((totals.total || 0) <= 0 && selectedPago !== 'Financiado') {
+  if ((totals.total || 0) <= 0 && selectedPago !== 'Financiado' && !_cp) {
     if (!confirm(T('tpv.confirmar_cero'))) return;
   }
   // F679/F609: el ticket simplificado solo es válido hasta 400€. Por encima, conviene
@@ -2285,10 +2304,10 @@ function cobrar() {
   // Pago mixto: los importes tienen que sumar justo el total. Con una sola forma
   // de pago rellenada, la venta se guarda como pago normal con esa forma.
   var _pagoFinal = selectedPago, _pagos = null;
-  if (selectedPago === 'Mixto') {
+  if (selectedPago === 'Mixto' && _aCobrar > 0) {
     var _mx = _mixtoPagos();
-    var _dif = _r2((totals.total || 0) - _mx.reduce(function (a, p) { return a + p.importe; }, 0));
-    if (!_mx.length || Math.abs(_dif) > 0.009) { toast(T('tpv.mixto_error').replace('{x}', '\u20ac' + (totals.total || 0).toFixed(2)), 'err'); return; }
+    var _dif = _r2(_aCobrar - _mx.reduce(function (a, p) { return a + p.importe; }, 0));
+    if (!_mx.length || Math.abs(_dif) > 0.009) { toast(T('tpv.mixto_error').replace('{x}', '\u20ac' + _aCobrar.toFixed(2)), 'err'); return; }
     if (_mx.length === 1) _pagoFinal = _mx[0].metodo; else _pagos = _mx;
   }
   if (esFinanciado && !selectedCli) { toast(T('tpv.fin_sin_cliente'), 'err'); return; }
@@ -2302,8 +2321,8 @@ function cobrar() {
   // (antes se cerraba la venta sin aviso y el cambio salía 0).
   if (selectedPago === 'Efectivo') {
     var _recib = parseFloat((document.getElementById('efectivoInput') || {}).value) || 0;
-    if (_recib > 0 && _recib + 0.005 < (totals.total || 0)) {
-      if (!confirm(T('tpv.efectivo_menor').replace('{r}', _recib.toFixed(2)).replace('{t}', (totals.total || 0).toFixed(2)))) return;
+    if (_recib > 0 && _recib + 0.005 < _aCobrar) {
+      if (!confirm(T('tpv.efectivo_menor').replace('{r}', _recib.toFixed(2)).replace('{t}', _aCobrar.toFixed(2)))) return;
     }
   }
   var venta = {
@@ -2337,6 +2356,13 @@ function cobrar() {
     entregado: (selectedPago === 'Efectivo'
       ? (parseFloat((document.getElementById('efectivoInput') || {}).value) || 0) : 0)
   };
+  if (_cp) {
+    // `dev` en el pago enlaza con la devolución: así se sabe qué saldo de cambio está ya usado.
+    var _partes = [{ metodo: 'Cambio', importe: _saldo, dev: _cp.dev }];
+    if (_aCobrar > 0) _partes = _partes.concat(_pagos ? _pagos : [{ metodo: _pagoFinal, importe: _aCobrar }]);
+    venta.pagos = _partes;
+    venta.pago = _partes.length > 1 ? 'Mixto' : 'Cambio';
+  }
 
   // Reduce stock
   cart.forEach(function(item, idx) {
@@ -2387,7 +2413,7 @@ function cobrar() {
       // a la vez no pueden repetirlo. Cuando llega (decimas de segundo) se
       // repinta el ticket; si la migracion no se ha corrido, no viene y el
       // ticket se queda sin numero, que es la degradacion correcta.
-      if (fila && fila._rechazada) { _tpvVentaRechazada(venta, _cartCopia, fila.status); return; }
+      if (fila && fila._rechazada) { _tpvVentaRechazada(venta, _cartCopia, fila.status); if (_cp) _cambioDeshacer(_cp, _sobra); return; }
       if (!fila || !fila.numero) return;
       venta.numero = fila.numero;
       try {
@@ -2397,6 +2423,8 @@ function cobrar() {
       if (_ultimaVenta && _ultimaVenta.id === venta.id) mostrarTicket(venta, _ultimosTotals);
     });
   }
+
+  if (_cp) _cambioCerrar(_cp, _saldo, _sobra);
 
   // Rastro de la venta en el historial, con fecha y HORA. `venta.fecha` solo
   // guarda el dia, asi que sin esto el seguimiento de una venta reembolsada
@@ -2738,13 +2766,16 @@ function verCaja() {
   var hoy = hoyLocal();
   // Brutas = todo lo vendido hoy, también lo devuelto hoy (si no, una devolución del mismo día
   // restaba de unas ventas que no se habían contado y la caja salía en negativo).
-  var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy; });
+  // Las devoluciones parciales (filas en negativo de hoy) van con los reembolsos, no en brutas.
+  var ventasHoy = DB.ventas.filter(function(v) { return v.fecha === hoy && !_esDevT(v); });
+  var devHoy = DB.ventas.filter(function(v) { return v.fecha === hoy && _esDevT(v); });
   var pagos = {};
-  ventasHoy.forEach(function(v) { _cajaPagosVenta(v).forEach(function (p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
+  ventasHoy.concat(devHoy).forEach(function(v) { _cajaPagosVenta(v).forEach(function (p) { pagos[p.metodo] = (pagos[p.metodo] || 0) + p.importe; }); });
   var total = ventasHoy.reduce(function(a, v) { return a + _cajaPagosVenta(v).reduce(function (s, p) { return s + p.importe; }, 0); }, 0);
   // F245: reembolsos del d\u00eda (los que se devolvieron hoy) \u2192 bruto/reembolso/neto
   var reembHoy = DB.ventas.filter(function(v) { return v.reembolsado && (v.fechaReembolso || v.fecha) === hoy; });
-  var totReemb = reembHoy.reduce(function(a, v) { return a + _cajaPagosVenta(v).reduce(function (s, p) { return s + p.importe; }, 0); }, 0);
+  var totReemb = reembHoy.reduce(function(a, v) { return a + _cajaPagosVenta(v).reduce(function (s, p) { return s + p.importe; }, 0); }, 0)
+    - devHoy.reduce(function(a, v) { return a + (parseFloat(v.total) || 0); }, 0);
   // Por forma de pago, neto: lo que hay en el cajón/datáfono de cada método.
   reembHoy.forEach(function(v) { _cajaPagosVenta(v).forEach(function (p) { pagos[p.metodo] = (pagos[p.metodo] || 0) - p.importe; }); });
   Object.keys(pagos).forEach(function (k) { if (Math.abs(pagos[k]) < 0.005) delete pagos[k]; });
@@ -2760,13 +2791,125 @@ function verCaja() {
     }).join('') : '<div style="padding:10px 0;color:var(--muted);font-size:13px;border-bottom:1px solid var(--border)">' + T('gen.sin_ventas_hoy') + '</div>') +
     // F245: desglose bruto / reembolsos / neto
     '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--muted)"><span>' + T('tpv.ventas_brutas') + '</span><span>\u20ac' + total.toFixed(2) + '</span></div>' +
-    (totReemb > 0 ? '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--red)"><span>' + T('tpv.reembolsos') + ' (' + reembHoy.length + ')</span><span>-\u20ac' + totReemb.toFixed(2) + '</span></div>' : '') +
+    (totReemb > 0 ? '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--red)"><span>' + T('tpv.reembolsos') + ' (' + (reembHoy.length + devHoy.length) + ')</span><span>-\u20ac' + totReemb.toFixed(2) + '</span></div>' : '') +
     '<div style="display:flex;justify-content:space-between;padding:12px 0;font-size:18px;font-weight:800;color:var(--blue);border-top:2px solid var(--border);margin-top:4px">' +
     '<span>' + T('tpv.neto') + '</span><span>\u20ac' + (total - totReemb).toFixed(2) + '</span></div>';
   openModal('mCaja');
 }
 
 // ═══ HISTORIAL ═══
+// ═══ CAMBIO DE PRODUCTO ═══
+// Desde el panel (js/devolucion.js) se devuelven las unidades con la forma de pago «Cambio» y se
+// deja en este equipo el saldo a favor (tk_cambio_pend). Aquí ese saldo paga primero la venta
+// nueva (pago «Cambio» enlazado a la devolución): el método «Cambio» queda a cero entre la
+// devolución (-) y la venta (+) y la caja solo mueve la diferencia real con su forma de pago.
+var _cambioSobraMet = '';
+function _esDevT(v) { return !!(v && Array.isArray(v.items) && v.items.some(function (it) { return it && it.dev && it.dev.v; })); }
+function _cambioPend() {
+  try {
+    var c = JSON.parse(localStorage.getItem('tk_cambio_pend') || 'null');
+    if (!c || !c.dev || !(parseFloat(c.imp) > 0)) return null;
+    if (c.tienda && TIENDA_ID && c.tienda !== TIENDA_ID) return null;   // otra tienda en este equipo
+    return c;
+  } catch (e) { return null; }
+}
+function _cambioACobrar(total) {
+  var c = _cambioPend();
+  return c ? Math.max(0, _r2((total || 0) - _r2(c.imp))) : (total || 0);
+}
+function _cambioBanner(total) {
+  var c = _cambioPend();
+  var el = document.getElementById('cambioBanner');
+  if (!c) { if (el) el.remove(); return; }
+  if (!el) {
+    var cont = document.querySelector('#cartPanel .tpv-right-content');
+    if (!cont) return;
+    el = document.createElement('div');
+    el.id = 'cambioBanner';
+    el.style.cssText = 'margin:8px 12px 0;padding:10px 12px;border-radius:10px;background:rgba(59,130,246,.12);border:1px solid rgba(59,130,246,.4);font-size:12.5px;line-height:1.45;color:inherit';
+    cont.insertBefore(el, cont.firstChild);
+  }
+  var imp = _r2(c.imp), t = _r2(total || 0);
+  var sub = !t ? T('dev.tpv_banner_sub')
+    : (t >= imp ? T('dev.tpv_a_cobrar').replace('{x}', '€' + _r2(t - imp).toFixed(2))
+               : T('dev.tpv_a_devolver').replace('{x}', '€' + _r2(imp - t).toFixed(2)));
+  el.innerHTML = '<div style="font-weight:800">🔁 ' + escHtml(T('dev.tpv_banner').replace('{x}', '€' + imp.toFixed(2))) + (c.num ? ' <span style="font-weight:600;opacity:.75">(' + escHtml(c.num) + ')</span>' : '') + '</div>' +
+    '<div style="margin-top:2px">' + escHtml(sub) + '</div>' +
+    '<button type="button" onclick="cancelarCambio()" style="margin-top:6px;background:none;border:1px solid var(--t-bd,#cbd5e1);color:inherit;border-radius:7px;padding:4px 9px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">' + escHtml(T('dev.tpv_cancelar')) + '</button>';
+}
+function _cambioInit() {
+  var c = _cambioPend();
+  if (!c) { try { localStorage.removeItem('tk_cambio_pend'); } catch (e) {} return; }
+  if (c.cli && c.cli.id && !selectedCli) {
+    var cl = (DB.clis || []).find(function (x) { return x.id === c.cli.id; });
+    if (cl) {
+      selectedCli = cl;
+      document.getElementById('cartClientText').textContent = (cl.nombre + ' ' + (cl.apellidos || '')).trim();
+    }
+  }
+  calcTotal();
+}
+// Selector de forma de pago para devolver dinero (lo que sobra del cambio, o el cambio entero).
+function _cambioElegirMetodo(titulo, cb) {
+  var bg = document.createElement('div');
+  bg.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.55);z-index:100000;display:flex;align-items:center;justify-content:center;padding:16px';
+  var mets = [['Efectivo', '💵', 'pago.efectivo'], ['Tarjeta', '💳', 'pago.tarjeta'], ['Bizum', '📲', 'pago.bizum']];
+  bg.innerHTML = '<div style="background:var(--card,#fff);color:inherit;max-width:380px;width:100%;border-radius:14px;padding:18px;box-shadow:0 20px 50px rgba(0,0,0,.3)">' +
+    '<div style="font-size:14px;font-weight:700;line-height:1.45;margin-bottom:12px;white-space:pre-line">' + escHtml(titulo) + '</div>' +
+    mets.map(function (m) { return '<button type="button" data-m="' + m[0] + '" style="display:block;width:100%;text-align:left;padding:12px;margin-bottom:8px;border:1px solid var(--border,#e5e7eb);background:transparent;color:inherit;border-radius:10px;font:inherit;font-weight:700;cursor:pointer">' + m[1] + ' ' + escHtml(T(m[2])) + '</button>'; }).join('') +
+    '<button type="button" data-m="" style="display:block;width:100%;padding:9px;border:none;background:transparent;color:var(--muted,#94a3b8);font:inherit;cursor:pointer">' + escHtml(T('gen.cancelar_2')) + '</button></div>';
+  document.body.appendChild(bg);
+  bg.querySelectorAll('button[data-m]').forEach(function (b) {
+    b.onclick = function () { bg.remove(); cb(b.getAttribute('data-m') || null); };
+  });
+}
+// Venta del cambio hecha: se gasta el saldo; lo que sobró sale de la caja con su forma de pago.
+function _cambioCerrar(c, usado, sobra) {
+  var met = _cambioSobraMet;
+  _cambioSobraMet = '';
+  try { localStorage.removeItem('tk_cambio_pend'); } catch (e) {}
+  if (sobra > 0.004 && met) {
+    var pagos = [{ metodo: 'Cambio', importe: -_r2(usado) }, { metodo: met, importe: -_r2(sobra) }];
+    var row = (DB.ventas || []).find(function (x) { return x.id === c.dev; });
+    if (row) { row.pagos = pagos; row.pago = 'Mixto'; _tpvGuardar(); }
+    if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + encodeURIComponent(c.dev) + '&tienda_id=eq.' + encodeURIComponent(TIENDA_ID), { pago: 'Mixto', pagos: pagos });
+  }
+  _cambioBanner(0);
+  updateCaja();
+}
+// La nube rechazó la venta del cambio: el saldo vuelve a estar pendiente y la devolución, entera en «Cambio».
+function _cambioDeshacer(c, sobra) {
+  try { localStorage.setItem('tk_cambio_pend', JSON.stringify(c)); } catch (e) {}
+  if (sobra > 0.004) {
+    var row = (DB.ventas || []).find(function (x) { return x.id === c.dev; });
+    if (row) { row.pagos = null; row.pago = 'Cambio'; _tpvGuardar(); }
+    if (SB_KEY && TIENDA_ID) sbPatch('ventas', 'id=eq.' + encodeURIComponent(c.dev) + '&tienda_id=eq.' + encodeURIComponent(TIENDA_ID), { pago: 'Cambio', pagos: null });
+  }
+  try { calcTotal(); updateCaja(); } catch (e) {}
+}
+// El cliente no quiere otro producto: se le devuelve el dinero (la devolución pasa de «Cambio» a esa forma de pago).
+function cancelarCambio() {
+  var c = _cambioPend();
+  if (!c) return;
+  if (!tienePerm('ventas_reembolso')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  _cambioElegirMetodo(T('dev.tpv_cancelar_q').replace('{x}', '€' + _r2(c.imp).toFixed(2)), function (m) {
+    if (!m) return;
+    var q = 'id=eq.' + encodeURIComponent(c.dev) + '&tienda_id=eq.' + encodeURIComponent(TIENDA_ID);
+    var hecho = function () {
+      var row = (DB.ventas || []).find(function (x) { return x.id === c.dev; });
+      if (row) { row.pago = m; row.pagos = null; _tpvGuardar(); }
+      try { localStorage.removeItem('tk_cambio_pend'); } catch (e) {}
+      calcTotal(); updateCaja();
+      toast(T('dev.tpv_cancelado'), 'ok');
+    };
+    if (!SB_KEY || !TIENDA_ID) { hecho(); return; }
+    sbPatch('ventas', q, { pago: m, pagos: null }).then(function (ok) {
+      var enCola = _tpvColaGet().some(function (op) { return op.method === 'PATCH' && op.table === 'ventas' && op.query === q; });
+      if (ok || enCola) hecho(); else toast(T('dev.error'), 'err');
+    });
+  });
+}
+
 function verHistorial() {
   document.getElementById('histSearch').value = '';
   renderHistorial();
@@ -2796,8 +2939,10 @@ function renderHistorial() {
   }
   var totalDia = ventasHoy.filter(function(v){return !v.reembolsado;}).reduce(function(a,v){return a+(v.total||0);},0);
   // F249: separar ventas reales de reembolsos en el contador (antes "3 ventas" contaba reembolsos)
-  var nReales = ventasHoy.filter(function(v){ return !v.reembolsado; }).length;
-  var nReemb = ventasHoy.filter(function(v){ return v.reembolsado; }).length;
+  // Las devoluciones parciales (filas en negativo) cuentan como reembolsos.
+  var nReales = ventasHoy.filter(function(v){ return !v.reembolsado && !_esDevT(v); }).length;
+  var nReemb = ventasHoy.filter(function(v){ return v.reembolsado || _esDevT(v); }).length;
+  var _puedeDev = tienePerm('ventas_reembolso');
   var lblCount = nReales + ' ' + (nReales === 1 ? T('tpv.venta') : T('tpv.ventas')) +
     (nReemb ? ' \u00b7 ' + nReemb + ' ' + (nReemb === 1 ? T('tpv.reembolso') : T('tpv.reembolsos_p')) : '');
   var html = '<div style="background:var(--bg);padding:10px 14px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;font-size:13px"><span>' + lblCount + '</span><strong style="color:var(--green)">\u20ac' + totalDia.toFixed(2) + '</strong></div>';
@@ -2806,15 +2951,19 @@ function renderHistorial() {
     var hora = '';
     var n = parseInt(String(v.id || '').replace('v',''));
     if (!isNaN(n)) hora = new Date(n).toLocaleTimeString('es', {hour:'2-digit',minute:'2-digit'});
-    var color = v.reembolsado ? 'var(--red)' : 'var(--green)';
-    var sign = v.reembolsado ? '-' : '';
+    var esDev = _esDevT(v);
+    var color = (v.reembolsado || esDev) ? 'var(--red)' : 'var(--green)';
+    var sign = (v.reembolsado || (v.total || 0) < 0) ? '-' : '';
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;' + (v.reembolsado?'opacity:.6':'') + '">' +
       '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(v.modelo || '-') + '</div>' +
       '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + hora + (hora?' \u00b7 ':'') + escHtml(v.clienteNombre || 'Sin cliente') + ' \u00b7 ' + escHtml(v.pago || '-') + '</div></div>' +
-      '<div style="text-align:right;flex-shrink:0"><div style="font-weight:700;color:' + color + ';font-size:14px">' + sign + '\u20ac' + (v.total||0).toFixed(2) + '</div>' +
-      (v.reembolsado ? '<div style="font-size:10px;color:var(--red);font-weight:700">' + T('tpv.reembolsada') + '</div>' : '') + '</div>' +
+      '<div style="text-align:right;flex-shrink:0"><div style="font-weight:700;color:' + color + ';font-size:14px">' + sign + '\u20ac' + Math.abs(v.total||0).toFixed(2) + '</div>' +
+      (v.reembolsado ? '<div style="font-size:10px;color:var(--red);font-weight:700">' + T('tpv.reembolsada') + '</div>' : '') +
+      (esDev ? '<div style="font-size:10px;color:var(--red);font-weight:700">' + T('dev.badge_devolucion') + '</div>' : '') + '</div>' +
+      // Devolver / cambiar: se hace en el panel (Ventas), con la venta ya abierta.
+      (_puedeDev && !esDev && !v.reembolsado && !v.financiado && (v.items || []).length ? '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px" onclick="location.href=\'dashboard.html?devolver=' + encodeURIComponent(v.id) + '#ventas\'" title="' + escHtml(T('dev.titulo')) + '">\u21a9\ufe0f</button>' : '') +
       '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px" onclick="reimprimirVenta(\'' + escHtml(v.id) + '\')" title="Reimprimir ticket">\ud83d\udda8</button>' +
-      '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px;background:#10B981;color:white" onclick="factVenta(\'' + escHtml(v.id) + '\')" title="Generar factura">\ud83d\udcc4</button>' +
+      (esDev ? '' : '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px;background:#10B981;color:white" onclick="factVenta(\'' + escHtml(v.id) + '\')" title="Generar factura">\ud83d\udcc4</button>') +
       '</div>';
   }).join('');
   html += '</div>';
@@ -2880,11 +3029,12 @@ setInterval(_actualizarFabBadge, 600);
 setTimeout(_actualizarFabBadge, 300);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="factura.js?v=20261016n" defer></script>
+<script src="factura.js?v=20261027d" defer></script>
 <script>
 function factVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
   if (!v) { toast(T('tpv.venta_no_encontrada'), 'err'); return; }
+  if (_esDevT(v)) { toast(T('dev.no_facturar'), 'err'); return; }
   var cli = v.clienteId ? DB.clis.find(function(c){ return c.id === v.clienteId; }) : null;
   // Fallback: si el cliente no está en DB.clis pero la venta guardó el nombre, usarlo igualmente
   if (!cli && v.clienteNombre && v.clienteNombre !== 'Sin cliente') {
