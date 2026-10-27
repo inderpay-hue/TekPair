@@ -1007,7 +1007,7 @@ export default async function handler(req, res) {
           cambio_siguiente: Number(cambio_siguiente || 0),
           // Efectivo que se lleva al banco (solo informativo: sale del cajón después de
           // contarlo, no cambia el descuadre). Columna del SQL 2026-10-27_cajas_ingreso_banco.
-          ingreso_banco: Math.max(0, Math.round(Number(req.body.ingreso_banco || 0) * 100) / 100),
+          ingreso_banco: Math.min(99999999, Math.max(0, Math.round(Number(req.body.ingreso_banco || 0) * 100) / 100)) || 0,
           total_cobrado_caja: Number(total_cobrado_caja || 0),
           importe_tpv: Number(importe_tpv || 0),
           estado: estadoFinal,

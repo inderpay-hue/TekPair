@@ -405,7 +405,8 @@
       '?tienda_id=eq.' + encodeURIComponent(window.TIENDA_ID) +
       '&origen_tipo=eq.' + encodeURIComponent(origen) +
       '&origen_id=eq.' + encodeURIComponent(oid) +
-      '&select=*&limit=1';
+      // La original (un abono copia origen_id): sin esto, tras una devolución podía salir el abono.
+      '&rectifica_a=is.null&order=created_at.asc&select=*&limit=1';
 
     fetch(url, { headers: _supabaseHeaders() })
       .then(function(r) { return r.ok ? r.json() : []; })
