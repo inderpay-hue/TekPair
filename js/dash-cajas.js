@@ -1769,7 +1769,7 @@
           <div class="fd-nombre">${nombre}</div>
           <div class="fd-num">${d.getDate()}</div>
           <div class="fd-info">${etiqueta}</div>
-          ${info && info.banco > 0 ? `<div class="fd-banco" title="${T('cajas.ingreso_banco').replace(' €','')}" style="font-size:10px;font-weight:700;opacity:.85;margin-top:2px">🏦 ${eur(info.banco)}</div>` : ''}
+          ${info && info.banco > 0 ? `<div class="fd-banco" title="${T('cajas.ingreso_banco').replace(' €','')}: ${eur(info.banco)}" style="font-size:10px;font-weight:700;opacity:.85;margin-top:2px;overflow-wrap:anywhere">🏦 ${Math.round(info.banco)} €</div>` : ''}
         </div>
       `;
     }).join('');
@@ -1878,7 +1878,7 @@
     if (!pie) {
       pie = document.createElement('div');
       pie.id = 'tpcal-banco-mes';
-      pie.style.cssText = 'margin-top:10px;font-size:13px;font-weight:700;text-align:center';
+      pie.style.cssText = 'margin-top:10px;font-size:13px;font-weight:700;text-align:center;color:#111827';
       $('tpcal-grid').insertAdjacentElement('afterend', pie);
     }
     pie.textContent = totBancoMes > 0 ? T('cajas.banco_mes').replace('{x}', eur(totBancoMes)) : '';

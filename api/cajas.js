@@ -1388,7 +1388,7 @@ export default async function handler(req, res) {
           `cajas_cierres?tienda_id=eq.${encodeURIComponent(tienda_id)}`
           + `&fecha=gte.${encodeURIComponent(desde)}`
           + `&fecha=lte.${encodeURIComponent(hasta)}`
-          + `&select=*&order=fecha.asc`
+          + `&select=fecha,estado,descuadre,caja_id,revisado_por,ingreso_banco&order=fecha.asc`
         );
 
         // 2) Fiados pendientes del periodo (para color amarillo)
@@ -1578,7 +1578,7 @@ export default async function handler(req, res) {
         let totalBanco = 0;
         try {
           const cs = await sbGet(`cajas_cierres?caja_id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`
-            + `&fecha=gte.${encodeURIComponent(desde)}&fecha=lte.${encodeURIComponent(hasta)}&select=*`);
+            + `&fecha=gte.${encodeURIComponent(desde)}&fecha=lte.${encodeURIComponent(hasta)}&select=ingreso_banco`);
           totalBanco = Math.round(cs.reduce((a, c) => a + Number(c.ingreso_banco || 0), 0) * 100) / 100;
         } catch (e) { /* sin el dato: 0 */ }
         return ok(res, { caja, ...datos, total_ingreso_banco: totalBanco });
