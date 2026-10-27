@@ -156,11 +156,11 @@
         '<td style="padding:8px 4px;width:28px"><input type="checkbox" class="_dvChk" ' + (agotada ? 'disabled' : '') + ' style="width:18px;height:18px;cursor:pointer"></td>' +
         '<td style="padding:8px 4px">' + e(it.nombre || '-') +
           (it.imei ? '<div style="font-size:11px;color:var(--muted)">IMEI: ' + e(it.imei) + '</div>' : '') +
-          '<div style="font-size:11px;color:var(--muted)">' + e(txt('dev.vendidas').replace('{n}', L.qty)) +
-            (L.devuelto ? ' · ' + e(txt('dev.ya_devueltas').replace('{n}', L.devuelto)) : '') + '</div></td>' +
+          '<div style="font-size:11px;color:var(--muted)">' + e(txt('dev.vendidas').replace(/\{n\}/g, L.qty)) +
+            (L.devuelto ? ' · ' + e(txt('dev.ya_devueltas').replace(/\{n\}/g, L.devuelto)) : '') + '</div></td>' +
         '<td style="padding:8px 4px;text-align:center;white-space:nowrap">' + (agotada ? '<span style="font-size:11.5px;font-weight:700;color:var(--red,#EF4444)">' + e(txt('dev.devuelto')) + '</span>' :
           '<input type="number" class="_dvQty" min="0" max="' + L.max + '" step="1" value="0" inputmode="numeric" style="width:58px;padding:6px;border:1px solid var(--border,#E5E7EB);border-radius:8px;font:inherit;text-align:center;color:inherit;background:var(--light,#fff)">' +
-          '<div style="font-size:10.5px;color:var(--muted)">' + e(txt('dev.max').replace('{n}', L.max)) + '</div>') + '</td>' +
+          '<div style="font-size:10.5px;color:var(--muted)">' + e(txt('dev.max').replace(/\{n\}/g, L.max)) + '</div>') + '</td>' +
         '<td class="_dvImp" style="padding:8px 4px;text-align:right;font-weight:700;white-space:nowrap">' + money(0) + '</td>' +
       '</tr>';
     }).join('');
@@ -219,7 +219,7 @@
       m.box.querySelector('#_dvTotal').textContent = '-' + money(t);
       var ok = m.box.querySelector('#_dvOk');
       ok.disabled = !hay; ok.style.opacity = hay ? '1' : '.5';
-      ok.textContent = hay ? txt(metodo === CAMBIO ? 'dev.confirmar_cambio' : 'dev.confirmar_importe').replace('{x}', money(t)) : txt('dev.confirmar_btn');
+      ok.textContent = hay ? txt(metodo === CAMBIO ? 'dev.confirmar_cambio' : 'dev.confirmar_importe').replace(/\{x\}/g, money(t)) : txt('dev.confirmar_btn');
       m.box.querySelectorAll('._dvMet').forEach(function (b) {
         var on = b.getAttribute('data-m') === metodo;
         b.style.borderColor = on ? 'var(--green,#10B981)' : 'var(--border,#E5E7EB)';
@@ -253,8 +253,8 @@
       var t = totalSel(v, Ls, sel);
       var elegidas = Ls.filter(function (L) { return (sel[L.idx] || 0) > 0; }).map(function (L) { return { idx: L.idx, n: sel[L.idx] }; });
       if (!elegidas.length) return;
-      var msg = txt(metodo === CAMBIO ? 'dev.confirm_cambio' : 'dev.confirm').replace('{x}', money(t))
-        .replace('{n}', elegidas.reduce(function (a, s) { return a + s.n; }, 0)).replace('{m}', lblMet(metodo));
+      var msg = txt(metodo === CAMBIO ? 'dev.confirm_cambio' : 'dev.confirm').replace(/\{x\}/g, money(t))
+        .replace(/\{n\}/g, elegidas.reduce(function (a, s) { return a + s.n; }, 0)).replace(/\{m\}/g, lblMet(metodo));
       confirmar(msg, function () {
         m.close();
         ejecutar(id, elegidas, metodo);
@@ -316,7 +316,7 @@
         var nombres = lineas.map(function (x) { return (x.n > 1 ? x.n + '× ' : '') + (x.L.it.nombre || '-'); }).join(', ');
         var dev = {
           id: devId, fecha: f, clienteId: v.clienteId || '', clienteNombre: v.clienteNombre || 'Sin cliente',
-          marca: '', modelo: (txt('dev.modelo').replace('{n}', num || ((typeof fmtFecha === 'function') ? fmtFecha(v.fecha) : v.fecha)) + ': ' + nombres).slice(0, 250),
+          marca: '', modelo: (txt('dev.modelo').replace(/\{n\}/g, num || ((typeof fmtFecha === 'function') ? fmtFecha(v.fecha) : v.fecha)) + ': ' + nombres).slice(0, 250),
           imei: '', pago: metodo, pagos: null,
           precio: -r2(preSel), descuento: 0,
           iva: v.iva || 0, ivaModo: v.ivaModo || 'sin',
@@ -371,7 +371,7 @@
               st.unidades = (parseInt(st.unidades, 10) || 0) + x.n;
               if (st.unidades > 0 && st.vendido) st.vendido = false;
               if (typeof _stockDelta === 'function') _stockDelta(st, x.n, null);
-              if (typeof _logMov === 'function') _logMov('entrada', it.nombre || '', x.n, txt('dev.mov_ref').replace('{n}', num || v.id));
+              if (typeof _logMov === 'function') _logMov('entrada', it.nombre || '', x.n, txt('dev.mov_ref').replace(/\{n\}/g, num || v.id));
             });
             if (typeof guardarDatos === 'function') guardarDatos();
             if (typeof audit === 'function') audit('devolucion', 'venta', v.id, (v.clienteNombre || '') + ' · -' + money(imp) + ' · ' + metodo + ' · ' + nombres, null);
@@ -406,7 +406,7 @@
       '<div style="text-align:center;font-size:16px;font-weight:800;margin-bottom:4px">' + e(txt('dev.hecha')) + '</div>' +
       '<div style="text-align:center;font-size:22px;font-weight:900;color:var(--red,#EF4444)">-' + money(R.imp) + '</div>' +
       '<div style="text-align:center;font-size:12.5px;color:var(--muted);margin-bottom:14px">' + e(lbl) + ' · ' + e(R.lineas.map(function (x) { return (x.n > 1 ? x.n + '× ' : '') + (x.L.it.nombre || '-'); }).join(', ')) + '</div>' +
-      (esCambio ? '<div style="font-size:12.5px;margin-bottom:10px;padding:8px 10px;border-radius:8px;background:rgba(59,130,246,.10)">' + e(txt('dev.cambio_siguiente').replace('{x}', money(R.imp))) + '</div>' : '') +
+      (esCambio ? '<div style="font-size:12.5px;margin-bottom:10px;padding:8px 10px;border-radius:8px;background:rgba(59,130,246,.10)">' + e(txt('dev.cambio_siguiente').replace(/\{x\}/g, money(R.imp))) + '</div>' : '') +
       '<div style="display:flex;flex-direction:column;gap:8px">' +
         (esCambio ? '<button type="button" id="_dhTpv" style="padding:12px;border:none;background:var(--green,#10B981);color:#fff;border-radius:10px;cursor:pointer;font:inherit;font-weight:800">🔁 ' + e(txt('dev.ir_tpv')) + '</button>' : '') +
         '<button type="button" id="_dhTk" style="padding:11px;border:1px solid var(--border,#E5E7EB);background:transparent;color:inherit;border-radius:10px;cursor:pointer;font:inherit;font-weight:700">🖨 ' + e(txt('dev.imprimir')) + '</button>' +
@@ -463,7 +463,7 @@
           devolucion: R.dev.id
         };
         cont.innerHTML = '<button type="button" style="width:100%;padding:11px;border:none;background:#dc2626;color:#fff;border-radius:10px;cursor:pointer;font:inherit;font-weight:700">🧾 ' +
-          e(txt('dev.emitir_abono').replace('{num}', orig.numero || '').replace('{x}', money(impAb))) + '</button>';
+          e(txt('dev.emitir_abono').replace(/\{num\}/g, orig.numero || '').replace(/\{x\}/g, money(impAb))) + '</button>';
         var b = cont.querySelector('button');
         b.onclick = function () {
           b.disabled = true; b.style.opacity = '.6';
