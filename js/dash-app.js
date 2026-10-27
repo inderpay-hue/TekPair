@@ -11663,6 +11663,17 @@ function agregarServicioRep(servicio) {
 
 function quitarServicioRep(idx) {
   if (!SEL.rServicios) return;
+  var _sv = SEL.rServicios[idx];
+  // La pieza que se puso sola al elegir la calidad de la tarifa se va con su servicio.
+  var _auto = _srvPiezasAuto.filter(function (a) { return a.sv === _sv; });
+  if (_auto.length) {
+    _srvPiezasAuto = _srvPiezasAuto.filter(function (a) { return a.sv !== _sv; });
+    _auto.forEach(function (a) {
+      var i = (SEL.selParts || []).findIndex(function (p) { return p.id === a.id && p.incluida && !(parseFloat(p.precio) > 0); });
+      if (i !== -1) SEL.selParts.splice(i, 1);
+    });
+    try { renderParts(); } catch (e) {}
+  }
   SEL.rServicios.splice(idx, 1);
   renderServiciosRep();
   renderOpcionalesRep();
@@ -12371,14 +12382,19 @@ function _precioEnServicioExistente(it, o) {
 // ese tipo para el modelo de la reparación, de ESA calidad, se pone ya en la reparación (como
 // «Usar pieza del stock») y su precio de coste pasa al servicio para el margen (_costeRep no lo
 // cuenta dos veces). Sin pieza que encaje, el coste se queda como estaba (0 si no hay dato).
+// Qué pieza se puso sola con cada servicio (por el objeto del servicio, no se guarda en la
+// reparación): si se quita ese servicio, se quita también su pieza (quitarServicioRep).
+var _srvPiezasAuto = [];
 function _srvPiezaAuto(sv, cal) {
-  if (!sv || _srvTienePieza(sv)) return null;
-  var ps = _piezasParaServicio(sv), c = _margN(cal);
-  // con calidad, solo una pieza de esa calidad; sin calidad, solo si no hay duda (una sola pieza)
-  var x = c ? ps.find(function (y) { return _margN(y.calidad) === c; }) : (ps.length === 1 ? ps[0] : null);
+  // Sin calidad en la opción elegida no se adivina la pieza: queda el botón «Usar pieza».
+  var c = _margN(cal);
+  if (!sv || !c || _srvTienePieza(sv)) return null;
+  var x = _piezasParaServicio(sv).find(function (y) { return _margN(y.calidad) === c; });
   if (!x) return null;
   SEL.selParts = SEL.selParts || [];
   SEL.selParts.push({ id: x.id, nombre: _eqNombre(x.marca, x.modelo) + (x.calidad ? ' · ' + x.calidad : '') + (x.color ? ' (' + x.color + ')' : ''), precio: 0, incluida: true });
+  _srvPiezasAuto = _srvPiezasAuto.filter(function (a) { return (SEL.rServicios || []).indexOf(a.sv) !== -1; });
+  _srvPiezasAuto.push({ sv: sv, id: x.id });
   var pc = parseFloat(x.precioC) || 0;
   if (pc > 0) sv.coste = pc;
   try { renderParts(); } catch (e) {}
@@ -26638,20 +26654,29 @@ function _impFacMarcaModelo(txt) {
   for (var i = 0; i < marcas.length; i++) if (marcas[i][1].test(txt)) { r.marca = marcas[i][0]; break; }
   return r;
 }
+var _IMPFAC_NO_STOCK = /\b(envio|envios|shipping|portes|transporte|recargo|importe|suma|descuento|dto|total|subtotal|base imponible|imponible|iva|vat|tva|mwst|igic)\b/;
+// Palabras de pieza: con ellas un «Repuesto» con modelo de móvil sí es un recambio (cámara, lente…)
+var _IMPFAC_PIEZA = /\b(camara|camera|lente|flex|boton|botones|placa|sensor|vibrador|antena|marco|chasis|bandeja|tornillos?|adhesivo|cinta|conector|auricular|microfono|altavoz|cristal|tapa|carcasa|face ?id|touch ?id|lector|modulo|repuesto|pieza|kit)\b/;
 // Facturas de recambios: líneas «[ref] descripción uds precio importe» (o «precio uds importe»).
 // Los tres números del final se aceptan solo si uds × precio ≈ importe, así una medida dentro
 // de la descripción («20 W», «1 m») no se confunde con las unidades.
 function impFacParsearRecambios(lines) {
   var out = [];
-  (lines || []).forEach(function (line) {
+  var conImei = function (l) { return /\b\d{14,16}\b/.test(String(l || '')); };
+  (lines || []).forEach(function (line, idx) {
     var toks = String(line || '').replace(/(\d)\s*€/g, '$1').replace(/\s€\s/g, ' ').trim().split(/\s+/);
-    if (toks.length < 4 || /\b\d{14,16}\b/.test(line)) return; // las líneas con IMEI van por su lado
-    if (/^(base|subtotal|total|iva|vat|tva|mwst|imponible|descuento|portes)\b/i.test(_norm(toks[0]))) return;
-    var a = _impFacNum(toks[toks.length - 3]), b = _impFacNum(toks[toks.length - 2]), imp = _impFacNum(toks[toks.length - 1]);
+    if (toks.length < 4 || conImei(line)) return; // las líneas con IMEI van por su lado
+    // Lo que no es stock: envío, recargos, descuentos, totales, base imponible, IVA…
+    if (_IMPFAC_NO_STOCK.test(_norm(toks.slice(0, toks.length - 3).join(' ')))) return;
+    var rA = toks[toks.length - 3], rB = toks[toks.length - 2];
+    var a = _impFacNum(rA), b = _impFacNum(rB), imp = _impFacNum(toks[toks.length - 1]);
     if (isNaN(a) || isNaN(b) || isNaN(imp) || imp <= 0) return;
     var cerca = function (q, p) { return q >= 1 && q === Math.round(q) && Math.abs(q * p - imp) <= Math.max(0.02, imp * 0.005); };
-    var uds, precio;
-    if (cerca(a, b)) { uds = a; precio = b; } else if (cerca(b, a)) { uds = b; precio = a; } else return;
+    var ab = cerca(a, b), ba = cerca(b, a), uds, precio;
+    // Si los dos órdenes cuadran («15,00 2 30,00»), las unidades son el número escrito sin
+    // decimales; si no se distingue, el orden habitual: uds · precio · importe.
+    if (ab && ba) { var decA = /[.,]\d{1,2}$/.test(rA), decB = /[.,]\d{1,2}$/.test(rB); if (decA && !decB) ab = false; }
+    if (ab) { uds = a; precio = b; } else if (ba) { uds = b; precio = a; } else return;
     var desc = toks.slice(0, toks.length - 3);
     var ref = '';
     // Referencia: primer token tipo código (mayúsculas/dígitos/guiones, con algún dígito o guion)
@@ -26666,6 +26691,11 @@ function impFacParsearRecambios(lines) {
     }
     // Repuestos: marca + modelo compatible (la categoría ya dice qué es). Accesorios y lo
     // que no tiene modelo: la descripción entera como nombre, para no confundirlo con un móvil.
+    // Un teléfono no es un repuesto: «Apple iPhone 13 128GB Negro» (con o sin «IMEI: …» al lado,
+    // que ya da de alta la parte de IMEI). Sin pieza reconocida y con un IMEI en la línea de al
+    // lado, tampoco: es la ficha de ese equipo.
+    if (cat === 'Repuesto' && mm.modelo && (/\b\d+\s*(gb|tb)\b/i.test(texto) || !_IMPFAC_PIEZA.test(_norm(texto)))) return;
+    if (cat === 'Repuesto' && !_IMPFAC_PIEZA.test(_norm(texto)) && (conImei(lines[idx + 1]) || conImei(lines[idx - 1]))) return;
     var esPieza = cat !== 'Accesorio' && cat !== 'Repuesto' && mm.modelo;
     out.push({
       cat: cat, marca: esPieza ? mm.marca : '', modelo: esPieza ? mm.modelo : texto, capacidad: '', color: '',
@@ -26729,13 +26759,15 @@ function impFacParsearProductos(lines, fullText) {
 
       // Detectar precio: buscar números con decimales en la línea actual o siguiente
       var coste = 0;
-      var lineaConPrecio = line + ' ' + (lines[idx+1] || '');
-      // Buscar todos los números con formato precio
-      var precios = lineaConPrecio.match(/\b(\d{2,4}[.,]\d{2})\b/g) || [];
+      // Precio en la línea del IMEI; si no lo trae («IMEI: 3567…» debajo del teléfono), en la de
+      // encima (la del teléfono) y, si tampoco, en la de debajo.
+      var _pr = function(l) { return String(l || '').replace(/\b\d{14,16}\b/g, ' ').match(/\b(\d{1,3}(?:\.\d{3})*[.,]\d{2}|\d{2,4}[.,]\d{2})\b/g) || []; };
+      var precios = _pr(line);
+      if (!precios.length) precios = _pr(lines[idx-1]);
+      if (!precios.length) precios = _pr(lines[idx+1]);
       if (precios.length > 0) {
         // Tomar el último (suele ser el total línea o coste unitario al final)
-        var ultimoPrecio = precios[precios.length - 1].replace(',', '.');
-        coste = parseFloat(ultimoPrecio) || 0;
+        coste = _impFacNum(precios[precios.length - 1]) || 0;
       }
 
       // Excluir IMEIs duplicados
@@ -26830,8 +26862,23 @@ function impFacAnadirAlStock() {
   var margen = margenStr ? (parseFloat(margenStr) || 0) : 0;
 
   if (!DB.stock) DB.stock = [];
-  var creados = 0;
+  // La misma pieza dos veces en la factura (dos líneas iguales): una sola ficha con la suma de
+  // unidades y el coste medio. Los equipos con IMEI van siempre uno a uno.
+  var grupos = {}, lista = [];
   validos.forEach(function(p) {
+    var esI = _esImeiCat(p.cat || 'Telefono') || (p.imei || '').trim();
+    if (esI) { lista.push(p); return; }
+    var k = [p.cat, p.marca, p.modelo, p.capacidad, p.color, p.calidad].map(function(x) { return _norm(String(x || '').trim()); }).join('|');
+    var u = Math.max(1, parseInt(p.unidades, 10) || 1), c = parseFloat(p.coste) || 0;
+    var g = grupos[k];
+    if (!g) { g = grupos[k] = Object.assign({}, p, { unidades: u, coste: c }); lista.push(g); return; }
+    var tot = g.unidades + u;
+    g.coste = Math.round((g.coste * g.unidades + c * u) / tot * 100) / 100;
+    g.unidades = tot;
+    if (p.ref && String(g.ref || '').split(', ').indexOf(p.ref) === -1) g.ref = g.ref ? g.ref + ', ' + p.ref : p.ref;
+  });
+  var creados = 0;
+  lista.forEach(function(p) {
     var coste = parseFloat(p.coste) || 0;
     var precioV = margen > 0 && coste > 0 ? Math.round(coste * (1 + margen/100) * 100) / 100 : 0;
     var cat = p.cat || 'Telefono', esImei = _esImeiCat(cat);
@@ -26844,9 +26891,15 @@ function impFacAnadirAlStock() {
         _norm(s.color) === _norm(color) && _norm(s.calidad) === _norm(calidad);
     }) : null;
     if (ya) {
+      // Suma relativa (ajustar_stock, como ventas y devoluciones): otro equipo vendiendo esa
+      // pieza a la vez no se pisa. El coste solo se rellena si la ficha no lo tenía.
       ya.unidades = (parseInt(ya.unidades, 10) || 0) + uds;
-      if (!(parseFloat(ya.precioC) > 0) && coste > 0) ya.precioC = coste;
-      if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(ya.id), { unidades: ya.unidades, precio_c: ya.precioC });
+      ya.vendido = false;
+      _stockDelta(ya, uds, null);
+      if (!(parseFloat(ya.precioC) > 0) && coste > 0) {
+        ya.precioC = coste;
+        if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(ya.id), { precio_c: ya.precioC });
+      }
       creados++;
       return;
     }

@@ -3064,7 +3064,7 @@ setTimeout(_actualizarFabBadge, 300);
 function factVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
   if (!v) { toast(T('tpv.venta_no_encontrada'), 'err'); return; }
-  if (!SB_KEY || !TIENDA_ID || _tpvVentaEnCola(id)) { _factVentaAbrir(v); return; }
+  if (!SB_KEY || !TIENDA_ID || _tpvVentaEnCola(id) || (typeof navigator !== 'undefined' && navigator.onLine === false)) { _factVentaAbrir(v); return; }
   sbGet('ventas', 'id=eq.' + encodeURIComponent(id) + '&tienda_id=eq.' + encodeURIComponent(TIENDA_ID)).then(function (rows) {
     var r = Array.isArray(rows) && rows[0];
     if (r) {
