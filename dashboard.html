@@ -1248,7 +1248,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261027f"></script>
+<script src="/lang/lang.v8.js?v=20261027i"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2877,6 +2877,11 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
           <label data-t="cajas.cambio_manana">Cambio que dejo para mañana €</label>
           <input type="number" step="0.01" id="cierre-cambio-siguiente" value="0">
         </div>
+        <div class="cajas-form-grupo">
+          <label><span data-t="cajas.ingreso_banco">🏦 Ingreso al banco €</span> <span data-t="cajas.ingreso_banco_ayuda" style="text-transform:none;font-weight:400;color:#6b7280;font-size:10px;">(lo que llevas al banco)</span></label>
+          <div style="display:flex;gap:6px;align-items:center"><input type="number" step="0.01" min="0" id="cierre-ingreso-banco" value="0" style="flex:1;min-width:0">
+          <button type="button" id="cierre-ingreso-resto" onclick="Cajas.ingresoBancoResto()" title="Efectivo contado menos el cambio que dejas" style="flex-shrink:0;border:1px solid var(--border);background:#fff;border-radius:8px;padding:8px 10px;cursor:pointer;font:inherit;font-size:13px;font-weight:700" data-t="cajas.ingreso_banco_resto">= Resto</button></div>
+        </div>
       </div>
 
 
@@ -2910,7 +2915,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 
 <!-- ════ LÓGICA JS ════ -->
-<script src="/js/dash-cajas.js?v=20261026a"></script>
+<script src="/js/dash-cajas.js?v=20261027g"></script>
 
 <div class="page" id="pGastos">
   <div class="sec-header" style="margin-bottom:10px">

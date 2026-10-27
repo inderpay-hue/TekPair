@@ -1005,6 +1005,9 @@ export default async function handler(req, res) {
           saldo_teorico: saldoTeorico,
           descuadre,
           cambio_siguiente: Number(cambio_siguiente || 0),
+          // Efectivo que se lleva al banco (solo informativo: sale del cajón después de
+          // contarlo, no cambia el descuadre). Columna del SQL 2026-10-27_cajas_ingreso_banco.
+          ingreso_banco: Math.max(0, Math.round(Number(req.body.ingreso_banco || 0) * 100) / 100),
           total_cobrado_caja: Number(total_cobrado_caja || 0),
           importe_tpv: Number(importe_tpv || 0),
           estado: estadoFinal,
@@ -1037,7 +1040,7 @@ export default async function handler(req, res) {
         }
 
         let cierreId;
-        try {
+        const _guardarCierre = async () => {
           if (cierreExistente) {
             const data = await sbPatch(
               `cajas_cierres?id=eq.${encodeURIComponent(cierreExistente.id)}`,
@@ -1047,6 +1050,17 @@ export default async function handler(req, res) {
           } else {
             const data = await sbPost('cajas_cierres', cierrePayload);
             cierreId = Array.isArray(data) ? data[0].id : data.id;
+          }
+        };
+        try {
+          try {
+            await _guardarCierre();
+          } catch (e0) {
+            // Sin el SQL del ingreso al banco aún aplicado: se guarda el cierre sin ese dato.
+            if (e0 instanceof SupabaseError && /ingreso_banco/.test(e0.body || '')) {
+              delete cierrePayload.ingreso_banco;
+              await _guardarCierre();
+            } else throw e0;
           }
         } catch (e) {
           // CAJ-8b: detectar conflict UNIQUE (uq_cierres_caja_fecha).

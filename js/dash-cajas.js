@@ -798,6 +798,7 @@
       $('cierre-saldo-real').value = data.cierre?.saldo_real_final ?? 0;
       if ($('cierre-importe-tpv')) $('cierre-importe-tpv').value = data.cierre?.importe_tpv ?? 0;
       $('cierre-cambio-siguiente').value = data.cierre?.cambio_siguiente ?? 0;
+      if ($('cierre-ingreso-banco')) $('cierre-ingreso-banco').value = data.cierre?.ingreso_banco ?? 0;
       $('cierre-notas').value = data.cierre?.notas ?? '';
       // Total cobrado: campo desactivado en v1.3 (ya no se usa, se calcula directo)
       const bloqueTC = $('bloque-total-cobrado');
@@ -826,6 +827,12 @@
       $('cierre-cambio-siguiente').title = bloquearCambio
         ? 'Caja ya cerrada. Solo el administrador puede modificarlo ahora.'
         : 'Cuánto efectivo dejas en el cajón para mañana.';
+      // INGRESO AL BANCO: mismo bloqueo que el cambio.
+      if ($('cierre-ingreso-banco')) {
+        $('cierre-ingreso-banco').readOnly = bloquearCambio;
+        $('cierre-ingreso-banco').style.background = bloquearCambio ? '#f3f4f6' : '';
+        if ($('cierre-ingreso-resto')) { $('cierre-ingreso-resto').disabled = bloquearCambio; $('cierre-ingreso-resto').title = T('cajas.ingreso_banco_resto_ayuda'); }
+      }
 
       // Cargar TODOS los fiados del día - persisten en su día original incluso si se cobran
       Estado.fiadosTemp = [];
@@ -1086,6 +1093,7 @@
         ? Estado.fiadosTemp.filter(f => f.estado !== 'anulado').reduce((s, f) => s + Number(f.importe || 0), 0)
         : 0,
       cambio_siguiente: Number($('cierre-cambio-siguiente').value || 0),
+      ingreso_banco: Math.max(0, Number($('cierre-ingreso-banco')?.value || 0)),
       total_cobrado_caja: Number($('cierre-total-cobrado')?.value || 0),
       notas: $('cierre-notas').value.trim(),
       estado,
@@ -1935,6 +1943,7 @@
       : `<span class="caja-card-estado caja-estado-pendiente">${T('cajas.pendiente')}</span>`;
     const contadoPrefill = (cierre && cierre.saldo_real_final != null) ? cierre.saldo_real_final : '';
     const cambioPrefill = (cierre && cierre.cambio_siguiente != null) ? cierre.cambio_siguiente : '';
+    const bancoPrefill = (cierre && Number(cierre.ingreso_banco) > 0) ? cierre.ingreso_banco : '';
     cont.innerHTML = `
       <div style="background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:16px;margin-bottom:16px;border-left:4px solid #00C896">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
@@ -1953,6 +1962,11 @@
           <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
             <label style="font-size:13px;white-space:nowrap">${T('cajas.cambio_manana').replace(' €','')}</label>
             <input id="caja-dia-cambio" type="number" step="0.01" inputmode="decimal" value="${cambioPrefill}" oninput="Cajas.cuadreCajaDia()" style="flex:1;min-width:0;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px">
+          </div>
+          <div style="display:flex;gap:8px;align-items:center;margin-top:8px">
+            <label style="font-size:13px;white-space:nowrap">${T('cajas.ingreso_banco').replace(' €','')}</label>
+            <input id="caja-dia-banco" type="number" step="0.01" min="0" inputmode="decimal" value="${bancoPrefill}" style="flex:1;min-width:0;padding:7px 10px;border:1px solid #d1d5db;border-radius:8px;font-size:14px">
+            <button type="button" class="cajas-btn cajas-btn-sec" style="flex:0 0 auto;padding:6px 10px" onclick="Cajas.ingresoBancoResto(true)" title="${T('cajas.ingreso_banco_resto_ayuda')}">${T('cajas.ingreso_banco_resto')}</button>
           </div>
           <div id="caja-dia-descuadre" style="margin-top:8px;font-size:13px;font-weight:700;min-height:18px"></div>
           <div id="caja-dia-retirar" style="font-size:12px;color:var(--muted,#6b7280);min-height:16px"></div>
@@ -1987,6 +2001,14 @@
         ? T('cajas.dia_retiras').replace('{c}', eur(cambio)).replace('{r}', eur(Math.round((contado - cambio) * 100) / 100))
         : '';
     }
+  }
+
+  // «= Resto»: lo que se lleva al banco es lo contado menos el cambio que se deja.
+  function ingresoBancoResto(cajaDia) {
+    const contado = parseFloat(($(cajaDia ? 'caja-dia-contado' : 'cierre-saldo-real') || {}).value || 0) || 0;
+    const cambio = parseFloat(($(cajaDia ? 'caja-dia-cambio' : 'cierre-cambio-siguiente') || {}).value || 0) || 0;
+    const inp = $(cajaDia ? 'caja-dia-banco' : 'cierre-ingreso-banco');
+    if (inp && !inp.readOnly) inp.value = Math.max(0, Math.round((contado - cambio) * 100) / 100).toFixed(2);
   }
 
   // Pago hecho con el dinero del cajón (mensajero, café, un recambio suelto…). Se guarda
@@ -2047,6 +2069,7 @@
       // se dejó ayer salía como "sobra" al contar el cajón.
       efectivo_esperado: Math.round((r.efectivoEsperado + saldoIni) * 100) / 100,
       total_fiados: 0, cambio_siguiente: cambioSig, total_cobrado_caja: r.totalDia,
+      ingreso_banco: Math.max(0, parseFloat(($('caja-dia-banco') || {}).value || 0) || 0),
       notas: null, estado: 'cerrado', movimientos: [],
       codigo_apertura: (window._cajaSesion && window._cajaSesion.codigo) || '',
       abierto_por_nombre: (window._cajaSesion && window._cajaSesion.nombre) || ''
@@ -2366,6 +2389,7 @@
     asignarCompaniaCuenta,
     pintarCajaDia,
     cuadreCajaDia,
+    ingresoBancoResto,
     cerrarCajaDia,
     gastoDeCaja,
     borrarGastoCaja,
