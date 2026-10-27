@@ -1377,6 +1377,27 @@ export default async function handler(req, res) {
       }
 
 
+      // Exportar cierres de caja de un rango (CSV para Excel). Mismo permiso que el histórico
+      // y, para el empleado, solo sus cajas.
+      case 'exportar_cierres': {
+        const { desde, hasta } = req.query;
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(desde || '') || !/^\d{4}-\d{2}-\d{2}$/.test(hasta || '')) return err(res, 400, 'desde y hasta obligatorios');
+        if (desde > hasta) return err(res, 400, 'El rango de fechas está al revés');
+        if (!(await tienePermisoCaja(payload, 'cajasm_historico'))) return err(res, 403, 'Sin permiso para ver días anteriores');
+        let cierres = await sbGet(
+          `cajas_cierres?tienda_id=eq.${encodeURIComponent(tienda_id)}`
+          + `&fecha=gte.${encodeURIComponent(desde)}&fecha=lte.${encodeURIComponent(hasta)}`
+          + `&select=fecha,caja_id,estado,saldo_inicial,saldo_teorico,saldo_real_final,importe_tpv,total_fiados,descuadre,cambio_siguiente,ingreso_banco,abierto_por,cerrado_por,cerrado_at,notas`
+          + `&order=fecha.asc&limit=5000`
+        );
+        const permitEx = await _cajasPermitidas(payload);
+        if (permitEx !== null) cierres = cierres.filter(c => permitEx.includes(String(c.caja_id)));
+        const cajasEx = await sbGet(`cajas?tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id,nombre`);
+        const nombreCaja = {};
+        for (const c of cajasEx) nombreCaja[String(c.id)] = c.nombre;
+        return ok(res, { cierres: cierres.map(c => ({ ...c, caja: nombreCaja[String(c.caja_id)] || '' })) });
+      }
+
       case 'resumen_periodo': {
         const { desde, hasta } = req.query;
         if (!desde || !hasta) return err(res, 400, 'desde y hasta obligatorios');

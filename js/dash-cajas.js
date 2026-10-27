@@ -429,6 +429,85 @@
     });
   }
 
+  // ── EXPORTAR CIERRES (CSV para Excel) ──────────
+  // Un cierre por fila: lo que cuadra, lo que se dejó de cambio y lo llevado al banco.
+  // Separador «;» y coma decimal: así Excel en español lo abre en columnas sin tocar nada.
+  function _pedirRango() {
+    return new Promise((resolve) => {
+      const hoy = (typeof hoyLocal === 'function') ? hoyLocal() : new Date().toISOString().slice(0, 10);
+      const ini = hoy.slice(0, 8) + '01';
+      let cerrado = false;
+      const ov = document.createElement('div');
+      ov.className = 'cajas-modal-overlay activo';
+      ov.style.zIndex = '100001';
+      const fin = (val) => { if (cerrado) return; cerrado = true; ov.remove(); resolve(val); };
+      ov.onclick = (e) => { if (e.target === ov) fin(null); };
+      const est = 'width:100%;font-size:15px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--white);color:var(--text);box-sizing:border-box;';
+      ov.innerHTML = `<div class="cajas-modal" style="max-width:420px;">
+        <div class="cajas-modal-header"><h3>${escapar(T('cajas.exp_titulo'))}</h3><button class="cajas-modal-cerrar" type="button">✕</button></div>
+        <div class="cajas-modal-cuerpo">
+          <div style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.4;">${escapar(T('cajas.exp_ayuda'))}</div>
+          <div style="display:flex;gap:10px">
+            <label style="flex:1;font-size:12px;color:var(--muted)">${escapar(T('cajas.desde'))}<input id="_exp-desde" type="date" value="${ini}" style="${est}"></label>
+            <label style="flex:1;font-size:12px;color:var(--muted)">${escapar(T('cajas.hasta'))}<input id="_exp-hasta" type="date" value="${hoy}" style="${est}"></label>
+          </div>
+        </div>
+        <div class="cajas-modal-pie">
+          <button class="cajas-btn cajas-btn-sec" id="_exp-cancel" type="button">${T('gen.cancelar')}</button>
+          <button class="cajas-btn cajas-btn-verde" id="_exp-ok" type="button">⬇ ${escapar(T('cajas.exp_descargar'))}</button>
+        </div>
+      </div>`;
+      document.body.appendChild(ov);
+      ov.querySelector('.cajas-modal-cerrar').onclick = () => fin(null);
+      ov.querySelector('#_exp-cancel').onclick = () => fin(null);
+      ov.querySelector('#_exp-ok').onclick = () => fin({ desde: ov.querySelector('#_exp-desde').value, hasta: ov.querySelector('#_exp-hasta').value });
+    });
+  }
+  function _csvCelda(v) {
+    if (v == null) return '';
+    let s = String(v);
+    if (/^[=+\-@\t\r]/.test(s)) s = "'" + s;   // anti fórmulas
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  function _csvNum(n) {
+    const x = Number(n);
+    return isFinite(x) ? x.toFixed(2).replace('.', ',') : '';
+  }
+  function _csvCierres(cierres) {
+    const estado = (c) => c.estado === 'festivo' ? T('cajas.festivo')
+      : c.estado === 'abierto' ? T('cajas.borrador')
+      : Math.abs(Number(c.descuadre || 0)) <= 0.5 ? T('cajas.cuadra')
+      : Number(c.descuadre) > 0 ? T('cajas.sobra') : T('cajas.falta');
+    const cab = [T('gen.fecha').replace(':', ''), T('cajas.exp_caja'), T('cajas.exp_estado'), T('cajas.exp_saldo_inicial'),
+      T('cajas.exp_esperado'), T('cajas.exp_contado'), T('cajas.exp_tpv'), T('cajas.exp_pendientes'), T('cajas.exp_descuadre'),
+      T('cajas.exp_cambio'), T('cajas.exp_banco'), T('cajas.exp_abrio'), T('cajas.exp_cerro'), T('cajas.exp_notas')];
+    const filas = cierres.map(c => [
+      _csvCelda(c.fecha), _csvCelda(c.caja), _csvCelda(estado(c)),
+      _csvNum(c.saldo_inicial), _csvNum(c.saldo_teorico), _csvNum(c.saldo_real_final), _csvNum(c.importe_tpv),
+      _csvNum(c.total_fiados), _csvNum(c.descuadre), _csvNum(c.cambio_siguiente), _csvNum(c.ingreso_banco),
+      _csvCelda(c.abierto_por), _csvCelda(c.cerrado_por), _csvCelda(c.notas)
+    ].join(';'));
+    const tot = (k) => cierres.reduce((a, c) => a + Number(c[k] || 0), 0);
+    const total = [_csvCelda(T('cajas.total')), '', '', '', '', '', _csvNum(tot('importe_tpv')), _csvNum(tot('total_fiados')),
+      _csvNum(tot('descuadre')), '', _csvNum(tot('ingreso_banco')), '', '', ''].join(';');
+    return [cab.map(_csvCelda).join(';')].concat(filas, cierres.length ? [total] : []).join('\r\n');
+  }
+  async function exportarCierres() {
+    const r = await _pedirRango();
+    if (!r) return;
+    if (!r.desde || !r.hasta || r.desde > r.hasta) { toast(T('cajas.rango_invertido'), 'error'); return; }
+    try {
+      const d = await api('exportar_cierres', { query: { desde: r.desde, hasta: r.hasta } });
+      const cierres = d.cierres || [];
+      if (!cierres.length) { toast(T('cajas.exp_vacio'), 'info'); return; }
+      const blob = new Blob(['﻿' + _csvCierres(cierres)], { type: 'text/csv;charset=utf-8' });
+      const nombre = 'tekpair-cierres-caja-' + r.desde + '_' + r.hasta + '.csv';
+      if (typeof window.downloadBlob === 'function') window.downloadBlob(blob, nombre);
+      else { const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nombre; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000); }
+      toast(T('cajas.exp_ok').replace('{n}', cierres.length), 'ok');
+    } catch (e) { toast((e && e.message) || 'Error', 'error'); }
+  }
+
   // Historial de movimientos de una cuenta (seguimiento del dinero): recargas, ingresos, ajustes.
   async function verSeguimiento(cuentaId) {
     let data;
@@ -2404,6 +2483,7 @@
     pintarCajaDia,
     cuadreCajaDia,
     ingresoBancoResto,
+    exportarCierres,
     cerrarCajaDia,
     gastoDeCaja,
     borrarGastoCaja,
