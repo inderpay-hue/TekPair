@@ -151,7 +151,16 @@ var TIENDA = {
 };
 
 // ═══ SISTEMA DE PLANES ═══
-var PLAN_INFO = {plan:'basico', status:'trial', trial_until:null, plan_until:null, token:''};
+var PLAN_INFO = {plan:'basico', status:'trial', trial_until:null, plan_until:null, token:'', tarifa_vieja:false};
+// Precio mensual (IVA incl.) por plan. Desde el 27-oct-2026 las altas nuevas pagan
+// Básico 14,90 y Pro 22,90; las tiendas de antes (tarifa_vieja, lo dice /api/login 'me')
+// conservan 9,90 / 19,90 en su plan actual. Premium no cambió.
+var PRECIO_PLAN_MES = {basico:'14,90', pro:'22,90', premium:'34,90', top:'34,90'};
+var PRECIO_PLAN_MES_VIEJO = {basico:'9,90', pro:'19,90', premium:'34,90', top:'34,90'};
+function precioPlanMes(plan) {
+  var actual = plan === PLAN_INFO.plan || (plan === 'premium' && PLAN_INFO.plan === 'top');
+  return ((actual && PLAN_INFO.tarifa_vieja) ? PRECIO_PLAN_MES_VIEJO : PRECIO_PLAN_MES)[plan];
+}
 
 // Matriz de features por plan
 var PLAN_FEATURES = {
@@ -461,12 +470,14 @@ async function refrescarPlan() {
       PLAN_INFO.status = data.plan_status;
       PLAN_INFO.trial_until = data.trial_until;
       PLAN_INFO.plan_until = data.plan_until;
+      PLAN_INFO.tarifa_vieja = !!data.tarifa_vieja;
       // Update session storage
       var sess = JSON.parse(localStorage.getItem('tk_sess') || '{}');
       sess.plan = data.plan;
       sess.plan_status = data.plan_status;
       sess.trial_until = data.trial_until;
       sess.plan_until = data.plan_until;
+      sess.tarifa_vieja = !!data.tarifa_vieja;
       localStorage.setItem('tk_sess', JSON.stringify(sess));
       // Re-render banners y bloqueos
       renderPlanBanner();
@@ -515,6 +526,13 @@ function mostrarModalUpgrade(featureName, planRequerido) {
   document.querySelectorAll('.upg-plan').forEach(function(el){ el.classList.remove('recommended'); });
   var recCard = document.querySelector('.upg-plan[data-plan="' + planRequerido + '"]');
   if (recCard) recCard.classList.add('recommended');
+  // Precio de cada tarjeta: el actual de las altas nuevas, salvo su propio plan si
+  // conserva la tarifa de antes del 27-oct-2026.
+  document.querySelectorAll('.upg-plan').forEach(function(el){
+    var pEl = el.querySelector('.upg-plan-price');
+    var precio = precioPlanMes(el.getAttribute('data-plan'));
+    if (pEl && precio && pEl.firstChild && pEl.firstChild.nodeType === 3) pEl.firstChild.nodeValue = precio;
+  });
   openM('mUpgrade');
 }
 
@@ -872,7 +890,7 @@ function renderSuscripcionInfo() {
   var box = document.getElementById('suscripcionInfo');
   if (!box) return;
   var planLabel = ({basico:'Básico', pro:'Pro ⭐', premium:'Premium', top:'Premium'})[PLAN_INFO.plan] || PLAN_INFO.plan;
-  var planPrecio = ({basico:'9,90', pro:'19,90', premium:'34,90', top:'34,90'})[PLAN_INFO.plan] || '—';
+  var planPrecio = precioPlanMes(PLAN_INFO.plan) || '—';
   var _tt = function(k, fb){ return (typeof T === 'function' ? T(k) : '') || fb; };
   var statusLabel = ({trial:'🎁 '+_tt('plan.st_trial','Periodo de prueba'), active:'✓ '+_tt('plan.st_active','Activa'), past_due:'⚠️ '+_tt('plan.st_pastdue','Pago pendiente'), cancelled:'❌ '+_tt('plan.st_cancelled','Cancelada')})[PLAN_INFO.status] || PLAN_INFO.status;
   var statusColor = ({trial:'var(--blue)', active:'var(--green)', past_due:'var(--orange)', cancelled:'var(--red)'})[PLAN_INFO.status] || 'var(--muted)';
@@ -1026,6 +1044,7 @@ window.addEventListener('DOMContentLoaded', function() {
   PLAN_INFO.status = sess.plan_status || 'trial';
   PLAN_INFO.trial_until = sess.trial_until || null;
   PLAN_INFO.plan_until = sess.plan_until || null;
+  PLAN_INFO.tarifa_vieja = !!sess.tarifa_vieja;
   PLAN_INFO.token = sess.token || '';
 
   // Aplicar idioma guardado

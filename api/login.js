@@ -18,6 +18,7 @@ import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import { rateLimit } from './_lib/ratelimit.js';
+import { esTarifaVieja } from './_lib/precios.js';
 
 // F195: traducir mensajes de error al idioma del cliente (body.lang o Accept-Language).
 function _apiLang(req) {
@@ -364,7 +365,10 @@ export default async function handler(req, res) {
         cobro_manual: !!t.cobro_manual,
         tarjeta: estadoTarjeta(t, new Date()),
         tienda_id: t.id,
-        tienda_nombre: t.nombre
+        tienda_nombre: t.nombre,
+        // Tiendas creadas antes del 27-oct-2026 conservan Básico 9,90 / Pro 19,90:
+        // el panel lo usa para enseñar su precio real y no el de las altas nuevas.
+        tarifa_vieja: esTarifaVieja(t.creado_en)
       });
 
     } catch(e) {
