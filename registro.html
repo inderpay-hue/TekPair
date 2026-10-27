@@ -135,7 +135,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 <div class="plans" id="plansSection">
   <div class="plan" onclick="selPlan('basico',this)">
     <div class="plan-name" id="planName_basico">Básico</div>
-    <div class="plan-price" id="planPrice_basico">€9,90<span>/mes</span></div>
+    <div class="plan-price" id="planPrice_basico">€14,90<span>/mes</span></div>
     <div class="plan-desc" id="planDesc_basico">Para empezar</div>
     <ul class="plan-features">
       <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_1u">1 usuario</span></li>
@@ -150,7 +150,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   <div class="plan popular" onclick="selPlan('pro',this)">
     <div class="plan-badge" id="popularBadge"><svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg> <span class="pop-txt">MÁS POPULAR</span></div>
     <div class="plan-name" id="planName_pro">Pro</div>
-    <div class="plan-price" id="planPrice_pro">€19,90<span>/mes</span></div>
+    <div class="plan-price" id="planPrice_pro">€22,90<span>/mes</span></div>
     <div class="plan-desc" id="planDesc_pro">Para negocios en crecimiento</div>
     <ul class="plan-features">
       <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_3u">Hasta 3 usuarios</span></li>
@@ -222,7 +222,7 @@ const REG_TEXTS = {
     hero_h1: 'Software para tiendas<br>de reparación móvil',
     hero_p: 'Gestiona ventas, reparaciones, stock y clientes desde cualquier dispositivo',
     plan_basico: 'Básico', plan_pro: 'Pro', plan_premium: 'Premium',
-    price_basico: '€9,90', price_pro: '€19,90', price_premium: '€34,90',
+    price_basico: '€14,90', price_pro: '€22,90', price_premium: '€34,90',
     per_month: '/mes', vat_note: 'IVA incluido',
     desc_basico: 'Para empezar', desc_pro: 'Para negocios en crecimiento', desc_premium: 'Para equipos profesionales',
     btn_basico: 'Elegir Básico', btn_pro: 'Elegir Pro', btn_premium: 'Elegir Premium',
@@ -234,7 +234,7 @@ const REG_TEXTS = {
     btn_pagar: 'Empezar prueba gratis', btn_procesando: 'Procesando...',
     stripe_note: 'Pago seguro con Stripe · 15 días gratis, no se te cobra hasta terminar la prueba',
     ciclo_mensual: 'Mensual', ciclo_anual: 'Anual · <span style="color:var(--green)">2 meses gratis</span>',
-    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/año',
+    price_basico_anual: '€149', price_pro_anual: '€229', price_premium_anual: '€349', per_year: '/año',
     consent: 'Al continuar aceptas los <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Términos</a> y la <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Política de privacidad</a>.',
     moneda_note: 'Los precios se cobran en EUR (€).',
     err_campos: 'Por favor rellena todos los campos', err_email: 'Email no válido', err_conn: 'Error de conexión. Intenta de nuevo.',
@@ -252,7 +252,7 @@ const REG_TEXTS = {
     hero_h1: 'Software for mobile<br>repair shops',
     hero_p: 'Manage sales, repairs, stock and customers from any device',
     plan_basico: 'Basic', plan_pro: 'Pro', plan_premium: 'Premium',
-    price_basico: '€9.90', price_pro: '€19.90', price_premium: '€34.90',
+    price_basico: '€14.90', price_pro: '€22.90', price_premium: '€34.90',
     per_month: '/mo', vat_note: 'VAT included',
     desc_basico: 'To get started', desc_pro: 'For growing businesses', desc_premium: 'For professional teams',
     btn_basico: 'Choose Basic', btn_pro: 'Choose Pro', btn_premium: 'Choose Premium',
@@ -264,7 +264,7 @@ const REG_TEXTS = {
     btn_pagar: 'Start free trial', btn_procesando: 'Processing...',
     stripe_note: 'Secure payment with Stripe · 15-day free trial, no charge until it ends',
     ciclo_mensual: 'Monthly', ciclo_anual: 'Yearly · <span style="color:var(--green)">2 months free</span>',
-    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/yr',
+    price_basico_anual: '€149', price_pro_anual: '€229', price_premium_anual: '€349', per_year: '/yr',
     consent: 'By continuing you accept the <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Terms</a> and <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Privacy Policy</a>.',
     moneda_note: 'Prices are charged in EUR (€).',
     err_campos: 'Please fill in all fields', err_email: 'Invalid email', err_conn: 'Connection error. Please try again.',
@@ -282,7 +282,7 @@ const REG_TEXTS = {
     hero_h1: 'Logiciel pour boutiques<br>de réparation mobile',
     hero_p: 'Gérez ventes, réparations, stock et clients depuis n\'importe quel appareil',
     plan_basico: 'Basique', plan_pro: 'Pro', plan_premium: 'Premium',
-    price_basico: '9,90€', price_pro: '19,90€', price_premium: '34,90€',
+    price_basico: '14,90€', price_pro: '22,90€', price_premium: '34,90€',
     per_month: '/mois', vat_note: 'TVA incluse',
     desc_basico: 'Pour commencer', desc_pro: 'Pour les entreprises en croissance', desc_premium: 'Pour les équipes professionnelles',
     btn_basico: 'Choisir Basique', btn_pro: 'Choisir Pro', btn_premium: 'Choisir Premium',
@@ -294,7 +294,7 @@ const REG_TEXTS = {
     btn_pagar: 'Commencer l\'essai gratuit', btn_procesando: 'Traitement...',
     stripe_note: 'Paiement sécurisé avec Stripe · 15 jours gratuits, aucun prélèvement avant la fin',
     ciclo_mensual: 'Mensuel', ciclo_anual: 'Annuel · <span style="color:var(--green)">2 mois gratuits</span>',
-    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/an',
+    price_basico_anual: '€149', price_pro_anual: '€229', price_premium_anual: '€349', per_year: '/an',
     consent: 'En continuant, vous acceptez les <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Conditions</a> et la <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Politique de confidentialité</a>.',
     moneda_note: 'Les prix sont facturés en EUR (€).',
     err_campos: 'Veuillez remplir tous les champs', err_email: 'Email invalide', err_conn: 'Erreur de connexion. Réessayez.',
@@ -312,7 +312,7 @@ const REG_TEXTS = {
     hero_h1: 'Software per negozi<br>di riparazione mobile',
     hero_p: 'Gestisci vendite, riparazioni, stock e clienti da qualsiasi dispositivo',
     plan_basico: 'Base', plan_pro: 'Pro', plan_premium: 'Premium',
-    price_basico: '€9,90', price_pro: '€19,90', price_premium: '€34,90',
+    price_basico: '€14,90', price_pro: '€22,90', price_premium: '€34,90',
     per_month: '/mese', vat_note: 'IVA inclusa',
     desc_basico: 'Per iniziare', desc_pro: 'Per aziende in crescita', desc_premium: 'Per team professionali',
     btn_basico: 'Scegli Base', btn_pro: 'Scegli Pro', btn_premium: 'Scegli Premium',
@@ -324,7 +324,7 @@ const REG_TEXTS = {
     btn_pagar: 'Inizia la prova gratuita', btn_procesando: 'Elaborazione...',
     stripe_note: 'Pagamento sicuro con Stripe · 15 giorni gratis, nessun addebito fino alla fine',
     ciclo_mensual: 'Mensile', ciclo_anual: 'Annuale · <span style="color:var(--green)">2 mesi gratis</span>',
-    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/anno',
+    price_basico_anual: '€149', price_pro_anual: '€229', price_premium_anual: '€349', per_year: '/anno',
     consent: 'Continuando accetti i <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Termini</a> e l\'<a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Informativa sulla privacy</a>.',
     moneda_note: 'I prezzi sono addebitati in EUR (€).',
     err_campos: 'Compila tutti i campi', err_email: 'Email non valida', err_conn: 'Errore di connessione. Riprova.',
@@ -342,7 +342,7 @@ const REG_TEXTS = {
     hero_h1: 'Software für<br>Handy-Reparaturshops',
     hero_p: 'Verwalten Sie Verkäufe, Reparaturen, Lager und Kunden von jedem Gerät',
     plan_basico: 'Basis', plan_pro: 'Pro', plan_premium: 'Premium',
-    price_basico: '9,90€', price_pro: '19,90€', price_premium: '34,90€',
+    price_basico: '14,90€', price_pro: '22,90€', price_premium: '34,90€',
     per_month: '/Monat', vat_note: 'Inkl. MwSt.',
     desc_basico: 'Zum Einstieg', desc_pro: 'Für wachsende Unternehmen', desc_premium: 'Für professionelle Teams',
     btn_basico: 'Basis wählen', btn_pro: 'Pro wählen', btn_premium: 'Premium wählen',
@@ -354,7 +354,7 @@ const REG_TEXTS = {
     btn_pagar: 'Kostenlos testen', btn_procesando: 'Verarbeitung...',
     stripe_note: 'Sichere Zahlung mit Stripe · 15 Tage gratis, keine Abbuchung bis zum Ende',
     ciclo_mensual: 'Monatlich', ciclo_anual: 'Jährlich · <span style="color:var(--green)">2 Monate gratis</span>',
-    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/Jahr',
+    price_basico_anual: '€149', price_pro_anual: '€229', price_premium_anual: '€349', per_year: '/Jahr',
     consent: 'Mit dem Fortfahren akzeptierst du die <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">AGB</a> und den <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Datenschutz</a>.',
     moneda_note: 'Die Preise werden in EUR (€) berechnet.',
     err_campos: 'Bitte alle Felder ausfüllen', err_email: 'Ungültige E-Mail', err_conn: 'Verbindungsfehler. Bitte erneut versuchen.',
@@ -372,7 +372,7 @@ const REG_TEXTS = {
     hero_h1: 'Software para lojas<br>de reparação de telemóveis',
     hero_p: 'Gere vendas, reparações, stock e clientes em qualquer dispositivo',
     plan_basico: 'Básico', plan_pro: 'Pro', plan_premium: 'Premium',
-    price_basico: '€9,90', price_pro: '€19,90', price_premium: '€34,90',
+    price_basico: '€14,90', price_pro: '€22,90', price_premium: '€34,90',
     per_month: '/mês', vat_note: 'IVA incluído',
     desc_basico: 'Para começar', desc_pro: 'Para negócios em crescimento', desc_premium: 'Para equipas profissionais',
     btn_basico: 'Escolher Básico', btn_pro: 'Escolher Pro', btn_premium: 'Escolher Premium',
@@ -384,7 +384,7 @@ const REG_TEXTS = {
     btn_pagar: 'Começar teste grátis', btn_procesando: 'A processar...',
     stripe_note: 'Pagamento seguro com Stripe · 15 dias grátis, sem cobrança até terminar',
     ciclo_mensual: 'Mensal', ciclo_anual: 'Anual · <span style="color:var(--green)">2 meses grátis</span>',
-    price_basico_anual: '€99', price_pro_anual: '€199', price_premium_anual: '€349', per_year: '/ano',
+    price_basico_anual: '€149', price_pro_anual: '€229', price_premium_anual: '€349', per_year: '/ano',
     consent: 'Ao continuar aceitas os <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Termos</a> e a <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Política de privacidade</a>.',
     moneda_note: 'Os preços são cobrados em EUR (€).',
     err_campos: 'Por favor preenche todos os campos', err_email: 'Email inválido', err_conn: 'Erro de ligação. Tenta de novo.',
