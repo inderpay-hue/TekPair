@@ -30,7 +30,7 @@ export const PRECIOS_MENSUAL_VIEJOS = {
 
 // Momento del cambio: las tiendas creadas antes conservan la tarifa vieja.
 // Una tienda sin fecha de alta solo puede ser antigua (las nuevas siempre la llevan).
-export const FECHA_SUBIDA = '2026-10-27T00:00:00+01:00';
+export const FECHA_SUBIDA = '2026-10-27T01:43:00+01:00';
 export function esTarifaVieja(creadoEn) {
   return !creadoEn || new Date(creadoEn) < new Date(FECHA_SUBIDA);
 }
