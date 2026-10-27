@@ -340,10 +340,37 @@
     document.getElementById('mFactura').style.display = 'flex';
   }
 
+  // Venta con devoluciones: se factura solo lo que se queda el cliente (unidades que
+  // quedan; el descuento, el que queda tras repartirlo en las devoluciones) y por lo
+  // cobrado menos lo devuelto. Sin esto la factura salía por la venta entera.
+  window.tkVentaNetaDevoluciones = function(d) {
+    var its = Array.isArray(d.items) ? d.items : [];
+    var devueltoImp = (typeof window.tkImporteDevuelto === 'function') ? (parseFloat(window.tkImporteDevuelto(d)) || 0) : 0;
+    var quedan = its.map(function(i) {
+      var cant = Math.abs(parseFloat(i.cantidad != null ? i.cantidad : i.qty) || 1);
+      var resto = cant - (parseInt(i.devuelto, 10) || 0);
+      if (resto <= 0) return null;
+      var c = Object.assign({}, i, { cantidad: resto });
+      if (c.qty != null) c.qty = resto;
+      return c;
+    }).filter(Boolean);
+    var total = Math.round(((parseFloat(d.total) || 0) - devueltoImp) * 100) / 100;
+    var bruto = quedan.reduce(function(a, i) { return a + (parseFloat(i.precio) || 0) * i.cantidad; }, 0);
+    var desc = Math.max(0, Math.round((bruto - total) * 100) / 100);
+    return Object.assign({}, d, { items: quedan, total: total, descuento: desc });
+  };
+
   window.abrirModalFactura = function(origen, datos) {
     if (!window.SUPABASE_URL || !window.SB_KEY || !window.TIENDA_ID) {
       _toast(T('fact.faltan_credenciales'), 'err');
       return;
+    }
+    if (origen === 'venta' && datos && typeof window.tkTieneDevoluciones === 'function' && window.tkTieneDevoluciones(datos)) {
+      if (typeof window.tkDevueltaEntera === 'function' && window.tkDevueltaEntera(datos)) {
+        _toast(T('fact.venta_devuelta_entera'), 'err');
+        return;
+      }
+      datos = window.tkVentaNetaDevoluciones(datos);
     }
 
     // Si esta reparación/venta ya tiene factura, mostrar su PDF (no emitir otra)
