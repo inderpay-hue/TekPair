@@ -345,8 +345,14 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 .mk-progress-bar{transition:none}
 .live-dot,.eyebrow .dot{animation:none}
 }
+.dl-win{display:flex;align-items:center;justify-content:center;gap:10px 14px;flex-wrap:wrap;padding-top:16px;padding-bottom:16px;border-bottom:1px solid rgba(255,255,255,.06);text-align:center}
+.dl-win span{font-size:12px;color:rgba(255,255,255,.4)}
+.dl-win a{display:inline-flex;align-items:center;gap:6px;padding:6px 11px;border:1px solid rgba(255,255,255,.14);border-radius:8px;color:rgba(255,255,255,.6);font-size:12px;font-weight:600;text-decoration:none}
+.dl-win a:hover{border-color:#FF5B1F;color:#FF5B1F}
+footer.has-dl{padding-top:0!important}
+footer.has-dl>.wrap:nth-child(2){margin-top:36px}
 </style>
-<script src="/landing-i18n.v2.js?v=20261026a"></script>
+<script src="/landing-i18n.v2.js?v=20261027a"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -659,7 +665,12 @@ footer .wrap[style*="2fr 1fr 1fr"]{grid-template-columns:1fr!important}
 
 </main>
 <!-- FOOTER -->
-<footer style="background:var(--ink);padding:48px 0 28px;border-top:1px solid rgba(255,255,255,.08)">
+<footer class="has-dl" style="background:var(--ink);padding:48px 0 28px;border-top:1px solid rgba(255,255,255,.08)">
+  <!-- Descarga discreta: app de Windows (mismo instalador que /empieza: última versión publicada en GitHub) -->
+  <div class="wrap dl-win" id="descargas">
+    <span data-i18n="dl.sub">Para clientes de TekPair: imprime tickets y etiquetas sin diálogos y abre el cajón.</span>
+    <a href="https://github.com/inderpay-hue/tekpair-desktop/releases/latest/download/TekPair-Setup.exe" rel="nofollow" download><svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M3 5.5 10.5 4.5v7H3zm0 13 7.5 1v-7H3zm8.5 1.1L21 21v-8.5h-9.5zm0-15.2V11.5H21V3z"/></svg><span data-i18n="dl.btn" style="color:inherit;font-size:inherit">Descargar el programa para Windows</span></a>
+  </div>
   <div class="wrap" style="display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:32px">
     <div>
       <div class="nav-logo" style="margin-bottom:12px"><span class="logo-bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> TekPair</div>
