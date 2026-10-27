@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261027k"></script>
+<script src="/lang/lang.v8.js?v=20261028a"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -882,6 +882,11 @@ function sbGetTodo(table, query) {
 // aquí y se reintenta (desde el TPV y desde el panel). Antes solo salía un aviso y, al
 // abrir el panel, la venta desaparecía porque la nube no la tenía.
 function _tpvReintentable(st) { return !st || st >= 500 || st === 408 || st === 429; }
+// ¿Hay un cambio de esta venta esperando en la cola (sin conexión)?
+function _tpvVentaEnCola(id) {
+  var k = 'id=eq.' + encodeURIComponent(id);
+  return _tpvColaGet().some(function (op) { return op && op.table === 'ventas' && (op.method === 'PATCH' ? String(op.query || '').indexOf(k) === 0 : (op.data && op.data.id === id)); });
+}
 function _tpvColaGet() { try { return JSON.parse(localStorage.getItem('tk_sync_queue_v1') || '[]'); } catch (e) { return []; } }
 function _tpvColaSet(q) { try { localStorage.setItem('tk_sync_queue_v1', JSON.stringify(q)); } catch (e) {} }
 function _tpvEncolar(method, table, data, query) {
@@ -1108,7 +1113,7 @@ function pullStockTPV() {
       return {
         id: s.id, categoria: s.categoria || 'Telefono', marca: s.marca || '', modelo: s.modelo || '',
         capacidad: s.capacidad || '', color: s.color || '', imei: s.imei || '',
-        unidades: parseInt(s.unidades, 10) || 0, stockMin: parseInt(s.stock_min, 10) || 2, stockMax: parseInt(s.stock_max, 10) || 10,
+        unidades: parseInt(s.unidades, 10) || 0, stockMin: (isNaN(parseInt(s.stock_min, 10)) ? 2 : parseInt(s.stock_min, 10)), stockMax: parseInt(s.stock_max, 10) || 10,
         precioC: parseFloat(s.precio_c) || 0, precioV: parseFloat(s.precio_v) || 0,
         vendido: s.vendido || false, calidad: s.calidad || '', tipo: s.tipo || 'nuevo',
         garantiaMeses: parseInt(s.garantia_meses, 10) || 0, ubicacion: s.ubicacion || null,
@@ -1164,8 +1169,10 @@ window.addEventListener('DOMContentLoaded', function() {
   // Sync con Supabase (ventas + favoritos + tienda + ajustes)
   syncTPV();
   // Sync continua: cuando vuelves a la pestaña + cada 60s
-  window.addEventListener('focus', function(){ syncTPV(); });
-  window.addEventListener('visibilitychange', function(){ if (!document.hidden) syncTPV(); });
+  // Al volver (p. ej. de una devolución hecha en el panel), «Ventas de hoy» se repinta si está abierto.
+  var _resync = function(){ syncTPV().then(function(){ var h = document.getElementById('mHistorial'); if (h && h.classList.contains('open')) renderHistorial(); }).catch(function(){}); };
+  window.addEventListener('focus', _resync);
+  window.addEventListener('visibilitychange', function(){ if (!document.hidden) _resync(); });
   setInterval(function(){ if (!document.hidden) syncTPV(); }, 60000);
 });
 
@@ -1210,7 +1217,16 @@ function syncVentasDesdeSupabase() {
         ivaModo: r.iva_modo || 'sin',
         base: parseFloat(r.base) || 0,
         ivaImporte: parseFloat(r.iva_importe) || 0,
-        items: existing ? existing.items : (function () { try { return r.items ? (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) : []; } catch (e) { return []; } })()
+        // Las líneas de la nube mandan: una devolución hecha en el panel les pone «devuelto»/«devs»
+        // y, si se quedaban las de aquí, la factura salía por la venta entera. Solo se quedan las
+        // locales si esa venta tiene un cambio aún en la cola (sin conexión).
+        items: (function () {
+          var its = null;
+          try { its = r.items ? (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) : null; } catch (e) { its = null; }
+          if (!existing) return Array.isArray(its) ? its : [];
+          if (!Array.isArray(its) || !its.length || _tpvVentaEnCola(r.id)) return existing.items;
+          return its;
+        })()
       };
       if (existing) {
         Object.assign(existing, mapped);
@@ -2960,14 +2976,25 @@ function renderHistorial() {
       '<div style="text-align:right;flex-shrink:0"><div style="font-weight:700;color:' + color + ';font-size:14px">' + sign + '\u20ac' + Math.abs(v.total||0).toFixed(2) + '</div>' +
       (v.reembolsado ? '<div style="font-size:10px;color:var(--red);font-weight:700">' + T('tpv.reembolsada') + '</div>' : '') +
       (esDev ? '<div style="font-size:10px;color:var(--red);font-weight:700">' + T('dev.badge_devolucion') + '</div>' : '') + '</div>' +
-      // Devolver / cambiar: se hace en el panel (Ventas), con la venta ya abierta.
-      (_puedeDev && !esDev && !v.reembolsado && !v.financiado && (v.items || []).length ? '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px" onclick="location.href=\'dashboard.html?devolver=' + encodeURIComponent(v.id) + '#ventas\'" title="' + escHtml(T('dev.titulo')) + '">\u21a9\ufe0f</button>' : '') +
+      // Devolver / cambiar: se hace en el panel (Ventas), con la venta ya abierta, en otra pestaña.
+      (_puedeDev && !esDev && !v.reembolsado && !v.financiado && (v.items || []).length ? '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px" onclick="tpvDevolver(\'' + escHtml(String(v.id).replace(/'/g, '')) + '\')" title="' + escHtml(T('dev.titulo')) + '">\u21a9\ufe0f</button>' : '') +
       '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px" onclick="reimprimirVenta(\'' + escHtml(v.id) + '\')" title="Reimprimir ticket">\ud83d\udda8</button>' +
       (esDev ? '' : '<button class="caja-btn" style="flex-shrink:0;padding:6px 9px;background:#10B981;color:white" onclick="factVenta(\'' + escHtml(v.id) + '\')" title="Generar factura">\ud83d\udcc4</button>') +
       '</div>';
   }).join('');
   html += '</div>';
   el.innerHTML = html;
+}
+
+// La devolución (js/devolucion.js) vive en el panel: necesita su DB completa, el stock con
+// _stockDelta, la auditoría y el abono de la factura, que el TPV no carga. Se abre el panel en
+// una pestaña NUEVA con la venta ya abierta (?devolver=) y el TPV sigue aquí con su ticket; al
+// volver a esta pestaña, syncTPV trae la devolución y repinta «Ventas de hoy».
+function tpvDevolver(id) {
+  var url = 'dashboard.html?devolver=' + encodeURIComponent(id) + '#ventas';
+  var w = null;
+  try { w = window.open(url, '_blank'); } catch (e) { w = null; }
+  if (!w) location.href = url;   // ventana emergente bloqueada (o app instalada sin pestañas)
 }
 
 function reimprimirVenta(id) {
@@ -3029,11 +3056,27 @@ setInterval(_actualizarFabBadge, 600);
 setTimeout(_actualizarFabBadge, 300);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="factura.js?v=20261027i" defer></script>
+<script src="factura.js?v=20261028a" defer></script>
 <script>
+// Antes de facturar se piden a la nube las líneas y el estado de la venta: si se devolvió algo
+// (o entera) desde el panel, este TPV podía tener aún las líneas sin «devuelto». Sin conexión,
+// con lo que hay aquí.
 function factVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
   if (!v) { toast(T('tpv.venta_no_encontrada'), 'err'); return; }
+  if (!SB_KEY || !TIENDA_ID || _tpvVentaEnCola(id)) { _factVentaAbrir(v); return; }
+  sbGet('ventas', 'id=eq.' + encodeURIComponent(id) + '&tienda_id=eq.' + encodeURIComponent(TIENDA_ID)).then(function (rows) {
+    var r = Array.isArray(rows) && rows[0];
+    if (r) {
+      var its = null;
+      try { its = r.items ? (typeof r.items === 'string' ? JSON.parse(r.items) : r.items) : null; } catch (e) { its = null; }
+      if (Array.isArray(its) && its.length) v.items = its;
+      v.reembolsado = !!r.reembolsado;
+      if (r.fecha_reembolso) v.fechaReembolso = r.fecha_reembolso;
+    }
+  }).catch(function () {}).then(function () { _factVentaAbrir(v); });
+}
+function _factVentaAbrir(v) {
   if (_esDevT(v)) { toast(T('dev.no_facturar'), 'err'); return; }
   var cli = v.clienteId ? DB.clis.find(function(c){ return c.id === v.clienteId; }) : null;
   // Fallback: si el cliente no está en DB.clis pero la venta guardó el nombre, usarlo igualmente
@@ -3051,6 +3094,8 @@ function factVenta(id) {
       // imei y usado: sin ellos la factura salía sin IMEI y desglosaba el IVA de los usados.
       return { nombre: i.nombre || T('gen.producto'), cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0, imei: i.imei || '', usado: i.usado || null, devuelto: i.devuelto || 0, devs: i.devs || null };
     }) : [{ nombre: v.modelo || T('tpv.venta_item'), cantidad: 1, precio: parseFloat(v.total) || 0, imei: v.imei || '' }],
+    // reembolsada entera: factura.js no deja emitir una nueva (si ya la tenía, se ve la que hay)
+    reembolsado: !!v.reembolsado,
     cliente: cli
   };
   if (typeof window.abrirModalFactura !== 'function') {

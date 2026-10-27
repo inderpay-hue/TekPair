@@ -2012,8 +2012,16 @@
       filas += `<div style="display:flex;justify-content:space-between;padding:5px 0;font-size:14px"><span>${ICON[m]||'•'} ${escapar(m)}</span><span style="font-weight:700">${eur(r.metodos[m])}</span></div>`;
     });
     if (!filas) filas = `<div style="padding:5px 0;font-size:13px;color:var(--muted,#9ca3af)">${T('cajas.dia_sin_cobros')}</div>`;
+    // Anticipos: aparte de los cobros, pero cada uno con su forma de pago («Anticipos · Bizum 30 €»).
+    // No se suman a las filas de arriba (el total del día ya los cuenta una vez) y el efectivo
+    // esperado ya lleva el anticipo en efectivo (cajaDiaResumen).
+    const antM = Object.keys(r.anticipos.metodos || {}).filter(m => Math.abs(r.anticipos.metodos[m]) >= 0.005).sort();
+    const antNom = m => `${escapar(T('cajas.anticipos'))} · ${ICON[m] || '•'} ${escapar(m)}`;
     const anti = r.anticipos.total > 0.005
-      ? `<div style="display:flex;justify-content:space-between;padding:6px 8px;margin-top:4px;background:rgba(234,88,12,.08);border-radius:8px;font-size:14px"><span>💰 Anticipos <span style="font-size:11px;color:#6b7280">(reservas de clientes)</span></span><span style="font-weight:700;color:#EA580C">${eur(r.anticipos.total)}</span></div>`
+      ? `<div style="padding:6px 8px;margin-top:4px;background:rgba(234,88,12,.08);border-radius:8px;font-size:14px">
+          <div style="display:flex;justify-content:space-between"><span>💰 ${antM.length === 1 ? antNom(antM[0]) : escapar(T('cajas.anticipos'))} <span style="font-size:11px;color:#6b7280">${escapar(T('cajas.anticipos_hint'))}</span></span><span style="font-weight:700;color:#EA580C">${eur(r.anticipos.total)}</span></div>
+          ${antM.length > 1 ? antM.map(m => `<div style="display:flex;justify-content:space-between;font-size:12px;color:#6b7280;padding:1px 0 0 18px"><span>${ICON[m] || '•'} ${escapar(m)}</span><span>${eur(r.anticipos.metodos[m])}</span></div>`).join('') : ''}
+        </div>`
       : '';
     // Gastos pagados de la caja: restan del efectivo esperado y se listan para poder
     // repasarlos al cuadrar (salen del módulo de Gastos, no son una lista aparte).

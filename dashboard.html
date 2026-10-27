@@ -1248,7 +1248,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261027k"></script>
+<script src="/lang/lang.v8.js?v=20261028a"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2915,7 +2915,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 
 
 <!-- ════ LÓGICA JS ════ -->
-<script src="/js/dash-cajas.js?v=20261027k"></script>
+<script src="/js/dash-cajas.js?v=20261028a"></script>
 
 <div class="page" id="pGastos">
   <div class="sec-header" style="margin-bottom:10px">
@@ -5765,7 +5765,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261027d"></script>
-<script src="/js/dash-app.js?v=20261027d"></script>
+<script src="/js/dash-app.js?v=20261028a"></script>
 <script src="/js/devolucion.js?v=20261027h"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
@@ -5946,6 +5946,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
               <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Capacidad</th>
               <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Color</th>
               <th style="padding:8px;text-align:left;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">IMEI</th>
+              <th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)" data-t="stock.unidades">Unidades</th>
               <th style="padding:8px;text-align:right;border-bottom:1px solid var(--border);font-size:10px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted)">Coste €</th>
               <th style="padding:8px;border-bottom:1px solid var(--border);width:34px"></th>
             </tr>
@@ -7402,7 +7403,7 @@ function resetPagosRep() {
 // ═══ FACTURAS ═══
 (function() {
   var s = document.createElement('script');
-  s.src = 'factura.js?v=20261027i';
+  s.src = 'factura.js?v=20261028a';
   s.defer = true;
   document.body.appendChild(s);
 })();
@@ -7430,6 +7431,8 @@ function factVenta(id) {
       return { nombre: i.nombre || 'Producto', cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0, imei: i.imei || '', usado: i.usado || null, devuelto: i.devuelto || 0, devs: i.devs || null };
     }) : [{ nombre: v.modelo || 'Venta', cantidad: 1, precio: parseFloat(v.total) || 0, imei: v.imei || '' }],
     marca: v.marca || '', modelo: v.modelo || '', imei: v.imei || '',
+    // reembolsada entera: factura.js no deja emitir una nueva (si ya la tenía, se ve la que hay)
+    reembolsado: !!v.reembolsado,
     cliente: cli
   };
   if (typeof window.abrirModalFactura !== 'function') {

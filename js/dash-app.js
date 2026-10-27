@@ -3548,6 +3548,8 @@ function openM(id) {
   if (id === 'mRep') { try { _repTabsReset(); } catch (e) {} }
   var el = document.getElementById(id);
   if (el) el.classList.add('open');
+  // El formulario de stock se reutiliza: al abrirlo otra vez empieza arriba, no donde se dejó.
+  if (el && id === 'mStock') { el.scrollTop = 0; var _md = el.querySelector('.modal'); if (_md) _md.scrollTop = 0; }
 }
 
 // ═══ Pestañas plegadas de la ventana de reparación ═══
@@ -3610,6 +3612,8 @@ var STOCK_CATS_COLOR = ['Pantalla','Tapa','Flex de Carga','Bateria','Altavoz','R
 // y calidad; los accesorios, "medida/capacidad" (20W, 1 m, 64GB). Al editar algo
 // que ya tiene IMEI o batería, el campo se queda a la vista para no esconder datos.
 var STOCK_CATS_REPUESTO = ['Pantalla','Tapa','Bateria','Flex de Carga','Altavoz','Repuesto'];
+// Stock mínimo leído de un campo o de la nube: 0 es un valor válido (antes «|| 2» lo volvía 2).
+function _stockMinNum(v) { var n = parseInt(v, 10); return isNaN(n) ? 2 : Math.max(0, n); }
 function _stockCamposPorCategoria() {
   var cat = (document.getElementById('sCat') || {}).value || 'Telefono';
   var equipo = STOCK_CATS_IMEI.indexOf(cat) !== -1, repuesto = STOCK_CATS_REPUESTO.indexOf(cat) !== -1;
@@ -3620,6 +3624,10 @@ function _stockCamposPorCategoria() {
   ver('sBatFg', equipo || (editando && val('sBat')));
   ver('sCapFg', !repuesto || (editando && val('sCap')));
   if (!editando) {
+    // Mínimo por defecto según lo que se da de alta: 0 en equipos con IMEI (unidad única),
+    // 2 en repuestos y accesorios. Solo si sigue el valor por defecto (no lo que haya escrito).
+    var mn = document.getElementById('sMin');
+    if (mn && (mn.value === '' || mn.value === '0' || mn.value === '2')) mn.value = equipo ? '0' : '2';
     if (!equipo) { var i = document.getElementById('sImei'); if (i) i.value = ''; var b = document.getElementById('sBat'); if (b) b.value = ''; }
     if (repuesto) { var c = document.getElementById('sCap'); if (c) c.value = ''; }
   }
@@ -4386,7 +4394,7 @@ function mapStock(s) {
     id:s.id, categoria:s.categoria||'Telefono', marca:s.marca||'',
     modelo:s.modelo||'', capacidad:s.capacidad||'', color:s.color||'',
     imei:s.imei||'', unidades:parseInt(s.unidades)||0,
-    stockMin:parseInt(s.stock_min)||2, stockMax:parseInt(s.stock_max)||10,
+    stockMin:_stockMinNum(s.stock_min), stockMax:parseInt(s.stock_max)||10,
     precioC:parseFloat(s.precio_c)||0, precioV:parseFloat(s.precio_v)||0,
     vendido:s.vendido||false, calidad:s.calidad||'',
     tipo: s.tipo || 'nuevo', garantiaMeses: parseInt(s.garantia_meses)||0,
@@ -12356,12 +12364,30 @@ function _precioEnServicioExistente(it, o) {
   sv.precio = o.precio;
   if (o.coste) sv.coste = o.coste;
   if (o.cal && _tarNorm(sv.nombre).indexOf(_tarNorm(o.cal)) === -1) sv.nombre = String(sv.nombre || '').trim() + ' ' + o.cal;
+  _srvPiezaAuto(sv, o.cal);
   return true;
+}
+// Al elegir el precio (y la calidad) de la tarifa o del historial: si en el stock está la pieza de
+// ese tipo para el modelo de la reparación, de ESA calidad, se pone ya en la reparación (como
+// «Usar pieza del stock») y su precio de coste pasa al servicio para el margen (_costeRep no lo
+// cuenta dos veces). Sin pieza que encaje, el coste se queda como estaba (0 si no hay dato).
+function _srvPiezaAuto(sv, cal) {
+  if (!sv || _srvTienePieza(sv)) return null;
+  var ps = _piezasParaServicio(sv), c = _margN(cal);
+  // con calidad, solo una pieza de esa calidad; sin calidad, solo si no hay duda (una sola pieza)
+  var x = c ? ps.find(function (y) { return _margN(y.calidad) === c; }) : (ps.length === 1 ? ps[0] : null);
+  if (!x) return null;
+  SEL.selParts = SEL.selParts || [];
+  SEL.selParts.push({ id: x.id, nombre: _eqNombre(x.marca, x.modelo) + (x.calidad ? ' · ' + x.calidad : '') + (x.color ? ' (' + x.color + ')' : ''), precio: 0, incluida: true });
+  var pc = parseFloat(x.precioC) || 0;
+  if (pc > 0) sv.coste = pc;
+  try { renderParts(); } catch (e) {}
+  return x;
 }
 function precioUsar(k, q) {
   var it = (window._precioItems || [])[k]; var o = it && it.opciones[q]; if (!o) return;
   if (_precioEnServicioExistente(it, o)) { renderServiciosRep(); try { renderOpcionalesRep(); } catch (e) {} calcR(); }
-  else agregarServicioRep({ nombre: o.servicio, desc: '', coste: o.coste || 0, precio: o.precio });
+  else { var nuevo = { nombre: o.servicio, desc: '', coste: o.coste || 0, precio: o.precio }; _srvPiezaAuto(nuevo, o.cal); agregarServicioRep(nuevo); }
   toast(T('tar.anadido').replace('{p}', cur(o.precio)), 'ok');
 }
 function precioElegir(k, q) {
@@ -12377,7 +12403,7 @@ function precioUsarTodo() {
     if (it.elegida == null) return;
     var o = it.opciones[it.elegida];
     if (!SEL.rServicios) SEL.rServicios = [];
-    if (!_precioEnServicioExistente(it, o)) SEL.rServicios.push({ nombre: o.servicio, desc: '', coste: o.coste || 0, precio: o.precio });
+    if (!_precioEnServicioExistente(it, o)) { var nuevo = { nombre: o.servicio, desc: '', coste: o.coste || 0, precio: o.precio }; _srvPiezaAuto(nuevo, o.cal); SEL.rServicios.push(nuevo); }
     n++; tot += o.precio;
   });
   if (!n) return;
@@ -16221,7 +16247,7 @@ function guardarStock() {
       if (_udsDelta) { s.unidades = (parseInt(s.unidades, 10) || 0) + _udsDelta; if (s.unidades > 0) s.vendido = false; }
       s.precioC = parseFloat(document.getElementById('sPrecioC').value) || 0;
       s.precioV = parseFloat(document.getElementById('sPrecioV').value) || 0;
-      s.stockMin = parseInt(document.getElementById('sMin').value) || 2;
+      s.stockMin = _stockMinNum(document.getElementById('sMin').value);
       s.stockMax = parseInt(document.getElementById('sMax').value) || 10;
       s.tipo = stockTipo;
       s.garantiaMeses = stockGarantiaMeses;
@@ -16258,7 +16284,7 @@ function guardarStock() {
       var _capV = document.getElementById('sCap').value;
       var _colorV = document.getElementById('sColor').value;
       var _precioCV = parseFloat(document.getElementById('sPrecioC').value) || 0;
-      var _minV = parseInt(document.getElementById('sMin').value) || 2;
+      var _minV = _stockMinNum(document.getElementById('sMin').value);
       var _maxV = parseInt(document.getElementById('sMax').value) || 10;
       var _ubicV = tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : null;
       var _creados = 0;
@@ -16312,7 +16338,7 @@ function guardarStock() {
       var _cUds = parseInt(document.getElementById('sUds').value) || 1;
       var _cCap = document.getElementById('sCap').value;
       var _cPrecioC = parseFloat(document.getElementById('sPrecioC').value) || 0;
-      var _cMin = parseInt(document.getElementById('sMin').value) || 2;
+      var _cMin = _stockMinNum(document.getElementById('sMin').value);
       var _cMax = parseInt(document.getElementById('sMax').value) || 10;
       var _cUbic = tieneFeature('ubicaciones') ? (document.getElementById('sUbic').value || null) : null;
       var _cCreados = 0;
@@ -16378,7 +16404,7 @@ function guardarStock() {
       unidades: parseInt(document.getElementById('sUds').value) || 1,
       precioC: parseFloat(document.getElementById('sPrecioC').value) || 0,
       precioV: parseFloat(document.getElementById('sPrecioV').value) || 0,
-      stockMin: parseInt(document.getElementById('sMin').value) || 2,
+      stockMin: _stockMinNum(document.getElementById('sMin').value),
       stockMax: parseInt(document.getElementById('sMax').value) || 10,
       vendido: false, calidad: _calVal,
       tipo: stockTipo,
@@ -16824,7 +16850,8 @@ function nuevoStock() {
   SEL.editStockId = null;
   var tit = document.getElementById('mStockTit'); if (tit) tit.textContent = T('stock.titulo_add');
   var _bmn = document.getElementById('sBtnMasImeis'); if (_bmn) _bmn.style.display = 'none';
-  var def = { sCat:'Telefono', sMarca:'', sModelo:'', sCap:'', sColor:'', sImei:'', sBat:'', sEan:'', sUds:'1', sPrecioC:'0', sPrecioV:'0', sMin:'2', sMax:'10' };
+  // Teléfono (unidad única con IMEI): mínimo 0, o avisaría de «stock bajo» al venderlo.
+  var def = { sCat:'Telefono', sMarca:'', sModelo:'', sCap:'', sColor:'', sImei:'', sBat:'', sEan:'', sUds:'1', sPrecioC:'0', sPrecioV:'0', sMin:'0', sMax:'10' };
   Object.keys(def).forEach(function(id) { var e = document.getElementById(id); if (e) e.value = def[id]; });
   var su = document.getElementById('sUbic'); if (su) su.value = '';
   var _so = document.getElementById('sEnOferta'); if (_so) _so.checked = false;
@@ -16877,7 +16904,7 @@ function editarStock(id) {
   SEL._sUdsOrig = parseInt(document.getElementById('sUds').value, 10);
   document.getElementById('sPrecioC').value = s.precioC || 0;
   document.getElementById('sPrecioV').value = s.precioV || 0;
-  document.getElementById('sMin').value = s.stockMin || 2;
+  document.getElementById('sMin').value = _stockMinNum(s.stockMin);
   document.getElementById('sMax').value = s.stockMax || 10;
   var _so = document.getElementById('sEnOferta');
   if (_so) { _so.checked = !!s.enOferta; var _saw = document.getElementById('sPrecioAntesWrap'); if (_saw) _saw.style.display = s.enOferta ? '' : 'none'; }
@@ -19436,6 +19463,11 @@ async function renderReporte() {
   // tR = pagos reales de reparación del rango (ya sin anticipos de presupuestos).
   var tR = pagosReps.reduce(function(a, p){ return a + Number(p.importe||0); }, 0);
 
+  // Las devoluciones son ventas en negativo: ya restan del importe (tV), pero no son una venta
+  // más en el contador. Se enseñan aparte («1 devolución · −14,45 €»).
+  var _devsP = ventas.filter(function(v) { return _esDevV(v) || (parseFloat(v.total) || 0) < 0; });
+  var nVentas = ventas.length - _devsP.length;
+  var tDevs = _devsP.reduce(function(a, v) { return a + Math.abs(parseFloat(v.total) || 0); }, 0);
   var pagos = {};
   Object.keys(_vPorMet).forEach(function(k){ pagos[k] = (pagos[k] || 0) + _vPorMet[k]; });
   // Agrupar pagos de reparación por método (efectivo, tarjeta, etc)
@@ -19443,7 +19475,8 @@ async function renderReporte() {
 
   document.getElementById('reporteResumen').innerHTML =
     '<div class="stats-grid">' +
-    (SEL.repTipo !== 'reparaciones' ? '<div class="stat-card"><div class="stat-val" style="color:var(--blue)">' + ventas.length + '</div><div class="stat-lbl">' + T('nav.ventas') + '</div></div>' +
+    (SEL.repTipo !== 'reparaciones' ? '<div class="stat-card"><div class="stat-val" style="color:var(--blue)">' + nVentas + '</div><div class="stat-lbl">' + T('nav.ventas') +
+      (_devsP.length ? '<div style="font-size:11px;color:var(--red);font-weight:700;margin-top:2px">' + escHtml(T(_devsP.length === 1 ? 'rpt.dev_1' : 'rpt.dev_n').replace('{n}', _devsP.length)) + ' · −' + cur(tDevs) + '</div>' : '') + '</div></div>' +
     '<div class="stat-card"><div class="stat-val" style="color:var(--green)">' + cur(tV) + '</div><div class="stat-lbl">' + T('dash.ingresos_ventas') + '</div></div>' : '') +
     (SEL.repTipo !== 'ventas' ? '<div class="stat-card"><div class="stat-val" style="color:var(--purple)">' + reps.length + '</div><div class="stat-lbl">' + T('nav.reparaciones') + '</div></div>' +
     '<div class="stat-card"><div class="stat-val" style="color:var(--orange)">' + cur(tR) + '</div><div class="stat-lbl">' + T('gen.ingresos_reps') + '</div></div>' : '') +
@@ -24973,7 +25006,7 @@ function restaurarBackup() {
               id: s.id, categoria: s.categoria||'Telefono', marca: s.marca||'', modelo: s.modelo||'',
               capacidad: s.capacidad||'', color: s.color||'', imei: s.imei||'',
               unidades: parseInt(s.unidades)||0, precio_c: parseFloat(s.precioC)||0, precio_v: parseFloat(s.precioV)||0,
-              stock_min: parseInt(s.stockMin)||2, stock_max: parseInt(s.stockMax)||10, vendido: !!s.vendido
+              stock_min: _stockMinNum(s.stockMin), stock_max: parseInt(s.stockMax)||10, vendido: !!s.vendido
             };
           });
           await subirEntidadesASupabase('ventas', DB.ventas, function(v) {
@@ -25367,7 +25400,7 @@ async function importarBackup(event) {
             id: s.id, categoria: s.categoria||'Telefono', marca: s.marca||'', modelo: s.modelo||'',
             capacidad: s.capacidad||'', color: s.color||'', imei: s.imei||'',
             unidades: parseInt(s.unidades)||0, precio_c: parseFloat(s.precioC)||0, precio_v: parseFloat(s.precioV)||0,
-            stock_min: parseInt(s.stockMin)||2, stock_max: parseInt(s.stockMax)||10, vendido: !!s.vendido
+            stock_min: _stockMinNum(s.stockMin), stock_max: parseInt(s.stockMax)||10, vendido: !!s.vendido
           };
         });
         await subirEntidadesASupabase('ventas', DB.ventas, function(v) {
@@ -26569,6 +26602,79 @@ async function impFacProcesarPDF(file) {
   }
 }
 
+// Importe de factura → número: «1.234,56», «1,234.56», «48,00», «48.00», «48», «48,00€».
+function _impFacNum(t) {
+  var s = String(t || '').replace(/€|EUR/gi, '').trim();
+  if (!/^-?\d{1,3}(?:[.,\s]\d{3})*(?:[.,]\d{1,4})?$|^-?\d+(?:[.,]\d{1,4})?$/.test(s)) return NaN;
+  s = s.replace(/\s/g, '');
+  var c = s.lastIndexOf(','), p = s.lastIndexOf('.');
+  if (c > -1 && p > -1) s = c > p ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+  else if (c > -1) s = (s.length - c - 1 === 3 && s.indexOf(',') !== c) ? s.replace(/,/g, '') : s.replace(',', '.');
+  else if (p > -1 && s.indexOf('.') !== p) s = s.replace(/\./g, '');
+  return parseFloat(s);
+}
+// Categoría de stock a partir de la descripción de la línea (es/en/fr/it/de/pt)
+function _impFacCategoria(d) {
+  d = _norm(d);
+  if (/\b(funda|carcasa|case|coque|cover|custodia|hulle|capa|cristal templado|vidrio templado|templado|tempered|protector|cargador|charger|chargeur|caricatore|ladegerat|carregador|cable|cabo|cavo|kabel|auricular(?:es)?|earphones?|soporte|holder|adaptador|adapter|power ?bank)\b/.test(d)) return 'Accesorio';
+  if (/\b(pantalla|display|lcd|screen|ecran|schermo|tela|bildschirm|oled|incell)\b/.test(d)) return 'Pantalla';
+  if (/\b(bateria|battery|batterie|batteria|akku)\b/.test(d)) return 'Bateria';
+  if (/\b(conector de carga|flex de carga|puerto de carga|charging (?:port|flex)|dock|connecteur de charge|connettore di ricarica|ladebuchse|conector de carregamento)\b/.test(d)) return 'Flex de Carga';
+  if (/\b(tapa|back ?cover|vitre arriere|cover posteriore|backcover|tampa)\b/.test(d)) return 'Tapa';
+  if (/\b(altavoz|speaker|haut-parleur|altoparlante|lautsprecher|altifalante)\b/.test(d)) return 'Altavoz';
+  return 'Repuesto';
+}
+// Marca y modelo que aparecen en un texto (iPhone 13 → Apple · iPhone 13)
+function _impFacMarcaModelo(txt) {
+  var r = { marca: '', modelo: '' };
+  var m = txt.match(/\b(iPhone\s*(?:\d{1,2}|XS\s*Max|XS|XR|X|SE)(?:\s*(?:Pro\s*Max|Pro|Plus|Max|Mini|e))?)(?![\w])/i)
+    || txt.match(/\b(Galaxy\s*(?:Note\s*)?[A-Z]?\d{1,3}[a-z]?(?:\s*(?:Ultra|Plus|FE|Pro|\+))?)/i)
+    || txt.match(/\b(Redmi\s*(?:Note\s*)?\d{1,2}[A-Z]?(?:\s*(?:Pro\+?|Plus|S|T))?)/i)
+    || txt.match(/\b(Pixel\s*\d{1,2}[a]?(?:\s*(?:Pro\s*XL|Pro|XL))?)/i)
+    || txt.match(/\b(iPad\s*(?:Pro|Air|Mini)?\s*\d{0,2})/i);
+  if (m) r.modelo = m[1].replace(/\s+/g, ' ').trim();
+  var marcas = [['Apple', /\b(apple|iphone|ipad)\b/i], ['Samsung', /\b(samsung|galaxy)\b/i], ['Xiaomi', /\b(xiaomi|redmi|poco)\b/i], ['Google', /\b(google|pixel)\b/i],
+    ['Huawei', /\bhuawei\b/i], ['Honor', /\bhonor\b/i], ['Oppo', /\boppo\b/i], ['OnePlus', /\boneplus\b/i], ['Realme', /\brealme\b/i], ['Motorola', /\b(motorola|moto)\b/i], ['Sony', /\b(sony|xperia)\b/i], ['Nokia', /\bnokia\b/i]];
+  for (var i = 0; i < marcas.length; i++) if (marcas[i][1].test(txt)) { r.marca = marcas[i][0]; break; }
+  return r;
+}
+// Facturas de recambios: líneas «[ref] descripción uds precio importe» (o «precio uds importe»).
+// Los tres números del final se aceptan solo si uds × precio ≈ importe, así una medida dentro
+// de la descripción («20 W», «1 m») no se confunde con las unidades.
+function impFacParsearRecambios(lines) {
+  var out = [];
+  (lines || []).forEach(function (line) {
+    var toks = String(line || '').replace(/(\d)\s*€/g, '$1').replace(/\s€\s/g, ' ').trim().split(/\s+/);
+    if (toks.length < 4 || /\b\d{14,16}\b/.test(line)) return; // las líneas con IMEI van por su lado
+    if (/^(base|subtotal|total|iva|vat|tva|mwst|imponible|descuento|portes)\b/i.test(_norm(toks[0]))) return;
+    var a = _impFacNum(toks[toks.length - 3]), b = _impFacNum(toks[toks.length - 2]), imp = _impFacNum(toks[toks.length - 1]);
+    if (isNaN(a) || isNaN(b) || isNaN(imp) || imp <= 0) return;
+    var cerca = function (q, p) { return q >= 1 && q === Math.round(q) && Math.abs(q * p - imp) <= Math.max(0.02, imp * 0.005); };
+    var uds, precio;
+    if (cerca(a, b)) { uds = a; precio = b; } else if (cerca(b, a)) { uds = b; precio = a; } else return;
+    var desc = toks.slice(0, toks.length - 3);
+    var ref = '';
+    // Referencia: primer token tipo código (mayúsculas/dígitos/guiones, con algún dígito o guion)
+    if (desc.length > 1 && /^[A-Z0-9][A-Z0-9._/-]{2,}$/.test(desc[0]) && /[0-9-]/.test(desc[0])) ref = desc.shift();
+    var texto = desc.join(' ').trim();
+    if (!texto || !/[a-z]/i.test(texto)) return;
+    var cat = _impFacCategoria(texto), mm = _impFacMarcaModelo(texto);
+    var calidad = '';
+    if (cat === 'Pantalla') {
+      var cm = texto.match(/\b(Soft OLED|Hard OLED|OLED|Incell|In-cell|TFT|Original)\b/i);
+      if (cm) calidad = /in-?cell/i.test(cm[1]) ? 'Incell' : /^original$/i.test(cm[1]) ? 'Original' : cm[1].replace(/oled/i, 'OLED').replace(/^soft/i, 'Soft').replace(/^hard/i, 'Hard').replace(/^tft$/i, 'TFT');
+    }
+    // Repuestos: marca + modelo compatible (la categoría ya dice qué es). Accesorios y lo
+    // que no tiene modelo: la descripción entera como nombre, para no confundirlo con un móvil.
+    var esPieza = cat !== 'Accesorio' && cat !== 'Repuesto' && mm.modelo;
+    out.push({
+      cat: cat, marca: esPieza ? mm.marca : '', modelo: esPieza ? mm.modelo : texto, capacidad: '', color: '',
+      imei: '', calidad: calidad, unidades: uds, coste: Math.round(precio * 100) / 100, ref: ref
+    });
+  });
+  return out;
+}
+
 // Parsea líneas para detectar productos
 function impFacParsearProductos(lines, fullText) {
   var productos = [];
@@ -26647,7 +26753,8 @@ function impFacParsearProductos(lines, fullText) {
     });
   });
 
-  return productos;
+  // Recambios y accesorios sin IMEI: «[ref] descripción uds precio importe»
+  return productos.concat(impFacParsearRecambios(lines));
 }
 
 function impFacMostrarRevision() {
@@ -26661,24 +26768,27 @@ function impFacRenderTabla() {
   var tbody = document.getElementById('impFacTbody');
   if (!tbody) return;
   if (!IMP_FAC_PRODUCTOS.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="padding:24px;text-align:center;font-size:12px;color:var(--muted)">' + T('impfac.sin_productos_auto') + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="padding:24px;text-align:center;font-size:12px;color:var(--muted)">' + T('impfac.sin_productos_auto') + '</td></tr>';
     document.getElementById('impFacResumen').textContent = T('impfac.cero_detectados');
     document.getElementById('impFacTotal').textContent = cur(0);
     return;
   }
   var total = 0;
   tbody.innerHTML = IMP_FAC_PRODUCTOS.map(function(p, i) {
-    total += parseFloat(p.coste) || 0;
-    var catOpts = ['Telefono','Tablet','Smartwatch','Pantalla','Bateria','Tapa','Flex de Carga','Altavoz','Otro'];
-    var catSel = catOpts.map(function(c){ return '<option ' + (p.cat===c?'selected':'') + '>' + c + '</option>'; }).join('');
+    var uds = _esImeiCat(p.cat) ? 1 : Math.max(1, parseInt(p.unidades, 10) || 1);
+    total += (parseFloat(p.coste) || 0) * uds;
+    var catOpts = ['Telefono','Tablet','Smartwatch','Pantalla','Bateria','Tapa','Flex de Carga','Altavoz','Repuesto','Accesorio','Otro'];
+    var catSel = catOpts.map(function(c){ return '<option value="' + c + '" ' + (p.cat===c?'selected':'') + '>' + esc(_catNombre(c)) + '</option>'; }).join('');
     return '<tr>' +
-      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><select class="fi" style="font-size:11px;padding:5px 6px" onchange="impFacUpd(' + i + ',\'cat\',this.value)">' + catSel + '</select></td>' +
+      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><select class="fi" style="font-size:11px;padding:5px 6px" onchange="impFacUpd(' + i + ',\'cat\',this.value)">' + catSel + '</select>' +
+        ((p.calidad || p.ref) ? '<div style="font-size:10px;color:var(--muted);margin-top:2px">' + esc([p.calidad, p.ref].filter(Boolean).join(' · ')) + '</div>' : '') + '</td>' +
       '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" style="font-size:11px;padding:5px 8px" value="' + esc(p.marca||'') + '" oninput="impFacUpd(' + i + ',\'marca\',this.value)"></td>' +
       '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" style="font-size:11px;padding:5px 8px" value="' + esc(p.modelo||'') + '" oninput="impFacUpd(' + i + ',\'modelo\',this.value)"></td>' +
       '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" style="font-size:11px;padding:5px 8px;width:80px" value="' + esc(p.capacidad||'') + '" oninput="impFacUpd(' + i + ',\'capacidad\',this.value)"></td>' +
       '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" style="font-size:11px;padding:5px 8px;width:90px" value="' + esc(p.color||'') + '" oninput="impFacUpd(' + i + ',\'color\',this.value)"></td>' +
       '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" style="font-size:11px;padding:5px 8px;font-family:ui-monospace,monospace" value="' + esc(p.imei||'') + '" oninput="impFacUpd(' + i + ',\'imei\',this.value)"></td>' +
-      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" type="number" step="0.01" style="font-size:11px;padding:5px 8px;width:80px;text-align:right" value="' + (p.coste||0) + '" oninput="impFacUpd(' + i + ',\'coste\',parseFloat(this.value)||0)"></td>' +
+      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" type="number" min="1" step="1" style="font-size:11px;padding:5px 8px;width:60px;text-align:right" value="' + uds + '"' + (_esImeiCat(p.cat) ? ' disabled' : '') + ' onchange="impFacUpd(' + i + ',\'unidades\',parseInt(this.value,10)||1)"></td>' +
+      '<td style="padding:5px 6px;border-bottom:1px solid var(--border)"><input class="fi" type="number" step="0.01" style="font-size:11px;padding:5px 8px;width:80px;text-align:right" value="' + (p.coste||0) + '" onchange="impFacUpd(' + i + ',\'coste\',parseFloat(this.value)||0)"></td>' +
       '<td style="padding:5px;border-bottom:1px solid var(--border);text-align:center"><button onclick="impFacQuitar(' + i + ')" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px" title="' + T('tpv.quitar') + '">×</button></td>' +
     '</tr>';
   }).join('');
@@ -26689,7 +26799,7 @@ function impFacRenderTabla() {
 function impFacUpd(i, field, value) {
   if (IMP_FAC_PRODUCTOS[i]) {
     IMP_FAC_PRODUCTOS[i][field] = value;
-    if (field === 'coste') impFacRenderTabla();
+    if (field === 'coste' || field === 'unidades' || field === 'cat') impFacRenderTabla();
   }
 }
 
@@ -26699,7 +26809,7 @@ function impFacQuitar(i) {
 }
 
 function impFacAnadirFila() {
-  IMP_FAC_PRODUCTOS.push({cat:'Telefono', marca:'', modelo:'', capacidad:'', color:'', imei:'', coste:0});
+  IMP_FAC_PRODUCTOS.push({cat:'Telefono', marca:'', modelo:'', capacidad:'', color:'', imei:'', coste:0, unidades:1});
   impFacRenderTabla();
 }
 
@@ -26724,21 +26834,39 @@ function impFacAnadirAlStock() {
   validos.forEach(function(p) {
     var coste = parseFloat(p.coste) || 0;
     var precioV = margen > 0 && coste > 0 ? Math.round(coste * (1 + margen/100) * 100) / 100 : 0;
+    var cat = p.cat || 'Telefono', esImei = _esImeiCat(cat);
+    var uds = esImei ? 1 : Math.max(1, parseInt(p.unidades, 10) || 1);
+    var marca = (p.marca || '').trim(), modelo = (p.modelo || '').trim(), color = (p.color || '').trim(), calidad = (p.calidad || '').trim();
+    // Recambio que ya está en el stock (misma categoría, marca, modelo, color y calidad): se suman
+    // las unidades en vez de crear otra ficha igual. Los equipos con IMEI van siempre aparte.
+    var ya = (!esImei && !(p.imei || '').trim()) ? (DB.stock || []).find(function(s) {
+      return !s.vendido && !s.imei && s.categoria === cat && _norm(s.marca) === _norm(marca) && _norm(s.modelo) === _norm(modelo) &&
+        _norm(s.color) === _norm(color) && _norm(s.calidad) === _norm(calidad);
+    }) : null;
+    if (ya) {
+      ya.unidades = (parseInt(ya.unidades, 10) || 0) + uds;
+      if (!(parseFloat(ya.precioC) > 0) && coste > 0) ya.precioC = coste;
+      if (typeof SB_KEY !== 'undefined' && SB_KEY && TIENDA_ID) sbPatch('stock', 'id=eq.' + encodeURIComponent(ya.id), { unidades: ya.unidades, precio_c: ya.precioC });
+      creados++;
+      return;
+    }
     var item = {
       id: 's' + Date.now() + '_' + Math.random().toString(36).slice(2,8) + '_' + creados,
-      categoria: p.cat || 'Telefono',
-      marca: (p.marca || '').trim(),
-      modelo: (p.modelo || '').trim(),
+      categoria: cat,
+      marca: marca,
+      modelo: modelo,
       capacidad: (p.capacidad || '').trim(),
-      color: (p.color || '').trim(),
+      color: color,
       imei: (p.imei || '').trim(),
-      unidades: 1,
-      stockMin: 1,
-      stockMax: 5,
+      unidades: uds,
+      // Un teléfono con IMEI es una unidad única: no tiene sentido «mínimo 1» (avisaría al venderlo)
+      stockMin: esImei ? 0 : 1,
+      stockMax: esImei ? 1 : 5,
       precioC: coste,
       precioV: precioV,
+      calidad: calidad,
       proveedor: '',
-      notas: 'Importado desde factura ' + hoyLocal()
+      notas: 'Importado desde factura ' + hoyLocal() + (p.ref ? ' · Ref. ' + p.ref : '')
     };
     DB.stock.push(item);
     creados++;
@@ -26749,7 +26877,7 @@ function impFacAnadirAlStock() {
         categoria: item.categoria, marca: item.marca, modelo: item.modelo,
         capacidad: item.capacidad, color: item.color, imei: item.imei,
         unidades: item.unidades, stock_min: item.stockMin, stock_max: item.stockMax,
-        precio_c: item.precioC, precio_v: item.precioV
+        precio_c: item.precioC, precio_v: item.precioV, calidad: item.calidad || null
       });
     }
   });

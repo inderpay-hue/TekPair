@@ -152,11 +152,12 @@
     var modalHTML = '' +
       '<div class="modal-bg" id="mFactura" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:9999;align-items:center;justify-content:center">' +
         '<div style="background:white;max-width:560px;width:92%;max-height:90vh;border-radius:14px;overflow:hidden;display:flex;flex-direction:column">' +
-          '<div style="padding:16px 20px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between">' +
+          '<div style="padding:16px 20px;border-bottom:1px solid #E5E7EB;display:flex;align-items:center;justify-content:space-between;flex-shrink:0">' +
             '<div style="font-weight:700;font-size:16px" data-t="fact.modal_titulo">📄 Generar factura</div>' +
             '<button type="button" onclick="window.cerrarModalFactura()" style="background:none;border:none;font-size:22px;cursor:pointer;color:#94A3B8">×</button>' +
           '</div>' +
-          '<div style="padding:18px 20px;overflow-y:auto;flex:1" id="factModalBody">' +
+          // min-height:0 + hueco abajo: los últimos campos (CP, ciudad, provincia) no quedan bajo el pie
+          '<div style="padding:18px 20px 28px;overflow-y:auto;flex:1 1 auto;min-height:0;scroll-padding-bottom:24px" id="factModalBody">' +
             '<div style="background:#F8FAFC;border-radius:10px;padding:12px;margin-bottom:14px">' +
               '<div style="font-size:11px;color:#64748B;font-weight:700;text-transform:uppercase;margin-bottom:6px" data-t="fact.origen">Origen</div>' +
               '<div id="factOrigenInfo" style="font-size:13px"></div>' +
@@ -179,7 +180,7 @@
               '⚠️ El número se asigna automáticamente al emitir' +
             '</div>' +
           '</div>' +
-          '<div style="padding:14px 20px;border-top:1px solid #E5E7EB;display:flex;gap:10px;background:#F8FAFC">' +
+          '<div style="padding:14px 20px;border-top:1px solid #E5E7EB;display:flex;gap:10px;background:#F8FAFC;flex-shrink:0;position:relative;z-index:1">' +
             '<button type="button" onclick="window.cerrarModalFactura()" style="padding:10px 16px;border-radius:8px;border:1px solid #E5E7EB;background:white;cursor:pointer;font-weight:600" data-t="gen.cancelar">Cancelar</button>' +
             '<button type="button" id="factEmitirBtn" onclick="window.emitirFactura()" style="flex:1;padding:10px 16px;border-radius:8px;border:none;background:#10B981;color:white;cursor:pointer;font-weight:700" data-t="fact.emitir">✓ Emitir factura</button>' +
             '<button type="button" id="factTicketWaBtn" onclick="window.enviarTicketWhatsApp()" style="display:none;padding:10px 14px;border-radius:8px;border:none;background:#25D366;color:white;cursor:pointer;font-weight:700">📲 WhatsApp</button>' +
@@ -190,6 +191,13 @@
     var div = document.createElement('div');
     div.innerHTML = modalHTML;
     document.body.appendChild(div.firstChild);
+    // Al entrar en un campo, que quede a la vista dentro del cuerpo (no tapado por el pie ni el teclado).
+    var body = document.getElementById('factModalBody');
+    if (body) body.addEventListener('focusin', function(ev) {
+      var t = ev.target;
+      if (!t || !/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
+      setTimeout(function() { try { t.scrollIntoView({ block: 'nearest' }); } catch (e) {} }, 60);
+    });
   }
 
   // ────────── Render datos cliente ──────────
@@ -386,6 +394,8 @@
     // nada que facturar). Solo cuando no hay ya factura: si la hay, se enseña esa (y lo
     // devuelto va con su abono).
     var _emitirNueva = function() {
+      // Reembolsada entera: no queda nada que facturar (el dinero se devolvió).
+      if (origen === 'venta' && datos && datos.reembolsado) { _toast(T('fact.venta_reembolsada'), 'err'); return; }
       if (origen === 'venta' && datos && window.tkFactTieneDevoluciones(datos)) {
         if (window.tkFactDevueltaEntera(datos)) { _toast(T('fact.venta_devuelta_entera'), 'err'); return; }
         _mostrarModalEmision(origen, window.tkVentaNetaDevoluciones(datos));
