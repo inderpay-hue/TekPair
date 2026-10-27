@@ -9,6 +9,7 @@
 // así que desactivarlo es seguro y obligatorio para que los webhooks funcionen.
 import { nivelComercial, primerosPagos } from './_lib/nivel-comercial.js';
 import { sbTodo } from './_lib/sb-todo.js';
+import { mapaPrecioPlan } from './_lib/precios.js';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 
@@ -23,17 +24,10 @@ export default async function handler(req, res) {
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
   const RESEND_KEY = process.env.RESEND_API_KEY;
 
-  // Map de price_id → nombre de plan
-  const PRICE_TO_PLAN = {
-    'price_1TUEadKE1FTbu0p7OtHUDVnP': 'basico',
-    'price_1TUEbPKE1FTbu0p78X80WKAH': 'pro',
-    'price_1TUEbqKE1FTbu0p7U1y90BZF': 'premium'
-  };
-  // Precios ANUALES: mismo plan, distinto price_id. Se añaden si están configurados en Vercel
-  // (las mismas env vars que usa api/checkout.js), para que el webhook los mapee al plan correcto.
-  if (process.env.STRIPE_PRICE_BASICO_ANUAL) PRICE_TO_PLAN[process.env.STRIPE_PRICE_BASICO_ANUAL] = 'basico';
-  if (process.env.STRIPE_PRICE_PRO_ANUAL) PRICE_TO_PLAN[process.env.STRIPE_PRICE_PRO_ANUAL] = 'pro';
-  if (process.env.STRIPE_PRICE_PREMIUM_ANUAL) PRICE_TO_PLAN[process.env.STRIPE_PRICE_PREMIUM_ANUAL] = 'premium';
+  // Map de price_id → nombre de plan. Reconoce los precios NUEVOS (desde el 27-oct-2026),
+  // los VIEJOS que conservan los clientes de antes y los anuales de las env vars
+  // (STRIPE_PRICE_*_ANUAL). Todo vive en api/_lib/precios.js.
+  const PRICE_TO_PLAN = mapaPrecioPlan();
 
   // ═══ Verificación de firma Stripe ═══
   const sig = req.headers['stripe-signature'];
@@ -612,7 +606,8 @@ export default async function handler(req, res) {
                 // La comisión va SIEMPRE sobre el pago SIN IVA. Si Stripe trae el IVA
                 // desglosado se usa ese; si no (el checkout no le pasa impuestos y los
                 // precios llevan el 21 % dentro), se quita ese 21 %. Sin esto, un 20 %
-                // sobre 9,90 daba 1,98 en vez de 1,64.
+                // sobre 9,90 daba 1,98 en vez de 1,64. Vale igual para los precios
+                // nuevos (14,90 / 22,90) porque sale del importe real de la factura.
                 const taxStripe = (invoice.tax != null ? invoice.tax
                   : (Array.isArray(invoice.total_taxes) ? invoice.total_taxes.reduce((a, t) => a + (t.amount || 0), 0) : 0)) / 100;
                 const baseImponible = taxStripe > 0 ? +(montoNeto - taxStripe).toFixed(2) : +(montoNeto / 1.21).toFixed(2);

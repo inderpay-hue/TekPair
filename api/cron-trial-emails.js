@@ -24,6 +24,7 @@
 import { nivelComercial, primerosPagos } from './_lib/nivel-comercial.js';
 import { sbTodo } from './_lib/sb-todo.js';
 import crypto from 'crypto';
+import { importePlan, esTarifaVieja } from './_lib/precios.js';
 import { construirResumen, enviarResumen, destinoResumen, fechaMadrid, esPremium, construirInformeMes, mesesInforme } from './_lib/resumen.js';
 
 // CRON-1: timing-safe equal — evita ataques que deducen el secret carácter a carácter
@@ -85,7 +86,7 @@ export default async function handler(req, res) {
     //    clientes se quedaban sin avisos y descubrían el cargo en el banco. Con
     //    trial_until entran igual. Las que ya pagan tienen trial_until en el pasado y
     //    quedan fuera solas, porque abajo solo se avisa entre 3.5 y 0.5 días antes.
-    const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?trial_until=not.is.null&plan_email=not.is.null&plan_status=in.(trial,active)&select=id,nombre,plan,plan_email,trial_until,trial_email_3d_sent,trial_email_1d_sent`, {
+    const r = await fetch(`${SUPABASE_URL}/rest/v1/tiendas?trial_until=not.is.null&plan_email=not.is.null&plan_status=in.(trial,active)&select=id,nombre,plan,plan_email,trial_until,trial_email_3d_sent,trial_email_1d_sent,stripe_sub_id,creado_en`, {
       headers
     });
     if (!r.ok) {
@@ -678,11 +679,33 @@ function esc(s) {
   return String(s == null ? '' : s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 }
 
+// Importe que se le cobrará a ESTA tienda al acabar la prueba (texto «14,90»).
+// Desde el 27-oct-2026 Básico y Pro subieron solo para las altas nuevas, así que no
+// vale una tabla fija: se lee el precio real de su suscripción en Stripe (sirve también
+// para los anuales). Si no se puede, se decide por la fecha de alta de la tienda.
+async function precioQueSeCobrara(tienda) {
+  const STRIPE_KEY = process.env.STRIPE_SECRET_KEY;
+  if (tienda.stripe_sub_id && STRIPE_KEY) {
+    try {
+      const r = await fetch(`https://api.stripe.com/v1/subscriptions/${encodeURIComponent(tienda.stripe_sub_id)}`, { headers: { Authorization: `Bearer ${STRIPE_KEY}` } });
+      if (r.ok) {
+        const sub = await r.json();
+        const cent = sub.items?.data?.[0]?.price?.unit_amount;
+        if (Number.isFinite(cent) && cent > 0) {
+          const eur = cent / 100;
+          return Number.isInteger(eur) ? String(eur) : eur.toFixed(2).replace('.', ',');
+        }
+      }
+    } catch (e) { console.warn('[cron] precio de la suscripción no disponible:', e.message); }
+  }
+  return importePlan(tienda.plan, { vieja: esTarifaVieja(tienda.creado_en) });
+}
+
 // ═══ EMAIL FALTAN 3 DÍAS ═══
 async function sendEmail3Days(tienda, RESEND_KEY) {
   if (!RESEND_KEY) return false;
   const planLabel = ({basico:'Básico', pro:'Pro', top:'Premium', premium:'Premium'})[tienda.plan] || 'Básico';
-  const planPrecio = ({basico:'9,90', pro:'19,90', top:'34,90', premium:'34,90'})[tienda.plan] || '9,90';
+  const planPrecio = await precioQueSeCobrara(tienda);
 
   try {
     const r = await fetch('https://api.resend.com/emails', {
@@ -735,7 +758,7 @@ async function sendEmail3Days(tienda, RESEND_KEY) {
 async function sendEmail1Day(tienda, RESEND_KEY) {
   if (!RESEND_KEY) return false;
   const planLabel = ({basico:'Básico', pro:'Pro', top:'Premium', premium:'Premium'})[tienda.plan] || 'Básico';
-  const planPrecio = ({basico:'9,90', pro:'19,90', top:'34,90', premium:'34,90'})[tienda.plan] || '9,90';
+  const planPrecio = await precioQueSeCobrara(tienda);
 
   try {
     const r = await fetch('https://api.resend.com/emails', {

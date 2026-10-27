@@ -11,6 +11,7 @@
 // CHK-RATE: rate limiting — máx 10 peticiones por IP cada hora (distribuido vía api/_lib/ratelimit.js).
 // Previene creación masiva de sesiones Stripe.
 import { rateLimit } from './_lib/ratelimit.js';
+import { PRECIOS_MENSUAL, PRECIOS_ANUAL } from './_lib/precios.js';
 
 function _getIpChk(req) {
   return ((req.headers['x-forwarded-for'] || '') + '').split(',')[0].trim() || 'unknown';
@@ -97,21 +98,14 @@ export default async function handler(req, res) {
   // CHK-1: usar SERVICE_KEY para bypasar RLS (la antigua ANON_KEY no debería poder leer usuarios)
   const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY;
 
-  const PLANES = {
-    basico: 'price_1TUEadKE1FTbu0p7OtHUDVnP',
-    pro: 'price_1TUEbPKE1FTbu0p78X80WKAH',
-    // CHK-8: aceptar tanto 'top' (como dice el form) como 'premium' (como dice webhook.js)
-    top: 'price_1TUEbqKE1FTbu0p7U1y90BZF',
-    premium: 'price_1TUEbqKE1FTbu0p7U1y90BZF'
-  };
-  // Precios ANUALES (opcionales): se activan cuando configures en Vercel estas env vars con los
-  // price_id anuales creados en Stripe. Mientras estén vacías, el ciclo 'anual' cae a mensual.
-  const PLANES_ANUAL = {
-    basico: process.env.STRIPE_PRICE_BASICO_ANUAL || '',
-    pro: process.env.STRIPE_PRICE_PRO_ANUAL || '',
-    top: process.env.STRIPE_PRICE_PREMIUM_ANUAL || '',
-    premium: process.env.STRIPE_PRICE_PREMIUM_ANUAL || ''
-  };
+  // Precios de las ALTAS NUEVAS (desde el 27-oct-2026 Básico 14,90/149 y Pro 22,90/229;
+  // Premium igual). Viven en api/_lib/precios.js junto a los viejos que reconoce el webhook.
+  // CHK-8: aceptar tanto 'top' (como dice el form) como 'premium' (como dice webhook.js)
+  const PLANES = { ...PRECIOS_MENSUAL, top: PRECIOS_MENSUAL.premium };
+  // Anuales: Básico y Pro con los price nuevos fijos (las env STRIPE_PRICE_BASICO/PRO_ANUAL
+  // apuntan a los anuales VIEJOS); Premium sigue en STRIPE_PRICE_PREMIUM_ANUAL.
+  // Si un anual faltara, el ciclo 'anual' cae a mensual.
+  const PLANES_ANUAL = { ...PRECIOS_ANUAL, top: PRECIOS_ANUAL.premium };
   const ciclo = (req.body.ciclo === 'anual') ? 'anual' : 'mensual';
   // Anual si lo piden Y hay price anual configurado; si no, mensual (fallback seguro).
   const priceId = (ciclo === 'anual' && PLANES_ANUAL[plan]) ? PLANES_ANUAL[plan] : PLANES[plan];

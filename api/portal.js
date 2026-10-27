@@ -9,13 +9,16 @@
 //   POR-4: validación robusta de stripe_customer_id (trim de espacios)
 
 import { rateLimit } from './_lib/ratelimit.js';
+import { PRECIOS_MENSUAL, PRECIOS_MENSUAL_VIEJOS, esTarifaVieja } from './_lib/precios.js';
 
-// Precio mensual por plan. Mismo mapa que webhook.js, al reves.
-const PRECIO_POR_PLAN = {
-  basico: 'price_1TUEadKE1FTbu0p7OtHUDVnP',
-  pro: 'price_1TUEbPKE1FTbu0p78X80WKAH',
-  premium: 'price_1TUEbqKE1FTbu0p7U1y90BZF'
-};
+// Precio mensual por plan: el NUEVO (desde el 27-oct-2026) salvo para las tiendas
+// creadas antes, que pagaban en mano la tarifa vieja y la conservan al guardar tarjeta.
+// Mismos precios que webhook.js (api/_lib/precios.js).
+function precioPorPlan(plan, creadoEn) {
+  const p = String(plan || '').toLowerCase() === 'top' ? 'premium' : String(plan || '').toLowerCase();
+  const tabla = esTarifaVieja(creadoEn) ? PRECIOS_MENSUAL_VIEJOS : PRECIOS_MENSUAL;
+  return Object.prototype.hasOwnProperty.call(tabla, p) ? tabla[p] : null;
+}
 
 // Stripe exige que trial_end quede al menos 48 h por delante.
 const MARGEN_TRIAL_MS = 48 * 3600 * 1000;
@@ -67,7 +70,7 @@ export default async function handler(req, res) {
 
     // 2. Recuperar stripe_customer_id de la tienda
     const tR = await fetch(
-      `${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(sess.tienda_id)}&select=stripe_customer_id,stripe_sub_id,plan,plan_until,plan_email,cobro_manual,nombre`,
+      `${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(sess.tienda_id)}&select=stripe_customer_id,stripe_sub_id,plan,plan_until,plan_email,cobro_manual,nombre,creado_en`,
       { headers: {'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`} }
     );
     const tiendas = await tR.json();
@@ -88,7 +91,7 @@ export default async function handler(req, res) {
     // es lo que hace que el cobro en mano siga saliendo sin comision.
     if (req.body.accion === 'guardar_tarjeta') {
       if (tienda.stripe_sub_id) return res.json({ error: 'Esta cuenta ya tiene una tarjeta guardada' });
-      const price = PRECIO_POR_PLAN[String(tienda.plan || '').toLowerCase()];
+      const price = precioPorPlan(tienda.plan, tienda.creado_en);
       if (!price) return res.json({ error: 'Plan no reconocido. Contacta con soporte.' });
 
       const params = new URLSearchParams();
