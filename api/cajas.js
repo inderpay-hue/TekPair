@@ -1384,18 +1384,32 @@ export default async function handler(req, res) {
         if (!/^\d{4}-\d{2}-\d{2}$/.test(desde || '') || !/^\d{4}-\d{2}-\d{2}$/.test(hasta || '')) return err(res, 400, 'desde y hasta obligatorios');
         if (desde > hasta) return err(res, 400, 'El rango de fechas está al revés');
         if (!(await tienePermisoCaja(payload, 'cajasm_historico'))) return err(res, 403, 'Sin permiso para ver días anteriores');
-        let cierres = await sbGet(
+        // Paginado (PostgREST corta en 1000 filas sin avisar).
+        let cierres = await sbGetTodo(
           `cajas_cierres?tienda_id=eq.${encodeURIComponent(tienda_id)}`
           + `&fecha=gte.${encodeURIComponent(desde)}&fecha=lte.${encodeURIComponent(hasta)}`
-          + `&select=fecha,caja_id,estado,saldo_inicial,saldo_teorico,saldo_real_final,importe_tpv,total_fiados,descuadre,cambio_siguiente,ingreso_banco,abierto_por,cerrado_por,cerrado_at,notas`
-          + `&order=fecha.asc&limit=5000`
+          + `&select=fecha,caja_id,estado,saldo_inicial,saldo_teorico,saldo_real_final,importe_tpv,descuadre,cambio_siguiente,ingreso_banco,abierto_por,cerrado_por,cerrado_at,notas`,
+          'fecha.asc,caja_id.asc'
         );
         const permitEx = await _cajasPermitidas(payload);
         if (permitEx !== null) cierres = cierres.filter(c => permitEx.includes(String(c.caja_id)));
         const cajasEx = await sbGet(`cajas?tienda_id=eq.${encodeURIComponent(tienda_id)}&select=id,nombre`);
         const nombreCaja = {};
         for (const c of cajasEx) nombreCaja[String(c.id)] = c.nombre;
-        return ok(res, { cierres: cierres.map(c => ({ ...c, caja: nombreCaja[String(c.caja_id)] || '' })) });
+        // Pendientes del día (lo fiado ese día, cobrado después o no): los mismos que
+        // justifican el descuadre al guardar el cierre (_justificadoDia).
+        const fiadosEx = await sbGetTodo(
+          `cajas_fiados?tienda_id=eq.${encodeURIComponent(tienda_id)}`
+          + `&fecha=gte.${encodeURIComponent(desde)}&fecha=lte.${encodeURIComponent(hasta)}`
+          + `&estado=in.(pendiente,cobrado)&select=id,caja_id,fecha,importe`,
+          'id.asc'
+        );
+        const pendDia = {};
+        for (const f of fiadosEx) {
+          const k = String(f.caja_id) + '|' + f.fecha;
+          pendDia[k] = Math.round(((pendDia[k] || 0) + Number(f.importe || 0)) * 100) / 100;
+        }
+        return ok(res, { cierres: cierres.map(c => ({ ...c, caja: nombreCaja[String(c.caja_id)] || '', total_fiados: pendDia[String(c.caja_id) + '|' + c.fecha] || 0 })) });
       }
 
       case 'resumen_periodo': {

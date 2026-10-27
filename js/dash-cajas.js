@@ -442,14 +442,14 @@
       ov.style.zIndex = '100001';
       const fin = (val) => { if (cerrado) return; cerrado = true; ov.remove(); resolve(val); };
       ov.onclick = (e) => { if (e.target === ov) fin(null); };
-      const est = 'width:100%;font-size:15px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--white);color:var(--text);box-sizing:border-box;';
+      const est = 'width:100%;font-size:16px;padding:9px 10px;border:1px solid var(--border);border-radius:8px;background:var(--white);color:var(--text);box-sizing:border-box;';
       ov.innerHTML = `<div class="cajas-modal" style="max-width:420px;">
         <div class="cajas-modal-header"><h3>${escapar(T('cajas.exp_titulo'))}</h3><button class="cajas-modal-cerrar" type="button">✕</button></div>
         <div class="cajas-modal-cuerpo">
           <div style="font-size:13px;color:var(--muted);margin-bottom:10px;line-height:1.4;">${escapar(T('cajas.exp_ayuda'))}</div>
-          <div style="display:flex;gap:10px">
-            <label style="flex:1;font-size:12px;color:var(--muted)">${escapar(T('cajas.desde'))}<input id="_exp-desde" type="date" value="${ini}" style="${est}"></label>
-            <label style="flex:1;font-size:12px;color:var(--muted)">${escapar(T('cajas.hasta'))}<input id="_exp-hasta" type="date" value="${hoy}" style="${est}"></label>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <label style="flex:1;min-width:130px;font-size:12px;color:var(--muted)">${escapar(T('cajas.desde'))}<input id="_exp-desde" type="date" value="${ini}" style="${est}"></label>
+            <label style="flex:1;min-width:130px;font-size:12px;color:var(--muted)">${escapar(T('cajas.hasta'))}<input id="_exp-hasta" type="date" value="${hoy}" style="${est}"></label>
           </div>
         </div>
         <div class="cajas-modal-pie">
@@ -461,6 +461,7 @@
       ov.querySelector('.cajas-modal-cerrar').onclick = () => fin(null);
       ov.querySelector('#_exp-cancel').onclick = () => fin(null);
       ov.querySelector('#_exp-ok').onclick = () => fin({ desde: ov.querySelector('#_exp-desde').value, hasta: ov.querySelector('#_exp-hasta').value });
+      ov.addEventListener('keydown', (e) => { if (e.key === 'Escape') fin(null); });
     });
   }
   function _csvCelda(v) {
@@ -478,7 +479,7 @@
       : c.estado === 'abierto' ? T('cajas.borrador')
       : Math.abs(Number(c.descuadre || 0)) <= 0.5 ? T('cajas.cuadra')
       : Number(c.descuadre) > 0 ? T('cajas.sobra') : T('cajas.falta');
-    const cab = [T('gen.fecha').replace(':', ''), T('cajas.exp_caja'), T('cajas.exp_estado'), T('cajas.exp_saldo_inicial'),
+    const cab = [T('gen.fecha').replace(':', '').trim(), T('cajas.exp_caja'), T('cajas.exp_estado'), T('cajas.exp_saldo_inicial'),
       T('cajas.exp_esperado'), T('cajas.exp_contado'), T('cajas.exp_tpv'), T('cajas.exp_pendientes'), T('cajas.exp_descuadre'),
       T('cajas.exp_cambio'), T('cajas.exp_banco'), T('cajas.exp_abrio'), T('cajas.exp_cerro'), T('cajas.exp_notas')];
     const filas = cierres.map(c => [
@@ -493,6 +494,7 @@
     return [cab.map(_csvCelda).join(';')].concat(filas, cierres.length ? [total] : []).join('\r\n');
   }
   async function exportarCierres() {
+    if (!puedeHistorico()) { toast(_txtSinHist(), 'error'); return; }
     const r = await _pedirRango();
     if (!r) return;
     if (!r.desde || !r.hasta || r.desde > r.hasta) { toast(T('cajas.rango_invertido'), 'error'); return; }
