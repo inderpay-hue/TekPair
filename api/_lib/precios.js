@@ -28,10 +28,11 @@ export const PRECIOS_MENSUAL_VIEJOS = {
   premium: 'price_1TUEbqKE1FTbu0p7U1y90BZF'
 };
 
-// Día del cambio: las tiendas creadas antes conservan la tarifa vieja.
+// Momento del cambio: las tiendas creadas antes conservan la tarifa vieja.
+// Una tienda sin fecha de alta solo puede ser antigua (las nuevas siempre la llevan).
 export const FECHA_SUBIDA = '2026-10-27T00:00:00+01:00';
 export function esTarifaVieja(creadoEn) {
-  return !!creadoEn && new Date(creadoEn) < new Date(FECHA_SUBIDA);
+  return !creadoEn || new Date(creadoEn) < new Date(FECHA_SUBIDA);
 }
 
 // Importe (texto, IVA incluido) por plan y ciclo, para emails y avisos.

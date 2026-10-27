@@ -108,8 +108,9 @@ export default async function handler(req, res) {
   const PLANES_ANUAL = { ...PRECIOS_ANUAL, top: PRECIOS_ANUAL.premium };
   const ciclo = (req.body.ciclo === 'anual') ? 'anual' : 'mensual';
   // Anual si lo piden Y hay price anual configurado; si no, mensual (fallback seguro).
-  const priceId = (ciclo === 'anual' && PLANES_ANUAL[plan]) ? PLANES_ANUAL[plan] : PLANES[plan];
-  if (!priceId) return res.status(400).json({ error: 'Plan inválido' });
+  const tiene = (o, k) => Object.prototype.hasOwnProperty.call(o, k);
+  const priceId = (ciclo === 'anual' && tiene(PLANES_ANUAL, plan) && PLANES_ANUAL[plan]) ? PLANES_ANUAL[plan] : (tiene(PLANES, plan) ? PLANES[plan] : null);
+  if (typeof priceId !== 'string' || !priceId) return res.status(400).json({ error: 'Plan inválido' });
 
   try {
     // CHK-1: verificar email existente, solo cuentas activas, con SERVICE_KEY

@@ -483,6 +483,8 @@ async function refrescarPlan() {
       renderPlanBanner();
       aplicarBloqueosPlan();
       _avisoTarjeta(data.tarjeta);
+      // Ajustes se pintó con la sesión guardada (sin tarifa_vieja al entrar): repintar el precio.
+      if (typeof renderSuscripcionInfo === 'function') renderSuscripcionInfo();
       // Primer login (sin plan cacheado): si ahora sabemos que es Premium y se le había
       // mandado al Clásico automáticamente, devolverlo al Inicio nuevo (solo si sigue ahí).
       if (typeof tieneFeature === 'function' && tieneFeature('inicio_avanzado') && window._inicioAutoRedirect) {
