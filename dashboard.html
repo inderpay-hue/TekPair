@@ -5761,7 +5761,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261027d"></script>
 <script src="/js/dash-app.js?v=20261027d"></script>
-<script src="/js/devolucion.js?v=20261027e"></script>
+<script src="/js/devolucion.js?v=20261027h"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
 <div class="search-global-modal" id="mBuscarGlobal" onclick="if(event.target===this)cerrarBusquedaGlobal()">
@@ -7397,7 +7397,7 @@ function resetPagosRep() {
 // ═══ FACTURAS ═══
 (function() {
   var s = document.createElement('script');
-  s.src = 'factura.js?v=20261027f';
+  s.src = 'factura.js?v=20261027h';
   s.defer = true;
   document.body.appendChild(s);
 })();
@@ -7417,12 +7417,12 @@ function factVenta(id) {
     id: v.id,
     fecha: v.fecha,
     total: parseFloat(v.total) || 0,
-    iva: parseFloat(v.iva) || 0,
+    iva: parseFloat(v.iva) || 0, ivaModo: v.ivaModo || '',
     descuento: parseFloat(v.descuento) || 0,
     pago: v.pago || '', pagos: v.pagos || null,
     items: (v.items && v.items.length) ? v.items.map(function(i) {
       // usado: sin él la factura desglosaba el IVA de los usados en régimen de margen.
-      return { nombre: i.nombre || 'Producto', cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0, imei: i.imei || '', usado: i.usado || null };
+      return { nombre: i.nombre || 'Producto', cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0, imei: i.imei || '', usado: i.usado || null, devuelto: i.devuelto || 0, devs: i.devs || null };
     }) : [{ nombre: v.modelo || 'Venta', cantidad: 1, precio: parseFloat(v.total) || 0, imei: v.imei || '' }],
     marca: v.marca || '', modelo: v.modelo || '', imei: v.imei || '',
     cliente: cli

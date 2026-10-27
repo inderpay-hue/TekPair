@@ -3029,7 +3029,7 @@ setInterval(_actualizarFabBadge, 600);
 setTimeout(_actualizarFabBadge, 300);
 </script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="factura.js?v=20261027f" defer></script>
+<script src="factura.js?v=20261027h" defer></script>
 <script>
 function factVenta(id) {
   var v = DB.ventas.find(function(x){ return x.id === id; });
@@ -3044,11 +3044,12 @@ function factVenta(id) {
     id: v.id,
     fecha: v.fecha,
     total: parseFloat(v.total) || 0,
-    iva: parseFloat(v.iva) || 0,
+    iva: parseFloat(v.iva) || 0, ivaModo: v.ivaModo || '',
+    descuento: parseFloat(v.descuento) || 0,
     pago: v.pago || '', pagos: v.pagos || null,
     items: (v.items && v.items.length) ? v.items.map(function(i){
       // imei y usado: sin ellos la factura salía sin IMEI y desglosaba el IVA de los usados.
-      return { nombre: i.nombre || T('gen.producto'), cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0, imei: i.imei || '', usado: i.usado || null };
+      return { nombre: i.nombre || T('gen.producto'), cantidad: parseFloat(i.qty || i.cantidad) || 1, precio: parseFloat(i.precio) || 0, imei: i.imei || '', usado: i.usado || null, devuelto: i.devuelto || 0, devs: i.devs || null };
     }) : [{ nombre: v.modelo || T('tpv.venta_item'), cantidad: 1, precio: parseFloat(v.total) || 0, imei: v.imei || '' }],
     cliente: cli
   };

@@ -343,21 +343,38 @@
   // Venta con devoluciones: se factura solo lo que se queda el cliente (unidades que
   // quedan; el descuento, el que queda tras repartirlo en las devoluciones) y por lo
   // cobrado menos lo devuelto. Sin esto la factura salía por la venta entera.
+  // Se calcula con los campos de cada línea (devuelto, devs[].imp: js/devolucion.js), sin
+  // depender de que devolucion.js esté cargado (el TPV no lo carga).
+  function _cantIt(i) { return Math.abs(parseFloat(i && (i.qty != null ? i.qty : i.cantidad)) || 1); }
+  function _devIt(i) { return parseInt(i && i.devuelto, 10) || 0; }
+  function _impDevuelto(d) {
+    return Math.round((d.items || []).reduce(function(a, i) {
+      return a + (Array.isArray(i.devs) ? i.devs : []).reduce(function(s, x) { return s + (parseFloat(x.imp) || 0); }, 0);
+    }, 0) * 100) / 100;
+  }
+  window.tkFactTieneDevoluciones = function(d) { return (d && d.items || []).some(function(i) { return _devIt(i) > 0; }); };
+  window.tkFactDevueltaEntera = function(d) {
+    var its = (d && d.items) || [];
+    return its.length > 0 && its.every(function(i) { return _devIt(i) >= _cantIt(i); });
+  };
   window.tkVentaNetaDevoluciones = function(d) {
     var its = Array.isArray(d.items) ? d.items : [];
-    var devueltoImp = (typeof window.tkImporteDevuelto === 'function') ? (parseFloat(window.tkImporteDevuelto(d)) || 0) : 0;
+    var devueltoImp = _impDevuelto(d);
     var quedan = its.map(function(i) {
-      var cant = Math.abs(parseFloat(i.cantidad != null ? i.cantidad : i.qty) || 1);
-      var resto = cant - (parseInt(i.devuelto, 10) || 0);
+      var resto = _cantIt(i) - _devIt(i);
       if (resto <= 0) return null;
       var c = Object.assign({}, i, { cantidad: resto });
       if (c.qty != null) c.qty = resto;
       return c;
     }).filter(Boolean);
     var total = Math.round(((parseFloat(d.total) || 0) - devueltoImp) * 100) / 100;
+    // Con IVA aparte las líneas van sin IVA y el total con IVA: el descuento se mide
+    // contra la base, para que líneas − descuento = base.
+    var iva = parseFloat(d.iva) || 0;
+    var objetivo = (d.ivaModo === 'excluido' && iva > 0) ? total / (1 + iva / 100) : total;
     var bruto = quedan.reduce(function(a, i) { return a + (parseFloat(i.precio) || 0) * i.cantidad; }, 0);
-    var desc = Math.max(0, Math.round((bruto - total) * 100) / 100);
-    return Object.assign({}, d, { items: quedan, total: total, descuento: desc });
+    var desc = Math.max(0, Math.round((bruto - objetivo) * 100) / 100);
+    return Object.assign({}, d, { items: quedan, total: total, descuento: desc, _devueltoPrevio: devueltoImp });
   };
 
   window.abrirModalFactura = function(origen, datos) {
@@ -365,18 +382,22 @@
       _toast(T('fact.faltan_credenciales'), 'err');
       return;
     }
-    if (origen === 'venta' && datos && typeof window.tkTieneDevoluciones === 'function' && window.tkTieneDevoluciones(datos)) {
-      if (typeof window.tkDevueltaEntera === 'function' && window.tkDevueltaEntera(datos)) {
-        _toast(T('fact.venta_devuelta_entera'), 'err');
+    // Emitir una nueva: si la venta tiene devoluciones, por lo que queda (devuelta entera,
+    // nada que facturar). Solo cuando no hay ya factura: si la hay, se enseña esa (y lo
+    // devuelto va con su abono).
+    var _emitirNueva = function() {
+      if (origen === 'venta' && datos && window.tkFactTieneDevoluciones(datos)) {
+        if (window.tkFactDevueltaEntera(datos)) { _toast(T('fact.venta_devuelta_entera'), 'err'); return; }
+        _mostrarModalEmision(origen, window.tkVentaNetaDevoluciones(datos));
         return;
       }
-      datos = window.tkVentaNetaDevoluciones(datos);
-    }
+      _mostrarModalEmision(origen, datos);
+    };
 
     // Si esta reparación/venta ya tiene factura, mostrar su PDF (no emitir otra)
     var oid = datos && datos.id;
     if (!oid) {
-      _mostrarModalEmision(origen, datos);
+      _emitirNueva();
       return;
     }
 
@@ -398,13 +419,13 @@
           }
         } else {
           // No tiene factura → abrir modal de emisión
-          _mostrarModalEmision(origen, datos);
+          _emitirNueva();
         }
       })
       .catch(function(e) {
         // Si la comprobación falla, no bloquear: abrir modal igualmente
         console.warn('[factura.js] no se pudo comprobar factura previa:', e);
-        _mostrarModalEmision(origen, datos);
+        _emitirNueva();
       });
   };
 
@@ -769,6 +790,9 @@
             ? { marca: d.marca || '', modelo: d.modelo || '', imei: d.imei || '', averia: d.averia || '' }
             : ((d.imei || d.marca || d.modelo) ? { marca: d.marca || '', modelo: d.modelo || '', imei: d.imei || '', averia: '' } : null);
           if (_us && _us.hay) { od = od || {}; od.usados = { importe: +(_us.ventas.toFixed(2)), mencion: _us.mencion || '' }; }
+          // Factura emitida tras una devolución parcial: lo ya devuelto, para que el abono
+          // de una devolución posterior se calcule sobre lo facturado (js/devolucion.js).
+          if (FACT.origen === 'venta' && d._devueltoPrevio > 0) { od = od || {}; od.devuelto_previo = d._devueltoPrevio; }
           return od;
         })(),
         estado: 'emitida'

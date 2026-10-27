@@ -446,7 +446,9 @@
         var yaAb = r2(arr.filter(function (x) { return x.rectifica_a === orig.id; }).reduce(function (a, x) { return a + Math.abs(parseFloat(x.total) || 0); }, 0));
         var queda = r2(totF - yaAb);
         if (queda <= 0.005) return;
-        var vt = parseFloat(R.v.total) || 0;
+        // Si la factura se emitió tras otra devolución, cubre la venta menos lo ya devuelto entonces.
+        var devPrev = parseFloat(orig.origen_detalle && orig.origen_detalle.devuelto_previo) || 0;
+        var vt = (parseFloat(R.v.total) || 0) - devPrev;
         var esc = vt > 0 ? totF / vt : 1;
         var impAb = devueltaEntera(R.v) ? queda : Math.min(queda, r2(R.imp * esc));
         if (impAb <= 0.005) return;
