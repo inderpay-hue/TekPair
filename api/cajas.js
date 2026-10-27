@@ -1388,7 +1388,7 @@ export default async function handler(req, res) {
           `cajas_cierres?tienda_id=eq.${encodeURIComponent(tienda_id)}`
           + `&fecha=gte.${encodeURIComponent(desde)}`
           + `&fecha=lte.${encodeURIComponent(hasta)}`
-          + `&select=fecha,estado,descuadre,caja_id,revisado_por&order=fecha.asc`
+          + `&select=*&order=fecha.asc`
         );
 
         // 2) Fiados pendientes del periodo (para color amarillo)
@@ -1458,6 +1458,15 @@ export default async function handler(req, res) {
           // se queda sin mirar, el visto bueno del dia seria mentira.
           const vb = !!c.revisado_por;
           dias[f].revisado = dias[f].revisado === undefined ? vb : (dias[f].revisado && vb);
+        }
+
+        // Efectivo llevado al banco cada día (suma de sus cajas), aparte del estado: así no se
+        // pierde cuando otra caja del día pone un estado peor.
+        for (const c of cierres) {
+          const ib = Number(c.ingreso_banco || 0);
+          if (!(ib > 0)) continue;
+          if (!dias[c.fecha]) dias[c.fecha] = { estado: 'vacio', descuadre: 0, fiado: 0 };
+          dias[c.fecha].banco = Math.round(((dias[c.fecha].banco || 0) + ib) * 100) / 100;
         }
 
         return ok(res, { dias });
@@ -1565,7 +1574,14 @@ export default async function handler(req, res) {
         }
 
         const datos = await _totalesCuadre(tienda_id, caja, desde, hasta);
-        return ok(res, { caja, ...datos });
+        // Lo llevado al banco desde esta caja en el periodo (para cuadrarlo con el extracto).
+        let totalBanco = 0;
+        try {
+          const cs = await sbGet(`cajas_cierres?caja_id=eq.${encodeURIComponent(caja_id)}&tienda_id=eq.${encodeURIComponent(tienda_id)}`
+            + `&fecha=gte.${encodeURIComponent(desde)}&fecha=lte.${encodeURIComponent(hasta)}&select=*`);
+          totalBanco = Math.round(cs.reduce((a, c) => a + Number(c.ingreso_banco || 0), 0) * 100) / 100;
+        } catch (e) { /* sin el dato: 0 */ }
+        return ok(res, { caja, ...datos, total_ingreso_banco: totalBanco });
       }
 
       case 'guardar_cuadre': {

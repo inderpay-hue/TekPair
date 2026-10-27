@@ -1769,6 +1769,7 @@
           <div class="fd-nombre">${nombre}</div>
           <div class="fd-num">${d.getDate()}</div>
           <div class="fd-info">${etiqueta}</div>
+          ${info && info.banco > 0 ? `<div class="fd-banco" title="${T('cajas.ingreso_banco').replace(' €','')}" style="font-size:10px;font-weight:700;opacity:.85;margin-top:2px">🏦 ${eur(info.banco)}</div>` : ''}
         </div>
       `;
     }).join('');
@@ -1865,10 +1866,22 @@
       if (estado) cls.push('tpcal-' + estado);
       if (iso === hoyIso) cls.push('tpcal-hoy');
       if (iso === fechaSelIso) cls.push('tpcal-sel');
-      html += `<div class="tpcal-day ${cls.join(' ')}"
-                    onclick="Cajas.seleccionarDelCalendario('${iso}')">${d}</div>`;
+      const tit = info && info.banco > 0 ? ` title="🏦 ${eur(info.banco)}"` : '';
+      html += `<div class="tpcal-day ${cls.join(' ')}"${tit}
+                    onclick="Cajas.seleccionarDelCalendario('${iso}')">${d}${info && info.banco > 0 ? '<span style="display:block;font-size:9px;line-height:1">🏦</span>' : ''}</div>`;
     }
     $('tpcal-grid').innerHTML = html;
+    // Total del mes llevado al banco (para cuadrarlo con el extracto).
+    const totBancoMes = Object.keys(resumenDias).filter(k => k.startsWith(`${y}-${String(m + 1).padStart(2, '0')}-`))
+      .reduce((a, k) => a + Number(resumenDias[k].banco || 0), 0);
+    let pie = $('tpcal-banco-mes');
+    if (!pie) {
+      pie = document.createElement('div');
+      pie.id = 'tpcal-banco-mes';
+      pie.style.cssText = 'margin-top:10px;font-size:13px;font-weight:700;text-align:center';
+      $('tpcal-grid').insertAdjacentElement('afterend', pie);
+    }
+    pie.textContent = totBancoMes > 0 ? T('cajas.banco_mes').replace('{x}', eur(totBancoMes)) : '';
   }
 
   function seleccionarDelCalendario(iso) {
@@ -2217,6 +2230,7 @@
     let cabecera = '<div style="display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--muted);padding:4px 0 10px;">'
       + '<span>' + T('cajas.dias_cerrados') + ': <b style="color:var(--text)">' + d.dias_cerrados + '</b></span>'
       + '<span>' + T('cajas.total_tekpair') + ': <b style="color:var(--text)">' + eur(d.total_tekpair) + '</b></span>'
+      + (Number(d.total_ingreso_banco) > 0 ? '<span>' + T('cajas.banco_periodo') + ': <b style="color:var(--text)">' + eur(d.total_ingreso_banco) + '</b></span>' : '')
       + '</div>';
     if (d.dias_borrador > 0) {
       cabecera += '<div style="padding:9px 11px;border-radius:8px;background:#FFF7ED;border:1px solid #FDBA74;color:#7C2D12;font-size:13px;margin-bottom:10px;">'
