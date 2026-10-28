@@ -194,11 +194,14 @@ async function getCatalogo(slug) {
   }
   if (!activo) return { ok: false, error: 'Catálogo no disponible', status: 404 };
 
+  // En `stock` el precio de venta es la columna precio_v (no hay `precio`): se
+  // pide con alias para que la página siga leyendo a.precio. Pedir `precio` hacía
+  // fallar la consulta y el catálogo salía siempre como no disponible.
   let rows;
   try {
     rows = await sbGet(
       `stock?tienda_id=eq.${encodeURIComponent(t.tienda.id)}&en_catalogo=eq.true&unidades=gt.0` +
-      `&select=id,marca,modelo,capacidad,color,estado,calidad,bateria,precio,en_oferta,precio_antes,categoria` +
+      `&select=id,marca,modelo,capacidad,color,estado,calidad,bateria,precio:precio_v,en_oferta,precio_antes,categoria` +
       `&order=marca.asc,modelo.asc`
     );
   } catch (e) {
