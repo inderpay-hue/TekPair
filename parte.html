@@ -7,7 +7,7 @@
 <!-- PAR-2: la URL contiene token sensible. Sin esto, el referer leakearía
      al navegar a tekpair.tech (footer) o cualquier link externo. -->
 <meta name="referrer" content="no-referrer">
-<title>Seguimiento reparación · Tekpair</title>
+<title>Seguimiento reparación · TekPair</title>
 <style>
 :root{
   --bg:#020B2E;--card:#fff;--text:#0F172A;--muted:#64748B;--border:#E5E7EB;
@@ -161,7 +161,7 @@ body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,san
 
   function render(){
     document.documentElement.lang=LANG;
-    document.title=t("title")+" · Tekpair";
+    document.title=t("title")+" · TekPair";
     document.getElementById("tagline").textContent=t("tagline");
     renderLangSel();
     if(DATA===null){ content.innerHTML='<div class="loader">'+t("loading")+'</div>'; return; }

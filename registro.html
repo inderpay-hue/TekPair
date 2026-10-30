@@ -65,6 +65,7 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 .plan-name{font-family:var(--display);font-size:18px;font-weight:600;margin-bottom:4px}
 .plan-price{font-family:var(--display);font-size:32px;font-weight:700;color:var(--ink);margin-bottom:2px;letter-spacing:-.02em}
 .plan-price span{font-size:14px;font-weight:400;color:var(--muted);font-family:var(--sans)}
+.plan-trial{display:inline-block;font-size:11px;font-weight:700;color:var(--green,#10b981);background:rgba(16,185,129,.1);border-radius:999px;padding:3px 10px;margin:2px 0 8px}
 .plan-desc{font-size:12px;color:var(--muted);margin-bottom:16px}
 .plan-features{list-style:none;font-size:13px;color:var(--ink-soft)}
 .plan-features li{padding:5px 0;display:flex;align-items:center;gap:9px}
@@ -135,14 +136,15 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
 <div class="plans" id="plansSection">
   <div class="plan" onclick="selPlan('basico',this)">
     <div class="plan-name" id="planName_basico">Básico</div>
-    <div class="plan-price" id="planPrice_basico">€14,90<span>/mes</span></div>
+    <div class="plan-price" id="planPrice_basico">14,90 €<span>/mes</span></div>
+    <div class="plan-trial" data-t="plan_trial">15 días gratis</div>
     <div class="plan-desc" id="planDesc_basico">Para empezar</div>
     <ul class="plan-features">
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_1u">1 usuario</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_ventas">Ventas y reparaciones</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_stock">Gestión de stock</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_clis">Clientes y proveedores</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_reportes">Reportes básicos</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp1_1">1 usuario</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp1_2">Ventas, TPV y reparaciones</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp1_3">Gestión de stock</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp1_4">Hasta 250 clientes</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp1_5">Reportes básicos</span></li>
     </ul>
     <button class="plan-btn plan-btn-sec" id="planBtn_basico">Elegir Básico</button>
   </div>
@@ -150,31 +152,33 @@ body{font-family:var(--sans);background:var(--paper);color:var(--ink);min-height
   <div class="plan popular" onclick="selPlan('pro',this)">
     <div class="plan-badge" id="popularBadge"><svg viewBox="0 0 24 24"><path d="M12 2l3 7h7l-5.5 4 2 7L12 16l-6.5 4 2-7L2 9h7z"/></svg> <span class="pop-txt">MÁS POPULAR</span></div>
     <div class="plan-name" id="planName_pro">Pro</div>
-    <div class="plan-price" id="planPrice_pro">€22,90<span>/mes</span></div>
+    <div class="plan-price" id="planPrice_pro">22,90 €<span>/mes</span></div>
+    <div class="plan-trial" data-t="plan_trial">15 días gratis</div>
     <div class="plan-desc" id="planDesc_pro">Para negocios en crecimiento</div>
     <ul class="plan-features">
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_3u">Hasta 3 usuarios</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_permisos">Permisos por usuario</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_pdf">Reportes PDF + informe gestor</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_zip">ZIP gestoría y gastos recurrentes</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_cajas">Cajas multi-servicio</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_csv">Importar datos CSV</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_soporte">Soporte prioritario</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp2_1">3 usuarios · 1.000 clientes</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp2_2">Permisos por usuario</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp2_3">Pedidos, gastos y fotos</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp2_4">Analítica + financiación a plazos</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp2_5">Reportes PDF + informe gestor</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp2_6">Importar CSV y copias de seguridad</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp2_7">Catálogo de servicios y cajas multi-servicio</span></li>
     </ul>
     <button class="plan-btn plan-btn-main" id="planBtn_pro">Elegir Pro</button>
   </div>
 
   <div class="plan" onclick="selPlan('top',this)">
     <div class="plan-name" id="planName_top">Premium</div>
-    <div class="plan-price" id="planPrice_top">€34,90<span>/mes</span></div>
+    <div class="plan-price" id="planPrice_top">34,90 €<span>/mes</span></div>
+    <div class="plan-trial" data-t="plan_trial">15 días gratis</div>
     <div class="plan-desc" id="planDesc_top">Para equipos profesionales</div>
     <ul class="plan-features">
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_todo_pro">Todo lo del plan Pro</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_inf_u">Usuarios ilimitados</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_citas">Citas online</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_kanban">Vista Kanban de reparaciones</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_catalogo">Catálogo de servicios</span></li>
-      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="f_soporte_onb">Soporte prioritario + onboarding</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp3_1">Usuarios y clientes ilimitados</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp3_2">Todo lo del plan Pro</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp3_3">Multi-tienda</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp3_4">Citas online</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp3_5">Vista Kanban de reparaciones</span></li>
+      <li><svg viewBox="0 0 24 24"><path d="M5 12l5 5L20 7"/></svg><span data-t="rp3_6">Soporte prioritario + onboarding</span></li>
     </ul>
     <button class="plan-btn plan-btn-sec" id="planBtn_top">Elegir Premium</button>
   </div>
@@ -222,7 +226,7 @@ const REG_TEXTS = {
     hero_h1: 'Software para tiendas<br>de reparación móvil',
     hero_p: 'Gestiona ventas, reparaciones, stock y clientes desde cualquier dispositivo',
     plan_basico: 'Básico', plan_pro: 'Pro', plan_premium: 'Premium',
-    price_basico: '€14,90', price_pro: '€22,90', price_premium: '€34,90',
+    price_basico: '14,90 €', price_pro: '22,90 €', price_premium: '34,90 €',
     per_month: '/mes', vat_note: 'IVA incluido',
     desc_basico: 'Para empezar', desc_pro: 'Para negocios en crecimiento', desc_premium: 'Para equipos profesionales',
     btn_basico: 'Elegir Básico', btn_pro: 'Elegir Pro', btn_premium: 'Elegir Premium',
@@ -234,7 +238,7 @@ const REG_TEXTS = {
     btn_pagar: 'Empezar prueba gratis', btn_procesando: 'Procesando...',
     stripe_note: 'Pago seguro con Stripe · 15 días gratis, no se te cobra hasta terminar la prueba',
     ciclo_mensual: 'Mensual', ciclo_anual: 'Anual · <span style="color:var(--green)">2 meses gratis</span>',
-    price_basico_anual: '€149', price_pro_anual: '€229', price_premium_anual: '€349', per_year: '/año',
+    price_basico_anual: '149 €', price_pro_anual: '229 €', price_premium_anual: '349 €', per_year: '/año',
     consent: 'Al continuar aceptas los <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Términos</a> y la <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Política de privacidad</a>.',
     moneda_note: 'Los precios se cobran en EUR (€).',
     err_campos: 'Por favor rellena todos los campos', err_email: 'Email no válido', err_conn: 'Error de conexión. Intenta de nuevo.',
@@ -282,7 +286,7 @@ const REG_TEXTS = {
     hero_h1: 'Logiciel pour boutiques<br>de réparation mobile',
     hero_p: 'Gérez ventes, réparations, stock et clients depuis n\'importe quel appareil',
     plan_basico: 'Basique', plan_pro: 'Pro', plan_premium: 'Premium',
-    price_basico: '14,90€', price_pro: '22,90€', price_premium: '34,90€',
+    price_basico: '14,90 €', price_pro: '22,90 €', price_premium: '34,90 €',
     per_month: '/mois', vat_note: 'TVA incluse',
     desc_basico: 'Pour commencer', desc_pro: 'Pour les entreprises en croissance', desc_premium: 'Pour les équipes professionnelles',
     btn_basico: 'Choisir Basique', btn_pro: 'Choisir Pro', btn_premium: 'Choisir Premium',
@@ -294,7 +298,7 @@ const REG_TEXTS = {
     btn_pagar: 'Commencer l\'essai gratuit', btn_procesando: 'Traitement...',
     stripe_note: 'Paiement sécurisé avec Stripe · 15 jours gratuits, aucun prélèvement avant la fin',
     ciclo_mensual: 'Mensuel', ciclo_anual: 'Annuel · <span style="color:var(--green)">2 mois gratuits</span>',
-    price_basico_anual: '€149', price_pro_anual: '€229', price_premium_anual: '€349', per_year: '/an',
+    price_basico_anual: '149 €', price_pro_anual: '229 €', price_premium_anual: '349 €', per_year: '/an',
     consent: 'En continuant, vous acceptez les <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Conditions</a> et la <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Politique de confidentialité</a>.',
     moneda_note: 'Les prix sont facturés en EUR (€).',
     err_campos: 'Veuillez remplir tous les champs', err_email: 'Email invalide', err_conn: 'Erreur de connexion. Réessayez.',
@@ -312,7 +316,7 @@ const REG_TEXTS = {
     hero_h1: 'Software per negozi<br>di riparazione mobile',
     hero_p: 'Gestisci vendite, riparazioni, stock e clienti da qualsiasi dispositivo',
     plan_basico: 'Base', plan_pro: 'Pro', plan_premium: 'Premium',
-    price_basico: '€14,90', price_pro: '€22,90', price_premium: '€34,90',
+    price_basico: '14,90 €', price_pro: '22,90 €', price_premium: '34,90 €',
     per_month: '/mese', vat_note: 'IVA inclusa',
     desc_basico: 'Per iniziare', desc_pro: 'Per aziende in crescita', desc_premium: 'Per team professionali',
     btn_basico: 'Scegli Base', btn_pro: 'Scegli Pro', btn_premium: 'Scegli Premium',
@@ -324,7 +328,7 @@ const REG_TEXTS = {
     btn_pagar: 'Inizia la prova gratuita', btn_procesando: 'Elaborazione...',
     stripe_note: 'Pagamento sicuro con Stripe · 15 giorni gratis, nessun addebito fino alla fine',
     ciclo_mensual: 'Mensile', ciclo_anual: 'Annuale · <span style="color:var(--green)">2 mesi gratis</span>',
-    price_basico_anual: '€149', price_pro_anual: '€229', price_premium_anual: '€349', per_year: '/anno',
+    price_basico_anual: '149 €', price_pro_anual: '229 €', price_premium_anual: '349 €', per_year: '/anno',
     consent: 'Continuando accetti i <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Termini</a> e l\'<a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Informativa sulla privacy</a>.',
     moneda_note: 'I prezzi sono addebitati in EUR (€).',
     err_campos: 'Compila tutti i campi', err_email: 'Email non valida', err_conn: 'Errore di connessione. Riprova.',
@@ -342,7 +346,7 @@ const REG_TEXTS = {
     hero_h1: 'Software für<br>Handy-Reparaturshops',
     hero_p: 'Verwalten Sie Verkäufe, Reparaturen, Lager und Kunden von jedem Gerät',
     plan_basico: 'Basis', plan_pro: 'Pro', plan_premium: 'Premium',
-    price_basico: '14,90€', price_pro: '22,90€', price_premium: '34,90€',
+    price_basico: '14,90 €', price_pro: '22,90 €', price_premium: '34,90 €',
     per_month: '/Monat', vat_note: 'Inkl. MwSt.',
     desc_basico: 'Zum Einstieg', desc_pro: 'Für wachsende Unternehmen', desc_premium: 'Für professionelle Teams',
     btn_basico: 'Basis wählen', btn_pro: 'Pro wählen', btn_premium: 'Premium wählen',
@@ -354,7 +358,7 @@ const REG_TEXTS = {
     btn_pagar: 'Kostenlos testen', btn_procesando: 'Verarbeitung...',
     stripe_note: 'Sichere Zahlung mit Stripe · 15 Tage gratis, keine Abbuchung bis zum Ende',
     ciclo_mensual: 'Monatlich', ciclo_anual: 'Jährlich · <span style="color:var(--green)">2 Monate gratis</span>',
-    price_basico_anual: '€149', price_pro_anual: '€229', price_premium_anual: '€349', per_year: '/Jahr',
+    price_basico_anual: '149 €', price_pro_anual: '229 €', price_premium_anual: '349 €', per_year: '/Jahr',
     consent: 'Mit dem Fortfahren akzeptierst du die <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">AGB</a> und den <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Datenschutz</a>.',
     moneda_note: 'Die Preise werden in EUR (€) berechnet.',
     err_campos: 'Bitte alle Felder ausfüllen', err_email: 'Ungültige E-Mail', err_conn: 'Verbindungsfehler. Bitte erneut versuchen.',
@@ -372,7 +376,7 @@ const REG_TEXTS = {
     hero_h1: 'Software para lojas<br>de reparação de telemóveis',
     hero_p: 'Gere vendas, reparações, stock e clientes em qualquer dispositivo',
     plan_basico: 'Básico', plan_pro: 'Pro', plan_premium: 'Premium',
-    price_basico: '€14,90', price_pro: '€22,90', price_premium: '€34,90',
+    price_basico: '14,90 €', price_pro: '22,90 €', price_premium: '34,90 €',
     per_month: '/mês', vat_note: 'IVA incluído',
     desc_basico: 'Para começar', desc_pro: 'Para negócios em crescimento', desc_premium: 'Para equipas profissionais',
     btn_basico: 'Escolher Básico', btn_pro: 'Escolher Pro', btn_premium: 'Escolher Premium',
@@ -384,7 +388,7 @@ const REG_TEXTS = {
     btn_pagar: 'Começar teste grátis', btn_procesando: 'A processar...',
     stripe_note: 'Pagamento seguro com Stripe · 15 dias grátis, sem cobrança até terminar',
     ciclo_mensual: 'Mensal', ciclo_anual: 'Anual · <span style="color:var(--green)">2 meses grátis</span>',
-    price_basico_anual: '€149', price_pro_anual: '€229', price_premium_anual: '€349', per_year: '/ano',
+    price_basico_anual: '149 €', price_pro_anual: '229 €', price_premium_anual: '349 €', per_year: '/ano',
     consent: 'Ao continuar aceitas os <a href="/terminos.html" target="_blank" style="color:inherit;text-decoration:underline">Termos</a> e a <a href="/privacidad.html" target="_blank" style="color:inherit;text-decoration:underline">Política de privacidade</a>.',
     moneda_note: 'Os preços são cobrados em EUR (€).',
     err_campos: 'Por favor preenche todos os campos', err_email: 'Email inválido', err_conn: 'Erro de ligação. Tenta de novo.',
@@ -398,6 +402,27 @@ const REG_TEXTS = {
     footer_aviso: 'Aviso legal', footer_priv: 'Privacidade', footer_terminos: 'Termos', footer_cookies: 'Cookies', ref_banner: 'Foste convidado para o TekPair — ambos ganham 1 mês grátis ao registares-te e pagar.', ref_banner_com: 'Código de comercial aplicado: 50% de desconto nos 3 primeiros meses, além dos 15 dias de teste', ref_banner_com_mes: 'Código de comercial aplicado: tem 1 mês de teste grátis (mais 15 dias do que o habitual)'
   }
 };
+// Planes con los mismos textos que la web (landing-i18n.v2.js) y botón de prueba con el precio.
+(function(){var _a={"es": {"rp1_1": "1 usuario", "rp1_2": "Ventas, TPV y reparaciones", "rp1_3": "Gestión de stock", "rp1_4": "Hasta 250 clientes", "rp1_5": "Reportes básicos", "rp2_1": "3 usuarios · 1.000 clientes", "rp2_2": "Permisos por usuario", "rp2_3": "Pedidos, gastos y fotos", "rp2_4": "Analítica + financiación a plazos", "rp2_5": "Reportes PDF + informe gestor", "rp2_6": "Importar CSV y copias de seguridad", "rp2_7": "Catálogo de servicios y cajas multi-servicio", "rp3_1": "Usuarios y clientes ilimitados", "rp3_2": "Todo lo del plan Pro", "rp3_3": "Multi-tienda", "rp3_4": "Citas online", "rp3_5": "Vista Kanban de reparaciones", "rp3_6": "Soporte prioritario + onboarding", "plan_trial": "15 días gratis", "plan_trial_30": "1 mes gratis", "btn_luego": "luego"}, "en": {"rp1_1": "1 user", "rp1_2": "Sales, POS and repairs", "rp1_3": "Stock management", "rp1_4": "Up to 250 customers", "rp1_5": "Basic reports", "rp2_1": "3 users · 1,000 customers", "rp2_2": "Permissions per user", "rp2_3": "Orders, expenses and photos", "rp2_4": "Analytics + installment financing", "rp2_5": "PDF reports + accountant export", "rp2_6": "CSV import and backups", "rp2_7": "Service catalogue and multi-service tills", "rp3_1": "Unlimited users and customers", "rp3_2": "Everything in Pro", "rp3_3": "Multi-store", "rp3_4": "Online appointments", "rp3_5": "Kanban view of repairs", "rp3_6": "Priority support + onboarding", "plan_trial": "15 days free", "plan_trial_30": "1 month free", "btn_luego": "then"}, "fr": {"rp1_1": "1 utilisateur", "rp1_2": "Ventes, caisse et réparations", "rp1_3": "Gestion du stock", "rp1_4": "Jusqu'à 250 clients", "rp1_5": "Rapports de base", "rp2_1": "3 utilisateurs · 1 000 clients", "rp2_2": "Permissions par utilisateur", "rp2_3": "Commandes, dépenses et photos", "rp2_4": "Analytique + paiement en plusieurs fois", "rp2_5": "Rapports PDF + export comptable", "rp2_6": "Import CSV et sauvegardes", "rp2_7": "Catalogue de services et caisses multi-services", "rp3_1": "Utilisateurs et clients illimités", "rp3_2": "Tout du plan Pro", "rp3_3": "Multi-boutique", "rp3_4": "Rendez-vous en ligne", "rp3_5": "Vue Kanban des réparations", "rp3_6": "Support prioritaire + onboarding", "plan_trial": "15 jours gratuits", "plan_trial_30": "1 mois gratuit", "btn_luego": "puis"}, "it": {"rp1_1": "1 utente", "rp1_2": "Vendite, cassa e riparazioni", "rp1_3": "Gestione stock", "rp1_4": "Fino a 250 clienti", "rp1_5": "Report di base", "rp2_1": "3 utenti · 1.000 clienti", "rp2_2": "Permessi per utente", "rp2_3": "Ordini, spese e foto", "rp2_4": "Analisi + finanziamento a rate", "rp2_5": "Report PDF + export contabilità", "rp2_6": "Import CSV e backup", "rp2_7": "Catalogo servizi e casse multi-servizio", "rp3_1": "Utenti e clienti illimitati", "rp3_2": "Tutto del piano Pro", "rp3_3": "Multi-negozio", "rp3_4": "Appuntamenti online", "rp3_5": "Vista Kanban delle riparazioni", "rp3_6": "Supporto prioritario + onboarding", "plan_trial": "15 giorni gratis", "plan_trial_30": "1 mese gratis", "btn_luego": "poi"}, "de": {"rp1_1": "1 Benutzer", "rp1_2": "Verkäufe, Kasse und Reparaturen", "rp1_3": "Lagerverwaltung", "rp1_4": "Bis zu 250 Kunden", "rp1_5": "Grundlegende Berichte", "rp2_1": "3 Benutzer · 1.000 Kunden", "rp2_2": "Berechtigungen pro Benutzer", "rp2_3": "Bestellungen, Ausgaben und Fotos", "rp2_4": "Analysen + Ratenzahlung", "rp2_5": "PDF-Berichte + Buchhaltungsexport", "rp2_6": "CSV-Import und Backups", "rp2_7": "Servicekatalog und Multi-Service-Kassen", "rp3_1": "Unbegrenzte Benutzer und Kunden", "rp3_2": "Alles aus dem Pro-Plan", "rp3_3": "Multi-Filiale", "rp3_4": "Online-Termine", "rp3_5": "Kanban-Ansicht der Reparaturen", "rp3_6": "Priorisierter Support + Onboarding", "plan_trial": "15 Tage gratis", "plan_trial_30": "1 Monat gratis", "btn_luego": "danach"}, "pt": {"rp1_1": "1 utilizador", "rp1_2": "Vendas, TPV e reparações", "rp1_3": "Gestão de stock", "rp1_4": "Até 250 clientes", "rp1_5": "Relatórios básicos", "rp2_1": "3 utilizadores · 1.000 clientes", "rp2_2": "Permissões por utilizador", "rp2_3": "Encomendas, despesas e fotos", "rp2_4": "Análises + financiamento a prestações", "rp2_5": "Relatórios PDF + exportação contabilidade", "rp2_6": "Importar CSV e cópias de segurança", "rp2_7": "Catálogo de serviços e caixas multisserviço", "rp3_1": "Utilizadores e clientes ilimitados", "rp3_2": "Tudo do plano Pro", "rp3_3": "Multi-loja", "rp3_4": "Marcações online", "rp3_5": "Vista Kanban das reparações", "rp3_6": "Suporte prioritário + onboarding", "plan_trial": "15 dias grátis", "plan_trial_30": "1 mês grátis", "btn_luego": "depois"}};Object.keys(_a).forEach(function(l){Object.keys(_a[l]).forEach(function(k){REG_TEXTS[l][k]=_a[l][k];});});})();
+// «15 días gratis · luego 14,90 €/mes» con el plan y el ciclo elegidos. Con invitación es
+// un mes de prueba; con el descuento de comercial no se pone el precio (los 3 primeros
+// meses van al 50 %).
+function _diasPrueba() { return window._refTipo && !window._refDescuento ? 30 : 15; }
+function _txtPagar() {
+  var L = _L();
+  var prueba = _diasPrueba() === 30 ? L.plan_trial_30 : L.plan_trial;
+  if (!planSel || !prueba) return L.btn_pagar;
+  if (window._refDescuento) return prueba;
+  var pr = _precios(window._ciclo);
+  var precio = { basico: pr.basico, pro: pr.pro, top: pr.top }[planSel];
+  return precio ? prueba + ' · ' + L.btn_luego + ' ' + precio + pr.suf : prueba;
+}
+function _pintarPrueba() {
+  var L = _L();
+  var t = _diasPrueba() === 30 ? L.plan_trial_30 : L.plan_trial;
+  document.querySelectorAll('.plan-trial').forEach(function(el) { if (t) el.textContent = t; });
+  var bp = document.getElementById('btnPagar'); if (bp && !bp.disabled) bp.textContent = _txtPagar();
+}
 
 function getLang() {
   // #B81: prioridad ?lang= (lo pasa la landing por idioma) → tp_lang_landing (lo guarda la
@@ -452,7 +477,8 @@ function applyRegLang(lang) {
   var rn = document.getElementById('rNom'); if (rn) rn.placeholder = L.placeholder_nom;
   var re = document.getElementById('rEmail'); if (re) re.placeholder = L.placeholder_email;
   var rt = document.getElementById('rTienda'); if (rt) rt.placeholder = L.placeholder_tienda;
-  var bp = document.getElementById('btnPagar'); if (bp && bp.textContent !== L.btn_procesando) bp.textContent = L.btn_pagar;
+  var bp = document.getElementById('btnPagar'); if (bp && bp.textContent !== L.btn_procesando) bp.textContent = _txtPagar();
+  document.querySelectorAll('.plan-trial').forEach(function(el) { el.textContent = _diasPrueba() === 30 ? L.plan_trial_30 : L.plan_trial; });
   var sn = document.getElementById('stripeNote'); if (sn) sn.textContent = L.stripe_note;
   // Trust
   ['trust_pago','trust_permanencia','trust_device'].forEach(function(k) {
@@ -510,6 +536,7 @@ function _pintarPlanSel() {
   var precios = { basico: pr.basico, pro: pr.pro, top: pr.top };
   var n = document.getElementById('planNombre'); if (n) n.textContent = nombres[planSel] || '';
   var p = document.getElementById('planPrecio'); if (p) p.textContent = (precios[planSel] || '') + ' ' + pr.suf;
+  _pintarPrueba();
 }
 function selPlan(id, el) {
   planSel = id;
@@ -558,13 +585,13 @@ async function iniciarPago() {
     } else {
       err.textContent = data.error || L.err_conn;
       err.style.display = 'block';
-      btn.textContent = L.btn_pagar;
+      btn.textContent = _txtPagar();
       btn.disabled = false;
     }
   } catch(e) {
     err.textContent = L.err_conn;
     err.style.display = 'block';
-    btn.textContent = L.btn_pagar;
+    btn.textContent = _txtPagar();
     btn.disabled = false;
   }
 }
@@ -595,12 +622,14 @@ function _validarRefBanner(ref) {
       if (!d || !d.valid) return; // código inválido → sin banner ni promesa
       var L = _L();
       window._refTipo = d.tipo || '';
+      window._refDescuento = d.tipo === 'comercial' && d.descuento !== false;
       // Comercial con descuento: 50 % 3 meses. Comercial sin descuento: un mes de prueba
       // (lo mismo que reciben las invitaciones entre tiendas, pero sin premio para nadie más).
       var txt = (d.tipo === 'comercial' && d.descuento === false && L.ref_banner_com_mes) ? L.ref_banner_com_mes
         : (d.tipo === 'comercial' && L.ref_banner_com) ? L.ref_banner_com : L.ref_banner;
       var t = document.getElementById('refBannerTxt'); if (t && txt) t.textContent = txt;
       var b = document.getElementById('refBanner'); if (b) b.style.display = 'block';
+      _pintarPrueba();
     })
     .catch(function () {});
 }

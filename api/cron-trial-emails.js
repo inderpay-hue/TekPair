@@ -641,7 +641,7 @@ async function enviarAvisoInterno(avisos, destino, RESEND_KEY) {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'Tekpair <info@tekpair.tech>',
+        from: 'TekPair <info@tekpair.tech>',
         to: [destino],
         subject: `${urgentes ? '⚠️ ' : ''}${avisos.length} cliente${avisos.length > 1 ? 's' : ''} que conviene mirar hoy`,
         html: `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
@@ -715,23 +715,23 @@ async function sendEmail3Days(tienda, RESEND_KEY) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Tekpair <info@tekpair.tech>',
+        from: 'TekPair <info@tekpair.tech>',
         to: [tienda.plan_email],
-        subject: '⏳ Tu prueba de Tekpair termina en 3 días',
+        subject: '⏳ Tu prueba de TekPair termina en 3 días',
         html: `
 <!DOCTYPE html><html><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:20px;color:#111">
   <div style="background:#020B2E;color:white;padding:24px;border-radius:10px 10px 0 0;text-align:center">
-    <h1 style="margin:0;font-size:24px">⚡ Tekpair</h1>
+    <h1 style="margin:0;font-size:24px">⚡ TekPair</h1>
   </div>
   <div style="background:white;padding:28px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
     <h2 style="color:#0055FF;margin-top:0">Tu prueba gratis termina en 3 días</h2>
     <p>Hola,</p>
-    <p>Tu prueba gratuita de <strong>Tekpair ${planLabel}</strong> termina el <strong>${new Date(tienda.trial_until).toLocaleDateString('es', {day:'numeric',month:'long'})}</strong>.</p>
+    <p>Tu prueba gratuita de <strong>TekPair ${planLabel}</strong> termina el <strong>${new Date(tienda.trial_until).toLocaleDateString('es', {day:'numeric',month:'long'})}</strong>.</p>
     <p>Después se cobrarán automáticamente <strong>${planPrecio}€</strong> de la tarjeta que registraste.</p>
 
     <div style="background:#F0F9FF;border-left:4px solid #0055FF;padding:14px 18px;margin:20px 0;border-radius:6px">
-      <strong>✨ Si te gusta Tekpair:</strong><br>
+      <strong>✨ Si te gusta TekPair:</strong><br>
       <span style="color:#475569">No tienes que hacer nada. Seguirás disfrutando sin interrupción.</span>
     </div>
 
@@ -740,7 +740,7 @@ async function sendEmail3Days(tienda, RESEND_KEY) {
       <span style="color:#475569">Hazlo antes del ${new Date(tienda.trial_until).toLocaleDateString('es', {day:'numeric',month:'long'})} desde Ajustes → Mi suscripción.</span>
     </div>
 
-    <a href="https://www.tekpair.tech/app.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:24px">Entrar a Tekpair →</a>
+    <a href="https://www.tekpair.tech/app.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:24px">Entrar a TekPair →</a>
 
     <p style="color:#64748B;font-size:12px;margin-top:24px;text-align:center;border-top:1px solid #eee;padding-top:16px">¿Dudas? Respondemos a info@tekpair.tech</p>
   </div>
@@ -768,27 +768,27 @@ async function sendEmail1Day(tienda, RESEND_KEY) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Tekpair <info@tekpair.tech>',
+        from: 'TekPair <info@tekpair.tech>',
         to: [tienda.plan_email],
-        subject: '⚡ Mañana empezamos a cobrar tu Tekpair',
+        subject: '⚡ Mañana empezamos a cobrar tu TekPair',
         html: `
 <!DOCTYPE html><html><head><meta charset="UTF-8"></head>
 <body style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:20px;color:#111">
   <div style="background:#020B2E;color:white;padding:24px;border-radius:10px 10px 0 0;text-align:center">
-    <h1 style="margin:0;font-size:24px">⚡ Tekpair</h1>
+    <h1 style="margin:0;font-size:24px">⚡ TekPair</h1>
   </div>
   <div style="background:white;padding:28px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
     <h2 style="color:#F97316;margin-top:0">Tu prueba termina mañana</h2>
     <p>Hola,</p>
-    <p>Mañana se renueva tu Tekpair <strong>${planLabel}</strong> y se cobrarán <strong>${planPrecio}€</strong> de tu tarjeta.</p>
+    <p>Mañana se renueva tu TekPair <strong>${planLabel}</strong> y se cobrarán <strong>${planPrecio}€</strong> de tu tarjeta.</p>
 
     <p style="font-size:15px;background:#F8FAFC;padding:14px;border-radius:8px">📅 <strong>Fecha de cobro:</strong> ${new Date(tienda.trial_until).toLocaleDateString('es', {day:'numeric',month:'long',year:'numeric'})}</p>
 
-    <p>Si estás aprovechando bien Tekpair, no hagas nada. ¡Gracias por confiar!</p>
+    <p>Si estás aprovechando bien TekPair, no hagas nada. ¡Gracias por confiar!</p>
 
     <p style="color:#94A3B8;font-size:13px">¿Última hora? Puedes cancelar desde Ajustes → Mi suscripción → Gestionar plan, antes de las 23:59 de hoy.</p>
 
-    <a href="https://www.tekpair.tech/app.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:20px">Abrir Tekpair →</a>
+    <a href="https://www.tekpair.tech/app.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:14px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:20px">Abrir TekPair →</a>
 
     <p style="color:#64748B;font-size:12px;margin-top:24px;text-align:center;border-top:1px solid #eee;padding-top:16px">¿Dudas? Respondemos a info@tekpair.tech</p>
   </div>

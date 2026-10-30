@@ -6407,7 +6407,14 @@ function renderInicioV2(reps, enRep, listas, urgentes, dinero) {
   var _vpm = _ventasIngresoPorMetodo(DB.ventas, d1, d2); Object.keys(_vpm).forEach(function(m) { pagos[m] = (pagos[m] || 0) + _vpm[m]; });
   _sumarCobradoReps(pagos, d1, d2);
   var totalP = Object.keys(pagos).reduce(function(a, k) { return a + pagos[k]; }, 0);
-  var efectivo = pagos.Efectivo || 0;
+  // Efectivo en caja = efectivo cobrado − gastos pagados con dinero del cajón (igual que el TPV
+  // y que la Caja del día). Antes no restaba los gastos y no cuadraba con el TPV.
+  var _gEf = (DB.gastos || []).reduce(function (a, g) {
+    var f = String(g.fecha || '').slice(0, 10);
+    if (f < d1 || f > d2 || (g.estado || 'Pagado') === 'Pendiente') return a;
+    return /efectiv/.test(String(g.metodo_pago || g.forma_pago || g.metodo || '').toLowerCase()) ? a + (parseFloat(g.importe) || 0) : a;
+  }, 0);
+  var efectivo = Math.round(((pagos.Efectivo || 0) - _gEf) * 100) / 100;
   var ventasPer = (DB.ventas || []).filter(function(v) { return !v.reembolsado && v.fecha >= d1 && v.fecha <= d2; }).length;
   window._inicioCtx = { d1: d1, d2: d2, suf: sufLbl, pagos: pagos, total: totalP };
 
@@ -8880,8 +8887,20 @@ var CUR_SYM = {
   PEN:'S/', BRL:'R$', BOB:'Bs', PYG:'\u20b2', GTQ:'Q', CRC:'\u20a1'
 };
 function curSym(m) { m = m || (AJUSTES && AJUSTES.moneda) || 'EUR'; return CUR_SYM[m] || (m + ' '); }
+// Importe en el formato del idioma activo: «138,94 €» en español, «€138.94» en inglés…
+// Antes siempre «€138.94» (formato inglés). Si la moneda no la conoce Intl, como antes.
+var _CUR_LOC = { es: 'es-ES', en: 'en-IE', fr: 'fr-FR', it: 'it-IT', de: 'de-DE', pt: 'pt-PT' };
+var _curFmt = {};
 function cur(n) {
-  return curSym(AJUSTES.moneda) + parseFloat(n).toFixed(2);
+  var m = (AJUSTES && AJUSTES.moneda) || 'EUR';
+  var loc = _CUR_LOC[(typeof TEKPAIR_LANG !== 'undefined' && TEKPAIR_LANG) || 'es'] || 'es-ES';
+  var k = loc + '|' + m;
+  try {
+    if (!_curFmt[k]) _curFmt[k] = new Intl.NumberFormat(loc, { style: 'currency', currency: m, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return _curFmt[k].format(parseFloat(n) || 0);
+  } catch (e) {
+    return curSym(m) + (parseFloat(n) || 0).toFixed(2);
+  }
 }
 
 // Normalización para búsqueda: minúsculas + sin acentos (Martín → martin)
@@ -10069,7 +10088,7 @@ function verFinanciado(id) {
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:' +
       (cu.pagado ? 'rgba(0,200,150,.08)' : parcial ? 'rgba(230,148,18,.10)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
       '<div><div style="font-size:13px;font-weight:600">' + T('finv.cuota') + ' ' + (i + 1) + ' · ' + cur(cu.importe) + '</div>' +
-      '<div style="font-size:10px;color:' + (vencido ? 'var(--red)' : 'var(--muted)') + '">' + T('finv.vence') + ': ' + escHtml(cu.fecha || '') + subPag + '</div>' + _cuotaAbonosHtml(cu, v.reembolsado ? null : { vid: id, cidx: i }) + '</div>' +
+      '<div style="font-size:10px;color:' + (vencido ? 'var(--red)' : 'var(--muted)') + '">' + T('finv.vence') + ': ' + escHtml(cu.fecha ? fmtFecha(cu.fecha) : '') + subPag + '</div>' + _cuotaAbonosHtml(cu, v.reembolsado ? null : { vid: id, cidx: i }) + '</div>' +
       '<div>' + (cu.pagado
         ? '<span style="color:var(--green);font-size:11px;font-weight:700">✓ ' + T('finv.pagado') + '</span>'
         : '<button data-vid="' + id + '" data-cidx="' + i + '" class="btn-pc btn-primary" style="padding:5px 10px;font-size:11px;width:auto">' + (parcial ? T('fin.completar') : T('finv.registrar')) + '</button>'
@@ -13283,7 +13302,7 @@ function trackingTicket() {
   // ticket_legal_v1: ticket 80mm con logo, garantias resumidas y link a condiciones
   var r = _repParaImprimir(TRACKING.rep), url = TRACKING.url;
   if (!r) return;
-  var tienda = (typeof TIENDA !== 'undefined' && TIENDA) ? TIENDA : { nombre: 'Tekpair' };
+  var tienda = (typeof TIENDA !== 'undefined' && TIENDA) ? TIENDA : { nombre: 'TekPair' };
   var qrSvg = '';
   try {
     var qr = qrcode(0, 'M');
@@ -13330,7 +13349,7 @@ function trackingTicket() {
     '</style></head><body>' +
 
     logoBlock +
-    '<div class="c"><div class="h1">' + esc(tienda.nombre || 'Tekpair') + '</div>' +
+    '<div class="c"><div class="h1">' + esc(tienda.nombre || 'TekPair') + '</div>' +
     (tienda.dir ? '<div class="h2">' + esc(tienda.dir) + '</div>' : (ubic ? '<div class="h2">' + esc(ubic) + '</div>' : '')) +
     ((tienda.tel || tienda.telefono) ? '<div class="h2">' + T('tpv.tk_tel') + esc(tienda.tel || tienda.telefono) + '</div>' : '') +
     '</div>' +
@@ -15243,8 +15262,8 @@ function renderReps() {
           return '<option value="'+s+'"' + (s === r.estado ? ' selected' : '') + '>' + _estadoLabel(s) + '</option>';
         }).join('') + '</select></td>'
       + '<td>' + priBadge + '</td>'
-      + '<td style="font-size:11px">' + (r.fechaEntrega || '&mdash;') + '</td>'
-      + '<td style="font-size:11px">' + (r.fechaEntregaReal || '&mdash;') + '</td>'
+      + '<td style="font-size:11px">' + (r.fechaEntrega ? esc(fmtFecha(r.fechaEntrega)) : '&mdash;') + '</td>'
+      + '<td style="font-size:11px">' + (r.fechaEntregaReal ? esc(fmtFecha(r.fechaEntregaReal)) : '&mdash;') + '</td>'
       + '<td style="font-weight:700;color:var(--green)">' + (r.esGarantia
           // F274: una reparación EN GARANTÍA no se cobra al cliente → "sin coste", con el
           // total mostrado como coste interno (cuánto te cuesta cubrir la garantía), sin "a deber".
@@ -15823,7 +15842,7 @@ function confirmarEntrega() {
   if (cli && cli.tel) tel = waTel(cli.tel);
   if (tel && confirm(T('rep.confirm_enviar_comprobante'))) {
     asegurarToken(r).then(function(){
-      var tienda = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.nombre) ? TIENDA.nombre : 'Tekpair';
+      var tienda = (typeof TIENDA !== 'undefined' && TIENDA && TIENDA.nombre) ? TIENDA.nombre : 'TekPair';
       var url = linkParte(r);
       var lineas = [
         '*' + tienda + ' - ' + T('rep.wa_titulo') + '*',
@@ -20875,7 +20894,7 @@ function verReportePDF() {
     (ventas.length ? '<h2>Ventas</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Modelo</th><th>Pago</th><th>Total</th></tr></thead><tbody>' +
     ventas.map(function(v) { return '<tr' + (v.reembolsado ? ' style="color:#c00"' : '') + '><td>' + escHtml(v.fecha) + '</td><td>' + escHtml(v.clienteNombre || '') + '</td><td>' + escHtml(v.modelo || '') + (v.reembolsado ? ' · ' + escHtml(T('vent.reembolsada')) : '') + '</td><td>' + escHtml(v.pago || '') + '</td><td>' + cur(v.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
     (reps.length ? '<h2>Reparaciones</h2><table><thead><tr><th>Fecha</th><th>Cliente</th><th>Equipo</th><th>Total</th></tr></thead><tbody>' +
-    reps.map(function(r) { return '<tr><td>' + escHtml(r.fechaEntregaReal || '') + '</td><td>' + escHtml(r.clienteNombre || '') + '</td><td>' + escHtml((r.marca || '') + ' ' + (r.modelo || '')) + '</td><td>' + cur(r.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
+    reps.map(function(r) { return '<tr><td>' + escHtml(r.fechaEntregaReal ? fmtFecha(r.fechaEntregaReal) : '') + '</td><td>' + escHtml(r.clienteNombre || '') + '</td><td>' + escHtml((r.marca || '') + ' ' + (r.modelo || '')) + '</td><td>' + cur(r.total) + '</td></tr>'; }).join('') + '</tbody></table>' : '') +
     '</body></html>';
   var win = window.open('', '_blank');
   if (!win) { toast(T('rep.permite_popups'), 'err'); return; }
@@ -21410,7 +21429,7 @@ function renderSidebarLogo() {
   var img = document.getElementById('sidebarLogo');
   var txt = document.getElementById('sidebarBrandText');
   if (!img) return;
-  var nombre = (TIENDA && TIENDA.nombre) ? TIENDA.nombre : 'Tekpair';
+  var nombre = (TIENDA && TIENDA.nombre) ? TIENDA.nombre : 'TekPair';
   if (TIENDA.logo_url) {
     img.src = TIENDA.logo_url + (TIENDA.logo_url.indexOf('?') > -1 ? '&' : '?') + 't=' + Date.now();
     img.style.display = 'inline-block';
@@ -23668,7 +23687,7 @@ function abrirFichaCli(cliId) {
       html += '<div style="flex:1;min-width:0">';
       html += '<div style="font-weight:700;font-size:13px">' + esc((r.marca || '') + ' ' + (r.modelo || '')) + '</div>';
       html += '<div style="font-size:11px;color:var(--red);margin-top:2px">' + esc(r.averia || '—') + '</div>';
-      html += '<div style="font-size:10px;color:var(--muted);margin-top:3px">📅 ' + esc(r.fecha || '') + (r.fechaEntregaReal ? ' · ' + T('ficha.entregado') + ' ' + esc(r.fechaEntregaReal) : '') + '</div>';
+      html += '<div style="font-size:10px;color:var(--muted);margin-top:3px">📅 ' + esc(r.fecha ? fmtFecha(r.fecha) : '') + (r.fechaEntregaReal ? ' · ' + T('ficha.entregado') + ' ' + esc(fmtFecha(r.fechaEntregaReal)) : '') + '</div>';
       html += '</div>';
       html += '<div style="text-align:right;flex-shrink:0">';
       html += '<div style="font-size:10px;font-weight:700;color:' + color + ';text-transform:uppercase">' + esc(r.estado) + '</div>';
@@ -23956,10 +23975,10 @@ function abrirDetalleRep(repId) {
     var _diasTaller = Math.max(0, Math.floor((new Date(hoyLocal() + 'T23:59:59') - new Date(String(r.fecha).slice(0, 10) + 'T00:00:00')) / 86400000) - _diasEsperandoPieza(r.id));   // descuenta la espera de pieza
     var _espPieza = repEsperaPieza(r.id);
     var _diasTxt = _espPieza ? ' <small style="color:#B45309;font-weight:700;font-size:11px">(🛒 ' + T('rep.esperando_pieza') + ')</small>' : ((_CERRDET.indexOf(r.estado) === -1 && _diasTaller > 0) ? ' <small style="color:var(--muted);font-weight:600;font-size:11px">(' + _diasTaller + ' ' + T('estan.dias') + ' ' + T('det.en_taller') + ')</small>' : '');
-    html += '<div><span style="color:var(--muted);font-size:11px">📅 ' + T('det.recibida') + '</span><br><strong>' + esc(r.fecha) + '</strong>' + _diasTxt + '</div>';
+    html += '<div><span style="color:var(--muted);font-size:11px">📅 ' + T('det.recibida') + '</span><br><strong>' + esc(fmtFecha(r.fecha)) + '</strong>' + _diasTxt + '</div>';
   }
   if (r.fechaEntrega) html += '<div><span style="color:var(--muted);font-size:11px">⏱ ' + T('det.entrega_prev') + '</span><br><strong>' + esc(r.fechaEntrega) + '</strong></div>';
-  if (r.fechaEntregaReal) html += '<div><span style="color:var(--muted);font-size:11px">✓ ' + T('det.entregado') + '</span><br><strong>' + esc(r.fechaEntregaReal) + '</strong></div>';
+  if (r.fechaEntregaReal) html += '<div><span style="color:var(--muted);font-size:11px">✓ ' + T('det.entregado') + '</span><br><strong>' + esc(fmtFecha(r.fechaEntregaReal)) + '</strong></div>';
   if (r.pagoFinal) html += '<div><span style="color:var(--muted);font-size:11px">💳 ' + T('det.pago') + '</span><br><strong>' + esc(_repPagoTxt(r)) + '</strong></div>';
   // Conformidad del cliente al recoger: firma en pantalla o confirmación en el mostrador.
   if (r.testSalida && (r.testSalida.firma || r.testSalida.conforme)) {

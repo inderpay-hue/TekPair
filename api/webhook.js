@@ -140,7 +140,7 @@ export default async function handler(req, res) {
       await fetch('https://api.resend.com/emails', {
         method: 'POST',
         headers: {'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json'},
-        body: JSON.stringify({from:'Tekpair <info@tekpair.tech>', to:[to], subject, html})
+        body: JSON.stringify({from:'TekPair <info@tekpair.tech>', to:[to], subject, html})
       });
     } catch(e){ console.error('Email error:', e); }
   }
@@ -226,18 +226,18 @@ export default async function handler(req, res) {
 
     // 3. Email con credenciales (multiidioma compacto)
     const W = ({
-      es:{s:'✓ Bienvenido a Tekpair — Tus credenciales',h:'Hola',p:'Tu cuenta está lista con 15 días de prueba gratis.',pass:'Contraseña temporal',av:'⚠️ Cambia tu contraseña tras el primer acceso.',b:'Entrar a Tekpair →'},
-      en:{s:'✓ Welcome to Tekpair — Your credentials',h:'Hi',p:'Your account is ready with a 15-day free trial.',pass:'Temporary password',av:'⚠️ Change your password after first login.',b:'Sign in to Tekpair →'},
-      fr:{s:'✓ Bienvenue sur Tekpair — Vos identifiants',h:'Bonjour',p:'Votre compte est prêt avec 15 jours d\'essai gratuit.',pass:'Mot de passe temporaire',av:'⚠️ Changez votre mot de passe après la première connexion.',b:'Accéder à Tekpair →'},
-      it:{s:'✓ Benvenuto su Tekpair — Le tue credenziali',h:'Ciao',p:'Il tuo account è pronto con 15 giorni di prova gratuita.',pass:'Password temporanea',av:'⚠️ Cambia la password dopo il primo accesso.',b:'Accedi a Tekpair →'},
-      de:{s:'✓ Willkommen bei Tekpair — Ihre Zugangsdaten',h:'Hallo',p:'Ihr Konto ist mit 15 Tagen kostenloser Testphase bereit.',pass:'Temporäres Passwort',av:'⚠️ Ändern Sie Ihr Passwort nach der ersten Anmeldung.',b:'Bei Tekpair anmelden →'},
-      pt:{s:'✓ Bem-vindo ao Tekpair — As suas credenciais',h:'Olá',p:'A sua conta está pronta com 15 dias de prova gratuita.',pass:'Palavra-passe temporária',av:'⚠️ Mude a sua palavra-passe após o primeiro acesso.',b:'Entrar no Tekpair →'}
-    })[lang] || ({s:'✓ Bienvenido a Tekpair — Tus credenciales',h:'Hola',p:'Tu cuenta está lista con 15 días de prueba gratis.',pass:'Contraseña temporal',av:'⚠️ Cambia tu contraseña tras el primer acceso.',b:'Entrar a Tekpair →'});
+      es:{s:'✓ Bienvenido a TekPair — Tus credenciales',h:'Hola',p:'Tu cuenta está lista con 15 días de prueba gratis.',pass:'Contraseña temporal',av:'⚠️ Cambia tu contraseña tras el primer acceso.',b:'Entrar a TekPair →'},
+      en:{s:'✓ Welcome to TekPair — Your credentials',h:'Hi',p:'Your account is ready with a 15-day free trial.',pass:'Temporary password',av:'⚠️ Change your password after first login.',b:'Sign in to TekPair →'},
+      fr:{s:'✓ Bienvenue sur TekPair — Vos identifiants',h:'Bonjour',p:'Votre compte est prêt avec 15 jours d\'essai gratuit.',pass:'Mot de passe temporaire',av:'⚠️ Changez votre mot de passe après la première connexion.',b:'Accéder à TekPair →'},
+      it:{s:'✓ Benvenuto su TekPair — Le tue credenziali',h:'Ciao',p:'Il tuo account è pronto con 15 giorni di prova gratuita.',pass:'Password temporanea',av:'⚠️ Cambia la password dopo il primo accesso.',b:'Accedi a TekPair →'},
+      de:{s:'✓ Willkommen bei TekPair — Ihre Zugangsdaten',h:'Hallo',p:'Ihr Konto ist mit 15 Tagen kostenloser Testphase bereit.',pass:'Temporäres Passwort',av:'⚠️ Ändern Sie Ihr Passwort nach der ersten Anmeldung.',b:'Bei TekPair anmelden →'},
+      pt:{s:'✓ Bem-vindo ao TekPair — As suas credenciais',h:'Olá',p:'A sua conta está pronta com 15 dias de prova gratuita.',pass:'Palavra-passe temporária',av:'⚠️ Mude a sua palavra-passe após o primeiro acesso.',b:'Entrar no TekPair →'}
+    })[lang] || ({s:'✓ Bienvenido a TekPair — Tus credenciales',h:'Hola',p:'Tu cuenta está lista con 15 días de prueba gratis.',pass:'Contraseña temporal',av:'⚠️ Cambia tu contraseña tras el primer acceso.',b:'Entrar a TekPair →'});
     const nombreEsc = String(nombre).replace(/[<>&"']/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;',"'":'&#39;'}[c]));
     await sendEmail(email, W.s, `
 <div style="font-family:Arial,sans-serif;max-width:520px;margin:0 auto;padding:20px;color:#111">
   <div style="background:#020B2E;color:white;padding:24px;border-radius:10px 10px 0 0;text-align:center">
-    <h1 style="margin:0;font-size:24px">⚡ Tekpair</h1>
+    <h1 style="margin:0;font-size:24px">⚡ TekPair</h1>
   </div>
   <div style="background:white;padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
     <p>${W.h} <strong>${nombreEsc}</strong>,</p>
@@ -474,15 +474,15 @@ export default async function handler(req, res) {
 
           // Email de cancelación
           if (tienda.plan_email) {
-            await sendEmail(tienda.plan_email, 'Tu suscripción ha sido cancelada — Tekpair', `
+            await sendEmail(tienda.plan_email, 'Tu suscripción ha sido cancelada — TekPair', `
 <div style="font-family:Arial;max-width:500px;margin:0 auto;padding:20px">
   <div style="background:#020B2E;color:white;padding:20px;border-radius:10px 10px 0 0;text-align:center">
-    <h1 style="margin:0;font-size:20px">⚡ Tekpair</h1>
+    <h1 style="margin:0;font-size:20px">⚡ TekPair</h1>
   </div>
   <div style="background:white;padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
     <h2 style="color:#374151">Suscripción cancelada</h2>
-    <p>Tu suscripción a Tekpair ha sido cancelada. Tus datos se conservarán durante 30 días por si quieres reactivar.</p>
-    <a href="https://www.tekpair.tech/registro.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:16px">Volver a Tekpair →</a>
+    <p>Tu suscripción a TekPair ha sido cancelada. Tus datos se conservarán durante 30 días por si quieres reactivar.</p>
+    <a href="https://www.tekpair.tech/registro.html" style="display:block;background:#0055FF;color:white;text-align:center;padding:12px;border-radius:8px;text-decoration:none;font-weight:700;margin-top:16px">Volver a TekPair →</a>
     <p style="color:#94A3B8;font-size:12px;margin-top:16px">¿Algún comentario? info@tekpair.tech</p>
   </div>
 </div>`);
@@ -691,10 +691,10 @@ export default async function handler(req, res) {
 
         // Email
         if (email) {
-          await sendEmail(email, 'Problema con tu pago — Tekpair', `
+          await sendEmail(email, 'Problema con tu pago — TekPair', `
 <div style="font-family:Arial;max-width:500px;margin:0 auto;padding:20px">
   <div style="background:#020B2E;color:white;padding:20px;border-radius:10px 10px 0 0;text-align:center">
-    <h1 style="margin:0;font-size:20px">⚡ Tekpair</h1>
+    <h1 style="margin:0;font-size:20px">⚡ TekPair</h1>
   </div>
   <div style="background:white;padding:24px;border:1px solid #eee;border-top:none;border-radius:0 0 10px 10px">
     <h2 style="color:#EF4444">⚠️ Problema con tu pago</h2>

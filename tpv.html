@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
-<title>TPV — Tekpair</title>
+<title>TPV — TekPair</title>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#FF5B1F">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261104e"></script>
+<script src="/lang/lang.v8.js?v=20261105a"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -353,7 +353,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
   <!-- LEFT: Products -->
   <div class="tpv-left">
     <div class="tpv-topbar">
-      <div class="tpv-logo"><span class="z">⚡</span> Tekpair TPV</div>
+      <div class="tpv-logo"><span class="z">⚡</span> TekPair TPV</div>
       <div class="tpv-topbar-info">
         <span id="topDate"></span>
         <span id="topUser"></span>
@@ -708,6 +708,19 @@ var DB = JSON.parse(localStorage.getItem('tk_db') || '{"stock":[],"ventas":[],"c
 var U = JSON.parse(localStorage.getItem('tk_user') || 'null');
 var TIENDA = JSON.parse(localStorage.getItem('tk_tienda') || '{}');
 var AJUSTES = JSON.parse(localStorage.getItem('tk_ajustes') || '{}');
+
+// Importe en el formato del idioma activo (138,94 € en español). Igual que cur() del panel.
+var _FMT_LOC = { es: 'es-ES', en: 'en-IE', fr: 'fr-FR', it: 'it-IT', de: 'de-DE', pt: 'pt-PT' };
+var _fmtEurCache = {};
+function fmtEur(n) {
+  var m = (AJUSTES && AJUSTES.moneda) || 'EUR';
+  var loc = _FMT_LOC[(typeof TEKPAIR_LANG !== 'undefined' && TEKPAIR_LANG) || 'es'] || 'es-ES';
+  var k = loc + '|' + m;
+  try {
+    if (!_fmtEurCache[k]) _fmtEurCache[k] = new Intl.NumberFormat(loc, { style: 'currency', currency: m, minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return _fmtEurCache[k].format(parseFloat(n) || 0);
+  } catch (e) { return '\u20ac' + (parseFloat(n) || 0).toFixed(2); }
+}
 if (!AJUSTES.iva) AJUSTES.iva = {activo:false,modo:'incluido',tipoDefault:21};
 // FIX TPV-3: merge defensivo de AJUSTES.iva por si está parcialmente inicializado
 AJUSTES.iva = Object.assign({activo:false,modo:'incluido',tipoDefault:21}, AJUSTES.iva);
@@ -774,7 +787,7 @@ function _tpvLogVenta(venta, totals) {
   if (!SB_KEY || !TIENDA_ID) return;
   try {
     var detalle = (venta.modelo || '') +
-      ' \u00b7 ' + (totals && totals.total != null ? totals.total : venta.total).toFixed(2) + ' \u20ac' +
+      ' \u00b7 ' + fmtEur(totals && totals.total != null ? totals.total : venta.total) +
       (venta.clienteNombre && venta.clienteNombre !== 'Sin cliente' ? ' \u00b7 ' + venta.clienteNombre : '');
     var entry = {
       id: 'a' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -1196,7 +1209,8 @@ function syncVentasDesdeSupabase() {
   var ayerStr = ayer.getFullYear() + '-' + String(ayer.getMonth() + 1).padStart(2, '0') + '-' + String(ayer.getDate()).padStart(2, '0');
   // fecha=in.(hoy,ayer) con valores entre comillas escapadas para REST de Supabase
   // También las devueltas hoy aunque se vendieran otro día: la caja de hoy las resta
-  return sbGet('ventas', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&or=(' + encodeURIComponent('fecha.in.("' + hoy + '","' + ayerStr + '"),fecha_reembolso.eq.' + hoy) + ')').then(function(rows) {
+  // Y las financiadas (de cualquier día): sus cuotas cobradas hoy cuentan en la caja de hoy.
+  return sbGet('ventas', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&or=(' + encodeURIComponent('fecha.in.("' + hoy + '","' + ayerStr + '"),fecha_reembolso.eq.' + hoy + ',financiado.eq.true') + ')').then(function(rows) {
     if (!Array.isArray(rows) || !rows.length) return;
     rows.forEach(function(r) {
       var existing = DB.ventas.find(function(v){ return v.id === r.id; });
@@ -1213,6 +1227,7 @@ function syncVentasDesdeSupabase() {
         reembolsado: !!r.reembolsado,
         fechaReembolso: r.fecha_reembolso || '',
         financiado: !!r.financiado,
+        cuotas: (function () { try { return r.cuotas ? (typeof r.cuotas === 'string' ? JSON.parse(r.cuotas) : r.cuotas) : null; } catch (e) { return null; } })(),
         entrada: parseFloat(r.entrada) || 0,
         entradaPago: r.entrada_pago || null,
         iva: parseFloat(r.iva) || 0,
@@ -1333,7 +1348,7 @@ function renderProducts() {
       return '<div class="prod-card" onclick="addStockGroup(' + gi + ')">' +
         '<div class="prod-icon">' + escHtml(icon) + '</div>' +
         '<div class="prod-name">' + escHtml(nombreG) + '</div>' +
-        '<div class="prod-price">' + T('tpv.desde') + ' €' + parseFloat(p.min || 0).toFixed(2) + '</div>' +
+        '<div class="prod-price">' + T('tpv.desde') + ' ' + fmtEur(parseFloat(p.min || 0)) + '</div>' +
         '<div class="prod-stock">' + T('tpv.stock_label') + ': ' + p.unidades + ' · ' + p.units.length + ' ' + T('tpv.uds') + '</div>' +
         '</div>';
     }
@@ -1359,7 +1374,7 @@ function renderProducts() {
       '<div class="prod-icon">' + escHtml(icon) + '</div>' +
       '<div class="prod-name">' + escHtml(nombre) + '</div>' +
       ((parseFloat(p.precioV) || 0) > 0
-        ? '<div class="prod-price">\u20ac' + parseFloat(p.precioV).toFixed(2) + '</div>'
+        ? '<div class="prod-price">' + fmtEur(parseFloat(p.precioV)) + '</div>'
         : '<div class="prod-price" style="color:var(--blue);font-size:13px">' + T('tpv.precio_cobrar') + '</div>') +
       '<div class="prod-stock">' + stockHtml + '</div>' +
       '</div>';
@@ -1398,7 +1413,7 @@ function renderFavBar() {
     return '<div class="fav-pill" onclick="' + click + '">' +
       '<div class="fav-pill-icon">' + escHtml(icon) + '</div>' +
       '<div class="fav-pill-name">' + escHtml(nombre) + '</div>' +
-      '<div class="fav-pill-price">\u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div>' +
+      '<div class="fav-pill-price">' + fmtEur(parseFloat(p.precioV || 0)) + '</div>' +
       '</div>';
   }).join('');
 }
@@ -1447,7 +1462,7 @@ function renderGestionFavs() {
       return '<div style="display:flex;align-items:center;padding:10px 14px;border-bottom:1px solid var(--border);gap:10px">' +
         '<div style="font-size:22px">' + escHtml(icon) + '</div>' +
         '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:700;color:var(--text)">' + escHtml(nombre) + '</div>' +
-        '<div style="font-size:11px;color:var(--muted)">' + escHtml(tipoLbl) + ' \u00b7 \u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div></div>' +
+        '<div style="font-size:11px;color:var(--muted)">' + escHtml(tipoLbl) + ' \u00b7 ' + fmtEur(parseFloat(p.precioV || 0)) + '</div></div>' +
         '<button class="caja-btn" style="border-color:rgba(239,68,68,.3);color:var(--red)" onclick="quitarFav(\'' + escHtml(p._type) + '\',\'' + escHtml(p.id) + '\')">' + T('tpv.quitar') + '</button>' +
         '</div>';
     }).join('') +
@@ -1644,7 +1659,7 @@ function buscarProducto() {
     return '<div class="search-item" onclick="addToCart(\'' + escHtml(p.id) + '\',' + (p.esServicio || false) + ');document.getElementById(\'tpvSearch\').value=\'\';document.getElementById(\'searchResults\').classList.remove(\'open\')">' +
       '<div><div class="search-item-name">' + escHtml((p.marca !== 'Servicio' ? p.marca + ' ' : '') + p.modelo) + '</div>' +
       '<div class="search-item-det">' + escHtml(p.categoria) + (p.imei ? ' · IMEI: ' + escHtml(p.imei) : '') + (p.esServicio ? '' : ' · ' + T('tpv.stock_n').replace('{n}', p.unidades)) + '</div></div>' +
-      '<div style="text-align:right"><div class="search-item-price">\u20ac' + parseFloat(p.precioV || 0).toFixed(2) + '</div>' +
+      '<div style="text-align:right"><div class="search-item-price">' + fmtEur(parseFloat(p.precioV || 0)) + '</div>' +
       (p.esServicio ? '<div class="search-item-badge">' + T('gen.servicio') + '</div>' : '') + '</div></div>';
   }).join('');
   res.classList.add('open');
@@ -1732,7 +1747,7 @@ function addStockGroup(gi) {
     var cant = (parseInt(u.unidades, 10) > 1) ? '<span class="pu-cant">x' + u.unidades + '</span> ' : '';
     return '<button class="pick-unit-row" onclick="pickUnit(\'' + escHtml(u.id) + '\')">' +
       '<span class="pu-left">' + left + '</span>' +
-      '<span class="pu-right">' + cant + '€' + parseFloat(u.precioV || 0).toFixed(2) + '</span>' +
+      '<span class="pu-right">' + cant + fmtEur(parseFloat(u.precioV || 0)) + '</span>' +
       '</button>';
   }).join('');
   openModal('mPickUnit');
@@ -1929,8 +1944,8 @@ function renderCart() {
     return '<div class="cart-item">' +
       '<div class="cart-item-info">' +
       '<div class="cart-item-name">' + escHtml(item.nombre) + '</div>' +
-      '<div class="cart-item-price">\u20ac' + item.precio.toFixed(2) + ' x' + item.qty +
-        (d > 0 ? ' \u00b7 <span style="color:#34D399">-' + (item.descTipo === 'pct' ? item.desc + '% (\u20ac' + d.toFixed(2) + ')' : '\u20ac' + d.toFixed(2)) + '</span>' : '') +
+      '<div class="cart-item-price">' + fmtEur(item.precio) + ' x' + item.qty +
+        (d > 0 ? ' \u00b7 <span style="color:#34D399">-' + (item.descTipo === 'pct' ? item.desc + '% (' + fmtEur(d) + ')' : fmtEur(d)) + '</span>' : '') +
       '</div>' +
       '</div>' +
       '<div class="cart-item-qty">' +
@@ -1940,8 +1955,8 @@ function renderCart() {
       '</div>' +
       '<button class="cart-desc-btn' + (d > 0 ? ' on' : '') + '" data-desc="' + i + '" title="' + T('tpv.desc_linea_tit') + '">%</button>' +
       '<div class="cart-item-total">' +
-        (d > 0 ? '<span class="cart-item-tacha">\u20ac' + bruto.toFixed(2) + '</span>' : '') +
-        '\u20ac' + neto.toFixed(2) +
+        (d > 0 ? '<span class="cart-item-tacha">' + fmtEur(bruto) + '</span>' : '') +
+        fmtEur(neto) +
       '</div>' +
       '<button class="cart-del" data-idx="' + i + '">\u00d7</button>' +
       '</div>';
@@ -1974,7 +1989,7 @@ function abrirDescLinea(idx) {
   if (!item) return;
   window._descLinIdx = idx;
   document.getElementById('descLinNombre').textContent = item.nombre;
-  document.getElementById('descLinBruto').textContent = '\u20ac' + (item.precio * item.qty).toFixed(2);
+  document.getElementById('descLinBruto').textContent = fmtEur((item.precio * item.qty));
   document.getElementById('descLinInput').value = item.desc || '';
   document.getElementById('descLinTipo').value = item.descTipo || 'eur';
   previewDescLinea();
@@ -1994,7 +2009,7 @@ function previewDescLinea() {
   var d = descLineaImporte(simulado);
   var bruto = item.precio * item.qty;
   el.textContent = d > 0
-    ? T('tpv.desc_queda').replace('{d}', '\u20ac' + d.toFixed(2)).replace('{t}', '\u20ac' + (bruto - d).toFixed(2))
+    ? T('tpv.desc_queda').replace('{d}', fmtEur(d)).replace('{t}', fmtEur((bruto - d)))
     : '';
 }
 
@@ -2082,7 +2097,7 @@ function _computeTotals() {
 function _renderCambio(total) {
   var recibido = parseFloat(document.getElementById('efectivoInput').value) || 0;
   var cambio = Math.max(0, recibido - total);
-  document.getElementById('cambioVal').textContent = '\u20ac' + cambio.toFixed(2);
+  document.getElementById('cambioVal').textContent = fmtEur(cambio);
 }
 
 function limitarDescuento() {
@@ -2099,12 +2114,12 @@ function limitarDescuento() {
 }
 function calcTotal() {
   var t = _computeTotals();
-  document.getElementById('subtotal').textContent = '\u20ac' + t.subtotal.toFixed(2);
-  document.getElementById('discTotal').textContent = (t.disc > 0 ? '-' : '') + '\u20ac' + t.disc.toFixed(2);   // sin descuento: «€0.00», no «-€0.00»
-  document.getElementById('grandTotal').textContent = '\u20ac' + t.total.toFixed(2);
+  document.getElementById('subtotal').textContent = fmtEur(t.subtotal);
+  document.getElementById('discTotal').textContent = (t.disc > 0 ? '-' : '') + fmtEur(t.disc);   // sin descuento: «€0.00», no «-€0.00»
+  document.getElementById('grandTotal').textContent = fmtEur(t.total);
   // Cambio pendiente (devolución hecha en el panel): el saldo a favor se descuenta de lo que se cobra.
   var _aCob = _cambioACobrar(t.total);
-  document.getElementById('btnCheckout').textContent = T('tpv.cobrar') + ' \u20ac' + _aCob.toFixed(2);
+  document.getElementById('btnCheckout').textContent = T('tpv.cobrar') + ' ' + fmtEur(_aCob);
   _cambioBanner(t.total);
   // #12/#13: no permitir cobrar 0\u20ac (descuento que anula el total, o cantidad llevada a 0).
   document.getElementById('btnCheckout').disabled = !(t.total > 0.001);
@@ -2115,8 +2130,8 @@ function calcTotal() {
   document.getElementById('ivaBaseRow').style.display = ivaShow ? 'flex' : 'none';
   document.getElementById('ivaImpRow').style.display = ivaShow ? 'flex' : 'none';
   if (ivaOn) {
-    document.getElementById('ivaBaseVal').textContent = '\u20ac' + t.nBase.toFixed(2);
-    document.getElementById('ivaImpVal').textContent = '\u20ac' + t.nIva.toFixed(2);
+    document.getElementById('ivaBaseVal').textContent = fmtEur(t.nBase);
+    document.getElementById('ivaImpVal').textContent = fmtEur(t.nIva);
     document.getElementById('ivaImpLbl').textContent = T('tpv.iva_pct').replace('{p}', t.ivaTipo);
     document.getElementById('totalLbl').textContent = t.ivaModo === 'incluido' ? 'TOTAL ' + T('tpv.iva_inc') : 'TOTAL';
   } else {
@@ -2187,8 +2202,8 @@ function _mixtoSuma(excepto) {
 function calcMixto() {
   var el = document.getElementById('mxEstado'); if (!el) return;
   var d = _r2(_cambioACobrar(_computeTotals().total) - _mixtoSuma());
-  if (d > 0.004) { el.style.color = '#F59E0B'; el.textContent = T('tpv.mixto_falta').replace('{x}', '\u20ac' + d.toFixed(2)); }
-  else if (d < -0.004) { el.style.color = '#EF4444'; el.textContent = T('tpv.mixto_sobra').replace('{x}', '\u20ac' + (-d).toFixed(2)); }
+  if (d > 0.004) { el.style.color = '#F59E0B'; el.textContent = T('tpv.mixto_falta').replace('{x}', fmtEur(d)); }
+  else if (d < -0.004) { el.style.color = '#EF4444'; el.textContent = T('tpv.mixto_sobra').replace('{x}', fmtEur((-d))); }
   else { el.style.color = 'var(--green)'; el.textContent = '\u2713 ' + T('tpv.mixto_ok'); }
 }
 // "Resto": pone en esa forma de pago lo que falta para llegar al total.
@@ -2205,7 +2220,7 @@ function _ventaPagos(v) {
 }
 function _pagoTxt(v) {
   var p = _ventaPagos(v);
-  return p.length > 1 ? p.map(function (x) { return x.metodo + ' \u20ac' + x.importe.toFixed(2); }).join(' + ') : ((v && v.pago) || '');
+  return p.length > 1 ? p.map(function (x) { return x.metodo + ' ' + fmtEur(x.importe); }).join(' + ') : ((v && v.pago) || '');
 }
 
 function setPago(el) {
@@ -2268,8 +2283,8 @@ function calcFinanciado() {
   var fin = calcCuotasFinanciado();
   var el = document.getElementById('finPreview');
   if (!el) return;
-  el.textContent = fin.numCuotas + ' × €' + fin.montoCuota.toFixed(2) + T('tpv.al_mes') +
-    (fin.entrada > 0 ? ' · ' + T('tpv.entrada') + ' €' + fin.entrada.toFixed(2) : '');
+  el.textContent = fin.numCuotas + ' × ' + fmtEur(fin.montoCuota) + T('tpv.al_mes') +
+    (fin.entrada > 0 ? ' · ' + T('tpv.entrada') + ' ' + fmtEur(fin.entrada) : '');
   // El selector de método de pago de la entrada solo tiene sentido si hay entrada
   var epRow = document.getElementById('finEntradaPagoRow');
   if (epRow) epRow.style.display = fin.entrada > 0 ? 'block' : 'none';
@@ -2301,7 +2316,7 @@ function cobrar() {
   var _sobra = _cp ? _r2(_cp.imp - _saldo) : 0;
   if (_cp && selectedPago === 'Financiado') { toast(T('dev.tpv_no_financiado'), 'err'); return; }
   if (_cp && _sobra > 0.004 && !_cambioSobraMet) {
-    _cambioElegirMetodo(T('dev.tpv_sobra').replace('{x}', '\u20ac' + _sobra.toFixed(2)), function (m) {
+    _cambioElegirMetodo(T('dev.tpv_sobra').replace('{x}', fmtEur(_sobra)), function (m) {
       if (!m) return;
       _cambioSobraMet = m;
       cobrar();
@@ -2325,7 +2340,7 @@ function cobrar() {
   if (selectedPago === 'Mixto' && _aCobrar > 0) {
     var _mx = _mixtoPagos();
     var _dif = _r2(_aCobrar - _mx.reduce(function (a, p) { return a + p.importe; }, 0));
-    if (!_mx.length || Math.abs(_dif) > 0.009) { toast(T('tpv.mixto_error').replace('{x}', '\u20ac' + _aCobrar.toFixed(2)), 'err'); return; }
+    if (!_mx.length || Math.abs(_dif) > 0.009) { toast(T('tpv.mixto_error').replace('{x}', fmtEur(_aCobrar)), 'err'); return; }
     if (_mx.length === 1) _pagoFinal = _mx[0].metodo; else _pagos = _mx;
   }
   if (esFinanciado && !selectedCli) { toast(T('tpv.fin_sin_cliente'), 'err'); return; }
@@ -2490,7 +2505,7 @@ function _tpvVentaRechazada(venta, cartCopia, status, desdeCola) {
     updateCaja();
     if (typeof renderProducts === 'function') { try { renderProducts(); } catch (e) {} }
   } catch (e) { console.error('venta rechazada:', e); }
-  _tpvAvisoFijo(T(desdeCola ? 'tpv.venta_rechazada_cola' : 'tpv.venta_rechazada').replace('{total}', '\u20ac' + (parseFloat(venta.total) || 0).toFixed(2)).replace('{cliente}', venta.clienteNombre || '').replace('{fecha}', venta.fecha || '').replace('{s}', String(status || '')));
+  _tpvAvisoFijo(T(desdeCola ? 'tpv.venta_rechazada_cola' : 'tpv.venta_rechazada').replace('{total}', fmtEur((parseFloat(venta.total) || 0))).replace('{cliente}', venta.clienteNombre || '').replace('{fecha}', venta.fecha || '').replace('{s}', String(status || '')));
 }
 
 // Aviso que se queda hasta pulsar Aceptar, sin bloquear la página como alert(). Varios se juntan.
@@ -2607,9 +2622,9 @@ var _TICKET_CSS = '*{box-sizing:border-box}' +
 function _ticketDoc() {
   var v = _ultimaVenta, t = _ultimosTotals;
   if (!v || !t) return null;
-  var eur = function (n) { return '€' + (parseFloat(n) || 0).toFixed(2); };
+  var eur = function (n) { return fmtEur((parseFloat(n) || 0)); };
   var cab = [];
-  cab.push(TIENDA.nombre || 'Tekpair');
+  cab.push(TIENDA.nombre || 'TekPair');
   if (TIENDA.dir) cab.push(TIENDA.dir);
   if (TIENDA.cif) cab.push(T('tkt.nif') + ': ' + TIENDA.cif);
   if (TIENDA.tel) cab.push(T('tpv.tk_tel') + TIENDA.tel);
@@ -2762,21 +2777,66 @@ function crearClienteRapido() {
 }
 
 // ═══ CAJA ═══
+// Efectivo de hoy, con la MISMA cuenta que «Efectivo en caja» de Inicio (dash-app.js,
+// _ventasIngresoPorMetodo + _sumarCobradoReps − gastos en efectivo). Antes el TPV no contaba las
+// cuotas de financiación ni los pagos de reparaciones, y las dos pantallas daban cifras distintas.
+function _abonosCuota(c) {
+  if (!c) return [];
+  var out = [], sum = 0;
+  (Array.isArray(c.abonos) ? c.abonos : []).forEach(function (a) {
+    var i = parseFloat(a && a.importe) || 0; if (!i) return;
+    out.push({ fecha: String(a.fecha || '').slice(0, 10), importe: i, metodo: a.metodo || 'Efectivo' }); sum += i;
+  });
+  var pag = c.pagadoImporte != null ? (parseFloat(c.pagadoImporte) || 0) : (c.pagado ? (parseFloat(c.importe) || 0) : 0);
+  var resto = Math.round((pag - sum) * 100) / 100;
+  if (resto > 0.005 && c.fechaPago) out.push({ fecha: String(c.fechaPago).slice(0, 10), importe: resto, metodo: c.formaPago || 'Efectivo' });
+  return out;
+}
+function _efectivoVentasHoy(hoy) {
+  var ef = 0;
+  (DB.ventas || []).forEach(function (v) {
+    var cuotas = Array.isArray(v.cuotas) ? v.cuotas : null;
+    if (v.reembolsado && (v.fechaReembolso || v.fecha || '').slice(0, 10) === hoy) {
+      if (v.financiado && cuotas) {
+        if ((v.entradaPago || 'Efectivo') === 'Efectivo') ef -= parseFloat(v.entrada) || 0;
+        cuotas.forEach(function (c) { _abonosCuota(c).forEach(function (a) { if (a.metodo === 'Efectivo') ef -= a.importe; }); });
+      } else {
+        _ventaPagos(v).forEach(function (p) { if (p.metodo === 'Efectivo') ef -= p.importe; });
+      }
+    }
+    if (v.financiado && cuotas) {
+      if (v.fecha === hoy && (v.entradaPago || 'Efectivo') === 'Efectivo') ef += parseFloat(v.entrada) || 0;
+      cuotas.forEach(function (c) { _abonosCuota(c).forEach(function (a) { if (a.fecha === hoy && a.metodo === 'Efectivo') ef += a.importe; }); });
+    } else if (v.fecha === hoy) {
+      _ventaPagos(v).forEach(function (p) { if (p.metodo === 'Efectivo') ef += p.importe; });
+    }
+  });
+  return ef;
+}
+// Pagos de reparaciones de hoy (anticipos, cobros al entregar): se leen de la nube y se guardan un minuto.
+var _prHoy = { fecha: '', ts: 0, efectivo: 0, cargando: false };
+function _efectivoReparacionesHoy(hoy) {
+  if (SB_KEY && TIENDA_ID && !_prHoy.cargando && (_prHoy.fecha !== hoy || Date.now() - _prHoy.ts > 60000)) {
+    _prHoy.cargando = true;
+    sbGet('pagos_reparacion', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=eq.' + hoy).then(function (rows) {
+      _prHoy.cargando = false;
+      if (!rows) return;
+      var ef = rows.reduce(function (s, p) { return s + ((p.metodo || 'Efectivo') === 'Efectivo' ? (parseFloat(p.importe) || 0) : 0); }, 0);
+      var cambia = Math.abs(ef - _prHoy.efectivo) > 0.005 || _prHoy.fecha !== hoy;
+      _prHoy = { fecha: hoy, ts: Date.now(), efectivo: ef, cargando: false };
+      if (cambia) { try { updateCaja(); } catch (e) {} }
+    });
+  }
+  return _prHoy.fecha === hoy ? _prHoy.efectivo : 0;
+}
 function updateCaja() {
   var hoy = hoyLocal();
-  // Solo el efectivo (de un pago mixto, solo su parte en efectivo; de una financiada, su entrada):
-  // lo vendido hoy menos lo devuelto hoy (también de ventas de otros días).
-  var _ef = function (v) { return _cajaPagosVenta(v).reduce(function (s, p) { return s + (p.metodo === 'Efectivo' ? p.importe : 0); }, 0); };
-  var total = DB.ventas.reduce(function(a, v) {
-    if (v.fecha === hoy) a += _ef(v);
-    if (v.reembolsado && (v.fechaReembolso || v.fecha) === hoy) a -= _ef(v);
-    return a;
-  }, 0);
+  var total = _efectivoVentasHoy(hoy) + _efectivoReparacionesHoy(hoy);
   // Gastos pagados hoy en efectivo (desde el TPV o desde Gastos): ese dinero ya no está en el cajón.
   total -= _gastosEfectivoHoy(hoy);
   var _bCaj = document.getElementById('btnCajonManual'); if (_bCaj) _bCaj.style.display = tienePerm('tpv_abrir_cajon') ? '' : 'none';
   var _bGas = document.getElementById('btnGastoCaja'); if (_bGas) _bGas.style.display = tienePerm('gastos_crear') ? '' : 'none';
-  document.getElementById('cajaTotal').textContent = '\u20ac' + total.toFixed(2);
+  document.getElementById('cajaTotal').textContent = fmtEur(total);
 }
 function _gastosEfectivoHoy(hoy) {
   var db = {};
@@ -2888,7 +2948,7 @@ function abrirGastoCaja() {
     if (rep) {
       var m = rep.meta || {};
       var orig = m.origen ? (T('gorig.' + m.origen) || m.origen) + (m.por ? ' · ' + m.por : '') : '';
-      $('_gcAviso').textContent = T('gdup.aviso').replace('{imp}', (parseFloat(rep.importe) || 0).toFixed(2) + ' €').replace('{f}', String(rep.fecha || '').slice(0, 10).split('-').reverse().join('/'))
+      $('_gcAviso').textContent = T('gdup.aviso').replace('{imp}', fmtEur(rep.importe)).replace('{f}', String(rep.fecha || '').slice(0, 10).split('-').reverse().join('/'))
         .replace('{c}', rep.concepto || '').replace('{o}', orig ? ' (' + orig + ')' : '');
       $('_gcAviso').style.display = '';
       $('_gcOk').textContent = T('gdup.guardar_igual');
@@ -3016,13 +3076,13 @@ function verCaja() {
     '<div style="font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">' + T('tpv.por_forma_pago') + '</div>' +
     (Object.keys(pagos).length ? Object.entries(pagos).map(function(e) {
       return '<div style="display:flex;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--border);font-size:14px">' +
-        '<span>' + escHtml(e[0]) + '</span><strong>\u20ac' + e[1].toFixed(2) + '</strong></div>';
+        '<span>' + escHtml(e[0]) + '</span><strong>' + fmtEur(e[1]) + '</strong></div>';
     }).join('') : '<div style="padding:10px 0;color:var(--muted);font-size:13px;border-bottom:1px solid var(--border)">' + T('gen.sin_ventas_hoy') + '</div>') +
     // F245: desglose bruto / reembolsos / neto
-    '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--muted)"><span>' + T('tpv.ventas_brutas') + '</span><span>\u20ac' + total.toFixed(2) + '</span></div>' +
-    (totReemb > 0 ? '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--red)"><span>' + T('tpv.reembolsos') + ' (' + (reembHoy.length + devHoy.length) + ')</span><span>-\u20ac' + totReemb.toFixed(2) + '</span></div>' : '') +
+    '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--muted)"><span>' + T('tpv.ventas_brutas') + '</span><span>' + fmtEur(total) + '</span></div>' +
+    (totReemb > 0 ? '<div style="display:flex;justify-content:space-between;padding:8px 0;font-size:13px;color:var(--red)"><span>' + T('tpv.reembolsos') + ' (' + (reembHoy.length + devHoy.length) + ')</span><span>-' + fmtEur(totReemb) + '</span></div>' : '') +
     '<div style="display:flex;justify-content:space-between;padding:12px 0;font-size:18px;font-weight:800;color:var(--blue);border-top:2px solid var(--border);margin-top:4px">' +
-    '<span>' + T('tpv.neto') + '</span><span>\u20ac' + (total - totReemb).toFixed(2) + '</span></div>';
+    '<span>' + T('tpv.neto') + '</span><span>' + fmtEur((total - totReemb)) + '</span></div>';
   openModal('mCaja');
 }
 
@@ -3060,9 +3120,9 @@ function _cambioBanner(total) {
   }
   var imp = _r2(c.imp), t = _r2(total || 0);
   var sub = !t ? T('dev.tpv_banner_sub')
-    : (t >= imp ? T('dev.tpv_a_cobrar').replace('{x}', '€' + _r2(t - imp).toFixed(2))
-               : T('dev.tpv_a_devolver').replace('{x}', '€' + _r2(imp - t).toFixed(2)));
-  el.innerHTML = '<div style="font-weight:800">🔁 ' + escHtml(T('dev.tpv_banner').replace('{x}', '€' + imp.toFixed(2))) + (c.num ? ' <span style="font-weight:600;opacity:.75">(' + escHtml(c.num) + ')</span>' : '') + '</div>' +
+    : (t >= imp ? T('dev.tpv_a_cobrar').replace('{x}', fmtEur(_r2(t - imp)))
+               : T('dev.tpv_a_devolver').replace('{x}', fmtEur(_r2(imp - t))));
+  el.innerHTML = '<div style="font-weight:800">🔁 ' + escHtml(T('dev.tpv_banner').replace('{x}', fmtEur(imp))) + (c.num ? ' <span style="font-weight:600;opacity:.75">(' + escHtml(c.num) + ')</span>' : '') + '</div>' +
     '<div style="margin-top:2px">' + escHtml(sub) + '</div>' +
     '<button type="button" onclick="cancelarCambio()" style="margin-top:6px;background:none;border:1px solid var(--t-bd,#cbd5e1);color:inherit;border-radius:7px;padding:4px 9px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">' + escHtml(T('dev.tpv_cancelar')) + '</button>';
 }
@@ -3121,7 +3181,7 @@ function cancelarCambio() {
   var c = _cambioPend();
   if (!c) return;
   if (!tienePerm('ventas_reembolso')) { toast(T('gen.sin_permiso'), 'err'); return; }
-  _cambioElegirMetodo(T('dev.tpv_cancelar_q').replace('{x}', '€' + _r2(c.imp).toFixed(2)), function (m) {
+  _cambioElegirMetodo(T('dev.tpv_cancelar_q').replace('{x}', fmtEur(_r2(c.imp))), function (m) {
     if (!m) return;
     var q = 'id=eq.' + encodeURIComponent(c.dev) + '&tienda_id=eq.' + encodeURIComponent(TIENDA_ID);
     var hecho = function () {
@@ -3174,7 +3234,7 @@ function renderHistorial() {
   var _puedeDev = tienePerm('ventas_reembolso');
   var lblCount = nReales + ' ' + (nReales === 1 ? T('tpv.venta') : T('tpv.ventas')) +
     (nReemb ? ' \u00b7 ' + nReemb + ' ' + (nReemb === 1 ? T('tpv.reembolso') : T('tpv.reembolsos_p')) : '');
-  var html = '<div style="background:var(--bg);padding:10px 14px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;font-size:13px"><span>' + lblCount + '</span><strong style="color:var(--green)">\u20ac' + totalDia.toFixed(2) + '</strong></div>';
+  var html = '<div style="background:var(--bg);padding:10px 14px;border-radius:10px;margin-bottom:10px;display:flex;justify-content:space-between;font-size:13px"><span>' + lblCount + '</span><strong style="color:var(--green)">' + fmtEur(totalDia) + '</strong></div>';
   html += '<div style="max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:10px">';
   html += ventasHoy.map(function(v) {
     var hora = '';
@@ -3186,7 +3246,7 @@ function renderHistorial() {
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-bottom:1px solid var(--border);gap:8px;' + (v.reembolsado?'opacity:.6':'') + '">' +
       '<div style="flex:1;min-width:0"><div style="font-size:13px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + escHtml(v.modelo || '-') + '</div>' +
       '<div style="font-size:11px;color:var(--muted);margin-top:2px">' + hora + (hora?' \u00b7 ':'') + escHtml(v.clienteNombre || 'Sin cliente') + ' \u00b7 ' + escHtml(v.pago || '-') + '</div></div>' +
-      '<div style="text-align:right;flex-shrink:0"><div style="font-weight:700;color:' + color + ';font-size:14px">' + sign + '\u20ac' + Math.abs(v.total||0).toFixed(2) + '</div>' +
+      '<div style="text-align:right;flex-shrink:0"><div style="font-weight:700;color:' + color + ';font-size:14px">' + sign + fmtEur(Math.abs(v.total||0)) + '</div>' +
       (v.reembolsado ? '<div style="font-size:10px;color:var(--red);font-weight:700">' + T('tpv.reembolsada') + '</div>' : '') +
       (esDev ? '<div style="font-size:10px;color:var(--red);font-weight:700">' + T('dev.badge_devolucion') + '</div>' : '') + '</div>' +
       // Devolver / cambiar: se hace en el panel (Ventas), con la venta ya abierta, en otra pestaña.

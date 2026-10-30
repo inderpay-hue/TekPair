@@ -144,7 +144,7 @@ export default async function handler(req, res) {
 <body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#111;background:#f7f7f7">
   <div style="background:#020B2E;color:white;padding:20px;border-radius:10px 10px 0 0;text-align:center">
     <h1 style="margin:0;font-size:20px">📩 Nuevo mensaje de soporte</h1>
-    <p style="margin:6px 0 0;opacity:.75;font-size:13px">Tekpair Dashboard</p>
+    <p style="margin:6px 0 0;opacity:.75;font-size:13px">TekPair Dashboard</p>
   </div>
   <div style="background:white;padding:24px;border:1px solid #e5e7eb;border-top:none;border-radius:0 0 10px 10px">
     <table style="width:100%;font-size:13px;margin-bottom:18px">
@@ -157,7 +157,7 @@ export default async function handler(req, res) {
     <p style="color:#64748B;font-size:12px;margin-top:20px">💡 <strong>Responde directamente a este email</strong> para contestar al cliente.</p>
   </div>
   <div style="text-align:center;padding:14px;color:#94A3B8;font-size:11px">
-    Tekpair · tekpair.tech
+    TekPair · tekpair.tech
   </div>
 </body></html>`;
 
@@ -169,7 +169,7 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Tekpair Soporte <info@tekpair.tech>',
+        from: 'TekPair Soporte <info@tekpair.tech>',
         to: [DEST_EMAIL],
         reply_to: emailSafe || undefined,
         subject: `[Soporte ${tipoSafe}] ${nombreSafe} - ${tiendaSafe}`,
@@ -551,7 +551,7 @@ async function syncError(req, res, payload) {
     try {
       const r = await fetch('https://api.resend.com/emails', {
         method: 'POST', headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from: 'Tekpair Avisos <info@tekpair.tech>', to: ['info@tekpair.tech'],
+        body: JSON.stringify({ from: 'TekPair Avisos <info@tekpair.tech>', to: ['info@tekpair.tech'],
           subject: `⚠️ No se guardó ${fila.tabla} · ${tiendaNombre}`, html }),
       });
       if (!r.ok) console.error('[sync-error] email:', r.status, await r.text());

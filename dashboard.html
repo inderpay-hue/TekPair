@@ -11,7 +11,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="robots" content="noindex, nofollow">
 <script>/* Vista escritorio (plegables/tablets): fuerza ancho de viewport antes de pintar */try{if(localStorage.getItem('tk_vista_escritorio')==='1'){var _vm=document.querySelector('meta[name="viewport"]');if(_vm)_vm.setAttribute('content','width=1100');}}catch(e){}</script>
-<title>Tekpair</title>
+<title>TekPair</title>
 
 <!-- PWA -->
 <link rel="manifest" href="/manifest.json">
@@ -1248,7 +1248,7 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
 @keyframes spin{to{transform:rotate(360deg)}}
 </style>
   <script src="/assets/qrcode.min.js"></script>
-<script src="/lang/lang.v8.js?v=20261104e"></script>
+<script src="/lang/lang.v8.js?v=20261105a"></script>
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
@@ -2918,7 +2918,7 @@ que aplicarTema (dash-app.js). */try{var _tt=localStorage.getItem('tk_theme')||'
 
 
 <!-- ════ LÓGICA JS ════ -->
-<script src="/js/dash-cajas.js?v=20261104d"></script>
+<script src="/js/dash-cajas.js?v=20261105a"></script>
 
 <div class="page" id="pGastos">
   <div class="sec-header" style="margin-bottom:10px">
@@ -5768,7 +5768,7 @@ que aplicarTema (dash-app.js). */try{var _tt=localStorage.getItem('tk_theme')||'
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261027d"></script>
-<script src="/js/dash-app.js?v=20261104e"></script>
+<script src="/js/dash-app.js?v=20261105a"></script>
 <script src="/js/devolucion.js?v=20261104a"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->
@@ -6976,10 +6976,15 @@ function eurFmt(n) {
   return Number(n || 0).toFixed(2).replace('.', ',') + ' €';
 }
 
+// «30 oct 2026» en el idioma activo. Una fecha sola (AAAA-MM-DD) se toma como día local: con
+// new Date('2026-10-27') es medianoche UTC y en algunos husos salía el día anterior.
 function fmtFecha(s) {
   if (!s) return '-';
-  var d = new Date(s);
-  return d.toLocaleDateString('es', {day:'2-digit', month:'short', year:'numeric'});
+  var t = String(s);
+  var d = /^\d{4}-\d{2}-\d{2}$/.test(t) ? new Date(t + 'T12:00:00') : new Date(t);
+  if (isNaN(d.getTime())) return t;
+  var loc = { es: 'es-ES', en: 'en-GB', fr: 'fr-FR', it: 'it-IT', de: 'de-DE', pt: 'pt-PT' }[(typeof TEKPAIR_LANG !== 'undefined' && TEKPAIR_LANG) || 'es'] || 'es-ES';
+  return d.toLocaleDateString(loc, {day:'2-digit', month:'short', year:'numeric'});
 }
 
 // Apartado con TODAS las tiendas (solo admin): por defecto las activas, las que

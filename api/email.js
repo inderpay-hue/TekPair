@@ -238,12 +238,12 @@ export default async function handler(req, res) {
 
   const lang = req.body.lang || 'es';
   const RPT = {
-    es: { subj: `Reporte diario ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Reporte diario', ventas:'Ventas', ingVentas:'Ingresos ventas', reps:'Reparaciones', ingReps:'Ingresos reps', totalDia:'TOTAL DEL DÍA', pagos:'💳 Por forma de pago', efectivo:'💵 Efectivo', tarjeta:'💳 Tarjeta / Bizum / Transferencia', ventasDia:'📱 Ventas del día', repsDia:'🔧 Reparaciones entregadas', cliente:'Cliente', modelo:'Modelo', pago:'Pago', total:'Total', equipo:'Equipo', footer:'Este reporte se genera automáticamente al cierre del día.' },
-    en: { subj: `Daily report ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Daily report', ventas:'Sales', ingVentas:'Sales revenue', reps:'Repairs', ingReps:'Repair revenue', totalDia:'TOTAL FOR THE DAY', pagos:'💳 By payment method', efectivo:'💵 Cash', tarjeta:'💳 Card / Bizum / Transfer', ventasDia:'📱 Sales of the day', repsDia:'🔧 Repairs delivered', cliente:'Customer', modelo:'Model', pago:'Payment', total:'Total', equipo:'Device', footer:'This report is generated automatically at end of day.' },
-    fr: { subj: `Rapport quotidien ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Rapport quotidien', ventas:'Ventes', ingVentas:'Revenus ventes', reps:'Réparations', ingReps:'Revenus réparations', totalDia:'TOTAL DU JOUR', pagos:'💳 Par mode de paiement', efectivo:'💵 Espèces', tarjeta:'💳 Carte / Virement', ventasDia:'📱 Ventes du jour', repsDia:'🔧 Réparations livrées', cliente:'Client', modelo:'Modèle', pago:'Paiement', total:'Total', equipo:'Appareil', footer:'Ce rapport est généré automatiquement en fin de journée.' },
-    it: { subj: `Rapporto giornaliero ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Rapporto giornaliero', ventas:'Vendite', ingVentas:'Ricavi vendite', reps:'Riparazioni', ingReps:'Ricavi riparazioni', totalDia:'TOTALE DEL GIORNO', pagos:'💳 Per metodo di pagamento', efectivo:'💵 Contanti', tarjeta:'💳 Carta / Bonifico', ventasDia:'📱 Vendite del giorno', repsDia:'🔧 Riparazioni consegnate', cliente:'Cliente', modelo:'Modello', pago:'Pagamento', total:'Totale', equipo:'Dispositivo', footer:'Questo rapporto viene generato automaticamente a fine giornata.' },
-    de: { subj: `Tagesbericht ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Tagesbericht', ventas:'Verkäufe', ingVentas:'Verkaufseinnahmen', reps:'Reparaturen', ingReps:'Reparatureinnahmen', totalDia:'TAGESGESAMT', pagos:'💳 Nach Zahlungsart', efectivo:'💵 Bargeld', tarjeta:'💳 Karte / Überweisung', ventasDia:'📱 Verkäufe des Tages', repsDia:'🔧 Ausgelieferte Reparaturen', cliente:'Kunde', modelo:'Modell', pago:'Zahlung', total:'Gesamt', equipo:'Gerät', footer:'Dieser Bericht wird automatisch am Ende des Tages generiert.' },
-    pt: { subj: `Relatório diário ${reporte.fecha||''} — ${tienda||'Tekpair'}`, header:'Relatório diário', ventas:'Vendas', ingVentas:'Receitas vendas', reps:'Reparações', ingReps:'Receitas reparações', totalDia:'TOTAL DO DIA', pagos:'💳 Por forma de pagamento', efectivo:'💵 Dinheiro', tarjeta:'💳 Cartão / Transferência', ventasDia:'📱 Vendas do dia', repsDia:'🔧 Reparações entregues', cliente:'Cliente', modelo:'Modelo', pago:'Pagamento', total:'Total', equipo:'Dispositivo', footer:'Este relatório é gerado automaticamente no fecho do dia.' }
+    es: { subj: `Reporte diario ${reporte.fecha||''} — ${tienda||'TekPair'}`, header:'Reporte diario', ventas:'Ventas', ingVentas:'Ingresos ventas', reps:'Reparaciones', ingReps:'Ingresos reps', totalDia:'TOTAL DEL DÍA', pagos:'💳 Por forma de pago', efectivo:'💵 Efectivo', tarjeta:'💳 Tarjeta / Bizum / Transferencia', ventasDia:'📱 Ventas del día', repsDia:'🔧 Reparaciones entregadas', cliente:'Cliente', modelo:'Modelo', pago:'Pago', total:'Total', equipo:'Equipo', footer:'Este reporte se genera automáticamente al cierre del día.' },
+    en: { subj: `Daily report ${reporte.fecha||''} — ${tienda||'TekPair'}`, header:'Daily report', ventas:'Sales', ingVentas:'Sales revenue', reps:'Repairs', ingReps:'Repair revenue', totalDia:'TOTAL FOR THE DAY', pagos:'💳 By payment method', efectivo:'💵 Cash', tarjeta:'💳 Card / Bizum / Transfer', ventasDia:'📱 Sales of the day', repsDia:'🔧 Repairs delivered', cliente:'Customer', modelo:'Model', pago:'Payment', total:'Total', equipo:'Device', footer:'This report is generated automatically at end of day.' },
+    fr: { subj: `Rapport quotidien ${reporte.fecha||''} — ${tienda||'TekPair'}`, header:'Rapport quotidien', ventas:'Ventes', ingVentas:'Revenus ventes', reps:'Réparations', ingReps:'Revenus réparations', totalDia:'TOTAL DU JOUR', pagos:'💳 Par mode de paiement', efectivo:'💵 Espèces', tarjeta:'💳 Carte / Virement', ventasDia:'📱 Ventes du jour', repsDia:'🔧 Réparations livrées', cliente:'Client', modelo:'Modèle', pago:'Paiement', total:'Total', equipo:'Appareil', footer:'Ce rapport est généré automatiquement en fin de journée.' },
+    it: { subj: `Rapporto giornaliero ${reporte.fecha||''} — ${tienda||'TekPair'}`, header:'Rapporto giornaliero', ventas:'Vendite', ingVentas:'Ricavi vendite', reps:'Riparazioni', ingReps:'Ricavi riparazioni', totalDia:'TOTALE DEL GIORNO', pagos:'💳 Per metodo di pagamento', efectivo:'💵 Contanti', tarjeta:'💳 Carta / Bonifico', ventasDia:'📱 Vendite del giorno', repsDia:'🔧 Riparazioni consegnate', cliente:'Cliente', modelo:'Modello', pago:'Pagamento', total:'Totale', equipo:'Dispositivo', footer:'Questo rapporto viene generato automaticamente a fine giornata.' },
+    de: { subj: `Tagesbericht ${reporte.fecha||''} — ${tienda||'TekPair'}`, header:'Tagesbericht', ventas:'Verkäufe', ingVentas:'Verkaufseinnahmen', reps:'Reparaturen', ingReps:'Reparatureinnahmen', totalDia:'TAGESGESAMT', pagos:'💳 Nach Zahlungsart', efectivo:'💵 Bargeld', tarjeta:'💳 Karte / Überweisung', ventasDia:'📱 Verkäufe des Tages', repsDia:'🔧 Ausgelieferte Reparaturen', cliente:'Kunde', modelo:'Modell', pago:'Zahlung', total:'Gesamt', equipo:'Gerät', footer:'Dieser Bericht wird automatisch am Ende des Tages generiert.' },
+    pt: { subj: `Relatório diário ${reporte.fecha||''} — ${tienda||'TekPair'}`, header:'Relatório diário', ventas:'Vendas', ingVentas:'Receitas vendas', reps:'Reparações', ingReps:'Receitas reparações', totalDia:'TOTAL DO DIA', pagos:'💳 Por forma de pagamento', efectivo:'💵 Dinheiro', tarjeta:'💳 Cartão / Transferência', ventasDia:'📱 Vendas do dia', repsDia:'🔧 Reparações entregues', cliente:'Cliente', modelo:'Modelo', pago:'Pagamento', total:'Total', equipo:'Dispositivo', footer:'Este relatório é gerado automaticamente no fecho do dia.' }
   };
   const L = RPT[lang] || RPT.es;
 
@@ -278,7 +278,7 @@ td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; }
 </head>
 <body>
 <div class="header">
-  <h1>⚡ Tekpair</h1>
+  <h1>⚡ TekPair</h1>
   <p>${L.header} — ${tiendaSafe}</p>
 </div>
 <div class="body">
@@ -304,7 +304,7 @@ td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; }
 
 </div>
 <div class="footer">
-  Generado por <strong>Tekpair</strong> · tekpair.tech<br>
+  Generado por <strong>TekPair</strong> · tekpair.tech<br>
   Este reporte se genera automáticamente al cierre del día.
 </div>
 </body>
@@ -318,7 +318,7 @@ td { padding: 8px 10px; border-bottom: 1px solid #F1F5F9; }
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        from: 'Tekpair <info@tekpair.tech>',
+        from: 'TekPair <info@tekpair.tech>',
         to: [email],
         subject: L.subj,
         html: html

@@ -229,7 +229,7 @@ async function enviarEmailReset(email, nombre, enlace, lang = 'es') {
       method: 'POST',
       headers: { 'Authorization': `Bearer ${RESEND_KEY}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: 'Tekpair <info@tekpair.tech>',
+        from: 'TekPair <info@tekpair.tech>',
         to: email,
         subject: R.subj,
         html: `

@@ -98,7 +98,7 @@ export default async function handler(req, res) {
     const rep = rows[0];
 
     // Buscar info publica de la tienda
-    let tienda = { nombre: 'Tekpair' };
+    let tienda = { nombre: 'TekPair' };
     if (rep.tienda_id) {
       try {
         const tUrl = `${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(rep.tienda_id)}&select=nombre,telefono,ciudad,pais,logo_url,ajustes_config`;
@@ -137,7 +137,7 @@ export default async function handler(req, res) {
         aceptacion_cliente_fecha: rep.aceptacion_cliente_fecha || null
       },
       tienda: {
-        nombre: tienda.nombre || 'Tekpair',
+        nombre: tienda.nombre || 'TekPair',
         telefono: tienda.telefono || '',
         ciudad: tienda.ciudad || '',
         pais: tienda.pais || '',
