@@ -5125,14 +5125,66 @@ function _cuotaAbonar(cc, importe, metodo, fecha, por) {
   cc.abonos.push(ab);
 }
 // Pagos ya hechos de una cuota, para enseñarlos debajo: «25-10 · 5,00 € · Efectivo · Ana».
-function _cuotaAbonosHtml(c) {
-  var ab = _cuotaAbonos(c).slice().sort(function (a, b) { return String(a.fecha).localeCompare(String(b.fecha)); });
+// anular: { vid, cidx } → cada pago apuntado lleva «Anular» (ventas financiadas; ver anularAbonoCuota).
+function _cuotaAbonosHtml(c, anular) {
+  var ab = _cuotaAbonos(c).map(function (a, k) { a._k = k; return a; }).sort(function (a, b) { return String(a.fecha).localeCompare(String(b.fecha)); });
   if (!ab.length) return '';
+  var nReales = Array.isArray(c && c.abonos) ? c.abonos.filter(function (x) { return parseFloat(x && x.importe) || 0; }).length : 0;
+  var puede = !!anular && typeof _esAdmin === 'function' && _esAdmin();   // solo el admin
   return ab.map(function (a) {
     var f = String(a.fecha || '').slice(0, 10).split('-').reverse().join('/');
-    return '<div style="font-size:10px;color:var(--muted)">💶 ' + escHtml(f) + ' · ' + cur(parseFloat(a.importe) || 0) + ' · ' + escHtml(a.metodo || '') + (a.por ? ' · ' + escHtml(a.por) : '') + '</div>';
+    // Solo los pagos guardados en `abonos` (los de antes, sin desglose, no se pueden señalar uno a uno).
+    var btn = (puede && a._k < nReales) ? ' <button type="button" class="btn-anular-abono" data-vid="' + escHtml(anular.vid) + '" data-cidx="' + anular.cidx + '" data-k="' + a._k + '" title="' + escHtml(T('fin.anular_pago')) + '" style="border:none;background:none;color:var(--red,#EF4444);cursor:pointer;font-size:10px;font-weight:700;padding:0 2px;text-decoration:underline">' + escHtml(T('fin.anular_pago')) + '</button>' : '';
+    return '<div style="font-size:10px;color:var(--muted)">💶 ' + escHtml(f) + ' · ' + cur(parseFloat(a.importe) || 0) + ' · ' + escHtml(a.metodo || '') + (a.por ? ' · ' + escHtml(a.por) : '') + btn + '</div>';
   }).join('');
 }
+
+// Anular un pago de cuota mal apuntado (p. ej. 150 € en vez de 100 €): se quita ese pago, la
+// cuota vuelve a quedar pendiente por ese importe y se vuelve a registrar el pago bueno.
+// Solo el admin. No si la caja del día de ese pago ya está cerrada.
+function anularAbonoCuota(vid, cidx, k) {
+  if (!(typeof _esAdmin === 'function' && _esAdmin())) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var v = DB.ventas.find(function (x) { return x.id === vid; });
+  var cc = v && v.cuotas && v.cuotas[cidx];
+  var ab = cc && Array.isArray(cc.abonos) ? cc.abonos.filter(function (x) { return parseFloat(x && x.importe) || 0; })[k] : null;
+  if (!ab) return;
+  var imp = Math.round((parseFloat(ab.importe) || 0) * 100) / 100;
+  var fecha = String(ab.fecha || '').slice(0, 10);
+  var fTxt = fecha.split('-').reverse().join('/');
+  var comprobarCaja = (SB_KEY && TIENDA_ID && /^\d{4}-\d{2}-\d{2}$/.test(fecha))
+    ? fetch(SUPABASE_URL + '/rest/v1/cajas_cierres?tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=eq.' + fecha + '&estado=in.(cerrado,descuadre)&select=id&limit=1',
+        { headers: { apikey: SB_KEY, Authorization: 'Bearer ' + (JWT_TOKEN || SB_KEY) } }).then(function (r) { return r.ok ? r.json() : []; }).catch(function () { return []; })
+    : Promise.resolve([]);
+  comprobarCaja.then(function (cerr) {
+    if (Array.isArray(cerr) && cerr.length) { toast(T('fin.anular_caja_cerrada').replace('{f}', fTxt), 'err', 6000); return; }
+    confirmar(T('fin.anular_pago_confirm').replace('{imp}', cur(imp)).replace('{f}', fTxt).replace('{m}', ab.metodo || ''), function () {
+      var idx = cc.abonos.indexOf(ab);
+      if (idx < 0) return;
+      cc.abonos.splice(idx, 1);
+      cc.pagadoImporte = Math.max(0, Math.round((_cuotaPagado(cc) - imp) * 100) / 100);
+      cc.pagado = cc.pagadoImporte >= (parseFloat(cc.importe) || 0) - 0.005 && cc.pagadoImporte > 0;
+      var ult = cc.abonos.filter(function (x) { return parseFloat(x && x.importe) || 0; }).sort(function (a, b) { return String(a.fecha).localeCompare(String(b.fecha)); }).pop();
+      if (ult) { cc.fechaPago = String(ult.fecha || '').slice(0, 10); cc.formaPago = ult.metodo || ''; }
+      else if (!(cc.pagadoImporte > 0.005)) { cc.fechaPago = ''; cc.formaPago = ''; }
+      if (!cc.abonos.length) delete cc.abonos;
+      v.estadoFinanciado = v.cuotas.every(function (x) { return x.pagado; }) ? 'completado' : 'activo';
+      guardarDatos();
+      if (SB_KEY && TIENDA_ID) {
+        var _q = 'id=eq.' + encodeURIComponent(vid);
+        Promise.resolve(sbPatch('ventas', _q, { cuotas: JSON.stringify(v.cuotas) })).then(function (ok) {
+          var enCola = !ok && _syncQueueGet().some(function (op) { return op.method === 'PATCH' && op.table === 'ventas' && op.query === _q; });
+          if (!ok && !enCola) toast(T('fin.pago_no_guardado'), 'err');
+        });
+      }
+      audit('editar', 'venta', vid, T('fin.pago_anulado_audit').replace('{imp}', cur(imp)).replace('{f}', fTxt).replace('{m}', ab.metodo || '').replace('{c}', String(cidx + 1)), null);
+      toast(T('fin.pago_anulado').replace('{imp}', cur(imp)), 'ok');
+      closeM('finModal');
+      verFinanciado(vid);
+      try { renderVentas(); renderDash(); if (typeof renderInicioNuevo === 'function') renderInicioNuevo(); } catch (e) {}
+    }, { okLabel: T('fin.anular_pago'), danger: true });
+  });
+}
+window.anularAbonoCuota = anularAbonoCuota;
 // Ventana para cobrar un financiado: importe (puede ser solo una parte), fecha, forma de pago y
 // quién cobra. cb({ importe, fecha, metodo, por }) o nada si se cancela.
 // La fecha solo la puede cambiar el admin: un pago con fecha de otro día mueve una caja ya cerrada.
@@ -9928,7 +9980,7 @@ function verFinanciado(id) {
     return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px;border-radius:8px;margin-bottom:6px;background:' +
       (cu.pagado ? 'rgba(0,200,150,.08)' : parcial ? 'rgba(230,148,18,.10)' : vencido ? 'rgba(239,68,68,.08)' : 'var(--light)') + '">' +
       '<div><div style="font-size:13px;font-weight:600">' + T('finv.cuota') + ' ' + (i + 1) + ' · ' + cur(cu.importe) + '</div>' +
-      '<div style="font-size:10px;color:' + (vencido ? 'var(--red)' : 'var(--muted)') + '">' + T('finv.vence') + ': ' + escHtml(cu.fecha || '') + subPag + '</div>' + _cuotaAbonosHtml(cu) + '</div>' +
+      '<div style="font-size:10px;color:' + (vencido ? 'var(--red)' : 'var(--muted)') + '">' + T('finv.vence') + ': ' + escHtml(cu.fecha || '') + subPag + '</div>' + _cuotaAbonosHtml(cu, v.reembolsado ? null : { vid: id, cidx: i }) + '</div>' +
       '<div>' + (cu.pagado
         ? '<span style="color:var(--green);font-size:11px;font-weight:700">✓ ' + T('finv.pagado') + '</span>'
         : '<button data-vid="' + id + '" data-cidx="' + i + '" class="btn-pc btn-primary" style="padding:5px 10px;font-size:11px;width:auto">' + (parcial ? T('fin.completar') : T('finv.registrar')) + '</button>'
@@ -9952,6 +10004,9 @@ function verFinanciado(id) {
   openM('finModal');
   document.getElementById('finModalContent').querySelectorAll('.btn-pc').forEach(function(btn) {
     btn.addEventListener('click', function() { registrarPagoCuota(this.dataset.vid, parseInt(this.dataset.cidx)); });
+  });
+  document.getElementById('finModalContent').querySelectorAll('.btn-anular-abono').forEach(function(btn) {
+    btn.addEventListener('click', function() { anularAbonoCuota(this.dataset.vid, parseInt(this.dataset.cidx, 10), parseInt(this.dataset.k, 10)); });
   });
 }
 
