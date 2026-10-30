@@ -1180,6 +1180,8 @@ window.addEventListener('DOMContentLoaded', function() {
   renderBrandBar();
   ['.tpv-cats', '#brandBar'].forEach(function(s) { var e = document.querySelector(s); enableWheelH(e); attachScrollArrows(e); });
   updateCaja();
+  // Totales del ticket vacío ya con el formato del idioma (el HTML trae «€0.00»).
+  try { calcTotal(); } catch (e) { console.error('totales:', e); }
   try { _cambioInit(); } catch (e) { console.error('cambio:', e); }
   // Sync con Supabase (ventas + favoritos + tienda + ajustes)
   syncTPV();
