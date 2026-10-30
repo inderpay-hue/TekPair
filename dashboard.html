@@ -1252,6 +1252,9 @@ body[data-theme="dark"] .aj-nav{color:var(--text)}
   <script src="/cookies-consent.js" defer></script>
 </head>
 <body>
+<script>/* Tema antes de pintar: si no, la página se veía un momento con el tema claro (blanco y
+azul) hasta que cargaba dash-app.js al final, y parecía una versión antigua. Misma migración
+que aplicarTema (dash-app.js). */try{var _tt=localStorage.getItem('tk_theme')||'terracota';if(['light','dark','terracota'].indexOf(_tt)===-1)_tt=(_tt==='negro'||_tt==='grafito')?'dark':'terracota';if(_tt!=='light')document.body.setAttribute('data-theme',_tt);}catch(e){document.body.setAttribute('data-theme','terracota');}</script>
 <div id="app">
 
 <!-- SIDEBAR (desktop only) -->
