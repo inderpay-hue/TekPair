@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261104c"></script>
+<script src="/lang/lang.v8.js?v=20261104d"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -2797,47 +2797,149 @@ function abrirGastoCaja() {
   bg.id = '_gcBg';
   bg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
   var inp = 'width:100%;padding:11px;border:1px solid #E5E7EB;border-radius:9px;font:inherit;font-size:16px;margin:4px 0 12px;box-sizing:border-box';
-  bg.innerHTML = '<div style="background:#fff;color:#0F172A;border-radius:14px;max-width:400px;width:100%;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3)">' +
+  bg.innerHTML = '<div style="background:#fff;color:#0F172A;border-radius:14px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3)">' +
     '<div style="font-size:17px;font-weight:800;margin-bottom:4px">💸 ' + escHtmlTpv(T('tpvg.titulo')) + '</div>' +
     '<div style="font-size:12.5px;color:#64748B;margin-bottom:12px">' + escHtmlTpv(T('tpvg.ayuda')) + '</div>' +
+    '<div id="_gcPed" style="margin-bottom:12px"></div>' +
     '<label style="font-size:12px;font-weight:700">' + escHtmlTpv(T('tpvg.importe')) + '</label><input id="_gcImp" inputmode="decimal" placeholder="0,00" style="' + inp + '">' +
     '<label style="font-size:12px;font-weight:700">' + escHtmlTpv(T('tpvg.concepto')) + '</label><input id="_gcCon" maxlength="120" placeholder="' + escHtmlTpv(T('tpvg.concepto_ph')) + '" style="' + inp + '">' +
     '<label style="font-size:12px;font-weight:700">' + escHtmlTpv(T('tpvg.proveedor')) + '</label><input id="_gcPro" maxlength="80" style="' + inp + '">' +
+    '<div id="_gcAviso" style="display:none;font-size:12.5px;padding:9px 11px;border-radius:9px;background:rgba(245,158,11,.14);color:#92400E;margin-bottom:10px"></div>' +
     '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">' +
       '<button id="_gcNo" style="padding:10px 16px;border:1px solid #E5E7EB;background:transparent;border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + escHtmlTpv(T('gen.cancelar') || 'Cancelar') + '</button>' +
       '<button id="_gcOk" style="padding:10px 16px;border:none;background:#EF4444;color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:800">' + escHtmlTpv(T('tpvg.guardar')) + '</button>' +
     '</div></div>';
   document.body.appendChild(bg);
+  var $ = function (id) { return document.getElementById(id); };
   var cerrar = function () { bg.remove(); };
   bg.addEventListener('click', function (e) { if (e.target === bg) cerrar(); });
-  document.getElementById('_gcNo').onclick = cerrar;
-  setTimeout(function () { try { document.getElementById('_gcImp').focus(); } catch (e) {} }, 50);
-  var enviando = false;
-  document.getElementById('_gcOk').onclick = function () {
+  $('_gcNo').onclick = cerrar;
+  setTimeout(function () { try { $('_gcImp').focus(); } catch (e) {} }, 50);
+
+  // Pedidos pendientes de pago y gastos de los últimos días (para no apuntar dos veces lo mismo).
+  var pedidoProv = null;          // proveedor elegido en «¿Es para pagar un pedido?»
+  var pedidos = [], gastosNube = null;
+  var hace3 = new Date(Date.now() - 3 * 86400000).toISOString().slice(0, 10);
+  if (SB_KEY && TIENDA_ID) {
+    sbGet('pedidos', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&estado_pago=in.(pendiente,financiado)').then(function (rows) {
+      pedidos = (rows || []).filter(function (p) { return (parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0) > 0.005; });
+      pintarPedidos();
+    });
+    sbGet('gastos', 'tienda_id=eq.' + encodeURIComponent(TIENDA_ID) + '&fecha=gte.' + hace3).then(function (rows) { gastosNube = rows; });
+  }
+  function deudas() {
+    var m = {};
+    pedidos.forEach(function (p) {
+      var pr = String(p.proveedor || '').trim() || T('tpvg.sin_proveedor');
+      m[pr] = Math.round(((m[pr] || 0) + (parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0)) * 100) / 100;
+    });
+    return m;
+  }
+  function pintarPedidos() {
+    var d = deudas(), provs = Object.keys(d);
+    var cont = $('_gcPed'); if (!cont) return;
+    if (!provs.length) { cont.innerHTML = ''; return; }
+    cont.innerHTML = '<div style="font-size:12px;font-weight:800;margin-bottom:6px">' + escHtmlTpv(T('tpvg.es_pedido')) + '</div>' +
+      provs.map(function (pr) {
+        var sel = pedidoProv === pr;
+        return '<button type="button" class="_gcPedBtn" data-p="' + escHtmlTpv(pr) + '" style="display:flex;justify-content:space-between;width:100%;margin-bottom:6px;padding:9px 11px;border-radius:9px;cursor:pointer;font:inherit;font-size:13px;border:' + (sel ? '2px solid #EF4444;background:rgba(239,68,68,.06)' : '1px solid #E5E7EB;background:#fff') + '">' +
+          '<span>🚚 ' + escHtmlTpv(pr) + '</span><strong>' + escHtmlTpv(T('tpvg.debes').replace('{i}', d[pr].toFixed(2))) + '</strong></button>';
+      }).join('') +
+      '<div style="font-size:11.5px;color:#64748B">' + escHtmlTpv(pedidoProv ? T('tpvg.pedido_elegido') : T('tpvg.no_es_pedido')) + '</div>';
+    cont.querySelectorAll('._gcPedBtn').forEach(function (b) {
+      b.onclick = function () {
+        var pr = b.getAttribute('data-p');
+        pedidoProv = (pedidoProv === pr) ? null : pr;
+        if (pedidoProv) {
+          $('_gcImp').value = d[pr].toFixed(2).replace('.', ',');
+          $('_gcCon').value = T('tpvg.concepto_pedido').replace('{p}', pr);
+          $('_gcPro').value = pr === T('tpvg.sin_proveedor') ? '' : pr;
+        }
+        avisoMostrado = false; $('_gcAviso').style.display = 'none';
+        pintarPedidos();
+      };
+    });
+  }
+  function repetido(importe, proveedor) {
+    var hoy = hoyLocal(), pv = String(proveedor || '').trim().toLowerCase(), t0 = Date.parse(hoy + 'T12:00:00');
+    var local = []; try { local = (JSON.parse(localStorage.getItem('tk_db') || '{}') || {}).gastos || []; } catch (e) {}
+    var lista = (gastosNube || []).concat(local);
+    return lista.find(function (g) {
+      if (!g) return false;
+      var gi = Math.round((parseFloat(g.importe) || 0) * 100) / 100, gf = String(g.fecha || '').slice(0, 10);
+      if (gf === hoy && Math.abs(gi - importe) <= 0.01) return true;
+      if (pv && String(g.proveedor_nombre || '').trim().toLowerCase() === pv) {
+        return Math.abs(Date.parse(gf + 'T12:00:00') - t0) / 86400000 <= 3 && Math.abs(gi - importe) <= Math.max(0.01, importe * 0.01);
+      }
+      return false;
+    }) || null;
+  }
+  var enviando = false, avisoMostrado = false;
+  $('_gcOk').onclick = function () {
     if (enviando) return;
-    var importe = Math.round((parseFloat(String(document.getElementById('_gcImp').value).replace(',', '.')) || 0) * 100) / 100;
-    var concepto = String(document.getElementById('_gcCon').value || '').trim();
-    var proveedor = String(document.getElementById('_gcPro').value || '').trim();
+    var importe = Math.round((parseFloat(String($('_gcImp').value).replace(',', '.')) || 0) * 100) / 100;
+    var concepto = String($('_gcCon').value || '').trim();
+    var proveedor = String($('_gcPro').value || '').trim();
     if (!(importe > 0)) { toast(T('tpvg.importe_mal'), 'err'); return; }
     if (!concepto) { toast(T('tpvg.falta_concepto'), 'err'); return; }
+    var rep = avisoMostrado ? null : repetido(importe, proveedor);
+    if (rep) {
+      var m = rep.meta || {};
+      var orig = m.origen ? (T('gorig.' + m.origen) || m.origen) + (m.por ? ' · ' + m.por : '') : '';
+      $('_gcAviso').textContent = T('gdup.aviso').replace('{imp}', (parseFloat(rep.importe) || 0).toFixed(2) + ' €').replace('{f}', String(rep.fecha || '').slice(0, 10).split('-').reverse().join('/'))
+        .replace('{c}', rep.concepto || '').replace('{o}', orig ? ' (' + orig + ')' : '');
+      $('_gcAviso').style.display = '';
+      $('_gcOk').textContent = T('gdup.guardar_igual');
+      avisoMostrado = true;
+      return;
+    }
     enviando = true;
     var quien = (U && (U.nombre || U.email)) || '';
+    var meta = { origen: 'tpv', por: quien };
+    var hoy = hoyLocal();
+    var pagosPedidos = [];
+    // Pago de un pedido: se aplica a sus pedidos pendientes (los más antiguos primero), igual
+    // que «Registrar pago a proveedor». Así, al recibirlo, ya no se crea otro gasto.
+    if (pedidoProv) {
+      var restante = importe;
+      pedidos.filter(function (p) { return (String(p.proveedor || '').trim() || T('tpvg.sin_proveedor')) === pedidoProv; })
+        .sort(function (a, b) { return String(a.created_at || a.id).localeCompare(String(b.created_at || b.id)); })
+        .forEach(function (p) {
+          if (restante <= 0.005) return;
+          var debe = (parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0);
+          var aplica = Math.min(restante, debe);
+          var pagado = Math.round(((parseFloat(p.pagado_importe) || 0) + aplica) * 100) / 100;
+          var patch = { pagado_importe: pagado };
+          if (pagado >= (parseFloat(p.importe) || 0) - 0.005) patch.estado_pago = 'pagado';
+          pagosPedidos.push({ id: p.id, patch: patch });
+          restante = Math.round((restante - aplica) * 100) / 100;
+        });
+      meta.pago_proveedor = true;
+      meta.pedidos = pagosPedidos.map(function (x) { return x.id; });
+    }
     var g = {
       id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
-      tienda_id: TIENDA_ID, concepto: (concepto + (quien ? ' · ' + quien : '')).slice(0, 200),
-      importe: importe, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Caja', iva_tipo: 0,
-      proveedor_id: null, proveedor_nombre: proveedor || null, metodo_pago: 'efectivo'
+      tienda_id: TIENDA_ID, concepto: concepto.slice(0, 200),
+      importe: importe, fecha: hoy, estado: 'Pagado', categoria: pedidoProv ? 'Stock/Compras' : 'Caja', iva_tipo: pedidoProv ? 21 : 0,
+      proveedor_id: null, proveedor_nombre: proveedor || null, metodo_pago: 'efectivo', meta: meta
     };
-    Promise.resolve((SB_KEY && TIENDA_ID) ? sbPost('gastos', g) : true).then(function () {
-      // sbPost ya encola el gasto si no hay conexión; en local se apunta siempre.
+    var trabajos = [(SB_KEY && TIENDA_ID) ? sbPost('gastos', g) : true];
+    pagosPedidos.forEach(function (x) { if (SB_KEY && TIENDA_ID) trabajos.push(sbPatch('pedidos', 'id=eq.' + encodeURIComponent(x.id), x.patch)); });
+    if (pedidoProv && SB_KEY && TIENDA_ID) {
+      trabajos.push(sbPost('pagos_proveedor', { id: 'pp' + Date.now() + '_' + Math.random().toString(36).slice(2, 8), tienda_id: TIENDA_ID,
+        proveedor: proveedor || null, importe: importe, fecha: hoy, usuario: quien || null }));
+    }
+    Promise.all(trabajos).then(function () {
+      // En local (sbPost/sbPatch ya encolan si no hay conexión).
       try {
         var db = JSON.parse(localStorage.getItem('tk_db') || '{}') || {};
         db.gastos = Array.isArray(db.gastos) ? db.gastos : [];
         db.gastos.push(g);
+        if (Array.isArray(db.pedidos)) pagosPedidos.forEach(function (x) { var p = db.pedidos.find(function (y) { return y.id === x.id; }); if (p) Object.assign(p, x.patch); });
         localStorage.setItem('tk_db', JSON.stringify(db));
       } catch (e) {}
       cerrar();
-      toast(T('tpvg.ok').replace('{i}', importe.toFixed(2)), 'ok');
+      toast(T(pedidoProv ? 'tpvg.ok_pedido' : 'tpvg.ok').replace('{i}', importe.toFixed(2)).replace('{p}', pedidoProv || ''), 'ok');
       try { updateCaja(); } catch (e) {}
       abrirCajonManual(true);
     });

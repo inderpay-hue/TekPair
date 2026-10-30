@@ -2132,6 +2132,9 @@
     if (impTxt === null) return;
     const importe = Math.round((parseFloat(String(impTxt).replace(',', '.')) || 0) * 100) / 100;
     if (!(importe > 0)) { toast(T('cajas.importe_invalido'), 'error'); return; }
+    // ¿Ya está apuntado (desde el TPV, Gastos o un pedido)? Se avisa; si es otro, se guarda igual.
+    const rep = typeof window._gastoRepetido === 'function' ? window._gastoRepetido(importe, Estado.fechaActual, '') : null;
+    if (rep && !confirm(window._avisoRepetidoTxt(rep))) return;
     try {
       await window.crearGastoCaja({ concepto: String(concepto).trim(), importe, fecha: Estado.fechaActual });
       toast(T('cajas.gasto_ok'), 'ok');

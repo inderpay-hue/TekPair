@@ -2689,7 +2689,8 @@ async function crearGastoFactura() {
     proveedor_id: null, proveedor_nombre: prov,
     proveedor_nif: (window._facIaDatos && window._facIaDatos.proveedor_nif) || null,
     numero_factura: ((document.getElementById('facF_num') || {}).value || '').trim() || null,
-    metodo_pago: 'transferencia'
+    metodo_pago: 'transferencia',
+    meta: _gastoMeta('factura')
   };
   DB.gastos = DB.gastos || [];
   DB.gastos.push(g);
@@ -3152,7 +3153,8 @@ function _crearGastoDesdePedido(p) {
     concepto: T('pedidos.concepto_gasto') + ': ' + p.pieza + (p.proveedor ? (' (' + p.proveedor + ')') : ''),
     importe: parseFloat(p.importe) || 0, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Stock/Compras',
     iva_tipo: 21, proveedor_id: null, proveedor_nombre: p.proveedor || null, proveedor_nif: null, numero_factura: null,
-    metodo_pago: p.metodo_pago || 'transferencia'
+    metodo_pago: p.metodo_pago || 'transferencia',
+    meta: _gastoMeta('pedido', { pedido: p.id })
   };
   DB.gastos = DB.gastos || [];
   DB.gastos.push(g);
@@ -3190,7 +3192,8 @@ function _crearGastoPedidoGrupo(p, importe) {
     iva_tipo: 21, proveedor_id: null, proveedor_nombre: p.proveedor || null, proveedor_nif: null,
     numero_factura: ((String(p.nota || '').match(/(?:n[º°]|#)\s*([A-Za-z0-9-]{4,})/) || [])[1]) || null,
     metodo_pago: p.metodo_pago || 'transferencia',
-    adjunto_url: p.pdf_url || null, adjunto_nombre: p.pdf_nombre || null
+    adjunto_url: p.pdf_url || null, adjunto_nombre: p.pdf_nombre || null,
+    meta: _gastoMeta('pedido', { pedido: p.grupo || p.id })
   };
   DB.gastos = DB.gastos || [];
   DB.gastos.push(g);
@@ -3213,6 +3216,8 @@ function _marcarGrupoGasto(grupo, gid) {
 // Devuelve el gasto_id a asignar al recibir una línea (consolida por grupo si hay total_real).
 function _gastoAlRecibir(p) {
   if (p.gasto_id) return p.gasto_id;
+  var _gid = _gastoAlRecibirSinRepetir(p);
+  if (_gid !== undefined) return _gid;
   // Pendiente/financiado: aún no se ha pagado → no se crea gasto al recibir.
   // El gasto se crea al "Registrar pago a proveedor" (que es cuando sale el dinero).
   if (p.estado_pago && p.estado_pago !== 'pagado') return null;
@@ -3240,6 +3245,26 @@ function _gastoAlRecibir(p) {
   // Clásico: un gasto por línea según su coste
   if ((parseFloat(p.importe) || 0) > 0) return _crearGastoDesdePedido(p);
   return null;
+}
+
+// Si al recibir un pedido pagado ya hay un gasto apuntado desde el TPV o Cajas con el mismo
+// proveedor e importe (lo pagaron del cajón al repartidor), se enlaza ese gasto al pedido en
+// vez de crear otro. undefined = no hay ninguno: sigue el camino normal.
+function _gastoAlRecibirSinRepetir(p) {
+  if (p.estado_pago && p.estado_pago !== 'pagado') return undefined;
+  if ((parseFloat(p.pagado_importe) || 0) > 0.005) return undefined;
+  var hermanos = p.grupo ? (DB.pedidos || []).filter(function (x) { return x.grupo === p.grupo; }) : [p];
+  var imp = (parseFloat(p.total_real) || 0) > 0 ? parseFloat(p.total_real)
+    : Math.round(hermanos.reduce(function (a, x) { return a + (parseFloat(x.importe) || 0); }, 0) * 100) / 100;
+  if (!(imp > 0) || !_normProv(p.proveedor)) return undefined;
+  var g = _gastoRepetido(imp, hoyLocal(), p.proveedor);
+  if (!g || !g.meta || (g.meta.origen !== 'tpv' && g.meta.origen !== 'caja') || g.meta.pedido) return undefined;
+  if (_normProv(g.proveedor_nombre) !== _normProv(p.proveedor)) return undefined;
+  g.meta.pedido = p.grupo || p.id;
+  if (SB_KEY && TIENDA_ID) sbPatch('gastos', 'id=eq.' + encodeURIComponent(g.id), { meta: g.meta });
+  if (p.grupo) { try { _marcarGrupoGasto(p.grupo, g.id); } catch (e) {} }
+  try { toast(T('gdup.enlazado').replace('{imp}', cur(parseFloat(g.importe) || 0)).replace('{o}', _gastoOrigenTxt(g)), 'ok', 6000); } catch (e) {}
+  return g.id;
 }
 
 // ═══ DEUDA A PROVEEDORES (pedidos pendientes/financiados) ═══
@@ -3316,8 +3341,10 @@ function abrirPagosProveedor() {
   document.body.appendChild(ov);
 }
 // Aplica el pago FIFO (más antiguos primero) a los pedidos pendientes + crea el gasto del pago real
-function registrarPagoProveedor(prov, importe) {
+function registrarPagoProveedor(prov, importe, sinAviso) {
   if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var _rep = sinAviso ? null : _gastoRepetido(importe, hoyLocal(), prov === _SIN_PROV ? '' : prov);
+  if (_rep) { confirmar(_avisoRepetidoTxt(_rep), function () { registrarPagoProveedor(prov, importe, true); }, { okLabel: T('gdup.guardar_igual') }); return; }
   var pend = (DB.pedidos || []).filter(function (p) {
     if (!p.estado_pago || p.estado_pago === 'pagado') return false;
     if ((parseFloat(p.importe) || 0) - (parseFloat(p.pagado_importe) || 0) <= 0.005) return false;
@@ -3341,7 +3368,8 @@ function registrarPagoProveedor(prov, importe) {
     concepto: (T('pedidos.concepto_pago_prov') || 'Pago a proveedor') + (prov && prov !== _SIN_PROV ? ' — ' + prov : ''),
     importe: Math.round(importe * 100) / 100, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Stock/Compras',
     iva_tipo: 21, proveedor_id: null, proveedor_nombre: (prov === _SIN_PROV ? null : prov), proveedor_nif: null, numero_factura: null,
-    metodo_pago: 'transferencia'
+    metodo_pago: 'transferencia',
+    meta: _gastoMeta('pago_proveedor')
   };
   DB.gastos = DB.gastos || [];
   DB.gastos.push(g);
@@ -5329,6 +5357,52 @@ async function eliminarGastoCaja(id) {
 }
 window.eliminarGastoCaja = eliminarGastoCaja;
 
+// ═══ GASTOS SIN REPETIR ═══
+// Un mismo pago puede entrar por cuatro sitios (Gastos, Cajas, el TPV y los pedidos). Cada
+// gasto guarda en meta de dónde viene y quién lo apuntó, y antes de crear uno se mira si ya
+// hay otro que parezca el mismo: mismo importe el mismo día, o mismo proveedor e importe
+// parecido en 3 días. No se bloquea (puede ser otro pago de verdad): se avisa.
+function _gastoMeta(origen, extra) {
+  var m = { origen: origen, por: (typeof U !== 'undefined' && U && (U.nombre || U.email)) || '' };
+  if (extra) Object.keys(extra).forEach(function (k) { m[k] = extra[k]; });
+  return m;
+}
+window._gastoMeta = _gastoMeta;
+function _normProv(x) { return String(x || '').trim().toLowerCase().replace(/\s+/g, ' '); }
+function _gastoRepetido(importe, fecha, proveedor, excluirId) {
+  var imp = Math.round((parseFloat(importe) || 0) * 100) / 100;
+  if (!(imp > 0)) return null;
+  var f = String(fecha || hoyLocal()).slice(0, 10), t0 = Date.parse(f + 'T12:00:00');
+  var pv = _normProv(proveedor);
+  return (DB.gastos || []).find(function (g) {
+    if (!g || g.id === excluirId) return false;
+    var gi = Math.round((parseFloat(g.importe) || 0) * 100) / 100;
+    var gf = String(g.fecha || '').slice(0, 10);
+    if (gf === f && Math.abs(gi - imp) <= 0.01) return true;
+    if (pv && _normProv(g.proveedor_nombre) === pv) {
+      var dias = Math.abs(Date.parse(gf + 'T12:00:00') - t0) / 86400000;
+      return dias <= 3 && Math.abs(gi - imp) <= Math.max(0.01, imp * 0.01);
+    }
+    return false;
+  }) || null;
+}
+window._gastoRepetido = _gastoRepetido;
+function _gastoOrigenTxt(g) {
+  var m = g && g.meta;
+  if (!m || !m.origen) return '';
+  var lbl = T('gorig.' + m.origen);
+  if (!lbl || lbl === 'gorig.' + m.origen) lbl = m.origen;
+  return lbl + (m.por ? ' · ' + m.por : '');
+}
+window._gastoOrigenTxt = _gastoOrigenTxt;
+// Texto del aviso: «Ya hay un gasto de 45 € el 30/10: "Pedido fundas" (Desde el TPV · Ana). ¿Es otro distinto?»
+function _avisoRepetidoTxt(g) {
+  var o = _gastoOrigenTxt(g);
+  return T('gdup.aviso').replace('{imp}', cur(parseFloat(g.importe) || 0)).replace('{f}', fmtFecha(g.fecha))
+    .replace('{c}', g.concepto || '').replace('{o}', o ? ' (' + o + ')' : '');
+}
+window._avisoRepetidoTxt = _avisoRepetidoTxt;
+
 async function crearGastoCaja(d) {
   var g = {
     id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
@@ -5339,8 +5413,9 @@ async function crearGastoCaja(d) {
     estado: 'Pagado',
     categoria: d.categoria || 'Caja',
     iva_tipo: 0,
-    proveedor_id: null, proveedor_nombre: null,
-    metodo_pago: 'efectivo'
+    proveedor_id: null, proveedor_nombre: d.proveedor || null,
+    metodo_pago: 'efectivo',
+    meta: _gastoMeta('caja')
   };
   DB.gastos = DB.gastos || [];
   DB.gastos.push(g);
@@ -5823,7 +5898,7 @@ function pagarVencidos() {
   total = Math.round(total * 100) / 100;
   if (total <= 0.005) { toast(T('debes.sin_vencidos'), 'ok'); return; }
   if (!confirm(T('debes.pagar_vencidos_confirm').replace('{i}', cur(total)))) return;
-  Object.keys(provTotales).forEach(function(prov) { try { registrarPagoProveedor(prov, Math.round(provTotales[prov] * 100) / 100); } catch (e) {} });
+  Object.keys(provTotales).forEach(function(prov) { try { registrarPagoProveedor(prov, Math.round(provTotales[prov] * 100) / 100, true); } catch (e) {} });
   gastoIds.forEach(function(id) { var g = (DB.gastos || []).find(function(x) { return x.id === id; }); if (g) { g.estado = 'Pagado'; if (SB_KEY && TIENDA_ID) sbPatch('gastos', 'id=eq.' + encodeURIComponent(id), { estado: 'Pagado' }); } });
   try { guardarDatos(); } catch (e) {}
   try { renderGastos(); } catch (e) {}
@@ -18923,7 +18998,8 @@ function renderGastos() {
     }
     var editBtn = '<button class="btn-sm" onclick="editarGasto(\'' + g.id + '\')" title="' + T('gen.editar') + '" style="background:#F3F4F6;color:#111;padding:4px 8px;font-size:11px">✏️</button> ';
     var delBtn = '<button class="btn-sm" onclick="eliminarGasto(\'' + g.id + '\')" title="' + T('gen.eliminar') + '" style="background:transparent;color:var(--red);padding:4px 6px;font-size:11px;border:1px solid var(--red)">🗑</button> ';
-    return '<td style="' + (indent ? 'padding-left:24px' : '') + '">' + esc(g.concepto || '') + '</td>' +
+    var _orig = _gastoOrigenTxt(g);
+    return '<td style="' + (indent ? 'padding-left:24px' : '') + '">' + esc(g.concepto || '') + (_orig ? '<div style="font-size:10.5px;color:var(--muted,#64748B)">' + esc(_orig) + '</div>' : '') + '</td>' +
       '<td><span class="badge bb">' + esc(cat) + '</span></td>' +
       '<td>' + fmtFecha(g.fecha) + '</td>' +
       '<td>' + ivaT + '%</td>' +
@@ -19348,8 +19424,13 @@ function guardarGasto() {
     proveedor_nombre: proveedor_nombre || null,
     proveedor_nif: proveedor_nif || null,
     numero_factura: numero_factura || null,
-    metodo_pago: metodo_pago
+    metodo_pago: metodo_pago,
+    meta: _gastoMeta('gastos')
   };
+  // ¿Ya está apuntado desde el TPV, Cajas o un pedido? Se avisa antes de guardar.
+  var _repG = window._gastoRepAceptado ? null : _gastoRepetido(g.importe, g.fecha, g.proveedor_nombre);
+  window._gastoRepAceptado = false;
+  if (_repG) { confirmar(_avisoRepetidoTxt(_repG), function () { window._gastoRepAceptado = true; guardarGasto(); }, { okLabel: T('gdup.guardar_igual') }); return; }
   DB.gastos.push(g);
   guardarDatos();
   if (SB_KEY && TIENDA_ID) sbPost('gastos', g);
