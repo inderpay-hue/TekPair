@@ -2798,18 +2798,18 @@ function abrirGastoCaja() {
   var bg = document.createElement('div');
   bg.id = '_gcBg';
   bg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
-  var inp = 'width:100%;padding:11px;border:1px solid #E5E7EB;border-radius:9px;font:inherit;font-size:16px;margin:4px 0 12px;box-sizing:border-box';
-  bg.innerHTML = '<div style="background:#fff;color:#0F172A;border-radius:14px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3)">' +
+  var inp = 'width:100%;padding:11px;border:1px solid var(--t-bd,#E5E7EB);background:var(--t-surf2,#fff);color:var(--t-ink,#0F172A);border-radius:9px;font:inherit;font-size:16px;margin:4px 0 12px;box-sizing:border-box';
+  bg.innerHTML = '<div style="background:var(--t-modal,#fff);color:var(--t-ink,#0F172A);border:1px solid var(--t-bd,transparent);border-radius:14px;max-width:420px;width:100%;max-height:90vh;overflow-y:auto;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3)">' +
     '<div style="font-size:17px;font-weight:800;margin-bottom:4px">💸 ' + escHtmlTpv(T('tpvg.titulo')) + '</div>' +
-    '<div style="font-size:12.5px;color:#64748B;margin-bottom:12px">' + escHtmlTpv(T('tpvg.ayuda')) + '</div>' +
+    '<div style="font-size:12.5px;color:var(--t-mut,#64748B);margin-bottom:12px">' + escHtmlTpv(T('tpvg.ayuda')) + '</div>' +
     '<div id="_gcPed" style="margin-bottom:12px"></div>' +
     '<label style="font-size:12px;font-weight:700">' + escHtmlTpv(T('tpvg.importe')) + '</label><input id="_gcImp" inputmode="decimal" placeholder="0,00" style="' + inp + '">' +
     '<label style="font-size:12px;font-weight:700">' + escHtmlTpv(T('tpvg.concepto')) + '</label><input id="_gcCon" maxlength="120" placeholder="' + escHtmlTpv(T('tpvg.concepto_ph')) + '" style="' + inp + '">' +
     '<label style="font-size:12px;font-weight:700">' + escHtmlTpv(T('tpvg.proveedor')) + '</label><input id="_gcPro" maxlength="80" style="' + inp + '">' +
     '<div id="_gcAviso" style="display:none;font-size:12.5px;padding:9px 11px;border-radius:9px;background:rgba(245,158,11,.14);color:#92400E;margin-bottom:10px"></div>' +
     '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">' +
-      '<button id="_gcNo" style="padding:10px 16px;border:1px solid #E5E7EB;background:transparent;border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + escHtmlTpv(T('gen.cancelar') || 'Cancelar') + '</button>' +
-      '<button id="_gcOk" style="padding:10px 16px;border:none;background:#EF4444;color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:800">' + escHtmlTpv(T('tpvg.guardar')) + '</button>' +
+      '<button id="_gcNo" style="padding:10px 16px;border:1px solid var(--t-bd,#E5E7EB);background:transparent;color:var(--t-ink,inherit);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + escHtmlTpv(T('gen.cancelar') || 'Cancelar') + '</button>' +
+      '<button id="_gcOk" style="padding:10px 16px;border:none;background:var(--t-acc,#EF4444);color:var(--t-cobink,#fff);border-radius:9px;cursor:pointer;font:inherit;font-weight:800">' + escHtmlTpv(T('tpvg.guardar')) + '</button>' +
     '</div></div>';
   document.body.appendChild(bg);
   var $ = function (id) { return document.getElementById(id); };
@@ -2844,10 +2844,10 @@ function abrirGastoCaja() {
     cont.innerHTML = '<div style="font-size:12px;font-weight:800;margin-bottom:6px">' + escHtmlTpv(T('tpvg.es_pedido')) + '</div>' +
       provs.map(function (pr) {
         var sel = pedidoProv === pr;
-        return '<button type="button" class="_gcPedBtn" data-p="' + escHtmlTpv(pr) + '" style="display:flex;justify-content:space-between;width:100%;margin-bottom:6px;padding:9px 11px;border-radius:9px;cursor:pointer;font:inherit;font-size:13px;border:' + (sel ? '2px solid #EF4444;background:rgba(239,68,68,.06)' : '1px solid #E5E7EB;background:#fff') + '">' +
+        return '<button type="button" class="_gcPedBtn" data-p="' + escHtmlTpv(pr) + '" style="display:flex;justify-content:space-between;width:100%;margin-bottom:6px;padding:9px 11px;border-radius:9px;cursor:pointer;font:inherit;font-size:13px;color:var(--t-ink,inherit);border:' + (sel ? '2px solid var(--t-acc,#EF4444);background:var(--t-surf2,rgba(239,68,68,.06))' : '1px solid var(--t-bd,#E5E7EB);background:var(--t-surf2,#fff)') + '">' +
           '<span>🚚 ' + escHtmlTpv(pr) + '</span><strong>' + escHtmlTpv(T('tpvg.debes').replace('{i}', d[pr].toFixed(2))) + '</strong></button>';
       }).join('') +
-      '<div style="font-size:11.5px;color:#64748B">' + escHtmlTpv(pedidoProv ? T('tpvg.pedido_elegido') : T('tpvg.no_es_pedido')) + '</div>';
+      '<div style="font-size:11.5px;color:var(--t-mut,#64748B)">' + escHtmlTpv(pedidoProv ? T('tpvg.pedido_elegido') : T('tpvg.no_es_pedido')) + '</div>';
     cont.querySelectorAll('._gcPedBtn').forEach(function (b) {
       b.onclick = function () {
         var pr = b.getAttribute('data-p');
