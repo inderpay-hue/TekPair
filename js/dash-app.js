@@ -4534,6 +4534,7 @@ async function cargarDatosSupabase() {
       var cus = await sbGetAll('compras_usados', 'tienda_id=eq.' + TIENDA_ID);
       if (Array.isArray(cus)) DB.comprasUsados = cus.map(function(c) { if (c.firma) _usFirmas[c.id] = c.firma; delete c.firma; return c; });
     } catch (e) {}
+    window._datosNube = true;   // para la bienvenida: ya se sabe si la tienda tiene datos
     guardarDatos();
     // Aplicar plantillas de gastos recurrentes que toquen
     try { aplicarGastosRecurrentes(); } catch(e) { console.warn('Aplicar recurrentes:', e); }
@@ -5703,6 +5704,75 @@ function renderProximaAccion() {
     '</div>';
   box.style.display = 'block';
 }
+// ── Primeros pasos (tiendas en prueba): 4 pasos para dejar la tienda lista. Solo admin.
+// Se marca solo cada paso con los datos reales; al completar los 4 (u «Ocultar»)
+// deja de salir. La bienvenida sale una vez, con los datos de la nube ya cargados,
+// a quien entra y aún no tiene nada.
+function _pasosKey(k) { return 'tk_' + k + '_' + (TIENDA_ID || ''); }
+function _pasosEstado() {
+  var t = {}; try { t = JSON.parse(localStorage.getItem('tk_tienda') || '{}') || {}; } catch (e) {}
+  return [
+    { k: 'tienda', ok: !!(t.nombre && t.tel && t.dir), fn: "navTo('pTienda')" },
+    { k: 'producto', ok: (DB.stock || []).length > 0, fn: "navTo('pStock');setTimeout(nuevoStock,150)" },
+    { k: 'reparacion', ok: (DB.reps || []).length > 0, fn: 'abrirRep()' },
+    { k: 'venta', ok: (DB.ventas || []).length > 0, fn: 'abrirVenta()' }
+  ];
+}
+function _pasosVisibles() {
+  if (!_esAdmin() || PLAN_INFO.status !== 'trial') return false;
+  try { if (localStorage.getItem(_pasosKey('pasos_ocultos'))) return false; } catch (e) {}
+  return true;
+}
+function renderPrimerosPasos() {
+  var box = document.getElementById('primerosPasos'); if (!box) return;
+  var pasos = _pasosEstado(), hechos = pasos.filter(function (p) { return p.ok; }).length;
+  if (!_pasosVisibles() || hechos === pasos.length) {
+    if (hechos === pasos.length && box.style.display === 'block') toast(T('pasos.completo'), 'ok');
+    box.style.display = 'none'; box.innerHTML = ''; return;
+  }
+  var sig = pasos.filter(function (p) { return !p.ok; })[0];
+  box.innerHTML = '<div style="background:var(--card,#fff);border:1px solid var(--border);border-left:5px solid var(--orange,#EA580C);border-radius:12px;padding:16px 18px;margin-bottom:16px">' +
+    '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="font-size:15px;font-weight:800;color:var(--text);flex:1">🚀 ' + esc(T('pasos.titulo')) + '</span>' +
+    '<span style="font-size:12px;font-weight:700;color:var(--muted)">' + esc(T('pasos.progreso').replace('{n}', hechos).replace('{t}', pasos.length)) + '</span>' +
+    '<button onclick="ocultarPrimerosPasos()" style="border:1px solid var(--border);background:var(--light);color:var(--text);border-radius:8px;padding:4px 9px;font:inherit;font-size:11.5px;font-weight:700;cursor:pointer">' + esc(T('pasos.ocultar')) + '</button></div>' +
+    '<div style="height:6px;background:var(--light);border-radius:999px;overflow:hidden;margin-bottom:12px"><div style="height:100%;width:' + Math.round(hechos / pasos.length * 100) + '%;background:var(--orange,#EA580C)"></div></div>' +
+    pasos.map(function (p) {
+      var actual = sig && p.k === sig.k;
+      return '<div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--border)">' +
+        '<span style="flex:0 0 22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;' + (p.ok ? 'background:var(--green,#16A34A);color:#fff' : 'border:2px solid var(--border);color:var(--muted)') + '">' + (p.ok ? '✓' : '') + '</span>' +
+        '<div style="flex:1;min-width:0"><div style="font-size:13.5px;font-weight:700;color:var(--text);' + (p.ok ? 'text-decoration:line-through;opacity:.6' : '') + '">' + esc(T('pasos.' + p.k + '_t')) + '</div>' +
+        (p.ok ? '' : '<div style="font-size:12px;color:var(--muted);line-height:1.35">' + esc(T('pasos.' + p.k + '_s')) + '</div>') + '</div>' +
+        (p.ok ? '' : '<button onclick="' + p.fn + '" style="flex:0 0 auto;border:' + (actual ? 'none' : '1px solid var(--border)') + ';background:' + (actual ? 'var(--orange,#EA580C)' : 'var(--card,#fff)') + ';color:' + (actual ? '#fff' : 'var(--text)') + ';border-radius:8px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer">' + esc(T('pasos.' + p.k + '_cta')) + '</button>') +
+        '</div>';
+    }).join('') + '</div>';
+  box.style.display = 'block';
+}
+function ocultarPrimerosPasos() {
+  try { localStorage.setItem(_pasosKey('pasos_ocultos'), '1'); } catch (e) {}
+  renderPrimerosPasos();
+  toast(T('pasos.ocultado'), 'ok');
+}
+function mostrarBienvenida() {
+  if (!_pasosVisibles() || !window._datosNube || document.getElementById('mBienvenida')) return;
+  try { if (localStorage.getItem(_pasosKey('bienvenida'))) return; } catch (e) { return; }
+  var pasos = _pasosEstado();
+  if (pasos.some(function (p) { return p.ok && p.k !== 'tienda'; })) return;   // ya ha empezado a usarlo
+  try { localStorage.setItem(_pasosKey('bienvenida'), '1'); } catch (e) {}
+  var dias = PLAN_INFO.trial_until ? Math.max(1, Math.ceil((new Date(PLAN_INFO.trial_until) - new Date()) / 86400000)) : 15;
+  var nom = (U && U.nombre) ? U.nombre.split(' ')[0] : '';
+  var ov = document.createElement('div');
+  ov.id = 'mBienvenida';
+  ov.style.cssText = 'position:fixed;inset:0;z-index:10050;background:rgba(0,0,0,.55);display:flex;align-items:center;justify-content:center;padding:16px';
+  var cerrar = "document.getElementById('mBienvenida').remove()";
+  ov.innerHTML = '<div style="background:var(--card,#fff);color:var(--text);border:1px solid var(--border);border-radius:16px;max-width:440px;width:100%;padding:24px;box-shadow:0 20px 50px rgba(0,0,0,.3)">' +
+    '<div style="font-size:21px;font-weight:800;margin-bottom:6px">👋 ' + esc(T('pasos.bienv_t').replace('{n}', nom ? ', ' + nom : '')) + '</div>' +
+    '<div style="font-size:14px;color:var(--muted);line-height:1.5;margin-bottom:14px">' + esc(T('pasos.bienv_s').replace('{d}', dias)) + '</div>' +
+    pasos.map(function (p, i) { return '<div style="display:flex;gap:10px;align-items:center;padding:7px 0;font-size:14px;font-weight:600"><span style="flex:0 0 24px;height:24px;border-radius:50%;background:var(--light);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800;color:var(--orange,#EA580C)">' + (i + 1) + '</span>' + esc(T('pasos.' + p.k + '_t')) + '</div>'; }).join('') +
+    '<div style="font-size:12.5px;color:var(--muted);margin:12px 0 16px;line-height:1.45">' + esc(T('pasos.bienv_ayuda')) + '</div>' +
+    '<div style="display:flex;gap:8px;flex-wrap:wrap"><button onclick="' + cerrar + ';' + pasos[0].fn + '" style="flex:1 1 200px;border:none;background:var(--orange,#EA580C);color:#fff;border-radius:10px;padding:12px 16px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">' + esc(T('pasos.bienv_empezar')) + '</button>' +
+    '<button onclick="' + cerrar + '" style="flex:0 1 auto;border:1px solid var(--border);background:transparent;color:var(--text);border-radius:10px;padding:12px 16px;font:inherit;font-size:14px;font-weight:700;cursor:pointer">' + esc(T('pasos.bienv_luego')) + '</button></div></div>';
+  document.body.appendChild(ov);
+}
 // Posponer "lo más urgente" un rato o darlo por hecho. Va por clave (incluye el caso
 // concreto), así que si la situación cambia vuelve a salir con otra clave.
 function _proxMenu() { var m = document.getElementById('proxMenu'); if (m) m.style.display = m.style.display === 'flex' ? 'none' : 'flex'; }
@@ -6148,6 +6218,7 @@ function renderInicioNuevo() {
   try { _probarColCobrado(); } catch (e) {}
   try { if (window._cobrosPend === undefined) cargarConfirmacionesPend(); else renderConfirmacionesPend(); } catch (e) {}
   try { renderInicioChips(); } catch (e) {}
+  try { renderPrimerosPasos(); mostrarBienvenida(); } catch (e) {}
   try { renderProximaAccion(); } catch (e) {}
   try { actualizarSidebarExtra(); } catch (e) {}
   function _st(id, v) { var e = document.getElementById(id); if (e) e.textContent = v; }

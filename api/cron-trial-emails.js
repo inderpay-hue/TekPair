@@ -535,7 +535,17 @@ export function _evaluarTienda(t, now) {
     }
   }
 
-  // Caso 2: lleva justo 3, 7, 14 o 30 días sin abrir la aplicación.
+  // Caso 2: tercer día de prueba, entra pero no ha creado nada. Es el momento de
+  // escribirle: aún está mirando y no sabe por dónde empezar. Si no entra, ya lo
+  // cubre el caso 3 (días sin entrar).
+  if (t.plan_status === 'trial' && sinUso && t.creada) {
+    const diasAlta = Math.floor((now.getTime() - new Date(t.creada).getTime()) / 86400000);
+    if (diasAlta === 3 && dias < 3) {
+      return { tipo: 'sin_empezar', dias, sinUso, detalle: '3 días de prueba: entra, pero aún no ha creado nada' };
+    }
+  }
+
+  // Caso 3: lleva justo 3, 7, 14 o 30 días sin abrir la aplicación.
   // A partir del mes se recuerda cada 30 días en vez de callar para siempre: un cliente
   // que paga y lleva medio año sin entrar sigue siendo una baja esperando a ocurrir, y
   // con la lista fija de umbrales dejaba de aparecer en cuanto se pasaba de 30.
@@ -556,7 +566,7 @@ async function avisarInactividad(SUPABASE_URL, headers, RESEND_KEY, now) {
   const q = (path, extra) => fetch(`${SUPABASE_URL}/rest/v1/${path}`, { headers: { ...headers, ...(extra || {}) } });
 
   const [tr, ur] = await Promise.all([
-    q('tiendas?select=id,nombre,plan,plan_status,trial_until,email'),
+    q('tiendas?select=id,nombre,plan,plan_status,trial_until,email,telefono'),
     q('usuarios?select=tienda_id,email,rol,ultimo_acceso,created_at'),
   ]);
   if (!tr.ok || !ur.ok) return { avisos: 0, enviado: false, error: 'consulta' };
@@ -602,15 +612,16 @@ async function avisarInactividad(SUPABASE_URL, headers, RESEND_KEY, now) {
 
       avisos.push({
         nombre: t.nombre || '(sin nombre)', email: emailDueno || '—',
-        plan: t.plan || '—', estado: t.plan_status || '—',
+        plan: t.plan || '—', estado: t.plan_status || '—', tel: t.telefono || '',
         reps, ventas, ...ev
       });
     } catch (e) { console.error('[alertas] tienda', t.id, e.message); }
   }
 
   if (!avisos.length) return { avisos: 0, enviado: false };
-  // Los cobros inminentes primero: son los únicos con fecha límite.
-  avisos.sort((a, b) => (a.tipo === b.tipo ? b.dias - a.dias : a.tipo === 'cobro_sin_uso' ? -1 : 1));
+  // Los cobros inminentes primero (tienen fecha límite), luego las pruebas sin empezar.
+  const ORDEN = { cobro_sin_uso: 0, sin_empezar: 1, inactiva: 2 };
+  avisos.sort((a, b) => (ORDEN[a.tipo] - ORDEN[b.tipo]) || (b.dias - a.dias));
 
   const enviado = await enviarAvisoInterno(avisos, DESTINO, RESEND_KEY);
   return { avisos: avisos.length, enviado };
@@ -632,6 +643,7 @@ async function enviarAvisoInterno(avisos, destino, RESEND_KEY) {
       </td>
       <td style="padding:10px 12px;border-bottom:1px solid #eee;text-align:right;white-space:nowrap">
         ${a.reps} rep · ${a.ventas} ventas
+        ${String(a.tel || '').replace(/\D/g, '') ? `<br><a href="https://wa.me/${String(a.tel).replace(/\D/g, '')}" style="color:#16A34A;font-weight:700;font-size:12px;text-decoration:none">💬 WhatsApp</a>` : ''}
       </td>
     </tr>`;
   }).join('');
@@ -659,9 +671,11 @@ async function enviarAvisoInterno(avisos, destino, RESEND_KEY) {
   <p style="color:#475569;font-size:13px;margin-top:20px">
     Una llamada de media hora montándole el taller vale más que cualquier correo automático.
     Los marcados en rojo tienen un cobro a tres días vista y el taller todavía vacío.
+    Los que llevan 3 días de prueba sin crear nada están mirando y no saben por dónde
+    empezar: es el mejor momento para escribirles.
   </p>
   <p style="color:#94A3B8;font-size:11px;border-top:1px solid #eee;padding-top:12px;margin-top:18px">
-    Avisa a los 3, 7, 14 y 30 días sin entrar. Para dejar fuera tus propias tiendas,
+    Avisa al tercer día de prueba si no ha creado nada, y a los 3, 7, 14 y 30 días sin entrar. Para dejar fuera tus propias tiendas,
     pon sus emails en la variable ALERTAS_IGNORAR (separados por comas).
   </p>
 </body></html>`

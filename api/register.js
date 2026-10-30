@@ -95,6 +95,7 @@ export default async function handler(req, res) {
     // no se exige: si por lo que sea llegara vacío, el alta no debe romperse — el
     // cliente ya ha pagado a estas alturas.
     let telefono = String(req.body.tel || '').trim().slice(0, 20) || null;
+    let origen = null;   // «¿Cómo nos has conocido?» (metadata de Stripe)
     let trialUntil = null;
     let planUntil = null;
 
@@ -116,6 +117,7 @@ export default async function handler(req, res) {
           if (session.metadata.plan) plan = session.metadata.plan;
           if (session.metadata.ref) refCode = String(session.metadata.ref).replace(/[^A-Za-z0-9]/g, '').toUpperCase().slice(0, 16);
           if (session.metadata.tel && !telefono) telefono = String(session.metadata.tel).slice(0, 20);
+          if (session.metadata.origen) origen = String(session.metadata.origen).replace(/[^a-z]/g, '').slice(0, 20);
         }
         // Fallback adicional: customer_email del Checkout si el metadata no lo tenía
         if (!email && session.customer_email) email = session.customer_email;
@@ -234,6 +236,18 @@ export default async function handler(req, res) {
       return res.status(500).json({
         error: 'No se pudo crear la tienda. Contacta soporte.'
       });
+    }
+
+    // «¿Cómo nos has conocido?»: aparte del alta, para que si falta la columna
+    // (sql/2026-10-30_tiendas_origen.sql) el registro no se rompa.
+    if (origen) {
+      try {
+        await fetch(`${SUPABASE_URL}/rest/v1/tiendas?id=eq.${encodeURIComponent(tienda_id)}`, {
+          method: 'PATCH',
+          headers: { 'apikey': SERVICE_KEY, 'Authorization': `Bearer ${SERVICE_KEY}`, 'Content-Type': 'application/json', 'Prefer': 'return=minimal' },
+          body: JSON.stringify({ origen })
+        });
+      } catch (e) { console.warn('[alta] origen no guardado:', e.message); }
     }
 
     // ═══ 4. Crear usuario admin ═══
@@ -415,7 +429,7 @@ export default async function handler(req, res) {
     // Va al final y con su propio try/catch: si esto fallara, el cliente ya está
     // dado de alta y no puede enterarse de nada.
     try {
-      await avisarAltaNueva({ nombre, email, telefono, tienda_nombre: tiendaData.nombre, plan, trialUntil, refCode, refOrigen, RESEND_KEY });
+      await avisarAltaNueva({ nombre, email, telefono, tienda_nombre: tiendaData.nombre, plan, trialUntil, refCode, refOrigen, origen, RESEND_KEY });
     } catch (e) { console.error('[alta] aviso al dueño (no bloqueante):', e.message); }
 
     return res.json({ ok: true, tienda_id, tempPass, sessionToken, nombre });
@@ -440,6 +454,7 @@ export default async function handler(req, res) {
 // uno que huele a robot: aquí lo que hace falta es que contesten.
 //
 // ALERTAS_EMAIL cambia el destinatario (por defecto info@tekpair.tech).
+const ORIGEN_TXT = { google: 'Google', instagram: 'Instagram', tiktok: 'TikTok', youtube: 'YouTube', facebook: 'Facebook', comercial: 'Un comercial', recomendacion: 'Recomendación de otra tienda', otro: 'Otro' };
 async function avisarAltaNueva(d) {
   if (!d.RESEND_KEY) { console.warn('[alta] sin RESEND_API_KEY, no se avisa'); return; }
   const destino = process.env.ALERTAS_EMAIL || 'info@tekpair.tech';
@@ -469,6 +484,7 @@ async function avisarAltaNueva(d) {
     <tr><td style="padding:7px 0;color:#64748B">Teléfono</td><td style="padding:7px 0"><b>${esc(d.telefono) || '<span style="color:#B91C1C">no lo dejó</span>'}</b></td></tr>
     <tr><td style="padding:7px 0;color:#64748B">Plan</td><td style="padding:7px 0">${esc(planLabel)}</td></tr>
     <tr><td style="padding:7px 0;color:#64748B">Primer cobro</td><td style="padding:7px 0">${esc(cobro)}</td></tr>
+    <tr><td style="padding:7px 0;color:#64748B">Nos conoció por</td><td style="padding:7px 0"><b>${esc(ORIGEN_TXT[d.origen] || 'no lo dijo')}</b></td></tr>
     ${d.refCode ? `<tr><td style="padding:7px 0;color:#64748B">Código</td><td style="padding:7px 0"><b>${esc(d.refCode)}</b> (${esc(d.refOrigen || 'comercial')})</td></tr>` : ''}
   </table>
   ${enlaceWa ? `<a href="${enlaceWa}" style="display:block;background:#25D366;color:#fff;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;margin:22px 0 10px">💬 Escribirle por WhatsApp</a>

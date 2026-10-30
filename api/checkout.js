@@ -153,6 +153,9 @@ export default async function handler(req, res) {
     // la base de datos; lo guarda register.js al volver de la pasarela.
     const telReg = normalizarTel(req.body.tel);
     if (telReg) params.append('metadata[tel]', telReg);
+    // «¿Cómo nos has conocido?» (opcional): solo valores de la lista.
+    const origen = String(req.body.origen || '');
+    if (ORIGENES_REGISTRO.includes(origen)) params.append('metadata[origen]', origen);
     // #B10: registro del consentimiento (timestamp + versión) para RGPD.
     if (req.body.consent_ts) params.append('metadata[consent_ts]', String(req.body.consent_ts).slice(0, 40));
     if (req.body.consent_ver) params.append('metadata[consent_ver]', String(req.body.consent_ver).slice(0, 40));
@@ -332,6 +335,8 @@ async function buscarPromo(codigo, STRIPE_KEY) {
   }
   return null;
 }
+
+export const ORIGENES_REGISTRO = ['google', 'instagram', 'tiktok', 'youtube', 'facebook', 'comercial', 'recomendacion', 'otro'];
 
 // Deja el teléfono en un formato con el que se pueda escribir por WhatsApp.
 // Se conserva el '+' inicial porque sin prefijo no se sabe de qué país es, y
