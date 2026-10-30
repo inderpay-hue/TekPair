@@ -707,6 +707,10 @@ async function solicitudDistribuidor(b, ip) {
   </table>
   ${tel ? `<a href="https://wa.me/${tel}" style="display:block;background:#25D366;color:#fff;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;margin:22px 0 10px">💬 Escribirle por WhatsApp</a>` : ''}
   <p style="font-size:13px;color:#475569;border-top:1px solid #eee;padding-top:14px">
+    <b>Condiciones para explicarle</b> (la página ya no las muestra): 20 % de cada pago sin IVA y sin la comisión de Stripe,
+    todos los meses; el primer año sin mínimo; después, por trimestres, 3 altas o más suben un escalón (5 → 10 → 20 %) y menos lo bajan;
+    un año entero en el 5 % sin llegar a 3 altas da de baja el código; un alta cuenta con el primer pago real; cada comisión se cobra
+    desde el día 1 del segundo mes después del pago.<br><br>
     Si encaja, créale la cuenta en el panel: Comerciales → Crear comercial (con el código secreto).
     Respondiendo a este correo le escribes directamente.
   </p>
