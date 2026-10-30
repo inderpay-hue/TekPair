@@ -123,6 +123,7 @@
   function motivoNo(v) {
     if (!v) return 'vent.no_encontrada';
     if (devDe(v)) return 'dev.es_devolucion';
+    if (items(v).some(function (it) { return it && it.undev && it.undev.d; })) return 'dr.contraria_no';
     if (v.reembolsado) return 'ev.reembolsada_no';
     if (v.financiado) return 'dev.financiada';
     if (!items(v).length) return 'dev.sin_lineas';

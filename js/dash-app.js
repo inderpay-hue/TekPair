@@ -9047,7 +9047,10 @@ function renderVentas() {
       var _compF = (v.estadoFinanciado === 'completado') || (_cuoF.length > 0 && _nPagF >= _cuoF.length);
       badges += '<span class="badge-fin" style="background:' + (_compF ? 'rgba(0,200,150,.15)' : 'rgba(234,88,12,.12)') + ';color:' + (_compF ? '#0F7355' : '#C2491A') + '">' + (_compF ? '✅ ' + T('fin.completado') : '⏳ ' + T('finv.pendiente') + (_cuoF.length ? ' ' + _nPagF + '/' + _cuoF.length : '')) + '</span>';
     }
-    var btnR = (!v.reembolsado && !_esDev && !(_conDev && window.tkDevueltaEntera(v))) ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="' + escHtml(T('dev.titulo')) + '">' + _iv2ic('undo', 16) + '</button>' : '';
+    var _contra = _esContrariaV(v);
+    if (_contra) badges += '<span class="badge-reem" style="background:rgba(59,130,246,.12);color:#1D4ED8">↺ ' + T('dr.badge_contraria') + '</span>';
+    var btnU = _puedeDeshacerReem(v) ? '<button data-vid="' + v.id + '" class="row-btn btn-undo-reem" title="' + escHtml(T('dr.btn')) + '" style="font-weight:800">↺</button>' : '';
+    var btnR = (!v.reembolsado && !_esDev && !_contra && !(_conDev && window.tkDevueltaEntera(v))) ? '<button data-vid="' + v.id + '" data-action="del" class="row-btn btn-reem" title="' + escHtml(T('dev.titulo')) + '">' + _iv2ic('undo', 16) + '</button>' : '';
     var btnF = v.financiado && !v.reembolsado ? '<button data-vid="' + v.id + '" data-action="edit" class="row-btn btn-fin" title="' + escHtml(T('ventas.t_financiacion')) + '">' + _iv2ic('euro', 16) + '</button>' : '';
     var btnImpr = '<button data-vid="' + v.id + '" class="row-btn btn-impr-v" title="' + escHtml(T('ventas.t_reimprimir')) + '">' + _iv2ic('print', 16) + '</button>';
     var btnFact = (!v.reembolsado && !_esDev) ? '<button data-vid="' + v.id + '" data-action="fact" class="row-btn btn-fact-v" title="' + T('rep.title_generar_factura') + '">' + _iv2ic('doc', 16) + '</button>' : '';
@@ -9060,7 +9063,7 @@ function renderVentas() {
       '<td>' + esc(v.modelo) + '</td>' +
       '<td><span class="badge bb">' + esc(_pagoTxt(v)) + '</span></td>' +
       '<td style="color:' + (v.reembolsado || _esDev ? 'var(--red)' : 'var(--green)') + ';font-weight:700">' + (v.reembolsado || (parseFloat(v.total) || 0) < 0 ? '-' : '') + cur(Math.abs(parseFloat(v.total) || 0)) + '</td>' +
-      '<td style="display:flex;gap:3px">' + btnVer + btnR + btnF + btnFact + btnImpr + btnSeg + btnEdit + '</td></tr>';
+      '<td style="display:flex;gap:3px">' + btnVer + btnR + btnU + btnF + btnFact + btnImpr + btnSeg + btnEdit + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -9072,6 +9075,9 @@ function renderVentas() {
     // Devolver / cambiar: elegir líneas y unidades (js/devolucion.js). Sin líneas o financiada,
     // abrirDevolucion pasa a la devolución entera de siempre (reembolsarVenta).
     btn.addEventListener('click', function() { if (typeof window.abrirDevolucion === 'function') window.abrirDevolucion(this.dataset.vid); else reembolsarVenta(this.dataset.vid); });
+  });
+  el.querySelectorAll('.btn-undo-reem').forEach(function(btn) {
+    btn.addEventListener('click', function() { deshacerReembolso(this.dataset.vid); });
   });
   el.querySelectorAll('.btn-fin').forEach(function(btn) {
     btn.addEventListener('click', function() { verFinanciado(this.dataset.vid); });
@@ -9479,7 +9485,7 @@ function verDetalleVenta(vid) {
       return '<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:12.5px"><span><strong>' + esc(fmtFecha(h.f)) + '</strong> · ' + esc(h.lineas.join(', ')) +
         ' <span style="color:var(--muted)">(' + esc(h.m === 'Cambio' ? T('dev.metodo_cambio') : _pagoLbl(h.m)) + ')</span></span><strong style="color:var(--red);white-space:nowrap">-' + cur(h.imp) + '</strong></div>';
     }).join('') + '</div>' : '';
-  var _puedeDev = !v.reembolsado && !_esDev && !(window.tkDevueltaEntera && window.tkDevueltaEntera(v)) && tienePerm('ventas_reembolso');
+  var _puedeDev = !v.reembolsado && !_esDev && !_esContrariaV(v) && !(window.tkDevueltaEntera && window.tkDevueltaEntera(v)) && tienePerm('ventas_reembolso');
   var _cambioDisp = (_esDev && typeof window.tkCambioDisponible === 'function') ? window.tkCambioDisponible(v) : 0;
 
   var fila = function(lbl, val, fuerte) {
@@ -9499,6 +9505,7 @@ function verDetalleVenta(vid) {
       '<h3 style="margin:0;font-size:17px;font-weight:800">' + T('vent.ver_detalle') + '</h3>' +
       (v.reembolsado ? '<span class="badge" style="background:var(--red);color:#fff">' + T('vent.reembolsada') + '</span>' : '') +
       (_esDev ? '<span class="badge" style="background:var(--red);color:#fff">↩️ ' + T('dev.badge_devolucion') + '</span>' : '') +
+      (_esContrariaV(v) ? '<span class="badge" style="background:rgba(59,130,246,.12);color:#1D4ED8">↺ ' + T('dr.badge_contraria') + '</span>' : '') +
       (!_esDev && _hist.length ? '<span class="badge" style="background:rgba(245,158,11,.15);color:#B45309">' + T(window.tkDevueltaEntera(v) ? 'dev.badge_entera' : 'dev.badge_parcial') + '</span>' : '') +
     '</div>' +
     (_devO ? '<div style="font-size:12.5px;margin-bottom:4px">' + esc(T('dev.de_ticket').replace('{n}', _devO.n ? ('T' + String(_devO.f || '').slice(0, 4) + '-' + String(_devO.n).padStart(6, '0')) : fmtFecha(_devO.f))) + '</div>' : '') +
@@ -9520,6 +9527,7 @@ function verDetalleVenta(vid) {
     (_cambioDisp > 0 ? '<div style="margin-top:12px;font-size:12.5px;padding:8px 10px;border-radius:8px;background:rgba(59,130,246,.10)">' + esc(T('dev.cambio_pendiente').replace('{x}', cur(_cambioDisp))) + '</div>' : '') +
     '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">' +
       (_puedeDev ? '<button id="_dvDev" style="flex:1;min-width:130px;padding:10px 14px;border:none;background:#EF4444;color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">↩️ ' + T('dev.titulo') + '</button>' : '') +
+      (_puedeDeshacerReem(v) ? '<button id="_dvUndo" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid #EF4444;background:transparent;color:#EF4444;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">↺ ' + T('dr.btn') + '</button>' : '') +
       (_cambioDisp > 0 ? '<button id="_dvCambio" style="flex:1;min-width:130px;padding:10px 14px;border:none;background:var(--green,#10B981);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">🔁 ' + T('dev.ir_tpv') + '</button>' : '') +
       (!v.reembolsado && !_esDev ? '<button id="_dvFact" style="flex:1;min-width:130px;padding:10px 14px;border:none;background:var(--orange,#F97316);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + T('rep.title_generar_factura') + '</button>' : '') +
       '<button id="_dvTicket" style="flex:1;min-width:110px;padding:10px 14px;border:1px solid var(--border,#E5E7EB);background:transparent;color:var(--text,#334155);border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + T('ventas.t_reimprimir') + '</button>' +
@@ -9528,6 +9536,8 @@ function verDetalleVenta(vid) {
   );
   m.box.style.maxWidth = '520px';
 
+  var bUndo = m.box.querySelector('#_dvUndo');
+  if (bUndo) bUndo.onclick = function() { m.close(); deshacerReembolso(v.id); };
   var bDev = m.box.querySelector('#_dvDev');
   if (bDev) bDev.addEventListener('click', function() { m.close(); window.abrirDevolucion(vid); });
   var bCam = m.box.querySelector('#_dvCambio');
@@ -9707,6 +9717,7 @@ function reembolsarVenta(id) {
   // Una devolución no se reembolsa; y si ya hay devoluciones parciales, el reembolso entero
   // restaría otra vez lo ya devuelto: se sigue por «Devolver / cambiar» con lo que queda.
   if (_esDevV(v)) { toast(T('dev.es_devolucion'), 'err'); return; }
+  if (_esContrariaV(v)) { toast(T('dr.contraria_no'), 'err'); return; }
   if (_tieneDevV(v)) { if (typeof window.abrirDevolucion === 'function') window.abrirDevolucion(id); return; }
   confirmar(T('venta.reembolsar_confirm').replace('{cliente}', v.clienteNombre).replace('{total}', cur(v.total)), function () {
   if (v.reembolsado) return;   // por si se confirmó otro modal apilado antes que este
@@ -9784,6 +9795,111 @@ function _ofrecerAbonoPorVenta(ventaId) {
       }, { okLabel: T('fact.emitir_abono_2'), danger: true });
     }).catch(function() {});
 }
+
+// ═══ DESHACER REEMBOLSO / DEVOLUCIÓN (24 h, admin o permiso ventas_deshacer_reembolso) ═══
+// Lo comprueba y lo guarda el servidor (api/cajas.js?action=deshacer_reembolso): plazo, caja
+// del día cerrada, abono de la factura y «Cambio». Aquí: el botón, y con la respuesta, la venta
+// en local y el stock (se vuelve a descontar, igual que al vender).
+var DESHACER_REEM_MS = 24 * 3600 * 1000;
+function _esContrariaV(v) {
+  var its = v && v.items;
+  if (typeof its === 'string') { try { its = JSON.parse(its); } catch (e) { its = null; } }
+  return Array.isArray(its) && its.some(function(it) { return it && it.undev && it.undev.d; });
+}
+window.tkEsContraria = _esContrariaV;
+function _devOriginalDe(v) {
+  var its = Array.isArray(v && v.items) ? v.items : [];
+  for (var i = 0; i < its.length; i++) if (its[i] && its[i].dev && its[i].dev.v) return its[i].dev.v;
+  return null;
+}
+function _puedeDeshacerReem(v) {
+  if (!v || !tienePerm('ventas_deshacer_reembolso')) return false;
+  if (v.reembolsado) {
+    // El servidor mira la hora exacta (seguimiento); aquí basta con que sea de hoy o de ayer.
+    var f = String(v.fechaReembolso || '').slice(0, 10);
+    var ayer = new Date(Date.now() - 86400000); ayer = ayer.getFullYear() + '-' + String(ayer.getMonth() + 1).padStart(2, '0') + '-' + String(ayer.getDate()).padStart(2, '0');
+    return f === hoyLocal() || f === ayer;
+  }
+  if (!_esDevV(v) || v.pago === 'Cambio') return false;
+  var t = Date.parse(v.createdAt || '');
+  if (!isFinite(t) || Date.now() - t > DESHACER_REEM_MS) return false;
+  var oid = _devOriginalDe(v), o = oid ? DB.ventas.find(function(x) { return x.id === oid; }) : null;
+  if (!o) return true;   // la original no está en este equipo: que lo diga el servidor
+  return (Array.isArray(o.items) ? o.items : []).some(function(it) { return Array.isArray(it && it.devs) && it.devs.some(function(d) { return d && d.id === v.id; }); });
+}
+function _jwtCajas() {
+  try { var s = JSON.parse(localStorage.getItem('tk_sess') || '{}'); return s.jwt_token || s.jwt || JWT_TOKEN || ''; } catch (e) { return JWT_TOKEN || ''; }
+}
+// Vuelve a sacar del stock las unidades de unas líneas (las del reembolso o la devolución).
+function _volverADescontar(items, fallbackStockId, fallbackImei) {
+  var hechos = 0;
+  function quitar(sid, qty, imei) {
+    var st = sid ? DB.stock.find(function(x) { return x.id === sid; }) : null;
+    if (!st && imei) st = DB.stock.find(function(x) { return (x.imei || '') && x.imei === imei; });
+    if (!st) return false;
+    var n = Math.abs(parseInt(qty, 10) || 1);
+    st.unidades = Math.max(0, (parseInt(st.unidades, 10) || 0) - n);
+    if (st.unidades <= 0 && st.imei) st.vendido = true;
+    _stockDelta(st, -n, 0);
+    return true;
+  }
+  (items || []).forEach(function(it) {
+    if (!it || it.esServicio || it.esRapida || it.esFijo) return;
+    if (quitar(it.idOriginal || it.id, it.qty, it.imei)) hechos++;
+  });
+  if (!hechos && fallbackStockId !== undefined && !(items || []).length) quitar(fallbackStockId, 1, fallbackImei);
+}
+var _deshaciendo = false;
+function deshacerReembolso(id) {
+  if (!tienePerm('ventas_deshacer_reembolso')) { toast(T('gen.sin_permiso'), 'err'); return; }
+  var v = DB.ventas.find(function(x) { return x.id === id; });
+  if (!v || _deshaciendo) return;
+  var parcial = !v.reembolsado;
+  var msg = T(parcial ? 'dr.confirm_parcial' : 'dr.confirm_total').replace('{total}', cur(Math.abs(parseFloat(v.total) || 0))).replace('{cliente}', v.clienteNombre || '');
+  confirmar(msg, function() {
+    _deshaciendo = true;
+    tpWithBusy(T('dr.procesando'), function() {
+      return fetch('/api/cajas?action=deshacer_reembolso', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + _jwtCajas() },
+        body: JSON.stringify({ venta_id: id })
+      }).then(function(r) { return r.json().catch(function() { return {}; }).then(function(d) { return { ok: r.ok && d.ok, d: d }; }); })
+        .then(function(R) {
+          if (!R.ok) { toast((R.d && R.d.error) || T('dr.error'), 'err', 6000); return; }
+          var d = R.d;
+          if (d.tipo === 'total') {
+            v.reembolsado = false; v.fechaReembolso = '';
+            _volverADescontar(Array.isArray(v.items) ? v.items : [], v.stockId, v.imei);
+            audit('reembolso_deshecho', 'venta', v.id, (v.clienteNombre || '') + ' · ' + cur(v.total), null);
+          } else {
+            var o = DB.ventas.find(function(x) { return x.id === d.original_id; });
+            if (o && Array.isArray(d.original_items)) o.items = d.original_items;
+            var c = d.contraria || {};
+            var its = c.items; if (typeof its === 'string') { try { its = JSON.parse(its); } catch (e) { its = []; } }
+            DB.ventas.push({
+              id: c.id, fecha: c.fecha, clienteId: c.cliente_id || '', clienteNombre: c.cliente_nombre || 'Sin cliente',
+              marca: '', modelo: c.modelo || '', imei: '', pago: c.pago, pagos: null,
+              precio: parseFloat(c.precio) || 0, descuento: 0, iva: c.iva || 0, ivaModo: c.iva_modo || 'sin',
+              base: parseFloat(c.base) || 0, ivaImporte: parseFloat(c.iva_importe) || 0, total: parseFloat(c.total) || 0,
+              reembolsado: false, fechaReembolso: '', financiado: false, cuotas: null, entrada: 0, entradaPago: null,
+              numero: parseInt(c.numero, 10) || 0, createdAt: c.created_at || new Date().toISOString(), items: its || []
+            });
+            _volverADescontar(Array.isArray(its) ? its : [], undefined, undefined);
+            audit('devolucion_deshecha', 'venta', d.original_id || v.id, (v.clienteNombre || '') + ' · ' + cur(Math.abs(parseFloat(v.total) || 0)) + ' · ' + (v.modelo || ''), null);
+          }
+          guardarDatos();
+          toast(T('dr.hecho'), 'ok');
+        }).catch(function() { toast(T('dr.error'), 'err'); });
+    }).then(function() {
+      _deshaciendo = false;
+      try { renderVentas(); } catch (e) {}
+      try { renderDash(); } catch (e) {}
+      try { if (typeof renderInicioNuevo === 'function') renderInicioNuevo(); } catch (e) {}
+      try { if (typeof renderStock === 'function') renderStock(); } catch (e) {}
+    });
+  }, { okLabel: T('dr.btn'), danger: true });
+}
+window.deshacerReembolso = deshacerReembolso;
 
 // ═══ FINANCIADOS ═══
 function verFinanciado(id) {
@@ -24502,6 +24618,7 @@ var PERMS_LISTA = [
   {id:'ventas_crear',label:T('perm.ventas_crear'),grupo:'Ventas'},
   {id:'ventas_eliminar',label:T('perm.ventas_eliminar'),grupo:'Ventas'},
   {id:'ventas_reembolso',label:T('perm.ventas_reembolso'),grupo:'Ventas'},
+  {id:'ventas_deshacer_reembolso',label:T('perm.ventas_deshacer_reembolso'),grupo:'Ventas'},
   {id:'ventas_financiacion',label:T('perm.ventas_financiacion'),grupo:'Ventas'},
   // Reparaciones
   {id:'reps_ver',label:T('perm.reps_ver'),grupo:'Reparaciones'},

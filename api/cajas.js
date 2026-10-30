@@ -8,6 +8,7 @@
 
 import jwt from 'jsonwebtoken';
 import { rateLimit } from './_lib/ratelimit.js';
+import { tipoDeshacer, dentroDelPlazo, devDe, devolucionApuntada, itemsSinDevolucion, filaContraria, tieneAbono, itemsDe } from './_lib/deshacer-reembolso.js';
 
 const SB_URL = process.env.SUPABASE_URL;
 const SK = process.env.SUPABASE_SERVICE_KEY;
@@ -288,6 +289,15 @@ async function tienePermisoCaja(payload, clave) {
   if (permisos.todo === true) return true;
   const claveCompleta = clave.startsWith('cajasm_') ? clave : 'cajasm_' + clave;
   return permisos[claveCompleta] === true;
+}
+
+// Permiso general de TekPair (no del módulo Cajas): admin, permisos.todo o permisos[clave].
+async function tienePermGeneral(payload, clave) {
+  const u = await _usuarioPerm(payload);
+  if (!u) return false;
+  if (u.rol === 'admin') return true;
+  const p = u.permisos || {};
+  return p.todo === true || p[clave] === true;
 }
 
 // ── Permiso POR CAJA ────────────────────────────────────────────────────────
@@ -1582,6 +1592,68 @@ export default async function handler(req, res) {
         );
         await recalcularCierreDeFiado(id, tienda_id, _fechaMadrid(fi.fecha_cobro));
         return ok(res, { id });
+      }
+
+      // ─── DESHACER UN REEMBOLSO O UNA DEVOLUCIÓN (24 h) ───
+      // Solo admin o con el permiso ventas_deshacer_reembolso. Ver api/_lib/deshacer-reembolso.js.
+      // El stock lo vuelve a descontar el navegador (como al reembolsar), con la respuesta.
+      case 'deshacer_reembolso': {
+        if (req.method !== 'POST') return err(res, 405, 'Método no permitido');
+        if (!(await tienePermGeneral(payload, 'ventas_deshacer_reembolso'))) return err(res, 403, 'No tienes permiso para deshacer reembolsos');
+        const { venta_id, nota } = req.body || {};
+        if (!venta_id || typeof venta_id !== 'string' || venta_id.length > 80) return err(res, 400, 'venta_id obligatorio');
+        const qT = `tienda_id=eq.${encodeURIComponent(tienda_id)}`;
+        const v = (await sbGet(`ventas?id=eq.${encodeURIComponent(venta_id)}&${qT}&limit=1`))[0];
+        if (!v) return err(res, 404, 'Venta no encontrada');
+        const tipo = tipoDeshacer(v);
+        if (!tipo) return err(res, 400, 'Esa venta no está reembolsada');
+        const notaTxt = String(nota || '').trim().slice(0, 120);
+        const cajaCerrada = async (fecha) => {
+          if (!/^\d{4}-\d{2}-\d{2}$/.test(String(fecha || ''))) return false;
+          const c = await sbGet(`cajas_cierres?${qT}&fecha=eq.${encodeURIComponent(fecha)}&estado=in.(cerrado,descuadre)&select=id&limit=1`);
+          return c.length > 0;
+        };
+        const facturasDe = (id) => sbGet(`facturas?${qT}&origen_tipo=eq.venta&origen_id=eq.${encodeURIComponent(id)}&select=id,rectifica_a,rectificada_por`).catch(() => []);
+
+        if (tipo === 'total') {
+          // Hora del reembolso: la del seguimiento (audit). Sin él, solo si fue hoy.
+          const au = await sbGet(`audit?${qT}&entidad=eq.venta&entidad_id=eq.${encodeURIComponent(venta_id)}&accion=eq.reembolso&select=ts&order=ts.desc&limit=1`).catch(() => []);
+          const hoy = _fechaMadrid(new Date().toISOString());
+          const enPlazo = au[0] ? dentroDelPlazo(au[0].ts) : String(v.fecha_reembolso || '').slice(0, 10) === hoy;
+          if (!enPlazo) return err(res, 409, 'Un reembolso solo se puede deshacer en las 24 horas siguientes');
+          if (await cajaCerrada(String(v.fecha_reembolso || '').slice(0, 10))) return err(res, 409, 'La caja del día del reembolso ya está cerrada: no se puede deshacer');
+          if (tieneAbono(await facturasDe(venta_id))) return err(res, 409, 'Su factura ya tiene abono (rectificativa): no se puede deshacer');
+          const filas = await sbPatch(`ventas?id=eq.${encodeURIComponent(venta_id)}&${qT}&reembolsado=eq.true`, { reembolsado: false, fecha_reembolso: null });
+          if (!filas.length) return err(res, 409, 'Ese reembolso ya se deshizo');
+          return ok(res, { tipo, venta: filas[0], items: itemsDe(v) });
+        }
+
+        // Devolución parcial
+        if (v.pago === 'Cambio') return err(res, 409, 'Una devolución por cambio no se puede deshacer: ese saldo ya se ha podido usar');
+        if (!dentroDelPlazo(v.created_at)) return err(res, 409, 'Una devolución solo se puede deshacer en las 24 horas siguientes');
+        if (await cajaCerrada(String(v.fecha || '').slice(0, 10))) return err(res, 409, 'La caja del día de la devolución ya está cerrada: no se puede deshacer');
+        const d = devDe(v);
+        const orig = (await sbGet(`ventas?id=eq.${encodeURIComponent(d.v)}&${qT}&limit=1`))[0];
+        if (!orig) return err(res, 404, 'No se encuentra la venta original de esa devolución');
+        if (!devolucionApuntada(orig, v.id)) return err(res, 409, 'Esa devolución ya se deshizo');
+        if (tieneAbono(await facturasDe(orig.id))) return err(res, 409, 'Su factura ya tiene abono (rectificativa): no se puede deshacer');
+        const numDev = v.numero ? 'T' + String(v.fecha || '').slice(0, 4) + '-' + String(v.numero).padStart(6, '0') : '';
+        // id fijo: si dos equipos lo deshacen a la vez, el segundo choca con la clave y no duplica.
+        const contra = filaContraria(v, { id: v.id + '_undo', fecha: _fechaMadrid(new Date().toISOString()), tienda_id, numTicketDev: numDev, nota: notaTxt });
+        let creada;
+        try {
+          creada = (await sbPost('ventas', contra))[0];
+        } catch (e) {
+          if (e && e.status === 409) return err(res, 409, 'Esa devolución ya se deshizo');
+          throw e;
+        }
+        try {
+          await sbPatch(`ventas?id=eq.${encodeURIComponent(orig.id)}&${qT}`, { items: JSON.stringify(itemsSinDevolucion(orig, v.id)) });
+        } catch (e) {
+          await sbDelete(`ventas?id=eq.${encodeURIComponent(contra.id)}&${qT}`).catch(() => {});
+          throw e;
+        }
+        return ok(res, { tipo, contraria: creada || contra, original_id: orig.id, original_items: itemsSinDevolucion(orig, v.id), items: itemsDe(v) });
       }
 
       // ═══════════════════════════════════════════════════════════════════

@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261028a"></script>
+<script src="/lang/lang.v8.js?v=20261104a"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -370,6 +370,8 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
       <div style="display:flex;gap:6px">
         <button class="caja-btn" onclick="verHistorial()"><span data-t="tpv.historial">📋 Historial</span></button>
         <button class="caja-btn" onclick="verCaja()"><span data-t="tpv.ver_caja">Ver caja</span></button>
+        <button class="caja-btn" id="btnGastoCaja" onclick="abrirGastoCaja()">💸 <span data-t="tpvg.btn">Gasto</span></button>
+        <button class="caja-btn" onclick="abrirCajonManual()">🗄 <span data-t="tpvg.cajon">Cajón</span></button>
       </div>
     </div>
 
@@ -2770,7 +2772,107 @@ function updateCaja() {
     if (v.reembolsado && (v.fechaReembolso || v.fecha) === hoy) a -= _ef(v);
     return a;
   }, 0);
+  // Gastos pagados hoy en efectivo (desde el TPV o desde Gastos): ese dinero ya no está en el cajón.
+  total -= _gastosEfectivoHoy(hoy);
   document.getElementById('cajaTotal').textContent = '\u20ac' + total.toFixed(2);
+}
+function _gastosEfectivoHoy(hoy) {
+  var db = {};
+  try { db = JSON.parse(localStorage.getItem('tk_db') || '{}') || {}; } catch (e) { db = {}; }
+  return (Array.isArray(db.gastos) ? db.gastos : []).reduce(function (s, g) {
+    if (!g || String(g.fecha || '').slice(0, 10) !== hoy || (g.estado || 'Pagado') === 'Pendiente') return s;
+    if (!/efectiv/.test(String(g.metodo_pago || g.forma_pago || g.metodo || '').toLowerCase())) return s;
+    return s + (parseFloat(g.importe) || 0);
+  }, 0);
+}
+
+// ═══ GASTO DE CAJA Y CAJÓN (desde el TPV) ═══
+// Un gasto pagado con dinero del cajón (un pedido que llega, un café…): se guarda como un
+// gasto normal (cuenta en Gastos, en los informes y en la caja del día, igual que el
+// «Gasto pagado de la caja» del módulo Cajas) con quién lo apuntó, y el cajón se abre.
+function abrirGastoCaja() {
+  if (!tienePerm('gastos_crear')) { toast(T('gen.sin_permiso') || 'Sin permiso', 'err'); return; }
+  var prev = document.getElementById('_gcBg'); if (prev) prev.remove();
+  var bg = document.createElement('div');
+  bg.id = '_gcBg';
+  bg.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px';
+  var inp = 'width:100%;padding:11px;border:1px solid #E5E7EB;border-radius:9px;font:inherit;font-size:16px;margin:4px 0 12px;box-sizing:border-box';
+  bg.innerHTML = '<div style="background:#fff;color:#0F172A;border-radius:14px;max-width:400px;width:100%;padding:20px;box-shadow:0 20px 50px rgba(0,0,0,.3)">' +
+    '<div style="font-size:17px;font-weight:800;margin-bottom:4px">💸 ' + escHtmlTpv(T('tpvg.titulo')) + '</div>' +
+    '<div style="font-size:12.5px;color:#64748B;margin-bottom:12px">' + escHtmlTpv(T('tpvg.ayuda')) + '</div>' +
+    '<label style="font-size:12px;font-weight:700">' + escHtmlTpv(T('tpvg.importe')) + '</label><input id="_gcImp" inputmode="decimal" placeholder="0,00" style="' + inp + '">' +
+    '<label style="font-size:12px;font-weight:700">' + escHtmlTpv(T('tpvg.concepto')) + '</label><input id="_gcCon" maxlength="120" placeholder="' + escHtmlTpv(T('tpvg.concepto_ph')) + '" style="' + inp + '">' +
+    '<label style="font-size:12px;font-weight:700">' + escHtmlTpv(T('tpvg.proveedor')) + '</label><input id="_gcPro" maxlength="80" style="' + inp + '">' +
+    '<div style="display:flex;gap:10px;justify-content:flex-end;margin-top:4px">' +
+      '<button id="_gcNo" style="padding:10px 16px;border:1px solid #E5E7EB;background:transparent;border-radius:9px;cursor:pointer;font:inherit;font-weight:600">' + escHtmlTpv(T('gen.cancelar') || 'Cancelar') + '</button>' +
+      '<button id="_gcOk" style="padding:10px 16px;border:none;background:#EF4444;color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:800">' + escHtmlTpv(T('tpvg.guardar')) + '</button>' +
+    '</div></div>';
+  document.body.appendChild(bg);
+  var cerrar = function () { bg.remove(); };
+  bg.addEventListener('click', function (e) { if (e.target === bg) cerrar(); });
+  document.getElementById('_gcNo').onclick = cerrar;
+  setTimeout(function () { try { document.getElementById('_gcImp').focus(); } catch (e) {} }, 50);
+  var enviando = false;
+  document.getElementById('_gcOk').onclick = function () {
+    if (enviando) return;
+    var importe = Math.round((parseFloat(String(document.getElementById('_gcImp').value).replace(',', '.')) || 0) * 100) / 100;
+    var concepto = String(document.getElementById('_gcCon').value || '').trim();
+    var proveedor = String(document.getElementById('_gcPro').value || '').trim();
+    if (!(importe > 0)) { toast(T('tpvg.importe_mal'), 'err'); return; }
+    if (!concepto) { toast(T('tpvg.falta_concepto'), 'err'); return; }
+    enviando = true;
+    var quien = (U && (U.nombre || U.email)) || '';
+    var g = {
+      id: 'g' + Date.now() + '_' + Math.random().toString(36).slice(2, 8),
+      tienda_id: TIENDA_ID, concepto: (concepto + (quien ? ' · ' + quien : '')).slice(0, 200),
+      importe: importe, fecha: hoyLocal(), estado: 'Pagado', categoria: 'Caja', iva_tipo: 0,
+      proveedor_id: null, proveedor_nombre: proveedor || null, metodo_pago: 'efectivo'
+    };
+    Promise.resolve((SB_KEY && TIENDA_ID) ? sbPost('gastos', g) : true).then(function () {
+      // sbPost ya encola el gasto si no hay conexión; en local se apunta siempre.
+      try {
+        var db = JSON.parse(localStorage.getItem('tk_db') || '{}') || {};
+        db.gastos = Array.isArray(db.gastos) ? db.gastos : [];
+        db.gastos.push(g);
+        localStorage.setItem('tk_db', JSON.stringify(db));
+      } catch (e) {}
+      cerrar();
+      toast(T('tpvg.ok').replace('{i}', importe.toFixed(2)), 'ok');
+      try { updateCaja(); } catch (e) {}
+      abrirCajonManual(true);
+    });
+  };
+}
+function escHtmlTpv(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+// Abre el cajón sin cobrar. En la app de escritorio, por la impresora de tickets (si no hay
+// ninguna elegida se pregunta aquí). En el navegador, con un trabajo de impresión vacío: el
+// cajón se abre si el driver de la impresora tiene activado «abrir cajón al imprimir».
+function abrirCajonManual(silencioso) {
+  var app = (typeof tkIsDesktop === 'function') && tkIsDesktop();
+  if (app && typeof tkAbrirCajon === 'function') {
+    tkAbrirCajon('tk_impresora_ticket', { detalle: true, preguntar: !silencioso }).then(function (r) {
+      if (r && r.ok) return;
+      if (silencioso && r && r.motivo === 'sin_impresora') return;
+      toast(r && r.motivo === 'sin_impresora' ? T('tpv.cajon_sin_imp') : T('tpv.cajon_error') + (r && r.motivo ? ' — ' + r.motivo : ''), 'err');
+    });
+    return;
+  }
+  var ifr = document.createElement('iframe');
+  ifr.setAttribute('aria-hidden', 'true');
+  ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
+  document.body.appendChild(ifr);
+  var hecho = false;
+  var lanzar = function () {
+    if (hecho) return; hecho = true;
+    try { ifr.contentWindow.focus(); ifr.contentWindow.print(); } catch (e) {}
+    setTimeout(function () { try { ifr.remove(); } catch (e) {} }, 2000);
+  };
+  ifr.onload = lanzar;
+  var d = ifr.contentWindow.document;
+  d.open(); d.write('<!DOCTYPE html><html><head><meta charset="utf-8"><style>@page{size:80mm 8mm;margin:0}html,body{margin:0}</style></head><body>&nbsp;</body></html>'); d.close();
+  setTimeout(lanzar, 350);
+  if (!silencioso) toast(T('tpvg.cajon_navegador'), 'info');
 }
 
 // Lo que entró en caja por una venta: la financiada solo su entrada (las cuotas llegan otros días)
