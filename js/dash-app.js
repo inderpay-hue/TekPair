@@ -5107,7 +5107,7 @@ function _cuotaAbonos(c) {
   var out = [], sum = 0;
   (Array.isArray(c.abonos) ? c.abonos : []).forEach(function(a) {
     var i = parseFloat(a && a.importe) || 0; if (!i) return;
-    out.push({ fecha: String(a.fecha || '').slice(0, 10), importe: i, metodo: a.metodo || 'Efectivo', por: a.por || '' }); sum += i;
+    out.push({ fecha: String(a.fecha || '').slice(0, 10), importe: i, metodo: a.metodo || 'Efectivo', por: a.por || '', ts: a.ts || '' }); sum += i;
   });
   var resto = Math.round((_cuotaPagado(c) - sum) * 100) / 100;
   if (resto > 0.005 && c.fechaPago) out.push({ fecha: String(c.fechaPago).slice(0, 10), importe: resto, metodo: c.formaPago || 'Efectivo' });
@@ -5120,7 +5120,9 @@ function _cuotaAbonar(cc, importe, metodo, fecha, por) {
   var previo = _cuotaPagado(cc);
   // Lo cobrado antes de existir `abonos` se congela en su fecha para que no se mueva al nuevo pago.
   if (!cc.abonos.length && previo > 0.005 && cc.fechaPago) cc.abonos.push({ fecha: cc.fechaPago, importe: previo, metodo: cc.formaPago || 'Efectivo' });
-  var ab = { fecha: fecha, importe: Math.round(importe * 100) / 100, metodo: metodo };
+  // ts: cuándo se apuntó (la fecha puede ser otra, si se registra con fecha atrasada). Sirve
+  // para dejar anular el pago solo en las 24 h siguientes (anularAbonoCuota).
+  var ab = { fecha: fecha, importe: Math.round(importe * 100) / 100, metodo: metodo, ts: new Date().toISOString() };
   if (por) ab.por = por;
   cc.abonos.push(ab);
 }
@@ -5134,20 +5136,32 @@ function _cuotaAbonosHtml(c, anular) {
   return ab.map(function (a) {
     var f = String(a.fecha || '').slice(0, 10).split('-').reverse().join('/');
     // Solo los pagos guardados en `abonos` (los de antes, sin desglose, no se pueden señalar uno a uno).
-    var btn = (puede && a._k < nReales) ? ' <button type="button" class="btn-anular-abono" data-vid="' + escHtml(anular.vid) + '" data-cidx="' + anular.cidx + '" data-k="' + a._k + '" title="' + escHtml(T('fin.anular_pago')) + '" style="border:none;background:none;color:var(--red,#EF4444);cursor:pointer;font-size:10px;font-weight:700;padding:0 2px;text-decoration:underline">' + escHtml(T('fin.anular_pago')) + '</button>' : '';
+    var btn = (puede && a._k < nReales && _abonoAnulable(a)) ? ' <button type="button" class="btn-anular-abono" data-vid="' + escHtml(anular.vid) + '" data-cidx="' + anular.cidx + '" data-k="' + a._k + '" title="' + escHtml(T('fin.anular_pago')) + '" style="border:none;background:none;color:var(--red,#EF4444);cursor:pointer;font-size:10px;font-weight:700;padding:0 2px;text-decoration:underline">' + escHtml(T('fin.anular_pago')) + '</button>' : '';
     return '<div style="font-size:10px;color:var(--muted)">💶 ' + escHtml(f) + ' · ' + cur(parseFloat(a.importe) || 0) + ' · ' + escHtml(a.metodo || '') + (a.por ? ' · ' + escHtml(a.por) : '') + btn + '</div>';
   }).join('');
 }
 
+// ¿Se puede anular todavía? 24 h desde que se apuntó (ts). Los pagos de antes no tienen hora:
+// entonces, si es de hoy o de ayer.
+function _abonoAnulable(a) {
+  if (!a) return false;
+  var t = Date.parse(a.ts || '');
+  if (isFinite(t)) return Date.now() - t <= 24 * 3600 * 1000;
+  var f = String(a.fecha || '').slice(0, 10);
+  var ay = new Date(Date.now() - 86400000);
+  var ayer = ay.getFullYear() + '-' + String(ay.getMonth() + 1).padStart(2, '0') + '-' + String(ay.getDate()).padStart(2, '0');
+  return f === hoyLocal() || f === ayer;
+}
 // Anular un pago de cuota mal apuntado (p. ej. 150 € en vez de 100 €): se quita ese pago, la
 // cuota vuelve a quedar pendiente por ese importe y se vuelve a registrar el pago bueno.
-// Solo el admin. No si la caja del día de ese pago ya está cerrada.
+// Solo el admin, en las 24 h siguientes, y no si la caja del día de ese pago ya está cerrada.
 function anularAbonoCuota(vid, cidx, k) {
   if (!(typeof _esAdmin === 'function' && _esAdmin())) { toast(T('gen.sin_permiso'), 'err'); return; }
   var v = DB.ventas.find(function (x) { return x.id === vid; });
   var cc = v && v.cuotas && v.cuotas[cidx];
   var ab = cc && Array.isArray(cc.abonos) ? cc.abonos.filter(function (x) { return parseFloat(x && x.importe) || 0; })[k] : null;
   if (!ab) return;
+  if (!_abonoAnulable(ab)) { toast(T('fin.anular_plazo'), 'err', 6000); return; }
   var imp = Math.round((parseFloat(ab.importe) || 0) * 100) / 100;
   var fecha = String(ab.fecha || '').slice(0, 10);
   var fTxt = fecha.split('-').reverse().join('/');
