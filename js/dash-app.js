@@ -24814,6 +24814,7 @@ var PERMS_LISTA = [
   {id:'reportes_exportar',label:T('perm.reportes_exportar'),grupo:'Reportes'},
   // Caja
   {id:'caja_cerrar',label:T('perm.caja_cerrar'),grupo:'Caja'},
+  {id:'tpv_abrir_cajon',label:T('perm.tpv_abrir_cajon'),grupo:'Caja'},
   {id:'caja_historico',label:T('perm.caja_historico'),grupo:'Caja'},
   // Cajas Multi-Servicio (módulo nuevo)
   {id:'cajas_ver',label:T('perm.cajas_ver'),grupo:'Cajas Multi-Servicio',defaultOn:true},
@@ -24882,9 +24883,11 @@ function _permAyuda(el, id) {
 }
 
 // Roles preset — listas de permisos por rol
+var PERMS_SOLO_EXPRESO = ['tpv_abrir_cajon', 'ventas_deshacer_reembolso'];
 var ROLES_PRESET = {
   'admin': ['todo'],
-  'encargado': PERMS_LISTA.filter(function(p){ return p.id.indexOf('_eliminar') === -1; }).map(function(p){ return p.id; }),
+  // Encargado: todo menos borrar y lo que va solo con permiso expreso (vienen desactivados).
+  'encargado': PERMS_LISTA.filter(function(p){ return p.id.indexOf('_eliminar') === -1 && PERMS_SOLO_EXPRESO.indexOf(p.id) === -1; }).map(function(p){ return p.id; }),
   'vendedor': ['ventas_ver','ventas_crear','ventas_reembolso','clis_ver','clis_crear','clis_editar','stock_ver','servicios_ver','tienda_ver','caja_cerrar'],
   'tecnico':  ['reps_ver','reps_crear','reps_editar','reps_entregar','stock_ver','stock_ajustar','clis_ver','servicios_ver'],
   'lectura':  PERMS_LISTA.filter(function(p){ return p.id.indexOf('_ver') !== -1 || p.id === 'caja_historico'; }).map(function(p){ return p.id; })

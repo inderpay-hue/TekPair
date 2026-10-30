@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261104d"></script>
+<script src="/lang/lang.v8.js?v=20261104e"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -371,7 +371,7 @@ document.addEventListener('DOMContentLoaded',function(){ var t=(document.body.ge
         <button class="caja-btn" onclick="verHistorial()"><span data-t="tpv.historial">📋 Historial</span></button>
         <button class="caja-btn" onclick="verCaja()"><span data-t="tpv.ver_caja">Ver caja</span></button>
         <button class="caja-btn" id="btnGastoCaja" onclick="abrirGastoCaja()">💸 <span data-t="tpvg.btn">Gasto</span></button>
-        <button class="caja-btn" onclick="abrirCajonManual()">🗄 <span data-t="tpvg.cajon">Cajón</span></button>
+        <button class="caja-btn" id="btnCajonManual" style="display:none" onclick="abrirCajonManual()">🗄 <span data-t="tpvg.cajon">Cajón</span></button>
       </div>
     </div>
 
@@ -2774,6 +2774,8 @@ function updateCaja() {
   }, 0);
   // Gastos pagados hoy en efectivo (desde el TPV o desde Gastos): ese dinero ya no está en el cajón.
   total -= _gastosEfectivoHoy(hoy);
+  var _bCaj = document.getElementById('btnCajonManual'); if (_bCaj) _bCaj.style.display = tienePerm('tpv_abrir_cajon') ? '' : 'none';
+  var _bGas = document.getElementById('btnGastoCaja'); if (_bGas) _bGas.style.display = tienePerm('gastos_crear') ? '' : 'none';
   document.getElementById('cajaTotal').textContent = '\u20ac' + total.toFixed(2);
 }
 function _gastosEfectivoHoy(hoy) {
@@ -2951,6 +2953,10 @@ function escHtmlTpv(s) { return String(s == null ? '' : s).replace(/[&<>"']/g, f
 // ninguna elegida se pregunta aquí). En el navegador, con un trabajo de impresión vacío: el
 // cajón se abre si el driver de la impresora tiene activado «abrir cajón al imprimir».
 function abrirCajonManual(silencioso) {
+  // Abrirlo a mano (sin venta ni gasto) va con permiso: el admin siempre; a los demás se les
+  // activa en Usuarios → Permisos («Abrir el cajón sin venta»). Tras un gasto (silencioso) se
+  // abre igual: ese dinero queda apuntado.
+  if (!silencioso && !tienePerm('tpv_abrir_cajon')) { toast(T('gen.sin_permiso') || 'Sin permiso', 'err'); return; }
   var app = (typeof tkIsDesktop === 'function') && tkIsDesktop();
   if (app && typeof tkAbrirCajon === 'function') {
     tkAbrirCajon('tk_impresora_ticket', { detalle: true, preguntar: !silencioso }).then(function (r) {
@@ -2960,6 +2966,9 @@ function abrirCajonManual(silencioso) {
     });
     return;
   }
+  // En el navegador el pulso va por un trabajo de impresión (sale el cuadro de imprimir): solo
+  // cuando lo pide el cajero, no solo tras guardar un gasto.
+  if (silencioso) return;
   var ifr = document.createElement('iframe');
   ifr.setAttribute('aria-hidden', 'true');
   ifr.style.cssText = 'position:fixed;right:0;bottom:0;width:1px;height:1px;border:0;opacity:0;pointer-events:none';
