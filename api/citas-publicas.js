@@ -680,6 +680,47 @@ async function checkRef(ref, ip) {
   return { ok: true, valid: false };
 }
 
+// Solicitud del formulario de /distribuidores.html: llega por correo a info@tekpair.tech
+// (o ALERTAS_EMAIL) con el enlace de WhatsApp. No crea nada: la cuenta de comercial la
+// da de alta el admin desde Comerciales, con el código secreto.
+const PERFILES_DISTRIB = { accesorios: 'Comercial de accesorios o repuestos', tecnico: 'Técnico o formador', distribuidor: 'Distribuidor de telefonía', tienda: 'Tiene una tienda', otro: 'Otro' };
+const VISITAS_DISTRIB = { menos10: 'Menos de 10', '10a30': 'Entre 10 y 30', mas30: 'Más de 30' };
+async function solicitudDistribuidor(b, ip) {
+  if (b.website) return { ok: true };   // honeypot: los bots lo rellenan
+  const _rl = await rateLimit(`distrib:ip:${ip}`, 3, 3600);
+  if (!_rl.ok) return { ok: false, error: 'Demasiadas solicitudes. Vuelve a intentarlo en una hora.', status: 429 };
+  const s = (v, n) => String(v || '').trim().slice(0, n);
+  const d = { nombre: s(b.nombre, 80), email: s(b.email, 120).toLowerCase(), tel: s(b.tel, 30), zona: s(b.zona, 80),
+    perfil: PERFILES_DISTRIB[b.perfil] || '—', visitas: VISITAS_DISTRIB[b.visitas] || '—', msg: s(b.msg, 1000), lang: s(b.lang, 5) || 'es' };
+  if (d.nombre.length < 2 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email) || d.tel.replace(/\D/g, '').length < 6 || d.zona.length < 2 || b.privacidad !== true) {
+    return { ok: false, error: 'Faltan datos', status: 400 };
+  }
+  const tel = d.tel.replace(/\D/g, '');
+  const fila = (k, v) => `<tr><td style="padding:7px 0;color:#64748B;width:150px;vertical-align:top">${k}</td><td style="padding:7px 0"><b>${esc(v)}</b></td></tr>`;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;color:#111">
+  <h2 style="margin:0 0 4px">🤝 Nueva solicitud de distribuidor</h2>
+  <p style="color:#64748B;margin:0 0 18px;font-size:13px">Desde tekpair.tech/distribuidores.html (idioma: ${esc(d.lang)}). Al solicitante no le llega nada.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">
+    ${fila('Nombre', d.nombre)}${fila('Email', d.email)}${fila('Teléfono', d.tel)}${fila('Zona', d.zona)}
+    ${fila('Se dedica a', d.perfil)}${fila('Tiendas al mes', d.visitas)}${d.msg ? fila('Mensaje', d.msg) : ''}
+  </table>
+  ${tel ? `<a href="https://wa.me/${tel}" style="display:block;background:#25D366;color:#fff;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;margin:22px 0 10px">💬 Escribirle por WhatsApp</a>` : ''}
+  <p style="font-size:13px;color:#475569;border-top:1px solid #eee;padding-top:14px">
+    Si encaja, créale la cuenta en el panel: Comerciales → Crear comercial (con el código secreto).
+    Respondiendo a este correo le escribes directamente.
+  </p>
+</body></html>`;
+  const ok = await _resendSend({
+    from: 'TekPair <info@tekpair.tech>',
+    to: [process.env.ALERTAS_EMAIL || 'info@tekpair.tech'],
+    reply_to: d.email,
+    subject: `🤝 Distribuidor: ${d.nombre} · ${d.zona}`,
+    html
+  });
+  return ok ? { ok: true } : { ok: false, error: 'No se pudo enviar', status: 502 };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -711,6 +752,7 @@ export default async function handler(req, res) {
       case 'pres-aceptar':    result = await presAceptar(body, ip); break;
       case 'pres-rechazar':   result = await presRechazar(body, ip); break;
       case 'get-catalogo':    result = await getCatalogo(body.slug); break;
+      case 'solicitud-distribuidor': result = await solicitudDistribuidor(body, ip); break;
       default: result = { ok:false, error:'Acción no reconocida', status:400 };
     }
   } catch(e) {
