@@ -311,7 +311,7 @@ body[data-theme="orange"] .tpv-right{background:#15181D}
 .btn-checkout:active{transform:scale(.99)}
 @media(max-width:768px){.cart-fab{background:var(--t-cob);color:var(--t-cobink);box-shadow:0 8px 22px -8px color-mix(in srgb,var(--t-acc) 60%,transparent)}.cart-fab-badge{color:var(--t-acc)}}
 </style>
-<script src="/lang/lang.v8.js?v=20261105b"></script>
+<script src="/lang/lang.v8.js?v=20261105c"></script>
   <script src="/cookies-consent.js" defer></script>
   <!-- Impresión nativa de la app de escritorio. En el navegador no hace nada:
        tkIsDesktop() devuelve false y el TPV sigue con la ventana de impresión.
@@ -3022,7 +3022,9 @@ function abrirCajonManual(silencioso) {
   var app = (typeof tkIsDesktop === 'function') && tkIsDesktop();
   if (app && typeof tkAbrirCajon === 'function') {
     tkAbrirCajon('tk_impresora_ticket', { detalle: true, preguntar: !silencioso }).then(function (r) {
-      if (r && r.ok) return;
+      // Dice a qué impresora ha ido la señal: si el cajón no se abre, casi siempre es que en este
+      // ordenador está elegida otra impresora (se cambia en Ajustes → Impresión y dispositivos).
+      if (r && r.ok) { if (!silencioso) toast('🔓 ' + T('tpv.cajon_ok').replace('{p}', r.motivo || ''), 'ok'); return; }
       if (silencioso && r && r.motivo === 'sin_impresora') return;
       toast(r && r.motivo === 'sin_impresora' ? T('tpv.cajon_sin_imp') : T('tpv.cajon_error') + (r && r.motivo ? ' — ' + r.motivo : ''), 'err');
     });
