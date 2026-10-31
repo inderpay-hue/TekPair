@@ -9759,7 +9759,6 @@ function verDetalleVenta(vid) {
       return '<div style="display:flex;justify-content:space-between;gap:8px;padding:4px 0;font-size:12.5px"><span><strong>' + esc(fmtFecha(h.f)) + '</strong> · ' + esc(h.lineas.join(', ')) +
         ' <span style="color:var(--muted)">(' + esc(h.m === 'Cambio' ? T('dev.metodo_cambio') : _pagoLbl(h.m)) + ')</span></span><strong style="color:var(--red);white-space:nowrap">-' + cur(h.imp) + '</strong></div>';
     }).join('') + '</div>' : '';
-  var _puedeDev = !v.reembolsado && !_esDev && !_esContrariaV(v) && !(window.tkDevueltaEntera && window.tkDevueltaEntera(v)) && tienePerm('ventas_reembolso');
   var _cambioDisp = (_esDev && typeof window.tkCambioDisponible === 'function') ? window.tkCambioDisponible(v) : 0;
 
   var fila = function(lbl, val, fuerte) {
@@ -9800,7 +9799,7 @@ function verDetalleVenta(vid) {
     histHtml +
     (_cambioDisp > 0 ? '<div style="margin-top:12px;font-size:12.5px;padding:8px 10px;border-radius:8px;background:rgba(59,130,246,.10)">' + esc(T('dev.cambio_pendiente').replace('{x}', cur(_cambioDisp))) + '</div>' : '') +
     '<div style="display:flex;gap:8px;margin-top:16px;flex-wrap:wrap">' +
-      (_puedeDev ? '<button id="_dvDev" style="flex:1;min-width:130px;padding:10px 14px;border:none;background:#EF4444;color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">↩️ ' + T('dev.titulo') + '</button>' : '') +
+      // «Devolver / cambiar» ya no va aquí: está en el menú «⋯» de la venta, el último y en rojo.
       (_puedeDeshacerReem(v) ? '<button id="_dvUndo" style="flex:1;min-width:130px;padding:10px 14px;border:1px solid #EF4444;background:transparent;color:#EF4444;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">↺ ' + T('dr.btn') + '</button>' : '') +
       (_cambioDisp > 0 ? '<button id="_dvCambio" style="flex:1;min-width:130px;padding:10px 14px;border:none;background:var(--green,#10B981);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">🔁 ' + T('dev.ir_tpv') + '</button>' : '') +
       (!v.reembolsado && !_esDev ? '<button id="_dvFact" style="flex:1;min-width:130px;padding:10px 14px;border:none;background:var(--orange,#F97316);color:#fff;border-radius:9px;cursor:pointer;font:inherit;font-weight:700">' + T('rep.title_generar_factura') + '</button>' : '') +
