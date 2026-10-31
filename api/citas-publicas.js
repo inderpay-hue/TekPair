@@ -725,6 +725,43 @@ async function solicitudDistribuidor(b, ip) {
   return ok ? { ok: true } : { ok: false, error: 'No se pudo enviar', status: 502 };
 }
 
+// Test aprobado del curso del comercial (/curso-comercial.html): aviso a info@tekpair.tech
+// para activarle el código. No crea nada; el alta la hace el admin en Comerciales.
+async function cursoComercial(b, ip) {
+  const _rl = await rateLimit(`curso:ip:${ip}`, 5, 3600);
+  if (!_rl.ok) return { ok: false, error: 'Demasiados envíos. Vuelve a intentarlo en una hora.', status: 429 };
+  const s = (v, n) => String(v || '').trim().slice(0, n);
+  const d = { nombre: s(b.nombre, 80), email: s(b.email, 120).toLowerCase(), tel: s(b.tel, 30), lang: s(b.lang, 5) || 'es' };
+  const aciertos = parseInt(b.aciertos, 10);
+  if (d.nombre.length < 2 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email) || d.tel.replace(/\D/g, '').length < 6 || !(aciertos >= 8 && aciertos <= 10)) {
+    return { ok: false, error: 'Faltan datos', status: 400 };
+  }
+  const tel = d.tel.replace(/\D/g, '');
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:560px;margin:0 auto;padding:20px;color:#111">
+  <h2 style="margin:0 0 4px">🎓 Curso del comercial aprobado</h2>
+  <p style="color:#64748B;margin:0 0 18px;font-size:13px">Desde tekpair.tech/curso-comercial.html (idioma: ${esc(d.lang)}). La nota la calcula el navegador: es orientativa.</p>
+  <table style="width:100%;border-collapse:collapse;font-size:14px">
+    <tr><td style="padding:7px 0;color:#64748B;width:130px">Nombre</td><td><b>${esc(d.nombre)}</b></td></tr>
+    <tr><td style="padding:7px 0;color:#64748B">Email</td><td><b>${esc(d.email)}</b></td></tr>
+    <tr><td style="padding:7px 0;color:#64748B">Teléfono</td><td><b>${esc(d.tel)}</b></td></tr>
+    <tr><td style="padding:7px 0;color:#64748B">Aciertos</td><td><b>${aciertos} de 10</b></td></tr>
+  </table>
+  ${tel ? `<a href="https://wa.me/${tel}" style="display:block;background:#25D366;color:#fff;text-align:center;padding:14px;border-radius:10px;text-decoration:none;font-weight:700;margin:22px 0 10px">💬 Escribirle por WhatsApp</a>` : ''}
+  <p style="font-size:13px;color:#475569;border-top:1px solid #eee;padding-top:14px">
+    Para activarle: panel → Comerciales → Crear comercial (con el código secreto). Respondiendo a este correo le escribes a él.
+  </p>
+</body></html>`;
+  const ok = await _resendSend({
+    from: 'TekPair <info@tekpair.tech>',
+    to: [process.env.ALERTAS_EMAIL || 'info@tekpair.tech'],
+    reply_to: d.email,
+    subject: `🎓 Curso aprobado: ${d.nombre} (${aciertos}/10)`,
+    html
+  });
+  return ok ? { ok: true } : { ok: false, error: 'No se pudo enviar', status: 502 };
+}
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
@@ -757,6 +794,7 @@ export default async function handler(req, res) {
       case 'pres-rechazar':   result = await presRechazar(body, ip); break;
       case 'get-catalogo':    result = await getCatalogo(body.slug); break;
       case 'solicitud-distribuidor': result = await solicitudDistribuidor(body, ip); break;
+      case 'curso-comercial': result = await cursoComercial(body, ip); break;
       default: result = { ok:false, error:'Acción no reconocida', status:400 };
     }
   } catch(e) {

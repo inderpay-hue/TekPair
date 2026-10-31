@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex, nofollow">
+<meta name="color-scheme" content="light">
+<title>Curso del comercial — TekPair</title>
+<link rel="icon" type="image/x-icon" href="/favicon.ico">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{color-scheme:light;
+  --orange:#FF5B1F;--orange-d:#C2491A;--orange-l:#FFF1EB;--orange-br:#FFD9C9;
+  --ink:#0E0E10;--ink-soft:#3D3A34;--muted:#6B655B;--faint:#9A9388;
+  --paper:#FBFAF8;--paper-2:#F2EEE7;--line:#EAE5DD;--card:#FFFFFF;
+  --green:#16A34A;--green-l:#E7F6EC;--green-d:#16803C;--red:#B91C1C;--red-l:#FEF2F2;--wa:#25D366;
+  --font:'Inter',system-ui,-apple-system,Segoe UI,Roboto,sans-serif;--display:'Space Grotesk',system-ui,-apple-system,sans-serif;
+}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{font-family:var(--font);color:var(--ink);background:var(--paper);line-height:1.6;-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:var(--orange-d)}
+h1,h2,h3{font-family:var(--display);letter-spacing:-.02em;line-height:1.15}
+header{position:sticky;top:0;z-index:50;background:rgba(14,14,16,.95);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px)}
+.hd{max-width:1080px;margin:0 auto;padding:0 16px;height:56px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.logo{display:flex;align-items:center;gap:8px;color:#fff;font-family:var(--display);font-weight:600;font-size:17px;text-decoration:none}
+.bolt{display:inline-flex;width:24px;height:24px;background:var(--orange);border-radius:7px;align-items:center;justify-content:center}
+.bolt svg{width:14px;height:14px;fill:#fff}
+.hd-r{display:flex;align-items:center;gap:10px;color:rgba(255,255,255,.75);font-size:13px}
+.lang{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 8px;border-radius:8px;font:500 13px var(--font)}
+.lang option{color:#000}
+.prog{height:4px;background:rgba(255,255,255,.12)}
+.prog i{display:block;height:100%;width:0;background:var(--orange);transition:width .3s}
+.hero{background:var(--ink);color:#fff;padding:40px 0 44px}
+.wrap{max-width:1080px;margin:0 auto;padding:0 16px}
+.tag{display:inline-block;font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--orange-d);background:var(--orange-l);border:1px solid var(--orange-br);padding:4px 11px;border-radius:99px;margin-bottom:12px}
+.hero h1{font-size:32px;margin-bottom:10px}
+.hero p{color:rgba(255,255,255,.72);max-width:640px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 18px;margin-top:16px;font-size:13px;color:rgba(255,255,255,.65)}
+.layout{display:grid;grid-template-columns:1fr;gap:24px;padding:28px 0 60px}
+.toc{display:none}
+.mod{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:18px;scroll-margin-top:72px}
+.mod-h{display:flex;align-items:center;gap:12px;margin-bottom:14px}
+.mod-n{flex:0 0 36px;height:36px;border-radius:50%;background:var(--orange);color:#fff;font:700 15px var(--display);display:flex;align-items:center;justify-content:center}
+.mod.done .mod-n{background:var(--green)}
+.mod h2{font-size:21px}
+.mod h3{font-size:16px;margin:16px 0 6px}
+.mod p{color:var(--ink-soft);margin-bottom:10px}
+.mod ul,.mod ol{margin:0 0 12px 20px;color:var(--ink-soft)}
+.mod li{margin-bottom:5px}
+.mod li b,.mod p b{color:var(--ink)}
+.pitch{background:var(--ink);color:#fff;border-radius:14px;padding:18px 20px;margin:10px 0 12px;font-size:16px}
+.pitch b{color:var(--orange)}
+.tip{background:var(--orange-l);border:1px solid var(--orange-br);border-radius:12px;padding:12px 15px;font-size:14px;color:var(--ink-soft);margin:10px 0}
+.warn{background:var(--red-l);border:1px solid #FECACA;border-radius:12px;padding:12px 15px;font-size:14px;color:#7F1D1D;margin:10px 0}
+.wa{background:var(--green-l);border:1px solid #BBE5C9;border-left:4px solid var(--wa);border-radius:10px;padding:12px 14px;margin:8px 0;font-size:14px;white-space:pre-line;color:var(--ink-soft)}
+.wa-l{display:block;font-size:11px;font-weight:700;color:var(--green-d);text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px;white-space:normal}
+.copy{float:right;border:1px solid #BBE5C9;background:#fff;color:var(--green-d);border-radius:7px;padding:3px 9px;font:600 12px var(--font);cursor:pointer;margin:-4px -4px 4px 8px}
+.obj{border:1px solid var(--line);border-radius:12px;padding:12px 15px;margin:8px 0}
+.obj .q{font-weight:700;color:var(--ink)}
+.obj .a{color:var(--muted);font-size:14.5px;margin-top:4px}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;margin:8px 0 12px}
+.tbl th,.tbl td{border-bottom:1px solid var(--line);padding:9px 8px;text-align:left;vertical-align:top}
+.tbl th{background:var(--paper-2);font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+.tbl-w{overflow-x:auto}
+.vids{display:grid;grid-template-columns:1fr;gap:12px;margin:10px 0}
+.vid{border:1px solid var(--line);border-radius:12px;overflow:hidden;background:#000}
+.vid button{display:block;width:100%;aspect-ratio:16/9;border:0;cursor:pointer;background-size:cover;background-position:center;position:relative}
+.vid button:after{content:"▶";position:absolute;inset:0;margin:auto;width:56px;height:56px;border-radius:50%;background:rgba(255,91,31,.92);color:#fff;font-size:22px;display:flex;align-items:center;justify-content:center}
+.vid iframe{display:block;width:100%;aspect-ratio:16/9;border:0}
+.vid-t{background:var(--card);padding:9px 12px;font-size:13.5px;font-weight:600}
+.leido{display:flex;align-items:center;gap:8px;margin-top:14px;padding-top:12px;border-top:1px solid var(--line);font-size:14px;font-weight:600;color:var(--ink-soft);cursor:pointer}
+.leido input{width:18px;height:18px;accent-color:var(--green)}
+.quiz .qq{border:1px solid var(--line);border-radius:12px;padding:14px;margin-bottom:10px}
+.quiz .qq p{font-weight:700;color:var(--ink);margin-bottom:8px}
+.quiz label{display:flex;gap:9px;align-items:flex-start;padding:7px 9px;border-radius:8px;cursor:pointer;font-size:14.5px;color:var(--ink-soft)}
+.quiz label:hover{background:var(--paper-2)}
+.quiz input{margin-top:4px;accent-color:var(--orange)}
+.quiz .ok{background:var(--green-l)}
+.quiz .ko{background:var(--red-l)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:11px;font:600 15px var(--font);cursor:pointer;padding:13px 20px;text-decoration:none}
+.btn-main{background:var(--orange);color:#fff}
+.btn-main:hover{background:var(--orange-d)}
+.btn-main:disabled{opacity:.6;cursor:default}
+.res{display:none;border-radius:12px;padding:14px 16px;margin:12px 0;font-size:15px}
+.res.ok{display:block;background:var(--green-l);color:var(--green-d)}
+.res.ko{display:block;background:var(--red-l);color:var(--red)}
+.cert{display:none;margin-top:12px}
+.cert.show{display:block}
+.fg{margin-bottom:12px}
+.fg label{display:block;font-size:13px;font-weight:600;color:var(--ink-soft);margin-bottom:5px}
+.fi{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font:15px var(--font);background:#fff;color:var(--ink)}
+.f2{display:grid;grid-template-columns:1fr;gap:0 12px}
+footer{background:#0b0b0d;color:rgba(255,255,255,.55);font-size:13px;padding:24px 0;text-align:center}
+.hidden{display:none}
+@media(min-width:760px){
+  .hero h1{font-size:42px}
+  .vids{grid-template-columns:1fr 1fr}
+  .f2{grid-template-columns:1fr 1fr}
+}
+@media(min-width:1000px){
+  .layout{grid-template-columns:250px 1fr}
+  .toc{display:block;position:sticky;top:76px;align-self:start}
+  .toc a{display:flex;gap:8px;align-items:center;padding:7px 10px;border-radius:9px;color:var(--ink-soft);text-decoration:none;font-size:13.5px}
+  .toc a:hover{background:var(--paper-2)}
+  .toc a i{flex:0 0 20px;height:20px;border-radius:50%;border:2px solid var(--line);font-style:normal;font-size:11px;display:flex;align-items:center;justify-content:center;color:var(--faint)}
+  .toc a.done i{background:var(--green);border-color:var(--green);color:#fff}
+}
+@media print{header,.toc,.leido,.quiz,.copy{display:none}.mod{break-inside:avoid;border:0}}
+</style>
+</head>
+<body>
+<header>
+  <div class="hd">
+    <a href="/" class="logo"><span class="bolt"><svg viewBox="0 0 24 24"><path d="M13 2 L4 14 H10 L9 22 L20 9 H13 Z"/></svg></span> TekPair</a>
+    <div class="hd-r">
+      <span id="progTxt"></span>
+      <select class="lang" id="langSel" aria-label="Idioma / Language">
+        <option value="es">ES</option><option value="en">EN</option><option value="fr">FR</option>
+        <option value="it">IT</option><option value="de">DE</option><option value="pt">PT</option>
+      </select>
+    </div>
+  </div>
+  <div class="prog"><i id="progBar"></i></div>
+</header>
+
+<section class="hero">
+  <div class="wrap">
+    <span class="tag" data-i="hero.tag">Formación para comerciales</span>
+    <h1 data-i="hero.h1">Curso del comercial de TekPair</h1>
+    <p data-i="hero.p">Todo lo que necesitas para presentar TekPair en una tienda de reparación de móviles, hacer una demo de 5 minutos, resolver dudas y dar de alta a la tienda con tu código. Al final hay un test: apruébalo y te activamos tu código.</p>
+    <div class="meta"><span data-i="hero.m1">⏱️ 40 minutos</span><span data-i="hero.m2">🎬 6 vídeos cortos</span><span data-i="hero.m3">✅ Test final de 10 preguntas</span></div>
+  </div>
+</section>
+
+<div class="wrap layout">
+  <nav class="toc" id="toc" aria-label="Módulos"></nav>
+  <main id="mods">
+
+<section class="mod" id="m1" data-mod>
+  <div class="mod-h"><span class="mod-n">1</span><h2 data-i="m1.t">Qué es TekPair</h2></div>
+  <p data-i="m1.p1"><b>TekPair es el programa para tiendas de reparación y venta de móviles.</b> Cada reparación queda registrada con su resguardo y un QR para que el cliente vea el estado sin llamar; el aviso de «ya está listo» sale por WhatsApp en un clic; y la caja, el stock y lo que le deben a la tienda se ven al momento. Funciona en el navegador del móvil, la tablet o el ordenador.</p>
+  <h3 data-i="m1.h2">Lo que hace, en una lista</h3>
+  <ul>
+    <li data-i="m1.l1"><b>Reparaciones:</b> checklist de recepción, IMEI, patrón de desbloqueo, fotos y estados (pendiente, en proceso, por entregar, entregado).</li>
+    <li data-i="m1.l2"><b>Seguimiento por QR y WhatsApp:</b> el cliente consulta su reparación con el QR del resguardo y recibe el aviso con el mensaje ya escrito.</li>
+    <li data-i="m1.l3"><b>Presupuestos online:</b> el cliente los acepta desde su móvil.</li>
+    <li data-i="m1.l4"><b>TPV y caja:</b> efectivo, tarjeta o Bizum, ticket con IMEI e IVA, cierre de caja del día.</li>
+    <li data-i="m1.l5"><b>Cobros pendientes y venta a plazos:</b> cuotas, avisos para reclamarlas y enlace de pago.</li>
+    <li data-i="m1.l6"><b>Stock y pedidos:</b> alertas de stock mínimo y pedidos a proveedores.</li>
+    <li data-i="m1.l7"><b>Compra de móviles usados</b> a particulares, con contrato y registro.</li>
+    <li data-i="m1.l8"><b>Informes, facturas y app de Windows</b> para imprimir tickets y abrir el cajón.</li>
+  </ul>
+  <div class="tip" data-i="m1.tip">💡 No hace falta que te lo sepas todo. Lo que vende es esto: <b>menos llamadas, nada se olvida y la tienda cobra lo que le deben.</b></div>
+  <label class="leido"><input type="checkbox" data-leido="m1"> <span data-i="leido">He terminado este módulo</span></label>
+</section>
+
+<section class="mod" id="m2" data-mod>
+  <div class="mod-h"><span class="mod-n">2</span><h2 data-i="m2.t">A quién se lo vendes</h2></div>
+  <p data-i="m2.p1">Tu cliente es una <b>tienda pequeña de reparación o de venta de móviles con taller</b>, de 1 a 5 personas. Suele ser el propio dueño quien atiende el mostrador.</p>
+  <h3 data-i="m2.h2">Señales de que lo necesita</h3>
+  <ul>
+    <li data-i="m2.l1">Apunta las reparaciones en una libreta, en papelitos o en un Excel.</li>
+    <li data-i="m2.l2">Le suena el teléfono todo el día: «¿Está ya mi móvil?».</li>
+    <li data-i="m2.l3">Vende móviles a plazos y lleva las cuotas a mano.</li>
+    <li data-i="m2.l4">Tiene empleados y no sabe al final del día si la caja cuadra.</li>
+    <li data-i="m2.l5">Compra móviles usados y no tiene los contratos en orden.</li>
+  </ul>
+  <h3 data-i="m2.h3">Dónde no perder el tiempo</h3>
+  <p data-i="m2.p2">Grandes cadenas con su propio programa central, o tiendas que no reparan y solo venden fundas. Mejor dedicar ese tiempo a la siguiente tienda.</p>
+  <label class="leido"><input type="checkbox" data-leido="m2"> <span data-i="leido">He terminado este módulo</span></label>
+</section>
+
+<section class="mod" id="m3" data-mod>
+  <div class="mod-h"><span class="mod-n">3</span><h2 data-i="m3.t">La visita, paso a paso</h2></div>
+  <h3 data-i="m3.h1">El pitch de 30 segundos</h3>
+  <div class="pitch" data-i="m3.pitch">«Hola, soy (tu nombre) y colaboro con <b>TekPair</b>, un programa hecho para tiendas de reparación como la tuya. Cada reparación queda con su resguardo y un QR para que el cliente vea cómo va <b>sin llamarte</b>, le avisas por WhatsApp en un clic y ves al momento la caja y lo que te deben. Lo pruebas <b>15 días gratis</b> y, si no te convence, lo cancelas. ¿Te enseño en 5 minutos cómo quedaría una reparación tuya?»</div>
+  <h3 data-i="m3.h2">Los 6 pasos</h3>
+  <ol>
+    <li data-i="m3.l1"><b>Prepárate:</b> mira su ficha de Google (reseñas, horario). Si hay quejas de «no me avisaron» o «tardaron», ya tienes de qué hablar.</li>
+    <li data-i="m3.l2"><b>Entra a la hora tranquila:</b> media mañana o primera hora de la tarde. Nunca justo antes de cerrar ni con la tienda llena.</li>
+    <li data-i="m3.l3"><b>Pregunta antes de enseñar:</b> «¿Cómo apuntas las reparaciones?», «¿Cuántas llamadas te entran preguntando?», «¿Alguna vez se te ha olvidado cobrar una cuota?».</li>
+    <li data-i="m3.l4"><b>Demo de 5 minutos</b> (módulo 4), centrada en lo que te ha contado.</li>
+    <li data-i="m3.l5"><b>Cierre:</b> le haces el alta allí mismo con tu enlace (módulo 6) y le ayudas a crear su primera reparación.</li>
+    <li data-i="m3.l6"><b>Seguimiento:</b> escríbele al día siguiente, a los 7 días y 2 días antes de que termine la prueba (plantillas en el módulo 7).</li>
+  </ol>
+  <div class="tip" data-i="m3.tip">💡 Habla de <b>su</b> problema, no de funciones. «Te ahorras las llamadas de "¿está mi móvil?"» vende más que «tiene QR».</div>
+  <label class="leido"><input type="checkbox" data-leido="m3"> <span data-i="leido">He terminado este módulo</span></label>
+</section>
+
+<section class="mod" id="m4" data-mod>
+  <div class="mod-h"><span class="mod-n">4</span><h2 data-i="m4.t">La demo de 5 minutos</h2></div>
+  <p data-i="m4.p1">Usa <b>tu propia cuenta de TekPair</b> como demo. Antes de salir, crea 2 o 3 clientes y reparaciones de ejemplo para que no se vea vacía. Mira estos vídeos: son exactamente lo que vas a enseñar.</p>
+  <div class="vids">
+    <div class="vid"><button type="button" data-yt="S4bBS73ra5Q" style="background-image:url(https://i.ytimg.com/vi/S4bBS73ra5Q/hqdefault.jpg)" aria-label="Play"></button><div class="vid-t" data-i="v1">1. Crear una reparación</div></div>
+    <div class="vid"><button type="button" data-yt="Zlo0_noZlE0" style="background-image:url(https://i.ytimg.com/vi/Zlo0_noZlE0/hqdefault.jpg)" aria-label="Play"></button><div class="vid-t" data-i="v2">2. Avisar al cliente por WhatsApp</div></div>
+    <div class="vid"><button type="button" data-yt="FYUqhWYBnN4" style="background-image:url(https://i.ytimg.com/vi/FYUqhWYBnN4/hqdefault.jpg)" aria-label="Play"></button><div class="vid-t" data-i="v3">3. Entregar y cobrar una reparación</div></div>
+    <div class="vid"><button type="button" data-yt="Sx7xs16TrYI" style="background-image:url(https://i.ytimg.com/vi/Sx7xs16TrYI/hqdefault.jpg)" aria-label="Play"></button><div class="vid-t" data-i="v4">4. Cobrar una venta en el TPV</div></div>
+    <div class="vid"><button type="button" data-yt="kDLg-iSmbNk" style="background-image:url(https://i.ytimg.com/vi/kDLg-iSmbNk/hqdefault.jpg)" aria-label="Play"></button><div class="vid-t" data-i="v5">5. Cerrar la caja del día</div></div>
+    <div class="vid"><button type="button" data-yt="SrPrP8Hj1eE" style="background-image:url(https://i.ytimg.com/vi/SrPrP8Hj1eE/hqdefault.jpg)" aria-label="Play"></button><div class="vid-t" data-i="v6">Extra: comprar un móvil usado</div></div>
+  </div>
+  <h3 data-i="m4.h2">El guion</h3>
+  <ol>
+    <li data-i="m4.l1"><b>Minuto 1. Nueva reparación:</b> cliente, móvil, IMEI, avería y precio. Imprime o enseña el resguardo con el QR.</li>
+    <li data-i="m4.l2"><b>Minuto 2. El QR:</b> escanéalo con tu móvil y que vea lo que ve su cliente.</li>
+    <li data-i="m4.l3"><b>Minuto 3. Avisar por WhatsApp:</b> pásala a «Por entregar» y pulsa avisar. El mensaje sale escrito.</li>
+    <li data-i="m4.l4"><b>Minuto 4. Cobrar:</b> entrega y cobro, o una venta rápida en el TPV.</li>
+    <li data-i="m4.l5"><b>Minuto 5. El Inicio:</b> la caja del día y «te deben». Pregunta: «¿Esto lo ves hoy así de rápido?».</li>
+  </ol>
+  <div class="tip" data-i="m4.tip">💡 Si vende a plazos, enséñale las cuotas y el aviso para reclamarlas. Si compra usados, el contrato del módulo extra. Adapta la demo a lo que te ha contado.</div>
+  <label class="leido"><input type="checkbox" data-leido="m4"> <span data-i="leido">He terminado este módulo</span></label>
+</section>
+
+<section class="mod" id="m5" data-mod>
+  <div class="mod-h"><span class="mod-n">5</span><h2 data-i="m5.t">Planes, precios y objeciones</h2></div>
+  <div class="tbl-w"><table class="tbl">
+    <thead><tr><th data-i="m5.c1">Plan</th><th data-i="m5.c2">Precio (IVA incl.)</th><th data-i="m5.c3">Para quién</th></tr></thead>
+    <tbody>
+      <tr><td><b data-i="m5.b">Básico</b></td><td data-i="m5.bp">14,90 €/mes · 149 €/año</td><td data-i="m5.bq">1 persona, hasta 250 clientes. Reparaciones, TPV, stock e informes básicos.</td></tr>
+      <tr><td><b>Pro</b></td><td data-i="m5.pp">22,90 €/mes · 229 €/año</td><td data-i="m5.pq">Hasta 3 usuarios y 1.000 clientes. Permisos por empleado, pedidos, gastos, fotos, venta a plazos, informes PDF e importar CSV.</td></tr>
+      <tr><td><b>Premium</b></td><td data-i="m5.xp">34,90 €/mes · 349 €/año</td><td data-i="m5.xq">Usuarios y clientes ilimitados, varias tiendas, citas online, vista Kanban y soporte prioritario.</td></tr>
+    </tbody>
+  </table></div>
+  <ul>
+    <li data-i="m5.l1"><b>15 días de prueba gratis.</b> Se pide tarjeta al registrarse, pero <b>no se cobra nada hasta el día 15.</b> Se cancela desde el propio panel.</li>
+    <li data-i="m5.l2"><b>Sin permanencia.</b> El plan anual sale a 2 meses gratis.</li>
+    <li data-i="m5.l3"><b>Recomendación rápida:</b> trabaja solo → Básico; tiene empleados o vende a plazos → Pro; varias tiendas → Premium.</li>
+  </ul>
+  <h3 data-i="m5.h2">Objeciones frecuentes</h3>
+  <div class="obj"><div class="q" data-i="m5.o1q">«Ya lo apunto en una libreta, me apaño.»</div><div class="a" data-i="m5.o1a">«Perfecto, y ¿cuántas veces al día te llaman para preguntar? Con el QR esas llamadas desaparecen, y si se pierde la libreta no pierdes nada.»</div></div>
+  <div class="obj"><div class="q" data-i="m5.o2q">«Es caro.»</div><div class="a" data-i="m5.o2a">«Son 14,90 € al mes, menos que una funda al día. Con recuperar una sola cuota olvidada o una reparación sin cobrar ya se paga.»</div></div>
+  <div class="obj"><div class="q" data-i="m5.o3q">«No tengo tiempo de aprender un programa.»</div><div class="a" data-i="m5.o3a">«Se empieza en 3 minutos y te lo dejo montado ahora conmigo. Además, el Inicio te va guiando con los primeros pasos.»</div></div>
+  <div class="obj"><div class="q" data-i="m5.o4q">«¿Por qué me pide la tarjeta si es gratis?»</div><div class="a" data-i="m5.o4a">«Para que no se corte el servicio el día 16. No se cobra nada hasta entonces, y lo cancelas tú desde el panel con un clic.»</div></div>
+  <div class="obj"><div class="q" data-i="m5.o5q">«Ya tengo otro programa.»</div><div class="a" data-i="m5.o5a">«¿Qué es lo que más te molesta de él? (escucha). Pruébalo 15 días en paralelo y compara. Con el plan Pro puedes importar tus clientes y tu stock desde un CSV.»</div></div>
+  <div class="obj"><div class="q" data-i="m5.o6q">«¿Y si se va internet?»</div><div class="a" data-i="m5.o6a">«Lo que haces mientras tanto se guarda en el ordenador y se sube solo cuando vuelve la conexión.»</div></div>
+  <div class="obj"><div class="q" data-i="m5.o7q">«¿Y mis datos?»</div><div class="a" data-i="m5.o7a">«Se guardan cifrados en servidores de la Unión Europea, con copias de seguridad. Los datos son de tu tienda.»</div></div>
+  <div class="warn" data-i="m5.warn">⚠️ Si te preguntan algo que no sabes (una función concreta, temas fiscales, Verifactu…), no lo inventes: «Lo consulto y te digo hoy mismo». Pregúntanos en info@tekpair.tech.</div>
+  <label class="leido"><input type="checkbox" data-leido="m5"> <span data-i="leido">He terminado este módulo</span></label>
+</section>
+
+<section class="mod" id="m6" data-mod>
+  <div class="mod-h"><span class="mod-n">6</span><h2 data-i="m6.t">El alta con tu código</h2></div>
+  <p data-i="m6.p1">Cuando te demos de alta como comercial recibirás <b>tu código</b> (por ejemplo, <b>JUAN</b>) y tu acceso a TekPair. Las tiendas que se registren con él quedan unidas a ti para siempre.</p>
+  <h3 data-i="m6.h2">Cómo se registra la tienda</h3>
+  <ol>
+    <li data-i="m6.l1">Abre tu enlace en <b>su</b> móvil u ordenador: <b>tekpair.tech/registro.html?ref=TUCÓDIGO</b>. También puede escribir el código en «Código de invitación».</li>
+    <li data-i="m6.l2">Elige el plan con él y rellena sus datos: nombre, email, WhatsApp y nombre de la tienda.</li>
+    <li data-i="m6.l3"><b>La tarjeta la escribe el dueño, nunca tú.</b></li>
+    <li data-i="m6.l4">Le llega un correo con su contraseña. Entra y crea con él su primera reparación: la tarjeta «Primeros pasos» del Inicio le guía.</li>
+  </ol>
+  <div class="tip" data-i="m6.tip">💡 Con tu código la tienda se lleva una ventaja extra: <b>un mes de prueba</b> o <b>un 50 % de descuento los 3 primeros meses</b>, según el código que tengas. Úsalo para cerrar: «Si te das de alta hoy conmigo, te llevas…».</div>
+  <div class="warn" data-i="m6.warn">⚠️ Comprueba que el código aparece aplicado antes de pagar (sale un aviso arriba del formulario). Si se registra sin tu código, esa tienda no cuenta para ti.</div>
+  <label class="leido"><input type="checkbox" data-leido="m6"> <span data-i="leido">He terminado este módulo</span></label>
+</section>
+
+<section class="mod" id="m7" data-mod>
+  <div class="mod-h"><span class="mod-n">7</span><h2 data-i="m7.t">Mensajes de WhatsApp listos</h2></div>
+  <p data-i="m7.p1">Cópialos, cambia lo que va entre paréntesis y envíalos desde tu móvil. Escribe solo a tiendas que te hayan dado su número.</p>
+  <div class="wa"><button class="copy" type="button" data-i="copiar">Copiar</button><span class="wa-l" data-i="m7.w1l">Después de la visita</span><span data-i="m7.w1">Hola (nombre), soy (tu nombre), de TekPair. Gracias por atenderme hoy. Te dejo el enlace para empezar tus 15 días gratis: tekpair.tech/registro.html?ref=(TUCÓDIGO). Si quieres, me paso y te lo dejo montado en 10 minutos.</span></div>
+  <div class="wa"><button class="copy" type="button" data-i="copiar">Copiar</button><span class="wa-l" data-i="m7.w2l">Al día siguiente del alta</span><span data-i="m7.w2">Hola (nombre), ¿qué tal el primer día con TekPair? Si te atascas con algo (los precios, las reparaciones o la impresora), dímelo y lo vemos juntos.</span></div>
+  <div class="wa"><button class="copy" type="button" data-i="copiar">Copiar</button><span class="wa-l" data-i="m7.w3l">A los 7 días</span><span data-i="m7.w3">Hola (nombre), llevas una semana con TekPair. ¿Has probado a avisar a un cliente por WhatsApp cuando la reparación está lista? Es lo que más tiempo ahorra. Si quieres te enseño un par de trucos más.</span></div>
+  <div class="wa"><button class="copy" type="button" data-i="copiar">Copiar</button><span class="wa-l" data-i="m7.w4l">2 días antes de que acabe la prueba</span><span data-i="m7.w4">Hola (nombre), en 2 días termina tu prueba de TekPair. ¿Te está sirviendo? Si tienes alguna duda sobre el plan o quieres cambiarlo antes del primer cobro, te ayudo ahora.</span></div>
+  <label class="leido"><input type="checkbox" data-leido="m7"> <span data-i="leido">He terminado este módulo</span></label>
+</section>
+
+<section class="mod" id="m8" data-mod>
+  <div class="mod-h"><span class="mod-n">8</span><h2 data-i="m8.t">Tu panel y tu comisión</h2></div>
+  <p data-i="m8.p1">Entra en <b>tekpair.tech/app.html</b> con tu cuenta y abre <b>«Mis comisiones»</b>. Ahí ves tu código, las tiendas que has captado, cada pago, lo que tienes pendiente y lo que ya se te ha pagado.</p>
+  <h3 data-i="m8.h2">Condiciones</h3>
+  <ul>
+    <li data-i="m8.l1"><b>20 % de cada pago</b> de tus tiendas, todos los meses, mientras sigan pagando.</li>
+    <li data-i="m8.l2">El <b>primer año</b>, sin mínimo de altas.</li>
+    <li data-i="m8.l3">Desde el segundo año se revisa cada trimestre: con <b>3 altas nuevas o más</b> subes un escalón (5 → 10 → 20 %); con menos, bajas uno. Un año entero en el 5 % sin llegar a 3 altas da de baja el código.</li>
+    <li data-i="m8.l4">Un alta cuenta cuando la tienda hace su <b>primer pago real</b>, no al registrarse.</li>
+    <li data-i="m8.l5">La comisión se calcula sobre lo que paga la tienda <b>sin IVA</b> y descontando la comisión del cobro con tarjeta.</li>
+    <li data-i="m8.l6">Cada comisión se puede cobrar desde el <b>día 1 del segundo mes</b> después del pago (por si hay devoluciones). Se paga por transferencia, con justificante, contra tu factura.</li>
+  </ul>
+  <div class="tip" data-i="m8.tip">💡 Ejemplo: 10 tiendas en el plan Pro te dejan unos 37 € al mes, todos los meses. Lo que construyes es una cartera que te paga sola.</div>
+  <label class="leido"><input type="checkbox" data-leido="m8"> <span data-i="leido">He terminado este módulo</span></label>
+</section>
+
+<section class="mod" id="m9" data-mod>
+  <div class="mod-h"><span class="mod-n">9</span><h2 data-i="m9.t">Normas</h2></div>
+  <ul>
+    <li data-i="m9.l1"><b>Preséntate como colaborador independiente de TekPair</b>, no como empleado.</li>
+    <li data-i="m9.l2"><b>No prometas</b> funciones que TekPair no tiene ni descuentos que tu código no da.</li>
+    <li data-i="m9.l3"><b>Nunca</b> pidas contraseñas ni escribas tú la tarjeta del cliente.</li>
+    <li data-i="m9.l4"><b>Sin spam:</b> no compres listas ni escribas a quien no te ha dado su número.</li>
+    <li data-i="m9.l5"><b>Datos de las tiendas:</b> no los guardes ni los compartas; lo que veas en su panel es confidencial.</li>
+    <li data-i="m9.l6"><b>El soporte técnico lo damos nosotros.</b> Si hay un problema, envíalo a info@tekpair.tech.</li>
+  </ul>
+  <h3 data-i="m9.h2">Checklist antes de salir</h3>
+  <ul>
+    <li data-i="m9.c1">☐ Tu cuenta de demo con 2 o 3 reparaciones de ejemplo.</li>
+    <li data-i="m9.c2">☐ Tu enlace con el código copiado en el móvil.</li>
+    <li data-i="m9.c3">☐ La batería del móvil cargada y datos móviles por si la tienda no tiene wifi.</li>
+    <li data-i="m9.c4">☐ Una lista de 5 a 10 tiendas de tu zona, con horario.</li>
+  </ul>
+  <label class="leido"><input type="checkbox" data-leido="m9"> <span data-i="leido">He terminado este módulo</span></label>
+</section>
+
+<section class="mod quiz" id="m10">
+  <div class="mod-h"><span class="mod-n">✓</span><h2 data-i="q.t">Test final</h2></div>
+  <p data-i="q.p">10 preguntas. Con 8 aciertos apruebas y nos llega tu resultado para activarte el código. Puedes repetirlo las veces que quieras.</p>
+  <form id="quiz"></form>
+  <button type="button" class="btn btn-main" id="qBtn" data-i="q.btn">Corregir</button>
+  <div class="res" id="qRes"></div>
+  <div class="cert" id="cert">
+    <div class="f2">
+      <div class="fg"><label for="cNom" data-i="c.nombre">Nombre y apellidos</label><input class="fi" id="cNom" maxlength="80" autocomplete="name"></div>
+      <div class="fg"><label for="cEmail" data-i="c.email">Email</label><input class="fi" id="cEmail" type="email" maxlength="120" autocomplete="email"></div>
+      <div class="fg"><label for="cTel" data-i="c.tel">WhatsApp o teléfono</label><input class="fi" id="cTel" type="tel" maxlength="30" autocomplete="tel"></div>
+    </div>
+    <button type="button" class="btn btn-main" id="cBtn" data-i="c.btn">Enviar mi resultado</button>
+    <div class="res" id="cRes"></div>
+  </div>
+</section>
+
+  </main>
+</div>
+
+<footer>© 2026 TekPair · <a href="mailto:info@tekpair.tech" style="color:inherit">info@tekpair.tech</a></footer>
+
+<div class="hidden" aria-hidden="true">
+  <span data-i="toc.t" id="tTocTitle">Módulos</span>
+  <span data-i="prog" id="tProg">{n} de {t} módulos</span>
+  <span data-i="copiado" id="tCopiado">Copiado</span>
+  <span data-i="q.ok" id="tQOk">¡Aprobado! Has acertado {n} de 10. Déjanos tus datos y te activamos el código.</span>
+  <span data-i="q.ko" id="tQKo">Has acertado {n} de 10. Necesitas 8: repasa las preguntas en rojo y vuelve a intentarlo.</span>
+  <span data-i="q.falta" id="tQFalta">Responde las 10 preguntas.</span>
+  <span data-i="c.faltan" id="tCFaltan">Escribe tu nombre, un email válido y tu teléfono.</span>
+  <span data-i="c.enviando" id="tCEnviando">Enviando…</span>
+  <span data-i="c.ok" id="tCOk">Resultado enviado. Te escribimos para activarte el código.</span>
+  <span data-i="c.err" id="tCErr">No se pudo enviar. Haz una captura y mándala a info@tekpair.tech.</span>
+  <!-- Preguntas: texto | opción a | b | c. La correcta está en Q_OK (no en el texto). -->
+  <span data-i="q1">¿Cuánto dura la prueba gratis sin código?|7 días|15 días|30 días</span>
+  <span data-i="q2">¿Quién escribe la tarjeta al registrar la tienda?|Tú, para ir más rápido|El dueño de la tienda|Nadie, no se pide tarjeta</span>
+  <span data-i="q3">Una tienda donde trabaja una sola persona y solo repara: ¿qué plan suele encajar?|Básico|Premium|Ninguno</span>
+  <span data-i="q4">¿Cuándo cuenta un alta para tu comisión?|Cuando la tienda se registra|Cuando hace su primer pago real|Cuando entra en el panel</span>
+  <span data-i="q5">El dueño pregunta: «¿Y si me arrepiento?»|Tiene permanencia de un año|No hay permanencia: lo cancela desde su panel|Tiene que llamar para darse de baja</span>
+  <span data-i="q6">¿Qué plan incluye citas online y varias tiendas?|Básico|Pro|Premium</span>
+  <span data-i="q7">Te piden una función que TekPair no tiene. ¿Qué haces?|Dices que sí, que ya la añadirán|Dices que no la tiene y lo consultas con TekPair|Cambias de tema</span>
+  <span data-i="q8">¿Sobre qué se calcula tu comisión?|Sobre el precio con IVA|Sobre lo que paga la tienda sin IVA y sin la comisión del cobro con tarjeta|Sobre el precio anual completo</span>
+  <span data-i="q9">¿Cómo te presentas en la tienda?|Como empleado de TekPair|Como colaborador independiente de TekPair|Como técnico oficial de una marca</span>
+  <span data-i="q10">¿Cuál es el mejor momento para visitar una tienda?|Media mañana o primera hora de la tarde, con poca gente|El sábado a mediodía|Justo antes de cerrar</span>
+</div>
+
+<script src="/curso-comercial-i18n.js?v=20261031a"></script>
+<script>
+(function () {
+'use strict';
+var SUP = ['es', 'en', 'fr', 'it', 'de', 'pt'];
+var Q_OK = [1, 1, 0, 1, 1, 2, 1, 1, 1, 0];   // índice de la respuesta correcta de q1…q10
+var ES = {};
+document.querySelectorAll('[data-i]').forEach(function (el) { ES[el.getAttribute('data-i')] = el.innerHTML; });
+var TR = window.CURSO_I18N || {};
+var lang = 'es';
+try { var q = new URLSearchParams(location.search).get('lang'); if (q && SUP.indexOf(q) !== -1) lang = q; } catch (e) {}
+if (!/[?&]lang=/.test(location.search)) {
+  try { var s = localStorage.getItem('tp_lang'); if (s && SUP.indexOf(s) !== -1) lang = s; else { var n = (navigator.language || 'es').slice(0, 2); if (SUP.indexOf(n) !== -1) lang = n; } } catch (e) {}
+}
+function t(k) { var d = TR[lang] || {}; return d[k] != null ? d[k] : ES[k]; }
+function txt(k) { var d = document.createElement('div'); d.innerHTML = t(k); return d.textContent; }
+
+// Progreso por módulos (solo en este navegador)
+var LS = 'tk_curso_leidos';
+function leidos() { try { return JSON.parse(localStorage.getItem(LS) || '{}') || {}; } catch (e) { return {}; } }
+var mods = Array.prototype.slice.call(document.querySelectorAll('[data-mod]'));
+function pintarProgreso() {
+  var l = leidos(), n = mods.filter(function (m) { return l[m.id]; }).length;
+  mods.forEach(function (m) { m.classList.toggle('done', !!l[m.id]); var c = m.querySelector('[data-leido]'); if (c) c.checked = !!l[m.id]; });
+  document.getElementById('progBar').style.width = Math.round(n / mods.length * 100) + '%';
+  document.getElementById('progTxt').textContent = txt('prog').replace('{n}', n).replace('{t}', mods.length);
+  var toc = document.getElementById('toc');
+  toc.innerHTML = '<div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);padding:0 10px 6px">' + txt('toc.t') + '</div>' +
+    mods.map(function (m, i) { return '<a href="#' + m.id + '"' + (l[m.id] ? ' class="done"' : '') + '><i>' + (l[m.id] ? '✓' : i + 1) + '</i>' + m.querySelector('h2').textContent + '</a>'; }).join('') +
+    '<a href="#m10"><i>✓</i>' + document.querySelector('#m10 h2').textContent + '</a>';
+}
+document.querySelectorAll('[data-leido]').forEach(function (c) {
+  c.addEventListener('change', function () {
+    var l = leidos(); if (c.checked) l[c.getAttribute('data-leido')] = 1; else delete l[c.getAttribute('data-leido')];
+    try { localStorage.setItem(LS, JSON.stringify(l)); } catch (e) {}
+    pintarProgreso();
+  });
+});
+
+// Test
+function pintarQuiz() {
+  var f = document.getElementById('quiz'), marcadas = {};
+  f.querySelectorAll('input:checked').forEach(function (i) { marcadas[i.name] = i.value; });
+  f.innerHTML = Q_OK.map(function (_, i) {
+    var p = txt('q' + (i + 1)).split('|');
+    return '<div class="qq" id="qq' + i + '"><p>' + (i + 1) + '. ' + p[0] + '</p>' + p.slice(1).map(function (o, j) {
+      return '<label><input type="radio" name="q' + i + '" value="' + j + '"' + (marcadas['q' + i] === String(j) ? ' checked' : '') + '> <span>' + o + '</span></label>';
+    }).join('') + '</div>';
+  }).join('');
+}
+var aprobado = 0;
+document.getElementById('qBtn').addEventListener('click', function () {
+  var res = document.getElementById('qRes'), ok = 0, falta = false;
+  Q_OK.forEach(function (c, i) {
+    var sel = document.querySelector('input[name="q' + i + '"]:checked');
+    var box = document.getElementById('qq' + i);
+    box.querySelectorAll('label').forEach(function (l) { l.classList.remove('ok', 'ko'); });
+    if (!sel) { falta = true; return; }
+    if (+sel.value === c) { ok++; sel.parentNode.classList.add('ok'); } else sel.parentNode.classList.add('ko');
+  });
+  if (falta) { res.className = 'res ko'; res.textContent = txt('q.falta'); return; }
+  aprobado = ok >= 8 ? ok : 0;
+  res.className = 'res ' + (aprobado ? 'ok' : 'ko');
+  res.textContent = txt(aprobado ? 'q.ok' : 'q.ko').replace('{n}', ok);
+  document.getElementById('cert').classList.toggle('show', !!aprobado);
+});
+document.getElementById('cBtn').addEventListener('click', function () {
+  var r = document.getElementById('cRes'), b = this;
+  var d = { action: 'curso-comercial', nombre: document.getElementById('cNom').value.trim(), email: document.getElementById('cEmail').value.trim(),
+    tel: document.getElementById('cTel').value.trim(), aciertos: aprobado, lang: lang };
+  if (!aprobado) return;
+  if (d.nombre.length < 2 || !/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(d.email) || d.tel.replace(/\D/g, '').length < 6) { r.className = 'res ko'; r.textContent = txt('c.faltan'); return; }
+  var orig = b.textContent; b.disabled = true; b.textContent = txt('c.enviando');
+  fetch('/api/citas-publicas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(d) })
+    .then(function (x) { return x.json().catch(function () { return {}; }); })
+    .then(function (x) { r.className = 'res ' + (x && x.ok ? 'ok' : 'ko'); r.textContent = txt(x && x.ok ? 'c.ok' : 'c.err'); })
+    .catch(function () { r.className = 'res ko'; r.textContent = txt('c.err'); })
+    .then(function () { b.disabled = false; b.textContent = orig; });
+});
+
+// Copiar plantillas de WhatsApp
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('.copy'); if (!b) return;
+  var span = b.parentNode.querySelector('span[data-i]:not(.wa-l)');
+  var texto = span ? span.textContent : '';
+  var hecho = function () { var o = b.textContent; b.textContent = txt('copiado'); setTimeout(function () { b.textContent = o; }, 1500); };
+  if (navigator.clipboard) navigator.clipboard.writeText(texto).then(hecho, function () {}); else hecho();
+});
+// Vídeos: se cargan al pulsar (youtube-nocookie)
+document.addEventListener('click', function (e) {
+  var b = e.target.closest && e.target.closest('[data-yt]'); if (!b) return;
+  var f = document.createElement('iframe');
+  f.src = 'https://www.youtube-nocookie.com/embed/' + b.getAttribute('data-yt') + '?autoplay=1&rel=0';
+  f.allow = 'autoplay; encrypted-media; picture-in-picture'; f.allowFullscreen = true;
+  f.title = (b.nextElementSibling && b.nextElementSibling.textContent) || 'TekPair';
+  b.replaceWith(f);
+});
+
+function setLang(l) {
+  lang = SUP.indexOf(l) !== -1 ? l : 'es';
+  try { localStorage.setItem('tp_lang', lang); } catch (e) {}
+  document.documentElement.lang = lang;
+  document.querySelectorAll('[data-i]').forEach(function (el) { el.innerHTML = t(el.getAttribute('data-i')); });
+  document.title = txt('hero.h1') + ' — TekPair';
+  document.getElementById('langSel').value = lang;
+  pintarQuiz(); pintarProgreso();
+  var res = document.getElementById('qRes'); res.className = 'res'; document.getElementById('cert').classList.remove('show'); aprobado = 0;
+}
+document.getElementById('langSel').addEventListener('change', function () { setLang(this.value); });
+setLang(lang);
+})();
+</script>
+</body>
+</html>
