@@ -9288,13 +9288,17 @@ function renderVentas() {
     var btnEdit = (!v.reembolsado && !_esDev && !_conDev && (typeof _esAdmin === 'function' && _esAdmin())) ? '<button data-vid="' + v.id + '" class="row-btn btn-edit-v" title="' + T('venta.editar_t') + '">' + _iv2ic('pencil', 16) + '</button>' : '';
     var btnSeg = _puedeSeguimiento() ? '<button data-vid="' + v.id + '" class="row-btn btn-seg-v" title="' + escHtml(T('seg.btn')) + '">' + _iv2ic('clock', 16) + '</button>' : '';
     var btnVer = '<button data-vid="' + v.id + '" class="row-btn btn-ver-v" title="' + escHtml(T('vent.ver_detalle')) + '">' + _iv2ic('eye', 16) + '</button>';
+    // A la vista solo lo de cada día (ver, financiación, imprimir, factura). El resto va en «⋯»:
+    // editar, seguimiento, deshacer y, la última y en rojo, la devolución.
+    var _mas = [btnEdit && 'edit', btnSeg && 'seg', btnU && 'undo', btnR && 'dev'].filter(Boolean);
+    var btnMas = _mas.length ? '<button data-vid="' + v.id + '" data-mas="' + _mas.join(',') + '" class="row-btn btn-mas-v" title="' + escHtml(T('ventas.mas_opciones')) + '" style="font-weight:800;letter-spacing:1px">⋯</button>' : '';
     html += '<tr class="' + (v.reembolsado ? 'fila-reem' : '') + '">' +
       '<td>' + fmtFecha(v.fecha) + '</td>' +
       '<td>' + esc(_cliLbl(v.clienteNombre)) + badges + '</td>' +
       '<td>' + esc(v.modelo) + '</td>' +
       '<td><span class="badge bb">' + esc(_pagoTxt(v)) + '</span></td>' +
       '<td style="color:' + (v.reembolsado || _esDev ? 'var(--red)' : 'var(--green)') + ';font-weight:700">' + (v.reembolsado || (parseFloat(v.total) || 0) < 0 ? '-' : '') + cur(Math.abs(parseFloat(v.total) || 0)) + '</td>' +
-      '<td style="display:flex;gap:3px">' + btnVer + btnR + btnU + btnF + btnFact + btnImpr + btnSeg + btnEdit + '</td></tr>';
+      '<td style="display:flex;gap:3px">' + btnVer + btnF + btnImpr + btnFact + btnMas + '</td></tr>';
   });
   html += '</tbody></table></div>';
   el.innerHTML = html;
@@ -9323,15 +9327,54 @@ function renderVentas() {
     btn.addEventListener('click', function() { abrirEditarVenta(this.dataset.vid); });
   });
   el.querySelectorAll('.btn-seg-v').forEach(function(btn) {
-    btn.addEventListener('click', function() {
-      var vid = this.dataset.vid;
-      var v = (DB.ventas || []).find(function(x) { return x.id === vid; });
-      verSeguimiento('venta', vid, v ? ([
-        T('gen.venta_del') + ' ' + _fechaHoraVenta(v),
-        (v.clienteNombre || ''), (v.modelo || '')
-      ].filter(Boolean).join(' · ')) : '');
-    });
+    btn.addEventListener('click', function() { _ventaSeguimiento(this.dataset.vid); });
   });
+  el.querySelectorAll('.btn-mas-v').forEach(function(btn) {
+    btn.addEventListener('click', function(ev) { ev.stopPropagation(); _ventaMenuMas(this); });
+  });
+}
+function _ventaSeguimiento(vid) {
+  var v = (DB.ventas || []).find(function(x) { return x.id === vid; });
+  verSeguimiento('venta', vid, v ? ([
+    T('gen.venta_del') + ' ' + _fechaHoraVenta(v),
+    (v.clienteNombre || ''), (v.modelo || '')
+  ].filter(Boolean).join(' · ')) : '');
+}
+// Menú «⋯» de una venta. La devolución va la última, separada y en rojo, para no pulsarla sin querer.
+function _ventaMenuMas(btn) {
+  var viejo = document.getElementById('ventaMenuMas');
+  if (viejo) { var mismo = viejo.dataset.vid === btn.dataset.vid; viejo.remove(); if (mismo) return; }
+  var vid = btn.dataset.vid, acc = (btn.dataset.mas || '').split(',');
+  var ITEMS = {
+    edit: { ic: 'pencil', txt: T('venta.editar_t'), fn: function() { abrirEditarVenta(vid); } },
+    seg: { ic: 'clock', txt: T('seg.btn'), fn: function() { _ventaSeguimiento(vid); } },
+    undo: { ic: null, txt: T('dr.btn'), fn: function() { deshacerReembolso(vid); } },
+    dev: { ic: 'undo', txt: T('dev.titulo'), rojo: true, fn: function() { if (typeof window.abrirDevolucion === 'function') window.abrirDevolucion(vid); else reembolsarVenta(vid); } }
+  };
+  var m = document.createElement('div');
+  m.id = 'ventaMenuMas'; m.dataset.vid = vid; m.setAttribute('role', 'menu');
+  m.style.cssText = 'position:fixed;z-index:9000;min-width:210px;background:var(--card,#fff);color:var(--text);border:1px solid var(--border);border-radius:10px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:5px';
+  m.innerHTML = acc.map(function(k) {
+    var it = ITEMS[k]; if (!it) return '';
+    return (it.rojo && acc.length > 1 ? '<div style="height:1px;background:var(--border);margin:4px 2px"></div>' : '') +
+      '<button type="button" role="menuitem" data-k="' + k + '" style="display:flex;align-items:center;gap:9px;width:100%;border:0;background:transparent;padding:9px 10px;border-radius:7px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;text-align:left;color:' + (it.rojo ? 'var(--red,#DC2626)' : 'inherit') + '">' +
+      (it.ic ? _iv2ic(it.ic, 15) : '<span style="width:15px;text-align:center;font-weight:800">↺</span>') + '<span>' + escHtml(it.txt) + '</span></button>';
+  }).join('');
+  document.body.appendChild(m);
+  var r = btn.getBoundingClientRect(), w = m.offsetWidth, h = m.offsetHeight;
+  m.style.left = Math.max(8, Math.min(r.right - w, window.innerWidth - w - 8)) + 'px';
+  m.style.top = (r.bottom + h + 6 > window.innerHeight ? Math.max(8, r.top - h - 4) : r.bottom + 4) + 'px';
+  m.querySelectorAll('button[data-k]').forEach(function(b) {
+    b.addEventListener('mouseenter', function() { b.style.background = 'var(--light)'; });
+    b.addEventListener('mouseleave', function() { b.style.background = 'transparent'; });
+    b.addEventListener('click', function() { m.remove(); ITEMS[b.dataset.k].fn(); });
+  });
+  var cerrar = function(ev) {
+    if (ev.type === 'keydown' && ev.key !== 'Escape') return;
+    if (ev.type === 'click' && m.contains(ev.target)) return;
+    m.remove(); document.removeEventListener('click', cerrar, true); document.removeEventListener('keydown', cerrar, true); window.removeEventListener('scroll', cerrar, true);
+  };
+  setTimeout(function() { document.addEventListener('click', cerrar, true); document.addEventListener('keydown', cerrar, true); window.addEventListener('scroll', cerrar, true); }, 0);
 }
 
 // ═══ EDITAR VENTA (admin): cliente, fecha, productos, IMEI, pago e importe ═══
