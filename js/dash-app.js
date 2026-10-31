@@ -10171,7 +10171,8 @@ function verFinanciado(id) {
   v.cuotas.forEach(function(cu, i) { if (cu.pagado) { _cobrR += _finCuotaRow(cu, i); _nC++; } else { _pendR += _finCuotaRow(cu, i); _nP++; } });
   // Un pago de cualquier importe: va a la primera cuota pendiente y lo que sobre, a las siguientes.
   var _primP = v.cuotas.findIndex(function (cu) { return !cu.pagado; });
-  if (_primP >= 0) html += '<button class="btn-pc btn-primary" data-vid="' + id + '" data-cidx="' + _primP + '" style="width:100%;margin:0 0 12px;padding:11px">💶 ' + escHtml(T('finp.registrar_pago')) + '</button>';
+  if (_primP >= 0) html += '<button class="btn-pc btn-primary" data-vid="' + id + '" data-cidx="' + _primP + '" style="width:100%;margin:0 0 8px;padding:11px">💶 ' + escHtml(T('finp.registrar_pago')) + '</button>';
+  if (_primP >= 0 && !v.reembolsado) html += '<button onclick="abrirWhatsAppPendiente(\'venta\',\'' + _jsAttr(id) + '\')" style="width:100%;margin:0 0 12px;padding:10px;border:1px solid rgba(37,211,102,.5);background:rgba(37,211,102,.08);color:#128C4A;border-radius:9px;font:inherit;font-weight:700;cursor:pointer">💬 ' + escHtml(T('fin.wa_pendiente')) + '</button>';
   if (_nP) html += '<div style="font-size:11px;font-weight:800;color:#C2491A;text-transform:uppercase;letter-spacing:.4px;margin:4px 0 8px">⏳ ' + T('finv.pendientes') + ' (' + _nP + ')</div>' + _pendR;
   if (v.entrada || _nC) {
     html += '<div style="font-size:11px;font-weight:800;color:#0F7355;text-transform:uppercase;letter-spacing:.4px;margin:14px 0 8px">✅ ' + T('finv.cobrado') + (_nC ? ' (' + _nC + ')' : '') + '</div>';
@@ -10309,7 +10310,8 @@ function verFinanciadoRep(id) {
     '<span style="font-size:11px;color:var(--muted)">' + T('finrep.resumen').replace('{total}', cur(r.total)).replace('{entrada}', cur(r.entrada || 0)).replace('{pagado}', cur(pagado)) + T('rep.queda_deber') + ': ' + cur(pendiente) + '</span></div>' +
     '<div style="font-size:11px;font-weight:700;color:var(--muted);margin-bottom:8px">' + T('finrep.cuotas_h') + '</div>';
   var _primP = r.cuotas.findIndex(function (cu) { return !cu.pagado; });
-  if (_primP >= 0) html += '<button class="btn-pcr btn-primary" data-rid="' + id + '" data-cidx="' + _primP + '" style="width:100%;margin:0 0 12px;padding:11px">💶 ' + escHtml(T('finp.registrar_pago')) + '</button>';
+  if (_primP >= 0) html += '<button class="btn-pcr btn-primary" data-rid="' + id + '" data-cidx="' + _primP + '" style="width:100%;margin:0 0 8px;padding:11px">💶 ' + escHtml(T('finp.registrar_pago')) + '</button>';
+  if (_primP >= 0) html += '<button onclick="abrirWhatsAppPendiente(\'rep\',\'' + _jsAttr(id) + '\')" style="width:100%;margin:0 0 12px;padding:10px;border:1px solid rgba(37,211,102,.5);background:rgba(37,211,102,.08);color:#128C4A;border-radius:9px;font:inherit;font-weight:700;cursor:pointer">💬 ' + escHtml(T('fin.wa_pendiente')) + '</button>';
   r.cuotas.forEach(function(cu, i) {
     var vencido = !cu.pagado && cu.fecha && cu.fecha < hoyLocal();
     var pag = _cuotaPagado(cu);
@@ -24335,13 +24337,24 @@ var PLANTILLAS_WA_DEFAULT = {
   pieza_recibida: {nombre:'Pieza recibida', texto:'¡Hola {nombre}! 👋\n\nBuenas noticias: ya nos ha llegado la pieza para reparar tu {modelo}. Nos ponemos con la reparación y te avisamos en cuanto esté lista para recoger.\n\nGracias por tu paciencia. Saludos desde {tienda}.'},
   pieza_traer: {nombre:'Pieza lista, traer equipo', texto:'¡Hola {nombre}! 👋\n\nBuenas noticias: ya nos ha llegado la pieza para tu {modelo}. Cuando quieras, pásate por {tienda} con el equipo y te la instalamos en el momento. Suele ser rápido.\n\n¡Te esperamos! Saludos desde {tienda}.'},
   cuota_proxima: {nombre:'Cuota próxima', texto:'Hola {nombre}, te recuerdo que tu cuota de {total} vence el {fecha}. Saludos desde {tienda}.'},
+  fin_pendiente: {nombre:'Pendiente total', texto:'Hola {nombre}, te escribimos desde {tienda}. De tu {modelo} quedan por pagar {total} ({estado}). Puedes pasar a pagarlo cuando te venga bien. ¡Gracias!'},
   cuota_vencida: {nombre:'Cuota vencida', texto:'Hola {nombre}, tu cuota de {total} venció el {fecha}. Pásate por {tienda} cuando puedas para regularizarla. Gracias.'},
   fiado_recordatorio: {nombre:'Recordatorio pago pendiente', texto:'Hola {nombre} 👋\n\nTe escribo desde {tienda} para recordarte que tienes un pago pendiente:\n\n💰 Importe: {total}\n📅 Del día: {fecha}\n\nCuando puedas pásate por la tienda para regularizar. ¡Gracias!'},
   generico: {nombre:'Mensaje libre', texto:'Hola {nombre}, te escribo desde {tienda}.'}
 };
 
 function getPlantillasWA() {
-  if (AJUSTES.plantillasWA) return AJUSTES.plantillasWA;   // personalizadas de la tienda → tal cual
+  if (AJUSTES.plantillasWA) {
+    // Personalizadas de la tienda → tal cual; las plantillas nuevas que aún no tiene se añaden por defecto.
+    var falta = Object.keys(PLANTILLAS_WA_DEFAULT).filter(function(k) { return !AJUSTES.plantillasWA[k]; });
+    if (!falta.length) return AJUSTES.plantillasWA;
+    var mix = {}; Object.keys(AJUSTES.plantillasWA).forEach(function(k) { mix[k] = AJUSTES.plantillasWA[k]; });
+    falta.forEach(function(k) {
+      var tn = T('wa.pl_' + k), tt = T('wa.txt_' + k);
+      mix[k] = { nombre: tn && tn !== 'wa.pl_' + k ? tn : PLANTILLAS_WA_DEFAULT[k].nombre, texto: tt && tt !== 'wa.txt_' + k ? tt : PLANTILLAS_WA_DEFAULT[k].texto };
+    });
+    return mix;
+  }
   // Por defecto: nombre y TEXTO en el idioma de la tienda (i18n). Fallback al literal español.
   var out = {};
   Object.keys(PLANTILLAS_WA_DEFAULT).forEach(function(k) {
@@ -24359,7 +24372,7 @@ function getPlantillasWA() {
 // Nombre de plantilla traducido: solo para las plantillas por defecto (las personalizadas
 // por la tienda se respetan tal cual). Devuelve el nombre i18n o el original.
 function _waPlNombre(key, p) {
-  if (AJUSTES.plantillasWA) return (p && p.nombre) || key; // personalizada → no tocar
+  if (AJUSTES.plantillasWA && AJUSTES.plantillasWA[key]) return (p && p.nombre) || key; // personalizada → no tocar
   var t = (typeof T === 'function') ? T('wa.pl_' + key) : '';
   return (t && t !== 'wa.pl_' + key) ? t : ((p && p.nombre) || key);
 }
@@ -24475,6 +24488,35 @@ function abrirWhatsAppRep(repId) {
   renderPreviewWA();
   openM('mWhatsApp');
 }
+
+// Aviso por WhatsApp de TODO lo que queda por pagar de una venta o reparación financiada.
+function abrirWhatsAppPendiente(tipo, id) {
+  var o = tipo === 'rep' ? (DB.reps || []).find(function(x) { return x.id === id; }) : (DB.ventas || []).find(function(x) { return x.id === id; });
+  if (!o) return;
+  var cli = _cliDeFin({ tipo: tipo === 'rep' ? 'rep' : 'venta', obj: o });
+  if (!cli || !cli.tel) { toast(T('tst.cliente_sin_telefono'), 'err'); return; }
+  var cuotas = o.cuotas;
+  if (typeof cuotas === 'string') { try { cuotas = JSON.parse(cuotas); } catch (e) { cuotas = []; } }
+  cuotas = cuotas || [];
+  var pagado = cuotas.reduce(function(a, c) { return a + _cuotaPagado(c); }, 0);
+  var pend = Math.max(0, Math.round(((parseFloat(o.total) || 0) - (parseFloat(o.entrada) || 0) - pagado) * 100) / 100);
+  if (pend <= 0.005) { toast(T('tst.financiado_completado'), 'ok'); return; }
+  var nPend = cuotas.filter(function(c) { return !c.pagado; }).length;
+  _waContexto = {
+    tipo: 'pendiente', refId: o.id, refTipo: tipo === 'rep' ? 'reparacion' : 'venta', cli: cli,
+    datos: { nombre: cli.nombre || '', tienda: TIENDA.nombre || '', modelo: ((tipo === 'rep' ? (o.marca || '') + ' ' : '') + (o.modelo || '')).trim(),
+      total: pend, estado: T('fin.cuotas_pend').replace('{n}', nPend) }
+  };
+  document.getElementById('waInfoCli').innerHTML = '<strong>💵 ' + esc(cli.nombre + ' ' + (cli.apellidos||'')) + '</strong> · ' + esc(cli.tel) + '<br><span style="color:var(--muted);font-size:11px">' + esc(T('finv.pendiente')) + ': ' + cur(pend) + ' · ' + esc(_waContexto.datos.estado) + '</span>';
+  var sel = document.getElementById('waPlantilla');
+  var plantillas = getPlantillasWA();
+  sel.innerHTML = ['fin_pendiente', 'generico'].filter(function(k){ return plantillas[k]; }).map(function(k) {
+    return '<option value="' + k + '">' + _waPlNombre(k, plantillas[k]) + '</option>';
+  }).join('');
+  renderPreviewWA();
+  openM('mWhatsApp');
+}
+window.abrirWhatsAppPendiente = abrirWhatsAppPendiente;
 
 function abrirWhatsAppCuota(ventaId, idxCuota) {
   var v = DB.ventas.find(function(x){ return x.id === ventaId; });
