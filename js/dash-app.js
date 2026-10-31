@@ -10395,7 +10395,8 @@ function registrarPagoCuotaRep(rid, cidx) {
 // cuotas lleva y lo que le queda). Reutiliza _modalOverlay + wa.me como el resto de avisos.
 function _ofrecerWaPagoCuota(r, pago, metodo) {
   try {
-    var cliente = (DB.clis || []).find(function(c) { return c.id === r.clienteId; });
+    // Venta o reparación: el cliente por id o, si la venta no lo tiene enlazado, por el nombre.
+    var cliente = (DB.reps || []).indexOf(r) !== -1 ? _cliDeFin({ tipo: 'rep', obj: r }) : _cliDeFin({ tipo: 'venta', obj: r });
     var nombre = (r.clienteNombre || '').trim().split(' ')[0] || '';
     var equipo = ((r.marca || '') + ' ' + (r.modelo || '')).trim();
     var tienda = (TIENDA && TIENDA.nombre) || 'TekPair';
@@ -10409,7 +10410,8 @@ function _ofrecerWaPagoCuota(r, pago, metodo) {
         ? T('wapago.restante').replace('{p}', pagadas).replace('{t}', r.cuotas.length).replace('{r}', cur(restante)) + '\n'
         : T('wapago.completo') + '\n') +
       '\n— ' + tienda;
-    var telE164 = cliente ? String((cliente.telPrefijo || '+34') + (cliente.tel || '')).replace(/[^0-9]/g, '') : '';
+    // waTel respeta un teléfono que ya trae +34/0034 (antes salía «3434…», un número que no existe).
+    var telE164 = (cliente && cliente.tel) ? waTel(cliente.tel, cliente.telPrefijo) : '';
     var waUrl = 'https://wa.me/' + telE164 + '?text=' + encodeURIComponent(msg);
     var m = _modalOverlay(
       '<div style="font-weight:800;font-size:15px;margin-bottom:6px">' + escHtml(T('wapago.titulo')) + '</div>' +

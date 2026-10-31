@@ -143,8 +143,8 @@
     };
   }
 
+  var _openNativo = window.open.bind(window);
   if (tkIsDesktop()) {
-    var _openNativo = window.open.bind(window);
     window.open = function (url, target, feats) {
       var u = url == null ? '' : String(url);
       // Ventana en blanco donde el código escribe el documento.
@@ -176,6 +176,24 @@
       }
       return tkEnlaceExterno(u, function (x, t) { return _openNativo(x, t || target, feats); });
     };
+  }
+
+  // Enlaces <a href> a fuera (WhatsApp, webs, email): dentro de la app un target="_blank"
+  // no abre nada (p. ej. «Enviar recibo por WhatsApp» tras cobrar una cuota). Se abren en el
+  // navegador / WhatsApp del sistema, igual que window.open. Las descargas siguen su camino.
+  if (tkIsDesktop()) {
+    document.addEventListener('click', function (ev) {
+      if (ev.defaultPrevented || ev.button !== 0) return;
+      var a = ev.target && ev.target.closest && ev.target.closest('a[href]');
+      if (!a || a.hasAttribute('download')) return;
+      var href = a.getAttribute('href') || '';
+      var abs = href; try { abs = new URL(href, location.href).href; } catch (e) {}
+      var fuera = /^(mailto:|tel:|whatsapp:)/i.test(abs) ||
+        (/^https?:/i.test(abs) && (a.target === '_blank' || new URL(abs).origin !== location.origin));
+      if (!fuera) return;
+      ev.preventDefault();
+      tkEnlaceExterno(abs, function (x, t) { return _openNativo(x, t || '_blank'); });
+    }, true);
   }
 
   function tkInvoke(cmd, args) {
