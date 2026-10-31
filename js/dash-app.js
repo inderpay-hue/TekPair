@@ -10162,7 +10162,9 @@ function verFinanciado(id) {
       '<div style="font-size:10px;color:' + (vencido ? 'var(--red)' : 'var(--muted)') + '">' + T('finv.vence') + ': ' + escHtml(cu.fecha ? fmtFecha(cu.fecha) : '') + subPag + '</div>' + _cuotaAbonosHtml(cu, v.reembolsado ? null : { vid: id, cidx: i }) + '</div>' +
       '<div>' + (cu.pagado
         ? '<span style="color:var(--green);font-size:11px;font-weight:700">✓ ' + T('finv.pagado') + '</span>'
-        : '<button data-vid="' + id + '" data-cidx="' + i + '" class="btn-pc btn-primary" style="padding:5px 10px;font-size:11px;width:auto">' + (parcial ? T('fin.completar') : T('finv.registrar')) + '</button>'
+        : '<div style="display:flex;gap:6px;align-items:center">' +
+          (v.reembolsado ? '' : '<button data-vid="' + id + '" data-cidx="' + i + '" class="btn-wac" title="' + escHtml(T('wa.titulo')) + '" style="padding:5px 9px;font-size:12px;width:auto;border:1px solid var(--border);background:var(--card,#fff);border-radius:7px;cursor:pointer">💬</button>') +
+          '<button data-vid="' + id + '" data-cidx="' + i + '" class="btn-pc btn-primary" style="padding:5px 10px;font-size:11px;width:auto">' + (parcial ? T('fin.completar') : T('finv.registrar')) + '</button></div>'
       ) + '</div></div>';
   }
   var _pendR = '', _cobrR = '', _nP = 0, _nC = 0;
@@ -10183,6 +10185,9 @@ function verFinanciado(id) {
   openM('finModal');
   document.getElementById('finModalContent').querySelectorAll('.btn-pc').forEach(function(btn) {
     btn.addEventListener('click', function() { registrarPagoCuota(this.dataset.vid, parseInt(this.dataset.cidx)); });
+  });
+  document.getElementById('finModalContent').querySelectorAll('.btn-wac').forEach(function(btn) {
+    btn.addEventListener('click', function() { abrirWhatsAppCuota(this.dataset.vid, parseInt(this.dataset.cidx)); });
   });
   document.getElementById('finModalContent').querySelectorAll('.btn-anular-abono').forEach(function(btn) {
     btn.addEventListener('click', function() { anularAbonoCuota(this.dataset.vid, parseInt(this.dataset.cidx, 10), parseInt(this.dataset.k, 10)); });
@@ -24472,25 +24477,32 @@ function abrirWhatsAppRep(repId) {
 function abrirWhatsAppCuota(ventaId, idxCuota) {
   var v = DB.ventas.find(function(x){ return x.id === ventaId; });
   if (!v) return;
-  var cli = DB.clis.find(function(c){ return c.id === v.clienteId; });
+  // El cliente: por id o, en ventas antiguas sin enlazar, por el nombre (igual que «Reclamar cuotas»).
+  var cli = _cliDeFin({ tipo: 'venta', obj: v });
   if (!cli || !cli.tel) { toast(T('tst.cliente_sin_telefono'), 'err'); return; }
-  var c = v.cuotas[idxCuota];
+  var cuotas = v.cuotas;
+  if (typeof cuotas === 'string') { try { cuotas = JSON.parse(cuotas); } catch (e) { cuotas = []; } }
+  var c = (cuotas || [])[idxCuota];
   if (!c) return;
   var hoy = new Date(); hoy.setHours(0,0,0,0);
   var fc = _parseDateAny(c.fecha);
   var vencida = fc && fc < hoy;
   _waContexto = {
     tipo: 'cuota',
+    refId: v.id, refTipo: 'venta',
     cli: cli,
     datos: {
       nombre: cli.nombre || '',
       tienda: TIENDA.nombre || '',
       modelo: v.modelo || '',
       total: c.importe || 0,
-      fecha: c.fecha || ''
+      fecha: c.fecha ? fmtFecha(c.fecha) : ''
     }
   };
-  document.getElementById('waInfoCli').innerHTML = '<strong>💵 ' + esc(cli.nombre + ' ' + (cli.apellidos||'')) + '</strong> · ' + esc(cli.tel) + '<br><span style="color:var(--muted);font-size:11px">Cuota ' + (idxCuota+1) + ' · ' + cur(c.importe) + ' · ' + (vencida ? (T('cita.vencida')||'VENCIDA') : T('cuota.vence').replace('{fecha}', c.fecha)) + '</span>';
+  // Lo que queda de esa cuota (si ya pagó una parte, se reclama solo el resto).
+  var quedaC = Math.round(((parseFloat(c.importe) || 0) - _cuotaPagado(c)) * 100) / 100;
+  if (quedaC > 0.005) _waContexto.datos.total = quedaC;
+  document.getElementById('waInfoCli').innerHTML = '<strong>💵 ' + esc(cli.nombre + ' ' + (cli.apellidos||'')) + '</strong> · ' + esc(cli.tel) + '<br><span style="color:var(--muted);font-size:11px">' + esc(T('finv.cuota')) + ' ' + (idxCuota+1) + ' · ' + cur(c.importe) + ' · ' + (vencida ? (T('cita.vencida')||'VENCIDA') : T('cuota.vence').replace('{fecha}', c.fecha ? fmtFecha(c.fecha) : '')) + '</span>';
   var sel = document.getElementById('waPlantilla');
   var plantillas = getPlantillasWA();
   var keysCuota = vencida ? ['cuota_vencida','cuota_proxima','generico'] : ['cuota_proxima','cuota_vencida','generico'];
