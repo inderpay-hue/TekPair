@@ -3852,7 +3852,13 @@ que aplicarTema (dash-app.js). */try{var _tt=localStorage.getItem('tk_theme')||'
 #pInicioNuevo .inv-clk{cursor:pointer;transition:transform .15s,box-shadow .15s}#pInicioNuevo .inv-clk:hover{transform:translateY(-3px);box-shadow:0 16px 40px -16px rgba(34,29,25,.22)}
 #pInicioNuevo .inv-chartcard.inv-clk:hover{box-shadow:0 26px 52px -18px rgba(34,29,25,.5)}
 /* Paginador de vistas */
-#pInicioNuevo .inv-vistas{display:inline-flex;background:#fff;border:1px solid var(--inv-line);border-radius:12px;padding:3px;box-shadow:var(--inv-sm);margin-bottom:18px}
+/* Mientras TekPair carga, el Inicio no enseña su esqueleto (botones viejos, ceros, sin tema):
+   se ve un indicador hasta que renderInicioNuevo lo pinta la primera vez (o a los 8 s, por si acaso). */
+#pInicioNuevo:not(.inv-listo){position:relative;min-height:60vh}
+#pInicioNuevo:not(.inv-listo) > *{visibility:hidden}
+#pInicioNuevo:not(.inv-listo)::after{content:'';position:absolute;left:50%;top:30vh;width:34px;height:34px;margin-left:-17px;border:3px solid rgba(255,91,31,.25);border-top-color:var(--orange,#FF5B1F);border-radius:50%;animation:invCarga .8s linear infinite}
+@keyframes invCarga{to{transform:rotate(360deg)}}
+#pInicioNuevo .inv-vistas{display:none!important;background:#fff;border:1px solid var(--inv-line);border-radius:12px;padding:3px;box-shadow:var(--inv-sm);margin-bottom:18px}
 #pInicioNuevo .inv-vbtn{border:none;background:none;font:inherit;font-size:13px;font-weight:700;color:var(--inv-ink2);padding:8px 16px;border-radius:9px;cursor:pointer;display:flex;align-items:center;gap:6px}
 #pInicioNuevo .inv-vbtn.on{background:var(--inv-or);color:#fff;box-shadow:0 4px 10px rgba(236,92,36,.3)}
 /* Acciones arriba (6) */
@@ -3892,6 +3898,7 @@ que aplicarTema (dash-app.js). */try{var _tt=localStorage.getItem('tk_theme')||'
 @media(max-width:560px){#pInicioNuevo .inv-hero{flex-direction:column;align-items:flex-start;gap:12px}#pInicioNuevo .inv-grid{gap:14px}#pInicioNuevo .inv-row3{gap:14px}}
 </style>
 <div class="page active" id="pInicioNuevo">
+  <script>setTimeout(function(){var e=document.getElementById('pInicioNuevo');if(e)e.classList.add('inv-listo');},8000);</script>
   <div class="inv-hero">
     <div><div class="inv-eyebrow" id="inv-fecha"></div><h1 class="inv-h1" id="inv-saludo">Hola</h1>
       <div class="inv-pulse" id="inv-pulse"></div></div>
@@ -5769,7 +5776,7 @@ que aplicarTema (dash-app.js). */try{var _tt=localStorage.getItem('tk_theme')||'
 <script src="/js/imei-modelo.js?v=20261015b"></script>
 <script src="/js/usados.js?v=20261016a"></script>
 <script src="/js/ticket-venta.js?v=20261027d"></script>
-<script src="/js/dash-app.js?v=20261105g"></script>
+<script src="/js/dash-app.js?v=20261105h"></script>
 <script src="/js/devolucion.js?v=20261104a"></script>
 
 <!-- ═══ MODAL BÚSQUEDA GLOBAL ═══ -->

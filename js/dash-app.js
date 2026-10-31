@@ -6208,6 +6208,8 @@ window.reclamarCuotas = reclamarCuotas;
 
 function renderInicioNuevo() {
   if (!document.getElementById('pInicioNuevo')) return;
+  // Al terminar esta primera pintada (aunque algo falle por el camino) se enseña el Inicio.
+  setTimeout(function() { var _pi = document.getElementById('pInicioNuevo'); if (_pi) _pi.classList.add('inv-listo'); }, 0);
   try { _invPeriodoTitulos(); } catch (e) {}
   try { renderEstancadas(); } catch (e) {}
   try { renderLoQueDebes(); } catch (e) {}
